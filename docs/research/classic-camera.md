@@ -94,5 +94,5 @@ camera view good (2026-10-14); a matched original-game comparison is still pendi
 
 ## 5. Owner-requested zoom extension
 
-The convenience deviation is defined in ADR-0476; native bounds above remain
+The convenience deviation is defined in ADR-0478; native bounds above remain
 the original rule rather than the extended adapter setting.

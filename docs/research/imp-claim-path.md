@@ -292,8 +292,8 @@ with both imps' squared distances to the tile centre from the frame before:
    the just-dug handler kicks first.
 9. **A door tile is never claimed**; the claim needs one orthogonal own floor neighbour.
    Built only in ADR-0443 (2026-10-12): ours had offered Level 4's hero door for attack
-   about 5,000 times. A free slot is taken only if the walk starts; ours commits without
-   a route (Q588).
+   about 5,000 times. A free slot is taken only if the walk starts; built as ADR-0471
+   (Q588).
 10. **The cap** counts thief and loser alike, once per state-10 dispatch; updates run
     newest thing first.
 11. **Durations:** 1 tick in 15, 8 in 16 (four applications); enemy floor 28 in 20 then

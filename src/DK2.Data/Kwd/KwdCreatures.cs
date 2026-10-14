@@ -274,6 +274,7 @@ public static partial class KwdCreatures
             NameStringId = U16(0xF24),
             TooltipStringId = U16(0xF26),
             IntroductionStringId = U16(0xCFF),
+            EntranceEffectId = U16(0xF36),
         };
     }
 }

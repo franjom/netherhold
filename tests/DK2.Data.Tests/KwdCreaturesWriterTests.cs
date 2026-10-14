@@ -30,7 +30,7 @@ public class KwdCreaturesWriterTests
             "UnhappyThreshold:F4F:1 AngerNoLair:F28:2 AngerNoFood:F2A:2 AngerNoPay:F2C:2 AngerNoWork:F2E:2 " +
             "AngerSlap:F30:2 AngerInHand:F32:2 DropDeliveryCalm:FCB:2 TortureHpChange:107F:2 TortureMoodChange:1081:2 TortureTimeToConvert:EF4:4 " +
             "GuardDuration:ED4:4 IdleDuration:ED8:4 SlapFearlessDuration:EDC:4 PossessionManaCost:EE8:2 LairObjectId:F52:1 " +
-            "CloneCreatureId:D3B:1 NameStringId:F24:2 TooltipStringId:F26:2 IntroductionStringId:CFF:2",
+            "CloneCreatureId:D3B:1 NameStringId:F24:2 TooltipStringId:F26:2 IntroductionStringId:CFF:2 EntranceEffectId:F36:2",
             excludedProperties: ["Attractions", "Spells", "Resistances", "HappyJobs", "UnhappyJobs", "AngryJobs", "HateJobs", "AlternativeJobs",
                 "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation",
                 "ReaperSummonAnimation", "ReaperSummonFallbackAnimation", "ArtSlots"],

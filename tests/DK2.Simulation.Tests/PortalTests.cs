@@ -504,6 +504,55 @@ public class PortalTests
         Assert.All(arrivals, e => Assert.Contains($"portal_tile={workingHole}", e.Detail));
     }
 
+    /// <summary>Portal_CreateArrival asks for the creature definition's Portal Entrance effect at
+    /// the spawn point before the Entrance action (<c>0x004DCB8F</c>; ADR-0476): the beams of white
+    /// light from the hole the owner sees as a creature climbs out.</summary>
+    [Fact]
+    public void AnArrivalAsksForTheCreaturesEntranceEffectAtTheHole()
+    {
+        GameDatabase fixture = Dk2TerrainFixture.Database();
+        var level = new GlobalVariables();
+        level.CreaturePool.Add(new CreaturePoolEntry(GoblinId, 15, Keeper));
+        level.Availabilities.Add(new AvailabilityEntry(2, Keeper, GoblinId, 3));
+        GameDatabase db = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values,
+            fixture.Creatures.Values.Select(c => c.CreatureId == GoblinId ? c with { EntranceEffectId = 181 } : c),
+            fixture.Variables).ForLevel(level);
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+
+        GameSimulation sim = Simulation(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        sim.Run(LongEnough);
+
+        SimEvent arrival = sink.Events.First(e => e.Kind == "creature_entered");
+        SimEvent request = Assert.Single(sink.Events, e => e.EffectRequest.HasValue && e.Tick == arrival.Tick);
+        ViewEffectRequest effect = request.EffectRequest!.Value;
+        Assert.Equal(new EffectId(181), effect.EffectId);
+        Assert.Equal(Keeper, effect.Owner.Value);
+        int hole = (6 * world.Width) + 6;
+        Assert.Contains($"portal_tile={hole}", arrival.Detail);
+        Assert.Equal(new FpPosition3(new Fp32(6 * Fp32.One + Fp32.One / 2), new Fp32(6 * Fp32.One + Fp32.One / 2),
+            new Fp32(0)), effect.Position);
+        Assert.Equal(default, effect.Heading);
+    }
+
+    [Fact]
+    public void AnArrivalOfACreatureWithNoEntranceEffectAsksForNothing()
+    {
+        GameDatabase db = Database();
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+        GameSimulation sim = Simulation(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        sim.Run(LongEnough);
+        Assert.Contains(sink.Events, e => e.Kind == "creature_entered");
+        Assert.DoesNotContain(sink.Events, e => e.EffectRequest.HasValue);
+    }
+
     // ---- gate 1: attraction ----------------------------------------------
 
     [Fact]

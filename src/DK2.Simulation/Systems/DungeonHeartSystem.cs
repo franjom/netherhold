@@ -37,7 +37,13 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             if (!PlayerIds.IsKeeper(player.PlayerId.Value)) continue;
 
             if (ImpSupplyRules.HeartTileOf(world, database, player.PlayerId) >= 0)
-                RoomFrame(context, ref player, max, regen, secondEnds);
+            {
+                if (!player.HeartRuined) HeartIntroRules.RoomFrame(context, player.PlayerId);
+                // The ordinary frame waits for the opening sequence (0x004D9BA5): no regeneration
+                // and no ruin until nine seconds after its start.
+                if (HeartIntroRules.SequenceOver((uint)context.Tick.Value, database))
+                    RoomFrame(context, ref player, max, regen, secondEnds);
+            }
 
             // The frame's tail: a stamped killer is the whole condition, and the
             // verdict depends only on which side struck the blow.

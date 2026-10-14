@@ -15,6 +15,13 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**247** — `0x9B410CB31AADB8BD`. The Dungeon Heart room's ordinary frame (regeneration, ruin) waits until nine seconds after its opening sequence starts, as `0x004D9A60` does (ADR-0475); no new saved field. The view effects of the sequence are neither saved nor hashed.
+
+**246** — `0xD6C4B6C05FD11458`. The flee run and the hero reluctance count only Guard Rooms near the
+attacker (`0x00460B50`); no new saved field. ADR-0473.
+
+**245** — `0xF345C33D7F7605C3`. Worker takes need a route (ADR-0471) and a reachable dig side, object or body (ADR-0472); no new saved field.
+
 **244** — `0x2B86A02DFCAA09DE`. A creature's `ClaimActionTile`, the tile a possessed worker's
 claim strikes each tick, and a work order's multiplier and strike flags are saved and hashed
 (ADR-0469); the gem rule (ADR-0470) and the possessed object arms (ADR-0468) add no field.

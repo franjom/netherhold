@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 244: possessed dig and claim, work-order multiplier and strike (ADR-0469).
+        // HashVersion 246: a fleeing creature counts only Guard Rooms near its attacker (ADR-0473).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x2B86A02DFCAA09DEUL, sim.StateHash());
+        Assert.Equal(0x9B410CB31AADB8BDUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

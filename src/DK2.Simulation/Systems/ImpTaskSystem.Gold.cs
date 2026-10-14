@@ -99,15 +99,20 @@ public sealed partial class ImpTaskSystem
     /// the number. Whether the original crowds a pile differently is
     /// UNKNOWN.</para>
     /// </summary>
-    private void CommitFetch(SimulationContext context, CreatureState creature, TilePos standing)
+    private bool CommitFetch(SimulationContext context, CreatureState creature, TilePos standing)
     {
         WorldState world = context.World;
         int tileIndex = (standing.Y * world.Width) + standing.X;
 
+        // 0x0046B6D0 takes the pile only if its walk starts, else tries the next thing (Q590).
+        (long px, long py) = PointOfFirstPile(context, tileIndex);
+        if (!context.Navigation.TryRouteToStance(creature, px, py, Navigation.MoveOptions.ExactSpot))
+        {
+            context.Emit(SystemName, "fetch_unreachable", $"imp={creature.Id} {Describe(world, tileIndex)}");
+            return false;
+        }
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = default;
-        (long px, long py) = PointOfFirstPile(context, tileIndex);
-        context.Navigation.TryRouteToStance(creature, px, py, Navigation.MoveOptions.ExactSpot);
         creature.TimerTicks = 0;
         creature.LastTaskKind = ImpTaskKind.FetchGold;
         FromTaskSelection(context, creature);
@@ -118,6 +123,7 @@ public sealed partial class ImpTaskSystem
             $"{Describe(world, tileIndex)} " +
             $"gold={FloorGold.OnTile(world, context.Database, tileIndex)} " +
             $"priority={FetchPriority} steps={_route.Count}");
+        return true;
     }
 
     /// <summary>

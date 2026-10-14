@@ -82,7 +82,7 @@ Step5 starts from master on classic-look/step5; its milestones are in
 plans/2026-10-14-classic-look-step5.md. Use targeted, serial checks to limit CPU load.
 The comparison protocol and camera core have passed independent reviews;
 authored projection/zoom, Q/E rotation and relative panning are built.
-The owner accepted the camera view and requested a modest zoom extension (ADR-0476).
+The owner accepted the camera view and requested a modest zoom extension (ADR-0478).
 Authored terrain colours and scoped whole-room/wall tint application pass independent
 review; see classic-lighting.md. Camera sub-tile startup/framing, native point-light
 response, two-mask fog and performance comparisons remain open; see the Step5 plan.
@@ -203,12 +203,17 @@ The first-approach correction and remaining matched-capture work are in combat-a
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
 4. M6: Level 4 (`l4live.sav`, won at capture tick 6743; DK2 side `level4-live1/seed01`,
-   local) replays all 6804 turns over seeds 1–20 and wins 3/20 (6724–6748)
+   local) replays all 6804 turns over seeds 1–20 and wins 2/20 on master 434a966b, 5/20 with the branch
    (experiments/2026-10-12-level4-packet-replay/). Guard Rooms draw Dark Elves
-   (ADR-0440), Receive Imps is built (ADR-0441), and a door tile is no longer offered for
-   claiming (ADR-0443). Next: the losing seeds' Imps die to heroes DK2's owner beats at
-   once (drops at (24,28) and (13–18,34)), and parties come 67 turns early because the
-   second Guard Room converts at 1962, not 2030; then Q588. The map builder
+   (ADR-0440), Receive Imps is built (ADR-0441), a door tile is never claimed (ADR-0443),
+   and a worker's take needs a route and a reachable side or target (ADR-0471, ADR-0472),
+   and a fleeing creature counts only Guard Rooms (ADR-0473, which lifts Level 3 from 11/20 to
+   14/20; branch `l4/guard-room-replay`, unmerged). Winners hold row 5 before the owner's drops
+   there (needed, not sufficient); losers lose Imps to the 3766–4600 hero fights and
+   sometimes miss portal arrivals the owner picks up. Party timing is seed spread. Next:
+   why heroes outlive DK2's beside Level 4's Guard Room (90 Imp flights and 31 alarms in seed 1
+   against DK2's 25 and 1; the `no_alarm` ends themselves match DK2), master's Level 1 fall to
+   18/20 at 434a966b, then Q590's remainder. The map builder
    and runner are in `level4-live1/rig/` (local); seeded DK2 playbacks are still to record.
 5. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built (`tools/blender/imp-reference.ps1`, Blender 5.2.2). The procedural

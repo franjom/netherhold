@@ -56,6 +56,18 @@ public class KwdCreaturesTests
         Assert.Equal(27, By(all, "Horny").CreatureId);
     }
 
+    /// <summary>The Portal Entrance effect at file byte 3894 (loader 0x00492320, staging +0x1326
+    /// to def+0x776; portal-creature-action.md), ADR-0476.</summary>
+    [InstallFact]
+    public void EntranceEffectIds_AreTheShippedPortalEntranceEffects()
+    {
+        List<CreatureDef> all = Load();
+        Assert.Equal(181, By(all, "Goblin").EntranceEffectId);
+        Assert.Equal(178, By(all, "Dark Elf").EntranceEffectId);
+        Assert.Equal(180, By(all, "Troll").EntranceEffectId);
+        Assert.Equal(0, By(all, "Imp").EntranceEffectId);
+    }
+
     [InstallFact]
     public void UniqueBaseCreatureIds_MapToOrdinaryArchetypes()
     {

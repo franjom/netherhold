@@ -224,6 +224,29 @@ capture check in §10 is what would show a long trade.
    removes competing claim tasks; the wall's neighbour changes re-raise kind 6). Slots are
    reused (`an-entity-id-is-a-slot`), so the id can even come to name an object.
 
+## 7a. A walk that does not start (Q588, Q590)
+
+Each handler's walk is `0x004651A0` → `0x00471890` → `0x004D0F60`, and a failed request
+ends the take. Claim (`0x0046AB50`) and reinforce (`0x0046AEA0`) walk first and kick a
+holder only after; a failed reinforce walk on a free side deletes the wall's task and
+the next side is tried. The dig handler `0x0046A550` kicks first, and a failed walk goes
+on to the same side's next slot, then the next side. State 10's selector `0x00469AF0`
+tests each side with `Route_IsPointReachable` before choosing and gives the whole
+selection up when the chosen walk fails. Gold (`0x0046B6D0`) skips to the next object; the
+objects handler `0x0046B9C0` also checks its walk (reviewer, 2026-10-12, not yet read in
+full). The just-dug claim `0x00469600` kicks before walking.
+
+Built (ADR-0471): claim, reinforce, dig and the just-dug claim route before committing.
+Built (ADR-0472): dig sides pass `Route_IsPointReachable(point, 0x80)` (the side tile's
+centre, or its corner for a mine), objects are tested at their own position before
+their task is raised, bodies after it is raised and before the walk or a steal, and a failed walk gives the state-10 dig selection up
+and moves the gold, object and body takes on. With ADR-0471 alone, Level 4 seed 19 lost:
+26 imps' takes of the owner's dig at (16,5) were refused 139 times at 6443–6800, and
+(17,5) was never claimed; with the side test those refusals are gone.
+Not built (Q590): the drop scan's dig handler `0x0046A550` retries the next slot and
+side, where ours moves to the next tile; the gold handler's reachability test on a held
+pile; the just-dug claim kicks after its walk (to its own tile, which never fails).
+
 ## 8. Update order (Q6)
 
 Not slot order. The world turn `0x0050A450` calls `0x004B7830` at `0x0050A7D7` with the

@@ -99,7 +99,7 @@ public class CombatNonFighterTests
         int impX, int attackerX, int alliedThreat, bool callToArms, bool raisesAlarm)
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 10, 10);
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.GuardRoomTerrain, 10, 10);
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, impX, 12);
         CreatureState attacker = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, attackerX, 12);
         world.Player(Keeper).CallToArms = new(callToArms, 0, 0, 0, 0);
@@ -132,6 +132,31 @@ public class CombatNonFighterTests
         {
             Assert.Equal(CreatureActivity.Withdrawing, imp.Activity);
         }
+    }
+
+    /// <summary><c>0x00460B50</c> walks the owner's rooms and skips any whose type byte <c>+0x18</c>
+    /// is not 9: a Lair beside the fight is no Guard Room, so the outmatched Imp withdraws, as
+    /// Level 3's Imps do in DK2's capture (72 of 76 flights end in state 202).</summary>
+    [Fact]
+    public void AnOutmatchedImpBesideARoomThatIsNotAGuardRoomWithdraws()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 10, 10);
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
+        CreatureState attacker = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
+        StatePlacement.Place(imp, 203);
+        imp.FightTargetKind = FightTargetKind.Creature;
+        imp.FightTargetId = attacker.Id;
+        imp.BackOffTimer = 0;
+        CombatRules.Register(attacker, imp.Id, ranged: false);
+        GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(1);
+
+        Assert.DoesNotContain(sink.Events, e => e.Kind is "raises_alarm" or "disengaged" && e.Detail.Contains($"creature={imp.Id} "));
+        Assert.Equal(CreatureActivity.Withdrawing, imp.Activity);
     }
 
     [Fact]
@@ -252,7 +277,7 @@ public class CombatNonFighterTests
     public void AnImpNearItsRoomsThatOutnumbersTheHeroKeepsScanning()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 13, 9);
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.GuardRoomTerrain, 13, 9);
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
         knight.PosX = imp.PosX + 3700;
@@ -273,7 +298,7 @@ public class CombatNonFighterTests
         (GameDatabase db, WorldState world) = OpenWorld();
         // The room six tiles from the hero: within the Imp's reporting distance, beyond the
         // Goblins' own sight and hearing, so none of them acquires the Knight before the alarm.
-        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 13, 5);
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.GuardRoomTerrain, 13, 5);
         int roomTile = (5 * world.Width) + 13;
         CreatureState first = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 5);
         CreatureState second = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 14, 5);
@@ -315,7 +340,7 @@ public class CombatNonFighterTests
         // ADR-0208: the Scout enters 199 and walks in 6 resuming 251, then stands down through
         // 1 and 252; a responder walks from where it was in 6 resuming 254.
         (GameDatabase db, WorldState world) = OpenWorld();
-        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 13, 5);
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.GuardRoomTerrain, 13, 5);
         int roomTile = (5 * world.Width) + 13;
         CreatureState[] goblins =
         [
@@ -351,7 +376,7 @@ public class CombatNonFighterTests
     {
         // Q517: 0x0047542A and 0x0047583F push 0x80 for type id 1, the Imp, and 0 for anyone else.
         (GameDatabase db, WorldState world) = OpenWorld();
-        PlaceRoom(world, Keeper, Dk2TerrainFixture.LairTerrain, 13, 5);
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.GuardRoomTerrain, 13, 5);
         int roomTile = (5 * world.Width) + 13;
         CreatureState[] goblins =
         [

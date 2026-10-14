@@ -94,7 +94,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - After merging master the rig baseline moves: measure a detached worktree at the new master and
   the branch side by side before writing numbers into an ADR.
 - Never `git add -A`: another session may be editing; stage named paths.
-- `kb_upsert` (the dk2kb MCP) writes the main tree, not your worktree.
+- `git stash push -- <path>` on a path with no changes saves nothing and says so only without `-q`; a `git stash pop` after it applies whatever older stash is on top (2026-10-14: someone's INDEX.md stash landed in the main tree). Check `git diff --quiet -- <path>` first, or pop by the entry's own message, never a bare pop.
+- `kb_upsert` (the dk2kb MCP) writes the main tree, not your worktree, and regenerates the main tree's `INDEX.md` too: copy both files across and `git checkout --` them in the main tree.
 - `kb_upsert` replaces a record's whole body and can drop its UTF-8 BOM: an agent that thinks a record is new
   overwrites an existing one (005956E0, 2026-10-12). Diff `name:` lines and first bytes against HEAD before committing.
 - A branch can hold uncommitted work (an agent that ran out of tokens): check `git status` in its
@@ -161,3 +162,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Blender object copies inherit `hide_select`; clear selection locks and assert selection before GLB export with `use_selection=True`, which can otherwise succeed with no meshes.
 - Ghidra `ForceFunc.py` can mistake an earlier stack reservation for the function prologue; after confirming the exact entry in disassembly, use `ForceAt.py` instead.
 - On Windows, running replay `DK2.Tools` processes lock their simulation DLL; finish them before rebuilding the solution or the Tools copy fails with MSB3027.
+- `git switch -c` in the shared main checkout moves every session's HEAD: another session's next three commits landed on the new branch, and one swept in a change staged there (b280ce8b, 2026-10-14). Make side branches in a worktree, and commit with an explicit path list (`git commit -- <paths>`).

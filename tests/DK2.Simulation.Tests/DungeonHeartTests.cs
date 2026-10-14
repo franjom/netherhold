@@ -45,6 +45,7 @@ public class DungeonHeartTests
         world.DamageHeart(Keeper, 10, Rival);
         Assert.Equal(Rival, world.Player(Keeper).HeartLastAttackerPlayerId);
         GameSimulation sim = Simulation(database, world);
+        SkipOpening(sim);
 
         // The room frame passes the owner's own tag as the source of the regeneration (0x004D9F4B).
         sim.Run(SimulationTiming.TicksPerSecond);
@@ -78,6 +79,10 @@ public class DungeonHeartTests
         int regen = database[VariableTypeId.DungeonHeartHealthRegenerationPerSecond];
         world.Player(Keeper).HeartHealth = max - 2 * regen - 1;
         GameSimulation sim = Simulation(database, world);
+
+        // Nothing regenerates during the opening sequence (0x004D9BA5, heart-intro.md).
+        SkipOpening(sim);
+        Assert.Equal(max - 2 * regen - 1, sim.World.Player(Keeper).HeartHealth);
 
         sim.Run(SimulationTiming.TicksPerSecond);
         Assert.Equal(max - regen - 1, sim.World.Player(Keeper).HeartHealth);
@@ -132,7 +137,10 @@ public class DungeonHeartTests
         ref PlayerState keeper = ref sim.World.Player(Keeper);
         Assert.Equal(PlayerStatus.Lost, keeper.Status);
         Assert.Equal(new GameTick(0), keeper.StatusTick);
-        Assert.True(keeper.HeartRuined);
+        // The room's own frame, which ruins it, waits for the opening sequence (heart-intro.md).
+        Assert.False(keeper.HeartRuined);
+        SkipOpening(sim);
+        Assert.True(sim.World.Player(Keeper).HeartRuined);
     }
 
     [Fact]
@@ -197,7 +205,7 @@ public class DungeonHeartTests
         Assert.False(TileWorkRules.Applies(world, database, tile, TileWorkKind.ConvertRoom, Rival));
 
         world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, Rival);
-        Simulation(database, world).Run(1);
+        SkipOpening(Simulation(database, world));
 
         Assert.True(world.Player(Keeper).HeartRuined);
         Assert.Equal(0, GoldStore.Capacity(world, database, corner));
@@ -291,6 +299,11 @@ public class DungeonHeartTests
 
     private static GameSimulation Simulation(GameDatabase database, WorldState world) =>
         new(database, world, 1, [new DungeonHeartSystem()]);
+
+    /// <summary>Runs past the Heart's opening sequence, before which the room's ordinary frame
+    /// (regeneration, ruin) does not run (<see cref="HeartIntroRules.SequenceOver"/>).</summary>
+    private static void SkipOpening(GameSimulation sim) =>
+        sim.Run(HeartIntroRules.SequenceSeconds * SimulationTiming.TicksPerSecond + 3);
 
     private static void GiveHeart(WorldState world, GameDatabase database, byte player, params TilePos[] tiles)
     {

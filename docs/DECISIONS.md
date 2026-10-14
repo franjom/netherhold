@@ -10778,7 +10778,179 @@ strike, for every miner; the gold's crediting and hand-off are unchanged.
 **Consequences.** A face never reaches its destroyed type, so no gem-mining task ends
 on a collapse. An imp at the base rate earns twice the gold it did there.
 
-## ADR-0476 — Allow a small configurable extension to camera zoom-out
+## ADR-0471 — A worker's take fails when its walk cannot start
+**Date:** 2026-10-12 · **Status:** accepted · Research: imp-task-stealing.md §7, imp-claim-path.md §4
+
+**Context.** Q588. DK2's handlers take their task only if the walk starts
+(`0x004651A0` → `0x00471890` → `0x004D0F60`); on a free claim slot the take's result is
+the walk's. Ours chose stances on a grid with no
+doors, committed the job whatever the router said, and dropped it on arrival as
+`out_of_reach`: 4,979 such drops over Level 4's 20 seeds after ADR-0443.
+
+**Decision.** For tile work, `CommitJob` routes first and commits nothing when the route
+fails, emitting `job_unreachable`. The claim ring tries its next tile; reinforce forgets
+a free side's task and tries the next side, as `0x0046AEA0` does. A held claim or
+reinforce slot is kicked only after the walk starts. The dig caller still kicks first
+and then moves to its next candidate tile, where `0x0046A550` tries the next slot and
+side and `0x00469AF0` gives the selection up (Q590). Gold, object and body fetches still
+ignore a failed route (Q590). Teleporting walks are unbuilt
+(Q418); DK2's teleport also needs the target reachable. Not modelled: DK2 raises the task
+and writes its flavour (`0x005080E0`) before the walk, and a failed walk keeps both.
+Hash/save version 245, with ADR-0472.
+
+**Consequences.** Level 4's `out_of_reach` drops fall from 4,979 to 17 (other walks);
+Levels 1–3 replay identically (19/2/13). Level 4 wins 2/20 (seeds 9, 11) against 3/20
+before (9, 11, 19), on master 15c2b038 and again on d1e67516. In seed 19, 26 imps'
+takes of the owner's dig at (16,5) are refused 139 times, likely because the dig side is
+chosen on the door-blind grid where DK2 tests each side's reachability and retries the
+next slot and side (Q590, not traced). (17,5) then goes unclaimed and the owner's drop there misses.
+
+## ADR-0472 — A worker tests a dig side, object or body for reachability first
+**Date:** 2026-10-12 · **Status:** accepted · Research: imp-task-stealing.md §7a
+
+**Context.** Q590. `0x00469AF0` keeps a dig side only if `Route_IsPointReachable(point,
+0x80)` (`0x00471630`, a door-respecting route query) passes; the objects handler (`0x0046B9C0`)
+asks it of the object's position before raising its task, the body handler (`0x0046D810`)
+after raising it and before the walk or a steal.
+Ours chose sides on the door-blind grid, so ADR-0471 refused 139 dig takes at (16,5) in
+Level 4 seed 19.
+
+**Decision.** `PointReachable` asks the router with the 0x80 profile: of each dig side
+(the side tile's centre, its corner for a mine), each object and each body. A failed walk
+now gives the state-10 dig selection up (`0x00469AF0` returns 0) and moves the gold and
+object takes on to their next thing; a body take returns false, where DK2 tries the next
+creature. Not built: the drop scan's slot-and-side
+retry (`0x0046A550`) and gold's held-pile test (Q590). Hash/save version 245, with ADR-0471.
+
+**Consequences.** On master b501992f, against master alone: Level 4's `out_of_reach`
+drops fall from 5,976 to 8 over 20 seeds and 67 takes are refused up front; Levels 1–3
+replay identically (20/2/8); Level 4 wins 2/20 either way (seeds 9, 11 against 3, 11),
+7 of 20 replay traces changing. On d1e67516 the side test brought seed 13 back to a win
+(3/20); the fetch refusals and the dig give-up never fire in these 80 runs and have no test.
+On master d8bc7336 Levels 1–3 replay identically (20/3/9) and Level 4 wins 3/20 against
+2/20 (seeds 4, 6, 13 against 6, 13); `out_of_reach` falls from 4,813 to 13.
+
+## ADR-0473 — A fleeing creature counts only Guard Rooms near its attacker
+**Date:** 2026-10-14 · **Status:** accepted · Research: combat-fear.md §4 step 9, combat-alarm.md
+
+**Context.** `0x00460B50`, which the flee run (`0x004602E0`) and the hero reluctance of the
+acquirer both ask, walks the owner's rooms and skips each whose type byte `+0x18` is not 9
+(`0x00460BC8`); `0x004C61C0` reads the same byte as the room type. Ours tested every room.
+After commit 454 let Imps react to attackers, Level 3's fleeing Imps took the head-count
+branch beside their own rooms, often found no alarm to raise (90 `no_alarm` ends in
+seed 1 at that commit) and went back to work beside the Dwarves: seed 1 lost 9 Imps, 7 of them between ticks 1632 and
+1848, where DK2's capture loses one, at tick 3687, and 72 of its 76 Imp flights end in the withdraw's arrival (202).
+
+**Decision.** `FearRules.NearOwnGuardRooms` counts only the owner's Guard Rooms; away from
+them the creature withdraws, as DK2's do. Hash/save version 246.
+
+**Consequences.** On master d8bc7336, seeds 1–20: Levels 1–4 win 20/2/12/4 against
+20/3/9/2; Imps lost fall from 78 to 6 in Level 3, 122 to 56 in Level 2 and 783 to 434 in
+Level 4, and `no_alarm` ends vanish where there is no Guard Room. With ADR-0471/0472 on
+master 434a966b: 18/5/14/5 against master's 18/4/11/2 (Level 1 changes seeds). Level 4's
+1,052 `no_alarm` ends have DK2's shape: 142 are non-Scouts, and 812 of the 907 Imp ends fall
+while another creature's alarm run is under way (`0x004754D0`), as in DK2's capture; the
+other 95 Imp ends and 3 Firefly ends are unexplained.
+
+## ADR-0474 — The Heart's mana sparkles rise to the Arch Pillars, an owner adjustment
+**Date:** 2026-10-14 · **Status:** accepted · Research: heart-mana-effects.md §4
+
+**Context.** The owner watched DK2: the Heart's green sparkles originate at the Heart,
+rise steadily to about the Arch Pillars' top, and pale flakes drift back down. Ours rose
+to the arches' apex, 2.8 tiles over the pit floor. Every link of the chain re-read
+(loader, initializer, origin draw, motion helper, HP quantum, parent lifecycle) and the
+shipped data agree with the 2-tile climb; what lowers DK2's rise is unread (Q594).
+
+**Decision.** `RoomConstructionParticles` takes a `HeartSparkleStyle`. `Native` keeps the
+binary's motion and stays the default; `PillarHeight`, which Unity passes, starts a
+rising sparkle inside the Heart mesh (1024 over the Heart's position, where DK2 draws
+3200) and scales its vertical speed to 622/1000 so the cloud peaks about 1.5 tiles over
+the pit floor (ring floor plus half a tile, the pillars' top as judged from screenshots).
+Flakes keep their native motion. The Heart's effect is found through the Dungeon Heart
+room's `CreatedObjectEffectId`, not a literal id.
+
+**Consequences.** Presentation only: no simulation, save or hash change. The two numbers
+are a fit to the owner's eye in Unity (the origin lowered twice on 2026-10-14, the first
+build having started "where the stairs end"), not a reading; when Q594 is answered the
+style is to be removed and the reading built in its place.
+
+## ADR-0475 — The Heart's opening sequence: plug, burst, arches fading in
+**Date:** 2026-10-14 · **Status:** accepted · Research: heart-intro.md
+
+**Context.** The owner recalled the player's Heart bursting from its tiles at level start,
+creating the arches, then beating. `0x004D9A60`'s first branch is that sequence: from game
+turn 1 (variable 218 ships as 0) the local player's Heart asks for effect 225, whose chain
+draws the plug lid, its light and static, the explosion, the cracked plug, rocks, dust and
+the nine flying plug pieces; seven seconds in it asks for the arches' sparkle ring (314)
+while its Arches and Big Steps, created invisible, gain 32 alpha a turn to 255 at nine.
+The ordinary room frame waits for the sequence. Another keeper's Heart gets none of it.
+
+**Decision.** `HeartIntroRules` posts the requests for every Heart with the owner's tag;
+the Unity runner keeps the owner-only ones (225, 314) for the viewing player. The viewer's
+Arches and Big Steps carry an alpha the view computes from the turn; `ClassicMeshes.SetAlpha`
+hides, blends and restores. The particle model learns what the chain needs from the
+binary: a Next effect created with its parent, a death effect created at removal after the
+last child dies, flag `0x40` generating effects, the `GenerateRandomness` gate, and a group
+art's members flung as elements at birth, each drawing its own mesh (`KmfReader` reads
+GROP). Regeneration and ruin wait for the sequence, as DK2's do (hash 247).
+
+**Consequences.** A Heart hurt in its first nine seconds regenerates nine seconds later than
+before; nothing else in play moves. The model changes reach every type-4 effect: a request
+with flag `0x40` is no longer dropped, every effect's `GenerateRandomness` gates its waves
+(shipped construction and capture effects carry 0), and Next and death effects chain where
+the data names them; presentation only, with the view's own random stream. Not built: the
+two sounds, the lights, the tile redraw, and flag `0x8000`'s fog bypass. The sequence's look
+awaits the owner's comparison.
+
+## ADR-0476 — A Portal arrival's entrance effect, animated mesh effects, and brighter additive beams
+**Date:** 2026-10-14 · **Status:** accepted · Research: portal-creature-action.md, heart-intro.md §4
+
+**Context.** The owner misses two lights: the white beams from a Portal's hole as a
+creature climbs out, and the white beam standing on the Heart's plug before it bursts.
+`Portal_CreateArrival` (`0x004DC9A0`) asks for the creature definition's Portal Entrance
+effect (`+0x776`, file byte 3894) at the spawn point before the Entrance action, when the
+effects detail setting is above 2; each creature's effect chains to the Portal Beams (159,
+161, 166, 168), whose element is a sixty-frame animated model (art type 6); that it plays
+at ten frames a second, its descriptor's second dword, is a HYPOTHESIS fitted to its
+six-second life. Ours parsed no such field, requested nothing, and drew only static meshes. The
+Heart's beam (element 379, additive `Falloff`, which peaks at 68 of 255) drew at a quarter
+of DK2's blaze.
+
+**Decision.** `CreatureDef.EntranceEffectId` is read and written at byte 3894.
+`PortalRules.EntranceEffect` gives the request, which `PortalSystem` posts after the
+arrival, at the hole's centre on its floor with the room owner's tag; ours has no detail
+setting and always asks. The catalogue lists art type 6 elements; the Unity renderer
+builds every frame of such a model once and draws the frame by the particle's age at the
+authored rate, looping. Every additive effect-element mesh material is drawn at twice the
+texture, a presentation choice: DK2's additive texture stage is unread.
+
+**Consequences.** Presentation only: a view effect request is neither saved nor hashed.
+The scripted arrival (action 28) posts no effect yet: its path has no simulation context.
+Whether DK2's beam brightness is a doubled stage or something else is open; the owner's
+eye decides the look.
+
+## ADR-0477 — Foot dust on a Dirt Path
+**Date:** 2026-10-14 · **Status:** accepted · Research: creature-movement-dust.md
+
+**Context.** The owner misses the dust an Imp raises running over dirt. The creature
+update (`0x00488930` at `0x0048A06A`) asks for effect 117, Foot Dust, when a creature's
+previous and current positions lie on different tiles and its tile's terrain is id 3,
+the Dirt Path: one request per crossing at the creature's position one tile up with its
+heading, no test of mode, speed, kind or flight, noticed on the update after the move on
+the arrived tile. The reading was complete; nothing requested it.
+
+**Decision.** `MovementDustSystem`, just before the mover, compares each creature's tile
+with the one it saw last tick and posts the request on a crossing onto a Dirt Path. Held
+creatures and corpses, which have no creature update of their own here, are skipped.
+
+**Consequences.** Presentation only: the request and the per-creature last tile are
+neither saved nor hashed. DK2 tests the crossing at the update's entry, before the
+previous-position refresh and the state handler, so ours differs only when a handler
+moves a creature within a tick. The status-timer requests of the same effect
+(creature-status-effects.md §1) are separate and unbuilt. The look, eight grey mist
+puffs a crossing, awaits the owner's eye.
+
+## ADR-0478 — Allow a small configurable extension to camera zoom-out
 **Date:** 2026-10-14 · **Status:** accepted
 
 **Context.** The owner requested slightly more zoom-out distance after trying

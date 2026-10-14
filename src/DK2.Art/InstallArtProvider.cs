@@ -94,6 +94,32 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
         return model.Mesh is not null;
     }
 
+    /// <summary>A KMF group's members by the group's entry name (with or without <c>.kmf</c>): the
+    /// parts an effect of art type 8 flings. False when there is no such entry or it is not a group.</summary>
+    public bool TryLoadGroup(string groupName, out KmfGroup group)
+    {
+        group = null!;
+        if (!_meshes.TryFind(groupName, allowCollectionMember: false, out _, out string entryName)) return false;
+        KmfModel model = LoadEntry(entryName);
+        if (model.Group is null) return false;
+        group = model.Group;
+        return true;
+    }
+
+    /// <summary>A mesh entry of Meshes.WAD by its own name, as an asset this provider answers, for a
+    /// model the catalogue has no key for (a group's member). False when the entry does not exist.</summary>
+    public bool TryResolveEntry(string entryName, out ResolvedAsset asset)
+    {
+        if (!_meshes.TryFind(entryName, allowCollectionMember: false, out _, out string found))
+        {
+            asset = default;
+            return false;
+        }
+        asset = new ResolvedAsset(AssetRef.Create("mesh-entry", found, AssetKind.Mesh), AssetSource.InstallEntry,
+            filePath: null, look: default, providerName: Name, installEntry: found);
+        return true;
+    }
+
     public bool TryGetResource(in ResolvedAsset asset, out Dk2ArtResource resource)
     {
         if (asset.Source == AssetSource.InstallEntry && asset.ProviderName == Name

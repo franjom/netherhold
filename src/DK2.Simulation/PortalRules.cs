@@ -70,6 +70,19 @@ public static class PortalRules
         return creature;
     }
 
+    /// <summary>The effect <c>Portal_CreateArrival</c> asks for right after creating the creature
+    /// and before its Entrance action (<c>0x004DCB8F</c>): the definition's Portal Entrance effect
+    /// (<c>+0x776</c>) at the spawn point, the room owner's tag, heading 0, when the effects detail
+    /// setting is above 2 (ours: always). Null for a creature whose definition names none.</summary>
+    public static ViewEffectRequest? EntranceEffect(GameDatabase database, RoomInstance portal, CreatureState creature)
+    {
+        ushort effectId = database.CreatureById(creature.CreatureTypeId)?.EntranceEffectId ?? 0;
+        if (effectId == 0) return null;
+        // The spawn point is the portal's centre on its floor, which Tile_FloorHeight gives as 0.
+        return new ViewEffectRequest(new EffectId(effectId), portal.OwnerPlayerId,
+            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0)));
+    }
+
     /// <summary>A creature's death gives its portal's slot back: <c>Creature_DeathBookkeeping</c>
     /// (<c>0x00487C70</c>, <c>0x00488150</c>–<c>0x00488170</c>) decrements the tally of the portal
     /// that stamped it, never below zero, with no test that the room is still a portal (Q508).</summary>

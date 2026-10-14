@@ -63,6 +63,66 @@ public class HeartManaParticleTests
         Assert.Equal((x, y, 4096), (particle.XRaw, particle.YRaw, particle.HeightRaw));
     }
 
+    /// <summary>ADR-0474: the owner's adjustment, not a binary reading (Q594). With the shipped
+    /// numbers the native climb starts 0.78 tiles over the Heart and peaks at 2.79; the adjustment
+    /// starts inside the Heart mesh (0.25) and peaks at about 1.5, the Arch Pillars' top as judged
+    /// from screenshots. Native stays the default.</summary>
+    [Theory]
+    [InlineData(HeartSparkleStyle.Native, 10878, 11974)]
+    [InlineData(HeartSparkleStyle.PillarHeight, 5900, 6400)]
+    public void HeartSparklePeakIsNativeOrTheOwnersPillarHeight_AnAdjustmentNotAReading(
+        HeartSparkleStyle style, int lowestPeak, int highestPeak)
+    {
+        var model = new RoomConstructionParticles(ShippedHeartDatabase(), 7, () => new EffectTime(0),
+            floorHeight: _ => new Fp32(0), heartSparkleStyle: style);
+        model.Emit(new SimEvent(new GameTick(0), "view", "effect", "")
+        {
+            EffectRequest = new(new EffectId(59), PlayerIds.FirstKeeper, new(new(10240), new(14336), new(0)))
+        });
+        int peak = 0, lowest = int.MaxValue;
+        for (int call = 1; call <= 24; call++)
+        {
+            model.AdvanceTo(new EffectTime(call * 50 + 1));
+            foreach (ConstructionParticle p in model.Particles)
+                if (p.Definition.EffectElementId == 98)
+                {
+                    peak = Math.Max(peak, p.HeightRaw);
+                    lowest = Math.Min(lowest, p.HeightRaw);
+                }
+        }
+        Assert.InRange(peak, lowestPeak, highestPeak);
+        Assert.Equal(style == HeartSparkleStyle.Native ? 3200 : 1024, lowest);
+    }
+
+    /// <summary>Effect 59 and element 98 as shipped (heart-mana-effects.md §1), one element per wave.</summary>
+    private static GameDatabase ShippedHeartDatabase()
+    {
+        var art = new KwdArtResource("Sparkle-03g", 0, new byte[12], 3, 0, 0, 0);
+        var rising = new EffectElementDef([])
+        {
+            Name = "rise", EffectElementId = 98, ArtResource = art, MinHp = 24, MaxHp = 24,
+            AirFriction = 393, MinSpeedXy = 819, MaxSpeedXy = 819, MinSpeedYz = 14336, MaxSpeedYz = 16384,
+            MinScale = 819, MaxScale = 2457, Red = 10, Green = 255, Blue = 200
+        };
+        var effect = new EffectDef([])
+        {
+            Name = "Mana To Heart", EffectId = 59, ArtResource = art,
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [98],
+            Flags = 0x2280, GenerationType = 4, ElementsPerTurn = 1, MinHp = 2, MaxHp = 2,
+            OuterOriginRange = 12, LowerHeightLimit = 200, UpperHeightLimit = 200,
+            WhirlpoolRate = 32, CircularPathRate = 12, SpriteSpinRateRange = 78
+        };
+        var heart = new RoomDef
+        {
+            Name = "Dungeon Heart", RoomId = (byte)RoomTypeId.DungeonHeart, Flags = RoomFlags.PlaceableOnLand,
+            Cost = 0, ReturnPercentage = 0, TerrainId = 14, Construction = TileConstruction.Normal,
+            CreatedCreatureId = 0, ObjectIds = [], HealthGain = 0, CeilingHeight = new Fp32(0),
+            RecommendedSizeX = 5, RecommendedSizeY = 5, OrderInEditor = 0, NameStringId = 0, TooltipStringId = 0,
+            CreatedObjectEffectId = 59,
+        };
+        return new([], [heart], [], new GlobalVariables(), effects: [effect], effectElements: [rising]);
+    }
+
     private static RoomConstructionParticles Model(GameDatabase database)
     {
         var model = new RoomConstructionParticles(database, 7, () => new EffectTime(0));

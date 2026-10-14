@@ -189,7 +189,8 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    the accumulator is unread (Q373). Impossible: cornered (§3.1) → `SetState(199)`, else
    `BackOffTimer = 0`.
 9. **The run.** `0x00460B50`: a keeper's creature (not neutral, not Good) whose
-   live creature target stands strictly inside one of its owner's rooms grown by
+   live creature target stands strictly inside one of its owner's **Guard Rooms**
+   (room type byte `+0x18` == 9, `0x00460BC8`; other rooms are skipped) grown by
    `GuardRoomReportingDistanceTiles` (variable 190, ships 7) on every side counts
    heads with `0x004FAC40` over five tiles of its position — the summed
    level-scaled `Threat` of each side's standing creatures — and **ends the state
@@ -198,7 +199,7 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    within five tiles goes to the nearest room to raise the alarm
    (`0x004752B0`, combat-alarm.md §2–§3; this flee entry built with ADR-0425), unlinking and
    setting body bit `+0x10F`.0; anyone else ends the state.
-   **Target away from its rooms**, or no live creature target: unlink, clear, and the
+   **Target away from its Guard Rooms** (or the owner has none), or no live creature target: unlink, clear, and the
    withdraw state — its result is the handler's.
 
 ## 5. The withdraw state (`0x004611D0`, `FightWithDrawState.cpp`)
