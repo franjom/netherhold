@@ -10666,7 +10666,7 @@ View requests do not alter gameplay RNG, simulation/save/hash state.
 Unity visual confirmation remains pending while the owner is away.
 
 ## ADR-0466 — The room sweep is kept while every tile's terrain and owner are unchanged
-**Date:** 2026-10-13 · **Status:** accepted
+**Date:** 2026-10-13 · **Status:** accepted · amended 2026-10-14: a run's total allocation is not a measure under tiered compilation
 
 **Context.** `RoomIndex.Build` swept the whole map, filling every room and its
 interior rings, at each of its 66 call sites in code, and a tick makes many of them: a lair
@@ -10690,12 +10690,19 @@ presenter reads the world only while no tick runs.
 
 **Consequences.** All 42 corpus scenarios give the same final hashes, per-tick
 hashes, event logs and world pictures as master. On Level 18's attack run,
-allocation fell from about 960 MB to 535 MB (2.4 to 1.4 MB a tick), tick 0 from
-9.3 MB to 3.2 MB and its `CreatureSleep` from about 80 ms to 32 ms; times are
-from a shared machine and indicative only. Any new input to a room's fill must
+tick 0's allocation fell from 9.3 MB to 3.2 MB, the same in every run, and its
+`CreatureSleep` from about 80 ms to 32 ms; times are from a shared machine and
+indicative only. The run's total allocation is not evidence either way: it varies
+with tiered compilation, apparently with when methods are recompiled (probably
+escape analysis stack-allocating short-lived objects, which tick 0's early code
+does not yet do). Master at ebf751db, which includes this change, gave 442 MB and
+760 MB in consecutive runs, and the "about 960 MB to 535 MB" first written here
+compared two such runs. With `DOTNET_TieredCompilation=0` the same master gave
+236.5 MB in two runs; compare allocations that way. Any new input to a room's fill must
 join the cache's key, and the database is keyed by reference on the assumption
-that a loaded `GameDatabase` and its `RoomDef`s are never changed. `RoomInstanceTests` pins a hit, a rebuild on a terrain or
-an owner change, and that an old list survives a rebuild.
+that a loaded `GameDatabase` and its `RoomDef`s are never changed.
+`RoomInstanceTests` pins a hit, a rebuild on a terrain or an owner change, and
+that an old list survives a rebuild.
 
 ## ADR-0467 — Restore the original portal pre-arrival buildup
 **Date:** 2026-10-14 · **Status:** accepted
