@@ -14,7 +14,7 @@ public class KwdRoomWriterTests
     public void EveryDecodedRoomFieldIncludingObjectArrayRoundTripsWithoutTouchingOtherBytes() =>
         KwdScalarOverlayChecks.Check(KwdRecordType.Rooms, 1055, Read, KwdTerrainRooms.WriteRoomRecord,
             "Name:0:32 CeilingHeight:368:4 Flags:370:4 TooltipStringId:374:2 NameStringId:376:2 " +
-            "Cost:378:2 RoomId:392:1 ReturnPercentage:393:1 TerrainId:394:1 Construction:395:1 " +
+            "Cost:378:2 CreatedObjectEffectId:384:2 RoomId:392:1 ReturnPercentage:393:1 TerrainId:394:1 Construction:395:1 " +
             "CreatedCreatureId:396:1 ObjectIds:39A:8 OrderInEditor:3C2:1 " +
             "RecommendedSizeX:41B:1 RecommendedSizeY:41C:1 HealthGain:41D:2",
             // The torch is read for the renderer and not written back: an edit to it is not a mod.
@@ -40,6 +40,7 @@ public class KwdRoomWriterTests
         List<RoomDef> records = KwdTerrainRooms.ParseRooms([chunk]);
         List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(26, records.Count);
+        Assert.Equal((ushort)17, records.Single(r => r.Name == "Lair").CreatedObjectEffectId);
         for (int i = 0; i < records.Count; i++)
             Assert.Equal(images[i].ToBytes(), KwdTerrainRooms.WriteRoomRecord(records[i], images[i]));
     }

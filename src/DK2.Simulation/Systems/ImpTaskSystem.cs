@@ -137,6 +137,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private readonly ProfiledPathfinder _pathfinder;
     private readonly List<TilePos> _route = [];
 
+    /// <summary>Every tile the worker being updated can reach, flooded once per grid and start
+    /// (<see cref="Reaches"/>). A grid is built per worker update, so a flood never outlives one; the
+    /// grid reads terrain live, and nothing in a worker update writes terrain, since dig, claim and
+    /// reinforce are queued for <see cref="TileWorkSystem"/> to apply after every worker has chosen.</summary>
+    private readonly ReachableTiles _reach = new();
+
     private delegate void ActivityStep(SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid);
 
     private static readonly int ActivityCount = Enum.GetValues(typeof(CreatureActivity)).Cast<int>().Max() + 1;
@@ -400,6 +406,27 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     {
         return SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.ImpIdleDelayBeforeReevaluationSeconds]);
+    }
+
+    /// <summary>Whether this worker can walk to <paramref name="tile"/>, leaving the route in
+    /// <see cref="_route"/>: the answer <c>TryFindNearest(grid, creature.Tile, s =&gt; s == tile, _route)</c>
+    /// gives, from one flood per worker update instead of one search per candidate (ADR-0453). The
+    /// flood bypasses the injected pathfinder, whose <c>TryFindNearest</c> still serves the searches
+    /// with a real predicate.</summary>
+    private bool Reaches(WorldPathGrid grid, CreatureState creature, TilePos tile)
+    {
+        return Flooded(grid, creature).TryPathTo(tile, _route);
+    }
+
+    /// <summary>The worker's flood, run if the last one was for another grid or start.</summary>
+    private ReachableTiles Flooded(WorldPathGrid grid, CreatureState creature)
+    {
+        if (!_reach.IsFor(grid, creature.Tile))
+        {
+            using (_pathfinder.Profiler.Scope(SimulationMarkers.GridFlood))
+                _reach.Flood(grid, creature.Tile);
+        }
+        return _reach;
     }
 
     private static string Describe(WorldState world, int tileIndex)

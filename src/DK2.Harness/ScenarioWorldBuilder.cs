@@ -367,7 +367,7 @@ internal sealed class ScenarioWorldBuilder
         ThingProjectionResult result = ThingProjection.Place(world, _database, things, startingGold);
         // The record pays only through a placed, unruined heart (ADR-0360); otherwise the
         // scenario's deposit stands.
-        List<RoomInstance> rooms = RoomIndex.Build(world, _database);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, _database);
         paid.RemoveWhere(id => world.Player(id).HeartRuined || !rooms.Any(
             r => r.OwnerPlayerId == id && r.Definition.TypeId == RoomTypeId.DungeonHeart));
 

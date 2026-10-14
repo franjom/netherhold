@@ -35,9 +35,9 @@ public sealed class GridPathfinder : IPathfinder
     /// diagonal. Fixed, because it decides which of several equally short routes
     /// is returned.
     /// </summary>
-    private static readonly int[] NeighbourDx = [0, -1, 1, 0, -1, 1, -1, 1];
-    private static readonly int[] NeighbourDy = [-1, 0, 0, 1, -1, -1, 1, 1];
-    private static readonly int[] NeighbourCost =
+    internal static readonly int[] NeighbourDx = [0, -1, 1, 0, -1, 1, -1, 1];
+    internal static readonly int[] NeighbourDy = [-1, 0, 0, 1, -1, -1, 1, 1];
+    internal static readonly int[] NeighbourCost =
         [StraightCost, StraightCost, StraightCost, StraightCost,
          DiagonalCost, DiagonalCost, DiagonalCost, DiagonalCost];
 
@@ -48,8 +48,7 @@ public sealed class GridPathfinder : IPathfinder
     private int[] _cameFrom = [];
     private int[] _cost = [];
 
-    private readonly List<int> _heapTile = [];
-    private readonly List<int> _heapKey = [];
+    private readonly TileHeap _heap = new();
 
     public bool TryFindPath(IPathGrid grid, TilePos from, TilePos to, List<TilePos> path)
     {
@@ -68,11 +67,11 @@ public sealed class GridPathfinder : IPathfinder
         _stamp[start] = _generation;
         _cameFrom[start] = -1;
         _cost[start] = 0;
-        HeapPush(start, Heuristic(from, to));
+        _heap.Push(start, Heuristic(from, to));
 
-        while (_heapTile.Count > 0)
+        while (_heap.Count > 0)
         {
-            int current = HeapPop();
+            int current = _heap.Pop();
             if (current == goal)
             {
                 BuildPath(current, path);
@@ -97,7 +96,7 @@ public sealed class GridPathfinder : IPathfinder
                 _stamp[n] = _generation;
                 _cameFrom[n] = current;
                 _cost[n] = nextCost;
-                HeapPush(n, nextCost + Heuristic(new TilePos(nx, ny), to));
+                _heap.Push(n, nextCost + Heuristic(new TilePos(nx, ny), to));
             }
         }
 
@@ -122,16 +121,16 @@ public sealed class GridPathfinder : IPathfinder
         _stamp[start] = _generation;
         _cameFrom[start] = -1;
         _cost[start] = 0;
-        HeapPush(start, 0);
+        _heap.Push(start, 0);
 
         // Dijkstra, not breadth-first: steps stopped costing the same when movement went
         // eight-connected (Q48, 10 orthogonal and 14 diagonal), and a breadth-first sweep would
         // return the goal reachable in the fewest STEPS rather than the nearest one. The
         // distinction is observed — the owner confirmed an imp takes the marked tile closest by
         // WALKING DISTANCE (Q25), and three diagonal steps are further than four straight ones.
-        while (_heapTile.Count > 0)
+        while (_heap.Count > 0)
         {
-            int current = HeapPop();
+            int current = _heap.Pop();
             int cx = current % _width;
             int cy = current / _width;
 
@@ -157,7 +156,7 @@ public sealed class GridPathfinder : IPathfinder
                 _stamp[n] = _generation;
                 _cameFrom[n] = current;
                 _cost[n] = nextCost;
-                HeapPush(n, nextCost);
+                _heap.Push(n, nextCost);
             }
         }
 
@@ -170,7 +169,7 @@ public sealed class GridPathfinder : IPathfinder
     /// refuses two floors that touch at one vertex; the Level 2 capture's dig sides at 3063-3082 agree,
     /// and so does our mesh router (ADR-0157). One open side is enough, as for the mesh (ADR-0339).
     /// </summary>
-    private static bool CornerOnly(IPathGrid grid, int cx, int cy, int i) =>
+    internal static bool CornerOnly(IPathGrid grid, int cx, int cy, int i) =>
         !grid.IsWalkable(cx + NeighbourDx[i], cy) && !grid.IsWalkable(cx, cy + NeighbourDy[i]);
 
     /// <summary>
@@ -203,8 +202,7 @@ public sealed class GridPathfinder : IPathfinder
         // A fresh generation invalidates every stamp left by earlier searches,
         // so a reused buffer behaves exactly like a newly allocated one.
         _generation++;
-        _heapTile.Clear();
-        _heapKey.Clear();
+        _heap.Clear();
     }
 
     private int Index(TilePos p) => (p.Y * _width) + p.X;
@@ -221,59 +219,5 @@ public sealed class GridPathfinder : IPathfinder
             path.Add(new TilePos(at % _width, at / _width));
 
         path.Reverse();
-    }
-
-    // A binary min-heap keyed on (estimated total cost, tile index). The second
-    // key is what makes the choice between equally promising tiles reproducible.
-
-    private void HeapPush(int tile, int key)
-    {
-        _heapTile.Add(tile);
-        _heapKey.Add(key);
-
-        int child = _heapTile.Count - 1;
-        while (child > 0)
-        {
-            int parent = (child - 1) / 2;
-            if (!Less(child, parent)) break;
-            Swap(child, parent);
-            child = parent;
-        }
-    }
-
-    private int HeapPop()
-    {
-        int result = _heapTile[0];
-        int last = _heapTile.Count - 1;
-
-        _heapTile[0] = _heapTile[last];
-        _heapKey[0] = _heapKey[last];
-        _heapTile.RemoveAt(last);
-        _heapKey.RemoveAt(last);
-
-        int parent = 0;
-        while (true)
-        {
-            int left = (2 * parent) + 1;
-            if (left >= _heapTile.Count) break;
-
-            int right = left + 1;
-            int best = right < _heapTile.Count && Less(right, left) ? right : left;
-            if (!Less(best, parent)) break;
-
-            Swap(best, parent);
-            parent = best;
-        }
-
-        return result;
-    }
-
-    private bool Less(int a, int b) =>
-        _heapKey[a] != _heapKey[b] ? _heapKey[a] < _heapKey[b] : _heapTile[a] < _heapTile[b];
-
-    private void Swap(int a, int b)
-    {
-        (_heapTile[a], _heapTile[b]) = (_heapTile[b], _heapTile[a]);
-        (_heapKey[a], _heapKey[b]) = (_heapKey[b], _heapKey[a]);
     }
 }

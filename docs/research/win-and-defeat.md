@@ -152,8 +152,8 @@ and the room's object of type 13; none → return 0. Then, in order:
 3. `0x004B2CE0(heart, delta, source, 0)` — the flat add above, stamping the source;
 4. a negative delta raises **notification 1 at the heart tile** (`0x004C4600(world+0x2E54,
    1, owner, x, y, 1)`): speech 345 *"Your Dungeon Heart is under attack!"*, 120 s;
-5. the heart's visual stage from `health × 100 / max` clamped to 0..100, in tens
-   (tables `0x006A1930`/`0x006A1948`; display);
+5. the heart's health-dependent pulse, height and authored texture frame; see
+   heart-health-visuals.md (the earlier ten-point-stage reading was incorrect);
 6. returns the heart's health.
 
 The frame's regeneration passes `word[room+0x1D]`, the owner's tag, as the source, so

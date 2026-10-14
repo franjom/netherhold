@@ -15,7 +15,35 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**238** — `0xE834B736C858816C`. Worker takes need a route (ADR-0448) and a reachable dig side, object or body (ADR-0449); no new saved field.
+**244** — `0x3CCF2DD28C25C10E`. Worker takes need a route (ADR-0468) and a reachable dig side, object or body (ADR-0469); no new saved field.
+
+**243** — `0x768B6A51253B3081`. The navigation mesh is simulation state: a
+refresh edits the standing mesh around each changed tile (the original's
+partial rebuild, `0x004CE770`) instead of building a new one, so the mesh
+depends on the order of edits and the hash folds in every triangle, point
+and free list; a save carries them and the locate hint too (ADR-0461).
+**242** — `0xC2A0D662C94D7F10`. Sleep entry aligns ordinary creatures to
+their bed and uses its heading; Mistress entry places her after the bed's
+door animation starts; departure selection rejects stale wander routes
+(ADR-0460). No new stored field.
+
+**241** — `0xD4E74C513D204899`. A tunneller's walks keep their destination within
+its own tile (`TryRouteToStance`), so a worker off its stand tile's centre walks
+there and digs instead of re-planning the walk every period. No new persisted
+field; the version distinguishes the changed resumed behaviour. ADR-0459.
+
+**240** — `0x8FBB003CBA25CFD2`. Ownership-loss completion releases unsupported
+walls using the native neighbour/corner rules; live Heart platforms are
+excluded from movement and routing, with ruin reopening them (ADR-0451/0452).
+No new persisted field; the version distinguishes changed resumed behaviour.
+
+**239** — `0xBE0B8CC626E76E53`. Lair drops enter state 79, select a bed in
+the landing room and release an old bed before the jittered walk to state 80.
+No new saved field. ADR-0450.
+
+**238** — `0xE834B736C858816C`. Claim, enemy-floor attack and room conversion
+retain a centre destination for same-tile approaches. Visual effect requests
+do not enter saved or hashed state. ADR-0449.
 
 **237** — `0xBC650457E0557295`. Route-less fight states integrate contact;
 in-range fighters face their target and hold melee through the authored
@@ -358,42 +386,5 @@ under an inherited repeat of 1 (ADR-0107). Behaviour, not composition: the
 fixture runs no triggers, so only the version bump moves the value here, and the
 campaign-wide measurement moved nothing either — every shipped action is a leaf.
 
-**45** — `0x57E013D74DC65BAA`. Doors and traps enter ordered
-world state with every parsed field copied verbatim, hashed and snapshotted.
-Even the fixture's two empty collections add their counts to the hash.
-`docs/research/doors-and-traps.md`.
 
-**44** — `0x48D7950540013015`. Every action point's trigger tree is
-walked each turn too, in the area context, and five of the seven condition types
-that context owns are computed: 40, 41, 42, 62 and 69. No hashed field changed;
-the literal moved because the version is hashed, and it had to move because a
-level with an action-point root now evolves differently from one saved under 43.
-`docs/research/trigger-walkers.md`.
-
-**43** — `0x6E963365B44FD724`. Every player's trigger tree is walked
-each turn as well, in the player context. No hashed field changed; the literal
-moved because the version is hashed, and it had to move because a level with a
-player root now evolves differently from one saved under 42.
-`docs/research/trigger-walkers.md`.
-
-**42** — `0xFFCC4119CA233DA7`. The world walker gains condition type 34
-(level time), the arming half of action type 14, and the twenty-four party roots
-— with the load-time sweep that starts every party subtree disabled. Only the
-version constant moves this fixture's literal: it has no trigger tree and no
-parties, so none of the new state exists in it. `docs/research/trigger-tree.md`.
-
-**41** — `0xDEF9B4B1985D90DE`. Trigger-record active and repeat state,
-including one-shot action retirement, enters the hash and snapshot. The fixture
-has no trigger tree, so its record count remains zero.
-
-**40** — `0x6445940E0B0F23A9`. The level's action points, in
-THINGS-file order: rectangles, ids, loader-filtered flags, passage counters and
-wait timers. Even this fixture's empty list adds its count to the hash.
-`docs/research/action-points.md`.
-
-**39** — `0x81D58B966898BEC8`. Corrected the trigger timer bank from 256 slots
-to **sixteen**, 240 fewer dwords in the hash. Two readings agree on sixteen: the
-next field on the owning object sits 0x40 bytes after the bank, and the
-condition path compares the id against 0x10 before indexing.
-
-[Versions 9–38](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–45](hash-versions-early.md) retain the earlier pins and their reasons.

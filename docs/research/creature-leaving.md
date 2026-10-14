@@ -14,8 +14,8 @@ State 197 is a separate arrival gate. State 193 places an arriving creature and
 hands it to ordinary idle/lair acquisition.
 Hypothesis: none; claims below are control-flow readings.
 Confidence: **STRONGLY INFERRED** from the binary.
-Implementation: none; research only.
-Tests: none.
+Implementation: `LeavingRules`, shared by creature anger and defeat; built boundaries in §5.
+Tests: `CreatureAngerTests`, `DefeatTests`.
 Known exceptions: candidate selection ignores reachability, and a failed route
 to the selected portal is retried rather than trying the next portal.
 Open questions: the meanings of event ids 61 and 63, the optional effect selected
@@ -42,6 +42,12 @@ to be reachable. State 194 asks `0x00471890` for a point route to the room's
 `(x+1, y)` tile, resuming in state 195, and ignores its return. With route option
 8, failure returns zero without installing a route (`travel-states.md` §2.3),
 so the creature remains in 194 and retries the same nearest candidate.
+
+**CONFIRMED (whole-body reread, 2026-10-13):** every state-194 handler call
+selects an entrance before requesting its route; it has no existing-route
+shortcut. A retained route belongs to state 6 resuming in 195, not to state 194.
+`LeavingRules.Step` accepts only that leaving-travel route without reselection;
+an unrelated idle wander route must not count as successful leaving.
 
 If no Portal or Hero Portal exists in any player's room list, state 194 enters
 state 1 and then **87, wandering**. This contradicts the former project

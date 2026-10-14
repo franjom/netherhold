@@ -10,6 +10,18 @@ namespace DK2.Convert.Tests;
 
 public class RenderAnimationClockTests
 {
+    [Fact]
+    public void ALoopBoundaryIsObservableEvenWhenItsPoseWraps()
+    {
+        var clock = new RenderAnimationClock(Timing(frames: 70, fps: 30), loop: true);
+        for (int i = 0; i < 9; i++) clock.Advance(phaseStepOverride: new Fp32(438));
+        Assert.Equal(0, clock.CompletedLoops);
+        clock.Advance(phaseStepOverride: new Fp32(438));
+        Assert.Equal(1, clock.CompletedLoops);
+        clock.Advance(hold: true);
+        Assert.Equal(1, clock.CompletedLoops);
+    }
+
     private static CreatureAnimationTiming Timing(ushort frames = 8, ushort fps = 8) => new()
     {
         ResourceType = 6, FrameCount = frames, FramesPerSecond = fps,
@@ -103,13 +115,25 @@ public class RenderAnimationClockTests
     }
 
     [Fact]
-    public void FreshWalkingInstallationUsesScalar4096BeforeItsFirstVelocityUpdate()
+    public void DefaultInstallationRetainsScalar4096ForCallersWithoutAnInitialMovementSpeed()
     {
         var clock = new RenderAnimationClock(Timing(), loop: true, authoredMovementScale: new Fp32(4096));
         clock.Advance(new Fp32(512));
         Assert.Equal(4095 / 4096f, clock.Sample(1).Phase);
         clock.Advance(new Fp32(512));
         Assert.Equal(511 / 4096f, clock.Sample(1).Phase);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(256, 256)]
+    [InlineData(512, 512)]
+    public void WalkingInstallationUsesItsNativeSpeedBeforeTheFirstAdvance(int speed, int phase)
+    {
+        var clock = new RenderAnimationClock(Timing(), loop: true,
+            authoredMovementScale: new Fp32(4096), initialMovementSpeed: new Fp32(speed));
+        clock.Advance(new Fp32(speed));
+        Assert.Equal(phase / 4096f, clock.Sample(1).Phase);
     }
 
     [Fact]

@@ -793,7 +793,7 @@ public static class FearRules
 /// <summary>The room index built at most once a tick, and only when a flight asks for it.</summary>
 public sealed class RoomCache
 {
-    private List<RoomInstance>? _rooms;
+    private IReadOnlyList<RoomInstance>? _rooms;
     private long _tick = -1;
     private readonly List<RoomInstance> _owned = [];
 

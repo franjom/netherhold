@@ -75,8 +75,10 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 ## Differences in ours
 
 - **Kept arms.** The Combat Pit floor, the torture devices and the Prison arms stay the direct arms they were. A captive now goes through 1, where it went through 77.
-- **Unbuilt drop states.** On getting up, the rooms whose drop state is not built (Treasury 188, Lair 79, Hatchery 92, Portal 197, Heart 71, Prison 114, Crypt 274) idle. The Combat Pit's 137 is built (ADR-0227).
+- **Lair drops** run state 79; see lair-acquisition.md §9 and ADR-0450. Other
+  unsupported room drop states still idle. The Combat Pit's 137 is built
+  (ADR-0227); the Heart's 71 is built under ADR-0400.
 - **Workers.** A worker's getting up idles; `0x00481400` (read, `door-blocking.md` §8) is not built, in 257 or in 76.
 - **Not modelled:** the landing's sound, fall and pit scatter; 257's step along the facing; the casino-winner gate. The Call To Arms branch is built (ADR-0279).
-- **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). DK2 plays the animation itself.
+- **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). Classic presentation plays 255's knockdown once and holds its final pose, then plays 257's Getup once from its state-entry stamp. Action 52's art selector is 24 (`0x00495F36`), action 53's is 27 (`0x00495F6E`); independently checked 2026-10-13.
 - **One word for `+0x7E`:** `StateDeadlineTick`, stamped with now by `AfterGettingUp` on the way into 250, as `0x004E8DA0` stamps `+0x2CC`.

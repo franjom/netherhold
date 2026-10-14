@@ -39,7 +39,10 @@ public readonly record struct PlayerIntent(
     PlayerToolMode Tool,
     TilePos? PointerTile,
     PointerButtonTransition PrimaryButton,
-    RoomTypeId RoomId = 0);
+    RoomTypeId RoomId = 0,
+    PointerButtonTransition SecondaryButton = PointerButtonTransition.None);
+
+public readonly record struct ExcavationTarget(TilePos Tile, bool IsTagged);
 
 public enum PlayerInputTargetKind : byte
 {
@@ -58,14 +61,17 @@ public sealed class PlayerInputSnapshot
 {
     private static readonly PlayerInputTarget[] NoTargets = [];
 
-    public PlayerInputSnapshot(bool isHolding, IReadOnlyList<PlayerInputTarget>? targets = null)
+    public PlayerInputSnapshot(bool isHolding, IReadOnlyList<PlayerInputTarget>? targets = null,
+        ExcavationTarget? excavation = null)
     {
         IsHolding = isHolding;
         Targets = targets ?? NoTargets;
+        Excavation = excavation;
     }
 
     public bool IsHolding { get; }
     public IReadOnlyList<PlayerInputTarget> Targets { get; }
+    public ExcavationTarget? Excavation { get; }
 
     /// <summary>
     /// Captures only entities visible through <paramref name="view"/>. Held and
@@ -74,7 +80,8 @@ public sealed class PlayerInputSnapshot
     /// (<see cref="HandRules.MayReachObject"/>).
     /// </summary>
     public static PlayerInputSnapshot Capture(
-        WorldView view, WorldState world, PlayerId playerId, GameDatabase? database = null)
+        WorldView view, WorldState world, PlayerId playerId, GameDatabase? database = null,
+        TilePos? pointerTile = null)
     {
         if (view is null) throw new ArgumentNullException(nameof(view));
         if (world is null) throw new ArgumentNullException(nameof(world));
@@ -98,7 +105,16 @@ public sealed class PlayerInputSnapshot
                 PlayerInputTargetKind.Object, instance.Id, instance.Tile));
         }
 
-        return new PlayerInputSnapshot(isHolding, targets);
+        ExcavationTarget? excavation = null;
+        if (pointerTile is TilePos at && world.Contains(at) && database is not null)
+        {
+            ref TileState tile = ref world.Tile(at);
+            bool tagged = tile.IsTaggedBy(playerId);
+            if (tagged || (world.FogOfWarEnabled && !tile.IsDiscoveredBy(playerId))
+                || database.TerrainById(tile.TerrainId).IsTaggable)
+                excavation = new ExcavationTarget(at, tagged);
+        }
+        return new PlayerInputSnapshot(isHolding, targets, excavation);
     }
 }
 
@@ -110,22 +126,41 @@ public sealed class PlayerInputTranslator
 {
     private DragStart? _drag;
 
+    public void SelectTool(PlayerId playerId, PlayerToolMode tool)
+    {
+        if (_drag is DragStart drag && (drag.PlayerId != playerId || drag.Tool != tool)) _drag = null;
+    }
+
     public InputFrame Translate(in PlayerIntent intent, PlayerInputSnapshot snapshot)
     {
         if (snapshot is null) throw new ArgumentNullException(nameof(snapshot));
+        SelectTool(intent.PlayerId, intent.Tool);
 
         PlayerCommand? command = null;
+
+        if ((intent.SecondaryButton & PointerButtonTransition.Pressed) != 0)
+        {
+            _drag = null;
+            command = SecondaryClick(intent, snapshot);
+            return command is null ? InputFrame.Empty : InputFrame.Of(command);
+        }
 
         if ((intent.PrimaryButton & PointerButtonTransition.Pressed) != 0)
         {
             if (IsDragTool(intent.Tool) && intent.PointerTile is TilePos start)
             {
-                _drag = new DragStart(intent.PlayerId, intent.Tool, start, intent.RoomId);
+                _drag = new DragStart(intent.PlayerId, intent.Tool, start, intent.RoomId,
+                    intent.Tool != PlayerToolMode.UntagTiles);
             }
             else
             {
                 _drag = null;
                 command = Click(intent, snapshot);
+                if (command is null && intent.Tool == PlayerToolMode.Hand
+                    && snapshot.Excavation is ExcavationTarget excavation
+                    && intent.PointerTile == excavation.Tile)
+                    _drag = new DragStart(intent.PlayerId, intent.Tool, excavation.Tile,
+                        intent.RoomId, !excavation.IsTagged);
             }
         }
 
@@ -148,12 +183,18 @@ public sealed class PlayerInputTranslator
     /// <summary>Where an unfinished drag with <paramref name="tool"/> began; null with none.</summary>
     public TilePos? DragFrom(PlayerToolMode tool) => _drag is DragStart drag && drag.Tool == tool ? drag.Tile : null;
 
+    public bool? ExcavationPreviewTagged => _drag is DragStart drag
+        && drag.Tool is PlayerToolMode.Hand or PlayerToolMode.TagTiles or PlayerToolMode.UntagTiles
+            ? drag.Tagged : null;
+
     private static bool IsDragTool(PlayerToolMode tool) =>
         tool is PlayerToolMode.TagTiles or PlayerToolMode.UntagTiles or
             PlayerToolMode.BuildRoom or PlayerToolMode.SellRoom;
 
     private static PlayerCommand? Drag(in DragStart drag, TilePos end) => drag.Tool switch
     {
+        PlayerToolMode.Hand =>
+            TagTilesCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y, drag.Tagged),
         PlayerToolMode.TagTiles =>
             TagTilesCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y),
         PlayerToolMode.UntagTiles =>
@@ -174,12 +215,6 @@ public sealed class PlayerInputTranslator
 
         if (intent.Tool == PlayerToolMode.Hand)
         {
-            // The creature under the cursor rides along: DK2's keeper record holds it, and a
-            // chicken or gold dropped onto it goes to it (ADR-0217).
-            if (snapshot.IsHolding)
-                return new DropCommand(intent.PlayerId, tile,
-                    TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Creature)?.Id ?? 0);
-
             PlayerInputTarget? creature = TargetAt(
                 snapshot.Targets, tile, PlayerInputTargetKind.Creature);
             if (creature is PlayerInputTarget c)
@@ -204,6 +239,15 @@ public sealed class PlayerInputTranslator
         return null;
     }
 
+    private static PlayerCommand? SecondaryClick(in PlayerIntent intent, PlayerInputSnapshot snapshot)
+    {
+        if (intent.Tool != PlayerToolMode.Hand || intent.PointerTile is not TilePos tile) return null;
+        PlayerInputTarget? creature = TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Creature);
+        if (snapshot.IsHolding)
+            return new DropCommand(intent.PlayerId, tile, creature?.Id ?? 0);
+        return creature is PlayerInputTarget c ? new SlapCreatureCommand(intent.PlayerId, c.Id) : null;
+    }
+
     private static PlayerInputTarget? TargetAt(
         IReadOnlyList<PlayerInputTarget> targets,
         TilePos tile,
@@ -222,5 +266,6 @@ public sealed class PlayerInputTranslator
         PlayerId PlayerId,
         PlayerToolMode Tool,
         TilePos Tile,
-        RoomTypeId RoomId);
+        RoomTypeId RoomId,
+        bool Tagged);
 }

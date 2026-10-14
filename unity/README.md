@@ -39,13 +39,15 @@ the dug-out parts of a level read as dug out. Colour is derived from each asset'
 key, so a terrain is always the same colour; see `PlaceholderProvider`. A tile marked
 for digging is tinted amber, and wall torches are placed by `TorchLayout`.
 
-WASD or the arrow keys pan and the mouse wheel zooms. The left mouse button uses the
-selected tool: `1` tag, `2` untag, `3` build, `4` sell, `5` pick up/drop, `6` slap,
-`7` Create Imp. `[` and `]` select the room used by Build; the Game view displays
+WASD or the arrow keys pan and the mouse wheel zooms. The default Hand (`1` or `5`)
+uses left click to pick up a creature or toggle a diggable tile's excavation tag.
+Left drag applies the inverse of the starting tile's tag state to a rectangle;
+this drag policy is a modern interface choice, not a claim about DK2's exact drag behavior.
+Right click drops the held creature, or slaps a creature when the hand is empty.
+`3` selects Build, `4` Sell, and `7` Create Imp. `[` and `]` select the room used by Build; the Game view displays
 its name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
-rooms by name. Choose Lair to build sleeping space. Drag the four rectangle
-tools; click the other three. These controls are interface choices specified by
-ADR-0104, not claims about the original game.
+rooms by name. Choose Lair to build sleeping space. Drag Build and Sell rectangles;
+click Create Imp. The tool hotkeys are interface choices (ADR-0104).
 
 ## Verifying the adapter without opening Unity
 
@@ -124,7 +126,24 @@ Batcher on, every material in a batch-mode render took one texture (Direct3D 12)
 not yet seen. `UseUrp` must save the renderer asset before the pipeline names it, or URP has
 no default renderer and draws nothing.
 
+## Shaders in a built player
+
+The adapter makes its materials at run time from shaders it finds by name (`ClassicMeshes`,
+`ClassicConstructionEffects`). A player only contains shaders, and shader variants, that some
+asset in the build references, so `Assets/DK2/Resources/Shaders` holds one material per shader
+and keyword set the adapter uses: URP Lit opaque and blended, each with and without emission
+(every one with specular and reflections off), URP Unlit opaque and additive, and the Standard
+and Unlit/Color fallbacks. Anything under Resources is always built. A new keyword on a runtime
+material needs a material here that carries it, or the player draws that material with a
+missing-shader fallback, usually pink. The
+`DK2/ClassicEffect` shader is itself under Resources, which includes every variant (ADR-0455).
+
 ## Measuring performance
+
+`DungeonRunner` runs its ticks on a worker thread after each frame is presented (its
+`tickOnWorkerThread` field, on by default; ADR-0458), so a tick overlaps the frame's rendering
+and the view shows it one frame later. The probe below turns that off so its recorders see the
+tick's own cost on the main thread.
 
 Open **Window → Analysis → Profiler**, restart Play mode, and record the CPU
 Timeline, Rendering, Memory and GPU modules where supported. Leave Deep Profile

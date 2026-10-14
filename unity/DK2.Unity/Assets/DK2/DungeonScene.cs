@@ -7,6 +7,8 @@ using DK2.Assets;
 using DK2.Art;
 using DK2.Core;
 using DK2.Presentation;
+using DK2.Data.Model;
+using DK2.Simulation;
 using UnityEngine;
 using Unity.Profiling;
 
@@ -56,6 +58,14 @@ namespace DK2.Unity
         private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, bool Deferred)> _creatureClips =
             new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, bool Deferred)>();
         private double _renderSeconds;
+        private readonly HeartPulseGate _heartPulseGate = new HeartPulseGate();
+        private readonly System.Collections.Concurrent.ConcurrentQueue<(PlayerId Owner, Fp32 Step)> _heartAdvances =
+            new System.Collections.Concurrent.ConcurrentQueue<(PlayerId Owner, Fp32 Step)>();
+        public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual) =>
+            _heartAdvances.Enqueue((owner, visual.PhaseStep));
+        public System.Action<ViewEffectRequest> HeartEffectRequested { get; set; }
+        public System.Func<EffectTime> HeartEffectClock { get; set; } =
+            () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, ObjectView> _objectPoses = new Dictionary<int, ObjectView>();
         private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops)> _objectClips =
@@ -190,7 +200,10 @@ namespace DK2.Unity
         public void RemoveCreature(int creatureId)
         {
             if (_creatures.TryGetValue(creatureId, out GameObject go) && go != null)
+            {
+                go.SetActive(false);
                 Object.Destroy(go);
+            }
             _meshCreatures.Remove(creatureId);
 
             _creatures.Remove(creatureId);
@@ -214,7 +227,7 @@ namespace DK2.Unity
             if (creature.PlaysAnimation && _classic.ConfigureAnimation(go, animation, creature.AnimationLoops,
                 startSeconds, creature.AnimationMovementSpeed,
                 creature.AnimationDeferred ? AnimationReplacement.Deferred : AnimationReplacement.Immediate,
-                creature.AnimationPaused)) return;
+                creature.AnimationPaused, creature.AnimationInitialMovementSpeed)) return;
             if (player != null) player.Stop();
             _classic.RestoreModel(go, mesh);
         }
@@ -231,6 +244,11 @@ namespace DK2.Unity
             using var frameScope = FrameMarker.Auto();
             fraction = Mathf.Clamp01(fraction);
             SetCreatureFrameTime(tick, fraction);
+            while (_heartAdvances.TryDequeue(out var advance))
+                foreach (KeyValuePair<int, ObjectView> heart in _objectPoses)
+                    if (heart.Value.HeartVisual.HasValue && heart.Value.OwnerPlayerId == advance.Owner
+                        && _objects.TryGetValue(heart.Key, out GameObject heartObject) && heartObject != null)
+                        heartObject.GetComponent<ClassicCreatureAnimation>()?.AdvanceHealthPhase(advance.Step);
             foreach (KeyValuePair<int, CreatureView> entry in _creaturePoses)
             {
                 if (!_creatures.TryGetValue(entry.Key, out GameObject go) || go == null) continue;
@@ -261,7 +279,17 @@ namespace DK2.Unity
                 go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f)
                     * Quaternion.AngleAxis(roll * 360f / 2048f, Vector3.forward)
                     * Quaternion.Euler(-pitch * 360f / 2048f, 0f, 0f);
-                go.GetComponent<ClassicCreatureAnimation>()?.Draw(_renderSeconds);
+                ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
+                player?.Draw(_renderSeconds, phaseStepOverride: pose.HeartVisual?.PhaseStep);
+                if (pose.HeartVisual.HasValue && player != null && player.BeatPending
+                    && go.GetComponent<Renderer>().isVisible && _heartPulseGate.ConsumePendingBeat(HeartEffectClock()))
+                {
+                    player.ConsumeBeat();
+                    if (HeartPulseGate.CanEmit(tick) && pose.HeartVisual.Value.ManaEffect != EffectId.None)
+                        HeartEffectRequested?.Invoke(new ViewEffectRequest(pose.HeartVisual.Value.ManaEffect,
+                            new PlayerId(pose.OwnerPlayerId), new FpPosition3(new Fp32(pose.PosX),
+                                new Fp32(pose.PosY), new Fp32(pose.Height))));
+                }
             }
             if (_torchGeometryDirty)
             {
@@ -289,6 +317,7 @@ namespace DK2.Unity
             _objects[objectId] = go;
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
+            if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase);
         }
 
         public void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -302,6 +331,7 @@ namespace DK2.Unity
 
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
+            if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase);
         }
 
         private void ConfigureObjectClip(GameObject go, int id, in ObjectView pose, in ResolvedAsset mesh)
@@ -324,7 +354,8 @@ namespace DK2.Unity
                 ? (pose.AnimationStartedAt.Value.Value + 1d) / DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond
                 : _renderSeconds;
             if (_classic != null && _meshObjects.Contains(id)
-                && _classic.ConfigureAnimation(go, mesh, pose.AnimationLoops, startSeconds)) return;
+                && _classic.ConfigureAnimation(go, mesh, pose.AnimationLoops, startSeconds,
+                    phaseStepOverride: pose.HeartVisual?.PhaseStep)) return;
             go.GetComponent<ClassicCreatureAnimation>()?.Stop();
             if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh);
         }
@@ -475,6 +506,7 @@ namespace DK2.Unity
             _objects.Clear();
             _objectPoses.Clear();
             _objectClips.Clear();
+            while (_heartAdvances.TryDequeue(out _)) { }
             _structures.Clear();
             _meshObjects.Clear();
             _artless.Clear();
@@ -614,7 +646,8 @@ namespace DK2.Unity
                 go.transform.localRotation = Quaternion.Euler(0f, instance.MeshYaw * 360f / 2048f, 0f)
                     * Quaternion.AngleAxis(instance.Roll * 360f / 2048f, Vector3.forward)
                     * Quaternion.Euler(-instance.Pitch * 360f / 2048f, 0f, 0f);
-                go.transform.localScale = Vector3.one * (instance.Scale / (float)Fp32.One);
+                float scale = instance.Scale / (float)Fp32.One;
+                go.transform.localScale = new Vector3(scale, scale * (instance.HeartVisual?.VerticalScale.Raw ?? Fp32.One) / Fp32.One, scale);
                 return;
             }
 

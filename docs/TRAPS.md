@@ -7,6 +7,13 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Unity destroys GameObjects at frame end; a same-frame Transform.Find can return the replaced actor. Disable it immediately and sample the active replacement in probes.
+
+- `dk2tools status` discovery counts can differ from full test-run totals; report verified counts from `dotnet test` summaries.
+
+- Equal source/DLL timestamps can hide edits from incremental MSBuild here; use `dotnet build --no-incremental` when changed decoder tests appear stale.
+- `dotnet test -t` means list-tests, not an MSBuild target; rebuild with `dotnet build --no-incremental`, then use `dotnet test --no-build`.
+
 - Unity Package Manager rejects a UTF-8 BOM in Packages/manifest.json; write that JSON as UTF-8 without a BOM.
 - PowerShell can return early from a GUI executable invoked with `&`; use `Start-Process -PassThru` and wait on that process for Unity builds and player captures.
 
@@ -36,6 +43,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `apply_patch` Add File can overwrite an existing path; check existence and update existing function records so their history survives.
 - A fixed TRX LogFileName with one results directory overwrites each solution project's results; use the logger's default distinct names.
 - KB evidence fragments match Markdown headings, not HTML anchors; changing an evidence header also requires a dated History line.
+- KB list fields use repeated `key: value` headers; indented YAML arrays are rejected by `kb check`.
 - In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
 - Windows Python defaults to a legacy code page here; use `encoding='utf-8-sig'` when reading repository Markdown.
 - PowerShell here-strings piped into Python can replace non-ASCII source literals with `?`; use ASCII script literals or `apply_patch` for Unicode edits.

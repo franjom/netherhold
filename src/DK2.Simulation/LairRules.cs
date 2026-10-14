@@ -22,6 +22,8 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-needs.md")]
 public static class LairRules
 {
+    public const byte MistressBedObjectId = 23;
+
     /// <summary>Whether this creature ever goes for a bed: its record names one
     /// (<see cref="CreatureDef.LairObjectId"/>, the object its bed <i>is</i>) <b>and</b>
     /// it sleeps at all (<see cref="CreatureDef.TimeSleep"/> ≠ 0). Both halves are read
@@ -280,7 +282,8 @@ public static class LairRules
 
     /// <summary>DK2's lair and sleep states (<c>lair-acquisition.md</c> §9, ADR-0178): 80
     /// walks to a lair and places the bed, 81 walks to the bed, 82 lines up on it and 83
-    /// sleeps. 79 has no known entry and 84 is the Mistress bed's exit, neither built.</summary>
+    /// sleeps. State 79 selects a bed after a hand drop or casualty delivery.</summary>
+    public const int SelectingBedState = 79;
     public const int MakingAHomeState = 80;
     public const int GoingToBedState = 81;
     public const int LyingDownState = 82;
@@ -336,6 +339,16 @@ public static class LairRules
         ObjectState bed = world.SpawnObject(
             database, definition.LairObjectId, creature.OwnerPlayerId, tileIndex);
         bed.CreatureId = creature.Id;
+        return bed;
+    }
+
+    /// <summary>Creates a runtime bed and requests the Lair's original creation effect.</summary>
+    public static ObjectState PlaceBed(SimulationContext context, CreatureState creature, TilePos at)
+    {
+        ObjectState bed = PlaceBed(context.World, context.Database, creature, context.World.TileIndex(at));
+        context.RequestEffect("CreatureSleep", ViewEffectRequest.AtTileCentre(
+            context.Database.Room(RoomTypeId.Lair).CreatedObjectEffectId, creature.OwnerPlayerId,
+            at, new Fp32(0), new Dk2Angle((ushort)bed.Heading)));
         return bed;
     }
 

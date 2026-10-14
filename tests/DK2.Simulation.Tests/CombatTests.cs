@@ -270,7 +270,12 @@ public class CombatTests
         int reach = db.CreatureById(demon.CreatureTypeId).MeleeRange.Raw + 0x800;
         Assert.Equal((reach * reach) >> 12, demon.AttackRangeSquared);
 
-        sim.Run(120);
+        for (int tick = 0; tick < 120; tick++)
+        {
+            sim.Tick();
+            Assert.False(demon.PosX > 11 * Fp32.One && demon.PosX < 14 * Fp32.One
+                && demon.PosY > 4 * Fp32.One && demon.PosY < 7 * Fp32.One);
+        }
         Assert.True(world.Player(Rival).HeartHealth < before, $"heart {world.Player(Rival).HeartHealth}");
     }
 

@@ -76,7 +76,11 @@ public static class AssetCatalogue
         "following",
     ];
 
-    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance"];
+    public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance", "getting_up", "movement_idle"];
+
+    public static IEnumerable<EffectElementDef> MeshEffectElements(GameDatabase database) =>
+        database.EffectElements.Values.OrderBy(element => element.EffectElementId)
+            .Where(element => element.ArtResource.Type == 5 && !string.IsNullOrWhiteSpace(element.ArtResource.Name));
 
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so
@@ -97,6 +101,8 @@ public static class AssetCatalogue
         }
         foreach (byte id in Sorted(database.Traps.Keys))
             yield return AssetRef.ForTrap(database.Traps[id].Name);
+        foreach (EffectElementDef element in MeshEffectElements(database))
+            yield return AssetRef.ForEffectElement(element.Name);
     }
 
     /// <summary>The bridge's own torch art, which a wall torch over a floor with no room carries
@@ -333,12 +339,14 @@ public static class AssetCatalogue
         9 => ChickenSlots,
         10 => CallToArmsSlots,
         14 or 35 or 47 or 109 => ReactionSlots,
+        23 => MistressBedSlots,
         64 => BookCaseSlots,
         95 => ChickenSlots,
         _ => [],
     };
 
     private static readonly int[] GoldPileSlots = [5, 6];
+    private static readonly int[] MistressBedSlots = [7];
     private static readonly int[] ChickenSlots = [5, 6];
     private static readonly int[] ReactionSlots = [5];
     private static readonly int[] CallToArmsSlots = [5, 6, 7];

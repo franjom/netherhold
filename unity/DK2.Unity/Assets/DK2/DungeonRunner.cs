@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using DK2.Art;
 using DK2.Assets;
 using DK2.Core;
@@ -20,6 +21,14 @@ using UnityEngine;
 
 namespace DK2.Unity
 {
+    public enum DungeonToolMode : byte
+    {
+        Hand = 0,
+        BuildRoom = 2,
+        SellRoom = 3,
+        CreateImp = 6
+    }
+
     /// <summary>Owns a simulation, ticks it, and hands the result to a
     /// <see cref="DungeonScene"/> — the whole of Unity's involvement in the game.</summary>
     /// <remarks>
@@ -49,7 +58,7 @@ namespace DK2.Unity
         [SerializeField] private int viewingPlayerId = PlayerIds.FirstKeeper;
 
         [Header("Input")]
-        [SerializeField] private PlayerToolMode tool = PlayerToolMode.TagTiles;
+        [SerializeField] private DungeonToolMode tool = DungeonToolMode.Hand;
         [Tooltip("Room used by Build. Select a name here or cycle rooms with [ and ].")]
         [SerializeField] private RoomTypeId selectedRoomId = RoomTypeId.Treasury;
 
@@ -57,6 +66,16 @@ namespace DK2.Unity
         [Tooltip("Multiplies the simulation's own tick rate. 0 pauses; 1 is the placeholder rate (Q1).")]
         [SerializeField] private float speed = 1f;
         [SerializeField] private bool showDiagnostics = true;
+
+        /// <summary>Ticks run on a worker thread after the frame has been presented, while Unity
+        /// renders it, so a tick costs the next frame only what it exceeds the frame's own time by
+        /// (ADR-0458). The view shows a tick one frame after it ran. Off, ticks run inside Update
+        /// before the present, as they did.</summary>
+        [SerializeField] private bool tickOnWorkerThread = true;
+
+        /// <summary>Whole ticks one frame may run: a stall is paid back at this rate rather than
+        /// fast-forwarding the game in one frame.</summary>
+        [SerializeField] private int maxTicksPerFrame = 2;
 
         [Header("Art")]
         [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
@@ -89,6 +108,8 @@ namespace DK2.Unity
         private InstallArtProvider _installArt;
         private ClassicMeshes _classic;
         private ClassicConstructionEffects _constructionEffects;
+        private Action<HeartHealthChange> _heartHealthObserver;
+        private WorldState _heartHealthWorld;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
         private TilePos? _dragTo;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
@@ -96,9 +117,20 @@ namespace DK2.Unity
         private double _tickDebt;
         private string _failure;
         private string _loadedFrom;
+        private Task _tickTask;
+        private ulong _stateHash;
+        private string _diagnostics = "";
 
-        /// <summary>The running simulation, or null if it could not start. Read-only by intent.</summary>
-        public GameSimulation Simulation => _simulation;
+        /// <summary>The running simulation, or null if it could not start. Read-only by intent.
+        /// Waits for a tick in flight on the worker thread, so a reader sees a settled world.</summary>
+        public GameSimulation Simulation
+        {
+            get
+            {
+                WaitForTick();
+                return _simulation;
+            }
+        }
 
         private void Start()
         {
@@ -118,6 +150,10 @@ namespace DK2.Unity
 
         private void StartGame()
         {
+            if (tool != DungeonToolMode.Hand && tool != DungeonToolMode.BuildRoom &&
+                tool != DungeonToolMode.SellRoom && tool != DungeonToolMode.CreateImp)
+                tool = DungeonToolMode.Hand;
+
             string install = string.IsNullOrWhiteSpace(installDirectory)
                 ? Dk2Install.Find()
                 : installDirectory;
@@ -185,16 +221,29 @@ namespace DK2.Unity
             {
                 var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
                 _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
-                    request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId));
+                    request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId),
+                    request => world.Contains(request.Tile) && (!world.FogOfWarEnabled
+                        || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId)),
+                    point => _worldView.GroundHeightAt(world, point), meshes: _classic,
+                    captureEdges: request => CaptureEffectLayout.Boundary(world, database, request));
                 _simulation.ObserveWith(_constructionEffects.Model);
+                _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
             }
 
+            int maximumHeartHealth = database[VariableTypeId.DungeonHeartObjectHealth];
+            _heartHealthObserver = change => _scene.QueueHeartHealthChange(change.Owner,
+                DungeonHeartVisual.FromHealth(currentHealth: change.Health, maximumHealth: maximumHeartHealth));
+            world.HeartHealthChanged += _heartHealthObserver;
+            _heartHealthWorld = world;
             _presenter.Present(world);
             LookAt(world);
         }
 
         private void OnDestroy()
         {
+            WaitForTick();
+            if (_heartHealthWorld != null && _heartHealthObserver != null)
+                _heartHealthWorld.HeartHealthChanged -= _heartHealthObserver;
             _constructionEffects?.Dispose();
             _installArt?.Dispose();
             _installArt = null;
@@ -207,6 +256,10 @@ namespace DK2.Unity
         {
             if (_simulation == null) return;
 
+            // The tick started at the end of the last frame, if any, has the world until it is done.
+            WaitForTick();
+            if (_simulation == null) return;
+
             using (InputMarker.Auto())
             {
                 ControlCamera();
@@ -214,55 +267,119 @@ namespace DK2.Unity
                 QueueInput();
             }
 
+            int ticks = 0;
+            InputFrame firstInput = InputFrame.Empty;
             if (speed > 0f)
             {
                 _tickDebt += Time.deltaTime * SimulationTiming.TicksPerSecond * speed;
 
                 // Whole ticks only, and a cap so a long editor stall does not
                 // fast-forward the game by a thousand ticks in one frame.
-                int ticks = (int)Math.Min(_tickDebt, 20);
+                ticks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame));
                 _tickDebt -= ticks;
-
-                for (int i = 0; i < ticks; i++)
+                if (ticks > 0 && _pendingCommands.Count > 0)
                 {
-                    InputFrame input = i == 0 && _pendingCommands.Count > 0
-                        ? new InputFrame(_pendingCommands.ToArray())
-                        : InputFrame.Empty;
-                    using (TickMarker.Auto())
-                    {
-                        using (CaptureMarker.Auto())
-                            _worldView.CaptureObjectPositions(_simulation.World);
-                        _simulation.Tick(input);
-                    }
-                    if (i == 0) _pendingCommands.Clear();
+                    firstInput = new InputFrame(_pendingCommands.ToArray());
+                    _pendingCommands.Clear();
                 }
             }
 
-            // A tag drag shows its rectangle as tagged while the button is held, as DK2's does; off
-            // the map, the rectangle keeps the last tile the pointer was on.
-            TilePos? dragFrom = _input.DragFrom(PlayerToolMode.TagTiles);
+            if (ticks > 0 && !tickOnWorkerThread) RunTicks(ticks, firstInput);
+
+            // How far the drawn world is from its last tick toward its next, for the creature
+            // interpolation. On the worker path this frame's ticks have not run yet, so the world
+            // drawn is still the previous one and the frame that owes a tick draws it complete (1);
+            // the next frame then starts the new tick's motion from there.
+            float fraction = (float)Math.Min(tickOnWorkerThread ? _tickDebt + ticks : _tickDebt, 1d);
+
+            // Off the map, a Hand excavation preview keeps the last tile the pointer was on.
+            TilePos? dragFrom = _input.DragFrom(PlayerToolMode.Hand);
             if (dragFrom == null) _dragTo = null;
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
-            _worldView.PreviewTags(dragFrom, _dragTo);
-            _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
+            _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
+            _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
-            _scene.DrawCreatureFrame(_simulation.World.CurrentTick, (float)Math.Min(_tickDebt, 1d));
+            _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
             _constructionEffects?.Draw();
+            if (showDiagnostics) RefreshDiagnostics();
+
+            // Nothing on this thread reads the world again before the next Update's wait: OnGUI
+            // reads the strings built above, and Simulation's getter waits.
+            if (ticks > 0 && tickOnWorkerThread)
+            {
+                int count = ticks;
+                InputFrame input = firstInput;
+                _tickTask = Task.Run(() => RunTicks(count, input));
+            }
+        }
+
+        /// <summary>The ticks of one frame, the first with the frame's commands. Capturing the
+        /// object positions first is what the view's interpolation reads.</summary>
+        private void RunTicks(int ticks, InputFrame firstInput)
+        {
+            for (int i = 0; i < ticks; i++)
+            {
+                InputFrame input = i == 0 ? firstInput : InputFrame.Empty;
+                using (TickMarker.Auto())
+                {
+                    using (CaptureMarker.Auto())
+                        _worldView.CaptureObjectPositions(_simulation.World);
+                    _simulation.Tick(input);
+                }
+            }
+            // The hash is for the diagnostics only, and costs a few milliseconds; here it is off the
+            // frame when the ticks are. Turned on at run time, it shows 0 until the next tick.
+            if (showDiagnostics) _stateHash = _simulation.StateHash();
+        }
+
+        /// <summary>Joins the worker tick, if one is running. A tick that threw stops the game and
+        /// shows the failure, as a throw out of Update used to.</summary>
+        private void WaitForTick()
+        {
+            Task task = _tickTask;
+            if (task == null) return;
+            _tickTask = null;
+            try
+            {
+                task.GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+                _failure = $"tick failed: {ex.Message}";
+                speed = 0f;
+                _simulation = null;
+            }
+        }
+
+        private void RefreshDiagnostics()
+        {
+            _diagnostics =
+                $"tick {_simulation.World.CurrentTick.Value}   " +
+                $"state {_stateHash:x16}   " +
+                $"{_scene.TileObjects} tile objects   {_scene.CreatureObjects} creatures   " +
+                $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame";
         }
 
         private void QueueInput()
         {
+            _input.SelectTool((byte)viewingPlayerId, ActiveTool);
             PointerButtonTransition button = PointerButtonTransition.None;
             if (Input.GetMouseButtonDown(0)) button |= PointerButtonTransition.Pressed;
             if (Input.GetMouseButtonUp(0)) button |= PointerButtonTransition.Released;
 
-            if (button == PointerButtonTransition.None) return;
+            PointerButtonTransition secondaryButton = PointerButtonTransition.None;
+            if (Input.GetMouseButtonDown(1)) secondaryButton |= PointerButtonTransition.Pressed;
+            if (Input.GetMouseButtonUp(1)) secondaryButton |= PointerButtonTransition.Released;
+
+            if (button == PointerButtonTransition.None && secondaryButton == PointerButtonTransition.None) return;
 
             TilePos? tile = ScreenToTile(Input.mousePosition);
             var intent = new PlayerIntent(
-                (byte)viewingPlayerId, tool, tile, button, selectedRoomId);
+                (byte)viewingPlayerId, ActiveTool, tile, button, selectedRoomId,
+                SecondaryButton: secondaryButton);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
-                _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database);
+                _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile);
             InputFrame frame = _input.Translate(intent, snapshot);
 
             foreach (PlayerCommand command in frame.All)
@@ -291,15 +408,26 @@ namespace DK2.Unity
                 DungeonScene.OpenHeight);
         }
 
+        private PlayerToolMode ActiveTool
+        {
+            get
+            {
+                switch (tool)
+                {
+                    case DungeonToolMode.BuildRoom: return PlayerToolMode.BuildRoom;
+                    case DungeonToolMode.SellRoom: return PlayerToolMode.SellRoom;
+                    case DungeonToolMode.CreateImp: return PlayerToolMode.CreateImp;
+                    default: return PlayerToolMode.Hand;
+                }
+            }
+        }
+
         private void ReadToolKeys()
         {
-            if (Input.GetKeyDown(KeyCode.Alpha1)) tool = PlayerToolMode.TagTiles;
-            if (Input.GetKeyDown(KeyCode.Alpha2)) tool = PlayerToolMode.UntagTiles;
-            if (Input.GetKeyDown(KeyCode.Alpha3)) tool = PlayerToolMode.BuildRoom;
-            if (Input.GetKeyDown(KeyCode.Alpha4)) tool = PlayerToolMode.SellRoom;
-            if (Input.GetKeyDown(KeyCode.Alpha5)) tool = PlayerToolMode.Hand;
-            if (Input.GetKeyDown(KeyCode.Alpha6)) tool = PlayerToolMode.Slap;
-            if (Input.GetKeyDown(KeyCode.Alpha7)) tool = PlayerToolMode.CreateImp;
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha5)) tool = DungeonToolMode.Hand;
+            if (Input.GetKeyDown(KeyCode.Alpha3)) tool = DungeonToolMode.BuildRoom;
+            if (Input.GetKeyDown(KeyCode.Alpha4)) tool = DungeonToolMode.SellRoom;
+            if (Input.GetKeyDown(KeyCode.Alpha7)) tool = DungeonToolMode.CreateImp;
 
             if (Input.GetKeyDown(KeyCode.LeftBracket)) SelectAdjacentRoom(-1);
             if (Input.GetKeyDown(KeyCode.RightBracket)) SelectAdjacentRoom(1);
@@ -435,12 +563,8 @@ namespace DK2.Unity
 
             string art = _assets == null ? "" : _assets.Summarise();
 
-            GUI.Label(
-                new Rect(10, 10, 1200, 20),
-                $"tick {_simulation.World.CurrentTick.Value}   " +
-                $"state {_simulation.StateHash():x16}   " +
-                $"{_scene.TileObjects} tile objects   {_scene.CreatureObjects} creatures   " +
-                $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame");
+            // Built in Update: the world may be mid-tick on the worker thread while OnGUI runs.
+            GUI.Label(new Rect(10, 10, 1200, 20), _diagnostics);
 
             GUI.Label(new Rect(10, 30, 1200, 20),
                 $"art: {art}" + (_classic == null ? "" : $"   shader: {_classic.ShaderName}"));
@@ -448,14 +572,17 @@ namespace DK2.Unity
             GUI.Label(
                 new Rect(10, 50, 1200, 20),
                 $"tool: {tool}" +
-                (tool == PlayerToolMode.BuildRoom ? $" (room {selectedRoomId})" : "") +
-                "   1 tag  2 untag  3 build  4 sell  5 hand  6 slap  7 create imp  [/] room");
+                (tool == DungeonToolMode.BuildRoom ? $" (room {selectedRoomId})" : "") +
+                "   1/5 hand  3 build  4 sell  7 create imp  [/] room");
+
+            GUI.Label(new Rect(10, 70, 1200, 20),
+                "hand: left pick up creature / toggle excavation (drag rectangle); right drop held creature / slap");
 
             if (_loadedFrom != null)
-                GUI.Label(new Rect(10, 90, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
+                GUI.Label(new Rect(10, 110, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
 
             GUI.Label(
-                new Rect(10, 70, 1200, 20),
+                new Rect(10, 90, 1200, 20),
                 "tick rate is SimulationTiming.TicksPerSecond, the unmeasured Q1 placeholder — " +
                 "tick counts are faithful, wall-clock speed is not a claim");
         }

@@ -14,7 +14,7 @@ public class KwdTerrainWriterTests
     public void EveryDecodedTerrainFieldRoundTripsWithoutTouchingOtherBytes() =>
         KwdScalarOverlayChecks.Check(KwdRecordType.Terrain, 552, Read, KwdTerrainRooms.WriteTerrainRecord,
             "Name:0:32 Depth:188:4 Flags:190:4 Damage:194:2 GoldValue:19A:2 ManaGain:19C:2 " +
-            "MaxManaGain:19E:2 TooltipStringId:1A0:2 NameStringId:1A2:2 TerrainId:1D6:1 " +
+            "MaxManaGain:19E:2 TooltipStringId:1A0:2 NameStringId:1A2:2 MaxHealthEffectId:1A4:2 DestroyedEffectId:1A6:2 TerrainId:1D6:1 " +
             "StartingHealth:1D7:2 MaxHealthTypeTerrainId:1D9:1 DestroyedTypeTerrainId:1DA:1 MaxHealth:1FF:2",
             excludedProperties: ["Wibble"]); // eight bytes, KwdTerrainWibbleTests
 
@@ -26,6 +26,10 @@ public class KwdTerrainWriterTests
         List<TerrainDef> records = KwdTerrainRooms.ParseTerrain([chunk]);
         List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(41, records.Count);
+        Assert.Equal((ushort)5, records.Single(r => r.Name == "Dirt Path").MaxHealthEffectId);
+        Assert.Equal((ushort)6, records.Single(r => r.Name == "Rock").DestroyedEffectId);
+        Assert.Equal((ushort)7, records.Single(r => r.Name == "Gold").DestroyedEffectId);
+        Assert.Equal((ushort)0, records.Single(r => r.Name == "Reinforced Wall").DestroyedEffectId);
         for (int i = 0; i < records.Count; i++)
             Assert.Equal(images[i].ToBytes(), KwdTerrainRooms.WriteTerrainRecord(records[i], images[i]));
     }

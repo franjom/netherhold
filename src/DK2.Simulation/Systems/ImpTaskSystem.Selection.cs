@@ -166,7 +166,7 @@ public sealed partial class ImpTaskSystem
                 if (TryTakeBody(context, creature, definition, grid, corpses: false)) return true;
                 if (TryReinforceAt(context, creature, grid, tile)) return true;
                 if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
-                    && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)
+                    && Reaches(grid, creature, tile)
                     && CommitFetch(context, creature, tile))
                     return true;
                 if (TryTakeObject(context, creature, definition, grid)) return true;
@@ -232,7 +232,7 @@ public sealed partial class ImpTaskSystem
             if (!InScanRange(tile)) continue;
             if (!RingScanVisits(context, world, tile, creature.Tile)) continue;
             if (!CanFetchFrom(context, tile, player, creature.Id)) continue;
-            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)) continue;
+            if (!Reaches(grid, creature, tile)) continue;
             if (CommitFetch(context, creature, tile)) return true;
         }
         return false;
@@ -287,7 +287,7 @@ public sealed partial class ImpTaskSystem
             if (!RingScanVisits(context, world, tile, at)) continue;
             if (TryReinforceAt(context, creature, grid, tile)) return true;
             if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
-                && _pathfinder.TryFindNearest(grid, creature.Tile, s => s == tile, _route)
+                && Reaches(grid, creature, tile)
                 && CommitFetch(context, creature, tile))
                 return true;
         }
@@ -315,7 +315,7 @@ public sealed partial class ImpTaskSystem
             if (!TryJobOn(context, grid, stand, wall, creature.OwnerPlayerId, JobPriority.Reinforce, creature.Id,
                           out int tileIndex, out TileWorkKind kind))
                 continue;
-            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route)
+            if (!Reaches(grid, creature, stand)
                 || !CommitJob(context, creature, tileIndex, kind, JobPriority.Reinforce))
             {
                 if (!ImpCrowding.FaceIsFull(world, context.Database, tileIndex, stand, creature.Id, false, kind))
@@ -498,7 +498,7 @@ public sealed partial class ImpTaskSystem
             if (!TryJobOn(context, grid, stand, target, player, JobPriority.MarkedExcavation, creature.Id,
                           out _, out TileWorkKind work, crowding: false))
                 continue;
-            if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == stand, _route)) continue;
+            if (!Reaches(grid, creature, stand)) continue;
 
             bool mining = work == TileWorkKind.MineGold;
             if (!PointReachable(context, creature, mining ? stand.X * 4096 : CreatureState.CentreOf(stand.X),
@@ -536,7 +536,7 @@ public sealed partial class ImpTaskSystem
         }
 
         if (taken is not TilePos chosen) return false;
-        if (!_pathfinder.TryFindNearest(grid, creature.Tile, s => s == chosen, _route)) return false;
+        if (!Reaches(grid, creature, chosen)) return false;
         if (takenFrom is not null) TakeTaskFrom(context, takenFrom, creature, targetIndex);
         if (CommitJob(context, creature, targetIndex, takenWork, JobPriority.MarkedExcavation, takenSlot)) return true;
         _excavationWalkFailed = true;
@@ -546,18 +546,18 @@ public sealed partial class ImpTaskSystem
     /// <summary><c>Route_IsPointReachable(point, 0x80)</c> (<c>0x00471630</c>): a route query that
     /// respects doors. <c>0x00469AF0</c> asks it of each dig side (the side tile's centre, or its
     /// corner for a mine), and the objects and body handlers of the thing's own position, before
-    /// walking to or stealing it; the selection grid has no doors (Q590, ADR-0449).</summary>
+    /// walking to or stealing it; the selection grid has no doors (Q590, ADR-0469).</summary>
     private bool PointReachable(SimulationContext context, CreatureState creature, int x, int y)
     {
-        _reach.Clear();
+        _reachPoints.Clear();
         return context.Navigation.Route(
             new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4), new Steering.Fixed16Vector(x << 4, y << 4),
             Navigation.WorldSteering.ProfileOf(context.Database.CreatureById(creature.CreatureTypeId),
                 creature.OwnerPlayerId, Navigation.MoveOptions.Loose),
-            _reach, refresh: false);
+            _reachPoints, refresh: false);
     }
 
-    private readonly List<Steering.Fixed16Vector> _reach = [];
+    private readonly List<Steering.Fixed16Vector> _reachPoints = [];
 
     /// <summary>Set when <see cref="TryExcavationAt"/> chose a slot and its walk could not start.</summary>
     private bool _excavationWalkFailed;
@@ -754,7 +754,7 @@ public sealed partial class ImpTaskSystem
         if (!TryJobOn(context, grid, target, target, creature.OwnerPlayerId, JobPriority.Claim, creature.Id,
                       out int tileIndex, out TileWorkKind kind))
             return false;
-        if (!_pathfinder.TryFindNearest(grid, creature.Tile, stand => stand == target, _route)) return false;
+        if (!Reaches(grid, creature, target)) return false;
         return CommitJob(context, creature, tileIndex, kind, JobPriority.Claim);
     }
 
@@ -814,7 +814,7 @@ public sealed partial class ImpTaskSystem
     /// Commits a worker to tile work along the route the last search planned. False, with nothing
     /// committed, when the walk cannot start: the tile-work handlers' takes fail when their route
     /// request does (<c>0x004651A0</c> → <c>0x00471890</c> → <c>0x004D0F60</c>, imp-task-stealing.md
-    /// §7, ADR-0448). A held slot is kicked after the walk starts, as claim and reinforce do; the
+    /// §7, ADR-0468). A held slot is kicked after the walk starts, as claim and reinforce do; the
     /// dig caller kicks first, and the just-dug claim's walk to its own tile never fails (Q590).
     /// </summary>
     private bool CommitJob(
@@ -842,6 +842,12 @@ public sealed partial class ImpTaskSystem
         {
             (long sx, long sy) = TaskStealing.ReinforceStance(standing, face);
             walks = context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
+        }
+        else if (kind is TileWorkKind.Claim or TileWorkKind.AttackTile or TileWorkKind.ConvertRoom)
+        {
+            // The claim handler walks to the centre even from inside the target tile.
+            walks = context.Navigation.TryRouteToStance(creature, CreatureState.CentreOf(target.X),
+                CreatureState.CentreOf(target.Y), Navigation.MoveOptions.Spot);
         }
         else
         {

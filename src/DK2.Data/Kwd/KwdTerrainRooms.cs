@@ -30,6 +30,7 @@ public static class KwdTerrainRooms
         U16(RoomLayout.Tooltip, record.TooltipStringId);
         U16(RoomLayout.NameString, record.NameStringId);
         U16(RoomLayout.Cost, record.Cost);
+        U16(RoomLayout.CreatedObjectEffect, record.CreatedObjectEffectId);
         bytes[RoomLayout.Id] = record.RoomId;
         bytes[RoomLayout.Return] = record.ReturnPercentage;
         bytes[RoomLayout.Terrain] = record.TerrainId;
@@ -55,6 +56,8 @@ public static class KwdTerrainRooms
         U16(TerrainLayout.MaxMana, record.MaxManaGain);
         U16(TerrainLayout.Tooltip, record.TooltipStringId);
         U16(TerrainLayout.NameString, record.NameStringId);
+        U16(TerrainLayout.MaxHealthEffect, record.MaxHealthEffectId);
+        U16(TerrainLayout.DestroyedEffect, record.DestroyedEffectId);
         bytes[TerrainLayout.Id] = record.TerrainId;
         if (record.Wibble is TerrainWibble w)
         {
@@ -76,7 +79,7 @@ public static class KwdTerrainRooms
         internal const int Gold = 0x19A, Mana = 0x19C, MaxMana = 0x19E;
         internal const int Tooltip = 0x1A0, NameString = 0x1A2, Wibble = 0x1CE, Id = 0x1D6;
         internal const int StartingHealth = 0x1D7, MaxHealthType = 0x1D9, DestroyedType = 0x1DA;
-        internal const int MaxHealth = 0x1FF;
+        internal const int MaxHealth = 0x1FF, MaxHealthEffect = 0x1A4, DestroyedEffect = 0x1A6;
     }
 
     private static class RoomLayout
@@ -86,7 +89,7 @@ public static class KwdTerrainRooms
         internal const int Construction = 0x395, Creature = 0x396, Objects = 0x39A, Order = 0x3C2;
         internal const int SizeX = 0x41B, SizeY = 0x41C, Health = 0x41D;
         internal const int TorchIntensity = 0x36E, TorchHeight = 0x380, TorchRgb = 0x397;
-        internal const int TorchRadius = 0x3C3, TorchArt = 0x3C7;
+        internal const int TorchRadius = 0x3C3, TorchArt = 0x3C7, CreatedObjectEffect = 0x384;
     }
 
     public static List<TerrainDef> ParseTerrain(IEnumerable<KwdChunk> chunks)
@@ -153,6 +156,8 @@ public static class KwdTerrainRooms
             MaxHealthTypeTerrainId = U8(TerrainLayout.MaxHealthType),
             DestroyedTypeTerrainId = U8(TerrainLayout.DestroyedType),
             MaxHealth = U16(TerrainLayout.MaxHealth),
+            MaxHealthEffectId = U16(TerrainLayout.MaxHealthEffect),
+            DestroyedEffectId = U16(TerrainLayout.DestroyedEffect),
             Wibble = new TerrainWibble(
                 U8(TerrainLayout.Wibble), U8(TerrainLayout.Wibble + 1), U8(TerrainLayout.Wibble + 2),
                 U8(TerrainLayout.Wibble + 3), U8(TerrainLayout.Wibble + 4), U8(TerrainLayout.Wibble + 5),
@@ -182,6 +187,7 @@ public static class KwdTerrainRooms
             TerrainId = U8(RoomLayout.Terrain),
             Construction = (TileConstruction)U8(RoomLayout.Construction),
             CreatedCreatureId = U8(RoomLayout.Creature),
+            CreatedObjectEffectId = U16(RoomLayout.CreatedObjectEffect),
             ObjectIds = objectIds,
             OrderInEditor = U8(RoomLayout.Order),
             RecommendedSizeX = U8(RoomLayout.SizeX),

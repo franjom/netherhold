@@ -336,7 +336,7 @@ public class RoomInstanceTests
         Paint(world, RoomTypeId.Lair, 9, 5, 2, 2);
         Paint(world, RoomTypeId.DungeonHeart, 5, 8, 5, 2, owner: Rival);
 
-        List<RoomInstance> all = RoomIndex.Build(world, Db);
+        IReadOnlyList<RoomInstance> all = RoomIndex.Build(world, Db);
 
         // The fixture's map already contains a claimed-path room, which is not
         // room terrain, so only the three painted here count.
@@ -365,5 +365,82 @@ public class RoomInstanceTests
         Assert.Null(RoomIndex.RoomAt(world, Db, (2 * world.Width) + 2));
         Assert.Null(RoomIndex.RoomAt(world, Db, -1));
         Assert.Null(RoomIndex.RoomAt(world, Db, world.TileCount));
+    }
+
+    // ---- the sweep is kept while the tiles are unchanged (ADR-0466) --------
+
+    [Fact]
+    public void AnUnchangedWorld_GetsTheSameSweepBack()
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 5, 5, 3, 2);
+
+        IReadOnlyList<RoomInstance> first = RoomIndex.Build(world, Db);
+
+        Assert.Same(first, RoomIndex.Build(world, Db));
+    }
+
+    [Fact]
+    public void ChangingOneTilesTerrain_SweepsAgain()
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 5, 5, 3, 1);
+        IReadOnlyList<RoomInstance> before = RoomIndex.Build(world, Db);
+
+        Paint(world, RoomTypeId.Lair, 6, 5, 1, 1);
+        IReadOnlyList<RoomInstance> after = RoomIndex.Build(world, Db);
+
+        Assert.NotSame(before, after);
+        Assert.Single(before);
+        Assert.Equal(3, after.Count);
+        AgreesWithSingleTileFills(world, after);
+    }
+
+    [Fact]
+    public void ChangingOnlyATilesOwner_SweepsAgain()
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 5, 5, 3, 1);
+        IReadOnlyList<RoomInstance> before = RoomIndex.Build(world, Db);
+
+        world.Tile(7, 5).OwnerPlayerId = Rival;
+        IReadOnlyList<RoomInstance> after = RoomIndex.Build(world, Db);
+
+        Assert.NotSame(before, after);
+        Assert.Equal(2, after.Count);
+        Assert.Contains(after, r => r.OwnerPlayerId == Rival && r.TileCount == 1);
+        AgreesWithSingleTileFills(world, after);
+    }
+
+    [Fact]
+    public void ASweepAlreadyHandedOut_IsNotChangedByALaterOne()
+    {
+        WorldState world = World();
+        Paint(world, RoomTypeId.Treasury, 5, 5, 3, 1);
+        IReadOnlyList<RoomInstance> before = RoomIndex.Build(world, Db);
+
+        Paint(world, RoomTypeId.Lair, 9, 5, 2, 2);
+        _ = RoomIndex.Build(world, Db);
+
+        RoomInstance only = Assert.Single(before);
+        Assert.Equal(RoomTypeId.Treasury, only.Definition.TypeId);
+    }
+
+    private static void AgreesWithSingleTileFills(WorldState world, IReadOnlyList<RoomInstance> rooms)
+    {
+        int tiles = 0;
+        foreach (RoomInstance room in rooms)
+        {
+            foreach (int index in room.TileIndices)
+            {
+                RoomInstance single = RoomIndex.RoomAt(world, Db, index)!;
+                Assert.Equal(room.TileIndices, single.TileIndices);
+                Assert.Equal(room.OwnerPlayerId, single.OwnerPlayerId);
+                tiles++;
+            }
+        }
+        for (int i = 0; i < world.TileCount; i++)
+            if (RoomIndex.RoomAt(world, Db, i) is not null) tiles--;
+        Assert.Equal(0, tiles);
     }
 }

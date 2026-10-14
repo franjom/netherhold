@@ -105,8 +105,13 @@ the provider's retained decoded KMF frames and Unity conversion/upload/bounds wo
 
 ## 5. Classic action selection
 
-CONFIRMED (binary, 2026-10-11): `0x0048BE50` chooses movement slots 1/2 for
-walk/run modes 0/1. A current action overrides the movement slot through
+CONFIRMED (binary re-read, 2026-10-13): `0x0048BE50` chooses movement slots 1/2 for
+walk/run modes 0/1 when actual body velocity is nonzero. At zero velocity it
+selects standing slot 39, except movement mode 2; a route alone does not select
+walking. Slot 39 is the separate file art at `0x13E3`, loaded by `0x00492320`
+into compact slot 39 (`+0x41D`). All 45 non-Jack global records have static
+type-5 standing poses; Jack's absent slot falls back to slot 1. A current action
+overrides the movement slot through
 `0x00496DE0`, which reads the action-table art byte. `0x004950C0` installs
 actions 4/5 with slot 13 (claim), 7/8 with slot 12 (reinforce/repair).
 Catalogue indices are those slots minus one. The shipped Imp has no slot 2;
@@ -147,9 +152,15 @@ A zero authored scale makes the rate zero; a nonzero scale whose per-tick
 value truncates to zero leaves the nominal rate unchanged.
 
 Fresh installation in `0x004B37D0` sets the requested slot before computing
-its rate. Ordinary movement's caller passes scalar 4096, so the first
-advance uses that scalar, not yet the actual velocity. Later turns use
-the velocity after their advance. The tests preserve both details.
+its rate. Ordinary walk/run obtains its initial scalar from virtual slot
+`+0x90` (`0x0048D000`), the entity's current per-tick speed word `+0x11C`;
+the walk/run branches load it before the installation at `0x0048C647`.
+The action override instead supplies 4096. The first advance uses the installed
+rate; later turns use actual velocity after their advance. A zero movement
+scalar on an already installed slot 1/2 reuses the stored scalar once, then
+stores 1; see animation-transitions.md §2. It does not authorize starting a
+walk clip at zero velocity. The corresponding simulation input is the body's
+current speed cap shifted down four, including its applied modifiers.
 
 ## 7. Melee and Chicken playback
 

@@ -23,6 +23,78 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class WorldViewTests
 {
+    [InstallFact]
+    public void AStationaryImpWithARouteDoesNotRunInPlaceBeforeItStartsMoving()
+    {
+        (GameDatabase database, WorldState world) = RealLevel()!.Value;
+        CreatureDef definition = database.Creatures.Values.Single(c => c.Name == "Imp");
+        CreatureState imp = world.SpawnCreature(database, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+        const int pointTravelState = 6;
+        CreatureStateMachine.BeginTravel(new StateHookContext(world, database), imp,
+            pointTravelState, ImpStates.For(TileWorkKind.Claim).Entry);
+        imp.Body.PathTotalCount = 1;
+        imp.Body.MaxSpeed = 768 << 4;
+        var view = new WorldView(database);
+        CreatureView waiting = view.Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(AssetRef.ForCreature("Imp", AssetKind.Animation, "movement_idle"), waiting.Animation);
+        Assert.Null(waiting.AnimationMovementSpeed);
+        imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(128 << 4, 0);
+        CreatureView moving = view.Creatures(world).Single(c => c.Id == imp.Id);
+        Assert.Equal(AssetRef.ForCreature("Imp", AssetKind.Animation, "moving_to_job"), moving.Animation);
+        Assert.Equal(new Fp32(128), moving.AnimationMovementSpeed);
+        Assert.Equal(new Fp32(768), moving.AnimationInitialMovementSpeed);
+    }
+
+    [InstallFact]
+    public void PortalExitDoesNotReplayTheAuthoredDisplacementThroughPositionInterpolation()
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureDef definition = database.CreatureByName("Warlock")!;
+        CreatureState creature = world.SpawnCreature(database, definition.CreatureId,
+            1, FirstWalkableTile(database, world));
+        CreatureStateMachine.TrySetState(new StateHookContext(world, database), creature,
+            PortalRules.JoiningState, currentTick: 0);
+        var view = new WorldView(database);
+        CreatureView entrance = view.Creatures(world).Single(c => c.Id == creature.Id);
+        creature.LastPosX = creature.PosX;
+        creature.LastPosY = creature.PosY;
+        creature.PosX += definition.EntranceOffsetX;
+        creature.PosY += definition.EntranceOffsetY;
+        CreatureStateMachine.TrySetState(new StateHookContext(world, database), creature,
+            CreatureStateMachine.Idle, currentTick: 0);
+        for (int draw = 0; draw < 2; draw++)
+        {
+            CreatureView exit = view.Creatures(world).Single(c => c.Id == creature.Id);
+            Assert.Equal(exit.PosX, exit.PreviousPosX);
+            Assert.Equal(exit.PosY, exit.PreviousPosY);
+        }
+        Assert.Equal(entrance.PosY, creature.LastPosY);
+        new GameSimulation(database, world, 1, []).Run(1);
+        creature.LastPosX = creature.PosX;
+        creature.LastPosY = creature.PosY;
+        creature.PosY += 128;
+        CreatureView walking = view.Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(creature.LastPosY, walking.PreviousPosY);
+        Assert.NotEqual(walking.PosY, walking.PreviousPosY);
+    }
+
+    [InstallTheory]
+    [InlineData(255, "stunned")]
+    [InlineData(257, "getting_up")]
+    public void ADroppedCreaturePlaysItsKnockdownAndGetUpFromEachStateEntry(int state, string clip)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        CreatureState creature = world.SpawnCreature(database, database.CreatureByName("Goblin")!.CreatureId,
+            1, FirstWalkableTile(database, world));
+        CreatureStateMachine.TrySetState(new StateHookContext(world, database), creature, state, currentTick: 17);
+        CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(AssetRef.ForCreature("Goblin", AssetKind.Animation, clip), rendered.Animation);
+        Assert.True(rendered.PlaysAnimation);
+        Assert.False(rendered.AnimationLoops);
+        Assert.False(rendered.AnimationDeferred);
+        Assert.Equal(new GameTick(17), rendered.AnimationStartedAt);
+    }
+
     [InstallTheory]
     [InlineData("Warlock")]
     [InlineData("Goblin")]
@@ -585,6 +657,7 @@ public class WorldViewTests
         imp.Body.PathTotalCount = 1;
         imp.Body.PathFinished = false;
         imp.Running = running;
+        imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(128 << 4, 0);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
         Assert.Equal("creature.imp.animation." + clip, rendered.Animation.Key);
         Assert.True(rendered.PlaysAnimation);
@@ -620,7 +693,12 @@ public class WorldViewTests
         imp.Body.PathFinished = false;
         imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(x, y);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == imp.Id);
-        Assert.Equal(new Fp32(speed), rendered.AnimationMovementSpeed);
+        if (speed == 0)
+        {
+            Assert.Null(rendered.AnimationMovementSpeed);
+            Assert.Equal(AssetRef.ForCreature("Imp", AssetKind.Animation, "movement_idle"), rendered.Animation);
+        }
+        else Assert.Equal(new Fp32(speed), rendered.AnimationMovementSpeed);
     }
 
     [InstallTheory]

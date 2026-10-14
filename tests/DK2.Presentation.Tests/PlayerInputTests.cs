@@ -108,7 +108,18 @@ public class PlayerInputTests
     }
 
     [Fact]
-    public void HandClickDropsBeforeConsideringTargetsWhenHoldingSomething()
+    public void LeftHandClickWhileHoldingStillPicksUpAnotherCreature()
+    {
+        TilePos tile = new(4, 5);
+        var snapshot = new PlayerInputSnapshot(true,
+        [new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, tile)]);
+        PickUpCreatureCommand command = Assert.IsType<PickUpCreatureCommand>(Assert.Single(
+            Translate(PlayerToolMode.Hand, tile, PointerButtonTransition.Pressed, snapshot).All));
+        Assert.Equal(40, command.CreatureId);
+    }
+
+    [Fact]
+    public void RightHandClickDropsBeforeConsideringTargetsWhenHoldingSomething()
     {
         TilePos tile = new(4, 5);
         var snapshot = new PlayerInputSnapshot(true,
@@ -117,9 +128,11 @@ public class PlayerInputTests
         ]);
 
         DropCommand command = Assert.IsType<DropCommand>(Assert.Single(
-            Translate(PlayerToolMode.Hand, tile, PointerButtonTransition.Pressed, snapshot).All));
+            _translator.Translate(new PlayerIntent(Keeper, PlayerToolMode.Hand, tile,
+                PointerButtonTransition.None, SecondaryButton: PointerButtonTransition.Pressed), snapshot).All));
 
         Assert.Equal(tile, command.Tile);
+        Assert.Equal(40, command.TargetCreatureId);
     }
 
     [Fact]

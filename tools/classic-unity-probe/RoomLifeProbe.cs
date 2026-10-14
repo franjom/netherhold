@@ -1,9 +1,11 @@
 // Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DK2.Art;
+using DK2.Art.Kmf;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
@@ -37,6 +39,25 @@ namespace DK2.Unity
             public int[] guardStates;
             public string guardCreature, dwarfMesh;
             public Vector3[] dwarfNativeSamples, warlockNativeSamples;
+            public int[] authoredEffectIds, authoredRequestCounts, authoredBirths, authoredModelCounts, authoredNativeCounts, authoredChangedPixels;
+            public bool authoredEffectsPassed;
+            public int[] authoredMeshCounts, authoredMeshChangedPixels;
+            public bool[] authoredMeshRotationChanged;
+            public string[] arrivalGeometryNames;
+            public float[] arrivalEndFootHeights, arrivalIdleFootHeights;
+            public bool impStartupStill, impWalkMeshChanged, impWalkPositionChanged, impNativeRateSeeded;
+            public string impStartupAsset, impWalkAsset;
+            public int[] heartHealthPercent, heartPhaseSteps, heartVerticalScales, heartDecayPhases;
+            public float[] heartUnityVerticalScales;
+            public string[] heartMaterials, heartTextures;
+            public bool[] heartMeshChanged, heartRateMatched;
+            public bool heartVisualsPassed;
+            public int heartManaRequests, heartRisingParticles, heartFallingParticles, heartSmokeExpiredParticles;
+            public int[] heartSmokeElementIds;
+            public bool heartSmokePassed, heartSmokeRises, heartSmokeFalls, heartManaPositionMatched;
+            public int heartRisingGreenPixels, heartFallingGreenPixels;
+            public bool heartHealthAdvanceMatched;
+            public int heartHealthAdvanceRequests;
         }
         private readonly Metrics _metrics = new Metrics();
         private InstallArtProvider _art;
@@ -55,6 +76,9 @@ namespace DK2.Unity
         private double _effectStarted;
         private double _expiredAt = -1;
         private SimEvent[] _constructionEvents;
+        private GameDatabase _probeDatabase;
+        private IEffectSpriteProvider _probeSprites;
+        private ClassicMeshes _probeMeshes;
         private sealed class WaveSink : ISimulationEventSink
         {
             public readonly ListEventSink Events = new ListEventSink();
@@ -78,6 +102,7 @@ namespace DK2.Unity
                 var db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
                 _art = InstallArtProvider.Open(install, db);
                 var meshes = new ClassicMeshes(_art);
+                CheckArrivalGeometry();
                 CheckNativeCreatureInterpolation(meshes);
                 CheckLevelEightGuard(db, install);
                 _actors = new GameObject("Actors");
@@ -91,7 +116,7 @@ namespace DK2.Unity
                 _ratPosition = _rat.transform.position;
                 _effectRoot = new GameObject("Construction effects");
                 var sprites = new InstallEffectSpriteProvider(db, _art.LoadTexture);
-                _effects = new ClassicConstructionEffects(_effectRoot.transform, db, sprites, 42);
+                _effects = new ClassicConstructionEffects(_effectRoot.transform, db, sprites, 42, meshes: meshes);
                 CheckWave(db);
                 _effects.Draw();
                 Shader shader = Shader.Find("DK2/ClassicEffect");
@@ -110,6 +135,7 @@ namespace DK2.Unity
                 var sun = new GameObject("Probe sun").AddComponent<Light>(); sun.type = LightType.Directional;
                 sun.transform.rotation = Quaternion.Euler(50, -30, 0);
                 RenderSettings.ambientLight = Color.gray;
+                _probeDatabase = db; _probeSprites = sprites; _probeMeshes = meshes;
                 _ready = true;
             }
             catch (Exception ex) { Debug.LogException(ex); Application.Quit(1); }
@@ -209,6 +235,439 @@ namespace DK2.Unity
             _metrics.lairWaveCorrect = _metrics.lairTilesInput == 1 && _metrics.lairTilesNext == 3 && _metrics.lairTilesFinal == 4
                 && requests.SequenceEqual(new[] { new TilePos(2, 2), new TilePos(2, 1), new TilePos(1, 2), new TilePos(1, 1) });
         }
+
+        private static WorldState EffectWorld(GameDatabase db)
+        {
+            var tiles = Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49).ToArray();
+            return WorldState.FromMap(db, new LevelMap(7, 7, tiles),
+                new byte[] { PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper });
+        }
+
+        private static SimEvent[] AuthoredRequests(GameDatabase db, EffectId effectId, out WorldState world)
+        {
+            world = EffectWorld(db);
+            TilePos target = new TilePos(3, 3);
+            ISimulationSystem[] systems;
+            if (effectId.Value == 6 || effectId.Value == 7)
+            {
+                TerrainDef terrain = db.Terrain.Values.Single(t => t.Name == (effectId.Value == 6 ? "Rock" : "Gold"));
+                world.Tile(target).TerrainId = terrain.TerrainId;
+                world.Tile(target).OwnerPlayerId = PlayerIds.Neutral;
+                world.Tile(target).Health = terrain.StartingHealth;
+                systems = new ISimulationSystem[] { new TileWorkSystem() };
+            }
+            else if (effectId.Value == 5)
+            {
+                TerrainDef path = db.Terrain.Values.Single(t => t.Name == "Dirt Path");
+                world.Tile(target).TerrainId = path.TerrainId;
+                world.Tile(target).Health = path.StartingHealth;
+                systems = new ISimulationSystem[] { new TileWorkSystem() };
+            }
+            else
+            {
+                RoomTypeId type = effectId.Value == 8 ? RoomTypeId.Portal : RoomTypeId.Lair;
+                byte owner = effectId.Value == 8 ? PlayerIds.Neutral : PlayerIds.FirstKeeper;
+                for (int y = 2; y <= 4; y++)
+                    for (int x = 2; x <= 4; x++) RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), owner);
+                systems = effectId.Value == 8 ? new ISimulationSystem[] { new TileWorkSystem() }
+                    : new ISimulationSystem[] { new CreatureMovementSystem(), new CreatureSleepSystem() };
+                if (effectId.Value == 17)
+                    world.SpawnCreature(db, db.Creatures.Values.Single(c => c.Name == "Goblin").CreatureId,
+                        PlayerIds.FirstKeeper, target);
+            }
+            var sim = new GameSimulation(db, world, 1, systems);
+            var sink = new ListEventSink(); sim.ObserveWith(sink);
+            for (int tick = 0; tick < 500 && !sink.Events.Any(e => e.EffectRequest.HasValue); tick++)
+            {
+                if (effectId.Value == 6 || effectId.Value == 7)
+                    world.QueueWork(target.X, target.Y, effectId.Value == 6 ? TileWorkKind.Dig : TileWorkKind.MineGold,
+                        PlayerIds.FirstKeeper);
+                if (effectId.Value == 5) world.QueueWork(target.X, target.Y, TileWorkKind.Claim, PlayerIds.FirstKeeper);
+                if (effectId.Value == 8) world.QueueWork(target.X, target.Y, TileWorkKind.ConvertRoom, PlayerIds.FirstKeeper);
+                sim.Tick();
+            }
+            return sink.Events.Where(e => e.EffectRequest.HasValue && e.EffectRequest.Value.EffectId == effectId).ToArray();
+        }
+
+        private void CheckAuthoredEffects(GameDatabase db, IEffectSpriteProvider sprites)
+        {
+            _metrics.authoredEffectIds = new[] { 5, 8, 17, 6, 7 };
+            _metrics.authoredRequestCounts = new int[5]; _metrics.authoredBirths = new int[5];
+            _metrics.authoredModelCounts = new int[5]; _metrics.authoredNativeCounts = new int[5];
+            _metrics.authoredChangedPixels = new int[5]; _metrics.authoredEffectsPassed = true;
+            _metrics.authoredMeshCounts = new int[5]; _metrics.authoredMeshChangedPixels = new int[5];
+            _metrics.authoredMeshRotationChanged = new bool[5];
+            int[] expectedRequests = { 1, 9, 1, 1, 1 }, expectedParticles = { 32, 256, 256, 72,
+                db.Effects[7].ElementsPerTurn * db.Effects[7].GenerateIds.Count(element => element != 0) };
+            _actors.SetActive(false); _effectRoot.SetActive(false);
+            for (int index = 0; index < _metrics.authoredEffectIds.Length; index++)
+            {
+                var id = new EffectId((ushort)_metrics.authoredEffectIds[index]);
+                SimEvent[] requests = AuthoredRequests(db, id, out WorldState world);
+                var root = new GameObject("Authored effect " + id.Value);
+                long milliseconds = 0;
+                using (var effects = new ClassicConstructionEffects(root.transform, db, sprites, 42,
+                    clock: () => new EffectTime(milliseconds), meshes: _probeMeshes,
+                    captureEdges: request => CaptureEffectLayout.Boundary(world, db, request)))
+                {
+                    Color32[] baseline = Capture("authored-" + id.Value + "-off");
+                    _metrics.authoredRequestCounts[index] = requests.Length;
+                    foreach (SimEvent request in requests) effects.Model.Emit(request);
+                    _metrics.authoredEffectsPassed &= effects.Model.Particles.Count == 0;
+                    var births = new HashSet<ConstructionParticle>();
+                    for (int update = 1; update <= 4; update++)
+                    {
+                        milliseconds = update * 50 + 1;
+                        effects.Draw();
+                        foreach (ConstructionParticle particle in effects.Model.Particles) births.Add(particle);
+                    }
+                    _metrics.authoredBirths[index] = births.Count;
+                    _metrics.authoredModelCounts[index] = effects.Model.Particles.Count;
+                    _metrics.authoredNativeCounts[index] = root.GetComponentsInChildren<ParticleSystem>().Sum(p => p.particleCount);
+                    Color32[] pixels = Capture("authored-" + id.Value + "-on");
+                    _metrics.authoredChangedPixels[index] = pixels.Where((p, i) => !p.Equals(baseline[i])).Count();
+                    if (id.Value == 6 || id.Value == 7)
+                    {
+                        ParticleSystemRenderer[] renderers = root.GetComponentsInChildren<ParticleSystemRenderer>();
+                        foreach (ParticleSystemRenderer renderer in renderers)
+                            renderer.enabled = renderer.renderMode == ParticleSystemRenderMode.Mesh;
+                        _metrics.authoredMeshCounts[index] = renderers.Where(renderer => renderer.enabled)
+                            .Sum(renderer => renderer.GetComponent<ParticleSystem>().particleCount);
+                        Vector3[] rotations = NativeMeshRotations(renderers);
+                        Color32[] meshPixels = Capture("authored-" + id.Value + "-mesh-first");
+                        _metrics.authoredMeshChangedPixels[index] = meshPixels.Where((p, i) => !p.Equals(baseline[i])).Count();
+                        milliseconds += 50; effects.Draw();
+                        Vector3[] nextRotations = NativeMeshRotations(renderers);
+                        Capture("authored-" + id.Value + "-mesh-next");
+                        _metrics.authoredMeshRotationChanged[index] = rotations.Length == nextRotations.Length
+                            && rotations.Where((rotation, i) => rotation != nextRotations[i]).Any();
+                        int expectedMeshes = db.Effects[id.Value].ElementsPerTurn * db.Effects[id.Value].GenerateIds
+                            .Count(element => element != 0 && db.EffectElements[element].ArtResource.Type == 5);
+                        _metrics.authoredEffectsPassed &= _metrics.authoredMeshCounts[index] == expectedMeshes
+                            && _metrics.authoredMeshChangedPixels[index] > 0 && _metrics.authoredMeshRotationChanged[index];
+                        foreach (ParticleSystemRenderer renderer in renderers) renderer.enabled = true;
+                    }
+                    milliseconds = 5001; effects.Draw(); Capture("authored-" + id.Value + "-expired");
+                    _metrics.authoredEffectsPassed &= requests.Length == expectedRequests[index]
+                        && births.Count == expectedParticles[index] && _metrics.authoredChangedPixels[index] > 0
+                        && _metrics.authoredNativeCounts[index] == _metrics.authoredModelCounts[index]
+                        && effects.Model.Particles.Count == 0
+                        && root.GetComponentsInChildren<ParticleSystem>().All(p => p.particleCount == 0);
+                }
+                root.SetActive(false); Destroy(root);
+            }
+            _actors.SetActive(true); _effectRoot.SetActive(true);
+        }
+        private static Vector3[] NativeMeshRotations(ParticleSystemRenderer[] renderers)
+        {
+            var rotations = new List<Vector3>();
+            foreach (ParticleSystemRenderer renderer in renderers)
+            {
+                if (renderer.renderMode != ParticleSystemRenderMode.Mesh) continue;
+                var system = renderer.GetComponent<ParticleSystem>();
+                var particles = new ParticleSystem.Particle[system.particleCount];
+                int count = system.GetParticles(particles);
+                for (int i = 0; i < count; i++) rotations.Add(particles[i].rotation3D);
+            }
+            return rotations.ToArray();
+        }
+
+        private void CaptureRecoveryClips(GameDatabase database, ClassicMeshes meshes)
+        {
+            var keys = new[]
+            {
+                AssetRef.ForCreature("Goblin", AssetKind.Animation, "stunned"),
+                AssetRef.ForCreature("Goblin", AssetKind.Animation, "getting_up"),
+                AssetRef.ForCreature("Mistress", AssetKind.Animation, "sleeping"),
+                AssetRef.ForCreature("Salamander", AssetKind.Animation, "sleeping"),
+                AssetCatalogue.ObjectArt(database.ObjectById(LairRules.MistressBedObjectId).Name, 7),
+            };
+            string[] names = { "goblin-stunned", "goblin-get-up", "mistress-sleep", "salamander-sleep", "mistress-bed-entry" };
+            _actors.SetActive(false); _effectRoot.SetActive(false);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (!_art.TryResolve(keys[i], out var asset)) throw new InvalidOperationException(keys[i] + " missing");
+                GameObject go = meshes.TryCreate(asset, "recovery fixture", transform);
+                if (go == null) throw new InvalidOperationException(keys[i] + " mesh missing");
+                bool animated = meshes.ConfigureAnimation(go, asset, false, 0);
+                CloseUp(go, "recovery-" + names[i] + "-start");
+                if (animated) go.GetComponent<ClassicCreatureAnimation>().Draw(.25);
+                CloseUp(go, "recovery-" + names[i] + "-next");
+                go.SetActive(false); Destroy(go);
+            }
+            _actors.SetActive(true); _effectRoot.SetActive(true);
+        }
+
+        private void CheckArrivalGeometry()
+        {
+            _metrics.arrivalGeometryNames = new[] { "Goblin", "Warlock", "Troll", "Mistress", "Salamander" };
+            _metrics.arrivalEndFootHeights = new float[_metrics.arrivalGeometryNames.Length];
+            _metrics.arrivalIdleFootHeights = new float[_metrics.arrivalGeometryNames.Length];
+            for (int i = 0; i < _metrics.arrivalGeometryNames.Length; i++)
+            {
+                string name = _metrics.arrivalGeometryNames[i];
+                _metrics.arrivalEndFootHeights[i] = Foot(name, "entrance", 1f);
+                _metrics.arrivalIdleFootHeights[i] = Foot(name, "idle", 0f);
+            }
+
+            float Foot(string name, string clip, float phase)
+            {
+                if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Animation, clip), out var asset)
+                    || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation == null) return float.NaN;
+                var animation = new RenderAnimation(model);
+                var vertices = new System.Numerics.Vector3[animation.Mesh.Positions.Count];
+                animation.Sample(phase, false, vertices);
+                return vertices.Min(vertex => vertex.Y);
+            }
+        }
+
+        private void CheckImpStartup()
+        {
+            GameDatabase db = _probeDatabase;
+            WorldState world = EffectWorld(db);
+            CreatureDef definition = db.Creatures.Values.Single(creature => creature.Name == "Imp");
+            CreatureState imp = world.SpawnCreature(db, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+            var hooks = new StateHookContext(world, db);
+            imp.Body.PathTotalCount = 1;
+            imp.Body.PathFinished = false;
+            imp.Body.MaxSpeed = CreatureMovementSystem.MaxSpeedOf(db, definition, imp.Level);
+            const int travelToPoint = 6;
+            CreatureStateMachine.BeginTravel(hooks, imp, travelToPoint, ImpStates.For(TileWorkKind.Claim).Entry);
+            var view = new WorldView(db, PlayerIds.FirstKeeper);
+            var fixture = new GameObject("Imp native startup fixture");
+            var scene = new DungeonScene(fixture.transform, 7, 7, _probeMeshes);
+            Color background = _camera.backgroundColor;
+            _camera.backgroundColor = Color.black;
+            _actors.SetActive(false); _effectRoot.SetActive(false);
+            try
+            {
+                CreatureView stationary = view.Creatures(world).Single();
+                if (!_art.TryResolve(stationary.Mesh, out var stillMesh)
+                    || !_art.TryResolve(stationary.Animation, out var stillAnimation))
+                    throw new InvalidOperationException("Imp startup art missing");
+                _metrics.impStartupAsset = stillMesh.InstallEntry;
+                scene.CreateCreature(imp.Id, stationary, stillMesh, stillAnimation);
+                GameObject go = fixture.transform.Find("creature " + imp.Id).gameObject;
+                Vector3[] first = Vertices(go);
+                Vector3 firstPosition = go.transform.position;
+                _metrics.impStartupStill = stationary.Mesh == AssetRef.ForCreature("Imp", AssetKind.Animation, "movement_idle");
+                for (int sample = 0; sample <= 4; sample++)
+                {
+                    scene.DrawCreatureFrame(world.CurrentTick, sample * .25f);
+                    _metrics.impStartupStill &= Same(first, Vertices(go)) && go.transform.position == firstPosition;
+                }
+                CloseUp(go, "imp-route-start-still");
+
+                var simulation = new GameSimulation(db, world, 1, Array.Empty<ISimulationSystem>());
+                simulation.Tick();
+                imp.LastPosX = imp.PosX; imp.LastPosY = imp.PosY;
+                imp.PosX += 128;
+                imp.Body.Vel = new DK2.Simulation.Steering.Fixed16Vector(128 << 4, 0);
+                CreatureView moving = view.Creatures(world).Single();
+                if (!_art.TryResolve(moving.Mesh, out var walkMesh)
+                    || !_art.TryResolve(moving.Animation, out var walkAnimation))
+                    throw new InvalidOperationException("Imp walk art missing");
+                _metrics.impWalkAsset = walkAnimation.InstallEntry;
+                _metrics.impNativeRateSeeded = moving.AnimationInitialMovementSpeed.HasValue
+                    && moving.AnimationInitialMovementSpeed.Value.Raw == imp.Body.MaxSpeed >> 4;
+                scene.SetCreatureFrameTime(world.CurrentTick, 0);
+                scene.UpdateCreature(imp.Id, moving, walkMesh, walkAnimation);
+                go = fixture.GetComponentsInChildren<ClassicCreatureAnimation>().Single().gameObject;
+                scene.DrawCreatureFrame(world.CurrentTick, 0);
+                Vector3[] walkFirst = Vertices(go);
+                Vector3 walkFirstPosition = go.transform.position;
+                CloseUp(go, "imp-walk-first");
+                scene.DrawCreatureFrame(world.CurrentTick, 1);
+                _metrics.impWalkMeshChanged = !Same(walkFirst, Vertices(go));
+                _metrics.impWalkPositionChanged = go.transform.position != walkFirstPosition;
+                CloseUp(go, "imp-walk-next");
+            }
+            finally
+            {
+                scene.Clear(); fixture.SetActive(false); Destroy(fixture);
+                _actors.SetActive(true); _effectRoot.SetActive(true);
+                _camera.backgroundColor = background;
+            }
+        }
+
+        private void CheckHeartVisuals()
+        {
+            _metrics.heartHealthPercent = new[] { 100, 50, 10 };
+            _metrics.heartPhaseSteps = new int[3]; _metrics.heartVerticalScales = new int[3];
+            _metrics.heartDecayPhases = new int[3]; _metrics.heartUnityVerticalScales = new float[3];
+            _metrics.heartMaterials = new string[3]; _metrics.heartTextures = new string[3];
+            _metrics.heartMeshChanged = new bool[3]; _metrics.heartRateMatched = new bool[3];
+            _metrics.heartVisualsPassed = true;
+            int[] expectedSteps = { 438, 877, 175 }, expectedScales = { 4096, 6144, 2211 }, expectedDecay = { 0, 2048, 3686 };
+            Color background = _camera.backgroundColor;
+            _camera.backgroundColor = Color.black;
+            _actors.SetActive(false); _effectRoot.SetActive(false);
+            try
+            {
+                for (int stage = 0; stage < 3; stage++)
+                {
+                    GameDatabase db = _probeDatabase;
+                    WorldState world = EffectWorld(db);
+                    for (int y = 1; y <= 5; y++)
+                        for (int x = 1; x <= 5; x++)
+                            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper);
+                    world.Player(PlayerIds.FirstKeeper).HeartHealth = db[VariableTypeId.DungeonHeartObjectHealth]
+                        * _metrics.heartHealthPercent[stage] / 100;
+                    var view = new WorldView(db, PlayerIds.FirstKeeper);
+                    ObjectView pose = view.Objects(world).Concat(view.Decorations(world)).Single(thing => thing.HeartVisual.HasValue);
+                    DungeonHeartVisual visual = pose.HeartVisual.Value;
+                    if (!_art.TryResolve(pose.Mesh, out var asset) || !_art.TryLoadModel(asset, out KmfModel model))
+                        throw new InvalidOperationException("Dungeon Heart native art missing");
+                    var fixture = new GameObject("Heart health fixture " + _metrics.heartHealthPercent[stage]);
+                    var scene = new DungeonScene(fixture.transform, 7, 7, _probeMeshes);
+                    try
+                    {
+                        scene.CreateObject(pose.Id, pose, asset);
+                        GameObject go = fixture.transform.Find("object " + pose.Id).gameObject;
+                        scene.DrawCreatureFrame(GameTick.Zero, 0);
+                        Vector3[] first = Vertices(go);
+                        _metrics.heartPhaseSteps[stage] = visual.PhaseStep.Raw;
+                        _metrics.heartVerticalScales[stage] = visual.VerticalScale.Raw;
+                        _metrics.heartDecayPhases[stage] = visual.DecayPhase.Raw;
+                        _metrics.heartUnityVerticalScales[stage] = go.transform.localScale.y / go.transform.localScale.x;
+                        Material[] materials = go.GetComponent<MeshRenderer>().sharedMaterials;
+                        _metrics.heartMaterials[stage] = string.Join("|", materials.Select(material => material.name));
+                        _metrics.heartTextures[stage] = string.Join("|", materials.Select(material => material.mainTexture == null
+                            ? "missing" : material.mainTexture.name));
+                        bool texturesMatch = materials.Length == model.Materials.Count;
+                        for (int slot = 0; slot < Math.Min(materials.Length, model.Materials.Count); slot++)
+                        {
+                            var names = model.Materials[slot].TextureNames;
+                            if (names.Count > 0)
+                                texturesMatch &= materials[slot].mainTexture != null && materials[slot].name.Contains(
+                                    names[DungeonHeartVisual.TextureIndex(visual.DecayPhase, names.Count)]);
+                        }
+                        CloseUp(go, "heart-" + _metrics.heartHealthPercent[stage] + "-start");
+                        scene.DrawCreatureFrame(new GameTick(1), 0);
+                        Vector3[] next = Vertices(go);
+                        _metrics.heartMeshChanged[stage] = !Same(first, next);
+                        var animation = new RenderAnimation(model);
+                        var expected = new System.Numerics.Vector3[animation.Mesh.Positions.Count];
+                        animation.Sample(visual.PhaseStep.Raw / (float)Fp32.One, false, expected);
+                        _metrics.heartRateMatched[stage] = expected.Length == next.Length;
+                        for (int vertex = 0; vertex < Math.Min(expected.Length, next.Length); vertex++)
+                            _metrics.heartRateMatched[stage] &= Vector3.Distance(next[vertex],
+                                new Vector3(expected[vertex].X, expected[vertex].Y, expected[vertex].Z)) < .00001f;
+                        CloseUp(go, "heart-" + _metrics.heartHealthPercent[stage] + "-pulse");
+                        if (stage == 0)
+                        {
+                            CheckHeartSmoke(scene, go, pose);
+                            go.name = "retired Heart smoke fixture";
+                            go.SetActive(false);
+                            scene.RemoveObject(pose.Id);
+                            scene.SetCreatureFrameTime(GameTick.Zero, 0);
+                            scene.CreateObject(pose.Id, pose, asset);
+                            go = fixture.transform.Find("object " + pose.Id).gameObject;
+                            scene.DrawCreatureFrame(new GameTick(1), 0);
+                            Action<HeartHealthChange> changed = change =>
+                            {
+                                _metrics.heartHealthAdvanceRequests++;
+                                scene.QueueHeartHealthChange(change.Owner, DungeonHeartVisual.FromHealth(change.Health,
+                                    db[VariableTypeId.DungeonHeartObjectHealth]));
+                            };
+                            world.HeartHealthChanged += changed;
+                            try
+                            {
+                                world.DamageHeart(PlayerIds.FirstKeeper, 0, PlayerIds.FirstKeeper);
+                                world.RegenerateHeart(PlayerIds.FirstKeeper, 0);
+                                scene.DrawCreatureFrame(new GameTick(1), 0);
+                                Vector3[] advanced = Vertices(go);
+                                animation.Sample(3 * visual.PhaseStep.Raw / (float)Fp32.One, false, expected);
+                                _metrics.heartHealthAdvanceMatched = _metrics.heartHealthAdvanceRequests == 2 && expected.Length == advanced.Length;
+                                for (int vertex = 0; vertex < Math.Min(expected.Length, advanced.Length); vertex++)
+                                    _metrics.heartHealthAdvanceMatched &= Vector3.Distance(advanced[vertex],
+                                        new Vector3(expected[vertex].X, expected[vertex].Y, expected[vertex].Z)) < .00001f;
+                                CloseUp(go, "heart-health-setter-advances");
+                            }
+                            finally { world.HeartHealthChanged -= changed; }
+                        }
+                        _metrics.heartVisualsPassed &= visual.PhaseStep.Raw == expectedSteps[stage]
+                            && visual.VerticalScale.Raw == expectedScales[stage] && visual.DecayPhase.Raw == expectedDecay[stage]
+                            && Mathf.Abs(_metrics.heartUnityVerticalScales[stage] - visual.VerticalScale.Raw / (float)Fp32.One) < .00001f
+                            && texturesMatch && _metrics.heartMeshChanged[stage] && _metrics.heartRateMatched[stage];
+                    }
+                    finally { scene.Clear(); fixture.SetActive(false); Destroy(fixture); }
+                }
+            }
+            finally
+            {
+                _actors.SetActive(true); _effectRoot.SetActive(true);
+                _camera.backgroundColor = background;
+            }
+        }
+
+        private void CheckHeartSmoke(DungeonScene scene, GameObject heart, ObjectView pose)
+        {
+            long effectMilliseconds = 0, pulseMilliseconds = 5000;
+            var root = new GameObject("Heart mana smoke fixture");
+            using var effects = new ClassicConstructionEffects(root.transform, _probeDatabase, _probeSprites, 61,
+                clock: () => new EffectTime(effectMilliseconds), meshes: _probeMeshes);
+            var requests = new List<ViewEffectRequest>();
+            scene.HeartEffectClock = () => new EffectTime(pulseMilliseconds);
+            scene.HeartEffectRequested = request => { requests.Add(request); effects.Model.Request(request); };
+            try
+            {
+                // CloseUp rendered the native Heart before its visibility-dependent beat gate.
+                scene.DrawCreatureFrame(new GameTick(10), 0);
+                bool firstPendingHeld = requests.Count == 0;
+                pulseMilliseconds = 6000;
+                scene.DrawCreatureFrame(new GameTick(28), 0);
+                bool strictDelayHeld = requests.Count == 0;
+                pulseMilliseconds = 6001;
+                scene.DrawCreatureFrame(new GameTick(29), 0);
+                _metrics.heartManaRequests = requests.Count;
+                _metrics.heartManaPositionMatched = requests.Count == 1 && requests[0].EffectId.Value == 59
+                    && requests[0].Position.X.Raw == pose.PosX && requests[0].Position.Y.Raw == pose.PosY
+                    && requests[0].Position.Z.Raw == pose.Height;
+                var ids = new HashSet<int>();
+                ConstructionParticle[] firstRise = Array.Empty<ConstructionParticle>();
+                int firstHeight = 0;
+                for (int step = 1; step <= 62; step++)
+                {
+                    effectMilliseconds = step * 50L + 1;
+                    effects.Draw();
+                    foreach (ConstructionParticle particle in effects.Model.Particles)
+                        ids.Add(particle.Definition.EffectElementId);
+                    if (step == 1)
+                    {
+                        firstRise = effects.Model.Particles.Where(particle => particle.Definition.EffectElementId is 98 or 100).ToArray();
+                        firstHeight = firstRise.Length == 0 ? 0 : firstRise[0].HeightRaw;
+                    }
+                    if (step == 10)
+                    {
+                        _metrics.heartRisingParticles = effects.Model.Particles.Count(particle => particle.Definition.EffectElementId is 98 or 100);
+                        _metrics.heartSmokeRises = firstRise.Length > 0 && firstRise[0].HeightRaw > firstHeight;
+                        _metrics.heartRisingGreenPixels = CaptureHeartSmoke(heart, root, effects.Model.Particles, "heart-mana-rising");
+                    }
+                    if (step == 30)
+                    {
+                        _metrics.heartFallingParticles = effects.Model.Particles.Count(particle => particle.Definition.EffectElementId is 99 or 101);
+                        _metrics.heartSmokeFalls = effects.Model.Particles.Any(particle => particle.Definition.EffectElementId is 99 or 101
+                            && particle.VelocityZ < 0);
+                        _metrics.heartFallingGreenPixels = CaptureHeartSmoke(heart, root, effects.Model.Particles, "heart-mana-falling");
+                    }
+                }
+                _metrics.heartSmokeElementIds = ids.OrderBy(id => id).ToArray();
+                _metrics.heartSmokeExpiredParticles = effects.Model.Particles.Count;
+                _metrics.heartSmokePassed = firstPendingHeld && strictDelayHeld && _metrics.heartManaPositionMatched
+                    && _metrics.heartSmokeElementIds.SequenceEqual(new[] { 98, 99, 100, 101 })
+                    && _metrics.heartRisingParticles > 0 && _metrics.heartFallingParticles > 0
+                    && _metrics.heartRisingGreenPixels > 0 && _metrics.heartFallingGreenPixels > 0
+                    && _metrics.heartSmokeRises && _metrics.heartSmokeFalls && _metrics.heartSmokeExpiredParticles == 0
+                    && root.GetComponentsInChildren<ParticleSystem>().All(system => system.particleCount == 0);
+            }
+            finally
+            {
+                scene.HeartEffectRequested = null;
+                root.SetActive(false); Destroy(root);
+            }
+        }
+
         private GameObject Entrance(ClassicMeshes meshes, string name, float x, out string entry)
         {
             if (!_art.TryResolve(AssetRef.ForCreature(name, AssetKind.Animation, "entrance"), out var asset)) throw new InvalidOperationException(name + " entrance missing");
@@ -243,6 +702,41 @@ namespace DK2.Unity
             _camera.transform.SetPositionAndRotation(position, rotation);
             _camera.nearClipPlane = near;
         }
+        private int CaptureHeartSmoke(GameObject heart, GameObject effectRoot,
+            IReadOnlyList<ConstructionParticle> particles, string name)
+        {
+            Bounds bounds = heart.GetComponent<MeshRenderer>().bounds;
+            foreach (ConstructionParticle particle in particles)
+            {
+                Vector3 point = DungeonScene.Ground(particle.XRaw / (float)Fp32.One,
+                    particle.YRaw / (float)Fp32.One, particle.HeightRaw / (float)Fp32.One);
+                float size = Mathf.Max(.1f, particle.ScaleRaw / (float)Fp32.One);
+                bounds.Encapsulate(new Bounds(point, Vector3.one * size));
+            }
+            Vector3 position = _camera.transform.position;
+            Quaternion rotation = _camera.transform.rotation;
+            float near = _camera.nearClipPlane;
+            _camera.nearClipPlane = .001f;
+            float distance = Mathf.Max(.5f, bounds.extents.magnitude / Mathf.Sin(_camera.fieldOfView * Mathf.Deg2Rad / 2f) * 1.15f);
+            _camera.transform.position = bounds.center + new Vector3(1, 1, -2).normalized * distance;
+            _camera.transform.LookAt(bounds.center);
+            ParticleSystemRenderer[] renderers = effectRoot.GetComponentsInChildren<ParticleSystemRenderer>();
+            bool[] enabled = renderers.Select(renderer => renderer.enabled).ToArray();
+            try
+            {
+                foreach (ParticleSystemRenderer renderer in renderers) renderer.enabled = false;
+                Color32[] baseline = Capture(name + "-off");
+                for (int i = 0; i < renderers.Length; i++) renderers[i].enabled = enabled[i];
+                Color32[] visible = Capture(name);
+                return visible.Where((pixel, i) => !pixel.Equals(baseline[i]) && pixel.g > 40 && pixel.g > pixel.r * 1.2f).Count();
+            }
+            finally
+            {
+                for (int i = 0; i < renderers.Length; i++) renderers[i].enabled = enabled[i];
+                _camera.transform.SetPositionAndRotation(position, rotation);
+                _camera.nearClipPlane = near;
+            }
+        }
         private void Update()
         {
             if (!_ready) return;
@@ -254,6 +748,10 @@ namespace DK2.Unity
                     _expiredAt = Time.realtimeSinceStartupAsDouble;
                 if (_frame == 5)
                 {
+                    CheckAuthoredEffects(_probeDatabase, _probeSprites);
+                    CaptureRecoveryClips(_probeDatabase, _probeMeshes);
+                    CheckImpStartup();
+                    CheckHeartVisuals();
                     _actors.SetActive(false);
                     var baseline = Capture("effects-off");
                     _effectStarted = Time.realtimeSinceStartupAsDouble;
@@ -305,10 +803,13 @@ namespace DK2.Unity
                     _metrics.passed = _metrics.shaderSupported && _metrics.effectChangedPixels > 0 && _metrics.particleGroups > 0
                         && _metrics.particleCount == _metrics.modelParticles && _metrics.ratMeshChanged && _metrics.ratPositionChanged
                         && _metrics.goblinMeshChanged && _metrics.warlockMeshChanged && _metrics.goblinFinalHeld && _metrics.warlockFinalHeld
-                        && _metrics.lairWaveCorrect && _metrics.effectsExpired
+                        && _metrics.lairWaveCorrect && _metrics.effectsExpired && _metrics.authoredEffectsPassed
                         && _metrics.dwarfNativeInterpolation && _metrics.warlockNativeInterpolation
                         && _metrics.guardCreature == "Guard" && _metrics.guardAtDummyCentre && _metrics.guardFailedHuntSeen
                         && _metrics.guardWanderSeen && _metrics.guardLeftDummyCentre;
+                    _metrics.passed &= _metrics.impStartupStill && _metrics.impWalkMeshChanged
+                        && _metrics.impWalkPositionChanged && _metrics.impNativeRateSeeded;
+                    _metrics.passed &= _metrics.heartVisualsPassed && _metrics.heartSmokePassed && _metrics.heartHealthAdvanceMatched;
                     File.WriteAllText(Path.Combine(_output, "metrics.json"), JsonUtility.ToJson(_metrics, true));
                     _ready = false; Application.Quit(_metrics.passed ? 0 : 1);
                 }

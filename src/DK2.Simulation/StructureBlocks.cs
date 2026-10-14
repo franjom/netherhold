@@ -8,8 +8,8 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>The tiles a room's own structure stands on, which the path grid and the Hand treat as
-/// unwalkable. The router does not: DK2's captured navigation cache holds floor on a heart and
-/// byte 4 on a portal's centre (<see cref="IsPortalCentre"/>, Q352).</summary>
+/// unwalkable. DK2's captured cache holds floor on a heart and byte 4 on a portal's centre;
+/// ADR-0452 separately closes live Heart platforms in our routing mesh.</summary>
 /// <remarks>
 /// <para>CONFIRMED by the owner (Q88): a portal's centre and a heart's centre are not walked on;
 /// the portal's is reserved for the arriving animation and for the Hand (<see cref="HandRules"/>).</para>
@@ -47,6 +47,9 @@ public sealed class StructureBlocks
     /// where a heart's platform is plain floor (<see cref="Navigation.WorldSteering.ByteOf"/>).</summary>
     public bool IsPortalCentre(int tileIndex) => _portalCentres.Contains(tileIndex);
 
+    /// <summary>Every portal centre, for a caller that visits them rather than asking per tile.</summary>
+    public IReadOnlyCollection<int> PortalCentres => _portalCentres;
+
     /// <summary>Works out which tiles a portal's or a heart's structure occupies. Scans for the two
     /// room terrains first and returns the shared empty instance when there are none — the common
     /// case for a test map — so the cost is one byte compare per tile plus a flood fill over portal
@@ -70,25 +73,65 @@ public sealed class StructureBlocks
 
         if (portalTerrain == 0 && heroPortalTerrain == 0 && heartTerrain == 0) return Empty;
 
-        List<int>? seeds = null;
+        // The mask is a function of the structure tiles alone: which tiles carry one of the three
+        // terrains, with what owner, since a fill crosses only tiles of its seed's terrain and
+        // owner, plus whether a heart tile's keeper has had its heart ruined. So the world's last
+        // mask stands while that list is the same, and a scan that compares the list is the whole
+        // cost of asking again (ADR-0454).
+        Cache cache = world.StructureCache;
+        List<long> seeds = cache.Scratch;
+        seeds.Clear();
         for (int i = 0; i < world.TileCount; i++)
         {
-            byte terrainId = world.TileAtIndex(i).TerrainId;
+            ref TileState tile = ref world.TileAtIndex(i);
+            byte terrainId = tile.TerrainId;
             if (terrainId == 0) continue;
             if (terrainId != portalTerrain && terrainId != heroPortalTerrain && terrainId != heartTerrain) continue;
 
-            (seeds ??= []).Add(i);
+            long ruined = terrainId == heartTerrain && world.HasPlayer(tile.OwnerPlayerId)
+                && world.Player(tile.OwnerPlayerId).HeartRuined ? 1L << 40 : 0;
+            seeds.Add(ruined | ((long)i << 16) | ((long)terrainId << 8) | tile.OwnerPlayerId);
         }
 
-        if (seeds is null) return Empty;
+        if (cache.Blocks is not null && ReferenceEquals(cache.Database, database) && SameSeeds(seeds, cache.Seeds))
+            return cache.Blocks;
+
+        StructureBlocks blocks = Compute(world, database, seeds);
+        cache.Database = database;
+        cache.Blocks = blocks;
+        (cache.Seeds, cache.Scratch) = (seeds, cache.Seeds);
+        return blocks;
+    }
+
+    /// <summary>The world's last mask and the structure tiles it was computed from.</summary>
+    internal sealed class Cache
+    {
+        internal GameDatabase? Database;
+        internal StructureBlocks? Blocks;
+        internal List<long> Seeds = [];
+        internal List<long> Scratch = [];
+    }
+
+    private static bool SameSeeds(List<long> a, List<long> b)
+    {
+        if (a.Count != b.Count) return false;
+        for (int i = 0; i < a.Count; i++)
+            if (a[i] != b[i]) return false;
+        return true;
+    }
+
+    private static StructureBlocks Compute(WorldState world, GameDatabase database, List<long> seedKeys)
+    {
+        if (seedKeys.Count == 0) return Empty;
 
         var blocked = new HashSet<int>();
         var portalCentres = new HashSet<int>();
         var heartCentres = new List<int>();
         var seen = new HashSet<int>();
 
-        foreach (int seed in seeds)
+        foreach (long key in seedKeys)
         {
+            int seed = (int)((key >> 16) & 0xFFFFFF);
             if (seen.Contains(seed)) continue;
 
             RoomInstance? room = RoomIndex.RoomAt(world, database, seed);

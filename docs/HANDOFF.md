@@ -16,6 +16,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   with the remaining timing differences in Q444 and navigation-captures.md. The
   seed spread of the Level 1–3 replays against DK2's own seeds (2026-10-06) is in
   experiments/2026-10-06-packet-replay-seeds/; the open difference is Q567.
+- Level 1's scripted Dwarf raid digs through again (ADR-0459, 2026-10-13): the
+  tunnel states' walks keep their destination within the tunneller's own tile
+  (`TryRouteToStance`), hash/save 241. The owner had seen both Dwarves standing
+  in Unity after the script softened the rock; the 20-seed Level 1 replays had
+  hidden it until commit 465 moved the leader onto the tile above its dig tile.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
@@ -73,12 +78,16 @@ Plans: docs/plans/2026-10-09-classic-look.md and
 plans/2026-10-10-classic-look-step4.md. Supported Step 4 playback is built
 (ADR-0431–0438); room-life follow-ups are built under ADR-0442.
 Combined verification passes; room-life fixes are merged to master at 6f4f2bb2.
-Classic follow-ups use hash/save version 237. ADR-0444 covers native bank heights,
+Classic follow-ups use hash/save version 239. ADR-0444 covers native bank heights,
 height interpolation, failed-job idle wandering and same-tile dummy approaches.
 Original guard placement/patrol timing is awaiting comparison in Q589.
 ADR-0447 covers route-less combat contact updates,
 attack facing and post-impact melee holds. Q345 retains the original bridge
 spacing comparison; soft contact does not guarantee model clearance.
+ADR-0449 centres claiming imps and restores tile/room claiming and bed effects;
+see room-construction-effects.md §6 for original triggers and definitions.
+ADR-0450 handles bed relocation after a hand drop into another Lair;
+see lair-acquisition.md §9 for full-room and same-room behavior.
 Hero-owned Prisons do not produce rats; capture them first (prison-rats.md).
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity;
 restart Play after assembly sync. Never commit local editor state
@@ -104,7 +113,23 @@ scenarios can change (ADR-0442).
 
 Owner visual checks: chickens, digging, reinforcing and walking look correct
 (2026-10-11); blue portal pillars and lava-walking Salamanders were verified.
-Claiming, eating and sleeping remain unchecked. Further comparisons:
+Claiming, eating and sleeping remain unchecked. Drop recovery, sleeping bed
+alignment and portal-exit continuity are corrected under ADR-0460; compare
+them after restarting Play. Stationary travel poses and native initial
+movement rates are corrected under ADR-0462; the Imp startup needs owner comparison.
+The near-Heart Level8 neutral bridge's two-hit
+capture is verified against its map and native rates (room-health.md §3).
+Heart health now selects its original pulse, height and decay textures;
+loop completion requests mana sparkles under the native view timer.
+See ADR-0463 and research/heart-health-visuals.md and heart-mana-effects.md.
+Movement dust is confirmed but unbuilt: research/creature-movement-dust.md
+defines the native tile-crossing request. Rock dust's keeper colour is original;
+its remaining visual-prominence comparison is Q593.
+Portal smoke replay is corrected under ADR-0464 (2026-10-13). Headless verification covers
+native sprite completion; Unity visual confirmation is pending (2026-10-13).
+Wall reinforcement completion requests are restored under ADR-0465;
+Unity visual confirmation is pending (2026-10-13).
+Further comparisons:
 construction waves/effects, Prison rats, Portal entrances, Giant melee,
 locked-door chains, corpse poses, Level8 hero visibility/movement and
 torch mounts/illumination after restarting Play.
@@ -117,9 +142,11 @@ Registered attackers trigger early Imp escape, and alarm retreat uses the
 original random room point (combat-acquisition.md §6; combat-alarm.md §2).
 Broader casualty/timing parity remains the owner's priority, Q582.
 Non-creature threat flight remains unbuilt (combat-fear.md §7).
-Live Heart core guards and exact Arch Pillar targets are built; owner
+Live Heart platform guards and exact Arch Pillar targets are built; owner
 acceptance and matched defence timing remain Q585/Q586 (ADR-0439,
-combat-acquisition.md §9, combat-alarm.md §7).
+ADR-0452, combat-acquisition.md §9, combat-alarm.md §7).
+Ownership-loss wall support is built across maps (ADR-0451;
+wall-support-after-claim.md).
 Owned Hatchery chicken movement is built; free-range/Prison loops and
 footstep audio remain Q584 (hatchery-roaming.md).
 Reported graininess remains unresolved; inspect Unity Game view scale
@@ -129,12 +156,19 @@ Level1–3 replay drivers were recovered from Claude's scratchpad:
 C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/
 d869276a-99ca-491a-9cf5-0342488c1277/scratchpad.
 Replay measurements are modern regressions, not original timing parity;
-all 60 Level1–3 traces validate, bounded-run wins 19/2/10. Artifacts:
-build/classic-step3-replays/room-life-merged233. Release verification passes
-4,983 tests without skips; Unity sync/compile and independent review pass.
+all 60 Level1–3 traces validate, bounded-run wins 20/4/11. Artifacts:
+build/classic-step3-replays/claim-life238. Release verification passes
+5,199 tests without skips; Unity sync/compile and independent review pass.
 Standalone render verification: tools/classic-unity-probe/ROOM_LIFE.md.
+Terrain destruction debris and tumbling mesh particles are built (ADR-0449;
+terrain-digging-debris.md). Unity's smaller top-down crumble adjustment
+passes 275 presentation tests, Unity compilation and the standalone Rock/Gold probe.
+Unified Unity Hand controls are built; see ADR-0104 and unity/README.md.
 
 ## Next work
+
+Construction-wave drag direction is resolved in Q592; the owner confirmed
+opposite drags start at opposite corners after restarting Play.
 
 Compare the room-life follow-ups after restarting Play; the canonical
 scope is in [the classic-look plan](plans/2026-10-09-classic-look.md#not-in-this-plan).
@@ -158,10 +192,10 @@ The first-approach correction and remaining matched-capture work are in combat-a
    remaining replay, combat, hero, trap and door work. Avoid reproducing their
    detailed backlogs here.
 4. M6: Level 4 (`l4live.sav`, won at capture tick 6743; DK2 side `level4-live1/seed01`,
-   local) replays all 6804 turns over seeds 1–20 and wins 2/20 on master b501992f
+   local) replays all 6804 turns over seeds 1–20 and wins 2/20 on master d8bc7336, 3/20 with the branch
    (experiments/2026-10-12-level4-packet-replay/). Guard Rooms draw Dark Elves
    (ADR-0440), Receive Imps is built (ADR-0441), a door tile is never claimed (ADR-0443),
-   and a worker's take needs a route and a reachable side or target (ADR-0448, ADR-0449,
+   and a worker's take needs a route and a reachable side or target (ADR-0468, ADR-0469,
    branch `l4/guard-room-replay`, unmerged). Winners hold row 5 before the owner's drops
    there (needed, not sufficient); losers lose Imps to the 3766–4600 hero fights and
    sometimes miss portal arrivals the owner picks up. Party timing is seed spread. Next:

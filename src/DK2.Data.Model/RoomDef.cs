@@ -76,6 +76,9 @@ public sealed record RoomDef
     /// <summary>Creature this room spawns, if any (e.g. Crypt → Vampire).</summary>
     public required byte CreatedCreatureId { get; init; }
 
+    /// <summary>Effect after room object creation, ROOMS file ushort at 0x384.</summary>
+    public ushort CreatedObjectEffectId { get; init; }
+
     /// <summary>Object ids auto-placed on the room's tiles.</summary>
     public required IReadOnlyList<byte> ObjectIds { get; init; }
 

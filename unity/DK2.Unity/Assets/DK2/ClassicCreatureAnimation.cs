@@ -26,17 +26,28 @@ namespace DK2.Unity
         private AnimationSegment? _drawnSegment;
         private (RenderAnimation[] Clips, Mesh[] Templates, Material[][] Materials)? _pending;
         private int _resourceRevision;
+        public bool BeatPending { get; private set; }
+
+        public void ConsumeBeat() => BeatPending = false;
+
+        public void AdvanceHealthPhase(Fp32 phaseStep)
+        {
+            if (_clock == null) return;
+            long previousLoops = _clock.CompletedLoops;
+            _clock.Advance(phaseStepOverride: phaseStep);
+            if (_clock.CompletedLoops != previousLoops) BeatPending = true;
+        }
 
         public void Configure(RenderAnimation[] clips, Mesh[] templates, Material[][] materials,
             CreatureAnimationTiming timing, bool loop, double start, Fp32? authoredMovementScale = null,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
-            bool hold = false)
+            bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null)
         {
             if (_clock != null && replacement == AnimationReplacement.Deferred)
             {
                 Draw(start, movementSpeed, hold);
                 int revision = _clock.ResourceRevision;
-                _clock.Replace(timing, loop, replacement, authoredMovementScale);
+                _clock.Replace(timing, loop, replacement, authoredMovementScale, initialMovementSpeed);
                 if (_clock.ResourceRevision == revision)
                 {
                     _pending = (clips, templates, materials);
@@ -44,12 +55,12 @@ namespace DK2.Unity
                 }
             }
             Stop();
-            _clock = new RenderAnimationClock(timing, loop, authoredMovementScale);
+            _clock = new RenderAnimationClock(timing, loop, authoredMovementScale, initialMovementSpeed);
             _resourceRevision = _clock.ResourceRevision;
             _startTick = (long)System.Math.Floor(start * 4);
             _advanced = 0;
             InstallMeshes(clips, templates, materials);
-            Draw(start, movementSpeed, hold);
+            Draw(start, movementSpeed, hold, phaseStepOverride);
         }
 
         private void InstallMeshes(RenderAnimation[] clips, Mesh[] templates, Material[][] materials)
@@ -71,7 +82,15 @@ namespace DK2.Unity
             }
         }
 
-        public void Draw(double seconds, Fp32? movementSpeed = null, bool hold = false)
+        public void SetMainMaterials(Material[] materials)
+        {
+            if (_materials == null) return;
+            _materials[(int)AnimationSegment.Main] = materials;
+            if (_drawnSegment == AnimationSegment.Main)
+                GetComponent<MeshRenderer>().sharedMaterials = materials;
+        }
+
+        public void Draw(double seconds, Fp32? movementSpeed = null, bool hold = false, Fp32? phaseStepOverride = null)
         {
             if (_clock == null) return;
             double tickTime = seconds * 4;
@@ -79,7 +98,9 @@ namespace DK2.Unity
             AnimationPose pose;
             using (ClockMarker.Auto())
             {
-                while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed, hold); _advanced++; }
+                long previousLoops = _clock.CompletedLoops;
+                while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed, hold, phaseStepOverride); _advanced++; }
+                if (_clock.CompletedLoops != previousLoops) BeatPending = true;
                 pose = _clock.Sample((float)(tickTime - tick));
             }
             if (_clock.ResourceRevision != _resourceRevision && _pending.HasValue)
@@ -114,6 +135,7 @@ namespace DK2.Unity
         public void Stop()
         {
             _clock = null;
+            BeatPending = false;
             _pending = null;
             ReleaseMeshes();
         }

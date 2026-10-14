@@ -27,74 +27,77 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
     private static readonly byte[] Bytes = [NavBytes.Floor, NavBytes.Water, NavBytes.Lava, NavBytes.Solid];
     private static readonly int[] Rewrites = [0, 1, 25, 400];
 
+    // Re-pinned 2026-10-13 (ADR-0461): the whole-map build now carries no constraint bits, as the
+    // original's does, and coarsens with the original's bounded flood (`0x004CC650`) rather than a
+    // slot sweep to a fixed point; the flood leaves 1-3 % of triangles differently from the sweep.
     private static readonly Dictionary<string, ulong> Pinned = new(StringComparer.Ordinal)
     {
-        ["Alcatraz"] = 0xAC9876E987124179UL,
-        ["Bottleneck"] = 0x0EF4A276319C18F7UL,
-        ["Caverns"] = 0xF464DDACE397361BUL,
-        ["Circlet"] = 0xB7554F699FBF0E75UL,
-        ["Clover"] = 0x51D7EC702D73C81CUL,
-        ["FrontEnd3DLevel"] = 0x1B577A4EFBC77084UL,
-        ["Frosty's Castle"] = 0xB810C86995993C86UL,
-        ["Frosty's Lair"] = 0xF1E3F07F7C788CD1UL,
-        ["Frosty's Realm"] = 0x9773FE79EF275A42UL,
-        ["Furnace"] = 0x1EE9EA874B74B8A0UL,
-        ["Gonzalez"] = 0xE10DD99D26A0BA61UL,
-        ["HeroCove"] = 0xB9A49AC150DF50EEUL,
-        ["Hopping"] = 0x265CA7DFBFBD1C80UL,
-        ["Islands"] = 0x41D553DD12DCD576UL,
-        ["King Of The Hill"] = 0xF0F327367D093EAFUL,
-        ["Level10"] = 0x1A576C0A590CB522UL,
-        ["Level13"] = 0xFAC2F18A7D1596C8UL,
-        ["Level14"] = 0x209A0F19BF0DDB9BUL,
-        ["Level15a"] = 0xB43BA1CD291B6525UL,
-        ["Level16"] = 0xC4ACB51B8C60B10CUL,
-        ["Level17"] = 0x24E612321CD14222UL,
-        ["Level19"] = 0x6C44C932FA120A3FUL,
-        ["Level20"] = 0x97FC5CDCC428B0B5UL,
-        ["Level4"] = 0xD10E96EF3B044C61UL,
-        ["Level6a"] = 0xCC9949D7A9257A95UL,
-        ["Level6b"] = 0xC11E6032513664FBUL,
-        ["Level9"] = 0x73F411BD8FEA60EFUL,
-        ["MPD6"] = 0x6680DECF19D4F66DUL,
-        ["No Mans Land"] = 0xDFC5319F5DCD748AUL,
-        ["Olympia"] = 0xD1E5B5A5E6C71B6BUL,
-        ["Onslaught"] = 0x8871FFFE45F37F54UL,
-        ["Patrol"] = 0x09F5BCF5BC98AB3DUL,
-        ["Platform"] = 0xAA48D3A6993CD9A4UL,
-        ["Pressure"] = 0xCEAD9A328BE5A7C9UL,
-        ["Secret1"] = 0x98AFEF2357653735UL,
-        ["Secret2"] = 0x1E9224C86CCF45BAUL,
-        ["Secret3"] = 0x9D57E4E5162FF438UL,
-        ["Secret4"] = 0x5F904FE02F8AD07BUL,
-        ["Secret5"] = 0x0BE0FB72A29FC648UL,
-        ["Siege"] = 0x298C23A6DFCA8F51UL,
-        ["Small"] = 0x9B9B4361DA5E289FUL,
-        ["Spiral"] = 0x740AB01B68DBBFB4UL,
-        ["Swiss Cheese"] = 0x8529C2F6365B4027UL,
-        ["The Deep End"] = 0xA35130F1960BFF9CUL,
-        ["The Pass"] = 0x77EA6C7BD7CE00F5UL,
-        ["TrapTime"] = 0x9B4BD4BFA6A60496UL,
-        ["U Turn"] = 0x3F947426CCE657FDUL,
-        ["Warrens"] = 0x3DB3E0460ECC91B4UL,
-        ["level1"] = 0xD4C147CFFA8041E9UL,
-        ["level11A"] = 0x6BB25594DFD43714UL,
-        ["level11B"] = 0x21670D7C49EBAB35UL,
-        ["level11C"] = 0x8898CD50F53F1FE5UL,
-        ["level12"] = 0x356AD26593DC9F66UL,
-        ["level15b"] = 0x01356C498C0FCB24UL,
-        ["level18"] = 0x6CF859CF4D394317UL,
-        ["level2"] = 0x91F11DEF91BDDA1DUL,
-        ["level3"] = 0xE180488F50CD51C9UL,
-        ["level5"] = 0xE2D0486E5C534EB5UL,
-        ["level7"] = 0x523FCED0F95C7764UL,
-        ["level8"] = 0xEC8D7EF22B4B35EAUL,
-        ["mpd1"] = 0x6539AC6EF2E89601UL,
-        ["mpd2"] = 0xB30090C9F8B67F97UL,
-        ["mpd3"] = 0xCA3C2FB05EE8A415UL,
-        ["mpd4"] = 0x5609CB6D7395C34CUL,
-        ["mpd5"] = 0xE599546FC10FA2F5UL,
-        ["mpd7"] = 0x9BCE40D231A7106DUL,
+        ["Alcatraz"] = 0xF9564D072254425BUL,
+        ["Bottleneck"] = 0x8C95AD54A166DA3FUL,
+        ["Caverns"] = 0xC45DF5E1855F9AE7UL,
+        ["Circlet"] = 0xC14AC2B828ECE605UL,
+        ["Clover"] = 0xE0BF866385305908UL,
+        ["FrontEnd3DLevel"] = 0xDCEFD1C838CC014EUL,
+        ["Frosty's Castle"] = 0xC4A6E8F1FEE25CD1UL,
+        ["Frosty's Lair"] = 0x4066D5A8B501F788UL,
+        ["Frosty's Realm"] = 0xF8729925A7C0380CUL,
+        ["Furnace"] = 0x9CB7AF24856F0319UL,
+        ["Gonzalez"] = 0xC65AB7C1710E2B8EUL,
+        ["HeroCove"] = 0xA4684F458D50B26BUL,
+        ["Hopping"] = 0x8E3B4AF63C328108UL,
+        ["Islands"] = 0x9DADDE26B6B5B1E6UL,
+        ["King Of The Hill"] = 0xE0A39A7426D0389AUL,
+        ["Level10"] = 0x137B834A2A15FC92UL,
+        ["Level13"] = 0x7E4553384AD3741FUL,
+        ["Level14"] = 0x4BE232A313A3ADCFUL,
+        ["Level15a"] = 0xB286F35AF5A607DCUL,
+        ["Level16"] = 0x6D871B015163C0AAUL,
+        ["Level17"] = 0x13314ED3A3459207UL,
+        ["Level19"] = 0x6B9DE270854ACE78UL,
+        ["Level20"] = 0xDEEDE7A4760E7738UL,
+        ["Level4"] = 0x77365033475A40F9UL,
+        ["Level6a"] = 0x3AABEB04D6BF90A8UL,
+        ["Level6b"] = 0x6CB78A0D36FF2CCBUL,
+        ["Level9"] = 0x3B3A9609CAD0EC4EUL,
+        ["MPD6"] = 0x9DBB5311D308A1DFUL,
+        ["No Mans Land"] = 0x97F64492CB4077DFUL,
+        ["Olympia"] = 0x8C561C1BED15CF7BUL,
+        ["Onslaught"] = 0xB5FB43BF98C2748DUL,
+        ["Patrol"] = 0x4BDE0BF1AA99D758UL,
+        ["Platform"] = 0x9F0B0C0FCB2D5E6EUL,
+        ["Pressure"] = 0x3FA0E14D3942EB90UL,
+        ["Secret1"] = 0xCE70E46A93375305UL,
+        ["Secret2"] = 0xB7E0C46A80269A0DUL,
+        ["Secret3"] = 0x2D4A3712B329D2FCUL,
+        ["Secret4"] = 0xEDE3696AF82146ACUL,
+        ["Secret5"] = 0xD3678C776977FE33UL,
+        ["Siege"] = 0x28406C658FE51651UL,
+        ["Small"] = 0x5E8F7E96A10DE1FEUL,
+        ["Spiral"] = 0xCC194BEF25EB9D30UL,
+        ["Swiss Cheese"] = 0x94380A01A7EB273EUL,
+        ["The Deep End"] = 0xCFE3C7A77B8E9DFFUL,
+        ["The Pass"] = 0xC76018516099E019UL,
+        ["TrapTime"] = 0xD874D4FAEDDD1A37UL,
+        ["U Turn"] = 0xDC53FB22709E2220UL,
+        ["Warrens"] = 0xDD08A854A0CB2F82UL,
+        ["level1"] = 0x78002CCAB26F71C7UL,
+        ["level11A"] = 0x2AAC995805A32875UL,
+        ["level11B"] = 0xCB5ED0AE340F8871UL,
+        ["level11C"] = 0x1A083449AE3FBF07UL,
+        ["level12"] = 0xB2A8273DEC2B210AUL,
+        ["level15b"] = 0x6B8BD1D2592E376BUL,
+        ["level18"] = 0x01C848B078237F15UL,
+        ["level2"] = 0xAEF75343D29D62F2UL,
+        ["level3"] = 0xA80CD0B6AC647CD9UL,
+        ["level5"] = 0x8C9828DF024D7282UL,
+        ["level7"] = 0x6238A9F53F732932UL,
+        ["level8"] = 0xEED8C76510F70AEEUL,
+        ["mpd1"] = 0xE6AD2A41A8B28DA3UL,
+        ["mpd2"] = 0x47D1361B7F462A7CUL,
+        ["mpd3"] = 0x3E36FABC61FE0481UL,
+        ["mpd4"] = 0xBA487F8D8E086FB7UL,
+        ["mpd5"] = 0xFA7DFEAABE39E697UL,
+        ["mpd7"] = 0x75886B1A52C08585UL,
     };
 
     private sealed class Grid(int width, int height, byte[] bytes) : INavByteGrid
@@ -131,6 +134,84 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
             output.WriteLine($"        [\"{level}\"] = 0x{value:X16}UL,");
         Assert.NotEmpty(actual);
         Assert.Equal(Pinned.OrderBy(p => p.Key, StringComparer.Ordinal), actual);
+    }
+
+    /// <summary>The per-tile rebuild (ADR-0461) on every shipped level: 40 single-tile edits applied
+    /// one at a time, each leaving a valid mesh whose every triangle carries the byte of the tile
+    /// under it and no constraint bit, with the map corners still vertices. What the edit leaves is
+    /// the original's business and is not pinned; that it leaves a usable mesh is ours.</summary>
+    [InstallFact]
+    public void EveryShippedLevelSurvivesSequentialTileEdits()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        int levels = 0, edits = 0;
+        foreach (string level in LevelNames(install))
+        {
+            LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+            if (map is null) continue;
+            WorldState world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
+            byte[] bytes = WorldSteering.CaptureNavigationBytes(database, world);
+            var grid = new Grid(world.Width, world.Height, bytes);
+            NavMesh mesh = NavMesh.Build(grid);
+            uint state = (uint)level.GetStableHashCode() | 1;
+            for (int i = 0; i < 40; i++)
+            {
+                state = (state * 1664525) + 1013904223;
+                int x = 1 + (int)((state >> 8) % (uint)(world.Width - 2));
+                state = (state * 1664525) + 1013904223;
+                int y = 1 + (int)((state >> 8) % (uint)(world.Height - 2));
+                state = (state * 1664525) + 1013904223;
+                byte nav = Bytes[(state >> 16) % (uint)Bytes.Length];
+                if (bytes[(y * world.Width) + x] == nav) continue;
+                bytes[(y * world.Width) + x] = nav;
+                try
+                {
+                    mesh.Retriangulate(grid, x, y, x + 1, y + 1);
+                    AssertEdited(mesh, grid);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"{level}: edit {i} at ({x},{y}) to {nav}: {ex.Message}", ex);
+                }
+                edits++;
+            }
+            levels++;
+        }
+        output.WriteLine($"{edits} edits over {levels} levels");
+        Assert.True(levels > 0);
+    }
+
+    private static void AssertEdited(NavMesh mesh, Grid grid)
+    {
+        for (int t = 0; t < mesh.TriangleSlots; t++)
+        {
+            if (!mesh.IsTriangleLive(t)) continue;
+            int a = mesh.Vertex(t, 0), b = mesh.Vertex(t, 1), c = mesh.Vertex(t, 2);
+            Assert.True(NavMesh.Orient(mesh.PointX(a), mesh.PointY(a), mesh.PointX(b), mesh.PointY(b), mesh.PointX(c), mesh.PointY(c)) > 0,
+                $"triangle {t} is not wound positively");
+            long cx = 0, cy = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                Assert.False(mesh.IsConstraint(t, i), $"triangle {t} edge {i} keeps a constraint bit");
+                int u = mesh.Neighbour(t, i);
+                if (u != NavMesh.NoNeighbour)
+                {
+                    Assert.True(mesh.IsTriangleLive(u), $"triangle {t} edge {i} points at dead triangle {u}");
+                    int j = mesh.EdgeIndexOf(u, mesh.Vertex(t, (i + 1) % 3), mesh.Vertex(t, i));
+                    Assert.Equal(t, mesh.Neighbour(u, j));
+                }
+                int p = mesh.Vertex(t, i);
+                cx += mesh.PointX(p) * 3L * NavMesh.UnitsPerTile;
+                cy += mesh.PointY(p) * 3L * NavMesh.UnitsPerTile;
+            }
+            int tx = (int)Math.Floor(cx / 9 / (double)NavMesh.UnitsPerTile), ty = (int)Math.Floor(cy / 9 / (double)NavMesh.UnitsPerTile);
+            if (tx < 0 || ty < 0 || tx >= grid.Width || ty >= grid.Height) continue;
+            Assert.True(grid.NavByte(tx, ty) == mesh.NavByte(t),
+                $"triangle {t} carries byte {mesh.NavByte(t)} over tile ({tx},{ty}) whose byte is {grid.NavByte(tx, ty)}");
+        }
+        foreach ((int x, int y) in new[] { (0, 0), (grid.Width, 0), (grid.Width, grid.Height), (0, grid.Height) })
+            Assert.True(mesh.TryLocateVertex(x, y, out _, out _), $"map corner ({x},{y}) is no longer a vertex");
     }
 
     /// <summary>Rewrites <paramref name="count"/> tiles, drawn by a fixed generator so the pin

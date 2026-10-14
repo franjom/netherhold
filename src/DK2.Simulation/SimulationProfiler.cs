@@ -78,6 +78,10 @@ public static class SimulationMarkers
     /// <summary>One <see cref="Pathfinding.IPathfinder.TryFindNearest"/> grid search.</summary>
     public static readonly SimulationMarker GridNearest = SimulationMarker.Named("grid.nearest");
 
+    /// <summary>One <see cref="Pathfinding.ReachableTiles.Flood"/>: every tile a worker can reach, found once
+    /// per worker update to answer its candidate tests.</summary>
+    public static readonly SimulationMarker GridFlood = SimulationMarker.Named("grid.flood");
+
     public static readonly SimulationMarker ImpClaimOnTheWay = SimulationMarker.Named("ImpTask.claim on the way");
     public static readonly SimulationMarker ImpWander = SimulationMarker.Named("ImpTask.wander");
     public static readonly SimulationMarker ImpCarry = SimulationMarker.Named("ImpTask.carry");

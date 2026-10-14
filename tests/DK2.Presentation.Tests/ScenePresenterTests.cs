@@ -138,6 +138,32 @@ public class ScenePresenterTests
     }
 
     [InstallFact]
+    public void HeartDamageAndHealingUpdateOnlyTheHeartVisual()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
+        WorldState world = WorldState.FromMap(db,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [0, 1, 2, 3, 4]);
+        var target = new RecordingTarget();
+        var presenter = new ScenePresenter(new WorldView(db), AssetProviderChain.Standard(), target);
+        presenter.Present(world);
+        target.Clear();
+        int maximum = db[VariableTypeId.DungeonHeartObjectHealth];
+        world.Player(4).HeartHealth = maximum / 2;
+        var simulation = new GameSimulation(db, world, 7, []);
+        simulation.Tick();
+        presenter.Present(world);
+        Assert.Equal(1, target.ObjectUpdates);
+        Assert.Equal(0, target.Updates);
+        target.Clear();
+        world.Player(4).HeartHealth = maximum;
+        simulation.Tick();
+        presenter.Present(world);
+        Assert.Equal(1, target.ObjectUpdates);
+        Assert.Equal(0, target.Updates);
+    }
+
+    [InstallFact]
     public void AHeartBecomingRuinedUpdatesEveryFloorTile()
     {
         string install = Dk2InstallGate.Path;
@@ -230,6 +256,89 @@ public class ScenePresenterTests
         // And every one of them got an asset, all of them placeholders.
         Assert.Equal(tiles, rig.Target.Grounds.Count);
         Assert.All(rig.Target.Grounds, g => Assert.True(g.IsPlaceholder));
+    }
+
+    /// <summary>The tile pass is skipped while its inputs are what it last saw (ADR-0456); a tile
+    /// written between two presents, with no tick, must still be seen.</summary>
+    [InstallFact]
+    public void ATileWrittenBetweenPresentsIsStillPushed()
+    {
+        if (BuildRig() is not { } rig) return;
+        WorldState world = rig.Simulation.World;
+        rig.Presenter.Present(world);
+        rig.Presenter.Present(world);
+        Assert.Equal(0, rig.Presenter.TilesPushed);
+
+        ref TileState tile = ref world.Tile(3, 3);
+        byte other = tile.TerrainId;
+        for (int i = 0; i < world.TileCount && other == tile.TerrainId; i++) other = world.TileAtIndex(i).TerrainId;
+        Assert.NotEqual(other, tile.TerrainId);
+        tile.TerrainId = other;
+        rig.Presenter.Present(world);
+        Assert.True(rig.Presenter.TilesPushed >= 1);
+        rig.Presenter.Present(world);
+        Assert.Equal(0, rig.Presenter.TilesPushed);
+    }
+
+    /// <summary>The tag drag's preview is the view's own state, not the world's; the pass must run
+    /// when it starts, moves and ends (ADR-0456).</summary>
+    [InstallFact]
+    public void ATagPreviewIsPushedAsItStartsMovesAndEnds()
+    {
+        if (BuildRig() is not { } rig) return;
+        WorldState world = rig.Simulation.World;
+        var view = new WorldView(rig.Database);
+        var target = new RecordingTarget();
+        var presenter = new ScenePresenter(view, AssetProviderChain.Standard(), target);
+        presenter.Present(world);
+        presenter.Present(world);
+        Assert.Equal(0, presenter.TilesPushed);
+
+        // Two taggable tiles, so the preview shows something and so growing it changes something.
+        var taggable = new List<TilePos>();
+        for (int i = 0; i < world.TileCount && taggable.Count < 2; i++)
+            if (rig.Database.TerrainById(world.TileAtIndex(i).TerrainId).IsTaggable)
+                taggable.Add(new TilePos(i % world.Width, i / world.Width));
+        Assert.Equal(2, taggable.Count);
+
+        view.PreviewTags(taggable[0], taggable[0]);
+        presenter.Present(world);
+        Assert.True(presenter.TilesPushed >= 1);
+        presenter.Present(world);
+        Assert.Equal(0, presenter.TilesPushed);
+
+        view.PreviewTags(taggable[0], taggable[1]);
+        presenter.Present(world);
+        Assert.True(presenter.TilesPushed >= 1);
+
+        view.PreviewTags(null, null);
+        presenter.Present(world);
+        Assert.True(presenter.TilesPushed >= 1);
+        presenter.Present(world);
+        Assert.Equal(0, presenter.TilesPushed);
+    }
+
+    /// <summary>A door placed between two presents writes no tile, only the door list; the pass
+    /// must still see it (ADR-0456). Skips if the level offers no tile a door may go on.</summary>
+    [InstallFact]
+    public void ADoorPlacedBetweenPresentsIsStillPushed_WhenOneCanBePlaced()
+    {
+        if (BuildRig() is not { } rig) return;
+        WorldState world = rig.Simulation.World;
+        rig.Presenter.Present(world);
+        rig.Presenter.Present(world);
+        Assert.Equal(0, rig.Presenter.TilesPushed);
+
+        byte doorId = rig.Database.Doors.Keys.Min();
+        bool placed = false;
+        for (int i = 0; i < world.TileCount && !placed; i++)
+        {
+            var at = new TilePos(i % world.Width, i / world.Width);
+            placed = BlueprintPlacementRules.PlaceDoor(world, rig.Database, at, 1, doorId) == BlueprintPlacementRules.Verdict.Allowed;
+        }
+        if (!placed) return;
+        rig.Presenter.Present(world);
+        Assert.True(rig.Presenter.TilesPushed >= 1);
     }
 
     /// <summary>

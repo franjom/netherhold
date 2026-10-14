@@ -57,7 +57,7 @@ public sealed class KeeperView : INavByteGrid
         }
         OwnedTiles = owned;
 
-        List<RoomInstance> rooms = RoomIndex.Build(world, database);
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, database);
         AllRooms = rooms.Select(r => new KeeperRoomView(world, r)).ToList().AsReadOnly();
         OwnRooms = AllRooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
         // DK2's DungeonHeartPosition (player+0xB43) is the heart thing's tile, the room's middle

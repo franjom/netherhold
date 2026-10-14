@@ -236,11 +236,11 @@ selection up when the chosen walk fails. Gold (`0x0046B6D0`) skips to the next o
 objects handler `0x0046B9C0` also checks its walk (reviewer, 2026-10-12, not yet read in
 full). The just-dug claim `0x00469600` kicks before walking.
 
-Built (ADR-0448): claim, reinforce, dig and the just-dug claim route before committing.
-Built (ADR-0449): dig sides pass `Route_IsPointReachable(point, 0x80)` (the side tile's
+Built (ADR-0468): claim, reinforce, dig and the just-dug claim route before committing.
+Built (ADR-0469): dig sides pass `Route_IsPointReachable(point, 0x80)` (the side tile's
 centre, or its corner for a mine), objects are tested at their own position before
 their task is raised, bodies after it is raised and before the walk or a steal, and a failed walk gives the state-10 dig selection up
-and moves the gold, object and body takes on. With ADR-0448 alone, Level 4 seed 19 lost:
+and moves the gold, object and body takes on. With ADR-0468 alone, Level 4 seed 19 lost:
 26 imps' takes of the owner's dig at (16,5) were refused 139 times at 6443–6800, and
 (17,5) was never claimed; with the side test those refusals are gone.
 Not built (Q590): the drop scan's dig handler `0x0046A550` retries the next slot and

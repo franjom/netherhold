@@ -1,6 +1,44 @@
 # Early state-hash versions
 
-Versions 9–38, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–45, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**45** — `0x57E013D74DC65BAA`. Doors and traps enter ordered
+world state with every parsed field copied verbatim, hashed and snapshotted.
+Even the fixture's two empty collections add their counts to the hash.
+`docs/research/doors-and-traps.md`.
+
+**44** — `0x48D7950540013015`. Every action point's trigger tree is
+walked each turn too, in the area context, and five of the seven condition types
+that context owns are computed: 40, 41, 42, 62 and 69. No hashed field changed;
+the literal moved because the version is hashed, and it had to move because a
+level with an action-point root now evolves differently from one saved under 43.
+`docs/research/trigger-walkers.md`.
+
+**43** — `0x6E963365B44FD724`. Every player's trigger tree is walked
+each turn as well, in the player context. No hashed field changed; the literal
+moved because the version is hashed, and it had to move because a level with a
+player root now evolves differently from one saved under 42.
+`docs/research/trigger-walkers.md`.
+
+**42** — `0xFFCC4119CA233DA7`. The world walker gains condition type 34
+(level time), the arming half of action type 14, and the twenty-four party roots
+— with the load-time sweep that starts every party subtree disabled. Only the
+version constant moves this fixture's literal: it has no trigger tree and no
+parties, so none of the new state exists in it. `docs/research/trigger-tree.md`.
+
+**41** — `0xDEF9B4B1985D90DE`. Trigger-record active and repeat state,
+including one-shot action retirement, enters the hash and snapshot. The fixture
+has no trigger tree, so its record count remains zero.
+
+**40** — `0x6445940E0B0F23A9`. The level's action points, in
+THINGS-file order: rectangles, ids, loader-filtered flags, passage counters and
+wait timers. Even this fixture's empty list adds its count to the hash.
+`docs/research/action-points.md`.
+
+**39** — `0x81D58B966898BEC8`. Corrected the trigger timer bank from 256 slots
+to **sixteen**, 240 fewer dwords in the hash. Two readings agree on sixteen: the
+next field on the owning object sits 0x40 bytes after the bank, and the
+condition path compares the id against 0x10 before indexing.
 
 **38** — reserved, never on master. Taken by the action-point branch in the
 codex worktree so the two could not collide; the merged result took 40 rather

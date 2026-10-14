@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 238;
+    private const ulong HashVersion = 244;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
@@ -68,6 +68,10 @@ public sealed class GameSimulation
     public ISimulationEventSink Events => _context.Events;
 
     public IReadOnlyList<ISimulationSystem> Systems => _systems;
+
+    /// <summary>The mesh, the router and the steering probes the systems route through. The mesh
+    /// is edited in place as tiles change (ADR-0461), so it is state: saved and hashed.</summary>
+    public Navigation.WorldSteering Navigation => _context.Navigation;
     public TriggerRunResult? LastTriggerRun { get; private set; }
 
     /// <summary>Records which trigger records each turn's walk reached, so that
@@ -172,6 +176,7 @@ public sealed class GameSimulation
         Hash64 hash = Hash64.Start();
         hash.Add(HashVersion);
         World.HashInto(ref hash);
+        _context.Navigation.HashInto(ref hash);
 
         Rng.HashInto(ref hash);
 

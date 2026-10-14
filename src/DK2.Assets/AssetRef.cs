@@ -167,7 +167,7 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     /// for names a mod or a later record type may carry. Pinned by
     /// <c>AssetCatalogueTests</c>, which normalises every name in the install.
     /// </remarks>
-    private const string Separators = " -'[]<>";
+    private const string Separators = " -'[]<>()";
 
     /// <summary>
     /// Turns a record's name into a key segment: lowercase, punctuation to one
