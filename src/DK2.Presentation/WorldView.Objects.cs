@@ -348,9 +348,13 @@ public sealed partial class WorldView
         PlayerId obstacleOwner = room.OwnerPlayerId == 0 ? new PlayerId(0) : PlayerIds.Neutral;
         into.Add(Decoration(world, centre, HeartSlot, HeartObstacleId, obstacleOwner, 0, 0, -1, 0));
         into.Add(Decoration(world, centre, HeartSlot + 1, DungeonHeartId, owner, 0, 0, -1, 0));
+        // The builder (0x004DB700) creates the local player's Big Steps and Arches with alpha 0; the
+        // opening sequence fades them in (0x004D9CA0, heart-intro.md). Another keeper's are opaque.
+        byte alpha = owner.Value == _viewingPlayerId
+            ? HeartIntroRules.DecorationAlpha((uint)world.CurrentTick.Value, _database) : (byte)255;
         for (int n = 0; n < 3; n++)
-            into.Add(Decoration(world, centre, HeartSlot + 2 + n, BigStepsId, owner, 0, 0, -1, ((n * 0x155) & 0x3FF) << 1));
-        into.Add(Decoration(world, centre, HeartSlot + 5, HeartArchesId, owner, 0, 0, -1, 0));
+            into.Add(Decoration(world, centre, HeartSlot + 2 + n, BigStepsId, owner, 0, 0, -1, ((n * 0x155) & 0x3FF) << 1, alpha: alpha));
+        into.Add(Decoration(world, centre, HeartSlot + 5, HeartArchesId, owner, 0, 0, -1, 0, alpha: alpha));
     }
 
     // Convex-corner offsets, NE, SE, SW, NW: the Guard Post's and Workshop Pillar's 0x82A at angle
@@ -480,14 +484,14 @@ public sealed partial class WorldView
 
     /// <summary>A decoration at its tile's centre plus an offset; a height of −1 is the tile's floor.</summary>
     private ObjectView Decoration(WorldState world, int tileIndex, int slot, byte objectTypeId, PlayerId owner,
-        int offsetX, int offsetY, int z, int heading, int artSlot = 0)
+        int offsetX, int offsetY, int z, int heading, int artSlot = 0, byte alpha = 255)
     {
         int x = tileIndex % world.Width, y = tileIndex / world.Width;
         return new ObjectView(-((tileIndex * DecorSlots) + slot + 1), objectTypeId, owner, new TilePos(x, y),
             ObjectArt(objectTypeId, artSlot), 0, (x * One) + Half + offsetX, (y * One) + Half + offsetY,
             z < 0 ? FloorHeight(world, x, y) : z, heading & 0x7FF, One,
             playsAnimation: objectTypeId == DungeonHeartId,
-            heartVisual: HeartVisual(world, objectTypeId, owner, new TilePos(x, y)));
+            heartVisual: HeartVisual(world, objectTypeId, owner, new TilePos(x, y)), alpha: alpha);
     }
 
     private DungeonHeartVisual? HeartVisual(WorldState world, byte objectTypeId, PlayerId owner, TilePos tile) =>

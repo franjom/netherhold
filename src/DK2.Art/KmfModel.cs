@@ -72,8 +72,17 @@ public sealed record KmfAnimation(uint FrameCount, IReadOnlyList<KmfMesh> Frames
     public bool IsComplete => DecodeFailure is null && Frames.Count == FrameCount;
 }
 
+/// <summary>One member of a KMF group: a mesh entry's name (without <c>.kmf</c>) and its offset
+/// from the group's origin, in the model's units (tiles).</summary>
+public sealed record KmfGroupElement(string Name, Vector3 Position);
+
+/// <summary>A KMF of kind <see cref="KmfKind.Group"/>: the parts an effect flings (<c>0x004347E0</c>
+/// spawns one element per member at the instance's position plus the member's offset).</summary>
+public sealed record KmfGroup(IReadOnlyList<KmfGroupElement> Elements);
+
 public sealed record KmfModel(uint Version, KmfKind Kind,
-    IReadOnlyList<KmfMaterial> Materials, KmfMesh? Mesh, KmfAnimation? Animation = null)
+    IReadOnlyList<KmfMaterial> Materials, KmfMesh? Mesh, KmfAnimation? Animation = null,
+    KmfGroup? Group = null)
 {
     public uint FrameCount => Animation?.FrameCount ?? 0;
 }

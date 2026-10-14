@@ -223,7 +223,9 @@ namespace DK2.Unity
                 _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
                     request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId),
                     request => world.Contains(request.Tile) && (!world.FogOfWarEnabled
-                        || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId)),
+                        || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId))
+                        // DK2 asks for the Heart's opening effects only for the local player (0x004D9A60).
+                        && (!HeartIntroRules.IsViewerOnly(request.EffectId.Value) || request.Owner.Value == viewingPlayerId),
                     point => _worldView.GroundHeightAt(world, point), meshes: _classic,
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request));
                 _simulation.ObserveWith(_constructionEffects.Model);

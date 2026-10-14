@@ -30,12 +30,29 @@ public static class KmfReader
             throw reader.Invalid($"Unsupported KMF kind {(uint)kind}.");
         _ = reader.UInt32(); // UNKNOWN header field.
         if (kind == KmfKind.Group)
-            return new KmfModel(version, kind, [], null);
+            return new KmfModel(version, kind, [], null, Group: ReadGroup(ref reader));
 
         IReadOnlyList<KmfMaterial> materials = ReadMaterials(ref reader);
         return kind == KmfKind.Mesh
             ? ReadStaticModel(ref reader, version, materials)
             : ReadAnimatedModel(ref reader, version, materials);
+    }
+
+    /// <summary>GROP: a HEAD with the member count, then one ELEM per member: its mesh entry's name
+    /// and its offset (Group_plugbroke: nine DHeartPlug parts; Group_dharch: twenty DHeartPiece parts).</summary>
+    private static KmfGroup ReadGroup(ref SpanReader reader)
+    {
+        reader.Expect("GROP"); reader.SkipSectionSize();
+        reader.Expect("HEAD"); reader.SkipSectionSize();
+        uint count = reader.Count("group element");
+        var elements = new List<KmfGroupElement>((int)count);
+        for (uint i = 0; i < count; i++)
+        {
+            reader.Expect("ELEM"); reader.SkipSectionSize();
+            string name = reader.NullTerminatedAscii();
+            elements.Add(new KmfGroupElement(name, reader.Vector3()));
+        }
+        return new KmfGroup(elements);
     }
 
     private static IReadOnlyList<KmfMaterial> ReadMaterials(ref SpanReader reader)

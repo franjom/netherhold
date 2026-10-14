@@ -318,6 +318,7 @@ namespace DK2.Unity
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
             if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase);
+            if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
         public void UpdateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
@@ -332,6 +333,7 @@ namespace DK2.Unity
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
             if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase);
+            if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
         private void ConfigureObjectClip(GameObject go, int id, in ObjectView pose, in ResolvedAsset mesh)

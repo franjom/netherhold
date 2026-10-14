@@ -241,8 +241,9 @@ public readonly struct ObjectView
         Fp32? previousPosX = null, Fp32? previousPosY = null, int? previousHeading = null,
         bool playsAnimation = false, GameTick? animationStartedAt = null, bool animationLoops = true,
         int? previousHeight = null, int? previousPitch = null, int? previousRoll = null,
-        DungeonHeartVisual? heartVisual = null)
+        DungeonHeartVisual? heartVisual = null, byte alpha = 255)
     {
+        Alpha = alpha;
         Pitch = pitch;
         Roll = roll;
         Id = id;
@@ -301,6 +302,10 @@ public readonly struct ObjectView
     public bool AnimationLoops { get; }
 
     public DungeonHeartVisual? HeartVisual { get; }
+
+    /// <summary>The model's alpha, 0 to 255 (object <c>+0x8F</c>): 255 but for the local player's
+    /// Heart Arches and Big Steps during the Heart's opening sequence (<see cref="HeartIntroRules"/>).</summary>
+    public byte Alpha { get; }
 
     /// <summary>A turn about the model's own X axis, 2048 to a turn (<c>+0x64</c>, RenderInfo
     /// <c>+0x20</c>). DK2 turns a model by this, then <see cref="Roll"/>, then the heading
