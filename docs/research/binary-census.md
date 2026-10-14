@@ -99,7 +99,9 @@ Every reader of those offsets is one of these, the creature constructor, death
 and collapse bookkeeping (`0x005051F0`), the creature debug dump, or an
 unrelated presentation class that uses the same offsets. So the records feed
 the effect service, the interface and the minimap, and no simulation code reads
-them. Ours has no battle records.
+them. Ours has no battle records. The owner's play agrees (2026-10-14): fights
+make the music intensify, and a box appears that moves the camera to the fight
+when right-clicked.
 
 ## 4. The generated-special placer is inert
 
@@ -123,7 +125,8 @@ table jumps from id 28's stub to id 29's. The switch `0x0075AE7B`, field
 `+0x134` of the settings object at `0x0075AD47`, has no non-zero store: only
 its constructor `0x0055CCA0` and reset `0x0055E5A0` write it, both with 0. So
 the count test always fails and the placer, though called every turn, never
-places one. These are negative scans, so the verdict is LIKELY.
+places one. These are negative scans, so the verdict is LIKELY. The owner has
+never seen a special appear on the map by itself during a level (2026-10-14).
 
 The byte `0x006F25BC` has one other reader. A panel tally `0x00416980` adds it
 to the keeper-spell count and world `+0xA3B3` (InitialSpecialsOnLevelCount),
