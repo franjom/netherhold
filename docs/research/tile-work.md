@@ -101,10 +101,10 @@ One application of work:
 4. the new tile starts at its own terrain's `startingHealth` and keeps its dig
    markers only if the new terrain is still `Taggable`.
 
-Step 4's second half matters for gems, whose destroyed type is themselves:
+Step 4's second half once mattered for gems, whose destroyed type is themselves:
 clearing the mark on every conversion collapsed a marked gem face and left the
-imp nothing to do, where the original mines a marked gem face indefinitely from
-one mark. STRONGLY INFERRED, on the same flag the mark is validated against.
+imp nothing to do. Since ADR-0470 a gem face is never damaged, so it never
+converts and keeps its mark either way.
 
 Two exceptions where the terrain stays and only the owner changes.
 `TileWorkKind.ConvertRoom` runs the *room's* health down (`room-health.md`), so the
@@ -146,12 +146,11 @@ reversing ADR-0024): reinforcing Rock is 660 − 165 = 495, fifty applications a
 
 ### Why gems are inexhaustible
 
-Gems are impenetrable and their `destroyedTypeTerrainId` is *themselves*. A gem
-face at 100 health takes two swings of 60, collapses, and immediately reappears
-at full health; `GoldMinedFromGems` (25) is what each cycle yields against a
-seam's 3000. The mine handler disagrees: a gem face takes no damage and pays 25
-every strike (Q587, possession-arms-and-inputs.md §3). The data reproduces the thing every DK2 player knows — gems never
-run out and are far slower than a seam — with nothing special-cased.
+The mine handler `0x004971D0` skips the strike on an Impenetrable face: a gem
+face takes no damage and pays `GoldMinedFromGems` (25) on every strike, against
+a seam's 273 a swing (Q587, CONFIRMED by the owner; ADR-0470). Ours did once
+collapse the face at 100 health after two swings of 60, paying 25 a cycle,
+because its destroyed type is itself; that was half the binary's rate.
 
 
 ## How much one swing does

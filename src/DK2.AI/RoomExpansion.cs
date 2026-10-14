@@ -66,10 +66,6 @@ public static class RoomExpansion
         return view.IsMine(tile) && !terrain.IsRoom;
     }
 
-    /// <summary>Terrain byte <c>+0x1CB</c> bit 0, set by the loader (<c>0x004F7759</c>) for a type that
-    /// is not Ownable, starts below its maximum health and names another type for full health: the
-    /// neutral paths that heal into an owned floor (imp-claim-path.md).</summary>
-    public static bool HealsIntoAnother(TerrainDef terrain) =>
-        !terrain.IsOwnable && terrain.StartingHealth < terrain.MaxHealth
-        && terrain.TerrainId != terrain.MaxHealthTypeTerrainId;
+    /// <summary>Terrain byte <c>+0x1CB</c> bit 0 (<see cref="TileWorkRules.HealsIntoAnother"/>).</summary>
+    public static bool HealsIntoAnother(TerrainDef terrain) => TileWorkRules.HealsIntoAnother(terrain);
 }

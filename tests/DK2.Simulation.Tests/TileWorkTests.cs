@@ -276,14 +276,12 @@ public class TileWorkTests
     }
 
     [Fact]
-    public void AGemFace_IsInexhaustibleAndYieldsTheGemsRate()
+    public void AGemFace_IsNeverDamagedAndPaysTheGemsRateEveryStrike_ConfirmedByBinaryAndOwner()
     {
-        // Gems are impenetrable and their destroyed type is themselves, so a face
-        // collapses and instantly reappears at full health. 100 health against 60
-        // a swing (Q47) means two swings to collapse and only the collapse pays, so
-        // fifty swings are twenty-five collapses — the rate per second is unchanged
-        // by the finer granularity, which is the whole point of it.
+        // 0x004971D0 skips the strike on an Impenetrable face and pays GoldMinedFromGems
+        // (25) each time; the owner saw gold every swing and the face never crack (Q587).
         TileState tile = TileOf(Dk2TerrainFixture.Gems);
+        tile.Health = 37;
         int total = 0;
 
         for (int i = 0; i < 50; i++)
@@ -293,8 +291,8 @@ public class TileWorkTests
             Assert.Equal(Dk2TerrainFixture.Gems, tile.TerrainId);
         }
 
-        Assert.Equal(25 * 25, total);
-        Assert.Equal(100, tile.Health);
+        Assert.Equal(50 * 25, total);
+        Assert.Equal(37, tile.Health);
     }
 
     // ---- what work is refused -------------------------------------------

@@ -104,7 +104,22 @@ public sealed class PortalSystem : ISimulationSystem
             int required = PortalRules.SpawnIntervalTicks(
                 database, centre.EntranceCreaturesGenerated);
 
-            if (centre.EntranceIdleTicks < required) continue;
+            if (centre.EntranceIdleTicks < required)
+            {
+                if (centre.EntranceIdleTicks == required - 3 * SimulationTiming.OriginalTicksPerGameSecond
+                    && held < capacity && portal.Definition.PortalBuildUpEffectId != 0)
+                {
+                    List<CreatureDef> preview = Candidates(context, owned, playerId,
+                        portal.Definition, out _);
+                    // The native preview counts base-weight candidates without noticing,
+                    // drawing, or decaying entrance modifiers, even when portals are closed.
+                    if (preview.Any(c => PortalChoiceRules.BaseWeight(world, c, owned, playerId) > 0))
+                        context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                            new EffectId(portal.Definition.PortalBuildUpEffectId), playerId,
+                            world.TilePosition(entranceTile), new Fp32(0)));
+                }
+                continue;
+            }
 
             // A due roll restarts the clock whatever it produces: 0x004DBBE0 stamps
             // room+0x49 straight after the pick, untested (0x004DBC7C). A portal held
@@ -150,6 +165,14 @@ public sealed class PortalSystem : ISimulationSystem
         SimulationContext context, List<RoomInstance> ownedRooms, PlayerId playerId,
         RoomDef portal, out string candidateNames)
     {
+        List<CreatureDef> candidates = Candidates(context, ownedRooms, playerId, portal, out candidateNames);
+        return PortalChoiceRules.Pick(context.World, context.Rng, playerId, candidates, ownedRooms);
+    }
+
+    private static List<CreatureDef> Candidates(
+        SimulationContext context, List<RoomInstance> ownedRooms, PlayerId playerId,
+        RoomDef portal, out string candidateNames)
+    {
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
@@ -192,7 +215,6 @@ public sealed class PortalSystem : ISimulationSystem
         candidateNames = string.Join(",", candidates.Select(c => c.Name));
         if (rejected.Count > 0) candidateNames += " rejected=" + string.Join(",", rejected);
 
-        // DK2's weighted draw, not a uniform one (0x004DBF90, ADR-0272).
-        return PortalChoiceRules.Pick(world, context.Rng, playerId, candidates, ownedRooms);
+        return candidates;
     }
 }

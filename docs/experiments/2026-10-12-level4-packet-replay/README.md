@@ -40,14 +40,14 @@ stand.
 | F | ADR-0443 | as E | 19/20 | 6/20 | 18/20 | 2/20 (seeds 19, 13: 6748, 6760) |
 | M | master 15c2b038 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 11, 12: 6740, 6732) |
 | G | M + ADR-0443 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6724–6748) |
-| Q | G + ADR-0468 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6732) |
+| Q | G + ADR-0471 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6732) |
 | M2 | master d1e67516 | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 19: 6732–6740) |
-| Q2 | M2 + ADR-0468 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6736) |
-| R | Q2 + ADR-0469 side test | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 13: 6720–6752) |
+| Q2 | M2 + ADR-0471 | as E | 19/20 | 2/20 | 13/20 | 2/20 (seeds 9, 11: 6724, 6736) |
+| R | Q2 + ADR-0472 side test | as E | 19/20 | 2/20 | 13/20 | 3/20 (seeds 9, 11, 13: 6720–6752) |
 | M3 | master b501992f | as E | 20/20 | 2/20 | 8/20 | 2/20 (seeds 3, 11: 6784, 6772) |
-| T | M3 + ADR-0468, ADR-0469 | as E | 20/20 | 2/20 | 8/20 | 2/20 (seeds 9, 11: 6764, 6788) |
+| T | M3 + ADR-0471, ADR-0472 | as E | 20/20 | 2/20 | 8/20 | 2/20 (seeds 9, 11: 6764, 6788) |
 | V | master d8bc7336 | as E | 20/20 | 3/20 | 9/20 | 2/20 (seeds 6, 13) |
-| U | V + ADR-0468, ADR-0469 | as E | 20/20 | 3/20 | 9/20 | 3/20 (seeds 4, 6, 13) |
+| U | V + ADR-0471, ADR-0472 | as E | 20/20 | 3/20 | 9/20 | 3/20 (seeds 4, 6, 13) |
 
 M and G agree tick for tick on Levels 1–3: the gate changes nothing there, and master's
 own commits since 3877e855 took Level 2 from 6/20 to 2/20 and Level 3 from 18/20 to
@@ -162,7 +162,7 @@ Level 3's drop is 454's and Level 2's is 455's; neither is examined here.
 
 ## Set Q
 
-ADR-0468 refuses a take whose walk cannot start. Level 4's `out_of_reach` drops fall
+ADR-0471 refuses a take whose walk cannot start. Level 4's `out_of_reach` drops fall
 from 4,979 to 17 over the 20 seeds; Levels 1–3 replay identically (every output file),
 and 14 of 20 Level 4 runs change (7 in `replay.csv`). Seed 19 no longer wins: within one
 seed, no measured gain, and again on master d1e67516 (M2 against Q2: drops 4,878 to 17).
@@ -172,7 +172,7 @@ causes the refusals is inferred, not traced.
 
 ## Sets R, S, M3 and T
 
-ADR-0469 tests dig sides, objects and bodies with the router before taking them. On
+ADR-0472 tests dig sides, objects and bodies with the router before taking them. On
 d1e67516 the side test alone (R) removes seed 19's refusals and wins 3/20 (seeds 9, 11,
 13); adding the fetch refusals and the dig give-up (S) changes no replay trace (80
 runs) and no Level 4 creature log. On master b501992f (M3 against T) Levels 1–3 replay identically (20/2/8), Level 4

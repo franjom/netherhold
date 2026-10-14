@@ -546,7 +546,7 @@ public sealed partial class ImpTaskSystem
     /// <summary><c>Route_IsPointReachable(point, 0x80)</c> (<c>0x00471630</c>): a route query that
     /// respects doors. <c>0x00469AF0</c> asks it of each dig side (the side tile's centre, or its
     /// corner for a mine), and the objects and body handlers of the thing's own position, before
-    /// walking to or stealing it; the selection grid has no doors (Q590, ADR-0469).</summary>
+    /// walking to or stealing it; the selection grid has no doors (Q590, ADR-0472).</summary>
     private bool PointReachable(SimulationContext context, CreatureState creature, int x, int y)
     {
         _reachPoints.Clear();
@@ -814,7 +814,7 @@ public sealed partial class ImpTaskSystem
     /// Commits a worker to tile work along the route the last search planned. False, with nothing
     /// committed, when the walk cannot start: the tile-work handlers' takes fail when their route
     /// request does (<c>0x004651A0</c> → <c>0x00471890</c> → <c>0x004D0F60</c>, imp-task-stealing.md
-    /// §7, ADR-0468). A held slot is kicked after the walk starts, as claim and reinforce do; the
+    /// §7, ADR-0471). A held slot is kicked after the walk starts, as claim and reinforce do; the
     /// dig caller kicks first, and the just-dug claim's walk to its own tile never fails (Q590).
     /// </summary>
     private bool CommitJob(

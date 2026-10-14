@@ -31,6 +31,7 @@ public static class KwdTerrainRooms
         U16(RoomLayout.NameString, record.NameStringId);
         U16(RoomLayout.Cost, record.Cost);
         U16(RoomLayout.CreatedObjectEffect, record.CreatedObjectEffectId);
+        U16(RoomLayout.PortalBuildUpEffect, record.PortalBuildUpEffectId);
         bytes[RoomLayout.Id] = record.RoomId;
         bytes[RoomLayout.Return] = record.ReturnPercentage;
         bytes[RoomLayout.Terrain] = record.TerrainId;
@@ -90,6 +91,7 @@ public static class KwdTerrainRooms
         internal const int SizeX = 0x41B, SizeY = 0x41C, Health = 0x41D;
         internal const int TorchIntensity = 0x36E, TorchHeight = 0x380, TorchRgb = 0x397;
         internal const int TorchRadius = 0x3C3, TorchArt = 0x3C7, CreatedObjectEffect = 0x384;
+        internal const int PortalBuildUpEffect = 0x386;
     }
 
     public static List<TerrainDef> ParseTerrain(IEnumerable<KwdChunk> chunks)
@@ -188,6 +190,7 @@ public static class KwdTerrainRooms
             Construction = (TileConstruction)U8(RoomLayout.Construction),
             CreatedCreatureId = U8(RoomLayout.Creature),
             CreatedObjectEffectId = U16(RoomLayout.CreatedObjectEffect),
+            PortalBuildUpEffectId = U16(RoomLayout.PortalBuildUpEffect),
             ObjectIds = objectIds,
             OrderInEditor = U8(RoomLayout.Order),
             RecommendedSizeX = U8(RoomLayout.SizeX),

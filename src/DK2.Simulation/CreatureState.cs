@@ -1124,6 +1124,11 @@ public sealed class CreatureState
     public ushort AttackCreatureHits;
     public ushort HypnotisedAttacks;
 
+    /// <summary>The tile a possessed worker's claim (action 4, <c>0x004974C0</c>) is striking, -1 for
+    /// none: the action strikes every tick while the tile is claimable (possession-arms-and-inputs.md
+    /// §3). DK2 keeps it as the running action's begin point <c>+0x38D</c>.</summary>
+    public int ClaimActionTile = -1;
+
     /// <summary>Original ReaperTimer +0x4E9, HornyTick +0x4C9, runtime +0x3EA bits 18/19,
     /// and presentation alpha +0x8F used by the departure lifecycle.</summary>
     public ushort ReaperTicks;
@@ -1439,6 +1444,7 @@ public sealed class CreatureState
         hash.Add(Hypnotised);
         hash.Add(AttackCreatureHits);
         hash.Add(HypnotisedAttacks);
+        hash.Add(ClaimActionTile);
         hash.Add(ReaperTicks);
         hash.Add(HornyTick);
         hash.Add(IsOneShotReaper);

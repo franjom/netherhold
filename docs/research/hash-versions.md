@@ -15,7 +15,11 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**244** — `0x3CCF2DD28C25C10E`. Worker takes need a route (ADR-0468) and a reachable dig side, object or body (ADR-0469); no new saved field.
+**245** — `0xF345C33D7F7605C3`. Worker takes need a route (ADR-0471) and a reachable dig side, object or body (ADR-0472); no new saved field.
+
+**244** — `0x2B86A02DFCAA09DE`. A creature's `ClaimActionTile`, the tile a possessed worker's
+claim strikes each tick, and a work order's multiplier and strike flags are saved and hashed
+(ADR-0469); the gem rule (ADR-0470) and the possessed object arms (ADR-0468) add no field.
 
 **243** — `0x768B6A51253B3081`. The navigation mesh is simulation state: a
 refresh edits the standing mesh around each changed tile (the original's

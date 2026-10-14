@@ -7,10 +7,9 @@
 #   1. a gold seam is finite - 3000 gold over 660 health, mined 60 at a time
 #      (Q47), so ELEVEN applications exhaust it, each freeing 273 gold, and it
 #      collapses to dirt path;
-#   2. a gem face is not - it is impenetrable and its destroyed type is itself,
-#      so it collapses (two applications, at 100 health) and immediately
-#      reappears at full health, yielding GoldMinedFromGems (25) each cycle.
-#      That is why gems are endless but slow.
+#   2. a gem face is not - it is impenetrable, and the mine action 0x004971D0
+#      skips the strike on it: no damage, and GoldMinedFromGems (25) on every
+#      strike (Q587, ADR-0470). That is why gems are endless but slow.
 #
 # The gold released is reported and then dropped. Nothing swung: this is work
 # injected straight onto the world, so there are no hands for the gold to go into
@@ -32,14 +31,14 @@ setup:
 work:
   # A gold seam. Eleven applications take it from 660 to nothing (Q47).
   - { at_tick: 0, until_tick: 12, player: 3, kind: MineGold, at: [22, 4] }
-  # A gem face. Twenty applications, ten collapses at two swings each, ten times
-  # 25 gold, and the tile is still gems at the end.
+  # A gem face. Twenty applications, twenty times 25 gold, and the face never
+  # takes damage.
   - { at_tick: 0, until_tick: 19, player: 3, kind: MineGold, at: [8, 75] }
 observe:
   - state_hash
   - events
-# A seam is finite and a gem face is not, and the difference is entirely in the
-# terrain record's DestroyedTypeTerrainId.
+# A seam is finite and a gem face is not: the mine action never damages a face
+# whose terrain is Impenetrable.
 expect:
   - event: destroyed
     detail: "(22,4) player=3 MineGold terrain 6->3"
@@ -54,13 +53,13 @@ expect:
       free 273 and three free 272, and the eleven sum to exactly 3000.
   - event: destroyed
     detail: "(8,75)"
-    count: 10
+    absent: true
     because: >
-      Gems are 100 health and their DestroyedTypeTerrainId is THEMSELVES, so the
-      face collapses every two swings and immediately comes back at full health.
-      Twenty applications, ten collapses, and the tile is still gems at the end.
+      The mine action skips the strike on an Impenetrable gem face, so it is
+      never damaged and never collapses (Q587, owner: the face never cracks).
   - event: gold_uncollected
     detail: "(8,75) player=3 MineGold amount=25"
+    count: 20
     because: >
-      GoldMinedFromGems is a flat 25 a cycle, independent of the health removed -
-      which is why gems are endless and slow where a seam is rich and finite.
+      GoldMinedFromGems is a flat 25 every strike (0x004971D0; owner: gold every
+      swing) - why gems are endless and slow where a seam is rich and finite.

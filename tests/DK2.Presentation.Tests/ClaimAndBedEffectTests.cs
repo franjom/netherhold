@@ -13,6 +13,69 @@ namespace DK2.Presentation.Tests;
 
 public class ClaimAndBedEffectTests
 {
+    [InstallTheory]
+    [InlineData(true, true, 0, 1, false)]
+    [InlineData(true, false, 0, 1, false)]
+    [InlineData(false, true, 0, 0, false)]
+    [InlineData(true, true, 15, 0, false)]
+    [InlineData(true, true, 0, 1, true)]
+    public void PortalBuildUpPreviewsThreeSecondsBeforeTheRollWithoutDrawingOrSpawning(
+        bool lairPresent, bool portalOpen, int held, int expectedRequests, bool blocked)
+    {
+        GameDatabase original = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureDef goblin = original.CreatureByName("Goblin")!;
+        var variables = new GlobalVariables();
+        variables.CreaturePool.Add(new CreaturePoolEntry(goblin.CreatureId, 15, PlayerIds.FirstKeeper));
+        GameDatabase db = original.ForLevel(variables);
+        var map = new LevelMap(7, 7, Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49).ToArray());
+        WorldState world = WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+        for (int y = 2; y <= 4; y++)
+            for (int x = 2; x <= 4; x++)
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), PlayerIds.FirstKeeper);
+        if (lairPresent)
+            for (int y = 5; y <= 6; y++)
+                for (int x = 5; x <= 6; x++)
+                    RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
+        for (int i = 0; i < held; i++)
+        {
+            world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new TilePos(1, 1));
+        }
+        world.Player(PlayerIds.FirstKeeper).PortalsClosed = !portalOpen;
+        if (blocked)
+            world.Player(PlayerIds.FirstKeeper).EntranceInfo.Add(
+                new EntranceInfoState(goblin.CreatureId, PortalChoiceRules.Fresh, PortalChoiceRules.Fresh));
+        var sim = new GameSimulation(db, world, 7, [new PortalSystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+        int warningTick = PortalRules.SpawnIntervalTicks(db, 0) - 3 * SimulationTiming.OriginalTicksPerGameSecond;
+        sim.Run(warningTick - 1);
+        Assert.DoesNotContain(events.Events, e => e.EffectRequest.HasValue);
+        var randomBefore = sim.Rng.SaveState();
+        EntranceInfoState[] rowsBefore = world.Player(PlayerIds.FirstKeeper).EntranceInfo.ToArray();
+        sim.Tick();
+        Assert.Equal(randomBefore, sim.Rng.SaveState());
+        Assert.Equal(rowsBefore, world.Player(PlayerIds.FirstKeeper).EntranceInfo);
+        Assert.Equal(held, world.Creatures.Count);
+        ViewEffectRequest[] requests = events.Events.Where(e => e.EffectRequest.HasValue)
+            .Select(e => e.EffectRequest!.Value).ToArray();
+        Assert.Equal(expectedRequests, requests.Length);
+        if (expectedRequests == 1)
+        {
+            Assert.Equal(ViewEffectRequest.AtTileCentre(new EffectId(94), PlayerIds.FirstKeeper,
+                new TilePos(3, 3), new Fp32(0)), requests[0]);
+            var particles = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
+            foreach (SimEvent emission in events.Events) particles.Emit(emission);
+            particles.AdvanceTo(new EffectTime(51));
+            Assert.Equal(12, particles.Particles.Count);
+            Assert.All(particles.Particles, p => Assert.Contains(p.Definition.EffectElementId, new ushort[] { 234, 235 }));
+        }
+        sim.Run(3 * SimulationTiming.OriginalTicksPerGameSecond - 1);
+        Assert.Equal(held, world.Creatures.Count);
+        Assert.Equal(expectedRequests, events.Events.Count(e => e.EffectRequest.HasValue));
+        sim.Tick();
+        Assert.Equal(held + (portalOpen && expectedRequests == 1 && !blocked ? 1 : 0), world.Creatures.Count);
+    }
+
     [InstallFact]
     public void ReinforcingCompletesWithFourOriginalWallEffectsAndNoneDuringProgress()
     {

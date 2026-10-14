@@ -152,7 +152,8 @@ public static class FightRules
     /// health change is <see cref="MeleeDamageRules.Blow"/> with the attacker's stance, the bearing from target to
     /// attacker and no player modifier, through <see cref="StatusEffectRules.Hurt"/>'s multipliers.
     /// A heart takes it flat through <see cref="WorldState.DamageHeart"/>, as DK2's health routine
-    /// hands a pillar's blow to the owner's heart (<c>0x004DA200</c>, Q363); DK2 also raises the
+    /// hands a pillar's blow to the owner's heart (<c>0x004DA200</c>, Q363), with no bearing bonus:
+    /// that is the creature block's alone, and a pillar is an object (class 2). DK2 also raises the
     /// "under attack" notice there, which the <c>heart_hit</c> event stands for.</summary>
     public static void LandBlow(SimulationContext context, CreatureState me, CreatureDef mine)
     {
@@ -174,7 +175,9 @@ public static class FightRules
         {
             if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return;
             ref PlayerState owner = ref world.Player(me.SwingTargetPlayerId);
-            int blow = Blow(database, me, mine, pillar.X.Raw, pillar.Y.Raw);
+            // A health change, negative as Blow's is, with no bearing term.
+            int blow = MeleeDamageRules.ApplyPlayerModifiers(
+                -MeleeDamageRules.Swing(database, mine, me.Level, MeleeDamageRules.StanceOf(me)), 0, 0);
             if (blow == 0) return;
             bool killed = world.DamageHeart(owner.PlayerId, -blow, me.OwnerPlayerId);
             if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
@@ -208,6 +211,43 @@ public static class FightRules
             if (blow == 0) return;
             TrapRules.Damage(trap, -blow);
             context.Emit(SystemName, "trap_hit", $"creature={me.Id} trap={trap.Id} blow={blow} health={trap.Health}");
+        }
+        else if (me.SwingTargetKind is FightTargetKind.Shot or FightTargetKind.Body or FightTargetKind.Object)
+            LandThingBlow(context, me, mine);
+    }
+
+    /// <summary>The possessed swing's other classes (<c>0x00498E30</c> → <c>Thing_ModifyHealth</c>
+    /// <c>0x004B2CE0</c>, possession-arms-and-inputs.md §2): the door's blow, flat. A shot's
+    /// <see cref="ShotState.Health"/> (its lifetime or hit count) and a body's rot window both shrink;
+    /// an object without Damageable (def <c>+0xF4</c> bit 21) refuses it. What removes a shot taken to
+    /// 0 is unread: ours, <see cref="Systems.ShotSystem"/> on its next pass. Not built: the Horned
+    /// Reaper's state 0xEF over a target the blow killed (its idle AI is unbuilt).</summary>
+    private static void LandThingBlow(SimulationContext context, CreatureState me, CreatureDef mine)
+    {
+        WorldState world = context.World;
+        int blow = MeleeDamageRules.ApplyPlayerModifiers(
+            MeleeDamageRules.Swing(context.Database, mine, me.Level, MeleeDamageRules.StanceOf(me)), 0, 0);
+        switch (me.SwingTargetKind)
+        {
+            case FightTargetKind.Shot:
+                if (world.ShotById(me.SwingTargetId) is not { } shot) return;
+                shot.Health = unchecked(shot.Health - blow);
+                context.Emit(SystemName, "shot_struck", $"creature={me.Id} shot={shot.Id} blow={blow} health={shot.Health}");
+                break;
+            case FightTargetKind.Body:
+                // The body's health is its rot timer counting down; ours counts the window up.
+                if (world.CreatureById(me.SwingTargetId) is not { } body || !CreatureDeathRules.IsCorpse(body)) return;
+                body.DyingTicks = unchecked(body.DyingTicks + blow);
+                context.Emit(SystemName, "body_struck", $"creature={me.Id} body={body.Id} blow={blow} lain={body.DyingTicks}");
+                break;
+            case FightTargetKind.Object:
+                if (world.ObjectById(me.SwingTargetId) is not { } thing) return;
+                bool damageable = context.Database.ObjectById(thing.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.Damageable);
+                // Only a Book Case reaches here, and it is not Damageable; a Damageable one would take
+                // the blow on its health, which no shipped object the pick allows needs.
+                context.Emit(SystemName, damageable ? "object_struck_unbuilt" : "object_refuses_blow",
+                    $"creature={me.Id} object={thing.Id} type={thing.ObjectTypeId} blow={blow}");
+                break;
         }
     }
 
@@ -358,7 +398,7 @@ public static class FightRules
     /// stop and no answer from the target: those are <c>spFighting</c>'s, and action 26 stamps itself.
     /// The begin's refusal needs an authored zero interruption byte, which shipped data has not.</summary>
     public static void BeginPossessedAction(
-        SimulationContext context, CreatureState me, byte kind, int slot, FightTargetKind targetKind, int targetId)
+        SimulationContext context, CreatureState me, byte kind, int slot, FightTargetKind targetKind, int targetId, byte targetPlayer = 0)
     {
         me.SwingInProgress = true;
         me.SwingKind = kind;
@@ -366,7 +406,8 @@ public static class FightRules
         me.SwingStartTick = context.Tick.Value;
         me.SwingTargetKind = targetKind;
         me.SwingTargetId = targetId;
-        me.SwingTargetPlayerId = 0;
+        me.SwingTargetPlayerId = targetPlayer;
+        me.ClaimActionTile = -1;
         context.Emit(SystemName, kind == SpellRules.MeleeSwing ? "possessed_swing" : "possessed_cast",
             $"creature={me.Id} slot={slot} kind={(byte)targetKind} target={targetId}");
     }

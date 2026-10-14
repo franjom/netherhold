@@ -1121,6 +1121,13 @@ public sealed class WorldState
 
     internal List<ShotState> RawShots => _shots;
 
+    public ShotState? ShotById(int id)
+    {
+        foreach (ShotState s in _shots)
+            if (s.Id == id) return s;
+        return null;
+    }
+
     /// <summary>A new shot at a position, with the next id; the caller fills the rest.</summary>
     public ShotState SpawnShot(byte shotTypeId, PlayerId ownerPlayerId, int x, int y)
     {

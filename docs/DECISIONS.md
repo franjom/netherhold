@@ -10697,7 +10697,81 @@ join the cache's key, and the database is keyed by reference on the assumption
 that a loaded `GameDatabase` and its `RoomDef`s are never changed. `RoomInstanceTests` pins a hit, a rebuild on a terrain or
 an owner change, and that an old list survives a rebuild.
 
-## ADR-0468 — A worker's take fails when its walk cannot start
+## ADR-0467 — Restore the original portal pre-arrival buildup
+**Date:** 2026-10-14 · **Status:** accepted
+
+**Context.** Entrance animations played without the portal's preceding buildup.
+
+**Decision.** Read the authored room buildup field and request its original
+effect at the native preview threshold. Share admission checks with the due
+roll while keeping preview free of gameplay mutations and random draws.
+Evidence: research/portals-interval.md, Portal buildup.
+
+**Consequences.** The existing effect consumer renders authored resources.
+Arrival timing and simulation/save/hash state are unchanged. Original graphics
+quality gating is replaced by the adapter's effect path. Unity visual
+confirmation remains pending while the owner is away.
+
+## ADR-0468 — A possessed creature's blow reaches objects, pillars, shots and bodies
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §1–2
+
+**Context.** Action 26's melee arm stamped and did nothing on a chicken, the Training
+Dummy, a Book Case, an Arch Pillar, a shot or a body (Q535).
+
+**Decision.** A chicken is killed by a creature owing no food that is not a Bile Demon;
+otherwise eaten: hunger anger grows by its bucket over the fill, the level-scaled
+`HungerFill` is paid off (not a Bile Demon's), and the creature heals the lesser of its
+deficit and `HpFromChicken`, with no state change and no hunger-clock restart. The
+dummy enters object process 18, restarting a running spin. A Book Case, an enemy Arch
+Pillar, a shot or a body takes the swing (action 17, recorded for the followers): the
+pillar's blow goes to its heart, a shot's `Health` and a body's rot window shrink flat,
+and the Book Case refuses it (not Damageable). The spell scan aims at enemy pillars,
+the cast hitting the heart. Pillars are `HeartPillarRules`' three, last in their
+tile's chain (LIKELY). A blow at a heart, possessed or from `spFighting`, no longer
+takes the bearing bonus, which 0x00498E30 gives a creature target only. No new saved
+field.
+
+**Consequences.** The Horned Reaper's state 0xEF over a target its blow killed, the
+sounds, the impact effects and action 26 on art 13 are not represented. What removes a
+shot struck to 0 is unread: ours, the shot system's next pass.
+
+## ADR-0469 — A possessed worker digs, mines and claims
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §3
+
+**Context.** A possessed worker's melee press with no target did nothing (Q535).
+
+**Decision.** For a worker (definition `+0x686` bit 0) the press tries the pose's tile
+when it touches the worker's own floor and is not its own: an ally's tile ends it,
+the neutral player's claimable path (`0x00453FC0`) starts a claim (action 4), another
+keeper's claimed floor one attack (action 6, no experience; when the floor falls, traps
+and doors on the worker's own tile are zeroed). Else the tile the packet yaw faces: the
+neutral player's gold (`0x00453D80`; no seam is ownable) is mined (2), any other solid,
+penetrable tile dug (1) under that action's own guard and owner-chosen rate. Actions 1 (an Imp's), 2 and 4 multiply the strike by the possessed
+melee recharge; the claim strikes every tick until the tile turns. Action 1 by a
+worker that is not an Imp, the hero tunneller's included, digs at six times
+`DigOwnWallHealth` with no multiplier: slower than an Imp on rock, far faster through a
+keeper's reinforced wall (the owner's observation agrees: hero Dwarves dig walls fast). A work order carries
+the multiplier and the strike's flags; a creature its claim tile; hash/save version 244.
+
+**Consequences.** The global `0x0075AE93` that stops a non-Imp's dig is taken as 0
+(campaign); `0x004ECDB0` and `0x00455030` are not represented. On shipped data one
+possessed strike converts a Dirt Path, so a claim runs once; ours also ends it when the
+creature leaves possession, is down or is held (what DK2's action does then is unread).
+
+## ADR-0470 — A gem face pays every strike and is never damaged
+**Date:** 2026-10-12 · **Status:** accepted · Research: possession-arms-and-inputs.md §3
+
+**Context.** Ours damaged a gem face and paid `GoldMinedFromGems` only when it
+collapsed (Q587). Action 2 (`0x004971D0`) skips the strike on an Impenetrable face and
+pays 25 on every strike; the owner saw gold every swing and the face never crack.
+
+**Decision.** Mining a gem face changes no health and releases `GoldMinedFromGems` per
+strike, for every miner; the gold's crediting and hand-off are unchanged.
+
+**Consequences.** A face never reaches its destroyed type, so no gem-mining task ends
+on a collapse. An imp at the base rate earns twice the gold it did there.
+
+## ADR-0471 — A worker's take fails when its walk cannot start
 **Date:** 2026-10-12 · **Status:** accepted · Research: imp-task-stealing.md §7, imp-claim-path.md §4
 
 **Context.** Q588. DK2's handlers take their task only if the walk starts
@@ -10715,7 +10789,7 @@ side and `0x00469AF0` gives the selection up (Q590). Gold, object and body fetch
 ignore a failed route (Q590). Teleporting walks are unbuilt
 (Q418); DK2's teleport also needs the target reachable. Not modelled: DK2 raises the task
 and writes its flavour (`0x005080E0`) before the walk, and a failed walk keeps both.
-Hash/save version 244, with ADR-0469.
+Hash/save version 245, with ADR-0472.
 
 **Consequences.** Level 4's `out_of_reach` drops fall from 4,979 to 17 (other walks);
 Levels 1–3 replay identically (19/2/13). Level 4 wins 2/20 (seeds 9, 11) against 3/20
@@ -10724,14 +10798,14 @@ takes of the owner's dig at (16,5) are refused 139 times, likely because the dig
 chosen on the door-blind grid where DK2 tests each side's reachability and retries the
 next slot and side (Q590, not traced). (17,5) then goes unclaimed and the owner's drop there misses.
 
-## ADR-0469 — A worker tests a dig side, object or body for reachability first
+## ADR-0472 — A worker tests a dig side, object or body for reachability first
 **Date:** 2026-10-12 · **Status:** accepted · Research: imp-task-stealing.md §7a
 
 **Context.** Q590. `0x00469AF0` keeps a dig side only if `Route_IsPointReachable(point,
 0x80)` (`0x00471630`, a door-respecting route query) passes; the objects handler (`0x0046B9C0`)
 asks it of the object's position before raising its task, the body handler (`0x0046D810`)
 after raising it and before the walk or a steal.
-Ours chose sides on the door-blind grid, so ADR-0468 refused 139 dig takes at (16,5) in
+Ours chose sides on the door-blind grid, so ADR-0471 refused 139 dig takes at (16,5) in
 Level 4 seed 19.
 
 **Decision.** `PointReachable` asks the router with the 0x80 profile: of each dig side
@@ -10739,7 +10813,7 @@ Level 4 seed 19.
 now gives the state-10 dig selection up (`0x00469AF0` returns 0) and moves the gold and
 object takes on to their next thing; a body take returns false, where DK2 tries the next
 creature. Not built: the drop scan's slot-and-side
-retry (`0x0046A550`) and gold's held-pile test (Q590). Hash/save version 244, with ADR-0468.
+retry (`0x0046A550`) and gold's held-pile test (Q590). Hash/save version 245, with ADR-0471.
 
 **Consequences.** On master b501992f, against master alone: Level 4's `out_of_reach`
 drops fall from 5,976 to 8 over 20 seeds and 67 takes are refused up front; Levels 1–3

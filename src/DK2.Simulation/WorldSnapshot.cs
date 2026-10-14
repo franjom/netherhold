@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 244;
+    private const int FormatVersion = 245;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -258,6 +258,8 @@ public static class WorldSnapshot
             w.Write((int)o.Kind);
             w.Write(o.PlayerId.Value);
             w.Write(o.WorkerCreatureId);
+            w.Write(o.Multiplier);
+            w.Write((byte)o.Strike);
         }
 
         w.Write(world.NextCreatureId);
@@ -478,6 +480,7 @@ public static class WorldSnapshot
             w.Write(c.Hypnotised);
             w.Write(c.AttackCreatureHits);
             w.Write(c.HypnotisedAttacks);
+            w.Write(c.ClaimActionTile);
             w.Write(c.ReaperTicks);
             w.Write(c.HornyTick);
             w.Write(c.IsOneShotReaper);
@@ -911,7 +914,7 @@ public static class WorldSnapshot
         for (int i = 0; i < workCount; i++)
         {
             world.QueueWork(new TileWorkOrder(
-                r.ReadInt32(), (TileWorkKind)r.ReadInt32(), r.ReadByte(), r.ReadInt32()));
+                r.ReadInt32(), (TileWorkKind)r.ReadInt32(), r.ReadByte(), r.ReadInt32(), r.ReadInt32(), (TileWorkStrike)r.ReadByte()));
         }
 
         int nextCreatureId = r.ReadInt32();
@@ -1139,6 +1142,7 @@ public static class WorldSnapshot
                 Hypnotised = r.ReadBoolean(),
                 AttackCreatureHits = r.ReadUInt16(),
                 HypnotisedAttacks = r.ReadUInt16(),
+                ClaimActionTile = r.ReadInt32(),
                 ReaperTicks = r.ReadUInt16(),
                 HornyTick = r.ReadUInt32(),
                 IsOneShotReaper = r.ReadBoolean(),

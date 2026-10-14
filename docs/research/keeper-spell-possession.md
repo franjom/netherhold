@@ -316,9 +316,9 @@ the scan, self, teleport, speed (`StatusEffectRules.ModifySpeed`), action16 and
 action15 (`FightRules.BeginFreeAim`/`FireFreeAim`; the shot flies flat at the
 point's X/Y), shot type30's refusal and the slot stamp. The follower arm and
 +0x4D0/+0x4D2 are built (ADR-0445), and SneakingAs, hypnosis and SniperMode
-(ADR-0446). Unbuilt (Q535): dig/claim, the chicken, type14, action17 on an object,
-shot or body, and action16 at a type-94 object; each stamps as DK2 does and starts
-nothing. Not represented: the secret-door cell bit and heights. A slot outside the creature's spells is
+(ADR-0446); the chicken, type 14, action 17 on a Book Case, an Arch Pillar, a shot or
+a body and action 16 at a pillar (ADR-0468); dig and claim (ADR-0469). Not
+represented: the secret-door cell bit and heights. A slot outside the creature's spells is
 refused by `SpellOf`'s bound; spell level is not tested, as in the listing.
 Approximations: an object's position is its PosX/PosY when either is non-zero,
 else its tile's centre (`ObjectPosition`); at level load the per-tile link order

@@ -112,8 +112,11 @@ public readonly record struct TileHealthDamage(int Amount);
 /// <param name="WorkerCreatureId">The creature that swung, or -1 when nothing
 /// did: in DK2 the imp that freed the gold is the imp that carries it away
 /// (Q31). Work with no worker has its gold reported and dropped.</param>
+/// <param name="Multiplier">What the floored delta is multiplied by: a possessed worker's
+/// <c>Combat_MeleeRechargeTicks</c> (<c>0x00494EF0</c>) in actions 1, 2 and 4, else 1.</param>
 public readonly record struct TileWorkOrder(
-    int TileIndex, TileWorkKind Kind, PlayerId PlayerId, int WorkerCreatureId = -1)
+    int TileIndex, TileWorkKind Kind, PlayerId PlayerId, int WorkerCreatureId = -1,
+    int Multiplier = 1, TileWorkStrike Strike = TileWorkStrike.None)
 {
     public void HashInto(ref Hash64 hash)
     {
@@ -121,7 +124,31 @@ public readonly record struct TileWorkOrder(
         hash.Add((int)Kind);
         hash.Add(PlayerId.Value);
         hash.Add(WorkerCreatureId);
+        hash.Add(Multiplier);
+        hash.Add((int)Strike);
     }
+}
+
+/// <summary>How a work action's strike differs from an imp's (possession-arms-and-inputs.md §3).</summary>
+[Flags]
+public enum TileWorkStrike : byte
+{
+    None = 0,
+
+    /// <summary>Action 1 by a creature that is not an Imp (<c>0x00496E00</c>): six times
+    /// <c>DigOwnWallHealth</c> at the work rate whoever owns the wall, never multiplied.</summary>
+    NonImpDig = 1 << 0,
+
+    /// <summary>Action 6 (<c>0x004977F0</c>) pays no experience.</summary>
+    NoExperience = 1 << 1,
+
+    /// <summary>Action 6: once the floor has fallen, every trap and door on the worker's own tile has
+    /// its health zeroed.</summary>
+    ClearsWorkerTile = 1 << 2,
+
+    /// <summary>Action 1 started by the possessed arm: its own guard (<see cref="TileWorkRules.IsDiggableWall"/>)
+    /// and its rate by the wall's owner, not the dig task's tests.</summary>
+    DiggableWallGuard = 1 << 3,
 }
 
 /// <summary>
@@ -197,6 +224,18 @@ public static class TileWorkRules
         int perSecond = ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
         return SimulationTiming.WorkApplication(perSecond, efficiency);
     }
+
+    /// <summary>Action 1's non-Imp arm (<c>0x00496E00</c>): the stored <c>DigOwnWallHealth</c> (the
+    /// tabled value over variable 19, truncated) times six (<c>LEA ECX,[EDI+EDI*2]; SHL ECX,0xD</c>),
+    /// times the work rate and floored, for any wall's owner and never multiplied, while global
+    /// <c>0x0075AE93</c> is 0 (its meaning UNREAD; ours takes it as 0, the campaign's).</summary>
+    public static int NonImpDigPerApplication(GameDatabase database, int efficiency)
+    {
+        int stored = PerSecond(database, TileWorkKind.DigOwnWall) / SimulationTiming.OriginalTicksPerGameSecond;
+        return (int)(((long)stored * NonImpDigFactor * efficiency) >> 12);
+    }
+
+    public const int NonImpDigFactor = 6;
 
     /// <summary>What a creature of the Good player applies in action 11's first arm: the cached
     /// <c>AttackRoomHealth</c> (the tabled value over variable 19, a truncating divide) times
@@ -360,6 +399,36 @@ public static class TileWorkRules
         };
     }
 
+    /// <summary>A tile of the neutral player, DK2's <c>[0x006F2548]</c>: ours carries 0 or 2 there, as
+    /// <c>ImpTaskSystem</c>'s selection reads it.</summary>
+    public static bool IsNeutralTile(in TileState tile) => tile.OwnerPlayerId is PlayerIds.Unowned or PlayerIds.Neutral;
+
+    /// <summary>Terrain byte <c>+0x1CB</c> bit 0, set by the loader (<c>0x004F7759</c>) for a type that
+    /// is not Ownable, starts below its maximum health and names another type for full health: the
+    /// neutral paths that heal into an owned floor (imp-claim-path.md).</summary>
+    public static bool HealsIntoAnother(TerrainDef terrain) =>
+        !terrain.IsOwnable && terrain.StartingHealth < terrain.MaxHealth
+        && terrain.TerrainId != terrain.MaxHealthTypeTerrainId;
+
+    /// <summary><c>Tile_IsClaimablePath</c> (<c>0x00453FC0</c>): the neutral player's tile, its terrain
+    /// <see cref="HealsIntoAnother"/>, not Solid.</summary>
+    public static bool IsClaimablePath(GameDatabase database, in TileState tile)
+    {
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        return IsNeutralTile(tile) && HealsIntoAnother(terrain) && !terrain.IsSolid;
+    }
+
+    /// <summary><c>Tile_IsMinableGold</c> (<c>0x00453D80</c>): the neutral player's tile, Solid, with a
+    /// <c>GoldValue</c>. A gem face passes: Impenetrable is not tested.</summary>
+    public static bool IsMinableGold(GameDatabase database, in TileState tile)
+    {
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        return IsNeutralTile(tile) && terrain.IsSolid && terrain.GoldValue != 0;
+    }
+
+    /// <summary><c>Tile_IsDiggableWall</c> (<c>0x00453D10</c>): Solid and not Impenetrable, any owner.</summary>
+    public static bool IsDiggableWall(TerrainDef terrain) => terrain.IsSolid && !terrain.IsImpenetrable;
+
     /// <summary>Ground an imp attacks rather than claims: owned by anyone but
     /// <paramref name="playerId"/>, the unowned player included, <c>Ownable</c> and
     /// <c>Attackable</c>, neither <c>Solid</c> nor <c>Room</c>. The original's own
@@ -458,29 +527,48 @@ public static class TileWorkRules
         ref TileState tile,
         TileWorkKind kind,
         PlayerId playerId,
-        int efficiency = EfficiencyRules.BaseModifier)
+        int efficiency = EfficiencyRules.BaseModifier,
+        int multiplier = 1,
+        TileWorkStrike strike = TileWorkStrike.None)
     {
         if (IsRoomScoped(kind))
             throw new ArgumentException($"{kind} works a room's health; apply it through RoomHealthRules.", nameof(kind));
 
-        if (TryResolveDigTask(database, tile, kind, playerId, out TileWorkKind currentKind))
-            kind = currentKind;
-
-        if (!Applies(database, tile, kind, playerId))
-            return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
-
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        bool resolvedDig;
+        if ((strike & TileWorkStrike.DiggableWallGuard) != 0)
+        {
+            // Action 1's own guard and rate choice (0x00496E00): any diggable wall, the rate by the
+            // tile's owner at this strike.
+            if (!IsDiggableWall(terrain))
+                return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
+            kind = IsNeutralTile(tile) ? TileWorkKind.Dig
+                : tile.OwnerPlayerId == playerId ? TileWorkKind.DigOwnWall : TileWorkKind.DigEnemyWall;
+            resolvedDig = true;
+        }
+        else
+        {
+            resolvedDig = TryResolveDigTask(database, tile, kind, playerId, out TileWorkKind currentKind);
+            if (resolvedDig) kind = currentKind;
+            if (!Applies(database, tile, kind, playerId))
+                return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
+        }
 
         int delta = kind == TileWorkKind.AttackRoom && playerId == PlayerIds.Good
             ? HeroAttackRoomPerApplication(database)
-            : PerApplication(database, kind, efficiency);
+            : resolvedDig && (strike & TileWorkStrike.NonImpDig) != 0
+                ? NonImpDigPerApplication(database, efficiency)
+                : unchecked(PerApplication(database, kind, efficiency) * multiplier);
+
+        // 0x004971D0: a gem face (terrain +0x17B bit 1, Impenetrable) skips the strike, so it is never
+        // damaged, and pays GoldMinedFromGems on every strike (Q587).
+        if (kind == TileWorkKind.MineGold && terrain.IsImpenetrable)
+            return new TileWorkResult(TileWorkOutcome.Progressed, 0, GoldFor(database, terrain, kind, tile.Health, tile.Health), 0, tile.TerrainId);
 
         if (delta < 0)
         {
             int applied = Math.Max(delta, -tile.Health);
-            int gold = GoldFor(
-                database, terrain, kind, tile.Health, tile.Health + applied,
-                tile.Health + applied <= 0);
+            int gold = GoldFor(database, terrain, kind, tile.Health, tile.Health + applied);
 
             tile.Health += applied;
             if (tile.Health > 0)
@@ -552,9 +640,7 @@ public static class TileWorkRules
         if (delta >= 0) return 0;
 
         int applied = Math.Max(delta, -tile.Health);
-        return GoldFor(
-            database, terrain, kind, tile.Health, tile.Health + applied,
-            tile.Health + applied <= 0);
+        return GoldFor(database, terrain, kind, tile.Health, tile.Health + applied);
     }
 
     /// <summary>
@@ -564,23 +650,21 @@ public static class TileWorkRules
     /// <item>A seam is finite and yields in proportion to the rock removed —
     /// CONFIRMED (owner, 2026-08-30): <c>goldValue</c> 3000 over 660 health, mined
     /// 60 a time, 273 a swing; summed from running totals (<see cref="ExtractedBy"/>).</item>
-    /// <item>A gem face is infinite — impenetrable, destroyed type itself — so it
-    /// collapses, reappears at full health and yields <c>GoldMinedFromGems</c> (25)
-    /// each cycle. Endless but slow. DK2's mine action instead pays 25 every strike
-    /// and never damages the face (Q587).</item></list>
+    /// <item>A gem face (impenetrable) is never damaged and yields
+    /// <c>GoldMinedFromGems</c> (25) on every strike: the mine action <c>0x004971D0</c>
+    /// skips the strike on it (Q587, CONFIRMED by the owner: gold every swing, the face
+    /// never cracks).</item></list>
     /// </summary>
     private static int GoldFor(
         GameDatabase database,
         TerrainDef terrain,
         TileWorkKind kind,
         int healthBefore,
-        int healthAfter,
-        bool destroyed)
+        int healthAfter)
     {
         if (kind != TileWorkKind.MineGold || terrain.GoldValue == 0) return 0;
 
-        if (terrain.IsImpenetrable)
-            return destroyed ? database[VariableTypeId.GoldMinedFromGems] : 0;
+        if (terrain.IsImpenetrable) return database[VariableTypeId.GoldMinedFromGems];
 
         if (terrain.MaxHealth <= 0) return 0;
         return ExtractedBy(terrain, healthAfter) - ExtractedBy(terrain, healthBefore);
