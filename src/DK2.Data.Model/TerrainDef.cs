@@ -90,6 +90,9 @@ public sealed record TerrainDef
     /// from a file, which the writer then leaves as its template has them.</summary>
     public TerrainWibble? Wibble { get; init; }
 
+    /// <summary>Null leaves a writer template's authored light colours unchanged.</summary>
+    public TerrainLighting? Lighting { get; init; }
+
     public bool IsSolid => Flags.HasFlag(TerrainFlags.Solid);
     public bool IsImpenetrable => Flags.HasFlag(TerrainFlags.Impenetrable);
     public bool IsOwnable => Flags.HasFlag(TerrainFlags.Ownable);

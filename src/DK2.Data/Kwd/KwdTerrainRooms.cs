@@ -69,6 +69,15 @@ public static class KwdTerrainRooms
         bytes[TerrainLayout.MaxHealthType] = record.MaxHealthTypeTerrainId;
         bytes[TerrainLayout.DestroyedType] = record.DestroyedTypeTerrainId;
         U16(TerrainLayout.MaxHealth, record.MaxHealth);
+        if (record.Lighting is TerrainLighting light)
+        {
+            bytes[TerrainLayout.TerrainRgb] = light.TerrainRed;
+            bytes[TerrainLayout.TerrainRgb + 1] = light.TerrainGreen;
+            bytes[TerrainLayout.TerrainRgb + 2] = light.TerrainBlue;
+            bytes[TerrainLayout.AmbientRgb] = light.AmbientRed;
+            bytes[TerrainLayout.AmbientRgb + 1] = light.AmbientGreen;
+            bytes[TerrainLayout.AmbientRgb + 2] = light.AmbientBlue;
+        }
         return bytes;
     }
     private const int TerrainRecordSize = 552;
@@ -81,6 +90,7 @@ public static class KwdTerrainRooms
         internal const int Tooltip = 0x1A0, NameString = 0x1A2, Wibble = 0x1CE, Id = 0x1D6;
         internal const int StartingHealth = 0x1D7, MaxHealthType = 0x1D9, DestroyedType = 0x1DA;
         internal const int MaxHealth = 0x1FF, MaxHealthEffect = 0x1A4, DestroyedEffect = 0x1A6;
+        internal const int TerrainRgb = 0x1DB, AmbientRgb = 0x201;
     }
 
     private static class RoomLayout
@@ -160,6 +170,9 @@ public static class KwdTerrainRooms
             MaxHealth = U16(TerrainLayout.MaxHealth),
             MaxHealthEffectId = U16(TerrainLayout.MaxHealthEffect),
             DestroyedEffectId = U16(TerrainLayout.DestroyedEffect),
+            Lighting = new TerrainLighting(
+                U8(TerrainLayout.TerrainRgb), U8(TerrainLayout.TerrainRgb + 1), U8(TerrainLayout.TerrainRgb + 2),
+                U8(TerrainLayout.AmbientRgb), U8(TerrainLayout.AmbientRgb + 1), U8(TerrainLayout.AmbientRgb + 2)),
             Wibble = new TerrainWibble(
                 U8(TerrainLayout.Wibble), U8(TerrainLayout.Wibble + 1), U8(TerrainLayout.Wibble + 2),
                 U8(TerrainLayout.Wibble + 3), U8(TerrainLayout.Wibble + 4), U8(TerrainLayout.Wibble + 5),

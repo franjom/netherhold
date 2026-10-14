@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using DK2.Assets;
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation;
 
 namespace DK2.Presentation;
@@ -51,6 +52,7 @@ public sealed class ScenePresenter
             RoomKeys = tile.RoomKeys;
             Bed = tile.Bed;
             Surface = tile.Surface;
+            AmbientTint = tile.AmbientTint;
         }
 
         public AssetRef Ground { get; }
@@ -67,6 +69,7 @@ public sealed class ScenePresenter
         public RoomPieceKeys? RoomKeys { get; }
         public PieceSet Bed { get; }
         public LiquidSurface Surface { get; }
+        public TerrainLightColour AmbientTint { get; }
 
         public bool Equals(TileVisual other) =>
             Ground == other.Ground
@@ -82,13 +85,14 @@ public sealed class ScenePresenter
             && RoomFloor == other.RoomFloor
             && ReferenceEquals(RoomKeys, other.RoomKeys)
             && Bed == other.Bed
-            && Surface == other.Surface;
+            && Surface == other.Surface
+            && AmbientTint == other.AmbientTint;
 
         public override bool Equals(object? obj) => obj is TileVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged), GoldHeld, HealthPermille, Walls, Pieces,
-            HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface));
+            HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface, AmbientTint));
     }
 
     /// <summary>The part of a creature a renderer can see.</summary>

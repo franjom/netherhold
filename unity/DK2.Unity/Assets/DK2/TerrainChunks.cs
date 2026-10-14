@@ -121,7 +121,8 @@ namespace DK2.Unity
                         MarkStale((ty * _width) + tx);
             }
             else if (draws || _drawn[tileIndex]) MarkStale(tileIndex);
-            if (tile.Tagged != _tiles[tileIndex].Tagged) DirtyNeighbours(tileIndex);
+            if (tile.Tagged != _tiles[tileIndex].Tagged || tile.AmbientTint != _tiles[tileIndex].AmbientTint)
+                DirtyNeighbours(tileIndex);
             _tiles[tileIndex] = tile;
             _drawn[tileIndex] = draws;
             return draws;
@@ -331,7 +332,7 @@ namespace DK2.Unity
         {
             RoomPieceKeys keys = tile.RoomKeys;
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
-            AddSet(tile.RoomFloor, keys, null, centre, x, y);
+            AddSet(tile.RoomFloor, keys, null, centre, x, y, tile.AmbientTint);
 
             // A wall facing a tagged tile is tinted with it (0x00444F10's per-piece flag, which
             // 0x0043C310 reads).
@@ -339,13 +340,16 @@ namespace DK2.Unity
             for (int side = 0; side < 4; side++)
             {
                 bool tagged = FacesTag(x, y, side);
+                // Special gate walls have a separate native builder; its tint is not traced here.
+                DK2.Data.Model.TerrainLightColour tint = walls.IsWhole(side) && walls.WholePiece(side) < 7
+                    ? default : NeighbourTint(x, y, side);
                 if (walls.IsWhole(side))
-                    Add(_classic.Piece(keys.Piece(walls.WholePiece(side))), walls.WholeRotation(side), centre, x, y, tagged);
+                    Add(_classic.Piece(keys.Piece(walls.WholePiece(side))), walls.WholeRotation(side), centre, x, y, tagged, tint);
                 else if (walls.HasWall(side))
                 {
-                    Add(_classic.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y, tagged);
+                    Add(_classic.Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y, tagged, tint);
                     Add(_classic.Piece(keys.Piece(walls.HalfBPiece(side))), side, Quadrant(centre, (side + 1) & 3), x, y,
-                        tagged);
+                        tagged, tint);
                 }
             }
         }
@@ -360,14 +364,16 @@ namespace DK2.Unity
         }
 
         /// <summary>A piece list's quarters and whole piece, from a room's pieces or a liquid's bed.</summary>
-        private void AddSet(PieceSet set, RoomPieceKeys room, TerrainPieceKeys bed, Vector3 centre, int x, int y)
+        private void AddSet(PieceSet set, RoomPieceKeys room, TerrainPieceKeys bed, Vector3 centre, int x, int y,
+            DK2.Data.Model.TerrainLightColour wholeTint = default)
         {
             if (set.HasQuarters)
                 for (int q = 0; q < 4; q++)
                     if (set.HasQuarter(q))
                         Add(_classic.Piece(Key(room, bed, set.QuarterPiece(q))), set.QuarterRotation(q),
                             Quadrant(centre, q), x, y);
-            if (set.HasWhole) Add(_classic.Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y);
+            if (set.HasWhole) Add(_classic.Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y,
+                tint: wholeTint);
         }
 
         private static readonly int[] SideDx = { 0, 1, 0, -1 }, SideDy = { -1, 0, 1, 0 };
@@ -378,13 +384,21 @@ namespace DK2.Unity
             return nx >= 0 && ny >= 0 && nx < _width && ny < _tiles.Length / _width && _tiles[(ny * _width) + nx].Tagged;
         }
 
+        private DK2.Data.Model.TerrainLightColour NeighbourTint(int x, int y, int side)
+        {
+            int nx = x + SideDx[side], ny = y + SideDy[side];
+            return nx >= 0 && ny >= 0 && nx < _width && ny < _tiles.Length / _width
+                ? _tiles[ny * _width + nx].AmbientTint : default;
+        }
+
         private static AssetRef Key(RoomPieceKeys room, TerrainPieceKeys bed, int k) =>
             room != null ? room.Piece(k) : bed.Bed(k);
 
         private static Vector3 Quadrant(Vector3 centre, int quadrant) =>
             centre + new Vector3(QuadrantCentres[quadrant].x, 0f, QuadrantCentres[quadrant].y);
 
-        private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y, bool tagged = false)
+        private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y, bool tagged = false,
+            DK2.Data.Model.TerrainLightColour tint = default)
         {
             if (piece == null) return;
             Quaternion turn = Quaternion.Euler(0f, 90f * rotation, 0f);
@@ -404,7 +418,8 @@ namespace DK2.Unity
             }
             for (int m = 0; m < piece.Triangles.Count; m++)
             {
-                Material material = tagged ? _classic.Tagged(piece.Materials[m]) : piece.Materials[m];
+                Material material = _classic.TerrainTinted(piece.Materials[m], tint);
+                if (tagged) material = _classic.Tagged(material);
                 AddTriangles(material, piece.Triangles[m], start);
                 // DK2 draws a tagged piece a second time, additively (tag-highlight.md).
                 if (tagged) AddTriangles(_classic.TagOverlay(), piece.Triangles[m], start);

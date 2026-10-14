@@ -82,9 +82,12 @@ Step5 starts from master on classic-look/step5; its milestones are in
 plans/2026-10-14-classic-look-step5.md. Use targeted, serial checks to limit CPU load.
 The comparison protocol and camera core have passed independent reviews;
 authored projection/zoom, Q/E rotation and relative panning are built.
-Camera sub-tile startup/framing and subsequent materials/lighting/fog work remain open;
-see classic-camera.md and classic-lighting.md for the current evidence.
-Unity captures and visual acceptance remain pending (2026-10-14, owner's AFK restriction).
+The owner accepted the camera view and requested a modest zoom extension (ADR-0476).
+Authored terrain colours and scoped whole-room/wall tint application pass independent
+review; see classic-lighting.md. Camera sub-tile startup/framing, native point-light
+response, two-mask fog and performance comparisons remain open; see the Step5 plan.
+Unity launch is authorized; its previous editor session is closed. Matched captures
+and remaining visual acceptance are pending (2026-10-14).
 Classic follow-ups use hash/save version 239. ADR-0444 covers native bank heights,
 height interpolation, failed-job idle wandering and same-tile dummy approaches.
 Original guard placement/patrol timing is awaiting comparison in Q589.

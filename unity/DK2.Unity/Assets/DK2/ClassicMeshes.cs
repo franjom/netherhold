@@ -40,6 +40,8 @@ namespace DK2.Unity
         private readonly Dictionary<(string, KmfBlend, float), Material> _materials =
             new Dictionary<(string, KmfBlend, float), Material>();
         private readonly Dictionary<Material, Material> _tagged = new Dictionary<Material, Material>();
+        private readonly Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material> _tinted =
+            new Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material>();
         private readonly Dictionary<(AssetRef, bool), PieceSource> _pieces = new Dictionary<(AssetRef, bool), PieceSource>();
         private readonly Dictionary<(AssetRef, int), Material[]> _heartMaterials = new Dictionary<(AssetRef, int), Material[]>();
 
@@ -236,6 +238,20 @@ namespace DK2.Unity
             tagged.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             _tagged[material] = tagged;
             return tagged;
+        }
+
+        public Material TerrainTinted(Material material, DK2.Data.Model.TerrainLightColour tint)
+        {
+            if (tint == default || !material.HasProperty("_EmissionColor")) return material;
+            if (_tinted.TryGetValue((material, tint), out Material tinted)) return tinted;
+            tinted = new Material(material) { name = material.name + " (terrain light)" };
+            Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
+            tinted.EnableKeyword("_EMISSION");
+            tinted.SetTexture("_EmissionMap", material.mainTexture);
+            tinted.SetColor("_EmissionColor", own + new Color(tint.Red / 255f, tint.Green / 255f, tint.Blue / 255f, 0f));
+            tinted.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            _tinted[(material, tint)] = tinted;
+            return tinted;
         }
 
         /// <summary>The additive pass over every tagged piece: flat <see cref="TagOverlayColour"/>.</summary>

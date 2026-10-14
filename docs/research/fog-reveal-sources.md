@@ -47,6 +47,12 @@ A third bit, `+8` word bit `0x4000` (`+9` bit `0x40`), is cleared by
 `0x004DAE40` and `0x004EF1F0` and set by `0x004EF1F0`. It is the movement
 gate of `structure-blocks.md` §5.4, not fog.
 
+CONFIRMED (whole reads, 2026-10-14): 0x0043E320 substitutes terrain 27 when
+unscanned, or 38 when scanned and lacking flag 0x01000000. Scanned flagged
+terrain retains its real definition. Room pieces are still suppressed unless
+explored, Sight-visible or possession-visible. Helper 0x0044DB70 is the
+possession camera bypass: true only for camera modes 2, 10 and 11.
+
 ## 2. The save carries both bits, and our reader is 8 bytes late — CONFIRMED
 
 The map's save routine `0x0044F3F0` writes an 8-byte header (`100`, then
@@ -115,14 +121,16 @@ is `CreatureDying` (`+0x3E6` bit 21). Otherwise it makes two passes.
    square that the grid marks visible; the grid's size is why the clamp stops at 7.
    The fill is angular shadowcasting over a table the map builds at load
    (`0x0044E9E0`): 225 11-byte entries at `map+0x124` (Flame's `CMapEntry`; `+1`/`+2`
-   first and last slot, `+3`/`+7` dx, dy), sorted on a key that is unread, of which
+   first and last slot, `+3`/`+7` dx, dy), sorted on squared tile distance, of which
    `map+0xBB4` = 78 are used. It opens all 256 slots of `map+0x24` and runs
    `0x0044E7F0` on entries 1..77 in order: an off-map cell closes its slot range;
    otherwise the cell is visible if any slot in its range (inclusive, wrapping at 256)
    is still open, and then, visible or not, `0x004511A0(x, y, 0, 1)` closes the range
-   if the cell blocks. HYPOTHESIS: 78 cells are a nearest-first subset, so a larger
-   radius adds few or none; with a Euclidean key the (±4, ±4) corners of the shipped
-   radius would never be explored — a capture can test that. For a
+   if the cell blocks. The whole-body generator read (2026-10-14) resolves byte
+   `+0` as the centre bearing in 256 slots and the key as dx²+dy². Corner bearings
+   provide endpoints; their exact formulas and equal-key ordering still need
+   disassembly validation before implementation. The selected boundary and
+   shipped-radius corner visibility need an original capture. For a
    creature the local player does not own, the radius is 1, but only while
    `+0x475` counts down and `+0x476` names the local player (§3.7). Otherwise
    there is no pass.

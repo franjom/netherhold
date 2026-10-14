@@ -35,7 +35,8 @@ public readonly struct TileView
         RoomPieceKeys? roomKeys = null,
         PieceSet bed = default,
         TerrainPieceKeys? bedKeys = null,
-        LiquidSurface surface = LiquidSurface.None)
+        LiquidSurface surface = LiquidSurface.None,
+        TerrainLightColour ambientTint = default)
     {
         Position = position;
         Ground = ground;
@@ -55,6 +56,7 @@ public readonly struct TileView
         Bed = bed;
         BedKeys = bedKeys;
         Surface = surface;
+        AmbientTint = ambientTint;
     }
 
     public TilePos Position { get; }
@@ -127,6 +129,9 @@ public readonly struct TileView
     /// <summary>The liquid surface drawn over this tile: on every water and lava tile, open or
     /// shore, and under a bridge over water but not over lava (room-floors-and-liquids.md §6).</summary>
     public LiquidSurface Surface { get; }
+
+    /// <summary>Added light for whole room pieces and neighbouring room walls (classic-lighting.md).</summary>
+    public TerrainLightColour AmbientTint { get; }
 
     public bool IsRoom => !Furniture.IsEmpty;
 }
@@ -536,7 +541,9 @@ public sealed partial class WorldView
             RoomKeysOf(world, tile),
             BedOf(world, x, y, tile, terrain, out TerrainPieceKeys? bedKeys),
             bedKeys,
-            SurfaceOf(tile, terrain));
+            SurfaceOf(tile, terrain),
+            (terrain.Flags & TerrainFlags.AmbientLight) != 0 && terrain.Lighting is TerrainLighting lighting
+                ? lighting.AmbientColour(terrain.Flags) : default);
     }
 
     /// <summary>The per-tile pass's liquid arm (<c>0x0043D1C5..0x0043D394</c>): water and lava

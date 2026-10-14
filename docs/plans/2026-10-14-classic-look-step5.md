@@ -20,8 +20,8 @@ gameplay state, RNG or hashes.
 - Preserve local editor settings and unrelated master changes.
 - The owner requested low CPU usage: one build/test process at a time,
   targeted tests, and no repeated dk2tools status/coverage sweeps.
-- Do not launch Unity while the owner's AFK/UAC restriction remains active.
-  Runtime captures and owner acceptance stay pending, never inferred from tests.
+- The owner authorized launching Unity and accepted the camera view on 2026-10-14.
+  Runtime comparisons and profiling remain pending, never inferred from tests.
 - Review aspect changes, camera rotations, zoom bounds, material blending,
   hidden information and dense torch scenes explicitly.
 
@@ -80,6 +80,11 @@ Starting sub-tile focus and rendered framing remain pending original comparison.
 
 **Deliverable:** Preserved texture/owner colours with documented colour-space
 and brightness rules. No arbitrary exposure tuning to hide missing lights.
+Authored terrain colour loading, boosted channels and scoped whole-room/wall
+tint application are built; 25 terrain data tests, 322 presentation tests and
+adapter compilation pass. Independent scoped review passes (2026-10-14);
+runtime comparison remains pending. Final colour transfer, quarter tint and
+unlit tint remain unproved.
 
 ## 5.4 — Lighting
 
@@ -120,7 +125,7 @@ discovery states. No invented distance fog or dimming approximation.
 - [ ] Verify unchanged simulation results and request independent review.
 
 **Deliverable:** Before/after CPU/GPU evidence, not a promised frame rate.
-Runtime profiling remains pending while Unity cannot run.
+Runtime profiling remains pending; the Unity editor is available.
 
 ## 5.7 — Final comparison
 

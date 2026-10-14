@@ -24,6 +24,31 @@ namespace DK2.Presentation.Tests;
 /// </summary>
 public class ScenePresenterTests
 {
+    [Fact]
+    public void ChangingOnlyTerrainTintPushesTheTileAgain()
+    {
+        TerrainDef Definition(byte id, byte red) => new()
+        {
+            Name = "Path", TerrainId = id, Flags = TerrainFlags.AmbientLight,
+            StartingHealth = 1, MaxHealth = 1, GoldValue = 0, ManaGain = 0, MaxManaGain = 0,
+            Damage = 0, MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id,
+            Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
+            Lighting = new TerrainLighting(0, 0, 0, red, 0, 0),
+        };
+        var database = new GameDatabase([Definition(1, 10), Definition(2, 20)], [], [], new GlobalVariables());
+        var world = WorldState.FromMap(database, new LevelMap(1, 1, [new MapTile(1, 1, 0, 0)]), [1]);
+        var target = new RecordingTarget();
+        var presenter = new ScenePresenter(new WorldView(database), AssetProviderChain.Standard(), target);
+        presenter.Present(world);
+        target.Clear();
+        world.Tile(0, 0).TerrainId = 2;
+        presenter.Present(world);
+        Assert.Equal(1, target.Updates);
+        target.Clear();
+        presenter.Present(world);
+        Assert.Equal(0, target.Updates);
+    }
+
     /// <summary>
     /// A target that writes down what it was asked to do. The transcript is the
     /// artefact: order is part of the contract, so a recorded sequence is
