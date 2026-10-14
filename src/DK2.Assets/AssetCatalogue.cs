@@ -78,9 +78,11 @@ public static class AssetCatalogue
 
     public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance", "getting_up", "movement_idle"];
 
+    /// <summary>Elements drawn as models: a static mesh (art type 5) or an animated one (type 6,
+    /// the Portal Beams' sixty frames).</summary>
     public static IEnumerable<EffectElementDef> MeshEffectElements(GameDatabase database) =>
         database.EffectElements.Values.OrderBy(element => element.EffectElementId)
-            .Where(element => element.ArtResource.Type == 5 && !string.IsNullOrWhiteSpace(element.ArtResource.Name));
+            .Where(element => element.ArtResource.Type is 5 or 6 && !string.IsNullOrWhiteSpace(element.ArtResource.Name));
 
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so

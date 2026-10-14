@@ -30,6 +30,10 @@ namespace DK2.Unity
             /// Heart's plug carries five.</summary>
             public Mesh Mesh;
             public Material[] Materials;
+            /// <summary>An animated model's frames (art type 6) and its authored rate.</summary>
+            public Mesh[] Frames;
+            public Material[][] FrameMaterials;
+            public int FramesPerSecond;
             public readonly List<Texture2D> Textures = new List<Texture2D>();
             public readonly List<Sprite> Sprites = new List<Sprite>();
         }
@@ -82,10 +86,20 @@ namespace DK2.Unity
                 if (group.IsMesh)
                 {
                     var matrix = Matrix4x4.TRS(position, MeshRotation(source, fraction), Vector3.one * size);
-                    for (int sub = 0; sub < group.Materials.Length; sub++)
+                    Mesh mesh = group.Mesh;
+                    Material[] materials = group.Materials;
+                    if (group.Frames != null)
                     {
-                        if (group.Materials[sub] == null) continue;
-                        var parameters = new RenderParams(group.Materials[sub])
+                        // The animation plays at its authored rate from the element's birth, one
+                        // update being 50 ms, and loops.
+                        int frame = (source.VisualUpdates * group.FramesPerSecond / 20) % group.Frames.Length;
+                        mesh = group.Frames[frame];
+                        materials = group.FrameMaterials[frame];
+                    }
+                    for (int sub = 0; sub < materials.Length; sub++)
+                    {
+                        if (materials[sub] == null) continue;
+                        var parameters = new RenderParams(materials[sub])
                         {
                             shadowCastingMode = ShadowCastingMode.Off,
                             receiveShadows = false,
@@ -93,7 +107,7 @@ namespace DK2.Unity
                             // Culling bounds about the particle: the default is an empty box at the origin.
                             worldBounds = new Bounds(position, Vector3.one * (4f * size + 1f)),
                         };
-                        Graphics.RenderMesh(parameters, group.Mesh, sub, matrix);
+                        Graphics.RenderMesh(parameters, mesh, sub, matrix);
                     }
                     continue;
                 }
@@ -136,17 +150,78 @@ namespace DK2.Unity
         private Group MeshGroup(EffectElementDef definition, string meshEntry, AssetRef key)
         {
             Mesh mesh = null; Material[] materials = null;
-            bool found = _meshes != null && (meshEntry != null
-                ? _meshes.TryGetMeshEntry(meshEntry, out mesh, out materials)
-                : _meshes.TryGetMesh(key, out mesh, out materials));
+            Mesh[] frames = null; Material[][] frameMaterials = null;
+            bool found = false;
+            if (_meshes != null && meshEntry == null && definition.ArtResource.Type == 6)
+            {
+                // An animated model: every frame built once, drawn by the particle's age.
+                if (_meshes.TryGetMeshFrame(key, 0, out mesh, out materials, out int frameCount))
+                {
+                    frames = new Mesh[frameCount];
+                    frameMaterials = new Material[frameCount][];
+                    for (int frame = 0; frame < frameCount; frame++)
+                    {
+                        _meshes.TryGetMeshFrame(key, frame, out frames[frame], out frameMaterials[frame], out _);
+                        frameMaterials[frame] = Brightened(frameMaterials[frame]);
+                    }
+                    found = true;
+                }
+            }
+            else if (_meshes != null)
+            {
+                found = meshEntry != null
+                    ? _meshes.TryGetMeshEntry(meshEntry, out mesh, out materials)
+                    : _meshes.TryGetMesh(key, out mesh, out materials);
+            }
             if (!found)
             {
                 _groups.Add((definition.EffectElementId, meshEntry ?? ""), null);
                 return null;
             }
-            var group = new Group { IsMesh = true, Mesh = mesh, Materials = materials };
+            materials = Brightened(materials);
+            var group = new Group
+            {
+                IsMesh = true, Mesh = mesh, Materials = materials, Frames = frames, FrameMaterials = frameMaterials,
+                FramesPerSecond = AuthoredFramesPerSecond(definition),
+            };
             _groups.Add((definition.EffectElementId, meshEntry ?? ""), group);
             return group;
+        }
+
+        /// <summary>An animated element's frame rate: the second dword of its descriptor read as
+        /// frames a second is a HYPOTHESIS fitted to the Portal Beams (60 frames, 10, a six-second
+        /// life; no reader of type-6 elements is read); 10 when the dword is out of range.</summary>
+        private static int AuthoredFramesPerSecond(EffectElementDef definition)
+        {
+            ReadOnlySpan<byte> block = definition.ArtResource.Unknown_0044.Span;
+            int rate = block.Length >= 8 ? BitConverter.ToInt32(block.Slice(4, 4)) : 0;
+            return rate > 0 && rate <= 60 ? rate : 10;
+        }
+
+        private readonly Dictionary<Material, Material> _brightened = new Dictionary<Material, Material>();
+
+        /// <summary>Additive effect-element materials drawn at twice the texture: the plug beam's
+        /// Falloff texture peaks at 68 of 255 and DK2 shows it blazing white, so the additive draw
+        /// multiplies its light more than once (DK2's texture stage is unread; a presentation
+        /// choice, ADR-0476). Opaque and alpha materials are returned as they are.</summary>
+        private Material[] Brightened(Material[] materials)
+        {
+            if (materials == null) return null;
+            var result = new Material[materials.Length];
+            for (int i = 0; i < materials.Length; i++)
+            {
+                Material source = materials[i];
+                if (source == null || !source.name.StartsWith("AA_", StringComparison.Ordinal)) { result[i] = source; continue; }
+                if (!_brightened.TryGetValue(source, out Material bright))
+                {
+                    bright = new Material(source) { name = source.name + " (x2)" };
+                    if (bright.HasProperty("_BaseColor")) bright.SetColor("_BaseColor", new Color(2f, 2f, 2f, 1f));
+                    bright.color = new Color(2f, 2f, 2f, 1f);
+                    _brightened[source] = bright;
+                }
+                result[i] = bright;
+            }
+            return result;
         }
 
         /// <param name="meshEntry">A group part's mesh entry, drawn in place of the definition's art.</param>

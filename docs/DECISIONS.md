@@ -10902,3 +10902,30 @@ the data names them; presentation only, with the view's own random stream. Not b
 two sounds, the lights, the tile redraw, and flag `0x8000`'s fog bypass. The sequence's look
 awaits the owner's comparison.
 
+## ADR-0476 — A Portal arrival's entrance effect, animated mesh effects, and brighter additive beams
+**Date:** 2026-10-14 · **Status:** accepted · Research: portal-creature-action.md, heart-intro.md §4
+
+**Context.** The owner misses two lights: the white beams from a Portal's hole as a
+creature climbs out, and the white beam standing on the Heart's plug before it bursts.
+`Portal_CreateArrival` (`0x004DC9A0`) asks for the creature definition's Portal Entrance
+effect (`+0x776`, file byte 3894) at the spawn point before the Entrance action, when the
+effects detail setting is above 2; each creature's effect chains to the Portal Beams (159,
+161, 166, 168), whose element is a sixty-frame animated model (art type 6); that it plays
+at ten frames a second, its descriptor's second dword, is a HYPOTHESIS fitted to its
+six-second life. Ours parsed no such field, requested nothing, and drew only static meshes. The
+Heart's beam (element 379, additive `Falloff`, which peaks at 68 of 255) drew at a quarter
+of DK2's blaze.
+
+**Decision.** `CreatureDef.EntranceEffectId` is read and written at byte 3894.
+`PortalRules.EntranceEffect` gives the request, which `PortalSystem` posts after the
+arrival, at the hole's centre on its floor with the room owner's tag; ours has no detail
+setting and always asks. The catalogue lists art type 6 elements; the Unity renderer
+builds every frame of such a model once and draws the frame by the particle's age at the
+authored rate, looping. Every additive effect-element mesh material is drawn at twice the
+texture, a presentation choice: DK2's additive texture stage is unread.
+
+**Consequences.** Presentation only: a view effect request is neither saved nor hashed.
+The scripted arrival (action 28) posts no effect yet: its path has no simulation context.
+Whether DK2's beam brightness is a doubled stage or something else is open; the owner's
+eye decides the look.
+

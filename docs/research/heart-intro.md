@@ -112,5 +112,12 @@ sparkles and their fade-in run from 7.25 s to 9.25 s.
   heading helper for generated effects (the element orientation draw stands in),
   the redraw of the arches' tile, and flag `0x8000`'s fog bypass (the Heart's own
   tile is always discovered by its owner).
+- The beam. Element 379 (`plugbeam`, additive, flags `0xC`: it grows from scale 0.5
+  toward 1.25 over its 100 updates and dims only once its HP is below its RGB of 25)
+  is the white light the owner sees stand on the plug and vanish as the Heart
+  appears. Its `Falloff` texture peaks at 68 of 255, so a plain additive draw is a
+  quarter of DK2's blaze; the Unity renderer draws every additive effect-element
+  mesh material, this beam's among them, at twice the texture (ADR-0476), a
+  presentation choice until the additive texture stage is read.
 
 Open: a matched original comparison of the sequence's look and timing.

@@ -163,6 +163,40 @@ namespace DK2.Unity
             return piece;
         }
 
+        private readonly Dictionary<(string, int), Built> _builtFrames = new Dictionary<(string, int), Built>();
+
+        /// <summary>One frame of an animated model (an effect element of art type 6), built like a
+        /// static one; false for a key with no complete animation. The frame count is
+        /// <paramref name="frameCount"/> after a successful call.</summary>
+        public bool TryGetMeshFrame(AssetRef key, int frame, out Mesh mesh, out Material[] materials, out int frameCount)
+        {
+            mesh = null; materials = null; frameCount = 0;
+            if (!_art.TryResolve(key, out ResolvedAsset asset)) return false;
+            if (!_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true } animation
+                || animation.Frames.Count == 0) return false;
+            frameCount = animation.Frames.Count;
+            frame = Mathf.Clamp(frame, 0, frameCount - 1);
+            if (!_builtFrames.TryGetValue((asset.InstallEntry, frame), out Built built))
+            {
+                RenderMesh source = RenderMesh.FromModel(model, frame);
+                var frameMesh = new Mesh { name = asset.InstallEntry + " " + frame };
+                frameMesh.SetVertices(ToUnity(source.Positions));
+                frameMesh.SetNormals(ToUnity(source.Normals));
+                frameMesh.SetUVs(0, ToUnity(source.Uvs));
+                frameMesh.subMeshCount = source.Triangles.Count;
+                for (int i = 0; i < source.Triangles.Count; i++)
+                    frameMesh.SetTriangles(source.Triangles[i], i, calculateBounds: false);
+                frameMesh.RecalculateBounds();
+                var frameMaterials = new Material[source.Triangles.Count];
+                for (int i = 0; i < frameMaterials.Length; i++)
+                    frameMaterials[i] = MaterialFor(i < model.Materials.Count ? model.Materials[i] : null);
+                _builtFrames[(asset.InstallEntry, frame)] = built = new Built(frameMesh, frameMaterials);
+            }
+            mesh = built.Mesh;
+            materials = built.Materials;
+            return true;
+        }
+
         /// <summary>A Meshes.WAD entry by its own name (a group part's), built like any model.</summary>
         public bool TryGetMeshEntry(string entryName, out Mesh mesh, out Material[] materials)
         {

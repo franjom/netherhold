@@ -78,6 +78,11 @@ public sealed record CreatureDef
     /// <inheritdoc cref="EntranceFrames"/>
     public int EntranceFramesPerSecond { get; init; }
 
+    /// <summary>The effect a Portal arrival asks for at its spawn point before the Entrance
+    /// animation (<c>Portal_CreateArrival</c> <c>0x004DC9A0</c>, runtime <c>+0x776</c>, file byte
+    /// 3894): the creature's own Portal Entrance effect, chained to the Portal Beams. Zero for none.</summary>
+    public ushort EntranceEffectId { get; init; }
+
     /// <summary>The Getup animation's frame count and rate (animation block 27, the one action 53
     /// plays while state 257 waits for it). Zero when the creature has none, as the Horny.</summary>
     public int GetUpFrames { get; init; }
