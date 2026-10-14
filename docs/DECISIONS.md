@@ -10777,3 +10777,17 @@ strike, for every miner; the gold's crediting and hand-off are unchanged.
 
 **Consequences.** A face never reaches its destroyed type, so no gem-mining task ends
 on a collapse. An imp at the base rate earns twice the gold it did there.
+
+## ADR-0476 — Allow a small configurable extension to camera zoom-out
+**Date:** 2026-10-14 · **Status:** accepted
+
+**Context.** The owner requested slightly more zoom-out distance after trying
+the Classic Step5 camera.
+
+**Decision.** DungeonRunner extends its presentation copy of the authored
+maximum zoom by a configurable multiplier, default1.2. Scale1 restores the
+original bound. Initial zoom, minimum, lens and wheel increments are unchanged.
+
+**Consequences.** This is an explicit convenience deviation from the native
+bound in research/classic-camera.md section3. Original data and simulation
+remain unchanged; far clipping continues to follow actual zoom.

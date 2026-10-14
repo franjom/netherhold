@@ -90,6 +90,9 @@ namespace DK2.Unity
         [Header("Camera")]
         [Tooltip("Original camera profile used when Play starts.")]
         [SerializeField] private ClassicCameraMode cameraPreset = ClassicCameraMode.Dungeon;
+        [Tooltip("Zoom-out limit multiplier. 1 keeps DK2's original bound; 1.2 allows 20% more distance.")]
+        [Range(1f, 2f)]
+        [SerializeField] private float cameraZoomOutLimitScale = 1.2f;
         [Tooltip("Diagnostic whole-map overview instead of the original playing camera.")]
         [SerializeField] private bool frameWholeMap;
         [Tooltip("Pitch for the diagnostic whole-map overview.")]
@@ -251,7 +254,10 @@ namespace DK2.Unity
                 .FirstOrDefault(c => c.CameraId == (ushort)cameraPreset);
             if (classicMeshes && profile != null)
             {
-                _classicCamera = new ClassicCamera(profile);
+                _classicCamera = new ClassicCamera(profile with
+                {
+                    MaxZoom = Mathf.RoundToInt(profile.MaxZoom * Mathf.Clamp(cameraZoomOutLimitScale, 1f, 2f)),
+                });
                 _cameraBounds = new Vector2(world.Width, world.Height);
                 _cameraFocus = DungeonScene.Ground(
                     startingCameraPlayer != null ? startingCameraPlayer.CameraX + 0.5f : world.Width / 2f,

@@ -75,5 +75,10 @@ timing remain unread. A tile-centre starting focus is explicitly a provisional
 adapter placement, subject to the original-view acceptance gate.
 
 Classic Step5 camera tests can establish numerical conversion and bounds;
-they cannot establish matching rendered framing. Runtime comparison is pending
-while Unity launches are prohibited (2026-10-14).
+they cannot establish matching rendered framing. The owner judged the Unity
+camera view good (2026-10-14); a matched original-game comparison is still pending.
+
+## 5. Owner-requested zoom extension
+
+The convenience deviation is defined in ADR-0476; native bounds above remain
+the original rule rather than the extended adapter setting.
