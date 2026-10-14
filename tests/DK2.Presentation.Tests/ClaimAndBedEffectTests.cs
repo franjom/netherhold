@@ -120,6 +120,27 @@ public class ClaimAndBedEffectTests
         Assert.All(births, p => Assert.Contains(p.Definition.EffectElementId, new ushort[] { 144, 145, 146, 147 }));
     }
 
+    /// <summary>A request shows nothing until the model's next 50 ms update; the Unity runner asks
+    /// for one at once before its first frame (the Heart's plug lid; heart-intro.md §4).</summary>
+    [InstallFact]
+    public void UpdateNowEmitsAFreshRequestsFirstWave_AndLeavesTheClockWhereItWas()
+    {
+        (GameDatabase db, _) = Load();
+        long now = 1000;
+        var model = new RoomConstructionParticles(db, 7, () => new EffectTime(now));
+        model.Request(ViewEffectRequest.AtTileCentre(new EffectId(8), PlayerIds.FirstKeeper,
+            new TilePos(3, 3), new Fp32(Fp32.One)));
+        Assert.Empty(model.Particles);
+        model.UpdateNow();
+        Assert.NotEmpty(model.Particles);
+        Assert.All(model.Particles, p => Assert.Equal(0, p.VisualUpdates));
+        // The next real update is still due 50 ms after the request, not 50 ms after this one.
+        Assert.Equal(0.2f, model.AdvanceTo(new EffectTime(now + 10)));
+        Assert.All(model.Particles, p => Assert.Equal(0, p.VisualUpdates));
+        model.AdvanceTo(new EffectTime(now + 51));
+        Assert.All(model.Particles, p => Assert.Equal(1, p.VisualUpdates));
+    }
+
     [InstallFact]
     public void PortalSmokeHoldsItsLastTextureInsteadOfReplayingWhileAlive()
     {

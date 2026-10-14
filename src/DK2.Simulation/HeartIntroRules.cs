@@ -43,6 +43,10 @@ public static class HeartIntroRules
     /// <summary>The effects are asked for at the Heart's tile centre, one tile up (<c>z = 0x1000</c>), the ring floor.</summary>
     public const int RequestHeight = Fp32.One;
 
+    /// <summary>DK2's game turn for one of our ticks: its first turn is 1, our first tick 0. The view
+    /// reads the world after a tick, when <c>CurrentTick</c> already holds that tick's turn.</summary>
+    public static uint Turn(GameTick tick) => unchecked((uint)(tick.Value + 1));
+
     /// <summary>The turn the sequence starts: <c>TimeBeforeDungeonHeartConstructionBegins × ticks per second + 1</c>.</summary>
     public static uint StartTurn(GameDatabase database) =>
         (uint)(ConstructionDelaySeconds(database) * SimulationTiming.TicksPerSecond + 1);
@@ -51,7 +55,8 @@ public static class HeartIntroRules
     private static int ConstructionDelaySeconds(GameDatabase database) =>
         database.Variables.TryGet(VariableTypeId.TimeBeforeDungeonHeartConstructionBegins, out int seconds) ? seconds : 0;
 
-    /// <summary>True once the ordinary room frame (regeneration, ruin) runs: strictly after start + 9 s.</summary>
+    /// <summary>True once the ordinary room frame (regeneration, ruin) runs: strictly after start + 9 s;
+    /// <paramref name="now"/> is a game turn (<see cref="Turn"/>).</summary>
     public static bool SequenceOver(uint now, GameDatabase database) =>
         StartTurn(database) + (uint)(SequenceSeconds * SimulationTiming.TicksPerSecond) < now;
 
@@ -72,7 +77,7 @@ public static class HeartIntroRules
     public static void RoomFrame(SimulationContext context, PlayerId owner)
     {
         GameDatabase database = context.Database;
-        uint now = (uint)context.Tick.Value;
+        uint now = Turn(context.Tick);
         uint start = StartTurn(database);
         if (now < start)
         {

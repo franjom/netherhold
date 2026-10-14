@@ -10902,6 +10902,13 @@ the data names them; presentation only, with the view's own random stream. Not b
 two sounds, the lights, the tile redraw, and flag `0x8000`'s fog bypass. The sequence's look
 awaits the owner's comparison.
 
+**Amendment, 2026-10-14 (hash 248).** The rules compared our tick to DK2's turn, which is
+the tick plus one, so the plug was asked for a tick late and the pit showed first; and the
+Unity runner drew frames before any tick ran. `HeartIntroRules.Turn` keys the sequence to
+the game turn, and the runner ticks once, and runs one effect update, before its first
+frame: DK2 asks for the lid on every turn before the start and by nothing else, so that
+it draws no frame before its first turn is STRONGLY INFERRED (its render loop is unread).
+
 ## ADR-0476 — A Portal arrival's entrance effect, animated mesh effects, and brighter additive beams
 **Date:** 2026-10-14 · **Status:** accepted · Research: portal-creature-action.md, heart-intro.md §4
 

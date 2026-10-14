@@ -350,6 +350,7 @@ public sealed partial class WorldView
         into.Add(Decoration(world, centre, HeartSlot + 1, DungeonHeartId, owner, 0, 0, -1, 0));
         // The builder (0x004DB700) creates the local player's Big Steps and Arches with alpha 0; the
         // opening sequence fades them in (0x004D9CA0, heart-intro.md). Another keeper's are opaque.
+        // After a tick the world's CurrentTick is the game turn that tick was (HeartIntroRules.Turn).
         byte alpha = owner.Value == _viewingPlayerId
             ? HeartIntroRules.DecorationAlpha((uint)world.CurrentTick.Value, _database) : (byte)255;
         for (int n = 0; n < 3; n++)
