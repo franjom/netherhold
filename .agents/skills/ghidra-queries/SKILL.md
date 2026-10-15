@@ -183,6 +183,7 @@ thousands of lines.
 | `Blocks.py` | `<out>` | Memory blocks, ranges, permissions. |
 | `InsCount.py` | `<out>` | Instructions disassembled per executable block. |
 | `Gaps.py` | `<out> [minRun]` | Executable bytes auto-analysis never made into functions. Reports only. |
+| `CensusDump.py` | `<outDir>` | Function bounds, memory blocks with raw bytes, defined strings: the input of `tools/kb/census.py`, the binary census (`binary-census.md`). |
 | `ForceGaps.py` | `<out> [minRun] [dry]` | Define a function at the head of each such run. Needs `--write` to persist. |
 
 Two verification helpers live in `tools/verification/`: `ScanBatch.py` and

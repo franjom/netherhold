@@ -160,7 +160,7 @@ Buckets 1–4 are certain: one creature-record field feeds each, all sixty call 
 | 2 | `angerNoLair`, `def+0x6c1` |
 | 3 | `angerNoWork`, `def+0x6c7` |
 | 4 | `angerNoPay`, `def+0x6c5` |
-| **5** | `angerSlap`, `angerInHand`, `ModifyAngerOfCreatureInLairPerSecond`, `ModifyAngerOfCombatPitVictor`, `GamblingModifyCreatureAngerMoney/Smiles`, the torture sites |
+| **5** | `angerSlap`, `angerInHand`, `ModifyAngerOfCreatureInLairPerSecond`, `ModifyAngerOfCombatPitVictor`, `GamblingModifyCreatureAngerMoney/Smiles`, the torture sites, the mixed-room step `0x004E8C60` |
 | **0** | `ModifyAngerInCompanyOfHatedCreaturesPerSecond`, a share of the casino and of pit spectating, and `angerNoWork` at one site inside the combat pit |
 
 Bucket 5 is *what is done to you, and resting it off* — slapping, carrying, torture
@@ -339,7 +339,7 @@ when the player's own choices can turn it off.**
 | `AngerNoPay` | +60/s | **Yes** (ADR-0079) — `FUN_00478d00`, the need-anger routine, reached just before the needs routine. **Being owed is the whole trigger**: unlike its two siblings it has *no room-availability clause*, so a keeper cannot excuse itself by having no treasury. Charged additively with `AngerNoLair`, and **not at all to a captive** — bit 1 of the state flag byte suppresses the whole routine and all eleven captive states carry it. `payday.md` §6 |
 | `AngerNoWork` | +12 a failed pass (corrected, ADR-0228) | **Yes** (ADR-0082) — charged by the happy chooser when every job in the creature's happy table has failed, the loaded value once per pass; 89 then parks the creature in 3, so passes are about eight turns apart (`idle-fallback.md`). **And only the happy one**: the unhappy and angry choosers have the identical tail with the call missing, so a creature that is already unhappy is never made crosser by idleness. `JobRules.ChargesNoWorkAnger`, `job-selection.md` §1 |
 | `AngerNoFood` | +100/s | **In the prison only** (ADR-0074) — a keeper can stock a cell, so that source is one the player can turn off. Not applied generally: the ordinary hungry creature walks to a hatchery, and charging it would anger everybody on a map with no hatchery |
-| hated company | +150/s | **No** — the relation is parsed and unused |
+| hated company | +150/s | **Yes** — a prison cell every four seconds into bucket 0 (ADR-0171), and a Library, Training Room, Guard Room or Workshop holding both alignments, eight seconds' worth every 32 turns into bucket 5 (`0x004E8C60`, ADR-0479) |
 
 Otherwise anger becomes a countdown no dungeon survives. **Each omission is a
 line in the scenario reports**, not a silence.

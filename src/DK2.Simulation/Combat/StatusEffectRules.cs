@@ -135,6 +135,21 @@ public static class StatusEffectRules
         return true;
     }
 
+    /// <summary>Creature Dazed Effect (<c>0x65</c>): stars and a sparkle circling the stunned creature.</summary>
+    public const ushort DazedEffectId = 101;
+
+    /// <summary>255's first call (<c>0x004810E0</c>, Age 1) asks for <see cref="DazedEffectId"/> at the
+    /// point the creature's mesh gives for <c>0x1388</c> (world <c>+4→+0x10</c> slot <c>+0x10C</c>), else
+    /// its position, and ties the effect to it (effect <c>+0x133</c> the creature, <c>+0x135</c>
+    /// <c>0x1388</c>); the effect update <c>0x00434E80</c> then moves it and its elements with that
+    /// point. Ours asks once at the creature, one tile up (the foot dust's request height) plus half its
+    /// eye height: a GUESS for the unread mesh point, and fixed, since a stunned creature does not move.</summary>
+    public static void RequestDazedEffect(SimulationContext context, CreatureState creature, CreatureDef definition) =>
+        context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(DazedEffectId),
+            new PlayerId(creature.OwnerPlayerId),
+            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(Fp32.One + (definition.EyeHeight.Raw / 2))),
+            new Dk2Angle((ushort)creature.Heading)));
+
     /// <summary><c>0x00491830(255)</c> as the landing calls it (ADR-0226): <c>SetState(255)</c>,
     /// action 52 and event 15, with none of <see cref="Stun"/>'s callers' refusals. A refused state
     /// is no stun.</summary>

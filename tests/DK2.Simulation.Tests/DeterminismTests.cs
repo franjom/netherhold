@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 246: a fleeing creature counts only Guard Rooms near its attacker (ADR-0473).
+        // HashVersion 251: the store sweep runs on DK2's turn & 0xF, one tick earlier (ADR-0285 amendment, Q596).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xC51BD03052ECA96AUL, sim.StateHash());
+        Assert.Equal(0x3DFD1B0E0D7517C9UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -6234,6 +6234,15 @@ pin stands.
 `tile+0xB` bit `0x20` pre-filter (Q487) is not built. The Heart's `+0x51` gate
 (Q472) is taken as always on. A pile keeps its object where DK2 remakes it.
 
+**Amendment, 2026-10-15 (hash 251, Q596).** The sweep compared our tick to DK2's turn, which is the
+tick plus one (ADR-0119), so it ran a tick late. The Level 2 capture first shows the sweep in
+the sample labelled 1023, turn 1024 on the convention that capture ticks run one behind the turn
+(computer-keeper-observations.md); ours waited for tick 1024. It now runs when the tick plus one is a multiple of 16.
+Levels 1-4 over 20 seeds win 20/5/18/3 against
+18/5/14/5 on master be8d9321, most seeds at other ticks: a swept pile that must be made draws
+from the world stream (gold-on-the-floor.md §11), so the shift reshuffles every later roll, and
+Level 2 keeps five wins on different seeds.
+
 ## ADR-0286 — A just-dug tile is claimed on the way to a deposit, never by choosing
 **Date:** 2026-09-29 · **Status:** accepted
 
@@ -10970,3 +10979,58 @@ original bound. Initial zoom, minimum, lens and wheel increments are unchanged.
 **Consequences.** This is an explicit convenience deviation from the native
 bound in research/classic-camera.md section3. Original data and simulation
 remain unchanged; far clipping continues to follow actual zoom.
+
+## ADR-0479 — Room ticks between the creatures and the players
+**Date:** 2026-10-14 · **Status:** accepted · Research: binary-census.md §2, §9
+
+**Context.** `World_UpdateTurn` runs the thing pass, then `0x004EC450`, which runs every
+room's `Room_Tick` (the type's handler at slot `+0x15`, then the health step), then the
+player frame (Q595). Ours ran the Casino before the creatures and the Portal and room
+health inside the player frame. Reading the twelve unread handlers found one unbuilt rule:
+`0x004E8C60`, shared by the Library, Training Room, Guard Room and Workshop, angers a room's
+place-holders every 32 turns when both alignments meet there. The rest spawn effects, several
+drawing from the world's random stream.
+
+**Decision.** A `RoomTicks` phase between `Work` and `PlayerFrame` holds the store sweep,
+Heart defence, `CasinoSystem`, `PortalSystem`, the new `HatedCompanySystem` and
+`RoomHealthSystem`. The Casino's lever command (`0x00513E50`) is an action of the frame's
+start, so it splits out as `CasinoLeverSystem` at the old slot. The new step gives each holder without `DoesntGetAngryWithEnemies`
+eight seconds of variable 78 (1200) in the Treatment bucket, complaint 7, when the room holds
+an `IsEvil` creature and one without it. Hash 249, no new saved field.
+
+**Consequences.** The Hatchery stays in the needs phase, since its system also runs the
+eggs' and coops' object steps; the egg is taken to be inedible until it hatches, so laying
+after the eaters should not matter. The Combat Pit stays in the thing pass and the Heart's
+frame at the tick's end. Our rooms carry no id, so the step's phase is the room's lowest
+tile: the rule is DK2's, but the first angry turn of a room is not. Measured on Levels 1-4
+over seeds 1-20 against master 7ddf4603: wins 18/5/14/5 on both, the same seeds; one Level
+3 win moves from 3592 to 3700. The new step fires in none of the 80 runs, since no room there
+holds both alignments, so the reorder alone made that difference.
+
+## ADR-0480 — The stun counts from its first call, with the dazed stars
+**Date:** 2026-10-15 · **Status:** accepted · Research: hand-drop-landing.md §3, creature-status-effects.md §2
+
+**Context.** The owner saw dropped Goblins get up fast, with no stars. The binary
+(`0x004810E0`, read by disassembly) compares `now − state+0x18` with `StunDuration` as the
+loader stored it in turns (`0x00493B57`: file × ticks a second >> 12), so the Goblin's 1 s is
+four turns, the shortest of the creatures checked (Warlock and Troll 2 s, Bile Demon 5 s);
+`CreatureStunnedTimeSeconds` (2) is only written (`Variables_SetMisc`), never read. Ours
+counted the stun down in the tick it was set, one turn short of Level 1's 255 × 4. On its
+first call (Age 1) the handler creates effect 101, Creature Dazed Effect (two "dazed" star
+elements and a sparkle on a circular path, one wave, elements 60 updates), at the point
+`0x10C(creature, 0x1388)` gives, and ties it to the creature (effect `+0x133`, `+0x135`);
+`0x00434E80` moves the effect and its elements with that point. Ours never asked for it.
+
+**Decision.** For 255 and 256, the countdown and the request wait for the turn after the
+state was set; the first counted turn asks for 101 at the creature, one tile up (the height
+the foot dust is asked at) plus half its eye height. Hash 250, no new saved field.
+
+**Consequences.** A hand drop now lies 4 turns, gets up in 11 and stands from the 15th,
+one turn short of DK2's, which spends the drop turn in 76; that turn is not modelled. The
+effect's height is a GUESS for the unread mesh point, and the effect does not follow the
+creature: a stunned creature does not move, but one lifted while stunned leaves its stars.
+The skip is exact for a stun set after the victim's own update, as the hand's and
+Lightning's are (the player frame). DK2's dispatcher (`0x00476FC0`) counts Age up before
+each call, so a stun set earlier in the same turn than the victim's update, a boulder's or
+a Reaper fireball's from a creature in an earlier slot, gets its first call that turn; ours
+waits a turn for every stun.

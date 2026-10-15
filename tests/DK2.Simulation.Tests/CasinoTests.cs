@@ -42,6 +42,7 @@ public class CasinoTests
         var sim = new GameSimulation(db, world, seed: 42,
         [
             new AutoFurnitureSystem(),
+            new CasinoLeverSystem(),
             new CasinoSystem(),
             new CreatureMovementSystem(),
             new CreatureJobSystem(),

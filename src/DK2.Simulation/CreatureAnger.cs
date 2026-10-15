@@ -42,7 +42,7 @@ public enum AngerBucket
 /// <summary>The anger wrapper's third argument (<c>0x00478B80</c>), sent as a 17/18 message's
 /// Data1 and indexing the creature's complaint speech; it is not the bucket. Values are read off
 /// the wrapper's sixty call sites; the names are ours, after the sites that pass them
-/// (computer-keeper-messages.md, the census). 6 and 7 are passed by sites not built here.</summary>
+/// (computer-keeper-messages.md, the census). 6 is passed by sites not built here.</summary>
 public enum AngerComplaint : byte
 {
     /// <summary>The need-anger routine's Lair charge and the in-lair calm.</summary>
@@ -62,6 +62,9 @@ public enum AngerComplaint : byte
 
     /// <summary>Being held in the hand (<c>0x00488DB2</c>).</summary>
     Held = 5,
+
+    /// <summary>A room shared with the other alignment (<c>0x004E8C60</c>, ADR-0479).</summary>
+    HatedCompany = 7,
 
     /// <summary>The Torture Chamber's act.</summary>
     Tortured = 8,

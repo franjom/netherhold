@@ -1,6 +1,28 @@
 # Early state-hash versions
 
-Versions 9–46, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–51, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**51** — `0x5C6A03ED5BD250BC`. `PlayerState.GoldMined`, the
+counter behind trigger condition type 31 (ADR-0112). Composition: the fixture
+mines nothing, so the field is zero for its whole run and the hash moves anyway.
+
+**50** — `0x98DE8BA2B3BDC7BF`. Player condition type 32 reads the
+walked player's mana, named `CurrentMana` by DK2's own debug dumper (ADR-0111).
+Behaviour, not composition.
+
+**49** — `0xDDC3EA20017640B6`. Hero parties and effect generators enter
+ordered world state, every parsed field, nested member and variable effect-id
+list hashed and snapshotted verbatim (ADR-0108). Composition: the fixture has
+neither kind, so only their empty counts enter.
+
+**47 and 48 were both taken and neither is what shipped.** Two branches ran in
+parallel — 47 was reserved for hero parties, 48 taken by ADR-0110 when the gold
+condition landed first — so the merge renumbered hero parties to 49 and this is
+the only pin either change ever had in master. `0x7DD1C7A2B6EF5CE1` was 48's
+value on its own branch.
+
+**48** — Player condition type 30 reads the walked player's gold, so a shipped
+level's script can branch on it (ADR-0110). Behaviour, not composition.
 
 **46** — `0x52A068B601960E53`. An action DK2's dispatcher succeeds at
 returns true whether or not this executor performs it, so the walker retires it

@@ -7,7 +7,7 @@ namespace DK2.Simulation.Systems;
 /// <summary>The systems the game runs, in the order it runs them: the one declaration
 /// of that order (ADR-0013). Order is behaviour, so each entry says why it sits where
 /// it does. DK2's frame runs things, then every room's tick, then the players
-/// (docs/research/binary-census.md section 2); this order is ours and differs at the rooms (Q595).</summary>
+/// (docs/research/binary-census.md section 2); <see cref="RoomTicks"/> keeps that slot (ADR-0479).</summary>
 /// <remarks>The phases only name stretches of the one sequence; <see cref="Default"/> runs them
 /// back to back, and a system that moves between phases moves in the order too.</remarks>
 public static class SimulationSystems
@@ -19,6 +19,7 @@ public static class SimulationSystems
         .. KeeperActions(),
         .. ThingPass(),
         .. Work(),
+        .. RoomTicks(),
         .. PlayerFrame(),
         .. Needs(),
         .. Choosers(),
@@ -53,7 +54,7 @@ public static class SimulationSystems
         new TempleSacrificeSystem(),
         // Graveyard decomposition tallies use the same persistent room identity.
         new GraveyardSystem(),
-        new CasinoSystem(), // the lever, and the gold settled at it every four seconds (ADR-0188)
+        new CasinoLeverSystem(), // the owner's lever command, with the frame's actions (0x00513E50)
     ];
 
     /// <summary>Pacts, doors, spells and possession: what a keeper does to the world this tick.</summary>
@@ -111,12 +112,23 @@ public static class SimulationSystems
         new ImpTaskSystem(),
         new TileWorkSystem(),
         new BridgeBurnSystem(),
-        new StoreSweepSystem(), // a store takes in loose gold on its tiles every 16th turn
-        new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
     ];
 
-    /// <summary>Our player frame: mana, imps, research, portals and room health, after every
-    /// change of ownership this tick.</summary>
+    /// <summary>DK2's room ticks (<c>0x004EC450</c>): each room type's handler and the health step,
+    /// after the creatures and before the players (ADR-0479). The Hatchery's laying stays in
+    /// <see cref="Needs"/>, whose system also runs the eggs and coops of the thing pass.</summary>
+    private static ISimulationSystem[] RoomTicks() =>
+    [
+        new StoreSweepSystem(), // the Treasury's handler and the Heart's: loose gold goes in every 16th turn
+        new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
+        new CasinoSystem(), // the Casino's handler: the party, and the gold settled at the lever every four seconds (ADR-0188)
+        new PortalSystem(), // the Portal's handler
+        new HatedCompanySystem(), // the Library, Training Room, Guard Room and Workshop handlers' shared step
+        new RoomHealthSystem(), // the room tick's health step (0x004E4B00)
+    ];
+
+    /// <summary>DK2's player frame: mana, imps and research, after every change of ownership this
+    /// tick and after the room ticks.</summary>
     private static ISimulationSystem[] PlayerFrame() =>
     [
         // The removal countdown reads the stamp and the mana of the last payment before this
@@ -129,8 +141,6 @@ public static class SimulationSystems
         new ImpSupplySystem(),
         new RoomBuildWaveSystem(), // keeper frame after mana, before its research chooser (0x004BB614)
         new ResearchSystem(), // the same player frame chooses a research target when it has none
-        new PortalSystem(),
-        new RoomHealthSystem(), // the room tick's health step (0x004E4B00); DK2 ticks rooms before its player frame (Q595)
     ];
 
     /// <summary>The creatures' needs: food, sleep, health, and a prisoner's lot.</summary>
