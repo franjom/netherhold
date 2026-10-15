@@ -106,7 +106,12 @@ python -u dk2record.py dk2runs/<run>/<name>.dk2cap --map 40x50 --last-tick 3545
 
 It waits for the process, then for a level with that map size (`--map 0` takes
 any), then stores one frame per new tick until `--last-tick`, the process
-exits, or the tick goes backwards. It ends by printing a summary: pass times,
+exits, or the tick goes backwards. `--dump-ticks 100,1500` also writes the whole
+process memory at those ticks, the game suspended (`<out>.<tick>.mem.z`, from
+`tools/oracle/process_dump.py`): definitions and heap the frames leave out, for
+the emulator oracle. The game stands still while each is written (the summary
+gives the seconds), so such a recording is not a timing run; each dump is
+tens to hundreds of MB. It ends by printing a summary: pass times,
 torn and missed ticks, and unknown classes.
 
 **What a frame holds**, each item in one bulk read:

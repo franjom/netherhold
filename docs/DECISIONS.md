@@ -11078,7 +11078,12 @@ its tiles'. `CapturedGuardRoomTests` then runs our C# itself on those states: th
 rebuilt from the level and given each tick's tiles (`capture_state.py`, `CapturedState`),
 the first tick equal to our level map tile for tile, and `NearOwnGuardRooms` equal to the
 original on all 80 compared calls. Not checked: callers' early-outs, variable 190, bounds
-after a room loses tiles. Functions deeper than this read definitions and heap no capture
-stores, so they need a memory dump of the running game. A quotient past 32 bits wraps in `Fixed16.Div` where
+after a room loses tiles.
+
+Functions deeper than this read definitions and heap no capture stores, so they need a
+memory dump of the running game: `tools/oracle/process_dump.py` writes one with the game
+suspended, in a format `dk2oracle.py` loads (moving its own stack clear of the game's
+memory, and refusing a request that would write into scratch the game owns), and the
+recorder takes them at chosen ticks (`--dump-ticks`). A quotient past 32 bits wraps in `Fixed16.Div` where
 the original faults (a zero divisor throws in both); whether any game input reaches it was
 not checked.

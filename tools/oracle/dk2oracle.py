@@ -19,13 +19,15 @@ each dword, and reads each address after it returns. One outcome per line: `<eax
 The image is mapped as the file has it: no imports bound, no globals initialised. A function
 that reaches outside its arguments and the image's own bytes ends in a fault, not an answer.
 A memory image (tools/oracle/capture_memory.py writes one from a capture tick) is a sequence of
-`<u32 address> <u32 length> <bytes>` regions, written over the image and mapped where it has
-no pages, before the first request; every request then runs against that same state.
+`<u32 address> <u32 length> <bytes>` regions (process_dump.py's arrive as one zlib stream),
+written over the image and mapped where it has no pages, before the first request; every
+request then runs against that same state.
 """
 import ctypes as C
 import os
 import struct
 import sys
+import zlib
 
 ARCH_X86, MODE_32, PROT_ALL, UC_ERR_EXCEPTION = 4, 4, 7, 21
 EAX, EBP, EBX, ECX, EDI, EDX, EIP, ESI, ESP = 19, 20, 21, 22, 23, 24, 26, 29, 30
@@ -71,28 +73,42 @@ def main():
         _, _, va, raw_size, raw_ptr = struct.unpack_from("<8sIIII", image, pe + 24 + optional + 40 * i)
         if raw_size:
             check(dll.uc_mem_write(uc, base + va, image[raw_ptr:raw_ptr + raw_size], raw_size), "write section")
-    check(dll.uc_mem_map(uc, STACK, STACK_SIZE, PROT_ALL), "map stack")
-    check(dll.uc_mem_map(uc, RETURN, 0x1000, PROT_ALL), "map return")
-    check(dll.uc_mem_map(uc, SCRATCH, SCRATCH_SIZE, PROT_ALL), "map scratch")
-    mapped = {page for start, n in ((base, size), (STACK, STACK_SIZE), (RETURN, 0x1000), (SCRATCH, SCRATCH_SIZE))
-              for page in range(start >> 12, (start + n + 0xFFF) >> 12)}
+    mapped = set(range(base >> 12, (base + size + 0xFFF) >> 12))
     if len(sys.argv) > 2:
         memory = open(sys.argv[2], "rb").read()
+        if sys.argv[2].endswith(".z"):   # process_dump.py's whole-process image, one zlib stream
+            memory = zlib.decompress(memory)
         at = 0
         while at < len(memory):
             if at + 8 > len(memory) or at + 8 + struct.unpack_from("<I", memory, at + 4)[0] > len(memory):
                 raise RuntimeError(f"memory image cut short at byte {at}")
             address, length = struct.unpack_from("<II", memory, at)
             at += 8
-            for start, n in ((STACK, STACK_SIZE), (RETURN, 0x1000), (SCRATCH, SCRATCH_SIZE)):
-                if address < start + n and start < address + length:
-                    raise RuntimeError(f"memory image region {address:x}+{length:x} overlaps the oracle's own pages")
             for page in range(address >> 12, (address + length + 0xFFF) >> 12):
                 if page not in mapped:
                     check(dll.uc_mem_map(uc, page << 12, 0x1000, PROT_ALL), "map memory image")
                     mapped.add(page)
             check(dll.uc_mem_write(uc, address, memory[at:at + length], length), "write memory image")
             at += length
+
+    def place(preferred, n):
+        """The oracle's own pages at their usual address, or below 0x7F000000 where a game image
+        has memory there (a whole-process dump does)."""
+        for start in [preferred] + list(range(0x7F000000 - n, 0x01000000, -0x100000)):
+            pages = range(start >> 12, (start + n + 0xFFF) >> 12)
+            if not any(page in mapped for page in pages):
+                check(dll.uc_mem_map(uc, start, (n + 0xFFF) & ~0xFFF, PROT_ALL), "map oracle page")
+                mapped.update(pages)
+                return start
+        raise RuntimeError("no free address for the oracle's own pages")
+
+    stack, ret = place(STACK, STACK_SIZE), place(RETURN, 0x1000)
+    # Scratch is addressed by the tests themselves, so it never moves: on an image that has
+    # memory there it is the game's own, and a request that writes or passes an address in it
+    # is refused rather than run on corrupted state.
+    scratch_is_game = any(page in mapped for page in range(SCRATCH >> 12, (SCRATCH + SCRATCH_SIZE) >> 12))
+    if not scratch_is_game:
+        check(dll.uc_mem_map(uc, SCRATCH, SCRATCH_SIZE, PROT_ALL), "map scratch")
 
     def write32(address, value):
         check(dll.uc_mem_write(uc, address, struct.pack("<I", value), 4), "uc_mem_write")
@@ -109,6 +125,10 @@ def main():
         call = line.split()
         function, args = int(call[0], 16), [int(a, 16) for a in call[1:]]
         registers = {}
+        if scratch_is_game and any(SCRATCH <= int(w.split("=")[0], 16) < SCRATCH + SCRATCH_SIZE
+                                   for w in writes.split() if not w.startswith("ecx"))                 or scratch_is_game and any(SCRATCH <= a < SCRATCH + SCRATCH_SIZE for a in args):
+            out.append("fault scratch is game memory in this image")
+            continue
         for pair in writes.split():
             address, value = pair.split("=")
             if address == "ecx":  # a thiscall's this
@@ -116,8 +136,8 @@ def main():
             else:
                 write32(int(address, 16), int(value, 16))
 
-        esp = STACK + STACK_SIZE - 0x100 - 4 * (len(args) + 1)
-        for i, value in enumerate([RETURN] + args):
+        esp = stack + STACK_SIZE - 0x100 - 4 * (len(args) + 1)
+        for i, value in enumerate([ret] + args):
             write32(esp + 4 * i, value)
         reg(ESP, esp)
         for r in (EAX, EBX, ECX, EDX, ESI, EDI, EBP):
@@ -125,9 +145,9 @@ def main():
 
         # No timeout: Unicorn starts a timer thread for one, about 15 ms a call. The instruction
         # count bounds a function that never returns instead.
-        err = dll.uc_emu_start(uc, function, RETURN, 0, 1_000_000)
+        err = dll.uc_emu_start(uc, function, ret, 0, 1_000_000)
         eip = reg(EIP)
-        if err or eip != RETURN:
+        if err or eip != ret:
             # A divide error stops the run at the DIV/IDIV itself (F7 /6, /7), seen here both
             # with UC_ERR_EXCEPTION and with no error code. A memory fault on the instruction
             # reports its own error and is not filed as a divide.
