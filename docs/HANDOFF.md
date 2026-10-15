@@ -81,9 +81,9 @@ Prison rats, Portal entrances, corpse art, terrain debris and the Hand
 0467). The Heart's health pulse (ADR-0463), mana sparkles (ADR-0474, an owner
 adjustment; cause open in Q594), opening sequence (ADR-0475), Portal entrance
 effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built; as of 2026-10-15
-the owner has not seen the sparkles or the opening sequence in Unity. Step 5 (camera and
-lighting) is on branch classic-look/step5 in D:/DungeonKeeperRemake-classic,
-unmerged.
+the owner has not seen the sparkles or the opening sequence in Unity. Step 5's
+current camera and lighting implementation is merged through 0ba5efab; remaining
+work continues on classic-look/step5 in D:/DungeonKeeperRemake-classic.
 
 Step 5 milestones and remaining gates: plans/2026-10-14-classic-look-step5.md.
 The camera core and startup view are reviewed and owner-accepted (ADR-0478).
