@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**252** — `0x7326CEF9676EA896`. A creature walking to its fight target (our `Approaching`, DK2's state 8) earns no combat experience; ours paid it as if in state 199 (ADR-0366 amendment); no new saved field.
+
 **251** — `0x3DFD1B0E0D7517C9`. The store sweep runs when DK2's turn, our tick plus one, is a multiple of 16, one tick earlier than under 250 (ADR-0285 amendment, Q596); no new saved field.
 
 **250** — `0xBD323E55AFE88884`. The stun (255, 256) counts from the turn after it is set, as 255's Age does, so a hand drop lies one turn longer than under 249, as Level 1's capture measured; 255's first call asks for the Creature Dazed Effect (ADR-0480); no new saved field.
