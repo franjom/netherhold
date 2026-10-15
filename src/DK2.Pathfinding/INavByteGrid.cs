@@ -38,7 +38,8 @@ public static class NavBytes
 
     /// <summary>The same bit on a plain tile: a portal's centre hole. DK2's cache (captured on
     /// Level 7, 2026-09-17) holds 4 on exactly the two portal centres (and there floor on every
-    /// heart tile, where Levels 4 and 10 hold the Heart builder's 3 on the centre, Q601); the cost function crosses a bit-2 boundary only for a mover whose state passed
+    /// heart tile, unexplained: fresh loads of Levels 4, 7 and 10 hold the Heart builder's 3 on the
+    /// centre, Q601); the cost function crosses a bit-2 boundary only for a mover whose state passed
     /// option bit 2, which is how a leaving creature enters the hole.</summary>
     public const byte PortalHole = 4;
 

@@ -249,7 +249,7 @@ the binary's width-based clamp. ADR-0423 records these boundaries.
 missing Heart disposal exception and portal's missing Imp refusal are known gaps.
 
 **The router does not use the block** (2026-09-17). DK2's own navigation
-cache, captured from a running Level 7, holds plain floor on every one of a
+cache, captured from a running Level 7 (2026-09-17; a fresh load holds 3 on the centre, Q601), holds plain floor on every one of a
 heart's 25 tiles (the Heart builder writes 3 on the centre, and Levels 4 and 10 hold it there: Q601) and byte 4 on a portal's centre (a Hero Portal's too: both run the tile
 pass `0x004DCD20`, and ours blocks both since 2026-09-30), and the cost function
 crosses a bit-2 boundary only for a state that passed option bit 2 (§5.4,

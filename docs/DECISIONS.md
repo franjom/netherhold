@@ -1470,8 +1470,9 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 ### ADR-0084 amendment — the Heart's centre is lava to the router (2026-10-15, Q601)
 `DungeonHeart_Build` `0x004DB700`, which the THINGS loader runs for each Heart room record, writes
 navigation byte 3 (lava) on its chain tile 12, the centre, at `0x004DBB65`, ruined or not. Level 10's
-capture logs it on both Hearts during tick 1 and Level 4's dump holds it at tick 500; Level 7's dump of
-2026-09-17, which held floor, is unexplained. `ThingProjection.BuildHeart` stamps it
+capture logs it on both Hearts during tick 1, Level 4's dump holds it at tick 500, and an idle fresh
+Level 7 holds it on both Hearts to tick 500, the 1% Heart's after its heart object is gone; the
+2026-09-17 Level 7 dump's floor is unexplained. `ThingProjection.BuildHeart` stamps it
 (`WorldState.NavStamps`, ADR-0318 amendment): the rest of the platform stays floor to the router,
 the centre is routable only by a lava walker, and steering treats it as a wall for the rest. A live
 Heart's centre was already closed to routing by ADR-0452's platform mask; a ruined Heart's is not

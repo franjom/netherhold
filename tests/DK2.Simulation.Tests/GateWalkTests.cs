@@ -35,8 +35,9 @@ public class GateWalkTests
         Assert.Equal(expected, GateWalk.Octile(new NavPoint(ax, ay), new NavPoint(bx, by)));
 
     /// <summary>An L one tile wide: the route leaves the horizontal arm across the edge from the
-    /// L's outer corner (4,1) to its inner corner (3,2). The arm's own diagonal is dropped because
-    /// both sight-lines from the start to that edge's ends pass through it; this edge is kept
+    /// L's outer corner (4,1) to its inner corner (3,2). The arm's own diagonal (1,1)-(3,2) is dropped
+    /// because both sight-lines from the start to that edge's ends pass through it, and the vertical
+    /// arm's diagonal (3,2)-(4,3), which the build in the original's order adds, is dropped too; this edge is kept
     /// because the sight-line to the destination clips the inner corner instead. Its first
     /// endpoint (4,1) is on the walker's right going down, its second (3,2) is the funnel corner
     /// and so the nearer, selected one.</summary>
@@ -48,7 +49,9 @@ public class GateWalkTests
         NavPoint from = NavPoint.FromTileCentre(1, 1), to = NavPoint.FromTileCentre(3, 2);
         var corridor = new List<int>();
         Assert.True(router.TrySearch(mesh.Locate(to.X, to.Y), mesh.Locate(from.X, from.Y), from, MoverProfile.Walker, corridor));
-        Assert.Equal(3, corridor.Count);
+        // Four triangles in the original's build order (reset diagonal, corner order, splits:
+        // ADR-0486); the builder before it made three. Nothing below depends on the count.
+        Assert.Equal(4, corridor.Count);
         var funnel = new List<NavPoint>();
         Funnel.Reduce(mesh, from, to, corridor, funnel);
         Assert.Equal([P(3, 2), to], funnel);
