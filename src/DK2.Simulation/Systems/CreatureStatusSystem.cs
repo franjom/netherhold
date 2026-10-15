@@ -63,7 +63,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                 {
                     if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256
                         && context.Tick.Value - creature.StateEnteredTick == 1)
-                        Combat.StatusEffectRules.RequestDazedEffect(context, creature, definition);
+                        Combat.StatusEffectRules.RequestDazedEffect(context, creature);
                     if (creature.StunTicks > 0) creature.StunTicks--;
                     if (creature.StunTicks == 0)
                     {

@@ -87,7 +87,7 @@ public class DropLandingTests
     }
 
     /// <summary>255's first call (Age 1, <c>0x004810E0</c>) asks once for the Creature Dazed Effect
-    /// (101) at the creature, its owner's; the height is a GUESS for the unread mesh point.</summary>
+    /// (101) at the creature, its owner's, tied to its head point (5000), which the view follows.</summary>
     [Fact]
     public void AStunnedCreature_AsksForTheDazedEffectOnce_TheTurnAfterItIsStunned()
     {
@@ -106,6 +106,8 @@ public class DropLandingTests
         ViewEffectRequest request = dazed[0].EffectRequest!.Value;
         Assert.Equal(Keeper, request.Owner.Value);
         Assert.Equal(Floor, request.Tile);
+        Assert.Equal(goblin.Id, request.AttachedCreatureId);
+        Assert.Equal(Combat.StatusEffectRules.DazedAttachPoint, request.AttachPoint);
     }
 
     /// <summary>The owner's exception (Q201): a prisoner put down outside a cell goes free, not

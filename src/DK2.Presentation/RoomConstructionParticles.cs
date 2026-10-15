@@ -33,6 +33,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     private readonly HashSet<ushort> _crumblingEffects;
     private readonly HashSet<ushort> _heartManaEffects;
     private readonly Func<string, IReadOnlyList<EffectGroupPart>?>? _groupParts;
+    private readonly Func<int, uint, EffectAttachment>? _attachment;
 
     /// <summary>The longest Next chain followed from one request (<c>0x00440350</c> loops until a
     /// zero id; shipped chains are two long). A guard against a data cycle.</summary>
@@ -60,9 +61,11 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         CaptureEffectStyle captureEffectStyle = CaptureEffectStyle.Native,
         Func<ViewEffectRequest, CaptureEdges>? captureEdges = null,
         HeartSparkleStyle heartSparkleStyle = HeartSparkleStyle.Native,
-        Func<string, IReadOnlyList<EffectGroupPart>?>? groupParts = null)
+        Func<string, IReadOnlyList<EffectGroupPart>?>? groupParts = null,
+        Func<int, uint, EffectAttachment>? attachment = null)
     {
         _groupParts = groupParts;
+        _attachment = attachment;
         _heartManaEffects = heartSparkleStyle == HeartSparkleStyle.PillarHeight
             ? new HashSet<ushort>(database.Rooms.Values.Where(r => r.TypeId == RoomTypeId.DungeonHeart)
                 .Select(r => r.CreatedObjectEffectId).Where(id => id != 0))
@@ -117,7 +120,10 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         for (int link = 0; next != null && link < LongestChain; link++)
         {
             if (next.GenerationType != 4) break;
-            Emitter emitter = CreateEmitter(next, request with { EffectId = new EffectId(next.EffectId) });
+            // Only the instance the caller was handed is tied to a thing (0x004810E0 writes its +0x133).
+            Emitter emitter = CreateEmitter(next, link == 0
+                ? request with { EffectId = new EffectId(next.EffectId) }
+                : request with { EffectId = new EffectId(next.EffectId), AttachedCreatureId = 0, AttachPoint = 0 });
             _emitters.Add(emitter);
             SpawnGroupParts(emitter);
             next = next.NextEffectId != 0 && _database.Effects.TryGetValue(next.NextEffectId, out EffectDef? chained)
@@ -189,6 +195,8 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
                     {
                         Position = DrawOrigin(effect, request.Position),
                         Heading = DrawAngularOffset(effect.OrientationRange * 8),
+                        AttachedCreatureId = 0,
+                        AttachPoint = 0,
                     });
                 return;
             }
@@ -334,6 +342,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         if (elapsedMilliseconds <= 50) return elapsedMilliseconds / 50f;
         int elapsedUpdates = checked((int)(elapsedMilliseconds / 50));
         _lastUpdateMilliseconds += elapsedUpdates * 50L;
+        FollowAttachments();
         for (int i = _particles.Count - 1; i >= 0; i--)
         {
             ConstructionParticle particle = _particles[i];
@@ -403,6 +412,40 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             }
         }
         return (now.Milliseconds - _lastUpdateMilliseconds) / 50f;
+    }
+
+    /// <summary>The attachment arm at the head of the effect update (<c>0x00434E80</c>): an effect tied
+    /// to a creature takes the creature's point, and every element it has made moves by the same
+    /// step. With the creature gone the tie is dropped (its slot is dead: <c>+0x133</c> and
+    /// <c>+0x135</c> cleared); with the point not found this update, nothing moves.</summary>
+    private void FollowAttachments()
+    {
+        if (_attachment == null) return;
+        Dictionary<Emitter, (int X, int Y, int Z)>? moved = null;
+        foreach (Emitter emitter in _emitters)
+        {
+            ViewEffectRequest request = emitter.Request;
+            if (request.AttachedCreatureId == 0) continue;
+            EffectAttachment found = _attachment(request.AttachedCreatureId, request.AttachPoint);
+            if (!found.CreatureExists)
+            {
+                emitter.Request = request with { AttachedCreatureId = 0, AttachPoint = 0 };
+                continue;
+            }
+            if (found.Point is not FpPosition3 point) continue;
+            (int X, int Y, int Z) step = (point.X.Raw - request.Position.X.Raw, point.Y.Raw - request.Position.Y.Raw,
+                point.Z.Raw - request.Position.Z.Raw);
+            emitter.Request = request with { Position = point };
+            if (step != default) (moved ??= [])[emitter] = step;
+        }
+        if (moved == null) return;
+        foreach (ConstructionParticle particle in _particles)
+        {
+            if (!_parents.TryGetValue(particle, out Emitter? parent) || !moved.TryGetValue(parent, out var step)) continue;
+            particle.XRaw += step.X;
+            particle.YRaw += step.Y;
+            particle.HeightRaw += step.Z;
+        }
     }
 
     private bool ApplyFloorContact(ConstructionParticle particle)
@@ -521,6 +564,15 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
 
     private int DrawInclusive(int minimum, int maximum) => maximum <= minimum
         ? minimum : _random.NextInt(minimum, maximum);
+}
+
+/// <summary>What the view knows of an effect's tied creature this update: whether it still exists,
+/// and its tagged point in native position units when found.</summary>
+public readonly record struct EffectAttachment(bool CreatureExists, FpPosition3? Point)
+{
+    public static EffectAttachment Gone => default;
+    public static EffectAttachment At(FpPosition3 point) => new(true, point);
+    public static EffectAttachment NotFound => new(true, null);
 }
 
 /// <summary>A member of an effect's group art: the mesh entry it draws and its offset from the
