@@ -123,6 +123,26 @@ public class CombatApproachTests
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
     }
 
+    /// <summary>Q598: a dead creature that still holds a forced target is not processed. DK2's dead
+    /// creature is a CDeadBody off the creature list; ours, a creature with no state, ran the forced
+    /// arm, which skips the may-I-look gate, and was moved back into 199.</summary>
+    [Fact]
+    public void ACorpseHoldingAForcedTarget_IsNotProcessed()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState lord = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        CreatureState rival = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 4, 10);
+        lord.AttackAbnormalTargets = true;
+        lord.AttackingId = rival.Id;
+        StatePlacement.As(lord, CreatureActivity.Dead);
+        GameSimulation sim = Sim(db, world);
+
+        sim.Run(5);
+
+        Assert.Equal(CreatureStateMachine.NoState, lord.Dk2StateId);
+        Assert.Equal(FightTargetKind.None, lord.FightTargetKind);
+    }
+
     [Fact]
     public void AGoodCreatureGivesUpARetreatingTargetAfterThreeSeconds_AnEvilOneKeepsChasing()
     {

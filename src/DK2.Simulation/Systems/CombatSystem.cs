@@ -48,6 +48,9 @@ public sealed class CombatSystem : ISimulationSystem
         for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = creatures[i];
+            // DK2's dead creature is a CDeadBody, not on this list; ours keeps the creature with no
+            // state (ADR-0206), whose forced target would otherwise still be pursued (Q598).
+            if (CreatureDeathRules.IsCorpse(creature)) continue;
             CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
             // Action handlers continue while possession pauses state dispatch.
             if (creature.SwingInProgress)

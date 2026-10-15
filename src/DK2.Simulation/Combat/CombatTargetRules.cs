@@ -792,9 +792,10 @@ public static class CombatTargetRules
         if (!sameTarget) me.StopMoving();
         if (!CombatRules.IsFighting(me)) me.CombatStateEnteredTick = context.Tick.Value;
         me.Running = true; // state 199's entry sets the run speed (0x004887D0(1))
-        if (!CreatureStateMachine.HasState(me) || NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat
-            || (thing && me.Dk2StateId == Systems.StateShadow.TravelToPoint
-                && me.UtilityNewState is CombatStates.RespondingToThreat or CombatStates.Withdrawn))
+        if (CreatureStateMachine.HasState(me)
+            && (NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat
+                || (thing && me.Dk2StateId == Systems.StateShadow.TravelToPoint
+                    && me.UtilityNewState is CombatStates.RespondingToThreat or CombatStates.Withdrawn)))
             CombatStates.Enter(context, me, CombatStates.Engaging);
         context.Emit("combat", "engaged",
             $"creature={me.Id} type={mine.Name} player={me.OwnerPlayerId} {target} reach2={me.AttackRangeSquared}");

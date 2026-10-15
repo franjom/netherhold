@@ -11121,7 +11121,10 @@ exemption stays), and `0x0048ECE0`, which DK2 calls before resuming.
 their first 110 turns against DK2's 15 and 14, where under the flag they never left 199; ours
 spend 52 of 61 ticks in 8 against DK2's 27 of 58, a residual. A same-state re-entry of 199
 no longer restamps a fighter's state age. Seeds 1–20 against master d449c99d: Level 1 19 → 20,
-Level 2 6 → 9, Level 3 18 → 17, Level 4 3 → 2. Level 3 seed 8's Lord, dead at 3596, engaged a
-forced door at 3601 and crashed the new gate on its missing state; a creature with no state keeps
-the old unconditional entry, and how a corpse reaches the forced arm is Q598.
+Level 2 6 → 9, Level 3 18 → 17, Level 4 3 → 2, one seed each way on Level 4 (2 and 12 lost, 3
+won); the keeper still loses a median 16 Imps a seed where DK2 loses none. Level 3 seed 8's Lord,
+dead at 3596, engaged a forced door at 3601: a forced target skips the may-I-look gate, the only
+test that refused a corpse. `CombatSystem` now skips corpses, as DK2's thing pass never meets one
+(its dead creature is a `CDeadBody`), and the gate never moves a creature with no state (Q598); no
+replay trace changes.
 `HashVersion` 253, `FormatVersion` 253.
