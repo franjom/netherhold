@@ -12,7 +12,8 @@ namespace DK2.Oracle.Tests;
 
 /// <summary>
 /// Angle and distance helpers against the original's, on the emulator: the two heading helpers,
-/// the possessed aim cone, the steering ray–circle test and the 3-vector length. Each sweep
+/// the possessed aim cone, the steering ray–circle test, the 3-vector length, the octile and
+/// perpendicular vector helpers and the dig handlers' start side. Each sweep
 /// counts the arm every input reaches; an arm no input reaches fails the test.
 /// </summary>
 public class OriginalGeometryTests(ITestOutputHelper log)
@@ -142,6 +143,81 @@ public class OriginalGeometryTests(ITestOutputHelper log)
             string arm = or < 2048 ? "small" : or < 0x200000 ? "shift 8" : "shift 18";
             return (arm, ((int)original[i].Eax).ToString(), IntegerMath.Length(x, y, z).ToString());
         }, original, i => $"length({inputs[i].X}, {inputs[i].Y}, {inputs[i].Z})", ["small", "shift 8", "shift 18"]);
+    }
+
+    /// <summary><c>0x004D4570</c>, <see cref="Fixed16.Octile"/>: thiscall, ECX the vector.</summary>
+    [OracleFact]
+    public void Octile_MatchesTheOriginal()
+    {
+        (int X, int Y)[] inputs = [.. Pairs(20261021)];
+        IReadOnlyList<Outcome> original = Run([.. inputs.Select(v => new Request(0x004D4570, [], [(A, (uint)v.X), (A + 4, (uint)v.Y)], Ecx: A))]);
+        Check("octile", inputs.Length, i =>
+        {
+            (int x, int y) = inputs[i];
+            int ax = Fixed16.Abs(x), ay = Fixed16.Abs(y);
+            string arm = ax < ay ? "x shorter" : ax > ay ? "y shorter" : "equal";
+            return (arm, ((int)original[i].Eax).ToString(), Fixed16.Octile(x, y).ToString());
+        }, original, i => $"octile({inputs[i].X}, {inputs[i].Y})", ["x shorter", "y shorter", "equal"]);
+    }
+
+    /// <summary><c>0x004D5060</c>, <see cref="Fixed16Vector.Perpendicular"/>: cdecl (out*, in*).</summary>
+    [OracleFact]
+    public void Perpendicular_MatchesTheOriginal()
+    {
+        (int X, int Y)[] inputs = [.. Pairs(20261022)];
+        IReadOnlyList<Outcome> original = Run([.. inputs.Select(v => new Request(0x004D5060, [Out, A],
+            [(A, (uint)v.X), (A + 4, (uint)v.Y)], [Out, Out + 4]))]);
+        Check("perpendicular", inputs.Length, i =>
+        {
+            Fixed16Vector ours = new Fixed16Vector(inputs[i].X, inputs[i].Y).Perpendicular();
+            return ("any", $"({(int)original[i].Reads[0]}, {(int)original[i].Reads[1]})", $"({ours.X}, {ours.Y})");
+        }, original, i => $"perpendicular({inputs[i].X}, {inputs[i].Y})", ["any"]);
+    }
+
+    /// <summary><c>0x004805F0</c>, <see cref="MiningSlots.StartSide"/>: stdcall (dx, dy, step dword*,
+    /// side word*). Arms are the original's thirteen exits, named by the signs of (dx, dy) and the
+    /// answer.</summary>
+    [OracleFact]
+    public void StartSide_MatchesTheOriginal()
+    {
+        var inputs = new List<(int Dx, int Dy)>();
+        for (int dx = -4; dx <= 4; dx++)
+        for (int dy = -4; dy <= 4; dy++)
+            inputs.Add((dx, dy));
+        var spread = new Random(20261023);
+        for (int i = 0; i < 5000; i++)
+        {
+            int dx = spread.Next(-300, 301);
+            inputs.Add(spread.Next(4) == 0 ? (dx, spread.Next(2) == 0 ? dx : -dx) : (dx, spread.Next(-300, 301)));
+        }
+
+        IReadOnlyList<Outcome> original = Run([.. inputs.Select(v => new Request(0x004805F0, [(uint)v.Dx, (uint)v.Dy, Out, Out + 4],
+            [(Out, 0x55555555), (Out + 4, 0x5555)], [Out, Out + 4]))]);
+        static string Sign(int v) => v > 0 ? "+" : v < 0 ? "-" : "0";
+        Check("start side", inputs.Count, i =>
+        {
+            (int dx, int dy) = inputs[i];
+            int side = (int)(original[i].Reads[1] & 0xFFFF), step = (int)original[i].Reads[0];
+            (int s, int t) = MiningSlots.StartSide(dx, dy);
+            return ($"{Sign(dx)}{Sign(dy)} ({side},{step})", $"({side},{step})", $"({s},{t})");
+        }, original, i => $"startSide({inputs[i].Dx}, {inputs[i].Dy})",
+            ["00 (0,1)", "0+ (2,1)", "0- (0,1)", "+0 (1,1)", "++ (2,-1)", "++ (1,1)", "+- (0,1)", "+- (1,-1)",
+             "-0 (3,1)", "-+ (2,1)", "-+ (3,-1)", "-- (0,-1)", "-- (3,1)"]);
+    }
+
+    /// <summary>Components at the sign and band edges, then a spread of magnitudes to 2^31.</summary>
+    private static IEnumerable<(int, int)> Pairs(int seed)
+    {
+        int[] edges = [0, 1, -1, 2, -2, 0x10000, -0x10000, 0x7FFFFFFF, -0x7FFFFFFF, int.MinValue];
+        foreach (int x in edges)
+        foreach (int y in edges)
+            yield return (x, y);
+        var spread = new Random(seed);
+        for (int i = 0; i < 10000; i++)
+        {
+            int x = spread.Next(-(1 << spread.Next(0, 31)), 1 << spread.Next(0, 31));
+            yield return spread.Next(8) == 0 ? (x, spread.Next(2) == 0 ? x : -x) : (x, spread.Next(-(1 << spread.Next(0, 31)), 1 << spread.Next(0, 31)));
+        }
     }
 
     /// <summary>Headings across the masked turn and a quarter beyond it into the word's range,

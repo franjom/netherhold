@@ -371,7 +371,7 @@ weighted (Q30).
 
 - `0x004CFFD0` divides a 64-bit numerator by a 32-bit divisor, so near-parallel
   lines could fault the original; whether a layout reaches that is UNKNOWN.
-  `GateWalk` reports no crossing there.
+  `GateWalk` reports no crossing there (ADR-0481's oracle test holds it).
 - On the funnel's last point `0x004CF490` reads one point past it — the previous
   route's leftovers. `GateWalk` uses a degenerate segment, which never crosses.
 
