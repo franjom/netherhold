@@ -11,4 +11,8 @@
     <ProjectReference Include="../DK2.Data.Model/DK2.Data.Model.csproj" />
     <ProjectReference Include="../DK2.Pathfinding/DK2.Pathfinding.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DK2.Oracle.Tests" />
+  </ItemGroup>
 </Project>

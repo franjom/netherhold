@@ -56,4 +56,19 @@ public static class IntegerMath
         long sq = (dx * dx) + (dy * dy);
         return sq > int.MaxValue ? SquareRoot(int.MaxValue) : SquareRoot((int)sq);
     }
+
+    /// <summary>The original's integer length of a 3-vector (<c>0x00555990</c>): absolute components,
+    /// unshifted while all are below 2^11, shifted 8 while below 2^21, otherwise X and Y shifted 18 and
+    /// Z only 8; the root of the 32-bit sum of squares, read unsigned, is shifted back by the band's X
+    /// shift. Held to the original value for value by <c>OriginalGeometryTests</c>.</summary>
+    public static int Length(int x, int y, int z)
+    {
+        uint ax = Magnitude(x), ay = Magnitude(y), az = Magnitude(z);
+        int shift = (ax | ay | az) < 2048 ? 0 : (ax | ay | az) < 2097152 ? 8 : 18;
+        ax >>= shift; ay >>= shift; az >>= shift == 18 ? 8 : shift;
+        return SquareRoot(unchecked(ax * ax + ay * ay + az * az)) << shift;
+    }
+
+    /// <summary>|v| as the original's CDQ/XOR/SUB forms it: int.MinValue stays 2^31, read unsigned.</summary>
+    private static uint Magnitude(int v) => unchecked((uint)(v < 0 ? -v : v));
 }

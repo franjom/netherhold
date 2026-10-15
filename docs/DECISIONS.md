@@ -11056,7 +11056,9 @@ compared.
 
 **Consequences.** First batches: the square-root, arctangent and sine tables; Math_Isqrt,
 Math_Atan2, Random_Next; the gate walk's Collapse and AdjustAroundCrossing; Fixed16
-Normalise, Truncate, Scale and Over, all matching wherever the original returns. Running the
+Normalise, Truncate, Scale and Over; then Angle_Distance, Angle_TurnsUp, the aim cone, the
+ray-circle test and the 3-vector length, whose port threw on an int.MinValue component where
+the original wraps (fixed). All match wherever the original returns. Running the
 bytes is binary evidence, so `[Dk2Behavior]` still rises no higher than STRONGLY INFERRED
 (ADR-0046 rule 5); a function record may say CONFIRMED for what the function computes, not
 for behaviour seen in play. Only functions free of mutable globals qualify; world-state
