@@ -245,7 +245,9 @@ exist for every world tile or light every neighbouring draw.
 `0x0057BBF0` filters a supplied draw-light table by required flags and strict
 3D sphere overlap `(sourceRadius + drawRadius)^2`, yielding a32-bit selection
 mask. The producer gathering nearby tile-cache sources into that table, its
-cap/order and occlusion policy remain UNKNOWN. Before implementing a neighbour
-GPU lookup, locate that producer via the animated preparation's light-table
-input at draw `+0x5C`. The cache visibility helpers `0x005735A0`/`0x005737E0`
-construct visible tile lists, not that missing light-table producer.
+cap/order and occlusion policy remain UNKNOWN. Animated preparation
+`0x00584900` copies incoming preparation context `+0x08` into draw `+0x5C`;
+the draw constructor does not create this table. The frame's `0x005725D0`
+builds visible and adjoining tile caches, not the table. The cache visibility
+helpers `0x005735A0`/`0x005737E0` likewise construct tile lists. Follow the
+preparation context before implementing an unrestricted GPU neighbour sum.
