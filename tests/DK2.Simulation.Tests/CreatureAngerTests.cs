@@ -363,20 +363,23 @@ public class CreatureAngerTests
         vampire.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         var events = new ListEventSink();
 
-        Simulation(db, world, events).Run(Second * 30);
+        GameSimulation sim = Simulation(db, world, events);
+        sim.Run(Second * 30);
 
         Assert.Single(world.Creatures);
         Assert.Equal(RebellionRules.DefectsTo, vampire.OwnerPlayerId);
         Assert.Equal(Keeper, vampire.RebelAgainstPlayerId);
         Assert.Equal(JobType.KillPlayer, vampire.CurrentJob);
 
-        // Still angry, and CROSSER than it started - which it could not have
-        // been before ADR-0081, when a counter stopped dead at the angry band.
-        // It saturates at 65533 instead, so thirty more seconds of having no
-        // bed cost it three thousand more it will have to pray off. Changing
-        // sides does not settle a grievance.
+        // Still angry, and crosser than it started: no bed cost it 100 a second until it defected
+        // (it does not stop at the band, ADR-0081). Then it is the hero player's, whose creatures
+        // the dispatcher never asks about needs (0x00476FC0, Q599), so the grievance stands where
+        // it was, unsettled and no longer growing.
         Assert.Equal(CreatureMood.Angry, CreatureAngerRules.MoodOf(db.CreatureById(VampireId), vampire));
-        Assert.Equal(CreatureAngerRules.Ceiling + 1 + (30 * 100), vampire.Anger.Lair);
+        int defected = vampire.Anger.Lair;
+        Assert.True(defected > CreatureAngerRules.Ceiling + 1, "crosser than it started");
+        sim.Run(Second * 10);
+        Assert.Equal(defected, vampire.Anger.Lair);
 
         List<SimEvent> rolls = events.Events.Where(e => e.Kind == "creature_angry").ToList();
         Assert.NotEmpty(rolls);
@@ -390,6 +393,24 @@ public class CreatureAngerTests
         Assert.Single(events.Events, e => e.Kind == "creature_rebelling");
         SimEvent gone = Assert.Single(events.Events, e => e.Kind == "creature_defected");
         Assert.Contains($"player={Keeper}->{RebellionRules.DefectsTo}", gone.Detail);
+    }
+
+    /// <summary>Q599: the dispatcher <c>0x00476FC0</c> skips the need-anger routine, the needs and
+    /// the mood choosers for the hero player's creatures. Level 4's placed Guards took lair anger,
+    /// looked for lairs and hatcheries and rolled Rebel from tick 1192.</summary>
+    [Fact]
+    public void AHeroCreatureWithNoBedTakesNoNeedAnger_AndLooksForNoLairOrFood()
+    {
+        GameDatabase db = Db;
+        WorldState world = WorldState.FromMap(
+            db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+        CreatureState hero = world.SpawnCreature(db, VampireId, PlayerIds.Good, new TilePos(2, 2));
+        var events = new ListEventSink();
+
+        Simulation(db, world, events).Run(Second * 30);
+
+        Assert.Equal(0, hero.Anger.Lair);
+        Assert.DoesNotContain(events.Events, e => e.Kind is "creature_angry" or "lair_attempt_failed" or "food_attempt_failed");
     }
 
     [Fact]

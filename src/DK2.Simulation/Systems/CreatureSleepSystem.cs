@@ -141,6 +141,8 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                     // state to be in today, and when it has, the attempt
                     // belongs at its idle decision, not mid-job.
                     if (creature.Activity != CreatureActivity.Idle) break;
+                    // The hero and neutral players' creatures run no needs or choosers (Q599).
+                    if (!NeedRules.RunsNeeds(creature)) break;
 
                     // Same countdown shape as an imp's idle delay: a failed
                     // attempt sets the timer, and the next one runs when it
