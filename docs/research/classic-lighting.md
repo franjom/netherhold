@@ -1,6 +1,6 @@
 # Classic vertex lighting
 
-Source: retail v1.70 DKII.EXE, Ghidra whole reads, 2026-10-14.
+Source: retail v1.70 DKII.EXE, Ghidra whole reads, 2026-10-14/15.
 Existing material/terrain inputs are in kmf-materials.md, tag-highlight.md,
 wall-pieces.md and wall-torches.md; this note owns their newly traced light helper.
 
@@ -11,7 +11,7 @@ clamp/packer. It loops over the supplied light list and computes distance
 squared from the vertex to each light. Outside the light's squared radius
 it adds nothing. Inside, it multiplies the light-direction/vertex-normal dot
 product by a light-specific coefficient; negative-facing contributions are skipped.
-It combines that factor with a lookup-table reciprocal distance, remaining
+It combines that factor with a lookup-table value, remaining
 squared radius and another light coefficient. The resulting contribution
 factor is capped at one, then the light's RGB is added to the running colour.
 This caps one light's contribution; it does not clamp the accumulated RGB.
@@ -21,11 +21,9 @@ brightness, instance tint and global ambient, then calls this helper with
 the vertex position and normal before handing colour/UV to a render sink.
 The original sum remains documented in tag-highlight.md section6.
 
-UNRESOLVED: coefficient initialization, exact reciprocal-table boundaries,
-final colour packing/transfer function, and matching URP light response.
-Trace the selected colour sink and light-list builder before implementing
-clamping, colour-space conversion or a replacement falloff shader.
-No point-light response implementation or matched-frame brightness result is claimed here.
+The coefficient and lookup reads are resolved in section5. Final colour
+packing/transfer, native-versus-URP response and matched-frame brightness remain
+open. Trace the selected colour sink before changing colour-space conversion.
 
 ## 2. Terrain instance colour
 
@@ -60,8 +58,8 @@ directions through 0x00594E70. Their caller mode selection remains unaudited.
 
 CONFIRMED: initializer 0x0043A1E0 stores both current and base ushort RGB,
 uint radius and byte intensity separately. Radius above 10111 becomes 10112.
-The conversion to the renderer's floating-point coefficients remains open;
-these field widths do not establish a Unity intensity or falloff mapping.
+The conversion to renderer coefficients is resolved in section5. These field
+widths alone do not establish a Unity falloff mapping.
 
 ## 4. Startup and current URP boundaries
 
@@ -79,3 +77,29 @@ The tracked DK2 renderer's mode 2 is Forward+ in the installed URP source
 serialized four-lights-per-object setting therefore does not establish a
 four-light cause for reported camera-dependent torch disappearance. Confirm
 the runtime renderer and capture a fixed-world camera comparison before tuning.
+
+## 5. Point-light inputs and reference response
+
+STRONGLY INFERRED (whole reads and table initializer assembly, 2026-10-15):
+0x00599960 and 0x00599C60 convert authored RGB by255, byte intensity by128,
+and radius/position by4096. Engine Z is negated. The submitted list colour
+multiplies the normalized RGB back by255; radius squared and its reciprocal
+are stored at +0x24/+0x28, intensity at +0x34. Together with 0x0057BCB0 this
+resolves the inputs consumed by 0x0057BF00.
+
+Initializer 0x0058F480 builds 256 lookup values at 0x007818A0:
+`L[n] = 0.25 + 16/n`, including infinity at n0. It is not reciprocal square
+root. For ordinary finite distances, the consumer's float-bit indexing is
+equivalent to nearest-even rounding of `16*d² - 0.49999`. Its contribution
+factor is `dot(normal,toLight) * intensity * L[n] * (radius²-d²)/radius²`.
+Outside the radius and for negative incidence it contributes nothing; it caps
+each light factor at1 before adding RGB, without capping the running sum.
+
+`ClassicPointLight` exposes normalized inputs and a headless reference of that
+vertex contribution. The Unity adapter consumes the inputs; its URP falloff
+is unchanged. The reference does not claim bit-identical x87 arithmetic or
+final colour transfer. Native clamped radii keep ordinary lookup indices
+below256; input conversion requires that native radius clamp. The singular
+bin is explicitly unsupported by the reference evaluator; its native float
+propagation and final packing still require comparison before
+using this as an active shader replacement.

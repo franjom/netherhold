@@ -86,6 +86,8 @@ The owner accepted the camera view and requested a modest zoom extension (ADR-04
 Authored terrain colours and scoped whole-room/wall tint application pass independent
 review; see classic-lighting.md. Camera sub-tile startup/framing, native point-light
 response, two-mask fog and performance comparisons remain open; see the Step5 plan.
+Torch inputs and a bounded native contribution reference pass independent review
+(2026-10-15); URP falloff remains unchanged. See classic-lighting.md section5.
 The scanned producer now uses native prisoner/closed-door guards and per-term
 rounding; focused fog/save checks pass (2026-10-14). The explored pass remains unbuilt.
 Unity launch is authorized; its previous editor session is closed. Matched captures

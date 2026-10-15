@@ -470,9 +470,10 @@ namespace DK2.Unity
 
         private static void ApplyTorchLight(Light light, in TorchView torch)
         {
-            light.color = new Color(torch.Red / 255f, torch.Green / 255f, torch.Blue / 255f);
-            light.intensity = torch.Intensity / 128f;
-            light.range = torch.Radius / (float)Fp32.One;
+            ClassicPointLight inputs = ClassicPointLight.FromTorch(torch);
+            light.color = new Color(inputs.Colour.X, inputs.Colour.Y, inputs.Colour.Z);
+            light.intensity = inputs.Intensity;
+            light.range = inputs.Radius;
         }
 
         /// <summary>
