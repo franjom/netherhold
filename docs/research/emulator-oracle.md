@@ -65,7 +65,9 @@ step with the earlier capture.
     The Heart's builder `0x004DB700` writes it on its chain tile 12 at load (`0x004DBB65`), and
     Level 10's capture logs the same on both its Hearts. Ours stamps it (`WorldState.NavStamps`).
     Steering reads that byte, so DK2's walls include the centre for a creature that cannot walk
-    on lava. Level 7's 2026-09-17 dump, which held floor there, is unexplained.
+    on lava. A fresh idle Level 7 (`level7-dump`, dumps at ticks 7, 100 and 500) holds 3 on both
+    Hearts' centres in all three, the 1% Heart's included after its heart object is gone at tick
+    21. The 2026-09-17 Level 7 dump that held floor there is unexplained.
 - **The water flag.** The per-tick caller `0x004D5A40` sets every mover global but
   `0x006EC9E4` (water), which keeps the last route request's value. The test sets it per
   creature, as our profile does. Whether the stale value ever changes a steering answer in play
