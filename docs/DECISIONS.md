@@ -11128,3 +11128,26 @@ test that refused a corpse. `CombatSystem` now skips corpses, as DK2's thing pas
 (its dead creature is a `CDeadBody`), and the gate never moves a creature with no state (Q598); no
 replay trace changes.
 `HashVersion` 253, `FormatVersion` 253.
+
+## ADR-0485 — Only a keeper's creatures run the needs, need-anger and mood choosers
+**Date:** 2026-10-15 · **Status:** accepted · Q599
+
+**Context.** The dispatcher `0x00476FC0` tests the owner before its needs block: the hero player
+(`[0x006F254C]`) skips the need-anger routine `0x00478D00`, the needs routine and the unhappy and
+angry choosers; the neutral player (`[0x006F2548]`) runs `0x004790A0` instead
+(creature-needs-routine.md §1). `NeedRules.IsAsked` carried that test, but only the cannot-sleep
+health loss read it: Level 4's three placed Guards took lair anger, looked for lairs and
+hatcheries and rolled Rebel from tick 1192 in every seed; in seed 1 one was already hurt (2700)
+before the owner's drop at (24,28) that wakes them in DK2, cause not traced.
+
+**Decision.** `NeedRules.RunsNeeds`, a keeper's creature, gates `MayAsk` (eating, sleeping,
+payday), the idle lair attempt, the need charges of `CreatureAngerRules.PerSecond` and the angry
+and unhappy choosers. The in-lair cooling stays for everyone: it is the lair category hooks'
+(`0x004DFF00`), which run before the owner test. A creature that defects to the hero side keeps
+the anger it had and gains no more. Read whole (CONFIRMED); the needs doc said STRONGLY INFERRED.
+
+**Consequences.** Level 4 seed 1's Guards now meet the drop at the door, Guard 10 down at 5385, as
+DK2's are beaten there. Seeds 1–20 against master 7c17ce08: 20/9/17/2 to 20/9/16/2; Level 4's
+keeper Imp deaths 399 to 372 in all, a median of 17 a seed where DK2 loses none, now mostly to the
+parties at the second Guard Room from tick 4000. `HashVersion` 254.
+

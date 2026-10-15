@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 253: the approach is state 8, a walk resuming 199, not a flag on 199 (ADR-0483).
+        // HashVersion 254: the hero and neutral players' creatures run no needs, need-anger or mood choosers (ADR-0485).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xEA82DB139335F65DUL, sim.StateHash());
+        Assert.Equal(0x14705036ECD12242UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
