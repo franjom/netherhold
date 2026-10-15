@@ -8407,6 +8407,16 @@ a hero Dwarf gain levels in a fight (2026-10-05). Ours left the hook unbuilt.
 **Decision.** `CreatureExperienceSystem.CombatExperiencePerOriginalTick`, granted with work
 experience on DK2's tick.
 
+**Amendment (2026-10-15, hash 252).** The walk to a fight target is DK2's state 8
+(`0x00470E30`, group 9, category 2), whose state word fails the hook's 199/200 test; ours
+models it as a flag on 199 (`Approaching`) and paid experience on the walk. Level 4 seed 1's
+hero Dwarves went up a level within 120 turns of arriving and up to level 6 by 3595; DK2's
+two never levelled and were down within about 130 turns. Now the walk earns nothing. Seeds 1–20 on
+master 1aed4de2 against the change: Level 1 20 → 19 (seed 6's Lord dies at 2028, a win not
+recorded before the replay's 2044 turns), Level 2 1 → 6, Level 3
+17 → 18, Level 4 0 → 3; hero level-ups on Level 4 fall from 425 to 163. Other readers of the
+state word that the flag hides (`ActivityRules`, `CombatMessageRules`) are not changed.
+
 ## ADR-0367 — Shots are updated newest first
 **Date:** 2026-10-06 · **Status:** accepted
 
