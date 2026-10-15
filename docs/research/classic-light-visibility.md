@@ -12,18 +12,42 @@ returned polygon goes to `0x005735A0`; the alternate flag1 branch uses the
 camera-ring enumeration instead. Cache preparation follows enumeration,
 then light gathering, then primitive preparation.
 
-CONFIRMED whole-body read of `0x00574820`: it derives normalized side vectors
-and corner ratios from viewport extents and focal length, transposes the view
-matrix, transforms vectors into world space and adds camera position. It also
-uses visibility distance and a renderer flag8-dependent scale. It submits
-nine points to a helper and passes the result through several more helpers
-before returning a polygon. This is insufficient evidence for replacing the
-producer with four viewport-corner intersections against a floor plane.
+CONFIRMED whole-body reads of `0x00574820` and its five polygon helpers,
+with producer disassembly resolving the hidden vector destinations: let
+`hx = viewportWidth / (2*focalPixels)`, `hy = viewportHeight / (2*focalPixels)`,
+`d = viewDistance`. The camera-space point set contains four near points
+`(+/-1,+/-1,-1)`, four far points `(+/-(hx*d*s+1),+/-(hy*d*s+1),d*s)` and
+the far centre `(0,0,d)`. The scale `s` is1 with renderer flag8 clear and
+`2/(hx+2)` when set. Each point is transformed by the transposed native
+view matrix and translated by camera position. The point list prepends
+each submission: near(--), near(+-), near(-+), near(++), far(--), far(+-),
+far(-+), far(++), centre. Renderer flag8 is not established as camera record
+flag8; adapters must supply the actual renderer mode.
 
-UNKNOWN: the exact clipping planes, clipping sequence, point rounding and
-ground/height limits used by those helpers. The next bounded query is listed
-in the producer's [function record](functions/00574820.md). Do not treat
-Unity camera-frustum visibility as established native source eligibility.
+CONFIRMED `0x00575220` intersects every unordered original point pair with
+each height plane (lower first, then upper), accepting only strict crossings.
+Intersections precede the original points; points outside the inclusive slab
+are removed. The initialization call at `0x00598443` passes lower=-9,
+upper=0 to `0x00574310`; its two stores are the only instruction references
+that write the clipping globals. Native coordinates map to Unity as
+`(x,-z,-y)`, so the slab covers Unity heights0 through9.
+
+CONFIRMED `0x00575440` removes a point if a later point differs by less than
+0.01 on both horizontal axes, ignoring height. `0x00575180` computes view-depth
+limits for projection setup; it does not change this point set.
+`0x005754D0` starts at the first minimum-Y point, repeatedly chooses the first
+point having the smallest nonnegative angular increment, and closes on its
+start. Angles are `atan2(-dy,-dx)+pi`, except a nonnegative horizontal ray
+has angle0. This preserves list-order ties rather than imposing a new hull tie
+rule. Each horizontal component becomes an integer by subtracting float
+0.49998998641967773, adding12582912, storing float and extracting its low23
+mantissa bits minus0x400000. The final store is relevant at integer boundaries;
+neither truncation nor ordinary nearest-integer rounding is equivalent.
+
+The engine-neutral implementation is `ClassicLightVisibility`; its camera
+input uses actual pose/FOV/viewport and the native distance separately from a
+presentation far-clip extension. Four floor-plane ray intersections are not
+equivalent to the clipped volume above.
 
 ## 2. Scan conversion and visible-flag lifetime
 
@@ -58,4 +82,4 @@ map-bound clamp. Its call domain is the union of those rectangles.
 This call domain does not establish every cache entry touched: target geometry
 building also obtains3x3 lattice entries, and immediate-neighbor tests obtain
 cache entries. It does not establish that all authored lights are prepared,
-or settle the unresolved projected polygon itself (Q602).
+or establish that every authored light is prepared.

@@ -82,6 +82,8 @@ namespace DK2.Unity
         [SerializeField] private bool classicMeshes = true;
         [Tooltip("Preview native per-vertex torch lighting. Global lighting and framebuffer transfer remain under investigation.")]
         [SerializeField] private bool classicVertexLighting;
+        [Tooltip("Use DK2's Cheap Lighting mode for animated torch illumination.")]
+        [SerializeField] private bool cheapLighting;
         [Tooltip("Diagnostic: native startup ambient only. Missing native fill lights can leave geometry black.")]
         [SerializeField] private bool nativeInitialAmbient;
         [Tooltip("Projected 32-pixel silhouettes from each creature's current animated mesh.")]
@@ -109,6 +111,7 @@ namespace DK2.Unity
         [SerializeField] private float cameraZoomFraction = 0.15f;
         private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
         private ClassicCamera _classicCamera;
+        private readonly ClassicAmbientLight _ambientLight = new ClassicAmbientLight();
         private Vector3 _cameraFocus;
         private Vector2 _cameraBounds;
         private float _cameraTurnRemainder;
@@ -233,7 +236,7 @@ namespace DK2.Unity
             TerrainLattice lattice = _classic != null && bendTerrain
                 ? new TerrainLattice(database, world, (byte)viewingPlayerId) { HighWalls = highWalls }
                 : null;
-            _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice, classicCreatureShadows);
+            _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice, classicCreatureShadows, cheapLighting);
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
@@ -241,17 +244,17 @@ namespace DK2.Unity
             {
                 var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
                 _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
-                    request => !world.FogOfWarEnabled || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId),
-                    request => world.Contains(request.Tile) && (!world.FogOfWarEnabled
-                        || world.Tile(request.Tile).IsDiscoveredBy((byte)viewingPlayerId))
+                    request => _worldView.CanShowTile(world, request.Tile),
+                    request => _worldView.CanShowTile(world, request.Tile)
                         // DK2 asks for the Heart's opening effects only for the local player (0x004D9A60).
                         && (!HeartIntroRules.IsViewerOnly(request.EffectId.Value) || request.Owner.Value == viewingPlayerId),
                     point => _worldView.GroundHeightAt(world, point), meshes: _classic,
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
                     attachment: _scene.CreatureAttachment);
-                _simulation.ObserveWith(_constructionEffects.Model);
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
             }
+            _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
+                new PlayerId((byte)viewingPlayerId), (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance));
 
             int maximumHeartHealth = database[VariableTypeId.DungeonHeartObjectHealth];
             _heartHealthObserver = change => _scene.QueueHeartHealthChange(change.Owner,
@@ -274,13 +277,15 @@ namespace DK2.Unity
                     MaxZoom = Mathf.RoundToInt(profile.MaxZoom * Mathf.Clamp(cameraZoomOutLimitScale, 1f, 2f)),
                 }, initialYaw: ClassicCamera.LevelStartYaw);
                 _cameraBounds = new Vector2(world.Width, world.Height);
-                _cameraFocus = DungeonScene.Ground(
-                    startingCameraPlayer != null ? startingCameraPlayer.CameraX + 0.5f : world.Width / 2f,
-                    startingCameraPlayer != null ? startingCameraPlayer.CameraY + 0.5f : world.Height / 2f,
-                    profile.Z / (float)Fp32.One);
+                System.Numerics.Vector3 focus = startingCameraPlayer != null
+                    ? ClassicCamera.LevelStartFocus(new TilePos(startingCameraPlayer.CameraX, startingCameraPlayer.CameraY))
+                    : new System.Numerics.Vector3(world.Width / 2f, 1, -world.Height / 2f);
+                _cameraFocus = new Vector3(focus.X, focus.Y, focus.Z);
             }
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
             else LookAt(world);
+            if (_classicCamera != null)
+                _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
         }
 
         private void OnDestroy()
@@ -308,6 +313,7 @@ namespace DK2.Unity
             using (InputMarker.Auto())
             {
                 ControlCamera();
+                ReadAmbientKeys();
                 ReadToolKeys();
                 QueueInput();
             }
@@ -343,8 +349,11 @@ namespace DK2.Unity
             else _dragTo = ScreenToTile(Input.mousePosition) ?? _dragTo ?? dragFrom;
             _worldView.PreviewTags(dragFrom, _dragTo, _input.ExcavationPreviewTagged ?? true);
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
+            _worldView.SetPossessionView(_simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
+            if (_classicCamera != null)
+                _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
             if (showDiagnostics) RefreshDiagnostics();
@@ -536,6 +545,21 @@ namespace DK2.Unity
             Vector3 next = camera.transform.position +
                 (camera.transform.forward * scroll * cameraZoomFraction * height);
             if (next.y > MinCameraHeight) camera.transform.position = next;
+        }
+
+        private void ReadAmbientKeys()
+        {
+            if (!classicVertexLighting) return;
+            bool changed = false;
+            if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus))
+            { _ambientLight.Increase(); changed = true; }
+            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus))
+            { _ambientLight.Decrease(); changed = true; }
+            if (changed)
+            {
+                float level = _ambientLight.Normalized;
+                Shader.SetGlobalVector("_DK2AmbientColour", new Vector4(level, level, level, 0));
+            }
         }
 
         private void ApplyClassicCamera()

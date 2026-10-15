@@ -5,6 +5,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
+using DK2.Core;
 using DK2.Presentation;
 using UnityEngine;
 
@@ -17,7 +18,8 @@ namespace DK2.Unity
         private struct Entry
         {
             public Vector4 PositionRadiusSquared;
-            public Vector4 ColourIntensity;
+            public Vector3 Colour;
+            public uint IntensityFlags;
         }
 
         private static readonly int SourcesId = Shader.PropertyToID("_DK2TileLightSources");
@@ -78,10 +80,12 @@ namespace DK2.Unity
                     ClassicPointLight light = lights[index];
                     entry.PositionRadiusSquared = new Vector4(light.Position.X, light.Position.Y, light.Position.Z,
                         light.Radius * light.Radius);
-                    entry.ColourIntensity = new Vector4(light.Colour.X, light.Colour.Y, light.Colour.Z, light.Intensity);
+                    entry.Colour = new Vector3(light.Colour.X, light.Colour.Y, light.Colour.Z);
+                    entry.IntensityFlags = (uint)Math.Round(light.Intensity * 128f) | ((uint)light.Flags << 8);
                 }
                 changed |= !entry.PositionRadiusSquared.Equals(_entries[offset + index].PositionRadiusSquared)
-                    || !entry.ColourIntensity.Equals(_entries[offset + index].ColourIntensity);
+                    || !entry.Colour.Equals(_entries[offset + index].Colour)
+                    || entry.IntensityFlags != _entries[offset + index].IntensityFlags;
                 _entries[offset + index] = entry;
             }
             _counts[tile] = (uint)table.Count;
@@ -102,6 +106,19 @@ namespace DK2.Unity
                 _lastDirty = -1;
             }
             Publish();
+        }
+
+        public void Remove(TilePos position)
+        {
+            ThrowIfDisposed();
+            if (position.X < 0 || position.X >= _width || position.Y < 0 || position.Y >= _height)
+                throw new ArgumentOutOfRangeException(nameof(position));
+            int tile = position.Y * _width + position.X;
+            if (_counts[tile] == 0) return;
+            _counts[tile] = 0;
+            Array.Clear(_entries, tile * ClassicLightTable.MaximumSources, ClassicLightTable.MaximumSources);
+            _firstDirty = _lastDirty < 0 ? tile : Math.Min(_firstDirty, tile);
+            _lastDirty = Math.Max(_lastDirty, tile);
         }
 
         public void Clear()

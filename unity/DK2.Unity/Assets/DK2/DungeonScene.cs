@@ -79,6 +79,14 @@ namespace DK2.Unity
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly ClassicTorchLightBuffer _torchLights;
         private ClassicTileLightBuffer _tileLights;
+        private readonly ClassicWorldLightCache _worldLights;
+        private readonly ClassicLightFlags _torchFlags;
+        private TilePos[] _visibleLightTiles = System.Array.Empty<TilePos>();
+        private readonly HashSet<TilePos> _publishedLightTiles = new HashSet<TilePos>();
+        private ClassicCameraPose? _lightCameraPose;
+        private CameraViewport _lightViewport;
+        private float _lightViewDistance;
+        private static readonly ProfilerMarker LightMarker = new ProfilerMarker("DK2.Scene.PrepareLighting");
         private readonly ClassicCreatureShadows _creatureShadows;
         private readonly int _worldWidth;
         private readonly int _worldHeight;
@@ -115,7 +123,7 @@ namespace DK2.Unity
         /// with their real meshes; null keeps every one a placeholder.</param>
         /// <param name="lattice">Bends the classic terrain as DK2 does; null draws it straight.</param>
         public DungeonScene(Transform root, int worldWidth, int worldHeight, ClassicMeshes classic = null,
-            TerrainLattice lattice = null, bool creatureShadows = true)
+            TerrainLattice lattice = null, bool creatureShadows = true, bool cheapLighting = false)
         {
             _root = root;
             _lattice = lattice;
@@ -126,6 +134,8 @@ namespace DK2.Unity
             if (classic != null && classic.UsesClassicVertexLighting)
             {
                 _torchLights = new ClassicTorchLightBuffer(worldWidth, worldHeight);
+                _worldLights = new ClassicWorldLightCache(worldWidth, worldHeight);
+                _torchFlags = cheapLighting ? ClassicLightFlags.CheapTorch : ClassicLightFlags.NormalTorch;
                 Shader.SetGlobalFloat("_DK2InitialAmbientPreview", classic.NativeInitialAmbient ? 1 : 0);
             }
             if (classic != null)
@@ -137,6 +147,7 @@ namespace DK2.Unity
 
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
         {
+            _worldLights?.SetTerrain(tile.Position, tile.PointLight);
             _torchGeometryDirty = true;
             // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
             // drawn so needs no furniture box; its objects are step 3.
@@ -480,6 +491,8 @@ namespace DK2.Unity
             ApplyTorchLight(light, torch);
             _torches[floorTileIndex] = go;
             _torchLights?.Set(floorTileIndex, torch);
+            _worldLights?.SetTorch(new TilePos(floorTileIndex % _worldWidth, floorTileIndex / _worldWidth),
+                ClassicPointLight.FromTorch(torch, _torchFlags));
             _creatureShadows?.SetTorch(torch);
         }
 
@@ -495,6 +508,8 @@ namespace DK2.Unity
             Light light = go.GetComponent<Light>();
             if (light != null) ApplyTorchLight(light, torch);
             _torchLights?.Set(floorTileIndex, torch);
+            _worldLights?.SetTorch(new TilePos(floorTileIndex % _worldWidth, floorTileIndex / _worldWidth),
+                ClassicPointLight.FromTorch(torch, _torchFlags));
             _creatureShadows?.SetTorch(torch);
         }
 
@@ -505,6 +520,7 @@ namespace DK2.Unity
 
             _torches.Remove(floorTileIndex);
             _torchLights?.Remove(floorTileIndex);
+            _worldLights?.SetTorch(new TilePos(floorTileIndex % _worldWidth, floorTileIndex / _worldWidth), null);
             _creatureShadows?.RemoveTorch(floorTileIndex);
         }
 
@@ -548,6 +564,44 @@ namespace DK2.Unity
             _tileLights.Set(table);
         }
 
+        public void PrepareClassicLighting(Camera camera, float nativeViewDistance)
+        {
+            if (_worldLights == null || camera == null) return;
+            using (LightMarker.Auto())
+            {
+                Vector3 position = camera.transform.position;
+                Vector3 forward = camera.transform.forward;
+                Vector3 up = camera.transform.up;
+                var pose = new ClassicCameraPose(
+                    new System.Numerics.Vector3(position.x, position.y, position.z),
+                    new System.Numerics.Vector3(forward.x, forward.y, forward.z),
+                    new System.Numerics.Vector3(up.x, up.y, up.z), camera.fieldOfView,
+                    camera.farClipPlane, 0, 0);
+                var viewport = new CameraViewport(Mathf.Max(camera.pixelWidth, Screen.width),
+                    camera.pixelWidth, camera.pixelHeight);
+                if (viewport.Width <= 0 || viewport.Height <= 0) return;
+                if (!_lightCameraPose.HasValue || !_lightCameraPose.Value.Equals(pose)
+                    || !_lightViewport.Equals(viewport) || _lightViewDistance != nativeViewDistance)
+                {
+                    TilePos[] polygon = ClassicLightVisibility.BuildPolygon(pose, viewport, nativeViewDistance);
+                    _visibleLightTiles = ClassicLightVisibility.EnumerateTiles(polygon);
+                    _lightCameraPose = pose; _lightViewport = viewport; _lightViewDistance = nativeViewDistance;
+                }
+                _worldLights.PrepareFrame(_visibleLightTiles);
+                _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
+                foreach (TilePos previous in _publishedLightTiles)
+                    if (!_worldLights.IsVisible(previous)) _tileLights.Remove(previous);
+                _publishedLightTiles.Clear();
+                foreach (ClassicLightTable table in _worldLights.VisibleTables)
+                {
+                    if ((uint)table.Tile.X >= (uint)_worldWidth || (uint)table.Tile.Y >= (uint)_worldHeight) continue;
+                    _tileLights.Set(table);
+                    _publishedLightTiles.Add(table.Tile);
+                }
+                _tileLights.Flush();
+            }
+        }
+
         /// <summary>Uploads changed lighting and terrain batches.</summary>
         public void Flush()
         {
@@ -567,6 +621,10 @@ namespace DK2.Unity
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>
         public void Clear()
         {
+            _worldLights?.Clear();
+            _publishedLightTiles.Clear();
+            _visibleLightTiles = System.Array.Empty<TilePos>();
+            _lightCameraPose = null;
             _tileLights?.Clear();
             _torchLights?.Clear();
             _creatureShadows?.Clear();

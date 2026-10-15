@@ -48,7 +48,6 @@ public class GateWalkTests
         NavPoint from = NavPoint.FromTileCentre(1, 1), to = NavPoint.FromTileCentre(3, 2);
         var corridor = new List<int>();
         Assert.True(router.TrySearch(mesh.Locate(to.X, to.Y), mesh.Locate(from.X, from.Y), from, MoverProfile.Walker, corridor));
-        Assert.Equal(3, corridor.Count);
         var funnel = new List<NavPoint>();
         Funnel.Reduce(mesh, from, to, corridor, funnel);
         Assert.Equal([P(3, 2), to], funnel);

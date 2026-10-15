@@ -1,176 +1,105 @@
 # Classic look Step 5 implementation plan
 
-> For agentic workers: execute milestones in order using executing-plans. The owner requires an independent subagent review of every milestone.
+**Goal:** Match DK2's camera and illumination while preserving original design.
 
-**Goal:** Match DK2's camera and illumination while preserving simulation behavior.
+**Spec:** [Classic look, Step 5](2026-10-09-classic-look.md#step-5-camera-and-lighting).
+Each milestone requires independent review. The owner requested serial builds,
+tests and Unity probes; isolated probes must not save or restart the owner's editor.
 
-**Architecture:** Camera and authored rendering inputs belong in engine-neutral
-data/presentation types. Unity applies those inputs through the existing URP
-adapter. Original assets remain install-backed; rendering changes do not alter
-gameplay state, RNG or hashes.
-
-**Tech stack:** C#, netstandard2.1, Unity 6000.6, URP, existing KWD readers.
-
-**Spec:** [Classic look plan, Step 5](2026-10-09-classic-look.md#step-5-camera-and-lighting).
-
-## Constraints and review focus
-
-- Read the binary before implementing an original rendering rule; keep raw
-  output under ignored reverse-engineering scratch and findings in the KB.
-- Preserve local editor settings and unrelated master changes.
-- The owner requested low CPU usage: one build/test process at a time,
-  targeted tests, and no repeated dk2tools status/coverage sweeps.
-- The owner authorized launching Unity and accepted the camera view on 2026-10-14.
-  Runtime comparisons and profiling remain pending, never inferred from tests.
-- Review aspect changes, camera rotations, zoom bounds, material blending,
-  hidden information and dense torch scenes explicitly.
+Rendering rules live in engine-neutral presentation types and the Unity URP
+adapter. Discovery needs independent scanned/explored simulation state; its
+snapshot and deterministic hash are version256. Lighting does not alter simulation.
+Original art remains install-backed through the asset provider.
 
 ## 5.1 — Reference and baseline
 
-**Files:** this plan; tools/classic-unity-probe/README.md; canonical camera,
-torch, material and fog research notes.
+- [x] Inventory binary/data evidence and establish pinned Level1/7/8 views.
+- [x] Define viewport, camera, ambient, fog and performance capture controls.
+- [x] Independent protocol review.
+- [ ] Capture matched original-game reference views with recorded display settings.
 
-- [x] Inventory existing evidence and identify renderer choices still unproved.
-- [x] Define repeatable Level1/7/8 comparisons and capture settings, recording
-  active camera, pipeline, ambient mode, lights and performance measurements.
-- [x] Request independent review; retain absent captures as pending.
-
-**Deliverable:** A repeatable comparison protocol and evidence map. Documentation
-readiness can pass headlessly; the runtime baseline requires owner availability.
-Protocol review passes (2026-10-14); runtime baseline remains pending.
-
-Evidence map:
-- [Camera](../research/classic-camera.md): shipped profiles and native projection;
-  exact startup sub-tile focus and input timing remain separate comparison limits.
-- [Torches](../research/wall-torches.md): placement and authored light inputs are
-  researched; native falloff/accumulation and Unity response mapping are not equivalent yet.
-- [Materials](../research/kmf-materials.md): texture modulation and brightness;
-  colour-space/exposure parity remains to be verified.
-- [Room floors](../research/room-floors-and-liquids.md) and
-  [walls](../research/wall-pieces.md): native terrain tint inputs; full lighting is unbuilt.
-- [Discovery](../research/fog-reveal-sources.md): two native bits and scanned terrain;
-  current presentation does not express their complete distinction.
-- [Controls](../research/controls.md): original ambient/gamma are user-adjustable.
+Protocol: [Unity probe README](../../tools/classic-unity-probe/README.md).
+Owner screenshots establish the requested orientation, not calibrated colour transfer.
 
 ## 5.2 — Camera
 
-**Files:** camera loading in DK2.Data; a ClassicCamera presentation model;
-DungeonRunner camera input/application; presentation camera tests.
+- [x] Trace authored records, projection, reset yaw, zoom and startup tile-centre focus.
+- [x] Implement authored camera and controls; keep whole-map framing diagnostic.
+- [x] Test viewport/aspect changes, zoom bounds/locks, yaw wrap, panning and startup focus.
+- [x] Independent camera core and startup reviews.
 
-- [ ] Trace record loading, projection, orientation, zoom and starting focus.
-- [ ] Pin shipped camera records and projection at multiple viewport sizes in
-  tests; exercise zoom saturation, yaw wrap and rotated panning.
-- [x] Replace arbitrary camera framing with authored ordinary-play settings;
-  retain explicit whole-map framing as a diagnostic mode.
-- [x] Run targeted tests and adapter compilation; request independent review.
-
-**Deliverable:** Authored camera settings and controls. Native input timing and
-intro/possession cameras remain separate unless their rules are researched here.
-The camera core passes fourteen headless cases, including the Level1 northern-gold
-landmark and the native matrix constructor's yaw/roll signs.
-Its scoped independent review and startup follow-up review pass (2026-10-14).
-Starting sub-tile focus and rendered framing remain pending original comparison.
+Evidence: [classic-camera.md](../research/classic-camera.md).
+The owner accepted the camera view. Native input timing, timed intro/possession
+cameras and active-bound transitions remain outside the ordinary camera model.
+The owner-requested zoom extension is the explicit deviation in ADR-0478.
 
 ## 5.3 — Materials and colour
 
-**Files:** ClassicMeshes, existing classic shaders and material tests.
+- [x] Trace texture modulation, RGB packing, boosted byte tints and additive/unlit behavior.
+- [x] Apply ordinary terrain and supported room-quarter tint rules; preserve authored materials.
+- [x] Verify tag replacement and material/alpha behavior in headless and GPU fixtures.
+- [x] Independent material and integration reviews.
 
-- [ ] Compare native texture modulation, vertex light and brightness with the
-  current colour-space, emission and transparency paths.
-- [ ] Test confirmed conversions and blending before changing the adapter.
-- [ ] Correct evidenced discrepancies; request independent review.
-
-**Deliverable:** Preserved texture/owner colours with documented colour-space
-and brightness rules. No arbitrary exposure tuning to hide missing lights.
-Authored terrain colour loading, boosted channels and scoped whole-room/wall
-tint application are built; 25 terrain data tests, 322 presentation tests and
-adapter compilation pass. Independent scoped review passes (2026-10-14);
-runtime comparison remains pending. Tags now replace terrain instance tint while
-preserving material self-illumination; the four-case Unity material probe and
-independent review pass (2026-10-15). Final colour transfer, quarter tint and
-unlit tint remain unproved.
+Evidence: [classic-lighting.md](../research/classic-lighting.md) and
+[KMF materials](../research/kmf-materials.md).
+No arbitrary exposure or gamma correction substitutes for a missing native input.
+Matched framebuffer colour transfer remains part of the original-game acceptance gate.
 
 ## 5.4 — Lighting
 
-**Files:** terrain/room light definitions and readers as needed; presentation
-lighting outputs; DungeonScene light application; focused lighting tests.
+- [x] Trace torch/terrain sources, radius response, bounded selection and rolling cache stamps.
+- [x] Implement native camera-volume clipping, tile enumeration and cache preparation.
+- [x] Publish automatic world sources and authoritative per-tile GPU tables.
+- [x] Implement static selection masks and both native animated lighting arms with authored bounds.
+- [x] Verify removal, camera movement, borders, all24 slots and resource lifecycle.
+- [x] Independently review arithmetic, visibility, cache, shader and integrated publication.
 
-- [ ] Trace ambient, torch, terrain/lava and Heart light inputs and falloff.
-- [ ] Implement confirmed inputs through the existing URP path; replace global
-  scene defaults only when their replacement has evidence.
-- [ ] Check active renderer/light-selection behavior before attributing torch
-  disappearance to a per-object light cap.
-- [ ] Verify light placement/colour/visibility headlessly, then review independently.
+Evidence: [classic-lighting.md](../research/classic-lighting.md),
+[visibility](../research/classic-light-visibility.md), ADR-0484 and ADR-0487.
+Cheap Lighting uses uniform radial light at animated draw translation; ordinary
+lighting uses the separately sampled instance arm. Their GPU fixtures preserve
+the binary's unusual centre/transform convention rather than normalizing it away.
 
-**Deliverable:** Evidenced world illumination. Torch disappearance and rendered
-brightness require a fixed-world camera-motion comparison when Unity is allowed.
-Torch input normalization, radius coefficients and the discrete lookup response
-are traced; a headless reference and shared adapter input conversion are built
-and independently reviewed (2026-10-15). The 348-case presentation suite passes.
-Vertex RGB packing before texture modulation is traced and independently
-verified. An opt-in URP vertex shader and GPU torch buffer are built; source
-review corrected offscreen cluster access. Arithmetic GPU checks and seven actual
-URP render cases pass with SRP Batcher enabled; independent integration review
-passes (2026-10-15). The preview remains opt-in pending scene comparisons. See classic-lighting.md sections5?7 for the
-singular-bin contract and preview limits. Framebuffer transfer, global/terrain
-illumination and matched runtime comparisons remain pending.
-Production scene check (2026-10-15): torch on/off captures confirm illumination
-at startup and after camera movement; the owner's reported absence is weak
-contrast, not a demonstrated missing light. A native-initial-ambient diagnostic
-passes the placeholder-sun isolation test; it stays off until missing fill
-inputs are traced, because unlit tops/arches otherwise turn black. Creature
-silhouettes are built under ADR-0482 and pass independent review and GPU checks;
-source qualifications, native bounds and original quality integration remain
-explicit preview limits. The owner accepted the brighter preview with native
-initial ambient disabled and confirmed visible Imp shadows (2026-10-15).
-Matched-original acceptance and busy-view profiling remain pending. Terrain
-point-light height loading/writing and the bounded light-selection core are built
-and independently reviewed; the presentation suite passes355 cases. Native
-source gathering is resolved in Q597. Explicit selected-table Unity publication,
-terrain/transparent/liquid tile anchors and authoritative empty-table handling
-are built and independently reviewed (ADR-0484). GPU and production-scene
-verification are recorded in classic-lighting.md section10. Prepared-cell rolling
-candidate order and native dirty-column invalidation are built (ADR-0487);
-automatic cache visibility/preparation (Q602) and lighting-mode publication remain unbuilt. The default
-Cheap Lighting option selects the separate animated instance-sampled torch arm
-(section9). Its headless reference is built and independently reviewed (section3);
-the animated caller's centre/transform and mode integration remain unbuilt.
+Preserve the owner-accepted brighter preview with Native Initial Ambient off.
+Native startup ambient is confirmed zero; the +/− control is implemented without
+registry persistence. Exceptional singular arithmetic, exact framebuffer transfer and
+original brightness acceptance remain explicit limits, not invented fill lights.
 
 ## 5.5 — Discovery and fog presentation
 
-**Files:** WorldView visibility/terrain selection; reveal-state tests;
-fog-reveal-sources.md as the canonical evidence source.
+- [x] Separate permanent scanned/explored state and implement researched producers.
+- [x] Render Fog/Claim Scan/reveal-through-fog distinctions without exposing hidden objects.
+- [x] Produce Sight of Evil's authored shot/first-update region request.
+- [x] Render the separate authored Sight fog overlay and its native opacity.
+- [x] Filter torches/effects with current visibility, including ordered worker-tick events.
+- [x] Independent simulation, presentation, shader and event-ordering reviews.
 
-- [ ] Trace scanned versus explored rendering and existing reveal exemptions.
-- [ ] Test ordinary, scanned, explored and reveal-through-fog tiles, including
-  room/object visibility; implement supported presentation distinctions.
-- [ ] Keep any missing simulation discovery state explicit rather than treating
-  it as cosmetic; request independent review.
-
-**Deliverable:** Correct visible terrain and hidden information for supported
-discovery states. No invented distance fog or dimming approximation.
-The existing scanned producer's prisoner/closed-door guards and per-term rounding
-are corrected and independently reviewed; eight focused tests pass. Independent
-explored state, its sight producer and rendering distinction remain unbuilt.
+Evidence and producer limits: [fog-reveal-sources.md](../research/fog-reveal-sources.md)
+and [keeper-spell-sight.md](../research/keeper-spell-sight.md).
+The discovery cadence deviation and missing game-mode seed are documented there.
+No mode is inferred merely from campaign selection. Sight's spell effects outside
+its visibility mask remain outside this camera/lighting step.
 
 ## 5.6 — Performance
 
-**Files:** existing profiler/capture tooling and the measured bottleneck's owner.
+- [x] Compare quiet and torch-heavy Level8 views with fixed world/camera conditions per view.
+- [x] Measure native preparation, allocations and URP submission against the legacy preview.
+- [x] Reuse prepared cells, source buffers and unchanged-frame visibility snapshots.
+- [x] Independent performance-path review.
+- [ ] Obtain usable GPU frame timings and a windowed whole-game frame-time capture.
 
-- [ ] Compare equivalent quiet and busy Level8 views using the baseline protocol.
-- [ ] Optimize only measured costs; check frame spikes, allocations, light
-  submission, transparency and changed-chunk work.
-- [ ] Verify unchanged simulation results and request independent review.
-
-**Deliverable:** Before/after CPU/GPU evidence, not a promised frame rate.
-Runtime profiling remains pending; the Unity editor is available.
+Measurements and limits: [verification](../research/classic-lighting-verification.md).
+Submission time is CPU time, not GPU execution or a claimed game frame rate.
+The warmed preparation path allocates no managed memory; measurements do not
+justify replacing original animation or reducing visual fidelity.
 
 ## 5.7 — Final comparison
 
-- [ ] Run the affected tests and one combined build/check pass.
-- [ ] Compare camera/material/light/fog results at the pinned reference views.
-- [ ] Request final milestone review and owner visual acceptance; list unresolved
-  differences in their canonical questions rather than closing them by assumption.
+- [x] Review all supported implementation milestones with independent subagents.
+- [x] Complete final combined regression, adapter, documentation and KB checks.
+- [x] Finish final Level1/7/8 campaign captures and inspect their images.
+- [ ] Compare pinned original/Unity views and obtain owner visual acceptance.
 
-**Deliverable:** Owner-accepted Step 5 with reproducible evidence. HUD, sound,
-modern replacement assets and unrelated simulation parity are outside this step.
+This step is not accepted solely because tests pass. The original-view gate
+requires the owner to compare the same position, viewport and display settings.
+HUD, sound, replacement assets and unrelated simulation parity are outside Step5.

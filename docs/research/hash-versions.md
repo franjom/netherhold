@@ -15,6 +15,9 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**256** — `0x9A3C71FDDDE1D657`. Independent explored and scanned tile masks are
+saved and hashed; ownership initializes exploration. See `fog-reveal-sources.md`.
+
 **255** — `0xE09E9405FB971F17`. The navigation mesh's locate cache (the original's
 `DAT_006E5AC0`, sixteen cells) is state, saved and hashed in place of the locate
 hint, and the whole-map build takes the original's reset diagonal, corner order,

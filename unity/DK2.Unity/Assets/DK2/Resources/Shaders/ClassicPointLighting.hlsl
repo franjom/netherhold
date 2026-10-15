@@ -33,4 +33,43 @@ float3 DK2PackedDiffuse(float3 normalizedLightSum)
 {
     return min(floor(max(normalizedLightSum, 0.0) * 255.0 + 0.00001), 255.0) / 255.0;
 }
+
+bool DK2InstancePointContribution(float3 sampleWS, float3 centre, float3 vertexOS, float3 normalOS,
+    float3x3 basis, float4 positionRadiusSquared, float4 colourIntensity, out float3 contribution)
+{
+    contribution = 0;
+    float3 delta = positionRadiusSquared.xyz - sampleWS;
+    float distanceSquared = (delta.x * delta.x + delta.y * delta.y) + delta.z * delta.z;
+    float radiusSquared = positionRadiusSquared.w;
+    if (radiusSquared <= 0 || distanceSquared >= radiusSquared) return true;
+    int index = (int)round(distanceSquared * 16.0 - 0.49999);
+    if (index < 0 || index >= 256) return false;
+    float3 direction = mul(transpose(basis), delta);
+    float3 d = direction - (vertexOS - centre);
+    float incidence = ((d.x * normalOS.x + d.z * normalOS.z) + d.y * normalOS.y) * colourIntensity.w;
+    if ((asuint(incidence) & 0x80000000u) != 0) return true;
+    if (index == 0)
+    {
+        if (incidence == 0) return false;
+        contribution = colourIntensity.rgb;
+        return true;
+    }
+    float attenuation = (radiusSquared - distanceSquared) * (0.25 + 16.0 / index) * (1.0 / radiusSquared);
+    if (!(attenuation > 0)) return true;
+    contribution = colourIntensity.rgb * min(incidence * attenuation, 1.0);
+    return true;
+}
+
+float3 DK2RadialContribution(float3 sampleWS, float4 positionRadiusSquared, float4 colourIntensity)
+{
+    float3 delta = positionRadiusSquared.xyz - sampleWS;
+    float distanceSquared = dot(delta, delta), radiusSquared = positionRadiusSquared.w;
+    if (radiusSquared <= 0 || distanceSquared >= radiusSquared) return 0;
+    int index = (int)round(distanceSquared * 16.0 - 0.49999);
+    if (index < 0 || index >= 256) return 0;
+    if (index == 0) return colourIntensity.rgb;
+    float factor = (0.25 + 16.0 / index) * (radiusSquared - distanceSquared)
+        * colourIntensity.w * (1.0 / radiusSquared);
+    return colourIntensity.rgb * min(factor, 1.0);
+}
 #endif

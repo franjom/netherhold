@@ -160,11 +160,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 255: the mesh's locate cache is state and the builder follows the original's orders (ADR-0486).
+        // HashVersion 256: independent explored discovery is saved and hashed beside scanning.
         // HashVersion 254: the hero and neutral players' creatures run no needs, need-anger or mood choosers (ADR-0485).
         // HashVersion 253: the approach is state 8, a walk resuming 199, not a flag on 199 (ADR-0483).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE09E9405FB971F17UL, sim.StateHash());
+        Assert.Equal(0x9A3C71FDDDE1D657UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

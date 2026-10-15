@@ -64,12 +64,15 @@ public struct TileState
     public int TagOrder;
 
     /// <summary>
-    /// Keepers that have discovered this tile: bit <c>n</c> belongs to player
+    /// Keepers that have scanned this tile: bit <c>n</c> belongs to player
     /// id <c>n</c>. This is our per-keeper representation, not a claim about
     /// DK2's packing. DK2 persists its live tile fog bit in saved games, so the
     /// information is simulation state and must be hashed and snapshotted.
     /// </summary>
     public PlayerMask DiscoveredBy;
+
+    /// <summary>The native explored layer (+8 bit 0x2000), independent of the scanned circle.</summary>
+    public PlayerMask ExploredBy;
 
     /// <summary>
     /// Whether this tile is floor that a worker <b>dug out</b> and nobody has
@@ -225,6 +228,12 @@ public struct TileState
 
     public readonly bool IsDiscoveredBy(PlayerId playerId) => DiscoveredBy.Contains(playerId);
 
+    public readonly bool IsExploredBy(PlayerId playerId) => ExploredBy.Contains(playerId);
+
+    public void SetExploredBy(PlayerId playerId) => ExploredBy = ExploredBy.With(playerId);
+
+    public void ClearExploredBy(PlayerId playerId) => ExploredBy = ExploredBy.Without(playerId);
+
     public void SetDiscoveredBy(PlayerId playerId)
     {
         if (playerId > MaxTaggingPlayerId)
@@ -254,6 +263,7 @@ public struct TileState
         hash.Add(GoldHeld);
         hash.Add(TaggedBy.Bits);
         hash.Add(DiscoveredBy.Bits);
+        hash.Add(ExploredBy.Bits);
         hash.Add(FreshlyDug ? (byte)1 : (byte)0);
         hash.Add(DigTaskOutlivesWallFor.Bits);
         hash.Add(TagOrder);
@@ -1370,6 +1380,12 @@ public sealed class WorldState
             .ToArray();
 
         var world = new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled);
+
+        // The terrain loader explores a tile for its owner, independently of sight.
+        foreach (PlayerState player in players)
+            for (int i = 0; i < tiles.Length; i++)
+                if (tiles[i].OwnerPlayerId == player.PlayerId)
+                    tiles[i].SetExploredBy(player.PlayerId);
 
         // The loader inserts a map room's tiles one by one (0x004C5C30), so the Prison's slot +0x09
         // sees it at one tile and turns Activation on (0x004E2B30, SlabChain).

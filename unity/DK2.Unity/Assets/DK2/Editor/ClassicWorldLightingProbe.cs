@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DK2.Presentation;
+using DK2.Core;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -43,6 +44,8 @@ namespace DK2.Unity.Editor
         {
             public bool Passed;
             public string Level;
+            public string UnityVersion, Cpu, GraphicsDevice, GraphicsApi, ColourSpace;
+            public int ViewportWidth, ViewportHeight;
             public bool NativeInitialAmbient;
             public string Pipeline;
             public bool SrpBatcher;
@@ -50,6 +53,7 @@ namespace DK2.Unity.Editor
             public int TorchCount;
             public int BufferCountBeforeFlush;
             public int BufferCountAfterFlush;
+            public int TileTableGridCount;
             public int MeshCount;
             public double ShadowPrepareMedianMs, ShadowPrepareP95Ms;
             public long ShadowPrepareAllocatedBytes;
@@ -64,7 +68,17 @@ namespace DK2.Unity.Editor
             public Color AmbientLight;
             public TorchInput[] TorchInputs;
             public Comparison[] Comparisons;
+            public Profile[] Profiles;
             public string Error;
+        }
+
+        [Serializable]
+        private sealed class Profile
+        {
+            public string View, Mode;
+            public int Samples, VisibleTables, SelectedSources;
+            public double PrepareMedianMs, PrepareP95Ms, SubmitMedianMs, SubmitP95Ms;
+            public long PrepareAllocatedBytes;
         }
 
         private const int Width = 1024, Height = 576;
@@ -107,6 +121,12 @@ namespace DK2.Unity.Editor
             if (level != "Level1" && level != "Level7" && level != "Level8")
                 throw new ArgumentException("DK2_LIGHTING_PROBE_LEVEL must be Level1, Level7 or Level8.");
             result.Level = level;
+            result.UnityVersion = Application.unityVersion;
+            result.Cpu = SystemInfo.processorType;
+            result.GraphicsDevice = SystemInfo.graphicsDeviceName;
+            result.GraphicsApi = SystemInfo.graphicsDeviceType.ToString();
+            result.ColourSpace = QualitySettings.activeColorSpace.ToString();
+            result.ViewportWidth = Width; result.ViewportHeight = Height;
             result.NativeInitialAmbient = Environment.GetEnvironmentVariable("DK2_NATIVE_AMBIENT_PROBE") == "1";
             int previousCount = Shader.GetGlobalInt("_DK2TorchGridCount");
             int previousWidth = Shader.GetGlobalInt("_DK2TorchGridWidth");
@@ -181,8 +201,24 @@ namespace DK2.Unity.Editor
                 result.BufferCountBeforeFlush = Shader.GetGlobalInt("_DK2TorchGridCount");
                 var scene = (DungeonScene)typeof(DungeonRunner).GetField("_scene", BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(runner);
+                var classicCamera = (ClassicCamera)typeof(DungeonRunner).GetField("_classicCamera", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(runner);
+                float viewDistance = classicCamera.NativeViewDistance;
+                var cache = (ClassicWorldLightCache)typeof(DungeonScene).GetField("_worldLights", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(scene);
+                var torchSources = (ClassicPointLight?[])((ClassicPointLight?[])typeof(ClassicWorldLightCache)
+                    .GetField("_torches", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(cache)).Clone();
+                Action<bool> setTorches = on =>
+                {
+                    for (int tile = 0; tile < torchSources.Length; tile++)
+                        if (torchSources[tile].HasValue)
+                            cache.SetTorch(new TilePos(tile % runner.Simulation.World.Width, tile / runner.Simulation.World.Width),
+                                on ? torchSources[tile] : null);
+                    scene.PrepareClassicLighting(probeCamera, viewDistance);
+                };
                 scene.Flush();
                 result.BufferCountAfterFlush = Shader.GetGlobalInt("_DK2TorchGridCount");
+                result.TileTableGridCount = Shader.GetGlobalInt("_DK2TileLightGridCount");
                 foreach (Transform child in root.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = 31;
                 Light[] torches = runner.GetComponentsInChildren<Light>(true).Where(light => light.type == LightType.Point).ToArray();
                 result.TorchCount = torches.Length;
@@ -209,9 +245,9 @@ namespace DK2.Unity.Editor
                 result.SrpBatcher = batcher != null && (bool)batcher.GetValue(GraphicsSettings.currentRenderPipeline);
 
                 var comparisons = new List<Comparison>();
-                comparisons.Add(Compare("start", probeCamera, target, readback, torches, output));
+                comparisons.Add(Compare("start", probeCamera, target, readback, torches, output, setTorches));
                 probeCamera.transform.position += new Vector3(1, 0, 1);
-                comparisons.Add(Compare("shifted", probeCamera, target, readback, torches, output));
+                comparisons.Add(Compare("shifted", probeCamera, target, readback, torches, output, setTorches));
                 probeCamera.transform.position = result.CameraPosition;
                 RenderSettings.ambientMode = AmbientMode.Flat;
                 RenderSettings.ambientLight = Color.black;
@@ -219,7 +255,7 @@ namespace DK2.Unity.Editor
                 RenderSettings.reflectionIntensity = 0;
                 foreach (Light light in root.GetComponentsInChildren<Light>(true))
                     if (light.type == LightType.Directional) light.enabled = false;
-                comparisons.Add(Compare("torch-only", probeCamera, target, readback, torches, output));
+                comparisons.Add(Compare("torch-only", probeCamera, target, readback, torches, output, setTorches));
                 RenderSettings.ambientMode = ambientMode;
                 RenderSettings.ambientLight = ambientLight;
                 RenderSettings.ambientProbe = ambientProbe;
@@ -232,10 +268,25 @@ namespace DK2.Unity.Editor
                 scene.SetCreatureFrameTime(simulation.World.CurrentTick, 1);
                 presenter.Present(simulation.World);
                 scene.DrawCreatureFrame(simulation.World.CurrentTick, 1);
+                torchSources = (ClassicPointLight?[])((ClassicPointLight?[])typeof(ClassicWorldLightCache)
+                    .GetField("_torches", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(cache)).Clone();
                 foreach (Transform child in root.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = 31;
                 scene.DrawCreatureShadows(probeCamera, view, simulation.World);
                 torches = runner.GetComponentsInChildren<Light>(true).Where(light => light.type == LightType.Point).ToArray();
-                comparisons.Add(Compare("tick70", probeCamera, target, readback, torches, output));
+                comparisons.Add(Compare("tick70", probeCamera, target, readback, torches, output, setTorches));
+                if (Environment.GetEnvironmentVariable("DK2_LIGHTING_PROFILE") == "1")
+                {
+                    var profiles = new List<Profile>();
+                    ProfileView("quiet", probeCamera, target, scene, cache, viewDistance, profiles);
+                    TilePos busy = DensestTorchArea(torchSources, simulation.World.Width, simulation.World.Height);
+                    Vector3 focus = (Vector3)typeof(DungeonRunner).GetField("_cameraFocus", BindingFlags.NonPublic | BindingFlags.Instance)
+                        .GetValue(runner);
+                    probeCamera.transform.position += DungeonScene.Ground(busy.X + .5f, busy.Y + .5f) - new Vector3(focus.x, 0, focus.z);
+                    ProfileView("dense torches", probeCamera, target, scene, cache, viewDistance, profiles);
+                    probeCamera.transform.position = result.CameraPosition;
+                    scene.PrepareClassicLighting(probeCamera, viewDistance);
+                    result.Profiles = profiles.ToArray();
+                }
                 for (int warmup = 0; warmup < 5; warmup++) scene.DrawCreatureShadows(probeCamera, view, simulation.World);
                 var samples = new double[30];
                 long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
@@ -352,13 +403,15 @@ namespace DK2.Unity.Editor
         }
 
         private static Comparison Compare(string name, Camera camera, RenderTexture target, Texture2D readback,
-            Light[] lights, string output)
+            Light[] lights, string output, Action<bool> setTorches)
         {
             foreach (Light light in lights) light.enabled = true;
+            setTorches(true);
             Capture(camera, target, readback);
             Color32[] lit = Capture(camera, target, readback);
             File.WriteAllBytes(Path.Combine(output, name + "-torches.png"), readback.EncodeToPNG());
             foreach (Light light in lights) light.enabled = false;
+            setTorches(false);
             Color32[] unlit = Capture(camera, target, readback);
             File.WriteAllBytes(Path.Combine(output, name + "-without-torches.png"), readback.EncodeToPNG());
             var comparison = new Comparison { Name = name };
@@ -374,7 +427,64 @@ namespace DK2.Unity.Editor
                 comparison.MeanWithTorches += (lit[index].r + lit[index].g + lit[index].b) / (765f * lit.Length);
                 comparison.MeanWithoutTorches += (unlit[index].r + unlit[index].g + unlit[index].b) / (765f * lit.Length);
             }
+            foreach (Light light in lights) light.enabled = true;
+            setTorches(true);
             return comparison;
+        }
+
+        private static void ProfileView(string view, Camera camera, RenderTexture target, DungeonScene scene,
+            ClassicWorldLightCache cache, float distance, List<Profile> profiles)
+        {
+            scene.PrepareClassicLighting(camera, distance);
+            int selectedSources = 0;
+            foreach (ClassicLightTable table in cache.VisibleTables) selectedSources += table.Count;
+            foreach (bool native in new[] { false, true })
+            {
+                const int count = 120;
+                var prepare = new double[count]; var submit = new double[count];
+                long allocated = 0;
+                for (int sample = -20; sample < count; sample++)
+                {
+                    long bytes = GC.GetAllocatedBytesForCurrentThread();
+                    long start = System.Diagnostics.Stopwatch.GetTimestamp();
+                    if (native) scene.PrepareClassicLighting(camera, distance);
+                    else Shader.DisableKeyword(ClassicTileLightBuffer.Keyword);
+                    long prepared = System.Diagnostics.Stopwatch.GetTimestamp();
+                    long delta = GC.GetAllocatedBytesForCurrentThread() - bytes;
+                    RenderPipeline.SubmitRenderRequest(camera, new RenderPipeline.StandardRequest { destination = target });
+                    long end = System.Diagnostics.Stopwatch.GetTimestamp();
+                    if (sample < 0) continue;
+                    prepare[sample] = (prepared - start) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    submit[sample] = (end - prepared) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    allocated += delta;
+                }
+                Array.Sort(prepare); Array.Sort(submit);
+                profiles.Add(new Profile { View = view, Mode = native ? "native tables" : "legacy torch preview",
+                    Samples = count, VisibleTables = cache.VisibleTables.Length, SelectedSources = selectedSources,
+                    PrepareMedianMs = prepare[count / 2], PrepareP95Ms = prepare[(int)(count * .95)],
+                    SubmitMedianMs = submit[count / 2], SubmitP95Ms = submit[(int)(count * .95)],
+                    PrepareAllocatedBytes = allocated });
+            }
+        }
+
+        private static TilePos DensestTorchArea(ClassicPointLight?[] sources, int width, int height)
+        {
+            var sums = new int[(width + 1) * (height + 1)];
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                sums[(y + 1) * (width + 1) + x + 1] = (sources[y * width + x].HasValue ? 1 : 0)
+                    + sums[y * (width + 1) + x + 1] + sums[(y + 1) * (width + 1) + x] - sums[y * (width + 1) + x];
+            TilePos best = default; int maximum = -1;
+            for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                int left = Math.Max(0, x - 6), right = Math.Min(width, x + 7);
+                int top = Math.Max(0, y - 6), bottom = Math.Min(height, y + 7);
+                int count = sums[bottom * (width + 1) + right] - sums[top * (width + 1) + right]
+                    - sums[bottom * (width + 1) + left] + sums[top * (width + 1) + left];
+                if (count > maximum) { maximum = count; best = new TilePos(x, y); }
+            }
+            return best;
         }
 
         private static Color32[] Capture(Camera camera, RenderTexture target, Texture2D readback)

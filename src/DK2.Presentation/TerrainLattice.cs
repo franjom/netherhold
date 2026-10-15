@@ -144,7 +144,7 @@ public sealed class TerrainLattice
     {
         if (!_world.Contains(x, y)) return true;
         TileState tile = _world.Tile(x, y);
-        if (_world.FogOfWarEnabled && !tile.IsDiscoveredBy(_viewer)) return true;
+        if (_world.FogOfWarEnabled && !tile.IsExploredBy(_viewer)) return true;
         return _database.TerrainById(tile.TerrainId).IsSolid || _world.DoorAt(x, y) is not null;
     }
 
@@ -152,7 +152,7 @@ public sealed class TerrainLattice
     {
         if (!_world.Contains(x, y)) return (_defaultWibbleH, _defaultWibbleV, 0f, 0f);
         TileState tile = _world.Tile(x, y);
-        if (_world.FogOfWarEnabled && !tile.IsDiscoveredBy(_viewer)) return (_defaultWibbleH, _defaultWibbleV, 0f, 0f);
+        if (_world.FogOfWarEnabled && !tile.IsExploredBy(_viewer)) return (_defaultWibbleH, _defaultWibbleV, 0f, 0f);
         // A definition not read from a file has no bytes; DK2 would read zeros.
         TerrainWibble t = _database.TerrainById(tile.TerrainId).Wibble ?? default;
         return (t.WibbleH << 7, t.WibbleV << 7, t.LeanH(layer) / 512f, t.LeanV(layer) / 512f);
