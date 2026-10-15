@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**249** — `0x8C0EAA543500440F`. The room ticks run after the creatures and before the player frame, as `0x004EC450` does: the Casino's, the Portal's and room health move there, and the Library, Training Room, Guard Room and Workshop step `0x004E8C60` angers a room's place-holders when both alignments meet in it (ADR-0479); no new saved field.
+
 **248** — `0xC51BD03052ECA96A`. The Heart's opening sequence is timed in game turns (DK2's turn 1 is our tick 0), so the ordinary frame's wait ends one tick earlier than under 247; no new saved field.
 
 **247** — `0x9B410CB31AADB8BD`. The Dungeon Heart room's ordinary frame (regeneration, ruin) waits until nine seconds after its opening sequence starts, as `0x004D9A60` does (ADR-0475); no new saved field. The view effects of the sequence are neither saved nor hashed.

@@ -8,8 +8,9 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>The Casino room: its lever, and the gold it settles at the lever every four game
-/// seconds (ADR-0188).</summary>
+/// <summary>The Casino room's tick handler (<c>0x004D6270</c>): the jackpot party, and the gold it
+/// settles at the lever every four game seconds (ADR-0188). The owner's lever command is
+/// <see cref="CasinoLeverSystem"/>, which runs with the commands (ADR-0479).</summary>
 /// <remarks>The settlement is the room's own update, the body around <c>0x004D6783</c>. For each
 /// creature in the room it calls <c>0x004D7180</c> with four seconds of that creature's purse
 /// change, negated. Stingy, that is +32: added to a gold pile on the lever's tile, or a new pile
@@ -27,8 +28,6 @@ public sealed class CasinoSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        PullLevers(context);
-
         // The room update 0x004D6270: the jackpot party's part every turn, then, with no party on at
         // the turn's start, the settlement.
         long period = (long)CasinoRules.SettlementSeconds * SimulationTiming.TicksPerSecond;
@@ -55,7 +54,7 @@ public sealed class CasinoSystem : ISimulationSystem
 
     /// <summary>The owner's lever command (<c>0x00513E50</c>): a lever of this player's, toggled.
     /// A tile with no lever of theirs does nothing.</summary>
-    private static void PullLevers(SimulationContext context)
+    internal static void PullLevers(SimulationContext context)
     {
         foreach (PullCasinoLeverCommand request in context.Commands<PullCasinoLeverCommand>())
         {

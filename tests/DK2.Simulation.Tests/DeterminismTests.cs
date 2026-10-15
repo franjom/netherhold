@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 246: a fleeing creature counts only Guard Rooms near its attacker (ADR-0473).
+        // HashVersion 249: room ticks run between the creatures and the players, and mixed rooms anger (ADR-0479).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xC51BD03052ECA96AUL, sim.StateHash());
+        Assert.Equal(0x8C0EAA543500440FUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

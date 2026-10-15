@@ -54,11 +54,9 @@ So DK2 runs every room's `Room_Tick` after the thing pass and before the player
 frame. `Room_Tick` (`0x004E4B00`, called only from `0x004EC450`) is the room
 type's handler and the common health step. Tagging, selling and building are
 player actions, dispatched at the start of the frame through `0x005119C0`.
-Ours places the room-tick work in three spots (`SimulationSystems.cs`):
-`GraveyardSystem`, `CasinoSystem` and `TempleSacrificeSystem` before the
-creatures, `CombatPitSystem` inside the thing pass, and `PortalSystem` and
-`RoomHealthSystem` in the player frame. Ours also sweeps messages first by
-choice (ADR-0245).
+Ours now runs the room handlers it builds in the same slot, a room-tick phase
+between the creatures and the player frame (ADR-0479, section 9). Ours also
+sweeps messages first by choice (ADR-0245).
 
 ## 3. Battles are presentation
 
@@ -199,8 +197,45 @@ keeper-spell record into the world's 122-byte table at `+0x1604`
   contexts `Steering_Init` installs through `0x004D2770`–`0x004D27D0`
   (`steering-behaviours.md` §1).
 
-## 9. What remains
+## 9. The room types' tick handlers
+
+Slot `+0x15` of the room-type table `0x006A1E9F` (stride `0x29`) holds each
+type's tick handler, which `Room_Tick` calls before the common health step.
+
+| Type | Handler | What it does | Ours |
+|---|---|---|---|
+| 1 Treasury | `0x004F39A0` | the store sweep every 16th turn; `0x004F3A00` (unread) | `StoreSweepSystem` (turn base: Q596) |
+| 2 Lair, 26 Crypt | `0x004B4C20` | nothing | none |
+| 3 Portal | `0x004DBBE0` | arrivals | `PortalSystem` |
+| 4 Hatchery | `0x004DE0A0` | lays an egg each interval | `HatcherySystem` |
+| 5 Dungeon Heart | `0x004D9A60` | the Heart's frame | `DungeonHeartSystem`, `HeartDefenceSystem` |
+| 6 Library | `0x004E0740` | hated company; display flags near researchers | `HatedCompanySystem` |
+| 7 Training Room | `0x004F2E90` | hated company | `HatedCompanySystem` |
+| 8 Wooden Bridge | `0x004D5FA0` | not read here | |
+| 9 Guard Room | `0x004DDD70` | hated company; its posts' object state | `HatedCompanySystem` |
+| 10 Workshop | `0x004F4B20` | hated company; random effects | `HatedCompanySystem` |
+| 11 Prison | `0x004E2AC0` | the door's auto-close | |
+| 12 Torture, 13 Temple, 14 Graveyard, 21 hero gate | see their records | effects only | none |
+| 15 Casino | `0x004D6270` | ends parties, settles gold | `CasinoSystem` (the lever is a command) |
+| 16 Combat Pit | `0x004D7A60` | the pit (`combat-pit.md` §8) | `CombatPitSystem` |
+
+The hated-company step `0x004E8C60` was the one unbuilt rule. Every 32 turns, a
+room holding both an `IsEvil` creature and one without it angers each holder
+lacking `DoesntGetAngryWithEnemies` by eight seconds of
+`ModifyAngerInCompanyOfHatedCreaturesPerSecond`. Several effect handlers draw from
+the world's random stream, so they are not pure presentation in DK2; ours does not
+share that stream in any case.
+
+ADR-0479 moves `CasinoSystem`, `PortalSystem` and `RoomHealthSystem` into a
+room-tick phase after the creatures, with the store sweep, Heart defence and the
+new step. The owner's lever command, which DK2 dispatches with the frame's
+actions, stays at the old slot as `CasinoLeverSystem`. The Hatchery, Combat Pit
+and Heart frame stay: the Hatchery system also runs the eggs' and coops' object
+steps, the pit's system runs creature states, and the Heart's frame ends our
+tick by choice.
+
+## 10. What remains
 
 The 941 unread core functions are ranked in the local reading list. Every lead
-read so far turned out to be presentation, set-up or loader plumbing. The one
-outcome-shaped difference is where our room-tick work sits (section 2, Q595).
+read so far turned out to be presentation, set-up or loader plumbing, except the
+hated-company step (section 9).

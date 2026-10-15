@@ -10957,3 +10957,29 @@ moves a creature within a tick. The status-timer requests of the same effect
 (creature-status-effects.md §1) are separate and unbuilt. The look, eight grey mist
 puffs a crossing, awaits the owner's eye.
 
+## ADR-0479 — Room ticks between the creatures and the players
+**Date:** 2026-10-14 · **Status:** accepted · Research: binary-census.md §2, §9
+
+**Context.** `World_UpdateTurn` runs the thing pass, then `0x004EC450`, which runs every
+room's `Room_Tick` (the type's handler at slot `+0x15`, then the health step), then the
+player frame (Q595). Ours ran the Casino before the creatures and the Portal and room
+health inside the player frame. Reading the twelve unread handlers found one unbuilt rule:
+`0x004E8C60`, shared by the Library, Training Room, Guard Room and Workshop, angers a room's
+place-holders every 32 turns when both alignments meet there. The rest spawn effects, several
+drawing from the world's random stream.
+
+**Decision.** A `RoomTicks` phase between `Work` and `PlayerFrame` holds the store sweep,
+Heart defence, `CasinoSystem`, `PortalSystem`, the new `HatedCompanySystem` and
+`RoomHealthSystem`. The Casino's lever command (`0x00513E50`) is an action of the frame's
+start, so it splits out as `CasinoLeverSystem` at the old slot. The new step gives each holder without `DoesntGetAngryWithEnemies`
+eight seconds of variable 78 (1200) in the Treatment bucket, complaint 7, when the room holds
+an `IsEvil` creature and one without it. Hash 249, no new saved field.
+
+**Consequences.** The Hatchery stays in the needs phase, since its system also runs the
+eggs' and coops' object steps; the egg is taken to be inedible until it hatches, so laying
+after the eaters should not matter. The Combat Pit stays in the thing pass and the Heart's
+frame at the tick's end. Our rooms carry no id, so the step's phase is the room's lowest
+tile: the rule is DK2's, but the first angry turn of a room is not. Measured on Levels 1-4
+over seeds 1-20 against master 7ddf4603: wins 18/5/14/5 on both, the same seeds; one Level
+3 win moves from 3592 to 3700. The new step fires in none of the 80 runs, since no room there
+holds both alignments, so the reorder alone made that difference.

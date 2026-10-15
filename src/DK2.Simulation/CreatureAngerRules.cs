@@ -124,7 +124,7 @@ public static class CreatureAngerRules
     /// prison only (ADR-0074), <c>AngerNoWork</c>, the loaded 12, on each failed pass in <see cref="Systems.CreatureJobSystem"/>,
     /// and <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> +150 every four seconds in a
     /// cell (<see cref="PrisonRules.CellAngerPerApplication"/>, ADR-0171). That variable's
-    /// <i>other</i> reader, the mixed-alignment room rule, is still unbuilt.</summary>
+    /// <i>other</i> reader, the mixed-alignment room rule, is <see cref="Systems.HatedCompanySystem"/>.</summary>
     public static CreatureAnger PerSecond(
         WorldState world,
         GameDatabase database, CreatureDef creature, CreatureState state)
