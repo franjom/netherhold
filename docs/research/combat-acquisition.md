@@ -239,7 +239,9 @@ passes `0`.
    by the thing's class (`+0x12`): `0x800` for a door (4), `0xC00` for a secret
    door (flag bit 5), `0x400` for a trap (3, `0x0045E065`), `0x800` for an object
    (2) or any class but 0, 3, 4 and 6 (`0x0045E098`; a body, 6, takes its own arm); or the spell's range²; then
-   `SetState(199)` unless already in group 22 and not en route to a threat.
+   `SetState(199)` unless already in category 22, read through a walk (`0x00478050`), and not
+   en route to a threat: state 6 resuming 251 or 202 (`0x0045E0C0`-`0x0045E0F4`). The approach,
+   state 8 resuming 199, is left walking (ADR-0483).
 
 ## 7. The engagement record (`+0x4FE`…)
 
@@ -266,7 +268,7 @@ target's creature trigger tree is walked for **event 6** (Q366). With a target
 left: spell → `AttackRangeSquared` = the spell's `(range >> 12) · range`; melee
 → **`(MeleeRange + target.FootprintRadius / 2)² >> 12`** (`def+0x63A` is the
 footprint word, `steering-behaviours.md` §7). Then `SetState(199)` unless
-already in group 22. With no target left, the nibble is restored.
+already in category 22, read through a walk (`0x00478050`, ADR-0483). With no target left, the nibble is restored.
 
 ## 9. Built and not built (ADR-0163)
 

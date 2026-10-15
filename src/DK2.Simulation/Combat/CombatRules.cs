@@ -418,6 +418,5 @@ public static class CombatRules
         creature.FightTargetTileIndex = -1;
         creature.AttackType = 0;
         creature.AttackRangeSquared = 0;
-        creature.Approaching = false;
     }
 }

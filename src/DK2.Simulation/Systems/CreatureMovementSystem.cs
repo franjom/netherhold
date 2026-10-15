@@ -88,8 +88,11 @@ public sealed class CreatureMovementSystem : ISimulationSystem
 
             // Native fight states 199/200 have the movement bit even without a route: contact
             // steering and braking still run (combat-spacing.md).
-            // Other states retain the route gate until their movement dispatch is mirrored.
-            if (creature.Body.PathTotalCount == 0 && creature.Dk2StateId is not (CombatStates.Engaging or 200)) continue;
+            // Other states retain the route gate until their movement dispatch is mirrored. The
+            // approach, state 8, keeps 199's exemption it had as a flag: whether its mover
+            // (0x00470C80) steers with no route is unread (ADR-0483).
+            if (creature.Body.PathTotalCount == 0
+                && creature.Dk2StateId is not (CombatStates.Engaging or 200 or CombatStates.Approaching)) continue;
 
             // DK2 moves an imp only in its walking states, 6, 7 and 265 (the update's gate skips type
             // id 1 at 0x0048A202; state 6 integrates it itself), so a kicked or working imp stands

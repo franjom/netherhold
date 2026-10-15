@@ -85,12 +85,12 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
     /// not a worker, or is Good, and whose fight target is a live creature gains its record's
     /// <c>ExpPerSecond</c> made per-tick by the loader; above level 1 scaled by stat 15 and kept
     /// within 0 to 0xFFFE. So the hero Dwarf earns in a fight (owner, 2026-10-05) and the Imp never.
-    /// The walk to the target is DK2's state 8, whose word fails the 199/200 test, so it earns
-    /// nothing; ours keeps 199 and flags the walk (<see cref="CreatureState.Approaching"/>, ADR-0366 amendment).</summary>
+    /// The walk to the target is state 8, which fails the 199/200 test, so it earns nothing (ADR-0366
+    /// amendment).</summary>
     public static int CombatExperiencePerOriginalTick(
         WorldState world, GameDatabase database, CreatureDef creature, CreatureState state)
     {
-        if (state.Dk2StateId is not (Combat.CombatStates.Engaging or 200) || state.Approaching) return 0;
+        if (state.Dk2StateId is not (Combat.CombatStates.Engaging or 200)) return 0;
         if (creature.Flags.HasFlag(CreatureFlags.IsWorker) && !creature.Flags.HasFlag(CreatureFlags.IsGood)) return 0;
         if (state.FightTargetKind != Combat.FightTargetKind.Creature) return 0;
         CreatureState? target = world.CreatureById(state.FightTargetId);

@@ -15,9 +15,9 @@ namespace DK2.Simulation.Combat;
 /// target gone, reselects an ordinary creature target and ends when the choice changes, counts
 /// the fear counter without the withdrawal test, gives up a retreating target after the chase
 /// variable, ends strictly in reach with line of sight, and refreshes its route every ten calls
-/// even when the target has not moved — a Flanker aiming behind the target. The state is a flag
-/// on the creature (<see cref="CreatureState.Approaching"/>); <c>spFighting</c> runs when it is
-/// clear. Behind the target is read from its velocity, not its facing (Q400).</summary>
+/// even when the target has not moved — a Flanker aiming behind the target. It is a walk resuming
+/// 199 (<see cref="CombatStates.Approaching"/>), so it keeps the Combat category's place and pays
+/// no combat experience. Behind the target is read from its velocity, not its facing (Q400).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-approach-and-victory.md")]
 public static class ApproachRules
 {
@@ -49,7 +49,8 @@ public static class ApproachRules
         if (!context.Navigation.TryRouteToStance(me, targetX, targetY, EntryOptions)
             && !(me.FightTargetKind == FightTargetKind.Door && BesideDoor(context, me, targetX, targetY)))
             return false;
-        me.Approaching = true;
+        // SetState(8), then 199 into the resume slot: a walk from 199 back to 199, so no hook runs.
+        CreatureStateMachine.BeginTravel(context.Hooks, me, CombatStates.Approaching, CombatStates.Engaging);
         me.RouteRefreshCountdown = RefreshCalls;
         me.ChaseTicks = 0;
         context.Emit(SystemName, "approaches", $"creature={me.Id} target={me.FightTargetId} kind={(byte)me.FightTargetKind} to={targetX},{targetY}");
@@ -76,10 +77,11 @@ public static class ApproachRules
     [ThreadStatic] private static List<Fixed16Vector>? _scratch;
     private static List<Fixed16Vector> Scratch => _scratch ??= [];
 
-    /// <summary>Leaves state 8 for <c>spFighting</c>, which runs next tick: the route is dropped.</summary>
+    /// <summary>Leaves state 8 for <c>spFighting</c>, which runs next tick: the route is dropped and
+    /// 199 resumed, unless a disengage has already idled the creature.</summary>
     public static void End(CreatureState me, string reason, SimulationContext context)
     {
-        me.Approaching = false;
+        if (me.Approaching) CombatStates.Arrive(context, me);
         me.StopMoving();
         context.Emit(SystemName, "approach_ends", $"creature={me.Id} reason={reason}");
     }
@@ -108,7 +110,12 @@ public static class ApproachRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        // 1. A target gone from the world.
+        // 1. A target gone from the world, or none: a victor's or one let go while walking.
+        if (me.FightTargetKind == FightTargetKind.None)
+        {
+            End(me, "no_target", context);
+            return false;
+        }
         CreatureState? target = me.FightTargetKind == FightTargetKind.Creature ? world.CreatureById(me.FightTargetId) : null;
         if (me.FightTargetKind == FightTargetKind.Creature && target is null)
         {
@@ -143,7 +150,6 @@ public static class ApproachRules
         {
             // A follower holds on and keeps its leader (0x00470F0A).
             if (me.FollowLeaderId != 0) return true;
-            me.Approaching = false;
             FearRules.EnterFlee(context, me, mine, fromApproach: true);
             return false;
         }

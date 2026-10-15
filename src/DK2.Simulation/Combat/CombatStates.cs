@@ -14,6 +14,10 @@ internal static class CombatStates
 {
     private const string SystemName = "combat";
 
+    /// <summary>8, en route to a fight target: a walk resuming the caller, <see cref="Engaging"/> (ours has no 200), entered by the
+    /// approach (<c>0x00471D10</c>, combat-approach-and-victory.md §1).</summary>
+    public const int Approaching = 8;
+
     /// <summary>199, "engaging in battle": the fight, entered from any state.</summary>
     public const int Engaging = 199;
 

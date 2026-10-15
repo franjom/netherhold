@@ -54,7 +54,6 @@ public static class VictoryRules
         me.FightTargetTileIndex = -1;
         if (victory) me.AttackType = CombatRules.AttackMode.Victorious;
         me.AttackRangeSquared = 0;
-        me.Approaching = false;
         me.StopMoving();
         context.Emit(SystemName, victory ? "target_died" : "target_down", $"creature={me.Id} victim={victim}");
     }

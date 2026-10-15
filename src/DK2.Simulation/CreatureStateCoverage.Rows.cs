@@ -21,7 +21,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(5, typeof(Systems.CreatureJobSystem), nameof(Systems.CreatureJobSystem.NeutralIdleState)));
         rows.Add(Built(6, typeof(StateShadow), nameof(StateShadow.TravelToPoint)));
         rows.Add(Built(7, typeof(StateShadow), nameof(StateShadow.TravelToRoom)));
-        rows.Add(Unbuilt(8, "read in combat-approach-and-victory.md; not built"));
+        rows.Add(Built(8, typeof(CombatStates), nameof(CombatStates.Approaching)));
         rows.Add(Unreachable(9, "Q415 (STRONGLY INFERRED): no SetState, wrapper, +0xDF store or room-table site enters it, travel-states.md §7"));
         rows.Add(Built(10, typeof(ImpStates), nameof(ImpStates.TaskSelection)));
         rows.Add(Built(11, typeof(ImpStates), nameof(ImpStates.AfterDrop)));

@@ -1147,11 +1147,11 @@ public sealed class CreatureState
     public bool ReaperCanAcquireFight = true;
     public bool ReaperIsAttackable = true;
 
-    /// <summary>State 8, the walk to a fight, as a flag on the fighting creature; while set
+    /// <summary>In state 8, the walk to a fight, which resumes 199; while in it
     /// <see cref="Combat.ApproachRules"/> runs instead of <c>spFighting</c>. <see cref="RouteRefreshCountdown"/>
     /// is the state's <c>+0xF5</c>, <see cref="ChaseTicks"/> the creature's <c>+0x53D</c>, and
     /// <see cref="RetreatingCreature"/> DK2's own name for the target given up (combat-approach-and-victory.md).</summary>
-    public bool Approaching;
+    public bool Approaching => Dk2StateId == Combat.CombatStates.Approaching;
     public int RouteRefreshCountdown;
     public int ChaseTicks;
     public int RetreatingCreature;
@@ -1459,7 +1459,6 @@ public sealed class CreatureState
         hash.Add(ReaperStateAgeTicks);
         hash.Add(ReaperCanAcquireFight);
         hash.Add(ReaperIsAttackable);
-        hash.Add(Approaching);
         hash.Add(RouteRefreshCountdown);
         hash.Add(ChaseTicks);
         hash.Add(RetreatingCreature);
