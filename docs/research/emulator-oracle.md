@@ -8,7 +8,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: **Q600**, **Q601** (raised here).
+Questions: **Q600**, **Q601**, **Q602** (raised here).
 
 ADR-0481 owns the decision and its limits; this page owns what has been run and what it found.
 Setup, the request format and when to reach for it are in `reverse-engineering/README.md`.
@@ -68,10 +68,19 @@ step with the earlier capture.
     on lava. A fresh idle Level 7 (`level7-dump`, dumps at ticks 7, 100 and 500) holds 3 on both
     Hearts' centres in all three, the 1% Heart's included after its heart object is gone at tick
     21. The 2026-09-17 Level 7 dump that held floor there is unexplained.
-- **The water flag.** The per-tick caller `0x004D5A40` sets every mover global but
-  `0x006EC9E4` (water), which keeps the last route request's value. The test sets it per
-  creature, as our profile does. Whether the stale value ever changes a steering answer in play
-  is not measured.
+- **The water flag (Q602).** The per-tick caller `0x004D5A40` sets every mover global but
+  `0x006EC9E4` (water), so a creature's steering reads whatever the flag's last writer left.
+  Its one reader is `Nav_StepCost` `0x004C8BD0`, the router's and `Avoid_Walls`' step cost. Its
+  four writers: the route request `0x004D0F60` and `Creature_CanRouteTo` `0x004D0E60` (definition
+  `+0x686` bit 4), and two step tests, `0x0048EBF0` and the possession one `0x0040F6B0` (that bit
+  or `Creature_IsFlying`). Every shipped creature has the bit but the Vampire and the Unique
+  Vampire, so the stale value can differ from a creature's own only beside one. The step cost
+  refuses a step between a water byte and a non-water one only while the flag is 0: a Vampire
+  steering after any other creature's writer may take such steps, and any creature steering after
+  a Vampire's request may not. By a survey of the shipped THINGS files and maps (2026-10-15),
+  Vampires are placed on 11 maps, eight with water (Level 13: 29 of them, 510 water tiles); a
+  Graveyard makes more. The test gives each case
+  its own value, as our profile does; whether the difference moves an outcome is not measured.
 
 ## Confidence
 
