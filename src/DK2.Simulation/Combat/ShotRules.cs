@@ -404,6 +404,20 @@ public static class ShotRules
     {
         if ((definition.ShotProcessFlags & eventBit) == 0) return;
         WorldState world = context.World;
+        if (definition.ProcessType == 25)
+        {
+            if (eventBit == FirstTickEvent && shot.Data1 != 0)
+            {
+                var request = new SightRegionRequest(shot.OwnerPlayerId,
+                    new TilePos(shot.PosX >> 12, shot.PosY >> 12),
+                    unchecked((ushort)shot.Health), unchecked((ushort)shot.Data1));
+                context.Events.Emit(new SimEvent(context.Tick, SystemName, "sight_region_requested", $"shot={shot.Id}")
+                {
+                    SightRegion = request,
+                });
+            }
+            return;
+        }
         if (definition.ProcessType == ReaperRules.ProcessType)
         {
             ReaperRules.Create(context, shot);

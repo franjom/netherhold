@@ -21,6 +21,27 @@ public class ClassicCameraTests
     };
 
     [Fact]
+    public void LevelStartFocusUsesTileCentresAndLiteralHeightIndependentOfProfilePosition()
+    {
+        Vector3 focus = ClassicCamera.LevelStartFocus(new TilePos(14, 28));
+        Assert.Equal(new Vector3(14.5f, 1f, -28.5f), focus);
+        var ordinary = new ClassicCamera(Profile(), initialYaw: ClassicCamera.LevelStartYaw);
+        var altered = new ClassicCamera(Profile() with { X = 99999, Y = -12345, Z = 45678 },
+            initialYaw: ClassicCamera.LevelStartYaw);
+        var viewport = new CameraViewport(640, 640, 480);
+        Assert.Equal(ordinary.Pose(focus, viewport), altered.Pose(focus, viewport));
+    }
+
+    [Theory]
+    [InlineData(0, 0, .5f, -.5f)]
+    [InlineData(5, 15, 5.5f, -15.5f)]
+    [InlineData(75, 9, 75.5f, -9.5f)]
+    public void LevelStartFocusConvertsBothAuthoredTileCoordinates(int x, int y, float worldX, float worldZ)
+    {
+        Assert.Equal(new Vector3(worldX, 1, worldZ), ClassicCamera.LevelStartFocus(new TilePos(x, y)));
+    }
+
+    [Fact]
     public void LevelStartUsesNativeDiagonalYawWithoutChangingAuthoredPitch()
     {
         CameraThing profile = Profile();

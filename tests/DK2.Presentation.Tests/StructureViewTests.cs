@@ -220,7 +220,7 @@ public sealed class StructureViewTests
         var (database, world) = Fixture(fog: true);
         var view = new WorldView(database);
         Assert.Empty(view.Structures(world));
-        foreach (DoorState door in world.Doors) world.Tile(door.X, door.Y).SetDiscoveredBy(1);
+        foreach (DoorState door in world.Doors) world.Tile(door.X, door.Y).SetExploredBy(1);
         StructureView[] doors = view.Structures(world).ToArray();
         Assert.Equal(2, doors.Length);
         Assert.Contains(doors, door => door.MeshYaw == 0x600);

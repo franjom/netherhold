@@ -112,7 +112,7 @@ namespace DK2.Unity
         public bool TrySet(int tileIndex, in TileView tile)
         {
             bool draws = (!tile.Pieces.IsEmpty && tile.PieceKeys != null)
-                || tile.RoomKeys != null || tile.BedKeys != null;
+                || tile.RoomKeys != null || tile.BedKeys != null || !tile.SightFogOverlay.IsEmpty;
             if (_lattice != null)
             {
                 // A change reaches its 3×3 cells, and they bend the pieces one tile further.
@@ -269,6 +269,9 @@ namespace DK2.Unity
             _tileMaterialOrder.Clear();
             _tileMaterialSeen.Clear();
             AddTile(x, y, tile);
+            if (!tile.SightFogOverlay.IsEmpty)
+                Add(_classic.Piece(tile.SightFogOverlay), 0, DungeonScene.Ground(x + .5f, y + .5f),
+                    x, y, fogOpacity: tile.SightFogOpacity);
 
             // In the tile's own first-use order, so Append meets materials in the order the old
             // in-place build did and the chunk's submeshes come out in the same order.
@@ -319,16 +322,16 @@ namespace DK2.Unity
             bool undamaged = pieces.Quarters == QuarterKind.Top;
             bool tagged = tile.Tagged;
             for (int side = 0; side < 4; side++)
-                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, undamaged), side, centre, x, y, tagged);
-            if (pieces.HasTop) Add(_classic.Piece(keys.Top), 0, centre, x, y, tagged);
-            if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y, tagged);
+                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, undamaged), side, centre, x, y, tagged, tile.AmbientTint);
+            if (pieces.HasTop) Add(_classic.Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint);
+            if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y, tagged, tile.AmbientTint);
             if (pieces.Quarters == QuarterKind.None) return;
 
             for (int q = 0; q < 4; q++)
             {
                 Vector2 offset = QuadrantCentres[q];
                 Add(_classic.Piece(keys.Quarter(pieces.QuarterSet, pieces.QuarterPiece(q))),
-                    TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y, tagged);
+                    TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y, tagged, tile.AmbientTint);
             }
         }
 
@@ -338,7 +341,7 @@ namespace DK2.Unity
         {
             RoomPieceKeys keys = tile.RoomKeys;
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
-            AddSet(tile.RoomFloor, keys, null, centre, x, y, tile.AmbientTint);
+            AddSet(tile.RoomFloor, keys, null, centre, x, y, tile.AmbientTint, tile.QuarterAmbientTint);
 
             // A wall facing a tagged tile is tinted with it (0x00444F10's per-piece flag, which
             // 0x0043C310 reads).
@@ -371,13 +374,14 @@ namespace DK2.Unity
 
         /// <summary>A piece list's quarters and whole piece, from a room's pieces or a liquid's bed.</summary>
         private void AddSet(PieceSet set, RoomPieceKeys room, TerrainPieceKeys bed, Vector3 centre, int x, int y,
-            DK2.Data.Model.TerrainLightColour wholeTint = default)
+            DK2.Data.Model.TerrainLightColour wholeTint = default,
+            DK2.Data.Model.TerrainLightColour quarterTint = default)
         {
             if (set.HasQuarters)
                 for (int q = 0; q < 4; q++)
                     if (set.HasQuarter(q))
                         Add(_classic.Piece(Key(room, bed, set.QuarterPiece(q))), set.QuarterRotation(q),
-                            Quadrant(centre, q), x, y);
+                            Quadrant(centre, q), x, y, tint: quarterTint);
             if (set.HasWhole) Add(_classic.Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y,
                 tint: wholeTint);
         }
@@ -404,7 +408,7 @@ namespace DK2.Unity
             centre + new Vector3(QuadrantCentres[quadrant].x, 0f, QuadrantCentres[quadrant].y);
 
         private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y, bool tagged = false,
-            DK2.Data.Model.TerrainLightColour tint = default)
+            DK2.Data.Model.TerrainLightColour tint = default, byte? fogOpacity = null)
         {
             if (piece == null) return;
             Quaternion turn = Quaternion.Euler(0f, 90f * rotation, 0f);
@@ -424,7 +428,8 @@ namespace DK2.Unity
             }
             for (int m = 0; m < piece.Triangles.Count; m++)
             {
-                Material material = tagged ? _classic.Tagged(piece.Materials[m])
+                Material material = fogOpacity is byte opacity ? _classic.SightFog(piece.Materials[m], opacity)
+                    : tagged ? _classic.Tagged(piece.Materials[m])
                     : _classic.TerrainTinted(piece.Materials[m], tint);
                 AddTriangles(material, piece.Triangles[m], start);
                 // DK2 draws a tagged piece a second time, additively (tag-highlight.md).

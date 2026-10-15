@@ -65,7 +65,7 @@ public class NavigationBytesOnRealDataTests
             Describe(RoomIndex.Build(simulation.World, simulation.Database, wanted)));
     }
 
-    /// <summary>The fill as it was before the table and the filtered sweep, kept as the reference.</summary>
+    /// <summary>Unoptimized per-tile/full-room fill with the current navigation writers.</summary>
     private static byte[] OldPath(GameDatabase database, WorldState world)
     {
         var bytes = new byte[world.TileCount];
@@ -80,6 +80,10 @@ public class NavigationBytesOnRealDataTests
         foreach (RoomInstance room in RoomIndex.Build(world, database))
             if (room.Definition.Construction == TileConstruction.DoubleQuad)
                 foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room)) bytes[tile] = NavBytes.PortalHole;
+
+        foreach (NavStamp stamp in world.NavStamps)
+            if (world.TileAtIndex(stamp.Tile).TerrainId == stamp.TerrainId)
+                bytes[stamp.Tile] = stamp.Byte;
 
         foreach (DoorState door in world.Doors)
         {

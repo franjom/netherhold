@@ -57,7 +57,9 @@ the dug-out parts of a level read as dug out. Colour is derived from each asset'
 key, so a terrain is always the same colour; see `PlaceholderProvider`. A tile marked
 for digging is tinted amber, and wall torches are placed by `TorchLayout`.
 
-WASD or the arrow keys pan and the mouse wheel zooms. The default Hand (`1` or `5`)
+WASD or the arrow keys pan and the mouse wheel zooms. With Classic Vertex Lighting,
+`=`/`+` and `-` adjust native ambient light; keypad plus/minus work too.
+The default Hand (`1` or `5`)
 uses left click to pick up a creature or toggle a diggable tile's excavation tag.
 Left drag applies the inverse of the starting tile's tag state to a rectangle;
 this drag policy is a modern interface choice, not a claim about DK2's exact drag behavior.
@@ -85,9 +87,9 @@ installed the editor. Pass `-p:UnityManagedDir=...` if the editor is not in
 
 ## What it does not do
 
-- **It has neither DK2's camera nor its lighting model.** Steps 0–4 of
-  `docs/plans/2026-10-09-classic-look.md` are built (`ClassicMeshes`, `TerrainChunks`,
-  `LiquidSurfaces`); step 5, camera and lighting, is not on master. A wall's damage
+- **Matched-original camera/lighting acceptance remains pending.** Authored camera,
+  native selected lighting and discovery presentation are built; current evidence
+  and limits are in `docs/plans/2026-10-14-classic-look-step5.md`. A wall's damage
   frame is unread, and converter output (`dk2tools convert`, GLB and PNG) is never loaded.
 - **It runs at DK2's rate.** `DungeonRunner.Update` accrues
   `Time.deltaTime × SimulationTiming.TicksPerSecond × speed` and ticks on whole ticks,

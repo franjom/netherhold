@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using DK2.Art.Kmf;
 using DK2.Data.Model;
+using DK2.Presentation;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -57,13 +59,14 @@ namespace DK2.Unity.Editor
                     new[] { Vector3.up, Vector3.up, Vector3.up },
                     new[] { Vector2.zero, Vector2.right, Vector2.up },
                     new[] { new[] { 0, 1, 2 } }, new[] { source });
-                foreach (TerrainLightColour tint in new[] { new TerrainLightColour(40, 60, 80), new TerrainLightColour(90, 10, 20) })
+                foreach (TerrainLightColour tint in new[] { new TerrainLightColour(40, 60, 80),
+                    new TerrainLightColour(90, 10, 20), new TerrainLightColour(265, 510, 300) })
                     foreach (bool tagged in new[] { false, true })
                     {
                         var chunks = new TerrainChunks(root.transform, classic, 1, 1);
                         // Exercise the emitted triangle/material boundary, including the room-wall tint argument.
                         typeof(TerrainChunks).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)
-                            .Invoke(chunks, new object[] { piece, 0, Vector3.zero, 0, 0, tagged, tint });
+                            .Invoke(chunks, new object[] { piece, 0, Vector3.zero, 0, 0, tagged, tint, null });
                         var emitted = (Dictionary<Material, List<int>>)typeof(TerrainChunks)
                             .GetField("_tileByMaterial", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(chunks);
                         foreach (Material material in emitted.Keys) owned.Add(material);
@@ -81,8 +84,9 @@ namespace DK2.Unity.Editor
                                     throw new InvalidOperationException("Tag overlay lost its additive blend or disabled depth writes.");
                                 continue;
                             }
+                            TerrainLightColour packed = ClassicTerrainTint.PieceColour(tint);
                             Color instance = tagged ? new Color(128f / 255f, 128f / 255f, 200f / 255f, 0)
-                                : new Color(tint.Red / 255f, tint.Green / 255f, tint.Blue / 255f, 0);
+                                : new Color(packed.Red / 255f, packed.Green / 255f, packed.Blue / 255f, 0);
                             Color expected = selfIllumination + instance;
                             Color actual = entry.Key.GetColor("_EmissionColor");
                             if (Mathf.Abs(expected.r - actual.r) > .0001f || Mathf.Abs(expected.g - actual.g) > .0001f
@@ -93,6 +97,12 @@ namespace DK2.Unity.Editor
                         }
                         result.Cases++;
                     }
+                Material additive = classic.ForTexture("", KmfBlend.Additive, 0);
+                owned.Add(additive);
+                if (classic.Tagged(additive) != additive
+                    || classic.TerrainTinted(additive, new TerrainLightColour(265, 510, 300)) != additive)
+                    throw new InvalidOperationException("Already saturated additive diffuse changed under instance tint.");
+                result.Cases++;
             }
             finally
             {

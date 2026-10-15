@@ -36,7 +36,12 @@ public readonly struct TileView
         PieceSet bed = default,
         TerrainPieceKeys? bedKeys = null,
         LiquidSurface surface = LiquidSurface.None,
-        TerrainLightColour ambientTint = default)
+        TerrainLightColour ambientTint = default,
+        TerrainLightColour quarterAmbientTint = default,
+        bool scanned = false,
+        ClassicPointLight? pointLight = null,
+        AssetRef sightFogOverlay = default,
+        byte sightFogOpacity = 0)
     {
         Position = position;
         Ground = ground;
@@ -57,6 +62,11 @@ public readonly struct TileView
         BedKeys = bedKeys;
         Surface = surface;
         AmbientTint = ambientTint;
+        QuarterAmbientTint = quarterAmbientTint;
+        Scanned = scanned;
+        PointLight = pointLight;
+        SightFogOverlay = sightFogOverlay;
+        SightFogOpacity = sightFogOpacity;
     }
 
     public TilePos Position { get; }
@@ -109,6 +119,9 @@ public readonly struct TileView
     /// terrain lattice reads of a tile beyond its terrain, so a change rebuilds the bend.</summary>
     public bool Explored { get; }
 
+    /// <summary>The viewer's permanent perception scan, independent of exploration.</summary>
+    public bool Scanned { get; }
+
     /// <summary>A door stands here, open or not (the lattice's door test).</summary>
     public bool HasDoor { get; }
 
@@ -132,6 +145,13 @@ public readonly struct TileView
 
     /// <summary>Added light for whole room pieces and neighbouring room walls (classic-lighting.md).</summary>
     public TerrainLightColour AmbientTint { get; }
+
+    public TerrainLightColour QuarterAmbientTint { get; }
+
+    public ClassicPointLight? PointLight { get; }
+
+    public AssetRef SightFogOverlay { get; }
+    public byte SightFogOpacity { get; }
 
     public bool IsRoom => !Furniture.IsEmpty;
 }
@@ -359,6 +379,7 @@ public sealed partial class WorldView
     private readonly GameDatabase _database;
     private readonly byte _viewingPlayerId;
     private readonly TerrainDef? _fogTerrain;
+    private readonly TerrainDef? _scanTerrain;
 
     /// <summary>
     /// Asset keys per terrain and room id, worked out once. A dictionary rather
@@ -405,6 +426,8 @@ public sealed partial class WorldView
         _viewingPlayerId = viewingPlayerId.Value;
         _fogTerrain = database.Terrain.Values.FirstOrDefault(t =>
             string.Equals(t.Name, "Fog Of War", StringComparison.OrdinalIgnoreCase));
+        _scanTerrain = database.Terrain.Values.FirstOrDefault(t =>
+            string.Equals(t.Name, "Claim Scan", StringComparison.OrdinalIgnoreCase));
 
         foreach (KeyValuePair<byte, TerrainDef> entry in database.Terrain)
         {
@@ -474,6 +497,35 @@ public sealed partial class WorldView
     /// asking every tile (ADR-0456).</summary>
     public int PreviewVersion { get; private set; }
 
+    private SightRegion? _sightRegion;
+    private bool _possessionView;
+
+    public void SetPossessionView(bool enabled)
+    {
+        if (_possessionView == enabled) return;
+        _possessionView = enabled;
+        PreviewVersion++;
+    }
+
+    public void SetSightRegion(SightRegion? region)
+    {
+        if (_sightRegion == region) return;
+        _sightRegion = region;
+        PreviewVersion++;
+    }
+
+    public bool ApplySightRegion(in SimEvent simEvent, WorldState world)
+    {
+        if (simEvent.SightRegion is not SightRegionRequest request || request.Viewer != _viewingPlayerId)
+            return false;
+        SetSightRegion(new SightRegion(simEvent.Tick, request.Position,
+            request.DurationTicks, request.RadiusTiles, world.Width, world.Height));
+        return true;
+    }
+
+    private bool AdmitsUnexplored(WorldState world, TilePos position) =>
+        _possessionView || (_sightRegion?.IsVisible(position, world.CurrentTick) ?? false);
+
     private bool ShowsTag(in TileState tile, TerrainDef terrain, int x, int y)
     {
         if (_previewing && x >= _previewX1 && x <= _previewX2 && y >= _previewY1 && y <= _previewY2)
@@ -503,12 +555,13 @@ public sealed partial class WorldView
         TileState tile = world.Tile(x, y);
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
 
-        if (world.FogOfWarEnabled &&
-            !tile.IsDiscoveredBy(_viewingPlayerId) &&
-            !terrain.IsRevealedThroughFog)
+        bool scanned = tile.IsDiscoveredBy(_viewingPlayerId);
+        bool explored = !world.FogOfWarEnabled || tile.IsExploredBy(_viewingPlayerId);
+        bool admitted = explored || AdmitsUnexplored(world, new TilePos(x, y));
+        if (!admitted && (!scanned || !terrain.IsRevealedThroughFog))
         {
-            TerrainDef fog = _fogTerrain ?? throw new InvalidOperationException(
-                "Fog of war is enabled but the database has no 'Fog Of War' terrain definition.");
+            TerrainDef fog = (scanned ? _scanTerrain : _fogTerrain) ?? throw new InvalidOperationException(
+                "Fog of war needs both 'Fog Of War' and 'Claim Scan' terrain definitions.");
             _terrainAssets.TryGetValue(fog.TerrainId, out AssetRef fogGround);
             _terrainSolid.TryGetValue(fog.TerrainId, out bool fogSolid);
 
@@ -521,7 +574,11 @@ public sealed partial class WorldView
                 fogSolid,
                 goldHeld: 0,
                 HealthPermille(fog.StartingHealth, fog.MaxHealth),
-                explored: false);
+                explored: false,
+                ambientTint: (fog.Flags & TerrainFlags.AmbientLight) != 0 && fog.Lighting is TerrainLighting fogLighting
+                    ? fogLighting.AmbientColour(fog.Flags) : default,
+                scanned: scanned,
+                pointLight: TerrainPointLight(world, x, y, tile));
         }
 
         _terrainAssets.TryGetValue(tile.TerrainId, out AssetRef ground);
@@ -531,25 +588,78 @@ public sealed partial class WorldView
         return new TileView(
             new TilePos(x, y),
             ground,
-            furniture,
-            terrain.IsOwnable ? tile.OwnerPlayerId : (byte)0,
+            admitted ? furniture : default,
+            admitted && terrain.IsOwnable ? tile.OwnerPlayerId : (byte)0,
             ShowsTag(tile, terrain, x, y),
             solid,
-            tile.GoldHeld,
-            HealthPermille(tile.Health, terrain.MaxHealth),
-            WallsOf(world, x, y, tile.TerrainId),
+            admitted ? tile.GoldHeld : 0,
+            HealthPermille(admitted ? tile.Health : terrain.StartingHealth, terrain.MaxHealth),
+            admitted ? WallsOf(world, x, y, tile.TerrainId) : default,
             PiecesOf(world, x, y, tile, terrain),
             _pieceKeys[tile.TerrainId],
-            !world.FogOfWarEnabled || tile.IsDiscoveredBy(_viewingPlayerId),
-            world.DoorAt(x, y) is not null,
-            RoomFloorOf(world, x, y, tile),
-            RoomKeysOf(world, tile),
+            explored,
+            admitted && world.DoorAt(x, y) is not null,
+            admitted ? RoomFloorOf(world, x, y, tile) : default,
+            admitted ? RoomKeysOf(world, tile) : null,
             BedOf(world, x, y, tile, terrain, out TerrainPieceKeys? bedKeys),
             bedKeys,
             SurfaceOf(tile, terrain),
             (terrain.Flags & TerrainFlags.AmbientLight) != 0 && terrain.Lighting is TerrainLighting lighting
-                ? lighting.AmbientColour(terrain.Flags) : default);
+                ? lighting.AmbientColour(terrain.Flags) : default,
+            _database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? tintRoom)
+                && (terrain.Flags & TerrainFlags.AmbientLight) != 0 && terrain.Lighting is TerrainLighting quarterLighting
+                ? ClassicTerrainTint.RoomQuarterColour(tintRoom.Construction, (RoomTypeId)tintRoom.RoomId,
+                    BridgeRules.SpannedTerrain(_database, tile) is { IsLava: true },
+                    quarterLighting.AmbientColour(terrain.Flags)) : default,
+            scanned,
+            TerrainPointLight(world, x, y, tile),
+            SightFogOverlay(world, new TilePos(x, y), explored, solid, out byte fogOpacity),
+            fogOpacity);
     }
+
+    private AssetRef SightFogOverlay(WorldState world, TilePos position, bool explored, bool solid,
+        out byte opacity)
+    {
+        opacity = 0;
+        if (explored || solid || _possessionView || _sightRegion is not SightRegion region
+            || !region.IsVisible(position, world.CurrentTick) || _fogTerrain is null) return default;
+        opacity = region.FogOpacity(position, world.CurrentTick);
+        return _pieceKeys[_fogTerrain.TerrainId].Side;
+    }
+
+    private ClassicPointLight? TerrainPointLight(WorldState world, int x, int y,
+        in TileState tile)
+    {
+        bool scanned = tile.IsDiscoveredBy(_viewingPlayerId);
+        bool unexplored = world.FogOfWarEnabled && !tile.IsExploredBy(_viewingPlayerId);
+        if (unexplored && !scanned && !AdmitsUnexplored(world, new TilePos(x, y))) return null;
+        TerrainDef selectedTerrain = _database.TerrainById(tile.TerrainId);
+        if (_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room))
+        {
+            if (room.Construction is not (TileConstruction.QuadConstruction or TileConstruction.Normal
+                or TileConstruction.DoubleQuad) || SameRoomMask(world, x, y, tile) != 0xFF) return null;
+        }
+        else if (unexplored && scanned)
+        {
+            if (!selectedTerrain.IsRevealedThroughFog)
+                selectedTerrain = _scanTerrain ?? throw new InvalidOperationException("Claim Scan terrain is missing.");
+        }
+        else if (world.DoorAt(x, y) is not null) return null;
+
+        if ((selectedTerrain.Flags & TerrainFlags.TerrainLight) == 0
+            || selectedTerrain.TerrainLightHeight is not Fp32 height
+            || selectedTerrain.Lighting is not TerrainLighting lighting) return null;
+        TerrainLightColour colour = lighting.TerrainColour(selectedTerrain.Flags);
+        if (unexplored && scanned && selectedTerrain.GoldValue == 0)
+            colour = new TerrainLightColour(
+                ClaimScanChannel(VariableTypeId.ClaimScanLightRed, 200),
+                ClaimScanChannel(VariableTypeId.ClaimScanLightGreen, 80),
+                ClaimScanChannel(VariableTypeId.ClaimScanLightBlue, 35));
+        return ClassicPointLight.FromTerrain(new TilePos(x, y), height, colour);
+    }
+
+    private int ClaimScanChannel(VariableTypeId id, int fallback) =>
+        _database.Variables.TryGet(id, out int value) ? value : fallback;
 
     /// <summary>The per-tile pass's liquid arm (<c>0x0043D1C5..0x0043D394</c>): water and lava
     /// terrain draw their surface; a bridge draws water's over water and none over lava.</summary>
@@ -1098,7 +1208,7 @@ public sealed partial class WorldView
             {
                 int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
                 if (!world.Contains(nx, ny) || SameRoomTile(world, nx, ny, tile)
-                    || (world.FogOfWarEnabled && !world.Tile(nx, ny).IsDiscoveredBy(_viewingPlayerId))) continue;
+                    || (world.FogOfWarEnabled && !world.Tile(nx, ny).IsExploredBy(_viewingPlayerId))) continue;
                 if (side == face) gate = gate.WithWholePiece(side, floor.WholePiece - 3, side - 1);
                 else if (TakesRoomWalls(world, nx, ny)) gate = gate.WithWholePiece(side, 6, side - 1);
             }
@@ -1504,9 +1614,13 @@ public sealed partial class WorldView
         return permille < 0 ? 0 : permille > 1000 ? 1000 : (int)permille;
     }
 
-    private bool IsVisible(WorldState world, TilePos position)
+    public bool CanShowTile(WorldState world, TilePos position)
     {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (!world.Contains(position)) return false;
         if (!world.FogOfWarEnabled) return true;
-        return world.Tile(position).IsDiscoveredBy(_viewingPlayerId);
+        return world.Tile(position).IsExploredBy(_viewingPlayerId) || AdmitsUnexplored(world, position);
     }
+
+    private bool IsVisible(WorldState world, TilePos position) => CanShowTile(world, position);
 }

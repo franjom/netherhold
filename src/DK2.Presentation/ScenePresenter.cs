@@ -47,12 +47,17 @@ public sealed class ScenePresenter
             Walls = tile.Walls;
             Pieces = tile.Pieces;
             Explored = tile.Explored;
+            Scanned = tile.Scanned;
+            PointLight = tile.PointLight;
+            SightFogOverlay = tile.SightFogOverlay;
+            SightFogOpacity = tile.SightFogOpacity;
             HasDoor = tile.HasDoor;
             RoomFloor = tile.RoomFloor;
             RoomKeys = tile.RoomKeys;
             Bed = tile.Bed;
             Surface = tile.Surface;
             AmbientTint = tile.AmbientTint;
+            QuarterAmbientTint = tile.QuarterAmbientTint;
         }
 
         public AssetRef Ground { get; }
@@ -64,12 +69,17 @@ public sealed class ScenePresenter
         public RoomWalls Walls { get; }
         public TerrainPieces Pieces { get; }
         public bool Explored { get; }
+        public bool Scanned { get; }
+        public ClassicPointLight? PointLight { get; }
+        public AssetRef SightFogOverlay { get; }
+        public byte SightFogOpacity { get; }
         public bool HasDoor { get; }
         public PieceSet RoomFloor { get; }
         public RoomPieceKeys? RoomKeys { get; }
         public PieceSet Bed { get; }
         public LiquidSurface Surface { get; }
         public TerrainLightColour AmbientTint { get; }
+        public TerrainLightColour QuarterAmbientTint { get; }
 
         public bool Equals(TileVisual other) =>
             Ground == other.Ground
@@ -81,18 +91,24 @@ public sealed class ScenePresenter
             && Walls == other.Walls
             && Pieces == other.Pieces
             && Explored == other.Explored
+            && Scanned == other.Scanned
+            && PointLight == other.PointLight
+            && SightFogOverlay == other.SightFogOverlay
+            && SightFogOpacity == other.SightFogOpacity
             && HasDoor == other.HasDoor
             && RoomFloor == other.RoomFloor
             && ReferenceEquals(RoomKeys, other.RoomKeys)
             && Bed == other.Bed
             && Surface == other.Surface
-            && AmbientTint == other.AmbientTint;
+            && AmbientTint == other.AmbientTint
+            && QuarterAmbientTint == other.QuarterAmbientTint;
 
         public override bool Equals(object? obj) => obj is TileVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged), GoldHeld, HealthPermille, Walls, Pieces,
-            HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface, AmbientTint));
+            HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface, AmbientTint, QuarterAmbientTint),
+            HashCode.Combine(Scanned, PointLight, SightFogOverlay, SightFogOpacity));
     }
 
     /// <summary>The part of a creature a renderer can see.</summary>
@@ -349,12 +365,13 @@ public sealed class ScenePresenter
             _tileSnapshot = [];
         }
 
-        if (!TilesUnchanged(world))
+        bool tilesUnchanged = TilesUnchanged(world);
+        if (!tilesUnchanged)
         {
             PresentTiles(world);
             SnapshotTiles(world);
         }
-        PresentTorches(world);
+        PresentTorches(world, tilesUnchanged);
 
         // Objects before creatures, because a creature stands on an object and
         // the text renderer draws them in that precedence -- one order, decided
@@ -446,23 +463,23 @@ public sealed class ScenePresenter
     }
 
     /// <summary>The torches after the tiles they hang on, in floor-tile order.</summary>
-    private void PresentTorches(WorldState world)
+    private void PresentTorches(WorldState world, bool tilesUnchanged)
     {
         if (_torches is null) return;
         IReadOnlyList<int> changed = _torches.Update(world);
-        if (_redrawTorches)
+        if (tilesUnchanged && changed.Count == 0 && !_redrawTorches) return;
+        bool redraw = _redrawTorches;
+        _redrawTorches = false;
+        int change = 0;
+        // Discovery and temporary Sight change independently of the terrain-only layout.
+        for (int index = 0; index < world.TileCount; index++)
         {
-            _redrawTorches = false;
-            var all = new List<int>();
-            for (int i = 0; i < world.TileCount; i++)
-                if (_torches.At(i) is not null || _torchesDrawn.Contains(i)) all.Add(i);
-            changed = all;
-        }
-
-        foreach (int index in changed)
-        {
-            if (_torches.At(index) is TorchView torch)
+            bool layoutChanged = change < changed.Count && changed[change] == index;
+            if (layoutChanged) change++;
+            bool admitted = _view.CanShowTile(world, new TilePos(index % world.Width, index / world.Width));
+            if (admitted && _torches.At(index) is TorchView torch)
             {
+                if (!redraw && !layoutChanged && _torchesDrawn.Contains(index)) continue;
                 ResolvedAsset mesh = Resolve(torch.Mesh);
                 if (_torchesDrawn.Add(index)) _target.CreateTorch(index, torch, mesh);
                 else _target.UpdateTorch(index, torch, mesh);

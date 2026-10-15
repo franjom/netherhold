@@ -7,7 +7,7 @@ using DK2.Core;
 
 namespace DK2.Presentation;
 
-/// <summary>Native tile-local selection; caller owns cache visibility, window order and refresh stamps.</summary>
+/// <summary>Native tile-local selection; ClassicLightWindow supplies cache order and refresh stamps.</summary>
 public sealed class ClassicLightTable
 {
     public const int MaximumStaticSources = 12, MaximumSources = 24;
@@ -19,16 +19,23 @@ public sealed class ClassicLightTable
     public TilePos Tile => _tile;
     public int StaticCount { get; private set; }
     public int Count { get; private set; }
+    public ClassicLightFrame StaticFrame { get; private set; }
     public ReadOnlySpan<ClassicPointLight> Lights => _lights.AsSpan(0, Count);
 
-    /// <summary>Candidates are visible 7x7 cache sources in row, then physical-column, list order.</summary>
+    /// <summary>Replaces static candidates in encounter order and invalidates the gathered cache stamp.</summary>
     public void RebuildStatic(ReadOnlySpan<ClassicPointLight> candidates)
     {
         BeginStatic();
         AppendStatic(candidates);
     }
 
-    internal void BeginStatic() => Count = StaticCount = 0;
+    internal void BeginStatic()
+    {
+        Count = StaticCount = 0;
+        StaticFrame = default;
+    }
+
+    internal void CompleteStatic(ClassicLightFrame frame) => StaticFrame = frame;
 
     internal void AppendStatic(ReadOnlySpan<ClassicPointLight> candidates)
     {

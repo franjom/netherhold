@@ -58,6 +58,19 @@ turn (Q534, 2026-10-05; CONFIRMED).** The presentation is the bridge's sink:
 start+64. At four turns a second that is 16 game seconds (the loop rate is
 `trigger-state.md` §6's, STRONGLY INFERRED).
 
+CONFIRMED by whole-body and instruction rechecks (2026-10-15): the radial
+value is clamped to255 before the visibility test. The terrain pass adds
+terrain27's art1 as a separate whole mesh on non-solid, unexplored tiles
+admitted by Sight, unless in possession view. Its RGB addition is zero and
+item flags are0x2090. The later pass stores `min(radialByte+64,255)/256` through
+[00571AD0](functions/00571AD0.md). [00572CF0](functions/00572CF0.md) supplies
+that scalar in preparation context+0x10; [00586190](functions/00586190.md)
+copies it to item+0x2C only for flag0x2000. That flag forces ordinary alpha
+blending without depth writes through [0057F090](functions/0057F090.md).
+The alpha sink [0058A970](functions/0058A970.md) packs `floor(255*scalar)`,
+giving opacity63..254. This overlays the authored fog mesh; it does not fade
+the actual terrain mesh or replace its lighting with a radial approximation.
+
 ## 3. Discovery and explored state
 
 **CONFIRMED mechanism and audited storage boundaries.** This is an additional
@@ -89,12 +102,14 @@ their scoped or provisional roles. They do not establish a clock-unit mapping.
 
 ## 4. Build and observation boundary
 
-**The cast is a simulation cast with an empty effect (ADR-0352).** `KeeperSpellRules`
-accepts spell 1 at a place: the permission (mana, cooldown, location 5, target 4), the
-payment, the one-shot mana word and both clocks, so later mana and cooldown tests see what
-DK2's see. No shot is made: process 25's only effect is §2's local region, and its
-64-update shot has no collision. The region, its clock (Q534) and any fog or discovery
-effect stay unbuilt; the modern view has no temporary Sight region.
+`KeeperSpellRules` accepts spell 1 at a place with the permission, payment and
+both cast clocks established in ADR-0352. It now creates the authored shot;
+process 25's first update emits a viewer-specific `SightRegionRequest` with
+the packed duration and radius. `SightRegion` implements §2's temporary mask;
+the presentation consumer replaces the previous region. `TileView` carries
+the separate fog mesh and packed opacity to the existing transparent terrain
+path. Neither discovery layer changes. The later health-20 effect and matched original-game visual
+comparison remain unbuilt or pending respectively.
 
 `KeeperView` captures raw terrain/owners/navigation, all rooms and all creatures,
 without filtering `DiscoveredBy`. Sight therefore grants it no additional

@@ -117,7 +117,7 @@ public static class ThingProjection
                     break;
 
                 case ActionPointThing t:
-                    PlaceActionPoint(world, t);
+                    PlaceActionPoint(world, database, t);
                     actionPoints++;
                     break;
 
@@ -274,7 +274,7 @@ public static class ThingProjection
         state.GoldHeld = thing.MoneyAmount;
     }
 
-    private static void PlaceActionPoint(WorldState world, ActionPointThing thing)
+    private static void PlaceActionPoint(WorldState world, GameDatabase database, ActionPointThing thing)
     {
         // DK2 copies coordinate words, copies only five bits out of Flags, and
         // scales WaitDelay once at load. Unchecked casts reproduce those
@@ -293,6 +293,8 @@ public static class ThingProjection
             WaitTimerTicks = unchecked((ushort)(
                 thing.WaitDelay * SimulationTiming.OriginalTicksPerGameSecond)),
         });
+        if ((thing.Flags & 0x10) != 0)
+            DiscoveryRules.Rectangle(world, database, world.ActionPoints[world.ActionPoints.Count - 1], explored: true);
     }
 
     private static void PlaceDoor(WorldState world, GameDatabase database, DoorThing thing) =>

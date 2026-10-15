@@ -22,9 +22,13 @@ public sealed class ClassicCamera
     private readonly CameraThing _profile;
     private Dk2Angle _yaw;
     public Fp32 Zoom { get; private set; }
+    public float NativeViewDistance => _profile.ViewDistance / (float)Fp32.One;
 
     /// <summary>The reset camera's yaw, preserved on entry to dungeon mode (classic-camera.md section4).</summary>
     public static readonly Dk2Angle LevelStartYaw = new(256);
+
+    /// <summary>Startup command7's requested focus, before active-bound clamping (classic-camera.md section4).</summary>
+    public static Vector3 LevelStartFocus(TilePos tile) => new(tile.X + .5f, 1f, -tile.Y - .5f);
 
     public ClassicCamera(CameraThing profile, Dk2Angle? initialYaw = null)
     {

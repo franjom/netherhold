@@ -194,6 +194,8 @@ public class KeeperSightTests
     {
         WorldState world = Idle();
         var sim = new GameSimulation(Db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
         KeeperAI keeper = Keeper1(1, new SimRandom(11));
         int casts = 0;
 
@@ -206,6 +208,15 @@ public class KeeperSightTests
 
         Assert.InRange(casts, 1, 40);
         Assert.Equal(100000 - (casts * 5000), world.Player(Keeper).Mana);
+        SimEvent[] regions = events.Events.Where(e => e.SightRegion is not null).ToArray();
+        Assert.Equal(casts, regions.Length);
+        Assert.All(regions, e =>
+        {
+            Assert.Equal(Keeper, e.SightRegion!.Value.Viewer.Value);
+            Assert.Equal(5, e.SightRegion.Value.RadiusTiles);
+            Assert.Equal(64, e.SightRegion.Value.DurationTicks);
+        });
+        sim.Run(64);
         Assert.Empty(world.Shots);
     }
 }

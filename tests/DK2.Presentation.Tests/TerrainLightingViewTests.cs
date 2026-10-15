@@ -23,6 +23,7 @@ public class TerrainLightingViewTests
             [], [], new GlobalVariables());
         var world = WorldState.FromMap(database, new LevelMap(1, 1, [new MapTile(1, 1, 0, 0)]),
             [1], fogOfWarEnabled: hidden);
+        if (hidden) world.Tile(0, 0).ClearExploredBy(1);
         TileView tile = new WorldView(database, 1).TileAt(world, 0, 0);
         Assert.Equal(new TerrainLightColour(red, red == 0 ? 0 : 20, red == 0 ? 0 : 30), tile.AmbientTint);
     }

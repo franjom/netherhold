@@ -96,9 +96,15 @@ projection comparison remains necessary before changing that tilt.
 CONFIRMED shipped keeper3 player camera tiles: Level1(14,28), Level7(5,15),
 Level8(75,9). 0x0051F0B0 copies the local player's camera coordinate pair to
 world+0x7235, alongside its local-player id, when the startup override is clear.
-The exact later startup sub-tile focus, intro transitions and camera pan input
-timing remain unread. A tile-centre starting focus is explicitly a provisional
-adapter placement, subject to the original-view acceptance gate.
+CONFIRMED (2026-10-15): startup command7, 0x00447D50 at0x00447E0B..0x00447E57,
+reads that pair through world virtual+0x324 (0x00509830). It zero-extends both
+tile words, shifts each left12 and adds0x800, fixes height at0x1000, forces
+mode3 with duration0 through0x0044A9E0, then calls0x00449AC0. Thus the requested
+focus is exactly `(tileX+0.5,tileY+0.5,1)`, not an inferred tile corner or an
+authored camera Z. The setter copies it unless focus is locked or a mode
+transition is active. Its follow-up0x00449B30 clamps each component to that
+axis's active minimum through maximum-minus-one. Intro transitions and native
+camera pan input timing remain outside this startup read.
 
 Classic Step5 camera tests can establish numerical conversion and bounds;
 they cannot establish matching rendered framing. The owner judged the Unity
