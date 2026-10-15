@@ -1,7 +1,6 @@
 # Unbuilt state categories: Casino, Research, Temple, Manufacture, Refused
 
-Branch `states/unbuilt-categories` (worktree `D:/DungeonKeeperRemake-states`), from master
-`2626d586`. Scope: 54 states that `coverage states` listed unbuilt in five categories. Each ends
+Branch `states/unbuilt-categories`, from master `2626d586`; on master since 96c3649d. Scope: 54 states that `coverage states` listed unbuilt in five categories. Each ends
 built, unreachable, or unbuilt with a named open question. Milestones in order: M-A Casino, M-B
 Research, M-C Temple, M-D Manufacture, M-E Refused part 1 (5, 69, 71, 86, 113, 126, 135, 211),
 M-F Refused part 2 (the other 24, grouped by entry path).

@@ -2,7 +2,7 @@
 
 The owner has OpenAI Codex available alongside Claude. This file holds the tasks
 worth giving it, phrased so they can be pasted directly. Status checked
-2026-10-08: the build briefs are closed; three read-only briefs stand.
+2026-10-15: the build briefs are closed; three read-only briefs stand.
 
 ## The division that makes sense
 
@@ -138,12 +138,13 @@ ordered world state, ADR-0103). Landed outside a brief: the M12 keeper slices of
 the battle step, pickup gates, casualty priority) and the 2026-09-30 tooling
 (pyghidra-mcp per agent, one record per function).
 
-**Other independent work worth a brief** (2026-10-08, not yet written up): the
+**Other independent work worth a brief** (2026-10-15, not yet written up): the
 simulation speed budget (`GOAL_ALIGNMENT.md` gap 4: `RunTimings` measures, nothing
-asserts); loading converted glTF art in the Unity view and catalogue entries for
-sound and music (goal 4); specials beyond Increase Level (`specials.md`); the
+asserts); loading converted glTF art in the Unity view (the classic look reads the
+install's KMF meshes directly instead) and catalogue entries for sound and music
+(goal 4); specials beyond Increase Level and Receive Imps (`specials.md`, ADR-0441); the
 rooms' remaining unbuilt state categories, one at a time (never two in
-`CategoryHooks` at once; `docs/HANDOFF.md` lists what is left).
+`CategoryHooks` at once; `CategoryHooks.Slots` holds each hook's status).
 
 ---
 

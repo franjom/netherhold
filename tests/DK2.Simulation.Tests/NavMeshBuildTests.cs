@@ -213,8 +213,9 @@ public class NavMeshBuildTests
     }
 
     /// <summary>The coarsening criterion (`0x004CC190`): a convex quad of one byte keeps whichever
-    /// diagonal is shorter. Here the reset's own diagonal (0,0)-(6,4) spans 52 squared units and
-    /// the other, (6,0)-(2,4), spans 32, so the pass takes it.</summary>
+    /// diagonal is shorter. Here the reset's own diagonal (6,0)-(0,4) (the original's, from
+    /// (x1,y0) to (x0,y1)) spans 52 squared units and the other, (0,0)-(2,4), spans 20, so the
+    /// pass takes it.</summary>
     [Fact]
     public void AQuadKeepsItsShorterDiagonal()
     {
@@ -222,12 +223,12 @@ public class NavMeshBuildTests
         mesh.Reset(0, 0, 6, 4);
         mesh.InsertRectangle(0, 0, 6, 4, NavBytes.Floor);
         mesh.InsertPoint(2, 4);
-        Assert.True(HasEdge(mesh, 0, 0, 6, 4));
+        Assert.True(HasEdge(mesh, 6, 0, 0, 4));
 
         mesh.CoarsenRectangle(0, 0, 6, 4);
 
-        Assert.False(HasEdge(mesh, 0, 0, 6, 4));
-        Assert.True(HasEdge(mesh, 6, 0, 2, 4));
+        Assert.False(HasEdge(mesh, 6, 0, 0, 4));
+        Assert.True(HasEdge(mesh, 0, 0, 2, 4));
         NavMeshTests.AssertInvariants(mesh);
     }
 

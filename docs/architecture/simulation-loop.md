@@ -11,8 +11,10 @@ not claim. The layering and the world's contents are in `docs/ARCHITECTURE.md`.
 > any process.
 
 Nothing more. It is **not** a claim about how DK2 orders its own updates or what
-its systems do; that ordering is UNKNOWN and ours is declared rather than
-measured (ADR-0013, `SimulationSystems`). DK2's tick *rate* is no longer open:
+its systems do. DK2's top-level frame (things, then room ticks, then players) is
+read and ours keeps the room-tick slot (`docs/ARCHITECTURE.md` §System order,
+ADR-0479); the order within it is declared rather than measured (ADR-0013,
+`SimulationSystems`). DK2's tick *rate* is no longer open:
 it is 4 ticks a game second, a tick of 250 ms, read from the binary and observed
 in a running process (ADR-0089), and `SimulationTiming` is the one place that
 relates ticks to seconds (ADR-0011).
@@ -40,8 +42,8 @@ records noise. The gate is cheap now and impossible to retrofit later.
 Tick N executes with `context.Tick == N`; afterwards `World.CurrentTick` is
 N+1. That ordering is our convention, chosen for legibility. Within `Tick`: player
 messages are acknowledged and swept (ADR-0245), the trigger executor runs for DK2
-turn N+1 (ADR-0152), the registered systems run in order, the trigger emitter
-records the turn, and the clock advances.
+turn N+1 (ADR-0152) and the level time limit counts down, the registered systems
+run in order, the trigger emitter records the turn, and the clock advances.
 
 `SimulationSystems.Default()` is the one declaration of which systems run and in
 what order (ADR-0013). It is what the scenario runner, the Unity `DungeonRunner`

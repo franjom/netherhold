@@ -15,6 +15,13 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**255** — `0xE09E9405FB971F17`. The navigation mesh's locate cache (the original's
+`DAT_006E5AC0`, sixteen cells) is state, saved and hashed in place of the locate
+hint, and the whole-map build takes the original's reset diagonal, corner order,
+split slots and constraint insertion (ADR-0486); `WorldSnapshot.FormatVersion`
+255. The fixture routes nothing, so only the version moves the pin.
+**254** — `0x14705036ECD12242`. The hero and neutral players' creatures run no needs, need-anger or mood choosers, the dispatcher's owner test (ADR-0485, Q599); no new saved field.
+
 **253** — `0xEA82DB139335F65D`. The approach is state 8, a walk resuming 199, instead of a flag on 199; the engagement re-enters 199 only outside the Combat category read through a walk (ADR-0483). `Approaching` is derived from the state and left the snapshot: `WorldSnapshot.FormatVersion` 253. `CombatSystem` skips corpses (Q598).
 
 **252** — `0x7326CEF9676EA896`. A creature walking to its fight target (our `Approaching`, DK2's state 8) earns no combat experience; ours paid it as if in state 199 (ADR-0366 amendment); no new saved field.

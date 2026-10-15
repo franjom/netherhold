@@ -1,8 +1,7 @@
 # level1-idle-001 — level 1 with nobody playing
 
-**Status:** protocol written 2026-09-09, **not yet run**. Predictions below are
-recorded *before* the capture on purpose; do not edit them afterwards. Record
-what happened underneath.
+**Status:** run 2026-09-09, `dk2run6.csv`; results under §Results. The predictions
+were recorded *before* the capture on purpose; do not edit them afterwards.
 
 ## Why this run exists
 

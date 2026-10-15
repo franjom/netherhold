@@ -32,6 +32,7 @@ public static class NeedRules
     /// Everything else still on our own activities (combat, leaving) is left alone.</summary>
     public static bool MayAsk(CreatureState creature, CreatureStateCategory need)
     {
+        if (!RunsNeeds(creature)) return false;
         if (creature.Activity == CreatureActivity.Idle) return true;
         if (creature.Activity is not (CreatureActivity.AtWork or CreatureActivity.GoingToJob)) return false;
         return CreatureStateMachine.HasState(creature) && Admits(creature, need);
@@ -97,7 +98,13 @@ public static class NeedRules
     /// <summary>Whether the needs routine runs for this creature at all: the dispatcher skips
     /// workers (definition flag bit 0) and the hero and neutral players' creatures.</summary>
     public static bool IsAsked(CreatureDef definition, CreatureState creature) =>
-        (definition.Flags & CreatureFlags.IsWorker) == 0 && PlayerIds.IsKeeper(creature.OwnerPlayerId);
+        (definition.Flags & CreatureFlags.IsWorker) == 0 && RunsNeeds(creature);
+
+    /// <summary>The dispatcher's owner test (<c>0x00476FC0</c>): the hero player's creatures
+    /// (<c>[0x006F254C]</c>) skip the need-anger routine, the needs routine and the mood choosers
+    /// outright, and the neutral player's (<c>[0x006F2548]</c>) run <c>0x004790A0</c> instead; only a
+    /// keeper's creatures are asked (Q599, ADR-0485).</summary>
+    public static bool RunsNeeds(CreatureState creature) => PlayerIds.IsKeeper(creature.OwnerPlayerId);
 
     /// <summary>The sleep latch: <c>TimeSleep</c> (<c>+0x5D6</c>) non-zero and <c>TimeAwake</c>
     /// (<c>+0x5D2</c>) passed since the creature last woke.</summary>

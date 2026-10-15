@@ -191,14 +191,14 @@ not required to fix the backlog, but do not add to it.
 
 | | budget | currently |
 |---|---|---|
-| open-question row | **800 characters** | 476 rows, none over |
+| open-question row | **800 characters** | 548 rows, none over |
 | XML doc comment | **12 lines** | worst is 29 |
 | inline comment | **6 lines** | worst is 19 |
-| comment lines per file | **40%** | worst is 59% |
-| commit message body | **15 lines** | the last 25 run 0–15 |
-| research doc | **400 lines** | 2 of 158 over |
+| comment lines per file | **40%** | worst is 61% |
+| commit message body | **15 lines** | the last 25 run 0–10 |
+| research doc | **400 lines** | 2 of 202 over |
 | ADR | **50 lines** (amendment **15**) | already met — do not regress |
-| `docs/HANDOFF.md` | **500 lines** | 131 |
+| `docs/HANDOFF.md` | **500 lines** | 217 |
 
 An ADR carries the decision and the reason. The *evidence* goes in the research
 doc. A commit message says why the change was needed, not what the
@@ -208,7 +208,7 @@ investigation felt like.
 backlog cannot drown the signal, and a whole-file measure (length, comment
 ratio) fails only if your change made it worse — a one-line fix to a long
 document is not the moment to demand a split. `--all` reports the backlog
-(78 items today, mostly oversized comment blocks). `--message <file>` checks
+(79 items today, mostly oversized comment blocks). `--message <file>` checks
 a commit body, for a commit-msg hook. Budgets live in one place,
 `DocBudgets` in `src/DK2.Tools/Commands/DocsCommand.cs`; changing one there without changing
 this table is a bug.

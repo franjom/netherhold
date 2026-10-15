@@ -8,7 +8,7 @@ them touches `src/`. The other half of the split is
 
 Every row here must still be open in `docs/research/open-questions.md`, which is
 the one home for a question's status. This page carries only the **starting
-point** for the work; last checked against that file on 2026-10-08. To find the
+point** for the work; last checked against that file on 2026-10-15. To find the
 newest question id before taking a number:
 
 ```sh

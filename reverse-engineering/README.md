@@ -61,7 +61,8 @@ To add a function: read it in Ghidra for its calling
 convention, out-pointer and record layout, check it reads no mutable global, and add a
 test after `OriginalFixed16Tests` that sweeps the band edges and counts the arms it
 reaches. A divide fault in the original is outside its domain and is counted, not
-compared. The traps it has cost are in `docs/TRAPS.md`.
+compared. The traps it has cost are in `docs/TRAPS.md`; what it has found is in
+`docs/research/emulator-oracle.md`.
 
 ## What is in here
 

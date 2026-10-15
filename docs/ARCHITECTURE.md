@@ -92,9 +92,10 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
 order is part of the simulation's definition: two systems touching the same state
 in a different order are a different game. The sequence is the list in that method
 and is not copied here; it is built from named phases (`Commands`, `RoomLifecycle`,
-`KeeperActions`, `ThingPass`, `Work`, `PlayerFrame`, `Needs`, `Choosers`, `Verdict`)
-that only label stretches of the one list. Before the systems, `GameSimulation.Tick`
-acknowledges player messages and runs the trigger executor (ADR-0152, ADR-0245).
+`KeeperActions`, `ThingPass`, `Work`, `RoomTicks`, `PlayerFrame`, `Needs`, `Choosers`,
+`Verdict`) that only label stretches of the one list. Before the systems,
+`GameSimulation.Tick` acknowledges and sweeps player messages, runs the trigger
+executor and counts the level time limit down (ADR-0152, ADR-0245).
 
 The load-bearing constraints, with the per-position reasoning in the file's own
 XML doc: the hand acts before any creature does; marks land before the work that
@@ -108,9 +109,11 @@ second alone, so exactly one system does; experience is the last creature system
 nothing that died or walked out this second is promoted on the way through the door;
 the level's verdict (`DungeonHeartSystem`) and the world's own records come after it.
 
-**UNKNOWN: DK2's own per-tick subsystem ordering.** Flame's disassembly names the
-subsystems but not their sequence. This order is ours, chosen to be explicable
-rather than to match something nobody has measured.
+**DK2's top-level frame is read; most of our order within it is not.** DK2's per-turn
+update runs the thing pass, then every room's tick, then every player's frame
+(`docs/research/binary-census.md` §2); `RoomTicks` holds that slot (ADR-0479). The rest
+of the sequence, including our `Needs` and `Choosers` phases after the player frame, is
+ours, chosen to be explicable rather than measured against DK2.
 
 ## World state
 
@@ -544,6 +547,9 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
 - **No Flame identifier in `src/`, `tests/` or `unity/`**, comments included
   (`FlameIdentifierTests`, ADR-0080). A document may *cite* a Flame name as
   Flame's.
+- The Unicorn emulator (GPLv2) is used, never committed: `tests/DK2.Oracle.Tests` runs
+  `DKII.EXE`'s own functions through `tools/oracle/dk2oracle.py` and skips them when
+  `unicorn.dll` is absent (ADR-0481).
 - Decompiler output never enters the repository, anywhere (ADR-0046);
   `reverse-engineering/` is gitignored except its README.
 - OpenKeeper facts carry provenance in `THIRD-PARTY-NOTICES.md`; wiki content is

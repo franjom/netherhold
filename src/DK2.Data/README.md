@@ -27,14 +27,14 @@ install-gated test so the status claim and the assertion cannot drift apart.
 | `KwdMap` | MAP(100) — `u32 width`, `u32 height`, then exactly `width × height × 4` bytes, one tile per cell in row-major order |
 | `KwdTerrainRooms` | TERRAIN(110) at 552 bytes, ROOMS(120) at 1055 — both self-validating, because summing the documented field widths reproduces the stride exactly |
 | `KwdTraps`, `KwdDoors` | TRAPS(130) at 579, DOORS(140) at 616 — below |
-| `KwdKeeperSpells` | KEEPERSPELLS(150) — 13 records of 406 bytes, of which three bytes are read: Create Imp's cast cost and an imp's standing upkeep (Q53, Q55) |
-| `KwdCreatures` | CREATURES(170) — 5449 bytes standalone, 5537 when embedded in a globals file (88 extra trailing bytes). Gameplay fields only; the ~45 art-resource blocks are skipped |
+| `KwdKeeperSpells` | KEEPERSPELLS(150) — 13 records of 406 bytes: name, cast cost, upkeep, cooldown, target and location selectors, flags, and the shot and bonus-shot fields DK2's loader `0x004F7CE0` copies (Q53, Q55; `research-tree.md` §5) |
+| `KwdCreatures` | CREATURES(170) — 5449 bytes standalone, 5537 when embedded in a globals file (88 extra trailing bytes). Gameplay fields, plus each art-resource slot's integer animation timing; the art resources themselves are skipped |
 | `KwdPlayers` | PLAYERS(180) — below |
 | `KwdTaggedRecords` | THINGS(190) and TRIGGERS(210), the two types that are not a fixed stride: both are self-describing as `u32 tag; u32 payloadSize; u8[payloadSize]` |
 | `KwdThings` | one typed class per THINGS payload tag, 194 through 205. `DK2.Simulation`'s `ThingProjection` places what it can (ADR-0101) |
 | `KwdTriggers` | TRIGGERS' common tail, the eight-byte union and the type-aware parameter views (ADR-0092) |
 | `KwdVariables` | VARIABLES(230) — 16 bytes each, `u32` id plus a 12-byte payload whose shape depends on the id |
-| `KwdObjects` | OBJECTS(240) — 145 records of 894 bytes, of which only the last 82 are gameplay |
+| `KwdObjects` | OBJECTS(240) — 145 records of 894 bytes: the gameplay tail (the last 82) and the art slots' integer animation timing |
 | `KwdLevel` | LEVEL(220), including the ticks-per-second field — one source field, not a second timing parser |
 | `KwdAdditionalRecords` | the remaining definition tables: CREATURE_SPELLS(160) at 266 bytes, EFFECT_ELEMENTS(250) at 182, SHOTS(260) and EFFECTS(270) |
 

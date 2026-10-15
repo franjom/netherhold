@@ -2,7 +2,7 @@
 
 Decision: ADR-0408. Goal: the Unity scene draws a level as DK2 draws it, from the player's own
 install, so a level can be played and judged by eye. Steps 0–3 are merged at
-6005ff9f. Step 4 follow-ups are merged; remaining visual gates are in
+6005ff9f. Step 4 playback is merged at 687066e3 and its follow-ups are merged; remaining visual gates are in
 2026-10-10-classic-look-step4.md. Step 5 runs on classic-look/step5;
 see 2026-10-14-classic-look-step5.md for milestones and verification.
 

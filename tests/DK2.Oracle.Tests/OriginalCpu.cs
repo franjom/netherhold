@@ -31,6 +31,11 @@ internal static class OriginalCpu
     /// <summary>64 KB a request may write and read, for pointer arguments.</summary>
     public const uint Scratch = 0x00300000;
 
+    /// <summary>64 KB a request on a whole-process dump may write and read: addresses from here,
+    /// in a request marked <see cref="Request.Scratchy"/>, go to the helper as <c>s&lt;offset&gt;</c>,
+    /// a block it places where the dump leaves room (the dump owns <see cref="Scratch"/>).</summary>
+    public const uint Movable = 0xFFFF0000;
+
     public static string? SkipReason =>
         Dk2InstallGate.SkipReason
         ?? (File.Exists(Environment.GetEnvironmentVariable(DllVariable) ?? "")
@@ -94,15 +99,21 @@ internal static class OriginalCpu
     public sealed record Request(uint Function, uint[] Args, (uint Address, uint Value)[]? Writes = null, uint[]? Reads = null,
         uint? Ecx = null)
     {
+        /// <summary>Addresses from <see cref="Movable"/> are scratch offsets (args, write addresses
+        /// and reads; never written values, which are data).</summary>
+        public bool Scratchy { get; init; }
+
         public string Line()
         {
-            string line = $"{Function:x} " + string.Join(' ', Args.Select(a => a.ToString("x")));
-            IEnumerable<string> writes = (Writes ?? []).Select(w => $"{w.Address:x}={w.Value:x}");
-            if (Ecx is { } ecx) writes = writes.Append($"ecx={ecx:x}");
+            string line = $"{Function:x} " + string.Join(' ', Args.Select(Address));
+            IEnumerable<string> writes = (Writes ?? []).Select(w => $"{Address(w.Address)}={w.Value:x}");
+            if (Ecx is { } ecx) writes = writes.Append($"ecx={Address(ecx)}");
             if (writes.Any()) line += " | " + string.Join(' ', writes);
-            if (Reads is { Length: > 0 }) line += " @ " + string.Join(' ', Reads.Select(r => r.ToString("x")));
+            if (Reads is { Length: > 0 }) line += " @ " + string.Join(' ', Reads.Select(Address));
             return line;
         }
+
+        private string Address(uint a) => Scratchy && a >= Movable ? $"s{a - Movable:x}" : a.ToString("x");
     }
 
     /// <summary>What the original did: EAX, EDX and the requested reads on return, or why it

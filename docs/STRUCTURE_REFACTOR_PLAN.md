@@ -1,8 +1,8 @@
 ﻿# Structure refactor plan
 
-Status (checked 2026-10-08 against HEAD `a43b2c57`): **Phase 3 is done**
+Status (checked 2026-10-15 against HEAD `e5048ced`): **Phase 3 is done**
 (`a8ffc392`, 2026-10-06). **Phases 1, 2 and 4 are open**, Phase 5 is optional. Written
-2026-09-23; the numbers below were re-measured on 2026-10-08.
+2026-09-23; the numbers below were re-measured on 2026-10-15.
 
 > Another session may commit to this repo concurrently. The `HashVersion` and the pinned
 > hash literal in `DeterminismTests` move often; read the current ones out of the source
@@ -72,8 +72,8 @@ These are repo-specific and have each caused a real mess before. Do not skip.
 
 ## Phase 1 — Give `DK2.Simulation` its folders
 
-**Problem.** 153 `.cs` files sit flat in the `DK2.Simulation` root (63 when this plan was
-written), while `Systems/` (71), `Combat/` (13), `Steering/`, `Commands/` and `Navigation/`
+**Problem.** 174 `.cs` files sit flat in the `DK2.Simulation` root (63 when this plan was
+written), while `Systems/` (81), `Combat/` (13), `Steering/`, `Commands/` and `Navigation/`
 are already organised. Organisation was started and never finished. Opening this folder is
 what produces the "all thrown in" reaction, and it is a fair reaction. The folder is
 growing faster than it is being sorted, so the sooner the better.
@@ -100,7 +100,7 @@ to sixty files.
 ### 1b. New folders
 
 The lists below are the seed from 2026-09-23; every file named is still in the root.
-**Re-derive the lists from the current root before moving**: about 90 files arrived
+**Re-derive the lists from the current root before moving**: about 110 files arrived
 since (the Casino, Door, Hero, Imp, Keeper and Shot families, among others) and each
 belongs in one of these folders or stays in the root.
 
@@ -195,7 +195,7 @@ is planned here.
 ## Phase 4 — Split `WorldSnapshot.Write`
 
 `src/DK2.Simulation/WorldSnapshot.cs:105` — `public static void Write(Stream,
-GameSimulation)` is now about 600 lines (355 when this plan was written) and the
+GameSimulation)` is now about 650 lines (355 when this plan was written) and the
 longest method in the repo by a wide margin, an outlier rather than a house style.
 
 It is a linear serialiser, so it is low-risk and low-urgency — the length is
@@ -209,7 +209,7 @@ byte-for-byte output is identical before and after — the existing `SnapshotTes
 round-trip is necessary but not sufficient, because a round-trip stays green if
 `Read` and `Write` change symmetrically.
 
-Do this after Phase 1, so the file is already in its final location. `WorldSnapshot.FormatVersion` is 203 today.
+Do this after Phase 1, so the file is already in its final location.
 
 ---
 

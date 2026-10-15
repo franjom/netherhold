@@ -90,7 +90,9 @@ public sealed class CreatureAngerSystem : ISimulationSystem
             // AngerInHand rides the same clock in HandSystem - but it can act
             // on none of it while it is off the ground. It rolls when it lands.
             // A pit fighter's idle goes back to the pit before any chooser (0x004773D0).
+            // The mood choosers run for a keeper's creatures only (0x00476FC0, ADR-0485).
             if (after == CreatureMood.Angry
+                && NeedRules.RunsNeeds(state)
                 && state.Activity != CreatureActivity.UnbuiltHandler
                 && !HandRules.IsHeld(state)
                 && !PrisonRules.IsImprisoned(state)

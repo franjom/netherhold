@@ -6,7 +6,7 @@ work list for the follow-up branch. The evidence lives in the cited question row
 doc; this file only lists and orders the work. Every item was graded CONFIRMED or STRONGLY INFERRED
 by an independent reviewer.
 
-**Progress:** rows marked built are on branch `fix/binary-sweep-divergences`.
+**Progress:** rows marked built were merged to master with `fix/binary-sweep-divergences` (02fe9533).
 
 **Owner decision (2026-10-05):** one follow-up branch, after this research is committed. Each change
 gets its ADR, tests (a negative control that fails without it) and a replay-rig run against the

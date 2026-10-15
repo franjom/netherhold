@@ -136,7 +136,9 @@ public static class CreatureAngerRules
         if (PrisonRules.IsImprisoned(state)) return delta;
         // The need-anger routine 0x00478D00 returns at once for a follower (0x00478D1D): no lair,
         // food or pay charge. The in-lair calm below is another routine's and still applies.
-        bool follower = state.FollowLeaderId != 0;
+        // The dispatcher calls it for a keeper's creatures only (0x00476FC0, ADR-0485); the cooling
+        // below is the lair category hooks' (0x004DFF00) and runs for anyone.
+        bool follower = state.FollowLeaderId != 0 || !NeedRules.RunsNeeds(state);
 
         // Additive (ADR-0079) and per bucket (ADR-0081): the original's need-anger routine
         // (FUN_00478d00) tests lair, food and pay in turn and charges each into its own counter, so

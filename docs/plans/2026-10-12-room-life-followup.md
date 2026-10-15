@@ -1,7 +1,7 @@
 # Room life follow-up
 
 Implement the three owner requests in the existing classic worktree, verify
-the combined result, then merge to master (authorized 2026-10-12).
+the combined result, then merge to master (authorized 2026-10-12). Merged: 96fa1942, ADR-0442.
 
 1. Construction: implement the original queued player build waves, with
    engine-neutral effect requests and original-resource playback through the
