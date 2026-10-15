@@ -347,7 +347,8 @@ and missing-key default, not the current owner's installed registry value.
 
 The remaining implementation boundary is native cell visibility/cache
 enumeration; the input source eligibility and gathering itself are now resolved
-(Q597). An unrestricted sum of all nearby authored tiles would bypass both
+(Q597). The projected-region boundary is in [classic-light-visibility.md](classic-light-visibility.md)
+and Q602. An unrestricted sum of all nearby authored tiles would bypass both
 that boundary and the confirmed 12-static/24-total capacity.
 
 `ClassicLightTable` implements the bounded selection core for an assigned tile.
