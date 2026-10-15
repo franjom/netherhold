@@ -33,6 +33,9 @@ namespace DK2.Unity
             _entries = new Entry[checked(width * height)];
             _buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _entries.Length, Marshal.SizeOf<Entry>());
             _buffer.SetData(_entries);
+            // RenderSink_Init starts native ambient at zero (classic-lighting.md section8).
+            Shader.SetGlobalVector("_DK2AmbientColour", Vector4.zero);
+            Shader.SetGlobalFloat("_DK2InitialAmbientPreview", 0);
             Publish();
         }
 

@@ -28,6 +28,14 @@ is the authority), put `DungeonRunner` on a GameObject in a scene, and press Pla
 Point it at a DK2 install with the component's **Install Directory** field or the
 `DK2_DIR` environment variable.
 
+The DungeonRunner's **Classic Creature Shadows** switch enables animated mesh
+silhouettes from nearby wall torches. **Native Initial Ambient** is a diagnostic
+for the opt-in classic vertex lighting shader; leave it off during normal play
+until the remaining native terrain-light inputs are implemented. Restart Play
+after changing these switches. GPU checks are available under **DK2 / Classic
+look**; batch entry points are `DK2.Unity.Editor.ClassicShadowProbe.Run` and
+`DK2.Unity.Editor.ClassicWorldLightingProbe.Run` (omit `-quit`).
+
 You should get a campaign level as coloured boxes, with its objects, creatures (still, in
 their idle model's first frame) and wall torches drawn from the install's own meshes and
 textures (ADR-0408): walls tall, floors flat, room furniture standing on the floor. Heights

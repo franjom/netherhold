@@ -68,9 +68,22 @@ for slots +0x33E, +0x35D and +0x35B with RGB/intensity respectively
 (511,511,511)/255, (255,255,255)/128 and (500,500,500)/128.
 The first two use position (2048,2048,8704); the third uses (2048,2048,4608).
 Slot +0x3BC uses that same factory with (255,255,255)/128 and the first position.
-The first two also receive post-creation flags/animation setup. Their later
-movement and renderer interpretation remain untraced; these inputs alone do
-not establish replacement Unity directional or ambient lighting.
+The first two also receive post-creation flags/animation setup. Followup reads
+on 2026-10-15 distinguish these handles from global ambient/fill:
+
+- `+0x33E`: presentation update moves it to an interaction position, sets RGB
+  to 511 for target tile flag `0x20` and otherwise zero. Selection state gates
+  its mesh visibility. This is not an unconditional world fill.
+- `+0x35D`: the per-tile render pass reuses it for the selection rectangle's
+  boundary tiles, setting edge bits and moving it to each boundary tile centre.
+- `+0x35B`: `0x00441CD0` reuses it per tile at tile centre and terrain runtime
+  height `+0x1BF`, copies terrain RGB `+0x1AF/+0x1B1/+0x1B3` (or a highlighted
+  override), sets flags `0x8052`, then submits renderer slot `+0xE0`.
+- `+0x3BC`: the per-tile pass reuses its animated mesh at a visible torch's
+  position with height offset `0x4B0`, not as an ambient source.
+
+The tile-light submission's complete renderer response remains untraced;
+these handles do not establish replacement Unity directional lighting.
 
 The tracked DK2 renderer's mode 2 is Forward+ in the installed URP source
 (`UniversalRenderer.cs`, package 8457e85b8184), not ordinary Forward. Its
@@ -148,15 +161,17 @@ beyond the near plane. Other vertices iterate the bounded visible-light array;
 they cannot safely use a fragment-oriented screen-tile lookup. Ordinary Forward
 uses its per-object list. This fallback needs runtime performance measurement.
 
-Global ambient/directional lighting and non-torch lights still use URP response;
-zero-incidence singular-bin torch cases also fall back to URP. These are explicit
+The initial-ambient diagnostic follows section8; the ordinary preview retains
+its scene lighting fallback until native fill sources are supplied. Non-torch
+point lights and zero-incidence singular-bin cases also use URP response. These are explicit
 preview limits, not confirmed original behavior. Framebuffer transfer, shadows,
 local-light selection parity and original global-light producers remain open.
 The preview stays disabled by default pending rendered comparisons.
 
-Verification (2026-10-15): 341 presentation tests and adapter compilation pass.
+Verification (2026-10-15): 348 presentation tests and adapter compilation pass.
 The shared HLSL arithmetic probe passes; the actual URP camera probe passes
-five cases (native response, offscreen vertices, remove, repopulate, clear)
+seven cases (native response, shifted camera, placeholder sun, offscreen vertices,
+remove, repopulate, clear)
 with SRP Batcher enabled and maximum error below0.000001. These are controlled
 fixtures, not matched original-game frames or whole-map performance evidence.
 Reproduce through the Editor menu DK2 / Classic look / Verify native lighting
@@ -165,3 +180,28 @@ on GPU and Verify native lighting through URP; batch entry points are
 `DK2.Unity.Editor.ClassicLightingRenderProbe.Run` (omit `-quit` for the latter).
 Neither saves the owner's scene or project settings. Behind-near-plane vertex
 coverage remains pending.
+
+## 8. Initial ambient and the placeholder sun
+
+CONFIRMED (whole reads and callback disassembly, 2026-10-15):
+`0x005747E0` stores each supplied ambient channel multiplied by255 into the
+three globals consumed by the vertex-colour sum. `0x005983C0` calls it with
+zero for all channels after renderer initialization. The initializer
+`0x00574310` first installs temporary ambient values; these are overwritten.
+Callback `0x005986F0` can subsequently change uniform grey ambient when global
+command87 is submitted, clamping its normalized result to0..0.5. That
+control's gameplay producer remains untraced and is not implemented here.
+
+The opt-in initial-ambient diagnostic starts explicit ambient RGB at zero and
+ignores Unity's placeholder directional/sky lights. Material/terrain additions and
+point lights still contribute before packing. This implements the confirmed
+startup input rather than treating the current Unity scene's white sunlight
+as original illumination. It is disabled by default: missing native fill
+sources otherwise leave the upper terrain and Heart arches black. The per-tile
+terrain-light response in section4 and the ambient-control producer remain
+necessary for full scene parity.
+
+A production Level1 comparison confirms that torches already contributed;
+the reported absence was a visual-contrast difference, not a proved missing
+source. Keep matched-original comparison open; do not label the entire torch
+path broken from that screenshot alone.

@@ -82,6 +82,10 @@ namespace DK2.Unity
         [SerializeField] private bool classicMeshes = true;
         [Tooltip("Preview native per-vertex torch lighting. Global lighting and framebuffer transfer remain under investigation.")]
         [SerializeField] private bool classicVertexLighting;
+        [Tooltip("Diagnostic: native startup ambient only. Missing native fill lights can leave geometry black.")]
+        [SerializeField] private bool nativeInitialAmbient;
+        [Tooltip("Projected 32-pixel silhouettes from each creature's current animated mesh.")]
+        [SerializeField] private bool classicCreatureShadows = true;
 
         [Tooltip("Bend the classic terrain as DK2 does (the terrain lattice, Q72).")]
         [SerializeField] private bool bendTerrain = true;
@@ -219,7 +223,7 @@ namespace DK2.Unity
             if (classicMeshes)
             {
                 _installArt = InstallArtProvider.Open(install, database);
-                _classic = new ClassicMeshes(_installArt, classicVertexLighting);
+                _classic = new ClassicMeshes(_installArt, classicVertexLighting, nativeInitialAmbient);
             }
             _assets = AssetProviderChain.Standard(
                 replacementRoot: "art-pack",
@@ -229,7 +233,7 @@ namespace DK2.Unity
             TerrainLattice lattice = _classic != null && bendTerrain
                 ? new TerrainLattice(database, world, (byte)viewingPlayerId) { HighWalls = highWalls }
                 : null;
-            _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice);
+            _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice, classicCreatureShadows);
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
@@ -341,6 +345,7 @@ namespace DK2.Unity
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
+            _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
             if (showDiagnostics) RefreshDiagnostics();
 

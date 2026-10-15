@@ -171,3 +171,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - In a Unity batch editor without a rendered view, waiting for `currentPipeline` does not initialize URP; call public `RenderPipeline.SupportsRenderRequest` with a temporary camera before submitting a render request.
 - Windows PowerShell `Set-Content -Encoding utf8` writes a BOM; use BOM-free UTF-8 for commit-message files or the subject starts with an invisible character.
+
+- A centred one-tile GPU lighting fixture does not establish whole-scene parity: also capture production torches on/off, a nonzero grid tile, shifted view and repeated presentation before accepting the result.

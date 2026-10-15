@@ -50,6 +50,8 @@ Shader "DK2/Classic Vertex Lit"
             struct TorchSource { float4 positionRadiusSquared; float4 colourIntensity; };
             StructuredBuffer<TorchSource> _DK2TorchSources;
             int _DK2TorchGridWidth, _DK2TorchGridCount;
+            float3 _DK2AmbientColour;
+            float _DK2InitialAmbientPreview;
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -83,6 +85,7 @@ Shader "DK2/Classic Vertex Lit"
             {
                 Light light = GetAdditionalLight(index, positionWS, half4(1,1,1,1));
                 float4 sourcePosition = LightPosition(index);
+                if (sourcePosition.w <= 0 && _DK2InitialAmbientPreview > .5) return 0;
                 if (sourcePosition.w > 0 && _DK2TorchGridWidth > 0 && _DK2TorchGridCount > 0)
                 {
                     int x = (int)floor(sourcePosition.x), y = (int)floor(-sourcePosition.z);
@@ -109,10 +112,16 @@ Shader "DK2/Classic Vertex Lit"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
                 VertexPositionInputs position = GetVertexPositionInputs(input.positionOS.xyz);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
-                float3 sum = max(SampleSH(normalWS), 0);
-                Light main = GetMainLight(TransformWorldToShadowCoord(position.positionWS));
-                sum += main.color * max(dot(normalWS,main.direction), 0)
-                    * main.distanceAttenuation * main.shadowAttenuation;
+                // Native ambient is an RGB addition; Unity's placeholder sky/sun are not native inputs.
+                float3 sum = _DK2AmbientColour;
+                if (_DK2InitialAmbientPreview < .5)
+                {
+                    // Retain the scene fallback until native fill lights and ambient commands are supplied.
+                    sum += max(SampleSH(normalWS), 0);
+                    Light main = GetMainLight(TransformWorldToShadowCoord(position.positionWS));
+                    sum += main.color * max(dot(normalWS, main.direction), 0)
+                        * main.distanceAttenuation * main.shadowAttenuation;
+                }
                 InputData inputData = (InputData)0;
                 inputData.positionWS = position.positionWS;
                 float4 screenPosition = ComputeScreenPos(position.positionCS);

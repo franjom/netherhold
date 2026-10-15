@@ -112,6 +112,14 @@ URP render cases pass with SRP Batcher enabled; independent integration review
 passes (2026-10-15). The preview remains opt-in pending scene comparisons. See classic-lighting.md sections5?7 for the
 singular-bin contract and preview limits. Framebuffer transfer, global/terrain
 illumination and matched runtime comparisons remain pending.
+Production scene check (2026-10-15): torch on/off captures confirm illumination
+at startup and after camera movement; the owner's reported absence is weak
+contrast, not a demonstrated missing light. A native-initial-ambient diagnostic
+passes the placeholder-sun isolation test; it stays off until missing fill
+inputs are traced, because unlit tops/arches otherwise turn black. Creature
+silhouettes are built under ADR-0482 and pass independent review and GPU checks;
+source qualifications, native bounds and original quality integration remain
+explicit preview limits. Owner acceptance and busy-view profiling are pending.
 
 ## 5.5 — Discovery and fog presentation
 

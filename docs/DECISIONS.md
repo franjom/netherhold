@@ -11048,3 +11048,27 @@ to vertices, the Unity scene publishes each drawn creature's head for the effect
 thread, and the effect model moves a tied effect and its elements with the head each update,
 dropping the tie when the creature's object goes. Static-mesh points are not resolved. No
 hash change.
+
+## ADR-0482 ? Project animated creature silhouettes through a shared GPU atlas
+**Date:** 2026-10-15 ? **Status:** accepted ? Research: creature-shadows.md
+
+**Context.** Creature shadows were absent. Native mesh-shadow generation,
+projection, source selection and multiply blending are traced. Enabling Unity
+shadow maps on every torch would use a different representation and cost.
+
+**Decision.** Classic meshes project their current opaque animation triangles
+into 32-pixel coverage tiles, using GPU 8x supersampling and bilinear reception.
+One growable atlas and receiver mesh batch the visible projections. Up to three
+nearby wall torches supply the confirmed high-quality projection and fade;
+receivers use the existing floor-height query plus its native 0.01 bias.
+Shadow preparation runs before the simulation worker starts.
+
+**Consequences.** Presentation only, no hash/save changes. Bounds come from
+Unity's current mesh AABB rather than the native model sphere; directly-above
+lights use a finite axis fallback. Range/capacity currently use the traced
+2.5/3 defaults. All opaque creature meshes participate until their native
+RenderInfo enable producer is resolved; other shadow-source kinds, original
+quality settings and the alternate 8-bit path remain unbuilt. Atlas dimensions
+are bounded by the GPU's maximum texture size. Matched-game acceptance and
+busy-view GPU profiling remain pending; the controlled GPU fixture verifies
+shape, orientation, alpha, source removal and animation continuity.

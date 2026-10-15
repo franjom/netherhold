@@ -102,6 +102,8 @@ namespace DK2.Unity.Editor
             float reflection = RenderSettings.reflectionIntensity;
             RenderTexture previousTarget = RenderTexture.active;
             bool asyncCompilation = ShaderUtil.allowAsyncCompilation;
+            float previousAmbientPreview = Shader.GetGlobalFloat("_DK2InitialAmbientPreview");
+            Vector4 previousAmbientColour = Shader.GetGlobalVector("_DK2AmbientColour");
             GameObject root = null;
             Mesh mesh = null;
             Material material = null;
@@ -120,8 +122,8 @@ namespace DK2.Unity.Editor
                 var surface = new GameObject("Surface") { layer = 31 };
                 surface.transform.SetParent(root.transform);
                 mesh = new Mesh { name = "Probe quad", hideFlags = HideFlags.HideAndDontSave };
-                mesh.vertices = new[] { new Vector3(.49f, 0, -.51f), new Vector3(.49f, 0, -.49f),
-                    new Vector3(.51f, 0, -.49f), new Vector3(.51f, 0, -.51f) };
+                mesh.vertices = new[] { new Vector3(1.45f, 0, -1.55f), new Vector3(1.45f, 0, -1.45f),
+                    new Vector3(1.55f, 0, -1.45f), new Vector3(1.55f, 0, -1.55f) };
                 mesh.normals = Enumerable.Repeat(Vector3.up, 4).ToArray();
                 mesh.uv = new[] { Vector2.zero, Vector2.up, Vector2.one, Vector2.right };
                 mesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };
@@ -133,7 +135,7 @@ namespace DK2.Unity.Editor
                 surface.AddComponent<MeshRenderer>().sharedMaterial = material;
                 var source = new GameObject("Point light") { layer = 31 };
                 source.transform.SetParent(root.transform);
-                source.transform.position = new Vector3(.5f, 1f, -.5f);
+                source.transform.position = new Vector3(1.5f, 1f, -1.5f);
                 Light light = source.AddComponent<Light>();
                 light.type = LightType.Point;
                 light.range = 2;
@@ -145,10 +147,10 @@ namespace DK2.Unity.Editor
                 cameraObject.transform.SetParent(root.transform);
                 Camera camera = cameraObject.AddComponent<Camera>();
                 camera.enabled = false;
-                camera.transform.position = new Vector3(.5f, 3f, -.5f);
+                camera.transform.position = new Vector3(1.5f, 3f, -1.5f);
                 camera.transform.rotation = Quaternion.Euler(90, 0, 0);
                 camera.orthographic = true;
-                camera.orthographicSize = .015f;
+                camera.orthographicSize = .075f;
                 camera.nearClipPlane = .1f;
                 camera.farClipPlane = 5;
                 camera.cullingMask = 1 << 31;
@@ -156,27 +158,41 @@ namespace DK2.Unity.Editor
                 camera.backgroundColor = Color.black;
                 camera.allowHDR = true;
                 camera.allowMSAA = false;
-                target = new RenderTexture(64, 64, 24, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
+                target = new RenderTexture(256, 256, 24, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Linear);
                 target.Create();
-                readback = new Texture2D(64, 64, TextureFormat.RGBAFloat, false, true);
+                readback = new Texture2D(256, 256, TextureFormat.RGBAFloat, false, true);
 
                 Type bufferType = typeof(DungeonRunner).Assembly.GetType("DK2.Unity.ClassicTorchLightBuffer", true);
-                buffer = (IDisposable)Activator.CreateInstance(bufferType, 1, 1);
-                var torch = new TorchView(0, new TilePos(0, 0), 2048, 2048, 4096, 0,
+                buffer = (IDisposable)Activator.CreateInstance(bufferType, 3, 3);
+                Shader.SetGlobalFloat("_DK2InitialAmbientPreview", 1);
+                var torch = new TorchView(4, new TilePos(1, 1), 6144, 6144, 4096, 0,
                     255, 128, 0, 128, 8192, default);
                 var native = ClassicPointLight.FromTorch(torch);
-                NumericsVector3 value = native.ContributionAt(new NumericsVector3(.49f, 0, -.51f), NumericsVector3.UnitY);
+                NumericsVector3 value = native.ContributionAt(new NumericsVector3(1.45f, 0, -1.55f), NumericsVector3.UnitY);
                 var expected = new Color(Pack(value.X) * .25f, Pack(value.Y) * .5f, Pack(value.Z), 1);
-                Invoke(buffer, "Set", 0, torch);
+                Invoke(buffer, "Set", 4, torch);
                 Invoke(buffer, "Flush");
                 Check(result, Draw(camera, target, readback), expected);
-                camera.orthographicSize = .005f;
+                var sunlightObject = new GameObject("Placeholder sunlight");
+                sunlightObject.transform.SetParent(root.transform);
+                sunlightObject.transform.rotation = Quaternion.Euler(90, 0, 0);
+                Light sunlight = sunlightObject.AddComponent<Light>();
+                sunlight.type = LightType.Directional;
+                sunlight.intensity = 4;
+                sunlight.cullingMask = 1 << 31;
                 Check(result, Draw(camera, target, readback), expected);
-                camera.orthographicSize = .015f;
-                Invoke(buffer, "Remove", 0);
+                sunlight.enabled = false;
+                camera.transform.position = new Vector3(1.5f, 3f, -4.5f);
+                camera.orthographicSize = 4f;
+                Check(result, Draw(camera, target, readback), expected);
+                camera.transform.position = new Vector3(1.5f, 3f, -1.5f);
+                camera.orthographicSize = .025f;
+                Check(result, Draw(camera, target, readback), expected);
+                camera.orthographicSize = .075f;
+                Invoke(buffer, "Remove", 4);
                 Invoke(buffer, "Flush");
                 CheckRemoved(result, Draw(camera, target, readback));
-                Invoke(buffer, "Set", 0, torch);
+                Invoke(buffer, "Set", 4, torch);
                 Invoke(buffer, "Flush");
                 Check(result, Draw(camera, target, readback), expected);
                 Invoke(buffer, "Clear");
@@ -185,6 +201,8 @@ namespace DK2.Unity.Editor
             finally
             {
                 buffer?.Dispose();
+                Shader.SetGlobalFloat("_DK2InitialAmbientPreview", previousAmbientPreview);
+                Shader.SetGlobalVector("_DK2AmbientColour", previousAmbientColour);
                 Shader.SetGlobalInt("_DK2TorchGridCount", previousCount);
                 Shader.SetGlobalInt("_DK2TorchGridWidth", previousWidth);
                 RenderTexture.active = previousTarget;
@@ -216,9 +234,10 @@ namespace DK2.Unity.Editor
                 throw new NotSupportedException("The active pipeline cannot render a standard request.");
             RenderPipeline.SubmitRenderRequest(camera, request);
             RenderTexture.active = target;
-            readback.ReadPixels(new Rect(0, 0, 64, 64), 0, 0);
+            readback.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0);
             readback.Apply();
-            return readback.GetPixel(32, 32);
+            Vector3 viewport = camera.WorldToViewportPoint(new Vector3(1.5f, 0, -1.5f));
+            return readback.GetPixel((int)(viewport.x * target.width), (int)(viewport.y * target.height));
         }
 
         private static void Check(Result result, Color actual, Color expected)

@@ -45,9 +45,10 @@ namespace DK2.Unity
         private readonly Dictionary<(AssetRef, bool), PieceSource> _pieces = new Dictionary<(AssetRef, bool), PieceSource>();
         private readonly Dictionary<(AssetRef, int), Material[]> _heartMaterials = new Dictionary<(AssetRef, int), Material[]>();
 
-        public ClassicMeshes(InstallArtProvider art, bool classicVertexLighting = false)
+        public ClassicMeshes(InstallArtProvider art, bool classicVertexLighting = false, bool nativeInitialAmbient = false)
         {
             _art = art;
+            NativeInitialAmbient = nativeInitialAmbient;
             _shader = classicVertexLighting ? Resources.Load<Shader>("Shaders/ClassicVertexLit") : null;
             UsesClassicVertexLighting = _shader != null && _shader.isSupported;
             if (!UsesClassicVertexLighting) _shader = Shader.Find(LitShader);
@@ -59,6 +60,7 @@ namespace DK2.Unity
         }
 
         public bool UsesClassicVertexLighting { get; }
+        public bool NativeInitialAmbient { get; }
 
         /// <summary>The name of the shader the materials use, for the on-screen diagnostics.</summary>
         public string ShaderName => _shader != null ? _shader.name : "none";

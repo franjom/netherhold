@@ -78,6 +78,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly ClassicTorchLightBuffer _torchLights;
+        private readonly ClassicCreatureShadows _creatureShadows;
         private readonly int _worldWidth;
         private readonly ClassicMeshes _classic;
         private readonly TerrainChunks _terrain;
@@ -112,14 +113,18 @@ namespace DK2.Unity
         /// with their real meshes; null keeps every one a placeholder.</param>
         /// <param name="lattice">Bends the classic terrain as DK2 does; null draws it straight.</param>
         public DungeonScene(Transform root, int worldWidth, int worldHeight, ClassicMeshes classic = null,
-            TerrainLattice lattice = null)
+            TerrainLattice lattice = null, bool creatureShadows = true)
         {
             _root = root;
             _lattice = lattice;
             _worldWidth = worldWidth;
             _classic = classic;
+            if (classic != null && creatureShadows) _creatureShadows = new ClassicCreatureShadows(root);
             if (classic != null && classic.UsesClassicVertexLighting)
+            {
                 _torchLights = new ClassicTorchLightBuffer(worldWidth, worldHeight);
+                Shader.SetGlobalFloat("_DK2InitialAmbientPreview", classic.NativeInitialAmbient ? 1 : 0);
+            }
             if (classic != null)
             {
                 _terrain = new TerrainChunks(root, classic, worldWidth, worldHeight, lattice);
@@ -180,6 +185,7 @@ namespace DK2.Unity
             _creatureArt[creatureId] = mesh.Reference;
             _creaturePoses[creatureId] = creature;
             ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
+            if (_meshCreatures.Contains(creatureId)) _creatureShadows?.Register(go);
             PositionCreature(go, creatureId, creature, mesh.Look);
         }
 
@@ -222,6 +228,7 @@ namespace DK2.Unity
         {
             if (_creatures.TryGetValue(creatureId, out GameObject go) && go != null)
             {
+                _creatureShadows?.Remove(go);
                 go.SetActive(false);
                 Object.Destroy(go);
             }
@@ -252,6 +259,22 @@ namespace DK2.Unity
                 creature.AnimationPaused, creature.AnimationInitialMovementSpeed)) return;
             if (player != null) player.Stop();
             _classic.RestoreModel(go, mesh);
+        }
+
+        // Called before the worker tick starts; no render callback reads the mutable world.
+        public void DrawCreatureShadows(Camera camera, WorldView view, WorldState world)
+        {
+            if (_creatureShadows == null || camera == null) return;
+            foreach (GameObject creature in _creatures.Values)
+            {
+                if (creature == null) continue;
+                Vector3 position = creature.transform.position;
+                var point = new FpPosition3(new Fp32((int)(position.x * Fp32.One)),
+                    new Fp32((int)(-position.z * Fp32.One)), new Fp32((int)(position.y * Fp32.One)));
+                float ground = view.GroundHeightAt(world, point).Raw / (float)Fp32.One;
+                _creatureShadows.SetGroundHeight(creature, ground + .01f);
+            }
+            _creatureShadows.Render(camera);
         }
 
         public void SetCreatureFrameTime(GameTick tick, float fraction)
@@ -454,6 +477,7 @@ namespace DK2.Unity
             ApplyTorchLight(light, torch);
             _torches[floorTileIndex] = go;
             _torchLights?.Set(floorTileIndex, torch);
+            _creatureShadows?.SetTorch(torch);
         }
 
         public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
@@ -468,6 +492,7 @@ namespace DK2.Unity
             Light light = go.GetComponent<Light>();
             if (light != null) ApplyTorchLight(light, torch);
             _torchLights?.Set(floorTileIndex, torch);
+            _creatureShadows?.SetTorch(torch);
         }
 
         public void RemoveTorch(int floorTileIndex)
@@ -477,6 +502,7 @@ namespace DK2.Unity
 
             _torches.Remove(floorTileIndex);
             _torchLights?.Remove(floorTileIndex);
+            _creatureShadows?.RemoveTorch(floorTileIndex);
         }
 
         private void ApplyTorchPose(GameObject go, in TorchView torch)
@@ -518,12 +544,17 @@ namespace DK2.Unity
             _liquids?.Animate(Time.time);
         }
 
-        public void DisposeLightResources() => _torchLights?.Dispose();
+        public void DisposeLightResources()
+        {
+            _creatureShadows?.Dispose();
+            _torchLights?.Dispose();
+        }
 
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>
         public void Clear()
         {
             _torchLights?.Clear();
+            _creatureShadows?.Clear();
             foreach (GameObject go in _tiles.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _furniture.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _creatures.Values) if (go != null) Object.Destroy(go);

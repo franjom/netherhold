@@ -86,13 +86,16 @@ The owner accepted the camera view and requested a modest zoom extension (ADR-04
 Authored terrain colours and scoped whole-room/wall tint application pass independent
 review; see classic-lighting.md. Camera sub-tile startup/framing, native point-light
 response, two-mask fog and performance comparisons remain open; see the Step5 plan.
-Torch inputs, the native contribution reference and RGB packing pass independent
-review (2026-10-15). The opt-in shader preview passes five actual URP render
-checks, including offscreen vertices and buffer lifecycle, with SRP Batcher on.
-Defaults retain URP Lit pending scene comparison; see classic-lighting.md sections5?7.
+Torch inputs, RGB packing and the opt-in shader pass independent review
+(2026-10-15). Whole-Level1 on/off captures confirm torch contribution. The
+native-initial-ambient diagnostic isolates Unity's placeholder sun but stays
+opt-in because native fill sources remain unbuilt; see classic-lighting.md.
+Animated creature silhouettes are built and reviewed under ADR-0482. Restart
+Play after assembly sync. Exact original qualification/quality and busy-view
+GPU profiling remain pending (2026-10-15); see creature-shadows.md.
 The scanned producer now uses native prisoner/closed-door guards and per-term
 rounding; focused fog/save checks pass (2026-10-14). The explored pass remains unbuilt.
-Unity launch is authorized; its previous editor session is closed. Matched captures
+Unity launch is authorized; an owner editor may be open. Isolated probes avoid saving it. Matched captures
 and remaining visual acceptance are pending (2026-10-14).
 Classic follow-ups use hash/save version 239. ADR-0444 covers native bank heights,
 height interpolation, failed-job idle wandering and same-tile dummy approaches.
