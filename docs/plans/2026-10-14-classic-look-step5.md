@@ -132,7 +132,9 @@ are built and independently reviewed (ADR-0484). GPU and production-scene
 verification are recorded in classic-lighting.md section10. Prepared-cell rolling
 candidate order is built (ADR-0485); automatic cache visibility, dirty-column
 invalidation and lighting-mode publication remain unbuilt. The default
-Cheap Lighting option requires the separate per-object torch arm (section9).
+Cheap Lighting option selects the separate animated instance-sampled torch arm
+(section9). Its headless reference is built and independently reviewed (section3);
+the animated caller's centre/transform and mode integration remain unbuilt.
 
 ## 5.5 — Discovery and fog presentation
 

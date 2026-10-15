@@ -52,9 +52,34 @@ input, not final colour-transfer or matched-lighting parity.
 STRONGLY INFERRED (whole reads, 2026-10-14): 0x0057BCB0 copies selected source
 lights into ten-dword local entries: position, squared radius, attenuation
 coefficient, normal coefficient and RGB. Selection uses successive bits of
-the supplied mask. 0x0057BD70 instead evaluates attenuation at a supplied
-instance position, retaining positive contributions and transforming light
-directions through 0x00594E70. Their caller mode selection remains unaudited.
+the supplied mask. 0x0057BD70 instead samples squared distance at a supplied
+instance position, keeps strictly positive attenuation inside the source
+radius, and transforms the unnormalized source-minus-instance direction
+through 0x00594E70. It stores that direction, attenuation, source intensity and
+RGB separately; it receives no normal and applies no normal dot product.
+The transform performs row dot products without translation or normalization.
+Squared distance adds `(dx²+dy²)+dz²`; sampled attenuation multiplies
+`(radius²-d²) * L[n]`, then stored reciprocal radius², using section5's bins.
+Its callers include animated mesh-part draw
+`0x005836A0`, whose context flag0x40 enables this collection with draw mask
+`+0x6C` (the animated preparation's0x100 sources). It copies the draw's3x3
+matrix verbatim through `0x00582140`, without inverse-scale adjustment.
+Sampling uses draw translation plus the model bounds centre transformed as a
+row vector; each vertex displacement subtracts that transformed centre.
+
+CONFIRMED (consumer `0x0057C190`, assembly and whole reads, 2026-10-15):
+let `d = transformedToLight - vertexDisplacement`. It computes
+`incidence = ((d.x*n.x + d.z*n.z) + d.y*n.y) * intensity`, skips a negative
+sign bit (including negative zero), then multiplies by the sampled attenuation.
+Each factor caps at1 before RGB addition; the sum remains uncapped. No
+direction or normal normalization occurs here. Positive incidence with bin0
+infinity reaches full RGB; zero incidence times infinity raises x87 invalid,
+with the same unresolved exception-mask boundary as section5.
+This supports an explicit position/matrix/displacement/normal reference,
+not an automatic Unity mode or transform publisher. `ClassicInstancePointLight`
+implements this reference, including the explicit singular boundary. Terrain loops
+`0x0057B6D0/0x0057B0E0` instead copy sources through `0x0057BCB0` using instance
+mask `+0x2C`; that mask's producer/classification remains unaudited.
 
 CONFIRMED: initializer 0x0043A1E0 stores both current and base ushort RGB,
 uint radius and byte intensity separately. Radius above 10111 becomes 10112.
@@ -150,8 +175,8 @@ and negative input behavior remains outside the ordinary RGB contract.
 
 The Classic Vertex Lighting Inspector preview uses the section5 torch response
 and section6 ordinary nonnegative diffuse packing before texture modulation.
-Its universal per-vertex torch evaluation covers the Cheap Lighting vertex
-arm, not the default native mode; section9 owns the selector and option evidence.
+Its universal per-vertex torch evaluation covers the animated Cheap Lighting
+vertex arm, not that draw type's default mode; section9 owns the selector.
 It retains URP light selection and shadows. A tile-indexed GPU buffer carries
 native torch inputs; changed entries upload on presenter Flush, Clear removes
 entries for resync, and runner destruction disposes the buffer. The buffer
@@ -307,16 +332,17 @@ table does not establish that an explicitly unlit primitive uses every source.
 `0x0057BBF0` then applies required source flags and strict 3D sphere overlap
 `(sourceRadius+drawRadius)^2`, yielding the 32-bit mask consumed downstream.
 Instructions `0x00584B25..0x00584B95` select masks requiring `0x100` and `0x04`;
-the latter feeds the per-vertex point-light copy. Terrain sources classify to
+the latter feeds the animated preparation's per-vertex point-light copy. Terrain sources classify to
 `0x64`, including `0x04`. Wall torch classification depends on global
 `0x00759AF8`: the bridge's input flags `0x12` or `0x14` become `0x1B2` or
 `0x74` through `0x00599BD0`, respectively. The former belongs to the `0x100`
 arm rather than the `0x04` vertex arm. The global is settings object
 `0x00759A78 +0x80`, persisted as `Cheap Lighting`: `0x005666B0` stores and
 saves it, and `0x00564B00` loads it with default zero when the key is absent.
-Thus the default selects the `0x100` arm; nonzero Cheap Lighting selects the
-`0x04` vertex arm. A preview evaluating every torch per vertex does not yet
-reproduce the default arm. The loader/setter evidence establishes the option
+Thus animated preparation selects the `0x100` arm by default; nonzero Cheap
+Lighting selects its `0x04` vertex arm. A preview evaluating every torch per
+vertex does not reproduce that animated default arm (section3). Terrain's
+source-mask producer remains unaudited. The loader/setter establishes the option
 and missing-key default, not the current owner's installed registry value.
 
 The remaining implementation boundary is native cell visibility/cache

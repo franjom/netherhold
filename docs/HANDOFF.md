@@ -100,6 +100,8 @@ batched tile anchors are built and independently reviewed (ADR-0484). Prepared-c
 rolling candidate order is built (ADR-0485); native visibility, dirty-column
 invalidation and automatic lighting-mode publication remain pending. Verification
 and default Cheap Lighting classification are in classic-lighting.md sections9–10.
+The animated instance-sampled light reference is built and independently reviewed;
+its caller transform/mode integration remains pending (classic-lighting.md section3).
 Tags replace terrain instance
 tint correctly (four Unity material checks pass); the default view keeps fill.
 The scanned producer now uses native prisoner/closed-door guards and per-term
