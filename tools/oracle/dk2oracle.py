@@ -12,9 +12,9 @@ same DLL works from CPython.
 
 Input is read whole before anything runs, so the caller may write every request and close
 stdin before reading. One request per line, space-separated hex:
-    <function> <arg>... [| <address>=<dword>...] [@ <address>...]
-calls the cdecl function with the args after writing each dword, and reads each address after
-it returns. One outcome per line: `<eax> <edx> <read>...`, or `fault <message>`.
+    <function> <arg>... [| <address>=<dword>... ecx=<dword>] [@ <address>...]
+calls the function with the args on the stack (cdecl, or a thiscall given ecx) after writing
+each dword, and reads each address after it returns. One outcome per line: `<eax> <edx> <read>...`, or `fault <message>`.
 
 The image is mapped as the file has it: no imports bound, no globals initialised. A function
 that reaches outside its arguments and the image's own bytes ends in a fault, not an answer.
@@ -24,7 +24,7 @@ import os
 import struct
 import sys
 
-ARCH_X86, MODE_32, PROT_ALL = 4, 4, 7
+ARCH_X86, MODE_32, PROT_ALL, UC_ERR_EXCEPTION = 4, 4, 7, 21
 EAX, EBP, EBX, ECX, EDI, EDX, EIP, ESI, ESP = 19, 20, 21, 22, 23, 24, 26, 29, 30
 STACK, STACK_SIZE, RETURN, SCRATCH, SCRATCH_SIZE = 0x00100000, 0x10000, 0x00200000, 0x00300000, 0x10000
 
@@ -86,25 +86,37 @@ def main():
         line, _, writes = line.partition("|")
         call = line.split()
         function, args = int(call[0], 16), [int(a, 16) for a in call[1:]]
+        registers = {}
         for pair in writes.split():
             address, value = pair.split("=")
-            write32(int(address, 16), int(value, 16))
+            if address == "ecx":  # a thiscall's this
+                registers[ECX] = int(value, 16)
+            else:
+                write32(int(address, 16), int(value, 16))
 
         esp = STACK + STACK_SIZE - 0x100 - 4 * (len(args) + 1)
         for i, value in enumerate([RETURN] + args):
             write32(esp + 4 * i, value)
         reg(ESP, esp)
         for r in (EAX, EBX, ECX, EDX, ESI, EDI, EBP):
-            reg(r, 0xCCCCCCCC)
+            reg(r, registers.get(r, 0xCCCCCCCC))
 
         # No timeout: Unicorn starts a timer thread for one, about 15 ms a call. The instruction
         # count bounds a function that never returns instead.
         err = dll.uc_emu_start(uc, function, RETURN, 0, 1_000_000)
-        if err:
-            out.append(f"fault {dll.uc_strerror(err).decode()}")
-            continue
-        if reg(EIP) != RETURN:  # the count ran out: Unicorn stops without an error
-            out.append("fault did not return within 1000000 instructions")
+        eip = reg(EIP)
+        if err or eip != RETURN:
+            # A divide error stops the run at the DIV/IDIV itself (F7 /6, /7), seen here both
+            # with UC_ERR_EXCEPTION and with no error code. A memory fault on the instruction
+            # reports its own error and is not filed as a divide.
+            op = C.create_string_buffer(2)
+            readable = dll.uc_mem_read(uc, eip, op, 2) == 0
+            if err in (0, UC_ERR_EXCEPTION) and readable and op.raw[0] == 0xF7 and (op.raw[1] >> 3) & 7 in (6, 7):
+                out.append(f"fault divide at {eip:x}")
+            elif err:
+                out.append(f"fault {dll.uc_strerror(err).decode()} at {eip:x}")
+            else:
+                out.append(f"fault did not return within 1000000 instructions, at {eip:x}")
             continue
         words = [reg(EAX), reg(EDX)]
         for address in reads.split():

@@ -79,14 +79,17 @@ internal static class OriginalCpu
         throw new FileNotFoundException("tools/oracle/dk2oracle.py is not above the test assembly.");
     }
 
-    /// <summary>One call: the function, its 32-bit arguments, dwords to write first and
-    /// addresses to read after.</summary>
-    public sealed record Request(uint Function, uint[] Args, (uint Address, uint Value)[]? Writes = null, uint[]? Reads = null)
+    /// <summary>One call: the function, its 32-bit stack arguments, dwords to write first,
+    /// addresses to read after, and ECX for a thiscall.</summary>
+    public sealed record Request(uint Function, uint[] Args, (uint Address, uint Value)[]? Writes = null, uint[]? Reads = null,
+        uint? Ecx = null)
     {
         public string Line()
         {
             string line = $"{Function:x} " + string.Join(' ', Args.Select(a => a.ToString("x")));
-            if (Writes is { Length: > 0 }) line += " | " + string.Join(' ', Writes.Select(w => $"{w.Address:x}={w.Value:x}"));
+            IEnumerable<string> writes = (Writes ?? []).Select(w => $"{w.Address:x}={w.Value:x}");
+            if (Ecx is { } ecx) writes = writes.Append($"ecx={ecx:x}");
+            if (writes.Any()) line += " | " + string.Join(' ', writes);
             if (Reads is { Length: > 0 }) line += " @ " + string.Join(' ', Reads.Select(r => r.ToString("x")));
             return line;
         }
