@@ -189,7 +189,9 @@ public static class CombatRules
 
     /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a captive,
     /// one asleep, one leaving unless forced, one in the hand unless forced, the possessed
-    /// creature, a dying one, one standing frozen or stunned, and one walking to its withdraw
+    /// creature, a dying one, one in a state flagged <see cref="CreatureStateFlags.NoFightLookup"/>
+    /// (the stuns, but not 257, getting up: a dropped creature fights as it rises), one whose
+    /// freeze timer runs, and one walking to its withdraw
     /// destination unless forced, and under its keeper's Call to Arms one farther than
     /// <c>CallToArmsFightDistanceTiles</c> from the flag unless forced (Q361), and a chicken
     /// (<c>ChickenTimer</c> <c>+0x44B</c> running). Not modelled: hypnosis, the threat-response state
@@ -204,9 +206,14 @@ public static class CombatRules
         && (creature.Activity is not (CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm) || force)
         && (!HandRules.IsHeld(creature) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
-        && !StatusEffectRules.IsIncapacitated(creature)
+        && !NoFightLookup(creature)
+        && !StatusEffectRules.IsFrozen(creature)
         && !ChickenRules.IsChicken(creature)
         && !CreatureDeathRules.IsDown(creature);
+
+    private static bool NoFightLookup(CreatureState creature) =>
+        CreatureStateMachine.HasState(creature)
+        && CreatureStateTable.Get(creature.Dk2StateId).Has(CreatureStateFlags.NoFightLookup);
 
     /// <summary>The throttle at the top of <c>ProcessFight</c>: bump the counter; a creature on a
     /// new tile looks now, one standing still looks when the counter reaches its period. Either

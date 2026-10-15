@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**257** — `0x11DCC450617C3D56`. A creature getting up (257) may look for a fight: the may-look gate tests the state flag's bit 6, which 257 lacks, and the freeze timer, where ours refused every stunned and frozen activity (ADR-0488); no new saved field.
+
 **256** — `0x766C3AB62E635E07`. `WorldState.NavStamps`, hashed and saved after the doors: navigation bytes that outlive their writer until the tile's terrain changes, a door's 0 left on water or lava by `0x004A66F0(0)` (Q600) and the Heart builder's 3 on its centre (`0x004DB700`, Q601); `WorldSnapshot.FormatVersion` 256. The fixture has no doors and no Heart record, so only the version moves the pin.
 
 **255** — `0xE09E9405FB971F17`. The navigation mesh's locate cache (the original's
