@@ -50,6 +50,8 @@ public static class KwdTerrainRooms
         KwdOverlay.Ascii(bytes, 0, 32, record.Name, ReadName(bytes, 0, 32), trimmed: false);
         void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
         BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(TerrainLayout.Depth), record.Depth.Raw);
+        if (record.TerrainLightHeight is Fp32 lightHeight)
+            BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(TerrainLayout.LightHeight), lightHeight.Raw);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(TerrainLayout.Flags), (uint)record.Flags);
         BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(TerrainLayout.Damage), record.Damage);
         U16(TerrainLayout.Gold, record.GoldValue);
@@ -86,6 +88,7 @@ public static class KwdTerrainRooms
     private static class TerrainLayout
     {
         internal const int Depth = 0x188, Flags = 0x190, Damage = 0x194;
+        internal const int LightHeight = 0x18C;
         internal const int Gold = 0x19A, Mana = 0x19C, MaxMana = 0x19E;
         internal const int Tooltip = 0x1A0, NameString = 0x1A2, Wibble = 0x1CE, Id = 0x1D6;
         internal const int StartingHealth = 0x1D7, MaxHealthType = 0x1D9, DestroyedType = 0x1DA;
@@ -170,6 +173,7 @@ public static class KwdTerrainRooms
             MaxHealth = U16(TerrainLayout.MaxHealth),
             MaxHealthEffectId = U16(TerrainLayout.MaxHealthEffect),
             DestroyedEffectId = U16(TerrainLayout.DestroyedEffect),
+            TerrainLightHeight = new Fp32(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + TerrainLayout.LightHeight))),
             Lighting = new TerrainLighting(
                 U8(TerrainLayout.TerrainRgb), U8(TerrainLayout.TerrainRgb + 1), U8(TerrainLayout.TerrainRgb + 2),
                 U8(TerrainLayout.AmbientRgb), U8(TerrainLayout.AmbientRgb + 1), U8(TerrainLayout.AmbientRgb + 2)),

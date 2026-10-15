@@ -4,11 +4,37 @@
 
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.Core;
+using System.Buffers.Binary;
 
 namespace DK2.Data.Tests;
 
 public class KwdTerrainLightingTests
 {
+    [Theory]
+    [InlineData(-4096)]
+    [InlineData(0)]
+    [InlineData(32768)]
+    [InlineData(int.MinValue)]
+    [InlineData(int.MaxValue)]
+    public void TerrainPointLightHeightIsSignedFixedPointAndIndependentOfDepth(int raw)
+    {
+        byte[] source = new byte[552];
+        BinaryPrimitives.WriteInt32LittleEndian(source.AsSpan(0x188), 8192);
+        BinaryPrimitives.WriteInt32LittleEndian(source.AsSpan(0x18C), raw);
+        TerrainDef terrain = Read(source);
+        Assert.Equal(new Fp32(raw), terrain.TerrainLightHeight);
+        Assert.Equal(new Fp32(8192), terrain.Depth);
+        var image = new KwdRecordImage(KwdRecordType.Terrain, source);
+        Assert.Equal(source, KwdTerrainRooms.WriteTerrainRecord(terrain, image));
+        byte[] expected = (byte[])source.Clone();
+        BinaryPrimitives.WriteInt32LittleEndian(expected.AsSpan(0x18C), 12345);
+        Assert.Equal(expected, KwdTerrainRooms.WriteTerrainRecord(
+            terrain with { TerrainLightHeight = new Fp32(12345) }, image));
+        Assert.Equal(source, KwdTerrainRooms.WriteTerrainRecord(
+            terrain with { TerrainLightHeight = null }, image));
+    }
+
     private static TerrainDef Read(byte[] bytes) => KwdTerrainRooms.ParseTerrain([
         new KwdChunk { Type = KwdRecordType.Terrain, ItemCount = 1, Content = bytes, HeaderBlock = [] }]).Single();
 

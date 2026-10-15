@@ -42,6 +42,8 @@ namespace DK2.Unity.Editor
         private sealed class Result
         {
             public bool Passed;
+            public string Level;
+            public bool NativeInitialAmbient;
             public string Pipeline;
             public bool SrpBatcher;
             public string Shader;
@@ -67,7 +69,7 @@ namespace DK2.Unity.Editor
         private const int Width = 1024, Height = 576;
         private static bool _running;
 
-        [MenuItem("DK2/Classic look/Compare Level 1 torch lighting")]
+        [MenuItem("DK2/Classic look/Compare campaign torch lighting")]
         public static void Run()
         {
             if (_running) throw new InvalidOperationException("The world lighting probe is already running.");
@@ -100,6 +102,11 @@ namespace DK2.Unity.Editor
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Stop Play mode before running the world lighting probe.");
+            string level = Environment.GetEnvironmentVariable("DK2_LIGHTING_PROBE_LEVEL") ?? "Level1";
+            if (level != "Level1" && level != "Level7" && level != "Level8")
+                throw new ArgumentException("DK2_LIGHTING_PROBE_LEVEL must be Level1, Level7 or Level8.");
+            result.Level = level;
+            result.NativeInitialAmbient = Environment.GetEnvironmentVariable("DK2_NATIVE_AMBIENT_PROBE") == "1";
             int previousCount = Shader.GetGlobalInt("_DK2TorchGridCount");
             int previousWidth = Shader.GetGlobalInt("_DK2TorchGridWidth");
             if (previousCount != 0)
@@ -126,7 +133,7 @@ namespace DK2.Unity.Editor
                 foreach (Camera camera in mainCameras) camera.tag = "Untagged";
                 foreach (Light light in originalLights) light.enabled = false;
                 ShaderUtil.allowAsyncCompilation = false;
-                root = new GameObject("DK2 transient Level 1 lighting probe") { hideFlags = HideFlags.HideAndDontSave };
+                root = new GameObject("DK2 transient " + level + " lighting probe") { hideFlags = HideFlags.HideAndDontSave };
                 var cameraObject = new GameObject("Probe main camera");
                 cameraObject.transform.SetParent(root.transform, false);
                 cameraObject.tag = "MainCamera";
@@ -163,9 +170,9 @@ namespace DK2.Unity.Editor
                 runnerObject.transform.SetParent(root.transform, false);
                 DungeonRunner runner = runnerObject.AddComponent<DungeonRunner>();
                 runner.enabled = false;
-                Set(runner, "levelName", "Level1");
+                Set(runner, "levelName", level);
                 Set(runner, "classicVertexLighting", true);
-                Set(runner, "nativeInitialAmbient", Environment.GetEnvironmentVariable("DK2_NATIVE_AMBIENT_PROBE") == "1");
+                Set(runner, "nativeInitialAmbient", result.NativeInitialAmbient);
                 Set(runner, "tickOnWorkerThread", false);
                 typeof(DungeonRunner).GetMethod("StartGame", BindingFlags.NonPublic | BindingFlags.Instance)
                     .Invoke(runner, null);
@@ -195,7 +202,7 @@ namespace DK2.Unity.Editor
                 scene.DrawCreatureFrame(simulation.World.CurrentTick, 1);
                 scene.DrawCreatureShadows(probeCamera, view, simulation.World);
                 if (!RenderPipeline.SupportsRenderRequest(probeCamera, new RenderPipeline.StandardRequest()))
-                    throw new NotSupportedException("The configured pipeline cannot render the Level 1 probe.");
+                    throw new NotSupportedException("The configured pipeline cannot render the campaign lighting probe.");
                 result.Pipeline = RenderPipelineManager.currentPipeline.GetType().FullName;
                 PropertyInfo batcher = GraphicsSettings.currentRenderPipeline.GetType().GetProperty("useSRPBatcher");
                 result.SrpBatcher = batcher != null && (bool)batcher.GetValue(GraphicsSettings.currentRenderPipeline);
@@ -244,7 +251,7 @@ namespace DK2.Unity.Editor
                 result.ShadowPrepareP95Ms = samples[(int)(samples.Length * .95)];
                 result.Comparisons = comparisons.ToArray();
                 if (result.TorchCount == 0 || result.Shader == null)
-                    throw new InvalidOperationException("Production Level 1 did not create classic torch lighting.");
+                    throw new InvalidOperationException("Production " + level + " did not create classic torch lighting.");
                 if (comparisons.Any(comparison => comparison.ChangedPixels == 0))
                     throw new InvalidOperationException("At least one production capture received no torch contribution.");
             }

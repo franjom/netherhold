@@ -104,7 +104,15 @@ fixture covers asymmetric orientation, multiple sources, atlas growth,
 animation changes, framebuffer alpha and caster removal. This is not a
 matched-original frame or a full shadow-quality implementation.
 
-The isolated Level1 tick70 probe (2026-10-15) measured warmed CPU shadow
-preparation/submission at median0.1761ms, p950.1992ms and zero managed bytes
-over30 samples. This is a small-scene editor measurement, not GPU time or a
-busy-map performance result.
+The isolated campaign tick70 probes (2026-10-15) measured warmed CPU shadow
+preparation/submission over30 samples with native initial ambient disabled:
+
+| Level | Median ms | P95 ms | Managed bytes |
+|---|---:|---:|---:|
+| 1 | 0.1761 | 0.1992 | 0 |
+| 7 | 0.1421 | 0.1701 | 0 |
+| 8 | 0.4344 | 0.5307 | 0 |
+
+These measure each startup camera, not GPU time, a matched busy-map benchmark
+or complete frame cost. Both additional campaign probes also passed torch
+on/off comparisons at startup, after camera movement and at tick70.

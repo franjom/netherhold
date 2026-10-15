@@ -76,13 +76,12 @@ on 2026-10-15 distinguish these handles from global ambient/fill:
   its mesh visibility. This is not an unconditional world fill.
 - `+0x35D`: the per-tile render pass reuses it for the selection rectangle's
   boundary tiles, setting edge bits and moving it to each boundary tile centre.
-- `+0x35B`: `0x00441CD0` reuses it per tile at tile centre and terrain runtime
-  height `+0x1BF`, copies terrain RGB `+0x1AF/+0x1B1/+0x1B3` (or a highlighted
-  override), sets flags `0x8052`, then submits renderer slot `+0xE0`.
+- `+0x35B`: reused per-tile terrain point light; section9 owns its inputs and
+  selection boundaries.
 - `+0x3BC`: the per-tile pass reuses its animated mesh at a visible torch's
   position with height offset `0x4B0`, not as an ambient source.
 
-The tile-light submission's complete renderer response remains untraced;
+The tile-light consumer and remaining selection boundary are in section9;
 these handles do not establish replacement Unity directional lighting.
 
 The tracked DK2 renderer's mode 2 is Forward+ in the installed URP source
@@ -205,3 +204,48 @@ A production Level1 comparison confirms that torches already contributed;
 the reported absence was a visual-contrast difference, not a proved missing
 source. Keep matched-original comparison open; do not label the entire torch
 path broken from that screenshot alone.
+
+## 9. Per-tile terrain point lights
+
+CONFIRMED: `0x00441CD0` submits renderer slot `+0xE0`, which is `0x00599960`
+in vtable `0x00670574`. Therefore the terrain source uses the same point-light
+coefficient path as a torch, not a flat ambient addition. Startup requests
+radius `0x1200` (1.125 tiles) and intensity128 (normalized1). Its initial RGB500
+is overwritten by selected terrain runtime RGB `+0x1AF/+0x1B1/+0x1B3` (or a
+highlight override) before submission at the tile centre. Flags
+`0x8052` lack engine shadow-source flag `0x4000`, so it receives renderer flags4
+before classification, rather than a shadow-source light's flags.
+
+The height copied to position is a 32-bit fixed-point field: loader
+`0x004F66E0` copies intermediate `+0x244` to runtime `+0x1BF` when field-present
+word `+0xA8` is nonzero. With the confirmed intermediate shift `+0xB8`, this is
+file offset `+0x18C`, in units1/4096. An absent field leaves the previous runtime
+value intact; its initial default has not been established.
+
+The complete-record reader/writer exposes this signed value as optional
+`TerrainDef.TerrainLightHeight`; null preserves the writer's template bytes.
+Thirty terrain tests pass, including signed extremes, depth independence,
+offset-only edits and shipped-file byte identity. The field is not yet submitted
+to the renderer, pending the light-table gathering rule below.
+
+Eligibility is `0x00452DC0`, before source creation: plain terrain needs
+TerrainLight (bit28) and no door. Scanned/unexplored terrain selects either its
+RevealThroughFog terrain or ClaimScan38 before testing TerrainLight. A room
+tile needs byte `+0xC == 0xFF` and TerrainLight on its terrain. The selected
+terrain supplies point RGB; its AmbientLight colour remains a separate
+instance-colour input described in room-floors-and-liquids.md and wall-pieces.md.
+
+`0x00571A90` appends these sources to current **tile cache entry** `+0x34`,
+not a global frame list and not one immediate mesh draw. The current entry is
+set by `0x005722A0`; it retains that list until invalidation/rebuild. The
+dynamic source list at `+0x38` instead clears during the next frame's
+`0x005723D0` update. Thus the helper names alone do not imply that sources
+exist for every world tile or light every neighbouring draw.
+
+`0x0057BBF0` filters a supplied draw-light table by required flags and strict
+3D sphere overlap `(sourceRadius + drawRadius)^2`, yielding a32-bit selection
+mask. The producer gathering nearby tile-cache sources into that table, its
+cap/order and occlusion policy remain UNKNOWN. Before implementing a neighbour
+GPU lookup, locate that producer via the animated preparation's light-table
+input at draw `+0x5C`. The cache visibility helpers `0x005735A0`/`0x005737E0`
+construct visible tile lists, not that missing light-table producer.

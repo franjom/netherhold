@@ -35,6 +35,10 @@ until the remaining native terrain-light inputs are implemented. Restart Play
 after changing these switches. GPU checks are available under **DK2 / Classic
 look**; batch entry points are `DK2.Unity.Editor.ClassicShadowProbe.Run` and
 `DK2.Unity.Editor.ClassicWorldLightingProbe.Run` (omit `-quit`).
+For the world probe, `DK2_LIGHTING_PROBE_LEVEL` selects `Level1` (default),
+`Level7` or `Level8`; `DK2_LIGHTING_PROBE_OUTPUT` chooses the capture directory.
+Leave `DK2_NATIVE_AMBIENT_PROBE` unset for the brighter preview, or set it to
+`1` to exercise the incomplete native startup ambient diagnostic.
 
 You should get a campaign level as coloured boxes, with its objects, creatures (still, in
 their idle model's first frame) and wall torches drawn from the install's own meshes and

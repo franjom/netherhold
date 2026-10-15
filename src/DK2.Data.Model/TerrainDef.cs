@@ -93,6 +93,9 @@ public sealed record TerrainDef
     /// <summary>Null leaves a writer template's authored light colours unchanged.</summary>
     public TerrainLighting? Lighting { get; init; }
 
+    /// <summary>Authored point-light height; null preserves a writer template's value.</summary>
+    public Fp32? TerrainLightHeight { get; init; }
+
     public bool IsSolid => Flags.HasFlag(TerrainFlags.Solid);
     public bool IsImpenetrable => Flags.HasFlag(TerrainFlags.Impenetrable);
     public bool IsOwnable => Flags.HasFlag(TerrainFlags.Ownable);

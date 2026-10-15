@@ -104,10 +104,10 @@ lighting outputs; DungeonScene light application; focused lighting tests.
 brightness require a fixed-world camera-motion comparison when Unity is allowed.
 Torch input normalization, radius coefficients and the discrete lookup response
 are traced; a headless reference and shared adapter input conversion are built
-and independently reviewed (2026-10-15). The 341-case presentation suite passes.
+and independently reviewed (2026-10-15). The 348-case presentation suite passes.
 Vertex RGB packing before texture modulation is traced and independently
 verified. An opt-in URP vertex shader and GPU torch buffer are built; source
-review corrected offscreen cluster access. Arithmetic GPU checks and five actual
+review corrected offscreen cluster access. Arithmetic GPU checks and seven actual
 URP render cases pass with SRP Batcher enabled; independent integration review
 passes (2026-10-15). The preview remains opt-in pending scene comparisons. See classic-lighting.md sections5?7 for the
 singular-bin contract and preview limits. Framebuffer transfer, global/terrain
@@ -119,7 +119,11 @@ passes the placeholder-sun isolation test; it stays off until missing fill
 inputs are traced, because unlit tops/arches otherwise turn black. Creature
 silhouettes are built under ADR-0482 and pass independent review and GPU checks;
 source qualifications, native bounds and original quality integration remain
-explicit preview limits. Owner acceptance and busy-view profiling are pending.
+explicit preview limits. The owner accepted the brighter preview with native
+initial ambient disabled and confirmed visible Imp shadows (2026-10-15).
+Matched-original acceptance and busy-view profiling remain pending. Terrain
+point-light height loading/writing is built and independently reviewed; native
+per-draw source gathering remains unresolved (classic-lighting.md section9).
 
 ## 5.5 — Discovery and fog presentation
 
