@@ -215,3 +215,17 @@ DK2's.
 Why the keeper's creatures lose the 3766–4600 fights in the losing seeds when most of the
 owner's drops do land: who is in them and their levels against DK2's. Seeded DK2 playbacks
 of `l4live` would say how much of the spread in arrivals and wins is DK2's own.
+
+## Heroes levelled on the walk (2026-10-15)
+
+The heroes beside the second Guard Room were not stronger parties: DK2's waves (2990, 3470,
+3830, 4190 at the two gates and (1,52)) hold the same types as ours, and the first wave the
+same levels (one Dwarf at 1, one at 2). They outlived
+DK2's because ours levelled. Seed 1's first two Dwarves went up a level within 120 turns of
+arriving and up to level 6 by 3595, where DK2's two never levelled, backed off (state 203) as
+DK2's two level-3 type-7 creatures engaged at 3076–3084, and fell into the dying states
+216/217 at 3105 and 3124. Ours
+paid combat experience on the walk to a target, DK2's state 8, which the hook `0x0047A870`
+excludes. Without it (ADR-0366 amendment, hash 252) seed 1's first Dwarves die at 3340 and
+3428 (DK2's bleed out about 3350–3370), the parties at 4367 and 4847 no longer come, and
+seeds 1–20 on 1aed4de2 move from 20/1/17/0 to 19/6/18/3.

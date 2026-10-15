@@ -1,4 +1,4 @@
-﻿# Architecture Decision Records
+# Architecture Decision Records
 
 ## ADR-0001 — Integer/fixed-point gameplay math
 **Date:** 2026-08-29 · **Status:** accepted
@@ -6387,6 +6387,12 @@ is exempt: a plan is a process document, not a claim. Records imported from exis
 research are GUESS until a reader has checked them against the binary and raised them,
 in a dated History line.
 
+**Amendment (2026-10-15).** A name in Ghidra reads as settled, so `kb apply-names` gives
+a record that is not CONFIRMED its name with the confidence appended
+(`Treasury_Tick_LIKELY`, `HeroGate_Tick_GUESS`); the record keeps the plain name. Names
+are applied per reviewed cluster of a sweep (owner, 2026-10-14). Look a function up by
+address, or find it with `search_symbols_by_name` on the plain name.
+
 ## ADR-0291 — Tier B is the ring scan with the per-tile chain
 **Date:** 2026-09-30 · **Status:** accepted · Research: `imp-claim-path.md` §2, `imp-task-stealing.md` §4
 
@@ -8400,6 +8406,16 @@ a hero Dwarf gain levels in a fight (2026-10-05). Ours left the hook unbuilt.
 
 **Decision.** `CreatureExperienceSystem.CombatExperiencePerOriginalTick`, granted with work
 experience on DK2's tick.
+
+**Amendment (2026-10-15, hash 252).** The walk to a fight target is DK2's state 8
+(`0x00470E30`, group 9, category 2), whose state word fails the hook's 199/200 test; ours
+models it as a flag on 199 (`Approaching`) and paid experience on the walk. Level 4 seed 1's
+hero Dwarves went up a level within 120 turns of arriving and up to level 6 by 3595; DK2's
+two never levelled and were down within about 130 turns. Now the walk earns nothing. Seeds 1–20 on
+master 1aed4de2 against the change: Level 1 20 → 19 (seed 6's Lord dies at 2028, a win not
+recorded before the replay's 2044 turns), Level 2 1 → 6, Level 3
+17 → 18, Level 4 0 → 3; hero level-ups on Level 4 fall from 425 to 163. Other readers of the
+state word that the flag hides (`ActivityRules`, `CombatMessageRules`) are not changed.
 
 ## ADR-0367 — Shots are updated newest first
 **Date:** 2026-10-06 · **Status:** accepted
@@ -11048,6 +11064,53 @@ to vertices, the Unity scene publishes each drawn creature's head for the effect
 thread, and the effect model moves a tied effect and its elements with the head each update,
 dropping the tie when the creature's object goes. Static-mesh points are not resolved. No
 hash change.
+
+## ADR-0481 — The original's own functions are run as a test oracle
+**Date:** 2026-10-15 · **Status:** accepted · Tests: `tests/DK2.Oracle.Tests`; tool: `tools/oracle/dk2oracle.py`
+
+**Context.** A reading of a function is somebody's reading; a C# port of a reading can drift
+from the bytes in a constant, a shift's sign or an overflow, and the replay rigs show such a
+slip only as distant drift. A function whose answer depends only on its arguments and the
+image's own bytes can instead be run: the owner allowed the Unicorn emulator (GPLv2) to be
+used but not committed (2026-10-15).
+
+**Decision.** `DK2.Oracle.Tests` reads the install's `DKII.EXE` at test time (v1.70, MD5
+checked) and holds our C# to it: tables byte for byte, functions value by value on swept
+inputs, a function with several arms failing if one goes unreached (the gate walk's). The
+emulator runs in `dk2oracle.py`, CPython (`py -3`, or `DK2_PYTHON`) loading `unicorn.dll`
+from `DK2_UNICORN_DLL`, because a .NET host fail-fasts under Unicorn (`docs/TRAPS.md`); no
+Unicorn package, binary or source enters the repository. The function tests skip without
+it; the table tests need only the install. Where the original's divide faults, DK2 itself
+would crash, so the input is outside what can be matched: it is counted and logged, not
+compared.
+
+**Consequences.** First batches: the square-root, arctangent and sine tables; Math_Isqrt,
+Math_Atan2, Random_Next; the gate walk's Collapse and AdjustAroundCrossing; Fixed16
+Normalise, Truncate, Scale and Over; then Angle_Distance, Angle_TurnsUp, the aim cone, the
+ray-circle test and the 3-vector length, whose port threw on an int.MinValue component where
+the original wraps (fixed); then Octile, Perpendicular, GateWalk.Intersect and the dig
+walk's start side, candidates from `tools/oracle/purity.py` (ported functions it finds touching
+no written global; each read from the bytes before testing). All match wherever the original returns. Running the
+bytes is binary evidence, so `[Dk2Behavior]` still rises no higher than STRONGLY INFERRED
+(ADR-0046 rule 5); a function record may say CONFIRMED for what the function computes, not
+for behaviour seen in play. A function that reads world state can instead run on one tick
+of a full-state capture (`tools/oracle/capture_memory.py`); first, 0x00460B50 on Level 4
+seed 1, every tenth tick (`guard_room_on_capture.py`): 542 calls, 149 yes, 215 refused by the
+room test, 86 targets within a tile of an expanded edge, every answer the rule
+`FearRules.NearOwnGuardRooms` encodes; in 470 samples each Guard Room's stored bounds equal
+its tiles'. `CapturedGuardRoomTests` then runs our C# itself on those states: the world
+rebuilt from the level and given each tick's tiles (`capture_state.py`, `CapturedState`),
+the first tick equal to our level map tile for tile, and `NearOwnGuardRooms` equal to the
+original on all 80 compared calls. Not checked: callers' early-outs, variable 190, bounds
+after a room loses tiles.
+
+Functions deeper than this read definitions and heap no capture stores, so they need a
+memory dump of the running game: `tools/oracle/process_dump.py` writes one with the game
+suspended, in a format `dk2oracle.py` loads (moving its own stack clear of the game's
+memory, and refusing a request that would write into scratch the game owns), and the
+recorder takes them at chosen ticks (`--dump-ticks`). A quotient past 32 bits wraps in `Fixed16.Div` where
+the original faults (a zero divisor throws in both); whether any game input reaches it was
+not checked.
 
 ## ADR-0482 ? Project animated creature silhouettes through a shared GPU atlas
 **Date:** 2026-10-15 ? **Status:** accepted ? Research: creature-shadows.md

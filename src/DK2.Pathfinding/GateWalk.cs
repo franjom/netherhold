@@ -172,7 +172,8 @@ public static class GateWalk
     /// <summary>Where the line through <paramref name="p"/> and <paramref name="q"/> (not the
     /// segment) meets the gate (<c>0x004CFFD0</c>): the gate parameter in Q14 must lie within
     /// ±1.0 and the point inside the gate's bounding box. The crossing is written before the box
-    /// test, so a miss can still leave one in the record.</summary>
+    /// test, so a miss can still leave one in the record. Where the original's 64/32 divide would
+    /// fault (a quotient past 32 bits; DK2 would crash), this reports no crossing.</summary>
     public static bool Intersect(ref GateRecord r, NavPoint p, NavPoint q)
     {
         int gx = (r.B.X - r.A.X) << 6, gy = (r.B.Y - r.A.Y) << 6;
@@ -181,9 +182,9 @@ public static class GateWalk
         int num = MulQ14(sy, ax) - MulQ14(sx, ay);
         int den = MulQ14(gy, sx) - MulQ14(gx, sy);
         if (den == 0) return false;
-        int t = DivQ14(num, den);
+        long t = ((long)num << 14) / den;
         if (t < -FractionOne || t > FractionOne) return false;
-        r.Crossing = new NavPoint(r.A.X + (MulQ14(t, gx) >> 6), r.A.Y + (MulQ14(t, gy) >> 6));
+        r.Crossing = new NavPoint(r.A.X + (MulQ14((int)t, gx) >> 6), r.A.Y + (MulQ14((int)t, gy) >> 6));
         return InBox(r.Crossing, r.A, r.B);
     }
 

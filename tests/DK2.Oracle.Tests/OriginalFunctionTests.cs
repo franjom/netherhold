@@ -43,16 +43,15 @@ public class OriginalFunctionTests
         var mismatches = new List<string>();
         for (int i = 0; i < inputs.Length; i++)
         {
-            // The only instruction here that can fault is the DIV, so an original fault is its
-            // divide error. Both sides divide by zero, and nowhere else, when one difference is
-            // int.MinValue and the other 0: the negation leaves int.MinValue negative.
+            // Both sides divide by zero, and nowhere else, when one difference is int.MinValue
+            // and the other 0: the negation leaves int.MinValue negative.
             string ours;
             try { ours = Bearing.Of(inputs[i].Dx, inputs[i].Dy).ToString(); }
             catch (DivideByZeroException) { ours = "divide fault"; }
             string theirs = original[i].Fault switch
             {
                 null => (original[i].Eax & 0xFFFF).ToString(),
-                string f when f.Contains("UC_ERR_EXCEPTION", StringComparison.Ordinal) => "divide fault",
+                string f when f.StartsWith("divide", StringComparison.Ordinal) => "divide fault",
                 string f => $"fault ({f})",
             };
             if (theirs != ours)

@@ -38,11 +38,23 @@ internal static class OriginalCpu
             : $"No Unicorn: set {DllVariable} to a unicorn.dll outside the repository.");
 
     /// <summary>Calls each request's cdecl function in order on one emulator; memory a request
-    /// writes stays written for the ones after it.</summary>
-    public static IReadOnlyList<Outcome> Run(IReadOnlyList<Request> requests)
+    /// writes stays written for the ones after it. With <paramref name="memoryImage"/> (a
+    /// capture tick, <see cref="CapturedState"/>) every call runs against that game state.</summary>
+    public static IReadOnlyList<Outcome> Run(IReadOnlyList<Request> requests, string? memoryImage = null)
     {
         OriginalExecutable.Load(); // the MD5 check: the addresses are for v1.70 only
 
+        string exe = System.IO.Path.Combine(Dk2InstallGate.Path, "DKII.EXE");
+        string[] lines = Python("dk2oracle.py", memoryImage is null ? [exe] : [exe, memoryImage],
+            requests.Select(r => r.Line()));
+        Assert.True(lines.Length == requests.Count, $"dk2oracle gave {lines.Length} of {requests.Count} outcomes");
+        return [.. lines.Select(Outcome.Parse)];
+    }
+
+    /// <summary>Runs a <c>tools/oracle</c> script under <see cref="PythonVariable"/>, feeds it
+    /// <paramref name="input"/> and returns its output lines; a nonzero exit fails the test.</summary>
+    public static string[] Python(string script, IEnumerable<string> args, IEnumerable<string>? input = null)
+    {
         string? python = Environment.GetEnvironmentVariable(PythonVariable);
         var start = new ProcessStartInfo(string.IsNullOrEmpty(python) ? "py" : python)
         {
@@ -53,40 +65,41 @@ internal static class OriginalCpu
         };
         if (string.IsNullOrEmpty(python)) start.ArgumentList.Add("-3");
         start.ArgumentList.Add("-I");
-        start.ArgumentList.Add(Script());
-        start.ArgumentList.Add(System.IO.Path.Combine(Dk2InstallGate.Path, "DKII.EXE"));
+        start.ArgumentList.Add(Script(script));
+        foreach (string arg in args) start.ArgumentList.Add(arg);
 
         using Process process = Process.Start(start)!;
         Task<string> error = process.StandardError.ReadToEndAsync();
         Task<string> output = process.StandardOutput.ReadToEndAsync();
-        foreach (Request request in requests) process.StandardInput.WriteLine(request.Line());
+        foreach (string line in input ?? []) process.StandardInput.WriteLine(line);
         process.StandardInput.Close();
         process.WaitForExit();
 
-        string[] lines = output.Result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        Assert.True(process.ExitCode == 0 && lines.Length == requests.Count,
-            $"dk2oracle exited {process.ExitCode} with {lines.Length} of {requests.Count} outcomes:\n{error.Result}");
-        return [.. lines.Select(Outcome.Parse)];
+        Assert.True(process.ExitCode == 0, $"{script} exited {process.ExitCode}:\n{error.Result}");
+        return output.Result.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
-    private static string Script()
+    private static string Script(string name)
     {
         for (DirectoryInfo? dir = new(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {
-            string candidate = System.IO.Path.Combine(dir.FullName, "tools", "oracle", "dk2oracle.py");
+            string candidate = System.IO.Path.Combine(dir.FullName, "tools", "oracle", name);
             if (File.Exists(candidate)) return candidate;
         }
-        throw new FileNotFoundException("tools/oracle/dk2oracle.py is not above the test assembly.");
+        throw new FileNotFoundException($"tools/oracle/{name} is not above the test assembly.");
     }
 
-    /// <summary>One call: the function, its 32-bit arguments, dwords to write first and
-    /// addresses to read after.</summary>
-    public sealed record Request(uint Function, uint[] Args, (uint Address, uint Value)[]? Writes = null, uint[]? Reads = null)
+    /// <summary>One call: the function, its 32-bit stack arguments, dwords to write first,
+    /// addresses to read after, and ECX for a thiscall.</summary>
+    public sealed record Request(uint Function, uint[] Args, (uint Address, uint Value)[]? Writes = null, uint[]? Reads = null,
+        uint? Ecx = null)
     {
         public string Line()
         {
             string line = $"{Function:x} " + string.Join(' ', Args.Select(a => a.ToString("x")));
-            if (Writes is { Length: > 0 }) line += " | " + string.Join(' ', Writes.Select(w => $"{w.Address:x}={w.Value:x}"));
+            IEnumerable<string> writes = (Writes ?? []).Select(w => $"{w.Address:x}={w.Value:x}");
+            if (Ecx is { } ecx) writes = writes.Append($"ecx={ecx:x}");
+            if (writes.Any()) line += " | " + string.Join(' ', writes);
             if (Reads is { Length: > 0 }) line += " @ " + string.Join(' ', Reads.Select(r => r.ToString("x")));
             return line;
         }

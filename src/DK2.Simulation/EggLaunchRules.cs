@@ -74,7 +74,7 @@ public static class EggLaunchRules
             temporaryZ += 0x3000;
 
         int vx = egg.PhysicalVelocityX, vy = egg.PhysicalVelocityY, vz = egg.PhysicalVelocityZ + temporaryZ;
-        int norm = Length(vx, vy, vz);
+        int norm = IntegerMath.Length(vx, vy, vz);
         if (norm == 0) return;
         int steps = Math.Min(16, (norm >> 14) + 1);
         int baseX = egg.PosX, baseY = egg.PosY, baseZ = egg.PosZ;
@@ -128,14 +128,6 @@ public static class EggLaunchRules
     {
         var tile = new TilePos(x.Raw >> 12, y.Raw >> 12);
         return context.World.Contains(tile) && !context.Database.TerrainById(context.World.Tile(tile).TerrainId).IsSolid;
-    }
-
-    private static int Length(int x, int y, int z)
-    {
-        uint ax = (uint)Math.Abs(x), ay = (uint)Math.Abs(y), az = (uint)Math.Abs(z);
-        int shift = (ax | ay | az) < 2048 ? 0 : (ax | ay | az) < 2097152 ? 8 : 18;
-        ax >>= shift; ay >>= shift; az >>= shift == 18 ? 8 : shift;
-        return IntegerMath.SquareRoot(unchecked(ax * ax + ay * ay + az * az)) << shift;
     }
 
     internal static int FloorHeight(WorldState world, GameDatabase database, Fp32 posX, Fp32 posY)

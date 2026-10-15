@@ -40,6 +40,29 @@ running game.
 Where the binary and the *shipped data* disagree, that is interesting rather than
 settled — ADR-0023 deliberately disbelieves one shipped value.
 
+**Running beats reading, for a function that can be run.** A function whose answer
+depends only on its arguments and the image's own bytes (maths, fixed-point helpers,
+tables, the seeded random draw) can be executed instead of re-read: see below. That
+settles a port value by value on every input run, which no reading does; between the
+swept inputs it is still a sample, and it is binary evidence, not the running game.
+
+## Running the original's functions (ADR-0481)
+
+`tests/DK2.Oracle.Tests` holds our C# to `DKII.EXE` itself: tables byte for byte, and
+functions run on the Unicorn emulator by `tools/oracle/dk2oracle.py` over swept inputs.
+Setup, once: a Windows x64 `unicorn.dll` 2.1.x outside the repository (the PyPI
+`unicorn` win_amd64 wheel has one; the NuGet package has none), and
+`DK2_UNICORN_DLL` set to its path, plus a Python 3 (`py -3`, or `DK2_PYTHON`); without
+the DLL the function tests skip, while the table tests need only the install. Unicorn is never
+committed (owner, 2026-10-15). `tools/oracle/purity.py` lists ported candidates (read each before trusting it);
+`tools/oracle/capture_memory.py` turns a capture tick into a memory image for functions that read the world
+(it needs this folder's local `dk2capture.py`, or `DK2_CAPTURE_DECODER`).
+To add a function: read it in Ghidra for its calling
+convention, out-pointer and record layout, check it reads no mutable global, and add a
+test after `OriginalFixed16Tests` that sweeps the band edges and counts the arms it
+reaches. A divide fault in the original is outside its domain and is counted, not
+compared. The traps it has cost are in `docs/TRAPS.md`.
+
 ## What is in here
 
 Ghidra project: the one project `D:\Ghidra\DK2_RE`, opened with Ghidra 12.1.4 and
@@ -83,7 +106,12 @@ python -u dk2record.py dk2runs/<run>/<name>.dk2cap --map 40x50 --last-tick 3545
 
 It waits for the process, then for a level with that map size (`--map 0` takes
 any), then stores one frame per new tick until `--last-tick`, the process
-exits, or the tick goes backwards. It ends by printing a summary: pass times,
+exits, or the tick goes backwards. `--dump-ticks 100,1500` also writes the whole
+process memory at those ticks, the game suspended (`<out>.<tick>.mem.z`, from
+`tools/oracle/process_dump.py`): definitions and heap the frames leave out, for
+the emulator oracle. The game stands still while each is written (the summary
+gives the seconds), so such a recording is not a timing run; each dump is
+tens to hundreds of MB. It ends by printing a summary: pass times,
 torn and missed ticks, and unknown classes.
 
 **What a frame holds**, each item in one bulk read:

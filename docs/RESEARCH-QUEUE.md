@@ -72,7 +72,9 @@ python tools/ghidra/ghidra.py --agent <you> <Script.py> <out> <args> [:: <next s
 are `-readOnly` unless `--write` is given. The runner calls
 `pyghidraRun.bat -H` underneath; the launcher's venv is
 `%APPDATA%\ghidra\ghidra_12.1.4_PUBLIC\venv`. The `ghidra-queries` skill
-(`.agents/skills/ghidra-queries/SKILL.md`) holds the script catalogue.
+(`.agents/skills/ghidra-queries/SKILL.md`) holds the script catalogue. A function
+that reads only its arguments and the image can be run rather than re-read:
+`tests/DK2.Oracle.Tests` (ADR-0481, `reverse-engineering/README.md`).
 
 **Scripts are CPython 3 (PyGhidra), not Jython.** 12.1 ships Jython only as an
 uninstalled extension. `analyzeHeadless.bat` with a `.py` script aborts with

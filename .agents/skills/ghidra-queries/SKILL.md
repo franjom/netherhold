@@ -58,7 +58,9 @@ runner above stays the tool for anything scripted or bulk.
   process does it when the client kills the launcher; a clone left by a
   killed session is swept at the next start). Any number of sessions run at
   once, and names given through `dk2tools kb apply-names` arrive at the next
-  session by themselves.
+  session by themselves. A name ending in a confidence (`_LIKELY`, `_GUESS`,
+  `_DISPUTED`) comes from a record of that confidence: read the record before
+  trusting it (ADR-0290).
 - **The clone is a reading surface.** `rename_function`, `set_comment` and the
   other mutation tools change the clone only, and it is deleted at exit.
   Real naming goes into the function records and `dk2tools kb apply-names`. `delete_project_binary` and
@@ -241,6 +243,15 @@ Check each one that applies before you write a conclusion down.
 - **Count call multiplicities before reading bodies.** Four calls to one
   helper are often a rectangle's sides, and a recursive call is often a segment
   walk.
+
+## After reading a function that can be run
+
+A function that reads only its arguments and the image's own bytes (no mutable
+global, no engine call) can be executed, which settles a port value by value on
+the inputs swept:
+add it to `tests/DK2.Oracle.Tests` (ADR-0481; setup in
+`reverse-engineering/README.md`). Record its calling convention, out-pointer or
+record layout from the disassembly first; the harness drives cdecl and thiscall.
 
 ## Writing a new script
 

@@ -229,5 +229,11 @@ public static class FunctionKbNames
             .Where(r => r.Address.Length > 0 && r.Name.Length > 0 && !r.Name.StartsWith("FUN_", StringComparison.Ordinal))
             .Where(r => r.Status != "SUPERSEDED")
             .OrderBy(r => r.Address, StringComparer.Ordinal)
-            .Select(r => $"{r.Address}\t{r.Name}\n"));
+            .Select(r => $"{r.Address}\t{GhidraName(r)}\n"));
+
+    /// <summary>The name a decompile shows: a CONFIRMED record's name as it is, any other with its
+    /// confidence appended (Treasury_Tick_LIKELY), because a plain name in Ghidra reads as settled
+    /// (owner, 2026-10-14).</summary>
+    public static string GhidraName(FunctionRecord record)
+        => record.Confidence is "CONFIRMED" or "" ? record.Name : $"{record.Name}_{record.Confidence}";
 }

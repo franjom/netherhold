@@ -32,7 +32,13 @@ public class CombatExperienceTests
     [Fact]
     public void ADeadTargetEarnsNothing() => Assert.Equal(0, Earned(0, 199, liveTarget: true, deadTarget: true));
 
-    private static int Earned(uint flags, int state, bool liveTarget, bool deadTarget)
+    /// <summary>The walk to the target is DK2's state 8, not 199, so it earns nothing (ADR-0366 amendment);
+    /// Level 4's hero Dwarves gained a level on the walk where DK2's gained none.</summary>
+    [Fact]
+    public void TheApproachEarnsNothing() =>
+        Assert.Equal(0, Earned(0, 199, liveTarget: true, deadTarget: false, approaching: true));
+
+    private static int Earned(uint flags, int state, bool liveTarget, bool deadTarget, bool approaching = false)
     {
         CreatureDef fighter = Dk2TerrainFixture.Goblin() with
         {
@@ -50,6 +56,7 @@ public class CombatExperienceTests
             me.FightTargetId = them.Id;
         }
         if (deadTarget) StatePlacement.As(them, CreatureActivity.Dead);
+        me.Approaching = approaching;
 
         return CreatureExperienceSystem.CombatExperiencePerOriginalTick(world, db, fighter, me);
     }

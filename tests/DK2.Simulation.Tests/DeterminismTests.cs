@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 251: the store sweep runs on DK2's turn & 0xF, one tick earlier (ADR-0285 amendment, Q596).
+        // HashVersion 252: the walk to a fight target (DK2 state 8) earns no combat experience (ADR-0366 amendment).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x3DFD1B0E0D7517C9UL, sim.StateHash());
+        Assert.Equal(0x7326CEF9676EA896UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

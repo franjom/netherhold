@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DK2.Core\DK2.Core.csproj" />
+    <ProjectReference Include="..\..\src\DK2.Pathfinding\DK2.Pathfinding.csproj" />
     <ProjectReference Include="..\..\src\DK2.Simulation\DK2.Simulation.csproj" />
     <ProjectReference Include="..\DK2.TestSupport\DK2.TestSupport.csproj" />
   </ItemGroup>
