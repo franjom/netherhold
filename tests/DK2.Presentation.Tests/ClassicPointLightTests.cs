@@ -10,6 +10,13 @@ namespace DK2.Presentation.Tests;
 public class ClassicPointLightTests
 {
     [Fact]
+    public void PositiveIncidenceInTheSingularBinTakesTheNativeFullColourBranch()
+    {
+        Assert.Equal(new Vector3(1f, 128f / 255f, 0f),
+            Light().ContributionAt(new Vector3(0.1f, 0, 0), -Vector3.UnitX));
+    }
+
+    [Fact]
     public void SingularBinIsExplicitlyUnsupportedForZeroIntensityTangentAndCoincidentVertices()
     {
         Assert.Throws<NotSupportedException>(() => Light(0).ContributionAt(new Vector3(0.1f, 0, 0), -Vector3.UnitX));

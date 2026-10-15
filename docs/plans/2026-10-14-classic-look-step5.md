@@ -104,10 +104,14 @@ lighting outputs; DungeonScene light application; focused lighting tests.
 brightness require a fixed-world camera-motion comparison when Unity is allowed.
 Torch input normalization, radius coefficients and the discrete lookup response
 are traced; a headless reference and shared adapter input conversion are built
-and independently reviewed (2026-10-15). Nine reference cases and the presentation
-suite pass. Vertex RGB packing before texture modulation is traced too
-(classic-lighting.md section6). Native singular-bin behavior, framebuffer transfer, shader response,
-global/terrain illumination and runtime comparisons remain pending.
+and independently reviewed (2026-10-15). The 341-case presentation suite passes.
+Vertex RGB packing before texture modulation is traced and independently
+verified. An opt-in URP vertex shader and GPU torch buffer are built; source
+review corrected offscreen cluster access. Arithmetic GPU checks and five actual
+URP render cases pass with SRP Batcher enabled; independent integration review
+passes (2026-10-15). The preview remains opt-in pending scene comparisons. See classic-lighting.md sections5?7 for the
+singular-bin contract and preview limits. Framebuffer transfer, global/terrain
+illumination and matched runtime comparisons remain pending.
 
 ## 5.5 — Discovery and fog presentation
 

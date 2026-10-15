@@ -40,10 +40,14 @@ public readonly record struct ClassicPointLight
         float distanceSquared = toLight.LengthSquared(), radiusSquared = Radius * Radius;
         if (Radius <= 0 || distanceSquared >= radiusSquared) return Vector3.Zero;
         float incidence = Vector3.Dot(normal, toLight) * Intensity;
-        if (incidence < 0) return Vector3.Zero;
+        if (BitConverter.SingleToInt32Bits(incidence) < 0) return Vector3.Zero;
 
         int index = (int)Math.Round(distanceSquared * 16.0 - 0.49999f, MidpointRounding.ToEven);
-        if (index == 0) throw new NotSupportedException("Native singular-bin propagation is not verified.");
+        if (index == 0)
+        {
+            if (incidence > 0) return Colour;
+            throw new NotSupportedException("Native zero-incidence singular-bin propagation depends on the FPU exception mask.");
+        }
         if ((uint)index >= 256) throw new ArgumentOutOfRangeException(nameof(vertex), "Native light lookup has 256 bins.");
         float lookup = 0.25f + 16f / index;
         float factor = incidence * lookup * (radiusSquared - distanceSquared) / radiusSquared;

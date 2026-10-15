@@ -78,8 +78,10 @@ lights, postprocessing, and visible torch counts. Change only camera position/ya
 when checking torch loss. Screenshots require a matching original-game view.
 Use unity/README.md's existing quiet/busy Level8 profiling protocol for CPU/GPU,
 frame-time distribution, allocations and draw calls; do not call submission time GPU time.
-As of 2026-10-14, Step5 runtime captures are pending because the owner prohibited
-Unity launches while AFK. Source settings and the older crowd probe are not a measured baseline.
+As of 2026-10-14, Step5 whole-map runtime captures remain pending (2026-10-15); Unity launches
+are authorized again. The controlled lighting fixtures in
+[classic-lighting.md section7](../../docs/research/classic-lighting.md#7-opt-in-unity-integration)
+do not replace that baseline.
 
 `-Representation cpu` uses the production renderer. `vat` builds one shared
 RGBAFloat position texture per decoded segment and interpolates two texels in

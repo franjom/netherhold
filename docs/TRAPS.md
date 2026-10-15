@@ -164,3 +164,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - On Windows, running replay `DK2.Tools` processes lock their simulation DLL; finish them before rebuilding the solution or the Tools copy fails with MSB3027.
 - A fresh worktree's `dotnet test --no-restore` can exit successfully with no tests when its test SDK assets are absent; require an actual test summary and restore that project once.
 - `git switch -c` in the shared main checkout moves every session's HEAD: another session's next three commits landed on the new branch, and one swept in a change staged there (b280ce8b, 2026-10-14). Make side branches in a worktree, and commit with an explicit path list (`git commit -- <paths>`).
+
+- In a Unity batch editor without a rendered view, waiting for `currentPipeline` does not initialize URP; call public `RenderPipeline.SupportsRenderRequest` with a temporary camera before submitting a render request.
+- Windows PowerShell `Set-Content -Encoding utf8` writes a BOM; use BOM-free UTF-8 for commit-message files or the subject starts with an invisible character.

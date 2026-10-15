@@ -80,6 +80,8 @@ namespace DK2.Unity
         [Header("Art")]
         [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
         [SerializeField] private bool classicMeshes = true;
+        [Tooltip("Preview native per-vertex torch lighting. Global lighting and framebuffer transfer remain under investigation.")]
+        [SerializeField] private bool classicVertexLighting;
 
         [Tooltip("Bend the classic terrain as DK2 does (the terrain lattice, Q72).")]
         [SerializeField] private bool bendTerrain = true;
@@ -217,7 +219,7 @@ namespace DK2.Unity
             if (classicMeshes)
             {
                 _installArt = InstallArtProvider.Open(install, database);
-                _classic = new ClassicMeshes(_installArt);
+                _classic = new ClassicMeshes(_installArt, classicVertexLighting);
             }
             _assets = AssetProviderChain.Standard(
                 replacementRoot: "art-pack",
@@ -282,6 +284,7 @@ namespace DK2.Unity
             if (_heartHealthWorld != null && _heartHealthObserver != null)
                 _heartHealthWorld.HeartHealthChanged -= _heartHealthObserver;
             _constructionEffects?.Dispose();
+            _scene?.DisposeLightResources();
             _installArt?.Dispose();
             _installArt = null;
         }

@@ -95,14 +95,17 @@ factor is `dot(normal,toLight) * intensity * L[n] * (radius²-d²)/radius²`.
 Outside the radius and for negative incidence it contributes nothing; it caps
 each light factor at1 before adding RGB, without capping the running sum.
 
+Independent assembly review (2026-10-15) confirms sign-bit tests at
+0x0057BFFF and 0x0057C011: negative incidence, including negative zero,
+skips the light. Positive incidence in bin0 multiplies by infinity and
+takes the full-RGB branch. Zero incidence there raises x87 invalid; with
+masked invalid the negative indefinite NaN also reaches full RGB, but the
+game's exception mask is not established. The reference rejects that case.
+
 `ClassicPointLight` exposes normalized inputs and a headless reference of that
-vertex contribution. The Unity adapter consumes the inputs; its URP falloff
-is unchanged. The reference does not claim bit-identical x87 arithmetic or
-final colour transfer. Native clamped radii keep ordinary lookup indices
-below256; input conversion requires that native radius clamp. The singular
-bin is explicitly unsupported by the reference evaluator; its native float
-propagation and downstream framebuffer transfer still require comparison before
-using this as an active shader replacement.
+vertex contribution. It does not claim bit-identical x87 arithmetic or final
+framebuffer transfer. Native clamped radii keep lookup indices below256;
+input conversion requires that clamp.
 
 ## 6. Vertex RGB packing before texture modulation
 
@@ -114,6 +117,8 @@ triples for clipped vertices and delegate output to the latter two.
 Both output sinks convert each 0..255-unit channel with the float-bit rounding
 idiom, optionally multiply the resulting unsigned integer by a per-vertex
 16.16 factor when flag0x10 is set, then cap each unsigned channel at255.
+That multiplication retains only the low32 bits before logical shift16; RGB
+has no signed lower clamp. Negative/huge inputs are not ordinary saturation.
 They combine those bytes with the separately prepared alpha into ARGB. This
 packs the diffuse vertex colour before the material texture modulation already
 documented in kmf-materials.md. The two sinks differ in vertex/UV output layout,
@@ -124,3 +129,39 @@ internally, but the submitted per-channel diffuse colour is bounded before
 texturing. The producer of the optional multiplier, downstream framebuffer
 transfer and exact x87 exceptional cases remain outside this read. This does
 not establish a complete replacement for Unity's light evaluation.
+
+Independent binary review (2026-10-15) confirms the selector, conversion,
+unsigned cap, alpha composition and absence of sink-local gamma. Exceptional
+and negative input behavior remains outside the ordinary RGB contract.
+
+## 7. Opt-in Unity integration
+
+The Classic Vertex Lighting Inspector preview uses the section5 torch response
+and section6 ordinary nonnegative diffuse packing before texture modulation.
+It retains URP light selection and shadows. A tile-indexed GPU buffer carries
+native torch inputs; changed entries upload on presenter Flush, Clear removes
+entries for resync, and runner destruction disposes the buffer. The buffer
+assumes one active DungeonScene, matching the current renderer.
+
+URP's screen-cluster lookup is used only for vertices inside the viewport and
+beyond the near plane. Other vertices iterate the bounded visible-light array;
+they cannot safely use a fragment-oriented screen-tile lookup. Ordinary Forward
+uses its per-object list. This fallback needs runtime performance measurement.
+
+Global ambient/directional lighting and non-torch lights still use URP response;
+zero-incidence singular-bin torch cases also fall back to URP. These are explicit
+preview limits, not confirmed original behavior. Framebuffer transfer, shadows,
+local-light selection parity and original global-light producers remain open.
+The preview stays disabled by default pending rendered comparisons.
+
+Verification (2026-10-15): 341 presentation tests and adapter compilation pass.
+The shared HLSL arithmetic probe passes; the actual URP camera probe passes
+five cases (native response, offscreen vertices, remove, repopulate, clear)
+with SRP Batcher enabled and maximum error below0.000001. These are controlled
+fixtures, not matched original-game frames or whole-map performance evidence.
+Reproduce through the Editor menu DK2 / Classic look / Verify native lighting
+on GPU and Verify native lighting through URP; batch entry points are
+`DK2.Unity.Editor.ClassicLightingProbe.Run` and
+`DK2.Unity.Editor.ClassicLightingRenderProbe.Run` (omit `-quit` for the latter).
+Neither saves the owner's scene or project settings. Behind-near-plane vertex
+coverage remains pending.

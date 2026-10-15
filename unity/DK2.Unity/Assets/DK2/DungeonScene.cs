@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -73,6 +73,7 @@ namespace DK2.Unity
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
+        private readonly ClassicTorchLightBuffer _torchLights;
         private readonly int _worldWidth;
         private readonly ClassicMeshes _classic;
         private readonly TerrainChunks _terrain;
@@ -113,6 +114,8 @@ namespace DK2.Unity
             _lattice = lattice;
             _worldWidth = worldWidth;
             _classic = classic;
+            if (classic != null && classic.UsesClassicVertexLighting)
+                _torchLights = new ClassicTorchLightBuffer(worldWidth, worldHeight);
             if (classic != null)
             {
                 _terrain = new TerrainChunks(root, classic, worldWidth, worldHeight, lattice);
@@ -426,6 +429,7 @@ namespace DK2.Unity
             light.type = LightType.Point;
             ApplyTorchLight(light, torch);
             _torches[floorTileIndex] = go;
+            _torchLights?.Set(floorTileIndex, torch);
         }
 
         public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
@@ -439,6 +443,7 @@ namespace DK2.Unity
             ApplyTorchPose(go, torch);
             Light light = go.GetComponent<Light>();
             if (light != null) ApplyTorchLight(light, torch);
+            _torchLights?.Set(floorTileIndex, torch);
         }
 
         public void RemoveTorch(int floorTileIndex)
@@ -447,6 +452,7 @@ namespace DK2.Unity
                 Object.Destroy(go);
 
             _torches.Remove(floorTileIndex);
+            _torchLights?.Remove(floorTileIndex);
         }
 
         private void ApplyTorchPose(GameObject go, in TorchView torch)
@@ -483,13 +489,17 @@ namespace DK2.Unity
         /// </summary>
         public void Flush()
         {
+            _torchLights?.Flush();
             _terrain?.Flush();
             _liquids?.Animate(Time.time);
         }
 
+        public void DisposeLightResources() => _torchLights?.Dispose();
+
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>
         public void Clear()
         {
+            _torchLights?.Clear();
             foreach (GameObject go in _tiles.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _furniture.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _creatures.Values) if (go != null) Object.Destroy(go);

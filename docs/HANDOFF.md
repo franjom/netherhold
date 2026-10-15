@@ -86,8 +86,10 @@ The owner accepted the camera view and requested a modest zoom extension (ADR-04
 Authored terrain colours and scoped whole-room/wall tint application pass independent
 review; see classic-lighting.md. Camera sub-tile startup/framing, native point-light
 response, two-mask fog and performance comparisons remain open; see the Step5 plan.
-Torch inputs and a bounded native contribution reference pass independent review
-(2026-10-15); URP falloff remains unchanged. See classic-lighting.md section5.
+Torch inputs, the native contribution reference and RGB packing pass independent
+review (2026-10-15). The opt-in shader preview passes five actual URP render
+checks, including offscreen vertices and buffer lifecycle, with SRP Batcher on.
+Defaults retain URP Lit pending scene comparison; see classic-lighting.md sections5?7.
 The scanned producer now uses native prisoner/closed-door guards and per-term
 rounding; focused fog/save checks pass (2026-10-14). The explored pass remains unbuilt.
 Unity launch is authorized; its previous editor session is closed. Matched captures
