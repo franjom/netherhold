@@ -11070,33 +11070,19 @@ it; the table tests need only the install. Where the original's divide faults, D
 would crash, so the input is outside what can be matched: it is counted and logged, not
 compared.
 
-**Consequences.** First batches: the square-root, arctangent and sine tables; Math_Isqrt,
-Math_Atan2, Random_Next; the gate walk's Collapse and AdjustAroundCrossing; Fixed16
-Normalise, Truncate, Scale and Over; then Angle_Distance, Angle_TurnsUp, the aim cone, the
-ray-circle test and the 3-vector length, whose port threw on an int.MinValue component where
-the original wraps (fixed); then Octile, Perpendicular, GateWalk.Intersect and the dig
-walk's start side, candidates from `tools/oracle/purity.py` (ported functions it finds touching
-no written global; each read from the bytes before testing). All match wherever the original returns. Running the
-bytes is binary evidence, so `[Dk2Behavior]` still rises no higher than STRONGLY INFERRED
-(ADR-0046 rule 5); a function record may say CONFIRMED for what the function computes, not
-for behaviour seen in play. A function that reads world state can instead run on one tick
-of a full-state capture (`tools/oracle/capture_memory.py`); first, 0x00460B50 on Level 4
-seed 1, every tenth tick (`guard_room_on_capture.py`): 542 calls, 149 yes, 215 refused by the
-room test, 86 targets within a tile of an expanded edge, every answer the rule
-`FearRules.NearOwnGuardRooms` encodes; in 470 samples each Guard Room's stored bounds equal
-its tiles'. `CapturedGuardRoomTests` then runs our C# itself on those states: the world
-rebuilt from the level and given each tick's tiles (`capture_state.py`, `CapturedState`),
-the first tick equal to our level map tile for tile, and `NearOwnGuardRooms` equal to the
-original on all 80 compared calls. Not checked: callers' early-outs, variable 190, bounds
-after a room loses tiles.
+**Consequences.** What has been run and what it found is in `research/emulator-oracle.md`:
+four batches of pure functions, all equal where the original returns once two ports were
+fixed. Running the bytes is binary evidence, so `[Dk2Behavior]` still rises no higher than
+STRONGLY INFERRED (ADR-0046 rule 5); a function record may say CONFIRMED for what the
+function computes, not for behaviour seen in play. A quotient past 32 bits wraps in
+`Fixed16.Div` where the original faults (a zero divisor throws in both); whether any game
+input reaches it was not checked.
 
-Functions deeper than this read definitions and heap no capture stores, so they need a
-memory dump of the running game: `tools/oracle/process_dump.py` writes one with the game
-suspended, in a format `dk2oracle.py` loads (moving its own stack clear of the game's
-memory, and refusing a request that would write into scratch the game owns), and the
-recorder takes them at chosen ticks (`--dump-ticks`). A quotient past 32 bits wraps in `Fixed16.Div` where
-the original faults (a zero divisor throws in both); whether any game input reaches it was
-not checked.
+A function that reads world state runs on one tick of a full-state capture
+(`capture_memory.py`), our C# beside it on a world rebuilt from the level and the tick
+(`capture_state.py`, `CapturedState`). One that reads definitions or heap a capture omits runs
+on a whole-process dump (`process_dump.py`, the recorder's `--dump-ticks`), taken with the game
+suspended; `dk2oracle.py` gives it an FS segment and moves its own pages clear of the game's.
 
 ## ADR-0483 — The approach is state 8, a walk resuming 199
 **Date:** 2026-10-15 · **Status:** accepted · Amends ADR-0169
