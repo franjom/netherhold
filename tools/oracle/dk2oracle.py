@@ -14,7 +14,10 @@ Input is read whole before anything runs, so the caller may write every request 
 stdin before reading. One request per line, space-separated hex:
     <function> <arg>... [| <address>=<dword>... ecx=<dword>] [@ <address>...]
 calls the function with the args on the stack (cdecl, or a thiscall given ecx) after writing
-each dword, and reads each address after it returns. One outcome per line: `<eax> <edx> <read>...`, or `fault <message>`.
+each dword, and reads each address after it returns. A token `s<hex>` is that offset into a
+64 KB scratch block the helper places wherever the memory image leaves room, so a request on a
+whole-process dump has somewhere of its own to write. FS addresses a thread-environment page
+whose exception chain is empty, for functions that install a handler. One outcome per line: `<eax> <edx> <read>...`, or `fault <message>`.
 
 The image is mapped as the file has it: no imports bound, no globals initialised. A function
 that reaches outside its arguments and the image's own bytes ends in a fault, not an answer.
@@ -31,7 +34,13 @@ import zlib
 
 ARCH_X86, MODE_32, PROT_ALL, UC_ERR_EXCEPTION = 4, 4, 7, 21
 EAX, EBP, EBX, ECX, EDI, EDX, EIP, ESI, ESP = 19, 20, 21, 22, 23, 24, 26, 29, 30
+DS, ES, FS, SS, GDTR = 17, 28, 32, 49, 243
 STACK, STACK_SIZE, RETURN, SCRATCH, SCRATCH_SIZE = 0x00100000, 0x10000, 0x00200000, 0x00300000, 0x10000
+
+
+class Mmr(C.Structure):
+    """uc_x86_mmr: a descriptor-table register."""
+    _fields_ = [("selector", C.c_uint16), ("base", C.c_uint64), ("limit", C.c_uint32), ("flags", C.c_uint32)]
 
 
 def load():
@@ -84,10 +93,17 @@ def main():
                 raise RuntimeError(f"memory image cut short at byte {at}")
             address, length = struct.unpack_from("<II", memory, at)
             at += 8
-            for page in range(address >> 12, (address + length + 0xFFF) >> 12):
-                if page not in mapped:
-                    check(dll.uc_mem_map(uc, page << 12, 0x1000, PROT_ALL), "map memory image")
-                    mapped.add(page)
+            page, end = address >> 12, (address + length + 0xFFF) >> 12
+            while page < end:   # unmapped pages in runs: one uc_mem_map per run, not per page
+                if page in mapped:
+                    page += 1
+                    continue
+                run = page
+                while run < end and run not in mapped:
+                    run += 1
+                check(dll.uc_mem_map(uc, page << 12, (run - page) << 12, PROT_ALL), "map memory image")
+                mapped.update(range(page, run))
+                page = run
             check(dll.uc_mem_write(uc, address, memory[at:at + length], length), "write memory image")
             at += length
 
@@ -103,6 +119,29 @@ def main():
         raise RuntimeError("no free address for the oracle's own pages")
 
     stack, ret = place(STACK, STACK_SIZE), place(RETURN, 0x1000)
+    movable = place(SCRATCH, SCRATCH_SIZE) if any(
+        page in mapped for page in range(SCRATCH >> 12, (SCRATCH + SCRATCH_SIZE) >> 12)) else SCRATCH
+
+    # FS through a GDT entry (Unicorn ignores an FS base in 32-bit mode): a thread-environment
+    # page whose first dword, the exception chain, is the end marker and whose +0x18 is itself.
+    teb, gdt = place(0x7FFDE000, 0x1000), place(0x7FFD0000, 0x1000)
+    check(dll.uc_mem_write(uc, teb, struct.pack("<I", 0xFFFFFFFF), 4), "teb")
+    check(dll.uc_mem_write(uc, teb + 0x18, struct.pack("<I", teb), 4), "teb self")
+    # Loading any segment register makes the CPU re-derive its 16/32-bit modes from the cached
+    # descriptors, so the flat data segment goes in too and SS, DS and ES are loaded from it.
+    def descriptor(base, limit, access, flags):
+        return struct.pack("<HHBBBB", limit & 0xFFFF, base & 0xFFFF, (base >> 16) & 0xFF, access,
+                           ((limit >> 16) & 0xF) | (flags << 4), base >> 24)
+    table = bytes(8) + descriptor(0, 0xFFFFF, 0x9A, 0xC) + descriptor(0, 0xFFFFF, 0x92, 0xC) \
+        + descriptor(teb, 0xFFF, 0x92, 0x4)
+    check(dll.uc_mem_write(uc, gdt, table, len(table)), "gdt")
+    check(dll.uc_reg_write(uc, GDTR, C.byref(Mmr(0, gdt, len(table) - 1, 0))), "gdtr")
+    for register, index in ((SS, 2), (DS, 2), (ES, 2), (FS, 3)):
+        selector = C.c_uint32(index << 3)
+        check(dll.uc_reg_write(uc, register, C.byref(selector)), "segment")
+
+    def token(t):
+        return movable + int(t[1:], 16) if t.startswith("s") else int(t, 16)
     # Scratch is addressed by the tests themselves, so it never moves: on an image that has
     # memory there it is the game's own, and a request that writes or passes an address in it
     # is refused rather than run on corrupted state.
@@ -123,18 +162,18 @@ def main():
         line, _, reads = line.partition("@")
         line, _, writes = line.partition("|")
         call = line.split()
-        function, args = int(call[0], 16), [int(a, 16) for a in call[1:]]
+        function, args = int(call[0], 16), [token(a) for a in call[1:]]
         registers = {}
-        if scratch_is_game and any(SCRATCH <= int(w.split("=")[0], 16) < SCRATCH + SCRATCH_SIZE
-                                   for w in writes.split() if not w.startswith("ecx"))                 or scratch_is_game and any(SCRATCH <= a < SCRATCH + SCRATCH_SIZE for a in args):
-            out.append("fault scratch is game memory in this image")
+        if scratch_is_game and any(SCRATCH <= a < SCRATCH + SCRATCH_SIZE for a in
+                                   args + [token(w.split("=")[0]) for w in writes.split() if not w.startswith("ecx")]):
+            out.append("fault scratch is game memory in this image; use s<offset>")
             continue
         for pair in writes.split():
             address, value = pair.split("=")
             if address == "ecx":  # a thiscall's this
-                registers[ECX] = int(value, 16)
+                registers[ECX] = token(value)
             else:
-                write32(int(address, 16), int(value, 16))
+                write32(token(address), token(value))
 
         esp = stack + STACK_SIZE - 0x100 - 4 * (len(args) + 1)
         for i, value in enumerate([ret] + args):
@@ -163,7 +202,7 @@ def main():
         words = [reg(EAX), reg(EDX)]
         for address in reads.split():
             v = C.c_uint32()
-            check(dll.uc_mem_read(uc, int(address, 16), C.byref(v), 4), "uc_mem_read")
+            check(dll.uc_mem_read(uc, token(address), C.byref(v), 4), "uc_mem_read")
             words.append(v.value)
         out.append(" ".join(f"{w:x}" for w in words))
     sys.stdout.write("\n".join(out) + "\n")
