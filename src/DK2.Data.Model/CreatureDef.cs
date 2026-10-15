@@ -9,8 +9,12 @@ namespace DK2.Data.Model;
 /// <summary>Room attraction: which room (and minimum size) lures this creature through the portal.</summary>
 public sealed record CreatureAttraction(uint Present, ushort RoomId, ushort RoomSize);
 
-/// <summary>A creature's innate spell slot.</summary>
-public sealed record CreatureSpellSlot(byte CreatureSpellId, byte LevelAvailable, Fp32 ShotDelay, byte PlayAnimation);
+/// <summary>A creature's innate spell slot. <c>Origin</c> is the shot's origin in the creature's frame
+/// (the slot record's <c>+6</c>/<c>+0xA</c>/<c>+0xE</c> in memory, combat-spells.md §3): the Warlock's
+/// (0, −1761, 1433) is 0.43 tile ahead and 0.35 up.</summary>
+public sealed record CreatureSpellSlot(
+    byte CreatureSpellId, byte LevelAvailable, Fp32 ShotDelay, byte PlayAnimation,
+    int OriginX = 0, int OriginY = 0, int OriginZ = 0);
 
 /// <summary>Resistance against one attack type (percentage).</summary>
 public sealed record CreatureResistance(AttackType AttackType, byte Value);

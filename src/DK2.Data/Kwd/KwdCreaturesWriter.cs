@@ -144,6 +144,7 @@ public static partial class KwdCreatures
             if (value.CreatureSpellId == 0) throw new InvalidDataException("CREATURES active spell id cannot be zero.");
             U8(off + 22, value.CreatureSpellId); U8(off + 23, value.LevelAvailable);
             S32(off + 16, value.ShotDelay.Raw); U8(off + 13, value.PlayAnimation);
+            S32(off, value.OriginX); S32(off + 4, value.OriginY); S32(off + 8, value.OriginZ);
         });
         WriteFiltered("Resistances", row.Resistances, 0xE0C, 4, 2, off => image[off] != 0, (off, value) =>
         {

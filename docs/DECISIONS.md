@@ -11299,3 +11299,22 @@ at a median of 4238, from 4301 (DK2's seed 1 about 3940); keeper Imp deaths befo
 Wins 19/4/16/1 to 19/5/16/0, within a seed each. The fight's remaining gap is head count (we drop 7
 creatures to DK2's 10; the entity map's placeholders) and damage: about 1,940 in the first 50 ticks
 against DK2's 7,100. `HashVersion` 257.
+
+## ADR-0489 — A creature's spell shot leaves from its slot's origin
+**Date:** 2026-10-15 · **Status:** accepted · Research: combat-spells.md §3, §7; Q398
+
+**Context.** Action 16 (`0x00498870`) makes its shot at the caster's position plus the slot's origin
+vector turned by its heading (`0x00498989`–`0x004989F5`: dx = vx·cos − vy·sin, dy = vx·sin + vy·cos,
+each product shifted down sixteen, from the tables at `0x006C1488`/`0x006C1C88`); a possessed caster
+adds only the height. The vector is the slot record's first twelve file bytes: the Warlock's (0, −1761,
+1433), the Dark Elf's (0, −2048, 2662), half a tile ahead. Ours fired from the caster's centre and did not
+parse the vector. In our Level 4 seed 1 run, three Dark Elves dropped beside a hero party at 3907–3909 fired from
+0.4–0.8 tile; at 1.2 tiles a tick each shot's first sample was short of its target and the next past it,
+and all three flew on to a wall.
+
+**Decision.** `CreatureSpellSlot` carries `OriginX/Y/Z`, read and written; `FightRules.ShotOrigin`
+places the shot as the binary does, flat (the height goes with the flight's, Q398).
+
+**Consequences.** Level 4 seeds 1–20 against ADR-0488: the keeper side's shot hits 563 of 1,164 to 623
+of 1,236 (48 to 50 per cent), so point-blank misses were a small share of its misses; wins 0 to 2, Imp
+deaths 396 to 395, both within the seeds' spread. `HashVersion` 258.
