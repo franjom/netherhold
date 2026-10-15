@@ -9,14 +9,17 @@ namespace DK2.Core;
 public static class IntegerMath
 {
     /// <summary>Seeds for <see cref="SquareRoot"/>, indexed by the position of the input's highest
-    /// set bit; each is round(2^(i/2)), so the first guess is already the right size. The
-    /// original's 32-entry table at <c>0x0065FB14</c>.</summary>
+    /// set bit; each is floor(2^((i+1)/2)), the last capped at 65535, so the first guess is never
+    /// below the integer root. The original's 32-entry table of 16-bit words at <c>0x0065FB14</c>.</summary>
     private static readonly int[] SquareRootSeed =
     [
         1, 2, 2, 4, 5, 8, 11, 16, 22, 32, 45, 64, 90, 128, 181, 256,
         362, 512, 724, 1024, 1448, 2048, 2896, 4096, 5792, 8192, 11585, 16384,
         23170, 32768, 46340, 65535,
     ];
+
+    /// <summary>The seed table, exposed so a test can hold it to the original's bytes.</summary>
+    public static int SquareRootSeedEntry(int i) => SquareRootSeed[i];
 
     /// <summary>The original's integer square root (<c>0x0065FAE0</c>): seed by the highest set
     /// bit, then halve the guess toward the quotient until the quotient stops being smaller. It
