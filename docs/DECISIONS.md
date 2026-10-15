@@ -11034,3 +11034,32 @@ to vertices, the Unity scene publishes each drawn creature's head for the effect
 thread, and the effect model moves a tied effect and its elements with the head each update,
 dropping the tie when the creature's object goes. Static-mesh points are not resolved. No
 hash change.
+
+## ADR-0481 — The original's own functions are run as a test oracle
+**Date:** 2026-10-15 · **Status:** accepted · Tests: `tests/DK2.Oracle.Tests`; tool: `tools/oracle/dk2oracle.py`
+
+**Context.** A reading of a function is somebody's reading; a C# port of a reading can drift
+from the bytes in a constant, a shift's sign or an overflow, and the replay rigs show such a
+slip only as distant drift. A function whose answer depends only on its arguments and the
+image's own bytes can instead be run: the owner allowed the Unicorn emulator (GPLv2) to be
+used but not committed (2026-10-15).
+
+**Decision.** `DK2.Oracle.Tests` reads the install's `DKII.EXE` at test time (v1.70, MD5
+checked) and holds our C# to it: tables byte for byte, functions value by value on swept
+inputs, a function with several arms failing if one goes unreached (the gate walk's). The
+emulator runs in `dk2oracle.py`, CPython (`py -3`, or `DK2_PYTHON`) loading `unicorn.dll`
+from `DK2_UNICORN_DLL`, because a .NET host fail-fasts under Unicorn (`docs/TRAPS.md`); no
+Unicorn package, binary or source enters the repository. The function tests skip without
+it; the table tests need only the install. Where the original's divide faults, DK2 itself
+would crash, so the input is outside what can be matched: it is counted and logged, not
+compared.
+
+**Consequences.** First batches: the square-root, arctangent and sine tables; Math_Isqrt,
+Math_Atan2, Random_Next; the gate walk's Collapse and AdjustAroundCrossing; Fixed16
+Normalise, Truncate, Scale and Over, all matching wherever the original returns. Running the
+bytes is binary evidence, so `[Dk2Behavior]` still rises no higher than STRONGLY INFERRED
+(ADR-0046 rule 5); a function record may say CONFIRMED for what the function computes, not
+for behaviour seen in play. Only functions free of mutable globals qualify; world-state
+behaviour still needs live captures. A quotient past 32 bits wraps in `Fixed16.Div` where
+the original faults (a zero divisor throws in both); whether any game input reaches it was
+not checked.

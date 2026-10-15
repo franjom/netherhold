@@ -242,6 +242,15 @@ Check each one that applies before you write a conclusion down.
   helper are often a rectangle's sides, and a recursive call is often a segment
   walk.
 
+## After reading a function that can be run
+
+A function that reads only its arguments and the image's own bytes (no mutable
+global, no engine call) can be executed, which settles a port value by value on
+the inputs swept:
+add it to `tests/DK2.Oracle.Tests` (ADR-0481; setup in
+`reverse-engineering/README.md`). Record its calling convention, out-pointer or
+record layout from the disassembly first; the harness drives cdecl and thiscall.
+
 ## Writing a new script
 
 Write a one-off in your scratchpad and run it with `--script-path <dir>`.

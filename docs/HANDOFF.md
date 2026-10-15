@@ -248,6 +248,12 @@ Enhanced keeper using the same observation/command interface (KEEPER_AI.md
     dotnet run --project src/DK2.Tools -c Release --no-build -- docs --check
     dotnet run --project src/DK2.Tools -c Release --no-build -- status --check
 
+DK2.Oracle.Tests runs DKII.EXE's own functions only when DK2_UNICORN_DLL
+names a unicorn.dll outside the repo, through Python 3 (py -3, or
+DK2_PYTHON); without the DLL the function tests skip
+(reverse-engineering/README.md, ADR-0481). Its table tests need only the
+install.
+
 Run dk2tools status after the tests when the plan's generated count changes.
 Run dk2tools kb index after changing function records; never edit INDEX.md by
 hand. Check the changed commit with git diff --check. A simulation state
