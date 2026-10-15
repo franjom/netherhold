@@ -21,6 +21,7 @@
     <Project Path="tests/DK2.Convert.Tests/DK2.Convert.Tests.csproj" />
     <Project Path="tests/DK2.Core.Tests/DK2.Core.Tests.csproj" />
     <Project Path="tests/DK2.Data.Tests/DK2.Data.Tests.csproj" />
+    <Project Path="tests/DK2.Oracle.Tests/DK2.Oracle.Tests.csproj" />
     <Project Path="tests/DK2.Presentation.Tests/DK2.Presentation.Tests.csproj" />
     <Project Path="tests/DK2.Simulation.Tests/DK2.Simulation.Tests.csproj" />
     <Project Path="tests/DK2.Tools.Tests/DK2.Tools.Tests.csproj" />

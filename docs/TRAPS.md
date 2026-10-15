@@ -85,6 +85,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Replay rigs and the scenario harness run the built binaries for minutes: do not build the same
   worktree while they run.
 - A hung dk2tools with no CPU was a full stderr pipe; drain stderr concurrently.
+- Unicorn's `uc_emu_start` kills a .NET process with 0xC0000409 (no dump, no event) while the
+  same DLL works from CPython; the oracle runs it in `tools/oracle/dk2oracle.py` for that reason.
+- A nonzero `uc_emu_start` timeout costs ~15 ms a call (a timer thread each time): 95k calls took
+  23 minutes. Pass 0 and bound the run by instruction count.
 
 ## Worktrees, numbers and merges
 

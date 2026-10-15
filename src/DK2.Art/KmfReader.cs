@@ -87,7 +87,7 @@ public static class KmfReader
         Vector3 origin = reader.Vector3();
         float boundsScale = reader.Single();
         uint detailLevelCount = reader.Count("detail level");
-        SkipControls(ref reader);
+        IReadOnlyList<KmfControlPoint> controls = ReadControls(ref reader);
         List<SpriteData> sprites = ReadStaticSprites(ref reader, primitiveCount, detailLevelCount);
         reader.Expect("GEOM"); reader.SkipSectionSize();
         var positions = new Vector3[(int)geometryCount];
@@ -109,7 +109,7 @@ public static class KmfReader
                 vertices, sprite.Indices));
         }
         return new KmfModel(version, KmfKind.Mesh, materials,
-            new KmfMesh(name, origin, boundsScale, primitives));
+            new KmfMesh(name, origin, boundsScale, primitives)) { ControlPoints = controls };
     }
 
     private static KmfModel ReadAnimatedModel(ref SpanReader reader, uint version,
@@ -129,7 +129,7 @@ public static class KmfReader
         float boundsScale = reader.Single();
         float geometryScale = reader.Single();
         uint detailLevelCount = reader.Count("detail level");
-        SkipControls(ref reader);
+        IReadOnlyList<KmfControlPoint> controls = ReadControls(ref reader);
         List<SpriteData> sprites = ReadAnimatedSprites(ref reader, primitiveCount, detailLevelCount);
 
         reader.Expect("ITAB"); reader.SkipSectionSize();
@@ -177,7 +177,7 @@ public static class KmfReader
             decodeFailure = exception.Message;
         }
         return new KmfModel(version, KmfKind.Animation, materials,
-            frameZero, new KmfAnimation(frameCount, frames, decodeFailure));
+            frameZero, new KmfAnimation(frameCount, frames, decodeFailure)) { ControlPoints = controls };
 
         // The drawer (0x00577F10) clamps the integer frame to [0, frames - 2] and evaluates the
         // last frame from there, with t carried past the key interval it names.
@@ -234,10 +234,19 @@ public static class KmfReader
             new($"Invalid KMF animation: {message}", innerException);
     }
 
-    private static void SkipControls(ref SpanReader reader)
+    // CTRL: the mesh's tagged points, a vertex reference and an id each (0x00580E10 reads the id,
+    // 0x00580E40 the point); point 5000 is the head, where the stun's stars circle (ADR-0480).
+    private static IReadOnlyList<KmfControlPoint> ReadControls(ref SpanReader reader)
     {
         reader.Expect("CTRL"); reader.SkipSectionSize();
-        reader.Skip(checked((int)reader.Count("control") * 8));
+        int count = checked((int)reader.Count("control"));
+        var controls = new KmfControlPoint[count];
+        for (int i = 0; i < count; i++)
+        {
+            uint vertex = reader.UInt32();
+            controls[i] = new KmfControlPoint(vertex, reader.UInt32());
+        }
+        return controls;
     }
 
     private static List<SpriteData> ReadStaticSprites(ref SpanReader reader,

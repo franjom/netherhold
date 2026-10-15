@@ -243,7 +243,8 @@ namespace DK2.Unity
                         // DK2 asks for the Heart's opening effects only for the local player (0x004D9A60).
                         && (!HeartIntroRules.IsViewerOnly(request.EffectId.Value) || request.Owner.Value == viewingPlayerId),
                     point => _worldView.GroundHeightAt(world, point), meshes: _classic,
-                    captureEdges: request => CaptureEffectLayout.Boundary(world, database, request));
+                    captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
+                    attachment: _scene.CreatureAttachment);
                 _simulation.ObserveWith(_constructionEffects.Model);
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
             }

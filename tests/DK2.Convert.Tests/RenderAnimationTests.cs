@@ -37,6 +37,38 @@ public class RenderAnimationTests
         Assert.Equal(1f, clock.Sample(.5f).Phase);
     }
 
+    /// <summary>KMF point 5000 is the head (ADR-0480): the top of a standing creature in its idle
+    /// and eating clips, where the Goblin's eating clip has two more primitives and so a different
+    /// packed reference (primitive in the low word, vertex in the high), and low at the end of the
+    /// knockdown, where 255 holds it (the packing read at 0x005835E0).</summary>
+    [InstallTheory]
+    [InlineData("Goblin")]
+    [InlineData("Warlock")]
+    [InlineData("Bile Demon")]
+    public void ControlPoint5000_IsTheHead_TopWhenStanding_LowWhenKnockedDown(string creature)
+    {
+        using InstallArtProvider provider = InstallArtProvider.Open(Dk2InstallGate.Path,
+            GameDatabaseLoader.Load(Dk2InstallGate.Path));
+        foreach (string standing in new[] { "idle", "eating" })
+        {
+            if (!provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, standing), out var asset)
+                || !provider.TryLoadModel(asset, out var model)) continue;
+            var clip = new RenderAnimation(model);
+            Assert.True(clip.Mesh.ControlPoints.TryGetValue(KmfControlPoint.Head, out int head), standing);
+            float top = clip.Mesh.Positions.Max(p => p.Y);
+            Assert.InRange(clip.Mesh.Positions[head].Y, top * .8f, top);
+        }
+        Assert.True(provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, "stunned"), out var down));
+        Assert.True(provider.TryLoadModel(down, out var knockdown));
+        var fall = new RenderAnimation(knockdown);
+        Assert.True(fall.Mesh.ControlPoints.TryGetValue(KmfControlPoint.Head, out int index));
+        var start = new Vector3[fall.Mesh.Positions.Count];
+        var end = new Vector3[start.Length];
+        fall.Sample(0, false, start);
+        fall.Sample(1, false, end);
+        Assert.True(end[index].Y < start[index].Y * .5f, $"{start[index].Y} -> {end[index].Y}");
+    }
+
     [InstallTheory]
     [InlineData("Imp")]
     [InlineData("Giant")]

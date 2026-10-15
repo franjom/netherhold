@@ -11034,3 +11034,17 @@ Lightning's are (the player frame). DK2's dispatcher (`0x00476FC0`) counts Age u
 each call, so a stun set earlier in the same turn than the victim's update, a boulder's or
 a Reaper fireball's from a creature in an earlier slot, gets its first call that turn; ours
 waits a turn for every stun.
+
+**Amendment (2026-10-15): the point is the head, and the stars follow it.** Slot `+0x10C`
+is the engine interface's `0x0059D380` (the callers' object being that interface is LIKELY):
+it searches the thing's drawn mesh for the KMF CTRL point with the id asked
+(`0x0059D260`). In an animation that point is a (primitive, vertex) pair evaluated at the drawn
+frame (`0x005835E0`); id 5000 is the head in the creatures checked (Goblin, Warlock, Bile
+Demon), at the top of a standing
+creature and near the floor at the end of its knockdown. The guessed height is gone: the
+simulation asks at the creature's floor position, DK2's own fallback, and ties the request
+to the creature and point 5000. The KMF reader keeps CTRL, `RenderMesh` maps animated points
+to vertices, the Unity scene publishes each drawn creature's head for the effects' worker
+thread, and the effect model moves a tied effect and its elements with the head each update,
+dropping the tie when the creature's object goes. Static-mesh points are not resolved. No
+hash change.

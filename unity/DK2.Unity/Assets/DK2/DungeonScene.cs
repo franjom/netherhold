@@ -53,6 +53,10 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _creatures = new Dictionary<int, GameObject>();
+        // Each drawn creature's head (KMF point 5000) in native units, null when its clip has none;
+        // read by the effects on the runner's worker thread (ADR-0458), so it is concurrent.
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<int, FpPosition3?> _creatureHeads =
+            new System.Collections.Concurrent.ConcurrentDictionary<int, FpPosition3?>();
         private readonly Dictionary<int, AssetRef> _creatureArt = new Dictionary<int, AssetRef>();
         private readonly Dictionary<int, CreatureView> _creaturePoses = new Dictionary<int, CreatureView>();
         private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, bool Deferred)> _creatureClips =
@@ -172,6 +176,7 @@ namespace DK2.Unity
             if (go == null) return;
 
             _creatures[creatureId] = go;
+            _creatureHeads.TryAdd(creatureId, null);
             _creatureArt[creatureId] = mesh.Reference;
             _creaturePoses[creatureId] = creature;
             ConfigureCreatureClip(go, creatureId, creature, mesh, animation);
@@ -181,7 +186,7 @@ namespace DK2.Unity
         public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
             if (_creatureArt.TryGetValue(creatureId, out AssetRef previous) && previous != mesh.Reference)
-                RemoveCreature(creatureId);
+                RemoveCreature(creatureId, keepHead: true);
             if (!_creatures.TryGetValue(creatureId, out GameObject go) || go == null)
             {
                 CreateCreature(creatureId, creature, mesh, animation);
@@ -200,7 +205,20 @@ namespace DK2.Unity
                 : ColourOf(mesh.Look));
         }
 
-        public void RemoveCreature(int creatureId)
+        /// <summary>An effect's tie to a creature (0x00434E80): gone with its object, else its head
+        /// as last drawn (Ground's inverse), or not found for a clip without one or another point.
+        /// Safe from the effects' worker thread.</summary>
+        public EffectAttachment CreatureAttachment(int creatureId, uint point)
+        {
+            if (!_creatureHeads.TryGetValue(creatureId, out FpPosition3? head)) return EffectAttachment.Gone;
+            return point == DK2.Art.Kmf.KmfControlPoint.Head && head.HasValue
+                ? EffectAttachment.At(head.Value) : EffectAttachment.NotFound;
+        }
+
+        public void RemoveCreature(int creatureId) => RemoveCreature(creatureId, keepHead: false);
+
+        // A new look for the same creature keeps its head entry, so a tied effect is not let go.
+        private void RemoveCreature(int creatureId, bool keepHead)
         {
             if (_creatures.TryGetValue(creatureId, out GameObject go) && go != null)
             {
@@ -210,6 +228,7 @@ namespace DK2.Unity
             _meshCreatures.Remove(creatureId);
 
             _creatures.Remove(creatureId);
+            if (!keepHead) _creatureHeads.TryRemove(creatureId, out _);
             _creatureArt.Remove(creatureId);
             _creaturePoses.Remove(creatureId);
             _creatureClips.Remove(creatureId);
@@ -265,6 +284,11 @@ namespace DK2.Unity
                     _meshCreatures.Contains(entry.Key) ? ground.y : position.y, ground.z);
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
+                _creatureHeads[entry.Key] = player != null
+                    && player.TryGetControlPoint(DK2.Art.Kmf.KmfControlPoint.Head, out Vector3 head)
+                        ? new FpPosition3(new Fp32((int)(head.x * Fp32.One)), new Fp32((int)(-head.z * Fp32.One)),
+                            new Fp32((int)(head.y * Fp32.One)))
+                        : (FpPosition3?)null;
             }
             foreach (KeyValuePair<int, ObjectView> entry in _objectPoses)
             {
@@ -512,6 +536,7 @@ namespace DK2.Unity
             _tiles.Clear();
             _furniture.Clear();
             _creatures.Clear();
+            _creatureHeads.Clear();
             _creatureArt.Clear();
             _creaturePoses.Clear();
             _creatureClips.Clear();

@@ -132,6 +132,21 @@ namespace DK2.Unity
             }
         }
 
+        /// <summary>The drawn clip's tagged point <paramref name="id"/> (a KMF control point) in world
+        /// space, as last drawn: the point world slot +0x10C finds (0x0059D260, ADR-0480).</summary>
+        public bool TryGetControlPoint(uint id, out Vector3 world)
+        {
+            world = default;
+            if (!_drawnSegment.HasValue || _clips == null || _vertices == null) return false;
+            int segment = (int)_drawnSegment.Value;
+            RenderAnimation clip = _clips[segment];
+            Vector3[] vertices = _vertices[segment];
+            if (clip == null || vertices == null || !clip.Mesh.ControlPoints.TryGetValue(id, out int index)
+                || index >= vertices.Length) return false;
+            world = transform.TransformPoint(vertices[index]);
+            return true;
+        }
+
         public void Stop()
         {
             _clock = null;

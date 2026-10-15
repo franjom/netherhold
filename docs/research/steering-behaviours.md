@@ -78,8 +78,8 @@ plus the body's radius, which Level 7's imps rode in the capture.
 
 Two helpers seen on the way: `0x004D4600` projects a target onto the body's
 `local_xaxis`/`local_yaxis` (forward and lateral offsets, 16.16), and
-`0x004D2070` is a **ray–circle intersection** returning the distance along a
-heading to a circle, or `INT_MIN` for a miss. Both serve `0x004D32E0`, a
+`0x004D2070` is probably a **ray–circle intersection** along the point's own +x
+axis (no heading argument), `0x80000000` for a miss. Both serve `0x004D32E0`, a
 repel-along-heading routine whose caller is not yet identified.
 
 ## 3. `Avoid_Walls` (`0x004D35C0`, weight 0.6), the normal path
@@ -393,8 +393,8 @@ the turn rate's source and loader, both seek laws; the stuck block of section
 test, projection order and tangent sign; the wall clamp's five arms and its
 stuck bit; the ray-circle test to its return; the crowd probe's square and sum.
 
-**STRONGLY INFERRED:** that `0x004D2070` is the same ray-circle shape as
-`0x004D20F0` (its tail is unread; `Repel_Obstacle` does not call it).
+**Corrected 2026-10-15 (binary, read whole):** `0x004D2070` is *not* `0x004D20F0`'s
+shape, as once inferred: +x ray, unscaled squares, one root (`functions/004D2070.md`).
 
 **UNKNOWN:** nothing on this page; the KWD field names at `0xEA0`, `0xEA8` and
 `0xF20` are ours until the reader gains them.
