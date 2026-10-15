@@ -21,9 +21,9 @@ brightness, instance tint and global ambient, then calls this helper with
 the vertex position and normal before handing colour/UV to a render sink.
 The original sum remains documented in tag-highlight.md section6.
 
-The coefficient and lookup reads are resolved in section5. Final colour
-packing/transfer, native-versus-URP response and matched-frame brightness remain
-open. Trace the selected colour sink before changing colour-space conversion.
+The coefficient/lookup reads are resolved in section5 and vertex RGB packing
+in section6. Downstream framebuffer transfer, native-versus-URP response and
+matched-frame brightness remain open.
 
 ## 2. Terrain instance colour
 
@@ -101,5 +101,26 @@ is unchanged. The reference does not claim bit-identical x87 arithmetic or
 final colour transfer. Native clamped radii keep ordinary lookup indices
 below256; input conversion requires that native radius clamp. The singular
 bin is explicitly unsupported by the reference evaluator; its native float
-propagation and final packing still require comparison before
+propagation and downstream framebuffer transfer still require comparison before
 using this as an active shader replacement.
+
+## 6. Vertex RGB packing before texture modulation
+
+STRONGLY INFERRED (whole reads, 2026-10-15): 0x0057B6D0 sends light-sum
+triples through pointer0x00779358. Selector 0x0058A970 installs one of
+0x0058B2A0/0x0058B370/0x0058B440/0x0058B680. The first two retain colour/UV
+triples for clipped vertices and delegate output to the latter two.
+
+Both output sinks convert each 0..255-unit channel with the float-bit rounding
+idiom, optionally multiply the resulting unsigned integer by a per-vertex
+16.16 factor when flag0x10 is set, then cap each unsigned channel at255.
+They combine those bytes with the separately prepared alpha into ARGB. This
+packs the diffuse vertex colour before the material texture modulation already
+documented in kmf-materials.md. The two sinks differ in vertex/UV output layout,
+not this RGB conversion. No nonlinear gamma operation occurs in these sinks.
+
+Thus material/instance brightness and separate point lights may add above255
+internally, but the submitted per-channel diffuse colour is bounded before
+texturing. The producer of the optional multiplier, downstream framebuffer
+transfer and exact x87 exceptional cases remain outside this read. This does
+not establish a complete replacement for Unity's light evaluation.

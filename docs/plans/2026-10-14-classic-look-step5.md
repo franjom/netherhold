@@ -105,7 +105,8 @@ brightness require a fixed-world camera-motion comparison when Unity is allowed.
 Torch input normalization, radius coefficients and the discrete lookup response
 are traced; a headless reference and shared adapter input conversion are built
 and independently reviewed (2026-10-15). Nine reference cases and the presentation
-suite pass. Native singular-bin behavior, final transfer, shader response,
+suite pass. Vertex RGB packing before texture modulation is traced too
+(classic-lighting.md section6). Native singular-bin behavior, framebuffer transfer, shader response,
 global/terrain illumination and runtime comparisons remain pending.
 
 ## 5.5 — Discovery and fog presentation
