@@ -3,7 +3,7 @@
 # See LICENSE in the project root for the full license text.
 """dk2oracle: runs single DKII.EXE functions on Unicorn for tests/DK2.Oracle.Tests.
 
-Usage: python -I dk2oracle.py <path to DKII.EXE> < requests > outcomes
+Usage: python -I dk2oracle.py <path to DKII.EXE> [<memory image>] < requests > outcomes
 
 Unicorn (GPLv2) is used, never committed (owner, 2026-10-15): it is loaded through ctypes from
 the DK2_UNICORN_DLL environment variable. It runs here rather than inside the test process
@@ -18,6 +18,9 @@ each dword, and reads each address after it returns. One outcome per line: `<eax
 
 The image is mapped as the file has it: no imports bound, no globals initialised. A function
 that reaches outside its arguments and the image's own bytes ends in a fault, not an answer.
+A memory image (tools/oracle/capture_memory.py writes one from a capture tick) is a sequence of
+`<u32 address> <u32 length> <bytes>` regions, written over the image and mapped where it has
+no pages, before the first request; every request then runs against that same state.
 """
 import ctypes as C
 import os
@@ -71,6 +74,25 @@ def main():
     check(dll.uc_mem_map(uc, STACK, STACK_SIZE, PROT_ALL), "map stack")
     check(dll.uc_mem_map(uc, RETURN, 0x1000, PROT_ALL), "map return")
     check(dll.uc_mem_map(uc, SCRATCH, SCRATCH_SIZE, PROT_ALL), "map scratch")
+    mapped = {page for start, n in ((base, size), (STACK, STACK_SIZE), (RETURN, 0x1000), (SCRATCH, SCRATCH_SIZE))
+              for page in range(start >> 12, (start + n + 0xFFF) >> 12)}
+    if len(sys.argv) > 2:
+        memory = open(sys.argv[2], "rb").read()
+        at = 0
+        while at < len(memory):
+            if at + 8 > len(memory) or at + 8 + struct.unpack_from("<I", memory, at + 4)[0] > len(memory):
+                raise RuntimeError(f"memory image cut short at byte {at}")
+            address, length = struct.unpack_from("<II", memory, at)
+            at += 8
+            for start, n in ((STACK, STACK_SIZE), (RETURN, 0x1000), (SCRATCH, SCRATCH_SIZE)):
+                if address < start + n and start < address + length:
+                    raise RuntimeError(f"memory image region {address:x}+{length:x} overlaps the oracle's own pages")
+            for page in range(address >> 12, (address + length + 0xFFF) >> 12):
+                if page not in mapped:
+                    check(dll.uc_mem_map(uc, page << 12, 0x1000, PROT_ALL), "map memory image")
+                    mapped.add(page)
+            check(dll.uc_mem_write(uc, address, memory[at:at + length], length), "write memory image")
+            at += length
 
     def write32(address, value):
         check(dll.uc_mem_write(uc, address, struct.pack("<I", value), 4), "uc_mem_write")
