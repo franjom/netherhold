@@ -6387,6 +6387,12 @@ is exempt: a plan is a process document, not a claim. Records imported from exis
 research are GUESS until a reader has checked them against the binary and raised them,
 in a dated History line.
 
+**Amendment (2026-10-15).** A name in Ghidra reads as settled, so `kb apply-names` gives
+a record that is not CONFIRMED its name with the confidence appended
+(`Treasury_Tick_LIKELY`, `HeroGate_Tick_GUESS`); the record keeps the plain name. Names
+are applied per reviewed cluster of a sweep (owner, 2026-10-14). Look a function up by
+address, or find it with `search_symbols_by_name` on the plain name.
+
 ## ADR-0291 — Tier B is the ring scan with the per-tile chain
 **Date:** 2026-09-30 · **Status:** accepted · Research: `imp-claim-path.md` §2, `imp-task-stealing.md` §4
 

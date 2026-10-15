@@ -202,6 +202,18 @@ public sealed class FunctionKbTests
     }
 
     [Fact]
+    public void NamesTableMarksDoubtfulNamesWithTheirConfidence()
+    {
+        var likely = Record("004F39A0") with { Name = "Treasury_Tick", Confidence = "LIKELY" };
+        var guess = Record("004DF6E0") with { Name = "HeroGate_Tick", Confidence = "GUESS" };
+        var disputed = Record("0050F8C0") with { Name = "World_PlaceGeneratedSpecial", Confidence = "DISPUTED" };
+        var confirmed = Record("004E8C60") with { Name = "Room_HatedCompanyStep" };
+        Assert.Equal("004DF6E0\tHeroGate_Tick_GUESS\n004E8C60\tRoom_HatedCompanyStep\n004F39A0\tTreasury_Tick_LIKELY\n"
+            + "0050F8C0\tWorld_PlaceGeneratedSpecial_DISPUTED\n",
+            FunctionKbNames.Table([likely, guess, disputed, confirmed]));
+    }
+
+    [Fact]
     public void DuplicateAddressesAreOneFinding()
     {
         var a = Record("0050EA70");

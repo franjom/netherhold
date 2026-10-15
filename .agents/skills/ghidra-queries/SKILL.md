@@ -58,7 +58,9 @@ runner above stays the tool for anything scripted or bulk.
   process does it when the client kills the launcher; a clone left by a
   killed session is swept at the next start). Any number of sessions run at
   once, and names given through `dk2tools kb apply-names` arrive at the next
-  session by themselves.
+  session by themselves. A name ending in a confidence (`_LIKELY`, `_GUESS`,
+  `_DISPUTED`) comes from a record of that confidence: read the record before
+  trusting it (ADR-0290).
 - **The clone is a reading surface.** `rename_function`, `set_comment` and the
   other mutation tools change the clone only, and it is deleted at exit.
   Real naming goes into the function records and `dk2tools kb apply-names`. `delete_project_binary` and
