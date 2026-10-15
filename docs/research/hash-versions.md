@@ -15,7 +15,9 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**250** — `0xBD323E55AFE88884`. The store sweep runs when DK2's turn, our tick plus one, is a multiple of 16, one tick earlier than under 249 (ADR-0285 amendment, Q596); no new saved field.
+**251** — `0x3DFD1B0E0D7517C9`. The store sweep runs when DK2's turn, our tick plus one, is a multiple of 16, one tick earlier than under 250 (ADR-0285 amendment, Q596); no new saved field.
+
+**250** — `0xBD323E55AFE88884`. The stun (255, 256) counts from the turn after it is set, as 255's Age does, so a hand drop lies one turn longer than under 249, as Level 1's capture measured; 255's first call asks for the Creature Dazed Effect (ADR-0480); no new saved field.
 
 **249** — `0x8C0EAA543500440F`. The room ticks run after the creatures and before the player frame, as `0x004EC450` does: the Casino's, the Portal's and room health move there, and the Library, Training Room, Guard Room and Workshop step `0x004E8C60` angers a room's place-holders when both alignments meet in it (ADR-0479); no new saved field.
 
@@ -373,28 +375,4 @@ no keeper can be defeated yet, so it is always zero and the condition always fal
 which is DK2's own answer for a living keeper. Hashed anyway, because a field the
 simulation can be *given* is testable where a hardcoded false is not (ADR-0116).
 
-**51** — `0x5C6A03ED5BD250BC`. `PlayerState.GoldMined`, the
-counter behind trigger condition type 31 (ADR-0112). Composition: the fixture
-mines nothing, so the field is zero for its whole run and the hash moves anyway.
-
-**50** — `0x98DE8BA2B3BDC7BF`. Player condition type 32 reads the
-walked player's mana, named `CurrentMana` by DK2's own debug dumper (ADR-0111).
-Behaviour, not composition.
-
-**49** — `0xDDC3EA20017640B6`. Hero parties and effect generators enter
-ordered world state, every parsed field, nested member and variable effect-id
-list hashed and snapshotted verbatim (ADR-0108). Composition: the fixture has
-neither kind, so only their empty counts enter.
-
-**47 and 48 were both taken and neither is what shipped.** Two branches ran in
-parallel — 47 was reserved for hero parties, 48 taken by ADR-0110 when the gold
-condition landed first — so the merge renumbered hero parties to 49 and this is
-the only pin either change ever had in master. `0x7DD1C7A2B6EF5CE1` was 48's
-value on its own branch.
-
-**48** — Player condition type 30 reads the walked player's gold, so a shipped
-level's script can branch on it (ADR-0110). Behaviour, not composition.
-
-
-
-[Versions 9–46](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–51](hash-versions-early.md) retain the earlier pins and their reasons.
