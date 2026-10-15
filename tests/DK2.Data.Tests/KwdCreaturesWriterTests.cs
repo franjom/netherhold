@@ -50,7 +50,8 @@ public class KwdCreaturesWriterTests
         Assert.Equal(0xABCu, BinaryPrimitives.ReadUInt32LittleEndian(
             KwdCreatures.WriteRecord(original with { SizeClass = 13 }, image).AsSpan(0xEA8)) & 0xFFF);
         CheckList(original.Spells, (c, a) => c with { Spells = a }, c => c.Spells,
-            [(0xDC4 + 24 + 22, 1), (0xDC4 + 24 + 23, 1), (0xDC4 + 24 + 16, 4), (0xDC4 + 24 + 13, 1)]);
+            [(0xDC4 + 24 + 22, 1), (0xDC4 + 24 + 23, 1), (0xDC4 + 24 + 16, 4), (0xDC4 + 24 + 13, 1),
+             (0xDC4 + 24, 4), (0xDC4 + 24 + 4, 4), (0xDC4 + 24 + 8, 4)]);
         CheckList(original.Resistances, (c, a) => c with { Resistances = a }, c => c.Resistances, [(0xE0E, 1), (0xE0F, 1)]);
         CheckList(original.Attractions, (c, a) => c with { Attractions = a }, c => c.Attractions, [(0xDAC, 4), (0xDB0, 2), (0xDB2, 2)]);
         CheckList(original.HappyJobs, (c, a) => c with { HappyJobs = a }, c => c.HappyJobs, PrefFields(0xE20));
@@ -70,7 +71,7 @@ public class KwdCreaturesWriterTests
                 T[] changed = list.ToArray();
                 changed[0] = (T)typeof(T).GetMethod("<Clone>$")!.Invoke(list[0], null)!;
                 var property = properties[i]; Type type = property.PropertyType;
-                object value = type == typeof(uint) ? 13u : type == typeof(ushort) ? (ushort)13 : type == typeof(short) ? (short)-13
+                object value = type == typeof(uint) ? 13u : type == typeof(int) ? -13 : type == typeof(ushort) ? (ushort)13 : type == typeof(short) ? (short)-13
                     : type == typeof(byte) ? (byte)13 : type == typeof(Fp32) ? new Fp32(-12345)
                     : type.IsEnum ? Enum.ToObject(type, 13) : throw new InvalidOperationException(property.Name);
                 property.SetValue(changed[0], value);

@@ -83,14 +83,15 @@ public static partial class KwdCreatures
             attractions.Add(new CreatureAttraction(U32(off), U16(off + 4), U16(off + 6)));
         }
 
-        // Spells[3] at 0xDC4 (24 bytes each): Vector3f(12), 4 bytes, shotDelay fp32, 2 bytes, spellId, level.
+        // Spells[3] at 0xDC4 (24 bytes each): the origin vector (3 × int32), 4 bytes, shotDelay fp32, 2 bytes, spellId, level.
         var spells = new List<CreatureSpellSlot>(3);
         for (int i = 0; i < 3; i++)
         {
             int off = 0xDC4 + i * 24;
             byte spellId = U8(off + 22);
             if (spellId != 0)
-                spells.Add(new CreatureSpellSlot(spellId, U8(off + 23), Fp(off + 16), U8(off + 13)));
+                spells.Add(new CreatureSpellSlot(spellId, U8(off + 23), Fp(off + 16), U8(off + 13),
+                    Fp(off).Raw, Fp(off + 4).Raw, Fp(off + 8).Raw));
         }
 
         // Resistances[4] at 0xE0C (2 bytes each).

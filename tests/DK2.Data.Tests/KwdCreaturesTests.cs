@@ -56,6 +56,18 @@ public class KwdCreaturesTests
         Assert.Equal(27, By(all, "Horny").CreatureId);
     }
 
+    /// <summary>A spell slot's shot origin, the slot record's first twelve bytes (memory <c>+6</c>,
+    /// <c>+0xA</c>, <c>+0xE</c>, read by <c>0x00498990</c>; combat-spells.md §3): the Warlock's is
+    /// (0, −1761, 1433) and the Dark Elf's (0, −2048, 2662), the same in every slot of one creature.</summary>
+    [InstallFact]
+    public void ASpellSlotCarriesItsShotOrigin()
+    {
+        List<CreatureDef> all = Load();
+        CreatureDef warlock = By(all, "Warlock");
+        Assert.All(warlock.Spells, s => Assert.Equal((0, -1761, 1433), (s.OriginX, s.OriginY, s.OriginZ)));
+        Assert.All(By(all, "Dark Elf").Spells, s => Assert.Equal((0, -2048, 2662), (s.OriginX, s.OriginY, s.OriginZ)));
+    }
+
     /// <summary>The Portal Entrance effect at file byte 3894 (loader 0x00492320, staging +0x1326
     /// to def+0x776; portal-creature-action.md), ADR-0476.</summary>
     [InstallFact]

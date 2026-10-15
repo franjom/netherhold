@@ -108,7 +108,7 @@ public sealed class CreatureStateTableTests
     [InlineData(CreatureStateFlags.Unread2, 25)]
     [InlineData(CreatureStateFlags.SuppressHungerClock, 15)]
     [InlineData(CreatureStateFlags.SuppressTirednessClock, 15)]
-    [InlineData(CreatureStateFlags.Unread6, 15)]
+    [InlineData(CreatureStateFlags.NoFightLookup, 15)]
     public void EachFlagBitHasTheMeasuredPopulation(CreatureStateFlags flag, int expected)
     {
         int carrying = Enumerable.Range(0, CreatureStateTable.Count)
@@ -116,6 +116,20 @@ public sealed class CreatureStateTableTests
 
         Assert.Equal(expected, carrying);
     }
+
+    /// <summary>The may-look gate's first test (<c>0x0045A71F</c>, ADR-0488): every stun refuses the
+    /// fight lookup but 257, getting up.</summary>
+    [Theory]
+    [InlineData(209, true)]
+    [InlineData(210, true)]
+    [InlineData(255, true)]
+    [InlineData(256, true)]
+    [InlineData(263, true)]
+    [InlineData(264, true)]
+    [InlineData(257, false)]
+    [InlineData(250, false)]
+    public void TheStunsRefuseTheFightLookup_ButGettingUpDoesNot(int state, bool refuses) =>
+        Assert.Equal(refuses, CreatureStateTable.Get(state).Has(CreatureStateFlags.NoFightLookup));
 
     /// <summary>The two clock-suppressing bits always travel together, and they mark a
     /// <b>contiguous run of ids</b> — 145 to 159, the Casino's states, which is why the room

@@ -82,7 +82,7 @@ Returns 1 only when every test passes. DK2's own field names throughout.
 
 | test | our mapping |
 |---|---|
-| my state's table flag byte (`+0x18`, Q185) bit 6 clear — set on stunned 209/210/255/256/263/264, dancing 153, gambling 158, joining 193/278–280, idle 269/272/273 | no such states yet |
+| my state's table flag byte (`+0x18`, Q185) bit 6 clear — set on stunned 209/210/255/256/263/264, dancing 153, gambling 158, joining 193/278–280, idle 269/272/273; not 257, getting up (`0x0045A71F`: `TEST [state×25 + 0x6DA8C8], 0x40`) | `CreatureStateFlags.NoFightLookup` (ADR-0488) |
 | not a captive: state group 14 or state 126 (`0x00473990`) | `PrisonRules.IsImprisoned` |
 | not being tortured: state 136 or group 15 (`0x00485210`), unless `TortureVoluntary` | `CombatRules.OnTortureDevice` |
 | state ≠ 76 (landing) and ≠ 83 (`0x004E0460`, the middle sleeping state) | landing state and sleeping activity excluded |

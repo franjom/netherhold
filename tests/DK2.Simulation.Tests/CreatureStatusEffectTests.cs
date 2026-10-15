@@ -210,7 +210,7 @@ public class CreatureStatusEffectTests
     }
 
     [Fact]
-    public void LightningStrikesItsTargetOnTheFirstTick_DoublesOnWater_AndStunsForStunDuration()
+    public void LightningStrikesItsTargetOnTheFirstTick_DoublesOnWater_StunsForStunDuration_AndRisesFreeToFight()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState dry = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
@@ -238,6 +238,8 @@ public class CreatureStatusEffectTests
         Assert.Equal(257, dry.Dk2StateId);
         Assert.Equal(CreatureActivity.Stunned, dry.Activity);
         Assert.Equal(256, StatusEffectRules.DamageMultiplier(world, db, dry));
+        // 257's flag byte lacks bit 6 (0x0045A71F), so a creature getting up may look for a fight.
+        Assert.True(CombatRules.MayLookForAFight(world, db, dry, force: false));
         sim.Run(DropLandingRules.GetUpTicks(def));
         Assert.Equal(CreatureActivity.Idle, dry.Activity);
         Assert.Equal(128, StatusEffectRules.DamageMultiplier(world, db, dry));

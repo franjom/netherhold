@@ -332,8 +332,8 @@ public static class FightRules
         && me.SwingSpellSlot < mine.Spells.Count
         && (me.Possessed || tick > me.SwingStartTick + SpellRules.DelayTicks(mine, me.SwingSpellSlot));
 
-    /// <summary>Action 16's shot (combat-spells.md §7 steps 3–7): from the caster's position — the
-    /// slot's origin vector is not carried (Q398) — at the target's centre led by its last move
+    /// <summary>Action 16's shot (combat-spells.md §7 steps 3–7): from the slot's origin turned by the
+    /// caster's heading (<see cref="ShotOrigin"/>, ADR-0489) — at the target's centre led by its last move
     /// times the whole tiles between them and a half, carrying the spell's two data words, launched
     /// at the shot definition's speed. A target gone or a heart fallen fires nothing.</summary>
     public static void FireSpell(SimulationContext context, CreatureState me, CreatureDef mine)
@@ -386,11 +386,25 @@ public static class FightRules
             return;
         }
 
-        ShotState shot = ShotRules.Spawn(world, shotDef, me.OwnerPlayerId, me.PosX, me.PosY, (int)spell.ShotData1, (int)spell.ShotData2,
+        (int originX, int originY) = ShotOrigin(me, mine.Spells[me.SwingSpellSlot]);
+        ShotState shot = ShotRules.Spawn(world, shotDef, me.OwnerPlayerId, originX, originY, (int)spell.ShotData1, (int)spell.ShotData2,
             me.Id, me.SwingTargetKind, me.SwingTargetId, me.SwingTargetPlayerId, targetTile, aimX, aimY);
         ShotRules.Launch(shot, shotDef, aimX, aimY);
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={aimX},{aimY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
+    }
+
+    /// <summary>Where action 16 makes the shot (<c>0x00498989</c>–<c>0x004989F5</c>, combat-spells.md §7
+    /// step 4): my position plus the slot's origin turned by my heading through the sine tables
+    /// <c>0x006C1488</c>/<c>0x006C1C88</c>, each product shifted down sixteen on its own. A possessed
+    /// creature adds only the height, which our flat flight drops (Q398).</summary>
+    public static (int X, int Y) ShotOrigin(CreatureState me, CreatureSpellSlot slot)
+    {
+        if (me.Possessed) return (me.PosX, me.PosY);
+        long sin = TrapRules.Sine(me.Heading), cos = TrapRules.Cosine(me.Heading);
+        int dx = (int)((slot.OriginX * cos) >> 16) - (int)((slot.OriginY * sin) >> 16);
+        int dy = (int)((slot.OriginX * sin) >> 16) + (int)((slot.OriginY * cos) >> 16);
+        return (me.PosX + dx, me.PosY + dy);
     }
 
     /// <summary><c>CreatureAction_Begin(17 or 16, …)</c> as action 26 calls it (<c>0x00496700</c>):

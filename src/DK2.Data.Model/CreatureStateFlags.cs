@@ -6,11 +6,11 @@ using System;
 
 namespace DK2.Data.Model;
 
-/// <summary>Record <c>+0x18</c> of a creature state: a bitfield, three bits of which are
+/// <summary>Record <c>+0x18</c> of a creature state: a bitfield, four bits of which are
 /// understood (Q185).
 /// <para>Six of the eight bits are used. Bits 5 and 7 are <b>never set in any of the 281
 /// shipped states</b>, which is asserted by a test rather than assumed — a bit nothing
-/// sets is a bit whose meaning can never be recovered from this data. The three
+/// sets is a bit whose meaning can never be recovered from this data. The two
 /// <c>Unread</c> members are set by real states and have located readers or none at all;
 /// they are named for what is known about them, which is their position.</para></summary>
 [Flags]
@@ -42,7 +42,9 @@ public enum CreatureStateFlags : byte
     /// <see cref="SuppressHungerClock"/>.</summary>
     SuppressTirednessClock = 1 << 4,
 
-    /// <summary>15 states. A reader is located at <c>0x0045A722</c>; what it decides is
-    /// unread.</summary>
-    Unread6 = 1 << 6,
+    /// <summary>The creature may not look for a fight: the first test of the may-look gate
+    /// <c>0x0045A6D0</c> (<c>TEST [state*25 + 0x6DA8C8], 0x40</c> at <c>0x0045A71F</c>). 15 states:
+    /// the stuns 209, 210, 255, 256, 263, 264, dancing, gambling, joining and three idles, but not
+    /// 257, getting up (combat-acquisition.md §2).</summary>
+    NoFightLookup = 1 << 6,
 }
