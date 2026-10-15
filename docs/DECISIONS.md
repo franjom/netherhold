@@ -6234,6 +6234,15 @@ pin stands.
 `tile+0xB` bit `0x20` pre-filter (Q487) is not built. The Heart's `+0x51` gate
 (Q472) is taken as always on. A pile keeps its object where DK2 remakes it.
 
+**Amendment, 2026-10-15 (hash 250, Q596).** The sweep compared our tick to DK2's turn, which is the
+tick plus one (ADR-0119), so it ran a tick late. The Level 2 capture first shows the sweep in
+the sample labelled 1023, turn 1024 on the convention that capture ticks run one behind the turn
+(computer-keeper-observations.md); ours waited for tick 1024. It now runs when the tick plus one is a multiple of 16.
+Levels 1-4 over 20 seeds win 20/5/18/3 against
+18/5/14/5 on master be8d9321, most seeds at other ticks: a swept pile that must be made draws
+from the world stream (gold-on-the-floor.md §11), so the shift reshuffles every later roll, and
+Level 2 keeps five wins on different seeds.
+
 ## ADR-0286 — A just-dug tile is claimed on the way to a deposit, never by choosing
 **Date:** 2026-09-29 · **Status:** accepted
 

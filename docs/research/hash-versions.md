@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**250** — `0xBD323E55AFE88884`. The store sweep runs when DK2's turn, our tick plus one, is a multiple of 16, one tick earlier than under 249 (ADR-0285 amendment, Q596); no new saved field.
+
 **249** — `0x8C0EAA543500440F`. The room ticks run after the creatures and before the player frame, as `0x004EC450` does: the Casino's, the Portal's and room health move there, and the Library, Training Room, Guard Room and Workshop step `0x004E8C60` angers a room's place-holders when both alignments meet in it (ADR-0479); no new saved field.
 
 **248** — `0xC51BD03052ECA96A`. The Heart's opening sequence is timed in game turns (DK2's turn 1 is our tick 0), so the ordinary frame's wait ends one tick earlier than under 247; no new saved field.

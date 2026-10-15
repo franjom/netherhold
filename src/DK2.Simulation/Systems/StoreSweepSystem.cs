@@ -29,7 +29,7 @@ public sealed class StoreSweepSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        if (context.Tick.Value % SweepTurns != 0) return;
+        if ((context.Tick.Value + 1) % SweepTurns != 0) return;   // DK2's turn is our tick plus one (ADR-0119)
 
         WorldState world = context.World;
         GameDatabase database = context.Database;

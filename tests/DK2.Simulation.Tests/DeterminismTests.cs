@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 249: room ticks run between the creatures and the players, and mixed rooms anger (ADR-0479).
+        // HashVersion 250: the store sweep runs on DK2's turn & 0xF, one tick earlier (ADR-0285 amendment, Q596).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x8C0EAA543500440FUL, sim.StateHash());
+        Assert.Equal(0xBD323E55AFE88884UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
