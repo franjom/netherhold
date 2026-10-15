@@ -1,8 +1,8 @@
 # Verification sweep of everything built
 
-- **Status:** underway (checked 2026-10-08). The ledger exists and checks A, B and a
-  D pilot have run as audits (§2); no rule has passed all four, and the ledger's A-D cells
-  are still blank except one C entry.
+- **Status:** underway, with no progress since the 2026-10-05 audit (checked 2026-10-15).
+  The ledger exists and checks A, B and a D pilot have run as audits (§2); no rule has passed
+  all four, and the ledger's A-D cells are still blank except one C entry.
 - **Why:** the ADR-0232 audit found a built rule resting on a misread "only writer" claim: a
   heartless player's heart was taken to be the origin, and DK2 uses (1, 1). The earlier checks
   had been done one feature at a time. This sweep checks every built rule once, in a fixed order,
@@ -27,8 +27,8 @@
    ledger is also the resume file.
 
 `dk2tools verification-ledger` writes `docs/verification-ledger.csv` and preserves A-D
-and date cells on regeneration; `--check` detects a stale ledger. It holds 256 attributes
-on 2026-10-08 (1 Hypothesis, 180 StronglyInferred, 75 Confirmed). `CandidateTests`
+and date cells on regeneration; `--check` detects a stale ledger. It holds 281 attributes
+on 2026-10-15 (1 Hypothesis, 194 StronglyInferred, 86 Confirmed). `CandidateTests`
 means a lexical source reference, not proof that a test pins the rule. ADRs are
 collected from the source comments and the linked research note; absent citations
 remain blank for review.
@@ -69,8 +69,7 @@ unrelated test projects.
 
 ## 3. Order
 
-1. Rules marked `Hypothesis` (1 on 2026-10-08), then `StronglyInferred` (180). There are 75
-   `Confirmed` rules, 256 attributed in all; the ledger is the current count.
+1. Rules marked `Hypothesis`, then `StronglyInferred`; the ledger holds the current counts.
 2. Rules whose doc rests on an "only", "never" or "no reader" claim.
 3. Work from before 2026-09-07, when `cseg` was not scanned and scans were `.text` only.
 4. The rest, by subsystem.

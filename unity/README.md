@@ -28,9 +28,9 @@ is the authority), put `DungeonRunner` on a GameObject in a scene, and press Pla
 Point it at a DK2 install with the component's **Install Directory** field or the
 `DK2_DIR` environment variable.
 
-You should get a campaign level as coloured boxes, with its objects, creatures (still, in
-their idle model's first frame) and wall torches drawn from the install's own meshes and
-textures (ADR-0408): walls tall, floors flat, room furniture standing on the floor. Heights
+You should get a campaign level drawn from the install's own meshes and textures
+(ADR-0408): terrain, rooms, liquids, objects, wall torches and animated creatures, walls
+tall, floors flat, room furniture standing on the floor. Heights
 are DK2's: the floor is at one tile (0x1000) and a wall's top at two. The component's
 **Classic Meshes** box turns the real models off. The map is laid out
 with X east and Z north, so the opening camera faces north (`DungeonScene.Ground`); until
@@ -67,22 +67,16 @@ installed the editor. Pass `-p:UnityManagedDir=...` if the editor is not in
 
 ## What it does not do
 
-- **It draws only objects from the original art.** `ClassicMeshes` builds a Unity mesh
-  and materials from a KMF in the player's install (`InstallArtProvider`, `RenderMesh`,
-  ADR-0408); terrain, rooms and creatures are still boxes, the next steps of
-  `docs/plans/2026-10-09-classic-look.md`. Converter output (`dk2tools convert`, GLB and
-  PNG) is never loaded. Every material is opaque, and textures are not yet chosen by
-  owner or damage.
-- **It runs at DK2's rate, and does not smooth between ticks.** `DungeonRunner.Update`
-  accrues `Time.deltaTime × SimulationTiming.TicksPerSecond × speed` and ticks on
-  whole ticks, so at `speed` 1 the wall clock is the game's (Q1, ADR-0089). What is
-  missing is interpolation: a creature jumps one tick at a time. The component's
-  tooltip and the on-screen diagnostics still call the rate the "unmeasured Q1
-  placeholder", which Q1 no longer is; that text is stale.
-- **It draws boxes, not DK2's walls.** DK2 picks wall pieces by the shape of the room
-  behind them and swaps textures for damage states (`docs/research/wall-rendering.md`).
-  `src/DK2.Presentation/RoomWalls.cs` computes the piece choice, but this adapter does
-  not consume it: one mesh per terrain is a known simplification.
+- **It has neither DK2's camera nor its lighting model.** Steps 0–4 of
+  `docs/plans/2026-10-09-classic-look.md` are built (`ClassicMeshes`, `TerrainChunks`,
+  `LiquidSurfaces`); step 5, camera and lighting, is not on master. A wall's damage
+  frame is unread, and converter output (`dk2tools convert`, GLB and PNG) is never loaded.
+- **It runs at DK2's rate.** `DungeonRunner.Update` accrues
+  `Time.deltaTime × SimulationTiming.TicksPerSecond × speed` and ticks on whole ticks,
+  so at `speed` 1 the wall clock is the game's (Q1, ADR-0089); creatures are drawn
+  between ticks by the tick fraction. The component's tooltip and the on-screen
+  diagnostics still call the rate the "unmeasured Q1 placeholder", which Q1 no longer
+  is; that text is stale.
 
 ## Where the logic actually lives
 

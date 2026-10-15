@@ -9,7 +9,7 @@ Controlled experiments comparing our simulation against original DK2 v1.70
   capture; the capture CSVs are not committed, see "Recorded runs"):
   `level1-idle-001`, `level20-idle-001`, `level20-idle-002`, and
   `2026-10-06-packet-replay-seeds/`, the Level 1-3 packet replays' seed spread
-  against DK2's seeded playbacks, and `2026-10-12-level4-packet-replay/`, Level 4's (no win yet). `doors-and-traps.md` lists the owner
+  against DK2's seeded playbacks, and `2026-10-12-level4-packet-replay/`, Level 4's. `doors-and-traps.md` lists the owner
   observations still to run. Two idle captures of DK2's own keepers are written
   up in `docs/research/computer-keeper-observations.md`.
 - Divergences are triaged as: our bug / unknown mechanic / accepted deviation
@@ -161,7 +161,7 @@ against it.
 
 ### Later work
 
-The Level 1-3 packet replays over our seeds against DK2's seeded playbacks, the
+The Level 1-4 packet replays over our seeds against DK2's own runs, the
 two same-map keeper captures and the pending door and trap observations are
 written up where the header says; their numbers live there and are not repeated
 here.

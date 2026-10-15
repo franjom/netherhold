@@ -8,7 +8,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Built: Increase Level only (`SpecialSystem`, `ActivateSpecialCommand`). Everything else here is
+Built: Increase Level and Receive Imps (`SpecialSystem`, `ActivateSpecialCommand`, ADR-0441). Everything else here is
 read and not built.
 
 ## 1. What a player sees — CONFIRMED (owner, 2026-10-09)

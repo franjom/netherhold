@@ -1,7 +1,7 @@
 # Possession arms and inputs: build plan
 
 **Goal:** build what `docs/research/possession-arms-and-inputs.md` read (Q535, Q536) and fix the
-gem divergence (Q587), on branch `possession/arms` (worktree `D:/DungeonKeeperRemake-poss`).
+gem divergence (Q587), on branch `possession/arms`. All five parts are merged to master at 434a966b.
 
 **Constraints:** each part takes the next free HashVersion/FormatVersion and ADR number, checked
 against every branch and master at commit time (master took 232–233 and ADR-0441–0442 mid-branch). Each part gets

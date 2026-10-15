@@ -195,7 +195,8 @@ are defined in §9.
     key: `LODGroup`, materials, collider, and an animator whose states are the
     clip keys `WorldView` asks for. How a Unity-side provider resolves a key to a
     prefab (Addressables address = key is the obvious candidate) is part of the
-    PoC. Today `DungeonScene` draws placeholders only.
+    PoC. Today `DungeonScene` draws the classic tier from the install (ADR-0408)
+    or placeholders; no modern prefab exists.
 15. **Artefact and version tracking** — §3.
 
 ## 5. Animation reconstruction
@@ -400,6 +401,6 @@ For the owner:
 5. **External help and cost**: paid AI services, or a contracted artist for the
    manual class in §9.
 
-For research: Q442 (playback rate), Q443 (UV-family correspondence), Q71 and
-Q72 (wall and room pieces), and the KMF unknowns listed in
+For research: Q442 (playback rate, partly answered), Q443 (UV-family
+correspondence), Q71 (wall and room pieces, partly answered), and the KMF unknowns listed in
 `src/DK2.Convert/README.md` (group placement, material flags, key-frame byte).

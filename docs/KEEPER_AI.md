@@ -1178,11 +1178,11 @@ Remaining M12 plan:
    tunnel, the staging point, the front and the call are built (ADR-0298), and task 7's
    bridges (ADR-0304): Nemesis on Level 18 grants levels, chooses Fabian and creeps the call
    toward her; Drako on Level 11A chooses Morgana, spans the lava with Stone Bridge, tunnels on
-   and calls its army to her heart. Left: the research move, trap/door decisions, and the
-   original comparison (Q497).
+   and calls its army to her heart. The original comparison matches in outline (Q497;
+   timing is Q563). Left: the research move and the trap/door decisions.
    Acceptance: the keeper prepares and launches an attack without scripted orders.
-5. **Personalities and comparison.** Load all nine profiles; test deterministic command
-   streams and compare an active original keeper on the same stock map with availability
+5. **Personalities and comparison.** All nine profiles load (ADR-0410). Left: test
+   deterministic command streams per profile and compare an active original keeper on the same stock map with availability
    and scripting accounted for. M12 requires unaided digging, expansion, building to a
    need, recruitment, defence and attack, with original-game differences reported.
 

@@ -2,7 +2,8 @@
 
 Execute step 4 of 2026-10-09-classic-look.md in the existing classic worktree,
 branch classic-look/step4, following the owner's step-3 merge authorization.
-The current playback batch is merged to master. Preserve local Unity editor state.
+The playback is merged to master (687066e3; later fixes on master, e.g. 62fba108).
+Preserve local Unity editor state.
 
 1. Recheck the binary's fractional mesh evaluator and phase interpolation.
    Record findings in kmf-animation-playback.md and the function records.
