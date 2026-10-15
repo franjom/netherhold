@@ -18,7 +18,7 @@ public class HeroPartyTests
     private const byte PointId = 3;
 
     [Fact]
-    public void EachOccupiedSlotBecomesAHeroAtTheActionPointsCentre_AndTheActionIsNoLongerPartial()
+    public void EachOccupiedSlotBecomesAHeroOnTheCornerOfTheActionPointsCentreTile_AndTheActionIsNoLongerPartial()
     {
         (WorldState world, GameDatabase database) = World();
         Place(world, database, partyId: 0, members:
@@ -39,6 +39,9 @@ public class HeroPartyTests
         {
             Assert.Equal(PlayerIds.Good, c.OwnerPlayerId);
             Assert.Equal(new TilePos(7, 5), c.Tile);
+            // The tile's corner, not its centre: the handler's point is the tile times 4096.
+            Assert.Equal((7 << 12, 5 << 12), (c.PosX, c.PosY));
+            Assert.Equal((c.PosX, c.PosY), (c.LastPosX, c.LastPosY));
             Assert.Equal((byte)0, c.PartyId);
         });
 

@@ -11319,3 +11319,25 @@ places the shot as the binary does, flat (the height goes with the flight's, Q39
 **Consequences.** Level 4 seeds 1–20 against ADR-0488: the keeper side's shot hits 563 of 1,164 to 623
 of 1,236 (48 to 50 per cent), so point-blank misses were a small share of its misses; wins 0 to 2, Imp
 deaths 396 to 395, both within the seeds' spread. `HashVersion` 258.
+
+## ADR-0490 — A hero party stands on its spawn tile's corner
+**Date:** 2026-10-15 · **Status:** accepted · Research: hero-parties-and-effect-generators.md, "Where the party appears"
+
+**Context.** Trigger action 14 (`0x00519F90`) places a party at the action point's centre tile times
+4096, the tile's corner (the compiler adds and takes away `0x800`); a 2x2 Hero Gate moves it a tile right
+and down, to the gate's centre point, a corner too. Ours stood the members at the tile's centre, a stated
+deviation. DK2's Level 4 seed 1 capture shows the 3830 party at exactly (15.00, 29.00); its leader
+reaches the next tile 18 ticks after spawning. Ours, from the centre, reached it in 7 ticks, walked on
+past the western spot where the owner's drop lands, and the dropped Trolls spent the fight walking.
+
+**Decision.** `HeroPartyRules.Spawn` puts each member, and its last position, on the corner of the tile
+it is made on, except on a 3x1 gate, whose step-off takes a tile centre in DK2 too (`0x00519BB5`–
+`0x00519C52`); a Tile gate's creature is made on the corner and routed to its side. CONFIRMED by the
+disassembly of `0x00519F90` and `0x00519B20` and by DK2's capture.
+`HeroPartyRules`' stale "no party pace" note goes: the pace is built (ADR-0216).
+
+**Consequences.** In our Level 4 seed 1 run the leader now reaches the next tile in 13 ticks. Level 4,
+seeds 1–20, against ADR-0489: keeper Imp deaths 395 to 301 (median 17.5 to 12), 104 to 78 before 4400;
+the western party is down at a median of 4188, from 4232. Wins on Levels 1–4, against master
+07261474: 19/6/16/2 to 17/6/14/1. Every seed's win tick moves; Level 1 loses seeds 1, 6 and 14 and gains
+19, Level 3 loses five and gains three, which reads as a reshuffle, not examined. `HashVersion` 259.

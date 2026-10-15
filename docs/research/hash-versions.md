@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**259** — `0xC8D3AFFC7D3F1C08`. A hero party's members stand on their spawn tile's corner, the tile times 4096, as `0x00519F90` places them, not its centre; a 3x1 gate's step-off keeps its tile centre (ADR-0490); no new saved field. The fixture raises no party, so only the version moves the pin.
+
 **258** — `0xD08AD6BA391493C1`. A creature's spell shot leaves from its slot's origin turned by its heading (`0x00498989`), not its centre (ADR-0489); no new saved field. The fixture casts nothing, so only the version moves the pin.
 
 **257** — `0x11DCC450617C3D56`. A creature getting up (257) may look for a fight: the may-look gate tests the state flag's bit 6, which 257 lacks, and the freeze timer, where ours refused every stunned and frozen activity (ADR-0488); no new saved field.

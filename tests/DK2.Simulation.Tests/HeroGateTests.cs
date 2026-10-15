@@ -54,6 +54,21 @@ public class HeroGateTests
         Assert.Equal(new TilePos(6, 5), at);
     }
 
+    /// <summary><c>0x00519B20</c>'s creation point (ADR-0490): a corner off a gate, on a 2x2 gate's
+    /// centre point and on a Tile gate, which routes the creature from there; a 3x1 gate's tile centre.</summary>
+    [Fact]
+    public void APartyStandsOnTheCorner_ExceptAfterA3x1GatesStepOff()
+    {
+        (GameDatabase db, WorldState world) = Open();
+        Paint(world, Dk2TerrainFixture.HeroGate2By2Terrain, (5, 5), (6, 5), (5, 6), (6, 6));
+        Paint(world, Dk2TerrainFixture.HeroGate3By1Terrain, (10, 5), (11, 5), (12, 5));
+        Paint(world, Dk2TerrainFixture.HeroGateTileTerrain, (15, 15));
+        Assert.True(HeroPartyRules.OnTheCorner(world, db, new TilePos(3, 3)));
+        Assert.True(HeroPartyRules.OnTheCorner(world, db, new TilePos(5, 6)));
+        Assert.False(HeroPartyRules.OnTheCorner(world, db, new TilePos(12, 5)));
+        Assert.True(HeroPartyRules.OnTheCorner(world, db, new TilePos(15, 15)));
+    }
+
     [Fact]
     public void OnlyTheGoodPlayersCreaturesStepOff()
     {

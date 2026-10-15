@@ -10,8 +10,7 @@ namespace DK2.Simulation;
 /// <summary>Trigger action 14, DK2's <c>0x00519F90</c> (hero-parties-and-effect-generators.md): a
 /// hero party is raised at an action point's centre tile, one creature per occupied member slot,
 /// each given its level, gold, health, job, flags and trigger root from the member record, and the
-/// party then linked follower-to-leader. Ours differs, stated: creatures stand at tile centres where
-/// DK2 uses the tile's corner; things already on the tile are not cleared; no party pace,
+/// party then linked follower-to-leader. Ours differs, stated: things already on the tile are not cleared;
 /// no gate state 269 or effects, no King notification; the gate step-off moves each creature as
 /// <see cref="StepOff"/> reads (Q427).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
@@ -77,8 +76,8 @@ public static class HeroPartyRules
 
     /// <summary>The Good creature's gate step-off in <c>0x00519B20</c>, before the creature is made
     /// (hero-parties-and-effect-generators.md): on a Hero Gate 2x2 (room 20) the point becomes the
-    /// tile one right and one down of the room's first slab, its centre point (ours: that tile's
-    /// centre); on a 3x1 (23) the centre of the tile after the first slab in the room's chain; on a
+    /// tile one right and one down of the room's first slab, whose corner is the gate's centre point
+    /// (<see cref="Spawn"/> puts the creature there); on a 3x1 (23) the centre of the tile after the first slab in the room's chain; on a
     /// Tile gate (19) a side is drawn as read and the creature walks there. Effect <c>0xF</c> plays
     /// at the point (presentation).</summary>
     /// <remarks>The Tile gate's open-side mask is built north, west, east, south, but the drawn bit
@@ -157,8 +156,16 @@ public static class HeroPartyRules
 
             CreatureDef def = database.CreatureById(type);
             TilePos made = at;
+            bool corner = OnTheCorner(world, database, at);
             if (StepOff(world, database, rng, PlayerIds.Good, ref made, out _) == StepOffResult.Refused) return false;
             CreatureState state = world.SpawnCreature(database, type, PlayerIds.Good, made);
+            if (corner)
+            {
+                // The point is the tile times 4096, its corner (the handler adds and takes away 0x800);
+                // a 2x2 gate moves it a tile right and down, to the gate's centre point, a corner too.
+                state.PosX = state.LastPosX = made.X << 12;
+                state.PosY = state.LastPosY = made.Y << 12;
+            }
 
             // Byte arithmetic, as DK2's: the level-ups to buy, plus one per earlier raising of a
             // random party.
@@ -195,6 +202,17 @@ public static class HeroPartyRules
         LinkFollowers(world, party.PartyId);
         SetPace(world, database, party.PartyId);
         return true;
+    }
+
+    /// <summary>Whether the party stands on its tile's corner, as DK2's does (<c>0x00519B20</c>'s
+    /// creation point): off a gate, on a 2x2 gate's centre point, and on a Tile gate, whose creature
+    /// is made at the corner and routed to its side. Only a 3x1 gate's step-off takes a tile's centre
+    /// (<c>+0x800</c>, <c>0x00519BB5</c>–<c>0x00519C52</c>).</summary>
+    public static bool OnTheCorner(WorldState world, GameDatabase database, TilePos at)
+    {
+        if (!world.Contains(at)) return true;
+        RoomInstance? room = RoomIndex.RoomAt(world, database, (at.Y * world.Width) + at.X);
+        return room is null || (RoomTypeId)room.Definition.RoomId != RoomTypeId.HeroGate3By1;
     }
 
     /// <summary>A random creature id whose definition is flagged <c>MpdRandomInvader</c>: DK2 draws

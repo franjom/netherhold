@@ -277,8 +277,8 @@ tick 1000. `CampaignSimulationFactory` now supplies the level root, player roots
 and party templates to the existing executor; the adapter uses that tested path.
 
 `HeroPartyRules.Spawn` follows the list above; `CreatureLevelRules.LevelUp` is step 7's
-arithmetic. Deviations, each named at its site: the creature stands at the tile's centre
-(DK2: its corner); things on the spawn tile are not cleared; no party pace, event 3, gate
+arithmetic. Members stand on the point's tile corner, as DK2's (ADR-0490; CONFIRMED, and DK2's Level 4
+capture shows a party at exactly (15.00, 29.00)); a 3x1 gate's step-off takes a tile centre. Deviations, each named at its site: things on the spawn tile are not cleared; no event 3, gate
 state 269, effects or King notification. The step-off and action 32 are built (ADR-0320); not
 built: the Tile gate's walk (no shipped map has one), the 2x2 ruin's object destruction (no
 object is placed on a gate) and action 32 on a heart. The fields the spawn writes are hashed on the

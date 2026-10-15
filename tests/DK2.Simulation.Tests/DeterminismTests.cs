@@ -165,7 +165,7 @@ public class DeterminismTests
         // HashVersion 254: the hero and neutral players' creatures run no needs, need-anger or mood choosers (ADR-0485).
         // HashVersion 253: the approach is state 8, a walk resuming 199, not a flag on 199 (ADR-0483).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xD08AD6BA391493C1UL, sim.StateHash());
+        Assert.Equal(0xC8D3AFFC7D3F1C08UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
