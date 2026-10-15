@@ -69,19 +69,20 @@ public sealed partial class NavMesh
         return true;
     }
 
-    /// <summary>`0x004CCCB0`: four corners as points, four sides as constraints, then every
-    /// triangle inside gets the rectangle's byte (`0x004CC9B0`). Corner coordinates are in tiles;
-    /// the far corner is exclusive on the grid and so a tile corner itself.</summary>
+    /// <summary>`0x004CCCB0`: the corners as points in the original's order (x0,y0), (x0,y1),
+    /// (x1,y1), (x1,y0), the sides as constraints in that order round, then every triangle inside
+    /// gets the rectangle's byte (`0x004CC9B0`). Corner coordinates are in tiles; the far corner
+    /// is exclusive on the grid and so a tile corner itself.</summary>
     public void InsertRectangle(int x0, int y0, int x1, int y1, byte nav)
     {
         int a = InsertPoint(x0, y0);
-        int b = InsertPoint(x1, y0);
-        int c = InsertPoint(x1, y1);
         int d = InsertPoint(x0, y1);
-        InsertConstraint(a, b);
-        InsertConstraint(b, c);
-        InsertConstraint(c, d);
-        InsertConstraint(d, a);
+        int c = InsertPoint(x1, y1);
+        int b = InsertPoint(x1, y0);
+        InsertConstraint(a, d);
+        InsertConstraint(d, c);
+        InsertConstraint(c, b);
+        InsertConstraint(b, a);
 
         // The triangles with every vertex inside are those covering the rectangle, which with its
         // sides now edges is a region of its own: fill it from a corner's fan, never crossing to
@@ -133,109 +134,120 @@ public sealed partial class NavMesh
     private bool Inside(int p, int x0, int y0, int x1, int y1) =>
         _px[p] >= x0 && _px[p] <= x1 && _py[p] >= y0 && _py[p] <= y1;
 
-    /// <summary>The original's constraint insertion (`0x004CBD10`): walk from one end toward the
-    /// other collecting every edge the segment crosses, recursing where it passes through a
-    /// vertex, then flip the crossed edges. The order is Sloan's, not the original's unread one
-    /// (ADR-0157 residual): a crossed edge whose quad is not convex waits at the back of the
-    /// queue, and a new diagonal that still crosses the segment joins it. No constraint bit is set:
-    /// the original's whole-map build carries none, and the byte test alone keeps the boundary
-    /// (§2.2); only the partial rebuild's side marker sets them. Both ends must already be
-    /// vertices.</summary>
+    /// <summary>The original's constraint insertion (`0x004CBD10`), transcribed in its slots
+    /// (NavMesh.Slots.cs). From the target end it turns the fan toward the other end; if the edge
+    /// is there it is done; if the far end of the edge leaving the target is on the segment it
+    /// recurses on the two halves; otherwise it walks the triangles the segment crosses, carrying
+    /// an edge on one side, and where the next apex falls on the far side of that edge it runs the
+    /// flip sweep (<see cref="FlipSweep"/>) from the carried edge to the triangle beyond the apex,
+    /// then swaps the ends and starts over, until the edge exists. No constraint bit is set: only
+    /// the partial rebuild's side marker sets them (§2.2). Both ends must be vertices.</summary>
     public void InsertConstraint(int pa, int pb)
     {
         if (pa == pb) return;
-        long ax = _px[pa], ay = _py[pa], bx = _px[pb], by = _py[pb];
-
-        // pa's fan in slot order: the triangles a scan of every slot would reach, in its order.
-        int[] fan = [.. Fan(pa)];
-        Array.Sort(fan);
-        int t0 = -1, exit = -1;
-        for (int k = 0; k < fan.Length && t0 < 0; k++)
-        {
-            int t = fan[k];
-            int i = IndexOf(t, pa);
-
-            int v1 = Vertex(t, (i + 1) % 3), v2 = Vertex(t, (i + 2) % 3);
-            if (v1 == pb || v2 == pb) return;
-
-            int o1 = Orient(ax, ay, bx, by, _px[v1], _py[v1]);
-            int o2 = Orient(ax, ay, bx, by, _px[v2], _py[v2]);
-            if (o1 == 0 && Ahead(pa, pb, v1)) { InsertConstraint(pa, v1); InsertConstraint(v1, pb); return; }
-            if (o2 == 0 && Ahead(pa, pb, v2)) { InsertConstraint(pa, v2); InsertConstraint(v2, pb); return; }
-
-            // The segment leaves t through the edge opposite pa when v1 is to its right and v2 to its left.
-            if (o1 < 0 && o2 > 0) { t0 = t; exit = (i + 1) % 3; }
-        }
-        if (t0 < 0) throw new InvalidOperationException($"constraint {pa}->{pb} found no exit edge");
-
-        _crossed.Clear();
-        int cur = t0, edge = exit;
-        for (int steps = 0; ; steps++)
-        {
-            if (steps > _triCount) throw new InvalidOperationException($"constraint {pa}->{pb} never reaches its end");
-            int v1 = Vertex(cur, edge), v2 = Vertex(cur, (edge + 1) % 3);
-            _crossed.Add((v1, v2));
-
-            int u = Neighbour(cur, edge);
-            if (u == NoNeighbour) throw new InvalidOperationException($"constraint {pa}->{pb} runs off the mesh");
-            int j = EdgeIndexOf(u, v2, v1);
-            int d = Vertex(u, (j + 2) % 3);
-            if (d == pb) break;
-
-            int od = Orient(ax, ay, bx, by, _px[d], _py[d]);
-            if (od == 0) { InsertConstraint(pa, d); InsertConstraint(d, pb); return; }
-            // u reads (v2, v1, d) from j, so it exits by (v1, d) when d is left of the segment, else (d, v2).
-            cur = u;
-            edge = od > 0 ? (j + 1) % 3 : (j + 2) % 3;
-        }
-
-        for (int head = 0, guard = 0; head < _crossed.Count; guard++)
-        {
-            if (guard > (8 * _triCount) + 64)
-                throw new InvalidOperationException($"constraint {pa}->{pb} from ({ax},{ay}) to ({bx},{by}) did not converge");
-            (int v1, int v2) = _crossed[head++];
-            int t = TriangleWithEdge(v1, v2, out int e);
-            if (!TryFlip(t, e, out int c, out int d)) { _crossed.Add((v1, v2)); continue; }
-            if ((c == pa && d == pb) || (c == pb && d == pa)) return;
-            if (Crosses(ax, ay, bx, by, c, d)) _crossed.Add((c, d));
-        }
-        throw new InvalidOperationException($"constraint {pa}->{pb} never became an edge");
+        InsertConstraint(_px[pa], _py[pa], _px[pb], _py[pb]);
     }
 
-    private readonly List<(int, int)> _crossed = [];
-
-    private bool Crosses(long ax, long ay, long bx, long by, int c, int d)
+    private void InsertConstraint(int ax, int ay, int bx, int by)
     {
-        long cx = _px[c], cy = _py[c], dx = _px[d], dy = _py[d];
-        return Orient(ax, ay, bx, by, cx, cy) * Orient(ax, ay, bx, by, dx, dy) < 0
-            && Orient(cx, cy, dx, dy, ax, ay) * Orient(cx, cy, dx, dy, bx, by) < 0;
+        if (ax == bx && ay == by) return;
+        int cx = ax, cy = ay, tx = bx, ty = by;
+        if (!TryLocateVertex(tx, ty, out int tri, out int ourSlot)) return;
+        int s = DkV(ourSlot);
+        for (int pass = 0; ; pass++)
+        {
+            if (pass > 64) throw new InvalidOperationException($"constraint ({ax},{ay})-({bx},{by}) never became an edge");
+            if (!TryLocateVertex(cx, cy, out _, out _)) return;
+
+            int cur = tri, k = DkV(s);
+            if (!TurnFan(ref cur, ref k, (long)cx * UnitsPerTile, (long)cy * UnitsPerTile)) return;
+            int ds = DkV(k);
+            int e = Next(ds);
+            int tw = cur;
+            int across = DkVertex(cur, e);
+            if (_px[across] == cx && _py[across] == cy) return;
+
+            int u = DkNeighbour(cur, ds);
+            if (u == NoNeighbour) return;
+            int bu = DkBack(u, cur);
+            int far = DkVertex(u, bu);
+            if (Orient(tx, ty, cx, cy, _px[far], _py[far]) == 0)
+            {
+                InsertConstraint(tx, ty, _px[far], _py[far]);
+                InsertConstraint(cx, cy, _px[far], _py[far]);
+                return;
+            }
+
+            int apexX, apexY;
+            int guard = 0;
+            do
+            {
+                if (++guard > (4 * _triCount) + 64) throw new InvalidOperationException($"constraint ({ax},{ay})-({bx},{by}) walks without end");
+                int v = DkNeighbour(tw, e);
+                if (v == NoNeighbour) return;
+                int bv = DkBack(v, tw);
+                e = Next(bv);
+                int apex = DkVertex(v, Prev(bv));
+                apexX = _px[apex];
+                apexY = _py[apex];
+                if (Orient(tx, ty, cx, cy, apexX, apexY) >= 0)
+                {
+                    int beyond = DkNeighbour(v, e);
+                    if (beyond == NoNeighbour) return;
+                    int bb = DkBack(beyond, v);
+                    int p1 = DkVertex(beyond, bb);
+                    int v2 = DkVertex(u, Next(bu)), v1 = DkVertex(u, bu);
+                    if (Orient(_px[v2], _py[v2], _px[v1], _py[v1], _px[p1], _py[p1]) < 0)
+                    {
+                        FlipSweep(u, bu, beyond);
+                        break;
+                    }
+                    e = Prev(bv);
+                    u = beyond;
+                    bu = bb;
+                }
+                tw = v;
+            } while (apexX != cx || apexY != cy);
+
+            if (!TryLocateVertex(cx, cy, out tri, out ourSlot)) return;
+            s = DkV(ourSlot);
+            (cx, cy, tx, ty) = (tx, ty, cx, cy);
+        }
     }
 
-    /// <summary>The lowest slot holding the edge <c>p</c>–<c>q</c>, as a scan of every slot finds
-    /// it: the two triangles on it are both in p's fan.</summary>
-    private int TriangleWithEdge(int p, int q, out int edge)
+    /// <summary>`0x004CBBD0`: from the triangle across edge <paramref name="s"/> of
+    /// <paramref name="t"/>, flip the edge after the shared one and go on until the triangle across
+    /// it is <paramref name="target"/>; a refused flip steps across instead. A sweep that both
+    /// flipped and was refused runs again from the start; one that only flipped, or only stepped,
+    /// is done. False where the walk leaves the mesh or comes back to <paramref name="t"/>.</summary>
+    private bool FlipSweep(int t, int s, int target)
     {
-        int best = -1;
-        edge = -1;
-        foreach (int t in Fan(p))
+        int n = DkNeighbour(t, s);
+        if (n == NoNeighbour) return false;
+        for (int round = 0; ; round++)
         {
-            if (best >= 0 && t > best) continue;
-            int e = EdgeBetween(t, p, q);
-            if (e >= 0) { best = t; edge = e; }
+            if (round > 64) throw new InvalidOperationException("the constraint flip sweep did not settle");
+            int b = DkBack(n, t);
+            int e = Next(b);
+            int fails = 0, flips = 0, cur = n;
+            for (int guard = 0; DkNeighbour(cur, e) != target; guard++)
+            {
+                if (guard > (4 * _triCount) + 64) throw new InvalidOperationException("the constraint flip sweep walks without end");
+                if (TryFlip(cur, DkE(e)))
+                {
+                    flips++;
+                    continue;
+                }
+                int m = DkNeighbour(cur, e);
+                if (m == NoNeighbour || m == t) return false;
+                e = Next(DkBack(m, cur));
+                fails++;
+                cur = m;
+            }
+            if (fails == 0 || flips == 0) return true;
+            n = DkNeighbour(t, s);
+            if (n == NoNeighbour) return false;
         }
-        if (best < 0) throw new InvalidOperationException($"no live triangle has the edge {p}-{q}");
-        return best;
-    }
-
-    /// <summary>The edge of <c>t</c> joining <c>p</c> and <c>q</c> in either order, or −1.</summary>
-    private int EdgeBetween(int t, int p, int q)
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
-            if ((a == p && b == q) || (a == q && b == p)) return i;
-        }
-        return -1;
     }
 
     /// <summary>The original's flip (`0x004C9FC0`): refuse across a constraint; then, before the

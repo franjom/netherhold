@@ -8,7 +8,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: **Q591**. Built (ADR-0461).
+Questions: **Q591**. Built (ADR-0461, ADR-0486) and checked against a Level 10 capture (§5).
 
 ---
 
@@ -164,17 +164,66 @@ neighbours 0, 1, 2 iterate as ours 2, 1, 0. DK2's slot tables are
 `0x0066DA14` = [1, 2, 0] (next) and `0x0066DA18` = [2, 0, 1] (prev), overlapping
 `0x0066DA10` = [0, 1, 2] by one word, so next(-1) = 0 and prev(-1) = 1. The reviewer's check of
 the transcription (2026-10-13) left three places where that start is not DK2's:
-DK2's locate (`0x004C98B0`) walks from a 4×4 cell cache (refreshed by
-`0x004C97B0`, turning fans by `0x004C9540`) and returns the first containing
-triangle it reaches, so at a vertex the fan triangle it names depends on what
-was located before, where ours returns the lowest slot holding the point
-(ADR-0157), and that triangle starts the degree reduction, labels the degree-4
-rim and heads the flood seed's stack (`0x004CC3D0` locates first), so the two
-edits can choose different diagonals and flips; the reset (`0x004C8D10`) stores
-(p3,p1,p0) and (p1,p3,p2),
-a canvas diagonal p1–p3 where ours is p0–p2; and the whole-map builder's corner
-order (`0x004CCCB0`: (x0,y0), (x0,y1), (x1,y1), (x1,y0)) and interior split
-slots (`0x004CA500`) predate this and are ours. The edit therefore walks DK2's
-walks, but from a triangle that may not be DK2's; a DK2 mesh dump after one dig
-is still the only check of the result, and none exists.
+where ours starts each walk was ours (ADR-0461), and the first replay of a DK2
+capture (§5) showed it in the result: the locate, the reset diagonal, the corner
+order, the split layout and the constraint insertion are since transcribed too
+(ADR-0486), and the edit then reproduces DK2's dumps slot for slot.
 
+## 5. Checked against the Level 10 capture
+
+The owner ran the original on Level 10 on 2026-10-15 with `dk2move.py --level
+level10 --seconds 300` (reverse-engineering/, gitignored): 141 mesh dumps (one
+whenever the triangle table changed, at most one every two seconds), 2,132
+navigation-byte changes over 1,110 ticks, and the byte table at the start. The
+replay (tools/meshreplay) builds our mesh from the recorded bytes and compares
+it with each dump by the triangles' corner coordinates and bytes, and by slot
+number; its `step` mode imports DK2's own dump slot for slot (our winding is
+DK2's reversed: vertices (v0, v2, v1), neighbours (n2, n1, n0)) and applies the
+byte changes logged up to the next dump through `Retriangulate`, so that it
+tests the edit alone, from DK2's own starting mesh.
+
+| mesh | before ADR-0486 | after |
+|---|---|---|
+| whole-map build vs the first dump, triangles | 2,674 of 2,828 | 2,826 of 2,828 |
+| same, slot numbers | 96 | 2,823 |
+| edit intervals reproduced exactly (`step`) | 106 of 140 | 130 of 140 |
+| triangles identical over all 140 intervals | 99.96 % | 99.99 % |
+| same slot over all 140 intervals | 99.85 % | 99.98 % |
+
+The ten intervals not exact after ADR-0486 are STRONGLY INFERRED to be the
+probe's timing, not the mesh's. Nine differ only in bytes on identical
+triangles: of the 18 triangles concerned, 14 carry a byte the log records for
+that tile after the dump (a dig or a door toggle the byte thread saw later),
+and 4 are door tiles whose byte the log records two ticks before the dump and
+the next dump shows again, so the replay's choice of which logged changes a
+dump already held is off by one toggle. The tenth has two tiles changed in the
+same tick, which the log lists in row order; applied in the other order the
+interval is exact, so the original is inferred to have written them that way.
+The replay takes the best of three tick limits per interval (the dump's tick
+less one, the tick, the tick plus two), which is how a one-tick skew between
+the probe's two threads is absorbed; this is disclosed, and it is what "exact"
+means here. An ablation isolates the locate: with the old lowest-slot rule and
+the new builder the same replay gives 108 of 140 intervals and 2,795 of 2,828
+triangles of the first dump (1,737 slots), so the cache walk is what the dumps
+confirm, not only the builder. The whole-map build's two remaining triangles
+are one rock quad at (42..50, 73..74) with the other diagonal, and three slot
+numbers near (28, 12) are permuted; the scanner (`0x004CE570`, `0x004CE4E0`)
+was read for this and is ours already, so the cause is some ordering in the
+rectangle insertion not yet found. Where the original would loop or read a -1
+slot (a walk off the canvas, a constraint that never settles), ours throws or
+returns -1; unreachable on this capture, a divergence by construction.
+
+What the first replay showed, before the fixes: a fresh whole-map build of the
+bytes at each dump drifts from DK2's edited mesh as play goes on (88.7 % of
+triangles over the capture, 84.8 % at the worst dump), where the edited mesh
+tracks DK2's triangle count exactly at every dump; and the mismatches that
+remained after the locate was transcribed were rock quads next to a dug tile
+given another diagonal by the Sloan constraint insertion where DK2's
+`0x004CBD10` chose the other, which its transcription closed.
+
+The original's locate cache carries the history of every locate, the route
+endpoints' (`0x004C9DF0`) included, which the capture does not log; an edit
+after other route queries than ours can still start from another fan triangle.
+The replay found no interval that needed another start once the builder was
+transcribed, so on this capture the effect did not show; a capture with
+`--navlog` would let the route locates be replayed as well.

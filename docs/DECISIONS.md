@@ -11098,6 +11098,48 @@ recorder takes them at chosen ticks (`--dump-ticks`). A quotient past 32 bits wr
 the original faults (a zero divisor throws in both); whether any game input reaches it was
 not checked.
 
+## ADR-0486 — The mesh's locate is the original's cell-cache walk, and the builder keeps its slots
+**Date:** 2026-10-15 · **Status:** accepted · advances ADR-0157, ADR-0461 · Research: `docs/research/navigation-partial-rebuild.md` §5, Q591
+
+**Context.** ADR-0461 transcribed the per-tile rebuild but left where its walks
+start to ours: `Locate` returned the lowest slot holding a point, and the
+whole-map builder kept its own reset diagonal, corner order, split layout and
+Sloan constraint insertion. The owner then ran the original on Level 10 with the
+mesh probe: 141 mesh dumps and 2,132 byte changes over 1,110 ticks. Replayed
+from each dump to the next through `Retriangulate`, the edits reproduced 106 of
+140 intervals exactly, and the whole-map build matched the first dump in 2,674
+of 2,828 triangles and 96 slots. The misses were rock quads beside a dug tile
+given the other diagonal, and slot numbers.
+
+**Decision.** `Locate` is `0x004C98B0`: a walk from a sixteen-cell cache of
+last results (64-tile squares, refreshed through `0x004C97B0` when the cached
+triangle died), stepping across the one edge the point lies beyond or turning
+the fan (`0x004C9540`) around the corner between two, returning the first
+triangle that holds the point and caching it. The cache is state, saved in
+place of the locate hint and hashed, since it decides which holder of a vertex
+an edit starts from. The whole-map builder takes the original's reset diagonal
+(`0x004C8D10`, (x1,y0) to (x0,y1)), corner and constraint order (`0x004CCCB0`),
+interior split (`0x004CA500`: the triangle keeps edge 0 and takes the point at
+slot 2), edge split (`0x004CA820`: each side keeps the half from its own start)
+and constraint insertion (`0x004CBD10` with the flip sweep `0x004CBBD0`) in
+place of the Sloan queue, each written in the original's slot numbers through
+one view of our storage (NavMesh.Slots.cs). The scanner (`0x004CE570`,
+`0x004CE4E0`) was read and is ours already. Hash/save version 255.
+
+**Consequences.** On the capture 130 of 140 intervals now reproduce the
+original's dump slot for slot; the other 10 are STRONGLY INFERRED to be the
+probe's timing: 9 differ only in door or dig bytes the log places within two
+ticks of the dump, 1 only in which of two tiles changed in one tick was written
+first. The whole-map build matches the first dump in 2,826 of 2,828 triangles
+(one rock quad's diagonal) and 2,823 slots. Rerun with the old lowest-slot
+locate, the same builder gives 108 of 140 and 2,795 triangles, so the dumps
+confirm the walk. Routes should tie-break as the original's do (no route log
+was captured); scenario hashes moved and the pins were regenerated. Residuals:
+the cache carries every locate's history, route endpoints included, which only
+a capture with its route log would show; that one quad; refresh batching
+(ADR-0461); our guards throw where the original would loop. tools/meshreplay
+replays a capture.
+
 ## ADR-0483 — The approach is state 8, a walk resuming 199
 **Date:** 2026-10-15 · **Status:** accepted · Amends ADR-0169
 

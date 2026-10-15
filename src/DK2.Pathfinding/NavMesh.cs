@@ -44,7 +44,12 @@ public sealed partial class NavMesh
     // left right by every write of a triangle's vertices, and checked before use.
     private int[] _pointTri = new int[64];
     private readonly List<int> _fan = [];
-    private int _locateHint;
+    /// <summary>The original's locate cache (`DAT_006E5AC0`): sixteen triangle slots, one per
+    /// 64-tile square of the canvas, each the last triangle located there; the reset fills it with
+    /// the first live slot. It is state: where a walk starts decides which of a vertex's fan
+    /// triangles is reached first, and the per-tile rebuild starts its removals and its flood from
+    /// that one (ADR-0486), so a save carries it and the hash folds it in.</summary>
+    private readonly int[] _locateCache = new int[16];
 
     /// <summary>The canvas the reset covers, in tiles. The original's is always −256 … 1280
     /// (`0x004C8F30`), far outside any map, so a map's own border is an ordinary constraint and
@@ -106,87 +111,90 @@ public sealed partial class NavMesh
         _pointFree.Clear();
         _triCount = 0;
         _triFree.Clear();
-        _locateHint = 0;
+        Array.Fill(_locateCache, 0);
 
         int p0 = NewPoint(x0, y0);
         int p1 = NewPoint(x1, y0);
         int p2 = NewPoint(x1, y1);
         int p3 = NewPoint(x0, y1);
 
-        int t0 = NewTriangle(p0, p1, p2, NavBytes.Outside);
-        int t1 = NewTriangle(p0, p2, p3, NavBytes.Outside);
-        Link(t0, EdgeIndexOf(t0, p2, p0), t1);
-        // No constraint bits: the original's reset sets +0xD = 7, every edge bit and no
-        // constraint, and only the partial rebuild's side marker ever sets one (§2.2).
+        // The original's slot 0 is (p3, p1, p0) and slot 1 is (p1, p3, p2), the diagonal from
+        // (x1, y0) to (x0, y1); ours are the same corners the other way round. No constraint
+        // bits: the reset sets +0xD = 7, every edge bit and no constraint, and only the partial
+        // rebuild's side marker ever sets one (§2.2).
+        int t0 = NewTriangle(p3, p0, p1, NavBytes.Outside);
+        int t1 = NewTriangle(p1, p2, p3, NavBytes.Outside);
+        Link(t0, EdgeIndexOf(t0, p1, p3), t1);
     }
 
-    /// <summary>The live triangle containing a position in 1/256-tile units, or −1. A point on a
-    /// shared edge returns the lower-indexed triangle, which is what makes the scan
-    /// deterministic.</summary>
+    /// <summary>The original's locate (`0x004C98B0`): from the cell cache's triangle, refreshed
+    /// through <see cref="RefreshLocateCell"/> when it died, step across the one edge the position
+    /// lies strictly beyond, or turn the fan (`0x004C9540`, <see cref="FanToward"/>) around the
+    /// corner between two such edges, until a triangle holds the position on or inside every edge.
+    /// That first triangle reached is returned and cached, so a position on an edge or at a vertex
+    /// names whichever of its holders the walk meets first, which depends on where the walk
+    /// started (ADR-0486). −1 when the walk leaves the canvas, which the original never guards.</summary>
     public int Locate(int x, int y)
     {
-        int t = Walk(x, y);
-        if (t < 0) return LocateByScan(x, y);
-        _locateHint = t;
-        return LowestHolding(t, x, y);
-    }
-
-    private int LocateByScan(int x, int y)
-    {
-        for (int t = 0; t < _triCount; t++)
-        {
-            if (!IsTriangleLive(t)) continue;
-            if (Contains(t, x, y)) return t;
-        }
-        return -1;
-    }
-
-    /// <summary>A triangle holding the position, found by stepping from the last one located
-    /// across an edge the position lies strictly beyond. The edge tested first turns with each
-    /// step, so the walk cannot circle a fixed loop; one that runs long or off the mesh gives up
-    /// and the scan answers instead.</summary>
-    private int Walk(long x, long y)
-    {
         if (_triCount == 0) return -1;
-        int t = _locateHint < _triCount && IsTriangleLive(_locateHint) ? _locateHint : 0;
-        if (!IsTriangleLive(t)) return -1;
-        for (int steps = 0; steps <= _triCount; steps++)
+        int cell = CellOf(x, y);
+        int t = _locateCache[cell];
+        if (!LiveSlot(t))
         {
-            int exit = -1;
-            for (int k = 0; k < 3 && exit < 0; k++)
+            t = RefreshLocateCell(cell);
+            _locateCache[cell] = t;
+            if (t < 0) return -1;
+        }
+        for (int guard = 0; guard <= (4 * _triCount) + 16; guard++)
+        {
+            // The original tests its edges 0, 1, 2, which are ours 2, 1, 0 reversed: beyond its
+            // edge i is beyond our edge 2 - i.
+            int code = 0;
+            for (int i = 0; i < 3; i++)
             {
-                int i = (k + steps) % 3;
-                int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
-                if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) < 0) exit = i;
+                int k = 2 - i;
+                int a = Vertex(t, k), b = Vertex(t, (k + 1) % 3);
+                if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) < 0) code |= 1 << i;
             }
-            if (exit < 0) return t;
-            t = Neighbour(t, exit);
-            if (t == NoNeighbour) return -1;
+            switch (code)
+            {
+                case 0:
+                    _locateCache[cell] = t;
+                    return t;
+                case 1: t = Neighbour(t, 2); break;
+                case 2: t = Neighbour(t, 1); break;
+                case 4: t = Neighbour(t, 0); break;
+                // Beyond two edges: the original turns the fan around the corner they share, its
+                // slot 1 for edges 0 and 1, slot 0 for 0 and 2, slot 2 for 1 and 2 or all three;
+                // its slots 0, 1, 2 are ours 0, 2, 1.
+                case 3: t = FanToward(t, 2, x, y); break;
+                case 5: t = FanToward(t, 0, x, y); break;
+                default: t = FanToward(t, 1, x, y); break;
+            }
+            if (t < 0) return -1;
         }
         return -1;
     }
 
-    /// <summary>What the scan in slot order returns for a position <paramref name="t"/> holds:
-    /// <c>t</c> itself for an interior position, the lower of the two triangles on an edge, the
-    /// lowest of a vertex's fan. No other triangle can hold it, the mesh having no T-junctions.</summary>
-    private int LowestHolding(int t, long x, long y)
+    /// <summary>The cell of the original's locate cache for a position in 1/256-tile units: the
+    /// canvas in 64-tile squares, clamped to a 4 by 4 grid.</summary>
+    private static int CellOf(int x, int y) => Math.Clamp(x >> 14, 0, 3) + (4 * Math.Clamp(y >> 14, 0, 3));
+
+    private bool LiveSlot(int t) => t >= 0 && t < _triCount && IsTriangleLive(t);
+
+    /// <summary>`0x004C97B0`: a live triangle for a cell whose cached one died: the entries of the
+    /// cell's left, right, upper and lower neighbours in that order, then every entry in order,
+    /// then the first live slot, else −1.</summary>
+    private int RefreshLocateCell(int cell)
     {
-        for (int k = 0; k < 3; k++)
-        {
-            int p = Vertex(t, k);
-            if (Sx(p) != x || Sy(p) != y) continue;
-            int lowest = t;
-            foreach (int f in Fan(p)) if (f < lowest) lowest = f;
-            return lowest;
-        }
-        for (int i = 0; i < 3; i++)
-        {
-            int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
-            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) != 0) continue;
-            int n = Neighbour(t, i);
-            return n == NoNeighbour ? t : Math.Min(t, n);
-        }
-        return t;
+        int cx = cell & 3, cy = cell >> 2;
+        if (cx > 0 && LiveSlot(_locateCache[cell - 1])) return _locateCache[cell - 1];
+        if (cx < 3 && LiveSlot(_locateCache[cell + 1])) return _locateCache[cell + 1];
+        if (cy > 0 && LiveSlot(_locateCache[cell - 4])) return _locateCache[cell - 4];
+        if (cy < 3 && LiveSlot(_locateCache[cell + 4])) return _locateCache[cell + 4];
+        foreach (int c in _locateCache) if (LiveSlot(c)) return c;
+        for (int t = 0; t < _triCount; t++) if (IsTriangleLive(t)) return t;
+        return -1;
     }
 
     /// <summary>The far point the endpoint rule leans toward: 257 tiles past the origin on both axes.</summary>
@@ -219,23 +227,27 @@ public sealed partial class NavMesh
     /// for our winding, which is the original's reversed: stop where the far point is strictly
     /// inside the edge leaving the vertex and inside or on the edge arriving at it; otherwise cross
     /// the arriving edge and keep the same vertex. −1 when the fan reaches the hull.</summary>
-    private int FanToward(int t, int k, long qx, long qy)
+    private int FanToward(int t, int k, long qx, long qy) => TurnFan(ref t, ref k, qx, qy) ? t : -1;
+
+    /// <summary>The fan walk with both results: the triangle and the vertex's slot in it. False
+    /// at the hull, where the original's loop would read a −1 slot.</summary>
+    private bool TurnFan(ref int t, ref int k, long qx, long qy)
     {
         for (int guard = 0; guard <= _triCount; guard++)
         {
             int v = Vertex(t, k), next = Vertex(t, (k + 1) % 3), prev = Vertex(t, (k + 2) % 3);
             bool strictlyInsideLeaving = Orient(Sx(v), Sy(v), Sx(next), Sy(next), qx, qy) > 0;
             bool onOrInsideArriving = Orient(Sx(prev), Sy(prev), Sx(v), Sy(v), qx, qy) >= 0;
-            if (strictlyInsideLeaving && onOrInsideArriving) return t;
+            if (strictlyInsideLeaving && onOrInsideArriving) return true;
 
             int n = Neighbour(t, (k + 2) % 3);
-            if (n < 0) return -1;
+            if (n < 0) return false;
             int j = 0;
             while (j < 3 && Neighbour(n, j) != t) j++;
             t = n;
             k = j;
         }
-        return -1;
+        return false;
     }
 
     /// <summary>Whether a position in 1/256-tile units lies in or on triangle <c>t</c>. A point
@@ -254,9 +266,10 @@ public sealed partial class NavMesh
     private long Sy(int p) => (long)_py[p] * UnitsPerTile;
 
     /// <summary>The original's point insertion (`0x004CAA50`): nothing if the tile corner is
-    /// already a vertex, a split of the two triangles sharing an edge into four if it lies on one,
-    /// otherwise a split of the containing triangle into three. No in-circle test, no legalisation.
-    /// Returns the point's index.</summary>
+    /// already a vertex of the triangle located under it; a split of the two triangles sharing an
+    /// edge into four if it lies on one, the edges tried in the original's order 0, 1, 2 (ours 2,
+    /// 1, 0); otherwise a split of the containing triangle into three. No in-circle test, no
+    /// legalisation. Returns the point's index.</summary>
     public int InsertPoint(int tileX, int tileY)
     {
         if (tileX < MinX || tileY < MinY || tileX > MaxX || tileY > MaxY)
@@ -272,87 +285,90 @@ public sealed partial class NavMesh
             if (_px[p] == tileX && _py[p] == tileY) return p;
         }
 
-        int onEdge = -1;
-        for (int i = 0; i < 3; i++)
+        for (int e = 0; e < 3; e++)
         {
-            int a = Vertex(t, i), b = Vertex(t, (i + 1) % 3);
-            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) == 0) { onEdge = i; break; }
+            int a = DkVertex(t, e), b = DkVertex(t, Next(e));
+            if (Orient(Sx(a), Sy(a), Sx(b), Sy(b), x, y) != 0) continue;
+            int np = NewPoint(tileX, tileY);
+            SplitEdge(t, e, np);
+            return np;
         }
 
-        int np = NewPoint(tileX, tileY);
-        if (onEdge >= 0) SplitEdge(t, onEdge, np);
-        else SplitInterior(t, np);
-        return np;
+        int ip = NewPoint(tileX, tileY);
+        SplitInterior(t, ip);
+        return ip;
     }
 
+    /// <summary>`0x004CA500`, in the original's slots: <c>t</c> keeps its edge 0 and takes the
+    /// point at slot 2; the first new slot <c>a</c> is <c>t</c>'s copy with the point at slot 0,
+    /// keeping edge 1; the second, <c>b</c>, has it at slot 1 and keeps edge 2. Inner edges carry no
+    /// constraint bit.</summary>
     private void SplitInterior(int t, int p)
     {
-        int a = Vertex(t, 0), b = Vertex(t, 1), c = Vertex(t, 2);
-        int nab = Neighbour(t, 0), nbc = Neighbour(t, 1), nca = Neighbour(t, 2);
-        bool cab = IsConstraint(t, 0), cbc = IsConstraint(t, 1), cca = IsConstraint(t, 2);
-        byte nav = _nav[t];
-
-        // t is reused for (a, b, p); the other two are new.
-        SetVertices(t, a, b, p);
-        int t2 = NewTriangle(b, c, p, nav);
-        int t3 = NewTriangle(c, a, p, nav);
-
-        // Outer edges keep their neighbours and constraint bits.
-        _constraint[t] = 0; _constraint[t2] = 0; _constraint[t3] = 0;
-        Link(t, 0, nab); SetConstraint(t, 0, cab);
-        Link(t2, 0, nbc); SetConstraint(t2, 0, cbc);
-        Link(t3, 0, nca); SetConstraint(t3, 0, cca);
-
-        // Inner edges: (b,p) t↔t2, (c,p) t2↔t3, (a,p) t3↔t.
-        Link(t, 1, t2);
-        Link(t2, 1, t3);
-        Link(t3, 1, t);
+        int a = NewTriangleCopy(t);
+        int b = NewTriangleCopy(t);
+        DkSetVertex(t, 2, p);
+        DkSetVertex(a, 0, p);
+        DkSetVertex(b, 1, p);
+        DkSetNeighbour(t, 1, a);
+        DkSetNeighbour(t, 2, b);
+        DkSetConstraint(t, 1, false);
+        DkSetConstraint(t, 2, false);
+        DkSetNeighbour(a, 0, t);
+        DkSetNeighbour(a, 2, b);
+        DkSetConstraint(a, 0, false);
+        DkSetConstraint(a, 2, false);
+        DkSetNeighbour(b, 0, t);
+        DkSetNeighbour(b, 1, a);
+        DkSetConstraint(b, 0, false);
+        DkSetConstraint(b, 1, false);
+        int na = DkNeighbour(a, 1);
+        if (na != NoNeighbour) DkSetNeighbour(na, DkBack(na, t), a);
+        int nb = DkNeighbour(b, 2);
+        if (nb != NoNeighbour) DkSetNeighbour(nb, DkBack(nb, t), b);
+        IndexVertices(a);
+        IndexVertices(b);
     }
 
-    private void SplitEdge(int t, int edge, int p)
+    /// <summary>The original's split of an edge (`0x004CAA50` with `0x004CA820` twice): each
+    /// triangle on the edge keeps the half starting at its own start of the edge and a copy takes
+    /// the other half; then the halves are linked across. <paramref name="e"/> is the original's
+    /// edge index of <paramref name="t"/>.</summary>
+    private void SplitEdge(int t, int e, int p)
     {
-        // Rotate so that the split edge is (a, b) with c opposite.
-        int a = Vertex(t, edge), b = Vertex(t, (edge + 1) % 3), c = Vertex(t, (edge + 2) % 3);
-        int nOuterBc = Neighbour(t, (edge + 1) % 3), nOuterCa = Neighbour(t, (edge + 2) % 3);
-        bool cAb = IsConstraint(t, edge);
-        bool cBc = IsConstraint(t, (edge + 1) % 3), cCa = IsConstraint(t, (edge + 2) % 3);
-        int u = Neighbour(t, edge);
-        byte navT = _nav[t];
-
-        // t becomes (a, p, c); t2 = (p, b, c).
-        SetVertices(t, a, p, c);
-        int t2 = NewTriangle(p, b, c, navT);
-        _constraint[t] = 0; _constraint[t2] = 0;
-        Link(t, 2, nOuterCa); SetConstraint(t, 2, cCa);
-        Link(t2, 1, nOuterBc); SetConstraint(t2, 1, cBc);
-        Link(t, 1, t2);                       // (p, c) ↔ (c, p)
-        SetConstraint(t, 0, cAb); SetConstraint(t2, 0, cAb);
-
+        int u = DkNeighbour(t, e);
         if (u == NoNeighbour)
         {
-            _n[(3 * t) + 0] = NoNeighbour;
-            _n[(3 * t2) + 0] = NoNeighbour;
+            int only = SplitEdgeHalf(t, e, p);
+            DkSetNeighbour(t, e, NoNeighbour);
+            DkSetNeighbour(only, e, NoNeighbour);
             return;
         }
+        int bu = DkBack(u, t);
+        int nt = SplitEdgeHalf(t, e, p);
+        int nu = SplitEdgeHalf(u, bu, p);
+        DkSetNeighbour(t, e, nu);
+        DkSetNeighbour(u, bu, nt);
+    }
 
-        // u = (b, a, d) across the same edge becomes (b, p, d); u2 = (p, a, d).
-        int j = EdgeIndexOf(u, b, a);
-        int d = Vertex(u, (j + 2) % 3);
-        int nOuterAd = Neighbour(u, (j + 1) % 3), nOuterDb = Neighbour(u, (j + 2) % 3);
-        bool cAd = IsConstraint(u, (j + 1) % 3), cDb = IsConstraint(u, (j + 2) % 3);
-        byte navU = _nav[u];
-
-        SetVertices(u, b, p, d);
-        int u2 = NewTriangle(p, a, d, navU);
-        _constraint[u] = 0; _constraint[u2] = 0;
-        Link(u, 2, nOuterDb); SetConstraint(u, 2, cDb);
-        Link(u2, 1, nOuterAd); SetConstraint(u2, 1, cAd);
-        Link(u, 1, u2);                       // (p, d) ↔ (d, p)
-        SetConstraint(u, 0, cAb); SetConstraint(u2, 0, cAb);
-
-        // Across the split edge: t.(a,p) ↔ u2.(p,a); t2.(p,b) ↔ u.(b,p).
-        Link(t, 0, u2);
-        Link(t2, 0, u);
+    /// <summary>`0x004CA820`: a copy of <paramref name="t"/> takes the point at slot <paramref name="e"/>
+    /// and <paramref name="t"/> takes it at next(e), so <paramref name="t"/> keeps the half of edge
+    /// <paramref name="e"/> from its own start; the two are linked along the new inner edge, which
+    /// carries no constraint bit, and the copy's outer neighbour is pointed back at it. Returns the
+    /// copy.</summary>
+    private int SplitEdgeHalf(int t, int e, int p)
+    {
+        int n = NewTriangleCopy(t);
+        DkSetVertex(t, Next(e), p);
+        DkSetVertex(n, e, p);
+        DkSetNeighbour(t, Next(e), n);
+        DkSetConstraint(t, Next(e), false);
+        DkSetNeighbour(n, Prev(e), t);
+        DkSetConstraint(n, Prev(e), false);
+        int outer = DkNeighbour(n, Next(e));
+        if (outer != NoNeighbour) DkSetNeighbour(outer, DkBack(outer, t), n);
+        IndexVertices(n);
+        return n;
     }
 
     // ------------------------------------------------------------------ storage
@@ -380,25 +396,29 @@ public sealed partial class NavMesh
         return p;
     }
 
-    private int NewTriangle(int a, int b, int c, byte nav)
+    /// <summary>A triangle slot: the free list's last entry (the original's list head), else the
+    /// next slot after the high-water mark.</summary>
+    private int AllocTriangle()
     {
-        int t;
         if (_triFree.Count > 0)
         {
-            t = _triFree[_triFree.Count - 1];
+            int t = _triFree[_triFree.Count - 1];
             _triFree.RemoveAt(_triFree.Count - 1);
+            return t;
         }
-        else
+        if (_triCount == _nav.Length)
         {
-            if (_triCount == _nav.Length)
-            {
-                Array.Resize(ref _v, _v.Length * 2);
-                Array.Resize(ref _n, _n.Length * 2);
-                Array.Resize(ref _nav, _nav.Length * 2);
-                Array.Resize(ref _constraint, _constraint.Length * 2);
-            }
-            t = _triCount++;
+            Array.Resize(ref _v, _v.Length * 2);
+            Array.Resize(ref _n, _n.Length * 2);
+            Array.Resize(ref _nav, _nav.Length * 2);
+            Array.Resize(ref _constraint, _constraint.Length * 2);
         }
+        return _triCount++;
+    }
+
+    private int NewTriangle(int a, int b, int c, byte nav)
+    {
+        int t = AllocTriangle();
         _nav[t] = nav;
         _constraint[t] = 0;
         for (int i = 0; i < 3; i++) _n[(3 * t) + i] = NoNeighbour;

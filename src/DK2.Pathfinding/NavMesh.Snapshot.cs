@@ -9,8 +9,8 @@ namespace DK2.Pathfinding;
 /// <summary>The mesh as simulation state (ADR-0461). Since the per-tile rebuild edits it in place,
 /// the mesh depends on the history of edits and not on the bytes alone, so a save carries it and the
 /// state hash folds it in: every slot, live or dead, both free lists in their order (the next
-/// allocation pops the end) and each point's triangle index. The locate hint is saved but not
-/// hashed: it cannot change what a locate returns, and a read-only probe moves it.</summary>
+/// allocation pops the end), each point's triangle index and the locate cache, which decides
+/// where a walk starts and so which holder of a vertex it reaches first (ADR-0486).</summary>
 public sealed partial class NavMesh
 {
     public void Write(BinaryWriter w)
@@ -40,7 +40,7 @@ public sealed partial class NavMesh
         }
         w.Write(_triFree.Count);
         foreach (int t in _triFree) w.Write(t);
-        w.Write(_locateHint);
+        foreach (int c in _locateCache) w.Write(c);
     }
 
     public static NavMesh Read(BinaryReader r)
@@ -85,7 +85,7 @@ public sealed partial class NavMesh
         }
         int triFree = r.ReadInt32();
         for (int i = 0; i < triFree; i++) mesh._triFree.Add(r.ReadInt32());
-        mesh._locateHint = r.ReadInt32();
+        for (int i = 0; i < mesh._locateCache.Length; i++) mesh._locateCache[i] = r.ReadInt32();
         return mesh;
     }
 
@@ -115,5 +115,6 @@ public sealed partial class NavMesh
         }
         hash.Add(_triFree.Count);
         foreach (int t in _triFree) hash.Add(t);
+        foreach (int c in _locateCache) hash.Add(c);
     }
 }
