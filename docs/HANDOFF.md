@@ -94,8 +94,10 @@ Animated creature silhouettes are built and reviewed under ADR-0482. Restart
 Play after assembly sync. Exact original qualification/quality and busy-view
 GPU profiling remain pending (2026-10-15); see creature-shadows.md.
 Level7/8 isolated lighting probes pass; terrain point-light height loading and
-writing are built and reviewed. Its source-gathering rule remains open in
-classic-lighting.md section9; the default view keeps its fill lighting.
+writing are built and reviewed. Q597's gather is resolved and its bounded
+selection core passes review/tests; cache visibility/order and Unity publication
+remain pending in classic-lighting.md section9. Tags replace terrain instance
+tint correctly (four Unity material checks pass); the default view keeps fill.
 The scanned producer now uses native prisoner/closed-door guards and per-term
 rounding; focused fog/save checks pass (2026-10-14). The explored pass remains unbuilt.
 Unity launch is authorized; an owner editor may be open. Isolated probes avoid saving it. Matched captures

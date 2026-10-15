@@ -5,6 +5,7 @@
 using System;
 using System.Numerics;
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Presentation;
 
@@ -23,6 +24,11 @@ public readonly record struct ClassicPointLight
     public Vector3 Colour { get; }
     public float Intensity { get; }
     public float Radius { get; }
+
+    public static ClassicPointLight FromTerrain(TilePos tile, Fp32 height, TerrainLightColour colour)
+        => new(new Vector3(tile.X + .5f, height.Raw / (float)Fp32.One, -tile.Y - .5f),
+            new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f),
+            intensity: 1, radius: 4608f / Fp32.One);
 
     public static ClassicPointLight FromTorch(in TorchView torch)
     {

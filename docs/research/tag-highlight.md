@@ -155,7 +155,8 @@ UNKNOWN (floor-and-terrain-pieces.md §5).
   CONFIRMED for the sum. So mode 1 **adds (128, 128, 200)** (0..255 units) to the
   piece's lighting, which brightens and blues the base pass. The additive
   BlueTexture pass then adds about (63, 64, 255) × its own diffuse on top. Hence
-  a tile brighter and more violet than its neighbours. The clamp is unread.
+  a tile brighter and more violet than its neighbours. RGB packing is in
+  classic-lighting.md section6.
 - **The colour of an untagged piece.** The builders write zero colour bytes
   (+8..+10), so it adds nothing. A terrain with +0x17B bit 0x20000000 copies its
   own +0x1B9/+0x1BB/+0x1BD in instead. So 128 means "+128 of light", not "half"
@@ -170,3 +171,7 @@ UNKNOWN (floor-and-terrain-pieces.md §5).
 material's tagged twin (`ClassicMeshes.Tagged`: URP emission of texture × (128, 128, 200), standing
 for DK2's added light), then again with `AA_BlueTexture` as flat (63, 64, 255) (HYPOTHESIS, §4) additively, no depth
 write. URP's lighting is not DK2's, so the sum is the same shape, not the same numbers (step 5).
+
+Tagged material variants replace terrain instance tint while retaining material
+self-illumination. The isolated `ClassicTagMaterialProbe` reproduced the prior
+ambient-plus-tag error and passes four cases after correction (2026-10-15).

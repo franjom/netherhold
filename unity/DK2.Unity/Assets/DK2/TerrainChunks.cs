@@ -418,8 +418,8 @@ namespace DK2.Unity
             }
             for (int m = 0; m < piece.Triangles.Count; m++)
             {
-                Material material = _classic.TerrainTinted(piece.Materials[m], tint);
-                if (tagged) material = _classic.Tagged(material);
+                Material material = tagged ? _classic.Tagged(piece.Materials[m])
+                    : _classic.TerrainTinted(piece.Materials[m], tint);
                 AddTriangles(material, piece.Triangles[m], start);
                 // DK2 draws a tagged piece a second time, additively (tag-highlight.md).
                 if (tagged) AddTriangles(_classic.TagOverlay(), piece.Triangles[m], start);

@@ -85,7 +85,9 @@ and brightness rules. No arbitrary exposure tuning to hide missing lights.
 Authored terrain colour loading, boosted channels and scoped whole-room/wall
 tint application are built; 25 terrain data tests, 322 presentation tests and
 adapter compilation pass. Independent scoped review passes (2026-10-14);
-runtime comparison remains pending. Final colour transfer, quarter tint and
+runtime comparison remains pending. Tags now replace terrain instance tint while
+preserving material self-illumination; the four-case Unity material probe and
+independent review pass (2026-10-15). Final colour transfer, quarter tint and
 unlit tint remain unproved.
 
 ## 5.4 — Lighting
@@ -122,8 +124,10 @@ source qualifications, native bounds and original quality integration remain
 explicit preview limits. The owner accepted the brighter preview with native
 initial ambient disabled and confirmed visible Imp shadows (2026-10-15).
 Matched-original acceptance and busy-view profiling remain pending. Terrain
-point-light height loading/writing is built and independently reviewed; native
-per-draw source gathering remains unresolved (classic-lighting.md section9).
+point-light height loading/writing and the bounded light-selection core are built
+and independently reviewed; the presentation suite passes355 cases. Native
+source gathering is resolved in Q597; cache visibility/order and Unity source
+publication remain unbuilt (classic-lighting.md section9).
 
 ## 5.5 — Discovery and fog presentation
 

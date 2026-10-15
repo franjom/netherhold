@@ -242,12 +242,47 @@ dynamic source list at `+0x38` instead clears during the next frame's
 `0x005723D0` update. Thus the helper names alone do not imply that sources
 exist for every world tile or light every neighbouring draw.
 
-`0x0057BBF0` filters a supplied draw-light table by required flags and strict
-3D sphere overlap `(sourceRadius + drawRadius)^2`, yielding a32-bit selection
-mask. The producer gathering nearby tile-cache sources into that table, its
-cap/order and occlusion policy remain UNKNOWN. Animated preparation
-`0x00584900` copies incoming preparation context `+0x08` into draw `+0x5C`;
-the draw constructor does not create this table. The frame's `0x005725D0`
-builds visible and adjoining tile caches, not the table. The cache visibility
-helpers `0x005735A0`/`0x005737E0` likewise construct tile lists. Follow the
-preparation context before implementing an unrestricted GPU neighbour sum.
+CONFIRMED (whole reads, 2026-10-15): `0x00576230` gathers the draw-light table
+for each visible tile. It reads static and dynamic lists from the 7x7 tile-cache
+window centred on that tile (offsets -3..+3). Source eligibility here is strict
+horizontal squared distance from tile centre `(x+0.5,y+0.5)` less than
+`(sourceRadius+1)^2`; source height is not part of this gathering test. This
+producer performs no ray/LOS query and no explicit map-edge clipping. Its
+inputs are prepared cache entries, not arbitrary sources from unseen map tiles.
+
+The first pass retains at most 12 static sources. On overflow it replaces the
+first farthest existing slot only when the incoming source is strictly closer
+to tile centre. Equal-distance candidates do not replace. Static sources are
+not subsequently sorted. The dynamic pass appends sources after the static
+ones, up to 24 total, using the same nearest replacement within the dynamic
+portion only. Static slots are protected from dynamic replacement. Counts live
+at cache `+0xC4/+0xC8`, with source pointers at `+0xFC`. Static tables refresh
+when a source cache build stamp is newer; dynamic entries refresh each frame.
+
+Encounter order is significant for ties: each source list is traversed
+head-to-next. Static gathering iterates rows, then physical window columns;
+dynamic gathering iterates physical columns, then rows. A freshly filled
+window maps these columns left-to-right, but consecutive+x target tiles reuse
+a rolling column buffer: the next physical column is replaced by the incoming
+rightmost column before the cursor advances. Thus encounter order is not
+always increasing world X. Preserve this order when reproducing overflow ties.
+
+`0x00572CF0` passes a context whose `+0x08` points at cache `+0xC4` to both
+static and dynamic primitive lists through virtual slot+8. Animated preparation
+`0x00584900` copies this pointer into draw `+0x5C`; moving creatures therefore
+receive the table associated with their current cache tile. Primitive/material
+lighting flags still determine how that supplied table is used; receiving the
+table does not establish that an explicitly unlit primitive uses every source.
+`0x0057BBF0` then applies required source flags and strict 3D sphere overlap
+`(sourceRadius+drawRadius)^2`, yielding the 32-bit mask consumed downstream.
+
+The remaining implementation boundary is native cell visibility/cache
+enumeration; the input source eligibility and gathering itself are now resolved
+(Q597). An unrestricted sum of all nearby authored tiles would bypass both
+that boundary and the confirmed 12-static/24-total capacity.
+
+`ClassicLightTable` implements the bounded selection core for an assigned tile;
+its caller must supply visible 7x7 candidates in the native encounter order and
+own static cache refresh stamps. `ClassicPointLight.FromTerrain` converts the
+confirmed source inputs. The core is tested but not yet wired into Unity's
+source publication; it does not replace that cache/visibility integration.
