@@ -268,23 +268,35 @@ to tile centre. Equal-distance candidates do not replace. Static sources are
 not subsequently sorted. The dynamic pass appends sources after the static
 ones, up to 24 total, using the same nearest replacement within the dynamic
 portion only. Static slots are protected from dynamic replacement. Counts live
-at cache `+0xC4/+0xC8`, with source pointers at `+0xFC`. Static tables refresh
-when a source cache build stamp is newer; dynamic entries refresh each frame.
+at cache `+0xC4/+0xC8`, with source pointers at `+0xFC`. Dynamic entries refresh
+each frame. Static invalidation uses unsigned target table stamp `+0x10`
+versus source-cell build stamp `+0x0C`. A fresh window sets each column's dirty
+bit if any cell has a strictly newer build stamp. Rolling replaces only the
+incoming column's bit; the other six bits retain their preceding values.
+Any set bit rebuilds all static selections and stamps the target with current
+cache frame `0x00760B10`; no bits means its static table is retained. Static
+cell rebuild `0x005722A0` and adjoining-cell build `0x005723D0` write `+0x0C`.
 
 Encounter order is significant for ties: each source list is traversed
 head-to-next. Static gathering iterates rows, then physical window columns;
 dynamic gathering iterates physical columns, then rows. A freshly filled
-window maps these columns left-to-right, but consecutive+x target tiles reuse
-a rolling column buffer: the next physical column is replaced by the incoming
-rightmost column before the cursor advances. Thus encounter order is not
-always increasing world X. Preserve this order when reproducing overflow ties.
-The window resets on a different target Y or nonconsecutive target X. Normal
+window maps physical columns0..6 to targetX-3..targetX+3 and sets cursor0.
+For consecutive+x targets, physical column[cursor] receives targetX+3 at all
+seven rows, then cursor advances modulo7. Consequently the next target's
+physical order is `[x+3,x-3,x-2,x-1,x,x+1,x+2]`; traversal never starts at the
+cursor. Preserve this order when reproducing overflow ties.
+The window resets at each native `0x00576230` invocation (one visible-tile
+enumeration), on a different target Y or
+nonconsecutive target X. Normal
 polygon enumeration `0x005735A0` visits increasing Y, then increasing X over
 each projected polygon scanline; the first X is polygon-dependent. Alternate
 camera enumeration `0x005737E0` uses ring queries instead. Starting every row
 at map X zero is therefore not an established substitute. Cache preparation
-`0x005725D0` covers the needed three-tile border around visible target tiles;
-that does not establish that every authored map source is prepared.
+`0x005725D0` builds each visible tile, then updates an inclusive rectangle:
+each side extends three tiles unless the immediately adjoining tile has
+visible flag8, in which case that bound stays at the target coordinate.
+The combined rectangles cover the needed border; this does not establish
+that every authored map source is prepared.
 
 `0x00572CF0` passes a context whose `+0x08` points at cache `+0xC4` to both
 static and dynamic primitive lists through virtual slot+8. Animated preparation
@@ -312,10 +324,14 @@ enumeration; the input source eligibility and gathering itself are now resolved
 (Q597). An unrestricted sum of all nearby authored tiles would bypass both
 that boundary and the confirmed 12-static/24-total capacity.
 
-`ClassicLightTable` implements the bounded selection core for an assigned tile;
-its caller must supply visible 7x7 candidates in the native encounter order and
-own static cache refresh stamps. `ClassicPointLight.FromTerrain` converts the
-confirmed source inputs. The explicit Unity bridge accepts these tables
+`ClassicLightTable` implements the bounded selection core for an assigned tile.
+`ClassicLightWindow` reads explicitly prepared cache cells in the confirmed
+rolling order, without clipping border cells. Its caller resets it before each
+visible enumeration and decides static refresh from the cache stamps; dynamic
+slots always refresh. It does not implement native visibility or dirty-column
+invalidation. Headless cases cover ordered overflow, ring wrap/reset, source-list
+order, static retention, dynamic refresh and zero warm-gather allocations.
+`ClassicPointLight.FromTerrain` converts the confirmed source inputs. The explicit Unity bridge accepts these tables
 (section10); it does not replace that cache/visibility integration or publish
 world sources automatically.
 

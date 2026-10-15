@@ -96,8 +96,9 @@ GPU profiling remain pending (2026-10-15); see creature-shadows.md.
 Level7/8 isolated lighting probes pass; terrain point-light height loading and
 writing are built and reviewed. Q597's gather is resolved and its bounded
 selection core passes review/tests. Explicit selected-table Unity publication and
-batched tile anchors are built and independently reviewed (ADR-0484); automatic
-cache visibility/order and lighting-mode publication remain pending. Verification
+batched tile anchors are built and independently reviewed (ADR-0484). Prepared-cell
+rolling candidate order is built (ADR-0485); native visibility, dirty-column
+invalidation and automatic lighting-mode publication remain pending. Verification
 and default Cheap Lighting classification are in classic-lighting.md sections9–10.
 Tags replace terrain instance
 tint correctly (four Unity material checks pass); the default view keeps fill.

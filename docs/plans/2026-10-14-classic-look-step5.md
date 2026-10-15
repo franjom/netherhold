@@ -129,8 +129,9 @@ and independently reviewed; the presentation suite passes355 cases. Native
 source gathering is resolved in Q597. Explicit selected-table Unity publication,
 terrain/transparent/liquid tile anchors and authoritative empty-table handling
 are built and independently reviewed (ADR-0484). GPU and production-scene
-verification are recorded in classic-lighting.md section10. Automatic cache
-visibility/order and lighting-mode publication remain unbuilt; the default
+verification are recorded in classic-lighting.md section10. Prepared-cell rolling
+candidate order is built (ADR-0485); automatic cache visibility, dirty-column
+invalidation and lighting-mode publication remain unbuilt. The default
 Cheap Lighting option requires the separate per-object torch arm (section9).
 
 ## 5.5 — Discovery and fog presentation

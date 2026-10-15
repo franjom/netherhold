@@ -11185,3 +11185,20 @@ test that refused a corpse. `CombatSystem` now skips corpses, as DK2's thing pas
 (its dead creature is a `CDeadBody`), and the gate never moves a creature with no state (Q598); no
 replay trace changes.
 `HashVersion` 253, `FormatVersion` 253.
+
+## ADR-0485 - Gather prepared light cells in native rolling order
+**Date:** 2026-10-15 - **Status:** accepted - Research: classic-lighting.md section9
+
+**Context.** Nearest-source overflow keeps equal-distance encounter order.
+Flattening nearby cells in world-coordinate order changes which lights survive
+after the visible-tile traversal advances horizontally.
+
+**Decision.** `ClassicLightWindow` reads an explicit prepared-cell provider and
+feeds `ClassicLightTable` without allocating candidate lists. One window follows
+one visible enumeration; its caller resets it at that enumeration's boundary.
+The caller explicitly requests static refresh while dynamic slots always rebuild.
+
+**Consequences.** Candidate traversal is engine-neutral and reusable by the Unity
+bridge. Visibility, native stamp/dirty-column invalidation, source classification
+and automatic world publication remain separate integration work. No change to
+the current preview or simulation.

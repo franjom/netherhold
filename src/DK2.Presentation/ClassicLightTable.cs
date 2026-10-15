@@ -24,7 +24,14 @@ public sealed class ClassicLightTable
     /// <summary>Candidates are visible 7x7 cache sources in row, then physical-column, list order.</summary>
     public void RebuildStatic(ReadOnlySpan<ClassicPointLight> candidates)
     {
-        Count = 0;
+        BeginStatic();
+        AppendStatic(candidates);
+    }
+
+    internal void BeginStatic() => Count = StaticCount = 0;
+
+    internal void AppendStatic(ReadOnlySpan<ClassicPointLight> candidates)
+    {
         foreach (ClassicPointLight candidate in candidates)
             Consider(candidate, firstSlot: 0, capacity: MaximumStaticSources);
         StaticCount = Count;
@@ -33,7 +40,14 @@ public sealed class ClassicLightTable
     /// <summary>Candidates use physical-column, then row, list order; retains this tile's static slots.</summary>
     public void RebuildDynamic(ReadOnlySpan<ClassicPointLight> candidates)
     {
-        Count = StaticCount;
+        BeginDynamic();
+        AppendDynamic(candidates);
+    }
+
+    internal void BeginDynamic() => Count = StaticCount;
+
+    internal void AppendDynamic(ReadOnlySpan<ClassicPointLight> candidates)
+    {
         foreach (ClassicPointLight candidate in candidates)
             Consider(candidate, firstSlot: StaticCount, capacity: MaximumSources);
     }
