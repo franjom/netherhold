@@ -233,7 +233,7 @@ public static class CombatTargetRules
             me.AttackSpellSlot = 0;
             me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange + new Fp32(secret ? SecretDoorReach : DoorReach));
         }
-        Enter(context, me, mine, same, $"door={door.Id} attack={(byte)me.AttackType}");
+        Enter(context, me, mine, same, thing: true, $"door={door.Id} attack={(byte)me.AttackType}");
         return true;
     }
 
@@ -404,7 +404,7 @@ public static class CombatTargetRules
             me.AttackSpellSlot = (byte)spellSlot;
             me.AttackRangeSquared = SpellRules.RangeSquared(spell!);
         }
-        Enter(context, me, mine, same, $"trap={trap.Id} attack={(byte)me.AttackType}");
+        Enter(context, me, mine, same, thing: true, $"trap={trap.Id} attack={(byte)me.AttackType}");
         return true;
     }
 
@@ -464,7 +464,7 @@ public static class CombatTargetRules
         me.AttackType = CombatRules.AttackMode.SpellAtAlly;
         me.AttackSpellSlot = (byte)slot;
         me.AttackRangeSquared = SpellRules.RangeSquared(spell);
-        Enter(context, me, mine, same, $"ally={ally.Id} attack={(byte)me.AttackType} slot={slot}");
+        Enter(context, me, mine, same, thing: false, $"ally={ally.Id} attack={(byte)me.AttackType} slot={slot}");
         return true;
     }
 
@@ -745,7 +745,7 @@ public static class CombatTargetRules
             me.AttackSpellSlot = 0;
             me.AttackRangeSquared = CombatRules.MeleeReachSquared(mine, theirs);
         }
-        Enter(context, me, mine, same, $"target={target.Id} attack={(byte)me.AttackType}");
+        Enter(context, me, mine, same, thing: false, $"target={target.Id} attack={(byte)me.AttackType}");
         return true;
     }
 
@@ -777,17 +777,26 @@ public static class CombatTargetRules
             me.AttackSpellSlot = 0;
             me.AttackRangeSquared = CombatRules.ReachSquared(mine.MeleeRange + new Fp32(CombatRules.ThingReach));
         }
-        Enter(context, me, mine, same, $"heart={owner} tile={tile} attack={(byte)me.AttackType}");
+        Enter(context, me, mine, same, thing: true, $"heart={owner} tile={tile} attack={(byte)me.AttackType}");
         return true;
     }
 
-    private static void Enter(SimulationContext context, CreatureState me, CreatureDef mine, bool sameTarget, string target)
+    /// <summary>The engagement's tail: 199 is entered only by a creature not already in the Combat
+    /// category, read through a walk (<c>0x00478050</c>), so the approach, a walk resuming 199, is
+    /// left walking. A thing target also re-enters from state 6 resuming 251 or 202, the walks of
+    /// the alarm and the withdrawal (<c>0x0045E0C0</c>); a creature target's fight-starter
+    /// (<c>0x0045A550</c>) has no such arm. The ally arm takes the creature rule, unread.</summary>
+    private static void Enter(SimulationContext context, CreatureState me, CreatureDef mine, bool sameTarget, bool thing, string target)
     {
         // Ours: the state change drops the route unless the target is the one already approached.
         if (!sameTarget) me.StopMoving();
         if (!CombatRules.IsFighting(me)) me.CombatStateEnteredTick = context.Tick.Value;
         me.Running = true; // state 199's entry sets the run speed (0x004887D0(1))
-        CombatStates.Enter(context, me, CombatStates.Engaging);
+        if (CreatureStateMachine.HasState(me)
+            && (NeedRules.ResolvedCategory(me) != CreatureStateCategory.Combat
+                || (thing && me.Dk2StateId == Systems.StateShadow.TravelToPoint
+                    && me.UtilityNewState is CombatStates.RespondingToThreat or CombatStates.Withdrawn)))
+            CombatStates.Enter(context, me, CombatStates.Engaging);
         context.Emit("combat", "engaged",
             $"creature={me.Id} type={mine.Name} player={me.OwnerPlayerId} {target} reach2={me.AttackRangeSquared}");
     }

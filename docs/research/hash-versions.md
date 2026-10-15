@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**253** — `0xEA82DB139335F65D`. The approach is state 8, a walk resuming 199, instead of a flag on 199; the engagement re-enters 199 only outside the Combat category read through a walk (ADR-0483). `Approaching` is derived from the state and left the snapshot: `WorldSnapshot.FormatVersion` 253. `CombatSystem` skips corpses (Q598).
+
 **252** — `0x7326CEF9676EA896`. A creature walking to its fight target (our `Approaching`, DK2's state 8) earns no combat experience; ours paid it as if in state 199 (ADR-0366 amendment); no new saved field.
 
 **251** — `0x3DFD1B0E0D7517C9`. The store sweep runs when DK2's turn, our tick plus one, is a multiple of 16, one tick earlier than under 250 (ADR-0285 amendment, Q596); no new saved field.

@@ -148,6 +148,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   packet ever reaches that situation (`dk2runs/level2-live2/seed01` is the `l2live2` packet).
 - `dk2capture.py` records objects from slots 1150-1719 only; an object made after the window
   fills never appears in `object-map.csv`. "DK2 never made X" needs another witness.
+- A recording that ends `"game stopped answering"` early is usually DK2 crashing, not the probe: the Windows Application log has 14 access violations at `DKII-DX.exe+0x1FCB80` (`0x005FCB80`, in the renderer range) since 2026-09-05, one of them the Level 4 dump run at tick 1176 (2026-10-15), well after its tick-500 dump. Check the log before blaming the recorder or a dump.
 - A capture's turn N shows the state before tick N's trigger pass: capture row N is our row N-1.
   Prefer a tick the game stores (a timer stamp) to one the probe samples.
 - Campaign levels unlock through `Player Level Status` under `HKCU\Software\Bullfrog Productions

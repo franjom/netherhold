@@ -25,6 +25,7 @@ public class CombatCategoryHooksTests
 
     [Theory]
     [InlineData("Disengage")]
+    [InlineData("DisengageWhileApproaching")]
     [InlineData("SetStateOne")]
     [InlineData("HandPreparation")]
     [InlineData("Collapse")]
@@ -41,6 +42,13 @@ public class CombatCategoryHooksTests
             switch (route)
             {
                 case "Disengage": CombatRules.Disengage(hooks, me); break;
+                case "DisengageWhileApproaching":
+                    // State 8 resuming 199: the walk ran no hook, and the leave is judged by the saved 199 (ADR-0483).
+                    CreatureStateMachine.BeginTravel(hooks, me, 8, Engaging);
+                    Assert.Equal(8, me.Dk2StateId);
+                    CombatRules.Disengage(hooks, me);
+                    Assert.Equal(CreatureStateMachine.Idle, me.Dk2StateId);
+                    break;
                 case "SetStateOne": Assert.True(CreatureStateMachine.TrySetState(hooks, me, CreatureStateMachine.Idle)); break;
                 case "HandPreparation": Assert.True(CreatureStateMachine.TrySetState(hooks, me, HandRules.PreparationState)); break;
                 case "Collapse":

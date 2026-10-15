@@ -11155,3 +11155,33 @@ authored world sources. Once active, tables replace punctual lighting for the
 whole grid; empty tiles stay without punctual light through Clear, and Dispose
 restores the existing path. Scene ambient/directional fallback remains separate.
 No simulation changes or automatic source publisher; normal preview is unchanged.
+## ADR-0483 — The approach is state 8, a walk resuming 199
+**Date:** 2026-10-15 · **Status:** accepted · Amends ADR-0169
+
+**Context.** ADR-0169 built the walk to a fight target as a flag on state 199, so every reader of
+the state word saw a fighter. ADR-0366's amendment found one cost: experience paid on the walk.
+DK2 enters state 8 (`0x00471D10`, `SetState(8)`, then the caller's state, 199 in practice, in the
+resume slot), and its
+engagement tails re-enter 199 only outside category 22 read through a walk (`0x00478050`): the
+fight-starter `0x0045A550`, and SelectAVictim's thing branch, which also re-enters from state 6
+resuming 251 or 202 (`0x0045E0C0`). So DK2's approach survives the every-tick reselection.
+
+**Decision.** `ApproachRules.Enter` begins a walk into state 8 resuming 199; `End` hands back to
+199 unless a disengage has idled the creature; `Unlink` and the victory leave the state alone, and
+state 8 ends an approach with no target at its first step. `Approaching` is the state, out of the
+hash and the snapshot. `ActivityRules` names state 8 by its resume, so the activity stays
+Fighting. The engagement's 199 is gated as DK2's is; the ally arm takes the creature rule, unread.
+Unread and kept as under the flag: whether state 8's mover steers with no route (199's movement
+exemption stays), and `0x0048ECE0`, which DK2 calls before resuming.
+
+**Consequences.** Level 4 seed 1's first Dwarves switch between 8 and 199 13 and 8 times in
+their first 110 turns against DK2's 15 and 14, where under the flag they never left 199; ours
+spend 52 of 61 ticks in 8 against DK2's 27 of 58, a residual. A same-state re-entry of 199
+no longer restamps a fighter's state age. Seeds 1–20 against master d449c99d: Level 1 19 → 20,
+Level 2 6 → 9, Level 3 18 → 17, Level 4 3 → 2, one seed each way on Level 4 (2 and 12 lost, 3
+won); the keeper still loses a median 16 Imps a seed where DK2 loses none. Level 3 seed 8's Lord,
+dead at 3596, engaged a forced door at 3601: a forced target skips the may-I-look gate, the only
+test that refused a corpse. `CombatSystem` now skips corpses, as DK2's thing pass never meets one
+(its dead creature is a `CDeadBody`), and the gate never moves a creature with no state (Q598); no
+replay trace changes.
+`HashVersion` 253, `FormatVersion` 253.

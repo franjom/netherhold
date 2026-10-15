@@ -206,8 +206,8 @@ controls when the pause ends.
 
 ## 8. Built and not built
 
-**Built (ADR-0169, `HashVersion` 74).** `ApproachRules` is state 8 as a flag on the fighting
-creature (`Approaching`): entry with a plain route and the countdown at ten (§1); each tick
+**Built (ADR-0169, `HashVersion` 74).** `ApproachRules` is state 8, a walk resuming 199
+(ADR-0483; until then a flag on 199, `Approaching`, now derived from the state): entry with a plain route and the countdown at ten (§1); each tick
 a target gone ends it, an ordinary creature target is chosen afresh and a changed choice
 ends it, the fear counter runs without the withdrawal test, a target fleeing or
 withdrawing counts the chase against variable 213 or 214 and is given up as

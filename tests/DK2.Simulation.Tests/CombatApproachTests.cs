@@ -94,6 +94,55 @@ public class CombatApproachTests
         Assert.True(statue.Health < 1500, "a blow landed");
     }
 
+    /// <summary>The approach is state 8, a walk resuming 199, and the reselection that picks the same
+    /// target every tick leaves it walking: the engagement enters 199 only outside the Combat category
+    /// read through a walk (<c>0x0045A550</c>, ADR-0483). Under a flag on 199 it never left 199.</summary>
+    [Fact]
+    public void TheApproachStaysInStateEight_WhileItsReselectionKeepsTheTarget_AndResumes199()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 10));
+        GameSimulation sim = Sim(db, world);
+
+        int walked = 0;
+        for (int i = 0; i < 40 && walked == 0 || i < 40 && goblin.Dk2StateId == 8; i++)
+        {
+            sim.Tick();
+            if (goblin.Dk2StateId == 8)
+            {
+                walked++;
+                Assert.Equal(199, goblin.UtilityNewState);
+                Assert.Equal(CreatureActivity.Fighting, goblin.Activity);
+                Assert.Equal(CreatureActivity.Fighting, ActivityRules.Of(goblin));
+            }
+        }
+
+        Assert.True(walked > 5, $"walked {walked} ticks in state 8");
+        Assert.Equal(199, goblin.Dk2StateId);
+        Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
+    }
+
+    /// <summary>Q598: a dead creature that still holds a forced target is not processed. DK2's dead
+    /// creature is a CDeadBody off the creature list; ours, a creature with no state, ran the forced
+    /// arm, which skips the may-I-look gate, and was moved back into 199.</summary>
+    [Fact]
+    public void ACorpseHoldingAForcedTarget_IsNotProcessed()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState lord = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        CreatureState rival = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 4, 10);
+        lord.AttackAbnormalTargets = true;
+        lord.AttackingId = rival.Id;
+        StatePlacement.As(lord, CreatureActivity.Dead);
+        GameSimulation sim = Sim(db, world);
+
+        sim.Run(5);
+
+        Assert.Equal(CreatureStateMachine.NoState, lord.Dk2StateId);
+        Assert.Equal(FightTargetKind.None, lord.FightTargetKind);
+    }
+
     [Fact]
     public void AGoodCreatureGivesUpARetreatingTargetAfterThreeSeconds_AnEvilOneKeepsChasing()
     {
@@ -353,7 +402,8 @@ public class CombatApproachTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
-        goblin.Approaching = true;
+        goblin.Dk2StateId = 8; // the approach, resuming 199
+        goblin.UtilityNewState = 199;
         goblin.RouteRefreshCountdown = 4;
         goblin.ChaseTicks = 5;
         goblin.RetreatingCreature = 6;

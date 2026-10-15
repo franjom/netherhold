@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 252: the walk to a fight target (DK2 state 8) earns no combat experience (ADR-0366 amendment).
+        // HashVersion 253: the approach is state 8, a walk resuming 199, not a flag on 199 (ADR-0483).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x7326CEF9676EA896UL, sim.StateHash());
+        Assert.Equal(0xEA82DB139335F65DUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state
