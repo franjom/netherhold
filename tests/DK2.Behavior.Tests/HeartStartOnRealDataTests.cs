@@ -61,4 +61,42 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
         Assert.Contains(notFull, l => l.EndsWith(": 0% -> 0", StringComparison.Ordinal));
         Assert.Contains(notFull, l => l.EndsWith(": 1% -> 1000", StringComparison.Ordinal));
     }
+
+    /// <summary>Q601: the builder's byte 3 (<c>0x004DBB65</c>) lands on chain tile 12, and on every
+    /// shipped heart that is its 5x5's centre, the tile Level 4's and Level 10's caches hold 3 on.</summary>
+    [InstallFact]
+    public void EveryShippedHeartRecordStampsLavaOnItsCentre()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        string maps = Path.Combine(install, "Data", "editor", "maps");
+        int hearts = 0;
+        foreach (string file in Directory.EnumerateFiles(maps, "*Things.kld").OrderBy(f => f))
+        {
+            string level = Path.GetFileName(file)[..^"Things.kld".Length];
+            LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
+            List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
+            if (map is null || things is null) continue;
+            WorldState world = WorldState.FromMap(
+                db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper,
+                    (byte)(PlayerIds.FirstKeeper + 1), (byte)(PlayerIds.FirstKeeper + 2), (byte)(PlayerIds.FirstKeeper + 3), (byte)(PlayerIds.FirstKeeper + 4)]);
+            ThingProjection.Place(world, db, things);
+
+            var expected = new List<NavStamp>();
+            foreach (RoomThing heart in things.OfType<RoomThing>()
+                         .Where(r => db.RoomByTerrain(r.RoomType)?.TypeId == RoomTypeId.DungeonHeart))
+            {
+                RoomInstance room = RoomIndex.RoomAt(world, db, (heart.Y * world.Width) + heart.X)!;
+                int[] tiles = [.. room.TileIndices];
+                int cx = (tiles.Min(t => t % world.Width) + tiles.Max(t => t % world.Width)) / 2;
+                int cy = (tiles.Min(t => t / world.Width) + tiles.Max(t => t / world.Width)) / 2;
+                Assert.True(tiles.Length == 25, $"{level}: a heart of {tiles.Length} tiles");
+                expected.Add(new NavStamp((cy * world.Width) + cx, world.TileAtIndex((cy * world.Width) + cx).TerrainId, 3));
+                hearts++;
+            }
+            Assert.True(expected.SequenceEqual(world.NavStamps), $"{level}: {string.Join(", ", world.NavStamps)}");
+        }
+        output.WriteLine($"{hearts} heart records");
+        Assert.True(hearts > 0);
+    }
 }

@@ -1467,6 +1467,16 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 - **The mechanism is NOT this (Q209).** DK2 has no room-level walkability override; it has an obstacle system driven by the object table, and object **100 is named "Dungeon Heart Obstacle"**. Established: `objDef+0xf4` is the flags word, `objDef+0xf8` a 4096-fixed size used as `size >> 1`, that size's file offset is **`0x32C`** (from the loader's frame slot at a `0x80` frame-to-record delta), **15** objects carry `SolidObstacle` and all fifteen are room furniture, **58** carry `Obstacle`. Both obvious candidate rules are refuted by the shipped data, which is why nothing data-driven was built: `Obstacle && size > 0` would block every creature bed, and `SolidObstacle` alone would not block a portal's centre because the Portal Crystal carries `Obstacle` without it. `FUN_004D12B0` is a collision *enumerator* feeding a callback, gated on `Obstacle` and consulting `FirstPersonObstacle` behind a mode flag — not tile pathing.
 - So this covers two tiles and no more. The fifteen `SolidObstacle` objects are the workshop's anvil, the library's bookcases, the casino's tables and the graveyard's tombstones; every one of those rooms is coming, and guessing a rule now would silently decide the other thirteen. When the real predicate is found, `StructureBlocks` should be **deleted** and the path grid should learn about objects.
 
+### ADR-0084 amendment — the Heart's centre is lava to the router (2026-10-15, Q601)
+`DungeonHeart_Build` `0x004DB700`, which the THINGS loader runs for each Heart room record, writes
+navigation byte 3 (lava) on its chain tile 12, the centre, at `0x004DBB65`, ruined or not. Level 10's
+capture logs it on both Hearts during tick 1 and Level 4's dump holds it at tick 500; Level 7's dump of
+2026-09-17, which held floor, is unexplained. `ThingProjection.BuildHeart` stamps it
+(`WorldState.NavStamps`, ADR-0318 amendment): the rest of the platform stays floor to the router,
+the centre is routable only by a lava walker, and steering treats it as a wall for the rest. A live
+Heart's centre was already closed to routing by ADR-0452's platform mask; a ruined Heart's is not
+masked, so a non-lava creature can no longer route onto a ruin's centre, as DK2's byte says.
+
 ## ADR-0085 — Ten mechanics DK2 built and switched off, and the audit that could not see them
 **Date:** 2026-09-07 · **Status:** accepted · amended 2026-09-07: a zero percentage can be fully live, the scan range was never the whole image, and a level file can switch a disabled mechanism back on · Q203, Q106 (a clause explained), Q212, Q84/Q85 · Research: `docs/research/balance-variables-in-the-binary.md` (final section), `docs/research/variables-corpus-sweep.md`
 
@@ -7376,6 +7386,19 @@ hold no door and fire no door event: L1 20/20 and L2 7/20, every seed identical 
 test on its first turn, Level 4's hero Wooden Door at (24,9) (a prediction, Q453). Not built:
 the push-out, the secret-door reveal, the adjacent-door finder `0x00481400`, area damage on
 doors, the linked objects and effects. The pit's forced creature arm keeps ours (Q510).
+
+### ADR-0318 amendment — a door gone from water leaves floor (2026-10-15, Q600)
+The removal's `0x004A66F0(0)` writes navigation byte 0 over any byte carrying a door owner,
+whatever the terrain, and only the next `Tile_SetTerrain` (`0x0044FC40`, which writes on every call)
+puts the terrain's byte back. Level 4's capture and dump are consistent with the predicted owner kill
+of its hero door on (24,9): no door from tick 2, and 0 on that water at tick 500.
+A removal on water or lava adds a `WorldState.NavStamps` entry (tile, terrain id, 0); the navigation
+bytes read it while the terrain id is unchanged, and `DoorRemovalSystem` drops it once the id
+changes. Deviations: a `Tile_SetTerrain` that keeps the id ends DK2's floor, not ours, and a change
+and revert of the id within one tick keeps ours. DK2 skips the
+write for a door that never wrote its byte (placed in play, still under construction) and for an
+owner number of 0; neither stands off floor in shipped data, so ours stamps every door off floor.
+`HashVersion`/`FormatVersion` 256, pin `0x766C3AB62E635E07`.
 
 ## ADR-0320 — A collapsed gate is ruined, not removed, and a hero steps off its gate as read
 **Date:** 2026-10-02 · **Status:** accepted · `HashVersion` 153 · Q427 ·

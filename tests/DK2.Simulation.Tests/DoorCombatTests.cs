@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation.Combat;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Systems;
@@ -241,6 +242,40 @@ public class DoorCombatTests
         Assert.Empty(world.Doors);
         Assert.Empty(world.Player(Keeper).Blueprints);
         Assert.Contains(sink.Events, e => e.Kind == "door_owner_lost");
+    }
+
+    /// <summary>Level 4's hero door in miniature (Q600): a Good door on water, a tile the map gives
+    /// the Neutral player, dies on its first update, and its removal leaves floor where the water's
+    /// byte was (<c>0x004A66F0(0)</c>), as DK2's cache held at tick 500. A save keeps it; a change
+    /// of terrain gives the tile its own byte again, and changing it back does not bring the floor
+    /// back.</summary>
+    [Fact]
+    public void ADoorDyingOnWaterLeavesFloor_UntilTheTerrainChanges_AsTheZeroArmReads()
+    {
+        (GameDatabase db, WorldState world) = Walled(PlayerIds.Good);
+        ref TileState tile = ref world.Tile(DoorTile);
+        tile.TerrainId = Dk2TerrainFixture.Water;
+        tile.OwnerPlayerId = PlayerIds.Neutral;
+        GameSimulation sim = Sim(db, world, new ListEventSink());
+        var steering = new WorldSteering(db, world);
+
+        sim.Run(1);
+        steering.Refresh();
+        Assert.Empty(world.Doors);
+        Assert.Equal(NavBytes.Floor, steering.NavByte(DoorTile.X, DoorTile.Y));
+
+        GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, [new DoorRemovalSystem()]);
+        Assert.Equal(world.NavStamps, copy.World.NavStamps);
+        Assert.Equal(sim.StateHash(), copy.StateHash());
+
+        world.Tile(DoorTile).TerrainId = Dk2TerrainFixture.Lava;
+        sim.Run(1);
+        steering.Refresh();
+        Assert.Empty(world.NavStamps);
+        Assert.Equal(NavBytes.Lava, steering.NavByte(DoorTile.X, DoorTile.Y));
+        world.Tile(DoorTile).TerrainId = Dk2TerrainFixture.Water;
+        steering.Refresh();
+        Assert.Equal(NavBytes.Water, steering.NavByte(DoorTile.X, DoorTile.Y));
     }
 
     /// <summary>The support test (<c>0x004A5A41</c>): a wall gone from either side kills an ordinary

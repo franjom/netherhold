@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 
 namespace DK2.Simulation;
 
@@ -177,7 +178,12 @@ public static class ThingProjection
         if (database.RoomByTerrain(thing.RoomType)?.TypeId != RoomTypeId.DungeonHeart) return true;
         if (!world.Contains(new TilePos(thing.X, thing.Y))) return true;
         RoomInstance? heart = RoomIndex.RoomAt(world, database, (thing.Y * world.Width) + thing.X);
-        if (heart is null || !world.HasPlayer(heart.OwnerPlayerId)) return true;
+        if (heart is null) return true;
+        // Chain tile 12, where the builder makes the obstacle and the heart object, gets navigation
+        // byte 3 whether or not the heart is ruined (0x004DBB65, Q601).
+        int[] chain = SlabChain.Order(world, heart);
+        if (chain.Length > 12) world.Stamp(chain[12], NavBytes.Lava);
+        if (!world.HasPlayer(heart.OwnerPlayerId)) return true;
 
         ref PlayerState owner = ref world.Player(heart.OwnerPlayerId);
         int pct = thing.InitialHealth;

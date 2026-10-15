@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 255;
+    private const int FormatVersion = 256;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -635,6 +635,13 @@ public static class WorldSnapshot
             w.Write(door.Health);
             w.Write(door.RecoveryDeadline);
             w.Write(door.Unknown_0011.ToArray());
+        }
+        w.Write(world.NavStamps.Count);
+        foreach (NavStamp stamp in world.RawNavStamps)
+        {
+            w.Write(stamp.Tile);
+            w.Write(stamp.TerrainId);
+            w.Write(stamp.Byte);
         }
 
         w.Write(world.NextTrapId);
@@ -1328,6 +1335,8 @@ public static class WorldSnapshot
                 Unknown_0011 = r.ReadBytes(DoorState.Unknown0011Length),
             });
         }
+        int navStampCount = r.ReadInt32();
+        for (int i = 0; i < navStampCount; i++) world.RawNavStamps.Add(new NavStamp(r.ReadInt32(), r.ReadByte(), r.ReadByte()));
 
         world.NextTrapId = r.ReadInt32();
         int trapCount = r.ReadInt32();

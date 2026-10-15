@@ -7,6 +7,7 @@ using DK2.Pathfinding;
 using DK2.Simulation;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Steering;
+using DK2.Simulation.Systems;
 using Xunit.Abstractions;
 using static DK2.Oracle.Tests.OriginalCpu;
 
@@ -25,7 +26,7 @@ public class CapturedSteeringTests(ITestOutputHelper log)
 
     /// <summary><c>Avoid_Walls</c> (<c>0x004D35C0</c>, stdcall (out*, body*, unused)) against
     /// <see cref="AvoidWallsRules.Compute"/>, both on DK2's own navigation bytes, so this holds the
-    /// behaviour and not our grid (<see cref="OurNavigationBytes_AreDk2s_ExceptQ600DoorAndQ601HeartCentre"/> holds that). First every
+    /// behaviour and not our grid (<see cref="OurNavigationBytes_AreDk2s_WithTheHeartAndDoorStamps"/> holds that). First every
     /// live creature's body and mover as the dump has them; then synthetic bodies written into one
     /// of them across the same map, each with a random mover (owner number, the three door bits,
     /// water and lava), since every live creature at tick 500 walks on water. The steering globals
@@ -71,15 +72,19 @@ public class CapturedSteeringTests(ITestOutputHelper log)
     }
 
     /// <summary>Our navigation bytes (<see cref="WorldSteering"/> over our world rebuilt from the
-    /// level and given the tick's tiles and DK2's door states) against DK2's grid at the same
-    /// tick. Two tiles differ and are open questions, named here so any other difference fails:
-    /// Q600, a door our loader builds on (24,9)'s water that DK2 never creates, and Q601, the
-    /// byte 3 DK2 holds on the Heart's centre (24,54) where ours holds floor.</summary>
+    /// level, run through its first door update, and given the tick's tiles and DK2's door states)
+    /// against DK2's grid at the same tick, every tile. Two bytes outlive their writers: the Heart
+    /// builder's 3 on its chain tile 12, the centre (24,54) (Q601), and the 0 the hero door's
+    /// removal leaves on (24,9)'s water after the owner test kills it on that first update (Q600).
+    /// Both writers are read; that they are what happened here is inferred from the bytes.</summary>
     [CapturedFact(Dump)]
-    public void OurNavigationBytes_AreDk2s_ExceptQ600DoorAndQ601HeartCentre()
+    public void OurNavigationBytes_AreDk2s_WithTheHeartAndDoorStamps()
     {
         CapturedState state = CapturedState.LoadWithDump(Capture, 500, Dump);
         (GameDatabase database, WorldState world) = CapturedState.Level("Level4");
+        new GameSimulation(database, world, 1, [new DoorHealthSystem(), new DoorRemovalSystem()]).Run(1);
+        Assert.Equal([new NavStamp(54 * world.Width + 24, 14, NavBytes.Lava), new NavStamp(9 * world.Width + 24, 4, NavBytes.Floor)],
+            world.NavStamps);
         state.ApplyTiles(world);
         IReadOnlyList<string> doors = state.ApplyDoors(world);
         var steering = new WorldSteering(database, world);
@@ -91,8 +96,8 @@ public class CapturedSteeringTests(ITestOutputHelper log)
             int theirs = state.NavBytes![y * state.Width + x], ours = steering.NavByte(x, y);
             if (theirs != ours) differ.Add($"({x},{y}) ours {ours}, DK2 {theirs} (terrain {state.Terrain(x, y)}, owner {state.Owner(x, y)})");
         }
-        Assert.Equal(["ours only: door 1 of player 1 at (24,9), open False, lock 0"], doors);
-        Assert.Equal(["(24,9) ours 16, DK2 0 (terrain 4, owner 2)", "(24,54) ours 0, DK2 3 (terrain 14, owner 3)"], differ);
+        Assert.Empty(doors);
+        Assert.Empty(differ);
     }
 
     private static Request Request(CapturedCreature owner, CapturedMover m, SteeringBody body, bool real)

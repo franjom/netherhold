@@ -204,7 +204,7 @@ Their caller graph accounts for these producers:
 | terrain update `0x0044FC40` | terrain flags `+0x17B`: bit 0 → 8, else bit 7 → 1, else bit 8 → 3, else 0 |
 | door update `0x004A66F0` | owner number in the high nibble, plus low bits 1 and 2 from map/door state; removal clears it to 0 |
 | door state change `0x004A6800` | toggles bit 2 in the existing byte |
-| room-side wrapper `0x00454FD0` | explicit 3 or 4 from three room geometry/construction paths |
+| room-side wrapper `0x00454FD0` | 4 on DoubleQuad floor slots (`0x004EFDE0`) and a portal's centre (`0x004DCD20`); 3 on a heart's chain tile 12, its centre (`0x004DB700`, Q601) |
 
 The terrain writer selects the silent setter while world flag
 `+0x7239 & 0x40` is set and the notifying setter otherwise. The door paths
@@ -250,7 +250,7 @@ missing Heart disposal exception and portal's missing Imp refusal are known gaps
 
 **The router does not use the block** (2026-09-17). DK2's own navigation
 cache, captured from a running Level 7, holds plain floor on every one of a
-heart's 25 tiles (Level 4's dump holds 3 on its Heart's centre: Q601) and byte 4 on a portal's centre (a Hero Portal's too: both run the tile
+heart's 25 tiles (the Heart builder writes 3 on the centre, and Levels 4 and 10 hold it there: Q601) and byte 4 on a portal's centre (a Hero Portal's too: both run the tile
 pass `0x004DCD20`, and ours blocks both since 2026-09-30), and the cost function
 crosses a bit-2 boundary only for a state that passed option bit 2 (§5.4,
 navigation-mesh-and-search.md §4). `WorldSteering.ByteOf` follows the cache:

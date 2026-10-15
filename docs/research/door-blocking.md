@@ -145,7 +145,8 @@ Update `0x004A55F0`, in its order:
 
 **Shipped data (CONFIRMED):** of 940 placed doors on 46 levels, none fails the support test;
 one fails the owner test — Level 4's hero Wooden Door at (24,9) on a Neutral-owned tile, which the
-read rule kills on the first update (a prediction, not an observation).
+read rule kills on the first update. **Consistent with Level 4 seed 1's capture and dump (2026-10-15):** DK2
+has no door record there from tick 2 on, and its navigation byte at tick 500 is 0 on that water tile (§7, Q600).
 
 ## 7. Death and removal
 
@@ -153,7 +154,10 @@ read rule kills on the first update (a prediction, not an observation).
 every thing's update `+0x14` (a zero return calls `+0x20`), then every thing's death query
 `+0x28`, calling `+0x30` on the dead. The door's `+0x30` is `0x004A66A0` → `0x004B7BD0` →
 cleanup `0x004A5290`: release sounds and its effect, clear the tile's bit 15 and the secret flag,
-destroy the linked object `+0x103`, rewrite the navigation byte as floor (`0x004A66F0(0)`). A door
+destroy the linked object `+0x103`, rewrite the navigation byte as floor (`0x004A66F0(0)`). That write
+tests only that the byte carries a door owner, never the terrain, so a door gone from water or lava leaves
+floor there until `Tile_SetTerrain` `0x0044FC40`, which writes the terrain's byte on every call, next runs
+on the tile; Level 4's hero door is the shipped case (Q600, `WorldState.NavStamps`). Level start (`0x0050BA1A`) writes every placed door's byte first. A door
 killed in a turn is removed in that turn, after every class has updated. Creatures (list 0)
 update before doors (list 4); where shots fall is Q398.
 

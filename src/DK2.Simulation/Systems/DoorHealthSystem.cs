@@ -45,6 +45,7 @@ public sealed class DoorRemovalSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
+        context.World.PruneNavStamps(); // every turn, as the doors' second walk is; the door's and the Heart's stamps alike
         IReadOnlyList<DoorState> doors = context.World.Doors;
         for (int i = 0; i < doors.Count;)
         {

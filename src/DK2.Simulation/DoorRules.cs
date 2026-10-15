@@ -67,14 +67,26 @@ public static class DoorRules
     }
 
     /// <summary>The removal (<c>0x004A66A0</c> → <c>0x004B7BD0</c> → cleanup <c>0x004A5290</c>): the
-    /// door leaves the world, and with it its blueprint; the navigation byte goes back to floor on
-    /// the steering's next refresh. The cleanup's sound, linked objects, secret-door tile flag and
-    /// the destruction effect (<c>def+0xAE</c>) are presentation or unbuilt.</summary>
+    /// door leaves the world, and with it its blueprint; the navigation byte goes to floor on the
+    /// steering's next refresh, whatever the terrain: <c>0x004A66F0(0)</c> writes 0 over any byte
+    /// carrying a door owner, so a door that dies on water or lava leaves floor there until the
+    /// terrain changes (<see cref="WorldState.NavStamps"/>, Q600). DK2 skips that write for a door
+    /// that never wrote its byte, one placed in play and still under construction, and for an owner
+    /// whose number (<c>player+0x10FC</c>) is 0; the first stands on its keeper's claimed floor
+    /// and the one shipped door off floor is the Good player's, so ours stamps every door off floor. The
+    /// cleanup's sound, linked objects, secret-door tile flag and the destruction effect
+    /// (<c>def+0xAE</c>) are presentation or unbuilt.</summary>
     public static void Remove(SimulationContext context, DoorState door)
     {
         WorldState world = context.World;
         CrateRules.Unregister(world, door.PlayerId, new BlueprintRef(CrateRules.DoorKind, door.Id));
         world.RemoveDoor(door);
+        if (world.Contains(door.X, door.Y))
+        {
+            TerrainDef terrain = context.Database.TerrainById(world.Tile(door.X, door.Y).TerrainId);
+            if (!terrain.IsSolid && (terrain.IsWater || terrain.IsLava))
+                world.Stamp((door.Y * world.Width) + door.X, NavBytes.Floor);
+        }
         context.Emit(SystemName, "door_destroyed", $"door={door.Id} type={door.DoorId} player={door.PlayerId} at={door.X},{door.Y}");
     }
 }

@@ -38,6 +38,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private readonly List<long> _cryptSnapshot = [];
     private readonly List<long> _cryptScratch = [];
     private ulong _ruinedSnapshot;
+    private int _navStampSnapshot;
     private readonly List<NavPoint> _waypoints = [];
     private readonly List<ObjectState> _objectObstacles = [];
 
@@ -70,9 +71,9 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public void Refresh()
     {
         using ProfileScope _ = Profiler.Scope(SimulationMarkers.NavRefresh);
-        // Everything below is a function of the tiles, the doors, which hearts are ruined, where
-        // the crypts stand (a Graveyard's floor slots) and the database. While those are what the
-        // last refresh saw, its result stands, and the comparison is one pass over the tile array,
+        // Everything below is a function of the tiles, the doors, the stamped bytes
+        // (WorldState.NavStamps), which hearts are ruined, where the crypts stand (a Graveyard's
+        // floor slots) and the database. While those are what the last refresh saw, its result stands, and the comparison is one pass over the tile array,
         // where the refresh is several with a branch per tile (ADR-0454). The snapshot is taken
         // once the refresh has succeeded, so one that throws before the bytes are swapped is
         // retried; an edit that throws leaves the mesh as the throw left it (ADR-0461).
@@ -201,6 +202,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         for (int i = 0; i < doors.Count; i++)
             if (KeyOf(doors[i]) != _doorSnapshot[i]) return false;
         if (RuinedHearts() != _ruinedSnapshot) return false;
+        if (_world.NavStamps.Count != _navStampSnapshot) return false;
         Crypts(_cryptScratch);
         if (_cryptScratch.Count != _cryptSnapshot.Count) return false;
         for (int i = 0; i < _cryptScratch.Count; i++)
@@ -235,6 +237,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         _doorSnapshot.Clear();
         foreach (DoorState door in _world.Doors) _doorSnapshot.Add(KeyOf(door));
         _ruinedSnapshot = RuinedHearts();
+        _navStampSnapshot = _world.NavStamps.Count;
         Crypts(_cryptSnapshot);
     }
 
@@ -293,6 +296,12 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             foreach (RoomInstance room in RoomIndex.Build(world, database, IsDoubleQuad))
                 foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room)) bytes[tile] = NavBytes.PortalHole;
 
+        // A removed door's 0 over water or lava (Q600) and the Heart builder's 3 (Q601) stand until
+        // the terrain changes. Index loop: the list is an interface, and a foreach would box.
+        IReadOnlyList<NavStamp> stamps = world.NavStamps;
+        for (int i = 0; i < stamps.Count; i++)
+            if (world.TileAtIndex(stamps[i].Tile).TerrainId == stamps[i].TerrainId) bytes[stamps[i].Tile] = stamps[i].Byte;
+
         // A closed, completed door overwrites its tile (`0x004A66F0`); an open one leaves floor.
         // A barricade (definition flag bit 6) carries the lock bit whatever its lock mode.
         foreach (DoorState door in world.Doors)
@@ -308,7 +317,8 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     /// <summary>The navigation byte the original's cache holds (structure-blocks.md §5.4): solid,
     /// water, lava or floor from the terrain, and 4 on a portal's centre. A heart's platform is
-    /// floor in the native cache; ADR-0452 adds a separate platform mask only to the router.</summary>
+    /// floor in the native cache but for the builder's 3 on its centre (<see cref="WorldState.NavStamps"/>,
+    /// Q601); ADR-0452 adds a separate platform mask only to the router.</summary>
     public static byte ByteOf(TerrainDef terrain, bool portalCentre)
     {
         if (terrain.IsSolid) return NavBytes.Solid;

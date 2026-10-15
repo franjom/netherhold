@@ -627,6 +627,7 @@ public sealed class WorldState
     private readonly List<ActionPointState> _actionPoints = [];
     private readonly DoorRegistry _doors = new();
     private readonly TrapRegistry _traps = new();
+    private readonly List<NavStamp> _navStamps = [];
     private int _nextChainOrder;
     private int _nextTileLinkOrder;
     private readonly List<HeroPartyState> _heroParties = [];
@@ -1170,6 +1171,24 @@ public sealed class WorldState
     /// <summary>Takes a dead door out of the world (DK2's removal <c>0x004B7BD0</c>).</summary>
     internal void RemoveDoor(DoorState door) => _doors.Remove(door);
 
+    /// <summary>Navigation bytes a writer other than the terrain left on a tile, which outlive the
+    /// writer until the tile's terrain is set again (<c>Tile_SetTerrain</c> <c>0x0044FC40</c> writes
+    /// the terrain's byte on every call). Two writers: a door's removal leaves 0 over water or lava
+    /// (<c>0x004A66F0(0)</c>, Q600), and the Heart's builder leaves 3 on its chain tile 12
+    /// (<c>0x004DB700</c>, Q601). Ours ends a stamp when the terrain id changes
+    /// (<see cref="PruneNavStamps"/>); a <c>Tile_SetTerrain</c> that keeps the id ends DK2's too.</summary>
+    public IReadOnlyList<NavStamp> NavStamps => _navStamps;
+
+    internal void Stamp(int tile, byte navByte) => _navStamps.Add(new NavStamp(tile, _tiles[tile].TerrainId, navByte));
+
+    /// <summary>Drops the stamps whose tile's terrain has changed since.</summary>
+    internal void PruneNavStamps()
+    {
+        // Runs every turn: an index loop, not RemoveAll, so a standing stamp allocates nothing.
+        for (int i = _navStamps.Count - 1; i >= 0; i--)
+            if (_tiles[_navStamps[i].Tile].TerrainId != _navStamps[i].TerrainId) _navStamps.RemoveAt(i);
+    }
+
     /// <summary>Bumped by every add and removal, so a per-tile cache of doors knows when to
     /// rebuild. Derived, not state: neither hashed nor saved.</summary>
     public int DoorsVersion => _doors.Version;
@@ -1392,6 +1411,7 @@ public sealed class WorldState
     internal List<ObjectState> RawObjects => _objects;
     internal List<ActionPointState> RawActionPoints => _actionPoints;
     internal List<DoorState> RawDoors => _doors.Raw;
+    internal List<NavStamp> RawNavStamps => _navStamps;
     internal List<TrapState> RawTraps => _traps.Raw;
     internal List<HeroPartyState> RawHeroParties => _heroParties;
     internal List<EffectGeneratorState> RawEffectGenerators => _effectGenerators;
@@ -1455,6 +1475,13 @@ public sealed class WorldState
         hash.Add(_doors.All.Count);
         hash.Add(_doors.NextId);
         foreach (DoorState door in _doors.All) door.HashInto(ref hash);
+        hash.Add(_navStamps.Count);
+        foreach (NavStamp stamp in _navStamps)
+        {
+            hash.Add(stamp.Tile);
+            hash.Add(stamp.TerrainId);
+            hash.Add(stamp.Byte);
+        }
 
         hash.Add(_traps.All.Count);
         hash.Add(_traps.NextId);
@@ -1481,3 +1508,7 @@ public sealed class WorldState
         Messages.HashInto(ref hash);
     }
 }
+
+/// <summary>One of <see cref="WorldState.NavStamps"/>: the byte left on a tile and the terrain it
+/// was left over.</summary>
+public readonly record struct NavStamp(int Tile, byte TerrainId, byte Byte);

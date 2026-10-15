@@ -53,14 +53,19 @@ step with the earlier capture.
   synthetic bodies written into one of them, each with a random mover (every live creature at
   tick 500 walks on water): the corner reflection, the axis margins, the stuck nudge, water
   and doors as walls all reached (`CapturedSteeringTests`).
-- **The navigation bytes.** Ours (`WorldSteering`, with the tick's tiles and door states) equal
-  DK2's grid on every tile but two:
-  - **Q600.** Level 4's THINGS file puts a player-1 door on (24,9), a water tile. DK2 has no
-    door there from tick 2 and holds 0 (not water's 1), which only a removed door leaves; ours
-    keeps the closed door.
-  - **Q601.** DK2 holds byte 3 on the Heart's centre (24,54); ours holds floor, as DK2's own
-    Level 7 capture did. Steering reads that byte, so on Level 4 DK2's walls include the centre
-    for a creature that cannot walk on lava.
+- **The navigation bytes.** Ours (`WorldSteering`, with the tick's tiles and door states, after
+  our first door update) equal DK2's grid on every tile. Two were different until built:
+  - **Q600, answered.** Level 4's THINGS file puts a player-1 door on (24,9), a water tile the
+    map gives the Neutral player. DK2 has no door there from tick 2 and holds 0 (not water's 1).
+    The owner test kills the door on its first update, ours as DK2's, and the removal
+    `0x004A66F0(0)` writes 0 whatever the terrain. Ours went back to water; it now keeps floor
+    there until the terrain changes (a `WorldState.NavStamps` entry, HashVersion 256), and the test runs
+    our first door update before comparing.
+  - **Q601, answered.** DK2 holds byte 3, lava, on the Heart's centre (24,54); ours held floor.
+    The Heart's builder `0x004DB700` writes it on its chain tile 12 at load (`0x004DBB65`), and
+    Level 10's capture logs the same on both its Hearts. Ours stamps it (`WorldState.NavStamps`).
+    Steering reads that byte, so DK2's walls include the centre for a creature that cannot walk
+    on lava. Level 7's 2026-09-17 dump, which held floor there, is unexplained.
 - **The water flag.** The per-tick caller `0x004D5A40` sets every mover global but
   `0x006EC9E4` (water), which keeps the last route request's value. The test sets it per
   creature, as our profile does. Whether the stale value ever changes a steering answer in play
@@ -70,5 +75,5 @@ step with the earlier capture.
 
 Every equality above is binary evidence, run rather than read: CONFIRMED for what each function
 computes on the inputs run, and a sample between them. `[Dk2Behavior]` still rises no higher than
-STRONGLY INFERRED on this alone (ADR-0046 rule 5). Q600 and Q601 are differences seen once, on
-one capture.
+STRONGLY INFERRED on this alone (ADR-0046 rule 5). Q600's and Q601's answers are the binary's readings, seen on one capture
+(Q601 on two).

@@ -19,7 +19,7 @@ namespace DK2.Behavior.Tests;
 public class DoorsOnRealDataTests(ITestOutputHelper output)
 {
     [InstallFact]
-    public void EveryPlacedDoorStartsAtItsDefinitionsHealth_AndTheFirstUpdateKillsOnlyLevel4sHeroDoor_PredictedNotObserved()
+    public void EveryPlacedDoorStartsAtItsDefinitionsHealth_AndTheFirstUpdateKillsOnlyLevel4sHeroDoor()
     {
         string install = Dk2InstallGate.Path;
         GameDatabase db = GameDatabaseLoader.Load(install);
@@ -72,7 +72,7 @@ public class DoorsOnRealDataTests(ITestOutputHelper output)
         Assert.Equal(940, doors);
         Assert.Empty(supportKills);
         // The read owner test kills this one at once: a hero door on a tile the map gives the Neutral player.
-        // Whether it stands in the running game is the prediction's check (door-blocking.md).
+        // Consistent with Level 4 seed 1's capture: no door there from tick 2, floor on its water (Q600).
         Assert.Equal(["level4 (24,9) Wooden Door p1 tile p2"], ownerKills);
     }
 }
