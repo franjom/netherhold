@@ -1,0 +1,51 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using System;
+using System.IO;
+using UnityEditor;
+using UnityEditor.Build.Reporting;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+
+namespace DK2.Unity.Editor
+{
+    public static class ClassicWindowFrameBuild
+    {
+        public static void Build()
+        {
+            if (!File.Exists(".classic-window-frame-probe"))
+                throw new InvalidOperationException("Requires the marked isolated scratch project from run-window-frames.ps1.");
+            string[] args = Environment.GetCommandLineArgs(); int at = Array.IndexOf(args, "-windowProbeBuild");
+            if (at < 0 || at + 1 >= args.Length) throw new ArgumentException("-windowProbeBuild output required.");
+            Directory.CreateDirectory(Path.GetDirectoryName(args[at + 1]));
+            var scene = EditorSceneManager.OpenScene("Assets/DK2/Scenes/Dungeon.unity", OpenSceneMode.Single);
+            DungeonRunner runner = UnityEngine.Object.FindAnyObjectByType<DungeonRunner>();
+            if (runner == null) throw new InvalidOperationException("Production scene has no DungeonRunner.");
+            var serialized = new SerializedObject(runner);
+            serialized.FindProperty("levelName").stringValue = "Level8";
+            serialized.FindProperty("installDirectory").stringValue = Environment.GetEnvironmentVariable("DK2_DIR");
+            foreach (string name in new[] { "speed", "cameraPanSpeed", "cameraRotationSpeed" })
+                serialized.FindProperty(name).floatValue = 0;
+            foreach (string name in new[] { "classicVertexLighting", "classicMeshes" }) serialized.FindProperty(name).boolValue = true;
+            foreach (string name in new[] { "nativeInitialAmbient", "cheapLighting", "tickOnWorkerThread", "showDiagnostics", "fogOfWar", "frameWholeMap" })
+                serialized.FindProperty(name).boolValue = false;
+            serialized.FindProperty("seed").intValue = 1;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            new GameObject("Windowed frame performance probe").AddComponent<ClassicWindowFrameProbe>();
+            EditorSceneManager.SaveScene(scene, "Assets/ClassicWindowFrameProbe.unity");
+            PlayerSettings.enableFrameTimingStats = true;
+            PlayerSettings.runInBackground = true;
+            PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
+            PlayerSettings.defaultScreenWidth = 1280; PlayerSettings.defaultScreenHeight = 720;
+            PlayerSettings.resizableWindow = false;
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { "Assets/ClassicWindowFrameProbe.unity" }, locationPathName = args[at + 1],
+                target = BuildTarget.StandaloneWindows64, options = BuildOptions.Development,
+            });
+            if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException(report.summary.result.ToString());
+        }
+    }
+}

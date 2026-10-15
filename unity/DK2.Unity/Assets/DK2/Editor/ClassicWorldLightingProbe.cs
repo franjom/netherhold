@@ -56,7 +56,9 @@ namespace DK2.Unity.Editor
             public int TileTableGridCount;
             public int MeshCount;
             public double ShadowPrepareMedianMs, ShadowPrepareP95Ms;
-            public long ShadowPrepareAllocatedBytes;
+            public bool ShadowAllocationAvailable;
+            public long ShadowPrepareAllocatedBytes = -1;
+            public ClassicAllocationCalibration.Result AllocationCalibration;
             public int AnchoredTerrainVertices, AnchoredTransparentVertices, AnchoredLiquidVertices;
             public int SampledVertices;
             public int FrontFacingInRangePairs;
@@ -69,6 +71,7 @@ namespace DK2.Unity.Editor
             public TorchInput[] TorchInputs;
             public Comparison[] Comparisons;
             public Profile[] Profiles;
+            public Phase[] Phases;
             public string Error;
         }
 
@@ -78,7 +81,18 @@ namespace DK2.Unity.Editor
             public string View, Mode;
             public int Samples, VisibleTables, SelectedSources;
             public double PrepareMedianMs, PrepareP95Ms, SubmitMedianMs, SubmitP95Ms;
-            public long PrepareAllocatedBytes;
+            public bool AllocationAvailable;
+            public long PrepareAllocatedBytes = -1;
+        }
+
+        [Serializable]
+        private sealed class Phase
+        {
+            public string Name;
+            public int Samples;
+            public bool AllocationAvailable;
+            public long AllocatedBytes = -1;
+            public double BytesPerCall = -1, MedianMs, P95Ms;
         }
 
         private const int Width = 1024, Height = 576;
@@ -121,6 +135,7 @@ namespace DK2.Unity.Editor
             if (level != "Level1" && level != "Level7" && level != "Level8")
                 throw new ArgumentException("DK2_LIGHTING_PROBE_LEVEL must be Level1, Level7 or Level8.");
             result.Level = level;
+            result.AllocationCalibration = ClassicAllocationCalibration.Measure();
             result.UnityVersion = Application.unityVersion;
             result.Cpu = SystemInfo.processorType;
             result.GraphicsDevice = SystemInfo.graphicsDeviceName;
@@ -277,15 +292,17 @@ namespace DK2.Unity.Editor
                 if (Environment.GetEnvironmentVariable("DK2_LIGHTING_PROFILE") == "1")
                 {
                     var profiles = new List<Profile>();
-                    ProfileView("quiet", probeCamera, target, scene, cache, viewDistance, profiles);
+                    ProfileView("quiet", probeCamera, target, scene, cache, viewDistance, profiles, result.AllocationCalibration.ThreadMeterAvailable);
                     TilePos busy = DensestTorchArea(torchSources, simulation.World.Width, simulation.World.Height);
                     Vector3 focus = (Vector3)typeof(DungeonRunner).GetField("_cameraFocus", BindingFlags.NonPublic | BindingFlags.Instance)
                         .GetValue(runner);
                     probeCamera.transform.position += DungeonScene.Ground(busy.X + .5f, busy.Y + .5f) - new Vector3(focus.x, 0, focus.z);
-                    ProfileView("dense torches", probeCamera, target, scene, cache, viewDistance, profiles);
+                    ProfileView("dense torches", probeCamera, target, scene, cache, viewDistance, profiles, result.AllocationCalibration.ThreadMeterAvailable);
                     probeCamera.transform.position = result.CameraPosition;
                     scene.PrepareClassicLighting(probeCamera, viewDistance);
                     result.Profiles = profiles.ToArray();
+                    result.Phases = ProfilePhases(runner, presenter, scene, view, simulation.World, probeCamera, viewDistance,
+                        result.AllocationCalibration.ThreadMeterAvailable);
                 }
                 for (int warmup = 0; warmup < 5; warmup++) scene.DrawCreatureShadows(probeCamera, view, simulation.World);
                 var samples = new double[30];
@@ -297,7 +314,9 @@ namespace DK2.Unity.Editor
                     samples[sample] = (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0
                         / System.Diagnostics.Stopwatch.Frequency;
                 }
-                result.ShadowPrepareAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+                result.ShadowAllocationAvailable = result.AllocationCalibration.ThreadMeterAvailable;
+                result.ShadowPrepareAllocatedBytes = result.ShadowAllocationAvailable
+                    ? GC.GetAllocatedBytesForCurrentThread() - allocatedBefore : -1;
                 Array.Sort(samples);
                 result.ShadowPrepareMedianMs = samples[samples.Length / 2];
                 result.ShadowPrepareP95Ms = samples[(int)(samples.Length * .95)];
@@ -433,7 +452,7 @@ namespace DK2.Unity.Editor
         }
 
         private static void ProfileView(string view, Camera camera, RenderTexture target, DungeonScene scene,
-            ClassicWorldLightCache cache, float distance, List<Profile> profiles)
+            ClassicWorldLightCache cache, float distance, List<Profile> profiles, bool allocationAvailable)
         {
             scene.PrepareClassicLighting(camera, distance);
             int selectedSources = 0;
@@ -463,7 +482,58 @@ namespace DK2.Unity.Editor
                     Samples = count, VisibleTables = cache.VisibleTables.Length, SelectedSources = selectedSources,
                     PrepareMedianMs = prepare[count / 2], PrepareP95Ms = prepare[(int)(count * .95)],
                     SubmitMedianMs = submit[count / 2], SubmitP95Ms = submit[(int)(count * .95)],
-                    PrepareAllocatedBytes = allocated });
+                    AllocationAvailable = allocationAvailable, PrepareAllocatedBytes = allocationAvailable ? allocated : -1 });
+            }
+        }
+
+        private static Phase[] ProfilePhases(DungeonRunner runner, ScenePresenter presenter, DungeonScene scene,
+            WorldView view, DK2.Simulation.WorldState world, Camera camera, float distance, bool allocationAvailable)
+        {
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            FieldInfo speed = typeof(DungeonRunner).GetField("speed", flags);
+            FieldInfo diagnostics = typeof(DungeonRunner).GetField("showDiagnostics", flags);
+            float previousSpeed = (float)speed.GetValue(runner);
+            bool previousDiagnostics = (bool)diagnostics.GetValue(runner);
+            var construction = (ClassicConstructionEffects)typeof(DungeonRunner).GetField("_constructionEffects", flags).GetValue(runner);
+            Action update = (Action)Delegate.CreateDelegate(typeof(Action), runner, typeof(DungeonRunner).GetMethod("Update", flags));
+            Action effects = construction != null ? construction.Draw : () => { };
+            Action[] actions = { () => presenter.Present(world), () => scene.DrawCreatureFrame(world.CurrentTick, 1),
+                () => scene.DrawCreatureShadows(camera, view, world), () => scene.PrepareClassicLighting(camera, distance), effects, update };
+            string[] names = { "Presenter.Present", "Scene.DrawCreatureFrame", "Scene.DrawCreatureShadows",
+                "Scene.PrepareClassicLighting", "ConstructionEffects.Draw", "Runner.Update" };
+            var phases = new Phase[actions.Length];
+            GameTick tick = world.CurrentTick;
+            try
+            {
+                speed.SetValue(runner, 0f); diagnostics.SetValue(runner, false);
+                for (int index = 0; index < actions.Length; index++)
+                {
+                    Action action = actions[index];
+                    for (int warm = 0; warm < 5; warm++) action();
+                    const int count = 100;
+                    var samples = new double[count];
+                    long allocated = 0;
+                    for (int sample = 0; sample < count; sample++)
+                    {
+                        long bytes = GC.GetAllocatedBytesForCurrentThread();
+                        long start = System.Diagnostics.Stopwatch.GetTimestamp();
+                        action();
+                        long end = System.Diagnostics.Stopwatch.GetTimestamp();
+                        allocated += GC.GetAllocatedBytesForCurrentThread() - bytes;
+                        samples[sample] = (end - start) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    }
+                    Array.Sort(samples);
+                    phases[index] = new Phase { Name = names[index], Samples = count, AllocationAvailable = allocationAvailable,
+                        AllocatedBytes = allocationAvailable ? allocated : -1, BytesPerCall = allocationAvailable ? allocated / (double)count : -1,
+                        MedianMs = samples[count / 2], P95Ms = samples[(int)(count * .95)] };
+                }
+                if (world.CurrentTick != tick) throw new InvalidOperationException("Allocation profiling advanced the fixed simulation tick.");
+                return phases;
+            }
+            finally
+            {
+                speed.SetValue(runner, previousSpeed); diagnostics.SetValue(runner, previousDiagnostics);
+                scene.SetCreatureFrameTime(world.CurrentTick, 1);
             }
         }
 

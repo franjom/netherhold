@@ -66,7 +66,8 @@ and assets within a view; they intentionally use different lighting algorithms.
 | Torch-heavy / native tables | .3276 / .3896 | 1.8469 / 4.1568 |
 
 Both views prepare76 tile tables; selected-source totals are912 and892 respectively.
-Native preparation allocates zero managed bytes across all120 warmed samples.
+Scoped managed-allocation measurements are unavailable in this Unity runtime;
+the earlier zero readings were invalid (see calibration below).
 The preparation interval includes visibility-cache reuse, source gathering,
 table staging and GPU-buffer submission. The render interval measures CPU URP
 request submission, not GPU execution, displayed frame time or simulation cost.
@@ -74,11 +75,39 @@ No tests/builds run alongside these samples; machine load and thermal state
 are uncontrolled, and a preceding capture measured lower absolute times.
 Do not interpret the ordering as a proven speedup or report a game frame rate.
 
-The probe has no GPU timing result and does not advance a full player loop.
-Windowed CPU/GPU frame distributions, frame allocations, particles and sustained
-busy simulation still need the existing Unity Profiler protocol. These measurements
+This editor probe has no GPU timing result and does not advance a full player loop.
+These measurements
 support keeping persistent buffers and avoiding unchanged-frame rebuilds; they
 do not justify changing DK2's animation or reducing original visual detail.
+
+## Windowed player and counter calibration
+
+The visible Development player capture at1280×720 uses Direct3D11, Gamma,
+Ultra quality, VSync off and the same machine. Level8 is paused at turn1,
+with normal native lighting and Native Initial Ambient off. Each view has120
+samples with120 matching main-camera render callbacks; both screenshots contain
+rendered geometry. This is a player-loop capture, not a busy-gameplay benchmark.
+
+| View | CPU frame median ms | GPU median / p95 ms | Fresh GPU samples |
+|---|---:|---:|---:|
+| Quiet | 4.24385 | 1.04862 / 1.51444 | 92 /120 |
+| Torch-heavy | 4.80305 | 1.62072 / 1.78552 | 117 /120 |
+
+Evidence: `build/step5-visible-player-final/summary.json`, metadata, CSV and PNGs.
+The global GC counter reports a median153298 bytes/frame in both views; its
+origin is unassigned. The draw-call counter returns zero despite rendered
+geometry and is unusable. Hidden-player attempts produced no render callbacks
+and fail verification; unavailable GPU timings never become zero-cost claims.
+Reproduce with the README's windowed capture protocol and explicit `-VisiblePlayer`.
+
+`build/step5-allocation-calibration/result.json` demonstrates that Unity6000.6.0f1
+returns zero from the per-thread allocation API around a live65536-byte array.
+The bounded `GC.Alloc` recorder reports nanoseconds, not bytes. Neither provides
+validated scoped byte counts here; preparation, shadow and phase outputs now
+carry availability flags and use−1 for unavailable bytes. Earlier Unity zero
+readings do not establish allocation-free code. CoreCLR cache allocation tests
+remain separate valid evidence. Sustained simulation, particles and allocation
+call stacks still need the existing Unity Profiler protocol.
 
 ## Review and completion limits
 

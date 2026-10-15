@@ -93,8 +93,9 @@ Research and verification: research/classic-lighting.md and its verification lin
 Animated creature silhouettes remain under ADR-0482. Preserve the owner-accepted
 brighter preview with Native Initial Ambient off; +/− now controls native ambient.
 Discovery adds snapshot/hash version256; producer/cadence limits are in
-research/fog-reveal-sources.md. Matched-original acceptance and windowed GPU/frame
-profiling remain pending. Use serial checks; isolated probes must not save or
+research/fog-reveal-sources.md. Windowed CPU/GPU capture is verified; scoped Unity
+allocation counters failed calibration (see verification). Matched-original
+acceptance remains pending. Use serial checks; isolated probes must not save or
 restart an owner's open editor.
 
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the

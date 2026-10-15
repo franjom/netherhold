@@ -83,15 +83,15 @@ its visibility mask remain outside this camera/lighting step.
 ## 5.6 — Performance
 
 - [x] Compare quiet and torch-heavy Level8 views with fixed world/camera conditions per view.
-- [x] Measure native preparation, allocations and URP submission against the legacy preview.
+- [x] Measure native preparation and URP submission; calibrate allocation counters.
 - [x] Reuse prepared cells, source buffers and unchanged-frame visibility snapshots.
 - [x] Independent performance-path review.
-- [ ] Obtain usable GPU frame timings and a windowed whole-game frame-time capture.
+- [x] Obtain usable GPU frame timings and a windowed player-loop frame-time capture.
 
 Measurements and limits: [verification](../research/classic-lighting-verification.md).
 Submission time is CPU time, not GPU execution or a claimed game frame rate.
-The warmed preparation path allocates no managed memory; measurements do not
-justify replacing original animation or reducing visual fidelity.
+Scoped allocation counters failed calibration; global player allocations remain
+unattributed. Measurements do not justify reducing original visual fidelity.
 
 ## 5.7 — Final comparison
 
