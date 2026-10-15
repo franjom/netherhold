@@ -88,7 +88,7 @@ neutral, and each keeper with neutral. The two exceptions:
 - `level18`: the usual five, then (5, 4), (6, 4) and (6, 5). Its three computer keepers are
   allied with each other.
 
-Nothing in `src/` applies these records (Q576). `kwd varsweep` still prints the old
+Nothing in `src/` applies the alliances (Q576); id 77 is applied by `GameDatabase.ForLevel` (ADR-0491). `kwd varsweep` still prints the old
 player-count test.
 
 **Id 77 overrides one field of one creature type for the level** (`0x0051DD10`, no Ghidra
@@ -111,8 +111,8 @@ the speeds (divided by variable 19), 27 PossessionManaCost (`+0x764`) and so on:
 | `Secret5` | 1: Health 50; 11: Threat 1 |
 
 The scan reads aligned 16-byte records with id 77, a creature id below 64 and a selector
-below 64. Nothing in `src/` applies these overrides: our Level 1 Lord of the Land swings for his
-record's damage, not 200.
+below 64. `GameDatabase.ForLevel` applies them (ADR-0491). Selector 30 stores whole tiles raw
+(`0x00494C56`), where the loader rounds the file's 12.12 value to tiles.
 
 ## The key/value list, for anyone who needs it
 

@@ -11341,3 +11341,28 @@ seeds 1–20, against ADR-0489: keeper Imp deaths 395 to 301 (median 17.5 to 12)
 the western party is down at a median of 4188, from 4232. Wins on Levels 1–4, against master
 07261474: 19/6/16/2 to 17/6/14/1. Every seed's win tick moves; Level 1 loses seeds 1, 6 and 14 and gains
 19, Level 3 loses five and gains three, which reads as a reshuffle, not examined. `HashVersion` 259.
+
+## ADR-0491 — A level's VARIABLES id 77 sets creature definition fields
+**Date:** 2026-10-15 · **Status:** accepted · Research: variables-corpus-sweep.md §Q84; Q84
+
+**Context.** VARIABLES id 77 (`0x0051DD10`) looks a creature type up and stores a value into the
+definition field a `CreatureStatId` selector names (`0x00494A70`); a level carries several. Level 1
+gives its Lord of the Land MeleeDamage 200 and Threat 125 (file Threat 320), Level 4 Threat 150; the
+others touch Health, Fear, the speeds and the hearing distance. Our reader kept one record per id and
+nothing applied them. The fear accumulator (`0x0045E4F0`) reads Threat unscaled at level 1
+(`0x0045E5B5`): in DK2's Level 1 capture the Lord's six Goblins take shares of 17-20 (threat 124-125),
+stay under their threshold and never flee; ours took 53, fled eleven times, and the Lord walked
+between them and lived.
+
+**Decision.** `KwdVariables` keeps every id 77 record in file order (`CreatureFieldOverrides`, global
+then level); `GameDatabase.ForLevel` applies them, a later record winning. Mapped are the seven
+selectors the shipped levels use: 1 Health, 2 Fear, 3 Threat, 4 MeleeDamage, 21 and 22 the speeds in
+file units (the setter divides by variable 19 without the loader's minimum of 1, a difference no
+shipped value reaches), 30 the hearing distance (`+0x77F`) in whole tiles, stored raw; any other
+throws. Id 66 (the
+alliances, Q576) stays unbuilt.
+
+**Consequences.** In our Level 1 seed 1 run the Lord's share is 20, no Goblin flees, and he dies at 1784
+at (15,10), DK2's at 1777 at (15.5,11.9). Levels 1–4, seeds 1–20, against master 3a9ad262:
+17/6/14/1 to 20/6/14/1; Levels 2–4 replay identically (Level 4's Lord does not fight within the
+replay). `HashVersion` 260.

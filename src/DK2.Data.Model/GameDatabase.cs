@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
+
 namespace DK2.Data.Model;
 
 /// <summary>
@@ -207,7 +209,7 @@ public sealed class GameDatabase
             : new GameDatabase(
                 Terrain.Values,
                 Rooms.Values,
-                Creatures.Values,
+                WithFieldOverrides(Creatures.Values, levelVariables is null ? null : Variables.MergedWith(levelVariables)),
                 levelVariables is null ? Variables : Variables.MergedWith(levelVariables),
                 KeeperSpells.Values,
                 Objects.Values,
@@ -218,6 +220,37 @@ public sealed class GameDatabase
                 Effects.Values,
                 EffectElements.Values,
                 level ?? Level);
+
+    /// <summary>The level's VARIABLES id 77 records, in file order (<c>0x0051DD10</c> then
+    /// <c>0x00494A70</c>): each stores its value into one definition field of one creature type,
+    /// a later record for the same field winning. Mapped are the selectors the shipped levels use:
+    /// 1 Health, 2 Fear, 3 Threat, 4 MeleeDamage (words, as the loader stores them), 21 and 22 the
+    /// speeds in the file's units, which the store divides by variable 19 as the loader does (but
+    /// without the loader's minimum of 1, a difference no shipped value reaches), and 30 the hearing
+    /// distance (<c>+0x77F</c>) in whole tiles, stored raw; any other selector throws. A record naming a type with no definition is skipped, as
+    /// the handler's lookup fails.</summary>
+    public static IEnumerable<CreatureDef> WithFieldOverrides(IEnumerable<CreatureDef> creatures, GlobalVariables? level)
+    {
+        if (level is null || level.CreatureFieldOverrides.Count == 0) return creatures;
+        var byId = creatures.ToDictionary(c => c.CreatureId);
+        foreach (CreatureFieldOverrideEntry e in level.CreatureFieldOverrides)
+        {
+            if (e.CreatureId is < 0 or > byte.MaxValue || !byId.TryGetValue((byte)e.CreatureId, out CreatureDef? c)) continue;
+            byId[c.CreatureId] = (CreatureStatId)e.Selector switch
+            {
+                CreatureStatId.Health => c with { Hp = (ushort)e.Value },
+                CreatureStatId.Fear => c with { Fear = (ushort)e.Value },
+                CreatureStatId.Threat => c with { Threat = (ushort)e.Value },
+                CreatureStatId.MeleeDamage => c with { MeleeDamage = (ushort)e.Value },
+                (CreatureStatId)21 => c with { Speed = new Fp32(e.Value) },
+                (CreatureStatId)22 => c with { RunSpeed = new Fp32(e.Value) },
+                // A raw dword in whole tiles: the loader itself rounds the file's 12.12 value to tiles.
+                (CreatureStatId)30 => c with { DistanceCanHear = new Fp32(e.Value << 12) },
+                _ => throw new InvalidDataException($"VARIABLES id 77 selector {e.Selector} is not mapped (creature {e.CreatureId})."),
+            };
+        }
+        return byId.Values;
+    }
 
     public TerrainDef TerrainById(byte id) => Terrain.TryGetValue(id, out TerrainDef? t)
         ? t

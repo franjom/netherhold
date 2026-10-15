@@ -79,4 +79,23 @@ public class KwdReaderTests
         Assert.NotEmpty(vars.CreatureStats);
         Assert.NotEmpty(vars.Misc);
     }
+
+    /// <summary>VARIABLES id 77 (variables-corpus-sweep.md §Q84, ADR-0491): several records per level,
+    /// each one field of one creature type. Level 1 gives its Lord of the Land (29) MeleeDamage
+    /// (selector 4) 200, then Threat (selector 3) 125.</summary>
+    [InstallFact]
+    public void Level1CarriesTwoCreatureFieldOverridesForItsLord()
+    {
+        string maps = Path.Combine(EditorDir(), "maps");
+        GlobalVariables level1 = KwdVariables.Parse(KwdReader.ReadFile(Path.Combine(maps, "Level1Variables.kld")));
+        Assert.Equal(
+            [new CreatureFieldOverrideEntry(29, (int)CreatureStatId.MeleeDamage, 200), new CreatureFieldOverrideEntry(29, (int)CreatureStatId.Threat, 125)],
+            level1.CreatureFieldOverrides);
+
+        // The campaign loader applies them: the Lord's file Threat is 320.
+        CreatureDef lord1 = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level1").CreatureById(29);
+        Assert.Equal(((ushort)125, (ushort)200), (lord1.Threat, lord1.MeleeDamage));
+        Assert.Equal((ushort)150, GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level4").CreatureById(29).Threat);
+        Assert.Equal((ushort)320, GameDatabaseLoader.Load(Dk2InstallGate.Path).CreatureById(29).Threat);
+    }
 }

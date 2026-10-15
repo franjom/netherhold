@@ -81,6 +81,10 @@ public enum VariableTypeId
     GameTicks = 74,
     ModifyHealthOfCreatureInLairPerSecond = 75,
     ModifyAngerOfCreatureInLairPerSecond = 76,
+
+    /// <summary>One field of one creature type, for the level (<c>0x0051DD10</c>, then
+    /// <c>0x00494A70</c>); a structured record, several per level (variables-corpus-sweep.md §Q84).</summary>
+    CreatureFieldOverride = 77,
     ModifyAngerInCompanyOfHatedCreaturesPerSecond = 78,
     ForceAppliedToSlappedCreature = 79,
     CannotSleepModifyCreatureHealthPerSecond = 82,

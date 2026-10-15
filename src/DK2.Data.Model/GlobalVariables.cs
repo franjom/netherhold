@@ -27,6 +27,12 @@ public sealed record CreatureStatEntry(int StatId, int Value, int Level, bool Fi
 /// <paramref name="Cost"/> is research points; every shipped entry costs 1000.</summary>
 public sealed record ResearchEntry(int Kind, int TypeId, int Cost) : KwdVariableEntry;
 
+/// <summary>Id 77: the level sets one definition field of one creature type (<c>0x0051DD10</c>
+/// looks the type up, <c>0x00494A70</c> stores <see cref="Value"/> into the field
+/// <see cref="Selector"/> names, a <see cref="CreatureStatId"/>). Level 1 gives its Lord of the Land
+/// Threat 125 and MeleeDamage 200.</summary>
+public sealed record CreatureFieldOverrideEntry(int CreatureId, int Selector, int Value) : KwdVariableEntry;
+
 /// <summary>Plain global rule value — the vast majority of VARIABLES records.</summary>
 public sealed record MiscVariable(VariableTypeId Id, int Value, int Unk1, int Unk2) : KwdVariableEntry;
 
@@ -43,6 +49,10 @@ public sealed class GlobalVariables
     public List<AvailabilityEntry> Availabilities { get; } = [];
     public List<SacrificeEntry> Sacrifices { get; } = [];
     public List<CreatureStatEntry> CreatureStats { get; } = [];
+
+    /// <summary>Id 77 records in file order, global then level: each applied in turn, so a later
+    /// record for the same field wins, as the handler's stores do.</summary>
+    public List<CreatureFieldOverrideEntry> CreatureFieldOverrides { get; } = [];
 
     /// <summary>The research list, in file order: 29 entries in the shipped
     /// <c>GlobalVariables.kwd</c> and none in any level file.</summary>
@@ -97,6 +107,7 @@ public sealed class GlobalVariables
         merged.Sacrifices.AddRange(Sacrifices);
         merged.CreatureStats.AddRange(CreatureStats);
         merged.Research.AddRange(Research);
+        merged.CreatureFieldOverrides.AddRange(CreatureFieldOverrides);
 
         if (level is null) return merged;
 
@@ -105,6 +116,7 @@ public sealed class GlobalVariables
 
         Replace(merged.CreaturePool, level.CreaturePool);
         merged.Availabilities.AddRange(level.Availabilities);
+        merged.CreatureFieldOverrides.AddRange(level.CreatureFieldOverrides);
         Replace(merged.Sacrifices, level.Sacrifices);
         Replace(merged.CreatureStats, level.CreatureStats);
         // Untested for research: no shipped level carries a list, and DK2's handler only
