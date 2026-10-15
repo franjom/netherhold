@@ -54,7 +54,10 @@ Setup, once: a Windows x64 `unicorn.dll` 2.1.x outside the repository (the PyPI
 `unicorn` win_amd64 wheel has one; the NuGet package has none), and
 `DK2_UNICORN_DLL` set to its path, plus a Python 3 (`py -3`, or `DK2_PYTHON`); without
 the DLL the function tests skip, while the table tests need only the install. Unicorn is never
-committed (owner, 2026-10-15). To add a function: read it in Ghidra for its calling
+committed (owner, 2026-10-15). `tools/oracle/purity.py` lists ported candidates (read each before trusting it);
+`tools/oracle/capture_memory.py` turns a capture tick into a memory image for functions that read the world
+(it needs this folder's local `dk2capture.py`, or `DK2_CAPTURE_DECODER`).
+To add a function: read it in Ghidra for its calling
 convention, out-pointer and record layout, check it reads no mutable global, and add a
 test after `OriginalFixed16Tests` that sweeps the band edges and counts the arms it
 reaches. A divide fault in the original is outside its domain and is counted, not

@@ -11074,10 +11074,17 @@ compared.
 Math_Atan2, Random_Next; the gate walk's Collapse and AdjustAroundCrossing; Fixed16
 Normalise, Truncate, Scale and Over; then Angle_Distance, Angle_TurnsUp, the aim cone, the
 ray-circle test and the 3-vector length, whose port threw on an int.MinValue component where
-the original wraps (fixed). All match wherever the original returns. Running the
+the original wraps (fixed); then Octile, Perpendicular, GateWalk.Intersect and the dig
+walk's start side, candidates from `tools/oracle/purity.py` (ported functions it finds touching
+no written global; each read from the bytes before testing). All match wherever the original returns. Running the
 bytes is binary evidence, so `[Dk2Behavior]` still rises no higher than STRONGLY INFERRED
 (ADR-0046 rule 5); a function record may say CONFIRMED for what the function computes, not
-for behaviour seen in play. Only functions free of mutable globals qualify; world-state
-behaviour still needs live captures. A quotient past 32 bits wraps in `Fixed16.Div` where
+for behaviour seen in play. A function that reads world state can instead run on one tick
+of a full-state capture (`tools/oracle/capture_memory.py`); first, 0x00460B50 on Level 4
+seed 1, every tenth tick (`guard_room_on_capture.py`): 542 calls, 149 yes, 215 refused by the
+room test, 86 targets within a tile of an expanded edge, every answer the rule
+`FearRules.NearOwnGuardRooms` encodes; in 470 samples each Guard Room's stored bounds equal
+its tiles'. One capture: it checks the rule and our room model, not our C# or its callers'
+early-outs, nor bounds after a room loses tiles; what a capture omits must be supplied. A quotient past 32 bits wraps in `Fixed16.Div` where
 the original faults (a zero divisor throws in both); whether any game input reaches it was
 not checked.

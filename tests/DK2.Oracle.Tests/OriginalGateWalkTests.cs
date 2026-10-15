@@ -41,6 +41,82 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
             },
             ["both near", "A near", "B near", "move both", "move A only", "move B only", "move neither"]);
 
+    /// <summary><c>0x004CFFD0</c>, <see cref="GateWalk.Intersect"/>: cdecl (record*, p.x, p.y, q.x,
+    /// q.y), the answer in EAX and the crossing written at +0x10. The crossing starts as a sentinel,
+    /// so a miss that wrote one (outside the gate's box) is told from one that did not; the two
+    /// misses that write nothing are told apart by the denominator, computed as the original does.
+    /// Points far off the map put the gate parameter past 32 bits, where the original's divide
+    /// faults (DK2 would crash): there ours must report no crossing and leave the record alone.</summary>
+    [OracleFact]
+    public void Intersect_MatchesTheOriginal()
+    {
+        const int Map = 256 * NavMesh.UnitsPerTile, Sentinel = 0x7FFFFFF1;
+        var spread = new Random(20261024);
+        var inputs = new List<(GateRecord R, NavPoint P, NavPoint Q)>();
+        for (int i = 0; i < 20000; i++)
+        {
+            int reach = 1 << spread.Next(4, 17);
+            var a = new NavPoint(spread.Next(0, Map), spread.Next(0, Map));
+            var b = new NavPoint(Math.Clamp(a.X + spread.Next(-reach, reach + 1), 0, Map), Math.Clamp(a.Y + spread.Next(-reach, reach + 1), 0, Map));
+            var p = new NavPoint(Math.Clamp(a.X + spread.Next(-reach, reach + 1), 0, Map), Math.Clamp(a.Y + spread.Next(-reach, reach + 1), 0, Map));
+            NavPoint q = spread.Next(5) switch
+            {
+                0 => new NavPoint(p.X + (b.X - a.X) * spread.Next(-2, 3), p.Y + (b.Y - a.Y) * spread.Next(-2, 3)), // parallel
+                1 => new NavPoint(p.X + spread.Next(-4, 5), p.Y + spread.Next(-4, 5)),                              // a short step
+                _ => new NavPoint(Math.Clamp(p.X + spread.Next(-reach, reach + 1), 0, Map), Math.Clamp(p.Y + spread.Next(-reach, reach + 1), 0, Map)),
+            };
+            inputs.Add((new GateRecord(a, b, spread.Next(0, 3)) { Crossing = new NavPoint(Sentinel, Sentinel) }, p, q));
+        }
+        for (int i = 0; i < 200; i++)
+        {
+            // A one-unit gate, a four-unit step across it and a point a million units off: the
+            // denominator is +-1 and the numerator past 2^17, so the quotient overflows.
+            var a = new NavPoint(spread.Next(0, Map), spread.Next(0, Map));
+            var b = new NavPoint(a.X + 1, a.Y);
+            var p = new NavPoint(a.X - spread.Next(1_000_000, 4_000_000), a.Y + spread.Next(-4, 5));
+            inputs.Add((new GateRecord(a, b, 0) { Crossing = new NavPoint(Sentinel, Sentinel) }, p, new NavPoint(p.X, p.Y + 4)));
+        }
+
+        IReadOnlyList<Outcome> original = Run([.. inputs.Select(x => new Request(0x004CFFD0,
+            [Record, (uint)x.P.X, (uint)x.P.Y, (uint)x.Q.X, (uint)x.Q.Y],
+            [.. Words(x.R).Select((w, i) => (Record + 4 * (uint)i, (uint)w))],
+            [.. Enumerable.Range(0, 7).Select(i => Record + 4 * (uint)i)]))]);
+
+        string[] arms = ["hit", "written, outside the box", "not written, zero denominator", "not written, past the gate's ends"];
+        var mismatches = new List<string>();
+        var reached = arms.ToDictionary(a => a, _ => 0);
+        int faults = 0;
+        for (int i = 0; i < inputs.Count; i++)
+        {
+            (GateRecord r, NavPoint p, NavPoint q) = inputs[i];
+            string at = $"intersect({Show(Words(r))}, ({p.X}, {p.Y}), ({q.X}, {q.Y}))";
+            GateRecord mine = r;
+            bool hit = GateWalk.Intersect(ref mine, p, q);
+            if (original[i].Fault is { } fault)
+            {
+                if (!fault.StartsWith("divide", StringComparison.Ordinal)) mismatches.Add($"{at}: original fault ({fault})");
+                else if (hit || Show(Words(mine)) != Show(Words(r))) mismatches.Add($"{at}: original divide fault, ours {hit} {Show(Words(mine))}");
+                else faults++;
+                continue;
+            }
+
+            int[] after = [.. original[i].Reads.Select(w => (int)w)];
+            bool written = after[4] != Sentinel || after[5] != Sentinel;
+            int gx = (r.B.X - r.A.X) << 6, gy = (r.B.Y - r.A.Y) << 6, sx = (p.X - q.X) << 6, sy = (p.Y - q.Y) << 6;
+            bool zero = (int)((long)gy * sx >> 14) - (int)((long)gx * sy >> 14) == 0;
+            reached[original[i].Eax != 0 ? "hit" : written ? "written, outside the box"
+                : zero ? "not written, zero denominator" : "not written, past the gate's ends"]++;
+            string theirs = $"{original[i].Eax != 0} {Show(after)}", ours = $"{hit} {Show(Words(mine))}";
+            if (theirs != ours) mismatches.Add($"{at}: original {theirs}, ours {ours}");
+        }
+        log.WriteLine($"intersect: {inputs.Count} inputs, {faults} divide faults in the original, no crossing in ours; arms: " +
+                      string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
+        Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {inputs.Count} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
+        Assert.True(reached.All(kv => kv.Value > 0), "an arm no swept input reaches: " +
+            string.Join(", ", reached.Where(kv => kv.Value == 0).Select(kv => kv.Key)));
+        Assert.True(faults > 0, "no input reached the original's divide fault");
+    }
+
     private delegate void Edit(ref GateRecord record, int cap);
 
     /// <summary>Compares, and counts the arm each gate reaches, judged from the input and the
