@@ -94,10 +94,13 @@ research/classic-lighting.md owns evidence and verification. Animated creature
 silhouettes are built and reviewed (ADR-0482; research/creature-shadows.md).
 The owner accepted the brighter preview with Native Initial Ambient off and
 confirmed Imp shadows (2026-10-15); preserve that setting during integration.
-Native cache visibility/invalidation, automatic lighting modes, the explored
+Native cache visibility/preparation, automatic lighting modes, the explored
 fog pass, matched-original comparisons and busy-view profiling remain pending.
 Use serial targeted checks to limit CPU load; isolated probes must not save
 or restart an owner's open editor.
+Prepared-cell gathering now applies native static invalidation and retains42
+cells per horizontal advance; research/classic-lighting.md section9 owns its
+stamp and lifetime contract. No automatic world-source publication yet.
 
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the
 main tree's unity/DK2.Unity for master; restart Play after

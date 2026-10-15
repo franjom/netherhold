@@ -353,10 +353,12 @@ that boundary and the confirmed 12-static/24-total capacity.
 `ClassicLightTable` implements the bounded selection core for an assigned tile.
 `ClassicLightWindow` reads explicitly prepared cache cells in the confirmed
 rolling order, without clipping border cells. Its caller resets it before each
-visible enumeration and decides static refresh from the cache stamps; dynamic
-slots always refresh. It does not implement native visibility or dirty-column
-invalidation. Headless cases cover ordered overflow, ring wrap/reset, source-list
-order, static retention, dynamic refresh and zero warm-gather allocations.
+visible enumeration and supplies typed renderer-frame/build stamps. The window
+applies native dirty-column invalidation, retaining42 list-head snapshots on a
+horizontal advance and querying only seven entering cells; backing storage stays
+stable until Reset. Cache visibility/preparation remains unbuilt. Headless cases
+cover overflow, ring wrap/reset, retained dirty/clean bits, unsigned stamps,
+empty-cell invalidation, dynamic refresh and zero warm-gather allocations.
 `ClassicPointLight.FromTerrain` converts the confirmed source inputs. The explicit Unity bridge accepts these tables
 (section10); it does not replace that cache/visibility integration or publish
 world sources automatically.

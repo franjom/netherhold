@@ -130,8 +130,8 @@ source gathering is resolved in Q597. Explicit selected-table Unity publication,
 terrain/transparent/liquid tile anchors and authoritative empty-table handling
 are built and independently reviewed (ADR-0484). GPU and production-scene
 verification are recorded in classic-lighting.md section10. Prepared-cell rolling
-candidate order is built (ADR-0487); automatic cache visibility, dirty-column
-invalidation and lighting-mode publication remain unbuilt. The default
+candidate order and native dirty-column invalidation are built (ADR-0487);
+automatic cache visibility/preparation and lighting-mode publication remain unbuilt. The default
 Cheap Lighting option selects the separate animated instance-sampled torch arm
 (section9). Its headless reference is built and independently reviewed (section3);
 the animated caller's centre/transform and mode integration remain unbuilt.
