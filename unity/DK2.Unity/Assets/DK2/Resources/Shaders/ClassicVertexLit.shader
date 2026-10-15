@@ -50,7 +50,8 @@ Shader "DK2/Classic Vertex Lit"
 
             struct TorchSource { float4 positionRadiusSquared; float4 colourIntensity; };
             #if defined(DK2_TILE_LIGHT_TABLES)
-            StructuredBuffer<TorchSource> _DK2TileLightSources;
+            struct TileSource { float4 positionRadiusSquared; float3 colour; uint intensityFlags; };
+            StructuredBuffer<TileSource> _DK2TileLightSources;
             StructuredBuffer<uint> _DK2TileLightCounts;
             int _DK2TileLightGridWidth, _DK2TileLightGridCount;
             #else
@@ -65,6 +66,8 @@ Shader "DK2/Classic Vertex Lit"
                 float3 normalOS : NORMAL;
                 float2 uv : TEXCOORD0;
                 float2 tileAnchor : TEXCOORD1;
+                float4 lightBounds : TEXCOORD2;
+                float2 lightKind : TEXCOORD3;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
             struct Varyings
@@ -118,11 +121,11 @@ Shader "DK2/Classic Vertex Lit"
             }
 
             #if defined(DK2_TILE_LIGHT_TABLES)
-            float3 TileLightContribution(float2 anchor, float3 positionWS, float3 normalWS)
+            float3 TileLightContribution(Attributes input, float3 positionWS, float3 normalWS)
             {
                 if (_DK2TileLightGridCount <= 0 || _DK2TileLightGridWidth <= 0) return 0;
                 int tile;
-                if (anchor.y == 1) tile = (int)anchor.x;
+                if (input.tileAnchor.y == 1) tile = (int)input.tileAnchor.x;
                 else
                 {
                     float3 origin = TransformObjectToWorld(float3(0, 0, 0));
@@ -132,14 +135,38 @@ Shader "DK2/Classic Vertex Lit"
                 }
                 if (tile < 0 || tile >= _DK2TileLightGridCount) return 0;
                 uint count = min(_DK2TileLightCounts[tile], 24u);
+                float3x3 basis = (float3x3)GetObjectToWorldMatrix();
+                float3 centre = mul(basis, input.lightBounds.xyz);
+                float3 sampleWS = TransformObjectToWorld(float3(0, 0, 0)) + centre;
                 float3 sum = 0;
                 UNITY_LOOP for (uint slot = 0; slot < count; slot++)
                 {
-                    TorchSource source = _DK2TileLightSources[tile * 24 + slot];
+                    TileSource source = _DK2TileLightSources[tile * 24 + slot];
+                    uint flags = source.intensityFlags >> 8;
+                    float4 colourIntensity = float4(source.colour, (source.intensityFlags & 255u) / 128.0);
                     float3 contribution;
-                    // Unsupported singular inputs contribute nothing in this scoped preview.
-                    if (DK2PointContribution(positionWS, normalWS, source.positionRadiusSquared,
-                        source.colourIntensity, contribution)) sum += contribution;
+                    if (input.lightKind.y == 1)
+                    {
+                        // Native draw scale is uniform; first basis column carries that scalar.
+                        float drawScale = length(mul(basis, float3(1, 0, 0)));
+                        float radius = sqrt(source.positionRadiusSquared.w) + input.lightBounds.w * drawScale;
+                        float3 delta = source.positionRadiusSquared.xyz - sampleWS;
+                        if (dot(delta, delta) >= radius * radius) continue;
+                    }
+                    if (input.lightKind.x == 1)
+                    {
+                        if ((flags & 4u) == 4u) sum += DK2RadialContribution(TransformObjectToWorld(float3(0, 0, 0)),
+                            source.positionRadiusSquared, colourIntensity);
+                        if ((flags & 256u) == 256u && DK2InstancePointContribution(sampleWS, centre,
+                            input.positionOS.xyz, input.normalOS, basis, source.positionRadiusSquared,
+                            colourIntensity, contribution)) sum += contribution;
+                    }
+                    else if (DK2PointContribution(positionWS, normalWS, source.positionRadiusSquared,
+                            colourIntensity, contribution))
+                    {
+                        if ((flags & 0x60u) == 0x60u) sum += contribution;
+                        if ((flags & 0xA0u) == 0xA0u || (flags & 1u) == 1u) sum += contribution;
+                    }
                 }
                 return sum;
             }
@@ -155,7 +182,7 @@ Shader "DK2/Classic Vertex Lit"
                 // Native ambient is an RGB addition; Unity's placeholder sky/sun are not native inputs.
                 float3 sum = _DK2AmbientColour;
                 #if defined(DK2_TILE_LIGHT_TABLES)
-                sum += TileLightContribution(input.tileAnchor, position.positionWS, normalWS);
+                sum += TileLightContribution(input, position.positionWS, normalWS);
                 #endif
                 if (_DK2InitialAmbientPreview < .5)
                 {

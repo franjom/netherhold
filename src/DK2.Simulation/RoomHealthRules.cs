@@ -101,6 +101,7 @@ public static class RoomHealthRules
         foreach (int index in SlabChain.Order(world, room))
         {
             ref TileState tile = ref world.TileAtIndex(index);
+            tile.SetExploredBy(playerId);
             if (tile.OwnerPlayerId == playerId) continue;
             tile.OwnerPlayerId = playerId.Value;
             context?.RequestEffect("RoomHealth", ViewEffectRequest.AtTileCentre(new EffectId(8), playerId,

@@ -217,6 +217,7 @@ public static class RoomRules
         tile.Health = terrain.StartingHealth;
         if (!terrain.IsTaggable) tile.TaggedBy = PlayerMask.None;
         if (terrain.IsOwnable) tile.OwnerPlayerId = playerId.Value;
+        tile.SetExploredBy(playerId);
 
         // A tile on its own is a one-tile room, whose Prison slot +0x09 turns Activation on
         // (0x004E2B30). Joined to a room, it takes that room's door byte (SlabChain.Added).
@@ -271,6 +272,7 @@ public static class RoomRules
     public static int Unmake(GameDatabase database, ref TileState tile)
     {
         byte revertsTo = BridgeRules.RevertsTo(database, tile);
+        byte oldTerrain = tile.TerrainId;
         TerrainDef next = database.TerrainById(revertsTo);
 
         tile.TerrainId = revertsTo;
@@ -282,6 +284,7 @@ public static class RoomRules
         // (0x0044FDBF, Q514); keeping a stale byte was a four-month defect (Q95, ADR-0045).
         // The bridge marker returns to its default: the bridge that recorded the hazard is gone.
         if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Neutral;
+        DiscoveryRules.TerrainChanged(database, ref tile, oldTerrain);
         tile.Flags = BridgeRules.SpansWater;
 
         int displaced = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));

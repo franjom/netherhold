@@ -1,5 +1,55 @@
 # Unity crowd performance probe
 
+## Windowed Level8 frame capture
+
+`run-window-frames.ps1` uses the already prepared, isolated
+`D:/DungeonKeeperRemake/build/step5-lighting-project`. It builds a Development
+player from a scratch copy of the production Dungeon scene, then runs that player
+without `-batchmode` or explicit render requests. By default the launcher starts
+it hidden and applies `SW_HIDE` only to windows belonging to that process. This
+default mode never shows, focuses or activates a window. The owner project and
+its open editor are untouched.
+No other intensive job should run during the capture.
+
+The production DungeonRunner loads Level8, seed1, fog off, normal torch lighting,
+Classic Vertex Lighting on and Native Initial Ambient off. Speed0 preserves the
+startup tick while the normal Update/presentation and screen-render loops run.
+VSync and the frame cap are disabled, and background execution is enabled.
+After ten seconds of warmup per view it records 120 frames at the initial Heart
+focus, then at the centre of the densest 13x13 authored-torch region. This profiles
+a fixed world rather than active gameplay or a population/combat stress scenario.
+
+```powershell
+& tools/classic-unity-probe/run-window-frames.ps1
+python tools/classic-unity-probe/summarize-window-frames.py <run-directory>
+```
+
+For interactive profiling, a user at the computer can explicitly run
+`run-window-frames.ps1 -VisiblePlayer`. Only this opt-in launches a normal visible
+player window and skips window hiding. The default remains hidden; no visible
+run was used for the automated hidden-window diagnostic.
+
+Each output contains CSV, metadata, source/DLL fingerprints, logs, the launcher's
+own-window hide count, and two screen PNGs. Exactly 120 sampled-frame main-camera
+render callbacks per view are required for verified rendering; warmup callbacks do
+not count. Player exit2 retains both view diagnostics with `RenderingVerified=False`
+and makes the launcher fail.
+Those loop/counter values do not describe rendered frame performance. The summary
+reports valid sample counts, median and p95. Inspect the PNGs to verify geometry.
+Hidden-window occlusion can suppress presentation or GPU timing on some drivers;
+render callbacks alone do not establish GPU timing availability. Unavailable or
+zero GPU times are NaN in CSV and null in the summary, never a zero-cost claim.
+
+FrameTimingManager returns recent completed frames with a four-frame delay.
+Only a changed frame-start timestamp contributes a fresh timing sample; recorder
+and timing rows are not synchronized traces. Frame timings and converted profiler
+time counters are milliseconds; allocations/memory are bytes. No submission
+stopwatch is labelled GPU time. Development instrumentation and hidden-window
+scheduling limit comparisons with an ordinary visible release player.
+API references: [frame timing availability](https://docs.unity3d.com/Manual/frame-timing-manager.html),
+[Windows Frame Timing Stats](https://docs.unity3d.com/Manual/playersettings-windows.html),
+[profiler counters](https://docs.unity3d.com/Manual/profiler-counters-reference.html).
+
 Run from the classic worktree after syncing its simulation/art DLLs:
 
 ```powershell
@@ -35,8 +85,9 @@ Each process has a twenty-minute timeout. Keep other intensive jobs idle during
 captures; compare metadata and worktree snapshots before comparing timings.
 
 CSV `draw200_ms` times production clock, sampling, conversion, `SetVertices`
-and `RecalculateBounds` together. `draw_gc_bytes` counts managed allocations on
-that thread within the same interval. Development marker counters separately
+and `RecalculateBounds` together. Historical `draw_gc_bytes` values used an
+uncalibrated per-thread allocation meter and are unverified; see [TRAPS.md](../../docs/TRAPS.md).
+Development marker counters separately
 report sampling/conversion and upload/bounds; these are nested inside draw time.
 The mesh upload marker measures CPU submission, not asynchronous GPU execution.
 `render_submission_ms` times synchronous URP request submission; GPU work can
@@ -78,8 +129,9 @@ lights, postprocessing, and visible torch counts. Change only camera position/ya
 when checking torch loss. Screenshots require a matching original-game view.
 Use unity/README.md's existing quiet/busy Level8 profiling protocol for CPU/GPU,
 frame-time distribution, allocations and draw calls; do not call submission time GPU time.
-As of 2026-10-14, Step5 whole-map runtime captures remain pending (2026-10-15); Unity launches
-are authorized again. The controlled lighting fixtures in
+Windowed player captures and their performance limits are recorded in
+[Step5 verification](../../docs/research/classic-lighting-verification.md).
+Matched original-game visual acceptance remains pending. The controlled fixtures in
 [classic-lighting.md section7](../../docs/research/classic-lighting.md#7-opt-in-unity-integration)
 do not replace that baseline.
 
@@ -94,8 +146,9 @@ motion-preserving replacement. Both alternatives are isolated probe code.
 
 2026-10-11, final working-tree animation sources and synced DLLs, HEAD
 `2af2488e`, AMD Ryzen 7 7735HS, integrated AMD Radeon Graphics, Direct3D12,
-Ultra quality. Each row has 600 warmed frames and zero animation-call allocation
-in every sample. PNG inspection and counters confirm 200 creatures and matching
+Ultra quality. Each row has 600 warmed frames; its scoped animation-allocation
+readings lack meter calibration and do not establish zero allocation.
+PNG inspection and counters confirm 200 creatures and matching
 39,080 Imp / 44,480 Giant triangles across representations. Values are median /
 p95 milliseconds; memory is median Unity live used memory in decimal MB.
 

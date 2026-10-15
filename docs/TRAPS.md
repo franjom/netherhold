@@ -7,6 +7,12 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Unity 6000.6 Mono's per-thread allocation meter reports 0 for a live 64KiB allocation; calibrate before claiming zero, and do not treat GC.Alloc's TimeNanoseconds recorder as bytes.
+
+- Reset mesh UV channels with explicit zero arrays after GPU fixtures; clearing them to empty can retain stale stream values after another UV channel changes.
+
+- Context-mode 1.0.169 can fail with missing better-sqlite3; use bounded native reads until its dependency is repaired.
+
 - D3D12 skips draws with an unbound declared StructuredBuffer even behind a runtime-disabled branch; use shader variants to omit inactive buffer resources.
 - Recentring a probe's Mesh.vertices around a moved Transform needs RecalculateBounds after each replacement; stale local bounds can cull unchanged world geometry.
 - Edit-mode world probes must explicitly prepare runtime transparent batches; an opaque capture can otherwise omit blended terrain entirely.

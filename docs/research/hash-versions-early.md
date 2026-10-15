@@ -1,6 +1,12 @@
 # Early state-hash versions
 
-Versions 9–51, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–52, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**52** — `0xB5C88C09424100AD`. `PlayerState.KilledByPlayerId`, the keeper
+that defeated this one (`player+0x132`), read by condition type 47. Nothing sets it:
+no keeper can be defeated yet, so it is always zero and the condition always false —
+which is DK2's own answer for a living keeper. Hashed anyway, because a field the
+simulation can be *given* is testable where a hardcoded false is not (ADR-0116).
 
 **51** — `0x5C6A03ED5BD250BC`. `PlayerState.GoldMined`, the
 counter behind trigger condition type 31 (ADR-0112). Composition: the fixture

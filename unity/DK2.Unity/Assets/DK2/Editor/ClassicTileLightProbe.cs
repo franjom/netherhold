@@ -41,7 +41,8 @@ namespace DK2.Unity.Editor
         [StructLayout(LayoutKind.Sequential)] private struct SourceEntry
         {
             public Vector4 PositionRadiusSquared;
-            public Vector4 ColourIntensity;
+            public Vector3 Colour;
+            public uint IntensityFlags;
         }
 
         [MenuItem("DK2/Classic look/Verify preselected tile light tables on GPU")]
@@ -160,6 +161,10 @@ namespace DK2.Unity.Editor
                 buffer.Set(redTable); buffer.Set(blueTable); buffer.Flush();
                 RecordPublication(result, buffer, 4);
                 Check(result, Draw(camera, target, readback), Expected(red, corners[0]));
+                buffer.Remove(new TilePos(1, 1)); buffer.Flush();
+                Check(result, Draw(camera, target, readback), new Color(0, 0, 0, 1));
+                buffer.Set(redTable); buffer.Flush();
+                VerifyClassifiedInstance(result, surface, mesh, redTable, buffer, camera, target, readback, corners);
                 var duplicateSource = new GameObject("URP point must not double count") { layer = 31 };
                 duplicateSource.transform.SetParent(root.transform);
                 duplicateSource.transform.position = new Vector3(2.5f, 1, -1.5f);
@@ -183,6 +188,11 @@ namespace DK2.Unity.Editor
                 // Only the last slot contributes, exposing truncation or a highest-tile offset error.
                 fullTable.RebuildDynamic(Enumerable.Repeat(Source(0, 0, 0), 23).Append(red).ToArray());
                 buffer.Set(fullTable); buffer.Flush();
+                var last = new SourceEntry[1];
+                ((GraphicsBuffer)typeof(ClassicTileLightBuffer).GetField("_sources", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .GetValue(buffer)).GetData(last, 0, 8 * 24 + 23, 1);
+                if (fullTable.Count != 24 || last[0].IntensityFlags != (64u | ((uint)ClassicLightFlags.CheapTorch << 8)))
+                    throw new InvalidOperationException($"Full fixture publication: {fullTable.Count} sources, last flags {last[0].IntensityFlags:X}.");
                 mesh.uv2 = Enumerable.Repeat(new Vector2(8, 1), 4).ToArray();
                 Check(result, Draw(camera, target, readback), Expected(red, corners[0]));
                 // No anchor: select tile(1,1) from object origin even though its vertices are in tile(2,1).
@@ -257,6 +267,94 @@ namespace DK2.Unity.Editor
             finally { Object.DestroyImmediate(bootstrap); }
         }
 
+        private static void VerifyClassifiedInstance(Result result, GameObject surface, Mesh mesh,
+            ClassicLightTable table, ClassicTileLightBuffer buffer, Camera camera, RenderTexture target,
+            Texture2D readback, Vector3[] corners)
+        {
+            foreach (ClassicLightFlags flags in new[] { ClassicLightFlags.None, (ClassicLightFlags)0x20,
+                (ClassicLightFlags)0x40, (ClassicLightFlags)0x80, (ClassicLightFlags)1,
+                ClassicLightFlags.AnimatedRadial, ClassicLightFlags.InstancePoint, ClassicLightFlags.Terrain,
+                ClassicLightFlags.CheapTorch, ClassicLightFlags.NormalTorch })
+            {
+                ClassicPointLight source = ClassicPointLight.FromTorch(
+                    new TorchView(0, default, 10240, 6144, 4096, 0, 80, 60, 40, 16, 8192, default), flags);
+                table.RebuildStatic(new[] { source }); buffer.Set(table); buffer.Flush();
+                bool staticSelected = (((uint)flags & 0x60) == 0x60) || (((uint)flags & 0xA0) == 0xA0) || (((uint)flags & 1) == 1);
+                Check(result, Draw(camera, target, readback), staticSelected ? Expected(source, corners[0]) : new Color(0, 0, 0, 1));
+                foreach (Vector3 scale in new[] { Vector3.one, new Vector3(1.3f, .7f, 1.1f) })
+                {
+                    surface.transform.SetPositionAndRotation(new Vector3(1.5f, 0, -1.5f), Quaternion.Euler(0, 37, 0));
+                    surface.transform.localScale = scale;
+                    Matrix4x4 matrix = surface.transform.localToWorldMatrix;
+                    Vector3 origin = new Vector3(.13f, .08f, -.09f);
+                    Vector3 centre = matrix.MultiplyVector(origin);
+                    Vector3 sample = surface.transform.position + centre;
+                    Vector3 localNormal = new Vector3(0, .6f, 0);
+                    Vector3[] vertices = corners.Select(p => matrix.inverse.MultiplyPoint3x4(p)).ToArray();
+                    mesh.vertices = vertices; mesh.normals = Enumerable.Repeat(localNormal, 4).ToArray();
+                    mesh.SetUVs(2, Enumerable.Repeat(new Vector4(origin.x, origin.y, origin.z, .8f), 4).ToList());
+                    mesh.SetUVs(3, Enumerable.Repeat(Vector2.one, 4).ToList()); mesh.RecalculateBounds();
+                    Color[] expected = new Color[4];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        NVector3 value = NVector3.Zero;
+                        if ((flags & ClassicLightFlags.AnimatedRadial) != 0)
+                        {
+                            float d2 = NVector3.DistanceSquared(source.Position, N(surface.transform.position));
+                            int bin = (int)Math.Round(d2 * 16.0 - .49999, MidpointRounding.ToEven);
+                            float r2 = source.Radius * source.Radius;
+                            if (d2 < r2) value += source.Colour * Mathf.Min(1,
+                                (.25f + 16f / bin) * (r2 - d2) * source.Intensity * (1f / r2));
+                        }
+                        if ((flags & ClassicLightFlags.InstancePoint) != 0)
+                        {
+                            Matrix4x4 transpose = matrix.transpose;
+                            var basis = new System.Numerics.Matrix4x4(transpose.m00, transpose.m01, transpose.m02, 0,
+                                transpose.m10, transpose.m11, transpose.m12, 0, transpose.m20, transpose.m21, transpose.m22, 0, 0, 0, 0, 1);
+                            value += ClassicInstancePointLight.Sample(source, N(sample), basis)
+                                .ContributionAt(N(vertices[i] - centre), N(localNormal));
+                        }
+                        expected[i] = new Color(Pack(value.X), Pack(value.Y), Pack(value.Z), 1);
+                    }
+                    // Tiny symmetric quad: centre readback is the interpolated packed vertex colour.
+                    Check(result, Draw(camera, target, readback), (expected[0] + expected[2]) * .5f);
+                }
+                surface.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity); surface.transform.localScale = Vector3.one;
+                mesh.vertices = corners; mesh.normals = Enumerable.Repeat(Vector3.up, 4).ToArray();
+                mesh.SetUVs(2, Enumerable.Repeat(Vector4.zero, 4).ToList());
+                mesh.SetUVs(3, Enumerable.Repeat(Vector2.zero, 4).ToList()); mesh.RecalculateBounds();
+            }
+            ClassicPointLight radial = ClassicPointLight.FromTorch(
+                new TorchView(0, default, 10240, 6144, 4096, 0, 80, 60, 40, 16, 8192, default), ClassicLightFlags.AnimatedRadial);
+            table.RebuildStatic(new[] { radial }); buffer.Set(table); buffer.Flush();
+            foreach (float scale in new[] { 1f, 2f })
+            {
+                surface.transform.position = new Vector3(1.5f, 0, -1.5f);
+                surface.transform.localScale = Vector3.one * scale;
+                mesh.vertices = corners.Select(surface.transform.InverseTransformPoint).ToArray();
+                mesh.SetUVs(3, Enumerable.Repeat(Vector2.one, 4).ToList());
+                foreach (float inside in new[] { 0f, .01f })
+                {
+                    Vector3 sample = new Vector3(2.5f + 2f + .5f * scale - inside, 1, -1.5f);
+                    Vector3 origin = surface.transform.InverseTransformPoint(sample);
+                    mesh.SetUVs(2, Enumerable.Repeat(new Vector4(origin.x, origin.y, origin.z, .5f), 4).ToList());
+                    mesh.RecalculateBounds();
+                    float d2 = NVector3.DistanceSquared(radial.Position, N(surface.transform.position));
+                    int bin = (int)Math.Round(d2 * 16.0 - .49999, MidpointRounding.ToEven);
+                    float factor = Mathf.Min(1, (.25f + 16f / bin) * (4 - d2) * radial.Intensity / 4);
+                    Color expected = inside == 0 ? new Color(0, 0, 0, 1)
+                        : new Color(Pack(radial.Colour.X * factor), Pack(radial.Colour.Y * factor), Pack(radial.Colour.Z * factor), 1);
+                    Check(result, Draw(camera, target, readback), expected);
+                }
+            }
+            surface.transform.position = Vector3.zero; surface.transform.localScale = Vector3.one;
+            mesh.vertices = corners; mesh.SetUVs(2, Enumerable.Repeat(Vector4.zero, 4).ToList());
+            mesh.SetUVs(3, Enumerable.Repeat(Vector2.zero, 4).ToList()); mesh.RecalculateBounds();
+            table.RebuildStatic(new[] { Source(180, 50, 20) }); buffer.Set(table); buffer.Flush();
+        }
+
+        private static NVector3 N(Vector3 value) => new NVector3(value.x, value.y, value.z);
+
         private static void RecordPublication(Result result, ClassicTileLightBuffer buffer, int tile)
         {
             result.PublishedWidth = Shader.GetGlobalInt("_DK2TileLightGridWidth");
@@ -272,7 +370,10 @@ namespace DK2.Unity.Editor
                 .GetField("_sources", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(buffer);
             sourceBuffer.GetData(source, 0, tile * ClassicLightTable.MaximumSources, 1);
             result.FirstSourcePositionRadius = source[0].PositionRadiusSquared;
-            result.FirstSourceColourIntensity = source[0].ColourIntensity;
+            result.FirstSourceColourIntensity = new Vector4(source[0].Colour.x, source[0].Colour.y,
+                source[0].Colour.z, (source[0].IntensityFlags & 255) / 128f);
+            if (Marshal.SizeOf<SourceEntry>() != 32 || source[0].IntensityFlags != (64u | ((uint)ClassicLightFlags.CheapTorch << 8)))
+                throw new InvalidOperationException("Source ABI must retain authored intensity and source classification in 32 bytes.");
             if (result.PublishedWidth != 3 || result.PublishedTiles != 9 || result.PublishedSelectedSources != 1 || !result.TableKeyword)
                 throw new InvalidOperationException("Selected table publication does not match the supplied fixture.");
         }

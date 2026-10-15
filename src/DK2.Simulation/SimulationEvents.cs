@@ -19,6 +19,7 @@ public readonly record struct SimEvent(GameTick Tick, string System, string Kind
 {
     public RoomConstructionEffect? ConstructionEffect { get; init; }
     public ViewEffectRequest? EffectRequest { get; init; }
+    public SightRegionRequest? SightRegion { get; init; }
     public override string ToString() => $"{Tick} [{System}] {Kind}: {Detail}";
 }
 

@@ -9,7 +9,7 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>Sight of Evil as a simulation cast with an empty effect (ADR-0352): the position
+/// <summary>Sight of Evil's simulation cast and temporary presentation request: the position
 /// permission <c>0x004BB8A0</c> (location 5, target 4), then <c>0x004BBD30</c>'s payment and both
 /// clocks. Its shot's process 25 only draws the local player's region (keeper-spell-sight.md §2).</summary>
 public sealed class SightOfEvilCastTests
@@ -50,13 +50,15 @@ public sealed class SightOfEvilCastTests
     private static ISimulationSystem[] Systems() => [new KeeperSpellSystem(), new ShotSystem()];
 
     [Fact]
-    public void ACastOnRockPaysOnceStampsBothClocksAndMakesNothing_StronglyInferredFromBinary()
+    public void ACastOnRockPaysOnceAndRegistersSightOnTheShotsFirstUpdate()
     {
         // Location 5 admits anything, so a rival's rock or a solid tile is a place.
         var (db, world) = Setup();
         world.Tile(At).TerrainId = Dk2TerrainFixture.Rock;
         world.Tile(At).OwnerPlayerId = Rival;
         var sim = new GameSimulation(db, world, 1, Systems());
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
         sim.Run(7);
 
         sim.Tick(InputFrame.Of(Cast()));
@@ -64,7 +66,15 @@ public sealed class SightOfEvilCastTests
         Assert.Equal((40000, 5000), (world.Player(Keeper).Mana, world.Player(Keeper).OneShotManaSpent));
         AvailabilityState row = Assert.Single(world.Player(Keeper).Availabilities);
         Assert.Equal((7L, 7L), (row.LastCastTick, row.LastCheckedTick));
-        Assert.Empty(world.Shots);
+        Assert.Equal(63, Assert.Single(world.Shots).Health);
+        SimEvent registration = Assert.Single(events.Events, e => e.SightRegion is not null);
+        Assert.Equal(new GameTick(7), registration.Tick);
+        Assert.Equal(Keeper, registration.SightRegion!.Value.Viewer.Value);
+        Assert.Equal(At, registration.SightRegion.Value.Position);
+        Assert.Equal(64, registration.SightRegion.Value.DurationTicks);
+        Assert.Equal(5, registration.SightRegion.Value.RadiusTiles);
+        sim.Run(5);
+        Assert.Single(events.Events, e => e.SightRegion is not null);
         Assert.Empty(world.Objects);
     }
 

@@ -15,7 +15,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**260** — `0x3B8EB7DC25B669E3`. A level's VARIABLES id 77 records set creature definition fields (ADR-0491): Level 1's Lord of the Land Threat 125 and MeleeDamage 200, Level 4's Threat 150; no new saved field. The fixture has no level variables, so only the version moves the pin.
+**261** — `0xFD8573748CE724A2`. A level's VARIABLES id 77 records set creature definition fields (ADR-0491): Level 1's Lord of the Land Threat 125 and MeleeDamage 200, Level 4's Threat 150; no new saved field. The fixture has no level variables, so only the version moves the pin.
+
+**260** — `0xBC2CC79AE5E4E213`. Exploration is saved and hashed alongside master's navigation stamps.
+See `fog-reveal-sources.md`. Snapshot format is260.
 
 **259** — `0xC8D3AFFC7D3F1C08`. A hero party's members stand on their spawn tile's corner, the tile times 4096, as `0x00519F90` places them, not its centre; a 3x1 gate's step-off keeps its tile centre (ADR-0490); no new saved field. The fixture raises no party, so only the version moves the pin.
 
@@ -390,10 +393,4 @@ type 73). Nothing writes either: no keeper here slaps or possesses, so both are
 truly zero rather than stubbed, and the conditions read state instead of answering
 a constant — the same reasoning as version 52's `KilledByPlayerId` (ADR-0121).
 
-**52** — `0xB5C88C09424100AD`. `PlayerState.KilledByPlayerId`, the keeper
-that defeated this one (`player+0x132`), read by condition type 47. Nothing sets it:
-no keeper can be defeated yet, so it is always zero and the condition always false —
-which is DK2's own answer for a living keeper. Hashed anyway, because a field the
-simulation can be *given* is testable where a hardcoded false is not (ADR-0116).
-
-[Versions 9–51](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–52](hash-versions-early.md) retain the earlier pins and their reasons.

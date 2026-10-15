@@ -1,28 +1,26 @@
 # Classic vertex lighting
 
 Source: retail v1.70 DKII.EXE, Ghidra whole reads, 2026-10-14/15.
-Existing material/terrain inputs are in kmf-materials.md, tag-highlight.md,
-wall-pieces.md and wall-torches.md; this note owns their newly traced light helper.
+Existing inputs: kmf-materials.md, tag-highlight.md, wall-pieces.md and wall-torches.md.
 
 ## 1. Point-light contribution
 
-STRONGLY INFERRED: 0x0057BF00 is a point-light accumulator, not a colour
-clamp/packer. It loops over the supplied light list and computes distance
-squared from the vertex to each light. Outside the light's squared radius
+STRONGLY INFERRED: 0x0057BF00 accumulates point lights. It computes squared
+distance from each source to the vertex. Outside the light's squared radius
 it adds nothing. Inside, it multiplies the light-direction/vertex-normal dot
 product by a light-specific coefficient; negative-facing contributions are skipped.
 It combines that factor with a lookup-table value, remaining
 squared radius and another light coefficient. The resulting contribution
 factor is capped at one, then the light's RGB is added to the running colour.
-This caps one light's contribution; it does not clamp the accumulated RGB.
+This caps each contribution without clamping accumulated RGB.
 
 The vertex loop 0x0057B6D0 initializes colour from vertex light, material
 brightness, instance tint and global ambient, then calls this helper with
 the vertex position and normal before handing colour/UV to a render sink.
 The original sum remains documented in tag-highlight.md section6.
 
-The coefficient/lookup reads are resolved in section5 and vertex RGB packing
-in section6. Downstream framebuffer transfer, native-versus-URP response and
+Coefficient/lookup reads are resolved in section5, vertex RGB packing in section6.
+Downstream framebuffer transfer, native-versus-URP response and
 matched-frame brightness remain open.
 
 ## 2. Terrain instance colour
@@ -39,13 +37,20 @@ the channel boost follows that check. Our complete-record reader exposes the
 authored bytes and computes the boosted value separately; overlay writing
 preserves those bytes without baking flags into them.
 
-The whole-room and room-wall consumers are documented in
-room-floors-and-liquids.md section2 and wall-pieces.md section2. The adapter
-adds those confirmed tints through texture-weighted URP emission on materials
-that support emission, sharing variants by source material and RGB. It retains
-the existing tag addition. Room quarters, plain terrain lighting and unlit
-materials and special gate wall builders are outside this scoped tint application. This restores a missing
-input, not final colour-transfer or matched-lighting parity.
+CONFIRMED (cached binary instructions, 2026-10-15): piece builders copy the
+low byte of each runtime ambient word into the piece RGB bytes. A boosted265
+therefore becomes9, not a saturated255 or an HDR265. This narrowing belongs to
+piece tint only; terrain point-light RGB retains its word channels.
+`ClassicTerrainTint.PieceColour` reproduces it at material publication.
+Normal and DoubleQuad room quarters receive ambient tint; Quad quarters do
+so only for Wooden Bridge over lava (0x00443979..0x00443996,
+0x00443A66..0x00443AC8, repeated for every quadrant). Whole room pieces and
+general room walls retain their documented tint sources. Plain terrain pieces
+also receive their ambient tint. `TerrainChunks` publishes these through shared
+texture-weighted emission variants, with tags replacing instance tint.
+Additive materials already supply white diffuse, so nonnegative additional tint
+cannot change their saturated native RGB; their unlit variants remain shared.
+Special gate wall tint and final colour transfer remain outside this application.
 
 ## 3. Local light lists
 
@@ -65,7 +70,13 @@ Its callers include animated mesh-part draw
 `+0x6C` (the animated preparation's0x100 sources). It copies the draw's3x3
 matrix verbatim through `0x00582140`, without inverse-scale adjustment.
 Sampling uses draw translation plus the model bounds centre transformed as a
-row vector; each vertex displacement subtracts that transformed centre.
+row vector. Projection callbacks0x0058ACB0/0x0058AD10 transform into temporary
+stack storage and leave the evaluated local vertex untouched. The incidence
+displacement subtracts the transformed centre from that local vertex; it is
+not a world-space vertex minus the sample position.
+Animation loader0x0057DAD0 and constructor0x0057E2A0 copy the file Origin to
+model+0x10/+0x14/+0x18 and BoundsScale to+0x0C. These match the decoded frame
+metadata; geometryScale is a separate subsequent float.
 
 CONFIRMED (consumer `0x0057C190`, assembly and whole reads, 2026-10-15):
 let `d = transformedToLight - vertexDisplacement`. It computes
@@ -75,11 +86,17 @@ Each factor caps at1 before RGB addition; the sum remains uncapped. No
 direction or normal normalization occurs here. Positive incidence with bin0
 infinity reaches full RGB; zero incidence times infinity raises x87 invalid,
 with the same unresolved exception-mask boundary as section5.
-This supports an explicit position/matrix/displacement/normal reference,
-not an automatic Unity mode or transform publisher. `ClassicInstancePointLight`
-implements this reference, including the explicit singular boundary. Terrain loops
-`0x0057B6D0/0x0057B0E0` instead copy sources through `0x0057BCB0` using instance
-mask `+0x2C`; that mask's producer/classification remains unaudited.
+`ClassicInstancePointLight` implements the sampled reference and its singular boundary.
+Animated preparation sends flag4 lights to0x0057C080 at draw translation,
+adding uniform RGB without a normal term. Its
+factor is `L[n]*(radius²-d²)*intensity/radius²`, capped at1 per source. Terrain loops
+`0x0057B6D0/0x0057B0E0` copy sources through `0x0057BCB0` using instance
+mask `+0x2C`. Preparation0x0057AFF0 selects all-bits0x60 sources into+0x24,
+precomputes their vertex light, and stores all-bits0xA0 selection at+0x28.
+Update0x0057AC10 selects all-bits0x01 sources and ORs+0x28 into+0x2C.
+Thus static drawing combines cached0x60 light with0xA0/0x01 light; animated
+0x100/0x04 selection is a separate path. Selection-cache invalidation and exact
+floating-point addition order remain requirements for an equivalent publisher.
 
 CONFIRMED: initializer 0x0043A1E0 stores both current and base ushort RGB,
 uint radius and byte intensity separately. Radius above 10111 becomes 10112.
@@ -175,62 +192,53 @@ and negative input behavior remains outside the ordinary RGB contract.
 
 The Classic Vertex Lighting Inspector preview uses the section5 torch response
 and section6 ordinary nonnegative diffuse packing before texture modulation.
-Its universal per-vertex torch evaluation covers the animated Cheap Lighting
-vertex arm, not that draw type's default mode; section9 owns the selector.
-It retains URP light selection and shadows. A tile-indexed GPU buffer carries
-native torch inputs; changed entries upload on presenter Flush, Clear removes
-entries for resync, and runner destruction disposes the buffer. The buffer
-assumes one active DungeonScene, matching the current renderer.
+Its legacy per-vertex torch diagnostic does not match either animated native
+arm; the supplied tile-table shader uses section3's classified responses.
+The legacy diagnostic retains URP light selection. Ordinary publication instead
+uses native visibility and selected tile tables, including terrain sources.
+Changed entries upload, Clear removes them for resync, and runner destruction
+disposes buffers. Globals assume one active DungeonScene.
 
 URP's screen-cluster lookup is used only for vertices inside the viewport and
 beyond the near plane. Other vertices iterate the bounded visible-light array;
 they cannot safely use a fragment-oriented screen-tile lookup. Ordinary Forward
 uses its per-object list. This fallback needs runtime performance measurement.
 
-The initial-ambient diagnostic follows section8; the ordinary preview retains
-its scene lighting fallback until native fill sources are supplied. Non-torch
-point lights and zero-incidence singular-bin cases also use URP response. These are explicit
-preview limits, not confirmed original behavior. Framebuffer transfer, shadows,
-local-light selection parity and original global-light producers remain open.
+The initial-ambient diagnostic follows section8; the accepted brighter preview
+retains its scene lighting fallback. Selected-table lighting excludes unrelated
+URP punctual lights. Singular zero-incidence remains outside the native contract;
+framebuffer transfer and matched original brightness remain open.
 The preview stays disabled by default pending rendered comparisons.
 
-Verification (2026-10-15): 348 presentation tests and adapter compilation pass.
-The shared HLSL arithmetic probe passes; the actual URP camera probe passes
-seven cases (native response, shifted camera, placeholder sun, offscreen vertices,
-remove, repopulate, clear)
-with SRP Batcher enabled and maximum error below0.000001. These are controlled
-fixtures, not matched original-game frames or whole-map performance evidence.
-Reproduce through the Editor menu DK2 / Classic look / Verify native lighting
-on GPU and Verify native lighting through URP; batch entry points are
-`DK2.Unity.Editor.ClassicLightingProbe.Run` and
-`DK2.Unity.Editor.ClassicLightingRenderProbe.Run` (omit `-quit` for the latter).
-Neither saves the owner's scene or project settings. Behind-near-plane vertex
-coverage remains pending.
+Controlled GPU results, campaign captures and CPU measurements are maintained
+in [classic-lighting-verification.md](classic-lighting-verification.md).
+Legacy arithmetic/camera entry points remain `ClassicLightingProbe.Run` and
+`ClassicLightingRenderProbe.Run` in DK2.Unity.Editor. They do not save owner settings.
 
 ## 8. Initial ambient and the placeholder sun
 
-CONFIRMED (whole reads and callback disassembly, 2026-10-15):
-`0x005747E0` stores each supplied ambient channel multiplied by255 into the
-three globals consumed by the vertex-colour sum. `0x005983C0` calls it with
-zero for all channels after renderer initialization. The initializer
-`0x00574310` first installs temporary ambient values; these are overwritten.
-Callback `0x005986F0` can subsequently change uniform grey ambient when global
-command87 is submitted, clamping its normalized result to0..0.5. That
-control's gameplay producer remains untraced and is not implemented here.
+CONFIRMED (whole reads, callback instructions and writer references, 2026-10-15):
+`0x005747E0` stores supplied RGB multiplied by255 in the vertex-light globals.
+`0x005983C0` calls it with zero after `0x00574310` installs temporary values.
+Those two routines are the only direct writers found for each ambient global;
+the setter's only call references are initialization and `0x005986F0`.
 
-The opt-in initial-ambient diagnostic starts explicit ambient RGB at zero and
-ignores Unity's placeholder directional/sky lights. Material/terrain additions and
-point lights still contribute before packing. This implements the confirmed
-startup input rather than treating the current Unity scene's white sunlight
-as original illumination. It is disabled by default: missing native fill
-sources otherwise leave the upper terrain and Heart arches black. The per-tile
-terrain-light response in section4 and the ambient-control producer remain
-necessary for full scene parity.
+`0x00405010` requests command87 with delta+512 or-512 for the ambient keys.
+The callback computes `a=clamp(((storedAmbient>>12)+delta)/4096,0,0.5)`,
+persists `floor(a*4096)<<12` through `0x005662A0`, then supplies grey RGB(a,a,a).
+Thus each key changes normalized ambient by0.125 until clamped. Graphics
+settings load/reset (`0x00564B00`, `0x00563FB0`) default the `Ambient Light`
+field at+0x4C to512, not40; the preset loader `0x00565CF0` also writes it.
+None of these read settings bodies applies the value to the ambient setter.
+This does not establish every possible indirect startup command or saved setting.
 
-A production Level1 comparison confirms that torches already contributed;
-the reported absence was a visual-contrast difference, not a proved missing
-source. Keep matched-original comparison open; do not label the entire torch
-path broken from that screenshot alone.
+The initial-ambient diagnostic therefore retains zero and excludes Unity's
+placeholder directional/sky lighting; material/terrain additions and point lights
+still contribute. The owner accepted the brighter preview with this diagnostic off.
+Do not substitute an invented startup fill: compare an original initial view and
+the same view after ambient-key presses before attributing black tops/arches to
+missing global ambient. `ClassicAmbientLight` and the adapter's +/− keys implement
+that command math without registry persistence; matched-original parity remains pending.
 
 ## 9. Per-tile terrain point lights
 
@@ -243,8 +251,7 @@ highlight override) before submission at the tile centre. Flags
 `0x8052` lack engine shadow-source flag `0x4000`, so it receives renderer flags4
 before classification, rather than a shadow-source light's flags.
 
-The height copied to position is a 32-bit fixed-point field: loader
-`0x004F66E0` copies intermediate `+0x244` to runtime `+0x1BF` when field-present
+The 32-bit fixed-point height loader `0x004F66E0` copies intermediate `+0x244` to runtime `+0x1BF` when field-present
 word `+0xA8` is nonzero. With the confirmed intermediate shift `+0xB8`, this is
 file offset `+0x18C`, in units1/4096. An absent field leaves the previous runtime
 value intact; its initial default has not been established.
@@ -255,10 +262,11 @@ Thirty terrain tests pass, including signed extremes, depth independence,
 offset-only edits and shipped-file byte identity. The field is not yet submitted
 to the renderer, pending the light-table gathering rule below.
 
-Eligibility is `0x00452DC0`, before source creation: plain terrain needs
-TerrainLight (bit28) and no door. Scanned/unexplored terrain selects either its
-RevealThroughFog terrain or ClaimScan38 before testing TerrainLight. A room
-tile needs byte `+0xC == 0xFF` and TerrainLight on its terrain. The selected
+Eligibility is `0x00452DC0`: actual rooms take precedence and need byte `+0xC == 0xFF`
+and TerrainLight. Plain scanned/unexplored terrain selects RevealThroughFog terrain
+or ClaimScan38, testing TerrainLight without querying doors. Other plain terrain
+uses its actual definition, TerrainLight and no door. The caller admits only explored,
+scanned, Sight-visible or possession-visible tiles; this selector never substitutes Fog27. The selected
 terrain supplies point RGB; its AmbientLight colour remains a separate
 instance-colour input described in room-floors-and-liquids.md and wall-pieces.md.
 That byte is the actual construction piece code, not a universal room-instance
@@ -332,53 +340,40 @@ table does not establish that an explicitly unlit primitive uses every source.
 `0x0057BBF0` then applies required source flags and strict 3D sphere overlap
 `(sourceRadius+drawRadius)^2`, yielding the 32-bit mask consumed downstream.
 Instructions `0x00584B25..0x00584B95` select masks requiring `0x100` and `0x04`;
-the latter feeds the animated preparation's per-vertex point-light copy. Terrain sources classify to
+the latter feeds radial RGB at draw translation through0x0057C080. Terrain sources classify to
 `0x64`, including `0x04`. Wall torch classification depends on global
 `0x00759AF8`: the bridge's input flags `0x12` or `0x14` become `0x1B2` or
 `0x74` through `0x00599BD0`, respectively. The former belongs to the `0x100`
-arm rather than the `0x04` vertex arm. The global is settings object
+arm rather than the `0x04` uniform radial arm. The global is settings object
 `0x00759A78 +0x80`, persisted as `Cheap Lighting`: `0x005666B0` stores and
 saves it, and `0x00564B00` loads it with default zero when the key is absent.
 Thus animated preparation selects the `0x100` arm by default; nonzero Cheap
-Lighting selects its `0x04` vertex arm. A preview evaluating every torch per
+Lighting selects its `0x04` uniform radial arm. A preview evaluating every torch per
 vertex does not reproduce that animated default arm (section3). Terrain's
 source-mask producer remains unaudited. The loader/setter establishes the option
 and missing-key default, not the current owner's installed registry value.
 
 The remaining implementation boundary is native cell visibility/cache
 enumeration; the input source eligibility and gathering itself are now resolved
-(Q597). An unrestricted sum of all nearby authored tiles would bypass both
+(Q597). The projected-region boundary is in [classic-light-visibility.md](classic-light-visibility.md)
+and Q602. An unrestricted sum of all nearby authored tiles would bypass both
 that boundary and the confirmed 12-static/24-total capacity.
 
 `ClassicLightTable` implements the bounded selection core for an assigned tile.
 `ClassicLightWindow` reads explicitly prepared cache cells in the confirmed
 rolling order, without clipping border cells. Its caller resets it before each
-visible enumeration and decides static refresh from the cache stamps; dynamic
-slots always refresh. It does not implement native visibility or dirty-column
-invalidation. Headless cases cover ordered overflow, ring wrap/reset, source-list
-order, static retention, dynamic refresh and zero warm-gather allocations.
-`ClassicPointLight.FromTerrain` converts the confirmed source inputs. The explicit Unity bridge accepts these tables
-(section10); it does not replace that cache/visibility integration or publish
-world sources automatically.
+visible enumeration and supplies typed renderer-frame/build stamps. The window
+applies native dirty-column invalidation, retaining42 list-head snapshots on a
+horizontal advance and querying only seven entering cells; backing storage stays
+stable until Reset. `ClassicWorldLightCache` supplies visibility/preparation. Headless cases
+cover overflow, ring wrap/reset, retained dirty/clean bits, unsigned stamps,
+empty-cell invalidation, dynamic refresh and zero warm-gather allocations.
+`ClassicPointLight.FromTerrain` converts the confirmed source inputs. DungeonScene
+publishes WorldView terrain sources and classified torches through the automatic
+cache, removes tables leaving the view, and reuses visibility geometry until the camera changes.
 
 ## 10. Selected-table Unity verification
 
-The bridge design and whole-grid authority are in ADR-0484. Its supplied-table
-fixture is `DK2.Unity.Editor.ClassicTileLightProbe.Run`; it compares actual URP
-pixels with the headless contribution and RGB packer, and reads back GPU table
-counts/source data. Emission/unlit controls distinguish missing geometry from
-lighting errors; non-finite pixels fail explicitly.
-
-The fixture covers multiple tiles, emitting-tile anchors versus vertex position,
-moving object origins, multiple selected lights, removal, Clear, disposal and
-restored URP punctual fallback, unpublished cells and all24 slots at the highest
-tile index. All17 pixel cases and seven scene lifecycle checks pass, with maximum
-channel error `2.9802322387695313E-08`. The unsupported singular zero-incidence
-bin is skipped under section5's contract. These are controlled point-light cases, not a
-matched-original frame or automatic world-source/classification verification.
-
-The Level8 world probe with `DK2_LIGHTING_VERIFY_ANCHORS=1` validates UV2 tile
-identity per vertex and triangle after batching:127793 opaque,5688 sorted
-transparent and4518 water/lava vertices. Its normal-preview torch on/off
-comparisons pass. Edit-mode captures prepare the runtime transparent batches
-explicitly; the earlier captures without that preparation were incomplete.
+The bridge design and whole-grid authority are in ADR-0484. Current controlled
+fixtures, automatic campaign-source checks, batch anchors and measurement limits
+live in [classic-lighting-verification.md](classic-lighting-verification.md).

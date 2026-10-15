@@ -86,18 +86,17 @@ current camera and lighting implementation is merged through 0ba5efab; remaining
 work continues on classic-look/step5 in D:/DungeonKeeperRemake-classic.
 
 Step 5 milestones and remaining gates: plans/2026-10-14-classic-look-step5.md.
-The camera core and startup view are reviewed and owner-accepted (ADR-0478).
-Authored terrain colours, tag replacement, torch response, tile light buffers
-(ADR-0484), prepared-cell rolling order (ADR-0487) and the animated
-instance-sampled light reference are built and independently reviewed;
-research/classic-lighting.md owns evidence and verification. Animated creature
-silhouettes are built and reviewed (ADR-0482; research/creature-shadows.md).
-The owner accepted the brighter preview with Native Initial Ambient off and
-confirmed Imp shadows (2026-10-15); preserve that setting during integration.
-Native cache visibility/invalidation, automatic lighting modes, the explored
-fog pass, matched-original comparisons and busy-view profiling remain pending.
-Use serial targeted checks to limit CPU load; isolated probes must not save
-or restart an owner's open editor.
+The ordinary camera, automatic native light-cache publication, both animated
+lighting modes, material tints, explored/scanned distinction, Sight fog overlay
+and visibility-filtered torches/effects are implemented and independently reviewed.
+Research and verification: research/classic-lighting.md and its verification link.
+Animated creature silhouettes remain under ADR-0482. Preserve the owner-accepted
+brighter preview with Native Initial Ambient off; +/− now controls native ambient.
+Discovery uses merged snapshot/hash version260; producer/cadence limits are in
+research/fog-reveal-sources.md. Windowed CPU/GPU capture is verified; scoped Unity
+allocation counters failed calibration (see verification). Matched-original
+acceptance remains pending. Use serial checks; isolated probes must not save or
+restart an owner's open editor.
 
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the
 main tree's unity/DK2.Unity for master; restart Play after

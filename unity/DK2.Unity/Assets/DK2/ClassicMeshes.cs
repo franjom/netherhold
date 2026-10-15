@@ -191,6 +191,7 @@ namespace DK2.Unity
                 frameMesh.SetVertices(ToUnity(source.Positions));
                 frameMesh.SetNormals(ToUnity(source.Normals));
                 frameMesh.SetUVs(0, ToUnity(source.Uvs));
+                SetLightBounds(frameMesh, model);
                 frameMesh.subMeshCount = source.Triangles.Count;
                 for (int i = 0; i < source.Triangles.Count; i++)
                     frameMesh.SetTriangles(source.Triangles[i], i, calculateBounds: false);
@@ -269,6 +270,7 @@ namespace DK2.Unity
                 mesh.SetVertices(ToUnity(source.Positions));
                 mesh.SetNormals(ToUnity(source.Normals));
                 mesh.SetUVs(0, ToUnity(source.Uvs));
+                SetLightBounds(mesh, model);
                 mesh.subMeshCount = source.Triangles.Count;
                 for (int i = 0; i < source.Triangles.Count; i++)
                     mesh.SetTriangles(source.Triangles[i], i, calculateBounds: false);
@@ -281,6 +283,24 @@ namespace DK2.Unity
             }
             _built[(asset.InstallEntry, lastFrame)] = built;
             return built != null;
+        }
+
+        private static void SetLightBounds(Mesh mesh, KmfModel model)
+        {
+            bool animated = model.Animation is { IsComplete: true };
+            KmfMesh bounds = animated ? model.Animation.Frames[0] : model.Mesh;
+            if (bounds == null) return;
+            NumericsVector3 centre = RenderMesh.ToRenderFrame(bounds.Origin);
+            var values = new List<Vector4>(mesh.vertexCount);
+            var markers = new List<Vector2>(mesh.vertexCount);
+            for (int i = 0; i < mesh.vertexCount; i++)
+            {
+                values.Add(new Vector4(centre.X, centre.Y, centre.Z, bounds.BoundsScale));
+                markers.Add(new Vector2(animated ? 1 : 0, 1));
+            }
+            // UV2 remains the terrain table anchor; clones retain these authored draw bounds.
+            mesh.SetUVs(2, values);
+            mesh.SetUVs(3, markers);
         }
 
         private Material MaterialFor(KmfMaterial kmf, bool lastTexture = false)
@@ -306,6 +326,8 @@ namespace DK2.Unity
         /// URP's emission (texture × colour) adds as DK2's sum of light does. Shared.</summary>
         public Material Tagged(Material material)
         {
+            // Additive materials already supply white diffuse before native RGB saturation.
+            if (!material.HasProperty("_EmissionColor")) return material;
             if (_tagged.TryGetValue(material, out Material tagged)) return tagged;
             tagged = new Material(material) { name = material.name + " (tagged)" };
             // The tag's light adds to the material's own (its self-illumination, if any).
@@ -320,6 +342,7 @@ namespace DK2.Unity
 
         public Material TerrainTinted(Material material, DK2.Data.Model.TerrainLightColour tint)
         {
+            tint = ClassicTerrainTint.PieceColour(tint);
             if (tint == default || !material.HasProperty("_EmissionColor")) return material;
             if (_tinted.TryGetValue((material, tint), out Material tinted)) return tinted;
             tinted = new Material(material) { name = material.name + " (terrain light)" };
@@ -436,6 +459,8 @@ namespace DK2.Unity
             for (int i = 0; i < source.Length; i++) faded[i] = Faded(source[i], alpha);
             renderer.sharedMaterials = faded;
         }
+
+        public Material SightFog(Material source, byte packedAlpha) => Faded(source, packedAlpha);
 
         private Material Faded(Material source, byte alpha)
         {

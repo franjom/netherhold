@@ -11248,11 +11248,13 @@ after the visible-tile traversal advances horizontally.
 **Decision.** `ClassicLightWindow` reads an explicit prepared-cell provider and
 feeds `ClassicLightTable` without allocating candidate lists. One window follows
 one visible enumeration; its caller resets it at that enumeration's boundary.
-The caller explicitly requests static refresh while dynamic slots always rebuild.
+Unsigned source/table stamps and retained column dirty bits govern static
+refresh; dynamic slots always rebuild. Rolling updates read seven entering
+cells and retain the other42 list heads until the enumeration resets.
 
 **Consequences.** Candidate traversal is engine-neutral and reusable by the Unity
-bridge. Visibility, native stamp/dirty-column invalidation, source classification
-and automatic world publication remain separate integration work. No change to
+bridge. Visibility, cache preparation, source classification and automatic
+world publication remain separate integration work. No change to
 the current preview or simulation.
 ## ADR-0485 — Only a keeper's creatures run the needs, need-anger and mood choosers
 **Date:** 2026-10-15 · **Status:** accepted · Q599
@@ -11365,4 +11367,4 @@ alliances, Q576) stays unbuilt.
 **Consequences.** In our Level 1 seed 1 run the Lord's share is 20, no Goblin flees, and he dies at 1784
 at (15,10), DK2's at 1777 at (15.5,11.9). Levels 1–4, seeds 1–20, against master 3a9ad262:
 17/6/14/1 to 20/6/14/1; Levels 2–4 replay identically (Level 4's Lord does not fight within the
-replay). `HashVersion` 260.
+replay). `HashVersion` 261 (master took 260 first).

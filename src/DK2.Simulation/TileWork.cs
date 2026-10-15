@@ -700,6 +700,7 @@ public static class TileWorkRules
         bool takeOwnership)
     {
         TerrainDef next = database.TerrainById(newTerrainId);
+        byte oldTerrain = tile.TerrainId;
         bool terrainChanged = tile.TerrainId != newTerrainId;
 
         tile.TerrainId = newTerrainId;
@@ -733,6 +734,8 @@ public static class TileWorkRules
         // cannot be owned (0x0044FC40); Level 1's tile triggers read that owner.
         // This also lets a keeper claim the ground dug out of their own wall.
         if (!next.IsOwnable) tile.OwnerPlayerId = PlayerIds.Neutral;
+
+        DiscoveryRules.TerrainChanged(database, ref tile, oldTerrain);
 
         int spilled = Math.Max(0, tile.GoldHeld - GoldStore.Capacity(database, tile));
         tile.GoldHeld -= spilled;

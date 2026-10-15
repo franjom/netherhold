@@ -4,12 +4,13 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// Accumulates the unoccluded scanned circle, with native guards and per-term
-/// fixed-point rounding. The separate explored sight pass remains unbuilt.
+/// Accumulates the occluded explored grid and the unoccluded scanned circle,
+/// with native guards and per-term fixed-point rounding.
 /// This system's per-tick cadence differs from DK2's event-driven requests;
 /// see fog-reveal-sources.md section3.1.
 /// </summary>
@@ -22,6 +23,9 @@ public sealed class FogOfWarSystem : ISimulationSystem
     {
         WorldState world = context.World;
         if (!world.FogOfWarEnabled) return;
+        context.Navigation.Refresh();
+        var blockers = new WorldSight(context.Navigation, world, context.Database);
+        Span<bool> visible = stackalloc bool[225];
 
         foreach (CreatureState creature in world.Creatures)
         {
@@ -31,9 +35,17 @@ public sealed class FogOfWarSystem : ISimulationSystem
                 continue;
 
             TilePos sourceTile = creature.Tile;
+            if (creature.OwnerPlayerId > TileState.MaxTaggingPlayerId) continue;
             if (world.DoorAt(sourceTile.X, sourceTile.Y) is { Open: false }) continue;
 
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+            int sightRadius = Math.Max(2, Math.Min(7, definition.DistanceCanSee.Raw >> 12));
+            DiscoverySight.Fill(blockers, sourceTile, world.Width, world.Height, visible);
+            for (int dy = -sightRadius; dy <= sightRadius; dy++)
+                for (int dx = -sightRadius; dx <= sightRadius; dx++)
+                    if (visible[(dy + 7) * 15 + dx + 7])
+                        DiscoveryRules.SetExplored(world, context.Database,
+                            new TilePos(sourceTile.X + dx, sourceTile.Y + dy), creature.OwnerPlayerId);
             Scan(world, context.Database, creature.OwnerPlayerId,
                 new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)),
                 definition.PerceptionRange);

@@ -128,11 +128,15 @@ Before either pass, a closed door at the source tile ends the update too
    `0x0044E7F0` on entries 1..77 in order: an off-map cell closes its slot range;
    otherwise the cell is visible if any slot in its range (inclusive, wrapping at 256)
    is still open, and then, visible or not, `0x004511A0(x, y, 0, 1)` closes the range
-   if the cell blocks. The whole-body generator read (2026-10-14) resolves byte
-   `+0` as the centre bearing in 256 slots and the key as dx²+dy². Corner bearings
-   provide endpoints; their exact formulas and equal-key ordering still need
-   disassembly validation before implementation. The selected boundary and
-   shipped-radius corner visibility need an original capture. For a
+   if the cell blocks. The generator and sort disassembly (2026-10-15) establish
+   initial order dy=7..-7, dx=-7..7; bearings use `(2dx,-2dy)` and the four corners
+   `(2dx±1,-2dy±1)`, with the angular extremes around the centre as endpoints.
+   `Bearing.Of` reproduces the native angle function; endpoints reduce by `>>3`.
+   For end=224..1, predecessors end-1..0 exchange with end only when its squared
+   distance is smaller. This is not a stable sort. Only the first 78 sorted
+   entries participate, including the centre; some radius-five boundary cells
+   and all four (±4,±4) corners are therefore absent even without blockers.
+   The selected boundary still needs an original capture. For a
    creature the local player does not own, the radius is 1, but only while
    `+0x475` counts down and `+0x476` names the local player (§3.7). Otherwise
    there is no pass.
@@ -302,29 +306,28 @@ and with Q190's "no storage for AI fog".
 
 ## 5. Build plan against our code
 
-Ours: `FogOfWarSystem` reveals `PerceptionRange` circles every tick, for every
-keeper's creatures, into `TileState.DiscoveredBy`. That is ADR-0076's
-per-keeper mask. `WorldView` hides whatever is not in that mask. **That mask is
-DK2's scanned layer, used as if it were the explored layer.** The per-keeper
-mask stays: each DK2 "local player" test becomes "for this keeper", and each
-unconditional writer becomes "for every keeper".
+`TileState.DiscoveredBy` stores scanned state; `ExploredBy` stores explored
+state, both as ADR-0076's per-viewer masks. Merged hash/save schema260 carries both.
+Each DK2 local-player test becomes a viewer-specific mask operation; an
+unconditional writer updates every represented viewer. `WorldView` selects
+terrain 27/38/real terrain from those separate layers; rooms and entities
+require exploration. No distance fog or brightness approximation is applied.
 
 | Source | Hook | State we lack |
 |---|---|---|
-| Split the layers | `TileState`: add an `ExploredBy` mask beside `DiscoveredBy` (scanned). `WorldView` substitutes *Fog Of War* when neither bit is set, *Claim Scan* when only scanned is set, and passes `RevealThroughFogOfWar` terrain when scanned. Hash and snapshot both (HashVersion bump) | none |
-| §3.1 explored square | `FogOfWarSystem`: `DistanceCanSee` in whole tiles, clamped 2..7 | **the 15×15 line-of-sight buffer**: the slot rule is read, the table generator in `0x0044E9E0` (slot ranges, sort key) is not; the `+0x475`/`+0x476` tag |
+| Split the layers | Built: independent masks, hash/snapshot, terrain selection and entity gates | none |
+| §3.1 explored square | Built: `DiscoverySight` reproduces the native table and angular grid; `FogOfWarSystem` applies the clamped `DistanceCanSee` square and `DiscoveryRules` the whole-room cases | the `+0x475`/`+0x476` torture tag |
 | §3.1 scanned circle | Built with exact position, per-term `>>12`, prisoner exclusion and source-tile closed-door guard (2026-10-14). Per-tick cadence and `InHand` exclusion stay ours | none |
-| §3.1 cadence | tile-change and event-driven in DK2, every tick in ours. The same sets result, because both layers only grow except §3.2/§3.6 | possession |
-| §3.2 terrain change | `TileWork.Convert` (and `RoomRules.Place`/`Unmake`, `DefeatRules`): explore for the new owner; un-explore for every other keeper when the old terrain has `UnexploreIfDugByAnotherPlayer` | none. `TerrainFlags` already parses it |
-| §3.3 seed | `WorldState.FromMap`: in skirmish and multiplayer, own tiles plus the non-solid 4-neighbours, `AlwaysExplored`, border cleared; all tiles when fog is off | **game mode** |
-| §3.3 action points | `ThingProjection`: flag `0x10` explores the rectangle for every keeper | none |
+| §3.1 cadence | Tile-change and event-driven in DK2, every tick in ours; this can reveal earlier or re-explore after a clear | native request cadence |
+| §3.2 terrain change | Built in `TileWork.Convert` and `RoomRules.Place`/`Unmake`: ownership reveal and old-terrain re-shroud | remaining direct defeat/script terrain writes |
+| §3.3 seed | `WorldState.FromMap` applies terrain ownership reveal only; the separate mode-gated seed remains unbuilt | game mode, neighbour/flag/border seed |
+| §3.3 action points | Built: `ThingProjection`, flag `0x10`, inclusive rectangle for every viewer | none |
 | §3.4 heart disc | do not build while var 19 is 4 (Q434) | — |
-| §3.5 room owner | the room ownership-change seam in `RoomRules` | none |
-| §3.6 action 17 | `TriggerExecutor`: explore or un-explore the rectangle for every keeper; retires its `Partial` | none |
+| §3.5 room owner | Built: `RoomHealthRules.TransferOwnership` explores each slab for its new owner | remaining direct defeat/script ownership writes |
+| §3.6 action 17 | Built: `TriggerExecutor` explores or un-explores the rectangle for every viewer | none |
 | §3.7 torture | `TortureRules`, when reward 11 is built | the reward table |
 | §3.8, §3.9 | wait for their issuers | the game action, the ability |
 
-**Sequencing.** The split comes first, then §3.2 and §3.3 together. Those three
-explain the owner's 100%-explored territory without any creature. Line of
-sight waits for the ring rule to be read, and until then the explored square
-should stay unbuilt rather than be guessed.
+`WorldState.FromMap` applies the terrain loader's ownership reveal, without
+inventing the separate game-mode seed. Remaining source limitations are listed
+in the table; temporary Sight presentation is separate (`keeper-spell-sight.md`).
