@@ -78,8 +78,10 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly ClassicTorchLightBuffer _torchLights;
+        private ClassicTileLightBuffer _tileLights;
         private readonly ClassicCreatureShadows _creatureShadows;
         private readonly int _worldWidth;
+        private readonly int _worldHeight;
         private readonly ClassicMeshes _classic;
         private readonly TerrainChunks _terrain;
         private readonly LiquidSurfaces _liquids;
@@ -118,6 +120,7 @@ namespace DK2.Unity
             _root = root;
             _lattice = lattice;
             _worldWidth = worldWidth;
+            _worldHeight = worldHeight;
             _classic = classic;
             if (classic != null && creatureShadows) _creatureShadows = new ClassicCreatureShadows(root);
             if (classic != null && classic.UsesClassicVertexLighting)
@@ -532,20 +535,31 @@ namespace DK2.Unity
             light.range = inputs.Radius;
         }
 
-        /// <summary>
-        /// Nothing to do: this target draws one object per thing rather than
-        /// batching. A combined-mesh target would rebuild here, which is why the
-        /// method exists on the interface at all.
-        /// </summary>
+        /// <summary>Stages selected per-vertex point lights for Flush and replaces punctual lighting across the grid.
+        /// Empty/unpublished tiles receive none; caller owns native visibility and classification.</summary>
+        public void SetPointLightTable(ClassicLightTable table)
+        {
+            if (table == null) throw new System.ArgumentNullException(nameof(table));
+            if ((uint)table.Tile.X >= (uint)_worldWidth || (uint)table.Tile.Y >= (uint)_worldHeight)
+                throw new System.ArgumentOutOfRangeException(nameof(table));
+            if (_classic == null || !_classic.UsesClassicVertexLighting)
+                throw new System.InvalidOperationException("Tile point-light tables require classic vertex lighting.");
+            _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
+            _tileLights.Set(table);
+        }
+
+        /// <summary>Uploads changed lighting and terrain batches.</summary>
         public void Flush()
         {
             _torchLights?.Flush();
+            _tileLights?.Flush();
             _terrain?.Flush();
             _liquids?.Animate(Time.time);
         }
 
         public void DisposeLightResources()
         {
+            _tileLights?.Dispose();
             _creatureShadows?.Dispose();
             _torchLights?.Dispose();
         }
@@ -553,6 +567,7 @@ namespace DK2.Unity
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>
         public void Clear()
         {
+            _tileLights?.Clear();
             _torchLights?.Clear();
             _creatureShadows?.Clear();
             foreach (GameObject go in _tiles.Values) if (go != null) Object.Destroy(go);

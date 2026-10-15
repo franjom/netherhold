@@ -16,6 +16,7 @@ public sealed class ClassicLightTable
     private readonly TilePos _tile;
 
     public ClassicLightTable(TilePos tile) => _tile = tile;
+    public TilePos Tile => _tile;
     public int StaticCount { get; private set; }
     public int Count { get; private set; }
     public ReadOnlySpan<ClassicPointLight> Lights => _lights.AsSpan(0, Count);

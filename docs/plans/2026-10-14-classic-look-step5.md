@@ -126,8 +126,12 @@ initial ambient disabled and confirmed visible Imp shadows (2026-10-15).
 Matched-original acceptance and busy-view profiling remain pending. Terrain
 point-light height loading/writing and the bounded light-selection core are built
 and independently reviewed; the presentation suite passes355 cases. Native
-source gathering is resolved in Q597; cache visibility/order and Unity source
-publication remain unbuilt (classic-lighting.md section9).
+source gathering is resolved in Q597. Explicit selected-table Unity publication,
+terrain/transparent/liquid tile anchors and authoritative empty-table handling
+are built and independently reviewed (ADR-0484). GPU and production-scene
+verification are recorded in classic-lighting.md section10. Automatic cache
+visibility/order and lighting-mode publication remain unbuilt; the default
+Cheap Lighting option requires the separate per-object torch arm (section9).
 
 ## 5.5 — Discovery and fog presentation
 

@@ -40,6 +40,12 @@ For the world probe, `DK2_LIGHTING_PROBE_LEVEL` selects `Level1` (default),
 Leave `DK2_NATIVE_AMBIENT_PROBE` unset for the brighter preview, or set it to
 `1` to exercise the incomplete native startup ambient diagnostic.
 
+The developer API `DungeonScene.SetPointLightTable` stages selected point-light
+tables for `Flush`; automatic native world-source publication remains unbuilt
+(ADR-0484). Its GPU check is `DK2.Unity.Editor.ClassicTileLightProbe.Run`, also
+available under **DK2 / Classic look**. Set `DK2_LIGHTING_VERIFY_ANCHORS=1` for
+the world probe to check anchors across terrain, sorted transparency and liquids.
+
 You should get a campaign level as coloured boxes, with its objects, creatures (still, in
 their idle model's first frame) and wall torches drawn from the install's own meshes and
 textures (ADR-0408): walls tall, floors flat, room furniture standing on the floor. Heights

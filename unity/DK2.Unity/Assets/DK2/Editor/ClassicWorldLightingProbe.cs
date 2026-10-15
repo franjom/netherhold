@@ -53,6 +53,7 @@ namespace DK2.Unity.Editor
             public int MeshCount;
             public double ShadowPrepareMedianMs, ShadowPrepareP95Ms;
             public long ShadowPrepareAllocatedBytes;
+            public int AnchoredTerrainVertices, AnchoredTransparentVertices, AnchoredLiquidVertices;
             public int SampledVertices;
             public int FrontFacingInRangePairs;
             public int PositiveNativeContributions;
@@ -109,8 +110,8 @@ namespace DK2.Unity.Editor
             result.NativeInitialAmbient = Environment.GetEnvironmentVariable("DK2_NATIVE_AMBIENT_PROBE") == "1";
             int previousCount = Shader.GetGlobalInt("_DK2TorchGridCount");
             int previousWidth = Shader.GetGlobalInt("_DK2TorchGridWidth");
-            if (previousCount != 0)
-                throw new InvalidOperationException("A live torch buffer is published; the probe will not replace it.");
+            if (previousCount != 0 || Shader.GetGlobalInt("_DK2TileLightGridCount") != 0)
+                throw new InvalidOperationException("A live lighting buffer is published; the probe will not replace it.");
 
             Light[] originalLights = Resources.FindObjectsOfTypeAll<Light>()
                 .Where(light => light.gameObject.scene.IsValid()).ToArray();
@@ -250,6 +251,8 @@ namespace DK2.Unity.Editor
                 result.ShadowPrepareMedianMs = samples[samples.Length / 2];
                 result.ShadowPrepareP95Ms = samples[(int)(samples.Length * .95)];
                 result.Comparisons = comparisons.ToArray();
+                if (Environment.GetEnvironmentVariable("DK2_LIGHTING_VERIFY_ANCHORS") == "1")
+                    ValidateTerrainAnchors(result, root, simulation.World.Width, simulation.World.Height);
                 if (result.TorchCount == 0 || result.Shader == null)
                     throw new InvalidOperationException("Production " + level + " did not create classic torch lighting.");
                 if (comparisons.Any(comparison => comparison.ChangedPixels == 0))
@@ -276,6 +279,42 @@ namespace DK2.Unity.Editor
                 for (int index = 0; index < originalLights.Length; index++)
                     if (originalLights[index] != null) originalLights[index].enabled = enabled[index];
             }
+        }
+
+        private static void ValidateTerrainAnchors(Result result, GameObject root, int width, int height)
+        {
+            var anchors = new List<Vector2>();
+            foreach (MeshFilter filter in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                bool opaque = filter.name.StartsWith("terrain chunk ", StringComparison.Ordinal);
+                bool transparent = filter.name.StartsWith("transparent terrain run ", StringComparison.Ordinal);
+                bool liquid = filter.name == "Water surface" || filter.name == "Lava surface";
+                if (!opaque && !transparent && !liquid) continue;
+                Mesh mesh = filter.sharedMesh;
+                if (mesh == null || mesh.vertexCount == 0) continue;
+                anchors.Clear();
+                mesh.GetUVs(1, anchors);
+                if (anchors.Count != mesh.vertexCount)
+                    throw new InvalidOperationException(filter.name + " lost its tile light anchors.");
+                foreach (Vector2 anchor in anchors)
+                    if (anchor.y != 1 || anchor.x < 0 || anchor.x >= width * height || anchor.x != Mathf.Floor(anchor.x))
+                        throw new InvalidOperationException(filter.name + " contains an invalid tile light anchor.");
+                foreach (int submesh in Enumerable.Range(0, mesh.subMeshCount))
+                {
+                    int[] indices = mesh.GetTriangles(submesh);
+                    for (int index = 0; index < indices.Length; index += 3)
+                        if (anchors[indices[index]] != anchors[indices[index + 1]]
+                            || anchors[indices[index]] != anchors[indices[index + 2]])
+                            throw new InvalidOperationException(filter.name + " mixes light anchors within a triangle.");
+                }
+                if (opaque) result.AnchoredTerrainVertices += anchors.Count;
+                else if (transparent) result.AnchoredTransparentVertices += anchors.Count;
+                else result.AnchoredLiquidVertices += anchors.Count;
+            }
+            if (result.AnchoredTerrainVertices == 0 || result.AnchoredTransparentVertices == 0)
+                throw new InvalidOperationException("Anchor verification needs opaque and sorted transparent terrain.");
+            if (result.Level == "Level8" && result.AnchoredLiquidVertices == 0)
+                throw new InvalidOperationException("Level8 anchor verification needs its water/lava surfaces.");
         }
 
         private static void SampleGeometry(Result result, DungeonRunner runner, Light[] lights)
@@ -340,6 +379,10 @@ namespace DK2.Unity.Editor
 
         private static Color32[] Capture(Camera camera, RenderTexture target, Texture2D readback)
         {
+            // Edit-mode camera preparation: see docs/TRAPS.md.
+            foreach (TransparentTerrain terrain in camera.transform.root.GetComponentsInChildren<TransparentTerrain>(true))
+                typeof(TransparentTerrain).GetMethod("BeforeCamera", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Invoke(terrain, new object[] { default(ScriptableRenderContext), camera });
             RenderPipeline.SubmitRenderRequest(camera, new RenderPipeline.StandardRequest { destination = target });
             RenderTexture.active = target;
             readback.ReadPixels(new Rect(0, 0, Width, Height), 0, 0);

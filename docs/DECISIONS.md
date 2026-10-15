@@ -11135,3 +11135,23 @@ quality settings and the alternate 8-bit path remain unbuilt. Atlas dimensions
 are bounded by the GPU's maximum texture size. Matched-game acceptance and
 busy-view GPU profiling remain pending; the controlled GPU fixture verifies
 shape, orientation, alpha, source removal and animation continuity.
+
+## ADR-0484 - Publish selected classic point lights through tile-indexed buffers
+**Date:** 2026-10-15 - **Status:** accepted - Research: classic-lighting.md section9
+
+**Context.** Native point-light tables belong to cache tiles; a combined Unity
+mesh can contain pieces from many tiles and vertices outside their source tile.
+Native visibility, encounter order and source classification still require
+integration before automatic publication can be faithful.
+
+**Decision.** Keep publication explicit through `DungeonScene.SetPointLightTable`.
+Use reusable CPU storage and structured GPU buffers indexed by tile. Opaque,
+sorted transparent and liquid batches carry their emitting tile in UV2;
+standalone meshes use their object origin. Separate shader variants bind only
+the resources required by the selected lighting mode.
+
+**Consequences.** The bridge accepts selected per-vertex point lights, not raw
+authored world sources. Once active, tables replace punctual lighting for the
+whole grid; empty tiles stay without punctual light through Clear, and Dispose
+restores the existing path. Scene ambient/directional fallback remains separate.
+No simulation changes or automatic source publisher; normal preview is unchanged.

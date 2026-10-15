@@ -69,6 +69,7 @@ namespace DK2.Unity
         {
             public Vector3[] Positions, Normals;
             public Vector2[] Uvs;
+            public Vector2 LightAnchor;
             public Material[] Materials;
             public int[][] Triangles; // per material, indexed from the tile's first vertex
         }
@@ -86,6 +87,7 @@ namespace DK2.Unity
         private readonly List<Vector3> _positions = new List<Vector3>();
         private readonly List<Vector3> _normals = new List<Vector3>();
         private readonly List<Vector2> _uvs = new List<Vector2>();
+        private readonly List<Vector2> _lightAnchors = new List<Vector2>();
         private readonly Dictionary<Material, List<int>> _byMaterial = new Dictionary<Material, List<int>>();
         private readonly List<Material> _opaque = new List<Material>();
 
@@ -192,6 +194,7 @@ namespace DK2.Unity
             _positions.Clear();
             _normals.Clear();
             _uvs.Clear();
+            _lightAnchors.Clear();
             foreach (List<int> list in _byMaterial.Values) list.Clear();
 
             int height = _tiles.Length / _width;
@@ -214,7 +217,7 @@ namespace DK2.Unity
                     Append(_geometry[index]);
                 }
 
-            _transparent.SetChunk(chunk, _positions, _normals, _uvs, _byMaterial);
+            _transparent.SetChunk(chunk, _positions, _normals, _uvs, _lightAnchors, _byMaterial);
             _chunks.TryGetValue(chunk, out GameObject go);
             if (_positions.Count == 0)
             {
@@ -232,6 +235,7 @@ namespace DK2.Unity
             mesh.SetVertices(_positions);
             mesh.SetNormals(_normals);
             mesh.SetUVs(0, _uvs);
+            mesh.SetUVs(1, _lightAnchors);
             _opaque.Clear();
             foreach (KeyValuePair<Material, List<int>> entry in _byMaterial)
                 if (entry.Value.Count > 0 && entry.Key.renderQueue < (int)RenderQueue.Transparent) _opaque.Add(entry.Key);
@@ -271,6 +275,7 @@ namespace DK2.Unity
             var geometry = new TileGeometry
             {
                 Positions = _tilePositions.ToArray(), Normals = _tileNormals.ToArray(), Uvs = _tileUvs.ToArray(),
+                LightAnchor = new Vector2(y * _width + x, 1),
                 Materials = _tileMaterialOrder.ToArray(), Triangles = new int[_tileMaterialOrder.Count][],
             };
             for (int m = 0; m < _tileMaterialOrder.Count; m++)
@@ -287,6 +292,7 @@ namespace DK2.Unity
             _positions.AddRange(geometry.Positions);
             _normals.AddRange(geometry.Normals);
             _uvs.AddRange(geometry.Uvs);
+            for (int vertex = 0; vertex < geometry.Positions.Length; vertex++) _lightAnchors.Add(geometry.LightAnchor);
             for (int m = 0; m < geometry.Materials.Length; m++)
             {
                 if (!_byMaterial.TryGetValue(geometry.Materials[m], out List<int> list))

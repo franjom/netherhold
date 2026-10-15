@@ -95,8 +95,11 @@ Play after assembly sync. Exact original qualification/quality and busy-view
 GPU profiling remain pending (2026-10-15); see creature-shadows.md.
 Level7/8 isolated lighting probes pass; terrain point-light height loading and
 writing are built and reviewed. Q597's gather is resolved and its bounded
-selection core passes review/tests; cache visibility/order and Unity publication
-remain pending in classic-lighting.md section9. Tags replace terrain instance
+selection core passes review/tests. Explicit selected-table Unity publication and
+batched tile anchors are built and independently reviewed (ADR-0484); automatic
+cache visibility/order and lighting-mode publication remain pending. Verification
+and default Cheap Lighting classification are in classic-lighting.md sections9–10.
+Tags replace terrain instance
 tint correctly (four Unity material checks pass); the default view keeps fill.
 The scanned producer now uses native prisoner/closed-door guards and per-term
 rounding; focused fog/save checks pass (2026-10-14). The explored pass remains unbuilt.

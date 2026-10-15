@@ -87,12 +87,17 @@ namespace DK2.Unity
             int count = layer.Tiles.Count;
             layer.Positions = new Vector3[count * 9];
             var uvs = new Vector2[count * 9];
+            var lightAnchors = new Vector2[count * 9];
             var triangles = new int[count * 24];
             for (int k = 0; k < count; k++)
             {
                 for (int j = 0; j < 3; j++)
                     for (int i = 0; i < 3; i++)
-                        uvs[(k * 9) + (j * 3) + i] = new Vector2(i * 0.5f, 1f - (j * 0.5f));
+                    {
+                        int vertex = (k * 9) + (j * 3) + i;
+                        uvs[vertex] = new Vector2(i * 0.5f, 1f - (j * 0.5f));
+                        lightAnchors[vertex] = new Vector2(layer.Tiles[k], 1);
+                    }
                 int n = k * 24;
                 for (int j = 0; j < 2; j++)
                     for (int i = 0; i < 2; i++)
@@ -113,6 +118,7 @@ namespace DK2.Unity
             layer.Mesh = mesh;
             Wave(layer, 0);
             mesh.SetUVs(0, uvs);
+            mesh.SetUVs(1, lightAnchors);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
 

@@ -150,6 +150,8 @@ and negative input behavior remains outside the ordinary RGB contract.
 
 The Classic Vertex Lighting Inspector preview uses the section5 torch response
 and section6 ordinary nonnegative diffuse packing before texture modulation.
+Its universal per-vertex torch evaluation covers the Cheap Lighting vertex
+arm, not the default native mode; section9 owns the selector and option evidence.
 It retains URP light selection and shadows. A tile-indexed GPU buffer carries
 native torch inputs; changed entries upload on presenter Flush, Clear removes
 entries for resync, and runner destruction disposes the buffer. The buffer
@@ -234,6 +236,16 @@ RevealThroughFog terrain or ClaimScan38 before testing TerrainLight. A room
 tile needs byte `+0xC == 0xFF` and TerrainLight on its terrain. The selected
 terrain supplies point RGB; its AmbientLight colour remains a separate
 instance-colour input described in room-floors-and-liquids.md and wall-pieces.md.
+That byte is the actual construction piece code, not a universal room-instance
+neighbour test. The selector-specific writers are in
+[room-floors-and-liquids.md section1](room-floors-and-liquids.md#1-the-writer-of-a-room-tiles-byte-0xc-0x004edc10).
+In particular, normal/quad/double-quad masks compare terrain kind and owner,
+not room id; other construction selectors encode positions instead.
+
+For source-list order, `0x0043C310` traverses existing tile light objects
+before submitting the terrain source. Since `0x00571A90` prepends, terrain
+light appears first in the cached source list, followed by qualifying existing
+objects in reverse tile-chain traversal order.
 
 `0x00571A90` appends these sources to current **tile cache entry** `+0x34`,
 not a global frame list and not one immediate mesh draw. The current entry is
@@ -266,6 +278,13 @@ window maps these columns left-to-right, but consecutive+x target tiles reuse
 a rolling column buffer: the next physical column is replaced by the incoming
 rightmost column before the cursor advances. Thus encounter order is not
 always increasing world X. Preserve this order when reproducing overflow ties.
+The window resets on a different target Y or nonconsecutive target X. Normal
+polygon enumeration `0x005735A0` visits increasing Y, then increasing X over
+each projected polygon scanline; the first X is polygon-dependent. Alternate
+camera enumeration `0x005737E0` uses ring queries instead. Starting every row
+at map X zero is therefore not an established substitute. Cache preparation
+`0x005725D0` covers the needed three-tile border around visible target tiles;
+that does not establish that every authored map source is prepared.
 
 `0x00572CF0` passes a context whose `+0x08` points at cache `+0xC4` to both
 static and dynamic primitive lists through virtual slot+8. Animated preparation
@@ -275,6 +294,18 @@ lighting flags still determine how that supplied table is used; receiving the
 table does not establish that an explicitly unlit primitive uses every source.
 `0x0057BBF0` then applies required source flags and strict 3D sphere overlap
 `(sourceRadius+drawRadius)^2`, yielding the 32-bit mask consumed downstream.
+Instructions `0x00584B25..0x00584B95` select masks requiring `0x100` and `0x04`;
+the latter feeds the per-vertex point-light copy. Terrain sources classify to
+`0x64`, including `0x04`. Wall torch classification depends on global
+`0x00759AF8`: the bridge's input flags `0x12` or `0x14` become `0x1B2` or
+`0x74` through `0x00599BD0`, respectively. The former belongs to the `0x100`
+arm rather than the `0x04` vertex arm. The global is settings object
+`0x00759A78 +0x80`, persisted as `Cheap Lighting`: `0x005666B0` stores and
+saves it, and `0x00564B00` loads it with default zero when the key is absent.
+Thus the default selects the `0x100` arm; nonzero Cheap Lighting selects the
+`0x04` vertex arm. A preview evaluating every torch per vertex does not yet
+reproduce the default arm. The loader/setter evidence establishes the option
+and missing-key default, not the current owner's installed registry value.
 
 The remaining implementation boundary is native cell visibility/cache
 enumeration; the input source eligibility and gathering itself are now resolved
@@ -284,5 +315,28 @@ that boundary and the confirmed 12-static/24-total capacity.
 `ClassicLightTable` implements the bounded selection core for an assigned tile;
 its caller must supply visible 7x7 candidates in the native encounter order and
 own static cache refresh stamps. `ClassicPointLight.FromTerrain` converts the
-confirmed source inputs. The core is tested but not yet wired into Unity's
-source publication; it does not replace that cache/visibility integration.
+confirmed source inputs. The explicit Unity bridge accepts these tables
+(section10); it does not replace that cache/visibility integration or publish
+world sources automatically.
+
+## 10. Selected-table Unity verification
+
+The bridge design and whole-grid authority are in ADR-0484. Its supplied-table
+fixture is `DK2.Unity.Editor.ClassicTileLightProbe.Run`; it compares actual URP
+pixels with the headless contribution and RGB packer, and reads back GPU table
+counts/source data. Emission/unlit controls distinguish missing geometry from
+lighting errors; non-finite pixels fail explicitly.
+
+The fixture covers multiple tiles, emitting-tile anchors versus vertex position,
+moving object origins, multiple selected lights, removal, Clear, disposal and
+restored URP punctual fallback, unpublished cells and all24 slots at the highest
+tile index. All17 pixel cases and seven scene lifecycle checks pass, with maximum
+channel error `2.9802322387695313E-08`. The unsupported singular zero-incidence
+bin is skipped under section5's contract. These are controlled point-light cases, not a
+matched-original frame or automatic world-source/classification verification.
+
+The Level8 world probe with `DK2_LIGHTING_VERIFY_ANCHORS=1` validates UV2 tile
+identity per vertex and triangle after batching:127793 opaque,5688 sorted
+transparent and4518 water/lava vertices. Its normal-preview torch on/off
+comparisons pass. Edit-mode captures prepare the runtime transparent batches
+explicitly; the earlier captures without that preparation were incomplete.

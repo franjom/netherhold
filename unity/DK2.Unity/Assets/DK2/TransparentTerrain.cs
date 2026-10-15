@@ -22,6 +22,7 @@ namespace DK2.Unity
         {
             public Vector3[] Positions, Normals;
             public Vector2[] Uvs;
+            public Vector2[] LightAnchors;
             public Material[] Materials;
             public int[][] Triangles;
         }
@@ -38,12 +39,14 @@ namespace DK2.Unity
         private readonly List<Vector3> _positions = new List<Vector3>();
         private readonly List<Vector3> _normals = new List<Vector3>();
         private readonly List<Vector2> _uvs = new List<Vector2>();
+        private readonly List<Vector2> _lightAnchors = new List<Vector2>();
         private readonly List<Material> _materials = new List<Material>();
         private readonly List<RenderTriangle> _triangles = new List<RenderTriangle>();
         private readonly List<NumericsVector3> _worldPositions = new List<NumericsVector3>();
         private readonly List<Vector3> _runPositions = new List<Vector3>();
         private readonly List<Vector3> _runNormals = new List<Vector3>();
         private readonly List<Vector2> _runUvs = new List<Vector2>();
+        private readonly List<Vector2> _runLightAnchors = new List<Vector2>();
         private readonly List<int> _runIndices = new List<int>();
         private bool _dirty = true;
         private Vector3 _lastForward;
@@ -53,7 +56,7 @@ namespace DK2.Unity
         private void OnDisable() => RenderPipelineManager.beginCameraRendering -= BeforeCamera;
 
         public void SetChunk(int chunk, List<Vector3> positions, List<Vector3> normals,
-            List<Vector2> uvs, Dictionary<Material, List<int>> byMaterial)
+            List<Vector2> uvs, List<Vector2> lightAnchors, Dictionary<Material, List<int>> byMaterial)
         {
             using ProfilerMarker.AutoScope scope = SetChunkMarker.Auto();
             var materials = new List<Material>();
@@ -64,6 +67,7 @@ namespace DK2.Unity
             // depth sort breaks ties by triangle order, not vertex number, so drawing is unchanged.
             _remap.Clear();
             _keptPositions.Clear(); _keptNormals.Clear(); _keptUvs.Clear();
+            _keptLightAnchors.Clear();
             foreach (KeyValuePair<Material, List<int>> entry in byMaterial)
                 if (entry.Value.Count != 0 && entry.Key.renderQueue >= (int)RenderQueue.Transparent)
                 {
@@ -78,6 +82,7 @@ namespace DK2.Unity
                             _keptPositions.Add(positions[vertex]);
                             _keptNormals.Add(normals[vertex]);
                             _keptUvs.Add(uvs[vertex]);
+                            _keptLightAnchors.Add(lightAnchors[vertex]);
                         }
                         kept[i] = local;
                     }
@@ -92,6 +97,7 @@ namespace DK2.Unity
             else _sources[chunk] = new Source
             {
                 Positions = _keptPositions.ToArray(), Normals = _keptNormals.ToArray(), Uvs = _keptUvs.ToArray(),
+                LightAnchors = _keptLightAnchors.ToArray(),
                 Materials = materials.ToArray(), Triangles = triangles.ToArray(),
             };
             _dirty = true;
@@ -101,6 +107,7 @@ namespace DK2.Unity
         private readonly List<Vector3> _keptPositions = new List<Vector3>();
         private readonly List<Vector3> _keptNormals = new List<Vector3>();
         private readonly List<Vector2> _keptUvs = new List<Vector2>();
+        private readonly List<Vector2> _keptLightAnchors = new List<Vector2>();
 
         public void Clear()
         {
@@ -112,6 +119,7 @@ namespace DK2.Unity
         private void Collect()
         {
             _positions.Clear(); _normals.Clear(); _uvs.Clear(); _materials.Clear(); _triangles.Clear();
+            _lightAnchors.Clear();
             var slots = new Dictionary<Material, int>();
             foreach (Source source in _sources.Values)
             {
@@ -119,6 +127,7 @@ namespace DK2.Unity
                 _positions.AddRange(source.Positions);
                 _normals.AddRange(source.Normals);
                 _uvs.AddRange(source.Uvs);
+                _lightAnchors.AddRange(source.LightAnchors);
                 for (int material = 0; material < source.Materials.Length; material++)
                 {
                     if (!slots.TryGetValue(source.Materials[material], out int slot))
@@ -160,6 +169,7 @@ namespace DK2.Unity
                 run.Renderer.sharedMaterial = _materials[ordered[i].MaterialIndex];
                 run.Renderer.sortingOrder = i + 1;
                 _runPositions.Clear(); _runNormals.Clear(); _runUvs.Clear(); _runIndices.Clear();
+                _runLightAnchors.Clear();
                 foreach (RenderTriangle triangle in ordered[i].Triangles)
                 {
                     AddVertex(triangle.A); AddVertex(triangle.B); AddVertex(triangle.C);
@@ -169,6 +179,7 @@ namespace DK2.Unity
                 run.Mesh.SetVertices(_runPositions);
                 run.Mesh.SetNormals(_runNormals);
                 run.Mesh.SetUVs(0, _runUvs);
+                run.Mesh.SetUVs(1, _runLightAnchors);
                 run.Mesh.SetTriangles(_runIndices, 0, calculateBounds: true);
             }
             for (int i = ordered.Count; i < _runs.Count; i++) _runs[i].Object.SetActive(false);
@@ -183,6 +194,7 @@ namespace DK2.Unity
             _runPositions.Add(_positions[vertex]);
             _runNormals.Add(_normals[vertex]);
             _runUvs.Add(_uvs[vertex]);
+            _runLightAnchors.Add(_lightAnchors[vertex]);
         }
 
         private Run CreateRun(int index)
