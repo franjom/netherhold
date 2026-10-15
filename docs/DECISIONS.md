@@ -11074,7 +11074,11 @@ of a full-state capture (`tools/oracle/capture_memory.py`); first, 0x00460B50 on
 seed 1, every tenth tick (`guard_room_on_capture.py`): 542 calls, 149 yes, 215 refused by the
 room test, 86 targets within a tile of an expanded edge, every answer the rule
 `FearRules.NearOwnGuardRooms` encodes; in 470 samples each Guard Room's stored bounds equal
-its tiles'. One capture: it checks the rule and our room model, not our C# or its callers'
-early-outs, nor bounds after a room loses tiles; what a capture omits must be supplied. A quotient past 32 bits wraps in `Fixed16.Div` where
+its tiles'. `CapturedGuardRoomTests` then runs our C# itself on those states: the world
+rebuilt from the level and given each tick's tiles (`capture_state.py`, `CapturedState`),
+the first tick equal to our level map tile for tile, and `NearOwnGuardRooms` equal to the
+original on all 80 compared calls. Not checked: callers' early-outs, variable 190, bounds
+after a room loses tiles. Functions deeper than this read definitions and heap no capture
+stores, so they need a memory dump of the running game. A quotient past 32 bits wraps in `Fixed16.Div` where
 the original faults (a zero divisor throws in both); whether any game input reaches it was
 not checked.
