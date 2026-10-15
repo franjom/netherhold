@@ -92,7 +92,7 @@ public class ImpClaimSearchTests
         for (int i = 0; i < StoreSweepSystem.SweepTurns + 1; i++) sim.Tick(InputFrame.Empty);
 
         SimEvent swept = Assert.Single(events.Events, e => e.Kind == "swept");
-        Assert.Equal(0, swept.Tick.Value % StoreSweepSystem.SweepTurns);
+        Assert.Equal(0, (swept.Tick.Value + 1) % StoreSweepSystem.SweepTurns);   // DK2 turn & 0xF == 0
         Assert.Equal(27000, GoldStore.Total(sim.World, Keeper));
         // DK2 destroys the swept pile and puts what did not fit down as a new one (0x004F47E0).
         Assert.DoesNotContain(pile, sim.World.Objects);

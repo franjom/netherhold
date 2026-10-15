@@ -85,4 +85,19 @@ public sealed record KmfModel(uint Version, KmfKind Kind,
     KmfGroup? Group = null)
 {
     public uint FrameCount => Animation?.FrameCount ?? 0;
+
+    /// <summary>The CTRL section's tagged points, in file order.</summary>
+    public IReadOnlyList<KmfControlPoint> ControlPoints { get; init; } = [];
+}
+
+/// <summary>A tagged point of a mesh (CTRL), found by <see cref="Id"/> (<c>0x0059D260</c>). In an
+/// animation <see cref="Vertex"/> packs the primitive in its low word and the vertex within it in
+/// its high word, the pair the animated draw's point getter (<c>0x005835E0</c>) hands the vertex
+/// evaluator <c>0x0057E5B0</c> at the drawn frame (a Goblin's head is primitive 1, vertex 8, in
+/// every clip but Eat's, whose two extra primitives make it 3). In a static mesh it is one index
+/// into the resource's vertex array (<c>0x00580E40</c>), which ours does not keep.</summary>
+public readonly record struct KmfControlPoint(uint Vertex, uint Id)
+{
+    /// <summary>Point 5000, the head: where the stun's dazed effect is tied (<c>0x004810E0</c>).</summary>
+    public const uint Head = 5000;
 }

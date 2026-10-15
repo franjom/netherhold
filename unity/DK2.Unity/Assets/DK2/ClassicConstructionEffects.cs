@@ -51,7 +51,8 @@ namespace DK2.Unity
             Func<FpPosition3, Fp32> floorHeight = null,
             Func<EffectTime> clock = null,
             ClassicMeshes meshes = null,
-            Func<ViewEffectRequest, CaptureEdges> captureEdges = null)
+            Func<ViewEffectRequest, CaptureEdges> captureEdges = null,
+            Func<int, uint, EffectAttachment> attachment = null)
         {
             _root = root;
             _sprites = sprites;
@@ -60,7 +61,7 @@ namespace DK2.Unity
                 terrainDebrisStyle: TerrainDebrisStyle.Crumbling,
                 captureEffectStyle: CaptureEffectStyle.Edges, captureEdges: captureEdges,
                 heartSparkleStyle: HeartSparkleStyle.PillarHeight,
-                groupParts: meshes != null ? meshes.GroupParts : null);
+                groupParts: meshes != null ? meshes.GroupParts : null, attachment: attachment);
         }
 
         // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread

@@ -10,9 +10,9 @@ Original version: DK2 v1.70 (GOG)
 Question: **Q595** (whether DK2's per-turn order, section 2, moves an outcome).
 
 The census asked where unread code could hide a mechanism that no question had
-pointed at. Its outputs and scripts are local, under the ignored
-`reverse-engineering/census/2026-10-14/`, so the section 1 counts cannot be
-checked from the repository alone. Sections 2 to 8 read the leads it ranked
+pointed at. Its outputs are local, under the ignored
+`reverse-engineering/census/2026-10-14/`; `tools/kb/census.py` says how to
+regenerate them, including the ranked reading list of unread functions. Sections 2 to 8 read the leads it ranked
 first; none of them is a simulation mechanism we lack.
 
 ## 1. The numbers
@@ -204,7 +204,7 @@ type's tick handler, which `Room_Tick` calls before the common health step.
 
 | Type | Handler | What it does | Ours |
 |---|---|---|---|
-| 1 Treasury | `0x004F39A0` | the store sweep every 16th turn; `0x004F3A00` (unread) | `StoreSweepSystem` (turn base: Q596) |
+| 1 Treasury | `0x004F39A0` | the store sweep every 16th turn; `0x004F3A00` (unread) | `StoreSweepSystem` |
 | 2 Lair, 26 Crypt | `0x004B4C20` | nothing | none |
 | 3 Portal | `0x004DBBE0` | arrivals | `PortalSystem` |
 | 4 Hatchery | `0x004DE0A0` | lays an egg each interval | `HatcherySystem` |

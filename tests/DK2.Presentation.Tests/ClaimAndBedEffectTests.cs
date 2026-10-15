@@ -141,6 +141,39 @@ public class ClaimAndBedEffectTests
         Assert.All(model.Particles, p => Assert.Equal(1, p.VisualUpdates));
     }
 
+    /// <summary>The stun's dazed effect (101) tied to a creature's head (0x00434E80, ADR-0480): its
+    /// stars start at the point, move with it each update, and stay put once the creature is gone.</summary>
+    [InstallFact]
+    public void ATiedEffect_FollowsItsCreaturesPoint_AndLetsGoWhenTheCreatureIsGone()
+    {
+        (GameDatabase db, _) = Load();
+        var head = new FpPosition3(new Fp32(3 * Fp32.One), new Fp32(3 * Fp32.One), new Fp32(Fp32.One + 900));
+        bool alive = true;
+        var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0),
+            attachment: (creature, point) => creature == 42 && point == 5000 && alive
+                ? EffectAttachment.At(head) : EffectAttachment.Gone);
+        model.Request(new ViewEffectRequest(new EffectId(101), PlayerIds.FirstKeeper,
+            new FpPosition3(new Fp32(3 * Fp32.One), new Fp32(5 * Fp32.One), new Fp32(Fp32.One)),
+            default, AttachedCreatureId: 42, AttachPoint: 5000));
+        model.AdvanceTo(new EffectTime(51));
+        Assert.NotEmpty(model.Particles);
+        // Born about the head (radius 38..40 × 23, heights ±640), not at the request's position.
+        Assert.All(model.Particles, p => Assert.InRange(p.YRaw, 3 * Fp32.One - 1100, 3 * Fp32.One + 1100));
+
+        int[] before = model.Particles.Select(p => p.XRaw).ToArray();
+        head = head with { X = new Fp32(4 * Fp32.One) };
+        model.AdvanceTo(new EffectTime(101));
+        Assert.All(model.Particles.Take(before.Length).Select((p, i) => p.XRaw - before[i]),
+            dx => Assert.InRange(dx, Fp32.One - 400, Fp32.One + 400));
+
+        alive = false;
+        before = model.Particles.Select(p => p.XRaw).ToArray();
+        head = head with { X = new Fp32(9 * Fp32.One) };
+        model.AdvanceTo(new EffectTime(151));
+        Assert.All(model.Particles.Take(before.Length).Select((p, i) => p.XRaw - before[i]),
+            dx => Assert.InRange(dx, -400, 400));
+    }
+
     [InstallFact]
     public void PortalSmokeHoldsItsLastTextureInsteadOfReplayingWhileAlive()
     {

@@ -53,8 +53,17 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                         }
                     }
                 }
+                else if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256
+                         && context.Tick.Value == creature.StateEnteredTick)
+                {
+                    // 255's handler (0x004810E0; 256 jumps to it) first runs the turn after SetState,
+                    // with Age 1; the stun set this turn has not started counting.
+                }
                 else
                 {
+                    if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256
+                        && context.Tick.Value - creature.StateEnteredTick == 1)
+                        Combat.StatusEffectRules.RequestDazedEffect(context, creature);
                     if (creature.StunTicks > 0) creature.StunTicks--;
                     if (creature.StunTicks == 0)
                     {

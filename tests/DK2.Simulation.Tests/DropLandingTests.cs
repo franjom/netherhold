@@ -40,7 +40,9 @@ public class DropLandingTests
 
         while (goblin.Dk2StateId == 255 && sim.World.CurrentTick.Value < dropped + 200) sim.Tick();
         long up = sim.World.CurrentTick.Value;
-        Assert.InRange(up - dropped, stun - 1, stun + 2);
+        // 255 counts from the turn after it is set (Age 1, 0x004810E0): the Goblin's 1 s is four
+        // turns in 255, as Level 1's capture measured.
+        Assert.Equal(stun, up - dropped);
         Assert.Equal(257, goblin.Dk2StateId);
         Assert.Contains(sink.Events, e => e.Kind == "getting_up");
 
@@ -82,6 +84,30 @@ public class DropLandingTests
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
 
         Assert.NotEqual(255, imp.Dk2StateId);
+    }
+
+    /// <summary>255's first call (Age 1, <c>0x004810E0</c>) asks once for the Creature Dazed Effect
+    /// (101) at the creature, its owner's, tied to its head point (5000), which the view follows.</summary>
+    [Fact]
+    public void AStunnedCreature_AsksForTheDazedEffectOnce_TheTurnAfterItIsStunned()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+        long stunnedOn = sim.World.CurrentTick.Value - 1;
+        for (int i = 0; i < 20; i++) sim.Tick();
+
+        var dazed = sink.Events.Where(e => e.EffectRequest?.EffectId.Value == Combat.StatusEffectRules.DazedEffectId).ToList();
+        Assert.Single(dazed);
+        Assert.Equal(stunnedOn + 1, dazed[0].Tick.Value);
+        ViewEffectRequest request = dazed[0].EffectRequest!.Value;
+        Assert.Equal(Keeper, request.Owner.Value);
+        Assert.Equal(Floor, request.Tile);
+        Assert.Equal(goblin.Id, request.AttachedCreatureId);
+        Assert.Equal(Combat.StatusEffectRules.DazedAttachPoint, request.AttachPoint);
     }
 
     /// <summary>The owner's exception (Q201): a prisoner put down outside a cell goes free, not

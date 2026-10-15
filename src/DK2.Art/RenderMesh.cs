@@ -20,8 +20,9 @@ namespace DK2.Art;
 public sealed class RenderMesh
 {
     private RenderMesh(Vector3[] positions, Vector3[] normals, Vector2[] uvs, int[][] triangles,
-        KmfBlend[] blends)
+        KmfBlend[] blends, Dictionary<uint, int> controlPoints)
     {
+        ControlPoints = controlPoints;
         Positions = positions;
         Normals = normals;
         Uvs = uvs;
@@ -30,6 +31,10 @@ public sealed class RenderMesh
     }
 
     public IReadOnlyList<Vector3> Positions { get; }
+
+    /// <summary>An animation's tagged points (<see cref="KmfControlPoint"/>) as indices into
+    /// <see cref="Positions"/>, by id; a static mesh's are not resolved (empty).</summary>
+    public IReadOnlyDictionary<uint, int> ControlPoints { get; }
     public IReadOnlyList<Vector3> Normals { get; }
     public IReadOnlyList<Vector2> Uvs { get; }
 
@@ -59,9 +64,11 @@ public sealed class RenderMesh
         var triangles = new List<int>[Math.Max(model.Materials.Count, 1)];
         for (int i = 0; i < triangles.Length; i++) triangles[i] = [];
 
+        var firsts = new List<int>(mesh.Primitives.Count);
         foreach (KmfPrimitive primitive in mesh.Primitives)
         {
             int first = positions.Count;
+            firsts.Add(first);
             foreach (KmfVertex vertex in primitive.Vertices)
             {
                 positions.Add(ToRenderFrame(vertex.Position));
@@ -76,7 +83,15 @@ public sealed class RenderMesh
         var blends = new KmfBlend[triangles.Length];
         for (int i = 0; i < blends.Length && i < model.Materials.Count; i++)
             blends[i] = model.Materials[i].Blend;
+        var controlPoints = new Dictionary<uint, int>();
+        if (model.Kind == KmfKind.Animation)
+            foreach (KmfControlPoint control in model.ControlPoints)
+            {
+                int primitive = (int)(control.Vertex & 0xFFFF), vertex = (int)(control.Vertex >> 16);
+                if (primitive < mesh.Primitives.Count && vertex < mesh.Primitives[primitive].Vertices.Count)
+                    controlPoints.TryAdd(control.Id, firsts[primitive] + vertex);
+            }
         return new RenderMesh([.. positions], [.. normals], [.. uvs],
-            triangles.Select(list => list.ToArray()).ToArray(), blends);
+            triangles.Select(list => list.ToArray()).ToArray(), blends, controlPoints);
     }
 }
