@@ -186,3 +186,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Windows PowerShell `Set-Content -Encoding utf8` writes a BOM; use BOM-free UTF-8 for commit-message files or the subject starts with an invisible character.
 
 - A centred one-tile GPU lighting fixture does not establish whole-scene parity: also capture production torches on/off, a nonzero grid tile, shifted view and repeated presentation before accepting the result.
+- An escalated tool call can still receive Windows error5 reading a running DK2 process; do not assume sandbox approval grants the process token required by `OpenProcess` or leave UAC waiting while the owner is AFK.

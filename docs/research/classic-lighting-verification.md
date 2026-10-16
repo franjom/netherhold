@@ -164,3 +164,10 @@ This is not visual acceptance: unlit rock tops/arches and Heart smoke colour
 still differ from the owner's original reference (Q603, Q605). Native torch
 caller cadence/RNG matching remains Q604. The native-input capture requires a
 running, hash-verified original game; it changes no memory or settings.
+
+The attempted live capture on October16 was denied by Windows (`OpenProcess`,
+error5), including the escalated tool attempt; no live renderer values were read.
+The running install used `DKII-DX.exe`: offline comparison found identical PE
+section layouts and identical executable code sections to the researched
+`DKII.EXE`. This does not replace live-state evidence. Retry with the owner
+present for any required interactive Windows elevation.
