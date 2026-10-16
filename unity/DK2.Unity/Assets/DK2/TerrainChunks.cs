@@ -336,7 +336,8 @@ namespace DK2.Unity
             {
                 Vector2 offset = QuadrantCentres[q];
                 Add(_classic.Piece(keys.Quarter(pieces.QuarterSet, pieces.QuarterPiece(q))),
-                    TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y, tagged, tile.AmbientTint);
+                    TerrainPieces.QuarterRotation(q), centre + new Vector3(offset.x, 0f, offset.y), x, y, tagged, tile.AmbientTint,
+                    invertLightingNormals: pieces.Quarters == QuarterKind.Top);
             }
         }
 

@@ -213,3 +213,14 @@ arch faces remain black. The seven pinned FOW-on frames in
 `build/step5-object-lights-startup-fog` reproduce these remaining dark faces and
 unmatched smoke colour. Authored inputs
 are now published; these captures do not establish full visual parity (Q603/Q605).
+
+Reinforced-wall cap correction: the production regression in ignored
+`build/step5-wall-caps-red` fails on the missing normal inversion. The fixture
+checks decoded cap assets have upward plane normals before requiring the
+produced terrain normals to point downward. This covers cap-only tiles without
+mixing wall-face geometry into the assertion. The corrected Level1 capture
+restores wall-top textures and red markers; it does not fix the Heart arches.
+Final captures in`build/step5-wall-caps-Level1` and`step5-wall-caps-Level8`
+pass, checking320 and120 produced cap vertices respectively. Existing normal,
+source-role and GPU table/count assertions also pass. Independent review
+confirms the top-quarter scope; the adapter builds with0 warnings/errors.

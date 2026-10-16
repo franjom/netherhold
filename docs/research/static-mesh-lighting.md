@@ -26,10 +26,15 @@ height2 and an upward authored normal. The native flag makes that lighting
 normal point downward instead. ClaimScan's light is below that top, so this
 changes the sign of incidence; gamma or a normal-length adjustment cannot do so.
 
-Built: ordinary `HasTop` submissions invert the normal in `TerrainChunks.Add`
-before rotation. Decoded assets, positions, other pieces and animation normals
-retain their existing paths. The production-mesh regression fails with the
-correction disabled and passes for1484 top-only Rock vertices on Level1.
+CONFIRMED quarter caps: `0x0043FF5D` initializes quarter draw flags to`0x90`;
+only the open PlayerColouredPath branch clears them at`0x0043FF6B`.
+`0x00440232..0x00440248` copies those flags into quarter-record`+0xC`.
+Solid PlayerColouredWall quarters retain normal inversion. Floor quarters do not.
+
+Built: `HasTop` and `QuarterKind.Top` submissions invert the normal in
+`TerrainChunks.Add` before rotation. Decoded assets, positions, floors, room
+quarter sets and animation normals retain their existing paths. Production
+regressions and image checks are in classic-lighting-verification.md.
 
 ## 2. Texture stages and remaining limits
 

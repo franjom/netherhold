@@ -65,6 +65,7 @@ namespace DK2.Unity.Editor
             public ClassicAllocationCalibration.Result AllocationCalibration;
             public int AnchoredTerrainVertices, AnchoredTransparentVertices, AnchoredLiquidVertices;
             public int VerifiedTopNormalVertices;
+            public int VerifiedWallCapNormalVertices;
             public int VerifiedStaticObjectLightingVertices, VerifiedTorchLightingVertices;
             public int SampledVertices;
             public int FrontFacingInRangePairs;
@@ -374,7 +375,8 @@ namespace DK2.Unity.Editor
                 result.Comparisons = comparisons.ToArray();
                 if (Environment.GetEnvironmentVariable("DK2_LIGHTING_VERIFY_ANCHORS") == "1")
                 {
-                    ValidateTerrainAnchors(result, root, view, simulation.World);
+                    ValidateTerrainAnchors(result, root, view, simulation.World,
+                        (ClassicMeshes)typeof(DungeonRunner).GetField("_classic", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(runner));
                     ValidateObjectLightingModes(result, root);
                 }
                 if (result.TorchCount == 0 || result.Shader == null)
@@ -492,17 +494,32 @@ namespace DK2.Unity.Editor
         }
 
         private static void ValidateTerrainAnchors(Result result, GameObject root, WorldView view,
-            DK2.Simulation.WorldState world)
+            DK2.Simulation.WorldState world, ClassicMeshes classic)
         {
             int width = world.Width, height = world.Height;
             var anchors = new List<Vector2>();
             var topOnlyTiles = new HashSet<int>();
+            var capOnlyTiles = new HashSet<int>();
             AssetRef rockTop = AssetCatalogue.TerrainPiece("Rock", AssetCatalogue.TerrainTop);
             foreach (TileView tile in view.Tiles(world))
                 if (tile.RoomKeys == null && tile.BedKeys == null && tile.PieceKeys?.Top == rockTop
                     && tile.Pieces.HasTop && !tile.Pieces.HasFloor && tile.Pieces.Quarters == QuarterKind.None
                     && !Enumerable.Range(0, 4).Any(tile.Pieces.HasFace))
                     topOnlyTiles.Add(tile.Position.Y * width + tile.Position.X);
+            foreach (TileView tile in view.Tiles(world))
+                if (tile.RoomKeys == null && tile.BedKeys == null && tile.Pieces.Quarters == QuarterKind.Top
+                    && !tile.Pieces.HasTop && !tile.Pieces.HasFloor
+                    && !Enumerable.Range(0, 4).Any(tile.Pieces.HasFace))
+                {
+                    for (int quarter = 0; quarter < 4; quarter++)
+                    {
+                        ClassicMeshes.PieceSource source = classic.Piece(tile.PieceKeys.Quarter(
+                            tile.Pieces.QuarterSet, tile.Pieces.QuarterPiece(quarter)));
+                        if (source == null || source.Normals.Any(normal => normal.y < .99f))
+                            throw new InvalidOperationException("Wall-cap fixture requires authored upward plane normals.");
+                    }
+                    capOnlyTiles.Add(tile.Position.Y * width + tile.Position.X);
+                }
             foreach (MeshFilter filter in root.GetComponentsInChildren<MeshFilter>(true))
             {
                 bool opaque = filter.name.StartsWith("terrain chunk ", StringComparison.Ordinal);
@@ -533,6 +550,13 @@ namespace DK2.Unity.Editor
                             throw new InvalidOperationException("Ordinary top lacks native drawflag0x80 normal inversion.");
                         result.VerifiedTopNormalVertices++;
                     }
+                for (int vertex = 0; vertex < anchors.Count; vertex++)
+                    if (opaque && capOnlyTiles.Contains((int)anchors[vertex].x))
+                    {
+                        if (filter.transform.TransformDirection(normals[vertex]).y > -.99f)
+                            throw new InvalidOperationException("Wall cap quarter lacks native drawflag0x80 normal inversion.");
+                        result.VerifiedWallCapNormalVertices++;
+                    }
                 foreach (int submesh in Enumerable.Range(0, mesh.subMeshCount))
                 {
                     int[] indices = mesh.GetTriangles(submesh);
@@ -549,6 +573,8 @@ namespace DK2.Unity.Editor
                 throw new InvalidOperationException("Anchor verification needs opaque and sorted transparent terrain.");
             if (result.Level == "Level8" && result.AnchoredLiquidVertices == 0)
                 throw new InvalidOperationException("Level8 anchor verification needs its water/lava surfaces.");
+            if (result.Level == "Level1" && result.VerifiedWallCapNormalVertices == 0)
+                throw new InvalidOperationException("Wall-cap verification needs cap-only terrain.");
             if (result.Level == "Level1" && result.VerifiedTopNormalVertices == 0)
                 throw new InvalidOperationException("Top-normal verification needs ordinary top-only terrain.");
         }

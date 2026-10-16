@@ -54,7 +54,7 @@ Matched framebuffer colour transfer remains part of the original-game acceptance
 - [x] Verify removal, camera movement, borders, all24 slots and resource lifecycle.
 - [x] Independently review arithmetic, visibility, cache, shader and integrated publication.
 - [x] Render the companion animated torch resource; remaining clock fidelity is Q604.
-- [x] Apply confirmed ordinary-top normal inversion and ordinary-object instance-lighting selection.
+- [x] Apply confirmed whole/quarter-top normal inversion and ordinary-object instance-lighting selection.
 - [x] Trace and publish authored object lights; retain the scoped limits in static-mesh-lighting.md section4.
 
 Evidence: [classic-lighting.md](../research/classic-lighting.md),
