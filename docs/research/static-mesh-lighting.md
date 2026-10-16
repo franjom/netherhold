@@ -78,6 +78,18 @@ RGB144/100/20; Arches86 has offset(0,0,15360), radius10240, flags`0x3800`,
 RGB244/244/204. Big Steps88 has a zero descriptor. These are authored inputs,
 not proof of runtime activation, fading, classification or final source positions.
 
+CONFIRMED factory path: `0x0049DD60` copies the24-byte block to definition`+0xD8`
+and ORs flag1 when any authored RGB byte is nonzero. `0x0049B1C0` requests the
+light through bridge slot`+0xA0` with intensity180 and the object's owner. It
+links the returned light to the object via light`+0x12E` and object`+0x131`.
+
+`0x00439880` requires descriptor flag1, adds XYZ offsets directly to the supplied
+position, and requests radius`((uint)radius<<1)/3` before the ordinary factory's
+radius clamp. Flags`0x800/0x1000/0x2000` add256 to the respective RGB bytes;
+flag`0x80` multiplies by the owner's palette RGB/255 and clamps each result to
+at least32. This is not the torch room-colour +255 conversion. The helper sets
+the created engine light's flag8. Assembly confirms the unsigned radius math.
+
 `KwdObjects` skips this descriptor and `ClassicWorldLightCache` publishes terrain
-and torches only. Trace native loading, source creation and its tile-list lifetime
-before adding these objects' lights; do not replace the missing path with a fill.
+and torches only. Trace linked-light updating, visibility, classification and
+tile-list lifetime before publication; do not replace this missing path with a fill.
