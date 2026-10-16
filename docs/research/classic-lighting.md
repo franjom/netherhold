@@ -123,6 +123,12 @@ on 2026-10-15 distinguish these handles from global ambient/fill:
 - `+0x3BC`: the per-tile pass reuses its animated mesh at a visible torch's
   position with height offset `0x4B0`, not as an ambient source.
 
+The companion resource is `KTorch`, loaded by `0x0043AD70` at resource name
+`0x006977B8`, type3/flags`0x20004`, into bridge+`0x39D`; startup
+`0x00448129..78` binds bridge+`0x3A1` to the handle above and sets both size
+axes to`0x400`. Rechecked in Ghidra on2026-10-16. Unity currently draws only
+the mounted torch mesh and light; this companion animated draw is missing.
+
 The tile-light consumer and remaining selection boundary are in section9;
 these handles do not establish replacement Unity directional lighting.
 
