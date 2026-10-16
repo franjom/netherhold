@@ -64,6 +64,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Function KB headers use CONFIRMED/LIKELY/GUESS/DISPUTED; STRONGLY INFERRED belongs in research prose, with LIKELY in the KB header.
 
+- `kb_upsert` with `evidence` replaces the whole list, and `name`/`role` overwrite an existing record's; `kb_get` first and pass the union, or pass only `note`.
+
 - Concurrent branches can reuse hash/save versions or ADR ids; check current master before merging and allocate a fresh combined version when layouts differ.
 
 - Source notices require a blank line after the three license comments; the exact LicenseHeaderTests prefix includes two trailing newlines.
