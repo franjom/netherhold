@@ -49,6 +49,12 @@ namespace DK2.Unity
 
         private readonly Transform _root;
         private readonly TerrainLattice _lattice;
+        private ClassicTorchFlames _torchFlames;
+        public void AttachTorchSprites(IEffectSpriteProvider sprites, System.Func<EffectTime> clock = null, ulong seed = 1)
+        {
+            _torchFlames?.Dispose();
+            _torchFlames = new ClassicTorchFlames(_root, _lattice, sprites, clock ?? (() => HeartEffectClock()), seed);
+        }
         private bool _torchGeometryDirty;
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, GameObject> _furniture = new Dictionary<int, GameObject>();
@@ -278,6 +284,7 @@ namespace DK2.Unity
         // Called before the worker tick starts; no render callback reads the mutable world.
         public void DrawCreatureShadows(Camera camera, WorldView view, WorldState world)
         {
+            _torchFlames?.Draw(camera);
             if (_creatureShadows == null || camera == null) return;
             foreach (GameObject creature in _creatures.Values)
             {
@@ -494,6 +501,7 @@ namespace DK2.Unity
             _worldLights?.SetTorch(new TilePos(floorTileIndex % _worldWidth, floorTileIndex / _worldWidth),
                 ClassicPointLight.FromTorch(torch, _torchFlags));
             _creatureShadows?.SetTorch(torch);
+            _torchFlames?.Set(torch);
         }
 
         public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
@@ -511,6 +519,7 @@ namespace DK2.Unity
             _worldLights?.SetTorch(new TilePos(floorTileIndex % _worldWidth, floorTileIndex / _worldWidth),
                 ClassicPointLight.FromTorch(torch, _torchFlags));
             _creatureShadows?.SetTorch(torch);
+            _torchFlames?.Set(torch);
         }
 
         public void RemoveTorch(int floorTileIndex)
@@ -522,6 +531,7 @@ namespace DK2.Unity
             _torchLights?.Remove(floorTileIndex);
             _worldLights?.SetTorch(new TilePos(floorTileIndex % _worldWidth, floorTileIndex / _worldWidth), null);
             _creatureShadows?.RemoveTorch(floorTileIndex);
+            _torchFlames?.Remove(floorTileIndex);
         }
 
         private void ApplyTorchPose(GameObject go, in TorchView torch)
@@ -613,6 +623,7 @@ namespace DK2.Unity
 
         public void DisposeLightResources()
         {
+            _torchFlames?.Dispose();
             _tileLights?.Dispose();
             _creatureShadows?.Dispose();
             _torchLights?.Dispose();
@@ -621,6 +632,7 @@ namespace DK2.Unity
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>
         public void Clear()
         {
+            _torchFlames?.Clear();
             _worldLights?.Clear();
             _publishedLightTiles.Clear();
             _visibleLightTiles = System.Array.Empty<TilePos>();

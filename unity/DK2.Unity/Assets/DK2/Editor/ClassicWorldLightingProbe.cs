@@ -54,6 +54,8 @@ namespace DK2.Unity.Editor
             public int BufferCountBeforeFlush;
             public int BufferCountAfterFlush;
             public int TileTableGridCount;
+            public float NativeViewDistance;
+            public Vector2Int[] LightVisibilityPolygon;
             public int MeshCount;
             public double ShadowPrepareMedianMs, ShadowPrepareP95Ms;
             public bool ShadowAllocationAvailable;
@@ -72,7 +74,26 @@ namespace DK2.Unity.Editor
             public Comparison[] Comparisons;
             public Profile[] Profiles;
             public Phase[] Phases;
+            public TableDiagnostic[] TableDiagnostics;
             public string Error;
+        }
+
+        [Serializable]
+        private sealed class TableDiagnostic
+        {
+            public string Name;
+            public bool KeywordEnabled;
+            public int VisibleTables, NonemptyTables, SelectedLights, GpuCountMismatches, GpuSourceMismatches;
+            public int TerrainVertices, MissingAnchors, EmptyAnchors, PositiveVertices, OppositeNormalPositiveVertices;
+            public float MaximumContribution;
+            public Vector3 FirstPositivePosition, FirstPositiveNormal;
+            public NearTable[] NearHeart;
+        }
+
+        [Serializable]
+        private sealed class NearTable
+        {
+            public int X, Y, CpuCount, GpuCount, TorchSources;
         }
 
         [Serializable]
@@ -219,6 +240,16 @@ namespace DK2.Unity.Editor
                 var classicCamera = (ClassicCamera)typeof(DungeonRunner).GetField("_classicCamera", BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(runner);
                 float viewDistance = classicCamera.NativeViewDistance;
+                result.NativeViewDistance = viewDistance;
+                Vector3 cameraPosition = probeCamera.transform.position, cameraForward = probeCamera.transform.forward,
+                    cameraUp = probeCamera.transform.up;
+                var lightPose = new ClassicCameraPose(new System.Numerics.Vector3(cameraPosition.x, cameraPosition.y, cameraPosition.z),
+                    new System.Numerics.Vector3(cameraForward.x, cameraForward.y, cameraForward.z),
+                    new System.Numerics.Vector3(cameraUp.x, cameraUp.y, cameraUp.z), probeCamera.fieldOfView,
+                    probeCamera.farClipPlane, 0, 0);
+                result.LightVisibilityPolygon = ClassicLightVisibility.BuildPolygon(lightPose,
+                    new CameraViewport(Mathf.Max(probeCamera.pixelWidth, Screen.width), probeCamera.pixelWidth, probeCamera.pixelHeight),
+                    viewDistance).Select(tile => new Vector2Int(tile.X, tile.Y)).ToArray();
                 var cache = (ClassicWorldLightCache)typeof(DungeonScene).GetField("_worldLights", BindingFlags.NonPublic | BindingFlags.Instance)
                     .GetValue(scene);
                 var torchSources = (ClassicPointLight?[])((ClassicPointLight?[])typeof(ClassicWorldLightCache)
@@ -259,6 +290,10 @@ namespace DK2.Unity.Editor
                 PropertyInfo batcher = GraphicsSettings.currentRenderPipeline.GetType().GetProperty("useSRPBatcher");
                 result.SrpBatcher = batcher != null && (bool)batcher.GetValue(GraphicsSettings.currentRenderPipeline);
 
+                var tableDiagnostics = new List<TableDiagnostic>();
+                scene.PrepareClassicLighting(probeCamera, viewDistance);
+                tableDiagnostics.Add(DiagnoseTables("start", runner, scene, cache));
+
                 var comparisons = new List<Comparison>();
                 comparisons.Add(Compare("start", probeCamera, target, readback, torches, output, setTorches));
                 probeCamera.transform.position += new Vector3(1, 0, 1);
@@ -288,6 +323,9 @@ namespace DK2.Unity.Editor
                 foreach (Transform child in root.GetComponentsInChildren<Transform>(true)) child.gameObject.layer = 31;
                 scene.DrawCreatureShadows(probeCamera, view, simulation.World);
                 torches = runner.GetComponentsInChildren<Light>(true).Where(light => light.type == LightType.Point).ToArray();
+                scene.PrepareClassicLighting(probeCamera, viewDistance);
+                tableDiagnostics.Add(DiagnoseTables("tick70", runner, scene, cache));
+                result.TableDiagnostics = tableDiagnostics.ToArray();
                 comparisons.Add(Compare("tick70", probeCamera, target, readback, torches, output, setTorches));
                 if (Environment.GetEnvironmentVariable("DK2_LIGHTING_PROFILE") == "1")
                 {
@@ -327,6 +365,9 @@ namespace DK2.Unity.Editor
                     throw new InvalidOperationException("Production " + level + " did not create classic torch lighting.");
                 if (comparisons.Any(comparison => comparison.ChangedPixels == 0))
                     throw new InvalidOperationException("At least one production capture received no torch contribution.");
+                if (result.NativeInitialAmbient && result.Level == "Level1"
+                    && comparisons.Any(comparison => comparison.MeanDifference < .01f))
+                    throw new InvalidOperationException("Level1 torch lighting reaches too little geometry; small lit torch models alone cannot pass.");
             }
             finally
             {
@@ -351,6 +392,89 @@ namespace DK2.Unity.Editor
             }
         }
 
+        private static TableDiagnostic DiagnoseTables(string name, DungeonRunner runner, DungeonScene scene,
+            ClassicWorldLightCache cache)
+        {
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            var result = new TableDiagnostic { Name = name, KeywordEnabled = Shader.IsKeywordEnabled(ClassicTileLightBuffer.Keyword) };
+            var buffer = (ClassicTileLightBuffer)typeof(DungeonScene).GetField("_tileLights", flags).GetValue(scene);
+            var gpu = (GraphicsBuffer)typeof(ClassicTileLightBuffer).GetField("_tableCounts", flags).GetValue(buffer);
+            int width = runner.Simulation.World.Width, height = runner.Simulation.World.Height;
+            var counts = new uint[width * height];
+            gpu.GetData(counts);
+            Array published = (Array)typeof(ClassicTileLightBuffer).GetField("_entries", flags).GetValue(buffer);
+            Array readback = Array.CreateInstance(published.GetType().GetElementType(), width * height * ClassicLightTable.MaximumSources);
+            var sources = (GraphicsBuffer)typeof(ClassicTileLightBuffer).GetField("_sources", flags).GetValue(buffer);
+            sources.GetData(readback);
+            var tables = new Dictionary<int, ClassicLightTable>();
+            var near = new List<NearTable>();
+            Vector3 focus = (Vector3)typeof(DungeonRunner).GetField("_cameraFocus", flags).GetValue(runner);
+            foreach (ClassicLightTable table in cache.VisibleTables)
+            {
+                result.VisibleTables++;
+                if (table.Count > 0) result.NonemptyTables++;
+                result.SelectedLights += table.Count;
+                if ((uint)table.Tile.X >= width || (uint)table.Tile.Y >= height) continue;
+                int tile = table.Tile.Y * width + table.Tile.X;
+                tables[tile] = table;
+                if (counts[tile] != table.Count) result.GpuCountMismatches++;
+                for (int slot = 0; slot < table.Count; slot++)
+                {
+                    int source = tile * ClassicLightTable.MaximumSources + slot;
+                    if (!published.GetValue(source).Equals(readback.GetValue(source))) result.GpuSourceMismatches++;
+                }
+                if (Math.Abs(table.Tile.X + .5f - focus.x) > 3 || Math.Abs(-table.Tile.Y - .5f - focus.z) > 3) continue;
+                int torches = 0;
+                foreach (ClassicPointLight light in table.Lights)
+                    if (light.Flags == ClassicLightFlags.NormalTorch || light.Flags == ClassicLightFlags.CheapTorch) torches++;
+                near.Add(new NearTable { X = table.Tile.X, Y = table.Tile.Y, CpuCount = table.Count,
+                    GpuCount = (int)counts[tile], TorchSources = torches });
+            }
+            result.NearHeart = near.ToArray();
+            var anchors = new List<Vector2>();
+            foreach (MeshFilter filter in runner.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (!filter.name.StartsWith("terrain chunk ", StringComparison.Ordinal)
+                    && !filter.name.StartsWith("transparent terrain run ", StringComparison.Ordinal)) continue;
+                Mesh mesh = filter.sharedMesh;
+                if (mesh == null || !mesh.isReadable) continue;
+                Vector3[] positions = mesh.vertices, normals = mesh.normals;
+                mesh.GetUVs(1, anchors);
+                for (int index = 0; index < positions.Length; index++)
+                {
+                    result.TerrainVertices++;
+                    if (index >= anchors.Count || anchors[index].y != 1 || !tables.TryGetValue((int)anchors[index].x, out ClassicLightTable table))
+                    { result.MissingAnchors++; continue; }
+                    if (table.Count == 0) { result.EmptyAnchors++; continue; }
+                    Vector3 position = filter.transform.TransformPoint(positions[index]);
+                    Vector3 normal = filter.transform.TransformDirection(normals[index]).normalized;
+                    var p = new System.Numerics.Vector3(position.x, position.y, position.z);
+                    var n = new System.Numerics.Vector3(normal.x, normal.y, normal.z);
+                    bool positive = false, opposite = false;
+                    foreach (ClassicPointLight light in table.Lights)
+                    {
+                        uint bits = (uint)light.Flags;
+                        if ((bits & 0x60) != 0x60 && (bits & 0xA0) != 0xA0 && (bits & 1) == 0) continue;
+                        try
+                        {
+                            float amount = light.ContributionAt(p, n).Length();
+                            positive |= amount > 0;
+                            opposite |= light.ContributionAt(p, -n).LengthSquared() > 0;
+                            result.MaximumContribution = Math.Max(result.MaximumContribution, amount);
+                        }
+                        catch (NotSupportedException) { }
+                    }
+                    if (positive)
+                    {
+                        if (result.PositiveVertices == 0) { result.FirstPositivePosition = position; result.FirstPositiveNormal = normal; }
+                        result.PositiveVertices++;
+                    }
+                    if (opposite) result.OppositeNormalPositiveVertices++;
+                }
+            }
+            return result;
+        }
+
         private static void ValidateTerrainAnchors(Result result, GameObject root, int width, int height)
         {
             var anchors = new List<Vector2>();
@@ -362,6 +486,13 @@ namespace DK2.Unity.Editor
                 if (!opaque && !transparent && !liquid) continue;
                 Mesh mesh = filter.sharedMesh;
                 if (mesh == null || mesh.vertexCount == 0) continue;
+                var lightBounds = new List<Vector4>();
+                var lightKinds = new List<Vector2>();
+                mesh.GetUVs(2, lightBounds); mesh.GetUVs(3, lightKinds);
+                if (lightBounds.Count != mesh.vertexCount || lightKinds.Count != mesh.vertexCount)
+                    throw new InvalidOperationException(filter.name + " has implicit static light inputs; missing channels can select animated lighting.");
+                if (lightBounds.Any(value => value != Vector4.zero) || lightKinds.Any(value => value != Vector2.zero))
+                    throw new InvalidOperationException(filter.name + " contains animated light inputs on static terrain.");
                 anchors.Clear();
                 mesh.GetUVs(1, anchors);
                 if (anchors.Count != mesh.vertexCount)

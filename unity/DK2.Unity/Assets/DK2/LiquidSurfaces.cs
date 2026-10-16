@@ -119,6 +119,9 @@ namespace DK2.Unity
             Wave(layer, 0);
             mesh.SetUVs(0, uvs);
             mesh.SetUVs(1, lightAnchors);
+            var staticLightInputs = new Vector4[mesh.vertexCount];
+            mesh.SetUVs(2, staticLightInputs);
+            mesh.SetUVs(3, staticLightInputs);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
 

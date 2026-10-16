@@ -1,5 +1,24 @@
 # Unity crowd performance probe
 
+## Pinned Level 1 startup comparison
+
+In the isolated `build/step5-lighting-project` only, batch entry point
+`DK2.Unity.Editor.ClassicStartupCaptureProbe.Run` records1024×540 gameplay views
+at fixed effect times0/500/1000/2000/4000/7000/9000ms and corresponding simulation
+ticks. `DK2_STARTUP_CAPTURE_OUTPUT` selects the output directory;
+`DK2_STARTUP_CAPTURE_FOG=1` enables fog. It uses native lighting inputs, normal
+torch lighting and High Walls. It does not save an owner scene or settings.
+Original references need matching viewport and sequence phase; a screenshot
+reported as untouched defaults does not establish its exact tick or ambient RGB.
+
+For the unresolved original-input gap, leave retail DK2 running on Level1 and use
+`capture-native-render-inputs.py --pid <pid> --exe <path> --expected-sha256 <digest> --output <ignored-json>`.
+Use the digest of the executable imported into Ghidra, not an arbitrary live
+executable. The script validates that digest and process path before fixed-address
+reads. It requests read/query access only and changes no game memory or settings.
+`--self-test` verifies process-memory reading against a known local buffer.
+Runtime captures belong under ignored `reverse-engineering/`.
+
 ## Windowed Level8 frame capture
 
 `run-window-frames.ps1` uses the already prepared, isolated

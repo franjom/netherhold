@@ -20,6 +20,18 @@ public class ClassicCameraTests
         Lens = 8192, AnglePitch = 220, Flags = 0x26,
     };
 
+    [Theory]
+    [InlineData(0, 40960, 20f)]
+    [InlineData(122880, 40960, 30f)]
+    [InlineData(0, 20480, 10f)]
+    public void LightVisibilityDistanceIncludesTwiceTheCurrentUnscaledZoom(int authoredDistance, int zoom, float expected)
+    {
+        var camera = new ClassicCamera(Profile() with { ViewDistance = authoredDistance });
+        camera.SetZoom(new Fp32(zoom));
+        Assert.Equal(expected, camera.NativeViewDistance);
+        Assert.Equal(expected, camera.Pose(Vector3.Zero, new CameraViewport(1280, 1280, 720)).FarClipDistance);
+    }
+
     [Fact]
     public void LevelStartFocusUsesTileCentresAndLiteralHeightIndependentOfProfilePosition()
     {

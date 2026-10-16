@@ -15,6 +15,27 @@ namespace DK2.Convert.Tests;
 public sealed class InstallEffectSpriteProviderTests
 {
     [Fact]
+    public void BuiltInWallFlameResolvesWithoutAnEffectElementDefinition()
+    {
+        var provider = new InstallEffectSpriteProvider(Database(), name =>
+            name.StartsWith("KTorch", StringComparison.Ordinal)
+                && int.TryParse(name.AsSpan(6), out int frame) && frame < 20
+                ? Image : throw new FileNotFoundException());
+        var key = AssetRef.ForObject("wall_torch", AssetKind.Effect, "flame");
+        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.Equal("KTorch", asset.InstallEntry);
+        Assert.True(provider.TryGetSprite(asset, out var sprite));
+        Assert.Equal(20, sprite.DeclaredFrameCount);
+        Assert.Equal(20, sprite.StoredFrameCount);
+        Assert.Equal(4096, sprite.WidthRaw);
+        Assert.Equal(4096, sprite.HeightRaw);
+        Assert.Equal(EffectSpriteBlend.Additive, sprite.Blend);
+        Assert.Equal(0x20004u, sprite.ArtFlags);
+        Assert.True(provider.TryLoadFrame(asset, 19, out _));
+        Assert.False(provider.TryLoadFrame(asset, 20, out _));
+    }
+
+    [Fact]
     public void DeclaredDurationAndAvailableImageCountRemainSeparate()
     {
         var element = Element("Cloud", "cloud", 3, 0x24, 16);
@@ -71,6 +92,12 @@ public sealed class InstallEffectSpriteProviderTests
         }
         Assert.True(provider.TryResolve(AssetRef.ForEffectElement(database.EffectElements[144].Name), out var chip));
         Assert.True(provider.TryLoadFrame(chip, 0, out _));
+        Assert.True(provider.TryResolve(AssetRef.ForObject("wall_torch", AssetKind.Effect, "flame"), out var flame));
+        Assert.True(provider.TryGetSprite(flame, out var flameSprite));
+        Assert.Equal(20, flameSprite.DeclaredFrameCount);
+        Assert.True(flameSprite.StoredFrameCount > 0);
+        Assert.True(provider.TryLoadFrame(flame, 0, out var flameImage));
+        Assert.Contains(flameImage.Pixels.Where((_, index) => index % 4 == 3), alpha => alpha > 0);
     }
 
     [Fact]

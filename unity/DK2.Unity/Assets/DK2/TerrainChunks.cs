@@ -236,6 +236,10 @@ namespace DK2.Unity
             mesh.SetNormals(_normals);
             mesh.SetUVs(0, _uvs);
             mesh.SetUVs(1, _lightAnchors);
+            // Missing vertex channels can arrive as ones and select the animated lighting arm.
+            var staticLightInputs = new Vector4[_positions.Count];
+            mesh.SetUVs(2, staticLightInputs);
+            mesh.SetUVs(3, staticLightInputs);
             _opaque.Clear();
             foreach (KeyValuePair<Material, List<int>> entry in _byMaterial)
                 if (entry.Value.Count > 0 && entry.Key.renderQueue < (int)RenderQueue.Transparent) _opaque.Add(entry.Key);

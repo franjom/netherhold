@@ -22,7 +22,7 @@ public sealed class ClassicCamera
     private readonly CameraThing _profile;
     private Dk2Angle _yaw;
     public Fp32 Zoom { get; private set; }
-    public float NativeViewDistance => _profile.ViewDistance / (float)Fp32.One;
+    public float NativeViewDistance => Math.Max(_profile.ViewDistance / (float)Fp32.One, 2f * (float)Zoom.ToDouble());
 
     /// <summary>The reset camera's yaw, preserved on entry to dungeon mode (classic-camera.md section4).</summary>
     public static readonly Dk2Angle LevelStartYaw = new(256);
@@ -84,7 +84,7 @@ public sealed class ClassicCamera
         float focalPixels = (float)(new Fp32(_profile.Lens) * new Fp32(320 * Fp32.One)).ToDouble();
         float fov = (float)(2 * Math.Atan(viewport.Height / (2.0 * focalPixels)) * 180 / Math.PI);
         return new ClassicCameraPose(focus + offset, forward, up, fov,
-            Math.Max(_profile.ViewDistance / (float)Fp32.One, 2f * (float)Zoom.ToDouble()),
+            NativeViewDistance,
             90f - new Dk2Angle(_profile.AnglePitch).Value * (360f / 2048),
             _yaw.Value * (360f / 2048));
     }

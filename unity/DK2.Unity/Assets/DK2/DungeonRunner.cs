@@ -80,12 +80,12 @@ namespace DK2.Unity
         [Header("Art")]
         [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
         [SerializeField] private bool classicMeshes = true;
-        [Tooltip("Preview native per-vertex torch lighting. Global lighting and framebuffer transfer remain under investigation.")]
-        [SerializeField] private bool classicVertexLighting;
+        [Tooltip("Use DK2 terrain and object lighting through the classic shader.")]
+        [SerializeField] private bool classicVertexLighting = true;
         [Tooltip("Use DK2's Cheap Lighting mode for animated torch illumination.")]
         [SerializeField] private bool cheapLighting;
-        [Tooltip("Diagnostic: native startup ambient only. Missing native fill lights can leave geometry black.")]
-        [SerializeField] private bool nativeInitialAmbient;
+        [Tooltip("Use original lighting inputs. Off adds Unity sky and sun illumination for the brighter preview.")]
+        [SerializeField] private bool nativeInitialAmbient = true;
         [Tooltip("Projected 32-pixel silhouettes from each creature's current animated mesh.")]
         [SerializeField] private bool classicCreatureShadows = true;
 
@@ -112,6 +112,7 @@ namespace DK2.Unity
         private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
         private ClassicCamera _classicCamera;
         private readonly ClassicAmbientLight _ambientLight = new ClassicAmbientLight();
+        internal Func<EffectTime> EffectClock { get; set; }
         private Vector3 _cameraFocus;
         private Vector2 _cameraBounds;
         private float _cameraTurnRemainder;
@@ -237,12 +238,14 @@ namespace DK2.Unity
                 ? new TerrainLattice(database, world, (byte)viewingPlayerId) { HighWalls = highWalls }
                 : null;
             _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice, classicCreatureShadows, cheapLighting);
+            if (EffectClock != null) _scene.HeartEffectClock = EffectClock;
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
             if (_installArt != null)
             {
                 var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
+                _scene.AttachTorchSprites(sprites, EffectClock, seed);
                 _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
                     request => _worldView.CanShowTile(world, request.Tile),
                     request => _worldView.CanShowTile(world, request.Tile)
@@ -250,7 +253,7 @@ namespace DK2.Unity
                         && (!HeartIntroRules.IsViewerOnly(request.EffectId.Value) || request.Owner.Value == viewingPlayerId),
                     point => _worldView.GroundHeightAt(world, point), meshes: _classic,
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
-                    attachment: _scene.CreatureAttachment);
+                    attachment: _scene.CreatureAttachment, clock: EffectClock);
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
             }
             _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,

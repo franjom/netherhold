@@ -35,8 +35,11 @@ Before adding the engine offset it converts focus to `(gameX,gameY,-gameZ)`;
 converting that engine frame to Unity `(x,-z,-y)` preserves positive focus height.
 
 0x0058A6F0 scales projection by focal length divided by each viewport extent.
-0x0044D550 supplies the visibility distance as the larger of twice authored
-zoom and the active authored view distance, converted to world units.
+CONFIRMED (whole decompile and instructions rechecked 2026-10-16):
+0x0044D550 supplies the visibility distance as the larger of twice active
+zoom (+0xD80) and active view distance (+0xD8A), converted to world units.
+`NativeViewDistance` shares this value with the camera far clip; using the
+authored distance alone clipped visible terrain out of the light tables.
 An equivalent perspective camera has vertical FOV
 `2*atan(drawableViewportHeight /(2*focalLengthPixels))`. Full screen width
 and drawable viewport are distinct inputs when panels reduce the view.

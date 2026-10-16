@@ -47,6 +47,7 @@ namespace DK2.Unity
         private readonly List<Vector3> _runNormals = new List<Vector3>();
         private readonly List<Vector2> _runUvs = new List<Vector2>();
         private readonly List<Vector2> _runLightAnchors = new List<Vector2>();
+        private readonly List<Vector4> _runStaticLightInputs = new List<Vector4>();
         private readonly List<int> _runIndices = new List<int>();
         private bool _dirty = true;
         private Vector3 _lastForward;
@@ -170,6 +171,7 @@ namespace DK2.Unity
                 run.Renderer.sortingOrder = i + 1;
                 _runPositions.Clear(); _runNormals.Clear(); _runUvs.Clear(); _runIndices.Clear();
                 _runLightAnchors.Clear();
+                _runStaticLightInputs.Clear();
                 foreach (RenderTriangle triangle in ordered[i].Triangles)
                 {
                     AddVertex(triangle.A); AddVertex(triangle.B); AddVertex(triangle.C);
@@ -180,6 +182,8 @@ namespace DK2.Unity
                 run.Mesh.SetNormals(_runNormals);
                 run.Mesh.SetUVs(0, _runUvs);
                 run.Mesh.SetUVs(1, _runLightAnchors);
+                run.Mesh.SetUVs(2, _runStaticLightInputs);
+                run.Mesh.SetUVs(3, _runStaticLightInputs);
                 run.Mesh.SetTriangles(_runIndices, 0, calculateBounds: true);
             }
             for (int i = ordered.Count; i < _runs.Count; i++) _runs[i].Object.SetActive(false);
@@ -195,6 +199,7 @@ namespace DK2.Unity
             _runNormals.Add(_normals[vertex]);
             _runUvs.Add(_uvs[vertex]);
             _runLightAnchors.Add(_lightAnchors[vertex]);
+            _runStaticLightInputs.Add(Vector4.zero);
         }
 
         private Run CreateRun(int index)

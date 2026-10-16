@@ -45,8 +45,9 @@ mantissa bits minus0x400000. The final store is relevant at integer boundaries;
 neither truncation nor ordinary nearest-integer rounding is equivalent.
 
 The engine-neutral implementation is `ClassicLightVisibility`; its camera
-input uses actual pose/FOV/viewport and the native distance separately from a
-presentation far-clip extension. Four floor-plane ray intersections are not
+input uses actual pose/FOV/viewport and the native distance, including the
+twice-active-zoom minimum (see classic-camera.md section2). A later presentation
+far-clip extension is separate. Four floor-plane ray intersections are not
 equivalent to the clipped volume above.
 
 ## 2. Scan conversion and visible-flag lifetime

@@ -82,6 +82,11 @@ modulated by it ([tag-highlight.md](tag-highlight.md) §6). So brightness is
 self-illumination: the gold spill cards (0.6) and chest gold (0.6) glow. An additive
 material's colour is forced to white, so it draws at full light. CONFIRMED.
 
+CONFIRMED shipped data (2026-10-16): `ROCK TOP.kmf` and all five materials in
+`DHeart Arches.kmf` have brightness zero. Their black appearance with no supplied
+light cannot be corrected by restoring omitted authored self-illumination.
+The Rock Top's nine geometry vertices all have native Z=-2 (Unity height2), before terrain deformation.
+
 The device set-up [0x005899F0](functions/005899F0.md) sets SPECULARENABLE to 0, CULLMODE
 to NONE, ZFUNC to LESSEQUAL, Gouraud shading and dithering. No call sets
 ALPHATESTENABLE, ALPHAREF, ALPHAFUNC or COLORKEYENABLE: a scan of every indirect call

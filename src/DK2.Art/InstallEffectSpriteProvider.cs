@@ -23,7 +23,7 @@ public interface IEffectSpriteProvider : IAssetProvider
 /// <summary>Original effect sprites behind logical keys; texture filenames stay in this provider.</summary>
 public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
 {
-    private readonly Dictionary<AssetRef, EffectElementDef> _elements = new();
+    private readonly Dictionary<AssetRef, KwdArtResource> _elements = new();
     private readonly Dictionary<AssetRef, LoadedSprite?> _loaded = new();
     private readonly Func<string, RgbaImage> _loadTexture;
 
@@ -35,7 +35,13 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
                      .Where(element => element.ArtResource.Type is >= 1 and <= 3
                          && !string.IsNullOrWhiteSpace(element.ArtResource.Name))
                      .GroupBy(element => AssetRef.ForEffectElement(element.Name)))
-            if (group.Count() == 1) _elements.Add(group.Key, group.Single());
+            if (group.Count() == 1) _elements.Add(group.Key, group.Single().ArtResource);
+        byte[] flameValues = new byte[12];
+        BinaryPrimitives.WriteInt32LittleEndian(flameValues, 4096);
+        BinaryPrimitives.WriteInt32LittleEndian(flameValues.AsSpan(4), 4096);
+        BinaryPrimitives.WriteInt32LittleEndian(flameValues.AsSpan(8), 0x04030014);
+        _elements.Add(AssetRef.ForObject("wall_torch", AssetKind.Effect, "flame"),
+            new KwdArtResource("KTorch", 0x20004, flameValues, 3, 0, 0, 0));
     }
 
     public string Name => "install_effect_sprites";
@@ -48,7 +54,7 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
             return false;
         }
         asset = new ResolvedAsset(reference, AssetSource.InstallEntry, null, default, Name,
-            _elements[reference].ArtResource.Name);
+            _elements[reference].Name);
         return true;
     }
 
@@ -74,13 +80,13 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
     private bool Owns(in ResolvedAsset asset) => asset.Source == AssetSource.InstallEntry
         && asset.ProviderName == Name && !asset.Reference.IsEmpty
         && _elements.TryGetValue(asset.Reference, out var element)
-        && asset.InstallEntry == element.ArtResource.Name;
+        && asset.InstallEntry == element.Name;
 
     private LoadedSprite? Load(AssetRef reference)
     {
         if (_loaded.TryGetValue(reference, out LoadedSprite? cached)) return cached;
         if (!_elements.TryGetValue(reference, out var element)) return null;
-        KwdArtResource art = element.ArtResource;
+        KwdArtResource art = element;
         ReadOnlySpan<byte> values = art.Unknown_0044.Span;
         if (values.Length != 12) throw new InvalidDataException("A sprite descriptor requires twelve value bytes.");
         int declaredFrames = (art.Flags & 4) != 0 ? Math.Max(1, (int)values[8]) : 1;

@@ -7,6 +7,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Missing Unity mesh UV2/UV3 shader inputs arrived as ones on D3D12, routing static terrain into animated lighting; publish explicit zero channels instead of assuming absent streams are zero.
+
 - Unity 6000.6 Mono's per-thread allocation meter reports 0 for a live 64KiB allocation; calibrate before claiming zero, and do not treat GC.Alloc's TimeNanoseconds recorder as bytes.
 
 - Reset mesh UV channels with explicit zero arrays after GPU fixtures; clearing them to empty can retain stale stream values after another UV channel changes.

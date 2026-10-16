@@ -82,8 +82,8 @@ Prison rats, Portal entrances, corpse art, terrain debris and the Hand
 adjustment; cause open in Q594), opening sequence (ADR-0475), Portal entrance
 effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built; as of 2026-10-15
 the owner has not seen the sparkles or the opening sequence in Unity. Step 5's
-current camera and lighting implementation is merged through 0ba5efab; remaining
-work continues on classic-look/step5 in D:/DungeonKeeperRemake-classic.
+base camera and lighting implementation is merged. Further fidelity corrections
+continue on classic-look/step5 in D:/DungeonKeeperRemake-classic.
 
 Step 5 milestones and remaining gates: plans/2026-10-14-classic-look-step5.md.
 The ordinary camera, automatic native light-cache publication, both animated
@@ -92,10 +92,13 @@ and visibility-filtered torches/effects are implemented and independently review
 Research and verification: research/classic-lighting.md and its verification link.
 Animated creature silhouettes remain under ADR-0482. Preserve the owner-accepted
 brighter preview with Native Initial Ambient off; +/− now controls native ambient.
-Discovery uses merged snapshot/hash version260; producer/cadence limits are in
+Discovery uses the current snapshot/hash schema; producer/cadence limits are in
 research/fog-reveal-sources.md. Windowed CPU/GPU capture is verified; scoped Unity
 allocation counters failed calibration (see verification). Matched-original
-acceptance remains pending. Use serial checks; isolated probes must not save or
+acceptance remains pending. Corrections restore the companion torch animation,
+native twice-zoom visibility distance and explicit static shader inputs. Default
+unlit surfaces and Heart smoke colour still need original runtime inputs (Q603,
+Q605); native torch timing remains Q604. Use serial checks; isolated probes must not save or
 restart an owner's open editor.
 
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the

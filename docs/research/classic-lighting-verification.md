@@ -52,6 +52,9 @@ entry point: its deferred editor callback exits when the check finishes.
 
 ## Level8 CPU comparison
 
+These October15 timings predate the October16 camera-distance and static vertex
+input corrections. They are historical measurements, not current-path timings.
+
 AMD Ryzen7 7735HS, integrated AMD Radeon Graphics, Direct3D12,1024×576,
 Unity6000.6.0f1. Fixed world at turn70; the second view is selected by maximum
 authored torch density in a13×13 window. Each mode warms20 render requests and
@@ -111,6 +114,8 @@ call stacks still need the existing Unity Profiler protocol.
 
 ## Review and completion limits
 
+The October16 corrections and their remaining visual limits are recorded below.
+
 The merged Release solution checks with installed game data pass5503 tests,
 with22 reported skips and no failures. This includes471 presentation and3542
 simulation tests. The Unity adapter builds with zero warnings/errors; its eight
@@ -129,3 +134,33 @@ torch visibility and stale Sight-event ordering. Regression tests retain those s
 
 The milestone checklist and final acceptance gate are in
 [the Step5 plan](../plans/2026-10-14-classic-look-step5.md).
+
+## Level1 reference corrections — 2026-10-16
+
+The owner reports untouched original DK2 defaults. This is an observational
+reference, without a recorded original tick or live renderer state.
+Fresh native-only captures exposed two integration defects: the camera's native
+twice-zoom visibility minimum was omitted, and missing static vertex inputs
+selected animated lighting on D3D12. Both are corrected; see camera research
+and TRAPS. The original `KTorch` companion is now rendered separately from its mount.
+
+The campaign probe now verifies explicit static input streams, GPU count/source
+readback against prepared tables, and a substantial Level1 image contribution
+from torches, rather than accepting a few changed bulb pixels. The static-stream
+regression failed before the fix and passes afterward. Level1's mean torch image
+difference rose from about0.00062 to0.10017; this measures our on/off control,
+not error against original DK2. Level8 also passes with opaque, transparent and
+liquid stream checks and zero count/source mismatches.
+
+Evidence: ignored `build/step5-static-inputs-green`, `step5-parity-final-Level8`
+and `step5-startup-parity-{fog,no-fog}` in the main clone. Startup captures use
+1024×540, fixed simulation ticks and an injected50ms effect clock at seven
+recorded times through9seconds. They include the Heart opening and original flames.
+481 presentation tests and138 conversion tests pass; the adapter builds cleanly.
+Independent reviews cover placement, visibility, resource clearing, capture clocks,
+camera setup and the read-only native-input probe; its local-memory self-test passes.
+
+This is not visual acceptance: unlit rock tops/arches and Heart smoke colour
+still differ from the owner's original reference (Q603, Q605). Native torch
+caller cadence/RNG matching remains Q604. The native-input capture requires a
+running, hash-verified original game; it changes no memory or settings.

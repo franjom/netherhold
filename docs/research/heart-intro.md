@@ -67,6 +67,13 @@ three-float offset (KMF GROP: HEAD count, then ELEM name and offset).
   view list `+0x336`, then loops over `definition+0x7B` (NextEffectId) creating
   each with the same tag, position and heading; only the first id passed the
   visibility gate `0x00440420` (flag `0x8000` skips its first test).
+- **Color tag (rechecked 2026-10-16).** The225 request loads the room owner
+  word at`+0x1D` (`0x004D9DBA`);`0x004347E0` stores the incoming tag at`+0x12D`.
+  Generated elements receive that tag through`0x004352E0`; generated effects
+  and death effects obtain it through the parent's virtual`+0xC` getter.
+  No parent-flag`0x200` tag reset was found in these paths. The palette's
+  special cycling-color branch remains scoped in room-construction-effects.md
+  section6; a gray screenshot alone does not establish a neutral owner.
 - **Death at removal.** The cleanup loop `0x0043C041` removes an instance only when
   its HP (`+0x10B`) is gone **and** its child list `+0x113` is empty; the remover
   `0x00440530` → `0x004354F0` creates `definition+0x7D` (DeathEffectId) at the

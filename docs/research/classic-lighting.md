@@ -126,8 +126,21 @@ on 2026-10-15 distinguish these handles from global ambient/fill:
 The companion resource is `KTorch`, loaded by `0x0043AD70` at resource name
 `0x006977B8`, type3/flags`0x20004`, into bridge+`0x39D`; startup
 `0x00448129..78` binds bridge+`0x3A1` to the handle above and sets both size
-axes to`0x400`. Rechecked in Ghidra on2026-10-16. Unity currently draws only
-the mounted torch mesh and light; this companion animated draw is missing.
+axes to`0x400`. Rechecked in Ghidra on2026-10-16. The install sprite provider
+now supplies this built-in descriptor independently of effect-element records.
+`ClassicTorchFlames` draws its additive white, camera-facing sprite alongside
+the mounted model, with the same visibility lifetime as the torch.
+
+CONFIRMED (2026-10-16): `0x0043CC30` adds height`0x4B0` and a512-unit cardinal
+offset to the mounted model offset, almost cancelling that offset (the two
+positive mounts retain their native one-unit truncation). Sprite flag`0x800`
+requests lattice deformation in `0x0057F7E0`. `0x0043B220` advances one shared
+animation; its20-frame descriptor produces the integer normalized step204.
+The tile draw adds the torch's`+0x11B` phase through`0x0043D770`, initialized
+by a bridge-stream random draw below4096 in`0x00439B90`. The adapter currently
+uses a50ms shared presentation clock and a separately seeded presentation RNG
+for stable per-torch offsets. The original caller cadence and bridge RNG
+algorithm/seed matching remain unverified.
 
 The tile-light consumer and remaining selection boundary are in section9;
 these handles do not establish replacement Unity directional lighting.
@@ -214,7 +227,7 @@ The initial-ambient diagnostic follows section8; the accepted brighter preview
 retains its scene lighting fallback. Selected-table lighting excludes unrelated
 URP punctual lights. Singular zero-incidence remains outside the native contract;
 framebuffer transfer and matched original brightness remain open.
-The preview stays disabled by default pending rendered comparisons.
+Fresh runners use native lighting inputs; serialized scene overrides remain.
 
 Controlled GPU results, campaign captures and CPU measurements are maintained
 in [classic-lighting-verification.md](classic-lighting-verification.md).
@@ -237,6 +250,10 @@ settings load/reset (`0x00564B00`, `0x00563FB0`) default the `Ambient Light`
 field at+0x4C to512, not40; the preset loader `0x00565CF0` also writes it.
 None of these read settings bodies applies the value to the ambient setter.
 This does not establish every possible indirect startup command or saved setting.
+
+CONFIRMED (2026-10-16): startup settings`+0x5C` passes through slot`+0x70`
+([0x0059C110](functions/0059C110.md)) to a dword store at`0x00764BE4`, without
+setting ambient RGB. The option's meaning and consumers remain untraced.
 
 The initial-ambient diagnostic therefore retains zero and excludes Unity's
 placeholder directional/sky lighting; material/terrain additions and point lights
@@ -262,11 +279,9 @@ word `+0xA8` is nonzero. With the confirmed intermediate shift `+0xB8`, this is
 file offset `+0x18C`, in units1/4096. An absent field leaves the previous runtime
 value intact; its initial default has not been established.
 
-The complete-record reader/writer exposes this signed value as optional
-`TerrainDef.TerrainLightHeight`; null preserves the writer's template bytes.
-Thirty terrain tests pass, including signed extremes, depth independence,
-offset-only edits and shipped-file byte identity. The field is not yet submitted
-to the renderer, pending the light-table gathering rule below.
+`TerrainDef.TerrainLightHeight` retains the signed authored value; null preserves
+template bytes. CONFIRMED reread (2026-10-16): `0x00441CD0` supplies it as absolute
+Z without adding floor height; `0x00599960` converts that stored Z directly.
 
 Eligibility is `0x00452DC0`: actual rooms take precedence and need byte `+0xC == 0xFF`
 and TerrainLight. Plain scanned/unexplored terrain selects RevealThroughFog terrain
@@ -359,9 +374,8 @@ vertex does not reproduce that animated default arm (section3). Terrain's
 source-mask producer remains unaudited. The loader/setter establishes the option
 and missing-key default, not the current owner's installed registry value.
 
-The remaining implementation boundary is native cell visibility/cache
-enumeration; the input source eligibility and gathering itself are now resolved
-(Q597). The projected-region boundary is in [classic-light-visibility.md](classic-light-visibility.md)
+Source eligibility and gathering are resolved (Q597). The projected-region boundary
+is in [classic-light-visibility.md](classic-light-visibility.md)
 and Q602. An unrestricted sum of all nearby authored tiles would bypass both
 that boundary and the confirmed 12-static/24-total capacity.
 
