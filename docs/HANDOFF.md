@@ -98,8 +98,9 @@ allocation counters failed calibration (see verification). Matched-original
 acceptance remains pending. Corrections restore the companion torch animation,
 native twice-zoom visibility distance, static shader inputs, whole/quarter-top
 normal inversion, ordinary-object lighting roles and authored dynamic object lights.
-Some arch faces remain black; Heart smoke colour is still unmatched (Q603,
-Q605); native torch timing remains Q604. Use serial checks; isolated probes must not save or
+Automatic room-furniture added colour now restores dark Heart arches; evidence
+and limits are in research/static-mesh-lighting.md section5 (Q603). Heart smoke
+colour remains unmatched (Q605); native torch timing remains Q604. Use serial checks; isolated probes must not save or
 restart an owner's open editor.
 
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the

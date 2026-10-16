@@ -933,6 +933,19 @@ public class WorldViewTests
     }
 
     [InstallFact]
+    public void HeartFurnitureReceivesTheCapturedRoomAddedColour()
+    {
+        (GameDatabase database, WorldState world) = RealLevel()!.Value;
+        ObjectView[] furniture = new WorldView(database).Decorations(world)
+            .Where(o => o.ObjectTypeId is 13 or 86 or 88 or 94).ToArray();
+        Assert.NotEmpty(furniture);
+        Assert.Contains(furniture, o => o.ObjectTypeId == 86);
+        Assert.Contains(furniture, o => o.ObjectTypeId == 88);
+        foreach (ObjectView piece in furniture)
+            Assert.Equal(new TerrainLightColour(70, 30, 10), piece.AddedLight);
+    }
+
+    [InstallFact]
     public void HeartLightSourcesKeepPhysicalZeroHeightAndIgnoreMeshFogAdmission()
     {
         (GameDatabase database, WorldState world) = RealLevel(fog: true)!.Value;

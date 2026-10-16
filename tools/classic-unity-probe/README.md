@@ -17,6 +17,7 @@ Use the digest of the executable imported into Ghidra, not an arbitrary live
 executable. The script validates that digest and process path before fixed-address
 reads. It requests read/query access only and changes no game memory or settings.
 `--self-test` verifies process-memory reading against a known local buffer.
+`--heart-inputs` also reads Heart furniture transforms/colours and engine lights.
 Runtime captures belong under ignored `reverse-engineering/`.
 
 ## Windowed Level8 frame capture

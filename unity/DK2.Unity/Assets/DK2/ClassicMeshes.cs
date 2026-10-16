@@ -46,7 +46,8 @@ namespace DK2.Unity
         private readonly Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material> _tinted =
             new Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material>();
         private readonly Dictionary<(AssetRef, bool), PieceSource> _pieces = new Dictionary<(AssetRef, bool), PieceSource>();
-        private readonly Dictionary<(AssetRef, int), Material[]> _heartMaterials = new Dictionary<(AssetRef, int), Material[]>();
+        private readonly Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]> _heartMaterials = new Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]>();
+        private readonly Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]> _tintedSets = new Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]>();
 
         public ClassicMeshes(InstallArtProvider art, bool classicVertexLighting = false, bool nativeInitialAmbient = false)
         {
@@ -68,16 +69,18 @@ namespace DK2.Unity
         /// <summary>The name of the shader the materials use, for the on-screen diagnostics.</summary>
         public string ShaderName => _shader != null ? _shader.name : "none";
 
-        public void RestoreModel(GameObject go, in ResolvedAsset asset)
+        public void RestoreModel(GameObject go, in ResolvedAsset asset, DK2.Data.Model.TerrainLightColour addedLight = default)
         {
             if (!TryBuild(asset, false, out Built built)) return;
             go.GetComponent<MeshFilter>().sharedMesh = built.Mesh;
-            go.GetComponent<MeshRenderer>().sharedMaterials = built.Materials;
+            go.GetComponent<MeshRenderer>().sharedMaterials = TintedMaterials(built.Materials, addedLight);
+            _opaqueOf.Remove(go);
         }
 
         public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
-            bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null)
+            bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null,
+            DK2.Data.Model.TerrainLightColour addedLight = default)
         {
             if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
                 || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
@@ -98,7 +101,7 @@ namespace DK2.Unity
                     _animations[part.InstallEntry] = clip = new RenderAnimation(partModel);
                 clips[(int)segment] = clip;
                 templates[(int)segment] = partBuilt.Mesh;
-                materials[(int)segment] = partBuilt.Materials;
+                materials[(int)segment] = TintedMaterials(partBuilt.Materials, addedLight);
             }
             ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
             if (player == null) player = go.AddComponent<ClassicCreatureAnimation>();
@@ -112,9 +115,10 @@ namespace DK2.Unity
             return true;
         }
 
-        public void ConfigureHeartDecay(GameObject go, in ResolvedAsset asset, Fp32 phase)
+        public void ConfigureHeartDecay(GameObject go, in ResolvedAsset asset, Fp32 phase,
+            DK2.Data.Model.TerrainLightColour addedLight = default)
         {
-            var key = (asset.Reference, phase.Raw);
+            var key = (asset.Reference, phase.Raw, addedLight);
             if (!_heartMaterials.TryGetValue(key, out Material[] materials))
             {
                 if (!_art.TryLoadModel(asset, out KmfModel model)) return;
@@ -126,6 +130,7 @@ namespace DK2.Unity
                         : ForTexture(source.TextureNames[DungeonHeartVisual.TextureIndex(phase, source.TextureNames.Count)],
                             source.Blend, source.SelfIllumination);
                 }
+                for (int i = 0; i < materials.Length; i++) materials[i] = TerrainTinted(materials[i], addedLight);
                 _heartMaterials[key] = materials;
             }
             go.GetComponent<ClassicCreatureAnimation>()?.SetMainMaterials(materials);
@@ -345,6 +350,17 @@ namespace DK2.Unity
             tagged.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             _tagged[material] = tagged;
             return tagged;
+        }
+
+        private Material[] TintedMaterials(Material[] source, DK2.Data.Model.TerrainLightColour addedLight)
+        {
+            if (addedLight == default) return source;
+            var key = (source, addedLight);
+            if (_tintedSets.TryGetValue(key, out Material[] materials)) return materials;
+            materials = new Material[source.Length];
+            for (int i = 0; i < source.Length; i++) materials[i] = TerrainTinted(source[i], addedLight);
+            _tintedSets.Add(key, materials);
+            return materials;
         }
 
         public Material TerrainTinted(Material material, DK2.Data.Model.TerrainLightColour tint)

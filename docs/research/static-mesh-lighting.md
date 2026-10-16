@@ -127,3 +127,28 @@ Boundaries: held/carried object lights are omitted until their hand-space behavi
 is traced. Generated decorations use our existing creation order and floor
 projection; exact overflow ties and non-Heart physical-versus-rendered furniture
 offsets still need comparison. These are not evidence for an ambient fill.
+
+## 5. Room automatic-object added colour
+
+CONFIRMED: `0x004E6220` stamps a furniture object's room and links its automatic
+object list. If the room terrain has AmbientLight (bit29), it copies the low
+bytes of the terrain's ambient RGB words into object bytes`+0x8C..+0x8E`.
+This is an added model colour, independent of the linked dynamic light.
+
+A read-only Level1 retail capture on2026-10-16 found all eight Heart furniture
+objects (types13/86/88/94) at RGB70/30/10, alpha255 and scale4096/4096.
+Heart/Arches/BigSteps physical Z was0; pillars were4096. Linked Heart and Arch
+light positions/radii matched section4. Initial ambient and Cheap Lighting were0.
+The ignored capture is`reverse-engineering/step5-native-heart-inputs.json`,
+from the hash/path-guarded reader's`--heart-inputs` mode. Arches' authored
+material brightness is0; omitting the added colour produced black silhouettes.
+
+Built: automatic room furniture carries this colour through ObjectView and
+cached material variants, including animation segments, health textures and
+alpha fades. Ordinary stored gold does not inherit it. Base materials remain
+shared and unchanged. This is not a Heart-specific ambient override.
+
+Boundaries: our lookup uses the object's current tile room rather than native
+birth-room list association. Colour-only changes to an animated object's view
+currently reconfigure its clip; a moved/recoloured furniture case needs separate
+association and clock verification. Static startup Heart furniture is covered.

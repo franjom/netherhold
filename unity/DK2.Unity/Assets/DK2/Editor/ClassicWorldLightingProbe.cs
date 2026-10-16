@@ -66,6 +66,7 @@ namespace DK2.Unity.Editor
             public int AnchoredTerrainVertices, AnchoredTransparentVertices, AnchoredLiquidVertices;
             public int VerifiedTopNormalVertices;
             public int VerifiedWallCapNormalVertices;
+            public int VerifiedRoomObjectColourMaterials;
             public int VerifiedStaticObjectLightingVertices, VerifiedTorchLightingVertices;
             public int SampledVertices;
             public int FrontFacingInRangePairs;
@@ -378,6 +379,7 @@ namespace DK2.Unity.Editor
                     ValidateTerrainAnchors(result, root, view, simulation.World,
                         (ClassicMeshes)typeof(DungeonRunner).GetField("_classic", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(runner));
                     ValidateObjectLightingModes(result, root);
+                    ValidateRoomObjectColour(result, root, view, simulation.World);
                 }
                 if (result.TorchCount == 0 || result.Shader == null)
                     throw new InvalidOperationException("Production " + level + " did not create classic torch lighting.");
@@ -577,6 +579,30 @@ namespace DK2.Unity.Editor
                 throw new InvalidOperationException("Wall-cap verification needs cap-only terrain.");
             if (result.Level == "Level1" && result.VerifiedTopNormalVertices == 0)
                 throw new InvalidOperationException("Top-normal verification needs ordinary top-only terrain.");
+        }
+
+        private static void ValidateRoomObjectColour(Result result, GameObject root, WorldView view,
+            DK2.Simulation.WorldState world)
+        {
+            MeshRenderer[] renderers = root.GetComponentsInChildren<MeshRenderer>(true);
+            foreach (ObjectView instance in view.Decorations(world))
+            {
+                if (instance.ObjectTypeId != 86) continue;
+                MeshRenderer renderer = renderers.FirstOrDefault(candidate => candidate.name == "object " + instance.Id);
+                if (renderer == null) continue;
+                foreach (Material material in renderer.sharedMaterials)
+                {
+                    Color expected = new Color(instance.AddedLight.Red / 255f, instance.AddedLight.Green / 255f,
+                        instance.AddedLight.Blue / 255f, 0f);
+                    Color actual = material.GetColor("_EmissionColor");
+                    if (!material.IsKeywordEnabled("_EMISSION") || Math.Abs(actual.r - expected.r) > .00001f
+                        || Math.Abs(actual.g - expected.g) > .00001f || Math.Abs(actual.b - expected.b) > .00001f)
+                        throw new InvalidOperationException("Heart arches lost their captured room colour contribution.");
+                    result.VerifiedRoomObjectColourMaterials++;
+                }
+            }
+            if (result.Level == "Level1" && result.VerifiedRoomObjectColourMaterials == 0)
+                throw new InvalidOperationException("Room-colour verification needs the Heart arches.");
         }
 
         private static void ValidateObjectLightingModes(Result result, GameObject root)

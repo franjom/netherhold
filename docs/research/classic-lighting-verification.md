@@ -208,8 +208,8 @@ run, then passed alone and in the complete rerun. Independent review found no
 blocking conversion/cache defects. Held/carried and general furniture-position
 limits remain in static-mesh-lighting.md section4.
 
-The new Level1 image restores orange object-light contribution, while several
-arch faces remain black. The seven pinned FOW-on frames in
+The object-light-only Level1 image restored orange contribution but still left
+several arch faces black; the added-colour correction below supersedes that state. The seven pinned FOW-on frames in
 `build/step5-object-lights-startup-fog` reproduce these remaining dark faces and
 unmatched smoke colour. Authored inputs
 are now published; these captures do not establish full visual parity (Q603/Q605).
@@ -224,3 +224,15 @@ Final captures in`build/step5-wall-caps-Level1` and`step5-wall-caps-Level8`
 pass, checking320 and120 produced cap vertices respectively. Existing normal,
 source-role and GPU table/count assertions also pass. Independent review
 confirms the top-quarter scope; the adapter builds with0 warnings/errors.
+
+Room-furniture added colour: the new install-backed regression failed before
+ObjectView populated the native room colour and passes after the correction.
+All490 Presentation tests pass; adapter compilation has0 warnings/errors.
+Production Unity captures in`build/step5-room-object-colour-Level1` and
+`step5-room-object-colour-Level8` pass, each verifying all five Arch materials
+against captured RGB70/30/10 and preserving existing cap/source/GPU assertions.
+Seven pinned FOW-on startup captures in`build/step5-room-object-colour-startup-fog`
+also pass; the9000ms image visibly restores brown arch/step detail. Review found
+no blocking code/material defect. Association/animation limits and original live
+capture evidence are in static-mesh-lighting.md section5. These checks do not
+close the original-view acceptance or smoke-colour gates.

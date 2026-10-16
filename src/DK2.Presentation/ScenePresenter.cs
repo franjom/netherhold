@@ -214,8 +214,10 @@ public sealed class ScenePresenter
             AnimationLoops = instance.AnimationLoops;
             HeartVisual = instance.HeartVisual;
             Alpha = instance.Alpha;
+            AddedLight = instance.AddedLight;
         }
 
+        public TerrainLightColour AddedLight { get; }
         public byte Alpha { get; }
         public int Pitch { get; }
         public int Roll { get; }
@@ -258,14 +260,14 @@ public sealed class ScenePresenter
             && PreviousHeading == other.PreviousHeading && PlaysAnimation == other.PlaysAnimation
             && PreviousHeight == other.PreviousHeight && PreviousPitch == other.PreviousPitch && PreviousRoll == other.PreviousRoll
             && AnimationStartedAt == other.AnimationStartedAt && AnimationLoops == other.AnimationLoops
-            && HeartVisual == other.HeartVisual && Alpha == other.Alpha;
+            && HeartVisual == other.HeartVisual && Alpha == other.Alpha && AddedLight == other.AddedLight;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll),
             HashCode.Combine(PreviousPosX, PreviousPosY, PreviousHeading, PlaysAnimation, AnimationStartedAt, AnimationLoops,
-                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll, HeartVisual, Alpha)));
+                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll, HeartVisual, Alpha, AddedLight)));
     }
 
     private readonly WorldView _view;

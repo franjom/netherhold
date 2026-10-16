@@ -51,6 +51,62 @@ class Reader:
         self.api.CloseHandle(self.handle)
 
 
+def capture_heart_inputs(reader):
+    objects = []
+    lights = []
+    errors = []
+    thing_slots = struct.unpack("<4096I", reader.read(0x6EE540, 4096 * 4))
+    view_slots = struct.unpack("<4096I", reader.read(0x6D6458, 4096 * 4))
+    for slot, address in enumerate(thing_slots):
+        if not slot or not address:
+            continue
+        try:
+            prefix = reader.read(address, 0x16)
+            if struct.unpack_from("<I", prefix, 0x12)[0] != 2:
+                continue
+            raw = reader.read(address, 0x134)
+            if raw[0x12C] not in (13, 86, 88, 94):
+                continue
+            objects.append({"slot": slot, "address": hex(address), "type": raw[0x12C],
+                "tag": struct.unpack_from("<H", raw, 4)[0],
+                "position": struct.unpack_from("<3i", raw, 0x1A),
+                "previous_position": struct.unpack_from("<3i", raw, 0xF6),
+                "heading": struct.unpack_from("<H", raw, 0xF4)[0],
+                "scale": struct.unpack_from("<2i", raw, 0x48),
+                "render_rgb_alpha": list(raw[0x8C:0x90]),
+                "render_offset": struct.unpack_from("<3h", raw, 0x95),
+                "definition": hex(struct.unpack_from("<I", raw, 0x12D)[0]),
+                "light_slot": struct.unpack_from("<H", raw, 0x131)[0]})
+            definition = struct.unpack_from("<I", raw, 0x12D)[0]
+            objects[-1]["light_descriptor_hex"] = reader.read(definition + 0xD8, 24).hex()
+            resource = struct.unpack_from("<I", raw, 0x6C)[0]
+            objects[-1]["render_resource"] = hex(resource)
+            if resource:
+                objects[-1]["render_resource_hex"] = reader.read(resource, 27).hex()
+        except OSError as error:
+            errors.append({"thing_slot": slot, "error": str(error)})
+    for slot, address in enumerate(view_slots):
+        if not slot or not address:
+            continue
+        try:
+            raw = reader.read(address, 0xF8)
+            if struct.unpack_from("<I", raw, 0xF4)[0] != 2:
+                continue
+            raw = reader.read(address, 0x146)
+            lights.append({"slot": slot, "address": hex(address),
+                "position": struct.unpack_from("<3i", raw, 0xD6),
+                "previous_position": struct.unpack_from("<3i", raw, 0x105),
+                "mode": struct.unpack_from("<I", raw, 0xE4)[0],
+                "rgb": struct.unpack_from("<3H", raw, 0x111),
+                "radius": struct.unpack_from("<I", raw, 0x117)[0],
+                "parent_tag": struct.unpack_from("<H", raw, 0x12E)[0],
+                "flags": hex(struct.unpack_from("<I", raw, 0x134)[0]),
+                "intensity": raw[0x145]})
+        except OSError as error:
+            errors.append({"view_slot": slot, "error": str(error)})
+    return {"objects": objects, "lights": lights, "read_errors": errors}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pid", type=int)
@@ -58,6 +114,7 @@ def main():
     parser.add_argument("--expected-sha256", help="Digest of the retail executable used for the Ghidra address records")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--heart-inputs", action="store_true", help="Capture Heart object and engine-light records")
     args = parser.parse_args()
     if os.name != "nt":
         parser.error("Windows is required")
@@ -107,6 +164,8 @@ def main():
             result["world_palette_fields_290_2af"] = reader.read(world + 0x290, 32).hex()
         except OSError as error:
             result["world_color_inputs_error"] = str(error)
+        if args.heart_inputs:
+            result["heart_inputs"] = capture_heart_inputs(reader)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8")
         print(json.dumps(result, allow_nan=False))

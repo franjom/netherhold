@@ -286,7 +286,8 @@ public sealed partial class WorldView
                     ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null,
             animationLoops: !stateAnimation || thing.ObjectTypeId == CallToArmsRules.ObjectTypeId && thing.ProcessState is 13 or 14,
             previousHeight: previousZ, previousPitch: previousPitch, previousRoll: previousRoll,
-            heartVisual: HeartVisual(world, thing.ObjectTypeId, thing.OwnerPlayerId, at), light: definition?.Light);
+            heartVisual: HeartVisual(world, thing.ObjectTypeId, thing.OwnerPlayerId, at), light: definition?.Light,
+            addedLight: thing.AutoPlaced ? RoomObjectAddedLight(world, tileIndex) : default);
     }
 
     /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun
@@ -333,7 +334,7 @@ public sealed partial class WorldView
                         door.PosX, door.PosY, door.Height, door.Heading, door.Scale,
                         playsAnimation: true,
                         animationStartedAt: new GameTick(world.TileAtIndex(room.TileIndices[0]).PrisonDoorAnimationTick),
-                        animationLoops: false);
+                        animationLoops: false, light: door.Light, addedLight: door.AddedLight);
                 into.Add(door);
                 into.Add(Decoration(world, facts.DoorTile, BarSlot, PrisonDoorBarId, owner, 0, 0, -1, 0x400));
                 break;
@@ -471,7 +472,7 @@ public sealed partial class WorldView
             int gold = world.Tile(tile % world.Width, tile / world.Width).GoldHeld;
             if (gold <= 0) continue;
             int slot = gold < cap / 3 ? 5 : gold < 2 * cap / 3 ? 6 : 0;
-            ObjectView pile = Decoration(world, tile, PileSlot, StorePileId, owner, 0, 0, -1, Spread(tile, 0x800), slot);
+            ObjectView pile = Decoration(world, tile, PileSlot, StorePileId, owner, 0, 0, -1, Spread(tile, 0x800), slot, autoPlaced: false);
             into.Add(new ObjectView(pile.Id, StorePileId, owner, pile.Tile, pile.Mesh, gold,
                 pile.PosX, pile.PosY, pile.Height, pile.Heading, pile.Scale));
         }
@@ -501,13 +502,13 @@ public sealed partial class WorldView
             ObjectView wheel = Decoration(world, tile, WheelSlot, TortureWheelId, owner,
                 Dx8[side * 2] * inset, Dy8[side * 2] * inset, z, ((side + 2) & 3) << 9);
             into.Add(new ObjectView(wheel.Id, TortureWheelId, owner, wheel.Tile, wheel.Mesh, 0,
-                wheel.PosX, wheel.PosY, wheel.Height, wheel.Heading, wheel.Scale, 0, roll & 0x7FF));
+                wheel.PosX, wheel.PosY, wheel.Height, wheel.Heading, wheel.Scale, 0, roll & 0x7FF, addedLight: wheel.AddedLight));
         }
     }
 
     /// <summary>A decoration at its tile's centre plus an offset; a height of −1 is the tile's floor.</summary>
     private ObjectView Decoration(WorldState world, int tileIndex, int slot, byte objectTypeId, PlayerId owner,
-        int offsetX, int offsetY, int z, int heading, int artSlot = 0, byte alpha = 255)
+        int offsetX, int offsetY, int z, int heading, int artSlot = 0, byte alpha = 255, bool autoPlaced = true)
     {
         int x = tileIndex % world.Width, y = tileIndex / world.Width;
         return new ObjectView(-((tileIndex * DecorSlots) + slot + 1), objectTypeId, owner, new TilePos(x, y),
@@ -515,7 +516,16 @@ public sealed partial class WorldView
             z < 0 ? FloorHeight(world, x, y) : z, heading & 0x7FF, One,
             playsAnimation: objectTypeId == DungeonHeartId,
             heartVisual: HeartVisual(world, objectTypeId, owner, new TilePos(x, y)), alpha: alpha,
-            light: _database.ObjectById(objectTypeId)?.Light);
+            light: _database.ObjectById(objectTypeId)?.Light,
+            addedLight: autoPlaced ? RoomObjectAddedLight(world, tileIndex) : default);
+    }
+
+    private TerrainLightColour RoomObjectAddedLight(WorldState world, int tileIndex)
+    {
+        if (RoomAt(world, tileIndex) is not { } room) return default;
+        TerrainDef terrain = _database.TerrainById(room.Definition.TerrainId);
+        return (terrain.Flags & TerrainFlags.AmbientLight) != 0 && terrain.Lighting is TerrainLighting lighting
+            ? ClassicTerrainTint.PieceColour(lighting.AmbientColour(terrain.Flags)) : default;
     }
 
     private DungeonHeartVisual? HeartVisual(WorldState world, byte objectTypeId, PlayerId owner, TilePos tile) =>

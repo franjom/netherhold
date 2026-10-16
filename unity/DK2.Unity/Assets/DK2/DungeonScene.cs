@@ -78,8 +78,8 @@ namespace DK2.Unity
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, ObjectView> _objectPoses = new Dictionary<int, ObjectView>();
-        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops)> _objectClips =
-            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops)>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)> _objectClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
@@ -393,7 +393,7 @@ namespace DK2.Unity
             _objects[objectId] = go;
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
-            if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase);
+            if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
@@ -408,7 +408,7 @@ namespace DK2.Unity
 
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
-            if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase);
+            if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
@@ -417,15 +417,12 @@ namespace DK2.Unity
             if (!pose.PlaysAnimation)
             {
                 _objectPoses[id] = pose;
-                if (_objectClips.Remove(id))
-                {
-                    go.GetComponent<ClassicCreatureAnimation>()?.Stop();
-                    if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh);
-                }
+                if (_objectClips.Remove(id)) go.GetComponent<ClassicCreatureAnimation>()?.Stop();
+                if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh, pose.AddedLight);
                 return;
             }
             _objectPoses[id] = pose;
-            var identity = (mesh.Reference, pose.AnimationStartedAt, pose.AnimationLoops);
+            var identity = (mesh.Reference, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight);
             if (_objectClips.TryGetValue(id, out var previous) && previous == identity) return;
             _objectClips[id] = identity;
             double startSeconds = pose.AnimationStartedAt.HasValue
@@ -433,9 +430,9 @@ namespace DK2.Unity
                 : _renderSeconds;
             if (_classic != null && _meshObjects.Contains(id)
                 && _classic.ConfigureAnimation(go, mesh, pose.AnimationLoops, startSeconds,
-                    phaseStepOverride: pose.HeartVisual?.PhaseStep)) return;
+                    phaseStepOverride: pose.HeartVisual?.PhaseStep, addedLight: pose.AddedLight)) return;
             go.GetComponent<ClassicCreatureAnimation>()?.Stop();
-            if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh);
+            if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh, pose.AddedLight);
         }
 
         public void RemoveObject(int objectId)
