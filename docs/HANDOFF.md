@@ -96,7 +96,8 @@ Discovery uses the current snapshot/hash schema; producer/cadence limits are in
 research/fog-reveal-sources.md. Windowed CPU/GPU capture is verified; scoped Unity
 allocation counters failed calibration (see verification). Matched-original
 acceptance remains pending. Corrections restore the companion torch animation,
-native twice-zoom visibility distance and explicit static shader inputs. Default
+native twice-zoom visibility distance, static shader inputs, ordinary-top normal
+inversion and ordinary-object lighting roles. Default
 unlit surfaces and Heart smoke colour still need original runtime inputs (Q603,
 Q605); native torch timing remains Q604. Use serial checks; isolated probes must not save or
 restart an owner's open editor.

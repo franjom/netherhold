@@ -327,7 +327,8 @@ namespace DK2.Unity
             bool tagged = tile.Tagged;
             for (int side = 0; side < 4; side++)
                 if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, undamaged), side, centre, x, y, tagged, tile.AmbientTint);
-            if (pieces.HasTop) Add(_classic.Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint);
+            if (pieces.HasTop) Add(_classic.Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint,
+                invertLightingNormals: true);
             if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y, tagged, tile.AmbientTint);
             if (pieces.Quarters == QuarterKind.None) return;
 
@@ -412,7 +413,7 @@ namespace DK2.Unity
             centre + new Vector3(QuadrantCentres[quadrant].x, 0f, QuadrantCentres[quadrant].y);
 
         private void Add(ClassicMeshes.PieceSource piece, int rotation, Vector3 at, int x, int y, bool tagged = false,
-            DK2.Data.Model.TerrainLightColour tint = default, byte? fogOpacity = null)
+            DK2.Data.Model.TerrainLightColour tint = default, byte? fogOpacity = null, bool invertLightingNormals = false)
         {
             if (piece == null) return;
             Quaternion turn = Quaternion.Euler(0f, 90f * rotation, 0f);
@@ -427,7 +428,9 @@ namespace DK2.Unity
                     v = new Vector3(bent.X, -bent.Z, -bent.Y);
                 }
                 _tilePositions.Add(v);
-                _tileNormals.Add(turn * piece.Normals[i]);
+                // Ordinary tops carry native drawflag0x80 (static-mesh-lighting.md section1).
+                Vector3 normal = invertLightingNormals ? -piece.Normals[i] : piece.Normals[i];
+                _tileNormals.Add(turn * normal);
                 _tileUvs.Add(piece.Uvs[i]);
             }
             for (int m = 0; m < piece.Triangles.Count; m++)

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Reflection;
 using DK2.Presentation;
 using DK2.Core;
+using DK2.Assets;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -62,6 +63,8 @@ namespace DK2.Unity.Editor
             public long ShadowPrepareAllocatedBytes = -1;
             public ClassicAllocationCalibration.Result AllocationCalibration;
             public int AnchoredTerrainVertices, AnchoredTransparentVertices, AnchoredLiquidVertices;
+            public int VerifiedTopNormalVertices;
+            public int VerifiedStaticObjectLightingVertices, VerifiedTorchLightingVertices;
             public int SampledVertices;
             public int FrontFacingInRangePairs;
             public int PositiveNativeContributions;
@@ -360,7 +363,10 @@ namespace DK2.Unity.Editor
                 result.ShadowPrepareP95Ms = samples[(int)(samples.Length * .95)];
                 result.Comparisons = comparisons.ToArray();
                 if (Environment.GetEnvironmentVariable("DK2_LIGHTING_VERIFY_ANCHORS") == "1")
-                    ValidateTerrainAnchors(result, root, simulation.World.Width, simulation.World.Height);
+                {
+                    ValidateTerrainAnchors(result, root, view, simulation.World);
+                    ValidateObjectLightingModes(result, root);
+                }
                 if (result.TorchCount == 0 || result.Shader == null)
                     throw new InvalidOperationException("Production " + level + " did not create classic torch lighting.");
                 if (comparisons.Any(comparison => comparison.ChangedPixels == 0))
@@ -475,9 +481,18 @@ namespace DK2.Unity.Editor
             return result;
         }
 
-        private static void ValidateTerrainAnchors(Result result, GameObject root, int width, int height)
+        private static void ValidateTerrainAnchors(Result result, GameObject root, WorldView view,
+            DK2.Simulation.WorldState world)
         {
+            int width = world.Width, height = world.Height;
             var anchors = new List<Vector2>();
+            var topOnlyTiles = new HashSet<int>();
+            AssetRef rockTop = AssetCatalogue.TerrainPiece("Rock", AssetCatalogue.TerrainTop);
+            foreach (TileView tile in view.Tiles(world))
+                if (tile.RoomKeys == null && tile.BedKeys == null && tile.PieceKeys?.Top == rockTop
+                    && tile.Pieces.HasTop && !tile.Pieces.HasFloor && tile.Pieces.Quarters == QuarterKind.None
+                    && !Enumerable.Range(0, 4).Any(tile.Pieces.HasFace))
+                    topOnlyTiles.Add(tile.Position.Y * width + tile.Position.X);
             foreach (MeshFilter filter in root.GetComponentsInChildren<MeshFilter>(true))
             {
                 bool opaque = filter.name.StartsWith("terrain chunk ", StringComparison.Ordinal);
@@ -500,6 +515,14 @@ namespace DK2.Unity.Editor
                 foreach (Vector2 anchor in anchors)
                     if (anchor.y != 1 || anchor.x < 0 || anchor.x >= width * height || anchor.x != Mathf.Floor(anchor.x))
                         throw new InvalidOperationException(filter.name + " contains an invalid tile light anchor.");
+                Vector3[] normals = mesh.normals;
+                for (int vertex = 0; vertex < anchors.Count; vertex++)
+                    if (opaque && topOnlyTiles.Contains((int)anchors[vertex].x))
+                    {
+                        if (filter.transform.TransformDirection(normals[vertex]).y > -.99f)
+                            throw new InvalidOperationException("Ordinary top lacks native drawflag0x80 normal inversion.");
+                        result.VerifiedTopNormalVertices++;
+                    }
                 foreach (int submesh in Enumerable.Range(0, mesh.subMeshCount))
                 {
                     int[] indices = mesh.GetTriangles(submesh);
@@ -516,6 +539,31 @@ namespace DK2.Unity.Editor
                 throw new InvalidOperationException("Anchor verification needs opaque and sorted transparent terrain.");
             if (result.Level == "Level8" && result.AnchoredLiquidVertices == 0)
                 throw new InvalidOperationException("Level8 anchor verification needs its water/lava surfaces.");
+            if (result.Level == "Level1" && result.VerifiedTopNormalVertices == 0)
+                throw new InvalidOperationException("Top-normal verification needs ordinary top-only terrain.");
+        }
+
+        private static void ValidateObjectLightingModes(Result result, GameObject root)
+        {
+            var markers = new List<Vector2>();
+            foreach (MeshFilter filter in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                bool torch = filter.name == "torch mesh";
+                bool staticObject = filter.name.StartsWith("object ", StringComparison.Ordinal)
+                    && filter.GetComponent<ClassicCreatureAnimation>() == null;
+                if (!torch && !staticObject) continue;
+                Mesh mesh = filter.sharedMesh;
+                if (mesh == null) continue;
+                markers.Clear(); mesh.GetUVs(3, markers);
+                if (markers.Count == 0) continue;
+                Vector2 expected = torch ? new Vector2(0, 1) : Vector2.one;
+                if (markers.Count != mesh.vertexCount || markers.Any(marker => marker != expected))
+                    throw new InvalidOperationException(filter.name + " uses the wrong native lighting path.");
+                if (torch) result.VerifiedTorchLightingVertices += markers.Count;
+                else result.VerifiedStaticObjectLightingVertices += markers.Count;
+            }
+            if (result.VerifiedTorchLightingVertices == 0 || result.VerifiedStaticObjectLightingVertices == 0)
+                throw new InvalidOperationException("Object-lighting verification needs static objects and torch mounts.");
         }
 
         private static void SampleGeometry(Result result, DungeonRunner runner, Light[] lights)

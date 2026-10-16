@@ -30,13 +30,16 @@ namespace DK2.Unity
     /// </remarks>
     public sealed class ClassicMeshes
     {
+        public enum LightingMode { Instance, TerrainPiece }
+
         private const string LitShader = "Universal Render Pipeline/Lit";
         private const string FallbackShader = "Standard";
 
         private readonly InstallArtProvider _art;
         private readonly Dictionary<string, RenderAnimation> _animations = new Dictionary<string, RenderAnimation>();
         private readonly Shader _shader;
-        private readonly Dictionary<(string, bool), Built> _built = new Dictionary<(string, bool), Built>();
+        private readonly Dictionary<(string, bool, LightingMode), Built> _built =
+            new Dictionary<(string, bool, LightingMode), Built>();
         private readonly Dictionary<(string, KmfBlend, float), Material> _materials =
             new Dictionary<(string, KmfBlend, float), Material>();
         private readonly Dictionary<Material, Material> _tagged = new Dictionary<Material, Material>();
@@ -128,17 +131,19 @@ namespace DK2.Unity
             go.GetComponent<ClassicCreatureAnimation>()?.SetMainMaterials(materials);
         }
 
-        public GameObject TryCreate(AssetRef key, string name, Transform parent, bool lastFrame = false)
+        public GameObject TryCreate(AssetRef key, string name, Transform parent, bool lastFrame = false,
+            LightingMode lightingMode = LightingMode.Instance)
         {
-            return _art.TryResolve(key, out ResolvedAsset asset) ? TryCreate(asset, name, parent, lastFrame) : null;
+            return _art.TryResolve(key, out ResolvedAsset asset) ? TryCreate(asset, name, parent, lastFrame, lightingMode) : null;
         }
 
         /// <summary>A new object drawing the asset's model, parented and unplaced; null when the
         /// asset is not an install entry this provider answered or its KMF is a group.</summary>
-        public GameObject TryCreate(in ResolvedAsset asset, string name, Transform parent, bool lastFrame = false)
+        public GameObject TryCreate(in ResolvedAsset asset, string name, Transform parent, bool lastFrame = false,
+            LightingMode lightingMode = LightingMode.Instance)
         {
             if (asset.Source != AssetSource.InstallEntry || asset.ProviderName != _art.Name) return null;
-            if (!TryBuild(asset, lastFrame, out Built built)) return null;
+            if (!TryBuild(asset, lastFrame, out Built built, lightingMode)) return null;
 
             var go = new GameObject(name);
             go.transform.SetParent(parent, worldPositionStays: false);
@@ -257,9 +262,10 @@ namespace DK2.Unity
             return false;
         }
 
-        private bool TryBuild(in ResolvedAsset asset, bool lastFrame, out Built built)
+        private bool TryBuild(in ResolvedAsset asset, bool lastFrame, out Built built,
+            LightingMode lightingMode = LightingMode.Instance)
         {
-            if (_built.TryGetValue((asset.InstallEntry, lastFrame), out built)) return built != null;
+            if (_built.TryGetValue((asset.InstallEntry, lastFrame, lightingMode), out built)) return built != null;
 
             built = null;
             if (_art.TryLoadModel(asset, out KmfModel model))
@@ -270,7 +276,7 @@ namespace DK2.Unity
                 mesh.SetVertices(ToUnity(source.Positions));
                 mesh.SetNormals(ToUnity(source.Normals));
                 mesh.SetUVs(0, ToUnity(source.Uvs));
-                SetLightBounds(mesh, model);
+                SetLightBounds(mesh, model, lightingMode);
                 mesh.subMeshCount = source.Triangles.Count;
                 for (int i = 0; i < source.Triangles.Count; i++)
                     mesh.SetTriangles(source.Triangles[i], i, calculateBounds: false);
@@ -281,11 +287,12 @@ namespace DK2.Unity
                     materials[i] = MaterialFor(i < model.Materials.Count ? model.Materials[i] : null);
                 built = new Built(mesh, materials);
             }
-            _built[(asset.InstallEntry, lastFrame)] = built;
+            _built[(asset.InstallEntry, lastFrame, lightingMode)] = built;
             return built != null;
         }
 
-        private static void SetLightBounds(Mesh mesh, KmfModel model)
+        private static void SetLightBounds(Mesh mesh, KmfModel model,
+            LightingMode lightingMode = LightingMode.Instance)
         {
             bool animated = model.Animation is { IsComplete: true };
             KmfMesh bounds = animated ? model.Animation.Frames[0] : model.Mesh;
@@ -296,7 +303,7 @@ namespace DK2.Unity
             for (int i = 0; i < mesh.vertexCount; i++)
             {
                 values.Add(new Vector4(centre.X, centre.Y, centre.Z, bounds.BoundsScale));
-                markers.Add(new Vector2(animated ? 1 : 0, 1));
+                markers.Add(new Vector2(lightingMode == LightingMode.Instance ? 1 : 0, 1));
             }
             // UV2 remains the terrain table anchor; clones retain these authored draw bounds.
             mesh.SetUVs(2, values);

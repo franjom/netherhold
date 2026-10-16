@@ -480,7 +480,8 @@ namespace DK2.Unity
             // Unity's fake null makes ?? unsafe on its objects, hence the explicit tests.
             GameObject go = new GameObject($"torch {floorTileIndex}");
             go.transform.SetParent(_root, false);
-            GameObject model = _classic?.TryCreate(mesh, "torch mesh", go.transform);
+            GameObject model = _classic?.TryCreate(mesh, "torch mesh", go.transform,
+                lightingMode: ClassicMeshes.LightingMode.TerrainPiece);
             bool deform = model != null && _lattice != null;
             if (model == null)
             {

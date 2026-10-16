@@ -174,7 +174,22 @@ The running`DKII-DX.exe` has SHA256
 offline comparison found identical PE section layouts and executable code
 sections to the researched`DKII.EXE`. No game settings or memory were changed.
 
-Further binary tracing found the omitted ordinary-top normal inversion and
-neutral-player cycling-colour selector. The evidence lives in static-mesh-lighting.md
-and room-construction-effects.md section6. Neither has been presented as a visual
-fix: applying flags to geometry and comparing the resulting capture remain pending.
+Further binary tracing found ordinary-top normal inversion and the separate
+instance-lighting path for ordinary static objects. Both are built; evidence lives
+in static-mesh-lighting.md. The neutral-player cycling-colour selector remains
+research in room-construction-effects.md section6, without a colour change.
+
+The Rock-only production-geometry regression fails with top inversion disabled;
+the object-role regression fails on the old static marker. Both pass after the
+corrections. Final native-only captures in ignored`build/step5-draw-modes-Level1`
+and`step5-draw-modes-Level8` pass: Level1 checks1484 Rock-top normal vertices,
+5370 static-object lighting markers and648 torch markers; Level8 checks22810
+static-object and6723 torch markers. Level8 has no top-only Rock fixture, so it
+does not provide that particular normal assertion. GPU source/count readbacks
+still match. The adapter builds with zero warnings/errors; independent review
+checks source preservation, draw-role scope and lighting-mode cache isolation.
+
+`build/step5-draw-modes-startup-fog` records the seven pinned startup images with
+fog enabled. The corrected scanned rock tops now receive their authored warm
+light. Heart arches remain black and startup smoke remains unmatched; authored
+object-light creation/classification must be traced before claiming parity (Q603).

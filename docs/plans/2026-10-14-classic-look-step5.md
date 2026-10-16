@@ -54,6 +54,8 @@ Matched framebuffer colour transfer remains part of the original-game acceptance
 - [x] Verify removal, camera movement, borders, all24 slots and resource lifecycle.
 - [x] Independently review arithmetic, visibility, cache, shader and integrated publication.
 - [x] Render the companion animated torch resource; remaining clock fidelity is Q604.
+- [x] Apply confirmed ordinary-top normal inversion and ordinary-object instance-lighting selection.
+- [ ] Trace and publish authored object lights; native-only Heart arches remain dark (Q603).
 
 Evidence: [classic-lighting.md](../research/classic-lighting.md),
 [visibility](../research/classic-light-visibility.md), ADR-0484 and ADR-0487.
