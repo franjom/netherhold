@@ -363,6 +363,30 @@ namespace DK2.Unity
             return materials;
         }
 
+        /// <summary>Keyed by the tint packed as 0xRRGGBB, so a lookup neither boxes nor hashes by reflection.</summary>
+        private readonly Dictionary<(Material, int), Material> _elementTinted =
+            new Dictionary<(Material, int), Material>();
+
+        /// <summary>An effect element's mesh material lit by the element's tint more: DK2 starts a
+        /// vertex's light at the material colour plus the RenderInfo tint (the element's RGB, ×255 in
+        /// <c>0x00580480</c>) before adding the lights (<c>0x00581BE0</c>). An additive material is
+        /// already white and returned as it is. Shared per (material, tint).</summary>
+        public Material ElementTinted(Material material, Color32 tint)
+        {
+            if (material == null || (tint.r | tint.g | tint.b) == 0 || !material.HasProperty("_EmissionColor")
+                || material.name.StartsWith("AA_", System.StringComparison.Ordinal)) return material;
+            int packed = tint.r << 16 | tint.g << 8 | tint.b;
+            if (_elementTinted.TryGetValue((material, packed), out Material tinted)) return tinted;
+            tinted = new Material(material) { name = material.name + " (element tint)" };
+            Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
+            tinted.EnableKeyword("_EMISSION");
+            tinted.SetTexture("_EmissionMap", material.mainTexture);
+            tinted.SetColor("_EmissionColor", own + new Color(tint.r / 255f, tint.g / 255f, tint.b / 255f, 0f));
+            tinted.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            _elementTinted[(material, packed)] = tinted;
+            return tinted;
+        }
+
         public Material TerrainTinted(Material material, DK2.Data.Model.TerrainLightColour tint)
         {
             tint = ClassicTerrainTint.PieceColour(tint);

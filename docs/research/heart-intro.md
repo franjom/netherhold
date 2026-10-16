@@ -204,6 +204,18 @@ texture, once. The links:
 - CONFIRMED: back faces are culled in software for every material
   (kmf-materials.md §4).
 
+The same sum lights an **opaque** effect mesh: its vertices start at the
+material colour (its brightness, 0 for the plug's materials) plus the element's
+tint, then take the lights. CONFIRMED: `0x00435F20` writes the element's RGB to
+`+0x6E` for an element with art, and `0x004B3610` zeroes the tint
+(RenderInfo `+0x48..+0x4A`) otherwise. So the lid (406) and the cracked lid (403)
+glow at 50/255 and the flying rock (380) at 120,100,100 before any light; the
+nine plug pieces (396, no art) have no tint and show only the scene's lights.
+Ours drew every effect mesh without the tint, so the lid lay black under the
+Heart's low orange light; the Unity effects renderer now adds it through the
+material's emission (`ClassicMeshes.ElementTinted`), which the classic vertex-lit
+shader sums with the lights as DK2 does.
+
 So the reading gives `Falloff` × 1. ADR-0476's "peaks at 68" does not match the
 texture our decoder reads now (peak 129, mean 33, 64 × 64); its doubling, a guess,
 is withdrawn. A matched look at DK2's beam would settle what the unread links leave.

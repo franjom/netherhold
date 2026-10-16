@@ -270,7 +270,9 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         int scale = DrawExclusive(element.MinScale, element.MaxScale);
         int scaleTarget = (short)(((long)scale * element.ScaleRatio) >> 12);
         int scaleIncrement = health > 0 ? (short)((scaleTarget - scale) / health) : 0;
-        (byte red, byte green, byte blue) = (element.ArtResource.Flags & 0x80) != 0
+        // 0x00435F20 (0x00436332): art flag 2 takes the owner's palette colour, otherwise the element's
+        // RGB. Flag 0x80 is the play-once texture phase, not a colour bit.
+        (byte red, byte green, byte blue) = (element.ArtResource.Flags & 0x2) != 0
             ? KeeperColour(request.Owner) : (element.Red, element.Green, element.Blue);
         var particle = new ConstructionParticle
         {

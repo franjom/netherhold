@@ -11399,3 +11399,16 @@ effect, every light, then removal; `0x0043BFE0`), so the view's random draws for
 after all waves of an update, not interleaved with them. After a catch-up of several updates an
 effect born in it has its light stepped once per update caught up, where DK2 would step it once.
 The two sounds of the sequence remain unbuilt.
+
+**Amendment (2026-10-16).** Opaque effect meshes now take their element's tint as added light, as
+`0x00581BE0` adds RenderInfo `+0x48` (the element's RGB, `0x00435F20`; zero for an element without
+art, `0x004B3610`) before the lights: the plug lid drew black, lit only at its rim by the Heart's
+orange light (heart-intro.md §6). And a sprite element with art flag `0x100` is drawn as DK2's
+`0x0059C720` draws it, a square of half-size scale/4096 lying flat at the element and turned by its
+heading, not a billboard: the plug's light overlay (407) had stood as a pale square before the lid
+one update in eight, the owner's "white flicker" (object-drawing.md §10). Fourteen elements carry
+the flag, blood pools and the Portal's white disc among them; the corner light term is not added.
+Last, the keeper's palette colours an element with art flag `0x2` (`0x00435F20` at `0x00436332`),
+not `0x80`, the play-once bit our model had tested since 2b83ebd9: the plug's dust (381, `0x85`)
+and the bed's element 162 (`0x84`) had been drawn in the keeper's colour instead of their own grey
+and purple. The claim and reinforce elements carry both bits and keep the keeper's colour.

@@ -289,10 +289,36 @@ floor therefore draws the victim at `0x1200`, a wall wheel at `0x1800`. Full cli
 playback remains classic look step 4. Chair pose/effects and device visibility in the
 other numeric modes remain unbuilt. ADR-0420.
 
-## 10. Open
+## 10. Flat sprites
 
-- `0x0059C360`, `0x0059C720`, `0x0059D010`, `0x005A01A0` (sprites, flat, terrain mesh,
-  procedural) and `0x005953D0` are not read.
+Read 2026-10-16. CONFIRMED. `0x0059B880` sends any art other than types 4, 5 and 6
+whose resource flags have `0x100` to `0x0059C720` (`0x0059BAA7`), before the
+billboard `0x0059C360`; the shipped elements with the flag are 2 of type 2 and 12
+of type 3.
+`0x0059C720` takes the thing's point (`Draw_ThingPoints`), the heading as −h·π/1024, the
+RenderInfo scale `+4`/4096 and the tint `+0x48..+0x4A` and alpha `+0x4B` ÷255, and
+the texture phase under flag 4, into the draw item `0x0057FAF0` (vtable
+`0x0066FCF4`). Its draw `0x0057FB80` lays a square of corners (−s,−s), (s,−s),
+(s,s), (−s,s), s the scale, in the x-y plane, with UVs (0,0), (1,0), (1,1), (0,1).
+The turn: `Mat3_SetAxisRotation(2, a)` (`0x0041C580`) with the row transform
+`0x00594DB0` turns clockwise by a, and a is −h·π/1024, so the square turns
+counter-clockwise by h·π/1024 in the DK2 x-y plane. It lights
+each corner by the tint ×255 plus the radial term of the nearby lights at the
+centre (`0x0057C080`). No descriptor dimension enters its size. Fourteen shipped
+effect elements carry the flag: the Heart plug's overlay (407) and static (383),
+blood pools, the fire ring, the Portal's white disc, the inferno carpet, the
+Horny end rings, the arch mist. Built (ADR-0492 amendment): the Unity effects
+renderer draws them so; the radial light term is not added (the billboards do
+not take it either). Unread: the texture and frame pick (vtable slot 2,
+`0x0057FF30`, through `0x0057C780` and `0x0057F090`; ours takes the particle's
+age through the stored frames as the billboards do), and whether our billboards,
+sized by the scale as a full width, match `0x0059C360`'s size: the flat square
+spans twice the scale.
+
+## 11. Open
+
+- `0x0059C360`, `0x0059D010`, `0x005A01A0` (sprites, terrain mesh, procedural) and
+  `0x005953D0` are not read in full.
 - The Heart's decay meshes; the chicken's Idle art; the
   setter of RenderInfo `+0x4E` bit `0x40`; what `0x00759ADC` is.
 - What writes an object's heading besides the boulder, beds (random) and book cases.

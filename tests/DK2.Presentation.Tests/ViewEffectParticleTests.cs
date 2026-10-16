@@ -158,6 +158,7 @@ public class ViewEffectParticleTests
             MinHp = 2, MaxHp = 2, InnerOriginRange = originRange, OuterOriginRange = originRange
         };
         return new GameDatabase([], [], [], new GlobalVariables(), effects: [effect],
-            effectElements: [Element(1, 0x80), Element(2, 0)]);
+            // Art flag 2 takes the keeper's palette (0x00435F20), as the claim and room-block elements do.
+            effectElements: [Element(1, 0x2), Element(2, 0)]);
     }
 }

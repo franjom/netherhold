@@ -36,6 +36,15 @@ namespace DK2.Unity
             public int FramesPerSecond;
             public readonly List<Texture2D> Textures = new List<Texture2D>();
             public readonly List<Sprite> Sprites = new List<Sprite>();
+            /// <summary>A sprite with art flag 0x100: DK2 draws it as a square lying flat at the
+            /// element (0x0059B880 → 0x0059C720), not facing the camera; its quads are rebuilt into
+            /// one mesh each frame.</summary>
+            public bool IsFlat;
+            public Mesh FlatMesh;
+            public readonly List<Vector3> FlatVertices = new List<Vector3>();
+            public readonly List<Vector2> FlatUvs = new List<Vector2>();
+            public readonly List<Color32> FlatColours = new List<Color32>();
+            public readonly List<int> FlatTriangles = new List<int>();
         }
 
         private readonly Transform _root;
@@ -85,7 +94,13 @@ namespace DK2.Unity
         public void Draw()
         {
             float fraction = _fraction;
-            foreach (Group group in _groups.Values) if (group != null) group.Count = 0;
+            foreach (Group group in _groups.Values)
+            {
+                if (group == null) continue;
+                group.Count = 0;
+                if (!group.IsFlat) continue;
+                group.FlatVertices.Clear(); group.FlatUvs.Clear(); group.FlatColours.Clear(); group.FlatTriangles.Clear();
+            }
             for (int i = 0; i < Model.Particles.Count; i++)
             {
                 ConstructionParticle source = Model.Particles[i];
@@ -109,10 +124,11 @@ namespace DK2.Unity
                         mesh = group.Frames[frame];
                         materials = group.FrameMaterials[frame];
                     }
+                    var tint = new Color32(source.Red, source.Green, source.Blue, 255);
                     for (int sub = 0; sub < materials.Length; sub++)
                     {
                         if (materials[sub] == null) continue;
-                        var parameters = new RenderParams(materials[sub])
+                        var parameters = new RenderParams(_meshes.ElementTinted(materials[sub], tint))
                         {
                             shadowCastingMode = ShadowCastingMode.Off,
                             receiveShadows = false,
@@ -122,6 +138,11 @@ namespace DK2.Unity
                         };
                         Graphics.RenderMesh(parameters, mesh, sub, matrix);
                     }
+                    continue;
+                }
+                if (group.IsFlat)
+                {
+                    AddFlatQuad(group, source, fraction);
                     continue;
                 }
                 if (group.Count == group.Buffer.Length) Array.Resize(ref group.Buffer, group.Buffer.Length * 2);
@@ -139,6 +160,11 @@ namespace DK2.Unity
             foreach (Group group in _groups.Values)
             {
                 if (group == null || group.IsMesh) continue;
+                if (group.IsFlat)
+                {
+                    DrawFlat(group);
+                    continue;
+                }
                 var main = group.System.main;
                 if (main.maxParticles < group.Count) main.maxParticles = group.Buffer.Length;
                 group.System.SetParticles(group.Buffer, group.Count);
@@ -158,6 +184,65 @@ namespace DK2.Unity
                 source.RollRaw * degreesPerUnit, fraction);
             return Quaternion.Euler(0f, heading + 180f, 0f)
                 * Quaternion.AngleAxis(roll, Vector3.forward) * Quaternion.Euler(-pitch, 0f, 0f);
+        }
+
+        /// <summary>One flat sprite (0x0059C720 → 0x0057FB80): a square of half-size scale / 4096 in the
+        /// DK2 x-y plane at the element, its corners (-s,-s), (s,-s), (s,s), (-s,s) taking UVs (0,0),
+        /// (1,0), (1,1), (0,1), coloured by the tint. DK2 passes the angle -heading·π/1024 to a
+        /// clockwise turn (0x0041C580 with the row transform 0x00594DB0), so the corners turn
+        /// counter-clockwise by heading·π/1024 in the DK2 x-y plane. The frame is the particle's age
+        /// through the stored frames, as the billboards' sheet takes it (DK2's frame pick for a flat
+        /// sprite, 0x0057FF30, is unread).</summary>
+        private static void AddFlatQuad(Group group, ConstructionParticle source, float fraction)
+        {
+            float x = Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction);
+            float y = Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction);
+            float height = Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction) / 4096f;
+            float half = source.ScaleRaw;
+            float angle = Mathf.LerpAngle(source.PreviousHeadingRaw * (360f / 2048f),
+                source.HeadingRaw * (360f / 2048f), fraction) * Mathf.Deg2Rad;
+            float cos = Mathf.Cos(angle), sin = Mathf.Sin(angle);
+            int frames = Math.Max(1, group.Sprites.Count);
+            float age = 1f - source.RemainingSpriteLifetimeFraction;
+            int frame = Math.Min(frames - 1, (int)(age * frames));
+            float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
+            int first = group.FlatVertices.Count;
+            var colour = new Color32(source.Red, source.Green, source.Blue, 255);
+            for (int corner = 0; corner < 4; corner++)
+            {
+                float cx = corner == 0 || corner == 3 ? -half : half;
+                float cy = corner < 2 ? -half : half;
+                group.FlatVertices.Add(DungeonScene.Ground((x + cx * cos - cy * sin) / 4096f,
+                    (y + cx * sin + cy * cos) / 4096f, height));
+                group.FlatUvs.Add(new Vector2(corner == 0 || corner == 3 ? u0 : u1, corner < 2 ? 0f : 1f));
+                group.FlatColours.Add(colour);
+            }
+            group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 1); group.FlatTriangles.Add(first + 2);
+            group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 2); group.FlatTriangles.Add(first + 3);
+        }
+
+        private void DrawFlat(Group group)
+        {
+            if (group.FlatVertices.Count == 0) return;
+            if (group.FlatMesh == null)
+            {
+                group.FlatMesh = new Mesh { name = group.Material.name + " (flat)" };
+                group.FlatMesh.MarkDynamic();
+            }
+            Mesh mesh = group.FlatMesh;
+            mesh.Clear();
+            mesh.SetVertices(group.FlatVertices);
+            mesh.SetUVs(0, group.FlatUvs);
+            mesh.SetColors(group.FlatColours);
+            mesh.SetTriangles(group.FlatTriangles, 0, calculateBounds: true);
+            var parameters = new RenderParams(group.Material)
+            {
+                shadowCastingMode = ShadowCastingMode.Off,
+                receiveShadows = false,
+                layer = _root.gameObject.layer,
+                worldBounds = mesh.bounds,
+            };
+            Graphics.RenderMesh(parameters, mesh, 0, Matrix4x4.identity);
         }
 
         private Group MeshGroup(EffectElementDef definition, string meshEntry, AssetRef key)
@@ -272,6 +357,7 @@ namespace DK2.Unity
             renderer.sortMode = ParticleSystemSortMode.Distance;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             group.System.Play(); group.System.Pause();
+            group.IsFlat = (definition.ArtResource.Flags & 0x100) != 0;
             _groups.Add((definition.EffectElementId, ""), group);
             return group;
         }
@@ -283,6 +369,7 @@ namespace DK2.Unity
                 if (group == null) continue;
                 if (group.System != null) UnityEngine.Object.Destroy(group.System.gameObject);
                 UnityEngine.Object.Destroy(group.Material);
+                if (group.FlatMesh != null) UnityEngine.Object.Destroy(group.FlatMesh);
                 foreach (Sprite sprite in group.Sprites) UnityEngine.Object.Destroy(sprite);
                 foreach (Texture2D texture in group.Textures) UnityEngine.Object.Destroy(texture);
             }
