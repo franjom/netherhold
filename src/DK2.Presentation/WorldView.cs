@@ -564,6 +564,9 @@ public sealed partial class WorldView
                 "Fog of war needs both 'Fog Of War' and 'Claim Scan' terrain definitions.");
             _terrainAssets.TryGetValue(fog.TerrainId, out AssetRef fogGround);
             _terrainSolid.TryGetValue(fog.TerrainId, out bool fogSolid);
+            TileState fogTile = tile;
+            fogTile.TerrainId = fog.TerrainId;
+            fogTile.OwnerPlayerId = 0;
 
             return new TileView(
                 new TilePos(x, y),
@@ -574,6 +577,8 @@ public sealed partial class WorldView
                 fogSolid,
                 goldHeld: 0,
                 HealthPermille(fog.StartingHealth, fog.MaxHealth),
+                pieces: PiecesOf(world, x, y, fogTile, fog),
+                pieceKeys: _pieceKeys[fog.TerrainId],
                 explored: false,
                 ambientTint: (fog.Flags & TerrainFlags.AmbientLight) != 0 && fog.Lighting is TerrainLighting fogLighting
                     ? fogLighting.AmbientColour(fog.Flags) : default,

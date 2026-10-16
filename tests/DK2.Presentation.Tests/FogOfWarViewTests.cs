@@ -105,6 +105,28 @@ public sealed class FogOfWarViewTests
         Assert.True(tile.Furniture.IsEmpty);
     }
 
+    [Theory]
+    [InlineData(false, "fog_of_war")]
+    [InlineData(true, "claim_scan")]
+    public void HiddenTerrainSuppliesClassicPiecesInsteadOfPlaceholder(bool scanned, string terrainKey)
+    {
+        GameDatabase database = Database();
+        var map = new LevelMap(2, 1, [new MapTile(1, 2, 0, 0), new MapTile(1, 1, 0, 0)]);
+        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        if (scanned) world.Tile(0, 0).SetDiscoveredBy(1);
+        world.Tile(1, 0).SetExploredBy(1);
+
+        TileView tile = new WorldView(database, 1).TileAt(world, 0, 0);
+
+        Assert.NotNull(tile.PieceKeys);
+        Assert.Contains(terrainKey, tile.PieceKeys.Top.Key);
+        Assert.True(tile.Pieces.HasTop);
+        Assert.True(tile.Pieces.HasFace(1));
+        Assert.False(tile.Pieces.HasFloor);
+        Assert.False(tile.Explored);
+        Assert.Equal((byte)0, tile.OwnerPlayerId);
+    }
+
     private static GameDatabase Database() => new(
         [
             Terrain(1, "Secret", TerrainFlags.Ownable),
