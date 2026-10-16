@@ -52,6 +52,7 @@ namespace DK2.Unity.Editor
             public bool SrpBatcher;
             public string Shader;
             public int TorchCount;
+            public int AuthoredObjectLightCount;
             public int BufferCountBeforeFlush;
             public int BufferCountAfterFlush;
             public int TileTableGridCount;
@@ -285,6 +286,14 @@ namespace DK2.Unity.Editor
                 SampleGeometry(result, runner, torches);
                 var view = (WorldView)typeof(DungeonRunner).GetField("_worldView", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(runner);
                 var simulation = (DK2.Simulation.GameSimulation)typeof(DungeonRunner).GetField("_simulation", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(runner);
+                result.AuthoredObjectLightCount = view.LightObjects(simulation.World).Count;
+                if (result.AuthoredObjectLightCount == 0)
+                    throw new InvalidOperationException("Campaign fixture has no published authored object lights.");
+                int authoredDynamicCount = 0;
+                foreach (ClassicLightTable table in cache.VisibleTables)
+                    authoredDynamicCount += table.Count - table.StaticCount;
+                if (result.Level == "Level1" && authoredDynamicCount == 0)
+                    throw new InvalidOperationException("Authored object lights did not reach the prepared tile tables.");
                 scene.DrawCreatureFrame(simulation.World.CurrentTick, 1);
                 scene.DrawCreatureShadows(probeCamera, view, simulation.World);
                 if (!RenderPipeline.SupportsRenderRequest(probeCamera, new RenderPipeline.StandardRequest()))
@@ -320,6 +329,7 @@ namespace DK2.Unity.Editor
                 var presenter = (ScenePresenter)typeof(DungeonRunner).GetField("_presenter", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(runner);
                 scene.SetCreatureFrameTime(simulation.World.CurrentTick, 1);
                 presenter.Present(simulation.World);
+                scene.SetObjectLights(view.LightObjects(simulation.World), 1);
                 scene.DrawCreatureFrame(simulation.World.CurrentTick, 1);
                 torchSources = (ClassicPointLight?[])((ClassicPointLight?[])typeof(ClassicWorldLightCache)
                     .GetField("_torches", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(cache)).Clone();

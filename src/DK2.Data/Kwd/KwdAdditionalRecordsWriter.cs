@@ -162,7 +162,7 @@ public static partial class KwdAdditionalRecords
             BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(offset + i * 2), values[i]);
     }
 
-    private static void WriteLight(byte[] image, int offset, KwdLight row)
+    internal static void WriteLight(byte[] image, int offset, KwdLight row)
     {
         BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(offset), row.X);
         BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(offset + 4), row.Y);

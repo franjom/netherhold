@@ -371,6 +371,11 @@ namespace DK2.Unity
             }
         }
 
+        public void SetObjectLights(IReadOnlyList<ObjectView> objects, float fraction)
+        {
+            _worldLights?.UpdateObjects(objects, fraction, _torchFlags == ClassicLightFlags.CheapTorch);
+        }
+
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
         {
             // With the install, an object it has no art for draws nothing, as DK2's draws nothing

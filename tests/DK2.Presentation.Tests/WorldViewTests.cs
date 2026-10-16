@@ -396,7 +396,7 @@ public class WorldViewTests
         Assert.Null(rendered.AnimationMovementSpeed);
     }
 
-    private static (GameDatabase Database, WorldState World)? RealLevel()
+    private static (GameDatabase Database, WorldState World)? RealLevel(bool fog = false)
     {
         string dir = Dk2InstallGate.Path;
         if (dir is null) return null;
@@ -404,7 +404,7 @@ public class WorldViewTests
         GameDatabase database = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")
             ?? throw new InvalidOperationException("the install has no Level1 map.");
-        return (database, WorldState.FromMap(database, map, [0, 1]));
+        return (database, WorldState.FromMap(database, map, [0, 1], fogOfWarEnabled: fog));
     }
 
     [InstallFact]
@@ -930,6 +930,17 @@ public class WorldViewTests
         Assert.Contains(TextRenderer.CarryingCreatureGlyph, legend);
         Assert.Contains(TextRenderer.ObjectGlyph, legend);
         Assert.Contains(TextRenderer.WallAlphabet, legend);
+    }
+
+    [InstallFact]
+    public void HeartLightSourcesKeepPhysicalZeroHeightAndIgnoreMeshFogAdmission()
+    {
+        (GameDatabase database, WorldState world) = RealLevel(fog: true)!.Value;
+        var view = new WorldView(database, PlayerIds.Good);
+        ObjectView arches = Assert.Single(view.LightObjects(world), o => o.ObjectTypeId == 86);
+        Assert.Equal(0, arches.Height);
+        Assert.Equal(3.75f, ClassicPointLight.FromObject(arches)!.Value.Position.Y);
+        Assert.DoesNotContain(view.Decorations(world), o => o.Id == arches.Id);
     }
 
     [Fact]

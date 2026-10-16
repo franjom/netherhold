@@ -74,9 +74,7 @@ public enum ObjectFlags : uint
 }
 
 /// <summary>One OBJECTS(240) record: 145 of them, 894 bytes each (docs/research/objects.md).
-/// <para><b>Only the gameplay tail is read.</b> The first 812 bytes are nine art resources and a
-/// light, skipped wholesale; everything here lives at 0x32C or later, so no art resource has to be
-/// understood for a bed to work.</para>
+/// <para>Includes animation timing, the authored light descriptor and the gameplay tail.</para>
 /// <para><b>The layout is validated, not trusted.</b> OpenKeeper's field order gave the sequence;
 /// the offsets come out of it arithmetically and then check themselves twice over — the fields from
 /// <c>0x34C</c> to the end sum to <b>0x37E = 894</b>, the independently measured record stride, and
@@ -95,6 +93,8 @@ public sealed record ObjectDef
     public required byte ObjectId { get; init; }
 
     public required ObjectFlags Flags { get; init; }
+
+    public KwdLight? Light { get; init; }
 
     /// <summary>Health, for the objects that can be destroyed.</summary>
     public required ushort Hp { get; init; }

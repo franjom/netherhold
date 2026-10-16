@@ -55,7 +55,7 @@ Matched framebuffer colour transfer remains part of the original-game acceptance
 - [x] Independently review arithmetic, visibility, cache, shader and integrated publication.
 - [x] Render the companion animated torch resource; remaining clock fidelity is Q604.
 - [x] Apply confirmed ordinary-top normal inversion and ordinary-object instance-lighting selection.
-- [ ] Trace and publish authored object lights; native-only Heart arches remain dark (Q603).
+- [x] Trace and publish authored object lights; retain the scoped limits in static-mesh-lighting.md section4.
 
 Evidence: [classic-lighting.md](../research/classic-lighting.md),
 [visibility](../research/classic-light-visibility.md), ADR-0484 and ADR-0487.
@@ -102,7 +102,7 @@ unattributed. Measurements do not justify reducing original visual fidelity.
 - [x] Complete final combined regression, adapter, documentation and KB checks.
 - [x] Finish final Level1/7/8 campaign captures and inspect their images.
 - [ ] Compare pinned original/Unity views and obtain owner visual acceptance.
-- [ ] Resolve the default unlit-surface input and Heart smoke colour gaps (Q603, Q605).
+- [ ] Resolve remaining dark arch faces and Heart smoke colour gaps (Q603, Q605).
 
 This step is not accepted solely because tests pass. The original-view gate
 requires the owner to compare the same position, viewport and display settings.

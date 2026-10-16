@@ -88,6 +88,28 @@ public sealed partial class WorldView
             if (IsVisible(world, decoration.Tile)) yield return decoration;
     }
 
+    private readonly List<ObjectView> _lightObjects = [];
+    private WorldState? _lightObjectsWorld;
+    private GameTick _lightObjectsTick;
+
+    public IReadOnlyList<ObjectView> LightObjects(WorldState world)
+    {
+        if (ReferenceEquals(_lightObjectsWorld, world) && _lightObjectsTick == world.CurrentTick) return _lightObjects;
+        EnsureDecorations(world);
+        _lightObjectsWorld = world;
+        _lightObjectsTick = world.CurrentTick;
+        _lightObjects.Clear();
+        foreach (ObjectState thing in world.Objects)
+            if (!thing.InHand && thing.CarriedByCreatureId < 0 && HasLight(_database.ObjectById(thing.ObjectTypeId)?.Light))
+                _lightObjects.Add(Placed(world, thing, new TilePos(thing.TileIndex % world.Width, thing.TileIndex / world.Width)));
+        foreach (ObjectView decoration in _decorations)
+            if (HasLight(decoration.Light)) _lightObjects.Add(decoration);
+        return _lightObjects;
+    }
+
+    private static bool HasLight(KwdLight? light) => light is { Radius: not 0 }
+        && ((light.Flags & 1) != 0 || (light.Red | light.Green | light.Blue) != 0);
+
     private void EnsureDecorations(WorldState world)
     {
         if (ReferenceEquals(_decorationsWorld, world) && _decorationsTick == world.CurrentTick) return;
@@ -264,7 +286,7 @@ public sealed partial class WorldView
                     ? new GameTick(world.CurrentTick.Value - thing.ProcessAgeTicks) : null,
             animationLoops: !stateAnimation || thing.ObjectTypeId == CallToArmsRules.ObjectTypeId && thing.ProcessState is 13 or 14,
             previousHeight: previousZ, previousPitch: previousPitch, previousRoll: previousRoll,
-            heartVisual: HeartVisual(world, thing.ObjectTypeId, thing.OwnerPlayerId, at));
+            heartVisual: HeartVisual(world, thing.ObjectTypeId, thing.OwnerPlayerId, at), light: definition?.Light);
     }
 
     /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun
@@ -492,7 +514,8 @@ public sealed partial class WorldView
             ObjectArt(objectTypeId, artSlot), 0, (x * One) + Half + offsetX, (y * One) + Half + offsetY,
             z < 0 ? FloorHeight(world, x, y) : z, heading & 0x7FF, One,
             playsAnimation: objectTypeId == DungeonHeartId,
-            heartVisual: HeartVisual(world, objectTypeId, owner, new TilePos(x, y)), alpha: alpha);
+            heartVisual: HeartVisual(world, objectTypeId, owner, new TilePos(x, y)), alpha: alpha,
+            light: _database.ObjectById(objectTypeId)?.Light);
     }
 
     private DungeonHeartVisual? HeartVisual(WorldState world, byte objectTypeId, PlayerId owner, TilePos tile) =>

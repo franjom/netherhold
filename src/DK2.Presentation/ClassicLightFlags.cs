@@ -15,4 +15,6 @@ public enum ClassicLightFlags : uint
     Terrain = 0x64,
     CheapTorch = 0x74,
     NormalTorch = 0x1B2,
+    NormalObject = 0x191,
+    CheapObject = 0x95,
 }

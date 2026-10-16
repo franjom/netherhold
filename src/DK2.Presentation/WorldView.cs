@@ -266,8 +266,9 @@ public readonly struct ObjectView
         Fp32? previousPosX = null, Fp32? previousPosY = null, int? previousHeading = null,
         bool playsAnimation = false, GameTick? animationStartedAt = null, bool animationLoops = true,
         int? previousHeight = null, int? previousPitch = null, int? previousRoll = null,
-        DungeonHeartVisual? heartVisual = null, byte alpha = 255)
+        DungeonHeartVisual? heartVisual = null, byte alpha = 255, KwdLight? light = null)
     {
+        Light = light;
         Alpha = alpha;
         Pitch = pitch;
         Roll = roll;
@@ -326,6 +327,7 @@ public readonly struct ObjectView
     public GameTick? AnimationStartedAt { get; }
     public bool AnimationLoops { get; }
 
+    public KwdLight? Light { get; }
     public DungeonHeartVisual? HeartVisual { get; }
 
     /// <summary>The model's alpha, 0 to 255 (object <c>+0x8F</c>): 255 but for the local player's

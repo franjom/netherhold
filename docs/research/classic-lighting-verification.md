@@ -191,5 +191,25 @@ checks source preservation, draw-role scope and lighting-mode cache isolation.
 
 `build/step5-draw-modes-startup-fog` records the seven pinned startup images with
 fog enabled. The corrected scanned rock tops now receive their authored warm
-light. Heart arches remain black and startup smoke remains unmatched; authored
-object-light creation/classification must be traced before claiming parity (Q603).
+light. These captures predate authored object-light publication below.
+
+Authored object-light publication passes the Level1/Level8 probes in ignored
+`build/step5-object-lights-Level1` and`step5-object-lights-Level8`:2 and3 source
+objects respectively. Level1 asserts dynamic sources reach the camera's tables;
+Level8's initial camera does not include its source-bearing objects, so it checks
+publication availability and the existing GPU table/count regressions. Headless
+checks cover source removal, tile changes, fog-independent prepared border cells,
+Heart physical height and normal/cheap classifications. Warm publication/gather
+allocates0 bytes in .NET; this is not a Unity allocation claim.
+
+All489 Presentation and396 Data tests pass; the adapter builds with0 warnings
+and0 errors. An existing light-window allocation test failed once during a full
+run, then passed alone and in the complete rerun. Independent review found no
+blocking conversion/cache defects. Held/carried and general furniture-position
+limits remain in static-mesh-lighting.md section4.
+
+The new Level1 image restores orange object-light contribution, while several
+arch faces remain black. The seven pinned FOW-on frames in
+`build/step5-object-lights-startup-fog` reproduce these remaining dark faces and
+unmatched smoke colour. Authored inputs
+are now published; these captures do not establish full visual parity (Q603/Q605).

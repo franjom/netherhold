@@ -16,7 +16,7 @@ public class KwdObjectWriterTests
             "Name:0:32 ObjectId:35A:1 Flags:344:4 Hp:348:2 ManaValue:34E:2 " +
             "RoomCapacity:35C:1 StartState:35B:1 PickUpPriority:35D:1 Width:32C:4 " +
             "Height:330:4 Mass:334:4 Speed:338:4 AirFriction:33C:4 ReactionTurn:34A:2 NameStringId:352:2 TooltipStringId:350:2",
-            excludedProperties: [nameof(ObjectDef.ArtSlots)]);
+            excludedProperties: [nameof(ObjectDef.ArtSlots), nameof(ObjectDef.Light)]);
 
     [Fact]
     public void AnimationMetadataEditsOnlyItsDecodedBytesAndLeavesOtherResourceDataIntact()
@@ -46,6 +46,30 @@ public class KwdObjectWriterTests
         Assert.Equal(145, records.Count);
         for (int i = 0; i < records.Count; i++)
             Assert.Equal(images[i].ToBytes(), KwdObjects.WriteRecord(records[i], images[i]));
+    }
+
+    [Fact]
+    public void AuthoredLightDescriptorIsDecodedAtItsFileOffset()
+    {
+        byte[] source = new byte[894];
+        int[] words = [1234, -2345, 15360, 10240, 0x3800];
+        for (int i = 0; i < words.Length; i++)
+            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(source.AsSpan(0x314 + i * 4), words[i]);
+        source[0x328] = 244; source[0x329] = 243; source[0x32A] = 204; source[0x32B] = 127;
+        Assert.Equal(new KwdLight(1234, -2345, 15360, 10240, 0x3800, 244, 243, 204, 127),
+            Read(source).Light);
+    }
+
+    [Fact]
+    public void LightEditPreservesUnrelatedBytes()
+    {
+        byte[] source = Enumerable.Repeat((byte)0x5A, 894).ToArray();
+        var light = new KwdLight(1234, -2345, 15360, 10240, 0x3800, 244, 243, 204, 127);
+        byte[] written = KwdObjects.WriteRecord(Read(source) with { Light = light },
+            new KwdRecordImage(KwdRecordType.Objects, source));
+        Assert.Equal(light, Read(written).Light);
+        for (int i = 0; i < source.Length; i++)
+            if (i < 0x314 || i >= 0x32C) Assert.Equal(source[i], written[i]);
     }
 
     private static ObjectDef Read(byte[] source) => KwdObjects.Parse([

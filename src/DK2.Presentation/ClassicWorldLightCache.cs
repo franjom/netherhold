@@ -13,7 +13,18 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
 {
     private readonly int _width, _height;
     private readonly ClassicPointLight?[] _terrain, _torches;
-    private readonly ClassicPointLight[]?[] _sourceBuffers;
+    private readonly ClassicPointLight[]?[] _sourceBuffers, _dynamicBuffers;
+    private readonly List<ObjectSource>?[] _objectsByTile;
+    private readonly Dictionary<int, ObjectSource> _objects = new();
+    private readonly List<ObjectSource> _objectEntries = new();
+
+    private sealed class ObjectSource(int id, int tile, ClassicPointLight light)
+    {
+        public readonly int Id = id;
+        public int Tile = tile;
+        public ClassicPointLight Light = light;
+        public bool Seen;
+    }
     private readonly ClassicLightCacheCell[] _cells;
     private readonly bool[] _dirty, _prepared;
     private readonly List<int> _preparedIndices = new();
@@ -32,6 +43,8 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         _terrain = new ClassicPointLight?[count];
         _torches = new ClassicPointLight?[count];
         _sourceBuffers = new ClassicPointLight[count][];
+        _dynamicBuffers = new ClassicPointLight[count][];
+        _objectsByTile = new List<ObjectSource>[count];
         _cells = new ClassicLightCacheCell[count];
         _dirty = new bool[count];
         _prepared = new bool[count];
@@ -42,6 +55,42 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     public ReadOnlySpan<ClassicLightTable> VisibleTables => _visibleTables.AsSpan(0, _visibleCount);
     public void SetTerrain(TilePos tile, ClassicPointLight? light) => SetSource(_terrain, tile, light);
     public void SetTorch(TilePos tile, ClassicPointLight? light) => SetSource(_torches, tile, light);
+
+    public void UpdateObjects(IReadOnlyList<ObjectView> objects, float fraction, bool cheapLighting = false)
+    {
+        foreach (ObjectSource source in _objectEntries) source.Seen = false;
+        for (int i = 0; i < objects.Count; i++)
+        {
+            ObjectView thing = objects[i];
+            if (ClassicPointLight.FromObject(thing, cheapLighting) is not ClassicPointLight current) continue;
+            var tile = new TilePos((int)Math.Floor(current.Position.X), (int)Math.Floor(-current.Position.Z));
+            if (!Contains(tile)) continue;
+            int index = tile.Y * _width + tile.X;
+            if (!_objects.TryGetValue(thing.Id, out ObjectSource? source))
+            {
+                source = new ObjectSource(thing.Id, index, current);
+                _objects.Add(thing.Id, source);
+                _objectEntries.Add(source);
+                (_objectsByTile[index] ??= new List<ObjectSource>()).Add(source);
+            }
+            else if (source.Tile != index)
+            {
+                _objectsByTile[source.Tile]!.Remove(source);
+                (_objectsByTile[index] ??= new List<ObjectSource>()).Add(source);
+                source.Tile = index;
+            }
+            source.Light = ClassicPointLight.FromObject(thing, cheapLighting, fraction)!.Value;
+            source.Seen = true;
+        }
+        for (int i = _objectEntries.Count - 1; i >= 0; i--)
+        {
+            ObjectSource source = _objectEntries[i];
+            if (source.Seen) continue;
+            _objectsByTile[source.Tile]!.Remove(source);
+            _objects.Remove(source.Id);
+            _objectEntries.RemoveAt(i);
+        }
+    }
 
     public void PrepareFrame(ReadOnlySpan<TilePos> visible)
     {
@@ -97,23 +146,38 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         if (_prepared[index]) return;
         _prepared[index] = true;
         _preparedIndices.Add(index);
-        if (!_dirty[index]) return;
-        int count = (_terrain[index].HasValue ? 1 : 0) + (_torches[index].HasValue ? 1 : 0);
-        ClassicPointLight[]? buffer = _sourceBuffers[index];
-        if (count > 0)
+        ClassicLightCacheCell cell = _cells[index];
+        if (_dirty[index])
         {
-            buffer ??= _sourceBuffers[index] = new ClassicPointLight[2];
-            int slot = 0;
-            if (_terrain[index] is ClassicPointLight terrain) buffer[slot++] = terrain;
-            if (_torches[index] is ClassicPointLight torch) buffer[slot] = torch;
+            int count = (_terrain[index].HasValue ? 1 : 0) + (_torches[index].HasValue ? 1 : 0);
+            ClassicPointLight[]? buffer = _sourceBuffers[index];
+            if (count > 0)
+            {
+                buffer ??= _sourceBuffers[index] = new ClassicPointLight[2];
+                int slot = 0;
+                if (_terrain[index] is ClassicPointLight terrain) buffer[slot++] = terrain;
+                if (_torches[index] is ClassicPointLight torch) buffer[slot] = torch;
+            }
+            cell = new(buffer is null ? default : buffer.AsMemory(0, count), default, Frame);
+            _dirty[index] = false;
         }
-        _cells[index] = new(buffer is null ? default : buffer.AsMemory(0, count), default, Frame);
-        _dirty[index] = false;
+        int dynamicCount = _objectsByTile[index]?.Count ?? 0;
+        ClassicPointLight[]? dynamicBuffer = _dynamicBuffers[index];
+        if (dynamicCount > 0)
+        {
+            if (dynamicBuffer is null || dynamicBuffer.Length < dynamicCount)
+                dynamicBuffer = _dynamicBuffers[index] = new ClassicPointLight[dynamicCount];
+            for (int i = 0; i < dynamicCount; i++) dynamicBuffer[i] = _objectsByTile[index]![i].Light;
+        }
+        _cells[index] = cell with { DynamicSources = dynamicBuffer is null ? default : dynamicBuffer.AsMemory(0, dynamicCount) };
     }
 
     public void Clear()
     {
         _window.Reset();
+        _objects.Clear();
+        _objectEntries.Clear();
+        foreach (var sources in _objectsByTile) sources?.Clear();
         Array.Clear(_terrain, 0, _terrain.Length);
         Array.Clear(_torches, 0, _torches.Length);
         Array.Clear(_cells, 0, _cells.Length);

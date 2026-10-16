@@ -287,6 +287,7 @@ namespace DK2.Unity
             }
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
             else LookAt(world);
+            _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
             if (_classicCamera != null)
                 _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
         }
@@ -355,6 +356,7 @@ namespace DK2.Unity
             _worldView.SetPossessionView(_simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
+            _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
             if (_classicCamera != null)
                 _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);

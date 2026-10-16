@@ -19,7 +19,7 @@ namespace DK2.Data.Kwd;
 /// bed, 26 the Vampire's, 31-34 the Graveyard's; <c>ObjectsOnRealDataTests</c>).
 /// Evidence: docs/research/objects.md §§1-2.</para>
 /// <para>Deliberately not read, all presentation or unexplained: the nine art
-/// resource visuals, the light, <c>material</c>, the three unknown bytes
+/// resource visuals, <c>material</c>, the three unknown bytes
 /// at 0x341, the three effect ids, the sound category.</para></remarks>
 public static class KwdObjects
 {
@@ -56,6 +56,7 @@ public static class KwdObjects
             U16(offset + 0x44, timing.FrameCount);
             U16(offset + 0x48, timing.FramesPerSecond);
         }
+        if (record.Light is KwdLight light) KwdAdditionalRecords.WriteLight(bytes, 0x314, light);
         return bytes;
     }
     private const int RecordSize = 894;
@@ -137,6 +138,7 @@ public static class KwdObjects
             AirFriction = Fp(0x33C),
             ReactionTurn = U16(OffsetReactionTurn),
             ArtSlots = artSlots,
+            Light = KwdAdditionalRecords.Light(rec, b + 0x314),
 
             NameStringId = U16(OffsetNameStringId),
             TooltipStringId = U16(OffsetTooltipStringId),

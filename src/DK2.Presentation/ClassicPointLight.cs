@@ -46,6 +46,33 @@ public readonly record struct ClassicPointLight
             intensity: torch.Intensity / 128f, radius: torch.Radius / (float)Fp32.One, flags);
     }
 
+    public static ClassicPointLight? FromObject(in ObjectView thing, bool cheapLighting = false, float fraction = 1)
+    {
+        KwdLight? light = thing.Light;
+        if (light is null || ((light.Flags & 1) == 0 && (light.Red | light.Green | light.Blue) == 0)) return null;
+        uint radius = unchecked((uint)light.Radius << 1) / 3;
+        radius = Math.Min(radius, 10112u);
+        if (radius == 0) return null;
+        int red = light.Red + ((light.Flags & 0x800) != 0 ? 256 : 0);
+        int green = light.Green + ((light.Flags & 0x1000) != 0 ? 256 : 0);
+        int blue = light.Blue + ((light.Flags & 0x2000) != 0 ? 256 : 0);
+        if ((light.Flags & 0x80) != 0)
+        {
+            var colour = ClassicKeeperPalette.Colour(new PlayerId(thing.OwnerPlayerId));
+            red = Math.Max(32, red * colour.Red / 255);
+            green = Math.Max(32, green * colour.Green / 255);
+            blue = Math.Max(32, blue * colour.Blue / 255);
+        }
+        float t = Math.Max(0, Math.Min(1, fraction));
+        var position = new Vector3(
+            (thing.PreviousPosX + ((float)thing.PosX - thing.PreviousPosX) * t + light.X) / Fp32.One,
+            (thing.PreviousHeight + ((float)thing.Height - thing.PreviousHeight) * t + light.Z) / Fp32.One,
+            -(thing.PreviousPosY + ((float)thing.PosY - thing.PreviousPosY) * t + light.Y) / Fp32.One);
+        return new ClassicPointLight(position, new Vector3(red / 255f, green / 255f, blue / 255f),
+            intensity: 180f / 128, radius: radius / (float)Fp32.One,
+            cheapLighting ? ClassicLightFlags.CheapObject : ClassicLightFlags.NormalObject);
+    }
+
     public Vector3 ContributionAt(Vector3 vertex, Vector3 normal)
     {
         Vector3 toLight = Position - vertex;

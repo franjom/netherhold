@@ -535,12 +535,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     private static (byte Red, byte Green, byte Blue) KeeperColour(PlayerId owner)
     {
         // Player tags currently equal Numbers (Q271); the native palette uses Number.
-        (byte Red, byte Green, byte Blue) colour = owner.Value switch
-        {
-            0 => (0, 0, 0), 1 => (191, 213, 224), 2 => (255, 255, 255),
-            3 => (230, 50, 50), 4 => (50, 78, 230), 5 => (50, 230, 51),
-            6 => (226, 230, 50), 7 => (230, 50, 212), _ => (191, 213, 224)
-        };
+        var colour = ClassicKeeperPalette.Colour(owner);
         return ((byte)Math.Max(48, (int)colour.Red), (byte)Math.Max(48, (int)colour.Green),
             (byte)Math.Max(48, (int)colour.Blue));
     }

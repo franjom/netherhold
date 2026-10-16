@@ -67,8 +67,8 @@ asset, frame choice and lighting mode, preserving distinct shared meshes for
 the two draw roles. No per-renderer material block or frame allocation is added.
 
 Production role regressions fail before this correction and pass on Levels1/8;
-counts and capture limits live in classic-lighting-verification.md. Arches remain
-dark. Authored object lights are not published; their native path needs tracing (Q603).
+counts and capture limits live in classic-lighting-verification.md. Authored object
+lights use the separate dynamic path below (Q603).
 
 ## 4. Authored object-light descriptors
 
@@ -90,6 +90,35 @@ flag`0x80` multiplies by the owner's palette RGB/255 and clamps each result to
 at least32. This is not the torch room-colour +255 conversion. The helper sets
 the created engine light's flag8. Assembly confirms the unsigned radius math.
 
-`KwdObjects` skips this descriptor and `ClassicWorldLightCache` publishes terrain
-and torches only. Trace linked-light updating, visibility, classification and
-tile-list lifetime before publication; do not replace this missing path with a fill.
+CONFIRMED lifetime: `0x0049BD20` saves the linked light's old position at`+0x105`
+and updates its position to the physical object position plus the same descriptor
+XYZ after object animation. `0x0049B5E0` destroys it through bridge slot`+0xA8`
+and clears the object's handle. `0x0043A2E0` leaves factory flags`0x28` steady:
+there is no automatic colour fade or model-alpha multiplication on this path.
+
+CONFIRMED classification: the light initializer calls`0x004468E0` with mode1,
+stored at`+0xE4`. The prepared-tile pass`0x0043CC30` sends such kind2 lights to
+renderer slot`+0xE8`,`0x00599C60`, including the cache-only branch without the
+ordinary mesh's visibility test. This renderer prepends dynamic sources through
+`0x00571AB0`; it does not use the torch's static source path. `0x00599BD0` maps
+its normal flags`0x11` to`0x191` and cheap flags`0x15` to`0x95`. Linked positions
+interpolate previous+(current-previous)*fraction through`0x0041C4C0`,
+`0x0041C480` and`0x0044E7B0`. Tile membership follows the current position;
+`0x00446C70` prepends on creation or tile change and leaves same-tile order alone.
+The renderer's second prepend reverses encounter order back to insertion order.
+
+CONFIRMED Heart placement: `0x004DB700` creates Heart13 and Arches86 at the
+central tile with physical Z0. Our central Heart floor projection also returns0;
+its authored lights therefore originate at heights3686/4096 and15360/4096.
+
+Built: `ObjectDef.Light` retains the raw descriptor and its writer overlays only
+those24 bytes. `WorldView.LightObjects` supplies light-bearing ordinary objects
+and decorations independently of mesh visibility. `ClassicWorldLightCache`
+retains dynamic sources across frames, preserves per-tile insertion/reentry order,
+and removes absent objects; only prepared cells enter the native rolling window.
+The normal/cheap shader classifications and existing24-slot cap remain unchanged.
+
+Boundaries: held/carried object lights are omitted until their hand-space behavior
+is traced. Generated decorations use our existing creation order and floor
+projection; exact overflow ties and non-Heart physical-versus-rendered furniture
+offsets still need comparison. These are not evidence for an ambient fill.
