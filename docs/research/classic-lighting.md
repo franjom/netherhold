@@ -20,8 +20,8 @@ the vertex position and normal before handing colour/UV to a render sink.
 The original sum remains documented in tag-highlight.md section6.
 
 Coefficient/lookup reads are resolved in section5, vertex RGB packing in section6.
-Downstream framebuffer transfer, native-versus-URP response and
-matched-frame brightness remain open.
+The confirmed per-draw normal inversion missing from ordinary tops is in
+[static-mesh-lighting.md](static-mesh-lighting.md); matched-frame brightness remains open.
 
 ## 2. Terrain instance colour
 

@@ -173,3 +173,8 @@ The running`DKII-DX.exe` has SHA256
 `a5957e8c52b6dee80ddf6cc1d3ea5079aaaad4d11b40e0f067d34ff4157ce9bb`;
 offline comparison found identical PE section layouts and executable code
 sections to the researched`DKII.EXE`. No game settings or memory were changed.
+
+Further binary tracing found the omitted ordinary-top normal inversion and
+neutral-player cycling-colour selector. The evidence lives in static-mesh-lighting.md
+and room-construction-effects.md section6. Neither has been presented as a visual
+fix: applying flags to geometry and comparing the resulting capture remain pending.

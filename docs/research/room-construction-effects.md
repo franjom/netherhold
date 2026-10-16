@@ -303,9 +303,13 @@ number 1, variant 0.
 
 `0x00435F20` also compares the element owner against component slot `+0xC4`.
 Equality selects `0x0050F880` instead: palette number
-`floor(wallMilliseconds/100)%7+1`. Live Level1 (2026-10-16) resolves the forwarded
-world getter to `0x00443100`, a word read at receiver`+0xE`, currently2. This
-does not establish a local-player test or the startup element's actual tag.
-The live96-byte palette matches the table above; evidence is ignored
-`reverse-engineering/step5-native-level1-palette.json`. Color is sampled at birth;
-this later capture does not establish the override at startup (Q605).
+`floor(wallMilliseconds/100)%7+1`. CONFIRMED startup writer (2026-10-16):
+`0x00447D87` and`0x00525702` pass the neutral-player global through slot`+0xC8`;
+`0x00440F90` forwards to renderer`+0x9E`, whose setter`0x00443110` writes`+0xE`.
+Its getter`0x00443100` is shared by the renderer interfaces. Thus neutral-owned
+elements select the cycling palette after startup initialization; this is not a
+local-player colour override. The actual Heart startup element's selected path
+still needs verification (Q605).
+Live Level1 sampled the selector as2 and the96-byte palette matched the table;
+evidence is ignored`reverse-engineering/step5-native-level1-palette.json`.
+Color is sampled at birth; this later sample alone does not prove birth-time colour.
