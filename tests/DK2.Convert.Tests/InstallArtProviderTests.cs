@@ -47,6 +47,24 @@ public sealed class InstallArtProviderTests
             AssetCatalogue.ForDatabase(database));
     }
 
+    [InstallFact]
+    public void EveryMemberOfTheHeartPlugsGroupResolvesByItsEntryAndLoads()
+    {
+        // Effect 215's group art: the nine pieces the plug breaks into (heart-intro.md section 2).
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        Assert.True(provider.TryLoadGroup("Group_plugbroke", out KmfGroup group));
+        Assert.Equal(9, group.Elements.Count);
+        foreach (KmfGroupElement member in group.Elements)
+        {
+            Assert.True(provider.TryResolveEntry(member.Name, out ResolvedAsset asset), member.Name);
+            Assert.True(provider.TryLoadModel(asset, out KmfModel model), member.Name);
+            Assert.NotEmpty(RenderMesh.FromModel(model).Positions);
+        }
+        Assert.False(provider.TryResolveEntry("NoSuchPlugPiece", out _));
+    }
+
     private static KmfModel LoadAgain(InstallArtProvider provider, ResolvedAsset asset)
     {
         Assert.True(provider.TryLoadModel(asset, out KmfModel model));

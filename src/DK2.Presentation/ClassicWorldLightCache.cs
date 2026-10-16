@@ -15,16 +15,21 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     private readonly ClassicPointLight?[] _terrain, _torches;
     private readonly ClassicPointLight[]?[] _sourceBuffers, _dynamicBuffers;
     private readonly List<ObjectSource>?[] _objectsByTile;
-    private readonly Dictionary<int, ObjectSource> _objects = new();
-    private readonly List<ObjectSource> _objectEntries = new();
+    private readonly Dictionary<long, ObjectSource> _objects = new();
+    /// <summary>The sources of each kind (objects, effects), so a kind's update scans only its own.</summary>
+    private readonly List<ObjectSource>[] _entries = { new(), new() };
 
-    private sealed class ObjectSource(int id, int tile, ClassicPointLight light)
+    /// <summary>A dynamic source: an object's light or an effect instance's. Both are engine lights
+    /// in one list (<c>+0x33A</c>), so they share each tile's insertion order.</summary>
+    private sealed class ObjectSource(long key, int tile, ClassicPointLight light)
     {
-        public readonly int Id = id;
+        public readonly long Key = key;
         public int Tile = tile;
         public ClassicPointLight Light = light;
         public bool Seen;
     }
+
+    private const int ObjectKind = 0, EffectKind = 1;
     private readonly ClassicLightCacheCell[] _cells;
     private readonly bool[] _dirty, _prepared;
     private readonly List<int> _preparedIndices = new();
@@ -58,37 +63,64 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
 
     public void UpdateObjects(IReadOnlyList<ObjectView> objects, float fraction, bool cheapLighting = false)
     {
-        foreach (ObjectSource source in _objectEntries) source.Seen = false;
+        List<ObjectSource> entries = _entries[ObjectKind];
+        foreach (ObjectSource source in entries) source.Seen = false;
         for (int i = 0; i < objects.Count; i++)
         {
             ObjectView thing = objects[i];
+            // The tile follows the current position; the drawn light, the interpolated one.
             if (ClassicPointLight.FromObject(thing, cheapLighting) is not ClassicPointLight current) continue;
-            var tile = new TilePos((int)Math.Floor(current.Position.X), (int)Math.Floor(-current.Position.Z));
-            if (!Contains(tile)) continue;
-            int index = tile.Y * _width + tile.X;
-            if (!_objects.TryGetValue(thing.Id, out ObjectSource? source))
-            {
-                source = new ObjectSource(thing.Id, index, current);
-                _objects.Add(thing.Id, source);
-                _objectEntries.Add(source);
-                (_objectsByTile[index] ??= new List<ObjectSource>()).Add(source);
-            }
-            else if (source.Tile != index)
-            {
-                _objectsByTile[source.Tile]!.Remove(source);
-                (_objectsByTile[index] ??= new List<ObjectSource>()).Add(source);
-                source.Tile = index;
-            }
-            source.Light = ClassicPointLight.FromObject(thing, cheapLighting, fraction)!.Value;
-            source.Seen = true;
+            Place(ObjectKind, thing.Id, current, ClassicPointLight.FromObject(thing, cheapLighting, fraction)!.Value);
         }
-        for (int i = _objectEntries.Count - 1; i >= 0; i--)
+        RemoveUnseen(entries);
+    }
+
+    /// <summary>The lights of the view's effect instances this update (<c>0x004347E0</c>).</summary>
+    public void UpdateEffects(IReadOnlyList<EffectLightView> effects, bool cheapLighting = false)
+    {
+        List<ObjectSource> entries = _entries[EffectKind];
+        foreach (ObjectSource source in entries) source.Seen = false;
+        for (int i = 0; i < effects.Count; i++)
         {
-            ObjectSource source = _objectEntries[i];
+            if (ClassicPointLight.FromEffect(effects[i], cheapLighting) is not ClassicPointLight light) continue;
+            Place(EffectKind, effects[i].Id, light, light);
+        }
+        RemoveUnseen(entries);
+    }
+
+    private void Place(int kind, int id, ClassicPointLight current, ClassicPointLight drawn)
+    {
+        var tile = new TilePos((int)Math.Floor(current.Position.X), (int)Math.Floor(-current.Position.Z));
+        if (!Contains(tile)) return;
+        int index = tile.Y * _width + tile.X;
+        // An object and an effect may share an id; the kind keeps their sources apart.
+        long key = ((long)kind << 32) | (uint)id;
+        if (!_objects.TryGetValue(key, out ObjectSource? source))
+        {
+            source = new ObjectSource(key, index, drawn);
+            _objects.Add(key, source);
+            _entries[kind].Add(source);
+            (_objectsByTile[index] ??= new List<ObjectSource>()).Add(source);
+        }
+        else if (source.Tile != index)
+        {
+            _objectsByTile[source.Tile]!.Remove(source);
+            (_objectsByTile[index] ??= new List<ObjectSource>()).Add(source);
+            source.Tile = index;
+        }
+        source.Light = drawn;
+        source.Seen = true;
+    }
+
+    private void RemoveUnseen(List<ObjectSource> entries)
+    {
+        for (int i = entries.Count - 1; i >= 0; i--)
+        {
+            ObjectSource source = entries[i];
             if (source.Seen) continue;
             _objectsByTile[source.Tile]!.Remove(source);
-            _objects.Remove(source.Id);
-            _objectEntries.RemoveAt(i);
+            _objects.Remove(source.Key);
+            entries.RemoveAt(i);
         }
     }
 
@@ -176,7 +208,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     {
         _window.Reset();
         _objects.Clear();
-        _objectEntries.Clear();
+        foreach (List<ObjectSource> entries in _entries) entries.Clear();
         foreach (var sources in _objectsByTile) sources?.Clear();
         Array.Clear(_terrain, 0, _terrain.Length);
         Array.Clear(_torches, 0, _torches.Length);

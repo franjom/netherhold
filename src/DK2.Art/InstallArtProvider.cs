@@ -115,7 +115,8 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
             asset = default;
             return false;
         }
-        asset = new ResolvedAsset(AssetRef.Create("mesh-entry", found, AssetKind.Mesh), AssetSource.InstallEntry,
+        asset = new ResolvedAsset(AssetRef.Create(AssetRef.MeshEntryCategory,
+                Path.GetFileNameWithoutExtension(found), AssetKind.Mesh), AssetSource.InstallEntry,
             filePath: null, look: default, providerName: Name, installEntry: found);
         return true;
     }

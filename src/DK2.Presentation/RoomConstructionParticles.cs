@@ -52,6 +52,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     private readonly bool _captureAtEdges;
     private readonly Func<ViewEffectRequest, CaptureEdges>? _captureEdges;
     private long _lastUpdateMilliseconds;
+    private int _lastEmitterId;
 
     public RoomConstructionParticles(GameDatabase database, ulong seed, Func<EffectTime> clock,
         Func<RoomConstructionEffect, bool>? visible = null,
@@ -165,10 +166,31 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         double direction = request.Heading.Raw * Math.PI / 1024;
         int health = DrawInclusive(definition.MinHp, definition.MaxHp);
         int speed = DrawInclusive(definition.MinSpeedXy, definition.MaxSpeedXy);
-        return new Emitter(definition, request with { Position = point },
+        var emitter = new Emitter(++_lastEmitterId, definition, request with { Position = point },
             health, velocityX: (int)(speed * Math.Sin(direction)),
             velocityY: -(int)(speed * Math.Cos(direction)),
             velocityZ: DrawInclusive(definition.MinSpeedYz, definition.MaxSpeedYz));
+        // 0x004347E0: a light whose descriptor has flag 1 (the loader 0x004358C0 sets it for any
+        // RGB) is created at intensity 0x80, its colour starting at the base (0x0043A1E0), and given
+        // the FadeDuration ramp of the first of definition flags 0x800, 0x1000, 0x2000 it carries.
+        KwdLight light = definition.Light;
+        emitter.HasLight = (light.Flags & 1) != 0 || (light.Red | light.Green | light.Blue) != 0;
+        int fade = definition.FadeDuration;
+        if (emitter.HasLight)
+        {
+            if ((definition.Flags & 0x800) != 0)
+            {
+                if (fade != 0) (emitter.Ramp, emitter.RampSteps, emitter.RampCounter) = (LightRamp.In, fade, 0);
+            }
+            else if ((definition.Flags & 0x1000) != 0)
+            {
+                if (fade != 0) (emitter.Ramp, emitter.RampSteps, emitter.RampCounter) = (LightRamp.Out, fade, fade);
+            }
+            else if ((definition.Flags & 0x2000) != 0 && fade > 1)
+                (emitter.Ramp, emitter.RampSteps, emitter.RampCounter) = (LightRamp.InThenOut, fade >> 1, 0);
+        }
+        emitter.RampShown = emitter.RampSteps;
+        return emitter;
     }
 
     private void EmitWave(EffectDef effect, ViewEffectRequest request, CaptureEdges? captureBoundary = null,
@@ -313,7 +335,15 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             particle.Green = (byte)(particle.Green * 4 / 5);
             particle.Blue = (byte)(particle.Blue * 4 / 5);
         }
-        if (!ApplyFloorContact(particle)) return null;
+        if (atExactPoint)
+        {
+            // A group part's size is its member record's, which the loader sets to 0x1000
+            // (0x004358C0), not the element's scale range (396's is 0..0).
+            particle.InitialScale = particle.ScaleTarget = Fp32.One;
+            particle.ScaleIncrement = 0;
+        }
+        // A group part is allocated (0x004352E0, 0x00435F20) without a floor test (0x004347E0).
+        else if (!ApplyFloorContact(particle)) return null;
         int spinRange = effect.SpriteSpinRateRange * 8;
         particle.HeadingSpinRaw = replaced?.HeadingSpinRaw ?? DrawAngularOffset(spinRange).Value;
         particle.PitchSpinRaw = replaced?.PitchSpinRaw ?? DrawAngularOffset(spinRange).Value;
@@ -401,6 +431,16 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
                 EmitWave(emitter.Definition, emitter.Request, emitter.CaptureBoundary, emitter);
             }
             emitter.Health -= elapsedUpdates;
+        }
+        // The view update (0x0043BFE0) updates every effect, then every light (0x0043A2E0), then
+        // removes the spent effects, whose lights go with them (0x004354F0, slot +0xA8 0x00439A20).
+        // An effect created by a removal is first lit as created and stepped on the next update.
+        foreach (Emitter emitter in _emitters)
+            if (emitter.HasLight)
+                for (int update = 0; update < elapsedUpdates; update++) StepLightRamp(emitter);
+        for (int i = _emitters.Count - 1; i >= 0; i--)
+        {
+            Emitter emitter = _emitters[i];
             if (emitter.Health <= 0 && emitter.ChildCount == 0)
             {
                 // Removed only once its HP is gone and its last element has died (0x0043C041); the
@@ -540,15 +580,60 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
             (byte)Math.Max(48, (int)colour.Blue));
     }
 
-    private sealed class Emitter(EffectDef definition, ViewEffectRequest request, int health,
+    private sealed class Emitter(int id, EffectDef definition, ViewEffectRequest request, int health,
         int velocityX, int velocityY, int velocityZ)
     {
+        public readonly int Id = id;
         public readonly EffectDef Definition = definition;
         public ViewEffectRequest Request = request;
         public CaptureEdges? CaptureBoundary;
         public int Health = health;
         public int ChildCount;
         public int VelocityX = velocityX, VelocityY = velocityY, VelocityZ = velocityZ;
+        /// <summary>The instance's light (<c>+0x12B</c>) and its fade ramp: the mode (light
+        /// <c>+0x134</c> bits 0x100 in, 0x200 out, 0x400 in then out), the steps (<c>+0x138</c>), the
+        /// counter (<c>+0x13A</c>) and the step its colour was last scaled by (<c>+0x111</c>).</summary>
+        public bool HasLight;
+        public LightRamp Ramp;
+        public int RampSteps = 1, RampCounter, RampShown = 1;
+    }
+
+    private enum LightRamp { Steady, In, Out, InThenOut }
+
+    /// <summary>The colour ramp of <c>0x0043A2E0</c>, once per update: the colour is the base
+    /// × counter / steps, then the counter moves; a rise that reaches the top holds (in) or turns
+    /// to a fall (in then out), and a fall that reaches 0 holds there.</summary>
+    private static void StepLightRamp(Emitter emitter)
+    {
+        switch (emitter.Ramp)
+        {
+            case LightRamp.In:
+            case LightRamp.InThenOut:
+                emitter.RampShown = emitter.RampCounter;
+                if (emitter.RampCounter == emitter.RampSteps)
+                    emitter.Ramp = emitter.Ramp == LightRamp.In ? LightRamp.Steady : LightRamp.Out;
+                else emitter.RampCounter++;
+                break;
+            case LightRamp.Out:
+                emitter.RampShown = emitter.RampCounter;
+                if (emitter.RampCounter != 0) emitter.RampCounter--;
+                else emitter.Ramp = LightRamp.Steady;
+                break;
+        }
+    }
+
+    /// <summary>The light of every effect instance that has one, this update.</summary>
+    public void CollectLights(List<EffectLightView> lights)
+    {
+        if (lights == null) throw new ArgumentNullException(nameof(lights));
+        lights.Clear();
+        foreach (Emitter emitter in _emitters)
+        {
+            if (!emitter.HasLight) continue;
+            FpPosition3 at = emitter.Request.Position;
+            lights.Add(new EffectLightView(emitter.Id, emitter.Definition.Light, emitter.Request.Owner,
+                at.X.Raw, at.Y.Raw, at.Z.Raw, emitter.RampShown, emitter.RampSteps));
+        }
     }
 
     private int DrawExclusive(int minimum, int maximum) => maximum <= minimum
@@ -569,6 +654,11 @@ public readonly record struct EffectAttachment(bool CreatureExists, FpPosition3?
     public static EffectAttachment At(FpPosition3 point) => new(true, point);
     public static EffectAttachment NotFound => new(true, null);
 }
+
+/// <summary>An effect instance's light this update: its descriptor, the instance's owner and point
+/// (position units), and the ramp's step of its steps (equal when steady).</summary>
+public readonly record struct EffectLightView(int Id, KwdLight Light, PlayerId Owner,
+    float PosX, float PosY, float Height, int RampStep, int RampSteps);
 
 /// <summary>A member of an effect's group art: the mesh entry it draws and its offset from the
 /// instance, in position units (4096 a tile; height up).</summary>

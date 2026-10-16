@@ -49,7 +49,28 @@ public readonly record struct ClassicPointLight
     public static ClassicPointLight? FromObject(in ObjectView thing, bool cheapLighting = false, float fraction = 1)
     {
         KwdLight? light = thing.Light;
-        if (light is null || ((light.Flags & 1) == 0 && (light.Red | light.Green | light.Blue) == 0)) return null;
+        if (light is null) return null;
+        float t = Math.Max(0, Math.Min(1, fraction));
+        return FromDescriptor(light, new PlayerId(thing.OwnerPlayerId),
+            thing.PreviousPosX + ((float)thing.PosX - thing.PreviousPosX) * t,
+            thing.PreviousPosY + ((float)thing.PosY - thing.PreviousPosY) * t,
+            thing.PreviousHeight + ((float)thing.Height - thing.PreviousHeight) * t,
+            intensity: 180, rampStep: 1, rampSteps: 1, cheapLighting);
+    }
+
+    /// <summary>An effect instance's light (<c>0x004347E0</c> through bridge slot <c>+0xA0</c>,
+    /// intensity 0x80), at the instance's point, its colour scaled by the fade ramp's
+    /// <paramref name="effect"/> step as <c>0x0043A2E0</c> scales it (base × step / steps).</summary>
+    public static ClassicPointLight? FromEffect(in EffectLightView effect, bool cheapLighting = false)
+        => FromDescriptor(effect.Light, effect.Owner, effect.PosX, effect.PosY, effect.Height,
+            intensity: 128, effect.RampStep, effect.RampSteps, cheapLighting);
+
+    /// <summary>The descriptor rules of <c>0x00439880</c>: flag 1, offsets added, radius × 2 / 3
+    /// clamped by the factory, 256 added under flags 0x800/0x1000/0x2000, the owner's palette under 0x80.</summary>
+    private static ClassicPointLight? FromDescriptor(KwdLight light, PlayerId owner, float x, float y, float height,
+        int intensity, int rampStep, int rampSteps, bool cheapLighting)
+    {
+        if ((light.Flags & 1) == 0 && (light.Red | light.Green | light.Blue) == 0) return null;
         uint radius = unchecked((uint)light.Radius << 1) / 3;
         radius = Math.Min(radius, 10112u);
         if (radius == 0) return null;
@@ -58,18 +79,18 @@ public readonly record struct ClassicPointLight
         int blue = light.Blue + ((light.Flags & 0x2000) != 0 ? 256 : 0);
         if ((light.Flags & 0x80) != 0)
         {
-            var colour = ClassicKeeperPalette.Colour(new PlayerId(thing.OwnerPlayerId));
+            var colour = ClassicKeeperPalette.Colour(owner);
             red = Math.Max(32, red * colour.Red / 255);
             green = Math.Max(32, green * colour.Green / 255);
             blue = Math.Max(32, blue * colour.Blue / 255);
         }
-        float t = Math.Max(0, Math.Min(1, fraction));
-        var position = new Vector3(
-            (thing.PreviousPosX + ((float)thing.PosX - thing.PreviousPosX) * t + light.X) / Fp32.One,
-            (thing.PreviousHeight + ((float)thing.Height - thing.PreviousHeight) * t + light.Z) / Fp32.One,
-            -(thing.PreviousPosY + ((float)thing.PosY - thing.PreviousPosY) * t + light.Y) / Fp32.One);
+        if (rampSteps <= 0) throw new ArgumentOutOfRangeException(nameof(rampSteps));
+        red = red * rampStep / rampSteps;
+        green = green * rampStep / rampSteps;
+        blue = blue * rampStep / rampSteps;
+        var position = new Vector3((x + light.X) / Fp32.One, (height + light.Z) / Fp32.One, -(y + light.Y) / Fp32.One);
         return new ClassicPointLight(position, new Vector3(red / 255f, green / 255f, blue / 255f),
-            intensity: 180f / 128, radius: radius / (float)Fp32.One,
+            intensity: intensity / 128f, radius: radius / (float)Fp32.One,
             cheapLighting ? ClassicLightFlags.CheapObject : ClassicLightFlags.NormalObject);
     }
 

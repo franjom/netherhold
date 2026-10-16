@@ -62,11 +62,15 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     public const string TrapCategory = "trap";
     public const string EffectElementCategory = "effect_element";
 
+    /// <summary>A Meshes.WAD entry no record names, keyed by the entry itself: a member of an
+    /// effect's group art (the Heart plug's nine pieces).</summary>
+    public const string MeshEntryCategory = "mesh_entry";
+
     private static readonly HashSet<string> Categories =
         new(StringComparer.Ordinal)
         {
             TerrainCategory, RoomCategory, CreatureCategory, ObjectCategory, UiCategory, DoorCategory, TrapCategory,
-            EffectElementCategory,
+            EffectElementCategory, MeshEntryCategory,
         };
 
     private readonly string? _key;

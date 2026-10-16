@@ -76,6 +76,28 @@ public class ClassicObjectLightTests
     }
 
     [Fact]
+    public void AnObjectAndAnEffectWithOneIdAreSeparateSources_EachKindUpdatedOnItsOwn()
+    {
+        var tile = new TilePos(5, 5);
+        var cache = new ClassicWorldLightCache(16, 16);
+        var effect = new EffectLightView(1, Arches, new PlayerId(3), 5 * Fp32.One + 2048, 5 * Fp32.One + 2048, 0, 1, 1);
+        cache.UpdateObjects(new[] { Object(1) }, 1);
+        cache.UpdateEffects(new[] { effect });
+        cache.PrepareFrame(new[] { tile });
+        Assert.Equal(2, cache.GetCell(tile).DynamicSources.Length);
+        // Effect intensity is 128/128, the object's 180/128.
+        Assert.Contains(cache.GetCell(tile).DynamicSources.ToArray(), source => source.Intensity == 1f);
+        // An update of objects alone keeps the effect's light, and the reverse.
+        cache.UpdateObjects(Array.Empty<ObjectView>(), 1);
+        cache.PrepareFrame(new[] { tile });
+        Assert.Equal(1f, Assert.Single(cache.GetCell(tile).DynamicSources.ToArray()).Intensity);
+        cache.UpdateObjects(new[] { Object(1) }, 1);
+        cache.UpdateEffects(Array.Empty<EffectLightView>());
+        cache.PrepareFrame(new[] { tile });
+        Assert.Equal(180f / 128, Assert.Single(cache.GetCell(tile).DynamicSources.ToArray()).Intensity);
+    }
+
+    [Fact]
     public void PreparedBorderSourceLightsVisibleTilesWithoutMakingItsOwnTileVisible()
     {
         var cache = new ClassicWorldLightCache(16, 16);

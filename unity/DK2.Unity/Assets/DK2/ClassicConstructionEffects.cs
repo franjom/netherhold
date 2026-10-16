@@ -70,9 +70,21 @@ namespace DK2.Unity
 
         private static EffectTime ReadClock() => new EffectTime(Clock.ElapsedMilliseconds);
 
+        private float _fraction;
+        private readonly List<EffectLightView> _lights = new List<EffectLightView>();
+
+        /// <summary>Runs the effect updates due by now and returns the instances' lights, which
+        /// the frame's lighting takes before it is prepared; <see cref="Draw"/> then draws this state.</summary>
+        public IReadOnlyList<EffectLightView> Advance()
+        {
+            _fraction = Model.Advance();
+            Model.CollectLights(_lights);
+            return _lights;
+        }
+
         public void Draw()
         {
-            float fraction = Model.Advance();
+            float fraction = _fraction;
             foreach (Group group in _groups.Values) if (group != null) group.Count = 0;
             for (int i = 0; i < Model.Particles.Count; i++)
             {
@@ -163,7 +175,6 @@ namespace DK2.Unity
                     for (int frame = 0; frame < frameCount; frame++)
                     {
                         _meshes.TryGetMeshFrame(key, frame, out frames[frame], out frameMaterials[frame], out _);
-                        frameMaterials[frame] = Brightened(frameMaterials[frame]);
                     }
                     found = true;
                 }
@@ -179,7 +190,10 @@ namespace DK2.Unity
                 _groups.Add((definition.EffectElementId, meshEntry ?? ""), null);
                 return null;
             }
-            materials = Brightened(materials);
+            // An additive effect mesh draws at the texture (STRONGLY INFERRED, heart-intro.md §6):
+            // the material colour is forced white (0x0057C420), the vertex colour is that plus the
+            // element tint and the lights (0x00581BE0), stage 0 modulates (0x00589250, op 4, never
+            // 2X or 4X), and the blend is ONE, ONE (ADR-0492, superseding ADR-0476's doubling).
             var group = new Group
             {
                 IsMesh = true, Mesh = mesh, Materials = materials, Frames = frames, FrameMaterials = frameMaterials,
@@ -197,32 +211,6 @@ namespace DK2.Unity
             ReadOnlySpan<byte> block = definition.ArtResource.Unknown_0044.Span;
             int rate = block.Length >= 8 ? BitConverter.ToInt32(block.Slice(4, 4)) : 0;
             return rate > 0 && rate <= 60 ? rate : 10;
-        }
-
-        private readonly Dictionary<Material, Material> _brightened = new Dictionary<Material, Material>();
-
-        /// <summary>Additive effect-element materials drawn at twice the texture: the plug beam's
-        /// Falloff texture peaks at 68 of 255 and DK2 shows it blazing white, so the additive draw
-        /// multiplies its light more than once (DK2's texture stage is unread; a presentation
-        /// choice, ADR-0476). Opaque and alpha materials are returned as they are.</summary>
-        private Material[] Brightened(Material[] materials)
-        {
-            if (materials == null) return null;
-            var result = new Material[materials.Length];
-            for (int i = 0; i < materials.Length; i++)
-            {
-                Material source = materials[i];
-                if (source == null || !source.name.StartsWith("AA_", StringComparison.Ordinal)) { result[i] = source; continue; }
-                if (!_brightened.TryGetValue(source, out Material bright))
-                {
-                    bright = new Material(source) { name = source.name + " (x2)" };
-                    if (bright.HasProperty("_BaseColor")) bright.SetColor("_BaseColor", new Color(2f, 2f, 2f, 1f));
-                    bright.color = new Color(2f, 2f, 2f, 1f);
-                    _brightened[source] = bright;
-                }
-                result[i] = bright;
-            }
-            return result;
         }
 
         /// <param name="meshEntry">A group part's mesh entry, drawn in place of the definition's art.</param>

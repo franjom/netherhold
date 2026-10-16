@@ -91,6 +91,17 @@ three-float offset (KMF GROP: HEAD count, then ELEM name and offset).
   spin from the effect's spin range, and links it as a child. The member's mesh
   attached to the element (`0x004B37D0(record+0xC)`) and the offset's scale (the
   KMF float as tiles, z down) are INFERRED; ours gates on the art type 8.
+  **No floor test at birth** (re-read 2026-10-16): the allocator `0x004352E0`
+  tests bounds (`0x00440EE0`) and solidity only and `0x00435F20` none, so a part
+  born below the floor lives. Element 396 has no art and scale 0..0, so
+  `0x00435F20` sets no scale; the size is the member record's, `0x1000` from the
+  loader `0x004358C0`, copied to RenderInfo `+4/+8` by `0x004B37D0`. CONFIRMED.
+  That the first step (vz 16384..22528 less mass 1638, `>> 4`) lifts every member
+  clear holds only with the KMF z read as down, which is INFERRED; the install
+  test `TheHeartPlugsNinePiecesFlyOnTheirFirstUpdate_IfKmfGroupZPointsDown` pins
+  it for our model. Ours had tested the floor at birth, and every one of
+  the nine `Group_plugbroke` members (KMF z +0.06..+0.11, read as down) died
+  there; with scale 0 they would also have drawn at nothing.
 - **FadeDuration** is the attached light's ramp (flags `0x800` in, `0x1000` out,
   `0x2000` in then out), not an alpha fade; not built.
 
@@ -115,17 +126,17 @@ sparkles and their fade-in run from 7.25 s to 9.25 s.
   maps a member's offset to position units (KMF x, y are the world's, z points
   down, a unit is a tile). `ClassicConstructionEffects` keys a mesh group by the
   part's entry.
-- Not built: the two sounds, the lights of 208 and 210, effect 224's `+0x43`
+- Not built: the two sounds, effect 224's `+0x43`
   heading helper for generated effects (the element orientation draw stands in),
   the redraw of the arches' tile, and flag `0x8000`'s fog bypass (the Heart's own
-  tile is always discovered by its owner).
+  tile is always discovered by its owner). The lights of 208 and 210 are built
+  since ADR-0492 (§5).
 - The beam. Element 379 (`plugbeam`, additive, flags `0xC`: it grows from scale 0.5
-  toward 1.25 over its 100 updates and dims only once its HP is below its RGB of 25)
-  is the white light the owner sees stand on the plug and vanish as the Heart
-  appears. Its `Falloff` texture peaks at 68 of 255, so a plain additive draw is a
-  quarter of DK2's blaze; the Unity renderer draws every additive effect-element
-  mesh material, this beam's among them, at twice the texture (ADR-0476), a
-  presentation choice until the additive texture stage is read.
+  toward 1.25 over its 100 updates, and its RGB of 25 falls once its HP is below it,
+  which §6's reading makes invisible on an additive mesh: the tint is added over
+  the material's white) is the white light the owner sees stand on the plug and vanish as the Heart
+  appears. ADR-0476 drew it at twice the texture; ADR-0492 draws it at the texture,
+  as DK2 does (§6).
 
 - Turns, not ticks. `HeartIntroRules.Turn` maps our tick to DK2's game turn (tick 0
   is turn 1, as `GameSimulation` numbers triggers), so 225 is asked for on tick 0
@@ -135,5 +146,66 @@ sparkles and their fade-in run from 7.25 s to 9.25 s.
   The Unity runner therefore runs the first tick, and one 50 ms update of the effect
   model (an emitter's first wave comes at its first update), before its first frame;
   a frame before either showed the open pit under no lid.
+
+## 5. Effect lights
+
+Read 2026-10-16. CONFIRMED except where marked.
+
+- **Creation.** At the end of `0x004347E0` an effect asks view slot `+0xA0`
+  (`0x00439880`, view vtable `0x0066CC94`) for a light from its definition's
+  24-byte light record (`def+0x1B`) at the instance's point, with intensity `0x80`
+  (an object's is 180) and the instance's tag. `0x00439880` applies the object
+  rules (static-mesh-lighting.md §4): flag 1 required (the loader `0x004358C0` ORs
+  it in for any RGB), XYZ offsets added, radius × 2 / 3, flags `0x800`/`0x1000`/
+  `0x2000` add 256 to red/green/blue, `0x80` the owner's palette; the factory
+  `0x004397E0` → `0x0043A1E0` clamps the radius to `0x2780` and starts the current
+  colour at the base. The light's handle is `instance+0x12B`.
+- **Fade.** The first of definition flags `0x800`, `0x1000`, `0x2000` the effect
+  carries picks `0x0043A550` (rise), `0x0043A580` (fall) or `0x0043A5B0` (rise then
+  fall, half the duration each way) with FadeDuration (`def+0x77`). `0x0043A2E0`
+  steps the ramp once per view update: colour = base × counter / steps, then the
+  counter moves; a rise holds at the top, a fall at 0.
+- **Order and end.** The view update (`0x0043BFE0`) updates every effect, then
+  every light, then removes the spent effects; the teardown `0x004354F0` destroys
+  the instance's light through slot `+0xA8` (`0x00439A20`). An effect's light ends
+  with it.
+
+So the shipped chain lights the Heart twice:
+
+| effect | light | lives | seen |
+|---|---|---|---|
+| 208 Heart Plug Explosion | rgb 150,150,170, radius 8192 (5461 drawn), z +6144, fall over 120 | one update (HP 1, its waves are effects, not children) | a white flash at full for one 50 ms update at the burst (~2.85 s) |
+| 210 Heart plug data4 | rgb 30,144,255 with flags `0x1002` (green 400), radius 10240 (6826), z +4096, rise over 90 | until its last sparkle (384, HP 54..80) dies | a blue glow rising from 0 from ~7.9 s for about 4 s, gone with the last sparkle |
+
+Built (ADR-0492): `RoomConstructionParticles` keeps each emitter's light and ramp
+in DK2's update order and lists them (`CollectLights`); `ClassicPointLight.FromEffect`
+applies the descriptor rules at intensity 128/128; `ClassicWorldLightCache.UpdateEffects`
+adds them to the tiles' dynamic sources beside the object lights.
+
+## 6. The beam's brightness
+
+Read 2026-10-16. STRONGLY INFERRED: an additive effect mesh is drawn at its
+texture, once. The links:
+
+- CONFIRMED: the material constructor forces an ADD material's colour to white
+  (kmf-materials.md §2);
+- CONFIRMED: the static mesh draw (`0x0059CCF0` → `0x00580480`) passes the
+  element's tint (RenderInfo `+0x48`, the element's `+0x6E`, here RGB 25) as
+  floats × 255, and the primitive draw `0x00581BE0` makes a vertex's colour
+  material colour + tint, then adds the lights (`0x0057C190`): white and more;
+- partly read: the sink variant `0x0058B440` clamps each channel at `0xFF`
+  (a negative one becomes `0xFF` too); the variants `0x0058B680`, `0x0058B370`,
+  `0x0058B2A0` are unread;
+- unread: `0x00581BE0` computes that colour only for a vertex whose bit 2 is set
+  in the table at `0x0077F4F8`; what sets it for an effect mesh is not traced;
+- CONFIRMED for `0x00589250`: its only stage-0 colour operation is 4, MODULATE
+  (never 2X or 4X), and state bit 1 sets SRCBLEND and DESTBLEND ONE; device set-up
+  code that may set stage 0 elsewhere was not searched;
+- CONFIRMED: back faces are culled in software for every material
+  (kmf-materials.md §4).
+
+So the reading gives `Falloff` × 1. ADR-0476's "peaks at 68" does not match the
+texture our decoder reads now (peak 129, mean 33, 64 × 64); its doubling, a guess,
+is withdrawn. A matched look at DK2's beam would settle what the unread links leave.
 
 Open: a matched original comparison of the sequence's look and timing.

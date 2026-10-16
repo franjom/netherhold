@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
 
@@ -90,6 +91,141 @@ public class EffectChainTests
         Assert.Equal(2, model.Particles.Count);
     }
 
+    [Fact]
+    public void AGroupPartIsBornBelowTheFloorWithoutDying_AndTakesTheGroupRecordsScale()
+    {
+        // Like the shipped 215 and its element 396: the part dies at the floor (flag 1) and has no
+        // scale range, and the Heart's KMF offsets put every member just below the lid's height.
+        // 0x004347E0 allocates each member through 0x004352E0 and 0x00435F20, neither of which
+        // tests the floor; the member's resource record carries scale 0x1000 (0x004358C0).
+        var model = new RoomConstructionParticles(Database(0, partFlags: 1, partScale: 0), 7,
+            () => new EffectTime(0), floorHeight: _ => new Fp32(8192),
+            groupParts: name => name == "Group_test" ? [new EffectGroupPart("PartA", 0, 0, -400)] : null);
+        model.Request(new ViewEffectRequest(new EffectId(Grouped), PlayerIds.FirstKeeper, Point(8192)));
+        ConstructionParticle part = Assert.Single(model.Particles);
+        Assert.Equal(8192 - 400, part.HeightRaw);
+        Assert.Equal(4096, part.ScaleRaw);
+    }
+
+    [Theory]
+    // Flag 0x800: lit at the base on creation (0x0043A1E0), then 0/4, 1/4 ... 4/4, held (0x0043A2E0).
+    [InlineData(0x800u, new[] { 4, 0, 1, 2, 3, 4, 4 })]
+    // Flag 0x1000: the base, then 4/4, 3/4 ... 0/4, held at 0.
+    [InlineData(0x1000u, new[] { 4, 4, 3, 2, 1, 0, 0 })]
+    // Flag 0x2000: half the duration each way, 0/2 to 2/2 then down to 0/2.
+    [InlineData(0x2000u, new[] { 2, 0, 1, 2, 2, 1, 0 })]
+    public void AnEffectsLightRampsByItsFadeDuration(uint fadeFlag, int[] shownSteps)
+    {
+        var model = new RoomConstructionParticles(LitDatabase(fadeFlag, fade: 4),
+            7, () => new EffectTime(0), floorHeight: _ => new Fp32(0));
+        model.Request(new ViewEffectRequest(new EffectId(Lit), PlayerIds.FirstKeeper, Point(8192)));
+        var lights = new List<EffectLightView>();
+        for (int update = 0; update < shownSteps.Length; update++)
+        {
+            if (update > 0) model.AdvanceTo(new EffectTime(update * 50 + 1));
+            model.CollectLights(lights);
+            EffectLightView light = Assert.Single(lights);
+            Assert.Equal(shownSteps[update], light.RampStep);
+        }
+    }
+
+    [Fact]
+    public void AnEffectsLightGoesWithTheEffect_AndIsLitAtIntensity128()
+    {
+        // HP 1 and no elements: removed on its first update, as the shipped 208 is.
+        var model = new RoomConstructionParticles(LitDatabase(0x1000, fade: 120, hp: 1, generates: false), 7,
+            () => new EffectTime(0), floorHeight: _ => new Fp32(0));
+        model.Request(new ViewEffectRequest(new EffectId(Lit), PlayerIds.FirstKeeper, Point(8192)));
+        var lights = new List<EffectLightView>();
+        model.CollectLights(lights);
+        ClassicPointLight light = ClassicPointLight.FromEffect(Assert.Single(lights))!.Value;
+        Assert.Equal(1f, light.Intensity);
+        // Offset z 4096 over the instance; radius 10240 × 2 / 3; flag 0x1000 adds 256 to green.
+        Assert.Equal(new System.Numerics.Vector3(2.5f, 3f, -3.5f), light.Position);
+        Assert.Equal(6826f / 4096, light.Radius);
+        Assert.Equal(new System.Numerics.Vector3(30f / 255, 400f / 255, 255f / 255), light.Colour);
+        model.AdvanceTo(new EffectTime(51));
+        model.CollectLights(lights);
+        Assert.Empty(lights);
+    }
+
+    [Fact]
+    public void ALightMadeByAWaveIsSteppedInTheSameUpdate_OneMadeByARemovalOnTheNext()
+    {
+        // 0x0043BFE0 updates every effect, then every light, then removes the spent effects. A
+        // generator's wave (as 209 makes 210) comes before the light pass: its rising light shows 0
+        // after that update. A death effect (as 224 makes 208) comes after it: it shows the base
+        // colour (0x0043A1E0) until the next update steps it.
+        var lights = new List<EffectLightView>();
+        var waved = new RoomConstructionParticles(LitDatabase(0x800, fade: 4), 7, () => new EffectTime(0),
+            floorHeight: _ => new Fp32(0));
+        waved.Request(new ViewEffectRequest(new EffectId(LitGenerator), PlayerIds.FirstKeeper, Point(8192)));
+        waved.AdvanceTo(new EffectTime(51));
+        waved.CollectLights(lights);
+        Assert.Equal(0, Assert.Single(lights).RampStep);
+
+        var died = new RoomConstructionParticles(LitDatabase(0x800, fade: 4), 7, () => new EffectTime(0),
+            floorHeight: _ => new Fp32(0));
+        died.Request(new ViewEffectRequest(new EffectId(LitParent), PlayerIds.FirstKeeper, Point(8192)));
+        died.AdvanceTo(new EffectTime(51));
+        died.CollectLights(lights);
+        Assert.Equal(4, Assert.Single(lights).RampStep);
+        died.AdvanceTo(new EffectTime(101));
+        died.CollectLights(lights);
+        Assert.Equal(0, Assert.Single(lights).RampStep);
+    }
+
+    [InstallFact]
+    public void TheHeartPlugsNinePiecesFlyOnTheirFirstUpdate_IfKmfGroupZPointsDown()
+    {
+        // Effect 215 at the plug's height with the floor there: every member of Group_plugbroke is
+        // born just under it (its KMF z read as down, INFERRED) and its first step (element 396's
+        // vz 16384..22528 less mass 1638) lifts it clear (heart-intro.md section 3).
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = DK2.Data.GameDatabaseLoader.Load(install);
+        using var art = DK2.Art.InstallArtProvider.Open(install, database);
+        IReadOnlyList<EffectGroupPart>? Parts(string name) => art.TryLoadGroup(name, out DK2.Art.Kmf.KmfGroup group)
+            ? group.Elements.Select(member => new EffectGroupPart(member.Name, (int)(member.Position.X * Fp32.One),
+                (int)(member.Position.Y * Fp32.One), (int)(-member.Position.Z * Fp32.One))).ToList()
+            : null;
+        var model = new RoomConstructionParticles(database, 7, () => new EffectTime(0),
+            floorHeight: _ => new Fp32(Fp32.One), groupParts: Parts);
+        model.Request(new ViewEffectRequest(new EffectId(215), PlayerIds.FirstKeeper, Point(Fp32.One)));
+        Assert.Equal(9, model.Particles.Count(p => p.MeshEntry != null));
+        Assert.All(model.Particles, p => Assert.True(p.HeightRaw < Fp32.One));
+        model.AdvanceTo(new EffectTime(51));
+        Assert.Equal(9, model.Particles.Count(p => p.MeshEntry != null));
+        Assert.All(model.Particles, p => Assert.True(p.HeightRaw > Fp32.One && p.ScaleRaw == Fp32.One));
+    }
+
+    private const ushort Lit = 30, LitGenerator = 31, LitParent = 32;
+
+    private static GameDatabase LitDatabase(uint fadeFlag, ushort fade, ushort hp = 20, bool generates = true)
+    {
+        var sparkle = new EffectElementDef([])
+        {
+            Name = "sparkle", EffectElementId = Sparkle, ArtResource = new KwdArtResource("Sparkle-03g", 0, new byte[12], 3, 0, 0, 0),
+            MinHp = 2, MaxHp = 2, MinScale = 1024, MaxScale = 1024,
+        };
+        var lit = new EffectDef([])
+        {
+            Name = "lit", EffectId = Lit, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
+            // Effect 210's light: rgb 30,144,255, radius 10240, z 4096, flags 0x1002.
+            Light = new(0, 0, 4096, 10240, 0x1002, 30, 144, 255, 0),
+            GenerateIds = generates ? [Sparkle] : [], Flags = 0x80 | fadeFlag, FadeDuration = fade,
+            GenerationType = 4, ElementsPerTurn = 1, MinHp = hp, MaxHp = hp,
+        };
+        var unlit = new EffectDef([])
+        {
+            Name = "unlit", ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1,
+            GenerateIds = [],
+        };
+        var generator = unlit with { Name = "lit generator", EffectId = LitGenerator, GenerateIds = [Lit], Flags = 0x80 | 0x40 };
+        var parent = unlit with { Name = "lit parent", EffectId = LitParent, DeathEffectId = Lit, Flags = 0x80 };
+        return new([], [], [], new GlobalVariables(), effects: [lit, generator, parent], effectElements: [sparkle]);
+    }
+
     private static FpPosition3 Point(int height) => new(new(10240), new(14336), new(height));
 
     private static RoomConstructionParticles Model(out GameDatabase database, ushort randomness = 0,
@@ -100,7 +236,7 @@ public class EffectChainTests
             floorHeight: _ => new Fp32(0), groupParts: groupParts);
     }
 
-    private static GameDatabase Database(ushort randomness, ushort nextHp = 3)
+    private static GameDatabase Database(ushort randomness, ushort nextHp = 3, uint partFlags = 0, int partScale = 1024)
     {
         var art = new KwdArtResource("Sparkle-03g", 0, new byte[12], 3, 0, 0, 0);
         var sparkle = new EffectElementDef([])
@@ -109,7 +245,8 @@ public class EffectChainTests
             MinScale = 1024, MaxScale = 1024, Red = 10, Green = 255, Blue = 200
         };
         var flake = sparkle with { Name = "flake", EffectElementId = Flake, MinHp = 10, MaxHp = 10 };
-        var part = sparkle with { Name = "part", EffectElementId = Part, MinHp = 10, MaxHp = 10, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0) };
+        var part = sparkle with { Name = "part", EffectElementId = Part, MinHp = 10, MaxHp = 10, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
+            Flags = partFlags, MinScale = partScale, MaxScale = partScale };
         EffectDef Effect(ushort id, string name, ushort hp, ushort[] generates, ushort next = 0, ushort death = 0,
             uint flags = 0x80, KwdArtResource? ownArt = null, byte perTurn = 1) => new([])
         {

@@ -10959,7 +10959,7 @@ frame: DK2 asks for the lid on every turn before the start and by nothing else, 
 it draws no frame before its first turn is STRONGLY INFERRED (its render loop is unread).
 
 ## ADR-0476 — A Portal arrival's entrance effect, animated mesh effects, and brighter additive beams
-**Date:** 2026-10-14 · **Status:** accepted · Research: portal-creature-action.md, heart-intro.md §4
+**Date:** 2026-10-14 · **Status:** accepted; the additive doubling superseded by ADR-0492 · Research: portal-creature-action.md, heart-intro.md §4
 
 **Context.** The owner misses two lights: the white beams from a Portal's hole as a
 creature climbs out, and the white beam standing on the Heart's plug before it bursts.
@@ -11368,3 +11368,34 @@ alliances, Q576) stays unbuilt.
 at (15,10), DK2's at 1777 at (15.5,11.9). Levels 1–4, seeds 1–20, against master 3a9ad262:
 17/6/14/1 to 20/6/14/1; Levels 2–4 replay identically (Level 4's Lord does not fight within the
 replay). `HashVersion` 261 (master took 260 first).
+
+## ADR-0492 — The Heart plug's pieces, effect lights, and additive effect meshes at their texture
+**Date:** 2026-10-16 · **Status:** accepted · Research: heart-intro.md §3, §5, §6 · Supersedes ADR-0476's doubling
+
+**Context.** The owner found the Heart's opening too dark, as if a texture were missing. Every
+texture of the chain loads; three things differ from DK2. The nine pieces of `Group_plugbroke`
+(effect 215, element 396) were never born: ours tested the floor at a part's birth and the KMF
+offsets put every member just under the lid, while DK2's allocator (`0x004352E0`, `0x00435F20`)
+has no floor test; and 396's scale range is 0..0, the size being the member record's `0x1000`.
+Resolving a member's mesh threw (`"mesh-entry"` is no `AssetRef` category), which the dead
+pieces hid. The lights of effects 208 (a white flash at the burst) and 210 (a blue glow under the
+sparkles) were not built. And ADR-0476 drew every additive effect mesh at twice its texture on a
+guess, where the binary reading, STRONGLY INFERRED, draws it once (white diffuse, MODULATE,
+ONE/ONE, one-sided; three vertex sinks and the per-vertex colour bit are unread, heart-intro.md §6).
+
+**Decision.** A group part is born at its member's point without a floor test and at scale
+`0x1000`. `AssetRef` gains the `mesh_entry` category; `InstallArtProvider.TryResolveEntry` keys
+an entry by its name without the extension. Each effect instance whose light record has flag 1
+or any RGB keeps a light with the fade ramp of `0x0043A2E0`, stepped after every effect update
+and before removal, and ending with the instance; `ClassicPointLight.FromEffect` applies the
+object descriptor rules at intensity 128/128 and `ClassicWorldLightCache.UpdateEffects` puts
+the lights among each tile's dynamic sources. The Unity effects renderer advances the model
+before the frame's lighting is prepared and draws additive effect meshes at their texture.
+
+**Consequences.** Presentation only: nothing saved or hashed. The Portal beams and every other
+additive effect mesh are now half as bright as under ADR-0476; the owner's look at DK2's beam
+decides whether an unread link brightens it. The effect update now runs DK2's three passes (every
+effect, every light, then removal; `0x0043BFE0`), so the view's random draws for death effects come
+after all waves of an update, not interleaved with them. After a catch-up of several updates an
+effect born in it has its light stepped once per update caught up, where DK2 would step it once.
+The two sounds of the sequence remain unbuilt.
