@@ -303,6 +303,9 @@ number 1, variant 0.
 
 `0x00435F20` also compares the element owner against component slot `+0xC4`.
 Equality selects `0x0050F880` instead: palette number
-`floor(wallMilliseconds/100)%7+1`. The compared getter's actual receiver
-is still being traced. This does not establish a local-player test.
-Color is sampled at element creation.
+`floor(wallMilliseconds/100)%7+1`. Live Level1 (2026-10-16) resolves the forwarded
+world getter to `0x00443100`, a word read at receiver`+0xE`, currently2. This
+does not establish a local-player test or the startup element's actual tag.
+The live96-byte palette matches the table above; evidence is ignored
+`reverse-engineering/step5-native-level1-palette.json`. Color is sampled at birth;
+this later capture does not establish the override at startup (Q605).

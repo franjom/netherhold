@@ -186,4 +186,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Windows PowerShell `Set-Content -Encoding utf8` writes a BOM; use BOM-free UTF-8 for commit-message files or the subject starts with an invisible character.
 
 - A centred one-tile GPU lighting fixture does not establish whole-scene parity: also capture production torches on/off, a nonzero grid tile, shifted view and repeated presentation before accepting the result.
-- An escalated tool call can still receive Windows error5 reading a running DK2 process; do not assume sandbox approval grants the process token required by `OpenProcess` or leave UAC waiting while the owner is AFK.
+- Sandbox escalation can still receive Windows error5 reading DK2; an explicit Windows `RunAs` launch succeeded. The owner must be present for UAC; sandbox approval does not change the process token.
+- If context-mode file processing fails with missing `better-sqlite3`, use bounded native output for the task rather than repeatedly retrying the broken runtime.

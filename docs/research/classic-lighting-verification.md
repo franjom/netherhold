@@ -165,9 +165,11 @@ still differ from the owner's original reference (Q603, Q605). Native torch
 caller cadence/RNG matching remains Q604. The native-input capture requires a
 running, hash-verified original game; it changes no memory or settings.
 
-The attempted live capture on October16 was denied by Windows (`OpenProcess`,
-error5), including the escalated tool attempt; no live renderer values were read.
-The running install used `DKII-DX.exe`: offline comparison found identical PE
-section layouts and identical executable code sections to the researched
-`DKII.EXE`. This does not replace live-state evidence. Retry with the owner
-present for any required interactive Windows elevation.
+An explicit Windows UAC launch succeeded after ordinary and sandbox-escalated
+reads failed with error5. Live Level1 inputs are now captured: ambient/settings
+in classic-lighting.md section8, palette/getter in room-construction-effects.md
+section6. These are later live samples, not a recorded startup sequence.
+The running`DKII-DX.exe` has SHA256
+`a5957e8c52b6dee80ddf6cc1d3ea5079aaaad4d11b40e0f067d34ff4157ce9bb`;
+offline comparison found identical PE section layouts and executable code
+sections to the researched`DKII.EXE`. No game settings or memory were changed.

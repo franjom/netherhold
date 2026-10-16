@@ -255,13 +255,13 @@ CONFIRMED (2026-10-16): startup settings`+0x5C` passes through slot`+0x70`
 ([0x0059C110](functions/0059C110.md)) to a dword store at`0x00764BE4`, without
 setting ambient RGB. The option's meaning and consumers remain untraced.
 
-The initial-ambient diagnostic therefore retains zero and excludes Unity's
-placeholder directional/sky lighting; material/terrain additions and point lights
-still contribute. The owner accepted the brighter preview with this diagnostic off.
-Do not substitute an invented startup fill: compare an original initial view and
-the same view after ambient-key presses before attributing black tops/arches to
-missing global ambient. `ClassicAmbientLight` and the adapter's +/− keys implement
-that command math without registry persistence; matched-original parity remains pending.
+CONFIRMED live Level1 capture (2026-10-16, untouched defaults): ambient RGB is
+`0,0,0`, stored ambient512, Cheap Lighting0 and settings`+0x5C`1. Evidence:
+ignored`reverse-engineering/step5-native-level1-inputs.json`; binary identity and
+capture limits are in classic-lighting-verification.md. Ambient is not the mismatch.
+The native diagnostic excludes Unity's directional/sky fill; the owner accepted
+the brighter preview with it off. `ClassicAmbientLight` and +/− implement the
+command math without registry writes. Framebuffer transfer remains open (Q603).
 
 ## 9. Per-tile terrain point lights
 

@@ -101,6 +101,9 @@ def main():
             world = struct.unpack("<I", reader.read(bridge + 0x9E, 4))[0]
             vtable = struct.unpack("<I", reader.read(world, 4))[0]
             result["world_color_override_getter"] = hex(struct.unpack("<I", reader.read(vtable + 0xC4, 4))[0])
+            if result["world_color_override_getter"] == "0x443100":
+                result["world_color_override_player"] = struct.unpack("<H", reader.read(world + 0xE, 2))[0]
+            result["player_palette_rgba"] = [list(row) for row in struct.iter_unpack("<4B", reader.read(0x6E5058, 96))]
             result["world_palette_fields_290_2af"] = reader.read(world + 0x290, 32).hex()
         except OSError as error:
             result["world_color_inputs_error"] = str(error)
