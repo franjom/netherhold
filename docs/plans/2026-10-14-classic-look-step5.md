@@ -56,6 +56,7 @@ Matched framebuffer colour transfer remains part of the original-game acceptance
 - [x] Render the companion animated torch resource with frame-independent playback (ADR-0494); timing/phase limits are Q604.
 - [x] Apply confirmed whole/quarter-top normal inversion and ordinary-object instance-lighting selection.
 - [x] Trace and publish authored object lights; retain the scoped limits in static-mesh-lighting.md section4.
+- [ ] Implement the newly confirmed [room/neutral-Portal border flames](../research/room-border-effects.md) and verify claim-mist lighting (Q609).
 
 Evidence: [classic-lighting.md](../research/classic-lighting.md),
 [visibility](../research/classic-light-visibility.md), ADR-0484 and ADR-0487.

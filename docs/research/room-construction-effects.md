@@ -318,3 +318,20 @@ heart-intro.md, Startup element colours (Q605).
 Live Level1 sampled the selector as2 and the96-byte palette matched the table;
 evidence is ignored`reverse-engineering/step5-native-level1-palette.json`.
 Color is sampled at birth; this later sample alone does not prove birth-time colour.
+
+### 6.1. Pale claim mist investigation
+
+CONFIRMED code/history audit (2026-10-17): claim element142 still selects the
+keeper tint; the0x80-to0x2 correction does not change it because its art flags
+are0x86. The Heart's grey-dust correction therefore did not remove the claim tint.
+Element143 remains authored white. `RoomConstructionParticles` gives red keeper3
+element142 RGB230/50/50 before lifetime dimming and renderer lighting.
+
+Commit a21c8734 changed billboard output from that source RGB to source plus
+radial light in `ClassicConstructionEffects.SpriteColour`, capped at255.
+HYPOTHESIS: strong white light bleaches the mist; a0.8 white contribution would
+turn230/50/50 into255/254/254. Lights are added after lifetime dimming as well.
+The native addition is confirmed, but our use of the tile's entire light table
+remains inferred: see [object-drawing.md section10](object-drawing.md#10-flat-sprites).
+No live claim measurement or native table-membership comparison yet proves
+this is the reported regression. Next verification and the open boundary are Q609.
