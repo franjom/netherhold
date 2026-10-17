@@ -49,7 +49,9 @@ The production DungeonRunner loads Level8, seed1, fog off, normal torch lighting
 Classic Vertex Lighting on and Native Initial Ambient off. Speed0 preserves the
 startup tick while the normal Update/presentation and screen-render loops run.
 VSync and the frame cap are disabled, and background execution is enabled.
-After ten seconds of warmup per view it records 120 frames at the initial Heart
+The isolated fixture suppresses scripted camera paths, glides and letterboxing;
+sampled frames must retain their fixed position, rotation, field of view and full viewport.
+After ten seconds of warmup per view it records 120 frames at the authored starting
 focus, then at the centre of the densest 13x13 authored-torch region. This profiles
 a fixed world rather than active gameplay or a population/combat stress scenario.
 

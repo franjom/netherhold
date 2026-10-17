@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Presentation;
 using Unity.Profiling;
 using UnityEngine;
@@ -35,6 +36,8 @@ namespace DK2.Unity
         private int _phase, _row, _rendered, _savingFrames, _sampleFrame = -1, _lastRenderedSampleFrame = -1;
         private readonly int[] _renders = new int[2];
         private readonly Vector3[] _positions = new Vector3[2];
+        private readonly Quaternion[] _rotations = new Quaternion[2];
+        private readonly float[] _fieldsOfView = new float[2];
         private double _ready, _previous, _started;
         private ulong _previousTiming;
         private long _fixedTick;
@@ -62,6 +65,13 @@ namespace DK2.Unity
                     throw new InvalidOperationException("The profiling world must remain at a fixed tick.");
                 _fixedTick = _runner.Simulation.World.CurrentTick.Value;
                 _quietFocus = (Vector3)Field(typeof(DungeonRunner), "_cameraFocus").GetValue(_runner);
+                // Keep tick-one script requests from replacing the fixed gameplay views.
+                Field(typeof(DungeonRunner), "_scriptedView").SetValue(_runner,
+                    new ScriptedViewDirector(new PlayerId((byte)(int)Field(typeof(DungeonRunner), "viewingPlayerId").GetValue(_runner)),
+                        _ => null, _ => null));
+                Field(typeof(DungeonRunner), "_glideMilliseconds").SetValue(_runner, 0d);
+                _camera.rect = new Rect(0, 0, 1, 1);
+                typeof(DungeonRunner).GetMethod("ApplyClassicCamera", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(_runner, null);
                 var scene = (DungeonScene)Field(typeof(DungeonRunner), "_scene").GetValue(_runner);
                 var cache = (ClassicWorldLightCache)Field(typeof(DungeonScene), "_worldLights").GetValue(scene);
                 var sources = (ClassicPointLight?[])Field(typeof(ClassicWorldLightCache), "_torches").GetValue(cache);
@@ -74,6 +84,8 @@ namespace DK2.Unity
                 _started = _previous = Time.realtimeSinceStartupAsDouble;
                 _ready = _started + 10;
                 _positions[0] = _camera.transform.position;
+                _rotations[0] = _camera.transform.rotation;
+                _fieldsOfView[0] = _camera.fieldOfView;
                 _configured = true;
                 File.WriteAllText(Path.Combine(_output, "metadata.txt"), Metadata(sources.Count(s => s.HasValue)));
             }
@@ -115,12 +127,19 @@ namespace DK2.Unity
                             Field(typeof(DungeonRunner), "_cameraFocus").SetValue(_runner, _denseFocus);
                             typeof(DungeonRunner).GetMethod("ApplyClassicCamera", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(_runner, null);
                             _positions[1] = _camera.transform.position;
+                            _rotations[1] = _camera.transform.rotation;
+                            _fieldsOfView[1] = _camera.fieldOfView;
                             _ready = now + 10;
                         }
                     }
                     _previous = now; return;
                 }
                 if (now < _ready) { _previous = now; return; }
+                if ((_camera.transform.position - _positions[_phase]).sqrMagnitude > 0.000001f
+                    || Quaternion.Angle(_camera.transform.rotation, _rotations[_phase]) > 0.001f
+                    || Mathf.Abs(_camera.fieldOfView - _fieldsOfView[_phase]) > 0.001f
+                    || _camera.rect != new Rect(0, 0, 1, 1))
+                    throw new InvalidOperationException("The fixed gameplay camera changed during capture.");
                 int row = _phase * Samples + _row;
                 _sampleFrame = Time.frameCount;
                 _rows[row, 0] = (now - _previous) * 1000;
@@ -150,6 +169,7 @@ namespace DK2.Unity
             $"BatchMode={Application.isBatchMode}\nRunInBackground={Application.runInBackground}\nResolution={Screen.width}x{Screen.height}\nVSync={QualitySettings.vSyncCount}\nFrameCap={Application.targetFrameRate}\n" +
             $"Level=Level8\nSeed=1\nWorldTick={_fixedTick}\nSpeed=0\nClassicVertexLighting=True\nNativeInitialAmbient=False\nCheapLighting=False\nFog=False\n" +
             $"WarmupSecondsPerView=10\nSamplesPerView={Samples}\nAuthoredTorches={torches}\nQuietFocus={_quietFocus}\nDenseFocus={_denseFocus}\n" +
+            "ScriptedCameraSuppressed=True\nCameraPolicy=Fixed ordinary gameplay camera, full viewport\n" +
             $"FrameTimingEnabled={FrameTimingManager.IsFeatureEnabled()}\nGpuTimerFrequency={FrameTimingManager.GetGpuTimerFrequency()}\nCpuTimerFrequency={FrameTimingManager.GetCpuTimerFrequency()}\n" +
             $"Pipeline={GraphicsSettings.currentRenderPipeline}\nQuality={QualitySettings.names[QualitySettings.GetQualityLevel()]}\nColorSpace={QualitySettings.activeColorSpace}\n" +
             "TimingUnits=FrameTiming milliseconds; Profiler CPU/GPU nanoseconds converted to milliseconds\nTimingLatency=FrameTimingManager reports recent completed frames with a four-frame delay; rows are not synchronized frame traces\n";

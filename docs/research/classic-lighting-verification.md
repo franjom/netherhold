@@ -85,27 +85,31 @@ do not justify changing DK2's animation or reducing original visual detail.
 
 ## Windowed player and counter calibration
 
-The visible Development player capture at1280×720 uses Direct3D11, Gamma,
-Ultra quality, VSync off and the same machine. Level8 is paused at turn1,
-with normal native lighting and Native Initial Ambient off. Each view has120
-samples with120 matching main-camera render callbacks; both screenshots contain
-rendered geometry. This is a player-loop capture, not a busy-gameplay benchmark.
+The2026-10-17 visible Development player capture from master d220c077 at1280×720
+uses Direct3D11, Gamma, Ultra quality and VSync off on the Ryzen7 7735HS/Radeon
+Graphics machine. Level8 is paused at turn1, with normal native lighting,
+Native Initial Ambient off and fog off. The isolated fixture suppresses scripted
+camera paths/glides/letterboxing and verifies fixed gameplay cameras. Each view
+has120 samples with120 matching main-camera render callbacks; both screenshots
+were inspected. This is a player-loop capture, not a busy-gameplay benchmark.
 
-| View | CPU frame median ms | GPU median / p95 ms | Fresh GPU samples |
+| View | CPU frame median / p95 ms | GPU median / p95 ms | Fresh GPU samples |
 |---|---:|---:|---:|
-| Quiet | 4.24385 | 1.04862 / 1.51444 | 92 /120 |
-| Torch-heavy | 4.80305 | 1.62072 / 1.78552 | 117 /120 |
+| Starting focus | 6.0728 / 7.7830 | 2.26840 / 2.32180 | 93 /120 |
+| Torch-heavy | 7.0768 / 8.6010 | 3.69185 / 4.83075 | 108 /120 |
 
-Evidence: `build/step5-visible-player-final/summary.json`, metadata, CSV and PNGs.
-The global GC counter reports a median153298 bytes/frame in both views; its
-origin is unassigned. The draw-call counter returns zero despite rendered
+Evidence: `build/step5-master-performance-20261017/20261017-123325/summary.json`,
+metadata, CSV and PNGs; all eight player assemblies match freshly built master
+assemblies. Starting focus is(75.5,1,-9.5), torch-heavy is(42.5,1,-18.5).
+The global GC counter reports a median144723 bytes/frame in both views; its
+origin is unassigned. Unity used memory medians are315.8/320.0MiB respectively.
+The draw-call counter returns zero despite rendered
 geometry and is unusable. Hidden-player attempts produced no render callbacks
 and fail verification; unavailable GPU timings never become zero-cost claims.
 Reproduce with the README's windowed capture protocol and explicit `-VisiblePlayer`.
-These timings predate the later source/material corrections. A refreshed player
-is prepared at`build/step5-final-performance-20261017`; the owner declined opening
-the visible capture window on2026-10-17, so no updated player-loop timings are
-claimed. Hidden runs remain unsuitable for that measurement.
+The earlier122831 run captured the new scripted fly-over and is excluded from
+this gameplay-camera baseline. Source/material/camera changes prevent treating
+the older `step5-visible-player-final` timings as a controlled before/after test.
 
 `build/step5-allocation-calibration/result.json` demonstrates that Unity6000.6.0f1
 returns zero from the per-thread allocation API around a live65536-byte array.
