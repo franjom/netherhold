@@ -31,6 +31,13 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   mesh capture 130 of 140 intervals reproduce slot for slot and the first dump
   matches in 2,826 of 2,828 triangles (tools/meshreplay). The next capture
   should carry its route log (--navlog).
+- Creature trigger action 20 gives the Portal Gem: Level 1's Lord carries it
+  from creation and drops it at death, and its carrier gives off the Gem dust
+  trail at mesh point 10001 in Unity (ADR-0495, hash 263; L1 20/20 unchanged).
+  As of 2026-10-17 the owner has not judged the trail in Unity; ours is paced at 20 Hz and
+  may be sparser than DK2's (Q606). The star icon above him is Q607. A live
+  check rig: reverse-engineering/dk2runs/level1-lord-sparkle/run.ps1 -Live,
+  with dk2reveal.py exploring the map in memory.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

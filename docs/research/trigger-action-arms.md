@@ -1,4 +1,4 @@
-# Trigger action arms read whole: 18, 22, 24, 35, 39, 40 and 41 (Q301, Q227)
+# Trigger action arms read whole: 18, 20, 22, 24, 35, 39, 40, 41 and 42 (Q301, Q227, Q607)
 
 **Scope:** what these action arms do past the body fields `trigger-semantics.md`
 lists. Which dispatcher owns which type is `trigger-walkers.md`, "A tree's context
@@ -120,3 +120,27 @@ offsets 04/06. The coordinates are zero-based, as action 1's are.
 All five types are Unperformed in ours (`TriggerExecutor.Performs`). The reader
 (`KwdAdditionalRecords`) still names the bytes `Unknown_*`, and reads action 24's
 second field as a full dword.
+
+## Actions 20 and 42: a creature's Portal Gem and its slot (2026-10-16)
+
+Both are creature arms of `TriggerCreature_DispatchAction` (`0x0049AC80`). Level 1's
+trigger 85 and Level 7's trigger 29 run the pair on a hero's creation (condition 3).
+
+- **20** (arm `0x14`): object type **0x1C, the Portal Gem**, is created at the creature's
+  position (`+0x1A`) with its owner (`+0x28`). The action's byte is not read. On success
+  the creature takes it (`Creature_PickUpCarriedThing` `0x0048B350`, refused when
+  `+0x3C3` already holds a thing) and `+0x92 |= 4`, set either way. If creation fails
+  (`0x0049AD92`), nothing is set. Both paths return 1. The one reader of that bit found by
+  an instruction scan of `+0x92` (2026-10-17) is the renderer:
+  the carrier gives off effect 257 at mesh point 10001 on every draw
+  (`Render_MeshEffectPoints` `0x005A3AA0`), the Lord's sparkle trail.
+- **42** (arm `0x2A`): a nonzero byte 00 puts the creature's tag, with the byte as its
+  value, in the first free of six world slots (world slots `+0x2F0` get, `+0x2F4` set).
+  With all six full it does nothing. A zero byte finds the creature's slot and, when it
+  holds one, clears that slot and `+0x3EA` bit `0x20000`. What the slots are
+  for is open (Q607): the creature icon selector (`0x00597270`) reads a six-slot list
+  for icons 7–9.
+
+**CONFIRMED** for both arms; arm `0x14` was re-read by a second reader on 2026-10-17, arm
+`0x2A` has one reader. Action 20 ships in 14 levels and 42 in 21. 20 is performed in ours
+(ADR-0495); 42 stays partial.

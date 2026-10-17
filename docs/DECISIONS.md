@@ -11463,7 +11463,7 @@ creator (`0x0043A8E0` to `0x00440420`). The Lord's walk and run meshes carry a p
 with the map explored held nine 257s at the Lord and no other effect near him. The gem's own
 idle effect (297, object state 50, `0x004A3C30`) is not made while it is carried. The pick-up
 unlinks the gem from its tile (`Thing_UnlinkFromTile` in `0x0048B350`), and the per-tile draw
-pass walks tile chains, so a carried gem is not drawn (LIKELY). Action 20 ships in 15 levels.
+pass walks tile chains, so a carried gem is not drawn (LIKELY). Action 20 ships in 14 levels.
 We left the action unperformed.
 
 **Decision.** Perform creature action 20: spawn the gem at the creature's tile, hand it over
