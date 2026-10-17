@@ -41,8 +41,9 @@ Shader "DK2/Classic Vertex Lit"
             #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
-            #pragma shader_feature_local _EMISSION
-            #pragma shader_feature_local_fragment _SURFACE_TYPE_TRANSPARENT
+            // Install materials select these keywords at runtime, after player variant stripping.
+            #pragma multi_compile_local _ _EMISSION
+            #pragma multi_compile_local_fragment _ _SURFACE_TYPE_TRANSPARENT
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"

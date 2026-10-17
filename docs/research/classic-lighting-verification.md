@@ -85,7 +85,8 @@ do not justify changing DK2's animation or reducing original visual detail.
 
 ## Windowed player and counter calibration
 
-The2026-10-17 visible Development player capture from master d220c077 at1280×720
+The2026-10-17 visible Development player capture uses master d220c077 runtime
+sources, the fixed-camera fixture and the shader correction below at1280×720. It
 uses Direct3D11, Gamma, Ultra quality and VSync off on the Ryzen7 7735HS/Radeon
 Graphics machine. Level8 is paused at turn1, with normal native lighting,
 Native Initial Ambient off and fog off. The isolated fixture suppresses scripted
@@ -95,14 +96,14 @@ were inspected. This is a player-loop capture, not a busy-gameplay benchmark.
 
 | View | CPU frame median / p95 ms | GPU median / p95 ms | Fresh GPU samples |
 |---|---:|---:|---:|
-| Starting focus | 6.0728 / 7.7830 | 2.26840 / 2.32180 | 93 /120 |
-| Torch-heavy | 7.0768 / 8.6010 | 3.69185 / 4.83075 | 108 /120 |
+| Starting focus | 6.1621 / 7.2953 | 2.14180 / 5.55085 | 96 /120 |
+| Torch-heavy | 7.1622 / 9.5300 | 3.39462 / 8.59824 | 92 /120 |
 
-Evidence: `build/step5-master-performance-20261017/20261017-123325/summary.json`,
-metadata, CSV and PNGs; all eight player assemblies match freshly built master
-assemblies. Starting focus is(75.5,1,-9.5), torch-heavy is(42.5,1,-18.5).
-The global GC counter reports a median144723 bytes/frame in both views; its
-origin is unassigned. Unity used memory medians are315.8/320.0MiB respectively.
+Evidence: `build/step5-rack-transparency-20261017/20261017-124813/summary.json`,
+metadata, CSV, PNGs and `source-revision.txt`; all eight player assemblies match
+the preceding master capture. Starting focus is(75.5,1,-9.5), torch-heavy is(42.5,1,-18.5).
+The global GC counter reports median144706/144723 bytes/frame respectively; its
+origin is unassigned. Unity used memory medians are316.3/320.8MiB respectively.
 The draw-call counter returns zero despite rendered
 geometry and is unusable. Hidden-player attempts produced no render callbacks
 and fail verification; unavailable GPU timings never become zero-cost claims.
@@ -110,6 +111,15 @@ Reproduce with the README's windowed capture protocol and explicit `-VisiblePlay
 The earlier122831 run captured the new scripted fly-over and is excluded from
 this gameplay-camera baseline. Source/material/camera changes prevent treating
 the older `step5-visible-player-final` timings as a controlled before/after test.
+
+Standalone runtime materials: the preceding123325 capture rendered black weapon
+cards despite correct decoded textures and alpha blend states. Unity stripped
+the classic shader's runtime-selected transparency/emission `shader_feature`
+variants. Retaining both axes with `multi_compile_local` restores the rack in
+the matched124813 image; near-black pixel counts in the two rack regions drop
+from1209/1467 to0/1. This fixes runtime material variants generally, without
+changing authored blends. The follow-up capture passes all rendering/camera
+checks and was independently reviewed; it does not prove a performance gain.
 
 `build/step5-allocation-calibration/result.json` demonstrates that Unity6000.6.0f1
 returns zero from the per-thread allocation API around a live65536-byte array.
