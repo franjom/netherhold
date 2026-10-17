@@ -145,6 +145,32 @@ creature's head. They name state *families* rather than uniquely naming all 281
 internal states, so no implementation depends on them (ADR-0072,
 `docs/research/creature-state-table.md`).
 
+## BF4 bitmap fonts
+
+`Bf4FontReader` reads the `F4FB` fonts in `Data/Text/Default` (`FONT_INGAME7`-`72`,
+`FONT_FRONTEND10`-`36`; resource type 4) into a `BitmapFont`. All 22 shipped files
+decode, every glyph to its full `w * h` (`Bf4FontReaderTests`). The class comment
+gives the byte layout. The facts come from the loader `0x006336D0`, the font
+object's methods `0x006335B0`-`0x006336A0`, and the blitter `0x006337A0`
+(CONFIRMED, read 2026-10-17):
+- the header holds the line height (byte `+5`) and the glyph count (u16 `+6`). An
+  offset table follows, one record per glyph;
+- a record holds its UTF-16 character, the stored and unpacked sizes, the flags,
+  the width and height, signed x and y offsets from the pen, and the advance;
+- pixels are 4-bit, 0 clear to 15 full, high nibble first. They run on across rows
+  with no row padding. This is STRONGLY INFERRED from the data: every unpacked size
+  is `ceil(w * h / 2)`, and odd widths draw sheared if padded. The five blitters
+  behind `0x006337A0` are unread;
+- flag bit 0 is a nibble RLE: a non-zero nibble is one pixel, and `0 n v` is `v`
+  repeated `n` times. `0 0` ends the glyph. 177 of the 2,250 RLE glyphs stop one
+  nibble short. The missing nibble is the low half of a byte whose high half the
+  writer `0x00634040` stored as a whole byte, so it is 0 in DK2 and in ours;
+- flag bit 1 is one bit a pixel. No shipped glyph uses it;
+- a space draws nothing and only advances.
+
+Header byte `+4` (1 in every file) and record `+2` are not read by those methods;
+their roles are **UNKNOWN**.
+
 ## Door and trap definitions
 
 `KwdDoors` reads the 8 fixed-size, 616-byte records in `Doors.kwd`; `KwdTraps` reads
