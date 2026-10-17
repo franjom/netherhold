@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using DK2.Art.Textures;
 using DK2.Data.Model;
 using DK2.Data.Wad;
 using DK2.Pathfinding;
@@ -18,12 +19,16 @@ namespace DK2.Unity
     {
         byte[] PalettePng { get; }
         byte[] BackdropPng { get; }
+        RgbaImage Frame { get; }
+        RgbaImage Corner(MinimapCorner corner, bool active);
     }
 
     public sealed class InstallMinimapAssets : IMinimapAssets
     {
         public byte[] PalettePng { get; }
         public byte[] BackdropPng { get; }
+        public RgbaImage Frame { get; }
+        private readonly RgbaImage[] _corners = new RgbaImage[8];
         public InstallMinimapAssets(string install)
         {
             using (var archive = WadArchive.Open(Path.Combine(install, "Data", "EngineTextures.WAD")))
@@ -31,6 +36,21 @@ namespace DK2.Unity
                 PalettePng = archive.Extract("GUI\\Map\\MapColours.png");
                 BackdropPng = archive.Extract("Map-BG.PNG");
             }
+            using (var textures = EngineTextureArchive.OpenInstall(install))
+            {
+                Frame = textures.Decode("GUI\\Map\\map");
+                for (int i = 0; i < 4; i++)
+                {
+                    string suffix = i.ToString("00");
+                    _corners[i * 2] = textures.Decode("GUI\\Map\\" + (i == 3 ? "selected-" : "") + "mapbf-" + suffix);
+                    _corners[i * 2 + 1] = textures.Decode("GUI\\Map\\" + (i == 3 ? "" : "selected-") + "mapbf-" + suffix);
+                }
+            }
+        }
+        public RgbaImage Corner(MinimapCorner corner, bool active)
+        {
+            if ((uint)corner > 3) throw new ArgumentOutOfRangeException(nameof(corner));
+            return _corners[(int)corner * 2 + (active ? 1 : 0)];
         }
     }
 
@@ -44,6 +64,7 @@ namespace DK2.Unity
         private readonly MinimapPalette _palette;
         private readonly MinimapClassGrid _grid;
         private readonly MinimapGpuMap _gpu;
+        private readonly MinimapFrameVisual _frame;
         private WorldState _capturedWorld;
         private long _capturedTick = -1;
         private int _capturedPreview = -1;
@@ -73,12 +94,15 @@ namespace DK2.Unity
             _settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight; _settings.match = 1;
             _root = new GameObject("Dungeon HUD"); _root.transform.SetParent(parent, false);
             var document = _root.AddComponent<UIDocument>(); document.panelSettings = _settings;
+            document.rootVisualElement.style.width = Length.Percent(100);
+            document.rootVisualElement.style.height = Length.Percent(100);
             document.rootVisualElement.pickingMode = PickingMode.Ignore;
             _image = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
             _image.style.position = Position.Absolute;
             _image.style.left = Left; _image.style.bottom = Bottom;
             _image.style.width = Diameter; _image.style.height = Diameter;
             document.rootVisualElement.Add(_image);
+            _frame = new MinimapFrameVisual(document.rootVisualElement, assets);
         }
 
         private static Texture2D Decode(byte[] png)
@@ -113,14 +137,13 @@ namespace DK2.Unity
 
         public bool ContainsPointer(Vector3 position)
         {
-            float scale = Screen.height / 768f;
-            return position.x >= Left * scale && position.x < (Left + Diameter) * scale
-                && position.y >= Bottom * scale && position.y < (Bottom + Diameter) * scale;
+            return MinimapFrameVisual.ContainsPointer(position);
         }
 
         public void Dispose()
         {
             _gpu.Dispose();
+            _frame.Dispose();
             UnityEngine.Object.Destroy(_root); UnityEngine.Object.Destroy(_settings);
             UnityEngine.Object.Destroy(_backdrop);
         }

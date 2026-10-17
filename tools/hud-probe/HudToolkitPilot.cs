@@ -36,6 +36,7 @@ namespace DK2.Unity.HudProbe
         private string _output;
         private Report _report;
         private MinimapGpuMap _liveGpu;
+        private MinimapFrameVisual _frame;
         public bool Done { get; private set; }
         public bool Passed => _report != null && _report.Passed;
 
@@ -54,6 +55,9 @@ namespace DK2.Unity.HudProbe
                     Pipeline = GraphicsSettings.currentRenderPipeline?.GetType().Name ?? "built-in",
                     PaletteWidth = palette.width, PaletteHeight = palette.height,
                     ReferenceGlyphs = assets.ReferenceFont.Glyphs.Count, LargestGlyphs = assets.LargestFont.Glyphs.Count };
+                var frameAssets = new InstallMinimapAssets(Environment.GetEnvironmentVariable("DK2_DIR"));
+                var frame = Own(MinimapFrameVisual.Decode(frameAssets.Frame));
+                File.WriteAllBytes(Path.Combine(_output, "minimap-native-frame.png"), frame.EncodeToPNG());
                 VerifyGpuMap(backdrop);
                 _report.GpuClassUpdates = true;
                 _settings = Own(ScriptableObject.CreateInstance<PanelSettings>());
@@ -78,6 +82,7 @@ namespace DK2.Unity.HudProbe
                 AssertDisc(disc);
                 AddImage(root, disc, left: 260, top: 420, width: 224, height: 224);
                 AddLiveLevel(root, palette, backdrop);
+                _frame = new MinimapFrameVisual(root, frameAssets);
                 const string text = "Dungeon Heart 100%";
                 var reference = Own(HudFontPilot.Raster(assets.ReferenceFont, text));
                 var largest = Own(HudFontPilot.Raster(assets.LargestFont, text));
@@ -318,6 +323,7 @@ namespace DK2.Unity.HudProbe
         private void OnDestroy()
         {
             _liveGpu?.Dispose();
+            _frame?.Dispose();
             foreach (UnityEngine.Object resource in _owned) if (resource != null) Destroy(resource);
         }
     }

@@ -40,14 +40,14 @@ foreach ($relative in @('Assets/HudProbe/Editor','Assets/HudProbe/Resources','As
 $buildLog = Join-Path $Output 'compile.log'
 & dotnet build "$PSScriptRoot/HudPilot.Compile.csproj" -c Release -m:1 -p:NuGetAudit=false --nologo -v q *> $buildLog
 if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $buildLog -Tail 20; throw 'HUD pilot compile failed.' }
-foreach ($name in @('DK2.Core','DK2.Data.Model','DK2.Data','DK2.Assets','DK2.Pathfinding','DK2.Simulation','DK2.Presentation')) {
+foreach ($name in @('DK2.Core','DK2.Data.Model','DK2.Data','DK2.Art','DK2.Assets','DK2.Pathfinding','DK2.Simulation','DK2.Presentation')) {
     Copy-Item -LiteralPath "$repo/src/$name/bin/Release/netstandard2.1/$name.dll" -Destination "$Project/Assets/Plugins/DK2" -Force
 }
 foreach ($name in @('HudPilotAssets.cs','HudFontPilot.cs','HudToolkitPilot.cs','HudPilot.shader')) {
     Copy-Item -LiteralPath "$PSScriptRoot/$name" -Destination "$Project/Assets/HudProbe" -Force
 }
 Copy-Item -LiteralPath "$PSScriptRoot/HudPilotEntry.cs" -Destination "$Project/Assets/HudProbe/Editor" -Force
-foreach ($name in @('MinimapGpuMap.cs','DungeonMinimap.cs')) {
+foreach ($name in @('MinimapGpuMap.cs','DungeonMinimap.cs','MinimapFrameVisual.cs')) {
     Copy-Item -LiteralPath "$repo/unity/DK2.Unity/Assets/DK2/$name" -Destination "$Project/Assets/HudProbe" -Force
 }
 foreach ($name in @('DK2Minimap.shader','DK2Hud.tss')) {

@@ -125,7 +125,8 @@ Next interface scope selected by the owner (2026-10-17):
 following ART_DIRECTION.md §13 and proposed ADR-0497. Step5 is not formally closed.
 The Step6 shader/font feasibility pilot passed in isolated URP targets at 1024×768
 and 1440p (tools/hud-probe/README.md); a live minimap tile layer is connected
-on classic-look/step6. Frame art, markers, controls and owner comparison remain.
+on classic-look/step6 with the native frame and its idle corner art. Markers, controls
+and owner comparison remain.
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 

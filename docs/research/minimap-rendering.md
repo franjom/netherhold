@@ -126,6 +126,77 @@ then calls map-view slots `+0x1F0/+0x1E8`; those mode semantics remain unread.
 Two adjacent candidates do not establish minimap input: `0x0041A190` draws a
 top-right resource, and `0x0041A2B0` selects HUD mode 10 through a widget callback.
 
+## Widget art and callback bindings (partially read)
+
+The art loader `0x0052CB40` reads 277 catalogue records at `0x006A7DF0`, each
+69 bytes: DWORD id, 64-byte name, byte type. Resource requests go through service
+slot `+0x54`. The matching highest-resolution cache entries are in
+`DK2TextureCache/EngineTextures.dir/.dat`; these GUI names are not PNG entries
+in EngineTextures.WAD. Frame id 9 is `gui/map/map` (128×128); corner images below
+are 32×32. Their alpha, including the frame's faint centre shading, is retained.
+
+The HUD constructor supplies menu-pointer list `0x00693EF8` to `0x0052B8F0`.
+Menu records are 72 bytes; their `+0x3E` points to 80-byte widget records,
+terminated by id -1 at widget `+1`. `0x0052CED0` loads menu geometry;
+`0x0052C6D0` creates widgets and `0x00528300` copies their fields.
+Menu 20 at `0x00693958` has draw rectangle **(20,1460,460,460)**. Under the
+chosen height-based reference transform this is left 8, bottom 0, size 184×184.
+That menu rectangle is not the frame's texture extent. Frame callback
+`0x00414210` installs catalogue entry 9, sets a 448×440 virtual clip at x=20
+and the map widget's draw y, and puts transformed virtual 256 into both render
+size fields before view slot `+0x5C` draws with flags 7. `0x0052C630` merely
+scales rectangle components; it does not remove padded texture pixels.
+The adapter's 204.8×204.8 texture extent is **STRONGLY INFERRED** from those
+size inputs and alignment of the shipped ring with the native display centre.
+It starts at reference (8,584) and clips to 179.2×176; the 128×128 cached image
+includes unused padding. Captures at both reference and 1440p sizes align after
+this correction. The active renderer's complete sprite sizing contract is still
+unread; these captures establish alignment, not full original-game acceptance.
+
+| Corner | Widget address | Id | Draw x,y,w,h | Anchor bits | Default/active art ids |
+|---|---|---:|---|---:|---|
+| upper left | `0x00690E88` | 1 | 0,0,124,120 | 0 | 28 / 32 |
+| upper right | `0x00690ED8` | 255 | 20,0,120,120 | 2 | 29 / 33 |
+| lower right | `0x00690F28` | 253 | 16,16,128,128 | 6 | 31 / 35 |
+| lower left | `0x00690F78` | 2 | 0,20,128,128 | 4 | 30 / 34 |
+
+`0x00528570` anchors bit 1 against the parent's right edge and bit 2 against
+its bottom edge, subtracting offset and size. `0x0052CE50` supplies the parent
+rectangle; `0x00528430` then tests the pointer using the positioned hit bounds.
+The corner names are `mapbf-00`, `mapbf-01`, `mapbf-02` and `mapbf-03`, with
+`selected-` variants. The lower-right default is unusually **selected-mapbf-03**
+(id 31); its alternate is mapbf-03 (35). Keep that binding rather than normalize
+the filenames. `0x004129E0` substitutes active art for upper-left mode 10,
+upper-right mode 4 and lower-left field `+0x2722`; other behaviour is still open.
+Unselected, unhovered minimap corners skip the sprite draw: their idle images
+are already part of the frame. Drawing all four overlays continuously duplicates
+that artwork.
+
+The corner callback pairs are: upper left `0x0041A2B0`/none; upper right
+`0x004163F0`/none; lower right `0x00416480`/`0x00416580`; lower left
+`0x00428710`/none. The lower-right callbacks increment/decrement signed zoom,
+clamped to -1..4. Crossing into 0 or -1 updates the interface mode and whole-map
+rectangle. Selection cleanup in their tails remains unread. The other corners
+select mode 10, select mode 4, and toggle message-like widget visibility;
+their complete panel behaviour is not implemented by displaying the artwork.
+
+Type-0 widget dispatcher `0x00528610` invokes the two callback fields once per
+held channel. `0x0052C0A0` maps events F0/F1 to those channels and maintains
+capture. `0x00406530` routes unconsumed F0 to Hand_Click and F1 to the secondary
+hand handler. The physical event producer remains unread: this trace alone does
+not justify naming F0/F1 left/right mouse buttons. Native map widget 3 at
+`0x00690FC8` uses the same channels for navigation/mode callbacks.
+
+Other inspected setup functions: `0x004152B0` loads four ten-sprite digit/overlay
+families; `0x005282F0` returns 1. `0x0052CF90` is pixel-format dispatch, whose
+F0 mask was a negative pointer-event search candidate.
+`0x0041FB40` draws a queued icon array rather than the fixed minimap frame;
+`0x0040CFD0` only stores a scalar into its receiver.
+The sprite arm of `0x0059B0C0` multiplies resource dimensions by render size
+fields before fixed-point conversion and submission. `0x0043A740` initializes
+the view's forwarded renderer pointer `+0x9E` to zero; that constructor alone
+does not identify which runtime renderer receives the frame.
+
 ## Shipped UI resources (data inventory)
 
 The reference install's `Data/FrontEnd.WAD` contains 445 entries: 371 PNG, 42 BMP,

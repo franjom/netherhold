@@ -25,6 +25,12 @@ to map source pixels to the native class banks; it does not animate neutral colo
 tiles. The separate bottom-left disc uses a real Level1 campaign world after
 one tick with fog enabled, classified through WorldView and drawn by the
 production MinimapGpuMap. It is a tile-layer preview without markers or controls.
+The install-supplied frame, including its idle corners, now surrounds it;
+hover/selected overlays and callbacks remain unconnected. `minimap-native-frame.png` also preserves
+the decoded frame for inspection. Cache RGBA rows are flipped once for Unity.
+The corrected frame clip and disc alignment were inspected at both sizes and
+independently reviewed; the texture extent remains strongly inferred as described
+in the native research below.
 Native backdrop/UV placement,
 palette cycling and class/marker behaviour still need campaign comparisons.
 The same-named FrontEnd palette has different RGB values; it is not substituted.

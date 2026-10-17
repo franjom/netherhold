@@ -1,7 +1,8 @@
 # Step 6 — HUD and controls
 
 Status: live minimap tile layer built; 6.1 remains partial, 2026-10-17.
-Frame art, markers, navigation controls and owner comparison remain open;
+The native frame with its idle corner artwork is present; markers, navigation controls
+and owner comparison remain open;
 ADR-0497 remains proposed. Step5's outstanding visual/performance
 gates remain in [its checklist](2026-10-14-classic-look-step5.md).
 
@@ -41,10 +42,12 @@ Check the records before decompiling and record new function findings in the KB.
 
 ## 6.1 — Minimap
 
-The palette, persisted-fog tile classifier, changed-cell GPU scatter and live
+The native frame with idle corner art, persisted-fog tile classifier, changed-cell GPU scatter and live
 DungeonRunner disc are built. WORD classes survive the GPU path; idle frames
 upload no cells. Capture runs before worker dispatch; drawing reads GPU state.
-Disc/frame layout, rotation and native widget mapping still need owner comparison.
+Disc/frame layout and rotation still need owner comparison. Static native menu
+and corner-art mapping is recorded; physical input channels and complete corner
+panel behaviours remain research gates.
 
 - [x] Present changed tile classes through a renderer-independent view; draw the
   palette, rotated map, mask and background on the GPU as specified in §13.
