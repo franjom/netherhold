@@ -59,6 +59,22 @@ public class ViewEffectParticleTests
         Assert.All(model.Particles, p => Assert.Equal(4096, p.HeightRaw));
     }
 
+    [Theory]
+    [InlineData(0x80u, 70, 80, 130)]
+    [InlineData(0x84u, 70, 80, 130)]
+    [InlineData(0x85u, 70, 80, 130)]
+    [InlineData(0x2u, 230, 50, 50)]
+    [InlineData(0x86u, 230, 50, 50)]
+    public void OnlyRawArtBitTwoSelectsTheKeeperPalette(uint artFlags, int red, int green, int blue)
+    {
+        var model = new RoomConstructionParticles(Database(keeperArtFlags: artFlags),
+            7, () => new EffectTime(0));
+        model.Emit(Request());
+        model.AdvanceTo(new EffectTime(51));
+        ConstructionParticle particle = model.Particles.First(p => p.Definition.EffectElementId == 1);
+        Assert.Equal((red, green, blue), ((int)particle.Red, (int)particle.Green, (int)particle.Blue));
+    }
+
     [Fact]
     public void HiddenEffectsDoNotConsumeTheVisibleParticleStream()
     {
@@ -139,7 +155,7 @@ public class ViewEffectParticleTests
 
     private static GameDatabase Database(uint flags = 0x80,
         (byte Red, byte Green, byte Blue)? authoredColour = null,
-        ushort originRange = 0, int elasticity = 0, uint elementFlags = 0)
+        ushort originRange = 0, int elasticity = 0, uint elementFlags = 0, uint keeperArtFlags = 0x2)
     {
         (byte Red, byte Green, byte Blue) colour = authoredColour ?? (70, 80, 130);
         EffectElementDef Element(ushort id, uint artFlags) => new([])
@@ -159,6 +175,6 @@ public class ViewEffectParticleTests
         };
         return new GameDatabase([], [], [], new GlobalVariables(), effects: [effect],
             // Art flag 2 takes the keeper's palette (0x00435F20), as the claim and room-block elements do.
-            effectElements: [Element(1, 0x2), Element(2, 0)]);
+            effectElements: [Element(1, keeperArtFlags), Element(2, 0)]);
     }
 }

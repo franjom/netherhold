@@ -236,3 +236,11 @@ also pass; the9000ms image visibly restores brown arch/step detail. Review found
 no blocking code/material defect. Association/animation limits and original live
 capture evidence are in static-mesh-lighting.md section5. These checks do not
 close the original-view acceptance or smoke-colour gates.
+
+Raw art-flag review (2026-10-17): master ec92cfae already corrects keeper-colour
+selection to mask2. The five-case regression separates it from play-once mask128;
+all503 Presentation tests pass and the adapter builds without warnings/errors.
+The seven pinned captures in`build/step5-raw-colour-flag-startup-fog` complete
+with exit0; the9000ms image shows grey plug dust instead of red. Binary/data
+provenance and the narrowed palette boundary are in room-construction-effects.md
+section6. This is not a matched original-game timing/colour acceptance.

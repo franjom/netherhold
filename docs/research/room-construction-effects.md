@@ -232,7 +232,8 @@ Shipped effect 11, Reinforce Wall, is type 4, flags `0x280`, HP1, twelve
 passes over elements `[144,145,146,147]`: 48 particles per admitted request,
 192 over four requests. It has zero origin radius and height offset512.
 Elements144/147 use grey rockchip sprites (type2, RGB125); 145/146 use
-keeper-coloured sm/SM sprites (type3, flags `0x86`/`0x84`). Particle lifetime
+sm/SM sprites (type3): 145 is keeper-coloured (`0x86`), while146
+uses authored RGB210/126/60 (`0x84`). Particle lifetime
 is 24..32 for 144..146 and 32..48 for147. Art80 completion follows section4.
 The shared particle consumer already supports these resources; the omitted
 reinforcement producer is restored in TileWorkSystem. Visual parity is pending.
@@ -272,14 +273,17 @@ boundary is recorded in section 5 and is not evidence of original birth timing.
 | 142 | SM; `0x86` | 16..24 | keeper color |
 | 143 | sparkle-02g; 0 | 24..32 | 255,255,255 |
 | 145 | sm; `0x86` | 24..32 | keeper color |
-| 146 | SM; `0x84` | 24..32 | keeper color |
-| 162 | SM; `0x84` | 16..32 | keeper color |
+| 146 | SM; `0x84` | 24..32 | 210,126,60 |
+| 162 | SM; `0x84` | 16..32 | 80,20,60 |
 | 163 | SM; 4 | 16 | 70,80,130 |
 
-All are additive sprites (type 3). Raw art flag `0x80`, compact descriptor
-flag 2, selects keeper color in `0x00435F20`, replacing authored RGB and
+All are additive sprites (type 3). Raw art flag `0x2` selects keeper color
+in `0x00435F20` (`0x00436332`), replacing authored RGB and
 clamping each component to at least 48; authored RGB bypasses that clamp.
-Alpha starts at 255. Elements
+`0x00504D80` preserves file flags, ORing only the loaded-resource bit0.
+Art flag`0x80` controls play-once animation in a separate runtime field; it
+does not select colour. Plug dust381 (`0x85`) and382 (`0x24`) retain authored
+RGB100/100/100. Alpha starts at255. Elements
 142/145/162/163 carry `0xD` (destroy on contact, scale up, dim RGB), while
 143/146 carry `0xC`. Fade percentage 100 makes lifetime alpha threshold zero.
 Physics, scale and normalized sprite animation follow sections 3-5.
@@ -307,9 +311,9 @@ Equality selects `0x0050F880` instead: palette number
 `0x00447D87` and`0x00525702` pass the neutral-player global through slot`+0xC8`;
 `0x00440F90` forwards to renderer`+0x9E`, whose setter`0x00443110` writes`+0xE`.
 Its getter`0x00443100` is shared by the renderer interfaces. Thus neutral-owned
-elements select the cycling palette after startup initialization; this is not a
-local-player colour override. The actual Heart startup element's selected path
-still needs verification (Q605).
+elements with art flag`0x2` select the cycling palette after startup initialization.
+Elements without that bit, including the plug dust, bypass both palette getters.
+Birth-time tags for palette-enabled startup elements remain Q605.
 Live Level1 sampled the selector as2 and the96-byte palette matched the table;
 evidence is ignored`reverse-engineering/step5-native-level1-palette.json`.
 Color is sampled at birth; this later sample alone does not prove birth-time colour.

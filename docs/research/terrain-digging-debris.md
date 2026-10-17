@@ -73,10 +73,10 @@ owner at `+0x12D` into element initialization. Shipped records differ:
 
 Both dust elements have HP32..48, scale819..1638, scale ratio16384 and
 element flags `0xD`: twelve rising, expanding, dimming sprites on destruction.
-The raw `0x80` art bit selects the keeper-color path, so ordinary rock
-dust takes worker color, while gold dust keeps its authored brown.
-The native palette and remaining special-color getter boundary are in
-[room-construction-effects.md section 6](room-construction-effects.md#6-claim-capture-and-bed-creation).
+Both raw art flags lack mask`0x2`, so both dust elements keep authored
+RGB130/110/100. The separate play-once mask`0x80` does not select keeper tint.
+The canonical colour rule is in
+[room-construction-effects.md section6](room-construction-effects.md#6-claim-capture-and-bed-creation).
 The initializer does not consult the file's random/table color indices
 in its color selection block. Claim Land's keeper-colored SM element142
 is a distinct definition, not the rock dust element.
@@ -84,7 +84,6 @@ is a distinct definition, not the rock dust element.
 Current `TileWorkSystem` preserves destruction-only requests and the
 worker owner. `RoomConstructionParticles` applies the raw art-color flag;
 `ClassicConstructionEffects` submits its resulting sprite RGB and the
-resolved resource. A red rock cloud therefore follows this ordinary
-native color rule. A red gold cloud is not explained by these definitions.
-Color alone proves no rendering defect. The remaining prominence comparison
-and the owner's ordinary-rock observation are recorded in Q593.
+resolved resource. The previous red ordinary-rock cloud was caused by the
+incorrect colour mask, corrected in ec92cfae; it is not native keeper colouring.
+The remaining prominence comparison is Q593.

@@ -100,7 +100,10 @@ native twice-zoom visibility distance, static shader inputs, whole/quarter-top
 normal inversion, ordinary-object lighting roles and authored dynamic object lights.
 Automatic room-furniture added colour now restores dark Heart arches; evidence
 and limits are in research/static-mesh-lighting.md section5 (Q603). Heart smoke
-colour remains unmatched (Q605); native torch timing remains Q604. Use serial checks; isolated probes must not save or
+colour correction is on master: raw art flag2 selects the keeper palette;
+plug dust is grey in the corrected isolated startup capture. Matched-original
+acceptance remains pending (Q605);
+native torch timing remains Q604. Use serial checks; isolated probes must not save or
 restart an owner's open editor.
 
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the
