@@ -24,16 +24,33 @@ public sealed class ClassicTorchFlameTests
         Assert.Equal(1024, ClassicTorchFlame.SizeRaw);
     }
 
-    [Fact]
-    public void SharedPhaseAdvancesOnlyOnAnAcceptedPresentationUpdate()
+    [Theory]
+    [InlineData(30)]
+    [InlineData(60)]
+    [InlineData(144)]
+    [InlineData(240)]
+    public void PlaybackSpeedIsIndependentOfUnityFrameRate(int framesPerSecond)
     {
         var animation = new ClassicTorchFlameAnimation();
-        Assert.Equal(0, animation.Frame(20));
-        for (int update = 0; update < 20; update++) animation.Advance();
+        for (int frame = 1; frame <= framesPerSecond; frame++)
+            animation.AdvanceTo(new EffectTime(frame * 1000 / framesPerSecond));
+        Assert.Equal(4080, animation.Frame(4096));
         Assert.Equal(19, animation.Frame(20));
-        for (int extraCamera = 0; extraCamera < 10; extraCamera++)
-            Assert.Equal(19, animation.Frame(20));
-        animation.Advance();
+    }
+
+    [Fact]
+    public void RepeatedUpdatesAndCameraDrawsDoNotConsumePlaybackTime()
+    {
+        var animation = new ClassicTorchFlameAnimation();
+        animation.AdvanceTo(new EffectTime(49));
+        Assert.Equal(0, animation.Frame(4096));
+        animation.AdvanceTo(new EffectTime(50));
+        for (int extraUpdate = 0; extraUpdate < 10; extraUpdate++)
+        {
+            animation.AdvanceTo(new EffectTime(50));
+            Assert.Equal(204, animation.Frame(4096));
+        }
+        animation.AdvanceTo(new EffectTime(1050));
         Assert.Equal(0, animation.Frame(20));
     }
 
@@ -42,10 +59,9 @@ public sealed class ClassicTorchFlameTests
     {
         var animation = new ClassicTorchFlameAnimation();
         Assert.Equal(10, animation.Frame(20, 2048));
-        animation.Advance();
+        animation.AdvanceTo(new EffectTime(50));
         Assert.Equal(0, animation.Frame(20, 4000));
-        Assert.Equal(0, animation.Frame(20));
-        for (int update = 1; update < 1024; update++) animation.Advance();
+        animation.AdvanceTo(new EffectTime(51200));
         Assert.Equal(10, animation.Frame(20, 2048));
     }
 }

@@ -53,7 +53,7 @@ Matched framebuffer colour transfer remains part of the original-game acceptance
 - [x] Implement static selection masks and both native animated lighting arms with authored bounds.
 - [x] Verify removal, camera movement, borders, all24 slots and resource lifecycle.
 - [x] Independently review arithmetic, visibility, cache, shader and integrated publication.
-- [x] Render the companion animated torch resource with confirmed frame cadence; phase-stream limits are Q604.
+- [x] Render the companion animated torch resource with frame-independent playback (ADR-0494); timing/phase limits are Q604.
 - [x] Apply confirmed whole/quarter-top normal inversion and ordinary-object instance-lighting selection.
 - [x] Trace and publish authored object lights; retain the scoped limits in static-mesh-lighting.md section4.
 

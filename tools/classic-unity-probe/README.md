@@ -20,6 +20,11 @@ reads. It requests read/query access only and changes no game memory or settings
 `--heart-inputs` also reads Heart furniture transforms/colours and engine lights.
 Runtime captures belong under ignored `reverse-engineering/`.
 
+The world-lighting diagnostic freezes its injected effect clock at0ms while
+advancing simulation ticks; its final torch regression then supplies49/50ms.
+Its tick70 lighting image is not a17.5-second animation reference. Use the
+separate startup-sequence probe above for timed effect comparisons.
+
 ## Windowed Level8 frame capture
 
 `run-window-frames.ps1` uses the already prepared, isolated

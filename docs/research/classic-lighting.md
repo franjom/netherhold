@@ -137,8 +137,8 @@ positive mounts retain their native one-unit truncation). Sprite flag`0x800`
 requests lattice deformation in `0x0057F7E0`. `0x0043B220` advances one shared
 animation; its20-frame descriptor produces the integer normalized step204.
 The tile draw adds the torch's`+0x11B` phase through`0x0043D770`, initialized
-by a bridge-stream random draw below4096 in`0x00439B90`. Confirmed frame
-cadence and native LCG/seed1 are now built;
+by a bridge-stream random draw below4096 in`0x00439B90`. Native LCG/seed1 and
+integer phase steps are built with frame-independent playback (ADR-0494);
 see [torch-animation.md](torch-animation.md) for the caller chain and remaining
 shared-stream/offset-lifetime matching boundary.
 

@@ -30,17 +30,17 @@ the torch's phase offset at+0x11B. The generator0x005558D0 is the LCG already
 specified in dk2-random.md section1. The draw adds that offset to the shared
 phase; creation does not reset the shared animation.
 
-Built: ClassicTorchFlameAnimation advances explicitly once in DungeonRunner's
-gameplay presentation update. Drawing, extra cameras and offscreen captures
-read the phase without advancing it. Particle effects retain their own50ms
-clock. The previous elapsed/50 approximation is removed. Like the native chain,
-flame speed follows presentation updates, not a claimed fixed FPS. The adapter
-uses each gameplay Unity Update as that boundary; native device-begin rejection
-and minimized-window scheduling are not reproduced by this counter.
-Torch phase offsets now use native LCG/seed1 in a presentation-only stream.
+Built: ClassicTorchFlameAnimation samples a rebased, unscaled playback clock;
+drawing remains read-only. ADR-0494 owns the adapter's50ms playback choice and
+its deliberate distinction from native per-frame advancement. The previous
+one-Unity-update/one-native-frame mapping accelerated the flame on the owner's
+machine. The native outer run loop0x00525370 calls the session update repeatedly;
+its post-game Sleep calls do not establish a live20FPS cap. Engine begin-frame
+0x00575700 measures FPS; its helper0x00578E50 only stores two inputs and resets
+a flag/counter. Backend/display pacing is still unmeasured.
+Torch phase offsets retain native LCG/seed1 in a presentation-only stream.
 
 Exact phase offsets are not claimed: the original bridge stream also serves
 other consumers, and original creation order differs from our visible-torch
 materialization. Hiding/rematerializing a torch can also redraw its offset.
-Matching those offsets requires the original bridge stream/lifetime ordering;
-this does not justify changing simulation randomness or inventing a flame rate.
+Matching those offsets requires the original bridge stream/lifetime ordering.

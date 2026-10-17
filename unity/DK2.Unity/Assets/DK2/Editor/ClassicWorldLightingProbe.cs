@@ -68,6 +68,7 @@ namespace DK2.Unity.Editor
             public int VerifiedWallCapNormalVertices;
             public int VerifiedRoomObjectColourMaterials;
             public bool VerifiedTorchAnimation;
+            public bool FixedEffectClock;
             public int VerifiedStaticObjectLightingVertices, VerifiedTorchLightingVertices;
             public int SampledVertices;
             public int FrontFacingInRangePairs;
@@ -238,6 +239,10 @@ namespace DK2.Unity.Editor
                 Set(runner, "classicVertexLighting", true);
                 Set(runner, "nativeInitialAmbient", result.NativeInitialAmbient);
                 Set(runner, "tickOnWorkerThread", false);
+                result.FixedEffectClock = true;
+                EffectTime torchTime = new EffectTime(0);
+                typeof(DungeonRunner).GetProperty("EffectClock", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .SetValue(runner, (Func<EffectTime>)(() => torchTime));
                 typeof(DungeonRunner).GetMethod("StartGame", BindingFlags.NonPublic | BindingFlags.Instance)
                     .Invoke(runner, null);
                 probeCamera.enabled = false;
@@ -382,7 +387,7 @@ namespace DK2.Unity.Editor
                     ValidateObjectLightingModes(result, root);
                     ValidateRoomObjectColour(result, root, view, simulation.World);
                 }
-                ValidateTorchAnimation(result, runner, scene, probeCamera, view, simulation.World);
+                ValidateTorchAnimation(result, runner, scene, probeCamera, view, simulation.World, time => torchTime = time);
                 if (result.TorchCount == 0 || result.Shader == null)
                     throw new InvalidOperationException("Production " + level + " did not create classic torch lighting.");
                 if (comparisons.Any(comparison => comparison.ChangedPixels == 0))
@@ -584,7 +589,7 @@ namespace DK2.Unity.Editor
         }
 
         private static void ValidateTorchAnimation(Result result, DungeonRunner runner, DungeonScene scene, Camera camera,
-            WorldView view, DK2.Simulation.WorldState world)
+            WorldView view, DK2.Simulation.WorldState world, Action<EffectTime> setTime)
         {
             object flames = typeof(DungeonScene).GetField("_torchFlames", BindingFlags.NonPublic | BindingFlags.Instance)
                 .GetValue(scene);
@@ -601,12 +606,21 @@ namespace DK2.Unity.Editor
             try
             {
                 speedField.SetValue(runner, 0f);
-                typeof(DungeonRunner).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance)
-                    .Invoke(runner, null);
+                MethodInfo update = typeof(DungeonRunner).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance);
+                setTime(new EffectTime(49));
+                update.Invoke(runner, null);
+                if (animation.Frame(4096) != initial)
+                    throw new InvalidOperationException("Torch animation advanced before its playback interval.");
+                setTime(new EffectTime(50));
+                update.Invoke(runner, null);
+                int expected = (initial + 204) & 4095;
+                if (animation.Frame(4096) != expected)
+                    throw new InvalidOperationException("Torch animation missed its playback interval.");
+                for (int extraFrame = 0; extraFrame < 10; extraFrame++) update.Invoke(runner, null);
+                if (animation.Frame(4096) != expected)
+                    throw new InvalidOperationException("Extra Unity updates accelerated the torch animation.");
             }
             finally { speedField.SetValue(runner, speed); }
-            if (animation.Frame(4096) != ((initial + 204) & 4095))
-                throw new InvalidOperationException("One presentation update did not advance the torch phase once.");
             result.VerifiedTorchAnimation = true;
         }
 

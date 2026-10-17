@@ -245,7 +245,7 @@ namespace DK2.Unity
             if (_installArt != null)
             {
                 var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
-                _scene.AttachTorchSprites(sprites);
+                _scene.AttachTorchSprites(sprites, EffectClock);
                 _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
                     request => _worldView.CanShowTile(world, request.Tile),
                     request => _worldView.CanShowTile(world, request.Tile)

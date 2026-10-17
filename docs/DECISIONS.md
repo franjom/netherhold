@@ -11432,3 +11432,19 @@ INFERRED (object-drawing.md §10).
 **Consequences.** Presentation only. Sprites near torches, the Heart and effect lights are
 brighter than before in every channel their tint leaves below 255 (a channel at 255 is capped); the 15 odd-sized sprites (drips, door and Horny flames, the eye glow) change
 shape, and the six flag-`0x40` sprites stand on their points.
+
+## ADR-0494 - Wall flames use a frame-independent playback clock
+**Date:** 2026-10-17 - **Status:** accepted - Research: torch-animation.md
+
+**Context.** The native torch advances once per accepted presentation frame.
+Mapping that directly to Unity Update sped up playback on modern frame rates;
+the owner reported fast-burning torches after61cc8748.
+
+**Decision.** Keep native integer phase steps and independent per-torch offsets,
+but drive them from an unscaled50ms playback quantum, independently of Unity FPS.
+This restores the earlier20Hz adapter baseline. Do not cap the game's frame rate.
+
+**Consequences.** This is an explicit presentation-timing deviation, not a claim
+that retail DK2 renders at20FPS. A timed original-game comparison may replace
+the baseline (Q604). Simulation, particles and animation phase offsets do not
+change. Repeated updates/camera draws at the same clock time cannot accelerate it.

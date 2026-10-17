@@ -24,13 +24,17 @@ namespace DK2.Unity
         private readonly List<Texture2D> _textures = new List<Texture2D>();
         private readonly List<Sprite> _frames = new List<Sprite>();
         private readonly Material _material;
+        private readonly Func<EffectTime> _clock;
+        private readonly long _startedMilliseconds;
         private readonly Dk2Lcg _random = new Dk2Lcg(1);
         private readonly ClassicTorchFlameAnimation _animation = new ClassicTorchFlameAnimation();
 
-        public ClassicTorchFlames(Transform root, TerrainLattice lattice, IEffectSpriteProvider provider)
+        public ClassicTorchFlames(Transform root, TerrainLattice lattice, IEffectSpriteProvider provider, Func<EffectTime> clock)
         {
             _root = root;
             _lattice = lattice;
+            _clock = clock;
+            _startedMilliseconds = clock().Milliseconds;
             if (!provider.TryResolve(ClassicTorchFlame.Asset, out ResolvedAsset asset)
                 || !provider.TryGetSprite(asset, out EffectSpriteResource sprite)) return;
             Shader shader = Shader.Find("DK2/ClassicEffect");
@@ -78,7 +82,7 @@ namespace DK2.Unity
             _drawn.Remove(tile);
         }
 
-        public void Advance() => _animation.Advance();
+        public void Advance() => _animation.AdvanceTo(new EffectTime(_clock().Milliseconds - _startedMilliseconds));
 
         public void Draw(Camera camera)
         {

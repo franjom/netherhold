@@ -103,9 +103,8 @@ and limits are in research/static-mesh-lighting.md section5 (Q603). Heart smoke
 colour correction is on master: raw art flag2 selects the keeper palette;
 plug dust is grey in the corrected isolated startup capture. Matched-original
 acceptance remains pending (Q605);
-Torch phase now advances once per gameplay presentation update; native LCG
-offsets retain the shared-stream/lifetime limits in research/torch-animation.md
-(Q604). Use serial checks; isolated probes must not save or
+Torch playback is frame-independent (ADR-0494), retaining native phase steps
+and the stream/lifetime limits in research/torch-animation.md (Q604). Use serial checks; isolated probes must not save or
 restart an owner's open editor.
 
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the

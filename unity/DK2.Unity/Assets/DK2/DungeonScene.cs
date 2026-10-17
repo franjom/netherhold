@@ -50,10 +50,10 @@ namespace DK2.Unity
         private readonly Transform _root;
         private readonly TerrainLattice _lattice;
         private ClassicTorchFlames _torchFlames;
-        public void AttachTorchSprites(IEffectSpriteProvider sprites)
+        public void AttachTorchSprites(IEffectSpriteProvider sprites, System.Func<EffectTime> clock = null)
         {
             _torchFlames?.Dispose();
-            _torchFlames = new ClassicTorchFlames(_root, _lattice, sprites);
+            _torchFlames = new ClassicTorchFlames(_root, _lattice, sprites, clock ?? (() => HeartEffectClock()));
         }
         private bool _torchGeometryDirty;
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();

@@ -245,18 +245,22 @@ with exit0; the9000ms image shows grey plug dust instead of red. Binary/data
 provenance and the narrowed palette boundary are in room-construction-effects.md
 section6. This is not a matched original-game timing/colour acceptance.
 
-Torch cadence correction (2026-10-17): all505 Presentation tests pass after
-integrating master's effect-sprite corrections. Suppressing
-phase advancement makes two counter regressions fail; restoring it passes.
-The adapter builds without warnings/errors. Isolated production probes in
-`build/step5-combined-torch-Level1`, `step5-combined-torch-Level7` and
-`step5-combined-torch-Level8` pass; Levels7/8 images were inspected. They invoke
-the actual paused DungeonRunner.Update and require exactly one204-unit phase
-advance, while repeated camera draws leave it unchanged. Existing terrain,
-room-colour, source and GPU assertions remain green. Independent review checked
-the binary caller chain and adapter boundary; see torch-animation.md. The final
-seven FOW-on startup frames in`build/step5-combined-final-startup-fog` complete
-with exit0; the9000ms image retains grey dust after combined effect lighting.
+Torch playback correction (2026-10-17): all509 Presentation tests pass, including
+30/60/144/240FPS schedules. The adapter builds without warnings/errors.
+The production regression in`build/step5-torch-speed-red` reproduces early
+advancement with the per-Unity-update code. The corrected Level1 regression in
+`build/step5-torch-speed-Level1` passes: actual paused Runner updates at49ms do
+not advance,50ms advances once, and ten more same-time updates do not accelerate.
+An allocation test failed in the first full run, then passed alone and in the
+complete rerun; its existing measurement caveat above still applies.
+
+Independent review cleared the playback code and the explicit ADR-0494 policy.
+The lighting diagnostic's shared effect clock is frozen at0ms during its images,
+so tick70 there is not a17.5-second effect reference. Dedicated startup captures
+supply their own sequence times: all seven frames in
+`build/step5-torch-speed-startup-fog` complete with exit0, and the9000ms image
+was inspected. torch-animation.md retains native cadence facts
+and outstanding timed-original/phase-stream comparison boundaries.
 
 The owner accepted the corrected Level1 Heart arches/wall lighting screenshot
 on2026-10-16. This does not accept matched startup smoke or Levels7/8 views.
