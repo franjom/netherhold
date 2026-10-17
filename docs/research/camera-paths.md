@@ -304,6 +304,9 @@ The campaign scripts pair them around their paths:
   `LevelOneRevealsPointTwoForItsFlyOverAndHidesItAfterwards_AtNominalTickLengths` runs this chain on the
   shipped data: point 2 is explored from tick 53 to tick 119 and hidden at tick 120.
 
+The owner confirmed this from play (2026-10-17): the hero gate shows during the
+fly-over, and when control returns everything is behind the fog again.
+
 So the owner's recollection is right in effect, and the mechanism is each script's
 action 17, timed by condition 72. Before ADR-0496 our condition 72 answered "still"
 at once, so the hiding action ran on the next turn and an intro's reveal never
