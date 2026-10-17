@@ -33,7 +33,9 @@ namespace DK2.Unity.Editor
                 serialized.FindProperty(name).boolValue = false;
             serialized.FindProperty("seed").intValue = 1;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-            new GameObject("Windowed frame performance probe").AddComponent<ClassicWindowFrameProbe>();
+            var probe = new GameObject("Windowed frame performance probe");
+            if (Environment.GetEnvironmentVariable("DK2_WINDOW_ROTATION_PROBE") == "1") probe.AddComponent<ClassicRotationProbe>();
+            else probe.AddComponent<ClassicWindowFrameProbe>();
             EditorSceneManager.SaveScene(scene, "Assets/ClassicWindowFrameProbe.unity");
             PlayerSettings.enableFrameTimingStats = true;
             PlayerSettings.runInBackground = true;

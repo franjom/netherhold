@@ -323,8 +323,38 @@ the remaining visual comparisons above still apply.
 
 ## Camera-rotation stutter follow-up
 
-The owner reports stutter while rotating the camera (2026-10-17). The fixed-view,
-paused-world player samples above do not exercise that case. The debug FPS/frame-time
-overlay is built and the adapter compiles without warnings/errors. It supplies a
-visible frame-time indicator, not a measured cause or fix. Use the repeatable
-rotation/Profiler protocol in [Unity performance guidance](../../unity/README.md#measuring-performance).
+The2026-10-17 standalone Development capture pins runtime source to7c1272a4:
+Level8, seed1, paused tick1, fog off, Native Initial Ambient off,1280×720,
+D3D11, uncapped/VSync off, Ryzen7 7735HS with Radeon Graphics. The ordinary
+camera focuses(42.5,1,-18.5); scripted paths/glides are disabled only in the fixture.
+After10seconds warmup, idle5s and rotation10s alternate, ending with idle5s.
+Rotation uses the production camera at90degrees/second. Eight boundary frames
+per phase are excluded. Every sampled frame has a main-camera rendering callback;
+the completed screenshot was inspected. The normal run has profiling disabled.
+
+| Phase | CPU median / p95 ms | GPU median ms | Transparent sort median / p95 ms | Global GC median B/frame |
+|---|---:|---:|---:|---:|
+| First idle | 7.39 /12.39 | 3.65 | 0 /0 | 144723 |
+| First rotation | 11.28 /15.60 | 2.81 | 3.47 /5.60 | 431387 |
+| Middle idle | 7.01 /8.86 | 3.02 | 0 /0 | 144723 |
+| Second rotation | 12.68 /20.03 | 2.82 | 4.01 /7.17 | 429022 |
+| Last idle | 7.58 /9.93 | 2.79 | 0 /0 | 144723 |
+
+A separate allocation-callstack trace uses the same executable and40 labelled
+frames per phase. A65536-byte calibration array reports65568bytes including
+overhead; calibration allocations are excluded from attribution. Repeated
+AssetRef.ForCreature/AnimationFor key construction accounts for110210B/frame,
+about76% of idle allocations. TransparentTerrain sorting/run-mesh preparation
+adds273608–282166B/frame during rotation; visibility adds about13KB/frame.
+The source paths agree with independent review. These are measured recurring
+costs, not proof that every hitch has the same cause or a completed optimization.
+
+The second rotation begins at a different yaw: this demonstrates recurrence,
+not a controlled cold-versus-warm comparison. The callstack run's short phases
+cover different angles and incur profiler overhead; use it for attribution only.
+Next targets are caching creature asset keys and reusing transparent-sort/run-mesh
+buffers while preserving alpha ordering. Sustained gameplay remains unmeasured.
+
+Artifacts: `build/step5-rotation-20261017/20261017-142632/` contains timing CSV,
+metadata, screenshot and summary; `allocation/` contains the raw profile and
+calibrated stack report. Reproduction: [probe instructions](../../tools/classic-unity-probe/README.md#camera-rotation-and-allocation-capture).

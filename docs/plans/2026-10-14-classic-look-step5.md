@@ -97,13 +97,14 @@ its visibility mask remain outside this camera/lighting step.
 - [x] Independent performance-path review.
 - [x] Obtain usable GPU frame timings and a windowed player-loop frame-time capture.
 - [x] Add the ShowDiagnostics FPS/frame-time overlay for editor and Development players ([usage](../../unity/README.md#measuring-performance)).
-- [ ] Capture the reported camera-rotation stutter with frame-time/Profiler evidence.
+- [x] Capture the reported camera-rotation stutter with frame-time/Profiler evidence.
+- [ ] Reduce measured asset-key allocations and transparent-terrain rotation cost while preserving fidelity.
 
 Measurements and limits: [verification](../research/classic-lighting-verification.md).
 Submission time is CPU time, not GPU execution or a claimed game frame rate.
-Scoped allocation counters failed calibration; global player allocations remain
-unattributed. Fixed ordinary views do not characterize camera rotation or sustained
-gameplay. Measurements do not justify reducing original visual fidelity.
+Earlier scoped allocation counters failed calibration; the separate calibrated
+callstack capture attributes the major idle/rotation allocation paths. Sustained
+gameplay remains unmeasured. Measurements do not justify reducing visual fidelity.
 
 ## 5.7 — Final comparison
 

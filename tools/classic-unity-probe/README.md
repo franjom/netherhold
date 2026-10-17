@@ -1,5 +1,34 @@
 # Unity crowd performance probe
 
+## Camera rotation and allocation capture
+
+Use the prepared, marked isolated project; never point the launcher at an owner
+editor project. Synchronize its runtime DLLs from a pinned source revision first.
+`-VisiblePlayer` explicitly permits a temporary visible window. Both runs close
+their own players; the allocation reader uses the marked batch project only.
+
+```powershell
+tools/classic-unity-probe/run-window-frames.ps1 -RotationCapture -VisiblePlayer
+python tools/classic-unity-probe/summarize-rotation.py <run-directory>
+tools/classic-unity-probe/run-window-frames.ps1 -RotationCapture -AllocationTrace -VisiblePlayer
+```
+
+The timing run warms up10seconds, then records idle5s/rotate10s/idle5s/rotate10s/
+idle5s at90degrees per second. It pauses Level8 at tick1 and fixes the ordinary
+camera focus; scripted camera paths/glides are suppressed only in this fixture.
+The CSV excludes eight boundary frames per phase. Rendering callbacks, completed
+metadata and camera motion must pass the summary checks before interpreting it.
+
+The separate allocation run records40frames per phase with allocation callstacks;
+it can produce a large raw profile. The launcher reads it automatically into
+`allocation-report.json`, validates the labelled frame counts and a known65536-byte
+array calibration, and excludes that calibration from attributed totals. Timings
+from this instrumented run are not benchmark results. The second rotation starts
+at the first rotation's ending yaw; the phases do not control angle distribution.
+Keep source provenance with artifacts when other sessions can advance HEAD.
+Measured results and remaining work live in
+[lighting verification](../../docs/research/classic-lighting-verification.md#camera-rotation-stutter-follow-up).
+
 ## Pinned campaign startup comparison
 
 In the isolated `build/step5-lighting-project` only, batch entry point

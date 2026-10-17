@@ -7,7 +7,9 @@ param(
     [string]$Install = 'E:/GogGames/Dungeon Keeper 2',
     [string]$Project = 'D:/DungeonKeeperRemake/build/step5-lighting-project',
     [string]$OutputRoot = 'D:/DungeonKeeperRemake/build/classic-window-frames',
-    [switch]$VisiblePlayer
+    [switch]$VisiblePlayer,
+    [switch]$RotationCapture,
+    [switch]$AllocationTrace
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -49,7 +51,11 @@ foreach ($module in @('com.unity.modules.screencapture', 'com.unity.modules.imag
 [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 20), (New-Object System.Text.UTF8Encoding($false)))
 Copy-Item -LiteralPath "$PSScriptRoot/ClassicWindowFrameProbe.cs" -Destination "$projectPath/Assets/DK2/ClassicWindowFrameProbe.cs" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/ClassicWindowFrameBuild.cs" -Destination "$projectPath/Assets/DK2/Editor/ClassicWindowFrameBuild.cs" -Force
+Copy-Item -LiteralPath "$PSScriptRoot/ClassicRotationProbe.cs" -Destination "$projectPath/Assets/DK2/ClassicRotationProbe.cs" -Force
+Copy-Item -LiteralPath "$PSScriptRoot/ClassicRotationProfileReport.cs" -Destination "$projectPath/Assets/DK2/Editor/ClassicRotationProfileReport.cs" -Force
 $env:DK2_DIR = $Install
+$env:DK2_WINDOW_ROTATION_PROBE = if ($RotationCapture) { '1' } else { '0' }
+if ($AllocationTrace -and !$RotationCapture) { throw '-AllocationTrace requires -RotationCapture.' }
 git -C $repo rev-parse HEAD | Set-Content -LiteralPath "$run/commit.txt"
 Get-ChildItem -LiteralPath "$projectPath/Assets/Plugins/DK2" -Filter '*.dll' |
     Get-FileHash -Algorithm SHA256 | Select-Object Path, Hash | Export-Csv "$run/assembly-hashes.csv" -NoTypeInformation
@@ -111,7 +117,15 @@ Run-ProbeProcess $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', 
     '-logFile', "$run/build.log") 600 $false
 if (!(Test-Path -LiteralPath $player)) { throw "Player was not built; see $run/build.log." }
 Set-Content -LiteralPath "$run/window-mode.txt" -Value "VisiblePlayerExplicitOptIn=$($VisiblePlayer.IsPresent)"
-Run-ProbeProcess $player @('-screen-fullscreen', '0', '-screen-width', '1280', '-screen-height', '720',
-    '-windowProbeOutput', $run, '-logFile', "$run/player.log") 240 (!$VisiblePlayer.IsPresent) $VisiblePlayer.IsPresent
+$playerArguments = @('-screen-fullscreen', '0', '-screen-width', '1280', '-screen-height', '720',
+    '-windowProbeOutput', $run, '-logFile', "$run/player.log")
+if ($AllocationTrace) { $playerArguments += '-rotationAllocationTrace' }
+Run-ProbeProcess $player $playerArguments 240 (!$VisiblePlayer.IsPresent) $VisiblePlayer.IsPresent
 if (!(Test-Path -LiteralPath "$run/frames.csv")) { throw "No completed windowed capture; see $run/player.log." }
+if ($AllocationTrace) {
+    Run-ProbeProcess $Unity @('-batchmode', '-nographics', '-projectPath', $projectPath,
+        '-executeMethod', 'DK2.Unity.Editor.ClassicRotationProfileReport.Run',
+        '-rotationProfile', "$run/allocations.raw", '-rotationReport', "$run/allocation-report.json",
+        '-logFile', "$run/report.log") 180 $false
+}
 Write-Output "Windowed capture artifacts (check RenderingVerified): $run"
