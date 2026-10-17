@@ -40,6 +40,10 @@ Check the records before decompiling and record new function findings in the KB.
 
 ## 6.1 — Minimap
 
+The headless palette and changed-cell grid are built and independently reviewed;
+the isolated Unity pilot uses that shared palette. Live tile classification,
+visibility, GPU grid upload and interaction remain to be connected and checked.
+
 - [ ] Present changed tile classes through a renderer-independent view; draw the
   palette, rotated map, mask and background on the GPU as specified in §13.
 - [ ] Add only researched markers, blinking, zoom, camera footprint and input.

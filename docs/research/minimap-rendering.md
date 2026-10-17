@@ -8,14 +8,23 @@ world field `+0x284` is nonzero. They sample the WORD class grid exposed by
 player-interface slot `+0x1DC`; classification is recorded in
 [00451C90](functions/00451C90.md), not duplicated here.
 
-Its pre-fog class-13 predicate uses a nested view interface, not the direct
-World vtable. Direct World slot `+0xD4` is `0x0050DEB0`, a no-argument list-byte
-getter; that does not resolve the predicate or Q197.
+Its pre-fog class-13 predicate is the dig-tag highlight, not a Portal exception:
+view vtable `0x0066CC94` slot `+0xD4` is `0x004412E0`, forwarding coordinates to
+the presentation-grid bit-13 reader `0x004434B0` (see [tag-highlight.md §1](tag-highlight.md#1-the-state-presentation-grid-bit-13)).
+The adjacent slot `+0xD0` is `0x0043A980`, returning view camera `+0x3E5` and
+providing a positive control. Direct World slot `+0xD4` is instead `0x0050DEB0`,
+a no-argument list-byte getter. Q197 remains open.
 
 Class 1 samples the repeated rock backdrop at HUD `+0x13BB`; other classes index
 the palette at `+0x138A`. Before rasterizing, the neutral player's three palette
 entries (banks `+0x44`, `+0x68`, `+0x8C`) copy the entry selected by turn modulo 7.
 This is presentation cycling, not a change to tile ownership.
+
+The copies read the current palette, not an immutable copy of its initial colours.
+When the modulo-7 phase equals the neutral player's Number, it copies that slot
+to itself and retains the previous colour. `MinimapPalette` preserves this order;
+its banks are tested headlessly. The class grid coalesces changed cells for GPU
+publication; it does not classify tiles or establish marker visibility.
 
 Zoomed mode uses `1 << zoom` pixels per tile, with the camera position retaining
 its sub-tile fraction; `zoom == -1` selects the whole-map mode. The latter fits
@@ -106,6 +115,10 @@ and maps it either through the whole-map 90-pixel fit or the zoom factor. After
 map bounds and interface slot `+0x1FC` pass, it submits command type 4 containing
 the tile coordinates. The exact initiating button, drag lifetime and packet
 consumer remain to be traced; this does not establish the full click contract.
+
+The callback's pointer appears at static data `0x00690FCE`, immediately followed
+by `0x0041A7D0`. Record loading and button-field meanings remain unread; adjacency
+alone does not establish a left/right-button binding.
 
 `0x0041A7D0`, when world `+0x284` is zero, submits command type 15/value 7,
 then calls map-view slots `+0x1F0/+0x1E8`; those mode semantics remain unread.

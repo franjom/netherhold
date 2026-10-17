@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="HudPilotAssets.cs;HudFontPilot.cs;HudToolkitPilot.cs" />
     <ProjectReference Include="../../src/DK2.Data/DK2.Data.csproj" />
+    <ProjectReference Include="../../src/DK2.Presentation/DK2.Presentation.csproj" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.CoreModule.dll" Private="false" />
     <Reference Include="UnityEngine.UIElementsModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.UIElementsModule.dll" Private="false" />
     <Reference Include="UnityEngine.IMGUIModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.IMGUIModule.dll" Private="false" />

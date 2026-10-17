@@ -20,8 +20,8 @@ The scratch manifest enables image conversion for PNG decoding/capture.
 ## What the images show
 
 The map is a **synthetic class grid**, using the game palette and `Map-BG.PNG`
-from `EngineTextures.WAD`. The pilot maps source pixels to the class banks read
-from the binary loader; it does not animate neutral colours or classify game
+from `EngineTextures.WAD`. It uses the shared `DK2.Presentation.MinimapPalette`
+to map source pixels to the native class banks; it does not animate neutral colours or classify game
 tiles. No live world or discovery data is used. Native backdrop/UV placement,
 palette cycling and class/marker behaviour still need campaign comparisons.
 The same-named FrontEnd palette has different RGB values; it is not substituted.

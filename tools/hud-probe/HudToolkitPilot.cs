@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DK2.Presentation;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UIElements;
@@ -97,12 +98,19 @@ namespace DK2.Unity.HudProbe
         private Texture2D ClassPalette(Texture2D source)
         {
             if (source.width < 37) throw new InvalidOperationException("Native palette needs 37 source pixels.");
-            var colours = Enumerable.Repeat(new Color32(255, 255, 255, 255), 0x225).ToArray();
-            colours[0] = source.GetPixel(0, source.height - 1);
-            for (int pixel = 1; pixel < 16; pixel++) colours[pixel + 1] = source.GetPixel(pixel, source.height - 1);
-            for (int bank = 0; bank < 3; bank++)
-                for (int keeper = 0; keeper < 7; keeper++)
-                    colours[18 + bank * 9 + keeper] = source.GetPixel(16 + bank * 7 + keeper, source.height - 1);
+            var pixels = new uint[37];
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                Color32 colour = source.GetPixel(i, source.height - 1);
+                pixels[i] = (uint)(colour.r << 16 | colour.g << 8 | colour.b);
+            }
+            var model = new MinimapPalette(pixels);
+            var colours = new Color32[model.Colours.Length];
+            for (int i = 0; i < colours.Length; i++)
+            {
+                uint argb = model.Colours[i];
+                colours[i] = new Color32((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, (byte)(argb >> 24));
+            }
             var palette = Own(new Texture2D(colours.Length, 1, TextureFormat.RGBA32, false));
             palette.SetPixels32(colours); palette.Apply(); palette.filterMode = FilterMode.Point;
             palette.wrapMode = TextureWrapMode.Clamp; return palette;
