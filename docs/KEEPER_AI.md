@@ -285,11 +285,11 @@ The 23 keepers, with the parameters that separate them (all CONFIRMED from data)
 
 **Gormagon never plays.** The owner (2026-09-17): Level 7's keeper dies within the
 first seconds and the player takes over its rooms. Its own root (trigger 3, condition
-47) only reacts to the death; what deals it is UNKNOWN. The hero at (55,36) rooted on
-trigger 29 was the candidate, but that trigger's actions 20 and 42 are the pair Level 1
-gives its Lord on creation: the Portal Gem and a six-slot list entry (ADR-0495, Q607).
-Neither arm itself does anything to a keeper; the list's readers are unread, so ruling
-the hero out is STRONGLY INFERRED. So the
+47) only reacts to the death. Three Giants kill its Heart (the owner, 2026-10-17): the
+level places three level-1 Giants on Gormagon's Dungeon Heart tiles, at (24,12), (20,11)
+and (23,15), each with objective 19 KillPlayer against player 4. Ours reproduces it from
+the data: the Heart falls on turn 23 or 24, about six seconds in. The hero on trigger 29,
+once the candidate, is a gem carrier (actions 20 and 42, ADR-0495). So the
 first campaign keeper that plays is **Asmodeus on Level 10**; Level 13, Level 17 and
 TrapTime also author neither action anywhere.
 
