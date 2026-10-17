@@ -118,6 +118,8 @@ The debug FPS/frame-time display is built; usage and rotation profiling protocol
 Creature/cinematic timing now shares a late draw clock (ADR-0501); native tile
 neighbour queries and torture-approach flags are corrected (ADR-0500).
 Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
+Proposed parallelism milestones and determinism gates:
+[parallelism design](plans/2026-10-17-parallelism-design.md).
 
 Use serial checks; isolated probes must not save or restart the owner's editor.
 For master, open unity/DK2.Unity; check the retained classic worktree's branch
