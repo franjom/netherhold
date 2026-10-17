@@ -67,6 +67,7 @@ namespace DK2.Unity.Editor
             public int VerifiedTopNormalVertices;
             public int VerifiedWallCapNormalVertices;
             public int VerifiedRoomObjectColourMaterials;
+            public bool VerifiedTorchAnimation;
             public int VerifiedStaticObjectLightingVertices, VerifiedTorchLightingVertices;
             public int SampledVertices;
             public int FrontFacingInRangePairs;
@@ -381,6 +382,7 @@ namespace DK2.Unity.Editor
                     ValidateObjectLightingModes(result, root);
                     ValidateRoomObjectColour(result, root, view, simulation.World);
                 }
+                ValidateTorchAnimation(result, runner, scene, probeCamera, view, simulation.World);
                 if (result.TorchCount == 0 || result.Shader == null)
                     throw new InvalidOperationException("Production " + level + " did not create classic torch lighting.");
                 if (comparisons.Any(comparison => comparison.ChangedPixels == 0))
@@ -579,6 +581,33 @@ namespace DK2.Unity.Editor
                 throw new InvalidOperationException("Wall-cap verification needs cap-only terrain.");
             if (result.Level == "Level1" && result.VerifiedTopNormalVertices == 0)
                 throw new InvalidOperationException("Top-normal verification needs ordinary top-only terrain.");
+        }
+
+        private static void ValidateTorchAnimation(Result result, DungeonRunner runner, DungeonScene scene, Camera camera,
+            WorldView view, DK2.Simulation.WorldState world)
+        {
+            object flames = typeof(DungeonScene).GetField("_torchFlames", BindingFlags.NonPublic | BindingFlags.Instance)
+                .GetValue(scene);
+            if (flames == null) throw new InvalidOperationException("Campaign fixture has no torch sprites.");
+            var animation = (ClassicTorchFlameAnimation)flames.GetType()
+                .GetField("_animation", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(flames);
+            int initial = animation.Frame(4096);
+            scene.DrawCreatureShadows(camera, view, world);
+            scene.DrawCreatureShadows(camera, view, world);
+            if (animation.Frame(4096) != initial)
+                throw new InvalidOperationException("Additional camera draws advanced the shared torch phase.");
+            var speedField = typeof(DungeonRunner).GetField("speed", BindingFlags.NonPublic | BindingFlags.Instance);
+            float speed = (float)speedField.GetValue(runner);
+            try
+            {
+                speedField.SetValue(runner, 0f);
+                typeof(DungeonRunner).GetMethod("Update", BindingFlags.NonPublic | BindingFlags.Instance)
+                    .Invoke(runner, null);
+            }
+            finally { speedField.SetValue(runner, speed); }
+            if (animation.Frame(4096) != ((initial + 204) & 4095))
+                throw new InvalidOperationException("One presentation update did not advance the torch phase once.");
+            result.VerifiedTorchAnimation = true;
         }
 
         private static void ValidateRoomObjectColour(Result result, GameObject root, WorldView view,

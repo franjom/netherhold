@@ -50,10 +50,10 @@ namespace DK2.Unity
         private readonly Transform _root;
         private readonly TerrainLattice _lattice;
         private ClassicTorchFlames _torchFlames;
-        public void AttachTorchSprites(IEffectSpriteProvider sprites, System.Func<EffectTime> clock = null, ulong seed = 1)
+        public void AttachTorchSprites(IEffectSpriteProvider sprites)
         {
             _torchFlames?.Dispose();
-            _torchFlames = new ClassicTorchFlames(_root, _lattice, sprites, clock ?? (() => HeartEffectClock()), seed);
+            _torchFlames = new ClassicTorchFlames(_root, _lattice, sprites);
         }
         private bool _torchGeometryDirty;
         private readonly Dictionary<int, GameObject> _tiles = new Dictionary<int, GameObject>();
@@ -280,6 +280,8 @@ namespace DK2.Unity
             if (player != null) player.Stop();
             _classic.RestoreModel(go, mesh);
         }
+
+        public void AdvanceTorchAnimation() => _torchFlames?.Advance();
 
         // Called before the worker tick starts; no render callback reads the mutable world.
         public void DrawCreatureShadows(Camera camera, WorldView view, WorldState world)

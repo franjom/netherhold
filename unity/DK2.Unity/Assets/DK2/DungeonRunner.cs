@@ -245,7 +245,7 @@ namespace DK2.Unity
             if (_installArt != null)
             {
                 var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
-                _scene.AttachTorchSprites(sprites, EffectClock, seed);
+                _scene.AttachTorchSprites(sprites);
                 _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
                     request => _worldView.CanShowTile(world, request.Tile),
                     request => _worldView.CanShowTile(world, request.Tile)
@@ -361,6 +361,7 @@ namespace DK2.Unity
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
                 _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
+            _scene.AdvanceTorchAnimation();
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
             if (showDiagnostics) RefreshDiagnostics();

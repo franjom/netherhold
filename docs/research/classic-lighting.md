@@ -137,10 +137,10 @@ positive mounts retain their native one-unit truncation). Sprite flag`0x800`
 requests lattice deformation in `0x0057F7E0`. `0x0043B220` advances one shared
 animation; its20-frame descriptor produces the integer normalized step204.
 The tile draw adds the torch's`+0x11B` phase through`0x0043D770`, initialized
-by a bridge-stream random draw below4096 in`0x00439B90`. The adapter currently
-uses a50ms shared presentation clock and a separately seeded presentation RNG
-for stable per-torch offsets. The original caller cadence and bridge RNG
-algorithm/seed matching remain unverified.
+by a bridge-stream random draw below4096 in`0x00439B90`. Confirmed frame
+cadence and native LCG/seed1 are now built;
+see [torch-animation.md](torch-animation.md) for the caller chain and remaining
+shared-stream/offset-lifetime matching boundary.
 
 The tile-light consumer and remaining selection boundary are in section9;
 these handles do not establish replacement Unity directional lighting.

@@ -24,18 +24,13 @@ namespace DK2.Unity
         private readonly List<Texture2D> _textures = new List<Texture2D>();
         private readonly List<Sprite> _frames = new List<Sprite>();
         private readonly Material _material;
-        private readonly Func<EffectTime> _clock;
-        private readonly SimRandom _random;
-        private readonly long _started;
+        private readonly Dk2Lcg _random = new Dk2Lcg(1);
+        private readonly ClassicTorchFlameAnimation _animation = new ClassicTorchFlameAnimation();
 
-        public ClassicTorchFlames(Transform root, TerrainLattice lattice, IEffectSpriteProvider provider,
-            Func<EffectTime> clock, ulong seed)
+        public ClassicTorchFlames(Transform root, TerrainLattice lattice, IEffectSpriteProvider provider)
         {
             _root = root;
             _lattice = lattice;
-            _clock = clock;
-            _random = new SimRandom(seed);
-            _started = clock().Milliseconds;
             if (!provider.TryResolve(ClassicTorchFlame.Asset, out ResolvedAsset asset)
                 || !provider.TryGetSprite(asset, out EffectSpriteResource sprite)) return;
             Shader shader = Shader.Find("DK2/ClassicEffect");
@@ -83,10 +78,11 @@ namespace DK2.Unity
             _drawn.Remove(tile);
         }
 
+        public void Advance() => _animation.Advance();
+
         public void Draw(Camera camera)
         {
             if (camera == null || _frames.Count == 0) return;
-            var elapsed = new EffectTime(_clock().Milliseconds - _started);
             foreach (var drawn in _drawn.Values)
             {
                 FpPosition3 raw = ClassicTorchFlame.Position(drawn.Torch);
@@ -94,7 +90,7 @@ namespace DK2.Unity
                 if (_lattice != null) point = _lattice.Deform(point, drawn.Torch.Wall.X, drawn.Torch.Wall.Y);
                 drawn.Renderer.transform.localPosition = new Vector3(point.X, -point.Z, -point.Y);
                 drawn.Renderer.transform.rotation = camera.transform.rotation;
-                drawn.Renderer.sprite = _frames[ClassicTorchFlame.Frame(elapsed, _frames.Count, drawn.PhaseOffsetRaw)];
+                drawn.Renderer.sprite = _frames[_animation.Frame(_frames.Count, drawn.PhaseOffsetRaw)];
             }
         }
 

@@ -244,3 +244,15 @@ The seven pinned captures in`build/step5-raw-colour-flag-startup-fog` complete
 with exit0; the9000ms image shows grey plug dust instead of red. Binary/data
 provenance and the narrowed palette boundary are in room-construction-effects.md
 section6. This is not a matched original-game timing/colour acceptance.
+
+Torch cadence correction (2026-10-17): all504 Presentation tests pass. Suppressing
+phase advancement makes two counter regressions fail; restoring it passes.
+The adapter builds without warnings/errors. Isolated production probes in
+`build/step5-torch-runner-Level1` and`step5-torch-runner-Level8` pass. They invoke
+the actual paused DungeonRunner.Update and require exactly one204-unit phase
+advance, while repeated camera draws leave it unchanged. Existing terrain,
+room-colour, source and GPU assertions remain green. Independent review checked
+the binary caller chain and adapter boundary; see torch-animation.md.
+
+The owner accepted the corrected Level1 Heart arches/wall lighting screenshot
+on2026-10-16. This does not accept matched startup smoke or Levels7/8 views.

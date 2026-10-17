@@ -17,11 +17,4 @@ public static class ClassicTorchFlame
         new Fp32(torch.MeshPosY + (torch.Yaw == 512 ? 512 : torch.Yaw == 1536 ? -512 : 0)),
         new Fp32(torch.Height + 1200));
 
-    public static int Frame(EffectTime elapsed, int storedFrames, int phaseOffsetRaw = 0)
-    {
-        if (storedFrames <= 0) throw new System.ArgumentOutOfRangeException(nameof(storedFrames));
-        long updates = System.Math.Max(0, elapsed.Milliseconds) / 50;
-        int phase = (int)((updates * (4096 / 20) + phaseOffsetRaw) & 4095);
-        return (int)((long)phase * storedFrames / 4096);
-    }
 }

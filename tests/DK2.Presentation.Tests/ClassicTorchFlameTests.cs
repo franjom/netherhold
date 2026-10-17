@@ -25,13 +25,27 @@ public sealed class ClassicTorchFlameTests
     }
 
     [Fact]
-    public void SharedNormalizedPhaseKeepsNativeIntegerStepAndWrap()
+    public void SharedPhaseAdvancesOnlyOnAnAcceptedPresentationUpdate()
     {
-        Assert.Equal(0, ClassicTorchFlame.Frame(new EffectTime(0), 20));
-        Assert.Equal(0, ClassicTorchFlame.Frame(new EffectTime(50), 20));
-        Assert.Equal(19, ClassicTorchFlame.Frame(new EffectTime(1000), 20));
-        Assert.Equal(0, ClassicTorchFlame.Frame(new EffectTime(1050), 20));
-        Assert.Equal(10, ClassicTorchFlame.Frame(new EffectTime(0), 20, 2048));
-        Assert.Equal(0, ClassicTorchFlame.Frame(new EffectTime(50), 20, 4000));
+        var animation = new ClassicTorchFlameAnimation();
+        Assert.Equal(0, animation.Frame(20));
+        for (int update = 0; update < 20; update++) animation.Advance();
+        Assert.Equal(19, animation.Frame(20));
+        for (int extraCamera = 0; extraCamera < 10; extraCamera++)
+            Assert.Equal(19, animation.Frame(20));
+        animation.Advance();
+        Assert.Equal(0, animation.Frame(20));
+    }
+
+    [Fact]
+    public void PerTorchOffsetsShareTheSameWrappedIntegerPhase()
+    {
+        var animation = new ClassicTorchFlameAnimation();
+        Assert.Equal(10, animation.Frame(20, 2048));
+        animation.Advance();
+        Assert.Equal(0, animation.Frame(20, 4000));
+        Assert.Equal(0, animation.Frame(20));
+        for (int update = 1; update < 1024; update++) animation.Advance();
+        Assert.Equal(10, animation.Frame(20, 2048));
     }
 }
