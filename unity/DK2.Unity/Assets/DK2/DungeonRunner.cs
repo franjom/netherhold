@@ -713,16 +713,21 @@ namespace DK2.Unity
             if (subtitle == null) return;
             float height = Screen.height / 8f;
             var box = new Rect(0f, Screen.height - height, Screen.width, height);
-            int reference = InterfaceFonts.ReferenceWidth(Screen.width);
-            ClassicBitmapText font = SubtitleBitmapFont(reference);
-            if (font != null)
+            // The owner's order (2026-10-17): Bullfrog's DungeonKeeperII TrueType face first,
+            // DK2's own bitmap font second, Unity's default last.
+            Font trueType = Resources.Load<Font>("Fonts/DungeonKeeperII");
+            if (trueType == null)
             {
-                font.DrawCentred(box, subtitle, Screen.width / (float)reference);
-                return;
+                ClassicBitmapText bitmap = SubtitleBitmapFont(Screen.height);
+                if (bitmap != null)
+                {
+                    bitmap.DrawCentred(box, subtitle, 1f);
+                    return;
+                }
             }
             _subtitleStyle ??= new GUIStyle(GUI.skin.label)
             {
-                font = SubtitleFont(),
+                font = trueType != null ? trueType : GUI.skin.label.font,
                 alignment = TextAnchor.MiddleCenter, wordWrap = true,
                 fontSize = Mathf.Max(12, Screen.height / 30),
                 normal = { textColor = Color.white },
@@ -730,11 +735,11 @@ namespace DK2.Unity
             GUI.Label(new Rect(Screen.width * 0.05f, box.y, Screen.width * 0.9f, height), subtitle, _subtitleStyle);
         }
 
-        /// <summary>DK2's own subtitle font: the base-10 style at the DK2 width this screen
-        /// stands for (0x00553690, camera-paths.md section 7). Null when the install lacks it.</summary>
-        private ClassicBitmapText SubtitleBitmapFont(int referenceWidth)
+        /// <summary>DK2's own bitmap font, the fallback: the shipped size that reads at this
+        /// screen height, unscaled (InterfaceFonts.LegibleFileName). Null when the install lacks it.</summary>
+        private ClassicBitmapText SubtitleBitmapFont(int screenHeight)
         {
-            string file = InterfaceFonts.IngameFileName(InterfaceFonts.SubtitleBaseSize, referenceWidth);
+            string file = InterfaceFonts.LegibleFileName(screenHeight);
             if (file == _subtitleFontFile) return _subtitleFont;
             _subtitleFontFile = file;
             _subtitleFont?.Dispose();
@@ -749,13 +754,6 @@ namespace DK2.Unity
                 Debug.LogWarning($"subtitle font unavailable: {ex.Message}");
             }
             return _subtitleFont;
-        }
-
-        /// <summary>The stand-in when the install has no bitmap font.</summary>
-        private static Font SubtitleFont()
-        {
-            Font font = Resources.Load<Font>("Fonts/DungeonKeeperII");
-            return font != null ? font : GUI.skin.label.font;
         }
 
         private void ApplyClassicCamera()

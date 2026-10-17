@@ -16,6 +16,7 @@ public class BitmapTextTests
     [InlineData(10, 400, 8)]
     [InlineData(14, 400, 10)]
     [InlineData(10, 1920, 10)]
+    [InlineData(10, 1600, 10)]
     [InlineData(8, 512, 7)]
     [InlineData(18, 1024, 22)]
     [InlineData(12, 640, 12)]
@@ -23,13 +24,32 @@ public class BitmapTextTests
         Assert.Equal(pointSize, InterfaceFonts.IngamePointSize(baseSize, width));
 
     [Theory]
-    [InlineData(1920, 1024)]
-    [InlineData(1024, 1024)]
-    [InlineData(1023, 800)]
-    [InlineData(640, 640)]
-    [InlineData(320, 400)]
-    public void AModernScreenStandsForTheLargestDk2WidthThatFits(int screen, int reference) =>
-        Assert.Equal(reference, InterfaceFonts.ReferenceWidth(screen));
+    [InlineData(200, "FONT_INGAME7.bf4")]
+    [InlineData(480, "FONT_INGAME12.bf4")]
+    [InlineData(1080, "FONT_INGAME26.bf4")]
+    [InlineData(1440, "FONT_INGAME36.bf4")]
+    [InlineData(2160, "FONT_INGAME48.bf4")]
+    public void OurLegibleSizeIsTheLargestShippedFontWithinAFortiethOfTheHeight(int height, string file) =>
+        Assert.Equal(file, InterfaceFonts.LegibleFileName(height));
+
+    [Fact]
+    public void InferredWrapKeepsADoubleSpaceInsideALine()
+    {
+        BitmapTextLine line = Assert.Single(BitmapTextLayout.Wrap(Font(), "aa.  bb ", 100));
+
+        Assert.Equal("aa.  bb", line.Text);
+        Assert.Equal(52, line.Width);
+    }
+
+    [Fact]
+    public void InferredWrapDropsSpacesAtABreakAndAddsNoEmptyLine()
+    {
+        IReadOnlyList<BitmapTextLine> lines = BitmapTextLayout.Wrap(Font(), "aa bb  cc ", 45);
+
+        Assert.Equal(["aa bb", "cc"], lines.Select(l => l.Text));
+        Assert.Equal(["aa bb"], BitmapTextLayout.Wrap(Font(), "aa bb ", 45).Select(l => l.Text));
+        Assert.Equal(["aa", "", "bb"], BitmapTextLayout.Wrap(Font(), "aa\n\nbb", 45).Select(l => l.Text));
+    }
 
     [Fact]
     public void InferredWrapBreaksAtSpacesByAdvance()
@@ -57,5 +77,6 @@ public class BitmapTextTests
         new BitmapGlyph('b', 8, 8, 0, 0, 10, new byte[64]),
         new BitmapGlyph('c', 8, 8, 0, 0, 10, new byte[64]),
         new BitmapGlyph(' ', 0, 0, 0, 0, 5, []),
+        new BitmapGlyph('.', 2, 2, 0, 0, 2, new byte[4]),
     ]);
 }

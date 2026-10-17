@@ -374,7 +374,7 @@ condition.
 - the camera follows the path;
 - the drawn area shrinks for the letterbox, with black bars;
 - the subtitle shows in the bottom bar, from the level's text table
-  (`LevelTextTable`), over opaque bars, in DK2's bitmap font (Q608);
+  (`LevelTextTable`), over opaque bars, in the DungeonKeeperII TTF or DK2's bitmap font (Q608);
 - action 26 glides the keeper camera's focus;
 - Escape and Space skip.
 
@@ -383,7 +383,7 @@ condition.
 - condition 72 waiting out action 26's glide (at most 500 ms, two ticks);
 - action 38's interface slots;
 - the overflow scroll;
-- `0x0041A190`;
+- `0x0041A190` (unread; a camera icon shows at the top right in the owner's capture);
 - speech audio;
 - the message record action 24 posts.
 

@@ -16,14 +16,14 @@ public static class InterfaceFonts
     /// </summary>
     public const int SubtitleBaseSize = 10;
 
-    /// <summary>The screen widths DK2's font rule adjusts for, smallest first.</summary>
-    public static readonly int[] NativeWidths = [400, 512, 640, 800, 1024];
-
     /// <summary>
     /// <c>0x00553690</c>: adjusts the base size for the screen width. It subtracts 2 at 512,
     /// and 2 (below 11) or 4 at 400. It adds 2 at 800 and 4 at 1024. Any other width, 640
-    /// included, keeps the base size. The size then picks <c>FONT_INGAME&lt;n&gt;</c>: 6 picks
-    /// 7, and any size without its own case picks 12.
+    /// included, keeps the base size: a DK2 capture at 1600 x 1200 draws Level 1's subtitle
+    /// in <c>FONT_INGAME10</c>, unscaled (owner, 2026-10-17). The size then picks
+    /// <c>FONT_INGAME&lt;n&gt;</c>: 6 picks 7, and any size without its own case picks 12.
+    /// This is DK2's rule. Our Unity view does not use it: the owner found the result
+    /// unreadable at high resolutions (see <see cref="LegibleFileName"/>).
     /// </summary>
     public static int IngamePointSize(int baseSize, int screenWidth)
     {
@@ -46,19 +46,23 @@ public static class InterfaceFonts
     public static string IngameFileName(int baseSize, int screenWidth) =>
         $"FONT_INGAME{IngamePointSize(baseSize, screenWidth)}.bf4";
 
+    /// <summary>The shipped in-game sizes, smallest first.</summary>
+    public static readonly int[] IngameSizes = [7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72];
+
     /// <summary>
-    /// The DK2 width a modern screen stands for: the largest of <see cref="NativeWidths"/>
-    /// that fits, or 400 if none does. DK2 offered only its own widths. A wider screen
-    /// draws the text at this width's size, scaled up by <c>screen / reference</c>, so the
-    /// text keeps its share of the screen. This is our choice, not DK2's.
+    /// Our choice, not DK2's: the largest shipped in-game size no bigger than a fortieth of
+    /// the screen height, drawn unscaled so it stays crisp. That is 10 at 400 high, 26 at
+    /// 1080 and 36 at 1440. DK2 itself keeps size 10 at most widths (<see cref="IngamePointSize"/>),
+    /// which the owner found unreadable at high resolutions (2026-10-17).
     /// </summary>
-    public static int ReferenceWidth(int screenWidth)
+    public static string LegibleFileName(int screenHeight)
     {
-        int chosen = NativeWidths[0];
-        foreach (int width in NativeWidths)
-            if (width <= screenWidth) chosen = width;
-        return chosen;
+        int chosen = IngameSizes[0];
+        foreach (int size in IngameSizes)
+            if (size * 40 <= screenHeight) chosen = size;
+        return $"FONT_INGAME{chosen}.bf4";
     }
+
 }
 
 /// <summary>One laid-out line: its text and its width in font pixels.</summary>
@@ -81,8 +85,9 @@ public static class BitmapTextLayout
 
     /// <summary>
     /// Word-wraps <paramref name="text"/> to <paramref name="maxWidth"/>, breaking at
-    /// spaces and inside a word only when the word alone is too wide. That DK2's layout
-    /// <c>0x0062CAE0</c> wraps this way is INFERRED. It is unread.
+    /// spaces and inside a word only when the word alone is too wide. Spaces inside a line
+    /// are kept, as DK2 keeps the double space after a full stop (the 1600 x 1200 capture).
+    /// That DK2's layout <c>0x0062CAE0</c> wraps this way is INFERRED. It is unread.
     /// </summary>
     public static IReadOnlyList<BitmapTextLine> Wrap(BitmapFont font, string text, int maxWidth)
     {
@@ -90,15 +95,24 @@ public static class BitmapTextLayout
         foreach (string paragraph in text.Replace("\r", "").Split('\n'))
         {
             string line = "";
-            foreach (string word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            bool started = false;
+            int first = lines.Count;
+            foreach (string word in paragraph.Split(' '))
             {
-                string candidate = line.Length == 0 ? word : line + " " + word;
+                if (!started && word.Length == 0) continue;
+                string candidate = started ? line + " " + word : word;
                 if (Measure(font, candidate) <= maxWidth)
                 {
                     line = candidate;
+                    started = true;
                     continue;
                 }
-                if (line.Length > 0) lines.Add(new BitmapTextLine(line, Measure(font, line)));
+                if (started)
+                {
+                    string done = line.TrimEnd(' ');
+                    lines.Add(new BitmapTextLine(done, Measure(font, done)));
+                }
+                started = word.Length > 0;
                 line = word;
                 while (line.Length > 1 && Measure(font, line) > maxWidth)
                 {
@@ -108,6 +122,10 @@ public static class BitmapTextLayout
                     line = line[fit..];
                 }
             }
+            // A paragraph that ended in an overflowing space has nothing left; an empty
+            // paragraph still makes its blank line.
+            if (!started && lines.Count > first) continue;
+            line = line.TrimEnd(' ');
             lines.Add(new BitmapTextLine(line, Measure(font, line)));
         }
         return lines;
