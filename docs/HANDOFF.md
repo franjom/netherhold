@@ -120,6 +120,9 @@ neighbour queries and torture-approach flags are corrected (ADR-0500).
 Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
 Proposed parallelism milestones and determinism gates:
 [parallelism design](plans/2026-10-17-parallelism-design.md).
+Next interface scope selected by the owner (2026-10-17):
+[Step6 HUD and controls preparation](plans/2026-10-17-classic-look-step6.md),
+following ART_DIRECTION.md §13 and proposed ADR-0497. Step5 is not formally closed.
 
 Use serial checks; isolated probes must not save or restart the owner's editor.
 For master, open unity/DK2.Unity; check the retained classic worktree's branch

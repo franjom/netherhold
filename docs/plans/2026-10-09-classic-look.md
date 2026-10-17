@@ -165,10 +165,18 @@ Current appearance is owner-accepted; matched original startup/Levels7/8 views,
 room-border flames and the reported camera-rotation stutter remain open in
 [the Step5 checklist](2026-10-14-classic-look-step5.md).
 
+## Step 6: HUD and controls
+
+Preparation selected by the owner on 2026-10-17:
+[Step6 scope and research gates](2026-10-17-classic-look-step6.md).
+Design reference: ART_DIRECTION.md §13 and proposed ADR-0497; one scalable HUD
+for both rendering styles. Step5's outstanding gates remain in its checklist.
+
 ## Not in this plan
 
-The HUD and panel, the Hand of Evil's cursor, spell and trap effects, sound, and the modern look
-(M11), which ADR-0408 puts on the same pipeline and which is judged against this one.
+Spell and trap effects, sound, and the modern 3D look (M11), which ADR-0408 puts
+on the same pipeline and which is judged against this one. Step6 covers the HUD
+and controls under the interface standard, not replacement 3D artwork.
 
 Owner follow-ups built on 2026-10-12 beyond Step 4's scope (ADR-0442):
 
