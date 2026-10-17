@@ -15,6 +15,10 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**263** — `0x688ADFB86353DF0E`. `CreatureState.GemCarrier`, DK2's creature `+0x92` bit 2, hashed and saved after the standing job: trigger action 20 hands a creature a Portal Gem and sets it (ADR-0495). Snapshot format is 263. The pin's fixture has no carrier, so the change is the version alone; `PortalGemOnRealDataTests` round-trips a set flag.
+
+**262** — `0x6A54498299CB6FDD`. `PlayerState.CameraPathEndTick`, saved after PortalsClosed: action 31 starts a scripted camera path and condition 72 waits for its end (ADR-0496).
+
 **261** — `0xFD8573748CE724A2`. A level's VARIABLES id 77 records set creature definition fields (ADR-0491): Level 1's Lord of the Land Threat 125 and MeleeDamage 200, Level 4's Threat 150; no new saved field. The fixture has no level variables, so only the version moves the pin.
 
 **260** — `0xBC2CC79AE5E4E213`. Exploration is saved and hashed alongside master's navigation stamps.

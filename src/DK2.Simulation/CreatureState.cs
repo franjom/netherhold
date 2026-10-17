@@ -674,6 +674,10 @@ public sealed class CreatureState
     /// a creature.</summary>
     public int CarriedObjectId = -1;
 
+    /// <summary>Creature <c>+0x92</c> bit 2, set by trigger action 20 with the Portal Gem; only the
+    /// renderer reads it, for the Gem dust trail (ADR-0495).</summary>
+    public bool GemCarrier;
+
     /// <summary>The object this worker is walking towards, or -1 for none.</summary>
     public int TargetObjectId = -1;
 
@@ -1475,6 +1479,7 @@ public sealed class CreatureState
         hash.Add((int)GoodJob);
         hash.Add(GoodJobPlayerId);
         hash.Add(GoodJobActionPointId);
+        hash.Add(GemCarrier);
         for (int i = 0; i < EngagedMelee.Length; i++) hash.Add(EngagedMelee[i]);
         for (int i = 0; i < EngagedRanged.Length; i++) hash.Add(EngagedRanged[i]);
     }

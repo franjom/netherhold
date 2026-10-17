@@ -24,6 +24,22 @@ namespace DK2.Presentation.Tests;
 public class WorldViewTests
 {
     [InstallFact]
+    public void AGemCarrierIsDrawnAsOne_SoItsDrawsGiveOffGemDust()
+    {
+        (GameDatabase database, WorldState world) = RealLevel()!.Value;
+        CreatureDef definition = database.Creatures.Values.Single(c => c.Name == "Imp");
+        CreatureState carrier = world.SpawnCreature(database, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+        CreatureState other = world.SpawnCreature(database, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(4, 3));
+        carrier.GemCarrier = true;
+
+        IReadOnlyList<CreatureView> views = new WorldView(database).Creatures(world).ToList();
+
+        Assert.True(views.Single(c => c.Id == carrier.Id).GemCarrier);
+        Assert.False(views.Single(c => c.Id == other.Id).GemCarrier);
+        Assert.Equal("Gem dust sparkles", database.Effects[CreatureView.GemDustSparkle.EffectId].Name);
+    }
+
+    [InstallFact]
     public void AStationaryImpWithARouteDoesNotRunInPlaceBeforeItStartsMoving()
     {
         (GameDatabase database, WorldState world) = RealLevel()!.Value;

@@ -1042,6 +1042,13 @@ public sealed class TriggerExecutor
             if (_world is null || _database is null) return Unperformed(record, context, run.Partial);
             return SetHeroObjective(new StateHookContext(_world, _database, this), record.Parameters, run.Creature);
         }
+        if (context == TriggerContext.Creature && record.Type == 20 && run.Creature is not null)
+        {
+            run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+            if (_world is null || _database is null) return Unperformed(record, context, run.Partial);
+            GivePortalGem(_world, _database, run.Creature);
+            return true;
+        }
         if (context == TriggerContext.Creature && CreatureOwnsAction(record.Type))
             return Unperformed(record, context, run.Partial);
         if (context == TriggerContext.Creature && PlayerOwnsAction(record.Type))
@@ -1122,6 +1129,24 @@ public sealed class TriggerExecutor
                         ScriptedViewKind.Speech, player, unchecked((int)p["SpeechId"]), default, false));
                 return Unperformed(record, context, run.Partial);
         }
+    }
+
+    /// <summary>The Portal Gem's object id, the type creature action 20 always makes.</summary>
+    public const byte PortalGemObjectId = 28;
+
+    /// <summary>Creature action 20 (<c>0x0049AC80</c> arm <c>0x14</c>): a Portal Gem is made at the
+    /// creature, owned by the creature's keeper, and handed to it (<c>Creature_PickUpCarriedThing</c>,
+    /// <c>0x0048B350</c>); then <c>+0x92</c> bit 2 is set. The object type is fixed and the
+    /// action's byte is not read. The hand-over refuses a creature already carrying something, which
+    /// leaves the gem on the floor, but the bit is set either way. The arm always succeeds. Level 1
+    /// gives its Lord of the Land the gem this way on creation (trigger 85), and he drops it on
+    /// death through the carrier's ordinary drop.</summary>
+    private static void GivePortalGem(WorldState world, GameDatabase database, CreatureState creature)
+    {
+        ObjectState gem = world.SpawnObject(database, PortalGemObjectId,
+            new PlayerId(creature.OwnerPlayerId), (creature.Tile.Y * world.Width) + creature.Tile.X);
+        if (creature.CarriedObjectId < 0) ObjectCarryRules.PickUp(creature, gem);
+        creature.GemCarrier = true;
     }
 
     private static bool Unperformed(

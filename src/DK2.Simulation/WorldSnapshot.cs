@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 262;
+    private const int FormatVersion = 263;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -508,6 +508,7 @@ public static class WorldSnapshot
             w.Write((int)c.GoodJob);
             w.Write(c.GoodJobPlayerId);
             w.Write(c.GoodJobActionPointId);
+            w.Write(c.GemCarrier);
             for (int i = 0; i < c.SpellStamps.Length; i++) w.Write(c.SpellStamps[i]);
             for (int i = 0; i < c.EngagedMelee.Length; i++) w.Write(c.EngagedMelee[i]);
             for (int i = 0; i < c.EngagedRanged.Length; i++) w.Write(c.EngagedRanged[i]);
@@ -1178,6 +1179,7 @@ public static class WorldSnapshot
                 GoodJob = (JobType)r.ReadInt32(),
                 GoodJobPlayerId = r.ReadByte(),
                 GoodJobActionPointId = r.ReadInt32(),
+                GemCarrier = r.ReadBoolean(),
             };
             for (int k = 0; k < creature.SpellStamps.Length; k++) creature.SpellStamps[k] = r.ReadInt64();
             for (int k = 0; k < creature.EngagedMelee.Length; k++) creature.EngagedMelee[k] = r.ReadInt32();

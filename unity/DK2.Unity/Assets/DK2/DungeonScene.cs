@@ -74,6 +74,9 @@ namespace DK2.Unity
         public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual) =>
             _heartAdvances.Enqueue((owner, visual.PhaseStep));
         public System.Action<ViewEffectRequest> HeartEffectRequested { get; set; }
+        /// <summary>A drawn gem carrier's mesh point 10001, once per draw (CreatureView.GemDustSparkle).</summary>
+        public System.Action<FpPosition3> GemSparkleRequested { get; set; }
+        private readonly Dictionary<int, long> _gemSparkleQuanta = new Dictionary<int, long>();
         public System.Func<EffectTime> HeartEffectClock { get; set; } =
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
@@ -256,6 +259,7 @@ namespace DK2.Unity
 
             _creatures.Remove(creatureId);
             if (!keepHead) _creatureHeads.TryRemove(creatureId, out _);
+            _gemSparkleQuanta.Remove(creatureId);
             _creatureArt.Remove(creatureId);
             _creaturePoses.Remove(creatureId);
             _creatureClips.Remove(creatureId);
@@ -335,6 +339,21 @@ namespace DK2.Unity
                         ? new FpPosition3(new Fp32((int)(head.x * Fp32.One)), new Fp32((int)(-head.z * Fp32.One)),
                             new Fp32((int)(head.y * Fp32.One)))
                         : (FpPosition3?)null;
+                // Render_MeshEffectPoints (0x005A3AA0) runs after each draw of a creature's mesh: a
+                // gem carrier gives off effect 257 at its point 10001, every draw. Per-draw work is
+                // paced by the 50 ms presentation quantum, as the wall flames are (ADR-0494): at most
+                // one per draw and one per quantum, since retail DK2's frame rate is open (Q604).
+                if (pose.GemCarrier && player != null && GemSparkleRequested != null
+                    && player.TryGetControlPoint(CreatureView.GemDustSparkle.ControlPoint, out Vector3 sparkle))
+                {
+                    long quantum = HeartEffectClock().Milliseconds / 50;
+                    if (!_gemSparkleQuanta.TryGetValue(entry.Key, out long last) || quantum > last)
+                    {
+                        _gemSparkleQuanta[entry.Key] = quantum;
+                        GemSparkleRequested(new FpPosition3(new Fp32((int)(sparkle.x * Fp32.One)),
+                            new Fp32((int)(-sparkle.z * Fp32.One)), new Fp32((int)(sparkle.y * Fp32.One))));
+                    }
+                }
             }
             foreach (KeyValuePair<int, ObjectView> entry in _objectPoses)
             {

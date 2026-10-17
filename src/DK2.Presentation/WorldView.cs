@@ -182,9 +182,11 @@ public readonly struct CreatureView
         bool animationPaused = false,
         bool animationDeferred = false,
         int? previousHeight = null,
-        Fp32? animationInitialMovementSpeed = null)
+        Fp32? animationInitialMovementSpeed = null,
+        bool gemCarrier = false)
     {
         Id = id;
+        GemCarrier = gemCarrier;
         OwnerPlayerId = ownerPlayerId.Value;
         PosX = posX;
         PosY = posY;
@@ -242,6 +244,22 @@ public readonly struct CreatureView
     public Fp32? AnimationInitialMovementSpeed { get; }
     public bool AnimationPaused { get; }
     public bool AnimationDeferred { get; }
+
+    /// <summary>The Portal Gem's carrier mark (<see cref="CreatureState.GemCarrier"/>, creature
+    /// <c>+0x92</c> bit 2): each draw gives off effect 257, Gem dust sparkles, at every mesh control
+    /// point 10001 (<see cref="GemDustSparkle"/>).</summary>
+    public bool GemCarrier { get; }
+
+    /// <summary>What a drawn gem carrier gives off, and where (<c>Render_MeshEffectPoints</c>,
+    /// <c>0x005A3AA0</c>, the push at <c>0x005A426B</c>): effect 257 through the view's gated
+    /// creator (<c>0x0043A8E0</c> forwarding to <c>0x00440420</c>), heading 0, once per point per
+    /// draw; the owner is the render sink's word <c>+0xC</c>, taken as the viewer (its writer is
+    /// unread). The rate is DK2's frame rate, whatever that is.</summary>
+    public static class GemDustSparkle
+    {
+        public const ushort EffectId = 257;
+        public const uint ControlPoint = 10001;
+    }
 
     /// <summary>Gold in its hands. Visible in DK2 — an imp carrying gold looks like it.</summary>
     public int GoldHeld { get; }
@@ -1339,7 +1357,8 @@ public sealed partial class WorldView
                 animationPaused: creature.FrozenTicks > 0,
                 animationDeferred: IsDeferredLanding(creature), previousHeight: previousHeight,
                 animationInitialMovementSpeed: !stationaryMovement && IsTravelAnimation(creature)
-                    ? new Fp32(creature.Body.MaxSpeed >> 4) : null);
+                    ? new Fp32(creature.Body.MaxSpeed >> 4) : null,
+                gemCarrier: creature.GemCarrier);
         }
     }
 

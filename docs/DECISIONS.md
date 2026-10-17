@@ -11449,6 +11449,41 @@ that retail DK2 renders at20FPS. A timed original-game comparison may replace
 the baseline (Q604). Simulation, particles and animation phase offsets do not
 change. Repeated updates/camera draws at the same clock time cannot accelerate it.
 
+## ADR-0495 - Trigger action 20 hands over the Portal Gem, and its carrier sparkles
+**Date:** 2026-10-17 - **Status:** accepted - Research: functions/0049AC80.md, functions/005A3AA0.md
+
+**Context.** The owner saw a sparkling trail behind Level 1's Lord of the Land. Level 1's
+trigger 85 fires on his creation (creature event 3) with action 20 and action 42. Creature
+action 20 (`0x0049AC80` arm `0x14`) creates object 28, the Portal Gem, at the creature, owned
+by its keeper, gives it to the creature (`Creature_PickUpCarriedThing`, `0x0048B350`, which
+refuses a creature already carrying something) and sets creature `+0x92` bit 2 either way. Only
+the renderer reads that bit: `Render_MeshEffectPoints` (`0x005A3AA0`) gives off effect 257, Gem
+dust sparkles, at each mesh control point 10001 after every draw, through the view's gated
+creator (`0x0043A8E0` to `0x00440420`). The Lord's walk and run meshes carry a point 10001. A Level 1 dump
+with the map explored held nine 257s at the Lord and no other effect near him. The gem's own
+idle effect (297, object state 50, `0x004A3C30`) is not made while it is carried. The pick-up
+unlinks the gem from its tile (`Thing_UnlinkFromTile` in `0x0048B350`), and the per-tile draw
+pass walks tile chains, so a carried gem is not drawn (LIKELY). Action 20 ships in 15 levels.
+We left the action unperformed.
+
+**Decision.** Perform creature action 20: spawn the gem at the creature's tile, hand it over
+unless the creature already carries an object, and set `CreatureState.GemCarrier` (hashed and
+saved; HashVersion and snapshot format 263). The carrier's ordinary death drop puts the gem on
+its tile, as DK2's capture shows at the Lord's death. The view exposes `CreatureView.GemCarrier`;
+Unity requests effect 257 at the drawn mesh's point 10001 through the same visibility test as
+other effects. Its owner is the viewer, an inference: DK2 passes the render sink's word `+0xC`,
+whose writer is unread. DK2 asks once per draw. Ours asks at most once per draw
+and once per 50 ms presentation quantum, as ADR-0494 paces the wall flames, because retail
+DK2's frame rate is open (Q604).
+
+**Consequences.** Level 1 over 20 seeds is unchanged: 20/20, every win tick identical to master
+dfa707e1. The trail density follows our quantum, not DK2's frame rate; the dump suggests about
+4.5 draws per 50 ms in DK2 (Q606). A mesh with several points 10001 gives off one sparkle, since
+our clip keeps one point per id. Not built: the dropped gem's state 50 (bob, spin, effect 297),
+the other mesh-point effects (262, 292), the pick-up icon 5 and the action-42 slot icons (Q607).
+The arm's creation of the gem goes through our object spawn, which has no failure path; DK2's
+can fail and then sets nothing.
+
 ## ADR-0496 — Scripted camera paths, the letterbox and subtitles; condition 72 waits for the path
 **Date:** 2026-10-17 · **Status:** accepted · Research: camera-paths.md
 

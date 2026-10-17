@@ -264,6 +264,9 @@ namespace DK2.Unity
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
                     attachment: _scene.CreatureAttachment, clock: EffectClock);
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
+                // 0x0043A8E0's owner is the render sink's word +0xC, whose writer is unread; taken as the viewer.
+                _scene.GemSparkleRequested = point => _constructionEffects.Model.Request(new ViewEffectRequest(
+                    new EffectId(CreatureView.GemDustSparkle.EffectId), new PlayerId((byte)viewingPlayerId), point));
                 _constructionEffects.LightTable = _scene.LightTableAt;
             }
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),

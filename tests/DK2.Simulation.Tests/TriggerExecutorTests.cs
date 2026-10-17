@@ -1990,8 +1990,8 @@ public class TriggerExecutorTests
             },
         };
 
+    // Action 20 (give the Portal Gem) is performed since ADR-0495: PortalGemOnRealDataTests.
     [Theory]
-    [InlineData((byte)20)]
     [InlineData((byte)43)]
     public void CreatureOwnedActionsSucceedAndRemainExplicitlyPartial(byte type)
     {
