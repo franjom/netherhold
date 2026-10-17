@@ -368,6 +368,10 @@ public sealed class TriggerExecutor
     /// </summary>
     public bool TrackReach { get; set; }
 
+    /// <summary>Where actions 24, 31 and 38 send what they ask of the player's view. Observation
+    /// only, like an event sink: nothing here reads a request back.</summary>
+    internal Action<ScriptedViewRequest>? ViewRequested { get; set; }
+
     public TriggerExecutor(
         TriggerTree tree,
         TriggerState state,
@@ -699,6 +703,12 @@ public sealed class TriggerExecutor
 
         if (record.Type != 72) return TriggerConditionResult.NotEvaluated;
 
+        // 0x004C84B8: false while the camera is on a path (mode 0x12) or in one of its timed
+        // moves. The path is modelled (ADR-0496); the moves are not, so a still answer stays
+        // an assumption.
+        if (_world is not null && _world.HasPlayer(run.Player!.Value)
+            && CameraPathRules.Playing(_world.Player(run.Player.Value), _world.CurrentTick))
+            return TriggerConditionResult.Unsatisfied;
         run.Assumed.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
         return TriggerConditionResult.Satisfied;
     }
@@ -1016,7 +1026,7 @@ public sealed class TriggerExecutor
     {
         // Player-owned implemented arms delegate from a creature with its owner as
         // context. The world dispatcher refuses these types (ADR-0162, ADR-0265).
-        if (record.Type is 10 or 11 or 28 or 37)
+        if (record.Type is 10 or 11 or 24 or 26 or 28 or 31 or 37 or 38)
         {
             if (context is TriggerContext.Player or TriggerContext.Creature)
                 return ExecuteAction(record, context, run);
@@ -1061,6 +1071,57 @@ public sealed class TriggerExecutor
         creature.GoodJobActionPointId = unchecked((int)p["ActionPointId"]);
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
         return true;
+    }
+
+    /// <summary>Actions 24, 26, 31 and 38, whose effect is on the keeper's own view. DK2 runs 26
+    /// (<c>0x004C86CF</c>), 31 (<c>0x004C886E</c>) and 38 (<c>0x004C8955</c>) only for its local
+    /// player; here every
+    /// keeper's request is sent and the view keeps its own (camera-paths.md section 6). 24 posts
+    /// a message record as well (<c>Message_Post</c> type 0x15), which is not built, so it stays
+    /// partial. Every arm returns 1.</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/camera-paths.md")]
+    private bool RequestView(TriggerRecord record, TriggerContext context, TriggerRun run)
+    {
+        IReadOnlyDictionary<string, long> p = record.Parameters;
+        if (_world is null || _database is null || run.Player is not PlayerId player || !_world.HasPlayer(player))
+            return Unperformed(record, context, run.Partial);
+        ref PlayerState keeper = ref _world.Player(player);
+        switch (record.Type)
+        {
+            case 31:
+            {
+                ActionPointState? point = _world.ActionPoints.FirstOrDefault(a => a.Id == Byte(p, "ActionPointId"));
+                if (point is null) return true;
+                int pathId = Byte(p, "PathId");
+                if (!CameraPathRules.TryStart(_database, ref keeper, Possessing(_world, player), pathId, _world.CurrentTick))
+                    return true;
+                var centre = new TilePos((point.StartX + point.EndX) / 2, (point.StartY + point.EndY) / 2);
+                ViewRequested?.Invoke(new ScriptedViewRequest(
+                    ScriptedViewKind.CameraPath, player, pathId, centre, Byte(p, "Available") != 0));
+                return true;
+            }
+            case 26:
+            {
+                // Game action 4 to the point's centre: a glide of at most 500 ms, which condition
+                // 72 also waits for and which is not modelled here (camera-paths.md section 8).
+                ActionPointState? point = _world.ActionPoints.FirstOrDefault(a => a.Id == Byte(p, "ActionPointId"));
+                if (point is not null)
+                    ViewRequested?.Invoke(new ScriptedViewRequest(ScriptedViewKind.CameraMove, player, 0,
+                        new TilePos((point.StartX + point.EndX) / 2, (point.StartY + point.EndY) / 2), false));
+                return true;
+            }
+            case 38:
+                ViewRequested?.Invoke(new ScriptedViewRequest(
+                    ScriptedViewKind.Letterbox, player, 0, default, Byte(p, "Available") == 1));
+                return true;
+            default:
+                // Message_Post returns before the speech when the recipient's +0x19A, our
+                // Status, is set (trigger-action-arms.md, Q227).
+                if (keeper.Status == 0)
+                    ViewRequested?.Invoke(new ScriptedViewRequest(
+                        ScriptedViewKind.Speech, player, unchecked((int)p["SpeechId"]), default, false));
+                return Unperformed(record, context, run.Partial);
+        }
     }
 
     private static bool Unperformed(
@@ -1154,6 +1215,8 @@ public sealed class TriggerExecutor
                 Byte(p, "CreatureId"), Byte(p, "Level"));
             return true;
         }
+        if (record.Type is 24 or 26 or 31 or 38)
+            return RequestView(record, context, run);
         if (record.Type == 37)
         {
             // 0x004C892D: body byte 0 zero clears PortalsOpen (player +0x76 bit 10), anything

@@ -1,0 +1,78 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+using DK2.Core;
+using DK2.Data.Model;
+
+namespace DK2.Simulation;
+
+/// <summary>What a level script asked the player's view to do. Observation only: the view
+/// plays it, the simulation never reads one back (<see cref="SimEvent"/>).</summary>
+public enum ScriptedViewKind : byte
+{
+    /// <summary>Action 31: camera path <see cref="ScriptedViewRequest.Value"/> from the centre
+    /// of <see cref="ScriptedViewRequest.Tile"/>; <see cref="ScriptedViewRequest.Flag"/> is the
+    /// action's <c>Available</c>.</summary>
+    CameraPath = 1,
+
+    /// <summary>The player skipped the path in flight (<c>0x00405362</c>).</summary>
+    CameraPathSkipped = 2,
+
+    /// <summary>Action 38: letterbox on (<see cref="ScriptedViewRequest.Flag"/>) or off.</summary>
+    Letterbox = 3,
+
+    /// <summary>Action 24: Mentor line <see cref="ScriptedViewRequest.Value"/>, the sound-bank
+    /// event id; its subtitle is <c>Speech.str</c> entry <c>Value - 1</c>.</summary>
+    Speech = 4,
+
+    /// <summary>Action 26: the keeper camera glides to the centre of
+    /// <see cref="ScriptedViewRequest.Tile"/> (game action 4, <c>0x00442650</c>).</summary>
+    CameraMove = 5,
+}
+
+public readonly record struct ScriptedViewRequest(
+    ScriptedViewKind Kind, PlayerId Player, int Value, TilePos Tile, bool Flag);
+
+/// <summary>A level script's camera path, as far as the trigger walk can see it: condition 72
+/// is false while one plays (camera-paths.md, ADR-0496).</summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/camera-paths.md")]
+public static class CameraPathRules
+{
+    /// <summary><c>0x0044A370</c>: paths 50-99, the creature intros, start at frame 7.</summary>
+    public static int FirstFrame(int pathId) => pathId is >= 50 and <= 99 ? 7 : 0;
+
+    /// <summary>Game ticks a path of <paramref name="frames"/> frames plays at the nominal
+    /// 250 ms a tick. <c>Camera_Update</c> adds 0.03 frames a wall-clock millisecond to a
+    /// remainder that starts at 0.5 and ends the path once the frame reaches
+    /// <c>frames - 1</c>, so it lasts <c>(frames - first - 1.5) / 0.03</c> ms, which is
+    /// <c>(2 (frames - first) - 3) / 15</c> ticks, rounded up here so the walk that first
+    /// sees the camera still is the one after it stopped. The original measures wall clock,
+    /// ours game ticks; they agree at normal speed (INFERRED).</summary>
+    public static int DurationTicks(int pathId, int frames)
+    {
+        int halfFrames = 2 * (frames - FirstFrame(pathId)) - 3;
+        return halfFrames <= 0 ? 0 : (halfFrames + 14) / 15;
+    }
+
+    public static bool Playing(in PlayerState player, GameTick now) => player.CameraPathEndTick > now.Value;
+
+    /// <summary>Action 31 for <paramref name="player"/>. <c>0x0044A370</c> refuses while a path
+    /// plays or the keeper possesses, and when the file does not load; a refused start changes
+    /// nothing. Returns whether the path started.</summary>
+    public static bool TryStart(GameDatabase database, ref PlayerState player, bool possessing, int pathId, GameTick now)
+    {
+        if (Playing(player, now) || possessing) return false;
+        if (!database.CameraPathFrames.TryGetValue(pathId, out int frames)) return false;
+        player.CameraPathEndTick = now.Value + DurationTicks(pathId, frames);
+        return true;
+    }
+
+    /// <summary>The skip (<c>0x00405362</c>): with the camera on a path, end it now.</summary>
+    public static bool Skip(ref PlayerState player, GameTick now)
+    {
+        if (!Playing(player, now)) return false;
+        player.CameraPathEndTick = now.Value;
+        return true;
+    }
+}

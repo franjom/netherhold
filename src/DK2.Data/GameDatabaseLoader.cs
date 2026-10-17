@@ -2,8 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Buffers.Binary;
+using System.Text.RegularExpressions;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.Data.Wad;
 
 namespace DK2.Data;
 
@@ -65,7 +68,32 @@ public static class GameDatabaseLoader
 
         return new GameDatabase(
             terrain, rooms, creatures, variables, keeperSpells, objects, doors, traps,
-            creatureSpells, shots, effects, effectElements);
+            creatureSpells, shots, effects, effectElements,
+            cameraPathFrames: LoadCameraPathFrames(installDir));
+    }
+
+    private static readonly Regex EnginePathName =
+        new(@"^EnginePath(\d+)\.kcs$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+    /// <summary>The frame count of every <c>EnginePath%d.kcs</c> in <c>Data/Paths.WAD</c>, the
+    /// name 0x0044A370 formats from a path id; the count is the file's first dword
+    /// (camera-paths.md section 1). Empty when the archive is missing.</summary>
+    public static IReadOnlyDictionary<int, int> LoadCameraPathFrames(string installDir)
+    {
+        var frames = new Dictionary<int, int>();
+        string path = Path.Combine(installDir, "Data", "Paths.WAD");
+        if (!File.Exists(path)) return frames;
+        using WadArchive wad = WadArchive.Open(path);
+        foreach (WadEntry entry in wad.Entries)
+        {
+            Match name = EnginePathName.Match(Path.GetFileName(entry.Name));
+            if (!name.Success) continue;
+            byte[] data = wad.Extract(entry);
+            if (data.Length >= 4)
+                frames[int.Parse(name.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)] =
+                    (int)BinaryPrimitives.ReadUInt32LittleEndian(data);
+        }
+        return frames;
     }
 
     /// <summary>

@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 261;
+    private const ulong HashVersion = 262;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
@@ -55,6 +55,12 @@ public sealed class GameSimulation
             ? new TriggerExecutor(world.Triggers)
             : new TriggerExecutor(triggers, world.Triggers, world, database, rng);
         _context.Triggers = _triggers;
+        _triggers.ViewRequested = request => _context.Events.Emit(new SimEvent(_context.Tick,
+            nameof(TriggerExecutor), "scripted_view",
+            $"player={request.Player} kind={request.Kind} value={request.Value} tile=({request.Tile.X},{request.Tile.Y}) flag={request.Flag}")
+        {
+            ScriptedView = request,
+        });
     }
 
     public GameDatabase Database { get; }
@@ -122,6 +128,14 @@ public sealed class GameSimulation
             foreach (Commands.AcknowledgePlayerMessageCommand ack in _context.Commands<Commands.AcknowledgePlayerMessageCommand>())
                 World.Messages.Acknowledge(ack.PlayerId, ack.MessageId);
             World.Messages.Sweep(World, Database);
+        }
+
+        // The key handler runs before the turn's walk, so a skip is seen by this turn's condition 72.
+        foreach (Commands.SkipCameraPathCommand skip in _context.Commands<Commands.SkipCameraPathCommand>())
+        {
+            if (CameraPathRules.Skip(ref World.Player(skip.PlayerId), World.CurrentTick))
+                _triggers.ViewRequested?.Invoke(new ScriptedViewRequest(
+                    ScriptedViewKind.CameraPathSkipped, skip.PlayerId, 0, default, false));
         }
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.

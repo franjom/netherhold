@@ -11448,3 +11448,41 @@ This restores the earlier20Hz adapter baseline. Do not cap the game's frame rate
 that retail DK2 renders at20FPS. A timed original-game comparison may replace
 the baseline (Q604). Simulation, particles and animation phase offsets do not
 change. Repeated updates/camera draws at the same clock time cannot accelerate it.
+
+## ADR-0496 — Scripted camera paths, the letterbox and subtitles; condition 72 waits for the path
+**Date:** 2026-10-17 · **Status:** accepted · Research: camera-paths.md
+
+**Context.** DK2's campaign levels open with scripted camera paths: `.KCS` files in
+Paths.WAD, started by trigger action 31. The camera plays them at 30 frames a
+wall-clock second inside a letterbox, with the Mentor's subtitles in the bottom bar.
+
+The scripts wait for each path with condition 72, "the camera is still". Ours
+answered that condition true at once (an assumption). Level 1's after-intro actions
+therefore ran on turn 2:
+- its timer 15 started about 30 s early;
+- the area its fly-over reveals with action 17 was hidden again before anyone saw it.
+
+**Decision.**
+- Each keeper's state gains `CameraPathEndTick`, saved and hashed (hash and snapshot
+  262). Action 31 sets it from the path's frame count, which GameDatabase reads from
+  Paths.WAD. It refuses while a path plays, while possessing, or when the file is
+  missing. `0x0044A370` also refuses in mode 0xB and during a timed transition
+  (`+0xDD8`); those are not modelled.
+- Condition 72 answers false until that tick.
+- `SkipCameraPathCommand` (Escape or Space) ends the path before the turn's walk.
+- Actions 24, 26, 31 and 38 emit `ScriptedViewRequest`s.
+- The presentation plays them on the wall clock through `ScriptedViewDirector`: path
+  playback, the counted letterbox, the speech-off subtitle queue, and action 26's
+  glide.
+
+**Consequences.**
+- Level 1's opening now waits a nominal 53 ticks for the plug path and 67 more
+  for the fly-over. These are DK2's wall-clock lengths at 250 ms a tick; no capture
+  pins the real turn counts. Its point 2 is explored for the fly-over and hidden after
+  it. Level win rates may move, toward DK2.
+- The path's length is measured in game ticks, where DK2 measures wall clock; the
+  two agree at normal speed.
+- The state is per keeper, where DK2 has one local camera.
+- Not built: the timed moves condition 72 also waits for (action 26's glide,
+  action 27), the subtitle overflow scroll, speech audio, action 38's interface
+  slots, and action 24's message record.

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
@@ -34,9 +35,11 @@ public class TriggerExecutorOnRealDataTests
             "",
             Census(simulation.LastTriggerRun!.Summary));
 
-        // Actions, which descend whatever we do because their dispatcher succeeds.
+        // Actions, which descend whatever we do because their dispatcher succeeds. 31 and
+        // 38 left it for the view's camera path and letterbox (ADR-0496); 24 still posts no
+        // message record.
         Assert.Equal(
-            "214:14@World=2,214:24@Player=2,214:31@Player=2,214:38@Player=2",
+            "214:14@World=2,214:24@Player=2",
             Census(simulation.LastTriggerRun!.PartialSummary));
 
         // Nothing on level 1's opening turn reaches a type DK2 itself refuses.
@@ -45,6 +48,54 @@ public class TriggerExecutorOnRealDataTests
         // Player-context type 72, taken as true rather than declined. If this ever reads
         // zero, the player tree stopped being walked.
         Assert.Equal("213:72@Player=2", Census(simulation.LastTriggerRun!.AssumedSummary));
+    }
+
+    /// <summary>Level 1 opens on the Heart's plug path: trigger 1 runs action 31 with path 1
+    /// at action point 18, and its child condition 72 waits for the camera (ADR-0496). Path 1
+    /// is 399 frames, 53 ticks at 30 frames a second, as long as the plug sequence.</summary>
+    [InstallFact]
+    public void LevelOneOpensOnTheHeartPlugPathAndItsScriptWaitsANominalFiftyThreeTicks()
+    {
+        (GameSimulation simulation, _) = LevelOne(seed: 7, withThings: true);
+        var events = new ListEventSink();
+        simulation.ObserveWith(events);
+
+        simulation.Tick();
+
+        Assert.Equal(53, simulation.World.Player(new PlayerId(3)).CameraPathEndTick);
+        ScriptedViewRequest path = Assert.Single(events.Events,
+            e => e.ScriptedView?.Kind == ScriptedViewKind.CameraPath).ScriptedView!.Value;
+        Assert.Equal((1, false), (path.Value, path.Flag));
+        Assert.Contains(events.Events, e => e.ScriptedView?.Kind == ScriptedViewKind.Letterbox && e.ScriptedView.Value.Flag);
+        Assert.Contains(events.Events, e => e.ScriptedView?.Kind == ScriptedViewKind.Speech && e.ScriptedView.Value.Value == 3);
+    }
+
+    /// <summary>Level 1's intro chain (camera-paths.md section 8): when the plug path stops,
+    /// condition 73 reveals action point 2 and flies path 201 (500 frames, 67 ticks); when that
+    /// stops, trigger 7 hides point 2 again. The fog is the script's, timed by condition 72.</summary>
+    [InstallFact]
+    public void LevelOneRevealsPointTwoForItsFlyOverAndHidesItAfterwards_AtNominalTickLengths()
+    {
+        (GameSimulation simulation, _) = LevelOne(seed: 7, withThings: true);
+        var events = new ListEventSink();
+        simulation.ObserveWith(events);
+        ActionPointState point = simulation.World.ActionPoints.Single(a => a.Id == 2);
+        var probe = new TilePos((point.StartX + point.EndX) / 2, (point.StartY + point.EndY) / 2);
+        bool Explored() => simulation.World.Tile(probe.X, probe.Y).IsExploredBy(3);
+
+        simulation.Run(53);
+        Assert.DoesNotContain(events.Events, e => e.ScriptedView?.Value == 201);
+
+        simulation.Run(1);   // tick 53: the plug path has stopped
+        Assert.Equal(53 + 67, simulation.World.Player(new PlayerId(3)).CameraPathEndTick);
+        Assert.Single(events.Events, e => e.ScriptedView is { Kind: ScriptedViewKind.CameraPath, Value: 201 });
+        Assert.True(Explored());
+
+        simulation.Run(66);
+        Assert.True(Explored());
+        simulation.Run(1);   // tick 120: the fly-over has stopped
+        Assert.False(Explored());
+        Assert.Contains(events.Events, e => e.ScriptedView is { Kind: ScriptedViewKind.Letterbox, Flag: false });
     }
 
     /// <summary>Corpus corroboration for the one thing about action type 1 that a wrong

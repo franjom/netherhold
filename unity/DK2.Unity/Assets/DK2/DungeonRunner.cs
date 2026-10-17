@@ -11,7 +11,10 @@ using DK2.Art;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
+using DK2.Data.Camera;
 using DK2.Data.Model;
+using DK2.Data.Text;
+using DK2.Data.Wad;
 using DK2.Data.Save;
 using DK2.Presentation;
 using DK2.Simulation;
@@ -135,6 +138,12 @@ namespace DK2.Unity
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
         private TilePos? _dragTo;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
+        private ScriptedViewDirector _scriptedView;
+        private Vector3 _glideFrom;
+        private Vector3 _glideTo;
+        private double _glideStart;
+        private double _glideMilliseconds;
+        private GUIStyle _subtitleStyle;
         private RoomTypeId[] _roomIds = Array.Empty<RoomTypeId>();
         private double _tickDebt;
         private string _failure;
@@ -257,8 +266,11 @@ namespace DK2.Unity
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
                 _constructionEffects.LightTable = _scene.LightTableAt;
             }
+            _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
+                CameraPathLoader(install), SubtitleLoader(install),
+                (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance);
             _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
-                new PlayerId((byte)viewingPlayerId), (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance));
+                new PlayerId((byte)viewingPlayerId), _scriptedView));
 
             int maximumHeartHealth = database[VariableTypeId.DungeonHeartObjectHealth];
             _heartHealthObserver = change => _scene.QueueHeartHealthChange(change.Owner,
@@ -316,9 +328,23 @@ namespace DK2.Unity
             WaitForTick();
             if (_simulation == null) return;
 
+            _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d);
             using (InputMarker.Auto())
             {
-                ControlCamera();
+                ApplyLetterbox();
+                if (_scriptedView.PathPlaying)
+                {
+                    // 0x00405362: Escape or Space ends the path; the simulation hears it next tick.
+                    if ((Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Space)) && _scriptedView.Skip())
+                        _pendingCommands.Add(new DK2.Simulation.Commands.SkipCameraPathCommand(new PlayerId((byte)viewingPlayerId)));
+                }
+                if (_scriptedView.TryTakeCameraMove(out TilePos glideTile)) StartGlide(glideTile);
+                if (_scriptedView.PathPlaying) ApplyPathCamera();
+                else
+                {
+                    Glide();
+                    ControlCamera();
+                }
                 ReadAmbientKeys();
                 ReadToolKeys();
                 QueueInput();
@@ -361,7 +387,8 @@ namespace DK2.Unity
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
-                _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
+                _scene.PrepareClassicLighting(Camera.main,
+                    _scriptedView.Pose is CameraPathPose path ? path.ViewDistance : _classicCamera.NativeViewDistance);
             _scene.AdvanceTorchAnimation();
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
@@ -571,6 +598,114 @@ namespace DK2.Unity
             }
         }
 
+        /// <summary>The letterbox shrinks the drawn area, as DK2's viewport rect does
+        /// (camera-paths.md section 4); OnGUI paints the bars.</summary>
+        private void ApplyLetterbox()
+        {
+            Camera camera = Camera.main;
+            if (camera == null) return;
+            float bar = _scriptedView.LetterboxBar;
+            camera.rect = new Rect(0f, bar, 1f, 1f - 2f * bar);
+        }
+
+        /// <summary>Action 26 (game action 4, 0x00442650): the focus glides to the point's
+        /// centre, kept inside the bounds, angles unchanged.</summary>
+        private void StartGlide(TilePos tile)
+        {
+            _glideFrom = _cameraFocus;
+            _glideTo = new Vector3(
+                Mathf.Clamp(tile.X + 0.5f, 0, _cameraBounds.x - 1f / Fp32.One), _cameraFocus.y,
+                Mathf.Clamp(-tile.Y - 0.5f, -_cameraBounds.y + 1f / Fp32.One, 0));
+            _glideStart = Time.unscaledTimeAsDouble * 1000d;
+            _glideMilliseconds = ScriptedViewDirector.GlideMilliseconds(
+                _glideTo.x - _glideFrom.x, _glideTo.z - _glideFrom.z);
+        }
+
+        private void Glide()
+        {
+            if (_glideMilliseconds <= 0) return;
+            double t = (Time.unscaledTimeAsDouble * 1000d - _glideStart) / _glideMilliseconds;
+            _cameraFocus = Vector3.Lerp(_glideFrom, _glideTo, (float)Math.Min(t, 1d));
+            if (t >= 1d) _glideMilliseconds = 0;
+        }
+
+        private void ApplyPathCamera()
+        {
+            Camera camera = Camera.main;
+            if (camera == null || camera.pixelHeight <= 0 || _scriptedView.Pose is not CameraPathPose pose) return;
+            int screenWidth = camera.targetTexture != null ? camera.targetTexture.width : Screen.width;
+            if (screenWidth <= 0) return;
+            camera.orthographic = false;
+            camera.fieldOfView = pose.VerticalFieldOfView(screenWidth, camera.pixelHeight);
+            camera.farClipPlane = Mathf.Max(camera.nearClipPlane + 0.01f, pose.ViewDistance);
+            camera.transform.position = new Vector3(pose.Position.X, pose.Position.Y, pose.Position.Z);
+            camera.transform.rotation = Quaternion.LookRotation(
+                new Vector3(pose.Forward.X, pose.Forward.Y, pose.Forward.Z),
+                new Vector3(pose.Up.X, pose.Up.Y, pose.Up.Z));
+        }
+
+        /// <summary>EnginePath%d.kcs out of Paths.WAD, read once per path.</summary>
+        private static Func<int, IReadOnlyList<KcsFrame>> CameraPathLoader(string install)
+        {
+            string wad = Path.Combine(install, "Data", "Paths.WAD");
+            var cache = new Dictionary<int, IReadOnlyList<KcsFrame>>();
+            return pathId =>
+            {
+                if (cache.TryGetValue(pathId, out IReadOnlyList<KcsFrame> frames)) return frames;
+                frames = null;
+                if (File.Exists(wad))
+                {
+                    using WadArchive archive = WadArchive.Open(wad);
+                    string name = $"EnginePath{pathId}.kcs";
+                    WadEntry entry = archive.Entries.FirstOrDefault(e =>
+                        string.Equals(Path.GetFileName(e.Name), name, StringComparison.OrdinalIgnoreCase));
+                    if (entry != null) frames = KcsCameraPath.Read(archive.Extract(entry), entry.Name).Frames;
+                }
+                cache[pathId] = frames;
+                return frames;
+            };
+        }
+
+        /// <summary>Speech.str by line index: the subtitle text of a Mentor line.</summary>
+        private static Func<int, string> SubtitleLoader(string install)
+        {
+            string path = Path.Combine(install, "Data", "Text", "Default", "Speech.str");
+            Dk2StringTable table = null;
+            try
+            {
+                if (File.Exists(path)) table = Dk2StringTable.Open(path);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"subtitles unavailable: {ex.Message}");
+            }
+            return line => table != null && line >= 0 && line < table.Entries.Count ? table.Entries[line].Value : null;
+        }
+
+        /// <summary>The letterbox bars and, while a path plays, the Mentor's subtitle in the
+        /// bottom bar (0x0040A3E0 draws it at h - h/8, the bar's full width).</summary>
+        private void DrawCinematic()
+        {
+            if (_scriptedView == null) return;
+            float bar = _scriptedView.LetterboxBar * Screen.height;
+            if (bar > 0f)
+            {
+                GUI.DrawTexture(new Rect(0, 0, Screen.width, bar), Texture2D.blackTexture);
+                GUI.DrawTexture(new Rect(0, Screen.height - bar, Screen.width, bar), Texture2D.blackTexture);
+            }
+            string subtitle = _scriptedView.Subtitle;
+            if (subtitle == null) return;
+            _subtitleStyle ??= new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter, wordWrap = true,
+                fontSize = Mathf.Max(12, Screen.height / 30),
+                normal = { textColor = Color.white },
+            };
+            float height = Screen.height / 8f;
+            GUI.Label(new Rect(Screen.width * 0.05f, Screen.height - height, Screen.width * 0.9f, height),
+                subtitle, _subtitleStyle);
+        }
+
         private void ApplyClassicCamera()
         {
             Camera camera = Camera.main;
@@ -668,6 +803,7 @@ namespace DK2.Unity
 
         private void OnGUI()
         {
+            DrawCinematic();
             if (!showDiagnostics) return;
 
             if (_failure != null)

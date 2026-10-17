@@ -4,6 +4,7 @@
 
 using System.Buffers.Binary;
 using DK2.Data.Camera;
+using DK2.Data.Model;
 using DK2.Data.Wad;
 using DK2.TestSupport;
 

@@ -30,13 +30,15 @@ public sealed class GameDatabase
         IEnumerable<ShotDef>? shots = null,
         IEnumerable<EffectDef>? effects = null,
         IEnumerable<EffectElementDef>? effectElements = null,
-        LevelDef? level = null)
+        LevelDef? level = null,
+        IReadOnlyDictionary<int, int>? cameraPathFrames = null)
     {
         Terrain = terrain.ToDictionary(t => t.TerrainId);
         Rooms = rooms.ToDictionary(r => (RoomTypeId)r.RoomId);
         Creatures = creatures.ToDictionary(c => c.CreatureId);
         Variables = variables;
         Level = level;
+        CameraPathFrames = cameraPathFrames ?? new Dictionary<int, int>();
         KeeperSpells = (keeperSpells ?? []).ToDictionary(
             s => s.Name, StringComparer.OrdinalIgnoreCase);
 
@@ -170,6 +172,11 @@ public sealed class GameDatabase
     /// <summary>The active level's metadata, or null when no level was supplied.</summary>
     public LevelDef? Level { get; }
 
+    /// <summary>Frame count of each camera path, by the number in its <c>EnginePath%d.kcs</c>
+    /// name (Paths.WAD; camera-paths.md). Empty when no install was read: every path then
+    /// fails to load and action 31 is refused, as <c>0x0044A370</c> does for a missing file.</summary>
+    public IReadOnlyDictionary<int, int> CameraPathFrames { get; }
+
     /// <summary>The one terrain type flagged <see cref="TerrainFlags.Water"/>, or null if this data
     /// set has none. Found by flag rather than by id, for the reason every gameplay rule asks the
     /// flags: an id would be a fact about the reference install. The shipped table has exactly one
@@ -219,7 +226,8 @@ public sealed class GameDatabase
                 Shots.Values,
                 Effects.Values,
                 EffectElements.Values,
-                level ?? Level);
+                level ?? Level,
+                CameraPathFrames);
 
     /// <summary>The level's VARIABLES id 77 records, in file order (<c>0x0051DD10</c> then
     /// <c>0x00494A70</c>): each stores its value into one definition field of one creature type,

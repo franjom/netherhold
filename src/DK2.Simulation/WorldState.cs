@@ -456,6 +456,12 @@ public struct PlayerState
     /// <c>0x004DC9A0</c> refuses, so a due roll draws and restamps but nothing comes (ADR-0314).</summary>
     public bool PortalsClosed;
 
+    /// <summary>The tick at which this keeper's scripted camera path (action 31) stops, 0 when
+    /// none was started; while it lies ahead, condition 72 answers false. DK2 holds the camera's
+    /// mode <c>0x12</c> and frame counter instead, advanced on the wall clock (camera-paths.md,
+    /// ADR-0496).</summary>
+    public long CameraPathEndTick;
+
     /// <summary>Player <c>+0xF4A</c>, the count of this keeper's Casinos with a jackpot party on:
     /// while nonzero, job 9 and the Casino's enter hook skip the purse test and the finder takes its
     /// party branch (casino.md §9).</summary>
@@ -525,6 +531,7 @@ public struct PlayerState
         hash.Add(CallToArms.Y);
         hash.Add(CallToArms.ManaTick);
         hash.Add(PortalsClosed ? (byte)1 : (byte)0);
+        hash.Add(CameraPathEndTick);
         hash.Add(CasinoParties);
         hash.Add(GraveyardWantedPosted ? (byte)1 : (byte)0);
         hash.Add(Availabilities.Count);
