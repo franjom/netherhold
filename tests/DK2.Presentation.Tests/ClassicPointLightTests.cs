@@ -27,6 +27,19 @@ public class ClassicPointLightTests
     }
 
     [Fact]
+    public void ASpriteTakesTheRadialTermAtItsCentreWithoutANormal()
+    {
+        // 0x0057C080: radius 2 tiles; at distance 1 the bin is round(16 - 0.49999) = 16, so the
+        // factor is (0.25 + 16/16) x (4 - 1) / 4 = 0.9375; the first bin gives the full colour.
+        Vector3 colour = new(1f, 128f / 255f, 0f);
+        Assert.Equal(colour * 0.9375f, Light().RadialAt(new Vector3(1, 0, 0)));
+        Assert.Equal(colour * 0.9375f, Light().RadialAt(new Vector3(0, 1, 0)));
+        Assert.Equal(colour, Light().RadialAt(new Vector3(0.1f, 0, 0)));
+        Assert.Equal(Vector3.Zero, Light().RadialAt(new Vector3(2.5f, 0, 0)));
+        Assert.Equal(Vector3.Zero, Light(0).RadialAt(new Vector3(1, 0, 0)));
+    }
+
+    [Fact]
     public void InputConversionRequiresTheNativeRadiusClamp()
     {
         var torch = new TorchView(0, new TilePos(0, 0), 0, 0, 0, 0, 255, 255, 255, 128, 10113, default);

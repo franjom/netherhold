@@ -11412,3 +11412,23 @@ Last, the keeper's palette colours an element with art flag `0x2` (`0x00435F20` 
 not `0x80`, the play-once bit our model had tested since 2b83ebd9: the plug's dust (381, `0x85`)
 and the bed's element 162 (`0x84`) had been drawn in the keeper's colour instead of their own grey
 and purple. The claim and reinforce elements carry both bits and keep the keeper's colour.
+
+## ADR-0493 — Effect sprites take the lights and their descriptor's size
+**Date:** 2026-10-17 · **Status:** accepted · Research: object-drawing.md §10
+
+**Context.** DK2 lights a whole effect sprite, billboard (`0x0057F3D0`) or flat (`0x0057FB80`),
+by its tint plus the radial term of the listed lights at its centre (`0x0057C080`); ours drew the
+tint alone. Its billboard (`0x0059C360`) is scale × the descriptor's width and height, lifted by
+half its height under art flag `0x40`; ours drew every billboard square at the scale. 496 of 511
+effect sprites have a 4096-square descriptor, so the size only changes the other 15.
+
+**Decision.** `ClassicPointLight.RadialAt` gives the radial term; `ClassicWorldLightCache`
+hands out a visible tile's table; the Unity effects renderer adds every light of the sprite's
+tile to its colour, clamped at 255 per channel, for billboards and flat squares alike, and sizes
+a billboard by its descriptor, raising a flag-`0x40` sprite by half its height along the camera's
+up axis. That the list is the tile's whole table is INFERRED, that the shift is a lift STRONGLY
+INFERRED (object-drawing.md §10).
+
+**Consequences.** Presentation only. Sprites near torches, the Heart and effect lights are
+brighter than before in every channel their tint leaves below 255 (a channel at 255 is capped); the 15 odd-sized sprites (drips, door and Horny flames, the eye glow) change
+shape, and the six flag-`0x40` sprites stand on their points.

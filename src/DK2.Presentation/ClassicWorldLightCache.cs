@@ -160,6 +160,19 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     public ClassicLightCacheCell GetCell(TilePos tile) => Contains(tile) ? _cells[tile.Y * _width + tile.X] : default;
     public bool IsVisible(TilePos tile) => _visible.Contains(tile);
 
+    /// <summary>The light table a visible tile was given by the last <see cref="PrepareFrame"/>; false
+    /// for a tile not drawn this frame, whose table may be stale.</summary>
+    public bool TryGetVisibleTable(TilePos tile, out ClassicLightTable table)
+    {
+        if (_visible.Contains(tile) && _tables.TryGetValue(tile, out ClassicLightTable? found))
+        {
+            table = found;
+            return true;
+        }
+        table = null!;
+        return false;
+    }
+
     private void SetSource(ClassicPointLight?[] inputs, TilePos tile, ClassicPointLight? light)
     {
         if (!Contains(tile)) throw new ArgumentOutOfRangeException(nameof(tile));

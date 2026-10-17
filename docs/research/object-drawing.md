@@ -307,18 +307,45 @@ each corner by the tint ×255 plus the radial term of the nearby lights at the
 centre (`0x0057C080`). No descriptor dimension enters its size. Fourteen shipped
 effect elements carry the flag: the Heart plug's overlay (407) and static (383),
 blood pools, the fire ring, the Portal's white disc, the inferno carpet, the
-Horny end rings, the arch mist. Built (ADR-0492 amendment): the Unity effects
-renderer draws them so; the radial light term is not added (the billboards do
-not take it either). Unread: the texture and frame pick (vtable slot 2,
-`0x0057FF30`, through `0x0057C780` and `0x0057F090`; ours takes the particle's
-age through the stored frames as the billboards do), and whether our billboards,
-sized by the scale as a full width, match `0x0059C360`'s size: the flat square
-spans twice the scale.
+Horny end rings, the arch mist. Built (ADR-0492 amendment, ADR-0493): the Unity
+effects renderer draws them so, lit as below. Unread: the texture and frame pick
+(vtable slot 2, `0x0057FF30`, through `0x0057C780` and `0x0057F090`; ours takes
+the particle's age through the stored frames as the billboards do).
+
+**Billboards** (read 2026-10-17, CONFIRMED). `0x0059C360` sizes a camera-facing
+sprite as scale `+4` × descriptor width and scale `+8` × descriptor height
+(`Fixed_Multiply`, then /4096: tiles), and with art flag `0x40` moves it by half
+its height on the camera's vertical (`+0x59`/4096 − h/2; `+0x57` is the
+horizontal offset). Its item `0x0057F1E0` (vtable `0x0066FCCC`) is drawn by
+`0x0057F3D0` as a quad of ±w/2 by ±h/2 about the point in camera space, turned
+by `+0x10`. So a billboard spans the full product and a flat square twice its
+scale: both of ours match. 496 of the 511 effect sprites have a 4096 × 4096
+descriptor; the rest (drips, eye glow, door flames among them) now take theirs.
+The six with flag `0x40` are flames, splashes and a mist, so the shift is drawn
+as a lift onto the point. STRONGLY INFERRED: `0x0057F3D0` gives the corner with the
+smaller camera y the UV v 0, the image's top row in D3D, so camera y runs down and
+−h/2 raises the quad; `0x00594E10`'s axes are not read. Both scales come from one
+value for an effect element (`0x00435F20` sets the width and height targets
+alike), and the offset words `+0x51..+0x59` are zeroed by the reset `0x004B3610`
+with no effect-element writer found, so ours takes them as zero.
+
+**Sprite light** (CONFIRMED for both draws). `0x0057F3D0` and `0x0057FB80` light
+the whole sprite by its tint × 255 plus, at its centre, each listed light's
+radial term (`0x0057C080`: no normal, the distance bins of the vertex lighting,
+the full colour in the first bin), the list being `0x0057BCB0`'s from the draw
+item's `+0x50`/`+0x38`, all bits. That this list is the drawn tile's table is
+INFERRED: both draw items' constructors leave `+0x50`/`+0x38` unset, and the pass
+that fills them and calls the items is unread, though the list has the layout of
+the 12-static, 24-total table `0x00576230` fills. The sample point is the item's
+interpolated world point `+0x1C`, not the lifted centre. Built:
+`ClassicPointLight.RadialAt`; the renderer sums the visible tile's table, rounds
+each channel and caps it at 255 as the vertex sinks do, so a channel whose tint
+is already 255 takes no light.
 
 ## 11. Open
 
-- `0x0059C360`, `0x0059D010`, `0x005A01A0` (sprites, terrain mesh, procedural) and
-  `0x005953D0` are not read in full.
+- `0x0059D010`, `0x005A01A0` (terrain mesh, procedural) and `0x005953D0` are not
+  read in full.
 - The Heart's decay meshes; the chicken's Idle art; the
   setter of RenderInfo `+0x4E` bit `0x40`; what `0x00759ADC` is.
 - What writes an object's heading besides the boulder, beds (random) and book cases.
