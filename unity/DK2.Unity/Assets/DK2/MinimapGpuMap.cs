@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Collections.Generic;
 using DK2.Presentation;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -12,6 +13,10 @@ namespace DK2.Unity
     public sealed class MinimapGpuMap : IDisposable
     {
         private struct Upload { public uint Position, ColourClass; }
+        private struct MarkerUpload { public int X, Y; public uint Kind, Colour; }
+        private MarkerUpload[] _markers = new MarkerUpload[64];
+        private GraphicsBuffer _markerBuffer;
+        private int _markerCount;
         private readonly Upload[] _uploads;
         private readonly GraphicsBuffer _buffer;
         private readonly Material _material;
@@ -43,6 +48,10 @@ namespace DK2.Unity
             _material.SetTexture("_Palette", _palette);
             _material.SetTexture("_Backdrop", backdrop);
             _material.SetVector("_GridSize", new Vector4(width, height, 0, 0));
+            MinimapMapBounds bounds = MinimapMapBounds.Fit(width, height);
+            _material.SetVector("_MapRect", new Vector4(bounds.Left, bounds.Top, bounds.Width, bounds.Height));
+            _markerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _markers.Length, sizeof(uint) * 4);
+            _material.SetBuffer("_Markers", _markerBuffer);
             UpdatePalette(palette);
         }
 
@@ -98,12 +107,31 @@ namespace DK2.Unity
             _material.SetFloat("_Angle", headingDegrees * Mathf.Deg2Rad);
             _commands.Clear(); _commands.SetRenderTarget(_disc);
             _commands.DrawProcedural(Matrix4x4.identity, _material, 1, MeshTopology.Triangles, 3);
+            if (_markerCount > 0)
+                _commands.DrawProcedural(Matrix4x4.identity, _material, 2, MeshTopology.Triangles, 6, _markerCount);
             Graphics.ExecuteCommandBuffer(_commands);
+        }
+
+        public void UploadMarkers(IReadOnlyList<MinimapMarker> markers)
+        {
+            if (markers.Count > _markers.Length)
+            {
+                _markers = new MarkerUpload[Mathf.NextPowerOfTwo(markers.Count)];
+                _markerBuffer.Dispose();
+                _markerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _markers.Length, sizeof(uint) * 4);
+                _material.SetBuffer("_Markers", _markerBuffer);
+            }
+            for (int i = 0; i < markers.Count; i++)
+                _markers[i] = new MarkerUpload { X = markers[i].Position.X.Raw, Y = markers[i].Position.Y.Raw,
+                    Kind = (uint)markers[i].Kind, Colour = markers[i].ColourArgb };
+            _markerCount = markers.Count;
+            if (_markerCount > 0) _markerBuffer.SetData(_markers, 0, 0, _markerCount);
+            _dirty = true;
         }
 
         public void Dispose()
         {
-            _buffer.Dispose(); _commands.Dispose();
+            _buffer.Dispose(); _markerBuffer.Dispose(); _commands.Dispose();
             Classes.Release(); UnityEngine.Object.Destroy(Classes);
             if (_disc != null) { _disc.Release(); UnityEngine.Object.Destroy(_disc); }
             UnityEngine.Object.Destroy(_palette); UnityEngine.Object.Destroy(_material);

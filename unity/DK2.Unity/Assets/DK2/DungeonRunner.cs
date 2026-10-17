@@ -528,6 +528,8 @@ namespace DK2.Unity
                 _pendingCommands.Add(command);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, _simulation.World.CurrentTick.Next);
+                if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)
+                    _worldView.QueueMinimapPickupPreview(pickup, _simulation.World.CurrentTick.Next);
             }
         }
 

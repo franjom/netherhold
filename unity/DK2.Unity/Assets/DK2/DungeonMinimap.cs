@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
 using DK2.Art.Textures;
 using DK2.Data.Model;
 using DK2.Data.Wad;
@@ -65,6 +66,7 @@ namespace DK2.Unity
         private readonly MinimapClassGrid _grid;
         private readonly MinimapGpuMap _gpu;
         private readonly MinimapFrameVisual _frame;
+        private readonly List<MinimapMarker> _markers = new List<MinimapMarker>();
         private WorldState _capturedWorld;
         private long _capturedTick = -1;
         private int _capturedPreview = -1;
@@ -126,6 +128,8 @@ namespace DK2.Unity
                 }
             _gpu.UploadChanges(_grid);
             if (_palette.AdvanceNeutralCycle(world.CurrentTick, PlayerIds.Neutral)) _gpu.UpdatePalette(_palette);
+            view.CaptureMinimapMarkers(world, _palette, _markers);
+            _gpu.UploadMarkers(_markers);
         }
 
         public void Draw(Camera camera)

@@ -24,6 +24,44 @@ namespace DK2.Presentation.Tests;
 public class WorldViewTests
 {
     [InstallFact]
+    public void MinimapCaptureUsesPersistedFogAndOnlyTheViewersHand()
+    {
+        (GameDatabase database, _) = RealLevel()!.Value;
+        byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
+        WorldState world = WorldState.FromMap(database,
+            new LevelMap(8, 8, Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray()),
+            [PlayerIds.FirstKeeper, PlayerIds.Good], fogOfWarEnabled: true);
+        CreatureDef definition = database.Creatures.Values.Single(c => c.Name == "Imp");
+        var at = new TilePos(3, 3);
+        CreatureState own = world.SpawnCreature(database, definition.CreatureId, PlayerIds.FirstKeeper, at);
+        CreatureState enemy = world.SpawnCreature(database, definition.CreatureId, PlayerIds.Good, at);
+        var view = new WorldView(database, PlayerIds.FirstKeeper);
+        var palette = new MinimapPalette(new uint[37]);
+        var markers = new List<MinimapMarker>();
+        world.Tile(at).ClearExploredBy(PlayerIds.FirstKeeper);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        var location = new FpPosition3(new(own.PosX), new(own.PosY), new(own.PosZ));
+        int CountAtLocation() => markers.Count(m => m.Kind == MinimapMarkerKind.Creature && m.Position == location);
+        Assert.Equal(1, CountAtLocation());
+        world.Tile(at).SetExploredBy(PlayerIds.FirstKeeper);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(2, CountAtLocation());
+        world.Player(PlayerIds.FirstKeeper).Hand.Add(HandItem.Of(own));
+        enemy.InHand = true;
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(1, CountAtLocation());
+        view.QueueMinimapPickupPreview(new(PlayerIds.FirstKeeper, enemy.Id), world.CurrentTick.Next);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(0, CountAtLocation());
+        view.QueueMinimapPickupPreview(new(PlayerIds.FirstKeeper, enemy.Id), world.CurrentTick);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(1, CountAtLocation());
+        long allocated = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 100; i++) view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - allocated);
+    }
+
+    [InstallFact]
     public void AnimationKeysAreReusedWithoutAllocatingOnEveryFrame()
     {
         (GameDatabase database, WorldState world) = RealLevel()!.Value;

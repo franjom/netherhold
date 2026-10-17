@@ -140,7 +140,58 @@ namespace DK2.Unity.HudProbe
                         throw new InvalidOperationException("Minimap display north/south reversed: " + north + ", " + south);
                 }
                 finally { Destroy(rows); }
+                var marker = new MinimapMarker(MinimapMarkerKind.Creature,
+                    new(new(0x1800), new(0x800), new(0)), 0xFF0000FF);
+                map.UploadMarkers(new[] { marker });
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 50, y: 107);
+                map.Render(headingDegrees: 90, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 20, y: 50);
+                map.UploadMarkers(new[]
+                {
+                    new MinimapMarker(MinimapMarkerKind.HorizontalDoor, new(new(0x1800), new(0x1800), new(0)), 0xFF0000FF),
+                    new MinimapMarker(MinimapMarkerKind.VerticalDoor, new(new(0x800), new(0x1800), new(0)), 0xFF0000FF),
+                });
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 60, y: 77);
+                AssertBlueMarker(map.Disc, x: 20, y: 70);
+                map.UploadMarkers(Array.Empty<MinimapMarker>());
+                map.Render(headingDegrees: 0, diameter: 128);
+                Texture2D cleared = Read(map.Disc);
+                try
+                {
+                    if (cleared.GetPixel(50, 107).b > .01f)
+                        throw new InvalidOperationException("Removed minimap marker left stale pixels.");
+                }
+                finally { Destroy(cleared); }
             }
+        }
+
+        private static void AssertBlueMarker(RenderTexture target, int x, int y)
+        {
+            Texture2D pixels = Read(target);
+            try
+            {
+                Color32 colour = pixels.GetPixel(x, y);
+                for (int dy = -2; dy <= 2; dy++)
+                    for (int dx = -2; dx <= 2; dx++)
+                        if (pixels.GetPixel(x + dx, y + dy).a < .999f)
+                            throw new InvalidOperationException("Marker antialiasing changed the opaque disc alpha.");
+                if (colour.b < 250 || colour.r > 5 || colour.g > 5)
+                {
+                    int left = target.width, bottom = target.height, right = -1, top = -1;
+                    Color32[] all = pixels.GetPixels32();
+                    for (int i = 0; i < all.Length; i++)
+                        if (all[i].b > 240 && all[i].r < 15 && all[i].g < 15)
+                        {
+                            left = Math.Min(left, i % target.width); right = Math.Max(right, i % target.width);
+                            bottom = Math.Min(bottom, i / target.width); top = Math.Max(top, i / target.width);
+                        }
+                    throw new InvalidOperationException("Minimap marker position/colour mismatch at " + x + "," + y + ": " + colour
+                        + "; blue bounds " + left + "," + bottom + ".." + right + "," + top);
+                }
+            }
+            finally { Destroy(pixels); }
         }
 
         private static void AssertClass(RenderTexture target, int x, int y, int expected)
@@ -185,7 +236,11 @@ namespace DK2.Unity.HudProbe
                     if (colour != MinimapColourClass.Unknown) _report.LiveLevel1KnownTiles++;
                 }
             if (_report.LiveLevel1KnownTiles == 0) throw new InvalidOperationException("Level1 minimap contains no known terrain.");
-            _liveGpu = new MinimapGpuMap(world.Width, world.Height, PaletteModel(source), backdrop);
+            MinimapPalette palette = PaletteModel(source);
+            _liveGpu = new MinimapGpuMap(world.Width, world.Height, palette, backdrop);
+            var markers = new System.Collections.Generic.List<MinimapMarker>();
+            view.CaptureMinimapMarkers(world, palette, markers);
+            _liveGpu.UploadMarkers(markers);
             _liveGpu.UploadChanges(grid); _liveGpu.Render(headingDegrees: 45, diameter: 512);
             AssertDisc(_liveGpu.Disc);
             AddImage(root, _liveGpu.Disc, left: 12.8f, top: 587.2f, width: 169.6f, height: 169.6f);

@@ -31,6 +31,12 @@ the decoded frame for inspection. Cache RGBA rows are flipped once for Unity.
 The corrected frame clip and disc alignment were inspected at both sizes and
 independently reviewed; the texture extent remains strongly inferred as described
 in the native research below.
+The live layer also captures creature/trap/door markers. GPU checks assert a
+synthetic marker's placement and colour before/after a quarter turn, both door
+stroke orientations, removal without stale pixels, and unchanged opaque-disc
+alpha along antialiased marker edges. Tile and marker placement share native
+integer whole-map bounds; the capture regression checks viewer-hand filtering,
+pending-pickup suppression/settlement and allocation-free repeated capture.
 Native backdrop/UV placement,
 palette cycling and class/marker behaviour still need campaign comparisons.
 The same-named FrontEnd palette has different RGB values; it is not substituted.

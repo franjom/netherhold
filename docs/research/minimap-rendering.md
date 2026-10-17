@@ -38,13 +38,43 @@ raster, so camera rotation need not wait for a simulation turn.
 
 ## Overlays (partially read)
 
-`0x0041CC50` was read beyond its previously documented trap arm. It places the
-viewer's Heart marker without the ordinary tile-colour fog predicate. Its own
-creature-list markers use a visibility/helper test; other players' creature-list
-markers additionally require the explored bit at their current tile. The helper
-and virtual visibility slots still need tracing before implementing those tests.
-Traps retain the documented hidden-bit gate; doors are strokes whose orientation
-comes from byte `+0x119`. Marker colours blink against black by world-turn parity.
+`0x0041CC50` places the viewer's Heart marker without the ordinary tile-colour
+fog predicate. Its creature helper [0040DF80](functions/0040DF80.md) excludes
+the local pending-pickup list and the viewer's hand; it does not test worker
+carrying or every player's hand. Other players' creatures additionally require
+the explored bit at their current tile. Trap/door slot `+0x2C4` resolves to
+[00510000](functions/00510000.md), the bounds-checked reader of that same bit.
+Own traps bypass exploration; other traps additionally require Hidden clear.
+Own doors bypass exploration, and other doors require it. Debug fog disabling
+bypasses the explored gate in the adapter, as it does for tile colours.
+
+Creature and trap dots use palette bank 17 plus the player's Number on odd
+world turns, and black on even turns. Door strokes use the opposite phase.
+Door orientation byte `+0x119` zero draws vertically, otherwise horizontally;
+whole-map stroke length is the difference of the projected current/next tile
+boundary. The adapter preserves own-creature-first, other-creatures, traps,
+doors layering. It captures before worker dispatch; rotation draws only retained
+GPU data, with no simulation references on the draw path.
+
+`0x005B33C0` forwards to the filled-circle slot; `0x005B3340` uses the outline
+slot. The concrete 32-bit raster table is identified by
+[005B3070](functions/005B3070.md). Radius-one dots are five cardinal pixels,
+including the centre; the adapter uses a smooth circle within the same 3×3
+raster footprint (ART_DIRECTION §13 level B), not a pixel-exact cross. Door
+strokes are one raster unit wide. Markers render at display resolution and retain
+the disc's alpha mask rather than punching holes at antialiased edges.
+
+Tiles and markers share the native integer whole-map fit: major extent 90,
+origin 20, with the smaller dimension centred using integer half-difference
+before scaling. The previous shader's continuous centred fit was one pixel off
+even for a square map. Marker projection uses integer arithmetic to avoid an
+inexact GPU division rounding a boundary down by another pixel.
+
+The local pickup preview is a bounded adapter approximation: suppress the
+queued creature until its command's simulation tick settles, then read the
+viewer's actual hand. Native pending-pickup animation lifetime is still unread.
+Heart pulses, creature alert rings, Guard Post links, room outlines, transient
+signals and camera footprint are not covered by the current marker implementation.
 
 `0x0041E620` draws a dotted direction trail between the minimap centre and the
 viewer's Heart in zoomed mode. It normalizes the offset with integer square root,
