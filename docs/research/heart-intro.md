@@ -218,6 +218,6 @@ shader sums with the lights as DK2 does.
 
 So the reading gives `Falloff` × 1. ADR-0476's "peaks at 68" does not match the
 texture our decoder reads now (peak 129, mean 33, 64 × 64); its doubling, a guess,
-is withdrawn. A matched look at DK2's beam would settle what the unread links leave.
+is withdrawn. The owner, comparing with DK2 on 2026-10-17, finds the beam at 1× right.
 
 Open: a matched original comparison of the sequence's look and timing.
