@@ -53,9 +53,9 @@ creatures have one slot, four have two, and twenty have none:
 
 Two consequences:
 
-- **Level 1 produces nothing until its keeper builds a lair.** The Goblin's only
-  attraction is a Lair, which is what makes the tutorial's order — dig, claim,
-  lair, *then* creatures — a mechanic rather than a script.
+- **A Goblin needs no Lair (corrected 2026-10-17, ADR-0499).** Its Lair entry asks
+  size 0, which a keeper with no Lair meets, and the Lair's weight is flat. DK2's
+  Level 4 capture (`level4-live1/seed01`): Goblin at 887, first Lair at 1100.
 - **The Dark Angel's temple has no minimum in v1.70**, against the owner's
   recollection *and* the 1999 manual, both of which say 5x5. Four creatures do
   carry a real minimum, so the mechanism can express one; it simply does not
@@ -114,15 +114,15 @@ coincide — two different fifteens. Q87.
 **Both slots: CONFIRMED.** `FUN_004DC810` walks the creature definition's
 counted list — `byte[def+0x788]` entries of **3 bytes** from `def+0x5DA`,
 `{u8 param, u8 amount, u8 kind}`, fetched by `FUN_00494380` — and returns 0
-on the first entry that fails, 1 only after all of them pass. Kind 0 is the room
-test; kinds 1 and 2 compare the player's `+0x7E` and `+0x82` against the amount,
-so the list carries prerequisites beyond rooms.
+on the first entry that fails, 1 only after all of them pass. By the jump table at
+`0x004DC8D4`, kind 0 passes, 1 is the room test, 2 and 3 compare the player's `+0x7E`
+and `+0x82`, and 4 calls `0x004BA7D0` (corrected 2026-10-17; the file's Present is the kind).
 
-**One room: REFUTED.** Kind 0 calls `FUN_004C6EB0(player, roomId)`, which
+**One room: REFUTED.** Kind 1 calls `FUN_004C6EB0(player, roomId)`, which
 **sums** `room+0xA7` — the slab count (`room-object.md`) — over every room
 of that type and requires the sum to reach the amount. Five 5-tile hatcheries
-**do** make the Bile Demon's 25. Owning **none** of the room is still refused
-whatever the size asks. `PortalRules.IsAttracted` sums from 2026-09-14, and the
+**do** make the Bile Demon's 25. Owning none passes a size of 0 (`JC` at
+`0x004DC86B`; corrected 2026-10-17, ADR-0499). `PortalRules.IsAttracted` sums from 2026-09-14, and the
 test that asserted the opposite was named for the guess it pinned.
 
 **Not gated on `RoomInstance.IsFunctional`**, and the data forces that: the
@@ -144,9 +144,9 @@ Warlock a Library, Dark Elf a Guard Room, Salamander a Training Room.
 This matters because it is the first check of the composition *at zero*, and
 because it contradicts a stated belief: the owner expected *"at least a goblin
 will enter no matter your room layout"*. Level 20's pool has no Goblin in it at
-all, so a Lair would not have produced one either. `PortalTests.BuildingThe`
-`LairLetsTheBankedWaitThrough` already encodes the rule; this is the first time
-the game was asked.
+all. For a pool with a Goblin the owner was right: its Lair entry asks size 0,
+so it needs no Lair (ADR-0499); Level 20's six types each need their room for a
+non-zero weight, which is what this run saw.
 
 ### 4. The clock is per portal, counts up, and runs only while owned
 

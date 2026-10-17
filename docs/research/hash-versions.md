@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**264** — `0xC53FC1CC3EABDE59`. Behaviour only: a portal admits a creature whose room entry asks size 0 with none of the room owned, so a Lair creature comes through before the first Lair (`0x004DC810`, ADR-0499). Snapshot format is 264.
+
 **263** — `0x688ADFB86353DF0E`. `CreatureState.GemCarrier`, DK2's creature `+0x92` bit 2, hashed and saved after the standing job: trigger action 20 hands a creature a Portal Gem and sets it (ADR-0495). Snapshot format is 263. The pin's fixture has no carrier, so the change is the version alone; `PortalGemOnRealDataTests` round-trips a set flag.
 
 **262** — `0x6A54498299CB6FDD`. `PlayerState.CameraPathEndTick`, saved after PortalsClosed: action 31 starts a scripted camera path and condition 72 waits for its end (ADR-0496).
@@ -391,10 +393,4 @@ times a second and counted 54 consecutive steps of 9 against a tabled 9.6: DK2
 loses the fraction every application. The accumulator was modelling a device the
 original does not have, and the arithmetic that needed it is gone too (ADR-0133).
 
-**53** — `0x94D2541428918DAC`. `PlayerState.SlapCount` (`player+0xEE6`,
-condition type 71) and `PlayerState.PossessedCreatureId` (`player+0x134`, condition
-type 73). Nothing writes either: no keeper here slaps or possesses, so both are
-truly zero rather than stubbed, and the conditions read state instead of answering
-a constant — the same reasoning as version 52's `KilledByPlayerId` (ADR-0121).
-
-[Versions 9–52](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–53](hash-versions-early.md) retain the earlier pins and their reasons.

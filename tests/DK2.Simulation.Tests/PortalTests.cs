@@ -346,10 +346,21 @@ public class PortalTests
     /// rooms, variables, spells — is the fixture's own, so a test built on this
     /// differs from the rest of the suite in exactly one creature flag word.
     /// </summary>
-    private static GameDatabase DatabaseWithGoblinFlags(CreatureFlags flags)
+    private static GameDatabase DatabaseWithGoblinFlags(CreatureFlags flags) =>
+        DatabaseWithGoblin(goblin => goblin with { Flags = flags });
+
+    /// <summary>The fixture Goblin wanting a Lair of at least one tile: a size the shipped
+    /// Goblin does not ask, so its portal waits for the Lair (0x004DC86B).</summary>
+    private static GameDatabase DatabaseWithSizedLair() =>
+        DatabaseWithGoblin(goblin => goblin with
+        {
+            Attractions = [new CreatureAttraction(1, (byte)RoomTypeId.Lair, 1), new CreatureAttraction(0, 0, 0)],
+        });
+
+    private static GameDatabase DatabaseWithGoblin(Func<CreatureDef, CreatureDef> change)
     {
         GameDatabase fixture = Dk2TerrainFixture.Database();
-        CreatureDef goblin = fixture.CreatureById(GoblinId) with { Flags = flags };
+        CreatureDef goblin = change(fixture.CreatureById(GoblinId));
 
         var level = new GlobalVariables();
         level.CreaturePool.Add(new CreaturePoolEntry(GoblinId, 15, Keeper));
@@ -555,10 +566,25 @@ public class PortalTests
 
     // ---- gate 1: attraction ----------------------------------------------
 
+    /// <summary>The Goblin wants a Lair of size 0, and 0x004DC810 refuses only a total below
+    /// the size, so no Lair at all still passes; the Lair's weight is flat (0x004DC153).
+    /// DK2's Level 4 keeper got its first Goblin at 887 with only a Portal and a Heart.</summary>
     [Fact]
-    public void APortalWithNoLairProducesNothingHowaverLongItWaits()
+    public void APortalWithNoLairStillLetsAGoblinThrough()
     {
         GameDatabase db = Database();
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+
+        Simulation(db, world).Run(LongEnough);
+
+        Assert.NotEqual(0, Goblins(world));
+    }
+
+    [Fact]
+    public void ACreatureWhoseRoomHasASizeProducesNothingWithoutIt()
+    {
+        GameDatabase db = DatabaseWithSizedLair();
         WorldState world = World(db);
         Portal(db, world, 5, 5);
 
@@ -573,7 +599,7 @@ public class PortalTests
     [Fact]
     public void BuildingTheLairWaitsForTheNextRoll()
     {
-        GameDatabase db = Database();
+        GameDatabase db = DatabaseWithSizedLair();
         WorldState world = World(db);
         Portal(db, world, 5, 5);
         GameSimulation sim = Simulation(db, world);
@@ -739,7 +765,7 @@ public class PortalTests
             Attractions =
             [
                 new CreatureAttraction(1, (byte)RoomTypeId.Lair, 0),
-                new CreatureAttraction(1, (byte)RoomTypeId.Treasury, 0),
+                new CreatureAttraction(1, (byte)RoomTypeId.Treasury, 1),
             ],
         };
 
@@ -869,7 +895,7 @@ public class PortalTests
     [Fact]
     public void ARivalsLairDoesNotAttractAnythingToYourPortal()
     {
-        GameDatabase db = Database();
+        GameDatabase db = DatabaseWithSizedLair();
         WorldState world = World(db);
         Portal(db, world, 5, 5);
         Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1, owner: Rival);

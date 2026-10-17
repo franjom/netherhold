@@ -333,9 +333,12 @@ public static class PortalRules
     /// <para>The size is the keeper's <b>total</b> slabs of that room type, not one
     /// room's: <c>0x004C6EB0</c> sums <c>room+0xA7</c> over the room list, so five
     /// 5-tile hatcheries <i>do</i> make the Bile Demon's 25. That reverses OpenKeeper's
-    /// reading (portals.md §3). Owning none of the room refuses whatever the size
-    /// asks, which is what the owner saw. Not gated on IsFunctional (Q45). The budget
-    /// that caps arrivals per type is still not built (Q89).</para></summary>
+    /// reading (portals.md §3). The test is the total against the size and nothing
+    /// else (<c>0x004DC86B</c>: <c>JC</c> on the sum below the size byte), so a size of
+    /// 0 admits a keeper who owns none of the room: Level 4's Goblin came through a
+    /// portal with no Lair (portals.md §3). Not gated on IsFunctional (Q45). A room
+    /// type with no size still needs the room for its weight (<see cref="AttractionBudget"/>),
+    /// except the Lair, whose weight is flat.</para></summary>
     public static bool IsAttracted(CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms)
     {
         foreach (CreatureAttraction attraction in creature.Attractions)
@@ -344,17 +347,15 @@ public static class PortalRules
             // either would do; both are checked because neither field is documented.
             if (attraction.Present == 0 || attraction.RoomId == 0) continue;
 
-            bool owned = false;
             int slabs = 0;
             for (int i = 0; i < keeperRooms.Count; i++)
             {
                 RoomInstance room = keeperRooms[i];
                 if (room.Definition.RoomId != attraction.RoomId) continue;
-                owned = true;
                 slabs += room.TileCount;
             }
 
-            if (!owned || slabs < attraction.RoomSize) return false;
+            if (slabs < attraction.RoomSize) return false;
         }
         return true;
     }

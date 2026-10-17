@@ -26,7 +26,6 @@ public class PortalCreatureActionTests
         centre.EntranceIdleTicks = 37;
         Assert.False(PortalRules.IsUnlocked(world, 3, 7));
         Assert.Equal(0, PortalRules.PoolLimit(db, 3, 7));
-        Assert.False(PortalRules.IsAttracted(db.CreatureById(7), RoomIndex.Build(world, db)));
 
         TriggerRunResult result = Run(db, world, requested);
 

@@ -90,8 +90,8 @@ public class PortalOnRealDataTests
         Assert.True(PortalRules.CanComeFromPortal(
             goblin, GameDatabaseLoader.Load(install!).Room(RoomTypeId.Portal)));
 
-        // One slot, wanting a Lair of any size. This is the fact that makes
-        // level 1 produce nothing until its keeper builds a lair.
+        // One slot, wanting a Lair of any size: size 0, which a keeper with no
+        // Lair meets (ADR-0499, TheShippedGoblinNeedsNoLairToBeAttracted).
         Assert.Equal((byte)RoomTypeId.Lair, (byte)goblin.Attractions[0].RoomId);
         Assert.Equal(0, goblin.Attractions[0].RoomSize);
         Assert.NotEqual(0u, goblin.Attractions[0].Present);
@@ -178,6 +178,19 @@ public class PortalOnRealDataTests
         CreatureState arrived = Assert.Single(world.Creatures);
         Assert.Equal(GoblinId, arrived.CreatureTypeId);
         Assert.Equal((byte)3, arrived.OwnerPlayerId);
+    }
+
+    /// <summary>The shipped Goblin asks for a Lair of size 0, which no Lair at all meets
+    /// (0x004DC810 refuses only a total below the size). DK2's Level 4 keeper claimed its
+    /// portal at 787 and had a Goblin at 887, with its first Lair at 1100.</summary>
+    [InstallFact]
+    public void TheShippedGoblinNeedsNoLairToBeAttracted()
+    {
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Install(), "Level4");
+        CreatureDef goblin = db.CreatureById(GoblinId);
+
+        Assert.Equal(new CreatureAttraction(1, (byte)RoomTypeId.Lair, 0), goblin.Attractions[0]);
+        Assert.True(PortalRules.IsAttracted(goblin, []));
     }
 
     private static int FirstTileOwnedBy(WorldState world, GameDatabase db, byte playerId)

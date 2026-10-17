@@ -627,7 +627,7 @@ Under the GPL the per-file notice is what makes `LICENSE` apply to a file rather
 **Consequences.**
 - Uniform random selection among eligible creatures is a placeholder. The data carries a per-type percentage that shifts with sacking (`DecreaseEntrancePersentageOfLastSackedCreatureType` = 33) and neither sacking nor the weighting exists (Q90).
 - **First consumer of `SimulationContext.Rng`**, carried, hashed and snapshotted since M1 with nothing drawing from it. The draw happens even when only one creature qualifies, so the RNG position cannot become a function of the keeper's rooms.
-- Level 1 produces nothing until its keeper builds a lair, because the Goblin's only attraction is a Lair. The tutorial's order is a mechanic, not a script.
+- Level 1 produces nothing until its keeper builds a lair, because the Goblin's only attraction is a Lair. The tutorial's order is a mechanic, not a script. *Superseded by ADR-0499: the Lair entry asks size 0, which no Lair meets.*
 - A portal could not be **claimed** by an imp here: room conversion is a real job with its own balance value (`ConvertRoomHealth` = −4000) and had no `TileWorkKind`, so a scenario said "claimed portal" by re-owning the tiles and the harness reported that as a shortfall (Q92). Built the same day by ADR-0044.
 
 ## ADR-0043 — Not every player is a keeper: DK2's player ids are reserved
@@ -11589,3 +11589,37 @@ DK2 has no such race, since its condition 72 reads the camera.
 - With the game paused, the path stops; whether DK2's does is unread.
 - No hash change: the request is observation only.
 - The owner checked it in Unity the same day.
+
+## ADR-0499 — A portal admits a Lair creature before the first Lair
+**Date:** 2026-10-17 · **Status:** accepted · Hash 264 · Research: portals.md §3, records 004DC810, 00494380
+
+**Context.** On Level 4 our keeper's Imps died in the hundreds where DK2's lost none. On seed
+1 the chain runs back to the portal:
+- The east-gate party (tick 3467) survived because the owner's drop had one Goblin to land
+  where DK2's had two. Alone against three heroes, ours fled and the party walked on.
+- The heroes then stood by the (24,37) Guard Room, and our fleeing Imps ran there to raise
+  the alarm. That is DK2's rule; DK2's heroes never got within its seven tiles.
+- In DK2's Level 4 capture (`reverse-engineering/dk2runs/level4-live1/seed01`) the keeper's
+  portal room appears at 787 and its first non-Imp creature, a Goblin, at 887; its first Lair
+  room appears at 1100. Ours refused Goblins until a Lair existed.
+
+`0x004DC810` fails an entry only when the keeper's slab total is below its size (`JC` at
+`0x004DC86B`), and the Goblin's Lair entry asks 0. The Lair's weight in `0x004DC153` is a
+flat 1.0 (3.0 when the lair object, `def+0x771`, is 0x16, as the Goblin's is) with no room walk. Ours also required the room to be owned.
+
+**Decision.** `PortalRules.IsAttracted` keeps only the size comparison. The jump table at
+`0x004DC8D4` also corrects the kind numbering in the docs: kind 0 tests nothing and kind 1 is
+the room test.
+
+**Consequences.**
+- Lair creatures (Goblin, Firefly) can arrive with no Lair. Every other type still needs its
+  room for a non-zero weight (`AttractionBudget`), so the owner's Level 20 result stands.
+- Level 4 over 20 seeds: Imp deaths 301 → 272, median 12 → 5, wins 1 → 2. Levels 1–3 stay
+  at 20/6/14. Only seeds whose portal is claimed before the Lair change.
+- portals.md's "Level 1 produces nothing until its keeper builds a lair" is withdrawn; no
+  capture had tested it, since every other recording built the Lair first.
+- Every shipped attraction entry is kind 0 or 1, so `IsAttracted` treating each enabled entry
+  as a room test is exact for the shipped data; kinds 2-4 remain unbuilt.
+- Open: our portal claim comes at 663–1437 against DK2's 787, and the late seeds lose the
+  most Imps. Digging matches DK2; our Imps claim the tile in front of the portal late.
+

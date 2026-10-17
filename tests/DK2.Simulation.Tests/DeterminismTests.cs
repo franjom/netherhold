@@ -160,13 +160,13 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
+        // HashVersion 264: a portal admits a Lair creature with no Lair (ADR-0499).
         // HashVersion 263: a creature handed the Portal Gem by trigger action 20 is marked its carrier (ADR-0495).
         // HashVersion 262: a scripted camera path's end tick is player state (ADR-0496).
         // HashVersion 260: independent explored discovery is saved and hashed beside scanning.
         // HashVersion 256: a door removed on water or lava leaves floor until the terrain changes (Q600).
-        // HashVersion 255: the mesh's locate cache is state and the builder follows the original's orders (ADR-0486).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x688ADFB86353DF0EUL, sim.StateHash());
+        Assert.Equal(0xC53FC1CC3EABDE59UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

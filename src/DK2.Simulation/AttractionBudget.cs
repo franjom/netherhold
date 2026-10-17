@@ -26,13 +26,13 @@ public static class AttractionBudget
         if (creature.Attractions.Count == 0) return true;
 
         // The builder reads slot 0 alone, so a two-slot creature budgets on its first
-        // room and the second room only has to exist (PortalRules.IsAttracted).
+        // room and the second room only has to reach its size (PortalRules.IsAttracted).
         CreatureAttraction first = creature.Attractions[0];
         if (first.Present == 0 || first.RoomId == 0) return true;
 
         // The Lair arm stores a flat 1.0 and jumps past the draw-down (0x004DC18E),
-        // so a Lair-attracted type is never capped however many are held. Goblins are
-        // this case, which is why level 1 never noticed the budget was missing.
+        // so a Lair-attracted type is never capped however many are held. It walks no
+        // room list either (0x004DC153), so the type needs no Lair: Level 4's first Goblin.
         if (first.RoomId == (byte)RoomTypeId.Lair) return true;
 
         int budget = 0;
