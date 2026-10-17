@@ -413,6 +413,8 @@ public sealed partial class WorldView
     private readonly Dictionary<byte, bool> _terrainSolid = [];
     private readonly Dictionary<byte, AssetRef> _roomFurniture = [];
     private readonly Dictionary<byte, AssetRef> _creatureMeshes = [];
+    private readonly Dictionary<byte, AssetRef> _creatureCorpses = [];
+    private readonly Dictionary<byte, Dictionary<string, AssetRef>> _creatureAnimations = [];
     private readonly Dictionary<int, (CreatureState Creature, GameTick JoiningTick, GameTick? ExitTick)> _portalPoses = [];
     private readonly List<int> _stalePortalPoseIds = [];
     private WorldState? _portalPoseWorld;
@@ -480,7 +482,16 @@ public sealed partial class WorldView
         }
 
         foreach (KeyValuePair<byte, CreatureDef> entry in database.Creatures)
+        {
             _creatureMeshes[entry.Key] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Mesh);
+            _creatureCorpses[entry.Key] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Mesh, "dead");
+            var animations = new Dictionary<string, AssetRef>(StringComparer.Ordinal);
+            foreach (string clip in AssetCatalogue.CreatureAnimations)
+                animations[clip] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Animation, clip);
+            foreach (string clip in AssetCatalogue.CreatureActionAnimations)
+                animations[clip] = AssetRef.ForCreature(entry.Value.Name, AssetKind.Animation, clip);
+            _creatureAnimations[entry.Key] = animations;
+        }
 
         foreach (KeyValuePair<byte, ObjectDef> entry in database.Objects)
             _objectMeshes[entry.Key] = AssetRef.ForObject(entry.Value.Name, AssetKind.Mesh);
@@ -1332,12 +1343,10 @@ public sealed partial class WorldView
             bool entranceAnimation = creature.Dk2StateId == PortalRules.JoiningState;
             bool playsAnimation = PlaysMappedAnimation(creature, world.CurrentTick);
             AssetRef animation = AnimationFor(creature, world.CurrentTick);
-            bool stationaryMovement = animation == AssetRef.ForCreature(
-                _database.CreatureById(creature.CreatureTypeId).Name, AssetKind.Animation, "movement_idle");
+            bool stationaryMovement = animation == _creatureAnimations[creature.CreatureTypeId]["movement_idle"];
             if (stationaryMovement) mesh = animation;
             if (creature.Activity == CreatureActivity.Dead)
-                mesh = AssetRef.ForCreature(_database.CreatureById(creature.CreatureTypeId).Name,
-                    AssetKind.Mesh, "dead");
+                mesh = _creatureCorpses[creature.CreatureTypeId];
             if (AttachedWheel(world, creature) is { } wheel)
             {
                 mesh = animation;
@@ -1449,10 +1458,7 @@ public sealed partial class WorldView
             };
         else if (creature.Activity is CreatureActivity.Fighting or CreatureActivity.Following) clip = "idle";
         else if (creature.Running && IsTravelAnimation(creature)) clip = "running";
-        return AssetRef.ForCreature(
-            definition.Name,
-            AssetKind.Animation,
-            clip);
+        return _creatureAnimations[creature.CreatureTypeId][clip];
     }
 
     // Enable only the existing source mappings whose action is represented by this view.

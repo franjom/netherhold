@@ -29,6 +29,15 @@ Keep source provenance with artifacts when other sessions can advance HEAD.
 Measured results and remaining work live in
 [lighting verification](../../docs/research/classic-lighting-verification.md#camera-rotation-stutter-follow-up).
 
+The rotation CSV also separates `depth_order_ms` and `run_upload_ms`; both are
+included in `sort_ms`. For reuse regression checks, copy
+`TransparentTerrainReuseProbe.cs` into the marked project's `Assets/DK2/Editor`
+and run batch entry point `DK2.Unity.Editor.TransparentTerrainReuseProbe.Run`.
+It checks96 material/vertex-stream cases, clean transform changes, confirmed
+index-only reversal/subset/restore, and inactive mesh invalidation after geometry
+replacement shrinks and then regrows the active run count. Success is exit0 and
+the verification message in the editor log; the owner project is never used.
+
 ## Pinned campaign startup comparison
 
 In the isolated `build/step5-lighting-project` only, batch entry point

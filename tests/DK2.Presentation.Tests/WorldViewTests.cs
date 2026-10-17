@@ -24,6 +24,23 @@ namespace DK2.Presentation.Tests;
 public class WorldViewTests
 {
     [InstallFact]
+    public void AnimationKeysAreReusedWithoutAllocatingOnEveryFrame()
+    {
+        (GameDatabase database, WorldState world) = RealLevel()!.Value;
+        CreatureDef definition = database.Creatures.Values.Single(c => c.Name == "Imp");
+        CreatureState creature = world.SpawnCreature(database, definition.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
+        var view = new WorldView(database);
+        for (int i = 0; i < 100; i++) view.AnimationFor(creature, world.CurrentTick);
+        AssetRef expected = AssetRef.ForCreature(definition.Name, AssetKind.Animation, "idle");
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        AssetRef actual = default;
+        for (int i = 0; i < 1000; i++) actual = view.AnimationFor(creature, world.CurrentTick);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(expected, actual);
+        Assert.Equal(0, allocated);
+    }
+
+    [InstallFact]
     public void AGemCarrierIsDrawnAsOne_SoItsDrawsGiveOffGemDust()
     {
         (GameDatabase database, WorldState world) = RealLevel()!.Value;

@@ -13,6 +13,52 @@ namespace DK2.Convert.Tests;
 public sealed class TriangleDepthOrderTests
 {
     [Fact]
+    public void ReusedSortMatchesStableOrderingAcrossDirectionsAndGeometryChanges()
+    {
+        var random = new Random(42);
+        Vector3[] positions = Enumerable.Range(0, 90)
+            .Select(_ => new Vector3(random.Next(-2, 3), random.Next(-2, 3), random.Next(-2, 3))).ToArray();
+        RenderTriangle[] triangles = Enumerable.Range(0, 180)
+            .Select(i => new RenderTriangle(random.Next(90), random.Next(90), random.Next(90), i % 3)).ToArray();
+        var buffer = new TriangleDepthOrderBuffer();
+        foreach (Vector3 forward in new[] { Vector3.UnitZ, -Vector3.UnitZ, Vector3.Zero, Vector3.UnitX })
+        {
+            var expected = triangles.Select((t, i) => (t, i, depth: Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], forward)))
+                .OrderByDescending(e => e.depth).ThenBy(e => e.i).Select(e => e.t).ToArray();
+            Assert.Equal(expected, buffer.Sort(positions, triangles, forward).SelectMany(r => r.Triangles));
+            AssertRuns(triangles, forward);
+        }
+        Assert.Empty(buffer.Sort(positions, [], Vector3.UnitZ));
+        Assert.Single(buffer.Sort(positions, triangles.Take(1).ToArray(), Vector3.UnitZ));
+        Assert.Equal(triangles.Length, buffer.Sort(positions, triangles, Vector3.UnitZ).Sum(r => r.Triangles.Count));
+        AssertRuns(triangles.Concat(triangles.Take(37)).ToArray(), -Vector3.UnitX);
+
+        void AssertRuns(RenderTriangle[] source, Vector3 forward)
+        {
+            var expected = TriangleDepthOrder.Sort(positions, source, forward);
+            var actual = buffer.Sort(positions, source, forward);
+            Assert.Equal(expected.Count, actual.Count);
+            for (int i = 0; i < expected.Count; i++)
+            {
+                Assert.Equal(expected[i].MaterialIndex, actual[i].MaterialIndex);
+                Assert.Equal(expected[i].Triangles, actual[i].Triangles);
+            }
+        }
+    }
+
+    [Fact]
+    public void ReusedSortAllocatesNoManagedMemoryAfterCapacityWarmup()
+    {
+        Vector3[] positions = [Vector3.Zero, Vector3.UnitZ, -Vector3.UnitZ];
+        RenderTriangle[] triangles = [new(0, 0, 0, 0), new(1, 1, 1, 1), new(2, 2, 2, 0)];
+        var buffer = new TriangleDepthOrderBuffer();
+        for (int i = 0; i < 100; i++) buffer.Sort(positions, triangles, i % 2 == 0 ? Vector3.UnitZ : -Vector3.UnitZ);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 100; i++) buffer.Sort(positions, triangles, i % 2 == 0 ? Vector3.UnitZ : -Vector3.UnitZ);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    [Fact]
     public void AlphaFacesInterleaveAcrossMaterialsAndReverseWithTheCamera()
     {
         Vector3[] positions = [new(0, 0, 1), new(0, 0, 3), new(0, 0, 2)];

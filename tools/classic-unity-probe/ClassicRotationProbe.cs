@@ -26,7 +26,7 @@ namespace DK2.Unity
             new ProfilerMarker("DK2.Probe.IdleMiddle"), new ProfilerMarker("DK2.Probe.RotateWarm"),
             new ProfilerMarker("DK2.Probe.IdleLast") };
         private readonly List<ProfilerRecorder> _recorders = new List<ProfilerRecorder>();
-        private readonly double[,] _rows = new double[30000, 14];
+        private readonly double[,] _rows = new double[30000, 16];
         private readonly int[] _renderCounts = new int[5];
         private readonly int[] _samples = new int[5];
         private readonly FrameTiming[] _timings = new FrameTiming[1];
@@ -77,6 +77,8 @@ namespace DK2.Unity
             AddRecorder(ProfilerCategory.Scripts, "DK2.Shadows.Selection");
             AddRecorder(ProfilerCategory.Scripts, "DK2.Shadows.Silhouette");
             AddRecorder(ProfilerCategory.Scripts, "DK2.Shadows.ReceiverUpload");
+            AddRecorder(ProfilerCategory.Scripts, "DK2.TransparentTerrain.DepthOrder");
+            AddRecorder(ProfilerCategory.Scripts, "DK2.TransparentTerrain.UploadRuns");
             RenderPipelineManager.endCameraRendering += Rendered;
             _started = _previous = Time.realtimeSinceStartupAsDouble; _ready = _started + 10;
             File.WriteAllText(Path.Combine(_output, "metadata.txt"),
@@ -163,7 +165,7 @@ namespace DK2.Unity
                 for (int i = 0; i < _recorders.Count; i++)
                     _rows[_row, i + 5] = _recorders[i].Valid && _recorders[i].Count > 0
                         ? _recorders[i].LastValue * (i == 0 ? 1 : 1e-6) : double.NaN;
-                _rows[_row, 13] = _camera.transform.eulerAngles.y;
+                _rows[_row, 15] = _camera.transform.eulerAngles.y;
                 _samples[_phase]++; _row++; _sampleFrame = Time.frameCount;
             }
             catch (Exception error) { Fail(error); }
@@ -182,7 +184,7 @@ namespace DK2.Unity
             if (!File.Exists(Path.Combine(_output, "rendered.png"))) throw new InvalidOperationException("No screenshot.");
             using (var writer = new StreamWriter(Path.Combine(_output, "frames.csv")))
             {
-                writer.WriteLine("phase,unity_frame,loop_ms,cpu_ms,gpu_ms,gc_bytes,main_ms,render_ms,sort_ms,lighting_ms,shadow_selection_ms,shadow_silhouette_ms,shadow_upload_ms,yaw_degrees");
+                writer.WriteLine("phase,unity_frame,loop_ms,cpu_ms,gpu_ms,gc_bytes,main_ms,render_ms,sort_ms,lighting_ms,shadow_selection_ms,shadow_silhouette_ms,shadow_upload_ms,depth_order_ms,run_upload_ms,yaw_degrees");
                 for (int row = 0; row < _row; row++)
                 {
                     writer.Write(Phases[(int)_rows[row, 0]]);

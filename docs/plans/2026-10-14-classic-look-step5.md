@@ -98,7 +98,7 @@ its visibility mask remain outside this camera/lighting step.
 - [x] Obtain usable GPU frame timings and a windowed player-loop frame-time capture.
 - [x] Add the ShowDiagnostics FPS/frame-time overlay for editor and Development players ([usage](../../unity/README.md#measuring-performance)).
 - [x] Capture the reported camera-rotation stutter with frame-time/Profiler evidence.
-- [ ] Reduce measured asset-key allocations and transparent-terrain rotation cost while preserving fidelity.
+- [x] Reduce measured asset-key allocations and transparent-terrain rotation cost while preserving fidelity.
 
 Measurements and limits: [verification](../research/classic-lighting-verification.md).
 Submission time is CPU time, not GPU execution or a claimed game frame rate.

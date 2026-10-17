@@ -17,6 +17,8 @@ namespace DK2.Unity
     {
         private static readonly ProfilerMarker SetChunkMarker = new ProfilerMarker("DK2.TransparentTerrain.SetChunk");
         private static readonly ProfilerMarker SortMarker = new ProfilerMarker("DK2.TransparentTerrain.Sort");
+        private static readonly ProfilerMarker OrderMarker = new ProfilerMarker("DK2.TransparentTerrain.DepthOrder");
+        private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.TransparentTerrain.UploadRuns");
 
         private sealed class Source
         {
@@ -32,10 +34,17 @@ namespace DK2.Unity
             public GameObject Object;
             public Mesh Mesh;
             public MeshRenderer Renderer;
+            public bool Used;
+            public readonly List<RenderTriangle> Triangles = new List<RenderTriangle>();
+            // Triangles tracks drawn order; offsets tracks the retained vertex layout, which
+            // stays unchanged when only indices are reordered or a subset is drawn.
+            public readonly Dictionary<RenderTriangle, int> VertexOffsets = new Dictionary<RenderTriangle, int>();
         }
 
         private readonly SortedDictionary<int, Source> _sources = new SortedDictionary<int, Source>();
         private readonly List<Run> _runs = new List<Run>();
+        private readonly List<Run> _selectedRuns = new List<Run>();
+        private readonly Dictionary<int, Run> _runMatches = new Dictionary<int, Run>();
         private readonly List<Vector3> _positions = new List<Vector3>();
         private readonly List<Vector3> _normals = new List<Vector3>();
         private readonly List<Vector2> _uvs = new List<Vector2>();
@@ -49,6 +58,7 @@ namespace DK2.Unity
         private readonly List<Vector2> _runLightAnchors = new List<Vector2>();
         private readonly List<Vector4> _runStaticLightInputs = new List<Vector4>();
         private readonly List<int> _runIndices = new List<int>();
+        private readonly TriangleDepthOrderBuffer _sort = new TriangleDepthOrderBuffer();
         private bool _dirty = true;
         private Vector3 _lastForward;
         private Matrix4x4 _lastMatrix;
@@ -151,29 +161,45 @@ namespace DK2.Unity
             Matrix4x4 matrix = transform.localToWorldMatrix;
             if (!_dirty && forward == _lastForward && matrix == _lastMatrix) return;
             using ProfilerMarker.AutoScope scope = SortMarker.Auto();
-            if (_dirty) Collect();
-            _worldPositions.Clear();
-            foreach (Vector3 local in _positions)
+            bool geometryChanged = _dirty;
+            if (geometryChanged) Collect();
+            if (geometryChanged || matrix != _lastMatrix)
             {
-                Vector3 world = matrix.MultiplyPoint3x4(local);
-                _worldPositions.Add(new NumericsVector3(world.x, world.y, world.z));
+                _worldPositions.Clear();
+                foreach (Vector3 local in _positions)
+                {
+                    Vector3 world = matrix.MultiplyPoint3x4(local);
+                    _worldPositions.Add(new NumericsVector3(world.x, world.y, world.z));
+                }
             }
-            var ordered = TriangleDepthOrder.Sort(_worldPositions, _triangles,
-                new NumericsVector3(forward.x, forward.y, forward.z));
+            IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered;
+            using (OrderMarker.Auto())
+                ordered = _sort.Sort(_worldPositions, _triangles,
+                    new NumericsVector3(forward.x, forward.y, forward.z));
+            using ProfilerMarker.AutoScope uploadScope = UploadMarker.Auto();
             if (ordered.Count > short.MaxValue)
                 throw new InvalidOperationException("Transparent terrain exceeds Unity's 32767 ordered-run limit.");
+            SelectRuns(ordered, geometryChanged);
             for (int i = 0; i < ordered.Count; i++)
             {
-                if (i == _runs.Count) _runs.Add(CreateRun(i));
-                Run run = _runs[i];
-                run.Object.SetActive(true);
-                run.Renderer.sharedMaterial = _materials[ordered[i].MaterialIndex];
-                run.Renderer.sortingOrder = i + 1;
+                Run run = _selectedRuns[i];
+                if (!run.Object.activeSelf) run.Object.SetActive(true);
+                Material material = _materials[ordered[i].MaterialIndex];
+                if (run.Renderer.sharedMaterial != material) run.Renderer.sharedMaterial = material;
+                if (run.Renderer.sortingOrder != i + 1) run.Renderer.sortingOrder = i + 1;
+                var triangles = ordered[i].Triangles;
+                if (!geometryChanged && SameTriangles(run.Triangles, triangles)) continue;
+                if (!geometryChanged && ReorderIndices(run, triangles)) continue;
+                run.Triangles.Clear();
+                run.VertexOffsets.Clear();
                 _runPositions.Clear(); _runNormals.Clear(); _runUvs.Clear(); _runIndices.Clear();
                 _runLightAnchors.Clear();
                 _runStaticLightInputs.Clear();
-                foreach (RenderTriangle triangle in ordered[i].Triangles)
+                for (int t = 0; t < triangles.Count; t++)
                 {
+                    RenderTriangle triangle = triangles[t];
+                    run.VertexOffsets[triangle] = _runPositions.Count;
+                    run.Triangles.Add(triangle);
                     AddVertex(triangle.A); AddVertex(triangle.B); AddVertex(triangle.C);
                 }
                 run.Mesh.Clear();
@@ -186,10 +212,87 @@ namespace DK2.Unity
                 run.Mesh.SetUVs(3, _runStaticLightInputs);
                 run.Mesh.SetTriangles(_runIndices, 0, calculateBounds: true);
             }
-            for (int i = ordered.Count; i < _runs.Count; i++) _runs[i].Object.SetActive(false);
+            foreach (Run run in _runs)
+                if (!run.Used && run.Object.activeSelf) run.Object.SetActive(false);
             _dirty = false;
             _lastForward = forward;
             _lastMatrix = matrix;
+        }
+
+        private static bool SameTriangles(List<RenderTriangle> previous, IReadOnlyList<RenderTriangle> next)
+        {
+            if (previous.Count != next.Count) return false;
+            for (int i = 0; i < previous.Count; i++)
+                if (previous[i] != next[i]) return false;
+            return true;
+        }
+
+        private void SelectRuns(IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered, bool geometryChanged)
+        {
+            _runMatches.Clear();
+            foreach (Run run in _runs)
+            {
+                run.Used = false;
+                if (geometryChanged)
+                {
+                    run.Triangles.Clear();
+                    run.VertexOffsets.Clear();
+                }
+                else _runMatches[TriangleHash(run.Triangles)] = run;
+            }
+            _selectedRuns.Clear();
+            for (int i = 0; i < ordered.Count; i++)
+            {
+                Run match = null;
+                var triangles = ordered[i].Triangles;
+                if (!geometryChanged && _runMatches.TryGetValue(TriangleHash(triangles), out Run candidate)
+                    && !candidate.Used && SameTriangles(candidate.Triangles, triangles))
+                {
+                    match = candidate;
+                    match.Used = true;
+                }
+                _selectedRuns.Add(match);
+            }
+            // Reserve all exact matches before repurposing a mesh another run still needs.
+            int available = 0;
+            for (int i = 0; i < _selectedRuns.Count; i++)
+            {
+                if (_selectedRuns[i] != null) continue;
+                while (available < _runs.Count && _runs[available].Used) available++;
+                if (available == _runs.Count) _runs.Add(CreateRun(available));
+                Run run = _runs[available++];
+                run.Used = true;
+                _selectedRuns[i] = run;
+            }
+        }
+
+        private static int TriangleHash(IReadOnlyList<RenderTriangle> triangles)
+        {
+            unchecked
+            {
+                int hash = triangles.Count;
+                for (int i = 0; i < triangles.Count; i++)
+                {
+                    RenderTriangle t = triangles[i];
+                    hash = ((hash * 31 + t.A) * 31 + t.B) * 31 + t.C;
+                    hash = hash * 31 + t.MaterialIndex;
+                }
+                return hash;
+            }
+        }
+
+        private bool ReorderIndices(Run run, IReadOnlyList<RenderTriangle> triangles)
+        {
+            _runIndices.Clear();
+            for (int i = 0; i < triangles.Count; i++)
+            {
+                if (!run.VertexOffsets.TryGetValue(triangles[i], out int vertex)) return false;
+                _runIndices.Add(vertex); _runIndices.Add(vertex + 1); _runIndices.Add(vertex + 2);
+            }
+            run.Mesh.SetTriangles(_runIndices, 0, calculateBounds: false);
+            run.Triangles.Clear();
+            for (int i = 0; i < triangles.Count; i++) run.Triangles.Add(triangles[i]);
+            return true;
         }
 
         private void AddVertex(int vertex)

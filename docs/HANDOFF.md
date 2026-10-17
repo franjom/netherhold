@@ -109,9 +109,9 @@ research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
 Scripted camera paths are built separately (ADR-0496; research/camera-paths.md).
 Room/neutral-Portal border flames are researched but unbuilt
 (research/room-border-effects.md); claim-mist bleaching remains open (Q609).
-Moving-camera captures trace recurring rotation cost to transparent-terrain
-sorting and most idle allocations to creature asset-key construction;
-optimization remains pending (verification document).
+Creature asset keys are cached per definition/action; transparent terrain uses
+retained stable-sort buffers and reuses meshes across changes in draw order.
+Measured gains, regression checks and remaining costs: verification document.
 The debug FPS/frame-time display is built; usage and rotation profiling protocol:
 [Unity performance guidance](../unity/README.md#measuring-performance).
 

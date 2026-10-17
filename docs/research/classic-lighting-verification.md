@@ -352,9 +352,41 @@ costs, not proof that every hitch has the same cause or a completed optimization
 The second rotation begins at a different yaw: this demonstrates recurrence,
 not a controlled cold-versus-warm comparison. The callstack run's short phases
 cover different angles and incur profiler overhead; use it for attribution only.
-Next targets are caching creature asset keys and reusing transparent-sort/run-mesh
-buffers while preserving alpha ordering. Sustained gameplay remains unmeasured.
+Creature asset-key caching and retained transparent sorting/mesh buffers are now
+built and verified below. Sustained gameplay remains unmeasured.
 
 Artifacts: `build/step5-rotation-20261017/20261017-142632/` contains timing CSV,
 metadata, screenshot and summary; `allocation/` contains the raw profile and
 calibrated stack report. Reproduction: [probe instructions](../../tools/classic-unity-probe/README.md#camera-rotation-and-allocation-capture).
+
+### Verified optimization
+
+The fresh before/after pair repeats the protocol above, serially. Baseline uses
+the original7c1272a4 executable; optimized source is9cb9d849 plus the optimization
+diff retained beside its capture. Intervening scripted-camera changes are disabled
+by this fixture. These single runs demonstrate this workload, not general frame rates.
+
+| Rotation | CPU median / p95 ms, before → after | Sort median / p95 ms, before → after | GC median B/frame, before → after |
+|---|---|---|---|
+| First | 10.11 /13.14 →8.93 /10.33 | 3.07 /4.69 →2.55 /3.38 | 430947 →76113 |
+| Second | 10.06 /13.00 →9.18 /10.92 | 3.06 /4.82 →2.68 /3.51 | 429194 →67325 |
+
+Idle allocations fall from about144723 to54004B/frame. The separate calibrated
+trace has40frames per phase and no AssetRef.ForCreature allocation stacks after
+warmup. Transparent-path allocations remain during run/capacity growth; the
+short instrumented rotations attribute about92KB/frame initially and29KB/frame
+on the second sweep. These trajectories differ from the normal timing capture.
+Remaining idle allocations include scenery enumeration and door asset keys.
+
+All555 Presentation tests, five ordering tests and the Unity adapter build pass.
+Stable material runs match the original sort through ties, reversals and capacity
+changes; warmed engine-neutral sorting and animation lookup tests allocate zero.
+The Unity probe passes96 stream/order cases plus index-only reversal/subset/restore
+and inactive-pool invalidation. Its red/green run reproduced and fixed stale geometry
+after run-count shrink/regrowth. Independent review is clear; the final screenshot
+was inspected. Sorting and residual allocations remain measurable; not every hitch
+is explained or fixed.
+
+Artifacts: `build/step5-optimization-before/` and
+`build/step5-optimization-verified/20261017-151204/` (including `allocation/`).
+Regression logs: `build/step5-optimization-matched/invalidation-{red,green}.log`.
