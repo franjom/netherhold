@@ -11702,7 +11702,7 @@ against both baseline and the preceding candidate. Preserve this implementation
 on its isolated branch; merge research separately, without changing gameplay.
 
 ## ADR-0505 — Restore native Heart routes and retain only the small core guard
-**Date:** 2026-10-17 · **Status:** candidate, awaiting merge approval
+**Date:** 2026-10-17 · **Status:** accepted
 
 **Context.** The owner authorizes reverting ADR-0452 if it harms fidelity.
 The captured Level4 route and frozen-world movement controls isolate its

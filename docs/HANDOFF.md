@@ -182,8 +182,8 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/native-heart-routing: ADR-0505 candidate reverts
-  the square Heart exclusion and retains the earlier core guard. Route and
+- build/imp-acceptance, fixes/native-heart-routing: ADR-0505 is merged;
+  the preserved worktree holds the captures and controls. Route and
   frozen-world native movement controls: research/imp-boundary-route.md.
   Hash/save 269; full replay and visual acceptance remain pending (Q585).
 
