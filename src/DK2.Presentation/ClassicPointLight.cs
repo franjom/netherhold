@@ -94,6 +94,20 @@ public readonly record struct ClassicPointLight
             cheapLighting ? ClassicLightFlags.CheapObject : ClassicLightFlags.NormalObject);
     }
 
+    /// <summary>The light a sprite takes at its centre (<c>0x0057C080</c>): no normal, the same distance
+    /// bins as <see cref="ContributionAt"/>, the full colour in the first bin and at or past a factor
+    /// of 1.</summary>
+    public Vector3 RadialAt(Vector3 sample)
+    {
+        float distanceSquared = (Position - sample).LengthSquared(), radiusSquared = Radius * Radius;
+        if (Radius <= 0 || distanceSquared >= radiusSquared) return Vector3.Zero;
+        int index = (int)Math.Round(distanceSquared * 16.0 - 0.49999f, MidpointRounding.ToEven);
+        if (index <= 0) return Colour;
+        if (index >= 256) return Vector3.Zero;
+        float factor = Intensity * (0.25f + 16f / index) * (radiusSquared - distanceSquared) / radiusSquared;
+        return Colour * (factor <= 1f ? factor : 1f);
+    }
+
     public Vector3 ContributionAt(Vector3 vertex, Vector3 normal)
     {
         Vector3 toLight = Position - vertex;

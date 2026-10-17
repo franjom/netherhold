@@ -255,6 +255,7 @@ namespace DK2.Unity
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
                     attachment: _scene.CreatureAttachment, clock: EffectClock);
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
+                _constructionEffects.LightTable = _scene.LightTableAt;
             }
             _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
                 new PlayerId((byte)viewingPlayerId), (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance));

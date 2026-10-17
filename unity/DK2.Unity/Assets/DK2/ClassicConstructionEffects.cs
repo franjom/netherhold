@@ -40,6 +40,11 @@ namespace DK2.Unity
             /// element (0x0059B880 → 0x0059C720), not facing the camera; its quads are rebuilt into
             /// one mesh each frame.</summary>
             public bool IsFlat;
+            /// <summary>A billboard's width and height per unit of scale: the descriptor's /4096
+            /// (0x0059C360 multiplies scale +4 and +8 by them), and art flag 0x40's lift by half the
+            /// height so the sprite stands on its point.</summary>
+            public float WidthPerScale = 1f, HeightPerScale = 1f;
+            public bool StandsOnPoint;
             public Mesh FlatMesh;
             public readonly List<Vector3> FlatVertices = new List<Vector3>();
             public readonly List<Vector2> FlatUvs = new List<Vector2>();
@@ -82,6 +87,27 @@ namespace DK2.Unity
         private float _fraction;
         private readonly List<EffectLightView> _lights = new List<EffectLightView>();
 
+        /// <summary>The tile's light table for the frame being drawn (null without classic lighting).</summary>
+        public Func<TilePos, ClassicLightTable> LightTable { get; set; }
+
+        /// <summary>A sprite's colour: its tint plus, at its centre, the radial term of every light in
+        /// its tile's table (0x0057C080, for billboards 0x0057F3D0 and flat sprites 0x0057FB80), each
+        /// channel clamped at 255 as an 8-bit vertex colour. That the list is the tile's whole table
+        /// is INFERRED (0x0057BCB0's source, the draw item's +0x50, is set outside the draw).</summary>
+        private Color32 SpriteColour(ConstructionParticle source, float x, float y, float height)
+        {
+            var colour = new System.Numerics.Vector3(source.Red, source.Green, source.Blue);
+            ClassicLightTable table = LightTable?.Invoke(new TilePos((int)Math.Floor(x / 4096f), (int)Math.Floor(y / 4096f)));
+            if (table != null)
+            {
+                var sample = new System.Numerics.Vector3(x / 4096f, height / 4096f, -y / 4096f);
+                foreach (ClassicPointLight light in table.Lights) colour += light.RadialAt(sample) * 255f;
+            }
+            // The vertex sinks round each channel to the nearest step, then cap it at 255.
+            return new Color32((byte)Math.Min(255, Mathf.RoundToInt(colour.X)),
+                (byte)Math.Min(255, Mathf.RoundToInt(colour.Y)), (byte)Math.Min(255, Mathf.RoundToInt(colour.Z)), 255);
+        }
+
         /// <summary>Runs the effect updates due by now and returns the instances' lights, which
         /// the frame's lighting takes before it is prepared; <see cref="Draw"/> then draws this state.</summary>
         public IReadOnlyList<EffectLightView> Advance()
@@ -94,6 +120,8 @@ namespace DK2.Unity
         public void Draw()
         {
             float fraction = _fraction;
+            Camera camera = Camera.main;
+            Vector3 cameraUp = camera != null ? camera.transform.up : Vector3.up;
             foreach (Group group in _groups.Values)
             {
                 if (group == null) continue;
@@ -146,12 +174,19 @@ namespace DK2.Unity
                     continue;
                 }
                 if (group.Count == group.Buffer.Length) Array.Resize(ref group.Buffer, group.Buffer.Length * 2);
+                float width = size * group.WidthPerScale, spriteHeight = size * group.HeightPerScale;
+                // 0x0059C360 with art flag 0x40 offsets the quad by half its height in camera space; that
+                // it lifts the sprite onto its point (flames, splashes) is STRONGLY INFERRED from the
+                // quad's UVs (v grows with camera y, D3D's v runs down) and the art.
+                if (group.StandsOnPoint) position += cameraUp * (spriteHeight * 0.5f);
                 group.Buffer[group.Count++] = new ParticleSystem.Particle
                 {
                     position = position,
-                    startColor = new Color32(source.Red, source.Green, source.Blue, 255),
+                    startColor = SpriteColour(source, Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction),
+                        Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction),
+                        Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction)),
                     rotation3D = Vector3.zero,
-                    startSize = size,
+                    startSize3D = new Vector3(width, spriteHeight, 1f),
                     startLifetime = 1f,
                     remainingLifetime = source.RemainingSpriteLifetimeFraction,
                     randomSeed = (uint)(i + 1),
@@ -188,16 +223,17 @@ namespace DK2.Unity
 
         /// <summary>One flat sprite (0x0059C720 → 0x0057FB80): a square of half-size scale / 4096 in the
         /// DK2 x-y plane at the element, its corners (-s,-s), (s,-s), (s,s), (-s,s) taking UVs (0,0),
-        /// (1,0), (1,1), (0,1), coloured by the tint. DK2 passes the angle -heading·π/1024 to a
+        /// (1,0), (1,1), (0,1), coloured by <see cref="SpriteColour"/>. DK2 passes the angle -heading·π/1024 to a
         /// clockwise turn (0x0041C580 with the row transform 0x00594DB0), so the corners turn
         /// counter-clockwise by heading·π/1024 in the DK2 x-y plane. The frame is the particle's age
         /// through the stored frames, as the billboards' sheet takes it (DK2's frame pick for a flat
         /// sprite, 0x0057FF30, is unread).</summary>
-        private static void AddFlatQuad(Group group, ConstructionParticle source, float fraction)
+        private void AddFlatQuad(Group group, ConstructionParticle source, float fraction)
         {
             float x = Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction);
             float y = Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction);
-            float height = Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction) / 4096f;
+            float heightRaw = Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction);
+            float height = heightRaw / 4096f;
             float half = source.ScaleRaw;
             float angle = Mathf.LerpAngle(source.PreviousHeadingRaw * (360f / 2048f),
                 source.HeadingRaw * (360f / 2048f), fraction) * Mathf.Deg2Rad;
@@ -207,7 +243,8 @@ namespace DK2.Unity
             int frame = Math.Min(frames - 1, (int)(age * frames));
             float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
             int first = group.FlatVertices.Count;
-            var colour = new Color32(source.Red, source.Green, source.Blue, 255);
+            // The four corners share the colour lit at the centre (0x0057FB80).
+            Color32 colour = SpriteColour(source, x, y, heightRaw);
             for (int corner = 0; corner < 4; corner++)
             {
                 float cx = corner == 0 || corner == 3 ? -half : half;
@@ -358,6 +395,10 @@ namespace DK2.Unity
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             group.System.Play(); group.System.Pause();
             group.IsFlat = (definition.ArtResource.Flags & 0x100) != 0;
+            group.WidthPerScale = resource.WidthRaw / 4096f;
+            group.HeightPerScale = resource.HeightRaw / 4096f;
+            group.StandsOnPoint = (definition.ArtResource.Flags & 0x40) != 0;
+            main.startSize3D = true;
             _groups.Add((definition.EffectElementId, ""), group);
             return group;
         }
