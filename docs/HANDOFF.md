@@ -13,11 +13,12 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
   levels (docs/experiments/). M6 remains partial: the original packet replays
-  of Levels 1–4 run over seeds 1–20 and win 20/9/17/2 on master (ADR-0483).
+  of Levels 1–4 run over seeds 1–20 and win 20/6/14/2 on master (2c0473bf, ADR-0499).
   The Level 1–3 seed spread against DK2's own seeds is in
   experiments/2026-10-06-packet-replay-seeds/ (open difference Q567); Level 4's
   is in experiments/2026-10-12-level4-packet-replay/. Level 4's largest gap is
-  Imp losses: the keeper loses a median 16 Imps a seed where DK2 loses none.
+  Imp losses: the keeper loses a median 5 Imps a seed (272 over 20) where DK2
+  loses none, down from 16 through ADR-0488–0491 and ADR-0499.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
@@ -134,7 +135,12 @@ tools/classic-unity-probe/README.md.
 
 ## Next work
 
-1. M6: Level 4's Imp losses (16 a seed against DK2's none) and the state 8
+1. M6: Level 4's Imp losses (a median 5 a seed against DK2's none). They die on
+   alarm runs to the (24,37) Guard Room after a gate party survives; the seeds
+   that lose most claim the portal late (663–1437 against DK2's 787) because an
+   Imp keeps reinforcing walls while a claim waits (seed 5's Imp 13, 398–1060;
+   ours spends a median ~300 Imp-ticks in state 22 before tick 1100, DK2 102).
+   Then the state 8
    residual (ours spends 52 of 61 ticks in state 8 where DK2 spends 27 of 58;
    state 8's routeless movement `0x00470C80` and `0x0048ECE0` are unread).
    Then Q567 and Q590's remainder. The oracle's captured-state mode is the tool
