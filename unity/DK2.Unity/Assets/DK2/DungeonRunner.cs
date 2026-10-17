@@ -707,6 +707,10 @@ namespace DK2.Unity
             if (subtitle == null) return;
             _subtitleStyle ??= new GUIStyle(GUI.skin.label)
             {
+                // DK2 draws a .bf4 bitmap font we cannot read yet (Q608). Bullfrog's own
+                // DungeonKeeperII TrueType face stands in when this machine supplies it
+                // (Assets/Resources/Fonts, gitignored); otherwise Unity's default.
+                font = SubtitleFont(),
                 alignment = TextAnchor.MiddleCenter, wordWrap = true,
                 fontSize = Mathf.Max(12, Screen.height / 30),
                 normal = { textColor = Color.white },
@@ -714,6 +718,12 @@ namespace DK2.Unity
             float height = Screen.height / 8f;
             GUI.Label(new Rect(Screen.width * 0.05f, Screen.height - height, Screen.width * 0.9f, height),
                 subtitle, _subtitleStyle);
+        }
+
+        private static Font SubtitleFont()
+        {
+            Font font = Resources.Load<Font>("Fonts/DungeonKeeperII");
+            return font != null ? font : GUI.skin.label.font;
         }
 
         private void ApplyClassicCamera()

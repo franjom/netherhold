@@ -43,6 +43,11 @@ local.settings.json
 unity/DK2.Unity/Assets/Plugins/DK2/*.dll
 unity/DK2.Unity/Assets/Plugins/DK2/*.pdb
 unity/DK2.Unity/Assets/Plugins/DK2/*.meta
+# Unity: Bullfrog's DungeonKeeperII TrueType font (Astigmatic One Eye, 1998) is not ours to
+# ship; each machine supplies it (unity/README.md).
+unity/DK2.Unity/Assets/Resources/Fonts/
+unity/DK2.Unity/Assets/Resources/Fonts.meta
+unity/DK2.Unity/Assets/Resources.meta
 unity/**/obj/
 
 # Unity regenerates these from the asmdefs on every open; they are not sources.

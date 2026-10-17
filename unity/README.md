@@ -28,6 +28,11 @@ is the authority), put `DungeonRunner` on a GameObject in a scene, and press Pla
 Point it at a DK2 install with the component's **Install Directory** field or the
 `DK2_DIR` environment variable.
 
+Path subtitles use Bullfrog's DungeonKeeperII TrueType face when the machine has
+it at `DK2.Unity/Assets/Resources/Fonts/DungeonKeeperII.ttf` (gitignored, not ours
+to ship; a copy is at wfonts.com/font/dungeonkeeperii). Without it they use Unity's
+default font. DK2 itself draws a `.bf4` bitmap font we cannot read yet (Q608).
+
 The DungeonRunner's **Classic Creature Shadows** switch enables animated mesh
 silhouettes from nearby wall torches. **Native Initial Ambient** is a diagnostic
 for the opt-in classic vertex lighting shader; leave it off during normal play

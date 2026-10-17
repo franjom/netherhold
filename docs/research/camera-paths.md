@@ -386,7 +386,7 @@ condition.
 - `0x0041A190`;
 - speech audio;
 - DK2's bitmap font (`FONT_INGAME*.bf4`; no reader yet, and which one
-  `0x0040A3E0` selects is unread). Unity's default font stands in;
+  `0x0040A3E0` selects is unread). A local DungeonKeeperII TTF stands in (Q608);
 - the message record action 24 posts.
 
 **Deviations:**
