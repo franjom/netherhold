@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**269** — `0xFA0172F155ECAA5C`. Native-byte Heart routing and the earlier small core guard (ADR-0505); no new fields. Versions 266–268 belong to preserved, rejected Imp candidates.
+
 **265** — `0x10A9C84139F8DF10`. Behaviour only: creature neighbours come from the native tile rectangle before combined-radius contact checks; the torturer's victim route retains native arrival flags (ADR-0500). No new saved field.
 
 **264** — `0xC53FC1CC3EABDE59`. Behaviour only: a portal admits a creature whose room entry asks size 0 with none of the room owned, so a Lair creature comes through before the first Lair (`0x004DC810`, ADR-0499). Snapshot format is 264.

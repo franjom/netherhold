@@ -460,10 +460,9 @@ public sealed class StructureBlocksTests
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Leaving));
     }
 
-    /// <summary>The native cache retains floor; the owner-requested routing mask and target
-    /// constraint keep the raised platform closed (ADR-0452).</summary>
+    /// <summary>The native cache retains floor; only targets inside the small core are moved.</summary>
     [Fact]
-    public void NativeHeartFloorIsPreservedWhileTheRouterAimsAtItsRim()
+    public void NativeHeartFloorIsPreservedWhileTheRouterAvoidsOnlyItsCore()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -475,14 +474,15 @@ public sealed class StructureBlocksTests
         var steering = new Navigation.WorldSteering(db, world);
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
         Assert.Equal(DK2.Pathfinding.NavBytes.Floor, steering.NavByte(6, 6));
-        Assert.True(goblin.Body.PathTargetPos.X < 5 << 16);
+        Assert.Equal(new DK2.Simulation.Steering.Fixed16Vector((6 << 16) - (1 << 13),
+            (6 << 16) + (1 << 15)), goblin.Body.PathTargetPos);
         Assert.True(steering.TryRoute(goblin, new TilePos(4, 6), Navigation.MoveOptions.Loose));
     }
 
     /// <summary>A running heart's centre tile holds three objects (Level 10 dump): the solid
     /// obstacle (100, width 3.0) DK2's enumerator forwards once per query with flag bits 0 and 1,
     /// and the visible heart (13) and arches (86), plain shoves. The native obstacles remain;
-    /// the owner-requested platform boundary also guides the off-axis walk (ADR-0452).</summary>
+    /// the off-axis walk follows the obstacle ring.</summary>
     [Fact]
     public void TheHeartHasItsThreeObstaclesAndAnOffAxisWalkerStaysOnTheRim()
     {
@@ -509,9 +509,9 @@ public sealed class StructureBlocksTests
         Assert.InRange(closest, 3 << 15, 3 << 16);
     }
 
-    /// <summary>DK2's escape crosses the platform; ADR-0452 keeps the owner-requested rim open.</summary>
+    /// <summary>The native route and obstacle exemptions leave only the small core protected.</summary>
     [Fact]
-    public void AWalkerAimedThroughAHeartRoutesAroundItsLivePlatform()
+    public void AWalkerAimedThroughAHeartArrivesWithoutEnteringItsCore()
     {
         (WorldState world, Navigation.WorldSteering steering, CreatureState goblin, GameSimulation sim) =
             HeartWalk(new TilePos(2, 6), new TilePos(10, 6));
@@ -521,11 +521,10 @@ public sealed class StructureBlocksTests
         {
             sim.Tick(InputFrame.Empty);
             closest = Math.Min(closest, DistanceToHeartCentre(goblin));
-            Assert.False(goblin.PosX > 5 * Fp32.One && goblin.PosX < 8 * Fp32.One
-                && goblin.PosY > 5 * Fp32.One && goblin.PosY < 8 * Fp32.One);
+            Assert.True(DistanceToHeartCentre(goblin) >= 1 << 15);
         }
         Assert.Equal(new TilePos(10, 6), goblin.Tile);
-        Assert.InRange(closest, 3 << 15, 3 << 16);
+        Assert.InRange(closest, 1 << 15, 3 << 16);
     }
 
     [Fact]
@@ -548,11 +547,11 @@ public sealed class StructureBlocksTests
     [Theory]
     [InlineData(-0.65, 0, -0.25, 0, false)]
     [InlineData(-0.55, 0, -0.45, 0, false)]
-    [InlineData(-0.49, -0.2, -0.49, 0.2, true)]
+    [InlineData(-0.49, -0.2, -0.49, 0.2, false)]
     [InlineData(-0.6, 0, -0.6, 0.4, true)]
     [InlineData(0, 0, 0.4, 0, true)]
     [InlineData(0.1, 0, 0, 0, false)]
-    public void ALoadedBodyInsideThePlatformMayEscapeWithoutMovingDeeper(
+    public void ALoadedBodyInsideTheCoreMayEscapeWithoutMovingDeeper(
         double x0, double y0, double x1, double y1, bool allowed)
     {
         var (world, steering, _, _) = HeartWalk(new TilePos(2, 6), new TilePos(10, 6));

@@ -12,11 +12,11 @@ namespace DK2.Simulation.Tests;
 public class HeartPillarTests
 {
     [Theory]
-    [InlineData(0, 12, 4, 0x800, 0x4CD, 0xC800, 0x3E00)]
-    [InlineData(1, 11, 6, 0x667, 0x19A, 0xAE00, 0x619A)]
-    [InlineData(2, 13, 6, 0x999, 0x19A, 0xE200, 0x619A)]
-    public void PillarAimRetainsItsBuilderPositionWhileMovementApproachesTheNearestRim(
-        int ordinal, int tileX, int tileY, int offsetX, int offsetY, int rimX, int rimY)
+    [InlineData(0, 12, 4, 0x800, 0x4CD)]
+    [InlineData(1, 11, 6, 0x667, 0x19A)]
+    [InlineData(2, 13, 6, 0x999, 0x19A)]
+    public void PillarAimAndMovementRetainTheBuilderPosition(
+        int ordinal, int tileX, int tileY, int offsetX, int offsetY)
     {
         (GameDatabase db, WorldState world) = HeartWorld();
         var sites = new HeartSites();
@@ -40,7 +40,7 @@ public class HeartPillarTests
         ShotState shot = Assert.Single(world.Shots);
         Assert.Equal((target.X.Raw, target.Y.Raw), (shot.TargetX, shot.TargetY));
         Assert.Equal(HeartPillarId.For(world, target).Value, shot.TargetId);
-        Assert.Equal((rimX << 4, rimY << 4),
+        Assert.Equal((target.X.Raw << 4, target.Y.Raw << 4),
             (caster.Body.PathTargetPos.X, caster.Body.PathTargetPos.Y));
     }
 

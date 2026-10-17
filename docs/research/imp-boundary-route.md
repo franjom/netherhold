@@ -78,19 +78,45 @@ its two unmatched triangles and the native four are confined to `(21..23,5..7)`.
 The native retains a point at `(22,6)` there. Their history remains unverified,
 and this residual does not prevent the exact three-point route match.
 
-## Interpretation and next decision
+## Frozen-world movement control — CONFIRMED computations
 
-For this boundary, the extra Heart routing mask causes the route discrepancy;
-neither task priority nor RNG consumption differs. ADR-0452 deliberately added
-that mask alongside the owner's platform movement constraint. Its original
-evidence and fidelity boundary remain [structure-blocks.md §5.3](structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355).
-No gameplay code changes in this investigation.
+The oracle executes [Body_Integrate](functions/004D5A40.md) repeatedly from the
+chooser-return memory image. The modern probe restores that body's limits,
+velocity, axes, route window and progress fields, matches the navigation bytes
+and holds the other workers at their captured positions. It runs the ordinary
+four behaviours and integrator. These are successive body integrations in a
+frozen world, not full game ticks: entity-position commits, animation, other
+creature updates and caller rounding are not replayed.
 
-The next implementation decision is how to reconcile ADR-0452 with native routes.
-Removing only the routing mask needs a movement check: the separate hard guard
-could stall a walker whose native route crosses its excluded area. Native route
-equality alone does not prove arrival or obstacle-steering equality. This case
-does not establish the cause of the later reinforcement streak or campaign timing.
+| Controlled movement | Integrations to `PathFinished` | First position difference from native |
+|---|---|---|
+| Native function on captured memory | 17 | — |
+| Modern square-masked route and square movement guard | 21 | 1 |
+| Native route, retain square movement guard | 22 | 4 |
+| Native route, no extra movement guard | 17 | None |
+| Candidate unmasked build and restored small core guard | 17 | None |
+
+Through arrival, the candidate equals all 17 native positions, velocities,
+waypoint indices, finished flags, stuck histories and escape flags. Native
+movement enters the excluded square for six integrations without escape mode,
+but stays at least 1.548330 tiles from the Heart centre. The candidate's core
+guard rejects no step. This measured walk uses the platform corners without
+entering the Heart's central object.
+
+ADR-0505 reverts ADR-0452's square routing/movement exclusion, retaining the
+earlier object-width core guard and its target projection. That residual is
+still an explicit deviation from native arrival/escape exceptions; its original
+evidence is [structure-blocks.md §5.3](structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355).
+A synthetic walker forced into escape mode every step can stall at that core.
+A separate safety test keeps escape active near the core and verifies exclusion;
+the arrival test starts with zero stuck history, so escape clears before the
+Heart. Recovery from a genuinely stuck near-core state is not established.
+No claim is made that the residual guard is native.
+
+This boundary exposes neither a task-priority nor an RNG mismatch. It does not
+establish the cause of the later reinforcement streak or campaign timing.
+Next: measure the candidate in the complete Level4 replay and visually judge
+the retained core protection before claiming broader gameplay acceptance.
 
 ## Local artifacts (ignored)
 
@@ -117,3 +143,9 @@ All paths are relative to `build/imp-acceptance/reverse-engineering/`:
   `route-controls.json` plus each `*.triangles.json`/`*.mesh.bin` retain results.
   `check-native-grid.py` independently asserts the scanner/cache pointer and byte
   equality against the original entry image.
+- `imp-heart-movement-20261017/native_probe.py`: exports the captured body and
+  runs the native function on its original memory; run `python native_probe.py 40`.
+  `Probe.csproj`/`Program.cs` run modern controls with the current Tools build;
+  run `dotnet run -c Release`, then `python compare.py` for exact comparisons.
+  The earlier `masked-guard.json` and `native-route-guard.json` retain baseline
+  results; candidate traces have separate filenames. All state remains local.

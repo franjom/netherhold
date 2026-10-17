@@ -305,10 +305,9 @@ public class HeroWalkTests
         Assert.DoesNotContain(sink.Events, e => e.System == "CreatureJob" && e.Detail.Contains($"creature={hero.Id} "));
     }
 
-    /// <summary>Job 19 chooses a random Heart tile; ADR-0452 moves platform destinations
-    /// onto the nearest rim edge.</summary>
+    /// <summary>Job 19 chooses a random Heart tile; only core destinations are moved.</summary>
     [Fact]
-    public void KillPlayer_ProjectsRandomHeartDestinationsOntoItsRim()
+    public void KillPlayer_KeepsRandomHeartDestinationsOutsideTheCore()
     {
         var aimed = new HashSet<TilePos>();
         for (ulong seed = 1; seed <= 24; seed++)
@@ -322,16 +321,18 @@ public class HeroWalkTests
             for (int t = 0; t < 8 && hero.UtilityNewState != HeroJobRules.AtTheHeartState; t++) sim.Tick();
 
             Assert.Equal(HeroJobRules.AtTheHeartState, hero.UtilityNewState);
+            var centre = new DK2.Simulation.Steering.Fixed16Vector(CreatureState.CentreOf(11) << 4, CreatureState.CentreOf(5) << 4);
+            Assert.True((hero.Body.PathTargetPos - centre).Length() >= 1 << 15);
             aimed.Add(new TilePos(hero.Body.PathTargetPos.X >> 16, hero.Body.PathTargetPos.Y >> 16));
         }
 
-        Assert.All(aimed, p => Assert.True(p.X is 9 or 13 || p.Y is 3 or 7, $"{p} is not outside the platform"));
+        Assert.All(aimed, p => Assert.True(p.X is >= 10 and <= 12 && p.Y is >= 4 and <= 6));
         Assert.True(aimed.Count > 2, $"only {aimed.Count} tiles aimed at");
     }
 
     /// <summary>177's fallback (<c>0x004625F7</c>) walks to the <c>DungeonHeartPosition</c> tile
     /// itself, the heart's centre, when the target player has no creature left.
-    /// ADR-0452 resolves that target at the live platform's edge.</summary>
+    /// The core guard resolves that target outside the central object's disk.</summary>
     [Fact]
     public void KillCreatures_WithNoCreatureLeft_WalksToTheLiveHeartsEdge()
     {
@@ -350,7 +351,7 @@ public class HeroWalkTests
 
         Assert.Equal(HeroJobRules.AtTheHeartState, hero.UtilityNewState);
         var centre = new DK2.Simulation.Steering.Fixed16Vector(CreatureState.CentreOf(11) << 4, CreatureState.CentreOf(5) << 4);
-        Assert.InRange((hero.Body.PathTargetPos - centre).Length(), 3 << 15, 2 << 16);
+        Assert.InRange((hero.Body.PathTargetPos - centre).Length(), 1 << 15, 3 << 14);
     }
 
     /// <summary>A 3x3 heart with its top-left at (x, y).</summary>

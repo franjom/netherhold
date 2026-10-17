@@ -12,21 +12,32 @@ namespace DK2.Simulation.Tests;
 
 public sealed class HeartPlatformMovementTests
 {
+    [Fact]
+    public void NativeHeartCornerSegmentRemainsOpen()
+    {
+        var (_, _, steering, _) = Setup(new TilePos(2, 6));
+        // Native integrations 3→4, translated from Heart (24.5,54.5) to (6.5,6.5).
+        Assert.True(steering.CanMove(new Fixed16Vector(312349, 386071),
+            new Fixed16Vector(339291, 372225)));
+    }
+
     [Theory]
-    [InlineData(-1.6, 0, -0.6, 0, false)]
-    [InlineData(0, -1.6, 0, -0.6, false)]
-    [InlineData(1.6, 0, 0.6, 0, false)]
-    [InlineData(0, 1.6, 0, 0.6, false)]
-    [InlineData(-1.6, -1.4, 1.6, -1.4, false)]
-    [InlineData(-1.6, -1.6, -1.4, -1.4, false)]
+    [InlineData(-1.6, 0, -0.4, 0, false)]
+    [InlineData(0, -1.6, 0, -0.4, false)]
+    [InlineData(1.6, 0, 0.4, 0, false)]
+    [InlineData(0, 1.6, 0, 0.4, false)]
+    [InlineData(-1.6, 0, 1.6, 0, false)]
+    [InlineData(-1.6, -1.4, 1.6, -1.4, true)]
+    [InlineData(-1.6, -1.6, -1.4, -1.4, true)]
     [InlineData(-1.6, -1.6, 1.6, -1.6, true)]
     [InlineData(-1.6, 1.6, 1.6, 1.6, true)]
     [InlineData(-1.6, -1.6, -1.6, 1.6, true)]
     [InlineData(1.6, -1.6, 1.6, 1.6, true)]
     [InlineData(-1.6, -1.4, -1.4, -1.6, true)]
     [InlineData(-1.4, 0, -1.6, 0, true)]
-    [InlineData(-1.4, 0, -1.2, 0, false)]
-    public void LivePlatformRejectsCrossingsAndKeepsEveryRimOpen(
+    [InlineData(-0.4, 0, -0.6, 0, true)]
+    [InlineData(-0.4, 0, -0.2, 0, false)]
+    public void LiveCoreRejectsCrossingsAndLeavesTheOuterPlatformOpen(
         double x0, double y0, double x1, double y1, bool allowed)
     {
         var (db, world, steering, _) = Setup(new TilePos(2, 6));
@@ -37,11 +48,12 @@ public sealed class HeartPlatformMovementTests
     }
 
     [Theory]
-    [InlineData(0, 0, -1.625, 0)]
-    [InlineData(-1.4, -1.4, -1.625, -1.4)]
-    [InlineData(1.4, 1.4, 1.625, 1.4)]
-    [InlineData(0, -1.2, 0, -1.625)]
-    public void PlatformDestinationsMoveOntoTheirNearestRimEdge(double x, double y, double rimX, double rimY)
+    [InlineData(0, 0, -0.625, 0)]
+    [InlineData(-0.4, 0, -0.625, 0)]
+    [InlineData(0, 0.4, -0.625, 0)]
+    [InlineData(-1.4, -1.4, -1.4, -1.4)]
+    [InlineData(1.4, 1.4, 1.4, 1.4)]
+    public void OnlyCoreDestinationsMoveTowardTheApproach(double x, double y, double rimX, double rimY)
     {
         var (_, world, steering, _) = Setup(new TilePos(2, 6));
         Fixed16Vector target = steering.ConstrainTarget(Point(-4, 0), Point(x, y));
@@ -53,31 +65,49 @@ public sealed class HeartPlatformMovementTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void GoblinEscapingAStuckRouteCannotCrossTheLivePlatform(bool ruined)
+    public void GoblinFinishesTheWalkAfterItsInitialEscapeModeClears(bool ruined)
     {
         var (db, world, steering, goblin) = Setup(new TilePos(2, 6));
         world.Player(PlayerIds.FirstKeeper).HeartRuined = ruined;
         Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), MoveOptions.Loose));
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
-        bool crossedPlatform = false;
+        bool crossedCore = false;
+        goblin.Body.EscapeStuckMode = true;
         for (int tick = 0; tick < 800 && goblin.Tile != new TilePos(10, 6); tick++)
         {
-            goblin.Body.EscapeStuckMode = true;
             sim.Tick(InputFrame.Empty);
-            crossedPlatform |= goblin.PosX > 5 * Fp32.One && goblin.PosX < 8 * Fp32.One
-                && goblin.PosY > 5 * Fp32.One && goblin.PosY < 8 * Fp32.One;
-            if (!ruined) Assert.False(crossedPlatform);
+            long dx = goblin.PosX - CreatureState.CentreOf(6);
+            long dy = goblin.PosY - CreatureState.CentreOf(6);
+            crossedCore |= dx * dx + dy * dy < (Fp32.One / 2L) * (Fp32.One / 2L);
+            if (!ruined) Assert.False(crossedCore);
         }
         Assert.Equal(new TilePos(10, 6), goblin.Tile);
-        Assert.Equal(ruined, crossedPlatform);
+        Assert.Equal(ruined, crossedCore);
     }
 
     [Fact]
-    public void ABlockedNearestRimEdgeFallsBackToTheExistingApproachFloor()
+    public void ForcedEscapeNearTheHeartStillCannotEnterItsCore()
+    {
+        var (db, world, steering, goblin) = Setup(new TilePos(5, 6));
+        Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), MoveOptions.Loose));
+        var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
+        for (int tick = 0; tick < 60; tick++)
+        {
+            goblin.Body.EscapeStuckMode = true;
+            goblin.Body.PathStuckBuffer = 0x7FFF;
+            sim.Tick();
+            Assert.True(goblin.Body.EscapeStuckMode);
+            long dx = goblin.PosX - CreatureState.CentreOf(6);
+            long dy = goblin.PosY - CreatureState.CentreOf(6);
+            Assert.True(dx * dx + dy * dy >= (Fp32.One / 2L) * (Fp32.One / 2L));
+        }
+    }
+
+    [Fact]
+    public void PlatformCornerDestinationsRemainAtTheirNativePosition()
     {
         var (_, world, steering, _) = Setup(new TilePos(2, 6));
-        world.Tile(6, 4).TerrainId = Dk2TerrainFixture.Rock;
-        Assert.Equal(Point(-1.625, 0), steering.ConstrainTarget(Point(-4, 0), Point(0, -1.2)));
+        Assert.Equal(Point(0, -1.2), steering.ConstrainTarget(Point(-4, 0), Point(0, -1.2)));
     }
 
     private static Fixed16Vector Point(double x, double y) =>
@@ -94,16 +124,16 @@ public sealed class HeartPlatformMovementTests
     }
 
     [Fact]
-    public void RuiningAHeartRebuildsOnlyTheRoutingMaskAndAllowsItsCentreAgain()
+    public void RuiningAHeartRemovesCoreProtectionWithoutChangingTheRoutingBytes()
     {
         var (db, world, steering, goblin) = Setup(new TilePos(2, 6));
         byte[] nativeBytes = WorldSteering.CaptureNavigationBytes(db, world);
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), MoveOptions.ExactSpot));
-        Assert.True(goblin.Body.PathTargetPos.X < 5 << 16);
+        Assert.Equal(Point(-0.625, 0), goblin.Body.PathTargetPos);
         int before = steering.Rebuilds;
         world.Player(PlayerIds.FirstKeeper).HeartRuined = true;
         steering.Refresh();
-        Assert.Equal(before + 1, steering.Rebuilds);
+        Assert.Equal(before, steering.Rebuilds);
         Assert.Equal(nativeBytes, WorldSteering.CaptureNavigationBytes(db, world));
         Assert.Equal(DK2.Pathfinding.NavBytes.Floor, steering.NavByte(6, 6));
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), MoveOptions.ExactSpot));

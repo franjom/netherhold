@@ -182,10 +182,10 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, research/imp-normal-mesh: normal campaign startup
-  reproduces the first route mismatch; the extra Heart routing mask causes it.
-  Gameplay remains unchanged. Evidence and ADR-0452 decision boundary:
-  research/imp-boundary-route.md. The boundary recorder is merged on master.
+- build/imp-acceptance, fixes/native-heart-routing: ADR-0505 candidate reverts
+  the square Heart exclusion and retains the earlier core guard. Route and
+  frozen-world native movement controls: research/imp-boundary-route.md.
+  Hash/save 269; full replay and visual acceptance remain pending (Q585).
 
 - D:/DungeonKeeperRemake-classic, classic-look/step5: retained lighting
   worktree; Step5 runtime corrections are on master. Check divergence before reuse.

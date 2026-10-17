@@ -10087,8 +10087,8 @@ replace production playback. Frame caching quantizes motion and is diagnostic on
 **Status:** accepted, 2026-10-11. Owner requests rim-only movement around live
 Hearts; destroyed Hearts remain walkable.
 
-**Decision.** Reject movement segments through a live Heart's raised platform;
-ADR-0452 extends the original small core guard. Include arrival snaps,
+**Decision.** Reject movement segments through the central object's small disk;
+ADR-0505 restores this guard after ADR-0452's platform expansion. Include arrival snaps,
 fallback steps and committed coordinate rounding. A body already inside may
 move outward. Move interior targets to the near edge so assaults can finish.
 Preserve DK2's navigation bytes and obstacle exemptions. Ruined Hearts leave
@@ -10098,7 +10098,7 @@ the structure mask and virtual obstacle list. Bump hash/save formats to 227.
 the glowing core. Evidence and the fidelity boundary are in
 research/structure-blocks.md §5.3.
 
-**Consequences.** This deliberately enforces a platform boundary that DK2's
+**Consequences.** This deliberately enforces a core boundary that DK2's
 confirmed obstacle exception does not enforce; see the evidence boundary in §5.3.
 Q585 tracks the owner's visual acceptance.
 ## ADR-0440 — A room on TotalCapacity's default arm holds its tile count
@@ -10371,21 +10371,13 @@ Evidence: research/wall-support-after-claim.md. Hash/save version 240.
 unsupported reinforcement becomes neutral Rock. The rule applies across maps.
 
 ## ADR-0452 — Keep the entire live Heart platform closed to walkers
-**Date:** 2026-10-13 · **Status:** accepted
+**Date:** 2026-10-13 · **Status:** superseded by ADR-0505, 2026-10-17
 
 **Context.** The Level1 Goblin report exposes ADR-0439's small excluded disk:
 creatures could still cross the surrounding raised platform.
 
-**Decision.** Guard the middle three-by-three platform, preserve its outer
-rim and project interior targets to their nearest edge, retaining tangential
-coordinates; a solid edge falls back toward the approach corridor. Apply the same exclusion
-to the routing mesh so walkers take a route around it rather than stall.
-Keep native navigation bytes unchanged. Ruin removes the exclusion and
-invalidates routing. Hash/save version 240; no new persisted field.
-
-**Consequences.** This extends ADR-0439's deliberate owner-requested movement
-constraint. It does not reproduce the native arrival/escape exemptions;
-the evidence boundary remains research/structure-blocks.md §5.3.
+**Decision.** The former square routing and movement exclusion is reverted by
+ADR-0505. Its measured effect belongs to research/imp-boundary-route.md.
 
 ## ADR-0453 — A worker's reachability comes from one flood, not one search per candidate
 **Date:** 2026-10-13 · **Status:** accepted
@@ -11708,4 +11700,22 @@ full-hands departure when the seam remains workable.
 regressions and snapshot/hash checks pass, but the Level 1 sweep regresses
 against both baseline and the preceding candidate. Preserve this implementation
 on its isolated branch; merge research separately, without changing gameplay.
+
+## ADR-0505 — Restore native Heart routes and retain only the small core guard
+**Date:** 2026-10-17 · **Status:** candidate, awaiting merge approval
+
+**Context.** The owner authorizes reverting ADR-0452 if it harms fidelity.
+The captured Level4 route and frozen-world movement controls isolate its
+square exclusion: [imp-boundary-route.md](research/imp-boundary-route.md).
+
+**Decision.** Route on the navigation cache without the extra 3×3 Heart mask.
+Restore ADR-0439's object-width circular core guard and approach-side target
+projection. Preserve native obstacle/arrival/escape rules, Hand and path-grid
+policy, task selection and authored pillar positions. Supersede ADR-0452.
+
+**Consequences.** Hash/save version 269; no new fields. The small core guard
+remains an intentional deviation and can stall a synthetic walker continuously
+forced into escape mode. Core safety during that override, attacks and ordinary
+arrival are tested. Exact agreement on one frozen-world walk does not establish full
+campaign or visual acceptance; those remain the next checks.
 

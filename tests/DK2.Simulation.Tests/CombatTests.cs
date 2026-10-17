@@ -273,8 +273,9 @@ public class CombatTests
         for (int tick = 0; tick < 120; tick++)
         {
             sim.Tick();
-            Assert.False(demon.PosX > 11 * Fp32.One && demon.PosX < 14 * Fp32.One
-                && demon.PosY > 4 * Fp32.One && demon.PosY < 7 * Fp32.One);
+            long dx = demon.PosX - CreatureState.CentreOf(12);
+            long dy = demon.PosY - CreatureState.CentreOf(5);
+            Assert.True(dx * dx + dy * dy >= (Fp32.One / 2L) * (Fp32.One / 2L));
         }
         Assert.True(world.Player(Rival).HeartHealth < before, $"heart {world.Player(Rival).HeartHealth}");
     }
