@@ -252,6 +252,16 @@ set.
 
 `Message_Post` plays the line only for the local player (`0x004C4A4C`).
 
+**The text is the level's own table, not `Speech.str`.** The enqueue and the
+draw resolve it through `0x00553A90`, which reads only the table `0x00553780`
+loaded at level start (`0x007415B4`; else an empty string). `0x00553780` takes a
+byte at `+0x64EC` of `Level_ApplyRuntimeConfiguration_LIKELY`'s source, INFERRED
+to be the KWD `TextTableId` (`LevelTextTableTests`, five levels). Its 60-entry
+table `0x006BC010` (CONFIRMED) maps 1-34 to resources 0x420-0x441 (`LEVEL1.str`
+... `DEMO3.str`), 35-40 to 0x439 (`MYPETDUNGEON.str`), and the rest to nothing.
+Level 1's speech 3 is `LEVEL1.str` 2, *"Behold, your Dungeon Heart..."*; speech 2
+is 1, *"Here walks the goodly Lord Antonius..."*.
+
 **Drawing.**
 - The overlay pass `0x00403FB0` draws a subtitle only when the camera is in mode
   0x12 and one is active, through `0x0040A3E0(line)`. It does this only on its
@@ -363,7 +373,8 @@ condition.
 **Unity:**
 - the camera follows the path;
 - the drawn area shrinks for the letterbox, with black bars;
-- the subtitle shows in the bottom bar;
+- the subtitle shows in the bottom bar, from the level's text table
+  (`LevelTextTable`), over opaque bars;
 - action 26 glides the keeper camera's focus;
 - Escape and Space skip.
 
@@ -374,6 +385,8 @@ condition.
 - the overflow scroll;
 - `0x0041A190`;
 - speech audio;
+- DK2's bitmap font (`FONT_INGAME*.bf4`; no reader yet, and which one
+  `0x0040A3E0` selects is unread). Unity's default font stands in;
 - the message record action 24 posts.
 
 **Deviations:**

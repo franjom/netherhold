@@ -270,7 +270,7 @@ namespace DK2.Unity
                 _constructionEffects.LightTable = _scene.LightTableAt;
             }
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
-                CameraPathLoader(install), SubtitleLoader(install),
+                CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
                 (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance);
             _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
                 new PlayerId((byte)viewingPlayerId), _scriptedView));
@@ -669,14 +669,16 @@ namespace DK2.Unity
             };
         }
 
-        /// <summary>Speech.str by line index: the subtitle text of a Mentor line.</summary>
-        private static Func<int, string> SubtitleLoader(string install)
+        /// <summary>The level's own string table by line index: the subtitle text of a
+        /// scripted Mentor line (0x00553780 loads it from the level's text-table byte).</summary>
+        private static Func<int, string> SubtitleLoader(string install, int textTableId)
         {
-            string path = Path.Combine(install, "Data", "Text", "Default", "Speech.str");
+            string file = LevelTextTable.FileName(textTableId);
+            string path = file == null ? null : Path.Combine(install, "Data", "Text", "Default", file);
             Dk2StringTable table = null;
             try
             {
-                if (File.Exists(path)) table = Dk2StringTable.Open(path);
+                if (path != null && File.Exists(path)) table = Dk2StringTable.Open(path);
             }
             catch (Exception ex)
             {
@@ -693,8 +695,13 @@ namespace DK2.Unity
             float bar = _scriptedView.LetterboxBar * Screen.height;
             if (bar > 0f)
             {
-                GUI.DrawTexture(new Rect(0, 0, Screen.width, bar), Texture2D.blackTexture);
-                GUI.DrawTexture(new Rect(0, Screen.height - bar, Screen.width, bar), Texture2D.blackTexture);
+                // Opaque: no camera clears outside the shrunk rect, so a transparent bar
+                // (Texture2D.blackTexture's alpha is 0) left every earlier frame's text on screen.
+                Color colour = GUI.color;
+                GUI.color = Color.black;
+                GUI.DrawTexture(new Rect(0, 0, Screen.width, bar), Texture2D.whiteTexture);
+                GUI.DrawTexture(new Rect(0, Screen.height - bar, Screen.width, bar), Texture2D.whiteTexture);
+                GUI.color = colour;
             }
             string subtitle = _scriptedView.Subtitle;
             if (subtitle == null) return;
