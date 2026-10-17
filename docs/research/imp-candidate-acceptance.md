@@ -39,7 +39,9 @@ there is no evidence for a reinforcement timeout or priority workaround.
 The additional death trace is in [imp-survival-trace.md](imp-survival-trace.md).
 
 Preserve `fixes/imp-store-timing` for a future matched-state experiment.
-The next useful experiment starts an original and modern worker from the
-same task-pool/action state at a first divergent choice. More unmatched-seed
-sweeps alone cannot identify the missing mechanic. The research-only review
-branch carries the findings without changing simulation or snapshot format.
+The next useful experiment starts an original and modern worker at an actual
+selection boundary; the existing checker reconstructs that state incompletely.
+Its measured limits and required capture inputs are in
+[imp-decision-checker.md](imp-decision-checker.md). More unmatched-seed sweeps
+alone cannot identify the missing mechanic. The merged research preserves
+gameplay and snapshot format.

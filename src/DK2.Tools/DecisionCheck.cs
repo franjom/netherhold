@@ -17,7 +17,7 @@ namespace DK2.Tools;
 /// line per choice (the extractor writes it from a full-state capture): the frame before the
 /// choice — tiles, the keeper's task pool with its workers, every imp of that keeper with its
 /// job fields — and what DK2 took. The output is one TSV row per choice, both answers side by
-/// side, so a mismatch is a rule of ours that differs from DK2's with nothing else varying.
+/// side. This is a partial reconstruction; see docs/research/imp-decision-checker.md for its limits.
 /// </summary>
 /// <remarks>Rooms are not loaded: a choice in state 10 that reads one (a deposit, a room to
 /// convert) is compared on its kind only. An imp holding a job is put on the tile it works
