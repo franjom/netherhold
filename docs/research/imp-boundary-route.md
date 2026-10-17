@@ -46,19 +46,51 @@ The fresh route goes through tile-space points `(22.5,55.5)`, `(23.5,56.5)`,
 per-segment-truncated octile length is 147 sixteenths, versus native's 121.
 That is a route-length observation, not a measured arrival-time difference.
 
-## Interpretation — STRONGLY INFERRED boundary, unresolved cause
+## Normal campaign startup — CONFIRMED route divergence
 
-This choice does not expose a task-priority or RNG-consumption mismatch.
-The route difference survives matching the navigation cache and disappears
-when the captured mesh replaces the rebuilt one. Investigate the mesh inputs,
-initial construction, Heart routing mask and partial-update history before
-altering the router or the worker. The live Unity mesh has not been captured
-in this comparison; a freshly reconstructed mesh need not be its current mesh.
-No claim is made that this single case explains the later reinforcement streak.
+The next probe uses `CampaignSimulationFactory.Create`, the same initialization
+called by Unity's `DungeonRunner`, then refreshes its navigation without advancing
+the simulation. It produces the same five-point discrepancy. Its 1602 live
+triangles share 1578 unordered vertex-coordinate/byte keys with the native mesh;
+this measures geometry, not slot or adjacency equality.
 
-Next comparison: initialize the modern level normally, compare its mesh with
-the native entry image, then isolate the first differing initialization or
-update. Preserve the matching task-selection and same-mesh route results.
+Only three navigation bytes differ from the native boundary: doors at `(21,5)`,
+`(24,9)` and `(24,14)` hold 16 instead of 0. Setting those doors open and matching
+the captured bytes gives zero cache differences, but still the same wrong route.
+The startup mesh therefore reproduces this mismatch without the partial checker.
+This is a headless initialization comparison, not a capture of a running Unity mesh.
+
+| Whole-map build input, unchanged router/endpoints | Route window |
+|---|---|
+| Normal startup bytes, without the separate Heart mask | All three native points exactly |
+| Captured bytes, without that mask | All three native points exactly |
+| Captured bytes, with only the central Heart 3×3 changed to solid | The same five-point discrepancy |
+
+`WorldSteering.RoutingBytesChanged` replaces that 3×3 with solid in
+`_routingScratch` before `NavMesh.Build`, independently of the navigation cache.
+The [native scanner record](functions/004CE570.md) documents its raw-byte input.
+In the entry image, that scanner's grid pointer equals the world-cache pointer;
+all 3200 bytes match, and the Heart's three rows are `0,0,0 / 0,3,0 / 0,0,0`.
+There is no corresponding solid-platform mask in this captured input.
+
+The unmasked captured-byte build shares 1598 geometry keys with the native mesh:
+its two unmatched triangles and the native four are confined to `(21..23,5..7)`.
+The native retains a point at `(22,6)` there. Their history remains unverified,
+and this residual does not prevent the exact three-point route match.
+
+## Interpretation and next decision
+
+For this boundary, the extra Heart routing mask causes the route discrepancy;
+neither task priority nor RNG consumption differs. ADR-0452 deliberately added
+that mask alongside the owner's platform movement constraint. Its original
+evidence and fidelity boundary remain [structure-blocks.md §5.3](structure-blocks.md#53-the-hearts-obstacle-is-forwarded-by-the-room-not-found-on-its-tile-q355).
+No gameplay code changes in this investigation.
+
+The next implementation decision is how to reconcile ADR-0452 with native routes.
+Removing only the routing mask needs a movement check: the separate hard guard
+could stall a walker whose native route crosses its excluded area. Native route
+equality alone does not prove arrival or obstacle-steering equality. This case
+does not establish the cause of the later reinforcement streak or campaign timing.
 
 ## Local artifacts (ignored)
 
@@ -79,3 +111,9 @@ All paths are relative to `build/imp-acceptance/reverse-engineering/`:
   reflection sets the captured clock/stamps and injects the imported mesh.
   `IMP_MATCH_NAV=1`, `IMP_IMPORT_MESH=1`, `IMP_MESH_FILE=.../native-mesh.bin`
   select controls. Neither reflection nor the mesh import enters production.
+- `imp-normal-mesh-20261017/Probe.csproj` and `Program.cs`: normal campaign
+  initialization and the independent mask/door controls. Run `dotnet run -c Release`
+  in that directory; assertions check all native route points, and
+  `route-controls.json` plus each `*.triangles.json`/`*.mesh.bin` retain results.
+  `check-native-grid.py` independently asserts the scanner/cache pointer and byte
+  equality against the original entry image.
