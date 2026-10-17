@@ -1,7 +1,8 @@
 # Step 6 — HUD and controls
 
-Status: research and feasibility pilot in progress, 2026-10-17. No production HUD
-has been built and ADR-0497 remains proposed. Step5's outstanding visual/performance
+Status: live minimap tile layer built; 6.1 remains partial, 2026-10-17.
+Frame art, markers, navigation controls and owner comparison remain open;
+ADR-0497 remains proposed. Step5's outstanding visual/performance
 gates remain in [its checklist](2026-10-14-classic-look-step5.md).
 
 ## Design reference
@@ -40,11 +41,12 @@ Check the records before decompiling and record new function findings in the KB.
 
 ## 6.1 — Minimap
 
-The headless palette and changed-cell grid are built and independently reviewed;
-the isolated Unity pilot uses that shared palette. Live tile classification,
-visibility, GPU grid upload and interaction remain to be connected and checked.
+The palette, persisted-fog tile classifier, changed-cell GPU scatter and live
+DungeonRunner disc are built. WORD classes survive the GPU path; idle frames
+upload no cells. Capture runs before worker dispatch; drawing reads GPU state.
+Disc/frame layout, rotation and native widget mapping still need owner comparison.
 
-- [ ] Present changed tile classes through a renderer-independent view; draw the
+- [x] Present changed tile classes through a renderer-independent view; draw the
   palette, rotated map, mask and background on the GPU as specified in §13.
 - [ ] Add only researched markers, blinking, zoom, camera footprint and input.
   Preserve discovery rules; hidden game state must not leak through the HUD.

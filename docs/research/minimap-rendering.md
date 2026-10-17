@@ -30,6 +30,7 @@ Zoomed mode uses `1 << zoom` pixels per tile, with the camera position retaining
 its sub-tile fraction; `zoom == -1` selects the whole-map mode. The latter fits
 the larger map dimension to 90 pixels, centres the shorter dimension, and leaves
 the remaining raster as backdrop. Dimensions come from slots `+0x1CC/+0x1D0`.
+HUD setup `0x00419180` initializes zoom to `0xFF` (whole-map).
 
 Both paths draw thing overlays before updating the display texture. Zoomed mode
 also draws the Heart direction trail. The display pass runs even without a new

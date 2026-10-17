@@ -40,7 +40,8 @@ public readonly record struct PlayerIntent(
     TilePos? PointerTile,
     PointerButtonTransition PrimaryButton,
     RoomTypeId RoomId = 0,
-    PointerButtonTransition SecondaryButton = PointerButtonTransition.None);
+    PointerButtonTransition SecondaryButton = PointerButtonTransition.None,
+    bool PointerOverHud = false);
 
 public readonly record struct ExcavationTarget(TilePos Tile, bool IsTagged);
 
@@ -135,6 +136,11 @@ public sealed class PlayerInputTranslator
     {
         if (snapshot is null) throw new ArgumentNullException(nameof(snapshot));
         SelectTool(intent.PlayerId, intent.Tool);
+        if (intent.PointerOverHud)
+        {
+            _drag = null;
+            return InputFrame.Empty;
+        }
 
         PlayerCommand? command = null;
 

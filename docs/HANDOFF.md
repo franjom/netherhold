@@ -124,8 +124,9 @@ Next interface scope selected by the owner (2026-10-17):
 [Step6 HUD and controls preparation](plans/2026-10-17-classic-look-step6.md),
 following ART_DIRECTION.md §13 and proposed ADR-0497. Step5 is not formally closed.
 The Step6 shader/font feasibility pilot passed in isolated URP targets at 1024×768
-and 1440p (tools/hud-probe/README.md); the shared palette and changed-cell grid
-are tested and reviewed, with no live HUD yet. Native minimap raster
+and 1440p (tools/hud-probe/README.md); a live minimap tile layer is connected
+on classic-look/step6. Frame art, markers, controls and owner comparison remain.
+Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 
 Use serial checks; isolated probes must not save or restart the owner's editor.

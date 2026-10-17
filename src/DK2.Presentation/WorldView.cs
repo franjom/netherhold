@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
 
@@ -586,6 +587,21 @@ public sealed partial class WorldView
         if (_queuedTagPreviews.TryGetValue(new TilePos(x, y), out var queued))
             return queued.Tagged && (terrain.IsTaggable || tile.IsTaggedBy(_viewingPlayerId));
         return tile.IsTaggedBy(_viewingPlayerId);
+    }
+
+    /// <summary>The minimap class uses the viewer's persisted fog and tag preview,
+    /// independently of the temporary 3D Sight of Evil region.</summary>
+    public MinimapColourClass MinimapColourAt(WorldState world, INavByteGrid navigation, TilePos position)
+    {
+        TileState tile = world.Tile(position);
+        TerrainDef terrain = _database.TerrainById(tile.TerrainId);
+        MinimapTileFlags flags = MinimapTileFlags.None;
+        if (ShowsTag(tile, terrain, position.X, position.Y)) flags |= MinimapTileFlags.DigHighlighted;
+        if (!world.FogOfWarEnabled || tile.IsExploredBy(_viewingPlayerId)) flags |= MinimapTileFlags.Explored;
+        if (tile.IsDiscoveredBy(_viewingPlayerId)) flags |= MinimapTileFlags.Scanned;
+        if (NavBytes.IsSolid(navigation.NavByte(position.X, position.Y))) flags |= MinimapTileFlags.NavigationSolid;
+        return MinimapTileClassifier.Classify(new MinimapTileFacts(terrain,
+            _database.RoomByTerrain(tile.TerrainId)?.TypeId, new PlayerId(tile.OwnerPlayerId), flags));
     }
 
     /// <summary>Every tile, in row order.</summary>

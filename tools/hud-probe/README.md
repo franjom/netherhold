@@ -19,12 +19,19 @@ The scratch manifest enables image conversion for PNG decoding/capture.
 
 ## What the images show
 
-The map is a **synthetic class grid**, using the game palette and `Map-BG.PNG`
+The larger map is a **synthetic class grid**, using the game palette and `Map-BG.PNG`
 from `EngineTextures.WAD`. It uses the shared `DK2.Presentation.MinimapPalette`
 to map source pixels to the native class banks; it does not animate neutral colours or classify game
-tiles. No live world or discovery data is used. Native backdrop/UV placement,
+tiles. The separate bottom-left disc uses a real Level1 campaign world after
+one tick with fog enabled, classified through WorldView and drawn by the
+production MinimapGpuMap. It is a tile-layer preview without markers or controls.
+Native backdrop/UV placement,
 palette cycling and class/marker behaviour still need campaign comparisons.
 The same-named FrontEnd palette has different RGB values; it is not substituted.
+
+GPU checks also round-trip classes 300 and 548, preserve unchanged cells after a
+one-cell update, upload zero cells while idle, and check display north/south with
+asymmetric rows. The adapter captures the live world before worker dispatch.
 
 Font rows from top to bottom all draw `Dungeon Heart 100%`:
 
@@ -59,7 +66,7 @@ from the install and stay gitignored. The editor also reports a startup exceptio
 inside `UnityEditor.Search.SearchDatabase`; the rendering checks complete, but
 this is not a claim of exception-free editor startup.
 
-Not verified: campaign minimap colours/markers/rotation, dirty-grid uploads, runtime
-resizing, input, camera navigation, production text rendering, GPU timings or UI
+Not verified: matched DK2 campaign colours/markers/rotation, runtime
+resizing, real-window input, camera navigation, production text rendering, GPU timings or UI
 performance. A target-texture size comparison is not a real window/input test.
 Native evidence and remaining research: [minimap-rendering.md](../../docs/research/minimap-rendering.md).

@@ -6,7 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DK2.Core;
+using DK2.Data;
 using DK2.Presentation;
+using DK2.Simulation;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UIElements;
@@ -18,6 +21,8 @@ namespace DK2.Unity.HudProbe
         [Serializable] public sealed class Report
         {
             public bool Passed;
+            public bool GpuClassUpdates;
+            public int LiveLevel1KnownTiles;
             public string Unity, Gpu, Pipeline, Error;
             public int PaletteWidth, PaletteHeight, ReferenceGlyphs, LargestGlyphs;
             public string[] Captures;
@@ -30,6 +35,7 @@ namespace DK2.Unity.HudProbe
         private int _frames, _view;
         private string _output;
         private Report _report;
+        private MinimapGpuMap _liveGpu;
         public bool Done { get; private set; }
         public bool Passed => _report != null && _report.Passed;
 
@@ -48,6 +54,8 @@ namespace DK2.Unity.HudProbe
                     Pipeline = GraphicsSettings.currentRenderPipeline?.GetType().Name ?? "built-in",
                     PaletteWidth = palette.width, PaletteHeight = palette.height,
                     ReferenceGlyphs = assets.ReferenceFont.Glyphs.Count, LargestGlyphs = assets.LargestFont.Glyphs.Count };
+                VerifyGpuMap(backdrop);
+                _report.GpuClassUpdates = true;
                 _settings = Own(ScriptableObject.CreateInstance<PanelSettings>());
                 _settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("HudPilot")
                     ?? throw new InvalidOperationException("Pilot runtime theme required.");
@@ -68,7 +76,8 @@ namespace DK2.Unity.HudProbe
                 minimap.SetFloat("_Angle", .48f);
                 RenderTexture disc = Render(minimap, 512, 512);
                 AssertDisc(disc);
-                AddImage(root, disc, left: 24, top: 420, width: 224, height: 224);
+                AddImage(root, disc, left: 260, top: 420, width: 224, height: 224);
+                AddLiveLevel(root, palette, backdrop);
                 const string text = "Dungeon Heart 100%";
                 var reference = Own(HudFontPilot.Raster(assets.ReferenceFont, text));
                 var largest = Own(HudFontPilot.Raster(assets.LargestFont, text));
@@ -89,13 +98,95 @@ namespace DK2.Unity.HudProbe
             if (!texture.LoadImage(bytes)) throw new InvalidOperationException("Install image did not decode.");
             texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp; return texture;
         }
+        private void VerifyGpuMap(Texture backdrop)
+        {
+            var grid = new MinimapClassGrid(width: 3, height: 2);
+            var palette = new MinimapPalette(new uint[37]);
+            using (var map = new MinimapGpuMap(width: 3, height: 2, palette, backdrop))
+            {
+                grid.Set(new DK2.Core.TilePos(1, 0), new MinimapColourClass(300));
+                grid.Set(new DK2.Core.TilePos(2, 1), new MinimapColourClass(548));
+                map.UploadChanges(grid);
+                if (map.LastUploadedTiles != 6) throw new InvalidOperationException("Initial minimap upload incomplete.");
+                AssertClass(map.Classes, x: 1, y: 0, expected: 300);
+                AssertClass(map.Classes, x: 2, y: 1, expected: 548);
+                AssertClass(map.Classes, x: 0, y: 0, expected: 1);
+                grid.Set(new DK2.Core.TilePos(1, 0), MinimapColourClass.Tagged);
+                map.UploadChanges(grid);
+                if (map.LastUploadedTiles != 1) throw new InvalidOperationException("Minimap update uploaded unchanged tiles.");
+                AssertClass(map.Classes, x: 1, y: 0, expected: 13);
+                AssertClass(map.Classes, x: 2, y: 1, expected: 548);
+                map.UploadChanges(grid);
+                if (map.LastUploadedTiles != 0) throw new InvalidOperationException("Idle minimap uploaded cells.");
+                map.Render(headingDegrees: 37, diameter: 128); AssertDisc(map.Disc);
+                var source = new uint[37]; source[1] = 0xFF0000; source[2] = 0x00FF00;
+                map.UpdatePalette(new MinimapPalette(source));
+                for (int x = 0; x < 3; x++)
+                {
+                    grid.Set(new TilePos(x, 0), new MinimapColourClass(2));
+                    grid.Set(new TilePos(x, 1), new MinimapColourClass(3));
+                }
+                map.UploadChanges(grid); map.Render(headingDegrees: 0, diameter: 128);
+                Texture2D rows = Read(map.Disc);
+                try
+                {
+                    Color32 north = rows.GetPixel(64, 80), south = rows.GetPixel(64, 48);
+                    if (north.r < 250 || south.g < 250)
+                        throw new InvalidOperationException("Minimap display north/south reversed: " + north + ", " + south);
+                }
+                finally { Destroy(rows); }
+            }
+        }
+
+        private static void AssertClass(RenderTexture target, int x, int y, int expected)
+        {
+            Texture2D read = Read(target);
+            try
+            {
+                Color32 pixel = read.GetPixel(x, y);
+                int actual = pixel.r | pixel.g << 8;
+                if (actual != expected) throw new InvalidOperationException("GPU minimap class mismatch: " + actual + " != " + expected
+                    + "; rows: " + string.Join(",", read.GetPixels32().Select(p => p.r | p.g << 8)));
+            }
+            finally { Destroy(read); }
+        }
+
         private Material NewMaterial()
         {
             Shader shader = Shader.Find("Hidden/DK2/HudPilot");
             if (shader == null || !shader.isSupported) throw new InvalidOperationException("Pilot shader unavailable.");
             return Own(new Material(shader));
         }
-        private Texture2D ClassPalette(Texture2D source)
+        private void AddLiveLevel(VisualElement root, Texture2D source, Texture backdrop)
+        {
+            string install = Environment.GetEnvironmentVariable("DK2_DIR");
+            var database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
+            var simulation = CampaignSimulationFactory.Create(database,
+                GameDatabaseLoader.LoadCampaignMap(install, "Level1"),
+                GameDatabaseLoader.LoadCampaignLevel(install, "Level1"),
+                GameDatabaseLoader.LoadCampaignPlayers(install, "Level1"),
+                GameDatabaseLoader.LoadCampaignThings(install, "Level1"),
+                GameDatabaseLoader.LoadCampaignTriggers(install, "Level1"), seed: 1, fogOfWarEnabled: true);
+            simulation.Tick();
+            var world = simulation.World;
+            var view = new WorldView(database, new DK2.Data.Model.PlayerId(3));
+            var grid = new MinimapClassGrid(world.Width, world.Height);
+            for (int y = 0; y < world.Height; y++)
+                for (int x = 0; x < world.Width; x++)
+                {
+                    var at = new TilePos(x, y);
+                    MinimapColourClass colour = view.MinimapColourAt(world, simulation.Navigation, at);
+                    grid.Set(at, colour);
+                    if (colour != MinimapColourClass.Unknown) _report.LiveLevel1KnownTiles++;
+                }
+            if (_report.LiveLevel1KnownTiles == 0) throw new InvalidOperationException("Level1 minimap contains no known terrain.");
+            _liveGpu = new MinimapGpuMap(world.Width, world.Height, PaletteModel(source), backdrop);
+            _liveGpu.UploadChanges(grid); _liveGpu.Render(headingDegrees: 45, diameter: 512);
+            AssertDisc(_liveGpu.Disc);
+            AddImage(root, _liveGpu.Disc, left: 12.8f, top: 587.2f, width: 169.6f, height: 169.6f);
+        }
+
+        private static MinimapPalette PaletteModel(Texture2D source)
         {
             if (source.width < 37) throw new InvalidOperationException("Native palette needs 37 source pixels.");
             var pixels = new uint[37];
@@ -104,7 +195,12 @@ namespace DK2.Unity.HudProbe
                 Color32 colour = source.GetPixel(i, source.height - 1);
                 pixels[i] = (uint)(colour.r << 16 | colour.g << 8 | colour.b);
             }
-            var model = new MinimapPalette(pixels);
+            return new MinimapPalette(pixels);
+        }
+
+        private Texture2D ClassPalette(Texture2D source)
+        {
+            var model = PaletteModel(source);
             var colours = new Color32[model.Colours.Length];
             for (int i = 0; i < colours.Length; i++)
             {
@@ -219,6 +315,10 @@ namespace DK2.Unity.HudProbe
             if (_output != null) File.WriteAllText(Path.Combine(_output, "result.json"), JsonUtility.ToJson(_report, true));
             Done = true;
         }
-        private void OnDestroy() { foreach (UnityEngine.Object resource in _owned) if (resource != null) Destroy(resource); }
+        private void OnDestroy()
+        {
+            _liveGpu?.Dispose();
+            foreach (UnityEngine.Object resource in _owned) if (resource != null) Destroy(resource);
+        }
     }
 }

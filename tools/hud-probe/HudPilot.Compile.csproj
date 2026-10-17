@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="HudPilotAssets.cs;HudFontPilot.cs;HudToolkitPilot.cs" />
+    <Compile Include="../../unity/DK2.Unity/Assets/DK2/MinimapGpuMap.cs;../../unity/DK2.Unity/Assets/DK2/DungeonMinimap.cs" />
     <ProjectReference Include="../../src/DK2.Data/DK2.Data.csproj" />
     <ProjectReference Include="../../src/DK2.Presentation/DK2.Presentation.csproj" />
     <Reference Include="UnityEngine.CoreModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.CoreModule.dll" Private="false" />

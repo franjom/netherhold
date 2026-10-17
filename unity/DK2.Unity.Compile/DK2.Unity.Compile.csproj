@@ -77,6 +77,10 @@
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.UIElementsModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.UIElementsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
