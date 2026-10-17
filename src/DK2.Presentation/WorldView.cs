@@ -8,6 +8,7 @@ using DK2.Assets;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Commands;
 
 namespace DK2.Presentation;
 
@@ -488,6 +489,25 @@ public sealed partial class WorldView
     private bool _previewing;
     private bool _previewTagged;
     private int _previewX1, _previewY1, _previewX2, _previewY2;
+    private readonly Dictionary<TilePos, (bool Tagged, GameTick AppliesAt)> _queuedTagPreviews = new();
+    private readonly List<TilePos> _completedTagPreviews = new();
+
+    public void QueueTagPreview(TagTilesCommand command, GameTick appliesAt)
+    {
+        if (command.PlayerId != _viewingPlayerId) return;
+        foreach (TilePos position in command.Tiles)
+            _queuedTagPreviews[position] = (command.Tagged, appliesAt);
+        PreviewVersion++;
+    }
+
+    public void AcknowledgeTagPreviews(GameTick completedTick)
+    {
+        _completedTagPreviews.Clear();
+        foreach (var entry in _queuedTagPreviews)
+            if (entry.Value.AppliesAt <= completedTick) _completedTagPreviews.Add(entry.Key);
+        foreach (TilePos position in _completedTagPreviews) _queuedTagPreviews.Remove(position);
+        if (_completedTagPreviews.Count > 0) PreviewVersion++;
+    }
 
     /// <summary>
     /// The tag drag in progress, corner to corner, or nulls for none: every Taggable tile inside it
@@ -552,6 +572,8 @@ public sealed partial class WorldView
     {
         if (_previewing && x >= _previewX1 && x <= _previewX2 && y >= _previewY1 && y <= _previewY2)
             return _previewTagged && (terrain.IsTaggable || tile.IsTaggedBy(_viewingPlayerId));
+        if (_queuedTagPreviews.TryGetValue(new TilePos(x, y), out var queued))
+            return queued.Tagged && (terrain.IsTaggable || tile.IsTaggedBy(_viewingPlayerId));
         return tile.IsTaggedBy(_viewingPlayerId);
     }
 

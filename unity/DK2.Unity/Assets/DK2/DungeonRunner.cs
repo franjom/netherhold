@@ -381,6 +381,9 @@ namespace DK2.Unity
             }
 
             if (ticks > 0 && !tickOnWorkerThread) RunTicks(ticks, firstInput);
+            // Retain released tag previews until the command's tick has actually completed,
+            // including the frame before a worker tick starts.
+            _worldView.AcknowledgeTagPreviews(_simulation.World.CurrentTick);
 
             // How far the drawn world is from its last tick toward its next, for the creature
             // interpolation. On the worker path this frame's ticks have not run yet, so the world
@@ -487,7 +490,11 @@ namespace DK2.Unity
             InputFrame frame = _input.Translate(intent, snapshot);
 
             foreach (PlayerCommand command in frame.All)
+            {
                 _pendingCommands.Add(command);
+                if (command is DK2.Simulation.Commands.TagTilesCommand tag)
+                    _worldView.QueueTagPreview(tag, _simulation.World.CurrentTick.Next);
+            }
         }
 
         /// <summary>

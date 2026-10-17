@@ -144,6 +144,34 @@ public class HandInputTests
         Assert.Null(PlayerInputSnapshot.Capture(view, world, Keeper, db, new TilePos(-1, 0)).Excavation);
     }
 
+    [InstallTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReleasedTagPreviewSurvivesUntilTheCommandTick(bool initiallyTagged)
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var tiles = Enumerable.Repeat(new MapTile(db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId,
+            PlayerIds.Neutral, 0, 0), 49).ToArray();
+        WorldState world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
+        var view = new WorldView(db, Keeper);
+        world.Tile(Start).SetTaggedBy(Keeper, initiallyTagged);
+        view.PreviewTags(Start, End, !initiallyTagged);
+        view.QueueTagPreview(TagTilesCommand.Rect(Keeper, Start.X, Start.Y, End.X, End.Y, !initiallyTagged),
+            world.CurrentTick.Next);
+        view.PreviewTags(null, null);
+        view.AcknowledgeTagPreviews(world.CurrentTick);
+        for (int frame = 0; frame < 4; frame++)
+        {
+            Assert.Equal(!initiallyTagged, view.TileAt(world, Start.X, Start.Y).Tagged);
+            Assert.Equal(initiallyTagged, world.Tile(Start).IsTaggedBy(Keeper));
+        }
+        world.Tile(Start).SetTaggedBy(Keeper, !initiallyTagged);
+        view.AcknowledgeTagPreviews(world.CurrentTick.Next);
+        Assert.Equal(!initiallyTagged, view.TileAt(world, Start.X, Start.Y).Tagged);
+        world.Tile(Start).SetTaggedBy(Keeper, initiallyTagged);
+        Assert.Equal(initiallyTagged, view.TileAt(world, Start.X, Start.Y).Tagged);
+    }
+
     private static PlayerInputSnapshot Creature(bool holding) => new(holding,
         [new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, Start)]);
 
