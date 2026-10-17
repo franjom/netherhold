@@ -52,7 +52,7 @@ does the transition established above.
 | 25 | `0x00465790` | 3 · 8 | Revalidates a mining task and adjacency; turns toward the work tile centre and holds while turning. | `S(26)` when facing, else `S(10)`. | Refusal → 1. |
 | 26 | `0x00465870` | 3 · 8 | Holds while mining action 2 runs. Before another strike, an imp whose hands test `0x00464360(1)` reads full (max − var 74) tries `G`; otherwise, while the seam still passes `0x00453D80`, starts another strike and **stays**; an exhausted seam is released. | `G` → state 6/51 with resume 28; `S(10)` after invalidation or the completed strike. | Refusal or a failed post-strike follow-up → 1. |
 | 27 | `0x00466850` | 3 · 8 | Removes the floor-gold task and takes matching nearby piles up to the level-scaled carrying limit. | With gold, `G` → resume 28; otherwise `S(10)`. | If both `G` and `S(10)` fail, or final `S(10)` fails → 1. |
-| 28 | `0x00466A40` | 3 · 8 | Waits for a free standing point at the chosen store tile. | `S(29)` when free. | Refusal → 1. |
+| 28 | `0x00466A40` | 3 · 8 | Turns toward the current tile centre through `0x004B2AE0`. | `S(29)` when facing. | Refusal → 1. |
 | 29 | `0x00466AC0` | 3 · 8 | Rechecks that the tile stores this keeper's gold, hands the room the smaller of the purse and its space (a live Heart measured against 16 × the Treasury tile cap, so the hands empty there), deposits it through `0x004F3C60` and emits the deposit effect (ADR-0306; the walk ends on the chosen chain tile, crossing other store tiles). | `S(10)` after a deposit. | Invalid store, or refused `S(10)`, → 1. |
 | 30 | `0x00466BC0` | 3 · 8 | Removes the loose-object task, picks an eligible object at the tile and chooses its destination. | `O` → state 6/51 with resume 31, 32 or 33; else `S(10)`. | Refusal → 1. |
 | 31 | `0x00466CB0` | 3 · 8 | Validates a carried spell book; if this tile is no longer suitable it chooses another destination, otherwise archives it. | `O` to retry; `S(10)` after storage. | Invalid carried id/type or refused call → 1. |
@@ -136,7 +136,7 @@ body down and releases the imp. Thus 46 is carrier cleanup after admission, and
 | `MovingToJob` | 10 chooses; 6 walks (or 51 → 52 teleports); resumes 13/25/15/19/17/21/23/38. | Ours begins after selection; DK2's state 10 is separate. |
 | `Working` | 13→14 dig, 25→26 mine, 15→16 claim, 19→20 enemy claim, 17→18 room destruction, 21→22 reinforce, 23→24 repair, 38→39 kind 11; each even state repeats its action until the tile is done, then returns to 10 (39 via dispatcher state 1). | None: both persist across applications (Q420). |
 | `FetchingGold` | 10 → 6/51 → 27. | None beyond folded state 10 and travel protocol. |
-| `DeliveringGold` | `G`: 6/51 → 28 → 29 → 10, entered from 10, 26, 27 or 76. | Ours has no separate arrival/deposit boundary 28 → 29. |
+| `DeliveringGold` | `G`: 6/51 → 28 → 29 → 10, entered from 10, 26, 27 or 76. | Main folds arrival and deposit; the unmerged ADR-0502 candidate separates arrival, facing and deposit. |
 | `FetchingBody` | Corpse: 10 → 6/51 → 40. Casualty: 10 → 6/51 → 42. | Ours folds the pickup handler (40/42) into the activity's arrival tick. |
 | `CarryingBody` | Corpse 6 → 41; own casualty 6 → 45; enemy 6 → 43 → 44 → 46 or 47 → 48. | Ours has one carry state and no prison admission/walk-away/refused-drop states. |
 | `FetchingObject` | 10 → 6/51 → 30; trap/door crates instead resume 34/36. | Built (ADR-0214): 34/36 take the crate and walk to 35/37. |
@@ -148,7 +148,7 @@ Q420 asked whether the built work loop is wrong; it is not. The tile-work rows
 are **built** on state ids (ADR-0181): `ImpStates.For` pairs each `TileWorkKind`
 with its entry and work state by the creature action the work state starts
 (`balance-variables-in-the-binary.md`, task records 1, 2, 4, 5, 7, 8, 10). The
-gold rows 26–29 are built too (ADR-0182), 28's wait for a standing point aside,
+gold rows 26–29 are built too (ADR-0182; ADR-0502's timing remains unmerged),
 and the object rows 30–33 (ADR-0183), with the carry rule corrected to the object's
 own flags as `0x0046E480` reads them, and the body rows 40–48 (ADR-0184), with 43's
 inner leg and 44's walks falling in one tick because our carry walks straight to the

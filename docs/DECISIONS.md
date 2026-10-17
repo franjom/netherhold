@@ -11657,3 +11657,55 @@ on the same final tick/fraction as creature drawing, without consuming view requ
 Positions stay clamped to known movement intervals; no extrapolation through walls.
 Worker/presentation stalls can still cost frames and remain optimization work.
 
+## ADR-0502 — Store arrival, facing and deposit take separate updates
+**Date:** 2026-10-17 · **Status:** candidate; campaign acceptance blocked
+
+**Context.** An Imp deposited and passed through states 28 and 29 within its
+arrival update, whereas DK2 captures retain each state. The original's state
+28 turns toward the tile centre; its helper result is an angle, not occupancy.
+Evidence and measurements: [imp-task-audit.md](research/imp-task-audit.md).
+
+**Decision.** Complete the state-6 walk before entering 28. On later updates,
+28 turns until facing and enters 29; 29 deposits and returns to selection.
+An invalid store returns the worker to idle with its purse intact. Preserve
+the aimed job retry and the store chooser's destination rules.
+
+**Consequences.** Hash/save version 266, no new fields. Deposit availability,
+later task choices and RNG draw order can change. Tests pin the intermediate
+states, turn wait, missing store and snapshot continuation.
+Paired campaign acceptance remains unresolved; see the research note.
+
+## ADR-0503 — Resolve each worker's work before updating the next worker
+**Date:** 2026-10-17 · **Status:** candidate; mixed campaign results
+
+**Context.** Deferring every worker's strikes until after the worker pass hides
+fallen walls from later task choices and completed-action checks. Binary order
+and the measured counterfactual are in [imp-task-audit.md](research/imp-task-audit.md).
+
+**Decision.** Resolve queued tile work after each eligible Imp's update, before
+the next Imp. Keep the final work pass for remaining orders. Preserve task
+cleanup, action cadence and job priorities. This does not implement DK2's
+action-before-state order within a single creature.
+
+**Consequences.** Hash/save version 267, no new fields. Same-turn task races,
+later choices and RNG use can change. Tests cover both worker orders and a
+chooser seeing a wall fall. Sampled wins recover but Imp deaths worsen in two
+Level 4 seeds; retain the isolated branch pending broader acceptance.
+
+## ADR-0504 — Retain exhausted mining actions through their animation ending
+**Date:** 2026-10-17 · **Status:** candidate; campaign acceptance failed
+
+**Context.** A depleted seam can leave an Imp in action 2 until the looping
+mining animation stops. Binary and capture evidence, scope and acceptance
+results: [mining-finish.md](research/mining-finish.md).
+
+**Decision.** Reconstruct the ordinary art-5 loop phase from the work epoch,
+retain its ending deadline, and resolve the task and hands after completion.
+Apply the worker's own strike before checking the seam. Keep immediate
+full-hands departure when the seam remains workable.
+
+**Consequences.** Candidate hash/save 268 adds `MiningActionEndsAt`. The focused
+regressions and snapshot/hash checks pass, but the Level 1 sweep regresses
+against both baseline and the preceding candidate. Preserve this implementation
+on its isolated branch; merge research separately, without changing gameplay.
+

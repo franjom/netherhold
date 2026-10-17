@@ -2,7 +2,7 @@
 
 ## Scope and reproducibility
 
-Report only: no simulation, Unity, hash or test changes. DKII.EXE was checked
+The initial audit changed no simulation, Unity, hash or tests. DKII.EXE was checked
 through pyghidra-mcp. Function verdicts live in the linked function records.
 
 Window: simulation turns 1–1100, original capture frames 2–1101 (ADR-0119).
@@ -141,26 +141,26 @@ Imp deaths and wins is unmeasured, and could vary by seed.
 
 ### 2. Store states are collapsed: confirmed fidelity defect, plausible upstream influence
 
-Our `ImpTaskSystem.Gold.cs:309–320` deposits immediately once the route is
+Before ADR-0502, `ImpTaskSystem.Gold.cs:309–320` deposited immediately once the route was
 gone, then enters 28, 29 and 10 within that same update. Thus zero sampled
 turns in 28/29 does **not** mean those states are never entered.
 The original records 10/10, 9/9 and 17/17 turns in those states on Levels
 2/3/4 respectively. Level 1 records 22/22; fresh seed 5 records zero/zero.
 
-The [state-28 listing](functions/00466A40.md) checks occupancy at the tile
-centre, holds when occupied and otherwise sets 29; it does not deposit.
+The [state-28 listing](functions/00466A40.md) turns toward the tile
+centre, holds while an angle remains and otherwise sets 29; it does not deposit.
 The [state-29 handler](functions/00466AC0.md) deposits and sets 10.
 Both were checked against DKII.EXE in this investigation.
 
-Proposed fix: dispatch arrival, occupancy wait and deposit on their actual
+Fix (ADR-0502): dispatch arrival, turn-to-centre wait and deposit on their actual
 state updates, depositing only in 29. For an unblocked trip this should
 restore two observed turns between arrival and the next selection compared
-with the current fold. Occupancy may add more. Across the observed original
+with the initial fold. Turning may add more. Across the observed original
 Level 4 visits this accounts for 34 Imp-turns; it does not by itself explain
 the extra reinforcement or the entire mining deficit. It will move gold
 availability, subsequent task choices and RNG draw order. Direction and size
-of campaign outcome changes remain UNKNOWN; this is the first bounded
-implementation candidate, not a promised win-rate improvement.
+of campaign outcome changes require measurement; the follow-up below records
+the paired test, without claiming a win-rate improvement.
 
 ### 3. Create Imp skips the arrival path: confirmed difference, low local explanatory power
 
@@ -207,8 +207,183 @@ and hands checks ([record](functions/00465870.md)); the capture also has
 many departures on the last-gold-increase turn. A blanket post-strike delay
 is therefore not justified by this audit.
 
-No proposed fix was applied or tested for campaign outcomes. Investigation
-stops before pursuing more mining, route and RNG dependencies without an
+The initial audit applied no fix. Its follow-up implements only the store
+state timing (ADR-0502). Investigation stops before pursuing more mining, route and RNG dependencies without an
 outcome test. Exact walk lengths, the upstream early-claim cause and the
 counterfactual effect on win rate remain open; this report does not claim
 the full original-versus-modern discrepancy is solved.
+
+## ADR-0502 follow-up: paired measurement
+
+Base: `647c43e8`, including ADR-0500's creature separation and hash 265.
+Fixed: the store state change alone, hash/save 266. Both were built in
+separate worktrees. All replays below ran serially for 1100 turns with the
+same packet and seed-specific P2 entity maps; all produced the complete
+turn sequence. These are short probes, not full entity-remapping runs.
+Artifacts: `reverse-engineering/imp-store-compare-20261017/results.json`
+and the per-side, per-seed event and creature exports beside it.
+
+| Seed | State 22, base → fixed | Portal conversion, base → fixed | (30,54) claimed, base → fixed |
+|---|---:|---:|---:|
+| 1 | 0 → 0 | 991 → 1098 | 665 → 651 |
+| 5 | 183 → 185 | 839 → after 1100 | 399 → 367 |
+| 8 | 180 → 330 | 754 → 753 | 403 → 371 |
+| 11 | 73 → 0 | 1010 → 1041 | 244 → 244 |
+| 14 | 135 → 119 | 714 → 1053 | 403 → 398 |
+| 16 | 431 → 13 | 639 → 620 | 403 → 372 |
+| 18 | 120 → 626 | after 1100 → after 1100 | 277 → 277 |
+
+States 28/29 now each appear for 13–17 Imp-turns per run, versus zero in
+the base. This restores the observable boundary. Portal timing improves in
+two seeds, worsens in four (including one newly censored), and remains
+censored in one: no consistent early outcome gain. Seed 8's cast now takes
+reinforcement where the base took claim. The store correction does not
+establish a fix for the early-claim cause.
+
+The old P2 lead is not the current baseline: for example seed 5 already
+casts into claim on hash 265. Comparing only the fixed branch to P2 would
+misattribute effects from intervening creature separation changes.
+
+Verification: solution and Unity compile pass; 3570 simulation tests pass,
+including five new cases for separate state updates, turning, an invalid
+store and snapshots in either intermediate state. The focused suite's
+three initial regression cases failed before the implementation. Independent
+review found no blocking issue.
+
+### Store-only campaign check (hash 266)
+
+The fixed branch ran Levels 1–4 over seeds 1–20, serially, through the original
+rig's iterative entity remapping. All 80 runs contain every requested turn;
+Levels 2–4 reach stable maps, with no placed-type mismatches. Artifacts:
+`reverse-engineering/imp-store-full-20261017/results.json` and its level/seed
+directories. Remaining placeholders are reported by the existing rig and
+are not treated as exact original-versus-modern creature equivalence.
+
+| Level | Valid runs | Wins | Keeper Imp deaths, median | Total deaths | Range |
+|---|---:|---:|---:|---:|---:|
+| 1 | 20/20 | 19/20 | 0 | 0 | 0–0 |
+| 2 | 20/20 | 9/20 | 0 | 24 | 0–6 |
+| 3 | 20/20 | 19/20 | 0 | 0 | 0–0 |
+| 4 | 20/20 | 1/20 | 18 | 448 | 2–61 |
+
+Deaths count `creature_died` with `type=Imp player=3`. Level 4's winning seed
+is 7, at turn 6756. These are fixed-branch totals, not a paired 20-seed
+comparison against hash 265. The older P2 totals cannot establish this
+change's contribution to the win or death differences.
+
+**Confirmed store-only regression:** Level 1 seed 18 wins at 1816 on the matching
+`647c43e8` baseline and does not win within 2044 on the fixed branch.
+The fixed replay refuses the Hatchery build at 466 (`drag_cost=0`);
+the baseline has no `build_refused` event. The causal trace follows below.
+Baseline artifacts are under the full set's
+`baseline-level1/seed18/` directory.
+
+Three full Level 4 seeds were paired on baseline, store-only (266) and
+per-worker work visibility (267), with stable entity maps and no placed-type
+mismatches. All run 6804 turns.
+Baseline artifacts: `reverse-engineering/imp-store-full-baseline-20261017/`.
+Hash-267 artifacts: `reverse-engineering/imp-work-visibility-runs-20261017/`.
+
+| Seed | Keeper Imp deaths, base → store → visibility | Win turn, base → store → visibility |
+|---|---:|---:|
+| 1 | 25 → 35 → 5 | none → none → none |
+| 5 | 5 → 8 → 13 | 6768 → none → 6788 |
+| 8 | 2 → 5 → 15 | none → none → none |
+
+Store-only worsens deaths in all three and loses seed 5's baseline win.
+Work visibility restores that win and reduces seed 1's deaths, but worsens
+deaths in seeds 5 and 8. These are paired results, unlike the older P2 set.
+
+Keep ADR-0502 isolated as a fidelity candidate; it restores the observed
+store states but does not resolve the larger Imp discrepancy, and the
+confirmed campaign regression blocks recommending its merge.
+
+### Level 1 seed 18: why the Hatchery build fails
+
+**CONFIRMED in the paired replays:** the turn-466 command builds one tile,
+`(13,34)`. Baseline claims it at 420; the candidate at 821. All nine tiles
+in the surrounding excavated 3-by-3 area have identical excavation turns
+in both runs, but baseline claims all nine by 446 and candidate none by 465.
+The refusal follows from the missing ownership at the requested tile.
+
+The first relevant task divergence is earlier, at `(14,24)`:
+
+| Event | Baseline turn | Candidate turn |
+|---|---:|---:|
+| Imp 1 deposits its first load | 191 | 193 |
+| Imp 1 returns to mining `(14,24)` | 192 | 194 |
+| The seam becomes floor | 211 | 213 |
+| Imp 1 finishes its mining action | 212 | 214 |
+| Another Imp removes the obsolete mining task | 213 | 214 |
+| Fresh-claim task raised at `(14,24)` | 212 | never |
+| Imp 1 claims there on its later store walk | 255 | never |
+
+At candidate turn 214, Imp 3 searches for excavation before Imp 1 finishes
+its action. Its search removes the obsolete mining task. Imp 1 then finds
+no surviving task and raises no fresh claim. Baseline has already raised
+the claim before another Imp removes the obsolete task. Imp 1's later
+store walk takes that claim, leading into the southern claims and the
+Hatchery tile. Candidate Imp 1 continues mining; another Imp first claims
+`(14,24)` at 375 and works north instead.
+
+**CONFIRMED binary rules:** the mining state's action-running check comes
+before its task lookup; a missing task exits before raising kind 14. The
+dig/mine search removes obsolete tasks without waiting for their old
+workers. See [mining state](functions/00465870.md) and
+[excavation search](functions/00469AF0.md), rechecked for this trace.
+The existing `ImpClaimsWhatItDugTests` cover both the delayed raise and a
+search removing the task first; all 11 tests pass.
+
+A native Level 1 seed-1 capture provides a positive control: `(14,24)`
+becomes Dirt Path at capture frame 159 and has kind 14 at frames 163–204.
+Another dug tile, `(10,28)`, becomes Dirt Path at frame 43 and has no kind-14
+entry through frame 300. These are capture frames, not replay turns, and
+there is no matching original seed-18 capture. Missing fresh-claim tasks
+are therefore observable natively; this does not prove identical race
+timing for seed 18.
+
+**CONFIRMED ordering difference:** original creature updates run the action before the state
+dispatcher ([update record](functions/00488930.md)); our pending work is
+applied after all Imp decisions. This known ordering difference is recorded
+in [mining cadence §7](mining-cadence.md#7-how-long-a-digger-stays-after-its-wall-falls-2026-10-01).
+
+### Work-visibility probe
+
+A throwaway change allocated one `TileWorkSystem` in `ImpTaskSystem.Execute`
+and called it immediately after each eligible Imp's `Update`, before the
+next Imp. The normal final work pass remained. This tests visibility between
+workers, not DK2's action-before-state ordering within one creature.
+The diagnostic code was removed after measurement; hash 266 is unchanged.
+
+**CONFIRMED counterfactual, Level 1 seed 18:**
+
+| Event | Store candidate | Flush after each Imp |
+|---|---:|---:|
+| `(14,24)` becomes floor | 213 | 167 |
+| Fresh claim raised there | never | 168 |
+| `(13,34)` claimed | 821 | 381 |
+| Turn-466 Hatchery build | refused | succeeds |
+| Win within 2044 turns | none | 1796 |
+
+The first event-content difference is turn 47: Imp 3 sees `(10,28)` fall
+inside the same pass, abandons its obsolete work and chooses again at 48.
+It drops the old task before Imp 4's action ends at 49, preventing a fresh
+claim. That missing claim agrees with the native seed-1 observation above;
+the native capture does not establish exact seed-18 timing. Earlier job
+changes, not just the turn-214 race, produce the restored Hatchery build.
+
+A control applied the same flush only at turns 200–214. It changed neither
+the event multiset nor any replay CSV row over 900 turns, and the build
+still failed. All three diagnostic runs had consecutive requested turns:
+900 for the full-time probe and control, then 2044 for the full-time probe.
+The two full-time runs agree through turn 900. Artifacts and runner:
+`reverse-engineering/imp-work-order-probe-20261017{,-window,-full}/` and
+`reverse-engineering/imp-work-order-probe-20261017.py`.
+
+The unmerged ADR-0503 candidate implements work visibility, with three regression
+cases covering both update orders and same-turn task cleanup. Hash/save 267
+has no new fields. All 3573 simulation tests, solution and Unity compilation
+pass; independent review found no remaining issue. The four targeted replays
+are valid; Level 1 seed 18 again wins at 1796. The Level 4 table above records
+mixed results. [Broader acceptance](imp-candidate-acceptance.md) blocks gameplay merge.
+The [first additional Level 4 seed-8 death](imp-survival-trace.md) has a separate causal trace.

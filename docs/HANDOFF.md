@@ -179,6 +179,12 @@ Enhanced keeper using the same observation/command interface (KEEPER_AI.md
 
 Run git worktree list first; another session may own these.
 
+- build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
+  and mining completion candidates; campaign regressions block gameplay merge.
+  Verdict and next experiment: research/imp-candidate-acceptance.md.
+- build/imp-acceptance, research/imp-acceptance: research-only review branch;
+  gameplay and snapshot format remain those of master.
+
 - D:/DungeonKeeperRemake-classic, classic-look/step5: retained lighting
   worktree; Step5 runtime corrections are on master. Check divergence before reuse.
 - D:/DungeonKeeperRemake-m12d, m12-decisions: the parked trap/door step,
