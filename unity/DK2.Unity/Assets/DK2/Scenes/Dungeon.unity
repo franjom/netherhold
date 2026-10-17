@@ -332,8 +332,27 @@ MonoBehaviour:
   levelName: Level1
   saveFile: 
   seed: 1
+  fogOfWar: 0
+  viewingPlayerId: 3
+  tool: 0
+  selectedRoomId: 1
   speed: 1
   showDiagnostics: 1
+  tickOnWorkerThread: 1
+  maxTicksPerFrame: 2
+  classicMeshes: 1
+  classicVertexLighting: 1
+  nativeInitialAmbient: 1
+  classicCreatureShadows: 1
+  bendTerrain: 1
+  highWalls: 1
+  cameraPreset: 3
+  cameraZoomOutLimitScale: 1.3
+  frameWholeMap: 0
+  cameraPitch: 70
+  cameraPanSpeed: 12
+  cameraRotationSpeed: 90
+  cameraZoomFraction: 0.15
 --- !u!4 &2124392604
 Transform:
   m_ObjectHideFlags: 0

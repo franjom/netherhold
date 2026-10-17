@@ -24,7 +24,13 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   DK2's do, with the hated-company rule (ADR-0479); the store sweep runs on
   DK2's turn (Q596). The stun counts from its first call (ADR-0480). Only a
   keeper's creatures run the needs, need-anger and mood choosers; heroes skip
-  them (ADR-0485, Q599). The L1–4 wins above predate this hash 254 change.
+  them (ADR-0485, Q599). The L1–4 wins above predate this hash 254 change
+  and ADR-0486's hash 255; neither has been re-measured on the rig.
+- The navigation mesh's locate is DK2's cell-cache walk and the whole-map
+  builder writes DK2's slots (ADR-0486, hash 255): on the owner's Level 10
+  mesh capture 130 of 140 intervals reproduce slot for slot and the first dump
+  matches in 2,826 of 2,828 triangles (tools/meshreplay). The next capture
+  should carry its route log (--navlog).
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
@@ -158,14 +164,16 @@ Enhanced keeper using the same observation/command interface (KEEPER_AI.md
 
 Run git worktree list first; another session may own these.
 
-- D:/DungeonKeeperRemake-classic, classic-look/step5: lighting (above).
+- D:/DungeonKeeperRemake-classic, classic-look/step5: lighting (above), two
+  commits ahead of master.
 - D:/DungeonKeeperRemake-m12d, m12-decisions: the parked trap/door step,
-  uncommitted and 204 commits behind master.
-- D:/DungeonKeeperRemake-nav, nav/level10-check: uncommitted work on
-  2026-10-15 (a navigation slot view, ADR-0486 in its tree, not on master):
-  check its numbers before taking one.
-- D:/DungeonKeeperRemake-oracle, oracle/batch3: level with master.
+  uncommitted and 234 commits behind master.
+- D:/DungeonKeeperRemake-imps, l4/imp-deaths: level with master, uncommitted
+  combat and state-table work (Next work item 1).
+- D:/DungeonKeeperRemake-oracle, oracle/batch3: level with master, uncommitted
+  research-doc edits.
 - D:/DungeonKeeperRemake-l4, l4/guard-room-replay: merged; removable.
+- nav/level10-check is merged (ADR-0486) and its worktree is gone.
 
 ## Where to work
 
