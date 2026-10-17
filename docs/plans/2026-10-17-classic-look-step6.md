@@ -1,7 +1,7 @@
 # Step 6 — HUD and controls
 
-Status: preparation only, 2026-10-17. Owner-selected next scope. No HUD code has
-been built and ADR-0497 remains proposed. Step5's outstanding visual/performance
+Status: research and feasibility pilot in progress, 2026-10-17. No production HUD
+has been built and ADR-0497 remains proposed. Step5's outstanding visual/performance
 gates remain in [its checklist](2026-10-14-classic-look-step5.md).
 
 ## Design reference
@@ -24,9 +24,15 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
   function record for `0x0041CC50`; its trap arm alone is not a complete reading.
 - [ ] Read the relevant layout/input paths and resolve Q197's minimap visibility
   question. `0x00427BA0` currently documents indicator packing, not the whole HUD.
-- [ ] Pilot UI Toolkit's custom minimap shader integration and `.bf4` font quality
+- [x] Pilot UI Toolkit's custom minimap shader integration and `.bf4` font quality
   at reference and large sizes. Record results before selecting production UI
   plumbing; an alternative toolkit requires the ADR-0497 amendment it describes.
+
+Rendering feasibility passed in an isolated URP project at both reference and
+1440p sizes; [pilot checks, captures and limits](../../tools/hud-probe/README.md).
+The native raster/overlay reading is in [minimap-rendering.md](../research/minimap-rendering.md).
+Interactions, Q197, complete widget/art mapping and production font metrics remain
+research gates; the shader pilot does not close the whole milestone.
 
 Exit: a small reviewed design/implementation plan grounded in the binary and
 shipped data, plus a working rendering feasibility result. No guessed interactions.
