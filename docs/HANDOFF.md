@@ -182,8 +182,9 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, research/imp-acceptance: research-only review branch;
-  gameplay and snapshot format remain those of master.
+- build/imp-acceptance, tools/imp-boundary-recorder: native chooser recorder
+  and one controlled route comparison; gameplay and snapshot format remain
+  those of master. Evidence and next mesh comparison: research/imp-boundary-route.md.
 
 - D:/DungeonKeeperRemake-classic, classic-look/step5: retained lighting
   worktree; Step5 runtime corrections are on master. Check divergence before reuse.

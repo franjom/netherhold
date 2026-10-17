@@ -47,7 +47,7 @@ stream, which the ordinary checker does not restore.
 Its extractor mixes previous-frame workers and reservations with selected
 end-of-turn tile values and current-frame kinds 1, 2 and 14. It assumes slot
 order for earlier workers. The C# checker additionally starts each choice at
-tick zero with xoshiro seed zero, omits rooms and unexported objects, and may
+an advancing fixture clock with xoshiro seed zero, omits rooms and unexported objects, and may
 move holders to approximate working faces when their routes fail. It keeps
 one mutable world across rows. These are reconstruction limits; they do not
 each establish a defect in the tested gameplay rules.
@@ -60,6 +60,9 @@ The [failed candidate acceptance](imp-candidate-acceptance.md) remains valid
 as a replay result; this checker audit does not reverse that verdict.
 
 ## Required boundary for the next behavioral comparison
+
+The [first actual boundary pair](imp-boundary-route.md) now supplies a bounded
+selection/route control; it does not repair the historical whole-turn extractor.
 
 Capture the native state immediately before the chosen worker's selection,
 after earlier entities and its own preceding action have run. Include the
