@@ -363,9 +363,9 @@ condition.
 - `SkipCameraPathCommand` ends the path before the turn's walk.
 - Actions 24, 26, 31 and 38 emit `ScriptedViewRequest`s.
 
-**Presentation:** `ScriptedViewDirector` drives three parts on the wall clock:
-- `CameraPathPlayback` (§3);
-- `CinematicLetterbox` (§4, §6);
+**Presentation:** `ScriptedViewDirector` drives three parts:
+- `CameraPathPlayback` (§3), on the drawn world's tick (see the deviations);
+- `CinematicLetterbox` (§4, §6), on the wall clock;
 - `SubtitleQueue` (§7), with the speech-off timing, since Unity plays no speech
   audio. Its skip leaves the queue alone, as `0x00568140` does when the speech
   object's `+4` is zero (that this is the speech-off state is INFERRED).
@@ -389,6 +389,10 @@ condition.
 
 **Deviations:**
 - The simulation measures the path in game ticks, where DK2 measures wall clock.
-  The two agree at normal speed.
+  The two agree at normal speed. So the view plays the path on ticks too. The frame
+  is `first + 0.5 + 7.5 (t - (start + 1))`, where `t` is the drawn world's tick plus
+  its fraction and `start` is the tick action 31 ran on. The camera reaches its last
+  frame by `start + 1 + DurationTicks`, the turn condition 72 first sees it stopped.
+  Why, and the race a wall-clock view had: ADR-0496's 2026-10-17 amendment.
 - Each keeper has its own path state, where DK2 has one local camera. This equals
   DK2 whenever only the human's tree starts paths.

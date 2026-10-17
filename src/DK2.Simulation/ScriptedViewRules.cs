@@ -31,8 +31,11 @@ public enum ScriptedViewKind : byte
     CameraMove = 5,
 }
 
+/// <param name="Tick">For <see cref="ScriptedViewKind.CameraPath"/>, the tick the path started
+/// on, so the view plays it on the simulation's clock and ends it on the tick
+/// <see cref="CameraPathRules.DurationTicks"/> gives.</param>
 public readonly record struct ScriptedViewRequest(
-    ScriptedViewKind Kind, PlayerId Player, int Value, TilePos Tile, bool Flag);
+    ScriptedViewKind Kind, PlayerId Player, int Value, TilePos Tile, bool Flag, long Tick = 0);
 
 /// <summary>A level script's camera path, as far as the trigger walk can see it: condition 72
 /// is false while one plays (camera-paths.md, ADR-0496).</summary>

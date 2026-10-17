@@ -10,8 +10,9 @@ using DK2.Simulation;
 namespace DK2.Presentation;
 
 /// <summary>Plays what the level script asks of the viewer's own view (actions 24, 31 and 38,
-/// ADR-0496): the camera path, the letterbox and the Mentor's subtitles, on the presentation's
-/// wall clock as DK2's camera and speech system run on theirs. Other keepers' requests are
+/// ADR-0496): the camera path on the drawn world's tick, which the script's condition 72 counts
+/// too, and the letterbox and the Mentor's subtitles on the wall clock, as DK2's camera and
+/// speech system run on theirs. Other keepers' requests are
 /// dropped, as DK2 runs those arms for its local player only.</summary>
 /// <remarks>Requests arrive during a tick, possibly off the main thread, and are applied by
 /// <see cref="Update"/>.</remarks>
@@ -27,7 +28,7 @@ public sealed class ScriptedViewDirector(
     private CameraPathPlayback? _path;
     private TilePos? _move;
     private double _now;
-    private bool _started;
+    private double _renderTick;
 
     public void Emit(in SimEvent simEvent)
     {
@@ -36,6 +37,9 @@ public sealed class ScriptedViewDirector(
     }
 
     public bool PathPlaying => _path is not null;
+
+    /// <summary>The path on screen, or null.</summary>
+    public int? PathId => _path?.PathId;
 
     /// <summary>The path's camera this frame, or null when the ordinary camera has the view.</summary>
     public CameraPathPose? Pose => _path?.Pose();
@@ -61,18 +65,26 @@ public sealed class ScriptedViewDirector(
     public static double GlideMilliseconds(float tilesX, float tilesY) =>
         Math.Min(25.6 * (tilesX * tilesX + tilesY * tilesY), 500);
 
-    public void Update(double nowMilliseconds)
+    /// <param name="nowMilliseconds">The wall clock, for the letterbox and the subtitles.</param>
+    /// <param name="renderTick">The drawn world's tick plus its fraction toward the next, for
+    /// the camera path (<see cref="CameraPathPlayback.Seek"/>).</param>
+    public void Update(double nowMilliseconds, double renderTick)
     {
-        double elapsed = _started ? nowMilliseconds - _now : 0;
-        _started = true;
         _now = nowMilliseconds;
+        _renderTick = renderTick;
+        // The path that has run out ends before the requests, so the next one the script
+        // started on that tick follows it.
+        SeekPath();
         while (_requests.TryDequeue(out ScriptedViewRequest request)) Apply(request);
-        if (_path is not null)
-        {
-            _path.Advance(elapsed);
-            if (_path.Finished) EndPath();
-        }
+        SeekPath();
         _subtitles.Update(_now);
+    }
+
+    private void SeekPath()
+    {
+        if (_path is null) return;
+        _path.Seek(_renderTick);
+        if (_path.Finished) EndPath();
     }
 
     /// <summary>Escape or Space (<c>0x00405362</c>): with a path playing, end it. Returns whether
@@ -91,8 +103,11 @@ public sealed class ScriptedViewDirector(
         switch (request.Kind)
         {
             case ScriptedViewKind.CameraPath:
-                if (_path is not null || loadPath(request.Value) is not { Count: > 0 } frames) return;
-                _path = new CameraPathPlayback(request.Value, frames, request.Tile);
+                // The simulation refuses a start while a path plays (CameraPathRules.TryStart), so
+                // a request it sent is the path the script now has; one still drawn gives way.
+                if (loadPath(request.Value) is not { Count: > 0 } frames) return;
+                if (_path is not null) EndPath();
+                _path = new CameraPathPlayback(request.Value, frames, request.Tile, request.Tick);
                 // Every in-game start leaves camera flag 0x8 clear, so 0x0044A370 raises the letterbox.
                 _letterbox.Raise(_now);
                 break;

@@ -337,7 +337,11 @@ namespace DK2.Unity
             WaitForTick();
             if (_simulation == null) return;
 
-            _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d);
+            // The path is placed by the last tick run plus the debt toward the next, the clock
+            // condition 72 counts, so the script's next path follows it. On the worker path that
+            // is the world this frame draws; on the main thread this frame's ticks come after.
+            _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
+                _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d));
             using (InputMarker.Auto())
             {
                 ApplyLetterbox();

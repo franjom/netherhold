@@ -5,6 +5,7 @@
 using System.Numerics;
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation;
 
 namespace DK2.Presentation;
 
@@ -26,46 +27,59 @@ public readonly record struct CameraPathPose(
 }
 
 /// <summary>One scripted camera path, played as DK2's camera mode 0x12 plays it
-/// (camera-paths.md section 3): 30 frames per wall-clock second from a remainder of 0.5,
-/// every quantity lerped between the frame and the next.</summary>
+/// (camera-paths.md section 3): 30 frames a second from a remainder of 0.5, every quantity
+/// lerped between the frame and the next.</summary>
+/// <remarks>DK2 counts those seconds on the wall clock and its condition 72 asks the camera
+/// whether it is still on the path. Ours asks <see cref="CameraPathRules.Playing"/>, which counts
+/// game ticks, so the path is placed by the drawn world's tick, at the nominal 250 ms a tick:
+/// the camera and the script then agree on the tick the path ends, a slow frame cannot skip
+/// the path's opening, and the next path never arrives while this one is still drawn.</remarks>
 public sealed class CameraPathPlayback
 {
+    /// <summary>30 frames a second at <see cref="SimulationTiming.TicksPerSecond"/>.</summary>
+    public const double FramesPerTick = 30d / SimulationTiming.TicksPerSecond;
+
     private readonly IReadOnlyList<KcsFrame> _frames;
     private readonly float _originX;
     private readonly float _originY;
+    private readonly int _first;
     private int _frame;
     private float _remainder = 0.5f;
 
     /// <param name="tile">The action point centre the path is drawn from; <c>0x0044A370</c>
     /// adds half a tile to each coordinate.</param>
-    public CameraPathPlayback(int pathId, IReadOnlyList<KcsFrame> frames, TilePos tile)
+    /// <param name="startTick">The tick action 31 ran on; the world drawn after it is at
+    /// <c>startTick + 1</c>, where the path is on its first frame.</param>
+    public CameraPathPlayback(int pathId, IReadOnlyList<KcsFrame> frames, TilePos tile, long startTick = 0)
     {
         if (frames is null || frames.Count == 0) throw new ArgumentException("A path needs a frame.", nameof(frames));
         PathId = pathId;
+        StartTick = startTick;
         _frames = frames;
         _originX = tile.X + 0.5f;
         _originY = tile.Y + 0.5f;
-        _frame = pathId is >= 50 and <= 99 ? 7 : 0;
+        _first = _frame = CameraPathRules.FirstFrame(pathId);
         Finished = _frame >= _frames.Count - 1;
     }
 
     public int PathId { get; }
+    public long StartTick { get; }
     public bool Finished { get; private set; }
 
-    /// <summary><c>Camera_Update</c> mode 0x12: <paramref name="milliseconds"/> times 0.03 frames,
-    /// the whole part added at once and the fraction carried; the path ends on its last frame.</summary>
-    public void Advance(double milliseconds)
+    /// <summary><c>Camera_Update</c> mode 0x12 with the elapsed time read off the drawn world:
+    /// the frame is the first plus the remainder's 0.5 plus <see cref="FramesPerTick"/> a tick
+    /// since <c>StartTick + 1</c>; the path ends on its last frame, which it reaches by
+    /// <c>StartTick + 1 + </c><see cref="CameraPathRules.DurationTicks"/>.</summary>
+    /// <param name="renderTick">The drawn world's tick plus its fraction toward the next.</param>
+    public void Seek(double renderTick)
     {
-        if (Finished || milliseconds <= 0) return;
-        float frames = (float)(milliseconds * 0.03);
-        int whole = (int)frames;
-        _remainder += frames - whole;
-        _frame += whole;
-        if (_remainder >= 1f)
-        {
-            _remainder -= 1f;
-            _frame++;
-        }
+        if (Finished) return;
+        double position = _first + 0.5 + Math.Max(0, renderTick - (StartTick + 1)) * FramesPerTick;
+        // The camera never runs backwards, as DK2's accumulator cannot.
+        if (position <= _frame + _remainder) return;
+        int frame = (int)position;
+        _frame = frame;
+        _remainder = (float)(position - frame);
         if (_frame >= _frames.Count - 1) Finished = true;
     }
 

@@ -1104,7 +1104,8 @@ public sealed class TriggerExecutor
                     return true;
                 var centre = new TilePos((point.StartX + point.EndX) / 2, (point.StartY + point.EndY) / 2);
                 ViewRequested?.Invoke(new ScriptedViewRequest(
-                    ScriptedViewKind.CameraPath, player, pathId, centre, Byte(p, "Available") != 0));
+                    ScriptedViewKind.CameraPath, player, pathId, centre, Byte(p, "Available") != 0,
+                    _world.CurrentTick.Value));
                 return true;
             }
             case 26:

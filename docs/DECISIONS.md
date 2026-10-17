@@ -11522,6 +11522,8 @@ therefore ran on turn 2:
   action 27), the subtitle overflow scroll, speech audio, action 38's interface
   slots, and action 24's message record.
 
+- Superseded in part by ADR-0498: the view plays the path on ticks, not the wall clock.
+
 ## ADR-0497 — One HUD that scales: DK2's interface design at any resolution
 **Date:** 2026-10-17 · **Status:** proposed · Presentation only · Extends ADR-0242 to the interface · Rules: `ART_DIRECTION.md` §13
 
@@ -11561,3 +11563,29 @@ per-tile grid costs one texel per changed tile; a CPU raster costs every tile ea
 - Risks: small `.bf4` glyphs may give poor distance fields (the pilot measures it); ultrawide
   layouts need per-element owner choices.
 - The cursor, front end and status flowers: 2D parts now, 3D parts later (`ART_DIRECTION.md` §13).
+
+## ADR-0498 — The view plays a camera path on the simulation's tick
+**Date:** 2026-10-17 · **Status:** accepted · Presentation only · Amends ADR-0496 · Research: camera-paths.md §9
+
+**Context.** The owner saw Level 1's opening play unlike DK2's. ADR-0496's view counted
+wall-clock milliseconds while condition 72 counts ticks, and the two raced:
+- A slow frame advanced the path by the whole stall but the simulation by at most Unity's
+  capped `deltaTime`. The opening was skipped, and the keeper view showed before the fly-over.
+- Both clocks gave path 1 53 ticks, 13.25 s. At a steady frame rate, path 201's request
+  could reach the view a frame before path 1 had ended there. The view discarded a request
+  that arrived while a path was drawn. Read from the code, not measured.
+
+DK2 has no such race, since its condition 72 reads the camera.
+
+**Decision.**
+- `ScriptedViewRequest` carries the tick action 31 ran on.
+- `CameraPathPlayback.Seek` places the frame at `first + 0.5 + 7.5 (t - (start + 1))`, with
+  `t` the last tick run plus its debt. So the path ends by `start + 1 + DurationTicks`.
+- The director ends a finished path before it applies requests. A new request replaces the
+  drawn path, since the simulation already refuses overlapping starts.
+
+**Consequences.**
+- A stall no longer skips the opening, and the next path follows without a gap.
+- With the game paused, the path stops; whether DK2's does is unread.
+- No hash change: the request is observation only.
+- The owner checked it in Unity the same day.
