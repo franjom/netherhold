@@ -16,7 +16,7 @@ public class ClaimAndBedEffectTests
     [InstallTheory]
     [InlineData(true, true, 0, 1, false)]
     [InlineData(true, false, 0, 1, false)]
-    [InlineData(false, true, 0, 0, false)]
+    [InlineData(false, true, 0, 1, false)]
     [InlineData(true, true, 15, 0, false)]
     [InlineData(true, true, 0, 1, true)]
     public void PortalBuildUpPreviewsThreeSecondsBeforeTheRollWithoutDrawingOrSpawning(

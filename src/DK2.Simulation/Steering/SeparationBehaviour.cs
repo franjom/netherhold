@@ -16,7 +16,7 @@ public static class SeparationBehaviour
 {
     public const int Weight = 0x2147;
 
-    /// <summary>Neighbours are asked for within 1.2 radii.</summary>
+    /// <summary>The neighbour query's square span is 1.2 times the mover's radius.</summary>
     public const int QueryRadii = 0x13333;
 
     /// <summary>Arrived within half a tile of the last point, with the flag, nothing pushes.</summary>

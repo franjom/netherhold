@@ -64,6 +64,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Builds, tests and dk2tools
 
+- A sandbox restore can fail NU1900 when NuGet audit is unreachable; use cached packages with a per-command `-p:NuGetAudit=false`, without changing repository audit settings.
+
 - Function KB headers use CONFIRMED/LIKELY/GUESS/DISPUTED; STRONGLY INFERRED belongs in research prose, with LIKELY in the KB header.
 
 - `kb_upsert` with `evidence` replaces the whole list, and `name`/`role` overwrite an existing record's; `kb_get` first and pass the union, or pass only `note`.

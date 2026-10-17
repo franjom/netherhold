@@ -33,7 +33,7 @@ argument:
 
 | slot | function | what it is | used by |
 |---|---|---|---|
-| `[0x006ED3FC]` | `0x004D1170` | the **ungated** object enumerator (§5.4 of `structure-blocks.md`) | `Separation`'s neighbour query |
+| `[0x006ED3FC]` | `0x004D1170` | [tile-rectangle creature query](creature-neighbour-query.md) | `Separation`'s neighbour query |
 | `[0x006ED400]` | `0x004D12B0` | the enumerator that **gates on `Obstacle`** and forwards position, size, flags | `Repel_Obstacle` |
 | `[0x006ED404]` | `0x004D15E0` | the **crowd probe**: the signed sum of creature word `+0x200` over the creatures on a square of tiles (section 5.4) | `Follow_Path`'s seek |
 | `[0x006ED408]` | `0x004D16B0` | the **navigation-byte probe** at a position (reads `world+0x9F2`) | `Avoid_Walls`' feelers |

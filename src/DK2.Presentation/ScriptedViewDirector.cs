@@ -87,6 +87,13 @@ public sealed class ScriptedViewDirector(
         if (_path.Finished) EndPath();
     }
 
+    /// <summary>Places the camera on the clock used to draw the creatures, without consuming requests.</summary>
+    public void SeekCamera(double renderTick)
+    {
+        _renderTick = renderTick;
+        SeekPath();
+    }
+
     /// <summary>Escape or Space (<c>0x00405362</c>): with a path playing, end it. Returns whether
     /// there was one, so the caller tells the simulation. The skip's speech clear
     /// (<c>0x00568140</c>) returns at once with the speech object's <c>+4</c> zero, which this

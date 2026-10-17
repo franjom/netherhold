@@ -99,6 +99,8 @@ public class CameraPathPlaybackTests
         director.Update(5000, 1.1);
 
         Assert.Equal(0.5f + 0.5f + 0.75f, director.Pose!.Value.Position.X, 4);
+        director.SeekCamera(1.2);
+        Assert.Equal(0.5f + 0.5f + 1.5f, director.Pose!.Value.Position.X, 4);
     }
 
     [Fact]

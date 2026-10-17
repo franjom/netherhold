@@ -65,7 +65,7 @@ public static class TorturerStep
         GameDatabase database = context.Database;
 
         CreatureState? victim = UnattendedVictim(world, database, creature);
-        if (victim is not null && context.Navigation.TryRoute(creature, victim.Tile, Navigation.MoveOptions.Loose))
+        if (victim is not null && context.Navigation.TryRoute(creature, victim.Tile, Navigation.MoveOptions.TortureApproach))
         {
             creature.TortureTargetTile = TileOf(world, victim);
             CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, TortureRules.TorturerFacingState);

@@ -578,9 +578,17 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     public void CollectNeighbours(Fixed16Vector centre, int range, List<SteeringNeighbour> into)
     {
+        int half = range / 2;
+        int x0 = Math.Max(0, (centre.X - half) >> 16);
+        int y0 = Math.Max(0, (centre.Y - half) >> 16);
+        int x1 = Math.Min(Width - 1, (((centre.X + half) >> 4) + 0xFFF) >> 12);
+        int y1 = (((centre.Y + half) >> 4) + 0xFFF) >> 12;
+        // The native upper-Y clamp uses width, even on a non-square map.
+        if (y1 >= Height) y1 = Width - 1;
         foreach (CreatureState c in _world.Creatures)
         {
-            if ((c.Body.Pos - centre).Octile() > range) continue;
+            TilePos tile = c.Tile;
+            if (!_world.Contains(tile.X, tile.Y) || tile.X < x0 || tile.X > x1 || tile.Y < y0 || tile.Y > y1) continue;
             into.Add(new SteeringNeighbour(c.Body, _database.CreatureById(c.CreatureTypeId).SizeClass));
         }
     }

@@ -327,6 +327,7 @@ namespace DK2.Unity
 
         private static readonly ProfilerMarker TickMarker = new ProfilerMarker("DK2.Simulation.Tick");
         private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Scene.Present");
+        private readonly FrameElapsedClock _frameElapsed = new FrameElapsedClock();
 
         private void Update()
         {
@@ -336,6 +337,8 @@ namespace DK2.Unity
             // The tick started at the end of the last frame, if any, has the world until it is done.
             WaitForTick();
             if (_simulation == null) return;
+            double elapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
+                fallbackDeltaSeconds: Time.deltaTime, maximumDeltaSeconds: Time.maximumDeltaTime, timeScale: Time.timeScale);
 
             // The path is placed by the last tick run plus the debt toward the next, the clock
             // condition 72 counts, so the script's next path follows it. On the worker path that
@@ -367,7 +370,7 @@ namespace DK2.Unity
             InputFrame firstInput = InputFrame.Empty;
             if (speed > 0f)
             {
-                _tickDebt += Time.deltaTime * SimulationTiming.TicksPerSecond * speed;
+                _tickDebt += elapsed * SimulationTiming.TicksPerSecond * speed;
 
                 // Whole ticks only, and a cap so a long editor stall does not
                 // fast-forward the game by a thousand ticks in one frame.
@@ -399,6 +402,29 @@ namespace DK2.Unity
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
             _worldView.SetPossessionView(_simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
+            double preparedElapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
+                fallbackDeltaSeconds: 0, maximumDeltaSeconds: Math.Max(0, Time.maximumDeltaTime - elapsed), timeScale: Time.timeScale);
+            if (speed > 0f) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed;
+            if (tickOnWorkerThread && speed > 0f)
+            {
+                int preparedTicks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame) - ticks);
+                ticks += preparedTicks;
+                _tickDebt -= preparedTicks;
+                if (ticks > 0 && firstInput.All.Count == 0 && _pendingCommands.Count > 0)
+                {
+                    firstInput = new InputFrame(_pendingCommands.ToArray());
+                    _pendingCommands.Clear();
+                }
+            }
+            fraction = (float)Math.Min(tickOnWorkerThread ? _tickDebt + ticks : _tickDebt, 1d);
+            bool drawingPath = _scriptedView.PathPlaying;
+            _scriptedView.SeekCamera(_simulation.World.CurrentTick.Value + fraction);
+            if (_scriptedView.PathPlaying) ApplyPathCamera();
+            else if (drawingPath)
+            {
+                if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
+                else LookAt(_simulation.World);
+            }
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());

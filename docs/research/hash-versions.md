@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**265** — `0x10A9C84139F8DF10`. Behaviour only: creature neighbours come from the native tile rectangle before combined-radius contact checks; the torturer's victim route retains native arrival flags (ADR-0500). No new saved field.
+
 **264** — `0xC53FC1CC3EABDE59`. Behaviour only: a portal admits a creature whose room entry asks size 0 with none of the room owned, so a Lair creature comes through before the first Lair (`0x004DC810`, ADR-0499). Snapshot format is 264.
 
 **263** — `0x688ADFB86353DF0E`. `CreatureState.GemCarrier`, DK2's creature `+0x92` bit 2, hashed and saved after the standing job: trigger action 20 hands a creature a Portal Gem and sets it (ADR-0495). Snapshot format is 263. The pin's fixture has no carrier, so the change is the version alone; `PortalGemOnRealDataTests` round-trips a set flag.

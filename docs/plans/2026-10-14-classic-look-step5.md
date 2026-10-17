@@ -99,6 +99,7 @@ its visibility mask remain outside this camera/lighting step.
 - [x] Add the ShowDiagnostics FPS/frame-time overlay for editor and Development players ([usage](../../unity/README.md#measuring-performance)).
 - [x] Capture the reported camera-rotation stutter with frame-time/Profiler evidence.
 - [x] Reduce measured asset-key allocations and transparent-terrain rotation cost while preserving fidelity.
+- [ ] Reduce active tick/presentation stalls remaining in the Level8 opening ([measurement](../research/level8-intro-motion.md)).
 
 Measurements and limits: [verification](../research/classic-lighting-verification.md).
 Submission time is CPU time, not GPU execution or a claimed game frame rate.
@@ -121,3 +122,5 @@ gameplay remains unmeasured. Measurements do not justify reducing visual fidelit
 This step is not accepted solely because tests pass. The original-view gate
 requires the owner to compare the same position, viewport and display settings.
 HUD, sound, replacement assets and unrelated simulation parity are outside Step5.
+
+Future modern-renderer work: [optional rigid creature spacing](modern-creature-spacing.md).

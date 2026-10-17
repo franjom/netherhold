@@ -284,6 +284,13 @@ Artifacts under `D:/DungeonKeeperRemake/build/classic-unity-probe/`:
 
 Each directory contains Development/release CSV, metadata, PNG, build/player
 logs, source and DLL SHA256 fingerprints, commit and working-tree snapshot.
+For the Level8 opening motion probe, set `DK2_LEVEL8_MOTION_PROBE=1` while
+building with `ClassicWindowFrameBuild`. This selects `Level8MotionProbe`,
+speed 1 and worker ticks in the marked scratch project. The visible player
+records 12 seconds of immutable poses and drawn roots to `motion.csv`, then
+exits. Its CSV logging allocates; use it to compare motion timing, not as an
+allocation or FPS benchmark. See [motion evidence](../../docs/research/level8-intro-motion.md).
+
 Earlier HEAD-source CPU baselines are `20261011-184034` (Imp) and
 `20261011-185214` (Giant). Their release loop median/p95 was 4.302/4.973 ms and
 4.679/6.198 ms respectively; final production changes show no consistent timing

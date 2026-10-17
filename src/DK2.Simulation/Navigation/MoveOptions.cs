@@ -19,6 +19,9 @@ public enum MoveOptions
     /// <summary>Imps en route (states 8 and 9), attacking, patrol offsets: no door rule, no flags.</summary>
     Plain = 0x00,
 
+    /// <summary>Approach a torture victim: snap to the endpoint and stop separating near arrival.</summary>
+    TortureApproach = 0x20,
+
     /// <summary>The common word (45 of 134 read sites): respect every door, arrive loosely.
     /// Room jobs, prisoners held, wandering, the walk to a hatchery.</summary>
     Loose = 0x80,

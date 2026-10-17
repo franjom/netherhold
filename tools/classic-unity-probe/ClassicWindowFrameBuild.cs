@@ -31,10 +31,17 @@ namespace DK2.Unity.Editor
             foreach (string name in new[] { "classicVertexLighting", "classicMeshes" }) serialized.FindProperty(name).boolValue = true;
             foreach (string name in new[] { "nativeInitialAmbient", "cheapLighting", "tickOnWorkerThread", "showDiagnostics", "fogOfWar", "frameWholeMap" })
                 serialized.FindProperty(name).boolValue = false;
+            bool motion = Environment.GetEnvironmentVariable("DK2_LEVEL8_MOTION_PROBE") == "1";
+            if (motion)
+            {
+                serialized.FindProperty("speed").floatValue = 1;
+                serialized.FindProperty("tickOnWorkerThread").boolValue = true;
+            }
             serialized.FindProperty("seed").intValue = 1;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             var probe = new GameObject("Windowed frame performance probe");
-            if (Environment.GetEnvironmentVariable("DK2_WINDOW_ROTATION_PROBE") == "1") probe.AddComponent<ClassicRotationProbe>();
+            if (motion) probe.AddComponent<Level8MotionProbe>();
+            else if (Environment.GetEnvironmentVariable("DK2_WINDOW_ROTATION_PROBE") == "1") probe.AddComponent<ClassicRotationProbe>();
             else probe.AddComponent<ClassicWindowFrameProbe>();
             EditorSceneManager.SaveScene(scene, "Assets/ClassicWindowFrameProbe.unity");
             PlayerSettings.enableFrameTimingStats = true;

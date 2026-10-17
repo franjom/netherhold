@@ -115,6 +115,9 @@ retained stable-sort buffers and reuses meshes across changes in draw order.
 Measured gains, regression checks and remaining costs: verification document.
 The debug FPS/frame-time display is built; usage and rotation profiling protocol:
 [Unity performance guidance](../unity/README.md#measuring-performance).
+Creature/cinematic timing now shares a late draw clock (ADR-0501); native tile
+neighbour queries and torture-approach flags are corrected (ADR-0500).
+Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
 
 Use serial checks; isolated probes must not save or restart the owner's editor.
 For master, open unity/DK2.Unity; check the retained classic worktree's branch

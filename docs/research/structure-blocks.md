@@ -122,7 +122,7 @@ blocked tile. Its object table instead drives a continuous obstacle system:
 operate on continuous geometry: `0x004D1AB0` performs a ray cast,
 `0x004D2B80` separates two things using their summed radii, and
 `0x004D27F0` tests approximate distance against a query threshold.
-`0x004D1170` is a separate ungated object enumerator.
+`0x004D1170` enumerates creatures through a tile rectangle; see [creature-neighbour-query.md](creature-neighbour-query.md).
 
 **CONFIRMED (2026-10-10, decompile and assembly).** The query initialises its callback
 flags once. `SolidObstacle` ORs bit 0; its absence **XORs** bit 0, retaining the previous

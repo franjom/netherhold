@@ -11623,3 +11623,37 @@ the room test.
 - Open: our portal claim comes at 663–1437 against DK2's 787, and the late seeds lose the
   most Imps. Digging matches DK2; our Imps claim the tile in front of the portal late.
 
+## ADR-0500 — Creature separation gathers candidates from native tile bounds
+**Date:** 2026-10-17 · **Status:** accepted
+
+**Context.** The Level8 opening exposed missed creature contacts. The port's
+radial prefilter excluded neighbours before the native combined-radius check.
+Binary evidence: [creature-neighbour-query.md](research/creature-neighbour-query.md).
+
+**Decision.** Use the native inclusive tile rectangle, including its upper-Y
+width-clamp quirk. Preserve the soft-force arithmetic and arrival exemptions.
+The broader query also exposes a prior torture-route deviation: victim approaches
+now retain the native option word 0x20, including arrival separation suppression.
+The existing centre-target deviation remains; no rigid creature clearance is added.
+
+**Consequences.** Hash/save version 265; no new saved field. Contact timing changes
+across maps. Tests observe alarm responders entering their states rather than
+requiring both still occupy them on one arbitrary final tick.
+
+## ADR-0501 — Camera and creatures share a late draw clock
+**Date:** 2026-10-17 · **Status:** accepted
+
+**Context.** A worker wait and presentation preparation can consume much of a
+frame. Counting that work on the following frame causes slow/catch-up motion
+even at high median FPS; the cinematic camera also sampled an earlier fraction.
+Measurements: [level8-intro-motion.md](research/level8-intro-motion.md).
+
+**Decision.** Sample elapsed real time after worker synchronization and again
+after presentation preparation, retaining time scaling and the per-frame catchup
+cap. Schedule newly owed worker ticks before releasing the world. Seek the path
+on the same final tick/fraction as creature drawing, without consuming view requests.
+
+**Consequences.** Fixed simulation steps and immutable render poses remain.
+Positions stay clamped to known movement intervals; no extrapolation through walls.
+Worker/presentation stalls can still cost frames and remain optimization work.
+

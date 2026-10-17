@@ -34,8 +34,8 @@ public interface ISteeringWorld
     /// in 16.16, ending on <paramref name="to"/>; false and empty when there is no route.</summary>
     bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points);
 
-    /// <summary>Every creature body the ungated enumerator (<c>0x004D1170</c>) yields within
-    /// <paramref name="range"/> of <paramref name="centre"/>, the asking body included.</summary>
+    /// <summary>Every creature body in the native tile rectangle around <paramref name="centre"/>,
+    /// with square span <paramref name="range"/>; the asking body is included.</summary>
     void CollectNeighbours(Fixed16Vector centre, int range, List<SteeringNeighbour> into);
 
     /// <summary>The body of the entity remembered at <c>+0x537</c>, if any, with the reach in whole

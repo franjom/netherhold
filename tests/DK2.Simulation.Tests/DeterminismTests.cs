@@ -166,7 +166,7 @@ public class DeterminismTests
         // HashVersion 260: independent explored discovery is saved and hashed beside scanning.
         // HashVersion 256: a door removed on water or lava leaves floor until the terrain changes (Q600).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xC53FC1CC3EABDE59UL, sim.StateHash());
+        Assert.Equal(0x10A9C84139F8DF10UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

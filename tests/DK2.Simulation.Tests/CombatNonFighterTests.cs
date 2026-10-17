@@ -363,11 +363,16 @@ public class CombatNonFighterTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        var seen = StateTrace.Of(sim, imp, 45);
+        var responders = new HashSet<int>();
+        var seen = StateTrace.Of(sim, imp, 45, observeTick: () =>
+        {
+            foreach (CreatureState g in goblins)
+                if (g.StateBeforeUtilityState == JobRules.StateFor(JobType.Sulk)
+                    && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199)) responders.Add(g.Id);
+        });
 
         Assert.Equal([(6, 199, 251), (CreatureStateMachine.Idle, 199, 1)], seen);
-        Assert.Equal(2, goblins.Count(g => g.StateBeforeUtilityState == JobRules.StateFor(JobType.Sulk)
-            && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199)));
+        Assert.Equal(2, responders.Count);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 

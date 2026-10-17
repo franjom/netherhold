@@ -177,8 +177,8 @@ steering body sits at `entity+0x124`, which is how the two connect.
 1. With `path_flags` bit 3 set, on the last window point or with
    `path_finished`, and within `radius + 0.5` (octile) of that point: zero
    force, return. Arrived creatures are not pushed apart.
-2. Asks the ungated enumerator (`[0x006ED3FC]`, context `[0x006ED40C]`) for
-   neighbours within `1.2 x radius` and runs the callback on each, summing into
+2. Asks the [tile-rectangle creature query](creature-neighbour-query.md) (`[0x006ED3FC]`, context `[0x006ED40C]`) for
+   candidates and runs the combined-radius callback on each, summing into
    `[0x006ECAD8]`/`[0x006ECADC]`.
 3. Adds one more repulsion, from a **remembered entity**: the id at
    `entity+0x537`, with countdown `+0x539`, resolved by `0x00460F60`.

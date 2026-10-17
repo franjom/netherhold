@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Systems;
+using DK2.Simulation.Steering;
 
 namespace DK2.Simulation.Tests;
 
@@ -14,6 +15,36 @@ namespace DK2.Simulation.Tests;
 /// of edits and a save must carry it and the bytes it was last brought to.</summary>
 public sealed class WorldSteeringMeshTests
 {
+    [Fact]
+    public void NeighboursUseTheTileRectangleBeforeTheCombinedRadiusCheck()
+    {
+        var (db, world, steering, mover) = Setup();
+        CreatureState touching = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, mover.Tile);
+        touching.PosX += 740;
+        CreatureState corner = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(4, 7));
+        CreatureState outside = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(5, 7));
+        WorldSteering.SyncBody(mover); WorldSteering.SyncBody(touching);
+        WorldSteering.SyncBody(corner); WorldSteering.SyncBody(outside);
+        var neighbours = new List<SteeringNeighbour>();
+        steering.CollectNeighbours(mover.Body.Pos, 8256, neighbours);
+        Assert.Contains(neighbours, n => ReferenceEquals(n.Body, touching.Body));
+        Assert.Contains(neighbours, n => ReferenceEquals(n.Body, corner.Body));
+        Assert.DoesNotContain(neighbours, n => ReferenceEquals(n.Body, outside.Body));
+    }
+
+    [Fact]
+    public void NeighbourUpperYClampKeepsTheNativeWidthQuirk()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        var tiles = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.ClaimedPath, PlayerIds.FirstKeeper, 0, 0), 54).ToArray();
+        WorldState world = WorldState.FromMap(db, new LevelMap(6, 9, tiles), [PlayerIds.FirstKeeper]);
+        CreatureState creature = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(2, 8));
+        WorldSteering.SyncBody(creature);
+        var neighbours = new List<SteeringNeighbour>();
+        new WorldSteering(db, world).CollectNeighbours(creature.Body.Pos, 8256, neighbours);
+        Assert.Empty(neighbours);
+    }
+
     [Fact]
     public void ADugTileIsEditedIntoTheStandingMeshAndRoutable()
     {
