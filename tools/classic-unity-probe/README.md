@@ -1,12 +1,21 @@
 # Unity crowd performance probe
 
-## Pinned Level 1 startup comparison
+## Pinned campaign startup comparison
 
 In the isolated `build/step5-lighting-project` only, batch entry point
 `DK2.Unity.Editor.ClassicStartupCaptureProbe.Run` records1024×540 gameplay views
 at fixed effect times0/500/1000/2000/4000/7000/9000ms and corresponding simulation
 ticks. `DK2_STARTUP_CAPTURE_OUTPUT` selects the output directory;
-`DK2_STARTUP_CAPTURE_FOG=1` enables fog. It uses native lighting inputs, normal
+`DK2_STARTUP_CAPTURE_FOG=1` enables fog. `DK2_STARTUP_CAPTURE_LEVEL` selects
+Level1 (default), Level7 or Level8. `DK2_STARTUP_CAPTURE_STEADY=1` adds a15000ms
+later image; metadata records the level and duration.
+`DK2_STARTUP_CAPTURE_FOCUS=heart` explicitly centres the keeper's Heart instead
+of the authored starting camera; this fixture rejects empty captures. Level8's
+authored camera starts over hero territory, so Heart lighting comparisons use
+this explicit focus. Production camera behaviour is unchanged.
+`DK2_STARTUP_CAPTURE_ALIGN_HEART=1` shifts capture points by the level's authored
+Heart-construction delay; Level8 overrides variable218 to16seconds. Metadata
+records both the delay and capture origin, so comparisons use matching stages. It uses native lighting inputs, normal
 torch lighting and High Walls. It does not save an owner scene or settings.
 Original references need matching viewport and sequence phase; a screenshot
 reported as untouched defaults does not establish its exact tick or ambient RGB.

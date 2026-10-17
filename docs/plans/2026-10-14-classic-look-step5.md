@@ -103,7 +103,8 @@ unattributed. Measurements do not justify reducing original visual fidelity.
 - [x] Finish final Level1/7/8 campaign captures and inspect their images.
 - [ ] Compare pinned original/Unity views and obtain owner visual acceptance.
 - [x] Restore missing automatic room-furniture added colour on Heart arches (Q603).
-- [ ] Compare corrected grey Heart smoke and complete matched-view acceptance (Q603, Q605).
+- [x] Close the Heart startup palette question from the full shipped-data closure (Q605).
+- [ ] Compare corrected grey Heart smoke and complete matched-view acceptance (verification document).
 
 This step is not accepted solely because tests pass. The original-view gate
 requires the owner to compare the same position, viewport and display settings.

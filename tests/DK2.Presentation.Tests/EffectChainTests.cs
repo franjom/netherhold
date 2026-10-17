@@ -176,6 +176,43 @@ public class EffectChainTests
     }
 
     [InstallFact]
+    public void NoShippedHeartStartupParticleSelectsAKeeperOrCyclingPalette()
+    {
+        GameDatabase database = DK2.Data.GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var effects = new Queue<EffectDef>(new ushort[] { 223, 225, 314 }.Select(id => database.Effects[id]));
+        var elements = new Queue<EffectElementDef>();
+        var seenEffects = new HashSet<EffectId>();
+        var seenElements = new HashSet<ushort>();
+        while (effects.Count != 0 || elements.Count != 0)
+        {
+            if (effects.Count != 0)
+            {
+                EffectDef effect = effects.Dequeue();
+                if (!seenEffects.Add(new EffectId(effect.EffectId))) continue;
+                foreach (ushort id in new[] { effect.NextEffectId, effect.DeathEffectId,
+                    effect.HitSolidEffectId, effect.HitWaterEffectId, effect.HitLavaEffectId })
+                    if (id != 0) effects.Enqueue(database.Effects[id]);
+                foreach (ushort id in effect.GenerateIds.Where(id => id != 0))
+                    if ((effect.Flags & 0x40) != 0) effects.Enqueue(database.Effects[id]);
+                    else elements.Enqueue(database.EffectElements[id]);
+            }
+            else
+            {
+                EffectElementDef element = elements.Dequeue();
+                if (!seenElements.Add(element.EffectElementId)) continue;
+                Assert.Equal(0u, element.ArtResource.Flags & 0x2u);
+                foreach (ushort id in new[] { element.DeathElementId, element.HitSolidElementId,
+                    element.HitWaterElementId, element.HitLavaElementId })
+                    if (id != 0) elements.Enqueue(database.EffectElements[id]);
+                if (element.NextEffectId != 0) effects.Enqueue(database.Effects[element.NextEffectId]);
+            }
+        }
+        Assert.Equal(11, seenEffects.Count);
+        Assert.Equal(new ushort[] { 379, 380, 381, 382, 383, 384, 396, 403, 406, 407, 408, 525 },
+            seenElements.Order());
+    }
+
+    [InstallFact]
     public void TheHeartPlugsNinePiecesFlyOnTheirFirstUpdate_IfKmfGroupZPointsDown()
     {
         // Effect 215 at the plug's height with the floor there: every member of Group_plugbroke is

@@ -102,6 +102,10 @@ origin is unassigned. The draw-call counter returns zero despite rendered
 geometry and is unusable. Hidden-player attempts produced no render callbacks
 and fail verification; unavailable GPU timings never become zero-cost claims.
 Reproduce with the README's windowed capture protocol and explicit `-VisiblePlayer`.
+These timings predate the later source/material corrections. A refreshed player
+is prepared at`build/step5-final-performance-20261017`; the owner declined opening
+the visible capture window on2026-10-17, so no updated player-loop timings are
+claimed. Hidden runs remain unsuitable for that measurement.
 
 `build/step5-allocation-calibration/result.json` demonstrates that Unity6000.6.0f1
 returns zero from the per-thread allocation API around a live65536-byte array.
@@ -116,7 +120,7 @@ call stacks still need the existing Unity Profiler protocol.
 
 The October16 corrections and their remaining visual limits are recorded below.
 
-The merged Release solution checks with installed game data pass5503 tests,
+The initial October16 Release solution check with installed game data passed5503 tests,
 with22 reported skips and no failures. This includes471 presentation and3542
 simulation tests. The Unity adapter builds with zero warnings/errors; its eight
 Unity-loadable DLLs are synchronized after the build.
@@ -160,9 +164,10 @@ recorded times through9seconds. They include the Heart opening and original flam
 Independent reviews cover placement, visibility, resource clearing, capture clocks,
 camera setup and the read-only native-input probe; its local-memory self-test passes.
 
-This is not visual acceptance: unlit rock tops/arches and Heart smoke colour
-still differ from the owner's original reference (Q603, Q605). Native torch
-caller cadence/RNG matching remains Q604. The native-input capture requires a
+The black rock-cap/arch inputs and wrong dust-colour mask from these older
+captures are corrected below. Level1 camera/arches/walls and corrected torch
+appearance/playback have owner acceptance; matched startup-smoke and Levels7/8
+acceptance remain open. Q604 retains timing/phase-stream fidelity limits. The native-input capture requires a
 running, hash-verified original game; it changes no memory or settings.
 
 An explicit Windows UAC launch succeeded after ordinary and sandbox-escalated
@@ -262,5 +267,38 @@ supply their own sequence times: all seven frames in
 was inspected. torch-animation.md retains native cadence facts
 and outstanding timed-original/phase-stream comparison boundaries.
 
-The owner accepted the corrected Level1 Heart arches/wall lighting screenshot
-on2026-10-16. This does not accept matched startup smoke or Levels7/8 views.
+## Final comparison preparation
+
+The complete shipped startup closure bypasses keeper/cycling palettes (Q605;
+heart-intro.md). Its install-backed regression passes with the complete510-test
+Presentation suite; the adapter builds without warnings/errors. The startup
+capture now accepts Levels1/7/8 and an optional15000ms later view. These
+captures advance simulation and effects together; they are distinct from the
+fixed-effect-clock lighting diagnostic. No additional palette adjustment is
+needed to prepare the original-game comparison. Heart-focused captures are
+explicit manual comparison positions, preserving the production startup camera.
+Level8's authored start points into fogged hero territory; the earlier authored
+capture was black and is not an accepted lighting reference. Its construction
+also starts16seconds later (heart-intro.md section1), so the comparison timeline
+uses times relative to construction and records the absolute map clock.
+
+All eight Heart-focused images per level pass, including the nonempty-image
+guard. Levels1/7 use`build/step5-final-heart-comparison-Level{1,7}`;
+Level8 uses`build/step5-final-aligned-heart-Level8` at16..31seconds. The later
+views and Level1 smoke frame were inspected. All24 images and metadata links
+are validated in the local interactive gallery`build/step5-comparison/index.html`.
+Independent review covers the closure and capture boundary; these artifacts are
+ready for the owner's comparison, not a substitute for it.
+
+## Owner acceptance
+
+| View or behaviour | Status |
+|---|---|
+| Ordinary camera orientation/framing | Accepted |
+| Corrected Level1 Heart arches and wall-top lighting | Accepted2026-10-16 |
+| Corrected torch appearance and frame-independent playback | Accepted2026-10-17 |
+| Corrected grey Heart startup smoke, at matching sequence times | Pending |
+| Matched Level7/8 lighting and fog views | Pending |
+
+Q605 is closed by the shipped-data closure in heart-intro.md; it does not replace
+these remaining visual comparisons.

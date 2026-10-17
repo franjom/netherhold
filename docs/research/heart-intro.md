@@ -4,7 +4,7 @@ DKII.EXE v1.70, Ghidra primary reads and shipped Editor KWD records, 2026-10-14.
 The room update (`0x004D9A60`, read whole twice) and the data are **CONFIRMED**;
 of the chain mechanics the Next chain (`0x00440350`) is **CONFIRMED** and the
 death path, the generation flags and the group parts are **LIKELY** (their records
-name the unread steps); the sounds and lights are read but not built. Built as
+name the unread steps); sounds remain unbuilt; effect lights are built in section5. Built as
 ADR-0475.
 
 The owner's recollection (2026-10-14): at the start of a level the player's Heart
@@ -18,8 +18,9 @@ Big Steps are created invisible to fade in.
 
 The Dungeon Heart room's per-turn update keeps a start stamp at `room+0x5B`. A
 stamp of 1 (what the builder leaves) becomes `TimeBeforeDungeonHeartConstructionBegins
-× ticks per second + 1` (`0x004D9A77`); variable 218 ships as 0, so the sequence
-starts on **game turn 1**. The ruined bit (`room+0x9A` bit 0) skips everything.
+× ticks per second + 1` (`0x004D9A77`); global variable218 ships as0, so the sequence starts on **game turn1** without
+a campaign override. Level8Variables.kld overrides218 to16seconds, starting on
+turn65; Levels1/7 retain the global default. The ruined bit (`room+0x9A` bit 0) skips everything.
 Then, with `now` the game turn and `start` the stamp:
 
 | when | what |
@@ -103,7 +104,7 @@ three-float offset (KMF GROP: HEAD count, then ELEM name and offset).
   the nine `Group_plugbroke` members (KMF z +0.06..+0.11, read as down) died
   there; with scale 0 they would also have drawn at nothing.
 - **FadeDuration** is the attached light's ramp (flags `0x800` in, `0x1000` out,
-  `0x2000` in then out), not an alpha fade; not built.
+  `0x2000` in then out), not an alpha fade; built in section5.
 
 With one quantum of 50 ms the shipped chain runs: the plug lid 0..1.25 s (225),
 then light overlay, static and the lid again to about 2.9 s (224 with 223 beside
@@ -111,6 +112,20 @@ it), the explosion at about 2.85 s (208: beam, cracked plug, rocks, dust, static
 for five seconds), and at about 7.9 s the static's death (209) throws rocks and
 dust again, sparkles (210) and the nine plug pieces (215). The arches' ring of
 sparkles and their fade-in run from 7.25 s to 9.25 s.
+
+### Startup element colours
+
+CONFIRMED shipped-data closure (2026-10-17): roots223/225/314 reach11 effects
+through Next, death/contact and generated-effect links. Including generated,
+group-member and death/contact/next-element links reaches elements
+379/380/381/382/383/384/396/403/406/407/408/525. None has art flag`0x2`.
+The palette gate confirmed in room-construction-effects.md section6 is therefore
+never taken by these startup particles, regardless of their owner tag. Plug
+dust381/382 keeps authored grey; Q605's cycling-palette hypothesis cannot explain
+its colour. This does not establish final framebuffer colour or timed visual
+acceptance, and does not implement neutral cycling for unrelated effects.
+`NoShippedHeartStartupParticleSelectsAKeeperOrCyclingPalette` traverses the
+shipped definitions, asserts the closure and checks every art flag.
 
 ## 4. Built (ADR-0475)
 

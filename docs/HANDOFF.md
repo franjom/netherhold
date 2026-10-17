@@ -80,8 +80,8 @@ Prison rats, Portal entrances, corpse art, terrain debris and the Hand
 (ADR-0431–0438, 0442, 0444 bank heights, 0447, 0449–0452, 0460, 0462–0465,
 0467). The Heart's health pulse (ADR-0463), mana sparkles (ADR-0474, an owner
 adjustment; cause open in Q594), opening sequence (ADR-0475), Portal entrance
-effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built; as of 2026-10-15
-the owner has not seen the sparkles or the opening sequence in Unity. Step 5's
+effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built. Visual acceptance
+is tracked in research/classic-lighting-verification.md. Step 5's
 base camera and lighting implementation is merged. Further fidelity corrections
 continue on classic-look/step5 in D:/DungeonKeeperRemake-classic.
 
@@ -101,10 +101,12 @@ normal inversion, ordinary-object lighting roles and authored dynamic object lig
 Automatic room-furniture added colour now restores dark Heart arches; evidence
 and limits are in research/static-mesh-lighting.md section5 (Q603). Heart smoke
 colour correction is on master: raw art flag2 selects the keeper palette;
-plug dust is grey in the corrected isolated startup capture. Matched-original
-acceptance remains pending (Q605);
+plug dust is grey in the corrected isolated startup capture. Q605 is closed:
+no Heart startup element selects a keeper/cycling palette (heart-intro.md).
+Matched-original startup/Levels7/8 acceptance remains pending;
 Torch playback is frame-independent (ADR-0494), retaining native phase steps
-and the stream/lifetime limits in research/torch-animation.md (Q604). Use serial checks; isolated probes must not save or
+and the stream/lifetime limits in research/torch-animation.md (Q604). Owner
+acceptance is recorded in research/classic-lighting-verification.md. Use serial checks; isolated probes must not save or
 restart an owner's open editor.
 
 Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the

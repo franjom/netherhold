@@ -313,7 +313,8 @@ Equality selects `0x0050F880` instead: palette number
 Its getter`0x00443100` is shared by the renderer interfaces. Thus neutral-owned
 elements with art flag`0x2` select the cycling palette after startup initialization.
 Elements without that bit, including the plug dust, bypass both palette getters.
-Birth-time tags for palette-enabled startup elements remain Q605.
+The Heart startup closure contains no palette-enabled elements; see
+heart-intro.md, Startup element colours (Q605).
 Live Level1 sampled the selector as2 and the96-byte palette matched the table;
 evidence is ignored`reverse-engineering/step5-native-level1-palette.json`.
 Color is sampled at birth; this later sample alone does not prove birth-time colour.
