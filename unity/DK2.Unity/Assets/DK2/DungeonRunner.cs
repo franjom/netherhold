@@ -154,6 +154,7 @@ namespace DK2.Unity
         private Task _tickTask;
         private ulong _stateHash;
         private string _diagnostics = "";
+        private readonly DebugFrameOverlay _frameOverlay = new DebugFrameOverlay();
 
         /// <summary>The running simulation, or null if it could not start. Read-only by intent.
         /// Waits for a tick in flight on the worker thread, so a reader sees a settled world.</summary>
@@ -329,6 +330,7 @@ namespace DK2.Unity
 
         private void Update()
         {
+            _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null) return;
 
             // The tick started at the end of the last frame, if any, has the world until it is done.
@@ -855,6 +857,7 @@ namespace DK2.Unity
         {
             DrawCinematic();
             if (!showDiagnostics) return;
+            _frameOverlay.Draw();
 
             if (_failure != null)
             {

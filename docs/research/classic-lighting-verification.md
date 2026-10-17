@@ -139,7 +139,8 @@ with22 reported skips and no failures. This includes471 presentation and3542
 simulation tests. The Unity adapter builds with zero warnings/errors; its eight
 Unity-loadable DLLs are synchronized after the build.
 
-Master integration uses combined hash/snapshot version260. The full solution run
+The current hash/snapshot schema is tracked in [hash-versions.md](hash-versions.md).
+The integration solution run
 exposed a stale navigation reference on master; its missing stamp stage was
 restored and the entire384-test behavior assembly then passed. Other assemblies
 passed in the full run. Merge review confirmed both parents' saved fields survive.
@@ -311,8 +312,19 @@ ready for the owner's comparison, not a substitute for it.
 | Ordinary camera orientation/framing | Accepted |
 | Corrected Level1 Heart arches and wall-top lighting | Accepted2026-10-16 |
 | Corrected torch appearance and frame-independent playback | Accepted2026-10-17 |
+| Current overall appearance, including standalone rack transparency/emission | Accepted2026-10-17 |
 | Corrected grey Heart startup smoke, at matching sequence times | Pending |
 | Matched Level7/8 lighting and fog views | Pending |
 
-Q605 is closed by the shipped-data closure in heart-intro.md; it does not replace
-these remaining visual comparisons.
+The owner's current-appearance verdict was "all looks excellent" after the
+standalone material correction. It does not establish matched original-game
+colour/timing parity. Q605 is closed by the shipped-data closure in heart-intro.md;
+the remaining visual comparisons above still apply.
+
+## Camera-rotation stutter follow-up
+
+The owner reports stutter while rotating the camera (2026-10-17). The fixed-view,
+paused-world player samples above do not exercise that case. The debug FPS/frame-time
+overlay is built and the adapter compiles without warnings/errors. It supplies a
+visible frame-time indicator, not a measured cause or fix. Use the repeatable
+rotation/Profiler protocol in [Unity performance guidance](../../unity/README.md#measuring-performance).

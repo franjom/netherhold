@@ -95,35 +95,28 @@ Prison rats, Portal entrances, corpse art, terrain debris and the Hand
 adjustment; cause open in Q594), opening sequence (ADR-0475), Portal entrance
 effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built. Visual acceptance
 is tracked in research/classic-lighting-verification.md. Step 5's
-base camera and lighting implementation is merged. Further fidelity corrections
-continue on classic-look/step5 in D:/DungeonKeeperRemake-classic.
+base camera, lighting/fog and follow-up fidelity corrections are on master.
+Milestones and remaining gates: plans/2026-10-14-classic-look-step5.md.
+Research: research/classic-lighting.md; current visual acceptance, standalone
+material verification and performance limits: research/classic-lighting-verification.md.
+The owner accepted the current appearance, including restored Heart arches,
+wall caps, frame-independent torches and standalone rack transparency.
+Matched-original startup-smoke and Levels7/8 comparisons remain pending.
 
-Step 5 milestones and remaining gates: plans/2026-10-14-classic-look-step5.md.
-The ordinary camera, automatic native light-cache publication, both animated
-lighting modes, material tints, explored/scanned distinction, Sight fog overlay
-and visibility-filtered torches/effects are implemented and independently reviewed.
-Research and verification: research/classic-lighting.md and its verification link.
-Animated creature silhouettes remain under ADR-0482. Preserve the owner-accepted
-brighter preview with Native Initial Ambient off; +/− now controls native ambient.
-Discovery uses the current snapshot/hash schema; producer/cadence limits are in
-research/fog-reveal-sources.md. Windowed CPU/GPU capture is verified; scoped Unity
-allocation counters failed calibration (see verification). Matched-original
-acceptance remains pending. Corrections restore the companion torch animation,
-native twice-zoom visibility distance, static shader inputs, whole/quarter-top
-normal inversion, ordinary-object lighting roles and authored dynamic object lights.
-Automatic room-furniture added colour now restores dark Heart arches; evidence
-and limits are in research/static-mesh-lighting.md section5 (Q603). Heart smoke
-colour correction is on master: raw art flag2 selects the keeper palette;
-plug dust is grey in the corrected isolated startup capture. Q605 is closed:
-no Heart startup element selects a keeper/cycling palette (heart-intro.md).
-Matched-original startup/Levels7/8 acceptance remains pending;
-Torch playback is frame-independent (ADR-0494), retaining native phase steps
-and the stream/lifetime limits in research/torch-animation.md (Q604). Owner
-acceptance is recorded in research/classic-lighting-verification.md. Use serial checks; isolated probes must not save or
-restart an owner's open editor.
+Preserve the accepted brighter preview with Native Initial Ambient off;
++/− controls native ambient. Discovery schema/cadence limits are in
+research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
+Scripted camera paths are built separately (ADR-0496; research/camera-paths.md).
+Room/neutral-Portal border flames are researched but unbuilt
+(research/room-border-effects.md); claim-mist bleaching remains open (Q609).
+The reported camera-rotation stutter needs a moving-camera capture; the verified
+fixed-view performance samples do not cover it (verification document).
+The debug FPS/frame-time display is built; usage and rotation profiling protocol:
+[Unity performance guidance](../unity/README.md#measuring-performance).
 
-Open D:/DungeonKeeperRemake-classic/unity/DK2.Unity for step 5 work, or the
-main tree's unity/DK2.Unity for master; restart Play after
+Use serial checks; isolated probes must not save or restart the owner's editor.
+For master, open unity/DK2.Unity; check the retained classic worktree's branch
+before using D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Restart Play after
 unity/sync-assemblies.ps1. Never commit local editor state (ProjectSettings/*,
 Scenes/Dungeon.unity, URP globals). Room selection is by name in the
 DungeonRunner Inspector (unity/README.md).
@@ -171,8 +164,8 @@ Enhanced keeper using the same observation/command interface (KEEPER_AI.md
 
 Run git worktree list first; another session may own these.
 
-- D:/DungeonKeeperRemake-classic, classic-look/step5: lighting (above), two
-  commits ahead of master.
+- D:/DungeonKeeperRemake-classic, classic-look/step5: retained lighting
+  worktree; Step5 runtime corrections are on master. Check divergence before reuse.
 - D:/DungeonKeeperRemake-m12d, m12-decisions: the parked trap/door step,
   uncommitted and 234 commits behind master.
 - D:/DungeonKeeperRemake-imps, l4/imp-deaths: level with master, uncommitted

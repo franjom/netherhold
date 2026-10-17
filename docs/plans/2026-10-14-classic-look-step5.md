@@ -8,7 +8,8 @@ tests and Unity probes; isolated probes must not save or restart the owner's edi
 
 Rendering rules live in engine-neutral presentation types and the Unity URP
 adapter. Discovery needs independent scanned/explored simulation state; its
-snapshot and deterministic hash are version260 after master integration. Lighting does not alter simulation.
+snapshot/hash versions follow [the schema history](../research/hash-versions.md).
+Lighting does not alter simulation.
 Original art remains install-backed through the asset provider.
 
 ## 5.1 — Reference and baseline
@@ -29,8 +30,10 @@ Owner screenshots establish the requested orientation, not calibrated colour tra
 - [x] Independent camera core and startup reviews.
 
 Evidence: [classic-camera.md](../research/classic-camera.md).
-The owner accepted the camera view. Native input timing, timed intro/possession
-cameras and active-bound transitions remain outside the ordinary camera model.
+The owner accepted the ordinary camera view. Scripted camera paths are now built
+separately under ADR-0496; see [camera-paths.md](../research/camera-paths.md).
+Native input timing, possession cameras and active-bound transitions remain
+outside the ordinary camera model.
 The owner-requested zoom extension is the explicit deviation in ADR-0478.
 
 ## 5.3 — Materials and colour
@@ -39,6 +42,7 @@ The owner-requested zoom extension is the explicit deviation in ADR-0478.
 - [x] Apply ordinary terrain and supported room-quarter tint rules; preserve authored materials.
 - [x] Verify tag replacement and material/alpha behavior in headless and GPU fixtures.
 - [x] Independent material and integration reviews.
+- [x] Retain runtime transparency/emission variants in standalone players; verify restored rack cards.
 
 Evidence: [classic-lighting.md](../research/classic-lighting.md) and
 [KMF materials](../research/kmf-materials.md).
@@ -56,7 +60,8 @@ Matched framebuffer colour transfer remains part of the original-game acceptance
 - [x] Render the companion animated torch resource with frame-independent playback (ADR-0494); timing/phase limits are Q604.
 - [x] Apply confirmed whole/quarter-top normal inversion and ordinary-object instance-lighting selection.
 - [x] Trace and publish authored object lights; retain the scoped limits in static-mesh-lighting.md section4.
-- [ ] Implement the newly confirmed [room/neutral-Portal border flames](../research/room-border-effects.md) and verify claim-mist lighting (Q609).
+- [ ] Implement the confirmed [room/neutral-Portal border flames](../research/room-border-effects.md), including parent sprites and neutral palette sampling.
+- [ ] Verify claim-mist lighting (Q609); the bleaching explanation remains unconfirmed.
 
 Evidence: [classic-lighting.md](../research/classic-lighting.md),
 [visibility](../research/classic-light-visibility.md), ADR-0484 and ADR-0487.
@@ -91,11 +96,14 @@ its visibility mask remain outside this camera/lighting step.
 - [x] Reuse prepared cells, source buffers and unchanged-frame visibility snapshots.
 - [x] Independent performance-path review.
 - [x] Obtain usable GPU frame timings and a windowed player-loop frame-time capture.
+- [x] Add the ShowDiagnostics FPS/frame-time overlay for editor and Development players ([usage](../../unity/README.md#measuring-performance)).
+- [ ] Capture the reported camera-rotation stutter with frame-time/Profiler evidence.
 
 Measurements and limits: [verification](../research/classic-lighting-verification.md).
 Submission time is CPU time, not GPU execution or a claimed game frame rate.
 Scoped allocation counters failed calibration; global player allocations remain
-unattributed. Measurements do not justify reducing original visual fidelity.
+unattributed. Fixed ordinary views do not characterize camera rotation or sustained
+gameplay. Measurements do not justify reducing original visual fidelity.
 
 ## 5.7 — Final comparison
 
@@ -104,7 +112,9 @@ unattributed. Measurements do not justify reducing original visual fidelity.
 - [x] Finish final Level1/7/8 campaign captures and inspect their images.
 - [ ] Compare pinned original/Unity views and obtain owner visual acceptance.
 - [x] Restore missing automatic room-furniture added colour on Heart arches (Q603).
+- [x] Correct the keeper-colour art mask and verify grey Heart plug dust.
 - [x] Close the Heart startup palette question from the full shipped-data closure (Q605).
+- [x] Obtain owner acceptance of the current appearance, including standalone rack materials.
 - [ ] Compare corrected grey Heart smoke and complete matched-view acceptance (verification document).
 
 This step is not accepted solely because tests pass. The original-view gate

@@ -3,8 +3,8 @@
 Decision: ADR-0408. Goal: the Unity scene draws a level as DK2 draws it, from the player's own
 install, so a level can be played and judged by eye. Steps 0–3 are merged at
 6005ff9f. Step 4 playback is merged at 687066e3 and its follow-ups are merged; remaining visual gates are in
-2026-10-10-classic-look-step4.md. Step 5 runs on classic-look/step5;
-see 2026-10-14-classic-look-step5.md for milestones and verification.
+2026-10-10-classic-look-step4.md. Step 5 camera/lighting and follow-up corrections
+are on master; see [its milestone and acceptance status](2026-10-14-classic-look-step5.md).
 
 Rules for every step:
 
@@ -160,6 +160,10 @@ lighting model (what lights a tile, how torches fall off, how undiscovered and f
 darkened). This is the step that turns DK2's meshes into DK2's look.
 
 Gate: the owner, at the same spot in both games, cannot tell which camera is which at a glance.
+
+Current appearance is owner-accepted; matched original startup/Levels7/8 views,
+room-border flames and the reported camera-rotation stutter remain open in
+[the Step5 checklist](2026-10-14-classic-look-step5.md).
 
 ## Not in this plan
 

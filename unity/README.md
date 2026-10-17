@@ -159,6 +159,20 @@ missing-shader fallback, usually pink. The
 
 ## Measuring performance
 
+In Editor Play mode or a Development Build, enable **Show Diagnostics** on
+DungeonRunner. The top-right box shows average FPS, average frame milliseconds
+and the slowest frame in each roughly half-second sample window. It samples
+unscaled time once per Update and caches the displayed text between windows;
+these are whole-frame intervals, not GPU timings. Release builds omit the box.
+
+For camera-rotation stutter, pause simulation and keep focus, zoom, resolution
+and fog fixed: record5seconds idle,10seconds holding Q or E, then5seconds idle.
+Repeat the sweep to separate first-exposure allocations from recurring costs.
+Inspect `DK2.TransparentTerrain.Sort` first: a changed camera direction triggers
+global transparent-triangle sorting and run-mesh uploads. Also inspect
+`DK2.Scene.PrepareLighting` for visibility/table publication. Use CPU Timeline
+and GC allocation call stacks; a fixed-camera baseline cannot diagnose this hitch.
+
 `DungeonRunner` runs its ticks on a worker thread after each frame is presented (its
 `tickOnWorkerThread` field, on by default; ADR-0458), so a tick overlaps the frame's rendering
 and the view shows it one frame later. The probe below turns that off so its recorders see the
