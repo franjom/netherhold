@@ -241,8 +241,9 @@ The owner's minimap carries **two portals in a darkened tint**, on ground no
 creature of theirs has explored. **This cannot be `RevealThroughFogOfWar`**: that
 is a *terrain* flag and a Portal is a **room** (type 3). Nothing read so far
 accounts for a room being visible through fog, and the minimap colour routine
-that was read (`FUN_00451c90`) tests exactly one room type in its fogged branch
-and it is the **Dungeon Heart** (type 5), not the Portal. So there is a second
+that was read (`FUN_00451c90`) tests exactly one room type, the **Dungeon Heart**
+(type 5), and only after its fog test, so no room, the Heart included, is drawn
+through fog by it (full body reread 2026-10-17). So there is a second
 mechanism; the dimming suggests an *overlay* — icons drawn on top of the minimap
 for strategically essential rooms — rather than a tile colour, which is a
 hypothesis and not a reading. **Q197.**

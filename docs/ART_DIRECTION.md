@@ -231,3 +231,48 @@ Every modernized asset passes two gates, in this order:
   non-redistributable, exactly like converted assets (ADR-0242). It is never
   committed. Goal 4's independent replacement assets are a separate matter, and
   this standard does not describe them.
+
+## 13. The interface
+
+The HUD follows the same four levels (ADR-0497). There is one HUD and no
+pixel-faithful classic mode: DK2's design, drawn at the display's resolution.
+
+| level | in the interface |
+|---|---|
+| **A** | which element sits where and on which screen edge or corner; colours, frame and bevel shapes, icon content; DK2's letterforms; the minimap palette (`MapColours`) and colour classes ([0x00451C90](research/functions/00451C90.md)); what each element shows and when |
+| **B** | the same shapes at display resolution: sharp edges, smooth curves, an anti-aliased minimap rim |
+| **C** | surface detail below the original's pixel size (metal grain, stone wear), which must vanish at the original's size |
+| **D** | new layout, new icons, a flat or "modern" restyle, colours DK2 does not use |
+
+- **Nothing is sized in device pixels.** Layout is in reference units against
+  a 768-unit-high reference (DK2's 1024×768 at 4:3), scales with screen height,
+  and has a player UI-scale setting. Each element keeps DK2's anchor: the top
+  bar on the top edge, the minimap block bottom-left, the portrait bottom-right.
+  On wider screens the bars and panel fill extend with their tiled fill and the
+  extra width goes to the 3D view. Where 4:3 gives no answer (32:9), the choice
+  is a documented deviation per element.
+- **The original bitmap is the reference.** It is read from the install
+  (ADR-0408). A modern version is a replacement-tier asset (ADR-0242), approved
+  against its hash. Reduced to the original's pixel size it must match the
+  original; a difference that survives the reduction is level D. Until a modern
+  version exists, the original is drawn with filtered upscaling, never
+  nearest-neighbour at a non-integer scale.
+- **Text keeps DK2's letterforms.** Glyphs come from the install's `.bf4` fonts
+  at the largest size shipped, drawn as a distance field, or as the matching
+  `.bf4` size where the scale makes a bitmap exact. DK2's per-width font choice
+  (`BitmapText`) still picks the font for a style.
+- **The minimap is drawn on the GPU** from a per-tile class grid that
+  `DK2.Presentation` updates per changed tile, as `0x00508CA0` → `0x00451C60`
+  does. A shader does the palette lookup, rotation, round mask and rock
+  background. Markers are shapes in reference units, in DK2's colours and blink;
+  what they are, and the map's zoom, click and camera-box behaviour, are read
+  from `0x0041CC50` before they are built.
+- **Each step is judged** beside DK2 at the same place, at 1024×768 and at
+  2560×1440 or above: at 1024×768 the two read as the same interface; at the
+  large size ours is sharp and nothing is smaller on screen than at 1024×768.
+- **Cursor, front end, status flowers:** their 2D icons, sprites and text follow
+  this section. The Hand of Evil's form is ADR-0242's and only its on-screen
+  size follows this section (that it is a 3D model is not yet checked). The
+  front end is a 3D level in DK2 (`FrontEnd3DLevel`); its scene goes with the
+  classic-look work. The flowers are world-space sprites whose size follows
+  camera distance, a rule still to be read from the binary.

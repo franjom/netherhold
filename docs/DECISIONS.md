@@ -11521,3 +11521,43 @@ therefore ran on turn 2:
 - Not built: the timed moves condition 72 also waits for (action 26's glide,
   action 27), the subtitle overflow scroll, speech audio, action 38's interface
   slots, and action 24's message record.
+
+## ADR-0497 — One HUD that scales: DK2's interface design at any resolution
+**Date:** 2026-10-17 · **Status:** proposed · Presentation only · Extends ADR-0242 to the interface · Rules: `ART_DIRECTION.md` §13
+
+**Context.** The HUD has no design; the Unity adapter draws a debug `OnGUI` overlay. The
+owner (2026-10-17): no "classic" UI kept for nostalgia, but one modern interface that
+scales and looks good while keeping DK2's look. DK2's interface is fixed-size bitmaps laid
+out for 4:3 (owner's 1024×768 screenshot: top bar, bottom panel with a round minimap ringed
+by four buttons, tabs, icon grid, portrait). DK2 already picks its `.bf4` font size by screen
+width (`BitmapText`), and `0x00427BA0` places HUD widgets in a virtual space (y up to 1332),
+not device pixels. OpenKeeper's minimap (`4f2ab401`) copies DK2's 128×128 raster in fixed
+pixels; it shimmers when stretched and rotated, and its markers are one-pixel dots.
+
+**Decision.**
+1. One HUD, no pixel-faithful classic mode. ADR-0242's levels A–D apply to the interface as
+   `ART_DIRECTION.md` §13 spells them out.
+2. Nothing is sized in device pixels: reference units against a 768-high reference, scaled by
+   height, with a player UI scale; DK2's anchors are kept and extra width goes to the 3D view.
+3. DK2's bitmaps, read from the install, are the reference; a modern version must match them
+   when reduced to their size.
+4. Text is DK2's `.bf4` letterforms at any size; the minimap is drawn on the GPU from a
+   per-tile class grid updated per changed tile.
+5. What the HUD shows is decided in `DK2.Presentation` and tested headlessly (ADR-0408
+   item 4). Unity draws it with UI Toolkit (already in the project); if the pilot finds it
+   cannot draw the minimap disc with a custom shader, uGUI replaces it by amendment.
+6. Order: minimap, top bar, panel. Each step is judged beside DK2 at 1024×768 and at 1440p
+   or above, and the owner accepts it.
+
+**Why.** ADR-0242's rule applied to the interface: one that looks better than DK2's is a
+defect, and one that looks like DK2 at 640×480 on a 4K screen is a defect too. The install
+keeps the no-redistribution rule and gives every element a reference to check against. A
+per-tile grid costs one texel per changed tile; a CPU raster costs every tile each refresh.
+
+**Consequences.**
+- No HUD-mode toggle; both 3D looks (ADR-0408) sit under the same interface.
+- Research before the build: the minimap draw `0x0041CC50` (only its trap arm is read), the
+  rest of the HUD layout around `0x00427BA0`, where each interface bitmap lives, Q197.
+- Risks: small `.bf4` glyphs may give poor distance fields (the pilot measures it); ultrawide
+  layouts need per-element owner choices.
+- The cursor, front end and status flowers: 2D parts now, 3D parts later (`ART_DIRECTION.md` §13).
