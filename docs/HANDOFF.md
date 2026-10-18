@@ -123,6 +123,21 @@ Proposed parallelism milestones and determinism gates:
 Next interface scope selected by the owner (2026-10-17):
 [Step6 HUD and controls preparation](plans/2026-10-17-classic-look-step6.md),
 following ART_DIRECTION.md §13 and proposed ADR-0497. Step5 is not formally closed.
+The Step6 shader/font feasibility pilot passed in isolated URP targets at 1024×768
+and 1440p (tools/hud-probe/README.md); a live minimap tile layer is connected
+on master with the native frame and its idle corner art. Creature,
+trap and door markers, Heart/Guard Post reporting-distance outlines, possession
+and Alarm rings, Guard Room rectangles, textured camera footprint, magnifier zoom
+and primary click navigation are built. Remaining overlays, other corner controls
+and owner comparison remain. HUD hiding/restoration is researched but unbuilt
+(Q611; research/hud-visibility.md).
+Native minimap raster
+and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
+
+The Step6 merge passes 629 presentation tests, adapter compilation and the HUD
+probe. Four Behavior tests also fail on pre-merge master bda4952e: the Level1
+variable override, Goblin eating scenario, Level17 Harkan Call to Arms and
+Level11A Drako bridge/attack scenarios. No Step6 behavior regression was found.
 
 Use serial checks; isolated probes must not save or restart the owner's editor.
 For master, open unity/DK2.Unity; check the retained classic worktree's branch

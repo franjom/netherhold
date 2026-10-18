@@ -1,7 +1,10 @@
 # Step 6 — HUD and controls
 
-Status: preparation only, 2026-10-17. Owner-selected next scope. No HUD code has
-been built and ADR-0497 remains proposed. Step5's outstanding visual/performance
+Status: live minimap tiles, markers, reporting outlines, camera footprint,
+magnifier zoom and primary click navigation built; 6.1 remains partial, 2026-10-18.
+The native frame with its idle corner artwork is present; remaining overlays,
+other corner controls and owner comparison remain open;
+ADR-0497 remains proposed. Step5's outstanding visual/performance
 gates remain in [its checklist](2026-10-14-classic-look-step5.md).
 
 ## Design reference
@@ -17,6 +20,8 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
 
 ## 6.0 — Research and rendering pilot
 
+- [ ] Research whole-HUD and individual-panel visibility during intros, camera
+  sequences and other modes, including restoration and input gating (Q611).
 - [ ] Inventory install-supplied interface bitmaps, font sizes, widget states and
   existing asset-provider support. Keep original/derived artwork out of Git.
 - [ ] Read the remaining minimap draw and interaction paths before implementing
@@ -24,9 +29,15 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
   function record for `0x0041CC50`; its trap arm alone is not a complete reading.
 - [ ] Read the relevant layout/input paths and resolve Q197's minimap visibility
   question. `0x00427BA0` currently documents indicator packing, not the whole HUD.
-- [ ] Pilot UI Toolkit's custom minimap shader integration and `.bf4` font quality
+- [x] Pilot UI Toolkit's custom minimap shader integration and `.bf4` font quality
   at reference and large sizes. Record results before selecting production UI
   plumbing; an alternative toolkit requires the ADR-0497 amendment it describes.
+
+Rendering feasibility passed in an isolated URP project at both reference and
+1440p sizes; [pilot checks, captures and limits](../../tools/hud-probe/README.md).
+The native raster/overlay reading is in [minimap-rendering.md](../research/minimap-rendering.md).
+Interactions, Q197, complete widget/art mapping and production font metrics remain
+research gates; the shader pilot does not close the whole milestone.
 
 Exit: a small reviewed design/implementation plan grounded in the binary and
 shipped data, plus a working rendering feasibility result. No guessed interactions.
@@ -34,7 +45,21 @@ Check the records before decompiling and record new function findings in the KB.
 
 ## 6.1 — Minimap
 
-- [ ] Present changed tile classes through a renderer-independent view; draw the
+The native frame with idle corner art, persisted-fog tile classifier, changed-cell GPU scatter and live
+DungeonRunner disc are built. WORD classes survive the GPU path; idle frames
+upload no cells. Capture runs before worker dispatch; drawing reads GPU state.
+Creature/trap dots and oriented door strokes use researched fog, hand and blink
+rules, with a retained marker buffer and display-resolution shapes. Pending
+pickups use a documented command-settlement approximation. The static Heart and
+Guard Post reporting-distance outlines, Guard Room rectangle, possession ring and
+Alarm ring, textured camera footprint, magnifier zoom and primary click navigation
+are built; other overlays and corner controls remain. Whole-HUD
+visibility is Q611, with the current reading in [hud-visibility.md](../research/hud-visibility.md).
+Disc/frame layout and rotation still need owner comparison. Static native menu
+and corner-art mapping is recorded; physical input channels and complete corner
+panel behaviours remain research gates.
+
+- [x] Present changed tile classes through a renderer-independent view; draw the
   palette, rotated map, mask and background on the GPU as specified in §13.
 - [ ] Add only researched markers, blinking, zoom, camera footprint and input.
   Preserve discovery rules; hidden game state must not leak through the HUD.

@@ -24,6 +24,157 @@ namespace DK2.Presentation.Tests;
 public class WorldViewTests
 {
     [InstallFact]
+    public void MinimapGuardRoomOutlineIsOwnOnlyVisibleThroughFogAndClampedInsideTheMap()
+    {
+        (GameDatabase database, _) = RealLevel()!.Value;
+        byte guard = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.GuardRoom).TerrainId;
+        byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
+        var tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
+        tiles[3 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        tiles[4 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        tiles[5 + 5 * 8] = new(guard, PlayerIds.Good, 0, 0);
+        WorldState world = WorldState.FromMap(database, new LevelMap(8, 8, tiles),
+            [PlayerIds.FirstKeeper, PlayerIds.Good], fogOfWarEnabled: true);
+        var view = new WorldView(database, PlayerIds.FirstKeeper);
+        var palette = new MinimapPalette(new uint[37]);
+        var markers = new List<MinimapMarker>();
+        for (int y = 0; y < 8; y++)
+            for (int x = 0; x < 8; x++) world.Tile(x, y).ClearExploredBy(PlayerIds.FirstKeeper);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        MinimapMarker outline = Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Rectangle);
+        Assert.True(database[VariableTypeId.GuardRoomReportingDistanceTiles] >= 4);
+        Assert.Equal(new FpPosition3(new(0x1800), new(0x1800), new(0)), outline.Position);
+        Assert.Equal(new FpPosition3(new(0x7800), new(0x7800), new(0)), outline.EndPosition);
+        Assert.Equal(0xFF9696FFu, outline.ColourArgb);
+
+        int distance = unchecked((byte)database[VariableTypeId.GuardRoomReportingDistanceTiles]);
+        int size = 2 * distance + 12;
+        int roomX = distance + 3;
+        var unclampedTiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), size * size).ToArray();
+        unclampedTiles[roomX + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        unclampedTiles[roomX + 1 + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        WorldState unclampedWorld = WorldState.FromMap(database, new LevelMap(size, size, unclampedTiles),
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: true);
+        view.CaptureMinimapMarkers(unclampedWorld, palette, markers);
+        outline = Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Rectangle);
+        Assert.Equal(new FpPosition3(new(0x3800), new(0x3800), new(0)), outline.Position);
+        Assert.Equal(new FpPosition3(new(((roomX + 1 + distance) << 12) + 0x800),
+            new(((roomX + distance) << 12) + 0x800), new(0)), outline.EndPosition);
+    }
+
+    [InstallFact]
+    public void MinimapAlarmTakesPriorityOverGuardPostAndHonoursOwnerConstructionAndDeadline()
+    {
+        (GameDatabase source, _) = RealLevel()!.Value;
+        TrapDef alarm = source.Traps.Values.First(t => t.ShotTypeId == 13);
+        alarm = alarm with { Flags = alarm.Flags | TrapRules.GuardPostBranch };
+        TrapDef guard = source.Traps.Values.First(t => (t.Flags & TrapRules.GuardPostBranch) != 0 && t.ShotTypeId != 13);
+        var database = new GameDatabase(source.Terrain.Values, source.Rooms.Values, source.Creatures.Values,
+            source.Variables, objects: source.Objects.Values, traps: [alarm, guard]);
+        byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
+        WorldState world = WorldState.FromMap(database,
+            new LevelMap(8, 8, Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray()),
+            [PlayerIds.FirstKeeper, PlayerIds.Good]);
+        ThingProjection.Place(world, database,
+        [
+            new TrapThing(new byte[16]) { X = 2, Y = 2, TrapId = alarm.TrapId, PlayerId = PlayerIds.FirstKeeper },
+            new TrapThing(new byte[16]) { X = 2, Y = 3, TrapId = alarm.TrapId, PlayerId = PlayerIds.Good },
+            new TrapThing(new byte[16]) { X = 3, Y = 2, TrapId = guard.TrapId, PlayerId = PlayerIds.FirstKeeper },
+            new TrapThing(new byte[16]) { X = 3, Y = 3, TrapId = guard.TrapId, PlayerId = PlayerIds.Good },
+        ]);
+        var simulation = new GameSimulation(database, world, seed: 1);
+        simulation.Tick();
+        foreach (TrapState trap in world.Traps) trap.RechargeAt = world.CurrentTick.Value;
+        var view = new WorldView(database, PlayerIds.FirstKeeper);
+        var palette = new MinimapPalette(new uint[37]);
+        var markers = new List<MinimapMarker>();
+        bool HasRing(int x, int y, uint colour) => markers.Any(m => m.Kind == MinimapMarkerKind.Ring
+            && m.Position.X.Raw == (x << 12) + 0x800 && m.Position.Y.Raw == (y << 12) + 0x800 && m.ColourArgb == colour);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.True(HasRing(2, 2, 0xFFDC32FF));
+        Assert.False(HasRing(2, 3, 0xFFDC32FF));
+        Assert.False(HasRing(3, 2, 0xFF9696FF));
+        foreach (TrapState trap in world.Traps) trap.UnderConstruction = false;
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.True(HasRing(2, 2, 0xFFDC32FF));
+        Assert.False(HasRing(2, 2, 0xFF9696FF));
+        Assert.True(HasRing(3, 2, 0xFF9696FF));
+        Assert.False(HasRing(3, 3, 0xFF9696FF));
+        simulation.Tick();
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.False(HasRing(2, 2, 0xFFDC32FF));
+        Assert.False(HasRing(2, 2, 0xFF9696FF));
+    }
+
+    [InstallFact]
+    public void MinimapHeartReportingRingBypassesFogAndRetainsTheLastHeartPosition()
+    {
+        (GameDatabase database, _) = RealLevel()!.Value;
+        byte heart = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.DungeonHeart).TerrainId;
+        byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
+        var tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
+        for (int y = 3; y <= 4; y++)
+            for (int x = 3; x <= 4; x++) tiles[x + y * 8] = new(heart, PlayerIds.FirstKeeper, 0, 0);
+        WorldState world = WorldState.FromMap(database, new LevelMap(8, 8, tiles), [PlayerIds.FirstKeeper], fogOfWarEnabled: true);
+        var view = new WorldView(database, PlayerIds.FirstKeeper);
+        var palette = new MinimapPalette(new uint[37]);
+        var markers = new List<MinimapMarker>();
+        for (int y = 0; y < 8; y++)
+            for (int x = 0; x < 8; x++) world.Tile(x, y).ClearExploredBy(PlayerIds.FirstKeeper);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        MinimapMarker ring = Assert.Single(markers);
+        Assert.Equal(new FpPosition3(new(0x3800), new(0x3800), new(0)), ring.Position);
+        Assert.Equal(0xFF9696FFu, ring.ColourArgb);
+        for (int y = 3; y <= 4; y++)
+            for (int x = 3; x <= 4; x++) world.Tile(x, y).TerrainId = floor;
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(ring, Assert.Single(markers));
+    }
+
+    [InstallFact]
+    public void MinimapCaptureUsesPersistedFogAndOnlyTheViewersHand()
+    {
+        (GameDatabase database, _) = RealLevel()!.Value;
+        byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
+        WorldState world = WorldState.FromMap(database,
+            new LevelMap(8, 8, Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray()),
+            [PlayerIds.FirstKeeper, PlayerIds.Good], fogOfWarEnabled: true);
+        CreatureDef definition = database.Creatures.Values.Single(c => c.Name == "Imp");
+        var at = new TilePos(3, 3);
+        CreatureState own = world.SpawnCreature(database, definition.CreatureId, PlayerIds.FirstKeeper, at);
+        CreatureState enemy = world.SpawnCreature(database, definition.CreatureId, PlayerIds.Good, at);
+        own.Possessed = true;
+        enemy.Possessed = true;
+        var view = new WorldView(database, PlayerIds.FirstKeeper);
+        var palette = new MinimapPalette(new uint[37]);
+        var markers = new List<MinimapMarker>();
+        world.Tile(at).ClearExploredBy(PlayerIds.FirstKeeper);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        var location = new FpPosition3(new(own.PosX), new(own.PosY), new(own.PosZ));
+        int CountAtLocation() => markers.Count(m => m.Kind == MinimapMarkerKind.Creature && m.Position == location);
+        Assert.Equal(1, CountAtLocation());
+        Assert.Equal(0xFFFFFFFFu, Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Ring && m.Position == location).ColourArgb);
+        world.Tile(at).SetExploredBy(PlayerIds.FirstKeeper);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(2, CountAtLocation());
+        Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Ring && m.Position == location);
+        world.Player(PlayerIds.FirstKeeper).Hand.Add(HandItem.Of(own));
+        enemy.InHand = true;
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(1, CountAtLocation());
+        Assert.DoesNotContain(markers, m => m.Kind == MinimapMarkerKind.Ring && m.Position == location);
+        view.QueueMinimapPickupPreview(new(PlayerIds.FirstKeeper, enemy.Id), world.CurrentTick.Next);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(0, CountAtLocation());
+        view.QueueMinimapPickupPreview(new(PlayerIds.FirstKeeper, enemy.Id), world.CurrentTick);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(1, CountAtLocation());
+        long allocated = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 100; i++) view.CaptureMinimapMarkers(world, palette, markers);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - allocated);
+    }
+
+    [InstallFact]
     public void AnimationKeysAreReusedWithoutAllocatingOnEveryFrame()
     {
         (GameDatabase database, WorldState world) = RealLevel()!.Value;

@@ -7,7 +7,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- If CS0009 names a zero-filled generated reference DLL, rebuild with `--no-incremental` before treating downstream missing types as source defects.
+
 - Cast raw PowerShell Get-Content results to [string] before ConvertTo-Json; otherwise extended properties can turn the value into an object.
+- Unity's C# 9 compiler rejects struct `with` expressions accepted by the adapter's newer compiler; construct replacement values explicitly in Unity/probe source.
 
 - Runtime-selected material variants can disappear only in standalone builds; see [the verified card regression](research/classic-lighting-verification.md#windowed-player-and-counter-calibration).
 
@@ -197,3 +200,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Sandbox escalation can still receive Windows error5 reading DK2; an explicit Windows `RunAs` launch succeeded. The owner must be present for UAC; sandbox approval does not change the process token.
 - If context-mode file processing fails with missing `better-sqlite3`, use bounded native output for the task rather than repeatedly retrying the broken runtime.
 - An offline restore can fail NU1900 under warnings-as-errors even with cached packages; use `-p:NuGetAudit=false` for that local verification run, leaving CI auditing enabled.
+- A compile harness can reference an installed Unity module that the project's Package manifest has disabled; verify in Unity too (HUD pilot: `com.unity.modules.imageconversion`).
+- A centred GPU minimap fixture hides row-origin errors; test an asymmetric fit and a rotated marker, and retain integer division for native projected boundaries rather than flooring an inexact floating-point quotient.

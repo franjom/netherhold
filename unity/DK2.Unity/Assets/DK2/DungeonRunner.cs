@@ -128,6 +128,7 @@ namespace DK2.Unity
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
         private WorldView _worldView;
+        private DungeonMinimap _minimap;
         private DungeonScene _scene;
         private AssetProviderChain _assets;
         private InstallArtProvider _installArt;
@@ -308,6 +309,9 @@ namespace DK2.Unity
             }
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
             else LookAt(world);
+            _minimap = new DungeonMinimap(transform, new InstallMinimapAssets(install), world.Width, world.Height);
+            _minimap.Capture(world, _worldView, _simulation.Navigation);
+            _minimap.Draw(Camera.main, _cameraFocus);
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
@@ -317,6 +321,7 @@ namespace DK2.Unity
         private void OnDestroy()
         {
             WaitForTick();
+            _minimap?.Dispose();
             if (_heartHealthWorld != null && _heartHealthObserver != null)
                 _heartHealthWorld.HeartHealthChanged -= _heartHealthObserver;
             _constructionEffects?.Dispose();
@@ -402,6 +407,7 @@ namespace DK2.Unity
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
             _worldView.SetPossessionView(_simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
+            _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
             double preparedElapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: 0, maximumDeltaSeconds: Math.Max(0, Time.maximumDeltaTime - elapsed), timeScale: Time.timeScale);
             if (speed > 0f) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed;
@@ -434,6 +440,7 @@ namespace DK2.Unity
             _scene.AdvanceTorchAnimation();
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
+            _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
             if (showDiagnostics) RefreshDiagnostics();
 
             // Nothing on this thread reads the world again before the next Update's wait: OnGUI
@@ -496,6 +503,10 @@ namespace DK2.Unity
 
         private void QueueInput()
         {
+            _minimap?.HandleZoomPress(Input.mousePosition, Input.GetMouseButtonDown(0), Input.GetMouseButtonDown(1));
+            if (!_scriptedView.PathPlaying && !frameWholeMap && _minimap != null && Input.GetMouseButtonDown(0)
+                && _minimap.TryNavigate(Input.mousePosition, Camera.main, _cameraFocus, out TilePos navigationTile))
+                StartGlide(navigationTile);
             _input.SelectTool((byte)viewingPlayerId, ActiveTool);
             PointerButtonTransition button = PointerButtonTransition.None;
             if (Input.GetMouseButtonDown(0)) button |= PointerButtonTransition.Pressed;
@@ -510,7 +521,8 @@ namespace DK2.Unity
             TilePos? tile = ScreenToTile(Input.mousePosition);
             var intent = new PlayerIntent(
                 (byte)viewingPlayerId, ActiveTool, tile, button, selectedRoomId,
-                SecondaryButton: secondaryButton);
+                SecondaryButton: secondaryButton,
+                PointerOverHud: _minimap != null && _minimap.ContainsPointer(Input.mousePosition));
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
                 _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile);
             InputFrame frame = _input.Translate(intent, snapshot);
@@ -520,6 +532,8 @@ namespace DK2.Unity
                 _pendingCommands.Add(command);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, _simulation.World.CurrentTick.Next);
+                if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)
+                    _worldView.QueueMinimapPickupPreview(pickup, _simulation.World.CurrentTick.Next);
             }
         }
 
@@ -530,6 +544,7 @@ namespace DK2.Unity
         /// </summary>
         private TilePos? ScreenToTile(Vector3 screenPosition)
         {
+            if (_minimap != null && _minimap.ContainsPointer(screenPosition)) return null;
             Camera camera = Camera.main;
             if (camera == null || _worldView == null) return null;
 
@@ -605,7 +620,7 @@ namespace DK2.Unity
                     * cameraPanSpeed * Time.unscaledDeltaTime;
                 _cameraFocus.x = Mathf.Clamp(_cameraFocus.x, 0, _cameraBounds.x - 1f / Fp32.One);
                 _cameraFocus.z = Mathf.Clamp(_cameraFocus.z, -_cameraBounds.y + 1f / Fp32.One, 0);
-                float wheel = Input.mouseScrollDelta.y;
+                float wheel = _minimap != null && _minimap.ContainsPointer(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
                 if (wheel > 0) _classicCamera.ZoomIn();
                 else if (wheel < 0) _classicCamera.ZoomOut();
                 ApplyClassicCamera();
@@ -618,7 +633,7 @@ namespace DK2.Unity
             if (pan.sqrMagnitude > 1f) pan.Normalize();
             camera.transform.position += pan * cameraPanSpeed * Time.unscaledDeltaTime;
 
-            float scroll = Input.mouseScrollDelta.y;
+            float scroll = _minimap != null && _minimap.ContainsPointer(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
             if (Mathf.Approximately(scroll, 0f)) return;
 
             // A step in proportion to the height, so the wheel is as useful over a whole level

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../src/Shared/UnityBound.props" />
+  <PropertyGroup>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Data/Managed</UnityManagedDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="HudPilotAssets.cs;HudFontPilot.cs;HudToolkitPilot.cs" />
+    <Compile Include="../../unity/DK2.Unity/Assets/DK2/MinimapGpuMap.cs;../../unity/DK2.Unity/Assets/DK2/DungeonMinimap.cs" />
+    <Compile Include="../../unity/DK2.Unity/Assets/DK2/MinimapFrameVisual.cs" />
+    <ProjectReference Include="../../src/DK2.Data/DK2.Data.csproj" />
+    <ProjectReference Include="../../src/DK2.Art/DK2.Art.csproj" />
+    <ProjectReference Include="../../src/DK2.Presentation/DK2.Presentation.csproj" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.UIElementsModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.UIElementsModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="UnityEngine.ImageConversionModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.ImageConversionModule.dll" Private="false" />
+    <Reference Include="UnityEngine.JSONSerializeModule" HintPath="$(UnityManagedDir)/UnityEngine/UnityEngine.JSONSerializeModule.dll" Private="false" />
+  </ItemGroup>
+</Project>
