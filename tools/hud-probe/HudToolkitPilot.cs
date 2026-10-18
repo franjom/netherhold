@@ -132,6 +132,18 @@ namespace DK2.Unity.HudProbe
                 minimap.HandleZoomPress(magnifier, primaryPressed: true, secondaryPressed: false);
                 if (!minimap.TryNavigate(point, camera, focus, out target) || target != new TilePos(15, 20))
                     throw new InvalidOperationException("Zoomed navigation adapter lost fractional camera focus.");
+                minimap.SetVisibility(HudVisibilityRules.ForCamera(new CameraModeId(3), 1));
+                if (minimap.ContainsPointer(magnifier) || minimap.TryNavigate(point, camera, focus, out target))
+                    throw new InvalidOperationException("A hidden HUD still accepted pointer input.");
+                minimap.HandleZoomPress(magnifier, primaryPressed: true, secondaryPressed: false);
+                minimap.SetVisibility(HudVisibilityRules.ForCamera(new CameraModeId(11), 1));
+                if (minimap.TryNavigate(point, camera, focus, out target))
+                    throw new InvalidOperationException("A visible but input-blocked HUD accepted navigation.");
+                minimap.HandleZoomPress(magnifier, primaryPressed: true, secondaryPressed: false);
+                minimap.SetVisibility(HudVisibilityRules.ForCamera(new CameraModeId(3), 0));
+                if (!minimap.ContainsPointer(magnifier)
+                    || !minimap.TryNavigate(point, camera, focus, out target) || target != new TilePos(15, 20))
+                    throw new InvalidOperationException("HUD restoration lost its zoom or input state.");
                 if (minimap.TryNavigate(magnifier, camera, focus, out target))
                     throw new InvalidOperationException("A magnifier click also navigated the map.");
             }

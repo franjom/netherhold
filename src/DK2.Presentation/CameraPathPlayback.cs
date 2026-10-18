@@ -123,6 +123,7 @@ public sealed class CinematicLetterbox
     public const float BarFraction = 0.125f;
 
     private int _count;
+    public int RequestCount => _count;
     private float _from;
     private float _to;
     private double _start;

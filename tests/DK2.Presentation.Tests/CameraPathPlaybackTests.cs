@@ -23,6 +23,35 @@ public class CameraPathPlaybackTests
     private static KcsFrame[] Frames(int count, float z = -3f) =>
         [.. Enumerable.Range(0, count).Select(i => new KcsFrame(0, 0, z, Identity, 1f, 12000f))];
 
+    [Fact]
+    public void HudUsesNestedRequestsAndRestoresBeforeTheBarsFinishShrinking()
+    {
+        var viewer = new PlayerId(3);
+        var director = new ScriptedViewDirector(viewer, _ => Frames(399), _ => null);
+        SimEvent Letterbox(bool raised) => new(default, "t", "scripted_view", "")
+        {
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.Letterbox, viewer, 0, default, raised),
+        };
+        director.Emit(Letterbox(true));
+        director.Update(0, 0);
+        Assert.False(director.PathPlaying);
+        Assert.False(director.HudFor(ClassicCameraMode.Dungeon).ShowNormalHud);
+        director.Emit(View(ScriptedViewKind.CameraPath, viewer, 1));
+        director.Update(100, 1);
+        Assert.Equal(2, director.LetterboxRequestCount);
+        Assert.False(director.HudFor(ClassicCameraMode.Dungeon).AllowOrdinaryInput);
+        director.Update(2000, 2);
+        Assert.True(director.Skip());
+        Assert.Equal(1, director.LetterboxRequestCount);
+        Assert.False(director.HudFor(ClassicCameraMode.Dungeon).ShowNormalHud);
+        director.Emit(Letterbox(false));
+        director.Update(2100, 2);
+        Assert.Equal(0, director.LetterboxRequestCount);
+        Assert.True(director.HudFor(ClassicCameraMode.Dungeon).ShowNormalHud);
+        Assert.True(director.HudFor(ClassicCameraMode.Dungeon).AllowOrdinaryInput);
+        Assert.True(director.LetterboxBar > 0);
+    }
+
     /// <summary>The path's native matrix goes through the same transpose and axis swap as the
     /// ordinary camera's, so the ordinary camera's own matrix must give its own axes.</summary>
     [Fact]

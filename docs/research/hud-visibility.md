@@ -58,9 +58,20 @@ must also pass. If GUI handling declines an event, ordinary world-hand routing
 has its own world `+0x284 == 0` condition. Thus hiding a panel is not sufficient
 evidence that all world input should be enabled.
 
+## Implemented subset
+
+`HudVisibilityRules` mirrors both camera predicates. The Step 6 HUD uses the
+director's active path mode and counted letterbox requests: hidden HUDs do
+not draw or accept clicks, and blocked ordinary input cancels a pending hand
+gesture. Scripted camera movement, path skipping, subtitles and animated bars
+continue independently. Restoration follows the request count, not bar height.
+Tests cover mode exceptions, nested requests and release after cancellation;
+the adapter probe checks hidden/input-blocked navigation and restored zoom.
+
 ## Still open
 
 Trace interface `+0xF5`, the special player flag and modal-field writers; identify
 the numeric special modes and full-map branch as needed. Validate ordinary
 intro, scripted letterbox without a path, nested requests and restoration in
-the original game. Q611 owns the implementation/research acceptance boundary.
+the original game. Those additional states are not implemented by this subset;
+Q611 owns the remaining research acceptance boundary.

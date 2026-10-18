@@ -126,6 +126,7 @@ public sealed class PlayerInputSnapshot
 public sealed class PlayerInputTranslator
 {
     private DragStart? _drag;
+    public void CancelPointerGesture() => _drag = null;
 
     public void SelectTool(PlayerId playerId, PlayerToolMode tool)
     {

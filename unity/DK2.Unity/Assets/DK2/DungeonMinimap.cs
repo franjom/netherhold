@@ -64,6 +64,8 @@ namespace DK2.Unity
         private const float Left = 12.8f, Bottom = 11.2f, Diameter = 169.6f;
         private readonly GameObject _root;
         private readonly PanelSettings _settings;
+        private readonly VisualElement _hudRoot;
+        private HudVisibility _visibility = new HudVisibility(true, true);
         private readonly Image _image;
         private readonly Texture2D _backdrop;
         private readonly MinimapPalette _palette;
@@ -80,6 +82,7 @@ namespace DK2.Unity
         public void ZoomOut() => _zoom = _zoom.ZoomOut();
         public void HandleZoomPress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed)
         {
+            if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput) return;
             if (!primaryPressed && !secondaryPressed || Screen.height <= 0) return;
             float scale = Screen.height / 768f;
             if (!MinimapControlLayout.IsMagnifier(new System.Numerics.Vector2(
@@ -91,7 +94,7 @@ namespace DK2.Unity
         public bool TryNavigate(Vector3 screenPosition, Camera camera, Vector3 focus, out TilePos target)
         {
             target = default;
-            if (camera == null || Screen.height <= 0) return false;
+            if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || camera == null || Screen.height <= 0) return false;
             float scale = Screen.height / 768f;
             var point = new System.Numerics.Vector2(screenPosition.x / scale, 768 - screenPosition.y / scale);
             var heading = new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(camera.transform.eulerAngles.y * (2048f / 360))));
@@ -127,6 +130,7 @@ namespace DK2.Unity
             _settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight; _settings.match = 1;
             _root = new GameObject("Dungeon HUD"); _root.transform.SetParent(parent, false);
             var document = _root.AddComponent<UIDocument>(); document.panelSettings = _settings;
+            _hudRoot = document.rootVisualElement;
             document.rootVisualElement.style.width = Length.Percent(100);
             document.rootVisualElement.style.height = Length.Percent(100);
             document.rootVisualElement.pickingMode = PickingMode.Ignore;
@@ -167,7 +171,7 @@ namespace DK2.Unity
 
         public void Draw(Camera camera, Vector3? focus = null)
         {
-            if (camera == null) return;
+            if (!_visibility.ShowNormalHud || camera == null) return;
             Vector3 centre = focus ?? camera.transform.position;
             if (!focus.HasValue)
             {
@@ -183,7 +187,14 @@ namespace DK2.Unity
 
         public bool ContainsPointer(Vector3 position)
         {
-            return MinimapFrameVisual.ContainsPointer(position);
+            return _visibility.ShowNormalHud && _visibility.AllowOrdinaryInput && MinimapFrameVisual.ContainsPointer(position);
+        }
+
+        public void SetVisibility(HudVisibility visibility)
+        {
+            if (_visibility.ShowNormalHud != visibility.ShowNormalHud)
+                _hudRoot.style.display = visibility.ShowNormalHud ? DisplayStyle.Flex : DisplayStyle.None;
+            _visibility = visibility;
         }
 
         public void Dispose()

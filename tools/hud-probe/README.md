@@ -97,4 +97,8 @@ and return to the whole-map view. Headless checks cover zoom limits, native hit
 boxes and click coordinates at every zoom, including signed Q16 rounding.
 The Unity adapter fixture checks height-scaled click routing, magnifier priority,
 captured fractional focus and exclusion of magnifier presses from navigation.
+The visibility fixture also rejects hidden/input-blocked HUD interaction and
+checks restoration without losing zoom. Headless coverage includes nested
+letterbox requests, path skipping, restoration during bar blending and cancelled
+hand drags. Original-game visibility/restoration comparison remains pending.
 Native evidence and remaining research: [minimap-rendering.md](../../docs/research/minimap-rendering.md).

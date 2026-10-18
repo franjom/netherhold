@@ -360,14 +360,17 @@ namespace DK2.Unity
                         _pendingCommands.Add(new DK2.Simulation.Commands.SkipCameraPathCommand(new PlayerId((byte)viewingPlayerId)));
                 }
                 if (_scriptedView.TryTakeCameraMove(out TilePos glideTile)) StartGlide(glideTile);
+                HudVisibility hud = _scriptedView.HudFor(cameraPreset);
+                _minimap?.SetVisibility(hud);
                 if (_scriptedView.PathPlaying) ApplyPathCamera();
                 else
                 {
                     Glide();
-                    ControlCamera();
+                    if (hud.AllowOrdinaryInput) ControlCamera();
+                    else if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
                 }
                 ReadAmbientKeys();
-                ReadToolKeys();
+                if (hud.AllowOrdinaryInput) ReadToolKeys();
                 QueueInput();
             }
 
@@ -440,6 +443,7 @@ namespace DK2.Unity
             _scene.AdvanceTorchAnimation();
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
+            _minimap?.SetVisibility(_scriptedView.HudFor(cameraPreset));
             _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
             if (showDiagnostics) RefreshDiagnostics();
 
@@ -503,6 +507,11 @@ namespace DK2.Unity
 
         private void QueueInput()
         {
+            if (!_scriptedView.HudFor(cameraPreset).AllowOrdinaryInput)
+            {
+                _input.CancelPointerGesture();
+                return;
+            }
             _minimap?.HandleZoomPress(Input.mousePosition, Input.GetMouseButtonDown(0), Input.GetMouseButtonDown(1));
             if (!_scriptedView.PathPlaying && !frameWholeMap && _minimap != null && Input.GetMouseButtonDown(0)
                 && _minimap.TryNavigate(Input.mousePosition, Camera.main, _cameraFocus, out TilePos navigationTile))

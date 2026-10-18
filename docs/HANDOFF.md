@@ -129,8 +129,9 @@ on master with the native frame and its idle corner art. Creature,
 trap and door markers, Heart/Guard Post reporting-distance outlines, possession
 and Alarm rings, Guard Room rectangles, textured camera footprint, magnifier zoom
 and primary click navigation are built. Remaining overlays, other corner controls
-and owner comparison remain. HUD hiding/restoration is researched but unbuilt
-(Q611; research/hud-visibility.md).
+and owner comparison remain. The Step6 branch now implements camera/letterbox
+HUD hiding, restoration and input blocking; remaining modal/panel/full-map rules
+and original-game comparison are Q611 (research/hud-visibility.md).
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 

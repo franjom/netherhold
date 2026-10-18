@@ -37,6 +37,9 @@ public sealed class ScriptedViewDirector(
     }
 
     public bool PathPlaying => _path is not null;
+    public int LetterboxRequestCount => _letterbox.RequestCount;
+    public HudVisibility HudFor(ClassicCameraMode normalMode) => HudVisibilityRules.ForCamera(
+        PathPlaying ? CameraModeId.ScriptedPath : new((ushort)normalMode), _letterbox.RequestCount);
 
     /// <summary>The path on screen, or null.</summary>
     public int? PathId => _path?.PathId;
