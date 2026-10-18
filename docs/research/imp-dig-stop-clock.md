@@ -84,6 +84,14 @@ instead of 600. This is the first candidate-induced event
 change, not a demonstrated cause of the later deaths or a native mismatch.
 Inspect this boundary alongside the earlier Portal visibility control.
 
+The corresponding native worker is 442: state 14 starts on 559, the same tile
+changes to Rock on 595 and floor on 596, then the worker leaves on 598 and
+takes `(28,55)` on 599. Its phase/rate at 595 are 4084/1365; at 596 they are
+2537/2560 in End, followed by completion phase 4096 on 597. The work-entry
+clock predicts this phase and release too. Thus the modern candidate's earlier
+absolute release is not alone evidence of an incorrect stop formula: its wall
+already falls three turns earlier. The cause of the failed campaign remains open.
+
 ## Reproduction
 
 Ignored artifacts: `build/imp-acceptance/reverse-engineering/imp-dig-stop-20261018/`.
