@@ -232,8 +232,10 @@ claim gap now traces to floor-opening and worker-decision timing before turn
 mismatch. The earlier cadence contradiction is resolved in mining-cadence.md §5;
 ADR-0510 isolates the ordinary dig correction for acceptance.
 The Portal control establishes a local work-visibility consequence, while
-failing to recover the final win. Keep ADR-0503 and ADR-0510 unmerged; further
-implementation needs actual native action/task inputs at a decision boundary.
+failing to recover the final win. Keep ADR-0503 and ADR-0510 unmerged. The later
+[live strike/choice boundaries](imp-strike-choice-boundary.md) match the tested
+chooser and tile results; intervening action lifetime/task-slot updates remain
+to be compared before further implementation.
 The unmatched arrival history still needs a control before attribution to a bug.
 Do not infer those inputs from a later whole-turn snapshot or patch priorities
 to recover one replay. Existing unmerged work/store/arrival
