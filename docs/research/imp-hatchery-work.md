@@ -226,7 +226,7 @@ or implement native action-before-state ordering within the striker.
 
 Keep the chooser unchanged. The larger reinforcement excess remains an
 allocation/timing discrepancy, not a proven preference for walls over eligible
-floor. Its upstream cause remains **UNKNOWN**, tracked as Q611. The early
+floor. Its upstream cause remains **UNKNOWN**, tracked as Q612. The early
 claim gap now traces to floor-opening and worker-decision timing before turn
 176. The initial dig has later arrival and a separately measured cadence
 mismatch. The earlier cadence contradiction is resolved in mining-cadence.md §5;

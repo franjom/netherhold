@@ -185,7 +185,7 @@ Run git worktree list first; another session may own these.
 - build/imp-acceptance, research/imp-priority-contract: 2026-10-18 direct chooser
   controls and modern fixtures: research/imp-priority-checks.md. The preceding
   work comparison and tile-input control remain research/imp-hatchery-work.md.
-  Next actual update boundary is Q611; no new chooser fix is established.
+  Next actual update boundary is Q612; no new chooser fix is established.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
