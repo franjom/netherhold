@@ -152,8 +152,8 @@ if `(ox + dy, oy - dx)` is open, by `(step.y, -step.x)`; **the turned step is
 taken without a look at the tile it lands on**. Otherwise the body stays, `vel`
 is kept, and an extra `1` is pushed into `path_stuck_buffer`.
 
-**The axes.** `local_xaxis = normalise(F clamped)`, or of the turned step when
-the clamp turned it; `local_yaxis` is its perpendicular `(-y, x)`.
+**The axes.** `local_xaxis = normalise(vel)` after the movement clamp;
+`local_yaxis` is its perpendicular `(-y, x)`.
 
 ## 5. `Follow_Path` (`0x004D3C40`, weight 0.35)
 

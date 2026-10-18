@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**274** — `0x34A682FB8867CE5B`. Steering axes use resulting velocity after clamping (ADR-0509); no new fields. Versions 270–273 belong to preserved Imp experiments.
+
 **269** — `0xFA0172F155ECAA5C`. Native-byte Heart routing and the earlier small core guard (ADR-0505); no new fields. Versions 266–268 belong to preserved, rejected Imp candidates.
 
 **265** — `0x10A9C84139F8DF10`. Behaviour only: creature neighbours come from the native tile rectangle before combined-radius contact checks; the torturer's victim route retains native arrival flags (ADR-0500). No new saved field.
@@ -390,11 +392,4 @@ application, so Reinforced Wall proceeds through Rock to Dirt Path (ADR-0134).
 No state field changed; the version separates snapshots whose resumed jobs have
 different behaviour.
 
-**54** — `0x2820694B7F459227`. `TileState.WorkRemainder` **removed**. It
-carried the fraction a tabled per-second delta left over when divided by five, so
-the per-second rate held exactly. Run 15 read a reinforcing tile's health word 20
-times a second and counted 54 consecutive steps of 9 against a tabled 9.6: DK2
-loses the fraction every application. The accumulator was modelling a device the
-original does not have, and the arithmetic that needed it is gone too (ADR-0133).
-
-[Versions 9–53](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–54](hash-versions-early.md) retain the earlier pins and their reasons.

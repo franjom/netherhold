@@ -11719,3 +11719,18 @@ forced into escape mode. Core safety during that override, attacks and ordinary
 arrival are tested. Exact agreement on one frozen-world walk does not establish full
 campaign or visual acceptance; those remain the next checks.
 
+## ADR-0509 — Derive steering axes from resulting velocity
+**Date:** 2026-10-18 · **Status:** verified candidate; awaiting merge approval
+
+**Context.** The integrator's axes used force or displacement instead of the
+native velocity source. Evidence and acceptance are in
+[steering-velocity-axes.md](research/steering-velocity-axes.md).
+
+**Decision.** Normalize body velocity after arrival and wall clamping, then
+take its perpendicular. Preserve movement order, arrival timing, task choice
+and Heart policy on main. Keep the rejected Imp candidates separate.
+
+**Consequences.** Hash/save 274, no new fields; 270–273 belong to isolated
+experiments. Existing axis values in snapshots/hashes change. This correction
+does not claim to resolve campaign losses or idle random-stream differences.
+

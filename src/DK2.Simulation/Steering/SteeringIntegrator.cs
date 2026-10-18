@@ -41,11 +41,11 @@ public static class SteeringIntegrator
             body.Vel = Fixed16Vector.Zero;
         }
 
-        Fixed16Vector axis = clamped;
-        if (!Clamp(body, next, mover, world, ref axis))
+        if (!Clamp(body, next, mover, world))
             body.PathStuckBuffer = (ushort)((body.PathStuckBuffer << 1) | 1);
 
-        body.LocalXAxis = Fixed16.Normalise(axis);
+        // Axes currently feed hashing/snapshots; steering forces do not read them.
+        body.LocalXAxis = Fixed16.Normalise(body.Vel);
         body.LocalYAxis = body.LocalXAxis.Perpendicular();
         PushHistory(body);
     }
@@ -86,8 +86,8 @@ public static class SteeringIntegrator
     /// <summary>The wall clamp: the new position stands if its tile is passable from the old one;
     /// else the x move alone (y velocity dropped), else the y move alone (x velocity dropped), else
     /// the step turned a quarter left, else a quarter right; else the body stays. False when it
-    /// stayed. The turned step becomes the local axes' source.</summary>
-    private static bool Clamp(SteeringBody body, Fixed16Vector next, MoverProfile mover, ISteeringWorld world, ref Fixed16Vector axis)
+    /// stayed. Local axes are derived from velocity after this clamp.</summary>
+    private static bool Clamp(SteeringBody body, Fixed16Vector next, MoverProfile mover, ISteeringWorld world)
     {
         (int ox, int oy) = body.Pos.Tile();
         (int nx, int ny) = next.Tile();
@@ -118,14 +118,12 @@ public static class SteeringIntegrator
         if (Open(own, new TilePos(ox - dy, oy + dx), body.Pos, new Fixed16Vector(body.Pos.X - step.Y, body.Pos.Y + step.X), mover, world))
         {
             body.Pos = new Fixed16Vector(body.Pos.X - step.Y, body.Pos.Y + step.X);
-            axis = step;
             return true;
         }
 
         if (Open(own, new TilePos(ox + dy, oy - dx), body.Pos, new Fixed16Vector(body.Pos.X + step.Y, body.Pos.Y - step.X), mover, world))
         {
             body.Pos = new Fixed16Vector(body.Pos.X + step.Y, body.Pos.Y - step.X);
-            axis = step;
             return true;
         }
 

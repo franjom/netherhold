@@ -182,10 +182,12 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/native-heart-routing: ADR-0505 is merged;
-  the preserved worktree holds the captures and controls. Route and
-  frozen-world native movement controls: research/imp-boundary-route.md.
-  Hash/save 269; full replay and visual acceptance remain pending (Q585).
+- build/imp-acceptance, fixes/steering-axes-only: 2026-10-18 ADR-0509 verifies the
+  velocity-axis correction alone on main; ready for owner merge approval.
+  Evidence and remaining baseline failures: research/steering-velocity-axes.md.
+  The rejected movement/arrival candidates and random-input research remain
+  on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
+  gameplay candidates. Heart visual acceptance remains Q585.
 
 - D:/DungeonKeeperRemake-classic, classic-look/step5: retained lighting
   worktree; Step5 runtime corrections are on master. Check divergence before reuse.

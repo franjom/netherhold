@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 269: native Heart routing with the earlier small core guard (ADR-0505).
+        // HashVersion 274: derive steering axes from resulting velocity (ADR-0509).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xFA0172F155ECAA5CUL, sim.StateHash());
+        Assert.Equal(0x34A682FB8867CE5BUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

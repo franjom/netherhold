@@ -1,6 +1,13 @@
 # Early state-hash versions
 
-Versions 9–53, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–54, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**54** — `0x2820694B7F459227`. `TileState.WorkRemainder` **removed**. It
+carried the fraction a tabled per-second delta left over when divided by five, so
+the per-second rate held exactly. Run 15 read a reinforcing tile's health word 20
+times a second and counted 54 consecutive steps of 9 against a tabled 9.6: DK2
+loses the fraction every application. The accumulator was modelling a device the
+original does not have, and the arithmetic that needed it is gone too (ADR-0133).
 
 **53** — `0x94D2541428918DAC`. `PlayerState.SlapCount` (`player+0xEE6`,
 condition type 71) and `PlayerState.PossessedCreatureId` (`player+0x134`, condition

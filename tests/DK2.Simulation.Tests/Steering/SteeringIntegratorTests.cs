@@ -49,7 +49,7 @@ public class SteeringIntegratorTests
 
         Assert.Equal(new Fixed16Vector(SeparationRules.ShippedMaxSpeed, 0), body.Vel);
         Assert.Equal(T(2.5, 2.5) + body.Vel, body.Pos);
-        Assert.Equal(Fixed16.Normalise(new Fixed16Vector(SeparationRules.ShippedMaxForce, 0)), body.LocalXAxis);
+        Assert.Equal(new Fixed16Vector(65791, 0), body.LocalXAxis);
         Assert.Equal(body.LocalXAxis.Perpendicular(), body.LocalYAxis);
     }
 
@@ -63,6 +63,35 @@ public class SteeringIntegratorTests
 
         Assert.Equal(T(2.8, 2.5), body.Pos);
         Assert.Equal(Fixed16Vector.Zero, body.Vel);
+    }
+
+    [Theory]
+    [InlineData(4276, 29941, 9356, 65511)]
+    [InlineData(21421, 21421, 46869, 46869)]
+    [InlineData(-25965, 15578, -56813, 34085)]
+    [InlineData(-9640, 28908, -21093, 63251)]
+    public void ACoastingBodyKeepsTheCapturedVelocityAxes(int vx, int vy, int ax, int ay)
+    {
+        var body = new SteeringBody { Pos = T(2.5, 2.5), Vel = new Fixed16Vector(vx, vy), MaxSpeed = 65536 };
+
+        Step(body, Fixed16Vector.Zero);
+
+        Assert.Equal(new Fixed16Vector(vx, vy), body.Vel);
+        Assert.Equal(new Fixed16Vector(ax, ay), body.LocalXAxis);
+        Assert.Equal(new Fixed16Vector(-ay, ax), body.LocalYAxis);
+    }
+
+    [Fact]
+    public void ArrivalSnapClearsTheAxesEvenWhenTheAppliedForceIsNonzero()
+    {
+        var body = new SteeringBody { Pos = T(2.5, 2.5), PathFlags = 4, PathTotalCount = 1 };
+        body.Subpath[0] = T(2.6, 2.5);
+
+        Step(body, new Fixed16Vector(0x4000, 0));
+
+        Assert.Equal(Fixed16Vector.Zero, body.Vel);
+        Assert.Equal(Fixed16Vector.Zero, body.LocalXAxis);
+        Assert.Equal(Fixed16Vector.Zero, body.LocalYAxis);
     }
 
     [Fact]
@@ -143,6 +172,7 @@ public class SteeringIntegratorTests
         Assert.Equal(T(3.5, 3.9).X + 0x1000, body.Pos.X);
         Assert.Equal(T(3.5, 3.9).Y, body.Pos.Y);
         Assert.Equal(0, body.Vel.Y);
+        Assert.Equal(new Fixed16Vector(Fixed16.One, 0), body.LocalXAxis);
         Assert.Equal(0, body.PathStuckBuffer & 1);
     }
 
@@ -171,5 +201,6 @@ public class SteeringIntegratorTests
 
         Assert.Equal(T(1.9, 1.9), body.Pos);
         Assert.Equal(0b10, body.PathStuckBuffer);
+        Assert.Equal(Fixed16.Normalise(body.Vel), body.LocalXAxis);
     }
 }
