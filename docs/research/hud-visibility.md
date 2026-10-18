@@ -16,8 +16,8 @@ The gate is checked at the start of `0x00419DF0`, before ordinary menus,
 minimap and heading decoration. Within that gate, view slot `+0xCC` returning
 `0xB` draws a different element and returns; player flags `+0x76 & 0x80000`
 also select a special callback instead of normal HUD. Interface field `+0xF5`
-zero skips the normal-menu branch. These additional modes/flag producers are
-not identified here and must not be assigned invented gameplay names.
+zero skips ordinary menus, resources, minimap, north and tooltips; its alternate
+context branch remains separate. Other numeric modes/flags remain unclassified.
 
 Menu rendering itself (`0x0052BBD0`) additionally tests each menu's `+0x48`
 before drawing it and its children. Individual menu visibility is separate
@@ -68,9 +68,28 @@ continue independently. Restoration follows the request count, not bar height.
 Tests cover mode exceptions, nested requests and release after cancellation;
 the adapter probe checks hidden/input-blocked navigation and restored zoom.
 
+## Normal GUI toggle producers
+
+**CONFIRMED subset:** key dispatcher `0x00405010` binding `0x26` toggles
+interface `+0xF5`. In the ordinary dungeon arm, hiding expands the view to
+virtual `(0,0,2560,1920)` through view slot `+0x34`; restoration uses the normal
+viewport fields and graphics-mode offsets. The possession-like arm also
+clears interface `+0x12B2` before toggling. Binding `0x18` invokes the Options
+toggle and forces `+0xF5=1` if hidden. Binding-to-key defaults are documented
+separately in controls.md; the dispatched numeric bindings are not scan codes.
+
+`0x0040A9F0` is an additional `+0xF5` toggle registered by `0x00402D00` under
+the command name `GUI`; it is not by itself proof of a keyboard binding.
+The corner Options menu and full-screen map branches have separate contracts
+in [minimap-controls.md](minimap-controls.md).
+
+The `+0xF5` GUI toggle does not appear in the camera HUD predicate or ordinary
+input predicate. It hides ordinary interface drawing without blocking the
+ordinary world-hand path or suppressing its cursor by itself.
+
 ## Still open
 
-Trace interface `+0xF5`, the special player flag and modal-field writers; identify
+Trace remaining special player-flag and modal-field writers; identify
 the numeric special modes and full-map branch as needed. Validate ordinary
 intro, scripted letterbox without a path, nested requests and restoration in
 the original game. Those additional states are not implemented by this subset;

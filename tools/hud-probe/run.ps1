@@ -47,7 +47,7 @@ foreach ($name in @('HudPilotAssets.cs','HudFontPilot.cs','HudToolkitPilot.cs','
     Copy-Item -LiteralPath "$PSScriptRoot/$name" -Destination "$Project/Assets/HudProbe" -Force
 }
 Copy-Item -LiteralPath "$PSScriptRoot/HudPilotEntry.cs" -Destination "$Project/Assets/HudProbe/Editor" -Force
-foreach ($name in @('MinimapGpuMap.cs','DungeonMinimap.cs','MinimapFrameVisual.cs','ClassicHandCursor.cs','ClassicHoverHud.cs','ClassicBitmapText.cs','ClassicTileHoverOutline.cs')) {
+foreach ($name in @('MinimapGpuMap.cs','DungeonMinimap.cs','MinimapFrameVisual.cs','ClassicHandCursor.cs','ClassicHoverHud.cs','ClassicResourceHud.cs','ClassicBitmapText.cs','ClassicTileHoverOutline.cs')) {
     Copy-Item -LiteralPath "$repo/unity/DK2.Unity/Assets/DK2/$name" -Destination "$Project/Assets/HudProbe" -Force
 }
 foreach ($name in @('DK2Minimap.shader','DK2Hud.tss')) {

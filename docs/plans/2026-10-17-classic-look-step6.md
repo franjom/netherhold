@@ -2,8 +2,8 @@
 
 Status: live minimap tiles, markers, reporting outlines, camera footprint,
 magnifier zoom, primary click navigation, north marker, Heart direction trail
-and camera/letterbox HUD gates built;
-6.1 remains partial, 2026-10-18.
+and camera/letterbox HUD gates built; original cursor/hover visuals and live
+resource panels are built. 6.1 and 6.2 remain partial, 2026-10-18.
 The native frame with its idle corner artwork is present; remaining overlays,
 other corner controls and owner comparison remain open;
 ADR-0497 remains proposed. Step5's outstanding visual/performance
@@ -64,7 +64,8 @@ camera/letterbox visibility and input gates are built; remaining panel/modal rul
 are Q611, with the current reading in [hud-visibility.md](../research/hud-visibility.md).
 Disc/frame layout and rotation still need owner comparison. Static native menu
 and corner-art mapping and default primary/secondary bindings are recorded;
-complete corner-panel behaviours remain research gates.
+Query/Sell/Options corner bindings and Heart/GUI hotkeys are now researched in
+[minimap-controls.md](../research/minimap-controls.md); those controls remain unbuilt.
 
 - [x] Present changed tile classes through a renderer-independent view; draw the
   palette, rotated map, mask and background on the GPU as specified in §13.
@@ -75,8 +76,11 @@ complete corner-panel behaviours remain research gates.
 
 ## 6.2 — Top bar
 
-- [ ] Present keeper resources and researched hover/status information from the
-  settled view. Reuse the font and scalable frame/fill approach proved by the pilot.
+- [x] Present settled gold, mana, separate incoming/outgoing rates, the Heart
+  health ring and supported hover/status text using original frames and sprites.
+- [ ] Complete resource hover/clicks, payday countdown and wage-bill flashing,
+  damage alarms and message flashing. Native evidence and remaining producers:
+  [hud-resources.md](../research/hud-resources.md).
 - [ ] Match DK2's anchors, content, states and timing; obtain owner acceptance.
 
 ### Cursor and world hover (owner priority, 2026-10-18)

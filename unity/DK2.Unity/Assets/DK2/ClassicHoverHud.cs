@@ -71,7 +71,9 @@ namespace DK2.Unity
         private int _screenWidth, _screenHeight;
         public bool ShowCreatureTooltip { get; set; } = true;
         public PanelSettings Panel => _settings;
-        public Rect StatusBounds => new Rect(0, 0, Screen.width, StatusHeight);
+        public Rect StatusBounds => new Rect(ResourceWidth, 8 * Screen.height / 768f,
+            Mathf.Max(0, Screen.width - ResourceWidth), StatusHeight);
+        private float ResourceWidth => Mathf.Min(Screen.width, Mathf.Floor(1020 * Screen.height / 1920f));
         private float StatusHeight => Mathf.Max(22 * Screen.height / 480f, (_font?.LineHeight ?? 12) + 12);
 
         public ClassicHoverHud(IClassicHoverAssets assets) : this(null, assets) { }
@@ -158,7 +160,7 @@ namespace DK2.Unity
 
         private void LayoutStrip(Rect strip)
         {
-            Place(_strip, 0, 0, strip.width, strip.height);
+            Place(_strip, strip.x, strip.y, strip.width, strip.height);
             Place(_clip, 12, 0, Mathf.Max(1, strip.width - 24), strip.height);
             float scale = strip.height / Mathf.Max(1, _status.height);
             float tileWidth = _status.width * scale, endWidth = _end.width * scale;

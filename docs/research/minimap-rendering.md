@@ -212,7 +212,7 @@ The corner names are `mapbf-00`, `mapbf-01`, `mapbf-02` and `mapbf-03`, with
 `selected-` variants. The lower-right default is unusually **selected-mapbf-03**
 (id 31); its alternate is mapbf-03 (35). Keep that binding rather than normalize
 the filenames. `0x004129E0` substitutes active art for upper-left mode 10,
-upper-right mode 4 and lower-left field `+0x2722`; other behaviour is still open.
+upper-right mode 4 and lower-left field `+0x2722`; meanings are in [minimap-controls.md](minimap-controls.md).
 Unselected, unhovered minimap corners skip the sprite draw: their idle images
 are already part of the frame. Drawing all four overlays continuously duplicates
 that artwork.

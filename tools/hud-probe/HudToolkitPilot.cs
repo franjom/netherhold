@@ -43,6 +43,10 @@ namespace DK2.Unity.HudProbe
         private ClassicTileHoverOutline _tileOutline;
         private RenderTexture _outlineTarget;
         private ClassicHoverHud _hoverHud;
+        private ClassicResourceHud _resourceHud;
+        private RenderTexture _resourceTarget;
+        private readonly KeeperResourceSnapshot _resourceSample = new KeeperResourceSnapshot(
+            new GoldAmount(12345), new ManaAmount(259), new ManaPerSecond(65), new ManaPerSecond(28), new HudGaugeFraction(3, 4));
         private ClassicHandCursor _handCursor;
         private RenderTexture _hoverTarget, _cursorTarget;
         private double _hoverStartedAt;
@@ -167,6 +171,16 @@ namespace DK2.Unity.HudProbe
             _hoverHud.Panel.clearColor = true; _hoverHud.Panel.colorClearValue = Color.clear;
             _hoverStartedAt = Time.unscaledTimeAsDouble;
             _hoverHud.Draw(_hoverSample, new Vector2(250, 280));
+            _resourceTarget = Own(new RenderTexture(1024, 768, 24, RenderTextureFormat.ARGB32)); _resourceTarget.Create();
+            _resourceHud = new ClassicResourceHud(null, new InstallClassicResourceAssets(install));
+            _resourceHud.Panel.targetTexture = _resourceTarget;
+            _resourceHud.Panel.clearColor = true; _resourceHud.Panel.colorClearValue = Color.clear;
+            Vector3 resourcePoint = new Vector3(10, Screen.height - 10, 0);
+            if (!_resourceHud.ContainsPointer(resourcePoint)) throw new InvalidOperationException("Resources do not block world clicks.");
+            _resourceHud.SetVisibility(HudVisibilityRules.ForCamera(new CameraModeId(3), 1));
+            if (_resourceHud.ContainsPointer(resourcePoint)) throw new InvalidOperationException("Hidden resources block world clicks.");
+            _resourceHud.SetVisibility(HudVisibilityRules.ForCamera(new CameraModeId(3), 0));
+            _resourceHud.Draw(_resourceSample);
             _cursorTarget = Own(new RenderTexture(512, 512, 24, RenderTextureFormat.ARGB32)); _cursorTarget.Create();
             _handCursor = new ClassicHandCursor(new InstallHandCursorAssets(install), manageSystemPointer: false);
             _handCursor.Panel.targetTexture = _cursorTarget;
@@ -512,11 +526,14 @@ namespace DK2.Unity.HudProbe
             _panel = Own(new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)); _panel.Create();
             _north.UpdateHeading(new Dk2Angle((ushort)(_view == 0 ? 0 : 256)), height);
             _settings.targetTexture = _panel; _frames = 0;
+            _resourceTarget = Own(new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)); _resourceTarget.Create();
+            _resourceHud.Panel.targetTexture = _resourceTarget;
         }
         private void Update()
         {
             if (Done || _report == null) return;
             _hoverHud?.Draw(_hoverSample, new Vector2(250, 280));
+            _resourceHud?.Draw(_resourceSample, new Vector2Int(_resourceTarget.width, _resourceTarget.height));
             if (++_frames < 24 || Time.unscaledTimeAsDouble < _hoverStartedAt + 1.7) return;
             try
             {
@@ -623,6 +640,18 @@ namespace DK2.Unity.HudProbe
         }
         private void AssertHoverDocuments()
         {
+            Texture2D resources = Read(_resourceTarget);
+            try
+            {
+                Color32[] colors = resources.GetPixels32();
+                int green = colors.Count(p => p.g > 100 && p.r < 60 && p.a > 128);
+                int gold = colors.Count(p => p.r > 100 && p.g > 70 && p.b < 30 && p.a > 128);
+                if (green < 5 || gold < 5) throw new InvalidOperationException("Production resource digits did not render in their original colors.");
+                string file = "resource-hud-" + resources.width + "x" + resources.height + ".png";
+                File.WriteAllBytes(Path.Combine(_output, file), resources.EncodeToPNG());
+                _captures.Add(file);
+            }
+            finally { Destroy(resources); }
             Texture2D image = Read(_hoverTarget);
             try
             {
@@ -689,6 +718,7 @@ namespace DK2.Unity.HudProbe
             _north?.Dispose();
             _tileOutline?.Dispose();
             _hoverHud?.Dispose();
+            _resourceHud?.Dispose();
             _handCursor?.Dispose();
             foreach (UnityEngine.Object resource in _owned) if (resource != null) Destroy(resource);
         }

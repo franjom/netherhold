@@ -78,6 +78,12 @@ base-10 in-game BF4 font; font width selection is already described by
 `gui/Windows/Bar-00` and `Bar-01`. Their runtime stride is 27. The top strip
 tiles the first resource across the screen and draws the second at its right
 edge; its virtual draw size is 512×88. Long status text scrolls back and forth.
+Its text widget `0x00693318` has local draw rectangle `(0,0,1440,88)` in
+menu53 (`0x00693EB0`), whose rectangle is `(1020,20,1540,88)`. The native
+text therefore starts after the resource region at virtual x1020, rather than
+at the left screen edge. Its 1440-wide text area leaves 100 virtual units for
+the right-end decoration. The background's tiling across the screen is
+separate from this positioned text rectangle.
 The highest cache images are Bar-00MM0 **128×64** and Bar-01MM0 **32×32**;
 text_box-tlMM0 and text_box-mMM0 are **16×16**.
 

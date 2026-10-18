@@ -133,6 +133,8 @@ namespace DK2.Unity
         private ClassicTileHoverOutline _tileHighlight;
         private WorldHoverText _hoverText;
         private ClassicHoverHud _hoverHud;
+        private ClassicResourceHud _resourceHud;
+        private KeeperResourceView _resourceView;
         private HoverTextSnapshot _hoverSnapshot = HoverTextSnapshot.Empty;
         private DungeonScene _scene;
         private AssetProviderChain _assets;
@@ -320,6 +322,8 @@ namespace DK2.Unity
             _handCursor = new ClassicHandCursor(new InstallHandCursorAssets(install));
             _tileHighlight = new ClassicTileHoverOutline(transform, lattice);
             _hoverHud = new ClassicHoverHud(new InstallClassicHoverAssets(install));
+            _resourceHud = new ClassicResourceHud(transform, new InstallClassicResourceAssets(install));
+            _resourceView = new KeeperResourceView(_simulation.Database, new PlayerId((byte)viewingPlayerId));
             var hoverStrings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
             _hoverText = new WorldHoverText(database, hoverStrings.Resolve, new PlayerId((byte)viewingPlayerId));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
@@ -335,6 +339,7 @@ namespace DK2.Unity
             _handCursor?.Dispose();
             _tileHighlight?.Dispose();
             _hoverHud?.Dispose();
+            _resourceHud?.Dispose();
             if (_heartHealthWorld != null && _heartHealthObserver != null)
                 _heartHealthWorld.HeartHealthChanged -= _heartHealthObserver;
             _constructionEffects?.Dispose();
@@ -376,6 +381,7 @@ namespace DK2.Unity
                 HudVisibility hud = _scriptedView.HudFor(cameraPreset);
                 _minimap?.SetVisibility(hud);
                 _hoverHud?.SetVisibility(hud);
+                _resourceHud?.SetVisibility(hud);
                 if (_scriptedView.PathPlaying) ApplyPathCamera();
                 else
                 {
@@ -930,7 +936,8 @@ namespace DK2.Unity
         }
 
         private bool PointerOverHud(Vector3 position) =>
-            (_minimap != null && _minimap.ContainsPointer(position)) || (_hoverHud != null && _hoverHud.ContainsPointer(position));
+            (_minimap != null && _minimap.ContainsPointer(position)) || (_hoverHud != null && _hoverHud.ContainsPointer(position))
+            || (_resourceHud != null && _resourceHud.ContainsPointer(position));
 
         private WorldHoverHit ResolveWorldHover(TilePos tile)
         {
@@ -950,6 +957,8 @@ namespace DK2.Unity
         {
             HudVisibility visibility = _scriptedView.HudFor(cameraPreset);
             _hoverHud?.SetVisibility(visibility);
+            _resourceHud?.SetVisibility(visibility);
+            if (visibility.ShowNormalHud) _resourceHud?.Draw(_resourceView.Capture(_simulation.World));
             _hoverSnapshot = HoverTextSnapshot.Empty;
             Vector3 mouse = Input.mousePosition;
             bool inside = mouse.x >= 0 && mouse.y >= 0 && mouse.x < Screen.width && mouse.y < Screen.height;
@@ -1012,7 +1021,7 @@ namespace DK2.Unity
             string art = _assets == null ? "" : _assets.Summarise();
 
             // Built in Update: the world may be mid-tick on the worker thread while OnGUI runs.
-            float offset = _hoverHud?.StatusBounds.height ?? 0;
+            float offset = _resourceHud?.Bottom ?? _hoverHud?.StatusBounds.yMax ?? 0;
             GUI.Label(new Rect(10, 10 + offset, 1200, 20), _diagnostics);
 
             GUI.Label(new Rect(10, 30 + offset, 1200, 20),

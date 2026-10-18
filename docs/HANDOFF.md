@@ -135,6 +135,12 @@ north marker, camera-ribbon disc containment and zoomed Heart direction trail.
 The branch also has original Hand/dig/pickup sprites, a terrain-deformed blue
 hover cage, delayed localized names and a top status strip. Evidence and limits:
 research/hand-cursor-rendering.md and research/world-hover-text.md;
+live gold/mana, separate rates and the Heart health ring now occupy the original
+resource region, with status text to its right. Resource evidence and pending
+payday/interaction/alarm work: research/hud-resources.md. The slice passes 688
+presentation tests and adapter compilation; isolated rendering is checked at
+reference and 1440p sizes. Researched but unbuilt minimap corner controls and
+Heart/GUI hotkeys: research/minimap-controls.md.
 remaining modal/panel/full-map rules
 and original-game comparison are Q611 (research/hud-visibility.md).
 Native minimap raster

@@ -129,12 +129,14 @@ public static class ManaRules
     /// including the free ones a keeper never paid for — the owner's four starting imps
     /// drain 28 — so the floor is free to fill and not free to keep, which is the
     /// pressure the imp economy is built around.</summary>
-    public static int[] UpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database)
+    public static int[] UpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database) =>
+        UpkeepPerSecondByPlayerIndex(world, database, world.CurrentTick.Next);
+
+    /// <summary>Upkeep evaluated at a specific turn, including the prepaid Call to Arms boundary.</summary>
+    public static int[] UpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database, GameTick atTick)
     {
         int[] upkeep = ImpAndTrapUpkeepPerSecondByPlayerIndex(world, database);
-        // A standing Call to Arms past its prepaid turns is part of the same second's drain
-        // (0x004C17A0); the turn is the payment's, one past the tick.
-        uint turn = unchecked((uint)(world.CurrentTick.Value + 1));
+        uint turn = unchecked((uint)atTick.Value);
         for (int i = 0; i < world.PlayerCount; i++)
         {
             upkeep[i] += PossessionRules.UpkeepPerSecond(world, database, world.PlayerAtIndex(i));

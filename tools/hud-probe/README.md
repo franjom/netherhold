@@ -17,6 +17,12 @@ unmarked existing project or one already open in Unity. The batch editor uses
 two worker threads; it neither opens nor saves the owner's active project.
 The scratch manifest enables image conversion for PNG decoding/capture.
 
+The production resource panel also renders into separate 1024×768 and 2560×1440
+targets (`resource-hud-*.png`), using explicit viewport extents rather than the
+batch editor's smaller Game view. Checks cover original digit colours and HUD
+hit gates. The sample Heart ring is three-quarters full; owner comparison and
+remaining resource interactions/timing stay in the Step6 checklist.
+
 ## What the images show
 
 The larger map is a **synthetic class grid**, using the game palette and `Map-BG.PNG`
