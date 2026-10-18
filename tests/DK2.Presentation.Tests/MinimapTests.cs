@@ -4,11 +4,58 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using System.Numerics;
 
 namespace DK2.Presentation.Tests;
 
 public sealed class MinimapTests
 {
+    [Fact]
+    public void CameraFootprintMovesWithoutATickAndDoesNotAllocate()
+    {
+        Vector2[] corners = [new(48, 48), new(80, 48), new(80, 80), new(48, 80)];
+        var vertices = new Vector2[8];
+        MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices);
+        Vector2 before = vertices[0];
+        for (int i = 0; i < 4; i++) corners[i] += new Vector2(.25f, 0);
+        MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices);
+        Assert.True(vertices[0].X > before.X);
+        for (int i = 0; i < 100; i++) MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices);
+        long allocated = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 100; i++) MinimapCameraFootprint.TryBuild(corners, 128, 128, i * .001f, vertices);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - allocated);
+    }
+
+    [Fact]
+    public void CameraFootprintUsesContinuousProjectionRotationAndRadialBorder()
+    {
+        Vector2[] corners = [new(48, 48), new(80, 48), new(80, 80), new(48, 80)];
+        var vertices = new Vector2[8];
+        Assert.True(MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices));
+        Vector2 centre = new(95.2f, 672);
+        Vector2 midpoint = (vertices[0] + vertices[1]) * .5f;
+        Assert.InRange(midpoint.X, 79.28f, 79.30f);
+        Assert.InRange(midpoint.Y, 656.08f, 656.10f);
+        Assert.InRange(Vector2.Distance(vertices[0], vertices[1]), 3.999f, 4.001f);
+        Assert.True(Vector2.Distance(vertices[0], centre) > Vector2.Distance(vertices[1], centre));
+        Assert.True(MinimapCameraFootprint.TryBuild(corners, 128, 128, MathF.PI / 2, vertices));
+        midpoint = (vertices[0] + vertices[1]) * .5f;
+        Assert.InRange(midpoint.X, 79.28f, 79.30f);
+        Assert.InRange(midpoint.Y, 687.90f, 687.92f);
+    }
+
+    [Fact]
+    public void CameraFootprintClampsBeforeBuildingTheBorderAndRejectsInvalidPoints()
+    {
+        Vector2[] corners = [new(-1000, -1000), new(1000, -1000), new(1000, 1000), new(-1000, 1000)];
+        var vertices = new Vector2[8];
+        Assert.True(MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices));
+        Assert.Equal(new Vector2(12.8f, 588.8f), (vertices[0] + vertices[1]) * .5f);
+        Assert.Equal(new Vector2(177.6f, 755.2f), (vertices[4] + vertices[5]) * .5f);
+        corners[0] = new(float.NaN, 1);
+        Assert.False(MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices));
+    }
+
     private static uint[] SourcePixels() => Enumerable.Range(0, 37)
         .Select(i => 0x12010200u + (uint)i).ToArray();
 

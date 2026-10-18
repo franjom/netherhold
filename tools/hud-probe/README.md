@@ -88,4 +88,7 @@ this is not a claim of exception-free editor startup.
 Not verified: matched DK2 campaign colours/markers/rotation, runtime
 resizing, real-window input, camera navigation, production text rendering, GPU timings or UI
 performance. A target-texture size comparison is not a real window/input test.
+The native camera-box ribbon also renders over the frame in both captures;
+the probe checks visible white border pixels. Headless tests cover continuous
+camera movement, rotation, corner clamping, radial width and allocation-free updates.
 Native evidence and remaining research: [minimap-rendering.md](../../docs/research/minimap-rendering.md).

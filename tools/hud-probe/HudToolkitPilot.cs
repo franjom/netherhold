@@ -37,6 +37,7 @@ namespace DK2.Unity.HudProbe
         private Report _report;
         private MinimapGpuMap _liveGpu;
         private MinimapFrameVisual _frame;
+        private MinimapFootprintVisual _footprint;
         public bool Done { get; private set; }
         public bool Passed => _report != null && _report.Passed;
 
@@ -83,6 +84,13 @@ namespace DK2.Unity.HudProbe
                 AddImage(root, disc, left: 260, top: 420, width: 224, height: 224);
                 AddLiveLevel(root, palette, backdrop);
                 _frame = new MinimapFrameVisual(root, frameAssets);
+                _footprint = new MinimapFootprintVisual(frameAssets.CameraFootprint, 128, 128);
+                root.Add(_footprint);
+                var footprintCamera = Own(new GameObject("Footprint probe camera"));
+                var camera = footprintCamera.AddComponent<Camera>();
+                camera.enabled = false; camera.orthographic = true; camera.orthographicSize = 8; camera.aspect = 1;
+                camera.transform.SetPositionAndRotation(new Vector3(64, 33, -64), Quaternion.Euler(90, 0, 0));
+                _footprint.UpdateCamera(camera);
                 const string text = "Dungeon Heart 100%";
                 var reference = Own(HudFontPilot.Raster(assets.ReferenceFont, text));
                 var largest = Own(HudFontPilot.Raster(assets.LargestFont, text));
@@ -359,6 +367,15 @@ namespace DK2.Unity.HudProbe
                     if (pixels.Count(p => p.r > 45 || p.g > 45 || p.b > 45) < pixels.Length / 200)
                         throw new InvalidOperationException("UI Toolkit target has no rendered image content.");
                     AssertComposition(image);
+                    int white = 0;
+                    float scale = _panel.height / 768f;
+                    for (int y = Mathf.FloorToInt(661 * scale); y < 684 * scale; y++)
+                        for (int x = Mathf.FloorToInt(84 * scale); x < 108 * scale; x++)
+                        {
+                            Color32 pixel = image.GetPixel(x, image.height - 1 - y);
+                            if (pixel.r > 180 && pixel.g > 180 && pixel.b > 180) white++;
+                        }
+                    if (white < 8 * scale) throw new InvalidOperationException("Native camera-footprint ribbon did not render.");
                     string path = Path.Combine(_output, "hud-pilot-" + _panel.width + "x" + _panel.height + ".png");
                     File.WriteAllBytes(path, image.EncodeToPNG()); _captures.Add(Path.GetFileName(path));
                 }
@@ -424,6 +441,7 @@ namespace DK2.Unity.HudProbe
         {
             _liveGpu?.Dispose();
             _frame?.Dispose();
+            _footprint?.Dispose();
             foreach (UnityEngine.Object resource in _owned) if (resource != null) Destroy(resource);
         }
     }

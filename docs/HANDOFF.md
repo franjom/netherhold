@@ -127,7 +127,7 @@ The Step6 shader/font feasibility pilot passed in isolated URP targets at 1024×
 and 1440p (tools/hud-probe/README.md); a live minimap tile layer is connected
 on classic-look/step6 with the native frame and its idle corner art. Creature,
 trap and door markers, Heart/Guard Post reporting-distance outlines, possession
-and Alarm rings and Guard Room rectangles are built. Remaining overlays, controls
+and Alarm rings, Guard Room rectangles and the textured camera footprint are built. Remaining overlays, controls
 and owner comparison remain. HUD hiding/restoration is researched but unbuilt
 (Q610; research/hud-visibility.md).
 Native minimap raster

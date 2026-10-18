@@ -74,8 +74,8 @@ The local pickup preview is a bounded adapter approximation: suppress the
 queued creature until its command's simulation tick settles, then read the
 viewer's actual hand. Native pending-pickup animation lifetime is still unread.
 The reporting-distance and possession/Alarm outlines below are built, including
-Guard Room rectangles. Guard Post links, other transient signals and camera
-footprint remain outside the current implementation.
+Guard Room rectangles. The camera footprint is built as described below;
+Guard Post links and other transient signals remain outside the implementation.
 
 `0x0041E620` draws a dotted direction trail between the minimap centre and the
 viewer's Heart in zoomed mode. It normalizes the offset with integer square root,
@@ -89,10 +89,8 @@ revolution). The angular corner offset is approximately 0.4266275 radians.
 Coordinates pass through the UI transform before submission. This is the source
 for a modern smooth-rim representation, not a requirement to enlarge its pixels.
 
-`0x0041B180` is the whole-map camera-footprint overlay: the inspected body
-transforms projected view points by camera heading and clips them to the map
-rectangle. Only the projection/rotation portion was inspected; input handlers
-and the full clipping contract remain outside this reading.
+The whole-map camera-footprint geometry and remaining material boundary are
+recorded in [Camera footprint](#camera-footprint-binary).
 
 [Q197](open-questions.md) is still open: these readings do not establish why
 the owner's fogged Portals appear. Do not invent a Portal visibility exception.
@@ -283,3 +281,60 @@ The ordinary trap marker is drawn first. This branch does not separately test
 construction status. Transient signal slots, player flag `+0x76` bit 4 and the
 six trailing target records still require producer/semantic research; their
 visible rings alone do not establish what gameplay events should create them.
+
+## Camera footprint (binary)
+
+Read 2026-10-18: complete `0x0041B180`, the whole-map renderer's tail, screen
+unprojection and submission helpers, with assembly resolving implicit vector
+destinations and vertex arrays. Geometry below is **CONFIRMED**; material
+opacity and the active renderer's final clipping remain **UNKNOWN**.
+
+The whole-map renderer `0x0041ADA0` draws the map first, then the footprint
+unless `0x0044D870` returns 1: numeric camera modes 1,2,10,11 suppress it. This
+tail runs even without a new simulation turn. Other HUD visibility gates apply
+outside it; see [hud-visibility.md](hud-visibility.md).
+
+Four full-viewport corners are intersected with horizontal render plane z=-1
+by `0x00572920`. For origin C and transformed screen ray D, its floating XY
+result is `C.xy + D.xy * ((-1-C.z)/D.z)`, without tile truncation. Its separate
+integer pair is not consumed here. The helper contains no parallel-ray,
+behind-camera or finite-value test. Mapping render z=-1 to Unity floor y=1
+requires the adapter's established vertical sign conversion, not an assumed
+zero-height ground plane.
+
+For whole-map width W and height H, subtract `(W/2,H/2)` from each XY point;
+rotate by heading h using `(cos(h)*x+sin(h)*y,-sin(h)*x+cos(h)*y)`, with
+`h = cameraHeading * pi/1024`. Let U be the UI point transform from virtual
+2560×1920 coordinates to screen coordinates. The continuous projection is
+`P = U(238,1680) + rotated * S`, where
+`S = (90/128)/max(W,H) * ((U(32,1584).x-U(238,1680).x)/(sin(1.5*pi-0.4266275)*0.5))`.
+This is the native footprint's floating fit, not the integer tile-raster fit.
+
+Compute centroid M of the four **unclamped** projected P. Independently clamp
+each P to the rectangle `U(32,1472)..U(444,1888)`, giving Q. This is corner
+clamping, not polygon/line clipping. Direction is `normalize(Q-M)`; border
+vertices are `Q + 2*direction` and `Q - 2*direction`, in physical screen pixels.
+No final circular mask appears in this body. Any broader renderer clipping
+requires following the concrete submitted material/renderer state.
+
+Pair order is viewport TL,TR,BR,BL; each pair is outward then inward. Outer UV
+is `(0.5,0)`, inner UV `(0.5,1)`. Triangle indices are
+`0,2,1; 1,2,3; 2,4,3; 3,4,5; 5,4,6; 7,5,6; 0,7,6; 0,1,7`.
+The material comes from catalogue resource 242, `GUI/Map/MapCameraBox`, a
+16×16 cache image. Runtime art slot stride 27 and material offset 15 explain
+the caller's `+0x1995` lookup; its static record is at `0x006ABF2A`.
+
+Submitted RGB is white. The 0.75 argument is **vertex depth, not opacity**:
+`0x005794B0` forwards it to `0x00578A80` field +24, and `0x00578C00` copies that
+field into the third position component. Preserve the shipped texture alpha;
+do not infer a uniform 75% opacity from that argument. Full material-flag
+semantics are not established by this reading.
+
+The adapter draws the native texture over an eight-vertex UI Toolkit ribbon,
+updating from the live camera between simulation turns. The height-scaled HUD
+uses two reference pixels per radial offset rather than DK2's two physical
+pixels. It hides invalid or behind-camera plane intersections instead of
+submitting non-finite geometry; native unprojection has no such guard.
+OpenKeeper was consulted as a facts-only reference (see THIRD-PARTY-NOTICES.md);
+the projection, floor, clamp and border contracts above come from DKII.EXE.
+Owner comparison in the original game remains pending.

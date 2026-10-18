@@ -14,6 +14,10 @@ comments do.
 ## OpenKeeper
 - https://github.com/tonihele/OpenKeeper — GNU GPL version 3 or later,
   Copyright (C) 2014–2016 OpenKeeper, Toni Helenius and contributors.
+- **Minimap camera footprint (facts only):** `MinimapFrustum.java` and
+  `MinimapView.java` at `4f2ab4016f042bd607dbdfe8d5b406a7901113aa` were
+  consulted for viewport-corner ray projection and a fit-mode outline. Native
+  details are checked separately against DKII.EXE. No code copied.
 - **Creature field ordering (facts only):** `KwdFile.java` at
   `fb70fbc404361f271e5ff43eb5e0ec29ae5a4d5d` corroborated Q528's adjacent fields;
   the correction is grounded in DKII.EXE. No code copied.

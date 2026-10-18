@@ -21,6 +21,7 @@ namespace DK2.Unity
         byte[] PalettePng { get; }
         byte[] BackdropPng { get; }
         RgbaImage Frame { get; }
+        RgbaImage CameraFootprint { get; }
         RgbaImage Corner(MinimapCorner corner, bool active);
     }
 
@@ -29,6 +30,7 @@ namespace DK2.Unity
         public byte[] PalettePng { get; }
         public byte[] BackdropPng { get; }
         public RgbaImage Frame { get; }
+        public RgbaImage CameraFootprint { get; }
         private readonly RgbaImage[] _corners = new RgbaImage[8];
         public InstallMinimapAssets(string install)
         {
@@ -40,6 +42,7 @@ namespace DK2.Unity
             using (var textures = EngineTextureArchive.OpenInstall(install))
             {
                 Frame = textures.Decode("GUI\\Map\\map");
+                CameraFootprint = textures.Decode("GUI\\Map\\mapcamerabox");
                 for (int i = 0; i < 4; i++)
                 {
                     string suffix = i.ToString("00");
@@ -66,6 +69,7 @@ namespace DK2.Unity
         private readonly MinimapClassGrid _grid;
         private readonly MinimapGpuMap _gpu;
         private readonly MinimapFrameVisual _frame;
+        private readonly MinimapFootprintVisual _footprint;
         private readonly List<MinimapMarker> _markers = new List<MinimapMarker>();
         private WorldState _capturedWorld;
         private long _capturedTick = -1;
@@ -105,6 +109,8 @@ namespace DK2.Unity
             _image.style.width = Diameter; _image.style.height = Diameter;
             document.rootVisualElement.Add(_image);
             _frame = new MinimapFrameVisual(document.rootVisualElement, assets);
+            _footprint = new MinimapFootprintVisual(assets.CameraFootprint, width, height);
+            document.rootVisualElement.Add(_footprint);
         }
 
         private static Texture2D Decode(byte[] png)
@@ -137,6 +143,7 @@ namespace DK2.Unity
             if (camera == null) return;
             _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(Diameter * Screen.height / 768f));
             if (_image.image != _gpu.Disc) _image.image = _gpu.Disc;
+            _footprint.UpdateCamera(camera);
         }
 
         public bool ContainsPointer(Vector3 position)
@@ -148,8 +155,70 @@ namespace DK2.Unity
         {
             _gpu.Dispose();
             _frame.Dispose();
+            _footprint.Dispose();
             UnityEngine.Object.Destroy(_root); UnityEngine.Object.Destroy(_settings);
             UnityEngine.Object.Destroy(_backdrop);
+        }
+    }
+
+    public sealed class MinimapFootprintVisual : VisualElement, IDisposable
+    {
+        private static readonly ushort[] Indices = { 0,2,1, 1,2,3, 2,4,3, 3,4,5, 5,4,6, 7,5,6, 0,7,6, 0,1,7 };
+        private readonly Texture2D _texture;
+        private readonly int _mapWidth, _mapHeight;
+        private readonly System.Numerics.Vector2[] _corners = new System.Numerics.Vector2[4];
+        private readonly System.Numerics.Vector2[] _vertices = new System.Numerics.Vector2[8];
+        private readonly System.Numerics.Vector2[] _next = new System.Numerics.Vector2[8];
+        private bool _valid;
+
+        public MinimapFootprintVisual(RgbaImage texture, int mapWidth, int mapHeight)
+        {
+            _texture = MinimapFrameVisual.Decode(texture);
+            _mapWidth = mapWidth; _mapHeight = mapHeight;
+            pickingMode = PickingMode.Ignore;
+            style.position = Position.Absolute;
+            style.left = 0; style.top = 0; style.right = 0; style.bottom = 0;
+            generateVisualContent += DrawFootprint;
+        }
+
+        public void UpdateCamera(Camera camera)
+        {
+            bool valid = camera != null;
+            var floor = new Plane(Vector3.up, new Vector3(0, 1, 0));
+            for (int i = 0; valid && i < 4; i++)
+            {
+                Ray ray = camera.ViewportPointToRay(new Vector3(i == 1 || i == 2 ? 1 : 0, i < 2 ? 1 : 0, 0));
+                if (!floor.Raycast(ray, out float distance)) { valid = false; break; }
+                Vector3 ground = ray.GetPoint(distance);
+                _corners[i] = new System.Numerics.Vector2(ground.x, -ground.z);
+            }
+            valid = valid && MinimapCameraFootprint.TryBuild(_corners, _mapWidth, _mapHeight,
+                camera.transform.eulerAngles.y * Mathf.Deg2Rad, _next);
+            bool changed = valid != _valid;
+            if (valid)
+                for (int i = 0; i < 8; i++)
+                {
+                    changed |= _vertices[i] != _next[i];
+                    _vertices[i] = _next[i];
+                }
+            _valid = valid;
+            if (changed) MarkDirtyRepaint();
+        }
+
+        private void DrawFootprint(MeshGenerationContext context)
+        {
+            if (!_valid) return;
+            MeshWriteData mesh = context.Allocate(8, Indices.Length, _texture);
+            for (int i = 0; i < 8; i++)
+                mesh.SetNextVertex(new Vertex { position = new Vector3(_vertices[i].X, _vertices[i].Y, Vertex.nearZ),
+                    tint = Color.white, uv = new Vector2(.5f, i % 2 == 0 ? 1 : 0) });
+            foreach (ushort index in Indices) mesh.SetNextIndex(index);
+        }
+
+        public void Dispose()
+        {
+            RemoveFromHierarchy();
+            UnityEngine.Object.Destroy(_texture);
         }
     }
 }
