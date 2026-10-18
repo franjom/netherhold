@@ -197,13 +197,27 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/imp-creation-landing: unmerged creation candidate;
-  its current evidence and acceptance limits are in that worktree's
-  docs/research/imp-create-position.md. Direct chooser
+- build/imp-acceptance, fixes/imp-verified-integration: integrating the verified
+  Imp corrections for master; campaign wins are diagnostic, not a fidelity veto.
+  Creation evidence: research/imp-create-position.md. Direct chooser
   controls and modern fixtures: research/imp-priority-checks.md. The preceding
   work comparison and tile-input control remain research/imp-hatchery-work.md.
   Captured strike/claim boundary: research/imp-strike-choice-boundary.md.
-  Intervening action/task updates remain Q612; no new chooser fix is established.
+  Action-stop mismatch and rejected hash-276 candidate: research/imp-dig-stop-clock.md.
+  Q612 remains open; no new chooser fix is established. Gameplay is isolated on
+  fixes/imp-dig-stop-clock; master remains hash 274.
+  Packet fractional-position loss is traced and independently reviewed:
+  research/imp-create-position.md. Comparison clocks and regenerated measurements:
+  research/imp-observation-clocks.md. The opening-time tile control confirms a
+  local early-claim contribution, while reinforcement moves in opposite
+  directions across the two seeds:
+  research/imp-hatchery-work.md#opening-time-input-control. Completed original
+  chooser controls now isolate reservation-sensitive selection at that boundary:
+  research/imp-hatchery-work.md#reservation-and-position-controls. The earlier
+  work/release sequence now has 36 full native update pairs and a bounded modern
+  continuation: research/imp-dig-sequence.md. Matching all sampled tile results
+  retains the action-completion mismatch. A complete arrival-to-choice replay
+  and accepted correction remain open; no new priority defect is established.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
