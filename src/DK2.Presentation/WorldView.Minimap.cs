@@ -17,6 +17,7 @@ public sealed partial class WorldView
     private WorldState? _minimapHeartWorld;
     private TilePos _minimapHeartTile = new(FearRules.NoHeartTile, FearRules.NoHeartTile);
     private readonly byte? _minimapHeartTerrain;
+    public TilePos? MinimapHeartTile { get; private set; }
 
     public void QueueMinimapPickupPreview(PickUpCreatureCommand command, GameTick appliesAt)
     {
@@ -33,6 +34,7 @@ public sealed partial class WorldView
             if (pending.Value <= world.CurrentTick) _settledMinimapPickups.Add(pending.Key);
         foreach (int id in _settledMinimapPickups) _minimapPickups.Remove(id);
         MinimapMapBounds bounds = MinimapMapBounds.Fit(world.Width, world.Height);
+        MinimapHeartTile = null;
         if (_minimapHeartWorld != world)
         {
             _minimapHeartWorld = world;
@@ -41,6 +43,7 @@ public sealed partial class WorldView
         if (world.HasPlayer(_viewingPlayerId))
         {
             FindMinimapHeart(world);
+            MinimapHeartTile = _minimapHeartTile;
             // DK2 retains the player's last Heart position after its room is ruined.
             output.Add(MinimapMarkerRules.ReportingRing(TileCentre(_minimapHeartTile),
                 ReportingDistance(VariableTypeId.DungeonHeartReportingDistanceTiles), bounds, world.Width));

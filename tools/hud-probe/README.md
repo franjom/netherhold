@@ -97,6 +97,9 @@ GPU regressions also cover zoom levels 1/4, the distinct fractional terrain/mark
 anchors, reporting-ring radius scaling, room rectangles, panning without a tick
 and return to the whole-map view. Headless checks cover zoom limits, native hit
 boxes and click coordinates at every zoom, including signed Q16 rounding.
+The Heart trail fixture checks one-pixel white dots, turn phase, rotation,
+panning without a tick and suppression in whole-map mode. Headless coverage
+compares bounded prefix skipping against the full native walk and checks no allocations.
 The Unity adapter fixture checks height-scaled click routing, magnifier priority,
 captured fractional focus and exclusion of magnifier presses from navigation.
 The visibility fixture also rejects hidden/input-blocked HUD interaction and

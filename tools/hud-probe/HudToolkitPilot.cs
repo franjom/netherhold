@@ -292,6 +292,26 @@ namespace DK2.Unity.HudProbe
                     EndPosition: new(new(0x2800), new(0x1800), new(0))) });
                 map.Render(headingDegrees: 0, diameter: 128);
                 AssertBlueMarker(map.Disc, x: 76, y: 63);
+                map.UploadMarkers(Array.Empty<MinimapMarker>());
+                map.SetView(new MinimapZoom(0), new(new(20 << 12), new(20 << 12), new(0)));
+                map.SetHeartTrail(new TilePos(40, 20), new GameTick(0));
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertTrailPixel(map.Disc, 84, 63, true);
+                AssertTrailPixel(map.Disc, 85, 63, false);
+                map.SetHeartTrail(new TilePos(40, 20), new GameTick(1));
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertTrailPixel(map.Disc, 85, 63, true);
+                AssertTrailPixel(map.Disc, 84, 63, false);
+                map.Render(headingDegrees: 90, diameter: 128);
+                AssertTrailPixel(map.Disc, 64, 85, true);
+                map.SetView(new MinimapZoom(0), new(new(21 << 12), new(20 << 12), new(0)));
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertTrailPixel(map.Disc, 84, 63, true);
+                AssertTrailPixel(map.Disc, 85, 63, false);
+                map.SetView(MinimapZoom.WholeMap, default);
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertTrailPixel(map.Disc, 84, 63, false);
+                map.SetHeartTrail(null, new GameTick(1));
                 map.SetView(new MinimapZoom(1), new(new(0x1400), new(0x800), new(0)));
                 MinimapMarker reporting = MinimapMarkerRules.ReportingRing(marker.Position, 2, MinimapMapBounds.Fit(3, 2), 3);
                 map.UploadMarkers(new[] { new MinimapMarker(reporting.Kind, reporting.Position, 0xFF0000FF,
@@ -526,6 +546,17 @@ namespace DK2.Unity.HudProbe
                     if (pixel.r > 180 && pixel.g > 180 && pixel.b > 180) white++;
                 }
             if (white < 3) throw new InvalidOperationException("North marker did not render at the heading-dependent position.");
+        }
+        private static void AssertTrailPixel(RenderTexture target, int x, int y, bool white)
+        {
+            Texture2D image = Read(target);
+            try
+            {
+                Color32 pixel = image.GetPixel(x, y);
+                bool actual = pixel.r > 240 && pixel.g > 240 && pixel.b > 240;
+                if (actual != white) throw new InvalidOperationException("Heart trail phase/position mismatch at " + x + "," + y);
+            }
+            finally { Destroy(image); }
         }
         private static void AssertComposition(Texture2D image)
         {

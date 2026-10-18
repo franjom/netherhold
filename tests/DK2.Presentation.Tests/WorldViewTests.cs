@@ -125,10 +125,12 @@ public class WorldViewTests
         MinimapMarker ring = Assert.Single(markers);
         Assert.Equal(new FpPosition3(new(0x3800), new(0x3800), new(0)), ring.Position);
         Assert.Equal(0xFF9696FFu, ring.ColourArgb);
+        Assert.Equal(new TilePos(3, 3), view.MinimapHeartTile);
         for (int y = 3; y <= 4; y++)
             for (int x = 3; x <= 4; x++) world.Tile(x, y).TerrainId = floor;
         view.CaptureMinimapMarkers(world, palette, markers);
         Assert.Equal(ring, Assert.Single(markers));
+        Assert.Equal(new TilePos(3, 3), view.MinimapHeartTile);
     }
 
     [InstallFact]

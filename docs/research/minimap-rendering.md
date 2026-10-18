@@ -77,11 +77,12 @@ The reporting-distance and possession/Alarm outlines below are built, including
 Guard Room rectangles. The camera footprint is built as described below;
 Guard Post links and other transient signals remain outside the implementation.
 
-`0x0041E620` draws a dotted direction trail between the minimap centre and the
-viewer's Heart in zoomed mode. It normalizes the offset with integer square root,
-uses four-pixel steps and turn modulo 4 for phase, and clips dots inside 128×128.
-One scale input is carried in a register the decompiler did not recover; do not
-port the apparent uninitialized value.
+`0x0041E620` runs after all markers in the refreshed zoomed raster, before upload/display.
+For step `s=1<<zoom`, focus F and Heart tile H, each vector axis is
+`V=(H-(F>>12)+64/s)*s-((F%4096)>>(12-zoom))-64` (signed remainder; no half-tile offset).
+Let `L=isqrt(uint(Vx²+Vy²))` with wrapped 32-bit sum and `N=trunc(V*256/L)`. For L>8,
+emit `(L-5)>>2` points `64+trunc(N*(L+(turn&3)-4*i)/256)`, only where both axes are 1..127.
+`0x005B30C0`→`0x005C4B50` writes one opaque-white pixel per point; full-map mode omits this trail.
 
 `0x0041C660` draws the displayed map using eight vertices and six triangles,
 rotating texture coordinates from camera heading at `+0xD84` (2048 units per

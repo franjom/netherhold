@@ -1,7 +1,8 @@
 # Step 6 — HUD and controls
 
 Status: live minimap tiles, markers, reporting outlines, camera footprint,
-magnifier zoom, primary click navigation and camera/letterbox HUD gates built;
+magnifier zoom, primary click navigation, north marker, Heart direction trail
+and camera/letterbox HUD gates built;
 6.1 remains partial, 2026-10-18.
 The native frame with its idle corner artwork is present; remaining overlays,
 other corner controls and owner comparison remain open;
@@ -27,7 +28,7 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
   and compare restoration in original DK2 (Q611).
 - [ ] Inventory install-supplied interface bitmaps, font sizes, widget states and
   existing asset-provider support. Keep original/derived artwork out of Git.
-- [ ] Resolve the remaining overlay producers, Heart trail and secondary map/corner
+- [ ] Resolve the remaining overlay producers and secondary map/corner
   controls before implementing them; use the current function records and
   [minimap research](../research/minimap-rendering.md).
 - [ ] Read the relevant layout/input paths and resolve Q197's minimap visibility
@@ -56,7 +57,8 @@ rules, with a retained marker buffer and display-resolution shapes. Pending
 pickups use a documented command-settlement approximation. The static Heart and
 Guard Post reporting-distance outlines, Guard Room rectangle, possession ring and
 Alarm ring, textured camera footprint, magnifier zoom and primary click navigation
-and heading-dependent native north marker are built. The camera ribbon is masked
+and heading-dependent native north marker are built. The zoomed map has the
+native phased Heart direction dots. The camera ribbon is masked
 to the disc; other overlays and corner controls remain. Whole-HUD
 camera/letterbox visibility and input gates are built; remaining panel/modal rules
 are Q611, with the current reading in [hud-visibility.md](../research/hud-visibility.md).

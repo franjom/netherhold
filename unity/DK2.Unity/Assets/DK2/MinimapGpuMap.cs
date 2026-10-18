@@ -18,6 +18,11 @@ namespace DK2.Unity
         private MarkerUpload[] _markers = new MarkerUpload[64];
         private GraphicsBuffer _markerBuffer;
         private int _markerCount;
+        private int _renderMarkerCount;
+        private bool _markersDirty = true;
+        private readonly MinimapRasterPoint[] _trail = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
+        private TilePos? _heart;
+        private GameTick _trailTick;
         private readonly Upload[] _uploads;
         private readonly GraphicsBuffer _buffer;
         private readonly Material _material;
@@ -32,10 +37,17 @@ namespace DK2.Unity
         public int LastUploadedTiles { get; private set; }
         private MinimapZoom _zoom = MinimapZoom.WholeMap;
         private FpPosition3 _focus;
+        public void SetHeartTrail(TilePos? heart, GameTick tick)
+        {
+            if (_heart == heart && ((_trailTick.Value ^ tick.Value) & 3) == 0) return;
+            _heart = heart; _trailTick = tick;
+            if (!_zoom.IsWholeMap) { _dirty = true; _markersDirty = true; }
+        }
         public void SetView(MinimapZoom zoom, FpPosition3 focus)
         {
             if (_zoom == zoom && (zoom.IsWholeMap || _focus == focus)) return;
             _zoom = zoom; _focus = focus;
+            _markersDirty = true;
             _material.SetInt("_Zoom", zoom.Level);
             if (!zoom.IsWholeMap)
             {
@@ -123,18 +135,19 @@ namespace DK2.Unity
             if (!_dirty && _angle == headingDegrees) return;
             _angle = headingDegrees; _dirty = false;
             _material.SetFloat("_Angle", headingDegrees * Mathf.Deg2Rad);
+            if (_markersDirty) UpdateMarkerBuffer();
             _commands.Clear(); _commands.SetRenderTarget(_disc);
             _commands.DrawProcedural(Matrix4x4.identity, _material, 1, MeshTopology.Triangles, 3);
-            if (_markerCount > 0)
-                _commands.DrawProcedural(Matrix4x4.identity, _material, 2, MeshTopology.Triangles, 6, _markerCount);
+            if (_renderMarkerCount > 0)
+                _commands.DrawProcedural(Matrix4x4.identity, _material, 2, MeshTopology.Triangles, 6, _renderMarkerCount);
             Graphics.ExecuteCommandBuffer(_commands);
         }
 
         public void UploadMarkers(IReadOnlyList<MinimapMarker> markers)
         {
-            if (markers.Count > _markers.Length)
+            if (markers.Count + MinimapHeartTrail.MaximumDots > _markers.Length)
             {
-                _markers = new MarkerUpload[Mathf.NextPowerOfTwo(markers.Count)];
+                _markers = new MarkerUpload[Mathf.NextPowerOfTwo(markers.Count + MinimapHeartTrail.MaximumDots)];
                 _markerBuffer.Dispose();
                 _markerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _markers.Length, sizeof(uint) * 6);
                 _material.SetBuffer("_Markers", _markerBuffer);
@@ -150,8 +163,20 @@ namespace DK2.Unity
                     EndY = markers[i].EndPosition.Y.Raw };
             }
             _markerCount = markers.Count;
-            if (_markerCount > 0) _markerBuffer.SetData(_markers, 0, 0, _markerCount);
+            _markersDirty = true;
             _dirty = true;
+        }
+
+        private void UpdateMarkerBuffer()
+        {
+            int dots = _heart.HasValue ? MinimapHeartTrail.Build(_heart.Value, _focus, _zoom, _trailTick, _trail) : 0;
+            for (int i = 0; i < dots; i++)
+                // Shader kind 6 takes raster coordinates directly and draws one pixel, after ordinary markers.
+                _markers[_markerCount + i] = new MarkerUpload {
+                    X = _trail[i].X, Y = _trail[i].Y, Kind = 6, Colour = 0xFFFFFFFF };
+            _renderMarkerCount = _markerCount + dots;
+            if (_renderMarkerCount > 0) _markerBuffer.SetData(_markers, 0, 0, _renderMarkerCount);
+            _markersDirty = false;
         }
 
         public void Dispose()

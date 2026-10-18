@@ -131,6 +131,11 @@ Shader "Hidden/DK2/Minimap"
                     size = max(end - origin, 0);
                     centre = origin + size * .5;
                 }
+                else if (kind == 6)
+                {
+                    size = 1;
+                    centre = marker.position + .5;
+                }
                 float2 corners[6] = { float2(-.5,-.5), float2(.5,-.5), float2(.5,.5),
                     float2(-.5,-.5), float2(.5,.5), float2(-.5,.5) };
                 Varyings o;

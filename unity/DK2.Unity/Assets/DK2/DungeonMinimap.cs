@@ -173,6 +173,7 @@ namespace DK2.Unity
             if (_palette.AdvanceNeutralCycle(world.CurrentTick, PlayerIds.Neutral)) _gpu.UpdatePalette(_palette);
             view.CaptureMinimapMarkers(world, _palette, _markers);
             _gpu.UploadMarkers(_markers);
+            _gpu.SetHeartTrail(view.MinimapHeartTile, world.CurrentTick);
         }
 
         public void Draw(Camera camera, Vector3? focus = null)
