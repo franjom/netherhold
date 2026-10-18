@@ -96,7 +96,7 @@ Level4 seed-1 entity map for seed 5 remains a limitation.
 bounded correction; campaign acceptance still fails. No priority workaround or
 guessed landing wait is included. Preserve this candidate separately.
 
-## Next boundary: state 214 and height
+## State 214 and height
 
 **CONFIRMED observations:** both native cast births have the same four-snapshot
 sequence. For worker 443 the headers are 392–395; for 442 they are 552–555:
@@ -132,14 +132,37 @@ commit through [the position setter](functions/004B5020.md), whose floor clamp
 also clears downward velocity for a creature. Collision and commit conditions
 still apply; this arithmetic is not a completed native creation replay.
 
-Two controlled calls of the original physical pass from the retained live image
-faulted at an unmapped instruction fetch, first at the birth X/Y and then at
-the original active worker's pose. Neither returned successfully; all partial
-writes are excluded. An independent reviewer repeated the virtual-slot and
-physical/ground-response reads; it confirms this static explanation and its
-limits. Stop these probes. Next capture a completed original
-physical pass at the actual birth, including its floor clamp and subsequent
-landing dispatch, before implementing this missing path.
+Two controlled calls of the original physical pass from an earlier live image
+faulted at an unmapped instruction fetch. Neither returned; their partial writes
+are excluded. The completed live boundary capture below supersedes those probes.
+
+**CONFIRMED, completed native calls:** a session-owned original replay of the
+same packet captures worker 442 at entry and return using hardware breakpoints:
+
+| Function | Execution clock | Before | After |
+|---|---:|---|---|
+| Physical pass | 552 | state 214, Z 6144 | state 214, Z 4096 |
+| State 214 handler | 553 | state 214, Z 4096 | state 11, Z 4096 |
+
+Floor is 4096 throughout. Exact X/Y remains 111273/222521; persistent and
+temporary velocity vectors are zero at all four boundaries. The correct worker
+flying mask, 0x100, is clear, and the live gravity byte is 240. Both functions
+return to their recorded caller addresses, with stack delta +4 and no clock
+advance within either call. All four memory images have 333611008 bytes with no
+short reads. An independent reviewer checked these fields directly in each dump,
+including the state object's creature backlink and entry/return registers.
+
+This establishes descent in the physical pass and landing dispatch on the next
+execution turn for this cast. Intermediate gravity/collision writes remain a
+static reading; the capture does not establish a universal landing duration or
+the global reinforcement cause. Native execution clocks above remain distinct
+from the snapshot headers in the preceding table.
+
+The next implementation boundary is a height-driven creation state, with its
+floor representation checked against modern movement. Preserve the exact-position
+candidate separately; do not replace the height predicate with a fixed wait.
+Measure birth-to-first-choice timing and repeat paired campaign acceptance before
+considering any combined candidate for merge.
 
 ## Reproduction and review
 
@@ -156,8 +179,11 @@ reuses baseline results and runs four candidate replays. Its `verify.py` checks
 all eight outcomes, exact birth positions, prefix agreement and the native
 height/state samples. Neither verifier treats the mixed campaign outcomes as
 acceptance.
-`native_height.py` and the retained fault logs are excluded physical-pass trials;
-they do not supply successful-return evidence.
+`native_height.py` and the retained fault logs are excluded physical-pass trials.
+`imp-birth-landing-20261018/capture_live.py`, `live-boundaries/boundaries.jsonl`
+and `verify.py` retain the completed live pairs and raw-image validation. The
+capture script's flying metadata mask was corrected from 8 to 0x100 after the
+run; both masks yield false in these four images, and neither controls selection.
 
 The independent reviewer separately decoded the packet, read native records,
 and repeated the action/cast/creation binary reads. It did not run the modern

@@ -210,9 +210,9 @@ Run git worktree list first; another session may own these.
   fixes/imp-dig-stop-clock; master remains hash 274.
   Packet fractional-position loss is traced and independently reviewed:
   research/imp-create-position.md. Comparison clocks and regenerated measurements:
-  research/imp-observation-clocks.md. Static gravity/ground-response path traced;
-  controlled physics calls faulted. Next capture the completed native birth
-  physical pass and landing dispatch before implementing a hold.
+  research/imp-observation-clocks.md. Completed native birth physical and landing
+  entry/return pairs now confirm descent followed by state 11. Next check modern
+  floor representation for a height-driven candidate, then repeat acceptance.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
