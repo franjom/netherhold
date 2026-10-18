@@ -135,12 +135,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
 
     private readonly ProfiledPathfinder _pathfinder;
+    private readonly TileWorkSystem _tileWork = new();
     private readonly List<TilePos> _route = [];
 
     /// <summary>Every tile the worker being updated can reach, flooded once per grid and start
     /// (<see cref="Reaches"/>). A grid is built per worker update, so a flood never outlives one; the
     /// grid reads terrain live, and nothing in a worker update writes terrain, since dig, claim and
-    /// reinforce are queued for <see cref="TileWorkSystem"/> to apply after every worker has chosen.</summary>
+    /// reinforce are queued for <see cref="TileWorkSystem"/> to apply after this worker's update.</summary>
     private readonly ReachableTiles _reach = new();
 
     private delegate void ActivityStep(SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid);
@@ -232,11 +233,18 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
 
             Update(context, creature, definition);
+            // Later workers see this strike before choosing or testing their own finished action.
+            _tileWork.Execute(context);
         }
     }
 
     private void Update(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (creature.Dk2StateId == ImpCreationRules.FallingState)
+        {
+            ImpCreationRules.Step(context, creature);
+            return;
+        }
         if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
 
         // One grid for the whole of this creature's tick. Every question below

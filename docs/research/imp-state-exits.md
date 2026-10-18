@@ -136,7 +136,7 @@ body down and releases the imp. Thus 46 is carrier cleanup after admission, and
 | `MovingToJob` | 10 chooses; 6 walks (or 51 → 52 teleports); resumes 13/25/15/19/17/21/23/38. | Ours begins after selection; DK2's state 10 is separate. |
 | `Working` | 13→14 dig, 25→26 mine, 15→16 claim, 19→20 enemy claim, 17→18 room destruction, 21→22 reinforce, 23→24 repair, 38→39 kind 11; each even state repeats its action until the tile is done, then returns to 10 (39 via dispatcher state 1). | None: both persist across applications (Q420). |
 | `FetchingGold` | 10 → 6/51 → 27. | None beyond folded state 10 and travel protocol. |
-| `DeliveringGold` | `G`: 6/51 → 28 → 29 → 10, entered from 10, 26, 27 or 76. | Main folds arrival and deposit; the unmerged ADR-0502 candidate separates arrival, facing and deposit. |
+| `DeliveringGold` | `G`: 6/51 → 28 → 29 → 10, entered from 10, 26, 27 or 76. | ADR-0512 integrates separate arrival, facing and deposit updates from ADR-0502. |
 | `FetchingBody` | Corpse: 10 → 6/51 → 40. Casualty: 10 → 6/51 → 42. | Ours folds the pickup handler (40/42) into the activity's arrival tick. |
 | `CarryingBody` | Corpse 6 → 41; own casualty 6 → 45; enemy 6 → 43 → 44 → 46 or 47 → 48. | Ours has one carry state and no prison admission/walk-away/refused-drop states. |
 | `FetchingObject` | 10 → 6/51 → 30; trap/door crates instead resume 34/36. | Built (ADR-0214): 34/36 take the crate and walk to 35/37. |
@@ -148,7 +148,7 @@ Q420 asked whether the built work loop is wrong; it is not. The tile-work rows
 are **built** on state ids (ADR-0181): `ImpStates.For` pairs each `TileWorkKind`
 with its entry and work state by the creature action the work state starts
 (`balance-variables-in-the-binary.md`, task records 1, 2, 4, 5, 7, 8, 10). The
-gold rows 26–29 are built too (ADR-0182; ADR-0502's timing remains unmerged),
+gold rows 26–29 are built too (ADR-0182; store timing integrated under ADR-0512),
 and the object rows 30–33 (ADR-0183), with the carry rule corrected to the object's
 own flags as `0x0046E480` reads them, and the body rows 40–48 (ADR-0184), with 43's
 inner leg and 44's walks falling in one tick because our carry walks straight to the

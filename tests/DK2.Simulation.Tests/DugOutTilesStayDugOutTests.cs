@@ -135,19 +135,17 @@ public class DugOutTilesStayDugOutTests
     }
 
     /// <summary>
-    /// Watches the work queue between the workers filling it and the work system
-    /// draining it — the only moment in a tick when it is non-empty.
+    /// Watches selected tile-work kinds through the simulation's job events.
     /// </summary>
-    private sealed class WorkSpy : ISimulationSystem
+    private sealed class JobSpy : ISimulationEventSink
     {
         public readonly List<TileWorkKind> Seen = [];
 
-        public string Name => "WorkSpy";
-
-        public void Execute(SimulationContext context)
+        public void Emit(in SimEvent e)
         {
-            foreach (TileWorkOrder order in context.World.PendingWork)
-                Seen.Add(order.Kind);
+            if (e.System != "ImpTask" || e.Kind != "job_taken") return;
+            Assert.True(Enum.TryParse(e.Detail.Split(' ')[3], out TileWorkKind kind));
+            Seen.Add(kind);
         }
     }
 
@@ -156,11 +154,11 @@ public class DugOutTilesStayDugOutTests
     ///
     /// Checked through behaviour rather than by reading the priority list, so
     /// that a future job priority could not satisfy it by being spelled
-    /// differently: over a long dig, every order that reaches the queue is
+    /// differently: over a long dig, every reported tile-work choice is
     /// inspected and none of them is a fill-in.
     /// </summary>
     [Fact]
-    public void NoWorkerEverQueuesAFillIn()
+    public void NoWorkerEverSelectsAFillIn()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
@@ -178,24 +176,14 @@ public class DugOutTilesStayDugOutTests
                     tiles.Add(new TilePos(x, y));
             }
 
-        // The declared order with the spy spliced in ahead of the work system,
-        // which drains the queue within the same tick.
-        var spy = new WorkSpy();
-        var systems = new List<ISimulationSystem>();
-        foreach (ISimulationSystem system in Dk2TerrainFixture.DefaultSystems())
-        {
-            if (system is Systems.TileWorkSystem) systems.Add(spy);
-            systems.Add(system);
-        }
-
-        Assert.Contains(spy, systems);
-
-        var sim = new GameSimulation(database, world, 1357, [.. systems]);
+        var spy = new JobSpy();
+        var sim = new GameSimulation(database, world, 1357, Dk2TerrainFixture.DefaultSystems());
+        sim.ObserveWith(spy);
         sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, tiles, true)));
 
         for (int tick = 0; tick < 4000; tick++) sim.Tick(InputFrame.Empty);
 
-        Assert.True(spy.Seen.Count > 0, "no work was queued at all, so this proved nothing");
+        Assert.True(spy.Seen.Count > 0, "no work was chosen at all, so this proved nothing");
 
         // Every kind an imp chose, and NOTHING ELSE. Stronger than the old
         // "does not contain FillIn": a new work kind that closed a tile would

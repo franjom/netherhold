@@ -58,7 +58,8 @@ preferences are unchanged by this candidate.
 Review identified an excluded edge: queued `DigOwnWall`/`DigEnemyWall` orders
 can re-resolve through Rock to floor in one flush while keeping their original
 kind. These state-14 actions still use the old modulo. This diagnostic candidate
-does not correct them; rejection below prevents gameplay merge regardless.
+does not correct them. A later family candidate covers all three kinds; see
+[imp-fidelity-integration.md](imp-fidelity-integration.md).
 The reconstructed clock assumes uninterrupted art-5 history from work entry;
 animation interruptions have not been validated.
 
@@ -76,11 +77,9 @@ The Level4 seed-1 entity map is also reused for seed 5, a comparison limitation.
 | 4 / 1 | 6732 / 3 | none by 6804 / 54 |
 | 4 / 5 | none by 6804 / 35 | none by 6804 / 11 |
 
-**Rejected for gameplay merge.** Local native agreement does not establish
-campaign compatibility. Preserve the candidate separately. Next locate the first
-divergence in the failing Level4 seed-1 trajectory and distinguish native
-task-object reuse/work visibility from the remaining hit/arrival timing before
-combining corrections. Do not adjust job priorities from this result.
+**Provisional implementation (ADR-0512).** Preserve the candidate separately
+until interrupted action phases are validated. Changed campaign results are
+diagnostics, not a fidelity veto. Do not adjust job priorities from this result.
 
 The seed-1 event streams are identical through 594. Their first differing event
 is on 596: candidate Imp 14 abandons exhausted Dig `(28,53)` and raises a claim;

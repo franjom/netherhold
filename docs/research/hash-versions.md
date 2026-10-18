@@ -15,9 +15,11 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**280** — `0xA9BE08812B0B9989`. Eight verified Imp corrections integrated under ADR-0512; see [imp-fidelity-integration.md](imp-fidelity-integration.md). `CreatureState.PosZ` and `CreationVelocityZ` are saved and hashed. Versions 275–279 were isolated experiments; their pins do not describe this composition.
+
 **274** — `0x34A682FB8867CE5B`. Steering axes use resulting velocity after clamping (ADR-0509); no new fields. Versions 270–273 belong to preserved Imp experiments.
 
-**269** — `0xFA0172F155ECAA5C`. Native-byte Heart routing and the earlier small core guard (ADR-0505); no new fields. Versions 266–268 belong to preserved, rejected Imp candidates.
+**269** — `0xFA0172F155ECAA5C`. Native-byte Heart routing and the earlier small core guard (ADR-0505); no new fields. Versions 266–268 belong to earlier Imp experiments; ADR-0512 records their integrated and provisional parts.
 
 **265** — `0x10A9C84139F8DF10`. Behaviour only: creature neighbours come from the native tile rectangle before combined-radius contact checks; the torturer's victim route retains native arrival flags (ADR-0500). No new saved field.
 

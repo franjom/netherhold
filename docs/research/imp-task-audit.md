@@ -152,8 +152,11 @@ centre, holds while an angle remains and otherwise sets 29; it does not deposit.
 The [state-29 handler](functions/00466AC0.md) deposits and sets 10.
 Both were checked against DKII.EXE in this investigation.
 
-Fix (ADR-0502): dispatch arrival, turn-to-centre wait and deposit on their actual
-state updates, depositing only in 29. For an unblocked trip this should
+The ADR-0512 integration takes the researched ADR-0502 correction: dispatch
+arrival, turn-to-centre wait and deposit on their actual state updates,
+depositing only in 29. Store arrival uses state 6's exact progress predicate and
+native body stop before resuming 28, so the turn and deposit remain stationary;
+the shared `StopMoving` helper is unchanged. For an unblocked trip this should
 restore two observed turns between arrival and the next selection compared
 with the initial fold. Turning may add more. Across the observed original
 Level 4 visits this accounts for 34 Imp-turns; it does not by itself explain
@@ -208,9 +211,9 @@ and hands checks ([record](functions/00465870.md)); the capture also has
 many departures on the last-gold-increase turn. A blanket post-strike delay
 is therefore not justified by this audit.
 
-The initial audit applied no fix. Its follow-up implements only the store
-state timing (ADR-0502). Investigation stops before pursuing more mining, route and RNG dependencies without an
-outcome test. Exact walk lengths, the upstream early-claim cause and the
+The initial audit applied no fix. Its first follow-up implemented only the store
+state timing (ADR-0502); ADR-0512 integrates that correction and the later
+worker-work visibility correction. Exact walk lengths, the upstream early-claim cause and the
 counterfactual effect on win rate remain open; this report does not claim
 the full original-versus-modern discrepancy is solved.
 
@@ -295,9 +298,9 @@ Store-only worsens deaths in all three and loses seed 5's baseline win.
 Work visibility restores that win and reduces seed 1's deaths, but worsens
 deaths in seeds 5 and 8. These are paired results, unlike the older P2 set.
 
-Keep ADR-0502 isolated as a fidelity candidate; it restores the observed
-store states but does not resolve the larger Imp discrepancy, and the
-confirmed campaign regression blocks recommending its merge.
+These paired runs measure effects of the store correction, not disagreement
+with the original mechanism. ADR-0512 integrates the verified store states;
+the outcome changes remain diagnostics for the larger Imp discrepancy.
 
 ### Level 1 seed 18: why the Hatchery build fails
 
@@ -381,10 +384,13 @@ The two full-time runs agree through turn 900. Artifacts and runner:
 `reverse-engineering/imp-work-order-probe-20261017{,-window,-full}/` and
 `reverse-engineering/imp-work-order-probe-20261017.py`.
 
-The unmerged ADR-0503 candidate implements work visibility, with three regression
+The archived ADR-0503 candidate implements work visibility, with three regression
 cases covering both update orders and same-turn task cleanup. Hash/save 267
 has no new fields. All 3573 simulation tests, solution and Unity compilation
 pass; independent review found no remaining issue. The four targeted replays
 are valid; Level 1 seed 18 again wins at 1796. The Level 4 table above records
-mixed results. [Broader acceptance](imp-candidate-acceptance.md) blocks gameplay merge.
+mixed results. ADR-0512 integrates the inter-worker visibility correction while
+retaining the final work pass; it does not implement the whole native scheduler.
+[Broader measurements](imp-candidate-acceptance.md) remain campaign diagnostics,
+not a veto on this verified boundary.
 The [first additional Level 4 seed-8 death](imp-survival-trace.md) has a separate causal trace.

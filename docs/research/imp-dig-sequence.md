@@ -66,8 +66,9 @@ The implementation boundaries are `WorkCadence.cs:28` (first gap),
 and `ImpTaskSystem.cs:281` / `WorkCadence.cs:53` (six-turn completion gate).
 This joins the known cadence, visibility and release differences in one
 controlled work sequence. It establishes neither a complete engine replay nor
-a new fix: the earlier [action-stop candidate](imp-dig-stop-clock.md#candidate-and-acceptance)
-fails campaign acceptance. Keep it isolated and leave the chooser unchanged.
+a new chooser fix. ADR-0512 integrates the cadence and visibility corrections;
+the [action-stop model](imp-dig-stop-clock.md#candidate-and-acceptance) remains
+isolated pending phase and interruption validation, not because of replay wins.
 
 ## Reproduction and exclusions
 

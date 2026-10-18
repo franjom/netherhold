@@ -194,34 +194,18 @@ Enhanced keeper using the same observation/command interface (KEEPER_AI.md
 
 Run git worktree list first; another session may own these.
 
-- build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
-  and mining completion candidates; campaign regressions block gameplay merge.
-  Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/imp-verified-integration: integrating the verified
-  Imp corrections for master; campaign wins are diagnostic, not a fidelity veto.
-  Creation evidence: research/imp-create-position.md. Direct chooser
-  controls and modern fixtures: research/imp-priority-checks.md. The preceding
-  work comparison and tile-input control remain research/imp-hatchery-work.md.
-  Captured strike/claim boundary: research/imp-strike-choice-boundary.md.
-  Action-stop mismatch and rejected hash-276 candidate: research/imp-dig-stop-clock.md.
-  Q612 remains open; no new chooser fix is established. Gameplay is isolated on
-  fixes/imp-dig-stop-clock; master remains hash 274.
-  Packet fractional-position loss is traced and independently reviewed:
-  research/imp-create-position.md. Comparison clocks and regenerated measurements:
-  research/imp-observation-clocks.md. The opening-time tile control confirms a
-  local early-claim contribution, while reinforcement moves in opposite
-  directions across the two seeds:
-  research/imp-hatchery-work.md#opening-time-input-control. Completed original
-  chooser controls now isolate reservation-sensitive selection at that boundary:
-  research/imp-hatchery-work.md#reservation-and-position-controls. The earlier
-  work/release sequence now has 36 full native update pairs and a bounded modern
-  continuation: research/imp-dig-sequence.md. Matching all sampled tile results
-  retains the action-completion mismatch. A complete arrival-to-choice replay
-  and accepted correction remain open; no new priority defect is established.
-  ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
-  The rejected movement/arrival candidates and random-input research remain
-  on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
-  gameplay candidates. Heart visual acceptance remains Q585.
+- build/imp-store-timing, fixes/imp-store-timing: retains the provisional mining
+  animation-ending model. Store states and work visibility are integrated under
+  ADR-0512; campaign wins are diagnostics, not a fidelity veto.
+- build/imp-acceptance retains ignored native captures and experimental probes.
+  ADR-0512 integrates eight supported Imp corrections at hash/save 280.
+  Audit, verification and the two provisional animation clocks:
+  research/imp-fidelity-integration.md. Do not delete its ignored captures.
+  Q612 remains open; no new chooser preference or reinforcement timeout is
+  established. Direct chooser controls: research/imp-priority-checks.md.
+  Work/claim controls: research/imp-hatchery-work.md. Complete native work pairs:
+  research/imp-dig-sequence.md. Next validate interrupted action phases and
+  matched arrival-to-choice inputs. Heart visual acceptance remains Q585.
 
 - build/classic-step6, classic-look/step6: unmerged presentation work with local
   changes; preserve it.

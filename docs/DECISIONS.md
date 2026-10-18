@@ -11650,7 +11650,7 @@ Positions stay clamped to known movement intervals; no extrapolation through wal
 Worker/presentation stalls can still cost frames and remain optimization work.
 
 ## ADR-0502 — Store arrival, facing and deposit take separate updates
-**Date:** 2026-10-17 · **Status:** candidate; campaign acceptance blocked
+**Date:** 2026-10-17 · **Status:** accepted; integrated by ADR-0512
 
 **Context.** An Imp deposited and passed through states 28 and 29 within its
 arrival update, whereas DK2 captures retain each state. The original's state
@@ -11665,10 +11665,10 @@ the aimed job retry and the store chooser's destination rules.
 **Consequences.** Hash/save version 266, no new fields. Deposit availability,
 later task choices and RNG draw order can change. Tests pin the intermediate
 states, turn wait, missing store and snapshot continuation.
-Paired campaign acceptance remains unresolved; see the research note.
+Campaign outcomes are diagnostics under ADR-0512.
 
 ## ADR-0503 — Resolve each worker's work before updating the next worker
-**Date:** 2026-10-17 · **Status:** candidate; mixed campaign results
+**Date:** 2026-10-17 · **Status:** accepted; integrated by ADR-0512
 
 **Context.** Deferring every worker's strikes until after the worker pass hides
 fallen walls from later task choices and completed-action checks. Binary order
@@ -11681,11 +11681,11 @@ action-before-state order within a single creature.
 
 **Consequences.** Hash/save version 267, no new fields. Same-turn task races,
 later choices and RNG use can change. Tests cover both worker orders and a
-chooser seeing a wall fall. Sampled wins recover but Imp deaths worsen in two
-Level 4 seeds; retain the isolated branch pending broader acceptance.
+chooser seeing a wall fall. ADR-0512 also applies a miner's own strike before
+its seam and hands checks; a complete creature action scheduler remains unbuilt.
 
 ## ADR-0504 — Retain exhausted mining actions through their animation ending
-**Date:** 2026-10-17 · **Status:** candidate; campaign acceptance failed
+**Date:** 2026-10-17 · **Status:** provisional animation-clock implementation
 
 **Context.** A depleted seam can leave an Imp in action 2 until the looping
 mining animation stops. Binary and capture evidence, scope and acceptance
@@ -11697,9 +11697,9 @@ Apply the worker's own strike before checking the seam. Keep immediate
 full-hands departure when the seam remains workable.
 
 **Consequences.** Candidate hash/save 268 adds `MiningActionEndsAt`. The focused
-regressions and snapshot/hash checks pass, but the Level 1 sweep regresses
-against both baseline and the preceding candidate. Preserve this implementation
-on its isolated branch; merge research separately, without changing gameplay.
+regressions and snapshot/hash checks pass. Reconstructing phase from work entry
+does not establish interrupted or other-art behavior. Keep that model isolated;
+ADR-0512 integrates the independently supported own-strike ordering correction.
 
 ## ADR-0505 — Restore native Heart routes and retain only the small core guard
 **Date:** 2026-10-17 · **Status:** accepted
@@ -11728,26 +11728,42 @@ native velocity source. Evidence and acceptance are in
 
 **Decision.** Normalize body velocity after arrival and wall clamping, then
 take its perpendicular. Preserve movement order, arrival timing, task choice
-and Heart policy on main. Keep the rejected Imp candidates separate.
+and Heart policy on main. Imp candidates are assessed separately by ADR-0512.
 
 **Consequences.** Hash/save 274, no new fields; 270–273 belong to isolated
 experiments. Existing axis values in snapshots/hashes change. This correction
 does not claim to resolve campaign losses or idle random-stream differences.
 
-## ADR-0510 — Preserve the ordinary dig correction as an isolated candidate
-**Date:** 2026-10-18 · **Status:** gameplay merge deferred
+## ADR-0510 — Preserve the native four-turn first dig gap
+**Date:** 2026-10-18 · **Status:** accepted; integrated by ADR-0512
 
 **Context.** The earlier three-turn digging claim fails a per-worker recheck;
 the original captures support a four-turn first-cycle gap. The correction and
 paired acceptance are in [mining-cadence.md §5](research/mining-cadence.md#5-the-other-work-kinds-rock-and-the-state-26-read-2026-09-28).
 
-**Decision.** Correct the research. Preserve the minimal ordinary-dig gap
-correction on `fixes/imp-dig-first-cycle`; leave main's gameplay unchanged
-because the candidate loses a baseline Level4 replay win. Do not compensate
-with job-priority, idle-wakeup or work-rate changes.
+**Decision.** Apply the minimal ordinary-dig gap correction. Do not compensate
+for changed outcomes with job-priority, idle-wakeup or work-rate changes.
 
-**Consequences.** Hash/save 275 is candidate-only, with no new fields. Passing
-simulation regressions establish the bounded hit sequence, not campaign
-acceptance. A faithful mechanism may expose other timing differences; that
-possibility does not establish which missing mechanic causes the replay loss.
+**Consequences.** Experimental hash/save 275 introduces no new fields; the
+integrated version is 280. The bounded hit sequence is verified independently
+of the changed campaign outcomes; see ADR-0512.
+
+## ADR-0512 — Integrate verified fidelity corrections despite changed replay wins
+**Date:** 2026-10-18 · **Status:** accepted; owner instruction
+
+**Context.** Unmatched-seed command replays were incorrectly used to veto
+binary-supported corrections. The owner requires verified DK2 behavior on
+master regardless of lost replay wins. Audit and remaining limits:
+[imp-fidelity-integration.md](research/imp-fidelity-integration.md).
+
+**Decision.** Integrate separate store states, inter-worker work visibility,
+own-strike visibility before the mining hands test, newest-first movement,
+exact idle arrival, the four-turn first dig gap, fractional Create Imp positions
+and scoped height-driven creation landing. Retain changed replay outcomes as
+diagnostics. Do not invent priority or reinforcement-timeout compensation.
+
+**Consequences.** Hash/save 280 adds saved creation height; older snapshots
+are incompatible. Dig and mining animation-ending phase reconstructions remain
+provisional because their implementation scope is incompletely validated.
+Campaign wins do not establish fidelity and cannot veto a verified correction.
 

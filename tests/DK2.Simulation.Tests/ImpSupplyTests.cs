@@ -237,6 +237,55 @@ public class ImpSupplyTests
 
     // ---- Create Imp -------------------------------------------------------
 
+    [Theory]
+    [InlineData(681, 1337)]
+    [InlineData(3567, 36)]
+    public void AnExactCastPreservesItsPositionAndDoesNotInventAWalk(int fractionX, int fractionY)
+    {
+        Run run = WithAHeart(mana: 10_000);
+        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
+        var position = new FpPosition2(new Fp32(2 * Fp32.One + fractionX),
+            new Fp32(3 * Fp32.One + fractionY));
+        int mana = run.Mana;
+        int cost = ImpSupplyRules.CreateImpCost(run.World, run.Db, Keeper);
+
+        run.Tick(new CreateImpCommand(Keeper, position));
+
+        CreatureState imp = run.World.Creatures[^1];
+        Assert.Equal(position.Tile, imp.Tile);
+        Assert.Equal((position.X.Raw, position.Y.Raw), (imp.PosX, imp.PosY));
+        Assert.Equal((imp.PosX, imp.PosY), (imp.LastPosX, imp.LastPosY));
+        Assert.False(imp.HasRoute);
+        Assert.Equal(mana - cost, run.Mana);
+    }
+
+    [Fact]
+    public void AnExactCastStillRequiresPermissionOnItsContainingTile()
+    {
+        Run run = WithAHeart(mana: 10_000);
+        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
+        int mana = run.Mana;
+        run.Tick(new CreateImpCommand(Keeper,
+            new FpPosition2(new Fp32(6 * Fp32.One + 681), new Fp32(3 * Fp32.One + 1337))));
+        Assert.Equal(4, run.Imps);
+        Assert.Equal(mana, run.Mana);
+        Assert.Contains(run.Of("create_imp_refused"), e => e.Detail.Contains("reason=location"));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(int.MaxValue)]
+    public void AnExactCastOutsideTheMapCannotWrapOntoAnOwnedTile(int x)
+    {
+        Run run = WithAHeart(mana: 10_000);
+        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
+        int mana = run.Mana;
+        run.Tick(new CreateImpCommand(Keeper,
+            new FpPosition2(new Fp32(x), new Fp32(3 * Fp32.One + 1337))));
+        Assert.Equal(4, run.Imps);
+        Assert.Equal(mana, run.Mana);
+    }
+
     [Fact]
     public void CreateImpBuysAnImpAndSpendsTheMana()
     {
@@ -266,6 +315,8 @@ public class ImpSupplyTests
         Assert.Equal(5, run.Imps);
         Assert.Contains(run.Of("imp_created"), e => e.Detail.Contains("at=(2,3)"));
         Assert.Contains(run.World.Creatures, c => c.Tile == at);
+        CreatureState made = run.World.Creatures[^1];
+        Assert.Equal((CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y)), (made.PosX, made.PosY));
     }
 
     /// <summary>Location selector 1 (<c>0x00517B80</c>) wants land of the caster's own or an

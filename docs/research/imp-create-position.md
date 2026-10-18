@@ -3,10 +3,10 @@
 ## Position evidence
 
 **CONFIRMED (2026-10-18):** two human Create Imp casts preserve fractional
-12.12 X/Y in the original game. Modern replay truncates them to a tile and
-then spawns at its centre:
+12.12 X/Y in the original game. Hash-274 modern replay truncated them to a tile
+and spawned at its centre:
 
-| Packet turn | Packet X/Y and native birth X/Y | Modern birth X/Y |
+| Packet turn | Packet X/Y and native birth X/Y | Hash-274 birth X/Y |
 |---:|---|---|
 | 392 | 122351 / 221220 | 120832 / 223232 |
 | 552 | 111273 / 222521 | 112640 / 223232 |
@@ -62,9 +62,9 @@ The last control matches these selected local observations, not the native
 trajectory. The first Portal still converts on modern 742; state-22 observations
 through 1100 remain 389. Position alone leaves that Portal date unchanged and
 reduces state-22 observations to 358. These are bounded computations, not campaign
-acceptance or proof of the global reinforcement cause. No gameplay fix is merged.
+acceptance or proof of the global reinforcement cause.
 
-## Exact-position candidate and acceptance
+## Exact-position correction and historical replay diagnostics
 
 The isolated `fixes/imp-cast-position` candidate, hash/save 277, preserves human
 cast X/Y through packet decoding, the command and spawning. Existing tile and
@@ -85,16 +85,16 @@ that changes only worker 14's birth. Paired packet acceptance retains the same
 entity maps and seeds; baseline results are reused from hash 274. Reusing the
 Level4 seed-1 entity map for seed 5 remains a limitation.
 
-| Level / seed | Main win / Imp deaths | Exact-position candidate win / deaths |
-|---|---|---|
-| 1 / 1 | 1804 / 0 | 1804 / 0 |
-| 1 / 5 | 1804 / 0 | 1804 / 0 |
-| 4 / 1 | 6732 / 3 | none by 6804 / 11 |
-| 4 / 5 | none by 6804 / 35 | none by 6804 / 15 |
+| Level / seed | Main win / Imp deaths | Position 277 win / deaths | Position + landing 278 win / deaths |
+|---|---|---|---|
+| 1 / 1 | 1804 / 0 | 1804 / 0 | 1804 / 0 |
+| 1 / 5 | 1804 / 0 | 1804 / 0 | 1804 / 0 |
+| 4 / 1 | 6732 / 3 | none by 6804 / 11 | none by 6804 / 13 |
+| 4 / 5 | none by 6804 / 35 | none by 6804 / 15 | none by 6804 / 3 |
 
-**Gameplay merge deferred.** Exact birth-position agreement establishes the
-bounded correction; campaign acceptance still fails. No priority workaround or
-guessed landing wait is included. Preserve this candidate separately.
+Exact birth-position agreement establishes this bounded correction. The hash-280
+integration branch includes it under ADR-0512; the historical campaign outcomes
+above diagnose remaining differences and do not override the native evidence.
 
 ## State 214 and height
 
@@ -158,11 +158,56 @@ static reading; the capture does not establish a universal landing duration or
 the global reinforcement cause. Native execution clocks above remain distinct
 from the snapshot headers in the preceding table.
 
-The next implementation boundary is a height-driven creation state, with its
-floor representation checked against modern movement. Preserve the exact-position
-candidate separately; do not replace the height predicate with a fixed wait.
-Measure birth-to-first-choice timing and repeat paired campaign acceptance before
-considering any combined candidate for merge.
+The complete instruction read of [world slot +0x204](functions/00509010.md)
+resolves it to the floor-height query. Action 54 uses that return as cast Z;
+the creation callback adds 2048. The initial height above the stationary floor
+is therefore 2048, rather than a duration inferred from snapshots.
+
+## Height-driven candidate
+
+The isolated `fixes/imp-creation-landing`, hash/save 278, added a floor-relative
+creation fall only for exact point commands. `ImpCreationRules` uses the
+simulation's zero-floor convention, retains 214 while above it, accumulates
+the byte-sized gravity's vertical vector and clamps below-floor movement.
+At floor it runs the landing's 1-to-11 transition; existing 11 then enters 10.
+Free supply, tile/default Heart commands and Receive Imps retain their previous
+paths. This is the stationary, non-flying worker subset, not general physics.
+
+Both seeds reproduce each cast's five snapshot observations: 214 above floor,
+214 at floor, 11, 10, then first walk. X/Y remains exact. The raw prefix through
+391 is unchanged under the common fields; no native RNG/whole-trajectory match
+is claimed. Tests establish zero gravity holds for twelve updates, lower gravity
+accumulates velocity, and a mid-fall save resumes identically. Presentation adds
+creation elevation to its existing floor projection and keeps previous height.
+
+The [landing handler](functions/0046EAB0.md) has more than this ordinary
+empty-handed fallback. Existing omissions remain: adjacent-door work,
+[Workshop blueprint takeover](functions/00464A80.md), Temple handling and
+room-specific position adjustments. Heart-interior landing is normally excluded
+by point-cast permissions. Do not substitute the general room-drop helper for
+these worker branches. Interrupted creation resets its temporary elevation to
+the existing grounded-state model; native physical flight outside 214 is not
+implemented or claimed. Review caught the hand-interruption case; two failing
+pickup regressions now cover it.
+
+The final build has no warnings or errors. All 3589 simulation and 630
+presentation tests pass, as do the other solution projects except four Behavior
+tests. Each failure also reproduces using main's existing built tests: the
+Level1 variable value, Level17 Call to Arms, Level11A bridge/attack scenario,
+and the Goblin chicken-eating expectation. They are not corrected in this
+candidate. The suite also skips 22 oracle and three capture-dependent cases.
+
+The hash-280 integration branch includes both the exact-position and scoped
+height-driven corrections under ADR-0512. These are two distinct corrections;
+the duplicate position commit in the landing branch adds no third behavior.
+Their native evidence establishes the corrected local behavior without proving
+the complete trajectory. Existing landing omissions above remain explicit.
+
+The historical paired replay table above diagnoses remaining simulation
+differences. Its outcomes do not reject
+the observed birth correction or justify priority changes to restore a win.
+The reinforcement cause remains open; compare the earliest differing worker
+decision and its actual task inputs.
 
 ## Reproduction and review
 
@@ -177,8 +222,8 @@ Candidate artifacts: `imp-cast-position-20261018/` in the same ignored parent.
 `Program.cs`/`Probe.csproj` record ordinary hash-277 packet runs; `paired_dig.py`
 reuses baseline results and runs four candidate replays. Its `verify.py` checks
 all eight outcomes, exact birth positions, prefix agreement and the native
-height/state samples. Neither verifier treats the mixed campaign outcomes as
-acceptance.
+height/state samples. Their historical campaign-gating wording is superseded
+by ADR-0512; the measurements remain diagnostic.
 `native_height.py` and the retained fault logs are excluded physical-pass trials.
 `imp-birth-landing-20261018/capture_live.py`, `live-boundaries/boundaries.jsonl`
 and `verify.py` retain the completed live pairs and raw-image validation. The
@@ -188,3 +233,10 @@ run; both masks yield false in these four images, and neither controls selection
 The independent reviewer separately decoded the packet, read native records,
 and repeated the action/cast/creation binary reads. It did not run the modern
 controls; their verifier was run by the implementing agent.
+
+Hash-278 artifacts are in `imp-creation-landing-20261018/`: `measure.py` records
+the two ordinary 1100-turn probes; `paired_dig.py` uses the same maps/packets,
+baseline 274 and acceptance horizons as 277. `verify.py` checks the birth traces,
+common prefixes, trigger CSV equality and all eight paired outcomes. Review
+independently checked the floor-wrapper instructions, landing limits and code;
+the implementing agent ran the modern tests and campaign probes.

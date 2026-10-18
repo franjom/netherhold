@@ -1348,6 +1348,11 @@ public sealed partial class WorldView
                 new FpPosition3(new(posX), new(posY), new(FloorZ))).Raw;
             int previousHeight = flying ? FloorZ : CreatureGroundHeight(world,
                 new FpPosition3(new(creature.LastPosX), new(creature.LastPosY), new(FloorZ))).Raw;
+            if (creature.Dk2StateId == ImpCreationRules.FallingState)
+            {
+                height += creature.PosZ;
+                previousHeight += creature.LastPosZ;
+            }
             int yaw = (creature.Heading + 1024) & 2047, pitch = 0, roll = 0;
             int previousX = creature.LastPosX, previousY = creature.LastPosY;
             if (PortalExitIsRelocation(world, creature))

@@ -23,12 +23,13 @@ public static class WorkCadence
     /// <summary>Arrival (the entry state's tick) to the first application: E+2.</summary>
     public const int FirstApplicationTicks = 3;
 
-    /// <summary>The first application to the second. UNKNOWN for conversion, attack and repair,
-    /// which the captures do not show: they take claiming's 1 and digging's 3 by family.</summary>
+    /// <summary>The first application to the second. Ordinary dig art advances 1365 per tick:
+    /// three advances reach 4095, so its first cycle takes four (mining-cadence.md §5).
+    /// Conversion, attack and repair retain their unconfirmed family defaults.</summary>
     public static int SecondApplicationGap(TileWorkKind kind) => kind switch
     {
         TileWorkKind.MineGold => 4,
-        TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => 3,
+        TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => 4,
         TileWorkKind.Reinforce or TileWorkKind.RepairWall => 3,
         _ => 1,
     };
