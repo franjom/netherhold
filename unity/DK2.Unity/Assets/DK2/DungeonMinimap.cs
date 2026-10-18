@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using DK2.Core;
 using DK2.Art.Textures;
 using DK2.Data.Model;
 using DK2.Data.Wad;
@@ -74,6 +75,18 @@ namespace DK2.Unity
         private WorldState _capturedWorld;
         private long _capturedTick = -1;
         private int _capturedPreview = -1;
+        private MinimapZoom _zoom = MinimapZoom.WholeMap;
+        public void ZoomIn() => _zoom = _zoom.ZoomIn();
+        public void ZoomOut() => _zoom = _zoom.ZoomOut();
+        public void HandleZoomPress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed)
+        {
+            if (!primaryPressed && !secondaryPressed || Screen.height <= 0) return;
+            float scale = Screen.height / 768f;
+            if (!MinimapControlLayout.IsMagnifier(new System.Numerics.Vector2(
+                screenPosition.x / scale, 768 - screenPosition.y / scale))) return;
+            if (primaryPressed) ZoomIn();
+            if (secondaryPressed) ZoomOut();
+        }
 
         public DungeonMinimap(Transform parent, IMinimapAssets assets, int width, int height)
         {
@@ -138,12 +151,21 @@ namespace DK2.Unity
             _gpu.UploadMarkers(_markers);
         }
 
-        public void Draw(Camera camera)
+        public void Draw(Camera camera, Vector3? focus = null)
         {
             if (camera == null) return;
+            Vector3 centre = focus ?? camera.transform.position;
+            if (!focus.HasValue)
+            {
+                var floor = new Plane(Vector3.up, new Vector3(0, 1, 0));
+                Ray ray = camera.ViewportPointToRay(new Vector3(.5f, .5f, 0));
+                if (floor.Raycast(ray, out float distance)) centre = ray.GetPoint(distance);
+            }
+            _gpu.SetView(_zoom, new FpPosition3(new Fp32((int)(centre.x * Fp32.One)),
+                new Fp32((int)(-centre.z * Fp32.One)), new Fp32(0)));
             _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(Diameter * Screen.height / 768f));
             if (_image.image != _gpu.Disc) _image.image = _gpu.Disc;
-            _footprint.UpdateCamera(camera);
+            _footprint.UpdateCamera(_zoom.IsWholeMap ? camera : null);
         }
 
         public bool ContainsPointer(Vector3 position)

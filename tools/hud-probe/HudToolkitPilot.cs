@@ -217,6 +217,44 @@ namespace DK2.Unity.HudProbe
                         throw new InvalidOperationException("Removed minimap marker left stale pixels.");
                 }
                 finally { Destroy(cleared); }
+                map.UploadMarkers(new[] { marker });
+                map.SetView(new MinimapZoom(1), new(new(0x1400), new(0x800), new(0)));
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 65, y: 63);
+                Texture2D zoomed = Read(map.Disc);
+                try
+                {
+                    if (zoomed.GetPixel(62, 63).r < .98f || zoomed.GetPixel(62, 62).g < .98f)
+                        throw new InvalidOperationException("Zoomed terrain lost its fractional raster anchor.");
+                }
+                finally { Destroy(zoomed); }
+                map.SetView(new MinimapZoom(4), new(new(0x1400), new(0x800), new(0)));
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 68, y: 63);
+                map.UploadMarkers(new[] { new MinimapMarker(MinimapMarkerKind.HorizontalDoor, marker.Position, 0xFF0000FF) });
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 61, y: 63);
+                map.UploadMarkers(new[] { new MinimapMarker(MinimapMarkerKind.VerticalDoor,
+                    new(new(0x1800), new(0x1800), new(0)), 0xFF0000FF) });
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 68, y: 55);
+                map.UploadMarkers(new[] { new MinimapMarker(MinimapMarkerKind.Rectangle, marker.Position, 0xFF0000FF,
+                    EndPosition: new(new(0x2800), new(0x1800), new(0))) });
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 76, y: 63);
+                map.SetView(new MinimapZoom(1), new(new(0x1400), new(0x800), new(0)));
+                MinimapMarker reporting = MinimapMarkerRules.ReportingRing(marker.Position, 2, MinimapMapBounds.Fit(3, 2), 3);
+                map.UploadMarkers(new[] { new MinimapMarker(reporting.Kind, reporting.Position, 0xFF0000FF,
+                    reporting.RadiusRasterPixels, ReportingDistanceTiles: reporting.ReportingDistanceTiles) });
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 69, y: 63);
+                map.UploadMarkers(new[] { marker });
+                map.SetView(new MinimapZoom(1), new(new(0x6800), new(0x800), new(0)));
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 54, y: 63);
+                map.SetView(MinimapZoom.WholeMap, default);
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 50, y: 107);
             }
         }
 

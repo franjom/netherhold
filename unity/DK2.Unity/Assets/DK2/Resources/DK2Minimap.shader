@@ -41,6 +41,8 @@ Shader "Hidden/DK2/Minimap"
             #include "UnityCG.cginc"
             sampler2D _Classes, _Palette, _Backdrop;
             float4 _GridSize, _Palette_TexelSize, _MapRect;
+            float4 _RasterOrigin;
+            int _Zoom;
             float _Angle;
             struct Varyings { float4 position : SV_POSITION; float2 uv : TEXCOORD0; };
             Varyings Vert(uint id : SV_VertexID)
@@ -61,6 +63,7 @@ Shader "Hidden/DK2/Minimap"
                 float s = sin(_Angle), c = cos(_Angle);
                 float2 raster = float2(c * p.x - s * p.y, s * p.x + c * p.y) * 64 + 64;
                 float2 tile = (raster - _MapRect.xy) * _GridSize.xy / max(_MapRect.zw, 1);
+                if (_Zoom >= 0) tile = (floor(raster) - _RasterOrigin.xy) / (1 << _Zoom);
                 float tileClass = 1;
                 if (all(tile >= 0) && all(tile < _GridSize.xy))
                 {
@@ -85,6 +88,8 @@ Shader "Hidden/DK2/Minimap"
             struct Marker { int2 position; uint kind, colour; int2 endPosition; };
             StructuredBuffer<Marker> _Markers;
             float4 _GridSize, _MapRect;
+            float4 _FocusPixel;
+            int _Zoom;
             float _Angle;
             struct Varyings
             {
@@ -101,14 +106,18 @@ Shader "Hidden/DK2/Minimap"
                 Marker marker = _Markers[instance];
                 int2 tile = marker.position >> 12;
                 int2 origin = tile * int2(_MapRect.zw) / int2(_GridSize.xy) + int2(_MapRect.xy);
+                if (_Zoom >= 0) origin = 64 + (marker.position >> (12 - _Zoom)) - int2(_FocusPixel.xy);
                 float2 size = 3;
                 float2 centre = origin + .5;
-                uint kind = marker.kind & 65535;
+                uint kind = marker.kind & 255;
                 uint radius = marker.kind >> 16;
+                if (_Zoom >= 0 && (marker.kind & 256) != 0) radius = marker.endPosition.x * (1 << _Zoom);
                 if (kind == 2 || kind == 3)
                 {
                     int2 axis = kind == 2 ? int2(0,1) : int2(1,0);
+                    if (_Zoom >= 0) origin -= axis * ((marker.position & 4095) >> (12 - _Zoom));
                     int2 span = (tile + axis) * int2(_MapRect.zw) / int2(_GridSize.xy) + int2(_MapRect.xy) - origin;
+                    if (_Zoom >= 0) span = axis * (1 << _Zoom);
                     size = max(1 - axis, span);
                     centre = origin + size * .5;
                     if (dot(span, axis) <= 0) size = 0;
@@ -118,6 +127,7 @@ Shader "Hidden/DK2/Minimap"
                 {
                     int2 endTile = marker.endPosition >> 12;
                     int2 end = endTile * int2(_MapRect.zw) / int2(_GridSize.xy) + int2(_MapRect.xy);
+                    if (_Zoom >= 0) end = 64 + (marker.endPosition >> (12 - _Zoom)) - int2(_FocusPixel.xy);
                     size = max(end - origin, 0);
                     centre = origin + size * .5;
                 }

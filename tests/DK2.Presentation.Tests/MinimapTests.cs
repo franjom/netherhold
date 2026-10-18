@@ -11,6 +11,53 @@ namespace DK2.Presentation.Tests;
 public sealed class MinimapTests
 {
     [Fact]
+    public void MagnifierUsesTheNativeAnchoredHitRectangle()
+    {
+        Assert.True(MinimapControlLayout.IsMagnifier(new(134.4f, 710.4f)));
+        Assert.True(MinimapControlLayout.IsMagnifier(new(185.59f, 761.59f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new(134.39f, 710.4f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new(185.6f, 710.4f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new(150, 761.6f)));
+    }
+
+    [Fact]
+    public void ZoomedTerrainAndMarkersPreserveTheirDistinctFractionalRounding()
+    {
+        var zoom = new MinimapZoom(1);
+        FpPosition3 focus = new(new(0x1400), new(0x1800), new(0));
+        FpPosition3 thing = new(new(0x1C00), new(0x1800), new(0));
+        Assert.Equal(new MinimapRasterPoint(61, 61), zoom.RasterOrigin(focus));
+        Assert.Equal(new MinimapRasterPoint(65, 64), zoom.Project(thing, focus));
+        Assert.Equal(new MinimapRasterPoint(64, 64), zoom.Project(focus, focus));
+        zoom = new MinimapZoom(4);
+        Assert.Equal(new MinimapRasterPoint(44, 40), zoom.RasterOrigin(focus));
+        Assert.Equal(new MinimapRasterPoint(72, 64), zoom.Project(thing, focus));
+        Assert.Throws<InvalidOperationException>(() => MinimapZoom.WholeMap.RasterOrigin(focus));
+    }
+
+    [Fact]
+    public void MinimapZoomStartsWithTheWholeMapAndClampsBothDirections()
+    {
+        MinimapZoom zoom = MinimapZoom.WholeMap;
+        Assert.True(zoom.IsWholeMap);
+        Assert.Equal(zoom, zoom.ZoomOut());
+        for (int level = 0; level <= 4; level++)
+        {
+            zoom = zoom.ZoomIn();
+            Assert.Equal(level, zoom.Level);
+            Assert.Equal(1 << level, zoom.PixelsPerTile);
+        }
+        Assert.Equal(zoom, zoom.ZoomIn());
+        for (int level = 3; level >= -1; level--)
+        {
+            zoom = zoom.ZoomOut();
+            Assert.Equal(level, zoom.Level);
+        }
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MinimapZoom(-2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MinimapZoom(5));
+    }
+
+    [Fact]
     public void CameraFootprintMovesWithoutATickAndDoesNotAllocate()
     {
         Vector2[] corners = [new(48, 48), new(80, 48), new(80, 80), new(48, 80)];

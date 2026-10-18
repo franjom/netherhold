@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using DK2.Presentation;
+using DK2.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -29,6 +30,22 @@ namespace DK2.Unity
         public RenderTexture Classes { get; }
         public RenderTexture Disc => _disc;
         public int LastUploadedTiles { get; private set; }
+        private MinimapZoom _zoom = MinimapZoom.WholeMap;
+        private FpPosition3 _focus;
+        public void SetView(MinimapZoom zoom, FpPosition3 focus)
+        {
+            if (_zoom == zoom && (zoom.IsWholeMap || _focus == focus)) return;
+            _zoom = zoom; _focus = focus;
+            _material.SetInt("_Zoom", zoom.Level);
+            if (!zoom.IsWholeMap)
+            {
+                MinimapRasterPoint origin = zoom.RasterOrigin(focus);
+                _material.SetVector("_RasterOrigin", new Vector4(origin.X, origin.Y, 0, 0));
+                _material.SetVector("_FocusPixel", new Vector4(focus.X.Raw >> (12 - zoom.Level),
+                    focus.Y.Raw >> (12 - zoom.Level), 0, 0));
+            }
+            _dirty = true;
+        }
 
         public MinimapGpuMap(int width, int height, MinimapPalette palette, Texture backdrop)
         {
@@ -37,6 +54,7 @@ namespace DK2.Unity
             Shader shader = Resources.Load<Shader>("DK2Minimap");
             if (shader == null || !shader.isSupported) throw new InvalidOperationException("Minimap shader unavailable.");
             _material = new Material(shader);
+            _material.SetInt("_Zoom", -1);
             _uploads = new Upload[checked(width * height)];
             _buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _uploads.Length, sizeof(uint) * 2);
             Classes = Target(width, height, linear: true);
@@ -126,8 +144,10 @@ namespace DK2.Unity
                 if (markers[i].RadiusRasterPixels < 0 || markers[i].RadiusRasterPixels > ushort.MaxValue)
                     throw new ArgumentOutOfRangeException(nameof(markers), "Marker radius must fit the packed raster extent.");
                 _markers[i] = new MarkerUpload { X = markers[i].Position.X.Raw, Y = markers[i].Position.Y.Raw,
-                    Kind = (uint)markers[i].Kind | (uint)markers[i].RadiusRasterPixels << 16, Colour = markers[i].ColourArgb,
-                    EndX = markers[i].EndPosition.X.Raw, EndY = markers[i].EndPosition.Y.Raw };
+                    Kind = (uint)markers[i].Kind | (markers[i].ReportingDistanceTiles >= 0 ? 256u : 0)
+                        | (uint)markers[i].RadiusRasterPixels << 16, Colour = markers[i].ColourArgb,
+                    EndX = markers[i].ReportingDistanceTiles >= 0 ? markers[i].ReportingDistanceTiles : markers[i].EndPosition.X.Raw,
+                    EndY = markers[i].EndPosition.Y.Raw };
             }
             _markerCount = markers.Count;
             if (_markerCount > 0) _markerBuffer.SetData(_markers, 0, 0, _markerCount);

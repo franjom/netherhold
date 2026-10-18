@@ -1,6 +1,6 @@
 # Step 6 — HUD and controls
 
-Status: live minimap tiles, markers, reporting outlines and camera footprint built; 6.1 remains partial, 2026-10-18.
+Status: live minimap tiles, markers, reporting outlines, camera footprint and magnifier zoom built; 6.1 remains partial, 2026-10-18.
 The native frame with its idle corner artwork is present; remaining overlays,
 navigation controls and owner comparison remain open;
 ADR-0497 remains proposed. Step5's outstanding visual/performance
@@ -51,7 +51,7 @@ Creature/trap dots and oriented door strokes use researched fog, hand and blink
 rules, with a retained marker buffer and display-resolution shapes. Pending
 pickups use a documented command-settlement approximation. The static Heart and
 Guard Post reporting-distance outlines, Guard Room rectangle, possession ring and
-Alarm ring and textured camera footprint are built; other overlays and navigation controls remain. Whole-HUD
+Alarm ring, textured camera footprint and magnifier zoom are built; other overlays and click navigation remain. Whole-HUD
 visibility is Q610, with the current reading in [hud-visibility.md](../research/hud-visibility.md).
 Disc/frame layout and rotation still need owner comparison. Static native menu
 and corner-art mapping is recorded; physical input channels and complete corner

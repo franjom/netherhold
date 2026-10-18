@@ -7,6 +7,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Unity's C# 9 compiler rejects struct `with` expressions accepted by the adapter's newer compiler; construct replacement values explicitly in Unity/probe source.
+
 - Runtime-selected material variants can disappear only in standalone builds; see [the verified card regression](research/classic-lighting-verification.md#windowed-player-and-counter-calibration).
 
 - Missing Unity mesh UV2/UV3 shader inputs arrived as ones on D3D12, routing static terrain into animated lighting; publish explicit zero channels instead of assuming absent streams are zero.

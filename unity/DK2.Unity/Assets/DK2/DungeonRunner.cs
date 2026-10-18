@@ -311,7 +311,7 @@ namespace DK2.Unity
             else LookAt(world);
             _minimap = new DungeonMinimap(transform, new InstallMinimapAssets(install), world.Width, world.Height);
             _minimap.Capture(world, _worldView, _simulation.Navigation);
-            _minimap.Draw(Camera.main);
+            _minimap.Draw(Camera.main, _cameraFocus);
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
@@ -440,7 +440,7 @@ namespace DK2.Unity
             _scene.AdvanceTorchAnimation();
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
-            _minimap?.Draw(Camera.main);
+            _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
             if (showDiagnostics) RefreshDiagnostics();
 
             // Nothing on this thread reads the world again before the next Update's wait: OnGUI
@@ -503,6 +503,7 @@ namespace DK2.Unity
 
         private void QueueInput()
         {
+            _minimap?.HandleZoomPress(Input.mousePosition, Input.GetMouseButtonDown(0), Input.GetMouseButtonDown(1));
             _input.SelectTool((byte)viewingPlayerId, ActiveTool);
             PointerButtonTransition button = PointerButtonTransition.None;
             if (Input.GetMouseButtonDown(0)) button |= PointerButtonTransition.Pressed;

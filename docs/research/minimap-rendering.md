@@ -144,12 +144,11 @@ the camera origin in `+0x139B/+0x139F`, then invokes `0x0041A410`.
 The latter rotates the offset by camera heading, divides by four toward zero,
 and maps it either through the whole-map 90-pixel fit or the zoom factor. After
 map bounds and interface slot `+0x1FC` pass, it submits command type 4 containing
-the tile coordinates. The exact initiating button, drag lifetime and packet
-consumer remain to be traced; this does not establish the full click contract.
+the tile coordinates. The packet consumer remains untraced; this does not
+establish the full click contract. Subsequent press/channel findings are below.
 
 The callback's pointer appears at static data `0x00690FCE`, immediately followed
-by `0x0041A7D0`. Record loading and button-field meanings remain unread; adjacency
-alone does not establish a left/right-button binding.
+by `0x0041A7D0`; the widget/channel binding is established below.
 
 `0x0041A7D0`, when world `+0x284` is zero, submits command type 15/value 7,
 then calls map-view slots `+0x1F0/+0x1E8`; those mode semantics remain unread.
@@ -206,15 +205,14 @@ The corner callback pairs are: upper left `0x0041A2B0`/none; upper right
 `0x004163F0`/none; lower right `0x00416480`/`0x00416580`; lower left
 `0x00428710`/none. The lower-right callbacks increment/decrement signed zoom,
 clamped to -1..4. Crossing into 0 or -1 updates the interface mode and whole-map
-rectangle. Selection cleanup in their tails remains unread. The other corners
+rectangle. Their selection cleanup is described below. The other corners
 select mode 10, select mode 4, and toggle message-like widget visibility;
 their complete panel behaviour is not implemented by displaying the artwork.
 
 Type-0 widget dispatcher `0x00528610` invokes the two callback fields once per
 held channel. `0x0052C0A0` maps events F0/F1 to those channels and maintains
 capture. `0x00406530` routes unconsumed F0 to Hand_Click and F1 to the secondary
-hand handler. The physical event producer remains unread: this trace alone does
-not justify naming F0/F1 left/right mouse buttons. Native map widget 3 at
+hand handler. The physical-channel producer is described below. Native map widget 3 at
 `0x00690FC8` uses the same channels for navigation/mode callbacks.
 
 Other inspected setup functions: `0x004152B0` loads four ten-sprite digit/overlay
@@ -338,3 +336,49 @@ submitting non-finite geometry; native unprojection has no such guard.
 OpenKeeper was consulted as a facts-only reference (see THIRD-PARTY-NOTICES.md);
 the projection, floor, clamp and border contracts above come from DKII.EXE.
 Owner comparison in the original game remains pending.
+
+## Zoom and pointer controls (binary)
+
+Read 2026-10-18: zoom callbacks including tails, zoom raster and marker branches,
+pointer-buffer decoder and channel remapping. Zoom is -1..4, initially -1.
+The type-0 button callbacks are latched once per press, not repeated while held.
+Magnifier F0 increments, F1 decrements. `0x005DDA90` maps buffered offsets
+12/13/14/15 to F0/F1/F2/F3, preserving button state from data bit 7. These match
+the standard mouse button 0/1 layout, making default F0-left/F1-right
+**STRONGLY INFERRED**; concrete device-format setup is not yet checked.
+`0x005DD560` swaps F0/F1 when its receiver byte +0x60 is set.
+
+Zoom tails call selection cleanup and clear a queued selection only when its
+descriptor's first byte is zero and second byte matches the widget argument.
+Entering zoom 0 or whole-map -1 also changes the interface minimap mode and
+refreshes the map rectangle. These are UI operations, not simulation zoom rules.
+
+Zoom focus is fixed-point `camera(+0xD68)+camera(+0xD74)` in X, and
+`camera(+0xD6C)+camera(+0xD78)` in Y, not the optical camera origin. For z=0..4,
+step is `1<<z`. The raster's map-origin pixel is
+`(0x400000-(focusRaw<<(z+4)))>>16`, with native 32-bit arithmetic and signed
+shift. For positive focus this is `64-ceil(focusRaw*step/4096)`. Raster texels
+sample `floor((pixel-origin)/step)`; out-of-map pixels use the backdrop.
+
+Marker projection instead uses `64+(tile-focusTile)*step+entityFractionPixels-
+focusFractionPixels`, with native signed fractional extraction. For nonnegative
+positions this simplifies to `64+(entityRaw>>(12-z))-(focusRaw>>(12-z))`.
+Thus tile-raster and marker phases differ at fractional camera pixels. Door
+strokes omit the entity fraction along their span axis: vertical Y and
+horizontal X start on the tile boundary, not the door's centre. Reporting
+circle radius becomes the configured byte distance times step; possession and
+Alarm pulse radii remain raster-unit counts. Room rectangles retain the half-tile
+fraction of the preceding Heart/Guard Post point, matching centre-based bounds.
+
+The adapter magnifier uses primary/secondary presses for zoom in/out. Its GPU
+projection follows live camera panning between turns; DK2 refreshes that raster
+on turn changes. This presentation choice moves no simulation entities.
+
+Native map widget 3 has a rectangular hit region, not a circular test. Its type-0
+callback runs once per F0 press; the navigation routine has no other direct
+caller. The GUI manager retains captured widgets while polling them, but this
+does not establish continuous drag navigation. `0x0041A410` validates ordinary
+world bounds through `0x00509090` at slot +0x1FC: there is no explored, ownership,
+terrain or walkability condition in that predicate. Command4 then enters the
+session queue; its concrete receiver remains untraced. Click navigation stays
+unimplemented until that consumer and any indirect drag path are resolved.

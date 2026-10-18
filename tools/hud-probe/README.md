@@ -91,4 +91,7 @@ performance. A target-texture size comparison is not a real window/input test.
 The native camera-box ribbon also renders over the frame in both captures;
 the probe checks visible white border pixels. Headless tests cover continuous
 camera movement, rotation, corner clamping, radial width and allocation-free updates.
+GPU regressions also cover zoom levels 1/4, the distinct fractional terrain/marker
+anchors, reporting-ring radius scaling, room rectangles, panning without a tick
+and return to the whole-map view. Headless checks cover zoom limits and the magnifier hit box.
 Native evidence and remaining research: [minimap-rendering.md](../../docs/research/minimap-rendering.md).

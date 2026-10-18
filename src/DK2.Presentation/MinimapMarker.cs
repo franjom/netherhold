@@ -19,7 +19,7 @@ public readonly record struct MinimapMarkerFacts(
     MinimapMarkerKind Kind, FpPosition3 Position, PlayerId Owner, MinimapMarkerFlags Flags);
 
 public readonly record struct MinimapMarker(MinimapMarkerKind Kind, FpPosition3 Position, uint ColourArgb,
-    int RadiusRasterPixels = 1, FpPosition3 EndPosition = default);
+    int RadiusRasterPixels = 1, FpPosition3 EndPosition = default, int ReportingDistanceTiles = -1);
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-rendering.md")]
 public static class MinimapMarkerRules
@@ -27,7 +27,8 @@ public static class MinimapMarkerRules
     public const uint ReportingColourArgb = 0xFF9696FF;
 
     public static MinimapMarker ReportingRing(FpPosition3 position, int distanceTiles, MinimapMapBounds bounds, int mapWidth) =>
-        new(MinimapMarkerKind.Ring, position, ReportingColourArgb, unchecked((byte)distanceTiles) * bounds.Width / mapWidth);
+        new(MinimapMarkerKind.Ring, position, ReportingColourArgb, unchecked((byte)distanceTiles) * bounds.Width / mapWidth,
+            ReportingDistanceTiles: unchecked((byte)distanceTiles));
 
     public static MinimapMarker ReportingRectangle(FpPosition3 minimum, FpPosition3 maximum) =>
         new(MinimapMarkerKind.Rectangle, minimum, ReportingColourArgb, EndPosition: maximum);
