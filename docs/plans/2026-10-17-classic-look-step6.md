@@ -56,7 +56,8 @@ rules, with a retained marker buffer and display-resolution shapes. Pending
 pickups use a documented command-settlement approximation. The static Heart and
 Guard Post reporting-distance outlines, Guard Room rectangle, possession ring and
 Alarm ring, textured camera footprint, magnifier zoom and primary click navigation
-are built; other overlays and corner controls remain. Whole-HUD
+and heading-dependent native north marker are built. The camera ribbon is masked
+to the disc; other overlays and corner controls remain. Whole-HUD
 camera/letterbox visibility and input gates are built; remaining panel/modal rules
 are Q611, with the current reading in [hud-visibility.md](../research/hud-visibility.md).
 Disc/frame layout and rotation still need owner comparison. Static native menu

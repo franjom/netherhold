@@ -23,6 +23,7 @@ namespace DK2.Unity
         byte[] BackdropPng { get; }
         RgbaImage Frame { get; }
         RgbaImage CameraFootprint { get; }
+        RgbaImage North { get; }
         RgbaImage Corner(MinimapCorner corner, bool active);
     }
 
@@ -32,6 +33,7 @@ namespace DK2.Unity
         public byte[] BackdropPng { get; }
         public RgbaImage Frame { get; }
         public RgbaImage CameraFootprint { get; }
+        public RgbaImage North { get; }
         private readonly RgbaImage[] _corners = new RgbaImage[8];
         public InstallMinimapAssets(string install)
         {
@@ -44,6 +46,7 @@ namespace DK2.Unity
             {
                 Frame = textures.Decode("GUI\\Map\\map");
                 CameraFootprint = textures.Decode("GUI\\Map\\mapcamerabox");
+                North = textures.Decode("GUI\\Map\\north");
                 for (int i = 0; i < 4; i++)
                 {
                     string suffix = i.ToString("00");
@@ -73,6 +76,7 @@ namespace DK2.Unity
         private readonly MinimapGpuMap _gpu;
         private readonly MinimapFrameVisual _frame;
         private readonly MinimapFootprintVisual _footprint;
+        private readonly MinimapNorthVisual _north;
         private readonly List<MinimapMarker> _markers = new List<MinimapMarker>();
         private WorldState _capturedWorld;
         private long _capturedTick = -1;
@@ -142,6 +146,8 @@ namespace DK2.Unity
             _frame = new MinimapFrameVisual(document.rootVisualElement, assets);
             _footprint = new MinimapFootprintVisual(assets.CameraFootprint, width, height);
             document.rootVisualElement.Add(_footprint);
+            _north = new MinimapNorthVisual(assets.North);
+            document.rootVisualElement.Add(_north);
         }
 
         private static Texture2D Decode(byte[] png)
@@ -183,6 +189,8 @@ namespace DK2.Unity
             _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(Diameter * Screen.height / 768f));
             if (_image.image != _gpu.Disc) _image.image = _gpu.Disc;
             _footprint.UpdateCamera(_zoom.IsWholeMap ? camera : null);
+            _north.UpdateHeading(new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(
+                camera.transform.eulerAngles.y * (2048f / 360)))), Screen.height);
         }
 
         public bool ContainsPointer(Vector3 position)
@@ -202,8 +210,41 @@ namespace DK2.Unity
             _gpu.Dispose();
             _frame.Dispose();
             _footprint.Dispose();
+            _north.Dispose();
             UnityEngine.Object.Destroy(_root); UnityEngine.Object.Destroy(_settings);
             UnityEngine.Object.Destroy(_backdrop);
+        }
+    }
+
+    public sealed class MinimapNorthVisual : Image, IDisposable
+    {
+        private readonly Texture2D _texture;
+        private Dk2Angle _heading;
+        private int _screenHeight;
+
+        public MinimapNorthVisual(RgbaImage source)
+        {
+            _texture = MinimapFrameVisual.Decode(source);
+            image = _texture; pickingMode = PickingMode.Ignore;
+            scaleMode = ScaleMode.StretchToFill;
+            style.position = Position.Absolute;
+            // Use the native 8x8 draw descriptor in HUD units, independently of cache resolution.
+            style.width = 8; style.height = 8;
+        }
+
+        public void UpdateHeading(Dk2Angle heading, int screenHeight)
+        {
+            if (screenHeight <= 0 || _heading == heading && _screenHeight == screenHeight) return;
+            _heading = heading; _screenHeight = screenHeight;
+            System.Numerics.Vector2 origin = MinimapNorth.SpriteOriginPixels(heading, screenHeight);
+            float scale = screenHeight / 768f;
+            style.left = origin.X / scale; style.top = origin.Y / scale;
+        }
+
+        public void Dispose()
+        {
+            RemoveFromHierarchy();
+            UnityEngine.Object.Destroy(_texture);
         }
     }
 
@@ -216,6 +257,7 @@ namespace DK2.Unity
         private readonly System.Numerics.Vector2[] _vertices = new System.Numerics.Vector2[8];
         private readonly System.Numerics.Vector2[] _next = new System.Numerics.Vector2[8];
         private bool _valid;
+        private readonly VisualElement _ribbon;
 
         public MinimapFootprintVisual(RgbaImage texture, int mapWidth, int mapHeight)
         {
@@ -223,8 +265,16 @@ namespace DK2.Unity
             _mapWidth = mapWidth; _mapHeight = mapHeight;
             pickingMode = PickingMode.Ignore;
             style.position = Position.Absolute;
-            style.left = 0; style.top = 0; style.right = 0; style.bottom = 0;
-            generateVisualContent += DrawFootprint;
+            style.left = 12.8f; style.bottom = 11.2f;
+            style.width = 169.6f; style.height = 169.6f;
+            style.overflow = Overflow.Hidden;
+            style.borderTopLeftRadius = style.borderTopRightRadius = 84.8f;
+            style.borderBottomLeftRadius = style.borderBottomRightRadius = 84.8f;
+            _ribbon = new VisualElement { pickingMode = PickingMode.Ignore };
+            _ribbon.style.position = Position.Absolute;
+            _ribbon.style.left = _ribbon.style.top = _ribbon.style.right = _ribbon.style.bottom = 0;
+            Add(_ribbon);
+            _ribbon.generateVisualContent += DrawFootprint;
         }
 
         public void UpdateCamera(Camera camera)
@@ -248,7 +298,7 @@ namespace DK2.Unity
                     _vertices[i] = _next[i];
                 }
             _valid = valid;
-            if (changed) MarkDirtyRepaint();
+            if (changed) _ribbon.MarkDirtyRepaint();
         }
 
         private void DrawFootprint(MeshGenerationContext context)
@@ -256,7 +306,7 @@ namespace DK2.Unity
             if (!_valid) return;
             MeshWriteData mesh = context.Allocate(8, Indices.Length, _texture);
             for (int i = 0; i < 8; i++)
-                mesh.SetNextVertex(new Vertex { position = new Vector3(_vertices[i].X, _vertices[i].Y, Vertex.nearZ),
+                mesh.SetNextVertex(new Vertex { position = new Vector3(_vertices[i].X - 12.8f, _vertices[i].Y - 587.2f, Vertex.nearZ),
                     tint = Color.white, uv = new Vector2(.5f, i % 2 == 0 ? 1 : 0) });
             foreach (ushort index in Indices) mesh.SetNextIndex(index);
         }

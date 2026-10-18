@@ -38,6 +38,8 @@ namespace DK2.Unity.HudProbe
         private MinimapGpuMap _liveGpu;
         private MinimapFrameVisual _frame;
         private MinimapFootprintVisual _footprint;
+        private MinimapFootprintVisual _wideFootprint;
+        private MinimapNorthVisual _north;
         public bool Done { get; private set; }
         public bool Passed => _report != null && _report.Passed;
 
@@ -92,6 +94,17 @@ namespace DK2.Unity.HudProbe
                 camera.enabled = false; camera.orthographic = true; camera.orthographicSize = 8; camera.aspect = 1;
                 camera.transform.SetPositionAndRotation(new Vector3(64, 33, -64), Quaternion.Euler(90, 0, 0));
                 _footprint.UpdateCamera(camera);
+                var wideRoot = new VisualElement { pickingMode = PickingMode.Ignore };
+                wideRoot.style.position = Position.Absolute;
+                wideRoot.style.left = 500; wideRoot.style.top = -100;
+                wideRoot.style.right = -500; wideRoot.style.bottom = 100;
+                root.Add(wideRoot);
+                _wideFootprint = new MinimapFootprintVisual(frameAssets.CameraFootprint, 128, 128);
+                wideRoot.Add(_wideFootprint);
+                camera.orthographicSize = 40; camera.aspect = 2;
+                _wideFootprint.UpdateCamera(camera);
+                _north = new MinimapNorthVisual(frameAssets.North);
+                root.Add(_north);
                 const string text = "Dungeon Heart 100%";
                 var reference = Own(HudFontPilot.Raster(assets.ReferenceFont, text));
                 var largest = Own(HudFontPilot.Raster(assets.LargestFont, text));
@@ -427,7 +440,8 @@ namespace DK2.Unity.HudProbe
         private void ConfigureView()
         {
             int width = _view == 0 ? 1024 : 2560, height = _view == 0 ? 768 : 1440;
-            _panel = Own(new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32)); _panel.Create();
+            _panel = Own(new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)); _panel.Create();
+            _north.UpdateHeading(new Dk2Angle((ushort)(_view == 0 ? 0 : 256)), height);
             _settings.targetTexture = _panel; _frames = 0;
         }
         private void Update()
@@ -442,6 +456,8 @@ namespace DK2.Unity.HudProbe
                     if (pixels.Count(p => p.r > 45 || p.g > 45 || p.b > 45) < pixels.Length / 200)
                         throw new InvalidOperationException("UI Toolkit target has no rendered image content.");
                     AssertComposition(image);
+                    AssertFootprintClip(image);
+                    AssertNorth(image, new Dk2Angle((ushort)(_view == 0 ? 0 : 256)));
                     int white = 0;
                     float scale = _panel.height / 768f;
                     for (int y = Mathf.FloorToInt(661 * scale); y < 684 * scale; y++)
@@ -481,6 +497,36 @@ namespace DK2.Unity.HudProbe
             }
             finally { Destroy(image); }
         }
+        private static void AssertFootprintClip(Texture2D image)
+        {
+            float scale = image.height / 768f;
+            int inside = 0, outside = 0;
+            for (int y = Mathf.CeilToInt(480 * scale); y < 665 * scale; y++)
+                for (int x = Mathf.CeilToInt(505 * scale); x < 690 * scale; x++)
+                {
+                    Color32 pixel = image.GetPixel(x, image.height - 1 - y);
+                    if (pixel.r < 180 || pixel.g < 180 || pixel.b < 180) continue;
+                    float dx = (x + .5f) / scale - 597.6f;
+                    float dy = (y + .5f) / scale - 572;
+                    if (dx * dx + dy * dy > 86 * 86) outside++;
+                    else inside++;
+                }
+            if (inside < 20 || outside != 0)
+                throw new InvalidOperationException("Zoomed-out footprint clip failed: inside=" + inside + ", outside=" + outside);
+        }
+        private static void AssertNorth(Texture2D image, Dk2Angle heading)
+        {
+            System.Numerics.Vector2 origin = MinimapNorth.SpriteOriginPixels(heading, image.height);
+            float scale = image.height / 768f;
+            int white = 0;
+            for (int y = (int)origin.Y; y < origin.Y + 8 * scale; y++)
+                for (int x = (int)origin.X; x < origin.X + 8 * scale; x++)
+                {
+                    Color32 pixel = image.GetPixel(x, image.height - 1 - y);
+                    if (pixel.r > 180 && pixel.g > 180 && pixel.b > 180) white++;
+                }
+            if (white < 3) throw new InvalidOperationException("North marker did not render at the heading-dependent position.");
+        }
         private static void AssertComposition(Texture2D image)
         {
             float scale = image.height / 768f;
@@ -517,6 +563,8 @@ namespace DK2.Unity.HudProbe
             _liveGpu?.Dispose();
             _frame?.Dispose();
             _footprint?.Dispose();
+            _wideFootprint?.Dispose();
+            _north?.Dispose();
             foreach (UnityEngine.Object resource in _owned) if (resource != null) Destroy(resource);
         }
     }

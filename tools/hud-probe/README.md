@@ -88,8 +88,10 @@ this is not a claim of exception-free editor startup.
 Not verified: matched DK2 campaign colours/markers/rotation, runtime
 resizing, real-window input, end-to-end camera gliding, production text rendering, GPU timings or UI
 performance. A target-texture size comparison is not a real window/input test.
-The native camera-box ribbon also renders over the frame in both captures;
-the probe checks visible white border pixels. Headless tests cover continuous
+The native camera-box ribbon renders inside the disc in both captures; a wide
+camera fixture checks visible border pixels and no spill beyond the circular mask.
+The target has a depth/stencil buffer for UI Toolkit's rounded clip. The native
+north sprite is checked at two headings. Headless tests cover continuous
 camera movement, rotation, corner clamping, radial width and allocation-free updates.
 GPU regressions also cover zoom levels 1/4, the distinct fractional terrain/marker
 anchors, reporting-ring radius scaling, room rectangles, panning without a tick

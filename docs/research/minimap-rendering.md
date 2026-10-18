@@ -125,11 +125,13 @@ and `Map-BG.PNG`; the latter is 128×128 rock, matching the raster indexing.
 Its palette is 64×16. `FrontEnd.WAD` has a same-named palette but different RGB
 content; do not use that copy for the game HUD merely because its filename fits.
 
-The HUD frame dispatcher `0x00419DF0` calls the minimap renderer and then
-`0x0041EDC0`, the heading-dependent north decoration (catalogue entry 36 at
-resource offset `+0x3CC`). It sets draw size fields to 8×8 and uses camera
-`+0xD84` with sine/cosine offsets about virtual centre (244,1680) and radius 140.
-Final sprite extent is not established by these fields alone.
+After the map, `0x00419DF0` calls north marker `0x0041EDC0`: catalogue entry 36,
+`gui/map/north` (static record `0x006A87A4`, runtime resource `+0x3CC`). Let
+`C=U(244,1680)`, `R=U(0,140).y`, `a=(2048-heading)&2047`, with Q16 tables
+`0x006C1488`/`0x006C1C88`. Draw origin is
+`(Cx+trunc(sin[a]*R/65536)-3, Cy-trunc(cos[a]*R/65536)-6)`; signed truncation
+is toward zero. RGB is white, flags 7, size fields 8×8; offsets -3/-6 are
+physical pixels after U. Cache `northMM0` is 16×16 with alpha; scalable HUD extent uses the 8px descriptor (inferred).
 
 ## Input and UI coordinate boundary (partially read)
 
@@ -325,8 +327,8 @@ Compute centroid M of the four **unclamped** projected P. Independently clamp
 each P to the rectangle `U(32,1472)..U(444,1888)`, giving Q. This is corner
 clamping, not polygon/line clipping. Direction is `normalize(Q-M)`; border
 vertices are `Q + 2*direction` and `Q - 2*direction`, in physical screen pixels.
-No final circular mask appears in this body. Any broader renderer clipping
-requires following the concrete submitted material/renderer state.
+No final circular mask appears in this body (rechecked 2026-10-18 after the
+owner's zoom-out comparison); broader renderer clipping remains untraced.
 
 Pair order is viewport TL,TR,BR,BL; each pair is outward then inward. Outer UV
 is `(0.5,0)`, inner UV `(0.5,1)`. Triangle indices are
@@ -341,11 +343,11 @@ field into the third position component. Preserve the shipped texture alpha;
 do not infer a uniform 75% opacity from that argument. Full material-flag
 semantics are not established by this reading.
 
-The adapter draws the native texture over an eight-vertex UI Toolkit ribbon,
-updating from the live camera between simulation turns. The height-scaled HUD
-uses two reference pixels per radial offset rather than DK2's two physical
-pixels. It hides invalid or behind-camera plane intersections instead of
-submitting non-finite geometry; native unprojection has no such guard.
+The adapter draws the native texture over an eight-vertex ribbon between turns,
+with a circular presentation mask after the owner's zoom-out comparison; the
+native downstream clipping remains untraced. The height-scaled HUD uses two
+reference pixels per radial offset, rather than two physical pixels, and hides
+invalid/behind-camera intersections; native unprojection has no such guard.
 OpenKeeper was consulted as a facts-only reference (see THIRD-PARTY-NOTICES.md);
 the projection, floor, clamp and border contracts above come from DKII.EXE.
 Owner comparison in the original game remains pending.

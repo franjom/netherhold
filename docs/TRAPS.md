@@ -7,6 +7,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- UI Toolkit rounded overflow masks need a stencil-capable RenderTexture target; a depth-zero probe can draw the mask itself as white.
+
 - If CS0009 names a zero-filled generated reference DLL, rebuild with `--no-incremental` before treating downstream missing types as source defects.
 
 - Cast raw PowerShell Get-Content results to [string] before ConvertTo-Json; otherwise extended properties can turn the value into an object.
