@@ -160,6 +160,40 @@ The attempted whole-chooser wall control did not return within its instruction
 limit and is excluded; it supplies no comparative chooser conclusion.
 No campaign acceptance was run for this diagnostic intervention.
 
+### Reservation and position controls
+
+**CONFIRMED counterfactuals:** run the original chooser on worker 453's
+captured execution-171 entry image, changing only the inputs below. Every call
+returns successfully, without function stubs or instruction patches.
+
+| Input | Original choice | Modern fixture choice | Ending RNG, both |
+|---|---|---|---:|
+| Captured | Claim `(28,54)` | Same | 1843400869 |
+| Free one mining slot | Mine `(29,54)` | Same | 4284192478 |
+| Modern worker-3 position | Claim `(28,54)` | Same | 1843400869 |
+| Free slot and modern position | Mine `(29,54)` | Same | 4284192478 |
+
+The slot control clears only worker 454's side-3 slot-0 holder in the native
+pool; its other job fields remain unchanged. The position control sets the
+searcher to modern post-turn-167's `(101671,210070)`, converting the steering
+body coordinates to 16.16 too. It does not reconstruct tile links or history.
+The modern fixture uses hash 274, captured navigation and native LCG input,
+retaining holder positions. All four also agree on state 6 and task target.
+Rooms, general nonworkers, native pool identities and full holder histories
+remain outside this reconstruction; no full-route equality is claimed here.
+
+In calibrated native observations, 454/455 take mining on header 169 and 452
+on 170, before 453's claim on 172. At the modern opening-control search on
+168, worker 4 has just taken mining; workers 1/2 still work the exhausted wall
+and take mining on 171/172. Worker 3 therefore sees two free slots. Its earlier
+search and the diggers' release/arrival histories supply different reservations.
+A fresh read of the [mining search arm](functions/00469AF0.md) retains the free-slot
+and strictly-nearer stealing gates. On these inputs, occupancy alone switches
+the original choice; the tested position substitution does not. This does not
+exclude position effects elsewhere or establish an upstream scheduling fix.
+The earlier [action-stop control](imp-dig-stop-clock.md) isolates one release
+contribution but fails campaign acceptance. No priority change is justified.
+
 ## Initial dig: arrival and cadence are separate
 
 **CONFIRMED observations:** on `(28,54)`, native workers 455/452/454 enter
@@ -312,3 +346,8 @@ beside those artifacts. Its probe references master's hash-274 assemblies;
 `native_tile_gate.py` runs the completed handler pair from the retained
 `imp-strike-choice-20261018/live-rock-strike/000002.before.mem.z` image.
 `verify.py` checks metadata, unchanged prefixes, baseline agreement and metrics.
+The subsequent `imp-first-reservation-20261018/` contains `native_controls.py`
+(four completed original chooser calls), the same no-relocation `DecisionCheck.cs`
+fixture via `Probe.csproj`/`Program.cs`, and `verify.py` (input scope, calibrated
+reservation timeline, task/state/RNG agreement and executable MD5). Pose controls
+retain other native movement fields; they are boundary inputs, not a replay.

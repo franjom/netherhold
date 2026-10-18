@@ -211,8 +211,11 @@ Run git worktree list first; another session may own these.
   research/imp-observation-clocks.md. The opening-time tile control confirms a
   local early-claim contribution, while reinforcement moves in opposite
   directions across the two seeds:
-  research/imp-hatchery-work.md#opening-time-input-control. Next isolate earlier
-  arrival/reservation inputs; no new priority defect is established.
+  research/imp-hatchery-work.md#opening-time-input-control. Completed original
+  chooser controls now isolate reservation-sensitive selection at that boundary:
+  research/imp-hatchery-work.md#reservation-and-position-controls. The earlier
+  action/release and arrival histories still need a faithful integrated replay;
+  no new priority defect is established.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those

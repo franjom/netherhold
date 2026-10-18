@@ -5,6 +5,8 @@ agent (Claude's private memory and Codex's are not shared; this file is). Add a 
 that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps live in
 `.agents/skills/ghidra-queries/SKILL.md`, DK2 facts in `docs/research/`.
 
+- Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
+
 ## Shell and files
 
 - New function records require `evidence:` before the first blank line; `kb index` rejects a split header.
