@@ -125,14 +125,65 @@ existing [just-dug handler evidence](imp-claim-path.md#5-the-just-dug-claim-0x00
 do not establish a gate mismatch for the turn-309 take. The rest/selection
 boundary is in `ImpTaskSystem.Wander.cs:77` and `:90`.
 
+## Initial dig: arrival and cadence are separate
+
+**CONFIRMED observations:** on `(28,54)`, native workers 455/452/454 enter
+state 14 on turns 137/150/158. Their first hits are 139/152/160; their
+second hits are 143/156/164. Action-start stamps independently change on
+138 then 142, 151 then 155, and 159 then 163. After the second hit each
+continues once per turn while the tile remains workable. The first-to-second
+gap is four, unlike the three hardcoded by `WorkCadence.SecondApplicationGap`.
+The earlier Level2 single dig sample measured three; do not replace that
+constant with a universal four from this wall alone.
+
+Worker 455's captured animation clock explains its four-turn first gap:
+after action start on 138, phase/rate are 1365/1365; phase reaches 4095
+on 140 and wraps to 1364 on 141, setting cycle flag 4. Action restarts
+on 142 and its next hit lands on 143. A fresh
+[mode-3 runner read](functions/00496AA0.md) confirms that the handler and
+animation must both complete before the action clears. The subsequent
+captured restarts retain cycle flag 4 and the handler hits once per turn.
+This is the native mechanism at this boundary, rather than an extra
+priority evaluation between swings.
+
+Modern workers 1/2/4 enter 14 on 152/153/169. Their timer traces give first
+hits 154/155/171 and second hits 157/158 (worker 4's wall is already gone
+before its second hit). The added timer/entry-stamp observation preserves
+all previously recorded worker fields exactly. Thus the first modern hit
+is 15 turns late, despite a shorter subsequent gap.
+
+A strike-count reconstruction from these entry times, the observed gaps,
+900 wall health, 26 damage per own-wall hit and the subsequent rock hit
+matches every sampled terrain/health value through floor opening in each
+run. Swapping only the gap in this arithmetic predicts native floor opening
+164 with gap three, and modern opening 174 with gap four; observed values
+are 165 and 173. This is an arithmetic control, not a simulation replay.
+
+**CONFIRMED simulation counterfactual:** for every modern state-14 worker
+in this 1100-turn replay, extend the timer after its first hit from three
+to four, without changing selection or arrival. `(28,54)` opens on 174,
+and ownership still arrives on 318. Reinforcement observations fall from
+399 to 265 Imp-turns and first reinforcement moves from 1018 to 1038.
+This intervention affects later digs too; it does not isolate a native
+mechanism or establish campaign acceptance. It confirms sensitivity to work
+timing, while excluding the shorter gap as the cause of this later opening.
+
+A fresh [dig-action read](functions/00496E00.md) retains the existing
+owner-based work-rate and return-condition verdicts. The cadence cause
+requires the action/animation clock, not a new priority or work-rate rule.
+The native arrival differences already follow different idle/wander histories
+before the first job; the two runs do not share a matched RNG stream.
+
 ## Verdict and next boundary
 
 Keep the chooser unchanged. The larger reinforcement excess remains an
 allocation/timing discrepancy, not a proven preference for walls over eligible
 floor. Its upstream cause remains **UNKNOWN**, tracked as Q611. The early
 claim gap now traces to floor-opening and worker-decision timing before turn
-176. The next useful comparison is the initial dig's arrival/action boundary,
-including all three workers, against actual native update-boundary inputs.
+176. The initial dig has later arrival and a separately measured cadence
+mismatch. Before implementing a clock-based replacement, check its initial
+phase and retained cycle flags against the earlier three-turn dig sample.
+The unmatched arrival history still needs a control before attribution to a bug.
 Do not infer those inputs from a later whole-turn snapshot or patch priorities
 to recover one replay. Existing unmerged work/store/arrival
 candidates remain unaccepted. No campaign outcome improvement is claimed.
@@ -143,7 +194,8 @@ Ignored artifacts in the retained worktree:
 `build/imp-acceptance/reverse-engineering/imp-hatchery-work-20261018/`.
 `Program.cs`/`Probe.csproj` run the normal factory and packet helpers with raw
 observation; `CONTROL_HATCHERY=1` enables the two-tile control and
-`CONTROL_RESELECT=1` the turn-176 worker control. `export_native.py`
+`CONTROL_RESELECT=1` the turn-176 worker control, `TRACE_CADENCE=1` the extra
+timer fields, and `CONTROL_DIG_GAP=1` the four-turn diagnostic. `export_native.py`
 exports the immutable native rows; `measure.py` writes `summary.json`,
 `per-imp.csv`, `state-runs.csv`, `assignments.json` (job sequences/targets) and
 `assignment-legs.csv` (observed assignment spans, sampled travel to arrival,

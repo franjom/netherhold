@@ -96,9 +96,12 @@ tick** (165, 329, 493, 657). At 175 it becomes **Claimed Path (8), owner 3, at
 
 **CONFIRMED (same capture, solo imps).** Every entry state (13, 15, 21, 25) lasts
 exactly one tick (416 cases). From the work state's first tick E, the first
-application lands at E+2 for every kind. The second follows 4 ticks later for
-mining, 3 for digging (one case) and reinforcing (seven), and 1 for claiming (ten
-cases). After that, one application a tick.
+application lands at E+2 for every kind in this sample. The second follows
+4 ticks later for mining, 3 for digging (one case) and reinforcing (seven),
+and 1 for claiming (ten cases). After that, one application a tick. These
+are sampled outcomes, not universal timing constants: the later
+[Level4 initial dig](imp-hatchery-work.md#initial-dig-arrival-and-cadence-are-separate)
+has a different digging gap.
 
 These one-tick entries are captured outcomes. The binary's wall-work entries
 turn toward the target centre and hold until facing; see imp-state-exits.md §2.
