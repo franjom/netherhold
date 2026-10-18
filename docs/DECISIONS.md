@@ -11734,3 +11734,20 @@ and Heart policy on main. Keep the rejected Imp candidates separate.
 experiments. Existing axis values in snapshots/hashes change. This correction
 does not claim to resolve campaign losses or idle random-stream differences.
 
+## ADR-0510 — Preserve the ordinary dig correction as an isolated candidate
+**Date:** 2026-10-18 · **Status:** gameplay merge deferred
+
+**Context.** The earlier three-turn digging claim fails a per-worker recheck;
+the original captures support a four-turn first-cycle gap. The correction and
+paired acceptance are in [mining-cadence.md §5](research/mining-cadence.md#5-the-other-work-kinds-rock-and-the-state-26-read-2026-09-28).
+
+**Decision.** Correct the research. Preserve the minimal ordinary-dig gap
+correction on `fixes/imp-dig-first-cycle`; leave main's gameplay unchanged
+because the candidate loses a baseline Level4 replay win. Do not compensate
+with job-priority, idle-wakeup or work-rate changes.
+
+**Consequences.** Hash/save 275 is candidate-only, with no new fields. Passing
+simulation regressions establish the bounded hit sequence, not campaign
+acceptance. A faithful mechanism may expose other timing differences; that
+possibility does not establish which missing mechanic causes the replay loss.
+
