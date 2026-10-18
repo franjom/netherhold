@@ -16,18 +16,16 @@ Q154, Q155, Q162.
 
 ## 1. The answer in one paragraph
 
-An idle imp searches for work in **two tiers**. **Tier A is kind-first and
-whole-map:** a fixed table of task kinds, each searched across the entire map
-before the next is looked at — *claim the tile you just dug, carry loose
-objects, build placed traps and doors, dig and mine marked tiles, claim floor,
-carry the unconscious, carry corpses.* **Tier B is position-first and runs only
-when Tier A is empty:** a ring scan outwards from the imp that, at every tile,
-tries *reinforce or repair a wall, pick up gold, carry a loose object,* and one
-unidentified kind. So a marked wall beats gold anywhere on the map; a wall to
-reinforce beats gold **on the same tile**; and a nearer pile beats a farther
-wall. That satisfies the owner's Q24 order and their Q147 observation, and it
-answers the Q146 argument that gold placed last would never be collected: gold
-is not *last*, it is *near*.
+After aimed/last-kind retries and any drop scan (§4), ordinary selection uses
+**two tiers**. Tier A searches each kind across the whole map: objects,
+blueprints, marked excavation, floor claiming, unconscious creatures, corpses.
+Its table begins with kind 14, but that per-kind search is ineffective; fresh
+claims are taken on the way (§4, ADR-0286). Tier B runs only after those searches
+fail and visits tiles outward, trying reinforcement/repair, gold, objects and
+marked Secret Door work at each tile. A nearer pile can therefore beat a farther
+wall, while reinforcement beats gold on the same tile. The retry preconditions
+matter: an aimed reinforcer can take another wall before ordinary digging.
+Executable checks and their limits: [imp-priority-checks.md](imp-priority-checks.md).
 
 ---
 
@@ -138,7 +136,7 @@ Two *chains* call handlers in a fixed order and stop at the first that takes:
 | **7** | **gold off the floor** | `0x1b` | object with definition flag `TypeGold` (0x40), owner = the level-wide floor-gold id; tile must be the imp's own **or water** (Q144). Every search for it is the ring scan, whose filter never visits water, so the water half reaches only the imp's own tile: Level 2 seed01's imp 430 twice passes the pile in water at (9,24) for one on its floor (ADR-0343) |
 | 8 | carry a loose object to its room | `0x1e` | objects owned by nobody on own floor or water; the room is looked up from the object's definition (Library, Workshop…) |
 | 9 / 10 | build a placed **trap** / **door** — fetch its crate from the **Workshop** | `0x22` / `0x24` | thing types 3 and 4 with an "unbuilt" flag; the player's rooms of type 10 are searched for the matching crate |
-| 11 | *dig-like, unidentified* | `0x26` | requires a pre-existing kind-11 task and the tile's **tagged** bit (`tile+0xb & 1`); records itself as kind 1 with a flag. **No immediate-operand raise of kind 11 exists** among the 27 raise sites — it is raised some other way, unread |
+| 11 | marked Secret Door work | `0x26` | Identity, raiser, secret-door flag and implementation boundary: [handler record](functions/0046CB80.md). |
 | 12 | carry a **corpse** to the **Graveyard** | `0x28` | thing type 6, owner = the floor-gold id, on own floor; room type **14**; interface messages when there is no graveyard or it is full |
 | 13 | carry an **unconscious creature** — own → **Lair**, enemy → **Prison** | `0x2a` | rooms **2** and **11**; a companion routine walks the keeper's own creature list for those flagged as needing carrying |
 | **14** | **claim the tile you have just dug** | `0xf` | tile is plain unowned path adjacent to own floor (`FUN_00453fc0` + `FUN_00453b30`); a kind-14 task exists there; **none of the 8 neighbours carries a dig task**; then it raises kind 3 at the tile and takes it. Raised from `ImpState.cpp` (`00465774`, `00465b57`) for a tile passing the same two predicates |
@@ -235,7 +233,7 @@ is measured to the tile the **work** is on. Reproduced rather than corrected
 **(c) Tier A.** A byte table at `00698658` reads `0e 08 09 01 03 0d 0c ff`.
 For each kind, whole-map (`radius = 0x7fffffff`), stop at the first that takes:
 
-    14  claim the tile just dug (once nothing beside it is still marked)
+    14  no-op here: per-kind search has no arm (fresh claims use the on-way path)
      8  carry a loose object to its room
      9  build a placed trap / door        (10 via the same scanner)
      1  dig a marked wall                  (2, mine, via the same walk)
@@ -325,21 +323,17 @@ whole-map kind has come up empty.
   **not allied with**, and which is orthogonally adjacent to the keeper's own
   floor. **Imps claim enemy floor**, in three flavours the state id records:
   plain path, enemy floor, enemy room tile.
-- **Kind 14** is claiming's fast lane and is **first of everything**: the tile
-  the imp has just dug is claimed as soon as **none of its eight neighbours
-  still carries a dig task** — a kind-1 task, so a seam being mined next door
-  does not hold it back — and a corridor is dug through and then claimed behind
-  the digging front, which is the rhythm the original visibly has. **Built the
-  same day** (Q154): `TileState.FreshlyDug` stands in for the task, set when
-  excavation destroys a tile and cleared by the next change of terrain, and
-  `JobPriority.ClaimFreshlyDug` is Tier A's first step. The *rank* and the
-  eight-neighbour rule are read; the *trigger* — that the task is raised when
-  the dig completes — is STRONGLY INFERRED from where the raise sits
-  (`ImpState.cpp`, `00465774`/`00465b57`) and what it tests.
+- **Kind 14** is taken only through the claim-on-the-way path, not the
+  ordinary Tier-A search. It can interrupt an eligible work walk on entering
+  a tile carrying that task; it is not a general instruction to claim every
+  freshly opened floor before digging. The action-end raise requires the old
+  excavation task still to exist, so destruction alone does not create it.
+  Gates, task lifetime and current implementation:
+  [imp-claim-path.md §5](imp-claim-path.md#5-the-just-dug-claim-0x00464170-and-0x00469600).
 
 ---
 
-## 7. Task stealing, which this project does not have
+## 7. Task stealing
 
 Every handler, having found a task, asks who holds it (`FUN_00508110`). If
 somebody does, and that somebody is a creature in a stealable state, the
@@ -360,11 +354,11 @@ all do it. Built for dig, mine, claim and reinforce (ADR-0289,
 | Tier A | **14**, 8, 9/10, **1/2**, **3**, 13, 12 — whole map each | **all of it**; 14 is a no-op in the original (its search has no arm), so none here (ADR-0286); **8** (ADR-0065), **9/10** (ADR-0214, `workshop-crates.md` §6), marked excavation, claim, **13** both branches (ADR-0063, ADR-0064), **12**, in the original's order |
 | Tier B | ring scan; per tile **6/16 → 7** → 8 → 11 | one nearest-first search; at the tile found, **reinforce → gold**. Kind 16 (fix a damaged own wall) follows reinforce at the same tile (ADR-0387) — §3 |
 | distance | rings; for 1/2 straight-line, seams from the last seam | the 1/2 walk straight-line (ADR-0282); other kinds steps along the walkable grid; seam slot occupancy not built |
-| kind 14 | taken only on the way: `0x00464170` on entering a tile, category 3, more than two tiles from the task tile, last kind 1–7 or 16 | **built for deposit walks** (ADR-0286, Q489) — `TryClaimOnTheWay` |
+| kind 14 | taken only on the way: `0x00464170` on entering a tile, category 3, more than two tiles from the task tile, last kind 1–7 or 16 | **built for eligible job-category walks** (ADR-0303/0378, Q489) — `TryClaimOnTheWay`; see imp-claim-path.md §5 |
 | gold in hands | put down only by 26, 27 (full hands), 76, and in 10 by kind 15 or the aimed kind 7 (full hands) | **built** (ADR-0288); our pre-choice deposit is gone |
 | equal distance | the newest task, the list's head | **built** for the dig walk (ADR-0288), `TileState.TagOrder` |
 | stealing | nearer imp takes the task | **built** for dig, mine, claim and reinforce (ADR-0289, `imp-task-stealing.md`); gold and objects not (Q155); 7 of the Level 1 capture's choices and 38 of Level 2's were an imp losing its task this way |
-| just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Chebyshev measured to the work's tile, in DK2's drop order minus kind 11 (Q162); the crate kinds are ADR-0214 |
+| just-dropped scan | three tiles, nine-step chain | **built** (ADR-0062, ADR-0069) — `TryTakeDroppedJob`, `DropScanTiles` = 3 Manhattan measured to the work's tile, in DK2's drop order minus kind 11 (Q162); the crate kinds are ADR-0214 |
 | the aimed bonus | `DroppedTask` carries Efficiency +10 for as long as work of that kind lasts; `DroppedTask == LastTaskType` retries that kind whole-map before it is cleared | **built** (ADR-0069) — `TryTakeJobOfKind`, `CreatureState.DroppedTask`/`JustDropped`/`LastTaskKind`. The bonus itself is `hand-of-evil.md` §6 |
 | kind 13 | carry an unconscious creature: own to a Lair, an enemy's to a Prison. **The Combat Pit is a confirmed source**: its loser is knocked out, never killed (owner, Q310), so a pit fight feeds this kind first — and kind 12 only when no imp arrives before the dying window closes, which the owner confirms does kill it | **built, both branches** — the rescue to its own bed (ADR-0063) and the capture into a cell (ADR-0064). What the prison then does is `docs/research/prison.md` |
 | kind 12 | carry a corpse to the Graveyard | **built** (ADR-0063); burial now feeds its per-room tally and Vampire threshold (Q165, ADR-0151) |
@@ -396,4 +390,4 @@ kind 3 tests for the *absence* of Lava and Water, and is claiming.
 - **Q155** — task stealing by distance: built for four handlers (§7, ADR-0289).
 - **Q25** — answered 2026-09-29: the nearest by straight-line distance, list
   order only on an exact tie (§2.2).
-- kind 11's identity and raiser; the `tile+0xb & 0x20` scan pre-filter.
+- Marked Secret Door work remains unbuilt (functions/0046CB80.md); the `tile+0xb & 0x20` scan pre-filter has remaining unknowns.

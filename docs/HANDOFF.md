@@ -182,8 +182,9 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, research/imp-hatchery-work: 2026-10-18 current-main work
-  comparison and a two-tile claim-choice control: research/imp-hatchery-work.md.
+- build/imp-acceptance, research/imp-priority-contract: 2026-10-18 direct chooser
+  controls and modern fixtures: research/imp-priority-checks.md. The preceding
+  work comparison and tile-input control remain research/imp-hatchery-work.md.
   Next actual update boundary is Q611; no new chooser fix is established.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
