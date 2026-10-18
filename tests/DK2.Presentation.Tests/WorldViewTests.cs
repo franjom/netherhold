@@ -24,6 +24,45 @@ namespace DK2.Presentation.Tests;
 public class WorldViewTests
 {
     [InstallFact]
+    public void MinimapGuardRoomOutlineIsOwnOnlyVisibleThroughFogAndClampedInsideTheMap()
+    {
+        (GameDatabase database, _) = RealLevel()!.Value;
+        byte guard = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.GuardRoom).TerrainId;
+        byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
+        var tiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64).ToArray();
+        tiles[3 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        tiles[4 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        tiles[5 + 5 * 8] = new(guard, PlayerIds.Good, 0, 0);
+        WorldState world = WorldState.FromMap(database, new LevelMap(8, 8, tiles),
+            [PlayerIds.FirstKeeper, PlayerIds.Good], fogOfWarEnabled: true);
+        var view = new WorldView(database, PlayerIds.FirstKeeper);
+        var palette = new MinimapPalette(new uint[37]);
+        var markers = new List<MinimapMarker>();
+        for (int y = 0; y < 8; y++)
+            for (int x = 0; x < 8; x++) world.Tile(x, y).ClearExploredBy(PlayerIds.FirstKeeper);
+        view.CaptureMinimapMarkers(world, palette, markers);
+        MinimapMarker outline = Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Rectangle);
+        Assert.True(database[VariableTypeId.GuardRoomReportingDistanceTiles] >= 4);
+        Assert.Equal(new FpPosition3(new(0x1800), new(0x1800), new(0)), outline.Position);
+        Assert.Equal(new FpPosition3(new(0x7800), new(0x7800), new(0)), outline.EndPosition);
+        Assert.Equal(0xFF9696FFu, outline.ColourArgb);
+
+        int distance = unchecked((byte)database[VariableTypeId.GuardRoomReportingDistanceTiles]);
+        int size = 2 * distance + 12;
+        int roomX = distance + 3;
+        var unclampedTiles = Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), size * size).ToArray();
+        unclampedTiles[roomX + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        unclampedTiles[roomX + 1 + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        WorldState unclampedWorld = WorldState.FromMap(database, new LevelMap(size, size, unclampedTiles),
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: true);
+        view.CaptureMinimapMarkers(unclampedWorld, palette, markers);
+        outline = Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Rectangle);
+        Assert.Equal(new FpPosition3(new(0x3800), new(0x3800), new(0)), outline.Position);
+        Assert.Equal(new FpPosition3(new(((roomX + 1 + distance) << 12) + 0x800),
+            new(((roomX + distance) << 12) + 0x800), new(0)), outline.EndPosition);
+    }
+
+    [InstallFact]
     public void MinimapAlarmTakesPriorityOverGuardPostAndHonoursOwnerConstructionAndDeadline()
     {
         (GameDatabase source, _) = RealLevel()!.Value;

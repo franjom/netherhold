@@ -45,6 +45,21 @@ public sealed partial class WorldView
             output.Add(MinimapMarkerRules.ReportingRing(TileCentre(_minimapHeartTile),
                 ReportingDistance(VariableTypeId.DungeonHeartReportingDistanceTiles), bounds, world.Width));
         }
+        if (world.Width > 1 && world.Height > 1)
+        {
+            IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, _database);
+            int distance = unchecked((byte)ReportingDistance(VariableTypeId.GuardRoomReportingDistanceTiles));
+            for (int i = 0; i < rooms.Count; i++)
+            {
+                RoomInstance room = rooms[i];
+                if (room.Definition.TypeId != RoomTypeId.GuardRoom || room.OwnerPlayerId != _viewingPlayerId) continue;
+                var minimum = new TilePos(Math.Clamp(room.MinX - distance, 1, world.Width - 1),
+                    Math.Clamp(room.MinY - distance, 1, world.Height - 1));
+                var maximum = new TilePos(Math.Clamp(room.MaxX + distance, 1, world.Width - 1),
+                    Math.Clamp(room.MaxY + distance, 1, world.Height - 1));
+                output.Add(MinimapMarkerRules.ReportingRectangle(TileCentre(minimum), TileCentre(maximum)));
+            }
+        }
         AddCreatures(_viewingPlayerId);
         for (int p = 0; p < world.PlayerCount; p++)
         {

@@ -181,6 +181,25 @@ namespace DK2.Unity.HudProbe
                         throw new InvalidOperationException("Reporting ring colour changed across the GPU colour space: " + colour);
                 }
                 finally { Destroy(reportingColour); }
+                map.UploadMarkers(new[] { new MinimapMarker(MinimapMarkerKind.Rectangle, marker.Position, 0xFF0000FF,
+                    EndPosition: new(new(0x2800), new(0x1800), new(0))) });
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 65, y: 107);
+                AssertBlueMarker(map.Disc, x: 65, y: 78);
+                AssertBlueMarker(map.Disc, x: 50, y: 92);
+                AssertBlueMarker(map.Disc, x: 79, y: 92);
+                Texture2D rectangle = Read(map.Disc);
+                try
+                {
+                    if (rectangle.GetPixel(65, 92).b > .01f)
+                        throw new InvalidOperationException("Reporting rectangle filled its interior.");
+                }
+                finally { Destroy(rectangle); }
+                map.Render(headingDegrees: 90, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 20, y: 65);
+                AssertBlueMarker(map.Disc, x: 49, y: 65);
+                AssertBlueMarker(map.Disc, x: 35, y: 50);
+                AssertBlueMarker(map.Disc, x: 35, y: 79);
                 map.UploadMarkers(Array.Empty<MinimapMarker>());
                 map.Render(headingDegrees: 0, diameter: 128);
                 Texture2D cleared = Read(map.Disc);

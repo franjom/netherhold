@@ -73,9 +73,9 @@ inexact GPU division rounding a boundary down by another pixel.
 The local pickup preview is a bounded adapter approximation: suppress the
 queued creature until its command's simulation tick settles, then read the
 viewer's actual hand. Native pending-pickup animation lifetime is still unread.
-The reporting-distance and possession/Alarm outlines below are built. Guard
-Post links, room outlines, other transient signals and camera footprint remain
-outside the current implementation.
+The reporting-distance and possession/Alarm outlines below are built, including
+Guard Room rectangles. Guard Post links, other transient signals and camera
+footprint remain outside the current implementation.
 
 `0x0041E620` draws a dotted direction trail between the minimap centre and the
 viewer's Heart in zoomed mode. It normalizes the offset with integer square root,
@@ -259,6 +259,14 @@ bit `0x20` clear) receives the same colour and projection formula using
 variable 191, unless its shot id is 13, whose branch takes precedence.
 Owned Guard Rooms (room type 9) use variable 190 to expand their min/max tile
 bounds before drawing a rectangle, clamping each axis to 1..mapExtent-1.
+The producer [004E4590](functions/004E4590.md) stores direct slab-coordinate
+minima and maxima, with the last included tile as the maximum. Do not add one
+to these maxima before minimap projection. The concrete rectangle draw
+[005C08E0](functions/005C08E0.md) uses exclusive right/bottom raster bounds;
+its last pixels are right-1 and bottom-1. That combination is the native rule.
+The adapter emits this pale outline for the viewer's Guard Rooms before
+creature markers, without a fog gate. It reuses the retained room index and
+renders a hollow, one-raster-unit border at display resolution.
 
 The own-creature list additionally draws a white outline when runtime
 `+0x3E6` bit `0x80` is set. This is the existing Possessed field, not a combat

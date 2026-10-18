@@ -38,6 +38,9 @@ alpha along antialiased marker edges. Tile and marker placement share native
 integer whole-map bounds; the capture regression checks viewer-hand filtering,
 pending-pickup suppression/settlement and allocation-free repeated capture.
 Outline checks cover an empty interior and native zero/one-radius special cases.
+Rectangle checks assert all four exclusive-bound edges, a hollow interior,
+quarter-turn rotation and preserved disc alpha. A headless capture test checks
+own-room visibility through fog and reporting-distance clamping at map edges.
 The live fixture includes the Heart's configured reporting-distance ring; its
 radius is static. Headless allocation checks use `DOTNET_TieredCompilation=0`
 to exclude JIT compilation noise from the measured thread.

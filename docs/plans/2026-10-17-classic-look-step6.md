@@ -1,6 +1,6 @@
 # Step 6 — HUD and controls
 
-Status: live minimap tiles, markers and reporting/possession/Alarm outlines built; 6.1 remains partial, 2026-10-18.
+Status: live minimap tiles, markers and reporting outlines (including Guard Rooms) built; 6.1 remains partial, 2026-10-18.
 The native frame with its idle corner artwork is present; remaining overlays,
 navigation controls and owner comparison remain open;
 ADR-0497 remains proposed. Step5's outstanding visual/performance
@@ -19,6 +19,8 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
 
 ## 6.0 — Research and rendering pilot
 
+- [ ] Research whole-HUD and individual-panel visibility during intros, camera
+  sequences and other modes, including restoration and input gating (Q610).
 - [ ] Inventory install-supplied interface bitmaps, font sizes, widget states and
   existing asset-provider support. Keep original/derived artwork out of Git.
 - [ ] Read the remaining minimap draw and interaction paths before implementing
@@ -48,8 +50,9 @@ upload no cells. Capture runs before worker dispatch; drawing reads GPU state.
 Creature/trap dots and oriented door strokes use researched fog, hand and blink
 rules, with a retained marker buffer and display-resolution shapes. Pending
 pickups use a documented command-settlement approximation. The static Heart and
-Guard Post reporting-distance outlines, possession ring and Alarm ring are built;
-room outlines, other overlays and navigation controls remain.
+Guard Post reporting-distance outlines, Guard Room rectangle, possession ring and
+Alarm ring are built; other overlays and navigation controls remain. Whole-HUD
+visibility is Q610, with the current reading in [hud-visibility.md](../research/hud-visibility.md).
 Disc/frame layout and rotation still need owner comparison. Static native menu
 and corner-art mapping is recorded; physical input channels and complete corner
 panel behaviours remain research gates.

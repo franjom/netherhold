@@ -82,7 +82,8 @@ Shader "Hidden/DK2/Minimap"
             #pragma vertex Vert
             #pragma fragment Frag
             #include "UnityCG.cginc"
-            StructuredBuffer<int4> _Markers;
+            struct Marker { int2 position; uint kind, colour; int2 endPosition; };
+            StructuredBuffer<Marker> _Markers;
             float4 _GridSize, _MapRect;
             float _Angle;
             struct Varyings
@@ -93,16 +94,17 @@ Shader "Hidden/DK2/Minimap"
                 nointerpolation float4 colour : COLOR0;
                 nointerpolation uint kind : TEXCOORD2;
                 nointerpolation float radius : TEXCOORD3;
+                nointerpolation float2 extent : TEXCOORD4;
             };
             Varyings Vert(uint vertex : SV_VertexID, uint instance : SV_InstanceID)
             {
-                int4 marker = _Markers[instance];
-                int2 tile = marker.xy >> 12;
+                Marker marker = _Markers[instance];
+                int2 tile = marker.position >> 12;
                 int2 origin = tile * int2(_MapRect.zw) / int2(_GridSize.xy) + int2(_MapRect.xy);
                 float2 size = 3;
                 float2 centre = origin + .5;
-                uint kind = asuint(marker.z) & 65535;
-                uint radius = asuint(marker.z) >> 16;
+                uint kind = marker.kind & 65535;
+                uint radius = marker.kind >> 16;
                 if (kind == 2 || kind == 3)
                 {
                     int2 axis = kind == 2 ? int2(0,1) : int2(1,0);
@@ -112,6 +114,13 @@ Shader "Hidden/DK2/Minimap"
                     if (dot(span, axis) <= 0) size = 0;
                 }
                 else if (kind == 4) size = radius <= 1 ? radius * 2 + 1 : 2 * (radius + 1);
+                else if (kind == 5)
+                {
+                    int2 endTile = marker.endPosition >> 12;
+                    int2 end = endTile * int2(_MapRect.zw) / int2(_GridSize.xy) + int2(_MapRect.xy);
+                    size = max(end - origin, 0);
+                    centre = origin + size * .5;
+                }
                 float2 corners[6] = { float2(-.5,-.5), float2(.5,-.5), float2(.5,.5),
                     float2(-.5,-.5), float2(.5,.5), float2(-.5,.5) };
                 Varyings o;
@@ -123,10 +132,11 @@ Shader "Hidden/DK2/Minimap"
                 #if !UNITY_UV_STARTS_AT_TOP
                 o.position.y = -o.position.y;
                 #endif
-                uint colour = asuint(marker.w);
+                uint colour = marker.colour;
                 o.colour = float4((colour >> 16) & 255, (colour >> 8) & 255, colour & 255, 255) / 255.0;
                 o.kind = kind;
                 o.radius = radius;
+                o.extent = size;
                 return o;
             }
             float4 Frag(Varyings i) : SV_Target
@@ -144,6 +154,14 @@ Shader "Hidden/DK2/Minimap"
                     float shape = abs(length(i.local) * (i.radius + 1) - i.radius) - .5;
                     float edge = max(fwidth(shape) * .5, .001);
                     alpha *= 1 - smoothstep(-edge, edge, shape);
+                }
+                else if (i.kind == 5)
+                {
+                    float2 pixels = (i.local + 1) * .5 * i.extent;
+                    float2 distance = min(pixels, i.extent - pixels);
+                    float border = min(distance.x, distance.y);
+                    float edge = max(fwidth(border) * .5, .001);
+                    alpha *= 1 - smoothstep(1 - edge, 1 + edge, border);
                 }
                 return float4(i.colour.rgb, alpha);
             }

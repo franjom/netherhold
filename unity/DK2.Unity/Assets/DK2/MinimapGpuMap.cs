@@ -13,7 +13,7 @@ namespace DK2.Unity
     public sealed class MinimapGpuMap : IDisposable
     {
         private struct Upload { public uint Position, ColourClass; }
-        private struct MarkerUpload { public int X, Y; public uint Kind, Colour; }
+        private struct MarkerUpload { public int X, Y; public uint Kind, Colour; public int EndX, EndY; }
         private MarkerUpload[] _markers = new MarkerUpload[64];
         private GraphicsBuffer _markerBuffer;
         private int _markerCount;
@@ -50,7 +50,7 @@ namespace DK2.Unity
             _material.SetVector("_GridSize", new Vector4(width, height, 0, 0));
             MinimapMapBounds bounds = MinimapMapBounds.Fit(width, height);
             _material.SetVector("_MapRect", new Vector4(bounds.Left, bounds.Top, bounds.Width, bounds.Height));
-            _markerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _markers.Length, sizeof(uint) * 4);
+            _markerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _markers.Length, sizeof(uint) * 6);
             _material.SetBuffer("_Markers", _markerBuffer);
             UpdatePalette(palette);
         }
@@ -118,7 +118,7 @@ namespace DK2.Unity
             {
                 _markers = new MarkerUpload[Mathf.NextPowerOfTwo(markers.Count)];
                 _markerBuffer.Dispose();
-                _markerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _markers.Length, sizeof(uint) * 4);
+                _markerBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, _markers.Length, sizeof(uint) * 6);
                 _material.SetBuffer("_Markers", _markerBuffer);
             }
             for (int i = 0; i < markers.Count; i++)
@@ -126,7 +126,8 @@ namespace DK2.Unity
                 if (markers[i].RadiusRasterPixels < 0 || markers[i].RadiusRasterPixels > ushort.MaxValue)
                     throw new ArgumentOutOfRangeException(nameof(markers), "Marker radius must fit the packed raster extent.");
                 _markers[i] = new MarkerUpload { X = markers[i].Position.X.Raw, Y = markers[i].Position.Y.Raw,
-                    Kind = (uint)markers[i].Kind | (uint)markers[i].RadiusRasterPixels << 16, Colour = markers[i].ColourArgb };
+                    Kind = (uint)markers[i].Kind | (uint)markers[i].RadiusRasterPixels << 16, Colour = markers[i].ColourArgb,
+                    EndX = markers[i].EndPosition.X.Raw, EndY = markers[i].EndPosition.Y.Raw };
             }
             _markerCount = markers.Count;
             if (_markerCount > 0) _markerBuffer.SetData(_markers, 0, 0, _markerCount);
