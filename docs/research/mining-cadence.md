@@ -152,6 +152,8 @@ reused entity maps, not exact native trajectories or a seed-distribution result.
 `paired_dig.py` and `paired-dig/results.json` reproduce the table; TRX files
 under `tests/` preserve red, green and full simulation results. No full solution
 suite, profiler or Unity visual run was required for this rejected candidate.
+The later [Portal visibility control](imp-hatchery-work.md#portal-regression-a-work-visibility-boundary)
+isolates part of the changed allocation history but does not recover the win.
 
 These one-tick entries are captured outcomes. The binary's wall-work entries
 turn toward the target centre and hold until facing; see imp-state-exits.md §2.

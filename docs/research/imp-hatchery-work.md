@@ -174,6 +174,54 @@ requires the action/animation clock, not a new priority or work-rate rule.
 The native arrival differences already follow different idle/wander histories
 before the first job; the two runs do not share a matched RNG stream.
 
+## Portal regression: a work-visibility boundary
+
+**CONFIRMED observations:** the four-turn dig candidate `f62b06f7` converts
+the first Portal at `(24,44)` on 953, versus main's 742 and native's 786.
+The native capture's tile owner changes from neutral to player 3 on 786;
+worker 453 takes the room claim on 756. Neither modern replay shares native RNG.
+
+Both modern workers 2 match in the recorded fields on 584: state 10,
+position `(77089,227275)`, last kind 2, target `(19,55)`, held gold 1400.
+Main has already opened `(20,55)` on 584; the candidate still has Rock until
+the queued strike on 585. Worker 3 supplies that strike, but worker 2 chooses
+before the final work pass and takes the soon-invalid rock job. It abandons
+the walk on 586 and leaves for `(28,55)` on 587. Main instead chooses
+`(28,55)` on 585, then claims `(19,55)` on the way on 586.
+
+By 611, worker 13 matches across the two runs in the recorded position,
+state, last/aimed kind, target and gold. Main worker 2 has reserved claim
+`(17,55)` on 610 and is closer to it; worker 13 cannot steal it. Main's
+worker 13 spends its aimed claim and takes the Portal-route dig `(24,46)`
+on 612. In the candidate that claim is available, so worker 13 keeps claiming
+on 612. The unchanged precedence operates on different available work.
+A fresh [claim-handler read](functions/0046AB50.md) preserves the free-slot
+and strictly-nearer stealing gates; no rank defect is established here.
+
+**CONFIRMED counterfactual:** only on candidate turn 585, resolve all pending
+work immediately after worker 3's update, before workers 2 and 1 choose.
+Worker 4 has already chosen by then. The probe invokes the original private
+worker update in its normal descending order; with the flush disabled, all
+raw worker rows and events across 1100 turns match the unchanged candidate exactly.
+With the flush enabled, the raw prefix through 584 is unchanged. Worker 2
+chooses `(28,55)` on 585 and claims `(19,55)` on 586. The Portal converts on
+827, but worker 13 still takes claim `(17,55)` on 612. This repairs part of
+the chain, not the complete task-reservation history.
+
+Two full 6804-turn diagnostic runs retain 707 packet actions on 647 turns.
+The disabled probe's entire event sequence equals the CLI candidate run.
+The enabled probe still never sets win flag 6 or kills the Lord; player-3
+Imp deaths rise from 13 to 18. Earlier Portal access alone does not recover
+this replay. Stop this control rather than add another timing workaround.
+
+The binary order is already known: the [creature update](functions/00488930.md)
+calls the action runner at `0x00489A68`, before state dispatch at `0x0048A030`;
+both call sites were rechecked in instructions. Modern `ImpTaskSystem.cs:210`
+updates workers newest first, but `ImpTaskSystem.Work.cs:154` queues strikes
+for `TileWorkSystem.Execute` after that pass. The local control demonstrates
+this visibility difference; it does not validate the broader ADR-0503 candidate
+or implement native action-before-state ordering within the striker.
+
 ## Verdict and next boundary
 
 Keep the chooser unchanged. The larger reinforcement excess remains an
@@ -183,6 +231,9 @@ claim gap now traces to floor-opening and worker-decision timing before turn
 176. The initial dig has later arrival and a separately measured cadence
 mismatch. The earlier cadence contradiction is resolved in mining-cadence.md §5;
 ADR-0510 isolates the ordinary dig correction for acceptance.
+The Portal control establishes a local work-visibility consequence, while
+failing to recover the final win. Keep ADR-0503 and ADR-0510 unmerged; further
+implementation needs actual native action/task inputs at a decision boundary.
 The unmatched arrival history still needs a control before attribution to a bug.
 Do not infer those inputs from a later whole-turn snapshot or patch priorities
 to recover one replay. Existing unmerged work/store/arrival
@@ -201,4 +252,11 @@ exports the immutable native rows; `measure.py` writes `summary.json`,
 `assignment-legs.csv` (observed assignment spans, sampled travel to arrival,
 prior-sample straight-line distance, missing/overwritten/censored flags).
 `verify.py` checks coverage, baseline agreement, metrics and the local control.
+`VisibilityControl` in the ignored probe enables only the turn-585 intervention
+with `CONTROL_WORK_VISIBILITY=after3`; `none` checks wrapper equivalence.
+Build candidate `f62b06f7` before reproducing those runs; this research branch
+does not contain its gameplay changes.
+`PROBE_PREFIX` isolates outputs and `PROBE_TURNS=6804` enables the full control.
+`verify_visibility.py` checks the native Portal turn, unchanged wrapper/prefix,
+matched worker fields, full CLI agreement and counterfactual outcomes.
 No full suite, profiler or broad campaign sweep was run for this research.
