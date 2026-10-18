@@ -108,14 +108,38 @@ sequence. For worker 443 the headers are 392–395; for 442 they are 552–555:
 | 2 | 11 | 4096 | 4096 |
 | 3 | 10 | 4096 | 4096 |
 
-The sampled vertical-velocity dword +0x10C is zero in all eight records.
+The sampled physical velocity vectors are zero in all eight records, including
+the vertical dword +0x10C; flying flag bit 8 is clear.
 **STRONGLY INFERRED:** a fresh whole read of [state 214](functions/00481750.md)
 retains its floor-below-Z hold, then its worker landing call; it has no duration
-counter in that handler. The samples do not establish the intermediate height
-writer or a universal two-turn landing duration. Trace that writer and landing
-dispatch before implementing this path; do not replace them with a fixed timer.
+counter in that handler. The samples do not establish a universal two-turn
+landing duration; do not replace this path with a fixed timer.
 An independent reviewer reread all eight raw records and repeated the guard's
 decompile and signed comparison instructions, with the same bounded conclusion.
+
+**STRONGLY INFERRED, static height path:** the creature update's relevant branch
+runs [physical movement](functions/004B2030.md) after state dispatch and before
+steering. Its first gate is virtual slot +0x88: for a worker,
+[the flying test](functions/0048ED40.md) reads flag bit 8, rather than the
+object class's mass test. Above the floor and not flying, the pass applies
+gravity. The creature's +0x64 response is [0x004B2740](functions/004B2740.md),
+which clears vertical velocity when already at/below the floor.
+
+With shipped gravity 240, a zero-velocity free step adds -61440 physical vertical
+velocity, yielding -3840 position units after division by 16. A birth only
+2048 above its floor can therefore reach it within one pass. The pass can
+commit through [the position setter](functions/004B5020.md), whose floor clamp
+also clears downward velocity for a creature. Collision and commit conditions
+still apply; this arithmetic is not a completed native creation replay.
+
+Two controlled calls of the original physical pass from the retained live image
+faulted at an unmapped instruction fetch, first at the birth X/Y and then at
+the original active worker's pose. Neither returned successfully; all partial
+writes are excluded. An independent reviewer repeated the virtual-slot and
+physical/ground-response reads; it confirms this static explanation and its
+limits. Stop these probes. Next capture a completed original
+physical pass at the actual birth, including its floor clamp and subsequent
+landing dispatch, before implementing this missing path.
 
 ## Reproduction and review
 
@@ -132,6 +156,8 @@ reuses baseline results and runs four candidate replays. Its `verify.py` checks
 all eight outcomes, exact birth positions, prefix agreement and the native
 height/state samples. Neither verifier treats the mixed campaign outcomes as
 acceptance.
+`native_height.py` and the retained fault logs are excluded physical-pass trials;
+they do not supply successful-return evidence.
 
 The independent reviewer separately decoded the packet, read native records,
 and repeated the action/cast/creation binary reads. It did not run the modern

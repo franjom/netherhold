@@ -197,10 +197,11 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/imp-cast-position: isolated hash-277 exact human
-  cast-coordinate candidate; local birth matches pass, Level4 acceptance blocks
+- build/imp-acceptance, research/imp-dig-stop-clock: research only. The isolated
+  hash-277 exact human cast-coordinate candidate is fixes/imp-cast-position;
+  local birth matches pass, Level4 acceptance blocks
   gameplay merge. Research and next landing boundary: research/imp-create-position.md.
-  The research-only branch is research/imp-dig-stop-clock. Direct chooser
+  Direct chooser
   controls and modern fixtures: research/imp-priority-checks.md. The preceding
   work comparison and tile-input control remain research/imp-hatchery-work.md.
   Captured strike/claim boundary: research/imp-strike-choice-boundary.md.
@@ -209,8 +210,9 @@ Run git worktree list first; another session may own these.
   fixes/imp-dig-stop-clock; master remains hash 274.
   Packet fractional-position loss is traced and independently reviewed:
   research/imp-create-position.md. Comparison clocks and regenerated measurements:
-  research/imp-observation-clocks.md. Next trace the native height writer and
-  landing dispatch before replacing the diagnostic hold.
+  research/imp-observation-clocks.md. Static gravity/ground-response path traced;
+  controlled physics calls faulted. Next capture the completed native birth
+  physical pass and landing dispatch before implementing a hold.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
