@@ -73,8 +73,9 @@ inexact GPU division rounding a boundary down by another pixel.
 The local pickup preview is a bounded adapter approximation: suppress the
 queued creature until its command's simulation tick settles, then read the
 viewer's actual hand. Native pending-pickup animation lifetime is still unread.
-Heart pulses, creature alert rings, Guard Post links, room outlines, transient
-signals and camera footprint are not covered by the current marker implementation.
+The reporting-distance and possession/Alarm outlines below are built. Guard
+Post links, room outlines, other transient signals and camera footprint remain
+outside the current implementation.
 
 `0x0041E620` draws a dotted direction trail between the minimap centre and the
 viewer's Heart in zoomed mode. It normalizes the offset with integer square root,
@@ -127,9 +128,10 @@ Its palette is 64×16. `FrontEnd.WAD` has a same-named palette but different RGB
 content; do not use that copy for the game HUD merely because its filename fits.
 
 The HUD frame dispatcher `0x00419DF0` calls the minimap renderer and then
-`0x0041EDC0`, a heading-dependent decoration. The latter installs an 8×8 resource,
-uses camera `+0xD84` and sine/cosine offsets; the exact sprite binding is not yet
-identified. This is not evidence of a Portal overlay.
+`0x0041EDC0`, the heading-dependent north decoration (catalogue entry 36 at
+resource offset `+0x3CC`). It sets draw size fields to 8×8 and uses camera
+`+0xD84` with sine/cosine offsets about virtual centre (244,1680) and radius 140.
+Final sprite extent is not established by these fields alone.
 
 ## Input and UI coordinate boundary (partially read)
 
@@ -238,3 +240,38 @@ This inventories containers, not a confirmed mapping from each HUD widget to art
 `Data/Text/Default` contains the in-game `.bf4` family, including sizes 7 through
 72. The existing `Bf4FontReader` reads these; text style selection remains in
 `InterfaceFonts`. Resource access for the HUD must remain behind a provider.
+
+### Reporting-distance outlines and pulses (CONFIRMED, binary)
+
+Read 2026-10-18: the complete `0x0041CC50` body, the `0x0051CD90` variable
+switch, and `0x004AA2F0` with its minimap call site. The low byte at `0x006F2964`
+is variable 183, DungeonHeartReportingDistanceTiles; `0x006F2974` and
+`0x006F2975` are variables 190/191, GuardRoomReportingDistanceTiles and
+GuardPostReportingDistanceTiles. The switch writes bytes, so rendering uses
+the low eight bits of the configured values. These are distances, not clocks.
+
+The viewer's Heart always receives an RGB (150,150,255) outline centred on
+the Heart-position tile. Its radius is `distance * fitWidth / mapWidth` in
+whole-map mode, with integer truncation, or `distance * (1 << zoom)` when
+zoomed. It is static even though other minimap outlines expand over time.
+An owned, completed Guard Post (definition flags `0x800`, runtime `+0x10C`
+bit `0x20` clear) receives the same colour and projection formula using
+variable 191, unless its shot id is 13, whose branch takes precedence.
+Owned Guard Rooms (room type 9) use variable 190 to expand their min/max tile
+bounds before drawing a rectangle, clamping each axis to 1..mapExtent-1.
+
+The own-creature list additionally draws a white outline when runtime
+`+0x3E6` bit `0x80` is set. This is the existing Possessed field, not a combat
+alert. Its radius is `worldTurn & 7` in raster units in both map modes.
+It uses the same pickup/hand suppression as the creature dot and is drawn
+immediately after that dot. Other-player creature loops have no such ring.
+
+For an owned trap whose definition's **shot id** `+0xBB` is 13 (Alarm and Hero
+Alarm in shipped data; see traps.md), the magenta RGB (220,50,255) outline is
+drawn while unsigned `worldTurn <= RechargeAt`. The inclusive deadline comes
+from `0x004AA2F0`; it is not the complete firing-readiness predicate. Radius
+is `worldTurn % 30`, in raster units in both modes, with no distance scaling.
+The ordinary trap marker is drawn first. This branch does not separately test
+construction status. Transient signal slots, player flag `+0x76` bit 4 and the
+six trailing target records still require producer/semantic research; their
+visible rings alone do not establish what gameplay events should create them.

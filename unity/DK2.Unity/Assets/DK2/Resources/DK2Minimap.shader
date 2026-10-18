@@ -92,6 +92,7 @@ Shader "Hidden/DK2/Minimap"
                 float2 disc : TEXCOORD1;
                 nointerpolation float4 colour : COLOR0;
                 nointerpolation uint kind : TEXCOORD2;
+                nointerpolation float radius : TEXCOORD3;
             };
             Varyings Vert(uint vertex : SV_VertexID, uint instance : SV_InstanceID)
             {
@@ -100,8 +101,9 @@ Shader "Hidden/DK2/Minimap"
                 int2 origin = tile * int2(_MapRect.zw) / int2(_GridSize.xy) + int2(_MapRect.xy);
                 float2 size = 3;
                 float2 centre = origin + .5;
-                uint kind = asuint(marker.z);
-                if (kind >= 2)
+                uint kind = asuint(marker.z) & 65535;
+                uint radius = asuint(marker.z) >> 16;
+                if (kind == 2 || kind == 3)
                 {
                     int2 axis = kind == 2 ? int2(0,1) : int2(1,0);
                     int2 span = (tile + axis) * int2(_MapRect.zw) / int2(_GridSize.xy) + int2(_MapRect.xy) - origin;
@@ -109,6 +111,7 @@ Shader "Hidden/DK2/Minimap"
                     centre = origin + size * .5;
                     if (dot(span, axis) <= 0) size = 0;
                 }
+                else if (kind == 4) size = radius <= 1 ? radius * 2 + 1 : 2 * (radius + 1);
                 float2 corners[6] = { float2(-.5,-.5), float2(.5,-.5), float2(.5,.5),
                     float2(-.5,-.5), float2(.5,.5), float2(-.5,.5) };
                 Varyings o;
@@ -123,17 +126,24 @@ Shader "Hidden/DK2/Minimap"
                 uint colour = asuint(marker.w);
                 o.colour = float4((colour >> 16) & 255, (colour >> 8) & 255, colour & 255, 255) / 255.0;
                 o.kind = kind;
+                o.radius = radius;
                 return o;
             }
             float4 Frag(Varyings i) : SV_Target
             {
                 float radius = length(i.disc);
                 float alpha = 1 - smoothstep(1 - fwidth(radius), 1, radius);
-                if (i.kind < 2)
+                if (i.kind < 2 || (i.kind == 4 && i.radius == 1))
                 {
                     float shape = length(i.local);
                     float edge = fwidth(shape) * .5;
                     alpha *= 1 - smoothstep(1 - edge, 1 + edge, shape);
+                }
+                else if (i.kind == 4 && i.radius > 1)
+                {
+                    float shape = abs(length(i.local) * (i.radius + 1) - i.radius) - .5;
+                    float edge = max(fwidth(shape) * .5, .001);
+                    alpha *= 1 - smoothstep(-edge, edge, shape);
                 }
                 return float4(i.colour.rgb, alpha);
             }

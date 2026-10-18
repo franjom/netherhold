@@ -9,6 +9,51 @@ namespace DK2.Presentation.Tests;
 
 public sealed class MinimapMarkerTests
 {
+    [Theory]
+    [InlineData(0, 0, true)]
+    [InlineData(10, 10, true)]
+    [InlineData(11, 10, false)]
+    [InlineData(0, -1, true)]
+    public void AlarmRingIncludesItsUnsignedDeadline(long tick, long rechargeAt, bool visible) =>
+        Assert.Equal(visible, MinimapMarkerRules.IsAlarmRingActive(new(tick), new(rechargeAt)));
+
+    [Theory]
+    [InlineData(29, 29)]
+    [InlineData(30, 0)]
+    [InlineData(4294967296, 0)]
+    public void AlarmRingUsesMagentaAndTheWrappedWorldTurnModuloThirty(long tick, int radius)
+    {
+        MinimapMarker ring = MinimapMarkerRules.AlarmRing(Position, new(tick));
+        Assert.Equal(radius, ring.RadiusRasterPixels);
+        Assert.Equal(0xFFDC32FFu, ring.ColourArgb);
+    }
+
+    [Theory]
+    [InlineData(7, 100, 100, 6)]
+    [InlineData(7, 50, 100, 6)]
+    [InlineData(263, 100, 100, 6)]
+    [InlineData(0, 100, 100, 0)]
+    public void ReportingRingUsesTheConfiguredByteDistanceAndNativeMapScale(int distanceTiles, int width, int height, int radius)
+    {
+        MinimapMarker ring = MinimapMarkerRules.ReportingRing(Position, distanceTiles, MinimapMapBounds.Fit(width, height), width);
+        Assert.Equal(MinimapMarkerKind.Ring, ring.Kind);
+        Assert.Equal(radius, ring.RadiusRasterPixels);
+        Assert.Equal(0xFF9696FFu, ring.ColourArgb);
+        Assert.Equal(Position, ring.Position);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(7, 7)]
+    [InlineData(8, 0)]
+    public void PossessionRingUsesTheWorldTurnModuloEight(long tick, int radius)
+    {
+        MinimapMarker ring = MinimapMarkerRules.PossessionRing(Position, new(tick));
+        Assert.Equal(MinimapMarkerKind.Ring, ring.Kind);
+        Assert.Equal(radius, ring.RadiusRasterPixels);
+        Assert.Equal(0xFFFFFFFFu, ring.ColourArgb);
+    }
+
     private static readonly FpPosition3 Position = new(new(0x1800), new(0x2800), new(0));
     private static MinimapPalette Palette()
     {

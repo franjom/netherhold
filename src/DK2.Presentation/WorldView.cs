@@ -474,7 +474,10 @@ public sealed partial class WorldView
             _roomFurniture[entry.Key] = AssetRef.ForRoom(entry.Value.Name, AssetKind.Mesh);
             if (AssetCatalogue.RoomPieceCount(entry.Value) > 0) _roomKeys[entry.Key] = new RoomPieceKeys(entry.Value);
             if (entry.Value.TypeId == RoomTypeId.DungeonHeart)
+            {
+                _minimapHeartTerrain ??= entry.Key;
                 _destroyedHeartKeys[entry.Key] = new RoomPieceKeys(entry.Value, destroyedHeart: true);
+            }
             // Room definition +0x43D bit 3, which the loader sets for these constructions
             // (wall-pieces.md §1): a terrain face against such a room is the room's to draw.
             _ownWallsById[entry.Key] = entry.Value.Construction is TileConstruction.Complete

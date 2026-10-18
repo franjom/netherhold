@@ -7,7 +7,7 @@ using DK2.Data.Model;
 
 namespace DK2.Presentation;
 
-public enum MinimapMarkerKind { Creature, Trap, VerticalDoor, HorizontalDoor }
+public enum MinimapMarkerKind { Creature, Trap, VerticalDoor, HorizontalDoor, Ring }
 
 [Flags]
 public enum MinimapMarkerFlags : byte
@@ -18,11 +18,23 @@ public enum MinimapMarkerFlags : byte
 public readonly record struct MinimapMarkerFacts(
     MinimapMarkerKind Kind, FpPosition3 Position, PlayerId Owner, MinimapMarkerFlags Flags);
 
-public readonly record struct MinimapMarker(MinimapMarkerKind Kind, FpPosition3 Position, uint ColourArgb);
+public readonly record struct MinimapMarker(MinimapMarkerKind Kind, FpPosition3 Position, uint ColourArgb, int RadiusRasterPixels = 1);
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-rendering.md")]
 public static class MinimapMarkerRules
 {
+    public static MinimapMarker ReportingRing(FpPosition3 position, int distanceTiles, MinimapMapBounds bounds, int mapWidth) =>
+        new(MinimapMarkerKind.Ring, position, 0xFF9696FF, unchecked((byte)distanceTiles) * bounds.Width / mapWidth);
+
+    public static MinimapMarker PossessionRing(FpPosition3 position, GameTick tick) =>
+        new(MinimapMarkerKind.Ring, position, 0xFFFFFFFF, (int)(tick.Value & 7));
+
+    public static MinimapMarker AlarmRing(FpPosition3 position, GameTick tick) =>
+        new(MinimapMarkerKind.Ring, position, 0xFFDC32FF, (int)(unchecked((uint)tick.Value) % 30));
+
+    public static bool IsAlarmRingActive(GameTick tick, GameTick rechargeAt) =>
+        unchecked((uint)tick.Value) <= unchecked((uint)rechargeAt.Value);
+
     public static bool TryCreate(in MinimapMarkerFacts facts, PlayerId viewer, GameTick tick,
         MinimapPalette palette, out MinimapMarker marker)
     {

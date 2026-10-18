@@ -126,8 +126,8 @@ following ART_DIRECTION.md §13 and proposed ADR-0497. Step5 is not formally clo
 The Step6 shader/font feasibility pilot passed in isolated URP targets at 1024×768
 and 1440p (tools/hud-probe/README.md); a live minimap tile layer is connected
 on classic-look/step6 with the native frame and its idle corner art. Creature,
-trap and door markers are built; Heart pulses, remaining overlays, controls
-and owner comparison remain.
+trap and door markers, Heart/Guard Post reporting-distance outlines, possession
+and Alarm rings are built. Remaining overlays, controls and owner comparison remain.
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 

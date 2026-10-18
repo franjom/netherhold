@@ -122,8 +122,12 @@ namespace DK2.Unity
                 _material.SetBuffer("_Markers", _markerBuffer);
             }
             for (int i = 0; i < markers.Count; i++)
+            {
+                if (markers[i].RadiusRasterPixels < 0 || markers[i].RadiusRasterPixels > ushort.MaxValue)
+                    throw new ArgumentOutOfRangeException(nameof(markers), "Marker radius must fit the packed raster extent.");
                 _markers[i] = new MarkerUpload { X = markers[i].Position.X.Raw, Y = markers[i].Position.Y.Raw,
-                    Kind = (uint)markers[i].Kind, Colour = markers[i].ColourArgb };
+                    Kind = (uint)markers[i].Kind | (uint)markers[i].RadiusRasterPixels << 16, Colour = markers[i].ColourArgb };
+            }
             _markerCount = markers.Count;
             if (_markerCount > 0) _markerBuffer.SetData(_markers, 0, 0, _markerCount);
             _dirty = true;

@@ -37,6 +37,10 @@ stroke orientations, removal without stale pixels, and unchanged opaque-disc
 alpha along antialiased marker edges. Tile and marker placement share native
 integer whole-map bounds; the capture regression checks viewer-hand filtering,
 pending-pickup suppression/settlement and allocation-free repeated capture.
+Outline checks cover an empty interior and native zero/one-radius special cases.
+The live fixture includes the Heart's configured reporting-distance ring; its
+radius is static. Headless allocation checks use `DOTNET_TieredCompilation=0`
+to exclude JIT compilation noise from the measured thread.
 Native backdrop/UV placement,
 palette cycling and class/marker behaviour still need campaign comparisons.
 The same-named FrontEnd palette has different RGB values; it is not substituted.

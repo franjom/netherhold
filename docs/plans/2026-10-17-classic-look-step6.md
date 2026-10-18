@@ -1,6 +1,6 @@
 # Step 6 — HUD and controls
 
-Status: live minimap tiles and creature/trap/door markers built; 6.1 remains partial, 2026-10-17.
+Status: live minimap tiles, markers and reporting/possession/Alarm outlines built; 6.1 remains partial, 2026-10-18.
 The native frame with its idle corner artwork is present; remaining overlays,
 navigation controls and owner comparison remain open;
 ADR-0497 remains proposed. Step5's outstanding visual/performance
@@ -47,8 +47,9 @@ DungeonRunner disc are built. WORD classes survive the GPU path; idle frames
 upload no cells. Capture runs before worker dispatch; drawing reads GPU state.
 Creature/trap dots and oriented door strokes use researched fog, hand and blink
 rules, with a retained marker buffer and display-resolution shapes. Pending
-pickups use a documented command-settlement approximation. Heart pulses and
-the remaining overlay arms are still unbuilt.
+pickups use a documented command-settlement approximation. The static Heart and
+Guard Post reporting-distance outlines, possession ring and Alarm ring are built;
+room outlines, other overlays and navigation controls remain.
 Disc/frame layout and rotation still need owner comparison. Static native menu
 and corner-art mapping is recorded; physical input channels and complete corner
 panel behaviours remain research gates.

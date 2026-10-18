@@ -155,6 +155,32 @@ namespace DK2.Unity.HudProbe
                 map.Render(headingDegrees: 0, diameter: 128);
                 AssertBlueMarker(map.Disc, x: 60, y: 77);
                 AssertBlueMarker(map.Disc, x: 20, y: 70);
+                map.UploadMarkers(new[] { new MinimapMarker(MinimapMarkerKind.Ring, marker.Position, 0xFF0000FF, 8) });
+                map.Render(headingDegrees: 0, diameter: 128);
+                AssertBlueMarker(map.Disc, x: 58, y: 107);
+                Texture2D hollow = Read(map.Disc);
+                try
+                {
+                    if (hollow.GetPixel(50, 107).b > .01f)
+                        throw new InvalidOperationException("Minimap reporting outline filled its interior.");
+                }
+                finally { Destroy(hollow); }
+                foreach (int radius in new[] { 0, 1 })
+                {
+                    map.UploadMarkers(new[] { new MinimapMarker(MinimapMarkerKind.Ring, marker.Position, 0xFF0000FF, radius) });
+                    map.Render(headingDegrees: 0, diameter: 128);
+                    AssertBlueMarker(map.Disc, x: 50, y: 107);
+                }
+                map.UploadMarkers(new[] { new MinimapMarker(MinimapMarkerKind.Ring, marker.Position, 0xFF9696FF, 0) });
+                map.Render(headingDegrees: 0, diameter: 128);
+                Texture2D reportingColour = Read(map.Disc);
+                try
+                {
+                    Color32 colour = reportingColour.GetPixel(50, 107);
+                    if (Math.Abs(colour.r - 150) > 1 || Math.Abs(colour.g - 150) > 1 || colour.b < 254)
+                        throw new InvalidOperationException("Reporting ring colour changed across the GPU colour space: " + colour);
+                }
+                finally { Destroy(reportingColour); }
                 map.UploadMarkers(Array.Empty<MinimapMarker>());
                 map.Render(headingDegrees: 0, diameter: 128);
                 Texture2D cleared = Read(map.Disc);
