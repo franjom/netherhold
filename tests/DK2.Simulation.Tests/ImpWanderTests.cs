@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
+using DK2.Simulation.Steering;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -14,6 +15,48 @@ namespace DK2.Simulation.Tests;
 public class ImpWanderTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
+
+    [Theory]
+    [InlineData(1024, CreatureStateMachine.Idle)]
+    [InlineData(32768, 6)]
+    public void WanderResumesAtFullProgressBeforeThePathFinishedFlag(int remaining, int expectedState)
+    {
+        var (db, world) = AllClaimed();
+        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        var target = new Fixed16Vector(8 << 16, 6 << 16);
+        imp.Body.Pos = new Fixed16Vector(7 << 16, 6 << 16);
+        RouteWindow.Load(imp.Body, [target], target, 0);
+        imp.Body.Pos = target - new Fixed16Vector(remaining, 0);
+        imp.PosX = imp.Body.Pos.X >> 4;
+        imp.PosY = imp.Body.Pos.Y >> 4;
+        CreatureStateMachine.BeginTravel(new StateHookContext(world, db), imp, 6, CreatureStateMachine.Idle);
+        Assert.False(imp.Body.PathFinished);
+
+        new GameSimulation(db, world, 11, [new ImpTaskSystem()]).Tick();
+
+        Assert.Equal(expectedState, imp.Dk2StateId);
+    }
+
+    [Fact]
+    public void StoppingAtArrivalDiscardsVelocityAndPinsTheBodyToTheEntityPosition()
+    {
+        var (db, world) = AllClaimed();
+        var imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
+        imp.Body.Pos = new Fixed16Vector((imp.PosX << 4) + 7, (imp.PosY << 4) + 15);
+        imp.Body.Vel = new Fixed16Vector(2134, -7286);
+        var target = imp.Body.Pos + new Fixed16Vector(1024, 0);
+        RouteWindow.Load(imp.Body, [target], target, 0);
+        CreatureStateMachine.BeginTravel(new StateHookContext(world, db), imp, 6, CreatureStateMachine.Idle);
+
+        new GameSimulation(db, world, 11, [new ImpTaskSystem()]).Tick();
+
+        Assert.Equal(default, imp.Body.Vel);
+        Assert.Equal(new Fixed16Vector(imp.PosX << 4, imp.PosY << 4), imp.Body.Pos);
+        Assert.False(imp.HasRoute);
+        var stopped = imp.Tile;
+        new GameSimulation(db, world, 11, [new CreatureMovementSystem()]).Run(2);
+        Assert.Equal(stopped, imp.Tile);
+    }
 
     [Theory]
     [InlineData(100, 0, ImpStates.Resting, true)]

@@ -42,7 +42,9 @@ seam can instead leave on a strike turn; this is a different branch.
 
 ## Implementation and verification
 
-This section describes the unmerged `fixes/imp-store-timing` candidate.
+This section describes the archived, unmerged `fixes/imp-store-timing` candidate.
+Its clock model remains provisional: phase is reconstructed from work entry,
+not retained native animation history, and interruptions are unvalidated.
 
 `AnimationTimingRules.LoopingActionStopTicks` reconstructs the ordinary
 loop phase from the work-state epoch, requests stop and counts to completion.
@@ -57,13 +59,21 @@ last strike, no action yet, task loss, full hands with and without seam
 exhaustion, hash sensitivity and a snapshot taken inside the End segment.
 Eight initial regressions failed before the implementation; the no-action
 control passed. All 3586 simulation tests pass. Read-only independent review
-found no correctness issue in the bounded implementation. Campaign acceptance
-fails: Level 1 wins in 14/20 seeds against 19/20 on baseline hash 265 and
+found no correctness issue in the bounded implementation. Historical paired
+runs give Level 1 wins in 14/20 seeds against 19/20 on baseline hash 265 and
 16/20 on the preceding hash-267 candidate. Losing seeds are 3, 11, 13–16.
 All 20 runs have consecutive turns and no placed-type mismatch, but these
-replays do not establish native entity/RNG equivalence. The mechanism is
-supported; the combined implementation is not approved for gameplay merge.
+replays do not establish native entity/RNG equivalence. These outcome changes
+are diagnostics, not disproof of the native mechanism or an automatic merge veto.
+The reconstructed clock remains unmerged pending its scope validation.
 Results: `reverse-engineering/imp-mining-tail-level1-20261017/results.json`.
+
+ADR-0512 extracts the independently supported own-strike observation correction
+without this clock: resolve a mining strike before checking the actual purse,
+and retain state 26 on an exhausted seam for the strike turn. A still-workable
+seam can start the full-hands store walk then. The remaining exhausted-action
+lifetime still uses the existing fallback; this extraction does not claim the
+authored ending phase is implemented.
 
 Captures are under `reverse-engineering/dk2runs/` at the paths in
 [the task audit](imp-task-audit.md#scope-and-reproducibility), decoded with

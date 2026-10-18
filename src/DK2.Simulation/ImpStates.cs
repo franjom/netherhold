@@ -32,8 +32,8 @@ public static class ImpStates
     /// in <see cref="AtTheStore"/>, or sets 10 with nothing to carry or nowhere to take it.</summary>
     public const int PickingUpGold = 27;
 
-    /// <summary>State 28: waits for a free standing point at the store tile, then moves to
-    /// <see cref="PuttingDownGold"/>. The wait is not modelled.</summary>
+    /// <summary>State 28: turns toward the store tile's centre, then moves to
+    /// <see cref="PuttingDownGold"/>.</summary>
     public const int AtTheStore = 28;
 
     /// <summary>State 29: deposits what fits and sets 10; a tile that no longer stores this

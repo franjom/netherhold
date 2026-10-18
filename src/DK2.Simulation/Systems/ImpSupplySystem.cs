@@ -29,7 +29,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (CreateImpCommand create in context.Commands<CreateImpCommand>())
-            Buy(context, create.PlayerId, create.At);
+            Buy(context, create);
 
         TopUp(context);
     }
@@ -99,8 +99,10 @@ public sealed class ImpSupplySystem : ISimulationSystem
     /// than a refused one — the same rule <see cref="GoldStore.TryWithdraw"/>
     /// follows for rooms.
     /// </summary>
-    private static void Buy(SimulationContext context, PlayerId playerId, TilePos? at)
+    private static void Buy(SimulationContext context, CreateImpCommand create)
     {
+        PlayerId playerId = create.PlayerId;
+        TilePos? at = create.At;
         WorldState world = context.World;
         if (!world.HasPlayer(playerId))
         {
@@ -164,6 +166,13 @@ public sealed class ImpSupplySystem : ISimulationSystem
             context.Emit(SystemName, "create_imp_refused",
                 $"player={playerId} cost={cost} reason={(at is null ? "no_dungeon_heart" : "outside_the_map")}");
             return;
+        }
+
+        if (create.Position is { } position)
+        {
+            imp.PosX = imp.LastPosX = position.X.Raw;
+            imp.PosY = imp.LastPosY = position.Y.Raw;
+            ImpCreationRules.Begin(context, imp);
         }
 
         player.Mana -= cost;

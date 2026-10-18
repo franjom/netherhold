@@ -153,6 +153,9 @@ public static class CreatureStateMachine
 
     private static bool Enter(in StateHookContext hooks, CreatureState creature, int stateId)
     {
+        // Creation-only elevation must not escape into the existing grounded-state model.
+        if (creature.Dk2StateId == ImpCreationRules.FallingState && stateId != ImpCreationRules.FallingState)
+            ImpCreationRules.Leave(creature);
         // Entering a utility state saves the caller; leaving one does NOT clear the save.
         // DK2's own 2-to-2 move recurses through SetState(1) first, so the slot ends up
         // holding 1 rather than the travel state it came from - reproduced here rather

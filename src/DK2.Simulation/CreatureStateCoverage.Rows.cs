@@ -229,7 +229,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(211, typeof(DropDeliveryRules), nameof(DropDeliveryRules.CelebratingState)));
         rows.Add(Unreachable(212, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
         rows.Add(Unreachable(213, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
-        rows.Add(Unbuilt(214, "read (functions/00481750.md): a wait read as a fall to the floor (inferred), then 76's landing; ours has no fall and puts the worker down as the hand does (SpecialSystem, ImpSupplySystem)"));
+        rows.Add(Built(214, typeof(ImpCreationRules), nameof(ImpCreationRules.FallingState)));
         rows.Add(Unreachable(215, "no entry by the call, raw byte, +0xDF or room-table scans: room-return-states.md §6"));
         rows.Add(Built(216, typeof(CreatureDeathRules), nameof(CreatureDeathRules.FallingState)));
         rows.Add(Built(217, typeof(CreatureDeathRules), nameof(CreatureDeathRules.DyingState)));

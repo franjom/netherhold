@@ -10,24 +10,26 @@ namespace DK2.Simulation;
 /// state E follows a one-tick entry state; the first application lands at E+2, the second a
 /// kind-dependent gap later, then one every tick. The imp looks at its task only when an
 /// action ends, so it holds the work state after the tile is done.</summary>
-/// <remarks>CONFIRMED as outcomes by the Level 1 and Level 2 full-state captures
+/// <remarks>Measured outcomes in the Level 1 and Level 2 full-state captures
 /// (mining-cadence.md §5, §6). The hold is read: state 14 (<c>0x004655D0</c>) returns at once
 /// while <c>0x00496D00</c> reports an action running, and only then checks the tile and starts
 /// the next action or sets 10. The action lengths are measured (a dirt dig leaves at E+6 after
-/// its strike at E+2, a claim one or two ticks after its last application); the imp's
-/// animation frame counts do not give them, and why is UNKNOWN.</remarks>
+/// its strike at E+2, a claim one or two ticks after its last application).
+/// These constants remain a fallback with known phase-dependent mismatches;
+/// see imp-dig-stop-clock.md for the native clock and rejected correction.</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/mining-cadence.md")]
 public static class WorkCadence
 {
     /// <summary>Arrival (the entry state's tick) to the first application: E+2.</summary>
     public const int FirstApplicationTicks = 3;
 
-    /// <summary>The first application to the second. UNKNOWN for conversion, attack and repair,
-    /// which the captures do not show: they take claiming's 1 and digging's 3 by family.</summary>
+    /// <summary>The first application to the second. Ordinary dig art advances 1365 per tick:
+    /// three advances reach 4095, so its first cycle takes four (mining-cadence.md §5).
+    /// Conversion, attack and repair retain their unconfirmed family defaults.</summary>
     public static int SecondApplicationGap(TileWorkKind kind) => kind switch
     {
         TileWorkKind.MineGold => 4,
-        TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => 3,
+        TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => 4,
         TileWorkKind.Reinforce or TileWorkKind.RepairWall => 3,
         _ => 1,
     };

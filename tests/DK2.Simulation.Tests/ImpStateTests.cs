@@ -5,6 +5,8 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Commands;
+using DK2.Simulation.Steering;
+using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
@@ -183,6 +185,135 @@ public class ImpStateTests
     }
 
     [Fact]
+    public void AStoreArrivalAndDepositEachKeepTheirOwnUpdate()
+    {
+        (GameSimulation sim, CreatureState imp, ListEventSink events) = ReachStoreArrival();
+        int held = imp.GoldHeld;
+        Assert.True(held > 0);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "gold_delivered");
+
+        imp.Heading = WorkStoreHeading(imp);
+        sim.Tick();
+        Assert.Equal(ImpStates.PuttingDownGold, imp.Dk2StateId);
+        Assert.Equal(held, imp.GoldHeld);
+        sim.Tick();
+        Assert.Equal(Select, imp.Dk2StateId);
+        Assert.Equal(0, imp.GoldHeld);
+        Assert.Single(events.Events, e => e.Kind == "gold_delivered");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ACompletedStoreWalkStopsBeforeTurningAndDepositing(bool pathFinished)
+    {
+        (GameSimulation initial, _) = Start(new TilePos(3, 3), turnRate: 128);
+        Store(initial, new TilePos(3, 3), RoomTypeId.Treasury);
+        CreatureState imp = initial.World.Creatures[0];
+        imp.GoldHeld = 1000;
+        CreatureStateMachine.BeginTravel(new StateHookContext(initial.World, initial.Database),
+            imp, Walk, ImpStates.AtTheStore);
+        var position = new Fixed16Vector(imp.PosX << 4, imp.PosY << 4);
+        imp.Body.Pos = position + new Fixed16Vector(7, 7);
+        RouteWindow.Load(imp.Body, [position], position, 0);
+        imp.Body.PathTotalDist = 16;
+        imp.Body.PathFinished = pathFinished;
+        imp.Body.Vel = new Fixed16Vector(2000, -1000);
+        imp.Heading = (WorkStoreHeading(imp) + 1024) & 2047;
+        Assert.Equal(Fixed16.One, FollowPathRules.Progress(imp.Body));
+        Assert.Equal(!pathFinished, imp.HasRoute);
+        // Start at the boundary after movement, before the state-6 arrival handler.
+        var sim = new GameSimulation(initial.Database, initial.World, 99,
+            [new ImpTaskSystem(), new CreatureMovementSystem()]);
+
+        sim.Tick();
+
+        Assert.Equal(ImpStates.AtTheStore, imp.Dk2StateId);
+        Assert.False(imp.IsRouted);
+        Assert.Equal(position, imp.Body.Pos);
+        Assert.Equal(default, imp.Body.Vel);
+        for (int i = 0; i < 10 && imp.GoldHeld > 0; i++)
+        {
+            sim.Tick();
+            Assert.Equal(position, imp.Body.Pos);
+            Assert.Equal(default, imp.Body.Vel);
+            Assert.Equal((position.X >> 4, position.Y >> 4), (imp.PosX, imp.PosY));
+        }
+        Assert.Equal(0, imp.GoldHeld);
+        Assert.Equal(Select, imp.Dk2StateId);
+    }
+
+    [Fact]
+    public void AStoreArrivalTurnsTowardTheTileCentreBeforeDepositing()
+    {
+        (GameSimulation sim, CreatureState imp, _) = ReachStoreArrival(turnRate: 128);
+        int held = imp.GoldHeld;
+        imp.Heading = (WorkStoreHeading(imp) + 1024) & 2047;
+        for (int i = 0; i < 7; i++)
+        {
+            sim.Tick();
+            Assert.Equal(ImpStates.AtTheStore, imp.Dk2StateId);
+            Assert.Equal(held, imp.GoldHeld);
+        }
+        sim.Tick();
+        Assert.Equal(ImpStates.PuttingDownGold, imp.Dk2StateId);
+        Assert.Equal(WorkStoreHeading(imp), imp.Heading);
+        Assert.Equal(held, imp.GoldHeld);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AStoreArrivalOrDepositResumesAfterASnapshot(bool deposit)
+    {
+        (GameSimulation sim, CreatureState imp, _) = ReachStoreArrival();
+        if (deposit)
+        {
+            imp.Heading = WorkStoreHeading(imp);
+            sim.Tick();
+        }
+        Assert.Equal(deposit ? ImpStates.PuttingDownGold : ImpStates.AtTheStore, imp.Dk2StateId);
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(sim), sim.Database, Dk2TerrainFixture.DefaultSystems());
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+        restored.Run(5);
+        sim.Run(5);
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
+    public void AStoreThatDisappearsBeforeDepositLeavesTheImpHoldingItsGold()
+    {
+        (GameSimulation sim, CreatureState imp, ListEventSink events) = ReachStoreArrival();
+        int held = imp.GoldHeld;
+        imp.Heading = WorkStoreHeading(imp);
+        sim.Tick();
+        Assert.Equal(ImpStates.PuttingDownGold, imp.Dk2StateId);
+        sim.World.Tile(imp.Tile).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        sim.Tick();
+        Assert.Equal(Idle, imp.Dk2StateId);
+        Assert.Equal(held, imp.GoldHeld);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "gold_delivered");
+    }
+
+    private static int WorkStoreHeading(CreatureState imp) =>
+        DK2.Simulation.Steering.Bearing.Of(CreatureState.CentreOf(imp.Tile.X) - imp.PosX,
+            CreatureState.CentreOf(imp.Tile.Y) - imp.PosY);
+
+    private static (GameSimulation Sim, CreatureState Imp, ListEventSink Events) ReachStoreArrival(
+        ushort turnRate = 4096)
+    {
+        (GameSimulation sim, ListEventSink events) = Start(new TilePos(1, 1), turnRate);
+        Store(sim, new TilePos(3, 3), RoomTypeId.Treasury);
+        int hands = sim.Database.CreatureById(Dk2TerrainFixture.ImpCreatureId).MaxGoldHeld;
+        FloorGold.Drop(sim.World, sim.Database, (2 * sim.World.Width) + 2, hands);
+        CreatureState imp = sim.World.Creatures[0];
+        for (int i = 0; i < 200 && imp.Dk2StateId != ImpStates.AtTheStore; i++) sim.Tick();
+        Assert.Equal(ImpStates.AtTheStore, imp.Dk2StateId);
+        return (sim, imp, events);
+    }
+
+    [Fact]
     public void FloorGoldIsPickedUpInTwentySevenAndPutDownThroughTwentyEightAndTwentyNine()
     {
         // 10 walks in 6 to 27; 27 takes the pile, full hands, and walks to the store in 6
@@ -197,8 +328,10 @@ public class ImpStateTests
         Assert.Equal(
             [(Select, 0, 0), (Walk, Select, ImpStates.PickingUpGold),
              (Walk, ImpStates.PickingUpGold, ImpStates.AtTheStore),
+             (ImpStates.AtTheStore, ImpStates.PickingUpGold, Idle),
+             (ImpStates.PuttingDownGold, ImpStates.PickingUpGold, Idle),
              (Select, ImpStates.PickingUpGold, Idle)],
-            StatesSeen(sim, 100).Take(4));
+            StatesSeen(sim, 100).Take(6));
         Assert.Contains(events.Events, e => e.Kind == "gold_delivered" && e.Detail.Contains($"amount={hands}"));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
@@ -216,8 +349,9 @@ public class ImpStateTests
 
         Assert.Equal(
             [(Select, 0, 0), (Walk, Select, 25), (25, Select, Idle), (26, Select, Idle),
-             (Walk, 26, ImpStates.AtTheStore), (Select, 26, Idle), (Walk, Select, 25)],
-            StatesSeen(sim, 30, TagTilesCommand.Tag(Keeper, new TilePos(5, 5))).Take(7));
+             (Walk, 26, ImpStates.AtTheStore), (ImpStates.AtTheStore, 26, Idle),
+             (ImpStates.PuttingDownGold, 26, Idle), (Select, 26, Idle), (Walk, Select, 25)],
+            StatesSeen(sim, 32, TagTilesCommand.Tag(Keeper, new TilePos(5, 5))).Take(9));
         // The chain starts at a random slab, so either tile may be the one that fills.
         int[] tiles = [sim.World.Tile(3, 3).GoldHeld, sim.World.Tile(3, 2).GoldHeld];
         Assert.Equal(1000, tiles.Max());

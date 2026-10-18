@@ -292,47 +292,49 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>
-    /// One tick of carrying: put the load down if this is somewhere it can go,
-    /// otherwise keep walking, otherwise look for somewhere else.
-    /// <para>The put-down test runs every tick rather than only on arrival, so
-    /// an imp that walks over a treasury tile with room uses that one. What the
-    /// original does when a nearer store appears mid-journey is UNKNOWN.</para>
-    /// <para>A worker that can then find nowhere else goes back to looking for
-    /// work still holding its load, as the original's imps do (Q43).</para>
+    /// The store walk resumes in 28; its next update turns toward the tile centre,
+    /// then 29 deposits on a later update (ADR-0502).
     /// </summary>
     private void UpdateDelivering(
         SimulationContext context, CreatureState creature, WorldPathGrid grid)
     {
-        // Still on the road: the walk ends on the chain tile the chooser picked, and 28 hands to 29
-        // only there, so a carrier crosses other store tiles with its load (Level 1, imp 454 at 224).
-        if (creature.HasRoute) return;
-
-        if (TryPutDown(context, creature))
+        if (creature.Dk2StateId == StateShadow.TravelToPoint)
         {
-            // 28 moves to 29, which deposits along the room's chain and sets 10 whatever is left.
-            StateShadow.Arrive(context, SystemName, creature);
-            StateShadow.Move(context, SystemName, creature, ImpStates.PuttingDownGold);
-            StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
-            GoIdle(creature);
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
+            // State 6 stops at its committed position before resuming the store-facing state.
+            creature.StopMoving();
+            creature.Body.Pos = new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
+            creature.Body.Vel = default;
+            if (!StateShadow.Arrive(context, SystemName, creature))
+            {
+                StateShadow.ToIdle(context, SystemName, creature);
+                GoIdle(creature);
+            }
             return;
         }
 
-        if (TryRouteToSomewhereItFits(context, creature))
+        if (creature.Dk2StateId == ImpStates.AtTheStore)
         {
-            // Arrived with no room here: through 28 and 29 to 10, which walks on.
-            StateShadow.Arrive(context, SystemName, creature);
-            StateShadow.Move(context, SystemName, creature, ImpStates.PuttingDownGold);
-            StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
-            ToTheStore(context, creature);
+            int heading = creature.Heading;
+            int remaining = Steering.Bearing.TurnToward(ref heading,
+                Steering.Bearing.Of(CreatureState.CentreOf(creature.Tile.X) - creature.PosX,
+                    CreatureState.CentreOf(creature.Tile.Y) - creature.PosY),
+                context.Database.CreatureById(creature.CreatureTypeId).TurnRate);
+            creature.Heading = heading;
+            if (remaining == 0
+                && !StateShadow.TryMove(context, SystemName, creature, ImpStates.PuttingDownGold))
+            {
+                StateShadow.ToIdle(context, SystemName, creature);
+                GoIdle(creature);
+            }
             return;
         }
 
-        context.Emit(SystemName, "delivery_blocked",
-            $"imp={creature.Id} player={creature.OwnerPlayerId} gold={creature.GoldHeld} " +
-            "reason=no_room (Q140: the original may put the load down on the floor here)");
-        StateShadow.ToIdle(context, SystemName, creature);
+        if (creature.Dk2StateId == ImpStates.PuttingDownGold && TryPutDown(context, creature))
+            StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
+        else
+            StateShadow.ToIdle(context, SystemName, creature);
         GoIdle(creature);
-        creature.TimerTicks = IdleDelayTicks(context.Database);
     }
 
     /// <summary>

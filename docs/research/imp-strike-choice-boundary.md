@@ -63,9 +63,10 @@ Exact output agreement here does not validate those omitted systems.
 
 The six turns between strike and selection ran in DK2; the modern engine was
 not advanced through them from the first image. These are two per-boundary
-comparisons, not an end-to-end tick match. Next compare the striker's remaining
-action/stop lifetime and intervening task-slot changes before another gameplay
-change. The [Portal visibility control](imp-hatchery-work.md#portal-regression-a-work-visibility-boundary)
+comparisons, not an end-to-end tick match. The subsequent
+[dig stop clock control](imp-dig-stop-clock.md) identifies a delayed action
+completion that changes slot availability; its gameplay candidate fails acceptance.
+The [Portal visibility control](imp-hatchery-work.md#portal-regression-a-work-visibility-boundary)
 already identifies a local scheduling difference, without campaign acceptance.
 
 ## Reproduction

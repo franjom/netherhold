@@ -146,12 +146,12 @@ turns and no placed-type mismatch. Win turns and player-3 Imp deaths:
 | 4 / 1 | 6732 / 3 | no win by 6804 / 13 |
 | 4 / 5 | no win by 6804 / 35 | no win by 6804 / 11 |
 
-**Do not merge this candidate.** The bounded cadence correction is supported,
-but Level4 seed 1 loses its baseline win. These are unmatched RNG replays with
+**Integrated under ADR-0512.** The bounded cadence correction is supported.
+Level4 seed 1 loses its baseline win. These are unmatched RNG replays with
 reused entity maps, not exact native trajectories or a seed-distribution result.
 `paired_dig.py` and `paired-dig/results.json` reproduce the table; TRX files
 under `tests/` preserve red, green and full simulation results. No full solution
-suite, profiler or Unity visual run was required for this rejected candidate.
+suite, profiler or Unity visual run was performed for that isolated experiment.
 The later [Portal visibility control](imp-hatchery-work.md#portal-regression-a-work-visibility-boundary)
 isolates part of the changed allocation history but does not recover the win.
 
@@ -221,6 +221,6 @@ The one-strike Rock tiles (the 4 peak) agree. DK2 can leave on the fall's own ti
 at 6: a strike lands inside the striker's update, so a later digger whose action ends that
 tick already sees the tile gone. Main applies strikes after all workers choose,
 so that digger waits a whole action: a 0.3-tick mean difference in this measurement.
-The unmerged ADR-0503 candidate resolves work after each worker; intra-creature
+ADR-0503 resolves work after each worker; intra-creature
 action/state ordering remains incomplete. The kind-14 consequence is measured in
 `imp-task-audit.md` (`digexit.py`, `ourdigexit.py` in the session scratchpad).

@@ -156,12 +156,12 @@ public sealed partial class ImpTaskSystem
         creature.TimerTicks = WorkCadence.AfterApplication(
             creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
 
-        // A miner walks to the store on the tick of the strike that fills its hands: in both
-        // captures the last strike and state 6 share a tick. This strike's gold reaches the
-        // hands later this tick (TileWorkSystem), so count it as held.
-        if (creature.TargetWork == TileWorkKind.MineGold
-            && MinersHandsFull(context, creature, definition, pendingStrikes: 1)
-            && TryRouteToSomewhereItFits(context, creature))
+        if (creature.TargetWork != TileWorkKind.MineGold) return;
+        _tileWork.Execute(context);
+        // Native action work precedes the state/hands check. An exhausted seam
+        // keeps the work state this turn; its remaining action lifetime is separate.
+        if (!JobStillStands(context, creature)) return;
+        if (HandsFull(context, creature, definition) && TryRouteToSomewhereItFits(context, creature))
         {
             BeginDelivering(creature);
             ToTheStore(context, creature);
@@ -169,45 +169,10 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>
-    /// Whether a miner's hands are full, the point at which it breaks off to carry: state 26
-    /// (<c>0x00465870</c>) asks the hands test <c>0x00464360(1)</c> before each strike, full at
-    /// the level-scaled <c>MaxGoldHeld</c> less variable 74 (<see cref="HandsFull"/>). A level 1
-    /// Imp (1,400) leaves after four strikes (1,092 of 1,060), a level 2 one (1,470) after five
-    /// (1,365 of 1,130): Level 1's imp 455 claims holding 1,092 at tick 216 (ADR-0296).
-    /// Whether there is anywhere to take the load is the caller's second question.
+    /// State 26's hands test before another strike. Whether the load can be
+    /// stored is checked separately (ADR-0296).
     /// </summary>
     private static bool MinersHandsFull(
-        SimulationContext context, CreatureState creature, CreatureDef definition, int pendingStrikes = 0)
-    {
-        TileState tile = pendingStrikes > 0
-            ? TileWhenTheLastStrikeLands(context, creature.TargetTileIndex)
-            : context.World.TileAtIndex(creature.TargetTileIndex);
-        int yield = TileWorkRules.GoldYield(
-            context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
-        if (yield <= 0) return false;
-        int held = creature.GoldHeld + (pendingStrikes * yield);
-        return held > 0 && held >= FullAt(context, creature, definition);
-    }
-
-    /// <summary>
-    /// The tile as the strike queued last will find it. <see cref="TileWorkSystem"/> applies this
-    /// tick's queue in order once every imp has chosen, so a miner queued earlier can bring the
-    /// seam down first and the last strike frees nothing. DK2 asks the hands test after the
-    /// strike has landed (<c>0x00465870</c>), so that miner holds what it holds, reaches the
-    /// seam's end and raises kind 14: Level 1 seed 2's imp 452 empties (14,24) holding 818, digs
-    /// on, and claims the tile on its way to the store once full (ADR-0349).
-    /// </summary>
-    private static TileState TileWhenTheLastStrikeLands(SimulationContext context, int tileIndex)
-    {
-        List<TileWorkOrder> queue = context.World.RawPendingWork;
-        TileState tile = context.World.TileAtIndex(tileIndex);
-        for (int i = 0; i < queue.Count - 1; i++)
-        {
-            TileWorkOrder order = queue[i];
-            if (order.TileIndex != tileIndex || TileWorkRules.IsRoomScoped(order.Kind)) continue;
-            TileWorkRules.Apply(context.Database, ref tile, order.Kind, order.PlayerId,
-                TileWorkSystem.EfficiencyOf(context, order.WorkerCreatureId));
-        }
-        return tile;
-    }
+        SimulationContext context, CreatureState creature, CreatureDef definition) =>
+        creature.TargetWork == TileWorkKind.MineGold && HandsFull(context, creature, definition);
 }

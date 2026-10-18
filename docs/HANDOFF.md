@@ -194,20 +194,18 @@ Enhanced keeper using the same observation/command interface (KEEPER_AI.md
 
 Run git worktree list first; another session may own these.
 
-- build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
-  and mining completion candidates; campaign regressions block gameplay merge.
-  Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/imp-creation-landing: unmerged creation candidate;
-  its current evidence and acceptance limits are in that worktree's
-  docs/research/imp-create-position.md. Direct chooser
-  controls and modern fixtures: research/imp-priority-checks.md. The preceding
-  work comparison and tile-input control remain research/imp-hatchery-work.md.
-  Captured strike/claim boundary: research/imp-strike-choice-boundary.md.
-  Intervening action/task updates remain Q612; no new chooser fix is established.
-  ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
-  The rejected movement/arrival candidates and random-input research remain
-  on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
-  gameplay candidates. Heart visual acceptance remains Q585.
+- build/imp-store-timing, fixes/imp-store-timing: retains the provisional mining
+  animation-ending model. Store states and work visibility are integrated under
+  ADR-0512; campaign wins are diagnostics, not a fidelity veto.
+- build/imp-acceptance retains ignored native captures and experimental probes.
+  ADR-0512 integrates eight supported Imp corrections at hash/save 280.
+  Audit, verification and the two provisional animation clocks:
+  research/imp-fidelity-integration.md. Do not delete its ignored captures.
+  Q612 remains open; no new chooser preference or reinforcement timeout is
+  established. Direct chooser controls: research/imp-priority-checks.md.
+  Work/claim controls: research/imp-hatchery-work.md. Complete native work pairs:
+  research/imp-dig-sequence.md. Next validate interrupted action phases and
+  matched arrival-to-choice inputs. Heart visual acceptance remains Q585.
 
 - build/classic-step6, classic-look/step6: unmerged presentation work with local
   changes; preserve it.

@@ -296,6 +296,10 @@ public sealed class CreatureState
 
     public int PosZ;
 
+    /// <summary>The persistent vertical vector (+0x10C), currently used only for a point-cast
+    /// Imp's creation fall. PosZ is height above the simulation's zero floor in that state.</summary>
+    public int CreationVelocityZ;
+
     private int _posX, _posY;
     private bool _inHand;
     private int _carriedByCreatureId = -1;
@@ -1250,6 +1254,7 @@ public sealed class CreatureState
         hash.Add(PosX);
         hash.Add(PosY);
         hash.Add(PosZ);
+        hash.Add(CreationVelocityZ);
         hash.Add(Heading);
         hash.Add((int)RouteOptions);
         hash.Add(HeartTargetPlayerId);

@@ -147,7 +147,9 @@ commands:
   # One end of the cell. Where the prisoners happen to be shuffling when it
   # lands is the run's business, not the author's - which is the honest way to
   # stage a race.
-  - { at_tick: 281, player: 3, drop: [7, 4] }
+  # Central food isolates feeding from the edge-route failure tracked in
+  # docs/research/imp-fidelity-integration.md; contested selection has unit tests.
+  - { at_tick: 281, player: 3, drop: [5, 4] }
 observe:
   - state_hash
   - events

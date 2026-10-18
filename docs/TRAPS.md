@@ -5,9 +5,16 @@ agent (Claude's private memory and Codex's are not shared; this file is). Add a 
 that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps live in
 `.agents/skills/ghidra-queries/SKILL.md`, DK2 facts in `docs/research/`.
 
+- Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
+
 ## Shell and files
 
 - Windows PowerShell 5 needs both System.IO.Compression and System.IO.Compression.FileSystem loaded before ZipArchiveMode resolves.
+- New function records require `evidence:` before the first blank line; `kb index` rejects a split header.
+
+- `Capture.frames(start, stop)` includes the stop header; use `birth + 3` for four snapshots, and copy values before advancing its reused snapshot.
+
+- Keep capture snapshot headers separate from in-tick action stamps; subtracting one only from native rows misaligns the two packet birth anchors (research/imp-observation-clocks.md).
 
 - A native emulated strike can change a tile before faulting in presentation; require a successful return before treating any partial writes as an oracle result.
 
