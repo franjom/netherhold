@@ -11,6 +11,34 @@ namespace DK2.Presentation.Tests;
 
 public sealed class HandCursorTests
 {
+    [Fact]
+    public void HeldThingAndGoldCursorsAndFiniteDropSlapFeedbackUseOriginalSheets()
+    {
+        var feedback = new HandCursorFeedback();
+        Assert.Equal(HandCursorKind.HoldThing, feedback.Resolve(HandCursorKind.Dig, holding: true, gold: false, primaryHeld: false, milliseconds: 0));
+        Assert.Equal(HandCursorKind.HoldGold, feedback.Resolve(HandCursorKind.Dig, holding: true, gold: true, primaryHeld: false, milliseconds: 1));
+        feedback.Play(HandCursorKind.Slap, 100);
+        Assert.Equal(HandCursorKind.Slap, feedback.Resolve(HandCursorKind.Point, false, false, false, 599));
+        Assert.Equal(HandCursorKind.Point, feedback.Resolve(HandCursorKind.Point, false, false, false, 600));
+        feedback.Play(HandCursorKind.Tag, 700);
+        Assert.Equal(HandCursorKind.Tagging, feedback.Resolve(HandCursorKind.Dig, false, false, true, 734));
+        Assert.Equal(HandCursorKind.Dig, feedback.Resolve(HandCursorKind.Dig, false, false, false, 735));
+        feedback.Play(HandCursorKind.DropGold, 800);
+        feedback.Reset();
+        Assert.Equal(HandCursorKind.Point, feedback.Resolve(HandCursorKind.Point, false, false, false, 801));
+        Assert.Equal("DropGold.png", HandCursor.Sprite(HandCursorKind.DropGold).FileName);
+    }
+
+    [Fact]
+    public void GuiTooltipUsesQuarterSecondDelayAndStillResetsOnWidgetChange()
+    {
+        var delay = new HoverTooltipDelay();
+        var snapshot = new HoverTextSnapshot("Mana description", "Mana", new WorldHoverHit(WorldHoverKind.Widget, default, 1));
+        Assert.False(delay.Visible(snapshot, 0));
+        Assert.False(delay.Visible(snapshot, 250));
+        Assert.True(delay.Visible(snapshot, 251));
+        Assert.False(delay.Visible(snapshot with { Hit = new WorldHoverHit(WorldHoverKind.Widget, default, 2) }, 252));
+    }
     [Theory]
     [InlineData(true, true, false, HandCursorKind.Dig)]
     [InlineData(true, true, true, HandCursorKind.Dig)]

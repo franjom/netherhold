@@ -15,6 +15,8 @@ namespace DK2.Unity
     {
         private readonly List<Texture2D> _textures = new List<Texture2D>();
         private readonly VisualElement _root;
+        private readonly Image[] _corners = new Image[4];
+        private readonly Texture2D[] _cornerTextures = new Texture2D[8];
 
         public MinimapFrameVisual(VisualElement parent, IMinimapAssets assets)
         {
@@ -26,7 +28,38 @@ namespace DK2.Unity
             parent.Add(_root);
             // The padded texture extends past the native clip; size interpretation is STRONGLY INFERRED (minimap-rendering.md).
             Add(assets.Frame, left: 0, bottom: -28.8f, width: 204.8f, height: 204.8f);
-            // Native corner overlays appear only while hovered or selected; the frame contains their idle art.
+            for (int i = 0; i < 4; i++)
+            {
+                for (int active = 0; active < 2; active++)
+                {
+                    Texture2D texture = Decode(assets.Corner((MinimapCorner)i, active != 0));
+                    _cornerTextures[i * 2 + active] = texture; _textures.Add(texture);
+                }
+                var corner = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
+                corner.style.position = Position.Absolute;
+                corner.style.width = i == 0 ? 49.6f : i == 1 ? 48 : 51.2f;
+                corner.style.height = i < 2 ? 48 : 51.2f;
+                if (i == 0 || i == 2) corner.style.left = 0;
+                else corner.style.right = i == 1 ? 8 : 6.4f;
+                if (i < 2) corner.style.top = 0;
+                else corner.style.bottom = i == 2 ? 8 : 6.4f;
+                corner.style.display = DisplayStyle.None;
+                _corners[i] = corner; _root.Add(corner);
+            }
+        }
+
+        public void UpdateControls(System.Numerics.Vector2 pointer, ClassicHudAction selected, bool optionsVisible)
+        {
+            ClassicHudAction hover = ClassicHudControlLayout.ActionAt(pointer, false);
+            for (int i = 0; i < 4; i++)
+            {
+                ClassicHudAction action = i == 0 ? ClassicHudAction.SelectQuery : i == 1 ? ClassicHudAction.SelectSell
+                    : i == 2 ? ClassicHudAction.ToggleOptions : ClassicHudAction.ZoomIn;
+                bool active = i == 2 ? optionsVisible : i < 2 && selected == action;
+                bool visible = active || hover == action;
+                _corners[i].style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+                if (visible) _corners[i].image = _cornerTextures[i * 2 + (active ? 1 : 0)];
+            }
         }
 
         public static Texture2D Decode(RgbaImage image)

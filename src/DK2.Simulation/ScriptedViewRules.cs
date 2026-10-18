@@ -29,13 +29,19 @@ public enum ScriptedViewKind : byte
     /// <summary>Action 26: the keeper camera glides to the centre of
     /// <see cref="ScriptedViewRequest.Tile"/> (game action 4, <c>0x00442650</c>).</summary>
     CameraMove = 5,
+
+    /// <summary>World action 9: replace or clear the shared HUD FlashButton descriptor.</summary>
+    FlashButton = 6,
 }
 
 /// <param name="Tick">For <see cref="ScriptedViewKind.CameraPath"/>, the tick the path started
 /// on, so the view plays it on the simulation's clock and ends it on the tick
 /// <see cref="CameraPathRules.DurationTicks"/> gives.</param>
 public readonly record struct ScriptedViewRequest(
-    ScriptedViewKind Kind, PlayerId Player, int Value, TilePos Tile, bool Flag, long Tick = 0);
+    ScriptedViewKind Kind, PlayerId Player, int Value, TilePos Tile, bool Flag, long Tick = 0,
+    HudFlashRequest? FlashButton = null);
+
+public readonly record struct HudFlashRequest(HudFlashTarget Target, uint DurationSeconds, bool Enabled);
 
 /// <summary>A level script's camera path, as far as the trigger walk can see it: condition 72
 /// is false while one plays (camera-paths.md, ADR-0496).</summary>

@@ -35,6 +35,7 @@ public static class PaydayRules
         // Data without the variable (a test's) has no payday to arm.
         if (!database.Variables.TryGet(VariableTypeId.TimeBeforeFirstPayDaySeconds, out int seconds)) return;
         player.NextPaydayTick = new GameTick(world.CurrentTick.Value + (seconds * SimulationTiming.TicksPerSecond));
+        player.LastPaydayTick = world.CurrentTick;
     }
 
     /// <summary>The constructor's <c>GetPaid</c> (<c>0x0048750C</c>): a creature made with fewer

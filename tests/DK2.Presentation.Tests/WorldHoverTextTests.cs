@@ -14,6 +14,61 @@ namespace DK2.Presentation.Tests;
 public sealed class WorldHoverTextTests
 {
     [InstallFact]
+    public void LibraryStatusSeparatesResearchersFromBooksAndWorkshopCountsStoredCrates()
+    {
+        string install = Dk2InstallGate.Path;
+        var db = GameDatabaseLoader.Load(install);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        for (int y = 10; y <= 12; y++)
+        for (int x = 10; x <= 12; x++)
+            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), PlayerIds.FirstKeeper);
+        for (int y = 10; y <= 12; y++)
+        for (int x = 20; x <= 22; x++)
+            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), PlayerIds.FirstKeeper);
+        int libraryTile = world.TileIndex(new TilePos(11, 11));
+        world.SpawnObject(db, 64, PlayerIds.FirstKeeper, libraryTile).AutoPlaced = true;
+        world.SpawnObject(db, 4, PlayerIds.FirstKeeper, libraryTile);
+        CreatureDef workerType = db.CreatureByName("Warlock")!;
+        CreatureState researcher = world.SpawnCreature(db, workerType.CreatureId, PlayerIds.FirstKeeper, new TilePos(11, 11));
+        researcher.HeldPlace = new RoomPlace(libraryTile, 1);
+        byte crate = db.Traps.Values.First(t => t.CrateObjectId != 0).CrateObjectId;
+        world.SpawnObject(db, crate, PlayerIds.FirstKeeper, world.TileIndex(new TilePos(21, 11)));
+        var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+        var text = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper);
+        HoverTextSnapshot library = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(11, 11)));
+        Assert.Contains("Researchers: 1 / 2.", library.TopStatus);
+        Assert.Contains("Shelf space filled: 1 / 2.", library.TopStatus);
+        HoverTextSnapshot workshop = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(21, 11)));
+        Assert.Contains("Crate space filled: 1 / ", workshop.TopStatus);
+        Assert.DoesNotContain("?", workshop.TopStatus);
+    }
+
+    [InstallFact]
+    public void OwnedRoomStatusUsesLiveStorageAndNativeCapacityTemplates()
+    {
+        string install = Dk2InstallGate.Path;
+        var db = GameDatabaseLoader.Load(install);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        RoomRules.Place(db, ref world.Tile(10, 10), db.Room(RoomTypeId.Treasury), PlayerIds.FirstKeeper);
+        RoomRules.Place(db, ref world.Tile(11, 10), db.Room(RoomTypeId.Treasury), PlayerIds.FirstKeeper);
+        world.Tile(10, 10).GoldHeld = 321; world.Tile(11, 10).GoldHeld = 123;
+        RoomRules.Place(db, ref world.Tile(15, 10), db.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
+        RoomRules.Place(db, ref world.Tile(16, 10), db.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
+        var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+        var text = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper);
+        var simulation = new GameSimulation(db, world, seed: 7);
+        ulong before = simulation.StateHash();
+        HoverTextSnapshot treasury = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(10, 10)));
+        Assert.Contains("Gold storage used: 444 / ", treasury.TopStatus);
+        HoverTextSnapshot lair = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(15, 10)));
+        Assert.Contains("Capacity used: 0 / 2 Bed spaces.", lair.TopStatus);
+        Assert.Equal(before, simulation.StateHash());
+        Assert.DoesNotContain("?", lair.TopStatus);
+    }
+
+    [InstallFact]
     public void ShippedHeartAndPortalNamesAndCreatureStatusComeFromSettledDataWithoutChangingHash()
     {
         string install = Dk2InstallGate.Path;

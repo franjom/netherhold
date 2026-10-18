@@ -42,6 +42,7 @@ public class TempleStateTests
     private static CreatureState Worshipper(GameDatabase db, WorldState world, TilePos at, int state = TempleStep.EnteringState)
     {
         CreatureState it = world.SpawnCreature(db, Vampire, Keeper, at);
+        Dk2TerrainFixture.SetKnownIdentities(world);
         it.CurrentJob = JobType.Praying;
         StatePlacement.As(it, CreatureActivity.AtWork);
         StatePlacement.Place(it, state);

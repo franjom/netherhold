@@ -33,6 +33,7 @@ namespace DK2.Unity
         private bool _dirty = true;
         private float _angle = float.NaN;
         public RenderTexture Classes { get; }
+        public Texture PaletteTexture => _palette;
         public RenderTexture Disc => _disc;
         public int LastUploadedTiles { get; private set; }
         private MinimapZoom _zoom = MinimapZoom.WholeMap;

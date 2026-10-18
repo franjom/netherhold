@@ -106,6 +106,33 @@ general omitted-guard audit remains Q503. The hand adapter's retained state1
 differs from original state76 (ADR-0209), so this does not claim that broader
 state integration has been completed.
 
+## Interface button (binary and shipped data, 2026-10-18)
+
+Menu41 is the bottom-right Reaper button, virtual origin `(2272,1600)`;
+its icon widget is local `(0,12,264,264)`. `0x00424840` always draws catalogue122
+as background. Normal unlock `interface+0x197F` adds catalogue123 disabled,
+124 eligible or125 selected. A quarter-talisman count at `+0x1983` controls the
+separate arc drawing and a 500ms missing-quarter blink for unused one-shot
+state `+0x197B==1`. `0x00419180` initializes campaign one-shot state from global `0x006F2957`
+bit2 and quarters from `0x006F295B`. `0x0051E6D0` produces these from runtime
+LEVEL flags bit0x10 and the quarter-count byte. `0x0056C100` copies that byte
+from file `+0x63AE` and ORs file flags `+0x638C` into runtime flags `+0x64C0`.
+Thus existing `LevelDef.Flags & 0x10` and `TalismanPieces` supply this UI state;
+Q447's remaining campaign reward/persistence question is separate.
+An owned Reaper with runtime flag `+0x3EA & 0x40000` adds timer digits from
+word `+0x4E9` divided by global `0x006F2590`. The family is `Gui/spells/rt-%d`
+(interface `+0x12CA`). Virtual `(128,72)` is scaled for width and top offset;
+X is widget-left+width for one digit, or +width/2 and +1.5*width for two.
+The descriptor uses width in both size fields and submits sprite flags2.
+
+`0x00424EC0` refuses selection while an owned creature has definition IsHorny.
+Otherwise unused one-shot state or normal unlock permits it. `0x00424F50`
+selects tool8, spell14 when `+0x197B==1`, otherwise spell5.
+`0x00424FD0` sets normal unlock when spell5 availability is3 and chooses text
+`0x8BE` (talisman), `0x8BF` (available one-shot) or `0x8C4` (unavailable).
+This button is separate from the ordinary spell catalogue and is not a creature
+portrait. Creature Query text has its home in minimap-controls.md.
+
 ## 4. Build and verification boundary
 
 **BUILT, STRONGLY INFERRED mapping.** Stages4/5 expose spell5 and spell14:

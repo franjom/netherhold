@@ -170,6 +170,7 @@ public sealed class TremorTests
         CreatureState older = world.SpawnCreature(db, Dk2TerrainFixture.WarlockCreatureId, Keeper, At);
         TrapRules.RelinkCreatures(world);
         CreatureState newer = world.SpawnCreature(db, Dk2TerrainFixture.WarlockCreatureId, Keeper, At);
+        Dk2TerrainFixture.SetKnownIdentities(world);
         TrapRules.RelinkCreatures(world);
         older.Dk2StateId = newer.Dk2StateId = CreatureStateMachine.Idle;
         older.Fleeing = newer.Fleeing = true;

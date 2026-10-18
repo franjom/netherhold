@@ -3,6 +3,7 @@
 [Oo]bj/
 build/
 artifacts/
+TestResults/
 *.user
 *.suo
 .vs/

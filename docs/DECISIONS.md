@@ -6514,6 +6514,12 @@ turn 0 would set `GetPaid` in DK2's unsigned test; ours leaves it out (unread wh
 level's creatures are built on turn 0). Three tests; four negative controls each fail a
 named test. `HashVersion` **142** (a Goblin in the pin's world now arms its keeper).
 
+**Amendment, 2026-10-18.** Preserve the native interval start as
+`PlayerState.LastPaydayTick`, set when armed and whenever payday fires.
+The HUD denominator requires both endpoints; reconstructing it from the next
+deadline would be wrong for a first payday or a restored game. Hash/save
+version 275 adds this field. Binary evidence: `research/hud-resources.md`.
+
 ## ADR-0296 — A miner breaks off at the hands test, not when the next strike would not fit
 **Date:** 2026-09-30 · **Status:** accepted · Research: `functions/00465870.md`, `imp-hands-full.md`
 
@@ -11733,4 +11739,30 @@ and Heart policy on main. Keep the rejected Imp candidates separate.
 **Consequences.** Hash/save 274, no new fields; 270–273 belong to isolated
 experiments. Existing axis values in snapshots/hashes change. This correction
 does not claim to resolve campaign losses or idle random-stream differences.
+
+## ADR-0510 — Preserve creature names and blood groups in simulation state
+**Date:** 2026-10-18 · **Status:** accepted
+
+**Context.** Query and hover text consume the constructor's personal-name and
+blood-group indices. Producing decorative random values in the UI would change
+them across saves and omit the original simulation random draws. Evidence:
+the records for `0x00491900`, `0x004919C0` and `0x004872A0`.
+
+**Decision.** Store the native-width indices in `CreatureState`, hash and save
+them, and initialize them with the simulation's shared `SimRandom`. Bind that
+generator when `GameSimulation` takes ownership of the world. Assign existing
+uninitialized creatures in acquisition order and future creatures in their
+spawn path, after linking the owner list and before arming payday.
+
+**Adaptation.** Map construction currently predates creation of the seeded
+simulation, so its two identity draws per creature are reconstructed together
+before the first tick. This does not reproduce interleaving with every original
+constructor random call. An internal unassigned-name sentinel distinguishes
+that reconstruction from a saved, initialized identity; restoring consumes no
+additional identity draws. Query presentation never owns a random generator.
+
+**Consequences.** Hash/save version 275 also includes ADR-0295's payday stamp.
+Existing random trajectories can change because missing constructor draws are
+now consumed. Tests of another mechanic with scripted draws must supply an
+already initialized identity instead of silently changing that mechanic's draws.
 

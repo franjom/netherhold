@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**275** — `0xA1AAB81F09D3E916`. Add player `LastPaydayTick` and native-width creature name/blood indices to hashing and save state. Constructor identity draws use the main random stream. No wage/deadline rule changes. ADR-0295 amendment and ADR-0510; counter-gold input is new and absent from this fixture.
+
 **274** — `0x34A682FB8867CE5B`. Steering axes use resulting velocity after clamping (ADR-0509); no new fields. Versions 270–273 belong to preserved Imp experiments.
 
 **269** — `0xFA0172F155ECAA5C`. Native-byte Heart routing and the earlier small core guard (ADR-0505); no new fields. Versions 266–268 belong to preserved, rejected Imp candidates.

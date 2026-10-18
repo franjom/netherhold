@@ -42,8 +42,27 @@ public sealed class HandSystem : ISimulationSystem
                 case DropCommand drop: Drop(context, drop); break;
                 case SlapCreatureCommand slap: Slap(context, slap); break;
                 case MintWageCommand mint: MintWage(context, mint); break;
+                case WithdrawCounterGoldCommand withdraw: WithdrawCounterGold(context, withdraw); break;
             }
         }
+    }
+
+    private static void WithdrawCounterGold(SimulationContext context, WithdrawCounterGoldCommand command)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        if (!world.HasPlayer(command.PlayerId) || command.Amount.Value <= 0) return;
+        List<HandItem> hand = world.Player(command.PlayerId).Hand;
+        if (hand.Count >= HandRules.Capacity(database)) return;
+        if (!database.Objects.ContainsKey(FloorGold.TreasuryPileObjectId)) return;
+        int taken = GoldStore.Spend(world, database, command.PlayerId, command.Amount.Value);
+        if (taken <= 0) return;
+        ObjectState pile = world.SpawnObject(database, FloorGold.TreasuryPileObjectId, PlayerIds.Neutral, 0);
+        pile.GoldHeld = taken;
+        pile.InHand = true;
+        hand.Add(HandItem.Of(pile));
+        context.Emit(SystemName, "counter_gold_withdrawn",
+            $"player={command.PlayerId} requested={command.Amount.Value} taken={taken} object={pile.Id}");
     }
 
     /// <summary>The pay remedy's gold (<see cref="MintWageCommand"/>): the wage spent from the

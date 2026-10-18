@@ -254,6 +254,12 @@ public sealed class CreatureState
     // Change a live creature's owner through WorldState.ChangeCreatureOwner so list order follows it.
     public byte OwnerPlayerId;
 
+    /// <summary>Original +0x4ED: index in the executable's 500-entry personal-name pool.</summary>
+    public ushort NameIndex = CreatureIdentityRules.UnassignedNameIndex;
+
+    /// <summary>Original +0x4EF: index in the seven-entry blood-group table.</summary>
+    public byte BloodGroupIndex;
+
     /// <summary>The root of this creature's trigger tree, or zero for none.</summary>
     /// <remarks>Copied from the placed THING and walked once per game turn. The binary's
     /// root setter also snapshots the resolved condition record's repeat byte into
@@ -1245,6 +1251,8 @@ public sealed class CreatureState
         hash.Add(Id);
         hash.Add(CreatureTypeId);
         hash.Add(OwnerPlayerId);
+        hash.Add(NameIndex);
+        hash.Add(BloodGroupIndex);
         hash.Add(TriggerId);
         hash.Add(TriggerRepeat);
         hash.Add(PosX);

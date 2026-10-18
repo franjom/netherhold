@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 274;
+    private const ulong HashVersion = 275;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
@@ -48,6 +48,7 @@ public sealed class GameSimulation
         Database = database;
         World = world;
         Rng = rng;
+        world.BindCreatureIdentityRandom(rng);
         _systems = systems is null ? [] : [.. systems];
         _systemMarkers = [.. _systems.Select(s => SimulationMarker.Named(s.Name))];
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);

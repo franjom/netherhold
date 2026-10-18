@@ -115,6 +115,12 @@ namespace DK2.Unity
         /// </summary>
         public int TileObjects => _tiles.Count;
         public int CreatureObjects => _creatures.Count;
+        public bool TryGetCreaturePosition(CreatureQueryTarget target, out Vector3 position)
+        {
+            if (_creatures.TryGetValue(target.Value, out GameObject creature) && creature != null && creature.activeInHierarchy)
+            { position = creature.transform.position; return true; }
+            position = default; return false;
+        }
         public int ObjectObjects => _objects.Count;
 
         public WorldHoverHit PickHoverEntity(Ray ray, float terrainDistance, TilePos tile, Vector3 pointerGround)

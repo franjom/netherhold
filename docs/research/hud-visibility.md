@@ -87,10 +87,37 @@ The `+0xF5` GUI toggle does not appear in the camera HUD predicate or ordinary
 input predicate. It hides ordinary interface drawing without blocking the
 ordinary world-hand path or suppressing its cursor by itself.
 
+## Additional modal producers (bounded binary reading, 2026-10-18)
+
+`0x00426070` sets `+0x10DE/+0x10E2` while menu21's chat edit control is active.
+The key dispatcher opens it through the broadcast/allies/recipient bindings;
+`0x00426000` sends the edit text through `0x00409DA0` and closes the control.
+This gate is chat input capture, separate from Options pause. The menu21
+resource-panel interpretation was wrong; sender/recipient text is decisive.
+
+`0x00423360` toggles menu38 and `+0x272A`, populating an eligible player count;
+`0x00425070` toggles menu42 and `+0x1C1F` in game mode3 only. Both exclude
+Options and each other and save/restore generic detail-menu40 visibility
+through `0x00428990`. Their full content and command contracts remain unread.
+
+The `+0x10C` byte is ordinary world gesture capture. Its set sites are in
+`0x004075E0` (including build/sell drag arms); resets occur in the ordinary
+pointer router, secondary handler, Options tool reset and runtime reset.
+It suppresses GUI delivery while the world gesture owns the pointer, rather
+than being a global simulation pause. The adapter's separate drag capture
+implements that purpose without copying the raw numeric field.
+
+`0x00402B50` also exposes `+0xFD` through a vtable setter. A direct-store census
+found initialization and per-frame result-state updates (`0x004039A0`), with the known
+pointer-router guard as positive control. A result without player flag0x400000 sets FD=1 and F5=0; resuming the
+result path restores them. Vtable callers and indirect writes remain unclassified, so this is not a complete producer proof.
+
 ## Still open
 
-Trace remaining special player-flag and modal-field writers; identify
-the numeric special modes and full-map branch as needed. Validate ordinary
-intro, scripted letterbox without a path, nested requests and restoration in
-the original game. Those additional states are not implemented by this subset;
-Q611 owns the remaining research acceptance boundary.
+Identify all special player-flag `0x80000` writers, all vtable callers of the
+`+0xFD` setter and complete multiplayer menu38/42 contracts. Full-map terrain
+and entry/exit/input are implemented; its room hover symbol, creature squares
+and legend still need their complete rendering/refresh contract. Validate
+intro, standalone/nested letterboxes and restoration in original DK2. Q611 owns
+these remaining limits; they are not prerequisites for ordinary campaign
+Options pause, GUI visibility or current world-gesture capture semantics.

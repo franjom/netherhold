@@ -237,6 +237,7 @@ public sealed class CreatureJobTests
 
         // Five seconds: the choice is the subject. In this room every tile holds an Obstacle, which
         // no shipped Casino does, and a gambler later steps off it (ADR-0403).
+        Dk2TerrainFixture.SetKnownIdentities(world);
         Simulation(db, world).Run(Second * 5);
 
         Assert.Equal(JobType.Drink, goblin.CurrentJob);
@@ -491,6 +492,7 @@ public sealed class CreatureJobTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         var events = new ListEventSink();
+        Dk2TerrainFixture.SetKnownIdentities(world);
         GameSimulation sim = Simulation(db, world, events);
 
         List<(int State, int Saved)> seen = StatesSeen(sim, goblin, Second * 20);

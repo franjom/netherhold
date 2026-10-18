@@ -7,6 +7,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- A managed worker with a different Windows SID may need per-command `git -c safe.directory=<absolute repository>`; do not change the owner's global Git trust configuration.
+
 - Independent UI Toolkit PanelSettings cannot be assigned to a UIDocument nested under another UIDocument; give isolated probe panels separate root GameObjects.
 
 - UI Toolkit rounded overflow masks need a stencil-capable RenderTexture target; a depth-zero probe can draw the mask itself as white.

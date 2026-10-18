@@ -382,6 +382,8 @@ public struct PlayerState
     /// <c>TimeBeforeFirstPayDaySeconds</c> out when the keeper gains its first
     /// non-worker creature (<see cref="PaydayRules.ArmOnGain"/>).</summary>
     public GameTick NextPaydayTick;
+    /// <summary>Start of the current payday interval (player +0xB4F), also set when first armed.</summary>
+    public GameTick LastPaydayTick;
 
     /// <summary>The level's mutable unlock rows for this keeper. Trigger action 6
     /// changes an existing row but never creates one (ADR-0161).</summary>
@@ -514,6 +516,7 @@ public struct PlayerState
         hash.Add(ResearchTarget);
         hash.Add(NextFreeImpTick);
         hash.Add(NextPaydayTick);
+        hash.Add(LastPaydayTick);
         hash.Add(Status);
         hash.Add(StatusTick);
         hash.Add(HeartHealth);
@@ -652,6 +655,7 @@ public sealed class WorldState
     private readonly List<TempleSacrificeState> _templeSacrifices = [];
     private readonly List<GraveyardState> _graveyards = [];
     private int _nextCreatureId = 1;
+    private SimRandom? _creatureIdentityRandom;
     private int _nextObjectId = 1;
     private readonly List<ShotState> _shots = [];
     private int _nextShotId = 1;
@@ -987,14 +991,22 @@ public sealed class WorldState
                 out int fearlessDelay) ? (ushort)fearlessDelay : 0,
         };
 
-        // After GetPaid, as in DK2's constructor (0x0048750C, then 0x0048795E).
-        PaydayRules.ArmOnGain(this, database, creature);
-
         _creatures.Add(creature);
         _creaturesByOwnership.Insert(0, creature);
+        if (_creatureIdentityRandom is not null)
+            CreatureIdentityRules.Initialize(this, creature, _creatureIdentityRandom);
+        // After GetPaid and identity assignment, as in the original constructor.
+        PaydayRules.ArmOnGain(this, database, creature);
         creature.LinkWorld = this;
         Relink(creature);
         return creature;
+    }
+
+    internal void BindCreatureIdentityRandom(SimRandom random)
+    {
+        _creatureIdentityRandom = random;
+        foreach (CreatureState creature in _creatures)
+            CreatureIdentityRules.Initialize(this, creature, random);
     }
 
     /// <summary>

@@ -128,7 +128,7 @@ and 1440p (tools/hud-probe/README.md); a live minimap tile layer is connected
 on master with the native frame and its idle corner art. Creature,
 trap and door markers, Heart/Guard Post reporting-distance outlines, possession
 and Alarm rings, Guard Room rectangles, textured camera footprint, magnifier zoom
-and primary click navigation are built. Remaining overlays, other corner controls
+and primary click navigation are built. Remaining overlays
 and owner comparison remain. The Step6 branch now implements camera/letterbox
 HUD hiding, restoration and input blocking, plus the native heading-dependent
 north marker, camera-ribbon disc containment and zoomed Heart direction trail.
@@ -136,27 +136,33 @@ The branch also has original Hand/dig/pickup sprites, a terrain-deformed blue
 hover cage, delayed localized names and a top status strip. Evidence and limits:
 research/hand-cursor-rendering.md and research/world-hover-text.md;
 live gold/mana, separate rates and the Heart health ring now occupy the original
-resource region, with status text to its right. Resource evidence and pending
-payday/interaction/alarm work: research/hud-resources.md. The slice passes 688
-presentation tests and adapter compilation; isolated rendering is checked at
-reference and 1440p sizes. Researched but unbuilt minimap corner controls and
-Heart/GUI hotkeys: research/minimap-controls.md.
+resource region, with status text to its right. The Step6 branch integration
+adds gold withdrawal, payday/alarm/flash state, original personal names and blood
+groups, G/H/M and corner controls, campaign Options pause, full-map terrain and
+navigation, creature query/follow, bottom choices, Reaper state, room cycling
+and all four creature overview modes. Canonical scope and remaining gates:
+plans/2026-10-17-classic-look-step6.md. Hash/save275 adds native identity and
+last-payday state; ADR-0510 documents initial constructor RNG ordering limits.
 remaining modal/panel/full-map rules
 and original-game comparison are Q611 (research/hud-visibility.md).
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 
-The Step6 merge passes 629 presentation tests, adapter compilation and the HUD
-probe. Four Behavior tests also fail on pre-merge master bda4952e: the Level1
-variable override, Goblin eating scenario, Level17 Harkan Call to Arms and
-Level11A Drako bridge/attack scenarios. No Step6 behavior regression was found.
+Current verification:736 presentation,428 data and3584 simulation tests pass;
+the adapter and isolated HUD probe pass at1024x768 and2560x1440. The behavior
+suite passes383, skips3 and fails4: Level1 variables, Level17 Harkan, Goblin
+eating and prison chicken. The first three are known failures; prison chicken
+passes archived HEAD1f3805e0 and now fails after constructor identity draws.
+Both prisoners choose the food at281 but leave the cell at295/299 during their
+walk. No expectation or seed was changed to conceal this new regression; do not
+merge until investigated. Level11A's earlier failure is absent in this run.
 
 Use serial checks; isolated probes must not save or restart the owner's editor.
 For master, open unity/DK2.Unity; check the retained classic worktree's branch
 before using D:/DungeonKeeperRemake-classic/unity/DK2.Unity. Restart Play after
 unity/sync-assemblies.ps1. Never commit local editor state (ProjectSettings/*,
-Scenes/Dungeon.unity, URP globals). Room selection is by name in the
-DungeonRunner Inspector (unity/README.md).
+Scenes/Dungeon.unity, URP globals). Room selection is available through the HUD;
+the DungeonRunner Inspector remains available for debugging (unity/README.md).
 
 Owner checks still pending in Unity: claiming, eating and sleeping; the Imp
 startup pose (ADR-0462); portal smoke, wall reinforcement and portal buildup

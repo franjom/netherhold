@@ -109,6 +109,7 @@ public sealed class PaydaySystem : ISimulationSystem
             }
 
             player.NextPaydayTick = new GameTick(now + PaydayRules.IntervalTicks(database));
+            player.LastPaydayTick = context.Tick;
 
             context.Emit(SystemName, "payday",
                 $"player={playerId} creatures={creatures} billed={billed} " +

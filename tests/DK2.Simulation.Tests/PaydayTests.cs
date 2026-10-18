@@ -177,12 +177,14 @@ public class PaydayTests
         long arrived = world.CurrentTick.Value;
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         Assert.Equal(arrived + PaydayRules.FirstPaydayTicks(db), world.Player(Keeper).NextPaydayTick.Value);
+        Assert.Equal(arrived, world.Player(Keeper).LastPaydayTick.Value);
 
         for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++) sim.Tick(InputFrame.Empty);
         Assert.Equal(0, goblin.WageOwed);
         sim.Tick(InputFrame.Empty);
         Assert.Equal(500, goblin.WageOwed);
         Assert.Equal(0, imp.WageOwed);
+        Assert.Equal(sim.CurrentTick.Value - 1, world.Player(Keeper).LastPaydayTick.Value);
     }
 
     /// <summary>DK2's owner change arms the new owner's clock as well (<c>0x0048D24E</c>).</summary>
@@ -520,8 +522,13 @@ public class PaydayTests
         goblin.WageOwed = 750;
         goblin.PayAttemptsFailed = 1;
         world.Player(Keeper).NextPaydayTick = new GameTick(12345);
+        world.Player(Keeper).LastPaydayTick = new GameTick(567);
 
         GameSimulation sim = Simulation(db, world);
+        ulong beforeStampChange = sim.StateHash();
+        world.Player(Keeper).LastPaydayTick = new GameTick(568);
+        Assert.NotEqual(beforeStampChange, sim.StateHash());
+        world.Player(Keeper).LastPaydayTick = new GameTick(567);
         GameSimulation reloaded = WorldSnapshot.FromBytes(
             WorldSnapshot.ToBytes(sim), db, SimulationSystems.Default());
         WorldState restored = reloaded.World;
@@ -532,6 +539,7 @@ public class PaydayTests
         Assert.True(back.GetPaid);
         Assert.True(back.SkipNextPayment);
         Assert.Equal(12345, restored.Player(Keeper).NextPaydayTick.Value);
+        Assert.Equal(567, restored.Player(Keeper).LastPaydayTick.Value);
     }
 
     // ---- and the anger it causes (ADR-0079) --------------------------------

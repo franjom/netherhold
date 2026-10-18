@@ -120,3 +120,10 @@ UI Toolkit cursor and hover HUD into separate targets, checking the status text
 and the delayed short-name popup. `hand-cursor.png` and `hover-hud.png` capture
 those production renderers. Real pointer routing and terrain-deformed in-game
 appearance still need owner comparison.
+
+The integrated-controls fixture also renders original resource, room-choice,
+Options, full-map, creature-query and creature-overview panels into independent
+targets at both sizes. It loads all cursor sheets against native dimensions,
+uses actual Imp/Goblin portraits, and checks all four overview mode hit regions.
+These are rendering/input checks, not acceptance of unfinished menu actions or
+proof of original-game layout parity. Captures remain in build/hud-toolkit-results.

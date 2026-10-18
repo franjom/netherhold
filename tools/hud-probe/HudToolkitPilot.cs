@@ -16,7 +16,7 @@ using UnityEngine.UIElements;
 
 namespace DK2.Unity.HudProbe
 {
-    public sealed class HudToolkitPilot : MonoBehaviour
+    public sealed partial class HudToolkitPilot : MonoBehaviour
     {
         [Serializable] public sealed class Report
         {
@@ -128,6 +128,7 @@ namespace DK2.Unity.HudProbe
                 AddFont(root, field, true, scale: 14f / 72, left: 48, top: 224);
                 AddFont(root, reference, false, scale: 2, left: 48, top: 300);
                 AddFont(root, field, true, scale: 28f / 72, left: 48, top: 360);
+                InitializeControlsPilot();
                 ConfigureView();
             }
             catch (Exception error) { Fail(error); }
@@ -526,6 +527,7 @@ namespace DK2.Unity.HudProbe
             _panel = Own(new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)); _panel.Create();
             _north.UpdateHeading(new Dk2Angle((ushort)(_view == 0 ? 0 : 256)), height);
             _settings.targetTexture = _panel; _frames = 0;
+            ConfigureControlsPilot(width, height);
             _resourceTarget = Own(new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)); _resourceTarget.Create();
             _resourceHud.Panel.targetTexture = _resourceTarget;
         }
@@ -534,6 +536,7 @@ namespace DK2.Unity.HudProbe
             if (Done || _report == null) return;
             _hoverHud?.Draw(_hoverSample, new Vector2(250, 280));
             _resourceHud?.Draw(_resourceSample, new Vector2Int(_resourceTarget.width, _resourceTarget.height));
+            DrawControlsPilot();
             if (++_frames < 24 || Time.unscaledTimeAsDouble < _hoverStartedAt + 1.7) return;
             try
             {
@@ -548,6 +551,7 @@ namespace DK2.Unity.HudProbe
                     AssertNorth(image, new Dk2Angle((ushort)(_view == 0 ? 0 : 256)));
                     AssertHoverOutline();
                     AssertHoverDocuments();
+                    AssertControlsPilot();
                     int white = 0;
                     float scale = _panel.height / 768f;
                     for (int y = Mathf.FloorToInt(661 * scale); y < 684 * scale; y++)
@@ -718,6 +722,7 @@ namespace DK2.Unity.HudProbe
             _north?.Dispose();
             _tileOutline?.Dispose();
             _hoverHud?.Dispose();
+            DisposeControlsPilot();
             _resourceHud?.Dispose();
             _handCursor?.Dispose();
             foreach (UnityEngine.Object resource in _owned) if (resource != null) Destroy(resource);

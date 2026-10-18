@@ -29,15 +29,26 @@ public sealed class ScriptedViewDirector(
     private TilePos? _move;
     private double _now;
     private double _renderTick;
+    private HudFlashRequest? _flash;
+    private uint _flashStartedAt;
 
     public void Emit(in SimEvent simEvent)
     {
-        if (simEvent.ScriptedView is { } request && request.Player == viewer) _requests.Enqueue(request);
+        if (simEvent.ScriptedView is { } request && (request.Player == viewer || request.Kind == ScriptedViewKind.FlashButton))
+            _requests.Enqueue(request);
         downstream?.Emit(simEvent);
     }
 
     public bool PathPlaying => _path is not null;
     public int LetterboxRequestCount => _letterbox.RequestCount;
+    public HudFlashTarget? ActiveFlashTarget => _flash?.Target;
+    public KeeperResourceFlash ResourceFlash => _flash?.Target == HudFlashTarget.Mana ? KeeperResourceFlash.Mana
+        : _flash?.Target == HudFlashTarget.Gold ? KeeperResourceFlash.Gold : KeeperResourceFlash.None;
+
+    public void ClearFlash(HudFlashTarget target)
+    {
+        if (_flash?.Target == target) _flash = null;
+    }
     public HudVisibility HudFor(ClassicCameraMode normalMode) => HudVisibilityRules.ForCamera(
         PathPlaying ? CameraModeId.ScriptedPath : new((ushort)normalMode), _letterbox.RequestCount);
 
@@ -75,6 +86,9 @@ public sealed class ScriptedViewDirector(
     {
         _now = nowMilliseconds;
         _renderTick = renderTick;
+        if (_flash is { DurationSeconds: > 0 } flash
+            && unchecked(_flashStartedAt + flash.DurationSeconds * 1000) < unchecked((uint)_now))
+            _flash = null;
         // The path that has run out ends before the requests, so the next one the script
         // started on that tick follows it.
         SeekPath();
@@ -112,6 +126,11 @@ public sealed class ScriptedViewDirector(
     {
         switch (request.Kind)
         {
+            case ScriptedViewKind.FlashButton:
+                _flash = request.FlashButton is { Enabled: true } active && active.Target.Category != byte.MaxValue
+                    ? active : null;
+                _flashStartedAt = unchecked((uint)_now);
+                break;
             case ScriptedViewKind.CameraPath:
                 // The simulation refuses a start while a path plays (CameraPathRules.TryStart), so
                 // a request it sent is the path the script now has; one still drawn gives way.

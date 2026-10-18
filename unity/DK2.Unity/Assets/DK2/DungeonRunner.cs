@@ -43,7 +43,7 @@ namespace DK2.Unity
     /// <see cref="SimulationTiming.TicksPerSecond"/> — one constant, and it lives
     /// in the simulation (ADR-0011). Do not tune it here.</para>
     /// </remarks>
-    public sealed class DungeonRunner : MonoBehaviour
+    public sealed partial class DungeonRunner : MonoBehaviour
     {
         [Header("Where Dungeon Keeper 2 is installed")]
         [Tooltip("Leave blank to use the DK2_DIR environment variable, or the usual install locations.")]
@@ -324,6 +324,7 @@ namespace DK2.Unity
             _hoverHud = new ClassicHoverHud(new InstallClassicHoverAssets(install));
             _resourceHud = new ClassicResourceHud(transform, new InstallClassicResourceAssets(install));
             _resourceView = new KeeperResourceView(_simulation.Database, new PlayerId((byte)viewingPlayerId));
+            InitializeHudControls(install, database, campaignLevel);
             var hoverStrings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
             _hoverText = new WorldHoverText(database, hoverStrings.Resolve, new PlayerId((byte)viewingPlayerId));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
@@ -335,6 +336,7 @@ namespace DK2.Unity
         private void OnDestroy()
         {
             WaitForTick();
+            DisposeHudControls();
             _minimap?.Dispose();
             _handCursor?.Dispose();
             _tileHighlight?.Dispose();
@@ -371,6 +373,7 @@ namespace DK2.Unity
             using (InputMarker.Auto())
             {
                 ApplyLetterbox();
+                bool pathWasPlaying = _scriptedView.PathPlaying;
                 if (_scriptedView.PathPlaying)
                 {
                     // 0x00405362: Escape or Space ends the path; the simulation hears it next tick.
@@ -378,7 +381,8 @@ namespace DK2.Unity
                         _pendingCommands.Add(new DK2.Simulation.Commands.SkipCameraPathCommand(new PlayerId((byte)viewingPlayerId)));
                 }
                 if (_scriptedView.TryTakeCameraMove(out TilePos glideTile)) StartGlide(glideTile);
-                HudVisibility hud = _scriptedView.HudFor(cameraPreset);
+                UpdateHudControls(allowOptionsKey: !pathWasPlaying);
+                HudVisibility hud = CurrentHud;
                 _minimap?.SetVisibility(hud);
                 _hoverHud?.SetVisibility(hud);
                 _resourceHud?.SetVisibility(hud);
@@ -386,17 +390,17 @@ namespace DK2.Unity
                 else
                 {
                     Glide();
-                    if (hud.AllowOrdinaryInput) ControlCamera();
+                    if (hud.AllowOrdinaryInput && !HudModal) ControlCamera();
                     else if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
                 }
                 ReadAmbientKeys();
-                if (hud.AllowOrdinaryInput) ReadToolKeys();
+                if (hud.AllowOrdinaryInput && !HudModal) ReadToolKeys();
                 QueueInput();
             }
 
             int ticks = 0;
             InputFrame firstInput = InputFrame.Empty;
-            if (speed > 0f)
+            if (speed > 0f && !_hudControls.OptionsVisible)
             {
                 _tickDebt += elapsed * SimulationTiming.TicksPerSecond * speed;
 
@@ -433,8 +437,8 @@ namespace DK2.Unity
             _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
             double preparedElapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: 0, maximumDeltaSeconds: Math.Max(0, Time.maximumDeltaTime - elapsed), timeScale: Time.timeScale);
-            if (speed > 0f) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed;
-            if (tickOnWorkerThread && speed > 0f)
+            if (speed > 0f && !_hudControls.OptionsVisible) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed;
+            if (tickOnWorkerThread && speed > 0f && !_hudControls.OptionsVisible)
             {
                 int preparedTicks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame) - ticks);
                 ticks += preparedTicks;
@@ -455,6 +459,7 @@ namespace DK2.Unity
                 else LookAt(_simulation.World);
             }
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
+            FollowQueriedCreature();
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
@@ -463,8 +468,9 @@ namespace DK2.Unity
             _scene.AdvanceTorchAnimation();
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
-            _minimap?.SetVisibility(_scriptedView.HudFor(cameraPreset));
+            _minimap?.SetVisibility(CurrentHud);
             _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
+            DrawHudControls();
             CaptureWorldHover();
             if (showDiagnostics) RefreshDiagnostics();
 
@@ -528,12 +534,12 @@ namespace DK2.Unity
 
         private void QueueInput()
         {
-            if (!_scriptedView.HudFor(cameraPreset).AllowOrdinaryInput)
+            if (!CurrentHud.AllowOrdinaryInput)
             {
                 _input.CancelPointerGesture();
                 return;
             }
-            _minimap?.HandleZoomPress(Input.mousePosition, Input.GetMouseButtonDown(0), Input.GetMouseButtonDown(1));
+            if (QueueHudInput() || QueuePanelWorldAction()) return;
             if (!_scriptedView.PathPlaying && !frameWholeMap && _minimap != null && Input.GetMouseButtonDown(0)
                 && _minimap.TryNavigate(Input.mousePosition, Camera.main, _cameraFocus, out TilePos navigationTile))
                 StartGlide(navigationTile);
@@ -558,10 +564,16 @@ namespace DK2.Unity
             if (tile is TilePos at && (ActiveTool == PlayerToolMode.Hand || ActiveTool == PlayerToolMode.Slap))
                 snapshot = snapshot.ForHover(ResolveWorldHover(at));
             InputFrame frame = _input.Translate(intent, snapshot);
+            long nowMs = (long)(Time.unscaledTimeAsDouble * 1000);
+            if ((button & PointerButtonTransition.Pressed) != 0 && _input.DragFrom(PlayerToolMode.Hand) != null)
+                _cursorFeedback.Play(HandCursorKind.Tag, nowMs);
 
             foreach (PlayerCommand command in frame.All)
             {
                 _pendingCommands.Add(command);
+                if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs);
+                if (command is DK2.Simulation.Commands.DropCommand)
+                    _cursorFeedback.Play(HoldingGold() ? HandCursorKind.DropGold : HandCursorKind.DropThing, nowMs);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, _simulation.World.CurrentTick.Next);
                 if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)
@@ -615,6 +627,13 @@ namespace DK2.Unity
 
             if (Input.GetKeyDown(KeyCode.LeftBracket)) SelectAdjacentRoom(-1);
             if (Input.GetKeyDown(KeyCode.RightBracket)) SelectAdjacentRoom(1);
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha5)
+                || Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Alpha4)
+                || Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.LeftBracket) || Input.GetKeyDown(KeyCode.RightBracket))
+            {
+                _panelChoice = null; _queryTool = false; _selectedCorner = ClassicHudAction.None;
+                _bottomView?.SelectTool(ActiveTool, selectedRoomId);
+            }
         }
 
         private void SelectKnownRoom()
@@ -937,7 +956,12 @@ namespace DK2.Unity
 
         private bool PointerOverHud(Vector3 position) =>
             (_minimap != null && _minimap.ContainsPointer(position)) || (_hoverHud != null && _hoverHud.ContainsPointer(position))
-            || (_resourceHud != null && _resourceHud.ContainsPointer(position));
+            || (_resourceHud != null && _resourceHud.ContainsPointer(position))
+            || (_bottomPanel != null && _bottomPanel.ContainsPointer(position))
+            || (_overviewPanel != null && _overviewPanel.ContainsPointer(position))
+            || (_optionsPanel != null && _optionsPanel.ContainsPointer(position)) || _hudControls.FullMapVisible
+            || (_queryPanel != null && _queryTarget != CreatureQueryTarget.None && !HudModal
+                && _queryPanel.ContainsPointer(position, CurrentHud));
 
         private WorldHoverHit ResolveWorldHover(TilePos tile)
         {
@@ -955,10 +979,11 @@ namespace DK2.Unity
 
         private void CaptureWorldHover()
         {
-            HudVisibility visibility = _scriptedView.HudFor(cameraPreset);
+            HudVisibility visibility = CurrentHud;
             _hoverHud?.SetVisibility(visibility);
             _resourceHud?.SetVisibility(visibility);
-            if (visibility.ShowNormalHud) _resourceHud?.Draw(_resourceView.Capture(_simulation.World));
+            if (visibility.ShowNormalHud) _resourceHud?.Draw(_resources, default,
+                unchecked((uint)(Time.unscaledTimeAsDouble * 1000)), _scriptedView.ResourceFlash);
             _hoverSnapshot = HoverTextSnapshot.Empty;
             Vector3 mouse = Input.mousePosition;
             bool inside = mouse.x >= 0 && mouse.y >= 0 && mouse.x < Screen.width && mouse.y < Screen.height;
@@ -971,7 +996,9 @@ namespace DK2.Unity
                 WorldHoverHit hit = ResolveWorldHover(tile);
                 {
                     PlayerId viewer = new PlayerId((byte)viewingPlayerId);
-                    _hoverSnapshot = _hoverText.Capture(world, hit);
+                    string personalName = hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState named
+                        ? _identityNames.Name(new CreatureNameIndex(named.NameIndex)) : "";
+                    _hoverSnapshot = _hoverText.Capture(world, hit, personalName);
                     bool pickup = false;
                     if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
                         pickup = HandRules.CanPickUp(world, _simulation.Database, creature, viewer);
@@ -986,6 +1013,10 @@ namespace DK2.Unity
                     if (cursor == HandCursorKind.Dig) highlightedTile = tile;
                 }
             }
+            if (allowed && PointerOverHud(mouse)) _hoverSnapshot = CaptureHudHover();
+            bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
+            if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal)
+                cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), (long)(Time.unscaledTimeAsDouble * 1000));
             _handCursor?.Update(cursor, allowed, Time.unscaledTimeAsDouble);
             Vector2 pointerGui = new Vector2(mouse.x, Screen.height - mouse.y);
             _handCursor?.Draw(pointerGui);
@@ -995,10 +1026,20 @@ namespace DK2.Unity
 
         private void OnApplicationFocus(bool focused)
         {
-            if (!focused) _handCursor?.Update(HandCursorKind.Default, false, Time.unscaledTimeAsDouble);
+            if (!focused)
+            {
+                _handCursor?.Update(HandCursorKind.Default, false, Time.unscaledTimeAsDouble);
+                _bottomPanel?.CancelPointerGesture(); _input.CancelPointerGesture();
+                _cursorFeedback.Reset();
+            }
         }
 
-        private void OnDisable() => _handCursor?.Update(HandCursorKind.Default, false, 0);
+        private void OnDisable()
+        {
+            _bottomPanel?.CancelPointerGesture();
+            _cursorFeedback.Reset();
+            _handCursor?.Update(HandCursorKind.Default, false, 0);
+        }
 
         private void OnGUI()
         {

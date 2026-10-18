@@ -691,12 +691,12 @@ public class PortalTests
         Assert.False(world.Player(Rival).PortalsClosed);
     }
 
-    /// <summary>A closed portal still makes its draw, as DK2's pick runs before the creator
-    /// refuses: the RNG and the boosts move exactly as an open roll's would.</summary>
+    /// <summary>A closed portal still draws its selection, but never constructs a creature
+    /// and therefore does not consume the constructor's name and blood draws.</summary>
     [Fact]
-    public void AClosedRollDrawsAsAnOpenOneDoes()
+    public void AClosedRollDrawsSelectionButSkipsConstructorIdentityDraws()
     {
-        (ulong, ulong, ulong, ulong) Draws(bool closed)
+        SimRandom Draws(bool closed)
         {
             GameDatabase db = Database();
             WorldState world = World(db);
@@ -705,10 +705,14 @@ public class PortalTests
             world.Player(Keeper).PortalsClosed = closed;
             var sim = new GameSimulation(db, world, seed: 99, [new PortalSystem()]);
             sim.Run(25 * SimulationTiming.TicksPerSecond);
-            return sim.Rng.SaveState();
+            Assert.Equal(closed ? 0 : 1, world.Creatures.Count);
+            return sim.Rng;
         }
 
-        Assert.Equal(Draws(closed: false), Draws(closed: true));
+        SimRandom open = Draws(closed: false), closed = Draws(closed: true);
+        closed.NextInt(CreatureIdentityRules.NameCount);
+        closed.NextInt(CreatureIdentityRules.BloodGroupCount - 1);
+        Assert.Equal(open.SaveState(), closed.SaveState());
     }
 
     [Fact]

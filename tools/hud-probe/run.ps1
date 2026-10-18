@@ -43,14 +43,14 @@ if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $buildLog -Tail 20; throw 'H
 foreach ($name in @('DK2.Core','DK2.Data.Model','DK2.Data','DK2.Art','DK2.Assets','DK2.Pathfinding','DK2.Simulation','DK2.Presentation')) {
     Copy-Item -LiteralPath "$repo/src/$name/bin/Release/netstandard2.1/$name.dll" -Destination "$Project/Assets/Plugins/DK2" -Force
 }
-foreach ($name in @('HudPilotAssets.cs','HudFontPilot.cs','HudToolkitPilot.cs','HudPilot.shader')) {
+foreach ($name in @('HudPilotAssets.cs','HudFontPilot.cs','HudToolkitPilot.cs','HudControlsPilot.cs','HudPilot.shader')) {
     Copy-Item -LiteralPath "$PSScriptRoot/$name" -Destination "$Project/Assets/HudProbe" -Force
 }
 Copy-Item -LiteralPath "$PSScriptRoot/HudPilotEntry.cs" -Destination "$Project/Assets/HudProbe/Editor" -Force
-foreach ($name in @('MinimapGpuMap.cs','DungeonMinimap.cs','MinimapFrameVisual.cs','ClassicHandCursor.cs','ClassicHoverHud.cs','ClassicResourceHud.cs','ClassicBitmapText.cs','ClassicTileHoverOutline.cs')) {
+foreach ($name in @('MinimapGpuMap.cs','DungeonMinimap.cs','MinimapFrameVisual.cs','ClassicHandCursor.cs','ClassicHoverHud.cs','ClassicResourceHud.cs','ClassicBottomPanel.cs','ClassicBottomPanelAssets.cs','ClassicOptionsPanel.cs','ClassicFullMap.cs','ClassicCreatureQueryPanel.cs','ClassicCreatureOverview.cs','CreatureOverviewAssets.cs','ClassicBitmapText.cs','ClassicTileHoverOutline.cs')) {
     Copy-Item -LiteralPath "$repo/unity/DK2.Unity/Assets/DK2/$name" -Destination "$Project/Assets/HudProbe" -Force
 }
-foreach ($name in @('DK2Minimap.shader','DK2Hud.tss')) {
+foreach ($name in @('DK2Minimap.shader','DK2FullMap.shader','DK2Hud.tss')) {
     Copy-Item -LiteralPath "$repo/unity/DK2.Unity/Assets/DK2/Resources/$name" -Destination "$Project/Assets/HudProbe/Resources" -Force
 }
 Copy-Item -LiteralPath "$PSScriptRoot/HudPilot.tss" -Destination "$Project/Assets/HudProbe/Resources" -Force

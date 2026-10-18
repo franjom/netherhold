@@ -87,6 +87,7 @@ public class CombatAlarmPointTests
         PlaceRoom(world, terrain, 11, 11);
         RoomInstance room = RoomIndex.Build(world, db).Single();
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 8));
+        Dk2TerrainFixture.SetKnownIdentities(world);
         return (db, world, room, imp);
     }
 

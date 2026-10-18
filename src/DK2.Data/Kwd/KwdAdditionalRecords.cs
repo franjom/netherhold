@@ -306,6 +306,7 @@ public static partial class KwdTriggers
         else if (type is 33 or 36 or 37 or 38 or 44 or 45 or 51) { B("Available", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
         else if (type == 50) { D("Unreached_0000", 0); D("Value", 4); }
         else if (type == 8) { B("TimerId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
+        else if (type == 9) { B("TargetCategory", 0); B("TargetId", 1); B("Available", 2); B("Unreached_0003", 3); D("DurationSeconds", 4); }
         else if (type == 23) { B("TimerId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Value", 4); }
         else if (type == 7) { B("FlagId", 0); B("Flag", 1); W("Unreached_0002", 2); D("Value", 4); }
         else if (type == 6) { B("PlayerId", 0); B("AvailabilityKind", 1); B("TypeId", 2); B("Available", 3); D("Unreached_0004", 4); }

@@ -886,6 +886,8 @@ public class PrisonTests
         Assert.True(PrisonRules.Imprison(
             new StateHookContext(world, db), second, Keeper, (CellB.Y * world.Width) + CellB.X));
 
+        Dk2TerrainFixture.SetKnownIdentities(world);
+
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         for (int i = 0; i < 20 * Second; i++) sim.Tick();

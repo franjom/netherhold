@@ -7,7 +7,9 @@
     <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Data/Managed</UnityManagedDir>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="HudPilotAssets.cs;HudFontPilot.cs;HudToolkitPilot.cs" />
+    <Compile Include="HudPilotAssets.cs;HudFontPilot.cs;HudToolkitPilot.cs;HudControlsPilot.cs" />
+    <Compile Include="../../unity/DK2.Unity/Assets/DK2/ClassicCreatureOverview.cs;../../unity/DK2.Unity/Assets/DK2/CreatureOverviewAssets.cs" />
+    <Compile Include="../../unity/DK2.Unity/Assets/DK2/ClassicBottomPanel.cs;../../unity/DK2.Unity/Assets/DK2/ClassicBottomPanelAssets.cs;../../unity/DK2.Unity/Assets/DK2/ClassicOptionsPanel.cs;../../unity/DK2.Unity/Assets/DK2/ClassicFullMap.cs;../../unity/DK2.Unity/Assets/DK2/ClassicCreatureQueryPanel.cs" />
     <Compile Include="../../unity/DK2.Unity/Assets/DK2/MinimapGpuMap.cs;../../unity/DK2.Unity/Assets/DK2/DungeonMinimap.cs" />
     <Compile Include="../../unity/DK2.Unity/Assets/DK2/MinimapFrameVisual.cs" />
     <Compile Include="../../unity/DK2.Unity/Assets/DK2/ClassicHandCursor.cs;../../unity/DK2.Unity/Assets/DK2/ClassicHoverHud.cs;../../unity/DK2.Unity/Assets/DK2/ClassicBitmapText.cs;../../unity/DK2.Unity/Assets/DK2/ClassicTileHoverOutline.cs" />

@@ -82,6 +82,27 @@ namespace DK2.Unity
         private long _capturedTick = -1;
         private int _capturedPreview = -1;
         private MinimapZoom _zoom = MinimapZoom.WholeMap;
+        public ClassicHudAction HandleCornerPress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed)
+        {
+            if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || Screen.height <= 0
+                || !primaryPressed && !secondaryPressed) return ClassicHudAction.None;
+            return ClassicHudControlLayout.ActionAt(ReferencePoint(screenPosition), !primaryPressed);
+        }
+
+        public void UpdateControls(Vector3 screenPosition, ClassicHudAction selected, bool optionsVisible)
+            => _frame.UpdateControls(ReferencePoint(screenPosition), selected, optionsVisible);
+
+        private static System.Numerics.Vector2 ReferencePoint(Vector3 point)
+        {
+            float scale = Screen.height / 768f;
+            return new System.Numerics.Vector2(point.x / scale, 768 - point.y / scale);
+        }
+
+        public RenderTexture ClassTexture => _gpu.Classes;
+        public Texture PaletteTexture => _gpu.PaletteTexture;
+        public int MapWidth => _grid.Width;
+        public int MapHeight => _grid.Height;
+
         public void ZoomIn() => _zoom = _zoom.ZoomIn();
         public void ZoomOut() => _zoom = _zoom.ZoomOut();
         public void HandleZoomPress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed)

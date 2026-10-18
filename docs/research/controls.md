@@ -5,8 +5,8 @@
 | Source(s) | `<install>/ReadMe.txt` §7 "FULL KEY LIST" and `<install>/reference_card.pdf` (both shipped, read 2026-09-09); `original-reference/Dungeon_Keeper_2_Manual.pdf` p.3 command card and pp.37, 40–41 |
 | Observed behaviour | Not yet observed in the running game. The three documents are EA's own and agree |
 | Confidence | **CONFIRMED** for the mapping below, except the four rows marked in [Where the sources disagree](#where-the-sources-disagree) |
-| Implementation | none. `PlayerToolMode` and the `1`–`7` bindings in `DungeonRunner` are ours, not DK2's — see [What this means for us](#what-this-means-for-us) |
-| Tests | none |
+| Implementation | The researched G/H/M and campaign Options controls are integrated; see [minimap-controls.md](minimap-controls.md). `PlayerToolMode` and the numeric debug bindings in `DungeonRunner` remain ours. |
+| Tests | ClassicHudControlsTests covers visibility and modal routing; the broader original key list is not fully implemented. |
 | Open questions | four, in [What is open](#what-is-open); none has a Q number yet |
 
 Legal standing of the manual PDF: `manual-1999.md`, which is the one home for it.

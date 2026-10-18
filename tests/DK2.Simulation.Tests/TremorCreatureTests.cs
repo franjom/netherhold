@@ -30,6 +30,7 @@ public sealed class TremorCreatureTests
         world.Tile(at).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(at).OwnerPlayerId = Keeper;
         CreatureState creature = world.SpawnCreature(db, CreatureType, Keeper, at);
+        Dk2TerrainFixture.SetKnownIdentities(world);
         creature.Dk2StateId = CreatureStateMachine.Idle;
         return (db, world, creature);
     }

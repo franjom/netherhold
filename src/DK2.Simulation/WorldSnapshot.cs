@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 274;
+    private const int FormatVersion = 275;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -174,6 +174,7 @@ public static class WorldSnapshot
             w.Write(p.ResearchTarget);
             w.Write(p.NextFreeImpTick.Value);
             w.Write(p.NextPaydayTick.Value);
+            w.Write(p.LastPaydayTick.Value);
             w.Write(p.Status);
             w.Write(p.StatusTick.Value);
             w.Write(p.HeartHealth);
@@ -271,6 +272,8 @@ public static class WorldSnapshot
             w.Write(c.Id);
             w.Write(c.CreatureTypeId);
             w.Write(c.OwnerPlayerId);
+            w.Write(c.NameIndex);
+            w.Write(c.BloodGroupIndex);
             w.Write(c.TriggerId);
             w.Write(c.TriggerRepeat);
             w.Write(c.PosX);
@@ -861,6 +864,7 @@ public static class WorldSnapshot
                 ResearchTarget = r.ReadInt32(),
                 NextFreeImpTick = new GameTick(r.ReadInt64()),
                 NextPaydayTick = new GameTick(r.ReadInt64()),
+                LastPaydayTick = new GameTick(r.ReadInt64()),
                 Status = r.ReadByte(),
                 StatusTick = new GameTick(r.ReadInt64()),
                 HeartHealth = r.ReadInt32(),
@@ -937,6 +941,8 @@ public static class WorldSnapshot
                 Id = r.ReadInt32(),
                 CreatureTypeId = r.ReadByte(),
                 OwnerPlayerId = r.ReadByte(),
+                NameIndex = r.ReadUInt16(),
+                BloodGroupIndex = r.ReadByte(),
                 TriggerId = r.ReadUInt16(),
                 TriggerRepeat = r.ReadByte(),
                 PosX = r.ReadInt32(),

@@ -2,13 +2,13 @@
 
 Sources: DKII.EXE v1.70, read-only Ghidra queries, 2026-10-18; the install's
 Text.str and EngineTextures cache. Output stays in `reverse-engineering/resources-*`.
-Function records hold the individual verdicts. No gameplay changes are implied.
+Function records hold the individual verdicts.
 
 ## Values and update cadence — CONFIRMED
 
 `0x00422BC0` draws the viewing keeper's mana total from player `+0x82` and
 two rates. It is called by the active HUD dispatcher `0x00419DF0` each frame,
-not only on a mana payment. A message beginning with bytes `00 F2` suppresses
+not only on a mana payment. A FlashButton descriptor beginning `00 F2` suppresses
 the numbers on odd 250-millisecond real-time phases; background drawing stays.
 The two rate displays are omitted at screen widths **600 or below**.
 
@@ -32,8 +32,13 @@ current-turn upkeep while reconstructing gross from its net running field.
 payday warning it alternates Money and the negative coming unpaid wage bill
 on 500-millisecond clock phases. The cutoff is measured in raw turns; a zero
 cutoff uses 100. The warning latch also lasts until ten game seconds after
-the last payday. A `00 F3` message suppresses numbers on odd 250-ms phases.
-The wage bill is cached with a real-clock stamp. See `payday.md` for its rules.
+the last payday. A `00 F3` descriptor suppresses numbers on odd 250-ms phases.
+Blank phases bypass the warning-latch update. During bill phases the wage bill
+refreshes when current milliseconds exceed its cached stamp, then stores that
+clock unchanged. See `payday.md` for its rules.
+The already implemented `CasinoJackpotRules.WageBill` is this same producer;
+resource capture reuses it. Flashing uses the real clock and continues while
+the simulation is paused; the ten-second extension and alarm use game time.
 
 ## Digits and colours — CONFIRMED
 
@@ -55,7 +60,8 @@ right-alignment enabled, seven slots and size mode 0. That mode transforms
 virtual pair `(48,40)`: the first component is installed in **both** sprite
 size fields, and the second is character advance. Alternate size mode 1 uses
 `(96,60)` and is not selected by these two callers. A leading minus uses
-catalogue resource 106. Preserve each source image's transparent padding.
+catalogue resource 106, `gui/Icons/I--`, even below width 640. Preserve each
+source image's transparent padding.
 
 `0x00415880` draws incoming/outgoing icon, sign and decimal digits. All have
 transformed virtual 64 in both sprite size fields. The spacing pair is
@@ -117,7 +123,10 @@ also present; the ordinary gold number callback instead uses 76/77 above.
 
 ## Hover and clicks — confirmed bindings, partial actions
 
-| Widget | Virtual draw rectangle | Tooltip id | Binding |
+Widget coordinates below are local to menu21. `0x00528570` adds its `(0,20)`
+parent origin, so Heart and Payday start at screen-virtual y48.
+
+| Widget | Local virtual draw rectangle | Tooltip id | Binding |
 |---|---|---:|---|
 | Heart health | 28,28,100,100 | 2139 | Secondary `0x00416680`: zoom to Heart |
 | Mana total | 140,0,360,88 | 2133 | No click callbacks |
@@ -130,8 +139,15 @@ health `%19` and right-click zoom (2140), current wealth and 100-gold pickup
 100 normally, 1000 when modifier mask equals 1, 10000 when it equals 2;
 other masks, including combined modifiers, take the default 100 branch.
 `0x005B2A50` constructs that mask from left/right Shift (1), Ctrl (2), Alt (4).
-It then selects hand context 9. Full gold-command execution is outside this
-presentation reading; keep the tooltip and command authorization separate.
+It then selects hand context 9. Gameplay execution is the separate
+action handler described below.
+
+`0x0042D820` dispatches ordinary widget status to `0x0042DB60`. That formatter
+uses the tooltip id plus one for these four descriptions. Heart description
+requires a live Heart object; assembly `0x0042DC7E..0x0042DCBA` supplies `%19`
+as signed integer `current health * 100 / maximum health`, truncating toward
+zero. Payday `%20` is `0x004BE290`'s current bill. The generic GUI popup uses
+the widget's tooltip id with a 250-millisecond delay; see world-hover-text.md.
 
 ## Orb, gauges and remaining limits
 
@@ -157,13 +173,23 @@ special-cases the whole white texture; nonpositive health draws it black.
 Heart f is current object health / max health. Payday f is turns remaining /
 `(now + turns remaining − last payday turn)`; nonpositive remaining draws
 the full black texture. The helper's supplied depth is 0.3. Current Heart
-health supplies its fraction. **Payday parity is incomplete:** the simulation
-stores `NextPaydayTick`, but has no `LastPaydayTick`. A next deadline alone
-cannot establish the native denominator, particularly for the first armed
-payday or after loading a save. The adapter needs a researched producer for
-the last-payday stamp or the exact interval; do not substitute a guessed
-interval or claim an exact countdown fill. Damage alarm selection and
-per-frame update are separate.
+health supplies its fraction. `0x004BE330` writes both the first deadline and
+the current turn to player `+0xB4F`; `0x004BE1A0` rewrites that stamp each
+payday. `PlayerState.LastPaydayTick` preserves this stamp through hashing and
+snapshots, so first-arm, subsequent and loaded countdowns have the native
+denominator without a guessed interval.
+
+The alarm producer is **the previous displayed health**, not a combat message.
+Assembly `0x004230E4..0x0042311A` compares the cached value at interface
+`+0x4B27` with current Heart health. A decrease sets `+0x4B2B` to now plus
+three game seconds; alarm catalogue 166, `gui/windows/heart-alarm`, draws
+on odd original turns strictly before that deadline. `0x00423321..0x00423330`
+stores current health for the next draw. `0x004033F0` initializes that cache
+to maximum Heart health. Decompiler output incorrectly hides both comparisons
+and the final current-health store; assembly is decisive. Settled resource
+capture observes health only while the normal HUD is displayed. Hidden captures
+leave the comparison value unchanged; restoring the HUD can start a fresh alarm.
+Intervening damage healed before the next display does not itself trigger one.
 
 **UNKNOWN:** a separately animated mana-orb producer, animation clock or fill
 formula. The names of unused mana textures do not justify inventing one.
@@ -172,6 +198,44 @@ original numeric sprite families, colours, source assets and supplied geometry.
 
 The hover status text occupies the adjoining menu rather than the resource
 area; see [world-hover-text.md](world-hover-text.md#original-fonts-artwork-and-geometry).
-Gold action105 has no entry in the inspected presentation handler pair table;
-its forwarded gameplay consumer remains untraced. The existing AI-only
-MintWageCommand does not implement generic counter withdrawal.
+## Counter withdrawal — CONFIRMED
+
+`0x00511A80` registers action 105 at table record `0x006A5A30`, with gameplay
+handler `0x00513CE0`. The complete handler and assembly were read. It first
+tests player hand count `+0x1BF` against capacity `+0x1C0`; a full hand does
+not spend gold. It requests the negative amount through `0x004BA420` with
+flag and location zero, retaining the amount actually taken. This is the
+same storage transaction already represented by `GoldStore.Spend`.
+
+A nonzero take creates neutral **object type 3** at the zero position through
+`0x004B7A90`, adds the taken gold, sets object `+0x146` bit `0x10`, then calls
+`0x004C09F0` with hand state 2 and that object's id. The factory failure arm
+refunds the requested amount. Our factory does not have an allocation-failure
+result; missing definitions are rejected before spending. The absent raw bit's
+consumer remains unread; the existing hand/object model carries the pile and
+its amount. `WithdrawCounterGoldCommand` runs in `HandSystem` in input order,
+so a same-frame drop uses ordinary Hand delivery. It never calls the AI-only
+`MintWageCommand`, requires no Treasury when the Heart has stored gold, and
+creates no gold when storage is empty.
+
+## Scripted resource flashing — CONFIRMED
+
+These are **FlashButton action 9 descriptors**, not retained player messages.
+The primary world vtable `0x0066E3EC` binds slot `+0x2F8` to `0x005096F0`,
+which tests world `+0x7291` against `0xFF`, and `+0x2FC` to `0x00509700`,
+which returns that descriptor. Category and button are its first two bytes;
+`00 F2` selects mana and `00 F3` selects gold. Duration seconds occupy the
+next dword and the starting real-clock millisecond stamp occupies the last.
+
+`0x00518AD0` case 9 tests action body byte 2. Zero clears the descriptor;
+nonzero calls `0x00510260` with body bytes 0/1 and unsigned dword 4. That
+setter stores the target and duration, then stamps `0x005B5E90`'s real clock.
+It has no player gate: this is a global view request. `0x00509710` clears
+category to `0xFF` and the other fields to zero.
+
+`0x0050A450` expires the descriptor before its pause guard when duration is
+nonzero and unsigned `start + duration * 1000 < real milliseconds`. Equality
+still flashes; duration zero persists until replacement or explicit clear.
+Expiry therefore continues while Options pauses simulation. The existing
+scripted-view event queue carries this request to presentation, where wall
+time belongs; no real clock is introduced into simulation rules or hashing.

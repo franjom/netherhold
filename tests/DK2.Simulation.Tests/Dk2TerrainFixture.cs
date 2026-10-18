@@ -22,6 +22,17 @@ namespace DK2.Simulation.Tests;
 /// </remarks>
 internal static class Dk2TerrainFixture
 {
+    /// <summary>Preconfigured identities let a mechanic's seed describe its post-construction random stream.</summary>
+    public static void SetKnownIdentities(WorldState world)
+    {
+        foreach (CreatureState creature in world.Creatures)
+        {
+            if (creature.NameIndex != CreatureIdentityRules.UnassignedNameIndex) continue;
+            creature.NameIndex = (ushort)(creature.Id % CreatureIdentityRules.NameCount);
+            creature.BloodGroupIndex = (byte)(creature.Id % CreatureIdentityRules.BloodGroupCount);
+        }
+    }
+
     public const byte ImpenetrableRock = 1;
     public const byte Rock = 2;
     public const byte DirtPath = 3;

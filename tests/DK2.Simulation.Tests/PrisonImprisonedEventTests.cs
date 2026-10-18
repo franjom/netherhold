@@ -173,6 +173,7 @@ public class PrisonImprisonedEventTests
     private static CreatureState Captive(GameDatabase db, WorldState world)
     {
         CreatureState captive = world.SpawnCreature(db, GoblinId, Rival, Cell);
+        Dk2TerrainFixture.SetKnownIdentities(world);
         captive.TriggerId = Root;
         Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, (Cell.Y * world.Width) + Cell.X));
         return captive;

@@ -12,7 +12,7 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
-public enum WorldHoverKind { None, Tile, Creature, Object, Door, Trap }
+public enum WorldHoverKind { None, Tile, Creature, Object, Door, Trap, Widget }
 public readonly record struct WorldHoverHit(WorldHoverKind Kind, TilePos Tile, int EntityId = 0);
 public readonly record struct HoverTextSnapshot(string TopStatus, string TooltipName, WorldHoverHit Hit)
 {
@@ -121,11 +121,34 @@ public sealed class WorldHoverText
             return new(_resolve(room.OwnerPlayerId == PlayerIds.Good && definition.RoomId >= 18 && definition.RoomId <= 23 ? 2468u : 2471u), name, hit);
         int cap = RoomHealthRules.Cap(_database, room);
         _tokens[37] = Number(cap > 0 ? (int)((long)RoomHealthRules.Health(world, _database, room) * 100 / cap) : 0);
+        int roomCount = 0;
+        foreach (RoomInstance owned in _rooms)
+            if (owned.OwnerPlayerId == _viewer && owned.Definition.RoomId == definition.RoomId) roomCount++;
         uint template;
         switch (definition.TypeId)
         {
+            case RoomTypeId.Treasury:
+                int held = 0, goldCapacity = 0;
+                foreach (int tile in room.TileIndices)
+                {
+                    held += world.TileAtIndex(tile).GoldHeld;
+                    goldCapacity += GoldStore.Capacity(world, _database, tile, room);
+                }
+                _tokens[75] = Number(held); _tokens[76] = Number(goldCapacity); _tokens[47] = Number(roomCount);
+                template = 2581;
+                break;
+            case RoomTypeId.Lair:
+                _tokens[38] = Number(LairRules.Occupied(world, _database, room));
+                _tokens[39] = Number(LairRules.Capacity(room)); _tokens[45] = Number(roomCount);
+                template = 2435;
+                break;
+            case RoomTypeId.Hatchery:
+                _tokens[46] = Number(roomCount);
+                template = 2580;
+                break;
             case RoomTypeId.DungeonHeart:
                 ref PlayerState player = ref world.Player(_viewer);
+                if (player.HeartRuined) return new("", name, hit);
                 int maxHealth = _database[VariableTypeId.DungeonHeartObjectHealth];
                 _tokens[37] = Number(maxHealth > 0 ? (int)((long)player.HeartHealth * 100 / maxHealth) : 0);
                 _tokens[40] = Number(player.Mana);
@@ -133,18 +156,102 @@ public sealed class WorldHoverText
                 template = 2579;
                 break;
             case RoomTypeId.Portal:
-                int count = 0;
-                foreach (RoomInstance owned in _rooms)
-                    if (owned.OwnerPlayerId == _viewer && owned.Definition.TypeId == RoomTypeId.Portal) count++;
-                _tokens[44] = Number(count);
-                _tokens[43] = Number(PortalRules.CreatureCapacity(_database, count));
+                _tokens[44] = Number(roomCount);
+                _tokens[43] = Number(PortalRules.CreatureCapacity(_database, roomCount));
                 template = 2790;
+                break;
+            case RoomTypeId.Library:
+                CapacityTokens(world, room);
+                _tokens[77] = _tokens[38]; _tokens[78] = _tokens[39];
+                int books = 0, shelves = 0;
+                foreach (ObjectState obj in world.Objects)
+                {
+                    if (!RoomContainsObject(room, obj)) continue;
+                    if (_database.ObjectById(obj.ObjectTypeId) is { } objDef && (objDef.IsSpellBook || objDef.IsSpecial)) books++;
+                    if (obj.AutoPlaced && obj.ObjectTypeId == 64) shelves++;
+                }
+                _tokens[38] = Number(books); _tokens[39] = Number(shelves * 2); _tokens[48] = Number(roomCount);
+                template = 2582;
+                break;
+            case RoomTypeId.TrainingRoom:
+                CapacityTokens(world, room); _tokens[49] = Number(roomCount);
+                template = 2583;
+                break;
+            case RoomTypeId.Workshop:
+                CapacityTokens(world, room); _tokens[50] = Number(roomCount);
+                int crates = 0;
+                foreach (ObjectState obj in world.Objects)
+                    if (CrateRules.IsListedIn(world, _database, room, obj)) crates++;
+                _tokens[79] = Number(crates);
+                var furnitureSlots = new HashSet<int>();
+                AutoFurnitureRules.FurnitureSlots(world, _database, room, furnitureSlots);
+                _tokens[80] = Number((room.TileCount - furnitureSlots.Count) * CrateRules.CratesPerTile);
+                template = 2584;
+                break;
+            case RoomTypeId.GuardRoom:
+                AutoFurnitureRules.TryTotalCapacity(world, room, out int guardCapacity);
+                _tokens[81] = Number(RoomCapacityRules.Occupants(world, room));
+                _tokens[82] = Number(guardCapacity); _tokens[51] = Number(roomCount);
+                int routes = 0;
+                foreach (TrapState trap in world.Traps)
+                    if (trap.PlayerId == _viewer && !trap.UnderConstruction && trap.GuardRoomTile >= 0 && room.Contains(trap.GuardRoomTile)
+                        && _database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef) && (trapDef.Flags & 0x800) != 0) routes++;
+                _tokens[52] = Number(routes);
+                template = 2585;
+                break;
+            case RoomTypeId.Prison:
+                _tokens[83] = Number(RoomCapacityRules.Occupants(world, room));
+                _tokens[84] = Number(PrisonRules.Capacity(room)); _tokens[56] = _tokens[84]; _tokens[85] = Number(roomCount);
+                _tokens[57] = _resolve((JailBreakRules.DoorOf(world, room) & JailBreakRules.Activated) != 0 ? 2454u : 2455u);
+                template = 2586;
+                break;
+            case RoomTypeId.TortureChamber:
+                CapacityTokens(world, room); _tokens[54] = Number(roomCount);
+                template = 2451;
+                break;
+            case RoomTypeId.Temple:
+                CapacityTokens(world, room); _tokens[62] = Number(roomCount);
+                template = 2459;
+                break;
+            case RoomTypeId.Graveyard:
+                int graveCapacity = AutoFurnitureRules.FloorSlotCount(world, room);
+                _tokens[38] = Number(GraveyardRules.Lying(world, room)); _tokens[39] = Number(graveCapacity);
+                _tokens[86] = _tokens[39]; _tokens[61] = Number(roomCount);
+                template = 2587;
+                break;
+            case RoomTypeId.Casino:
+                CapacityTokens(world, room); _tokens[63] = Number(roomCount);
+                _tokens[87] = CasinoRules.Lever(world, room) is ObjectState lever ? _resolve(lever.Setting == 0 ? 2508u : 2509u) : "?";
+                template = 2781;
+                break;
+            case RoomTypeId.CombatPit:
+                HashSet<int> floor = AutoFurnitureRules.FloorSlotSet(world, room);
+                int fighters = 0;
+                foreach (CreatureState creature in world.Creatures)
+                    if (creature.CombatPitFighter && !creature.InHand && world.Contains(creature.Tile) && floor.Contains(world.TileIndex(creature.Tile))) fighters++;
+                _tokens[38] = Number(fighters); _tokens[39] = Number(floor.Count); _tokens[53] = Number(roomCount);
+                template = 2449;
+                break;
+            case RoomTypeId.WoodenBridge:
+                template = 2463;
+                break;
+            case RoomTypeId.StoneBridge:
+                template = 2465;
                 break;
             default:
                 return new(name, name, hit);
         }
         return new(Substitute(_resolve(template), _tokens), name, hit);
     }
+
+    private void CapacityTokens(WorldState world, RoomInstance room)
+    {
+        AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity);
+        _tokens[38] = Number(RoomCapacityRules.Occupants(world, room)); _tokens[39] = Number(capacity);
+    }
+
+    private static bool RoomContainsObject(RoomInstance room, ObjectState obj) =>
+        !obj.InHand && obj.CarriedByCreatureId < 0 && obj.OwnerPlayerId == room.OwnerPlayerId && room.Contains(obj.TileIndex);
 
     public static int ActionStringId(int stateId, int utilityNewState)
     {
@@ -188,6 +295,6 @@ public sealed class HoverTooltipDelay
         if (!same) { _hit = snapshot.Hit; _enteredAt = milliseconds; }
         return snapshot.Hit.Kind != WorldHoverKind.None && !string.IsNullOrEmpty(snapshot.TooltipName)
             && (showCreatureTooltip || snapshot.Hit.Kind != WorldHoverKind.Creature)
-            && milliseconds > _enteredAt + 1500;
+            && milliseconds > _enteredAt + (snapshot.Hit.Kind == WorldHoverKind.Widget ? 250 : 1500);
     }
 }

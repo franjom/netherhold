@@ -1219,12 +1219,20 @@ public sealed class TriggerExecutor
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 10 or 11 or 14 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 47;
+        type is 1 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 47;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
         IReadOnlyDictionary<string, long> p = record.Parameters;
         List<BlockedTrigger> partial = run.Partial;
+        if (record.Type == 9)
+        {
+            var target = new HudFlashTarget((ushort)(Byte(p, "TargetCategory") | Byte(p, "TargetId") << 8));
+            var flash = new HudFlashRequest(target, unchecked((uint)p["DurationSeconds"]), Byte(p, "Available") != 0);
+            ViewRequested?.Invoke(new ScriptedViewRequest(ScriptedViewKind.FlashButton,
+                PlayerIds.Unowned, 0, default, false, FlashButton: flash));
+            return true;
+        }
         if (record.Type == 17)
         {
             if (_world is null || _database is null) return Unperformed(record, context, partial);

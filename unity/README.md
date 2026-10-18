@@ -66,6 +66,18 @@ for digging is tinted amber, and wall torches are placed by `TorchLayout`.
 
 WASD or the arrow keys pan and the mouse wheel zooms. With Classic Vertex Lighting,
 `=`/`+` and `-` adjust native ambient light; keypad plus/minus work too.
+The bottom tabs select Creatures, Rooms, Spells and Workshop. Room choices show
+their original icons and names; secondary click cycles owned rooms. Creature
+portraits support primary pickup, Shift for lowest level, Control for highest,
+and secondary camera focus. The four small selectors switch totals/jobs/combat/moods.
+`G` toggles the HUD, `H` navigates to the Heart, `M` toggles the full map, and
+Escape opens/closes campaign Options. Options pauses the simulation; only
+Continue is currently enabled. Query follows a selected creature until cancelled
+with secondary click. Gold-counter primary click withdraws100, Shift1000 or
+Control10000, subject to actual funds and hand capacity. The complete scope and
+unfinished controls are in [Step6](../docs/plans/2026-10-17-classic-look-step6.md).
+
+The numeric tool shortcuts below remain debugging controls.
 The default Hand (`1` or `5`)
 uses left click to pick up a creature or toggle a diggable tile's excavation tag.
 Left drag applies the inverse of the starting tile's tag state to a rectangle;

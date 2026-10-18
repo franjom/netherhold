@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace DK2.Presentation;
 
-public enum HandCursorKind { Default, Point, SmallPoint, Pickup, Dig }
+public enum HandCursorKind { Default, Point, SmallPoint, Pickup, Dig, Tag, Tagging, HoldThing, DropThing, HoldGold, DropGold, Slap }
 
 public readonly record struct HandCursorSprite(string FileName, Vector2 FrameSize, Vector2 Hotspot,
     int FrameCount, int FramesPerSecond);
@@ -26,6 +26,13 @@ public static class HandCursor
         HandCursorKind.SmallPoint => new("SmallPoint.png", new(42, 20), new(2, 2), FrameCount: 1, FramesPerSecond: 1),
         HandCursorKind.Pickup => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
         HandCursorKind.Dig => new("PickAxeHold.png", new(84, 86), new(4, 51), FrameCount: 1, FramesPerSecond: 1),
+        HandCursorKind.Tag => new("PickAxeTag.png", new(88, 65), new(7, 30), FrameCount: 1, FramesPerSecond: 30),
+        HandCursorKind.Tagging => new("PickAxeHoldTagging.png", new(88, 65), new(7, 30), FrameCount: 1, FramesPerSecond: 1),
+        HandCursorKind.HoldThing => new("HoldThing.png", new(74, 70), new(8, 42), FrameCount: 1, FramesPerSecond: 15),
+        HandCursorKind.DropThing => new("DropThing.png", new(88, 103), new(2, 64), FrameCount: 14, FramesPerSecond: 30),
+        HandCursorKind.HoldGold => new("HoldGold.png", new(63, 43), new(-18, 7), FrameCount: 1, FramesPerSecond: 15),
+        HandCursorKind.DropGold => new("DropGold.png", new(87, 95), new(5, 59), FrameCount: 16, FramesPerSecond: 30),
+        HandCursorKind.Slap => new("Slap.png", new(126, 99), new(2, 64), FrameCount: 15, FramesPerSecond: 30),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -35,6 +42,27 @@ public static class HandCursor
         HandCursorSprite sprite = Sprite(kind);
         float scale = screenHeight / 480f;
         return new(pointerPixels - sprite.Hotspot * scale, sprite.FrameSize * scale);
+    }
+}
+
+public sealed class HandCursorFeedback
+{
+    private HandCursorKind _transient;
+    private long _startedAt;
+    public void Reset() => _transient = HandCursorKind.Default;
+    public void Play(HandCursorKind kind, long milliseconds)
+    { _transient = kind; _startedAt = milliseconds; }
+    public HandCursorKind Resolve(HandCursorKind hover, bool holding, bool gold, bool primaryHeld, long milliseconds)
+    {
+        if (_transient != HandCursorKind.Default)
+        {
+            HandCursorSprite sprite = HandCursor.Sprite(_transient);
+            if (Math.Max(0, milliseconds - _startedAt) * sprite.FramesPerSecond < sprite.FrameCount * 1000L)
+                return _transient;
+            if (_transient == HandCursorKind.Tag && primaryHeld) return HandCursorKind.Tagging;
+            Reset();
+        }
+        return holding ? gold ? HandCursorKind.HoldGold : HandCursorKind.HoldThing : hover;
     }
 }
 

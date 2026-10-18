@@ -12,6 +12,10 @@ comments do.
   algorithm from GLKeeper's `src/DK2WADArchive.cpp`.
 
 ## OpenKeeper
+- **Bottom-panel metadata (facts only):** `KwdFile.java` at
+  `4f2ab4016f042bd607dbdfe8d5b406a7901113aa` corroborated keeper-spell, door and
+  trap localized-name and display-order fields after the native ordinal
+  iterators were read. No code copied; see `bottom-panel-controls.md`.
 - https://github.com/tonihele/OpenKeeper — GNU GPL version 3 or later,
   Copyright (C) 2014–2016 OpenKeeper, Toni Helenius and contributors.
 - **Minimap presentation (facts only):** `MinimapFrustum.java`,

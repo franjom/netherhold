@@ -1,11 +1,10 @@
 # Step 6 — HUD and controls
 
-Status: live minimap tiles, markers, reporting outlines, camera footprint,
-magnifier zoom, primary click navigation, north marker, Heart direction trail
-and camera/letterbox HUD gates built; original cursor/hover visuals and live
-resource panels are built. 6.1 and 6.2 remain partial, 2026-10-18.
-The native frame with its idle corner artwork is present; remaining overlays,
-other corner controls and owner comparison remain open;
+Status: minimap, resource controls, ordinary campaign visibility and Options
+pause, full-map terrain/navigation, query/follow, bottom choices and creature
+overview are integrated on classic-look/step6, 2026-10-18. The overview includes
+totals, jobs, combat and moods with filtered pickup/focus. All milestones remain
+subject to their remaining research and owner-comparison gates below;
 ADR-0497 remains proposed. Step5's outstanding visual/performance
 gates remain in [its checklist](2026-10-14-classic-look-step5.md).
 
@@ -64,8 +63,9 @@ camera/letterbox visibility and input gates are built; remaining panel/modal rul
 are Q611, with the current reading in [hud-visibility.md](../research/hud-visibility.md).
 Disc/frame layout and rotation still need owner comparison. Static native menu
 and corner-art mapping and default primary/secondary bindings are recorded;
-Query/Sell/Options corner bindings and Heart/GUI hotkeys are now researched in
-[minimap-controls.md](../research/minimap-controls.md); those controls remain unbuilt.
+Query/Sell/Options corner bindings, Heart/GUI/full-map hotkeys and secondary
+disc entry to the full map are integrated; see
+[minimap-controls.md](../research/minimap-controls.md).
 
 - [x] Present changed tile classes through a renderer-independent view; draw the
   palette, rotated map, mask and background on the GPU as specified in §13.
@@ -78,7 +78,7 @@ Query/Sell/Options corner bindings and Heart/GUI hotkeys are now researched in
 
 - [x] Present settled gold, mana, separate incoming/outgoing rates, the Heart
   health ring and supported hover/status text using original frames and sprites.
-- [ ] Complete resource hover/clicks, payday countdown and wage-bill flashing,
+- [x] Complete resource hover/clicks, payday countdown and wage-bill flashing,
   damage alarms and message flashing. Native evidence and remaining producers:
   [hud-resources.md](../research/hud-resources.md).
 - [ ] Match DK2's anchors, content, states and timing; obtain owner acceptance.
@@ -92,28 +92,43 @@ Query/Sell/Options corner bindings and Heart/GUI hotkeys are now researched in
 - [x] Capture hover facts before worker dispatch; rendering reads retained data.
   Verify target precedence, fog/input gates, scaling and independent review.
 
-The current slice covers the ordinary pointing, pickup and dig sprites, the
-blue terrain-following cage, delayed short-name popups and the top status strip.
-Personal names, remaining room/object status substitutions, transient cursor
-actions and exact rendered-hit/material contracts remain research/integration
-work; see [cursor evidence](../research/hand-cursor-rendering.md) and
+The current slice covers pointing, pickup, dig, held-item/gold, tagging, drop
+and slap sprites, the blue terrain-following cage, delayed short-name popups,
+personal names and the top status strip. Owned-room storage/capacity fields
+are integrated. Remaining special name/object producers and exact rendered-hit
+and material contracts remain research/integration work; see
+[cursor evidence](../research/hand-cursor-rendering.md) and
 [hover text](../research/world-hover-text.md). Owner visual comparison remains.
 
 ## 6.3 — Bottom panel and keeper controls
 
-- [ ] Build the researched tabs, button states, room choices, costs, availability
+- [x] Build the researched tabs, button states, room choices, costs, availability
   and selected-tool feedback. Room selection must be usable by name/icon without
   knowing room IDs or opening the Inspector.
-- [ ] Route construction/sell/Hand actions through existing simulation commands
+- [x] Route construction/sell/Hand actions through existing simulation commands
   and rules. Add other panels against supported capabilities; record missing
   producers rather than manufacture successful-looking actions.
-- [ ] Prevent HUD clicks/drags/scrolls from also issuing world actions. Handle
+- [x] Prevent HUD clicks/drags/scrolls from also issuing world actions. Handle
   pointer capture, cancellation, focus loss and camera controls consistently.
 - [ ] Review debug key bindings against [controls research](../research/controls.md)
   and the binary before presenting them as original DK2 controls. Keep diagnostics
   available without making them the player interface.
 
 ## Acceptance and boundaries
+
+Built bottom-panel details: original room/spell/workshop ordering, researched
+availability and cost feedback, Reaper/talisman state, secondary room cycling,
+and the four creature views. Evidence and adapter ordering limitations live in
+[bottom-panel-controls.md](../research/bottom-panel-controls.md) and
+[creature-overview.md](../research/creature-overview.md).
+
+Still open: category locking/collapse; research, manufacture and ordinary spell
+cooldown indicators; portrait hover previews/tooltips; full-map markers/legend;
+the query scrollbar; complete special object/door/trap/name status; Q197 and
+the remaining Q611 modal producers. Options exposes Continue; its other rows
+remain disabled until their corresponding frontends exist. These are not
+successful-looking placeholder actions. Save/load/settings frontends, exact
+outline material/picking and status flowers require further binary work.
 
 For each delivered slice: independent review, relevant headless presentation/input
 tests, adapter build, and owner comparison at 1024×768 and 2560×1440 or above.

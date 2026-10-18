@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 274: derive steering axes from resulting velocity (ADR-0509).
+        // HashVersion 275: native payday stamp and creature identities (ADR-0295 amendment, ADR-0510).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x34A682FB8867CE5BUL, sim.StateHash());
+        Assert.Equal(0xA1AAB81F09D3E916UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

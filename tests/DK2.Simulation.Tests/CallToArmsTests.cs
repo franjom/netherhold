@@ -222,6 +222,7 @@ public sealed class CallToArmsTests
         }
 
         CreatureState fighter = Goblin(world, db, 14, 14);
+        Dk2TerrainFixture.SetKnownIdentities(world);
         GameSimulation sim = Sim(db, world, new CreatureJobSystem());
         sim.Tick(InputFrame.Of(Cast(Flag)));
         Assert.True(world.Player(Keeper).CallToArms.On);

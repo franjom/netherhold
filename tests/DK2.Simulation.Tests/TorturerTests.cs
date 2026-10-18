@@ -233,6 +233,7 @@ public class TorturerTests
         WorldState world = World(db);
         CreatureState victim = Victim(db, world);
         CreatureState whipper = world.SpawnCreature(db, MistressId, Keeper, Outside);
+        Dk2TerrainFixture.SetKnownIdentities(world);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         for (int i = 0; i < 60 * SimulationTiming.TicksPerSecond && whipper.Dk2StateId != TortureRules.TorturerWhippingState; i++)

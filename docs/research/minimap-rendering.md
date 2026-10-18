@@ -394,7 +394,7 @@ Widget3 uses the same type-0 poll as the magnifier: once per primary press,
 retaining capture until release without calling navigation again on movement.
 The primary held channel takes priority over the secondary channel. Its complete
 poll and GUI-manager capture paths establish click navigation, not continuous
-drag panning. The independent secondary map-mode callback remains unimplemented.
+drag panning. Secondary map-mode entry is integrated; see [minimap controls](minimap-controls.md).
 
 The adapter forwards primary press edges to the existing camera glide without
 world commands. Full held-channel capture arbitration remains part of Step6.3.

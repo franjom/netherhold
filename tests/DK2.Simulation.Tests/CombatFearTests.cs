@@ -131,6 +131,7 @@ public class CombatFearTests
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
         Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
+        Dk2TerrainFixture.SetKnownIdentities(world);
         GameSimulation sim = Combat(db, world);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
