@@ -6,9 +6,10 @@ assignment must not be treated as a current-main result.
 
 ## Method and limits
 
-Read native `level4-live1/seed01/level4.dk2cap` frames 2–1101 once, using
-`Capture.frames`: 1100 untorn frames, aligned to simulation turns 1–1100.
-Run modern xoshiro seeds 1 and 5 serially for the same 1100 turns with the
+Read native `level4-live1/seed01/level4.dk2cap` using `Capture.frames`.
+After [clock calibration](imp-observation-clocks.md), compare raw native headers
+and modern post-turn labels over 2–1100: 1099 observations per stream.
+Run modern xoshiro seeds 1 and 5 serially through turn 1100 with the
 Level4 packet, verified offset 69 and the existing entity map. Each runs 123
 actions on 116 turns. No gameplay, Unity, hash or test code changes.
 
@@ -37,11 +38,11 @@ modern `job_taken` events; native sub-turn retakes can be invisible.
 | Dig, 13/14 | 1098 | 1126 | 1027 |
 | Mine, 25/26 | 803 | 581 | 601 |
 | Claim, 15/16 | 776 | 832 | 724 |
-| Reinforce, 21/22 | 112 | 399 | 398 |
-| Walk, 6 | 2102 | 2001 | 2198 |
+| Reinforce, 21/22 | 107 | 399 | 398 |
+| Walk, 6 | 2101 | 2001 | 2198 |
 | Store, 28/29 | 34 | 0 | 0 |
 | Sampled walking distance, tiles | 833.9 | 808.0 | 895.8 |
-| First observed reinforcing turn | 1064 | 1018 | 1020 |
+| First observed reinforcing turn | 1065 | 1018 | 1020 |
 
 Per-worker triples below are **DK2 / seed 1 / seed 5**. Initial identities
 are placed-creature order; cast identities are matched by their recorded casts.
@@ -49,13 +50,13 @@ are placed-creature order; cast identities are matched by their recorded casts.
 | Native / modern worker | Claim turns | Reinforce turns | Sampled walking tiles |
 |---|---|---|---|
 | 455 / 1 | 54 / 0 / 0 | 0 / 72 / 64 | 163.9 / 145.9 / 196.5 |
-| 454 / 2 | 153 / 189 / 0 | 18 / 60 / 70 | 159.9 / 181.0 / 128.8 |
-| 453 / 3 | 261 / 117 / 81 | 9 / 80 / 72 | 174.7 / 161.4 / 162.3 |
-| 452 / 4 | 0 / 387 / 153 | 21 / 64 / 60 | 170.9 / 164.2 / 192.3 |
-| 443 / 13, first cast | 308 / 121 / 280 | 27 / 63 / 60 | 108.6 / 102.9 / 124.1 |
-| 442 / 14, second cast | 0 / 18 / 210 | 37 / 60 / 72 | 55.9 / 52.6 / 91.8 |
+| 454 / 2 | 153 / 189 / 0 | 17 / 60 / 70 | 159.9 / 181.0 / 128.8 |
+| 453 / 3 | 261 / 117 / 81 | 8 / 80 / 72 | 174.7 / 161.4 / 162.3 |
+| 452 / 4 | 0 / 387 / 153 | 20 / 64 / 60 | 170.9 / 164.2 / 192.3 |
+| 443 / 13, first cast | 308 / 121 / 280 | 26 / 63 / 60 | 108.6 / 102.9 / 124.1 |
+| 442 / 14, second cast | 0 / 18 / 210 | 36 / 60 / 72 | 55.9 / 52.6 / 91.8 |
 
-Of the excess reinforcement, 206/287 turns in seed 1 and 221/286 in seed 5
+Of the excess reinforcement, 212/292 turns in seed 1 and 227/291 in seed 5
 occur before native's first reinforcement. All three samples contain 96
 completed observed state-16 runs, each lasting six or eight turns. Their
 respective six/eight counts are 44/52, 16/80 and 70/26. This sample does not
@@ -65,23 +66,25 @@ The known store-state collapse is documented in the earlier audit.
 ## A controlled claim-choice boundary
 
 **CONFIRMED observations:** seed 1's first cast claims `(30,54)` on turn 403,
-the native turn. Seed 5 claims that tile on 358; its cast worker instead takes
+versus native header 404. Seed 5 claims that tile on 358; its cast worker instead takes
 Claim at `(29,53)`, not a long initial reinforcement assignment. Thus early
 floor ownership remains seed-sensitive, while the old cast-to-reinforce
 symptom is absent in these two current-main samples.
 
 For seed 1, native 443 and modern 13 match in position `(124928,223232)`,
-state, last/aimed kind 3 and target through turns 397–404. Both enter 15 on
-397, work in 16 over 398–403 and enter 10 on 404. This matches those worker
-fields, not the full world. On 405 native chooses `(30,53)`, modern `(29,55)`.
-At 404, `(30,53)` is still native neutral floor but already modern owned
+state, last/aimed kind 3 and target through the corresponding state sequence,
+with native headers 398–405 versus modern 397–404. Native enters 15 on 398,
+works in 16 over 399–404 and enters 10 on 405; modern is one turn earlier.
+These are corresponding fields, not same-turn world equality. On native 406
+and modern 405 they choose `(30,53)` and `(29,55)` respectively.
+At native 405/modern 404, `(30,53)` is native neutral floor but modern owned
 floor; `(29,55)` has the inverse ownership. Modern worker 4 claimed
-`(30,53)` on 357; native first claims it on 414.
+`(30,53)` on 357; native first claims it on 415.
 
 **CONFIRMED counterfactual:** immediately before modern turn 405, replace
-only those two tiles' terrain, owner and health with their native frame-405
+only those two tiles' terrain, owner and health with their native header-406
 values: `(30,53)=(3,2,1)` and `(29,55)=(8,3,660)`. The chooser then takes
-`(30,53)` on the native turn, without a chooser or RNG override. The trace
+`(30,53)`, one post-turn before native, without a chooser or RNG override. The trace
 before the intervention is unchanged. This closes the immediate local
 target difference, not the upstream cause of the earlier ownership.
 
@@ -98,13 +101,13 @@ No mismatching priority rule is established at this boundary.
 **CONFIRMED observations:** the seed-1 worker-4 claim chain starts when its
 gold-deposit walk enters `(28,54)` on turn 309. It interrupts that walk to
 claim, carrying 1090 gold, and owns the tile on 318. Native already owns it
-on 190. Native's worker 453 takes that claim from state 10 on 171, not from
+on 191. Native's worker 453 takes that claim from state 10 on header 172, not from
 a walking interruption. Its three other initial workers are then assigned
 to mining `(29,54)`.
 
-The first wall at `(28,54)` becomes neutral floor on native turn 165 and
-modern turn 173. Native worker 453 reaches state 10 on 170 and takes claim
-on 171. Modern worker 3 reaches 10 on 167, finds no job on 168 while the
+The first wall at `(28,54)` becomes neutral floor on native header 166 and
+modern turn 173. Native worker 453 reaches state 10 on 171 and takes claim
+on 172. Modern worker 3 reaches 10 on 167, finds no job on 168 while the
 wall is still solid, and remains in state 12 through 187. The dig arrival
 and action histories already differ before the opening; these samples do
 not isolate a work-rate, idle-duration or RNG defect.
@@ -128,15 +131,17 @@ boundary is in `ImpTaskSystem.Wander.cs:77` and `:90`.
 ## Initial dig: arrival and cadence are separate
 
 **CONFIRMED observations:** on `(28,54)`, native workers 455/452/454 enter
-state 14 on turns 137/150/158. Their first hits are 139/152/160; their
-second hits are 143/156/164. Action-start stamps independently change on
+state 14 at headers 138/151/159. Their first hits are 140/153/161; their
+second hits are 144/157/165. In the separate execution-clock domain,
+action-start stamps independently change on
 138 then 142, 151 then 155, and 159 then 163. After the second hit each
 continues once per turn while the tile remains workable. The first-to-second
 gap is four, unlike the three hardcoded by `WorkCadence.SecondApplicationGap`.
 The [Level2 reconciliation](mining-cadence.md#digging-reconciliation-2026-10-18)
 corrects the earlier three-turn claim using per-worker hits.
 
-Worker 455's captured animation clock explains its four-turn first gap:
+Worker 455's captured animation clock explains its four-turn first gap.
+The dates in this paragraph are execution timestamps, not snapshot headers:
 after action start on 138, phase/rate are 1365/1365; phase reaches 4095
 on 140 and wraps to 1364 on 141, setting cycle flag 4. Action restarts
 on 142 and its next hit lands on 143. A fresh
@@ -150,14 +155,14 @@ Modern workers 1/2/4 enter 14 on 152/153/169. Their timer traces give first
 hits 154/155/171 and second hits 157/158 (worker 4's wall is already gone
 before its second hit). The added timer/entry-stamp observation preserves
 all previously recorded worker fields exactly. Thus the first modern hit
-is 15 turns late, despite a shorter subsequent gap.
+is 14 post-turn observations late, despite a shorter subsequent gap.
 
 A strike-count reconstruction from these entry times, the observed gaps,
 900 wall health, 26 damage per own-wall hit and the subsequent rock hit
 matches every sampled terrain/health value through floor opening in each
 run. Swapping only the gap in this arithmetic predicts native floor opening
-164 with gap three, and modern opening 174 with gap four; observed values
-are 165 and 173. This is an arithmetic control, not a simulation replay.
+165 with gap three, and modern opening 174 with gap four; observed values
+are native header 166 and modern 173. This is an arithmetic control, not a simulation replay.
 
 **CONFIRMED simulation counterfactual:** for every modern state-14 worker
 in this 1100-turn replay, extend the timer after its first hit from three
@@ -177,9 +182,9 @@ before the first job; the two runs do not share a matched RNG stream.
 ## Portal regression: a work-visibility boundary
 
 **CONFIRMED observations:** the four-turn dig candidate `f62b06f7` converts
-the first Portal at `(24,44)` on 953, versus main's 742 and native's 786.
-The native capture's tile owner changes from neutral to player 3 on 786;
-worker 453 takes the room claim on 756. Neither modern replay shares native RNG.
+the first Portal at `(24,44)` on 953, versus main's 742 and native header 787.
+The native capture's tile owner changes from neutral to player 3 on 787;
+worker 453 takes the room claim on 757. Neither modern replay shares native RNG.
 
 Both modern workers 2 match in the recorded fields on 584: state 10,
 position `(77089,227275)`, last kind 2, target `(19,55)`, held gold 1400.
@@ -246,6 +251,8 @@ candidates remain unaccepted. No campaign outcome improvement is claimed.
 
 Ignored artifacts in the retained worktree:
 `build/imp-acceptance/reverse-engineering/imp-hatchery-work-20261018/`.
+Corrected native exports and summary tables are under
+`imp-wall-boundary-20261018/calibrated/`; original exports retain their old labels.
 `Program.cs`/`Probe.csproj` run the normal factory and packet helpers with raw
 observation; `CONTROL_HATCHERY=1` enables the two-tile control and
 `CONTROL_RESELECT=1` the turn-176 worker control, `TRACE_CADENCE=1` the extra

@@ -2,7 +2,7 @@
 
 2026-10-18, current-main hash/save 274. Research only; no gameplay change.
 The preceding measurement and unresolved upstream boundary remain in
-[imp-hatchery-work.md](imp-hatchery-work.md) and Q611. Matching one claim
+[imp-hatchery-work.md](imp-hatchery-work.md) and Q612. Matching one claim
 choice under a tile-input control does not validate the whole priority chain.
 
 ## Experiment and scope

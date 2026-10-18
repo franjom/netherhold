@@ -167,20 +167,21 @@ the paired test, without claiming a win-rate improvement.
 Our `ImpSupplySystem.cs:199–219` spawns at a tile centre, arms the drop scan
 and starts with ordinary state 1. Fresh seed 5 observes 1 at 392, 10 at 393,
 and the first job walk at 394. Original 443 is observed in 214 at capture
-392–393, 11 at 394, 10 at 395 and the walk at 396 (aligned 395).
+392–393, 11 at 394, 10 at 395 and the walk at 396.
 Its initial position is approximately (29.871,54.009), not the tile centre.
 
 [State 214](functions/00481750.md) was reread: it waits on its height test
 then calls the worker landing path. The geometric interpretation remains
 STRONGLY INFERRED as recorded there. The captured state sequence and our
-skipped states are CONFIRMED; the source of the original sub-tile spawn
-position was not traced here.
+skipped states are CONFIRMED. The later [position trace](imp-create-position.md)
+closes the sub-tile source; [clock calibration](imp-observation-clocks.md)
+withdraws the earlier one-sided turn translation.
 
 Proposed fix: reproduce the researched worker arrival sequence and then
 measure its first scan, rather than adding a guessed wait. Expected local
-effect: the first selection moves about one aligned turn in this example.
-This cannot recover (30,54), which ours already claimed at 379. The sub-tile
-position requires its own binary trace before changing spawn placement.
+effect: first selection is two post-turn observations early in this example.
+This cannot recover (30,54), which ours already claimed at 379. Preserve the
+researched cast position independently of implementing the landing conditions.
 
 ### 4. Aimed reinforcing persistence is faithful: do not add a timeout
 

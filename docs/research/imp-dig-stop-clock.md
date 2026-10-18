@@ -1,5 +1,10 @@
 # Exhausted Imp dig action and slot availability
 
+The native dates in the clock probes below are **execution-clock timestamps**.
+Modern packet replay event dates are post-turn labels. See
+[clock calibration](imp-observation-clocks.md); do not compare the two without
+converting their domains.
+
 ## Evidence and local cause
 
 **STRONGLY INFERRED (2026-10-18):** starting from the completed native turn-165
@@ -16,8 +21,8 @@ Every emulated call returned successfully. No action or animation function was
 stubbed. Art slot 5 has 15 Main frames and 8 End frames at 20 FPS. Its integer
 rates are 1365 and 2560; the Main-to-End transition preserves truncated phase
 carry. The action poll observes completion after the advance that finishes End.
-**CONFIRMED:** the native captured state timeline independently shows 454/455 in state 10 on
-167, and 452 on 168. Main's `WorkCadence.ActionEnded` instead uses a six-turn
+**CONFIRMED:** the native captured state timeline independently shows 454/455 in
+state 10 at snapshot header 168, and 452 at header 169. Main's `WorkCadence.ActionEnded` instead uses a six-turn
 modulo from work entry, holding 454 three turns too long.
 
 **CONFIRMED within a bounded modern control:** restore the native post-strike
@@ -84,13 +89,10 @@ instead of 600. This is the first candidate-induced event
 change, not a demonstrated cause of the later deaths or a native mismatch.
 Inspect this boundary alongside the earlier Portal visibility control.
 
-The corresponding native worker is 442: state 14 starts on 559, the same tile
-changes to Rock on 595 and floor on 596, then the worker leaves on 598 and
-takes `(28,55)` on 599. Its phase/rate at 595 are 4084/1365; at 596 they are
-2537/2560 in End, followed by completion phase 4096 on 597. The work-entry
-clock predicts this phase and release too. Thus the modern candidate's earlier
-absolute release is not alone evidence of an incorrect stop formula: its wall
-already falls three turns earlier. The cause of the failed campaign remains open.
+The corresponding native worker is 442. Its snapshot timeline and the corrected
+wall comparison are in [imp-create-position.md](imp-create-position.md).
+The work-entry clock predicts its captured phase and release too, but the
+packet replay's wall falls earlier. The cause of the failed campaign remains open.
 
 ## Reproduction
 

@@ -204,6 +204,10 @@ Run git worktree list first; another session may own these.
   Action-stop mismatch and rejected hash-276 candidate: research/imp-dig-stop-clock.md.
   Q612 remains open; no new chooser fix is established. Gameplay is isolated on
   fixes/imp-dig-stop-clock; master remains hash 274.
+  Packet fractional-position loss is traced and independently reviewed:
+  research/imp-create-position.md. Comparison clocks and regenerated measurements:
+  research/imp-observation-clocks.md. Next preserve cast coordinates; research
+  landing conditions before replacing the diagnostic hold.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
