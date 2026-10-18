@@ -197,3 +197,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Sandbox escalation can still receive Windows error5 reading DK2; an explicit Windows `RunAs` launch succeeded. The owner must be present for UAC; sandbox approval does not change the process token.
 - If context-mode file processing fails with missing `better-sqlite3`, use bounded native output for the task rather than repeatedly retrying the broken runtime.
 - An offline restore can fail NU1900 under warnings-as-errors even with cached packages; use `-p:NuGetAudit=false` for that local verification run, leaving CI auditing enabled.
+- PowerShell does not expand path globs for `rg`; search a directory with `-g 'WorldState*.cs'` rather than passing `WorldState*.cs` as a path.

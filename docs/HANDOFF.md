@@ -182,9 +182,10 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/steering-axes-only: 2026-10-18 ADR-0509 is merged
-  on main, hash/save 274; the worktree retains the diagnostic artifacts.
-  Evidence and remaining baseline failures: research/steering-velocity-axes.md.
+- build/imp-acceptance, research/imp-hatchery-work: 2026-10-18 current-main work
+  comparison and a two-tile claim-choice control: research/imp-hatchery-work.md.
+  Next actual update boundary is Q611; no new chooser fix is established.
+  ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
   gameplay candidates. Heart visual acceptance remains Q585.
