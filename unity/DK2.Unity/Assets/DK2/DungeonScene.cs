@@ -117,6 +117,57 @@ namespace DK2.Unity
         public int CreatureObjects => _creatures.Count;
         public int ObjectObjects => _objects.Count;
 
+        public WorldHoverHit PickHoverEntity(Ray ray, float terrainDistance, TilePos tile, Vector3 pointerGround)
+        {
+            WorldHoverHit hit = new WorldHoverHit(WorldHoverKind.Tile, tile);
+            float nearest = terrainDistance;
+            foreach (var entry in _creatures)
+                TestBounds(entry.Value, WorldHoverKind.Creature, entry.Key, _creaturePoses[entry.Key].Tile);
+            foreach (var entry in _objects)
+                if (entry.Key > 0 && _objectPoses.TryGetValue(entry.Key, out ObjectView pose))
+                    TestBounds(entry.Value, WorldHoverKind.Object, entry.Key, pose.Tile);
+            if (hit.Kind != WorldHoverKind.Tile) return hit;
+
+            var pointer = new FpPosition3(new Fp32((int)(pointerGround.x * Fp32.One)),
+                new Fp32((int)(-pointerGround.z * Fp32.One)), new Fp32(0));
+            int closestObject = Fp32.One / 4;
+            for (int y = tile.Y - 1; y <= tile.Y + 1; y++)
+                for (int x = tile.X - 1; x <= tile.X + 1; x++)
+                {
+                    foreach (var entry in _creaturePoses)
+                        if (entry.Value.Tile == new TilePos(x, y) && _creatures.TryGetValue(entry.Key, out GameObject go)
+                            && go != null && go.activeSelf && Distance(go) < Fp32.One / 2)
+                            return new WorldHoverHit(WorldHoverKind.Creature, entry.Value.Tile, entry.Key);
+                    foreach (var entry in _objectPoses)
+                        if (entry.Key > 0 && entry.Value.Tile == new TilePos(x, y)
+                            && _objects.TryGetValue(entry.Key, out GameObject go) && go != null && go.activeSelf)
+                        {
+                            int distance = Distance(go);
+                            if (distance < closestObject)
+                            {
+                                closestObject = distance;
+                                hit = new WorldHoverHit(WorldHoverKind.Object, entry.Value.Tile, entry.Key);
+                            }
+                        }
+                }
+            return hit;
+
+            int Distance(GameObject go)
+            {
+                Vector3 point = go.transform.position;
+                return HandHoverDistance.Between(pointer, new FpPosition3(new Fp32((int)(point.x * Fp32.One)),
+                    new Fp32((int)(-point.z * Fp32.One)), new Fp32(0)));
+            }
+            void TestBounds(GameObject go, WorldHoverKind kind, int id, TilePos at)
+            {
+                if (go == null || !go.activeSelf || !go.TryGetComponent<Renderer>(out Renderer renderer)) return;
+                if (renderer.bounds.IntersectRay(ray, out float distance) && distance < nearest)
+                {
+                    nearest = distance; hit = new WorldHoverHit(kind, at, id);
+                }
+            }
+        }
+
         /// <summary>
         /// Set when a provider handed back a real file. Nothing loads one yet
         /// (see <see cref="Instantiate"/>), so this is how the runner can say so

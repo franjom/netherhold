@@ -131,7 +131,10 @@ and Alarm rings, Guard Room rectangles, textured camera footprint, magnifier zoo
 and primary click navigation are built. Remaining overlays, other corner controls
 and owner comparison remain. The Step6 branch now implements camera/letterbox
 HUD hiding, restoration and input blocking, plus the native heading-dependent
-north marker, camera-ribbon disc containment and zoomed Heart direction trail;
+north marker, camera-ribbon disc containment and zoomed Heart direction trail.
+The branch also has original Hand/dig/pickup sprites, a terrain-deformed blue
+hover cage, delayed localized names and a top status strip. Evidence and limits:
+research/hand-cursor-rendering.md and research/world-hover-text.md;
 remaining modal/panel/full-map rules
 and original-game comparison are Q611 (research/hud-visibility.md).
 Native minimap raster

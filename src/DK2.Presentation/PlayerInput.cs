@@ -74,6 +74,21 @@ public sealed class PlayerInputSnapshot
     public IReadOnlyList<PlayerInputTarget> Targets { get; }
     public ExcavationTarget? Excavation { get; }
 
+    public PlayerInputSnapshot ForHover(WorldHoverHit hit)
+    {
+        PlayerInputTargetKind? kind = hit.Kind switch
+        {
+            WorldHoverKind.Creature => PlayerInputTargetKind.Creature,
+            WorldHoverKind.Object => PlayerInputTargetKind.Object,
+            _ => null,
+        };
+        foreach (PlayerInputTarget target in Targets)
+            if (target.Kind == kind && target.Id == hit.EntityId)
+                return new PlayerInputSnapshot(IsHolding,
+                    [new PlayerInputTarget(target.Kind, target.Id, hit.Tile)], Excavation);
+        return new PlayerInputSnapshot(IsHolding, NoTargets, Excavation);
+    }
+
     /// <summary>
     /// Captures only entities visible through <paramref name="view"/>. Held and
     /// worker-carried things are outside the dungeon and cannot be targeted, and with a

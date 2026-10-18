@@ -73,11 +73,17 @@ namespace DK2.Unity
         public void DrawCentred(Rect box, string text, float scale)
         {
             IReadOnlyList<BitmapTextLine> lines = BitmapTextLayout.Wrap(_font, text, Mathf.FloorToInt(box.width / scale));
+            DrawLines(box, lines, scale);
+        }
+
+        /// <summary>Draws retained layout without allocating another wrap result each repaint.</summary>
+        public void DrawLines(Rect box, IReadOnlyList<BitmapTextLine> lines, float scale, bool centred = true)
+        {
             float lineHeight = _font.LineHeight * scale;
             float top = box.y + (box.height - lines.Count * lineHeight) / 2f;
             for (int i = 0; i < lines.Count; i++)
             {
-                float pen = box.x + (box.width - lines[i].Width * scale) / 2f;
+                float pen = centred ? box.x + (box.width - lines[i].Width * scale) / 2f : box.x;
                 float y = top + i * lineHeight;
                 foreach (char c in lines[i].Text)
                 {

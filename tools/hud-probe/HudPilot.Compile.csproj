@@ -10,6 +10,7 @@
     <Compile Include="HudPilotAssets.cs;HudFontPilot.cs;HudToolkitPilot.cs" />
     <Compile Include="../../unity/DK2.Unity/Assets/DK2/MinimapGpuMap.cs;../../unity/DK2.Unity/Assets/DK2/DungeonMinimap.cs" />
     <Compile Include="../../unity/DK2.Unity/Assets/DK2/MinimapFrameVisual.cs" />
+    <Compile Include="../../unity/DK2.Unity/Assets/DK2/ClassicHandCursor.cs;../../unity/DK2.Unity/Assets/DK2/ClassicHoverHud.cs;../../unity/DK2.Unity/Assets/DK2/ClassicBitmapText.cs;../../unity/DK2.Unity/Assets/DK2/ClassicTileHoverOutline.cs" />
     <ProjectReference Include="../../src/DK2.Data/DK2.Data.csproj" />
     <ProjectReference Include="../../src/DK2.Art/DK2.Art.csproj" />
     <ProjectReference Include="../../src/DK2.Presentation/DK2.Presentation.csproj" />

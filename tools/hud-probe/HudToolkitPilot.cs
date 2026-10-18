@@ -40,6 +40,15 @@ namespace DK2.Unity.HudProbe
         private MinimapFootprintVisual _footprint;
         private MinimapFootprintVisual _wideFootprint;
         private MinimapNorthVisual _north;
+        private ClassicTileHoverOutline _tileOutline;
+        private RenderTexture _outlineTarget;
+        private ClassicHoverHud _hoverHud;
+        private ClassicHandCursor _handCursor;
+        private RenderTexture _hoverTarget, _cursorTarget;
+        private double _hoverStartedAt;
+        private readonly HoverTextSnapshot _hoverSample = new HoverTextSnapshot(
+            "Dungeon Heart. Health: 100%. Mana held: 259 / 200000.", "Dungeon Heart",
+            new WorldHoverHit(WorldHoverKind.Tile, new TilePos(1, 1)));
         public bool Done { get; private set; }
         public bool Passed => _report != null && _report.Passed;
 
@@ -105,6 +114,7 @@ namespace DK2.Unity.HudProbe
                 _wideFootprint.UpdateCamera(camera);
                 _north = new MinimapNorthVisual(frameAssets.North);
                 root.Add(_north);
+                VerifyHoverAssets(root);
                 const string text = "Dungeon Heart 100%";
                 var reference = Own(HudFontPilot.Raster(assets.ReferenceFont, text));
                 var largest = Own(HudFontPilot.Raster(assets.LargestFont, text));
@@ -124,6 +134,45 @@ namespace DK2.Unity.HudProbe
             var texture = Own(new Texture2D(2, 2, TextureFormat.RGBA32, false));
             if (!texture.LoadImage(bytes)) throw new InvalidOperationException("Install image did not decode.");
             texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp; return texture;
+        }
+        private void VerifyHoverAssets(VisualElement root)
+        {
+            string install = Environment.GetEnvironmentVariable("DK2_DIR");
+            using (var cursor = new InstallHandCursorAssets(install))
+                foreach (HandCursorKind kind in new[] { HandCursorKind.Point, HandCursorKind.Pickup, HandCursorKind.Dig })
+                {
+                    Texture2D sheet = Load(cursor.Load(kind));
+                    HandCursorSprite sprite = HandCursor.Sprite(kind);
+                    if (sheet.width != sprite.FrameSize.X || sheet.height != sprite.FrameSize.Y * sprite.FrameCount)
+                        throw new InvalidOperationException("Original cursor dimensions differ from binary table: " + kind);
+                    if (kind == HandCursorKind.Dig) AddImage(root, sheet, 580, 80, 134.4f, 137.6f);
+                }
+            var assets = new InstallClassicHoverAssets(install);
+            AddImage(root, Own(MinimapFrameVisual.Decode(assets.StatusBar)), 510, 10, 480, 36);
+            AddImage(root, Own(HudFontPilot.Raster(assets.Font(768), "Dungeon Heart. Health: 100%")), 520, 20, 320, 18);
+            var outlineCamera = Own(new GameObject("Hover outline probe camera")).AddComponent<Camera>();
+            outlineCamera.orthographic = true; outlineCamera.orthographicSize = 1.5f;
+            outlineCamera.clearFlags = CameraClearFlags.SolidColor; outlineCamera.backgroundColor = Color.black;
+            outlineCamera.transform.position = new Vector3(5, 5, -8);
+            outlineCamera.transform.LookAt(new Vector3(3.5f, 1.5f, -5.5f));
+            _outlineTarget = Own(new RenderTexture(256, 256, 24, RenderTextureFormat.ARGB32)); _outlineTarget.Create();
+            outlineCamera.targetTexture = _outlineTarget;
+            _tileOutline = new ClassicTileHoverOutline(transform, null);
+            _tileOutline.Update(new TilePos(3, 5), outlineCamera, 1);
+            _tileOutline.Update(new TilePos(3, 5), outlineCamera, 1.125);
+            _tileOutline.Update(new TilePos(3, 5), outlineCamera, 1.125);
+            AddImage(root, _outlineTarget, 750, 80, 200, 200);
+            _hoverTarget = Own(new RenderTexture(1024, 768, 24, RenderTextureFormat.ARGB32)); _hoverTarget.Create();
+            _hoverHud = new ClassicHoverHud(assets); _hoverHud.Panel.targetTexture = _hoverTarget;
+            _hoverHud.Panel.clearColor = true; _hoverHud.Panel.colorClearValue = Color.clear;
+            _hoverStartedAt = Time.unscaledTimeAsDouble;
+            _hoverHud.Draw(_hoverSample, new Vector2(250, 280));
+            _cursorTarget = Own(new RenderTexture(512, 512, 24, RenderTextureFormat.ARGB32)); _cursorTarget.Create();
+            _handCursor = new ClassicHandCursor(new InstallHandCursorAssets(install), manageSystemPointer: false);
+            _handCursor.Panel.targetTexture = _cursorTarget;
+            _handCursor.Panel.clearColor = true; _handCursor.Panel.colorClearValue = Color.clear;
+            _handCursor.Update(HandCursorKind.Dig, true, 0);
+            _handCursor.Draw(new Vector2(200, 200) * Screen.height / 768f);
         }
         private void VerifyMinimapNavigation(IMinimapAssets assets)
         {
@@ -466,7 +515,9 @@ namespace DK2.Unity.HudProbe
         }
         private void Update()
         {
-            if (Done || _report == null || ++_frames < 24) return;
+            if (Done || _report == null) return;
+            _hoverHud?.Draw(_hoverSample, new Vector2(250, 280));
+            if (++_frames < 24 || Time.unscaledTimeAsDouble < _hoverStartedAt + 1.7) return;
             try
             {
                 Texture2D image = Read(_panel);
@@ -478,6 +529,8 @@ namespace DK2.Unity.HudProbe
                     AssertComposition(image);
                     AssertFootprintClip(image);
                     AssertNorth(image, new Dk2Angle((ushort)(_view == 0 ? 0 : 256)));
+                    AssertHoverOutline();
+                    AssertHoverDocuments();
                     int white = 0;
                     float scale = _panel.height / 768f;
                     for (int y = Mathf.FloorToInt(661 * scale); y < 684 * scale; y++)
@@ -558,6 +611,44 @@ namespace DK2.Unity.HudProbe
             }
             finally { Destroy(image); }
         }
+        private void AssertHoverOutline()
+        {
+            Texture2D rendered = Read(_outlineTarget);
+            try
+            {
+                int blue = rendered.GetPixels32().Count(p => p.b > 30 && p.r < 5 && p.g < 5);
+                if (blue < 20) throw new InvalidOperationException("Blue hover cage did not render.");
+            }
+            finally { Destroy(rendered); }
+        }
+        private void AssertHoverDocuments()
+        {
+            Texture2D image = Read(_hoverTarget);
+            try
+            {
+                int status = 0, tooltip = 0;
+                Color32[] pixels = image.GetPixels32();
+                for (int y = 0; y < image.height; y++)
+                    for (int x = 0; x < image.width; x++)
+                    {
+                        Color32 p = pixels[y * image.width + x];
+                        if (p.r < 180 || p.g < 180 || p.b < 180 || p.a < 180) continue;
+                        if (y >= image.height - 80) status++;
+                        else tooltip++;
+                    }
+                if (status < 20 || tooltip < 20) throw new InvalidOperationException("Production hover HUD did not render status and delayed name.");
+                File.WriteAllBytes(Path.Combine(_output, "hover-hud.png"), image.EncodeToPNG());
+            }
+            finally { Destroy(image); }
+            image = Read(_cursorTarget);
+            try
+            {
+                int visible = image.GetPixels32().Count(p => p.a > 128);
+                if (visible < 100) throw new InvalidOperationException("Production cursor UI did not render the selected sprite frame.");
+                File.WriteAllBytes(Path.Combine(_output, "hand-cursor.png"), image.EncodeToPNG());
+            }
+            finally { Destroy(image); }
+        }
         private static void AssertComposition(Texture2D image)
         {
             float scale = image.height / 768f;
@@ -596,6 +687,9 @@ namespace DK2.Unity.HudProbe
             _footprint?.Dispose();
             _wideFootprint?.Dispose();
             _north?.Dispose();
+            _tileOutline?.Dispose();
+            _hoverHud?.Dispose();
+            _handCursor?.Dispose();
             foreach (UnityEngine.Object resource in _owned) if (resource != null) Destroy(resource);
         }
     }

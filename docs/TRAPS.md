@@ -204,3 +204,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - An offline restore can fail NU1900 under warnings-as-errors even with cached packages; use `-p:NuGetAudit=false` for that local verification run, leaving CI auditing enabled.
 - A compile harness can reference an installed Unity module that the project's Package manifest has disabled; verify in Unity too (HUD pilot: `com.unity.modules.imageconversion`).
 - A centred GPU minimap fixture hides row-origin errors; test an asymmetric fit and a rotated marker, and retain integer division for native projected boundaries rather than flooring an inexact floating-point quotient.
+- pyghidra search_code defaults to full code even with preview_length; pass include_full_code=false for bounded search results.

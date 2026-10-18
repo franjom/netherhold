@@ -129,6 +129,11 @@ namespace DK2.Unity
         private ScenePresenter _presenter;
         private WorldView _worldView;
         private DungeonMinimap _minimap;
+        private ClassicHandCursor _handCursor;
+        private ClassicTileHoverOutline _tileHighlight;
+        private WorldHoverText _hoverText;
+        private ClassicHoverHud _hoverHud;
+        private HoverTextSnapshot _hoverSnapshot = HoverTextSnapshot.Empty;
         private DungeonScene _scene;
         private AssetProviderChain _assets;
         private InstallArtProvider _installArt;
@@ -312,6 +317,11 @@ namespace DK2.Unity
             _minimap = new DungeonMinimap(transform, new InstallMinimapAssets(install), world.Width, world.Height);
             _minimap.Capture(world, _worldView, _simulation.Navigation);
             _minimap.Draw(Camera.main, _cameraFocus);
+            _handCursor = new ClassicHandCursor(new InstallHandCursorAssets(install));
+            _tileHighlight = new ClassicTileHoverOutline(transform, lattice);
+            _hoverHud = new ClassicHoverHud(new InstallClassicHoverAssets(install));
+            var hoverStrings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+            _hoverText = new WorldHoverText(database, hoverStrings.Resolve, new PlayerId((byte)viewingPlayerId));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
@@ -322,6 +332,9 @@ namespace DK2.Unity
         {
             WaitForTick();
             _minimap?.Dispose();
+            _handCursor?.Dispose();
+            _tileHighlight?.Dispose();
+            _hoverHud?.Dispose();
             if (_heartHealthWorld != null && _heartHealthObserver != null)
                 _heartHealthWorld.HeartHealthChanged -= _heartHealthObserver;
             _constructionEffects?.Dispose();
@@ -362,6 +375,7 @@ namespace DK2.Unity
                 if (_scriptedView.TryTakeCameraMove(out TilePos glideTile)) StartGlide(glideTile);
                 HudVisibility hud = _scriptedView.HudFor(cameraPreset);
                 _minimap?.SetVisibility(hud);
+                _hoverHud?.SetVisibility(hud);
                 if (_scriptedView.PathPlaying) ApplyPathCamera();
                 else
                 {
@@ -445,6 +459,7 @@ namespace DK2.Unity
             _constructionEffects?.Draw();
             _minimap?.SetVisibility(_scriptedView.HudFor(cameraPreset));
             _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
+            CaptureWorldHover();
             if (showDiagnostics) RefreshDiagnostics();
 
             // Nothing on this thread reads the world again before the next Update's wait: OnGUI
@@ -531,9 +546,11 @@ namespace DK2.Unity
             var intent = new PlayerIntent(
                 (byte)viewingPlayerId, ActiveTool, tile, button, selectedRoomId,
                 SecondaryButton: secondaryButton,
-                PointerOverHud: _minimap != null && _minimap.ContainsPointer(Input.mousePosition));
+                PointerOverHud: PointerOverHud(Input.mousePosition));
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
                 _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile);
+            if (tile is TilePos at && (ActiveTool == PlayerToolMode.Hand || ActiveTool == PlayerToolMode.Slap))
+                snapshot = snapshot.ForHover(ResolveWorldHover(at));
             InputFrame frame = _input.Translate(intent, snapshot);
 
             foreach (PlayerCommand command in frame.All)
@@ -553,7 +570,7 @@ namespace DK2.Unity
         /// </summary>
         private TilePos? ScreenToTile(Vector3 screenPosition)
         {
-            if (_minimap != null && _minimap.ContainsPointer(screenPosition)) return null;
+            if (PointerOverHud(screenPosition)) return null;
             Camera camera = Camera.main;
             if (camera == null || _worldView == null) return null;
 
@@ -629,7 +646,7 @@ namespace DK2.Unity
                     * cameraPanSpeed * Time.unscaledDeltaTime;
                 _cameraFocus.x = Mathf.Clamp(_cameraFocus.x, 0, _cameraBounds.x - 1f / Fp32.One);
                 _cameraFocus.z = Mathf.Clamp(_cameraFocus.z, -_cameraBounds.y + 1f / Fp32.One, 0);
-                float wheel = _minimap != null && _minimap.ContainsPointer(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
+                float wheel = PointerOverHud(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
                 if (wheel > 0) _classicCamera.ZoomIn();
                 else if (wheel < 0) _classicCamera.ZoomOut();
                 ApplyClassicCamera();
@@ -642,7 +659,7 @@ namespace DK2.Unity
             if (pan.sqrMagnitude > 1f) pan.Normalize();
             camera.transform.position += pan * cameraPanSpeed * Time.unscaledDeltaTime;
 
-            float scroll = _minimap != null && _minimap.ContainsPointer(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
+            float scroll = PointerOverHud(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
             if (Mathf.Approximately(scroll, 0f)) return;
 
             // A step in proportion to the height, so the wheel is as useful over a whole level
@@ -912,10 +929,76 @@ namespace DK2.Unity
             return players;
         }
 
+        private bool PointerOverHud(Vector3 position) =>
+            (_minimap != null && _minimap.ContainsPointer(position)) || (_hoverHud != null && _hoverHud.ContainsPointer(position));
+
+        private WorldHoverHit ResolveWorldHover(TilePos tile)
+        {
+            WorldState world = _simulation.World;
+            PlayerId viewer = new PlayerId((byte)viewingPlayerId);
+            if (world.FogOfWarEnabled && !world.Tile(tile).IsExploredBy(viewer))
+                return new WorldHoverHit(WorldHoverKind.Tile, tile);
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            TileView shown = _worldView.TileAt(world, tile.X, tile.Y);
+            var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
+            if (!plane.Raycast(ray, out float distance)) return new WorldHoverHit(WorldHoverKind.Tile, tile);
+            WorldHoverHit hit = _scene.PickHoverEntity(ray, distance + .02f, tile, ray.GetPoint(distance));
+            return new WorldHoverHit(hit.Kind, tile, hit.EntityId);
+        }
+
+        private void CaptureWorldHover()
+        {
+            HudVisibility visibility = _scriptedView.HudFor(cameraPreset);
+            _hoverHud?.SetVisibility(visibility);
+            _hoverSnapshot = HoverTextSnapshot.Empty;
+            Vector3 mouse = Input.mousePosition;
+            bool inside = mouse.x >= 0 && mouse.y >= 0 && mouse.x < Screen.width && mouse.y < Screen.height;
+            bool allowed = visibility.AllowOrdinaryInput && Application.isFocused && inside;
+            HandCursorKind cursor = HandCursorKind.Point;
+            TilePos? highlightedTile = null;
+            if (allowed && !PointerOverHud(mouse) && Camera.main != null && ScreenToTile(mouse) is TilePos tile)
+            {
+                WorldState world = _simulation.World;
+                WorldHoverHit hit = ResolveWorldHover(tile);
+                {
+                    PlayerId viewer = new PlayerId((byte)viewingPlayerId);
+                    _hoverSnapshot = _hoverText.Capture(world, hit);
+                    bool pickup = false;
+                    if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
+                        pickup = HandRules.CanPickUp(world, _simulation.Database, creature, viewer);
+                    else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState obj)
+                        pickup = HandRules.CanPickUpObject(world, _simulation.Database, obj, viewer)
+                            && HandRules.MayReachObject(world, _simulation.Database, obj, viewer);
+                    bool dig = world.Tile(tile).IsTaggedBy(viewer)
+                        || world.FogOfWarEnabled && !world.Tile(tile).IsDiscoveredBy(viewer)
+                        || _simulation.Database.TerrainById(world.Tile(tile).TerrainId).IsTaggable;
+                    if (ActiveTool == PlayerToolMode.Hand)
+                        cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
+                    if (cursor == HandCursorKind.Dig) highlightedTile = tile;
+                }
+            }
+            _handCursor?.Update(cursor, allowed, Time.unscaledTimeAsDouble);
+            Vector2 pointerGui = new Vector2(mouse.x, Screen.height - mouse.y);
+            _handCursor?.Draw(pointerGui);
+            _hoverHud?.Draw(_hoverSnapshot, pointerGui);
+            _tileHighlight?.Update(highlightedTile, Camera.main, Time.unscaledTimeAsDouble);
+        }
+
+        private void OnApplicationFocus(bool focused)
+        {
+            if (!focused) _handCursor?.Update(HandCursorKind.Default, false, Time.unscaledTimeAsDouble);
+        }
+
+        private void OnDisable() => _handCursor?.Update(HandCursorKind.Default, false, 0);
+
         private void OnGUI()
         {
             DrawCinematic();
-            if (!showDiagnostics) return;
+            if (showDiagnostics) DrawDiagnostics();
+        }
+
+        private void DrawDiagnostics()
+        {
             _frameOverlay.Draw();
 
             if (_failure != null)
@@ -929,25 +1012,26 @@ namespace DK2.Unity
             string art = _assets == null ? "" : _assets.Summarise();
 
             // Built in Update: the world may be mid-tick on the worker thread while OnGUI runs.
-            GUI.Label(new Rect(10, 10, 1200, 20), _diagnostics);
+            float offset = _hoverHud?.StatusBounds.height ?? 0;
+            GUI.Label(new Rect(10, 10 + offset, 1200, 20), _diagnostics);
 
-            GUI.Label(new Rect(10, 30, 1200, 20),
+            GUI.Label(new Rect(10, 30 + offset, 1200, 20),
                 $"art: {art}" + (_classic == null ? "" : $"   shader: {_classic.ShaderName}"));
 
             GUI.Label(
-                new Rect(10, 50, 1200, 20),
+                new Rect(10, 50 + offset, 1200, 20),
                 $"tool: {tool}" +
                 (tool == DungeonToolMode.BuildRoom ? $" (room {selectedRoomId})" : "") +
                 "   1/5 hand  3 build  4 sell  7 create imp  [/] room");
 
-            GUI.Label(new Rect(10, 70, 1200, 20),
+            GUI.Label(new Rect(10, 70 + offset, 1200, 20),
                 "hand: left pick up creature / toggle excavation (drag rectangle); right drop held creature / slap");
 
             if (_loadedFrom != null)
-                GUI.Label(new Rect(10, 110, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
+                GUI.Label(new Rect(10, 110 + offset, 1200, 20), $"loaded from save: {_loadedFrom} — terrain and ownership only, no creatures or objects (Q182)");
 
             GUI.Label(
-                new Rect(10, 90, 1200, 20),
+                new Rect(10, 90 + offset, 1200, 20),
                 "tick rate is SimulationTiming.TicksPerSecond, the unmeasured Q1 placeholder — " +
                 "tick counts are faithful, wall-clock speed is not a claim");
         }

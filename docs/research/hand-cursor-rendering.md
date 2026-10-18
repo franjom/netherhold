@@ -1,0 +1,164 @@
+# Hand cursor and hover feedback
+
+## Sprite resources and state (CONFIRMED, binary and shipped data)
+
+Read 2026-10-18: cursor loader `0x0040C710`, state update `0x0040AAE0`,
+transition `0x0040ABC0`, software-cursor publication `0x0040ACD0`, and table
+`0x0068F638` (52-byte records). The loader reads named PNGs from the sprite
+archive. The reference install stores these uncompressed in `Data/Sprite.WAD`.
+Frames are stacked vertically, in this order from the top:
+
+| State | PNG | Frames | Frame width × height | Hotspot x,y | Frames/second |
+|---|---|---:|---|---|---:|
+| 0 | none | 1 | 0×0 | 0,0 | 1 |
+| 1 | Point.png | 41 | 82×53 | 2,17 | 30 |
+| 2 | SmallPoint.png | 1 | 42×20 | 2,2 | 1 |
+| 3 | Idle.png | 1 | 83×39 | 2,4 | 30 |
+| 4 | PickAxeHold.png | 1 | 84×86 | 4,51 | 1 |
+| 5 | PickAxeTag.png | 1 | 88×65 | 7,30 | 30 |
+| 6 | PickAxeHoldTagging.png | 1 | 88×65 | 7,30 | 1 |
+| 7 | HoldThing.png | 1 | 74×70 | 8,42 | 15 |
+| 8 | DropThing.png | 14 | 88×103 | 2,64 | 30 |
+| 9 | HoldGold.png | 1 | 63×43 | -18,7 | 15 |
+| 10 | DropGold.png | 16 | 87×95 | 5,59 | 30 |
+| 11 | Slap.png | 15 | 126×99 | 2,64 | 30 |
+
+Width/hotspot-X scale by physical screen width/640; height/hotspot-Y by
+screen height/480, with integer truncation. The loader resamples the complete
+sheet to scaled width × (scaled frame height × frame count). The draw source
+rectangle is `(0, frame*scaledHeight, scaledWidth, (frame+1)*scaledHeight)`;
+the scaled hotspot is submitted separately. Native sprite presentation is
+therefore screen-relative, not a world mesh. The height-based modern HUD may
+choose a uniform scale, but that differs from DK2's separate axis scaling.
+
+The loader sets a green colour key `0xFF00FF00`. Checked Point, Idle and
+PickAxeHold PNGs are RGBA; their pure-green pixels already have zero alpha.
+Preserve the supplied transparency through an asset abstraction.
+
+The ordinary timer uses `floor((nowMs-startMs)*rate/1000)`. On reaching the
+frame count it invokes the completion callback, resets start time to now and
+frame to zero, then invokes the entry callback. Generic `0x0040E3C0` adopts the
+requested state and resets time/frame when leaving a state. `0x0040E300`
+completes state 5 into state 6; it is not a continuously swinging dig cursor.
+The optional random-frame mode exists but is not the ordinary timer.
+
+## Channel selection and hover eligibility (CONFIRMED subset)
+
+Constructor `0x00402670` initializes three channels through `0x0040AAC0`:
+base at interface `+0x12DA` starts at state 1, middle `+0x12F6` and contextual
+`+0x1312` start at zero. `0x0040ACD0` selects nonzero contextual, then nonzero
+middle, then base. Thus contextual zero falls back to the animated Point.
+Hidden-HUD/presentation gates can publish a null cursor; modal semantics remain
+separate from the supported ordinary dungeon view.
+
+For ordinary Hand mode, `0x0040AE80` retains transient states 5 and 11.
+Otherwise `0x0040C1E0` tests a live creature/object through pickup permission:
+success selects state 3. If it fails, target kind 1 with target-flags bit 0
+selects state 4 and clears interface flag `+0x132E & 8`; otherwise it selects
+contextual zero. This distinguishes dig-hover from the one-frame tag states.
+`0x0040C290`'s solid-terrain hover validation is a separate predicate, not
+the complete dig-cursor eligibility rule.
+
+Picker `0x005992B0` sets tile target flag bit 0 from resolved terrain Taggable
+bit 3, or an eligible secret-door branch. It intersects different native
+planes, applies presentation visibility/terrain gates, first tries rendered
+hit helper `0x00572820`, then calls `0x0044DEC0` as a fallback. Some implicit
+register arguments in the picker remain unresolved; do not turn this reading
+into an invented complete fog or ray-depth policy.
+
+Fallback `0x0044DEC0` scans the clipped 3×3 neighbourhood row-major and each
+tile's thing list. Distance is `max(abs(dx),abs(dy))+min(abs(dx),abs(dy))/2`.
+Ordinary mode takes the first eligible creature strictly within half a tile,
+rejecting definition byte `+0x36F == 0x2E`, flag `+0x3E6 & 0x200000` and states
+`+0x25E` 0xD6/0x4C/0xD1. Otherwise it keeps the nearest eligible object
+strictly within a quarter tile (definition flag `+0xF4 & 0x100` or object id13).
+A creature supersedes the object candidate. Object-only mode instead searches
+eligible objects within half a tile. This is not arbitrary same-tile picking.
+Rendered-bounds selection may approximate the first native rendered-hit stage,
+but is an adapter approximation until that stage's full depth contract is read.
+
+## Implemented cursor subset and limits
+
+`HandCursor` and `ClassicHandCursor` use the original Point, Idle and
+PickAxeHold sheets, with uniform height-based scaling under ART_DIRECTION §13
+instead of native per-axis integer scaling. The runner captures hover state
+before the worker tick starts; drawing reads retained presentation data only.
+Pointer hiding is restored on focus loss, disable and disposal.
+
+The adapter uses visible renderer bounds before a row-major distance fallback.
+Bounds are not native mesh intersections; fallback presentation poses do not
+yet reproduce native creature-state exclusions, object-definition eligibility
+or thing-list ordering within one tile. These are explicit picking limits, not
+confirmed equivalents of the complete native resolver. Held-item cursor
+channels and transient tag/slap states 5/11 remain unimplemented; contextual
+Point/Idle/PickAxeHold selection does not change existing click commands.
+
+## Rectangle publication and remaining outline boundary
+
+`0x0040BBE0` resets interface rectangle `+0x132F/+0x1333/+0x1337/+0x133B`.
+The ordinary Hand held-item arm in `0x0040AE80` fills it as
+`(tileX,tileY,tileX+1,tileY+1)`, with invalid/drop-special flags separately.
+The early dig-hover arm does not fill that rectangle. `0x0040ACD0` publishes
+it through `0x0044E130` into bridge `+0x10..+0x1C`, and through `0x0044E1C0`
+into `+0x4E..+0x5A`. Both retain previous bounds and store the hover thing id
+at bridge `+0x34`; bridge `+0x36` receives interface flag bit `0x10` as 0/1.
+This publication does not by itself establish the cursor-tile edge geometry.
+
+## Selection outline rendering
+
+CONFIRMED (2026-10-18, binary): `0x0043CC30` uses the primary rectangle,
+falling back to the secondary when the primary is empty. Bounds are half-open.
+For each boundary tile it moves bridge handle `+0x35D` to the tile centre at
+height zero, then sets edge bits north=1, south=2, west=4, east=8, plus `0x10`;
+bridge `+0x36 != 0` adds `0x20`. It submits through `0x00599C60`, then
+`0x0059B880`: RenderInfo type7, procedural kind3, reaches `0x005A01A0`.
+
+Kind3 constructs a 27-point grid using `0x0059F3C0`, with half-tile XY steps
+and initial Z base -2. Its height bias is -0.05. The HighWalls levels are
+-2.05, -1.55, -1.05 in renderer coordinates (positive Z points downward).
+With terrain deformation enabled it applies the same terrain subpoint,
+lean and wibble builders; these initial levels are not final world heights.
+The endpoint table initialized by `0x0059F760` draws upper and lower perimeter
+edges and vertical corners, each split at its midpoint. Thus it follows the
+wall shape rather than filling the ground tile. The segment's required mask
+must be wholly present in the tile edge mask.
+
+Point index is `layer*9 + row*3 + column`. Each row below lists endpoint pairs
+and their required mask (hex); `0x10` enables the lower edge/corner cage.
+
+| Pairs | Mask |
+|---|---|
+| 0-1, 1-2 | 01 |
+| 18-19, 19-20 | 11 |
+| 2-5, 5-8 | 08 |
+| 20-23, 23-26 | 18 |
+| 6-7, 7-8 | 02 |
+| 24-25, 25-26 | 12 |
+| 0-3, 3-6 | 04 |
+| 18-21, 21-24 | 14 |
+| 0-9, 9-18 | 15 |
+| 2-11, 11-20 | 19 |
+| 8-17, 17-26 | 1A |
+| 6-15, 15-24 | 16 |
+
+`0x0059DD30` emits crossed textured ribbons around each segment, using radius
+0.03 tile units and both triangle windings. RGB is `(pulse,0,0)` normally,
+or `(0,0,pulse*0.61328125)` with bit `0x20`. The shared wall-clock pulse
+changes by 0.004 per elapsed millisecond, reverses after strictly crossing 0
+or 1, and clamps at those endpoints. It is updated after the kind3 draw,
+not per simulation tick.
+The texture handle comes from render sink `+0x8E`; its resource and final
+blend/depth state remain UNKNOWN. Keep this separate from the persistent
+dig-tag mesh tint in [tag-highlight.md](tag-highlight.md). Complete hover
+eligibility and the source of a dig-hover rectangle remain UNKNOWN.
+
+Implementation: `TileHoverOutline` retains the full-height rest grid, endpoint
+table, radius and blue peak. `ClassicTileHoverOutline` emits one camera-facing
+quad per segment in a retained mesh. Native emits two crossed textured ribbons
+with both windings; our untextured, depth-tested shader is an explicit visual
+approximation pending the native material contract. The adapter samples the
+existing terrain lattice at the unbiased layer positions, then applies the
+-0.05 height bias; its reuse of the terrain sampler remains an approximation
+until compared against the native procedural grid builder. The pulse draws
+the previous level, advances only on active draws, clamps overshoot and retains
+the native strict endpoint reversal.

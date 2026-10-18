@@ -79,6 +79,22 @@ complete corner-panel behaviours remain research gates.
   settled view. Reuse the font and scalable frame/fill approach proved by the pilot.
 - [ ] Match DK2's anchors, content, states and timing; obtain owner acceptance.
 
+### Cursor and world hover (owner priority, 2026-10-18)
+
+- [x] Research and draw the blue tile-edge highlight and context-dependent Hand
+  sprites, including the excavation cursor, without changing command rules.
+- [x] Research eligible world tooltips and creature hover status. Draw original
+  localized names and supported status fields; do not invent missing producers.
+- [x] Capture hover facts before worker dispatch; rendering reads retained data.
+  Verify target precedence, fog/input gates, scaling and independent review.
+
+The current slice covers the ordinary pointing, pickup and dig sprites, the
+blue terrain-following cage, delayed short-name popups and the top status strip.
+Personal names, remaining room/object status substitutions, transient cursor
+actions and exact rendered-hit/material contracts remain research/integration
+work; see [cursor evidence](../research/hand-cursor-rendering.md) and
+[hover text](../research/world-hover-text.md). Owner visual comparison remains.
+
 ## 6.3 — Bottom panel and keeper controls
 
 - [ ] Build the researched tabs, button states, room choices, costs, availability
@@ -101,7 +117,8 @@ Check UI scaling, widescreen anchors, readable text, overlapping tooltips and
 no commands passing through the HUD. Profile UI updates and minimap transfers;
 avoid full tile-grid uploads when nothing changed.
 
-Cursor and status-flower 2D work follows §13 after the core slices; their unknown
+Cursor hover work above is prioritized before the remaining panels. Status-flower
+2D work follows §13 after the core slices; its unknown
 3D/scale behaviour is researched before implementation. The front-end 3D scene,
 audio, new game mechanics and replacement-art production are separate work.
 Performance P0 remains [its own roadmap](2026-10-17-parallelism-design.md), not a

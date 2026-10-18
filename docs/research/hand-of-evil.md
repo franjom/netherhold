@@ -388,10 +388,7 @@ ADR-0226, ADR-0227); which rooms' states idle here is in `hand-drop-landing.md`.
   level-scaled `HungerFill` or `Pay` is non-zero. **CONFIRMED by the owner,
   2026-09-25**, and BUILT (ADR-0217): the object feeds or pays it on landing.
   The field, all accesses and search negatives are in `hand-drop-earmark.md`.
-- **The cursor's target search** (`FUN_0044dec0`), which is a rule rather than a
-  ray-cast: a 3x3 sweep, an **octagonal** distance (`max + min/2`), a quarter tile
-  for an object against half a tile for a creature, the Dungeon Heart admitted by
-  id, and **a creature preferred over an object** whenever both are in reach.
-  Presentation, so not built — but worth having written down before somebody
-  invents a worse one.
+- **The cursor's target search** first tries a rendered hit, then the
+  `FUN_0044dec0` fallback. Sprite/channel and selection details are maintained
+  in [hand-cursor-rendering.md](hand-cursor-rendering.md).
 - **Possession**, the other thing a keeper does to one creature at a time.

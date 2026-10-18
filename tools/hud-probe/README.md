@@ -107,3 +107,10 @@ checks restoration without losing zoom. Headless coverage includes nested
 letterbox requests, path skipping, restoration during bar blending and cancelled
 hand drags. Original-game visibility/restoration comparison remains pending.
 Native evidence and remaining research: [minimap-rendering.md](../../docs/research/minimap-rendering.md).
+
+The hover fixture validates the original pointing/pickup/dig PNG frame dimensions
+and renders the blue cage to an isolated camera target. It also drives the actual
+UI Toolkit cursor and hover HUD into separate targets, checking the status text
+and the delayed short-name popup. `hand-cursor.png` and `hover-hud.png` capture
+those production renderers. Real pointer routing and terrain-deformed in-game
+appearance still need owner comparison.
