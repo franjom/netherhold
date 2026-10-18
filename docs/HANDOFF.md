@@ -197,11 +197,13 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, research/imp-strike-choice-oracle: 2026-10-18 direct chooser
+- build/imp-acceptance, research/imp-dig-stop-clock: 2026-10-18 direct chooser
   controls and modern fixtures: research/imp-priority-checks.md. The preceding
   work comparison and tile-input control remain research/imp-hatchery-work.md.
   Captured strike/claim boundary: research/imp-strike-choice-boundary.md.
-  Intervening action/task updates remain Q612; no new chooser fix is established.
+  Action-stop mismatch and rejected hash-276 candidate: research/imp-dig-stop-clock.md.
+  Q612 remains open; no new chooser fix is established. Gameplay is isolated on
+  fixes/imp-dig-stop-clock; master remains hash 274.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those

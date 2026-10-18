@@ -234,8 +234,9 @@ ADR-0510 isolates the ordinary dig correction for acceptance.
 The Portal control establishes a local work-visibility consequence, while
 failing to recover the final win. Keep ADR-0503 and ADR-0510 unmerged. The later
 [live strike/choice boundaries](imp-strike-choice-boundary.md) match the tested
-chooser and tile results; intervening action lifetime/task-slot updates remain
-to be compared before further implementation.
+chooser and tile results. The [dig stop clock control](imp-dig-stop-clock.md)
+isolates a delayed action completion behind another slot-allocation difference;
+its candidate also fails campaign acceptance.
 The unmatched arrival history still needs a control before attribution to a bug.
 Do not infer those inputs from a later whole-turn snapshot or patch priorities
 to recover one replay. Existing unmerged work/store/arrival
