@@ -133,8 +133,8 @@ second hits are 143/156/164. Action-start stamps independently change on
 138 then 142, 151 then 155, and 159 then 163. After the second hit each
 continues once per turn while the tile remains workable. The first-to-second
 gap is four, unlike the three hardcoded by `WorkCadence.SecondApplicationGap`.
-The earlier Level2 single dig sample measured three; do not replace that
-constant with a universal four from this wall alone.
+The [Level2 reconciliation](mining-cadence.md#digging-reconciliation-2026-10-18)
+corrects the earlier three-turn claim using per-worker hits.
 
 Worker 455's captured animation clock explains its four-turn first gap:
 after action start on 138, phase/rate are 1365/1365; phase reaches 4095
@@ -181,8 +181,8 @@ allocation/timing discrepancy, not a proven preference for walls over eligible
 floor. Its upstream cause remains **UNKNOWN**, tracked as Q611. The early
 claim gap now traces to floor-opening and worker-decision timing before turn
 176. The initial dig has later arrival and a separately measured cadence
-mismatch. Before implementing a clock-based replacement, check its initial
-phase and retained cycle flags against the earlier three-turn dig sample.
+mismatch. The earlier cadence contradiction is resolved in mining-cadence.md §5;
+ADR-0510 isolates the ordinary dig correction for acceptance.
 The unmatched arrival history still needs a control before attribution to a bug.
 Do not infer those inputs from a later whole-turn snapshot or patch priorities
 to recover one replay. Existing unmerged work/store/arrival

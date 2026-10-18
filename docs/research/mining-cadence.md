@@ -8,8 +8,8 @@ decoders are in `reverse-engineering/README.md`, "Full-state captures".
 
 Everything below is read from the running game's memory: tile health (tile
 `+0x06`), each imp's state (`+0x25E`) and carried gold (`GoldHeld`, `+0x3FB`),
-and each floor pile's amount (object union `+0x14A`). Nothing was read from the
-binary for this note, so the rules are the game's outcomes, not its code.
+and each floor pile's amount (object union `+0x14A`). The original measurements
+are capture outcomes; the dated reconciliation below also checks binary fields.
 
 ## 1. The strike cadence: E+2, E+6, then every tick
 
@@ -97,11 +97,61 @@ tick** (165, 329, 493, 657). At 175 it becomes **Claimed Path (8), owner 3, at
 **CONFIRMED (same capture, solo imps).** Every entry state (13, 15, 21, 25) lasts
 exactly one tick (416 cases). From the work state's first tick E, the first
 application lands at E+2 for every kind in this sample. The second follows
-4 ticks later for mining, 3 for digging (one case) and reinforcing (seven),
-and 1 for claiming (ten cases). After that, one application a tick. These
-are sampled outcomes, not universal timing constants: the later
-[Level4 initial dig](imp-hatchery-work.md#initial-dig-arrival-and-cadence-are-separate)
-has a different digging gap.
+4 ticks later for mining and digging, 3 for reinforcing (seven cases),
+and 1 for claiming (ten cases). After that, one application a tick.
+
+### Digging reconciliation, 2026-10-18
+
+**CONFIRMED measurements:** all 15 complete multi-hit digs among 153 state-14
+runs in the original Level2 capture have a four-turn first-to-second gap.
+All 18 complete multi-hit digs among 126 runs in Level4 frames 2–1101 agree.
+Per-worker experience at `+0x3FF` identifies hits; a promotion at `+0x403`
+resets experience, as [the adder](functions/00457880.md) confirms. Neither
+capture has a torn frame in the examined range.
+
+On Level2's early `(19,34)` wall, worker 451 hits on 121/125/126/127,
+448 on 124/128/129/130, and 449 on 127/131/132/133. Tile-health drops on
+121 and 124 therefore belong to different workers. The previous three-turn
+dig claim is unsupported by this capture: aggregate damage cannot establish
+an individual worker's cadence.
+
+The first animation cycle has phase 1365, 2730, 4095, then 1364 with the
+cycle flag set. [The runner](functions/00496AA0.md) observes that flag on
+the following poll; matching looping art retains it on subsequent action
+starts. The [Level4 boundary](imp-hatchery-work.md#initial-dig-arrival-and-cadence-are-separate)
+records the clock and diagnostic outcomes. These measurements support
+correcting ordinary digging's empirical gap to four; they do not establish
+a general action scheduler or altered-speed animation behavior.
+
+Ignored reproduction: `build/imp-acceptance/reverse-engineering/imp-hatchery-work-20261018/`
+contains `audit_dig_gap.py` and `dig-gap-audit.json` with all runs, hit stamps
+and initial clocks. The candidate and its acceptance limits are ADR-0510.
+
+### Isolated gap correction: acceptance
+
+The `fixes/imp-dig-first-cycle` candidate changes only the dig kinds' first
+gap from three to four, plus hash/save 275 and its pin; it introduces no fields
+or allocations. A real own-wall simulation regression fails on baseline at
+relative hit turns 2/5/6/7/8 and passes at native 2/6/7/8/9. All 3576
+simulation tests pass. This preserves the empirical timer model; a general
+action scheduler and altered animation rates remain outside its scope.
+
+Eight paired packet runs against main `bda4952e`, seeds 1/5, have consecutive
+turns and no placed-type mismatch. Win turns and player-3 Imp deaths:
+
+| Level / seed | Baseline win / deaths | Candidate win / deaths |
+|---|---|---|
+| 1 / 1 | 1804 / 0 | 1820 / 0 |
+| 1 / 5 | 1804 / 0 | 1812 / 0 |
+| 4 / 1 | 6732 / 3 | no win by 6804 / 13 |
+| 4 / 5 | no win by 6804 / 35 | no win by 6804 / 11 |
+
+**Do not merge this candidate.** The bounded cadence correction is supported,
+but Level4 seed 1 loses its baseline win. These are unmatched RNG replays with
+reused entity maps, not exact native trajectories or a seed-distribution result.
+`paired_dig.py` and `paired-dig/results.json` reproduce the table; TRX files
+under `tests/` preserve red, green and full simulation results. No full solution
+suite, profiler or Unity visual run was required for this rejected candidate.
 
 These one-tick entries are captured outcomes. The binary's wall-work entries
 turn toward the target centre and hold until facing; see imp-state-exits.md §2.
@@ -114,13 +164,11 @@ of the imp beside it (for example (15,33) at 333). So the shipped `DigRockHealth
 -500 is wrong.
 
 **The mechanism, read (STRONGLY INFERRED).** State 26 (`0x00465870`) holds while
-an action runs. Otherwise it checks the task, the full-hands store trip and the
-cell pile, and starts action 2 while the seam stands. The action runner
-`0x00496AA0` runs a mode-3 action (record `+21` = 3; actions 1, 2, 4 and 7) by
-calling its handler once, which is the strike (`0x004971D0` for action 2). It then
-keeps the action until its animation reports done (`+0xDC` = 0). So one action is
-one application, and its length is animation time. Why only the first swing is
-long is in the animation engine, unread.
+an action runs, then checks its task, hands and cell pile before restarting.
+Mode 3 requires both handler and animation completion; a handler that returns
+busy can run on multiple polls. Cycle flags can complete the animation before
+its rate becomes zero. See [the runner](functions/00496AA0.md) and
+[the exhausted mining action](mining-finish.md) for the current mechanism.
 
 **Built (ADR-0280, ADR-0282; Q481).** Built alone, the cadence and the uncorrected rock matched
 this capture's early imp time (turns 1–635: walking 968 ticks against 976, digging 365 against
