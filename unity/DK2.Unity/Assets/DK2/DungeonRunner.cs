@@ -504,6 +504,9 @@ namespace DK2.Unity
         private void QueueInput()
         {
             _minimap?.HandleZoomPress(Input.mousePosition, Input.GetMouseButtonDown(0), Input.GetMouseButtonDown(1));
+            if (!_scriptedView.PathPlaying && !frameWholeMap && _minimap != null && Input.GetMouseButtonDown(0)
+                && _minimap.TryNavigate(Input.mousePosition, Camera.main, _cameraFocus, out TilePos navigationTile))
+                StartGlide(navigationTile);
             _input.SelectTool((byte)viewingPlayerId, ActiveTool);
             PointerButtonTransition button = PointerButtonTransition.None;
             if (Input.GetMouseButtonDown(0)) button |= PointerButtonTransition.Pressed;

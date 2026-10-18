@@ -86,12 +86,15 @@ inside `UnityEditor.Search.SearchDatabase`; the rendering checks complete, but
 this is not a claim of exception-free editor startup.
 
 Not verified: matched DK2 campaign colours/markers/rotation, runtime
-resizing, real-window input, camera navigation, production text rendering, GPU timings or UI
+resizing, real-window input, end-to-end camera gliding, production text rendering, GPU timings or UI
 performance. A target-texture size comparison is not a real window/input test.
 The native camera-box ribbon also renders over the frame in both captures;
 the probe checks visible white border pixels. Headless tests cover continuous
 camera movement, rotation, corner clamping, radial width and allocation-free updates.
 GPU regressions also cover zoom levels 1/4, the distinct fractional terrain/marker
 anchors, reporting-ring radius scaling, room rectangles, panning without a tick
-and return to the whole-map view. Headless checks cover zoom limits and the magnifier hit box.
+and return to the whole-map view. Headless checks cover zoom limits, native hit
+boxes and click coordinates at every zoom, including signed Q16 rounding.
+The Unity adapter fixture checks height-scaled click routing, magnifier priority,
+captured fractional focus and exclusion of magnifier presses from navigation.
 Native evidence and remaining research: [minimap-rendering.md](../../docs/research/minimap-rendering.md).

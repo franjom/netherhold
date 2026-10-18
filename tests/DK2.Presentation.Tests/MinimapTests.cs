@@ -11,12 +11,61 @@ namespace DK2.Presentation.Tests;
 public sealed class MinimapTests
 {
     [Fact]
+    public void MinimapClickUsesNativeWholeMapRoundingAndHeading()
+    {
+        var view = new MinimapNavigationView(100, 80, MinimapZoom.WholeMap, default, new(0));
+        Assert.True(MinimapNavigation.TryResolve(new(97.6f, 672), view, out TilePos target));
+        Assert.Equal(new TilePos(50, 40), target);
+        Assert.True(MinimapNavigation.TryResolve(new(113.6f, 672), view, out target));
+        Assert.Equal(new TilePos(61, 40), target);
+        Assert.True(MinimapNavigation.TryResolve(new(113.6f, 672), view with { Heading = new(512) }, out target));
+        Assert.Equal(new TilePos(50, 51), target);
+        Assert.True(MinimapNavigation.TryResolve(new(81.6f, 672), view, out target));
+        Assert.Equal(new TilePos(39, 40), target);
+        Assert.True(MinimapNavigation.TryResolve(new(73.6f, 650), view with { Heading = new(256) }, out target));
+        Assert.Equal(new TilePos(50, 18), target);
+    }
+
+    [Fact]
+    public void MinimapClickUsesZoomScaleAndCapturedFractionalFocus()
+    {
+        var view = new MinimapNavigationView(100, 80, new(1), new(new(0xA400), new(0x14C00), new(0)), new(0));
+        Assert.True(MinimapNavigation.TryResolve(new(97.6f, 672), view, out TilePos target));
+        Assert.Equal(new TilePos(10, 20), target);
+        Assert.True(MinimapNavigation.TryResolve(new(113.6f, 672), view, out target));
+        Assert.Equal(new TilePos(15, 20), target);
+        Assert.True(MinimapNavigation.TryResolve(new(81.6f, 672), view, out target));
+        Assert.Equal(new TilePos(5, 20), target);
+        int[] eastTiles = [20, 15, 12, 11, 10];
+        for (int level = 0; level <= 4; level++)
+        {
+            Assert.True(MinimapNavigation.TryResolve(new(113.6f, 672), view with { Zoom = new(level) }, out target));
+            Assert.Equal(new TilePos(eastTiles[level], 20), target);
+        }
+    }
+
+    [Theory]
+    [InlineData(30, 610)]
+    [InlineData(160, 610)]
+    [InlineData(160, 740)]
+    [InlineData(23.99f, 672)]
+    [InlineData(166.4f, 672)]
+    [InlineData(97.6f, 726.4f)]
+    [InlineData(24, 672)]
+    public void MinimapClickRejectsEarlierButtonsHitEdgesAndOutOfMapTargets(float x, float y)
+    {
+        var view = new MinimapNavigationView(100, 80, MinimapZoom.WholeMap, default, new(0));
+        Assert.False(MinimapNavigation.TryResolve(new(x, y), view, out _));
+    }
+
+    [Fact]
     public void MagnifierUsesTheNativeAnchoredHitRectangle()
     {
-        Assert.True(MinimapControlLayout.IsMagnifier(new(134.4f, 710.4f)));
+        Assert.True(MinimapControlLayout.IsMagnifier(new(153.6f, 729.6f)));
         Assert.True(MinimapControlLayout.IsMagnifier(new(185.59f, 761.59f)));
-        Assert.False(MinimapControlLayout.IsMagnifier(new(134.39f, 710.4f)));
-        Assert.False(MinimapControlLayout.IsMagnifier(new(185.6f, 710.4f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new(134.4f, 710.4f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new(153.59f, 729.6f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new(185.6f, 729.6f)));
         Assert.False(MinimapControlLayout.IsMagnifier(new(150, 761.6f)));
     }
 

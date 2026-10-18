@@ -57,6 +57,7 @@ namespace DK2.Unity.HudProbe
                     PaletteWidth = palette.width, PaletteHeight = palette.height,
                     ReferenceGlyphs = assets.ReferenceFont.Glyphs.Count, LargestGlyphs = assets.LargestFont.Glyphs.Count };
                 var frameAssets = new InstallMinimapAssets(Environment.GetEnvironmentVariable("DK2_DIR"));
+                VerifyMinimapNavigation(frameAssets);
                 var frame = Own(MinimapFrameVisual.Decode(frameAssets.Frame));
                 File.WriteAllBytes(Path.Combine(_output, "minimap-native-frame.png"), frame.EncodeToPNG());
                 VerifyGpuMap(backdrop);
@@ -110,6 +111,30 @@ namespace DK2.Unity.HudProbe
             var texture = Own(new Texture2D(2, 2, TextureFormat.RGBA32, false));
             if (!texture.LoadImage(bytes)) throw new InvalidOperationException("Install image did not decode.");
             texture.filterMode = FilterMode.Point; texture.wrapMode = TextureWrapMode.Clamp; return texture;
+        }
+        private void VerifyMinimapNavigation(IMinimapAssets assets)
+        {
+            var cameraObject = Own(new GameObject("Minimap input probe camera"));
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.enabled = false;
+            float scale = Screen.height / 768f;
+            if (scale <= 0) throw new InvalidOperationException("Navigation probe needs a screen extent.");
+            Vector3 point = new Vector3(113.7f * scale, 96 * scale, 0);
+            Vector3 magnifier = new Vector3(170 * scale, 23 * scale, 0);
+            Vector3 focus = new Vector3(10.25f, 1, -20.75f);
+            using (var minimap = new DungeonMinimap(transform, assets, 100, 80))
+            {
+                if (!minimap.TryNavigate(point, camera, focus, out TilePos target) || target != new TilePos(61, 40))
+                    throw new InvalidOperationException("Whole-map navigation adapter changed its projection.");
+                minimap.HandleZoomPress(magnifier, primaryPressed: true, secondaryPressed: true);
+                if (!minimap.TryNavigate(point, camera, focus, out target) || target != new TilePos(20, 20))
+                    throw new InvalidOperationException("Magnifier primary priority or zoom navigation changed.");
+                minimap.HandleZoomPress(magnifier, primaryPressed: true, secondaryPressed: false);
+                if (!minimap.TryNavigate(point, camera, focus, out target) || target != new TilePos(15, 20))
+                    throw new InvalidOperationException("Zoomed navigation adapter lost fractional camera focus.");
+                if (minimap.TryNavigate(magnifier, camera, focus, out target))
+                    throw new InvalidOperationException("A magnifier click also navigated the map.");
+            }
         }
         private void VerifyGpuMap(Texture backdrop)
         {

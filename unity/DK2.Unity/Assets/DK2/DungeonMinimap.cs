@@ -85,8 +85,22 @@ namespace DK2.Unity
             if (!MinimapControlLayout.IsMagnifier(new System.Numerics.Vector2(
                 screenPosition.x / scale, 768 - screenPosition.y / scale))) return;
             if (primaryPressed) ZoomIn();
-            if (secondaryPressed) ZoomOut();
+            else if (secondaryPressed) ZoomOut();
         }
+
+        public bool TryNavigate(Vector3 screenPosition, Camera camera, Vector3 focus, out TilePos target)
+        {
+            target = default;
+            if (camera == null || Screen.height <= 0) return false;
+            float scale = Screen.height / 768f;
+            var point = new System.Numerics.Vector2(screenPosition.x / scale, 768 - screenPosition.y / scale);
+            var heading = new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(camera.transform.eulerAngles.y * (2048f / 360))));
+            return MinimapNavigation.TryResolve(point, new MinimapNavigationView(
+                _grid.Width, _grid.Height, _zoom, FixedFocus(focus), heading), out target);
+        }
+
+        private static FpPosition3 FixedFocus(Vector3 focus) => new FpPosition3(
+            new Fp32((int)(focus.x * Fp32.One)), new Fp32((int)(-focus.z * Fp32.One)), new Fp32(0));
 
         public DungeonMinimap(Transform parent, IMinimapAssets assets, int width, int height)
         {
@@ -161,8 +175,7 @@ namespace DK2.Unity
                 Ray ray = camera.ViewportPointToRay(new Vector3(.5f, .5f, 0));
                 if (floor.Raycast(ray, out float distance)) centre = ray.GetPoint(distance);
             }
-            _gpu.SetView(_zoom, new FpPosition3(new Fp32((int)(centre.x * Fp32.One)),
-                new Fp32((int)(-centre.z * Fp32.One)), new Fp32(0)));
+            _gpu.SetView(_zoom, FixedFocus(centre));
             _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(Diameter * Screen.height / 768f));
             if (_image.image != _gpu.Disc) _image.image = _gpu.Disc;
             _footprint.UpdateCamera(_zoom.IsWholeMap ? camera : null);

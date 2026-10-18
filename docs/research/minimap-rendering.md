@@ -138,22 +138,35 @@ Final sprite extent is not established by these fields alone.
 These original per-axis transforms differ from the height-based scalable HUD
 specified in ART_DIRECTION §13; retain that deliberate interface choice.
 
-`0x0041A2D0` captures input position through the inverse transform, stores its
-offset from virtual minimap centre `(244,1680)` at HUD `+0x1393/+0x1397`, saves
-the camera origin in `+0x139B/+0x139F`, then invokes `0x0041A410`.
-The latter rotates the offset by camera heading, divides by four toward zero,
-and maps it either through the whole-map 90-pixel fit or the zoom factor. After
-map bounds and interface slot `+0x1FC` pass, it submits command type 4 containing
-the tile coordinates. The packet consumer remains untraced; this does not
-establish the full click contract. Subsequent press/channel findings are below.
+`0x0041A2D0` inverse-transforms the pointer, stores its offset from virtual
+centre `(244,1680)` at HUD `+0x1393/+0x1397`, captures the combined camera focus
+in `+0x139B/+0x139F`, then invokes `0x0041A410`. These offsets become signed
+shorts. In zoomed mode only, first multiply each by float **1.0993103981018066**
+(`0x0066C6E8`), truncate toward zero and narrow to signed short again.
+With native Q16 sine/cosine tables (`TrapRules.Sine/Cosine`), rotate the combined
+products: `rx=trunc0((u*cos-v*sin)/65536)/4`,
+`ry=trunc0((v*cos+u*sin)/65536)/4`, each division truncating toward zero.
+Products/sums retain native 32-bit arithmetic; do not truncate each product first.
+Whole-map tile is `(W/2+W*rx/fitWidth,H/2+H*ry/fitHeight)` using integer fit and
+signed division. Zoomed tile is `(capturedFocusRaw+((r<<12)/(1<<zoom)))>>12`
+per axis, with arithmetic final shift. Bounds-only slot +0x1FC must pass;
+discovery, ownership and walkability do not restrict navigation.
 
-The callback's pointer appears at static data `0x00690FCE`, immediately followed
-by `0x0041A7D0`; the widget/channel binding is established below.
+Command4 packs tile X/Y with its other values zero. Session drain `0x00527180`
+uses view support/dispatch slots +0x20/+0x24, which resolve to `0x0043B150` and
+`0x0043B180`. Initialization installs table `0x0066CE30` into view +0xA2;
+its id4 entry reaches `0x00442650`. That handler requests the tile centre and
+zero height, clamps through the camera move-target helper, and starts a timed
+glide with unchanged yaw. Timing and movement guards have their canonical home
+in [camera-paths.md section 8](camera-paths.md#8-fog-of-war-during-an-intro-and-the-return-to-the-heart).
 
-`0x0041A7D0`, when world `+0x284` is zero, submits command type 15/value 7,
-then calls map-view slots `+0x1F0/+0x1E8`; those mode semantics remain unread.
-Two adjacent candidates do not establish minimap input: `0x0041A190` draws a
-top-right resource, and `0x0041A2B0` selects HUD mode 10 through a widget callback.
+Widget3's draw origin is virtual `(60,1460)`; hit offset `(0,44)`, extent356×312
+gives `[60,1504,416,1816)`. Earlier upper-corner widgets win overlapping hits;
+their regions are `[20,1460,100,1540)` and `[388,1460,468,1540)`. Lower corners
+do not overlap it. The magnifier's actual hit region is `[384,1824,464,1904)`,
+smaller than its artwork. Native input is rectangular, not a circle test.
+The map's secondary callback remains [0041A7D0](functions/0041A7D0.md); its
+full-map mode semantics are not established by the primary navigation reading.
 
 ## Widget art and callback bindings (partially read)
 
@@ -374,11 +387,11 @@ The adapter magnifier uses primary/secondary presses for zoom in/out. Its GPU
 projection follows live camera panning between turns; DK2 refreshes that raster
 on turn changes. This presentation choice moves no simulation entities.
 
-Native map widget 3 has a rectangular hit region, not a circular test. Its type-0
-callback runs once per F0 press; the navigation routine has no other direct
-caller. The GUI manager retains captured widgets while polling them, but this
-does not establish continuous drag navigation. `0x0041A410` validates ordinary
-world bounds through `0x00509090` at slot +0x1FC: there is no explored, ownership,
-terrain or walkability condition in that predicate. Command4 then enters the
-session queue; its concrete receiver remains untraced. Click navigation stays
-unimplemented until that consumer and any indirect drag path are resolved.
+Widget3 uses the same type-0 poll as the magnifier: once per primary press,
+retaining capture until release without calling navigation again on movement.
+The primary held channel takes priority over the secondary channel. Its complete
+poll and GUI-manager capture paths establish click navigation, not continuous
+drag panning. The independent secondary map-mode callback remains unimplemented.
+
+The adapter forwards primary press edges to the existing camera glide without
+world commands. Full held-channel capture arbitration remains part of Step6.3.
