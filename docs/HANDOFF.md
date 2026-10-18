@@ -197,7 +197,9 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, research/imp-strike-choice-oracle: 2026-10-18 direct chooser
+- build/imp-acceptance, fixes/imp-creation-landing: unmerged creation candidate;
+  its current evidence and acceptance limits are in that worktree's
+  docs/research/imp-create-position.md. Direct chooser
   controls and modern fixtures: research/imp-priority-checks.md. The preceding
   work comparison and tile-input control remain research/imp-hatchery-work.md.
   Captured strike/claim boundary: research/imp-strike-choice-boundary.md.
@@ -207,16 +209,13 @@ Run git worktree list first; another session may own these.
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
   gameplay candidates. Heart visual acceptance remains Q585.
 
-- D:/DungeonKeeperRemake-classic, classic-look/step5: retained lighting
-  worktree; Step5 runtime corrections are on master. Check divergence before reuse.
-- D:/DungeonKeeperRemake-m12d, m12-decisions: the parked trap/door step,
-  uncommitted and 234 commits behind master.
-- D:/DungeonKeeperRemake-imps, l4/imp-deaths: level with master, uncommitted
-  combat and state-table work (Next work item 1).
-- D:/DungeonKeeperRemake-oracle, oracle/batch3: level with master, uncommitted
-  research-doc edits.
-- D:/DungeonKeeperRemake-l4, l4/guard-room-replay: merged; removable.
-- nav/level10-check is merged (ADR-0486) and its worktree is gone.
+- build/classic-step6, classic-look/step6: unmerged presentation work with local
+  changes; preserve it.
+- Merged checkouts and two obsolete detached probes were removed on 2026-10-18.
+  Three named `housekeeping 2026-10-18` stashes preserve the classic Unity edits,
+  parked trap/door work and work-only probe. Recovery hashes and the verified
+  unique-file archive are recorded in
+  reverse-engineering/housekeeping-20261018/manifest.json (local, gitignored).
 
 ## Where to work
 
