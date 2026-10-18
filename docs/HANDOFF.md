@@ -182,8 +182,8 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/steering-axes-only: 2026-10-18 ADR-0509 verifies the
-  velocity-axis correction alone on main; ready for owner merge approval.
+- build/imp-acceptance, fixes/steering-axes-only: 2026-10-18 ADR-0509 is merged
+  on main, hash/save 274; the worktree retains the diagnostic artifacts.
   Evidence and remaining baseline failures: research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those

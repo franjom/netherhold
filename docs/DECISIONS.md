@@ -11720,7 +11720,7 @@ arrival are tested. Exact agreement on one frozen-world walk does not establish 
 campaign or visual acceptance; those remain the next checks.
 
 ## ADR-0509 — Derive steering axes from resulting velocity
-**Date:** 2026-10-18 · **Status:** verified candidate; awaiting merge approval
+**Date:** 2026-10-18 · **Status:** accepted
 
 **Context.** The integrator's axes used force or displacement instead of the
 native velocity source. Evidence and acceptance are in
