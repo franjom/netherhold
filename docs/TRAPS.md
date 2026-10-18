@@ -7,6 +7,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- `Capture.frames(start, stop)` includes the stop header; use `birth + 3` for four snapshots, and copy values before advancing its reused snapshot.
+
 - Keep capture snapshot headers separate from in-tick action stamps; subtracting one only from native rows misaligns the two packet birth anchors (research/imp-observation-clocks.md).
 
 - A native emulated strike can change a tile before faulting in presentation; require a successful return before treating any partial writes as an oracle result.

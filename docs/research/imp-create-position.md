@@ -26,7 +26,7 @@ position setter too; shot-initializer internals and the shipped spell/shot
 mapping were not independently reread. The observed equality closes the two
 tested casts without treating the entire unexamined chain as confirmed.
 
-Modern loss occurs at `PacketLog.At`, case 54: both coordinates are shifted
+Main hash-274 loss occurs at `PacketLog.At`, case 54: both coordinates are shifted
 right 12 into `CreateImpCommand.At`. That command exposes only `TilePos`;
 `ImpSupplySystem.Spawn` calls the tile-centred creature factory. The native
 position was previously an open question in imp-task-audit.md; it is supplied
@@ -64,10 +64,58 @@ through 1100 remain 389. Position alone leaves that Portal date unchanged and
 reduces state-22 observations to 358. These are bounded computations, not campaign
 acceptance or proof of the global reinforcement cause. No gameplay fix is merged.
 
-Next preserve exact human cast coordinates through the command and spawn
-boundary with a focused regression; keep the existing tile-only callers working.
-Research state 214's actual landing conditions before implementing its duration.
-Do not replace it with the diagnostic timer or change chooser priorities.
+## Exact-position candidate and acceptance
+
+The isolated `fixes/imp-cast-position` candidate, hash/save 277, preserves human
+cast X/Y through packet decoding, the command and spawning. Existing tile and
+Heart callers retain their placement semantics. No state field is added; no
+landing, action cadence or chooser rule changes. The current presentation path
+still issues its existing Heart cast; this change does not add point aiming to UI.
+
+Two regressions failed before correction: same-tile points decoded to equal
+commands, and exact casts spawned at the tile centre. All 79 tools tests and
+3580 simulation tests pass, including signed/outside-map rejection, permissions,
+mana and tile-centre compatibility. The whole solution builds without warnings
+or errors. The reviewer found no implementation correctness blocker.
+
+Both Level4 seeds reproduce both original birth positions. Seed 1's raw prefix
+through 391 is unchanged; diagnostic trigger CSVs equal the first 1100 CLI rows.
+This candidate preserves every recorded human cast, unlike the earlier control
+that changes only worker 14's birth. Paired packet acceptance retains the same
+entity maps and seeds; baseline results are reused from hash 274. Reusing the
+Level4 seed-1 entity map for seed 5 remains a limitation.
+
+| Level / seed | Main win / Imp deaths | Exact-position candidate win / deaths |
+|---|---|---|
+| 1 / 1 | 1804 / 0 | 1804 / 0 |
+| 1 / 5 | 1804 / 0 | 1804 / 0 |
+| 4 / 1 | 6732 / 3 | none by 6804 / 11 |
+| 4 / 5 | none by 6804 / 35 | none by 6804 / 15 |
+
+**Gameplay merge deferred.** Exact birth-position agreement establishes the
+bounded correction; campaign acceptance still fails. No priority workaround or
+guessed landing wait is included. Preserve this candidate separately.
+
+## Next boundary: state 214 and height
+
+**CONFIRMED observations:** both native cast births have the same four-snapshot
+sequence. For worker 443 the headers are 392–395; for 442 they are 552–555:
+
+| Snapshot relative to birth | State | Z (+0x22) | Floor (+0x26) |
+|---:|---:|---:|---:|
+| 0 | 214 | 6144 | 4096 |
+| 1 | 214 | 4096 | 4096 |
+| 2 | 11 | 4096 | 4096 |
+| 3 | 10 | 4096 | 4096 |
+
+The sampled vertical-velocity dword +0x10C is zero in all eight records.
+**STRONGLY INFERRED:** a fresh whole read of [state 214](functions/00481750.md)
+retains its floor-below-Z hold, then its worker landing call; it has no duration
+counter in that handler. The samples do not establish the intermediate height
+writer or a universal two-turn landing duration. Trace that writer and landing
+dispatch before implementing this path; do not replace them with a fixed timer.
+An independent reviewer reread all eight raw records and repeated the guard's
+decompile and signed comparison instructions, with the same bounded conclusion.
 
 ## Reproduction and review
 
@@ -77,6 +125,13 @@ uses hash-274 assemblies. `WALL_CONTROL=pose`, `pose-aligned-landing` and
 baseline raw rows, tiles, event stream and trigger CSV byte for byte. Earlier
 `arrival`/`full` controls used the old labels and are not native timing matches.
 `verify.py` checks all nine retained runs and both packet/birth anchors.
+
+Candidate artifacts: `imp-cast-position-20261018/` in the same ignored parent.
+`Program.cs`/`Probe.csproj` record ordinary hash-277 packet runs; `paired_dig.py`
+reuses baseline results and runs four candidate replays. Its `verify.py` checks
+all eight outcomes, exact birth positions, prefix agreement and the native
+height/state samples. Neither verifier treats the mixed campaign outcomes as
+acceptance.
 
 The independent reviewer separately decoded the packet, read native records,
 and repeated the action/cast/creation binary reads. It did not run the modern
