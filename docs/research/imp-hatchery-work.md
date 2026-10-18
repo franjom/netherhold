@@ -128,6 +128,38 @@ existing [just-dug handler evidence](imp-claim-path.md#5-the-just-dug-claim-0x00
 do not establish a gate mismatch for the turn-309 take. The rest/selection
 boundary is in `ImpTaskSystem.Wander.cs:77` and `:90`.
 
+### Opening-time input control
+
+**CONFIRMED counterfactual:** after modern turn 166, change only `(28,54)`
+to native's neutral-floor tuple: terrain 3, owner 2, health 1. Worker rows
+through 166 and all tile rows through 165 match the baseline. No chooser,
+worker timer or RNG override is applied. Later decisions can consume different
+random draws. These hash-274 runs retain the normal packet through turn 1100.
+
+| Measure | Seed 1 baseline / control | Seed 5 baseline / control |
+|---|---:|---:|
+| First floor opening | 173 / 166 | 177 / 166 |
+| First owned floor at `(28,54)` | 318 / 189 | 207 / 187 |
+| Reinforcement observations, states 21/22 | 399 / 237 | 398 / 641 |
+
+Native opens on 166 and owns the floor on 191, with 107 reinforcement
+observations over headers 2–1100. The seed-1 control takes mining on 168,
+then claim on 173 after losing its mining slot; native worker 453 takes
+claim directly on 172. This restores an earlier work chain, not the same
+first decision. It isolates floor availability as a contributor to the local
+delay, without reproducing native positions, reservations or the whole world.
+Seed 5's increased reinforcement excludes treating this as a general repair.
+
+Two completed original-byte calls to [the claim handler](functions/0046AB50.md)
+use the captured pre-choice state of worker 453. Native's tile tuple returns
+success, state 6, claim target `(28,54)`; replacing only its health/owner/terrain
+with modern turn-167's owned wall `(302,3,9)` returns refusal, retaining state
+10. Both end with RNG 1768782011. A fresh whole-body read retains the existing
+ownership-first rejection. This confirms tile eligibility, not chooser parity.
+The attempted whole-chooser wall control did not return within its instruction
+limit and is excluded; it supplies no comparative chooser conclusion.
+No campaign acceptance was run for this diagnostic intervention.
+
 ## Initial dig: arrival and cadence are separate
 
 **CONFIRMED observations:** on `(28,54)`, native workers 455/452/454 enter
@@ -242,7 +274,9 @@ failing to recover the final win. Keep ADR-0503 and ADR-0510 unmerged. The later
 chooser and tile results. The [dig stop clock control](imp-dig-stop-clock.md)
 isolates a delayed action completion behind another slot-allocation difference;
 its candidate also fails campaign acceptance.
-The unmatched arrival history still needs a control before attribution to a bug.
+The opening-time control confirms a local availability contribution; the
+unmatched arrival and reservation histories still prevent attribution to a
+priority bug.
 Do not infer those inputs from a later whole-turn snapshot or patch priorities
 to recover one replay. Existing unmerged work/store/arrival
 candidates remain unaccepted. No campaign outcome improvement is claimed.
@@ -270,3 +304,11 @@ does not contain its gameplay changes.
 `verify_visibility.py` checks the native Portal turn, unchanged wrapper/prefix,
 matched worker fields, full CLI agreement and counterfactual outcomes.
 No full suite, profiler or broad campaign sweep was run for this research.
+
+The opening-time control is in ignored `imp-first-claim-input-20261018/`
+beside those artifacts. Its probe references master's hash-274 assemblies;
+`CONTROL_FIRST_FLOOR=1` enables the sole post-turn-166 tile edit.
+`measure.py --reuse` derives the recorded claim results without rerunning.
+`native_tile_gate.py` runs the completed handler pair from the retained
+`imp-strike-choice-20261018/live-rock-strike/000002.before.mem.z` image.
+`verify.py` checks metadata, unchanged prefixes, baseline agreement and metrics.

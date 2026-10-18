@@ -197,11 +197,9 @@ Run git worktree list first; another session may own these.
 - build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
   and mining completion candidates; campaign regressions block gameplay merge.
   Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, research/imp-dig-stop-clock: research only. The isolated
-  hash-277 exact human cast-coordinate candidate is fixes/imp-cast-position;
-  local birth matches pass, Level4 acceptance blocks
-  gameplay merge. Research and next landing boundary: research/imp-create-position.md.
-  Direct chooser
+- build/imp-acceptance, research/imp-first-claim-input: research only. The isolated
+  hash-278 creation candidate is fixes/imp-creation-landing; Level4 acceptance
+  blocks gameplay merge. Research: research/imp-create-position.md. Direct chooser
   controls and modern fixtures: research/imp-priority-checks.md. The preceding
   work comparison and tile-input control remain research/imp-hatchery-work.md.
   Captured strike/claim boundary: research/imp-strike-choice-boundary.md.
@@ -210,24 +208,23 @@ Run git worktree list first; another session may own these.
   fixes/imp-dig-stop-clock; master remains hash 274.
   Packet fractional-position loss is traced and independently reviewed:
   research/imp-create-position.md. Comparison clocks and regenerated measurements:
-  research/imp-observation-clocks.md. Completed native birth physical and landing
-  entry/return pairs now confirm descent followed by state 11. Next check modern
-  floor representation for a height-driven candidate, then repeat acceptance.
+  research/imp-observation-clocks.md. The opening-time tile control confirms a
+  local early-claim contribution, while reinforcement moves in opposite
+  directions across the two seeds:
+  research/imp-hatchery-work.md#opening-time-input-control. Next isolate earlier
+  arrival/reservation inputs; no new priority defect is established.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
   gameplay candidates. Heart visual acceptance remains Q585.
 
-- D:/DungeonKeeperRemake-classic, classic-look/step5: retained lighting
-  worktree; Step5 runtime corrections are on master. Check divergence before reuse.
-- D:/DungeonKeeperRemake-m12d, m12-decisions: the parked trap/door step,
-  uncommitted and 234 commits behind master.
-- D:/DungeonKeeperRemake-imps, l4/imp-deaths: level with master, uncommitted
-  combat and state-table work (Next work item 1).
-- D:/DungeonKeeperRemake-oracle, oracle/batch3: level with master, uncommitted
-  research-doc edits.
-- D:/DungeonKeeperRemake-l4, l4/guard-room-replay: merged; removable.
-- nav/level10-check is merged (ADR-0486) and its worktree is gone.
+- build/classic-step6, classic-look/step6: unmerged presentation work with local
+  changes; preserve it.
+- Merged checkouts and two obsolete detached probes were removed on 2026-10-18.
+  Three named `housekeeping 2026-10-18` stashes preserve the classic Unity edits,
+  parked trap/door work and work-only probe. Recovery hashes and the verified
+  unique-file archive are recorded in
+  reverse-engineering/housekeeping-20261018/manifest.json (local, gitignored).
 
 ## Where to work
 
