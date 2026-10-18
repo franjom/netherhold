@@ -93,15 +93,48 @@ Modern counterparts: `ImpTaskSystem.Selection.cs:678` (search), `:766`
 (start side), `:949` (tile eligibility), and `TileWork.cs:353` (ownership gate).
 No mismatching priority rule is established at this boundary.
 
+## Earlier floor opening and decision window
+
+**CONFIRMED observations:** the seed-1 worker-4 claim chain starts when its
+gold-deposit walk enters `(28,54)` on turn 309. It interrupts that walk to
+claim, carrying 1090 gold, and owns the tile on 318. Native already owns it
+on 190. Native's worker 453 takes that claim from state 10 on 171, not from
+a walking interruption. Its three other initial workers are then assigned
+to mining `(29,54)`.
+
+The first wall at `(28,54)` becomes neutral floor on native turn 165 and
+modern turn 173. Native worker 453 reaches state 10 on 170 and takes claim
+on 171. Modern worker 3 reaches 10 on 167, finds no job on 168 while the
+wall is still solid, and remains in state 12 through 187. The dig arrival
+and action histories already differ before the opening; these samples do
+not isolate a work-rate, idle-duration or RNG defect.
+
+**CONFIRMED counterfactual:** immediately before modern turn 176, set only
+worker 3's state to 10 and its action deadline to zero. Raw worker rows
+through 175 equal the baseline. It takes mining `(29,54)` on 176, loses
+that slot through stealing on 178, then chooses claim `(28,54)` on 179 and
+owns it on 196 instead of 318. This exposes an earlier claim opportunity
+under altered decision timing; it does not reproduce the native world or
+justify waking resting workers when new work appears.
+
+A fresh read of [the walking interruption](functions/00464170.md) confirms
+that gold is not rejected: the carried fields tested are object/body slots.
+The distance gate refers to the last task tile, not the gold-store destination.
+Modern `ImpTaskSystem.cs:256`, `ImpTaskSystem.Selection.cs:639` and the
+existing [just-dug handler evidence](imp-claim-path.md#5-the-just-dug-claim-0x00464170-and-0x00469600)
+do not establish a gate mismatch for the turn-309 take. The rest/selection
+boundary is in `ImpTaskSystem.Wander.cs:77` and `:90`.
+
 ## Verdict and next boundary
 
 Keep the chooser unchanged. The larger reinforcement excess remains an
 allocation/timing discrepancy, not a proven preference for walls over eligible
-floor. Its upstream cause is **UNKNOWN**, tracked as Q611. The next useful
-comparison is the preceding history of initial worker 4/native 452, before the
-turn-347 claim assignment. Restore actual update-boundary task, action, route
-and worker inputs; do not infer them from a later whole-turn snapshot or patch
-priorities to recover one replay. Existing unmerged work/store/arrival
+floor. Its upstream cause remains **UNKNOWN**, tracked as Q611. The early
+claim gap now traces to floor-opening and worker-decision timing before turn
+176. The next useful comparison is the initial dig's arrival/action boundary,
+including all three workers, against actual native update-boundary inputs.
+Do not infer those inputs from a later whole-turn snapshot or patch priorities
+to recover one replay. Existing unmerged work/store/arrival
 candidates remain unaccepted. No campaign outcome improvement is claimed.
 
 ## Reproduction
@@ -109,7 +142,8 @@ candidates remain unaccepted. No campaign outcome improvement is claimed.
 Ignored artifacts in the retained worktree:
 `build/imp-acceptance/reverse-engineering/imp-hatchery-work-20261018/`.
 `Program.cs`/`Probe.csproj` run the normal factory and packet helpers with raw
-observation; `CONTROL_HATCHERY=1` enables the two-tile control. `export_native.py`
+observation; `CONTROL_HATCHERY=1` enables the two-tile control and
+`CONTROL_RESELECT=1` the turn-176 worker control. `export_native.py`
 exports the immutable native rows; `measure.py` writes `summary.json`,
 `per-imp.csv`, `state-runs.csv`, `assignments.json` (job sequences/targets) and
 `assignment-legs.csv` (observed assignment spans, sampled travel to arrival,
