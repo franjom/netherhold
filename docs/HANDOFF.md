@@ -214,8 +214,10 @@ Run git worktree list first; another session may own these.
   research/imp-hatchery-work.md#opening-time-input-control. Completed original
   chooser controls now isolate reservation-sensitive selection at that boundary:
   research/imp-hatchery-work.md#reservation-and-position-controls. The earlier
-  action/release and arrival histories still need a faithful integrated replay;
-  no new priority defect is established.
+  work/release sequence now has 36 full native update pairs and a bounded modern
+  continuation: research/imp-dig-sequence.md. Matching all sampled tile results
+  retains the action-completion mismatch. A complete arrival-to-choice replay
+  and accepted correction remain open; no new priority defect is established.
   ADR-0509 is merged; its evidence remains research/steering-velocity-axes.md.
   The rejected movement/arrival candidates and random-input research remain
   on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those

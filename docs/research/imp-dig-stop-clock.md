@@ -21,7 +21,8 @@ Every emulated call returned successfully. No action or animation function was
 stubbed. Art slot 5 has 15 Main frames and 8 End frames at 20 FPS. Its integer
 rates are 1365 and 2560; the Main-to-End transition preserves truncated phase
 carry. The action poll observes completion after the advance that finishes End.
-**CONFIRMED:** the native captured state timeline independently shows 454/455 in
+The [continuous full-update capture](imp-dig-sequence.md#native-sequence--confirmed)
+directly confirms these action-clear dates. **CONFIRMED:** the native captured state timeline independently shows 454/455 in
 state 10 at snapshot header 168, and 452 at header 169. Main's `WorkCadence.ActionEnded` instead uses a six-turn
 modulo from work entry, holding 454 three turns too long.
 
