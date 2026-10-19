@@ -11808,3 +11808,21 @@ completion, a surviving task lets full hands take the store walk (`0x00465870`).
 hold the provisional models matched is reproduced by stepping. Uncaptured histories now follow
 the binary's rules instead of extrapolating. The six-turn dig modulo and the immediate mining
 end are gone for creatures with slot-5 data. Replaces the provisional parts of ADR-0512.
+
+## ADR-0515 — Idle actions play their clip; installs draw their coin
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** Our Imp idle actions held a fixed 19 (action 43) or 24 turns (44), an
+inferred mapping. The re-recorded Level 4 capture shows both actions at both lengths.
+DK2 plays each idle clip once on the action clock. Its install (`0x004B37D0`) draws
+`rand(2)` for art flagged `0xFC00` and swaps in the alternate clip on a 1 with `0x400`
+([animation-clock.md](research/animation-clock.md#idle-actions)).
+
+**Decision.** State 12 begins actions 43 and 44 counted on slots 20 and 31
+(`ActionAnimationClock.BeginCounted`), when the art is available. They end by the
+runner's no-handler rule. Every install, dig and mining included, draws the coin and may
+swap to `CreatureDef.AlternateArt`, loaded from `+0x1083`.
+
+**Consequences.** Hash/save 283 adds `CreatureState.ActionCount`. The simulation stream
+now takes one more draw per fresh dig, mine or idle install, which shifts every later
+draw. A definition without idle art wanders instead of resting.

@@ -873,6 +873,10 @@ public sealed class CreatureState
     /// runner (<c>0x00496AA0</c>) stops calling it until the next action begins.</summary>
     public bool ActionHandlerDone;
 
+    /// <summary>The running action's play count (creature +0x3AE): a counted action begun with a
+    /// count of n holds n + 1 and ends when it reaches 0 (<c>0x004969D0</c>, <c>0x00496AA0</c>).</summary>
+    public byte ActionCount;
+
     /// <summary>The alarm a Scout carries to its room (DK2's state fields <c>+0xA7</c>, <c>+0xAF</c>,
     /// <c>+0xB1</c>): the threat's position, the strength still wanted there, and the room by its
     /// first tile. Read on arrival by <see cref="Combat.FearRules.RespondToThreat"/>.</summary>
@@ -1374,6 +1378,7 @@ public sealed class CreatureState
         hash.Add(ActionAnimationRate);
         hash.Add((byte)ActionAnimationFlags);
         hash.Add(ActionHandlerDone);
+        hash.Add(ActionCount);
         hash.Add(AlarmX);
         hash.Add(AlarmY);
         hash.Add(AlarmDeficit);

@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 282: the dig and mining actions end on a stored animation clock (ADR-0514).
+        // HashVersion 283: idle actions play their clip; installs draw their coin (ADR-0515).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xA98DDD15FD7EB37BUL, sim.StateHash());
+        Assert.Equal(0x07E0196E6BEA9DCAUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

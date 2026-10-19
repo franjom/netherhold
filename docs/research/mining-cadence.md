@@ -182,13 +182,13 @@ not yet dug or claimed; what else had to move is Q481's answer (§6, ADR-0282).
 A second capture (`l1win927b`, 1905 ticks, none torn or missed) answers part of
 Q481. The numbers below are imp runs in each state, from both captures.
 
-**The idle actions last 20 and 25 ticks (CONFIRMED as outcomes).** After a
+**The idle actions last one play of their clip (CONFIRMED, ADR-0515).** After a
 wander trip, state 12 lasts 1 tick (a wander at once), 20 ticks (31 cases) or
-25 to 26 ticks (17 cases). A 2:1 split matches 12's roll: 25-74 plays action 43
-and 75-99 plays action 44, so 43 is the 20 and 44 the 25 (STRONGLY INFERRED). ADR-0280
-holds them 19 and 24 ticks (`ImpTaskSystem.IdleAction43Ticks`), 20 and 25 with the
-hand-over; before it ours played both for a guessed 8. The imp's animation blocks do not give these lengths:
-its two long ones are 171 and 172 frames at 30 fps, 23 ticks each.
+25 to 26 ticks (17 cases). The split is not by action: each install flips a coin and
+on a 1 plays IMP-Idle4, 19 turns, instead of slot 20 (24) or 31 (25); one more tick
+hands over. The earlier reading that 43 is the 20 and 44 the 25 was wrong. The
+Level 4 capture shows both actions at both lengths. Mechanism and clip arithmetic:
+[animation-clock.md](animation-clock.md#idle-actions).
 
 **Resting too briefly broke the hand drop** (before ADR-0280). With the parked cadence build, three
 of our imps take (10,28) together at 41-48 while DK2's are still resting or

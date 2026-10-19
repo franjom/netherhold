@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**283** — `0x07E0196E6BEA9DCA`. `CreatureState.ActionCount`, hashed and saved after `ActionHandlerDone`; idle actions play their clip and installs draw their coin (ADR-0515).
+
 **282** — `0xA98DDD15FD7EB37B`. `CreatureState.ActionArtSlot`, `ActionAnimationPhase`, `ActionAnimationRate`, `ActionAnimationFlags` and `ActionHandlerDone`, hashed and saved after `StateEnteredTick`: the dig and mining actions end on the stored clip (ADR-0514).
 
 **281** — `0x781C971C1E408A00`. Behaviour only: route requests and stops zero the body's velocity (`0x004D0F60`, `0x0048ECE0`; ADR-0513). No new fields.

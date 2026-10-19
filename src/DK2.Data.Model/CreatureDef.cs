@@ -129,6 +129,11 @@ public sealed record CreatureDef
     public CreatureAnimationTiming ArtSlot(int slot) =>
         slot >= 0 && slot < ArtSlots.Count ? ArtSlots[slot] : default;
 
+    /// <summary>The alternate art block at file <c>+0x1083</c> (definition <c>+0x46E</c>): the clip
+    /// an install swaps in on a 1 from its coin flip when the slot's flags carry <c>0x400</c>
+    /// (<c>0x004B37D0</c>). The Imp's is IMP-Idle4; the Goblin's Goblin-Melee2.</summary>
+    public CreatureAnimationTiming AlternateArt { get; init; }
+
     // Movement / perception
     public required Fp32 Speed { get; init; }
     public required Fp32 RunSpeed { get; init; }

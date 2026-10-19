@@ -33,7 +33,8 @@ public class CampaignSimulationFactoryTests
         {
             Assert.Equal(PlayerIds.FirstKeeper, rat.OwnerPlayerId);
             Assert.InRange(rat.Health, 1, 299);
-            Assert.Equal(ObjectMovementRules.MovingProcess.Value, rat.ProcessState);
+            // Moving or choosing its next point: which one at this turn depends on the stream's draws.
+            Assert.Contains(rat.ProcessState, new[] { ObjectMovementRules.MovingProcess.Value, RatRules.WanderingProcess.Value });
         });
         var positions = rats.Select(rat => (rat.PosX, rat.PosY)).ToArray();
         simulation.Run(20);
