@@ -11767,3 +11767,23 @@ are incompatible. Dig and mining animation-ending phase reconstructions remain
 provisional because their implementation scope is incompletely validated.
 Campaign wins do not establish fidelity and cannot veto a verified correction.
 
+## ADR-0513 — Route requests and stops zero the body's velocity
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** `Creature_RequestRoute` (`0x004D0F60`) writes the entity position and a zero
+velocity into the body before every route load, found or not, and `Creature_StopMoving`
+(`0x0048ECE0`, through `0x004D1070`) ends with position and zero velocity. Every
+state-level route load reaches the window loader `0x004D5100` through `0x004D0F60`; only
+`Follow_Path`'s three refills skip it. Ours kept velocity on both paths, so a creature
+carried its old speed into the first tick of its next walk; ADR-0512 fixed two callers
+inline. Records: `functions/004D0F60.md`, `functions/0048ECE0.md`.
+
+**Decision.** `WorldSteering.TryRouteTo` and `TryRouteToStance` zero velocity as
+`0x004D0F60` does; `CreatureState.StopMoving` stops at the entity position with zero
+velocity for every caller. The inline copies in the idle and store arrivals, the Reaper's
+departure and the torture strap-on fold into it. `FollowPathRules`' refills are unchanged.
+
+**Consequences.** Hash/save 281, no new fields. The two native functions are CONFIRMED; that
+every one of our callers corresponds to a native stop or request is LIKELY (about 30 mapped,
+the rest unmapped). States 8, 199 and 200 step without a route, so a stop there is now
+visible as zero velocity; their native counterparts were not individually read.

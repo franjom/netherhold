@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**281** — `0x781C971C1E408A00`. Behaviour only: route requests and stops zero the body's velocity (`0x004D0F60`, `0x0048ECE0`; ADR-0513). No new fields.
+
 **280** — `0xA9BE08812B0B9989`. Eight verified Imp corrections integrated under ADR-0512; see [imp-fidelity-integration.md](imp-fidelity-integration.md). `CreatureState.PosZ` and `CreationVelocityZ` are saved and hashed. Versions 275–279 were isolated experiments; their pins do not describe this composition.
 
 **274** — `0x34A682FB8867CE5B`. Steering axes use resulting velocity after clamping (ADR-0509); no new fields. Versions 270–273 belong to preserved Imp experiments.

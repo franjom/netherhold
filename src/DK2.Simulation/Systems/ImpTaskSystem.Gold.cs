@@ -303,8 +303,6 @@ public sealed partial class ImpTaskSystem
             if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return;
             // State 6 stops at its committed position before resuming the store-facing state.
             creature.StopMoving();
-            creature.Body.Pos = new Steering.Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
-            creature.Body.Vel = default;
             if (!StateShadow.Arrive(context, SystemName, creature))
             {
                 StateShadow.ToIdle(context, SystemName, creature);

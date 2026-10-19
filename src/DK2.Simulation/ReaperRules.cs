@@ -52,7 +52,6 @@ public static class ReaperRules
         EnterState(context, reaper, ReaperState.Departing);
         reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = false;
         reaper.StopMoving();
-        reaper.Body.Vel = default;
     }
 
     public static void AdvanceTimer(SimulationContext context, CreatureState reaper, CreatureDef definition)

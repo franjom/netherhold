@@ -395,6 +395,15 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     public static void SyncBody(CreatureState creature) =>
         creature.Body.Pos = new Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
 
+    /// <summary>What <c>Creature_RequestRoute</c> (<c>0x004D0F60</c>) does before every route
+    /// load, found or not: the body takes the entity position and a zero velocity
+    /// (<c>0x004D59A0</c>). Only <c>Follow_Path</c>'s own window refills skip it.</summary>
+    private static void ResetBodyForRequest(CreatureState creature)
+    {
+        SyncBody(creature);
+        creature.Body.Vel = Fixed16Vector.Zero;
+    }
+
     /// <summary>The state machine's route request (<c>0x004D0F60</c> → <c>0x004D59E0</c>): aim the
     /// body at the centre of <paramref name="to"/> with the <see cref="MoveOptions"/> word the
     /// original's state pushes, and load the first window. A creature already on that tile gets
@@ -409,7 +418,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// position's tile gets a finished route.</summary>
     public bool TryRouteTo(CreatureState creature, int x, int y, MoveOptions options)
     {
-        SyncBody(creature);
+        ResetBodyForRequest(creature);
         creature.RouteOptions = options;
         byte flags = options.PathFlags();
         var target = new Fixed16Vector(x << 4, y << 4);
@@ -433,7 +442,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         if (creature is null) throw new ArgumentNullException(nameof(creature));
         if (creature.Tile != new TilePos((int)(x / Fp32.One), (int)(y / Fp32.One)))
             return TryRouteTo(creature, (int)x, (int)y, options);
-        SyncBody(creature);
+        ResetBodyForRequest(creature);
         creature.RouteOptions = options;
         var target = ConstrainTarget(creature.Body.Pos, new Fixed16Vector((int)x << 4, (int)y << 4));
         RouteWindow.Load(creature.Body, [target], target, options.PathFlags());

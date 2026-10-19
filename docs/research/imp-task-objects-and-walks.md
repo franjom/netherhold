@@ -194,7 +194,8 @@ state 6.
 and `path_finished` stay as they were. The stop routine `0x0048ECE0` (clears `+0x3E6`
 bits 17 and 18, then `0x004D1070`: a route to its own position and a zero velocity) is
 what state 6 runs on arrival, and state 6 is no longer running. The next walk loads a new
-route through `0x004D0F60`; whether that clears the stale velocity was not read.
+route through `0x004D0F60`, which zeroes the stale velocity before loading it (read
+2026-10-19; built in ADR-0513).
 
 **Capture check** (`level1-live1/seed01` and `level2-live2/seed01`, player 3, every
 frame): an imp was in 10, 11 or 12 in two consecutive frames 53 times in level 1 and 1,976

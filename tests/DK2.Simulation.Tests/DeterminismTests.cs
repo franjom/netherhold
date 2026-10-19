@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 280: integrate the verified Imp corrections (ADR-0512).
+        // HashVersion 281: route requests and stops zero the body's velocity (ADR-0513).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xA9BE08812B0B9989UL, sim.StateHash());
+        Assert.Equal(0x781C971C1E408A00UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

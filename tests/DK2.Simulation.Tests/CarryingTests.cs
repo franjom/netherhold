@@ -472,7 +472,8 @@ public class CarryingTests
         Assert.True(goblin.GraveyardSlot >= 0);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "corpse_buried");
 
-        sim.Run(Second * 31);
+        // The window pauses while the body is carried (Q164), so allow the carry's few ticks.
+        sim.Run((Second * 31) + 4);
         SimEvent buried = Assert.Single(sink.Events, e => e.Kind == "corpse_buried");
         Assert.Contains("decompose_value=", buried.Detail);
         Assert.Contains("tally=200 raised=none", buried.Detail);

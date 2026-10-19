@@ -213,7 +213,6 @@ public static class TortureRules
             int side = AutoFurnitureRules.WallSide(hooks.World, hooks.Database, room, device.TileIndex);
             if (side >= 0) creature.Heading = ((side + 2) & 3) << 9;
         }
-        creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.StopMoving();
     }
 

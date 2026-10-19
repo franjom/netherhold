@@ -1218,13 +1218,17 @@ public sealed class CreatureState
     /// <summary>The tile the loaded route ends on.</summary>
     public TilePos Destination => new((Body.PathTargetPos.X >> 4) / Fp32.One, (Body.PathTargetPos.Y >> 4) / Fp32.One);
 
-    /// <summary>Drops the route; the body keeps its velocity and brakes under <c>Follow_Path</c>'s
-    /// no-route force (steering-behaviours.md §5.2). This differs from native
-    /// <c>Creature_StopMoving</c> (<c>0x0048ECE0</c>), which requests its own position with zero
-    /// velocity. Idle and store arrivals use a scoped stop that matches it (imp-idle-arrival.md);
-    /// mapping the other callers onto the native call sites is unverified (imp-heart-replay.md).</summary>
-    public void StopMoving() =>
-        Steering.RouteWindow.Load(Body, [], new Steering.Fixed16Vector(PosX << 4, PosY << 4), 0);
+    /// <summary>Drops the route and stops the body where the creature stands, with zero velocity:
+    /// <c>Creature_StopMoving</c> (<c>0x0048ECE0</c>) through <c>0x004D1070</c>, which requests a
+    /// route to its own position and then sets position and a zero velocity (<c>0x004D59A0</c>).</summary>
+    public void StopMoving()
+    {
+        Body.Pos = new Steering.Fixed16Vector(PosX << 4, PosY << 4);
+        Steering.RouteWindow.Load(Body, [], Body.Pos, 0);
+        Body.Vel = Steering.Fixed16Vector.Zero;
+        // 0x0048ECE0 clears +0x3E6 bits 17 and 18 and 0x004D0F60 rewrites them from option word 0.
+        RouteOptions = Navigation.MoveOptions.Plain;
+    }
 
     /// <summary>The tile the creature is standing on.</summary>
     public TilePos Tile => new(PosX / Fp32.One, PosY / Fp32.One);
