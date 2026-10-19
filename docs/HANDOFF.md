@@ -194,18 +194,17 @@ Enhanced keeper using the same observation/command interface (KEEPER_AI.md
 
 Run git worktree list first; another session may own these.
 
-- build/imp-store-timing, fixes/imp-store-timing: retains the provisional mining
-  animation-ending model. Store states and work visibility are integrated under
-  ADR-0512; campaign wins are diagnostics, not a fidelity veto.
+- build/imp-store-timing, fixes/imp-store-timing: archived mining-clock candidate,
+  superseded by ADR-0514's stored clock (research/animation-clock.md).
 - build/imp-acceptance retains ignored native captures and experimental probes.
-  ADR-0512 integrates eight supported Imp corrections at hash/save 280.
-  Audit, verification and the two provisional animation clocks:
-  research/imp-fidelity-integration.md. Do not delete its ignored captures.
+  ADR-0512 integrates eight supported Imp corrections at hash/save 280; ADR-0513
+  zeroes velocity on route requests and stops (281); ADR-0514 stores the dig and
+  mining animation clock (282). Do not delete its ignored captures.
   Q612 remains open; no new chooser preference or reinforcement timeout is
   established. Direct chooser controls: research/imp-priority-checks.md.
   Work/claim controls: research/imp-hatchery-work.md. Complete native work pairs:
-  research/imp-dig-sequence.md. Next validate interrupted action phases and
-  matched arrival-to-choice inputs. Heart visual acceptance remains Q585.
+  research/imp-dig-sequence.md. Next: matched arrival-to-choice inputs, and
+  moving the other actions' closed-form holds onto the stored clock. Heart visual acceptance remains Q585.
 
 - build/classic-step6, classic-look/step6: unmerged presentation work with local
   changes; preserve it.

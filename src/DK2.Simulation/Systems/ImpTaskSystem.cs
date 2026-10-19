@@ -232,9 +232,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             if (CreatureEligibility.IsExcluded(creature,
                 CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
 
+            bool handlerWasDone = creature.ActionHandlerDone;
             Update(context, creature, definition);
             // Later workers see this strike before choosing or testing their own finished action.
             _tileWork.Execute(context);
+            // The animation advances last in the creature's update (0x0048BE50).
+            StepWorkAnimation(context, creature, definition, struck: !handlerWasDone && creature.ActionHandlerDone);
         }
     }
 
@@ -286,9 +289,16 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             // The work state holds while its action runs, and looks at the task only when the
             // action ends (0x004655D0 returns at once while 0x00496D00 reports one running).
             if (creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work
-                && !WorkCadence.ActionEnded(creature.TargetWork, context.Tick.Value, creature.StateEnteredTick))
+                && !WorkActionEnded(context, creature, definition))
                 return;
             if (TryClaimWhatWasAttacked(context, creature)) return;
+            // State 26 checks task and hands after its action (0x00465870): a task that outlived
+            // the seam lets full hands take the store walk rather than the claim (mining-finish.md).
+            if (creature.TargetWork == TileWorkKind.MineGold
+                && creature.Dk2StateId == ImpStates.For(TileWorkKind.MineGold).Work
+                && context.World.TileAtIndex(creature.TargetTileIndex).DigTaskOutlivesWallFor.Contains(creature.OwnerPlayerId)
+                && HandsFull(context, creature, definition) && TryDepositTheLoad(context, creature))
+                return;
             context.Emit(SystemName, "job_abandoned",
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");

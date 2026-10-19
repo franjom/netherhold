@@ -159,13 +159,13 @@ public static class AnimationTimingRules
         }
     }
 
-    private static int Duration(int frames, int framesPerSecond) =>
+    internal static int Duration(int frames, int framesPerSecond) =>
         checked((int)(((long)frames * One) / framesPerSecond));
 
-    private static int AdvanceRate(int duration) =>
+    internal static int AdvanceRate(int duration) =>
         Math.Min(One - 1, Divide(One, checked(duration * SimulationTiming.OriginalTicksPerGameSecond)));
 
-    private static int Carry(int overshoot, int previousDuration, int nextDuration) =>
+    internal static int Carry(int overshoot, int previousDuration, int nextDuration) =>
         Divide(overshoot, Divide(nextDuration, previousDuration));
 
     private static int Divide(int numerator, int denominator) =>

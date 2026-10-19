@@ -153,6 +153,8 @@ public sealed partial class ImpTaskSystem
 
         context.World.QueueWork(new TileWorkOrder(
             creature.TargetTileIndex, creature.TargetWork, creature.OwnerPlayerId, creature.Id));
+        // The dig and mining handlers return done after their strike (0x00496E00, 0x004971D0).
+        creature.ActionHandlerDone = true;
         creature.TimerTicks = WorkCadence.AfterApplication(
             creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
 

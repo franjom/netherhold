@@ -40,40 +40,21 @@ at 163. Its main phases at 158–160 are 1363, 2728, 4093; frame 161 carries
 into End at 2554, and 162 marks completion. Full hands on a still-workable
 seam can instead leave on a strike turn; this is a different branch.
 
-## Implementation and verification
+## Implementation
 
-This section describes the archived, unmerged `fixes/imp-store-timing` candidate.
-Its clock model remains provisional: phase is reconstructed from work entry,
-not retained native animation history, and interruptions are unvalidated.
-
-`AnimationTimingRules.LoopingActionStopTicks` reconstructs the ordinary
-loop phase from the work-state epoch, requests stop and counts to completion.
-`CreatureState.MiningActionEndsAt` retains that deadline while the ending
-phase runs. `HoldForMiningFinish` starts it only for an exhausted seam after
-the first action has begun. The worker's own last strike is applied before
-this state check. Only after completion does a surviving task allow the
-full-hands store choice or fresh-claim raise; a removed task raises nothing.
-
-Thirteen focused cases pass, including variable phases, the worker's own
-last strike, no action yet, task loss, full hands with and without seam
-exhaustion, hash sensitivity and a snapshot taken inside the End segment.
-Eight initial regressions failed before the implementation; the no-action
-control passed. All 3586 simulation tests pass. Read-only independent review
-found no correctness issue in the bounded implementation. Historical paired
-runs give Level 1 wins in 14/20 seeds against 19/20 on baseline hash 265 and
-16/20 on the preceding hash-267 candidate. Losing seeds are 3, 11, 13–16.
-All 20 runs have consecutive turns and no placed-type mismatch, but these
-replays do not establish native entity/RNG equivalence. These outcome changes
-are diagnostics, not disproof of the native mechanism or an automatic merge veto.
-The reconstructed clock remains unmerged pending its scope validation.
-Results: `reverse-engineering/imp-mining-tail-level1-20261017/results.json`.
+ADR-0514 builds this on the stored clip ([animation-clock.md](animation-clock.md)): phase,
+rate and flags live on the creature and step every turn, so no phase is reconstructed from
+entry. The five captured holds and the own-last-strike case are reproduced by stepping
+(`ImpWorkAnimationTests`). After completion a surviving task lets full hands take the store
+walk; a removed task raises nothing. The archived `fixes/imp-store-timing` candidate
+(`20c969b4`, a deadline from the entry epoch) is superseded; its Level 1 replay results are
+in `reverse-engineering/imp-mining-tail-level1-20261017/results.json`.
 
 ADR-0512 extracts the independently supported own-strike observation correction
 without this clock: resolve a mining strike before checking the actual purse,
 and retain state 26 on an exhausted seam for the strike turn. A still-workable
-seam can start the full-hands store walk then. The remaining exhausted-action
-lifetime still uses the existing fallback; this extraction does not claim the
-authored ending phase is implemented.
+seam can start the full-hands store walk then. ADR-0514 then built the ending
+phase.
 
 Captures are under `reverse-engineering/dk2runs/` at the paths in
 [the task audit](imp-task-audit.md#scope-and-reproducibility), decoded with

@@ -855,6 +855,24 @@ public sealed class CreatureState
     // State-object +0x18; -1 when a clockless setup transition supplies no turn.
     public long StateEnteredTick = -1;
 
+    /// <summary>The running action's art slot (animation object +0xAE); 0 when the standing or
+    /// walking clip plays. With the phase, rate and flags below it is the clock that decides
+    /// when a mode-3 action may end (<see cref="ActionAnimationClock"/>).</summary>
+    public byte ActionArtSlot;
+
+    /// <summary>Animation phase, 1/4096 of the current segment (creature +0xD8).</summary>
+    public int ActionAnimationPhase;
+
+    /// <summary>Phase advance per turn (creature +0xDC); 0 once a play has completed.</summary>
+    public int ActionAnimationRate;
+
+    /// <summary>Animation flags (creature +0xF1).</summary>
+    public ActionAnimationFlags ActionAnimationFlags;
+
+    /// <summary>The running action's handler has returned done (creature +0x3AD bit 0): the
+    /// runner (<c>0x00496AA0</c>) stops calling it until the next action begins.</summary>
+    public bool ActionHandlerDone;
+
     /// <summary>The alarm a Scout carries to its room (DK2's state fields <c>+0xA7</c>, <c>+0xAF</c>,
     /// <c>+0xB1</c>): the threat's position, the strength still wanted there, and the room by its
     /// first tile. Read on arrival by <see cref="Combat.FearRules.RespondToThreat"/>.</summary>
@@ -1351,6 +1369,11 @@ public sealed class CreatureState
         hash.Add(Running);
         hash.Add(CombatStateEnteredTick);
         hash.Add(StateEnteredTick);
+        hash.Add(ActionArtSlot);
+        hash.Add(ActionAnimationPhase);
+        hash.Add(ActionAnimationRate);
+        hash.Add((byte)ActionAnimationFlags);
+        hash.Add(ActionHandlerDone);
         hash.Add(AlarmX);
         hash.Add(AlarmY);
         hash.Add(AlarmDeficit);

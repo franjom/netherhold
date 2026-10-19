@@ -11787,3 +11787,24 @@ departure and the torture strap-on fold into it. `FollowPathRules`' refills are 
 every one of our callers corresponds to a native stop or request is LIKELY (about 30 mapped,
 the rest unmapped). States 8, 199 and 200 step without a route, so a stop there is now
 visible as zero velocity; their native counterparts were not individually read.
+
+## ADR-0514 — Dig and mining actions end on a stored animation clock
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** ADR-0512 left the dig and mining end-of-action models provisional: they
+reconstructed the slot-5 animation phase from work entry, valid only for an uninterrupted
+bout. DK2 keeps the phase, rate and flags on the creature and advances them every turn
+([animation-clock.md](research/animation-clock.md)).
+
+**Decision.** Store the clip on `CreatureState` and step it with `ActionAnimationClock`
+(install `0x004B37D0`, advance `0x004B3C10`, keep-or-install `0x00496700`), with the runner's
+handler-done bit (`+0x3AD`). The state-14 and state-26 actions end by the runner's test
+(`0x00496AA0`). A handler still being called whose tile is gone, or whose own strike emptied
+it, sets the stop bit and holds until complete. Otherwise the action ends at the sticky wrap. After a mining
+completion, a surviving task lets full hands take the store walk (`0x00465870`).
+`WorkCadence` keeps the strike times and the other kinds' action ends.
+
+**Consequences.** Hash/save 282 adds five creature fields. Every captured dig date and mining
+hold the provisional models matched is reproduced by stepping. Uncaptured histories now follow
+the binary's rules instead of extrapolating. The six-turn dig modulo and the immediate mining
+end are gone for creatures with slot-5 data. Replaces the provisional parts of ADR-0512.

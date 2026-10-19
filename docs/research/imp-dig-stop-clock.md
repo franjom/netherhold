@@ -60,8 +60,8 @@ can re-resolve through Rock to floor in one flush while keeping their original
 kind. These state-14 actions still use the old modulo. This diagnostic candidate
 does not correct them. A later family candidate covers all three kinds; see
 [imp-fidelity-integration.md](imp-fidelity-integration.md).
-The reconstructed clock assumes uninterrupted art-5 history from work entry;
-animation interruptions have not been validated.
+The candidate's reconstruction assumed uninterrupted art-5 history from work entry;
+ADR-0514's stored clock removes that assumption.
 
 All 3,584 simulation tests pass, including captured completion dates,
 collapse ordering, pre-action collapse, unmarking and resumed save/hash behavior.
@@ -77,9 +77,10 @@ The Level4 seed-1 entity map is also reused for seed 5, a comparison limitation.
 | 4 / 1 | 6732 / 3 | none by 6804 / 54 |
 | 4 / 5 | none by 6804 / 35 | none by 6804 / 11 |
 
-**Provisional implementation (ADR-0512).** Preserve the candidate separately
-until interrupted action phases are validated. Changed campaign results are
-diagnostics, not a fidelity veto. Do not adjust job priorities from this result.
+**Built on the stored clock (ADR-0514).** The candidate's entry-epoch deadline is replaced
+by the stored clip ([animation-clock.md](animation-clock.md)); the three captured completion
+dates are reproduced by stepping. Changed campaign results are diagnostics, not a fidelity
+veto. Do not adjust job priorities from this result.
 
 The seed-1 event streams are identical through 594. Their first differing event
 is on 596: candidate Imp 14 abandons exhausted Dig `(28,53)` and raises a claim;

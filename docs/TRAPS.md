@@ -59,6 +59,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - BitReaders.py takes an offset without `0x` (for example `3ea`); a prefixed offset silently searches for `+0x0x3ea` and returns no matches.
 
 - Path.GetFullPath is lexical and does not detect junction or symlink aliases; output guards must inspect filesystem links.
+- Copy `reverse-engineering/` evidence off the clone before any worktree cleanup: the gitignored native captures in `dk2runs/` were emptied during the 2026-10-18 worktree removal (cause unknown) and had no backup; AGENTS.md now keeps evidence in D:\DK2Evidence.
 - Unlink temporary Windows junctions before recursively deleting their targets; a dangling junction can make .NET cleanup fail with access denied.
 
 - A long heredoc fails in the Bash tool, and any heredoc collapses backslash pairs: write a patch

@@ -5,8 +5,8 @@
 ADR-0512 replaces the use of unmatched-seed campaign wins as a merge veto.
 Ten distinct behavioral changes were held across the experimental branches;
 combined experiments are counted once. Eight supported corrections are
-integrated at hash/save 280. Two animation-clock implementations remain
-provisional because their inferred phase scope is incompletely validated.
+integrated at hash/save 280. The two animation-clock models were later
+replaced by the stored clock of ADR-0514 (hash/save 282).
 
 | Change | Source commit | Disposition and canonical evidence |
 |---|---|---|
@@ -18,15 +18,14 @@ provisional because their inferred phase scope is incompletely validated.
 | Four-turn first dig gap across all three dig kinds | `f62b06f7` | Integrated; [cadence](mining-cadence.md) |
 | Preserve fractional human Create Imp coordinates | `7d4d87f1` | Integrated; [creation](imp-create-position.md) |
 | Height-driven stationary Create Imp landing | `46dbd2f9` | Integrated within documented scope; [creation](imp-create-position.md) |
-| Dig animation-ending clock | `7f5adaaf` | Provisional family model; [stop clock](imp-dig-stop-clock.md), [continuous work](imp-dig-sequence.md) |
-| Mining animation-ending clock | `20c969b4` | Provisional; [mining finish](mining-finish.md) |
+| Dig animation-ending clock | `7f5adaaf` | Superseded by the stored clock, ADR-0514; [animation clock](animation-clock.md) |
+| Mining animation-ending clock | `20c969b4` | Superseded by the stored clock, ADR-0514; [animation clock](animation-clock.md) |
 
 CONFIRMED: the bounded native mechanisms cited above. Neither this integration
 nor those captures establish complete chooser, action-scheduler or campaign
 equivalence. No job-priority, reinforcement timeout or forced RNG correction
-is included. The two provisional models reconstruct phase from work entry;
-interrupted action histories still require validation. Lost wins are not the
-reason they remain isolated.
+is included. The two animation-clock models are superseded by ADR-0514, which
+stores the clip instead of reconstructing its phase.
 
 ## Regression interpretation
 
