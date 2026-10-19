@@ -146,9 +146,11 @@ public class ImpStateTests
     }
 
     [Fact]
-    public void UnmarkingTheRockMidWalkEndsTheWalkThroughThirteenAndTen()
+    public void UnmarkingTheRockMidWalkFinishesTheWalkThenThirteenSetsTen()
     {
-        // The walk ends in 13, which finds the task gone and sets 10.
+        // State 6 never looks at its task (0x00470C80): the walk goes on to the rock, and 13
+        // (0x004654F0) finds the task gone and sets 10. The owner saw the same (hand-of-evil.md §6:
+        // "it gets to that tile, 'sees' it is unmarked").
         (GameSimulation sim, ListEventSink events) = Start(new TilePos(2, 2));
         CreatureState imp = sim.World.Creatures[0];
 
@@ -157,10 +159,19 @@ public class ImpStateTests
         Assert.Equal((Walk, 13), (imp.Dk2StateId, imp.UtilityNewState));
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Untag(Keeper, new TilePos(4, 2))));
+        Assert.Equal(Walk, imp.Dk2StateId);
+        Assert.DoesNotContain(events.Events, e => e.Kind == "job_abandoned");
 
+        var seen = new List<int>();
+        for (int i = 0; i < 60 && !events.Events.Any(e => e.Kind == "job_abandoned"); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+            seen.Add(imp.Dk2StateId);
+        }
         Assert.Single(events.Events, e => e.Kind == "job_abandoned");
+        Assert.Contains(13, seen);
+        Assert.DoesNotContain(14, seen);
         Assert.Equal(Select, imp.Dk2StateId);
-        Assert.Equal((Select, Idle), (imp.StateBeforeUtilityState, imp.UtilityNewState));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 

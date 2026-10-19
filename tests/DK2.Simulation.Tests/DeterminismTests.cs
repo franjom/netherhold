@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 283: idle actions play their clip; installs draw their coin (ADR-0515).
+        // HashVersion 284: walkers and dig turners keep a gone task as DK2 does (ADR-0516).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x07E0196E6BEA9DCAUL, sim.StateHash());
+        Assert.Equal(0xA1D6204A54297315UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

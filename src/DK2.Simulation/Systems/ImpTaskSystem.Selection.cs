@@ -1200,6 +1200,15 @@ public sealed partial class ImpTaskSystem
         if (WorkStance.IsInPosition(context.Database, world, grid, creature.Tile, target, creature.TargetWork))
             return true;
 
+        // A dig whose wall has fallen is still worked from beside it: the dig entry asks only that
+        // the worker's tile be within one of the task's on each axis, diagonals included
+        // (0x004654F0: |dx| <= 1 and |dy| <= 1), not where the floor would put a stance.
+        if (creature.TargetWork is TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall
+            && !TileWorkRules.TryResolveDigTask(context.Database, world.Tile(target), creature.TargetWork,
+                creature.OwnerPlayerId, out _)
+            && Math.Abs(creature.Tile.X - target.X) <= 1 && Math.Abs(creature.Tile.Y - target.Y) <= 1)
+            return true;
+
         // A worker at work still settling on its stance point may be nudged across the tile's edge
         // by a neighbour; its route still ends on the stance tile, and that is where it works.
         (int entry, int work) = ImpStates.For(creature.TargetWork);

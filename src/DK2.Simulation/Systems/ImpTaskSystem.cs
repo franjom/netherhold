@@ -284,7 +284,7 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             return;
         }
 
-        if (creature.TargetTileIndex >= 0 && !JobStillStands(context, creature))
+        if (creature.TargetTileIndex >= 0 && !JobStillStands(context, creature) && !HoldsCourse(context, creature))
         {
             // The work state holds while its action runs, and looks at the task only when the
             // action ends (0x004655D0 returns at once while 0x00496D00 reports one running).
@@ -320,6 +320,20 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
                 job(context, creature, definition, grid);
         }
         else GoIdle(creature);
+    }
+
+    /// <summary>Whether a worker whose job has gone keeps on anyway, because its state does not look
+    /// at the task: a walk (state 6, <c>0x00470C80</c>) only moves and tests arrival, so the state it
+    /// resumes decides; the dig entry (state 13, <c>0x004654F0</c>) tests only that the dig task's
+    /// entry is alive (<c>0x00508070</c>), and the entry outlives the fallen wall until a raise or a
+    /// dig walk removes it, so the worker goes on to 14, which raises the claim
+    /// (imp-claim-path.md, ADR-0516).</summary>
+    private static bool HoldsCourse(SimulationContext context, CreatureState creature)
+    {
+        if (StateShadow.IsTravelling(creature)) return true;
+        return creature.Dk2StateId == ImpStates.For(TileWorkKind.Dig).Entry
+            && creature.TargetWork is TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall
+            && context.World.TileAtIndex(creature.TargetTileIndex).DigTaskOutlivesWallFor.Contains(creature.OwnerPlayerId);
     }
 
     /// <summary>State 10's choice alone, for the decision checker (<c>dk2tools decide</c>), on the

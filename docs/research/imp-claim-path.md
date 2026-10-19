@@ -314,3 +314,27 @@ with both imps' squared distances to the tile centre from the frame before:
 `0x00508110`, `0x00508160`, `0x00508200`, `0x00488930` (`0x00488F40`–`0x0048907B`),
 `0x00496D00`, the tables `0x006986A0`, `0x00698628`, `0x006BC350`. Not re-read:
 `0x00469240` beyond its call sites, `0x0048AD30`, `0x00477310`, `0x00471890`.
+
+## 11. A wall falling under walkers (2026-10-19)
+
+**CONFIRMED (read and captured).** Two states keep a job whose task has gone:
+
+- **The walk** (state 6, [0x00470C80](functions/00470C80.md)) never looks at its task. It
+  only moves and tests arrival, so the state it resumes decides.
+- **The dig entry** (state 13, [0x004654F0](functions/004654F0.md)) tests only that the
+  dig task's entry is alive (`0x00508070`, kind 1), and that the worker is within one tile.
+
+The entry outlives a fallen wall. So a worker that was turning when the wall fell goes
+on to 14, and with no action running, 14 raises kind 14 there.
+
+Level 4's capture shows this at (33,55):
+- The wall falls at turn 1225, and slot 452 (state 13 at 1223, 14 at 1224) raises the
+  claim that turn.
+- Slot 454 keeps walking to the removed entry until 1230, reaches 13, and drops to 10 at
+  1231.
+
+Ours dropped every walker and turner the turn the wall fell. One of them then ran the dig
+walk, which removed the surviving task, so the raise never came. The Training Room floor
+beyond it then went unclaimed until 1513 in four of five seeds. The same holds for a
+player's untag: the walker finishes its walk and drops on arrival, as the owner saw
+([hand-of-evil.md §6](hand-of-evil.md)). Built in ADR-0516; tests: `WallFallTaskTests`.

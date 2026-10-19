@@ -11826,3 +11826,20 @@ swap to `CreatureDef.AlternateArt`, loaded from `+0x1083`.
 **Consequences.** Hash/save 283 adds `CreatureState.ActionCount`. The simulation stream
 now takes one more draw per fresh dig, mine or idle install, which shifts every later
 draw. A definition without idle art wanders instead of resting.
+
+## ADR-0516 — Walkers and dig turners keep a gone task, as DK2's states do
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** We dropped a worker's job the turn its task disappeared, whatever its state.
+DK2's walk (state 6, `0x00470C80`) never checks its task, and the dig entry (state 13,
+`0x004654F0`) checks only that the task entry is alive, which outlives a fallen wall. In
+Level 4 this lost the fresh claim's raise at (33,55) in all five seeds
+([imp-claim-path.md §11](research/imp-claim-path.md#11-a-wall-falling-under-walkers-2026-10-19)).
+
+**Decision.** `ImpTaskSystem.HoldsCourse` keeps the job for a travelling worker, and for a
+dig-entry worker while the tile's dig task outlives the wall. A dig whose wall has fallen
+is in position within one tile on each axis, diagonals included. The entry and work states then decide as before: 14 raises
+the claim, and 13 with the task gone sets 10.
+
+**Consequences.** Hash/save 284, no new fields. A player's untag no longer stops a walker
+mid-walk; it drops on arrival, as the owner observed. Builds on ADR-0305's raise.

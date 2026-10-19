@@ -457,7 +457,7 @@ public class ImpTests
     }
 
     [Fact]
-    public void UnmarkingATile_TakesTheJobBackOffTheImp()
+    public void UnmarkingATile_TakesTheJobBackOffTheImpWhenItArrives()
     {
         Run run = Start(new TilePos(2, 2));
 
@@ -465,7 +465,10 @@ public class ImpTests
         run.Tick(); // 1 hands the imp to 10, which chooses on the next tick (mining-cadence.md §6)
         Assert.Single(run.Of("job_taken"));
 
+        // The walk does not look at its task (0x00470C80); the dig entry drops it on arrival.
         run.Tick(TagTilesCommand.Untag(Keeper, new TilePos(4, 2)));
+        Assert.Empty(run.Of("job_abandoned"));
+        for (int i = 0; i < 60 && !run.Of("job_abandoned").Any(); i++) run.Tick();
 
         Assert.Single(run.Of("job_abandoned"));
         Assert.Equal(CreatureActivity.Idle, run.Imp.Activity);
