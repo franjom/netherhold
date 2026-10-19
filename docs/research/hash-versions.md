@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**285** — `0xE44D70CE6838C66C`. Behaviour only: an alarm goes only to a Guard Room (`0x00475336`, ADR-0517). No new fields.
+
 **284** — `0xA1D6204A54297315`. Behaviour only: walkers and dig turners keep a gone task, as states 6 and 13 do (ADR-0516). No new fields.
 
 **283** — `0x07E0196E6BEA9DCA`. `CreatureState.ActionCount`, hashed and saved after `ActionHandlerDone`; idle actions play their clip and installs draw their coin (ADR-0515).

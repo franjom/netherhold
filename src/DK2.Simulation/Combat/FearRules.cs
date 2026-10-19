@@ -610,8 +610,11 @@ public static class FearRules
     private const int RespondingRadiusSquared = 0x19000;
 
     /// <summary><c>0x004752B0</c>: a <c>Scout</c> with Call to Arms off, when none of its owner's
-    /// creatures already responds within five tiles of the threat, runs to its owner's nearest room
-    /// carrying the threat's position and the strength still wanted there (combat-alarm.md §2).
+    /// creatures already responds within five tiles of the threat, runs to its owner's nearest Guard
+    /// Room carrying the threat's position and the strength still wanted there (combat-alarm.md §2).
+    /// The room walk skips any whose type byte <c>+0x18</c> is not 9 (<c>0x00475336</c>), as its twin
+    /// <c>0x00460B50</c> does (ADR-0473); with no Guard Room it raises nothing. Distance is measured
+    /// to the bounding-box centre, where DK2 uses the room's stored tile <c>+0x27</c> (approximation).
     /// True when it is on its way and out of the fight.</summary>
     public static bool RaiseAlarm(
         SimulationContext context, RoomCache rooms, CreatureState me, CreatureDef mine, int threatX, int threatY, int deficit)
@@ -625,6 +628,7 @@ public static class FearRules
         int best = int.MaxValue;
         foreach (RoomInstance room in rooms.Of(context, me.OwnerPlayerId))
         {
+            if (room.Definition.TypeId != RoomTypeId.GuardRoom) continue;
             int d = CombatRules.DistanceSquared(threatX, threatY, RoomCentreX(room), RoomCentreY(room));
             if (d >= best) continue;
             best = d;

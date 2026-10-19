@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 284: walkers and dig turners keep a gone task as DK2 does (ADR-0516).
+        // HashVersion 285: an alarm goes only to a Guard Room (ADR-0517).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xA1D6204A54297315UL, sim.StateHash());
+        Assert.Equal(0xE44D70CE6838C66CUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -15,7 +15,7 @@ near-the-heart path, restated in §1 only as far as the build needs.
 
 **What this settles:** the Imp's arm **never fights a hero**. Away from its Guard Rooms it
 withdraws; near one it counts heads, and when its side is outnumbered a `Scout`
-runs to the nearest room and **raises the alarm**: that room's creatures are sent
+runs to the nearest Guard Room and **raises the alarm**: that room's creatures are sent
 running to where the hero stood, until their summed `Threat` covers the deficit,
 and stand there thirty ticks looking for a fight the ordinary way. Only within
 about three and a half tiles of its own heart does a worker fight, and then
@@ -61,8 +61,10 @@ owner's `CallToArmsOn` (`player+0x76` bit 2) is clear. Refused when **someone is
 already responding** (`0x004754D0`): any creature of my owner in state 6 heading
 for 251 or 254, or in 251 or 254, whose destination (`0x004755C0`: the state's
 `+0xE3` for state 6, else its position) lies within `0x19000` — five tiles² — of
-the threat. Then the **nearest room of mine** to the threat by distance² to its
-`+0x27/+0x29` tile (all class-9 things on `RoomList`); `0x004E4D90(room, &out, 0,
+the threat. Then the **nearest Guard Room of mine** to the threat by distance² to its
+`+0x27/+0x29` tile: the walk skips any room whose type byte `+0x18` is not 9
+(`0x00475336`, CONFIRMED; the same filter as `0x00460B50`, ADR-0473), and with none it
+raises nothing (ADR-0517). `0x004E4D90(room, &out, 0,
 0)` gives a position in it: one random slab-chain step count, then advance
 and wrap past floor slots (`Room_IsFloorSlot`, `0x00454110`). Portal, Heart
 and bridge tiles are never floor slots, so even a blocked centre can be drawn.
@@ -315,7 +317,7 @@ the walk speed; state 6's arrival.
 room type byte `+0x18` (the Guard Room), not a thing class: `0x004C61C0` walks the same list
 and compares that byte with the requested room type (3 and 25 for portals).
 
-**STRONGLY INFERRED:** that the alarm's "nearest room" is over all rooms, not Guard Rooms only; that `RoomId` is the room
+**STRONGLY INFERRED:** that `RoomId` is the room
 a creature works in.
 
 **UNKNOWN:** Q391 (what a worker's animation block 29 plays, so action 79's length).

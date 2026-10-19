@@ -11843,3 +11843,18 @@ the claim, and 13 with the task gone sets 10.
 
 **Consequences.** Hash/save 284, no new fields. A player's untag no longer stops a walker
 mid-walk; it drops on arrival, as the owner observed. Builds on ADR-0305's raise.
+
+## ADR-0517 — An alarm goes only to a Guard Room
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** `Combat_RaiseAlarm` (`0x004752B0`) walks the owner's rooms and skips any
+whose type byte `+0x18` is not 9 (`0x00475336`), the filter ADR-0473 built for its twin
+`0x00460B50`. Ours took the nearest room of any type, so fleeing Imps in Level 4 raised
+alarms to the Portal, Hatchery and Lair (39 to the Portal in one seed). DK2 raised one
+alarm in the whole capture ([combat-alarm.md §2](research/combat-alarm.md)).
+
+**Decision.** `FearRules.RaiseAlarm` considers Guard Rooms only; with none it raises
+nothing and draws no point.
+
+**Consequences.** Hash/save 285, no new fields. The room is still chosen by bounding-box
+centre where DK2 uses the stored `+0x27` tile. The gate behind DK2's rare alarms is unread.
