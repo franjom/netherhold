@@ -2,7 +2,8 @@
 
 2026-10-18. Follow-up to [the hash-269 trace](imp-heart-replay.md#first-remaining-trace-differences).
 The correction from `fixes/imp-idle-arrival` is included in the hash/save-280
-integration branch under ADR-0512. Heart routing and core blocking are unchanged.
+integration branch under ADR-0512 and is on master; "candidate" below names the
+branch measurements made before that. Heart routing and core blocking are unchanged.
 Source correction: `372a7334`; `9c519967` applies the same change in composition.
 
 ## Native comparison and scope
@@ -63,8 +64,8 @@ already truncates velocity this way; `WorldSteering.SyncBody` supplies position.
 An additional identical truncation in the local probe leaves the 26-turn result
 unchanged. Missing velocity truncation is therefore excluded as a fix here.
 
-Q610's cause is established in
-[imp-first-integration.md](imp-first-integration.md#cause-of-q610-movement-order-and-crowd-input).
+Q613's cause is established in
+[imp-first-integration.md](imp-first-integration.md#cause-of-q613-movement-order-and-crowd-input).
 The integration branch also includes the independently verified movement-order
 correction, without compensating arrival delays; see ADR-0512.
 
@@ -79,11 +80,11 @@ the new regressions and updated hash pin. The solution suite is not green:
   `Level17KeeperScenarioTests.Level17HarkanCastsTheCallAtItsFighterAndTakesItDownUnaided`
   and `Level11AKeeperScenarioTests.Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyAtAnAttackedEnemyHeart_WithAmbientRats`,
   plus scenario `creatures/a_goblin_eats_a_chicken.yaml`, also fail on rebuilt main.
-- Scenario `creatures/a_keeper_drops_a_chicken_in_a_prison.yaml` passes on rebuilt
-  main and fails on the scoped candidate. Its cause remains unestablished;
-  retain the expectation and investigate the failure independently.
+- Scenario `creatures/a_keeper_drops_a_chicken_in_a_prison.yaml` passed on rebuilt
+  main and failed on the scoped candidate. The integration now drops the food
+  centrally; the edge case's cause is still open ([imp-fidelity-integration.md](imp-fidelity-integration.md#regression-interpretation)).
 
-The candidate has no measured performance result. Its source adds a progress
+The correction has no measured performance result. Its source adds a progress
 query on idle walks and two body assignments at arrival; it adds no Heart scan,
 allocation or mesh operation. Replay wall time is not a benchmark because
 mapping passes and concurrent test loads differ.

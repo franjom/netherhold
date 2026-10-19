@@ -24,7 +24,7 @@ This startup trace does not establish complete worker or campaign equivalence.
 
 ## Cause of the turn-22 state difference
 
-**CONFIRMED (2026-10-18): different idle random decisions.** Re-read
+**STRONGLY INFERRED (2026-10-18): different idle random decisions.** The handler branches and the controlled computation below are confirmed; the native roll itself is inferred from the action chosen. Re-read
 [state 12](functions/00464240.md) in full and checked its instructions.
 Before this turn, workers 3/4 are in state 12, have no action running, have
 nonzero wander stamps and deadlines still in the future in both engines.

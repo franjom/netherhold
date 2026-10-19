@@ -80,6 +80,14 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Builds, tests and dk2tools
 
+- Unicorn can retain translated code across oracle requests: use a fixed stub reading variable data, or a fresh process, when varying controlled returns; rewriting an immediate can silently reuse the first value.
+
+- Snapshot mutable diagnostic objects when recording each row; serializing retained references later repeats their final state across the trace.
+
+- Scratch SDK projects include nested `.cs` snapshots by default; keep copied Unity probe sources outside their compile glob.
+
+- An authored camera update can overwrite a batch probe's Heart focus; reapply the focus after `DungeonRunner.Update` before judging Heart clearance from captures.
+
 - A sandbox restore can fail NU1900 when NuGet audit is unreachable; use cached packages with a per-command `-p:NuGetAudit=false`, without changing repository audit settings.
 
 - Function KB headers use CONFIRMED/LIKELY/GUESS/DISPUTED; STRONGLY INFERRED belongs in research prose, with LIKELY in the KB header.

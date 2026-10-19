@@ -21,7 +21,7 @@ not the entire native world, update boundary, neighbours or obstacle inputs.
 
 At turn 5, all four still agree in entity position and full body velocity, but
 their local axes differ. This is earlier than the known turn-6 raw position
-difference (Q610).
+difference (Q613).
 
 | Worker | Shared velocity, 16.16 | Native X axis | Modern X axis |
 |---|---|---|---|
@@ -52,12 +52,12 @@ position remains identical to the unmodified modern result and still differs
 from native. Worker 3 also retains a turn-6 axis difference associated with its
 different full velocity. No gameplay source was edited for this control.
 
-The axis-source mismatch is established; it does not explain Q610's first
+The axis-source mismatch is established; it does not explain Q613's first
 position discrepancy. The movement-order control below resolves that cause.
 The axis correction was integrated in hash 274 and remains separate from the
 two corrections investigated here: movement order and idle arrival.
 
-## Cause of Q610: movement order and crowd input
+## Cause of Q613: movement order and crowd input
 
 **CONFIRMED capture and control:** the native creature list places the four
 workers in slot order 452, 453, 454, 455, corresponding to modern IDs 4, 3, 2, 1.
@@ -95,7 +95,7 @@ It leaves the axis calculation and every gameplay source file unchanged.
 All four workers' entity positions, full velocities, headings and states then
 match all 12 native observations over aligned turns 4–6. The original turn-6
 position discrepancy disappears. Reversing only the axis calculation did not.
-This closes the cause of Q610; it does not establish full-walk or campaign parity.
+This closes the cause of Q613; it does not establish full-walk or campaign parity.
 
 The isolated implementation and its acceptance measurements follow below.
 

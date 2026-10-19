@@ -36,7 +36,7 @@ public class CreatureMovementOrderTests
         CreatureStateMachine.BeginTravel(hooks, second, 6, CreatureStateMachine.Idle);
         CreatureState observed = crossingWalkerIsNewer ? first : second;
         CreatureState crossing = crossingWalkerIsNewer ? second : first;
-        // Q610's captured boundary translated by (-20,-48) tiles; native arithmetic outcomes.
+        // Q613's captured boundary translated by (-20,-48) tiles; native arithmetic outcomes.
         Prepare(observed, position: new(19770 << 4, 19770 << 4), velocity: new(21421, 21421),
             waypoint: new(393216, 393216), target: new(393216, 393216), heading: 768);
         Prepare(crossing, position: new(26021 << 4, 20238 << 4), velocity: new(-9640, 28908),

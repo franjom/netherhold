@@ -1218,8 +1218,11 @@ public sealed class CreatureState
     /// <summary>The tile the loaded route ends on.</summary>
     public TilePos Destination => new((Body.PathTargetPos.X >> 4) / Fp32.One, (Body.PathTargetPos.Y >> 4) / Fp32.One);
 
-    /// <summary>Drops the route: the body keeps its velocity and brakes under <c>Follow_Path</c>'s
-    /// no-route force (steering-behaviours.md §5.2), as the original's cleared window does.</summary>
+    /// <summary>Drops the route; the body keeps its velocity and brakes under <c>Follow_Path</c>'s
+    /// no-route force (steering-behaviours.md §5.2). This differs from native
+    /// <c>Creature_StopMoving</c> (<c>0x0048ECE0</c>), which requests its own position with zero
+    /// velocity. Idle and store arrivals use a scoped stop that matches it (imp-idle-arrival.md);
+    /// mapping the other callers onto the native call sites is unverified (imp-heart-replay.md).</summary>
     public void StopMoving() =>
         Steering.RouteWindow.Load(Body, [], new Steering.Fixed16Vector(PosX << 4, PosY << 4), 0);
 
