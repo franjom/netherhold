@@ -77,6 +77,7 @@ Runs fall into two modes: native-like (reinforce 94–344) and reinforce-heavy (
 | Hash 280 | 3/5 | 474 | 37 | 599 | 0 |
 | Hash 281, ADR-0513 | 0/5 | 1162 | 16 | 600 | 0 |
 | Hash 282, ADR-0514 | 2/5 | 1300 | 9 | 669 | 0 |
+| Hash 283, ADR-0515 | 2/5 (2 more at 395–407) | 690 | 32 | 722 | 0 |
 
 Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
 Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
