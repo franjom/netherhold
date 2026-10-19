@@ -61,3 +61,23 @@ route-finished variants before the fix and passes afterward. Knowledge-base,
 documentation budgets, coverage and generated ledger checks pass.
 Reproduction logs and TRX live under
 `reverse-engineering/imp-integration-20261018/` in the retained research checkout.
+
+## Level 4 outcomes 2026-10-19
+
+The lost native capture was re-recorded as a seed-1 replay of `l4live.sav`
+(`D:\DK2Evidence\dk2runs\level4-live1`). It reproduces the original: all 92
+initial-Imp records over turns 4–26 match except two per-process pointers, and the
+1100-turn state counts below match the original exactly.
+
+Imp-turns by state over the first 1100 turns, simulation seeds 1–5, one entity map.
+Runs fall into two modes: native-like (reinforce 94–344) and reinforce-heavy (480–695).
+
+| Version | Native-like runs | Median L1 to native | Median Imp deaths | Mean mining (native 803) | Wins by 6804 |
+|---|---|---|---|---|---|
+| Hash 280 | 3/5 | 474 | 37 | 599 | 0 |
+| Hash 281, ADR-0513 | 0/5 | 1162 | 16 | 600 | 0 |
+| Hash 282, ADR-0514 | 2/5 | 1300 | 9 | 669 | 0 |
+
+Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
+Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
+not matched to DK2's. Results and scripts: `D:\DK2Evidence\outcomes-2026-10-19-level4`.
