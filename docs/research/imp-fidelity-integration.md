@@ -85,6 +85,11 @@ creatures, hash 283 gives median Imp deaths of 22 (other columns as above). Hash
 where 283 never did. Reinforce-light runs rise to 4/5, the median distance falls to
 404 and mining averages 676. Median Imp deaths are 30, ranging from 5 to 40.
 
+Hash 285 (ADR-0517) sends alarms only to Guard Rooms. Imp deaths per seed fall to
+2, 35, 1, 0 and 9 (median 2). Seed 2's start Guards are still woken by a Goblin refused
+training. Imps still raise 10–65 alarms per run where DK2 raised one, so a gate in
+`0x004752B0`'s callers or `0x004754D0` remains unmatched.
+
 Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
 Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
 not matched to DK2's. Results and scripts: `D:\DK2Evidence\outcomes-2026-10-19-level4`.
