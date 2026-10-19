@@ -248,6 +248,25 @@ mechanism; the dimming suggests an *overlay* — icons drawn on top of the minim
 for strategically essential rooms — rather than a tile colour, which is a
 hypothesis and not a reading. **Q197.**
 
+**The same day's TrapTime saves narrow it (read 2026-10-19).** At the true
+tile alignment (`fog-reveal-sources.md` §2), `fow_1..3.SAV` hold three 3×3
+Portals (terrain 12) at x 15–17, 54–56 and 92–94, y 33–35. All are owner 2 in
+saves 1 and 2; in save 3 player 4 owns the left one, above its own Heart. None
+of their tiles is explored in any save. The middle one, above player 3's
+Heart, is fully scanned; the other two are neither explored nor scanned.
+Terrain 12 is not one of the six `RevealThroughFogOfWar` terrains. Every
+direct-call writer of the minimap class grid either calls `0x00451C90`
+(`0x00451C60`, `0x004519F0`, `0x00451A80`, `0x00451BE0`, `Tile_SetTerrain`,
+`Map_RefreshTile_LIKELY`) or writes the tag class `0x0D`. The grid pointer is
+also returned by world getter `0x00508C70`, whose virtual callers are unread,
+so a writer through it is not excluded. The level start's
+whole-map rebuild (`0x0050C058`) runs after the fog seed (`0x0050B5D5`), so
+no class from before the seed survives. **If the screenshot comes from the
+session these saves record, nothing in the class grid explains the Portals.**
+That the screenshot and the saves are the same game is an assumption: the
+screenshot is not in the repository, and which two Portals it shows is not
+recorded.
+
 ## 10. The multiplayer argument, and why it points the other way
 
 The owner's objection (2026-09-06):

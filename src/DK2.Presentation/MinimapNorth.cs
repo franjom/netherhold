@@ -14,6 +14,8 @@ public static class MinimapNorth
     public static Vector2 SpriteOriginPixels(Dk2Angle heading, int screenHeight)
     {
         if (screenHeight <= 0) throw new ArgumentOutOfRangeException(nameof(screenHeight));
+        // DK2 maps x by width/2560 and y by height/1920 (0x0052C5A0); the two agree only at
+        // 4:3. The HUD here is height-scaled (ADR-0497), so x uses the height as well.
         int centreX = (int)(244L * screenHeight / 1920);
         int centreY = (int)(1680L * screenHeight / 1920);
         int radius = (int)(140L * screenHeight / 1920);

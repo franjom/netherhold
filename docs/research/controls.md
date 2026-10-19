@@ -156,6 +156,27 @@ interface choice rather than DK2 behaviour, which stays true — but the keys ar
 ours and collide with DK2's meaning, so a faithful pass has to decide, not
 translate.
 
+**The Step 6 adapter's bindings, audited 2026-10-19** (`DungeonRunner.cs`,
+`DungeonRunner.Hud.cs`) against the lists above:
+
+| Adapter binding | DK2 default | Status |
+|---|---|---|
+| G, H, M, ESC (Options) | the same | DK2's |
+| `+` / `-` ambient light | the same | DK2's; step size unread |
+| Arrow keys pan | the same | DK2's; SHIFT speed scroll absent |
+| W/A/S/D and joystick pan (InputManager `Horizontal`/`Vertical` axes) | A is Ally Window | ours; collides |
+| Q / E rotate (classic camera only) | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | ours; DK2's keys absent |
+| Mouse wheel zoom | HOME / END, CTRL + UP/DOWN, hold Z and mouse | ours; DK2's keys absent |
+| 1, 3, 4, 5, 7 tool modes | 1–7 are possession abilities | ours; collides |
+| `[` / `]` room cycle | none | ours |
+| ESC / SPACE end a camera path | the same (`0x00405010`, camera-paths.md §5) | DK2's |
+| SHIFT / CTRL / ALT on overview and gold-counter clicks | the same (hud-resources.md) | DK2's |
+| P (Zoom To Portal), F, I, A | listed above | absent |
+
+None of the "ours" rows is presented in the HUD as a DK2 control. Whether to
+keep them as diagnostics, move them off DK2's keys, or add DK2's missing
+rotate/zoom keys is a decision for the owner (Step 6 plan §6.3).
+
 Against what exists today, of the 62 default bindings: three act on state we have
 (`H`, `P`, `ESC`), about thirty are camera and renderer work whose constants are
 all unread, and about twenty-nine need features that do not exist — possession and

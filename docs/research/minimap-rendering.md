@@ -132,7 +132,7 @@ After the map, `0x00419DF0` calls north marker `0x0041EDC0`: catalogue entry 36,
 `0x006C1488`/`0x006C1C88`. Draw origin is
 `(Cx+trunc(sin[a]*R/65536)-3, Cy-trunc(cos[a]*R/65536)-6)`; signed truncation
 is toward zero. RGB is white, flags 7, size fields 8×8; offsets -3/-6 are
-physical pixels after U. Cache `northMM0` is 16×16 with alpha; scalable HUD extent uses the 8px descriptor (inferred).
+physical pixels after U. Cache `northMM0` is 16×16 with alpha; scalable HUD extent uses the 8px descriptor (inferred). U (`0x0052C5A0`) scales x by `width/2560` and y by `height/1920`; `MinimapNorth` scales both by height, for ADR-0497's height-scaled HUD; they agree at 4:3.
 
 ## Input and UI coordinate boundary (partially read)
 
