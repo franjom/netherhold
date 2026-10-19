@@ -16,6 +16,26 @@ Distinguish:
 - HYPOTHESIS
 - UNKNOWN
 
+## HARD RULE: native evidence lives outside the clone
+
+The native full-state captures in `reverse-engineering/dk2runs/` and their replay rig were
+emptied during the 2026-10-18 worktree cleanup and had no backup. They cannot be rebuilt
+from the repo.
+
+- **Where it lives:** evidence that cannot be regenerated from the repo goes in
+  `D:\DK2Evidence\`, outside every git checkout. That covers native captures, packet logs,
+  capture extracts and replay rigs. Never keep the only copy under a gitignored path in a
+  clone or worktree.
+- **Add only:** agents may add new files to it. They never move, rename, delete, overwrite
+  or bulk-clean anything there.
+- **No links:** no junction or symlink between a clone or worktree and the evidence folder,
+  in either direction. Pass its path explicitly instead.
+- **Cleanup needs approval first:** before removing a worktree or folder, or running any
+  bulk delete, list every path it will remove, including ignored files. Then wait for the
+  owner's approval in that conversation; a cleanup approved earlier does not cover a new one.
+- **Copies are verified:** a copy taken out of a worktree is checked by SHA-256 before the
+  source is removed, and the original stays until the owner confirms.
+
 ## Existing research
 
 **The binary is the primary source. Go to Ghidra when in doubt.**

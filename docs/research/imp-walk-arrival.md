@@ -137,9 +137,9 @@ For the builder; nothing in `src/` is changed by this note.
   word-0 sites. The door bits these words carry are inert until doors enter the navigation
   byte, so the visible changes are the snap and Separation's bit 3.
 - `WorldSteering.TryRouteTo` and `TryRouteToStance`: `0x004D0F60` zeroes the body's velocity
-  on every state-level request; ours keeps it (`SyncBody` writes the position only). An imp
-  coming from state 10 already has zero velocity, so claims do not show it; a request made
-  while moving does.
+  on every state-level request, found or not; ours does too since ADR-0513. An imp coming
+  from state 10 already has zero velocity, so claims do not show it; a request made while
+  moving does.
 - `0x004D0F60` has no "already on the target's tile" shortcut, where ours returns a finished
   route. Nor does the query: within one triangle `0x004CF490` returns the target as a one-point
   route (2026-10-06), so the body walks to it. Ours does so for stances and, since ADR-0388, the

@@ -43,7 +43,8 @@ public sealed partial class ImpTaskSystem
         if (StateShadow.IsTravelling(creature))
         {
             if (creature.UtilityNewState != CreatureStateMachine.Idle || creature.TargetTileIndex >= 0) return false;
-            if (creature.HasRoute) return true;
+            if (Steering.FollowPathRules.Progress(creature.Body) != Steering.Fixed16.One) return true;
+            // Native state 6 stops the body at the committed entity position with zero velocity.
             creature.StopMoving();
             StateShadow.Arrive(context, SystemName, creature);
             return true;

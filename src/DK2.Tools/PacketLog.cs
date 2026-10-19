@@ -138,7 +138,7 @@ public sealed class PacketLog
                         throw new InvalidDataException(
                             $"Packet action 54 casting spell {a.First & 0xff} at turn {turn} is not decoded.");
                     commands.Add(new CreateImpCommand(player,
-                        new TilePos(checked((int)(a.Second >> 12)), checked((int)(a.Third >> 12)))));
+                        new FpPosition2(new Fp32(unchecked((int)a.Second)), new Fp32(unchecked((int)a.Third)))));
                     break;
                 case 55:
                     commands.Add(new CastSpellOnCreatureCommand(player, (byte)(a.First & 0xff),

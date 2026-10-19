@@ -75,8 +75,12 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             PossessionRules.ApplySpeedModifier(context.Database, creature);
         }
 
-        foreach (CreatureState creature in context.World.Creatures)
+        // The native creature list is newest first: an earlier mover's tile crossing must
+        // already contribute to a later mover's crowd query (imp-first-integration.md).
+        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        for (int i = creatures.Count - 1; i >= 0; i--)
         {
+            CreatureState creature = creatures[i];
             if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) continue;
             if (TremorRules.IsRecovering(creature) || context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
             if (creature.TremorRoutePaused)

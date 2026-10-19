@@ -514,6 +514,31 @@ public class ImpTests
         Assert.Equal(Dk2TerrainFixture.Rock, run.World.Tile(6, 4).TerrainId);
     }
 
+    [Fact]
+    public void AnImpDigsAnOwnedWall_SecondHitFourTicksAfterTheFirst_ThenEveryTick()
+    {
+        Run run = Start(new TilePos(2, 2));
+        ref TileState wall = ref run.World.Tile(4, 2);
+        wall.TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        wall.OwnerPlayerId = Keeper;
+        wall.Health = 900;
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(4, 2)));
+
+        var hits = new List<long>();
+        long entered = -1;
+        for (int tick = 0; tick < 200 && hits.Count < 5; tick++)
+        {
+            int before = run.World.Tile(4, 2).Health;
+            run.Tick();
+            if (entered < 0 && run.Imp.Dk2StateId == 14) entered = run.Sim.CurrentTick.Value - 1;
+            if (run.World.Tile(4, 2).Health < before) hits.Add(run.Sim.CurrentTick.Value - 1);
+        }
+
+        // Per-worker hits, not the interleaved tile deltas of the Level2 wall.
+        Assert.Equal(5, hits.Count);
+        Assert.Equal(new long[] { 2, 6, 7, 8, 9 }, hits.Select(t => t - entered));
+    }
+
     // ---- mining ----------------------------------------------------------
 
     [Fact]

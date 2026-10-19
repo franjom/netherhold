@@ -63,6 +63,8 @@ as a replay result; this checker audit does not reverse that verdict.
 
 The [first actual boundary pair](imp-boundary-route.md) now supplies a bounded
 selection/route control; it does not repair the historical whole-turn extractor.
+The later [completed strike and claim boundary](imp-strike-choice-boundary.md)
+also matches the tested chooser outputs; its six intervening turns are not replayed.
 
 Capture the native state immediately before the chosen worker's selection,
 after earlier entities and its own preceding action have run. Include the

@@ -135,12 +135,13 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
 
     private readonly ProfiledPathfinder _pathfinder;
+    private readonly TileWorkSystem _tileWork = new();
     private readonly List<TilePos> _route = [];
 
     /// <summary>Every tile the worker being updated can reach, flooded once per grid and start
     /// (<see cref="Reaches"/>). A grid is built per worker update, so a flood never outlives one; the
     /// grid reads terrain live, and nothing in a worker update writes terrain, since dig, claim and
-    /// reinforce are queued for <see cref="TileWorkSystem"/> to apply after every worker has chosen.</summary>
+    /// reinforce are queued for <see cref="TileWorkSystem"/> to apply after this worker's update.</summary>
     private readonly ReachableTiles _reach = new();
 
     private delegate void ActivityStep(SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid);
@@ -231,12 +232,22 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             if (CreatureEligibility.IsExcluded(creature,
                 CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
 
+            bool handlerWasDone = creature.ActionHandlerDone;
             Update(context, creature, definition);
+            // Later workers see this strike before choosing or testing their own finished action.
+            _tileWork.Execute(context);
+            // The animation advances last in the creature's update (0x0048BE50).
+            StepWorkAnimation(context, creature, definition, struck: !handlerWasDone && creature.ActionHandlerDone);
         }
     }
 
     private void Update(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (creature.Dk2StateId == ImpCreationRules.FallingState)
+        {
+            ImpCreationRules.Step(context, creature);
+            return;
+        }
         if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
 
         // One grid for the whole of this creature's tick. Every question below
@@ -278,9 +289,16 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             // The work state holds while its action runs, and looks at the task only when the
             // action ends (0x004655D0 returns at once while 0x00496D00 reports one running).
             if (creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work
-                && !WorkCadence.ActionEnded(creature.TargetWork, context.Tick.Value, creature.StateEnteredTick))
+                && !WorkActionEnded(context, creature, definition))
                 return;
             if (TryClaimWhatWasAttacked(context, creature)) return;
+            // State 26 checks task and hands after its action (0x00465870): a task that outlived
+            // the seam lets full hands take the store walk rather than the claim (mining-finish.md).
+            if (creature.TargetWork == TileWorkKind.MineGold
+                && creature.Dk2StateId == ImpStates.For(TileWorkKind.MineGold).Work
+                && context.World.TileAtIndex(creature.TargetTileIndex).DigTaskOutlivesWallFor.Contains(creature.OwnerPlayerId)
+                && HandsFull(context, creature, definition) && TryDepositTheLoad(context, creature))
+                return;
             context.Emit(SystemName, "job_abandoned",
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");

@@ -107,8 +107,8 @@ public static class SimulationSystems
     /// <summary>Imp work, queued and resolved inside the tick.</summary>
     private static ISimulationSystem[] Work() =>
     [
-        // Work queued and resolved inside one tick, so nothing survives the boundary
-        // half-done; bridges burn after the work (Q67), which makes the fire final.
+        // Each worker resolves its work before the next; the final pass drains any other orders.
+        // Bridges burn after the work (Q67), which makes the fire final.
         new ImpTaskSystem(),
         new TileWorkSystem(),
         new BridgeBurnSystem(),

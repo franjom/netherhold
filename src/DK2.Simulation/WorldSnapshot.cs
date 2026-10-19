@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 275;
+    private const int FormatVersion = 283;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -279,6 +279,7 @@ public static class WorldSnapshot
             w.Write(c.PosX);
             w.Write(c.PosY);
             w.Write(c.PosZ);
+            w.Write(c.CreationVelocityZ);
             w.Write(c.Heading);
             w.Write((int)c.RouteOptions);
             w.Write(c.HeartTargetPlayerId);
@@ -372,6 +373,11 @@ public static class WorldSnapshot
             w.Write(c.Running);
             w.Write(c.CombatStateEnteredTick);
             w.Write(c.StateEnteredTick);
+            w.Write(c.ActionArtSlot);
+            w.Write(c.ActionAnimationPhase);
+            w.Write(c.ActionAnimationRate);
+            w.Write((byte)c.ActionAnimationFlags);
+            w.Write(c.ActionHandlerDone);
             w.Write(c.AlarmX);
             w.Write(c.AlarmY);
             w.Write(c.AlarmDeficit);
@@ -948,6 +954,7 @@ public static class WorldSnapshot
                 PosX = r.ReadInt32(),
                 PosY = r.ReadInt32(),
                 PosZ = r.ReadInt32(),
+                CreationVelocityZ = r.ReadInt32(),
                 Heading = r.ReadInt32(),
                 RouteOptions = (Navigation.MoveOptions)r.ReadInt32(),
                 HeartTargetPlayerId = r.ReadByte(),
@@ -1043,6 +1050,11 @@ public static class WorldSnapshot
                 Running = r.ReadBoolean(),
                 CombatStateEnteredTick = r.ReadInt64(),
                 StateEnteredTick = r.ReadInt64(),
+                ActionArtSlot = r.ReadByte(),
+                ActionAnimationPhase = r.ReadInt32(),
+                ActionAnimationRate = r.ReadInt32(),
+                ActionAnimationFlags = (ActionAnimationFlags)r.ReadByte(),
+                ActionHandlerDone = r.ReadBoolean(),
                 AlarmX = r.ReadInt32(),
                 AlarmY = r.ReadInt32(),
                 AlarmDeficit = r.ReadInt32(),

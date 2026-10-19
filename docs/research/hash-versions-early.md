@@ -1,6 +1,14 @@
 # Early state-hash versions
 
-Versions 9–54, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–55, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**55** — `0xCB555B61573BE9F8`, and `0xE5035AF2FB584476` until 2026-09-10,
+when the gate's world gained two creatures and the literal was re-pinned **without**
+a version change: the fixture moved, not the hash or the shape of the state (Q206).
+A continuing marked dig task re-resolves the tile before each
+application, so Reinforced Wall proceeds through Rock to Dirt Path (ADR-0134).
+No state field changed; the version separates snapshots whose resumed jobs have
+different behaviour.
 
 **54** — `0x2820694B7F459227`. `TileState.WorkRemainder` **removed**. It
 carried the fraction a tabled per-second delta left over when divided by five, so

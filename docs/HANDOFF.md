@@ -141,21 +141,28 @@ adds gold withdrawal, payday/alarm/flash state, original personal names and bloo
 groups, G/H/M and corner controls, campaign Options pause, full-map terrain and
 navigation, creature query/follow, bottom choices, Reaper state, room cycling
 and all four creature overview modes. Canonical scope and remaining gates:
-plans/2026-10-17-classic-look-step6.md. Hash/save275 adds native identity and
-last-payday state; ADR-0510 documents initial constructor RNG ordering limits.
+plans/2026-10-17-classic-look-step6.md. Hash/save 283 adds native identity and
+last-payday state; ADR-0515 documents initial constructor RNG ordering limits.
 remaining modal/panel/full-map rules
 and original-game comparison are Q611 (research/hud-visibility.md).
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 
-Current verification:736 presentation,428 data and3584 simulation tests pass;
-the adapter and isolated HUD probe pass at1024x768 and2560x1440. The behavior
-suite passes383, skips3 and fails4: Level1 variables, Level17 Harkan, Goblin
-eating and prison chicken. The first three are known failures; prison chicken
-passes archived HEAD1f3805e0 and now fails after constructor identity draws.
-Both prisoners choose the food at281 but leave the cell at295/299 during their
-walk. No expectation or seed was changed to conceal this new regression; do not
-merge until investigated. Level11A's earlier failure is absent in this run.
+Current verification, after merging master 3c19fa0b (2026-10-19): 3,636
+simulation tests and the AI, Assets, Convert, Core, Data, Oracle, Presentation
+and Tools suites pass, and the adapter compiles (unity/DK2.Unity.Compile). The
+behavior suite passes 386, skips 3 and fails only the known Level1 variable
+override. Prison chicken passes with master's central (5,4) drop. The branch's
+earlier failure is master's edge-route symptom, whose native cause is still
+unresolved (research/imp-fidelity-integration.md). Our side, from runs on
+2026-10-19: at af4768e7 both prisoners at (4,4)/(5,4) get the two-point route
+(7.5,2.5) -> (7.5,4.5) towards the rim tile (7,4), outside ADR-0139's fenced
+interior, and PrisonSystem emits `prisoner_freed ... at=(7,2) reason=cell_gone`
+on ticks 295 and 299. At 1f3805e0 creature 1 stood at (6,4), within reach, and
+ate on 281 without walking, so the edge walk never ran. What DK2 does with food
+on the rim is unknown. The HUD probe was not rerun
+after the merge. Hash/save 283; ADR-0515 and Q615/Q616 were 0510, Q612 and Q613
+on this branch before the merge.
 
 Use serial checks; isolated probes must not save or restart the owner's editor.
 For master, open unity/DK2.Unity; check the retained classic worktree's branch
@@ -212,26 +219,25 @@ Enhanced keeper using the same observation/command interface (KEEPER_AI.md
 
 Run git worktree list first; another session may own these.
 
-- build/imp-store-timing, fixes/imp-store-timing: unmerged store, work-order
-  and mining completion candidates; campaign regressions block gameplay merge.
-  Verdict and next experiment: research/imp-candidate-acceptance.md.
-- build/imp-acceptance, fixes/steering-axes-only: 2026-10-18 ADR-0509 is merged
-  on main, hash/save 274; the worktree retains the diagnostic artifacts.
-  Evidence and remaining baseline failures: research/steering-velocity-axes.md.
-  The rejected movement/arrival candidates and random-input research remain
-  on fixes/imp-movement-arrival and research/imp-rest-choice. Do not merge those
-  gameplay candidates. Heart visual acceptance remains Q585.
+- build/imp-store-timing, fixes/imp-store-timing: archived mining-clock candidate,
+  superseded by ADR-0514's stored clock (research/animation-clock.md).
+- build/imp-acceptance retains ignored native captures and experimental probes.
+  ADR-0512 integrates eight supported Imp corrections at hash/save 280; ADR-0513
+  zeroes velocity on route requests and stops (281); ADR-0514 stores the dig and
+  mining animation clock (282). Do not delete its ignored captures.
+  Q612 remains open; no new chooser preference or reinforcement timeout is
+  established. Direct chooser controls: research/imp-priority-checks.md.
+  Work/claim controls: research/imp-hatchery-work.md. Complete native work pairs:
+  research/imp-dig-sequence.md. Next: matched arrival-to-choice inputs, and
+  moving the other actions' closed-form holds onto the stored clock. Heart visual acceptance remains Q585.
 
-- D:/DungeonKeeperRemake-classic, classic-look/step5: retained lighting
-  worktree; Step5 runtime corrections are on master. Check divergence before reuse.
-- D:/DungeonKeeperRemake-m12d, m12-decisions: the parked trap/door step,
-  uncommitted and 234 commits behind master.
-- D:/DungeonKeeperRemake-imps, l4/imp-deaths: level with master, uncommitted
-  combat and state-table work (Next work item 1).
-- D:/DungeonKeeperRemake-oracle, oracle/batch3: level with master, uncommitted
-  research-doc edits.
-- D:/DungeonKeeperRemake-l4, l4/guard-room-replay: merged; removable.
-- nav/level10-check is merged (ADR-0486) and its worktree is gone.
+- build/classic-step6, classic-look/step6: unmerged presentation work with local
+  changes; preserve it.
+- Merged checkouts and two obsolete detached probes were removed on 2026-10-18.
+  Three named `housekeeping 2026-10-18` stashes preserve the classic Unity edits,
+  parked trap/door work and work-only probe. Recovery hashes and the verified
+  unique-file archive are recorded in
+  reverse-engineering/housekeeping-20261018/manifest.json (local, gitignored).
 
 ## Where to work
 

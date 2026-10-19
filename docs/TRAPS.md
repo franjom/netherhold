@@ -5,6 +5,8 @@ agent (Claude's private memory and Codex's are not shared; this file is). Add a 
 that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps live in
 `.agents/skills/ghidra-queries/SKILL.md`, DK2 facts in `docs/research/`.
 
+- Native creature positions are 12.12 but steering-body positions are 16.16; boundary pose controls must shift by four when updating both.
+
 ## Shell and files
 
 - A managed worker with a different Windows SID may need per-command `git -c safe.directory=<absolute repository>`; do not change the owner's global Git trust configuration.
@@ -12,6 +14,15 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Independent UI Toolkit PanelSettings cannot be assigned to a UIDocument nested under another UIDocument; give isolated probe panels separate root GameObjects.
 
 - UI Toolkit rounded overflow masks need a stencil-capable RenderTexture target; a depth-zero probe can draw the mask itself as white.
+
+- Windows PowerShell 5 needs both System.IO.Compression and System.IO.Compression.FileSystem loaded before ZipArchiveMode resolves.
+- New function records require `evidence:` before the first blank line; `kb index` rejects a split header.
+
+- `Capture.frames(start, stop)` includes the stop header; use `birth + 3` for four snapshots, and copy values before advancing its reused snapshot.
+
+- Keep capture snapshot headers separate from in-tick action stamps; subtracting one only from native rows misaligns the two packet birth anchors (research/imp-observation-clocks.md).
+
+- A native emulated strike can change a tile before faulting in presentation; require a successful return before treating any partial writes as an oracle result.
 
 - If CS0009 names a zero-filled generated reference DLL, rebuild with `--no-incremental` before treating downstream missing types as source defects.
 
@@ -54,6 +65,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - BitReaders.py takes an offset without `0x` (for example `3ea`); a prefixed offset silently searches for `+0x0x3ea` and returns no matches.
 
 - Path.GetFullPath is lexical and does not detect junction or symlink aliases; output guards must inspect filesystem links.
+- Copy `reverse-engineering/` evidence off the clone before any worktree cleanup: the gitignored native captures in `dk2runs/` were emptied during the 2026-10-18 worktree removal (cause unknown) and had no backup; AGENTS.md now keeps evidence in D:\DK2Evidence.
 - Unlink temporary Windows junctions before recursively deleting their targets; a dangling junction can make .NET cleanup fail with access denied.
 
 - A long heredoc fails in the Bash tool, and any heredoc collapses backslash pairs: write a patch
@@ -74,6 +86,14 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - PowerShell here-strings piped into Python can replace non-ASCII source literals with `?`; use ASCII script literals or `apply_patch` for Unicode edits.
 
 ## Builds, tests and dk2tools
+
+- Unicorn can retain translated code across oracle requests: use a fixed stub reading variable data, or a fresh process, when varying controlled returns; rewriting an immediate can silently reuse the first value.
+
+- Snapshot mutable diagnostic objects when recording each row; serializing retained references later repeats their final state across the trace.
+
+- Scratch SDK projects include nested `.cs` snapshots by default; keep copied Unity probe sources outside their compile glob.
+
+- An authored camera update can overwrite a batch probe's Heart focus; reapply the focus after `DungeonRunner.Update` before judging Heart clearance from captures.
 
 - A sandbox restore can fail NU1900 when NuGet audit is unreachable; use cached packages with a per-command `-p:NuGetAudit=false`, without changing repository audit settings.
 
@@ -209,3 +229,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A compile harness can reference an installed Unity module that the project's Package manifest has disabled; verify in Unity too (HUD pilot: `com.unity.modules.imageconversion`).
 - A centred GPU minimap fixture hides row-origin errors; test an asymmetric fit and a rotated marker, and retain integer division for native projected boundaries rather than flooring an inexact floating-point quotient.
 - pyghidra search_code defaults to full code even with preview_length; pass include_full_code=false for bounded search results.
+
+- PowerShell does not expand path globs for `rg`; search a directory with `-g 'WorldState*.cs'` rather than passing `WorldState*.cs` as a path.
+- Native byte arguments can have unrelated upper stack bits; oracle stubs must mask to the callee's actual width before indexing or testing availability.

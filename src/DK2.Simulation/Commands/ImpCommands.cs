@@ -7,23 +7,32 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Commands;
 
-/// <summary>
-/// Casts Create Imp: buy one imp at the dungeon heart for mana.
-/// <para>CONFIRMED (owner, 2026-08-30) that the spell exists, costs 1500 for the
-/// first and rises by 1500 each time, and that 1500 is the number on DK2's own
-/// <c>Create Imp</c> record. HYPOTHESIS: the exact form of the rise — see
-/// <see cref="ImpSupplyRules.CreateImpCost"/> and Q54.</para>
-/// <para>The original casts onto a tile (packet action 54) and the imp appears there.
-/// <paramref name="At"/> is that tile; without one the imp appears at the dungeon heart.
-/// The position permission (<c>0x004BB8A0</c>, keeper-spell-casting.md §3) applies as the
-/// data selects it for spell 4: the row AVAILABLE, location 1 and target 4 at the tile, so a
-/// cast onto land the keeper does not own makes nothing (ADR-0312).</para>
-/// </summary>
-public sealed record CreateImpCommand(PlayerId PlayerId, TilePos? At = null) : PlayerCommand(PlayerId)
+/// <summary>Casts Create Imp at an exact ground position, a tile centre, or the
+/// dungeon Heart when neither is supplied. Permission and cost follow ADR-0312;
+/// fractional cast coordinates follow imp-create-position.md.</summary>
+public sealed record CreateImpCommand : PlayerCommand
 {
+    public TilePos? At { get; }
+    public FpPosition2? Position { get; }
+
+    public CreateImpCommand(PlayerId PlayerId, TilePos? At = null) : base(PlayerId) => this.At = At;
+
+    public CreateImpCommand(PlayerId PlayerId, FpPosition2 Position) : base(PlayerId)
+    {
+        this.Position = Position;
+        At = Position.Tile;
+    }
+
     public override void HashInto(ref Hash64 hash)
     {
         base.HashInto(ref hash);
-        hash.Add(At is { } at ? at.Y * 65536 + at.X : -1);
+        hash.Add(At.HasValue);
+        if (At is { } at)
+        {
+            hash.Add(at.X);
+            hash.Add(at.Y);
+        }
+        hash.Add(Position.HasValue);
+        if (Position is { } position) position.HashInto(ref hash);
     }
 }

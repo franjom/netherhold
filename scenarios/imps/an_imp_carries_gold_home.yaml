@@ -23,7 +23,7 @@
 #   delivering      the imp breaks off at its FOURTH swing, when its hands test
 #                   reads full: maxGoldHeld 1400 less variable 74's 340 (Q50,
 #                   0x00465870, ADR-0296). It sets off on that swing's tick,
-#                   logged at 818 before the swing's gold lands, and carries 1091.
+#                   after the strike pays out, with 1091 in its hands (ADR-0512).
 #   gold_delivered  all 1091 in one visit, carrying=0: state 29 hands the
 #                   heart the whole load and the deposit fills the chain from
 #                   the tile the walk ended on, 1000 a tile
@@ -74,12 +74,12 @@ expect:
       the original. Eight swings give 273 and three give 272, because the gold
       comes off a running total.
   - event: delivering
-    detail: "gold=818"
+    detail: "gold=1091"
     because: >
       The imp breaks off at its fourth swing, when the hands test reads full at
       maxGoldHeld 1400 less variable 74's 340 (Q50, ADR-0296), and sets off on that
-      swing's tick as both full-state captures show (ADR-0280): the departure is
-      logged before the fourth swing's 273 reaches its hands.
+      swing's tick as both full-state captures show (ADR-0280). The departure
+      records the actual purse after the strike pays out (ADR-0512).
   - event: gold_delivered
     detail: "amount=1091"
     because: >

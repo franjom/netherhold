@@ -6518,7 +6518,7 @@ named test. `HashVersion` **142** (a Goblin in the pin's world now arms its keep
 `PlayerState.LastPaydayTick`, set when armed and whenever payday fires.
 The HUD denominator requires both endpoints; reconstructing it from the next
 deadline would be wrong for a first payday or a restored game. Hash/save
-version 275 adds this field. Binary evidence: `research/hud-resources.md`.
+version 283 adds this field. Binary evidence: `research/hud-resources.md`.
 
 ## ADR-0296 — A miner breaks off at the hands test, not when the next strike would not fit
 **Date:** 2026-09-30 · **Status:** accepted · Research: `functions/00465870.md`, `imp-hands-full.md`
@@ -11656,7 +11656,7 @@ Positions stay clamped to known movement intervals; no extrapolation through wal
 Worker/presentation stalls can still cost frames and remain optimization work.
 
 ## ADR-0502 — Store arrival, facing and deposit take separate updates
-**Date:** 2026-10-17 · **Status:** candidate; campaign acceptance blocked
+**Date:** 2026-10-17 · **Status:** accepted; integrated by ADR-0512
 
 **Context.** An Imp deposited and passed through states 28 and 29 within its
 arrival update, whereas DK2 captures retain each state. The original's state
@@ -11671,10 +11671,10 @@ the aimed job retry and the store chooser's destination rules.
 **Consequences.** Hash/save version 266, no new fields. Deposit availability,
 later task choices and RNG draw order can change. Tests pin the intermediate
 states, turn wait, missing store and snapshot continuation.
-Paired campaign acceptance remains unresolved; see the research note.
+Campaign outcomes are diagnostics under ADR-0512.
 
 ## ADR-0503 — Resolve each worker's work before updating the next worker
-**Date:** 2026-10-17 · **Status:** candidate; mixed campaign results
+**Date:** 2026-10-17 · **Status:** accepted; integrated by ADR-0512
 
 **Context.** Deferring every worker's strikes until after the worker pass hides
 fallen walls from later task choices and completed-action checks. Binary order
@@ -11687,11 +11687,11 @@ action-before-state order within a single creature.
 
 **Consequences.** Hash/save version 267, no new fields. Same-turn task races,
 later choices and RNG use can change. Tests cover both worker orders and a
-chooser seeing a wall fall. Sampled wins recover but Imp deaths worsen in two
-Level 4 seeds; retain the isolated branch pending broader acceptance.
+chooser seeing a wall fall. ADR-0512 also applies a miner's own strike before
+its seam and hands checks; a complete creature action scheduler remains unbuilt.
 
 ## ADR-0504 — Retain exhausted mining actions through their animation ending
-**Date:** 2026-10-17 · **Status:** candidate; campaign acceptance failed
+**Date:** 2026-10-17 · **Status:** provisional animation-clock implementation
 
 **Context.** A depleted seam can leave an Imp in action 2 until the looping
 mining animation stops. Binary and capture evidence, scope and acceptance
@@ -11703,9 +11703,9 @@ Apply the worker's own strike before checking the seam. Keep immediate
 full-hands departure when the seam remains workable.
 
 **Consequences.** Candidate hash/save 268 adds `MiningActionEndsAt`. The focused
-regressions and snapshot/hash checks pass, but the Level 1 sweep regresses
-against both baseline and the preceding candidate. Preserve this implementation
-on its isolated branch; merge research separately, without changing gameplay.
+regressions and snapshot/hash checks pass. Reconstructing phase from work entry
+does not establish interrupted or other-art behavior. Keep that model isolated;
+ADR-0512 integrates the independently supported own-strike ordering correction.
 
 ## ADR-0505 — Restore native Heart routes and retain only the small core guard
 **Date:** 2026-10-17 · **Status:** accepted
@@ -11734,13 +11734,88 @@ native velocity source. Evidence and acceptance are in
 
 **Decision.** Normalize body velocity after arrival and wall clamping, then
 take its perpendicular. Preserve movement order, arrival timing, task choice
-and Heart policy on main. Keep the rejected Imp candidates separate.
+and Heart policy on main. Imp candidates are assessed separately by ADR-0512.
 
 **Consequences.** Hash/save 274, no new fields; 270–273 belong to isolated
 experiments. Existing axis values in snapshots/hashes change. This correction
 does not claim to resolve campaign losses or idle random-stream differences.
 
-## ADR-0510 — Preserve creature names and blood groups in simulation state
+## ADR-0510 — Preserve the native four-turn first dig gap
+**Date:** 2026-10-18 · **Status:** accepted; integrated by ADR-0512
+
+**Context.** The earlier three-turn digging claim fails a per-worker recheck;
+the original captures support a four-turn first-cycle gap. The correction and
+paired acceptance are in [mining-cadence.md §5](research/mining-cadence.md#5-the-other-work-kinds-rock-and-the-state-26-read-2026-09-28).
+
+**Decision.** Apply the minimal ordinary-dig gap correction. Do not compensate
+for changed outcomes with job-priority, idle-wakeup or work-rate changes.
+
+**Consequences.** Experimental hash/save 275 introduces no new fields; the
+integrated version is 280. The bounded hit sequence is verified independently
+of the changed campaign outcomes; see ADR-0512.
+
+## ADR-0512 — Integrate verified fidelity corrections despite changed replay wins
+**Date:** 2026-10-18 · **Status:** accepted; owner instruction
+
+**Context.** Unmatched-seed command replays were incorrectly used to veto
+binary-supported corrections. The owner requires verified DK2 behavior on
+master regardless of lost replay wins. Audit and remaining limits:
+[imp-fidelity-integration.md](research/imp-fidelity-integration.md).
+
+**Decision.** Integrate separate store states, inter-worker work visibility,
+own-strike visibility before the mining hands test, newest-first movement,
+exact idle arrival, the four-turn first dig gap, fractional Create Imp positions
+and scoped height-driven creation landing. Retain changed replay outcomes as
+diagnostics. Do not invent priority or reinforcement-timeout compensation.
+
+**Consequences.** Hash/save 280 adds saved creation height; older snapshots
+are incompatible. Dig and mining animation-ending phase reconstructions remain
+provisional because their implementation scope is incompletely validated.
+Campaign wins do not establish fidelity and cannot veto a verified correction.
+
+## ADR-0513 — Route requests and stops zero the body's velocity
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** `Creature_RequestRoute` (`0x004D0F60`) writes the entity position and a zero
+velocity into the body before every route load, found or not, and `Creature_StopMoving`
+(`0x0048ECE0`, through `0x004D1070`) ends with position and zero velocity. Every
+state-level route load reaches the window loader `0x004D5100` through `0x004D0F60`; only
+`Follow_Path`'s three refills skip it. Ours kept velocity on both paths, so a creature
+carried its old speed into the first tick of its next walk; ADR-0512 fixed two callers
+inline. Records: `functions/004D0F60.md`, `functions/0048ECE0.md`.
+
+**Decision.** `WorldSteering.TryRouteTo` and `TryRouteToStance` zero velocity as
+`0x004D0F60` does; `CreatureState.StopMoving` stops at the entity position with zero
+velocity for every caller. The inline copies in the idle and store arrivals, the Reaper's
+departure and the torture strap-on fold into it. `FollowPathRules`' refills are unchanged.
+
+**Consequences.** Hash/save 281, no new fields. The two native functions are CONFIRMED; that
+every one of our callers corresponds to a native stop or request is LIKELY (about 30 mapped,
+the rest unmapped). States 8, 199 and 200 step without a route, so a stop there is now
+visible as zero velocity; their native counterparts were not individually read.
+
+## ADR-0514 — Dig and mining actions end on a stored animation clock
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** ADR-0512 left the dig and mining end-of-action models provisional: they
+reconstructed the slot-5 animation phase from work entry, valid only for an uninterrupted
+bout. DK2 keeps the phase, rate and flags on the creature and advances them every turn
+([animation-clock.md](research/animation-clock.md)).
+
+**Decision.** Store the clip on `CreatureState` and step it with `ActionAnimationClock`
+(install `0x004B37D0`, advance `0x004B3C10`, keep-or-install `0x00496700`), with the runner's
+handler-done bit (`+0x3AD`). The state-14 and state-26 actions end by the runner's test
+(`0x00496AA0`). A handler still being called whose tile is gone, or whose own strike emptied
+it, sets the stop bit and holds until complete. Otherwise the action ends at the sticky wrap. After a mining
+completion, a surviving task lets full hands take the store walk (`0x00465870`).
+`WorkCadence` keeps the strike times and the other kinds' action ends.
+
+**Consequences.** Hash/save 282 adds five creature fields. Every captured dig date and mining
+hold the provisional models matched is reproduced by stepping. Uncaptured histories now follow
+the binary's rules instead of extrapolating. The six-turn dig modulo and the immediate mining
+end are gone for creatures with slot-5 data. Replaces the provisional parts of ADR-0512.
+
+## ADR-0515 — Preserve creature names and blood groups in simulation state
 **Date:** 2026-10-18 · **Status:** accepted
 
 **Context.** Query and hover text consume the constructor's personal-name and
@@ -11761,8 +11836,7 @@ constructor random call. An internal unassigned-name sentinel distinguishes
 that reconstruction from a saved, initialized identity; restoring consumes no
 additional identity draws. Query presentation never owns a random generator.
 
-**Consequences.** Hash/save version 275 also includes ADR-0295's payday stamp.
+**Consequences.** Hash/save version 283 (275 on the branch before master's 276–282 merged) also includes ADR-0295's payday stamp.
 Existing random trajectories can change because missing constructor draws are
 now consumed. Tests of another mechanic with scripted draws must supply an
 already initialized identity instead of silently changing that mechanic's draws.
-

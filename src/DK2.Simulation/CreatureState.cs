@@ -302,6 +302,10 @@ public sealed class CreatureState
 
     public int PosZ;
 
+    /// <summary>The persistent vertical vector (+0x10C), currently used only for a point-cast
+    /// Imp's creation fall. PosZ is height above the simulation's zero floor in that state.</summary>
+    public int CreationVelocityZ;
+
     private int _posX, _posY;
     private bool _inHand;
     private int _carriedByCreatureId = -1;
@@ -857,6 +861,24 @@ public sealed class CreatureState
     // State-object +0x18; -1 when a clockless setup transition supplies no turn.
     public long StateEnteredTick = -1;
 
+    /// <summary>The running action's art slot (animation object +0xAE); 0 when the standing or
+    /// walking clip plays. With the phase, rate and flags below it is the clock that decides
+    /// when a mode-3 action may end (<see cref="ActionAnimationClock"/>).</summary>
+    public byte ActionArtSlot;
+
+    /// <summary>Animation phase, 1/4096 of the current segment (creature +0xD8).</summary>
+    public int ActionAnimationPhase;
+
+    /// <summary>Phase advance per turn (creature +0xDC); 0 once a play has completed.</summary>
+    public int ActionAnimationRate;
+
+    /// <summary>Animation flags (creature +0xF1).</summary>
+    public ActionAnimationFlags ActionAnimationFlags;
+
+    /// <summary>The running action's handler has returned done (creature +0x3AD bit 0): the
+    /// runner (<c>0x00496AA0</c>) stops calling it until the next action begins.</summary>
+    public bool ActionHandlerDone;
+
     /// <summary>The alarm a Scout carries to its room (DK2's state fields <c>+0xA7</c>, <c>+0xAF</c>,
     /// <c>+0xB1</c>): the threat's position, the strength still wanted there, and the room by its
     /// first tile. Read on arrival by <see cref="Combat.FearRules.RespondToThreat"/>.</summary>
@@ -1220,10 +1242,17 @@ public sealed class CreatureState
     /// <summary>The tile the loaded route ends on.</summary>
     public TilePos Destination => new((Body.PathTargetPos.X >> 4) / Fp32.One, (Body.PathTargetPos.Y >> 4) / Fp32.One);
 
-    /// <summary>Drops the route: the body keeps its velocity and brakes under <c>Follow_Path</c>'s
-    /// no-route force (steering-behaviours.md §5.2), as the original's cleared window does.</summary>
-    public void StopMoving() =>
-        Steering.RouteWindow.Load(Body, [], new Steering.Fixed16Vector(PosX << 4, PosY << 4), 0);
+    /// <summary>Drops the route and stops the body where the creature stands, with zero velocity:
+    /// <c>Creature_StopMoving</c> (<c>0x0048ECE0</c>) through <c>0x004D1070</c>, which requests a
+    /// route to its own position and then sets position and a zero velocity (<c>0x004D59A0</c>).</summary>
+    public void StopMoving()
+    {
+        Body.Pos = new Steering.Fixed16Vector(PosX << 4, PosY << 4);
+        Steering.RouteWindow.Load(Body, [], Body.Pos, 0);
+        Body.Vel = Steering.Fixed16Vector.Zero;
+        // 0x0048ECE0 clears +0x3E6 bits 17 and 18 and 0x004D0F60 rewrites them from option word 0.
+        RouteOptions = Navigation.MoveOptions.Plain;
+    }
 
     /// <summary>The tile the creature is standing on.</summary>
     public TilePos Tile => new(PosX / Fp32.One, PosY / Fp32.One);
@@ -1258,6 +1287,7 @@ public sealed class CreatureState
         hash.Add(PosX);
         hash.Add(PosY);
         hash.Add(PosZ);
+        hash.Add(CreationVelocityZ);
         hash.Add(Heading);
         hash.Add((int)RouteOptions);
         hash.Add(HeartTargetPlayerId);
@@ -1347,6 +1377,11 @@ public sealed class CreatureState
         hash.Add(Running);
         hash.Add(CombatStateEnteredTick);
         hash.Add(StateEnteredTick);
+        hash.Add(ActionArtSlot);
+        hash.Add(ActionAnimationPhase);
+        hash.Add(ActionAnimationRate);
+        hash.Add((byte)ActionAnimationFlags);
+        hash.Add(ActionHandlerDone);
         hash.Add(AlarmX);
         hash.Add(AlarmY);
         hash.Add(AlarmDeficit);

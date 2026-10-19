@@ -13,6 +13,51 @@ namespace DK2.Tools.Tests;
 
 public sealed class PacketLogTests
 {
+    [Theory]
+    [InlineData(122351u, 221220u)]
+    [InlineData(111273u, 222521u)]
+    public void CreateImpCastsWithinOneTileRetainDistinctInputs(uint x, uint y)
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (4, x, y, 54), (4, x + 1, y + 1, 54));
+        Turn(bytes, 3);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            var commands = PacketLog.Read(path, 2, 69).At(2, new PacketEntityMap()).All;
+            var first = Assert.IsType<CreateImpCommand>(commands[0]);
+            var second = Assert.IsType<CreateImpCommand>(commands[1]);
+            Assert.Equal(first.At, second.At);
+            Assert.NotEqual(first, second);
+            Assert.Equal(new FpPosition2(new Fp32((int)x), new Fp32((int)y)), first.Position);
+            var firstHash = Hash64.Start();
+            var secondHash = Hash64.Start();
+            first.HashInto(ref firstHash);
+            second.HashInto(ref secondHash);
+            Assert.NotEqual(firstHash.Value, secondHash.Value);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void CreateImpPacketKeepsSignedCoordinatesOutsideTheMap()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (4, uint.MaxValue, 1337, 54));
+        Turn(bytes, 3);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            var cast = Assert.IsType<CreateImpCommand>(Assert.Single(
+                PacketLog.Read(path, 2, 69).At(2, new PacketEntityMap()).All));
+            Assert.Equal(new FpPosition2(new Fp32(-1), new Fp32(1337)), cast.Position);
+            Assert.Equal(new TilePos(-1, 0), cast.At);
+        }
+        finally { File.Delete(path); }
+    }
+
     [Fact]
     public void ReadsRecordedTurnsAndRequiresObservedCreatureIds()
     {
@@ -139,7 +184,7 @@ public sealed class PacketLogTests
     /// <summary>The owner's Level 2 casts: spell 4 at (97305, 173923) in 1/4096 tile is
     /// tile (23, 42), where the probe saw the new imp appear.</summary>
     [Fact]
-    public void CreateImpAtAPlaceLandsOnItsTile_AndOtherPlaceSpellsAreNotDecoded()
+    public void CreateImpAtAPlaceRetainsItsPoint_AndOtherPlaceSpellsAreNotDecoded()
     {
         var bytes = new List<byte>(new byte[69]);
         Turn(bytes, 2, (4, 97305, 173923, 54));
@@ -152,7 +197,8 @@ public sealed class PacketLogTests
             PacketLog packet = PacketLog.Read(path, 3, 69);
             Assert.Empty(packet.EntityReferences);
             var map = new PacketEntityMap();
-            Assert.Equal(new CreateImpCommand(3, new DK2.Core.TilePos(23, 42)), Assert.Single(packet.At(2, map).All));
+            Assert.Equal(new CreateImpCommand(3, new FpPosition2(new Fp32(97305), new Fp32(173923))),
+                Assert.Single(packet.At(2, map).All));
             Assert.Throws<InvalidDataException>(() => packet.At(3, map));
         }
         finally { File.Delete(path); }

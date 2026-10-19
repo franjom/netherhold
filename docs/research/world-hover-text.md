@@ -66,7 +66,7 @@ either index; our retained-state model excludes creatures with no active state.
 The ordinary executable stores 500 UTF-16 name pointers at `0x0069A118`, then
 seven blood-group pointers at `0x0069A8E8`. `CreatureNamePool` reads these from
 the installed binary through the identity asset abstraction; no strings are
-bundled. The initial-map construction boundary is ADR-0510.
+bundled. The initial-map construction boundary is ADR-0515.
 
 ## Rooms and objects — CONFIRMED
 

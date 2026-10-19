@@ -332,7 +332,7 @@ MonoBehaviour:
   levelName: Level1
   saveFile: 
   seed: 1
-  fogOfWar: 0
+  fogOfWar: 1
   viewingPlayerId: 3
   tool: 0
   selectedRoomId: 1
@@ -342,6 +342,7 @@ MonoBehaviour:
   maxTicksPerFrame: 2
   classicMeshes: 1
   classicVertexLighting: 1
+  cheapLighting: 0
   nativeInitialAmbient: 1
   classicCreatureShadows: 1
   bendTerrain: 1

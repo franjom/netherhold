@@ -12,6 +12,23 @@ namespace DK2.Presentation.Tests;
 
 public sealed class CreatureBankHeightTests
 {
+    [InstallFact]
+    public void ACreationFallPreservesBothHeightsAboveTheGroundForInterpolation()
+    {
+        var (database, world, creature) = WaterPatch();
+        world.Tile(1, 1).TerrainId = database.Room(RoomTypeId.Lair).TerrainId;
+        creature.Dk2StateId = ImpCreationRules.FallingState;
+        creature.PosZ = creature.LastPosZ = ImpCreationRules.BirthHeightAboveFloor;
+        var view = new WorldView(database);
+        CreatureView born = view.Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(6144, born.Height);
+        Assert.Equal(6144, born.PreviousHeight);
+        creature.PosZ = 0;
+        CreatureView fallen = view.Creatures(world).Single(c => c.Id == creature.Id);
+        Assert.Equal(4096, fallen.Height);
+        Assert.Equal(6144, fallen.PreviousHeight);
+    }
+
     [InstallTheory]
     [InlineData(2, 1, 0xC00, 0x800, 0xD33)]
     [InlineData(0, 1, 0x400, 0x800, 0xD33)]

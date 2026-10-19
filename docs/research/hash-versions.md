@@ -15,11 +15,17 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**275** — `0xA1AAB81F09D3E916`. Add player `LastPaydayTick` and native-width creature name/blood indices to hashing and save state. Constructor identity draws use the main random stream. No wage/deadline rule changes. ADR-0295 amendment and ADR-0510; counter-gold input is new and absent from this fixture.
+**283** — `0x4AC035B7B9BD1F14`. Add player `LastPaydayTick` and native-width creature name/blood indices to hashing and save state. Constructor identity draws use the main random stream. No wage/deadline rule changes. ADR-0295 amendment and ADR-0515; counter-gold input is new and absent from this fixture. Numbered 275 on classic-look/step6 before master's 276–282 merged.
+
+**282** — `0xA98DDD15FD7EB37B`. `CreatureState.ActionArtSlot`, `ActionAnimationPhase`, `ActionAnimationRate`, `ActionAnimationFlags` and `ActionHandlerDone`, hashed and saved after `StateEnteredTick`: the dig and mining actions end on the stored clip (ADR-0514).
+
+**281** — `0x781C971C1E408A00`. Behaviour only: route requests and stops zero the body's velocity (`0x004D0F60`, `0x0048ECE0`; ADR-0513). No new fields.
+
+**280** — `0xA9BE08812B0B9989`. Eight verified Imp corrections integrated under ADR-0512; see [imp-fidelity-integration.md](imp-fidelity-integration.md). `CreatureState.PosZ` and `CreationVelocityZ` are saved and hashed. Versions 275–279 were isolated experiments; their pins do not describe this composition.
 
 **274** — `0x34A682FB8867CE5B`. Steering axes use resulting velocity after clamping (ADR-0509); no new fields. Versions 270–273 belong to preserved Imp experiments.
 
-**269** — `0xFA0172F155ECAA5C`. Native-byte Heart routing and the earlier small core guard (ADR-0505); no new fields. Versions 266–268 belong to preserved, rejected Imp candidates.
+**269** — `0xFA0172F155ECAA5C`. Native-byte Heart routing and the earlier small core guard (ADR-0505); no new fields. Versions 266–268 belong to earlier Imp experiments; ADR-0512 records their integrated and provisional parts.
 
 **265** — `0x10A9C84139F8DF10`. Behaviour only: creature neighbours come from the native tile rectangle before combined-radius contact checks; the torturer's victim route retains native arrival flags (ADR-0500). No new saved field.
 
@@ -386,12 +392,4 @@ snapshotted bool, and with it a collapsed-window rule that reads the world rathe
 the definition alone: four gates where there was one (Q303, ADR-0138). A state field
 was added, so the snapshot format moves to 56 with it.
 
-**55** — `0xCB555B61573BE9F8`, and `0xE5035AF2FB584476` until 2026-09-10,
-when the gate's world gained two creatures and the literal was re-pinned **without**
-a version change: the fixture moved, not the hash or the shape of the state (Q206).
-A continuing marked dig task re-resolves the tile before each
-application, so Reinforced Wall proceeds through Rock to Dirt Path (ADR-0134).
-No state field changed; the version separates snapshots whose resumed jobs have
-different behaviour.
-
-[Versions 9–54](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–55](hash-versions-early.md) retain the earlier pins and their reasons.

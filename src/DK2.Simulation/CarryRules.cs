@@ -102,10 +102,8 @@ public static class CarryRules
         return best;
     }
 
-    /// <summary>Puts <paramref name="body"/> into <paramref name="worker"/>'s arms. The body keeps
-    /// every clock it was running: the rescue window does not pause for being carried, so an imp
-    /// with too far to walk arrives with a corpse. UNKNOWN whether the original pauses it
-    /// (Q164).</summary>
+    /// <summary>Puts <paramref name="body"/> into <paramref name="worker"/>'s arms. The dying and
+    /// corpse windows pause while it is carried (Q164; CreatureHealthSystem).</summary>
     public static void PickUp(CreatureState worker, CreatureState body)
     {
         worker.CarriedCreatureId = body.Id;
