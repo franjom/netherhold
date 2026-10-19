@@ -8,7 +8,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: **Q600**, **Q601**, **Q602** (raised here).
+Questions: **Q600**, **Q601**, **Q614** (raised here).
 
 ADR-0481 owns the decision and its limits; this page owns what has been run and what it found.
 Setup, the request format and when to reach for it are in `reverse-engineering/README.md`.
@@ -68,7 +68,7 @@ step with the earlier capture.
     on lava. A fresh idle Level 7 (`level7-dump`, dumps at ticks 7, 100 and 500) holds 3 on both
     Hearts' centres in all three, the 1% Heart's included after its heart object is gone at tick
     21. The 2026-09-17 Level 7 dump that held floor there is unexplained.
-- **The water flag (Q602).** The per-tick caller `0x004D5A40` sets every mover global but
+- **The water flag (Q614).** The per-tick caller `0x004D5A40` sets every mover global but
   `0x006EC9E4` (water), so a creature's steering reads whatever the flag's last writer left.
   Its one reader is `Nav_StepCost` `0x004C8BD0`, the router's and `Avoid_Walls`' step cost. Its
   four writers: the route request `0x004D0F60` and `Creature_CanRouteTo` `0x004D0E60` (definition
@@ -79,8 +79,14 @@ step with the earlier capture.
   steering after any other creature's writer may take such steps, and any creature steering after
   a Vampire's request may not. By a survey of the shipped THINGS files and maps (2026-10-15),
   Vampires are placed on 11 maps, eight with water (Level 13: 29 of them, 510 water tiles); a
-  Graveyard makes more. The test gives each case
-  its own value, as our profile does; whether the difference moves an outcome is not measured.
+  Graveyard makes more. The test gives each case its own value, as our profile does.
+- **The water flag measured on Level 13 (Q614).** A fresh Level 13 (`level13-dump`, the owner
+  building in their own dungeon) dumped at ticks 10, 100, 200, 300, 400, 500, 700 and 1000. The
+  flag in memory was 0 at ticks 100 to 400, consistent with a Vampire writing last, and 1 at the others. On each
+  dump `Avoid_Walls` was run for all 102 live creatures with the flag at 0 and at 1: the force
+  differs for 1 to 5 of them per dump, up to 4 of the 29 Vampires and, beside water, Monks,
+  Guards, a Giant, a Dwarf and an Imp. So where a dumped value is the one the next steering call reads, the stale flag changes DK2's answers;
+  whether that moves an outcome is not measured. The probe was a scratch script, not committed.
 
 ## Confidence
 
