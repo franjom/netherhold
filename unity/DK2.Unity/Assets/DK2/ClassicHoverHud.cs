@@ -126,7 +126,7 @@ namespace DK2.Unity
             if (font == null || _screenHeight != Screen.height)
             {
                 font = _assets.Font(InterfaceFonts.HudTextFileName(Screen.height));
-                tooltipFont = font;   // the popup shares the strip's style 0x00741320
+                tooltipFont = _assets.Font(InterfaceFonts.HudTooltipFileName(Screen.height));
             }
             bool fontChanged = !ReferenceEquals(font, _font) || !ReferenceEquals(tooltipFont, _tooltipFont);
             _font = font; _tooltipFont = tooltipFont; _screenHeight = Screen.height; _screenWidth = Screen.width;
@@ -154,9 +154,8 @@ namespace DK2.Unity
                 if (_scroll <= 0) { _scroll = 0; _scrollForward = true; }
             }
             else _scroll = 0;
-            // DK2's text widget 0x00693318 sits at the strip's top, (0,0,1440,88): top-aligned,
-            // the glyphs keeping their own BF4 top bearing.
-            Place(_statusImage, -_scroll, 0, width, _statusTextTexture?.height ?? 0);
+            Place(_statusImage, -_scroll, (strip.height - (_statusTextTexture?.height ?? 0)) / 2,
+                width, _statusTextTexture?.height ?? 0);
             bool popupVisible = _delay.Visible(snapshot, (long)(Time.unscaledTimeAsDouble * 1000), ShowCreatureTooltip);
             _popup.style.display = popupVisible ? DisplayStyle.Flex : DisplayStyle.None;
             if (popupVisible) LayoutTooltip(cursorGui);

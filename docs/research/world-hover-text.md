@@ -160,13 +160,11 @@ rasterizes original BF4 text only when strings, fonts or wrapping change.
 Its status clip scrolls the retained text image; nine retained images form
 the popup frame. Its physical-pixel panel keeps the approved font readable.
 
-Strip and popup share one font, as DK2's style 0x00741320 does. DK2 picks that file by
-width through 0x00553690 (base 10 at widths other than 400/512/800/1024; 14 at 1024);
-whether it scales the glyphs is unread. Ours is the largest shipped size within
-height/96 (`InterfaceFonts.HudTextFileName`), matching the owner's 1280-wide DK2
-screenshot (2026-10-19). The strip sits at menu53's virtual y 20 (StatusBounds), and the
-text at its menu-local y 0, as widget 0x00693318's rectangle reads; the owner's screenshot
-shows the same top alignment. Scrolling is time-based at 60 pixels
+DK2's strip and popup share style 0x00741320, whose file DK2 picks by width through
+0x00553690 (base 10 at widths other than 400/512/800/1024; 14 at 1024). Ours is the
+owner's choice, not DK2's: the strip uses the largest shipped size within height/60,
+vertically centred, and the popup half that, height/120. On 2026-10-19 the owner
+approved that size and rejected a DK2-proportioned height/96, top-aligned trial. Scrolling is time-based at 60 pixels
 per second, approximating the original's one-pixel-per-callback motion.
 Ordinary room templates and their supported state substitutions are built as
 described above. Special object branches, creature personal-name generation, shots and structure status

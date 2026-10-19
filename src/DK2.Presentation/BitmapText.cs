@@ -58,13 +58,18 @@ public static class InterfaceFonts
     public static string LegibleFileName(int screenHeight) => LargestWithin(screenHeight, 40);
 
     /// <summary>
-    /// Our rule, not DK2's. The top status strip and the hover popup share DK2's style
-    /// <c>0x00741320</c>, base size 10, whose file DK2 picks by screen width (<see cref="IngamePointSize"/>:
-    /// 10 at 1280, 14 at 1024); whether it then scales is unread. We take the largest shipped size
-    /// within height/96: 8 at 768, 10 at 1080, 14 at 1440, 22 at 2160, which matches the owner's
-    /// 1280-wide DK2 screenshot (2026-10-19) and stays readable at 4K.
+    /// Our choice, not DK2's: the top status strip and the world hover popup use the largest
+    /// shipped in-game size no bigger than a sixtieth of the screen height: 12 at 768, 18 at
+    /// 1080 and 24 at 1440. The owner found the subtitle size too large for them (2026-10-19).
     /// </summary>
-    public static string HudTextFileName(int screenHeight) => LargestWithin(screenHeight, 96);
+    public static string HudTextFileName(int screenHeight) => LargestWithin(screenHeight, 60);
+
+    /// <summary>
+    /// Our choice, not DK2's: hover tooltips are half the status strip's size, a 120th of the
+    /// screen height (9 at 1080, 12 at 1440, the smallest shipped 7 below 960), at the owner's
+    /// request (2026-10-19).
+    /// </summary>
+    public static string HudTooltipFileName(int screenHeight) => LargestWithin(screenHeight, 120);
 
     private static string LargestWithin(int screenHeight, int divisor)
     {
