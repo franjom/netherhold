@@ -79,6 +79,12 @@ Runs fall into two modes: native-like (reinforce 94–344) and reinforce-heavy (
 | Hash 282, ADR-0514 | 2/5 | 1300 | 9 | 669 | 0 |
 | Hash 283, ADR-0515 | 2/5 (2 more at 395–407) | 690 | 32 | 722 | 0 |
 
+With an entity map built for each seed, so the player's pickups land on the right
+creatures, hash 283 gives median Imp deaths of 22 (other columns as above). Hash 284
+(ADR-0516) raises (33,55)'s fresh claim in 4/5 seeds at turns 1195–1258 (native 1225),
+where 283 never did. Reinforce-light runs rise to 4/5, the median distance falls to
+404 and mining averages 676. Median Imp deaths are 30, ranging from 5 to 40.
+
 Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
 Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
 not matched to DK2's. Results and scripts: `D:\DK2Evidence\outcomes-2026-10-19-level4`.
