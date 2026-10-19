@@ -27,7 +27,8 @@ namespace DK2.Unity
         private readonly PanelSettings _settings;
         private readonly VisualElement _root;
         private readonly Dictionary<string,Texture2D> _textures=new Dictionary<string,Texture2D>();
-        private readonly Image[] _portraits=new Image[MaximumColumns],_highlight=new Image[MaximumColumns],_jobs=new Image[4];
+        private readonly Image[] _portraits=new Image[MaximumColumns],_highlight=new Image[MaximumColumns];
+        private readonly Image _workerStrip;
         private readonly Image[] _digits=new Image[(MaximumColumns*4+4)*5];
         private readonly Image _modeStrip,_modeHighlight;
         private readonly Image _modeFrame;
@@ -50,8 +51,9 @@ namespace DK2.Unity
             var document=_owner.AddComponent<UIDocument>();document.panelSettings=_settings;
             _root=document.rootVisualElement;_root.pickingMode=PickingMode.Ignore;
             for(int i=0;i<MaximumColumns;i++) { _portraits[i]=Picture(null);_highlight[i]=Picture("GUI\\Tabs\\t-cp-hilight"); }
-            string[] jobs={"Total","Idle","Busy","Fighting"};
-            for(int i=0;i<4;i++) _jobs[i]=Picture("GUI\\Jobs\\Expert\\"+jobs[i]);
+            // Menu 6's worker sidebar is one strip, catalogue 157 (widget 0x00690488); the
+            // GUI\Jobs\Expert icons are the mode-selector widgets' art, not this column.
+            _workerStrip=Picture("GUI\\Tabs\\t-cp-imp");
             for(int i=0;i<_digits.Length;i++) _digits[i]=Picture(null);
             _previous=Picture("GUI\\Pages\\page_back");_next=Picture("GUI\\Pages\\page_forward");
             _modeStrip=Picture("GUI\\Tabs\\t-creature_panel");
@@ -103,15 +105,15 @@ namespace DK2.Unity
                 }
             }
             CreatureOverviewWorkerCounts workers=_view.WorkerCounts;
+            Place(_workerStrip,V(476),V(1608),V(64),V(264));
             for(int i=0;i<4;i++)
             {
-                Place(_jobs[i],V(472),V(1604+i*64),V(80),V(i==1?68:72));
                 int value=i==0?workers.Total:i==1?workers.Idle:i==2?workers.Busy:workers.Fighting;
                 Digits(i,value,V(604),V(1624+i*64),true);
             }
-            _previous.style.display=_page>0?DisplayStyle.Flex:DisplayStyle.None;
-            _next.style.display=_page<pages-1?DisplayStyle.Flex:DisplayStyle.None;
-            Place(_previous,V(760),V(1612),V(64),V(132));Place(_next,V(760),V(1744),V(64),V(132));
+            // Both page strips are always drawn, forward (catalogue 10) above back (11):
+            // widgets 0x0068FFD8 and 0x00690028. Which way each pages (0x00417730) is unread.
+            Place(_next,V(760),V(1612),V(64),V(132));Place(_previous,V(760),V(1744),V(64),V(132));
             Place(_modeStrip,V(680),V(1608),V(64),V(264));
             Place(_modeHighlight,V(692),V(1616+(int)Mode*64),V(44),V(52));
             _modeHighlight.tintColor=Mode==CreatureOverviewMode.Total?Color.white:Mode==CreatureOverviewMode.Jobs?
@@ -132,7 +134,7 @@ namespace DK2.Unity
                     if(new Rect(V(692),V(1616+i*64),V(44),V(52)).Contains(point))
                     { Mode=(CreatureOverviewMode)i;return false; }
             if(primary && new Rect(V(760),V(1612),V(64),V(264)).Contains(point))
-            { _page=Math.Max(0,_page+(point.y<V(1744)?-1:1));return false; }
+            { _page=Math.Max(0,_page+(point.y<V(1744)?1:-1));return false; }
             if(_view.Entries.Count>0 && new Rect(V(472),V(1600),V(192),V(256)).Contains(point))
             {
                 int row=Math.Min(3,Math.Max(0,(int)((point.y-V(1600))/V(64))));

@@ -55,11 +55,20 @@ public static class InterfaceFonts
     /// 1080 and 36 at 1440. DK2 itself keeps size 10 at most widths (<see cref="IngamePointSize"/>),
     /// which the owner found unreadable at high resolutions (2026-10-17).
     /// </summary>
-    public static string LegibleFileName(int screenHeight)
+    public static string LegibleFileName(int screenHeight) => LargestWithin(screenHeight, 40);
+
+    /// <summary>
+    /// Our choice, not DK2's: the top status strip and the world hover popup use the largest
+    /// shipped in-game size no bigger than a sixtieth of the screen height: 12 at 768, 18 at
+    /// 1080 and 24 at 1440. The owner found the subtitle size too large for them (2026-10-19).
+    /// </summary>
+    public static string HudTextFileName(int screenHeight) => LargestWithin(screenHeight, 60);
+
+    private static string LargestWithin(int screenHeight, int divisor)
     {
         int chosen = IngameSizes[0];
         foreach (int size in IngameSizes)
-            if (size * 40 <= screenHeight) chosen = size;
+            if (size * divisor <= screenHeight) chosen = size;
         return $"FONT_INGAME{chosen}.bf4";
     }
 

@@ -155,8 +155,10 @@ eligibility and the source of a dig-hover rectangle remain UNKNOWN.
 Implementation: `TileHoverOutline` retains the full-height rest grid, endpoint
 table, radius and blue peak. `ClassicTileHoverOutline` emits one camera-facing
 quad per segment in a retained mesh. Native emits two crossed textured ribbons
-with both windings; our untextured, depth-tested shader is an explicit visual
-approximation pending the native material contract. The adapter samples the
+with both windings; native UVs run 0..1 across the ribbon. Ours blends additively
+with a bright-centre profile `centre^2.15` across that width (a third wider than
+the cubic first tried, owner 2026-10-19), so the 0.06-tile band reads as a thin light line; both are matched to the owner's DK2 screenshot (2026-10-19,
+"too thick and too blue" against the earlier opaque band), not read. The adapter samples the
 existing terrain lattice at the unbiased layer positions, then applies the
 -0.05 height bias; its reuse of the terrain sampler remains an approximation
 until compared against the native procedural grid builder. The pulse draws

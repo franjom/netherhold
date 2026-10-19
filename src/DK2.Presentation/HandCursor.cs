@@ -3,6 +3,9 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Numerics;
+using DK2.Core;
+using DK2.Data.Model;
+using DK2.Simulation;
 
 namespace DK2.Presentation;
 
@@ -16,6 +19,23 @@ public readonly record struct HandCursorPlacement(Vector2 Origin, Vector2 Size);
 [DK2.Core.Dk2Behavior(DK2.Core.Confidence.Confirmed, "docs/research/hand-cursor-rendering.md")]
 public static class HandCursor
 {
+    /// <summary>Whether the hovered tile takes the excavation cursor: tagged by the viewer, Taggable
+    /// terrain (CONFIRMED: the picker <c>0x005992B0</c> sets its target bit from terrain flag
+    /// <c>0x08</c>), or hidden by fog (LIKELY: the owner saw the dig cursor over "Fog of War",
+    /// fog-of-war.md §9.2, and the picker gates on the explored bit <c>+9</c>&amp;<c>0x20</c> with
+    /// register arguments unresolved). Fog is the explored layer, as the hover text and minimap
+    /// read it. The tag command (PlayerInput, TileTagSystem) still tests the scanned layer; the
+    /// native tag gate is unread, so the two are not yet reconciled.</summary>
+    public static bool ShowsDig(WorldState world, GameDatabase database, TilePos tile, PlayerId viewer)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (database is null) throw new ArgumentNullException(nameof(database));
+        var state = world.Tile(tile);
+        return state.IsTaggedBy(viewer)
+            || world.FogOfWarEnabled && !state.IsExploredBy(viewer)
+            || database.TerrainById(state.TerrainId).IsTaggable;
+    }
+
     public static HandCursorKind ForHover(bool tileTarget, bool excavationEligible, bool pickupEligible) =>
         tileTarget && excavationEligible ? HandCursorKind.Dig
             : pickupEligible ? HandCursorKind.Pickup : HandCursorKind.Point;

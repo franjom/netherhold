@@ -47,9 +47,13 @@ from those widgets: worker(544,1608,128,264), ordinary(912+136*i,1612,128,264).
 The native capacity calculation divides category width minus432 by116 although columns
 advance136; the adapter preserves that calculation pending visual verification.
 
-Sidebar job icons are catalogue65/56/50/53 (Total/Idle/Busy/Fighting),
-local(0,4+64*i,80,72), with Idle height68. Count rows use filters0/5/6/4.
-Page-back/forward use original GUI/Pages/page_back and page_forward artwork.
+The worker sidebar is one strip, catalogue157 `GUI/Tabs/t-cp-imp` (32×128;
+widget `0x00690488`, menu6 local(4,8,64,264)). Catalogue65/56/50/53 are the art
+fields of the mode-selector widgets at `0x006902F8`, not the sidebar; `00417850`
+draws only counts and highlight162 over it (corrected 2026-10-19 after the owner's
+comparison). Count rows use filters0/5/6/4.
+Both page strips are always drawn, page_forward (catalogue10, widget `0x0068FFD8`)
+above page_back (11, `0x00690028`). `0x00417730` adds a delta and clamps; the widgets' `+0x16` words read +1 (forward) and -1 (back), so top pages forward (LIKELY; the caller is indirect). The page callback `0x00410A60` writes visibility state3 when the roster fits one page; what state3 draws is unread, and the adapter draws both strips normally.
 Hover highlight is catalogue162 GUI/Tabs/t-cp-hilight tinted00FFC9.
 Numeric family selection follows [HUD resources](hud-resources.md).
 

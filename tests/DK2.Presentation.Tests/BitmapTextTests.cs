@@ -32,6 +32,14 @@ public class BitmapTextTests
     public void OurLegibleSizeIsTheLargestShippedFontWithinAFortiethOfTheHeight(int height, string file) =>
         Assert.Equal(file, InterfaceFonts.LegibleFileName(height));
 
+    [Theory]
+    [InlineData(480, "FONT_INGAME8.bf4")]
+    [InlineData(768, "FONT_INGAME12.bf4")]
+    [InlineData(1080, "FONT_INGAME18.bf4")]
+    [InlineData(1440, "FONT_INGAME24.bf4")]
+    public void HudTextIsTheLargestShippedFontWithinASixtiethOfTheHeight(int height, string file) =>
+        Assert.Equal(file, InterfaceFonts.HudTextFileName(height));
+
     [Fact]
     public void InferredWrapKeepsADoubleSpaceInsideALine()
     {

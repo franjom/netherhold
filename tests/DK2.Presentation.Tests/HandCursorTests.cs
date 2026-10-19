@@ -5,6 +5,7 @@
 using System.Numerics;
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation;
 using DK2.Simulation.Commands;
 
 namespace DK2.Presentation.Tests;
@@ -88,4 +89,38 @@ public sealed class HandCursorTests
         Assert.Empty(snapshot.ForHover(new WorldHoverHit(WorldHoverKind.Tile, hover.Tile)).Targets);
         Assert.Empty(snapshot.ForHover(new WorldHoverHit(WorldHoverKind.Object, hover.Tile, 99)).Targets);
     }
+
+    [Fact]
+    public void ExploredFloorTakesThePointingHandAndUnexploredFogTakesTheDigCursor_FogClauseLikely()
+    {
+        GameDatabase database = new(
+            [Terrain(1, "Floor", TerrainFlags.Ownable), Terrain(3, "Gold", TerrainFlags.Solid | TerrainFlags.Taggable)],
+            rooms: [], creatures: [], variables: new GlobalVariables());
+        var map = new LevelMap(5, 1,
+            [new MapTile(1, 2, 0, 0), new MapTile(1, 1, 0, 0), new MapTile(3, 0, 0, 0), new MapTile(1, 2, 0, 0), new MapTile(1, 1, 0, 0)]);
+        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var viewer = new PlayerId(2);
+        world.Tile(0, 0).SetExploredBy(viewer);
+        world.Tile(2, 0).SetExploredBy(viewer);
+        world.Tile(3, 0).SetExploredBy(viewer);
+        world.Tile(3, 0).SetTaggedBy(viewer, true);
+
+        Assert.False(world.Tile(0, 0).IsDiscoveredBy(viewer));
+        Assert.False(world.Tile(1, 0).IsExploredBy(viewer));
+        Assert.False(HandCursor.ShowsDig(world, database, new TilePos(0, 0), viewer));
+        Assert.True(HandCursor.ShowsDig(world, database, new TilePos(1, 0), viewer));
+        Assert.True(HandCursor.ShowsDig(world, database, new TilePos(2, 0), viewer));
+        Assert.True(HandCursor.ShowsDig(world, database, new TilePos(3, 0), viewer));
+        // Scanned but unexplored (a Claim Scan tile): the case the layer change moved from Point to Dig.
+        world.Tile(4, 0).SetDiscoveredBy(viewer);
+        Assert.False(world.Tile(4, 0).IsExploredBy(viewer));
+        Assert.True(HandCursor.ShowsDig(world, database, new TilePos(4, 0), viewer));
+    }
+
+    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags) => new()
+    {
+        Name = name, TerrainId = id, Flags = flags, StartingHealth = 1, MaxHealth = 1,
+        GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = 0, NameStringId = 0, TooltipStringId = 0,
+        MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id, Depth = new Fp32(0),
+    };
 }

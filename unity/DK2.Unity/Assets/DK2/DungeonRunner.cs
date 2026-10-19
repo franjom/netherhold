@@ -1005,9 +1005,7 @@ namespace DK2.Unity
                     else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState obj)
                         pickup = HandRules.CanPickUpObject(world, _simulation.Database, obj, viewer)
                             && HandRules.MayReachObject(world, _simulation.Database, obj, viewer);
-                    bool dig = world.Tile(tile).IsTaggedBy(viewer)
-                        || world.FogOfWarEnabled && !world.Tile(tile).IsDiscoveredBy(viewer)
-                        || _simulation.Database.TerrainById(world.Tile(tile).TerrainId).IsTaggable;
+                    bool dig = HandCursor.ShowsDig(world, _simulation.Database, tile, viewer);
                     if (ActiveTool == PlayerToolMode.Hand)
                         cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
                     if (cursor == HandCursorKind.Dig) highlightedTile = tile;

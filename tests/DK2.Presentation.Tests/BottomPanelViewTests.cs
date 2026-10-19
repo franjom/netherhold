@@ -72,6 +72,34 @@ public sealed class BottomPanelViewTests
     }
 
     [InstallFact]
+    public void SpellsAndWorkshopTabsShowOnlyWhenOneOfTheirChoicesIsPresent()
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        PlayerId keeper = PlayerIds.FirstKeeper;
+        foreach (KeeperSpellDef spell in db.KeeperSpells.Values) world.SetAvailability(keeper, AvailabilityKind.Spell, spell.KeeperSpellId, 1);
+        foreach (DoorDef door in db.Doors.Values) world.SetAvailability(keeper, AvailabilityKind.Door, door.DoorId, 1);
+        foreach (TrapDef trap in db.Traps.Values) world.SetAvailability(keeper, AvailabilityKind.Trap, trap.TrapId, 1);
+        var panel = new BottomPanelView(db, keeper, (_, name) => name);
+
+        world.SetAvailability(keeper, AvailabilityKind.Spell, 5, 3);
+        TrapDef? hidden = db.Traps.Values.FirstOrDefault(t => (t.Flags & 0x2000) != 0);
+        if (hidden != null) world.SetAvailability(keeper, AvailabilityKind.Trap, hidden.TrapId, 3);
+        panel.Capture(world);
+        Assert.True(panel.TabVisible(BottomPanelCategory.Creatures));
+        Assert.True(panel.TabVisible(BottomPanelCategory.Rooms));
+        Assert.False(panel.TabVisible(BottomPanelCategory.Spells));
+        Assert.False(panel.TabVisible(BottomPanelCategory.Workshop));
+
+        world.SetAvailability(keeper, AvailabilityKind.Spell, db.KeeperSpells.Values.First(s => s.KeeperSpellId is not 5 and not 14).KeeperSpellId, 2);
+        world.SetAvailability(keeper, AvailabilityKind.Door, db.Doors.Values.First().DoorId, 3);
+        panel.Capture(world);
+        Assert.True(panel.TabVisible(BottomPanelCategory.Spells));
+        Assert.True(panel.TabVisible(BottomPanelCategory.Workshop));
+    }
+
+    [InstallFact]
     public void UnknownAndAbsentRoomsCannotSelectAndHandCancelsTheSelectedRoom()
     {
         var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);

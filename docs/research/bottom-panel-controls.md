@@ -68,6 +68,9 @@ The model sorts by that field. Secondary room-slot navigation uses the separate
 
 ## Spells and workshop (partially CONFIRMED)
 
+Tab visibility is [0x00416E20](functions/00416E20.md) (CONFIRMED): Creatures and Rooms
+always show; Spells and Workshop show only while one of their filtered choices has
+availability other than1, and a hidden tab keeps its place.
 The common renderer's spell branch excludes spell5 and14 from the normal grid.
 It uses separate unknown icons, upgrade state, cooldown wedges and tutorial
 indicators. Workshop enumeration places doors before traps and excludes

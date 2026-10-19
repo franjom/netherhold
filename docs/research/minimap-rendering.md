@@ -215,7 +215,7 @@ the filenames. `0x004129E0` substitutes active art for upper-left mode 10,
 upper-right mode 4 and lower-left field `+0x2722`; meanings are in [minimap-controls.md](minimap-controls.md).
 Unselected, unhovered minimap corners skip the sprite draw: their idle images
 are already part of the frame. Drawing all four overlays continuously duplicates
-that artwork.
+that artwork. The default `mapbf-00..02` sprites are a bare border, the hover outline; the adapter draws overlays at 32 texels at the frame's scale over frame texels (0,0), (79,0), (0,78) and (79,78): MEASURED by matching against `gui/map/map` and owner-confirmed (2026-10-19), not read; the native sizing path is open.
 
 The corner callback pairs are: upper left `0x0041A2B0`/none; upper right
 `0x004163F0`/none; lower right `0x00416480`/`0x00416580`; lower left

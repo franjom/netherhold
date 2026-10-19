@@ -35,13 +35,17 @@ namespace DK2.Unity
             _material = new Material(shader); _renderer.sharedMaterial = _material;
             _renderer.shadowCastingMode = ShadowCastingMode.Off; _renderer.receiveShadows = false;
             int[] triangles = new int[144];
+            var uv = new Vector2[96];
             for (int i = 0; i < 24; i++)
             {
                 int v = i * 4, t = i * 6;
                 triangles[t] = v; triangles[t + 1] = v + 1; triangles[t + 2] = v + 2;
                 triangles[t + 3] = v + 2; triangles[t + 4] = v + 1; triangles[t + 5] = v + 3;
+                // 0x0059DD30 runs the ribbon's UVs 0..1 across its width.
+                uv[v] = new Vector2(0, 0); uv[v + 1] = new Vector2(0, 1);
+                uv[v + 2] = new Vector2(1, 0); uv[v + 3] = new Vector2(1, 1);
             }
-            _mesh.vertices = _vertices; _mesh.triangles = triangles;
+            _mesh.vertices = _vertices; _mesh.uv = uv; _mesh.triangles = triangles;
             TileHoverOutline.Indices(TileHoverEdges.All | TileHoverEdges.Blue, _endpoints);
             _renderer.enabled = false;
         }

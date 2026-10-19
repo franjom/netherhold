@@ -13,6 +13,7 @@ namespace DK2.Unity
 {
     public sealed class MinimapFrameVisual : IDisposable
     {
+        private const float FrameTexel = 204.8f / 128, CornerSize = 32 * FrameTexel;
         private readonly List<Texture2D> _textures = new List<Texture2D>();
         private readonly VisualElement _root;
         private readonly Image[] _corners = new Image[4];
@@ -35,14 +36,16 @@ namespace DK2.Unity
                     Texture2D texture = Decode(assets.Corner((MinimapCorner)i, active != 0));
                     _cornerTextures[i * 2 + active] = texture; _textures.Add(texture);
                 }
+                // Measured, not read: each 32-texel corner is drawn at the frame's 1.6 px a texel
+                // over the frame's own corner art, at texels (0,0), (79,0), (0,78) and (79,78),
+                // found by matching the sprites against gui/map/map. A candidate sprite renderer,
+                // 0x0059B0C0, sizes sprites by resource size times render scale; whether the live
+                // minimap uses it is open. The owner confirmed the result (2026-10-19).
                 var corner = new Image { pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
                 corner.style.position = Position.Absolute;
-                corner.style.width = i == 0 ? 49.6f : i == 1 ? 48 : 51.2f;
-                corner.style.height = i < 2 ? 48 : 51.2f;
-                if (i == 0 || i == 2) corner.style.left = 0;
-                else corner.style.right = i == 1 ? 8 : 6.4f;
-                if (i < 2) corner.style.top = 0;
-                else corner.style.bottom = i == 2 ? 8 : 6.4f;
+                corner.style.width = CornerSize; corner.style.height = CornerSize;
+                corner.style.left = i == 1 || i == 3 ? 79 * FrameTexel : 0;
+                corner.style.top = i >= 2 ? 78 * FrameTexel : 0;
                 corner.style.display = DisplayStyle.None;
                 _corners[i] = corner; _root.Add(corner);
             }

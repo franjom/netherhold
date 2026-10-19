@@ -43,7 +43,7 @@ namespace DK2.Unity
         public RgbaImage TooltipPiece(int index) => _pieces[index];
         public BitmapFont Font(int screenHeight)
         {
-            string file = InterfaceFonts.LegibleFileName(screenHeight);
+            string file = InterfaceFonts.HudTextFileName(screenHeight);
             if (!_fonts.TryGetValue(file, out BitmapFont font))
             { font = Bf4FontReader.Open(Path.Combine(_textDirectory, file)); _fonts.Add(file, font); }
             return font;

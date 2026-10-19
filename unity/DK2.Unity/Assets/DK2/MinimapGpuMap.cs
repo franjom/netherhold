@@ -109,6 +109,11 @@ namespace DK2.Unity
         {
             if (grid.Width != Classes.width || grid.Height != Classes.height)
                 throw new ArgumentException("Minimap grid dimensions changed.", nameof(grid));
+            // A render texture's contents do not survive a device loss; refill it whole.
+            if (!Classes.IsCreated())
+            {
+                Classes.Create(); _material.SetTexture("_Classes", Classes); grid.MarkAllChanged();
+            }
             var changes = grid.Changes;
             LastUploadedTiles = changes.Length;
             if (changes.Length == 0) return;
@@ -128,7 +133,7 @@ namespace DK2.Unity
         public void Render(float headingDegrees, int diameter)
         {
             diameter = Mathf.Clamp(diameter, 1, 4096);
-            if (_disc == null || _disc.width != diameter)
+            if (_disc == null || _disc.width != diameter || !_disc.IsCreated())
             {
                 if (_disc != null) { _disc.Release(); UnityEngine.Object.Destroy(_disc); }
                 _disc = Target(diameter, diameter, linear: false); _dirty = true;

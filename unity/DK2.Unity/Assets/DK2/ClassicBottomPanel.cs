@@ -124,6 +124,7 @@ namespace DK2.Unity
             for (int i = 0; i < 4; i++)
             {
                 Place(_tabs[i], BottomPanelLayout.Tab(i));
+                _tabs[i].style.display = _view.TabVisible((BottomPanelCategory)i) ? DisplayStyle.Flex : DisplayStyle.None;
                 _tabs[i].tintColor = i == (int)_category ? Color.white : new Color(.65f, .65f, .65f, 1);
             }
             int count = 0;

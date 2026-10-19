@@ -222,6 +222,24 @@ public sealed class MinimapTests
     }
 
     [Fact]
+    public void MarkingTheWholeGridChangedRepublishesEveryCurrentCellOnceForALostRenderTarget()
+    {
+        var grid = new MinimapClassGrid(width: 3, height: 2);
+        grid.ClearChanges();
+        grid.Set(new TilePos(2, 1), MinimapColourClass.Tagged);
+        grid.MarkAllChanged();
+        Assert.Equal(6, grid.Changes.Length);
+        Assert.Equal(new MinimapTileChange(new TilePos(2, 1), MinimapColourClass.Tagged), grid.Changes[5]);
+        Assert.True(grid.Set(new TilePos(2, 1), new MinimapColourClass(20)));
+        Assert.Equal(6, grid.Changes.Length);
+        Assert.Equal((ushort)20, grid.Changes[5].ColourClass.Index);
+        grid.ClearChanges();
+        Assert.Empty(grid.Changes.ToArray());
+        Assert.True(grid.Set(new TilePos(0, 0), new MinimapColourClass(39)));
+        Assert.Single(grid.Changes.ToArray());
+    }
+
+    [Fact]
     public void InvalidGridAddressesAndPaletteInputsAreRejected()
     {
         Assert.Throws<ArgumentException>(() => new MinimapPalette(new uint[36]));

@@ -52,6 +52,17 @@ public sealed class MinimapClassGrid
         return true;
     }
 
+    /// <summary>Queues every cell for upload, for a renderer whose copy of the grid was lost.</summary>
+    public void MarkAllChanged()
+    {
+        for (int i = 0; i < _cells.Length; i++)
+        {
+            _changes[i] = new MinimapTileChange(new TilePos(i % Width, i / Width), _cells[i]);
+            _changeSlots[i] = i;
+        }
+        _changeCount = _cells.Length;
+    }
+
     public void ClearChanges()
     {
         for (int i = 0; i < _changeCount; i++)

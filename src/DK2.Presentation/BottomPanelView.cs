@@ -59,6 +59,7 @@ public sealed class BottomPanelView
     private GameTick _capturedTick;
     private int _gold;
     private bool _ownedRoomsCaptured;
+    private bool _spellsTab, _workshopTab;
     private readonly bool[] _ownedRoomTypes = new bool[256];
     public IReadOnlyList<BottomPanelChoice> Choices => _choices;
     public BottomPanelChoice? Reaper { get; }
@@ -99,6 +100,16 @@ public sealed class BottomPanelView
         _choices = choices.ToArray();
     }
 
+    /// <summary>The tab updater <c>0x00416E20</c>: Creatures and Rooms always show; Spells shows
+    /// when a spell other than 5 and 14 has availability other than 1, and Workshop when a door, or
+    /// a trap without definition flag <c>0x2000</c>, does. A hidden tab keeps its place.</summary>
+    public bool TabVisible(BottomPanelCategory category) => category switch
+    {
+        BottomPanelCategory.Spells => _spellsTab,
+        BottomPanelCategory.Workshop => _workshopTab,
+        _ => true,
+    };
+
     public void Capture(WorldState world)
     {
         bool player = world.HasPlayer(_player);
@@ -112,6 +123,7 @@ public sealed class BottomPanelView
         }
         int gold = _gold;
         int mana = player ? world.Player(_player).Mana : 0;
+        _spellsTab = _workshopTab = false;
         foreach (BottomPanelChoice choice in _choices)
         {
             AvailabilityKind kind = choice.Kind switch
@@ -132,6 +144,8 @@ public sealed class BottomPanelView
                 choice.Cost = ImpSupplyRules.CreateImpCost(world, _database, _player);
             choice.Affordable = choice.Cost <= (choice.Kind == BottomPanelChoiceKind.Spell ? mana : gold);
             choice.Selected = Selection.Choice == choice.Key;
+            if (choice.Visible && choice.Kind == BottomPanelChoiceKind.Spell) _spellsTab = true;
+            else if (choice.Visible && choice.Kind != BottomPanelChoiceKind.Room) _workshopTab = true;
         }
         if (Reaper is BottomPanelChoice reaper)
         {
