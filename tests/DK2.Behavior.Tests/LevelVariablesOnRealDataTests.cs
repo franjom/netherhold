@@ -99,9 +99,12 @@ public class LevelVariablesOnRealDataTests
         Assert.True(level1.Variables.TryGet(VariableTypeId.GameTicks, out int gameTicks));
         Assert.Equal(340, gameTicks);
 
-        // The merge adds and never loses: level 1 contributes five ids the global
-        // table lacks, so the merged count is exactly five higher.
-        Assert.Equal(global.Variables.Misc.Count + 5, level1.Variables.Misc.Count);
+        // The merge adds and never loses: level 1 contributes four plain ids the global
+        // table lacks, so the merged count is exactly four higher. Its fifth, id 77, is a
+        // structured record list kept apart from Misc since ADR-0491.
+        Assert.Equal(global.Variables.Misc.Count + 4, level1.Variables.Misc.Count);
+        Assert.Empty(global.Variables.CreatureFieldOverrides);
+        Assert.Equal(2, level1.Variables.CreatureFieldOverrides.Count);
     }
 
     /// <summary>
