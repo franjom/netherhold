@@ -91,6 +91,10 @@ public sealed class BottomPanelViewTests
         Assert.True(panel.TabVisible(BottomPanelCategory.Rooms));
         Assert.False(panel.TabVisible(BottomPanelCategory.Spells));
         Assert.False(panel.TabVisible(BottomPanelCategory.Workshop));
+        Assert.True(panel.TabDimmed(BottomPanelCategory.Workshop));
+        Assert.False(panel.TabDimmed(BottomPanelCategory.Rooms));
+        bool ownsCreature = world.Creatures.Any(c => c.OwnerPlayerId == keeper && CreatureStateMachine.HasState(c));
+        Assert.Equal(!ownsCreature, panel.TabDimmed(BottomPanelCategory.Creatures));
 
         world.SetAvailability(keeper, AvailabilityKind.Spell, db.KeeperSpells.Values.First(s => s.KeeperSpellId is not 5 and not 14).KeeperSpellId, 2);
         world.SetAvailability(keeper, AvailabilityKind.Door, db.Doors.Values.First().DoorId, 3);

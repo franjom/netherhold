@@ -87,7 +87,7 @@ namespace DK2.Unity
             _settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
             _settings.scaleMode = PanelScaleMode.ConstantPixelSize;
             _settings.scale = 1;
-            _settings.sortingOrder = 10;
+            _settings.sortingOrder = 17;   // tooltips over every panel but the full map (20)
             _owner = new GameObject("Dungeon hover HUD");
             if (parent != null) _owner.transform.SetParent(parent, false);
             var document = _owner.AddComponent<UIDocument>();

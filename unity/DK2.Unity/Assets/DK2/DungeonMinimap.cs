@@ -155,6 +155,9 @@ namespace DK2.Unity
             _gpu = new MinimapGpuMap(width, height, _palette, _backdrop);
             _settings = ScriptableObject.CreateInstance<PanelSettings>();
             _settings.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
+            // Over the bottom panel (12) and creature panels (13), as DK2 draws the minimap over the
+            // tab strip's rail; under Options (15), tooltips (17) and the full map (20).
+            _settings.sortingOrder = 14;
             _settings.scaleMode = PanelScaleMode.ScaleWithScreenSize;
             _settings.referenceResolution = new Vector2Int(1024, 768);
             _settings.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight; _settings.match = 1;

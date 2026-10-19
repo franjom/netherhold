@@ -69,7 +69,7 @@ The model sorts by that field. Secondary room-slot navigation uses the separate
 ## Spells and workshop (partially CONFIRMED)
 
 The tab strip's background is [0x00418EE0](functions/00418EE0.md): Bar-00 wood tiled from x0 (read;
-the adapter starts at 472 because its panel draws over the minimap), then Bar-02/Bar-03 metal whose
+the minimap draws over it, and the stone fill also spans the full width), then Bar-02/Bar-03 metal whose
 width depends on the screen width; the adapter's last-480-units placement is a 4:3 reading (LIKELY).
 [0x00412260](functions/00412260.md) draws the selected tab's alternate art (`+0x40`: catalogue
 173/174/175/178, `gui\icons\selected-creature/room/spell/workshop`) over the icon and tints the

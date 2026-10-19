@@ -123,19 +123,20 @@ namespace DK2.Unity
         {
             _viewport = viewport;
             if (!_visible) return;
-            Rect bounds = Bounds;
+            // The stone and the rail both span the whole screen width, under the minimap at the
+            // left and the Reaper talisman at the right (owner's DK2 screenshot, 2026-10-19).
             float fillSize = V(160);
             for (int i = 0; i < _fills.Length; i++)
             {
-                float left = bounds.x + i * fillSize;
-                bool show = left < bounds.xMax;
+                float left = i * fillSize;
+                bool show = left < Width;
                 _fills[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
-                if (show) Place(_fills[i], left, V(1600), Mathf.Min(fillSize, bounds.xMax - left), V(300));
+                if (show) Place(_fills[i], left, V(1600), Mathf.Min(fillSize, Width - left), V(300));
             }
-            // Wood tiles are U(512,88), a quarter-tile below the strip's top (read). The metal
-            // pair covers the last 480 virtual units from x 2080 (the 0x820 constant); its split
-            // into two 240-unit halves is inferred from the art and the owner's DK2 screenshot.
-            float railLeft = V(472), metalLeft = Mathf.Max(railLeft, Width - V(480)), tile = V(512);
+            // Wood tiles are U(512,88) from x 0, a quarter-tile below the strip's top (read). The
+            // metal pair covers the last 480 virtual units from x 2080 (the 0x820 constant); its
+            // split into two 240-unit halves is inferred from the art and the owner's screenshot.
+            float railLeft = 0, metalLeft = Mathf.Max(railLeft, Width - V(480)), tile = V(512);
             for (int i = 0; i < _rail.Length; i++)
             {
                 float left = railLeft + i * tile;

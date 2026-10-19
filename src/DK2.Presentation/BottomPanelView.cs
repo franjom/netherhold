@@ -59,7 +59,7 @@ public sealed class BottomPanelView
     private GameTick _capturedTick;
     private int _gold;
     private bool _ownedRoomsCaptured;
-    private bool _spellsTab, _workshopTab, _workshopDim;
+    private bool _spellsTab, _workshopTab, _workshopDim, _creaturesDim;
     private readonly bool[] _ownedRoomTypes = new bool[256];
     public IReadOnlyList<BottomPanelChoice> Choices => _choices;
     public BottomPanelChoice? Reaper { get; }
@@ -110,10 +110,19 @@ public sealed class BottomPanelView
         _ => true,
     };
 
-    /// <summary>The tab draw <c>0x00412260</c> tints the Workshop tab 50% grey (<c>0xFF808080</c>)
-    /// while its player owns no Workshop (<c>Player_CountRoomsOfType(10)</c>). Its Creatures-tab
-    /// tint, on a world byte not yet identified, is not modelled.</summary>
-    public bool TabDimmed(BottomPanelCategory category) => category == BottomPanelCategory.Workshop && _workshopDim;
+    /// <summary>The tab draw <c>0x00412260</c> tints a tab 50% grey (<c>0xFF808080</c>): Workshop
+    /// while its player owns no Workshop (<c>0x004C5FD0(10)</c>), Creatures while player
+    /// <c>+0x10F8</c> (NumberOfCreatureTypes) is 0: the number of creature types with at least one
+    /// owned creature, kept by the owner-list link and unlink routines (<c>0x004B4CE2</c>,
+    /// <c>0x004B4E0F</c>) with no worker filter. Level-placed creatures link through the same path
+    /// (<c>Creature_Construct</c> 0x004872A0), so this is "owns no creature", Imps included. The owner
+    /// remembers the tab grey with only Imps (2026-10-19); that memory is unreconciled.</summary>
+    public bool TabDimmed(BottomPanelCategory category) => category switch
+    {
+        BottomPanelCategory.Workshop => _workshopDim,
+        BottomPanelCategory.Creatures => _creaturesDim,
+        _ => false,
+    };
 
     public void Capture(WorldState world)
     {
@@ -130,6 +139,10 @@ public sealed class BottomPanelView
         int mana = player ? world.Player(_player).Mana : 0;
         _spellsTab = _workshopTab = false;
         _workshopDim = !player || !OwnsRoomTile(world, RoomTypeId.Workshop);
+        _creaturesDim = true;
+        for (int i = 0; i < world.Creatures.Count && _creaturesDim; i++)
+            if (world.Creatures[i].OwnerPlayerId == _player && CreatureStateMachine.HasState(world.Creatures[i]))
+                _creaturesDim = false;
         foreach (BottomPanelChoice choice in _choices)
         {
             AvailabilityKind kind = choice.Kind switch
