@@ -29,6 +29,8 @@ namespace DK2.Unity
         private IClassicCreatureNames _identityNames;
         private Dk2StringTable _hudStrings;
         private KeeperResourceKind _resourceHoverKind;
+        private int _cornerHoverId;
+        private HoverTextSnapshot _cornerHover;
         private KeeperResourceSnapshot _resourceHoverFacts;
         private HoverTextSnapshot _resourceHover;
         private readonly HandCursorFeedback _cursorFeedback = new HandCursorFeedback();
@@ -303,6 +305,11 @@ namespace DK2.Unity
         private HoverTextSnapshot CaptureHudHover()
         {
             if (_bottomPanel.ContainsPointer(Input.mousePosition)) return _bottomPanel.HoverText;
+            if (_minimap != null && HudWidgetText.ForAction(_minimap.HoveredControl(Input.mousePosition)) is int corner)
+            {
+                if (_cornerHoverId != corner) { _cornerHoverId = corner; _cornerHover = HudWidgetText.Hover(corner, _hudStrings.Resolve); }
+                return _cornerHover;
+            }
             KeeperResourceKind kind = _resourceHud.ResourceAt(Input.mousePosition);
             if (kind == KeeperResourceKind.None) return HoverTextSnapshot.Empty;
             if (_resourceHoverKind != kind || _resourceHoverFacts != _resources)

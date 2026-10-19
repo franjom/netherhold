@@ -59,7 +59,7 @@ public sealed class BottomPanelView
     private GameTick _capturedTick;
     private int _gold;
     private bool _ownedRoomsCaptured;
-    private bool _spellsTab, _workshopTab;
+    private bool _spellsTab, _workshopTab, _workshopDim;
     private readonly bool[] _ownedRoomTypes = new bool[256];
     public IReadOnlyList<BottomPanelChoice> Choices => _choices;
     public BottomPanelChoice? Reaper { get; }
@@ -110,6 +110,11 @@ public sealed class BottomPanelView
         _ => true,
     };
 
+    /// <summary>The tab draw <c>0x00412260</c> tints the Workshop tab 50% grey (<c>0xFF808080</c>)
+    /// while its player owns no Workshop (<c>Player_CountRoomsOfType(10)</c>). Its Creatures-tab
+    /// tint, on a world byte not yet identified, is not modelled.</summary>
+    public bool TabDimmed(BottomPanelCategory category) => category == BottomPanelCategory.Workshop && _workshopDim;
+
     public void Capture(WorldState world)
     {
         bool player = world.HasPlayer(_player);
@@ -124,6 +129,7 @@ public sealed class BottomPanelView
         int gold = _gold;
         int mana = player ? world.Player(_player).Mana : 0;
         _spellsTab = _workshopTab = false;
+        _workshopDim = !player || !OwnsRoomTile(world, RoomTypeId.Workshop);
         foreach (BottomPanelChoice choice in _choices)
         {
             AvailabilityKind kind = choice.Kind switch

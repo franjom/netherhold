@@ -64,6 +64,13 @@ public static class InterfaceFonts
     /// </summary>
     public static string HudTextFileName(int screenHeight) => LargestWithin(screenHeight, 60);
 
+    /// <summary>
+    /// Our choice, not DK2's: hover tooltips are half the status strip's size, a 120th of the
+    /// screen height (9 at 1080, 12 at 1440, the smallest shipped 7 below 960), at the owner's
+    /// request (2026-10-19).
+    /// </summary>
+    public static string HudTooltipFileName(int screenHeight) => LargestWithin(screenHeight, 120);
+
     private static string LargestWithin(int screenHeight, int divisor)
     {
         int chosen = IngameSizes[0];

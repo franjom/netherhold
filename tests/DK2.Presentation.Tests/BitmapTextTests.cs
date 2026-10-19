@@ -40,6 +40,13 @@ public class BitmapTextTests
     public void HudTextIsTheLargestShippedFontWithinASixtiethOfTheHeight(int height, string file) =>
         Assert.Equal(file, InterfaceFonts.HudTextFileName(height));
 
+    [Theory]
+    [InlineData(768, "FONT_INGAME7.bf4")]
+    [InlineData(1080, "FONT_INGAME9.bf4")]
+    [InlineData(1440, "FONT_INGAME12.bf4")]
+    public void HudTooltipsAreHalfTheStatusStripSize(int height, string file) =>
+        Assert.Equal(file, InterfaceFonts.HudTooltipFileName(height));
+
     [Fact]
     public void InferredWrapKeepsADoubleSpaceInsideALine()
     {

@@ -154,7 +154,7 @@ namespace DK2.Unity.HudProbe
                 }
             var assets = new InstallClassicHoverAssets(install);
             AddImage(root, Own(MinimapFrameVisual.Decode(assets.StatusBar)), 510, 10, 480, 36);
-            AddImage(root, Own(HudFontPilot.Raster(assets.Font(768), "Dungeon Heart. Health: 100%")), 520, 20, 320, 18);
+            AddImage(root, Own(HudFontPilot.Raster(assets.Font(InterfaceFonts.HudTextFileName(768)), "Dungeon Heart. Health: 100%")), 520, 20, 320, 18);
             var outlineCamera = Own(new GameObject("Hover outline probe camera")).AddComponent<Camera>();
             outlineCamera.orthographic = true; outlineCamera.orthographicSize = 1.5f;
             outlineCamera.clearFlags = CameraClearFlags.SolidColor; outlineCamera.backgroundColor = Color.black;

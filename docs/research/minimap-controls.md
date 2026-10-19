@@ -32,6 +32,11 @@ Under the height-scaled 1024×768 HUD these are `[8,728,40,760)`.
 Upper-corner/magnifier hit bounds and widget ordering remain in the minimap
 navigation section of minimap-rendering.md.
 
+Corner tooltips come from the widget records' text id `+0x30` (read 2026-10-19): Query 2149,
+Sell 2151, magnifier 2145 ("Resize map"), Options 2147. The status line is the switch
+[0x0042DB60](functions/0042DB60.md): the next string, except Query 2149 gives 2795. The popup
+name over them follows the owner's report; its native producer is unread (`HudWidgetText`).
+
 ## Options toggle (CONFIRMED control flow; menu identity strongly inferred)
 
 `0x00428710` requires player `+0x19A == 0` and first resets ordinary tool state.

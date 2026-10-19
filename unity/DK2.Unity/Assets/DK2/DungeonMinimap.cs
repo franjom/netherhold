@@ -89,6 +89,11 @@ namespace DK2.Unity
             return ClassicHudControlLayout.ActionAt(ReferencePoint(screenPosition), !primaryPressed);
         }
 
+        /// <summary>The corner control under the pointer, for its tooltip; None off the corners.</summary>
+        public ClassicHudAction HoveredControl(Vector3 screenPosition)
+            => !_visibility.ShowNormalHud || Screen.height <= 0 ? ClassicHudAction.None
+                : ClassicHudControlLayout.ActionAt(ReferencePoint(screenPosition), false);
+
         public void UpdateControls(Vector3 screenPosition, ClassicHudAction selected, bool optionsVisible)
             => _frame.UpdateControls(ReferencePoint(screenPosition), selected, optionsVisible);
 

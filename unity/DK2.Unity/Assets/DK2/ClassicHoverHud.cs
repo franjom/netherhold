@@ -16,7 +16,7 @@ namespace DK2.Unity
 {
     public interface IClassicHoverAssets
     {
-        BitmapFont Font(int screenHeight);
+        BitmapFont Font(string fileName);
         RgbaImage StatusBar { get; }
         RgbaImage StatusEnd { get; }
         RgbaImage TooltipPiece(int index);
@@ -41,9 +41,8 @@ namespace DK2.Unity
             }
         }
         public RgbaImage TooltipPiece(int index) => _pieces[index];
-        public BitmapFont Font(int screenHeight)
+        public BitmapFont Font(string file)
         {
-            string file = InterfaceFonts.HudTextFileName(screenHeight);
             if (!_fonts.TryGetValue(file, out BitmapFont font))
             { font = Bf4FontReader.Open(Path.Combine(_textDirectory, file)); _fonts.Add(file, font); }
             return font;
@@ -63,7 +62,7 @@ namespace DK2.Unity
         private readonly Image _endImage, _statusImage, _tooltipImage;
         private readonly Image[] _popupPieces = new Image[9];
         private readonly List<Image> _stripTiles = new List<Image>();
-        private BitmapFont _font;
+        private BitmapFont _font, _tooltipFont;
         private Texture2D _statusTextTexture, _tooltipTextTexture;
         private string _statusText, _tooltipText;
         private float _scroll;
@@ -122,23 +121,27 @@ namespace DK2.Unity
         public void Draw(HoverTextSnapshot snapshot, Vector2 cursorGui)
         {
             if (!_visible) return;
-            BitmapFont font = _font;
+            BitmapFont font = _font, tooltipFont = _tooltipFont;
             bool sizeChanged = _screenWidth != Screen.width || _screenHeight != Screen.height;
-            if (font == null || _screenHeight != Screen.height) font = _assets.Font(Screen.height);
-            bool fontChanged = !ReferenceEquals(font, _font);
-            _font = font; _screenHeight = Screen.height; _screenWidth = Screen.width;
+            if (font == null || _screenHeight != Screen.height)
+            {
+                font = _assets.Font(InterfaceFonts.HudTextFileName(Screen.height));
+                tooltipFont = _assets.Font(InterfaceFonts.HudTooltipFileName(Screen.height));
+            }
+            bool fontChanged = !ReferenceEquals(font, _font) || !ReferenceEquals(tooltipFont, _tooltipFont);
+            _font = font; _tooltipFont = tooltipFont; _screenHeight = Screen.height; _screenWidth = Screen.width;
             string status = snapshot.TopStatus ?? "", tooltip = snapshot.TooltipName ?? "";
             if (_statusText != status || fontChanged)
             {
                 _statusText = status; _scroll = 0; _scrollForward = true;
-                ReplaceText(_statusImage, ref _statusTextTexture,
+                ReplaceText(_statusImage, ref _statusTextTexture, font,
                     new[] { new BitmapTextLine(status, BitmapTextLayout.Measure(font, status)) }, false);
             }
             if (_tooltipText != tooltip || fontChanged || sizeChanged)
             {
                 _tooltipText = tooltip;
-                ReplaceText(_tooltipImage, ref _tooltipTextTexture,
-                    BitmapTextLayout.Wrap(font, tooltip, Mathf.Max(1, Screen.width / 2)), true);
+                ReplaceText(_tooltipImage, ref _tooltipTextTexture, tooltipFont,
+                    BitmapTextLayout.Wrap(tooltipFont, tooltip, Mathf.Max(1, Screen.width / 2)), true);
             }
             Rect strip = StatusBounds;
             if (sizeChanged || fontChanged) LayoutStrip(strip);
@@ -182,14 +185,14 @@ namespace DK2.Unity
         private void LayoutTooltip(Vector2 cursor)
         {
             if (_tooltipTextTexture == null) return;
-            float padding = Mathf.Max(8, Screen.height / 60f);
+            float padding = Mathf.Max(4, Screen.height / 120f);
             float width = Mathf.Min(Screen.width, _tooltipTextTexture.width + padding * 2);
             float height = _tooltipTextTexture.height + padding * 2;
             float x = cursor.x + 98 * Screen.width / 640f;
             if (x + width > Screen.width - 40 * Screen.width / 640f)
                 x = cursor.x - width - 30 * Screen.width / 640f;
             x = Mathf.Clamp(x, 0, Mathf.Max(0, Screen.width - width));
-            float y = Mathf.Clamp(cursor.y - _font.LineHeight, StatusHeight,
+            float y = Mathf.Clamp(cursor.y - _tooltipFont.LineHeight, StatusHeight,
                 Mathf.Max(StatusHeight, Screen.height - height - 10));
             Place(_popup, x, y, width, height);
             float border = Mathf.Min(padding, Mathf.Min(width, height) / 2);
@@ -205,9 +208,9 @@ namespace DK2.Unity
                 padding, _tooltipTextTexture.width, _tooltipTextTexture.height);
         }
 
-        private void ReplaceText(Image image, ref Texture2D previous, IReadOnlyList<BitmapTextLine> lines, bool centred)
+        private void ReplaceText(Image image, ref Texture2D previous, BitmapFont font, IReadOnlyList<BitmapTextLine> lines, bool centred)
         {
-            Texture2D next = Raster(_font, lines, centred);
+            Texture2D next = Raster(font, lines, centred);
             image.image = next;
             if (previous != null) UnityEngine.Object.Destroy(previous);
             previous = next;

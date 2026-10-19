@@ -21,7 +21,9 @@ namespace DK2.Unity
         private readonly IClassicBottomPanelAssets _assets;
         private readonly BottomPanelView _view;
         private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
-        private readonly Image[] _tabs = new Image[4], _fills = new Image[64];
+        private readonly Image[] _tabs = new Image[4], _fills = new Image[64], _rail = new Image[16];
+        private readonly Image _railMetal, _railEnd;
+        private readonly Image[] _tabSelected = new Image[4];
         private readonly Image[] _icons = new Image[6], _selection = new Image[6];
         private readonly BottomPanelChoice[] _slots = new BottomPanelChoice[6];
         private readonly Image _previous, _next;
@@ -38,7 +40,9 @@ namespace DK2.Unity
         private int _hovered = -1, _hoverCost;
         private BottomPanelChoice _hoverChoice;
         private bool _hoverUnknown;
-        public HoverTextSnapshot HoverText => new HoverTextSnapshot(_descriptionText, "", default);
+        private HoverTextSnapshot _widgetHover = HoverTextSnapshot.Empty;
+        public HoverTextSnapshot HoverText => !string.IsNullOrEmpty(_widgetHover.TooltipName) ? _widgetHover
+            : new HoverTextSnapshot(_descriptionText, "", default);
         public event Action<BottomPanelSelection> Selected;
         public event Action<RoomTypeId> NavigateRoom;
         public PanelSettings Panel => _settings;
@@ -64,10 +68,17 @@ namespace DK2.Unity
             _root = document.rootVisualElement; _root.pickingMode = PickingMode.Ignore;
             _root.style.width = Length.Percent(100); _root.style.height = Length.Percent(100);
             for (int i = 0; i < _fills.Length; i++) _fills[i] = Picture(Texture("GUI\\Windows\\Panel-BG"));
+            // The tab strip's background 0x00418EE0: Bar-00 (resource +0x798) tiled across, then
+            // Bar-02 (+0x16E3) and Bar-03 (+0x16FE) at the strip's top; under the tabs.
+            for (int i = 0; i < _rail.Length; i++) _rail[i] = Picture(Texture("GUI\\Windows\\Bar-00"));
+            _railMetal = Picture(Texture("GUI\\Windows\\Bar-02"));
+            _railEnd = Picture(Texture("GUI\\Windows\\Bar-03"));
             string[] tabs = { "t-creatures", "t-rooms", "t-spells", "t-workshop" };
-            uint[] text = { 2153, 2155, 2157, 2159 };
-            for (int i = 0; i < 4; i++)
-            { _tabs[i] = Interactive(Texture("GUI\\Tabs\\" + tabs[i]), 100 + i); _tabs[i].tooltip = assets.Text(text[i]); }
+            for (int i = 0; i < 4; i++) _tabs[i] = Interactive(Texture("GUI\\Tabs\\" + tabs[i]), 100 + i);
+            // The selected tab draws its widget's alternate art (+0x40: catalogue 173/174/175/178)
+            // over the icon; unselected tabs are not dimmed.
+            string[] selected = { "selected-creature", "selected-room", "selected-spell", "selected-workshop" };
+            for (int i = 0; i < 4; i++) _tabSelected[i] = Picture(Texture("GUI\\Icons\\" + selected[i]));
             for (int i = 0; i < 6; i++)
             { _icons[i] = Interactive(null, i); _selection[i] = Picture(null); }
             _previous = Interactive(Texture("GUI\\Pages\\page_back"), 200);
@@ -121,11 +132,27 @@ namespace DK2.Unity
                 _fills[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
                 if (show) Place(_fills[i], left, V(1600), Mathf.Min(fillSize, bounds.xMax - left), V(300));
             }
+            // Wood tiles are U(512,88), a quarter-tile below the strip's top (read). The metal
+            // pair covers the last 480 virtual units from x 2080 (the 0x820 constant); its split
+            // into two 240-unit halves is inferred from the art and the owner's DK2 screenshot.
+            float railLeft = V(472), metalLeft = Mathf.Max(railLeft, Width - V(480)), tile = V(512);
+            for (int i = 0; i < _rail.Length; i++)
+            {
+                float left = railLeft + i * tile;
+                bool show = left < metalLeft;
+                _rail[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+                if (show) Place(_rail[i], left, V(1460 + 22), Mathf.Min(tile, metalLeft - left), V(88));
+            }
+            Place(_railMetal, metalLeft, V(1460), V(240), V(128));
+            Place(_railEnd, metalLeft + V(240), V(1460), V(240), V(128));
             for (int i = 0; i < 4; i++)
             {
                 Place(_tabs[i], BottomPanelLayout.Tab(i));
-                _tabs[i].style.display = _view.TabVisible((BottomPanelCategory)i) ? DisplayStyle.Flex : DisplayStyle.None;
-                _tabs[i].tintColor = i == (int)_category ? Color.white : new Color(.65f, .65f, .65f, 1);
+                bool tabShown = _view.TabVisible((BottomPanelCategory)i);
+                _tabs[i].style.display = tabShown ? DisplayStyle.Flex : DisplayStyle.None;
+                _tabs[i].tintColor = _view.TabDimmed((BottomPanelCategory)i) ? new Color32(128, 128, 128, 255) : Color.white;
+                Place(_tabSelected[i], BottomPanelLayout.Tab(i));
+                _tabSelected[i].style.display = tabShown && i == (int)_category ? DisplayStyle.Flex : DisplayStyle.None;
             }
             int count = 0;
             for (int i = 0; i < _view.Choices.Count; i++)
@@ -226,10 +253,11 @@ namespace DK2.Unity
             image.RegisterCallback<PointerEnterEvent>(_ =>
             {
                 _hovered = action; _hoverChoice = null;
-                if (action >= 100 && action < 104) SetDescription(_assets.Text((uint)(2153 + (action - 100) * 2)));
+                if (action >= 100 && action < 104)
+                    _widgetHover = HudWidgetText.Hover(HudWidgetText.Tab((BottomPanelCategory)(action - 100)), _assets.Text);
                 else RefreshHover();
             });
-            image.RegisterCallback<PointerLeaveEvent>(_ => { _hovered = -1; _hoverChoice = null; SetDescription(""); });
+            image.RegisterCallback<PointerLeaveEvent>(_ => { _hovered = -1; _hoverChoice = null; _widgetHover = HoverTextSnapshot.Empty; SetDescription(""); });
             return image;
         }
         private void PointerUp(PointerUpEvent evt)
