@@ -147,7 +147,9 @@ text_box-tlMM0 and text_box-mMM0 are **16×16**.
 pieces and their alpha. Popup rendering starts about 98 reference pixels to
 the cursor's right at width 640, flips left near the right edge, and clamps
 vertically. Exact piece scaling and all layout helper semantics remain
-**UNKNOWN**; the Unity renderer uses a retained nine-slice approximation.
+**UNKNOWN**; the Unity renderer uses a retained nine-slice approximation. DK2 scales
+the Hand by width/640 too; ours scales the Hand by height/480, so the adapter scales
+the 98/30/40 offsets by height/480 to keep the gap the Hand's size (owner, 2026-10-19).
 
 ## Implementation limits
 
@@ -158,9 +160,13 @@ rasterizes original BF4 text only when strings, fonts or wrapping change.
 Its status clip scrolls the retained text image; nine retained images form
 the popup frame. Its physical-pixel panel keeps the approved font readable.
 
-The readable font choice follows the existing height-based subtitle policy,
-not DK2's often tiny width-based native font choice. The renderer's strip and
-popup padding follow that readable size. Scrolling is time-based at 60 pixels
+Strip and popup share one font, as DK2's style 0x00741320 does. DK2 picks that file by
+width through 0x00553690 (base 10 at widths other than 400/512/800/1024; 14 at 1024);
+whether it scales the glyphs is unread. Ours is the largest shipped size within
+height/96 (`InterfaceFonts.HudTextFileName`), matching the owner's 1280-wide DK2
+screenshot (2026-10-19). The strip sits at menu53's virtual y 20 (StatusBounds), and the
+text at its menu-local y 0, as widget 0x00693318's rectangle reads; the owner's screenshot
+shows the same top alignment. Scrolling is time-based at 60 pixels
 per second, approximating the original's one-pixel-per-callback motion.
 Ordinary room templates and their supported state substitutions are built as
 described above. Special object branches, creature personal-name generation, shots and structure status

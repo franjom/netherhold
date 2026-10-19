@@ -1009,9 +1009,17 @@ namespace DK2.Unity
                     if (ActiveTool == PlayerToolMode.Hand)
                         cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
                     if (cursor == HandCursorKind.Dig) highlightedTile = tile;
+                    if (ActiveTool == PlayerToolMode.Hand) _scene.DrawHoverOverlay(hit);
                 }
             }
-            if (allowed && PointerOverHud(mouse)) _hoverSnapshot = CaptureHudHover();
+            if (allowed && PointerOverHud(mouse))
+            {
+                _hoverSnapshot = CaptureHudHover();
+                // Over the HUD DK2 shows the small pointing finger, state 2, which 0x0040BCB6 and
+                // 0x0040BEFE set while interface +0x12B2 (pointer over the GUI) is set (LIKELY;
+                // its producer at 0x00403D1C..0x00403D69 is partly read; owner-observed in play).
+                if (ActiveTool == PlayerToolMode.Hand) cursor = HandCursorKind.SmallPoint;
+            }
             bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
             if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal)
                 cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), (long)(Time.unscaledTimeAsDouble * 1000));

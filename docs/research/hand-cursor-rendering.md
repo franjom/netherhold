@@ -51,6 +51,22 @@ middle, then base. Thus contextual zero falls back to the animated Point.
 Hidden-HUD/presentation gates can publish a null cursor; modal semantics remain
 separate from the supported ordinary dungeon view.
 
+**The GUI pointer (2026-10-19, LIKELY).** The middle channel takes tool icon ids
+(0xC, 0xD), not hand states. State 2 `SmallPoint` goes into the contextual
+channel at `0x0040BCB6` and `0x0040BEFE`, when interface `+0x12B2` is non-zero
+and `+0x10C` is zero, behind gates `0x0044D620` and player `+0x19A` == 0.
+
+`+0x12B2` is written as follows:
+- set to 1 at `0x00403D1C` for event 7 (unidentified);
+- cleared when interface `+0xF5` is 0;
+- otherwise set to 1 when `0x0052BFC0` on `+0x10C6` hit-tests the pointer against the visible widget list (screen coordinates scaled by 0xA00/0x780);
+- failing that, set to 1 when `0x0041FDF0` hits one of the `+0x4E7D` icon rectangles (26-byte entries, count `+0x4F09`), and cleared otherwise;
+- also cleared at `0x0040588B`.
+
+That makes it a pointer-over-GUI flag. The widget list's coverage of the whole HUD is unchecked. Whether a held item overrides state 2 over the HUD in DK2 is unread; ours lets the held item win.
+The owner sees the small pointing finger over the minimap corners and tabs; the
+adapter uses it over the whole HUD in Hand mode.
+
 For ordinary Hand mode, `0x0040AE80` retains transient states 5 and 11.
 Otherwise `0x0040C1E0` tests a live creature/object through pickup permission:
 success selects state 3. If it fails, target kind 1 with target-flags bit 0

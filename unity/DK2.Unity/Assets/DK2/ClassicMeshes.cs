@@ -402,12 +402,23 @@ namespace DK2.Unity
             return tinted;
         }
 
+        /// <summary>RedTexture's one colour, drawn over the Hand's hover target as AA_RedTexture
+        /// (global 0x006FCD73, set by Presentation_Update at 0x0043BE40; status-flowers.md §1).</summary>
+        public static readonly Color HoverOverlayColour = new Color(1f, 64f / 255f, 65f / 255f);
+
+        private Material _hoverOverlay;
+
+        /// <summary>The additive pass over the hovered creature: flat <see cref="HoverOverlayColour"/>,
+        /// every frame, no pulse.</summary>
+        public Material HoverOverlay() => _hoverOverlay ??= Additive("AA_RedTexture", HoverOverlayColour);
+
         /// <summary>The additive pass over every tagged piece: flat <see cref="TagOverlayColour"/>.</summary>
-        public Material TagOverlay()
+        public Material TagOverlay() => _tagOverlay ??= Additive("AA_BlueTexture", TagOverlayColour);
+
+        private static Material Additive(string name, Color colour)
         {
-            if (_tagOverlay != null) return _tagOverlay;
             Shader unlit = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            var overlay = new Material(unlit) { name = "AA_BlueTexture", color = TagOverlayColour };
+            var overlay = new Material(unlit) { name = name, color = colour };
             overlay.SetFloat("_Surface", 1f);
             overlay.SetFloat("_Blend", 2f);
             overlay.SetFloat("_SrcBlend", (float)BlendMode.One);
@@ -416,7 +427,6 @@ namespace DK2.Unity
             overlay.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             overlay.SetOverrideTag("RenderType", "Transparent");
             overlay.renderQueue = (int)RenderQueue.Transparent;
-            _tagOverlay = overlay;
             return overlay;
         }
 

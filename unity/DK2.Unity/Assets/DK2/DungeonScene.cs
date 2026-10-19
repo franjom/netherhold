@@ -123,6 +123,23 @@ namespace DK2.Unity
         }
         public int ObjectObjects => _objects.Count;
 
+        /// <summary>DK2 draws the Hand's hover target a second time with AA_RedTexture each frame
+        /// (Presentation_Update, 0x0043BE40). The creature's mesh holds its sampled pose, so the
+        /// overlay follows the animation. Creatures only for now: their slot +0x34 (0x00628BC0) returns 1;
+        /// doors, traps and objects may tint too, but their slots are unread. Drawn in Hand mode off
+        /// the HUD, which is our gate; DK2's own tool test is unread.</summary>
+        public void DrawHoverOverlay(WorldHoverHit hit)
+        {
+            if (_classic == null || hit.Kind != WorldHoverKind.Creature) return;
+            if (!_creatures.TryGetValue(hit.EntityId, out GameObject go) || go == null || !go.activeInHierarchy) return;
+            if (!go.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null) return;
+            var parameters = new RenderParams(_classic.HoverOverlay())
+            { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off, receiveShadows = false };
+            Mesh mesh = filter.sharedMesh;
+            Matrix4x4 matrix = go.transform.localToWorldMatrix;
+            for (int sub = 0; sub < mesh.subMeshCount; sub++) Graphics.RenderMesh(parameters, mesh, sub, matrix);
+        }
+
         public WorldHoverHit PickHoverEntity(Ray ray, float terrainDistance, TilePos tile, Vector3 pointerGround)
         {
             WorldHoverHit hit = new WorldHoverHit(WorldHoverKind.Tile, tile);

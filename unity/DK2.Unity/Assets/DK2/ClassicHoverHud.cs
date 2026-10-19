@@ -126,7 +126,7 @@ namespace DK2.Unity
             if (font == null || _screenHeight != Screen.height)
             {
                 font = _assets.Font(InterfaceFonts.HudTextFileName(Screen.height));
-                tooltipFont = _assets.Font(InterfaceFonts.HudTooltipFileName(Screen.height));
+                tooltipFont = font;   // the popup shares the strip's style 0x00741320
             }
             bool fontChanged = !ReferenceEquals(font, _font) || !ReferenceEquals(tooltipFont, _tooltipFont);
             _font = font; _tooltipFont = tooltipFont; _screenHeight = Screen.height; _screenWidth = Screen.width;
@@ -154,8 +154,9 @@ namespace DK2.Unity
                 if (_scroll <= 0) { _scroll = 0; _scrollForward = true; }
             }
             else _scroll = 0;
-            Place(_statusImage, -_scroll, (strip.height - (_statusTextTexture?.height ?? 0)) / 2,
-                width, _statusTextTexture?.height ?? 0);
+            // DK2's text widget 0x00693318 sits at the strip's top, (0,0,1440,88): top-aligned,
+            // the glyphs keeping their own BF4 top bearing.
+            Place(_statusImage, -_scroll, 0, width, _statusTextTexture?.height ?? 0);
             bool popupVisible = _delay.Visible(snapshot, (long)(Time.unscaledTimeAsDouble * 1000), ShowCreatureTooltip);
             _popup.style.display = popupVisible ? DisplayStyle.Flex : DisplayStyle.None;
             if (popupVisible) LayoutTooltip(cursorGui);
@@ -188,9 +189,12 @@ namespace DK2.Unity
             float padding = Mathf.Max(4, Screen.height / 120f);
             float width = Mathf.Min(Screen.width, _tooltipTextTexture.width + padding * 2);
             float height = _tooltipTextTexture.height + padding * 2;
-            float x = cursor.x + 98 * Screen.width / 640f;
-            if (x + width > Screen.width - 40 * Screen.width / 640f)
-                x = cursor.x - width - 30 * Screen.width / 640f;
+            // DK2 offsets the popup 98 units at width 640, and scales the Hand by that width too.
+            // Our Hand scales by height/480 (HandCursor.Place), so the offsets follow it.
+            float unit = Screen.height / 480f;
+            float x = cursor.x + 98 * unit;
+            if (x + width > Screen.width - 40 * unit)
+                x = cursor.x - width - 30 * unit;
             x = Mathf.Clamp(x, 0, Mathf.Max(0, Screen.width - width));
             float y = Mathf.Clamp(cursor.y - _tooltipFont.LineHeight, StatusHeight,
                 Mathf.Max(StatusHeight, Screen.height - height - 10));
