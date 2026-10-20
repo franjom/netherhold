@@ -109,7 +109,7 @@ Read and built (pass 2, 2026-10-20):
 
 Approximated:
 - The ring is coloured by `saturate(2·luminance)` × the colour, not by the texel: the owner's screenshot shows flat petals at about 0.96 of the palette entry (221,49,49 against 230,50,50), where a plain multiply of the pale H-xx art gives a dull grey-red. The centre is a plain multiply. The engine's sprite blend is unread.
-- The flower is 0.324 tile across: 0.4 eyeballed from the owner's screenshot, then 10% smaller after each of two owner comparisons. It is halved while possessing.
+- The flower is 0.259 tile across: 0.4 eyeballed from the owner's screenshot, then 10%, 10% and 20% smaller on three owner comparisons. It is halved while possessing.
 - The body height is taken to be the definition's `Height`, as vtable `+0x40`.
 - A health change seen at settled turn T is taken to be stamped at T. Native turn numbering is not matched.
 
