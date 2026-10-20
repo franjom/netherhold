@@ -76,12 +76,13 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
             throw new ArgumentException("An install directory is required.", nameof(installDirectory));
         if (database is null) throw new ArgumentNullException(nameof(database));
 
-        IReadOnlyList<ArtEntry> entries = ArtSourceMap.ForDatabase(database, Dk2ArtCatalogue.Load(installDirectory));
+        Dk2ArtCatalogue catalogue = Dk2ArtCatalogue.Load(installDirectory);
+        IReadOnlyList<ArtEntry> entries = ArtSourceMap.ForDatabase(database, catalogue);
         WadMeshSource meshes = WadMeshSource.OpenInstall(installDirectory);
         try
         {
             EngineTextureArchive textures = EngineTextureArchive.OpenInstall(installDirectory);
-            return new InstallArtProvider(entries, meshes, textures, new Owned(meshes, textures));
+            return new InstallArtProvider(entries, meshes, textures, new Owned(meshes, textures)) { Catalogue = catalogue };
         }
         catch
         {
@@ -91,6 +92,9 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     }
 
     public string Name => "install";
+
+    /// <summary>The install's KWD art records, when <see cref="Open"/> read them; null otherwise.</summary>
+    public Dk2ArtCatalogue? Catalogue { get; private init; }
 
     /// <summary>How many keys have an entry in the install.</summary>
     public int Count => _entries.Count;

@@ -16,10 +16,26 @@ namespace DK2.Unity
 
     public sealed class InstallClassicResourceAssets : IClassicResourceAssets, IDisposable
     {
-        private readonly EngineTextureArchive _archive;
-        public InstallClassicResourceAssets(string install) => _archive = EngineTextureArchive.OpenInstall(install);
-        public RgbaImage Image(string name) => _archive.Decode(name);
-        public void Dispose() => _archive.Dispose();
+        private readonly InstallHudSources _sources;
+        private readonly bool _owned;
+
+        /// <summary>From the install alone, owning the texture archive it opens.</summary>
+        public InstallClassicResourceAssets(string install)
+        {
+            _sources = new InstallHudSources(install);
+            _owned = true;
+        }
+
+        /// <summary>Over shared sources, which the caller disposes.</summary>
+        public InstallClassicResourceAssets(InstallHudSources sources) =>
+            _sources = sources ?? throw new ArgumentNullException(nameof(sources));
+
+        public RgbaImage Image(string name) => _sources.Texture(name);
+
+        public void Dispose()
+        {
+            if (_owned) _sources.Dispose();
+        }
     }
 
     /// <summary>Original resource artwork and numeric sprites in retained UI Toolkit elements.</summary>

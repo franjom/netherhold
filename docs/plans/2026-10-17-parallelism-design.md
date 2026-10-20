@@ -190,6 +190,13 @@ first tick ran ~35 ms slower beside the workers.
 (`UIDocument` ~138 ms, `PanelSettings` and theme ~45 ms), which any UI pays once.
 Its textures now come from the art provider's open archive: 49–77 ms → 3 ms.
 
+**Classic HUD.** Its panels each opened the engine-texture archive (~13 ms warm in
+.NET), `Text.str`, the fonts and the KWD art records again. `InstallHudSources`
+opens them once (textures and art records through the art provider). Level8, two
+runs each: the HUD's steps summed ~330 ms → ~170–182 ms; hover 37–45 → 7–10,
+resources 38–53 → 7–9, status flowers 36–40 → 8–11, bottom panel 128–155 →
+90–96 ms. The bottom panel's remainder is ~40 UI textures and its own panel.
+
 **IL2CPP** is not measured: the Windows IL2CPP player module is not installed in
 either Unity 6000.6.0f1 install (only Mono variations), and it needs the Visual
 Studio C++ tools. Expected to remove most first-call JIT cost (data loading is

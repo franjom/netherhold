@@ -24,29 +24,27 @@ namespace DK2.Unity
 
     public sealed class InstallClassicHoverAssets : IClassicHoverAssets
     {
-        private readonly string _textDirectory;
-        private readonly Dictionary<string, BitmapFont> _fonts = new Dictionary<string, BitmapFont>();
+        private readonly InstallHudSources _sources;
         private readonly RgbaImage[] _pieces = new RgbaImage[9];
         public RgbaImage StatusBar { get; }
         public RgbaImage StatusEnd { get; }
-        public InstallClassicHoverAssets(string install)
+
+        /// <summary>From the install alone; its texture archive is closed once the art is read.</summary>
+        public InstallClassicHoverAssets(string install) : this(new InstallHudSources(install))
         {
-            _textDirectory = Path.Combine(install, "Data", "Text", "Default");
-            using (EngineTextureArchive textures = EngineTextureArchive.OpenInstall(install))
-            {
-                StatusBar = textures.Decode("GUI\\Windows\\Bar-00");
-                StatusEnd = textures.Decode("GUI\\Windows\\Bar-01");
-                string[] suffixes = { "tl", "t", "tr", "l", "m", "r", "bl", "b", "br" };
-                for (int i = 0; i < 9; i++) _pieces[i] = textures.Decode("GUI\\Windows\\text_box-" + suffixes[i]);
-            }
+            _sources.Dispose();
+        }
+
+        public InstallClassicHoverAssets(InstallHudSources sources)
+        {
+            _sources = sources ?? throw new ArgumentNullException(nameof(sources));
+            StatusBar = sources.Texture("GUI\\Windows\\Bar-00");
+            StatusEnd = sources.Texture("GUI\\Windows\\Bar-01");
+            string[] suffixes = { "tl", "t", "tr", "l", "m", "r", "bl", "b", "br" };
+            for (int i = 0; i < 9; i++) _pieces[i] = sources.Texture("GUI\\Windows\\text_box-" + suffixes[i]);
         }
         public RgbaImage TooltipPiece(int index) => _pieces[index];
-        public BitmapFont Font(string file)
-        {
-            if (!_fonts.TryGetValue(file, out BitmapFont font))
-            { font = Bf4FontReader.Open(Path.Combine(_textDirectory, file)); _fonts.Add(file, font); }
-            return font;
-        }
+        public BitmapFont Font(string file) => _sources.Font(file);
     }
 
     /// <summary>Retained UI Toolkit hover/status visuals from immutable settled snapshots.</summary>

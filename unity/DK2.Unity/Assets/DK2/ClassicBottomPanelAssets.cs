@@ -28,20 +28,27 @@ namespace DK2.Unity
     /// <summary>Native interface assets remain local to the install.</summary>
     public sealed class InstallClassicBottomPanelAssets : IClassicBottomPanelAssets, IDisposable
     {
-        private readonly EngineTextureArchive _textures;
+        private readonly InstallHudSources _sources;
+        private readonly bool _owned;
         private readonly Dk2StringTable _strings;
-        private readonly string _textDirectory;
         private readonly Dictionary<BottomPanelChoiceKey, string> _names = new Dictionary<BottomPanelChoiceKey, string>();
         private readonly Dictionary<BottomPanelChoiceKey, string> _icons = new Dictionary<BottomPanelChoiceKey, string>();
         private readonly Dictionary<BottomPanelChoiceKey, int> _order = new Dictionary<BottomPanelChoiceKey, int>();
-        private readonly Dictionary<string, BitmapFont> _fonts = new Dictionary<string, BitmapFont>();
 
+        /// <summary>From the install alone, owning the texture archive it opens.</summary>
         public InstallClassicBottomPanelAssets(string install, GameDatabase database)
+            : this(new InstallHudSources(install), database)
         {
-            _textures = EngineTextureArchive.OpenInstall(install);
-            _textDirectory = Path.Combine(install, "Data", "Text", "Default");
-            _strings = Dk2StringTable.Open(Path.Combine(_textDirectory, "Text.str"));
-            var art = Dk2ArtCatalogue.Load(install);
+            _owned = true;
+        }
+
+        /// <summary>Over shared sources, which the caller disposes.</summary>
+        public InstallClassicBottomPanelAssets(InstallHudSources sources, GameDatabase database)
+        {
+            _sources = sources ?? throw new ArgumentNullException(nameof(sources));
+            string install = sources.Install;
+            _strings = sources.Strings;
+            Dk2ArtCatalogue art = sources.Catalogue;
             foreach (RoomDef room in database.Rooms.Values)
             {
                 var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, room.RoomId);
@@ -78,14 +85,12 @@ namespace DK2.Unity
         public int Order(BottomPanelChoiceKey key) => _order.TryGetValue(key, out int order) ? order : key.Value;
         public string Name(BottomPanelChoiceKey key, string fallback) => _names.TryGetValue(key, out string name) ? name : fallback;
         public string Text(uint id) => _strings.Resolve(id);
-        public RgbaImage Image(string name) => _textures.Decode(name);
-        public BitmapFont Font(int screenHeight)
+        public RgbaImage Image(string name) => _sources.Texture(name);
+        public BitmapFont Font(int screenHeight) => _sources.Font(InterfaceFonts.LegibleFileName(screenHeight));
+
+        public void Dispose()
         {
-            string file = InterfaceFonts.LegibleFileName(screenHeight);
-            if (!_fonts.TryGetValue(file, out BitmapFont font))
-            { font = Bf4FontReader.Open(Path.Combine(_textDirectory, file)); _fonts.Add(file, font); }
-            return font;
+            if (_owned) _sources.Dispose();
         }
-        public void Dispose() => _textures.Dispose();
     }
 }
