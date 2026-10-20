@@ -46,9 +46,14 @@ and drawable viewport are distinct inputs when panels reduce the view.
 At a full 640x480 viewport preset3's offset length is10 tiles and vertical
 FOV is about41.112 degrees; at full1280x720 they are5 tiles and about58.716.
 These values are conversion consequences, not settings invented for Unity.
-The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to 1024 (ADR-0522's visual rule;
-owner 2026-10-20): every screen gets a 1024×768 screen's camera distance and vertical angle, and a wider
-screen sees more at the sides. The native rule
+The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to 1600 (ADR-0522's visual rule;
+owner 2026-10-20): every screen gets the 640 rule's camera distance and vertical angle at 1600×1200, and a wider
+screen sees more at the sides. 1600×1200 is DK2's largest mode and the owner's. Fitting a column of five
+claimed-tile centres in the owner's 1760×1322 capture of it (pitch 51.33° fixed, one-tile spacing assumed)
+gives a focal length of about 700 pixels at 1600 wide (771 in the image), the camera 3.5 tiles above the
+floor, residuals under 1 pixel: about 9% above the rule's 640, a vertical view near 81° against the
+code's 86°. The code follows the 640 rule; the gap is unresolved (HYPOTHESIS: it is the capture's
+1.1 scale, applied once more than assumed). The native rule
 gave a 97° view whose far edge is 100 tiles wide at 2560×1440; at 1024×768 the ground footprint's
 near and far edges are 6.8 and 19.2 tiles wide (default zoom). Camera paths already fix the horizontal angle.
 
