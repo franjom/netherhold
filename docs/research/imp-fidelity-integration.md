@@ -90,6 +90,14 @@ Hash 285 (ADR-0517) sends alarms only to Guard Rooms. Imp deaths per seed fall t
 training. Imps still raise 10–65 alarms per run where DK2 raised one, so a gate in
 `0x004752B0`'s callers or `0x004754D0` remains unmatched.
 
+Hash 286 (ADR-0518) removes level from speed. Neighbouring claims now land mostly at 13
+ticks (11/12/13 split 3-103 / 8-72 / 137-215 across seeds; native 86/62/133). The hero Guard
+Room at (24,38) converts at 1998-2016 in four seeds (native 2029; 1962-1995 at 285) and the
+Dwarves of party 3 arrive at 2959-2977 (native 2989; 2923 at 285); seed 5 is late (2413,
+3374). Imps still flee far more than DK2's (53-371 flee entries against 25) and raise 11-132
+alarms. Imp deaths per seed are 43, 12, 4, 1 and 60. The fleeing, not the alarm gate
+(`0x004602E0` matches ours), is the open divergence.
+
 Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
 Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
 not matched to DK2's. Results and scripts: `D:\DK2Evidence\outcomes-2026-10-19-level4`.
