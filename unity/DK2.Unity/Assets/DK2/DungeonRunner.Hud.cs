@@ -304,6 +304,11 @@ namespace DK2.Unity
 
         private HoverTextSnapshot CaptureHudHover()
         {
+            if (_overviewPanel != null && _overviewPanel.HoveredTextId(Input.mousePosition) is int widget && widget != 0)
+            {
+                if (_cornerHoverId != widget) { _cornerHoverId = widget; _cornerHover = HudWidgetText.Hover(widget, _hudStrings.Resolve); }
+                return _cornerHover;
+            }
             if (_bottomPanel.ContainsPointer(Input.mousePosition)) return _bottomPanel.HoverText;
             if (_minimap != null && HudWidgetText.ForAction(_minimap.HoveredControl(Input.mousePosition)) is int corner)
             {

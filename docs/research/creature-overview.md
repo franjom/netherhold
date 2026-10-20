@@ -55,6 +55,9 @@ comparison). Count rows use filters0/5/6/4.
 Both page strips are always drawn, page_forward (catalogue10, widget `0x0068FFD8`)
 above page_back (11, `0x00690028`). `0x00417730` adds a delta and clamps; the widgets' `+0x16` words read +1 (forward) and -1 (back), so top pages forward (LIKELY; the caller is indirect). The page callback `0x00410A60` writes visibility state3 when the roster fits one page; what state3 draws is unread, and the adapter draws both strips normally.
 Hover highlight is catalogue162 GUI/Tabs/t-cp-hilight tinted00FFC9.
+Menu6's worker row icons are records 0x00690078 + 160·r, local (0, 4/68/132/196, 80, 72/68/72/72), text ids
+2308..2314; its count widgets 0x006900C8 + 160·r, local (72, 12+64r, 120, 64), highlight on hover. The mode
+selectors carry text ids 2316..2322; hovering one draws t-creature_panel-i over the strip (00417B40).
 Numeric family selection follows [HUD resources](hud-resources.md).
 
 Static menu6 selectors at `0x006902F8` plus80*i pass mode0..3 to `004177B0`.
@@ -69,6 +72,6 @@ GUI/Tabs/t-creature_panel, at local(208,8,64,264); this is the four-button strip
 
 Mode-specific counts and selection filters are connected. The adapter consumes
 host press edges, matching type0's once-per-press callback, without reproducing
-the GUI manager's full held-channel arbitration. Portrait tooltips and mode
-hover previews remain open. A native capture must settle header overlap and
+the GUI manager's full held-channel arbitration. Portrait tooltips remain open;
+worker-row and mode tooltips, count highlights and mode hover art are built (2026-10-20). A native capture must settle header overlap and
 pixel positioning at unusual aspect ratios.

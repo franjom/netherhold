@@ -30,7 +30,8 @@ namespace DK2.Unity
         private readonly Image[] _portraits=new Image[MaximumColumns],_highlight=new Image[MaximumColumns];
         private readonly Image _workerStrip;
         private readonly Image[] _digits=new Image[(MaximumColumns*4+4)*5];
-        private readonly Image _modeStrip,_modeHighlight;
+        private readonly Image _modeStrip,_modeHighlight,_modeHover,_workerHighlight;
+        private readonly Texture2D[] _modeHovers=new Texture2D[4];
         private readonly Image _modeFrame;
         private readonly Texture2D[] _modeFrames=new Texture2D[4];
         private readonly Image _previous,_next;
@@ -54,9 +55,16 @@ namespace DK2.Unity
             // Menu 6's worker sidebar is one strip, catalogue 157 (widget 0x00690488); the
             // GUI\Jobs\Expert icons are the mode-selector widgets' art, not this column.
             _workerStrip=Picture("GUI\\Tabs\\t-cp-imp");
+            // Worker count widgets 0x006900C8 + 160·r draw highlight 162 tinted 00FFC9 under their
+            // count while hovered (0x00417850).
+            _workerHighlight=Picture("GUI\\Tabs\\t-cp-hilight");
+            _workerHighlight.tintColor=new Color32(0,255,201,255);
             for(int i=0;i<_digits.Length;i++) _digits[i]=Picture(null);
             _previous=Picture("GUI\\Pages\\page_back");_next=Picture("GUI\\Pages\\page_forward");
             _modeStrip=Picture("GUI\\Tabs\\t-creature_panel");
+            // 0x00417B40 draws catalogue 238..241, the strip with button i lit, while button i is hovered.
+            _modeHover=Picture(null);
+            for(int i=0;i<4;i++) _modeHovers[i]=Texture("GUI\\Tabs\\t-creature_panel-"+i);
             _modeHighlight=Picture("GUI\\Tabs\\t-cp-hilight");
             _modeFrame=Picture("GUI\\Tabs\\t-cp-total");
             string[] frames={"total","jobs","fights","moods"};
@@ -115,11 +123,41 @@ namespace DK2.Unity
             // widgets 0x0068FFD8 and 0x00690028. Which way each pages (0x00417730) is unread.
             Place(_next,V(760),V(1612),V(64),V(132));Place(_previous,V(760),V(1744),V(64),V(132));
             Place(_modeStrip,V(680),V(1608),V(64),V(264));
+            Vector2 at=new Vector2(pointer.x,_height-pointer.y);
+            int modeHovered=-1,workerHovered=-1;
+            for(int i=0;i<4;i++)
+            {
+                if(ModeRect(i).Contains(at)) modeHovered=i;
+                if(_view.Entries.Count>0 && WorkerCountRect(i).Contains(at)) workerHovered=i;
+            }
+            _modeHover.style.display=modeHovered>=0?DisplayStyle.Flex:DisplayStyle.None;
+            if(modeHovered>=0) { _modeHover.image=_modeHovers[modeHovered];Place(_modeHover,V(680),V(1608),V(64),V(264)); }
+            _workerHighlight.style.display=workerHovered>=0?DisplayStyle.Flex:DisplayStyle.None;
+            if(workerHovered>=0) { Rect r=WorkerCountRect(workerHovered);Place(_workerHighlight,r.x,r.y,r.width,r.height); }
             Place(_modeHighlight,V(692),V(1616+(int)Mode*64),V(44),V(52));
             _modeHighlight.tintColor=Mode==CreatureOverviewMode.Total?Color.white:Mode==CreatureOverviewMode.Jobs?
                 new Color32(20,255,10,255):Mode==CreatureOverviewMode.Fighting?new Color32(255,30,0,255):new Color32(240,165,0,255);
             _modeFrame.image=_modeFrames[(int)Mode];
             Place(_modeFrame,V(840),V(1612),V(64),V(264));
+        }
+        // Menu 6 sits at (472,1600); its widget rectangles are local (records 0x00690078..0x00690348).
+        private Rect ModeRect(int mode)=>new Rect(V(472+220),V(1600+16+64*mode),V(44),V(52));
+        private Rect WorkerCountRect(int row)=>new Rect(V(472+72),V(1600+12+64*row),V(120),V(64));
+        private static readonly int[] WorkerIconTop={4,68,132,196},WorkerIconHeight={72,68,72,72};
+
+        /// <summary>The hovered widget's text id (record +0x30): the worker row icons 2308..2314 and the
+        /// mode selectors 2316..2322; 0 for none.</summary>
+        public int HoveredTextId(Vector3 pointer)
+        {
+            if(!_visible) return 0;
+            Vector2 at=new Vector2(pointer.x,_height-pointer.y);
+            for(int i=0;i<4;i++)
+            {
+                if(ModeRect(i).Contains(at)) return 2316+2*i;
+                if(_view.Entries.Count>0 && new Rect(V(472),V(1600+WorkerIconTop[i]),V(80),V(WorkerIconHeight[i])).Contains(at))
+                    return 2308+2*i;
+            }
+            return 0;
         }
         private Rect HitRect(int column)=>column==0?new Rect(V(544),V(1612),V(120),V(256))
             :new Rect(V(924+(column-1)*136),V(1616),V(108),V(244));

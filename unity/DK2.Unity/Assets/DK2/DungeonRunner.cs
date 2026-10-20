@@ -523,13 +523,23 @@ namespace DK2.Unity
             }
         }
 
+        private TilePos? _debugHoverTile;
+
         private void RefreshDiagnostics()
         {
+            string hover = "";
+            if (_debugHoverTile is TilePos at && _simulation.World.Contains(at))
+            {
+                TileState state = _simulation.World.Tile(at);
+                var viewer = new PlayerId((byte)viewingPlayerId);
+                hover = Environment.NewLine + $"hover tile ({at.X},{at.Y})  {_simulation.Database.TerrainById(state.TerrainId).Name}  owner {state.OwnerPlayerId}"
+                    + $"  explored {state.IsExploredBy(viewer)}  scanned {state.IsDiscoveredBy(viewer)}";
+            }
             _diagnostics =
                 $"tick {_simulation.World.CurrentTick.Value}   " +
                 $"state {_stateHash:x16}   " +
                 $"{_scene.TileObjects} tile objects   {_scene.CreatureObjects} creatures   " +
-                $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame";
+                $"pushed {_presenter.TilesPushed} tiles / {_presenter.CreaturesPushed} creatures this frame" + hover;
         }
 
         private void QueueInput()
@@ -990,9 +1000,11 @@ namespace DK2.Unity
             bool allowed = visibility.AllowOrdinaryInput && Application.isFocused && inside;
             HandCursorKind cursor = HandCursorKind.Point;
             TilePos? highlightedTile = null;
+            _debugHoverTile = null;
             if (allowed && !PointerOverHud(mouse) && Camera.main != null && ScreenToTile(mouse) is TilePos tile)
             {
                 WorldState world = _simulation.World;
+                _debugHoverTile = tile;
                 WorldHoverHit hit = ResolveWorldHover(tile);
                 {
                     PlayerId viewer = new PlayerId((byte)viewingPlayerId);

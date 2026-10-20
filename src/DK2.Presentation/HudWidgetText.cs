@@ -34,6 +34,9 @@ public static class HudWidgetText
     {
         QueryCorner => 2795,
         SellCorner or ZoomCorner or OptionsCorner or ResizePanel or 2153 or 2155 or 2157 or 2159 => textId + 1,
+        // The creature panel's worker rows (2308..2314), mode selectors (2316..2322) and the rest of
+        // the even run to 0x928.
+        >= 0x904 and <= 0x928 when textId % 2 == 0 => textId + 1,
         _ => 0,
     };
 
