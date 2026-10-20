@@ -563,11 +563,8 @@ namespace DK2.Unity
                 wrapMode = TextureWrapMode.Repeat,
                 filterMode = FilterMode.Bilinear,
             };
-            var pixels = new Color32[image.Width * image.Height];
-            byte[] bytes = image.Pixels;
-            for (int i = 0; i < pixels.Length; i++)
-                pixels[i] = new Color32(bytes[4 * i], bytes[4 * i + 1], bytes[4 * i + 2], bytes[4 * i + 3]);
-            texture.SetPixels32(pixels);
+            // RGBA32's bytes are the image's, in the same order SetPixels32 took them.
+            texture.SetPixelData(image.Pixels, mipLevel: 0);
             texture.Apply(updateMipmaps: true);
             return texture;
         }

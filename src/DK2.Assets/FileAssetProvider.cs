@@ -25,6 +25,9 @@ public sealed class FileAssetProvider : IAssetProvider
     private readonly string _root;
     private readonly AssetSource _source;
     private readonly IFileProbe _probe;
+    // Each key's answer, kept: the presenter asks per tile and object, and its disk checks were
+    // most of the first pass. A file added or removed later is seen only by a new provider.
+    private readonly Dictionary<AssetRef, string?> _pathOf = new();
 
     /// <summary>
     /// Existence checking, behind an interface purely so the tests can prove the
@@ -71,16 +74,21 @@ public sealed class FileAssetProvider : IAssetProvider
         asset = default;
         if (reference.IsEmpty) return false;
 
-        foreach (string extension in ExtensionsFor(reference.Kind))
+        if (!_pathOf.TryGetValue(reference, out string? found))
         {
-            string path = Path.Combine(_root, RelativePathWithoutExtension(reference) + extension);
-            if (!_probe.Exists(path)) continue;
-
-            asset = new ResolvedAsset(reference, _source, path, look: default, providerName: Name);
-            return true;
+            foreach (string extension in ExtensionsFor(reference.Kind))
+            {
+                string path = Path.Combine(_root, RelativePathWithoutExtension(reference) + extension);
+                if (!_probe.Exists(path)) continue;
+                found = path;
+                break;
+            }
+            _pathOf[reference] = found;
         }
+        if (found is null) return false;
 
-        return false;
+        asset = new ResolvedAsset(reference, _source, found, look: default, providerName: Name);
+        return true;
     }
 
     /// <summary>
