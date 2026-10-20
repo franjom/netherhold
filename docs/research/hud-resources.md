@@ -159,7 +159,9 @@ radial health fill and three-game-second, alternating-turn alarm window.
 The Heart background draws at physical `(0,3)`. The payday helper `0x00415000`
 draws a separate countdown gauge at `(X(516),Y(12))` with payday-BG/payday-Hp,
 catalogue 86/87. Both gauges install **X(160) in both size fields**: 64×64 at
-1024×768. Preserve the source disc padding. These are static positions; the
+1024×768. Preserve the source disc padding. The owner's DK2 screenshot shows the Heart's frame over its green ring (2026-10-20);
+the pushed layers (fill 3, frame 2, alarm 1, [0x00422F60](functions/00422F60.md)) fit that if a lower layer
+is in front, which is inferred. The adapter draws each ring behind its frame. These are static positions; the
 literal Heart y=3 is physical and does not scale with the screen height.
 
 **CONFIRMED fill:** `0x0041EF70` clips a textured square to an angular sector

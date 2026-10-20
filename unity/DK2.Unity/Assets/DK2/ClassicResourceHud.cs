@@ -61,13 +61,16 @@ namespace DK2.Unity
             _root.style.width = Length.Percent(100); _root.style.height = Length.Percent(100);
             for (int i = 0; i < _backgrounds.Length; i++)
                 _backgrounds[i] = Picture(Texture("GUI\\Windows\\Mana-Bg-0" + (i % 2)));
-            _heart = Picture(Texture("GUI\\Windows\\heart-bg"));
-            _heartAlarm = Picture(Texture("GUI\\Windows\\heart-alarm"));
+            // Back to front: the gauge ring, its frame, the alarm. The owner's DK2 screenshot shows the
+            // riveted frame over the ring; 0x00422F60 and 0x00415000 push layers 3, 2, 1, which fits if a
+            // lower layer is in front (inferred; the partial fill's order is unread).
             _healthGauge = new GaugeTexture(Texture("GUI\\Windows\\heart-hp"), "Heart health gauge");
             _heartFill = Picture(_healthGauge.Texture);
-            _payday = Picture(Texture("GUI\\Windows\\payday-BG"));
+            _heart = Picture(Texture("GUI\\Windows\\heart-bg"));
+            _heartAlarm = Picture(Texture("GUI\\Windows\\heart-alarm"));
             _paydayGauge = new GaugeTexture(Texture("GUI\\Windows\\payday-Hp"), "Payday countdown gauge");
             _paydayFill = Picture(_paydayGauge.Texture);
+            _payday = Picture(Texture("GUI\\Windows\\payday-BG"));
             _gold = new NumericRow(this); _mana = new NumericRow(this);
             _income = new NumericRow(this); _upkeep = new NumericRow(this);
         }
