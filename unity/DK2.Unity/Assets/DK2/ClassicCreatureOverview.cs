@@ -122,6 +122,10 @@ namespace DK2.Unity
             // Both page strips are always drawn, forward (catalogue 10) above back (11):
             // widgets 0x0068FFD8 and 0x00690028. Which way each pages (0x00417730) is unread.
             Place(_next,V(760),V(1612),V(64),V(132));Place(_previous,V(760),V(1744),V(64),V(132));
+            // 0x00410A60 sets visibility state 3, LIKELY while the roster fits; 0x004129E0 draws
+            // state 3 multiplied by (100,100,100), the strips' disabled look (owner, 2026-10-20).
+            Color pageTint=pages<=1?new Color32(100,100,100,255):Color.white;
+            _next.tintColor=pageTint;_previous.tintColor=pageTint;
             Place(_modeStrip,V(680),V(1608),V(64),V(264));
             Vector2 at=new Vector2(pointer.x,_height-pointer.y);
             int modeHovered=-1,workerHovered=-1;

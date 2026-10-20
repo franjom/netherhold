@@ -53,7 +53,7 @@ fields of the mode-selector widgets at `0x006902F8`, not the sidebar; `00417850`
 draws only counts and highlight162 over it (corrected 2026-10-19 after the owner's
 comparison). Count rows use filters0/5/6/4.
 Both page strips are always drawn, page_forward (catalogue10, widget `0x0068FFD8`)
-above page_back (11, `0x00690028`). `0x00417730` adds a delta and clamps; the widgets' `+0x16` words read +1 (forward) and -1 (back), so top pages forward (LIKELY; the caller is indirect). The page callback `0x00410A60` writes visibility state3 when the roster fits one page; what state3 draws is unread, and the adapter draws both strips normally.
+above page_back (11, `0x00690028`). `0x00417730` adds a delta and clamps; the widgets' `+0x16` words read +1 (forward) and -1 (back), so top pages forward (LIKELY; the caller is indirect). The page callback `0x00410A60` writes visibility state3 when `0x00416980`'s count is at most the per-mode dword HUD`+0x7D+mode*4` (unread; LIKELY the visible column capacity), else state1. `0x004129E0` draws state3 multiplied by RGB (100,100,100) (`0x00412EA5..0x00412EBC`). The owner sees both strips darkened in DK2 when the roster leaves room (2026-10-20); the adapter darkens them when its own roster fits one page.
 Hover highlight is catalogue162 GUI/Tabs/t-cp-hilight tinted 0x00FFC9, red in the low byte: RGB (201,255,0).
 The byte order is settled by the selected-mode tints (00417B40), which the owner saw as green, red and orange.
 Menu6's worker row icons are records 0x00690078 + 160·r, local (0, 4/68/132/196, 80, 72/68/72/72), text ids
