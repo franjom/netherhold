@@ -583,7 +583,6 @@ namespace DK2.Unity
             return result;
         }
 
-        /// <summary>One install model as arrays in the renderer frame, triangles per material.</summary>
         /// <summary>Exclusive wall time per kind of art work: a span charges only its own time, not
         /// that of spans inside it, and decoding done inside any span is charged to Decode.</summary>
         public sealed class LoadBreakdown
@@ -641,6 +640,7 @@ namespace DK2.Unity
             }
         }
 
+        /// <summary>One install model as arrays in the renderer frame, triangles per material.</summary>
         public sealed class PieceSource
         {
             public PieceSource(Vector3[] positions, Vector3[] normals, Vector2[] uvs,
