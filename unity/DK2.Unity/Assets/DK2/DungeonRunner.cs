@@ -322,10 +322,14 @@ namespace DK2.Unity
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
             else LookAt(world);
             _startup.Step("camera");
-            _minimap = new DungeonMinimap(transform, new InstallMinimapAssets(install), world.Width, world.Height);
+            var minimapAssets = new InstallMinimapAssets(install, _installArt != null ? _installArt.LoadTexture : null);
+            _startup.Step("minimap.assets");
+            _minimap = new DungeonMinimap(transform, minimapAssets, world.Width, world.Height);
+            _startup.Step("minimap.build");
             _minimap.Capture(world, _worldView, _simulation.Navigation);
+            _startup.Step("minimap.capture");
             _minimap.Draw(Camera.main, _cameraFocus);
-            _startup.Step("minimap");
+            _startup.Step("minimap.draw");
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)

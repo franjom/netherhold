@@ -33,23 +33,32 @@ namespace DK2.Unity
         public RgbaImage Frame { get; }
         public RgbaImage CameraFootprint { get; }
         private readonly RgbaImage[] _corners = new RgbaImage[8];
-        public InstallMinimapAssets(string install)
+        /// <summary>The minimap's art from the install. <paramref name="loadTexture"/>, when given,
+        /// loads the engine textures from an archive already open (the art provider's); without it
+        /// the engine-texture archive is opened here, which reads a header per texture.</summary>
+        public InstallMinimapAssets(string install, Func<string, RgbaImage> loadTexture = null)
         {
             using (var archive = WadArchive.Open(Path.Combine(install, "Data", "EngineTextures.WAD")))
             {
                 PalettePng = archive.Extract("GUI\\Map\\MapColours.png");
                 BackdropPng = archive.Extract("Map-BG.PNG");
             }
-            using (var textures = EngineTextureArchive.OpenInstall(install))
+            EngineTextureArchive opened = loadTexture == null ? EngineTextureArchive.OpenInstall(install) : null;
+            try
             {
-                Frame = textures.Decode("GUI\\Map\\map");
-                CameraFootprint = textures.Decode("GUI\\Map\\mapcamerabox");
+                Func<string, RgbaImage> load = loadTexture ?? opened.Decode;
+                Frame = load("GUI\\Map\\map");
+                CameraFootprint = load("GUI\\Map\\mapcamerabox");
                 for (int i = 0; i < 4; i++)
                 {
                     string suffix = i.ToString("00");
-                    _corners[i * 2] = textures.Decode("GUI\\Map\\" + (i == 3 ? "selected-" : "") + "mapbf-" + suffix);
-                    _corners[i * 2 + 1] = textures.Decode("GUI\\Map\\" + (i == 3 ? "" : "selected-") + "mapbf-" + suffix);
+                    _corners[i * 2] = load("GUI\\Map\\" + (i == 3 ? "selected-" : "") + "mapbf-" + suffix);
+                    _corners[i * 2 + 1] = load("GUI\\Map\\" + (i == 3 ? "" : "selected-") + "mapbf-" + suffix);
                 }
+            }
+            finally
+            {
+                opened?.Dispose();
             }
         }
         public RgbaImage Corner(MinimapCorner corner, bool active)
