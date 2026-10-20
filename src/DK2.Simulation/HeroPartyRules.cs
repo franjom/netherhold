@@ -237,14 +237,14 @@ public static class HeroPartyRules
         }
     }
 
-    /// <summary>The handler's pace: every hero of the party walks at the slowest one's level-scaled
+    /// <summary>The handler's pace: every hero of the party walks at the slowest one's definition
     /// walk speed (<c>min def+0x5B4</c>, then <c>0x004887D0(0, slowest)</c> on each).</summary>
     public static void SetPace(WorldState world, GameDatabase database, byte partyId)
     {
         int slowest = int.MaxValue;
         foreach (CreatureState c in world.Creatures)
             if (c.OwnerPlayerId == PlayerIds.Good && c.PartyId == partyId)
-                slowest = Math.Min(slowest, CreatureLevelRules.SpeedRaw(database, database.CreatureById(c.CreatureTypeId), c.Level));
+                slowest = Math.Min(slowest, database.CreatureById(c.CreatureTypeId).Speed.Raw);
         if (slowest == int.MaxValue) return;
         foreach (CreatureState c in world.Creatures)
             if (c.OwnerPlayerId == PlayerIds.Good && c.PartyId == partyId) c.PartySpeedRaw = slowest;

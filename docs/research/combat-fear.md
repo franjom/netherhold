@@ -254,8 +254,8 @@ arrival state walks again.
 receivers, run after each creature's fight processing newest first; §3.1–3.4
 including the acquirer's withdraw; §4 in order with the nearest-attacker rule,
 the stand-off, head-count and Scout alarm entry (ADR-0425); §5 steps 2–5 and the run, arriving idle;
-`Running` as the body's speed cap (`RunSpeed` scaled by the Speed row, STRONGLY
-INFERRED). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
+`Running` as the body's speed cap (the definition's `RunSpeed`, `def+0x5B8` through
+`0x004887D0` mode 1, with no level term; CONFIRMED, ADR-0518). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
 202, entered from 199 when not already in the combat group; both hold those ids since
 ADR-0208.
 
@@ -292,8 +292,8 @@ return, §6.
 
 **CONFIRMED (binary, 2026-09-26):** (1, 1) as a heartless player's heart position.
 
-**STRONGLY INFERRED:** the
-run speed scaled by the Speed row; `+0x12` clear meaning a live thing.
+**STRONGLY INFERRED:** `+0x12` clear meaning a live thing. The run speed is the
+definition's, unscaled by level (ADR-0518).
 
 **CONFIRMED (binary, 2026-10-04):** bit 4's writers (§3.2); the Crypt counts (§2 step 4).
 

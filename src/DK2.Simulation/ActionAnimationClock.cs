@@ -22,28 +22,65 @@ public enum ActionAnimationFlags : byte
     Stop = 8,
     InStart = 16,
     InEnd = 32,
+    /// <summary>The install swapped in the definition's alternate clip (bit 6, <c>0x004B37D0</c>).</summary>
+    Alternate = 64,
 }
 
 /// <summary>The animation clock behind a mode-3 action's end, kept as creature state rather than
 /// reconstructed: phase and rate in 1/4096 of a segment, advanced once a turn (animation-clock.md).
 /// Install is <c>0x004B37D0</c> with <c>0x004B41E0</c>'s rate, the advance <c>0x004B3C10</c>, and
 /// <see cref="Begin"/> the keep-or-install test of <c>0x00496700</c>. The queued resource, the
-/// alternate rate and the walk scalar are not modelled: no work action uses them.</summary>
+/// alternate rate and the walk scalar are not modelled: no action built on it uses them.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/animation-clock.md")]
 public static class ActionAnimationClock
 {
     private const int One = 4096;
 
+    /// <summary>Art flags that make an install flip a coin on the simulation stream (<c>0x004B37D0</c>
+    /// tests <c>flags &amp; 0xFC00</c>); of them, <c>0x400</c> lets a 1 swap in the alternate clip.</summary>
+    private const uint DrawFlags = 0xFC00;
+    private const uint AlternateFlag = 0x400;
+
     /// <summary>An action that plays <paramref name="slot"/> begins: the running clip is kept when it
-    /// is the same slot and has not finished a non-looping play, otherwise installed fresh.</summary>
-    public static void Begin(CreatureState creature, CreatureDef definition, byte slot)
+    /// is the same slot and has not finished a non-looping play, otherwise installed fresh. Its play
+    /// count is 0, the looping action of <c>0x00496980</c>.</summary>
+    public static void Begin(CreatureState creature, CreatureDef definition, byte slot, SimRandom rng)
     {
         ActionAnimationFlags flags = creature.ActionAnimationFlags;
         bool finished = (flags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) != 0
             && (flags & ActionAnimationFlags.Loop) == 0;
+        creature.ActionCount = 0;
         if (creature.ActionArtSlot == slot && !finished) return;
-        Install(creature, definition.ArtSlot(slot), slot);
+        Install(creature, definition, slot, rng);
     }
+
+    /// <summary>A counted action begins (<c>0x004969D0</c>): keep or install as <see cref="Begin"/>,
+    /// then hold <paramref name="plays"/> + 1 in the count and clear the loop bit, so the clip
+    /// plays through once and the runner counts it down (<see cref="CountedActionEnded"/>).</summary>
+    public static void BeginCounted(CreatureState creature, CreatureDef definition, byte slot, byte plays, SimRandom rng)
+    {
+        Begin(creature, definition, slot, rng);
+        creature.ActionCount = (byte)(plays + 1);
+        creature.ActionAnimationFlags &= ~ActionAnimationFlags.Loop;
+    }
+
+    /// <summary>The runner's poll of an action with no handler (<c>0x00496AA0</c>, mode 3): it ends
+    /// when the rate is 0, or when the clip has wrapped or completed with the count at 0; a wrapped
+    /// or completed clip with count left is counted down instead.</summary>
+    public static bool CountedActionEnded(CreatureState creature)
+    {
+        if (creature.ActionAnimationRate == 0) return true;
+        if ((creature.ActionAnimationFlags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) == 0) return false;
+        if (creature.ActionCount == 0) return true;
+        creature.ActionCount--;
+        return false;
+    }
+
+    /// <summary>The clip the creature is playing: its slot's, or the alternate swapped in at install.</summary>
+    public static CreatureAnimationTiming ArtOf(CreatureState creature, CreatureDef definition) =>
+        (creature.ActionAnimationFlags & ActionAnimationFlags.Alternate) != 0
+            ? definition.AlternateArt
+            : definition.ArtSlot(creature.ActionArtSlot);
 
     /// <summary>Whether <paramref name="slot"/> has the data the clock needs.</summary>
     public static bool CanPlay(CreatureDef definition, int slot)
@@ -61,6 +98,7 @@ public static class ActionAnimationClock
         creature.ActionAnimationRate = 0;
         creature.ActionAnimationFlags = ActionAnimationFlags.None;
         creature.ActionHandlerDone = false;
+        creature.ActionCount = 0;
     }
 
     /// <summary>The animation half of the runner's completion test (<c>0x00496AA0</c>).</summary>
@@ -81,7 +119,7 @@ public static class ActionAnimationClock
         }
         if (creature.ActionAnimationRate == 0) return;
 
-        CreatureAnimationTiming art = definition.ArtSlot(creature.ActionArtSlot);
+        CreatureAnimationTiming art = ArtOf(creature, definition);
         int phase = creature.ActionAnimationPhase + creature.ActionAnimationRate;
         if (phase < One)
         {
@@ -140,16 +178,25 @@ public static class ActionAnimationClock
         creature.ActionAnimationFlags = flags | ActionAnimationFlags.Complete;
     }
 
-    private static void Install(CreatureState creature, CreatureAnimationTiming art, byte slot)
+    private static void Install(CreatureState creature, CreatureDef definition, byte slot, SimRandom rng)
     {
+        CreatureAnimationTiming art = definition.ArtSlot(slot);
+        bool alternate = false;
+        if (((uint)art.Flags & DrawFlags) != 0 && rng.NextInt(2) == 1 && ((uint)art.Flags & AlternateFlag) != 0)
+        {
+            art = definition.AlternateArt;
+            alternate = true;
+        }
         bool hasStart = (art.Flags & CreatureAnimationFlags.StartSegment) != 0 && art.StartSegmentFrames != 0;
-        int first = hasStart
-            ? AnimationTimingRules.Duration(art.StartSegmentFrames, art.FramesPerSecond)
-            : AnimationTimingRules.Duration(art.FrameCount, art.FramesPerSecond);
+        int frames = hasStart ? art.StartSegmentFrames : art.FrameCount;
         creature.ActionArtSlot = slot;
         creature.ActionAnimationPhase = 0;
-        creature.ActionAnimationRate = AnimationTimingRules.AdvanceRate(first);
+        // A record with no timing (a hand-built definition) gets rate 0, which the runner ends at once.
+        creature.ActionAnimationRate = frames == 0 || art.FramesPerSecond == 0
+            ? 0
+            : AnimationTimingRules.AdvanceRate(AnimationTimingRules.Duration(frames, art.FramesPerSecond));
         creature.ActionAnimationFlags = ActionAnimationFlags.Loop
-            | (hasStart ? ActionAnimationFlags.InStart : ActionAnimationFlags.None);
+            | (hasStart ? ActionAnimationFlags.InStart : ActionAnimationFlags.None)
+            | (alternate ? ActionAnimationFlags.Alternate : ActionAnimationFlags.None);
     }
 }

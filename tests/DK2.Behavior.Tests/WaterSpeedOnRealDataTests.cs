@@ -27,7 +27,7 @@ public class WaterSpeedOnRealDataTests
             RoomTypeId.WoodenBridge or RoomTypeId.StoneBridge or RoomTypeId.HeroStoneBridge);
         CreatureState creature = world.SpawnCreature(db, 1, new PlayerId(3), water);
         var simulation = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
-        int dry = CreatureMovementSystem.MaxSpeedOf(db, db.CreatureById(1), creature.Level);
+        int dry = CreatureMovementSystem.MaxSpeedOf(db.CreatureById(1));
         simulation.Tick();
         Assert.Equal(((dry >> 4) / 2) << 4, creature.Body.MaxSpeed);
         creature.PosX = CreatureState.CentreOf(bridge.X);
@@ -45,7 +45,7 @@ public class WaterSpeedOnRealDataTests
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         CreatureDef imp = db.CreatureById(1);
         var creature = new CreatureState { CreatureTypeId = imp.CreatureId, Level = level };
-        int cap = CreatureMovementSystem.MaxSpeedOf(db, imp, level);
+        int cap = CreatureMovementSystem.MaxSpeedOf(imp);
         Assert.True(imp.Flags.HasFlag(CreatureFlags.CanWalkOnWater));
         TerrainDef water = db.Terrain.Values.Single(t => t.IsWater);
         int waterCap = WaterSpeedRules.SpeedCap(water, imp, creature, cap);
@@ -58,7 +58,7 @@ public class WaterSpeedOnRealDataTests
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "Level8");
         CreatureDef imp = db.CreatureById(1);
         var creature = new CreatureState { CreatureTypeId = imp.CreatureId };
-        int cap = CreatureMovementSystem.MaxSpeedOf(db, imp, 1);
+        int cap = CreatureMovementSystem.MaxSpeedOf(imp);
         foreach (RoomDef bridge in db.Rooms.Values.Where(r => r.TypeId is
             RoomTypeId.WoodenBridge or RoomTypeId.StoneBridge or RoomTypeId.HeroStoneBridge))
         {
@@ -82,7 +82,7 @@ public class WaterSpeedOnRealDataTests
         TerrainDef water = db.Terrain.Values.Single(t => t.IsWater);
         var creature = new CreatureState { CreatureTypeId = imp.CreatureId,
             SpeedEffectTicks = 60, SpeedPercent = 150 };
-        int baseCap = CreatureMovementSystem.MaxSpeedOf(db, imp, 1);
+        int baseCap = CreatureMovementSystem.MaxSpeedOf(imp);
         int hasteCap = StatusEffectRules.SpeedCap(db, imp, creature, baseCap);
         Assert.True(hasteCap > baseCap);
         Assert.Equal(((hasteCap >> 4) / 2) << 4,

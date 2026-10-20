@@ -216,7 +216,26 @@ public class LibraryStateTests
         CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));
         GameSimulation sim = Simulation(db, world);
         CreatureDef vampire = db.CreatureById(Vampire);
-        int current = CreatureMovementSystem.MaxSpeedOf(db, vampire, intruder.Level, intruder.Running) >> 4;
+        int current = CreatureMovementSystem.MaxSpeedOf(vampire, intruder.Running) >> 4;
+
+        for (int i = 0; i < 3 && intruder.SpeedEffectTicks == 0; i++) sim.Tick();
+
+        Assert.Equal(2 * current, intruder.SpeedPercent);
+        Assert.InRange(intruder.SpeedEffectTicks, 1,
+            2 * SimulationTiming.OriginalTicksPerGameSecond * SimulationTiming.OriginalTicksPerGameSecond);
+    }
+
+    [Fact]
+    public void TheWatchDoublesTheSpeedTheIntruderIsWalkingAt_NotItsDefinitionsSpeed()
+    {
+        // vtable +0x90 reads the word SetSpeed last stored, so a party's slower pace is what doubles.
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState);
+        CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));
+        intruder.PartySpeedRaw = db.CreatureById(Vampire).Speed.Raw / 2;
+        GameSimulation sim = Simulation(db, world);
+        int current = SimulationTiming.LoaderRatePerTick(intruder.PartySpeedRaw);
 
         for (int i = 0; i < 3 && intruder.SpeedEffectTicks == 0; i++) sim.Tick();
 

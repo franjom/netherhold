@@ -209,12 +209,20 @@ public class ImpWanderTests
         Assert.True(reach.Count(d => d >= 4) * 2 > reach.Count, $"trip lengths {string.Join(",", reach)}");
     }
 
-    /// <summary>After a trip, 12 rolls: under 25 it wanders again, otherwise it plays action 43 or 44.
-    /// The actions' length here is a guess (<see cref="ImpTaskSystem.IdleActionGuessTicks"/>).</summary>
+    /// <summary>After a trip, 12 rolls: under 25 it wanders again, otherwise it plays action 43 or 44,
+    /// each a single play of its clip (IdleActionClockTests pins the lengths).</summary>
     [Fact]
-    public void BetweenTripsTheImpPlaysIdleActions_ForAGuessedLength()
+    public void BetweenTripsTheImpPlaysIdleActions()
     {
         (GameDatabase db, WorldState world) = AllClaimed();
+        db = IdleActionClockTests.WithImpIdleArt(db);
+        world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+        for (int y = 1; y < world.Height - 1; y++)
+            for (int x = 1; x < world.Width - 1; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+                world.Tile(x, y).OwnerPlayerId = Keeper;
+            }
         world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();

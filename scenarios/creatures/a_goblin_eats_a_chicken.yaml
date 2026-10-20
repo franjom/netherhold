@@ -70,8 +70,10 @@ expect:
     because: >
       Floor laying, full-room coop launches and chicken roaming leave a bird on the
       entry tile, so this seed feeds the Goblin without a separate one-step chase.
-      With same-cell wandering preserved, the seed selects bird 7 at the same meal
-      tick. Both remain pinned; nearest-bird walks have EatingTests.
+      WHICH bird is incidental: it follows every random draw before the meal, so any
+      change that adds or moves a draw re-picks it (it was bird 7 before the imp
+      movement work of October 2026) while the meal tick stays 720. Nearest-bird
+      walks have EatingTests.
   - event: egg_laid
     at_tick: 727
     because: >

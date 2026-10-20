@@ -110,6 +110,7 @@ research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
 Scripted camera paths are built separately (ADR-0496; research/camera-paths.md).
 Room/neutral-Portal border flames are researched but unbuilt
 (research/room-border-effects.md); claim-mist bleaching remains open (Q609).
+Wet/bloody footprints are built; native rules and pending visual acceptance: research/creature-footprints.md (Q610, 2026-10-20).
 Creature asset keys are cached per definition/action; transparent terrain uses
 retained stable-sort buffers and reuses meshes across changes in draw order.
 Measured gains, regression checks and remaining costs: verification document.
@@ -142,7 +143,7 @@ groups, G/H/M and corner controls, campaign Options pause, full-map terrain and
 navigation, creature query/follow, bottom choices, Reaper state, room cycling
 and all four creature overview modes. Canonical scope and remaining gates:
 plans/2026-10-17-classic-look-step6.md. Hash/save 283 adds native identity and
-last-payday state; ADR-0515 documents initial constructor RNG ordering limits.
+last-payday state; ADR-0521 documents initial constructor RNG ordering limits.
 remaining modal/panel/full-map rules
 and original-game comparison are Q611 (research/hud-visibility.md).
 Native minimap raster
@@ -161,7 +162,7 @@ interior, and PrisonSystem emits `prisoner_freed ... at=(7,2) reason=cell_gone`
 on ticks 295 and 299. At 1f3805e0 creature 1 stood at (6,4), within reach, and
 ate on 281 without walking, so the edge walk never ran. What DK2 does with food
 on the rim is unknown. The HUD probe was not rerun
-after the merge. Hash/save 283; ADR-0515 and Q615/Q616 were 0510, Q612 and Q613
+after the merge. Hash/save 289; ADR-0521 and Q615/Q616 were 0510, Q612 and Q613
 on this branch before the merge.
 
 Use serial checks; isolated probes must not save or restart the owner's editor.

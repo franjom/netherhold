@@ -129,3 +129,41 @@ Tests: `ImpWorkAnimationTests`.
 - **Other actions** still use closed-form `ActionUntilTick` hold times, correct only from a
   fresh install: claim, reinforce, convert, melee, spells, training, eating and the victory
   pause. They can move onto this record.
+
+## Idle actions
+
+Actions 43 and 44 ([0x004950C0](functions/004950C0.md)'s records) have no handler and
+play art slots 20 and 31. State 12 ([0x00464240](functions/00464240.md)) checks the art
+is available, then begins them counted ([0x004969D0](functions/004969D0.md)): count 2
+and the loop bit cleared, so the clip plays once.
+
+The runner ends the action on the poll after the clip's rate drops to 0. That is one
+turn after completion, so an action lasts k + 1 turns, where k advances reach 4096.
+
+**Install coin (CONFIRMED, read):** when the art flags hit `0xFC00`,
+[0x004B37D0](functions/004B37D0.md) draws `rand(2)` on the simulation stream. On a 1
+with flag `0x400` it installs the definition's alternate clip (definition `+0x46E`) and
+sets animation flag bit 6. That `+0x46E` is loaded from file `+0x1083` is LIKELY: the
+block there is an art block (the Imp's IMP-Idle4), but the loader's copy was not read.
+
+| Imp clip | Frames / fps | Rate | Turns |
+|---|---|---|---|
+| Slot 20 | 171 / 30 | 179 | 24 |
+| Slot 31 | 172 / 30 | 178 | 25 |
+| IMP-Idle4, alternate | 129 / 30 | 238 | 19 |
+
+All 14 rests in the Level 4 capture's first 1100 turns have one of these three
+lengths, matching the clip installed; 7 were swapped. Our coin comes from our own
+stream, so the capture checks the lengths and the rate of swaps, not the draw's
+position in DK2's stream.
+Imp dig art (slot 5, flags `0x28011`) has `0x8000`, so every fresh dig or mining
+install draws one number too, without swapping. Built in ADR-0515; tests:
+`IdleActionClockTests`.
+
+Not mirrored, and unused so far: `0x00496700` keeps a clip by resource and the
+unresolved art byte, so it would reinstall (and draw again) after a swap, where our
+`Begin` keeps it. The runner's count-down mirrors only a count of 2.
+
+Other creatures' idle actions (`CreatureJobSystem`) still use a guessed 8 turns. Only
+the Imp's idle slots carry `0x400`. Other actions that install art in DK2 draw their
+coin too, but ours do not install a clip yet.

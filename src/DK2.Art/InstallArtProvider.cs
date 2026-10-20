@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Diagnostics;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
 using DK2.Assets;
@@ -22,6 +23,16 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     private readonly Dictionary<AssetRef, (string Entry, ArtUse Use, Dk2ArtResource Resource)> _entries = new();
     private readonly Dictionary<string, KmfModel> _models = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, RgbaImage> _images = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Stopwatch _decodeClock = new();
+
+    /// <summary>Models decoded and kept so far.</summary>
+    public int ModelsDecoded => _models.Count;
+
+    /// <summary>Images decoded and kept so far.</summary>
+    public int ImagesDecoded => _images.Count;
+
+    /// <summary>Time spent reading and decoding models and images, cache hits excluded.</summary>
+    public TimeSpan DecodeTime => _decodeClock.Elapsed;
 
     /// <summary>Over the given sources, which the caller owns.</summary>
     public InstallArtProvider(IReadOnlyList<ArtEntry> entries, IMeshSource meshes, ITextureSource textures)
@@ -175,7 +186,15 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
         string stored = _textures.Resolve(textureName);
         if (!_images.TryGetValue(stored, out RgbaImage? image))
         {
-            image = _textures.Read(stored);
+            _decodeClock.Start();
+            try
+            {
+                image = _textures.Read(stored);
+            }
+            finally
+            {
+                _decodeClock.Stop();
+            }
             _images[stored] = image;
         }
         return image;
@@ -196,7 +215,15 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
         {
             if (!_meshes.TryFind(entryName, out int index))
                 throw new FileNotFoundException($"Meshes.WAD has no '{entryName}'.");
-            model = KmfReader.Read(_meshes.Read(index));
+            _decodeClock.Start();
+            try
+            {
+                model = KmfReader.Read(_meshes.Read(index));
+            }
+            finally
+            {
+                _decodeClock.Stop();
+            }
             _models[entryName] = model;
         }
         return model;

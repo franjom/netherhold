@@ -36,6 +36,11 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
                          && !string.IsNullOrWhiteSpace(element.ArtResource.Name))
                      .GroupBy(element => AssetRef.ForEffectElement(element.Name)))
             if (group.Count() == 1) _elements.Add(group.Key, group.Single().ArtResource);
+        foreach (var group in database.Effects.Values
+                     .Where(effect => effect.ArtResource.Type is >= 1 and <= 3
+                         && !string.IsNullOrWhiteSpace(effect.ArtResource.Name))
+                     .GroupBy(effect => AssetRef.ForEffect(effect.Name)))
+            if (group.Count() == 1) _elements.Add(group.Key, group.Single().ArtResource);
         byte[] flameValues = new byte[12];
         BinaryPrimitives.WriteInt32LittleEndian(flameValues, 4096);
         BinaryPrimitives.WriteInt32LittleEndian(flameValues.AsSpan(4), 4096);

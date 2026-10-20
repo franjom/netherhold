@@ -33,7 +33,7 @@ public class KwdCreaturesWriterTests
             "CloneCreatureId:D3B:1 NameStringId:F24:2 TooltipStringId:F26:2 IntroductionStringId:CFF:2 EntranceEffectId:F36:2",
             excludedProperties: ["Attractions", "Spells", "Resistances", "HappyJobs", "UnhappyJobs", "AngryJobs", "HateJobs", "AlternativeJobs",
                 "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation",
-                "ReaperSummonAnimation", "ReaperSummonFallbackAnimation", "ArtSlots"],
+                "ReaperSummonAnimation", "ReaperSummonFallbackAnimation", "AlternateArt", "ArtSlots"],
             customValues: new Dictionary<string, object> { ["SizeClass"] = 13 });
 
     [Fact]

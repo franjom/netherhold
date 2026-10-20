@@ -68,7 +68,7 @@ public sealed class CreatureMovementSystem : ISimulationSystem
             if (creature.Running) creature.PartySpeedRaw = 0;
             int cap = creature.PartySpeedRaw > 0
                 ? Math.Min(SimulationTiming.LoaderRatePerTick(creature.PartySpeedRaw), MaxSpeedPerTick) << 4
-                : MaxSpeedOf(context.Database, definition, creature.Level, creature.Running);
+                : MaxSpeedOf(definition, creature.Running);
             creature.Body.MaxSpeed = StatusEffectRules.SpeedCap(context.Database, definition, creature, cap);
             TerrainDef terrain = context.Database.TerrainById(context.World.Tile(creature.Tile).TerrainId);
             creature.Body.MaxSpeed = WaterSpeedRules.SpeedCap(terrain, definition, creature, creature.Body.MaxSpeed);
@@ -109,21 +109,13 @@ public sealed class CreatureMovementSystem : ISimulationSystem
         }
     }
 
-    /// <summary>The body's speed cap in 16.16 tiles a tick: the level-scaled definition speed
-    /// divided by the tick rate as the loader does it, clamped, shifted up four.</summary>
-    public static int MaxSpeedOf(GameDatabase database, CreatureDef definition, int level)
+    /// <summary>The body's speed cap in 16.16 tiles a tick: the definition's speed divided by the
+    /// tick rate as the loader does it, clamped, shifted up four. <c>0x004887D0</c> takes it from
+    /// the shared definition (<c>+0x5B4</c> walking, <c>+0x5B8</c> running), so level never
+    /// changes it (ADR-0518).</summary>
+    public static int MaxSpeedOf(CreatureDef definition, bool running = false)
     {
-        return MaxSpeedOf(database, definition, level, running: false);
-    }
-
-    /// <summary>The same cap for a creature set running (<c>0x004887D0(1)</c>, the fight and the
-    /// withdrawal): the record's <c>RunSpeed</c>, scaled by the Speed row like the walk
-    /// (STRONGLY INFERRED: the stat setter scales all three speeds together).</summary>
-    public static int MaxSpeedOf(GameDatabase database, CreatureDef definition, int level, bool running)
-    {
-        int raw = running
-            ? CreatureLevelRules.Scale(definition.RunSpeed.Raw, CreatureLevelRules.Percent(database, CreatureStatId.Speed, level))
-            : CreatureLevelRules.SpeedRaw(database, definition, level);
+        int raw = running ? definition.RunSpeed.Raw : definition.Speed.Raw;
         int perTick = SimulationTiming.LoaderRatePerTick(raw);
         return Math.Min(perTick, MaxSpeedPerTick) << 4;
     }

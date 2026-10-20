@@ -65,7 +65,8 @@ public sealed partial class ImpTaskSystem
     {
         if (!PlaysWorkLoop(creature, definition))
         {
-            if (creature.ActionArtSlot != 0 || creature.ActionHandlerDone) ActionAnimationClock.Clear(creature);
+            if (PlaysIdleAction(creature)) ActionAnimationClock.Advance(creature, definition);
+            else if (creature.ActionArtSlot != 0 || creature.ActionHandlerDone) ActionAnimationClock.Clear(creature);
             return;
         }
         if (context.Tick.Value <= creature.StateEnteredTick) return;
@@ -74,7 +75,7 @@ public sealed partial class ImpTaskSystem
         if (creature.ActionArtSlot != WorkArtSlot)
         {
             if (!workable) return;
-            ActionAnimationClock.Begin(creature, definition, WorkArtSlot);
+            ActionAnimationClock.Begin(creature, definition, WorkArtSlot, context.Rng);
             creature.ActionHandlerDone = false;
         }
         else if (!workable && (struck || !creature.ActionHandlerDone))

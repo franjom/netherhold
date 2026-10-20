@@ -11815,7 +11815,121 @@ hold the provisional models matched is reproduced by stepping. Uncaptured histor
 the binary's rules instead of extrapolating. The six-turn dig modulo and the immediate mining
 end are gone for creatures with slot-5 data. Replaces the provisional parts of ADR-0512.
 
-## ADR-0515 — Preserve creature names and blood groups in simulation state
+## ADR-0515 — Idle actions play their clip; installs draw their coin
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** Our Imp idle actions held a fixed 19 (action 43) or 24 turns (44), an
+inferred mapping. The re-recorded Level 4 capture shows both actions at both lengths.
+DK2 plays each idle clip once on the action clock. Its install (`0x004B37D0`) draws
+`rand(2)` for art flagged `0xFC00` and swaps in the alternate clip on a 1 with `0x400`
+([animation-clock.md](research/animation-clock.md#idle-actions)).
+
+**Decision.** State 12 begins actions 43 and 44 counted on slots 20 and 31
+(`ActionAnimationClock.BeginCounted`), when the art is available. They end by the
+runner's no-handler rule. Every install, dig and mining included, draws the coin and may
+swap to `CreatureDef.AlternateArt`, loaded from `+0x1083`.
+
+**Consequences.** Hash/save 283 adds `CreatureState.ActionCount`. The simulation stream
+now takes one more draw per fresh dig, mine or idle install, which shifts every later
+draw. A definition without idle art wanders instead of resting.
+
+## ADR-0516 — Walkers and dig turners keep a gone task, as DK2's states do
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** We dropped a worker's job the turn its task disappeared, whatever its state.
+DK2's walk (state 6, `0x00470C80`) never checks its task, and the dig entry (state 13,
+`0x004654F0`) checks only that the task entry is alive, which outlives a fallen wall. In
+Level 4 this lost the fresh claim's raise at (33,55) in all five seeds
+([imp-claim-path.md §11](research/imp-claim-path.md#11-a-wall-falling-under-walkers-2026-10-19)).
+
+**Decision.** `ImpTaskSystem.HoldsCourse` keeps the job for a travelling worker, and for a
+dig-entry worker while the tile's dig task outlives the wall. A dig whose wall has fallen
+is in position within one tile on each axis, diagonals included. The entry and work states then decide as before: 14 raises
+the claim, and 13 with the task gone sets 10.
+
+**Consequences.** Hash/save 284, no new fields. A player's untag no longer stops a walker
+mid-walk; it drops on arrival, as the owner observed. Builds on ADR-0305's raise.
+
+## ADR-0517 — An alarm goes only to a Guard Room
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** `Combat_RaiseAlarm` (`0x004752B0`) walks the owner's rooms and skips any
+whose type byte `+0x18` is not 9 (`0x00475336`), the filter ADR-0473 built for its twin
+`0x00460B50`. Ours took the nearest room of any type, so fleeing Imps in Level 4 raised
+alarms to the Portal, Hatchery and Lair (39 to the Portal in one seed). DK2 raised one
+alarm in the whole capture ([combat-alarm.md §2](research/combat-alarm.md)).
+
+**Decision.** `FearRules.RaiseAlarm` considers Guard Rooms only; with none it raises
+nothing and draws no point.
+
+**Consequences.** Hash/save 285, no new fields. The room is still chosen by bounding-box
+centre where DK2 uses the stored `+0x27` tile. The gate behind DK2's rare alarms is unread.
+
+## ADR-0518 — Speed does not scale with level
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** Ours scaled walking and running speed by the level table's Speed row
+(105% at level 2, 250% at 10), from the owner's 2026-09-04 remark that levelled Imps
+are faster. `Creature_SetSpeedMode` (`0x004887D0`) reads the speed from the definition
+at `creature+0x370`, one record shared by every creature of a type; `Creature_LevelUp`
+(`0x0048B120`) rescales health only; none of the 17 functions that index the level table
+reads the Speed or RunSpeed rows. The Level 4 capture agrees: walking Imps step 0.4617
+tiles a tick at levels 1 to 8, and nine types keep one walking and one running speed.
+The speed-up the owner sees is Imp Haste, cast from level 4 by the task-walk wrapper
+(ADR-0385): 362 casts in the capture, 326-364 in our replays. The extra 10% at level 3
+made our neighbouring claim 12 ticks where DK2's is 13, so Level 4's Imps claimed the
+hero Guard Room at (24,38) 34-67 turns early, starting the Dwarves' 240-second timer
+early ([creature-levels.md §3](research/creature-levels.md#3-implementation)).
+
+**Decision.** `CreatureMovementSystem.MaxSpeedOf` takes the definition's `Speed` or
+`RunSpeed`; `CreatureLevelRules.SpeedRaw` is removed. The speed effect's floor, the hero
+party's pace and the Library watcher read the definition's speed too.
+
+**Consequences.** Hash/save 286, no new fields. The `creature_level_up` event no longer
+reports a speed. For the Imp, Imp Haste through `0x004651A0` is the only level-dependent
+speed; whether other casters of `0x0048CAD0` gate a speed by level is unchecked.
+
+## ADR-0519 — Tier B tries a tile's objects after its gold
+**Date:** 2026-10-20 · **Status:** accepted
+
+**Context.** `0x00469580`, the per-tile chain of the imp's Tier B ring scan, runs four
+handlers in order: reinforce or repair (`0x0046AEA0`), gold (`0x0046B6D0`), loose objects
+(`0x0046B9C0`) and the marked Secret Door (`0x0046CB80`). Codex's 2026-10-18 re-read and
+five controlled runs of the original bytes confirmed all four; `TrySweep` had the first two
+([imp-priority-checks.md](research/imp-priority-checks.md)).
+
+**Decision.** `TrySweep` calls `TryObjectAt` on each tile after the gold step, for an imp
+holding no object or creature. The Secret Door step is not built: ours never marks a Secret
+Door (`0x00512D20`), so no kind-11 entry exists for it to find. The carry gate is ours, as in
+`TryTakeObject`: neither `0x00469580` nor state 10 (`0x00463DF0`) tests what the imp carries,
+and a carrying imp should not reach Tier B.
+
+**Consequences.** Hash/save 287, no new fields. Tier A's kind-8 search runs the same handler
+over the whole map before Tier B, so the step takes a job only when an earlier step of the same
+selection changed what Tier A saw. No fixture exercises the branch; the new hash pin moved
+only with the version. The Secret Door step waits
+for Secret Door marking.
+
+## ADR-0520: native wet and bloody footprint counters and parent sprites
+
+**Status:** accepted, 2026-10-20.
+
+**Decision.** Run the native high-setting footprint path before combat/movement,
+save and hash both native byte counters, and render the stationary flat
+generation-zero parent art through the existing effect sprite pipeline.
+Give parent art its own `effect` asset category so it cannot collide with
+generated `effect_element` art. Keep original art behind the asset provider.
+
+**Reason.** Footprints are direct effect art, not generated elements or
+animation contact events. Existing flat rendering already supplies the native
+shape, heading and floor projection. Evidence and remaining native-setting,
+flight and fading boundaries: [creature-footprints.md](research/creature-footprints.md).
+
+**Consequences.** Hash/save 288; older snapshots are rejected. Direct support
+is limited to static, stationary, fixed-scale flat alpha art. Native print
+expiry is preserved without an invented opacity curve; visual acceptance is pending.
+
+## ADR-0521 — Preserve creature names and blood groups in simulation state
 **Date:** 2026-10-18 · **Status:** accepted
 
 **Context.** Query and hover text consume the constructor's personal-name and
@@ -11836,12 +11950,12 @@ constructor random call. An internal unassigned-name sentinel distinguishes
 that reconstruction from a saved, initialized identity; restoring consumes no
 additional identity draws. Query presentation never owns a random generator.
 
-**Consequences.** Hash/save version 283 (275 on the branch before master's 276–282 merged) also includes ADR-0295's payday stamp.
+**Consequences.** Hash/save version 289 (275, then 283, on classic-look/step6 before master's later versions merged) also includes ADR-0295's payday stamp.
 Existing random trajectories can change because missing constructor draws are
 now consumed. Tests of another mechanic with scripted draws must supply an
 already initialized identity instead of silently changing that mechanic's draws.
 
-## ADR-0519 — Lighting follows visual fidelity: Unity fill by default
+## ADR-0522 — Lighting follows visual fidelity: Unity fill by default
 
 **Context.** Native-only lighting (`nativeInitialAmbient`) became the default on
 2026-10-16 (16cf59d5), and the scene saved it on 2026-10-17 (d220c077). It uses

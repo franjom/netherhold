@@ -16,18 +16,21 @@ public sealed partial class ImpTaskSystem
     public const int RestBaseTicks = 240;
     public const int RestRandomTicks = 240;
 
-    /// <summary>How long idle action 43 holds state 12, one tick short of the 20-tick rest the
-    /// two full-state captures show (mining-cadence.md §6). Measured as an outcome: the imp's
-    /// animation blocks (171 and 172 frames at 30 fps) do not give it.</summary>
-    public const int IdleAction43Ticks = 19;
+    /// <summary>Idle actions 43 and 44 play art slots 20 and 31 once (<c>0x004950C0</c>'s records;
+    /// begun counted by <c>0x00464240</c> through <c>0x004969D0</c>). Their length is the clip's
+    /// (animation-clock.md, idle actions): the Imp's 24 or 25 turns, or 19 when the install's coin
+    /// flip swaps in IMP-Idle4.</summary>
+    private const byte IdleAction43Art = 20, IdleAction44Art = 31;
 
-    /// <summary>Action 44's, one short of the 25-tick rest. That 43 is the 20 and 44 the 25
-    /// is STRONGLY INFERRED from the 2:1 split matching 12's roll.</summary>
-    public const int IdleAction44Ticks = 24;
-
-    /// <summary>How long another creature's idle action plays. <b>A guess</b>: the length is the
-    /// animation's and is UNKNOWN; the imp's two were measured, not read.</summary>
+    /// <summary>How long another creature's idle action plays. <b>A guess</b>: other creatures do not
+    /// yet run the stored clip (CreatureJobSystem), so their length is not the animation's.</summary>
     public const int IdleActionGuessTicks = 8;
+
+    /// <summary>A worker in state 12 playing its counted idle clip (installed, loop bit clear); a
+    /// looping work clip carried into 12 is not one, and the step clears it.</summary>
+    private static bool PlaysIdleAction(CreatureState creature) =>
+        creature.Dk2StateId == ImpStates.Resting && creature.ActionArtSlot != 0
+        && (creature.ActionAnimationFlags & ActionAnimationFlags.Loop) == 0;
 
     /// <summary><c>0x00480A00</c>'s room branch: the room types a wander may go to.</summary>
     private static readonly RoomTypeId[] WanderRooms =
@@ -64,7 +67,7 @@ public sealed partial class ImpTaskSystem
                 }
                 return true;
             case ImpStates.Resting:
-                Rest(context, creature);
+                Rest(context, creature, definition);
                 return true;
             case ImpStates.Wandering:
                 if (!Wander(context, creature, definition)) StateShadow.ToIdle(context, SystemName, creature);
@@ -84,13 +87,18 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>State 12 (<c>0x00464240</c>): wait out a playing action; at the deadline, 10; after a
-    /// trip, roll: under 25 wander, 25–74 action 43, 75–99 action 44; otherwise wander. The two
-    /// actions' lengths are <see cref="IdleAction43Ticks"/> and <see cref="IdleAction44Ticks"/>.</summary>
-    private static void Rest(SimulationContext context, CreatureState creature)
+    /// trip, roll: under 25 wander, 25–74 action 43, 75–99 action 44, each only when its art is
+    /// available (<c>0x004966C0</c>); otherwise wander. An action plays its clip through once.</summary>
+    private static void Rest(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         creature.WorkerIdle = true;
         long now = context.Tick.Value;
         if (now < creature.ActionUntilTick) return;
+        if (PlaysIdleAction(creature))
+        {
+            if (!ActionAnimationClock.CountedActionEnded(creature)) return;
+            ActionAnimationClock.Clear(creature);
+        }
         if (creature.StateDeadlineTick <= now)
         {
             if (StateShadow.TryMove(context, SystemName, creature, ImpStates.TaskSelection))
@@ -100,10 +108,13 @@ public sealed partial class ImpTaskSystem
         if (creature.WanderStamp != 0)
         {
             int roll = context.Rng.NextInt(100);
-            if (roll >= 25)
+            byte art = roll < 75 ? IdleAction43Art : IdleAction44Art;
+            // 0x004966C0: the resolved record's present bit; the action names the unresolved slot.
+            if (roll >= 25 && AnimationTimingRules.ResolvesPresent(definition, art))
             {
                 creature.WanderStamp = 0;
-                creature.ActionUntilTick = now + (roll < 75 ? IdleAction43Ticks : IdleAction44Ticks);
+                ActionAnimationClock.BeginCounted(creature, definition,
+                    (byte)AnimationTimingRules.ResolveArtSlot(definition, art), plays: 1, context.Rng);
                 context.Emit(SystemName, "idle_action",
                     $"imp={creature.Id} action={(roll < 75 ? 43 : 44)} at=({creature.Tile.X},{creature.Tile.Y})");
                 return;

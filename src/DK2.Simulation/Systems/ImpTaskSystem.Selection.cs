@@ -269,8 +269,10 @@ public sealed partial class ImpTaskSystem
     /// Tier B (<c>0x004640bb</c>): the ring scan from the worker over the whole map, started on
     /// the side <see cref="ClaimStartSide"/> picks, with the chain <c>0x00469580</c> at each tile:
     /// the tile as a wall to reinforce or repair (<see cref="TryReinforceAt"/>), then the gold on
-    /// it. The first tile that gives a job wins, so a wall one ring nearer beats a pile under the
-    /// next ring. The chain's objects and kind-11 steps are not built here. Q493, ADR-0291.
+    /// it, then its loose objects (<c>0x0046B9C0</c>, <see cref="TryObjectAt"/>, ADR-0519). The first
+    /// tile that gives a job wins, so a wall one ring nearer beats a pile under the next ring.
+    /// The fourth step, the marked Secret Door (<c>0x0046CB80</c>, kind 11), is not built: ours
+    /// marks no Secret Door, so no kind-11 entry exists for it to find. Q493, ADR-0291.
     /// </summary>
     private bool TrySweep(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -289,6 +291,11 @@ public sealed partial class ImpTaskSystem
             if (handsFree && CanFetchFrom(context, tile, player, creature.Id)
                 && Reaches(grid, creature, tile)
                 && CommitFetch(context, creature, tile))
+                return true;
+            // A guard of ours with no counterpart in 0x00469580 or state 10 (0x00463DF0), the same
+            // as TryTakeObject's: state 10 follows a drop, so a carrying imp should not get here.
+            if (creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0
+                && TryObjectAt(context, creature, grid, tile))
                 return true;
         }
         return false;
@@ -1198,6 +1205,15 @@ public sealed partial class ImpTaskSystem
             creature.TargetTileIndex % world.Width, creature.TargetTileIndex / world.Width);
 
         if (WorkStance.IsInPosition(context.Database, world, grid, creature.Tile, target, creature.TargetWork))
+            return true;
+
+        // A dig whose wall has fallen is still worked from beside it: the dig entry asks only that
+        // the worker's tile be within one of the task's on each axis, diagonals included
+        // (0x004654F0: |dx| <= 1 and |dy| <= 1), not where the floor would put a stance.
+        if (creature.TargetWork is TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall
+            && !TileWorkRules.TryResolveDigTask(context.Database, world.Tile(target), creature.TargetWork,
+                creature.OwnerPlayerId, out _)
+            && Math.Abs(creature.Tile.X - target.X) <= 1 && Math.Abs(creature.Tile.Y - target.Y) <= 1)
             return true;
 
         // A worker at work still settling on its stance point may be nudged across the tile's edge

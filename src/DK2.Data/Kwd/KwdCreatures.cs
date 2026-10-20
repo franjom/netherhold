@@ -138,9 +138,10 @@ public static partial class KwdCreatures
                 altJobs.Add(new CreatureJobAlternative(job, S16(off + 4), S16(off + 6)));
         }
 
-        CreatureAnimationTiming AnimationTiming(int slot)
+        CreatureAnimationTiming AnimationTiming(int slot) => AnimationTimingAt(0x20 + (slot * 84));
+
+        CreatureAnimationTiming AnimationTimingAt(int offset)
         {
-            int offset = 0x20 + (slot * 84);
             byte type = U8(offset + 0x50);
             return new CreatureAnimationTiming
             {
@@ -193,6 +194,7 @@ public static partial class KwdCreatures
             ReaperSummonAnimation = AnimationTiming(35),
             ReaperSummonFallbackAnimation = AnimationTiming(8),
             ArtSlots = artSlots,
+            AlternateArt = AnimationTimingAt(0x1083),
 
             Speed = Fp(0xEB4),
             RunSpeed = Fp(0xEB8),

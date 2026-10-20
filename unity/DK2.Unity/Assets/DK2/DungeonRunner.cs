@@ -163,6 +163,7 @@ namespace DK2.Unity
         private ulong _stateHash;
         private string _diagnostics = "";
         private readonly DebugFrameOverlay _frameOverlay = new DebugFrameOverlay();
+        private StartupTimings _startup;
 
         /// <summary>The running simulation, or null if it could not start. Read-only by intent.
         /// Waits for a tick in flight on the worker thread, so a reader sees a settled world.</summary>
@@ -177,6 +178,7 @@ namespace DK2.Unity
 
         private void Start()
         {
+            _startup = new StartupTimings();
             try
             {
                 StartGame();
@@ -205,11 +207,13 @@ namespace DK2.Unity
                 throw new InvalidOperationException(
                     "no Dungeon Keeper 2 installation found. Set the Install Directory field, " +
                     "or the DK2_DIR environment variable.");
+            _startup.Step("install");
 
             bool campaignLevel = string.IsNullOrWhiteSpace(saveFile);
             GameDatabase database = campaignLevel
                 ? GameDatabaseLoader.LoadForCampaignLevel(install, levelName)
                 : GameDatabaseLoader.Load(install);
+            _startup.Step("database");
 
             LevelMap map = campaignLevel
                 ? GameDatabaseLoader.LoadCampaignMap(install, levelName)
@@ -241,6 +245,7 @@ namespace DK2.Unity
             WorldState world = _simulation.World;
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
+            _startup.Step("level");
 
             // The chain the plan specifies (§7.2), with the install read in place as the
             // converted tier (ADR-0408). Both roots are relative to the project directory and
@@ -254,6 +259,7 @@ namespace DK2.Unity
                 replacementRoot: "art-pack",
                 convertedRoot: "build/converted",
                 install: _installArt);
+            _startup.Step("art");
 
             TerrainLattice lattice = _classic != null && bendTerrain
                 ? new TerrainLattice(database, world, (byte)viewingPlayerId) { HighWalls = highWalls }
@@ -263,6 +269,7 @@ namespace DK2.Unity
             _worldView = new WorldView(database, (byte)viewingPlayerId);
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
+            _startup.Step("scene");
             if (_installArt != null)
             {
                 var sprites = new InstallEffectSpriteProvider(database, _installArt.LoadTexture);
@@ -281,6 +288,7 @@ namespace DK2.Unity
                     new EffectId(CreatureView.GemDustSparkle.EffectId), new PlayerId((byte)viewingPlayerId), point));
                 _constructionEffects.LightTable = _scene.LightTableAt;
             }
+            _startup.Step("effects");
             _textFolder = Path.Combine(install, "Data", "Text", "Default");
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
                 CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
@@ -293,13 +301,17 @@ namespace DK2.Unity
                 DungeonHeartVisual.FromHealth(currentHealth: change.Health, maximumHealth: maximumHeartHealth));
             world.HeartHealthChanged += _heartHealthObserver;
             _heartHealthWorld = world;
+            _startup.Step("script");
             // The Heart's plug lid is asked for on game turn 1 and by nothing earlier, so DK2 draws
             // no frame before its first turn (heart-intro.md §4, an inference from 0x004D9A60's
             // guard). The first tick runs here, and the effect model one update, so the first frame
             // shows the lid and not the open pit beneath it.
             RunTicks(1, InputFrame.Empty);
             _constructionEffects?.Model.UpdateNow();
-            _presenter.Present(world);
+            _startup.Step("tick");
+            double[] artBefore = _classic?.Breakdown.Snapshot();            _presenter.Present(world);
+            _startup.Step("present");
+            _startup.Breakdown("present", artBefore, _classic?.Breakdown.Snapshot());
             CameraThing profile = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null)
                 .FirstOrDefault(c => c.CameraId == (ushort)cameraPreset);
             if (classicMeshes && profile != null)
@@ -316,6 +328,7 @@ namespace DK2.Unity
             }
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
             else LookAt(world);
+            _startup.Step("camera");
             _minimap = new DungeonMinimap(transform, new InstallMinimapAssets(install), world.Width, world.Height);
             _minimap.Capture(world, _worldView, _simulation.Navigation);
             _minimap.Draw(Camera.main, _cameraFocus);
@@ -327,10 +340,70 @@ namespace DK2.Unity
             InitializeHudControls(install, database, campaignLevel);
             var hoverStrings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
             _hoverText = new WorldHoverText(database, hoverStrings.Resolve, new PlayerId((byte)viewingPlayerId));
+            _startup.Step("minimap");
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
                 _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
+            _startup.Step("lights");
+            Debug.Log(_startup.Summary(_installArt));
+        }
+
+        /// <summary>Wall time of each startup step, logged as one line when <see cref="StartGame"/>
+        /// ends and again after the first frames, which still decode art on first sight. It measures
+        /// loading for the parallelism plan (docs/plans/2026-10-17-parallelism-design.md).</summary>
+        private sealed class StartupTimings
+        {
+            public const int SettleFrames = 120;
+            private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+            private readonly System.Text.StringBuilder _steps = new System.Text.StringBuilder();
+            private double _last;
+            private int _frames;
+            private double _slowestFrame;
+            private int _slowestFrameIndex;
+            private readonly double _launchToStart = Time.realtimeSinceStartupAsDouble * 1000;
+
+            public void Step(string name)
+            {
+                double now = _clock.Elapsed.TotalMilliseconds;
+                Detail(name, now - _last);
+                _last = now;
+            }
+
+            public void Detail(string name, double milliseconds) =>
+                _steps.Append(' ').Append(name).Append('=').Append(Format(milliseconds));
+
+            /// <summary>The art work done between two breakdown snapshots, by kind.</summary>
+            public void Breakdown(string step, double[] before, double[] after)
+            {
+                if (before == null || after == null) return;
+                for (var work = ClassicMeshes.LoadBreakdown.Work.None; work < ClassicMeshes.LoadBreakdown.Work.Count; work++)
+                    Detail(step + "." + (work == ClassicMeshes.LoadBreakdown.Work.None ? "other" : work.ToString().ToLowerInvariant()),
+                        after[(int)work] - before[(int)work]);
+            }
+
+            public string Summary(InstallArtProvider art) =>
+                $"DK2 startup: {Format(_last)} ms (launch to Start {Format(_launchToStart)} ms);{_steps}{Decoded(art)}";
+
+            /// <summary>Counts a frame after startup; returns the line to log on the last one, else null.</summary>
+            public string Frame(double milliseconds, InstallArtProvider art)
+            {
+                if (_frames >= SettleFrames) return null;
+                _frames++;
+                if (milliseconds > _slowestFrame)
+                {
+                    _slowestFrame = milliseconds;
+                    _slowestFrameIndex = _frames;
+                }
+                return _frames < SettleFrames ? null
+                    : $"DK2 first {SettleFrames} frames: slowest {Format(_slowestFrame)} ms (frame {_slowestFrameIndex});{Decoded(art)}";
+            }
+
+            private static string Decoded(InstallArtProvider art) => art == null ? "" :
+                $" decoded {art.ModelsDecoded} models, {art.ImagesDecoded} images in {Format(art.DecodeTime.TotalMilliseconds)} ms total";
+
+            private static string Format(double milliseconds) =>
+                milliseconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private void OnDestroy()
@@ -358,6 +431,8 @@ namespace DK2.Unity
         {
             _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null) return;
+            string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
+            if (settled != null) Debug.Log(settled);
 
             // The tick started at the end of the last frame, if any, has the world until it is done.
             WaitForTick();

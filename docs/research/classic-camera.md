@@ -46,7 +46,7 @@ and drawable viewport are distinct inputs when panels reduce the view.
 At a full 640x480 viewport preset3's offset length is10 tiles and vertical
 FOV is about41.112 degrees; at full1280x720 they are5 tiles and about58.716.
 These values are conversion consequences, not settings invented for Unity.
-The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to 1024 (ADR-0519's visual rule;
+The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to 1024 (ADR-0522's visual rule;
 owner 2026-10-20): every screen gets a 1024×768 screen's camera distance and vertical angle, and a wider
 screen sees more at the sides. The native rule
 gave a 97° view whose far edge is 100 tiles wide at 2560×1440; at 1024×768 the ground footprint's

@@ -879,6 +879,10 @@ public sealed class CreatureState
     /// runner (<c>0x00496AA0</c>) stops calling it until the next action begins.</summary>
     public bool ActionHandlerDone;
 
+    /// <summary>The running action's play count (creature +0x3AE): a counted action begun with a
+    /// count of n holds n + 1 and ends when it reaches 0 (<c>0x004969D0</c>, <c>0x00496AA0</c>).</summary>
+    public byte ActionCount;
+
     /// <summary>The alarm a Scout carries to its room (DK2's state fields <c>+0xA7</c>, <c>+0xAF</c>,
     /// <c>+0xB1</c>): the threat's position, the strength still wanted there, and the room by its
     /// first tile. Read on arrival by <see cref="Combat.FearRules.RespondToThreat"/>.</summary>
@@ -992,6 +996,12 @@ public sealed class CreatureState
     /// bookkeeping for a view request (DK2 compares its stored previous position, <c>+0xF6</c>),
     /// neither saved nor hashed, since a view effect is neither.</summary>
     public int LastDustTile = -1;
+
+    /// <summary>Native byte +0x478: remaining dry-ground bloody footprint requests.</summary>
+    public byte BloodFootprintTicks;
+
+    /// <summary>Native byte +0x479: remaining dry-ground wet footprint requests.</summary>
+    public byte WaterFootprintTicks;
 
     /// <summary><c>AttackAbnormalTargets</c>, <c>+0x3E6</c> bit 2, with <see cref="AttackingId"/>:
     /// the forced target 139 hands both fighters (<c>0x0048F390</c>).</summary>
@@ -1382,6 +1392,7 @@ public sealed class CreatureState
         hash.Add(ActionAnimationRate);
         hash.Add((byte)ActionAnimationFlags);
         hash.Add(ActionHandlerDone);
+        hash.Add(ActionCount);
         hash.Add(AlarmX);
         hash.Add(AlarmY);
         hash.Add(AlarmDeficit);
@@ -1467,6 +1478,8 @@ public sealed class CreatureState
         hash.Add(LastPosX);
         hash.Add(LastPosY);
         hash.Add(LastPosZ);
+        hash.Add(BloodFootprintTicks);
+        hash.Add(WaterFootprintTicks);
         hash.Add(ArmourTicks);
         hash.Add(InvulnerableTicks);
         hash.Add(FrozenTicks);

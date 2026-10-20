@@ -140,6 +140,8 @@ namespace DK2.Unity
             _dirtyOrder.AddRange(_dirty);
             _dirtyOrder.Sort();
             bool budgeted = FlushBudgetMilliseconds > 0 && _chunks.Count > 0;
+            using ClassicMeshes.LoadBreakdown.Scope _ = ClassicMeshes.LoadBreakdown.Span(
+                _classic?.Breakdown, ClassicMeshes.LoadBreakdown.Work.Terrain);
             _flushClock.Restart();
             foreach (int chunk in _dirtyOrder)
             {

@@ -118,19 +118,18 @@ public class CreatureLevelTests
     }
 
     [Fact]
-    public void TheOwnersRemark_ALevelTwoImpIsVisiblyFasterThanALevelOneImp()
+    public void ALevelTwoImpWalksAtTheLevelOneSpeed()
     {
-        // CONFIRMED (owner, 2026-09-04): "imps gain speed as they gain more
-        // levels." The Speed row is 105% at level 2, so an imp's 7536 raw units
-        // a second becomes 7912 — 1.84 tiles a second against 1.93. Measured
-        // through the mover rather than off the rule, so a movement system that
-        // ignored the level would fail this.
+        // ADR-0518: 0x004887D0 takes the speed from the definition every creature of a type
+        // shares (+0x370, then +0x5B4), and nothing reads the Speed row. The Level 4 capture
+        // shows Imps of levels 1 to 8 at 30144 (0.46 tiles a tick) or the timed boost's 45216,
+        // never a level's 105%. The owner's 2026-09-04 remark that levelled Imps are faster is
+        // refused by the capture. Measured through the mover, so one that scaled by level fails.
         GameDatabase db = Db;
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
 
         Assert.Equal(105, CreatureLevelRules.Percent(db, CreatureStatId.Speed, 2));
-        Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, 1));
-        Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, 2));
+        Assert.Equal(CreatureMovementSystem.MaxSpeedOf(imp), (SimulationTiming.LoaderRatePerTick(7536)) << 4);
 
         // Two imps, same route, one a level higher. The fixture's walkable room
         // is (1,1)-(3,3), so the walk is short and the faster one must be
@@ -148,8 +147,7 @@ public class CreatureLevelTests
 
         new GameSimulation(db, world, 42, [new CreatureMovementSystem()]).Run(Second / 2);
 
-        Assert.True(fast.PosX > slow.PosX,
-            $"level 2 imp at {fast.PosX} should be ahead of level 1 at {slow.PosX}");
+        Assert.Equal((slow.PosX, slow.PosY), (fast.PosX, fast.PosY));
     }
 
     [Fact]
@@ -197,7 +195,7 @@ public class CreatureLevelTests
     }
 
     [Fact]
-    public void TheHitThatReachesThreeThousandBuysLevelTwoAndSpeedsTheImpUp()
+    public void TheHitThatReachesThreeThousandBuysLevelTwo()
     {
         // 3000 buys the second level: 150 hits at 20 (ADR-0386). The balance is zeroed on
         // promotion, not reduced, so the overshoot is gone.
@@ -207,7 +205,6 @@ public class CreatureLevelTests
         CreatureState state = world.SpawnCreature(
             db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
         state.ExperiencePoints = 2980;
-        Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
         var events = new ListEventSink();
         var sim = new GameSimulation(db, world, 42, [new TileWorkSystem(), new CreatureExperienceSystem()]);
         sim.ObserveWith(events);
@@ -216,7 +213,6 @@ public class CreatureLevelTests
         sim.Run(1);
 
         Assert.Equal(2, state.Level);
-        Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, state.Level));
         Assert.Equal(0, state.ExperiencePoints);
         SimEvent up = Assert.Single(events.Events, e => e.Kind == "creature_level_up");
         Assert.Contains("1->2", up.Detail);

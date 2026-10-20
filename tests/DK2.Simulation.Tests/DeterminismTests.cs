@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 283: native payday stamp and creature identities (ADR-0295 amendment, ADR-0515).
+        // HashVersion 289: creature identities and the payday stamp (ADR-0521) over master's 288.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x4AC035B7B9BD1F14UL, sim.StateHash());
+        Assert.Equal(0xBD66BD442BC1F4D0UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

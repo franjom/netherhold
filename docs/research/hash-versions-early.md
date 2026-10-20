@@ -1,6 +1,17 @@
 # Early state-hash versions
 
-Versions 9–55, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–57, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**57** — `0xE9C81166EA405084`. Doors and traps gained derived, saved
+`UnderConstruction` state for player trigger conditions 27 and 28 (ADR-0141). The
+fixture contains neither kind, so this is composition only. **The literal was
+computed on the merge**: 56 and 57 were developed in parallel from the same
+55-based tree, so neither branch's own pin describes the merged state.
+
+**56** — `0xAEC253948973DF35`. `CreatureState.DieInstantly`, a new hashed and
+snapshotted bool, and with it a collapsed-window rule that reads the world rather than
+the definition alone: four gates where there was one (Q303, ADR-0138). A state field
+was added, so the snapshot format moves to 56 with it.
 
 **55** — `0xCB555B61573BE9F8`, and `0xE5035AF2FB584476` until 2026-09-10,
 when the gate's world gained two creatures and the literal was re-pinned **without**

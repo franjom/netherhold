@@ -15,7 +15,19 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**283** — `0x4AC035B7B9BD1F14`. Add player `LastPaydayTick` and native-width creature name/blood indices to hashing and save state. Constructor identity draws use the main random stream. No wage/deadline rule changes. ADR-0295 amendment and ADR-0515; counter-gold input is new and absent from this fixture. Numbered 275 on classic-look/step6 before master's 276–282 merged.
+**289** — `0xBD66BD442BC1F4D0`. Player `LastPaydayTick` and native-width creature name/blood indices, hashed and saved (ADR-0295 amendment, ADR-0521); master's 283–288 merged under it. Numbered 275, then 283, on classic-look/step6.
+
+**288** — `0x9FB00F71132E91E9`. Native wet/blood footprint counters, saved and hashed; see [creature-footprints.md](creature-footprints.md).
+
+**287** — `0xC428FD4390FADF96`. Behaviour only: Tier B's tile chain tries the tile's loose objects after its gold (`0x00469580`'s third step, ADR-0519). No new fields.
+
+**286** — `0xBD6FBFFB91F1AADF`. Behaviour only: speed no longer scales with level; the body's cap is the definition's speed (`0x004887D0`, ADR-0518). No new fields.
+
+**285** — `0xE44D70CE6838C66C`. Behaviour only: an alarm goes only to a Guard Room (`0x00475336`, ADR-0517). No new fields.
+
+**284** — `0xA1D6204A54297315`. Behaviour only: walkers and dig turners keep a gone task, as states 6 and 13 do (ADR-0516). No new fields.
+
+**283** — `0x07E0196E6BEA9DCA`. `CreatureState.ActionCount`, hashed and saved after `ActionHandlerDone`; idle actions play their clip and installs draw their coin (ADR-0515).
 
 **282** — `0xA98DDD15FD7EB37B`. `CreatureState.ActionArtSlot`, `ActionAnimationPhase`, `ActionAnimationRate`, `ActionAnimationFlags` and `ActionHandlerDone`, hashed and saved after `StateEnteredTick`: the dig and mining actions end on the stored clip (ADR-0514).
 
@@ -381,15 +393,4 @@ is composition only: the empty collection count and version move the pin.
 ownership bit used by room furniture reconciliation (ADR-0146). The fixture has
 no objects, so this is composition only.
 
-**57** — `0xE9C81166EA405084`. Doors and traps gained derived, saved
-`UnderConstruction` state for player trigger conditions 27 and 28 (ADR-0141). The
-fixture contains neither kind, so this is composition only. **The literal was
-computed on the merge**: 56 and 57 were developed in parallel from the same
-55-based tree, so neither branch's own pin describes the merged state.
-
-**56** — `0xAEC253948973DF35`. `CreatureState.DieInstantly`, a new hashed and
-snapshotted bool, and with it a collapsed-window rule that reads the world rather than
-the definition alone: four gates where there was one (Q303, ADR-0138). A state field
-was added, so the snapshot format moves to 56 with it.
-
-[Versions 9–55](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–57](hash-versions-early.md) retain the earlier pins and their reasons.

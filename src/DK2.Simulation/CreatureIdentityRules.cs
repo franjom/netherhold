@@ -6,7 +6,7 @@ using DK2.Core;
 
 namespace DK2.Simulation;
 
-/// <summary>Original constructor name/blood allocation; see ADR-0515 and the function records.</summary>
+/// <summary>Original constructor name/blood allocation; see ADR-0521 and the function records.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/world-hover-text.md")]
 public static class CreatureIdentityRules
 {

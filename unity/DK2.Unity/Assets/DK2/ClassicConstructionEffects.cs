@@ -56,7 +56,7 @@ namespace DK2.Unity
         private readonly IEffectSpriteProvider _sprites;
         private readonly ClassicMeshes _meshes;
         /// <summary>One particle system per element definition, and per mesh entry for a group part.</summary>
-        private readonly Dictionary<(ushort, string), Group> _groups = new Dictionary<(ushort, string), Group>();
+        private readonly Dictionary<(AssetRef, string), Group> _groups = new Dictionary<(AssetRef, string), Group>();
         public RoomConstructionParticles Model { get; }
 
         public ClassicConstructionEffects(Transform root, GameDatabase database, IEffectSpriteProvider sprites, ulong seed,
@@ -132,7 +132,7 @@ namespace DK2.Unity
             for (int i = 0; i < Model.Particles.Count; i++)
             {
                 ConstructionParticle source = Model.Particles[i];
-                Group group = For(source.Definition, source.MeshEntry);
+                Group group = For(source.Definition, source.MeshEntry, source.SpriteAsset);
                 if (group == null) continue;
                 Vector3 position = DungeonScene.Ground(
                     Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction) / 4096f,
@@ -309,7 +309,7 @@ namespace DK2.Unity
             }
             if (!found)
             {
-                _groups.Add((definition.EffectElementId, meshEntry ?? ""), null);
+                _groups.Add((key, meshEntry ?? ""), null);
                 return null;
             }
             // An additive effect mesh draws at the texture (STRONGLY INFERRED, heart-intro.md §6):
@@ -321,7 +321,7 @@ namespace DK2.Unity
                 IsMesh = true, Mesh = mesh, Materials = materials, Frames = frames, FrameMaterials = frameMaterials,
                 FramesPerSecond = AuthoredFramesPerSecond(definition),
             };
-            _groups.Add((definition.EffectElementId, meshEntry ?? ""), group);
+            _groups.Add((key, meshEntry ?? ""), group);
             return group;
         }
 
@@ -336,15 +336,15 @@ namespace DK2.Unity
         }
 
         /// <param name="meshEntry">A group part's mesh entry, drawn in place of the definition's art.</param>
-        private Group For(EffectElementDef definition, string meshEntry)
+        private Group For(EffectElementDef definition, string meshEntry, AssetRef spriteAsset)
         {
-            if (_groups.TryGetValue((definition.EffectElementId, meshEntry ?? ""), out Group existing)) return existing;
-            AssetRef key = AssetRef.ForEffectElement(definition.Name);
+            AssetRef key = spriteAsset.IsEmpty ? AssetRef.ForEffectElement(definition.Name) : spriteAsset;
+            if (_groups.TryGetValue((key, meshEntry ?? ""), out Group existing)) return existing;
             if (meshEntry != null || definition.ArtResource.Type == 5) return MeshGroup(definition, meshEntry, key);
             if (_sprites == null || !_sprites.TryResolve(key, out ResolvedAsset asset)
                 || !_sprites.TryGetSprite(asset, out EffectSpriteResource resource))
             {
-                _groups.Add((definition.EffectElementId, ""), null);
+                _groups.Add((key, ""), null);
                 return null;
             }
             Shader shader = Shader.Find("DK2/ClassicEffect");
@@ -399,7 +399,7 @@ namespace DK2.Unity
             group.HeightPerScale = resource.HeightRaw / 4096f;
             group.StandsOnPoint = (definition.ArtResource.Flags & 0x40) != 0;
             main.startSize3D = true;
-            _groups.Add((definition.EffectElementId, ""), group);
+            _groups.Add((key, ""), group);
             return group;
         }
 

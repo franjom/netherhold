@@ -48,12 +48,6 @@ public static class CreatureLevelRules
     public static int MaxGoldHeld(GameDatabase database, CreatureDef creature, int level) =>
         Scale(creature.MaxGoldHeld, Percent(database, CreatureStatId.MaxGoldHeld, level));
 
-    /// <summary>Walking speed in fixed-point raw units at this level — the record's <c>Speed</c>
-    /// scaled by the Speed row. Scaled raw on purpose: <see cref="Fp32"/>'s denominator is 4096 and
-    /// the percentage is integer, so raw arithmetic is exact where a decimal round trip is not.</summary>
-    public static int SpeedRaw(GameDatabase database, CreatureDef creature, int level) =>
-        Scale(creature.Speed.Raw, Percent(database, CreatureStatId.Speed, level));
-
     /// <summary>What one work hit earns (ADR-0386): the raw, undivided <c>ImpExperienceGainPerSecond</c>
     /// of 20. Its nine readers are the work actions' callbacks (dig <c>0x00496E00</c>, mining
     /// <c>0x004971D0</c>, claim <c>0x004974C0</c>, reinforce <c>0x00497960</c>, and the floor attack,

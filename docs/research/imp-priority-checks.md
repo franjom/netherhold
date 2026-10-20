@@ -45,8 +45,8 @@ stack data. A wrapper reading the entire dword gives invalid results.
 
 Fresh read and five controlled executions of the original
 [Tier-B tile chain](functions/00469580.md) confirm its four handler steps.
-`TrySweep` in `ImpTaskSystem.Selection.cs:271` implements only the first two;
-the later object and marked-Secret-Door steps remain absent. The known Secret
+`TrySweep` implemented only the first two; ADR-0519 (2026-10-20) adds the object step,
+and the marked-Secret-Door step remains absent because ours marks no Secret Door. The known Secret
 Door gap is documented in [its handler record](functions/0046CB80.md).
 Ordinary object search earlier in the chooser often covers the object case;
 this experiment does not prove its later fallback is redundant or impactful.

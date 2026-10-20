@@ -27,7 +27,7 @@ public sealed class ClassicCamera
     /// distance and vertical view angle at any resolution, so a wider screen sees more at the sides
     /// (owner, 2026-10-20). Null keeps DK2's own rule, a fixed focal length in pixels, under which a
     /// larger screen sees ever more ground (at 2560×1440 a 97° view whose far edge is 100 tiles wide).
-    /// The owner judges by look (ADR-0519).</summary>
+    /// The owner judges by look (ADR-0522).</summary>
     public int? ReferenceScreenWidth { get; init; }
     public float NativeViewDistance => Math.Max(_profile.ViewDistance / (float)Fp32.One, 2f * (float)Zoom.ToDouble());
 

@@ -153,6 +153,38 @@ public class ProviderTests
     }
 
     [Fact]
+    public void AFileProviderChecksTheDiskOncePerKey()
+    {
+        AssetRef imp = AssetRef.ForCreature("Imp", AssetKind.Mesh);
+        AssetRef dwarf = AssetRef.ForCreature("Dwarf", AssetKind.Mesh);
+        string root = "art";
+        var files = new CountingFiles(PathFor(root, imp, ".glb"));
+        var provider = FileAssetProvider.Converted(root, files);
+
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.True(provider.TryResolve(imp, out ResolvedAsset asset));
+            Assert.Equal(PathFor(root, imp, ".glb"), asset.FilePath);
+            Assert.False(provider.TryResolve(dwarf, out _));
+        }
+
+        int perMiss = FileAssetProvider.ExtensionsFor(AssetKind.Mesh).Count;
+        Assert.Equal(1 + perMiss, files.Checks);
+    }
+
+    private sealed class CountingFiles(params string[] present) : FileAssetProvider.IFileProbe
+    {
+        private readonly FakeFiles _files = new(present);
+        public int Checks { get; private set; }
+
+        public bool Exists(string path)
+        {
+            Checks++;
+            return _files.Exists(path);
+        }
+    }
+
+    [Fact]
     public void EveryAssetKindHasAtLeastOneOpenFormat()
     {
         foreach (AssetKind kind in Enum.GetValues<AssetKind>())

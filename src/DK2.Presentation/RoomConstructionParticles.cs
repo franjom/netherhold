@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Assets;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -19,7 +20,7 @@ public enum TerrainDebrisStyle { Native, Crumbling }
 /// Pillars' top and the flakes drift back down. What lowers DK2's rise is unread (Q594).</summary>
 public enum HeartSparkleStyle { Native, PillarHeight }
 
-public sealed class RoomConstructionParticles : ISimulationEventSink
+public sealed partial class RoomConstructionParticles : ISimulationEventSink
 {
     private readonly GameDatabase _database;
     private readonly SimRandom _random;
@@ -107,7 +108,7 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
     {
         if ((_effectVisible != null && !_effectVisible(request))
             || !_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
-            || definition.GenerationType != 4) return;
+            || !SupportsEffect(definition)) return;
         AdvanceTo(_clock());
         AddEmitterChain(definition, request);
     }
@@ -120,12 +121,13 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
         EffectDef? next = definition;
         for (int link = 0; next != null && link < LongestChain; link++)
         {
-            if (next.GenerationType != 4) break;
+            if (!SupportsEffect(next)) break;
             // Only the instance the caller was handed is tied to a thing (0x004810E0 writes its +0x133).
             Emitter emitter = CreateEmitter(next, link == 0
                 ? request with { EffectId = new EffectId(next.EffectId) }
                 : request with { EffectId = new EffectId(next.EffectId), AttachedCreatureId = 0, AttachPoint = 0 });
             _emitters.Add(emitter);
+            SpawnDirectSprite(emitter);
             SpawnGroupParts(emitter);
             next = next.NextEffectId != 0 && _database.Effects.TryGetValue(next.NextEffectId, out EffectDef? chained)
                 ? chained : null;
@@ -430,7 +432,8 @@ public sealed class RoomConstructionParticles : ISimulationEventSink
                 if (_captureAtEdges && !emitter.CaptureBoundary.HasValue
                     && emitter.Definition.EffectId == CaptureEffectLayout.RoomEffectId)
                     emitter.CaptureBoundary = _captureEdges?.Invoke(emitter.Request) ?? CaptureEdges.All;
-                EmitWave(emitter.Definition, emitter.Request, emitter.CaptureBoundary, emitter);
+                if (emitter.Definition.GenerationType == 4)
+                    EmitWave(emitter.Definition, emitter.Request, emitter.CaptureBoundary, emitter);
             }
             emitter.Health -= elapsedUpdates;
         }
@@ -669,6 +672,8 @@ public readonly record struct EffectGroupPart(string MeshEntry, int OffsetXRaw, 
 public sealed class ConstructionParticle
 {
     public required EffectElementDef Definition { get; init; }
+    /// <summary>A parent effect's own sprite key; empty for generated elements.</summary>
+    public AssetRef SpriteAsset { get; internal set; }
 
     /// <summary>The mesh entry a group part draws instead of its definition's art (null for every
     /// other particle): the renderer keys its mesh groups by it.</summary>
