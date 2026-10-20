@@ -367,8 +367,9 @@ condition.
 - `CameraPathPlayback` (§3), on the drawn world's tick (see the deviations);
 - `CinematicLetterbox` (§4, §6), on the wall clock;
 - `SubtitleQueue` (§7), with the speech-off timing, since Unity plays no speech
-  audio. Its skip leaves the queue alone, as `0x00568140` does when the speech
-  object's `+4` is zero (that this is the speech-off state is INFERRED).
+  audio. Our choice: a skip clears them, the line on screen included, as the owner sees
+  DK2 do with speech on (2026-10-20). `0x00568140` zeroes `+0xC8`/`+0x14C`/`+0x15C` and,
+  with `+0x150` set, calls slot `+0x38` of the object at `0x0075B468`; its effect is unread.
 
 **Unity:**
 - the camera follows the path;

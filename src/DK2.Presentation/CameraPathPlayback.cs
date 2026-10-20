@@ -188,12 +188,15 @@ public sealed class SubtitleQueue
         if (_queue.Count < Slots) _queue.Enqueue((line, characters * MillisecondsPerCharacter));
     }
 
-    /// <summary><c>0x00568140</c>, the skip's clear: the waiting lines and the gap's clock go,
-    /// the line on screen keeps its time.</summary>
-    public void Clear()
+    /// <summary>The skip's clear: the waiting lines and the gap's clock go (after <c>0x00568140</c>,
+    /// which zeroes the subtitle count <c>+0x14C</c> and time <c>+0x15C</c>). With
+    /// <paramref name="endShown"/> the line on screen goes too, as the owner sees in DK2 with
+    /// speech on (2026-10-20); what the call does to the playing line is unread.</summary>
+    public void Clear(bool endShown = false)
     {
         _queue.Clear();
         _lastCleared = 0;
+        if (endShown) Current = -1;
     }
 
     public void Update(double now)

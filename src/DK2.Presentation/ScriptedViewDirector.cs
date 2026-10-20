@@ -112,12 +112,14 @@ public sealed class ScriptedViewDirector(
     }
 
     /// <summary>Escape or Space (<c>0x00405362</c>): with a path playing, end it. Returns whether
-    /// there was one, so the caller tells the simulation. The skip's speech clear
-    /// (<c>0x00568140</c>) returns at once with the speech object's <c>+4</c> zero, which this
-    /// speech-off queue models, so the waiting subtitles stay (INFERRED, camera-paths.md §9).</summary>
+    /// there was one, so the caller tells the simulation. Our choice: the subtitles stand in for
+    /// the speech and are cleared, the line on screen with them, because the owner sees DK2 show
+    /// the next line, the Lord's, at once after a skip (2026-10-20). What <c>0x00568140</c>
+    /// does to a playing line is unread (camera-paths.md).</summary>
     public bool Skip()
     {
         if (_path is null) return false;
+        _subtitles.Clear(endShown: true);
         EndPath();
         return true;
     }

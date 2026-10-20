@@ -274,6 +274,13 @@ public class CameraPathPlaybackTests
         Assert.False(director.PathPlaying);
         Assert.Null(director.Subtitle);
         Assert.False(director.Skip());
+
+        // The script's next path and line, as Level 1 runs them after the skip: the new line
+        // shows at once, the skipped one does not come back.
+        director.Emit(View(ScriptedViewKind.CameraPath, viewer, 1));
+        director.Emit(View(ScriptedViewKind.Speech, viewer, 3));
+        director.Update(20, 2);
+        Assert.Equal("Welcome!", director.Subtitle);
     }
 
     [Theory]

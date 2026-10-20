@@ -576,7 +576,11 @@ namespace DK2.Unity
             var texture = new Texture2D(image.Width, image.Height, TextureFormat.RGBA32, mipChain: true)
             {
                 name = name,
-                wrapMode = TextureWrapMode.Repeat,
+                // Clamped: no shipped KMF primitive's coordinates leave 0..1 (survey of all 6551,
+                // 2026-10-20), and repeating let bilinear filtering pull the opposite edge into
+                // seams where patches meet at 0 or 1, as the four lines across the Dungeon Heart's
+                // orb (Dungeon centre.kmf, DHeart: left edge ~84, right ~48) showed (owner).
+                wrapMode = TextureWrapMode.Clamp,
                 filterMode = FilterMode.Bilinear,
             };
             // RGBA32's bytes are the image's, in the same order SetPixels32 took them.
