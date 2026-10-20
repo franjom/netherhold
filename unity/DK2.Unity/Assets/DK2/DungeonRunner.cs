@@ -165,6 +165,7 @@ namespace DK2.Unity
         private ulong _stateHash;
         private string _diagnostics = "";
         private readonly DebugFrameOverlay _frameOverlay = new DebugFrameOverlay();
+        private InstallHudSources _hudSources;
         private StartupTimings _startup;
 
         /// <summary>The running simulation, or null if it could not start. Read-only by intent.
@@ -356,15 +357,19 @@ namespace DK2.Unity
             _startup.Step("minimap.capture");
             _minimap.Draw(Camera.main, _cameraFocus);
             _startup.Step("minimap.draw");
+            _hudSources = new InstallHudSources(install, _installArt);
             _handCursor = new ClassicHandCursor(new InstallHandCursorAssets(install));
+            _startup.Step("hud.cursor");
             _tileHighlight = new ClassicTileHoverOutline(transform, lattice);
-            _hoverHud = new ClassicHoverHud(new InstallClassicHoverAssets(install));
-            _resourceHud = new ClassicResourceHud(transform, new InstallClassicResourceAssets(install));
+            _startup.Step("hud.outline");
+            _hoverHud = new ClassicHoverHud(new InstallClassicHoverAssets(_hudSources));
+            _startup.Step("hud.hover");
+            _resourceHud = new ClassicResourceHud(transform, new InstallClassicResourceAssets(_hudSources));
             _resourceView = new KeeperResourceView(_simulation.Database, new PlayerId((byte)viewingPlayerId));
+            _startup.Step("hud.resources");
             InitializeHudControls(install, database, campaignLevel);
-            var hoverStrings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
-            _hoverText = new WorldHoverText(database, hoverStrings.Resolve, new PlayerId((byte)viewingPlayerId));
-            _startup.Step("hud");
+            _hoverText = new WorldHoverText(database, _hudSources.Strings.Resolve, new PlayerId((byte)viewingPlayerId));
+            _startup.Step("hud.text");
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)

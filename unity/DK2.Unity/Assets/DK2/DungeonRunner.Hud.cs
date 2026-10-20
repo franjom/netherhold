@@ -47,24 +47,31 @@ namespace DK2.Unity
 
         private void InitializeHudControls(string install, GameDatabase database, bool campaignLevel)
         {
-            var bottomAssets = new InstallClassicBottomPanelAssets(install, database);
+            var bottomAssets = new InstallClassicBottomPanelAssets(_hudSources, database);
             _bottomView = new BottomPanelView(database, new PlayerId((byte)viewingPlayerId), bottomAssets.Name, bottomAssets.Order, campaignLevel);
             _bottomPanel = new ClassicBottomPanel(transform, bottomAssets, _bottomView);
             _bottomPanel.SelectCategory(BottomPanelCategory.Creatures);
             _bottomPanel.Selected += SelectPanelChoice;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));
             _bottomPanel.NavigateRoom += NavigateRoom;
+            _startup.Step("hud.bottom");
             var overviewAssets = new InstallCreatureOverviewAssets(install, database, bottomAssets);
             _overviewView = new CreatureOverview(database, new PlayerId((byte)viewingPlayerId), overviewAssets.Name, overviewAssets.Order);
             _overviewPanel = new ClassicCreatureOverview(transform, overviewAssets, _overviewView);
-            _optionsPanel = new ClassicOptionsPanel(transform, new InstallClassicOptionsAssets(install));
+            _startup.Step("hud.overview");
+            _optionsPanel = new ClassicOptionsPanel(transform, new InstallClassicOptionsAssets(_hudSources));
+            _startup.Step("hud.options");
             _fullMap = new ClassicFullMap(transform, _minimap);
+            _startup.Step("hud.fullmap");
             _identityNames = new InstallClassicCreatureNames(install);
-            _hudStrings = Dk2StringTable.Open(System.IO.Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+            _hudStrings = _hudSources.Strings;
             _creatureQuery = new ClassicCreatureQuery(database, _hudStrings.Resolve, new PlayerId((byte)viewingPlayerId));
-            _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(install));
+            _startup.Step("hud.names");
+            _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(_hudSources));
+            _startup.Step("hud.query");
             _statusFlowers = new StatusFlowers(database, new PlayerId((byte)viewingPlayerId));
-            using (var moods = new InstallClassicResourceAssets(install)) _statusFlowerArt = new ClassicStatusFlowers(moods);
+            _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources));
+            _startup.Step("hud.flowers");
         }
 
         /// <summary>Captures the flowers from the settled world (before the worker tick starts) and
@@ -82,6 +89,7 @@ namespace DK2.Unity
         {
             _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
             _statusFlowerArt?.Dispose();
+            _hudSources?.Dispose();
         }
 
         private void SelectPanelChoice(BottomPanelSelection selection)

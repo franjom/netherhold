@@ -20,22 +20,16 @@ namespace DK2.Unity
     }
     public sealed class InstallClassicOptionsAssets : IClassicOptionsAssets
     {
-        private readonly Dk2StringTable _strings;
-        private readonly string _directory;
-        private readonly Dictionary<string,BitmapFont> _fonts = new Dictionary<string,BitmapFont>();
-        public InstallClassicOptionsAssets(string install)
-        {
-            _directory=Path.Combine(install,"Data","Text","Default");
-            _strings=Dk2StringTable.Open(Path.Combine(_directory,"Text.str"));
-        }
-        public string Text(uint id) => _strings.TryResolve(id,out string value) ? value : string.Empty;
-        public BitmapFont Font(int height)
-        {
-            string file=InterfaceFonts.LegibleFileName(height);
-            if (!_fonts.TryGetValue(file,out BitmapFont font))
-            { font=Bf4FontReader.Open(Path.Combine(_directory,file)); _fonts.Add(file,font); }
-            return font;
-        }
+        private readonly InstallHudSources _sources;
+
+        /// <summary>From the install alone.</summary>
+        public InstallClassicOptionsAssets(string install) : this(new InstallHudSources(install)) { }
+
+        public InstallClassicOptionsAssets(InstallHudSources sources) =>
+            _sources = sources ?? throw new ArgumentNullException(nameof(sources));
+
+        public string Text(uint id) => _sources.Strings.TryResolve(id,out string value) ? value : string.Empty;
+        public BitmapFont Font(int height) => _sources.Font(InterfaceFonts.LegibleFileName(height));
     }
     public sealed class ClassicOptionsPanel : IDisposable
     {
