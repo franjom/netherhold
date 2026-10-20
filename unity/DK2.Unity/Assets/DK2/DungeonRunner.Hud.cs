@@ -54,6 +54,13 @@ namespace DK2.Unity
             _bottomPanel.Selected += SelectPanelChoice;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));
             _bottomPanel.NavigateRoom += NavigateRoom;
+            _bottomPanel.CollapsedChanged += collapsed =>
+            {
+                if (_classicCamera == null) return;
+                _classicCamera.ProjectionCentre = ClassicCamera.ProjectionCentreFromTop(
+                    collapsed ? ClassicCamera.CollapsedPanelTop : ClassicCamera.ExpandedPanelTop);
+                if (!frameWholeMap && !_scriptedView.PathPlaying) ApplyClassicCamera();
+            };
             _startup.Step("hud.bottom");
             var overviewAssets = new InstallCreatureOverviewAssets(install, database, bottomAssets);
             _overviewView = new CreatureOverview(database, new PlayerId((byte)viewingPlayerId), overviewAssets.Name, overviewAssets.Order);
@@ -163,7 +170,7 @@ namespace DK2.Unity
             _optionsPanel?.SetVisible(camera.ShowNormalHud && _hudControls.OptionsVisible && !_hudControls.FullMapVisible);
             _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
             _queryPanel?.Draw(_querySnapshot, hud, HudModal);
-            _overviewPanel?.Draw(hud, _bottomPanel.Category == BottomPanelCategory.Creatures && !HudModal, Input.mousePosition);
+            _overviewPanel?.Draw(hud, _bottomPanel.Category == BottomPanelCategory.Creatures && !_bottomPanel.Collapsed && !HudModal, Input.mousePosition);
         }
 
         private bool QueueHudInput()
@@ -298,7 +305,7 @@ namespace DK2.Unity
             _bottomView.Capture(_simulation.World);
             _bottomPanel.Draw();
             _overviewView.Capture(_simulation.World);
-            _overviewPanel.Draw(CurrentHud, _bottomPanel.Category == BottomPanelCategory.Creatures && !HudModal, Input.mousePosition);
+            _overviewPanel.Draw(CurrentHud, _bottomPanel.Category == BottomPanelCategory.Creatures && !_bottomPanel.Collapsed && !HudModal, Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);
             _optionsPanel.Draw(Input.mousePosition); _fullMap.Draw();
             CreatureState creature = _simulation.World.CreatureById(_queryTarget.Value);

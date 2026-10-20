@@ -26,7 +26,7 @@ namespace DK2.Unity
         private readonly Image[] _tabSelected = new Image[4];
         private readonly Image[] _icons = new Image[6], _selection = new Image[6];
         private readonly BottomPanelChoice[] _slots = new BottomPanelChoice[6];
-        private readonly Image _previous, _next;
+        private readonly Image _previous, _next, _resize;
         private readonly Image _reaperBackground, _reaper, _reaperBlink;
         private readonly Texture2D[,] _reaperArcs = new Texture2D[4, 2];
         private readonly Texture2D[] _reaperQuarter = new Texture2D[4];
@@ -45,13 +45,20 @@ namespace DK2.Unity
             : new HoverTextSnapshot(_descriptionText, "", default);
         public event Action<BottomPanelSelection> Selected;
         public event Action<RoomTypeId> NavigateRoom;
+        /// <summary>Raised with the new state when the Resize Panel button collapses or expands.</summary>
+        public event Action<bool> CollapsedChanged;
+        /// <summary>HUD <c>+0x109</c> == 0 (0x004167D0): the strip at the bottom, categories,
+        /// creature panels and the Reaper hidden.</summary>
+        public bool Collapsed { get; private set; }
+        // 0x00417170 moves the strip from y 0x5B4 to 0x6EC.
+        private int Drop => Collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0;
         public PanelSettings Panel => _settings;
         public BottomPanelCategory Category => _category;
         public bool HasPointerCapture => _captured >= 0;
         private int Width => _viewport.x > 0 ? _viewport.x : Screen.width;
         private int Height => _viewport.y > 0 ? _viewport.y : Screen.height;
         private float V(int value) => value * Height / 1920f;
-        public Rect Bounds => new Rect(V(472), V(1460), Mathf.Max(0, Width - V(760)), Height - V(1460));
+        public Rect Bounds => new Rect(V(472), V(1460 + Drop), Mathf.Max(0, Width - V(760)), Height - V(1460 + Drop));
         public Rect ReaperBounds => new Rect(Width - V(288), V(1612), V(264), V(264));
 
         public ClassicBottomPanel(Transform parent, IClassicBottomPanelAssets assets, BottomPanelView view)
@@ -83,6 +90,8 @@ namespace DK2.Unity
             { _icons[i] = Interactive(null, i); _selection[i] = Picture(null); }
             _previous = Interactive(Texture("GUI\\Pages\\page_back"), 200);
             _next = Interactive(Texture("GUI\\Pages\\page_forward"), 201);
+            // The strip's fifth widget 0x00690D98: catalogue 44 i-mise, local (544,0), 128x128.
+            _resize = Interactive(Texture("GUI\\Icons\\i-mise"), 400);
             _reaperBackground = Picture(Texture("GUI\\Spells\\reaper_talisman-00"));
             _reaper = Interactive(Texture("GUI\\Spells\\reaper_talisman-01"), 300);
             _reaperBlink = Picture(null);
@@ -111,7 +120,7 @@ namespace DK2.Unity
         }
         public bool ContainsPointer(Vector3 screenPosition) => _visible && _allowInput &&
             (HasPointerCapture || Bounds.Contains(new Vector2(screenPosition.x, Height - screenPosition.y)) ||
-                ReaperBounds.Contains(new Vector2(screenPosition.x, Height - screenPosition.y)));
+                !Collapsed && ReaperBounds.Contains(new Vector2(screenPosition.x, Height - screenPosition.y)));
         public void CancelPointerGesture()
         {
             int pointer = _captured; _captured = -1; _pressed = -1;
@@ -131,7 +140,7 @@ namespace DK2.Unity
                 float left = i * fillSize;
                 bool show = left < Width;
                 _fills[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
-                if (show) Place(_fills[i], left, V(1600), Mathf.Min(fillSize, Width - left), V(300));
+                if (show) Place(_fills[i], left, V(1600 + Drop), Mathf.Min(fillSize, Width - left), V(300));
             }
             // Wood tiles are U(512,88) from x 0, a quarter-tile below the strip's top (read). The
             // metal pair covers the last 480 virtual units from x 2080 (the 0x820 constant); its
@@ -142,17 +151,18 @@ namespace DK2.Unity
                 float left = railLeft + i * tile;
                 bool show = left < metalLeft;
                 _rail[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
-                if (show) Place(_rail[i], left, V(1460 + 22), Mathf.Min(tile, metalLeft - left), V(88));
+                if (show) Place(_rail[i], left, V(1460 + Drop + 22), Mathf.Min(tile, metalLeft - left), V(88));
             }
-            Place(_railMetal, metalLeft, V(1460), V(240), V(128));
-            Place(_railEnd, metalLeft + V(240), V(1460), V(240), V(128));
+            Place(_railMetal, metalLeft, V(1460 + Drop), V(240), V(128));
+            Place(_railEnd, metalLeft + V(240), V(1460 + Drop), V(240), V(128));
+            Place(_resize, V(472 + 544), V(1460 + Drop), V(128), V(128));
             for (int i = 0; i < 4; i++)
             {
-                Place(_tabs[i], BottomPanelLayout.Tab(i));
+                Place(_tabs[i], Dropped(BottomPanelLayout.Tab(i)));
                 bool tabShown = _view.TabVisible((BottomPanelCategory)i);
                 _tabs[i].style.display = tabShown ? DisplayStyle.Flex : DisplayStyle.None;
                 _tabs[i].tintColor = _view.TabDimmed((BottomPanelCategory)i) ? new Color32(128, 128, 128, 255) : Color.white;
-                Place(_tabSelected[i], BottomPanelLayout.Tab(i));
+                Place(_tabSelected[i], Dropped(BottomPanelLayout.Tab(i)));
                 _tabSelected[i].style.display = tabShown && i == (int)_category ? DisplayStyle.Flex : DisplayStyle.None;
             }
             int count = 0;
@@ -171,7 +181,7 @@ namespace DK2.Unity
             for (int i = 0; i < 6; i++)
             {
                 BottomPanelChoice choice = _slots[i];
-                bool show = choice != null;
+                bool show = choice != null && !Collapsed;
                 _icons[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
                 _selection[i].style.display = show && choice.Selected ? DisplayStyle.Flex : DisplayStyle.None;
                 if (!show) continue;
@@ -191,6 +201,7 @@ namespace DK2.Unity
             }
             Place(_previous, V(472), V(1612), V(64), V(132));
             Place(_next, V(472), V(1744), V(64), V(132));
+            _previous.style.display = _next.style.display = Collapsed ? DisplayStyle.None : DisplayStyle.Flex;
             _previous.tintColor = _page > 0 ? Color.white : Color.gray;
             _next.tintColor = _page + 1 < _pages ? Color.white : Color.gray;
             RefreshHover();
@@ -200,7 +211,9 @@ namespace DK2.Unity
             Place(_reaperBlink, reaperBounds.x, reaperBounds.y, reaperBounds.width, reaperBounds.height);
             _reaperBlink.style.display = DisplayStyle.None;
             BottomPanelChoice reaper = _view.Reaper;
-            _reaper.style.display = reaper != null && reaper.Visible ? DisplayStyle.Flex : DisplayStyle.None;
+            // Collapsing hides menu41 too (0x004167D0).
+            _reaperBackground.style.display = Collapsed ? DisplayStyle.None : DisplayStyle.Flex;
+            _reaper.style.display = reaper != null && reaper.Visible && !Collapsed ? DisplayStyle.Flex : DisplayStyle.None;
             if (reaper != null && reaper.Visible)
             {
                 bool nativeSelected = reaper.Selected && reaper.Key.Value == 5;
@@ -215,7 +228,7 @@ namespace DK2.Unity
                     int pieces = Mathf.Clamp(_view.TalismanPieces, 1, 4) - 1;
                     _reaper.image = _reaperArcs[pieces, nativeSelected ? 1 : 0];
                     _reaper.tintColor = reaper.Selectable ? Color.white : new Color(.6f, .6f, .6f, 1);
-                    if (_view.ReaperOneShotReady && ((long)(Time.unscaledTimeAsDouble * 1000) / 500 & 1) != 0)
+                    if (!Collapsed && _view.ReaperOneShotReady && ((long)(Time.unscaledTimeAsDouble * 1000) / 500 & 1) != 0)
                     {
                         _reaperBlink.image = _reaperQuarter[pieces]; _reaperBlink.tintColor = _reaper.tintColor;
                         _reaperBlink.style.display = DisplayStyle.Flex;
@@ -223,7 +236,7 @@ namespace DK2.Unity
                 }
             }
             int? seconds = _view.ReaperSecondsRemaining;
-            bool timer = seconds.HasValue && seconds.Value < 100;
+            bool timer = seconds.HasValue && seconds.Value < 100 && !Collapsed;
             bool twoDigits = timer && seconds.Value >= 10;
             _timerImages[0].style.display = timer ? DisplayStyle.Flex : DisplayStyle.None;
             _timerImages[1].style.display = twoDigits ? DisplayStyle.Flex : DisplayStyle.None;
@@ -256,6 +269,7 @@ namespace DK2.Unity
                 _hovered = action; _hoverChoice = null;
                 if (action >= 100 && action < 104)
                     _widgetHover = HudWidgetText.Hover(HudWidgetText.Tab((BottomPanelCategory)(action - 100)), _assets.Text);
+                else if (action == 400) _widgetHover = HudWidgetText.Hover(HudWidgetText.ResizePanel, _assets.Text);
                 else RefreshHover();
             });
             image.RegisterCallback<PointerLeaveEvent>(_ => { _hovered = -1; _hoverChoice = null; _widgetHover = HoverTextSnapshot.Empty; SetDescription(""); });
@@ -270,6 +284,7 @@ namespace DK2.Unity
             bool inside = action == 300 ? _reaper.worldBound.Contains(evt.position) :
                 action >= 100 && action < 104 ? _tabs[action - 100].worldBound.Contains(evt.position) :
                 action == 200 ? _previous.worldBound.Contains(evt.position) : action == 201 ? _next.worldBound.Contains(evt.position) :
+                action == 400 ? _resize.worldBound.Contains(evt.position) :
                 action >= 0 && action < 6 && _icons[action].worldBound.Contains(evt.position);
             CancelPointerGesture(); evt.StopPropagation();
             if (!inside || !_allowInput) return;
@@ -280,7 +295,15 @@ namespace DK2.Unity
                     NavigateRoom?.Invoke((RoomTypeId)room.Key.Value);
                 return;
             }
-            if (action == 300)
+            if (action == 400)
+            {
+                // 0x004167D0 also moves the pointer onto the moved button and plays sound 0x134/0x135;
+                // the legacy input handler cannot move the pointer, and the sounds are not wired.
+                Collapsed = !Collapsed;
+                if (Collapsed) { _hoverChoice = null; SetDescription(""); }
+                CollapsedChanged?.Invoke(Collapsed);
+            }
+            else if (action == 300)
             {
                 if (_view.Reaper != null && _view.Select(_view.Reaper.Key)) Selected?.Invoke(_view.Selection);
             }
@@ -291,7 +314,7 @@ namespace DK2.Unity
         }
         private void Wheel(WheelEvent evt)
         {
-            if (!_visible || !_allowInput || !Bounds.Contains(evt.mousePosition)) return;
+            if (!_visible || !_allowInput || Collapsed || !Bounds.Contains(evt.mousePosition)) return;
             _page = Mathf.Clamp(_page + (evt.delta.y > 0 ? 1 : -1), 0, _pages - 1); evt.StopPropagation();
         }
         private void SetDescription(string text)
@@ -332,6 +355,8 @@ namespace DK2.Unity
             var image = new Image { image = texture, pickingMode = PickingMode.Ignore, scaleMode = ScaleMode.StretchToFill };
             image.style.position = Position.Absolute; _root.Add(image); return image;
         }
+        private BottomPanelRect Dropped(BottomPanelRect rectangle) =>
+            new BottomPanelRect(rectangle.X, rectangle.Y + Drop, rectangle.Width, rectangle.Height);
         private void Place(VisualElement image, BottomPanelRect rectangle) => Place(image, V(rectangle.X), V(rectangle.Y), V(rectangle.Width), V(rectangle.Height));
         private static void Place(VisualElement element, float x, float y, float width, float height)
         { element.style.left = x; element.style.top = y; element.style.width = width; element.style.height = height; }

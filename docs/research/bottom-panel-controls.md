@@ -75,8 +75,19 @@ width depends on the screen width; the adapter's last-480-units placement is a 4
 173/174/175/178, `gui\icons\selected-creature/room/spell/workshop`) over the icon and tints the
 Workshop tab grey while no Workshop is owned. Tab hover follows the widget text id (`+0x30`,
 2153+2i; status 2154+2i via [0x0042DB60](functions/0042DB60.md)).
-The fifth strip widget `0x00690D98` (catalogue44 `i-mise`, text2161 "Resize Panel", callback
-`0x004167D0`) is not drawn until its collapse behaviour is built.
+The fifth strip widget `0x00690D98` (catalogue44 `GUI\Icons\i-mise`, local (544,0), 128x128,
+text2161 "Resize Panel", callback [0x004167D0](functions/004167D0.md)) collapses and expands the panel
+(BUILT 2026-10-20). Collapsing hides category menus1..4, the creature menus5..17 and menus41/44 (the
+Reaper); [0x00417170](functions/00417170.md) moves the strip (menu18), menu39 and menu43 from y0x5B4
+to y0x6EC, places menu40 above them, and ends the 3D viewport 0x98 below the strip, so the camera's
+centre moves with it ([classic-camera.md](classic-camera.md) §2). Expanding restores the remembered
+categories and menu41 and relays out ([0x00416FD0](functions/00416FD0.md)). Not built: the pointer
+jump onto the moved button (legacy input cannot move the pointer), sounds 0x134/0x135, and menu40's
+move (the query/entity panel). What a tab click does while collapsed is unread (0x00416C20); the
+adapter changes the category with the grid hidden.
+Menu39 at (1112,1460) 948x156 holds eight 88x128 buttons: Review Objective (text2163, art139,
+`0x004288C0`), a second button (art153, `0x004247F0`), and six message slots (art127,
+`0x00423F50`/`0x00424220`, slot 1..6), not built. Menu43 is at (2080,1472) 480x140.
 Tab visibility is [0x00416E20](functions/00416E20.md) (CONFIRMED): Creatures and Rooms
 always show; Spells and Workshop show only while one of their filtered choices has
 availability other than1, and a hidden tab keeps its place.

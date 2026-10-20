@@ -48,8 +48,14 @@ FOV is about41.112 degrees; at full1280x720 they are5 tiles and about58.716.
 These values are conversion consequences, not settings invented for Unity.
 The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to 1600 (ADR-0522's visual rule;
 owner 2026-10-20): every screen gets the 640 rule's camera distance and vertical angle at 1600×1200, and a wider
-screen sees more at the sides. 1600×1200 is DK2's largest mode and the owner's. OBSERVED (owner's 1600×1200 PrintScreen captures, 2026-10-20): DK2's view axis meets the screen 505
-rows from the top, not at the middle, and with that the 640 rule fits.
+screen sees more at the sides. 1600×1200 is DK2's largest mode and the owner's. STRONGLY INFERRED (read 2026-10-20; within a row of the owner's captures): DK2's view axis meets the screen at the
+middle of the 3D viewport (that the projection is centred on the viewport is inferred), and [the panel height setter](functions/00417170.md) ends that viewport
+0x98 below the bottom panel's top (at graphics detail 0x00759AEC below 4 the rect is instead
+(0, 0x68, 0xA00, top + 0x14)). Expanded
+(top 0x5B4) it ends at 1612 of 1920, so the axis is 806/1920 = 504 rows of 1200 from the top; collapsed
+(top 0x6EC) the rect ends at 1924, past the bottom; that the view clamps it and the axis is then
+the middle is inferred. The captures put the axis at x 811 against the rule's 800; that 11 px is
+unexplained. The captures had measured it first:
 - Level 1 from the start view (SHOT0084) and at maximum zoom-out (SHOT0085), no pan: eight floor
   markers move along lines that meet at (811, 501), each within 3-5 px, the slow centre marker 11 px.
   Zooming moves the camera along its view axis, so that point is where the axis meets the screen.
@@ -65,11 +71,13 @@ Every Camera_SetMode branch (0x0044B04F, 0x0044B2FF, 0x0044B4F0, 0x0044B807) set
 from the preset's MaxZoom (53248; no shipped level overrides preset 3). The renderer reads
 `-(zoom/4096)·640/[0x00756EEC]` at 0x00598D10..0x00598D22, where 0x00756EEC is the screen width
 (Camera_Update 0x0044C075 builds a rect from it and 0x00756EF0). The focal length is lens·320 = 640
-(0x00598D26..0x00598DE2), and 0x0058A6F0 divides it by the viewport extents. The play viewport is the
-whole screen (0x004498F0, called from 0x0043ABD8 and 0x00442F1B). The rect (left, top, right, bottom) = (0, H/8, W, 7H/8)
-that 0x0044D320 blends in over 2 s is a letterbox; that it is the cinematic one (gated by +0xE3C) is inferred. So where the renderer moves the centre is unread.
-`ClassicCamera.ObservedProjectionCentreFromTop` (505/1200) carries the observation, and the Unity
-runner builds an off-centre frustum from it. The light-visibility volume stays symmetric, as read. The native rule
+(0x00598D26..0x00598DE2), and 0x0058A6F0 divides it by the viewport extents. The camera rect is the
+whole screen (0x004498F0, called from 0x0043ABD8 and 0x00442F1B); the shortened viewport is the
+renderer's own, set through the view's virtual +0x34 by 0x00417170. The rect (left, top, right, bottom) = (0, H/8, W, 7H/8)
+that 0x0044D320 blends in over 2 s is a letterbox; that it is the cinematic one (gated by +0xE3C) is inferred. 
+`ClassicCamera.ProjectionCentreFromTop(panelTop)` carries the rule, and the Unity runner builds an
+off-centre frustum from it, switching when the panel collapses. The engine's viewport also stops the
+3D image at that line; the runner instead renders full screen under the opaque panel. The light-visibility volume stays symmetric, as read. The native rule
 gave a 97° view whose far edge is 100 tiles wide at 2560×1440; at 1024×768 the ground footprint's
 near and far edges are 6.8 and 19.2 tiles wide (default zoom). Camera paths already fix the horizontal angle.
 

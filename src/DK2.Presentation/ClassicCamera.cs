@@ -26,12 +26,17 @@ public sealed class ClassicCamera
     private Dk2Angle _yaw;
     public Fp32 Zoom { get; private set; }
 
-    /// <summary>Where DK2's view axis meets the screen, as a fraction of the height from the top:
-    /// 505 of 1200 rows. OBSERVED in three of the owner's 1600×1200 captures (classic-camera.md §2):
-    /// the floor markers' zoom tracks meet at (811, 501), and the 640 rule fits every capture with
-    /// the centre there and not at the middle. Where the renderer sets it is unread; the play
-    /// viewport itself is the whole screen (0x004498F0's callers).</summary>
-    public const float ObservedProjectionCentreFromTop = 505f / 1200f;
+    /// <summary>The bottom panel's top, virtual units of 1920, expanded and collapsed (0x00417170).</summary>
+    public const int ExpandedPanelTop = 0x5B4, CollapsedPanelTop = 0x6EC;
+
+    /// <summary>Where the view axis meets the screen, as a fraction of the height from the top: the
+    /// middle of the 3D viewport, which 0x00417170 ends 0x98 below the panel's top (at detail 4 and
+    /// up; lower detail ends it 0x84 higher), the whole screen once that passes the bottom. Expanded
+    /// that is 806 of 1920, 504 rows of 1200, matching the owner's captures (classic-camera.md §2).</summary>
+    public static float ProjectionCentreFromTop(int panelTop) => Math.Min(1920, panelTop + 0x98) / 2f / 1920f;
+
+    /// <summary>The current panel's <see cref="ProjectionCentreFromTop"/>; the expanded panel's by default.</summary>
+    public float ProjectionCentre { get; set; } = ProjectionCentreFromTop(ExpandedPanelTop);
 
     /// <summary>When set, frames every screen as DK2 frames a 4:3 screen this wide: the same camera
     /// distance and vertical view angle at any resolution, so a wider screen sees more at the sides
@@ -107,7 +112,7 @@ public sealed class ClassicCamera
             NativeViewDistance,
             90f - new Dk2Angle(_profile.AnglePitch).Value * (360f / 2048),
             _yaw.Value * (360f / 2048),
-            1f - 2f * ObservedProjectionCentreFromTop);
+            1f - 2f * ProjectionCentre);
     }
 
     private static float Radians(Dk2Angle angle) => angle.Value * ((float)Math.PI / 1024);

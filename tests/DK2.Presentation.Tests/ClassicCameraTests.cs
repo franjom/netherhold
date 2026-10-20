@@ -60,12 +60,18 @@ public class ClassicCameraTests
     }
 
     [Fact]
-    public void TheViewAxisMeetsTheScreenWhereTheOwnersCapturesPutIt_Observed()
+    public void TheViewAxisMeetsTheMiddleOfTheViewportAboveThePanel_Inferred()
     {
-        ClassicCameraPose pose = new ClassicCamera(Profile()).Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200));
+        var camera = new ClassicCamera(Profile());
+        ClassicCameraPose pose = camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200));
 
-        // 505 of 1200 rows from the top: 95 rows above the middle, 95/600 of half the height.
-        Assert.Equal(95f / 600f, pose.ProjectionCentreShift, 5);
+        // The viewport ends at 1460 + 0x98 = 1612 of 1920: its middle is 806, 504 rows of 1200,
+        // where the owner's captures put it (505).
+        Assert.Equal(1f - 1612f / 1920f, pose.ProjectionCentreShift, 5);
+        Assert.Equal(504, (int)Math.Round(ClassicCamera.ProjectionCentreFromTop(ClassicCamera.ExpandedPanelTop) * 1200));
+
+        camera.ProjectionCentre = ClassicCamera.ProjectionCentreFromTop(ClassicCamera.CollapsedPanelTop);
+        Assert.Equal(0f, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).ProjectionCentreShift, 5);
     }
 
     private static double HorizontalHalfAngle(ClassicCameraPose pose, int width, int height) =>
