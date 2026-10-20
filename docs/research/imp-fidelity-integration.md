@@ -109,6 +109,15 @@ position (route order and mining stance), not a rule found so far. Flag 14 (a he
 attacked) is set at 5277-5282 in seeds 2-4, as natively (5282); seed 5's late Dwarves draw a
 returning Dark Elf to the Guards at 3837, and seed 1 never sets it.
 
+The early (24,39) dig, re-measured at hash 286: seeds 2-4 mine it out at 1954-1958 (native
+1951; seed 1 1978, seed 5 2087). Their room converts at 1998-2016 against 2029 because an Imp
+already at the gold claims the tile 2-4 turns after the last strike; DK2's last miner left
+with the gold and the claim waited 38 turns. Over the run, dug-to-claimed delays match
+(native median 80 turns; ours 61-121), and DK2 also puts two or three Imps on one gold tile
+(65 of 284 sampled turns; seed 3, 66 of 287). Claims within 15 turns of the dig are 7% natively
+and 3-14% in ours; one capture cannot tell that from chance. Lead closed until a second
+capture or a rule in the binary says otherwise.
+
 Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
 Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
 not matched to DK2's. Results and scripts: `D:\DK2Evidence\outcomes-2026-10-19-level4`.
