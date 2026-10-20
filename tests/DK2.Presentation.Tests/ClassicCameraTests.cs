@@ -32,6 +32,34 @@ public class ClassicCameraTests
         Assert.Equal(expected, camera.Pose(Vector3.Zero, new CameraViewport(1280, 1280, 720)).FarClipDistance);
     }
 
+    [Theory]
+    [InlineData(1920, 1080)]
+    [InlineData(2560, 1440)]
+    [InlineData(1024, 1280)]
+    public void AReferenceWidthFramesEveryScreenAsDk2FramesThatWidth(int width, int height)
+    {
+        var framed = new ClassicCamera(Profile()) { ReferenceScreenWidth = 1024 };
+        ClassicCameraPose reference = new ClassicCamera(Profile()).Pose(Vector3.Zero, new CameraViewport(1024, 1024, 768));
+        ClassicCameraPose pose = framed.Pose(Vector3.Zero, new CameraViewport(width, width, height));
+
+        Assert.Equal(reference.Position.Length(), pose.Position.Length(), 4);
+        Assert.Equal(HorizontalHalfAngle(reference, 1024, 768), HorizontalHalfAngle(pose, width, height), 4);
+    }
+
+    [Fact]
+    public void WithoutAReferenceWidthAWiderScreenSeesMoreAsDk2Does()
+    {
+        var camera = new ClassicCamera(Profile());
+        ClassicCameraPose small = camera.Pose(Vector3.Zero, new CameraViewport(1024, 1024, 768));
+        ClassicCameraPose wide = camera.Pose(Vector3.Zero, new CameraViewport(2560, 2560, 1440));
+
+        Assert.True(wide.VerticalFieldOfView > small.VerticalFieldOfView + 30);
+        Assert.True(wide.Position.Length() < small.Position.Length());
+    }
+
+    private static double HorizontalHalfAngle(ClassicCameraPose pose, int width, int height) =>
+        Math.Atan(Math.Tan(pose.VerticalFieldOfView * Math.PI / 360) * width / height);
+
     [Fact]
     public void LevelStartFocusUsesTileCentresAndLiteralHeightIndependentOfProfilePosition()
     {

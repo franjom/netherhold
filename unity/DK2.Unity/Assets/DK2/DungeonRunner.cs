@@ -307,7 +307,7 @@ namespace DK2.Unity
                 _classicCamera = new ClassicCamera(profile with
                 {
                     MaxZoom = Mathf.RoundToInt(profile.MaxZoom * Mathf.Clamp(cameraZoomOutLimitScale, 1f, 2f)),
-                }, initialYaw: ClassicCamera.LevelStartYaw);
+                }, initialYaw: ClassicCamera.LevelStartYaw) { ReferenceScreenWidth = 1024 };
                 _cameraBounds = new Vector2(world.Width, world.Height);
                 System.Numerics.Vector3 focus = startingCameraPlayer != null
                     ? ClassicCamera.LevelStartFocus(new TilePos(startingCameraPlayer.CameraX, startingCameraPlayer.CameraY))
