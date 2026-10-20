@@ -36,14 +36,16 @@ public class ClassicCameraTests
     [InlineData(1920, 1080)]
     [InlineData(2560, 1440)]
     [InlineData(1024, 1280)]
-    public void AReferenceWidthFramesEveryScreenAsDk2FramesThatWidth(int width, int height)
+    public void AReferenceWidthKeepsDk2sDepthAndShowsMoreAtTheSides(int width, int height)
     {
         var framed = new ClassicCamera(Profile()) { ReferenceScreenWidth = 1024 };
         ClassicCameraPose reference = new ClassicCamera(Profile()).Pose(Vector3.Zero, new CameraViewport(1024, 1024, 768));
         ClassicCameraPose pose = framed.Pose(Vector3.Zero, new CameraViewport(width, width, height));
 
         Assert.Equal(reference.Position.Length(), pose.Position.Length(), 4);
-        Assert.Equal(HorizontalHalfAngle(reference, 1024, 768), HorizontalHalfAngle(pose, width, height), 4);
+        Assert.Equal(reference.VerticalFieldOfView, pose.VerticalFieldOfView, 3);
+        if (width * 3 > height * 4)
+            Assert.True(HorizontalHalfAngle(pose, width, height) > HorizontalHalfAngle(reference, 1024, 768));
     }
 
     [Fact]

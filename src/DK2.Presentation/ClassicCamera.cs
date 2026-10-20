@@ -23,10 +23,11 @@ public sealed class ClassicCamera
     private Dk2Angle _yaw;
     public Fp32 Zoom { get; private set; }
 
-    /// <summary>When set, frames every screen as DK2 frames this width: the same camera distance and
-    /// horizontal view angle at any resolution. Null keeps DK2's own rule, a fixed focal length in
-    /// pixels, under which a wide or tall screen sees ever more ground (at 2560×1440 a 97° view whose
-    /// far edge is 100 tiles wide). The owner judges by look (ADR-0519), and DK2 is played at 1024.</summary>
+    /// <summary>When set, frames every screen as DK2 frames a 4:3 screen this wide: the same camera
+    /// distance and vertical view angle at any resolution, so a wider screen sees more at the sides
+    /// (owner, 2026-10-20). Null keeps DK2's own rule, a fixed focal length in pixels, under which a
+    /// larger screen sees ever more ground (at 2560×1440 a 97° view whose far edge is 100 tiles wide).
+    /// The owner judges by look (ADR-0519).</summary>
     public int? ReferenceScreenWidth { get; init; }
     public float NativeViewDistance => Math.Max(_profile.ViewDistance / (float)Fp32.One, 2f * (float)Zoom.ToDouble());
 
@@ -88,8 +89,9 @@ public sealed class ClassicCamera
         Vector3 offset = ToUnity(Vector3.TransformNormal(new Vector3(0, 0, -distance), inverseView));
         Vector3 forward = ToUnity(Vector3.TransformNormal(Vector3.UnitZ, inverseView));
         Vector3 up = ToUnity(Vector3.TransformNormal(-Vector3.UnitY, inverseView));
-        float focalPixels = (float)(new Fp32(_profile.Lens) * new Fp32(320 * Fp32.One)).ToDouble()
-            * viewport.ScreenWidth / framedWidth;
+        float focalPixels = (float)(new Fp32(_profile.Lens) * new Fp32(320 * Fp32.One)).ToDouble();
+        if (ReferenceScreenWidth is int reference)
+            focalPixels *= viewport.Height / (reference * .75f);
         float fov = (float)(2 * Math.Atan(viewport.Height / (2.0 * focalPixels)) * 180 / Math.PI);
         return new ClassicCameraPose(focus + offset, forward, up, fov,
             NativeViewDistance,
