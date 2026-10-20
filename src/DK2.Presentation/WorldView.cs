@@ -617,6 +617,32 @@ public sealed partial class WorldView
                 yield return TileAt(world, x, y);
     }
 
+    /// <summary>Every terrain piece key <see cref="TileAt"/> can hand out for the world as it stands:
+    /// each terrain on the map, the fog and scan terrains, and the liquid under each bridge, with
+    /// their room and ruined-heart sets. A superset, for decoding ahead without a view per tile.</summary>
+    public IEnumerable<AssetRef> TerrainArtKeys(WorldState world)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        var terrains = new HashSet<byte>();
+        if (_fogTerrain is not null) terrains.Add(_fogTerrain.TerrainId);
+        if (_scanTerrain is not null) terrains.Add(_scanTerrain.TerrainId);
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            ref readonly TileState tile = ref world.TileAtIndex(i);
+            terrains.Add(tile.TerrainId);
+            if (BridgeRules.SpannedTerrain(_database, tile) is TerrainDef liquid) terrains.Add(liquid.TerrainId);
+        }
+        foreach (byte id in terrains)
+        {
+            if (_pieceKeys.TryGetValue(id, out TerrainPieceKeys? pieces))
+                foreach (AssetRef key in pieces.All()) yield return key;
+            if (_roomKeys.TryGetValue(id, out RoomPieceKeys? room))
+                foreach (AssetRef key in room.All()) yield return key;
+            if (_destroyedHeartKeys.TryGetValue(id, out RoomPieceKeys? ruined))
+                foreach (AssetRef key in ruined.All()) yield return key;
+        }
+    }
+
     /// <summary>One tile.</summary>
     [Dk2Behavior(Confidence.Confirmed, "docs/research/fog-of-war.md")]
     public TileView TileAt(WorldState world, int x, int y)

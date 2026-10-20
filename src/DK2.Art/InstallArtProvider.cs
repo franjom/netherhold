@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
@@ -13,7 +14,9 @@ namespace DK2.Art;
 /// <summary>
 /// The converted tier read in place (ADR-0408): answers a key whose original KMF is in the
 /// player's <c>Meshes.WAD</c>, and loads that model and its textures on request. Nothing it
-/// reads is written anywhere. Models and images are decoded once and kept.
+/// reads is written anywhere. Models and images are decoded once and kept. Loads are safe from
+/// several threads: the caches are locked, decoding is not, and the first model or image kept for
+/// a name is the one every caller gets.
 /// </summary>
 public sealed class InstallArtProvider : IAssetProvider, IDisposable
 {
@@ -21,18 +24,27 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     private readonly ITextureSource _textures;
     private readonly IDisposable? _owned;
     private readonly Dictionary<AssetRef, (string Entry, ArtUse Use, Dk2ArtResource Resource)> _entries = new();
+    private readonly object _gate = new();
     private readonly Dictionary<string, KmfModel> _models = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, RgbaImage> _images = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Stopwatch _decodeClock = new();
+    private long _decodeTicks;
 
     /// <summary>Models decoded and kept so far.</summary>
-    public int ModelsDecoded => _models.Count;
+    public int ModelsDecoded
+    {
+        get { lock (_gate) return _models.Count; }
+    }
 
     /// <summary>Images decoded and kept so far.</summary>
-    public int ImagesDecoded => _images.Count;
+    public int ImagesDecoded
+    {
+        get { lock (_gate) return _images.Count; }
+    }
 
-    /// <summary>Time spent reading and decoding models and images, cache hits excluded.</summary>
-    public TimeSpan DecodeTime => _decodeClock.Elapsed;
+    /// <summary>Time spent decoding models and images on request, cache hits and
+    /// <see cref="Prefetch"/> excluded: what a caller waited for.</summary>
+    public TimeSpan DecodeTime =>
+        TimeSpan.FromSeconds(Interlocked.Read(ref _decodeTicks) / (double)Stopwatch.Frequency);
 
     /// <summary>Over the given sources, which the caller owns.</summary>
     public InstallArtProvider(IReadOnlyList<ArtEntry> entries, IMeshSource meshes, ITextureSource textures)
@@ -180,24 +192,81 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     }
 
     /// <summary>A material's texture by the name the KMF gives it.</summary>
-    public RgbaImage LoadTexture(string textureName)
+    public RgbaImage LoadTexture(string textureName) => LoadTexture(textureName, counted: true);
+
+    /// <summary>
+    /// Decodes ahead what <paramref name="keys"/> will load, on up to <paramref name="workers"/>
+    /// threads: each key's model, its animation's start and end segments, then the first and last
+    /// texture of every material (the two a material is drawn with) or its environment texture.
+    /// A key this provider does not answer is skipped, as is anything that fails to decode: a later
+    /// load reports that as it always has. Safe alongside other loads.
+    /// </summary>
+    public void Prefetch(IEnumerable<AssetRef> keys, int workers)
+    {
+        if (keys is null) throw new ArgumentNullException(nameof(keys));
+        var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (AssetRef key in keys)
+        {
+            if (!TryResolve(key, out ResolvedAsset asset)) continue;
+            entries.Add(asset.InstallEntry!);
+            if (TryResolveSegment(asset, AnimationSegment.Start, out ResolvedAsset start)) entries.Add(start.InstallEntry!);
+            if (TryResolveSegment(asset, AnimationSegment.End, out ResolvedAsset end)) entries.Add(end.InstallEntry!);
+        }
+
+        var options = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, workers) };
+        var textures = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        Parallel.ForEach(entries, options, entry =>
+        {
+            if (!TryPrefetch(() => LoadEntry(entry, counted: false), out KmfModel model)) return;
+            foreach (KmfMaterial material in model.Materials)
+            {
+                if (material.TextureNames.Count > 0)
+                {
+                    textures.TryAdd(material.TextureNames[0], true);
+                    textures.TryAdd(material.TextureNames[material.TextureNames.Count - 1], true);
+                }
+                else if (!string.IsNullOrEmpty(material.EnvironmentTextureName))
+                    textures.TryAdd(material.EnvironmentTextureName, true);
+            }
+        });
+        Parallel.ForEach(textures.Keys, options, name => TryPrefetch(() => LoadTexture(name, counted: false), out _));
+    }
+
+    // A failure here is left for the load that needs the art, which reports it as it always has.
+    private static bool TryPrefetch<T>(Func<T> load, out T value)
+    {
+        try
+        {
+            value = load();
+            return true;
+        }
+        catch (Exception)
+        {
+            value = default!;
+            return false;
+        }
+    }
+
+    private RgbaImage LoadTexture(string textureName, bool counted)
     {
         if (string.IsNullOrEmpty(textureName)) throw new ArgumentException("A texture name is required.", nameof(textureName));
         string stored = _textures.Resolve(textureName);
-        if (!_images.TryGetValue(stored, out RgbaImage? image))
+        lock (_gate)
+            if (_images.TryGetValue(stored, out RgbaImage? kept)) return kept;
+        long start = Stopwatch.GetTimestamp();
+        RgbaImage image = _textures.Read(stored);
+        if (counted) Interlocked.Add(ref _decodeTicks, Stopwatch.GetTimestamp() - start);
+        return Keep(_images, stored, image);
+    }
+
+    private T Keep<T>(Dictionary<string, T> cache, string name, T value)
+    {
+        lock (_gate)
         {
-            _decodeClock.Start();
-            try
-            {
-                image = _textures.Read(stored);
-            }
-            finally
-            {
-                _decodeClock.Stop();
-            }
-            _images[stored] = image;
+            if (cache.TryGetValue(name, out T? kept)) return kept;
+            cache[name] = value;
+            return value;
         }
-        return image;
     }
 
     public void Dispose() => _owned?.Dispose();
@@ -209,24 +278,16 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
         return asset.InstallEntry;
     }
 
-    private KmfModel LoadEntry(string entryName)
+    private KmfModel LoadEntry(string entryName, bool counted = true)
     {
-        if (!_models.TryGetValue(entryName, out KmfModel? model))
-        {
-            if (!_meshes.TryFind(entryName, out int index))
-                throw new FileNotFoundException($"Meshes.WAD has no '{entryName}'.");
-            _decodeClock.Start();
-            try
-            {
-                model = KmfReader.Read(_meshes.Read(index));
-            }
-            finally
-            {
-                _decodeClock.Stop();
-            }
-            _models[entryName] = model;
-        }
-        return model;
+        lock (_gate)
+            if (_models.TryGetValue(entryName, out KmfModel? kept)) return kept;
+        if (!_meshes.TryFind(entryName, out int index))
+            throw new FileNotFoundException($"Meshes.WAD has no '{entryName}'.");
+        long start = Stopwatch.GetTimestamp();
+        KmfModel model = KmfReader.Read(_meshes.Read(index));
+        if (counted) Interlocked.Add(ref _decodeTicks, Stopwatch.GetTimestamp() - start);
+        return Keep(_models, entryName, model);
     }
 
     private sealed class Owned : IDisposable

@@ -83,6 +83,8 @@ namespace DK2.Unity
         [Header("Art")]
         [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
         [SerializeField] private bool classicMeshes = true;
+        [Tooltip("Decode the first frame's art on worker threads while the scene is built. Off decodes it as Present asks.")]
+        [SerializeField] private bool prefetchFirstFrameArt = true;
         [Tooltip("Use DK2 terrain and object lighting through the classic shader.")]
         [SerializeField] private bool classicVertexLighting = true;
         [Tooltip("Use DK2's Cheap Lighting mode for animated torch illumination.")]
@@ -261,6 +263,20 @@ namespace DK2.Unity
                 install: _installArt);
             _startup.Step("art");
 
+            // The first frame's art decodes on workers while the scene is built and the first tick
+            // runs; Present waits for it. The keys are read here, before anything else reads the world.
+            // What the first tick adds (room furniture, open doors, new clips) loads on request:
+            // listing the keys again after it cost about what decoding that art does.
+            Task prefetch = null;
+            InstallArtProvider art = _installArt;
+            int workers = PrefetchWorkers(); // SystemInfo is main-thread only
+            if (art != null && prefetchFirstFrameArt)
+            {
+                IReadOnlyCollection<AssetRef> firstFrame = FirstFrameArt.Keys(database, world, new PlayerId((byte)viewingPlayerId));
+                prefetch = Task.Run(() => art.Prefetch(firstFrame, workers));
+                _startup.Step("prefetch.keys");
+            }
+
             TerrainLattice lattice = _classic != null && bendTerrain
                 ? new TerrainLattice(database, world, (byte)viewingPlayerId) { HighWalls = highWalls }
                 : null;
@@ -309,7 +325,10 @@ namespace DK2.Unity
             RunTicks(1, InputFrame.Empty);
             _constructionEffects?.Model.UpdateNow();
             _startup.Step("tick");
-            double[] artBefore = _classic?.Breakdown.Snapshot();            _presenter.Present(world);
+            WaitForPrefetch(prefetch);
+            _startup.Step("prefetch.wait");
+            double[] artBefore = _classic?.Breakdown.Snapshot();
+            _presenter.Present(world);
             _startup.Step("present");
             _startup.Breakdown("present", artBefore, _classic?.Breakdown.Snapshot());
             CameraThing profile = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null)
@@ -347,6 +366,26 @@ namespace DK2.Unity
                 _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
             _startup.Step("lights");
             Debug.Log(_startup.Summary(_installArt));
+        }
+
+        /// <summary>Threads the first frame's art decodes on, at most; fewer on a machine with fewer cores.</summary>
+        private const int MaxPrefetchWorkers = 8;
+
+        private static int PrefetchWorkers() => Math.Max(1, Math.Min(SystemInfo.processorCount - 1, MaxPrefetchWorkers));
+
+        /// <summary>Waits for the art prefetch. A failure is only a warning: the art then loads on
+        /// request, which reports a real problem as it always has.</summary>
+        private static void WaitForPrefetch(Task prefetch)
+        {
+            if (prefetch == null) return;
+            try
+            {
+                prefetch.Wait();
+            }
+            catch (AggregateException ex)
+            {
+                Debug.LogWarning($"DK2: art prefetch failed — {ex.GetBaseException().Message}");
+            }
         }
 
         /// <summary>Wall time of each startup step, logged as one line when <see cref="StartGame"/>
@@ -400,7 +439,7 @@ namespace DK2.Unity
             }
 
             private static string Decoded(InstallArtProvider art) => art == null ? "" :
-                $" decoded {art.ModelsDecoded} models, {art.ImagesDecoded} images in {Format(art.DecodeTime.TotalMilliseconds)} ms total";
+                $" {art.ModelsDecoded} models, {art.ImagesDecoded} images kept; {Format(art.DecodeTime.TotalMilliseconds)} ms decoded on request";
 
             private static string Format(double milliseconds) =>
                 milliseconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
