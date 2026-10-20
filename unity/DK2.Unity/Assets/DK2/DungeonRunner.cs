@@ -258,12 +258,14 @@ namespace DK2.Unity
 
             // The first frame's art decodes on workers while the scene is built and the first tick
             // runs; Present waits for it. The keys are read here, before anything else reads the world.
+            // What the first tick adds (room furniture, open doors, new clips) loads on request:
+            // listing the keys again after it cost about what decoding that art does.
             Task prefetch = null;
-            if (_installArt != null && prefetchFirstFrameArt)
+            InstallArtProvider art = _installArt;
+            int workers = PrefetchWorkers(); // SystemInfo is main-thread only
+            if (art != null && prefetchFirstFrameArt)
             {
                 IReadOnlyCollection<AssetRef> firstFrame = FirstFrameArt.Keys(database, world, new PlayerId((byte)viewingPlayerId));
-                InstallArtProvider art = _installArt;
-                int workers = Math.Max(1, Math.Min(SystemInfo.processorCount - 1, MaxPrefetchWorkers));
                 prefetch = Task.Run(() => art.Prefetch(firstFrame, workers));
                 _startup.Step("prefetch.keys");
             }
@@ -354,6 +356,8 @@ namespace DK2.Unity
         /// <summary>Threads the first frame's art decodes on, at most; fewer on a machine with fewer cores.</summary>
         private const int MaxPrefetchWorkers = 8;
 
+        private static int PrefetchWorkers() => Math.Max(1, Math.Min(SystemInfo.processorCount - 1, MaxPrefetchWorkers));
+
         /// <summary>Waits for the art prefetch. A failure is only a warning: the art then loads on
         /// request, which reports a real problem as it always has.</summary>
         private static void WaitForPrefetch(Task prefetch)
@@ -365,7 +369,7 @@ namespace DK2.Unity
             }
             catch (AggregateException ex)
             {
-                Debug.LogWarning($"DK2: art prefetch failed — {ex.InnerException?.Message}");
+                Debug.LogWarning($"DK2: art prefetch failed — {ex.GetBaseException().Message}");
             }
         }
 
@@ -420,7 +424,7 @@ namespace DK2.Unity
             }
 
             private static string Decoded(InstallArtProvider art) => art == null ? "" :
-                $" decoded {art.ModelsDecoded} models, {art.ImagesDecoded} images in {Format(art.DecodeTime.TotalMilliseconds)} ms total";
+                $" {art.ModelsDecoded} models, {art.ImagesDecoded} images kept; {Format(art.DecodeTime.TotalMilliseconds)} ms decoded on request";
 
             private static string Format(double milliseconds) =>
                 milliseconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);

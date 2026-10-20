@@ -14,7 +14,7 @@ namespace DK2.Presentation;
 /// <summary>
 /// The art keys a world's first presentation asks for, so a renderer can decode them ahead of it.
 /// Creatures, objects, structures and torches are read from a fresh view, as the presenter reads
-/// them; terrain is every piece of each piece set on the map, a superset of what is drawn.
+/// them; terrain is <see cref="WorldView.TerrainArtKeys"/>, a superset of what is drawn.
 /// </summary>
 public static class FirstFrameArt
 {
@@ -25,21 +25,7 @@ public static class FirstFrameArt
 
         var view = new WorldView(database, viewer);
         var keys = new HashSet<AssetRef>();
-        var terrainSets = new HashSet<TerrainPieceKeys>();
-        var roomSets = new HashSet<RoomPieceKeys>();
-        for (int y = 0; y < world.Height; y++)
-            for (int x = 0; x < world.Width; x++)
-            {
-                TileView tile = view.TileAt(world, x, y);
-                if (tile.PieceKeys != null) terrainSets.Add(tile.PieceKeys);
-                if (tile.BedKeys != null) terrainSets.Add(tile.BedKeys);
-                if (tile.RoomKeys != null) roomSets.Add(tile.RoomKeys);
-                Add(keys, tile.SightFogOverlay);
-            }
-        foreach (TerrainPieceKeys set in terrainSets)
-            foreach (AssetRef key in set.All()) Add(keys, key);
-        foreach (RoomPieceKeys set in roomSets)
-            foreach (AssetRef key in set.All()) Add(keys, key);
+        foreach (AssetRef key in view.TerrainArtKeys(world)) Add(keys, key);
 
         foreach (CreatureView creature in view.Creatures(world))
         {

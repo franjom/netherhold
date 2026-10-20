@@ -112,6 +112,23 @@ public sealed class InstallArtProviderTests
         for (int i = 0; i < assets.Length; i++)
             for (int copy = 1; copy < 8; copy++)
                 Assert.Same(loaded[i], loaded[i + (copy * assets.Length)]);
+
+        // The locked reads keep each decode whole: the same as one thread's, model and texture.
+        using InstallArtProvider serial = InstallArtProvider.Open(install, database);
+        string[] textures = loaded.Take(assets.Length).OfType<KmfModel>()
+            .SelectMany(model => model.Materials).SelectMany(material => material.TextureNames).Distinct().ToArray();
+        var images = new RgbaImage[textures.Length];
+        Parallel.For(0, textures.Length, new ParallelOptions { MaxDegreeOfParallelism = 8 },
+            i => images[i] = provider.LoadTexture(textures[i]));
+        for (int i = 0; i < assets.Length; i++)
+        {
+            if (loaded[i] is not KmfModel model) continue;
+            Assert.True(serial.TryLoadModel(assets[i], out KmfModel alone));
+            Assert.Equal(RenderMesh.FromModel(alone).Positions, RenderMesh.FromModel(model).Positions);
+        }
+        Assert.NotEmpty(textures);
+        for (int i = 0; i < textures.Length; i++)
+            Assert.Equal(serial.LoadTexture(textures[i]).Pixels, images[i].Pixels);
     }
 
     [InstallFact]

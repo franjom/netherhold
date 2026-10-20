@@ -162,23 +162,38 @@ loads in ~4 ms warm in .NET, so their player cost is first-run JIT, not I/O.
 
 **Parallel art decode (2026-10-20).** `FirstFrameArt.Keys` lists what the first
 `Present` asks for: creatures, objects, structures and torches through a fresh
-`WorldView`, and every piece of each terrain and room piece set on the map. On
-Level8 that is 271 models and 236 images against ~199 and ~225 used. The keys
-are read on the main thread, because `WorldView` fills lazy caches on the world.
-`InstallArtProvider.Prefetch` then decodes on up to 8 workers while the scene is
-built and the first tick runs; `Present` waits for it. Archive reads are locked,
-decoding is not, and the provider's caches keep the first value per name.
+`WorldView`, and `WorldView.TerrainArtKeys`, every piece set of each terrain on
+the map (plus fog, scan and bridged liquid). On Level8 that is ~271 models and
+~236 images against ~199 and ~225 used. The keys are read on the main thread,
+because `WorldView` fills lazy caches on the world (`RoomSweepCache`, never
+hashed; a test pins the state hash unchanged). `InstallArtProvider.Prefetch`
+then decodes on up to 8 workers while the scene is built and the first tick
+runs; `Present` waits for it. Archive reads are locked, decoding is not, and the
+provider's caches keep the first value per name.
+
+The keys are read before the first tick, which adds room furniture, open doors
+and new creature clips (~45 ms of decode on Level8, left on request). Listing the
+keys again after the tick cost about as much as it saved, so it was dropped.
 
 One probe build, Level8, alternating `-prefetchArt 0/1`, three runs each:
 
 | | Total `StartGame` | `Present` | On-request decode in `Present` |
 |---|---:|---:|---:|
-| Off | 1600 / 1834 / 1558 | 896 / 1002 / 870 | 364–397 |
-| On | 1518 / 1455 / 1390 | 610 / 569 / 544 | 51–57 |
+| Off | 1576 / 1599 / 1600 | 870 / 851 / 876 | 342–356 |
+| On | 1374 / 1440 / 1380 | 519 / 580 / 517 | 51–54 |
 
 The wait before `Present` was 0.1 ms: decoding was fully hidden. The net gain
-is ~150 ms (~9%) because listing the keys costs ~67 ms and the first tick ran
-~40 ms slower beside the workers.
+is ~220 ms (~14%): listing the keys costs ~55 ms on the main thread and the
+first tick ran ~35 ms slower beside the workers.
+
+**Minimap.** Its build is mostly UI Toolkit creating its first panel
+(`UIDocument` ~138 ms, `PanelSettings` and theme ~45 ms), which any UI pays once.
+Its textures now come from the art provider's open archive: 49–77 ms → 3 ms.
+
+**IL2CPP** is not measured: the Windows IL2CPP player module is not installed in
+either Unity 6000.6.0f1 install (only Mono variations), and it needs the Visual
+Studio C++ tools. Expected to remove most first-call JIT cost (data loading is
+~4 ms warm in .NET against ~200–350 ms in the Mono player).
 
 ## Gates for any eventual implementation
 
