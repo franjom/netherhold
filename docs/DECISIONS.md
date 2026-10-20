@@ -11840,3 +11840,22 @@ additional identity draws. Query presentation never owns a random generator.
 Existing random trajectories can change because missing constructor draws are
 now consumed. Tests of another mechanic with scripted draws must supply an
 already initialized identity instead of silently changing that mechanic's draws.
+
+## ADR-0519 — Lighting follows visual fidelity: Unity fill by default
+
+**Context.** Native-only lighting (`nativeInitialAmbient`) became the default on
+2026-10-16 (16cf59d5), and the scene saved it on 2026-10-17 (d220c077). It uses
+DK2's confirmed zero ambient and short-radius tile lights, but DK2's own fill
+lights were never found. On Level 3 it left the Hero Gate roof, castle walls and
+the Heart-facing faces of pillars (29,35) and (29,37) pure black. The owner's
+DK2 screenshots of the same intro show them lit, fading with camera distance.
+
+**Decision.** The owner ruled on 2026-10-20 that lighting is judged by visual
+fidelity: use Unity's lighting, tuned to look like DK2. The default is the Unity
+sky and sun fill (`nativeInitialAmbient` off). Native-only stays a diagnostic.
+
+**Consequences.** Nothing renders pitch black for lack of a light. The Unity
+look is flatter and less warm than DK2's, so tuning toward the owner's DK2
+references (warm tint, falloff with camera distance) is open work. The native
+light research in classic-lighting.md remains the reference for colours and torch
+placement.

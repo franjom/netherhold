@@ -343,7 +343,7 @@ MonoBehaviour:
   classicMeshes: 1
   classicVertexLighting: 1
   cheapLighting: 0
-  nativeInitialAmbient: 1
+  nativeInitialAmbient: 0
   classicCreatureShadows: 1
   bendTerrain: 1
   highWalls: 1

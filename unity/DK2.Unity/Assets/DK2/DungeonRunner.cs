@@ -87,8 +87,8 @@ namespace DK2.Unity
         [SerializeField] private bool classicVertexLighting = true;
         [Tooltip("Use DK2's Cheap Lighting mode for animated torch illumination.")]
         [SerializeField] private bool cheapLighting;
-        [Tooltip("Use original lighting inputs. Off adds Unity sky and sun illumination for the brighter preview.")]
-        [SerializeField] private bool nativeInitialAmbient = true;
+        [Tooltip("Diagnostic: DK2's own light inputs only. Its fill lights are unknown, so unlit geometry goes black; off keeps Unity's sky and sun fill (owner 2026-10-20: Unity lighting tuned to look like DK2).")]
+        [SerializeField] private bool nativeInitialAmbient;
         [Tooltip("Projected 32-pixel silhouettes from each creature's current animated mesh.")]
         [SerializeField] private bool classicCreatureShadows = true;
 

@@ -260,7 +260,7 @@ CONFIRMED live Level1 capture (2026-10-16, untouched defaults): ambient RGB is
 ignored`reverse-engineering/step5-native-level1-inputs.json`; binary identity and
 capture limits are in classic-lighting-verification.md. Ambient is not the mismatch.
 The native diagnostic excludes Unity's directional/sky fill; the owner accepted
-the brighter preview with it off. `ClassicAmbientLight` and +/− implement the
+the brighter preview with it off; ADR-0519 makes that the default. `ClassicAmbientLight` and +/− implement the
 command math without registry writes. Framebuffer transfer remains open (Q603).
 
 ## 9. Per-tile terrain point lights
