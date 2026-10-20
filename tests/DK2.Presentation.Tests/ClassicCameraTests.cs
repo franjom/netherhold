@@ -59,6 +59,15 @@ public class ClassicCameraTests
         Assert.True(wide.Position.Length() < small.Position.Length());
     }
 
+    [Fact]
+    public void TheViewAxisMeetsTheScreenWhereTheOwnersCapturesPutIt_Observed()
+    {
+        ClassicCameraPose pose = new ClassicCamera(Profile()).Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200));
+
+        // 505 of 1200 rows from the top: 95 rows above the middle, 95/600 of half the height.
+        Assert.Equal(95f / 600f, pose.ProjectionCentreShift, 5);
+    }
+
     private static double HorizontalHalfAngle(ClassicCameraPose pose, int width, int height) =>
         Math.Atan(Math.Tan(pose.VerticalFieldOfView * Math.PI / 360) * width / height);
 

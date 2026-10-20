@@ -48,22 +48,28 @@ FOV is about41.112 degrees; at full1280x720 they are5 tiles and about58.716.
 These values are conversion consequences, not settings invented for Unity.
 The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to 1600 (ADR-0522's visual rule;
 owner 2026-10-20): every screen gets the 640 rule's camera distance and vertical angle at 1600×1200, and a wider
-screen sees more at the sides. 1600×1200 is DK2's largest mode and the owner's. HYPOTHESIS: the owner's unscaled capture (SHOT0057.BMP, 1600×1200, PrintScreen in DK2; 2026-10-20) is
-consistent with the rule but does not confirm it. Take a column of five claimed-floor corner markers, one
-tile apart. Use pitch 51.33° below the horizon (pitch220 is measured from the vertical) and put the principal
-point at the screen centre. At the rule's height, 4·sin 51.33° = 3.12 tiles (default zoom assumed; the
-capture's zoom is not known), the best focal length is 637 px, rms 2 px; with the principal point 20 px
-lower it is 665 px. A free fit prefers 700 px at 3.5 tiles, rms 0.4 px: the 9% gap persists in the unscaled
-capture, so the 1.1 scaling did not cause it. The data does not decide between the two. The owner then said the capture
-was taken at DK2's maximum zoom-out. Every Camera_SetMode branch (0x0044B04F, 0x0044B2FF, 0x0044B4F0,
-0x0044B807) sets the bound +0xD54 from the preset's MaxZoom, and no shipped level overrides preset 3, so
-that maximum is 53248: 5.2 tiles out, 4.06 tiles above the floor at 1600 wide. The renderer reads
+screen sees more at the sides. 1600×1200 is DK2's largest mode and the owner's. OBSERVED (owner's 1600×1200 PrintScreen captures, 2026-10-20): DK2's view axis meets the screen 505
+rows from the top, not at the middle, and with that the 640 rule fits.
+- Level 1 from the start view (SHOT0084) and at maximum zoom-out (SHOT0085), no pan: eight floor
+  markers move along lines that meet at (811, 501), each within 3-5 px, the slow centre marker 11 px.
+  Zooming moves the camera along its view axis, so that point is where the axis meets the screen.
+- A joint fit of both shots (pitch 51.33°, focal 640) puts the centre at y 505, rms 1.3 px. With the
+  centre at 600 it is 10.6 px, even with pitch free. A centred projection with the camera tilted off
+  the zoom direction needs focal 409 to fit.
+- SHOT0057, at maximum zoom (owner): with the centre at 505, focal 640 and the rule's height there
+  (4.06 tiles) fit with rms 0.7 px. The earlier "9% gap" came from assuming the middle.
+- The zoom ratio between the two shots is 1.47, against the rule's 53248/40960 = 1.30, so the start
+  view was nearer than zoom 40960 (about 36300). Where that comes from (the intro's end?) is open.
+
+Every Camera_SetMode branch (0x0044B04F, 0x0044B2FF, 0x0044B4F0, 0x0044B807) sets the bound +0xD54
+from the preset's MaxZoom (53248; no shipped level overrides preset 3). The renderer reads
 `-(zoom/4096)·640/[0x00756EEC]` at 0x00598D10..0x00598D22, where 0x00756EEC is the screen width
-(Camera_Update 0x0044C075 builds the viewport from it and 0x00756EF0). The focal length is lens·320 = 640
-(0x00598D26..0x00598DE2, then 0x0058A6F0 divides by the viewport extents). At that height the capture
-fits only with a 783 px focal length (rms 2.4 px); at 640 it wants 3.15 tiles, the start zoom 40960's
-height. The two are 1.29 apart, against 53248/40960 = 1.30. Open: either the capture was not at that
-maximum, or something between the zoom and the drawn camera is unread. The native rule
+(Camera_Update 0x0044C075 builds a rect from it and 0x00756EF0). The focal length is lens·320 = 640
+(0x00598D26..0x00598DE2), and 0x0058A6F0 divides it by the viewport extents. The play viewport is the
+whole screen (0x004498F0, called from 0x0043ABD8 and 0x00442F1B). The rect (left, top, right, bottom) = (0, H/8, W, 7H/8)
+that 0x0044D320 blends in over 2 s is a letterbox; that it is the cinematic one (gated by +0xE3C) is inferred. So where the renderer moves the centre is unread.
+`ClassicCamera.ObservedProjectionCentreFromTop` (505/1200) carries the observation, and the Unity
+runner builds an off-centre frustum from it. The light-visibility volume stays symmetric, as read. The native rule
 gave a 97° view whose far edge is 100 tiles wide at 2560×1440; at 1024×768 the ground footprint's
 near and far edges are 6.8 and 19.2 tiles wide (default zoom). Camera paths already fix the horizontal angle.
 

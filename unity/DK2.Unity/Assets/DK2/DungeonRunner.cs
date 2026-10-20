@@ -883,6 +883,7 @@ namespace DK2.Unity
             int screenWidth = camera.targetTexture != null ? camera.targetTexture.width : Screen.width;
             if (screenWidth <= 0) return;
             camera.orthographic = false;
+            camera.ResetProjectionMatrix();
             camera.fieldOfView = pose.VerticalFieldOfView(screenWidth, camera.pixelHeight);
             camera.farClipPlane = Mathf.Max(camera.nearClipPlane + 0.01f, pose.ViewDistance);
             camera.transform.position = new Vector3(pose.Position.X, pose.Position.Y, pose.Position.Z);
@@ -1004,8 +1005,16 @@ namespace DK2.Unity
                 new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z),
                 new CameraViewport(screenWidth, camera.pixelWidth, camera.pixelHeight));
             camera.orthographic = false;
+            camera.ResetProjectionMatrix();
             camera.fieldOfView = pose.VerticalFieldOfView;
             camera.farClipPlane = Mathf.Max(camera.nearClipPlane + 0.01f, pose.FarClipDistance);
+            if (pose.ProjectionCentreShift != 0)
+            {
+                // An off-centre frustum: the view axis lands above the middle, as in DK2.
+                Matrix4x4 projection = camera.projectionMatrix;
+                projection[1, 2] = -pose.ProjectionCentreShift;
+                camera.projectionMatrix = projection;
+            }
             camera.transform.position = new Vector3(pose.Position.X, pose.Position.Y, pose.Position.Z);
             camera.transform.rotation = Quaternion.LookRotation(
                 new Vector3(pose.Forward.X, pose.Forward.Y, pose.Forward.Z),
@@ -1034,6 +1043,7 @@ namespace DK2.Unity
             float halfFov = camera.fieldOfView * 0.5f * Mathf.Deg2Rad;
             float distance = radius / Mathf.Max(0.01f, Mathf.Sin(halfFov));
 
+            camera.ResetProjectionMatrix();
             Quaternion rotation = Quaternion.Euler(cameraPitch, 0f, 0f);
             camera.transform.rotation = rotation;
             camera.transform.position = centre - (rotation * Vector3.forward * distance);
