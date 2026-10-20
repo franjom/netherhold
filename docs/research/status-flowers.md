@@ -29,7 +29,7 @@ The assets are in `GUI\moods\` (EngineTextures; loader [00596850](functions/0059
 
 | Assets | What they are |
 |---|---|
-| H-00..H-05 | the petal ring |
+| H-00..H-05 | the petal ring: six petals down to one, painted pale pink-grey with white highlights |
 | SL-01..SL-10 | pre-drawn level numbers |
 | SM-Happy/Sad/Angry | moods |
 | SJ-* | jobs and anger reasons; SJ-Guarding is STRONGLY INFERRED as the shield |
@@ -102,7 +102,8 @@ The flower is a world sprite that scales with distance. Facing the camera is STR
 
 Approximated:
 - The ring is always H-00. The badge is drawn at the ring's texel density, ring and badge are alpha-blended, and the flower is centred at the lift.
-- The flower is 0.4 tile across, eyeballed from the owner's screenshot; it is halved while possessing.
+- The ring is coloured by `saturate(2·luminance)` × the keeper colour, not by the texel: the owner's DK2 screenshot (2026-10-20) shows flat petals at about 0.96 of the palette entry (221,49,49 against 230,50,50), where a plain multiply gives a dull grey-red. The badge stays untinted, as in that screenshot, although [005966B0](functions/005966B0.md) draws the centre as two complementary arcs, half colour then full; what texture those arcs use is, and the engine's sprite blend, are unread.
+- The flower is 0.36 tile across: 0.4 eyeballed from the owner's screenshot, then 10% smaller on the owner's comparison. It is halved while possessing.
 - The colour is the owner's `ClassicKeeperPalette` entry. Neutral creatures do not cycle, and a sneaking creature shows no disguise.
 - The body height is taken to be the definition's `Height`, as vtable `+0x40`.
 - A health change seen at settled turn T is taken to be stamped at T. Native turn numbering is not matched.

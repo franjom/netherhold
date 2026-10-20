@@ -19,8 +19,9 @@ namespace DK2.Unity
     public sealed class ClassicStatusFlowers : IDisposable
     {
         /// <summary>World width of a flower at native scale 0x400, in tiles. Eyeballed from the
-        /// owner's DK2 screenshot (about a third of a tile); the native world size is not established.</summary>
-        public const float SizeTiles = 0.4f;
+        /// owner's DK2 screenshots (0.4, then 10% smaller on the owner's comparison); the native
+        /// world size is not established.</summary>
+        public const float SizeTiles = 0.36f;
 
         /// <summary>Native scale 0x200 against 0x400 while possessing.</summary>
         public const float PossessedScale = 0.5f;
@@ -47,6 +48,9 @@ namespace DK2.Unity
             if (shader == null) throw new InvalidOperationException("The classic effect shader is unavailable.");
             RgbaImage ringImage = assets.Image(RingTexture);
             _ring = CreateMaterial(shader, ringImage, "status flower ring");
+            // H-xx is painted pale pink-grey; DK2 shows the petals in the flat keeper colour
+            // (owner's screenshot: about 0.96 of the palette entry), so colour by luminance.
+            _ring.SetFloat("_TintByLuminance", 1);
             for (int level = 1; level <= Levels; level++)
             {
                 RgbaImage image = assets.Image(LevelTexturePrefix + level.ToString("00", System.Globalization.CultureInfo.InvariantCulture));
