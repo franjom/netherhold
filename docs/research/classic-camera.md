@@ -54,7 +54,16 @@ tile apart. Use pitch 51.33° below the horizon (pitch220 is measured from the v
 point at the screen centre. At the rule's height, 4·sin 51.33° = 3.12 tiles (default zoom assumed; the
 capture's zoom is not known), the best focal length is 637 px, rms 2 px; with the principal point 20 px
 lower it is 665 px. A free fit prefers 700 px at 3.5 tiles, rms 0.4 px: the 9% gap persists in the unscaled
-capture, so the 1.1 scaling did not cause it. The data does not decide between the two. The native rule
+capture, so the 1.1 scaling did not cause it. The data does not decide between the two. The owner then said the capture
+was taken at DK2's maximum zoom-out. Every Camera_SetMode branch (0x0044B04F, 0x0044B2FF, 0x0044B4F0,
+0x0044B807) sets the bound +0xD54 from the preset's MaxZoom, and no shipped level overrides preset 3, so
+that maximum is 53248: 5.2 tiles out, 4.06 tiles above the floor at 1600 wide. The renderer reads
+`-(zoom/4096)·640/[0x00756EEC]` at 0x00598D10..0x00598D22, where 0x00756EEC is the screen width
+(Camera_Update 0x0044C075 builds the viewport from it and 0x00756EF0). The focal length is lens·320 = 640
+(0x00598D26..0x00598DE2, then 0x0058A6F0 divides by the viewport extents). At that height the capture
+fits only with a 783 px focal length (rms 2.4 px); at 640 it wants 3.15 tiles, the start zoom 40960's
+height. The two are 1.29 apart, against 53248/40960 = 1.30. Open: either the capture was not at that
+maximum, or something between the zoom and the drawn camera is unread. The native rule
 gave a 97° view whose far edge is 100 tiles wide at 2560×1440; at 1024×768 the ground footprint's
 near and far edges are 6.8 and 19.2 tiles wide (default zoom). Camera paths already fix the horizontal angle.
 
