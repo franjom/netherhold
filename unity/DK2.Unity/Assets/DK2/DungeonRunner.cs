@@ -547,6 +547,7 @@ namespace DK2.Unity
             _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
             DrawHudControls();
             CaptureWorldHover();
+            DrawStatusFlowers();
             if (showDiagnostics) RefreshDiagnostics();
 
             // Nothing on this thread reads the world again before the next Update's wait: OnGUI
@@ -1076,6 +1077,7 @@ namespace DK2.Unity
             HandCursorKind cursor = HandCursorKind.Point;
             TilePos? highlightedTile = null;
             _debugHoverTile = null;
+            _hoveredCreature = CreatureQueryTarget.None;
             if (allowed && !PointerOverHud(mouse) && Camera.main != null && ScreenToTile(mouse) is TilePos tile)
             {
                 WorldState world = _simulation.World;
@@ -1087,6 +1089,8 @@ namespace DK2.Unity
                         ? _identityNames.Name(new CreatureNameIndex(named.NameIndex)) : "";
                     _hoverSnapshot = _hoverText.Capture(world, hit, personalName);
                     bool pickup = false;
+                    // The flower's hover stamp reads the same hover id as the tint, in any tool (0x0043B7F1).
+                    if (hit.Kind == WorldHoverKind.Creature) _hoveredCreature = new CreatureQueryTarget(hit.EntityId);
                     if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
                         pickup = HandRules.CanPickUp(world, _simulation.Database, creature, viewer);
                     else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState obj)

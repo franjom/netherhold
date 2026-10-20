@@ -38,6 +38,9 @@ namespace DK2.Unity
         private ClassicCreatureQueryPanel _queryPanel;
         private CreatureQueryTarget _queryTarget;
         private CreatureQuerySnapshot _querySnapshot = CreatureQuerySnapshot.Empty;
+        private StatusFlowers _statusFlowers;
+        private ClassicStatusFlowers _statusFlowerArt;
+        private CreatureQueryTarget _hoveredCreature;
 
         private HudVisibility CurrentHud => _hudControls.Visibility(_scriptedView.HudFor(cameraPreset));
         private bool HudModal => _hudControls.OptionsVisible || _hudControls.FullMapVisible;
@@ -60,11 +63,25 @@ namespace DK2.Unity
             _hudStrings = Dk2StringTable.Open(System.IO.Path.Combine(install, "Data", "Text", "Default", "Text.str"));
             _creatureQuery = new ClassicCreatureQuery(database, _hudStrings.Resolve, new PlayerId((byte)viewingPlayerId));
             _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(install));
+            _statusFlowers = new StatusFlowers(database, new PlayerId((byte)viewingPlayerId));
+            using (var moods = new InstallClassicResourceAssets(install)) _statusFlowerArt = new ClassicStatusFlowers(moods);
+        }
+
+        /// <summary>Captures the flowers from the settled world (before the worker tick starts) and
+        /// draws them over the posed creatures; hidden with the HUD for cinematics.</summary>
+        private void DrawStatusFlowers()
+        {
+            if (_statusFlowers == null || _statusFlowerArt == null) return;
+            WorldState world = _simulation.World;
+            bool possessing = world.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0;
+            _statusFlowerArt.Draw(Camera.main, _scene, _statusFlowers.Capture(world, world.CurrentTick, _hoveredCreature),
+                CurrentHud.ShowNormalHud, possessing);
         }
 
         private void DisposeHudControls()
         {
             _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
+            _statusFlowerArt?.Dispose();
         }
 
         private void SelectPanelChoice(BottomPanelSelection selection)

@@ -55,18 +55,20 @@ There is a global gate on viewer player `+0x76` bits 0x400000/0x40 and mode 0x00
 | Case | Flower |
 |---|---|
 | Own creature whose def `+0x686` has bit 0x4000 | never |
-| State `+0x25E` 0xC1 or 0x110, or `+0x3E6` bit 0 | never |
+| State `+0x25E` 0xC1 or 0x110, or `+0x3E6` bit 0 (InHand) | never |
 | While possessing (tested before the rest) | only the creature whose id equals the hover id |
-| `+0x3E6` bit 0x200000 | always |
+| `+0x3E6` bit 0x200000 (CreatureDying), own included | always |
 | Enemy or neutral (not possessing) | always |
 
 An own creature shows its flower when any of these hold:
 - it is in combat (category 22);
 - its mood is Unhappy or Angry;
-- health is below max/6;
+- health is below max/6 (`health < max·100/600`, unsigned);
 - the game turn is ≤ `+0x4B7` (set by a trigger at 0x0049AF1E);
 - `+0x4B3` is set: a removal countdown showing SL-05..SL-01 (0x0048F110);
-- the turn is before `+0x38`, read by 0x004B34F0 for creatures, doors and traps.
+- the turn is before `+0x38` (strictly), read by [004B34F0](functions/004B34F0.md) for creatures, doors and traps.
+
+Nothing in the predicate refuses a prisoner: an enemy in the viewer's prison shows its flower.
 
 `+0x38` has two writers:
 - Thing_ModifyHealth (0x004B2CE0, stores at 0x004B3267-0x004B3280) sets it, and `+0x3C`, to now + ¾ s on any health change. A turn is ¼ s (container `+8` = 4), so ¾ s is 3 turns.
@@ -87,17 +89,39 @@ So pointing at any creature shows its flower, and the flower lingers ¾ s after 
 - Neutral creatures cycle palettes at 0x006E5058 every 333.
 - It blinks on a 333-unit triangle wave below max/6 health, or for ¾ s after a health change (`+0x3C`).
 
-**Height** (0x005955C0):
+**Height** ([005955C0](functions/005955C0.md)):
 - Creature vtable `+0x40`, plus level × 0x600/10 (0.15 tile per level).
 - Sleeping (category 15): +0x580, or +0x280 on a bed slot.
 - +0x80 if 0x00491B40 ≠ -1.
 
 The flower is a world sprite that scales with distance. Facing the camera is STRONGLY INFERRED.
 
-## 3. Open
+## 3. Built (pass 1)
+
+`StatusFlowerRules` and `StatusFlowers` (src/DK2.Presentation/StatusFlowers.cs) decide who shows a flower and give its level, owner colour, lift and blink flag. `ClassicStatusFlowers` (Unity) draws the ring and the level badge as camera-facing quads. Both ¾ s windows live in presentation, keyed by creature id: the hover from the Hand's hover id in any tool, the health change from the health seen at each capture. Nothing simulated reads the native `+0x38`.
+
+Approximated:
+- The ring is always H-00. The badge is drawn at the ring's texel density, ring and badge are alpha-blended, and the flower is centred at the lift.
+- The flower is 0.4 tile across, eyeballed from the owner's screenshot; it is halved while possessing.
+- The colour is the owner's `ClassicKeeperPalette` entry. Neutral creatures do not cycle, and a sneaking creature shows no disguise.
+- The body height is taken to be the definition's `Height`, as vtable `+0x40`.
+- A health change seen at settled turn T is taken to be stamped at T. Native turn numbering is not matched.
+
+Left out:
+- The global gate (player `+0x76`, mode 0x0075AD4B), the trigger window `+0x4B7` and the countdown `+0x4B3`: our state has none of them.
+- The sleeping and 0x00491B40 lifts.
+- Blink drawing and the cycling centre (mood, job, status, the Dollar).
+- A possession hover. The adapter has no possession camera, so while possessing, only the creature under the ordinary Hand pointer shows a flower.
+
+Inferred, not read: `+0x3E6` bit 0x200000 ("always") is mapped to our falling/dying states or
+health ≤ 0, but 0x004B2CE0 sets it with a positive `+0x40` on collapse, so the bit is not
+"health ≤ 0"; the corpse refusal is our model's guard.
+
+## 4. Open
 
 - The ring index's argument.
 - The job choice in 0x00596FC0.
 - The units of the 333 clock.
 - The flower sprite's blend.
-- Both ¾ s windows can live in presentation: hover from the hover id, health change from the health observed each frame. The native `+0x38` is shared thing state, but nothing simulated reads it.
+- The flower's world size, and whether it is anchored at its centre or its base.
+- What `+0x4B7` (trigger window), `+0x4B3` (removal countdown) and state 0x110 map to in our state.
