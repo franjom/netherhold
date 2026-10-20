@@ -113,7 +113,8 @@ namespace DK2.Unity
             barRoot.style.width = Length.Percent(100); barRoot.style.height = Length.Percent(100);
             _bar = Element(barRoot);
             _bar.style.overflow = Overflow.Hidden;
-            _endImage = Picture(_bar, _end);
+            // The cap is not clipped to the bar: it is taller and runs off the right edge.
+            _endImage = Picture(barRoot, _end);
             _strip = Element(_root);
             _strip.style.overflow = Overflow.Hidden;
             _clip = Element(_strip);
@@ -130,6 +131,7 @@ namespace DK2.Unity
             _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
             _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
             _bar.style.display = _root.style.display;
+            _endImage.style.display = _root.style.display;
             if (!_visible) _delay.Visible(HoverTextSnapshot.Empty, (long)(Time.unscaledTimeAsDouble * 1000));
         }
 
@@ -184,10 +186,13 @@ namespace DK2.Unity
         {
             Rect bar = BarBounds;
             float scale = bar.height / Mathf.Max(1, _status.height);
-            float tileWidth = _status.width * scale, endWidth = _end.width * (bar.height / Mathf.Max(1, _end.height));
+            float tileWidth = _status.width * scale;
+            // 0x0042E140: the cap is a 128-unit square at (W - 80, 0), virtual 2560x1920, over a
+            // bar of 88 at y20, so it stands above and below the bar and 48 units off the right edge.
+            float unit = Screen.height / 1920f, cap = 128 * unit, capLeft = bar.width - 80 * unit;
             Place(_strip, strip.x, strip.y, strip.width, strip.height);
             // The text stops short of the iron end cap.
-            _clipWidth = Mathf.Max(1, strip.width - endWidth - 12);
+            _clipWidth = Mathf.Max(1, capLeft - strip.x - 24);
             Place(_clip, 12, 0, _clipWidth, strip.height);
             Place(_bar, bar.x, bar.y, bar.width, bar.height);
             int count = Mathf.CeilToInt(bar.width / tileWidth);
@@ -201,7 +206,7 @@ namespace DK2.Unity
                 _stripTiles[i].style.display = i < count ? DisplayStyle.Flex : DisplayStyle.None;
                 if (i < count) Place(_stripTiles[i], i * tileWidth, 0, tileWidth, bar.height);
             }
-            Place(_endImage, bar.width - endWidth, 0, endWidth, bar.height);
+            Place(_endImage, capLeft, 0, cap, cap);
             _endImage.BringToFront();
         }
 
@@ -317,7 +322,7 @@ namespace DK2.Unity
 
         public void Dispose()
         {
-            _root.RemoveFromHierarchy(); _bar.RemoveFromHierarchy();
+            _root.RemoveFromHierarchy(); _bar.RemoveFromHierarchy(); _endImage.RemoveFromHierarchy();
             UnityEngine.Object.Destroy(_owner); UnityEngine.Object.Destroy(_settings);
             UnityEngine.Object.Destroy(_barOwner); UnityEngine.Object.Destroy(_barSettings);
             UnityEngine.Object.Destroy(_statusTextTexture); UnityEngine.Object.Destroy(_tooltipTextTexture);

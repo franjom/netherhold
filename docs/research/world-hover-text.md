@@ -159,6 +159,7 @@ assets through `IClassicHoverAssets`. It retains status/tooltip images and
 rasterizes original BF4 text only when strings, fonts or wrapping change.
 The wooden bar and its Bar-01 cap sit in their own panel (order 10), from x0 across the
 screen under the resource panels (11); the text clip stays at x1020 and stops before the cap.
+The cap is a 128-unit square at (W-80, 0), taller than the 88-unit bar ([0x0042E140](functions/0042E140.md)).
 Its status clip scrolls the retained text image; nine retained images form
 the popup frame. Its physical-pixel panel keeps the approved font readable.
 
