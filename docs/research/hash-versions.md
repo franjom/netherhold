@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**288** — `0x9FB00F71132E91E9`. Native wet/blood footprint counters, saved and hashed; see [creature-footprints.md](creature-footprints.md).
+
 **287** — `0xC428FD4390FADF96`. Behaviour only: Tier B's tile chain tries the tile's loose objects after its gold (`0x00469580`'s third step, ADR-0519). No new fields.
 
 **286** — `0xBD6FBFFB91F1AADF`. Behaviour only: speed no longer scales with level; the body's cap is the definition's speed (`0x004887D0`, ADR-0518). No new fields.

@@ -991,6 +991,12 @@ public sealed class CreatureState
     /// neither saved nor hashed, since a view effect is neither.</summary>
     public int LastDustTile = -1;
 
+    /// <summary>Native byte +0x478: remaining dry-ground bloody footprint requests.</summary>
+    public byte BloodFootprintTicks;
+
+    /// <summary>Native byte +0x479: remaining dry-ground wet footprint requests.</summary>
+    public byte WaterFootprintTicks;
+
     /// <summary><c>AttackAbnormalTargets</c>, <c>+0x3E6</c> bit 2, with <see cref="AttackingId"/>:
     /// the forced target 139 hands both fighters (<c>0x0048F390</c>).</summary>
     public bool AttackAbnormalTargets;
@@ -1464,6 +1470,8 @@ public sealed class CreatureState
         hash.Add(LastPosX);
         hash.Add(LastPosY);
         hash.Add(LastPosZ);
+        hash.Add(BloodFootprintTicks);
+        hash.Add(WaterFootprintTicks);
         hash.Add(ArmourTicks);
         hash.Add(InvulnerableTicks);
         hash.Add(FrozenTicks);

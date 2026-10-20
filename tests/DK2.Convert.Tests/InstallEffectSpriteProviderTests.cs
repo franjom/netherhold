@@ -109,7 +109,45 @@ public sealed class InstallEffectSpriteProviderTests
         Assert.False(provider.TryResolve(AssetRef.ForEffectElement("Same"), out _));
     }
 
+    [InstallTheory]
+    [InlineData((ushort)99, "bloodfoot")]
+    [InlineData((ushort)100, "waterfoot")]
+    public void FootprintsResolveTheirOwnAlphaTextureThroughTheEffectAssetKey(ushort id, string texture)
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        using var art = InstallArtProvider.Open(Dk2InstallGate.Path, db);
+        var provider = new InstallEffectSpriteProvider(db, art.LoadTexture);
+        var key = AssetRef.ForEffect(db.Effects[id].Name);
+        Assert.True(provider.TryResolve(key, out var asset));
+        Assert.Equal(texture, asset.InstallEntry);
+        Assert.True(provider.TryGetSprite(asset, out var sprite));
+        Assert.Equal(EffectSpriteBlend.Alpha, sprite.Blend);
+        Assert.Equal(1, sprite.StoredFrameCount);
+        Assert.True((sprite.ArtFlags & 0x100) != 0);
+        Assert.True(provider.TryLoadFrame(asset, 0, out var image));
+        Assert.Contains(image.Pixels.Where((_, index) => index % 4 == 3), alpha => alpha > 0);
+    }
+
     private static readonly RgbaImage Image = new(1, 1, [255, 255, 255, 255]);
+
+    [Fact]
+    public void ParentAndElementWithTheSameNameResolveDifferentTextures()
+    {
+        var child = Element("Same", "child", 2, 0x100, 0);
+        var parent = new EffectDef([])
+        {
+            EffectId = 1, Name = "Same", ArtResource = child.ArtResource with { Name = "parent" },
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = []
+        };
+        var db = new GameDatabase([], [], [], new GlobalVariables(), effects: [parent], effectElements: [child]);
+        var provider = new InstallEffectSpriteProvider(db, _ => Image);
+        Assert.True(provider.TryResolve(AssetRef.ForEffect("Same"), out var effect));
+        Assert.True(provider.TryResolve(AssetRef.ForEffectElement("Same"), out var element));
+        Assert.Equal("parent", effect.InstallEntry);
+        Assert.Equal("child", element.InstallEntry);
+        Assert.NotEqual(effect.Reference, element.Reference);
+    }
+
     private static GameDatabase Database(params EffectElementDef[] elements) =>
         new([], [], [], new GlobalVariables(), effectElements: elements);
 
