@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Collections.Generic;
 using DK2.Assets;
 
 namespace DK2.Presentation;
@@ -112,4 +113,15 @@ public sealed class TerrainPieceKeys
 
     /// <summary>A water or lava terrain's bed piece 0..7.</summary>
     public AssetRef Bed(int k) => _beds[k];
+
+    /// <summary>Every key the set can draw, for decoding ahead; not <see cref="TopTagged"/>, which
+    /// nothing draws. Keys the install lacks are among them.</summary>
+    public IEnumerable<AssetRef> All()
+    {
+        yield return Side;
+        yield return Top;
+        yield return Floor;
+        foreach (AssetRef quarter in _quarters) yield return quarter;
+        foreach (AssetRef bed in _beds) yield return bed;
+    }
 }

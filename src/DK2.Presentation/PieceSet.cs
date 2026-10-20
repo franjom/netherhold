@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Collections.Generic;
 using DK2.Assets;
 using DK2.Data.Model;
 
@@ -90,4 +91,7 @@ public sealed class RoomPieceKeys
 
     /// <summary>Piece <paramref name="k"/>; empty past the pieces the loader builds.</summary>
     public AssetRef Piece(int k) => k >= 0 && k < _pieces.Length ? _pieces[k] : default;
+
+    /// <summary>Every piece the loader builds, for decoding ahead.</summary>
+    public IReadOnlyList<AssetRef> All() => _pieces;
 }
