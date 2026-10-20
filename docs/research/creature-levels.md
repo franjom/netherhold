@@ -131,11 +131,20 @@ prove the correction from behaviour, which nobody has done for these.
   signature was **removed rather than kept as an overload**, because a call that
   forgot the level would silently cap a level-10 Goblin at 1500 health instead of
   9000.
-- **Walking speed** is the record's `Speed` scaled by the Speed row, applied in
-  `CreatureMovementSystem`. A level-2 imp covers **7912** raw units a second
-  against its record's **7536** — 1.93 tiles a second against 1.84, which is
-  what the owner saw on screen.
-- Run speed is computed and unread.
+- **Speed does not scale with level** (CONFIRMED, ADR-0518; corrected 2026-10-19). The
+  Speed and RunSpeed rows have no reader: `Creature_SetSpeedMode` (`0x004887D0`) takes
+  the speed from the definition (`creature+0x370`, then `+0x5B4`/`+0x5B8`/`+0x5BC`), one
+  record shared by every creature of a type, and `Creature_LevelUp` (`0x0048B120`)
+  rescales health only. In the Level 4 capture a walking Imp steps 0.4617 tiles a tick at
+  every level from 1 to 8, and nine creature types keep one walking and one running speed
+  across their levels. **Higher-level Imps are faster** (the owner's 2026-09-04
+  observation stands) **because of Imp Haste** (for the Imp; other casters of `0x0048CAD0` are
+  unchecked): from level 4 the task-walk wrapper
+  `0x004651A0` casts it, 150% for 60 ticks (ADR-0385). Imps of levels 1-3 were never
+  boosted (0 of 1,108 samples); from level 4 they spent 25-49% of their walking ticks at
+  0.692. Our replay casts it 326-364 times by turn 6800, DK2 362. This section used to
+  read the Speed row into walking speed, which made a level-3 Imp's neighbouring claim
+  12 ticks instead of 13.
 
 `TileWorkSystem` pays work experience per hit (`CreatureExperienceSystem.AwardWork`, ADR-0386).
 `CreatureExperienceSystem` pays combat experience on the original's tick, registered **last**;
@@ -240,11 +249,9 @@ Q124/Q127 readings this project got right, against two it got wrong.
   with corpses (Q165).
 - **Combat.** Melee damage scales to 600%, so a combat system written against the
   record value alone would be wrong for every creature above level 1.
-- **Q118's water arithmetic.** `ShuffleSpeed` has **no row in the table**, so if
-  water runs a creature at shuffle speed the slowdown *deepens* with level:
-  45.7% slower at level 1, 48.2% at level 2, 78% at level 10. The owner
-  eyeballed 50–60% on a level-2 imp, which makes the level slope the
-  distinguishing test rather than the absolute figure.
+- **Q118's water arithmetic.** The level slope this note once predicted assumed
+  level-scaled walking, which ADR-0518 removed; water halves the current speed at
+  every level (`steering-behaviours.md` §7.5).
 
 ## Tests
 

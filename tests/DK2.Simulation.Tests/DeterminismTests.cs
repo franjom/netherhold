@@ -162,7 +162,7 @@ public class DeterminismTests
 
         // HashVersion 285: an alarm goes only to a Guard Room (ADR-0517).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE44D70CE6838C66CUL, sim.StateHash());
+        Assert.Equal(0xBD6FBFFB91F1AADFUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

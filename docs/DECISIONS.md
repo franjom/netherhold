@@ -11858,3 +11858,27 @@ nothing and draws no point.
 
 **Consequences.** Hash/save 285, no new fields. The room is still chosen by bounding-box
 centre where DK2 uses the stored `+0x27` tile. The gate behind DK2's rare alarms is unread.
+
+## ADR-0518 — Speed does not scale with level
+**Date:** 2026-10-19 · **Status:** accepted
+
+**Context.** Ours scaled walking and running speed by the level table's Speed row
+(105% at level 2, 250% at 10), from the owner's 2026-09-04 remark that levelled Imps
+are faster. `Creature_SetSpeedMode` (`0x004887D0`) reads the speed from the definition
+at `creature+0x370`, one record shared by every creature of a type; `Creature_LevelUp`
+(`0x0048B120`) rescales health only; none of the 17 functions that index the level table
+reads the Speed or RunSpeed rows. The Level 4 capture agrees: walking Imps step 0.4617
+tiles a tick at levels 1 to 8, and nine types keep one walking and one running speed.
+The speed-up the owner sees is Imp Haste, cast from level 4 by the task-walk wrapper
+(ADR-0385): 362 casts in the capture, 326-364 in our replays. The extra 10% at level 3
+made our neighbouring claim 12 ticks where DK2's is 13, so Level 4's Imps claimed the
+hero Guard Room at (24,38) 34-67 turns early, starting the Dwarves' 240-second timer
+early ([creature-levels.md §3](research/creature-levels.md#3-implementation)).
+
+**Decision.** `CreatureMovementSystem.MaxSpeedOf` takes the definition's `Speed` or
+`RunSpeed`; `CreatureLevelRules.SpeedRaw` is removed. The speed effect's floor, the hero
+party's pace and the Library watcher read the definition's speed too.
+
+**Consequences.** Hash/save 286, no new fields. The `creature_level_up` event no longer
+reports a speed. For the Imp, Imp Haste through `0x004651A0` is the only level-dependent
+speed; whether other casters of `0x0048CAD0` gate a speed by level is unchecked.

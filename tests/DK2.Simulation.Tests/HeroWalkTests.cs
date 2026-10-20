@@ -167,8 +167,8 @@ public class HeroWalkTests
         knight.PartyId = 2;
         imp.PartyId = 2;
         int slowest = Math.Min(
-            CreatureLevelRules.SpeedRaw(db, db.CreatureById(Knight), 1),
-            CreatureLevelRules.SpeedRaw(db, db.CreatureById(Dk2TerrainFixture.ImpCreatureId), 1));
+            db.CreatureById(Knight).Speed.Raw,
+            db.CreatureById(Dk2TerrainFixture.ImpCreatureId).Speed.Raw);
 
         HeroPartyRules.SetPace(world, db, 2);
 

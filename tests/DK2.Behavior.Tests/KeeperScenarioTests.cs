@@ -138,9 +138,10 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         List<KeeperCommandEmission> removals = run.KeeperCommandLog.Where(e => e.Command is RemoveCallToArmsCommand).ToList();
         Assert.NotEmpty(casts);
         var call = (CastSpellAtPlaceCommand)casts[0].Command;
-        // Seeded contact motion puts the selected Black Knight on (4,7) at the Call gate. The tile
-        // is our motion's, not a capture's: hash 281's zero-velocity route starts moved it from (3,7).
-        Assert.Equal((39, (byte)4, (byte)3, 4, 7), (casts[0].InputTick, call.PlayerId, call.SpellId, call.X >> 12, call.Y >> 12));
+        // Seeded contact motion puts the selected Black Knight on (3,7) at the Call gate. The tile
+        // is our motion's, not a capture's: hash 281's zero-velocity route starts moved it to (4,7),
+        // and hash 286's level-free speed (ADR-0518) back to (3,7).
+        Assert.Equal((39, (byte)4, (byte)3, 3, 7), (casts[0].InputTick, call.PlayerId, call.SpellId, call.X >> 12, call.Y >> 12));
         Assert.Equal(casts.Count, removals.Count);
         for (int i = 0; i < casts.Count; i++)
         {

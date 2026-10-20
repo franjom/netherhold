@@ -129,7 +129,7 @@ public class CreatureStatusEffectTests
         quick.SpeedEffectTicks = 10;
         quick.SpeedPercent = 100_000;
 
-        int cap = StatusEffectRules.SpeedCap(db, def, quick, CreatureMovementSystem.MaxSpeedOf(db, def, 1));
+        int cap = StatusEffectRules.SpeedCap(db, def, quick, CreatureMovementSystem.MaxSpeedOf(def));
 
         Assert.Equal(CreatureMovementSystem.MaxSpeedPerTick << 4, cap);
     }
@@ -141,7 +141,7 @@ public class CreatureStatusEffectTests
         CreatureState quick = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 8, 10);
         CreatureState slow = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 10);
         CreatureDef def = db.CreatureById(quick.CreatureTypeId);
-        int walk = CreatureMovementSystem.MaxSpeedOf(db, def, 1);
+        int walk = CreatureMovementSystem.MaxSpeedOf(def);
         GameSimulation sim = Sim(db, world);
         Fire(db, world, Dk2TerrainFixture.HasteShotId, Keeper, quick, 150, 15);
         Fire(db, world, Dk2TerrainFixture.SlowShotId, Rival, slow, 20, 15);

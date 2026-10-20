@@ -407,9 +407,13 @@ public static class ResearchStep
         int left = CasinoStep.TurnTo(context, creature, watched.PosX, watched.PosY);
         if (left < 0x80 && age == 2)
         {
-            // 0x00478F00: twice the intruder's current per-tick speed (vtable +0x90, 0x0048D000) as the percent.
-            CreatureDef theirs = database.CreatureById(watched.CreatureTypeId);
-            int current = CreatureMovementSystem.MaxSpeedOf(database, theirs, watched.Level, watched.Running) >> 4;
+            // 0x00478F00: twice the intruder's current per-tick speed (vtable +0x90, 0x0048D000: the
+            // word SetSpeed last stored, with any Haste, Slow or party pace) as the percent. Ours reads
+            // the body's cap from this tick's movement, which also carries water (whether DK2's word
+            // does is unread); before a first move, the definition's speed, as construction sets it.
+            int current = watched.Body.MaxSpeed > 0
+                ? watched.Body.MaxSpeed >> 4
+                : CreatureMovementSystem.MaxSpeedOf(database.CreatureById(watched.CreatureTypeId), watched.Running) >> 4;
             StatusEffectRules.ModifySpeed(context, watched, 2 * current, 2 * SimulationTiming.OriginalTicksPerGameSecond);
         }
 

@@ -910,7 +910,7 @@ public class ImpTests
         // The body's cap is the record's speed over the tick rate in 16.16, and the velocity is
         // clamped to it by the original's three-band truncation, which lands a fraction over on a
         // straight run; every tick then moves that clamped amount, shifted back to entity units.
-        int perTick = CreatureMovementSystem.MaxSpeedOf(database, Dk2TerrainFixture.Imp(), imp.Level) >> 4;
+        int perTick = CreatureMovementSystem.MaxSpeedOf(Dk2TerrainFixture.Imp()) >> 4;
         Assert.Equal(Dk2TerrainFixture.Imp().Speed.Raw, SimulationTiming.TicksPerSecond * perTick);
         Assert.InRange(imp.PosX - start, Dk2TerrainFixture.Imp().Speed.Raw, Dk2TerrainFixture.Imp().Speed.Raw * 101 / 100);
     }

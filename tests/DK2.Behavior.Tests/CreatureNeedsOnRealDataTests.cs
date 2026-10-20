@@ -1125,21 +1125,12 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal(1500, CreatureLevelRules.MaxHealth(db, goblin, 1));
         Assert.Equal(9000, CreatureLevelRules.MaxHealth(db, goblin, 10));
 
-        // The owner's remark, in raw fixed-point units: 1.84 tiles a second
-        // becomes 1.93 at level 2, and 4.6 at level 10.
+        // Speed is the record's 1.84 tiles a second at every level: the shipped Speed row
+        // (105% at level 2, 250% at 10) has no reader (ADR-0518).
         Assert.Equal(7536, imp.Speed.Raw);
-        Assert.Equal(7536, CreatureLevelRules.SpeedRaw(db, imp, 1));
-        Assert.Equal(7912, CreatureLevelRules.SpeedRaw(db, imp, 2));
-        Assert.Equal(18840, CreatureLevelRules.SpeedRaw(db, imp, 10));
-
-        // Which is what makes Q118's water arithmetic level-dependent: the
-        // ShuffleSpeed hypothesis has no stat row, so if water runs a creature
-        // at shuffle speed the slowdown deepens as it levels. At level 1 an
-        // imp in water would be 45.7% slower; at level 2, 48.2%; at level 10,
-        // 78%. The owner eyeballed 50-60% on a level-2 imp.
+        Assert.Equal(105, CreatureLevelRules.Percent(db, CreatureStatId.Speed, 2));
+        Assert.Equal(DK2.Simulation.Systems.CreatureMovementSystem.MaxSpeedOf(imp), SimulationTiming.LoaderRatePerTick(7536) << 4);
         Assert.Equal(4096, imp.ShuffleSpeed.Raw);
-        Assert.True(imp.ShuffleSpeed.Raw * 100 / CreatureLevelRules.SpeedRaw(db, imp, 2) == 51);
-        Assert.True(imp.ShuffleSpeed.Raw * 100 / CreatureLevelRules.SpeedRaw(db, imp, 10) == 21);
     }
 
     /// <summary>One stat's percentages for levels 2 to 10, in order.</summary>

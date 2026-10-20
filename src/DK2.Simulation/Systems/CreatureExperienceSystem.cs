@@ -77,8 +77,7 @@ public sealed class CreatureExperienceSystem : ISimulationSystem
             $"player={state.OwnerPlayerId} {before}->{state.Level} " +
             $"discarded={banked + gained - needed} " +
             $"next_at={CreatureLevelRules.ExperienceForNextLevel(database, creature, state.Level)} " +
-            $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)} " +
-            $"speed={CreatureLevelRules.SpeedRaw(database, creature, state.Level)}");
+            $"health={state.Health}/{CreatureHealthRules.MaxHealth(database, creature, state)}");
     }
 
     /// <summary>The Combat category's update <c>0x0047A870</c>: in state 199 or 200, a creature that is

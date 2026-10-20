@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**286** — `0xBD6FBFFB91F1AADF`. Behaviour only: speed no longer scales with level; the body's cap is the definition's speed (`0x004887D0`, ADR-0518). No new fields.
+
 **285** — `0xE44D70CE6838C66C`. Behaviour only: an alarm goes only to a Guard Room (`0x00475336`, ADR-0517). No new fields.
 
 **284** — `0xA1D6204A54297315`. Behaviour only: walkers and dig turners keep a gone task, as states 6 and 13 do (ADR-0516). No new fields.
@@ -391,9 +393,4 @@ fixture contains neither kind, so this is composition only. **The literal was
 computed on the merge**: 56 and 57 were developed in parallel from the same
 55-based tree, so neither branch's own pin describes the merged state.
 
-**56** — `0xAEC253948973DF35`. `CreatureState.DieInstantly`, a new hashed and
-snapshotted bool, and with it a collapsed-window rule that reads the world rather than
-the definition alone: four gates where there was one (Q303, ADR-0138). A state field
-was added, so the snapshot format moves to 56 with it.
-
-[Versions 9–55](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–56](hash-versions-early.md) retain the earlier pins and their reasons.
