@@ -144,7 +144,8 @@ namespace DK2.Unity
             public GaugeTexture(Texture2D original, string name)
             {
                 _original = original.GetPixels32(); _pixels = new Color32[_original.Length];
-                Texture = new Texture2D(original.width, original.height, TextureFormat.RGBA32, false, true)
+                // sRGB like the background it overlays; a linear texture rendered washed out and soft.
+                Texture = new Texture2D(original.width, original.height, TextureFormat.RGBA32, false)
                     { name = name, filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp };
             }
             public void Update(HudGaugeFraction fraction)

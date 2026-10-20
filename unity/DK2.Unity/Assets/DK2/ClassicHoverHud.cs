@@ -56,22 +56,25 @@ namespace DK2.Unity
         private readonly Texture2D _status, _end;
         private readonly Texture2D[] _pieces = new Texture2D[9];
         private readonly HoverTooltipDelay _delay = new HoverTooltipDelay();
-        private readonly GameObject _owner;
-        private readonly PanelSettings _settings;
-        private readonly VisualElement _root, _strip, _clip, _popup;
+        private readonly GameObject _owner, _barOwner;
+        private readonly PanelSettings _settings, _barSettings;
+        private readonly VisualElement _root, _bar, _strip, _clip, _popup;
         private readonly Image _endImage, _statusImage, _tooltipImage;
         private readonly Image[] _popupPieces = new Image[9];
         private readonly List<Image> _stripTiles = new List<Image>();
         private BitmapFont _font, _tooltipFont;
         private Texture2D _statusTextTexture, _tooltipTextTexture;
         private string _statusText, _tooltipText;
-        private float _scroll;
+        private float _scroll, _clipWidth = 1;
         private bool _scrollForward = true, _visible = true, _allowInput = true;
         private int _screenWidth, _screenHeight;
         public bool ShowCreatureTooltip { get; set; } = true;
         public PanelSettings Panel => _settings;
-        public Rect StatusBounds => new Rect(ResourceWidth, 8 * Screen.height / 768f,
+        public Rect StatusBounds => new Rect(ResourceWidth, StatusTop,
             Mathf.Max(0, Screen.width - ResourceWidth), StatusHeight);
+        /// <summary>The wooden bar: the whole width, behind the Heart, mana and gold panels, as in DK2.</summary>
+        public Rect BarBounds => new Rect(0, StatusTop, Screen.width, StatusHeight);
+        private static float StatusTop => 8 * Screen.height / 768f;
         private float ResourceWidth => Mathf.Min(Screen.width, Mathf.Floor(1020 * Screen.height / 1920f));
         private float StatusHeight => Mathf.Max(22 * Screen.height / 480f, (_font?.LineHeight ?? 12) + 12);
 
@@ -95,9 +98,24 @@ namespace DK2.Unity
             _root = document.rootVisualElement;
             _root.pickingMode = PickingMode.Ignore;
             _root.style.width = Length.Percent(100); _root.style.height = Length.Percent(100);
+            // The bar draws under the resource panels (11); its text and the popup stay on top.
+            _barSettings = ScriptableObject.CreateInstance<PanelSettings>();
+            _barSettings.themeStyleSheet = _settings.themeStyleSheet;
+            _barSettings.scaleMode = PanelScaleMode.ConstantPixelSize;
+            _barSettings.scale = 1;
+            _barSettings.sortingOrder = 10;
+            _barOwner = new GameObject("Dungeon status bar");
+            if (parent != null) _barOwner.transform.SetParent(parent, false);
+            var barDocument = _barOwner.AddComponent<UIDocument>();
+            barDocument.panelSettings = _barSettings;
+            VisualElement barRoot = barDocument.rootVisualElement;
+            barRoot.pickingMode = PickingMode.Ignore;
+            barRoot.style.width = Length.Percent(100); barRoot.style.height = Length.Percent(100);
+            _bar = Element(barRoot);
+            _bar.style.overflow = Overflow.Hidden;
+            _endImage = Picture(_bar, _end);
             _strip = Element(_root);
             _strip.style.overflow = Overflow.Hidden;
-            _endImage = Picture(_strip, _end);
             _clip = Element(_strip);
             _clip.style.overflow = Overflow.Hidden;
             _statusImage = Picture(_clip, null);
@@ -111,11 +129,12 @@ namespace DK2.Unity
         {
             _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
             _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
+            _bar.style.display = _root.style.display;
             if (!_visible) _delay.Visible(HoverTextSnapshot.Empty, (long)(Time.unscaledTimeAsDouble * 1000));
         }
 
         public bool ContainsPointer(Vector3 screenPosition) => _visible && _allowInput
-            && StatusBounds.Contains(new Vector2(screenPosition.x, Screen.height - screenPosition.y));
+            && BarBounds.Contains(new Vector2(screenPosition.x, Screen.height - screenPosition.y));
 
         /// <summary>Refreshes retained visuals in Update, before worker simulation dispatch.</summary>
         public void Draw(HoverTextSnapshot snapshot, Vector2 cursorGui)
@@ -146,7 +165,7 @@ namespace DK2.Unity
             Rect strip = StatusBounds;
             if (sizeChanged || fontChanged) LayoutStrip(strip);
             float width = _statusTextTexture?.width ?? 0;
-            float overflow = Mathf.Max(0, width - (strip.width - 24));
+            float overflow = Mathf.Max(0, width - _clipWidth);
             if (overflow > 0)
             {
                 _scroll += (_scrollForward ? 1 : -1) * Time.unscaledDeltaTime * 60;
@@ -163,23 +182,27 @@ namespace DK2.Unity
 
         private void LayoutStrip(Rect strip)
         {
+            Rect bar = BarBounds;
+            float scale = bar.height / Mathf.Max(1, _status.height);
+            float tileWidth = _status.width * scale, endWidth = _end.width * (bar.height / Mathf.Max(1, _end.height));
             Place(_strip, strip.x, strip.y, strip.width, strip.height);
-            Place(_clip, 12, 0, Mathf.Max(1, strip.width - 24), strip.height);
-            float scale = strip.height / Mathf.Max(1, _status.height);
-            float tileWidth = _status.width * scale, endWidth = _end.width * scale;
-            int count = Mathf.CeilToInt(strip.width / tileWidth);
+            // The text stops short of the iron end cap.
+            _clipWidth = Mathf.Max(1, strip.width - endWidth - 12);
+            Place(_clip, 12, 0, _clipWidth, strip.height);
+            Place(_bar, bar.x, bar.y, bar.width, bar.height);
+            int count = Mathf.CeilToInt(bar.width / tileWidth);
             while (_stripTiles.Count < count)
             {
-                Image tile = Picture(_strip, _status);
+                Image tile = Picture(_bar, _status);
                 tile.SendToBack(); _stripTiles.Add(tile);
             }
             for (int i = 0; i < _stripTiles.Count; i++)
             {
                 _stripTiles[i].style.display = i < count ? DisplayStyle.Flex : DisplayStyle.None;
-                if (i < count) Place(_stripTiles[i], i * tileWidth, 0, tileWidth, strip.height);
+                if (i < count) Place(_stripTiles[i], i * tileWidth, 0, tileWidth, bar.height);
             }
-            Place(_endImage, strip.width - endWidth, 0, endWidth, strip.height);
-            _endImage.BringToFront(); _clip.BringToFront();
+            Place(_endImage, bar.width - endWidth, 0, endWidth, bar.height);
+            _endImage.BringToFront();
         }
 
         private void LayoutTooltip(Vector2 cursor)
@@ -294,8 +317,9 @@ namespace DK2.Unity
 
         public void Dispose()
         {
-            _root.RemoveFromHierarchy();
+            _root.RemoveFromHierarchy(); _bar.RemoveFromHierarchy();
             UnityEngine.Object.Destroy(_owner); UnityEngine.Object.Destroy(_settings);
+            UnityEngine.Object.Destroy(_barOwner); UnityEngine.Object.Destroy(_barSettings);
             UnityEngine.Object.Destroy(_statusTextTexture); UnityEngine.Object.Destroy(_tooltipTextTexture);
             UnityEngine.Object.Destroy(_status); UnityEngine.Object.Destroy(_end);
             foreach (Texture2D piece in _pieces) UnityEngine.Object.Destroy(piece);

@@ -157,6 +157,8 @@ the 98/30/40 offsets by height/480 to keep the gap the Hand's size (owner, 2026-
 changes. The Unity UI Toolkit renderer never reads simulation state and reads
 assets through `IClassicHoverAssets`. It retains status/tooltip images and
 rasterizes original BF4 text only when strings, fonts or wrapping change.
+The wooden bar and its Bar-01 cap sit in their own panel (order 10), from x0 across the
+screen under the resource panels (11); the text clip stays at x1020 and stops before the cap.
 Its status clip scrolls the retained text image; nine retained images form
 the popup frame. Its physical-pixel panel keeps the approved font readable.
 
