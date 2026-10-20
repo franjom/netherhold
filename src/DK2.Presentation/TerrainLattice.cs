@@ -72,7 +72,7 @@ public sealed class TerrainLattice
     {
         for (int ty = y - 1; ty <= y + 1; ty++)
             for (int tx = x - 1; tx <= x + 1; tx++)
-                if (tx >= -1 && ty >= -1 && tx <= _width - 2 && ty <= _height - 2) _built[Cell(tx, ty)] = false;
+                if (tx >= -1 && ty >= -1 && tx <= _width - 2 && ty <= _height - 2) _built[IndexOf(tx, ty)] = false;
     }
 
     /// <summary>Forgets every cell, as a change of <see cref="FullHeight"/> requires.</summary>
@@ -102,10 +102,13 @@ public sealed class TerrainLattice
 
     private int Cell(int x, int y)
     {
-        int index = ((y + 1) * _width) + x + 1;
+        int index = IndexOf(x, y);
         if (!_built[index]) Build(x, y, index);
         return index;
     }
+
+    // Without building: Invalidate going through Cell built each unbuilt cell only to forget it.
+    private int IndexOf(int x, int y) => ((y + 1) * _width) + x + 1;
 
     // Tile (x, y)'s 20 points (0x005A3590): rest, then lean and wibble on levels 1 to 3.
     private void Build(int x, int y, int index)

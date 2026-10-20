@@ -302,11 +302,9 @@ namespace DK2.Unity
             RunTicks(1, InputFrame.Empty);
             _constructionEffects?.Model.UpdateNow();
             _startup.Step("tick");
-            double decodedBefore = _installArt?.DecodeTime.TotalMilliseconds ?? 0;
-            _presenter.Present(world);
+            double[] artBefore = _classic?.Breakdown.Snapshot();            _presenter.Present(world);
             _startup.Step("present");
-            _startup.Detail("present.decode", (_installArt?.DecodeTime.TotalMilliseconds ?? 0) - decodedBefore);
-            _startup.Detail("present.terrain", _scene.TerrainFlushMilliseconds);
+            _startup.Breakdown("present", artBefore, _classic?.Breakdown.Snapshot());
             CameraThing profile = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null)
                 .FirstOrDefault(c => c.CameraId == (ushort)cameraPreset);
             if (classicMeshes && profile != null)
@@ -359,6 +357,15 @@ namespace DK2.Unity
 
             public void Detail(string name, double milliseconds) =>
                 _steps.Append(' ').Append(name).Append('=').Append(Format(milliseconds));
+
+            /// <summary>The art work done between two breakdown snapshots, by kind.</summary>
+            public void Breakdown(string step, double[] before, double[] after)
+            {
+                if (before == null || after == null) return;
+                for (var work = ClassicMeshes.LoadBreakdown.Work.None; work < ClassicMeshes.LoadBreakdown.Work.Count; work++)
+                    Detail(step + "." + (work == ClassicMeshes.LoadBreakdown.Work.None ? "other" : work.ToString().ToLowerInvariant()),
+                        after[(int)work] - before[(int)work]);
+            }
 
             public string Summary(InstallArtProvider art) =>
                 $"DK2 startup: {Format(_last)} ms (launch to Start {Format(_launchToStart)} ms);{_steps}{Decoded(art)}";

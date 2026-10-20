@@ -146,6 +146,13 @@ seed 1, shared machine, no GPU upload) measured these times:
 | Minimap | 328 |
 | **Total `StartGame`** | **3655** |
 
+Splitting the remainder (`ClassicMeshes.LoadBreakdown`, exclusive time per kind)
+found `TerrainLattice.Invalidate` building each unbuilt cell through `Cell` only to
+forget it: about 38,000 wasted cell builds at startup and 9 on every tile change.
+After the fix, the remainder fell from 880–1870 ms to 383 ms and `StartGame` to
+2.70 s. Present after the fix: decode 589, terrain 272, texture conversion 228,
+animation 101, mesh 53, material 28, objects 15, other 383 ms.
+
 The first 120 frames decoded 30 more models, adding about 70 ms. Parallel decode
 can save at most the 568 ms, and the main-thread remainder is twice that. Next:
 split the remainder, remove duplicate reads and the per-pixel texture copy, then

@@ -140,6 +140,8 @@ namespace DK2.Unity
             _dirtyOrder.AddRange(_dirty);
             _dirtyOrder.Sort();
             bool budgeted = FlushBudgetMilliseconds > 0 && _chunks.Count > 0;
+            using ClassicMeshes.LoadBreakdown.Scope _ = ClassicMeshes.LoadBreakdown.Span(
+                _classic?.Breakdown, ClassicMeshes.LoadBreakdown.Work.Terrain);
             _flushClock.Restart();
             foreach (int chunk in _dirtyOrder)
             {
@@ -149,11 +151,7 @@ namespace DK2.Unity
                     Rebuild(chunk);
                 _dirty.Remove(chunk);
             }
-            LastFlushMilliseconds = _flushClock.Elapsed.TotalMilliseconds;
         }
-
-        /// <summary>How long the last flush that had work took; read by the startup timings.</summary>
-        public double LastFlushMilliseconds { get; private set; }
 
         public void Clear()
         {

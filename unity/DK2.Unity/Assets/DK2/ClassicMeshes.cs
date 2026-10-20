@@ -52,6 +52,7 @@ namespace DK2.Unity
         public ClassicMeshes(InstallArtProvider art, bool classicVertexLighting = false, bool nativeInitialAmbient = false)
         {
             _art = art;
+            Breakdown = new LoadBreakdown(art);
             NativeInitialAmbient = nativeInitialAmbient;
             _shader = classicVertexLighting ? Resources.Load<Shader>("Shaders/ClassicVertexLit") : null;
             UsesClassicVertexLighting = _shader != null && _shader.isSupported;
@@ -65,6 +66,9 @@ namespace DK2.Unity
 
         public bool UsesClassicVertexLighting { get; }
         public bool NativeInitialAmbient { get; }
+
+        /// <summary>Where art work's time goes, for the startup timings.</summary>
+        public LoadBreakdown Breakdown { get; }
 
         /// <summary>The name of the shader the materials use, for the on-screen diagnostics.</summary>
         public string ShaderName => _shader != null ? _shader.name : "none";
@@ -82,6 +86,7 @@ namespace DK2.Unity
             bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null,
             DK2.Data.Model.TerrainLightColour addedLight = default)
         {
+            using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Animation);
             if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
                 || !_art.TryLoadModel(asset, out KmfModel model) || model.Animation is not { IsComplete: true }
                 || !TryBuild(asset, false, out Built built)) return false;
@@ -150,6 +155,7 @@ namespace DK2.Unity
             if (asset.Source != AssetSource.InstallEntry || asset.ProviderName != _art.Name) return null;
             if (!TryBuild(asset, lastFrame, out Built built, lightingMode)) return null;
 
+            using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Objects);
             var go = new GameObject(name);
             go.transform.SetParent(parent, worldPositionStays: false);
             go.AddComponent<MeshFilter>().sharedMesh = built.Mesh;
@@ -166,6 +172,7 @@ namespace DK2.Unity
         {
             if (_pieces.TryGetValue((key, lastTexture), out PieceSource cached)) return cached;
 
+            using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Mesh);
             PieceSource piece = null;
             if (_art.TryResolve(key, out ResolvedAsset asset) && _art.TryLoadModel(asset, out KmfModel model))
             {
@@ -196,6 +203,7 @@ namespace DK2.Unity
             frame = Mathf.Clamp(frame, 0, frameCount - 1);
             if (!_builtFrames.TryGetValue((asset.InstallEntry, frame), out Built built))
             {
+                using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Mesh);
                 RenderMesh source = RenderMesh.FromModel(model, frame);
                 var frameMesh = new Mesh { name = asset.InstallEntry + " " + frame };
                 frameMesh.SetVertices(ToUnity(source.Positions));
@@ -272,6 +280,7 @@ namespace DK2.Unity
         {
             if (_built.TryGetValue((asset.InstallEntry, lastFrame, lightingMode), out built)) return built != null;
 
+            using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Mesh);
             built = null;
             if (_art.TryLoadModel(asset, out KmfModel model))
             {
@@ -432,6 +441,7 @@ namespace DK2.Unity
             var key = (texture, blend, selfIllumination);
             if (_materials.TryGetValue(key, out Material material)) return material;
 
+            using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Material);
             string name = texture.Length > 0 ? texture : "untextured";
             if (blend == KmfBlend.Additive)
             {
@@ -457,7 +467,9 @@ namespace DK2.Unity
             {
                 try
                 {
-                    material.mainTexture = ToTexture(_art.LoadTexture(texture), texture);
+                    RgbaImage image = _art.LoadTexture(texture);
+                    using (LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Texture))
+                        material.mainTexture = ToTexture(image, texture);
                 }
                 catch (System.IO.FileNotFoundException)
                 {
@@ -575,6 +587,63 @@ namespace DK2.Unity
         }
 
         /// <summary>One install model as arrays in the renderer frame, triangles per material.</summary>
+        /// <summary>Exclusive wall time per kind of art work: a span charges only its own time, not
+        /// that of spans inside it, and decoding done inside any span is charged to Decode.</summary>
+        public sealed class LoadBreakdown
+        {
+            public enum Work { None, Terrain, Mesh, Material, Texture, Animation, Objects, Decode, Count }
+
+            private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+            private readonly double[] _milliseconds = new double[(int)Work.Count];
+            private readonly InstallArtProvider _art;
+            private Work _current;
+            private double _since;
+            private double _decodedSince;
+
+            public LoadBreakdown(InstallArtProvider art) => _art = art;
+
+            /// <summary>A span of <paramref name="work"/>; does nothing when there is no breakdown.</summary>
+            public static Scope Span(LoadBreakdown breakdown, Work work)
+            {
+                if (breakdown == null) return default;
+                Work outer = breakdown._current;
+                breakdown.Switch(work);
+                return new Scope(breakdown, outer);
+            }
+
+            /// <summary>The totals so far, in milliseconds, indexed by <see cref="Work"/>.</summary>
+            public double[] Snapshot()
+            {
+                Switch(_current);
+                return (double[])_milliseconds.Clone();
+            }
+
+            private void Switch(Work next)
+            {
+                double now = _clock.Elapsed.TotalMilliseconds;
+                double decoded = _art?.DecodeTime.TotalMilliseconds ?? 0;
+                _milliseconds[(int)Work.Decode] += decoded - _decodedSince;
+                _milliseconds[(int)_current] += now - _since - (decoded - _decodedSince);
+                _since = now;
+                _decodedSince = decoded;
+                _current = next;
+            }
+
+            public readonly struct Scope : System.IDisposable
+            {
+                private readonly LoadBreakdown _breakdown;
+                private readonly Work _outer;
+
+                public Scope(LoadBreakdown breakdown, Work outer)
+                {
+                    _breakdown = breakdown;
+                    _outer = outer;
+                }
+
+                public void Dispose() => _breakdown?.Switch(_outer);
+            }
+        }
+
         public sealed class PieceSource
         {
             public PieceSource(Vector3[] positions, Vector3[] normals, Vector2[] uvs,
