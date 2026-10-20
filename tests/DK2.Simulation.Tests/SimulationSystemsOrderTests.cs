@@ -31,6 +31,7 @@ public class SimulationSystemsOrderTests
             "KeeperSpellSystem",
             "PossessionSystem",
             "CreatureStatusSystem",
+            "FootprintSystem",
             "CombatSystem",
             "TremorCreatureSystem",
             "ReaperSystem",

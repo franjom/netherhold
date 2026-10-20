@@ -11903,3 +11903,22 @@ over the whole map before Tier B, so the step takes a job only when an earlier s
 selection changed what Tier A saw. No fixture exercises the branch; the new hash pin moved
 only with the version. The Secret Door step waits
 for Secret Door marking.
+
+## ADR-0520: native wet and bloody footprint counters and parent sprites
+
+**Status:** accepted, 2026-10-20.
+
+**Decision.** Run the native high-setting footprint path before combat/movement,
+save and hash both native byte counters, and render the stationary flat
+generation-zero parent art through the existing effect sprite pipeline.
+Give parent art its own `effect` asset category so it cannot collide with
+generated `effect_element` art. Keep original art behind the asset provider.
+
+**Reason.** Footprints are direct effect art, not generated elements or
+animation contact events. Existing flat rendering already supplies the native
+shape, heading and floor projection. Evidence and remaining native-setting,
+flight and fading boundaries: [creature-footprints.md](research/creature-footprints.md).
+
+**Consequences.** Hash/save 288; older snapshots are rejected. Direct support
+is limited to static, stationary, fixed-scale flat alpha art. Native print
+expiry is preserved without an invented opacity curve; visual acceptance is pending.

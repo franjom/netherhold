@@ -75,6 +75,7 @@ public static class SimulationSystems
     [
         // Acquisition before state handlers and steering, as ProcessFight sits in DK2's update.
         new CreatureStatusSystem(), // the status countdowns (0x0048E160) before the fight reads their words
+        new FootprintSystem(),
         new CombatSystem(),
         new TremorCreatureSystem(), // recovery handler before steering; world Tremor runs after the entity pass
         new ReaperSystem(),

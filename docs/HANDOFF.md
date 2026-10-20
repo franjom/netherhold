@@ -110,6 +110,7 @@ research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
 Scripted camera paths are built separately (ADR-0496; research/camera-paths.md).
 Room/neutral-Portal border flames are researched but unbuilt
 (research/room-border-effects.md); claim-mist bleaching remains open (Q609).
+Wet/bloody footprints are built; native rules and pending visual acceptance: research/creature-footprints.md (Q610, 2026-10-20).
 Creature asset keys are cached per definition/action; transparent terrain uses
 retained stable-sort buffers and reuses meshes across changes in draw order.
 Measured gains, regression checks and remaining costs: verification document.
