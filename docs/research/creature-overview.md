@@ -54,7 +54,8 @@ draws only counts and highlight162 over it (corrected 2026-10-19 after the owner
 comparison). Count rows use filters0/5/6/4.
 Both page strips are always drawn, page_forward (catalogue10, widget `0x0068FFD8`)
 above page_back (11, `0x00690028`). `0x00417730` adds a delta and clamps; the widgets' `+0x16` words read +1 (forward) and -1 (back), so top pages forward (LIKELY; the caller is indirect). The page callback `0x00410A60` writes visibility state3 when the roster fits one page; what state3 draws is unread, and the adapter draws both strips normally.
-Hover highlight is catalogue162 GUI/Tabs/t-cp-hilight tinted00FFC9.
+Hover highlight is catalogue162 GUI/Tabs/t-cp-hilight tinted 0x00FFC9, red in the low byte: RGB (201,255,0).
+The byte order is settled by the selected-mode tints (00417B40), which the owner saw as green, red and orange.
 Menu6's worker row icons are records 0x00690078 + 160·r, local (0, 4/68/132/196, 80, 72/68/72/72), text ids
 2308..2314; its count widgets 0x006900C8 + 160·r, local (72, 12+64r, 120, 64), highlight on hover. The mode
 selectors carry text ids 2316..2322; hovering one draws t-creature_panel-i over the strip (00417B40).

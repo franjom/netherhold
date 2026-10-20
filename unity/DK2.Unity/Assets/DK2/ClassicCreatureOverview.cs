@@ -55,10 +55,10 @@ namespace DK2.Unity
             // Menu 6's worker sidebar is one strip, catalogue 157 (widget 0x00690488); the
             // GUI\Jobs\Expert icons are the mode-selector widgets' art, not this column.
             _workerStrip=Picture("GUI\\Tabs\\t-cp-imp");
-            // Worker count widgets 0x006900C8 + 160·r draw highlight 162 tinted 00FFC9 under their
+            // Worker count widgets 0x006900C8 + 160·r draw highlight 162 tinted 0x00FFC9, red in the low byte: (201,255,0), under their
             // count while hovered (0x00417850).
             _workerHighlight=Picture("GUI\\Tabs\\t-cp-hilight");
-            _workerHighlight.tintColor=new Color32(0,255,201,255);
+            _workerHighlight.tintColor=new Color32(201,255,0,255);
             for(int i=0;i<_digits.Length;i++) _digits[i]=Picture(null);
             _previous=Picture("GUI\\Pages\\page_back");_next=Picture("GUI\\Pages\\page_forward");
             _modeStrip=Picture("GUI\\Tabs\\t-creature_panel");
@@ -100,7 +100,7 @@ namespace DK2.Unity
                     float countX=924+(i-1)*136;
                     bool hover=HitRect(i).Contains(new Vector2(pointer.x,_height-pointer.y));
                     _highlight[i].style.display=hover?DisplayStyle.Flex:DisplayStyle.None;
-                    _highlight[i].tintColor=new Color32(0,255,201,255);
+                    _highlight[i].tintColor=new Color32(201,255,0,255);
                     int rows=CreatureOverview.Rows(Mode);
                     int step=Mode==CreatureOverviewMode.Jobs?64:84;
                     int hoveredRow=Mode==CreatureOverviewMode.Total?0:Math.Min(rows-1,Math.Max(0,(int)((_height-pointer.y-V(1616))/V(step))));
