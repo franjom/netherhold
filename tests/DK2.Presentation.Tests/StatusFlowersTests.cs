@@ -119,6 +119,104 @@ public sealed class StatusFlowersTests
             .Capture(world, new GameTick(5), CreatureQueryTarget.None), f => f.CreatureId == own.Id);
     }
 
+    [InstallFact]
+    public void KnockedOutCreaturesOfEitherSideAndPrisonersShow_OwnerConfirmed()
+    {
+        // Owner 2026-10-20, from play: a knocked-out creature keeps its flower, own or enemy, and
+        // an enemy in the viewer's prison shows one.
+        (GameDatabase db, WorldState world, CreatureState own) = Setup();
+        CreatureState enemy = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new(9, 8));
+        CreatureState prisoner = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new(10, 8));
+        own.Dk2StateId = CreatureDeathRules.DyingState;
+        enemy.Dk2StateId = CreatureDeathRules.DyingState;
+        prisoner.Dk2StateId = PrisonRules.InTheCellState;
+        var shown = new StatusFlowers(db, PlayerIds.FirstKeeper).Capture(world, new GameTick(5), CreatureQueryTarget.None);
+        Assert.Contains(shown, f => f.CreatureId == own.Id);
+        Assert.Contains(shown, f => f.CreatureId == enemy.Id);
+        Assert.Contains(shown, f => f.CreatureId == prisoner.Id);
+    }
+
+    [Fact]
+    public void RingLosesAPetalPerQuarterOfHealthAndShowsOneWhileDying()
+    {
+        Assert.Equal(0, StatusFlowerRules.Ring(false, 100, 100));
+        Assert.Equal(1, StatusFlowerRules.Ring(false, 99, 100));
+        Assert.Equal(1, StatusFlowerRules.Ring(false, 75, 100));
+        Assert.Equal(2, StatusFlowerRules.Ring(false, 74, 100));
+        Assert.Equal(3, StatusFlowerRules.Ring(false, 49, 100));
+        Assert.Equal(4, StatusFlowerRules.Ring(false, 24, 100));
+        Assert.Equal(4, StatusFlowerRules.Ring(false, 0, 100));
+        Assert.Equal(0, StatusFlowerRules.Ring(false, 150, 100));
+        Assert.Equal(4, StatusFlowerRules.Ring(false, 10, 0));
+        Assert.Equal(5, StatusFlowerRules.Ring(true, 100, 100));
+    }
+
+    [Fact]
+    public void BlinkIsATriangleOverOneCycle()
+    {
+        var red = new StatusFlowerColour(230, 50, 50);
+        Assert.Equal(new StatusFlowerColour(0, 0, 0), StatusFlowerRules.Blinked(red, 1000, 1000));
+        Assert.Equal(red, StatusFlowerRules.Blinked(red, 1000, 1000 + 167)); // u = 50: full
+        Assert.Equal(new StatusFlowerColour(225, 49, 49), StatusFlowerRules.Blinked(red, 1000, 1000 + 166)); // u = 49: 98%
+        Assert.Equal(new StatusFlowerColour(0, 0, 0), StatusFlowerRules.Blinked(red, 1000, 1000 + 333));
+    }
+
+    [Fact]
+    public void ExperienceShareIsTheWayToTheNextLevelInHalfTurnUnits()
+    {
+        Assert.Equal(0f, StatusFlowerRules.ExperienceShare(0, 3000));
+        Assert.Equal(0.5f, StatusFlowerRules.ExperienceShare(1500, 3000));
+        Assert.Equal(0f, StatusFlowerRules.ExperienceShare(1500, 0));
+        Assert.Equal(0f, StatusFlowerRules.ExperienceShare(3000, 3000));
+    }
+
+    [Fact]
+    public void CentreCyclesLevelMoodAngerAndBack_HeroStatusListUnbuilt()
+    {
+        var unhappy = new StatusFlowerCentreFacts(Hero: false, Imp: false, StateId: 1, MoodBand: 1,
+            AngerBucket.Hunger, Status: null, Job: "SJ-Library", Level: 3);
+        Assert.Equal(StatusFlowerMode.Mood, StatusFlowerCentre.Next(StatusFlowerMode.Level, unhappy));
+        Assert.Equal(StatusFlowerMode.AngerReason, StatusFlowerCentre.Next(StatusFlowerMode.Mood, unhappy));
+        Assert.Equal(StatusFlowerMode.Level, StatusFlowerCentre.Next(StatusFlowerMode.AngerReason, unhappy));
+        Assert.Equal(("SM-Sad", StatusFlowerMode.Mood), StatusFlowerCentre.Icon(StatusFlowerMode.Mood, unhappy));
+        Assert.Equal(("SJ-Hungry", StatusFlowerMode.AngerReason), StatusFlowerCentre.Icon(StatusFlowerMode.AngerReason, unhappy));
+        var content = unhappy with { MoodBand = 0 };
+        Assert.Equal(StatusFlowerMode.Job, StatusFlowerCentre.Next(StatusFlowerMode.Level, content));
+        Assert.Equal(("SJ-Library", StatusFlowerMode.Job), StatusFlowerCentre.Icon(StatusFlowerMode.Job, content));
+        Assert.Equal(("SL-03", StatusFlowerMode.Level), StatusFlowerCentre.Icon(StatusFlowerMode.Job, content with { Job = null }));
+        var stunned = content with { Status = "SJ-Stunned" };
+        Assert.Equal(StatusFlowerMode.Status, StatusFlowerCentre.Next(StatusFlowerMode.Level, stunned));
+        Assert.Equal(("SL-03", StatusFlowerMode.Status), StatusFlowerCentre.Icon(StatusFlowerMode.Status, content));
+        var hero = content with { Hero = true };
+        Assert.Equal(StatusFlowerMode.Level, StatusFlowerCentre.Next(StatusFlowerMode.Level, hero));
+        var idleImp = content with { Imp = true, StateId = 8 };
+        Assert.Equal(StatusFlowerMode.Level, StatusFlowerCentre.Next(StatusFlowerMode.Level, idleImp));
+        Assert.Equal(StatusFlowerMode.Job, StatusFlowerCentre.Next(StatusFlowerMode.Level, idleImp with { StateId = 0xD }));
+    }
+
+    [Fact]
+    public void JobIconsFollowTheCategoryTable()
+    {
+        Assert.Equal("SJ-Dig", StatusFlowerCentre.Job(false, CreatureStateCategory.WorkerJob, 0xD));
+        Assert.Equal("SJ-Claim", StatusFlowerCentre.Job(false, CreatureStateCategory.WorkerJob, 0x12));
+        Assert.Null(StatusFlowerCentre.Job(false, CreatureStateCategory.WorkerJob, 0x30));
+        Assert.Equal("SJ-Workshop", StatusFlowerCentre.Job(false, CreatureStateCategory.Manufacture, 0));
+        Assert.Equal("SJ-Watching", StatusFlowerCentre.Job(false, CreatureStateCategory.CombatPit, 0x8F));
+        Assert.Equal("SM-Sad", StatusFlowerCentre.Job(false, CreatureStateCategory.Sulking, 0));
+        Assert.Null(StatusFlowerCentre.Job(false, CreatureStateCategory.Combat, 0));
+        Assert.Equal("SJ-No_Go", StatusFlowerCentre.Job(true, CreatureStateCategory.Combat, 0));
+    }
+
+    [Fact]
+    public void StatusPrefersUnconsciousThenStunnedThenFear_HeroStatusListUnbuilt()
+    {
+        Assert.Equal("SJ-Unconscious", StatusFlowerCentre.Status(false, true, true, false, 9, 1));
+        Assert.Equal("SJ-Stunned", StatusFlowerCentre.Status(false, false, true, false, 9, 1));
+        Assert.Equal("ST-Fear", StatusFlowerCentre.Status(false, false, false, false, 9, 1));
+        Assert.Null(StatusFlowerCentre.Status(false, false, false, true, 9, 1));
+        Assert.Null(StatusFlowerCentre.Status(true, true, false, false, 9, 1));
+    }
+
     private static (GameDatabase, WorldState, CreatureState) Setup()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);

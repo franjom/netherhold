@@ -81,7 +81,8 @@ namespace DK2.Unity
             if (_statusFlowers == null || _statusFlowerArt == null) return;
             WorldState world = _simulation.World;
             bool possessing = world.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0;
-            _statusFlowerArt.Draw(Camera.main, _scene, _statusFlowers.Capture(world, world.CurrentTick, _hoveredCreature),
+            _statusFlowerArt.Draw(Camera.main, _scene, _statusFlowers.Capture(world, world.CurrentTick, _hoveredCreature,
+                EffectClock?.Invoke().Milliseconds ?? (long)(Time.unscaledTimeAsDouble * 1000)),
                 CurrentHud.ShowNormalHud, possessing);
         }
 

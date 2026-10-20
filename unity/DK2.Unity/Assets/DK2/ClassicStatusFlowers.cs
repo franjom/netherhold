@@ -14,8 +14,9 @@ using Object = UnityEngine.Object;
 namespace DK2.Unity
 {
     /// <summary>Draws <see cref="StatusFlowers"/> as camera-facing quads over each shown creature
-    /// (status-flowers.md §2): the ring <c>GUI\moods\H-00</c> tinted with the owner's colour, then the
-    /// level badge <c>SL-01..SL-10</c> untinted over it. Pass 1: no blink, no cycling centre.</summary>
+    /// (status-flowers.md §2): the petal ring <c>GUI\moods\H-0n</c> in the owner's colour, then the
+    /// centre: the level badge at half colour with a full-colour experience wedge, or a mood, job
+    /// or status icon at full colour.</summary>
     public sealed class ClassicStatusFlowers : IDisposable
     {
         /// <summary>World width of a flower at native scale 0x400, in tiles. Eyeballed from the
@@ -26,39 +27,31 @@ namespace DK2.Unity
         /// <summary>Native scale 0x200 against 0x400 while possessing.</summary>
         public const float PossessedScale = 0.5f;
 
-        // The ring index's argument is unread (status-flowers.md §3); H-00 is a stand-in.
-        private const string RingTexture = "GUI\\moods\\H-00";
-        private const string LevelTexturePrefix = "GUI\\moods\\SL-";
-        private const int Levels = 10;
+        private const string Folder = "GUI\\moods\\";
 
-        // Draws the badge this far nearer the camera than the ring, so sorting and depth put it on top.
-        private const float BadgeLift = 0.01f;
+        // Draws the centre this far nearer the camera than the ring, so sorting and depth put it on top.
+        private const float CentreLift = 0.01f;
 
+        private static readonly string[] Rings = { "H-00", "H-01", "H-02", "H-03", "H-04", "H-05" };
+
+        private static readonly int TintId = Shader.PropertyToID("_Tint");
+        private static readonly int WedgeId = Shader.PropertyToID("_Wedge");
+
+        private readonly IClassicResourceAssets _assets;
+        private readonly Shader _shader;
         private readonly List<Object> _owned = new List<Object>();
-        private readonly Dictionary<StatusFlowerColour, Mesh> _ringQuads = new Dictionary<StatusFlowerColour, Mesh>();
-        private readonly Mesh _whiteQuad;
-        private readonly Material _ring;
-        private readonly Material[] _levels = new Material[Levels];
-        private readonly float[] _levelScale = new float[Levels];
+        private readonly Dictionary<string, (Material Material, float Scale)> _art = new Dictionary<string, (Material, float)>();
+        private readonly List<MaterialPropertyBlock> _blocks = new List<MaterialPropertyBlock>();
+        private readonly Mesh _quad;
+        private readonly int _ringWidth;
 
         public ClassicStatusFlowers(IClassicResourceAssets assets)
         {
-            if (assets == null) throw new ArgumentNullException(nameof(assets));
-            Shader shader = Shader.Find("DK2/ClassicEffect");
-            if (shader == null) throw new InvalidOperationException("The classic effect shader is unavailable.");
-            RgbaImage ringImage = assets.Image(RingTexture);
-            _ring = CreateMaterial(shader, ringImage, "status flower ring");
-            // H-xx is painted pale pink-grey; DK2 shows the petals in the flat keeper colour
-            // (owner's screenshot: about 0.96 of the palette entry), so colour by luminance.
-            _ring.SetFloat("_TintByLuminance", 1);
-            for (int level = 1; level <= Levels; level++)
-            {
-                RgbaImage image = assets.Image(LevelTexturePrefix + level.ToString("00", System.Globalization.CultureInfo.InvariantCulture));
-                _levels[level - 1] = CreateMaterial(shader, image, "status flower level " + level);
-                // Same texel density as the ring: the badge's drawn size is not read.
-                _levelScale[level - 1] = image.Width / (float)ringImage.Width;
-            }
-            _whiteQuad = Quad(Color.white);
+            _assets = assets ?? throw new ArgumentNullException(nameof(assets));
+            _shader = Shader.Find("DK2/ClassicEffect");
+            if (_shader == null) throw new InvalidOperationException("The classic effect shader is unavailable.");
+            _ringWidth = assets.Image(Folder + "H-00").Width;
+            _quad = Quad();
         }
 
         /// <summary>Draws this frame's flowers. Creatures the scene does not show (fog, removed,
@@ -67,18 +60,21 @@ namespace DK2.Unity
         {
             if (camera == null || scene == null || !hudVisible) return;
             Quaternion facing = camera.transform.rotation;
-            Vector3 towardCamera = -camera.transform.forward * BadgeLift;
+            Vector3 towardCamera = -camera.transform.forward * CentreLift;
             float size = SizeTiles * (possessing ? PossessedScale : 1f);
+            int block = 0;
             for (int i = 0; i < flowers.Count; i++)
             {
                 StatusFlower flower = flowers[i];
                 if (!scene.TryGetCreaturePosition(new CreatureQueryTarget(flower.CreatureId), out Vector3 feet)) continue;
                 Vector3 centre = feet + Vector3.up * (flower.Height.Raw / (float)Fp32.One);
-                Graphics.RenderMesh(Params(_ring), RingQuad(flower.Colour), 0,
-                    Matrix4x4.TRS(centre, facing, Vector3.one * size));
-                int level = Mathf.Clamp(flower.Level, 1, Levels) - 1;
-                Graphics.RenderMesh(Params(_levels[level]), _whiteQuad, 0,
-                    Matrix4x4.TRS(centre + towardCamera, facing, Vector3.one * (size * _levelScale[level])));
+                var colour = new Color32(flower.Colour.Red, flower.Colour.Green, flower.Colour.Blue, 255);
+                (Material ring, float ringScale) = Art(Rings[Mathf.Clamp(flower.Ring, 0, 5)], ring: true);
+                Graphics.RenderMesh(Params(ring, Block(ref block, colour, -1)), _quad, 0,
+                    Matrix4x4.TRS(centre, facing, Vector3.one * (size * ringScale)));
+                (Material middle, float scale) = Art(flower.Centre, ring: false);
+                Graphics.RenderMesh(Params(middle, Block(ref block, colour, flower.ExperienceArcs ? flower.Experience : -1)), _quad, 0,
+                    Matrix4x4.TRS(centre + towardCamera, facing, Vector3.one * (size * scale)));
             }
         }
 
@@ -86,35 +82,45 @@ namespace DK2.Unity
         {
             foreach (Object owned in _owned) if (owned != null) Object.Destroy(owned);
             _owned.Clear();
-            _ringQuads.Clear();
+            _art.Clear();
         }
 
-        private static RenderParams Params(Material material) => new RenderParams(material)
-        { shadowCastingMode = ShadowCastingMode.Off, receiveShadows = false };
-
-        private Mesh RingQuad(StatusFlowerColour colour)
+        private MaterialPropertyBlock Block(ref int index, Color colour, float wedge)
         {
-            if (!_ringQuads.TryGetValue(colour, out Mesh mesh))
-            {
-                mesh = Quad(new Color32(colour.Red, colour.Green, colour.Blue, 255));
-                _ringQuads.Add(colour, mesh);
-            }
-            return mesh;
+            if (index == _blocks.Count) _blocks.Add(new MaterialPropertyBlock());
+            MaterialPropertyBlock block = _blocks[index++];
+            block.SetColor(TintId, colour);
+            block.SetFloat(WedgeId, wedge);
+            return block;
         }
 
-        private Material CreateMaterial(Shader shader, RgbaImage image, string name)
+        private static RenderParams Params(Material material, MaterialPropertyBlock block) => new RenderParams(material)
+        { shadowCastingMode = ShadowCastingMode.Off, receiveShadows = false, matProps = block };
+
+        /// <summary>One icon's material, loaded on first use. Icons share the ring's texel density
+        /// (all 0x1000 in 0x00596850) except Imprison and the Objectives, loaded at 0x2000.</summary>
+        private (Material, float) Art(string name, bool ring)
         {
+            if (_art.TryGetValue(name, out var art)) return art;
+            RgbaImage image = _assets.Image(Folder + name);
             Texture2D texture = MinimapFrameVisual.Decode(image);
             texture.name = name;
             // Alpha-blended (SrcAlpha, OneMinusSrcAlpha), unlit, ZWrite Off, depth-tested. The
-            // native sprite blend is open (status-flowers.md §3).
-            var material = new Material(shader) { name = name, mainTexture = texture };
+            // native sprite blend is open (status-flowers.md §4).
+            var material = new Material(_shader) { name = "status flower " + name, mainTexture = texture };
             material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
+            // H-xx is painted pale pink-grey; DK2 shows the petals in the flat keeper colour
+            // (owner's screenshot: about 0.96 of the palette entry), so colour by luminance.
+            if (ring) material.SetFloat("_TintByLuminance", 1);
             _owned.Add(texture); _owned.Add(material);
-            return material;
+            float scale = image.Width / (float)_ringWidth
+                * (name is "Imprison" or "Objective" or "Objective-2" ? 2f : 1f);
+            art = (material, scale);
+            _art.Add(name, art);
+            return art;
         }
 
-        private Mesh Quad(Color32 colour)
+        private Mesh Quad()
         {
             var mesh = new Mesh { name = "status flower quad" };
             mesh.SetVertices(new[]
@@ -122,7 +128,8 @@ namespace DK2.Unity
                 new Vector3(-.5f, -.5f, 0), new Vector3(.5f, -.5f, 0), new Vector3(.5f, .5f, 0), new Vector3(-.5f, .5f, 0),
             });
             mesh.SetUVs(0, new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) });
-            mesh.SetColors(new[] { colour, colour, colour, colour });
+            var white = new Color32(255, 255, 255, 255);
+            mesh.SetColors(new[] { white, white, white, white });
             mesh.SetTriangles(new[] { 0, 2, 1, 0, 3, 2 }, 0);
             mesh.RecalculateBounds();
             _owned.Add(mesh);

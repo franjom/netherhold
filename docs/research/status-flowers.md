@@ -96,22 +96,27 @@ So pointing at any creature shows its flower, and the flower lingers ¾ s after 
 
 The flower is a world sprite that scales with distance. Facing the camera is STRONGLY INFERRED.
 
-## 3. Built (pass 1)
+## 3. Built (passes 1 and 2)
 
-`StatusFlowerRules` and `StatusFlowers` (src/DK2.Presentation/StatusFlowers.cs) decide who shows a flower and give its level, owner colour, lift and blink flag. `ClassicStatusFlowers` (Unity) draws the ring and the level badge as camera-facing quads. Both ¾ s windows live in presentation, keyed by creature id: the hover from the Hand's hover id in any tool, the health change from the health seen at each capture. Nothing simulated reads the native `+0x38`.
+`StatusFlowerRules`, `StatusFlowerCentre` and `StatusFlowers` (src/DK2.Presentation/StatusFlowers.cs) decide who shows a flower and what it shows; `ClassicStatusFlowers` (Unity) draws the ring and the centre as camera-facing quads. Both ¾ s windows live in presentation, keyed by creature id: the hover from the Hand's hover id in any tool, the health change from the health seen at each capture. Nothing simulated reads the native `+0x38`.
+
+Read and built (pass 2, 2026-10-20):
+- **Ring** ([00596EB0](functions/00596EB0.md)): `H-0n` with entry `clamp(1 − trunc(−4·health/max), 0, 5)`, the loader filling entry i with `H-0(5−i)` ([00596850](functions/00596850.md)). Six petals at full health, one fewer per quarter lost, one while dying.
+- **Colour** ([005956E0](functions/005956E0.md)): the owner's palette entry. Neutral creatures cycle entries 1–7 every 333 ms; others blink, a triangle over one 333 ms phase shared by every flower, below a sixth of health or for ¾ s after a health change. The clock is real milliseconds ([005953D0](functions/005953D0.md)).
+- **Centre cycle** ([00596410](functions/00596410.md)), per creature every 333 ms: level, then a status if any; an Imp its job unless idle; others the mood when unhappy or angry (then the anger reason), else the job; everything returns to the level. The level badge is drawn at half colour with a full-colour wedge for the share of the way to the next level ([005966B0](functions/005966B0.md), [0048EA40](functions/0048EA40.md)), drawn clockwise from the top as both captures below show; every other icon plain at full colour ([005961A0](functions/005961A0.md)). Both owner captures of 2026-10-20 (a knocked-out creature, a prisoner) show the tinted disc and the wedge.
+- **Job icons** ([00596FC0](functions/00596FC0.md)) by resolved category and worker state, No_Go within 5 s of a drop on a room; **status icons** ([00597270](functions/00597270.md)) Unconscious, Stunned, Fear.
+- The owner confirmed (2026-10-20) that a knocked-out creature keeps its flower, own or enemy, and that an imprisoned enemy shows one; both follow from [0048E830](functions/0048E830.md).
 
 Approximated:
-- The ring is always H-00. The badge is drawn at the ring's texel density, ring and badge are alpha-blended, and the flower is centred at the lift.
-- The ring is coloured by `saturate(2·luminance)` × the keeper colour, not by the texel: the owner's DK2 screenshot (2026-10-20) shows flat petals at about 0.96 of the palette entry (221,49,49 against 230,50,50), where a plain multiply gives a dull grey-red. The badge stays untinted, as in that screenshot, although [005966B0](functions/005966B0.md) draws the centre as two complementary arcs, half colour then full; what texture those arcs use is, and the engine's sprite blend, are unread.
+- The ring is coloured by `saturate(2·luminance)` × the colour, not by the texel: the owner's screenshot shows flat petals at about 0.96 of the palette entry (221,49,49 against 230,50,50), where a plain multiply of the pale H-xx art gives a dull grey-red. The centre is a plain multiply. The engine's sprite blend is unread.
 - The flower is 0.36 tile across: 0.4 eyeballed from the owner's screenshot, then 10% smaller on the owner's comparison. It is halved while possessing.
-- The colour is the owner's `ClassicKeeperPalette` entry. Neutral creatures do not cycle, and a sneaking creature shows no disguise.
 - The body height is taken to be the definition's `Height`, as vtable `+0x40`.
 - A health change seen at settled turn T is taken to be stamped at T. Native turn numbering is not matched.
 
 Left out:
-- The global gate (player `+0x76`, mode 0x0075AD4B), the trigger window `+0x4B7` and the countdown `+0x4B3`: our state has none of them.
-- The sleeping and 0x00491B40 lifts.
-- Blink drawing and the cycling centre (mood, job, status, the Dollar).
+- The global gate (player `+0x76`, mode 0x0075AD4B), the trigger window `+0x4B7` and the removal countdown `+0x4B3` ([0048F110](functions/0048F110.md), drawn as SL-05..SL-01 with a flashing ring): our state has none of them.
+- The sleeping and 0x00491B40 lifts, the sneaking disguise colour.
+- Status icons Leaving (`+0x3E6` bit 14, unmapped) and S-Gem (carrying object type 0x1C, [0048B5C0](functions/0048B5C0.md)); the hero side's status list; the Imprison tag (`+0x3F7`); the hero extra 0x00596770; the casino winner's Dollar mesh.
 - A possession hover. The adapter has no possession camera, so while possessing, only the creature under the ordinary Hand pointer shows a flower.
 
 Inferred, not read: `+0x3E6` bit 0x200000 ("always") is mapped to our falling/dying states or
@@ -120,9 +125,8 @@ health ≤ 0, but 0x004B2CE0 sets it with a positive `+0x40` on collapse, so the
 
 ## 4. Open
 
-- The ring index's argument.
-- The job choice in 0x00596FC0.
-- The units of the 333 clock.
+- The owner's first screenshot (2026-10-20) shows a red keeper's level badge white, where the code and two later captures tint it. It was taken with the Hand on the creature; whether hovering changes the centre's colour is unread.
+- The wedge's orientation in the code: 0x005966B0 anchors the full-colour arc at angle 0x400 of a 0x800 turn, and which screen direction that is depends on 0x00594E10 and the quad's texture order, unread. The build follows the captures.
 - The flower sprite's blend.
 - The flower's world size, and whether it is anchored at its centre or its base.
-- What `+0x4B7` (trigger window), `+0x4B3` (removal countdown) and state 0x110 map to in our state.
+- What `+0x4B7` (trigger window), `+0x4B3` (removal countdown), `+0x3E6` bit 14 and state 0x110 map to in our state.
