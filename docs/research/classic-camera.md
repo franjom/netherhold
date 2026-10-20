@@ -48,12 +48,13 @@ FOV is about41.112 degrees; at full1280x720 they are5 tiles and about58.716.
 These values are conversion consequences, not settings invented for Unity.
 The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to 1600 (ADR-0522's visual rule;
 owner 2026-10-20): every screen gets the 640 rule's camera distance and vertical angle at 1600×1200, and a wider
-screen sees more at the sides. 1600×1200 is DK2's largest mode and the owner's. Fitting a column of five
-claimed-tile centres in the owner's 1760×1322 capture of it (pitch 51.33° fixed, one-tile spacing assumed)
-gives a focal length of about 700 pixels at 1600 wide (771 in the image), the camera 3.5 tiles above the
-floor, residuals under 1 pixel: about 9% above the rule's 640, a vertical view near 81° against the
-code's 86°. The code follows the 640 rule; the gap is unresolved (HYPOTHESIS: it is the capture's
-1.1 scale, applied once more than assumed). The native rule
+screen sees more at the sides. 1600×1200 is DK2's largest mode and the owner's. HYPOTHESIS: the owner's unscaled capture (SHOT0057.BMP, 1600×1200, PrintScreen in DK2; 2026-10-20) is
+consistent with the rule but does not confirm it. Take a column of five claimed-floor corner markers, one
+tile apart. Use pitch 51.33° below the horizon (pitch220 is measured from the vertical) and put the principal
+point at the screen centre. At the rule's height, 4·sin 51.33° = 3.12 tiles (default zoom assumed; the
+capture's zoom is not known), the best focal length is 637 px, rms 2 px; with the principal point 20 px
+lower it is 665 px. A free fit prefers 700 px at 3.5 tiles, rms 0.4 px: the 9% gap persists in the unscaled
+capture, so the 1.1 scaling did not cause it. The data does not decide between the two. The native rule
 gave a 97° view whose far edge is 100 tiles wide at 2560×1440; at 1024×768 the ground footprint's
 near and far edges are 6.8 and 19.2 tiles wide (default zoom). Camera paths already fix the horizontal angle.
 
