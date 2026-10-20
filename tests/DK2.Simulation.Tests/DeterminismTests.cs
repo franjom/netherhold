@@ -160,9 +160,9 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 285: an alarm goes only to a Guard Room (ADR-0517).
+        // HashVersion 287: Tier B tries a tile's objects (ADR-0519); see hash-versions.md.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xBD6FBFFB91F1AADFUL, sim.StateHash());
+        Assert.Equal(0xC428FD4390FADF96UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**287** — `0xC428FD4390FADF96`. Behaviour only: Tier B's tile chain tries the tile's loose objects after its gold (`0x00469580`'s third step, ADR-0519). No new fields.
+
 **286** — `0xBD6FBFFB91F1AADF`. Behaviour only: speed no longer scales with level; the body's cap is the definition's speed (`0x004887D0`, ADR-0518). No new fields.
 
 **285** — `0xE44D70CE6838C66C`. Behaviour only: an alarm goes only to a Guard Room (`0x00475336`, ADR-0517). No new fields.

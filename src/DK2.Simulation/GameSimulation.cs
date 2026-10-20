@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 286;
+    private const ulong HashVersion = 287;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;

@@ -11882,3 +11882,24 @@ party's pace and the Library watcher read the definition's speed too.
 **Consequences.** Hash/save 286, no new fields. The `creature_level_up` event no longer
 reports a speed. For the Imp, Imp Haste through `0x004651A0` is the only level-dependent
 speed; whether other casters of `0x0048CAD0` gate a speed by level is unchecked.
+
+## ADR-0519 — Tier B tries a tile's objects after its gold
+**Date:** 2026-10-20 · **Status:** accepted
+
+**Context.** `0x00469580`, the per-tile chain of the imp's Tier B ring scan, runs four
+handlers in order: reinforce or repair (`0x0046AEA0`), gold (`0x0046B6D0`), loose objects
+(`0x0046B9C0`) and the marked Secret Door (`0x0046CB80`). Codex's 2026-10-18 re-read and
+five controlled runs of the original bytes confirmed all four; `TrySweep` had the first two
+([imp-priority-checks.md](research/imp-priority-checks.md)).
+
+**Decision.** `TrySweep` calls `TryObjectAt` on each tile after the gold step, for an imp
+holding no object or creature. The Secret Door step is not built: ours never marks a Secret
+Door (`0x00512D20`), so no kind-11 entry exists for it to find. The carry gate is ours, as in
+`TryTakeObject`: neither `0x00469580` nor state 10 (`0x00463DF0`) tests what the imp carries,
+and a carrying imp should not reach Tier B.
+
+**Consequences.** Hash/save 287, no new fields. Tier A's kind-8 search runs the same handler
+over the whole map before Tier B, so the step takes a job only when an earlier step of the same
+selection changed what Tier A saw. No fixture exercises the branch; the new hash pin moved
+only with the version. The Secret Door step waits
+for Secret Door marking.
