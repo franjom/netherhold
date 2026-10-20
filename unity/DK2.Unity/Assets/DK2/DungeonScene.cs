@@ -646,6 +646,9 @@ namespace DK2.Unity
             }
         }
 
+        /// <summary>How long the last terrain flush with work took, in milliseconds.</summary>
+        public double TerrainFlushMilliseconds => _terrain?.LastFlushMilliseconds ?? 0;
+
         /// <summary>Uploads changed lighting and terrain batches.</summary>
         public void Flush()
         {

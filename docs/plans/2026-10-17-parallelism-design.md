@@ -17,13 +17,34 @@ historical tick median was about 15 ms, but that is not a current Level8 result.
 Current opening tick durations, frame p95/p99 and join-blocking frequency remain
 unmeasured. P0 must supply them before selecting an architectural change.
 
+Re-reading that capture (`build/level8-motion-final/motion.csv`, render ticks
+11..24, 2026-10-20) finds 10 error frames in 333. None is long: the slowest is
+10.9 ms against an 8.25 ms median. All lie within about two frames of a tick
+boundary. Six stop exactly on it (draw clock clamped at fraction 1) and four
+over-advance just after it (catch-up). In this capture the target is missed at
+tick boundaries in the draw clock, not in blocked frames. Threads cannot fix that.
+
 Today `DungeonRunner` runs sequential ticks on one worker and joins in
 `WaitForTick` before presenting the mutable world (ADR-0458). A join can return
 immediately when the task has finished; otherwise it blocks. Moving simulation
 off-thread and fixing the draw clock (ADR-0501) do not guarantee steady frames.
 
+At 4 ticks per second a tick starts on roughly one frame in 25 (100 FPS) or 36
+(144 FPS). The join is the next frame's first act. A tick longer than one frame
+therefore blocks that frame, which would give an error share of about 3–4% by
+itself. Whether it blocks depends on tick duration, so measure that first.
+
 ## P0 — Measure the slow frames and choose one change
 
+- [ ] First, cheaply: the tick-duration distribution for the captured scenes
+  (harness `RunClock` p50/p99/max). Then classify each error frame as boundary
+  clamp, catch-up or long frame. Do this before building new instrumentation.
+- [ ] Log per frame the ticks started (`maxTicksPerFrame` allows 2), the tick debt
+  and the draw-clock fraction before and after clamping. A frame that starts two
+  ticks after falling behind is slow even without a join wait.
+- [ ] Repeat the motion capture at a 60 FPS cap. If join blocking is the cause,
+  the error share should drop at 60 FPS, since a tick is more likely to finish
+  within a 16.67 ms frame.
 - [ ] Correlate worker queue delay, tick execution, main-thread join wait,
   presentation preparation, animation sample/upload, lighting, transparent sort,
   submission and GPU execution by frame and completed tick. Record how often
@@ -38,8 +59,12 @@ off-thread and fixing the draw clock (ADR-0501) do not guarantee steady frames.
   warmup, backend and GC settings matched within each before/after comparison.
 - [ ] Use instrumented Development captures for attribution. Confirm any claimed
   whole-frame gain in a visible release player with custom probes/recorders off,
-  using an external presentation-time capture and matched settings. Compare at
-  least three runs per variant; report spread and probe overhead separately.
+  using an external presentation-time capture and matched settings. This machine
+  is shared, and CPU times swing 30–45% between runs. The gap to close is about
+  one percentage point, so three runs cannot resolve it. Size captures by error
+  frames collected (e.g. ≥100 per variant, not frames or runs). Prefer
+  alternating variants within one session, and report spread and probe overhead
+  separately.
 
 Files to start in: `DungeonRunner.cs`, `UnitySimulationProfiler.cs`, existing
 animation/terrain markers and `tools/classic-unity-probe/`. Existing rendering
@@ -47,7 +72,10 @@ measurements and limits: [lighting verification](../research/classic-lighting-ve
 
 **Exit:** an attributed baseline and one ranked change with a predicted saving
 on the critical path. If waiting is negligible, do not build P1. First remove
-unnecessary work or allocations where that is cheaper than parallelization.
+unnecessary work or allocations where that is cheaper than parallelization. If
+error frames are boundary clamps or catch-up, as in the 2026-10-17 capture,
+correct the draw clock at tick boundaries first. That is serial presentation
+work without extrapolation, and it is outside this roadmap's threads.
 
 ## P1 — Detach render data only if the join matters
 
@@ -55,6 +83,13 @@ Run this milestone only if P0 shows simulation join waits materially contributin
 to p95 frames. Compare a small detached handoff against the current joined path;
 include capture/copy cost, retained memory and added input/display latency.
 An older snapshot can avoid blocking while still showing a pause.
+
+Try a cheaper variant first: when the tick task has not finished, skip the join
+and the world presentation that frame. Keep camera, effects and creature drawing
+from already-captured poses, and join on a later frame. Check first that frame's
+readers. `DrawCreatureShadows` and `LightObjects` read the world, and the worker
+writes `CaptureObjectPositions`. Creatures would also hold at the boundary pose,
+which trades a blocked frame for a movement hold. Measure both.
 
 Use **capture, compute, apply**: the simulation owner publishes completed data,
 workers compute from it, and the main thread applies Unity object changes.
@@ -86,8 +121,36 @@ input/display latency regression. Otherwise retain the joined path.
   This can precede P1 with a small safe input capture. Jobs/Burst remain adapter-only.
 - **GPU:** not planned; revisit the existing [animation experiments](../../tools/classic-unity-probe/README.md)
   only if CPU preparation remains the bottleneck and classic fidelity is retained.
-- **Simulation:** stays serial unless P0 shows ticks exceeding the tested frame
-  budget. Even then, further research and a separate reviewed proposal are required.
+- **Simulation:** stays serial unless P0 shows ticks exceeding the 250 ms tick
+  interval (4 ticks per second), at which point the game falls behind. A tick
+  longer than one frame but shorter than that interval is a join-placement
+  problem for P1, not grounds for parallel simulation. Even then, further
+  research and a separate reviewed proposal are required.
+
+## Startup loading (measured 2026-10-20)
+
+Loading runs serially on the main thread inside `DungeonRunner.Start`. Art is
+decoded lazily, but the first `Present` asks for the whole visible level.
+`StartGame` now logs one `DK2 startup:` line per step, and a `DK2 first 120
+frames:` line. One headless Development probe on Level8 (`game-unity-probe`,
+seed 1, shared machine, no GPU upload) measured these times:
+
+| Step | ms |
+|---|---:|
+| Database, level, art catalogue (file reads, many duplicated) | 519 |
+| First tick | 267 |
+| First `Present` | 2351 |
+| — of which KMF and texture decode (199 models, 225 images) | 568 |
+| — of which terrain chunk build | 606 |
+| — remainder: Unity objects, texture conversion, presenter | ~1177 |
+| Minimap | 328 |
+| **Total `StartGame`** | **3655** |
+
+The first 120 frames decoded 30 more models, adding about 70 ms. Parallel decode
+can save at most the 568 ms, and the main-thread remainder is twice that. Next:
+split the remainder, remove duplicate reads and the per-pixel texture copy, then
+decode the first frame's art on workers ahead of `Present`. Each worker needs
+its own archive stream; Unity objects stay on the main thread.
 
 ## Gates for any eventual implementation
 

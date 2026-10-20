@@ -149,7 +149,11 @@ namespace DK2.Unity
                     Rebuild(chunk);
                 _dirty.Remove(chunk);
             }
+            LastFlushMilliseconds = _flushClock.Elapsed.TotalMilliseconds;
         }
+
+        /// <summary>How long the last flush that had work took; read by the startup timings.</summary>
+        public double LastFlushMilliseconds { get; private set; }
 
         public void Clear()
         {
