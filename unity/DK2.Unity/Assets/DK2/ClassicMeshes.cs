@@ -488,7 +488,7 @@ namespace DK2.Unity
         /// <summary>URP's transparent surface with an explicit blend and no depth write, as DK2's
         /// blended states clear z-write (<c>0x0057C420</c>). <paramref name="urpBlend"/> is URP's
         /// own _Blend enum (0 alpha, 2 additive), kept for its inspector.</summary>
-        private readonly Dictionary<(Material, byte), Material> _faded = new Dictionary<(Material, byte), Material>();
+        private readonly Dictionary<(Material, byte, bool), Material> _faded = new Dictionary<(Material, byte, bool), Material>();
         private readonly Dictionary<GameObject, Material[]> _opaqueOf = new Dictionary<GameObject, Material[]>();
 
         /// <summary>Draws a static mesh object at <paramref name="alpha"/> (object <c>+0x8F</c>): opaque
@@ -513,25 +513,31 @@ namespace DK2.Unity
             renderer.enabled = alpha > 0;
             if (alpha == 0) return;
             var faded = new Material[source.Length];
-            for (int i = 0; i < source.Length; i++) faded[i] = Faded(source[i], alpha);
+            for (int i = 0; i < source.Length; i++) faded[i] = Faded(source[i], alpha, writeDepth: true);
             renderer.sharedMaterials = faded;
         }
 
-        public Material SightFog(Material source, byte packedAlpha) => Faded(source, packedAlpha);
+        public Material SightFog(Material source, byte packedAlpha) => Faded(source, packedAlpha, writeDepth: false);
 
-        private Material Faded(Material source, byte alpha)
+        /// <summary>An alpha-blended twin. A fading model (<paramref name="writeDepth"/>) keeps writing
+        /// depth: the Heart's Arches and Big Steps fade in as several objects, and without depth Unity
+        /// orders them by centre, so a statue behind an arch drew over it until the fade ended (owner,
+        /// 2026-10-20). DK2 sorts its blended triangles; depth is the visual equivalent here.</summary>
+        private Material Faded(Material source, byte alpha, bool writeDepth)
         {
             if (source == null) return null;
-            if (_faded.TryGetValue((source, alpha), out Material faded)) return faded;
+            var cacheKey = (source, (byte)alpha, writeDepth);
+            if (_faded.TryGetValue(cacheKey, out Material faded)) return faded;
             faded = new Material(source) { name = source.name + " (alpha " + alpha + ")" };
             MakeTransparent(faded, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
+            if (writeDepth) faded.SetFloat("_ZWrite", 1f);
             if (faded.HasProperty("_BaseColor"))
             {
                 Color colour = faded.GetColor("_BaseColor");
                 colour.a = alpha / 255f;
                 faded.SetColor("_BaseColor", colour);
             }
-            _faded[(source, alpha)] = faded;
+            _faded[cacheKey] = faded;
             return faded;
         }
 

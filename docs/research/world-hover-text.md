@@ -149,7 +149,8 @@ the cursor's right at width 640, flips left near the right edge, and clamps
 vertically. Exact piece scaling and all layout helper semantics remain
 **UNKNOWN**; the Unity renderer uses a retained nine-slice approximation. DK2 scales
 the Hand by width/640 too; ours scales the Hand by height/480, so the adapter scales
-the 98/30/40 offsets by height/480 to keep the gap the Hand's size (owner, 2026-10-19).
+the 98/30/40 offsets by height/480 to keep the gap the Hand's size (owner, 2026-10-19). The 98 is read as the
+Point hand's reach (82 wide, hotspot 2) plus 18; over the HUD the 42-wide small pointer uses 58 (owner, 2026-10-20).
 
 ## Implementation limits
 

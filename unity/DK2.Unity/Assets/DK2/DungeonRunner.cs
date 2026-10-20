@@ -1038,7 +1038,9 @@ namespace DK2.Unity
             _handCursor?.Update(cursor, allowed, Time.unscaledTimeAsDouble);
             Vector2 pointerGui = new Vector2(mouse.x, Screen.height - mouse.y);
             _handCursor?.Draw(pointerGui);
-            _hoverHud?.Draw(_hoverSnapshot, pointerGui);
+            float reach = cursor == HandCursorKind.Default ? 80
+                : HandCursor.Sprite(cursor).FrameSize.X - HandCursor.Sprite(cursor).Hotspot.X;
+            _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
             _tileHighlight?.Update(highlightedTile, Camera.main, Time.unscaledTimeAsDouble);
         }
 

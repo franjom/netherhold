@@ -65,7 +65,7 @@ namespace DK2.Unity
         private BitmapFont _font, _tooltipFont;
         private Texture2D _statusTextTexture, _tooltipTextTexture;
         private string _statusText, _tooltipText;
-        private float _scroll, _clipWidth = 1;
+        private float _scroll, _clipWidth = 1, _cursorReach = 80;
         private bool _scrollForward = true, _visible = true, _allowInput = true;
         private int _screenWidth, _screenHeight;
         public bool ShowCreatureTooltip { get; set; } = true;
@@ -139,8 +139,12 @@ namespace DK2.Unity
             && BarBounds.Contains(new Vector2(screenPosition.x, Screen.height - screenPosition.y));
 
         /// <summary>Refreshes retained visuals in Update, before worker simulation dispatch.</summary>
-        public void Draw(HoverTextSnapshot snapshot, Vector2 cursorGui)
+        /// <param name="cursorReach">How far the drawn cursor reaches right of the pointer, in DK2's
+        /// 640×480 units. DK2's 98-unit offset is the 82-wide Point hand (hotspot 2) plus 18; the
+        /// small pointer shown over the HUD is 42 wide, so the same offset left a wide gap (owner, 2026-10-20).</param>
+        public void Draw(HoverTextSnapshot snapshot, Vector2 cursorGui, float cursorReach = 80)
         {
+            _cursorReach = cursorReach;
             if (!_visible) return;
             BitmapFont font = _font, tooltipFont = _tooltipFont;
             bool sizeChanged = _screenWidth != Screen.width || _screenHeight != Screen.height;
@@ -219,7 +223,7 @@ namespace DK2.Unity
             // DK2 offsets the popup 98 units at width 640, and scales the Hand by that width too.
             // Our Hand scales by height/480 (HandCursor.Place), so the offsets follow it.
             float unit = Screen.height / 480f;
-            float x = cursor.x + 98 * unit;
+            float x = cursor.x + (_cursorReach + 18) * unit;
             if (x + width > Screen.width - 40 * unit)
                 x = cursor.x - width - 30 * unit;
             x = Mathf.Clamp(x, 0, Mathf.Max(0, Screen.width - width));
