@@ -65,11 +65,23 @@ public static class InterfaceFonts
     public static string HudTextFileName(int screenHeight) => LargestWithin(screenHeight, 60);
 
     /// <summary>
-    /// Our choice, not DK2's: hover tooltips are half the status strip's size, a 120th of the
-    /// screen height (9 at 1080, 12 at 1440, the smallest shipped 7 below 960), at the owner's
-    /// request (2026-10-19).
+    /// Our choice, not DK2's: hover tooltips use the largest shipped size within 1.3 × a 120th of
+    /// the screen height, unscaled so the bitmap stays sharp. Half the status strip at the owner's
+    /// request (2026-10-19), then about 30% larger (2026-10-20; "doesn't need to be exactly 30%").
     /// </summary>
-    public static string HudTooltipFileName(int screenHeight) => LargestWithin(screenHeight, 120);
+    public static string HudTooltipFileName(int screenHeight) => $"FONT_INGAME{HudTooltipFontSize(screenHeight)}.bf4";
+
+    /// <summary>The tooltip's target pixel height: 1.3 × height / 120.</summary>
+    public static float HudTooltipPixels(int screenHeight) => screenHeight * 1.3f / 120f;
+
+    /// <summary>The largest shipped size within <see cref="HudTooltipPixels"/>, or the smallest.</summary>
+    public static int HudTooltipFontSize(int screenHeight)
+    {
+        int chosen = IngameSizes[0];
+        foreach (int size in IngameSizes)
+            if (size <= HudTooltipPixels(screenHeight)) chosen = size;
+        return chosen;
+    }
 
     private static string LargestWithin(int screenHeight, int divisor)
     {

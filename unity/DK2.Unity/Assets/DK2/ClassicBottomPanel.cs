@@ -23,7 +23,7 @@ namespace DK2.Unity
         private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         private readonly Image[] _tabs = new Image[4], _fills = new Image[64], _rail = new Image[16];
         private readonly Image _railMetal, _railEnd;
-        private readonly Image[] _tabSelected = new Image[4];
+        private readonly Image[] _tabSelected = new Image[4], _tabHover = new Image[4];
         private readonly Image[] _icons = new Image[6], _selection = new Image[6];
         private readonly BottomPanelChoice[] _slots = new BottomPanelChoice[6];
         private readonly Image _previous, _next, _resize;
@@ -86,6 +86,12 @@ namespace DK2.Unity
             // over the icon; unselected tabs are not dimmed.
             string[] selected = { "selected-creature", "selected-room", "selected-spell", "selected-workshop" };
             for (int i = 0; i < 4; i++) _tabSelected[i] = Picture(Texture("GUI\\Icons\\" + selected[i]));
+            // A hovered tab gets catalogue 121, gui\icons\hilight, drawn last with render flag 8
+            // (0x00412260 at 0x00412900..0x0041294F). Flag 8 is read as additive: UI Toolkit has no
+            // additive images, so the art is baked to white with its brightness as alpha, which
+            // lightens the dark tab frame by about what adding it would.
+            Texture2D hilight = Lightening(Texture("GUI\\Icons\\hilight"));
+            for (int i = 0; i < 4; i++) _tabHover[i] = Picture(hilight);
             for (int i = 0; i < 6; i++)
             { _icons[i] = Interactive(null, i); _selection[i] = Picture(null); }
             _previous = Interactive(Texture("GUI\\Pages\\page_back"), 200);
@@ -164,6 +170,8 @@ namespace DK2.Unity
                 _tabs[i].tintColor = _view.TabDimmed((BottomPanelCategory)i) ? new Color32(128, 128, 128, 255) : Color.white;
                 Place(_tabSelected[i], Dropped(BottomPanelLayout.Tab(i)));
                 _tabSelected[i].style.display = tabShown && i == (int)_category ? DisplayStyle.Flex : DisplayStyle.None;
+                Place(_tabHover[i], Dropped(BottomPanelLayout.Tab(i)));
+                _tabHover[i].style.display = tabShown && _allowInput && _hovered == 100 + i ? DisplayStyle.Flex : DisplayStyle.None;
             }
             int count = 0;
             for (int i = 0; i < _view.Choices.Count; i++)
@@ -334,6 +342,21 @@ namespace DK2.Unity
         {
             if (_textures.TryGetValue(name, out Texture2D texture)) return texture;
             texture = MinimapFrameVisual.Decode(_assets.Image(name)); _textures.Add(name, texture); return texture;
+        }
+        private Texture2D Lightening(Texture2D source)
+        {
+            Color32[] pixels = source.GetPixels32();
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                Color32 p = pixels[i];
+                int light = (p.r * 299 + p.g * 587 + p.b * 114) / 1000 * p.a / 255;
+                pixels[i] = new Color32(255, 255, 255, (byte)light);
+            }
+            var texture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false)
+                { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, name = source.name + " lightening" };
+            texture.SetPixels32(pixels); texture.Apply(false, true);
+            _textures.Add(texture.name, texture);
+            return texture;
         }
         private static Texture2D TalismanArc(Texture2D source, int pieces, bool lastQuarterOnly)
         {

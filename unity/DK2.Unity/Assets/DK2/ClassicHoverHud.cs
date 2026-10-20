@@ -215,9 +215,10 @@ namespace DK2.Unity
         private void LayoutTooltip(Vector2 cursor)
         {
             if (_tooltipTextTexture == null) return;
-            float padding = Mathf.Max(4, Screen.height / 120f);
-            float width = Mathf.Min(Screen.width, _tooltipTextTexture.width + padding * 2);
-            float height = _tooltipTextTexture.height + padding * 2;
+            float textWidth = _tooltipTextTexture.width, textHeight = _tooltipTextTexture.height;
+            float padding = Mathf.Max(4, InterfaceFonts.HudTooltipPixels(Screen.height));
+            float width = Mathf.Min(Screen.width, textWidth + padding * 2);
+            float height = textHeight + padding * 2;
             // DK2 offsets the popup 98 units at width 640, and scales the Hand by that width too.
             // Our Hand scales by height/480 (HandCursor.Place), so the offsets follow it.
             float unit = Screen.height / 480f;
@@ -237,8 +238,7 @@ namespace DK2.Unity
                 Place(_popupPieces[row * 3 + column], left, top,
                     column == 1 ? width - border * 2 : border, row == 1 ? height - border * 2 : border);
             }
-            Place(_tooltipImage, (width - _tooltipTextTexture.width) / 2,
-                padding, _tooltipTextTexture.width, _tooltipTextTexture.height);
+            Place(_tooltipImage, (width - textWidth) / 2, padding, textWidth, textHeight);
         }
 
         private void ReplaceText(Image image, ref Texture2D previous, BitmapFont font, IReadOnlyList<BitmapTextLine> lines, bool centred)

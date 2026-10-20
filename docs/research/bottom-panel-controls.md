@@ -73,7 +73,7 @@ the minimap draws over it, and the stone fill also spans the full width), then B
 width depends on the screen width; the adapter's last-480-units placement is a 4:3 reading (LIKELY).
 [0x00412260](functions/00412260.md) draws the selected tab's alternate art (`+0x40`: catalogue
 173/174/175/178, `gui\icons\selected-creature/room/spell/workshop`) over the icon and tints the
-Workshop tab grey while no Workshop is owned. Tab hover follows the widget text id (`+0x30`,
+Workshop tab grey while no Workshop is owned. A hovered tab draws catalogue121 `gui\icons\hilight` over itself with render flag8 (read as additive; built as a lightening overlay). Tab hover follows the widget text id (`+0x30`,
 2153+2i; status 2154+2i via [0x0042DB60](functions/0042DB60.md)).
 The fifth strip widget `0x00690D98` (catalogue44 `GUI\Icons\i-mise`, local (544,0), 128x128,
 text2161 "Resize Panel", callback [0x004167D0](functions/004167D0.md)) collapses and expands the panel
