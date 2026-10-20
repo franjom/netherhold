@@ -20,9 +20,9 @@ namespace DK2.Unity
     public sealed class ClassicStatusFlowers : IDisposable
     {
         /// <summary>World width of a flower at native scale 0x400, in tiles. Eyeballed from the
-        /// owner's DK2 screenshots (0.4, then 10% smaller on the owner's comparison); the native
-        /// world size is not established.</summary>
-        public const float SizeTiles = 0.36f;
+        /// owner's DK2 screenshots (0.4, then 10% smaller twice on the owner's comparisons); the
+        /// native world size is not established.</summary>
+        public const float SizeTiles = 0.324f;
 
         /// <summary>Native scale 0x200 against 0x400 while possessing.</summary>
         public const float PossessedScale = 0.5f;
