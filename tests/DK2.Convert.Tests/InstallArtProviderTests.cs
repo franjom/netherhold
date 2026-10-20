@@ -72,6 +72,49 @@ public sealed class InstallArtProviderTests
     }
 
     [InstallFact]
+    public void AfterAPrefetchTheModelsAndTheirDrawnTexturesLoadWithoutDecoding()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        AssetRef[] keys = AssetCatalogue.ForDatabase(database).Where(key => provider.TryResolve(key, out _)).Take(80).ToArray();
+
+        provider.Prefetch(keys, workers: 4);
+
+        Assert.True(provider.ModelsDecoded >= keys.Length / 2);
+        foreach (AssetRef key in keys)
+        {
+            Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
+            if (!provider.TryLoadModel(asset, out KmfModel model)) continue;
+            foreach (KmfMaterial material in model.Materials.Where(material => material.TextureNames.Count > 0))
+            {
+                provider.LoadTexture(material.TextureNames[0]);
+                provider.LoadTexture(material.TextureNames[^1]);
+            }
+        }
+        Assert.Equal(TimeSpan.Zero, provider.DecodeTime);
+    }
+
+    [InstallFact]
+    public void LoadsFromSeveralThreadsAllGetTheOneModelKept()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        using InstallArtProvider provider = InstallArtProvider.Open(install, database);
+        ResolvedAsset[] assets = AssetCatalogue.ForDatabase(database)
+            .Select(key => provider.TryResolve(key, out ResolvedAsset asset) ? asset : default)
+            .Where(asset => asset.InstallEntry is not null).Take(20).ToArray();
+
+        var loaded = new KmfModel?[assets.Length * 8];
+        Parallel.For(0, loaded.Length, new ParallelOptions { MaxDegreeOfParallelism = 8 },
+            i => loaded[i] = provider.TryLoadModel(assets[i % assets.Length], out KmfModel model) ? model : null);
+
+        for (int i = 0; i < assets.Length; i++)
+            for (int copy = 1; copy < 8; copy++)
+                Assert.Same(loaded[i], loaded[i + (copy * assets.Length)]);
+    }
+
+    [InstallFact]
     public void TheDungeonHeartResourceContainsMovingVertices()
     {
         string install = Dk2InstallGate.Path;

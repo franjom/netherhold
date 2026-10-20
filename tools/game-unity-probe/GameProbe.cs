@@ -127,6 +127,7 @@ namespace DK2.Unity
             Set("installDirectory", Arg("-dk2Install", "E:/GogGames/Dungeon Keeper 2"));
             Set("levelName", Arg("-level", "Level1"));
             Set("seed", ulong.Parse(Arg("-seed", "1"), CultureInfo.InvariantCulture));
+            Set("prefetchFirstFrameArt", Arg("-prefetchArt", "1") != "0");
             // The probe measures the tick's own cost, so it runs inline on the main thread, where the
             // recorders see it, rather than on the runner's worker thread (ADR-0458).
             Set("tickOnWorkerThread", false);

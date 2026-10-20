@@ -83,6 +83,8 @@ namespace DK2.Unity
         [Header("Art")]
         [Tooltip("Draw objects with their meshes from the install (ADR-0408). Off draws every object as a box.")]
         [SerializeField] private bool classicMeshes = true;
+        [Tooltip("Decode the first frame's art on worker threads while the scene is built. Off decodes it as Present asks.")]
+        [SerializeField] private bool prefetchFirstFrameArt = true;
         [Tooltip("Use DK2 terrain and object lighting through the classic shader.")]
         [SerializeField] private bool classicVertexLighting = true;
         [Tooltip("Use DK2's Cheap Lighting mode for animated torch illumination.")]
@@ -254,6 +256,18 @@ namespace DK2.Unity
                 install: _installArt);
             _startup.Step("art");
 
+            // The first frame's art decodes on workers while the scene is built and the first tick
+            // runs; Present waits for it. The keys are read here, before anything else reads the world.
+            Task prefetch = null;
+            if (_installArt != null && prefetchFirstFrameArt)
+            {
+                IReadOnlyCollection<AssetRef> firstFrame = FirstFrameArt.Keys(database, world, new PlayerId((byte)viewingPlayerId));
+                InstallArtProvider art = _installArt;
+                int workers = Math.Max(1, Math.Min(SystemInfo.processorCount - 1, MaxPrefetchWorkers));
+                prefetch = Task.Run(() => art.Prefetch(firstFrame, workers));
+                _startup.Step("prefetch.keys");
+            }
+
             TerrainLattice lattice = _classic != null && bendTerrain
                 ? new TerrainLattice(database, world, (byte)viewingPlayerId) { HighWalls = highWalls }
                 : null;
@@ -302,7 +316,10 @@ namespace DK2.Unity
             RunTicks(1, InputFrame.Empty);
             _constructionEffects?.Model.UpdateNow();
             _startup.Step("tick");
-            double[] artBefore = _classic?.Breakdown.Snapshot();            _presenter.Present(world);
+            WaitForPrefetch(prefetch);
+            _startup.Step("prefetch.wait");
+            double[] artBefore = _classic?.Breakdown.Snapshot();
+            _presenter.Present(world);
             _startup.Step("present");
             _startup.Breakdown("present", artBefore, _classic?.Breakdown.Snapshot());
             CameraThing profile = GameDatabaseLoader.LoadCameraPresets(install, campaignLevel ? levelName : null)
@@ -332,6 +349,24 @@ namespace DK2.Unity
                 _scene.PrepareClassicLighting(Camera.main, _classicCamera.NativeViewDistance);
             _startup.Step("lights");
             Debug.Log(_startup.Summary(_installArt));
+        }
+
+        /// <summary>Threads the first frame's art decodes on, at most; fewer on a machine with fewer cores.</summary>
+        private const int MaxPrefetchWorkers = 8;
+
+        /// <summary>Waits for the art prefetch. A failure is only a warning: the art then loads on
+        /// request, which reports a real problem as it always has.</summary>
+        private static void WaitForPrefetch(Task prefetch)
+        {
+            if (prefetch == null) return;
+            try
+            {
+                prefetch.Wait();
+            }
+            catch (AggregateException ex)
+            {
+                Debug.LogWarning($"DK2: art prefetch failed — {ex.InnerException?.Message}");
+            }
         }
 
         /// <summary>Wall time of each startup step, logged as one line when <see cref="StartGame"/>

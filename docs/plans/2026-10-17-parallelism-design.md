@@ -153,11 +153,32 @@ After the fix, the remainder fell from 880–1870 ms to 383 ms and `StartGame` t
 2.70 s. Present after the fix: decode 589, terrain 272, texture conversion 228,
 animation 101, mesh 53, material 28, objects 15, other 383 ms.
 
-The first 120 frames decoded 30 more models, adding about 70 ms. Parallel decode
-can save at most the 568 ms, and the main-thread remainder is twice that. Next:
-split the remainder, remove duplicate reads and the per-pixel texture copy, then
-decode the first frame's art on workers ahead of `Present`. Each worker needs
-its own archive stream; Unity objects stay on the main thread.
+The first 120 frames decoded 30 more models, adding about 70 ms.
+
+Serial fixes after that: `FileAssetProvider` keeps each key's answer (the missing
+art-pack checks were ~85 of the presenter's 110 ms in .NET), and `ToTexture`
+copies bytes with `SetPixelData`. Duplicate KWD reads were left: all game data
+loads in ~4 ms warm in .NET, so their player cost is first-run JIT, not I/O.
+
+**Parallel art decode (2026-10-20).** `FirstFrameArt.Keys` lists what the first
+`Present` asks for: creatures, objects, structures and torches through a fresh
+`WorldView`, and every piece of each terrain and room piece set on the map. On
+Level8 that is 271 models and 236 images against ~199 and ~225 used. The keys
+are read on the main thread, because `WorldView` fills lazy caches on the world.
+`InstallArtProvider.Prefetch` then decodes on up to 8 workers while the scene is
+built and the first tick runs; `Present` waits for it. Archive reads are locked,
+decoding is not, and the provider's caches keep the first value per name.
+
+One probe build, Level8, alternating `-prefetchArt 0/1`, three runs each:
+
+| | Total `StartGame` | `Present` | On-request decode in `Present` |
+|---|---:|---:|---:|
+| Off | 1600 / 1834 / 1558 | 896 / 1002 / 870 | 364–397 |
+| On | 1518 / 1455 / 1390 | 610 / 569 / 544 | 51–57 |
+
+The wait before `Present` was 0.1 ms: decoding was fully hidden. The net gain
+is ~150 ms (~9%) because listing the keys costs ~67 ms and the first tick ran
+~40 ms slower beside the workers.
 
 ## Gates for any eventual implementation
 

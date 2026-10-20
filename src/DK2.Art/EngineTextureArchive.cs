@@ -108,8 +108,12 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
     public RgbaImage Decode(EngineTextureEntry entry)
     {
         byte[] compressed = new byte[entry.StoredSize];
-        _data.Position = entry.DataOffset;
-        _data.ReadExactly(compressed);
+        // One stream, positioned per read: the read is locked, the decode is not.
+        lock (_data)
+        {
+            _data.Position = entry.DataOffset;
+            _data.ReadExactly(compressed);
+        }
         return new RgbaImage(entry.Width, entry.Height,
             Dk2TextureDecoder.Decode(compressed, entry.Width, entry.Height, entry.HasAlpha));
     }

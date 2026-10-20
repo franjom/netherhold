@@ -111,12 +111,16 @@ public sealed class WadArchive : IDisposable
     public bool TryGetEntry(string name, out WadEntry entry) =>
         _byName.TryGetValue(name, out entry!);
 
-    /// <summary>Reads and (if needed) decompresses one entry.</summary>
+    /// <summary>Reads and (if needed) decompresses one entry. Safe from several threads: the read
+    /// of the one stream is locked, the decompression is not.</summary>
     public byte[] Extract(WadEntry entry)
     {
         byte[] stored = new byte[entry.StoredSize];
-        _stream.Position = entry.DataOffset;
-        _stream.ReadExactly(stored);
+        lock (_stream)
+        {
+            _stream.Position = entry.DataOffset;
+            _stream.ReadExactly(stored);
+        }
 
         return entry.IsCompressed
             ? WadDecompressor.Decompress(stored, (int)entry.UncompressedSize)
