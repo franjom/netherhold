@@ -98,6 +98,17 @@ Dwarves of party 3 arrive at 2959-2977 (native 2989; 2923 at 285); seed 5 is lat
 alarms. Imp deaths per seed are 43, 12, 4, 1 and 60. The fleeing, not the alarm gate
 (`0x004602E0` matches ours), is the open divergence.
 
+The first Dwarf encounter (native from 2989, seed 4 from 2959): DK2's Dwarves meet Imps
+mining the (18,32) gold from (18,33) at about relative turn 16 and fight at (16-18, 31-33),
+outside the Sentry Traps' five-tile reach; their fear stays at 1-3 a tick (an Imp's Threat is
+2). Ours walk one tile further east before their first Imp, into range of the traps at
+(23,33) and (22,35); each fired Sentry Trap shares its Threat of 74 every update
+(`traps.md` §8), so fear reads 74, 148 and 185 against a threshold of 62 and the Dwarf flees.
+The fear counter (`0x0045EC80`) and accumulator (`0x0045E4F0`) match ours; the difference is
+position (route order and mining stance), not a rule found so far. Flag 14 (a hero Guard
+attacked) is set at 5277-5282 in seeds 2-4, as natively (5282); seed 5's late Dwarves draw a
+returning Dark Elf to the Guards at 3837, and seed 1 never sets it.
+
 Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
 Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
 not matched to DK2's. Results and scripts: `D:\DK2Evidence\outcomes-2026-10-19-level4`.
