@@ -84,3 +84,22 @@ This call domain does not establish every cache entry touched: target geometry
 building also obtains3x3 lattice entries, and immediate-neighbor tests obtain
 cache entries. It does not establish that all authored lights are prepared,
 or establish that every authored light is prepared.
+
+## 4. Entry lifetime
+
+CONFIRMED (read 2026-10-21): A cache entry, and the light table
+in it, lives only while frames keep touching it. After each frame is presented,
+`0x00575780` calls `0x00576010`, which frees every entry the frame did not reach
+through `0x00571B00` (the visible enumeration, the preparation rectangles, and the
+3x3 lattice and Tremor windows of tiles rebuilt that frame). A tile that comes back
+into view therefore gets a new cell, rebuilt and stamped with the current frame, and
+a new table with stamp 0. Before freeing an entry that held static sources, the sweep
+zeroes static count `+0xC4` of every entry within three tiles that the frame touched,
+keeping their stamps. `ClassicWorldLightCache` runs this sweep at the start of the
+next `PrepareFrame`, after that frame's tables were published. It counts an entry
+as touched when it was prepared or visible; the lattice and Tremor windows are not
+modelled, so an entry one tile outside a preparation rectangle may be freed a frame
+early. Observed, not read (2026-10-21 probe renders): without the sweep, walls of
+Level 1's Lord's hall stayed dark during the intro at a 2543x974 view, and either the
+sweep or rebuilding every table each frame lit them. One way a kept entry goes stale: a table reached by a rolling step keeps a
+selection made before a neighbour light changed (`ClassicWorldLightCacheTests`).
