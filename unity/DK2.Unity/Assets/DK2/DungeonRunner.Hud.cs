@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System;
+using System.IO;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Data.Text;
@@ -41,6 +43,8 @@ namespace DK2.Unity
         private StatusFlowers _statusFlowers;
         private ClassicStatusFlowers _statusFlowerArt;
         private CreatureQueryTarget _hoveredCreature;
+        private MessageTabsView _messageView;
+        private ClassicMessageTabs _messageTabs;
 
         private HudVisibility CurrentHud => _hudControls.Visibility(_scriptedView.HudFor(cameraPreset));
         private bool HudModal => _hudControls.OptionsVisible || _hudControls.FullMapVisible;
@@ -79,6 +83,31 @@ namespace DK2.Unity
             _statusFlowers = new StatusFlowers(database, new PlayerId((byte)viewingPlayerId));
             _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources));
             _startup.Step("hud.flowers");
+            _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId));
+            Dk2StringTable speech = OpenText(Path.Combine(_hudSources.TextDirectory, "Speech.str"));
+            string levelFile = LevelTextTable.FileName(database.Level?.TextTableId ?? 0);
+            Dk2StringTable level = levelFile == null ? null : OpenText(Path.Combine(_hudSources.TextDirectory, levelFile));
+            Dk2StringTable briefing = levelFile == null ? null
+                : OpenText(Path.Combine(_hudSources.TextDirectory, Path.GetFileNameWithoutExtension(levelFile) + "_BRIEFING.str"));
+            _messageTabs = new ClassicMessageTabs(transform, bottomAssets, new InstallClassicOptionsAssets(_hudSources), _messageView,
+                reference => MessageText(reference, speech, _hudStrings, level),
+                line => briefing != null && briefing.TryResolve((uint)line, out string text) ? text : null);
+            _startup.Step("hud.messages");
+        }
+
+        private static Dk2StringTable OpenText(string path)
+        {
+            try { return File.Exists(path) ? Dk2StringTable.Open(path) : null; }
+            catch (Exception ex) { Debug.LogWarning($"{Path.GetFileName(path)} unavailable: {ex.Message}"); return null; }
+        }
+
+        /// <summary>A message string reference (0x004C51D0): below -10000 Speech.str entry -10000 - ref,
+        /// -128..-1 the level's table entry -1 - ref, a positive one Text.str.</summary>
+        private static string MessageText(int reference, Dk2StringTable speech, Dk2StringTable text, Dk2StringTable level)
+        {
+            Dk2StringTable table = reference < -10000 ? speech : reference is >= -128 and <= -1 ? level : reference > 0 ? text : null;
+            uint id = reference < -10000 ? (uint)(-10000 - reference) : reference < 0 ? (uint)(-1 - reference) : (uint)reference;
+            return table != null && table.TryResolve(id, out string value) ? value : null;
         }
 
         /// <summary>Captures the flowers from the settled world (before the worker tick starts) and
@@ -96,7 +125,7 @@ namespace DK2.Unity
 
         private void DisposeHudControls()
         {
-            _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
+            _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _messageTabs?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
             _statusFlowerArt?.Dispose();
             _hudSources?.Dispose();
         }
@@ -307,6 +336,8 @@ namespace DK2.Unity
             _resources = _resourceView.Capture(_simulation.World, displayHealth: CurrentHud.ShowNormalHud);
             _bottomView.Capture(_simulation.World);
             _bottomPanel.Draw();
+            _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
+            _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed);
             _overviewView.Capture(_simulation.World);
             _overviewPanel.Draw(CurrentHud, _bottomPanel.Category == BottomPanelCategory.Creatures && !_bottomPanel.Collapsed && !HudModal, Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);
@@ -345,6 +376,7 @@ namespace DK2.Unity
                 if (_cornerHoverId != widget) { _cornerHoverId = widget; _cornerHover = HudWidgetText.Hover(widget, _hudStrings.Resolve); }
                 return _cornerHover;
             }
+            if (_messageTabs != null && _messageTabs.ContainsPointer(Input.mousePosition)) return _messageTabs.HoverText;
             if (_bottomPanel.ContainsPointer(Input.mousePosition)) return _bottomPanel.HoverText;
             if (_minimap != null && HudWidgetText.ForAction(_minimap.HoveredControl(Input.mousePosition)) is int corner)
             {

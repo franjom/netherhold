@@ -12043,3 +12043,20 @@ the wall clock's cycling one for the neutral player (`0x0050F880`), with no floo
 shrunk to a fifth; its 118 throws three white sparks. Left out: the type handler's veto of the
 tick (slot `+0x15` returning 0), the parent animation's start phase, and neutral cycling for
 elements (claim mist keeps palette 2).
+
+## ADR-0525 — The bottom bar shows DK2's message tabs
+**Date:** 2026-10-21 · **Status:** accepted
+
+**Context.** Menu39's message tabs, Review Objective and the message panel were unbuilt
+(message-tabs.md, read 2026-10-21). The simulation already keeps DK2's message records.
+
+**Decision.** The view reads the queue as `0x00423BD0` does: the first eight of the viewer's
+records, oldest first, tabbed while NeedsTab and not dismissed. The opened and dismissed bits
+(record `+0x2A`, written by the interface without a packet) and the slide stamp live in
+`MessageTabsView`, not in hashed state, so the simulation and hash are unchanged. Text and
+graphic come from the type table copied into `MessageTypeTable`; text resolves through
+Speech.str, the level table or Text.str by the reference's band.
+
+**Consequences.** Every message our queue posts now tabs and flashes until opened; all but the
+creature-anger types 17 and 18, whose text DK2 builds from the creature, read out on hover. A reload forgets which tabs were opened or dismissed (DK2 saves the bits with the record).
+Sounds, the Ally and goto buttons, and name substitution wait (message-tabs.md §8).

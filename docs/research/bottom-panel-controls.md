@@ -85,9 +85,10 @@ categories and menu41 and relays out ([0x00416FD0](functions/00416FD0.md)). Not 
 jump onto the moved button (legacy input cannot move the pointer), sounds 0x134/0x135, and menu40's
 move (the query/entity panel). What a tab click does while collapsed is unread (0x00416C20); the
 adapter changes the category with the grid hidden.
-Menu39 at (1112,1460) 948x156 holds eight 88x128 buttons: Review Objective (text2163, art139,
-`0x004288C0`), a second button (art153, `0x004247F0`), and six message slots (art127,
-`0x00423F50`/`0x00424220`, slot 1..6), not built. Menu43 is at (2080,1472) 480x140.
+Menu39 at (1112,1460) 948x156 holds eighteen 88x128 widgets: Review Objective (text2163, art139,
+`0x004288C0`), a second button (art153, `0x004247F0`), and sixteen message slot widgets (art127,
+`0x00423F50`/`0x00424220`) of which at most eight are used: [message-tabs.md](message-tabs.md)
+(BUILT 2026-10-21, ADR-0525). Menu43 is at (2080,1472) 480x140.
 Tab visibility is [0x00416E20](functions/00416E20.md) (CONFIRMED): Creatures and Rooms
 always show; Spells and Workshop show only while one of their filtered choices has
 availability other than1, and a hidden tab keeps its place.
