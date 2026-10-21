@@ -11980,7 +11980,9 @@ torch-lit faces matched. The classic shader tints the sky and sun fill (`classic
 0.55/0.44/0.28, set by eye) and gives it only to explored tiles or ones with a submitted
 terrain light (`ClassicTileFillBuffer`, a proxy for the 0x0043C310 gate): in the owner's
 shots DK2's tiles away from the explored area stay dark, so it seems to add no fill
-(inferred). A mild fade to black with eye distance (0.5 to 1.0 of the far plane) stays.
+(inferred). The owner confirmed revealed ground (Sight, claim scan) is as bright as
+explored, and unexplored ground dark but not black: scanned tiles take the full fill,
+unlit ones `classicUnlitFill` (0.25). A mild fade with eye distance (0.5 to 1.0) stays.
 A stronger path fade was dropped the same day: probe renders showed it blacking out the
 Heart intro (far plane 10 tiles), and the owner saw it snap on the Lord's zoom-out.
 All are tuned values, not DK2's, set every frame from DungeonRunner (Inspector-live).

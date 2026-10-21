@@ -68,6 +68,8 @@ Shader "DK2/Classic Vertex Lit"
             // 1 where DK2 would light the tile, 0 where it would not (ClassicTileFillBuffer).
             StructuredBuffer<float> _DK2TileFill;
             int _DK2TileFillWidth, _DK2TileFillCount;
+            // The share of the fill an unlit tile keeps: dark but not black (owner 2026-10-21).
+            float _DK2UnlitFill;
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -180,19 +182,19 @@ Shader "DK2/Classic Vertex Lit"
             }
             #endif
 
-            float TileFillWeight(Attributes input)
+            // A large object (a portal's arch) spans tiles, so its vertices take the tile under them.
+            float TileFillWeight(Attributes input, float3 positionWS)
             {
                 if (_DK2TileFillCount <= 0 || _DK2TileFillWidth <= 0) return 1;
                 int tile;
                 if (input.tileAnchor.y == 1) tile = (int)input.tileAnchor.x;
                 else
                 {
-                    float3 origin = TransformObjectToWorld(float3(0, 0, 0));
-                    int x = (int)floor(origin.x), y = (int)floor(-origin.z);
+                    int x = (int)floor(positionWS.x), y = (int)floor(-positionWS.z);
                     if (x < 0 || x >= _DK2TileFillWidth || y < 0) return 1;
                     tile = y * _DK2TileFillWidth + x;
                 }
-                return tile >= 0 && tile < _DK2TileFillCount ? _DK2TileFill[tile] : 1;
+                return tile >= 0 && tile < _DK2TileFillCount ? lerp(_DK2UnlitFill, 1, _DK2TileFill[tile]) : 1;
             }
 
             Varyings Vertex(Attributes input)
@@ -215,7 +217,7 @@ Shader "DK2/Classic Vertex Lit"
                     fill += main.color * max(dot(normalWS, main.direction), 0)
                         * main.distanceAttenuation * main.shadowAttenuation;
                     if (_DK2FillTint.w > 0) fill *= _DK2FillTint.rgb;
-                    sum += fill * TileFillWeight(input);
+                    sum += fill * TileFillWeight(input, position.positionWS);
                 }
                 InputData inputData = (InputData)0;
                 inputData.positionWS = position.positionWS;

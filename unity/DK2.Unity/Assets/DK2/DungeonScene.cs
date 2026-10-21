@@ -233,7 +233,8 @@ namespace DK2.Unity
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
         {
             _worldLights?.SetTerrain(tile.Position, tile.PointLight);
-            _tileFill?.Set(tileIndex, tile.Explored || tile.PointLight.HasValue);
+            // Revealed ground (Sight, the claim scan) is as bright as explored ground (owner 2026-10-21).
+            _tileFill?.Set(tileIndex, tile.Explored || tile.Scanned || tile.PointLight.HasValue);
             _torchGeometryDirty = true;
             // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
             // drawn so needs no furniture box; its objects are step 3.

@@ -99,6 +99,9 @@ namespace DK2.Unity
         [Tooltip("The share of the view distance where the scene is black; at or below the start the fade is off.")]
         [Range(0f, 1f)]
         [SerializeField] private float classicFadeEnd = 1f;
+        [Tooltip("The share of the fill an unexplored, unrevealed tile keeps: DK2 shows it dark but not black.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float classicUnlitFill = 0.25f;
         [Tooltip("Projected 32-pixel silhouettes from each creature's current animated mesh.")]
         [SerializeField] private bool classicCreatureShadows = true;
 
@@ -846,6 +849,7 @@ namespace DK2.Unity
         {
             Shader.SetGlobalVector("_DK2FillTint", new Vector4(classicFillTint.r, classicFillTint.g, classicFillTint.b, 1));
             Shader.SetGlobalVector("_DK2DistanceFade", new Vector4(classicFadeStart, classicFadeEnd, 0, 0));
+            Shader.SetGlobalFloat("_DK2UnlitFill", classicUnlitFill);
         }
 
         private void ReadAmbientKeys()
@@ -1218,6 +1222,7 @@ namespace DK2.Unity
             // Unset is neutral; editor probes rendered after Play must not inherit the look.
             Shader.SetGlobalVector("_DK2FillTint", Vector4.zero);
             Shader.SetGlobalVector("_DK2DistanceFade", Vector4.zero);
+            Shader.SetGlobalFloat("_DK2UnlitFill", 0);
         }
 
         private void OnGUI()
