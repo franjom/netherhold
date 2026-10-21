@@ -160,10 +160,11 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
+        // HashVersion 291: the rooms' border cursors (ADR-0524).
         // HashVersion 290: the six world slots trigger action 42 marks creatures in (ADR-0523).
         // HashVersion 289: creature identities and the payday stamp (ADR-0521) over master's 288.
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xE6FC955DAC6ECF7FUL, sim.StateHash());
+        Assert.Equal(0x4F7FEF46308B6B76UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -12022,3 +12022,24 @@ flowers now draw on camera paths, where DK2 shows his star (they had been hidden
 HUD). The Objective quad is not doubled again for 0x2000: doubled, it was twice DK2's. That the
 icon reader's list is this one is LIKELY: CWorld `+0x2EC` and `+0x2F0` are one function,
 but the reader's `this+8` is not traced.
+
+## ADR-0524 — Rooms run flames round their rims
+**Date:** 2026-10-21 · **Status:** accepted
+
+**Context.** DK2 runs keeper-coloured flame tongues round every room but the Heart and the hero
+gates (room-border-effects.md; the owner asked whether we had them). Room_BorderEffectTick
+(`0x004E7CD0`) moves one cursor per room and asks for effect 20 on odd turns; nothing here did,
+and the view dropped effect 20, a generation-0 animated sprite, with its Next effect 118.
+
+**Decision.** `WorldState.RoomBorderCursors` keeps DK2's per-room cursor (tile, orientation,
+phase; step 800), hashed and saved (version 291). `RoomBorderFlameSystem` runs in the room
+ticks before health: a cursor belongs to the room holding its tile, a room without one starts at
+its lowest tile (DK2: its first slab), and the walk is `0x006A22F8`'s table. The view draws a
+stationary generation-0 sprite parent by `0x004347E0`'s scale arms (flags 2, 4, 0x20 with
+`0x004B3B40`'s return, else one draw) and tints it by art flag 2: the owner's palette colour,
+the wall clock's cycling one for the neutral player (`0x0050F880`), with no floor of 48.
+
+**Consequences.** Hash and snapshot 291. A flame grows to 1228 in 11 updates and dies at 20,
+shrunk to a fifth; its 118 throws three white sparks. Left out: the type handler's veto of the
+tick (slot `+0x15` returning 0), the parent animation's start phase, and neutral cycling for
+elements (claim mist keeps palette 2).

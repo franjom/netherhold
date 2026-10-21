@@ -641,6 +641,9 @@ public sealed class WorldState
     /// <summary>The six marked-creature records trigger action 42 writes (<see cref="HeroSlot"/>).</summary>
     internal HeroSlot[] HeroSlotArray { get; } = new HeroSlot[HeroSlotCount];
     public IReadOnlyList<HeroSlot> HeroSlots => HeroSlotArray;
+    /// <summary>The border cursors of the rooms with flames, in room order (<see cref="RoomBorderCursor"/>).</summary>
+    internal List<RoomBorderCursor> RoomBorderCursorList { get; } = [];
+    public IReadOnlyList<RoomBorderCursor> RoomBorderCursors => RoomBorderCursorList;
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
     internal RoomBuildWaveState?[] RoomBuildWaveSlots { get; }
     public IReadOnlyList<RoomBuildWaveState?> RoomBuildWaves => RoomBuildWaveSlots;
@@ -1482,6 +1485,8 @@ public sealed class WorldState
         hash.Add(FogOfWarEnabled ? (byte)1 : (byte)0);
         foreach (TremorState tremor in TremorSlots) tremor.HashInto(ref hash);
         foreach (HeroSlot slot in HeroSlotArray) slot.HashInto(ref hash);
+        hash.Add(RoomBorderCursorList.Count);
+        foreach (RoomBorderCursor cursor in RoomBorderCursorList) cursor.HashInto(ref hash);
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(NextSlabOrder);

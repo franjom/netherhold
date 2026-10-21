@@ -9,8 +9,9 @@ mechanism below comes from the binary and data, not that recollection.
 [Room_BorderEffectTick](functions/004E7CD0.md) runs in the common room tick
 ([Room_Tick](functions/004E4B00.md)), after the type-specific handler permits it.
 It requires definition byte`+0x43E` mask`0x10` (the room's HasFlame flag) and a
-nonzero owner tag at room`+0x1D`. Training Rooms and Portals carry HasFlame in
-the shipped definitions; it is not a Portal-only or construction-only effect.
+nonzero owner tag at room`+0x1D`. The byte is file flag bit 12 (flags sit at`+0x43D`
+in file order): every shipped room carries it except the Dungeon Heart, the hero gates, the
+Hero Stone Bridge and the Mercenary Gate (2026-10-21); it is not a Portal-only effect.
 
 The room has **one** contour cursor: phase`+0x81`, signed step`+0x85`, tile
 coordinates`+0x87/+0x88`, orientation`+0x89`.
@@ -62,10 +63,14 @@ path, not a separate all-colours Portal effect. The cycle includes palette
 Numbers1 and2 as well as keepers3..7; it does not test who may claim the Portal.
 White element265 sparks are additional to the coloured flame.
 
-## Reimplementation gap
+## Built (ADR-0524, 2026-10-21)
 
-No room-border producer exists yet. `RoomConstructionParticles.Add` also rejects
-generation0 parents, so emitting effect20 alone would still lose its flame and
-linked118. The renderer needs parent sprite support plus neutral palette
-sampling, rather than substituting construction mist. Claim mist's separate
-pale-colour investigation is [section6.1](room-construction-effects.md#61-pale-claim-mist-investigation).
+`RoomBorderFlameSystem` keeps one cursor per HasFlame room in `WorldState` (hash 291) and asks
+for effect 20 on odd turns. A room's new cursor starts at its lowest tile index in place of the
+first slab (INFERRED). The view draws effect 20's own sprite: `0x004347E0` flag 0x20 sets its
+scale from MinScale0 toward MaxScale1228 over HP/2 and sets the return bit, and `0x004B3B40`
+turns it back to 0 at the same step (122): it peaks at update 11 and dies at 20 a fifth its
+size. Art flag 2 tints it with the palette colour without element clamping. The chained 118
+emits three element265 sparks per update. Not built: the type handler's veto of the tick and
+the parent animation's start phase. Claim mist's separate pale-colour investigation is
+[section6.1](room-construction-effects.md#61-pale-claim-mist-investigation).

@@ -721,7 +721,27 @@ public sealed class ConstructionParticle
         }
     }
     public float RemainingSpriteLifetimeFraction => 1f - Math.Min(PhaseRaw, 4095) / 4096f;
-    public int ScaleRaw => (Definition.Flags & 6) == 0 ? InitialScale
+    public int ScaleRaw => _parentScaleStep != 0 ? ParentScale()
+        : (Definition.Flags & 6) == 0 ? InitialScale
         : ScaleIncrement >= 0 ? Math.Min(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates)
         : Math.Max(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates);
+
+    private int _parentScaleStep, _parentScaleSteps;
+    private bool _parentScaleReturns;
+
+    internal void SetParentScaleRamp(int step, int steps, bool returns) =>
+        (_parentScaleStep, _parentScaleSteps, _parentScaleReturns) = (step, steps, returns);
+
+    /// <summary>A parent sprite's size after <see cref="VisualUpdates"/> steps of <c>0x004B3B40</c>:
+    /// it moves by the step and stops on the target; a rise with the return bit (render info
+    /// <c>+0x4C</c> 0x40) then falls to 0 at the target over the same number of steps.</summary>
+    private int ParentScale()
+    {
+        int distance = ScaleTarget - InitialScale;
+        int reach = distance / _parentScaleStep;
+        if (reach * _parentScaleStep != distance) reach++;
+        if (VisualUpdates < reach) return InitialScale + _parentScaleStep * VisualUpdates;
+        int fall = _parentScaleReturns && _parentScaleStep > 0 ? ScaleTarget / _parentScaleSteps : 0;
+        return Math.Max(0, ScaleTarget - fall * (VisualUpdates - reach));
+    }
 }

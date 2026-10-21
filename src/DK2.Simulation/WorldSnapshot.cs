@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 290;
+    private const int FormatVersion = 291;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -702,6 +702,14 @@ public static class WorldSnapshot
         {
             w.Write(slot.CreatureId);
             w.Write(slot.Value);
+        }
+        w.Write(world.RoomBorderCursors.Count);
+        foreach (RoomBorderCursor cursor in world.RoomBorderCursors)
+        {
+            w.Write(cursor.X);
+            w.Write(cursor.Y);
+            w.Write(cursor.Orientation);
+            w.Write(cursor.Phase);
         }
 
         w.Write(world.HeroParties.Count);
@@ -1417,6 +1425,12 @@ public static class WorldSnapshot
         }
         for (int i = 0; i < WorldState.HeroSlotCount; i++)
             world.HeroSlotArray[i] = new HeroSlot { CreatureId = r.ReadInt32(), Value = r.ReadByte() };
+        int borderCursorCount = r.ReadInt32();
+        for (int i = 0; i < borderCursorCount; i++)
+            world.RoomBorderCursorList.Add(new RoomBorderCursor
+            {
+                X = r.ReadByte(), Y = r.ReadByte(), Orientation = r.ReadByte(), Phase = r.ReadInt32(),
+            });
 
         int heroPartyCount = r.ReadInt32();
         for (int i = 0; i < heroPartyCount; i++)

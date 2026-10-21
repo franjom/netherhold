@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**291** — `0x4F7FEF46308B6B76`. The rooms' border cursors (room `+0x81..+0x89`: tile, orientation, phase), hashed and saved after the marked-creature slots: each room with HasFlame and an owner runs one round its contour and asks for a Flame Round Room on odd turns (ADR-0524). The pin's fixture has no rooms, so the change is the version and an empty list.
+
 **290** — `0xE6FC955DAC6ECF7F`. The world's six marked-creature slots (world `+0x72BD`, creature id and value), hashed and saved after the Tremor slots: trigger action 42 fills them and a creature's removal frees its slot (ADR-0523). The pin's fixture marks nobody, so the change is the version and six empty slots; `PortalGemOnRealDataTests` round-trips Level 1's marked Lord.
 
 **289** — `0xBD66BD442BC1F4D0`. Player `LastPaydayTick` and native-width creature name/blood indices, hashed and saved (ADR-0295 amendment, ADR-0521); master's 283–288 merged under it. Numbered 275, then 283, on classic-look/step6.
