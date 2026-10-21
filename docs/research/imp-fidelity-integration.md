@@ -118,6 +118,15 @@ with the gold and the claim waited 38 turns. Over the run, dug-to-claimed delays
 and 3-14% in ours; one capture cannot tell that from chance. Lead closed until a second
 capture or a rule in the binary says otherwise.
 
+**A second native recording (2026-10-21)**: the same `l4live` inputs replayed under DK2 seed 2
+(`D:\DK2Evidence\dk2runs\level4-live1-seed2`). Native seed 1 / seed 2: Imp flee entries
+25 / 349, alarms raised 1 / 128, hero Guard Room (24,38) claimed 2029 / 1978, Dwarves at
+2989 / 2938, dug-to-claimed median 80 / 78, claims within 15 turns 7% / 2%, Imp deaths 0 / 19.
+Seed 1 is the quiet end of DK2's own spread. Ours at hash 286 sits inside the native range on
+every count except Imp deaths in seeds 1 and 5 (43, 60; native 0-19). A dying Imp's slot
+becomes its corpse object within the turn, so the capture never shows health 0: count deaths
+as Imp slots that turn into objects.
+
 Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
 Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
 not matched to DK2's. Results and scripts: `D:\DK2Evidence\outcomes-2026-10-19-level4`.
