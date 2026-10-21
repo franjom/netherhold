@@ -82,7 +82,8 @@ namespace DK2.Unity
         }
 
         /// <summary>Captures the flowers from the settled world (before the worker tick starts) and
-        /// draws them over the posed creatures; hidden with the HUD for cinematics.</summary>
+        /// draws them over the posed creatures; hidden with the HUD, except on a camera path, where
+        /// DK2 still draws them (Level 1's Lord wears his star through the flyover, SHOT0075).</summary>
         private void DrawStatusFlowers()
         {
             if (_statusFlowers == null || _statusFlowerArt == null) return;
@@ -90,7 +91,7 @@ namespace DK2.Unity
             bool possessing = world.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0;
             _statusFlowerArt.Draw(Camera.main, _scene, _statusFlowers.Capture(world, world.CurrentTick, _hoveredCreature,
                 EffectClock?.Invoke().Milliseconds ?? (long)(Time.unscaledTimeAsDouble * 1000)),
-                CurrentHud.ShowNormalHud, possessing);
+                CurrentHud.ShowNormalHud || _scriptedView.PathPlaying, possessing);
         }
 
         private void DisposeHudControls()

@@ -79,7 +79,7 @@ So pointing at any creature shows its flower, and the flower lingers ¾ s after 
 ### Centre, colour, height
 
 **Centre.** 0x00596410 cycles the centre icon every 0x14D (333) units; milliseconds is STRONGLY INFERRED.
-- Heroes: their level, or a status icon when 0x00597270 finds one in the hero list. The owner (2026-10-20) has not seen a centre icon on a hero unless converted in the Torture Chamber, so that list may rarely fill in play.
+- Heroes: their level, or a status icon when 0x00597270 finds them in a world slot (trigger action 42): SJ-Fighting, SJ-Prison or SJ-Torture by the slot's value. A hero in a slot also gets the `Objective` ring over its centre, loaded at 0x2000 against the centre's 0x1000, its drawn size matched to SHOT0068 (0x00596770; `Objective-2` when its `+0x3F7` holds the viewer's bit). Built 2026-10-21 (ADR-0523); Level 1's Lord is the shipped case, his star cycling "1" and the sword in SHOT0075/0076.
 - Own creatures: level, then status; or mood, then anger reason; or job (0x00596FC0, unread), then level.
 - In level mode the badge is drawn at half colour, then lit across an angle set by experience progress `+0x3FF` / def `+0x6B5` (0x005966B0, 0x0048EA40).
 - The casino winner (`+0x3F2`) shows the Dollar.
@@ -116,7 +116,7 @@ Approximated:
 Left out:
 - The global gate (player `+0x76`, mode 0x0075AD4B), the trigger window `+0x4B7` and the removal countdown `+0x4B3` ([0048F110](functions/0048F110.md), drawn as SL-05..SL-01 with a flashing ring): our state has none of them.
 - The sleeping and 0x00491B40 lifts, the sneaking disguise colour.
-- Status icons Leaving (`+0x3E6` bit 14, unmapped) and S-Gem (carrying object type 0x1C, [0048B5C0](functions/0048B5C0.md)); the hero side's status list (the owner, 2026-10-20: heroes show no centre icon unless converted in the Torture Chamber); the Imprison tag (`+0x3F7`); the hero extra 0x00596770; the casino winner's Dollar mesh.
+- Status icons Leaving (`+0x3E6` bit 14, unmapped) and S-Gem (carrying object type 0x1C, [0048B5C0](functions/0048B5C0.md)); the Imprison tag and Objective-2 (`+0x3F7`); the casino winner's Dollar mesh.
 - A possession hover. The adapter has no possession camera, so while possessing, only the creature under the ordinary Hand pointer shows a flower.
 
 Inferred, not read: `+0x3E6` bit 0x200000 ("always") is mapped to our falling/dying states or

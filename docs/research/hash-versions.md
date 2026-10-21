@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**290** — `0xE6FC955DAC6ECF7F`. The world's six marked-creature slots (world `+0x72BD`, creature id and value), hashed and saved after the Tremor slots: trigger action 42 fills them and a creature's removal frees its slot (ADR-0523). The pin's fixture marks nobody, so the change is the version and six empty slots; `PortalGemOnRealDataTests` round-trips Level 1's marked Lord.
+
 **289** — `0xBD66BD442BC1F4D0`. Player `LastPaydayTick` and native-width creature name/blood indices, hashed and saved (ADR-0295 amendment, ADR-0521); master's 283–288 merged under it. Numbered 275, then 283, on classic-look/step6.
 
 **288** — `0x9FB00F71132E91E9`. Native wet/blood footprint counters, saved and hashed; see [creature-footprints.md](creature-footprints.md).

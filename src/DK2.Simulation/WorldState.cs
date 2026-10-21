@@ -637,6 +637,10 @@ public sealed class WorldState
     internal const int TremorSlotCount = 8;
     internal TremorState[] TremorSlots { get; } = new TremorState[TremorSlotCount];
     public IReadOnlyList<TremorState> Tremors => TremorSlots;
+    internal const int HeroSlotCount = 6;
+    /// <summary>The six marked-creature records trigger action 42 writes (<see cref="HeroSlot"/>).</summary>
+    internal HeroSlot[] HeroSlotArray { get; } = new HeroSlot[HeroSlotCount];
+    public IReadOnlyList<HeroSlot> HeroSlots => HeroSlotArray;
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
     internal RoomBuildWaveState?[] RoomBuildWaveSlots { get; }
     public IReadOnlyList<RoomBuildWaveState?> RoomBuildWaves => RoomBuildWaveSlots;
@@ -1027,6 +1031,9 @@ public sealed class WorldState
             // The death bookkeeping runs for every freed creature (0x004B7A36), so a follower that
             // leaves, is sacrificed or is removed any other way lowers its leader's count.
             PossessionRules.CreatureFreed(this, _creatures[i]);
+            // Creature_DeathBookkeeping clears the first world slot holding it (0x00488396..0x004883CC).
+            for (int s = 0; s < HeroSlotCount; s++)
+                if (HeroSlotArray[s].CreatureId == id) { HeroSlotArray[s] = default; break; }
             _creaturesByOwnership.Remove(_creatures[i]);
             _creatures[i].LinkWorld = null;
             _creatures[i].TileLink = ThingTileLink.None;
@@ -1474,6 +1481,7 @@ public sealed class WorldState
         hash.Add(Height);
         hash.Add(FogOfWarEnabled ? (byte)1 : (byte)0);
         foreach (TremorState tremor in TremorSlots) tremor.HashInto(ref hash);
+        foreach (HeroSlot slot in HeroSlotArray) slot.HashInto(ref hash);
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(NextSlabOrder);

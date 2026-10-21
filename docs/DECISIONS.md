@@ -11985,3 +11985,29 @@ scan) as bright as explored: scanned tiles take the full fill, unlit ones a tune
 A stronger path fade was dropped the same day: probe renders showed it blacking out the
 Heart intro (far plane 10 tiles), and the owner saw it snap on the Lord's zoom-out.
 All are tuned values, not DK2's, set every frame from DungeonRunner (Inspector-live).
+
+## ADR-0523 — Trigger action 42 marks creatures in six world slots
+**Date:** 2026-10-21 · **Status:** accepted
+
+**Context.** Level 1's Lord of the Land wears a star ring that cycles his level and a sword
+(owner's SHOT0075/0076). Trigger 85 runs creature action 42 on his creation; it was unbuilt
+(Q607). Evidence: the records for `0x0049AC80`, `0x005096A0`, `0x005096C0`, `0x00491B40`,
+`0x00596770`, `0x00597270` and `0x00596850`.
+
+**Decision.** `WorldState.HeroSlots` keeps DK2's six world records (`+0x72BD`): a creature id
+for its tag and a value byte, hashed and saved (version 290). Creature action 42 with a
+non-zero byte takes the first free slot with no duplicate check, nothing when all six are
+full; zero frees the creature's first slot. `RemoveCreature` frees it as the death
+bookkeeping does (`0x00488396`). The flower reads the slots: a hero-owned creature holding
+one draws `Objective` over its centre (loaded at 0x2000, the centre at 0x1000; the drawn size
+is matched to SHOT0068, not read) and takes SJ-Fighting, SJ-Prison or SJ-Torture by the value.
+
+**Left out.** Creature `+0x3EA` bit `0x20000`, which action 42's zero clears when it found a slot and
+Creature_Update sets; the record's dword at `+3`; Objective-2 (creature `+0x3F7`); the
+player-context arm, which puts a player's tag in a slot (`0x004C89E4`).
+
+**Consequences.** Hash and snapshot 290. The Lord shows his ring from creation, and
+flowers now draw on camera paths, where DK2 shows his star (they had been hidden with the
+HUD). The Objective quad is not doubled again for 0x2000: doubled, it was twice DK2's. That the
+icon reader's list is this one is LIKELY: CWorld `+0x2EC` and `+0x2F0` are one function,
+but the reader's `this+8` is not traced.

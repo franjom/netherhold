@@ -1049,6 +1049,13 @@ public sealed class TriggerExecutor
             GivePortalGem(_world, _database, run.Creature);
             return true;
         }
+        if (context == TriggerContext.Creature && record.Type == 42 && run.Creature is not null)
+        {
+            run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+            if (_world is null) return Unperformed(record, context, run.Partial);
+            HeroSlotRules.Mark(_world.HeroSlotArray, run.Creature.Id, unchecked((byte)record.Parameters["TargetId"]));
+            return true;
+        }
         if (context == TriggerContext.Creature && CreatureOwnsAction(record.Type))
             return Unperformed(record, context, run.Partial);
         if (context == TriggerContext.Creature && PlayerOwnsAction(record.Type))

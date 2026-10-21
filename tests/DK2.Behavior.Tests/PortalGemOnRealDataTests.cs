@@ -48,6 +48,30 @@ public class PortalGemOnRealDataTests
         Assert.Contains(restored.Creatures, c => c.GemCarrier);
     }
 
+    /// <summary>Trigger 85 also runs creature action 42 with byte 1 (<c>0x0049AC80</c> arm
+    /// <c>0x2A</c>): the Lord takes the first world slot, value 1, which the renderer reads for his
+    /// Objective ring (Q607). The slot is saved, and his removal frees it, as the death bookkeeping
+    /// does (<c>0x00488396</c>).</summary>
+    [InstallFact]
+    public void LevelOnesLordIsMarkedInAWorldSlotSavedAndFreedWithHim()
+    {
+        GameSimulation simulation = Level("level1");
+        WorldState world = simulation.World;
+        simulation.Run(3);
+
+        CreatureState lord = Assert.Single(world.Creatures,
+            c => simulation.Database.CreatureById(c.CreatureTypeId).Name == "Lord Of The Land");
+        Assert.Equal(new HeroSlot { CreatureId = lord.Id, Value = 1 }, world.HeroSlots[0]);
+        Assert.All(world.HeroSlots.Skip(1), slot => Assert.True(slot.IsFree));
+
+        WorldState restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(simulation), simulation.Database).World;
+        Assert.Equal(world.HeroSlots, restored.HeroSlots);
+
+        Assert.True(world.RemoveCreature(lord.Id));
+        Assert.All(world.HeroSlots, slot => Assert.True(slot.IsFree));
+    }
+
     private static GameSimulation Level(string name)
     {
         string install = Dk2InstallGate.Path;

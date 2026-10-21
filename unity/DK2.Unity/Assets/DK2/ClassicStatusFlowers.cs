@@ -16,7 +16,8 @@ namespace DK2.Unity
     /// <summary>Draws <see cref="StatusFlowers"/> as camera-facing quads over each shown creature
     /// (status-flowers.md §2): the petal ring <c>GUI\moods\H-0n</c> in the owner's colour, then the
     /// centre: the level badge at half colour with a full-colour experience wedge, or a mood, job
-    /// or status icon at full colour.</summary>
+    /// or status icon at full colour; then, over a hero that trigger action 42 marked, the Objective
+    /// ring (0x00596770).</summary>
     public sealed class ClassicStatusFlowers : IDisposable
     {
         /// <summary>World width of a flower at native scale 0x400, in tiles. Eyeballed from the
@@ -75,6 +76,10 @@ namespace DK2.Unity
                 (Material middle, float scale) = Art(flower.Centre, ring: false);
                 Graphics.RenderMesh(Params(middle, Block(ref block, colour, flower.ExperienceArcs ? flower.Experience : -1)), _quad, 0,
                     Matrix4x4.TRS(centre + towardCamera, facing, Vector3.one * (size * scale)));
+                if (flower.Objective == null) continue;
+                (Material objective, float objectiveScale) = Art(flower.Objective, ring: false);
+                Graphics.RenderMesh(Params(objective, Block(ref block, colour, -1)), _quad, 0,
+                    Matrix4x4.TRS(centre + towardCamera * 2, facing, Vector3.one * (size * objectiveScale)));
             }
         }
 
@@ -97,8 +102,10 @@ namespace DK2.Unity
         private static RenderParams Params(Material material, MaterialPropertyBlock block) => new RenderParams(material)
         { shadowCastingMode = ShadowCastingMode.Off, receiveShadows = false, matProps = block };
 
-        /// <summary>One icon's material, loaded on first use. Icons share the ring's texel density
-        /// (all 0x1000 in 0x00596850) except Imprison and the Objectives, loaded at 0x2000.</summary>
+        /// <summary>One icon's material, loaded on first use. Icons share the ring's texel density.
+        /// 0x00596850 loads Imprison and the Objectives at 0x2000 against 0x1000, but doubling their
+        /// width on top drew the Lord's star twice the size of DK2's (SHOT0068), so their own
+        /// larger texture seems to carry that already.</summary>
         private (Material, float) Art(string name, bool ring)
         {
             if (_art.TryGetValue(name, out var art)) return art;
@@ -117,8 +124,7 @@ namespace DK2.Unity
             // (owner's screenshot: about 0.96 of the palette entry), so colour by luminance.
             if (ring) material.SetFloat("_TintByLuminance", 1);
             _owned.Add(texture); _owned.Add(material);
-            float scale = image.Width / (float)_ringWidth
-                * (name is "Imprison" or "Objective" or "Objective-2" ? 2f : 1f);
+            float scale = image.Width / (float)_ringWidth;
             art = (material, scale);
             _art.Add(name, art);
             return art;

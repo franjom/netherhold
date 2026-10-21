@@ -25,8 +25,10 @@ public readonly record struct StatusFlowerColour(byte Red, byte Green, byte Blue
 /// <paramref name="Experience"/> (0x005966B0); otherwise draw it plain at full colour.</param>
 /// <param name="Experience">The wedge's share of a turn, 0 to just under 1. Drawn clockwise from the
 /// top as the owner's captures show; the native angle-to-screen mapping is unread.</param>
+/// <param name="Objective">The ring over a marked hero's centre (0x00596770, ADR-0523); null for none.</param>
 public readonly record struct StatusFlower(int CreatureId, int Level, PlayerId Owner, StatusFlowerColour Colour,
-    Fp32 Height, bool Blink, int Ring, string Centre, bool ExperienceArcs, float Experience);
+    Fp32 Height, bool Blink, int Ring, string Centre, bool ExperienceArcs, float Experience,
+    string? Objective = null);
 
 /// <summary>What 0x0048E830 reads about one creature, as our state answers it.</summary>
 /// <param name="Never">One of the predicate's refusals: <see cref="StatusFlowerRules.NeverShows"/>.</param>
@@ -179,14 +181,16 @@ public static class StatusFlowerCentre
             _ => (LevelIcon(facts.Level), StatusFlowerMode.Level),
         };
 
-    /// <summary>The status icon (0x00597270) for a creature not on the hero side, first match:
-    /// unconscious (dying), stunned, afraid (not fearless and <c>CurrentFear</c> over the scaled
-    /// <c>Fear</c>). Left out: Leaving (<c>+0x3E6</c> bit 14, unmapped) and S-Gem (carrying object
-    /// type 0x1C, 0x0048B5C0). The hero side's list (player <c>+0x2EC</c> slots giving Fighting,
-    /// Prison or Torture) is unread, so a hero has none.</summary>
-    public static string? Status(bool hero, bool dying, bool stunned, bool fearless, int currentFear, int fearThreshold)
+    /// <summary>The status icon (0x00597270), the icon table at renderer <c>+0x124</c> indexed by
+    /// its kind. A hero takes it from the world slot that holds it (trigger action 42): value 2
+    /// SJ-Prison, 3 SJ-Torture, anything else SJ-Fighting, none when it holds no slot. Anyone else,
+    /// first match: unconscious (dying), stunned, afraid (not fearless and <c>CurrentFear</c> over the
+    /// scaled <c>Fear</c>). Left out: Leaving (<c>+0x3E6</c> bit 14, unmapped) and S-Gem (carrying
+    /// object type 0x1C, 0x0048B5C0).</summary>
+    public static string? Status(bool hero, bool dying, bool stunned, bool fearless, int currentFear, int fearThreshold,
+        byte? heroSlotValue = null)
     {
-        if (hero) return null;
+        if (hero) return heroSlotValue switch { null => null, 2 => "SJ-Prison", 3 => "SJ-Torture", _ => "SJ-Fighting" };
         if (dying) return "SJ-Unconscious";
         if (stunned) return "SJ-Stunned";
         if (!fearless && fearThreshold < currentFear) return "ST-Fear";
@@ -322,20 +326,30 @@ public sealed class StatusFlowers
             var colour = new StatusFlowerColour(red, green, blue);
             if (blink && !neutral) colour = StatusFlowerRules.Blinked(colour, milliseconds, _blinkUntil);
             int maxHealth = CreatureHealthRules.MaxHealth(_database, definition, creature);
-            var (icon, arcs) = Centre(creature, definition, turn, milliseconds, facts.Dying);
+            byte? slot = creature.OwnerPlayerId == PlayerIds.Good ? HeroSlotValue(world, creature.Id) : null;
+            var (icon, arcs) = Centre(creature, definition, turn, milliseconds, facts.Dying, slot);
             _shown.Add(new StatusFlower(creature.Id, creature.Level, new PlayerId(creature.OwnerPlayerId),
                 colour, StatusFlowerRules.Height(definition.Height, creature.Level), blink,
                 StatusFlowerRules.Ring(facts.Dying, creature.Health, maxHealth), icon, arcs,
                 StatusFlowerRules.ExperienceShare(creature.ExperiencePoints,
-                    CreatureLevelRules.ExperienceForNextLevel(_database, definition, creature.Level))));
+                    CreatureLevelRules.ExperienceForNextLevel(_database, definition, creature.Level)),
+                slot is null ? null : "Objective"));
         }
         Prune(turn);
         return _shown;
     }
 
+    /// <summary>The value of the first world slot holding the creature (0x00491B40), or null.</summary>
+    private static byte? HeroSlotValue(WorldState world, int creatureId)
+    {
+        foreach (HeroSlot slot in world.HeroSlots)
+            if (slot.CreatureId == creatureId) return slot.Value;
+        return null;
+    }
+
     /// <summary>Steps this creature's centre cycle when its 333 ms are up and picks the icon.</summary>
     private (string Icon, bool Arcs) Centre(CreatureState creature, CreatureDef definition, GameTick turn,
-        long milliseconds, bool dying)
+        long milliseconds, bool dying, byte? heroSlot)
     {
         bool hero = creature.OwnerPlayerId == PlayerIds.Good;
         var facts = new StatusFlowerCentreFacts(
@@ -346,7 +360,7 @@ public sealed class StatusFlowers
             LargestAnger: StatusFlowerCentre.LargestAnger(creature.Anger),
             Status: StatusFlowerCentre.Status(hero, dying, StatusEffectRules.IsStunned(creature),
                 (definition.Flags & CreatureFlags.IsFearless) != 0, creature.CurrentFear,
-                FearRules.FearThreshold(_database, definition, creature.Level)),
+                FearRules.FearThreshold(_database, definition, creature.Level), heroSlot),
             Job: StatusFlowerCentre.Job(creature.DroppedOnARoom
                     && HandRules.LastDroppedCounter(creature, turn.Value) < SimulationTiming.TicksPerSecond * 5,
                 NeedRules.ResolvedCategory(creature), creature.Dk2StateId),

@@ -208,13 +208,24 @@ public sealed class StatusFlowersTests
     }
 
     [Fact]
-    public void StatusPrefersUnconsciousThenStunnedThenFear_HeroStatusListUnbuilt()
+    public void StatusPrefersUnconsciousThenStunnedThenFear()
     {
         Assert.Equal("SJ-Unconscious", StatusFlowerCentre.Status(false, true, true, false, 9, 1));
         Assert.Equal("SJ-Stunned", StatusFlowerCentre.Status(false, false, true, false, 9, 1));
         Assert.Equal("ST-Fear", StatusFlowerCentre.Status(false, false, false, false, 9, 1));
         Assert.Null(StatusFlowerCentre.Status(false, false, false, true, 9, 1));
+    }
+
+    /// <summary>A hero's status is its world slot's value (0x00597270 kinds 7-9, the icon table at
+    /// 0x006BE580: SJ-Fighting, SJ-Prison, SJ-Torture), whatever else is true of it; none without a slot.</summary>
+    [Fact]
+    public void AHeroTakesItsStatusFromItsWorldSlot()
+    {
         Assert.Null(StatusFlowerCentre.Status(true, true, false, false, 9, 1));
+        Assert.Equal("SJ-Fighting", StatusFlowerCentre.Status(true, true, true, false, 9, 1, heroSlotValue: 1));
+        Assert.Equal("SJ-Prison", StatusFlowerCentre.Status(true, false, false, false, 0, 1, heroSlotValue: 2));
+        Assert.Equal("SJ-Torture", StatusFlowerCentre.Status(true, false, false, false, 0, 1, heroSlotValue: 3));
+        Assert.Equal("SJ-Fighting", StatusFlowerCentre.Status(true, false, false, false, 0, 1, heroSlotValue: 7));
     }
 
     private static (GameDatabase, WorldState, CreatureState) Setup()
