@@ -91,6 +91,20 @@ namespace DK2.Unity
         [SerializeField] private bool cheapLighting;
         [Tooltip("Diagnostic: DK2's own light inputs only. Its fill lights are unknown, so unlit geometry goes black; off keeps Unity's sky and sun fill (owner 2026-10-20: Unity lighting tuned to look like DK2).")]
         [SerializeField] private bool nativeInitialAmbient;
+        [Tooltip("Tint on Unity's sky and sun fill: DK2's fill is dimmer and warmer (ADR-0522, owner's SHOT0065-0078).")]
+        [SerializeField] private Color classicFillTint = new Color(0.55f, 0.44f, 0.28f);
+        [Tooltip("In play, the share of the view distance (from the eye) where the fade to black starts.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float classicFadeStart = 0.5f;
+        [Tooltip("In play, the share of the view distance where the scene is black; at or below the start the fade is off.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float classicFadeEnd = 1f;
+        [Tooltip("On a camera path (intros, cutscenes), where the fade starts: DK2's flyovers sink into black close around what they show (SHOT0068-0077).")]
+        [Range(0f, 1f)]
+        [SerializeField] private float classicPathFadeStart = 0.2f;
+        [Tooltip("On a camera path, the share of the view distance where the scene is black.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float classicPathFadeEnd = 0.45f;
         [Tooltip("Projected 32-pixel silhouettes from each creature's current animated mesh.")]
         [SerializeField] private bool classicCreatureShadows = true;
 
@@ -586,6 +600,8 @@ namespace DK2.Unity
             FollowQueriedCreature();
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
+            // After the camera is placed, so a path's first and last frames take the right fade.
+            ApplyClassicLook();
             if (_classicCamera != null)
                 _scene.PrepareClassicLighting(Camera.main,
                     _scriptedView.Pose is CameraPathPose path ? path.ViewDistance : _classicCamera.NativeViewDistance);
@@ -828,6 +844,17 @@ namespace DK2.Unity
             Vector3 next = camera.transform.position +
                 (camera.transform.forward * scroll * cameraZoomFraction * height);
             if (next.y > MinCameraHeight) camera.transform.position = next;
+        }
+
+        /// <summary>The fill tint and distance fade the classic shader reads; set every frame so the
+        /// Inspector tunes them live (ADR-0522).</summary>
+        private void ApplyClassicLook()
+        {
+            Shader.SetGlobalVector("_DK2FillTint", new Vector4(classicFillTint.r, classicFillTint.g, classicFillTint.b, 1));
+            bool path = _scriptedView?.Pose is CameraPathPose;
+            Shader.SetGlobalVector("_DK2DistanceFade", path
+                ? new Vector4(classicPathFadeStart, classicPathFadeEnd, 0, 0)
+                : new Vector4(classicFadeStart, classicFadeEnd, 0, 0));
         }
 
         private void ReadAmbientKeys()
@@ -1197,6 +1224,9 @@ namespace DK2.Unity
             _bottomPanel?.CancelPointerGesture();
             _cursorFeedback.Reset();
             _handCursor?.Update(HandCursorKind.Default, false, 0);
+            // Unset is neutral; editor probes rendered after Play must not inherit the look.
+            Shader.SetGlobalVector("_DK2FillTint", Vector4.zero);
+            Shader.SetGlobalVector("_DK2DistanceFade", Vector4.zero);
         }
 
         private void OnGUI()

@@ -61,6 +61,10 @@ Shader "DK2/Classic Vertex Lit"
             #endif
             float3 _DK2AmbientColour;
             float _DK2InitialAmbientPreview;
+            // Owner-tuned look (ADR-0522), unset (zero) means neutral: the fill's tint, and the
+            // shares of the far plane, as distance from the eye, where the fade to black starts (x) and ends (y).
+            float4 _DK2FillTint;
+            float4 _DK2DistanceFade;
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -188,10 +192,11 @@ Shader "DK2/Classic Vertex Lit"
                 if (_DK2InitialAmbientPreview < .5)
                 {
                     // Retain the scene fallback until native fill lights and ambient commands are supplied.
-                    sum += max(SampleSH(normalWS), 0);
+                    float3 fill = max(SampleSH(normalWS), 0);
                     Light main = GetMainLight(TransformWorldToShadowCoord(position.positionWS));
-                    sum += main.color * max(dot(normalWS, main.direction), 0)
+                    fill += main.color * max(dot(normalWS, main.direction), 0)
                         * main.distanceAttenuation * main.shadowAttenuation;
+                    sum += _DK2FillTint.w > 0 ? fill * _DK2FillTint.rgb : fill;
                 }
                 InputData inputData = (InputData)0;
                 inputData.positionWS = position.positionWS;
@@ -228,6 +233,12 @@ Shader "DK2/Classic Vertex Lit"
             #if defined(_EMISSION)
                 sum += _EmissionColor.rgb;
             #endif
+                if (_DK2DistanceFade.y > _DK2DistanceFade.x)
+                {
+                    // Distance from the eye, not depth: DK2's view darkens toward its sides too.
+                    float reach = length(position.positionWS - GetCameraPositionWS()) / _ProjectionParams.z;
+                    sum *= saturate((_DK2DistanceFade.y - reach) / (_DK2DistanceFade.y - _DK2DistanceFade.x));
+                }
                 output.positionCS = position.positionCS;
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 output.diffuse = DK2PackedDiffuse(sum);
