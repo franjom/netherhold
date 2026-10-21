@@ -330,9 +330,15 @@ public sealed class InstallArtProviderTests
                 Assert.True(provider.TryLoadModel(asset, out KmfModel model), asset.InstallEntry);
                 IReadOnlyList<Vector3> positions = RenderMesh.FromModel(model).Positions;
                 string variant = key.Key.Substring(key.Key.LastIndexOf('.') + 1);
+                // A hero wall's halves (4..6) are a quadrant wide on the quadrant's outer edge; its
+                // wholes (7, 8) a tile wide on the tile's edge, like the plain face.
+                bool heroHalf = variant is "hero4" or "hero5" or "hero6";
+                bool heroWhole = variant is "hero7" or "hero8";
                 (float minY, float maxY, float half) = variant switch
                 {
                     AssetCatalogue.TerrainSide => (1f, 2f, 0.5f),
+                    _ when heroHalf => (1f, 2f, 0.25f),
+                    _ when heroWhole => (1f, 2f, 0.5f),
                     AssetCatalogue.TerrainFloor => (1f, 1f, 0.5f),
                     AssetCatalogue.TerrainTop or AssetCatalogue.TerrainTopTagged => (2f, 2f, 0.5f),
                     _ => terrain.IsSolid ? (2f, 2f, 0.25f) : (1f, 1f, 0.25f),
@@ -342,6 +348,10 @@ public sealed class InstallArtProviderTests
                     Assert.InRange(p.Y, minY - 0.001f, maxY + 0.001f);
                     Assert.InRange(p.X, -half - 0.001f, half + 0.001f);
                     if (variant == AssetCatalogue.TerrainSide) Assert.Equal(0.5f, p.Z, 3);
+                    // Measured: the halves lie on z 0.25 (Part6's relief reaches 0.313), the wholes
+                    // on z 0.5 (Part8's recess goes back to 0.4005), so each meets the tile edge.
+                    else if (heroHalf) Assert.InRange(p.Z, 0.249f, 0.314f);
+                    else if (heroWhole) Assert.InRange(p.Z, 0.400f, 0.501f);
                     else Assert.InRange(p.Z, -half - 0.001f, half + 0.001f);
                 });
                 loaded++;

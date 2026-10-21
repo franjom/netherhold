@@ -87,6 +87,7 @@ public sealed class TerrainPieceKeys
 {
     private readonly AssetRef[] _quarters;
     private readonly AssetRef[] _beds = new AssetRef[AssetCatalogue.BedPieces];
+    private readonly AssetRef[] _heroFaces = new AssetRef[AssetCatalogue.HeroWallPieces];
 
     internal TerrainPieceKeys(string terrainName)
     {
@@ -97,6 +98,8 @@ public sealed class TerrainPieceKeys
         // unread; the tag look is a tint, tag-highlight.md).
         TopTagged = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainTopTagged);
         Floor = AssetCatalogue.TerrainPiece(terrainName, AssetCatalogue.TerrainFloor);
+        for (int k = 0; k < _heroFaces.Length; k++)
+            _heroFaces[k] = AssetCatalogue.HeroWallPiece(terrainName, AssetCatalogue.FirstHeroWallPiece + k);
         _quarters = new AssetRef[AssetCatalogue.ClaimedSets * AssetCatalogue.ClaimedPieces];
         for (int set = 0; set < AssetCatalogue.ClaimedSets; set++)
             for (int piece = 0; piece < AssetCatalogue.ClaimedPieces; piece++)
@@ -111,6 +114,11 @@ public sealed class TerrainPieceKeys
 
     public AssetRef Quarter(int set, int piece) => _quarters[(set * AssetCatalogue.ClaimedPieces) + piece];
 
+    /// <summary>A hero-owned wall's face piece 4..8 (<see cref="TileView.Walls"/>); empty otherwise.</summary>
+    public AssetRef HeroFace(int piece) =>
+        piece >= AssetCatalogue.FirstHeroWallPiece && piece < AssetCatalogue.FirstHeroWallPiece + _heroFaces.Length
+            ? _heroFaces[piece - AssetCatalogue.FirstHeroWallPiece] : default;
+
     /// <summary>A water or lava terrain's bed piece 0..7.</summary>
     public AssetRef Bed(int k) => _beds[k];
 
@@ -123,5 +131,6 @@ public sealed class TerrainPieceKeys
         yield return Floor;
         foreach (AssetRef quarter in _quarters) yield return quarter;
         foreach (AssetRef bed in _beds) yield return bed;
+        foreach (AssetRef face in _heroFaces) yield return face;
     }
 }

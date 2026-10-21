@@ -332,6 +332,7 @@ namespace DK2.Unity
             if (pieces.HasTop) Add(_classic.Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint,
                 invertLightingNormals: true);
             if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y, tagged, tile.AmbientTint);
+            AddHeroFaces(x, y, tile, keys, centre, tagged);
             if (pieces.Quarters == QuarterKind.None) return;
 
             for (int q = 0; q < 4; q++)
@@ -370,6 +371,29 @@ namespace DK2.Unity
                 }
             }
         }
+
+        /// <summary>A hero-owned wall's faces, carried in <see cref="TileView.Walls"/>: a whole piece
+        /// at the centre or two halves in the side's two quadrants, turned to the side, with the room
+        /// scheme's halves 4 and 5 swapped (0x0043E860).</summary>
+        private void AddHeroFaces(int x, int y, in TileView tile, TerrainPieceKeys keys, Vector3 centre, bool tagged)
+        {
+            RoomWalls faces = tile.Walls;
+            if (faces.IsEmpty) return;
+            for (int side = 0; side < 4; side++)
+            {
+                if (faces.IsWhole(side))
+                    Add(_classic.Piece(keys.HeroFace(faces.WholePiece(side))), side, centre, x, y, tagged, tile.AmbientTint);
+                else if (faces.HasWall(side))
+                {
+                    Add(_classic.Piece(keys.HeroFace(SwapHeroHalf(faces.HalfAPiece(side)))), side,
+                        Quadrant(centre, side), x, y, tagged, tile.AmbientTint);
+                    Add(_classic.Piece(keys.HeroFace(SwapHeroHalf(faces.HalfBPiece(side)))), side,
+                        Quadrant(centre, (side + 1) & 3), x, y, tagged, tile.AmbientTint);
+                }
+            }
+        }
+
+        private static int SwapHeroHalf(int piece) => piece == 4 ? 5 : piece == 5 ? 4 : piece;
 
         /// <summary>A liquid tile's bed, or a bridge's. The surface is not drawn: DK2's is an alpha
         /// texture laid by code not yet read.</summary>

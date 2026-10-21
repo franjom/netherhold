@@ -102,6 +102,12 @@ public static class ArtSourceMap
                 entries.Add(Model(reference, new Dk2ArtResource(bed, 0), "liquid bed piece"));
                 continue;
             }
+            if (variant.StartsWith("hero", StringComparison.Ordinal))
+            {
+                entries.Add(Model(reference, new Dk2ArtResource("Herowall_LevelDefaultPart" + variant.Substring(4), 0),
+                    "hero wall face"));
+                continue;
+            }
             if (variant.StartsWith("quarter", StringComparison.Ordinal))
             {
                 string name = (wall ? "Claimed Top" : "Claimed Floor") + variant[7] + "_" + variant[8];
