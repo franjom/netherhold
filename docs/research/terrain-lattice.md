@@ -254,9 +254,9 @@ X2 + 16 at layer 0, on the same row): a DK2 quirk to keep, not fix.
   `0x00764BD8`), `+0x18` flags, **`+0x3C` the 20-point block** (null until built),
   `+0x40` the Tremor block (§8). **CONFIRMED.**
 - `0x00760B10` is the frame counter, bumped once per frame by `0x00575700` (which
-  also measures frames per second with `timeGetTime`). A stale stamp only moves the
-  entry to the head of the LRU list; it **does not** discard the points.
-  **CONFIRMED.** (When the engine heap is full, its allocator `0x0057CEB0` retries
+  also measures frames per second with `timeGetTime`). A stale stamp moves the entry
+  to the LRU head; an entry no frame touched is freed after it is presented
+  (`0x00576010`, `classic-light-visibility.md` §4). **CONFIRMED.** (When the engine heap is full, its allocator `0x0057CEB0` retries
   after calls to `0x005742F0`, unread, which may drop old entries; a dropped cell
   would be recomputed identically.)
 - `0x00571F00` fills the lattice for tile (x0, y0): for each of the 3×3 tiles it gets

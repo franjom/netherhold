@@ -105,6 +105,31 @@ public class TorchLayoutTests
         Assert.True(torches > 20, $"Level 1 lit {torches} torches");
     }
 
+    /// <summary>Level 1's Lord's hall, against the owner's DK2 shots SHOT0065..0078: the level
+    /// initialiser refreshes every Torch wall in row order once the map is complete (Q446), so a
+    /// floor's N wall wins, then W, then E, then S. (17,10) takes the east wall (18,10) over the
+    /// south wall (17,11), which the earlier setter-order layout gave it, and (15,11) has none.</summary>
+    [InstallFact]
+    public void TheLordsHallTorchesMatchDk2()
+    {
+        string dir = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(dir, "level1");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "level1")!;
+        WorldState world = WorldState.FromMap(db, map,
+            GameDatabaseLoader.LoadCampaignPlayers(dir, "level1")!.Select(p => p.PlayerId).ToArray());
+        var layout = new TorchLayout(db);
+        layout.Update(world);
+
+        TilePos? WallOf(int x, int y) => layout.At((y * world.Width) + x)?.Wall;
+        Assert.Equal(new TilePos(15, 5), WallOf(15, 6));
+        Assert.Equal(new TilePos(17, 6), WallOf(16, 6));
+        Assert.Equal(new TilePos(17, 7), WallOf(17, 8));
+        Assert.Equal(new TilePos(13, 8), WallOf(14, 8));
+        Assert.Equal(new TilePos(13, 10), WallOf(14, 10));
+        Assert.Equal(new TilePos(18, 10), WallOf(17, 10));
+        Assert.Null(WallOf(15, 11));
+    }
+
     /// <summary>A torch over a room's floor takes the room's colour and art; over plain floor the
     /// balance defaults and the bridge's Torch1 (wall-torches.md §4).</summary>
     [InstallFact]

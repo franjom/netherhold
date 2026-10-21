@@ -385,7 +385,8 @@ rolling order, without clipping border cells. Its caller resets it before each
 visible enumeration and supplies typed renderer-frame/build stamps. The window
 applies native dirty-column invalidation, retaining42 list-head snapshots on a
 horizontal advance and querying only seven entering cells; backing storage stays
-stable until Reset. `ClassicWorldLightCache` supplies visibility/preparation. Headless cases
+stable until Reset. `ClassicWorldLightCache` supplies visibility/preparation and
+frees untouched entries ([classic-light-visibility.md §4](classic-light-visibility.md#4-entry-lifetime)). Headless cases
 cover overflow, ring wrap/reset, retained dirty/clean bits, unsigned stamps,
 empty-cell invalidation, dynamic refresh and zero warm-gather allocations.
 `ClassicPointLight.FromTerrain` converts the confirmed source inputs. DungeonScene

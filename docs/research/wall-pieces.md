@@ -292,10 +292,10 @@ for s in 0..3:
    mean, were not re-read. The quadrant numbering (0 NW … 3 SW) is inferred.
 2. **Grid bit 15.** That it means a closed (rather than an open) secret door was
    not pinned (0x004488A0 mis-tracks the value it writes). The secret-door
-   prelude of 0x0043E860 and the hero-wall scheme (HeroWall_…Part4..8) were read
-   from the decompile only.
+   prelude of 0x0043E860 was read from the decompile only; the hero-wall scheme's run-on tests
+   were read from the instructions (0x0043F3A0..0x0043F50F, floor-and-terrain-pieces.md section 5).
 3. **Unread builders.** The player tables
    +0x10AA/+0x10BE and their loader; the "<prefix>" string of 0x004C2620 (the
-   mesh name shows "HeroWall_LevelDefault"); the consumers of Rock Corner,
+   mesh name shows "Herowall_LevelDefault"); the consumers of Rock Corner,
    Fog's three meshes and the TAGGED tops. (0x0043E440 and the room tile
    byte +0xC writers were read 2026-10-09: `floor-and-terrain-pieces.md` §6.)

@@ -699,7 +699,7 @@ public sealed partial class WorldView
             solid,
             admitted ? tile.GoldHeld : 0,
             HealthPermille(admitted ? tile.Health : terrain.StartingHealth, terrain.MaxHealth),
-            admitted ? WallsOf(world, x, y, tile.TerrainId) : default,
+            admitted ? WallsOrHeroFacesOf(world, x, y, tile, terrain) : default,
             PiecesOf(world, x, y, tile, terrain),
             _pieceKeys[tile.TerrainId],
             explored,
@@ -1205,8 +1205,10 @@ public sealed partial class WorldView
     /// against a room that draws its own walls when this terrain is AllowRoomWalls; then a top, or
     /// for a PlayerColouredWall the owner's top quarters. An open tile draws the owner's floor
     /// quarters when PlayerColouredPath, else its whole floor.
+    /// <para>A hero-owned PlayerColouredWall draws no art-1 faces here: its faces are the hero wall
+    /// pieces <see cref="HeroWallFacesOf"/> puts in <see cref="TileView.Walls"/>.</para>
     /// <para>Deviates: solidity stands in for the art test and for nav-solidity; the face test's
-    /// fog exceptions, hero walls, the Mana Vault, terrain 0x23 and the top variant are not built
+    /// fog exceptions, the Mana Vault, terrain 0x23 and the top variant are not built
     /// (floor-and-terrain-pieces.md §5).</para>
     /// </summary>
     private TerrainPieces PiecesOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain)
@@ -1222,18 +1224,9 @@ public sealed partial class WorldView
         TerrainPieces pieces = default;
         if (terrain.IsSolid)
         {
-            bool allowRoomWalls = (flags & TerrainFlags.AllowRoomWalls) != 0;
-            for (int side = 0; side < 4; side++)
-            {
-                int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
-                // Off the map the face is drawn (0x0043F1F6..0x0043F224).
-                if (world.Contains(nx, ny))
-                {
-                    if (!IsVisible(world, new TilePos(nx, ny)) || IsSolid(world, nx, ny)) continue;
-                    if (allowRoomWalls && _ownWallsById[world.Tile(nx, ny).TerrainId]) continue;
-                }
-                pieces = pieces.WithFace(side);
-            }
+            if (!IsHeroWall(tile, flags))
+                for (int side = 0; side < 4; side++)
+                    if (DrawsFace(world, x, y, side, flags)) pieces = pieces.WithFace(side);
 
             if ((flags & TerrainFlags.PlayerColouredWall) != 0)
                 return pieces.WithQuarters(QuarterKind.Top, set, QuarterPieces(TopEdges(world, x, y)));
@@ -1243,6 +1236,61 @@ public sealed partial class WorldView
         if ((flags & TerrainFlags.PlayerColouredPath) != 0)
             return pieces.WithQuarters(QuarterKind.Floor, set, QuarterPieces(FloorEdges(world, x, y, tile.TerrainId)));
         return pieces.WithFloor();
+    }
+
+    /// <summary>Whether a solid plain tile draws a face on <paramref name="side"/>. Off the map the
+    /// face is drawn (0x0043F1F6..0x0043F224).</summary>
+    private bool DrawsFace(WorldState world, int x, int y, int side, TerrainFlags flags)
+    {
+        int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
+        if (!world.Contains(nx, ny)) return true;
+        if (!IsVisible(world, new TilePos(nx, ny)) || IsSolid(world, nx, ny)) return false;
+        return (flags & TerrainFlags.AllowRoomWalls) == 0 || !_ownWallsById[world.Tile(nx, ny).TerrainId];
+    }
+
+    /// <summary>A PlayerColouredWall owned by the hero player <c>[0x006F254C]</c>, whose faces
+    /// 0x0043E860 takes from the hero wall pieces (0x0043F335..0x0043FC21).</summary>
+    private static bool IsHeroWall(in TileState tile, TerrainFlags flags) =>
+        (flags & TerrainFlags.PlayerColouredWall) != 0 && tile.OwnerPlayerId == PlayerIds.Good;
+
+    private RoomWalls WallsOrHeroFacesOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain)
+    {
+        RoomWalls walls = WallsOf(world, x, y, tile.TerrainId);
+        return walls.IsEmpty && terrain.IsSolid ? HeroWallFacesOf(world, x, y, tile, terrain.Flags) : walls;
+    }
+
+    /// <summary>
+    /// A hero wall's faces (0x0043E860, 0x0043F3A0..0x0043FC21). On each drawn side s the wall
+    /// runs on toward A when the tile at direction 2s-2 is nav-solid or a closed secret door and the
+    /// diagonal 2s-1 is neither; toward B likewise with 2s+2 and 2s+1. Running on both ways draws
+    /// one whole piece, 8 where (s even and x even) or (s odd and y odd), else 7; otherwise two
+    /// halves, quadrant s (A ? 6 : 5) and s+1 (B ? 6 : 4), all turned to s: the room scheme of
+    /// wall-pieces.md section 2 with 4 and 5 swapped. The pieces are Herowall_LevelDefaultPart4..8
+    /// (by name; the table behind world vtable +0x2A0 is unread).
+    /// <para>Deviates: terrain solidity stands in for nav-solidity, secret doors are not tested,
+    /// and an off-map tile counts as solid (vtable +0x208's off-map answer is unread).</para>
+    /// </summary>
+    private RoomWalls HeroWallFacesOf(WorldState world, int x, int y, in TileState tile, TerrainFlags flags)
+    {
+        if (!IsHeroWall(tile, flags)) return default;
+        RoomWalls faces = default;
+        for (int side = 0; side < 4; side++)
+        {
+            if (!DrawsFace(world, x, y, side, flags)) continue;
+            int d = side * 2;
+            bool a = Blocks(world, x, y, d - 2) && !Blocks(world, x, y, d - 1);
+            bool b = Blocks(world, x, y, d + 2) && !Blocks(world, x, y, d + 1);
+            faces = a && b
+                ? faces.WithWhole(side, decorated: (side & 1) == 0 ? (x & 1) == 0 : (y & 1) == 1)
+                : faces.WithHalves(side, a, b);
+        }
+        return faces;
+    }
+
+    private bool Blocks(WorldState world, int x, int y, int direction)
+    {
+        int nx = x + Dx8[direction & 7], ny = y + Dy8[direction & 7];
+        return !world.Contains(nx, ny) || IsSolid(world, nx, ny);
     }
 
     /// <summary>A wall top's live scan: bit k set where neighbour k is on the map and open.

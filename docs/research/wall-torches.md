@@ -57,9 +57,11 @@ belong to the wall tile at (x, y).
    `0x4052` (§4). A torch in a room is linked into the room's light list at
    `room+0x12` (`0x004E67D0`).
 
-**One torch per floor tile, and the first wall processed wins it.** No floor
-tile has a direction priority. Which wall wins a tile that faces two walls
-depends on the order in which the walls were refreshed (Q446).
+**One torch per floor tile, and the first wall processed wins it.** The rule
+itself gives no floor tile a direction priority. Which wall wins a tile that
+faces two walls depends on the order in which the walls were refreshed. At level
+start that order is row-major over the walls (§6, Level start), so each floor
+takes its torch from the wall on its N side first, then W, then E, then S.
 
 ## 2. Spacing: parity, and two rooms that follow their furniture
 
@@ -84,7 +86,7 @@ parity applies.
 |---|---|
 | At most one torch per non-solid tile, on a `Torch`-flagged neighbour | **Same** |
 | x odd for N/S walls, y even for E/W walls | **Same**, tested on the floor tile |
-| Each floor tile tries N, W, S, E | **No.** Each *wall* tries N, E, S, W; the first wall refreshed takes the floor tile |
+| Each floor tile tries N, W, S, E | **No.** Each *wall* tries N, E, S, W; the first wall refreshed takes the floor tile. At level start that works out as N, W, E, S per floor (§6) |
 | A room with no torch art gets no torch | **No.** It gets the light without a mesh (§4) |
 | — | Door tiles are excluded, as wall and as floor |
 | — | Torture Chamber and Casino follow their furniture phase |
@@ -200,8 +202,8 @@ not read (`0x004EBE58..0x004EBEE4`, re-read 2026-10-06).
   seeded from the bridge. `0x00439B90` never touches the synced seed
   `0x006F3FA8`, so torches cannot desync lockstep.
 - **Save — INFERRED not saved.** The map saver `0x0044F3F0` writes tile bytes
-  only (Q436). The save loader `0x00452BD0` re-applies terrain through
-  `0x0044FC40`, which rebuilds the torches.
+  only (Q436). The save rebuild calls the level initialiser `0x0050B5B0`
+  (`0x0050B48D`), whose wall sweep rebuilds the torches (§6, Level start).
 - **Network — INFERRED not sent.** Every client's simulation posts the bridge
   commands locally (§6).
 - **Simulation readers — none found.** The only torch code on the simulation
@@ -230,7 +232,8 @@ sink is the CBridge is STRONGLY INFERRED. The command table at `0x0066D0D8`
 |---|---|---|
 | 2 | `0x00447B20` | Destroys every bridge light and clears the gate `CBridge+0x12E3`. Its only poster is the map teardown `0x0044F280` (`0x0044F33C`) |
 | 3 | `0x00447C70` → `0x004484A0` | Refreshes the tile's bridge state, then calls vt`+0xB8`. Runs only when the gate is set **and** record `+4` is non-zero |
-| 4 | `0x00447CA0` | Calls vt`+0xB8` directly, ungated |
+| 4 | `0x00447CA0` | Calls vt`+0xB8` for the tile, **gated like 3** (`0x00447CA0..0x00447CA8`, CONFIRMED 2026-10-21; Ghidra's listing starts at `0x00447CAA` and hides the test) |
+| 6 | `0x00447CE0` | Gated; calls `0x004484A0` over a rectangle, y outer, x inner |
 | 7 | `0x00447D50` | Sets the gate (`0x00447D99`), clears bit 13 of every bridge grid word, makes three global lights and one effect, then sweeps every tile for terrain `+0x17B` bit 0 work through world vt`+0x1F8`. **It places no torches**: no call to vt`+0xB8`, `0x004484A0` or `0x00439B90` before its `RET 4` (`0x004482A1`) |
 | 16 | `0x00448710` | Recolours the torch lights on a tile: room definition `+0x456/+0x458/+0x45A`, or variables 52–54 when the tile has no room |
 | 17 | `0x004488A0` | Re-runs `0x004484A0` over the 3×3 around a door |
@@ -276,32 +279,77 @@ sink is the CBridge is STRONGLY INFERRED. The command table at `0x0066D0D8`
 
 ### Level start (Q446)
 
-**CONFIRMED:** GameAction_LoadLevel `0x00513870` calls the teardown
-`0x0044F280` (`0x00513923`, command 2: gate closed), later the level initialiser
-(`0x00513C42`), then posts command 7 (`0x00513C94`). GameSession_Run
-`0x00525370` posts 7 at `0x0052574D` after the KWD load `0x0050E620`
-(`0x0052565A`), and the save rebuild `0x0050B3C0` at `0x0050B51B`. The KWD
-per-tile callback `0x0051EC60` calls the setter with argument 5 = 1 on all three
-of its paths. The CMap tile constructor `0x00452B30` zeroes each tile (terrain
-byte `+0xA` = 0) before the map is read.
+**Answered (binary, 2026-10-21).** Level-start torches come from **one sweep
+after the whole map is loaded**. During the load itself no torch is placed.
 
-**STRONGLY INFERRED:** the map is read between `0x00513923` and `0x00513C42`,
-row by row with x inside y (`room-slab-chain.md` §6), through `0x0051EC60`.
-`0x0051E0A0` installs that callback only when `[session+0x7239]` bit `0x4` is
-set (otherwise `0x0051EB50`/`0x0051EE60`), and which path a new-level load
-takes is unchecked. On that reading every command 3 posted during the load is
-dropped at the closed gate, and command 4 runs during it.
+1. **The gate is closed during the load. CONFIRMED.** The bridge initialiser
+   `0x0043AAD0` stores 0 in the gate. The map loader `0x0044E9E0` first calls
+   the teardown `0x0044F280`, which posts command 2 when a map already exists.
+   Command 2 destroys every light and clears the gate. GameAction_LoadLevel
+   `0x00513870` also calls the teardown at `0x00513923`.
+2. **Unloaded tiles are Impenetrable Rock. CONFIRMED.** `0x0044F370` sets every
+   tile to terrain 1 with nav byte 8 (solid) before any tile record is read.
+   Terrain 0 never reaches the terrain table, whose entry 0 is null
+   (`0x00455D40`).
+3. **The map is read row by row, x inside y. CONFIRMED** (`0x0056D2D0`). Each
+   tile goes through `0x0051EC60` and then the setter. The setter's command 4
+   and command 3 both hit the closed gate. So does command 6, which
+   `0x00451E50` posts for the whole map. `0x0051E0A0` takes its world
+   `+0x7239` bit `0x4` branch for any level file; that bit picks the callback
+   set.
+4. **The sweep. CONFIRMED.** The level initialiser `0x0050B5B0` is called by
+   the KWD load (`0x0050E89B`), by GameAction_LoadLevel (`0x00513C42`) and by
+   the save rebuild (`0x0050B48D`). Near its end (`0x0050C4B5..0x0050C643`) it
+   walks every tile, y outer and x inner. For each tile that passes
+   `0x00452D80` (terrain `+0x17B` bit `0x40`, Torch, and world vt`+0x21C(x, y, 0)`
+   returning 0; that the slot is the door test is LIKELY, `004528E0`), it calls
+   bridge vt`+0xB8` directly (`0x0050C4DC`). That call is not gated. The same loop
+   then does other per-tile work (`0x0050C4E2..0x0050C60E`, terrain `0x23`), unread.
+   The load's room build does not place torches: `0x0051EC60` →
+   `Player_BuildRoomTile` (`0x004C5C30`) → `0x004ED1A0`, whose only bridge posts are
+   command 8 (`0x004ED221`), and none of `0x004F0E30`'s four callers is reached
+   from it (read 2026-10-21).
+5. **Command 7 is posted afterwards** (`0x00513C94`, `0x0052574D`,
+   `0x0050B51B`) and places nothing.
 
-**HYPOTHESIS:** level-start torches come only from those command-4 refreshes.
-Not excluded: other vt`+0xB8` callers, command 3 posted after the gate opens,
-the `0x004D6762` room path, and handler 6. How an unloaded tile (terrain 0)
-reads to `0x00439B90` was not read, so the winner at an inside corner is open.
+**The rule.** Each Torch wall, in row-major order, lights each free face in the
+order N, E, S, W. Seen from a floor tile, the first claim comes from the wall to
+its N (an earlier row), then W, then E (the same row), then S (the next row).
+
+**Room walls. STRONGLY INFERRED harmless.** `0x004F0E30` also calls vt`+0xB8`
+directly, on the Torch walls beside a room's slabs. Its callers are the build
+and remove closers, `0x004ECDB0` and Casino_RoomUpdate (`0x004D6762`). Whether
+the load's room build (`0x0051EC60`'s call to Player_BuildRoomTile) reaches it
+was not traced. During a load the
+floor beyond row y is still solid rock, so it could only win tiles that are
+already loaded.
+
+**Level 1, the Lord's hall: predicted, then checked against the owner's DK2
+frames (2026-10-21).** Floor ← wall (the wall's side of the floor):
+
+| Floor | DK2 | Ours before | Why |
+|---|---|---|---|
+| (15,6) | (15,5) N | same | |
+| (16,6) | (17,6) E | same | |
+| (17,8) | (17,7) N | same | (17,7) in row 7 beats (18,8) in row 8 |
+| (14,8) | (13,8) W | same | (14,7) fails parity (x even) |
+| (14,10) | (13,10) W | same | |
+| (17,10) | **(18,10) E** | (17,11) S | (18,10) in row 10 beats (17,11) in row 11 |
+| (15,11) | none | none | E/W fail parity (y odd); (15,12) is Rock (terrain 2, flags `0x00840009`), which has no Torch flag; Impenetrable Rock (terrain 1) has it |
+
+Ours took (17,10) from (17,11) because `TorchLayout` reached floor (17,9)
+first, and its two-step refresh south lit (17,11) before any wall in row 10.
+**BUILT 2026-10-21:** `TorchLayout`'s level start is now this row-major wall sweep
+(`TorchLayoutTests.TheLordsHallTorchesMatchDk2`); the setter's refreshes remain for
+terrain changes during play.
+The owner's frames show (17,8), (17,10), (14,10) and (15,11) as in the DK2
+column ((15,6) with medium confidence).
 
 ## 7. What is still open
 
 | | What | How to close it |
 |---|---|---|
-| Q446 | Which wall wins a floor tile it shares with another at level start | The gate and its posters are read (§6, Level start). Read how terrain 0 reads to `0x00439B90`, which callback a new-level load installs, and whether `0x004ED1A0` reaches `0x004F0E30`. Oracle: the owner describes an inside corner and a long straight wall on a fresh level |
+| Q446 | Answered (§6, Level start): a row-major sweep of the walls in `0x0050B5B0`; the load's room build places none | Built in `TorchLayout` (2026-10-21) |
 | — | Command 19's handler `0x00448800` | Read it |
 | — | Why the terrain setter also refreshes tiles two steps away | Read 2026-10-06: the loop is (±2, 0), (0, ±2), each gated by world vt`+0x1FC` (unread, probably a bounds test) and `0x00452D80` (`0x00450125..0x004501B3`); why is still a guess |
 | — | The meaning of light flag bits `0x2` and `0x40` in `0x4052` | Engine-side; matters only for matching the lighting |

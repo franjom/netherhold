@@ -165,22 +165,23 @@ public sealed class TorchLayout
         return changed;
     }
 
-    /// <summary>The level start: the KWD loader sets each tile's terrain in row order through the
-    /// setter (<c>0x0051EC60</c> → <c>0x0044FC40</c>); its command-3 refresh of the tile itself
-    /// is dropped at the bridge's closed gate, so only the command-4 refreshes of the walls
-    /// around it place torches (wall-torches.md §6, HYPOTHESIS for Q446).</summary>
+    /// <summary>The level start (Q446, wall-torches.md section 6): the setter's commands 3 and 4
+    /// are dropped at the bridge's closed gate while the map loads, and once the whole map exists
+    /// the level initialiser <c>0x0050B5B0</c> (<c>0x0050C4B5..0x0050C643</c>) walks every tile,
+    /// y outer and x inner, calling <c>0x00439B90</c> on each Torch wall that is not a door. So
+    /// the first wall in row order takes a floor: its N wall, then W, then E, then S.</summary>
     private void LayOut(WorldState world)
     {
         for (int y = 0; y < world.Height; y++)
             for (int x = 0; x < world.Width; x++)
-                TerrainSet(world, x, y, refreshItself: false);
+                if (Qualifies(world, x, y)) Refresh(world, x, y);
     }
 
-    /// <summary>The terrain setter's torch work (<c>0x0044FC40</c>): when the tile is not solid,
-    /// each qualifying wall beside it in N, E, S, W order (command 4), then those two steps away
-    /// (<c>0x00450125..0x004501B3</c>); then the tile itself (command 3), which in a running game
-    /// is assumed posted (the setter posts it only with its fifth argument set).</summary>
-    private void TerrainSet(WorldState world, int x, int y, bool refreshItself = true)
+    /// <summary>The terrain setter's torch work in a running game (<c>0x0044FC40</c>): when the
+    /// tile is not solid, each qualifying wall beside it in N, E, S, W order (command 4), then those
+    /// two steps away (<c>0x00450125..0x004501B3</c>); then the tile itself (command 3), assumed
+    /// posted (the setter posts it only with its fifth argument set).</summary>
+    private void TerrainSet(WorldState world, int x, int y)
     {
         if (!Solid(world, x, y))
         {
@@ -190,7 +191,7 @@ public sealed class TorchLayout
                 if (Qualifies(world, x + (2 * Dx[d]), y + (2 * Dy[d]))) Refresh(world, x + (2 * Dx[d]), y + (2 * Dy[d]));
         }
 
-        if (refreshItself) Refresh(world, x, y);
+        Refresh(world, x, y);
     }
 
     /// <summary>A room built or sold: command 16 recolours the torches on the changed tile and

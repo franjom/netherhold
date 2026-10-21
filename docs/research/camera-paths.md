@@ -280,10 +280,10 @@ The engine does not lift the fog for a path, as far as read (**STRONGLY
 INFERRED**, a negative claim):
 - `0x0043E320` draws unscanned ground as terrain 27, and scanned but unexplored
   ground as 38. Its only bypass, `0x0044DB70`, covers the possession modes 2, 10 and
-  11 (`fog-reveal-sources.md` §1). Two parts of this are unread:
-  - it passes view `+0x118D` to the helper, not the camera mode `+0xDA8`, and the
-    writer of `+0x118D` is unread;
-  - it also asks a view slot `+0xDC`, which is unread.
+  11 (`fog-reveal-sources.md` §1). The value it tests, bridge `+0x118D`, is the
+  camera mode itself: the camera is embedded at bridge `+0x3E5` (`0x0043C36A`), and
+  `0x3E5 + 0xDA8 = 0x118D` (read 2026-10-21). A path's mode 0x12 is not admitted.
+  It also asks a view slot `+0xDC`, which is unread.
 - `Camera_SetMode` `0x0044ACE0` only records mode 0x12 (its case 0x11). It
   invalidates the terrain cache only when entering or leaving possession.
 - Starting or ending a path touches no explored bit.

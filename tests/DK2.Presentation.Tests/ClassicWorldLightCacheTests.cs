@@ -31,6 +31,56 @@ public class ClassicWorldLightCacheTests
         Assert.Equal(new ClassicLightFrame(3), table.StaticFrame);
     }
 
+    /// <summary>0x00576010 frees each entry the last frame did not touch after it is drawn; the
+    /// port defers that to the next PrepareFrame, so the old cell is still readable in between.
+    /// The tile that returns gets a new cell and table, stamped afresh.</summary>
+    [Fact]
+    public void AnUntouchedEntryIsFreedDeferredToTheNextFrameAndRebuiltWhenItsTileReturns()
+    {
+        var cache = new ClassicWorldLightCache(16, 16);
+        cache.SetTerrain(Tile, Source(1, Tile));
+        cache.PrepareFrame(new[] { Tile });
+        ClassicLightTable first = cache.VisibleTables[0];
+        cache.PrepareFrame(new[] { new TilePos(12, 12) });
+        Assert.Equal(new ClassicLightFrame(1), cache.GetCell(Tile).BuildFrame);
+        cache.PrepareFrame(new[] { Tile });
+        Assert.NotSame(first, cache.VisibleTables[0]);
+        Assert.Equal(new ClassicLightFrame(3), cache.GetCell(Tile).BuildFrame);
+        Assert.Equal(new ClassicLightFrame(3), cache.VisibleTables[0].StaticFrame);
+        Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
+    }
+
+    [Fact]
+    public void ATilePreparedAsABorderKeepsItsTable()
+    {
+        var cache = new ClassicWorldLightCache(16, 16);
+        cache.SetTerrain(Tile, Source(1, Tile));
+        cache.PrepareFrame(new[] { Tile });
+        ClassicLightTable first = cache.VisibleTables[0];
+        cache.PrepareFrame(new[] { new TilePos(4, 5), new TilePos(6, 5) });
+        cache.PrepareFrame(new[] { Tile });
+        Assert.Same(first, cache.VisibleTables[0]);
+        Assert.Equal(new ClassicLightFrame(1), first.StaticFrame);
+    }
+
+    /// <summary>One way a kept entry goes stale (Level 1's Lord's hall walls stayed dark at a wide
+    /// view until the sweep was ported): (5,5) is reached by a rolling step whose six kept columns
+    /// are clean for (4,5), refreshed while (5,5) was out of view. Its incoming column x 8,
+    /// untouched for a frame, was freed and is rebuilt, so the table sees the light added at
+    /// (6,5); a cache that kept every entry left it stale.</summary>
+    [Fact]
+    public void ARolledTableSeesALightAddedWhileItsTileWasOutOfView_TouchedModelledAsPreparedOrVisible()
+    {
+        var cache = new ClassicWorldLightCache(16, 16);
+        TilePos left = new(4, 5), light = new(6, 5);
+        cache.PrepareFrame(new[] { left, Tile });
+        cache.SetTerrain(light, Source(1, light));
+        cache.PrepareFrame(new[] { left });
+        Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[0]));
+        cache.PrepareFrame(new[] { left, Tile });
+        Assert.Equal(new[] { 1 }, Ids(cache.VisibleTables[1]));
+    }
+
     [Fact]
     public void RemovingLastSourcePublishesANewerEmptyCell()
     {

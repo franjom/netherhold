@@ -178,6 +178,41 @@ public class TerrainPiecesTests
         Assert.True(patch.At(X0 + 3, Y0 + 3).HasFace(E));
     }
 
+    /// <summary>A hero-owned Reinforced Wall draws the hero wall pieces instead of its plain face
+    /// (0x0043E860, 0x0043F3A0..0x0043FC21), carried in <see cref="TileView.Walls"/>. A run of
+    /// five along a floor: the middle one runs on both ways and draws one whole piece, 7 at odd x on
+    /// a south face; the west end stops against rock, so it draws two halves, the A half running on
+    /// (6) and the B half not (the room scheme's 5, which the hero set draws as its 4). A keeper's
+    /// wall keeps its plain face.</summary>
+    [InstallFact]
+    public void AHeroWallDrawsHeroPiecesWholeInARunAndHalvesAtItsEnd()
+    {
+        Patch patch = Block();
+        for (int x = X0 + 1; x <= X0 + 5; x++)
+        {
+            patch.Set(x, Y0 + 2, "Reinforced Wall", PlayerIds.Good);
+            patch.Set(x, Y0 + 3, "Dirt Path");
+        }
+
+        TileView middle = patch.View.TileAt(patch.World, X0 + 3, Y0 + 2);
+        Assert.False(middle.Pieces.HasFace(S));
+        Assert.Equal(QuarterKind.Top, middle.Pieces.Quarters);
+        Assert.True(middle.Walls.IsWhole(S));
+        Assert.Equal(7, middle.Walls.WholePiece(S));
+        Assert.False(middle.Walls.HasWall(N));
+
+        RoomWalls end = patch.View.TileAt(patch.World, X0 + 1, Y0 + 2).Walls;
+        Assert.True(end.HasWall(S));
+        Assert.False(end.IsWhole(S));
+        Assert.Equal(6, end.HalfAPiece(S));
+        Assert.Equal(5, end.HalfBPiece(S));
+
+        patch.Set(X0 + 3, Y0 + 2, "Reinforced Wall", Keeper);
+        TileView keeper = patch.View.TileAt(patch.World, X0 + 3, Y0 + 2);
+        Assert.True(keeper.Pieces.HasFace(S));
+        Assert.True(keeper.Walls.IsEmpty);
+    }
+
     /// <summary>A face toward the edge of the map is drawn (0x0043F1F6..0x0043F224).</summary>
     [InstallFact]
     public void AFaceTowardTheEdgeOfTheMapIsDrawn()

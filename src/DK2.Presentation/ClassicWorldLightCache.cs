@@ -8,7 +8,8 @@ using DK2.Core;
 
 namespace DK2.Presentation;
 
-/// <summary>Persistent prepared light cells and draw tables for one renderer view.</summary>
+/// <summary>Prepared light cells and draw tables for one renderer view; an entry lives while
+/// frames keep preparing it (<c>0x00576010</c>).</summary>
 public sealed class ClassicWorldLightCache : IClassicLightCache
 {
     private readonly int _width, _height;
@@ -32,12 +33,14 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     private const int ObjectKind = 0, EffectKind = 1;
     private readonly ClassicLightCacheCell[] _cells;
     private readonly bool[] _dirty, _prepared;
-    private readonly List<int> _preparedIndices = new();
+    private List<int> _preparedIndices = new(), _previousIndices = new();
     private readonly HashSet<TilePos> _visible = new();
     private readonly Dictionary<TilePos, ClassicLightTable> _tables = new();
     private readonly ClassicLightWindow _window = new();
-    private ClassicLightTable[] _visibleTables = Array.Empty<ClassicLightTable>();
-    private int _visibleCount;
+    private ClassicLightTable[] _visibleTables = Array.Empty<ClassicLightTable>(),
+        _previousTables = Array.Empty<ClassicLightTable>();
+    private int _visibleCount, _previousCount;
+    private bool _evictionPending;
 
     public ClassicWorldLightCache(int width, int height)
     {
@@ -126,12 +129,14 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
 
     public void PrepareFrame(ReadOnlySpan<TilePos> visible)
     {
+        if (_evictionPending) EvictUntouched();
         _visible.Clear();
         foreach (TilePos tile in visible)
             if (!_visible.Add(tile)) throw new ArgumentException("Visible enumeration contains a duplicate tile.", nameof(visible));
         _window.Reset();
         Frame = new ClassicLightFrame(unchecked(Frame.Value + 1));
-        foreach (int index in _preparedIndices) _prepared[index] = false;
+        (_preparedIndices, _previousIndices) = (_previousIndices, _preparedIndices);
+        foreach (int index in _previousIndices) _prepared[index] = false;
         _preparedIndices.Clear();
         foreach (TilePos tile in visible)
         {
@@ -143,9 +148,10 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             for (int y = top; y <= bottom; y++)
             for (int x = left; x <= right; x++) PrepareCell(new TilePos(x, y));
         }
+        (_visibleTables, _previousTables) = (_previousTables, _visibleTables);
+        _previousCount = _visibleCount;
         if (_visibleTables.Length < visible.Length)
             Array.Resize(ref _visibleTables, Math.Max(visible.Length, _visibleTables.Length * 2 + 16));
-        if (_visibleCount > visible.Length) Array.Clear(_visibleTables, visible.Length, _visibleCount - visible.Length);
         _visibleCount = visible.Length;
         for (int index = 0; index < visible.Length; index++)
         {
@@ -154,6 +160,36 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
                 _tables.Add(tile, table = new ClassicLightTable(tile));
             _window.Gather(table, this, Frame);
             _visibleTables[index] = table;
+        }
+        _evictionPending = true;
+    }
+
+    /// <summary>The end of the last prepared frame (<c>0x00576010</c>), run once its tables have been
+    /// drawn: every cache entry that frame did not touch is freed, its cell and its table with it,
+    /// so a tile that comes back into view is rebuilt and stamped afresh. Freeing a cell that held
+    /// static sources first empties the static part of each surviving table within three tiles
+    /// (count <c>+0xC4</c> zeroed, stamp kept).</summary>
+    private void EvictUntouched()
+    {
+        _evictionPending = false;
+        // An off-map target has a table but no cell; only its visibility keeps it.
+        for (int i = 0; i < _previousCount; i++)
+        {
+            TilePos tile = _previousTables[i].Tile;
+            _previousTables[i] = null!;
+            if (!Contains(tile) && !_visible.Contains(tile)) _tables.Remove(tile);
+        }
+        foreach (int index in _previousIndices)
+        {
+            if (_prepared[index]) continue;
+            int x = index % _width, y = index / _width;
+            if (!_cells[index].StaticSources.IsEmpty)
+                for (int ny = y - 3; ny <= y + 3; ny++)
+                for (int nx = x - 3; nx <= x + 3; nx++)
+                    if (_tables.TryGetValue(new TilePos(nx, ny), out ClassicLightTable? near)) near.DropStatic();
+            _tables.Remove(new TilePos(x, y));
+            _cells[index] = default;
+            _dirty[index] = true;
         }
     }
 
@@ -228,9 +264,11 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         Array.Clear(_cells, 0, _cells.Length);
         Array.Clear(_prepared, 0, _prepared.Length);
         Array.Clear(_visibleTables, 0, _visibleTables.Length);
+        Array.Clear(_previousTables, 0, _previousTables.Length);
         Array.Fill(_dirty, true);
-        _preparedIndices.Clear(); _visible.Clear(); _tables.Clear();
-        _visibleCount = 0;
+        _preparedIndices.Clear(); _previousIndices.Clear(); _visible.Clear(); _tables.Clear();
+        _visibleCount = _previousCount = 0;
+        _evictionPending = false;
         Frame = default;
     }
 }

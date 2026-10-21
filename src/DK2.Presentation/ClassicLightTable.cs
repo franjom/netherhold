@@ -37,6 +37,11 @@ public sealed class ClassicLightTable
 
     internal void CompleteStatic(ClassicLightFrame frame) => StaticFrame = frame;
 
+    /// <summary>A freed neighbour cell's sources are gone: the static selection empties but keeps
+    /// its stamp (<c>0x00576010</c>). The binary zeroes only the static count; zeroing Count too is
+    /// safe because every Gather rebuilds the dynamic part (BeginDynamic) before the table is read.</summary>
+    internal void DropStatic() => Count = StaticCount = 0;
+
     internal void AppendStatic(ReadOnlySpan<ClassicPointLight> candidates)
     {
         foreach (ClassicPointLight candidate in candidates)

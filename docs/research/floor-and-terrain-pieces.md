@@ -110,7 +110,8 @@ n = file byte 0x296 → runtime +0x1C3.
 
 CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0x0043FE30`
 (top and water) and `0x0043FF5A..0x00440315` (quarters); the secret-door prelude
-(`0x0043E8FC..0x0043F1A8`) and the hero-wall scheme are LIKELY (decompile only).
+(`0x0043E8FC..0x0043F1A8`) is LIKELY (decompile only); the hero-wall scheme's run-on tests were
+read from the instructions at `0x0043F3A0..0x0043F50F` (2026-10-21).
 
 - A terrain with side art (`+0x1CB` bit 1) or PlayerColouredWall draws art 1 on each side whose
   neighbour is **off the map** (CONFIRMED, `0x0043F1F6..0x0043F224`: the flag set before the
@@ -123,7 +124,18 @@ CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0
   UNKNOWN. The owner (2026-10-09): unexplored ground is hidden behind the fog, *"essentialy black to
   me"*, until a reveal spell or a creature reveals it, so such a face is not seen in play. (The
   remake's runner draws fog as the Fog of War terrain's rock, not black.) A hero-owned Reinforced Wall instead draws
-  `HeroWall_LevelDefaultPart4..8` in `wall-pieces.md` §2's half/whole scheme with 4 and 5 swapped.
+  `Herowall_LevelDefaultPart4..8` in `wall-pieces.md` §2's half/whole scheme with 4 and 5 swapped.
+  The test is terrain flag `0x800` (PlayerColouredWall) and tile owner `+8 & 0xFFF` equal to the hero
+  player `[0x006F254C]`. On face side s (direction d = 2s) the wall runs on toward A when the tile at
+  d−2 is nav-solid (vt `+0x208`) or a closed secret door (`0x004434F0`) and the diagonal d−1 is
+  neither; toward B likewise with d+2 and d+1. Both: one whole piece, 8 where (s even and x even) or
+  (s odd and y odd), else 7. Otherwise two halves: quadrant s takes A ? 6 : 5, quadrant s+1 takes
+  B ? 6 : 4, all turned to s. The pieces come from world vt `+0x2A0(n)`, unread; the names are the
+  install's (Meshes.WAD holds exactly Part4..8). **BUILT 2026-10-21** (`WorldView.HeroWallFacesOf`,
+  carried in `TileView.Walls`): Level 1's Lord's hall is ringed by hero Reinforced Wall, which DK2
+  draws as brick where our plain "CLAIMED WALL" face was blue-grey stone (owner's SHOT0065..0078).
+  Measured: the halves lie on z 0.25 and the wholes on z 0.5 from their anchor, so each meets the
+  tile edge.
 - A solid block then draws one art 2 top with the position-hashed texture variant; water and lava go
   to `0x0043E440` (`room-floors-and-liquids.md` §3); claimed and player-coloured tiles draw four player quarters from table
   `0x0066DA08` by an 8-neighbour mask; anything else draws art 0 whole (Mana Vault by owner).

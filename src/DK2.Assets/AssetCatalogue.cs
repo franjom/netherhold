@@ -197,6 +197,11 @@ public static class AssetCatalogue
                 yield return TerrainPiece(terrain.Name, TerrainTop);
                 if (terrain.IsTaggable) yield return TerrainPiece(terrain.Name, TerrainTopTagged);
             }
+            else
+            {
+                for (int k = 0; k < HeroWallPieces; k++)
+                    yield return HeroWallPiece(terrain.Name, FirstHeroWallPiece + k);
+            }
         }
         else if ((flags & TerrainFlags.PlayerColouredPath) == 0)
         {
@@ -208,6 +213,14 @@ public static class AssetCatalogue
                 for (int piece = 0; piece < ClaimedPieces; piece++)
                     yield return TerrainQuarter(terrain.Name, set, piece);
     }
+
+    /// <summary>A hero-owned PlayerColouredWall's faces are pieces 4..8 of the hero wall set,
+    /// "Herowall_LevelDefaultPart4..8" (floor-and-terrain-pieces.md section 5).</summary>
+    public const int FirstHeroWallPiece = 4, HeroWallPieces = 5;
+
+    /// <summary>Hero wall face piece <paramref name="piece"/> (4..8) of a PlayerColouredWall terrain.</summary>
+    public static AssetRef HeroWallPiece(string terrainName, int piece) =>
+        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "hero" + piece);
 
     /// <summary>The variants <see cref="TerrainPiece"/> takes: art 1, 2, 3 and 0.</summary>
     public const string TerrainSide = "side", TerrainTop = "top", TerrainTopTagged = "toptagged",
