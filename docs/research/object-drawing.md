@@ -304,7 +304,7 @@ The turn: `Mat3_SetAxisRotation(2, a)` (`0x0041C580`) with the row transform
 `0x00594DB0` turns clockwise by a, and a is −h·π/1024, so the square turns
 counter-clockwise by h·π/1024 in the DK2 x-y plane. It lights
 each corner by the tint ×255 plus the radial term of the nearby lights at the
-centre (`0x0057C080`). No descriptor dimension enters its size. Fourteen shipped
+centre (`0x0057C080`; not built, see Sprite light below). No descriptor dimension enters its size. Fourteen shipped
 effect elements carry the flag: the Heart plug's overlay (407) and static (383),
 blood pools, the fire ring, the Portal's white disc, the inferno carpet, the
 Horny end rings, the arch mist. Built (ADR-0492 amendment, ADR-0493): the Unity
@@ -337,10 +337,14 @@ item's `+0x50`/`+0x38`, all bits. That this list is the drawn tile's table is
 INFERRED: both draw items' constructors leave `+0x50`/`+0x38` unset, and the pass
 that fills them and calls the items is unread, though the list has the layout of
 the 12-static, 24-total table `0x00576230` fills. The sample point is the item's
-interpolated world point `+0x1C`, not the lifted centre. Built:
-`ClassicPointLight.RadialAt`; the renderer sums the visible tile's table, rounds
-each channel and caps it at 255 as the vertex sinks do, so a channel whose tint
-is already 255 takes no light.
+interpolated world point `+0x1C`, not the lifted centre. Built, then
+withdrawn (ADR-0493 amendment, 2026-10-21): summing the visible tile's table turned
+the Heart's grey dust brown and its cyan sparkles white against the owner's DK2, so
+effect sprites now draw at their tint and the list is taken as empty for them
+(HYPOTHESIS; against it, the items are queued on their tile by `0x00571AE0` for an
+unread per-tile pass that probably attaches the tile's table, Q609).
+`ClassicPointLight.RadialAt` and `ClassicWorldLightCache.TryGetVisibleTable` remain,
+unused by the renderer, for that question.
 
 ## 11. Open
 

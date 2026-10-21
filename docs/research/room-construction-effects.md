@@ -335,3 +335,5 @@ The native addition is confirmed, but our use of the tile's entire light table
 remains inferred: see [object-drawing.md section10](object-drawing.md#10-flat-sprites).
 No live claim measurement or native table-membership comparison yet proves
 this is the reported regression. Next verification and the open boundary are Q609.
+2026-10-21: the sum was withdrawn (ADR-0493 amendment) after a Heart-intro A/B showed the
+same light turning grey dust brown; the claim mist was not probed.

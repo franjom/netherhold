@@ -480,11 +480,6 @@ namespace DK2.Unity
             _worldLights?.UpdateEffects(lights, _torchFlags == ClassicLightFlags.CheapTorch);
         }
 
-        /// <summary>The light table this frame's lighting gave a visible tile, or null (classic
-        /// lighting off, or the tile not drawn).</summary>
-        public ClassicLightTable LightTableAt(TilePos tile) =>
-            _worldLights != null && _worldLights.TryGetVisibleTable(tile, out ClassicLightTable table) ? table : null;
-
         public void CreateObject(int objectId, in ObjectView instance, in ResolvedAsset mesh)
         {
             // With the install, an object it has no art for draws nothing, as DK2's draws nothing

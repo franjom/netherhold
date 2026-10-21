@@ -314,7 +314,6 @@ namespace DK2.Unity
                 // 0x0043A8E0's owner is the render sink's word +0xC, whose writer is unread; taken as the viewer.
                 _scene.GemSparkleRequested = point => _constructionEffects.Model.Request(new ViewEffectRequest(
                     new EffectId(CreatureView.GemDustSparkle.EffectId), new PlayerId((byte)viewingPlayerId), point));
-                _constructionEffects.LightTable = _scene.LightTableAt;
             }
             _startup.Step("effects");
             _textFolder = Path.Combine(install, "Data", "Text", "Default");

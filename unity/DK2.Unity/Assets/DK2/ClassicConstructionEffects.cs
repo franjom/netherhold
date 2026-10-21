@@ -87,26 +87,12 @@ namespace DK2.Unity
         private float _fraction;
         private readonly List<EffectLightView> _lights = new List<EffectLightView>();
 
-        /// <summary>The tile's light table for the frame being drawn (null without classic lighting).</summary>
-        public Func<TilePos, ClassicLightTable> LightTable { get; set; }
-
-        /// <summary>A sprite's colour: its tint plus, at its centre, the radial term of every light in
-        /// its tile's table (0x0057C080, for billboards 0x0057F3D0 and flat sprites 0x0057FB80), each
-        /// channel clamped at 255 as an 8-bit vertex colour. That the list is the tile's whole table
-        /// is INFERRED (0x0057BCB0's source, the draw item's +0x50, is set outside the draw).</summary>
-        private Color32 SpriteColour(ConstructionParticle source, float x, float y, float height)
-        {
-            var colour = new System.Numerics.Vector3(source.Red, source.Green, source.Blue);
-            ClassicLightTable table = LightTable?.Invoke(new TilePos((int)Math.Floor(x / 4096f), (int)Math.Floor(y / 4096f)));
-            if (table != null)
-            {
-                var sample = new System.Numerics.Vector3(x / 4096f, height / 4096f, -y / 4096f);
-                foreach (ClassicPointLight light in table.Lights) colour += light.RadialAt(sample) * 255f;
-            }
-            // The vertex sinks round each channel to the nearest step, then cap it at 255.
-            return new Color32((byte)Math.Min(255, Mathf.RoundToInt(colour.X)),
-                (byte)Math.Min(255, Mathf.RoundToInt(colour.Y)), (byte)Math.Min(255, Mathf.RoundToInt(colour.Z)), 255);
-        }
+        /// <summary>A sprite's colour: its tint alone. DK2's sprite draws (0x0057F3D0, 0x0057FB80) add
+        /// the radial term of a light list (0x0057C080) whose filler is unread; adding the tile's whole
+        /// table (ADR-0493) turned the Heart's grey dust brown, its cyan sparkles white and the claim
+        /// mist pale, against the owner's DK2, so the list is taken as empty for effects (amendment).</summary>
+        private static Color32 SpriteColour(ConstructionParticle source) =>
+            new Color32(source.Red, source.Green, source.Blue, 255);
 
         /// <summary>Runs the effect updates due by now and returns the instances' lights, which
         /// the frame's lighting takes before it is prepared; <see cref="Draw"/> then draws this state.</summary>
@@ -182,9 +168,7 @@ namespace DK2.Unity
                 group.Buffer[group.Count++] = new ParticleSystem.Particle
                 {
                     position = position,
-                    startColor = SpriteColour(source, Mathf.Lerp(source.PreviousXRaw, source.XRaw, fraction),
-                        Mathf.Lerp(source.PreviousYRaw, source.YRaw, fraction),
-                        Mathf.Lerp(source.PreviousHeightRaw, source.HeightRaw, fraction)),
+                    startColor = SpriteColour(source),
                     rotation3D = Vector3.zero,
                     startSize3D = new Vector3(width, spriteHeight, 1f),
                     startLifetime = 1f,
@@ -243,8 +227,8 @@ namespace DK2.Unity
             int frame = Math.Min(frames - 1, (int)(age * frames));
             float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
             int first = group.FlatVertices.Count;
-            // The four corners share the colour lit at the centre (0x0057FB80).
-            Color32 colour = SpriteColour(source, x, y, heightRaw);
+            // The four corners share one colour (0x0057FB80).
+            Color32 colour = SpriteColour(source);
             for (int corner = 0; corner < 4; corner++)
             {
                 float cx = corner == 0 || corner == 3 ? -half : half;

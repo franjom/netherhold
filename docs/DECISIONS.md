@@ -11431,6 +11431,17 @@ INFERRED (object-drawing.md §10).
 brighter than before in every channel their tint leaves below 255 (a channel at 255 is capped); the 15 odd-sized sprites (drips, door and Horny flames, the eye glow) change
 shape, and the six flag-`0x40` sprites stand on their points.
 
+**Amendment (2026-10-21).** The light sum is withdrawn; effect sprites draw at their tint alone.
+The owner reported the Heart's appearance dust turned brown, its cyan plug sparkles (384, 408)
+white and too bright, and the claim mist a pale fog instead of the keeper's colour. A probe A/B
+of the Heart intro tied the dust and sparkles to the added Heart lights (orange, the blue glow,
+the burst's white flash), and without them the dust matched DK2's grey (SHOT0007-0013). DK2's
+draws do add a list (CONFIRMED), but its filler is unread; for effects it is taken as empty
+(HYPOTHESIS). Against it: the list has the tile-table layout, the items are queued on their tile
+(`0x00571AE0`) for a later unread pass, and nothing else is known to fill it, so DK2 may light
+them after all and our light set (or sample point, or cap) differ instead (Q609). The claim
+mist's fix is inferred from the same cause, not probed. Descriptor sizing and the lift stay.
+
 ## ADR-0494 - Wall flames use a frame-independent playback clock
 **Date:** 2026-10-17 - **Status:** accepted - Research: torch-animation.md
 
