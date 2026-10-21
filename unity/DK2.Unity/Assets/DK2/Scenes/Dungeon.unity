@@ -341,7 +341,6 @@ MonoBehaviour:
   tickOnWorkerThread: 1
   maxTicksPerFrame: 2
   classicMeshes: 1
-  prefetchFirstFrameArt: 1
   classicVertexLighting: 1
   cheapLighting: 0
   nativeInitialAmbient: 0
@@ -349,9 +348,9 @@ MonoBehaviour:
   bendTerrain: 1
   highWalls: 1
   cameraPreset: 3
-  cameraZoomOutLimitScale: 1
+  cameraZoomOutLimitScale: 1.3
   frameWholeMap: 0
-  cameraPitch: 55
+  cameraPitch: 70
   cameraPanSpeed: 12
   cameraRotationSpeed: 90
   cameraZoomFraction: 0.15
