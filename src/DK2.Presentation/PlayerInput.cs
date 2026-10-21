@@ -49,6 +49,8 @@ public enum PlayerInputTargetKind : byte
 {
     Creature,
     Object,
+    /// <summary>A special's box, which the hand activates and never lifts (specials.md §3).</summary>
+    Special,
 }
 
 /// <summary>An entity the player's current view permits the pointer to target.</summary>
@@ -83,7 +85,8 @@ public sealed class PlayerInputSnapshot
             _ => null,
         };
         foreach (PlayerInputTarget target in Targets)
-            if (target.Kind == kind && target.Id == hit.EntityId)
+            if ((target.Kind == kind || kind == PlayerInputTargetKind.Object && target.Kind == PlayerInputTargetKind.Special)
+                && target.Id == hit.EntityId)
                 return new PlayerInputSnapshot(IsHolding,
                     [new PlayerInputTarget(target.Kind, target.Id, hit.Tile)], Excavation);
         return new PlayerInputSnapshot(IsHolding, NoTargets, Excavation);
@@ -117,6 +120,14 @@ public sealed class PlayerInputSnapshot
             ObjectState? thing = world.ObjectById(instance.Id);
             if (thing is null || thing.InHand || thing.CarriedByCreatureId >= 0) continue;
             if (database is not null && !HandRules.MayReachObject(world, database, thing, playerId)) continue;
+            if (database?.ObjectById(thing.ObjectTypeId)?.IsSpecial == true)
+            {
+                // Hand_Click's object arm (0x00407AD5): a special is activated, only from a tile its
+                // keeper owns; its +0x74 predicate (object +0x146 bit 1) is not mirrored.
+                if (world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId)
+                    targets.Add(new PlayerInputTarget(PlayerInputTargetKind.Special, instance.Id, instance.Tile));
+                continue;
+            }
             targets.Add(new PlayerInputTarget(
                 PlayerInputTargetKind.Object, instance.Id, instance.Tile));
         }
@@ -241,6 +252,9 @@ public sealed class PlayerInputTranslator
                 snapshot.Targets, tile, PlayerInputTargetKind.Creature);
             if (creature is PlayerInputTarget c)
                 return new PickUpCreatureCommand(intent.PlayerId, c.Id);
+
+            if (TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Special) is PlayerInputTarget special)
+                return new ActivateSpecialCommand(intent.PlayerId, special.Id);
 
             PlayerInputTarget? instance = TargetAt(
                 snapshot.Targets, tile, PlayerInputTargetKind.Object);

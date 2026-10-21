@@ -8,8 +8,10 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Built: Increase Level and Receive Imps (`SpecialSystem`, `ActivateSpecialCommand`, ADR-0441). Everything else here is
-read and not built.
+Built: Increase Level and Receive Imps (`SpecialSystem`, `ActivateSpecialCommand`, ADR-0441), and the hand's arm
+(2026-10-21): a hand click on a special on the keeper's own tile activates it, a special is never lifted, and
+hovering one shows the pointing hand (owner report, 2026-10-21; the hover cursor's code is unread); the `+0x74` predicate is not mirrored, and 127/140 post
+the activation instead of entering targeting. Everything else here is read and not built.
 
 ## 1. What a player sees — CONFIRMED (owner, 2026-10-09)
 

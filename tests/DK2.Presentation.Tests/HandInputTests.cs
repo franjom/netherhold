@@ -123,6 +123,29 @@ public class HandInputTests
     }
 
     [InstallFact]
+    public void TheHandActivatesASpecialOnItsKeepersTileAndNeverLiftsOne()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        byte floor = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
+        var tiles = Enumerable.Repeat(new MapTile(floor, Keeper.Value, 0, 0), 49).ToArray();
+        WorldState world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [PlayerIds.Neutral, Keeper.Value]);
+        world.Tile(End).OwnerPlayerId = PlayerIds.Neutral;
+        ObjectState mine = world.SpawnObject(db, 117, PlayerIds.Neutral, Start.Y * 7 + Start.X);
+        world.SpawnObject(db, 117, PlayerIds.Neutral, End.Y * 7 + End.X);
+        var view = new WorldView(db, Keeper);
+        var input = new PlayerInputTranslator();
+
+        ActivateSpecialCommand activate = Assert.IsType<ActivateSpecialCommand>(Assert.Single(input.Translate(
+            Intent(Start, PointerButtonTransition.Pressed), PlayerInputSnapshot.Capture(view, world, Keeper, db, Start)).All));
+        Assert.Equal(mine.Id, activate.ObjectId);
+        PlayerInputSnapshot hovered = PlayerInputSnapshot.Capture(view, world, Keeper, db, Start)
+            .ForHover(new WorldHoverHit(WorldHoverKind.Object, Start, mine.Id));
+        Assert.Equal(PlayerInputTargetKind.Special, Assert.Single(hovered.Targets).Kind);
+        Assert.Empty(input.Translate(Intent(End, PointerButtonTransition.Pressed),
+            PlayerInputSnapshot.Capture(view, world, Keeper, db, End)).All);
+    }
+
+    [InstallFact]
     public void SnapshotReadsOnlyThePointedTilesOwnTagAndPreviewDoesNotMutateIt()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);

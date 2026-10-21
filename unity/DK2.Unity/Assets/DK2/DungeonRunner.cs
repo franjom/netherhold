@@ -1174,7 +1174,10 @@ namespace DK2.Unity
                     if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
                         pickup = HandRules.CanPickUp(world, _simulation.Database, creature, viewer);
                     else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState obj)
-                        pickup = HandRules.CanPickUpObject(world, _simulation.Database, obj, viewer)
+                        // A special is clicked to activate, never lifted (Hand_Click 0x00407AF1); the pointing hand over
+                        // it is the owner's observation, its producer unread (specials.md).
+                        pickup = _simulation.Database.ObjectById(obj.ObjectTypeId)?.IsSpecial != true
+                            && HandRules.CanPickUpObject(world, _simulation.Database, obj, viewer)
                             && HandRules.MayReachObject(world, _simulation.Database, obj, viewer);
                     bool dig = HandCursor.ShowsDig(world, _simulation.Database, tile, viewer);
                     if (ActiveTool == PlayerToolMode.Hand)
