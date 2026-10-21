@@ -11976,11 +11976,11 @@ placement.
 
 **Amendment, 2026-10-21 (owner: "DK2 has warmer light").** Against SHOT0068-0079 our
 fill was about twice DK2's and cooler (DK2/ours red 0.65, green 0.55, blue 0.37), while
-torch-lit faces matched. The classic shader now tints the sky and sun fill
-(`classicFillTint`, default 0.55/0.44/0.28, set by eye: dimmer than the ratios suit the
-torch-lit hall but blacked out the Heart in play) and fades every vertex to black with its
-distance from the eye, as a share of the far plane. Camera paths fade between 0.2 and
-0.45, where DK2's flyovers sink into black round the hall; play fades between 0.5 and
-1.0, since DK2's play views stay lit and the path range blacked out the Heart. These
-are tuned values, not DK2's (its distance darkening is unread), set every frame from
-DungeonRunner so the Inspector can retune them live.
+torch-lit faces matched. The classic shader tints the sky and sun fill (`classicFillTint`,
+0.55/0.44/0.28, set by eye) and gives it only to explored tiles or ones with a submitted
+terrain light (`ClassicTileFillBuffer`, a proxy for the 0x0043C310 gate): in the owner's
+shots DK2's tiles away from the explored area stay dark, so it seems to add no fill
+(inferred). A mild fade to black with eye distance (0.5 to 1.0 of the far plane) stays.
+A stronger path fade was dropped the same day: probe renders showed it blacking out the
+Heart intro (far plane 10 tiles), and the owner saw it snap on the Lord's zoom-out.
+All are tuned values, not DK2's, set every frame from DungeonRunner (Inspector-live).

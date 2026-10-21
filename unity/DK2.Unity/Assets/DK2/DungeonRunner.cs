@@ -93,18 +93,12 @@ namespace DK2.Unity
         [SerializeField] private bool nativeInitialAmbient;
         [Tooltip("Tint on Unity's sky and sun fill: DK2's fill is dimmer and warmer (ADR-0522, owner's SHOT0065-0078).")]
         [SerializeField] private Color classicFillTint = new Color(0.55f, 0.44f, 0.28f);
-        [Tooltip("In play, the share of the view distance (from the eye) where the fade to black starts.")]
+        [Tooltip("The share of the view distance (from the eye) where the fade to black starts.")]
         [Range(0f, 1f)]
         [SerializeField] private float classicFadeStart = 0.5f;
-        [Tooltip("In play, the share of the view distance where the scene is black; at or below the start the fade is off.")]
+        [Tooltip("The share of the view distance where the scene is black; at or below the start the fade is off.")]
         [Range(0f, 1f)]
         [SerializeField] private float classicFadeEnd = 1f;
-        [Tooltip("On a camera path (intros, cutscenes), where the fade starts: DK2's flyovers sink into black close around what they show (SHOT0068-0077).")]
-        [Range(0f, 1f)]
-        [SerializeField] private float classicPathFadeStart = 0.2f;
-        [Tooltip("On a camera path, the share of the view distance where the scene is black.")]
-        [Range(0f, 1f)]
-        [SerializeField] private float classicPathFadeEnd = 0.45f;
         [Tooltip("Projected 32-pixel silhouettes from each creature's current animated mesh.")]
         [SerializeField] private bool classicCreatureShadows = true;
 
@@ -851,10 +845,7 @@ namespace DK2.Unity
         private void ApplyClassicLook()
         {
             Shader.SetGlobalVector("_DK2FillTint", new Vector4(classicFillTint.r, classicFillTint.g, classicFillTint.b, 1));
-            bool path = _scriptedView?.Pose is CameraPathPose;
-            Shader.SetGlobalVector("_DK2DistanceFade", path
-                ? new Vector4(classicPathFadeStart, classicPathFadeEnd, 0, 0)
-                : new Vector4(classicFadeStart, classicFadeEnd, 0, 0));
+            Shader.SetGlobalVector("_DK2DistanceFade", new Vector4(classicFadeStart, classicFadeEnd, 0, 0));
         }
 
         private void ReadAmbientKeys()

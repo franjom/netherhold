@@ -87,6 +87,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly ClassicTorchLightBuffer _torchLights;
+        private readonly ClassicTileFillBuffer _tileFill;
         private ClassicTileLightBuffer _tileLights;
         private readonly ClassicWorldLightCache _worldLights;
         private readonly ClassicLightFlags _torchFlags;
@@ -217,6 +218,7 @@ namespace DK2.Unity
             if (classic != null && classic.UsesClassicVertexLighting)
             {
                 _torchLights = new ClassicTorchLightBuffer(worldWidth, worldHeight);
+                _tileFill = new ClassicTileFillBuffer(worldWidth, worldHeight);
                 _worldLights = new ClassicWorldLightCache(worldWidth, worldHeight);
                 _torchFlags = cheapLighting ? ClassicLightFlags.CheapTorch : ClassicLightFlags.NormalTorch;
                 Shader.SetGlobalFloat("_DK2InitialAmbientPreview", classic.NativeInitialAmbient ? 1 : 0);
@@ -231,6 +233,7 @@ namespace DK2.Unity
         public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
         {
             _worldLights?.SetTerrain(tile.Position, tile.PointLight);
+            _tileFill?.Set(tileIndex, tile.Explored || tile.PointLight.HasValue);
             _torchGeometryDirty = true;
             // Steps 1 and 2 of the classic look: plain terrain and rooms from their pieces. A room
             // drawn so needs no furniture box; its objects are step 3.
@@ -724,6 +727,7 @@ namespace DK2.Unity
         public void Flush()
         {
             _torchLights?.Flush();
+            _tileFill?.Flush();
             _tileLights?.Flush();
             _terrain?.Flush();
             _liquids?.Animate(Time.time);
@@ -735,6 +739,7 @@ namespace DK2.Unity
             _tileLights?.Dispose();
             _creatureShadows?.Dispose();
             _torchLights?.Dispose();
+            _tileFill?.Dispose();
         }
 
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>
@@ -747,6 +752,7 @@ namespace DK2.Unity
             _lightCameraPose = null;
             _tileLights?.Clear();
             _torchLights?.Clear();
+            _tileFill?.Clear();
             _creatureShadows?.Clear();
             foreach (GameObject go in _tiles.Values) if (go != null) Object.Destroy(go);
             foreach (GameObject go in _furniture.Values) if (go != null) Object.Destroy(go);

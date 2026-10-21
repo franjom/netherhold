@@ -65,6 +65,9 @@ Shader "DK2/Classic Vertex Lit"
             // shares of the far plane, as distance from the eye, where the fade to black starts (x) and ends (y).
             float4 _DK2FillTint;
             float4 _DK2DistanceFade;
+            // 1 where DK2 would light the tile, 0 where it would not (ClassicTileFillBuffer).
+            StructuredBuffer<float> _DK2TileFill;
+            int _DK2TileFillWidth, _DK2TileFillCount;
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -177,6 +180,21 @@ Shader "DK2/Classic Vertex Lit"
             }
             #endif
 
+            float TileFillWeight(Attributes input)
+            {
+                if (_DK2TileFillCount <= 0 || _DK2TileFillWidth <= 0) return 1;
+                int tile;
+                if (input.tileAnchor.y == 1) tile = (int)input.tileAnchor.x;
+                else
+                {
+                    float3 origin = TransformObjectToWorld(float3(0, 0, 0));
+                    int x = (int)floor(origin.x), y = (int)floor(-origin.z);
+                    if (x < 0 || x >= _DK2TileFillWidth || y < 0) return 1;
+                    tile = y * _DK2TileFillWidth + x;
+                }
+                return tile >= 0 && tile < _DK2TileFillCount ? _DK2TileFill[tile] : 1;
+            }
+
             Varyings Vertex(Attributes input)
             {
                 Varyings output = (Varyings)0;
@@ -196,7 +214,8 @@ Shader "DK2/Classic Vertex Lit"
                     Light main = GetMainLight(TransformWorldToShadowCoord(position.positionWS));
                     fill += main.color * max(dot(normalWS, main.direction), 0)
                         * main.distanceAttenuation * main.shadowAttenuation;
-                    sum += _DK2FillTint.w > 0 ? fill * _DK2FillTint.rgb : fill;
+                    if (_DK2FillTint.w > 0) fill *= _DK2FillTint.rgb;
+                    sum += fill * TileFillWeight(input);
                 }
                 InputData inputData = (InputData)0;
                 inputData.positionWS = position.positionWS;
