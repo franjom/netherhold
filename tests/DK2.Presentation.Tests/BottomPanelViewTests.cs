@@ -104,6 +104,25 @@ public sealed class BottomPanelViewTests
     }
 
     [InstallFact]
+    public void DoorsAndTrapsNeedAWorkshopRoomsAndSpellsDoNot()
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        PlayerId keeper = PlayerIds.FirstKeeper;
+        var panel = new BottomPanelView(db, keeper, (_, name) => name);
+
+        panel.Capture(world);
+        Assert.All(panel.Choices, c => Assert.Equal(
+            c.Kind is BottomPanelChoiceKind.Door or BottomPanelChoiceKind.Trap, c.NeedsWorkshop));
+
+        RoomRules.Place(db, ref world.Tile(1, 1), db.Room(RoomTypeId.Workshop), keeper);
+        panel = new BottomPanelView(db, keeper, (_, name) => name);   // owned rooms are read once a tick
+        panel.Capture(world);
+        Assert.All(panel.Choices, c => Assert.False(c.NeedsWorkshop));
+    }
+
+    [InstallFact]
     public void UnknownAndAbsentRoomsCannotSelectAndHandCancelsTheSelectedRoom()
     {
         var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);

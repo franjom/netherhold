@@ -282,6 +282,8 @@ namespace DK2.Unity
             if (!Input.GetMouseButtonDown(0) || PointerOverHud(Input.mousePosition)) return true;
             if (ScreenToTile(Input.mousePosition) is not TilePos tile) return true;
             PlayerId viewer = new PlayerId((byte)viewingPlayerId);
+            // Without a Workshop DK2's hand places no door or trap (0x0040849F, 0x00408586).
+            if (_bottomView.Choice(choice)?.NeedsWorkshop == true) return true;
             if (choice.Kind == BottomPanelChoiceKind.Door) _pendingCommands.Add(new PlaceDoorCommand(viewer, tile, choice.Value));
             else if (choice.Kind == BottomPanelChoiceKind.Trap) _pendingCommands.Add(new PlaceTrapCommand(viewer, tile, choice.Value));
             else

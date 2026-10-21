@@ -196,7 +196,8 @@ namespace DK2.Unity
                 string icon = choice.Unknown ? choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Rooms\\tba" :
                     choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Spells\\s-tba" : "GUI\\Traps\\w-tba" : _assets.Icon(choice.Key);
                 _icons[i].image = string.IsNullOrEmpty(icon) ? null : Texture(icon);
-                _icons[i].tintColor = choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
+                _icons[i].tintColor = choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
+                    : choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
                 Place(_icons[i], BottomPanelLayout.Cell(i));
                 if (choice.Selected)
                 {

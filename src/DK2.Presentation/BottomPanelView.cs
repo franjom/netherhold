@@ -35,6 +35,12 @@ public sealed class BottomPanelChoice
     public bool Visible { get; internal set; }
     public bool Selectable { get; internal set; }
     public bool Affordable { get; internal set; }
+    /// <summary>A door or trap while its keeper owns no Workshop: the slot draws 50% grey over any
+    /// other tint (<c>0x00412FC0</c>, <c>0x00413734</c>; DK2 skips it while widget <c>+0x41/+0x45</c>
+    /// are set, which is unread and not mirrored), the cursor marks every tile invalid
+    /// (<c>0x0040B3C0</c>, <c>0x0040B4F0</c>) and a click places nothing (Hand_Click
+    /// <c>0x0040849F</c>, <c>0x00408586</c>).</summary>
+    public bool NeedsWorkshop { get; internal set; }
     public bool Selected { get; internal set; }
     public bool Unknown { get; internal set; }
     public bool ClearsToolOnClick { get; internal set; }
@@ -62,6 +68,13 @@ public sealed class BottomPanelView
     private bool _spellsTab, _workshopTab, _workshopDim, _creaturesDim;
     private readonly bool[] _ownedRoomTypes = new bool[256];
     public IReadOnlyList<BottomPanelChoice> Choices => _choices;
+
+    /// <summary>The choice for a key, or null when the panel has none.</summary>
+    public BottomPanelChoice? Choice(BottomPanelChoiceKey key)
+    {
+        foreach (BottomPanelChoice choice in _choices) if (choice.Key == key) return choice;
+        return null;
+    }
     public BottomPanelChoice? Reaper { get; }
     public byte TalismanPieces { get; }
     public bool ReaperOneShotReady { get; private set; }
@@ -162,6 +175,7 @@ public sealed class BottomPanelView
             if (choice.Kind == BottomPanelChoiceKind.Spell && choice.Key.Value == 4 && player)
                 choice.Cost = ImpSupplyRules.CreateImpCost(world, _database, _player);
             choice.Affordable = choice.Cost <= (choice.Kind == BottomPanelChoiceKind.Spell ? mana : gold);
+            choice.NeedsWorkshop = _workshopDim && choice.Kind is BottomPanelChoiceKind.Door or BottomPanelChoiceKind.Trap;
             choice.Selected = Selection.Choice == choice.Key;
             if (choice.Visible && choice.Kind == BottomPanelChoiceKind.Spell) _spellsTab = true;
             else if (choice.Visible && choice.Kind != BottomPanelChoiceKind.Room) _workshopTab = true;

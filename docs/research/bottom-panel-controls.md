@@ -95,7 +95,10 @@ The common renderer's spell branch excludes spell5 and14 from the normal grid.
 It uses separate unknown icons, upgrade state, cooldown wedges and tutorial
 indicators. Workshop enumeration places doors before traps and excludes
 availability1. Trap selection also excludes definition flag0x2000
-([trap slot resolver](functions/00411080.md)). The no-Workshop tint is RGB128. These slot facts are in
+([trap slot resolver](functions/00411080.md)). The no-Workshop tint is RGB128, on the tab and on
+every door and trap slot (a slot only while its widget +0x41/+0x45 are zero, meaning unread), over the unaffordable RGB100; without a Workshop the cursor marks every
+tile invalid ([0x0040B3C0](functions/0040B3C0.md), [0x0040B4F0](functions/0040B4F0.md)) and the
+hand places nothing ([Hand_Click](functions/004075E0.md); BUILT 2026-10-21 as tint and refusal). These slot facts are in
 [the common renderer record](functions/00412FC0.md).
 
 The adapter routes supported choice keys to the host's existing command
