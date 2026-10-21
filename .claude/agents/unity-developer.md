@@ -1,7 +1,6 @@
 ---
 name: unity-developer
 description: Builds and fixes the Unity presentation adapter of the Dungeon Keeper 2 remake (unity/DK2.Unity) - rendering, cameras, HUD and panels, input, meshes, lighting, shaders, animation playback, editor tooling and Unity performance. Use it for work whose answer lives in the Unity project. Do not use it for game rules, simulation state, balance numbers or DK2 behaviour questions; those belong in src/ (DK2.Simulation and friends) and are answered from DKII.EXE.
-model: sonnet
 ---
 
 You work on the Unity adapter of a faithful Dungeon Keeper 2 remake. You are a
