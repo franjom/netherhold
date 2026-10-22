@@ -160,10 +160,14 @@ Review Objective opens the briefing. The panel takes the text height in virtual 
 quarter units (so `< 288`, `+ 172`). One owner DK2 shot (2026-10-22, no indicator
 widgets up) shows menu40 40 above the strip, about x 1012..2228, its text at the top and exit/tick
 under it; the box, offsets and colours are fitted to that shot (HYPOTHESIS for other states). The
-indicator widgets are not built, so ours always takes 40. Not built:
-types 17, 18 and 20, whose string `0x004C4600` computes from the creature's definition
-(`def+0x6CD`/`+0x6D1`), so an unhappy or angry creature's tab has no text yet; the slide sounds, the Ally button, the goto button
-(`0x004C4BE0`'s per-type locations), player-name substitution for 82..87, menu40's own frame art
+indicator widgets are not built, so ours always takes 40. Types 17 and 18 take
+Speech `base + complaint`, base the creature's unhappy or angry line (`def+0x6CD`/`+0x6CF`, file
+`0xD05`/`0xD07`; `0x004C4600`), fixed when the view first sees the record. The goto button (art 133, x 440) shows when
+`0x004C4BE0` gives a tile, a live creature or a room centre (the box middle, Q515), and moves our
+focus there at once (HYPOTHESIS: `0x00415B30`'s submission is unread). Not mirrored: the
+thing-kind check and the Query-mode hide (`+0x4B1D`); our 42 carries no room, so shows no goto. Not built: type 20
+(`def+0x6D1`, file `0xD09`, "has left your Dungeon"), which our queue never posts; the slide sounds, the Ally button, the goto
+location of a kind-2 thing (22, 26, 48) or the Heart (85..87), none posted by us, player-name substitution for 82..87, menu40's own frame art
 (the panel is a dark box) and its sharing with the creature Query. Only the kinds our queue posts
 can tab (computer-keeper-messages.md).
 

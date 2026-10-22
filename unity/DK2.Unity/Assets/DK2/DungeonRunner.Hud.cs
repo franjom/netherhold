@@ -45,6 +45,9 @@ namespace DK2.Unity
         private CreatureQueryTarget _hoveredCreature;
         private MessageTabsView _messageView;
         private ClassicMessageTabs _messageTabs;
+        private uint _gotoMessage;
+        private GameTick _gotoTick;
+        private (float X, float Y)? _gotoLocation;
 
         private HudVisibility CurrentHud => _hudControls.Visibility(_scriptedView.HudFor(cameraPreset));
         private bool HudModal => _hudControls.OptionsVisible || _hudControls.FullMapVisible;
@@ -83,7 +86,7 @@ namespace DK2.Unity
             _statusFlowers = new StatusFlowers(database, new PlayerId((byte)viewingPlayerId));
             _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources));
             _startup.Step("hud.flowers");
-            _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId));
+            _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId), database);
             Dk2StringTable speech = OpenText(Path.Combine(_hudSources.TextDirectory, "Speech.str"));
             string levelFile = LevelTextTable.FileName(database.Level?.TextTableId ?? 0);
             Dk2StringTable level = levelFile == null ? null : OpenText(Path.Combine(_hudSources.TextDirectory, levelFile));
@@ -91,7 +94,23 @@ namespace DK2.Unity
                 : OpenText(Path.Combine(_hudSources.TextDirectory, Path.GetFileNameWithoutExtension(levelFile) + "_BRIEFING.str"));
             _messageTabs = new ClassicMessageTabs(transform, bottomAssets, new InstallClassicOptionsAssets(_hudSources), _messageView,
                 reference => MessageText(reference, speech, _hudStrings, level),
-                line => briefing != null && briefing.TryResolve((uint)line, out string text) ? text : null);
+                line => briefing != null && briefing.TryResolve((uint)line, out string text) ? text : null,
+                message =>
+                {
+                    // Once a tick: a room's location is a flood fill (RoomIndex.RoomAt).
+                    GameTick tick = _simulation.World.CurrentTick;
+                    if (_gotoMessage != message.Id || _gotoTick != tick)
+                        (_gotoMessage, _gotoTick, _gotoLocation) = (message.Id, tick, _messageView.Location(_simulation.World, message));
+                    return _gotoLocation;
+                },
+                (x, y) =>
+                {
+                    // 0x004C3DC0's point; our camera takes it as the focus at once, as the overview's Focus
+                    // does (HYPOTHESIS: what 0x00415B30's submission does with it is unread).
+                    _cameraFocus = new Vector3(Mathf.Clamp(x, 0, _cameraBounds.x - 1f / Fp32.One), _cameraFocus.y,
+                        Mathf.Clamp(-y, -_cameraBounds.y + 1f / Fp32.One, 0));
+                    _glideMilliseconds = 0;
+                });
             _startup.Step("hud.messages");
         }
 

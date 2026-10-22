@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -29,8 +30,16 @@ public sealed class MessageTabsView
     private readonly List<MessageTab> _tabs = [];
     private readonly List<uint> _gone = [];
     private readonly Dictionary<uint, PlayerMessage> _live = [];
+    private readonly Dictionary<uint, int> _references = [];
+    private readonly GameDatabase? _database;
 
-    public MessageTabsView(PlayerId viewer) => _viewer = viewer;
+    /// <param name="database">Gives types 17 and 18 their creature's speech; without it they
+    /// take their table row, which is empty.</param>
+    public MessageTabsView(PlayerId viewer, GameDatabase? database = null)
+    {
+        _viewer = viewer;
+        _database = database;
+    }
 
     public IReadOnlyList<MessageTab> Tabs => _tabs;
     /// <summary>The message menu40 shows, or null when it is closed.</summary>
@@ -55,6 +64,7 @@ public sealed class MessageTabsView
             if (examined++ >= RecordsExamined) continue;
             if (!message.NeedsTab || _dismissed.Contains(message.Id)) continue;
             if (!_stamps.TryGetValue(message.Id, out long stamp)) _stamps[message.Id] = stamp = nowMilliseconds;
+            if (!_references.ContainsKey(message.Id)) _references[message.Id] = ReferenceAtPost(world, message);
             int slot = _tabs.Count;
             long age = (nowMilliseconds - stamp) / 10;
             int x = (slot + 1) * SlotWidth + (age < SlideSteps ? SlideStart - SlideStep * (int)age : 0);
@@ -63,7 +73,7 @@ public sealed class MessageTabsView
         }
         _gone.Clear();
         foreach (uint id in _stamps.Keys) if (!_live.ContainsKey(id)) _gone.Add(id);
-        foreach (uint id in _gone) { _stamps.Remove(id); _dismissed.Remove(id); _opened.Remove(id); }
+        foreach (uint id in _gone) { _stamps.Remove(id); _dismissed.Remove(id); _opened.Remove(id); _references.Remove(id); }
         if (Open is PlayerMessage open && !_live.ContainsKey(open.Id)) Open = null;
     }
 
@@ -101,4 +111,66 @@ public sealed class MessageTabsView
     /// with a variant list the variant its Data1 names.</summary>
     public static int StringReference(PlayerMessage message) =>
         MessageTypeTable.StringReference((int)message.Kind, message.Data1);
+
+    /// <summary>The reference a tabbed message was given when first seen, as DK2 fixes it at post
+    /// (<c>0x004C4600</c>); else <see cref="StringReference(PlayerMessage)"/>.</summary>
+    public int Reference(PlayerMessage message) =>
+        _references.TryGetValue(message.Id, out int reference) ? reference : StringReference(message);
+
+    /// <summary>Where menu40's goto button sends the view (<c>0x004C4BE0</c>, then <c>0x004C3DC0</c>), in
+    /// tiles of DK2's plane, or null when the button hides (<c>0x00424660</c>). By DK2 type: a tile in
+    /// Data1/Data2 (1, 3, 11, 12, 29, 38, 47), the tile's centre; a live creature in Data2 (4, 5, 17,
+    /// 18, 27) or Data1 (7, 8, 13, 14, 19, 57, 58, 60, 64, 72, 73, 78, 79, 81), its position; a room
+    /// (32 to 35, 42, 44, 45 with Data1 below 0xFF; 25, 61, 66), its centre (<c>+0x27</c>, ours
+    /// <see cref="RoomInstance.CentreFieldX"/>, the box middle: STRONGLY INFERRED, Q515), Data2 being
+    /// ours the room's first slab; our 42 carries none (<see cref="PlayerMessageQueue.PostRoom"/>), so it
+    /// never shows the button. DK2 also checks a thing's kind (<c>+0x12</c> 0), which ours does not.
+    /// Not built: types 22, 26 and 48 (a kind-2 thing), 36 and 37 (a tile packed in Data2) and 85 to 87
+    /// (the Heart), none of which our queue posts.</summary>
+    public (float X, float Y)? Location(WorldState world, in PlayerMessage message)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        switch ((int)message.Kind)
+        {
+            case 1: case 3: case 11: case 12: case 29: case 38: case 47:
+                return message.Data1 == -1 || message.Data2 == -1 ? null : (message.Data1 + .5f, message.Data2 + .5f);
+            case 4: case 5: case 17: case 18: case 27:
+                return CreatureAt(world, message.Data2);
+            case 7: case 8: case 13: case 14: case 19: case 57: case 58: case 60: case 64: case 72: case 73:
+            case 78: case 79: case 81:
+                return CreatureAt(world, message.Data1);
+            case 32: case 33: case 34: case 35: case 42: case 44: case 45:
+                return message.Data1 < 0xFF ? RoomAt(world, message.Data2) : null;
+            case 25: case 61: case 66:
+                return RoomAt(world, message.Data2);
+            default:
+                return null;
+        }
+    }
+
+    private static (float, float)? CreatureAt(WorldState world, int id) =>
+        world.CreatureById(id) is CreatureState creature
+            ? (creature.PosX / (float)DK2.Core.Fp32.One, creature.PosY / (float)DK2.Core.Fp32.One) : null;
+
+    private (float, float)? RoomAt(WorldState world, int firstSlab)
+    {
+        if (_database is null || (uint)firstSlab >= (uint)(world.Width * world.Height)) return null;
+        return RoomIndex.RoomAt(world, _database, firstSlab) is RoomInstance room
+            ? (room.CentreFieldX + .5f, room.CentreFieldY + .5f) : null;
+    }
+
+    /// <summary><c>0x004C4600</c>'s types 17 and 18: <c>-9999 - (base + 1 + complaint)</c>, base the
+    /// creature definition's unhappy or angry speech (<c>def+0x6CD</c>/<c>+0x6CF</c>), so Speech
+    /// <c>base + complaint</c>. Data1 is the complaint, Data2 the creature; a creature already gone
+    /// keeps the row's reference.</summary>
+    private int ReferenceAtPost(WorldState world, in PlayerMessage message)
+    {
+        if (_database is null || message.Kind is not (PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry))
+            return StringReference(message);
+        if (world.CreatureById((int)message.Data2) is not CreatureState creature
+            || !_database.Creatures.TryGetValue(creature.CreatureTypeId, out CreatureDef? definition))
+            return StringReference(message);
+        int speech = message.Kind == PlayerMessageKind.CreatureUnhappy ? definition.UnhappySpeechId : definition.AngrySpeechId;
+        return -9999 - (speech + 1 + (int)message.Data1);
+    }
 }

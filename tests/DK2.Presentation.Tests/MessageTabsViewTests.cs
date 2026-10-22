@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
@@ -62,5 +63,58 @@ public sealed class MessageTabsViewTests
         Assert.Equal(posted.Skip(1).Take(7).Select(m => m.Id), view.Tabs.Select(t => t.MessageId));
         view.DismissOpen();
         Assert.Null(view.Open);
+    }
+
+    /// <summary>0x004C4600 types 17 and 18: Speech <c>base + complaint</c>, base the creature's
+    /// unhappy or angry line (file 0xD05/0xD07), fixed when the message is posted.</summary>
+    [InstallFact]
+    public void AnUnhappyOrAngryTabNamesTheCreaturesOwnLineForItsComplaint()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        CreatureDef impDef = db.Creatures.Values.Single(c => c.Name == "Imp");
+        Assert.Equal((585, 855, 1117), ((int)impDef.UnhappySpeechId, (int)impDef.AngrySpeechId, (int)impDef.LeftSpeechId));
+
+        PlayerId keeper = PlayerIds.FirstKeeper;
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [keeper.Value], fogOfWarEnabled: false);
+        CreatureState imp = world.SpawnCreature(db, impDef.CreatureId, keeper, new TilePos(1, 1));
+        PlayerMessage unhappy = world.Messages.Post(world, keeper.Value, PlayerMessageKind.CreatureUnhappy,
+            (int)AngerComplaint.Slapped, imp.Id)!.Value;
+        PlayerMessage angry = world.Messages.Post(world, keeper.Value, PlayerMessageKind.CreatureAngry,
+            (int)AngerComplaint.NoFood, imp.Id)!.Value;
+        var view = new MessageTabsView(keeper, db);
+        view.Capture(world, 0);
+        Assert.Equal(-10000 - 589, view.Reference(unhappy));   // "An Imp has become unhappy because it has been slapped"
+        Assert.Equal(-10000 - 856, view.Reference(angry));     // "... angry because it has no food"
+        Assert.Equal(MessageTabsView.StringReference(unhappy), new MessageTabsView(keeper).Reference(unhappy));
+    }
+
+    /// <summary>0x004C4BE0 per type, through 0x004C3DC0's tile centre: a tile, a live creature, a
+    /// room's centre, or nothing (the goto button hides).</summary>
+    [InstallFact]
+    public void TheGotoLocationIsTheMessagesTileCreatureOrRoomCentre_RoomCentreAssumedTheBoxMiddle()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        PlayerId keeper = PlayerIds.FirstKeeper;
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [keeper.Value], fogOfWarEnabled: false);
+        var view = new MessageTabsView(keeper, db);
+        PlayerMessage Message(PlayerMessageKind kind, int data1, int data2) => new(1, keeper, kind, data1, data2, 0, 0, true, false);
+
+        Assert.Equal((5.5f, 6.5f), view.Location(world, Message(PlayerMessageKind.HeartAttacked, 5, 6)));
+        Assert.Null(view.Location(world, Message(PlayerMessageKind.CombatStarted, 5, 6)));
+        Assert.Null(view.Location(world, Message(PlayerMessageKind.LowManaWarning, 1, 0)));
+
+        CreatureState imp = world.SpawnCreature(db, db.Creatures.Values.Single(c => c.Name == "Imp").CreatureId, keeper, new TilePos(3, 4));
+        Assert.Equal((imp.PosX / (float)Fp32.One, imp.PosY / (float)Fp32.One),
+            view.Location(world, Message(PlayerMessageKind.CreatureUnhappy, 4, imp.Id)));
+        Assert.Null(view.Location(world, Message(PlayerMessageKind.CreatureUnhappy, 4, 9999)));
+
+        var heart = ManaRemovalLifecycle.HeartTile(world, db, keeper);
+        RoomInstance room = RoomIndex.RoomAt(world, db, heart.Y * world.Width + heart.X)!;
+        int firstSlab = SlabChain.FirstSlab(world, room);
+        Assert.Equal((room.CentreFieldX + .5f, room.CentreFieldY + .5f),
+            view.Location(world, Message(PlayerMessageKind.RoomAttacked, (int)room.Definition.RoomId, firstSlab)));
+        Assert.Null(view.Location(world, Message(PlayerMessageKind.RoomAttacked, 0xFF, firstSlab)));
     }
 }

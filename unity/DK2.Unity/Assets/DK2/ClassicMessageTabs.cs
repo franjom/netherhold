@@ -13,8 +13,7 @@ namespace DK2.Unity
 {
     /// <summary>Menu39's message tabs and Review Objective button, the message panel (menu40 in
     /// message mode) and the objective panel (menu33); docs/research/message-tabs.md. Sounds
-    /// 0x320..0x322, the Ally button (mode 3), the goto button and name substitution for types 82..87
-    /// are not built.</summary>
+    /// 0x320..0x322, the Ally button (mode 3) and name substitution for types 82..87 are not built.</summary>
     public sealed class ClassicMessageTabs : IDisposable
     {
         private const int MenuX = 1112, MenuY = 1460, ButtonWidth = 88, ButtonHeight = 128;
@@ -42,7 +41,9 @@ namespace DK2.Unity
         private readonly Image _objective;
         private readonly Image[] _slots = new Image[Slots];
         private readonly VisualElement _panel, _objectivePanel;
-        private readonly Image _panelText, _objectiveText, _exit, _tick;
+        private readonly Image _panelText, _objectiveText, _exit, _tick, _goto;
+        private readonly Func<PlayerMessage, (float X, float Y)?> _locate;
+        private readonly Action<float, float> _goTo;
         private Texture2D _panelTexture, _objectiveTexture;
         private uint _shownId;
         private int _shownHeight;
@@ -52,9 +53,13 @@ namespace DK2.Unity
 
         /// <param name="resolve">A message string reference to its text (Speech.str, level table, Text.str).</param>
         /// <param name="briefing">A line of the level's briefing table, or null.</param>
+        /// <param name="locate">A message's goto location in tiles, or null to hide the button.</param>
+        /// <param name="goTo">Moves the view to a location in tiles.</param>
         public ClassicMessageTabs(Transform parent, IClassicBottomPanelAssets assets, IClassicOptionsAssets textAssets,
-            MessageTabsView view, Func<int, string> resolve, Func<int, string> briefing)
+            MessageTabsView view, Func<int, string> resolve, Func<int, string> briefing,
+            Func<PlayerMessage, (float X, float Y)?> locate = null, Action<float, float> goTo = null)
         {
+            _locate = locate; _goTo = goTo;
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
             _textAssets = textAssets ?? throw new ArgumentNullException(nameof(textAssets));
             _view = view ?? throw new ArgumentNullException(nameof(view));
@@ -100,6 +105,14 @@ namespace DK2.Unity
             _exit.RegisterCallback<PointerDownEvent>(evt => { if (evt.button == 0) { evt.StopPropagation(); _view.DismissOpen(); } });
             _tick = Button(Texture("GUI\\Tabs\\Messages\\mt-tick-00"), _panel);
             _tick.RegisterCallback<PointerDownEvent>(evt => { if (evt.button == 0) { evt.StopPropagation(); _view.CloseOpen(); } });
+            // 0x00424720: the view to the message's location; menu40 stays open.
+            _goto = Button(Texture("GUI\\Tabs\\Messages\\mt-goto-00"), _panel);
+            _goto.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0) return;
+                evt.StopPropagation();
+                if (_view.Open is PlayerMessage open && _locate?.Invoke(open) is (float x, float y)) _goTo?.Invoke(x, y);
+            });
             _objectivePanel = Box(); _objectiveText = Text(_objectivePanel);
             _objectivePanel.pickingMode = PickingMode.Position;
             _objectivePanel.RegisterCallback<PointerDownEvent>(evt => { evt.StopPropagation(); _objectiveOpen = false; });
@@ -176,6 +189,8 @@ namespace DK2.Unity
             int y = stripTop - height - 40;
             Place(_panel, left, y, boxWidth, height);
             Place(_exit, 88, height - 112, 88, 88); Place(_tick, 264, height - 112, 88, 88);
+            Place(_goto, 440, height - 112, 88, 88);
+            _goto.style.display = _locate?.Invoke(message) is not null ? DisplayStyle.Flex : DisplayStyle.None;
             _panelText.style.left = V(42); _panelText.style.top = V(32);
             _panelText.style.width = _panelTexture.width; _panelText.style.height = _panelTexture.height;
         }
@@ -207,7 +222,7 @@ namespace DK2.Unity
         private string MessageText(uint messageId)
         {
             PlayerMessage? found = _view.Open?.Id == messageId ? _view.Open : _view.MessageById(messageId);
-            return found is PlayerMessage message ? _resolve(MessageTabsView.StringReference(message)) : null;
+            return found is PlayerMessage message ? _resolve(_view.Reference(message)) : null;
         }
 
         private Image Button(Texture2D texture, VisualElement parent = null)
