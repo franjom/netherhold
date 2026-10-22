@@ -109,7 +109,9 @@ menu40, and loads the message text into its text widget
 sizes menu40: text measured in a 1096x288 box converted by `0x0052C5A0` (unread, LIKELY a
 quarter-unit scale); if it fits strictly, height = 4 * text height + 172, else 440; y = panel top
 (`+0x12D2`) - height - 168 when `+0x10C2 == 1`, else - 40 (`0x00424163..0x00424174`; overflow
-y - 608 or - 480). What `+0x10C2` holds is unread. **No speech is replayed, no camera moves, no sound plays, no
+y - 608 or - 480). `+0x10C2` is set while any indicator widget 0x2D..0x32 shows
+([0x00427BA0](functions/00427BA0.md)); their row at y 1332 is one 128-unit step, so the panel
+clears it (LIKELY). **No speech is replayed, no camera moves, no sound plays, no
 packet is sent.**
 
 **Right click** ([0x00424220](functions/00424220.md)): sets dismissed bit 4 on
@@ -155,8 +157,10 @@ simulation (first seen by the view stands in for the record's `+0x2C` stamp). `C
 draws Review Objective and the slots, puts the hovered message's text on the status line, opens
 the message panel on a left click and dismisses on a right click; the panel has exit and tick, and
 Review Objective opens the briefing. The panel takes the text height in virtual units as four
-quarter units (so `< 288`, `+ 172`), and the 168 offset while the panel is expanded, 40 while
-collapsed (`+0x10C2` read as expanded: INFERRED, the 128 difference is a strip row). Not built:
+quarter units (so `< 288`, `+ 172`). One owner DK2 shot (2026-10-22, no indicator
+widgets up) shows menu40 40 above the strip, about x 1012..2228, its text at the top and exit/tick
+under it; the box, offsets and colours are fitted to that shot (HYPOTHESIS for other states). The
+indicator widgets are not built, so ours always takes 40. Not built:
 types 17, 18 and 20, whose string `0x004C4600` computes from the creature's definition
 (`def+0x6CD`/`+0x6D1`), so an unhappy or angry creature's tab has no text yet; the slide sounds, the Ally button, the goto button
 (`0x004C4BE0`'s per-type locations), player-name substitution for 82..87, menu40's own frame art

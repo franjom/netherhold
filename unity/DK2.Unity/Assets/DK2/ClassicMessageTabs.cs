@@ -146,19 +146,20 @@ namespace DK2.Unity
                 _slots[i].image = Texture(FrameNames[tab.Graphic, tab.Frame]);
                 Place(_slots[i], MenuX + tab.LocalX, top, ButtonWidth, ButtonHeight);
             }
-            DrawPanel(top, collapsed);
+            DrawPanel(top);
             DrawObjective();
         }
 
         /// <summary>Menu40 in message mode (0x00423F50 sizes it): the text in a 1096-wide box, 4 * its
-        /// height + 172 tall when it fits 288, else 440, its top that far plus 168 above the strip. The
-        /// exit and tick buttons sit at x 88 and 264, y 20.</summary>
-        private void DrawPanel(int stripTop, bool collapsed)
+        /// height + 172 tall when it fits 288, else 440. The owner's DK2 shot (2026-10-22, expanded
+        /// panel, 1604x1202) puts it 40 above the strip, (1012..2228) wide (fitted to that one shot), the text at its top and the
+        /// exit and tick buttons under it at x 88 and 264, 24 from the bottom.</summary>
+        private void DrawPanel(int stripTop)
         {
             PlayerMessage? open = _objectiveOpen ? null : _view.Open;
             _panel.style.display = open.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
             if (open is not PlayerMessage message) return;
-            const int left = 1040, width = 1096;
+            const int left = 1012, width = 1096, boxWidth = 1216;
             if (_shownId != message.Id || _shownHeight != Height || _panelTexture == null)
             {
                 _shownId = message.Id; _shownHeight = Height;
@@ -167,14 +168,15 @@ namespace DK2.Unity
                 _panelText.image = _panelTexture;
             }
             // DK2: 4 * h + 172 when h fits the box strictly, h read as quarter units (0x0052C5A0 unread),
-            // so virtual height + 172 under 288; 168 above the strip when +0x10C2 == 1, else 40, the
-            // flag read as the expanded panel (INFERRED).
+            // so virtual height + 172 under 288; 40 above the strip, or 168 while +0x10C2 is set, which
+            // 0x00427BA0 sets while any indicator widget 0x2D..0x32 shows (their row at y 1332 is 128
+            // tall). Those widgets are not built, so 40, as the owner's DK2 shot shows.
             float textHeight = _panelTexture.height * 1920f / Height;
             int height = textHeight < 288 ? (int)(textHeight + 172) : 440;
-            int y = stripTop - height - (collapsed ? 40 : 168);
-            Place(_panel, left, y, width + 64, height);
-            Place(_exit, 88, 20, 88, 88); Place(_tick, 264, 20, 88, 88);
-            _panelText.style.left = V(32); _panelText.style.top = V(128);
+            int y = stripTop - height - 40;
+            Place(_panel, left, y, boxWidth, height);
+            Place(_exit, 88, height - 112, 88, 88); Place(_tick, 264, height - 112, 88, 88);
+            _panelText.style.left = V(42); _panelText.style.top = V(32);
             _panelText.style.width = _panelTexture.width; _panelText.style.height = _panelTexture.height;
         }
 
@@ -218,7 +220,11 @@ namespace DK2.Unity
         {
             var box = new VisualElement { pickingMode = PickingMode.Position };
             box.style.position = Position.Absolute;
-            box.style.backgroundColor = new Color(0f, 0f, 0f, 0.75f);
+            // DK2's menu40 is a translucent dark pane with a faint light rim (owner's shot); its frame art is unread.
+            box.style.backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.6f);
+            box.style.borderTopWidth = box.style.borderBottomWidth = box.style.borderLeftWidth = box.style.borderRightWidth = 1;
+            box.style.borderTopColor = box.style.borderBottomColor = box.style.borderLeftColor = box.style.borderRightColor =
+                new Color(0.55f, 0.55f, 0.55f, 0.6f);
             box.style.display = DisplayStyle.None;
             _root.Add(box); return box;
         }
