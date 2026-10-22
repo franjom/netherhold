@@ -104,7 +104,8 @@ intermediate 0x248 and runtime +0x17B.
 | Fog of War (27) | Solid | Rock | ROCK WALL | ROCK TOP | ROCK TOP TAGGED |
 | Edge of Map (30) | AllowRoomWalls, RandomTexture, n = 2 | — | IMPEN ROCK WALL | IMPEN ROCK TOP | — |
 
-n = file byte 0x296 → runtime +0x1C3.
+n = intermediate byte 0x296, file byte 0x1DE (the record is 552 bytes) → runtime +0x1C3;
+loaded as `TerrainDef.TextureVariants` (2026-10-22).
 
 ### The rule, in short
 

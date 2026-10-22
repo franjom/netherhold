@@ -59,6 +59,10 @@ public sealed record TerrainDef
     public required ushort StartingHealth { get; init; }
     public required ushort MaxHealth { get; init; }
 
+    /// <summary>TERRAIN file byte 0x1DE (runtime <c>+0x1C3</c>): how many textures the terrain's
+    /// RandomTexture or Decay variant chooses among; 0 or 1 means one (floor-and-terrain-pieces.md).</summary>
+    public byte TextureVariants { get; init; }
+
     /// <summary>Effect on reaching max health, TERRAIN file ushort at 0x1A4.</summary>
     public ushort MaxHealthEffectId { get; init; }
 

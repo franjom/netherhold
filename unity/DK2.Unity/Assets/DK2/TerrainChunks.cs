@@ -323,12 +323,11 @@ namespace DK2.Unity
             TerrainPieceKeys keys = tile.PieceKeys;
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
 
-            // A Reinforced Wall's face (the one player-coloured wall) takes its plain brick. A tagged
-            // tile tints every piece it draws (tag-highlight.md).
-            bool undamaged = pieces.Quarters == QuarterKind.Top;
+            // A Reinforced Wall's face takes the texture of its damage stage (Brick_DECAY3 to Brick,
+            // tile.FaceTexture; Q617). A tagged tile tints every piece it draws (tag-highlight.md).
             bool tagged = tile.Tagged;
             for (int side = 0; side < 4; side++)
-                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, undamaged), side, centre, x, y, tagged, tile.AmbientTint);
+                if (pieces.HasFace(side)) Add(_classic.Piece(keys.Side, tile.FaceTexture), side, centre, x, y, tagged, tile.AmbientTint);
             if (pieces.HasTop) Add(_classic.Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint,
                 invertLightingNormals: true);
             if (pieces.HasFloor) Add(_classic.Piece(keys.Floor), 0, centre, x, y, tagged, tile.AmbientTint);

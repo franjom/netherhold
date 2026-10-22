@@ -45,7 +45,7 @@ namespace DK2.Unity
         private readonly Dictionary<Material, Material> _tagged = new Dictionary<Material, Material>();
         private readonly Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material> _tinted =
             new Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material>();
-        private readonly Dictionary<(AssetRef, bool), PieceSource> _pieces = new Dictionary<(AssetRef, bool), PieceSource>();
+        private readonly Dictionary<(AssetRef, int), PieceSource> _pieces = new Dictionary<(AssetRef, int), PieceSource>();
         private readonly Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]> _heartMaterials = new Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]>();
         private readonly Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]> _tintedSets = new Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]>();
 
@@ -165,12 +165,13 @@ namespace DK2.Unity
 
         /// <summary>A piece's geometry and materials for a chunk to copy, resolved straight from the
         /// install (the classic look's own tier); null when the install has no model for the key.
-        /// <paramref name="lastTexture"/> takes each material's last alternative texture instead of
-        /// its first: CLAIMED WALL lists Brick_DECAY3 to Brick, and the undamaged one is taken to
-        /// be the plain name (STRONGLY INFERRED from the names; the damage frame is unread).</summary>
-        public PieceSource Piece(AssetRef key, bool lastTexture = false)
+        /// <paramref name="textureIndex"/> picks each material's alternative texture, clamped to its
+        /// list; below 0 the first. A Decay terrain's face passes its damage stage
+        /// (<see cref="WorldView.DecayStage"/>): CLAIMED WALL lists Brick_DECAY3 to Brick.</summary>
+        public PieceSource Piece(AssetRef key, int textureIndex = -1)
         {
-            if (_pieces.TryGetValue((key, lastTexture), out PieceSource cached)) return cached;
+            if (textureIndex < 0) textureIndex = 0;
+            if (_pieces.TryGetValue((key, textureIndex), out PieceSource cached)) return cached;
 
             using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Mesh);
             PieceSource piece = null;
@@ -179,12 +180,12 @@ namespace DK2.Unity
                 RenderMesh source = RenderMesh.FromModel(model);
                 var materials = new Material[source.Triangles.Count];
                 for (int i = 0; i < materials.Length; i++)
-                    materials[i] = MaterialFor(i < model.Materials.Count ? model.Materials[i] : null, lastTexture);
+                    materials[i] = MaterialFor(i < model.Materials.Count ? model.Materials[i] : null, textureIndex);
                 piece = new PieceSource(
                     ToUnity(source.Positions).ToArray(), ToUnity(source.Normals).ToArray(),
                     ToUnity(source.Uvs).ToArray(), source.Triangles, materials);
             }
-            _pieces[(key, lastTexture)] = piece;
+            _pieces[(key, textureIndex)] = piece;
             return piece;
         }
 
@@ -324,11 +325,11 @@ namespace DK2.Unity
             mesh.SetUVs(3, markers);
         }
 
-        private Material MaterialFor(KmfMaterial kmf, bool lastTexture = false)
+        private Material MaterialFor(KmfMaterial kmf, int textureIndex = 0)
         {
             // The converter's order: the first named texture, else the environment texture.
             string texture = kmf == null ? ""
-                : kmf.TextureNames.Count > 0 ? kmf.TextureNames[lastTexture ? kmf.TextureNames.Count - 1 : 0]
+                : kmf.TextureNames.Count > 0 ? kmf.TextureNames[Mathf.Clamp(textureIndex, 0, kmf.TextureNames.Count - 1)]
                 : kmf.EnvironmentTextureName ?? "";
             return kmf == null ? ForTexture(texture) : ForTexture(texture, kmf.Blend, kmf.SelfIllumination);
         }

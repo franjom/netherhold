@@ -71,6 +71,7 @@ public static class KwdTerrainRooms
         bytes[TerrainLayout.MaxHealthType] = record.MaxHealthTypeTerrainId;
         bytes[TerrainLayout.DestroyedType] = record.DestroyedTypeTerrainId;
         U16(TerrainLayout.MaxHealth, record.MaxHealth);
+        bytes[TerrainLayout.TextureVariants] = record.TextureVariants;
         if (record.Lighting is TerrainLighting light)
         {
             bytes[TerrainLayout.TerrainRgb] = light.TerrainRed;
@@ -93,7 +94,7 @@ public static class KwdTerrainRooms
         internal const int Tooltip = 0x1A0, NameString = 0x1A2, Wibble = 0x1CE, Id = 0x1D6;
         internal const int StartingHealth = 0x1D7, MaxHealthType = 0x1D9, DestroyedType = 0x1DA;
         internal const int MaxHealth = 0x1FF, MaxHealthEffect = 0x1A4, DestroyedEffect = 0x1A6;
-        internal const int TerrainRgb = 0x1DB, AmbientRgb = 0x201;
+        internal const int TerrainRgb = 0x1DB, AmbientRgb = 0x201, TextureVariants = 0x1DE;
     }
 
     private static class RoomLayout
@@ -171,6 +172,7 @@ public static class KwdTerrainRooms
             MaxHealthTypeTerrainId = U8(TerrainLayout.MaxHealthType),
             DestroyedTypeTerrainId = U8(TerrainLayout.DestroyedType),
             MaxHealth = U16(TerrainLayout.MaxHealth),
+            TextureVariants = U8(TerrainLayout.TextureVariants),
             MaxHealthEffectId = U16(TerrainLayout.MaxHealthEffect),
             DestroyedEffectId = U16(TerrainLayout.DestroyedEffect),
             TerrainLightHeight = new Fp32(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + TerrainLayout.LightHeight))),

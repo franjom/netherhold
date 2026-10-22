@@ -43,9 +43,11 @@ public readonly struct TileView
         bool scanned = false,
         ClassicPointLight? pointLight = null,
         AssetRef sightFogOverlay = default,
-        byte sightFogOpacity = 0)
+        byte sightFogOpacity = 0,
+        int faceTexture = -1)
     {
         Position = position;
+        FaceTexture = faceTexture;
         Ground = ground;
         Furniture = furniture;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -154,6 +156,11 @@ public readonly struct TileView
 
     public AssetRef SightFogOverlay { get; }
     public byte SightFogOpacity { get; }
+
+    /// <summary>Which of its material's textures a Decay terrain's face takes, or -1 for the first:
+    /// the damage stage <see cref="WorldView.DecayStage"/> (a Reinforced Wall's Brick_DECAY3 at 0 to
+    /// Brick at 3).</summary>
+    public int FaceTexture { get; }
 
     public bool IsRoom => !Furniture.IsEmpty;
 }
@@ -719,7 +726,21 @@ public sealed partial class WorldView
             scanned,
             TerrainPointLight(world, x, y, tile),
             SightFogOverlay(world, new TilePos(x, y), explored, solid, out byte fogOpacity),
-            fogOpacity);
+            fogOpacity,
+            DecayStage(admitted ? tile.Health : terrain.StartingHealth, terrain));
+    }
+
+    /// <summary>A Decay terrain's damage stage (<c>0x004419D0</c>, flag <c>0x20000</c>, n the
+    /// terrain's texture count above 1): <c>max(0, health - 2) / (MaxHealth / n)</c>, stored as that
+    /// over n in 12.12 at piece <c>+0x11</c>, so a full Reinforced Wall (900, n 4) is stage 3. -1
+    /// for any other terrain. That the stage indexes the material's textures in order is STRONGLY
+    /// INFERRED from CLAIMED WALL's list (Brick_DECAY3, _DECAY2, _DECAY, Brick); the reader of
+    /// <c>+0x11</c> is unread.</summary>
+    public static int DecayStage(int health, TerrainDef terrain)
+    {
+        if ((terrain.Flags & TerrainFlags.Decay) == 0 || terrain.TextureVariants <= 1) return -1;
+        int step = terrain.MaxHealth / terrain.TextureVariants;
+        return step <= 0 ? -1 : Math.Max(0, health - 2) / step;
     }
 
     private AssetRef SightFogOverlay(WorldState world, TilePos position, bool explored, bool solid,
