@@ -122,6 +122,9 @@ public static partial class KwdCreatures
         U16(0xF24, row.NameStringId);
         U16(0xF26, row.TooltipStringId);
         U16(0xCFF, row.IntroductionStringId);
+        U16(0xD05, row.UnhappySpeechId);
+        U16(0xD07, row.AngrySpeechId);
+        U16(0xD09, row.LeftSpeechId);
         U16(0xF36, row.EntranceEffectId);
         U32(0xEA8, ((uint)row.SizeClass << 12) | (ReadU32(0xEA8) & 0xFFF));
         U8(AngryBlock + 0x50, row.AngryArtType);

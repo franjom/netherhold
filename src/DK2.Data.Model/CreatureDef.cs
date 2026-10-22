@@ -247,4 +247,12 @@ public sealed record CreatureDef
     public required ushort NameStringId { get; init; }
     public required ushort TooltipStringId { get; init; }
     public required ushort IntroductionStringId { get; init; }
+    /// <summary>The first of nine Speech.str lines "has become unhappy because ...", one per
+    /// complaint 0..8 (file <c>0xD05</c>, runtime <c>def+0x6CD</c>; message type 17, <c>0x004C4600</c>).
+    /// Complaint 9 (General) reads past them into the next creature's first line, as DK2 does.</summary>
+    public ushort UnhappySpeechId { get; init; }
+    /// <summary>The same for "has become angry" (file <c>0xD07</c>, <c>def+0x6CF</c>; type 18).</summary>
+    public ushort AngrySpeechId { get; init; }
+    /// <summary>"... has left your Dungeon" (file <c>0xD09</c>, <c>def+0x6D1</c>; type 20).</summary>
+    public ushort LeftSpeechId { get; init; }
 }
