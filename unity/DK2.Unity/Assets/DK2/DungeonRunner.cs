@@ -131,6 +131,7 @@ namespace DK2.Unity
         private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
         private ClassicCamera _classicCamera;
         private readonly ClassicAmbientLight _ambientLight = new ClassicAmbientLight();
+        private ClassicPointLight? _handLight;
         internal Func<EffectTime> EffectClock { get; set; }
         private Vector3 _cameraFocus;
         private Vector2 _cameraBounds;
@@ -599,6 +600,8 @@ namespace DK2.Unity
             FollowQueriedCreature();
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
+            // The pick is last frame's: the hover is captured after the HUD is drawn, below.
+            _scene.SetHandLight(_handLight);
             // After the camera is placed, so a path's first and last frames take the right fade.
             ApplyClassicLook();
             if (_classicCamera != null)
@@ -1134,6 +1137,32 @@ namespace DK2.Unity
             || (_queryPanel != null && _queryTarget != CreatureQueryTarget.None && !HudModal
                 && _queryPanel.ContainsPointer(position, CurrentHud));
 
+        /// <summary>The Hand's light follows the pick (0x0043B220, <see cref="ClassicPointLight.FromHand"/>).
+        /// Over a thing it sits at the thing's position: the pick's output x and y are unread, and only
+        /// that fits the owner's SHOT0126, where both of the Heart's stairs turn white. The possession
+        /// and follow arms (height 0x1200) and the player gates are not modelled.</summary>
+        private void AimHandLight(WorldState world, TilePos tile, in WorldHoverHit hit)
+        {
+            float x, y;
+            if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState creature)
+                (x, y) = (creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One);
+            else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState thing)
+                (x, y) = (thing.PosX / (float)Fp32.One, thing.PosY / (float)Fp32.One);
+            else if (hit.Kind == WorldHoverKind.Door || hit.Kind == WorldHoverKind.Trap)
+                (x, y) = (tile.X + .5f, tile.Y + .5f);
+            else
+            {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                bool solid = _worldView.TileAt(world, tile.X, tile.Y).Solid;
+                var plane = new Plane(Vector3.up, new Vector3(0, solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
+                Vector3 point = plane.Raycast(ray, out float distance) ? ray.GetPoint(distance) : new Vector3(tile.X + .5f, 0, -tile.Y - .5f);
+                (x, y) = (point.x, -point.z);
+            }
+            bool explored = !world.FogOfWarEnabled || world.Tile(tile).IsExploredBy(new PlayerId((byte)viewingPlayerId));
+            _handLight = ClassicPointLight.FromHand(x, y, hit.Kind != WorldHoverKind.Tile, explored,
+                world.Width, world.Height, cheapLighting);
+        }
+
         private WorldHoverHit ResolveWorldHover(TilePos tile)
         {
             WorldState world = _simulation.World;
@@ -1163,11 +1192,15 @@ namespace DK2.Unity
             TilePos? highlightedTile = null;
             _debugHoverTile = null;
             _hoveredCreature = CreatureQueryTarget.None;
+            // A failed pick with nothing hovered sends DK2's light to (0,0,0), an edge tile, which
+            // blacks it out (0x0043BCB8); with ordinary input off (a cutscene) it keeps its place.
+            if (visibility.AllowOrdinaryInput) _handLight = null;
             if (allowed && !PointerOverHud(mouse) && Camera.main != null && ScreenToTile(mouse) is TilePos tile)
             {
                 WorldState world = _simulation.World;
                 _debugHoverTile = tile;
                 WorldHoverHit hit = ResolveWorldHover(tile);
+                AimHandLight(world, tile, hit);
                 {
                     PlayerId viewer = new PlayerId((byte)viewingPlayerId);
                     string personalName = hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState named

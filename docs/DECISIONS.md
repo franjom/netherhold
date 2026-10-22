@@ -12010,7 +12010,9 @@ owner's shots show them pale, a measured difference left after Q603, and the own
 stand out at once. Terrain tops' inverted lighting normal (static-mesh-lighting.md section 1)
 is for the tile lights; the fill turns a downward terrain normal back, which recovers tops
 and their sloped faces but not a top quarter's vertical side.
-Open: DK2's arches and steps take near-white light, and the Heart pit rim is neutral grey.
+The near-white Heart arches, steps and pit ring in SHOT0126 are the Hand's own light
+(`+0x33E`, RGB 511 radius 1.75 tiles, under the cursor over explored ground), now built;
+with it at the Heart the probe's steps and arch match the shot (0.95-1.0 neutral).
 
 ## ADR-0523 — Trigger action 42 marks creatures in six world slots
 **Date:** 2026-10-21 · **Status:** accepted

@@ -17,8 +17,8 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     private readonly ClassicPointLight[]?[] _sourceBuffers, _dynamicBuffers;
     private readonly List<ObjectSource>?[] _objectsByTile;
     private readonly Dictionary<long, ObjectSource> _objects = new();
-    /// <summary>The sources of each kind (objects, effects), so a kind's update scans only its own.</summary>
-    private readonly List<ObjectSource>[] _entries = { new(), new() };
+    /// <summary>The sources of each kind (objects, effects, the Hand), so a kind's update scans only its own.</summary>
+    private readonly List<ObjectSource>[] _entries = { new(), new(), new() };
 
     /// <summary>A dynamic source: an object's light or an effect instance's. Both are engine lights
     /// in one list (<c>+0x33A</c>), so they share each tile's insertion order.</summary>
@@ -30,7 +30,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         public bool Seen;
     }
 
-    private const int ObjectKind = 0, EffectKind = 1;
+    private const int ObjectKind = 0, EffectKind = 1, HandKind = 2;
     private readonly ClassicLightCacheCell[] _cells;
     private readonly bool[] _dirty, _prepared;
     private List<int> _preparedIndices = new(), _previousIndices = new();
@@ -88,6 +88,16 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
             if (ClassicPointLight.FromEffect(effects[i], cheapLighting) is not ClassicPointLight light) continue;
             Place(EffectKind, effects[i].Id, light, light);
         }
+        RemoveUnseen(entries);
+    }
+
+    /// <summary>The Hand's light this update (<see cref="ClassicPointLight.FromHand"/>); null takes it
+    /// away. DK2 made it at startup, first in its light list; ours is placed after the objects.</summary>
+    public void UpdateHand(ClassicPointLight? light)
+    {
+        List<ObjectSource> entries = _entries[HandKind];
+        foreach (ObjectSource source in entries) source.Seen = false;
+        if (light is ClassicPointLight hand) Place(HandKind, 0, hand, hand);
         RemoveUnseen(entries);
     }
 

@@ -97,6 +97,38 @@ public class ClassicObjectLightTests
         Assert.Equal(180f / 128, Assert.Single(cache.GetCell(tile).DynamicSources.ToArray()).Intensity);
     }
 
+    /// <summary>0x00447D50 makes the Hand's light white (511), intensity 255, radius 0x1C00;
+    /// 0x0043B220 holds it at height 0x1C00 over the pick and blacks it out off explored ground
+    /// and on the map's outer row and column (0x0043BCB8).</summary>
+    [Fact]
+    public void TheHandsLightIsAWhiteLampOverThePickOnExploredGroundOnly_ClassificationAssumedAnObjects()
+    {
+        ClassicPointLight hand = ClassicPointLight.FromHand(5.25f, 5.5f, raised: false, explored: true, 16, 16)!.Value;
+        Assert.Equal(new System.Numerics.Vector3(5.25f, 1.75f, -5.5f), hand.Position);
+        Assert.Equal(511 / 255f, hand.Colour.X);
+        Assert.Equal((255 / 128f, 1.75f), (hand.Intensity, hand.Radius));
+        Assert.Equal(ClassicLightFlags.NormalObject, hand.Flags);
+        Assert.Equal(1.875f, ClassicPointLight.FromHand(5, 6, raised: true, explored: true, 16, 16)!.Value.Position.Y);
+        Assert.Null(ClassicPointLight.FromHand(5, 6, raised: false, explored: false, 16, 16));
+        Assert.Null(ClassicPointLight.FromHand(0.5f, 6, raised: false, explored: true, 16, 16));
+        Assert.Null(ClassicPointLight.FromHand(5, 15.5f, raised: false, explored: true, 16, 16));
+        Assert.NotNull(ClassicPointLight.FromHand(14.5f, 1.5f, raised: false, explored: true, 16, 16));
+
+        var cache = new ClassicWorldLightCache(16, 16);
+        var tile = new TilePos(5, 5);
+        cache.UpdateObjects(new[] { Object(1) }, 1);
+        cache.UpdateHand(hand);
+        cache.PrepareFrame(new[] { tile });
+        Assert.Equal(2, cache.GetCell(tile).DynamicSources.Length);
+        // An object update keeps the Hand's light; a null Hand takes it away.
+        cache.UpdateObjects(Array.Empty<ObjectView>(), 1);
+        cache.PrepareFrame(new[] { tile });
+        Assert.Equal(255 / 128f, Assert.Single(cache.GetCell(tile).DynamicSources.ToArray()).Intensity);
+        cache.UpdateHand(null);
+        cache.PrepareFrame(new[] { tile });
+        Assert.Empty(cache.GetCell(tile).DynamicSources.ToArray());
+    }
+
     [Fact]
     public void PreparedBorderSourceLightsVisibleTilesWithoutMakingItsOwnTileVisible()
     {

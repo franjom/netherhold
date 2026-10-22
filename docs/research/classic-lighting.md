@@ -113,9 +113,8 @@ Slot +0x3BC uses that same factory with (255,255,255)/128 and the first position
 The first two also receive post-creation flags/animation setup. Followup reads
 on 2026-10-15 distinguish these handles from global ambient/fill:
 
-- `+0x33E`: presentation update moves it to an interaction position, sets RGB
-  to 511 for target tile flag `0x20` and otherwise zero. Selection state gates
-  its mesh visibility. This is not an unconditional world fill.
+- `+0x33E`: the Hand's light (RGB 511, radius `0x1C00`), under the pick, white over explored
+  cells; not a world fill. BUILT 2026-10-22 (`FromHand`); details in the `0x0043B220` record.
 - `+0x35D`: the per-tile render pass reuses it for the selection rectangle's
   boundary tiles, setting edge bits and moving it to each boundary tile centre.
 - `+0x35B`: reused per-tile terrain point light; section9 owns its inputs and

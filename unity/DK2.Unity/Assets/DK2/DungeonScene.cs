@@ -475,6 +475,8 @@ namespace DK2.Unity
             _worldLights?.UpdateObjects(objects, fraction, _torchFlags == ClassicLightFlags.CheapTorch);
         }
 
+        public void SetHandLight(ClassicPointLight? light) => _worldLights?.UpdateHand(light);
+
         public void SetEffectLights(IReadOnlyList<EffectLightView> lights)
         {
             _worldLights?.UpdateEffects(lights, _torchFlags == ClassicLightFlags.CheapTorch);

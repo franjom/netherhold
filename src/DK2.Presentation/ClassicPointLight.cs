@@ -65,6 +65,24 @@ public readonly record struct ClassicPointLight
         => FromDescriptor(effect.Light, effect.Owner, effect.PosX, effect.PosY, effect.Height,
             intensity: 128, effect.RampStep, effect.RampSteps, cheapLighting);
 
+    /// <summary>The Hand's light, startup handle <c>+0x33E</c>: made by <c>0x00447D50</c> through bridge
+    /// slot <c>+0xA4</c> with RGB 511, intensity 255 and radius <c>0x1C00</c>, then moved each
+    /// presentation update by <c>0x0043B220</c>'s default view arm to the picked point at height
+    /// <c>0x1C00</c> (<c>0x1E00</c> when the pick result's <c>+0x18</c> is set). It is white over an
+    /// explored cell (<c>+9</c> bit <c>0x20</c>); an unexplored cell or one on the map's outer
+    /// row or column turns it black, so null. Its classification is taken as an object light's
+    /// (inferred: <c>+0x81</c>, written 0x1F or 0x3F, is unread).</summary>
+    public static ClassicPointLight? FromHand(float x, float y, bool raised, bool explored, int mapWidth, int mapHeight,
+        bool cheapLighting = false)
+    {
+        int tileX = (int)Math.Floor(x), tileY = (int)Math.Floor(y);
+        if (!explored || tileX <= 0 || tileY <= 0 || tileX >= mapWidth - 1 || tileY >= mapHeight - 1) return null;
+        const float channel = 511 / 255f;
+        return new ClassicPointLight(new Vector3(x, (raised ? 0x1E00 : 0x1C00) / (float)Fp32.One, -y),
+            new Vector3(channel, channel, channel), intensity: 255 / 128f, radius: 0x1C00 / (float)Fp32.One,
+            cheapLighting ? ClassicLightFlags.CheapObject : ClassicLightFlags.NormalObject);
+    }
+
     /// <summary>The descriptor rules of <c>0x00439880</c>: flag 1, offsets added, radius × 2 / 3
     /// clamped by the factory, 256 added under flags 0x800/0x1000/0x2000, the owner's palette under 0x80.</summary>
     private static ClassicPointLight? FromDescriptor(KwdLight light, PlayerId owner, float x, float y, float height,
