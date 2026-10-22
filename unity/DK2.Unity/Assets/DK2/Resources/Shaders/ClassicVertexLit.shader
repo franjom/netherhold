@@ -70,6 +70,9 @@ Shader "DK2/Classic Vertex Lit"
             int _DK2TileFillWidth, _DK2TileFillCount;
             // The share of the fill an unlit tile keeps: dark but not black (owner 2026-10-21).
             float _DK2UnlitFill;
+            // The brightness of DK2's own light at which Unity's fill has faded out; unset (zero)
+            // adds the fill everywhere.
+            float _DK2FillFloor;
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -205,19 +208,23 @@ Shader "DK2/Classic Vertex Lit"
                 VertexPositionInputs position = GetVertexPositionInputs(input.positionOS.xyz);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
                 // Native ambient is an RGB addition; Unity's placeholder sky/sun are not native inputs.
-                float3 sum = _DK2AmbientColour;
+                float3 sum = _DK2AmbientColour, fill = 0;
                 #if defined(DK2_TILE_LIGHT_TABLES)
                 sum += TileLightContribution(input, position.positionWS, normalWS);
                 #endif
                 if (_DK2InitialAmbientPreview < .5)
                 {
                     // Retain the scene fallback until native fill lights and ambient commands are supplied.
-                    float3 fill = max(SampleSH(normalWS), 0);
+                    // Terrain tops carry DK2's inverted lighting normal (static-mesh-lighting.md section 1),
+                    // which the tile lights above want; Unity's fill wants the surface's own. A terrain
+                    // normal facing down is such a top, turned back; a top's vertical side is not caught.
+                    float3 fillNormal = input.tileAnchor.y == 1 && normalWS.y < 0 ? -normalWS : normalWS;
+                    fill = max(SampleSH(fillNormal), 0);
                     Light main = GetMainLight(TransformWorldToShadowCoord(position.positionWS));
-                    fill += main.color * max(dot(normalWS, main.direction), 0)
+                    fill += main.color * max(dot(fillNormal, main.direction), 0)
                         * main.distanceAttenuation * main.shadowAttenuation;
                     if (_DK2FillTint.w > 0) fill *= _DK2FillTint.rgb;
-                    sum += fill * TileFillWeight(input, position.positionWS);
+                    fill *= TileFillWeight(input, position.positionWS);
                 }
                 InputData inputData = (InputData)0;
                 inputData.positionWS = position.positionWS;
@@ -251,6 +258,12 @@ Shader "DK2/Classic Vertex Lit"
                     sum += AdditionalContribution(lightIndex, position.positionWS, normalWS);
                 LIGHT_LOOP_END
             #endif
+                // Unity's fill lifts only what DK2's own lights leave dark: where they reach, they
+                // alone match the owner's DK2 shots, and the fill on top flattened and yellowed them.
+                // Instance-lit models keep it all: under DK2's lights alone our Heart arches, steps and
+                // creatures stay near black where the owner's DK2 shots show them lit (ADR-0522).
+                if (_DK2FillFloor > 0 && input.lightKind.x != 1) fill *= saturate(1 - dot(sum, float3(0.299, 0.587, 0.114)) / _DK2FillFloor);
+                sum += fill;
             #if defined(_EMISSION)
                 sum += _EmissionColor.rgb;
             #endif

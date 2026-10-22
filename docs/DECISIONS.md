@@ -11997,6 +11997,21 @@ A stronger path fade was dropped the same day: probe renders showed it blacking 
 Heart intro (far plane 10 tiles), and the owner saw it snap on the Lord's zoom-out.
 All are tuned values, not DK2's, set every frame from DungeonRunner (Inspector-live).
 
+**Amendment, 2026-10-22 (owner: "unity lighting doesn't feel like DK2").** A probe render
+registered pixel-for-pixel on SHOT0126 (Level 1 Heart, play camera, fog on) and divided by
+an unlit render gives each game's light per surface class. With DK2's own tile lights alone
+ours matches within about 0.05 per channel on floors, rock tops and walls; the fill added on
+top lifted every class and, with red already clipped at 1, turned orange to yellow (green/red
+0.77-0.94 against DK2's 0.57-0.83). So the fill now fades out as the shader's other light
+(DK2's lights plus the ambient keys' level) brightens: times saturate(1 - luma /
+`classicFillFloor`), 0.5 by default (tuned). Instance-lit models (Heart arches, steps,
+creatures) keep the whole fill: under DK2's lights alone they render near black where the
+owner's shots show them pale, a measured difference left after Q603, and the owner saw them
+stand out at once. Terrain tops' inverted lighting normal (static-mesh-lighting.md section 1)
+is for the tile lights; the fill turns a downward terrain normal back, which recovers tops
+and their sloped faces but not a top quarter's vertical side.
+Open: DK2's arches and steps take near-white light, and the Heart pit rim is neutral grey.
+
 ## ADR-0523 — Trigger action 42 marks creatures in six world slots
 **Date:** 2026-10-21 · **Status:** accepted
 
