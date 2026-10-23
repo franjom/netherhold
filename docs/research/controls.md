@@ -5,7 +5,7 @@
 | Source(s) | `<install>/ReadMe.txt` §7 "FULL KEY LIST" and `<install>/reference_card.pdf` (both shipped, read 2026-09-09); `original-reference/Dungeon_Keeper_2_Manual.pdf` p.3 command card and pp.37, 40–41 |
 | Observed behaviour | Not yet observed in the running game. The three documents are EA's own and agree |
 | Confidence | **CONFIRMED** for the mapping below, except the four rows marked in [Where the sources disagree](#where-the-sources-disagree) |
-| Implementation | The researched G/H/M and campaign Options controls are integrated; see [minimap-controls.md](minimap-controls.md). `PlayerToolMode` and the numeric debug bindings in `DungeonRunner` remain ours. |
+| Implementation | G/H/M and campaign Options: [minimap-controls.md](minimap-controls.md). Ordinary camera controls: [classic-camera.md §7](classic-camera.md#7-ordinary-camera-controls-2026-10-23). `PlayerToolMode` and numeric debug bindings remain ours. |
 | Tests | ClassicHudControlsTests covers visibility and modal routing; the broader original key list is not fully implemented. |
 | Open questions | four, in [What is open](#what-is-open); none has a Q number yet |
 

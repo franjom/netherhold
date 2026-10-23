@@ -24,6 +24,8 @@ public sealed class ClassicCamera
 {
     private readonly CameraThing _profile;
     private Dk2Angle _yaw;
+    internal Dk2Angle Yaw => _yaw;
+    internal bool PanLocked => (_profile.Flags & 0x40) != 0;
     public Fp32 Zoom { get; private set; }
 
     /// <summary>The bottom panel's top, virtual units of 1920, expanded and collapsed (0x00417170).</summary>

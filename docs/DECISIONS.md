@@ -12209,3 +12209,20 @@ a corpse is DK2's dead-body class and is skipped.
 tile on a trap, a door, or a rival's non-Imp creature; a span whose only seeds are obstructed.
 The owner, 2026-10-23: a bridge was built over a hero standing in water as part of a longer drag,
 which the spread predicts; the owner saw a single-tile placement onto such a tile refused (a hero; a rival keeper's creature is assumed the same, and the raw owner compare agrees). The owner also saw that an enemy corpse does not stop a room tile and that a door blueprint or an unbuilt trap does.
+
+## ADR-0531 — Match ordinary camera movement to native input packets
+**Date:** 2026-10-23 · **Status:** accepted · Research: `docs/research/classic-camera.md` §6–7
+
+**Context.** The owner's native recording supports the existing lens and tilt
+at the sampled views. The adapter instead used constant-speed normalized pan
+and a90degree-per-second turn, without native acceleration or release glide.
+
+**Decision.** Use a presentation controller that preserves native packet order,
+fixed-point movement arithmetic, per-command focus bounds, zoom-dependent pan,
+frame-based coasting and millisecond yaw. Bind the shipped camera keys and
+five-pixel edge scroll alongside existing input aliases. Keep the measured lens
+and tilt. Preserve sub-millisecond input timing on Unity through tick construction.
+
+**Consequences.** Presentation only; no simulation hash or save change. Native
+coasting remains frame-rate dependent. Executable arithmetic/boundary oracles
+and sampled rendered landmarks establish scoped parity, not global99% fidelity.

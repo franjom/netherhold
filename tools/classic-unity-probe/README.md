@@ -53,7 +53,10 @@ This verifies the remake's clipping correction, not native route parity.
 `run-tag-overlay.ps1 -CameraReference` renders Level1's gold-seam focus at1600x1200
 with the authored default/minimum/maximum zooms. PNGs go to `camera-captures/`
 beside the isolated project. The probe checks the rendered optical axis and
-nonblank pixels; it does not assert native framing or motion parity. Reference
+nonblank pixels and uses the production terrain lattice. `wall-markers.csv`
+contains deformed marker positions and projections. Run `compare-camera.py`
+with the external native frame directory and remake capture directory to print
+the two stationary-view marker measurements. The probe does not assert motion parity. Reference
 recording and comparison limits: [classic camera](../../docs/research/classic-camera.md#6-camera-recording-2026-10-23).
 
 ## Camera rotation and allocation capture

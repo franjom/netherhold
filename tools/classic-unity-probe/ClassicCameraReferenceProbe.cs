@@ -29,6 +29,11 @@ namespace DK2.Unity.Editor
             {
                 if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
                     throw new InvalidOperationException("Camera comparison requires a graphics device.");
+                long frameTicks = (long)Math.Round((1f / 60f) * (double)TimeSpan.TicksPerSecond);
+                if (TimeSpan.FromTicks(frameTicks).Ticks != 166667)
+                    throw new Exception("Camera frame timing lost sub-millisecond precision.");
+                Debug.Log("Camera timing: FromSeconds=" + TimeSpan.FromSeconds(1f / 60f).Ticks +
+                    "; tick construction=" + frameTicks);
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
                 const string install = "E:/GogGames/Dungeon Keeper 2";
                 var db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
@@ -38,7 +43,8 @@ namespace DK2.Unity.Editor
                 var root = new GameObject("camera reference");
                 var view = new WorldView(db, new PlayerId(PlayerIds.FirstKeeper));
                 var meshes = new ClassicMeshes(art);
-                var scene = new DungeonScene(root.transform, world.Width, world.Height, meshes, creatureShadows: false);
+                var lattice = new TerrainLattice(db, world, new PlayerId(PlayerIds.FirstKeeper));
+                var scene = new DungeonScene(root.transform, world.Width, world.Height, meshes, lattice, creatureShadows: false);
                 var presenter = new ScenePresenter(view, new AssetProviderChain(art, PlaceholderProvider.Instance), scene);
                 presenter.Present(world);
                 var camera = new GameObject("reference camera").AddComponent<Camera>(); camera.tag = "MainCamera";
@@ -76,6 +82,7 @@ namespace DK2.Unity.Editor
                     if (pixels.GetPixels32().Count(p => p.r > 20 || p.g > 20 || p.b > 20) < 10000)
                         throw new Exception("Camera reference capture is blank.");
                     File.WriteAllBytes(Path.Combine(output, "gold-zoom-" + zoom + ".png"), pixels.EncodeToPNG());
+                    if (zoom == profile.Zoom) ExportWallMarkers(world, db, lattice, camera, output);
                 }
                 RenderTexture.active = null; target.Release();
                 UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(pixels);
@@ -84,6 +91,24 @@ namespace DK2.Unity.Editor
                 EditorApplication.Exit(0);
             }
             catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
+        }
+
+        private static void ExportWallMarkers(WorldState world, GameDatabase database, TerrainLattice lattice,
+            Camera camera, string output)
+        {
+            using var csv = new StreamWriter(Path.Combine(output, "wall-markers.csv"));
+            csv.WriteLine("tile_x,tile_y,world_x,world_y,world_z,pixel_x,pixel_y");
+            for (int y = 0; y < world.Height; y++)
+                for (int x = 0; x < world.Width; x++)
+                {
+                    var tile = world.Tile(new TilePos(x, y));
+                    if ((database.TerrainById(tile.TerrainId).Flags & TerrainFlags.PlayerColouredWall) == 0) continue;
+                    var p = lattice.Deform(new System.Numerics.Vector3(x + .5f, y + .5f, -2), x, y);
+                    var point = new Vector3(p.X, -p.Z, -p.Y);
+                    Vector3 pixel = camera.WorldToScreenPoint(point);
+                    csv.WriteLine(FormattableString.Invariant(
+                        $"{x},{y},{point.x:R},{point.y:R},{point.z:R},{pixel.x:R},{1200 - pixel.y:R}"));
+                }
         }
     }
 }

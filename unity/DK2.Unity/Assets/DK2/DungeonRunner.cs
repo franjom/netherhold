@@ -125,17 +125,19 @@ namespace DK2.Unity
         [Tooltip("Pitch for the diagnostic whole-map overview.")]
         [Range(20f, 90f)]
         [SerializeField] private float cameraPitch = 55f;
+        [Tooltip("Pan speed for the diagnostic fallback camera.")]
         [SerializeField] private float cameraPanSpeed = 12f;
-        [SerializeField] private float cameraRotationSpeed = 90f;
+        [Tooltip("DK2's Scroll Speed preference; the original default is 10.")]
+        [Range(5, 20)] [SerializeField] private int classicScrollSpeed = 10;
         [SerializeField] private float cameraZoomFraction = 0.15f;
         private const float MinCameraHeight = DungeonScene.FloorHeight + 0.5f;
         private ClassicCamera _classicCamera;
+        private ClassicCameraControls _classicCameraControls;
         private readonly ClassicAmbientLight _ambientLight = new ClassicAmbientLight();
         private ClassicPointLight? _handLight;
         internal Func<EffectTime> EffectClock { get; set; }
         private Vector3 _cameraFocus;
         private Vector2 _cameraBounds;
-        private float _cameraTurnRemainder;
 
         // With TickMarker and PresentMarker below, so the Profiler separates input, the
         // position snapshot and the tick itself (whose systems UnitySimulationProfiler shows).
@@ -241,10 +243,12 @@ namespace DK2.Unity
                 : LoadSave(install);
 
             PlayerDef startingCameraPlayer = null;
+            int cameraTicksPerSecond = SimulationTiming.OriginalTicksPerGameSecond;
             if (campaignLevel)
             {
                 var level = GameDatabaseLoader.LoadCampaignLevel(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' level definition.");
+                cameraTicksPerSecond = level.TicksPerSecond;
                 var players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' players.");
                 startingCameraPlayer = players.FirstOrDefault(p => p.PlayerId == viewingPlayerId);
@@ -356,6 +360,9 @@ namespace DK2.Unity
                 {
                     MaxZoom = Mathf.RoundToInt(profile.MaxZoom * Mathf.Clamp(cameraZoomOutLimitScale, 1f, 2f)),
                 }, initialYaw: ClassicCamera.LevelStartYaw) { ReferenceScreenWidth = 1600 };
+                _classicCameraControls = new ClassicCameraControls(_classicCamera, cameraTicksPerSecond, classicScrollSpeed,
+                    new CameraFocusBounds(new System.Numerics.Vector3(0, 4095f / Fp32.One, -world.Height + 1f / Fp32.One),
+                        new System.Numerics.Vector3(world.Width - 1f / Fp32.One, 4095f / Fp32.One, 0)));
                 _cameraBounds = new Vector2(world.Width, world.Height);
                 System.Numerics.Vector3 focus = startingCameraPlayer != null
                     ? ClassicCamera.LevelStartFocus(new TilePos(startingCameraPlayer.CameraX, startingCameraPlayer.CameraY))
@@ -819,20 +826,36 @@ namespace DK2.Unity
 
             if (_classicCamera != null && !frameWholeMap)
             {
-                float turn = (Input.GetKey(KeyCode.E) ? 1f : 0f) - (Input.GetKey(KeyCode.Q) ? 1f : 0f);
-                _cameraTurnRemainder += turn * cameraRotationSpeed * (2048f / 360f) * Time.unscaledDeltaTime;
-                int angle = (int)_cameraTurnRemainder;
-                _cameraTurnRemainder -= angle;
-                _classicCamera.Rotate(new Dk2Angle(unchecked((ushort)angle)));
-                var direction = _classicCamera.PanDirection(new System.Numerics.Vector2(
-                    Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")));
-                _cameraFocus += new Vector3(direction.X, direction.Y, direction.Z)
-                    * cameraPanSpeed * Time.unscaledDeltaTime;
-                _cameraFocus.x = Mathf.Clamp(_cameraFocus.x, 0, _cameraBounds.x - 1f / Fp32.One);
-                _cameraFocus.z = Mathf.Clamp(_cameraFocus.z, -_cameraBounds.y + 1f / Fp32.One, 0);
+                bool control = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+                float panHorizontal = Input.GetAxisRaw("Horizontal"), panVertical = Input.GetAxisRaw("Vertical");
+                ClassicCameraKeys keys = ClassicCameraKeys.None, edges = ClassicCameraKeys.None;
+                if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.Delete) || (control && panHorizontal < 0))
+                    keys |= ClassicCameraKeys.TurnLeft;
+                if (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.PageDown) || (control && panHorizontal > 0))
+                    keys |= ClassicCameraKeys.TurnRight;
+                if (!control)
+                {
+                    if (panHorizontal < 0) keys |= ClassicCameraKeys.Left;
+                    if (panHorizontal > 0) keys |= ClassicCameraKeys.Right;
+                    if (panVertical > 0) keys |= ClassicCameraKeys.Up;
+                    if (panVertical < 0) keys |= ClassicCameraKeys.Down;
+                }
+                if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) keys |= ClassicCameraKeys.Fast;
+                Vector3 pointer = Input.mousePosition;
+                if (Application.isFocused && pointer.x >= 0 && pointer.x < Screen.width && pointer.y >= 0 && pointer.y < Screen.height)
+                {
+                    if (pointer.x < 5) edges |= ClassicCameraKeys.Left;
+                    if (pointer.x > Screen.width - 5) edges |= ClassicCameraKeys.Right;
+                    if (pointer.y > Screen.height - 5) edges |= ClassicCameraKeys.Up;
+                    if (pointer.y < 5) edges |= ClassicCameraKeys.Down;
+                }
+                var nextFocus = _classicCameraControls.Advance(
+                    new System.Numerics.Vector3(_cameraFocus.x, _cameraFocus.y, _cameraFocus.z), keys,
+                    TimeSpan.FromTicks((long)Math.Round(Time.unscaledDeltaTime * (double)TimeSpan.TicksPerSecond)), edges);
+                _cameraFocus = new Vector3(nextFocus.X, nextFocus.Y, nextFocus.Z);
                 float wheel = PointerOverHud(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
-                if (wheel > 0) _classicCamera.ZoomIn();
-                else if (wheel < 0) _classicCamera.ZoomOut();
+                if (wheel > 0 || Input.GetKey(KeyCode.Home) || (control && panVertical > 0)) _classicCamera.ZoomIn();
+                else if (wheel < 0 || Input.GetKey(KeyCode.End) || (control && panVertical < 0)) _classicCamera.ZoomOut();
                 ApplyClassicCamera();
                 return;
             }

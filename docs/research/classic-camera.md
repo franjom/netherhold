@@ -126,10 +126,8 @@ Heart start(14,28). The owner showed it on DK2's left and our right. With the
 corrected matrix sign its projection lies left of the Heart, now pinned by
 an install-backed regression. The reset value256 remains unchanged.
 
-The owner's screenshots confirm the requested diagonal orientation but do not
-establish a different pitch: viewport size, HUD and distance differ. Ordinary
-pitch220 still converts to51.328125 degrees above the floor. A matched ground
-projection comparison remains necessary before changing that tilt.
+Ordinary pitch220 converts to51.328125 degrees above the floor. The matched
+recording comparison in section6 supports this tilt and the existing lens.
 
 CONFIRMED shipped keeper3 player camera tiles: Level1(14,28), Level7(5,15),
 Level8(75,9). 0x0051F0B0 copies the local player's camera coordinate pair to
@@ -144,9 +142,8 @@ transition is active. Its follow-up0x00449B30 clamps each component to that
 axis's active minimum through maximum-minus-one. Intro transitions and native
 camera pan input timing remain outside this startup read.
 
-Classic Step5 camera tests can establish numerical conversion and bounds;
-they cannot establish matching rendered framing. The owner judged the Unity
-camera view good (2026-10-14); a matched original-game comparison is still pending.
+Classic camera tests establish numerical conversion and bounds; section6
+separately checks rendered framing against the original recording.
 
 ## 5. Owner-requested zoom extension
 
@@ -161,15 +158,65 @@ video, with180pixel side bars. The owner confirms the initial zoom was untouched
 after the Level1 intro/tutorial move. The original and SHA-256 manifest are in
 `D:\DK2Evidence\camera-20261023-154311-20261023T1349154080`; the source remains in Videos.
 
-The5s/10s frames provide a stationary-orientation zoom comparison. Seven matched
-wall markers put the optical axis near native pixel(800,504), supporting the
-existing expanded-panel centre. Manual feature localization and terrain bending
-limit this estimate; it does not establish exact lens, pitch or absolute zoom.
-The raw-zoom inference formerly made from SHOT0084/0085's scale ratio was invalid.
-
 `ClassicCameraReferenceProbe` renders Level1 at1600x1200, gold AP4 focus
 (14.5,1,-24.5), reset yaw and the authored default/minimum/maximum zooms. It uses
-the production camera model and projection shift. The focus is a comparison
-assumption, not a native camera-state measurement. Its images isolate framing;
-lighting, fog, objects and HUD differ from the recording. Known-height landmarks
-and input timing still need comparison before claiming camera-motion parity.
+the production camera model, projection shift and TerrainLattice. Omitting the
+lattice flattens the wall markers and invalidates the comparison. The focus is
+a comparison assumption, not a native camera-state measurement.
+
+Measured remake-minus-original red wall-marker centres, expressed in native
+1600x1200 pixels: eight markers at5s/default zoom40960 have RMS per axis1.34px,
+mean offset(-1.68,-0.15)px; seven at10s/maximum zoom53247 have RMS1.18px and
+mean(-1.53,-0.17)px. `tools/classic-unity-probe/compare-camera.py` reproduces the
+colour-weighted connected-component measurements from the extracted frames.
+At15s, six known wall markers fitted with fixed lens/pitch/focus and maximum
+zoom give yaw-61.758degrees and RMS1.47px per axis. This rotation fit does not
+measure input timing. These samples support the current lens, tilt and HUD
+centre; lighting, fog, objects and HUD rendering differ. They do not establish
+global pixel equivalence or99% motion fidelity.
+
+## 7. Ordinary camera controls, 2026-10-23
+
+CONFIRMED binary: 0x004066A0 polls ordinary input only on the first inner pass
+and after 0x0044D590 permits it. It decays signed horizontal/vertical counters
+at HUD+0x1094/+0x1098 one step toward zero, then calls0x00406DF0. That function
+submits five-pixel edge directions first, followed by non-Ctrl arrow bindings.
+0x00407070 emits one action126 per direction and adds signed2 to its counter,
+clamping each counter to[-6,6]. Shift sets the keyboard packet's fast flag;
+edge packets have that flag clear.
+
+Action126 handler0x00442140 computes each screen-axis offset as
+`ticksPerGameSecond * min(frameMilliseconds,1000) * direction * 512 / 1000`,
+with signed integer truncation and an additional factor8 for fast packets.
+The tick-rate global0x006F2590 comes from the level, not the old15Hz placeholder;
+the shipped levels use4. The handler rotates through the native16.16 trig table,
+then, in ordinary modes3/4/5, multiplies each rotated coordinate by raw zoom
+and shifts right13. Products retain native32-bit wrapping and signed shifts.
+
+After direction packets,0x00406DF0 submits action3 with screen offsets
+`ScrollSpeed * counter * 64 / 10`. Handler0x00441FB0 applies the same rotation
+and zoom arithmetic. This coasting packet has no elapsed-time factor: its
+distance and five-frame release tail are frame-rate dependent in DK2. The
+ScrollSpeed preference defaults to10 at profile+0xF9 in0x0055F040 and when its
+registry value is absent in0x0055F6D0. It is distinct from the level tick rate.
+
+Every packet reaches0x00449BD0, which adds its delta then calls0x00449B30 to
+clamp focus immediately. Combining packets before clamping is observably wrong
+at map edges. Focus lock bit0x40 or an active transition suppresses the update.
+Ordinary presets fix height to raw4095 after maximum-exclusive clamping.
+
+Keyboard yaw packets carry elapsed clock milliseconds masked to26bits from
+HUD+0x10B8; instruction0x00403E66 writes that clock at the end of an inner pass.
+0x004422F0 masks the submitted angle to11bits;0x00449D40 adds it to yaw unless
+flag bit1 locks yaw. Thus one input millisecond is one of2048 angle units,
+with pan preceding yaw. Keyboard zoom submits signed1024 to action7, but
+0x004422B0 consumes only its sign: the wheel's multiplicative rule still applies.
+
+The adapter implements the shipped Home/End, Delete/PageDown and Ctrl-arrow
+bindings in addition to existing WASD/Q/E/wheel aliases. Pure-controller tests
+cover held/released counters, fast/edge distinctions, fractional timing and
+locks. The native executable oracle checks630 pan combinations and both
+opposing-packet map-edge cases; only its virtual mode query is stubbed.
+The isolated Unity probe passes at all three zooms. Its runtime timing check
+confirms the adapter's tick construction retains sub-millisecond precision;
+the Mono conversion trap is recorded in `docs/TRAPS.md`.

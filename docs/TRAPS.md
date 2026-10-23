@@ -249,3 +249,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - PowerShell does not expand path globs for `rg`; search a directory with `-g 'WorldState*.cs'` rather than passing `WorldState*.cs` as a path.
 - Native byte arguments can have unrelated upper stack bits; oracle stubs must mask to the callee's actual width before indexing or testing availability.
 - `apply_patch` with `Add File` can replace an existing file; check that a knowledge-base record is absent before adding it, and preserve existing evidence/history when updating it.
+- If the native oracle's Python helper exits because `py -3` has no registered interpreter, set `DK2_PYTHON` to the installed executable alongside `DK2_UNICORN_DLL`.
+- Unity Mono rounds `TimeSpan.FromSeconds(1f/60f)` to170000ticks; construct elapsed time with `FromTicks(round(seconds*TicksPerSecond))` when sub-millisecond accumulation matters.
