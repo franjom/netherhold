@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 
 namespace DK2.Simulation;
 
@@ -38,6 +39,10 @@ public enum RoomPlacement
     /// <summary>A terrain DK2's placement test refuses by id: a Mana Vault, claimed or not, or a
     /// Hero Gate (<see cref="RoomRules.RefusesByTerrainId"/>).</summary>
     ReservedTerrain = 8,
+
+    /// <summary>A trap, a door or another player's creature stands on the tile
+    /// (<see cref="RoomRules.IsObstructed"/>).</summary>
+    Obstructed = 9,
 }
 
 /// <summary>Why a room tile could not be sold. Reported, never silently swallowed.</summary>
@@ -98,8 +103,8 @@ public static class RoomRules
     /// mentions ownership, so it has to come from the tile, and <c>Ownable</c> plus an
     /// owner id is all the tile carries. Water and lava belong to the neutral player (ADR-0362); a span over them
     /// must instead touch the player's own floor, <paramref name="touchesOwnLand"/>
-    /// (<c>0x0044F630</c>, Q33). Not implemented: its refusal of a tile an enemy creature,
-    /// door or trap stands on (<c>0x0044F800</c>, Q501).</summary>
+    /// (<c>0x0044F630</c>, Q33). The tile alone: what stands on it is the world overload's
+    /// <see cref="IsObstructed"/>, which a tile a dragged span reaches never meets (Q501).</summary>
     public static RoomPlacement CanBuild(
         GameDatabase database, in TileState tile, RoomDef room, PlayerId playerId, bool touchesOwnLand)
     {
@@ -124,7 +129,8 @@ public static class RoomRules
     public static bool RefusesByTerrainId(byte terrainId) => terrainId is >= 31 and <= 34 or 37;
 
     /// <summary><see cref="CanBuild(GameDatabase, in TileState, RoomDef, byte, bool)"/> for a world
-    /// tile, asking its neighbours for the adjacency; the authoritative placement test.</summary>
+    /// tile, asking its neighbours for the adjacency and its things for <see cref="IsObstructed"/>;
+    /// the authoritative placement test.</summary>
     public static RoomPlacement CanBuild(
         GameDatabase database, WorldState world, TilePos at, RoomDef room, PlayerId playerId)
     {
@@ -132,7 +138,30 @@ public static class RoomRules
         ref TileState tile = ref world.Tile(at);
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
         bool touches = (terrain.IsWater || terrain.IsLava) && OwnFloorRules.Touches(database, world, at, playerId);
-        return CanBuild(database, tile, room, playerId, touches);
+        RoomPlacement verdict = CanBuild(database, tile, room, playerId, touches);
+        return verdict == RoomPlacement.Allowed && IsObstructed(world, at, playerId) ? RoomPlacement.Obstructed : verdict;
+    }
+
+    /// <summary><c>0x0044F800</c>: whether a thing on the tile's chain stops a room tile going down:
+    /// any trap or door, whoever owns it, or a creature of another player (compared raw, so an ally's
+    /// counts) that is not an Imp and not dying. Objects never obstruct, Obstacle or not; a corpse is
+    /// DK2's dead-body class and is skipped with them. Dying is DK2's <c>+0x3E6</c> bit 21, ours
+    /// <see cref="CreatureDeathRules.IsDown"/> as at the door (<see cref="Systems.DoorSystem.Eligible"/>).
+    /// A dragged span tests only its seeds, so a creature on a tile the span spreads to does not stop
+    /// it (<c>0x004C57F0</c>; the owner bridged over a hero that way, 2026-10-23).</summary>
+    public static bool IsObstructed(WorldState world, TilePos at, PlayerId playerId)
+    {
+        int tile = world.TileIndex(at);
+        foreach (TrapState trap in world.Traps)
+            if (trap.TileLink.TileIndex == tile) return true;
+        foreach (DoorState door in world.Doors)
+            if (door.TileLink.TileIndex == tile) return true;
+        foreach (CreatureState creature in world.Creatures)
+            if (creature.TileLink.TileIndex == tile && creature.OwnerPlayerId != playerId
+                && creature.CreatureTypeId != CombatRules.ImpCreatureTypeId
+                && !CreatureDeathRules.IsDown(creature) && !CreatureDeathRules.IsCorpse(creature))
+                return true;
+        return false;
     }
 
     /// <summary>The water or lava tiles of one bridge order that may be spanned: those passing

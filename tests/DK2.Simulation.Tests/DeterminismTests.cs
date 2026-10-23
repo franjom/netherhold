@@ -160,12 +160,13 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 295: an Imp lands on its Heart's eight platform tiles (ADR-0526 amendment).
+        // HashVersion 296: an Imp lands on its Heart's eight platform tiles (ADR-0526 amendment).
+        // HashVersion 295: behaviour only, the room placement obstruction 0x0044F800 (ADR-0530).
         // HashVersion 294: tutorial rectangles and predictive crystal contacts (ADR-0527/0528).
-        // HashVersion 291: the rooms' border cursors (ADR-0524).
-        // HashVersion 290: the six world slots trigger action 42 marks creatures in (ADR-0523).
+        // HashVersion 293: swept portal-crystal bounds and steering contacts (ADR-0527).
+        // HashVersion 292: behaviour only, DK2's hand drop gate (ADR-0526).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x96C10C159666BE72UL, sim.StateHash());
+        Assert.Equal(0x9182B5916A8366B9UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -6797,7 +6797,7 @@ span from a refused one across the input delay without a grace period.
 
 **Deviations.** At most one span a tick where DK2 lays one per pass of the allowance. DK2's wrapper
 lays a keeper's unaffordable tile free; our command is charged, so the keeper waits for the gold.
-The obstruction test (`0x0044F800`) is not built (Q501), and the land arm still asks terrain
+The obstruction test (`0x0044F800`) was not built here (built by ADR-0530), and the land arm still asks terrain
 solidity rather than world slot `+0x208`. A hug that loops back abandons the task (`Done`) where
 DK2 takes `NextTask`: our task 2 lacks DK2's one-detour guard and would detour again at once
 (superseded by ADR-0395, which takes `NextTask`).
@@ -12126,7 +12126,7 @@ the centre, and sends a platform tile to 11, so 71's inner 3×3 test never meets
 (refused-states.md §3). `HandRules.CreatureLands` now accepts those eight tiles: only an Imp
 on its own Heart passes the gate there. The centre's disposal is 71's give-back, so it now also
 credits the tile owner Create Imp's mana cost, clamped at the ceiling (`Player_AddMana`
-`0x004C19C0`), before the gold is lost (never on a ruined Heart: refused-states.md §3). Hash and snapshot 295, behaviour only.
+`0x004C19C0`), before the gold is lost (never on a ruined Heart: refused-states.md §3). Hash and snapshot 296 (295 on the branch, renumbered when merged with ADR-0530's 295), behaviour only.
 
 ## ADR-0527 — Keep creatures outside portal crystals
 
@@ -12188,3 +12188,24 @@ raised rim, matching the native floor query; creature pose projection is separat
 **Consequences.** All effect8 room captures regain their native particle layout.
 Presentation only; no simulation, save format or hash change. Camera matching,
 native frame pacing and exact rendered pixel equivalence remain unmeasured.
+## ADR-0530 — A room tile is refused where a trap, a door or a rival's creature stands
+**Date:** 2026-10-23 · **Status:** accepted · Q501 · Research: `docs/research/bridge-placement.md` §1–2
+
+**Context.** DK2's placement predicate `0x0044F630` asks `0x0044F800` on every arm. It walks the
+tile's thing chain and refuses on a thing of class 3 (trap, `0x004A7940`) or 4 (door, `0x004A5070`)
+of any owner, or a class 0 creature that is not the Imp (`+0x36F != 1`), is not the player's own
+(`+0x28`, compared raw) and is not dying (`+0x3E6` bit 21). Objects, class 2, are skipped without
+reading a definition. `RoomRules.CanBuild` had no such test. OpenKeeper's `c047a8b1` (2026-10)
+lets only Obstacle objects block and does not test creatures; DK2 lets no object block.
+
+**Decision.** `RoomRules.IsObstructed` mirrors `0x0044F800` over the tile chain
+(`TileLink.TileIndex`), and the world overload of `CanBuild` returns the new
+`RoomPlacement.Obstructed` when it holds. The per-tile overload stays free of it: a tile a dragged
+span spreads to is marked without the predicate (`0x004C57F0`) and laid with it skipped, so only
+seeds meet the test. Dying is `CreatureDeathRules.IsDown`, as at the door (`DoorSystem.Eligible`);
+a corpse is DK2's dead-body class and is skipped.
+
+**Consequences.** Hash and snapshot 295 (293 and 294 are taken on classic-look/step6), behaviour only. Newly refused: a room or a single bridge
+tile on a trap, a door, or a rival's non-Imp creature; a span whose only seeds are obstructed.
+The owner, 2026-10-23: a bridge was built over a hero standing in water as part of a longer drag,
+which the spread predicts; the owner saw a single-tile placement onto such a tile refused (a hero; a rival keeper's creature is assumed the same, and the raw owner compare agrees). The owner also saw that an enemy corpse does not stop a room tile and that a door blueprint or an unbuilt trap does.

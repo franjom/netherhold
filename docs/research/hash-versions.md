@@ -15,7 +15,9 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
-**295** — `0x96C10C159666BE72`. Behaviour only: a keeper's Imp dropped on one of its own Heart's eight platform tiles lands there instead of being refused; only the centre disposes of it, now crediting Create Imp's mana cost as state 71 does, and never on a ruined Heart (ADR-0526 amendment, owner 2026-10-23). No new fields.
+**296** — `0x9182B5916A8366B9`. Behaviour only (295 on the step6 branch; renumbered when merged after ADR-0530's 295): a keeper's Imp dropped on one of its own Heart's eight platform tiles lands there instead of being refused; only the centre disposes of it, now crediting Create Imp's mana cost as state 71 does, and never on a ruined Heart (ADR-0526 amendment, owner 2026-10-23). No new fields.
+
+**295** — `0x4E209623A4874882`. Behaviour only: a room tile is refused where `0x0044F800` finds a trap or door of any owner, or another player's living non-Imp creature; a dragged span tests only its seeds (ADR-0530, Q501). No new fields.
 
 **294** — `0xA9B05FB68CF7011B`. Four saved tutorial-highlight rectangles, ids and signed tick timers (ADR-0528), plus predictive crystal contacts replacing oversized steering circles (ADR-0527 amendment). The pinned fixture has no active highlights or portal route; separate tests cover both behaviors.
 
@@ -393,8 +395,4 @@ this is composition only.
 and repeat snapshot for the creature trigger walker (ADR-0152). The fixture's
 creatures have no roots, so this is composition only.
 
-**60** — `0xE44F66372F8963D9`. Graveyard rooms gained ordered, saved
-per-room decomposition tallies (ADR-0151). The fixture has no Graveyard tally,
-so this is composition only: the empty collection count and version move the pin.
-
-[Versions 9–59](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–60](hash-versions-early.md) retain the earlier pins and their reasons.

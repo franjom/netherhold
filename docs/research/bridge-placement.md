@@ -28,10 +28,10 @@ carry `0x80` and `0x100`, and both bridge terrains `0x34` (Ownable, not Solid), 
 is own floor for the next span (`kwd roomflags`, `kwd terrainflags`).
 
 **Obstruction, `0x0044F800`** (`RET 0xC`; its third argument is never read): it walks the tile's
-thing list and refuses on any thing of class 3 or 4 (door and trap, HYPOTHESIS from the classes'
-use elsewhere), or a creature (class 0) whose kind byte `+0x36F` is not 1 (the Imp), whose owner
-`+0x28` is not the player and whose `+0x3E6` bit `0x200000` (dying, `payday.md`) is clear. Not
-built (Q501).
+thing list and refuses on any thing of class 3 or 4 (trap, built by `0x004A7940`, and door, built by `0x004A5070`), or a creature (class 0) whose kind byte `+0x36F` is not 1 (the Imp), whose owner
+`+0x28` is not the player and whose `+0x3E6` bit `0x200000` (dying, `payday.md`) is clear. Built as
+`RoomRules.IsObstructed` (ADR-0530, Q501; owner play 2026-10-23: a hero on a water tile refuses a single-tile bridge, an enemy corpse does not stop a room tile, a door blueprint or unbuilt trap does): the world overload of `CanBuild` returns `Obstructed`; a dragged span tests
+only its seed tiles, since the spread's tiles are laid with the test skipped (`0x004C7380`).
 
 Every room build reaches this predicate: `0x004C5C30` unless told to skip it, the drag pre-check
 `0x004C5A20`, the span map `0x004C57F0`, keeper tasks 3 and 7, and `0x00442960` (instruction scan
@@ -104,12 +104,11 @@ arms to every `BuildRoomCommand`; a bridge order of several tiles is marked whol
 (`SpannableTiles`), as §2. `KeeperAI.DigPath` follows §4 through `BuildRoomCommand`; the walk after
 a laid span follows at once, costing no allowance, as in DK2's pass. Differences, ADR-0304: the
 span lands on the next tick, so at most one span a tick where DK2 may lay one a pass; a span the
-keeper cannot pay for waits for gold rather than being laid free; the obstruction test is not
-built; the land arm asks terrain solidity, not world slot `+0x208`; a hug that loops back
+keeper cannot pay for waits for gold rather than being laid free; `KeeperView` predicts placement with the tile-state overload, which has no obstruction test, so the AI's predicted verdict never includes Obstructed (`RoomBuildSystem` applies it); the land arm asks terrain solidity, not world slot `+0x208`; a hug that loops back
 abandons the task where DK2 takes `NextTask`.
 
 ## 7. Open
 
 - Q497: whether the original Drako crosses the lava and calls at Morgana's heart as ours does.
-- Q501: the obstruction test, and whether classes 3 and 4 are door and trap.
+- Q501: answered; a rival keeper's creature refusing a tile is assumed from the raw owner compare, not seen.
 - `0x004F0390`/`0x004F04F0` around the keeper's build; what `0x00442960` uses the predicate for.

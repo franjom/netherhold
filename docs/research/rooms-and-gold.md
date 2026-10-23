@@ -185,8 +185,8 @@ can own.
 
 **Adjacency is CONFIRMED (Q33, Q66) and built** (ADR-0304): a span over water or lava
 must touch the keeper's own floor. The predicate, a dragged span and the keeper's
-bridges are [`bridge-placement.md`](bridge-placement.md); its obstruction test is not
-built (Q501). Nothing on the build path checks availability or `Buildable` (`room-slab-chain.md` §2).
+bridges are [`bridge-placement.md`](bridge-placement.md); its obstruction test is
+built (ADR-0530, Q501). Nothing on the build path checks availability or `Buildable` (`room-slab-chain.md` §2).
 
 ---
 

@@ -1,6 +1,10 @@
 # Early state-hash versions
 
-Versions 9–59, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–60, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**60** — `0xE44F66372F8963D9`. Graveyard rooms gained ordered, saved
+per-room decomposition tallies (ADR-0151). The fixture has no Graveyard tally,
+so this is composition only: the empty collection count and version move the pin.
 
 **59** — `0x659AB04378E4C2FE`. Temple rooms gained ordered, saved
 three-offering histories (ADR-0149). The fixture has no Temple history, so this
