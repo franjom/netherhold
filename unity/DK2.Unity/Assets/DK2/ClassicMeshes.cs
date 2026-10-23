@@ -354,7 +354,7 @@ namespace DK2.Unity
             if (!material.HasProperty("_EmissionColor")) return material;
             var cache = red ? _redHighlighted : _tagged;
             if (cache.TryGetValue(material, out Material tagged)) return tagged;
-            tagged = new Material(material) { name = material.name + " (tagged)" };
+            tagged = Copy(material, " (tagged)");
             // The tag's light adds to the material's own (its self-illumination, if any).
             Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
             tagged.EnableKeyword("_EMISSION");
@@ -390,7 +390,7 @@ namespace DK2.Unity
                 || material.name.StartsWith("AA_", System.StringComparison.Ordinal)) return material;
             int packed = tint.r << 16 | tint.g << 8 | tint.b;
             if (_elementTinted.TryGetValue((material, packed), out Material tinted)) return tinted;
-            tinted = new Material(material) { name = material.name + " (element tint)" };
+            tinted = Copy(material, " (element tint)");
             Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
             tinted.EnableKeyword("_EMISSION");
             tinted.SetTexture("_EmissionMap", material.mainTexture);
@@ -405,7 +405,7 @@ namespace DK2.Unity
             tint = ClassicTerrainTint.PieceColour(tint);
             if (tint == default || !material.HasProperty("_EmissionColor")) return material;
             if (_tinted.TryGetValue((material, tint), out Material tinted)) return tinted;
-            tinted = new Material(material) { name = material.name + " (terrain light)" };
+            tinted = Copy(material, " (terrain light)");
             Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
             tinted.EnableKeyword("_EMISSION");
             tinted.SetTexture("_EmissionMap", material.mainTexture);
@@ -425,6 +425,24 @@ namespace DK2.Unity
         /// every frame, no pulse.</summary>
         public Material HoverOverlay() => _hoverOverlay ??= Additive("AA_RedTexture", HoverOverlayColour);
 
+        // The materials this class made from an additive or alpha-blended KMF material, and every
+        // copy of one (Copy). Bounded by the material caches, which keep each material for the session.
+        private readonly HashSet<Material> _kmfBlended = new HashSet<Material>();
+
+        /// <summary>Whether a material was made from an additive or alpha-blended KMF material
+        /// (<see cref="KmfMaterial.Blend"/>), itself or as a copy: the draws' state bits 0x1/0x20,
+        /// not the render queue a fade raises. A material this class did not make reads opaque.</summary>
+        public bool IsKmfBlended(Material material) => material != null && _kmfBlended.Contains(material);
+
+        /// <summary>Every copy of a cached material goes through here, so it keeps its source's blend
+        /// (<see cref="IsKmfBlended"/>) whatever Unity's copy constructor carries over.</summary>
+        private Material Copy(Material source, string suffix)
+        {
+            var copy = new Material(source) { name = source.name + suffix };
+            if (_kmfBlended.Contains(source)) _kmfBlended.Add(copy);
+            return copy;
+        }
+
         private readonly Dictionary<AssetRef, Material[]> _hoverTextures = new Dictionary<AssetRef, Material[]>();
 
         /// <summary>Per material of the asset's model, the twin a hovered gold object draws over it:
@@ -443,7 +461,8 @@ namespace DK2.Unity
                     if (index == 0) continue;
                     Material source = MaterialFor(kmf, index);
                     result ??= new Material[model.Materials.Count];
-                    result[i] = new Material(source) { name = source.name + " (hover)", renderQueue = source.renderQueue + 1 };
+                    result[i] = Copy(source, " (hover)");
+                    result[i].renderQueue = source.renderQueue + 1;
                 }
             _hoverTextures[key] = result;
             return result;
@@ -516,6 +535,7 @@ namespace DK2.Unity
                 if (blend == KmfBlend.AlphaBlend)
                     MakeTransparent(material, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
             }
+            if (blend != KmfBlend.Opaque) _kmfBlended.Add(material);
             if (texture.Length > 0)
             {
                 try
@@ -583,7 +603,7 @@ namespace DK2.Unity
             if (source == null) return null;
             var cacheKey = (source, (byte)alpha, writeDepth);
             if (_faded.TryGetValue(cacheKey, out Material faded)) return faded;
-            faded = new Material(source) { name = source.name + " (alpha " + alpha + ")" };
+            faded = Copy(source, " (alpha " + alpha + ")");
             MakeTransparent(faded, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
             if (writeDepth) faded.SetFloat("_ZWrite", 1f);
             if (faded.HasProperty("_BaseColor"))

@@ -205,7 +205,8 @@ over a dig-taggable tile (blue) or with a full hand and no drop rectangle, and n
 plain floor with an empty hand.
 
 What the Hand points at is tinted red by the hover-id rule of `0x0040C290`, and a hovered
-gold object shows its `_HIGHLIGHT` texture ([gold-hover-and-sparkle.md](gold-hover-and-sparkle.md)).
+gold object shows its `_HIGHLIGHT` texture; additive and alpha-blended materials get no red
+([gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §1-2).
 Ours shows the pickup hand over own creatures and loose gold and the pointing cursor over
 doors, traps and store piles (owner, 2026-10-23).
 

@@ -85,6 +85,7 @@ namespace DK2.Unity
             new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<StructureId, TilePos> _structureTiles = new Dictionary<StructureId, TilePos>();
+        private readonly List<Material> _hoverMaterials = new List<Material>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly ClassicTorchLightBuffer _torchLights;
@@ -129,9 +130,10 @@ namespace DK2.Unity
         /// (Presentation_Update, 0x0043BE40): the caller decides which picks are tinted
         /// (<see cref="HoverTint"/>). A gold object's art (flag 0x10000) first swaps each material to
         /// its last texture, the spill cards' _HIGHLIGHT twin, drawn here over the original one queue
-        /// later. The red pass covers every material (owner, 2026-10-23; gold-hover-and-sparkle.md §2).
-        /// A mesh holds its sampled pose, so both follow the animation.</summary>
-        public void DrawHoverOverlay(WorldHoverHit hit)
+        /// later. The red pass skips additive and alpha-blended materials unless
+        /// <paramref name="coversBlended"/> (draw flag 0x400; <see cref="HoverTint.DrawsOverlay"/>;
+        /// gold-hover-and-sparkle.md §2). A mesh holds its sampled pose, so both follow the animation.</summary>
+        public void DrawHoverOverlay(WorldHoverHit hit, bool coversBlended = false)
         {
             if (_classic == null) return;
             GameObject go;
@@ -156,12 +158,15 @@ namespace DK2.Unity
             { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off, receiveShadows = false };
             Mesh mesh = filter.sharedMesh;
             Matrix4x4 matrix = go.transform.localToWorldMatrix;
+            _hoverMaterials.Clear();
+            if (go.TryGetComponent(out Renderer renderer)) renderer.GetSharedMaterials(_hoverMaterials);
             for (int sub = 0; sub < mesh.subMeshCount; sub++)
             {
                 if (swapped != null && sub < swapped.Length && swapped[sub] != null)
                     Graphics.RenderMesh(new RenderParams(swapped[sub])
                     { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off, receiveShadows = false }, mesh, sub, matrix);
-                Graphics.RenderMesh(overlay, mesh, sub, matrix);
+                bool blended = sub < _hoverMaterials.Count && _classic.IsKmfBlended(_hoverMaterials[sub]);
+                if (HoverTint.DrawsOverlay(blended, coversBlended)) Graphics.RenderMesh(overlay, mesh, sub, matrix);
             }
         }
 

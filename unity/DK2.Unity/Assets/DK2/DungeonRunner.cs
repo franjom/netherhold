@@ -1236,7 +1236,7 @@ namespace DK2.Unity
                     // Only the Hand's hover id is tinted: own pickable creatures, own pickable or
                     // slappable objects and loose gold on own land, own doors and traps (0x0040C290).
                     if (ActiveTool == PlayerToolMode.Hand && HoverTint.Applies(world, _simulation.Database, hit, viewer))
-                        _scene.DrawHoverOverlay(hit);
+                        _scene.DrawHoverOverlay(hit, HoverTint.CoversBlended(world, hit));
                     // In room mode a diggable tile keeps the pickaxe and draws no icon (0x0040B210).
                     if (!(ActiveTool == PlayerToolMode.BuildRoom && dig)) placement = Placement(world, viewer, tile, hit);
                     // The arms test the dig tag on a tile hover target (+0x1084 == 1, +0x1088 bit 0).

@@ -63,6 +63,31 @@ public static class HoverTint
         && (definition.Flags & (ObjectFlags.CanBePickedUp | ObjectFlags.CanBeSlapped)) != 0
         && (owner == viewer.Value || (objectTypeId is 1 or 2 && tileOwner == viewer.Value));
 
+    /// <summary>The flash override's door/trap mode (<c>0x0043BEF8</c>..<c>0x0043BF1A</c>): a trap or door
+    /// whose type (<c>+0xF6</c>) is 8 — the Fear Trap, the Hero Portcullis — gets mode 1, draw flags
+    /// 0x600 rather than 0x200 (<c>0x0059D4B0</c>). CONFIRMED.</summary>
+    public const byte FlashMode1Type = 8;
+
+    /// <summary>Whether the hover tint's draw flags hold 0x400: the hit is a door or trap of type
+    /// <see cref="FlashMode1Type"/>.</summary>
+    public static bool CoversBlended(WorldState world, WorldHoverHit hit)
+    {
+        if (hit.Kind == WorldHoverKind.Door)
+            foreach (DoorState door in world.Doors)
+                if (door.Id == hit.EntityId) return door.DoorId == FlashMode1Type;
+        if (hit.Kind == WorldHoverKind.Trap)
+            foreach (TrapState trap in world.Traps)
+                if (trap.Id == hit.EntityId) return trap.TrapId == FlashMode1Type;
+        return false;
+    }
+
+    /// <summary>Whether the red pass draws over one material. Both mesh draws skip it for a
+    /// material whose state is additive or alpha-blended (bit 0x1 or 0x20) unless the draw flags
+    /// hold 0x400 (static 0x00581583..0x00581597, animated 0x00584FC9..0x00584FE3). CONFIRMED by the
+    /// binary and by the owner (2026-10-23): the gold spill cards and a creature's translucent parts
+    /// stay untinted.</summary>
+    public static bool DrawsOverlay(bool blended, bool flag0x400) => !blended || flag0x400;
+
     /// <summary>Whether the hit is tinted for <paramref name="viewer"/>.
     /// <list type="bullet">
     /// <item>A creature the viewer may pick up (<c>0x0048E670</c>: the definition's hand bit and

@@ -36,7 +36,7 @@ texture phase that advances 0x1000 a turn over a frame count of 1 (art `+0x48` =
 each turn rests on the wrap bound `+0x3C`, whose writer is unread. STRONGLY INFERRED from
 SHOT0220-0227, where the cards are gold.
 
-## 2. Who is tinted, and how — gate CONFIRMED, blend coverage DISPUTED
+## 2. Who is tinted, and how — CONFIRMED
 
 **The hover id.** The tint arm draws only the Hand's hover id (interface `+0x10BC`, which
 0x0040ACD0 copies to bridge `+0x34`). In Hand mode [Hand_UpdateHoverTarget](functions/0040C290.md)
@@ -67,20 +67,27 @@ and traps it does not (owner, 2026-10-23). This follows 0x0040C1E0's pickup perm
 ([hand-cursor-rendering.md](hand-cursor-rendering.md)).
 
 **Blended materials.** The red `AA_RedTexture` (255,64,65) is an extra pass with draw flag
-0x200 (mode 0; mode 1 for a door or trap with `+0xF6` = 8 gives 0x600). Both mesh draws
-skip that pass for a material whose state has bit 0x1 or 0x20 (additive or alpha-blended)
-unless the draw flags also hold 0x400: the static draw at 0x00581583..0x00581597 and the
-animated one at 0x00584FC9..0x00584FE3. Read literally, the spill cards and a
-creature's translucent parts stay untinted in mode 0. The owner, from play (2026-10-23):
-a pointed creature's translucent parts (wings, glow, hair) are tinted, and a hovered
-chest turns pink as a whole, coins included. The two disagree; one of the draw-flag
-sources (RenderInfo `+0x5B`, OR-ed in by Draw_StaticMesh 0x0059CCF0) may carry 0x400 for these draws,
-which is unread. DISPUTED. Ours follows the owner and tints every material.
+0x200. Both mesh draws test each material's state after drawing it: with bit 0x1 or 0x20
+(additive or alpha-blended) and no 0x400 in the draw flags they jump past the rest of that
+material's passes, the 0x200 overlay and the later 0x800 pass alike (static draw
+0x00581583..0x00581597 to 0x00581920; animated draw 0x00584FC9..0x00584FE3). The flash override
+[0x0059D4B0](functions/0059D4B0.md) gives 0x600 (with 0x400) only in mode 1, which the hover
+arm chooses for a door or trap whose type `+0xF6` is 8 (0x0043BEF8..0x0043BF1A): the Fear
+Trap and the Hero Portcullis. Everything else hovered, creatures and gold included, has its
+additive and alpha-blended materials left untinted: the gold spill cards, a creature's
+translucent parts. CONFIRMED by the binary and by the owner (2026-10-23, from a screenshot of
+ours that showed the cards as a red box).
 
-My earlier reading of SHOT0225 against SHOT0228 (coins (197,166,81) → (214,113,71), "no
-red added") was wrong to conclude the cards are untinted: that colour fits the orange
-`_HIGHLIGHT` texture behind a partly covering card plus a red add, and cannot separate
-the two. The lid's (+126, +69, +70), red clipped at 255, is the flat add.
+The draws test the material's state after the draw flags have adjusted it. In the static
+draw, flags 0x2001 force alpha blending (0x00581174: clear 0x1 and 0x80, OR 0x220) and flag
+0x2 forces additive (0x005811A8..0x005811C4: clear 0x20 and 0x40, OR 0x201), so an object
+drawn faded may count as blended there. Which of our fades sets those flags is unread; ours
+tests the KMF material's own blend.
+
+Correction, 2026-10-23: the owner's earlier answers that a creature's translucent parts and
+a chest's coins are tinted were withdrawn the same day. The SHOT0225/SHOT0228 coins
+((197,166,81) → (214,113,71)) are the `_HIGHLIGHT` texture with no red; the lid's
+(+126, +69, +70), red clipped at 255, is the flat add.
 
 **The text.** The status line in SHOT0228 reads "1000 Gold" and the popup in SHOT0230
 "Gold": object type 3's status string 2543 with its gold at `%73`
@@ -139,7 +146,9 @@ tile, Q196) allow.
   arts.
 - `DungeonScene.DrawHoverOverlay` draws a hovered gold object's `_HIGHLIGHT` twin (from
   `ClassicMeshes.HoverTextures`) one render queue after the original, then the red pass on
-  every material, for creatures, objects, doors and traps.
+  its materials, skipping those made from additive or alpha-blended KMF materials
+  (`ClassicMeshes.IsKmfBlended`) unless `HoverTint.CoversBlended` (Fear Trap, Hero
+  Portcullis), for creatures, objects, doors and traps.
 - `DungeonScene.PickHoverEntity` admits the store pile decoration, doors and traps;
   `WorldHoverText` reads a store pile as "N Gold" from its tile.
 - The Hand's light aims at a store pile's point, its tile centre (the pile's `Spread` value
@@ -148,8 +157,8 @@ tile, Q196) allow.
 - Tests: `ObjectHoverHighlightTests`.
 
 Deviations: the `_HIGHLIGHT` twin is drawn over the original, not instead of it, which
-differs only at coin edges; the red pass covers blended materials against the literal
-reading of §2.
+differs only at coin edges; a faded object's blend comes from its KMF material, not from
+DK2's fade flags (§2).
 
 ## 6. Open follow-ups
 
@@ -161,8 +170,8 @@ reading of §2.
 3. **The pickup hand over a store pile.** DK2 shows it (owner). Ours stays the plain
    pointing cursor until 2 exists, so the cursor does not offer a lift the click cannot do
    (owner's choice, 2026-10-23).
-4. **Blended materials (§2).** Find what puts 0x400 in the draw flags of a hovered
-   creature's or gold's draw, or show it is absent.
+4. **Faded objects (§2).** Which draws carry flags 0x2001 or 0x2, and so lose the red on
+   every material while fading, is unread.
 5. **The status flower's hover stamp.** It reads the same hover id (0x0043B7F1); ours stamps
    any hovered creature in any tool. In Hand mode it should follow `HoverTint`.
 
@@ -173,8 +182,9 @@ Answered from play, 2026-10-23:
 - The red goes only to the keeper's own creatures, doors and traps, and to gold chests,
   piles and urns; never a rival's or a neutral one.
 - Own creatures and gold get the pickup hand; doors and traps do not.
-- A pointed creature's translucent parts (wings, glow, hair) are tinted red.
-- A hovered chest turns pink as a whole, coins included.
+- Only materials that are not see-through are tinted: the coin cards and a creature's
+  translucent parts are not. This corrects the same day's earlier answers (translucent parts
+  tinted, chest pink as a whole), which the owner withdrew after seeing ours tint the cards.
 - "1000 Gold" is the amount in that chest's tile, not the room's.
 
 Open:
@@ -185,3 +195,5 @@ Open:
    and does the chest shrink to an urn?
 3. ~~Is an own chicken, crate or spell book tinted?~~ Yes (owner, 2026-10-23), as the binary says.
 4. Is a rival's door tinted when pointed at?
+5. Does an own Fear Trap or Hero Portcullis show red on its translucent parts too (mode 1)?
+6. Does a fading creature lose its tint entirely while it fades?
