@@ -94,7 +94,7 @@ disc entry to the full map are integrated; see
 
 The current slice covers pointing, pickup, dig, held-item/gold, tagging, drop
 and slap sprites, the blue terrain-following cage, the room/sell/door/trap placement
-cage, tool icon and price, and the keeper-spell and Query arms (icon and No Go, no price) (research/placement-cursor.md), delayed short-name popups,
+cage, tool icon and price, the keeper-spell and Query arms (icon and No Go, no price), and the Hand's held-item icons with the disposal bin (I-Dismiss) and No Go (research/placement-cursor.md), delayed short-name popups,
 personal names and the top status strip. Owned-room storage/capacity fields
 are integrated. Remaining special name/object producers and exact rendered-hit
 and material contracts remain research/integration work; see

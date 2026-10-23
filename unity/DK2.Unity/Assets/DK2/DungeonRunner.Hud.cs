@@ -3,7 +3,9 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using DK2.Art;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Data.Text;
@@ -61,6 +63,10 @@ namespace DK2.Unity
             _bottomPanel = new ClassicBottomPanel(transform, bottomAssets, _bottomView);
             // The cursor's spell icon is the panel's own resource (0x0040D310 reads the same art).
             _placementOverlay.SpellIconName = id => bottomAssets.Icon(new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, id));
+            // The Hand's held-item icons (0x0040D450): a creature's Icon1Resource, an object's GuiIconResource.
+            Dk2ArtCatalogue heldArt = _hudSources.Catalogue;
+            _placementOverlay.CreatureIconName = id => heldArt.CreatureIcons.TryGetValue(id, out Dk2ArtResource icon) ? icon.Name : null;
+            _placementOverlay.ObjectIconName = id => heldArt.Objects.TryGetValue(id, out IReadOnlyList<Dk2ArtResource> art) && art.Count > 1 ? art[1].Name : null;
             _bottomPanel.SelectCategory(BottomPanelCategory.Creatures);
             _bottomPanel.Selected += SelectPanelChoice;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));

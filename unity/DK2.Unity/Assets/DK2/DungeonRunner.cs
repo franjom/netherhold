@@ -148,6 +148,7 @@ namespace DK2.Unity
         private DungeonMinimap _minimap;
         private ClassicHandCursor _handCursor;
         private ClassicPlacementOverlay _placementOverlay;
+        private readonly HeldItemStack _heldStack = new HeldItemStack();
         private ClassicTileHoverOutline _tileHighlight;
         private WorldHoverText _hoverText;
         private ClassicHoverHud _hoverHud;
@@ -1230,6 +1231,7 @@ namespace DK2.Unity
                     if (!(ActiveTool == PlayerToolMode.BuildRoom && dig)) placement = Placement(world, viewer, tile, hit);
                     // The arms test the dig tag on a tile hover target (+0x1084 == 1, +0x1088 bit 0).
                     placement = HoverCaged(placement, world, viewer, tile, hit.Kind == WorldHoverKind.Tile && dig);
+                    placement = HeldIcons(placement, world, viewer, tile, hit.Kind == WorldHoverKind.Tile && dig);
                 }
             }
             if (allowed && PointerOverHud(mouse))
@@ -1254,7 +1256,8 @@ namespace DK2.Unity
             float reach = cursor == HandCursorKind.Default ? 80
                 : HandCursor.Sprite(cursor).FrameSize.X - HandCursor.Sprite(cursor).Hotspot.X;
             _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
-            _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse));
+            if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(_simulation.World, new PlayerId((byte)viewingPlayerId));
+            _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse), _heldStack);
             _tileHighlight?.Update(placement.Cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
         }
 
@@ -1274,6 +1277,20 @@ namespace DK2.Unity
             return new PlacementFeedback(PlacementCursor.HoverCage(at, world.Width, world.Height),
                 PlacementCursor.HoverCageBlue(tool, dig, feedback.Valid), feedback.Price, feedback.Icon, feedback.NoGo, feedback.Affordable,
                 feedback.SpellId);
+        }
+
+        /// <summary>The Hand's held-item icons (0x0040CAE0 mode 0, 0x0040CFE0), gated apart from the cage:
+        /// 0x0040CAE0 returns at once while Options is open (+0x2722; owner-confirmed 2026-10-23) or bit
+        /// 0x01 is set (0x004039A0 sets it once the player has a result, Status +0x19A), and draws the
+        /// icons only with bit 0x08 (not over a dig-taggable tile with nothing to pick up) off the GUI.
+        /// Its caller 0x00403FB0 calls it every frame; neither tests possession or the full map, so
+        /// neither hides the icons here.</summary>
+        private PlacementFeedback HeldIcons(in PlacementFeedback feedback, WorldState world, PlayerId viewer, TilePos at, bool dig)
+        {
+            if (feedback.Icon == PlacementIcon.Held || dig || _hudControls.OptionsVisible || ActiveTool != PlayerToolMode.Hand
+                || _queryTool || _panelChoice is not null || world.Player(viewer).Hand.Count == 0) return feedback;
+            PlacementFeedback held = PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
+            return new PlacementFeedback(feedback.Cage, feedback.Valid, 0, PlacementIcon.Held, held.NoGo, true, 0, held.Dispose);
         }
 
         /// <summary>The active tool as 0x004096B0 sees it; null for tools DK2's cursor has no mode for.</summary>

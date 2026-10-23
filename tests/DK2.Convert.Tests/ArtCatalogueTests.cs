@@ -206,4 +206,20 @@ public class ArtCatalogueTests
         Assert.Equal(database.Creatures[1].KnockdownAnimation.StartSegmentFrames, knockdown.StartSegmentFrames);
         Assert.Equal(database.Creatures[1].KnockdownAnimation.EndSegmentFrames, knockdown.EndSegmentFrames);
     }
+
+    [InstallFact]
+    public void HeldItemIconsAreTheCreaturesIcon1ResourceAndTheObjectsGuiIconResource()
+    {
+        var database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(Dk2InstallGate.Path);
+        var imp = database.Creatures.Values.Single(c => c.Name == "Imp");
+        // Creatures.kwd file +0xC44, the compact definition's +0x510 that 0x0040D450 draws.
+        Assert.Equal(@"gui\creatures\evil\imp", art.CreatureIcons[imp.CreatureId].Name);
+        Assert.Equal(database.Creatures.Count, art.CreatureIcons.Count);
+        // Objects.kwd file +0x74 is art 1 of the object list (art 0 is the mesh at +0x20).
+        var gold = database.Objects.Values.Single(o => o.Name == "Gold");
+        var flag = database.Objects.Values.Single(o => o.Name == "Call To Arms");
+        Assert.Equal(@"gui\rooms\Treasury", art.Objects[gold.ObjectId][1].Name);
+        Assert.Equal(@"gui\spells\call_to_arms", art.Objects[flag.ObjectId][1].Name);
+    }
 }

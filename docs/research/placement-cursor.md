@@ -1,24 +1,16 @@
 # Placement cursor: cage, tool icon and price
 
-Read 2026-10-23 (claude) from DKII.EXE. This covers what DK2 draws at the pointer
-while a room, sell, door, trap, keeper-spell or Query tool is selected: the
-selection cage in the 3D view, the small tool icon next to the hand, the "No Go"
-icon and the price digits. The hand sprites themselves, the rectangle
-publication and the cage geometry and colour are in
-[hand-cursor-rendering.md](hand-cursor-rendering.md).
+Read 2026-10-23 (claude) from DKII.EXE: what DK2 draws at the pointer while a room, sell,
+door, trap, keeper-spell or Query tool is selected, or the Hand holds something: the selection
+cage, the tool or held-item icons beside the hand, "No Go" and the price digits. Hand sprites,
+rectangle publication and cage geometry are in [hand-cursor-rendering.md](hand-cursor-rendering.md).
 
-The owner described the cursor from play, because DK2 screenshots do not capture it:
-in room-build mode a flashing cage over the target tiles, blue-edged where the room can go,
-with the price in pink/red digits beside the hand and a white "arrow down to the
-ground" icon. Where the room cannot go, the cage is red, no price shows and a
-crossed-circle icon floats near the hand. The binary agrees with that description. The
-one-tile cage the owner sees while only hovering is not the selection rectangle: the room
-arm fills none until a drag (§2). It is most likely the Hand light's own cage (LIKELY), which
-`Presentation_Update 0x0043B220` marks drawn under the pointer whenever both published
-rectangles are empty and the interface's hover-cage test `0x004096B0` allows it: always in
-room, sell, door and trap mode, in Hand mode only while the hand holds something or over a
-dig-taggable tile, and in spell and Query mode only over a dig-taggable tile (§2a, read
-2026-10-23, CONFIRMED).
+The owner's description from play (DK2 screenshots do not capture the cursor) matches the
+binary: in room mode a flashing cage, blue where the room can go, a pink/red price and a white
+"arrow to the ground" icon; where it cannot, a red cage, no price and a crossed circle. The
+one-tile cage while only hovering is not the selection rectangle (the room arm fills none until
+a drag, §2) but most likely the Hand light's own cage (LIKELY), drawn where `0x004096B0` allows
+it (§2a, CONFIRMED).
 
 ## 1. Per-frame flow (CONFIRMED)
 
@@ -268,10 +260,10 @@ centre only (`0x004EFBE0`'s table). The dead-body arm is not built.
 - The floor-slot test takes all eight neighbours, the `+0x0C == 0xFF` interior byte
   (room-floors-and-liquids.md §1). `RoomIndex.InteriorTileIndices` and
   `AutoFurnitureRules.FloorSlotSet` use four; they are left as they are.
-- An Imp on its own Heart's eight platform tiles around the centre: this gate has no arm that
-  refuses it, and no navigation-byte writer marks them (structure-blocks.md §5.4; the Heart's
-  builder writes 3 on the centre only). The owner saw them refused (2026-09-15), and ours
-  refuses them by walkability. Where DK2 refuses them is not found.
+- An Imp on its own Heart's eight platform tiles around the centre: the gate accepts it, and so
+  does ours, past the walkability guard (ADR-0526 amendment). The owner's photos of 2026-10-23
+  show a blue cage there and the Imp landing; on the centre the cage is blue with the rubbish
+  bin, and the Imp is disposed of (structure-blocks.md §4).
 
 ## 3. Tool icon and price drawing, `0x0040CAE0` (CONFIRMED)
 
@@ -281,27 +273,13 @@ The function returns at once when flag 0x01 is set or `+0x2722` is non-zero. Ove
 first moves x left by `40·W/640`.
 
 **Icon resources.** The 13 cursor icons are loaded by `0x0040C710` from the pointer table at
-`0x0068F978`, read as bytes, into the 27-byte records at `[0x006CE958] + i·0x1B`:
-
-| i | Resource | Used by |
-|---:|---|---|
-| 0 | `gui\cursors\I-Dig` | — |
-| 1 | `gui\cursors\I-Dismiss` | — |
-| 2 | `gui\cursors\I-Kill` | mode 5, special subtype 0x7F |
-| 3 | `gui\cursors\I-Lv_up` | — |
-| 4 | `gui\cursors\I-Max_Lv` | — |
-| 5 | `gui\cursors\I-No_Go` | the invalid overlay |
-| 6 | `gui\cursors\I-Place_Door` | mode 6 |
-| 7 | `gui\cursors\I-Place_Room` | mode 3 |
-| 8 | `gui\cursors\I-Place_Trap` | mode 7 |
-| 9 | `gui\cursors\I-Query` | mode 10 |
-| 10 | `gui\cursors\I-Resurrect` | — |
-| 11 | `gui\cursors\I-Sell` | mode 4 |
-| 12 | `gui\cursors\I-Transfer` | mode 5, special subtype 0x8C |
-
-A dash means no use in this function. The I-Place_Room art is the owner's white
-"arrow to the ground", and I-No_Go is the crossed circle (owner's description; the PNGs are
-not yet checked in `Sprite.WAD`).
+`0x0068F978`, read as bytes, into the 27-byte records at `[0x006CE958] + i·0x1B`. Index 1 `I-Dismiss` is the held-item bin (`0x0040D450`), 2 `I-Kill` and 12 `I-Transfer` mode 5
+(special subtype 0x7F / 0x8C), 5 `I-No_Go` the invalid overlay, 6/7/8 `I-Place_Door`/`_Room`/`_Trap`
+modes 6/3/7, 9 `I-Query` mode 10 and 11 `I-Sell` mode 4; `I-Dig`, `I-Lv_up`, `I-Max_Lv` and
+`I-Resurrect` (0, 3, 4, 10) are unused here (full table in [0040C710](functions/0040C710.md)). They
+are engine textures (32×32 with a 16×16 MIP), not `Sprite.WAD`. I-Place_Room is the owner's white
+"arrow to the ground", I-No_Go the crossed circle (owner's description, unchecked until
+2026-10-23, when I-No_Go and I-Dismiss were decoded: a crossed circle and a red bin).
 
 **Icon position.** The icon goes at `(x + 82·W/640, y + 10·H/480)`, and the draw passes size
 `0x20×0x20`. The mapping of that size to screen pixels is unread. In room mode the icon is
@@ -334,6 +312,21 @@ price, as the owner described.
 draws icon 5 (`I-No_Go`) at the same anchor, so it covers the tool icon. In Hand mode the
 anchor comes from the held-item helper `0x0040CFE0`.
 
+**Held items in Hand mode (CONFIRMED, read 2026-10-23).** `0x0040CAE0` returns at once while
+Options is open (`+0x2722`; owner-confirmed: the icons hide) or bit 0x01 is set (`0x004039A0`,
+once the player has a result); its caller `0x00403FB0` calls it every frame, and nothing on that
+path tests possession or the full map. Mode 0 draws no I-* icon or price; with bit 0x08 (cleared
+over a dig-taggable tile with nothing to pick up) and off the GUI it calls `0x0040CFE0`: each
+held thing, top of the hand first, gets a `0x20×0x20` icon in a 4×2 grid of 32-pixel steps from
+the tool-icon anchor, and past eight `gui\Creatures\more_creatures` (owner-confirmed with nine or
+more). A creature shows its **Icon1Resource** (Creatures.kwd `+0xC44`, `gui\creatures\evil\imp`),
+an object its **GuiIconResource** (Objects.kwd `+0x74`). Inside icon 0's draw, for a creature
+with bit 0x04 (§2a: an own creature over its own Heart's centre if IsWorker+IsEvil, else over its
+own Portal's centre, drop accepted), `0x0040D450` draws `I-Dismiss`, the red bin, 2 px left.
+Whether DK2 keeps cell `0x40`, and so the bin, once the Heart is ruined is unread. No Go draws
+last, at icon 0 moved by `(-2, +2)`, when the drop is refused; bit 0x04 hides it. Order: icon 0,
+bin, icons 1–7, overflow, No Go ([0040CFE0](functions/0040CFE0.md), [0040D450](functions/0040D450.md)).
+
 ## 4. What differs by tool
 
 | Tool | Cage | Icon | Price | Invalid |
@@ -344,6 +337,7 @@ anchor comes from the held-item helper `0x0040CFE0`.
 | Trap | one-tile hover cage | I-Place_Trap | trap cost | as door |
 | Keeper spell | hover cage over a dig-taggable tile only | the spell's GUI icon (file `+0x20`) | none (CONFIRMED) | No Go where the click casts nothing, offset (-2,+2) |
 | Query | hover cage over a dig-taggable tile only | I-Query | none | No Go only over the HUD |
+| Hand, holding | drop cage on the hovered tile | each held thing's GUI icon, up to 8, then more_creatures; I-Dismiss over the first where the drop disposes | none | No Go over the first icon where the drop is refused |
 
 ## 5. Unknowns
 
@@ -353,48 +347,50 @@ anchor comes from the held-item helper `0x0040CFE0`.
 - **Cage while hovering** (producer read, §2a): the owner's photos (2026-10-23) show a one-tile
   cage, red over water, blue over claimed path; the Hand light's kind3 cage most likely is it
   (LIKELY). Open: how the light reaches the draw, and who clears the union flag `+0x20`/`+0x5E`.
-- For the owner: is the cage on every interior tile with a door or trap selected, and in Hand mode only over a dig-taggable wall (blue)?
-  That would confirm the link.
-- For the owner, from play: does Call to Arms show No Go on some open floor; is the Temple
-  interior valid for a place spell; Heal slightly below full; Create Imp over enemy or
-  unclaimed floor.
-
-The icons are engine textures, `GUI\Cursors\I-*` (32x32 with a 16x16 MIP), not `Sprite.WAD`.
+- For the owner, from play: is the cage on every interior tile with a door or trap selected,
+  and in Hand mode only over a dig-taggable wall (blue)? That would confirm the link. Does Call
+  to Arms show No Go on some open floor; is the Temple interior valid for a place spell; Heal
+  slightly below full; Create Imp over enemy or unclaimed floor.
 
 ## 6. Built (2026-10-23)
 
-`PlacementCursor` (Presentation) returns each frame's cage, validity, icon, No Go and
-signed price for room build, sell, door and trap, from `RoomRules` and
-`BlueprintPlacementRules`; a room's price counts the tiles `CanBuild` or the span rule
-accepts, and with none it is invalid and unpriced, as `0x004C5AF0` returns (CONFIRMED; our
-count mirrors slot `+0x22C` without walking it). The room
-drag clamps its end to `RubberBandAreaLimit` in `PlayerInputTranslator`, as the release
-arm `0x00408194..0x004081FD` does. `ClassicTileHoverOutline` cages any rectangle, red or
-blue; `ClassicPlacementOverlay` draws the icon at the pointer plus `(82*W/640, 10*H/480)`,
-No Go over it, and the price in the gold counter's digits, pink, red when unaffordable,
-(128,255,255) for a refund. The hover cage follows `0x004096B0` per mode
-(`PlacementCursor.HoverCageShows`, `DungeonRunner.HoverCaged`): always in room, sell, door and
-trap mode; in Hand mode while holding something or over a dig-taggable tile (hit kind Tile);
-with a spell or Query only over a dig-taggable tile; hidden on border tiles, while Options is
-open and during possession. Its colour is blue over a dig-taggable tile in Hand, room, spell
-and Query mode, otherwise the arm's validity (`HoverCageBlue`). The hand-drop cage's colour
-(`HandDrop`) asks `HandRules.DropLands`, the drop gate `0x0040D8F0` plus our walkability guard
-(ADR-0526; The drop cage's colour, above). Not applied: `0x004096B0`'s view-mode, over-GUI and camera gates. The cursor
-rectangle and the sell release keep the low corner (`0x0040B2B0`, `0x0040B661`, `0x004083DA`),
-the room release the anchor (`0x00408194`); ours does each. Over the HUD ours forces No Go
-even during a drag, where DK2's `+0x10C` gate runs the normal arm. Not built: the hovered door/trap sell refund, the room hover's
-terrain `+0x17B` gate, and a door/trap's stale price when invalid.
+`PlacementCursor` (Presentation) returns each frame's cage, validity, icon, No Go and signed price
+for room, sell, door and trap from `RoomRules` and `BlueprintPlacementRules`; a room's price counts
+the tiles `CanBuild` or the span rule accepts, and with none it is invalid and unpriced, as
+`0x004C5AF0` returns (CONFIRMED; our count mirrors slot `+0x22C` without walking it). The room drag
+clamps its end to `RubberBandAreaLimit` (`PlayerInputTranslator`, as `0x00408194..0x004081FD`); the
+cursor rectangle and sell release keep the low corner (`0x0040B2B0`, `0x0040B661`, `0x004083DA`),
+the room release the anchor (`0x00408194`); ours does each.
+`ClassicTileHoverOutline` cages any rectangle; `ClassicPlacementOverlay` draws the icon at the
+pointer plus `(82*W/640, 10*H/480)`, No Go over it, and the price in the gold counter's digits,
+pink, red when unaffordable, (128,255,255) for a refund. The hover cage follows `0x004096B0`
+(`HoverCageShows`, `DungeonRunner.HoverCaged`; in Hand mode over a dig-taggable tile, hit kind
+Tile), hidden on border tiles, with Options open and
+during possession; blue over a dig-taggable tile in Hand, room, spell and Query mode, else the
+arm's validity (`HoverCageBlue`). `HandDrop` asks `HandRules.DropLands`, the gate `0x0040D8F0`
+plus our walkability guard (ADR-0526). Not applied: `0x004096B0`'s view-mode, over-GUI and camera
+gates; over the HUD ours forces No Go even during a drag, where DK2's `+0x10C` gate runs the
+normal arm. Not built: the hovered door/trap sell refund, the room hover's terrain `+0x17B` gate,
+and a door/trap's stale price when invalid.
 
-**Keeper spell and Query (2026-10-23).** `PlacementCursor.Spell`: the spell's icon, no cage
-or price, No Go where the simulation refuses the command our click sends (`CanCast` on the hovered
-creature, `CanCastAtPlace` at the tile's centre), asked for the next tick through a between-turns
-overload that reads the navigation bytes as last refreshed and never refreshes them. Our click
-differs from DK2's, simulation unchanged, to follow up: the flag-2 tile test (location selector
-4 wants tile flag 0x2000); object targets (kind 4); the Temple offering (0x87); Heal, refused
-at or above the maximum where DK2 refuses only equality (a reincarnated Vampire is above it,
-creature-death.md; DK2 lets you Heal it); our `TargetAtMaxHealth` applies to any positive
-Modify Health shot, not only spell 10. Only creature kinds publish the hover id (`0x0040B7F0`).
-`PlacementCursor.CreateImp` (our CreateImp tool, DK2's mode 8): No Go only when the mana is
-short, as our click casts on the Heart; DK2 tests the tile. `PlacementCursor.Query`: I-Query
-alone. Both show No Go over the HUD. The overlay shifts the spell's No Go by 2 pixels scaled as
-the price offset (HYPOTHESIS, the same unread scale).
+**Keeper spell and Query (2026-10-23).** `PlacementCursor.Spell`: the spell's icon, no cage or
+price, No Go where the simulation refuses the command our click sends (`CanCast` on the hovered
+creature, `CanCastAtPlace` at the tile's centre), asked for the next tick on the navigation bytes
+as last refreshed, never refreshing them. Our click differs from DK2's, simulation unchanged, to
+follow up: the flag-2 tile test (selector 4,
+tile flag 0x2000); object targets (kind 4); the Temple offering (0x87); Heal refused at or above
+the maximum where DK2 refuses only equality (a reincarnated Vampire is above it,
+creature-death.md), and our `TargetAtMaxHealth` covers any positive Modify Health shot. Only
+creature kinds publish the hover id (`0x0040B7F0`). `CreateImp` (DK2's mode 8): No Go only when
+the mana is short, as our click casts on the Heart; DK2 tests the tile. `Query`: I-Query alone.
+Both show No Go over the HUD. The spell's No Go shift of 2 pixels uses the price's scale (HYPOTHESIS).
+
+**Held items (2026-10-23).** `HandDrop` returns `PlacementIcon.Held`, No Go where `DropLands`
+refuses, and `Dispose` for a drop that lands. `HeldItemStack.Disposes` asks the click's own rule
+(`CreatureLands`' disposal: `DisposalRules`, no prisoner, the Heart not ruined) and keeps bit
+0x04's only to narrow it, so the bin never promises what the click does not do. Where they differ
+the cursor follows the click: a non-evil worker over its own Portal's centre gets DK2's bin but
+our No Go (`DisposalRules` keys the Heart on IsWorker). Ours has no queued drops, so icon 0 is the
+hand's top. `DungeonRunner.HeldIcons` gates the icons apart from the cage: Options hides them,
+possession and the full map do not; the result bit 0x01 is not mirrored. The overlay draws them in
+DK2's order at the tool icon's scale (HYPOTHESIS).

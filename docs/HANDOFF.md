@@ -147,7 +147,7 @@ and primary click navigation are built. Remaining overlays
 and owner comparison remain. The Step6 branch now implements camera/letterbox
 HUD hiding, restoration and input blocking, plus the native heading-dependent
 north marker, camera-ribbon disc containment and zoomed Heart direction trail.
-The branch also has original Hand/dig/pickup sprites, a terrain-deformed hover cage per tool mode (blue over dig tiles), a placement cage with tool icon and price (room, sell, door, trap, keeper spell, Query), delayed localized names and a top status strip. Evidence and limits:
+The branch also has original Hand/dig/pickup sprites, a terrain-deformed hover cage per tool mode (blue over dig tiles), a placement cage with tool icon and price (room, sell, door, trap, keeper spell, Query), the held-item icons beside the hand with the disposal bin over the Heart or Portal centre, delayed localized names and a top status strip. Evidence and limits:
 research/hand-cursor-rendering.md, research/placement-cursor.md and research/world-hover-text.md;
 live gold/mana, separate rates and the Heart health ring now occupy the original
 resource region, with status text to its right. The Step6 branch integration

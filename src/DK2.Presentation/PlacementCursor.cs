@@ -10,10 +10,11 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Presentation;
 
-/// <summary>The tool icon beside the hand: <c>gui\cursors\I-*</c> (table <c>0x0068F978</c>), or for
+/// <summary>The tool icon beside the hand: <c>gui\cursors\I-*</c> (table <c>0x0068F978</c>), for
 /// <see cref="Spell"/> the keeper spell's own GUI icon (<c>0x0040D310</c>), named by
-/// <see cref="PlacementFeedback.SpellId"/>.</summary>
-public enum PlacementIcon { None, PlaceRoom, Sell, PlaceDoor, PlaceTrap, Query, Spell }
+/// <see cref="PlacementFeedback.SpellId"/>, and for <see cref="Held"/> the Hand's held-item icons
+/// (<c>0x0040CFE0</c>, <see cref="HeldItemStack"/>).</summary>
+public enum PlacementIcon { None, PlaceRoom, Sell, PlaceDoor, PlaceTrap, Query, Spell, Held }
 
 /// <summary>The tool as the hover-cage flag <c>0x004096B0</c> sees it (modes 0, 3, 4, 6, 7, and 8/10).</summary>
 public enum HoverCageTool { Hand, Room, Sell, Door, Trap, SpellOrQuery }
@@ -27,9 +28,12 @@ public readonly record struct TileRectangle(int X0, int Y0, int X1, int Y1)
 /// <summary>One frame of placement feedback: the selection cage (null draws none), blue when
 /// <see cref="Valid"/> and red otherwise, the tool icon with the No Go icon over it, and the
 /// price beside them (negative a cost, positive a refund, zero none). <see cref="SpellId"/> names
-/// the keeper spell whose icon <see cref="PlacementIcon.Spell"/> draws, and is zero otherwise.</summary>
+/// the keeper spell whose icon <see cref="PlacementIcon.Spell"/> draws, and is zero otherwise.
+/// <see cref="Dispose"/> draws <c>I-Dismiss</c> over the first held icon: the drop throws the
+/// creature away (interface <c>+0x132E</c> bit 0x04, which also hides No Go).</summary>
 public readonly record struct PlacementFeedback(
-    TileRectangle? Cage, bool Valid, int Price, PlacementIcon Icon, bool NoGo, bool Affordable, byte SpellId = 0)
+    TileRectangle? Cage, bool Valid, int Price, PlacementIcon Icon, bool NoGo, bool Affordable, byte SpellId = 0,
+    bool Dispose = false)
 {
     public static PlacementFeedback None => default;
 }
@@ -89,19 +93,23 @@ public static class PlacementCursor
             ? null : new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1);
 
     /// <summary>Hand mode with something held (<c>0x0040AE80</c>): the 1×1 drop cage on the hovered tile,
-    /// red when the top item may not be dropped there. DK2 colours it by its drop gate
-    /// <c>0x0040D8F0</c> (placement-cursor.md, "The drop cage's colour"); this asks
-    /// <see cref="HandRules.DropLands"/>, that gate plus ours (ADR-0526), the same rule the drop
-    /// runs, so the colour is what a click does. None with an empty hand.</summary>
+    /// red when the top item may not be dropped there, and the held-item icons beside the hand
+    /// (<see cref="PlacementIcon.Held"/>, <c>0x0040CFE0</c>) with No Go over them where the drop is
+    /// refused (bit 0x02) or I-Dismiss where it disposes (bit 0x04, <see cref="HeldItemStack.Disposes"/>).
+    /// DK2 colours the cage by its drop gate <c>0x0040D8F0</c> (placement-cursor.md, "The drop cage's
+    /// colour"); this asks <see cref="HandRules.DropLands"/>, that gate plus ours (ADR-0526), the same
+    /// rule the drop runs, so the colour is what a click does. None with an empty hand.</summary>
     public static PlacementFeedback HandDrop(WorldState world, GameDatabase database, PlayerId player, TilePos hovered)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (database is null) throw new ArgumentNullException(nameof(database));
         List<HandItem> hand = world.Player(player).Hand;
         if (hand.Count == 0) return PlacementFeedback.None;
-        bool valid = HandRules.DropLands(world, database, player, hand[hand.Count - 1], hovered);
+        HandItem top = hand[hand.Count - 1];
+        bool valid = HandRules.DropLands(world, database, player, top, hovered);
+        bool dispose = valid && HeldItemStack.Disposes(world, database, player, top, hovered);
         return new PlacementFeedback(new TileRectangle(hovered.X, hovered.Y, hovered.X + 1, hovered.Y + 1),
-            valid, 0, PlacementIcon.None, false, true);
+            valid, 0, PlacementIcon.Held, !valid, true, 0, dispose);
     }
 
     /// <summary>The rubber-band limit, its low byte as <c>0x006F2900</c> is read.</summary>

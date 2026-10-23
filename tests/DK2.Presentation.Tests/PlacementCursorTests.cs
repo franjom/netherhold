@@ -206,12 +206,164 @@ public sealed class PlacementCursorTests
         Assert.Equal((PlacementIcon.Query, false, 0, (TileRectangle?)null), (query.Icon, query.NoGo, query.Price, query.Cage));
     }
 
-    private static (GameDatabase, WorldState, PlayerId) Level1()
+    [Fact]
+    public void HeldIconsStepThirtyTwoPixelsFourToARowWithTheOverflowIconAfterTheEighth() =>
+        Assert.Equal(new[] { (0, 0), (32, 0), (96, 0), (0, 32), (96, 32), (128, 32) },
+            new[] { 0, 1, 3, 4, 7, 8 }.Select(HeldItemStack.Offset).ToArray());
+
+    [InstallFact]
+    public void TheHeldIconsListTheHandFromTheTopAndOverflowPastEight()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        TilePos at = Claimed(world, db, keeper, 0);
+        var stack = new HeldItemStack();
+        stack.Refresh(world, keeper);
+        Assert.Empty(stack.Icons);
+        for (int i = 0; i < 8; i++) Hold(world, world.SpawnCreature(db, ImpType, keeper, at));
+        Hold(world, world.SpawnCreature(db, GoblinType, keeper, at));
+        stack.Refresh(world, keeper);
+        Assert.Equal(HeldItemStack.MaxIcons, stack.Icons.Count);
+        Assert.True(stack.More);
+        Assert.Equal(new HeldIcon(HeldIconKind.Creature, GoblinType), stack.Icons[0]);
+        Assert.Equal(new HeldIcon(HeldIconKind.Creature, ImpType), stack.Icons[7]);
+    }
+
+    [InstallFact]
+    public void EightHeldThingsFillTheGridWithoutTheOverflowIcon_AnObjectShowsItsOwnIcon()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        TilePos at = Claimed(world, db, keeper, 0);
+        for (int i = 0; i < 7; i++) Hold(world, world.SpawnCreature(db, ImpType, keeper, at));
+        HoldObject(world, keeper, world.SpawnObject(db, HatcheryRules.ChickenObjectId, keeper, world.TileIndex(at)));
+        var stack = new HeldItemStack();
+        stack.Refresh(world, keeper);
+        Assert.Equal(HeldItemStack.MaxIcons, stack.Icons.Count);
+        Assert.False(stack.More);
+        Assert.Equal(new HeldIcon(HeldIconKind.Object, HatcheryRules.ChickenObjectId), stack.Icons[0]);
+    }
+
+    [InstallFact]
+    public void AnImpOverItsHeartCentreShowsTheBinWithoutNoGo_ThePlatformAroundItShowsTheImp()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        TilePos centre = HeartCentre(world, db, keeper);
+        Hold(world, world.SpawnCreature(db, ImpType, keeper, Claimed(world, db, keeper, 0)));
+
+        PlacementFeedback bin = PlacementCursor.HandDrop(world, db, keeper, centre);
+        Assert.Equal((PlacementIcon.Held, true, true, false), (bin.Icon, bin.Valid, bin.Dispose, bin.NoGo));
+        PlacementFeedback platform = PlacementCursor.HandDrop(world, db, keeper, new TilePos(centre.X + 1, centre.Y));
+        Assert.Equal((PlacementIcon.Held, true, false, false), (platform.Icon, platform.Valid, platform.Dispose, platform.NoGo));
+    }
+
+    [InstallFact]
+    public void AnImpOverARuinedHeartsCentreShowsNoBin_TheClickDoesNotDisposeAndWhetherDk2KeepsCell0x40IsUnread()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        TilePos centre = HeartCentre(world, db, keeper);
+        Hold(world, world.SpawnCreature(db, ImpType, keeper, Claimed(world, db, keeper, 0)));
+        world.Player(keeper).HeartRuined = true;
+
+        Assert.False(PlacementCursor.HandDrop(world, db, keeper, centre).Dispose);
+    }
+
+    [InstallFact]
+    public void AnEvilNonWorkerOverItsOwnPortalCentreShowsTheBin_OverTheHeartCentreNoGo()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        TilePos portal = PaintedPortalCentre(world, db, keeper);
+        CreatureState goblin = world.SpawnCreature(db, GoblinType, keeper, Claimed(world, db, keeper, 0));
+        Assert.Equal(CreatureFlags.IsEvil, db.CreatureById(GoblinType).Flags & (CreatureFlags.IsWorker | CreatureFlags.IsEvil));
+        Hold(world, goblin);
+
+        PlacementFeedback bin = PlacementCursor.HandDrop(world, db, keeper, portal);
+        Assert.Equal((true, true, false), (bin.Valid, bin.Dispose, bin.NoGo));
+        PlacementFeedback heart = PlacementCursor.HandDrop(world, db, keeper, HeartCentre(world, db, keeper));
+        Assert.Equal((false, false, true), (heart.Valid, heart.Dispose, heart.NoGo));
+    }
+
+    /// <summary>DK2 sets bit 0x04 for a non-evil worker over its own Portal centre (0x0040AE80 keys the
+    /// Heart on IsWorker+IsEvil); our click refuses that drop, so the cursor shows No Go, not the bin.</summary>
+    [InstallFact]
+    public void ANonEvilWorkerGetsNoBinOverItsPortalCentreOrHeartCentre_DisposalRulesKeyOnIsWorkerNotIsEvil()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        TilePos portal = PaintedPortalCentre(world, db, keeper);
+        CreatureDef dwarf = db.Creatures.Values.First(c =>
+            (c.Flags & (CreatureFlags.IsWorker | CreatureFlags.IsEvil)) == CreatureFlags.IsWorker);
+        Hold(world, world.SpawnCreature(db, dwarf.CreatureId, keeper, Claimed(world, db, keeper, 0)));
+
+        PlacementFeedback overPortal = PlacementCursor.HandDrop(world, db, keeper, portal);
+        Assert.Equal((false, false, true), (overPortal.Valid, overPortal.Dispose, overPortal.NoGo));
+        PlacementFeedback overHeart = PlacementCursor.HandDrop(world, db, keeper, HeartCentre(world, db, keeper));
+        Assert.Equal((false, false, true), (overHeart.Valid, overHeart.Dispose, overHeart.NoGo));
+    }
+
+    [InstallFact]
+    public void AnotherPlayersCreatureOrAnObjectOnTopShowsNoBin()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1(PlayerIds.Good);
+        TilePos portal = PaintedPortalCentre(world, db, keeper), centre = HeartCentre(world, db, keeper);
+        TilePos at = Claimed(world, db, keeper, 0);
+        HoldBy(world, keeper, world.SpawnCreature(db, GoblinType, new PlayerId(PlayerIds.Good), at));
+        Assert.False(PlacementCursor.HandDrop(world, db, keeper, portal).Dispose);
+        HoldBy(world, keeper, world.SpawnCreature(db, ImpType, new PlayerId(PlayerIds.Good), at));
+        Assert.False(PlacementCursor.HandDrop(world, db, keeper, centre).Dispose);
+
+        HoldObject(world, keeper, world.SpawnObject(db, HatcheryRules.ChickenObjectId, keeper, world.TileIndex(at)));
+        foreach (TilePos tile in new[] { portal, centre, at })
+        {
+            Assert.False(PlacementCursor.HandDrop(world, db, keeper, tile).Dispose);
+            Assert.False(HeldItemStack.Disposes(world, db, keeper, world.Player(keeper).Hand[^1], tile));
+        }
+    }
+
+    private const byte ImpType = 1, GoblinType = 7;
+
+    private static void Hold(WorldState world, CreatureState creature) =>
+        HoldBy(world, new PlayerId(creature.OwnerPlayerId), creature);
+
+    private static void HoldBy(WorldState world, PlayerId player, CreatureState creature)
+    {
+        creature.InHand = true;
+        world.Player(player).Hand.Add(HandItem.Of(creature));
+    }
+
+    private static void HoldObject(WorldState world, PlayerId player, ObjectState thing)
+    {
+        thing.InHand = true;
+        world.Player(player).Hand.Add(HandItem.Of(thing));
+    }
+
+    private static TilePos HeartCentre(WorldState world, GameDatabase db, PlayerId keeper)
+    {
+        for (int y = 0; y < world.Height; y++)
+            for (int x = 0; x < world.Width; x++)
+                if (DisposalRules.IsHeartCentreTile(world, db, new TilePos(x, y), keeper)) return new TilePos(x, y);
+        throw new InvalidOperationException("No Heart.");
+    }
+
+    /// <summary>A 3×3 Portal the keeper owns, painted over claimed floor in the map corner away from the Heart.</summary>
+    private static TilePos PaintedPortalCentre(WorldState world, GameDatabase db, PlayerId keeper)
+    {
+        byte claimed = world.Tile(Claimed(world, db, keeper, 0)).TerrainId;
+        int x0 = HeartCentre(world, db, keeper).X > world.Width / 2 ? 2 : world.Width - 5;
+        for (int y = 2; y < 5; y++)
+            for (int x = x0; x < x0 + 3; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                tile.TerrainId = claimed;
+                tile.OwnerPlayerId = keeper.Value;
+                RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Portal), keeper);
+            }
+        return new TilePos(x0 + 1, 3);
+    }
+
+    private static (GameDatabase, WorldState, PlayerId) Level1(params byte[] others)
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         PlayerId keeper = PlayerIds.FirstKeeper;
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
-            [keeper.Value], fogOfWarEnabled: false);
+            [keeper.Value, .. others], fogOfWarEnabled: false);
         return (db, world, keeper);
     }
 
