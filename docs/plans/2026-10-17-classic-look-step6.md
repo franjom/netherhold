@@ -94,7 +94,7 @@ disc entry to the full map are integrated; see
 
 The current slice covers pointing, pickup, dig, held-item/gold, tagging, drop
 and slap sprites, the blue terrain-following cage, the room/sell/door/trap placement
-cage, tool icon and price (research/placement-cursor.md), delayed short-name popups,
+cage, tool icon and price, and the keeper-spell and Query arms (icon and No Go, no price) (research/placement-cursor.md), delayed short-name popups,
 personal names and the top status strip. Owned-room storage/capacity fields
 are integrated. Remaining special name/object producers and exact rendered-hit
 and material contracts remain research/integration work; see
@@ -123,8 +123,8 @@ and the four creature views. Evidence and adapter ordering limitations live in
 [bottom-panel-controls.md](../research/bottom-panel-controls.md) and
 [creature-overview.md](../research/creature-overview.md).
 
-Still open: category locking/collapse; research, manufacture and ordinary spell
-cooldown indicators; portrait hover previews (the tooltip text is built); full-map markers/legend;
+Still open: category locking/collapse; owner comparison of the research, manufacture and
+spell recharge sectors ([panel-indicators.md](../research/panel-indicators.md) §8); portrait hover previews (the tooltip text is built); full-map markers/legend;
 the query scrollbar; complete special object/door/trap/name status; Q197 and
 the remaining Q611 modal producers. Options exposes Continue; its other rows
 remain disabled until their corresponding frontends exist. These are not

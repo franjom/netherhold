@@ -25,6 +25,7 @@ namespace DK2.Unity
         private readonly Image _railMetal, _railEnd;
         private readonly Image[] _tabSelected = new Image[4], _tabHover = new Image[4];
         private readonly Image[] _icons = new Image[6], _selection = new Image[6];
+        private readonly SlotSector[] _progress = new SlotSector[6], _research = new SlotSector[6];
         private readonly BottomPanelChoice[] _slots = new BottomPanelChoice[6];
         private readonly Image _previous, _next, _resize;
         private readonly Image[] _sparkles = new Image[BottomPanelSparkles.Count];
@@ -94,8 +95,13 @@ namespace DK2.Unity
             // lightens the dark tab frame by about what adding it would.
             Texture2D hilight = Lightening(Texture("GUI\\Icons\\hilight"));
             for (int i = 0; i < 4; i++) _tabHover[i] = Picture(hilight);
+            // Child order is draw order: recharge/manufacture sector (depth 0.7/0.6) over the icon, the
+            // selection (layer 5) over it, and the research sector (depth 0.4) in front (panel-indicators.md).
             for (int i = 0; i < 6; i++)
-            { _icons[i] = Interactive(null, i); _selection[i] = Picture(null); }
+            {
+                _icons[i] = Interactive(null, i);
+                _progress[i] = Sector(); _selection[i] = Picture(null); _research[i] = Sector();
+            }
             _previous = Interactive(Texture("GUI\\Pages\\page_back"), 200);
             _next = Interactive(Texture("GUI\\Pages\\page_forward"), 201);
             // The strip's fifth widget 0x00690D98: catalogue 44 i-mise, local (544,0), 128x128.
@@ -206,16 +212,38 @@ namespace DK2.Unity
                 bool show = choice != null && !Collapsed;
                 _icons[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
                 _selection[i].style.display = show && choice.Selected ? DisplayStyle.Flex : DisplayStyle.None;
+                BottomPanelSlotIndicators marks = show ? choice.Indicators : BottomPanelSlotIndicators.None;
+                int progress = marks.RechargePercent ?? marks.ManufacturePercent ?? 0;
+                _progress[i].style.display = progress != 0 ? DisplayStyle.Flex : DisplayStyle.None;
+                _research[i].style.display = marks.ResearchPercent.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
                 if (!show) continue;
-                string icon = choice.Unknown ? choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Rooms\\tba" :
-                    choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Spells\\s-tba" : "GUI\\Traps\\w-tba" : _assets.Icon(choice.Key);
-                _icons[i].image = string.IsNullOrEmpty(icon) ? null : Texture(icon);
-                bool flashing = flash.Slot == choice.Key;
+                string icon = !choice.Unknown ? _assets.Icon(choice.Key) : choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Rooms\\tba" :
+                    choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Spells\\s-tba" : "GUI\\Traps\\w-tba";
+                Texture2D iconTexture = string.IsNullOrEmpty(icon) ? null : Texture(icon);
+                _icons[i].image = iconTexture;
+                // 0x00412FC0: a recharging spell skips the unaffordable tint and the flash; the
+                // manufacture tint overwrites the flash and unaffordable tints, and no-Workshop overwrites it.
+                bool recharging = marks.RechargePercent.HasValue;
+                bool flashing = flash.Slot == choice.Key && !recharging;
                 if (flashing) sparkleOn = BottomPanelLayout.Cell(i);
-                _icons[i].tintColor = flashing && flash.Dark ? Dark
+                _icons[i].tintColor = recharging ? RechargeTint
                     : choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
+                    : marks.ManufacturePercent.HasValue ? ManufactureTint
+                    : flashing && flash.Dark ? Dark
                     : choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
                 Place(_icons[i], BottomPanelLayout.Cell(i));
+                if (progress != 0)
+                {
+                    _progress[i].Set(iconTexture, Color.white, progress);
+                    Place(_progress[i], BottomPanelLayout.Cell(i));
+                }
+                if (marks.ResearchPercent is byte studied)
+                {
+                    // State 2 cuts the slot's own icon: "tba" at availability 2, the real icon at 4.
+                    if (marks.ResearchOnUnknown) _research[i].Set(iconTexture, ResearchUnknownTint, studied);
+                    else _research[i].Set(Texture("GUI\\Icons\\Gold_Frame"), Color.white, studied);
+                    Place(_research[i], BottomPanelLayout.Cell(i));
+                }
                 if (choice.Selected)
                 {
                     string selected = choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Icons\\selected-room" :
@@ -363,6 +391,67 @@ namespace DK2.Unity
             texture = MinimapFrameVisual.Decode(_assets.Image(name)); _textures.Add(name, texture); return texture;
         }
         private static readonly Color32 Dark = new Color32(BottomPanelFlash.DarkTint, BottomPanelFlash.DarkTint, BottomPanelFlash.DarkTint, 255);
+        private static readonly Color32 RechargeTint = new Color32(0x66, 0x66, 0x66, 255);
+        private static readonly Color32 ManufactureTint = new Color32(0x78, 0x00, 0x78, 255);
+        private static readonly Color ResearchUnknownTint = new Color(1f, .3f, .3f, 1f);
+
+        private SlotSector Sector()
+        {
+            var sector = new SlotSector(); sector.style.display = DisplayStyle.None; _root.Add(sector); return sector;
+        }
+
+        /// <summary>Hud_DrawTexturedRadialSector 0x0041EF70 as the slot draw uses it: the texture cut to
+        /// the wedge from 12 o'clock clockwise over p% (angle 3π − 2π·p/100 to 3π), reaching the square's
+        /// corners; like DK2, the width is the diameter on both axes. A fan of at most five triangles, rebuilt only when its texture, tint or percent change.</summary>
+        private sealed class SlotSector : VisualElement
+        {
+            private Texture2D _texture;
+            private Color32 _tint;
+            private int _percent;
+
+            public SlotSector()
+            {
+                pickingMode = PickingMode.Ignore; style.position = Position.Absolute;
+                generateVisualContent += Draw;
+            }
+
+            public void Set(Texture2D texture, Color32 tint, int percent)
+            {
+                if (texture == _texture && percent == _percent && tint.r == _tint.r && tint.g == _tint.g &&
+                    tint.b == _tint.b && tint.a == _tint.a) return;
+                _texture = texture; _tint = tint; _percent = percent; MarkDirtyRepaint();
+            }
+
+            private void Draw(MeshGenerationContext context)
+            {
+                Rect rect = contentRect;
+                if (_texture == null || _percent <= 0 || _percent >= 100 || rect.width <= 0) return;
+                float sweep = 2 * Mathf.PI * _percent / 100f;
+                int corners = 0;
+                while (corners < 4 && Mathf.PI / 4 + corners * Mathf.PI / 2 < sweep) corners++;
+                int vertices = corners + 3;
+                MeshWriteData mesh = context.Allocate(vertices, (vertices - 2) * 3, _texture);
+                Write(mesh, rect, 0, 0);
+                Write(mesh, rect, 0, -1);
+                // Corners in sweep order: top-right, bottom-right, bottom-left, top-left (screen y down).
+                for (int k = 0; k < corners; k++) Write(mesh, rect, k < 2 ? 1 : -1, k == 0 || k == 3 ? -1 : 1);
+                float x = Mathf.Sin(sweep), y = -Mathf.Cos(sweep), reach = Mathf.Max(Mathf.Abs(x), Mathf.Abs(y));
+                Write(mesh, rect, x / reach, y / reach);
+                // Centre, then rim points clockwise on screen: UI Toolkit's winding.
+                for (int k = 1; k < vertices - 1; k++)
+                { mesh.SetNextIndex(0); mesh.SetNextIndex((ushort)k); mesh.SetNextIndex((ushort)(k + 1)); }
+            }
+
+            private void Write(MeshWriteData mesh, Rect rect, float x, float y)
+            {
+                float u = (x + 1) / 2, v = (y + 1) / 2;
+                mesh.SetNextVertex(new Vertex
+                {
+                    position = new Vector3(rect.x + u * rect.width, rect.y + v * rect.width, Vertex.nearZ),
+                    tint = _tint, uv = new Vector2(u, 1 - v),
+                });
+            }
+        }
 
         /// <summary>0x00419DF0 advances the sparkles each rendered HUD frame; sparkle i draws GSparkle&lt;frame&gt;
         /// (0..15, frame 0 included), a 64-unit square at (left + X % width - 32, top + Y % height - 32).

@@ -278,10 +278,13 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   `0..0xFFFE` and passes it to `0x004C3200` every turn. The adder's other calls read the
   turn and discard it; a `turn % v19 == 0` call to `0x004F2300` is unread.
 - **The points and the list.** The adder adds to `player+0x217` (a word). The list at
-  `player+0x219` is a ring of 128 sixteen-byte entries: cost word, kind (0 trap, 1 door),
-  type id; head `+0x801`, tail `+0x802`, count `+0x803` (`player+0xA1C`, which the
-  Manufacture job handler `0x00470080` tests). `0x00506B50`: non-empty and head cost ≤
-  points. Then `0x004C3B50` picks the keeper's Workshop nearest the creature with someone
+  `player+0x219` is a ring of 128 sixteen-byte entries: cost word, kind byte `+2` (0 door,
+  1 trap; corrected 2026-10-23 from the enqueue's stores), type id `+3`; head `+0x801`, tail
+  `+0x802`, count `+0x803` (`player+0xA1C`, which the
+  Manufacture job handler `0x00470080` tests). `0x00506B50`: non-empty and the cost word at
+  ring **slot 0** ≤ points. The pop `0x00506970` moves the head without shifting, so that word
+  goes stale; only an enqueue wrapping onto slot 0, or a sell (`0x005069E0`) emptying the ring or
+  compacting over it, rewrites it (2026-10-23, Q618; ours compares the head's cost). Then `0x004C3B50` picks the keeper's Workshop nearest the creature with someone
   attached; `0x004F5240` sends everyone attached to it to state 68, makes the crate (the
   definition's crate object: trap file `0x20E`, door `0x246`) on the room's first chain
   tile, owned by the keeper when the room has space, and adds to `ItemsManufactured`

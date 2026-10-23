@@ -106,8 +106,8 @@ The adapter routes supported choice keys to the host's existing command
 interfaces. Affordability is display feedback; simulation rules remain the
 authority for cast/placement validation. Create Imp cost uses the existing
 ImpSupplyRules.CreateImpCost, including the live additional-imp multiplier.
-Cooldown wedges, research/manufacture progress and upgrade art are not yet produced by
-this adapter. The FlashButton tab/slot flash is built ([tab-alerts.md](tab-alerts.md):
+Cooldown wedges and research/manufacture progress are built (`BottomPanelChoice.Indicators`, `ClassicBottomPanel.SlotSector`). Their native contract (three clockwise texture sectors drawn by the slot draw,
+no digits or crate counts) is in [panel-indicators.md](panel-indicators.md) (read 2026-10-23). The FlashButton tab/slot flash is built ([tab-alerts.md](tab-alerts.md):
 level-script only, never raised by research). Default creature overview roster, counters and input use a separate retained helper;
 see [creature overview](creature-overview.md) for confirmed producers and the
 remaining alternate-mode presentation boundary.

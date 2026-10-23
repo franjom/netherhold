@@ -44,6 +44,8 @@ public sealed class BottomPanelChoice
     public bool Selected { get; internal set; }
     public bool Unknown { get; internal set; }
     public bool ClearsToolOnClick { get; internal set; }
+    /// <summary>Recharge, manufacture and research sectors (panel-indicators.md).</summary>
+    public BottomPanelSlotIndicators Indicators { get; internal set; }
     public BottomPanelCategory Category => Kind switch
     {
         BottomPanelChoiceKind.Room => BottomPanelCategory.Rooms,
@@ -156,6 +158,29 @@ public sealed class BottomPanelView
         for (int i = 0; i < world.Creatures.Count && _creaturesDim; i++)
             if (world.Creatures[i].OwnerPlayerId == _player && CreatureStateMachine.HasState(world.Creatures[i]))
                 _creaturesDim = false;
+        List<AvailabilityState>? rows = null;
+        ManufactureOrder? head = null;
+        byte manufacture = 0, research = 0;
+        ResearchEntry? target = null;
+        if (player)
+        {
+            ref PlayerState keeper = ref world.Player(_player);
+            rows = keeper.Availabilities;
+            // DK2 marks the head order's item (0x00506930) but divides by the cost at ring slot 0
+            // (0x00506B70), which after the first pop is the first order's cost (Q618). Our queue is a
+            // list whose [0] is the head, so the head's own cost stands in, inheriting the divergence.
+            if (keeper.ManufactureQueue is { Count: > 0 } queue)
+            {
+                head = queue[0];
+                manufacture = BottomPanelProgress.ManufacturePercent(keeper.ManufacturePoints, queue[0].Cost);
+            }
+            List<ResearchEntry> list = _database.Variables.Research;
+            if (keeper.ResearchTarget > 0 && keeper.ResearchTarget <= list.Count)
+            {
+                target = list[keeper.ResearchTarget - 1];
+                research = BottomPanelProgress.ResearchPercent(keeper.ResearchPoints, target.Cost);
+            }
+        }
         foreach (BottomPanelChoice choice in _choices)
         {
             AvailabilityKind kind = choice.Kind switch
@@ -177,6 +202,7 @@ public sealed class BottomPanelView
             choice.Affordable = choice.Cost <= (choice.Kind == BottomPanelChoiceKind.Spell ? mana : gold);
             choice.NeedsWorkshop = _workshopDim && choice.Kind is BottomPanelChoiceKind.Door or BottomPanelChoiceKind.Trap;
             choice.Selected = Selection.Choice == choice.Key;
+            choice.Indicators = Indicators(world, choice, available, rows, head, manufacture, target, research);
             if (choice.Visible && choice.Kind == BottomPanelChoiceKind.Spell) _spellsTab = true;
             else if (choice.Visible && choice.Kind != BottomPanelChoiceKind.Room) _workshopTab = true;
         }
@@ -206,6 +232,41 @@ public sealed class BottomPanelView
             reaper.Affordable = reaper.Cost <= mana;
             reaper.Selected = Selection.Choice == reaper.Key;
         }
+    }
+
+    /// <summary>The sector selection of 0x00412FC0. Slot state 1 is <see cref="BottomPanelChoice.Selectable"/>
+    /// and state 2 is a visible slot at availability 2 or 4 (the update callbacks' <c>+0x61</c>).</summary>
+    private BottomPanelSlotIndicators Indicators(WorldState world, BottomPanelChoice choice, int available,
+        List<AvailabilityState>? rows, ManufactureOrder? head, byte manufacture, ResearchEntry? target, byte research)
+    {
+        if (!choice.Visible || rows is null) return BottomPanelSlotIndicators.None;
+        bool normal = choice.Selectable, unknown = available is 2 or 4;
+        byte? recharge = null, made = null, studied = null;
+        if (normal && choice.Kind == BottomPanelChoiceKind.Spell &&
+            _database.KeeperSpellById(choice.Key.Value) is KeeperSpellDef spell)
+            foreach (AvailabilityState row in rows)
+            {
+                if (row.Kind != AvailabilityKind.Spell || row.TypeId != choice.Key.Value) continue;
+                byte p = BottomPanelProgress.RechargePercent(row.LastCastTick, world.CurrentTick.Value, spell.CooldownRaw);
+                if (p != 100) recharge = p;
+                break;
+            }
+        if (normal && manufacture != 0 && head is ManufactureOrder order &&
+            (order.Kind == ManufactureRules.DoorKind && choice.Kind == BottomPanelChoiceKind.Door ||
+             order.Kind == ManufactureRules.TrapKind && choice.Kind == BottomPanelChoiceKind.Trap) &&
+            order.TypeId == choice.Key.Value)
+            made = manufacture;
+        if ((normal || unknown) && research != 0 && target is not null && target.TypeId == choice.Key.Value &&
+            target.Kind == choice.Kind switch
+            {
+                BottomPanelChoiceKind.Room => ResearchTreeRules.KindRoom,
+                BottomPanelChoiceKind.Door => ResearchTreeRules.KindDoor,
+                BottomPanelChoiceKind.Trap => ResearchTreeRules.KindTrap,
+                _ => ResearchTreeRules.KindSpell,
+            })
+            studied = research;
+        return recharge is null && made is null && studied is null ? BottomPanelSlotIndicators.None
+            : new BottomPanelSlotIndicators(recharge, made, studied, studied.HasValue && !normal);
     }
 
     private bool OwnsRoomTile(WorldState world, RoomTypeId room)
