@@ -88,6 +88,11 @@
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- AudioClip and AudioSource for the movie player (ClassicMoviePlayer). -->
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.AudioModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.ParticleSystemModule">
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.ParticleSystemModule.dll</HintPath>
     </Reference>

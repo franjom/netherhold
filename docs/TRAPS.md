@@ -87,6 +87,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
 - Windows Python defaults to a legacy code page here; use `encoding='utf-8-sig'` when reading repository Markdown.
 - PowerShell here-strings piped into Python can replace non-ASCII source literals with `?`; use ASCII script literals or `apply_patch` for Unicode edits.
+- `WadArchive.TryGetEntry` returns the later of two same-named entries; FrontEnd.WAD has 31 duplicate names (loading screens, `2dLevelS*`, Cancel/Confirm), so look those up by entry index ([front-end-assets.md](research/front-end-assets.md) §1.3).
 
 ## Builds, tests and dk2tools
 
@@ -186,6 +187,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   one run with `-c 'mcp_servers.<server>.tools.<tool>.approval_mode="approve"'`.
 - A Python CLI that prints non-ASCII to a cp1252 console crashes after its work is done
   (`mcp-for-blender install-addon` copied the add-on, then raised); set `PYTHONIOENCODING=utf-8`.
+- `unity/DK2.Unity.Compile` references Unity's module DLLs directly, so it passes code that the
+  project itself rejects when the built-in module is not in `Packages/manifest.json` (the movie
+  player's `AudioSource` compiled there and failed in the editor until `com.unity.modules.audio`
+  was added). Using a new `UnityEngine.*Module` type means adding its `com.unity.modules.*` entry too.
 - Windows PowerShell with `$ErrorActionPreference = 'Stop'` aborts on a native command's first
   stderr line (Blender prints Python warnings there); set `Continue` around it and judge `$LASTEXITCODE`.
 
