@@ -75,7 +75,7 @@ namespace DK2.Unity
             _transparent = root.GetComponentInChildren<TransparentTerrain>();
             Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight,
                 terrainDebrisStyle: TerrainDebrisStyle.Crumbling,
-                captureEffectStyle: CaptureEffectStyle.Edges, captureEdges: captureEdges,
+                captureEffectStyle: CaptureEffectStyle.Native, captureEdges: captureEdges,
                 heartSparkleStyle: HeartSparkleStyle.PillarHeight,
                 groupParts: meshes != null ? meshes.GroupParts : null, attachment: attachment);
         }

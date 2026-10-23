@@ -346,7 +346,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             particle.InitialScale = particle.ScaleTarget = Fp32.One;
             particle.ScaleIncrement = 0;
         }
-        // A group part is allocated (0x004352E0, 0x00435F20) without a floor test (0x004347E0).
+        // Group pieces retain their existing floor-response bypass; general birth-contact parity is Q620.
         else if (!ApplyFloorContact(particle)) return null;
         int spinRange = effect.SpriteSpinRateRange * 8;
         particle.HeadingSpinRaw = replaced?.HeadingSpinRaw ?? DrawAngularOffset(spinRange).Value;

@@ -26,6 +26,11 @@ Pixel cases check red-overlay actor/flower priority and additive texture-alpha h
 for the acceptance run. The final blend/depth correction is documented in
 [sprite rendering](../../docs/research/room-construction-effects.md#sprite-blend-and-shared-terrain-ordering-2026-10-23).
 These captures check the remake's data consumer, not original-game behaviour.
+Effect8 triggers a complete nine-slab Portal ownership transfer and compares
+all particle positions, velocities, sizes and RGB against the native profile
+through expiry. It also requires a visible GPU burst and samples every250ms.
+The former edge profile fails this regression. Native screenshot evidence and
+comparison limits are in [portal capture](../../docs/research/room-construction-effects.md#62-portal-capture-comparison-shot02310240).
 
 Add `-TutorialHighlight` for Level1's authored action65456/AP4, rendered on/off
 and explicitly cleared by its script action. The probe warms terrain batches,

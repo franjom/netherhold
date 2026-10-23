@@ -9,6 +9,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- ClassicLightWindowTests.WarmGatherDoesNotAllocate once measured6440 bytes in a full run; isolated and full reruns passed. Investigate the allocation source before weakening its zero-allocation assertion.
+
+- Inspect original BMP captures in small batches; nine 1600×1200 images exceeded code-mode's 64MiB IPC frame limit.
+
 - Warm isolated terrain GPU probes before recording pixel baselines; the first presentation can differ from subsequent terrain flushes.
 
 - Unity 6000.6 returned the material override tag value `True` as `true`; use lowercase marker tokens when comparing `Material.GetTag` results.

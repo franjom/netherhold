@@ -11373,16 +11373,16 @@ replay). `HashVersion` 261 (master took 260 first).
 **Context.** The owner found the Heart's opening too dark, as if a texture were missing. Every
 texture of the chain loads; three things differ from DK2. The nine pieces of `Group_plugbroke`
 (effect 215, element 396) were never born: ours tested the floor at a part's birth and the KMF
-offsets put every member just under the lid, while DK2's allocator (`0x004352E0`, `0x00435F20`)
-has no floor test; and 396's scale range is 0..0, the size being the member record's `0x1000`.
+offsets put every member just under the lid, while native birth handling permits them
+(`0x00435F20`, Q620); and 396's scale range is0..0, the size being the member record's `0x1000`.
 Resolving a member's mesh threw (`"mesh-entry"` is no `AssetRef` category), which the dead
 pieces hid. The lights of effects 208 (a white flash at the burst) and 210 (a blue glow under the
 sparkles) were not built. And ADR-0476 drew every additive effect mesh at twice its texture on a
 guess, where the binary reading, STRONGLY INFERRED, draws it once (white diffuse, MODULATE,
 ONE/ONE, one-sided; three vertex sinks and the per-vertex colour bit are unread, heart-intro.md §6).
 
-**Decision.** A group part is born at its member's point without a floor test and at scale
-`0x1000`. `AssetRef` gains the `mesh_entry` category; `InstallArtProvider.TryResolveEntry` keys
+**Decision.** A group part retains its member's birth point and scale`0x1000`;
+general birth-contact parity remains Q620. `AssetRef` gains the `mesh_entry` category; `InstallArtProvider.TryResolveEntry` keys
 an entry by its name without the extension. Each effect instance whose light record has flag 1
 or any RGB keeps a light with the fade ramp of `0x0043A2E0`, stepped after every effect update
 and before removal, and ending with the instance; `ClassicPointLight.FromEffect` applies the
@@ -12161,3 +12161,23 @@ and uses the existing behind-creature/flower overlay ordering.
 
 **Consequences.** Hash/save294. Authored enable/disable actions control guidance;
 tagging alone never clears it. Do not add unconfirmed adjacent-wall propagation.
+
+## ADR-0529 — Use native room-capture particles in gameplay
+
+**Date:** 2026-10-23 · **Status:** accepted
+
+**Context.** Portal capture appeared as a thin ring rather than the owner's
+native red/gold cloud sequence. The Unity renderer forced the optional edge
+profile instead of the researched native generation. Evidence and comparison:
+[room-construction-effects.md section6.2](research/room-construction-effects.md#62-portal-capture-comparison-shot02310240).
+
+**Decision.** Select the native capture profile in the gameplay renderer.
+Preserve authored origins, horizontal motion, scale, colours and all slab
+emitters. Keep the optional edge profile available only in the model's tests
+and diagnostics; it is not the gameplay default.
+Effect/shadow floor queries use the keeper Portal's zero-height interior and
+raised rim, matching the native floor query; creature pose projection is separate.
+
+**Consequences.** All effect8 room captures regain their native particle layout.
+Presentation only; no simulation, save format or hash change. Camera matching,
+native frame pacing and exact rendered pixel equivalence remain unmeasured.

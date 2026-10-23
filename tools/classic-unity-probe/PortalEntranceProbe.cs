@@ -40,7 +40,8 @@ namespace DK2.Unity.Editor
                 var at = new TilePos((portal.MinX + portal.MaxX) / 2, (portal.MinY + portal.MaxY) / 2);
                 var view = new WorldView(db, new PlayerId(PlayerIds.FirstKeeper));
                 var scene = new DungeonScene(root.transform, world.Width, world.Height, meshes, creatureShadows: false);
-                new ScenePresenter(view, new AssetProviderChain(art, PlaceholderProvider.Instance), scene).Present(world);
+                var presenter = new ScenePresenter(view, new AssetProviderChain(art, PlaceholderProvider.Instance), scene);
+                presenter.Present(world);
                 var camera = new GameObject("probe camera").AddComponent<Camera>(); camera.tag = "MainCamera";
                 Vector3 focus = new Vector3(at.X + .5f, 1, -at.Y - .5f);
                 camera.transform.position = focus + new Vector3(3, 6, -4.5f);
@@ -57,14 +58,34 @@ namespace DK2.Unity.Editor
                     ? selected : (ushort)181;
                 byte owner = byte.TryParse(Environment.GetEnvironmentVariable("DK2_PORTAL_PROBE_OWNER"), out byte selectedOwner)
                     ? selectedOwner : PlayerIds.FirstKeeper;
-                if (effectId == 94) camera.fieldOfView = 30;
+                if (effectId == 94 || effectId == 8) camera.fieldOfView = 30;
                 Color32[] baseline = null;
                 int maximumBuildupPixels = 0;
+                Color32[] captureBaseline = null;
+                int maximumCapturePixels = 0;
                 var effects = new ClassicConstructionEffects(root.transform, db,
                     new InstallEffectSpriteProvider(db, art.LoadTexture), 42,
                     floorHeight: point => view.GroundHeightAt(world, point),
-                    clock: () => new EffectTime(milliseconds), meshes: meshes);
-                effects.Model.Request(ViewEffectRequest.AtTileCentre(new EffectId(effectId),
+                    clock: () => new EffectTime(milliseconds), meshes: meshes,
+                    captureEdges: request => CaptureEffectLayout.Boundary(world, db, request));
+                RoomConstructionParticles captureReference = null;
+                bool captureMatchesNative = true;
+                if (effectId == 8)
+                {
+                    foreach (int index in portal.TileIndices) world.TileAtIndex(index).OwnerPlayerId = PlayerIds.Neutral;
+                    var events = new ListEventSink();
+                    var sim = new GameSimulation(db, world, 1,
+                        new ISimulationSystem[] { new CaptureRoomSystem(portal, new PlayerId(owner)) });
+                    sim.ObserveWith(events); sim.Tick();
+                    var requests = events.Events.Where(e => e.EffectRequest.HasValue).ToArray();
+                    if (requests.Length != 9) throw new Exception("Portal capture must request all nine slabs.");
+                    captureReference = new RoomConstructionParticles(db, 42, () => new EffectTime(milliseconds),
+                        floorHeight: point => view.GroundHeightAt(world, point));
+                    foreach (SimEvent emission in requests)
+                    { effects.Model.Emit(emission); captureReference.Emit(emission); }
+                    presenter.Present(world);
+                }
+                else effects.Model.Request(ViewEffectRequest.AtTileCentre(new EffectId(effectId),
                     new PlayerId(owner), at, new Fp32(0)));
                 int step = 0;
                 EditorApplication.CallbackFunction sample = null;
@@ -74,7 +95,18 @@ namespace DK2.Unity.Editor
                     {
                         milliseconds = step == 0 ? 0 : step * 50 + 1;
                         effects.Advance(); effects.Draw();
-                        if (step % 20 == 0)
+                        if (captureReference != null)
+                        {
+                            captureReference.AdvanceTo(new EffectTime(milliseconds));
+                            captureMatchesNative &= captureReference.Particles.Select(ParticleState)
+                                .SequenceEqual(effects.Model.Particles.Select(ParticleState));
+                        }
+                        if (effectId == 8 && step == 1)
+                        {
+                            captureMatchesNative &= effects.Model.Particles.Count == 288;
+                            Debug.Log("Portal capture birth: " + effects.Model.Particles.Count + " particles; native layout " + captureMatchesNative);
+                        }
+                        if (step % (effectId == 8 ? 5 : 20) == 0)
                         {
                             var transparent = root.GetComponentInChildren<TransparentTerrain>();
                             typeof(TransparentTerrain).GetMethod("BeforeCamera", BindingFlags.NonPublic | BindingFlags.Instance)
@@ -87,6 +119,17 @@ namespace DK2.Unity.Editor
                             RenderTexture.active = target;
                             pixels.ReadPixels(new Rect(0, 0, 640, 480), 0, 0); pixels.Apply();
                             RenderTexture.active = null;
+                            if (effectId == 8)
+                            {
+                                Color32[] current = pixels.GetPixels32();
+                                if (captureBaseline == null) captureBaseline = current;
+                                int brightened = 0;
+                                for (int pixel = 0; pixel < current.Length; pixel++)
+                                    if (current[pixel].r > captureBaseline[pixel].r + 50
+                                        && current[pixel].r > 200 && current[pixel].g > 60) brightened++;
+                                maximumCapturePixels = Math.Max(maximumCapturePixels, brightened);
+                                Debug.Log("Visible capture pixels " + brightened);
+                            }
                             if (effectId == 94)
                             {
                                 Color32[] current = pixels.GetPixels32();
@@ -113,6 +156,9 @@ namespace DK2.Unity.Editor
                         }
                         if (++step <= 150) { EditorApplication.QueuePlayerLoopUpdate(); return; }
                         if (effects.Model.Particles.Count != 0) throw new Exception("Portal arrival failed to expire.");
+                        if (!captureMatchesNative) throw new Exception("Portal capture lost native particles, origin, motion, size or colour.");
+                        if (effectId == 8 && maximumCapturePixels < 2000) throw new Exception("Portal capture burst is not visibly rendered.");
+                        if (effectId == 8) Debug.Log("Portal capture verification passed: nine slabs, 288 native births, motion, colour, scale and expiry.");
                         if (effectId == 94 && maximumBuildupPixels < 300)
                             throw new Exception("Portal buildup is hidden: only " + maximumBuildupPixels + " visible pixels.");
                         effects.Model.Request(ViewEffectRequest.AtTileCentre(new EffectId(159),
@@ -136,6 +182,19 @@ namespace DK2.Unity.Editor
                 EditorApplication.QueuePlayerLoopUpdate();
             }
             catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
+        }
+
+        private static (int, int, int, int, int, int, int, byte, byte, byte) ParticleState(ConstructionParticle p) =>
+            (p.XRaw, p.YRaw, p.HeightRaw, p.VelocityX, p.VelocityY, p.VelocityZ, p.ScaleRaw, p.Red, p.Green, p.Blue);
+
+        private sealed class CaptureRoomSystem : ISimulationSystem
+        {
+            private readonly RoomInstance _room;
+            private readonly PlayerId _owner;
+            public CaptureRoomSystem(RoomInstance room, PlayerId owner) { _room = room; _owner = owner; }
+            public string Name => "CapturePortalProbe";
+            public void Execute(SimulationContext context) => RoomHealthRules.Apply(context.World, context.Database,
+                _room, -RoomHealthRules.Health(context.World, context.Database, _room), _owner, context);
         }
     }
 }

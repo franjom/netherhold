@@ -92,9 +92,10 @@ three-float offset (KMF GROP: HEAD count, then ELEM name and offset).
   spin from the effect's spin range, and links it as a child. The member's mesh
   attached to the element (`0x004B37D0(record+0xC)`) and the offset's scale (the
   KMF float as tiles, z down) are INFERRED; ours gates on the art type 8.
-  **No floor test at birth** (re-read 2026-10-16): the allocator `0x004352E0`
-  tests bounds (`0x00440EE0`) and solidity only and `0x00435F20` none, so a part
-  born below the floor lives. Element 396 has no art and scale 0..0, so
+  Birth floor-response and later HP initialization are clarified in
+  [0x00435F20](functions/00435F20.md); absence of a floor call was an incorrect
+  explanation for surviving parts. General birth-contact parity is Q620.
+  Element396 has no art and scale0..0, so
   `0x00435F20` sets no scale; the size is the member record's, `0x1000` from the
   loader `0x004358C0`, copied to RenderInfo `+4/+8` by `0x004B37D0`. CONFIRMED.
   That the first step (vz 16384..22528 less mass 1638, `>> 4`) lifts every member

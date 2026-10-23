@@ -129,7 +129,7 @@ The helper also handles world collision. Negative mist mass supplies buoyancy.
 The wall-slide helper remains unaudited; floor response is described below.
 
 Floor placement helper `0x00446C70` queries world slot `+0x204`. At or above
-that floor it continues. Below it, element flag 1 destroys the particle;
+that floor it continues. During movement, element flag1 clears HP;
 mist therefore disappears on floor or wall contact, whereas rockchip survives.
 For a surviving chip, height becomes floor plus reflected penetration times
 elasticity/65536; horizontal velocity multiplies by that coefficient. Vertical
@@ -358,3 +358,30 @@ No live claim measurement or native table-membership comparison yet proves
 this is the reported regression. Next verification and the open boundary are Q609.
 2026-10-21: the sum was withdrawn (ADR-0493 amendment) after a Heart-intro A/B showed the
 same light turning grey dust brown; the claim mist was not probed.
+
+### 6.2. Portal capture comparison (SHOT0231–0240)
+
+CONFIRMED visual observation (2026-10-23): the owner's ten native captures
+show a broad red/gold billowing burst around the crystals, bright cream cores,
+then diffuse red haze. The sequence has no controlled frame timestamps, so
+it establishes appearance and progression, not an exact duration.
+SHA256-verified originals and manifest are preserved at
+`D:/DK2Evidence/portal-capture-SHOT0231-0240-20261023T1257324896/`;
+the source install's SCRSHOTS files were left unchanged.
+
+Fresh reads of `0x004E5650` and `0x004386F0` confirm the full-slab generation
+in section6, without an outer-boundary predicate. The former Unity edge profile
+suppressed the centre, moved origins to a thin perimeter, removed horizontal
+motion and reduced scale/colour. Native profile selection is ADR-0529.
+The effect/shadow floor callback also raised the hole to4096; `0x004545C0`
+returns0 for keeper-Portal piece4. The callback now follows that interior rule,
+retaining raised rims and the ordinary Hero Portal floor.
+
+The effect8 mode of `PortalEntranceProbe` triggers an actual room transfer,
+checks nine requests and compares particle position, velocity, size and RGB
+with the native profile throughout its lifetime. The former adapter failed
+with256 births; the corrected adapter matches the full native profile and
+renders a visible broad burst before expiry. Captures use original art in a
+fixed diagnostic view; pixel parity and native frame pacing are not established.
+General newborn floor-response ordering remains a preexisting discrepancy
+outside this fixture; native evidence and the next comparison are Q620.

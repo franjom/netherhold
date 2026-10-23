@@ -561,8 +561,24 @@ public sealed partial class WorldView
         return art;
     }
 
-    /// <summary>The native floor projection shared by creatures and view effects.</summary>
-    public Fp32 GroundHeightAt(WorldState world, FpPosition3 point) => CreatureGroundHeight(world, point);
+    /// <summary>Ground for effects and shadows, including the keeper Portal's zero-height hole.</summary>
+    public Fp32 GroundHeightAt(WorldState world, FpPosition3 point)
+    {
+        var at = new TilePos(point.X.Raw >> 12, point.Y.Raw >> 12);
+        if (world.Contains(at))
+        {
+            TileState tile = world.Tile(at);
+            if (_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room)
+                && room.TypeId == RoomTypeId.Portal
+                && SameRoom(new(at.X - 1, at.Y)) && SameRoom(new(at.X + 1, at.Y))
+                && SameRoom(new(at.X, at.Y - 1)) && SameRoom(new(at.X, at.Y + 1))) return new Fp32(0);
+
+            bool SameRoom(TilePos neighbour) => world.Contains(neighbour)
+                && world.Tile(neighbour).TerrainId == tile.TerrainId
+                && world.Tile(neighbour).OwnerPlayerId == tile.OwnerPlayerId;
+        }
+        return CreatureGroundHeight(world, point);
+    }
 
     /// <summary>The liquid bank arm of Tile_FloorHeight; ordinary creature floor projection stays unchanged.</summary>
     private Fp32 CreatureGroundHeight(WorldState world, FpPosition3 point)

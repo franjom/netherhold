@@ -123,6 +123,8 @@ failed previews and the withdrawn keeper-colour report (Q619 closed):
 [portal buildup](research/portals-interval.md#portal-buildup-built-adr-0467).
 Mist now uses the native default additive blend and joins the terrain depth stream:
 [rendering correction](research/room-construction-effects.md#sprite-blend-and-shared-terrain-ordering-2026-10-23).
+Room/Portal capture uses the native full-slab profile (ADR-0529), replacing the
+thin edge ring: [capture comparison](research/room-construction-effects.md#62-portal-capture-comparison-shot02310240).
 Creature promotions now request the original sparkle effect, including imp work
 levels and scripted grants: [promotion sparkles](research/creature-levels.md#promotion-sparkles-2026-10-23).
 Portal crystals now have swept movement guards and steering contacts (ADR-0527),

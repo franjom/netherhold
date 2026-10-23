@@ -14,6 +14,25 @@ namespace DK2.Presentation.Tests;
 public class ClaimAndBedEffectTests
 {
     [InstallTheory]
+    [InlineData(RoomTypeId.Portal, 0)]
+    [InlineData(RoomTypeId.HeroPortal, Fp32.One)]
+    public void PortalEffectFloorUsesEveryInteriorHoleButLeavesItsRimRaised(RoomTypeId type, int interiorHeight)
+    {
+        (GameDatabase db, WorldState world) = Load();
+        for (int y = 2; y <= 5; y++)
+            for (int x = 2; x <= 5; x++)
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), PlayerIds.FirstKeeper);
+        var view = new WorldView(db);
+        FpPosition3 At(int x, int y) => new(new Fp32(x * Fp32.One + Fp32.One / 2),
+            new Fp32(y * Fp32.One + Fp32.One / 2), new Fp32(0));
+        Assert.Equal(interiorHeight, view.GroundHeightAt(world, At(3, 3)).Raw);
+        Assert.Equal(interiorHeight, view.GroundHeightAt(world, At(4, 4)).Raw);
+        Assert.Equal(Fp32.One, view.GroundHeightAt(world, At(2, 3)).Raw);
+        world.Tile(3, 2).OwnerPlayerId = PlayerIds.Neutral;
+        Assert.Equal(Fp32.One, view.GroundHeightAt(world, At(3, 3)).Raw);
+    }
+
+    [InstallTheory]
     [InlineData(true, true, 0, 1, false)]
     [InlineData(true, false, 0, 1, false)]
     [InlineData(false, true, 0, 1, false)]
