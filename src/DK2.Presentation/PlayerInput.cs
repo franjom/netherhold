@@ -154,6 +154,11 @@ public sealed class PlayerInputTranslator
     private DragStart? _drag;
     public void CancelPointerGesture() => _drag = null;
 
+    /// <summary>The release clamps' limit, the database's <c>RubberBandAreaLimit</c>: the room release
+    /// pulls the end toward the anchor (<see cref="PlacementCursor.ClampDrag"/>), the sell release
+    /// keeps the low corner (<see cref="PlacementCursor.DragRectangle"/>). Unbounded until set.</summary>
+    public int RubberBandLimit { get; set; } = int.MaxValue;
+
     public void SelectTool(PlayerId playerId, PlayerToolMode tool)
     {
         if (_drag is DragStart drag && (drag.PlayerId != playerId || drag.Tool != tool)) _drag = null;
@@ -204,7 +209,12 @@ public sealed class PlayerInputTranslator
                 drag.Tool == intent.Tool &&
                 intent.PointerTile is TilePos end)
             {
-                command = Drag(drag, end);
+                command = drag.Tool switch
+                {
+                    PlayerToolMode.BuildRoom => Drag(drag, PlacementCursor.ClampDrag(drag.Tile, end, RubberBandLimit)),
+                    PlayerToolMode.SellRoom => SellArea(drag, PlacementCursor.DragRectangle(drag.Tile, end, RubberBandLimit)),
+                    _ => Drag(drag, end),
+                };
             }
 
             _drag = null;
@@ -238,6 +248,9 @@ public sealed class PlayerInputTranslator
             SellRoomCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y),
         _ => null,
     };
+
+    private static PlayerCommand SellArea(in DragStart drag, TileRectangle area) =>
+        SellRoomCommand.Rect(drag.PlayerId, area.X0, area.Y0, area.X1 - 1, area.Y1 - 1);
 
     private static PlayerCommand? Click(in PlayerIntent intent, PlayerInputSnapshot snapshot)
     {

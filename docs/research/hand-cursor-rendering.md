@@ -119,6 +119,9 @@ it through `0x0044E130` into bridge `+0x10..+0x1C`, and through `0x0044E1C0`
 into `+0x4E..+0x5A`. Both retain previous bounds and store the hover thing id
 at bridge `+0x34`; bridge `+0x36` receives interface flag bit `0x10` as 0/1.
 This publication does not by itself establish the cursor-tile edge geometry.
+The tool arms that fill this rectangle (room/sell only while dragging; doors,
+traps and spells never) and the tool icon, No Go and price overlay drawn by
+`0x0040CAE0` are in [placement-cursor.md](placement-cursor.md) (2026-10-23).
 
 ## Selection outline rendering
 

@@ -93,7 +93,8 @@ disc entry to the full map are integrated; see
   Verify target precedence, fog/input gates, scaling and independent review.
 
 The current slice covers pointing, pickup, dig, held-item/gold, tagging, drop
-and slap sprites, the blue terrain-following cage, delayed short-name popups,
+and slap sprites, the blue terrain-following cage, the room/sell/door/trap placement
+cage, tool icon and price (research/placement-cursor.md), delayed short-name popups,
 personal names and the top status strip. Owned-room storage/capacity fields
 are integrated. Remaining special name/object producers and exact rendered-hit
 and material contracts remain research/integration work; see

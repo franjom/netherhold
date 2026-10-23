@@ -147,6 +147,7 @@ namespace DK2.Unity
         private WorldView _worldView;
         private DungeonMinimap _minimap;
         private ClassicHandCursor _handCursor;
+        private ClassicPlacementOverlay _placementOverlay;
         private ClassicTileHoverOutline _tileHighlight;
         private WorldHoverText _hoverText;
         private ClassicHoverHud _hoverHud;
@@ -375,6 +376,8 @@ namespace DK2.Unity
             _handCursor = new ClassicHandCursor(new InstallHandCursorAssets(install));
             _startup.Step("hud.cursor");
             _tileHighlight = new ClassicTileHoverOutline(transform, lattice);
+            _placementOverlay = new ClassicPlacementOverlay(transform, new InstallClassicResourceAssets(_hudSources));
+            _input.RubberBandLimit = PlacementCursor.RubberBandLimit(_simulation.Database);
             _startup.Step("hud.outline");
             _hoverHud = new ClassicHoverHud(new InstallClassicHoverAssets(_hudSources));
             _startup.Step("hud.hover");
@@ -476,6 +479,7 @@ namespace DK2.Unity
             _minimap?.Dispose();
             _handCursor?.Dispose();
             _tileHighlight?.Dispose();
+            _placementOverlay?.Dispose();
             _hoverHud?.Dispose();
             _resourceHud?.Dispose();
             if (_heartHealthWorld != null && _heartHealthObserver != null)
@@ -1190,6 +1194,7 @@ namespace DK2.Unity
             bool allowed = visibility.AllowOrdinaryInput && Application.isFocused && inside;
             HandCursorKind cursor = HandCursorKind.Point;
             TilePos? highlightedTile = null;
+            PlacementFeedback placement = PlacementFeedback.None;
             _debugHoverTile = null;
             _hoveredCreature = CreatureQueryTarget.None;
             // A failed pick with nothing hovered sends DK2's light to (0,0,0), an edge tile, which
@@ -1222,6 +1227,8 @@ namespace DK2.Unity
                         cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
                     if (cursor == HandCursorKind.Dig) highlightedTile = tile;
                     if (ActiveTool == PlayerToolMode.Hand) _scene.DrawHoverOverlay(hit);
+                    // In room mode a diggable tile keeps the pickaxe and draws no icon (0x0040B210).
+                    if (!(ActiveTool == PlayerToolMode.BuildRoom && dig)) placement = Placement(world, viewer, tile);
                 }
             }
             if (allowed && PointerOverHud(mouse))
@@ -1231,6 +1238,9 @@ namespace DK2.Unity
                 // 0x0040BEFE set while interface +0x12B2 (pointer over the GUI) is set (LIKELY;
                 // its producer at 0x00403D1C..0x00403D69 is partly read; owner-observed in play).
                 if (ActiveTool == PlayerToolMode.Hand) cursor = HandCursorKind.SmallPoint;
+                // 0x0040BBE0 sets No Go over the GUI for the room, sell, door, trap and spell tools.
+                PlacementFeedback over = Placement(_simulation.World, new PlayerId((byte)viewingPlayerId), null);
+                if (over.Icon != PlacementIcon.None) placement = over with { Cage = null, NoGo = true, Valid = false };
             }
             bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
             if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal)
@@ -1241,7 +1251,39 @@ namespace DK2.Unity
             float reach = cursor == HandCursorKind.Default ? 80
                 : HandCursor.Sprite(cursor).FrameSize.X - HandCursor.Sprite(cursor).Hotspot.X;
             _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
-            _tileHighlight?.Update(highlightedTile, Camera.main, Time.unscaledTimeAsDouble);
+            _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse));
+            if (placement.Cage is TileRectangle cage)
+                _tileHighlight?.Update(cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
+            else _tileHighlight?.Update(highlightedTile, Camera.main, Time.unscaledTimeAsDouble);
+        }
+
+        /// <summary>The placement cursor of the selected tool over <paramref name="tile"/> (null: over the
+        /// HUD). In room and sell mode ours cages the hovered tile too: the owner's photos (2026-10-23, no button held)
+        /// show a one-tile cage there, where the 0x0040B210 reading fills no rectangle until a drag.</summary>
+        private PlacementFeedback Placement(WorldState world, PlayerId viewer, TilePos? tile)
+        {
+            GameDatabase database = _simulation.Database;
+            int gold = _resources.Gold.Value;
+            if (ActiveTool == PlayerToolMode.BuildRoom)
+            {
+                if (tile is not TilePos at || !database.Rooms.TryGetValue(selectedRoomId, out RoomDef room))
+                    return tile is null ? new PlacementFeedback(null, false, 0, PlacementIcon.PlaceRoom, true, true) : PlacementFeedback.None;
+                PlacementFeedback built = PlacementCursor.Room(world, database, viewer, room, at, _input.DragFrom(PlayerToolMode.BuildRoom), gold);
+                return built.Cage is null ? built with { Cage = new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1) } : built;
+            }
+            if (ActiveTool == PlayerToolMode.SellRoom)
+            {
+                if (tile is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.Sell, true, true);
+                PlacementFeedback sold = PlacementCursor.Sell(world, database, viewer, at, _input.DragFrom(PlayerToolMode.SellRoom));
+                return sold.Cage is null ? sold with { Cage = new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1) } : sold;
+            }
+            if (ActiveTool != PlayerToolMode.Hand || _panelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
+            bool workshop = _bottomView.Choice(choice)?.NeedsWorkshop != true;
+            if (choice.Kind == BottomPanelChoiceKind.Door && database.Doors.TryGetValue(choice.Value, out DoorDef door))
+                return PlacementCursor.Door(world, database, viewer, door, tile, workshop, gold);
+            if (choice.Kind == BottomPanelChoiceKind.Trap && database.Traps.TryGetValue(choice.Value, out TrapDef trap))
+                return PlacementCursor.Trap(world, database, viewer, trap, tile, workshop, gold);
+            return PlacementFeedback.None;
         }
 
         private void OnApplicationFocus(bool focused)
