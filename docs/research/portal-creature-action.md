@@ -195,8 +195,9 @@ The ten-frames-per-second interpretation above remains a HYPOTHESIS.
 
 CONFIRMED shipped data: Goblin181 chains to161, generating smoke354,
 sparkle355 and white-disc326. Their art flags are0x84,0 and0x101; none has
-keeper-colour bit2. The owner reports a keeper-coloured central cloud after the
-bright phase, beyond the supplied reference frames. Its producer is UNKNOWN;
-no transition is invented. The generator has no post-birth RGB override
+keeper-colour bit2. The later red-cloud references are provisionally identified
+as the separate [portal buildup](portals-interval.md#mist-appearance-and-duration-2026-10-23).
+The owner withdrew the keeper-colour report after
+rechecking DK2 (Q619 closed). The generator has no post-birth RGB override
 ([004386F0](functions/004386F0.md)), and action49 has no tick callback
-([004950C0](functions/004950C0.md)). This tail is Q619; sprite lighting is Q609.
+([004950C0](functions/004950C0.md)). Sprite lighting is Q609.

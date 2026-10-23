@@ -253,7 +253,7 @@ that could not have found the thing was read as evidence about the thing.
 
 ## Portal buildup (built, ADR-0467)
 
-CONFIRMED by fresh whole-function reads on 2026-10-13: `FUN_004DBBE0`
+CONFIRMED by whole-function reads, refreshed 2026-10-23: `FUN_004DBBE0`
 tests equality with the next due turn minus three game seconds (12 ticks).
 It calls `FUN_004DBF90` with argument zero and, when its candidate count
 and the room definition's runtime ushort `+0x425` are nonzero, requests
@@ -267,9 +267,47 @@ block reducing final probability to zero does not exclude that candidate.
 It does not check PortalsOpen. An eligible closed portal can therefore show
 buildup and later refuse creation; the preview reserves neither type nor slot.
 
+There is no separate periodic mist timer or once-per-cycle latch. With an
+unchanged tally, it occurs once per ordinary interval (see [the formula](#the-formula)),
+three seconds before the roll: initially at 22 seconds on a base-25 level.
+Changing the tally can move or skip that exact equality. Neutral portals and
+defeated owners return before this path; capacity and admission gates also apply.
+
+**Mist does not promise an arrival.** `FUN_004DBF90` rebuilds its candidates
+at the roll. A full sacking block can leave preview candidates but zero total
+selection weight even without a change during the three seconds. Admission,
+pool or capacity can also change between preview and roll. `FUN_004DC9A0`
+then refuses a closed portal or a failed creature allocation. Every due roll
+restarts the wait even if it creates nothing; see
+[Q505](#a-due-roll-that-creates-nothing-q505). There is no separate random
+chance to cancel a positive-weight, successfully admitted arrival.
+
 `FUN_004EACC0` copies file ushort `0x386`, via intermediate `0x45A`, to
 runtime `0x425`. Shipped Portal sets it to effect 94, "Portal Build up Effect":
 generation type 4, flags `0x280`, HP 30, six elements per turn, ids 234/235,
 origin range 0–64 and height 50–50. The shared effect consumer emits twelve
 sprites per update for thirty updates, retaining authored motion and resources.
 `PortalSystem` requests it without changing the ordinary roll or gameplay RNG.
+
+### Mist appearance and duration (2026-10-23)
+
+The supplied red-cloud sequence is STRONGLY INFERRED to show effect94;
+an isolated Level8 rendering of that definition produces the same central
+red/orange mist and sparkles. This is a remake diagnostic, not a native capture.
+
+CONFIRMED shipped definitions and `FUN_00435F20`'s colour selection:
+
+| Element | Resource | RGB | File art flags | Lifetime updates |
+|---|---|---|---|---|
+| 234 | mist | 220,70,40 | 0x4 | 32–48 |
+| 235 | sparkle-02g | 255,10,10 | 0 | 16–24 |
+
+Neither selects owner-palette bit0x2. The parent light is RGB200,100,100
+with flags0, also without owner-colour selection. These definitions provide
+fixed red/orange colours, not a keeper-colour transition. After rechecking DK2,
+the owner withdrew the keeper-colour report; Q619 is closed without a recolour.
+
+At the nominal 50ms effect step, thirty emission updates take1.5s; the last
+mist can live another2.4s (about3.9s total). Both sprites dim their RGB; mist
+grows while sparkles shrink. The diagnostic samples particles at3001ms and
+none at4001ms. Native frame pacing is not measured by that probe.

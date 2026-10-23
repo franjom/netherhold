@@ -53,12 +53,16 @@ namespace DK2.Unity.Editor
                     ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../../portal-captures"));
                 Directory.CreateDirectory(output);
                 long milliseconds = 0;
+                ushort effectId = ushort.TryParse(Environment.GetEnvironmentVariable("DK2_PORTAL_PROBE_EFFECT"), out ushort selected)
+                    ? selected : (ushort)181;
+                byte owner = byte.TryParse(Environment.GetEnvironmentVariable("DK2_PORTAL_PROBE_OWNER"), out byte selectedOwner)
+                    ? selectedOwner : PlayerIds.FirstKeeper;
                 var effects = new ClassicConstructionEffects(root.transform, db,
                     new InstallEffectSpriteProvider(db, art.LoadTexture), 42,
                     floorHeight: point => view.GroundHeightAt(world, point),
                     clock: () => new EffectTime(milliseconds), meshes: meshes);
-                effects.Model.Request(ViewEffectRequest.AtTileCentre(new EffectId(181),
-                    new PlayerId(PlayerIds.FirstKeeper), at, new Fp32(0)));
+                effects.Model.Request(ViewEffectRequest.AtTileCentre(new EffectId(effectId),
+                    new PlayerId(owner), at, new Fp32(0)));
                 int step = 0;
                 EditorApplication.CallbackFunction sample = null;
                 sample = () =>
@@ -77,7 +81,9 @@ namespace DK2.Unity.Editor
                             RenderTexture.active = target;
                             pixels.ReadPixels(new Rect(0, 0, 640, 480), 0, 0); pixels.Apply();
                             RenderTexture.active = null;
-                            File.WriteAllBytes(Path.Combine(output, "portal-" + step * 50 + ".png"), pixels.EncodeToPNG());
+                            string prefix = effectId == 181 && owner == PlayerIds.FirstKeeper
+                                ? "portal-" : "portal-" + effectId + "-owner" + owner + "-";
+                            File.WriteAllBytes(Path.Combine(output, prefix + step * 50 + ".png"), pixels.EncodeToPNG());
                             Debug.Log("Portal sample " + milliseconds + "ms, particles " + effects.Model.Particles.Count);
                         }
                         if (++step <= 150) { EditorApplication.QueuePlayerLoopUpdate(); return; }

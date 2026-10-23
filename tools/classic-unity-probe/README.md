@@ -17,6 +17,9 @@ the scratch project. It advances effect time only; ambient/torch lighting and
 native frame pacing are not acceptance claims. The paired arrival capture
 with the former draw paths loses the white disc behind the chasm and fails
 the beam check; the shared transparent stream restores it.
+Set `DK2_PORTAL_PROBE_EFFECT` and `DK2_PORTAL_PROBE_OWNER` to compare other
+definitions/owners (defaults181/3); effect94 captures the separate buildup.
+These captures check the remake's data consumer, not original-game behaviour.
 
 ## Camera rotation and allocation capture
 
