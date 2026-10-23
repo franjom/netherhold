@@ -56,7 +56,7 @@ The owner, from play (2026-10-23): the red goes to the keeper's own creatures, d
 traps, never a rival's or a neutral one, and to gold chests, piles and urns. For doors
 this is narrower than 0x0040C290's case 5; whether the picker 0x005992B0 ever hands a
 rival door to it is unread. Objects other than gold (an own chicken, a crate, a spell
-book) pass 0x0049CBB0 too: by the binary they are tinted; the owner has not been asked.
+book) pass 0x0049CBB0 too and are tinted: binary and owner agree (2026-10-23).
 
 Every class passes the arm's vtable `+0x34` test: [0x00628BC0](functions/00628BC0.md)
 (returns 1) sits there in the object vtable 0x0066D654 (dword 0x0066D688), the trap
@@ -159,7 +159,8 @@ reading of §2.
 2. **Lifting gold out of a store (§4), simulation.** Needs a liftable store pile; how much
    one lift takes, and what the tile shows after, is unread.
 3. **The pickup hand over a store pile.** DK2 shows it (owner). Ours stays the plain
-   pointing cursor until 2 exists, so the cursor does not offer a lift the click cannot do.
+   pointing cursor until 2 exists, so the cursor does not offer a lift the click cannot do
+   (owner's choice, 2026-10-23).
 4. **Blended materials (§2).** Find what puts 0x400 in the draw flags of a hovered
    creature's or gold's draw, or show it is absent.
 5. **The status flower's hover stamp.** It reads the same hover id (0x0043B7F1); ours stamps
@@ -182,5 +183,5 @@ Open:
    in short bursts at random moments?
 2. Lifting from a Treasury chest: how much comes up — the whole tile, or a set amount —
    and does the chest shrink to an urn?
-3. Is an own chicken, crate or spell book tinted when pointed at? By the binary it is (§2).
+3. ~~Is an own chicken, crate or spell book tinted?~~ Yes (owner, 2026-10-23), as the binary says.
 4. Is a rival's door tinted when pointed at?
