@@ -116,7 +116,8 @@ public static class DefeatRules
 
             if (creature.Flags.HasFlag(CreatureFlags.IsWorker))
             {
-                CreatureHealthRules.Apply(database, creature, state, -state.Health);
+                // 0x004DB67A passes the defeated player's KilledByPlayerId (+0x132) as the source.
+                CreatureHealthRules.Apply(database, creature, state, -state.Health, world.Player(playerId).KilledByPlayerId);
                 context.Emit(SystemName, "worker_killed", $"creature={state.Id} type={creature.Name} player={playerId}");
                 continue;
             }

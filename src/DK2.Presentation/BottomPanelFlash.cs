@@ -28,8 +28,8 @@ public static class BottomPanelFlash
     /// <summary>Which tab or slot flashes. A tab target (category 0, button F8..FB) flashes its tab even
     /// with its panel open; an item flashes its slot while its panel is open, else its tab; a creature
     /// target flashes the Creatures tab while that panel is closed (no slot flash was found).
-    /// <paramref name="openPanel"/> is the panel showing, null when the panel is collapsed.</summary>
-    public static BottomPanelFlashState Resolve(HudFlashTarget? target, BottomPanelCategory? openPanel, long realMilliseconds)
+    /// <paramref name="open"/> holds every panel showing (two with a pinned tab), none while collapsed.</summary>
+    public static BottomPanelFlashState Resolve(HudFlashTarget? target, BottomPanelOpenSet open, long realMilliseconds)
     {
         if (target is not HudFlashTarget flash) return BottomPanelFlashState.None;
         bool dark = ((realMilliseconds / 500) & 1) != 0;
@@ -43,18 +43,18 @@ public static class BottomPanelFlash
                 };
                 return tab is null ? BottomPanelFlashState.None : new BottomPanelFlashState(tab, null, dark);
             case CategoryCreature:
-                return openPanel == BottomPanelCategory.Creatures
+                return open.Contains(BottomPanelCategory.Creatures)
                     ? BottomPanelFlashState.None : new BottomPanelFlashState(BottomPanelCategory.Creatures, null, dark);
-            case CategoryRoom: return Item(BottomPanelChoiceKind.Room, BottomPanelCategory.Rooms, flash.Button, openPanel, dark);
-            case CategorySpell: return Item(BottomPanelChoiceKind.Spell, BottomPanelCategory.Spells, flash.Button, openPanel, dark);
-            case CategoryDoor: return Item(BottomPanelChoiceKind.Door, BottomPanelCategory.Workshop, flash.Button, openPanel, dark);
-            case CategoryTrap: return Item(BottomPanelChoiceKind.Trap, BottomPanelCategory.Workshop, flash.Button, openPanel, dark);
+            case CategoryRoom: return Item(BottomPanelChoiceKind.Room, BottomPanelCategory.Rooms, flash.Button, open, dark);
+            case CategorySpell: return Item(BottomPanelChoiceKind.Spell, BottomPanelCategory.Spells, flash.Button, open, dark);
+            case CategoryDoor: return Item(BottomPanelChoiceKind.Door, BottomPanelCategory.Workshop, flash.Button, open, dark);
+            case CategoryTrap: return Item(BottomPanelChoiceKind.Trap, BottomPanelCategory.Workshop, flash.Button, open, dark);
             default: return BottomPanelFlashState.None;
         }
     }
 
     private static BottomPanelFlashState Item(BottomPanelChoiceKind kind, BottomPanelCategory panel, byte id,
-        BottomPanelCategory? openPanel, bool dark) => openPanel == panel
+        BottomPanelOpenSet open, bool dark) => open.Contains(panel)
         ? new BottomPanelFlashState(null, new BottomPanelChoiceKey(kind, id), dark)
         : new BottomPanelFlashState(panel, null, dark);
 
@@ -63,13 +63,13 @@ public static class BottomPanelFlash
     /// FF); the Creatures tab target (F8) ends when its panel shows (<c>0x00416FD0</c>). The room id is
     /// read as the room type, LIKELY (tab-alerts.md).</summary>
     public static bool ClearedByUse(HudFlashTarget target, PlayerToolMode tool, RoomTypeId room,
-        BottomPanelChoiceKey? choice, BottomPanelCategory? openPanel)
+        BottomPanelChoiceKey? choice, BottomPanelOpenSet open)
     {
         switch (target.Category)
         {
             case CategoryHud:
                 return target.Button == 0xFF ? tool == PlayerToolMode.SellRoom
-                    : target.Button == 0xF8 && openPanel == BottomPanelCategory.Creatures;
+                    : target.Button == 0xF8 && open.Contains(BottomPanelCategory.Creatures);
             case CategoryRoom: return tool == PlayerToolMode.BuildRoom && (byte)room == target.Button;
             case CategorySpell: return choice == new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, target.Button);
             case CategoryDoor: return choice == new BottomPanelChoiceKey(BottomPanelChoiceKind.Door, target.Button);
@@ -83,11 +83,16 @@ public static class BottomPanelFlash
 /// random coordinates below 0xAC1 across and 0x9E9 down; <c>0x00419DF0</c> then raises each frame
 /// byte by one every rendered HUD frame, and past 15 wraps it to 0 with new coordinates below 0xB7F
 /// and 0xB23. All draws are byte-truncated and come from the interface's own DK2 generator, never the
-/// simulation's. A widget draws sparkle i as <c>GSparkle&lt;frame&gt;</c> at
-/// <c>(left + X % width - half, top + Y % height - half)</c>.</summary>
+/// simulation's. A widget draws sparkle i as <c>GSparkle&lt;frame&gt;</c>, a square of
+/// <see cref="SizeFor"/> units, at <c>(left + X % width - half, top + Y % height - half)</c>.</summary>
 public sealed class BottomPanelSparkles
 {
-    public const int Count = 4, Frames = 16, Size = 64;
+    public const int Count = 4, Frames = 16, Size = 64, LargeSize = 88;
+
+    /// <summary>The sparkle's side for a widget whose <c>+0x3C</c> is <paramref name="widgetBank"/>:
+    /// 88 units on a 6 (264-unit slots, <see cref="BottomPanelGrid.WidgetBank"/>), else 64 (tabs carry
+    /// 1..4, 128-unit slots 5).</summary>
+    public static int SizeFor(int widgetBank) => widgetBank == 6 ? LargeSize : Size;
     private readonly byte[] _frame = new byte[Count], _x = new byte[Count], _y = new byte[Count];
     private readonly Dk2Lcg _random;
 

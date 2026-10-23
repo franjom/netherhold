@@ -13,28 +13,29 @@ namespace DK2.Presentation.Tests;
 public sealed class BottomPanelFlashTests
 {
     private static HudFlashTarget Target(byte category, byte button) => new((ushort)(category | button << 8));
+    private static BottomPanelOpenSet Open(BottomPanelCategory category) => BottomPanelOpenSet.Of(category);
 
     [Fact]
     public void ATabTargetFlashesItsTabEvenOpenAndAnItemItsSlotOnlyWhileItsPanelShows()
     {
         Assert.Equal(new BottomPanelFlashState(BottomPanelCategory.Rooms, null, false),
-            BottomPanelFlash.Resolve(Target(0, 0xFB), BottomPanelCategory.Rooms, 0));
-        Assert.Equal(BottomPanelCategory.Creatures, BottomPanelFlash.Resolve(Target(0, 0xF8), null, 0).Tab);
-        Assert.Equal(BottomPanelFlashState.None, BottomPanelFlash.Resolve(HudFlashTarget.Gold, null, 0));
+            BottomPanelFlash.Resolve(Target(0, 0xFB), Open(BottomPanelCategory.Rooms), 0));
+        Assert.Equal(BottomPanelCategory.Creatures, BottomPanelFlash.Resolve(Target(0, 0xF8), BottomPanelOpenSet.None, 0).Tab);
+        Assert.Equal(BottomPanelFlashState.None, BottomPanelFlash.Resolve(HudFlashTarget.Gold, BottomPanelOpenSet.None, 0));
 
         // Level 1's Lair (room 2): the Rooms tab while that panel is closed, the slot once it shows.
         HudFlashTarget lair = Target(1, 2);
         Assert.Equal(new BottomPanelFlashState(BottomPanelCategory.Rooms, null, false),
-            BottomPanelFlash.Resolve(lair, BottomPanelCategory.Spells, 0));
+            BottomPanelFlash.Resolve(lair, Open(BottomPanelCategory.Spells), 0));
         Assert.Equal(new BottomPanelFlashState(null, new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, 2), false),
-            BottomPanelFlash.Resolve(lair, BottomPanelCategory.Rooms, 0));
-        Assert.Equal(BottomPanelCategory.Workshop, BottomPanelFlash.Resolve(Target(4, 3), null, 0).Tab);
+            BottomPanelFlash.Resolve(lair, Open(BottomPanelCategory.Rooms), 0));
+        Assert.Equal(BottomPanelCategory.Workshop, BottomPanelFlash.Resolve(Target(4, 3), BottomPanelOpenSet.None, 0).Tab);
         Assert.Equal(new BottomPanelChoiceKey(BottomPanelChoiceKind.Door, 1),
-            BottomPanelFlash.Resolve(Target(3, 1), BottomPanelCategory.Workshop, 0).Slot);
+            BottomPanelFlash.Resolve(Target(3, 1), Open(BottomPanelCategory.Workshop), 0).Slot);
 
         // A creature target flashes the Creatures tab only while that panel is closed.
-        Assert.Equal(BottomPanelCategory.Creatures, BottomPanelFlash.Resolve(Target(2, 5), BottomPanelCategory.Rooms, 0).Tab);
-        Assert.Equal(BottomPanelFlashState.None, BottomPanelFlash.Resolve(Target(2, 5), BottomPanelCategory.Creatures, 0));
+        Assert.Equal(BottomPanelCategory.Creatures, BottomPanelFlash.Resolve(Target(2, 5), Open(BottomPanelCategory.Rooms), 0).Tab);
+        Assert.Equal(BottomPanelFlashState.None, BottomPanelFlash.Resolve(Target(2, 5), Open(BottomPanelCategory.Creatures), 0));
     }
 
     [Theory]
@@ -44,20 +45,20 @@ public sealed class BottomPanelFlashTests
     [InlineData(999, true)]
     [InlineData(1000, false)]
     public void TheDarkHalfIsTheOddHalfSecondOfTheRealClock(long milliseconds, bool dark) =>
-        Assert.Equal(dark, BottomPanelFlash.Resolve(Target(0, 0xFB), null, milliseconds).Dark);
+        Assert.Equal(dark, BottomPanelFlash.Resolve(Target(0, 0xFB), BottomPanelOpenSet.None, milliseconds).Dark);
 
     [Fact]
     public void UsingTheFlashedItemClearsIt_RoomIdAssumedTheRoomType()
     {
-        Assert.True(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.BuildRoom, (RoomTypeId)2, null, null));
-        Assert.False(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.BuildRoom, (RoomTypeId)4, null, null));
-        Assert.False(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.Hand, (RoomTypeId)2, null, null));
+        Assert.True(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.BuildRoom, (RoomTypeId)2, null, BottomPanelOpenSet.None));
+        Assert.False(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.BuildRoom, (RoomTypeId)4, null, BottomPanelOpenSet.None));
+        Assert.False(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.Hand, (RoomTypeId)2, null, BottomPanelOpenSet.None));
         var trap = new BottomPanelChoiceKey(BottomPanelChoiceKind.Trap, 3);
-        Assert.True(BottomPanelFlash.ClearedByUse(Target(4, 3), PlayerToolMode.Hand, 0, trap, null));
-        Assert.True(BottomPanelFlash.ClearedByUse(Target(0, 0xFF), PlayerToolMode.SellRoom, 0, null, null));
-        Assert.True(BottomPanelFlash.ClearedByUse(Target(0, 0xF8), PlayerToolMode.Hand, 0, null, BottomPanelCategory.Creatures));
+        Assert.True(BottomPanelFlash.ClearedByUse(Target(4, 3), PlayerToolMode.Hand, 0, trap, BottomPanelOpenSet.None));
+        Assert.True(BottomPanelFlash.ClearedByUse(Target(0, 0xFF), PlayerToolMode.SellRoom, 0, null, BottomPanelOpenSet.None));
+        Assert.True(BottomPanelFlash.ClearedByUse(Target(0, 0xF8), PlayerToolMode.Hand, 0, null, Open(BottomPanelCategory.Creatures)));
         // The Rooms, Spells and Workshop tab targets have no clearer.
-        Assert.False(BottomPanelFlash.ClearedByUse(Target(0, 0xFB), PlayerToolMode.Hand, 0, null, BottomPanelCategory.Rooms));
+        Assert.False(BottomPanelFlash.ClearedByUse(Target(0, 0xFB), PlayerToolMode.Hand, 0, null, Open(BottomPanelCategory.Rooms)));
     }
 
     [Fact]
@@ -88,4 +89,26 @@ public sealed class BottomPanelFlashTests
         Assert.Equal(0, sparkles.Frame(0));
         Assert.InRange(sparkles.X(0), 0, 255);
     }
+
+    [Fact]
+    public void WithAPinnedPanelBesideTheCurrentOneBothCountAsOpen()
+    {
+        // Rooms current, Spells pinned (0x00416C20): a spell flashes its slot, the Workshop tab still flashes.
+        BottomPanelOpenSet both = Open(BottomPanelCategory.Rooms).With(BottomPanelCategory.Spells);
+        Assert.Equal(new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, 3),
+            BottomPanelFlash.Resolve(Target(5, 3), both, 0).Slot);
+        Assert.Equal(new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, 2),
+            BottomPanelFlash.Resolve(Target(1, 2), both, 0).Slot);
+        Assert.Equal(BottomPanelCategory.Workshop, BottomPanelFlash.Resolve(Target(3, 1), both, 0).Tab);
+        Assert.True(BottomPanelFlash.ClearedByUse(Target(0, 0xF8), PlayerToolMode.Hand, 0, null,
+            Open(BottomPanelCategory.Rooms).With(BottomPanelCategory.Creatures)));
+    }
+
+    [Theory]
+    [InlineData(6, 88)]
+    [InlineData(5, 64)]
+    [InlineData(1, 64)]
+    [InlineData(4, 64)]
+    public void SparklesAre88UnitsOnALargeSlotAnd64Elsewhere(int widgetBank, int side) =>
+        Assert.Equal(side, BottomPanelSparkles.SizeFor(widgetBank));
 }

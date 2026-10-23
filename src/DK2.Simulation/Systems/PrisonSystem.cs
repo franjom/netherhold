@@ -186,6 +186,7 @@ public sealed class PrisonSystem : ISimulationSystem
                 context.World, definition, creature, AngerBucket.Company,
                 PrisonRules.CellAngerPerApplication(context.Database), AngerComplaint.General);
 
+            creature.HealthSourcePlayerId = creature.OwnerPlayerId; // 0x0047B886: the prisoner's own owner
             creature.Health += wither;
             if (creature.Health > 0) continue;
 

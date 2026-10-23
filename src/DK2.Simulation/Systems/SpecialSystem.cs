@@ -55,8 +55,9 @@ public sealed class SpecialSystem : ISimulationSystem
                 continue;
             CreatureDef creatureDef = context.Database.CreatureById(creature.CreatureTypeId);
             CreatureLevelRules.LevelUp(context.Hooks, creatureDef, creature);
+            // 0x004A434A passes the picking player's TagId (+0x04) as the source.
             CreatureHealthRules.Apply(context.Database, creatureDef, creature,
-                CreatureHealthRules.MaxHealth(context.Database, creatureDef, creature));
+                CreatureHealthRules.MaxHealth(context.Database, creatureDef, creature), playerId.Value);
             affected++;
         }
         return affected;

@@ -938,14 +938,14 @@ public class TriggerExecutorTests
     {
         // 22 is the one that can, and it clears TriggerRun.Rooms after the write. 32 ruins a
         // gate's tiles without touching their terrain, which no room condition reads; 18 writes
-        // only alliance bytes.
+        // only alliance bytes; 46 and 50 only the HUD's Current Holder and MaximumSlaps.
         // Anything added here without doing the same brings back the bug this test
         // was written for: a room condition later in the turn reading the old map.
         byte[] performed = Enumerable.Range(0, 256)
             .Select(t => (byte)t).Where(TriggerExecutor.Performs).ToArray();
 
         Assert.Equal(
-            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)9, (byte)10, (byte)11, (byte)14, (byte)16, (byte)17, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)47],
+            [(byte)1, (byte)6, (byte)7, (byte)8, (byte)9, (byte)10, (byte)11, (byte)14, (byte)16, (byte)17, (byte)18, (byte)22, (byte)23, (byte)28, (byte)32, (byte)37, (byte)44, (byte)45, (byte)46, (byte)47, (byte)50],
             performed);
     }
 
@@ -1638,6 +1638,55 @@ public class TriggerExecutorTests
         Assert.Equal(9, state.SpecialInfoNextRoomTypeId);
         Assert.Empty(first.Partial);
         Assert.Empty(second.Partial);
+    }
+
+    /// <summary>Player action 50 (<c>0x004C8A25</c>) stores its second dword whole as MaximumSlaps;
+    /// it starts at -1 (<c>0x0050A2A5</c>). The world dispatcher fails it.</summary>
+    [Fact]
+    public void ActionFiftySetsMaximumSlapsFromAPlayerTree()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        Assert.Equal(-1, world.Triggers.MaximumSlaps);
+        TriggerRecord slaps = new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8], TriggerId = 0xFFFF, Type = 50,
+            Parameters = new Dictionary<string, long> { ["Unreached_0000"] = 0, ["Value"] = 12 },
+        };
+        var tree = new TriggerTree([slaps], 0, playerRoots: [new TriggerPlayerRoot(Keeper, 0xFFFF)]);
+
+        TriggerRunResult result = new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
+
+        Assert.Equal(12, world.Triggers.MaximumSlaps);
+        Assert.Empty(result.Partial);
+        Assert.Empty(result.Unhandled);
+    }
+
+    /// <summary>World action 46 (<c>0x00519755</c>): the one-based tile's owner becomes the Current
+    /// Holder; byte 0 zero clears it; a tile off the map fails the action and leaves it.</summary>
+    [Fact]
+    public void ActionFortySixNamesTheTilesOwnerAsCurrentHolder()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        world.Tile(2, 3).OwnerPlayerId = Keeper;
+
+        Run(world, database, available: 1, x: 3, y: 4);
+        Assert.Equal(Keeper, world.Triggers.SpecialInfoPlayerId);
+        Run(world, database, available: 1, x: 0, y: 4);
+        Assert.Equal(Keeper, world.Triggers.SpecialInfoPlayerId);
+        Run(world, database, available: 0, x: 3, y: 4);
+        Assert.Equal(0, world.Triggers.SpecialInfoPlayerId);
+
+        static void Run(WorldState world, GameDatabase database, byte available, int x, int y)
+        {
+            TriggerRecord holder = new ActionTriggerRecord(new byte[16])
+            {
+                Body = new byte[8], TriggerId = 0xFFFF, Type = 46,
+                Parameters = new Dictionary<string, long> { ["Available"] = available, ["PosX"] = x, ["PosY"] = y },
+            };
+            new TriggerExecutor(new TriggerTree([holder], 0xFFFF), world.Triggers, world, database).Run(1);
+        }
     }
 
     /// <summary>The per-turn update counts the limit down by one and sets the time-up bit at zero

@@ -52,8 +52,9 @@ public static class InfernoRules
             uint distance = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
             if (distance >= (uint)bound) continue;
             // 0x004B2CE0 refuses a dying creature; it tests no owner and no invulnerability.
-            if (CreatureDeathRules.IsDown(target)) continue;
-            int landed = StatusEffectRules.Hurt(world, database, definition, target, shot.Data1);
+            // The refusal comes after the source stamp, so a dying creature still takes the caster's owner (0x004AF838).
+            if (CreatureDeathRules.IsDown(target)) { target.HealthSourcePlayerId = shot.OwnerPlayerId; continue; }
+            int landed = StatusEffectRules.Hurt(world, database, definition, target, shot.Data1, shot.OwnerPlayerId);
             context.Emit(SystemName, "inferno_hit",
                 $"shot={shot.Id} target={target.Id} owner={target.OwnerPlayerId} damage={shot.Data1} landed={landed} health={target.Health}");
         }

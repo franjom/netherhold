@@ -46,14 +46,33 @@ namespace DK2.Unity
         private readonly Action<float, float> _goTo;
         private static readonly string[] FramePieces = { "tl", "t", "tr", "l", "m", "r", "bl", "b", "br" };
         private readonly VisualElement[] _frame = new VisualElement[9];
-        private static readonly HudIndicator[] Drawn = { HudIndicator.TimeRemaining, HudIndicator.Score, HudIndicator.HeroesKilled };
-        private static readonly string[] IndicatorArt = { "GUI\\Windows\\timer-bg", "GUI\\Windows\\score-bg", "GUI\\Windows\\kills-bg" };
+        private static readonly HudIndicator[] Drawn =
+        {
+            HudIndicator.TimeRemaining, HudIndicator.Score, HudIndicator.CurrentHolder,
+            HudIndicator.HeroesKilled, HudIndicator.SlapsRemaining, HudIndicator.NextRoom,
+        };
+        private static readonly string[] IndicatorArt =
+        {
+            "GUI\\Windows\\timer-bg", "GUI\\Windows\\score-bg", "GUI\\Windows\\kingofhill-bg",
+            "GUI\\Windows\\kills-bg", "GUI\\Windows\\slaps-bg", "GUI\\Icons\\next_room",
+        };
         private static readonly string[] HighDigits = DigitNames("GUI\\Icons\\i-"), LowDigits = DigitNames("GUI\\Icons\\lo-");
         private readonly Image[] _indicatorArt = new Image[Drawn.Length], _indicatorBacking = new Image[Drawn.Length];
         private readonly List<Image>[] _indicatorDigits = new List<Image>[Drawn.Length];
         private HudIndicatorSnapshot _shownIndicators;
         private int _indicatorTop = int.MinValue, _indicatorWidth, _indicatorHeight;
         private (int Width, int Height, int Screen) _shownFrame;
+        private readonly Func<byte, string> _playerName;
+        private readonly VisualElement _holderWindow;
+        private readonly Image _holderText;
+        private Texture2D _holderTexture;
+        private (byte Player, int Height) _holderShown;
+        private int _holderScroll;
+        private bool _holderForward = true;
+        private readonly TextScrollBar _bar = new TextScrollBar();
+        private readonly VisualElement _textWindow;
+        private readonly Image _barUp, _barDown, _barTrack, _barThumb;
+        private int _barHeld; // 1 up arrow, 2 down arrow, 3 thumb (0x00528B20's states)
 
         private static string[] DigitNames(string family)
         {
@@ -74,9 +93,10 @@ namespace DK2.Unity
         /// <param name="goTo">Moves the view to a location in tiles.</param>
         public ClassicMessageTabs(Transform parent, IClassicBottomPanelAssets assets, IClassicOptionsAssets textAssets,
             MessageTabsView view, Func<int, string> resolve, Func<int, string> briefing,
-            Func<PlayerMessage, (float X, float Y)?> locate = null, Action<float, float> goTo = null)
+            Func<PlayerMessage, (float X, float Y)?> locate = null, Action<float, float> goTo = null,
+            Func<byte, string> playerName = null)
         {
-            _locate = locate; _goTo = goTo;
+            _locate = locate; _goTo = goTo; _playerName = playerName;
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
             _textAssets = textAssets ?? throw new ArgumentNullException(nameof(textAssets));
             _view = view ?? throw new ArgumentNullException(nameof(view));
@@ -129,7 +149,26 @@ namespace DK2.Unity
                 piece.style.backgroundPositionY = new BackgroundPosition(BackgroundPositionKeyword.Top);
                 _panel.Add(piece); _frame[i] = piece;
             }
-            _panelText = Text(_panel);
+            // The text widget (20, 20) 1096x288 clips its text; its bar sits right of it (0x0052A0D0).
+            _textWindow = new VisualElement { pickingMode = PickingMode.Ignore };
+            _textWindow.style.position = Position.Absolute; _textWindow.style.overflow = Overflow.Hidden;
+            _panel.Add(_textWindow);
+            _panelText = Text(_textWindow);
+            _barTrack = Button(Texture("GUI\\Scroll Bars\\v-scroll_bar_bg"), _panel);
+            _barThumb = Button(Texture("GUI\\Scroll Bars\\v-scroll_bar"), _panel);
+            _barUp = Button(Texture("GUI\\Scroll Bars\\v-up_arrow"), _panel);
+            _barDown = Button(Texture("GUI\\Scroll Bars\\v-down_arrow"), _panel);
+            _barUp.RegisterCallback<PointerDownEvent>(evt => PressBar(evt, 1));
+            _barDown.RegisterCallback<PointerDownEvent>(evt => PressBar(evt, 2));
+            _barThumb.RegisterCallback<PointerDownEvent>(evt => PressBar(evt, 3));
+            _barTrack.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0) return;
+                evt.StopPropagation();
+                // Above or below the thumb: one pixel once per press (state 4).
+                float thumbTop = _barThumb.worldBound.yMin;
+                _bar.Step(evt.position.y < thumbTop ? -1 : 1);
+            });
             _exit = Button(Texture("GUI\\Tabs\\Messages\\mt-exit-00"), _panel);
             _exit.RegisterCallback<PointerDownEvent>(evt => { if (evt.button == 0) { evt.StopPropagation(); _view.DismissOpen(); } });
             _tick = Button(Texture("GUI\\Tabs\\Messages\\mt-tick-00"), _panel);
@@ -148,6 +187,10 @@ namespace DK2.Unity
                 _indicatorArt[i].style.display = _indicatorBacking[i].style.display = DisplayStyle.None;
                 _indicatorDigits[i] = new List<Image>();
             }
+            _holderWindow = new VisualElement { pickingMode = PickingMode.Ignore };
+            _holderWindow.style.position = Position.Absolute; _holderWindow.style.overflow = Overflow.Hidden;
+            _holderWindow.style.display = DisplayStyle.None; _root.Add(_holderWindow);
+            _holderText = Text(_holderWindow);
             _objectivePanel = Box(); _objectiveText = Text(_objectivePanel);
             // Menu33's own background is unread: a translucent dark pane, as before.
             _objectivePanel.style.backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.6f);
@@ -198,15 +241,17 @@ namespace DK2.Unity
                 Place(_slots[i], MenuX + tab.LocalX, top, ButtonWidth, ButtonHeight);
             }
             DrawIndicators(indicators, top);
+            ScrollHolder();
             DrawPanel(top, indicators.Any);
             DrawObjective();
         }
 
         /// <summary>Each indicator (0x00427010): its art 256x128 at the menu's corner, gold-bg-01 188x128
         /// right of it (not for Slaps), then white 0x00415650 digits 40 down, right-aligned to slots
-        /// of 40. Time Remaining (0x00427230) and Score (0x004273D0, 10 slots) are built; Heroes Killed
-        /// (0x00427770) draws no count, since the simulation keeps no HeroesDestroyed (player +0x14A).
-        /// Next Room takes its slot but is not drawn (0x00427980 unread).</summary>
+        /// of 40: Time Remaining (0x00427230), Score (0x004273D0, 10 slots), Heroes Killed (0x00427770,
+        /// 10 slots), Slaps Remaining (0x00427870, 6 slots). Current Holder (0x004274C0) draws the
+        /// player's name instead; Next Room (0x00427980) draws no background, only next_room and the
+        /// room's GUI icon as 128-unit squares side by side.</summary>
         private void DrawIndicators(in HudIndicatorSnapshot shown, int panelTop)
         {
             // Rebuilt only when what is shown, the panel top or the screen changes; the time limit
@@ -216,18 +261,28 @@ namespace DK2.Unity
             _shownIndicators = shown; _indicatorTop = panelTop; _indicatorWidth = Screen.width; _indicatorHeight = Height;
             IReadOnlyList<(HudIndicator Indicator, int X, int Y)> placed = shown.Any
                 ? HudIndicatorLayout.Place(shown, panelTop) : Array.Empty<(HudIndicator, int, int)>();
+            _holderWindow.style.display = DisplayStyle.None;
             for (int i = 0; i < Drawn.Length; i++)
             {
                 int at = -1;
                 for (int p = 0; p < placed.Count; p++) if (placed[p].Indicator == Drawn[i]) at = p;
-                bool on = at >= 0;
-                _indicatorArt[i].style.display = _indicatorBacking[i].style.display = on ? DisplayStyle.Flex : DisplayStyle.None;
-                if (!on) { HideDigits(i, 0); continue; }
+                Texture2D backing = at < 0 ? null
+                    : Drawn[i] == HudIndicator.NextRoom ? RoomIcon(shown.NextRoomTypeId)
+                    : Drawn[i] == HudIndicator.SlapsRemaining ? null : Texture("GUI\\Windows\\gold-bg-01");
+                _indicatorArt[i].style.display = at >= 0 ? DisplayStyle.Flex : DisplayStyle.None;
+                _indicatorBacking[i].style.display = backing != null ? DisplayStyle.Flex : DisplayStyle.None;
+                if (at < 0) { HideDigits(i, 0); continue; }
                 int x = placed[at].X, y = placed[at].Y;
                 _indicatorArt[i].image = Texture(IndicatorArt[i]);
+                if (Drawn[i] == HudIndicator.NextRoom)
+                {
+                    Place(_indicatorArt[i], x, y, 128, 128);
+                    if (backing != null) { _indicatorBacking[i].image = backing; Place(_indicatorBacking[i], x + 128, y, 128, 128); }
+                    HideDigits(i, 0);
+                    continue;
+                }
                 Place(_indicatorArt[i], x, y, 256, 128);
-                _indicatorBacking[i].image = Texture("GUI\\Windows\\gold-bg-01");
-                Place(_indicatorBacking[i], x + 256, y, 188, 128);
+                if (backing != null) { _indicatorBacking[i].image = backing; Place(_indicatorBacking[i], x + 256, y, 188, 128); }
                 int used = 0;
                 // DK2 divides by the LEVEL's turns a second, 0x006F2590 (0x0051E708).
                 if (Drawn[i] == HudIndicator.TimeRemaining)
@@ -235,9 +290,58 @@ namespace DK2.Unity
                         shown.TimeLimitTurns, SimulationTiming.OriginalTicksPerGameSecond))
                         used = Digits(i, used, digits, slots, x, y + 40);
                 else if (Drawn[i] == HudIndicator.Score)
-                    used = Digits(i, used, shown.ScoreValue.ToString(System.Globalization.CultureInfo.InvariantCulture), 10, x, y + 40);
+                    used = Digits(i, used, Invariant(shown.ScoreValue), 10, x, y + 40);
+                else if (Drawn[i] == HudIndicator.HeroesKilled)
+                    used = Digits(i, used, Invariant(shown.HeroesDestroyed), 10, x, y + 40);
+                else if (Drawn[i] == HudIndicator.SlapsRemaining)
+                    used = Digits(i, used, Invariant(shown.SlapsLeft), 6, x, y + 40);
+                else if (Drawn[i] == HudIndicator.CurrentHolder)
+                    PlaceHolder(shown.HolderPlayerId, x, y);
                 HideDigits(i, used);
             }
+        }
+
+        private static string Invariant(int value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        /// <summary>0x00427980's second square: the room definition's art 0, the bottom panel's icon.</summary>
+        private Texture2D RoomIcon(byte room)
+        {
+            string name = _assets.Icon(new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, room));
+            return name == null ? null : Texture(name);
+        }
+
+        /// <summary>0x004274C0: the holder's name (player <c>+0xEEA</c>) in the widget moved 160 in and
+        /// 16 down (2 when the screen is 300 high), seen through a window 260 wide (<c>0x104</c>).</summary>
+        private void PlaceHolder(byte player, int x, int y)
+        {
+            if (_holderShown != (player, Height))
+            {
+                _holderShown = (player, Height);
+                _holderTexture = Replace(_holderTexture, TextTextureOrBlank(_playerName?.Invoke(player) ?? "", int.MaxValue / 2));
+                // The offset (+0x4112) carries over to a new holder, as in 0x004274C0.
+                _holderText.image = _holderTexture;
+            }
+            int down = Screen.height == 300 ? 2 : 16;
+            Place(_holderWindow, x + 160, y + down, 260, 128 - down);
+            _holderText.style.top = 0;
+            _holderText.style.width = _holderTexture.width; _holderText.style.height = _holderTexture.height;
+            _holderWindow.style.display = DisplayStyle.Flex;
+        }
+
+        /// <summary>0x004274C0's scroll, once a drawn frame: a name wider than the window moves one
+        /// pixel (interface <c>+0x4112</c>) toward its end, then back (direction <c>+0x43B1</c>).</summary>
+        private void ScrollHolder()
+        {
+            if (_holderWindow.style.display != DisplayStyle.Flex || _holderTexture == null) return;
+            int overflow = _holderTexture.width - (int)V(260);
+            if (overflow <= 0) { _holderScroll = 0; _holderForward = true; }
+            else
+            {
+                _holderScroll += _holderForward ? 1 : -1;
+                if (_holderScroll > overflow) _holderForward = false;
+                else if (_holderScroll < 0) _holderForward = true;
+            }
+            _holderText.style.left = -_holderScroll;
         }
 
         /// <summary>0x00415650 mode 0: 48-unit squares 40 apart, i- digits from 640 wide (lo- below),
@@ -271,14 +375,20 @@ namespace DK2.Unity
         {
             PlayerMessage? open = _objectiveOpen ? null : _view.Open;
             _panel.style.display = open.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
-            if (open is not PlayerMessage message) return;
-            const int width = 1096;
+            if (open is not PlayerMessage message) { _barHeld = 0; return; }
             if (_shownId != message.Id || _shownHeight != Height || _panelTexture == null)
             {
                 _shownId = message.Id; _shownHeight = Height;
-                _panelTexture = Replace(_panelTexture, ClassicOptionsPanel.TextTexture(
-                    _textAssets.Font(Height), MessageText(message.Id) ?? "", Mathf.Max(1, (int)V(width))));
+                // 0x0052A330 measures 64 narrower than the widget, the bar's width; text that
+                // overflows keeps that wrap and gets the bar, text that fits wraps at the full width.
+                string text = MessageText(message.Id) ?? "";
+                Texture2D measured = TextTextureOrBlank(text, (int)V(TextScrollBar.MeasuredWidth));
+                int box = (int)V(TextScrollBar.Height);
+                _bar.Reset(measured.height, box);
+                if (!_bar.Enabled) { UnityEngine.Object.Destroy(measured); measured = TextTextureOrBlank(text, (int)V(TextScrollBar.TextWidget)); }
+                _panelTexture = Replace(_panelTexture, measured);
                 _panelText.image = _panelTexture;
+                _barHeld = 0;
             }
             // The text height in virtual units stands for 4 * DK2's quarter units (0x0052C5A0 unread).
             var (x, y, boxWidth, height) = HudIndicatorLayout.MessagePanel(stripTop, (int)(_panelTexture.height * 1920f / Height), indicators);
@@ -289,8 +399,40 @@ namespace DK2.Unity
             _goto.style.display = _locate?.Invoke(message) is not null ? DisplayStyle.Flex : DisplayStyle.None;
             // The text widget is (20,20) 1096x288; 0x004242F0's own inset is unread, so the text keeps
             // the place fitted to the owner's DK2 shot (2026-10-22): x 1054, 32 below the top.
-            _panelText.style.left = V(34); _panelText.style.top = V(32);
+            Place(_textWindow, 20, 20, TextScrollBar.TextWidget, TextScrollBar.Height);
+            DrawBar();
+            // Message mode re-renders the text at y offset -position (0x004242F0).
+            _panelText.style.left = V(14); _panelText.style.top = V(12) - _bar.Position;
             _panelText.style.width = _panelTexture.width; _panelText.style.height = _panelTexture.height;
+        }
+
+        private void PressBar(PointerDownEvent evt, int state)
+        {
+            if (evt.button != 0) return;
+            evt.StopPropagation();
+            _barHeld = state;
+        }
+
+        /// <summary>0x00414400 while enabled: arrows 64 square at the ends, the track stretched
+        /// between them, the thumb 28 wide 20 in, inset 4 at each end. 0x00528B20 each GUI update:
+        /// a held arrow moves one pixel while the pointer stays on it; a held thumb follows the pointer.</summary>
+        private void DrawBar()
+        {
+            DisplayStyle shown = _bar.Enabled ? DisplayStyle.Flex : DisplayStyle.None;
+            _barUp.style.display = _barDown.style.display = _barTrack.style.display = _barThumb.style.display = shown;
+            if (!_bar.Enabled) { _barHeld = 0; return; }
+            if (!Input.GetMouseButton(0)) _barHeld = 0;
+            var pointer = new Vector2(Input.mousePosition.x, Height - Input.mousePosition.y);
+            if (_barHeld == 1 && _barUp.worldBound.Contains(pointer)) _bar.Step(-1);
+            else if (_barHeld == 2 && _barDown.worldBound.Contains(pointer)) _bar.Step(1);
+            else if (_barHeld == 3)
+                _bar.DragTo((int)((pointer.y - _panel.worldBound.yMin) * 1920f / Height) - TextScrollBar.MenuY, TextScrollBar.Height);
+            const int bx = TextScrollBar.MenuX, by = TextScrollBar.MenuY, h = TextScrollBar.Height;
+            Place(_barUp, bx, by, TextScrollBar.Width, TextScrollBar.Arrow);
+            Place(_barDown, bx, by + h - TextScrollBar.Arrow, TextScrollBar.Width, TextScrollBar.Arrow);
+            Place(_barTrack, bx, by + TextScrollBar.Arrow, TextScrollBar.Width, TextScrollBar.Track(h));
+            var (top, length) = _bar.Thumb(h);
+            Place(_barThumb, bx + 20, by + top + 4, 28, Math.Max(0, length - 8));
         }
 
         /// <summary>0x00411D00 on menu40's rectangle inset by 10: corners 16 square outside the inset, the
@@ -382,7 +524,7 @@ namespace DK2.Unity
 
         public void Dispose()
         {
-            Replace(_panelTexture, null); Replace(_objectiveTexture, null);
+            Replace(_panelTexture, null); Replace(_objectiveTexture, null); Replace(_holderTexture, null);
             foreach (Texture2D texture in _textures.Values) UnityEngine.Object.Destroy(texture);
             UnityEngine.Object.Destroy(_settings); UnityEngine.Object.Destroy(_owner);
         }

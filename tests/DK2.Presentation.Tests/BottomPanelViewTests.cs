@@ -184,8 +184,9 @@ public sealed class BottomPanelViewTests
     [Fact]
     public void NativeGridUsesColumnMajorSlotsAndBottomAnchoredCoordinates()
     {
-        Assert.Equal(new BottomPanelRect(548, 1612, 264, 264), BottomPanelLayout.Cell(0));
-        Assert.Equal(new BottomPanelRect(820, 1612, 264, 264), BottomPanelLayout.Cell(1));
+        BottomPanelGrid grid = BottomPanelLayout.Grid(BottomPanelLayout.Span, 6);
+        Assert.Equal(new BottomPanelRect(548, 1612, 264, 264), grid.Slot(BottomPanelLayout.Panel, 0));
+        Assert.Equal(new BottomPanelRect(820, 1612, 264, 264), grid.Slot(BottomPanelLayout.Panel, 1));
         Assert.Equal(new BottomPanelRect(472, 1460, 128, 128), BottomPanelLayout.Tab(0));
     }
 }

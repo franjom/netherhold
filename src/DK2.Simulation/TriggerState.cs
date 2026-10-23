@@ -118,6 +118,16 @@ public sealed class TriggerState
     /// (<c>0x00427BA0</c>) and the dumpers read it, through world slot <c>+0x374</c>.</summary>
     public byte SpecialInfoNextRoomTypeId { get; set; }
 
+    /// <summary>DK2's <c>SpecialInfoPlayerId</c> (<c>world+0x72B6</c>), the Current Holder
+    /// indicator's player, set only by action type 46 (<c>0x00519755</c>, slot <c>+0x368</c>).
+    /// Only the interface and the dumpers read it.</summary>
+    public byte SpecialInfoPlayerId { get; set; }
+
+    /// <summary>DK2's <c>MaximumSlaps</c> (<c>world+0x72B8</c>), set whole by player action
+    /// type 50 (<c>0x004C8A25</c>, slot <c>+0x370</c>); -1 until then (<c>0x0050A2A5</c>). Only
+    /// the Slaps Remaining indicator reads it: the hand never refuses a slap.</summary>
+    public int MaximumSlaps { get; set; } = -1;
+
     /// <summary>A flag's value, <b>zero-extended</b>. The asymmetry is DK2's, not ours:
     /// see <see cref="Write"/>.</summary>
     public int Read(byte flagId)
@@ -291,6 +301,8 @@ public sealed class TriggerState
         hash.Add(_worldOptions);
         hash.Add(LevelTimeLimit);
         hash.Add(SpecialInfoNextRoomTypeId);
+        hash.Add(SpecialInfoPlayerId);
+        hash.Add(MaximumSlaps);
         hash.Add(_records.Count);
         foreach (((int tag, ushort id), TriggerRecordState record) in RawRecords)
         {

@@ -167,7 +167,8 @@ public static class FightRules
             if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) return;
             int blow = Blow(database, me, mine, target.PosX, target.PosY);
             if (blow == 0) return;
-            int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, -blow);
+            // 0x0049926C (0x0049924D for the Reaper-type arm): the swing passes the attacker's owner (+0x28) as the source.
+            int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "hit",
                 $"creature={me.Id} target={target.Id} blow={blow} landed={landed} health={target.Health}");
         }

@@ -208,8 +208,8 @@ lifts menu40 to 168 above the strip (section 5).
 | 46 | 82 Score | LevelScoreSet `+0x72A6` != 0 | score-bg | [0x004273D0](functions/004273D0.md): LevelScore |
 | 47 | 1673 Current Holder | SpecialInfoPlayerId `+0x72B6` != 0 | kingofhill-bg | [0x004274C0](functions/004274C0.md): player name |
 | 48 | 1672 Heroes Killed | LEVEL flag 0x80 (global `0x006F2957` bit 5, [0x0051E6D0](functions/0051E6D0.md)) | kills-bg | [0x00427770](functions/00427770.md): player `+0x14A` |
-| 49 | 1681 Slaps Remaining | MaximumSlaps `+0x72B8` - player slaps >= 0 | slaps-bg | `0x00427870` (unread) |
-| 50 | 2127 Next Room | SpecialInfoNextRoomTypeId `+0x72BC` in 1..25 | (art 0) | `0x00427980` (unread) |
+| 49 | 1681 Slaps Remaining | MaximumSlaps `+0x72B8` - player slaps >= 0 | slaps-bg | [0x00427870](functions/00427870.md): Max - player `+0xEE6` |
+| 50 | 2127 Next Room | SpecialInfoNextRoomTypeId `+0x72BC` in 1..25 | (art 0) | [0x00427980](functions/00427980.md): two icons |
 
 Widths are 444 (256 art plus [0x00427010](functions/00427010.md)'s gold-bg-01 188 to its right),
 256 for 49 and 50. Digits are [0x00415650](functions/00415650.md)'s, white, 40 below the menu top,
@@ -217,22 +217,50 @@ right-aligned to slots of 40. `+0x72B8` starts at -1 (0x0050A2A5), so Slaps show
 50 sets a limit. In the shipped levels: action 23 (time limit) in Levels 6b, 9 and 10, the Secrets and
 MPDs; LEVEL flag 0x80 in Level17, Secret2, Alcatraz, Spiral and the seven MPDs; action 47 (next room)
 and action 50 (slaps) only in MPDs and Secret1; action 7 on id 128 (score) in 21 records, levels not
-listed. Current Holder's writer (world slot `+0x368`) has no known caller. Our simulation has no
+listed. Our simulation has no
 slot `+0x344` adder ([World_AddLevelScore](functions/00511650.md), floored at 0, trigger-state.md §4), so where DK2's level
 adds to the score through it, ours can show a different score.
 
 **Built (2026-10-23).** `HudIndicatorSnapshot.Capture` makes the tests on what our simulation holds
-(time limit, `SpecialValueWritten`, level flag 0x80, next room); Current Holder and Slaps never show
-(no writer, action 50 unbuilt). `HudIndicatorLayout.Place` packs them; `ClassicMessageTabs` draws Time
-Remaining and Score with their digits, and Heroes Killed's art with no count (the simulation keeps no
-HeroesDestroyed). Next Room takes its slot but is not drawn. Camera class 1 is not mapped to our
-camera, so ours always packs in a row.
+(time limit, `SpecialValueWritten`, level flag 0x80, `SpecialInfoPlayerId`, `MaximumSlaps` minus the
+player's slaps, next room). `HudIndicatorLayout.Place` packs them; `ClassicMessageTabs` draws all six
+boxes: Time Remaining and Score digits, Current Holder's name (ping-pong scroll when it overflows; the
+Players-record name, else "Good Player", "Neutral Player" or "Keeper N"), Heroes Killed's count, Slaps
+Remaining's digits and Next Room's icons. Camera class 1 is not mapped to our camera, so ours always
+packs in a row.
+
+**The four other boxes (read 2026-10-23).**
+
+- *Heroes Killed* draws the local player's dword `+0x14A` (HeroesDestroyed), 10 slots. Player_Initialise
+  zeroes it ([0x004B8640](functions/004B8640.md)). It rises by one when an `IsGood` creature (definition
+  `+0x686` bit 8) dies, credited to the player tagged in the victim's word `+0x36` (the last health-change
+  source, stamped by `0x004B2CE0`), else to the owner of its first attacker (melee `+0x504[i]` before ranged
+  `+0x514[i]`, i = 0..7); a victim with `+0x3E6` bit `0x40` counts nothing
+  ([0x00487C70](functions/00487C70.md), CONFIRMED). No owner test: any keeper that kills a good
+  creature counts it. At level end each player also counts the hero-owned creatures left dying whose `+0x36`
+  names them ([0x004BE630](functions/004BE630.md)). In My Pet Dungeon mode each also adds
+  MpdScoreHeroKilled to the score.
+- *Slaps Remaining* draws MaximumSlaps `+0x72B8` minus the player's NumberOfSlaps `+0xEE6`, 6 slots (CONFIRMED).
+  Player action 50 sets `+0x72B8` to its dword `+4` (`0x004C8A25`). Nothing but the HUD, the world dumper
+  and `0x0050F3D0` reads `+0x72B8`, so the hand never refuses a slap; running out only hides the box
+  (the level's own triggers can test condition 71).
+- *Next Room* draws no background and no text: catalogue 263 `gui\icons\next_room`, then the GUI icon of
+  room type `+0x72BC` (room definition `+0x00`, through [0x0050D0B0](functions/0050D0B0.md)), as 128x128
+  squares side by side (art CONFIRMED, placement STRONGLY INFERRED). Its only writer is action 47.
+- *Current Holder*: world action 46 (`0x00519755`) is the only caller of the setter
+  [0x00509880](functions/00509880.md). Byte 00 zero clears the holder; otherwise the dword `+4` is a one-based
+  tile (x low word, y high word) and the holder becomes that tile's owner (`+8 & 0xFFF`); a missing tile
+  fails the action. CONFIRMED.
+
+Built (ADR-0532): `PlayerState.HeroesDestroyed` credited in `CreatureHealthSystem.Die`/`CreditHeroKill`
+from `CreatureState.HealthSourcePlayerId` (`+0x36`, stamped at each health-change call site), `DeathUncounted`
+(`+0x3E6` bit 0x40, nothing sets it yet), `TriggerState.MaximumSlaps` (init -1) and `SpecialInfoPlayerId`
+set by actions 50 and 46. Not built: the level-end pass of [0x004BE630](functions/004BE630.md) (its
+`+0x146` and the `0x19E`/`0x173` tallies) and the My Pet Dungeon score for a hero kill.
 
 ## 10. Open
 
 - Sound bank of 0x320-0x322 and the argument `[0x006ACB34]`.
 - Writer of `0x00759C29`; producer of graphic 4.
 - The status-line placement of hover text versus a popup, as for other widgets.
-- Heroes Killed count: player `+0x14A` HeroesDestroyed, not kept by the simulation.
-- Draw callbacks 0x00427870 (Slaps) and 0x00427980 (Next Room); the writer of `+0x72B6`.
-- For the owner, from play: does an opened message sit about 128 units higher while an indicator is up; do the Time Remaining digits read m:ss and does the last second hold at 0:01; does the frame keep its pixel thickness across resolutions (ours scales it, our choice); does Heroes Killed show a number.
+- For the owner, from play: does an opened message sit about 128 units higher while an indicator is up; do the Time Remaining digits read m:ss and does the last second hold at 0:01; does the frame keep its pixel thickness across resolutions (ours scales it, our choice); does Heroes Killed tick for heroes killed by traps, lava or the player's own creatures; does a long Current Holder name bounce, and keep its scroll offset across holders.

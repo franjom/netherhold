@@ -59,7 +59,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 world, database, creature, state);
             if (terrain != 0)
             {
-                int landed = CreatureHealthRules.Apply(database, creature, state, terrain);
+                // 0x0048A789: the source is the owner of the tile underfoot (+8 & 0xFFF).
+                int landed = CreatureHealthRules.Apply(database, creature, state, terrain,
+                    world.Tile(state.Tile.X, state.Tile.Y).OwnerPlayerId);
                 if (landed != 0)
                 {
                     context.Emit(SystemName, "creature_terrain_health",
@@ -103,7 +105,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
             if (regen != 0)
             {
-                int landed = CreatureHealthRules.Apply(database, creature, state, regen);
+                // Regeneration passes the creature's own +0x36 back (0x00488C32): the source is kept. The
+                // lair heal's own call site is unread and kept the same way.
+                int landed = CreatureHealthRules.Apply(database, creature, state, regen, state.HealthSourcePlayerId);
                 if (landed != 0)
                 {
                     context.Emit(SystemName, "creature_health",
@@ -144,7 +148,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     {
         int delta = NeedRules.CannotSleepHealthPerSecond(database, creature, state);
         if (delta == 0) return;
-        int landed = CreatureHealthRules.Apply(database, creature, state, delta);
+        int landed = CreatureHealthRules.Apply(database, creature, state, delta, state.OwnerPlayerId); // 0x00477E7B: own owner
         if (landed == 0) return;
         context.Emit(SystemName, "creature_cannot_sleep_health",
             $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} delta={landed} " +
@@ -318,6 +322,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         int carried = state.GoldHeld;
         int dropped = FloorGold.DropFrom(context.World, context.Database, state);
         PortalRules.ArrivalDied(context.World, state);
+        CreditHeroKill(context.World, creature, state);
 
         context.Emit(system, "creature_died",
             $"creature={state.Id} type={creature.Name} " +
@@ -339,5 +344,37 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         }
 
         Remove(context, system, state);
+    }
+
+    /// <summary>The hero count of the death bookkeeping (<c>0x0048822F</c>–<c>0x004882DC</c>,
+    /// CONFIRMED): at health 0 or below, the credited player is the victim's health source
+    /// (<c>+0x36</c>, <see cref="CreatureState.HealthSourcePlayerId"/>), or when that is 0 the
+    /// owner of the first engaged attacker, slot by slot from 0 to 7 with the melee slot
+    /// (<c>+0x504[i]</c>) before the ranged one (<c>+0x514[i]</c>). With a credited player, a
+    /// <see cref="CreatureState.DeathUncounted"/> victim counts nothing; otherwise an
+    /// <c>IsGood</c> victim (definition <c>+0x686</c> bit 8) adds one to that player's
+    /// <see cref="PlayerState.HeroesDestroyed"/>, with no owner test. Returns the credited player,
+    /// 0 for none. Not built here: the MPD score (game mode 4), the non-hero
+    /// <c>EnemyCreaturesKilled</c> (<c>+0x146</c>) and the per-owner kill tally
+    /// (<c>+0x19E</c>).</summary>
+    public static byte CreditHeroKill(WorldState world, CreatureDef creature, CreatureState state)
+    {
+        if (state.Health > 0) return 0;
+        byte credited = state.HealthSourcePlayerId;
+        if (credited == 0)
+        {
+            for (int i = 0; i < Combat.CombatRules.Slots; i++)
+            {
+                int attacker = state.EngagedMelee[i] != 0 ? state.EngagedMelee[i] : state.EngagedRanged[i];
+                if (attacker == 0) continue;
+                // DK2 reads the slot's thing whatever it is; a creature gone from our list reads as no owner.
+                credited = world.CreatureById(attacker)?.OwnerPlayerId ?? 0;
+                break;
+            }
+        }
+        if (credited == 0 || state.DeathUncounted) return credited;
+        if (creature.Flags.HasFlag(CreatureFlags.IsGood) && world.HasPlayer(credited))
+            world.Player(credited).HeroesDestroyed++;
+        return credited;
     }
 }

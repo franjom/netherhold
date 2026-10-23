@@ -1027,7 +1027,7 @@ public sealed class TriggerExecutor
     {
         // Player-owned implemented arms delegate from a creature with its owner as
         // context. The world dispatcher refuses these types (ADR-0162, ADR-0265).
-        if (record.Type is 10 or 11 or 24 or 26 or 28 or 31 or 37 or 38)
+        if (record.Type is 10 or 11 or 24 or 26 or 28 or 31 or 37 or 38 or 50)
         {
             if (context is TriggerContext.Player or TriggerContext.Creature)
                 return ExecuteAction(record, context, run);
@@ -1227,7 +1227,7 @@ public sealed class TriggerExecutor
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 47;
+        type is 1 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 50;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1308,6 +1308,27 @@ public sealed class TriggerExecutor
         {
             // 0x005197B1: world slot +0x378, which stores the byte at world+0x72BC.
             _state.SpecialInfoNextRoomTypeId = Byte(p, "TargetId");
+            return true;
+        }
+        if (record.Type == 46)
+        {
+            // 0x00519755: byte 0 zero clears the Current Holder; otherwise the one-based tile at
+            // (PosX, PosY) names it as its owner, and a tile off the map fails the action.
+            if (Byte(p, "Available") == 0)
+            {
+                _state.SpecialInfoPlayerId = 0;
+                return true;
+            }
+            if (_world is null) return Unperformed(record, context, partial);
+            int x = unchecked((int)p["PosX"]) - 1, y = unchecked((int)p["PosY"]) - 1;
+            if (!_world.Contains(x, y)) return false;
+            _state.SpecialInfoPlayerId = _world.Tile(x, y).OwnerPlayerId;
+            return true;
+        }
+        if (record.Type == 50)
+        {
+            // 0x004C8A25: world slot +0x370 stores the second dword whole as MaximumSlaps.
+            _state.MaximumSlaps = unchecked((int)p["Value"]);
             return true;
         }
         if (record.Type == 44)

@@ -148,8 +148,8 @@ eight functions, four of which increment:
 
 `Player_Initialise` `0x004B8640` zeroes it. The HUD `0x00427BA0` shows widget
 `0x31` while world `+0x72B8` (slot `+0x36C`; action 50 sets it through `+0x370`)
-minus the local player's `+0xEE6` is not negative. Ours slaps (`HandSystem.Slap`)
-but never increments `SlapCount`, so condition 71 reads 0.
+minus the local player's `+0xEE6` is not negative. Ours increments `SlapCount` for
+the slapped creature's owner in `HandSystem` (counted outcomes only).
 
 ## The kill tally at `+0x19E`, and why the dumper's name for it is entry 0
 
@@ -172,9 +172,11 @@ The death handler `FUN_00487C70` writes the same place:
 
 So `+0x19E` is a **16-entry per-victim tally living on the killer**, and
 `+0x173` is the victim's own running total — the two halves of type 22. The
-total is skipped when the victim carries bit `0x40` at `+0x3E6`, so a creature
-can count for the killer and not against its owner; what that bit marks is
-UNKNOWN.
+earlier test at `0x004882A9` (2026-10-23) skips **both** when a killer was found
+and the victim carries bit `0x40` at `+0x3E6`; the second test only matters when no
+killer was found. So a bit-`0x40` creature counts nowhere. The killer is the
+player tagged in the victim's word `+0x36` (the health routine's last source), else
+the owner of its first attacker ([00487C70](functions/00487C70.md)).
 
 **The array is 16 words and ends at `+0x1BE`**, exactly where the next dumped
 field begins, which is what fixes its length. The debug dumper names `+0x19E`

@@ -261,6 +261,9 @@ public static class ThingProjection
         CreatureDef def = database.CreatureById(creatureTypeId);
         int max = CreatureLevelRules.MaxHealth(database, def, state.Level);
         state.Health = max * initialHealthPercent / FullHealthPercent;
+        // The level loaders set it through the health routine with the owning player's TagId as
+        // the source (0x0052061A: [hero player]+0x04; the keeper loaders likewise).
+        state.HealthSourcePlayerId = state.OwnerPlayerId;
         return state;
     }
 

@@ -28,10 +28,13 @@ public static class CreatureHealthRules
         CreatureLevelRules.MaxHealth(database, creature, state.Level);
 
     /// <summary>Applies a health change and clamps it: positive heals, negative hurts. Returns the
-    /// amount that actually landed, which is less than asked for at either end.</summary>
+    /// amount that actually landed, which is less than asked for at either end.
+    /// <paramref name="source"/> (<c>0x004B2CE0</c>'s) is stamped first, for any delta; a site that
+    /// passes the creature's own <c>+0x36</c> passes <c>state.HealthSourcePlayerId</c>.</summary>
     public static int Apply(
-        GameDatabase database, CreatureDef creature, CreatureState state, int delta)
+        GameDatabase database, CreatureDef creature, CreatureState state, int delta, byte source)
     {
+        state.HealthSourcePlayerId = source;
         int before = state.Health;
         int max = MaxHealth(database, creature, state);
         state.Health = Math.Clamp(before + delta, 0, max);

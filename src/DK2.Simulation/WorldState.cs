@@ -326,6 +326,17 @@ public struct PlayerState
     /// the same value only while <c>TagId</c> and <c>Number</c> agree (Q271).</remarks>
     public byte KilledByPlayerId;
 
+    /// <summary>DK2's <c>player+0x14A</c>, <c>HeroesDestroyed</c> (weight 50 in the level
+    /// score): the heroes this player is credited with killing, which the Heroes Killed HUD box
+    /// shows. The death bookkeeping (<c>0x00487C70</c>, <c>0x004882DC</c>) adds one when an
+    /// <c>IsGood</c> creature dies, to the player its health source names, or else to the owner
+    /// of its first engaged attacker; no owner test, so a keeper's own hero counts and the hero
+    /// player can credit itself. Zeroed by <c>Player_Initialise</c>.</summary>
+    /// <remarks>Not built: the level-end pass <c>0x004BE9E6</c> that also counts hero-owned
+    /// creatures still dying whose source names the player — we have no level-statistics
+    /// point to run it at.</remarks>
+    public int HeroesDestroyed;
+
     /// <summary>Slaps this keeper has been counted for, DK2's <c>player+0xEE6</c> —
     /// <c>NumberOfSlaps</c> in its debug dumper. Condition type 71 compares it
     /// (<c>0x004C8491</c>); both shipped records ask for "at least", 11 and 50.</summary>
@@ -510,6 +521,7 @@ public struct PlayerState
         hash.Add(TrapNoManaMessageAt);
         hash.Add(GoldMined);
         hash.Add(KilledByPlayerId);
+        hash.Add(HeroesDestroyed);
         hash.Add(SlapCount);
         hash.Add(PossessedCreatureId);
         hash.Add(ResearchPoints);

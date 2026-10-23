@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 296;
+    private const int FormatVersion = 297;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -168,6 +168,7 @@ public static class WorldSnapshot
             w.Write(p.TrapNoManaMessageAt);
             w.Write(p.GoldMined);
             w.Write(p.KilledByPlayerId);
+            w.Write(p.HeroesDestroyed);
             w.Write(p.SlapCount);
             w.Write(p.PossessedCreatureId);
             w.Write(p.ResearchPoints);
@@ -474,6 +475,8 @@ public static class WorldSnapshot
             w.Write(c.PoisonTicks);
             w.Write(c.PoisonAmount);
             w.Write(c.PoisonOwner);
+            w.Write(c.HealthSourcePlayerId);
+            w.Write(c.DeathUncounted);
             w.Write(c.StunTicks);
             w.Write(c.ChickenTicks);
             w.Write(c.TurncoatTicks);
@@ -781,6 +784,8 @@ public static class WorldSnapshot
         w.Write(world.Triggers.RawWorldOptions);
         w.Write(world.Triggers.LevelTimeLimit);
         w.Write(world.Triggers.SpecialInfoNextRoomTypeId);
+        w.Write(world.Triggers.SpecialInfoPlayerId);
+        w.Write(world.Triggers.MaximumSlaps);
         KeyValuePair<(int Tag, ushort Id), TriggerRecordState>[] triggerRecords =
             world.Triggers.RawRecords.ToArray();
         w.Write(triggerRecords.Length);
@@ -881,6 +886,7 @@ public static class WorldSnapshot
                 TrapNoManaMessageAt = r.ReadInt64(),
                 GoldMined = r.ReadInt32(),
                 KilledByPlayerId = r.ReadByte(),
+                HeroesDestroyed = r.ReadInt32(),
                 SlapCount = r.ReadInt32(),
                 PossessedCreatureId = r.ReadInt32(),
                 ResearchPoints = r.ReadInt32(),
@@ -1171,6 +1177,8 @@ public static class WorldSnapshot
                 PoisonTicks = r.ReadInt32(),
                 PoisonAmount = r.ReadInt32(),
                 PoisonOwner = r.ReadByte(),
+                HealthSourcePlayerId = r.ReadByte(),
+                DeathUncounted = r.ReadBoolean(),
                 StunTicks = r.ReadInt32(),
                 ChickenTicks = r.ReadInt32(),
                 TurncoatTicks = r.ReadUInt16(),
@@ -1512,6 +1520,8 @@ public static class WorldSnapshot
         world.Triggers.RawWorldOptions = r.ReadByte();
         world.Triggers.LevelTimeLimit = r.ReadInt32();
         world.Triggers.SpecialInfoNextRoomTypeId = r.ReadByte();
+        world.Triggers.SpecialInfoPlayerId = r.ReadByte();
+        world.Triggers.MaximumSlaps = r.ReadInt32();
         int triggerRecordCount = r.ReadInt32();
         for (int i = 0; i < triggerRecordCount; i++)
             world.Triggers.RestoreRecord(r.ReadInt32(), r.ReadUInt16(), r.ReadBoolean(), r.ReadByte());

@@ -176,7 +176,8 @@ public static class HeroPartyRules
             int gold = (int)(member.GoldHeld * 0.01 * CreatureLevelRules.MaxGoldHeld(database, def, member.Level));
             PurseRules.Receive(database, def, state, gold);
             int health = (int)(member.InitialHealth * 0.01 * CreatureLevelRules.MaxHealth(database, def, member.Level));
-            CreatureHealthRules.Apply(database, def, state, health - state.Health);
+            // 0x0051A409 passes the hero player id (global 0x006F254C) as the source.
+            CreatureHealthRules.Apply(database, def, state, health - state.Health, PlayerIds.Good);
             for (int k = 0; k < levelUps; k++) CreatureLevelRules.LevelUp(hooks, def, state);
 
             state.WanderRadius = member.WanderRadius;

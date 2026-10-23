@@ -19,35 +19,44 @@ public enum HudIndicator
     NextRoom = 50,
 }
 
-/// <summary>One frame's indicators: which show (0x00427BA0's tests) and the values the built ones draw.</summary>
+/// <summary>One frame's indicators: which show (0x00427BA0's tests) and the values they draw.</summary>
 public readonly record struct HudIndicatorSnapshot(
-    bool TimeRemaining, int TimeLimitTurns, bool Score, int ScoreValue, bool HeroesKilled, bool NextRoom)
+    bool TimeRemaining, int TimeLimitTurns, bool Score, int ScoreValue, bool HeroesKilled, int HeroesDestroyed,
+    byte HolderPlayerId, bool SlapsRemaining, int SlapsLeft, byte NextRoomTypeId)
 {
+    public bool CurrentHolder => HolderPlayerId != 0;
+    public bool NextRoom => NextRoomTypeId != 0 && NextRoomTypeId < 0x1A;
+
     /// <summary>Interface <c>+0x10C2</c>: any indicator shows, so menu40 sits 168 above the strip, not 40.</summary>
-    public bool Any => TimeRemaining || Score || HeroesKilled || NextRoom;
+    public bool Any => TimeRemaining || Score || CurrentHolder || HeroesKilled || SlapsRemaining || NextRoom;
 
     public bool Shows(HudIndicator indicator) => indicator switch
     {
         HudIndicator.TimeRemaining => TimeRemaining,
         HudIndicator.Score => Score,
+        HudIndicator.CurrentHolder => CurrentHolder,
         HudIndicator.HeroesKilled => HeroesKilled,
+        HudIndicator.SlapsRemaining => SlapsRemaining,
         HudIndicator.NextRoom => NextRoom,
         _ => false,
     };
 
-    /// <summary>The tests 0x00427BA0 makes, on what our simulation holds. Current Holder (world
-    /// <c>+0x72B6</c>, writer unread) and Slaps Remaining (<c>+0x72B8</c>, -1 until action 50, which
-    /// is not built) never show.</summary>
-    public static HudIndicatorSnapshot Capture(WorldState world, LevelDef? level)
+    /// <summary>The tests 0x00427BA0 makes, for <paramref name="viewer"/>: the local player whose
+    /// slaps (<c>+0xEE6</c>) and HeroesDestroyed (<c>+0x14A</c>) the boxes count.</summary>
+    public static HudIndicatorSnapshot Capture(WorldState world, LevelDef? level, PlayerId viewer)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
-        return Capture(world.Triggers, level);
+        if (!world.HasPlayer(viewer)) return Capture(world.Triggers, level);
+        ref PlayerState player = ref world.Player(viewer);
+        return Capture(world.Triggers, level, player.SlapCount, player.HeroesDestroyed);
     }
 
-    public static HudIndicatorSnapshot Capture(TriggerState triggers, LevelDef? level)
+    public static HudIndicatorSnapshot Capture(TriggerState triggers, LevelDef? level, int slaps = 0, int heroesDestroyed = 0)
     {
         if (triggers is null) throw new ArgumentNullException(nameof(triggers));
-        byte nextRoom = triggers.SpecialInfoNextRoomTypeId;
+        // 0x00427870 draws MaximumSlaps - slaps and 0x00427BA0 hides the box below zero; MaximumSlaps
+        // starts at -1, so it shows only once action 50 sets a limit.
+        int slapsLeft = unchecked(triggers.MaximumSlaps - slaps);
         return new HudIndicatorSnapshot(
             TimeRemaining: triggers.LevelTimeLimit != 0,
             TimeLimitTurns: triggers.LevelTimeLimit,
@@ -55,7 +64,11 @@ public readonly record struct HudIndicatorSnapshot(
             ScoreValue: triggers.SpecialValue,
             // LEVEL flag 0x80 becomes global 0x006F2957 bit 5 (0x0051E7F4).
             HeroesKilled: level is not null && (level.Flags & 0x80) != 0,
-            NextRoom: nextRoom != 0 && nextRoom < 0x1A);
+            HeroesDestroyed: heroesDestroyed,
+            HolderPlayerId: triggers.SpecialInfoPlayerId,
+            SlapsRemaining: slapsLeft >= 0,
+            SlapsLeft: slapsLeft,
+            NextRoomTypeId: triggers.SpecialInfoNextRoomTypeId);
     }
 }
 

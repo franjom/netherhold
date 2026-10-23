@@ -307,6 +307,7 @@ public static class EatingRules
         state.HungerTicks = 0;
         if (!keepTarget) state.TargetObjectId = NoChicken;
 
-        return CreatureHealthRules.Apply(database, creature, state, creature.HpFromChicken);
+        // The eater's own owner is the source (0x0046394C; the prisoner's meal 0x00473857 likewise).
+        return CreatureHealthRules.Apply(database, creature, state, creature.HpFromChicken, state.OwnerPlayerId);
     }
 }

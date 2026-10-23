@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**297** — `0xC05DD2EF3BEE644C`. FormatVersion also 297. `TriggerState.SpecialInfoPlayerId` (action 46) and `MaximumSlaps` (player action 50, init -1); `CreatureState.HealthSourcePlayerId` (`+0x36`, stamped at each health-change call site) and `DeathUncounted` (`+0x3E6` bit 0x40, nothing sets it yet); `PlayerState.HeroesDestroyed` (`+0x14A`), credited in `CreatureHealthSystem.Die`/`CreditHeroKill` (ADR-0532). The level-end pass `0x004BE9E6`, the My Pet Dungeon score, `+0x146` and the `0x19E`/`0x173` tallies are not built.
+
 **296** — `0x9182B5916A8366B9`. Behaviour only (295 on the step6 branch; renumbered when merged after ADR-0530's 295): a keeper's Imp dropped on one of its own Heart's eight platform tiles lands there instead of being refused; only the centre disposes of it, now crediting Create Imp's mana cost as state 71 does, and never on a ruined Heart (ADR-0526 amendment, owner 2026-10-23). No new fields.
 
 **295** — `0x4E209623A4874882`. Behaviour only: a room tile is refused where `0x0044F800` finds a trap or door of any owner, or another player's living non-Imp creature; a dragged span tests only its seeds (ADR-0530, Q501). No new fields.

@@ -571,7 +571,8 @@ public sealed class HandSystem : ISimulationSystem
 
         int hurt, anger = 0;
         if (outcome == SlapOutcome.DamageOnly)
-            hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage);
+            // Every slap arm passes the slapping player's TagId (+0x04) as the source (0x0048B9A1, 0x0048BBBC, 0x0048BCFB).
+            hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage, command.PlayerId.Value);
         else
         {
             creature.LastSlapTick = context.Tick.Value;
@@ -582,7 +583,7 @@ public sealed class HandSystem : ISimulationSystem
                 creature.WorkFasterTicks = EfficiencyRules.SlapBonusTicks;
                 anger = CreatureAngerRules.Slap(world, definition, creature);
             }
-            hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage);
+            hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage, command.PlayerId.Value);
             if (outcome != SlapOutcome.Uncounted && world.HasPlayer(creature.OwnerPlayerId))
                 world.Player(creature.OwnerPlayerId).SlapCount++;
         }

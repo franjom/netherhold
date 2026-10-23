@@ -53,15 +53,18 @@ public static class StatusEffectRules
     /// <summary>The health routine's creature branch for damage (<c>0x004B2CE0</c>, §3): nothing for
     /// an <c>IsHorny</c> or <c>OnlyAttackableByHorny</c> definition or a creature in the hand; else
     /// <c>damage × m / 128</c> toward zero through <see cref="CreatureHealthRules.Apply"/>. Returns
-    /// what landed, as a negative number. The invulnerable word is the caller's refusal, as in DK2.</summary>
-    public static int Hurt(WorldState world, GameDatabase database, CreatureDef definition, CreatureState target, int damage)
+    /// what landed, as a negative number. The invulnerable word is the caller's refusal, as in DK2.
+    /// <paramref name="source"/> (the attacker's, shot's or caster's owner) is stamped first, before
+    /// every refusal, as the routine writes <c>+0x36</c> on entry.</summary>
+    public static int Hurt(WorldState world, GameDatabase database, CreatureDef definition, CreatureState target, int damage, byte source)
     {
+        target.HealthSourcePlayerId = source;
         if (damage <= 0) return 0;
         if (definition.Flags.HasFlag(CreatureFlags.IsHorny) || definition.Flags.HasFlag(CreatureFlags.OnlyAttackableByHorny)) return 0;
         if (HandRules.IsHeld(target)) return 0;
         int scaled = (int)((long)damage * DamageMultiplier(world, database, target) / Base);
         if (IsStunned(target) && FearRules.NonImpAmongAttackers(world, target)) LengthenStun(database, definition, target);
-        return CreatureHealthRules.Apply(database, definition, target, -scaled);
+        return CreatureHealthRules.Apply(database, definition, target, -scaled, source);
     }
 
     /// <summary><c>0x00481360</c>, from the damage routine (<c>0x004B2EBA</c>) for a stunned creature
@@ -221,23 +224,24 @@ public static class StatusEffectRules
     /// <summary>Drain (shots.md §8, type 35): the lesser of the target's health and
     /// <paramref name="percent"/> of its level-scaled maximum leaves the target through the health
     /// routine, and the same amount reaches the caster. Nothing on a target already down.</summary>
-    public static void Drain(SimulationContext context, CreatureState target, CreatureDef targetDef, CreatureState? caster, int percent)
+    public static void Drain(SimulationContext context, CreatureState target, CreatureDef targetDef, CreatureState? caster, int percent, byte source)
     {
         if (percent <= 0 || CreatureDeathRules.IsDown(target)) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int amount = Math.Min(target.Health, CreatureHealthRules.MaxHealth(database, targetDef, target) * percent / 100);
         if (amount <= 0) return;
-        int landed = Hurt(world, database, targetDef, target, amount);
+        // 0x004AFE29/0x004AFE38: both calls pass the shot's owner (+0x28) as the source.
+        int landed = Hurt(world, database, targetDef, target, amount, source);
         int gained = 0;
         if (caster != null && !CreatureDeathRules.IsDown(caster))
-            gained = CreatureHealthRules.Apply(database, database.CreatureById(caster.CreatureTypeId), caster, amount);
+            gained = CreatureHealthRules.Apply(database, database.CreatureById(caster.CreatureTypeId), caster, amount, source);
         context.Emit(SystemName, "drained", $"target={target.Id} amount={amount} landed={landed} caster={caster?.Id ?? 0} gained={gained}");
     }
 
     /// <summary>Lightning (<c>0x004AF1E0</c>, type 9): nothing for a target down or immune; the data
     /// word, doubled on a water tile, through the health routine; then the stun.</summary>
-    public static void Lightning(SimulationContext context, CreatureState target, CreatureDef targetDef, int damage, int casterId)
+    public static void Lightning(SimulationContext context, CreatureState target, CreatureDef targetDef, int damage, int casterId, byte source)
     {
         if (CreatureDeathRules.IsDown(target) || (targetDef.Flags2 & LightningImmune) != 0) return;
         WorldState world = context.World;
@@ -245,7 +249,7 @@ public static class StatusEffectRules
         TilePos at = target.Tile;
         bool water = world.Contains(at) && database.TerrainById(world.Tile(at.X, at.Y).TerrainId).IsWater;
         int dealt = water ? damage * 2 : damage;
-        int landed = Hurt(world, database, targetDef, target, dealt);
+        int landed = Hurt(world, database, targetDef, target, dealt, source); // 0x004AF2D1: the shot's owner
         context.Emit(SystemName, "lightning", $"target={target.Id} caster={casterId} damage={dealt} landed={landed} health={target.Health}");
         Stun(context, target, targetDef);
     }

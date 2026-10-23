@@ -191,7 +191,7 @@ public static class BoulderRules
         uint percent = (uint)(byte)database[VariableTypeId.BoulderToCreatureDamagePercentage];
         int damage = Capped(boulder, (int)(((maximum >> 1) * 100) / percent));
         int before = creature.Health;
-        StatusEffectRules.Hurt(world, database, definition, creature, damage);
+        StatusEffectRules.Hurt(world, database, definition, creature, damage, boulder.OwnerPlayerId); // 0x004A0D69: the boulder's owner
         int landed = before - creature.Health;
         bool knocked = false;
         if (!CreatureDeathRules.IsDown(creature)

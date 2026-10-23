@@ -356,6 +356,8 @@ public static class PrisonRules
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.Health = CreatureHealthRules.KnockoutHealth(
             database, database.CreatureById(creature.CreatureTypeId), creature);
+        // DK2's admission calls the health routine with the room's owner (+0x1D) as the source (0x004E2D28).
+        creature.HealthSourcePlayerId = playerId.Value;
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
         creature.AwakeTicks = 0;

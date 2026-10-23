@@ -17,10 +17,40 @@ public readonly record struct BottomPanelRect(int X, int Y, int Width, int Heigh
 /// <summary>Native virtual units, converted by the adapter at height / 1920.</summary>
 public static class BottomPanelLayout
 {
+    public const int Left = 472, Top = 1600, Span = 1800, Height = 300;
     public static BottomPanelRect Tab(int index) => new(472 + index * 136, 1460, 128, 128);
-    public static BottomPanelRect Cell(int index) => new(548 + index * 272, 1612, 264, 264);
-    public static BottomPanelRect Panel => new(472, 1600, 1800, 300);
-    public const int SlotsPerPage = 6;
+    public static BottomPanelRect Panel => new(Left, Top, Span, Height);
+
+    /// <summary><c>0x00417310</c>: the <c>n</c> open category menus share the span, each <c>W = 1800 / n</c>
+    /// wide at y 1600, 300 high. An unpinned menu sits at x 472; the pinned one (rank 1) at
+    /// <c>472 + W</c> when an unpinned one is open, else at 472. Creatures places its overview (menu 5).
+    /// Null when <paramref name="category"/> is not open.</summary>
+    public static BottomPanelRect? PanelOf(BottomPanelCategory category, BottomPanelOpenSet open, BottomPanelCategory? pinned)
+    {
+        if (!open.Contains(category)) return null;
+        int width = Span / open.Count;
+        bool unpinnedOpen = (pinned is BottomPanelCategory p ? open.Without(p) : open).Count > 0;
+        int x = pinned == category && unpinnedOpen ? Left + width : Left;
+        return new BottomPanelRect(x, Top, width, Height);
+    }
+
+    /// <summary><c>0x00417470</c>, expanded (<c>+0x109 == 1</c>): 264-unit cells while
+    /// <c>count ≤ 300·(W−64) / 73984 − 1</c>, else 128-unit cells; <c>(W−64)/cell</c> columns and
+    /// <c>300/cell</c> rows. One full-width panel holds 6 large or 26 small slots a page; a half one 3 or 12.</summary>
+    public static BottomPanelGrid Grid(int panelWidth, int count)
+    {
+        int area = panelWidth - 64;
+        int cell = count <= Height * area / 73984 - 1 ? BottomPanelGrid.LargeCell : BottomPanelGrid.SmallCell;
+        return new BottomPanelGrid(cell, Math.Max(0, area / cell), Height / cell);
+    }
+
+    /// <summary>The page arrows keep their local x (0) and width (64); 0x00417470 sets y 12 and 144,
+    /// height 132 (<c>0x84</c>), so each panel carries its own pair at its left edge.</summary>
+    public static BottomPanelRect PreviousPage(BottomPanelRect panel) => new(panel.X, panel.Y + 12, 64, 132);
+    public static BottomPanelRect NextPage(BottomPanelRect panel) => new(panel.X, panel.Y + 144, 64, 132);
+
+    /// <summary>0x00417470 for menu 5, the creature overview: <c>(W − 432) / 116</c> columns, one row.</summary>
+    public static int OverviewColumns(int panelWidth) => Math.Max(0, (panelWidth - 432) / 116);
 }
 
 /// <summary>Retained display state; no simulation object escapes capture.</summary>

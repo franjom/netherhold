@@ -70,16 +70,16 @@ public class CreatureNeedsTests
 
         // Healing at full health lands nothing at all, which is what lets the
         // per-second system apply regeneration unconditionally.
-        Assert.Equal(0, CreatureHealthRules.Apply(db, goblin, state, 500));
+        Assert.Equal(0, CreatureHealthRules.Apply(db, goblin, state, 500, 0));
         Assert.Equal(1500, state.Health);
 
         // Overkill lands only what was left.
-        Assert.Equal(-1500, CreatureHealthRules.Apply(db, goblin, state, -99999));
+        Assert.Equal(-1500, CreatureHealthRules.Apply(db, goblin, state, -99999, 0));
         Assert.Equal(0, state.Health);
 
         // And healing from zero works, because zero is not a trapdoor in the
         // rules — the system, not the clamp, decides what death is.
-        Assert.Equal(200, CreatureHealthRules.Apply(db, goblin, state, 200));
+        Assert.Equal(200, CreatureHealthRules.Apply(db, goblin, state, 200, 0));
     }
 
     [Fact]

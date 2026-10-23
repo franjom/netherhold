@@ -23,11 +23,20 @@ namespace DK2.Unity
         private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         private readonly Image[] _tabs = new Image[4], _fills = new Image[64], _rail = new Image[16];
         private readonly Image _railMetal, _railEnd;
-        private readonly Image[] _tabSelected = new Image[4], _tabHover = new Image[4];
-        private readonly Image[] _icons = new Image[6], _selection = new Image[6];
-        private readonly SlotSector[] _progress = new SlotSector[6], _research = new SlotSector[6];
-        private readonly BottomPanelChoice[] _slots = new BottomPanelChoice[6];
-        private readonly Image _previous, _next, _resize;
+        private readonly Image[] _tabSelected = new Image[4], _tabLock = new Image[4], _tabHover = new Image[4];
+        // At most two category panels open at once (0x00416C20 pins one tab), each with up to 26 slots a
+        // page (13 x 2 128-unit cells, 0x00417470). Slot action p * PanelSlots + k is panel p's page slot k.
+        private const int MaxPanels = 2, PanelSlots = 26, SlotCount = MaxPanels * PanelSlots;
+        private readonly Image[] _icons = new Image[SlotCount], _selection = new Image[SlotCount];
+        private readonly SlotSector[] _progress = new SlotSector[SlotCount], _research = new SlotSector[SlotCount];
+        private readonly BottomPanelChoice[] _slots = new BottomPanelChoice[SlotCount];
+        private readonly Image[] _previous = new Image[MaxPanels], _next = new Image[MaxPanels];
+        private readonly BottomPanelCategory[] _panelCategory = new BottomPanelCategory[MaxPanels];
+        private readonly BottomPanelRect[] _panelArea = new BottomPanelRect[MaxPanels];
+        private readonly int[] _page = new int[4], _pages = { 1, 1, 1, 1 };
+        private readonly BottomPanelTabs _tabState = new BottomPanelTabs();
+        private int _panelCount;
+        private readonly Image _resize;
         private readonly Image[] _sparkles = new Image[BottomPanelSparkles.Count];
         private readonly BottomPanelSparkles _sparkleState = new BottomPanelSparkles();
         private readonly Image _reaperBackground, _reaper, _reaperBlink;
@@ -35,8 +44,7 @@ namespace DK2.Unity
         private readonly Texture2D[] _reaperQuarter = new Texture2D[4];
         private readonly Texture2D[] _timerDigits = new Texture2D[10];
         private readonly Image[] _timerImages = new Image[2];
-        private BottomPanelCategory _category = BottomPanelCategory.Rooms;
-        private int _page, _pages = 1, _captured = -1, _pressed = -1, _pressedButton;
+        private int _captured = -1, _pressed = -1, _pressedButton;
         private bool _visible = true, _allowInput = true;
         private Vector2Int _viewport;
         private string _descriptionText = "";
@@ -52,11 +60,14 @@ namespace DK2.Unity
         public event Action<bool> CollapsedChanged;
         /// <summary>HUD <c>+0x109</c> == 0 (0x004167D0): the strip at the bottom, categories,
         /// creature panels and the Reaper hidden.</summary>
-        public bool Collapsed { get; private set; }
+        public bool Collapsed => _tabState.Collapsed;
         // 0x00417170 moves the strip from y 0x5B4 to 0x6EC.
         private int Drop => Collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0;
         public PanelSettings Panel => _settings;
-        public BottomPanelCategory Category => _category;
+        /// <summary>Where <paramref name="category"/>'s panel sits (virtual units, 0x00417310), null while it is
+        /// closed or the panel is collapsed. Creatures' area is its overview's (menu 5).</summary>
+        public BottomPanelRect? PanelArea(BottomPanelCategory category) =>
+            BottomPanelLayout.PanelOf(category, _tabState.Open, _tabState.Pinned);
         public bool HasPointerCapture => _captured >= 0;
         private int Width => _viewport.x > 0 ? _viewport.x : Screen.width;
         private int Height => _viewport.y > 0 ? _viewport.y : Screen.height;
@@ -89,6 +100,9 @@ namespace DK2.Unity
             // over the icon; unselected tabs are not dimmed.
             string[] selected = { "selected-creature", "selected-room", "selected-spell", "selected-workshop" };
             for (int i = 0; i < 4; i++) _tabSelected[i] = Picture(Texture("GUI\\Icons\\" + selected[i]));
+            // A pinned tab draws catalogue 8, gui\icons\tab-lock, at layer 3: over the selected overlay
+            // (layer 4), under the hover (layer 2) (0x00412260).
+            for (int i = 0; i < 4; i++) _tabLock[i] = Picture(Texture("GUI\\Icons\\tab-lock"));
             // A hovered tab gets catalogue 121, gui\icons\hilight, drawn last with render flag 8
             // (0x00412260 at 0x00412900..0x0041294F). Flag 8 is read as additive: UI Toolkit has no
             // additive images, so the art is baked to white with its brightness as alpha, which
@@ -97,13 +111,16 @@ namespace DK2.Unity
             for (int i = 0; i < 4; i++) _tabHover[i] = Picture(hilight);
             // Child order is draw order: recharge/manufacture sector (depth 0.7/0.6) over the icon, the
             // selection (layer 5) over it, and the research sector (depth 0.4) in front (panel-indicators.md).
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < SlotCount; i++)
             {
                 _icons[i] = Interactive(null, i);
                 _progress[i] = Sector(); _selection[i] = Picture(null); _research[i] = Sector();
             }
-            _previous = Interactive(Texture("GUI\\Pages\\page_back"), 200);
-            _next = Interactive(Texture("GUI\\Pages\\page_forward"), 201);
+            for (int p = 0; p < MaxPanels; p++)
+            {
+                _previous[p] = Interactive(Texture("GUI\\Pages\\page_back"), 200 + 2 * p);
+                _next[p] = Interactive(Texture("GUI\\Pages\\page_forward"), 201 + 2 * p);
+            }
             // The strip's fifth widget 0x00690D98: catalogue 44 i-mise, local (544,0), 128x128.
             _resize = Interactive(Texture("GUI\\Icons\\i-mise"), 400);
             _reaperBackground = Picture(Texture("GUI\\Spells\\reaper_talisman-00"));
@@ -142,13 +159,24 @@ namespace DK2.Unity
             int pointer = _captured; _captured = -1; _pressed = -1;
             if (pointer >= 0 && _root.HasPointerCapture(pointer)) _root.ReleasePointer(pointer);
         }
-        public void SelectCategory(BottomPanelCategory category) { _category = category; _page = 0; CancelPointerGesture(); }
+        /// <summary>An ordinary (unshifted) click on <paramref name="category"/>'s tab.</summary>
+        public void SelectCategory(BottomPanelCategory category) => ClickTab(category, false);
+
+        /// <summary>0x00416C20: expand if collapsed, then open (or, with Shift alone, pin or unpin) the
+        /// category. Resetting the page of a panel that opens is ours (the page index field is unread).</summary>
+        private void ClickTab(BottomPanelCategory category, bool shiftOnly)
+        {
+            CancelPointerGesture();
+            bool wasOpen = _tabState.Open.Contains(category);
+            if (_tabState.Click(category, shiftOnly)) CollapsedChanged?.Invoke(false);
+            if (!wasOpen) _page[(int)category] = 0;
+        }
 
         /// <summary>The level script's FLASH_BUTTON target, set by the host each frame.</summary>
         public HudFlashTarget? FlashTarget { get; set; }
 
-        /// <summary>The panel showing, null while collapsed ("closed" for the flash rules).</summary>
-        public BottomPanelCategory? OpenPanel => Collapsed ? (BottomPanelCategory?)null : _category;
+        /// <summary>The panels showing (two with a pinned tab), none while collapsed ("closed" for the flash rules).</summary>
+        public BottomPanelOpenSet OpenPanel => _tabState.Open;
 
         public void Draw(Vector2Int viewport = default)
         {
@@ -181,6 +209,9 @@ namespace DK2.Unity
             BottomPanelFlashState flash = BottomPanelFlash.Resolve(FlashTarget, OpenPanel, (long)(Time.unscaledTimeAsDouble * 1000));
             BottomPanelRect? sparkleOn = flash.Tab is BottomPanelCategory flashTab && _view.TabVisible(flashTab)
                 ? Dropped(BottomPanelLayout.Tab((int)flashTab)) : (BottomPanelRect?)null;
+            // Tabs carry widget +0x3C 1..4: the 64-unit sparkle.
+            int sparkleSize = BottomPanelSparkles.Size;
+            BottomPanelOpenSet open = _tabState.Open;
             for (int i = 0; i < 4; i++)
             {
                 Place(_tabs[i], Dropped(BottomPanelLayout.Tab(i)));
@@ -188,77 +219,26 @@ namespace DK2.Unity
                 _tabs[i].style.display = tabShown ? DisplayStyle.Flex : DisplayStyle.None;
                 _tabs[i].tintColor = flash.Dark && flash.Tab == (BottomPanelCategory)i ? Dark
                     : _view.TabDimmed((BottomPanelCategory)i) ? new Color32(128, 128, 128, 255) : Color.white;
+                // The selected overlay draws for every category whose menu is visible (0x00412890).
                 Place(_tabSelected[i], Dropped(BottomPanelLayout.Tab(i)));
-                _tabSelected[i].style.display = tabShown && i == (int)_category ? DisplayStyle.Flex : DisplayStyle.None;
+                _tabSelected[i].style.display = tabShown && open.Contains((BottomPanelCategory)i) ? DisplayStyle.Flex : DisplayStyle.None;
+                // The lock shows whenever the tab is pinned, even with the panel collapsed.
+                Place(_tabLock[i], Dropped(BottomPanelLayout.Tab(i)));
+                _tabLock[i].style.display = tabShown && _tabState.Pinned == (BottomPanelCategory)i ? DisplayStyle.Flex : DisplayStyle.None;
                 Place(_tabHover[i], Dropped(BottomPanelLayout.Tab(i)));
                 _tabHover[i].style.display = tabShown && _allowInput && _hovered == 100 + i ? DisplayStyle.Flex : DisplayStyle.None;
             }
-            int count = 0;
-            for (int i = 0; i < _view.Choices.Count; i++)
-            { BottomPanelChoice choice = _view.Choices[i]; if (choice.Visible && choice.Category == _category) count++; }
-            _pages = Math.Max(1, (count + 5) / 6); _page = Math.Min(_page, _pages - 1);
-            int skip = _page * 6, index = 0, visible = 0;
-            for (int choiceIndex = 0; choiceIndex < _view.Choices.Count; choiceIndex++)
+            // 0x00416FD0 lays out the open menus 1..3 through 0x00417470; Creatures is its overview's.
+            _panelCount = 0;
+            for (int c = 0; c < 4 && _panelCount < MaxPanels; c++)
             {
-                BottomPanelChoice choice = _view.Choices[choiceIndex];
-                if (!choice.Visible || choice.Category != _category) continue;
-                if (visible++ < skip || index >= 6) continue;
-                _slots[index++] = choice;
+                var category = (BottomPanelCategory)c;
+                if (BottomPanelLayout.PanelOf(category, open, _tabState.Pinned) is not BottomPanelRect area) continue;
+                _panelCategory[_panelCount] = category; _panelArea[_panelCount] = area; _panelCount++;
             }
-            while (index < 6) _slots[index++] = null;
-            for (int i = 0; i < 6; i++)
-            {
-                BottomPanelChoice choice = _slots[i];
-                bool show = choice != null && !Collapsed;
-                _icons[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
-                _selection[i].style.display = show && choice.Selected ? DisplayStyle.Flex : DisplayStyle.None;
-                BottomPanelSlotIndicators marks = show ? choice.Indicators : BottomPanelSlotIndicators.None;
-                int progress = marks.RechargePercent ?? marks.ManufacturePercent ?? 0;
-                _progress[i].style.display = progress != 0 ? DisplayStyle.Flex : DisplayStyle.None;
-                _research[i].style.display = marks.ResearchPercent.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
-                if (!show) continue;
-                string icon = !choice.Unknown ? _assets.Icon(choice.Key) : choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Rooms\\tba" :
-                    choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Spells\\s-tba" : "GUI\\Traps\\w-tba";
-                Texture2D iconTexture = string.IsNullOrEmpty(icon) ? null : Texture(icon);
-                _icons[i].image = iconTexture;
-                // 0x00412FC0: a recharging spell skips the unaffordable tint and the flash; the
-                // manufacture tint overwrites the flash and unaffordable tints, and no-Workshop overwrites it.
-                bool recharging = marks.RechargePercent.HasValue;
-                bool flashing = flash.Slot == choice.Key && !recharging;
-                if (flashing) sparkleOn = BottomPanelLayout.Cell(i);
-                _icons[i].tintColor = recharging ? RechargeTint
-                    : choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
-                    : marks.ManufacturePercent.HasValue ? ManufactureTint
-                    : flashing && flash.Dark ? Dark
-                    : choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
-                Place(_icons[i], BottomPanelLayout.Cell(i));
-                if (progress != 0)
-                {
-                    _progress[i].Set(iconTexture, Color.white, progress);
-                    Place(_progress[i], BottomPanelLayout.Cell(i));
-                }
-                if (marks.ResearchPercent is byte studied)
-                {
-                    // State 2 cuts the slot's own icon: "tba" at availability 2, the real icon at 4.
-                    if (marks.ResearchOnUnknown) _research[i].Set(iconTexture, ResearchUnknownTint, studied);
-                    else _research[i].Set(Texture("GUI\\Icons\\Gold_Frame"), Color.white, studied);
-                    Place(_research[i], BottomPanelLayout.Cell(i));
-                }
-                if (choice.Selected)
-                {
-                    string selected = choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Icons\\selected-room" :
-                        choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Icons\\selected-spell" :
-                        choice.Kind == BottomPanelChoiceKind.Door ? "GUI\\Icons\\selected-door" : "GUI\\Icons\\selected-trap";
-                    _selection[i].image = Texture(selected); Place(_selection[i], BottomPanelLayout.Cell(i));
-                }
-                _icons[i].SetEnabled(_allowInput);
-            }
-            Place(_previous, V(472), V(1612), V(64), V(132));
-            Place(_next, V(472), V(1744), V(64), V(132));
-            _previous.style.display = _next.style.display = Collapsed ? DisplayStyle.None : DisplayStyle.Flex;
-            _previous.tintColor = _page > 0 ? Color.white : Color.gray;
-            _next.tintColor = _page + 1 < _pages ? Color.white : Color.gray;
-            DrawSparkles(sparkleOn);
+            for (int p = 0; p < MaxPanels; p++)
+                DrawPanel(p, flash, ref sparkleOn, ref sparkleSize);
+            DrawSparkles(sparkleOn, sparkleSize);
             RefreshHover();
             Rect reaperBounds = ReaperBounds;
             Place(_reaperBackground, reaperBounds.x, reaperBounds.y, reaperBounds.width, reaperBounds.height);
@@ -307,13 +287,98 @@ namespace DK2.Unity
             }
         }
 
+        /// <summary>Panel <paramref name="panel"/>'s page of slots and its page arrows: the grid of 0x00417470 at
+        /// the place 0x00417310 gives it. A Creatures panel and an unused panel draw nothing here.</summary>
+        private void DrawPanel(int panel, BottomPanelFlashState flash, ref BottomPanelRect? sparkleOn, ref int sparkleSize)
+        {
+            int first = panel * PanelSlots;
+            bool items = panel < _panelCount && _panelCategory[panel] != BottomPanelCategory.Creatures;
+            BottomPanelCategory category = _panelCategory[panel];
+            BottomPanelRect area = _panelArea[panel];
+            int count = 0;
+            if (items)
+                for (int i = 0; i < _view.Choices.Count; i++)
+                { BottomPanelChoice choice = _view.Choices[i]; if (choice.Visible && choice.Category == category) count++; }
+            BottomPanelGrid grid = items ? BottomPanelLayout.Grid(area.Width, count) : default;
+            int pageSize = Math.Min(PanelSlots, grid.PageSize), c = (int)category;
+            if (items)
+            {
+                _pages[c] = grid.Pages(count); _page[c] = Math.Min(_page[c], _pages[c] - 1);
+                int skip = _page[c] * grid.PageSize, index = 0, visible = 0;
+                for (int choiceIndex = 0; choiceIndex < _view.Choices.Count && index < pageSize; choiceIndex++)
+                {
+                    BottomPanelChoice choice = _view.Choices[choiceIndex];
+                    if (!choice.Visible || choice.Category != category) continue;
+                    if (visible++ < skip) continue;
+                    _slots[first + index++] = choice;
+                }
+                while (index < PanelSlots) _slots[first + index++] = null;
+            }
+            else for (int k = 0; k < PanelSlots; k++) _slots[first + k] = null;
+            for (int k = 0; k < PanelSlots; k++)
+            {
+                int i = first + k;
+                BottomPanelChoice choice = _slots[i];
+                bool show = choice != null;
+                _icons[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+                _selection[i].style.display = show && choice.Selected ? DisplayStyle.Flex : DisplayStyle.None;
+                BottomPanelSlotIndicators marks = show ? choice.Indicators : BottomPanelSlotIndicators.None;
+                int progress = marks.RechargePercent ?? marks.ManufacturePercent ?? 0;
+                _progress[i].style.display = progress != 0 ? DisplayStyle.Flex : DisplayStyle.None;
+                _research[i].style.display = marks.ResearchPercent.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
+                if (!show) continue;
+                BottomPanelRect cell = grid.Slot(area, k);
+                string icon = !choice.Unknown ? _assets.Icon(choice.Key) : choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Rooms\\tba" :
+                    choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Spells\\s-tba" : "GUI\\Traps\\w-tba";
+                Texture2D iconTexture = string.IsNullOrEmpty(icon) ? null : Texture(icon);
+                _icons[i].image = iconTexture;
+                // 0x00412FC0: a recharging spell skips the unaffordable tint and the flash; the
+                // manufacture tint overwrites the flash and unaffordable tints, and no-Workshop overwrites it.
+                bool recharging = marks.RechargePercent.HasValue;
+                bool flashing = flash.Slot == choice.Key && !recharging;
+                if (flashing) { sparkleOn = cell; sparkleSize = BottomPanelSparkles.SizeFor(grid.WidgetBank); }
+                _icons[i].tintColor = recharging ? RechargeTint
+                    : choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
+                    : marks.ManufacturePercent.HasValue ? ManufactureTint
+                    : flashing && flash.Dark ? Dark
+                    : choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
+                Place(_icons[i], cell);
+                if (progress != 0)
+                {
+                    _progress[i].Set(iconTexture, Color.white, progress);
+                    Place(_progress[i], cell);
+                }
+                if (marks.ResearchPercent is byte studied)
+                {
+                    // State 2 cuts the slot's own icon: "tba" at availability 2, the real icon at 4.
+                    if (marks.ResearchOnUnknown) _research[i].Set(iconTexture, ResearchUnknownTint, studied);
+                    else _research[i].Set(Texture("GUI\\Icons\\Gold_Frame"), Color.white, studied);
+                    Place(_research[i], cell);
+                }
+                if (choice.Selected)
+                {
+                    string selected = choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Icons\\selected-room" :
+                        choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Icons\\selected-spell" :
+                        choice.Kind == BottomPanelChoiceKind.Door ? "GUI\\Icons\\selected-door" : "GUI\\Icons\\selected-trap";
+                    _selection[i].image = Texture(selected); Place(_selection[i], cell);
+                }
+                _icons[i].SetEnabled(_allowInput);
+            }
+            _previous[panel].style.display = _next[panel].style.display = items ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!items) return;
+            Place(_previous[panel], BottomPanelLayout.PreviousPage(area));
+            Place(_next[panel], BottomPanelLayout.NextPage(area));
+            _previous[panel].tintColor = _page[c] > 0 ? Color.white : Color.gray;
+            _next[panel].tintColor = _page[c] + 1 < _pages[c] ? Color.white : Color.gray;
+        }
+
         private Image Interactive(Texture2D texture, int action)
         {
             Image image = Picture(texture); image.pickingMode = PickingMode.Position;
             image.RegisterCallback<PointerDownEvent>(evt =>
             {
                 if (!_allowInput || evt.button != 0 && evt.button != 1) return;
-                bool roomSecondary = evt.button == 1 && action >= 0 && action < 6 &&
+                bool roomSecondary = evt.button == 1 && action >= 0 && action < SlotCount &&
                     _slots[action] != null && _slots[action].Kind == BottomPanelChoiceKind.Room;
                 if (evt.button == 1 && !roomSecondary) return;
                 _pressed = action; _pressedButton = evt.button;
@@ -338,9 +403,9 @@ namespace DK2.Unity
             bool secondary = _pressedButton == 1;
             bool inside = action == 300 ? _reaper.worldBound.Contains(evt.position) :
                 action >= 100 && action < 104 ? _tabs[action - 100].worldBound.Contains(evt.position) :
-                action == 200 ? _previous.worldBound.Contains(evt.position) : action == 201 ? _next.worldBound.Contains(evt.position) :
+                action >= 200 && action < 200 + 2 * MaxPanels ? ((action & 1) == 0 ? _previous : _next)[(action - 200) / 2].worldBound.Contains(evt.position) :
                 action == 400 ? _resize.worldBound.Contains(evt.position) :
-                action >= 0 && action < 6 && _icons[action].worldBound.Contains(evt.position);
+                action >= 0 && action < SlotCount && _icons[action].worldBound.Contains(evt.position);
             CancelPointerGesture(); evt.StopPropagation();
             if (!inside || !_allowInput) return;
             if (secondary)
@@ -354,7 +419,7 @@ namespace DK2.Unity
             {
                 // 0x004167D0 also moves the pointer onto the moved button and plays sound 0x134/0x135;
                 // the legacy input handler cannot move the pointer, and the sounds are not wired.
-                Collapsed = !Collapsed;
+                _tabState.Collapsed = !Collapsed;
                 if (Collapsed) { _hoverChoice = null; SetDescription(""); }
                 CollapsedChanged?.Invoke(Collapsed);
             }
@@ -362,15 +427,28 @@ namespace DK2.Unity
             {
                 if (_view.Reaper != null && _view.Select(_view.Reaper.Key)) Selected?.Invoke(_view.Selection);
             }
-            else if (action >= 100 && action < 104) SelectCategory((BottomPanelCategory)(action - 100));
-            else if (action == 200) _page = Math.Max(0, _page - 1);
-            else if (action == 201) _page = Math.Min(_pages - 1, _page + 1);
+            // 0x00416C20 pins with the modifier mask 0x005B2A50 == 1: Shift without Ctrl or Alt.
+            else if (action >= 100 && action < 104) ClickTab((BottomPanelCategory)(action - 100), evt.shiftKey && !evt.ctrlKey && !evt.altKey);
+            else if (action >= 200 && action < 200 + 2 * MaxPanels) Page((action - 200) / 2, (action & 1) == 0 ? -1 : 1);
             else if (_slots[action] != null && _view.Select(_slots[action].Key)) Selected?.Invoke(_view.Selection);
         }
         private void Wheel(WheelEvent evt)
         {
             if (!_visible || !_allowInput || Collapsed || !Bounds.Contains(evt.mousePosition)) return;
-            _page = Mathf.Clamp(_page + (evt.delta.y > 0 ? 1 : -1), 0, _pages - 1); evt.StopPropagation();
+            // The wheel pages the panel under the pointer (ours; DK2's wheel paging is unread).
+            for (int p = 0; p < _panelCount; p++)
+            {
+                BottomPanelRect area = _panelArea[p];
+                if (new Rect(V(area.X), V(area.Y), V(area.Width), V(area.Height)).Contains(evt.mousePosition))
+                    Page(p, evt.delta.y > 0 ? 1 : -1);
+            }
+            evt.StopPropagation();
+        }
+        private void Page(int panel, int step)
+        {
+            if (panel >= _panelCount || _panelCategory[panel] == BottomPanelCategory.Creatures) return;
+            int c = (int)_panelCategory[panel];
+            _page[c] = Mathf.Clamp(_page[c] + step, 0, _pages[c] - 1);
         }
         private void SetDescription(string text)
         {
@@ -378,7 +456,7 @@ namespace DK2.Unity
         }
         private void RefreshHover()
         {
-            if (_hovered < 0 || _hovered >= 6) return;
+            if (_hovered < 0 || _hovered >= SlotCount) return;
             BottomPanelChoice choice = _slots[_hovered];
             if (choice == null) { _hoverChoice = null; SetDescription(""); return; }
             if (_hoverChoice == choice && _hoverCost == choice.Cost && _hoverUnknown == choice.Unknown) return;
@@ -454,10 +532,10 @@ namespace DK2.Unity
         }
 
         /// <summary>0x00419DF0 advances the sparkles each rendered HUD frame; sparkle i draws GSparkle&lt;frame&gt;
-        /// (0..15, frame 0 included), a 64-unit square at (left + X % width - 32, top + Y % height - 32).
-        /// DK2 takes the modulo in screen pixels, not virtual units, so the spread differs slightly. The
-        /// 88-unit size when widget +0x3C is 6 is not mirrored (that field is unread).</summary>
-        private void DrawSparkles(BottomPanelRect? widget)
+        /// (0..15, frame 0 included), a square of side s at (left + X % width - s/2, top + Y % height - s/2):
+        /// 88 units on a 264-unit slot (widget +0x3C == 6), else 64 (tabs and 128-unit slots).
+        /// DK2 takes the modulo in screen pixels, not virtual units, so the spread differs slightly.</summary>
+        private void DrawSparkles(BottomPanelRect? widget, int size)
         {
             _sparkleState.Advance();
             for (int i = 0; i < _sparkles.Length; i++)
@@ -468,9 +546,9 @@ namespace DK2.Unity
                 if (!show) continue;
                 BottomPanelRect at = widget.Value;
                 _sparkles[i].image = Sparkle(frame);
-                const int half = BottomPanelSparkles.Size / 2;
+                int half = size / 2;
                 Place(_sparkles[i], new BottomPanelRect(at.X + _sparkleState.X(i) % at.Width - half,
-                    at.Y + _sparkleState.Y(i) % at.Height - half, BottomPanelSparkles.Size, BottomPanelSparkles.Size));
+                    at.Y + _sparkleState.Y(i) % at.Height - half, size, size));
             }
         }
 

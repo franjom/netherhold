@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using DK2.Art;
 using DK2.Core;
+using DK2.Data;
 using DK2.Data.Model;
 using DK2.Data.Text;
 using DK2.Presentation;
@@ -91,7 +92,7 @@ namespace DK2.Unity
             _hudStrings = _hudSources.Strings;
             _creatureQuery = new ClassicCreatureQuery(database, _hudStrings.Resolve, new PlayerId((byte)viewingPlayerId));
             _startup.Step("hud.names");
-            _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(_hudSources));
+            _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(_hudSources), _hudSources.Texture);
             _startup.Step("hud.query");
             _statusFlowers = new StatusFlowers(database, new PlayerId((byte)viewingPlayerId));
             _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources));
@@ -116,8 +117,23 @@ namespace DK2.Unity
                 // 0x00415B30 submits game action 4 with the point's tile (x >> 12, y >> 12): the focus
                 // glides to that tile's centre (0x00442650), as room navigation does. x and y are tiles;
                 // DK2 first drops an off-map point (World_ContainsPosition), ours clamps in StartGlide.
-                (x, y) => StartGlide(new TilePos((int)Math.Floor(x), (int)Math.Floor(y))));
+                (x, y) => StartGlide(new TilePos((int)Math.Floor(x), (int)Math.Floor(y))),
+                PlayerNames(campaignLevel ? GameDatabaseLoader.LoadCampaignPlayers(install, levelName) : null));
             _startup.Step("hud.messages");
+        }
+
+        /// <summary>Player <c>+0xEEA</c>, the name the Current Holder box shows: the level's Players
+        /// record name, or DK2's own "Good Player" / "Neutral Player" (0x006A6D50, 0x006A6D68) when
+        /// that is empty, by the record's kind (0x0051EFE0: 1 good, 2 neutral), else "Keeper %d" with
+        /// its Number (0x0051F0B0, 0x006A6D88), which a level load sets to the id. CONFIRMED.</summary>
+        private static Func<byte, string> PlayerNames(List<PlayerDef> players)
+        {
+            var names = new Dictionary<byte, string>();
+            if (players != null)
+                foreach (PlayerDef player in players)
+                    if (!string.IsNullOrEmpty(player.Name)) names[player.PlayerId] = player.Name;
+            return id => names.TryGetValue(id, out string name) ? name
+                : id == PlayerIds.Good ? "Good Player" : id == PlayerIds.Neutral ? "Neutral Player" : "Keeper " + id;
         }
 
         private static Dk2StringTable OpenText(string path)
@@ -225,7 +241,7 @@ namespace DK2.Unity
             _optionsPanel?.SetVisible(camera.ShowNormalHud && _hudControls.OptionsVisible && !_hudControls.FullMapVisible);
             _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
             _queryPanel?.Draw(_querySnapshot, hud, HudModal);
-            _overviewPanel?.Draw(hud, _bottomPanel.Category == BottomPanelCategory.Creatures && !_bottomPanel.Collapsed && !HudModal, Input.mousePosition);
+            _overviewPanel?.Draw(hud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
         }
 
         private bool QueueHudInput()
@@ -368,9 +384,9 @@ namespace DK2.Unity
             _bottomPanel.Draw();
             _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
-                HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level));
+                HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)));
             _overviewView.Capture(_simulation.World);
-            _overviewPanel.Draw(CurrentHud, _bottomPanel.Category == BottomPanelCategory.Creatures && !_bottomPanel.Collapsed && !HudModal, Input.mousePosition);
+            _overviewPanel.Draw(CurrentHud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);
             _optionsPanel.Draw(Input.mousePosition); _fullMap.Draw();
             CreatureState creature = _simulation.World.CreatureById(_queryTarget.Value);

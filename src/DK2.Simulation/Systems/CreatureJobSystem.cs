@@ -726,8 +726,9 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
         // health, clamped by the health rules to what is actually missing.
         CreatureAnger before = creature.Anger;
         CreatureAngerRules.Apply(world, definition, creature, JobRules.PrayingCalm(database), CreatureAngerRules.PrayingComplaints);
+        // 0x0049984E heals by variable 115 with the creature's own owner as the source.
         int healed = CreatureHealthRules.Apply(
-            database, definition, creature, JobRules.PrayingHeal(database));
+            database, definition, creature, JobRules.PrayingHeal(database), creature.OwnerPlayerId);
 
         if (before.Equals(creature.Anger) && healed == 0) return;
 

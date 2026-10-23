@@ -12226,3 +12226,23 @@ and tilt. Preserve sub-millisecond input timing on Unity through tick constructi
 **Consequences.** Presentation only; no simulation hash or save change. Native
 coasting remains frame-rate dependent. Executable arithmetic/boundary oracles
 and sampled rendered landmarks establish scoped parity, not global99% fidelity.
+
+## ADR-0532 — Keep the state the four script-set HUD boxes read
+**Date:** 2026-10-23 · **Status:** accepted · Research: `docs/research/message-tabs.md` §9
+
+**Context.** DK2's indicator row (0x00427BA0) also shows Current Holder, Heroes Killed and
+Slaps Remaining. Their values are simulation state we did not keep: world `+0x72B6`
+(action 46, 0x00519755), world `+0x72B8` (player action 50, 0x004C8A25) and player `+0x14A`,
+which the death bookkeeping (0x004882DC) credits from the victim's last health source `+0x36`,
+stamped by every Thing_ModifyHealth call (0x004B2CE0).
+
+**Decision.** `TriggerState` keeps `SpecialInfoPlayerId` and `MaximumSlaps` (-1 until set) and
+the executor runs actions 46 and 50. `CreatureState` keeps `HealthSourcePlayerId`, stamped
+with the source DK2 passes at each health change we mirror, and `DeathUncounted` (bit 0x40);
+`PlayerState` keeps `HeroesDestroyed`, credited in `CreatureHealthSystem.Die` to the source
+or else the first engaged attacker's owner. The level-end pass (0x004BE9E6) is not built:
+we have no level-statistics point. All in the hash and the save (HashVersion 297).
+
+**Consequences.** The HUD draws all six boxes. Nothing in play reads these values except
+the HUD; MaximumSlaps never refuses a slap, as in DK2. Health-change sites whose DK2 call is
+unread keep the previous source.

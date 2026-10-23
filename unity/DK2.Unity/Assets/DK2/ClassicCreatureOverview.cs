@@ -38,7 +38,7 @@ namespace DK2.Unity
         private readonly string[] _numberText=new string[MaximumColumns*4+4];
         private readonly int[] _numberValue=new int[MaximumColumns*4+4];
         private readonly Texture2D[,] _numberTextures=new Texture2D[2,10];
-        private int _page,_height,_width,_columns;
+        private int _page,_height,_width,_columns,_left=BottomPanelLayout.Left,_areaWidth=BottomPanelLayout.Span;
         private bool _visible;
         public PanelSettings Panel=>_settings;
         public CreatureOverviewMode Mode { get; private set; }
@@ -74,13 +74,21 @@ namespace DK2.Unity
             _root.style.display=DisplayStyle.None;
         }
         private float V(float value)=>value*_height/1920f;
-        public void Draw(HudVisibility visibility,bool selectedCategory,Vector3 pointer,Vector2Int viewport=default)
+        // The widget positions below are menu 5's at its lone place, x 472; X moves them with the panel
+        // when a pinned tab shares the strip (0x00417310).
+        private float X(float value)=>V(value-BottomPanelLayout.Left+_left);
+        /// <summary><paramref name="area"/> is the Creatures panel's place (ClassicBottomPanel.PanelArea), null while it is closed.</summary>
+        public void Draw(HudVisibility visibility,BottomPanelRect? area,Vector3 pointer,Vector2Int viewport=default)
         {
             _width=viewport.x>0?viewport.x:Screen.width;_height=viewport.y>0?viewport.y:Screen.height;
-            _visible=visibility.ShowNormalHud && selectedCategory;
+            _visible=visibility.ShowNormalHud && area.HasValue;
             _root.style.display=_visible?DisplayStyle.Flex:DisplayStyle.None;
             if(!_visible) return;
-            _columns=Math.Min(MaximumColumns-1,Math.Max(1,((int)(_width*1920f/_height)-760-432)/116));
+            _left=area.Value.X;_areaWidth=area.Value.Width;
+            // 0x00417470: (W - 432) / 116 columns. Alone, the overview keeps the wider screen's extra width
+            // (the strip runs to the Reaper at width - 288); sharing the strip, it gets its 1800 / n.
+            if(_areaWidth>=BottomPanelLayout.Span) _areaWidth=Math.Max(_areaWidth,(int)(_width*1920f/_height)-760);
+            _columns=Math.Min(MaximumColumns-1,Math.Max(1,BottomPanelLayout.OverviewColumns(_areaWidth)));
             int ordinary=Math.Max(0,_view.Entries.Count-1),pages=Math.Max(1,(ordinary+_columns-1)/_columns);
             _page=Math.Min(_page,pages-1);
             for(int i=0;i<MaximumColumns;i++)
@@ -94,7 +102,7 @@ namespace DK2.Unity
                 CreatureOverviewEntry entry=_view.Entries[entryIndex];
                 _portraits[i].image=Texture(_assets.Portrait(entry.Type));
                 float x=i==0?544:912+(i-1)*136;
-                Place(_portraits[i],V(x),V(i==0?1608:1612),V(128),V(264));
+                Place(_portraits[i],X(x),V(i==0?1608:1612),V(128),V(264));
                 if(i>0)
                 {
                     float countX=924+(i-1)*136;
@@ -104,29 +112,29 @@ namespace DK2.Unity
                     int rows=CreatureOverview.Rows(Mode);
                     int step=Mode==CreatureOverviewMode.Jobs?64:84;
                     int hoveredRow=Mode==CreatureOverviewMode.Total?0:Math.Min(rows-1,Math.Max(0,(int)((_height-pointer.y-V(1616))/V(step))));
-                    Place(_highlight[i],V(countX),V(1616+hoveredRow*step),V(108),V(Mode==CreatureOverviewMode.Total?244:step));
+                    Place(_highlight[i],X(countX),V(1616+hoveredRow*step),V(108),V(Mode==CreatureOverviewMode.Total?244:step));
                     for(int row=0;row<rows;row++)
                     {
                         int count=_view.Count(entry.Type,CreatureOverview.RowFilter(Mode,row));
-                        Digits(i*4+4+row,count,V(countX+54),V(Mode==CreatureOverviewMode.Total?1709:1628+row*step),true);
+                        Digits(i*4+4+row,count,X(countX+54),V(Mode==CreatureOverviewMode.Total?1709:1628+row*step),true);
                     }
                 }
             }
             CreatureOverviewWorkerCounts workers=_view.WorkerCounts;
-            Place(_workerStrip,V(476),V(1608),V(64),V(264));
+            Place(_workerStrip,X(476),V(1608),V(64),V(264));
             for(int i=0;i<4;i++)
             {
                 int value=i==0?workers.Total:i==1?workers.Idle:i==2?workers.Busy:workers.Fighting;
-                Digits(i,value,V(604),V(1624+i*64),true);
+                Digits(i,value,X(604),V(1624+i*64),true);
             }
             // Both page strips are always drawn, forward (catalogue 10) above back (11):
             // widgets 0x0068FFD8 and 0x00690028. Which way each pages (0x00417730) is unread.
-            Place(_next,V(760),V(1612),V(64),V(132));Place(_previous,V(760),V(1744),V(64),V(132));
+            Place(_next,X(760),V(1612),V(64),V(132));Place(_previous,X(760),V(1744),V(64),V(132));
             // 0x00410A60 sets visibility state 3, LIKELY while the roster fits; 0x004129E0 draws
             // state 3 multiplied by (100,100,100), the strips' disabled look (owner, 2026-10-20).
             Color pageTint=pages<=1?new Color32(100,100,100,255):Color.white;
             _next.tintColor=pageTint;_previous.tintColor=pageTint;
-            Place(_modeStrip,V(680),V(1608),V(64),V(264));
+            Place(_modeStrip,X(680),V(1608),V(64),V(264));
             Vector2 at=new Vector2(pointer.x,_height-pointer.y);
             int modeHovered=-1,workerHovered=-1;
             for(int i=0;i<4;i++)
@@ -135,18 +143,18 @@ namespace DK2.Unity
                 if(_view.Entries.Count>0 && WorkerCountRect(i).Contains(at)) workerHovered=i;
             }
             _modeHover.style.display=modeHovered>=0?DisplayStyle.Flex:DisplayStyle.None;
-            if(modeHovered>=0) { _modeHover.image=_modeHovers[modeHovered];Place(_modeHover,V(680),V(1608),V(64),V(264)); }
+            if(modeHovered>=0) { _modeHover.image=_modeHovers[modeHovered];Place(_modeHover,X(680),V(1608),V(64),V(264)); }
             _workerHighlight.style.display=workerHovered>=0?DisplayStyle.Flex:DisplayStyle.None;
             if(workerHovered>=0) { Rect r=WorkerCountRect(workerHovered);Place(_workerHighlight,r.x,r.y,r.width,r.height); }
-            Place(_modeHighlight,V(692),V(1616+(int)Mode*64),V(44),V(52));
+            Place(_modeHighlight,X(692),V(1616+(int)Mode*64),V(44),V(52));
             _modeHighlight.tintColor=Mode==CreatureOverviewMode.Total?Color.white:Mode==CreatureOverviewMode.Jobs?
                 new Color32(20,255,10,255):Mode==CreatureOverviewMode.Fighting?new Color32(255,30,0,255):new Color32(240,165,0,255);
             _modeFrame.image=_modeFrames[(int)Mode];
-            Place(_modeFrame,V(840),V(1612),V(64),V(264));
+            Place(_modeFrame,X(840),V(1612),V(64),V(264));
         }
         // Menu 6 sits at (472,1600); its widget rectangles are local (records 0x00690078..0x00690348).
-        private Rect ModeRect(int mode)=>new Rect(V(472+220),V(1600+16+64*mode),V(44),V(52));
-        private Rect WorkerCountRect(int row)=>new Rect(V(472+72),V(1600+12+64*row),V(120),V(64));
+        private Rect ModeRect(int mode)=>new Rect(X(472+220),V(1600+16+64*mode),V(44),V(52));
+        private Rect WorkerCountRect(int row)=>new Rect(X(472+72),V(1600+12+64*row),V(120),V(64));
         private static readonly int[] WorkerIconTop={4,68,132,196},WorkerIconHeight={72,68,72,72};
 
         /// <summary>The hovered widget's text id (record +0x30): the worker row icons 2308..2314 and the
@@ -158,7 +166,7 @@ namespace DK2.Unity
             for(int i=0;i<4;i++)
             {
                 if(ModeRect(i).Contains(at)) return 2316+2*i;
-                if(_view.Entries.Count>0 && new Rect(V(472),V(1600+WorkerIconTop[i]),V(80),V(WorkerIconHeight[i])).Contains(at))
+                if(_view.Entries.Count>0 && new Rect(X(472),V(1600+WorkerIconTop[i]),V(80),V(WorkerIconHeight[i])).Contains(at))
                     return 2308+2*i;
             }
             return 0;
@@ -181,9 +189,9 @@ namespace DK2.Unity
             }
             return null;
         }
-        private Rect HitRect(int column)=>column==0?new Rect(V(544),V(1612),V(120),V(256))
-            :new Rect(V(924+(column-1)*136),V(1616),V(108),V(244));
-        public bool ContainsPointer(Vector3 pointer)=>_visible && new Rect(V(472),V(1600),V(1800),V(320))
+        private Rect HitRect(int column)=>column==0?new Rect(X(544),V(1612),V(120),V(256))
+            :new Rect(X(924+(column-1)*136),V(1616),V(108),V(244));
+        public bool ContainsPointer(Vector3 pointer)=>_visible && new Rect(X(472),V(1600),V(_areaWidth),V(320))
             .Contains(new Vector2(pointer.x,_height-pointer.y));
         public bool TryPress(Vector3 pointer,bool primary,bool secondary,bool lowestLevel,bool highestLevel,out CreatureOverviewRequest request)
         {
@@ -191,11 +199,11 @@ namespace DK2.Unity
             Vector2 point=new Vector2(pointer.x,_height-pointer.y);
             if(primary)
                 for(int i=0;i<4;i++)
-                    if(new Rect(V(692),V(1616+i*64),V(44),V(52)).Contains(point))
+                    if(new Rect(X(692),V(1616+i*64),V(44),V(52)).Contains(point))
                     { Mode=(CreatureOverviewMode)i;return false; }
-            if(primary && new Rect(V(760),V(1612),V(64),V(264)).Contains(point))
+            if(primary && new Rect(X(760),V(1612),V(64),V(264)).Contains(point))
             { _page=Math.Max(0,_page+(point.y<V(1744)?1:-1));return false; }
-            if(_view.Entries.Count>0 && new Rect(V(472),V(1600),V(192),V(256)).Contains(point))
+            if(_view.Entries.Count>0 && new Rect(X(472),V(1600),V(192),V(256)).Contains(point))
             {
                 int row=Math.Min(3,Math.Max(0,(int)((point.y-V(1600))/V(64))));
                 CreatureOverviewFilter filter=row==0?CreatureOverviewFilter.All:row==1?CreatureOverviewFilter.Idle:row==2?CreatureOverviewFilter.Busy:CreatureOverviewFilter.Fighting;

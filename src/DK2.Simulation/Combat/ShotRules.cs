@@ -273,7 +273,8 @@ public static class ShotRules
         if (definition.DamageType != ContactDamageType || shot.Data1 <= 0 || CreatureDeathRules.IsDown(target)) return;
         if (StatusEffectRules.IsInvulnerable(target)) return;
         GameDatabase database = context.Database;
-        int landed = StatusEffectRules.Hurt(context.World, database, database.CreatureById(target.CreatureTypeId), target, ContactAmount(shot));
+        // 0x004AC589: both callers (0x004ABFD2, 0x004B25B6) pass the shot's owner (+0x28).
+        int landed = StatusEffectRules.Hurt(context.World, database, database.CreatureById(target.CreatureTypeId), target, ContactAmount(shot), shot.OwnerPlayerId);
         context.Emit(SystemName, "shot_hit", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} damage={ContactAmount(shot)} landed={landed} health={target.Health}");
     }
 
@@ -352,7 +353,7 @@ public static class ShotRules
             switch (thing)
             {
                 case CreatureState target when !CreatureDeathRules.IsDown(target):
-                    int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, damage);
+                    int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, damage, shot.OwnerPlayerId); // 0x004AC8CD
                     context.Emit(SystemName, "shot_area_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={damage} landed={landed} health={target.Health}");
                     break;
                 case TrapState trap:
@@ -388,7 +389,7 @@ public static class ShotRules
             TilePos at = target.Tile;
             if (at.X < tileX - shot.Data2 || at.X >= tileX + shot.Data2 || at.Y < tileY - shot.Data2 || at.Y >= tileY + shot.Data2) continue;
             if (!world.Contains(at) || StatusEffectRules.IsInvulnerable(target) || CreatureDeathRules.IsDown(target)) continue;
-            int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, shot.Data1);
+            int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, shot.Data1, shot.OwnerPlayerId); // 0x004AC661/0x004AC688
             context.Emit(SystemName, "shot_square_hit", $"shot={shot.Id} type={definition.ShotId} target={target.Id} damage={ContactAmount(shot)} landed={landed} health={target.Health}");
         }
     }
@@ -479,12 +480,12 @@ public static class ShotRules
             case ModifyHealthProcess: ModifyHealth(context, shot, definition, target, definitionOfTarget); break;
             case SpeedProcess: StatusEffectRules.ModifySpeed(context, target, shot.Data1, shot.Data2); break;
             case ArmourProcess: target.ArmourTicks = shot.Data1; break;
-            case LightningProcess: StatusEffectRules.Lightning(context, target, definitionOfTarget, shot.Data1, shot.CasterId); break;
+            case LightningProcess: StatusEffectRules.Lightning(context, target, definitionOfTarget, shot.Data1, shot.CasterId, shot.OwnerPlayerId); break;
             case InvulnerableProcess: target.InvulnerableTicks = shot.Data1 * perSecond; break;
             case FreezeProcess: StatusEffectRules.Freeze(context, target, definitionOfTarget, shot.Data1 * perSecond); break;
             case InvisibleProcess: StatusEffectRules.MakeInvisible(context, target, shot.Data1 * perSecond); break;
             case ReaperStunProcess: StatusEffectRules.Stun(context, target, definitionOfTarget); break;
-            case DrainProcess: StatusEffectRules.Drain(context, target, definitionOfTarget, world.CreatureById(shot.CasterId), shot.Data1); break;
+            case DrainProcess: StatusEffectRules.Drain(context, target, definitionOfTarget, world.CreatureById(shot.CasterId), shot.Data1, shot.OwnerPlayerId); break;
             case PoisonProcess: StatusEffectRules.Poison(context, target, shot.Data2, shot.Data1, shot.OwnerPlayerId); break;
             case ChickenProcess: ChickenRules.Strike(context, shot, target, definitionOfTarget); break;
             case TurncoatRules.ProcessType: TurncoatRules.Strike(context, shot, target, definitionOfTarget); break;
@@ -538,8 +539,8 @@ public static class ShotRules
         {
             int floor = max * 5 / 100;
             int landed = floor == 0 || target.Health < floor
-                ? CreatureHealthRules.Apply(database, targetDef, target, -target.Health)
-                : StatusEffectRules.Hurt(world, database, targetDef, target, target.Health - floor);
+                ? CreatureHealthRules.Apply(database, targetDef, target, -target.Health, shot.OwnerPlayerId)
+                : StatusEffectRules.Hurt(world, database, targetDef, target, target.Health - floor, shot.OwnerPlayerId);
             context.Emit(SystemName, "disrupted", $"shot={shot.Id} target={target.Id} landed={landed} health={target.Health}");
             return;
         }
@@ -548,10 +549,18 @@ public static class ShotRules
             && CreatureStateMachine.TrySetState(context.Hooks, target, CreatureStateMachine.Idle, context.Tick.Value))
             target.StopMoving(); // DK2 moves only a walking state (0x0048A23B), so the route goes with the state
         // 0x004B2CE0 refuses a creature whose kind is OnlyAttackableByHorny for a positive delta too.
+        // Both arms pass the shot's owner (+0x28) as the source (0x004ADCE0, 0x004ADDF8).
         int healed = amount >= 0
-            ? targetDef.Flags.HasFlag(CreatureFlags.OnlyAttackableByHorny) ? 0 : CreatureHealthRules.Apply(database, targetDef, target, amount)
-            : StatusEffectRules.Hurt(world, database, targetDef, target, -amount);
+            ? targetDef.Flags.HasFlag(CreatureFlags.OnlyAttackableByHorny) ? Refused(target, shot.OwnerPlayerId) : CreatureHealthRules.Apply(database, targetDef, target, amount, shot.OwnerPlayerId)
+            : StatusEffectRules.Hurt(world, database, targetDef, target, -amount, shot.OwnerPlayerId);
         context.Emit(SystemName, "healed", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} amount={amount} landed={healed} health={target.Health}");
+    }
+
+    /// <summary>0x004B2CE0 stamps the source (+0x36) before any refusal.</summary>
+    private static int Refused(CreatureState target, byte source)
+    {
+        target.HealthSourcePlayerId = source;
+        return 0;
     }
 
     /// <summary>A position the shot may occupy: on the map and not a solid tile.</summary>

@@ -113,7 +113,7 @@ public class CreatureLevelTests
         state.Level = 10;
         state.Health = 1500;
 
-        Assert.Equal(2000, CreatureHealthRules.Apply(db, goblin, state, 2000));
+        Assert.Equal(2000, CreatureHealthRules.Apply(db, goblin, state, 2000, 0));
         Assert.Equal(3500, state.Health);
     }
 

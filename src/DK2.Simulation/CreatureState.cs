@@ -364,6 +364,23 @@ public sealed class CreatureState
     /// <see cref="CreatureHealthRules"/> and Q99.</para></summary>
     public int Health;
 
+    /// <summary>DK2's word <c>+0x36</c>: the source of the last health change. The health routine
+    /// <c>0x004B2CE0</c> writes its source argument here first, on every call and for every
+    /// delta (zero too), before any refusal. Callers pass an owner player id: the attacker's,
+    /// the shot's or the caster's for damage, the creature's own for most of its self-changes,
+    /// and the slapping or special-picking keeper's for those; a few keep the old value (regen,
+    /// level change). The death bookkeeping (<c>0x00487C70</c>) credits this player for the kill
+    /// (<see cref="Systems.CreatureHealthSystem.Die"/>). 0 for none: a new creature.</summary>
+    public byte HealthSourcePlayerId;
+
+    /// <summary>DK2's <c>+0x3E6</c> bit <c>0x40</c>: a removal that counts nothing. Set, with the
+    /// corpse bit <c>0x20</c> cleared, by the Temple entry (<c>0x00472A10</c>) and a creature
+    /// trigger action (<c>0x0049AFAC</c>), each followed by the zero-health slot <c>+0x20</c>;
+    /// the death bookkeeping then skips the gold spill and, with a credited player, every kill
+    /// count (<c>0x004882A9</c>). Nothing here sets it yet: our Temple sacrifice removes the
+    /// creature without the death bookkeeping, and the trigger action is not built.</summary>
+    public bool DeathUncounted;
+
     /// <summary>Ticks since the hunger clock last ticked over, counting up towards the
     /// record's <c>HungerRate</c> in seconds — DK2's <c>LastAteTime</c> read as
     /// an age rather than a stamp.
@@ -1306,6 +1323,8 @@ public sealed class CreatureState
         hash.Add(GoldHeld);
         hash.Add(CasinoBigWinnerTicks);
         hash.Add(Health);
+        hash.Add(HealthSourcePlayerId);
+        hash.Add(DeathUncounted);
         hash.Add(HungerTicks);
         hash.Add(HungerNeed);
         hash.Add(FoodOwedAfterMeal);

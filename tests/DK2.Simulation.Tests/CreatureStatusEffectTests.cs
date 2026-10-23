@@ -33,7 +33,7 @@ public class CreatureStatusEffectTests
         Assert.Equal(CreatureActivity.Frozen, goblin.Activity);
         Assert.Equal(40, goblin.FrozenTicks);
         Assert.Equal(160, StatusEffectRules.DamageMultiplier(world, db, goblin));
-        Assert.Equal(-500, StatusEffectRules.Hurt(world, db, db.CreatureById(goblin.CreatureTypeId), goblin, 400));
+        Assert.Equal(-500, StatusEffectRules.Hurt(world, db, db.CreatureById(goblin.CreatureTypeId), goblin, 400, 0));
         Assert.False(CombatRules.MayLookForAFight(world, db, goblin, force: false));
         // A frozen creature is still a target: the Warlock engages it.
         Assert.True(CombatRules.IsAttackable(goblin));
@@ -61,11 +61,11 @@ public class CreatureStatusEffectTests
         sim.Run(1);
         // A duration, not an amount: 80 ticks, not 80 points (creature-status-effects.md §2).
         Assert.Equal(80, goblin.ArmourTicks);
-        Assert.Equal(-200, StatusEffectRules.Hurt(world, db, def, goblin, 400));
+        Assert.Equal(-200, StatusEffectRules.Hurt(world, db, def, goblin, 400, 0));
 
         sim.Run(80);
         Assert.Equal(0, goblin.ArmourTicks);
-        Assert.Equal(-400, StatusEffectRules.Hurt(world, db, def, goblin, 400));
+        Assert.Equal(-400, StatusEffectRules.Hurt(world, db, def, goblin, 400, 0));
     }
 
     [Fact]
@@ -230,7 +230,7 @@ public class CreatureStatusEffectTests
         // The fixture Goblin's StunDuration is five seconds: twenty ticks.
         Assert.Equal(20, dry.StunTicks);
         Assert.Equal(256, StatusEffectRules.DamageMultiplier(world, db, dry));
-        Assert.Equal(-200, StatusEffectRules.Hurt(world, db, def, dry, 100));
+        Assert.Equal(-200, StatusEffectRules.Hurt(world, db, def, dry, 100, 0));
         Assert.False(CombatRules.MayLookForAFight(world, db, dry, force: false));
 
         sim.Run(20);
@@ -317,7 +317,7 @@ public class CreatureStatusEffectTests
         WorldState world = OpenWorld(db);
         CreatureState horny = Spawn(db, world, ReaperCreatureId, Rival, 8, 10);
         GameSimulation sim = Sim(db, world);
-        Assert.Equal(0, StatusEffectRules.Hurt(world, db, reaper, horny, 400));
+        Assert.Equal(0, StatusEffectRules.Hurt(world, db, reaper, horny, 400, 0));
 
         Fire(db, world, Dk2TerrainFixture.FreezeShotId, Keeper, horny, 10, 0);
         Fire(db, world, Dk2TerrainFixture.ReaperFireballShotId, Keeper, horny, 300, 0);
@@ -383,7 +383,7 @@ public class CreatureStatusEffectTests
         goblin.StunTicks = left;
         goblin.EngagedMelee[0] = attacker.Id;
 
-        StatusEffectRules.Hurt(world, db, def, goblin, 10);
+        StatusEffectRules.Hurt(world, db, def, goblin, 10, 0);
 
         Assert.Equal(after, goblin.StunTicks);
     }

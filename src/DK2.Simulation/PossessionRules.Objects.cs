@@ -44,7 +44,7 @@ public static partial class PossessionRules
 
         int missing = CreatureHealthRules.MaxHealth(database, mine, me) - me.Health;
         int heal = (uint)missing <= mine.HpFromChicken ? missing : mine.HpFromChicken;
-        int gained = CreatureHealthRules.Apply(database, mine, me, heal);
+        int gained = CreatureHealthRules.Apply(database, mine, me, heal, chicken.OwnerPlayerId); // 0x00514B9E: the chicken's owner
         context.World.RemoveObject(chicken.Id);
         context.Emit(ActSystem, "possessed_chicken_eaten",
             $"creature={me.Id} chicken={chicken.Id} gained={gained} need={me.HungerNeed}");

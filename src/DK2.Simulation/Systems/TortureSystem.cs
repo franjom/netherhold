@@ -76,8 +76,9 @@ public sealed class TortureSystem : ISimulationSystem
 
         creature.TorturedDuration += TortureRules.DurationPerAct;
         int hurt = definition.TortureHpChange < 0
-            ? Combat.StatusEffectRules.Hurt(world, database, definition, creature, -definition.TortureHpChange)
-            : CreatureHealthRules.Apply(database, definition, creature, definition.TortureHpChange);
+            // 0x0047B5E1 passes the victim's own owner as the source.
+            ? Combat.StatusEffectRules.Hurt(world, database, definition, creature, -definition.TortureHpChange, creature.OwnerPlayerId)
+            : CreatureHealthRules.Apply(database, definition, creature, definition.TortureHpChange, creature.OwnerPlayerId);
 
         // Only a creature tortured in its own keeper's chamber takes the mood: selector 8, bucket 5.
         if (creature.OwnerPlayerId == keeper)

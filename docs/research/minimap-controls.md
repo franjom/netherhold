@@ -136,8 +136,8 @@ the expanded bottom panel to virtual y980 (reference392); the text begins at
 reference `(416,400)`. A separate `+0x10C2` branch uses a larger gap and the
 collapsed panel has its own y. Static y200 is not the default live position.
 `0x004242F0` suppresses it under interface `+0x1C1F/+0x272A/+0x2722/+0x2726`;
-valid entity kind2/3 obtains text through virtual `+0x50`. The type7 scrollbar is
-`0x00414400`; catalogue0..3 are up/down arrows, track and thumb, not a frame. The neighbouring menu41 is the Reaper button, not a creature
+valid entity kind2/3 obtains text through virtual `+0x50`. Its scrollbar is in the next
+section. The neighbouring menu41 is the Reaper button, not a creature
 portrait. Its spell-specific evidence belongs in keeper-spell-reaper.md.
 
 A pressed secondary input in an ordinary nonzero tool mode invokes
@@ -146,3 +146,65 @@ menu40 and returns to tool0. Build/sell modes3/4 first clear an active drag
 without leaving the tool; the next secondary press returns to tool0. Ordinary
 spell and other listed tool arms reset immediately. `0x00407580`, used by the
 Options callback, only resets mode1 outright and cancels drags in modes3/4.
+
+## Menu40 scrollbar (read 2026-10-23)
+
+**Creation — CONFIRMED.** A type-7 text widget whose record byte `+5` is not `0xFF` gets a
+child widget in its init slot (`0x0052A0D0`): a type-2 scrollbar (vtable `0x0066ECBC`, 0xB0
+bytes) copied from the parent's record with x = parent x + width (+ byte 5 when non-zero),
+the parent's y and height, width and hit width 64, range [0, 1], no click callbacks, the
+parent's sound slot, and draw callback = the parent record's `+0x3C`. Menu40's text widget
+(record `0x00692008`: type 7, rect (20,20,1096,288), draw 0x004242F0, `+0x3C` =
+[0x00414400](functions/00414400.md), byte 5 = 0, sound slot 0) therefore owns a bar at
+menu-local **(1116, 20), 64 × 288**, right of the text, 20 inside the 1200-wide menu. It is
+created disabled (`+0x61 = 0`). Sound slot 0 means its press/release sounds
+(`0x0052CAD0`, table `0x006AC8C4`) are silent.
+
+**When it shows — CONFIRMED.** [0x0052A330](functions/0052A330.md) measures the text in the
+widget rectangle narrowed by 64 reference units (the bar's width), in screen pixels. If it is
+taller than the widget, the bar gets min 0, max = text height − box height (pixels),
+position 0, and is enabled; otherwise it stays disabled. Every call resets the position to
+the top.
+
+**Art and geometry — CONFIRMED** (0x00414400, only while enabled; catalogue `0x006A7DF0`
+entries 0..3, loaded at interface `+0x12B6`, 27 bytes each). In reference units, bar
+`(x, y, 64, h)`:
+
+| part | art | rect | layer |
+|---|---|---|---|
+| up arrow | `gui\scroll bars\v-up_arrow` | (x, y, 64, 64) | 3 |
+| down arrow | `gui\scroll bars\v-down_arrow` | (x, y + h − 64, 64, 64) | 3 |
+| track | `gui\scroll bars\v-scroll_bar_bg` | (x, y + 64, 64, h − 128) stretched | 3 |
+| thumb | `gui\scroll bars\v-scroll_bar` | (x + 20, top + 4, 28, len − 8) stretched | 2 |
+
+The binary scales 64 and 8 with the x factor and 128, 28 and 4 with the y factor
+(`0x0052C5A0` pairs); equal at 4:3. No pressed or hover variants are drawn.
+
+**Thumb — CONFIRMED** (slots `+0x20` 0x00529160 and `+0x24` 0x0052A1F0). Track length
+`T = h − 128` (160 for menu40), range `R = max − min` in pixels:
+`len = T / (R + 1)`, at least 16 (or the record's fixed `+0xA8`, 0 here);
+`top = y + 64 + (pos − min)·(T − len) / R` (`y + 64` when R = 0). With any real overflow the
+thumb is 16 units, drawn 8 high.
+
+**Input — CONFIRMED** (slot `+0x08` 0x00528B20, every GUI update while the button at input
+`+0xC0` is held; states in `+0x41`):
+- **arrows:** pressing the up/down square starts state 1/2, and each update while it stays
+  held on the arrow moves the position by −1/+1 **pixel** (`0x00528FB0`, clamped to
+  [min, max]): no delay, no repeat rate, frame-rate bound;
+- **track above/below the thumb:** −1/+1 pixel **once** per press (state 4, then 5 until release);
+- **thumb drag:** pressing the thumb stores the grab offset; while held on the track column the
+  thumb follows the pointer, clamped to the track (0x00529050), and the position becomes
+  `min + (pointerY − (y + 64))·(R + 1) / T` (0x005290F0); on release the thumb snaps back to
+  the position's rect;
+- **no mouse wheel:** the class reads only the pointer and the button, and DK2 has no wheel
+  binding ([controls.md](controls.md)).
+
+**Who scrolls — CONFIRMED** (0x004242F0). In **message mode** the text is set once by the
+message click (0x00423F50) and re-rendered into the text cache (`+0x1409`, 0x0042CB60) at
+y offset `−position` whenever the position changes. In **Query mode** the entity text is
+regenerated and passed to 0x0052A330 on every draw, which puts the position back to 0, and
+the cache is drawn with offset 0: the bar shows when the text overflows but never scrolls it.
+
+**Ours (built 2026-10-23).** `TextScrollBar` draws the four textures and takes the arrow, track and
+thumb input above; `ClassicMessageTabs.DrawPanel` scrolls the message panel by it, and the query panel
+shows the bar inert, as DK2 does.

@@ -103,7 +103,7 @@ public sealed class CreatureStatusSystem : ISimulationSystem
                 creature.PoisonTicks--;
                 if (!CreatureDeathRules.IsDown(creature))
                 {
-                    int landed = StatusEffectRules.Hurt(world, database, definition, creature, creature.PoisonAmount);
+                    int landed = StatusEffectRules.Hurt(world, database, definition, creature, creature.PoisonAmount, creature.PoisonOwner); // 0x0048E35F: +0x461
                     context.Emit(SystemName, "poison_tick", $"creature={creature.Id} landed={landed} health={creature.Health} left={creature.PoisonTicks}");
                 }
             }

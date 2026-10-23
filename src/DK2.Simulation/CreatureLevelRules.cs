@@ -116,7 +116,8 @@ public static class CreatureLevelRules
         state.Level++;
         int newMax = CreatureHealthRules.MaxHealth(database, creature, state);
         int target = (int)((ratio * newMax) >> 12);
-        CreatureHealthRules.Apply(database, creature, state, target - current);
+        // Level up and down pass the creature's own +0x36 back (0x0048B28F, 0x0048B0EE): the source is kept.
+        CreatureHealthRules.Apply(database, creature, state, target - current, state.HealthSourcePlayerId);
         hooks.RequestEffect(nameof(CreatureLevelRules), new ViewEffectRequest(new EffectId(339), state.OwnerPlayerId,
             new FpPosition3(new Fp32(state.PosX), new Fp32(state.PosY), new Fp32(state.PosZ)),
             new Dk2Angle((ushort)state.Heading)));

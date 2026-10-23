@@ -127,9 +127,9 @@ and the four creature views. Evidence and adapter ordering limitations live in
 [bottom-panel-controls.md](../research/bottom-panel-controls.md) and
 [creature-overview.md](../research/creature-overview.md).
 
-Still open: category locking/collapse; owner comparison of the research, manufacture and
+Built 2026-10-23: the six indicator boxes (ADR-0532), the menu-40 text scrollbar (message panel scrolls, query panel bar inert as in DK2), Shift-click pinning of two bottom panels. Still open: owner comparison of the research, manufacture and
 spell recharge sectors ([panel-indicators.md](../research/panel-indicators.md) §8); portrait hover previews (the tooltip text is built); full-map markers/legend;
-the query scrollbar; complete special object/door/trap/name status; Q197 and
+complete special object/door/trap/name status; Q197 and
 the remaining Q611 modal producers. Options exposes Continue; its other rows
 remain disabled until their corresponding frontends exist. These are not
 successful-looking placeholder actions. Save/load/settings frontends, exact

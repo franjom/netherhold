@@ -107,13 +107,85 @@ Shared by the tab (0x00412260) and the slot (0x00412FC0):
 The generic icon button (0x004129E0, category 0 with a widget `+0x74` match) only applies
 the odd-phase `0x323232` tint: it has no sparkles and no sound.
 
-## 3. The tab-lock art is not an alert — CONFIRMED (drawing), LIKELY (key)
+## 3. Tab locking: Shift-click pins one panel beside the current one — CONFIRMED
 
-Interface byte `+0x5F + category` makes 0x00412260 draw catalogue 8,
-`gui\icons\tab-lock`, at layer 3. It is written only by the tab click 0x00416C20 when
-`0x005B2A50()` returns 1 (unread; it is read as a held modifier key). It pins the tab so
-that several panels stay open together (`+0x5F` counts the pins, `+0x60..+0x63` hold their
-order). It does not flash.
+Read whole 2026-10-23: the tab click [0x00416C20](functions/00416C20.md), the modifier mask
+[0x005B2A50](functions/005B2A50.md), the relayout [0x00416FD0](functions/00416FD0.md), the
+placement [0x00417310](functions/00417310.md) and the grid [0x00417470](functions/00417470.md).
+It is not an alert and does not flash.
+
+**State.** Interface bytes `+0x5F..+0x63` are one array indexed by category (1 Rooms, 2 Spells,
+3 Workshop, 4 Creatures; tab ids FB/FA/F9/F8): `[0]` (`+0x5F`) is the pin count, `[c]` the
+pin rank of category `c` (0 = not pinned). `+0x65 + 4c` (`+0x69..+0x75`) remembers which
+category menus are open, so a collapse/expand restores them. A non-zero `[c]` makes
+0x00412260 draw catalogue 8, `gui\icons\tab-lock`, over the tab at layer 3.
+
+**The key is Shift alone.** 0x005B2A50 returns bit 1 for scan code 0x2A or 0x36 (left/right
+Shift), 2 for 0x1D/0x9D (Ctrl), 4 for 0x38/0xB8 (Alt); the click tests `== 1`, so
+Shift+Ctrl or Shift+Alt is an ordinary click.
+
+**A click on tab `c`**, in order:
+1. if the click has a widget id, the common selection-cleanup request `0x00422600(0, id)`;
+2. if the panel is collapsed (`+0x109 == 0`): expand it through 0x004167D0(0,0), which
+   restores the remembered menus, and play `0x138` from bank `[0x006AC8C4 + 0x30n]`
+   (n = 1/2/3/4 for FB/FA/F9/F8). An expanded panel plays nothing here;
+3. **ordinary click:** close (menu `+0x48 = 0`, remembered flag 0) every category 1..4 that is
+   not pinned, then open `c`. A pinned panel therefore stays open next to whatever is
+   clicked; clicking the pinned tab itself leaves it alone on the strip;
+4. **Shift-click on an unpinned `c` with no pin:** count = 1, `[c]` = 1, open `c` (the rank
+   bump of other pinned categories finds none). Other open panels are **not** closed, so the
+   panel that was open stays beside it until the next ordinary click;
+5. **Shift-click on an unpinned `c` while another tab is pinned:** nothing but the relayout.
+   The count is only ever set to 1 (step 4) or decremented, so **at most one tab is pinned**;
+   the rank arithmetic for several pins is dead code;
+6. **Shift-click on the pinned `c` (unpin):** count − 1; ranks above `c`'s drop by one; if more
+   than one category menu is open, `c`'s panel is closed, else it stays open, unpinned; `[c]` = 0;
+7. every path ends in the relayout 0x00416FD0.
+
+**Nothing else writes the pins.** StoreAt/InsGrep over `+0x5F..+0x63` find only 0x00416C20
+(the other hits are sub-objects at `+0xC`/`+0x4D05`, constructor 0x00402AF0). The level
+reset [0x004033F0](functions/004033F0.md) does not touch them and the interface is the
+static 0x006CEA10, so a pin LIKELY survives a level change (the menus' own visibility is
+rebuilt; whether the lock icon then shows over a closed panel is unobserved).
+
+**Layout of several open panels** (0x00417310, relayout runs only while expanded). With `n`
+category menus open, each gets width `W = 1800 / n` (integer), y 1600, height 300, hit
+rect `(0, 0, W, 432)`. An unpinned panel sits at x 472; the pinned panel (rank 1) at
+`472 + W` when an unpinned one is open, else 472. Creatures (4) places menu 5 (the
+overview) instead of menu 4. In practice `n ≤ 2`: the current panel left
+(472, 900 wide), the pinned one right (1372, 900 wide).
+
+**Grid per panel** (0x00417470, expanded branch `+0x109 == 1`; the 0x198/0xC4 branch for
+other values is unreachable because the toggle only cycles 0/1). Usable width is `W − 64`
+(the page arrows), height 300. With `count` entries (0x00416980):
+- 264-unit cells if `count ≤ 300·(W−64) / 73984 − 1` (integer division), else 128-unit cells;
+- columns `(W−64) / cell`, rows `300 / cell`, page size columns × rows (`+0x7D + 4c`);
+- cell `(col, row)` at local `x = 76 + (cell+8)·col`, `y = 12 + (cell+8)·row`;
+- each slot's `+0x3C` becomes 6 for 264-unit cells, 5 for 128-unit (the sparkle size and
+  the chime's bank index, section 2).
+
+So one panel (W 1800) keeps 264-unit cells up to 6 entries, 6 per page; 7 or more switch
+to 128-unit cells, 13 × 2 = 26 per page. Two panels (W 900): 264-unit cells only up to 2
+entries (3 per page), else 128-unit cells, 6 × 2 = 12 per page. Creatures' overview grid
+uses 116-unit pitch, `(W − 432) / 116` columns, one row.
+
+**Page arrows.** The decompile of 0x00417470 keeps each arrow widget's own x (+0x14) and width
+(+0x1C) and sets y 12 and 132 + 12 = 144, height 132, for menus 1..3 only; they are menu-local, so
+each open panel carries its pair at its own left edge. Menu 5 (the overview) gets no arrows here.
+
+**Built (2026-10-23).** `BottomPanelTabs` (Presentation) is the click and pin state machine above,
+with the remembered open set kept across a collapse; `BottomPanelOpenSet` is the set of visible
+menus. `BottomPanelLayout.PanelOf` is 0x00417310, `Grid` and `BottomPanelGrid` (`Slot`,
+`PageSize`, `WidgetBank`) are 0x00417470 including the single-panel 128-unit switch at 7+ entries,
+`PreviousPage`/`NextPage` the arrows and `OverviewColumns` menu 5's column count.
+`ClassicBottomPanel` reads Shift without Ctrl/Alt from the release event, draws up to two panels
+(26 slots each), each with its own arrows and page, the selected overlay on every open tab and
+`gui\icons\tab-lock` over the pinned one (between the overlay and the hover);
+`ClassicCreatureOverview` moves with its panel and narrows to `(W − 432) / 116` columns. Ours, not
+read: each category keeps its own page, a panel's page resets when it opens, and the wheel pages
+the panel under the pointer. A lone overview keeps the wider screen's extra width (as before);
+the item grids keep the 1800-unit reference span. Not wired: sound `0x138` on expanding. Tests:
+`BottomPanelTabsTests`.
 
 ## 4. Ours
 
@@ -132,14 +204,18 @@ panel to a tab or slot and the real-clock dark half, and says when using the ite
 advances them once per rendered frame, with its own `Dk2Lcg`, never the simulation's stream.
 The interface seed's value at reset is unread, so it is a constructor parameter. UI Toolkit
 has no additive images, so each sparkle keeps its colour with its brightness as alpha.
-Deviation: the modulo is taken in virtual units, not screen pixels. Not built: the chime
-`0x33A` (no sound system yet), the 88-unit sparkle (widget `+0x3C` unread), and generic icon
-buttons by `+0x74` id other than the resource numbers. Tests: `BottomPanelFlashTests`.
+Deviation: the modulo is taken in virtual units, not screen pixels. The sparkle is 88 units on
+264-unit slots (`+0x3C == 6`) and 64 on tabs and 128-unit slots (`BottomPanelSparkles.SizeFor`,
+section 3). `BottomPanelFlash` takes the set of open panels, so with a pinned tab both panels
+count as open. Not built: the chime `0x33A` (no sound system yet) and generic icon buttons by
+`+0x74` id other than the resource numbers. Tests: `BottomPanelFlashTests`.
 
 ## Open
 
-- Which SFX sound `0x33A` is in its bank, and what widget `+0x3C` is for tabs and slots.
-  The same question covers which slots use the 88-unit sparkle (`+0x3C == 6`).
+- Which SFX sound `0x33A` is in its bank. Widget `+0x3C` is the record's sound slot `+0x4C`
+  (0x00528300): tabs carry 1..4 (FB 1, FA 2, F9 3, F8 4; 64-unit sparkle), and 0x00417470
+  sets category slots to 6 for 264-unit cells (88-unit sparkle) and 5 for 128-unit (2026-10-23,
+  section 3). The sparkle sizes are built; the sound bank meaning of `+0x3C` stays open.
 - Which icon buttons carry which `+0x74` ids beyond Sell `0xFF`. They come from static
   widget tables that have not been read.
 - Category 2 (creature): no slot flash was found in 0x00412FC0, whose creature arms 5/6

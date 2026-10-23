@@ -22,14 +22,16 @@ The tab strip starts(472,1460); tabs are128x128. The single-category grid starts
 at(472,1600), with draw extent1800x300 and hit extent1800x432. Native layout
 shares that width when several categories are locked open; see
 [category placement](functions/00417310.md) and [tab selection](functions/00416C20.md).
-The current adapter exposes one category at a time; category locking and collapsed
-panel controls remain unimplemented.
+Built 2026-10-23: Shift-click pins one tab, and the pinned panel shares the strip with the
+current one (`BottomPanelTabs`, `BottomPanelLayout.PanelOf`; [tab-alerts.md §3](tab-alerts.md)).
 
 [Grid layout](functions/00417470.md) puts264-unit cells at local(76,12), then
 steps272 horizontally in the normal expanded layout: six columns, one row.
 Page-back/forward artwork is catalogue11/10. The64x132 arrows occupy local
-(0,12) and(0,144). A crowded multi-panel layout can use128-unit cells; the
-current single-category adapter does not need that branch.
+(0,12) and(0,144). The grid switches to 128-unit cells when the entries outgrow the
+264-unit capacity, also with a single panel (7+ entries; read 2026-10-23,
+[tab-alerts.md §3](tab-alerts.md)): 13 × 2 per page. Built (`BottomPanelLayout.Grid`); each
+open panel has its own arrows at its left edge.
 
 On wider screens the panel fill extends to the right anchored control block;
 the grid and tab strip retain their reference positions. Added width is fill,
@@ -83,8 +85,9 @@ to y0x6EC, places menu40 above them, and ends the 3D viewport 0x98 below the str
 centre moves with it ([classic-camera.md](classic-camera.md) §2). Expanding restores the remembered
 categories and menu41 and relays out ([0x00416FD0](functions/00416FD0.md)). Not built: the pointer
 jump onto the moved button (legacy input cannot move the pointer), sounds 0x134/0x135, and menu40's
-move (the query/entity panel). What a tab click does while collapsed is unread (0x00416C20); the
-adapter changes the category with the grid hidden.
+move (the query/entity panel). A tab click while collapsed expands the panel first
+(0x00416C20, read 2026-10-23, [tab-alerts.md §3](tab-alerts.md)); the adapter changes the
+category with the grid hidden.
 Menu39 at (1112,1460) 948x156 holds eighteen 88x128 widgets: Review Objective (text2163, art139,
 `0x004288C0`), a second button (art153, `0x004247F0`), and sixteen message slot widgets (art127,
 `0x00423F50`/`0x00424220`) of which at most eight are used: [message-tabs.md](message-tabs.md)

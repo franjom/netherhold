@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -160,13 +160,13 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
+        // HashVersion 297: HeroesDestroyed, the health source, MaximumSlaps and the Current Holder (ADR-0532).
         // HashVersion 296: an Imp lands on its Heart's eight platform tiles (ADR-0526 amendment).
         // HashVersion 295: behaviour only, the room placement obstruction 0x0044F800 (ADR-0530).
         // HashVersion 294: tutorial rectangles and predictive crystal contacts (ADR-0527/0528).
         // HashVersion 293: swept portal-crystal bounds and steering contacts (ADR-0527).
-        // HashVersion 292: behaviour only, DK2's hand drop gate (ADR-0526).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x9182B5916A8366B9UL, sim.StateHash());
+        Assert.Equal(0xC05DD2EF3BEE644CUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

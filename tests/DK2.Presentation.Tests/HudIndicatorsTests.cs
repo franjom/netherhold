@@ -12,7 +12,7 @@ namespace DK2.Presentation.Tests;
 public sealed class HudIndicatorsTests
 {
     private static HudIndicatorSnapshot Shown(bool time = false, bool score = false, bool kills = false, bool next = false) =>
-        new(time, 400, score, 0, kills, next);
+        new(time, 400, score, 0, kills, 0, 0, false, 0, next ? (byte)1 : (byte)0);
 
     [Fact]
     public void ShownIndicatorsPackLeftToRightFromTwentyAndHiddenOnesTakeNoSlot()
@@ -125,5 +125,41 @@ public sealed class HudIndicatorsTests
         Assert.True(snapshot.Score);
         Assert.Equal(0, snapshot.ScoreValue);
         Assert.True(snapshot.Any);
+    }
+
+    [Fact]
+    public void SlapsRemainingHidesUntilActionFiftySetsALimitAndBelowZero()
+    {
+        Assert.False(HudIndicatorSnapshot.Capture(new TriggerState(), null).SlapsRemaining);
+        var triggers = new TriggerState { MaximumSlaps = 5 };
+        HudIndicatorSnapshot left = HudIndicatorSnapshot.Capture(triggers, null, slaps: 5);
+        Assert.True(left.SlapsRemaining);
+        Assert.Equal(0, left.SlapsLeft);
+        Assert.False(HudIndicatorSnapshot.Capture(triggers, null, slaps: 6).SlapsRemaining);
+    }
+
+    [Fact]
+    public void CurrentHolderShowsWhileAPlayerIsNamed()
+    {
+        Assert.False(HudIndicatorSnapshot.Capture(new TriggerState(), null).CurrentHolder);
+        HudIndicatorSnapshot held = HudIndicatorSnapshot.Capture(new TriggerState { SpecialInfoPlayerId = 3 }, null);
+        Assert.True(held.CurrentHolder);
+        Assert.Equal(3, held.HolderPlayerId);
+        Assert.True(held.Any);
+    }
+
+    [Fact]
+    public void HeroesKilledCarriesThePlayersCount()
+    {
+        Assert.Equal(7, HudIndicatorSnapshot.Capture(new TriggerState(), Level(0x80), heroesDestroyed: 7).HeroesDestroyed);
+    }
+
+    [Fact]
+    public void AllSixPackLeftToRightInMenuOrder()
+    {
+        var triggers = new TriggerState { LevelTimeLimit = 1, SpecialInfoPlayerId = 3, MaximumSlaps = 1, SpecialInfoNextRoomTypeId = 2 };
+        triggers.Write(TriggerState.SpecialFlagId, FlagWriteMode.Assign, 0);
+        var placed = HudIndicatorLayout.Place(HudIndicatorSnapshot.Capture(triggers, Level(0x80)), 1460);
+        Assert.Equal(new[] { 20, 464, 908, 1352, 1796, 2052 }, placed.Select(p => p.X));
     }
 }

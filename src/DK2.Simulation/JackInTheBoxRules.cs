@@ -43,7 +43,7 @@ public static class JackInTheBoxRules
         if (!CombatRules.IsHostile(world, shot.OwnerPlayerId, victim.OwnerPlayerId)) return;
 
         CreatureDef victimDef = database.CreatureById(victim.CreatureTypeId);
-        int landed = StatusEffectRules.Hurt(world, database, victimDef, victim, shot.Data1);
+        int landed = StatusEffectRules.Hurt(world, database, victimDef, victim, shot.Data1, shot.OwnerPlayerId); // 0x004B039A: the shot's owner
         byte heartOf = victim.OwnerPlayerId;
 
         int tx = shot.PosX >> 12, ty = shot.PosY >> 12;
@@ -72,12 +72,13 @@ public static class JackInTheBoxRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         CreatureDef definition = database.CreatureById(jack.CreatureTypeId);
-        StatusEffectRules.Hurt(world, database, definition, jack, WearPerTick);
+        // State 273's wear passes the Jack's own owner (0x0046E833, 0x0046E8AA).
+        StatusEffectRules.Hurt(world, database, definition, jack, WearPerTick, jack.OwnerPlayerId);
         (ushort hx, ushort hy) = ManaRemovalLifecycle.HeartTile(world, database, jack.HeartTargetPlayerId);
         TilePos at = jack.Tile;
         if (at.X == hx + 1 && at.Y == hy + 1)
         {
-            StatusEffectRules.Hurt(world, database, definition, jack, WearAtTheHeart);
+            StatusEffectRules.Hurt(world, database, definition, jack, WearAtTheHeart, jack.OwnerPlayerId);
             return;
         }
         int x = (hx << 12) + 0x1800, y = (hy << 12) + 0x1800;
@@ -88,7 +89,7 @@ public static class JackInTheBoxRules
     public static void Travelling(SimulationContext context, CreatureState jack)
     {
         CreatureDef definition = context.Database.CreatureById(jack.CreatureTypeId);
-        StatusEffectRules.Hurt(context.World, context.Database, definition, jack, WearPerTick);
+        StatusEffectRules.Hurt(context.World, context.Database, definition, jack, WearPerTick, jack.OwnerPlayerId);
     }
 
     /// <summary>The health routine's death arm for type <c>0x2E</c> (<c>0x004B3108</c>): shot 65 at the Jack,
