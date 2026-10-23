@@ -44,7 +44,8 @@ public readonly struct TileView
         ClassicPointLight? pointLight = null,
         AssetRef sightFogOverlay = default,
         byte sightFogOpacity = 0,
-        int faceTexture = -1)
+        int faceTexture = -1,
+        bool redHighlighted = false)
     {
         Position = position;
         FaceTexture = faceTexture;
@@ -52,6 +53,7 @@ public readonly struct TileView
         Furniture = furniture;
         OwnerPlayerId = ownerPlayerId.Value;
         Tagged = tagged;
+        RedHighlighted = redHighlighted;
         Solid = solid;
         GoldHeld = goldHeld;
         HealthPermille = healthPermille;
@@ -93,6 +95,7 @@ public readonly struct TileView
     /// room wall facing it, tinted (128, 128, 200) under an overlay, whatever the terrain or its
     /// owner (tag-highlight.md).</summary>
     public bool Tagged { get; }
+    public bool RedHighlighted { get; }
 
     /// <summary>Whether the terrain fills its tile. A renderer needs this before it has a mesh.</summary>
     public bool Solid { get; }
@@ -509,6 +512,17 @@ public sealed partial class WorldView
     }
 
     private bool _previewing;
+    private uint _lastHighlightMilliseconds;
+    private bool _highlightPhase;
+    public bool TerrainHighlightPhase => _highlightPhase;
+
+    public void AdvanceTerrainHighlights(EffectTime time)
+    {
+        uint now = unchecked((uint)time.Milliseconds);
+        if (unchecked(now - _lastHighlightMilliseconds) <= 200) return;
+        _lastHighlightMilliseconds = now;
+        _highlightPhase = !_highlightPhase;
+    }
     private bool _previewTagged;
     private int _previewX1, _previewY1, _previewX2, _previewY2;
     private readonly Dictionary<TilePos, (bool Tagged, GameTick AppliesAt)> _queuedTagPreviews = new();
@@ -690,7 +704,8 @@ public sealed partial class WorldView
                 ambientTint: (fog.Flags & TerrainFlags.AmbientLight) != 0 && fog.Lighting is TerrainLighting fogLighting
                     ? fogLighting.AmbientColour(fog.Flags) : default,
                 scanned: scanned,
-                pointLight: TerrainPointLight(world, x, y, tile));
+                pointLight: TerrainPointLight(world, x, y, tile),
+                redHighlighted: _highlightPhase && world.TileHighlights.Contains(new TilePos(x, y)));
         }
 
         _terrainAssets.TryGetValue(tile.TerrainId, out AssetRef ground);
@@ -727,7 +742,8 @@ public sealed partial class WorldView
             TerrainPointLight(world, x, y, tile),
             SightFogOverlay(world, new TilePos(x, y), explored, solid, out byte fogOpacity),
             fogOpacity,
-            DecayStage(admitted ? tile.Health : terrain.StartingHealth, terrain));
+            DecayStage(admitted ? tile.Health : terrain.StartingHealth, terrain),
+            _highlightPhase && world.TileHighlights.Contains(new TilePos(x, y)));
     }
 
     /// <summary>A Decay terrain's damage stage (<c>0x004419D0</c>, flag <c>0x20000</c>, n the

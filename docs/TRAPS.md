@@ -9,6 +9,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Warm isolated terrain GPU probes before recording pixel baselines; the first presentation can differ from subsequent terrain flushes.
+
 - Unity 6000.6 returned the material override tag value `True` as `true`; use lowercase marker tokens when comparing `Material.GetTag` results.
 - Sandboxed Unity batch startup can stall at `Licensing is not yet initialized`; an isolated probe may need execution outside the sandbox to use the installed license.
 

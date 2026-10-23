@@ -4,7 +4,8 @@
 
 Shader "DK2/ClassicEffect"
 {
-    Properties { _MainTex("Sprite", 2D) = "white" {} _DstBlend("Destination blend", Float) = 10
+    Properties { _MainTex("Sprite", 2D) = "white" {} _SrcBlend("Source blend", Float) = 5
+        _DstBlend("Destination blend", Float) = 10
         _TintByLuminance("Tint by twice the luminance", Float) = 0
         _Tint("Tint", Color) = (1, 1, 1, 1)
         _Wedge("Full-colour wedge, clockwise from the top (-1 none)", Float) = -1 }
@@ -13,7 +14,7 @@ Shader "DK2/ClassicEffect"
         Tags { "RenderPipeline" = "UniversalPipeline" "Queue" = "Transparent" "RenderType" = "Transparent" }
         Pass
         {
-            Blend SrcAlpha [_DstBlend]
+            Blend [_SrcBlend] [_DstBlend]
             ZWrite Off
             Cull Off
             HLSLPROGRAM

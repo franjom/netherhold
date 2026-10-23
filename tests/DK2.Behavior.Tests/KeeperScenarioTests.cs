@@ -101,20 +101,25 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
         Assert.Contains(run.KeeperCommandLog, e => e.InputTick > spans[1].Tick
             && e.Command is TagTilesCommand t && t.PlayerId.Value == 5 && t.Tiles.Contains(new TilePos(64, 38)));
 
-        KeeperCommandEmission callEmission = Assert.Single(run.KeeperCommandLog, e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5);
-        var call = (CastSpellAtPlaceCommand)callEmission.Command;
-        Assert.Equal((byte)CallToArmsRules.SpellId, call.SpellId);
-        Assert.True(callEmission.InputTick > spans[1].Tick);
+        KeeperCommandEmission[] calls = run.KeeperCommandLog
+            .Where(e => e.Command is CastSpellAtPlaceCommand c && c.PlayerId.Value == 5).ToArray();
+        Assert.NotEmpty(calls);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level11A")!;
         WorldState stock = WorldState.FromMap(ScenarioCorpus.Database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
-        int callX = call.X >> 12, callY = call.Y >> 12;
-        RoomInstance enemyHeart = Assert.Single(RoomIndex.Build(stock, ScenarioCorpus.Database), room =>
-            room.Definition.TypeId == RoomTypeId.DungeonHeart && room.OwnerPlayerId is not (5 or 7)
-            && (state.PlayersAttackedFlags & (1 << room.OwnerPlayerId)) != 0
-            && callX >= room.MinX - 2 && callX <= room.MaxX + 2
-            && callY >= room.MinY - 2 && callY <= room.MaxY + 2);
-        Assert.Contains(run.Events, e => e.Kind == "engaged"
-            && e.Detail.Contains($"type=Mistress player=5 heart={enemyHeart.OwnerPlayerId}"));
+        foreach (KeeperCommandEmission callEmission in calls)
+        {
+            var call = (CastSpellAtPlaceCommand)callEmission.Command;
+            Assert.Equal((byte)CallToArmsRules.SpellId, call.SpellId);
+            Assert.True(callEmission.InputTick > spans[1].Tick);
+            int callX = call.X >> 12, callY = call.Y >> 12;
+            RoomInstance enemyHeart = Assert.Single(RoomIndex.Build(stock, ScenarioCorpus.Database), room =>
+                room.Definition.TypeId == RoomTypeId.DungeonHeart && room.OwnerPlayerId is not (5 or 7)
+                && (state.PlayersAttackedFlags & (1 << room.OwnerPlayerId)) != 0
+                && callX >= room.MinX - 2 && callX <= room.MaxX + 2
+                && callY >= room.MinY - 2 && callY <= room.MaxY + 2);
+            Assert.Contains(run.Events, e => e.Kind == "engaged"
+                && e.Detail.Contains($"type=Mistress player=5 heart={enemyHeart.OwnerPlayerId}"));
+        }
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }

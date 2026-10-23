@@ -43,6 +43,7 @@ namespace DK2.Unity
         private readonly Dictionary<(string, KmfBlend, float), Material> _materials =
             new Dictionary<(string, KmfBlend, float), Material>();
         private readonly Dictionary<Material, Material> _tagged = new Dictionary<Material, Material>();
+        private readonly Dictionary<Material, Material> _redHighlighted = new Dictionary<Material, Material>();
         private readonly Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material> _tinted =
             new Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material>();
         private readonly Dictionary<(AssetRef, int), PieceSource> _pieces = new Dictionary<(AssetRef, int), PieceSource>();
@@ -343,22 +344,24 @@ namespace DK2.Unity
         public static readonly Color TagOverlayColour = new Color(63f / 255f, 64f / 255f, 1f);
 
         private Material _tagOverlay;
+        private Material _redTerrainOverlay;
 
         /// <summary>A material's tagged twin: its texture lit by <see cref="TagTint"/> more, which
         /// URP's emission (texture × colour) adds as DK2's sum of light does. Shared.</summary>
-        public Material Tagged(Material material)
+        public Material Tagged(Material material, bool red = false)
         {
             // Additive materials already supply white diffuse before native RGB saturation.
             if (!material.HasProperty("_EmissionColor")) return material;
-            if (_tagged.TryGetValue(material, out Material tagged)) return tagged;
+            var cache = red ? _redHighlighted : _tagged;
+            if (cache.TryGetValue(material, out Material tagged)) return tagged;
             tagged = new Material(material) { name = material.name + " (tagged)" };
             // The tag's light adds to the material's own (its self-illumination, if any).
             Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
             tagged.EnableKeyword("_EMISSION");
             tagged.SetTexture("_EmissionMap", material.mainTexture);
-            tagged.SetColor("_EmissionColor", TagTint + own);
+            tagged.SetColor("_EmissionColor", (red ? Color.red : TagTint) + own);
             tagged.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
-            _tagged[material] = tagged;
+            cache[material] = tagged;
             return tagged;
         }
 
@@ -423,15 +426,22 @@ namespace DK2.Unity
         public Material HoverOverlay() => _hoverOverlay ??= Additive("AA_RedTexture", HoverOverlayColour);
 
         /// <summary>The additive pass over every tagged piece: flat <see cref="TagOverlayColour"/>.</summary>
-        public Material TagOverlay()
+        public Material TagOverlay(bool red = false)
         {
+            if (red)
+            {
+                if (_redTerrainOverlay != null) return _redTerrainOverlay;
+                _redTerrainOverlay = Additive("AA_RedTexture", HoverOverlayColour);
+                _redTerrainOverlay.SetOverrideTag("DK2TagOverlay", "tutorial");
+                return _redTerrainOverlay;
+            }
             if (_tagOverlay != null) return _tagOverlay;
             _tagOverlay = Additive("AA_BlueTexture", TagOverlayColour);
             _tagOverlay.SetOverrideTag("DK2TagOverlay", "dig");
             return _tagOverlay;
         }
 
-        public static bool IsTagOverlay(Material material) => material.GetTag("DK2TagOverlay", false) == "dig";
+        public static bool IsTagOverlay(Material material) => material.GetTag("DK2TagOverlay", false) is "dig" or "tutorial";
 
         private static Material Additive(string name, Color colour)
         {

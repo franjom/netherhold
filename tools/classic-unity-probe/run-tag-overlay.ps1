@@ -3,7 +3,8 @@ param(
     [string]$OutputRoot = "$PSScriptRoot/../../build/tag-overlay-probe",
     [switch]$PortalEntrance,
     [switch]$CreatureLevel,
-    [switch]$PortalMovement
+    [switch]$PortalMovement,
+    [switch]$TutorialHighlight
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -21,6 +22,7 @@ $entries = @('TagOverlayOrderProbe', 'TransparentTerrainReuseProbe')
 if ($PortalEntrance) { $entries += 'PortalEntranceProbe' }
 if ($CreatureLevel) { $entries += 'CreatureLevelEffectProbe' }
 if ($PortalMovement) { $entries += 'PortalCrystalMovementProbe' }
+if ($TutorialHighlight) { $entries += 'TutorialHighlightProbe' }
 foreach ($probe in $entries) {
     Copy-Item -LiteralPath "$PSScriptRoot/$probe.cs" -Destination "$project/Assets/DK2/Editor/$probe.cs" -Force
 }

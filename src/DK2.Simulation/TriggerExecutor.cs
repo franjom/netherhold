@@ -1227,7 +1227,7 @@ public sealed class TriggerExecutor
     /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
     /// makes that a failure rather than a silence.</remarks>
     public static bool Performs(byte type) =>
-        type is 1 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 47;
+        type is 1 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 47;
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1239,6 +1239,14 @@ public sealed class TriggerExecutor
             var flash = new HudFlashRequest(target, unchecked((uint)p["DurationSeconds"]), Byte(p, "Available") != 0);
             ViewRequested?.Invoke(new ScriptedViewRequest(ScriptedViewKind.FlashButton,
                 PlayerIds.Unowned, 0, default, false, FlashButton: flash));
+            return true;
+        }
+        if (record.Type == 16)
+        {
+            if (_world is null) return Unperformed(record, context, partial);
+            short durationTicks = Byte(p, "Available") == 0 ? (short)0
+                : unchecked((short)p["Value"]) == 0 ? (short)-1 : unchecked((short)p["Value"]);
+            _world.TileHighlights.Set(_world, new ActionPointId(Byte(p, "ActionPointId")), durationTicks);
             return true;
         }
         if (record.Type == 17)

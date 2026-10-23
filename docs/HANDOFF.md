@@ -121,10 +121,15 @@ neighbour queries and torture-approach flags are corrected (ADR-0500).
 Portal arrival transparency and animated beams are corrected. Red mist timing,
 failed previews and the withdrawn keeper-colour report (Q619 closed):
 [portal buildup](research/portals-interval.md#portal-buildup-built-adr-0467).
+Mist now uses the native default additive blend and joins the terrain depth stream:
+[rendering correction](research/room-construction-effects.md#sprite-blend-and-shared-terrain-ordering-2026-10-23).
 Creature promotions now request the original sparkle effect, including imp work
 levels and scripted grants: [promotion sparkles](research/creature-levels.md#promotion-sparkles-2026-10-23).
 Portal crystals now have swept movement guards and steering contacts (ADR-0527),
-an explicit remake correction: [evidence and tests](research/portal-crystal-collision.md).
+an explicit remake correction; predictive contacts repair near-wall stalls:
+[evidence and tests](research/portal-crystal-collision.md).
+Level1's scripted red tutorial tile guidance is built (ADR-0528):
+[native slots and pulse](research/tag-highlight.md#scripted-tutorial-red-flash).
 Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
 Proposed parallelism milestones and determinism gates:
 [parallelism design](plans/2026-10-17-parallelism-design.md).

@@ -30,6 +30,13 @@ public static class SteeringIntegrator
     /// <summary>One tick of motion from a combined force.</summary>
     public static void Step(SteeringBody body, Fixed16Vector total, MoverProfile mover, ISteeringWorld world)
     {
+        if (world is IMovementContactWorld contacts)
+        {
+            Fixed16Vector proposed = Fixed16.Truncate(body.Vel + Fixed16.Truncate(total, body.MaxForce).Over(Mass), body.MaxSpeed);
+            if (body.SnapsOnArrival && body.OnLastPoint && (body.CurrentPoint - body.Pos).Octile() < proposed.Octile())
+                proposed = body.CurrentPoint - body.Pos;
+            contacts.CollectMovementContacts(body, proposed);
+        }
         total = Slide(body, total);
         Fixed16Vector clamped = Fixed16.Truncate(total, body.MaxForce);
         body.Vel = Fixed16.Truncate(body.Vel + clamped.Over(Mass), body.MaxSpeed);

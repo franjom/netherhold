@@ -70,9 +70,8 @@ The earlier repo claim came from four parameter views whose second or third
 byte was transcribed as `Available`. Reading their complete dispatch paths
 refutes the shared interpretation:
 
-- **Action 16**, world dispatcher `0x00518AD0`, manages a separate four-slot
-  area/command bank on the world object. When enabled it copies the selected
-  action point's rectangle into that bank. It does not write the point.
+- **Action 16** controls the world's four tutorial-highlight rectangles, without
+  changing the action point. Built; see [scripted red flash](tag-highlight.md#scripted-tutorial-red-flash).
 - **Action 17** resolves the point and chooses between two operations over its
   inclusive rectangle. It does not write the point. Both operations are now
   read: they set and clear **one bit of each slab's flag word**, and nothing

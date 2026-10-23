@@ -442,6 +442,7 @@ namespace DK2.Unity
             DK2.Data.Model.TerrainLightColour tint = default, byte? fogOpacity = null, bool invertLightingNormals = false)
         {
             if (piece == null) return;
+            bool red = _tiles[y * _width + x].RedHighlighted;
             Quaternion turn = Quaternion.Euler(0f, 90f * rotation, 0f);
             int start = _tilePositions.Count;
             for (int i = 0; i < piece.Positions.Length; i++)
@@ -462,11 +463,12 @@ namespace DK2.Unity
             for (int m = 0; m < piece.Triangles.Count; m++)
             {
                 Material material = fogOpacity is byte opacity ? _classic.SightFog(piece.Materials[m], opacity)
+                    : red ? _classic.Tagged(piece.Materials[m], red: true)
                     : tagged ? _classic.Tagged(piece.Materials[m])
                     : _classic.TerrainTinted(piece.Materials[m], tint);
                 AddTriangles(material, piece.Triangles[m], start);
                 // DK2 draws a tagged piece a second time, additively (tag-highlight.md).
-                if (tagged) AddTriangles(_classic.TagOverlay(), piece.Triangles[m], start);
+                if (red || tagged) AddTriangles(_classic.TagOverlay(red), piece.Triangles[m], start);
             }
         }
 

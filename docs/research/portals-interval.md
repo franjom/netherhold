@@ -291,9 +291,10 @@ sprites per update for thirty updates, retaining authored motion and resources.
 
 ### Mist appearance and duration (2026-10-23)
 
-The supplied red-cloud sequence is STRONGLY INFERRED to show effect94;
-an isolated Level8 rendering of that definition produces the same central
-red/orange mist and sparkles. This is a remake diagnostic, not a native capture.
+The supplied red-cloud sequence is STRONGLY INFERRED to show effect94.
+The original isolated probe checked particles but missed the weak/occluded
+rendering reported by the owner. The corrected blend and depth ordering and
+focused GPU regression are in [sprite rendering](room-construction-effects.md#sprite-blend-and-shared-terrain-ordering-2026-10-23).
 
 CONFIRMED shipped definitions and `FUN_00435F20`'s colour selection:
 

@@ -12138,3 +12138,26 @@ partial ownership fragments. Preserve the portal hole's navigation categories.
 used these bounds. Existing overlaps may escape toward a nearest face.
 Bounds are derived from room tiles; no new snapshot payload is needed.
 HashVersion and FormatVersion293 distinguish the movement change.
+
+**Amendment (2026-10-23).** Replace circumscribed steering circles with contacts
+at predicted swept-boundary crossings, retaining the same crystal bounds and
+hole rules. Three admitted near-wall routes stalled under the former contacts;
+the repaired90-route matrix completes. Still an explicit remake deviation.
+Hash/save294 includes this behavior repair and ADR-0528's rectangle state.
+
+## ADR-0528 — Show scripted tutorial dig guidance
+
+**Date:** 2026-10-23 · **Status:** accepted
+
+**Context.** Level1's action16 red flashing guidance was absent. The binary
+uses four action-point rectangles and a wall-clock view phase; it does not
+create dig orders. Evidence: [tag-highlight.md](research/tag-highlight.md#scripted-tutorial-red-flash).
+
+**Decision.** Save/hash the four ids, signed tick timers and retained inclusive
+bounds in `TileHighlightState`. Advance finite timers before triggers. Toggle
+the view phase once per strictly-more-than200ms elapsed and refresh affected
+tiles even without a simulation tick. Red takes priority over blue tag tint
+and uses the existing behind-creature/flower overlay ordering.
+
+**Consequences.** Hash/save294. Authored enable/disable actions control guidance;
+tagging alone never clears it. Do not add unconfirmed adjacent-wall propagation.

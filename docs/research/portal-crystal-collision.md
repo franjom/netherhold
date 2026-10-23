@@ -38,13 +38,16 @@ by the mover's footprint radius. Every integrator alternative tests its full
 segment, so high speed, arrival and stuck escape cannot bypass the guard.
 An already overlapping body may move toward its nearest exit face. Targets
 inside bounds move to the nearest face; approach distance breaks ties.
-Circumscribing steering contacts prevent approaches stalling at rectangle corners.
+Predictive contacts are added only when the proposed step would cross an expanded
+crystal rectangle, including arrival snapping and stuck escape. The former
+circumscribed circles repelled clear paths yet missed some blocked steps;
+three near-wall routes stalled permanently. They are no longer emitted.
 This conservative horizontal projection also covers leaning crystal tops;
 it is not a reconstruction of native collision geometry.
 
 The cache is derived from room tiles, rebuilt before target projection and
 after room edits/restores. Navigation bytes retain the existing hole rules.
-No new saved field; hash/save version293 marks the changed movement behaviour.
+No new saved field; hash/save294 includes the repaired movement behavior.
 
 ## Verification
 
@@ -57,3 +60,11 @@ creature standing in the hole is not the released Goblin's initial position.
 The isolated Unity `PortalCrystalMovementProbe` records an original-art Goblin
 walking past the portal and checks every segment; the captured run finished
 after105 ticks. Native route parity is not claimed.
+`PortalCrystalSteeringRegressionTests` checks90 admitted near-wall routes,
+requiring completion and testing crystal clearance and solid tiles at every
+step. The three reproduced failures complete with predictive contacts; four
+focused cases cover clear side motion, early contacts, escape and arrival.
+The installed Level11A keeper scenario still bridges, tunnels and engages an
+attacked enemy Heart; changed movement yields two valid Call To Arms casts
+instead of one. The test validates every cast's spell, ordering, attacked target
+and resulting Mistress engagement rather than pinning the incidental count.

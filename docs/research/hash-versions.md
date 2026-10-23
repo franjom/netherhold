@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**294** — `0xA9B05FB68CF7011B`. Four saved tutorial-highlight rectangles, ids and signed tick timers (ADR-0528), plus predictive crystal contacts replacing oversized steering circles (ADR-0527 amendment). The pinned fixture has no active highlights or portal route; separate tests cover both behaviors.
+
 **293** — `0xAA764D602CDE17DC`. Behaviour only: swept portal-crystal bounds, body clearance, target projection and steering contacts (ADR-0527). Bounds are derived from room tiles; no new saved fields.
 
 **292** — `0x3CA3464C77E0C2AD`. Behaviour only: a hand drop obeys DK2's drop gate `0x0040D8F0` (alliance, solid and door tiles, the Heart, Portal, Prison, Temple, Torture and Combat Pit arms; ADR-0526). No new fields.

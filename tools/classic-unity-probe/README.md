@@ -3,7 +3,7 @@
 ## Dig-tag overlay ordering
 
 Run `tools/classic-unity-probe/run-tag-overlay.ps1` with an activated Unity editor.
-It prepares a separate marked project and checks thirteen GPU pixel cases: the tag,
+It prepares a separate marked project and checks seventeen GPU pixel cases: the tag,
 opaque/transparent/faded creatures, flowers, ordinary blended terrain in front,
 solid-wall occlusion, effect/terrain interleaving, colour changes, expiry and
 transformed roots. It also runs the 96 terrain stream/reuse cases. The
@@ -19,7 +19,18 @@ with the former draw paths loses the white disc behind the chasm and fails
 the beam check; the shared transparent stream restores it.
 Set `DK2_PORTAL_PROBE_EFFECT` and `DK2_PORTAL_PROBE_OWNER` to compare other
 definitions/owners (defaults181/3); effect94 captures the separate buildup.
+For94 the camera closes in and the probe requires a visible bright central plume
+against its pre-emission baseline. It fails the former dim/occluded sprite path.
+Pixel cases check red-overlay actor/flower priority and additive texture-alpha handling.
+`DK2_PORTAL_EFFECT_ONLY=1` hides terrain for diagnostic captures; leave it unset
+for the acceptance run. The final blend/depth correction is documented in
+[sprite rendering](../../docs/research/room-construction-effects.md#sprite-blend-and-shared-terrain-ordering-2026-10-23).
 These captures check the remake's data consumer, not original-game behaviour.
+
+Add `-TutorialHighlight` for Level1's authored action65456/AP4, rendered on/off
+and explicitly cleared by its script action. The probe warms terrain batches,
+requires visible red pixels, and compares restored pixels with the baseline.
+Output is `tutorial-captures/` beside the scratch project.
 
 Add `-CreatureLevel` to capture an imp promoted through the simulation command,
 using original effect339 and `gsparkle` art. `DK2_LEVEL_UP_CAPTURE_OUTPUT`

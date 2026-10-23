@@ -57,6 +57,9 @@ namespace DK2.Unity.Editor
                     ? selected : (ushort)181;
                 byte owner = byte.TryParse(Environment.GetEnvironmentVariable("DK2_PORTAL_PROBE_OWNER"), out byte selectedOwner)
                     ? selectedOwner : PlayerIds.FirstKeeper;
+                if (effectId == 94) camera.fieldOfView = 30;
+                Color32[] baseline = null;
+                int maximumBuildupPixels = 0;
                 var effects = new ClassicConstructionEffects(root.transform, db,
                     new InstallEffectSpriteProvider(db, art.LoadTexture), 42,
                     floorHeight: point => view.GroundHeightAt(world, point),
@@ -76,18 +79,42 @@ namespace DK2.Unity.Editor
                             var transparent = root.GetComponentInChildren<TransparentTerrain>();
                             typeof(TransparentTerrain).GetMethod("BeforeCamera", BindingFlags.NonPublic | BindingFlags.Instance)
                                 .Invoke(transparent, new object[] { default(ScriptableRenderContext), camera });
+                            if (Environment.GetEnvironmentVariable("DK2_PORTAL_EFFECT_ONLY") == "1")
+                                foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>())
+                                    renderer.enabled = renderer.sharedMaterial.shader.name == "DK2/ClassicEffect";
                             RenderPipeline.SubmitRenderRequest(camera,
                                 new UniversalRenderPipeline.SingleCameraRequest { destination = target });
                             RenderTexture.active = target;
                             pixels.ReadPixels(new Rect(0, 0, 640, 480), 0, 0); pixels.Apply();
                             RenderTexture.active = null;
+                            if (effectId == 94)
+                            {
+                                Color32[] current = pixels.GetPixels32();
+                                if (baseline == null) baseline = current;
+                                int brightened = 0;
+                                for (int y = 140; y < 340; y++)
+                                    for (int x = 240; x < 400; x++)
+                                    {
+                                        int pixel = y * 640 + x;
+                                        if (current[pixel].r > baseline[pixel].r + 50
+                                            && current[pixel].r > 200 && current[pixel].g > 60) brightened++;
+                                    }
+                                maximumBuildupPixels = Math.Max(maximumBuildupPixels, brightened);
+                                Debug.Log("Visible buildup pixels " + brightened);
+                            }
                             string prefix = effectId == 181 && owner == PlayerIds.FirstKeeper
                                 ? "portal-" : "portal-" + effectId + "-owner" + owner + "-";
                             File.WriteAllBytes(Path.Combine(output, prefix + step * 50 + ".png"), pixels.EncodeToPNG());
                             Debug.Log("Portal sample " + milliseconds + "ms, particles " + effects.Model.Particles.Count);
+                            if (effectId == 94 && effects.Model.Particles.Count != 0)
+                                Debug.Log("Buildup height " + effects.Model.Particles.Min(p => p.HeightRaw)
+                                    + ".." + effects.Model.Particles.Max(p => p.HeightRaw)
+                                    + " scale " + effects.Model.Particles.Max(p => p.ScaleRaw));
                         }
                         if (++step <= 150) { EditorApplication.QueuePlayerLoopUpdate(); return; }
                         if (effects.Model.Particles.Count != 0) throw new Exception("Portal arrival failed to expire.");
+                        if (effectId == 94 && maximumBuildupPixels < 300)
+                            throw new Exception("Portal buildup is hidden: only " + maximumBuildupPixels + " visible pixels.");
                         effects.Model.Request(ViewEffectRequest.AtTileCentre(new EffectId(159),
                             new PlayerId(PlayerIds.FirstKeeper), at, new Fp32(0)));
                         effects.Model.UpdateNow(); effects.Advance(); effects.Draw();

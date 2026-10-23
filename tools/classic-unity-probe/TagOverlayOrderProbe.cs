@@ -59,6 +59,11 @@ namespace DK2.Unity.Editor
                 Verify("opaque creature", Color.red, true, solid, 0);
                 Verify("transparent creature", Color.red, true, faded, 0);
                 Verify("flower", Color.red, true, flower, 0);
+                SetTag(meshes.TagOverlay(true));
+                Verify("tutorial overlay", new Color(1, 64f / 255f, 65f / 255f), false, solid, 0);
+                Verify("creature above tutorial overlay", Color.red, true, faded, 0);
+                Verify("flower above tutorial overlay", Color.red, true, flower, 0);
+                SetTag(tag);
                 faded.SetColor("_BaseColor", new Color(1, 0, 0, .5f));
                 Verify("faded creature", new Color(.5f, 0, .5f), true, faded, 0);
                 var veil = new Material(faded); veil.SetColor("_BaseColor", new Color(0, 1, 0, .5f));
@@ -115,8 +120,25 @@ namespace DK2.Unity.Editor
                 SetBackdrop(1); terrain.BeginEffectFrame();
                 terrain.EndEffectFrame();
                 Verify("expired effect removed", Color.blue, false, solid, 0);
-                Debug.Log("Tag overlay order verification passed: thirteen GPU pixel cases.");
+                backdrop.SetColor("_BaseColor", Color.black);
+                terrain.gameObject.SetActive(false);
+                var lowAlpha = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+                lowAlpha.SetPixel(0, 0, new Color(1, 1, 1, .25f)); lowAlpha.Apply();
+                flower.SetTexture("_MainTex", lowAlpha);
+                flower.SetColor("_Tint", Color.red);
+                flower.SetInt("_SrcBlend", (int)BlendMode.One);
+                flower.SetInt("_DstBlend", (int)BlendMode.One);
+                Verify("additive sprite ignores texture alpha", Color.red, true, flower, 0);
+                Debug.Log("Tag overlay order verification passed: seventeen GPU pixel cases.");
                 EditorApplication.Exit(0);
+
+                void SetTag(Material material)
+                {
+                    terrain.SetChunk(0, positions, new List<Vector3> { Vector3.back, Vector3.back, Vector3.back, Vector3.back },
+                        new List<Vector2> { Vector2.zero, Vector2.up, Vector2.one, Vector2.right },
+                        new List<Vector2> { Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero },
+                        new Dictionary<Material, List<int>> { [material] = new List<int> { 0,1,2,0,2,3 } });
+                }
 
                 void SetBackdrop(float z)
                 {

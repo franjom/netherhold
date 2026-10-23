@@ -334,15 +334,17 @@ the whole sprite by its tint × 255 plus, at its centre, each listed light's
 radial term (`0x0057C080`: no normal, the distance bins of the vertex lighting,
 the full colour in the first bin), the list being `0x0057BCB0`'s from the draw
 item's `+0x50`/`+0x38`, all bits. That this list is the drawn tile's table is
-INFERRED: both draw items' constructors leave `+0x50`/`+0x38` unset, and the pass
-that fills them and calls the items is unread, though the list has the layout of
+INFERRED: the constructors leave `+0x50`/`+0x38` unset. `0x0057F7E0` fills the
+billboard list from its draw-context+8 when effective state bit0x40 is set,
+otherwise from the empty global list. That context's producer and the flat-item
+filler are untraced, though the list has the layout of
 the 12-static, 24-total table `0x00576230` fills. The sample point is the item's
 interpolated world point `+0x1C`, not the lifted centre. Built, then
 withdrawn (ADR-0493 amendment, 2026-10-21): summing the visible tile's table turned
 the Heart's grey dust brown and its cyan sparkles white against the owner's DK2, so
 effect sprites now draw at their tint and the list is taken as empty for them
 (HYPOTHESIS; against it, the items are queued on their tile by `0x00571AE0` for an
-unread per-tile pass that probably attaches the tile's table, Q609).
+untraced draw-context producer that may supply the tile's table, Q609).
 `ClassicPointLight.RadialAt` and `ClassicWorldLightCache.TryGetVisibleTable` remain,
 unused by the renderer, for that question.
 

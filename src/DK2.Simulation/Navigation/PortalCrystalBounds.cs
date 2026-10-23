@@ -13,7 +13,6 @@ namespace DK2.Simulation.Navigation;
 internal readonly record struct PortalCrystalBounds(Fixed16Vector Min, Fixed16Vector Max)
 {
     public Fixed16Vector Centre => new((Min.X + Max.X) / 2, (Min.Y + Max.Y) / 2);
-    public int Radius => (Max - Min).Length() / 2 + 256;
     public PortalCrystalBounds Expanded(Fp32 radius)
     {
         int pad = Math.Max(0, radius.Raw) << 4;

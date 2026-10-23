@@ -7,6 +7,12 @@ using DK2.Core;
 
 namespace DK2.Simulation.Steering;
 
+/// <summary>Predictive contacts for the remake's continuous geometry guards.</summary>
+public interface IMovementContactWorld
+{
+    void CollectMovementContacts(SteeringBody body, Fixed16Vector motion);
+}
+
 /// <summary>What the behaviours ask of the world: the callbacks the original installs
 /// (docs/research/steering-behaviours.md §1) and the route dispatcher (§7). The simulation
 /// implements it as <see cref="Navigation.WorldSteering"/> (ADR-0157 phase 3).</summary>

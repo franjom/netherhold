@@ -42,6 +42,7 @@ public sealed class ScenePresenter
             Furniture = tile.Furniture;
             OwnerPlayerId = tile.OwnerPlayerId;
             Tagged = tile.Tagged;
+            RedHighlighted = tile.RedHighlighted;
             GoldHeld = tile.GoldHeld;
             HealthPermille = tile.HealthPermille;
             Walls = tile.Walls;
@@ -64,6 +65,7 @@ public sealed class ScenePresenter
         public AssetRef Furniture { get; }
         public byte OwnerPlayerId { get; }
         public bool Tagged { get; }
+        public bool RedHighlighted { get; }
         public int GoldHeld { get; }
         public int HealthPermille { get; }
         public RoomWalls Walls { get; }
@@ -86,6 +88,7 @@ public sealed class ScenePresenter
             && Furniture == other.Furniture
             && OwnerPlayerId == other.OwnerPlayerId
             && Tagged == other.Tagged
+            && RedHighlighted == other.RedHighlighted
             && GoldHeld == other.GoldHeld
             && HealthPermille == other.HealthPermille
             && Walls == other.Walls
@@ -106,7 +109,7 @@ public sealed class ScenePresenter
         public override bool Equals(object? obj) => obj is TileVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
-            HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged), GoldHeld, HealthPermille, Walls, Pieces,
+            HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged, RedHighlighted), GoldHeld, HealthPermille, Walls, Pieces,
             HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface, AmbientTint, QuarterAmbientTint),
             HashCode.Combine(Scanned, PointLight, SightFogOverlay, SightFogOpacity));
     }
@@ -289,6 +292,8 @@ public sealed class ScenePresenter
     private bool _fogSnapshot;
     private int _doorsSnapshot;
     private int _previewSnapshot;
+    private readonly TileHighlightSlot[] _highlightSnapshot = new TileHighlightSlot[TileHighlightState.Capacity];
+    private bool _highlightPhaseSnapshot;
     private long _tickSnapshot;
     private readonly List<long> _cryptSnapshot = [];
     private readonly List<long> _cryptScratch = [];
@@ -396,6 +401,8 @@ public sealed class ScenePresenter
             || _fogSnapshot != world.FogOfWarEnabled
             || _doorsSnapshot != world.DoorsVersion
             || _previewSnapshot != _view.PreviewVersion
+            || !world.TileHighlights.Slots.SequenceEqual(_highlightSnapshot)
+            || (world.TileHighlights.HasActive && _view.TerrainHighlightPhase != _highlightPhaseSnapshot)
             || _tickSnapshot != world.CurrentTick.Value
             || _ruinedSnapshot != RuinedHearts(world))
             return false;
@@ -414,6 +421,8 @@ public sealed class ScenePresenter
         _fogSnapshot = world.FogOfWarEnabled;
         _doorsSnapshot = world.DoorsVersion;
         _previewSnapshot = _view.PreviewVersion;
+        world.TileHighlights.Slots.CopyTo(_highlightSnapshot);
+        _highlightPhaseSnapshot = _view.TerrainHighlightPhase;
         _tickSnapshot = world.CurrentTick.Value;
         _ruinedSnapshot = RuinedHearts(world);
         Crypts(world, _cryptSnapshot);

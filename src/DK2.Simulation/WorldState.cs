@@ -1139,6 +1139,7 @@ public sealed class WorldState
     /// collection linearly for several queries, so this is never sorted by id.
     /// </summary>
     public IReadOnlyList<ActionPointState> ActionPoints => _actionPoints;
+    public TileHighlightState TileHighlights { get; } = new();
 
     internal void AddActionPoint(ActionPointState actionPoint) => _actionPoints.Add(actionPoint);
 
@@ -1519,6 +1520,7 @@ public sealed class WorldState
 
         hash.Add(_actionPoints.Count);
         foreach (ActionPointState actionPoint in _actionPoints) actionPoint.HashInto(ref hash);
+        TileHighlights.HashInto(ref hash);
 
         hash.Add(_doors.All.Count);
         hash.Add(_doors.NextId);

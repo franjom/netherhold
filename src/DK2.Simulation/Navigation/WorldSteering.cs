@@ -20,7 +20,7 @@ namespace DK2.Simulation.Navigation;
 /// the remembered entity of <c>Separation</c>'s second term. Each is recorded
 /// on the method that would supply it.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md")]
-public sealed class WorldSteering : ISteeringWorld, INavByteGrid
+public sealed class WorldSteering : ISteeringWorld, INavByteGrid, IMovementContactWorld
 {
     private readonly GameDatabase _database;
     private readonly WorldState _world;
@@ -359,6 +359,18 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return true;
     }
 
+    public void CollectMovementContacts(SteeringBody body, Fixed16Vector motion)
+    {
+        var radius = new Fp32(body.Radius >> 4);
+        foreach (PortalCrystalBounds crystal in _portalCrystals)
+        {
+            if (crystal.Expanded(radius).Allows(body.Pos, body.Pos + motion)) continue;
+            Fixed16Vector normal = Fixed16.Normalise(body.Pos - crystal.Centre);
+            if (normal == Fixed16Vector.Zero) continue;
+            body.SolidContacts.Add(new SolidContact(normal, false));
+        }
+    }
+
     public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target, Fp32 bodyRadius = default)
     {
         Refresh();
@@ -516,9 +528,6 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             var position = new Fixed16Vector(x << 4, y << 4);
             into.Add(new SteeringObstacle(position, size, solid, false));
         }
-        foreach (PortalCrystalBounds crystal in _portalCrystals)
-            if ((crystal.Centre - centre).Octile() <= range + crystal.Radius)
-                into.Add(new SteeringObstacle(crystal.Centre, crystal.Radius, true, false));
         if (_structures is null || _structures.HeartCentres.Count == 0) return;
 
         foreach (int index in _structures.HeartCentres)

@@ -25,6 +25,62 @@ namespace DK2.Presentation.Tests;
 public class ScenePresenterTests
 {
     [Fact]
+    public void TutorialPulseUsesStrictWallClockIntervalsWithoutCatchup()
+    {
+        var view = new WorldView(new GameDatabase([], [], [], new GlobalVariables()));
+        view.AdvanceTerrainHighlights(new EffectTime(200));
+        Assert.False(view.TerrainHighlightPhase);
+        view.AdvanceTerrainHighlights(new EffectTime(201));
+        Assert.True(view.TerrainHighlightPhase);
+        view.AdvanceTerrainHighlights(new EffectTime(1000));
+        Assert.False(view.TerrainHighlightPhase);
+        view.AdvanceTerrainHighlights(new EffectTime(1200));
+        Assert.False(view.TerrainHighlightPhase);
+        view.AdvanceTerrainHighlights(new EffectTime(1201));
+        Assert.True(view.TerrainHighlightPhase);
+    }
+
+    [InstallFact]
+    public void Level1ScriptHighlightsArePresentedAndClearedWithoutAdvancingSimulation()
+    {
+        const string level = "Level1";
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, level);
+        WorldState world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, level)!,
+            Enumerable.Range(0, 8).Select(i => (byte)i));
+        ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(Dk2InstallGate.Path, level)!
+            .OfType<ActionPointThing>().Select(point => point with { TriggerId = 0 }));
+        var records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, level)!.OfType<ActionTriggerRecord>().ToArray();
+        var view = new WorldView(db, new PlayerId(PlayerIds.FirstKeeper));
+        var target = new RecordingTarget();
+        var presenter = new ScenePresenter(view, AssetProviderChain.Standard(), target);
+        presenter.Present(world); target.Clear();
+        view.AdvanceTerrainHighlights(new EffectTime(201)); presenter.Present(world);
+        Assert.Equal(0, target.Updates);
+        Run(records.Single(r => r.TriggerId == 65456));
+        presenter.Present(world);
+        Assert.True(view.TileAt(world, 14, 24).RedHighlighted);
+        Assert.False(view.TileAt(world, 13, 24).RedHighlighted);
+        Assert.Equal(1, target.Updates); target.Clear();
+        view.AdvanceTerrainHighlights(new EffectTime(401)); presenter.Present(world);
+        Assert.Equal(0, target.Updates);
+        view.AdvanceTerrainHighlights(new EffectTime(402)); presenter.Present(world);
+        Assert.False(view.TileAt(world, 14, 24).RedHighlighted);
+        Assert.Equal(1, target.Updates); target.Clear();
+        view.AdvanceTerrainHighlights(new EffectTime(603)); presenter.Present(world);
+        Assert.True(view.TileAt(world, 14, 24).RedHighlighted);
+        Run(records.First(r => r.Type == 16 && r.Parameters["ActionPointId"] == 4 && r.Parameters["Available"] == 0));
+        presenter.Present(world);
+        Assert.False(view.TileAt(world, 14, 24).RedHighlighted);
+
+        void Run(ActionTriggerRecord original)
+        {
+            var action = new ActionTriggerRecord([]) { Type = original.Type, TriggerId = 0xFFFF,
+                Body = original.Body, Parameters = original.Parameters };
+            new TriggerExecutor(new TriggerTree([action], 0xFFFF), world.Triggers, world, db).Run(1);
+        }
+    }
+
+    [Fact]
     public void ChangingOnlyTerrainTintPushesTheTileAgain()
     {
         TerrainDef Definition(byte id, byte red) => new()

@@ -561,6 +561,7 @@ namespace DK2.Unity
             // Retain released tag previews until the command's tick has actually completed,
             // including the frame before a worker tick starts.
             _worldView.AcknowledgeTagPreviews(_simulation.World.CurrentTick);
+            _worldView.AdvanceTerrainHighlights(new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)));
 
             // How far the drawn world is from its last tick toward its next, for the creature
             // interpolation. On the worker path this frame's ticks have not run yet, so the world

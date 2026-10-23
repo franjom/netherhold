@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 293;
+    private const ulong HashVersion = 294;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
@@ -120,6 +120,7 @@ public sealed class GameSimulation
         using ProfileScope tick = profiler.Scope(SimulationMarkers.Tick);
         _context.Tick = World.CurrentTick;
         _context.Input = input;
+        World.TileHighlights.AdvanceTick();
         _context.TremorMoodDispatchedThisTick.Clear();
         _context.TremorRebellionStartedThisTick.Clear();
 

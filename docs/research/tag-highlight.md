@@ -57,8 +57,8 @@ blue-violet tint over the tile's whole visible mesh, texture still visible.
   - mode 2 always when bridge +0x139B is set and world vt+0x2D8(x, y) is true.
 
   This covers the top and every face the builder emitted, so a face hidden by a
-  solid neighbour (never emitted) shows no tint. CONFIRMED. What sets bit 1, and
-  what +0x139B means, are UNKNOWN.
+  solid neighbour (never emitted) shows no tint. CONFIRMED. Bit1's other producers
+  remain UNKNOWN; +0x139B is the tutorial pulse described below.
 
 ## 3. The look: one colour, one overlay material, frame 0
 
@@ -102,9 +102,42 @@ remake's preview for the tag tool only, corners inclusive, is a HYPOTHESIS. The 
 builder in 0x0043xxxx..0x0044xxxx reads terrain +0x60. Its consumer stays
 UNKNOWN (floor-and-terrain-pieces.md §5).
 
+## Scripted tutorial red flash
+
+CONFIRMED binary reads (2026-10-23): world action16 in `0x00518AD0`
+uses body byte0 as the action-point id and byte1 as enable. Disabled means
+timer0; enabled signed-short Value0 means -1, otherwise Value is already in
+game ticks. `0x00510040`, `0x005100B0` and `0x005101C0` own the four-slot
+bank, its action-point rectangles and inclusive membership test; their records
+describe first-empty-or-matching selection and invalid-id behavior.
+
+`0x0050A450` decrements positive timers before triggers; reaching zero clears
+the slot. Negative timers persist until the script clears them. Save/load
+`0x0050AA60`/`0x0050ADE0` preserve the bank. These rectangles give no dig orders
+and do not disappear automatically when the player tags a tile.
+
+Bridge initialization `0x0043AAD0` zeros timestamp+0x1397 and phase+0x139B.
+`0x0043B220` toggles once when unsigned elapsed wall time is strictly greater
+than200ms, replacing the timestamp; delayed updates do not catch up toggles.
+While on, `0x0043C310` forces red mode2 for every emitted piece of a tile in
+an active rectangle, overriding blue dig-tag mode1. The overlay itself retains
+frame0 and its constant tint; the phase switches the mode, not the texture.
+
+CONFIRMED shipped Level1 data: action16 enables with Value0, then explicit
+disable records clear the guidance. Near the portal AP4 is tile(14,24),
+AP7(14,23), AP10(14,22), AP11(14,21), AP12(15,23), AP13(16,23) and AP14(17,23).
+The installed-data presentation test executes enable65456 and an authored
+AP4 disable, checking pulse/clear changes without advancing simulation.
+
+Built: `TileHighlightState` is saved/hashed; `WorldView` supplies the wall-clock
+phase; `ScenePresenter` refreshes affected tiles even on a paused simulation.
+`TerrainChunks` adds pure-red base light and `AA_RedTexture` overlay, ahead of
+blue tags and behind creatures/flowers. Adjacent room-wall propagation beyond
+the selected tile is unconfirmed and is not added.
+
 ## 5. Open
 
-- The trigger of mode 2 (red).
+- Other producers of tile/piece bit1; the scripted red path is resolved below.
 - Where the final vertex light sum is clamped/packed; 0x0057BF00 adds point lights, see classic-lighting.md section1.
   Whether the overlay pass's vertices also carry its material's own colour
   term, which is (255, 255, 255) for an AA_ material.

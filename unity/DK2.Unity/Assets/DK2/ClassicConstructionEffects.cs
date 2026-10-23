@@ -90,7 +90,7 @@ namespace DK2.Unity
         private readonly List<EffectLightView> _lights = new List<EffectLightView>();
 
         /// <summary>A sprite's colour: its tint alone. DK2's sprite draws (0x0057F3D0, 0x0057FB80) add
-        /// the radial term of a light list (0x0057C080) whose filler is unread; adding the tile's whole
+        /// the radial term of a light list (0x0057C080) whose source context is untraced; adding the tile's whole
         /// table (ADR-0493) turned the Heart's grey dust brown, its cyan sparkles white and the claim
         /// mist pale, against the owner's DK2, so the list is taken as empty for effects (amendment).</summary>
         private static Color32 SpriteColour(ConstructionParticle source) =>
@@ -115,7 +115,7 @@ namespace DK2.Unity
             {
                 if (group == null) continue;
                 group.Count = 0;
-                if (!group.IsFlat) continue;
+                if (!group.IsFlat && _transparent == null) continue;
                 group.FlatVertices.Clear(); group.FlatUvs.Clear(); group.FlatColours.Clear(); group.FlatTriangles.Clear();
             }
             for (int i = 0; i < Model.Particles.Count; i++)
@@ -170,6 +170,12 @@ namespace DK2.Unity
                 // it lifts the sprite onto its point (flames, splashes) is STRONGLY INFERRED from the
                 // quad's UVs (v grows with camera y, D3D's v runs down) and the art.
                 if (group.StandsOnPoint) position += cameraUp * (spriteHeight * 0.5f);
+                if (_transparent != null)
+                {
+                    AddBillboardQuad(group, source, position, camera != null ? camera.transform.right : Vector3.right,
+                        cameraUp, width, spriteHeight);
+                    continue;
+                }
                 group.Buffer[group.Count++] = new ParticleSystem.Particle
                 {
                     position = position,
@@ -184,7 +190,7 @@ namespace DK2.Unity
             foreach (Group group in _groups.Values)
             {
                 if (group == null || group.IsMesh) continue;
-                if (group.IsFlat)
+                if (group.IsFlat || _transparent != null)
                 {
                     DrawFlat(group);
                     continue;
@@ -277,6 +283,26 @@ namespace DK2.Unity
             Graphics.RenderMesh(parameters, mesh, 0, Matrix4x4.identity);
         }
 
+        private static void AddBillboardQuad(Group group, ConstructionParticle source, Vector3 position,
+            Vector3 right, Vector3 up, float width, float height)
+        {
+            int frames = Math.Max(1, group.Sprites.Count);
+            int frame = Math.Min(frames - 1, (int)((1f - source.RemainingSpriteLifetimeFraction) * frames));
+            float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
+            int first = group.FlatVertices.Count;
+            Color32 colour = SpriteColour(source);
+            for (int corner = 0; corner < 4; corner++)
+            {
+                bool left = corner == 0 || corner == 3;
+                group.FlatVertices.Add(position + right * (left ? -width * .5f : width * .5f)
+                    + up * (corner < 2 ? -height * .5f : height * .5f));
+                group.FlatUvs.Add(new Vector2(left ? u0 : u1, corner < 2 ? 0f : 1f));
+                group.FlatColours.Add(colour);
+            }
+            group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 1); group.FlatTriangles.Add(first + 2);
+            group.FlatTriangles.Add(first); group.FlatTriangles.Add(first + 2); group.FlatTriangles.Add(first + 3);
+        }
+
         private Group MeshGroup(EffectElementDef definition, string meshEntry, AssetRef key)
         {
             Mesh mesh = null; Material[] materials = null;
@@ -346,8 +372,10 @@ namespace DK2.Unity
             Shader shader = Shader.Find("DK2/ClassicEffect");
             if (shader == null) throw new InvalidOperationException("The classic effect shader is unavailable.");
             var group = new Group { Material = new Material(shader) { name = key.Key } };
+            group.Material.SetInt("_SrcBlend", (int)(resource.Blend == EffectSpriteBlend.Alpha
+                ? BlendMode.SrcAlpha : BlendMode.One));
             group.Material.SetInt("_DstBlend", (int)(resource.Blend == EffectSpriteBlend.Additive
-                ? BlendMode.One : BlendMode.OneMinusSrcAlpha));
+                ? BlendMode.One : resource.Blend == EffectSpriteBlend.Alpha ? BlendMode.OneMinusSrcAlpha : BlendMode.Zero));
             var go = new GameObject("effect " + definition.Name);
             go.transform.SetParent(_root, false);
             group.System = go.AddComponent<ParticleSystem>();
@@ -385,6 +413,8 @@ namespace DK2.Unity
                 group.Sprites.Add(sprite); sheets.AddSprite(sprite);
             }
             var renderer = go.GetComponent<ParticleSystemRenderer>();
+            // Terrain's ordered transparent runs would otherwise paint over these billboards.
+            renderer.enabled = _transparent == null;
             renderer.sharedMaterial = group.Material;
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.sortMode = ParticleSystemSortMode.Distance;

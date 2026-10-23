@@ -66,8 +66,29 @@ Effect 81, Create Room Block Effect:
 | Fade percentage | 100 | 100 |
 | Death/collision/next ids | all zero | all zero |
 
-Type 2 selects an alpha sprite; type 3 selects an additive alpha sprite.
+Type2 selects an alpha sprite; type3 selects an additive ONE/ONE material.
 It does not mean that type 3 alone enables texture animation.
+
+### Sprite blend and shared terrain ordering (2026-10-23)
+
+CONFIRMED rereads: `0x0059A6A0` loads type3 art, including animated art,
+as `AA_` material flag0x10. `0x0057C420` maps this to state0x201 and
+`0x00589250` selects ONE/ONE. Texture alpha does not attenuate this default
+additive contribution. `0x0057F7E0` applies `0x0057F090` render-item overrides,
+so this material default does not describe every possible item's final state.
+
+The remake used SRCALPHA/ONE, dimming mist twice through its dark RGB and
+texture alpha. It also drew billboards before the portal's transparent surface.
+Billboards now join the same triangle-depth stream as blended terrain and flat
+effects, retaining size, camera orientation, tint and normalized texture phase.
+Additive materials use ONE/ONE; alpha sprites retain SRCALPHA/INVSRCALPHA.
+HUD users keep the shader's alpha default. Geometry is generated for the main
+gameplay camera; simultaneous secondary cameras need their own billboard basis.
+
+The low-alpha GPU pixel case reproduces the old quarter-strength output and
+passes at full additive strength. The focused effect94 probe measures a bright
+central plume (over10000 changed bright pixels versus30 in the former path),
+then expiration. These are remake diagnostics, not pixel parity with DK2.
 
 ## 3. Emission and movement
 
@@ -144,8 +165,8 @@ Without that bit it wraps. Static art without flag 4 does not advance.
 This is independent of the particle's remaining HP: Portal capture elements
 145/146 hold the last texture while alive, rather than replaying their cloud.
 
-The paused Unity particle submission retains a positive lifetime fraction at
-that endpoint, so texture completion does not remove a still-living particle.
+The renderer clamps the normalized phase to the final stored frame at that
+endpoint, so texture completion does not remove a still-living particle.
 Native material selection clamps phase 4096 to its final stored texture.
 
 `0x0059C360` sizes the sprite from descriptor width/height times render scale,
