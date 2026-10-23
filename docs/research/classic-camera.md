@@ -46,9 +46,9 @@ and drawable viewport are distinct inputs when panels reduce the view.
 At a full 640x480 viewport preset3's offset length is10 tiles and vertical
 FOV is about41.112 degrees; at full1280x720 they are5 tiles and about58.716.
 These values are conversion consequences, not settings invented for Unity.
-The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to 1600 (ADR-0522's visual rule;
-owner 2026-10-20): every screen gets the 640 rule's camera distance and vertical angle at 1600×1200, and a wider
-screen sees more at the sides. 1600×1200 is DK2's largest mode and the owner's. STRONGLY INFERRED (read 2026-10-20; within a row of the owner's captures): DK2's view axis meets the screen at the
+The Unity runner sets `ClassicCamera.ReferenceScreenWidth` to1600, matching the
+owner's1600x1200 recording. Resolution/aspect adaptation is in section8.
+STRONGLY INFERRED (read 2026-10-20; within a row of the owner's captures): DK2's view axis meets the screen at the
 middle of the 3D viewport (that the projection is centred on the viewport is inferred), and [the panel height setter](functions/00417170.md) ends that viewport
 0x98 below the bottom panel's top (at graphics detail 0x00759AEC below 4 the rect is instead
 (0, 0x68, 0xA00, top + 0x14)). Expanded
@@ -220,3 +220,37 @@ opposing-packet map-edge cases; only its virtual mode query is stubbed.
 The isolated Unity probe passes at all three zooms. Its runtime timing check
 confirms the adapter's tick construction retains sub-millisecond precision;
 the Mono conversion trap is recorded in `docs/TRAPS.md`.
+
+## 8. Projection widening and reference matching, 2026-10-23
+
+CONFIRMED binary and executable oracle:0x0058A6F0 divides the supplied pixel
+focal length by viewport width/height. With focal640, changing a1600x1200
+viewport to1600x900 keeps horizontal normalized scale0.4 and changes vertical
+scale from0.533333 to0.711111. Viewport cropping does not change the lens.
+The ordinary renderer0x00598880 supplies the lens independently of the crop;
+its conversion is in section2.
+
+CONFIRMED remake defect: reference-resolution scaling used the cropped viewport
+height. A live3840x2160 snapshot with ordinary camera and letterbox height0.75
+had vertical FOV86.3048degrees and horizontal FOV131.54degrees. A full-screen
+height correction removed the crop dependence but retained the earlier extra
+widescreen coverage at118.07degrees. The owner judged that better but still
+distorted, and requested strict reference matching instead of a comfort lens.
+The 18 original live audit files are preserved with verified SHA-256 copies in
+`D:\DK2Evidence\camera-projection-20261023T1649534901957`.
+
+The final adaptation scales the pixel lens by full screen width/reference
+width. With reference1600, full-width horizontal coverage is102.68degrees at
+1080p and4K, matching the1600x1200 baseline. Wider displays crop vertically;
+they no longer extend the peripheral angle. Camera distance, authored lens,
+tilt and raw zoom stay unchanged. This replaces the2026-10-20 extra-side-view
+policy; it is a modern resolution mapping, not evidence of native widescreen
+support. Null reference width retains the raw native rule from section2.
+
+Full/cropped C# regressions cover1080p and4K. The executable oracle covers the
+native1600-pixel crop calculation. Unity checks pass at three zooms for
+1080p/full,4K/letterbox and the1600x1200 baseline; the latter retains the section6
+pixel measurements. Owner-session confirmation of the final mapping is pending.
+Native HUD principal-point placement during a combined letterbox remains
+unmeasured. Matching the
+reference coverage does not remove perspective distortion inherent in DK2.

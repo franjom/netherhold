@@ -59,6 +59,16 @@ with the external native frame directory and remake capture directory to print
 the two stationary-view marker measurements. The probe does not assert motion parity. Reference
 recording and comparison limits: [classic camera](../../docs/research/classic-camera.md#6-camera-recording-2026-10-23).
 
+Set `DK2_CAMERA_REFERENCE_HEART=1` to advance the Heart intro and capture its
+settled arches, `DK2_CAMERA_REFERENCE_PORTRAIT=1` for1065x1080, or
+`DK2_CAMERA_REFERENCE_LETTERBOX=1` for a25% vertical crop. Variant images use
+separate subdirectories. `DK2_CAMERA_REFERENCE_SIZE=1920x1080` or`3840x2160`
+sets an explicit target. The probe asserts the reference horizontal lens scale.
+The editor menu `DK2/Diagnostics/Record live camera` records sixteen post-path
+frames, one second apart, under `build/camera-live-audit/`. Create
+`build/camera-live-audit.request` before a reload to request the same capture
+automatically; the editor consumes that marker and preserves all JSON files.
+
 ## Camera rotation and allocation capture
 
 Use the prepared, marked isolated project; never point the launcher at an owner

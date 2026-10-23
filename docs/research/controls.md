@@ -163,10 +163,10 @@ translate.
 |---|---|---|
 | G, H, M, ESC (Options) | the same | DK2's |
 | `+` / `-` ambient light | the same | DK2's; step size unread |
-| Arrow keys pan | the same | DK2's; SHIFT speed scroll absent |
+| Arrow keys pan, SHIFT speed scroll | the same | DK2's; native motion rules in classic-camera.md §7 |
 | W/A/S/D and joystick pan (InputManager `Horizontal`/`Vertical` axes) | A is Ally Window | ours; collides |
-| Q / E rotate (classic camera only) | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | ours; DK2's keys absent |
-| Mouse wheel zoom | HOME / END, CTRL + UP/DOWN, hold Z and mouse | ours; DK2's keys absent |
+| Q / E, DELETE / PG DN, CTRL + LEFT/RIGHT | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | keyboard bindings built; X/mouse absent |
+| Wheel, HOME / END, CTRL + UP/DOWN | HOME / END, CTRL + UP/DOWN, hold Z and mouse | keyboard bindings built; Z/mouse absent |
 | 1, 3, 4, 5, 7 tool modes | 1–7 are possession abilities | ours; collides |
 | `[` / `]` room cycle | none | ours |
 | ESC / SPACE end a camera path | the same (`0x00405010`, camera-paths.md §5) | DK2's |

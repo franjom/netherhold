@@ -12227,6 +12227,13 @@ and tilt. Preserve sub-millisecond input timing on Unity through tick constructi
 coasting remains frame-rate dependent. Executable arithmetic/boundary oracles
 and sampled rendered landmarks establish scoped parity, not global99% fidelity.
 
+**Amendment,2026-10-23.** The owner rejected extra peripheral distortion and
+requested strict reference matching. Scale the pixel lens by full screen
+width/reference width, preserving the recording's horizontal coverage across
+resolutions and viewport crops; widescreen crops vertically. This replaces the
+earlier extra-side-view policy, with the authored lens/zoom/tilt unchanged.
+Evidence and limits: classic-camera.md §8.
+
 ## ADR-0532 — Keep the state the four script-set HUD boxes read
 **Date:** 2026-10-23 · **Status:** accepted · Research: `docs/research/message-tabs.md` §9
 

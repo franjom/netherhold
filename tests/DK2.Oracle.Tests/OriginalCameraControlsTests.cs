@@ -9,6 +9,36 @@ namespace DK2.Oracle.Tests;
 public class OriginalCameraControlsTests
 {
     [OracleFact]
+    public void ViewportCropDoesNotChangeTheNativePixelLens()
+    {
+        const uint argument = OriginalCpu.Scratch + 0x1000;
+        foreach (int height in new[] { 1200, 900 })
+        {
+            var values = new float[21];
+            values[3] = values[7] = values[11] = 1;
+            values[12] = 640;
+            values[17] = 1600;
+            values[18] = height;
+            values[19] = 20;
+            var writes = values.Select((v, i) => (argument + (uint)(i * 4), BitConverter.SingleToUInt32Bits(v))).ToArray();
+            var result = OriginalCpu.Run(new OriginalCpu.Request[]
+            {
+                new(0x0058A6F0, [argument], writes, [0x0077F4BC, 0x0077939C]),
+            })[0];
+            Assert.Null(result.Fault);
+            var camera = new ClassicCamera(new CameraThing(new byte[84])
+            {
+                CameraId = 3, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248,
+                Lens = 8192, AnglePitch = 220, Flags = 0x26,
+            }) { ReferenceScreenWidth = 1600 };
+            var pose = camera.Pose(System.Numerics.Vector3.Zero, new CameraViewport(1600, 1600, height));
+            double focal = height / (2 * Math.Tan(pose.VerticalFieldOfView * Math.PI / 360));
+            Assert.Equal(BitConverter.UInt32BitsToSingle(result.Reads[0]), focal / 1600, 6);
+            Assert.Equal(BitConverter.UInt32BitsToSingle(result.Reads[1]), focal / height, 6);
+        }
+    }
+
+    [OracleFact]
     public void OpposingPacketsMatchNativeClampAtBothMapEdges()
     {
         const uint bridge = OriginalCpu.Scratch + 0x1000, table = OriginalCpu.Scratch + 0x100;

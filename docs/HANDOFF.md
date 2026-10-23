@@ -109,7 +109,7 @@ Preserve the accepted brighter preview with Native Initial Ambient off;
 research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
 Scripted camera paths are built separately (ADR-0496; research/camera-paths.md).
 Step6 ordinary camera controls now follow native packets (ADR-0531); matched
-recording measurements and motion-verification limits: research/classic-camera.md §6–7.
+recording measurements, crop correction and verification limits: research/classic-camera.md §6–8.
 Room/neutral-Portal border flames are researched but unbuilt
 (research/room-border-effects.md); claim-mist bleaching remains open (Q609).
 Wet/bloody footprints are built; native rules and pending visual acceptance: research/creature-footprints.md (Q610, 2026-10-20).

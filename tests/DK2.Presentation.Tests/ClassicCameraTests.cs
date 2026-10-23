@@ -35,17 +35,16 @@ public class ClassicCameraTests
     [Theory]
     [InlineData(1920, 1080)]
     [InlineData(2560, 1440)]
+    [InlineData(3840, 2160)]
     [InlineData(1024, 1280)]
-    public void AReferenceWidthKeepsDk2sDepthAndShowsMoreAtTheSides(int width, int height)
+    public void AReferenceWidthKeepsDk2sDepthAndHorizontalCoverage(int width, int height)
     {
         var framed = new ClassicCamera(Profile()) { ReferenceScreenWidth = 1024 };
         ClassicCameraPose reference = new ClassicCamera(Profile()).Pose(Vector3.Zero, new CameraViewport(1024, 1024, 768));
         ClassicCameraPose pose = framed.Pose(Vector3.Zero, new CameraViewport(width, width, height));
 
         Assert.Equal(reference.Position.Length(), pose.Position.Length(), 4);
-        Assert.Equal(reference.VerticalFieldOfView, pose.VerticalFieldOfView, 3);
-        if (width * 3 > height * 4)
-            Assert.True(HorizontalHalfAngle(pose, width, height) > HorizontalHalfAngle(reference, 1024, 768));
+        Assert.Equal(HorizontalHalfAngle(reference, 1024, 768), HorizontalHalfAngle(pose, width, height), 5);
     }
 
     [Fact]
@@ -57,6 +56,20 @@ public class ClassicCameraTests
 
         Assert.True(wide.VerticalFieldOfView > small.VerticalFieldOfView + 30);
         Assert.True(wide.Position.Length() < small.Position.Length());
+    }
+
+    [Theory]
+    [InlineData(1920, 1080)]
+    [InlineData(3840, 2160)]
+    public void LetterboxingCropsTheViewWithoutWideningTheLens(int width, int height)
+    {
+        var camera = new ClassicCamera(Profile()) { ReferenceScreenWidth = 1600 };
+        var full = camera.Pose(Vector3.Zero, new CameraViewport(width, width, height));
+        int croppedHeight = height * 3 / 4;
+        var cropped = camera.Pose(Vector3.Zero, new CameraViewport(width, width, croppedHeight));
+        Assert.Equal(full.Position, cropped.Position);
+        Assert.Equal(HorizontalHalfAngle(full, width, height), HorizontalHalfAngle(cropped, width, croppedHeight), 5);
+        Assert.True(cropped.VerticalFieldOfView < full.VerticalFieldOfView);
     }
 
     [Fact]

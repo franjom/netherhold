@@ -11,6 +11,7 @@ using DK2.Data;
 using DK2.Data.Model;
 using DK2.Presentation;
 using DK2.Simulation;
+using DK2.Simulation.Systems;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -39,6 +40,12 @@ namespace DK2.Unity.Editor
                 var db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
                 var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1"),
                     Enumerable.Range(0, 8).Select(i => (byte)i));
+                bool heart = Environment.GetEnvironmentVariable("DK2_CAMERA_REFERENCE_HEART") == "1";
+                if (heart)
+                {
+                    var simulation = new GameSimulation(db, world, 1, new ISimulationSystem[] { new DungeonHeartSystem() });
+                    for (int i = 0; i < 41; i++) simulation.Tick();
+                }
                 using var art = InstallArtProvider.Open(install, db);
                 var root = new GameObject("camera reference");
                 var view = new WorldView(db, new PlayerId(PlayerIds.FirstKeeper));
@@ -50,16 +57,30 @@ namespace DK2.Unity.Editor
                 var camera = new GameObject("reference camera").AddComponent<Camera>(); camera.tag = "MainCamera";
                 camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.black;
                 camera.allowHDR = false; camera.allowMSAA = false;
-                var target = new RenderTexture(1600, 1200, 24); target.Create(); camera.targetTexture = target;
-                var pixels = new Texture2D(1600, 1200, TextureFormat.RGBA32, false);
+                bool portrait = Environment.GetEnvironmentVariable("DK2_CAMERA_REFERENCE_PORTRAIT") == "1";
+                bool letterbox = Environment.GetEnvironmentVariable("DK2_CAMERA_REFERENCE_LETTERBOX") == "1";
+                string size = Environment.GetEnvironmentVariable("DK2_CAMERA_REFERENCE_SIZE");
+                string[] dimensions = size?.Split('x');
+                int width = dimensions == null ? (portrait ? 1065 : 1600) : int.Parse(dimensions[0]);
+                int height = dimensions == null ? (portrait ? 1080 : 1200) : int.Parse(dimensions[1]);
+                var target = new RenderTexture(width, height, 24); target.Create(); camera.targetTexture = target;
+                var pixels = new Texture2D(width, height, TextureFormat.RGBA32, false);
+                if (letterbox) camera.rect = new Rect(0, .125f, 1, .75f);
                 string output = Path.GetFullPath(Path.Combine(Application.dataPath, "../../camera-captures"));
                 Directory.CreateDirectory(output);
+                if (heart || portrait || letterbox || size != null)
+                {
+                    output = Path.Combine(output, (heart ? "heart" : "gold") + "-" + (size ?? (portrait ? "portrait" : "4x3"))
+                        + (letterbox ? "-letterbox" : ""));
+                    Directory.CreateDirectory(output);
+                }
                 var profile = GameDatabaseLoader.LoadCameraPresets(install, "Level1").Single(p => p.CameraId == 3);
                 var model = new ClassicCamera(profile, ClassicCamera.LevelStartYaw) { ReferenceScreenWidth = 1600 };
                 foreach (int zoom in new[] { profile.Zoom, profile.MaxZoom - 1, profile.MinZoom })
                 {
                     model.SetZoom(new Fp32(zoom));
-                    var pose = model.Pose(new System.Numerics.Vector3(14.5f, 1, -24.5f), new CameraViewport(1600, 1600, 1200));
+                    var focus = new System.Numerics.Vector3(14.5f, 1, heart ? -28.5f : -24.5f);
+                    var pose = model.Pose(focus, new CameraViewport(width, camera.pixelWidth, camera.pixelHeight));
                     camera.transform.position = new Vector3(pose.Position.X, pose.Position.Y, pose.Position.Z);
                     camera.transform.rotation = Quaternion.LookRotation(new Vector3(pose.Forward.X, pose.Forward.Y, pose.Forward.Z),
                         new Vector3(pose.Up.X, pose.Up.Y, pose.Up.Z));
@@ -67,10 +88,13 @@ namespace DK2.Unity.Editor
                     camera.farClipPlane = pose.FarClipDistance;
                     var projection = camera.projectionMatrix; projection[1, 2] = -pose.ProjectionCentreShift;
                     camera.projectionMatrix = projection;
-                    Vector3 axis = camera.WorldToScreenPoint(new Vector3(14.5f, 1, -24.5f));
-                    float expectedY = 1200f * (1f - model.ProjectionCentre);
-                    if (Mathf.Abs(axis.x - 800) > .01f || Mathf.Abs(axis.y - expectedY) > .01f)
+                    Vector3 axis = camera.WorldToScreenPoint(new Vector3(focus.X, focus.Y, focus.Z));
+                    float expectedY = camera.pixelRect.y + camera.pixelHeight * (1f - model.ProjectionCentre);
+                    if (Mathf.Abs(axis.x - width / 2f) > .01f || Mathf.Abs(axis.y - expectedY) > .01f)
                         throw new Exception("Unity's rendered axis differs from the presentation model: " + axis);
+                    float expectedHorizontalScale = 2f * 640f / 1600f;
+                    if (Mathf.Abs(camera.projectionMatrix[0, 0] - expectedHorizontalScale) > .00001f)
+                        throw new Exception("Viewport cropping changed the native horizontal projection scale.");
                     for (int warmup = 0; warmup < 3; warmup++)
                     {
                         typeof(TransparentTerrain).GetMethod("BeforeCamera", BindingFlags.NonPublic | BindingFlags.Instance)
@@ -82,7 +106,7 @@ namespace DK2.Unity.Editor
                     if (pixels.GetPixels32().Count(p => p.r > 20 || p.g > 20 || p.b > 20) < 10000)
                         throw new Exception("Camera reference capture is blank.");
                     File.WriteAllBytes(Path.Combine(output, "gold-zoom-" + zoom + ".png"), pixels.EncodeToPNG());
-                    if (zoom == profile.Zoom) ExportWallMarkers(world, db, lattice, camera, output);
+                    if (zoom == profile.Zoom) ExportWallMarkers(world, db, lattice, camera, output, height);
                 }
                 RenderTexture.active = null; target.Release();
                 UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(pixels);
@@ -94,7 +118,7 @@ namespace DK2.Unity.Editor
         }
 
         private static void ExportWallMarkers(WorldState world, GameDatabase database, TerrainLattice lattice,
-            Camera camera, string output)
+            Camera camera, string output, int height)
         {
             using var csv = new StreamWriter(Path.Combine(output, "wall-markers.csv"));
             csv.WriteLine("tile_x,tile_y,world_x,world_y,world_z,pixel_x,pixel_y");
@@ -107,7 +131,7 @@ namespace DK2.Unity.Editor
                     var point = new Vector3(p.X, -p.Z, -p.Y);
                     Vector3 pixel = camera.WorldToScreenPoint(point);
                     csv.WriteLine(FormattableString.Invariant(
-                        $"{x},{y},{point.x:R},{point.y:R},{point.z:R},{pixel.x:R},{1200 - pixel.y:R}"));
+                        $"{x},{y},{point.x:R},{point.y:R},{point.z:R},{pixel.x:R},{height - pixel.y:R}"));
                 }
         }
     }
