@@ -148,8 +148,9 @@ activator. That includes allies, heroes and the neutral player.
 - **129 Locate Hidden Land.** It switches on the global `0x00759B38`. Values 5, 8, 11 and 16
   write 1 into slots 0–3 of the profile's `Secret Levels` registry value (`0x00561420`,
   `campaign-progress-registry.md`); any other value writes nothing. Either way it increments the
-  byte `0x00759B7C`. That `0x00759B38` holds the current campaign level number is a HYPOTHESIS
-  that fits the four values.
+  byte `0x00759B7C`. `0x00759B38` is profile `+0xC`, `Level Number`, the launched map slot
+  (STRONGLY INFERRED, `campaign-map-and-progression.md`), so the four values are levels 5, 7,
+  10 and 13 and unlock secret levels 1-4.
 - **140 Transfer Creature.** It acts only in game mode 1 (`0x0075AD4B`, single player), on a
   creature the keeper owns. It writes the creature's type (definition `+0x770`) and level
   (`+0x403`) to the profile's `Transfer Creature ID` and `Transfer Creature Level` registry

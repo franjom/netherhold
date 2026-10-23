@@ -106,7 +106,8 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 | **Destroying a room somebody else holds** | Read and built (ADR-0342, `room-health.md` §4–5): heroes knock a keeper's buildable rooms down tile by tile as they walk across them. Job 11's room attack (Q523) is not built; the room messages are (ADR-0412–0414) |
 | **What defeat does** (Q40) | Built (ADR-0162, ADR-0207, `DefeatRules`, Q358): creatures leave by the nearest portal, rooms and gold go neutral, the heart stays as a ruin. Left: the Destructor (object 100) |
 | **The computer keeper** (Q509, Q555, Q563) | Built and compared with DK2's own keepers on two maps; every verb agrees in kind and the open differences are timing (`computer-keeper-observations.md`). The research move and prisoner decisions are unbuilt, the trap and door step is built on a parked branch and not on master, and the nine personalities load (ADR-0410) (`docs/KEEPER_AI.md` §12) |
-| **Audio event semantics** | Untouched |
+| **Front end, campaign map and progression** | Read from the exe, not built: the menu table and station state machine (`front-end-menus.md`), campaign status values, branch rules, secret levels, the transfer creature and the post-map screens (`campaign-map-and-progression.md`). Front-end asset formats are inventoried (`front-end-assets.md`); BMP, `.444`, SDT/MPEG, TGQ, bank maps and HiScores have no reader. Plan: `plans/2026-10-23-front-end.md` |
+| **Audio event semantics** | Untouched; audio and movie container formats are inventoried in `front-end-assets.md` |
 
 ## Per-mechanic notes
 

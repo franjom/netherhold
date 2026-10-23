@@ -16,6 +16,7 @@ It is not a game rule and nothing in the simulation reads it.
 | `Player Level Status` is what gates the world map | **CONFIRMED** (owner, 2026-09-10) | Two writes, two predicted outcomes, both observed |
 | It is **160 bytes**, forty dwords | **Known** | The loader's own clamp, below |
 | Entry *n* set to 1 means that map is done | **CONFIRMED** (owner) | 20 entries offered level 17; 23 offered level 20 |
+| Values: 0 locked, 1 won (replayable), 2 open, 3 the branch sibling not taken (not selectable) | **STRONGLY INFERRED** (binary) | `campaign-map-and-progression.md` §2 |
 | The per-index map assignment below | **Strongly inferred** | Derived from those two points plus the shipped corpus; the count is confirmed, each individual slot is not |
 | `Level Number` and `Total Evil Rating` do **not** gate it | **CONFIRMED** (owner) | Both were set and neither moved the map |
 
@@ -60,6 +61,12 @@ idx   0  1  2  3  4   5   6   7  8  9  10   11   12   13  14  15  16   17   18  
 All four extra maps — `Level6b`, `level11B`, `level11C`, `Level15b` — are in the
 shipped corpus and `dk2tools kwd oracle` lists them.
 
+In the binary the index is 1-based: map slot *n* (level 1 = slot 1) lives at
+`profile + 0x87D + 4n`, which is byte `4(n-1)` of the value, so the table above is the
+same layout. The profile is the global at `0x00759B2C`. Every write re-saves the value at
+once (`0x00560D60`). Unlock and branch rules, the other campaign values and their writers:
+`campaign-map-and-progression.md`.
+
 This layout was not assumed. Setting the first **20** entries offered level
 **17**, which is what the table predicts (20 entries end at L16); setting **23**
 then offered level **20**, and every earlier level stayed selectable. A layout
@@ -70,10 +77,11 @@ without the variant slots would have predicted 21 and 24.
 Both of these were set and observed to change nothing, so neither is worth
 trying again:
 
-- **`Level Number`** is the current position, not progress. Setting it to 20
-  with two levels beaten still offered level 3.
-- **`Total Evil Rating`** is the score per map — forty dwords, non-zero for each
-  map played. Marking seventeen more of them non-zero still offered level 3.
+- **`Level Number`** is the last launched map slot (1-24, 26-30 for secrets), not
+  progress. Setting it to 20 with two levels beaten still offered level 3.
+- **`Total Evil Rating`** is the score per map slot — forty dwords, overwritten by
+  each finished attempt, win or loss (`0x004BF329`). Marking seventeen more of them
+  non-zero still offered level 3.
 
 `Player Level Status` may not even exist until something writes it; on this
 install it was absent while the owner had genuinely completed two levels.
@@ -104,7 +112,9 @@ To undo: `reg import dk2-key.reg`.
 
 Marking a map done is not the same as having played it. The profile's other
 campaign state — evil ratings, level attempts, transfer creature — is untouched,
-so the world map's *statistics* will not match its *progress*.
+so the world map's *statistics* will not match its *progress*. Marking a branch map
+1 does not close its siblings (only a win writes 3), so both branches stay selectable.
+Loading a saved game rewrites statuses 1-25 from the save (`0x0055B980`).
 
 For capture work that does not matter: the probe reads the trigger flag and
 timer banks, which a level initialises from its own script at load. It would

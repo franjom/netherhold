@@ -84,6 +84,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
 - Windows Python defaults to a legacy code page here; use `encoding='utf-8-sig'` when reading repository Markdown.
 - PowerShell here-strings piped into Python can replace non-ASCII source literals with `?`; use ASCII script literals or `apply_patch` for Unicode edits.
+- `WadArchive.TryGetEntry` returns the later of two same-named entries; FrontEnd.WAD has 31 duplicate names (loading screens, `2dLevelS*`, Cancel/Confirm), so look those up by entry index ([front-end-assets.md](research/front-end-assets.md) §1.3).
 
 ## Builds, tests and dk2tools
 
