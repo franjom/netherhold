@@ -55,6 +55,7 @@ namespace DK2.Unity
         private readonly Transform _root;
         private readonly IEffectSpriteProvider _sprites;
         private readonly ClassicMeshes _meshes;
+        private readonly TransparentTerrain _transparent;
         /// <summary>One particle system per element definition, and per mesh entry for a group part.</summary>
         private readonly Dictionary<(AssetRef, string), Group> _groups = new Dictionary<(AssetRef, string), Group>();
         public RoomConstructionParticles Model { get; }
@@ -71,6 +72,7 @@ namespace DK2.Unity
             _root = root;
             _sprites = sprites;
             _meshes = meshes;
+            _transparent = root.GetComponentInChildren<TransparentTerrain>();
             Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight,
                 terrainDebrisStyle: TerrainDebrisStyle.Crumbling,
                 captureEffectStyle: CaptureEffectStyle.Edges, captureEdges: captureEdges,
@@ -105,6 +107,7 @@ namespace DK2.Unity
 
         public void Draw()
         {
+            _transparent?.BeginEffectFrame();
             float fraction = _fraction;
             Camera camera = Camera.main;
             Vector3 cameraUp = camera != null ? camera.transform.up : Vector3.up;
@@ -150,7 +153,9 @@ namespace DK2.Unity
                             // Culling bounds about the particle: the default is an empty box at the origin.
                             worldBounds = new Bounds(position, Vector3.one * (4f * size + 1f)),
                         };
-                        Graphics.RenderMesh(parameters, mesh, sub, matrix);
+                        if (_transparent != null && materials[sub].name.StartsWith("AA_", StringComparison.Ordinal))
+                            _transparent.AddEffectMesh(mesh, sub, materials[sub], matrix);
+                        else Graphics.RenderMesh(parameters, mesh, sub, matrix);
                     }
                     continue;
                 }
@@ -188,6 +193,7 @@ namespace DK2.Unity
                 if (main.maxParticles < group.Count) main.maxParticles = group.Buffer.Length;
                 group.System.SetParticles(group.Buffer, group.Count);
             }
+            _transparent?.EndEffectFrame();
         }
 
         /// <summary>A mesh particle's turn: DK2 turns a model about its X, then its Y, then the heading
@@ -256,6 +262,11 @@ namespace DK2.Unity
             mesh.SetUVs(0, group.FlatUvs);
             mesh.SetColors(group.FlatColours);
             mesh.SetTriangles(group.FlatTriangles, 0, calculateBounds: true);
+            if (_transparent != null)
+            {
+                _transparent.AddEffectMesh(mesh, 0, group.Material, Matrix4x4.identity);
+                return;
+            }
             var parameters = new RenderParams(group.Material)
             {
                 shadowCastingMode = ShadowCastingMode.Off,
@@ -324,7 +335,8 @@ namespace DK2.Unity
         {
             AssetRef key = spriteAsset.IsEmpty ? AssetRef.ForEffectElement(definition.Name) : spriteAsset;
             if (_groups.TryGetValue((key, meshEntry ?? ""), out Group existing)) return existing;
-            if (meshEntry != null || definition.ArtResource.Type == 5) return MeshGroup(definition, meshEntry, key);
+            if (meshEntry != null || definition.ArtResource.Type == 5 || definition.ArtResource.Type == 6)
+                return MeshGroup(definition, meshEntry, key);
             if (_sprites == null || !_sprites.TryResolve(key, out ResolvedAsset asset)
                 || !_sprites.TryGetSprite(asset, out EffectSpriteResource resource))
             {
@@ -389,6 +401,8 @@ namespace DK2.Unity
 
         public void Dispose()
         {
+            _transparent?.BeginEffectFrame();
+            _transparent?.EndEffectFrame();
             foreach (Group group in _groups.Values)
             {
                 if (group == null) continue;

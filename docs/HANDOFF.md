@@ -118,6 +118,8 @@ The debug FPS/frame-time display is built; usage and rotation profiling protocol
 [Unity performance guidance](../unity/README.md#measuring-performance).
 Creature/cinematic timing now shares a late draw clock (ADR-0501); native tile
 neighbour queries and torture-approach flags are corrected (ADR-0500).
+Portal arrival transparency and animated beams are corrected; the reported
+keeper-coloured cloud tail remains Q619 (research/portal-creature-action.md).
 Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
 Proposed parallelism milestones and determinism gates:
 [parallelism design](plans/2026-10-17-parallelism-design.md).

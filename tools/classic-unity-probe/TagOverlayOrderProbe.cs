@@ -77,13 +77,62 @@ namespace DK2.Unity.Editor
                 var blockerMaterial = new Material(solid); blockerMaterial.SetColor("_BaseColor", Color.green);
                 blocker.GetComponent<MeshRenderer>().sharedMaterial = blockerMaterial;
                 Verify("flower behind solid wall", Color.green, true, flower, 0);
-                Debug.Log("Tag overlay order verification passed: seven GPU pixel cases.");
+                blocker.SetActive(false); terrain.Clear();
+                var effectMesh = UnityEngine.Object.Instantiate(actor.GetComponent<MeshFilter>().sharedMesh);
+                effectMesh.colors32 = new[] { new Color32(0,255,0,255), new Color32(0,255,0,255),
+                    new Color32(0,255,0,255), new Color32(0,255,0,255) };
+                flower.SetColor("_Tint", Color.white);
+                var backdrop = new Material(faded); backdrop.SetColor("_BaseColor", Color.blue);
+                SetBackdrop(1);
+                terrain.BeginEffectFrame(); terrain.AddEffectMesh(effectMesh, 0, flower, Matrix4x4.identity);
+                terrain.EndEffectFrame();
+                Verify("effect in front of blended terrain", Color.green, false, solid, 0);
+                effectMesh.colors32 = new[] { new Color32(255,0,0,255), new Color32(255,0,0,255),
+                    new Color32(255,0,0,255), new Color32(255,0,0,255) };
+                terrain.BeginEffectFrame(); terrain.AddEffectMesh(effectMesh, 0, flower, Matrix4x4.identity);
+                terrain.AddEffectMesh(effectMesh, 0, flower, Matrix4x4.Translate(new Vector3(2, 0, 0)));
+                terrain.EndEffectFrame();
+                Verify("mutated effect mesh colours", Color.red, false, solid, 0);
+                terrain.BeginEffectFrame(); terrain.AddEffectMesh(effectMesh, 0, flower, Matrix4x4.identity);
+                terrain.EndEffectFrame();
+                Verify("fewer effect submissions", Color.red, false, solid, 0);
+                int effectVertices = 0;
+                foreach (MeshRenderer batch in terrain.GetComponentsInChildren<MeshRenderer>())
+                    if (batch.sharedMaterial == flower) effectVertices += batch.GetComponent<MeshFilter>().sharedMesh.vertexCount;
+                if (effectVertices != 6) throw new Exception("Removed effect retained geometry.");
+                terrain.transform.rotation = Quaternion.Euler(0, 25, 0);
+                Verify("world effect under rotated terrain root", Color.red, false, solid, 0);
+                foreach (MeshRenderer batch in terrain.GetComponentsInChildren<MeshRenderer>())
+                    if (batch.sharedMaterial == flower)
+                    {
+                        Vector3 point = batch.transform.TransformPoint(batch.GetComponent<MeshFilter>().sharedMesh.vertices[0]);
+                        if ((point - effectMesh.vertices[effectMesh.triangles[0]]).sqrMagnitude > .000001f)
+                            throw new Exception("World effect moved with terrain root.");
+                    }
+                terrain.transform.rotation = Quaternion.identity;
+                SetBackdrop(-1);
+                Verify("blended terrain in front of effect", Color.blue, false, solid, 0);
+                SetBackdrop(1); terrain.BeginEffectFrame();
+                terrain.EndEffectFrame();
+                Verify("expired effect removed", Color.blue, false, solid, 0);
+                Debug.Log("Tag overlay order verification passed: thirteen GPU pixel cases.");
                 EditorApplication.Exit(0);
+
+                void SetBackdrop(float z)
+                {
+                    var points = new List<Vector3>();
+                    foreach (Vector3 position in positions) points.Add(new Vector3(position.x, position.y, z));
+                    terrain.SetChunk(0, points, new List<Vector3> { Vector3.back, Vector3.back, Vector3.back, Vector3.back },
+                        new List<Vector2> { Vector2.zero, Vector2.up, Vector2.one, Vector2.right },
+                        new List<Vector2> { Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero },
+                        new Dictionary<Material, List<int>> { [backdrop] = new List<int> { 0,1,2,0,2,3 } });
+                }
 
                 void Verify(string name, Color expected, bool showActor, Material material, float depth)
                 {
                     actor.SetActive(showActor); actor.transform.position = new Vector3(0, 0, depth);
                     renderer.sharedMaterial = material;
+                    before.Invoke(terrain, new object[] { default(ScriptableRenderContext), camera });
                     var request = new UniversalRenderPipeline.SingleCameraRequest { destination = target };
                     RenderPipeline.SubmitRenderRequest(camera, request);
                     RenderTexture.active = target;
@@ -93,7 +142,16 @@ namespace DK2.Unity.Editor
                     RenderTexture.active = null;
                     if (Mathf.Abs(actual.r - expected.r) > .08f || Mathf.Abs(actual.g - expected.g) > .08f
                         || Mathf.Abs(actual.b - expected.b) > .08f)
+                    {
+                        foreach (MeshRenderer batch in terrain.GetComponentsInChildren<MeshRenderer>())
+                        {
+                            Mesh drawn = batch.GetComponent<MeshFilter>().sharedMesh;
+                            Debug.Log("batch " + batch.sharedMaterial.name + " order " + batch.sortingOrder
+                                + " vertices " + drawn.vertexCount + " colour " + drawn.colors32[0]
+                                + " point " + drawn.vertices[0]);
+                        }
                         throw new Exception(name + ": expected " + expected + ", got " + actual);
+                    }
                     Debug.Log(name + ": " + actual);
                 }
             }

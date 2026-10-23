@@ -1,6 +1,7 @@
 param(
     [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
-    [string]$OutputRoot = "$PSScriptRoot/../../build/tag-overlay-probe"
+    [string]$OutputRoot = "$PSScriptRoot/../../build/tag-overlay-probe",
+    [switch]$PortalEntrance
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -14,7 +15,9 @@ if (Test-Path -LiteralPath $project) {
 foreach ($folder in @('Assets', 'Packages', 'ProjectSettings')) {
     Copy-Item -LiteralPath "$repo/unity/DK2.Unity/$folder" -Destination $project -Recurse -Force
 }
-foreach ($probe in @('TagOverlayOrderProbe', 'TransparentTerrainReuseProbe')) {
+$entries = @('TagOverlayOrderProbe', 'TransparentTerrainReuseProbe')
+if ($PortalEntrance) { $entries += 'PortalEntranceProbe' }
+foreach ($probe in $entries) {
     Copy-Item -LiteralPath "$PSScriptRoot/$probe.cs" -Destination "$project/Assets/DK2/Editor/$probe.cs" -Force
 }
 $assemblyPath = "$project/Assets/DK2/Editor/DK2.Unity.Editor.asmdef"
@@ -22,7 +25,7 @@ $assembly = Get-Content -LiteralPath $assemblyPath -Raw | ConvertFrom-Json
 $assembly.references = @($assembly.references) + @('Unity.RenderPipelines.Universal.Runtime', 'Unity.RenderPipelines.Core.Runtime')
 [IO.File]::WriteAllText($assemblyPath, ($assembly | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
 New-Item -ItemType File -Path "$project/.classic-window-frame-probe" -Force | Out-Null
-foreach ($entry in @('TagOverlayOrderProbe', 'TransparentTerrainReuseProbe')) {
+foreach ($entry in $entries) {
     $log = [IO.Path]::GetFullPath((Join-Path $OutputRoot "$entry.log"))
     $arguments = @('-batchmode', '-projectPath', [IO.Path]::GetFullPath($project),
         '-executeMethod', "DK2.Unity.Editor.$entry.Run", '-logFile', $log)

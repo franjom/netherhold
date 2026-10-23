@@ -41,6 +41,65 @@ namespace DK2.Unity
             public readonly Dictionary<RenderTriangle, int> VertexOffsets = new Dictionary<RenderTriangle, int>();
         }
 
+        private sealed class EffectMesh
+        {
+            public Material Material;
+            public Matrix4x4 Transform;
+            public Vector3[] Positions = Array.Empty<Vector3>(), Normals = Array.Empty<Vector3>();
+            public Vector2[] Uvs = Array.Empty<Vector2>();
+            public Color32[] Colours = Array.Empty<Color32>();
+            public int[] Indices = Array.Empty<int>();
+        }
+
+        private readonly List<EffectMesh> _effects = new List<EffectMesh>();
+        private int _effectCount;
+        private readonly List<Vector3> _effectPositions = new List<Vector3>(), _effectNormals = new List<Vector3>();
+        private readonly List<Vector2> _effectUvs = new List<Vector2>();
+        private readonly List<Color32> _effectColours = new List<Color32>();
+        private readonly List<int> _effectIndices = new List<int>();
+        private readonly List<Color32> _colours = new List<Color32>(), _runColours = new List<Color32>();
+
+        public void BeginEffectFrame() => _effectCount = 0;
+
+        /// <summary>Unlit blended effect geometry, sorted together with the terrain this frame.</summary>
+        public void AddEffectMesh(Mesh mesh, int submesh, Material material, Matrix4x4 worldTransform)
+        {
+            mesh.GetVertices(_effectPositions); mesh.GetNormals(_effectNormals);
+            mesh.GetUVs(0, _effectUvs); mesh.GetColors(_effectColours); mesh.GetTriangles(_effectIndices, submesh);
+            if (_effectCount == _effects.Count) _effects.Add(new EffectMesh());
+            EffectMesh effect = _effects[_effectCount++];
+            if (effect.Material == material && effect.Transform.Equals(worldTransform)
+                && Same(_effectPositions, effect.Positions) && Same(_effectNormals, effect.Normals)
+                && Same(_effectUvs, effect.Uvs) && Same(_effectColours, effect.Colours)
+                && Same(_effectIndices, effect.Indices)) return;
+            effect.Material = material; effect.Transform = worldTransform;
+            Copy(_effectPositions, ref effect.Positions); Copy(_effectNormals, ref effect.Normals);
+            Copy(_effectUvs, ref effect.Uvs); Copy(_effectColours, ref effect.Colours);
+            Copy(_effectIndices, ref effect.Indices);
+            _dirty = true;
+        }
+
+        public void EndEffectFrame()
+        {
+            if (_effectCount == _effects.Count) return;
+            _effects.RemoveRange(_effectCount, _effects.Count - _effectCount);
+            _dirty = true;
+        }
+
+        private static bool Same<T>(List<T> values, T[] previous)
+        {
+            if (values.Count != previous.Length) return false;
+            for (int i = 0; i < previous.Length; i++)
+                if (!EqualityComparer<T>.Default.Equals(values[i], previous[i])) return false;
+            return true;
+        }
+
+        private static void Copy<T>(List<T> values, ref T[] target)
+        {
+            if (target.Length != values.Count) target = new T[values.Count];
+            values.CopyTo(target);
+        }
+
         private readonly SortedDictionary<int, Source> _sources = new SortedDictionary<int, Source>();
         private readonly List<Run> _runs = new List<Run>();
         private readonly List<Run> _selectedRuns = new List<Run>();
@@ -123,6 +182,7 @@ namespace DK2.Unity
         public void Clear()
         {
             _sources.Clear();
+            _effects.Clear(); _effectCount = 0;
             _dirty = true;
             foreach (Run run in _runs) run.Object.SetActive(false);
         }
@@ -130,12 +190,13 @@ namespace DK2.Unity
         private void Collect()
         {
             _positions.Clear(); _normals.Clear(); _uvs.Clear(); _materials.Clear(); _triangles.Clear();
-            _lightAnchors.Clear();
+            _lightAnchors.Clear(); _colours.Clear();
             var slots = new Dictionary<Material, int>();
             foreach (Source source in _sources.Values)
             {
                 int start = _positions.Count;
                 _positions.AddRange(source.Positions);
+                for (int i = 0; i < source.Positions.Length; i++) _colours.Add(new Color32(255, 255, 255, 255));
                 _normals.AddRange(source.Normals);
                 _uvs.AddRange(source.Uvs);
                 _lightAnchors.AddRange(source.LightAnchors);
@@ -153,6 +214,27 @@ namespace DK2.Unity
                             start + indices[i + 2], slot));
                 }
             }
+            foreach (EffectMesh effect in _effects)
+            {
+                int start = _positions.Count;
+                Matrix4x4 local = transform.worldToLocalMatrix * effect.Transform;
+                Matrix4x4 normals = local.inverse.transpose;
+                for (int i = 0; i < effect.Positions.Length; i++)
+                {
+                    _positions.Add(local.MultiplyPoint3x4(effect.Positions[i]));
+                    _normals.Add(i < effect.Normals.Length ? normals.MultiplyVector(effect.Normals[i]).normalized : Vector3.up);
+                    _uvs.Add(i < effect.Uvs.Length ? effect.Uvs[i] : Vector2.zero);
+                    _colours.Add(i < effect.Colours.Length ? effect.Colours[i] : new Color32(255, 255, 255, 255));
+                    _lightAnchors.Add(Vector2.zero);
+                }
+                if (!slots.TryGetValue(effect.Material, out int slot))
+                {
+                    slot = _materials.Count; slots.Add(effect.Material, slot); _materials.Add(effect.Material);
+                }
+                for (int i = 0; i < effect.Indices.Length; i += 3)
+                    _triangles.Add(new RenderTriangle(start + effect.Indices[i], start + effect.Indices[i + 1],
+                        start + effect.Indices[i + 2], slot));
+            }
         }
 
         private void BeforeCamera(ScriptableRenderContext context, Camera camera)
@@ -161,7 +243,7 @@ namespace DK2.Unity
             Matrix4x4 matrix = transform.localToWorldMatrix;
             if (!_dirty && forward == _lastForward && matrix == _lastMatrix) return;
             using ProfilerMarker.AutoScope scope = SortMarker.Auto();
-            bool geometryChanged = _dirty;
+            bool geometryChanged = _dirty || (_effects.Count != 0 && matrix != _lastMatrix);
             if (geometryChanged) Collect();
             if (geometryChanged || matrix != _lastMatrix)
             {
@@ -195,7 +277,7 @@ namespace DK2.Unity
                 if (!geometryChanged && ReorderIndices(run, triangles)) continue;
                 run.Triangles.Clear();
                 run.VertexOffsets.Clear();
-                _runPositions.Clear(); _runNormals.Clear(); _runUvs.Clear(); _runIndices.Clear();
+                _runPositions.Clear(); _runNormals.Clear(); _runUvs.Clear(); _runIndices.Clear(); _runColours.Clear();
                 _runLightAnchors.Clear();
                 _runStaticLightInputs.Clear();
                 for (int t = 0; t < triangles.Count; t++)
@@ -210,6 +292,7 @@ namespace DK2.Unity
                 run.Mesh.SetVertices(_runPositions);
                 run.Mesh.SetNormals(_runNormals);
                 run.Mesh.SetUVs(0, _runUvs);
+                run.Mesh.SetColors(_runColours);
                 run.Mesh.SetUVs(1, _runLightAnchors);
                 run.Mesh.SetUVs(2, _runStaticLightInputs);
                 run.Mesh.SetUVs(3, _runStaticLightInputs);
@@ -304,6 +387,7 @@ namespace DK2.Unity
             _runPositions.Add(_positions[vertex]);
             _runNormals.Add(_normals[vertex]);
             _runUvs.Add(_uvs[vertex]);
+            _runColours.Add(_colours[vertex]);
             _runLightAnchors.Add(_lightAnchors[vertex]);
             _runStaticLightInputs.Add(Vector4.zero);
         }

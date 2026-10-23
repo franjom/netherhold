@@ -183,3 +183,20 @@ second dword (10) is its frame rate is a HYPOTHESIS fitted to the life: 60 frame
 second is the element's 6 seconds; no reader of type-6 elements has been read.
 Built: `CreatureDef.EntranceEffectId`, `PortalRules.EntranceEffect`, posted by
 `PortalSystem` after `CreateArrival`; the detail gate is taken as satisfied.
+
+### Arrival rendering and the reported colour tail (2026-10-23)
+
+The adapter now dispatches animated elements (type6) to its mesh-frame renderer;
+the existing branch had been unreachable. Flat sprites, including the white disc,
+and additive effect meshes share the terrain's transparent triangle stream, so
+depth rather than renderer priority decides whether the chasm covers an effect. The isolated Level8
+probe verifies sixty beam frames and captures the Goblin arrival through7500ms.
+The ten-frames-per-second interpretation above remains a HYPOTHESIS.
+
+CONFIRMED shipped data: Goblin181 chains to161, generating smoke354,
+sparkle355 and white-disc326. Their art flags are0x84,0 and0x101; none has
+keeper-colour bit2. The owner reports a keeper-coloured central cloud after the
+bright phase, beyond the supplied reference frames. Its producer is UNKNOWN;
+no transition is invented. The generator has no post-birth RGB override
+([004386F0](functions/004386F0.md)), and action49 has no tick callback
+([004950C0](functions/004950C0.md)). This tail is Q619; sprite lighting is Q609.

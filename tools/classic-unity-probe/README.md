@@ -3,11 +3,20 @@
 ## Dig-tag overlay ordering
 
 Run `tools/classic-unity-probe/run-tag-overlay.ps1` with an activated Unity editor.
-It prepares a separate marked project and checks seven GPU pixel cases: the tag,
+It prepares a separate marked project and checks thirteen GPU pixel cases: the tag,
 opaque/transparent/faded creatures, flowers, ordinary blended terrain in front,
-and solid-wall occlusion. It also runs the 96 terrain stream/reuse cases. The
+solid-wall occlusion, effect/terrain interleaving, colour changes, expiry and
+transformed roots. It also runs the 96 terrain stream/reuse cases. The
 original positive tag sorting order reproduces a red creature turning magenta;
 tag-only negative orders pass. The owner's editor project is never opened.
+
+Add `-PortalEntrance` for an original-data Level8 portal sequence and the
+sixty-frame beam regression. The install is `E:/GogGames/Dungeon Keeper 2`.
+`DK2_PORTAL_CAPTURE_OUTPUT` selects its PNG directory; the default is beside
+the scratch project. It advances effect time only; ambient/torch lighting and
+native frame pacing are not acceptance claims. The paired arrival capture
+with the former draw paths loses the white disc behind the chasm and fails
+the beam check; the shared transparent stream restores it.
 
 ## Camera rotation and allocation capture
 
