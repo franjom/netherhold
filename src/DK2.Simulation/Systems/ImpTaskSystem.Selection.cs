@@ -969,6 +969,7 @@ public sealed partial class ImpTaskSystem
             // The handler's second pass fixes the keeper's own damaged wall (kind 16, Q219,
             // ADR-0387): a rival's imps digging in are slowed by the defender's repairs.
             case JobPriority.Reinforce:
+                if (DigMarkCancelsWallWork(context.Database, tile, playerId)) return false;
                 if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Reinforce, playerId))
                     kind = TileWorkKind.Reinforce;
                 else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.RepairWall, playerId))
@@ -1166,6 +1167,10 @@ public sealed partial class ImpTaskSystem
         if (IsExcavation(creature.TargetWork) && !tile.IsTaggedBy(creature.OwnerPlayerId))
             return false;
 
+        if (creature.TargetWork is TileWorkKind.Reinforce or TileWorkKind.RepairWall
+            && DigMarkCancelsWallWork(context.Database, tile, creature.OwnerPlayerId))
+            return false;
+
         if (TileWorkRules.TryResolveDigTask(
                 context.Database, tile, creature.TargetWork, creature.OwnerPlayerId,
                 out TileWorkKind currentKind))
@@ -1177,6 +1182,20 @@ public sealed partial class ImpTaskSystem
         return TileWorkRules.Applies(
             context.World, context.Database, tile, creature.TargetWork, creature.OwnerPlayerId);
     }
+
+    /// <summary>
+    /// The keeper's dig mark on a wall ends its reinforce and repair work (Q621, ADR-0533). The
+    /// pool adder <c>0x00507BB0</c> raising kind 1 (the tag, through <c>0x00512D20</c>) first
+    /// removes the tile's kind-6 and kind-16 entries (<c>0x00507EF0</c>), and refuses to raise 6
+    /// or 16 while a kind-1 entry stands at the tile. A reinforcer in state 22 finds its task gone
+    /// at its next check (<c>0x004663C4</c>, once no action plays), clears it and goes to 10,
+    /// which the work-state wait in <c>ImpTaskSystem.Update</c> mirrors. The wall's health is not
+    /// touched, so a partial reinforce stays on the tile for the dig to take down. Kind 2 (gold)
+    /// removes nothing, so only a goldless wall's tag cancels (0x00512D20's kind-1 arm). Each keeper
+    /// has its own pool (player <c>+0x1105</c>): only the Imp's own keeper's tag counts.
+    /// </summary>
+    private static bool DigMarkCancelsWallWork(GameDatabase database, in TileState tile, PlayerId owner) =>
+        tile.IsTaggedBy(owner) && database.TerrainById(tile.TerrainId).GoldValue == 0;
 
     /// <summary>
     /// Whether this kind of work can only have come from a dig marker.

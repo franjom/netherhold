@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**298** — `0x3E2A6741A425B7F1`. FormatVersion stays 297. Behaviour only: the keeper's own dig mark on a goldless wall ends reinforce and repair work there (a rival's tag and a gold wall do not) — the pool raise of kind 1 (`0x00507BB0`) removes the tile's kind-6/16 entries and refuses new ones, and states 22 and 24 drop their task once its action ends (`0x004663C4`); the wall keeps its health (ADR-0533, Q621). No new fields.
+
 **297** — `0xC05DD2EF3BEE644C`. FormatVersion also 297. `TriggerState.SpecialInfoPlayerId` (action 46) and `MaximumSlaps` (player action 50, init -1); `CreatureState.HealthSourcePlayerId` (`+0x36`, stamped at each health-change call site) and `DeathUncounted` (`+0x3E6` bit 0x40, nothing sets it yet); `PlayerState.HeroesDestroyed` (`+0x14A`), credited in `CreatureHealthSystem.Die`/`CreditHeroKill` (ADR-0532). The level-end pass `0x004BE9E6`, the My Pet Dungeon score, `+0x146` and the `0x19E`/`0x173` tallies are not built.
 
 **296** — `0x9182B5916A8366B9`. Behaviour only (295 on the step6 branch; renumbered when merged after ADR-0530's 295): a keeper's Imp dropped on one of its own Heart's eight platform tiles lands there instead of being refused; only the centre disposes of it, now crediting Create Imp's mana cost as state 71 does, and never on a ruined Heart (ADR-0526 amendment, owner 2026-10-23). No new fields.
@@ -393,8 +395,4 @@ movement remainder left the creature; its heading and the steering body's
 surviving fields entered (ADR-0157 phase 3). The pinned world moves nobody, so
 this is composition only.
 
-**61** — `0x57435BC71CE1BBDC`. Creatures gained their saved trigger root
-and repeat snapshot for the creature trigger walker (ADR-0152). The fixture's
-creatures have no roots, so this is composition only.
-
-[Versions 9–60](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–61](hash-versions-early.md) retain the earlier pins and their reasons.

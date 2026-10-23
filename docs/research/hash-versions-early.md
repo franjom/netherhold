@@ -1,6 +1,10 @@
 # Early state-hash versions
 
-Versions 9–60, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–61, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**61** — `0x57435BC71CE1BBDC`. Creatures gained their saved trigger root
+and repeat snapshot for the creature trigger walker (ADR-0152). The fixture's
+creatures have no roots, so this is composition only.
 
 **60** — `0xE44F66372F8963D9`. Graveyard rooms gained ordered, saved
 per-room decomposition tallies (ADR-0151). The fixture has no Graveyard tally,

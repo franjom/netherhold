@@ -12246,3 +12246,27 @@ we have no level-statistics point. All in the hash and the save (HashVersion 297
 **Consequences.** The HUD draws all six boxes. Nothing in play reads these values except
 the HUD; MaximumSlaps never refuses a slap, as in DK2. Health-change sites whose DK2 call is
 unread keep the previous source.
+
+## ADR-0533 — A dig mark ends the reinforce and repair on its wall
+**Date:** 2026-10-23 · **Status:** accepted · Research: `docs/research/imp-state-exits.md` §2
+
+**Context.** The owner sees a reinforcing Imp stop and dig a wall out as soon as the wall is
+tagged (Q621); ours finished the reinforce first. DK2 has no tag bit to test: the tag
+(0x005129A0 → 0x00512A20 → TaskPool_MarkTile 0x00512D20) raises a kind-1 pool entry through
+TaskPool_Raise (0x00507BB0), which first removes the tile's kind-6 (reinforce) and kind-16
+(repair) entries with 0x00507EF0, and refuses to raise 6 or 16 while a kind-1 entry stands
+there. 0x00507EF0 touches no holder. State 22 (0x00466390) looks at its task only when no
+action plays (0x00496D00): `0x00508070(+0x8A, 6)` fails, it clears `+0x8A` and enters 10
+(0x004663C4), which takes the dig; state 24 (0x00466710) does the same for the kind-16
+repair task (`0x00508070(+0x8A, 0x10)`). Tile health is not touched. The pool is per keeper
+(player +0x1105), so only the Imp owner's own tag cancels.
+
+**Decision.** `ImpTaskSystem.DigMarkCancelsWallWork`: a goldless wall (terrain GoldValue 0, kind 1) the
+worker's keeper has tagged gives no Reinforce or RepairWall job at selection, and `JobStillStands` fails such a job. The
+existing work-state wait (the task is looked at once the work action ends) gives DK2's timing;
+a walker keeps walking and drops at state 21, as before for a lost task. Kind 2 (gold) removes
+nothing, and no gold wall is reinforced or repaired. Behaviour only (HashVersion 298).
+
+**Consequences.** The current strike finishes, then the Imp re-chooses; the reinforce health
+it added stays on the wall for the dig to take down. An untag does not bring the reinforce back
+until the selection finds the wall again, as in DK2, where the kind-6 entry is simply gone.
