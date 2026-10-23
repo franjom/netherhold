@@ -109,9 +109,8 @@ menu40, and loads the message text into its text widget
 sizes menu40: text measured in a 1096x288 box converted by `0x0052C5A0` (unread, LIKELY a
 quarter-unit scale); if it fits strictly, height = 4 * text height + 172, else 440; y = panel top
 (`+0x12D2`) - height - 168 when `+0x10C2 == 1`, else - 40 (`0x00424163..0x00424174`; overflow
-y - 608 or - 480). `+0x10C2` is set while any indicator widget 0x2D..0x32 shows
-([0x00427BA0](functions/00427BA0.md)); their row at y 1332 is one 128-unit step, so the panel
-clears it (LIKELY). **No speech is replayed, no camera moves, no sound plays, no
+y - 608 or - 480). `+0x10C2` is set while any indicator menu 45..50 shows (section 9); their
+row at y 1332 is 128 tall, so the panel clears it. **No speech is replayed, no camera moves, no sound plays, no
 packet is sent.**
 
 **Right click** ([0x00424220](functions/00424220.md)): sets dismissed bit 4 on
@@ -120,8 +119,10 @@ showing that message, and sets `+0x4658 = 6`. No sound, no packet.
 
 ## 6. The message panel (menu40, `0x00693B08`)
 
-Menu40 is shared with the creature Query (`+0x4B1D == 1`). In message mode it
-shows ([widgets](functions/004246B0.md) at `0x00691EC8`, 88x88, y 20):
+Menu40 is shared with the creature Query (`+0x4B1D == 1`). Its static record is (1020, 200)
+1200x440; 0x00423F50 rewrites y and height (section 5), never x or width. In message mode it
+shows ([widgets](functions/004246B0.md) at `0x00691EC8`, 88x88, local y 20 from the bottom:
+anchor value 4, [0x00528570](functions/00528570.md), so their top is 108 above menu40's bottom):
 
 | x | art | callback | effect |
 |---:|---|---|---|
@@ -135,7 +136,23 @@ record a valid location ([0x00424660](functions/00424660.md)): per type, tile
 Dungeon Heart. Its click converts tile to world (`tile * 4096 + 2048`,
 [0x004C3DC0](functions/004C3DC0.md)) and submits it through
 [0x00415B30](functions/00415B30.md). Text is drawn by
-[0x004242F0](functions/004242F0.md).
+[0x004242F0](functions/004242F0.md) in the text widget `0x00692008`, local (20,20) 1096x288
+(its own inset inside that box is unread).
+
+**Frame.** Menu40's draw callback (static record `+0x1E`) is
+[0x00417EA0](functions/00417EA0.md), shared by menus 36, 37, 51 and 52. CONFIRMED: it converts the
+menu rectangle to screen pixels, insets it by 10 pixels and calls
+[0x00411D00](functions/00411D00.md) with flags 8, which draws the nine
+`gui\windows\text_box-{tl,t,tr,l,m,r,bl,b,br}` pieces (catalogue 19..27, resource offsets
+0x201..0x2D9): corners 16 pixels square outside the inset rectangle, edges stepped 16 pixels and
+cut at the far end, the middle stepped 32 pixels and clipped to the rectangle. So the frame
+overhangs the menu by 6 device pixels, not scaled with resolution. STRONGLY INFERRED, not read:
+that flags 8 (the blit at view slot `+0x5C`) draws the art's alpha with no tint; that the pieces
+are the 16x16 cache images `GUI\Windows\text_box-*MM0` (world-hover-text.md); and that the 32-pixel
+middle step draws that 16x16 piece stretched to 32. The owner's fitted box (x 1012..2228 at
+1604x1202) is the menu's 1020..2220 plus the overhang within the fit's error (8 units fitted
+against about 9.6). The callback does not depend on the mode, so the Query uses the same frame;
+Query mode's own widgets are not read here.
 
 ## 7. Review Objective (CONFIRMED)
 
@@ -157,10 +174,12 @@ simulation (first seen by the view stands in for the record's `+0x2C` stamp). `C
 draws Review Objective and the slots, puts the hovered message's text on the status line, opens
 the message panel on a left click and dismisses on a right click; the panel has exit and tick, and
 Review Objective opens the briefing. The panel takes the text height in virtual units as four
-quarter units (so `< 288`, `+ 172`). One owner DK2 shot (2026-10-22, no indicator
-widgets up) shows menu40 40 above the strip, about x 1012..2228, its text at the top and exit/tick
-under it; the box, offsets and colours are fitted to that shot (HYPOTHESIS for other states). The
-indicator widgets are not built, so ours always takes 40. Types 17 and 18 take
+quarter units (so `< 288`, `+ 172`). Menu40 is the static (1020, y) 1200 wide with the
+text_box frame of section 6 (`HudIndicatorLayout.MessagePanel` / `FrameInner`), exit, tick and goto
+108 above its bottom; the device-pixel frame sizes are scaled by height / 1200 (our choice: the
+owner's 1202-line reference, where it equals DK2). The text stays where it was fitted to the owner's
+DK2 shot (2026-10-22, no indicators up): x 1054, 32 below the top (HYPOTHESIS: 0x004242F0's inset is
+unread). The indicators of section 9 set the 168 offset. Types 17 and 18 take
 Speech `base + complaint`, base the creature's unhappy or angry line (`def+0x6CD`/`+0x6CF`, file
 `0xD05`/`0xD07`; `0x004C4600`), fixed when the view first sees the record. The goto button (art 133, x 440) shows when
 `0x004C4BE0` gives a tile, a live creature or a room centre (the box middle, Q515), and moves our
@@ -172,12 +191,48 @@ Complaint 9 (cell, Temple, spectating; state-categories.md §7.2) reads one past
 nine lines, so its 17/18 text names the next creature type's first complaint, in DK2 as in ours:
 the Imp's 585 + 9 is Speech 594, "A Bile Demon has become unhappy because it has no Lair". Not built: type 20
 (`def+0x6D1`, file `0xD09`, "has left your Dungeon"), which our queue never posts; the slide sounds, the Ally button, the goto
-location of a kind-2 thing (22, 26, 48) or the Heart (85..87), none posted by us, player-name substitution for 82..87, menu40's own frame art
-(the panel is a dark box) and its sharing with the creature Query. Only the kinds our queue posts
+location of a kind-2 thing (22, 26, 48) or the Heart (85..87), none posted by us, player-name substitution for 82..87, and menu40's sharing with the creature Query. Only the kinds our queue posts
 can tab (computer-keeper-messages.md).
 
-## 9. Open
+## 9. Indicator menus 45..50 (CONFIRMED; built in part)
+
+[0x00427BA0](functions/00427BA0.md) runs each frame. It tests six world values and shows a 128-tall
+menu for each that passes; the first shown sits at (20, 1332), and each next is placed right after the
+previous one's width at panel top - 128 (the same row while the panel is expanded). In camera class 1
+(`0x0044D870`: modes 1/2/10/11) they stack upward from 1332 instead. Any shown sets `+0x10C2`, which
+lifts menu40 to 168 above the strip (section 5).
+
+| menu | label (Text.str) | shows while | art | draw |
+|---:|---|---|---|---|
+| 45 | 1671 Time Remaining | LevelTimeLimit `+0x72AA` != 0 | timer-bg | [0x00427230](functions/00427230.md): m:ss |
+| 46 | 82 Score | LevelScoreSet `+0x72A6` != 0 | score-bg | [0x004273D0](functions/004273D0.md): LevelScore |
+| 47 | 1673 Current Holder | SpecialInfoPlayerId `+0x72B6` != 0 | kingofhill-bg | [0x004274C0](functions/004274C0.md): player name |
+| 48 | 1672 Heroes Killed | LEVEL flag 0x80 (global `0x006F2957` bit 5, [0x0051E6D0](functions/0051E6D0.md)) | kills-bg | [0x00427770](functions/00427770.md): player `+0x14A` |
+| 49 | 1681 Slaps Remaining | MaximumSlaps `+0x72B8` - player slaps >= 0 | slaps-bg | `0x00427870` (unread) |
+| 50 | 2127 Next Room | SpecialInfoNextRoomTypeId `+0x72BC` in 1..25 | (art 0) | `0x00427980` (unread) |
+
+Widths are 444 (256 art plus [0x00427010](functions/00427010.md)'s gold-bg-01 188 to its right),
+256 for 49 and 50. Digits are [0x00415650](functions/00415650.md)'s, white, 40 below the menu top,
+right-aligned to slots of 40. `+0x72B8` starts at -1 (0x0050A2A5), so Slaps shows only after action
+50 sets a limit. In the shipped levels: action 23 (time limit) in Levels 6b, 9 and 10, the Secrets and
+MPDs; LEVEL flag 0x80 in Level17, Secret2, Alcatraz, Spiral and the seven MPDs; action 47 (next room)
+and action 50 (slaps) only in MPDs and Secret1; action 7 on id 128 (score) in 21 records, levels not
+listed. Current Holder's writer (world slot `+0x368`) has no known caller. Our simulation has no
+slot `+0x344` adder ([World_AddLevelScore](functions/00511650.md), floored at 0, trigger-state.md §4), so where DK2's level
+adds to the score through it, ours can show a different score.
+
+**Built (2026-10-23).** `HudIndicatorSnapshot.Capture` makes the tests on what our simulation holds
+(time limit, `SpecialValueWritten`, level flag 0x80, next room); Current Holder and Slaps never show
+(no writer, action 50 unbuilt). `HudIndicatorLayout.Place` packs them; `ClassicMessageTabs` draws Time
+Remaining and Score with their digits, and Heroes Killed's art with no count (the simulation keeps no
+HeroesDestroyed). Next Room takes its slot but is not drawn. Camera class 1 is not mapped to our
+camera, so ours always packs in a row.
+
+## 10. Open
 
 - Sound bank of 0x320-0x322 and the argument `[0x006ACB34]`.
 - Writer of `0x00759C29`; producer of graphic 4.
 - The status-line placement of hover text versus a popup, as for other widgets.
+- Heroes Killed count: player `+0x14A` HeroesDestroyed, not kept by the simulation.
+- Draw callbacks 0x00427870 (Slaps) and 0x00427980 (Next Room); the writer of `+0x72B6`.
+- For the owner, from play: does an opened message sit about 128 units higher while an indicator is up; do the Time Remaining digits read m:ss and does the last second hold at 0:01; does the frame keep its pixel thickness across resolutions (ours scales it, our choice); does Heroes Killed show a number.

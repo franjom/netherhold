@@ -361,7 +361,8 @@ namespace DK2.Unity
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
             _bottomPanel.Draw();
             _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
-            _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed);
+            _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
+                HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level));
             _overviewView.Capture(_simulation.World);
             _overviewPanel.Draw(CurrentHud, _bottomPanel.Category == BottomPanelCategory.Creatures && !_bottomPanel.Collapsed && !HudModal, Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);

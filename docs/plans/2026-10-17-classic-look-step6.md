@@ -31,7 +31,7 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
   controls before implementing them; use the current function records and
   [minimap research](../research/minimap-rendering.md).
 - [ ] Read the relevant layout/input paths and resolve Q197's minimap visibility
-  question. `0x00427BA0` currently documents indicator packing, not the whole HUD.
+  question. `0x00427BA0` lays out only the indicator menus 45-50 (built: research/message-tabs.md §9).
 - [x] Pilot UI Toolkit's custom minimap shader integration and `.bf4` font quality
   at reference and large sizes. Record results before selecting production UI
   plumbing; an alternative toolkit requires the ADR-0497 amendment it describes.

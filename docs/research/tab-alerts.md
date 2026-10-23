@@ -146,5 +146,11 @@ buttons by `+0x74` id other than the resource numbers. Tests: `BottomPanelFlashT
   set no kind. The creature-panel draw paths in creature-overview.md were not checked.
 - The DK2 frame rate the sparkle cycle was tuned for. It is frame-bound, so only play
   shows its speed.
-- For the owner, from play: does any tab or item flash outside scripted levels; are the
-  sparkles a staggered twinkle; does a chime once a second match memory.
+- **Seen by the owner (2026-10-23, seven phone shots of Level 1's Lair slot):** the slot
+  blinks between its normal and dark art, four-point stars twinkle at independent places
+  (some over the icon, some past its left edge over the page arrows, as `X % width − half`
+  allows), and it keeps going until the Lair is clicked. This confirms the dark phase, the
+  staggered sparkles and the clear on use. The owner first read it as "a room becomes
+  available"; Level 1's script flashes the Lair and then the Hatchery, and the binary has no
+  other producer, so no non-scripted flash was observed. Still open from play: the chime
+  `0x33A` once a second.

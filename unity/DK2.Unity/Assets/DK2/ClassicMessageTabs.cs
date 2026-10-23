@@ -44,6 +44,23 @@ namespace DK2.Unity
         private readonly Image _panelText, _objectiveText, _exit, _tick, _goto;
         private readonly Func<PlayerMessage, (float X, float Y)?> _locate;
         private readonly Action<float, float> _goTo;
+        private static readonly string[] FramePieces = { "tl", "t", "tr", "l", "m", "r", "bl", "b", "br" };
+        private readonly VisualElement[] _frame = new VisualElement[9];
+        private static readonly HudIndicator[] Drawn = { HudIndicator.TimeRemaining, HudIndicator.Score, HudIndicator.HeroesKilled };
+        private static readonly string[] IndicatorArt = { "GUI\\Windows\\timer-bg", "GUI\\Windows\\score-bg", "GUI\\Windows\\kills-bg" };
+        private static readonly string[] HighDigits = DigitNames("GUI\\Icons\\i-"), LowDigits = DigitNames("GUI\\Icons\\lo-");
+        private readonly Image[] _indicatorArt = new Image[Drawn.Length], _indicatorBacking = new Image[Drawn.Length];
+        private readonly List<Image>[] _indicatorDigits = new List<Image>[Drawn.Length];
+        private HudIndicatorSnapshot _shownIndicators;
+        private int _indicatorTop = int.MinValue, _indicatorWidth, _indicatorHeight;
+        private (int Width, int Height, int Screen) _shownFrame;
+
+        private static string[] DigitNames(string family)
+        {
+            var names = new string[10];
+            for (int d = 0; d < 10; d++) names[d] = family + (char)('0' + d);
+            return names;
+        }
         private Texture2D _panelTexture, _objectiveTexture;
         private uint _shownId;
         private int _shownHeight;
@@ -100,7 +117,19 @@ namespace DK2.Unity
                 });
             }
 
-            _panel = Box(); _panelText = Text(_panel);
+            _panel = Box();
+            // 0x00417EA0, menu40's draw callback: the nine gui\windows\text_box pieces (0x00411D00).
+            for (int i = 0; i < 9; i++)
+            {
+                var piece = new VisualElement { pickingMode = PickingMode.Ignore };
+                piece.style.position = Position.Absolute;
+                piece.style.backgroundImage = new StyleBackground(Texture("GUI\\Windows\\text_box-" + FramePieces[i]));
+                piece.style.backgroundRepeat = new BackgroundRepeat(Repeat.Repeat, Repeat.Repeat);
+                piece.style.backgroundPositionX = new BackgroundPosition(BackgroundPositionKeyword.Left);
+                piece.style.backgroundPositionY = new BackgroundPosition(BackgroundPositionKeyword.Top);
+                _panel.Add(piece); _frame[i] = piece;
+            }
+            _panelText = Text(_panel);
             _exit = Button(Texture("GUI\\Tabs\\Messages\\mt-exit-00"), _panel);
             _exit.RegisterCallback<PointerDownEvent>(evt => { if (evt.button == 0) { evt.StopPropagation(); _view.DismissOpen(); } });
             _tick = Button(Texture("GUI\\Tabs\\Messages\\mt-tick-00"), _panel);
@@ -113,7 +142,15 @@ namespace DK2.Unity
                 evt.StopPropagation();
                 if (_view.Open is PlayerMessage open && _locate?.Invoke(open) is (float x, float y)) _goTo?.Invoke(x, y);
             });
+            for (int i = 0; i < Drawn.Length; i++)
+            {
+                _indicatorArt[i] = Text(_root); _indicatorBacking[i] = Text(_root);
+                _indicatorArt[i].style.display = _indicatorBacking[i].style.display = DisplayStyle.None;
+                _indicatorDigits[i] = new List<Image>();
+            }
             _objectivePanel = Box(); _objectiveText = Text(_objectivePanel);
+            // Menu33's own background is unread: a translucent dark pane, as before.
+            _objectivePanel.style.backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.6f);
             _objectivePanel.pickingMode = PickingMode.Position;
             _objectivePanel.RegisterCallback<PointerDownEvent>(evt => { evt.StopPropagation(); _objectiveOpen = false; });
         }
@@ -143,7 +180,8 @@ namespace DK2.Unity
             return false;
         }
 
-        public void Draw(HudVisibility visibility, bool collapsed)
+        /// <param name="indicators">0x00427BA0's indicators this frame; any shown lifts menu40 by 128.</param>
+        public void Draw(HudVisibility visibility, bool collapsed, in HudIndicatorSnapshot indicators)
         {
             _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
             _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
@@ -159,20 +197,82 @@ namespace DK2.Unity
                 _slots[i].image = Texture(FrameNames[tab.Graphic, tab.Frame]);
                 Place(_slots[i], MenuX + tab.LocalX, top, ButtonWidth, ButtonHeight);
             }
-            DrawPanel(top);
+            DrawIndicators(indicators, top);
+            DrawPanel(top, indicators.Any);
             DrawObjective();
         }
 
-        /// <summary>Menu40 in message mode (0x00423F50 sizes it): the text in a 1096-wide box, 4 * its
-        /// height + 172 tall when it fits 288, else 440. The owner's DK2 shot (2026-10-22, expanded
-        /// panel, 1604x1202) puts it 40 above the strip, (1012..2228) wide (fitted to that one shot), the text at its top and the
-        /// exit and tick buttons under it at x 88 and 264, 24 from the bottom.</summary>
-        private void DrawPanel(int stripTop)
+        /// <summary>Each indicator (0x00427010): its art 256x128 at the menu's corner, gold-bg-01 188x128
+        /// right of it (not for Slaps), then white 0x00415650 digits 40 down, right-aligned to slots
+        /// of 40. Time Remaining (0x00427230) and Score (0x004273D0, 10 slots) are built; Heroes Killed
+        /// (0x00427770) draws no count, since the simulation keeps no HeroesDestroyed (player +0x14A).
+        /// Next Room takes its slot but is not drawn (0x00427980 unread).</summary>
+        private void DrawIndicators(in HudIndicatorSnapshot shown, int panelTop)
+        {
+            // Rebuilt only when what is shown, the panel top or the screen changes; the time limit
+            // changes once a turn, nothing else per frame.
+            if (shown == _shownIndicators && panelTop == _indicatorTop && Screen.width == _indicatorWidth
+                && Height == _indicatorHeight) return;
+            _shownIndicators = shown; _indicatorTop = panelTop; _indicatorWidth = Screen.width; _indicatorHeight = Height;
+            IReadOnlyList<(HudIndicator Indicator, int X, int Y)> placed = shown.Any
+                ? HudIndicatorLayout.Place(shown, panelTop) : Array.Empty<(HudIndicator, int, int)>();
+            for (int i = 0; i < Drawn.Length; i++)
+            {
+                int at = -1;
+                for (int p = 0; p < placed.Count; p++) if (placed[p].Indicator == Drawn[i]) at = p;
+                bool on = at >= 0;
+                _indicatorArt[i].style.display = _indicatorBacking[i].style.display = on ? DisplayStyle.Flex : DisplayStyle.None;
+                if (!on) { HideDigits(i, 0); continue; }
+                int x = placed[at].X, y = placed[at].Y;
+                _indicatorArt[i].image = Texture(IndicatorArt[i]);
+                Place(_indicatorArt[i], x, y, 256, 128);
+                _indicatorBacking[i].image = Texture("GUI\\Windows\\gold-bg-01");
+                Place(_indicatorBacking[i], x + 256, y, 188, 128);
+                int used = 0;
+                // DK2 divides by the LEVEL's turns a second, 0x006F2590 (0x0051E708).
+                if (Drawn[i] == HudIndicator.TimeRemaining)
+                    foreach ((string digits, int slots) in HudIndicatorLayout.TimeRemainingDigits(
+                        shown.TimeLimitTurns, SimulationTiming.OriginalTicksPerGameSecond))
+                        used = Digits(i, used, digits, slots, x, y + 40);
+                else if (Drawn[i] == HudIndicator.Score)
+                    used = Digits(i, used, shown.ScoreValue.ToString(System.Globalization.CultureInfo.InvariantCulture), 10, x, y + 40);
+                HideDigits(i, used);
+            }
+        }
+
+        /// <summary>0x00415650 mode 0: 48-unit squares 40 apart, i- digits from 640 wide (lo- below),
+        /// catalogue 106 (I--) for a minus; white here. The whole string is drawn, as DK2 does.</summary>
+        private int Digits(int indicator, int used, string text, int slots, int x, int y)
+        {
+            string[] family = Screen.width >= 640 ? HighDigits : LowDigits;
+            List<Image> digits = _indicatorDigits[indicator];
+            int start = HudIndicatorLayout.AlignedStart(text.Length, slots);
+            for (int c = 0; c < text.Length; c++, used++)
+            {
+                if (used == digits.Count) digits.Add(Text(_root));
+                Image digit = digits[used];
+                digit.image = Texture(text[c] == '-' ? "GUI\\Icons\\I--" : family[text[c] - '0']);
+                digit.style.display = DisplayStyle.Flex;
+                Place(digit, x + (start + c) * 40, y, 48, 48);
+            }
+            return used;
+        }
+
+        private void HideDigits(int indicator, int from)
+        {
+            List<Image> digits = _indicatorDigits[indicator];
+            for (int d = from; d < digits.Count; d++) digits[d].style.display = DisplayStyle.None;
+        }
+
+        /// <summary>Menu40 in message mode (0x00423F50 sizes it, HudIndicatorLayout.MessagePanel): static
+        /// (1020, y) 1200 wide, the text in a 1096-wide box, the exit, tick and goto buttons 88x88 at
+        /// x 88, 264 and 440, bottom-anchored 20 up (widget anchor bit 4, 0x00528570).</summary>
+        private void DrawPanel(int stripTop, bool indicators)
         {
             PlayerMessage? open = _objectiveOpen ? null : _view.Open;
             _panel.style.display = open.HasValue ? DisplayStyle.Flex : DisplayStyle.None;
             if (open is not PlayerMessage message) return;
-            const int left = 1012, width = 1096, boxWidth = 1216;
+            const int width = 1096;
             if (_shownId != message.Id || _shownHeight != Height || _panelTexture == null)
             {
                 _shownId = message.Id; _shownHeight = Height;
@@ -180,19 +280,39 @@ namespace DK2.Unity
                     _textAssets.Font(Height), MessageText(message.Id) ?? "", Mathf.Max(1, (int)V(width))));
                 _panelText.image = _panelTexture;
             }
-            // DK2: 4 * h + 172 when h fits the box strictly, h read as quarter units (0x0052C5A0 unread),
-            // so virtual height + 172 under 288; 40 above the strip, or 168 while +0x10C2 is set, which
-            // 0x00427BA0 sets while any indicator widget 0x2D..0x32 shows (their row at y 1332 is 128
-            // tall). Those widgets are not built, so 40, as the owner's DK2 shot shows.
-            float textHeight = _panelTexture.height * 1920f / Height;
-            int height = textHeight < 288 ? (int)(textHeight + 172) : 440;
-            int y = stripTop - height - 40;
-            Place(_panel, left, y, boxWidth, height);
-            Place(_exit, 88, height - 112, 88, 88); Place(_tick, 264, height - 112, 88, 88);
-            Place(_goto, 440, height - 112, 88, 88);
+            // The text height in virtual units stands for 4 * DK2's quarter units (0x0052C5A0 unread).
+            var (x, y, boxWidth, height) = HudIndicatorLayout.MessagePanel(stripTop, (int)(_panelTexture.height * 1920f / Height), indicators);
+            Place(_panel, x, y, boxWidth, height);
+            PlaceFrame(boxWidth, height);
+            Place(_exit, 88, height - 108, 88, 88); Place(_tick, 264, height - 108, 88, 88);
+            Place(_goto, 440, height - 108, 88, 88);
             _goto.style.display = _locate?.Invoke(message) is not null ? DisplayStyle.Flex : DisplayStyle.None;
-            _panelText.style.left = V(42); _panelText.style.top = V(32);
+            // The text widget is (20,20) 1096x288; 0x004242F0's own inset is unread, so the text keeps
+            // the place fitted to the owner's DK2 shot (2026-10-22): x 1054, 32 below the top.
+            _panelText.style.left = V(34); _panelText.style.top = V(32);
             _panelText.style.width = _panelTexture.width; _panelText.style.height = _panelTexture.height;
+        }
+
+        /// <summary>0x00411D00 on menu40's rectangle inset by 10: corners 16 square outside the inset, the
+        /// edges tiled in 16s and cropped at the far end, the middle tiled in 32s. DK2 draws these in
+        /// device pixels; ours scales them by height / 1200, the owner's 1202-line reference.</summary>
+        private void PlaceFrame(int width, int height)
+        {
+            if (_shownFrame == (width, height, Height)) return;
+            _shownFrame = (width, height, Height);
+            float pixel = Height / 1200f, border = HudIndicatorLayout.FrameBorder * pixel;
+            var (ix, iy, iw, ih) = HudIndicatorLayout.FrameInner(0, 0, V(width), V(height), pixel);
+            for (int row = 0; row < 3; row++)
+            for (int column = 0; column < 3; column++)
+            {
+                VisualElement piece = _frame[row * 3 + column];
+                piece.style.left = column == 0 ? ix - border : column == 1 ? ix : ix + iw;
+                piece.style.top = row == 0 ? iy - border : row == 1 ? iy : iy + ih;
+                piece.style.width = column == 1 ? iw : border;
+                piece.style.height = row == 1 ? ih : border;
+                float tile = (row == 1 && column == 1 ? HudIndicatorLayout.FrameMiddleTile : HudIndicatorLayout.FrameBorder) * pixel;
+                piece.style.backgroundSize = new BackgroundSize(new Length(tile), new Length(tile));
+            }
         }
 
         /// <summary>Menu33 (0x004207E0): "Main Objective" (Text.str 1408), briefing line 2, "Sub
@@ -235,11 +355,6 @@ namespace DK2.Unity
         {
             var box = new VisualElement { pickingMode = PickingMode.Position };
             box.style.position = Position.Absolute;
-            // DK2's menu40 is a translucent dark pane with a faint light rim (owner's shot); its frame art is unread.
-            box.style.backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.6f);
-            box.style.borderTopWidth = box.style.borderBottomWidth = box.style.borderLeftWidth = box.style.borderRightWidth = 1;
-            box.style.borderTopColor = box.style.borderBottomColor = box.style.borderLeftColor = box.style.borderRightColor =
-                new Color(0.55f, 0.55f, 0.55f, 0.6f);
             box.style.display = DisplayStyle.None;
             _root.Add(box); return box;
         }

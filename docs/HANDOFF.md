@@ -146,7 +146,7 @@ live gold/mana, separate rates and the Heart health ring now occupy the original
 resource region, with status text to its right. The Step6 branch integration
 adds gold withdrawal, payday/alarm/flash state, original personal names and blood
 groups, G/H/M and corner controls, campaign Options pause, full-map terrain and
-navigation, creature query/follow, bottom choices (slot recharge, manufacture and research sectors: research/panel-indicators.md), Reaper state, room cycling
+navigation, creature query/follow, bottom choices (slot recharge, manufacture and research sectors: research/panel-indicators.md), message tabs with the framed message panel and the Time Remaining/Score indicators (research/message-tabs.md), Reaper state, room cycling
 and all four creature overview modes. Canonical scope and remaining gates:
 plans/2026-10-17-classic-look-step6.md. Hash/save 283 adds native identity and
 last-payday state; ADR-0521 documents initial constructor RNG ordering limits.
