@@ -4,7 +4,8 @@ param(
     [switch]$PortalEntrance,
     [switch]$CreatureLevel,
     [switch]$PortalMovement,
-    [switch]$TutorialHighlight
+    [switch]$TutorialHighlight,
+    [switch]$CameraReference
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -23,6 +24,7 @@ if ($PortalEntrance) { $entries += 'PortalEntranceProbe' }
 if ($CreatureLevel) { $entries += 'CreatureLevelEffectProbe' }
 if ($PortalMovement) { $entries += 'PortalCrystalMovementProbe' }
 if ($TutorialHighlight) { $entries += 'TutorialHighlightProbe' }
+if ($CameraReference) { $entries += 'ClassicCameraReferenceProbe' }
 foreach ($probe in $entries) {
     Copy-Item -LiteralPath "$PSScriptRoot/$probe.cs" -Destination "$project/Assets/DK2/Editor/$probe.cs" -Force
 }

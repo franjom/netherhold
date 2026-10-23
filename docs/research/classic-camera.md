@@ -64,8 +64,9 @@ unexplained. The captures had measured it first:
   the zoom direction needs focal 409 to fit.
 - SHOT0057, at maximum zoom (owner): with the centre at 505, focal 640 and the rule's height there
   (4.06 tiles) fit with rms 0.7 px. The earlier "9% gap" came from assuming the middle.
-- The zoom ratio between the two shots is 1.47, against the rule's 53248/40960 = 1.30, so the start
-  view was nearer than zoom 40960 (about 36300). Where that comes from (the intro's end?) is open.
+- The projected marker-scale ratio between the two shots is about1.47. This does not measure
+  the raw zoom ratio: perspective scale depends on each marker's depth relative to the focus.
+  Elevated wall markers therefore cannot establish an initial zoom different from40960.
 
 Every Camera_SetMode branch (0x0044B04F, 0x0044B2FF, 0x0044B4F0, 0x0044B807) sets the bound +0xD54
 from the preset's MaxZoom (53248; no shipped level overrides preset 3). The renderer reads
@@ -151,3 +152,24 @@ camera view good (2026-10-14); a matched original-game comparison is still pendi
 
 The convenience deviation is defined in ADR-0478; native bounds above remain
 the original rule rather than the extended adapter setting.
+
+## 6. Camera recording, 2026-10-23
+
+CONFIRMED capture: the owner's `2026-10-23 15-43-11.mp4` is88.53seconds at30fps,
+recorded with OBS Studio. The1600x1200 game is scaled to1080x810 inside a1440x810
+video, with180pixel side bars. The owner confirms the initial zoom was untouched
+after the Level1 intro/tutorial move. The original and SHA-256 manifest are in
+`D:\DK2Evidence\camera-20261023-154311-20261023T1349154080`; the source remains in Videos.
+
+The5s/10s frames provide a stationary-orientation zoom comparison. Seven matched
+wall markers put the optical axis near native pixel(800,504), supporting the
+existing expanded-panel centre. Manual feature localization and terrain bending
+limit this estimate; it does not establish exact lens, pitch or absolute zoom.
+The raw-zoom inference formerly made from SHOT0084/0085's scale ratio was invalid.
+
+`ClassicCameraReferenceProbe` renders Level1 at1600x1200, gold AP4 focus
+(14.5,1,-24.5), reset yaw and the authored default/minimum/maximum zooms. It uses
+the production camera model and projection shift. The focus is a comparison
+assumption, not a native camera-state measurement. Its images isolate framing;
+lighting, fog, objects and HUD differ from the recording. Known-height landmarks
+and input timing still need comparison before claiming camera-motion parity.

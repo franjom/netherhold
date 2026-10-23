@@ -1,0 +1,89 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using DK2.Art;
+using DK2.Assets;
+using DK2.Core;
+using DK2.Data;
+using DK2.Data.Model;
+using DK2.Presentation;
+using DK2.Simulation;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+namespace DK2.Unity.Editor
+{
+    public static class ClassicCameraReferenceProbe
+    {
+        public static void Run()
+        {
+            if (!Application.isBatchMode || !File.Exists(".tag-overlay-probe"))
+                throw new InvalidOperationException("Requires the isolated effect probe project.");
+            try
+            {
+                if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+                    throw new InvalidOperationException("Camera comparison requires a graphics device.");
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                const string install = "E:/GogGames/Dungeon Keeper 2";
+                var db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level1");
+                var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1"),
+                    Enumerable.Range(0, 8).Select(i => (byte)i));
+                using var art = InstallArtProvider.Open(install, db);
+                var root = new GameObject("camera reference");
+                var view = new WorldView(db, new PlayerId(PlayerIds.FirstKeeper));
+                var meshes = new ClassicMeshes(art);
+                var scene = new DungeonScene(root.transform, world.Width, world.Height, meshes, creatureShadows: false);
+                var presenter = new ScenePresenter(view, new AssetProviderChain(art, PlaceholderProvider.Instance), scene);
+                presenter.Present(world);
+                var camera = new GameObject("reference camera").AddComponent<Camera>(); camera.tag = "MainCamera";
+                camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.black;
+                camera.allowHDR = false; camera.allowMSAA = false;
+                var target = new RenderTexture(1600, 1200, 24); target.Create(); camera.targetTexture = target;
+                var pixels = new Texture2D(1600, 1200, TextureFormat.RGBA32, false);
+                string output = Path.GetFullPath(Path.Combine(Application.dataPath, "../../camera-captures"));
+                Directory.CreateDirectory(output);
+                var profile = GameDatabaseLoader.LoadCameraPresets(install, "Level1").Single(p => p.CameraId == 3);
+                var model = new ClassicCamera(profile, ClassicCamera.LevelStartYaw) { ReferenceScreenWidth = 1600 };
+                foreach (int zoom in new[] { profile.Zoom, profile.MaxZoom - 1, profile.MinZoom })
+                {
+                    model.SetZoom(new Fp32(zoom));
+                    var pose = model.Pose(new System.Numerics.Vector3(14.5f, 1, -24.5f), new CameraViewport(1600, 1600, 1200));
+                    camera.transform.position = new Vector3(pose.Position.X, pose.Position.Y, pose.Position.Z);
+                    camera.transform.rotation = Quaternion.LookRotation(new Vector3(pose.Forward.X, pose.Forward.Y, pose.Forward.Z),
+                        new Vector3(pose.Up.X, pose.Up.Y, pose.Up.Z));
+                    camera.ResetProjectionMatrix(); camera.fieldOfView = pose.VerticalFieldOfView;
+                    camera.farClipPlane = pose.FarClipDistance;
+                    var projection = camera.projectionMatrix; projection[1, 2] = -pose.ProjectionCentreShift;
+                    camera.projectionMatrix = projection;
+                    Vector3 axis = camera.WorldToScreenPoint(new Vector3(14.5f, 1, -24.5f));
+                    float expectedY = 1200f * (1f - model.ProjectionCentre);
+                    if (Mathf.Abs(axis.x - 800) > .01f || Mathf.Abs(axis.y - expectedY) > .01f)
+                        throw new Exception("Unity's rendered axis differs from the presentation model: " + axis);
+                    for (int warmup = 0; warmup < 3; warmup++)
+                    {
+                        typeof(TransparentTerrain).GetMethod("BeforeCamera", BindingFlags.NonPublic | BindingFlags.Instance)
+                            .Invoke(root.GetComponentInChildren<TransparentTerrain>(), new object[] { default(ScriptableRenderContext), camera });
+                        RenderPipeline.SubmitRenderRequest(camera, new UniversalRenderPipeline.SingleCameraRequest { destination = target });
+                    }
+                    RenderTexture.active = target;
+                    pixels.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0); pixels.Apply();
+                    if (pixels.GetPixels32().Count(p => p.r > 20 || p.g > 20 || p.b > 20) < 10000)
+                        throw new Exception("Camera reference capture is blank.");
+                    File.WriteAllBytes(Path.Combine(output, "gold-zoom-" + zoom + ".png"), pixels.EncodeToPNG());
+                }
+                RenderTexture.active = null; target.Release();
+                UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(pixels);
+                UnityEngine.Object.DestroyImmediate(root);
+                Debug.Log("Classic camera reference verification passed: three zooms, rendered axis and visible pixels.");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); }
+        }
+    }
+}

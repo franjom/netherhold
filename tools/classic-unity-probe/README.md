@@ -48,6 +48,14 @@ Add `-PortalMovement` for an original-art Goblin walking past the portal crystal
 checks every simulation segment and requires the creature to reach its goal.
 This verifies the remake's clipping correction, not native route parity.
 
+## Camera reference capture
+
+`run-tag-overlay.ps1 -CameraReference` renders Level1's gold-seam focus at1600x1200
+with the authored default/minimum/maximum zooms. PNGs go to `camera-captures/`
+beside the isolated project. The probe checks the rendered optical axis and
+nonblank pixels; it does not assert native framing or motion parity. Reference
+recording and comparison limits: [classic camera](../../docs/research/classic-camera.md#6-camera-recording-2026-10-23).
+
 ## Camera rotation and allocation capture
 
 Use the prepared, marked isolated project; never point the launcher at an owner
