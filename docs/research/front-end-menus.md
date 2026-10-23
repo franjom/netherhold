@@ -31,7 +31,7 @@ in `Paths.WAD` (`Engine Path Info.txt.txt`, entries 250-274).
 | Default start (no `-LEVEL`/`-Q`, no `-PD`): game mode 5, level name `FrontEnd3DLevel`, 3D front end on. `-LEVEL name`/`-Q` set mode 1 and go straight into a level with no front end; `-PD` sets mode 4. | `0x005A61F8-0x005A6300` | STRONGLY INFERRED |
 | First front-end init of the run (`0x0074035C` = 0) shows `TitleScreen\TitleScreen` (`-Japanese` for language 0x11, `-<language>` when not English) and **busy-waits 10 s** with no input polling (not skippable). | `0x005340F0` | STRONGLY INFERRED |
 | Then it stops CD audio (MCI `cdaudio` stop) and plays `<movies>\BullfrogIntro.tgq` (`0x0053C020`), then `<movies>\Intro.tgq` (`0x0053BFD0`). | `0x0052F140` | STRONGLY INFERRED |
-| Movie playback `0x0053BCD0` runs only when movies are on (`0x0075B170`, cleared by `-NOMOVIES`). Its key handler `0x0053C270` sets the skip flag `0x0073F598` on Esc (scan 1), Enter (0x1C) or Space (0x39); hand-off to the decoder is `0x005A8F70` (open) / `0x005A8FB0` (step), not researched here. The second handler `0x0053C2A0` (mouse) is unread. | `0x0053BCD0` | STRONGLY INFERRED (skip keys); UNKNOWN (mouse skip) |
+| Movie playback `0x0053BCD0` runs only when movies are on (`0x0075B170`, cleared by `-NOMOVIES`). Its key handler `0x0053C270` sets the skip flag `0x0073F598` on Esc (scan 1), Enter (0x1C) or Space (0x39); the decoder (`0x005A8F70` open, `0x005A8FB0` step) is in `movie-format.md`. The second handler `0x0053C2A0` sets the same skip flag on a mouse button. | `0x0053BCD0` | STRONGLY INFERRED (skip keys, mouse skip) |
 | Then the front-end resources (`0x00534210`), the page tree (`Gui_LoadMenuTree 0x0052B8F0` over the table `0x006AE4E0`), and the return router `0x00534F70`: in its default branch (return page `0x00759B30` not one of the routed values) it first calls `0x005321A0(page)` when the page is not 1, then sets `0x00759B30` = 1 and state 1, which plays path 250 "Intro to 3D Front End" and then shows the main menu (page 1). | `0x00534F70`, `0x005384F0` | STRONGLY INFERRED |
 | **Attract mode:** if the mouse has not moved for 180 s and the active page is not 10, 11, 0x20, 0x23, 0x27 or 0x2C (multiplayer pages), the tick replays `BullfrogIntro.tgq` the first time and `Intro.tgq` the next, alternately. Any key also resets the idle timer. | `0x00533D30`, `0x0052FAF0` | STRONGLY INFERRED |
 
@@ -217,7 +217,6 @@ reading is STRONGLY INFERRED from the values (volumes 0..100, shadow 0..3).
 | pages 10/11/0x20-0x27 widgets (`0x0054EDF0`, `0x0054EE10`, `0x005457A0`, `0x005415D0`, `0x005475A0`...) | multiplayer and skirmish lobby | skirmish setup items |
 | `0x00536700`, `0x005367D0`, `0x00537CA0`, `0x00537E10`, `0x00536070`, `0x00535F50` | title, logo, bottom strip and back/OK icon draws | exact art per page |
 | `0x00536850`, `0x00536A80`, `0x00533570`, `0x0054FCF0`, `0x00552420` | label pre-rendering and fonts | which FONT_FRONTEND size per label (asset sibling) |
-| `0x0053C2A0`, `0x005A8FB0` | movie mouse skip | whether a click skips a movie |
 | `0x006BCE48`, `0x0052F9E0` | when the 2D-only run loop is used | |
 | `0x00537FB0`, `0x00537FF0` | `CFrontEndComponent3D` | its role |
 | `0x0054D040`, widget 680 on page 15 | unlabelled graphics button | |

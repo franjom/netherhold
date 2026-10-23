@@ -107,7 +107,7 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 | **What defeat does** (Q40) | Built (ADR-0162, ADR-0207, `DefeatRules`, Q358): creatures leave by the nearest portal, rooms and gold go neutral, the heart stays as a ruin. Left: the Destructor (object 100) |
 | **The computer keeper** (Q509, Q555, Q563) | Built and compared with DK2's own keepers on two maps; every verb agrees in kind and the open differences are timing (`computer-keeper-observations.md`). The research move and prisoner decisions are unbuilt, the trap and door step is built on a parked branch and not on master, and the nine personalities load (ADR-0410) (`docs/KEEPER_AI.md` §12) |
 | **Front end, campaign map and progression** | Read from the exe, not built: the menu table and station state machine (`front-end-menus.md`), campaign status values, branch rules, secret levels, the transfer creature and the post-map screens (`campaign-map-and-progression.md`). Front-end asset formats are inventoried (`front-end-assets.md`); BMP, `.444`, SDT/MPEG, TGQ, bank maps and HiScores have no reader. Plan: `plans/2026-10-23-front-end.md` |
-| **Audio event semantics** | Untouched; audio and movie container formats are inventoried in `front-end-assets.md` |
+| **Audio event semantics** | Untouched; audio container formats are inventoried in `front-end-assets.md`; movie playback (container, TQI video, EA ADPCM) is read and built as a decoder (`movie-format.md`, `src/DK2.Data/Media`) |
 
 ## Per-mechanic notes
 
