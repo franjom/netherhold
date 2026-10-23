@@ -63,6 +63,19 @@ public sealed class HandCursorTests
         Assert.Equal(new Vector2(252, 258), placement.Size);
     }
 
+    // 0x005DC120 stores -hotspot and 0x005DC580 draws at pointer + offset: the hotspot pixel is on the pointer.
+    [Theory]
+    [InlineData(1271.5f, 487f, 974)]
+    [InlineData(1280f, 720f, 1440)]
+    public void PointHotspotPixelLandsOnThePointer(float x, float y, int screenHeight)
+    {
+        HandCursorSprite sprite = HandCursor.Sprite(HandCursorKind.Point);
+        Assert.Equal(new Vector2(2, 17), sprite.Hotspot);
+        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Point, new(x, y), screenHeight);
+        Vector2 hotspotOnScreen = placement.Origin + sprite.Hotspot * (placement.Size.Y / sprite.FrameSize.Y);
+        Assert.True(Vector2.Distance(new(x, y), hotspotOnScreen) < 1e-3f);
+    }
+
     [Fact]
     public void CompletingAnAnimationDiscardsOvershootAndChangingStateRestarts()
     {

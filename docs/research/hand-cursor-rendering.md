@@ -42,6 +42,31 @@ requested state and resets time/frame when leaving a state. `0x0040E300`
 completes state 5 into state 6; it is not a continuously swinging dig cursor.
 The optional random-frame mode exists but is not the ordinary timer.
 
+## Where the hotspot lands (CONFIRMED, 2026-10-23)
+
+Read for the owner's report that our Hand feels "too far down and right" of the mouse.
+
+- **DK2 (CONFIRMED, binary).** `0x0040ACD0` submits surface, frame rectangle and the scaled hotspot through `0x005B2BD0` -> `0x005BB2A0` -> `0x005DBAC0` -> `0x005DC120`. That function stores `-hotspot` as the draw offset (`+0x40/+0x44`). `0x005DC580` places the sprite at `pointer + offset`. So the top-left is `pointer - scaledHotspot`, and the hotspot pixel sits on the pointer.
+- **The pointer source (LIKELY).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is LIKELY, not CONFIRMED.
+- **The art (CONFIRMED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
+
+**Ours (CONFIRMED, code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which is the hotspot, as in DK2.
+
+Claw-tip offset from the pointer in screen pixels (Point frame 0):
+
+| Screen | DK2 rule | Ours |
+|---|---|---|
+| 2543×974 | (+17, +33) | (+8, +32) |
+| 2560×1440 | (+16, +48) | (+12, +48) |
+| 1024×768 (DK2) | (+6, +26) | (+6, +26) |
+
+The DK2 column is ±1 px: the resampler's pixel centres are unread, and `0x0040C710`'s
+hotspot division is a signed `idiv`, which truncates toward zero. The art was re-checked on
+2026-10-23 by decoding Point.png (Adam7-interlaced RGBA): frame 0 has alpha 0 at (2,17) and the
+claw tip at (6,33) (the finger column is 6-7); frame 28's finger reaches (1,12). The hotspot pixel itself is at offset 0 in both. Vertically ours matches DK2. Horizontally ours is the same or closer, because DK2 stretches the sprite by `W/640`. No placement defect was found.
+
+**Open (owner choice, not decided).** Keep DK2's click point (the hotspot, up-left of the claw), or move the click point to the claw tip as a deliberate deviation from DK2. No code was changed.
+
 ## Channel selection and hover eligibility (CONFIRMED subset)
 
 Constructor `0x00402670` initializes three channels through `0x0040AAC0`:
