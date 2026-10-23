@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Pathfinding;
+using DK2.Core;
 
 namespace DK2.Simulation.Steering;
 
@@ -14,11 +15,11 @@ public interface ISteeringWorld
     /// <summary>The navigation byte of a tile (<c>0x004D16B0</c>); off the map it is solid.</summary>
     byte NavByte(int tileX, int tileY);
 
-    /// <summary>Whether a movement segment avoids live Heart cores (ADR-0439).</summary>
-    bool CanMove(Fixed16Vector from, Fixed16Vector to);
+    /// <summary>Whether a movement segment avoids Heart cores and portal crystal footprints.</summary>
+    bool CanMove(Fixed16Vector from, Fixed16Vector to, Fp32 bodyRadius = default);
 
-    /// <summary>Moves a target inside a live Heart core onto its edge (ADR-0439).</summary>
-    Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target);
+    /// <summary>Moves destinations inside structural collision bounds onto their edge.</summary>
+    Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target, Fp32 bodyRadius = default);
 
     /// <summary>Every <c>Obstacle</c> the gated enumerator (<c>0x004D12B0</c>) yields within
     /// <paramref name="range"/> of <paramref name="centre"/>, appended to <paramref name="into"/>.</summary>

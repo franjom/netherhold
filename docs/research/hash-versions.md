@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**293** — `0xAA764D602CDE17DC`. Behaviour only: swept portal-crystal bounds, body clearance, target projection and steering contacts (ADR-0527). Bounds are derived from room tiles; no new saved fields.
+
 **292** — `0x3CA3464C77E0C2AD`. Behaviour only: a hand drop obeys DK2's drop gate `0x0040D8F0` (alliance, solid and door tiles, the Heart, Portal, Prison, Temple, Torture and Combat Pit arms; ADR-0526). No new fields.
 
 **291** — `0x4F7FEF46308B6B76`. The rooms' border cursors (room `+0x81..+0x89`: tile, orientation, phase), hashed and saved after the marked-creature slots: each room with HasFlame and an owner runs one round its contour and asks for a Flame Round Room on odd turns (ADR-0524). The pin's fixture has no rooms, so the change is the version and an empty list.

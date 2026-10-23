@@ -12120,3 +12120,21 @@ keeper's Portal centre, Chicken and Call To Arms on a Portal centre or the Heart
 an unbeaten tool in a Prison, Temple, Combat Pit or Torture Chamber. DK2's computer keeper
 drops without this gate (`0x004BC710`, Q541); ours goes through it, and its targets are its
 own ground.
+
+## ADR-0527 — Keep creatures outside portal crystals
+
+**Date:** 2026-10-23 · **Status:** accepted · owner-requested clipping correction
+
+**Context.** The portal's visible crystals had no movement boundary in the remake.
+The checked native paths do not establish their original collision geometry.
+Evidence: [portal-crystal-collision.md](research/portal-crystal-collision.md).
+
+**Decision.** Use the four original crystal primitives' conservative horizontal
+bounds, expanded by creature radius, for swept movement checks, destination
+projection and steering contacts. Match the rendered piece classifier even on
+partial ownership fragments. Preserve the portal hole's navigation categories.
+
+**Consequences.** This is an explicit remake correction, not a claim that DK2
+used these bounds. Existing overlaps may escape toward a nearest face.
+Bounds are derived from room tiles; no new snapshot payload is needed.
+HashVersion and FormatVersion293 distinguish the movement change.

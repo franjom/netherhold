@@ -41,6 +41,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private int _navStampSnapshot;
     private readonly List<NavPoint> _waypoints = [];
     private readonly List<ObjectState> _objectObstacles = [];
+    private List<PortalCrystalBounds> _portalCrystals = [];
 
     public WorldSteering(GameDatabase database, WorldState world)
     {
@@ -113,6 +114,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         if (_scratch.Length != count) _scratch = new byte[count];
         StructureBlocks structures = StructureBlocks.For(_world, _database);
         _structures = structures;
+        _portalCrystals = PortalCrystalBounds.Build(_world, _database);
         _platformCentres = structures.HeartCentres;
         FillNavigationBytes(_database, _world, structures, _scratch);
 
@@ -167,6 +169,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         _mesh = NavMesh.Read(r);
         _router = new MeshRouter(_mesh);
         _structures = StructureBlocks.For(_world, _database);
+        _portalCrystals = PortalCrystalBounds.Build(_world, _database);
         _tileSnapshot = [];
     }
 
@@ -320,8 +323,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return NavBytes.Floor;
     }
 
-    public bool CanMove(Fixed16Vector from, Fixed16Vector to)
+    public bool CanMove(Fixed16Vector from, Fixed16Vector to, Fp32 bodyRadius = default)
     {
+        foreach (PortalCrystalBounds crystal in _portalCrystals)
+            if (!crystal.Expanded(bodyRadius).Allows(from, to)) return false;
         if (_structures is null || !_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return true;
         to = new Fixed16Vector((to.X >> 4) << 4, (to.Y >> 4) << 4);
         long radius = (heart.Width.Raw >> 1) << 4;
@@ -354,8 +359,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return true;
     }
 
-    public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target)
+    public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target, Fp32 bodyRadius = default)
     {
+        Refresh();
+        foreach (PortalCrystalBounds crystal in _portalCrystals)
+            target = crystal.Expanded(bodyRadius).Project(from, target);
         if (!_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return target;
         (int x, int y) = target.Tile();
         if (!_world.Contains(new TilePos(x, y)) ||
@@ -444,7 +452,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             return TryRouteTo(creature, (int)x, (int)y, options);
         ResetBodyForRequest(creature);
         creature.RouteOptions = options;
-        var target = ConstrainTarget(creature.Body.Pos, new Fixed16Vector((int)x << 4, (int)y << 4));
+        var target = ConstrainTarget(creature.Body.Pos, new Fixed16Vector((int)x << 4, (int)y << 4), new Fp32(creature.Body.Radius >> 4));
         RouteWindow.Load(creature.Body, [target], target, options.PathFlags());
         return true;
     }
@@ -508,6 +516,9 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             var position = new Fixed16Vector(x << 4, y << 4);
             into.Add(new SteeringObstacle(position, size, solid, false));
         }
+        foreach (PortalCrystalBounds crystal in _portalCrystals)
+            if ((crystal.Centre - centre).Octile() <= range + crystal.Radius)
+                into.Add(new SteeringObstacle(crystal.Centre, crystal.Radius, true, false));
         if (_structures is null || _structures.HeartCentres.Count == 0) return;
 
         foreach (int index in _structures.HeartCentres)

@@ -157,7 +157,9 @@ keeps strict distance improvements: equal-distance pillars are considered
 
 No Dungeon Heart Plug (96) or Portal Crystal (99) is created with a literal type anywhere
 (`PreCall` over all 72 `Object_Create` sites); the Portal gets no furniture from these
-passes. UNKNOWN whether either comes from level data. A Portal Gem (28) is created only by
+passes. No shipped THINGS file places99; its remaining evidence boundary and the remake's
+[crystal clipping correction](portal-crystal-collision.md) are recorded separately. The Plug's
+source remains UNKNOWN. A Portal Gem (28) is created only by
 the heart-destroyed handler `0x004DA560` and a trigger action. A saved room's objects are
 re-created by `0x004E3C20`, not re-placed.
 

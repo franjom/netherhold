@@ -27,6 +27,11 @@ selects its PNG directory. The probe samples every250ms through5s and checks
 that the promotion emits particles which expire. Source evidence and limits:
 [promotion sparkles](../../docs/research/creature-levels.md#promotion-sparkles-2026-10-23).
 
+Add `-PortalMovement` for an original-art Goblin walking past the portal crystals.
+`DK2_PORTAL_MOVEMENT_CAPTURE_OUTPUT` selects PNG/position-CSV output. The probe
+checks every simulation segment and requires the creature to reach its goal.
+This verifies the remake's clipping correction, not native route parity.
+
 ## Camera rotation and allocation capture
 
 Use the prepared, marked isolated project; never point the launcher at an owner
