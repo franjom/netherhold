@@ -118,4 +118,30 @@ public class DigMarkCancelsReinforceTests
         Assert.True(sim.World.Tile(wall).Health > reinforced);
         Assert.DoesNotContain(events.Events, e => e.Kind == "job_abandoned");
     }
+
+    /// <summary>Untagging removes the kind-1 entry (0x00512A20), so the reinforce handler may raise
+    /// kind 6 for the wall again (0x0046B05F pushes 6 into TaskPool_Raise 0x00507BB0, which refused it
+    /// only while kind 1 stood): the reinforce resumes. Owner, from DK2 play: it does.</summary>
+    [Fact]
+    public void UntaggingTheWall_LetsTheReinforceResume()
+    {
+        (GameSimulation sim, ListEventSink events) = StartReinforcing();
+        (TilePos wall, _) = RunUntilReinforcing(sim);
+        byte rock = sim.World.Tile(wall).TerrainId;
+
+        sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, [wall], true)));
+        sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, [wall], false)));
+        int index = wall.Y * sim.World.Width + wall.X;
+        bool resumed = false;
+        for (int i = 0; i < SimulationTiming.TicksFromSeconds(10) && !resumed; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+            CreatureState imp = sim.World.Creatures[0];
+            resumed = imp.TargetWork == TileWorkKind.Reinforce && imp.TargetTileIndex == index
+                && imp.Dk2StateId == ImpStates.For(TileWorkKind.Reinforce).Work;
+        }
+
+        Assert.True(resumed);
+        Assert.Equal(rock, sim.World.Tile(wall).TerrainId);
+    }
 }

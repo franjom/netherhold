@@ -155,5 +155,7 @@ inner leg and 44's walks falling in one tick because our carry walks straight to
 cell. Trap and door crates (34–37) are built (ADR-0214, `workshop-crates.md` §7); teleport
 (51, 52) is not.
 
-Open for the owner (Q621, ADR-0533): does a mid-strike Imp finish its swing before turning to dig,
-and does untagging the wall resume the reinforce?
+Owner, 2026-10-23 (Q621, ADR-0533): a mid-strike Imp seems to finish its swing before turning to
+dig ("I think so"), as state 22's action wait (`0x004663B7`) says; untagging the wall resumes the
+reinforce, as the binary allows: the untag removes kind 1 (0x00512A20) and the reinforce handler
+raises kind 6 again (`0x0046B05F`). Ours: `UntaggingTheWall_LetsTheReinforceResume`.
