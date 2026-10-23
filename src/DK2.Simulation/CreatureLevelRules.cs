@@ -98,7 +98,7 @@ public static class CreatureLevelRules
         if (CombatPitRules.AtTheCap(hooks.Database, state)) CreatureStateMachine.TrySetState(hooks, state, CreatureStateMachine.Idle);
     }
 
-    /// <summary>DK2's level increment <c>0x0048B120</c>, without its effect and sound: nothing at
+    /// <summary>DK2's level increment <c>0x0048B120</c>, without its sound: nothing at
     /// level 10 or on a finished (dead) creature; otherwise the level rises by one and health is
     /// carried across as its share of the maximum — <c>ratio = (health &lt;&lt; 12) / oldMax</c>
     /// in 12-bit fixed point, <c>new = (ratio × newMax) &gt;&gt; 12</c> — applied as a delta through
@@ -117,6 +117,9 @@ public static class CreatureLevelRules
         int newMax = CreatureHealthRules.MaxHealth(database, creature, state);
         int target = (int)((ratio * newMax) >> 12);
         CreatureHealthRules.Apply(database, creature, state, target - current);
+        hooks.RequestEffect(nameof(CreatureLevelRules), new ViewEffectRequest(new EffectId(339), state.OwnerPlayerId,
+            new FpPosition3(new Fp32(state.PosX), new Fp32(state.PosY), new Fp32(state.PosZ)),
+            new Dk2Angle((ushort)state.Heading)));
         LeaveThePitAtTheCap(hooks, state);
         return true;
     }

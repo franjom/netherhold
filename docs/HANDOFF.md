@@ -121,6 +121,8 @@ neighbour queries and torture-approach flags are corrected (ADR-0500).
 Portal arrival transparency and animated beams are corrected. Red mist timing,
 failed previews and the withdrawn keeper-colour report (Q619 closed):
 [portal buildup](research/portals-interval.md#portal-buildup-built-adr-0467).
+Creature promotions now request the original sparkle effect, including imp work
+levels and scripted grants: [promotion sparkles](research/creature-levels.md#promotion-sparkles-2026-10-23).
 Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
 Proposed parallelism milestones and determinism gates:
 [parallelism design](plans/2026-10-17-parallelism-design.md).

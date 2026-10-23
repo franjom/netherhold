@@ -21,6 +21,12 @@ Set `DK2_PORTAL_PROBE_EFFECT` and `DK2_PORTAL_PROBE_OWNER` to compare other
 definitions/owners (defaults181/3); effect94 captures the separate buildup.
 These captures check the remake's data consumer, not original-game behaviour.
 
+Add `-CreatureLevel` to capture an imp promoted through the simulation command,
+using original effect339 and `gsparkle` art. `DK2_LEVEL_UP_CAPTURE_OUTPUT`
+selects its PNG directory. The probe samples every250ms through5s and checks
+that the promotion emits particles which expire. Source evidence and limits:
+[promotion sparkles](../../docs/research/creature-levels.md#promotion-sparkles-2026-10-23).
+
 ## Camera rotation and allocation capture
 
 Use the prepared, marked isolated project; never point the launcher at an owner

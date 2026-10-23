@@ -119,6 +119,43 @@ prove the correction from behaviour, which nobody has done for these.
 
 ## 3. Implementation
 
+### Promotion sparkles (2026-10-23)
+
+CONFIRMED by a fresh whole read of `FUN_0048B120` and the request assembly
+at0x0048B294–0x0048B2B6: every successful level increment requests effect339
+(0x153) through view slot+0x38C, after health rescaling and before the pit-cap
+state change. It passes the creature's owner word+0x28, position+0x1A and
+heading+0xF4. This is a point request, without creature attachment or an
+imp-specific branch. The level10/finished guards precede it. Sound0x349 is a
+separate subsequent request; this visual change does not implement sound.
+
+Shipped effect339, "Level up Effect", has generation type4, flags0x4480,
+HP32, count3 and generated ids554–557. Random-slot flag0x400 selects one of
+the four per pass; at full particle detail and nominal50ms updates this emits
+96 sparkles over1.6s. Flag0x4000 scales the native pass count by
+global0x0069752C/255, rounded down with a minimum of one for a nonzero count.
+The modern consumer uses the full authored count rather than that legacy setting.
+The shared generator reading is [004386F0](functions/004386F0.md).
+All four use `gsparkle`, art flags0x24, element flag0x8 (dim RGB), HP36–50,
+scale409–614 and horizontal/vertical speeds−819–819. Source RGB values are
+180/180/250,180/70/100,120/250/120 and255/40/250. None selects the owner
+palette. The origin ring is10–40 and height90–150 in the effect's authored
+units. With a final2.5s particle lifetime, the nominal envelope is about4.1s;
+native frame pacing is not measured by this calculation.
+
+BUILT through `StateHookContext.RequestEffect` in the shared level increment,
+including script-created hook contexts; detached setup contexts have no sink.
+The existing asset provider and effect consumer retain the authored resources,
+motion, colour fade and lifetime. No gameplay random draw is added.
+Verification: simulation guards/position/heading, earned and granted levels,
+scripted multi-level grants, and the installed-data particle integration test.
+The isolated Unity `CreatureLevelEffectProbe` promotes an imp through the grant
+command and captures0–5s; observed peak96 particles and none by4001ms for
+seed42. The captured coloured sparkle cluster visually matches the supplied
+DK2 sequence; pixel parity and native timing remain unmeasured.
+
+### Level and experience state
+
 `CreatureLevelRules` (`Clamp`, `Scale`, `Percent`, `MaxHealth`, `SpeedRaw`,
 `WorkExperiencePerHit`, `Grant`, `ExperienceForNextLevel`), plus
 `CreatureState.Level` and `ExperiencePoints`, both hashed and snapshotted.

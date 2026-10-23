@@ -23,6 +23,7 @@ public sealed class SimulationContext
         World = world;
         Rng = rng;
         Events = events;
+        _requestEffect = RequestEffect;
         Navigation = new Navigation.WorldSteering(database, world);
     }
 
@@ -97,9 +98,10 @@ public sealed class SimulationContext
     /// <c>Run</c> takes <c>CurrentTick + 1</c>, and an event during this tick belongs to that turn.</summary>
     private int TriggerTurn => unchecked((int)(Tick.Value + 1));
 
-    /// <summary>What <see cref="CreatureStateMachine"/> hands a category hook: this context's
-    /// world, database and trigger executor, made on the stack.</summary>
-    public StateHookContext Hooks => new(World, Database, Triggers);
+    private readonly Action<string, ViewEffectRequest> _requestEffect;
+
+    /// <summary>The world, database, triggers and presentation requests available to a state hook.</summary>
+    public StateHookContext Hooks => new(World, Database, Triggers, _requestEffect);
 
     public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
         Triggers?.FireCreatureEvent(creature, type, TriggerTurn);

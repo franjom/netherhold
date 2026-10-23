@@ -5196,7 +5196,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
   - the step-off (built later, ADR-0320);
   - the level decrement;
   - `+0x3AF`;
-  - the level-up effect and sound.
+  - the level-up sound; the visual effect is built (see creature-levels.md, Promotion sparkles).
 - **Still UNKNOWN:** thing classes 3 and 4; creature `+0x38`.
 - **Tests.** `CreatureLevelTests.AnEarnedLevelCarriesHealthUpWithTheMaximum`. The negative control, a bare increment, fails it.
 - No new state; `HashVersion` stays **121**.

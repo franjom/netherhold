@@ -46,6 +46,7 @@ public class GrantCreatureLevelTests
         Assert.Equal(2, goblin.Level);
         Assert.True(goblin.Health > before, $"health {goblin.Health} did not scale from {before}");
         Assert.Contains($"creature={goblin.Id} level=2", Assert.Single(sink.Events, e => e.Kind == "level_granted").Detail);
+        Assert.Equal(new EffectId(339), Assert.Single(sink.Events, e => e.EffectRequest.HasValue).EffectRequest!.Value.EffectId);
     }
 
     [Theory]
@@ -68,5 +69,6 @@ public class GrantCreatureLevelTests
         Assert.Equal((level, health), (goblin.Level, goblin.Health));
         Assert.Contains(sink.Events, e => e.Kind == "level_grant_refused");
         Assert.DoesNotContain(sink.Events, e => e.Kind == "level_granted");
+        Assert.DoesNotContain(sink.Events, e => e.EffectRequest.HasValue);
     }
 }

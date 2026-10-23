@@ -9,6 +9,21 @@ namespace DK2.Simulation.Tests;
 
 public class PortalCreatureActionTests
 {
+    [Fact]
+    public void ScriptedPromotionsReachTheSimulationEffectSink()
+    {
+        var (db, world) = Setup();
+        Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
+        var tree = new TriggerTree(Records(4), 0, playerRoots: [new TriggerPlayerRoot(3, 0xFFFF)]);
+        var sim = new GameSimulation(db, world, 1, [], tree);
+        var sink = new ListEventSink(); sim.ObserveWith(sink);
+        sim.Tick();
+        var requests = sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value).ToArray();
+        Assert.Equal(4, Assert.Single(world.Creatures).Level);
+        Assert.Equal(3, requests.Length);
+        Assert.All(requests, request => Assert.Equal(new EffectId(339), request.EffectId));
+    }
+
     [Theory]
     [InlineData(0, 1)]
     [InlineData(1, 1)]

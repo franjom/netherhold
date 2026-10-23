@@ -1,7 +1,8 @@
 param(
     [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
     [string]$OutputRoot = "$PSScriptRoot/../../build/tag-overlay-probe",
-    [switch]$PortalEntrance
+    [switch]$PortalEntrance,
+    [switch]$CreatureLevel
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -17,6 +18,7 @@ foreach ($folder in @('Assets', 'Packages', 'ProjectSettings')) {
 }
 $entries = @('TagOverlayOrderProbe', 'TransparentTerrainReuseProbe')
 if ($PortalEntrance) { $entries += 'PortalEntranceProbe' }
+if ($CreatureLevel) { $entries += 'CreatureLevelEffectProbe' }
 foreach ($probe in $entries) {
     Copy-Item -LiteralPath "$PSScriptRoot/$probe.cs" -Destination "$project/Assets/DK2/Editor/$probe.cs" -Force
 }
