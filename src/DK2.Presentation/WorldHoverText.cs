@@ -90,6 +90,29 @@ public sealed class WorldHoverText
             terrain.NameStringId == 0 ? "" : _resolve(terrain.NameStringId), hit);
     }
 
+    /// <summary>Hovering a column of the Creatures panel, its portrait or counts (<c>0x00418DD0</c>, status
+    /// case 4, <c>0x00494740</c>): the type's description with %27 its job class and %28 its fight style.
+    /// No popup: the status strip clears the case before the popup is checked (STRONGLY INFERRED,
+    /// creature-overview.md).</summary>
+    public HoverTextSnapshot CreatureType(CreatureDef definition)
+    {
+        if (definition is null) throw new ArgumentNullException(nameof(definition));
+        if (definition.DescriptionStringId == 0) return HoverTextSnapshot.Empty;
+        var tokens = new Dictionary<int, string>
+        {
+            [27] = _resolve(definition.JobClass switch
+            {
+                JobClass.Thinker => 2419u, JobClass.Fighter => 2417u, JobClass.Scout => 2420u, _ => 2418u,
+            }),
+            [28] = _resolve(definition.FightStyle switch
+            {
+                FightStyle.Blitzer => 2424u, FightStyle.Blocker => 2423u, FightStyle.Flanker => 2425u,
+                FightStyle.Support => 2426u, _ => 2427u,
+            }),
+        };
+        return new(Substitute(_resolve(definition.DescriptionStringId), tokens), "", default);
+    }
+
     private HoverTextSnapshot Creature(CreatureState creature, WorldHoverHit hit, string personalName)
     {
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);

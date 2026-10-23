@@ -163,6 +163,24 @@ namespace DK2.Unity
             }
             return 0;
         }
+        /// <summary>The creature type whose column (portrait and count widgets) is hovered: 0x00418DD0 puts its
+        /// description in the status strip. The worker column is the four worker count widgets.</summary>
+        public CreatureOverviewType? HoveredColumnType(Vector3 pointer)
+        {
+            if(!_visible) return null;
+            Vector2 at=new Vector2(pointer.x,_height-pointer.y);
+            for(int i=0;i<=_columns;i++)
+            {
+                int entry=i==0?0:1+_page*_columns+i-1;
+                if(entry>=_view.Entries.Count) continue;
+                // An ordinary column's widgets stack rows of 244 / 64 / 84 / 84 units by mode (0x00418BC0).
+                Rect r=HitRect(i);
+                if(i>0 && Mode!=CreatureOverviewMode.Total)
+                    r.height=V(CreatureOverview.Rows(Mode)*(Mode==CreatureOverviewMode.Jobs?64:84));
+                if(r.Contains(at)) return _view.Entries[entry].Type;
+            }
+            return null;
+        }
         private Rect HitRect(int column)=>column==0?new Rect(V(544),V(1612),V(120),V(256))
             :new Rect(V(924+(column-1)*136),V(1616),V(108),V(244));
         public bool ContainsPointer(Vector3 pointer)=>_visible && new Rect(V(472),V(1600),V(1800),V(320))

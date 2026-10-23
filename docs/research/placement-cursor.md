@@ -15,7 +15,10 @@ crossed-circle icon floats near the hand. The binary agrees with that descriptio
 one-tile cage the owner sees while only hovering is not the selection rectangle: the room
 arm fills none until a drag (§2). It is most likely the Hand light's own cage (LIKELY), which
 `Presentation_Update 0x0043B220` marks drawn under the pointer whenever both published
-rectangles are empty and an unread flag allows (§2a, read 2026-10-23).
+rectangles are empty and the interface's hover-cage test `0x004096B0` allows it: always in
+room, sell, door and trap mode, in Hand mode only while the hand holds something or over a
+dig-taggable tile, and in spell and Query mode only over a dig-taggable tile (§2a, read
+2026-10-23, CONFIRMED).
 
 ## 1. Per-frame flow (CONFIRMED)
 
@@ -85,9 +88,9 @@ the animated Point (state 1).
   `0x004BA2D0` for that tile.
 
 **Door, mode 6, `0x0040B3C0`, and trap, mode 7, `0x0040B4F0`.** These arms **never fill the
-rectangle, so doors and traps have no rectangle cage.** The hover cage of §2a has no
-tool-mode test, so by the binary it shows here too, coloured by these arms' bit 0x10
-(LIKELY: its visibility flag's source is unread; not owner-confirmed).
+rectangle, so doors and traps have no rectangle cage.** The hover cage of §2a shows here on
+every interior tile, coloured by these arms' bit 0x10 (CONFIRMED: `0x0040C120` returns 1
+for modes 6 and 7; not owner-confirmed).
 - With no Workshop (`Player_CountRoomsOfType(10)`), or no tile under the pointer (`+0x1FC`),
   the arm sets bit 0x02, clears 0x10 and leaves `+0x13E4` untouched (it may be stale).
 - Otherwise it stores `-cost`: door cost is def `+0x8F`, trap cost is def `+0x92`. Valid
@@ -126,9 +129,8 @@ pointer is on an interior tile (x and y not 0 or dim−1), moves the light there
 `0x00446C70` and sets:
 - `+0xD5` bit 0 (drawn), only when **both** published rectangles are empty: bridge
   `+0x10 == +0x18` and `+0x14 == +0x1C` (primary), and `+0x4E == +0x56` and `+0x52 == +0x5A`
-  (secondary). The bit then takes a flag returned by the view host's `+0xC` object, slot
-  `+0x20` (`0x0043B7DA..0x0043B7ED`), which is UNREAD. Otherwise bit 0 is cleared, so the
-  hover cage and the rectangle cage never show together.
+  (secondary). The bit then takes the interface's hover-cage test (below). Otherwise bit 0
+  is cleared, so the hover cage and the rectangle cage never show together.
 - `+0x81`, which is the art's edge word (render record at thing `+0x26`, field `+0x5B`):
   `0x1F` (all four edges plus the lower cage) or `0x3F` when bridge `+0x36` is set. Bit
   `0x20` is the blue bit in kind3, as in the rectangle path.
@@ -138,6 +140,37 @@ On a border tile it clears bit 0 and the RGB and does not move the light. Off th
 with `0x0044D620` false (letterbox camera), it clears bit 0 only (`0x0043BDD5`): the light is
 not moved and its RGB is left. When the player thing has `+0x76` bit `0x80000` or `+0x19A` set (possession), it
 clears bit 0 and publishes a zero primary rectangle (`0x0043BE0B`).
+
+**The visibility flag (CONFIRMED, read 2026-10-23).** At `0x0043B7DA..0x0043B7ED` the bridge's
+`+4` is the session container (`GameSession_UpdateLoop 0x00526590`; the bridge is its `+0x10`
+component). Container `+0xC` is the player interface, the global `0x006CEA10`, which
+`GameSession_Run` attaches through `0x00526FF0` at `0x005256D4` (and detaches through
+`0x00527020`) unless global `0x0075AEAF` is set. Its only vtable is `0x0066C4A4`, installed by
+`Interface_Construct 0x00402670` (slot `+4` is `Interface_Initialize 0x00402D00`). So `+0x20` is a
+**virtual call**, slot 8, to `0x004096B0`; with no interface attached the flag is 0. That test
+returns 0 when any of these holds:
+- Options is open (interface `+0x2722 == 1`);
+- the presentation's view mode (`+0x10` of the container, vtable `+0xCC`) is 1, 2 or 10;
+- the pointer is over the GUI (`+0x12B2 == 1`) and no 3D-view press is captured (`+0x10C`
+  zero; the press arms of `0x004075E0` set it, their releases clear it, LIKELY meaning);
+- `Camera_AllowsOrdinaryInput 0x0044D590` is false (path camera, counted letterbox).
+
+Otherwise it returns 1 when the tool allows it (`0x0040C120`, on tool mode `+0x13DB`) or the
+hover target is a dig-taggable tile (`0x0040C1C0`: `+0x1084 == 1` and `+0x1088` bit 0, the test
+that also shows PickAxeHold):
+
+| Mode | Cage on an interior tile (rectangles empty) |
+|---|---|
+| 3 room, 4 sell, 6 door, 7 trap, 1, 2 | always |
+| 0 Hand | while the hand holds something (world vtable `+0x26C`, `0x005094B0`: player `+0x1BF`, the hand count, non-zero), or over a dig-taggable tile |
+| 8 keeper spell, 10 Query, 5, 9 | only over a dig-taggable tile |
+
+In Hand mode a held item usually also fills the 1×1 drop rectangle (`0x0040AE80`), which
+clears this bit, so the drop cage is drawn by the rectangle path; the light cage shows with a
+full hand only when that arm finds no item to drop (CONFIRMED by reading; rare). Over a
+dig-taggable tile the Hand and room arms return before writing bit 0x10, so the reset's 0x10
+stays and that cage is **blue** (CONFIRMED chain). With an empty hand over floor, a creature
+or a non-taggable wall, Hand mode shows no hover cage.
 
 **Where it lands (LIKELY).** The light sits at the picked point, not at a tile centre, at
 height `0x1C00` (`0x1E00` when the pick result's `+0x18` is set). Kind3 (`0x005A01A0`,
@@ -165,12 +198,69 @@ the same kind3 art, edge masks and `+0x36` blue bit, so to the eye the one-tile 
 into the dragged rectangle.
 
 **The secondary rectangle is not a hover source.** `0x0044E130` and `0x0044E1C0` replace the
-current rectangle (`+0x10..+0x1C` / `+0x4E..+0x5A`) on every call. They keep the previous
-one only in `+0x24..+0x30` / `+0x62..+0x6E`, raw on the first call and otherwise through
-`0x005B7090` (unread, probably a union). The only callers that pass a non-zero rectangle are
+current rectangle (`+0x10..+0x1C` / `+0x4E..+0x5A`) on every call. The outgoing one goes
+into `+0x24..+0x30` / `+0x62..+0x6E`: raw on the first call (flag `+0x20` / `+0x5E` clear),
+otherwise as `0x005B7090(old, outgoing)`, the bounding-box union (min x0, min y0, max x1,
+max y1; CONFIRMED for `0x0044E130`). So that field is a running union of replaced
+rectangles, a dirty region; who clears the flag is unread. The only callers that pass a non-zero rectangle are
 in `0x0040ACD0`, which passes the interface rectangle to both. The rest pass zeros:
 `0x0040386E/0x0040388B`, `0x0043B0D7/0x0043B0F4` and `0x0043BE0B`. So in this path the
 secondary always equals the primary.
+
+### The drop cage's colour
+
+Read 2026-10-23 in disassembly: `0x0040AE80` (`0x0040AF09..0x0040B13A`), `0x0040D8F0`, the
+three CWorld slots behind it and the click arm of `0x00408EE0`.
+
+**Which item (CONFIRMED).** The first pending-pickup record (`+0x142`, stride `0x36`, count
+`+0xEF8`) whose dword `+0x0C` is 0. That dword is set to 1 when a drop is queued for a pickup the
+simulation has not yet confirmed (`0x0040914B`). With no such record, the top of the hand:
+player `+0x1BF` is the count, and `0x004BCAB0(count − 1)` gives the last item in. The click
+drops the same item, so the cage tests the next drop.
+
+**The colour (CONFIRMED).** Bit 0x10 ends as the inverse of bit 0x02. So the cage is blue unless
+the arm sets 0x02 (red):
+- class 0, a creature: `0x0040D8F0` false;
+- class 2, an object: world slot `+0x234` false;
+- class 6, a dead body: never red. The click still tests slot `+0x238`.
+For an own creature over an owned Portal centre, or an IsWorker+IsEvil creature over an owned
+Heart cell with byte `+0x0C == 0x40`, the arm sets 0x04, which hides No Go. A refusal clears it.
+
+**The rules (CONFIRMED; `0x00450910`, `0x00450BE0` and `0x00450D40`).** "Allied" is the tile
+owner's alliance with the player, which includes the player itself, and never the neutral player.
+Every class refuses a navigation-solid tile (grid bit 3) and a door tile (`0x004528E0`).
+- **Creature, worker:**
+  - refused on a Combat Pit floor slot;
+  - refused on another keeper's Heart inner 3×3;
+  - an IsEvil worker is refused on a Portal or Hero Portal centre and on a Prison floor slot;
+  - a non-evil worker is refused on any Heart inner 3×3;
+  - otherwise accepted on allied ground, or on neutral roomless ground that is neither water nor
+    lava.
+- **Creature, non-worker:**
+  - allied ground only;
+  - a Heart's inner 3×3 is refused;
+  - a Combat Pit floor slot needs the player's own pit with a free slot (`0x004D8430`);
+  - another keeper's Portal centre is refused.
+- **Creature, all:** `0x0040D8F0` then adds these flags from `+0x3EA`:
+  - a creature the player does not own is refused on a Portal centre;
+  - IsTool (0x100) without HasBeenKnockedOut (0x400) is refused on Prison, Temple and Combat Pit
+    floor slots and anywhere in a Torture Chamber, but is accepted on Hero Lair (terrain 35)
+    even where the map test refused.
+- **Object:**
+  - CanBeDroppedOnAnyLand (definition `+0xF4` bit 13; only Call To Arms) goes anywhere open;
+  - everything else goes onto allied ground;
+  - a Chicken (9) or Call To Arms (10) is refused on a Portal centre and on a Heart's inner 3×3.
+- **Dead body:** only onto a tile the player itself owns.
+
+**Where the rule lives (CONFIRMED by search).** Only `0x0040AE80` and `0x0040D8F0` call through
+slots `+0x230`, `+0x234` and `+0x238`. The three bodies are reached only through their thunks.
+The click arm submits a drop only when `0x0040D8F0` passes, so a refused drop never becomes a
+command. The simulation does not test the tile again.
+
+**Ours (2026-10-23):**
+- `HandRules.CanDropCreatureOn` and `CanDropObjectOn` test `owner == player`.
+- The binary tests alliance, refuses solid and door tiles, and has the room exceptions above.
+- `IsUnclaimedFloor` already refuses water and lava for a worker, which DK2 does too.
 
 ## 3. Tool icon and price drawing, `0x0040CAE0` (CONFIRMED)
 
@@ -234,12 +324,12 @@ anchor comes from the held-item helper `0x0040CFE0`.
 
 | Tool | Cage | Icon | Price | Invalid |
 |---|---|---|---|---|
-| Room | only while dragging, blue or red | I-Place_Room | per-tile price × placeable tiles, pink or red | No Go |
-| Sell | only while dragging | I-Sell | refund (128,255,255) | No Go when the refund is ≤ 0 |
-| Door | none | I-Place_Door | door cost | No Go (no Workshop, unaffordable, world test fails) |
-| Trap | none | I-Place_Trap | trap cost | as door |
-| Keeper spell | none | the spell's own art | none (LIKELY) | No Go, offset (-2,+2) |
-| Query | none | I-Query | — | — |
+| Room | one-tile hover cage, rectangle while dragging, blue or red | I-Place_Room | per-tile price × placeable tiles, pink or red | No Go |
+| Sell | one-tile hover cage, rectangle while dragging | I-Sell | refund (128,255,255) | No Go when the refund is ≤ 0 |
+| Door | one-tile hover cage | I-Place_Door | door cost | No Go (no Workshop, unaffordable, world test fails) |
+| Trap | one-tile hover cage | I-Place_Trap | trap cost | as door |
+| Keeper spell | hover cage over a dig-taggable tile only | the spell's own art | none (LIKELY) | No Go, offset (-2,+2) |
+| Query | hover cage over a dig-taggable tile only | I-Query | — | — |
 
 ## 5. Unknowns
 
@@ -249,10 +339,13 @@ anchor comes from the held-item helper `0x0040CFE0`.
 - **Cage while hovering: the producer is read (§2a).** The owner's phone photos
   (2026-10-23, Water and Claimed Path, no button held) show a one-tile, full-height cage, red
   over water and blue over claimed path, growing over the tiles when dragged. The Hand
-  light's kind3 cage most likely accounts for it (LIKELY, §2a). Still open: the visibility flag from the view
-  host's `+0xC` slot `+0x20`, which decides whether the cage also shows in Hand, door, trap
-  and spell modes and over a diggable tile; how the light thing reaches the draw; and
-  `0x005B7090`.
+  light's kind3 cage most likely accounts for it (LIKELY, §2a). Its visibility flag is read
+  (CONFIRMED, §2a): interface vtable slot `+0x20`, `0x004096B0`, decides it per tool mode.
+  Still open: how the light thing reaches the draw (LIKELY the tile thing chain, untraced),
+  and who clears the rectangle-union flag `+0x20`/`+0x5E`.
+- For the owner, from play: the cage is built per mode (§6). Seeing it with a door or trap
+  selected on every interior tile, and in plain Hand mode only over a dig-taggable wall
+  (blue), would confirm that it is the Hand light's (the LIKELY link above).
 
 The icons are engine textures, `GUI\Cursors\I-*` (32x32 with a 16x16 MIP), not `Sprite.WAD`.
 
@@ -267,9 +360,15 @@ drag clamps its end to `RubberBandAreaLimit` in `PlayerInputTranslator`, as the 
 arm `0x00408194..0x004081FD` does. `ClassicTileHoverOutline` cages any rectangle, red or
 blue; `ClassicPlacementOverlay` draws the icon at the pointer plus `(82*W/640, 10*H/480)`,
 No Go over it, and the price in the gold counter's digits, pink, red when unaffordable,
-(128,255,255) for a refund. Ours cages the hovered tile in room and sell mode, which matches
-the Hand light's cage of §2a for those modes. It does not yet add that cage in door, trap or
-Hand mode, or skip it on map-border tiles and during possession. The cursor
+(128,255,255) for a refund. The hover cage follows `0x004096B0` per mode
+(`PlacementCursor.HoverCageShows`, `DungeonRunner.HoverCaged`): always in room, sell, door and
+trap mode; in Hand mode while holding something or over a dig-taggable tile (hit kind Tile);
+with a spell or Query only over a dig-taggable tile; hidden on border tiles, while Options is
+open and during possession. Its colour is blue over a dig-taggable tile in Hand, room, spell
+and Query mode, otherwise the arm's validity (`HoverCageBlue`). The hand-drop cage's colour
+(`HandDrop`) still uses our simulation's drop rules, which differ from the binary's (The drop
+cage's colour, above). Pending: port the gate `0x0040D8F0` into the simulation (needs an ADR and
+a hash bump). Not applied: `0x004096B0`'s view-mode, over-GUI and camera gates. The cursor
 rectangle and the sell release keep the low corner (`0x0040B2B0`, `0x0040B661`, `0x004083DA`),
 the room release the anchor (`0x00408194`); ours does each. Over the HUD ours forces No Go
 even during a drag, where DK2's `+0x10C` gate runs the normal arm. Not

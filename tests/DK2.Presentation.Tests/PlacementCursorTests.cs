@@ -94,6 +94,44 @@ public sealed class PlacementCursorTests
         Assert.True(some.NoGo);
     }
 
+    [Theory]
+    [InlineData(HoverCageTool.Room, false, false, true)]
+    [InlineData(HoverCageTool.Sell, false, false, true)]
+    [InlineData(HoverCageTool.Door, false, false, true)]
+    [InlineData(HoverCageTool.Trap, false, false, true)]
+    [InlineData(HoverCageTool.Hand, false, false, false)]
+    [InlineData(HoverCageTool.Hand, true, false, true)]
+    [InlineData(HoverCageTool.Hand, false, true, true)]
+    [InlineData(HoverCageTool.SpellOrQuery, false, true, false)]
+    [InlineData(HoverCageTool.SpellOrQuery, true, false, true)]
+    public void TheHoverCageShowsPerToolAs0x004096B0Decides(HoverCageTool tool, bool digTaggable, bool handHolds, bool shows) =>
+        Assert.Equal(shows, PlacementCursor.HoverCageShows(tool, digTaggable, handHolds));
+
+    [Theory]
+    [InlineData(HoverCageTool.Hand, true, false, true)]
+    [InlineData(HoverCageTool.Room, true, false, true)]
+    [InlineData(HoverCageTool.SpellOrQuery, true, false, true)]
+    [InlineData(HoverCageTool.Sell, true, false, false)]
+    [InlineData(HoverCageTool.Door, false, false, false)]
+    [InlineData(HoverCageTool.Room, false, true, true)]
+    public void ADigTileLeavesTheResetsBlueExceptWhereTheArmRewritesIt(HoverCageTool tool, bool dig, bool armValid, bool blue) =>
+        Assert.Equal(blue, PlacementCursor.HoverCageBlue(tool, dig, armValid));
+
+    [Fact]
+    public void TheHoverCageIsHiddenOnAMapBorderTile()
+    {
+        Assert.Null(PlacementCursor.HoverCage(new TilePos(0, 5), 20, 20));
+        Assert.Null(PlacementCursor.HoverCage(new TilePos(5, 19), 20, 20));
+        Assert.Equal(new TileRectangle(1, 1, 2, 2), PlacementCursor.HoverCage(new TilePos(1, 1), 20, 20));
+    }
+
+    [InstallFact]
+    public void AnEmptyHandHasNoDropCage()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        Assert.Equal(PlacementFeedback.None, PlacementCursor.HandDrop(world, db, keeper, Claimed(world, db, keeper, 0)));
+    }
+
     private static (GameDatabase, WorldState, PlayerId) Level1()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);

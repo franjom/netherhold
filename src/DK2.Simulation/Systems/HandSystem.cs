@@ -451,9 +451,9 @@ public sealed class HandSystem : ISimulationSystem
 
 
     /// <summary>Puts an object down on a tile the keeper owns — CONFIRMED by the
-    /// owner (2026-09-06), and not <c>CanBeDroppedOnAnyLand</c>, which is set on
-    /// one record and read by nothing
-    /// (<see cref="HandRules.CanDropObjectOn"/>).</summary>
+    /// owner (2026-09-06) (<see cref="HandRules.CanDropObjectOn"/>). DK2's own gate,
+    /// read 2026-10-23, is the cursor's <c>0x0040D8F0</c>, which also reads
+    /// <c>CanBeDroppedOnAnyLand</c>; not yet ported.</summary>
     /// <remarks>A chicken or gold dropped onto a creature feeds or pays it at once
     /// (<see cref="DropDeliveryRules"/>, ADR-0217). Not implemented: the handler's
     /// branch giving a chicken to the keeper of the Hatchery it lands in, which the

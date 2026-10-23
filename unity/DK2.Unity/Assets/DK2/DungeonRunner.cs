@@ -1193,7 +1193,6 @@ namespace DK2.Unity
             bool inside = mouse.x >= 0 && mouse.y >= 0 && mouse.x < Screen.width && mouse.y < Screen.height;
             bool allowed = visibility.AllowOrdinaryInput && Application.isFocused && inside;
             HandCursorKind cursor = HandCursorKind.Point;
-            TilePos? highlightedTile = null;
             PlacementFeedback placement = PlacementFeedback.None;
             _debugHoverTile = null;
             _hoveredCreature = CreatureQueryTarget.None;
@@ -1225,10 +1224,11 @@ namespace DK2.Unity
                     bool dig = HandCursor.ShowsDig(world, _simulation.Database, tile, viewer);
                     if (ActiveTool == PlayerToolMode.Hand)
                         cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
-                    if (cursor == HandCursorKind.Dig) highlightedTile = tile;
                     if (ActiveTool == PlayerToolMode.Hand) _scene.DrawHoverOverlay(hit);
                     // In room mode a diggable tile keeps the pickaxe and draws no icon (0x0040B210).
                     if (!(ActiveTool == PlayerToolMode.BuildRoom && dig)) placement = Placement(world, viewer, tile);
+                    // The arms test the dig tag on a tile hover target (+0x1084 == 1, +0x1088 bit 0).
+                    placement = HoverCaged(placement, world, viewer, tile, hit.Kind == WorldHoverKind.Tile && dig);
                 }
             }
             if (allowed && PointerOverHud(mouse))
@@ -1252,21 +1252,41 @@ namespace DK2.Unity
                 : HandCursor.Sprite(cursor).FrameSize.X - HandCursor.Sprite(cursor).Hotspot.X;
             _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
             _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse));
-            if (placement.Cage is TileRectangle cage)
-                _tileHighlight?.Update(cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
-            else _tileHighlight?.Update(highlightedTile, Camera.main, Time.unscaledTimeAsDouble);
+            _tileHighlight?.Update(placement.Cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
         }
 
-        /// <summary>With no rectangle, room and sell mode show a one-tile hover cage, most likely the Hand
-        /// light's own (+0x33E, 0x0043B220; placement-cursor.md §2a), coloured by the arm's validity and
-        /// hidden on a border tile. Whether Hand, door and trap mode show it too waits on an unread flag
-        /// (0x0043B7DA). Unity compiles C# 9, which has no 'with' on a struct.</summary>
-        private PlacementFeedback Caged(in PlacementFeedback feedback, TilePos at)
+        /// <summary>With no rectangle, the one-tile hover cage, most likely the Hand light's own (+0x33E,
+        /// 0x0043B220; placement-cursor.md §2a), shown per tool as 0x004096B0 decides and hidden on a
+        /// border tile, while Options is closed and nothing is possessed (0x0043B220 tests +0x76 bit
+        /// 0x80000 and +0x19A). The full map is taken to be one of the view modes 1/2/10 that clear it
+        /// (unread). Colour: <see cref="PlacementCursor.HoverCageBlue"/>. A full hand off a dig tile shows
+        /// the drop cage instead (0x0040AE80). Unity compiles C# 9, which has no 'with' on a struct.</summary>
+        private PlacementFeedback HoverCaged(in PlacementFeedback feedback, WorldState world, PlayerId viewer, TilePos at, bool dig)
         {
-            WorldState world = _simulation.World;
-            bool border = at.X <= 0 || at.Y <= 0 || at.X >= world.Width - 1 || at.Y >= world.Height - 1;
-            return new PlacementFeedback(border ? null : new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1),
-                feedback.Valid, feedback.Price, feedback.Icon, feedback.NoGo, feedback.Affordable);
+            if (feedback.Cage is not null || HudModal || world.Player(viewer).PossessedCreatureId != 0
+                || CageTool() is not HoverCageTool tool) return feedback;
+            bool holds = world.Player(viewer).Hand.Count != 0;
+            if (!PlacementCursor.HoverCageShows(tool, dig, holds)) return feedback;
+            if (tool == HoverCageTool.Hand && !dig) return PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
+            return new PlacementFeedback(PlacementCursor.HoverCage(at, world.Width, world.Height),
+                PlacementCursor.HoverCageBlue(tool, dig, feedback.Valid), feedback.Price, feedback.Icon, feedback.NoGo, feedback.Affordable);
+        }
+
+        /// <summary>The active tool as 0x004096B0 sees it; null for tools DK2's cursor has no mode for.</summary>
+        private HoverCageTool? CageTool()
+        {
+            switch (ActiveTool)
+            {
+                case PlayerToolMode.BuildRoom: return HoverCageTool.Room;
+                case PlayerToolMode.SellRoom: return HoverCageTool.Sell;
+                case PlayerToolMode.Hand:
+                    if (_queryTool) return HoverCageTool.SpellOrQuery;
+                    if (_panelChoice is not BottomPanelChoiceKey choice) return HoverCageTool.Hand;
+                    return choice.Kind == BottomPanelChoiceKind.Door ? HoverCageTool.Door
+                        : choice.Kind == BottomPanelChoiceKind.Trap ? HoverCageTool.Trap
+                        : choice.Kind == BottomPanelChoiceKind.Spell ? HoverCageTool.SpellOrQuery : HoverCageTool.Hand;
+                default: return null;
+            }
         }
 
         /// <summary>The placement cursor of the selected tool over <paramref name="tile"/> (null: over the
@@ -1279,14 +1299,12 @@ namespace DK2.Unity
             {
                 if (tile is not TilePos at || !database.Rooms.TryGetValue(selectedRoomId, out RoomDef room))
                     return tile is null ? new PlacementFeedback(null, false, 0, PlacementIcon.PlaceRoom, true, true) : PlacementFeedback.None;
-                PlacementFeedback built = PlacementCursor.Room(world, database, viewer, room, at, _input.DragFrom(PlayerToolMode.BuildRoom), gold);
-                return built.Cage is null ? Caged(built, at) : built;
+                return PlacementCursor.Room(world, database, viewer, room, at, _input.DragFrom(PlayerToolMode.BuildRoom), gold);
             }
             if (ActiveTool == PlayerToolMode.SellRoom)
             {
                 if (tile is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.Sell, true, true);
-                PlacementFeedback sold = PlacementCursor.Sell(world, database, viewer, at, _input.DragFrom(PlayerToolMode.SellRoom));
-                return sold.Cage is null ? Caged(sold, at) : sold;
+                return PlacementCursor.Sell(world, database, viewer, at, _input.DragFrom(PlayerToolMode.SellRoom));
             }
             if (ActiveTool != PlayerToolMode.Hand || _panelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
             bool workshop = _bottomView.Choice(choice)?.NeedsWorkshop != true;

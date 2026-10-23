@@ -124,7 +124,7 @@ and the four creature views. Evidence and adapter ordering limitations live in
 [creature-overview.md](../research/creature-overview.md).
 
 Still open: category locking/collapse; research, manufacture and ordinary spell
-cooldown indicators; portrait hover previews/tooltips; full-map markers/legend;
+cooldown indicators; portrait hover previews (the tooltip text is built); full-map markers/legend;
 the query scrollbar; complete special object/door/trap/name status; Q197 and
 the remaining Q611 modal producers. Options exposes Continue; its other rows
 remain disabled until their corresponding frontends exist. These are not

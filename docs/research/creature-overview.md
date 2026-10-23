@@ -1,6 +1,6 @@
 # Creature overview
 
-CONFIRMED from DKII.EXE 1.70 and shipped Creatures.kwd; adapter layout still needs an original-game visual comparison.
+CONFIRMED from DKII.EXE 1.70 and shipped Creatures.kwd unless a section says otherwise; adapter layout still needs an original-game visual comparison.
 
 ## Roster and counters
 
@@ -73,6 +73,65 @@ GUI/Tabs/t-creature_panel, at local(208,8,64,264); this is the four-button strip
 
 Mode-specific counts and selection filters are connected. The adapter consumes
 host press edges, matching type0's once-per-press callback, without reproducing
-the GUI manager's full held-channel arbitration. Portrait tooltips remain open;
-worker-row and mode tooltips, count highlights and mode hover art are built (2026-10-20). A native capture must settle header overlap and
+the GUI manager's full held-channel arbitration. Worker-row and mode tooltips, count highlights, mode hover art and the portrait and count hover
+text (status strip, below) are built (2026-10-20, 2026-10-23). A native capture must settle header overlap and
 pixel positioning at unusual aspect ratios.
+
+## Portrait and count hover text
+
+Read 2026-10-23 from DKII.EXE 1.70, the shipped Text.str and Creatures.kwd.
+
+**No portrait widget exists — STRONGLY INFERRED** (a negative read from the one draw callback). `0x004201B0` is the draw callback of
+the first row menu of each mode (menus 7, 8, 12, 15; static menu records near
+`0x006935CE`) and only draws pictures. A portrait, and the numbers on it, lie over
+that column's count widgets, whose update callback is `0x00418DD0` (draw
+`0x00417850`). The Imp portrait lies over menu6's four worker count widgets
+`0x006900C8 + 160·r`, absolute (544, 1612+64r, 120, 64). An ordinary column's widgets
+are (924+136i, 1616+row·h, 108, h) by `0x00418BC0`, with h = 244, 64, 84, 84 for Total,
+Jobs, Combat, Moods. Neither the portrait nor a count number has its own text. The
+portrait is drawn about 128×264 from a small offset, wider and (in Total mode) taller than
+the 108-wide widgets, so its right and bottom edges are LIKELY outside every widget and give
+no text; ours hit-tests the widget rectangles only.
+
+**Trigger — CONFIRMED.** While a visible count widget has the pointer (`+0x49`),
+`0x00418DD0` writes interface `+0x4658 = 4` and `+0x465C` = the column's creature type.
+The widget is hidden, and gives no text, when the column is past the roster or page
+capacity or the definition has `+0x686` bit `0x8000000` (kwd `0xEFC` bit 27, our
+`CreatureFlags.IsUnique`; `CreatureOverview` never makes a column for one, so ours matches). The value is the same for
+every row and every mode: one type per column.
+
+**Status strip text — CONFIRMED.** The strip draw `0x0042E140` calls `0x0042D820`,
+whose case 4 calls `0x00494740` on the definition. That formats the definition's
+`+0x6AC` string, copied by `0x00492320` from Creatures.kwd byte `0xF38` (Imp 2347,
+Firefly 2349), with two substitutions, spelled %27 and %28 in the strings:
+
+| Spelling | Source | Values |
+|---|---|---|
+| %27 | job class `+0x67D` (kwd `0xF02`) | 0 or other: 2418 Worker; 1: 2419 Thinker; 2: 2417 Fighter; 3: 2420 Scout |
+| %28 | fight style `+0x67E` (kwd `0xF03`) | 0 or other: 2427 Coward; 1: 2424 Blitzer; 2: 2423 Blocker; 3: 2425 Flanker; 4: 2426 Support |
+
+Firefly reads "Firefly.  Scout.  Fighting Style: Flanker."; the Imp's 2347 has no token.
+No name, level, count or mood is substituted. The strip has no delay: it is written
+every frame the widget is hovered and scrolls when too long, as for other widgets.
+
+**Near-cursor popup — STRONGLY INFERRED: none.** Case 4 also queues the type name
+`+0x6AA` (kwd `0xF24`: Imp 2771 "Imp", Firefly 2348) with the hovered widget `+0x116A`
+for `0x0042E590`. The strip callback ends by writing `+0x4658 = 6`. It is widget
+`0x00693318` of HUD menu `0x00693EB0`, drawn by `0x0052BBD0` inside `0x00419DF0`
+before `0x0042E590` runs. So `0x0042E590` compares the queued widget with `+0x116E`,
+which `0x0052BC50` sets only to a hovered widget with a nonzero text id. Count widgets
+have text id 0, so the queue is cleared every frame and the 250 ms delay never expires.
+The same frame order would make `0x0042E590`'s category 0..3 branch to `0x0042EA70`
+unreachable, which is the main doubt. Ours shows no popup (`WorldHoverTextTests` names the doubt).
+Open for the owner, from play:
+- does hovering a creature portrait show a box near the pointer, or only the top-bar text?
+- does hovering a room, spell, trap or door button show a box (the binary says that branch is dead)?
+- where does the portrait's hover end at its edge (ours: the widget rectangles only)?
+- does the Moods row's "Happy" flicker?
+
+**Mood row anomaly — UNKNOWN effect.** Of the eleven count-widget templates
+(`0x00690578`..`0x00690BB8`, stride 160), only `0x00690A78` (Moods row 0, filter 27)
+has a text id: 2340 "Happy". Its status is still the creature description; on the
+reading above, the popup alternates between 2340 and the type name each frame and is
+never shown. Text ids 2324..2345 have description pairs in `0x0042DB60` but no other
+count-widget template carries them (other writers of a runtime text id were not searched).

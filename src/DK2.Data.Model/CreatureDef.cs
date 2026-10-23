@@ -247,6 +247,9 @@ public sealed record CreatureDef
     public required ushort NameStringId { get; init; }
     public required ushort TooltipStringId { get; init; }
     public required ushort IntroductionStringId { get; init; }
+    /// <summary>The type's description, "Firefly.  Scout.  Fighting Style: Flanker." (file <c>0xF38</c>,
+    /// runtime <c>def+0x6AC</c>), the status text over the type's Creatures-panel column (<c>0x00494740</c>).</summary>
+    public ushort DescriptionStringId { get; init; }
     /// <summary>The first of nine Speech.str lines "has become unhappy because ...", one per
     /// complaint 0..8 (file <c>0xD05</c>, runtime <c>def+0x6CD</c>; message type 17, <c>0x004C4600</c>).
     /// Complaint 9 (General) reads past them into the next creature's first line, as DK2 does.</summary>

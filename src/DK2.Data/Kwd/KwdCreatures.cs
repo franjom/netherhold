@@ -276,6 +276,7 @@ public static partial class KwdCreatures
 
             NameStringId = U16(0xF24),
             TooltipStringId = U16(0xF26),
+            DescriptionStringId = U16(0xF38),
             IntroductionStringId = U16(0xCFF),
             UnhappySpeechId = U16(0xD05),
             AngrySpeechId = U16(0xD07),

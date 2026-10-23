@@ -69,6 +69,19 @@ public sealed class WorldHoverTextTests
     }
 
     [InstallFact]
+    public void ACreaturesPanelColumnShowsTheTypeDescriptionWithItsJobClassAndFightStyle_NoPopupInferredFromFrameOrder()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.Load(install);
+        Dk2StringTable strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+        var capture = new WorldHoverText(database, strings.Resolve, PlayerIds.FirstKeeper);
+        CreatureDef firefly = database.Creatures.Values.First(c => c.DescriptionStringId == 2349);
+        Assert.Equal(("Firefly.  Scout.  Fighting Style: Flanker.", ""), (capture.CreatureType(firefly).TopStatus, capture.CreatureType(firefly).TooltipName));
+        CreatureDef imp = database.Creatures.Values.First(c => c.DescriptionStringId == 2347);
+        Assert.StartsWith("Imps perform such tasks", capture.CreatureType(imp).TopStatus);
+    }
+
+    [InstallFact]
     public void ShippedHeartAndPortalNamesAndCreatureStatusComeFromSettledDataWithoutChangingHash()
     {
         string install = Dk2InstallGate.Path;

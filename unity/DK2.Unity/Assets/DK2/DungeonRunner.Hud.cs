@@ -33,6 +33,8 @@ namespace DK2.Unity
         private KeeperResourceKind _resourceHoverKind;
         private int _cornerHoverId;
         private HoverTextSnapshot _cornerHover;
+        private CreatureOverviewType? _portraitHoverType;
+        private HoverTextSnapshot _portraitHover;
         private KeeperResourceSnapshot _resourceHoverFacts;
         private HoverTextSnapshot _resourceHover;
         private readonly HandCursorFeedback _cursorFeedback = new HandCursorFeedback();
@@ -395,6 +397,15 @@ namespace DK2.Unity
             {
                 if (_cornerHoverId != widget) { _cornerHoverId = widget; _cornerHover = HudWidgetText.Hover(widget, _hudStrings.Resolve); }
                 return _cornerHover;
+            }
+            if (_overviewPanel != null && _overviewPanel.HoveredColumnType(Input.mousePosition) is CreatureOverviewType column)
+            {
+                if (_portraitHoverType != column)
+                {
+                    _portraitHoverType = column;
+                    _portraitHover = _hoverText.CreatureType(_simulation.Database.CreatureById(column.Value));
+                }
+                return _portraitHover;
             }
             if (_messageTabs != null && _messageTabs.ContainsPointer(Input.mousePosition)) return _messageTabs.HoverText;
             if (_bottomPanel.ContainsPointer(Input.mousePosition)) return _bottomPanel.HoverText;

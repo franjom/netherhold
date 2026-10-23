@@ -44,10 +44,6 @@ namespace DK2.Unity
             _renderer.enabled = false;
         }
 
-        /// <summary>The Hand's dig-hover cage: one tile, blue.</summary>
-        public void Update(TilePos? tile, Camera camera, double nowSeconds) =>
-            Update(tile is TilePos at ? new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1) : null, true, camera, nowSeconds);
-
         public void Update(TileRectangle? area, bool blue, Camera camera, double nowSeconds)
         {
             _renderer.enabled = area.HasValue && camera != null;

@@ -174,9 +174,10 @@ not per simulation tick.
 The texture handle comes from render sink `+0x8E`; its resource and final
 blend/depth state remain UNKNOWN. Keep this separate from the persistent
 dig-tag mesh tint in [tag-highlight.md](tag-highlight.md). The one-tile hover
-cage is the Hand light's (placement-cursor.md §2a). Its visibility flag (view host
-`+0xC` slot `+0x20`) is unread, so whether it shows over a diggable tile remains
-UNKNOWN.
+cage is most likely the Hand light's (placement-cursor.md §2a). Its visibility flag is
+interface vtable slot `+0x20`, `0x004096B0` (CONFIRMED, 2026-10-23): in Hand mode it shows
+over a dig-taggable tile (blue) or with a full hand and no drop rectangle, and never over
+plain floor with an empty hand.
 
 Implementation: `TileHoverOutline` retains the full-height rest grid, endpoint
 table, radius and blue peak. `ClassicTileHoverOutline` emits one camera-facing

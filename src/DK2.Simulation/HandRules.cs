@@ -114,9 +114,10 @@ public static class HandRules
         || world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId;
 
     /// <summary>Where a keeper may put an <b>object</b> down: <b>a tile it owns</b>. CONFIRMED
-    /// (owner, Q198); creatures have one exception, <see cref="CanDropCreatureOn"/>. Where the rule
-    /// lives in the original is UNREAD — the drop handler has no ownership test, so the gate is in
-    /// the input layer and this reproduces an observation, not a routine. Trap: it is not <c>CanBeDroppedOnAnyLand</c>, set on one record with no reader in the executable.</summary>
+    /// (owner, Q198); creatures have one exception, <see cref="CanDropCreatureOn"/>. The original's
+    /// gate is in the input layer, <c>0x0040D8F0</c> → <c>0x00450BE0</c> (read 2026-10-23): allied
+    /// ground, no wall or door, and <c>CanBeDroppedOnAnyLand</c> read at <c>0x00450C4B</c>. Not yet
+    /// ported; this still reproduces the observation.</summary>
     public static bool CanDropObjectOn(WorldState world, TilePos tile, PlayerId playerId) =>
         world.Contains(tile) && world.Tile(tile.X, tile.Y).OwnerPlayerId == playerId;
 
