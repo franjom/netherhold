@@ -93,8 +93,8 @@ Tab visibility is [0x00416E20](functions/00416E20.md) (CONFIRMED): Creatures and
 always show; Spells and Workshop show only while one of their filtered choices has
 availability other than1, and a hidden tab keeps its place.
 The common renderer's spell branch excludes spell5 and14 from the normal grid.
-It uses separate unknown icons, upgrade state, cooldown wedges and tutorial
-indicators. Workshop enumeration places doors before traps and excludes
+It uses separate unknown icons, upgrade state, cooldown wedges and the
+scripted FlashButton flash ([tab-alerts.md](tab-alerts.md)). Workshop enumeration places doors before traps and excludes
 availability1. Trap selection also excludes definition flag0x2000
 ([trap slot resolver](functions/00411080.md)). The no-Workshop tint is RGB128, on the tab and on
 every door and trap slot (a slot only while its widget +0x41/+0x45 are zero, meaning unread), over the unaffordable RGB100; without a Workshop the cursor marks every
@@ -106,8 +106,9 @@ The adapter routes supported choice keys to the host's existing command
 interfaces. Affordability is display feedback; simulation rules remain the
 authority for cast/placement validation. Create Imp cost uses the existing
 ImpSupplyRules.CreateImpCost, including the live additional-imp multiplier.
-Cooldown wedges, research/manufacture progress, upgrade art and tutorial
-flashing are not yet produced by this adapter. Default creature overview roster, counters and input use a separate retained helper;
+Cooldown wedges, research/manufacture progress and upgrade art are not yet produced by
+this adapter. The FlashButton tab/slot flash is built ([tab-alerts.md](tab-alerts.md):
+level-script only, never raised by research). Default creature overview roster, counters and input use a separate retained helper;
 see [creature overview](creature-overview.md) for confirmed producers and the
 remaining alternate-mode presentation boundary.
 

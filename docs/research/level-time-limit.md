@@ -68,14 +68,11 @@ Named by the world dumper at `0x0050F102`. Its readers:
 
 The only reader whose role is known is the display.
 
-## 4. Action 9 is interface state — STRONGLY INFERRED
+## 4. Action 9 is interface state — CONFIRMED
 
-`0x00510260` stores `MakeType`, `TargetId` and `Value` at `world+0x7291..0x7296`, and at
-`+0x7297` a stamp from `0x005B5E90`. The world update clears the block once that clock passes
-`stamp + Value × 1000` (`0x0050A61D`). The × 1000 reads as milliseconds, so `0x005B5E90` is taken
-to be a wall clock and `Value` real seconds; `0x005B5E90` itself is not read. A deterministic
-simulation cannot hold a wall clock. What the block drives is **UNKNOWN**; its readers are world
-slots near `0x005096F0`.
+Action 9 is FLASH_BUTTON: a global, real-clock HUD flash request. Its descriptor and expiry are in
+[hud-resources.md](hud-resources.md#scripted-resource-flashing--confirmed). What it flashes (tabs,
+panel slots, icon buttons, mana and gold) and what clears it are in [tab-alerts.md](tab-alerts.md).
 
 ## 5. Ours
 
@@ -86,7 +83,7 @@ slots near `0x005096F0`.
 - Both are hashed and snapshotted (`HashVersion` 122).
 - **Not built:**
   - the defeat on running out, since game modes are not modelled;
-  - action 9, which stays partial.
+  - action 9's generic icon flash and chime (the mana/gold, tab and slot flashes are built; see tab-alerts.md).
 
 ## 6. Action 15 in a creature's tree — CONFIRMED, built (ADR-0236)
 

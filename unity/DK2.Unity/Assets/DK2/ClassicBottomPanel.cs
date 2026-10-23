@@ -27,6 +27,8 @@ namespace DK2.Unity
         private readonly Image[] _icons = new Image[6], _selection = new Image[6];
         private readonly BottomPanelChoice[] _slots = new BottomPanelChoice[6];
         private readonly Image _previous, _next, _resize;
+        private readonly Image[] _sparkles = new Image[BottomPanelSparkles.Count];
+        private readonly BottomPanelSparkles _sparkleState = new BottomPanelSparkles();
         private readonly Image _reaperBackground, _reaper, _reaperBlink;
         private readonly Texture2D[,] _reaperArcs = new Texture2D[4, 2];
         private readonly Texture2D[] _reaperQuarter = new Texture2D[4];
@@ -103,6 +105,8 @@ namespace DK2.Unity
             _reaperBlink = Picture(null);
             for (int i = 0; i < 10; i++) _timerDigits[i] = Texture("GUI\\Spells\\RT-" + i.ToString(CultureInfo.InvariantCulture));
             for (int i = 0; i < 2; i++) _timerImages[i] = Picture(null);
+            // The flash's sparkles draw last, in front of the flashing widget (tab-alerts.md section 2).
+            for (int i = 0; i < _sparkles.Length; i++) _sparkles[i] = Picture(null);
             for (int pieces = 1; pieces <= 4; pieces++)
             {
                 _reaperArcs[pieces - 1, 0] = TalismanArc(Texture("GUI\\Spells\\reaper_talisman-01"), pieces, false);
@@ -134,6 +138,12 @@ namespace DK2.Unity
         }
         public void SelectCategory(BottomPanelCategory category) { _category = category; _page = 0; CancelPointerGesture(); }
 
+        /// <summary>The level script's FLASH_BUTTON target, set by the host each frame.</summary>
+        public HudFlashTarget? FlashTarget { get; set; }
+
+        /// <summary>The panel showing, null while collapsed ("closed" for the flash rules).</summary>
+        public BottomPanelCategory? OpenPanel => Collapsed ? (BottomPanelCategory?)null : _category;
+
         public void Draw(Vector2Int viewport = default)
         {
             _viewport = viewport;
@@ -162,12 +172,16 @@ namespace DK2.Unity
             Place(_railMetal, metalLeft, V(1460 + Drop), V(240), V(128));
             Place(_railEnd, metalLeft + V(240), V(1460 + Drop), V(240), V(128));
             Place(_resize, V(472 + 544), V(1460 + Drop), V(128), V(128));
+            BottomPanelFlashState flash = BottomPanelFlash.Resolve(FlashTarget, OpenPanel, (long)(Time.unscaledTimeAsDouble * 1000));
+            BottomPanelRect? sparkleOn = flash.Tab is BottomPanelCategory flashTab && _view.TabVisible(flashTab)
+                ? Dropped(BottomPanelLayout.Tab((int)flashTab)) : (BottomPanelRect?)null;
             for (int i = 0; i < 4; i++)
             {
                 Place(_tabs[i], Dropped(BottomPanelLayout.Tab(i)));
                 bool tabShown = _view.TabVisible((BottomPanelCategory)i);
                 _tabs[i].style.display = tabShown ? DisplayStyle.Flex : DisplayStyle.None;
-                _tabs[i].tintColor = _view.TabDimmed((BottomPanelCategory)i) ? new Color32(128, 128, 128, 255) : Color.white;
+                _tabs[i].tintColor = flash.Dark && flash.Tab == (BottomPanelCategory)i ? Dark
+                    : _view.TabDimmed((BottomPanelCategory)i) ? new Color32(128, 128, 128, 255) : Color.white;
                 Place(_tabSelected[i], Dropped(BottomPanelLayout.Tab(i)));
                 _tabSelected[i].style.display = tabShown && i == (int)_category ? DisplayStyle.Flex : DisplayStyle.None;
                 Place(_tabHover[i], Dropped(BottomPanelLayout.Tab(i)));
@@ -196,7 +210,10 @@ namespace DK2.Unity
                 string icon = choice.Unknown ? choice.Kind == BottomPanelChoiceKind.Room ? "GUI\\Rooms\\tba" :
                     choice.Kind == BottomPanelChoiceKind.Spell ? "GUI\\Spells\\s-tba" : "GUI\\Traps\\w-tba" : _assets.Icon(choice.Key);
                 _icons[i].image = string.IsNullOrEmpty(icon) ? null : Texture(icon);
-                _icons[i].tintColor = choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
+                bool flashing = flash.Slot == choice.Key;
+                if (flashing) sparkleOn = BottomPanelLayout.Cell(i);
+                _icons[i].tintColor = flashing && flash.Dark ? Dark
+                    : choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
                     : choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
                 Place(_icons[i], BottomPanelLayout.Cell(i));
                 if (choice.Selected)
@@ -213,6 +230,7 @@ namespace DK2.Unity
             _previous.style.display = _next.style.display = Collapsed ? DisplayStyle.None : DisplayStyle.Flex;
             _previous.tintColor = _page > 0 ? Color.white : Color.gray;
             _next.tintColor = _page + 1 < _pages ? Color.white : Color.gray;
+            DrawSparkles(sparkleOn);
             RefreshHover();
             Rect reaperBounds = ReaperBounds;
             Place(_reaperBackground, reaperBounds.x, reaperBounds.y, reaperBounds.width, reaperBounds.height);
@@ -344,6 +362,51 @@ namespace DK2.Unity
             if (_textures.TryGetValue(name, out Texture2D texture)) return texture;
             texture = MinimapFrameVisual.Decode(_assets.Image(name)); _textures.Add(name, texture); return texture;
         }
+        private static readonly Color32 Dark = new Color32(BottomPanelFlash.DarkTint, BottomPanelFlash.DarkTint, BottomPanelFlash.DarkTint, 255);
+
+        /// <summary>0x00419DF0 advances the sparkles each rendered HUD frame; sparkle i draws GSparkle&lt;frame&gt;
+        /// (0..15, frame 0 included), a 64-unit square at (left + X % width - 32, top + Y % height - 32).
+        /// DK2 takes the modulo in screen pixels, not virtual units, so the spread differs slightly. The
+        /// 88-unit size when widget +0x3C is 6 is not mirrored (that field is unread).</summary>
+        private void DrawSparkles(BottomPanelRect? widget)
+        {
+            _sparkleState.Advance();
+            for (int i = 0; i < _sparkles.Length; i++)
+            {
+                int frame = _sparkleState.Frame(i);
+                bool show = widget.HasValue;
+                _sparkles[i].style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+                if (!show) continue;
+                BottomPanelRect at = widget.Value;
+                _sparkles[i].image = Sparkle(frame);
+                const int half = BottomPanelSparkles.Size / 2;
+                Place(_sparkles[i], new BottomPanelRect(at.X + _sparkleState.X(i) % at.Width - half,
+                    at.Y + _sparkleState.Y(i) % at.Height - half, BottomPanelSparkles.Size, BottomPanelSparkles.Size));
+            }
+        }
+
+        /// <summary>Render flag 8 is taken to be additive (unread); UI Toolkit has none, so the sparkle keeps its colour with
+        /// its brightness as alpha (as <see cref="Lightening"/> does for the hover art).</summary>
+        private Texture2D Sparkle(int frame)
+        {
+            string name = "GSparkle" + frame.ToString(CultureInfo.InvariantCulture) + " additive";
+            if (_textures.TryGetValue(name, out Texture2D baked)) return baked;
+            Texture2D source = Texture("GSparkle" + frame.ToString(CultureInfo.InvariantCulture));
+            Color32[] pixels = source.GetPixels32();
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                Color32 p = pixels[i];
+                int peak = Math.Max(p.r, Math.Max(p.g, p.b));
+                pixels[i] = peak == 0 ? new Color32(0, 0, 0, 0) : new Color32((byte)(p.r * 255 / peak),
+                    (byte)(p.g * 255 / peak), (byte)(p.b * 255 / peak), (byte)(peak * p.a / 255));
+            }
+            baked = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false)
+                { filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, name = name };
+            baked.SetPixels32(pixels); baked.Apply(false, true);
+            _textures.Add(name, baked);
+            return baked;
+        }
+
         private Texture2D Lightening(Texture2D source)
         {
             Color32[] pixels = source.GetPixels32();

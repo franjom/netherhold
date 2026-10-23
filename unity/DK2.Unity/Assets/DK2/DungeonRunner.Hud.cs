@@ -350,6 +350,11 @@ namespace DK2.Unity
         {
             _resources = _resourceView.Capture(_simulation.World, displayHealth: CurrentHud.ShowNormalHud);
             _bottomView.Capture(_simulation.World);
+            // FLASH_BUTTON on the panel (tab-alerts.md): the target drawn, and dropped once its item is in use.
+            if (_scriptedView.ActiveFlashTarget is HudFlashTarget flash
+                && BottomPanelFlash.ClearedByUse(flash, ActiveTool, selectedRoomId, _panelChoice, _bottomPanel.OpenPanel))
+                _scriptedView.ClearFlash(flash);
+            _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
             _bottomPanel.Draw();
             _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed);
