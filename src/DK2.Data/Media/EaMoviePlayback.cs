@@ -88,6 +88,16 @@ public sealed class EaMovieTimeline
         return block >= _videosBefore.Length ? VideoFrames.Count : _videosBefore[block];
     }
 
+    /// <summary>The sample frame at which video frame <paramref name="frame"/> becomes due: the start
+    /// of the first block preceded by more than <paramref name="frame"/> video frames, or the end of
+    /// the audio for frames after the last block.</summary>
+    public long DueAudioFrame(int frame)
+    {
+        for (int block = 0; block < _videosBefore.Length; block++)
+            if (_videosBefore[block] > frame) return _blockStart[block];
+        return TotalAudioFrames;
+    }
+
     /// <summary><see cref="ShowableFrames(long)"/> for a movie without audio: frame n is due at
     /// n / <see cref="SilentFramesPerSecond"/> seconds.</summary>
     public int ShowableFramesWithoutAudio(double seconds) =>

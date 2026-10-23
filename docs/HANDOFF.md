@@ -206,7 +206,7 @@ tools/classic-unity-probe/README.md.
    in possession-arms-and-inputs.md §4–5.
 6. M10 front end: DK2's menus, campaign map and progression are read from the
    exe (`research/front-end-menus.md`, `research/campaign-map-and-progression.md`,
-   `research/front-end-assets.md`); only the movie decoder and a Unity playback proof of concept are built (`src/DK2.Data/Media`, `ClassicMoviePlayer`; the owner has not run it). The build order and the
+   `research/front-end-assets.md`); only the movie decoder and a Unity playback proof of concept are built (`src/DK2.Data/Media`, `ClassicMoviePlayer`; the owner has seen and heard the Bullfrog intro play in sync). The build order and the
    questions only play can answer are in `plans/2026-10-23-front-end.md`.
 7. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built; the appearance target is the approved AI concepts (ADR-0398,

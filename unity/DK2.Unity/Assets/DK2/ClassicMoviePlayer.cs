@@ -3,11 +3,14 @@
 // See LICENSE in the project root for the full license text.
 
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using DK2.Data;
 using DK2.Data.Media;
 using Unity.Collections;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace DK2.Unity
 {
@@ -15,9 +18,9 @@ namespace DK2.Unity
     /// Plays one of the install's EA movies (<c>Data\Movies\*.tgq</c>) full screen, as the front end
     /// does (<c>docs/research/movie-format.md</c> §4.7, §5). The file is read from the install at run
     /// time and decoded in memory by <c>DK2.Data.Media</c>; nothing derived is written to disk. This
-    /// component only shows frames and plays samples: the audio streams through a callback clip, video
-    /// frames are decoded one per Update when the audio clock says they are due (dropping frames when
-    /// three or more behind), and the 320x480 picture is drawn at 640x480 proportions on black.
+    /// component only shows frames and plays samples: the audio streams through a callback clip, the
+    /// next video frame is decoded ahead on a worker so a due frame only needs uploading (frames three
+    /// or more behind are dropped), and the 320x480 picture is drawn at 640x480 proportions on black.
     /// Esc, Enter, Space or a mouse button ends it.
     /// </summary>
     public sealed class ClassicMoviePlayer : MonoBehaviour
@@ -36,7 +39,13 @@ namespace DK2.Unity
         private readonly object _audioLock = new object();
         private readonly TqiDecoder _decoder = new TqiDecoder();
         private byte[] _rgba;
+        private byte[] _ahead;
+        private Task<double> _decodeAhead;
+        private int _aheadIndex = -1;
         private Texture2D _texture;
+        // One summary line at the end, so a sync complaint can be measured rather than guessed.
+        private int _framesShown, _framesDropped;
+        private double _decodeMsSum, _decodeMsMax, _lagMsSum, _lagMsMax;
         private int _frameWidth, _frameHeight;
         private Camera _camera;
         private AudioSource _source;
@@ -88,6 +97,8 @@ namespace DK2.Unity
             {
                 (_frameWidth, _frameHeight) = TqiDecoder.FrameSize(_timeline.Movie.Payload(_timeline.VideoFrames[0]));
                 _rgba = new byte[_frameWidth * _frameHeight * 4];
+                _ahead = new byte[_rgba.Length];
+                DecodeAhead(0);
                 _texture = new Texture2D(_frameWidth, _frameHeight, TextureFormat.RGBA32, false)
                 {
                     name = "DK2 Movie Frame",
@@ -110,6 +121,9 @@ namespace DK2.Unity
             _camera.backgroundColor = Color.black;
             _camera.cullingMask = 0;
             _camera.depth = 100;
+            // Unity plays no sound without a listener; the empty scene the menu opens has none.
+            // A running scene's own listener is kept, since two would warn every frame.
+            if (FindAnyObjectByType<AudioListener>() == null) cameraObject.AddComponent<AudioListener>();
         }
 
         private void StartAudio()
@@ -147,7 +161,7 @@ namespace DK2.Unity
             int showable;
             if (_timeline.HasAudio)
             {
-                long played = (long)((AudioSettings.dspTime - _startDsp) * _timeline.Movie.SampleRate);
+                long played = Played();
                 showable = played < 0 ? 0 : _timeline.ShowableFrames(played);
                 audioDone = played >= _timeline.TotalAudioFrames;
             }
@@ -158,7 +172,17 @@ namespace DK2.Unity
             }
 
             int next = EaMovieTimeline.NextFrameToDecode(_shown, showable);
-            if (next >= 0) ShowFrame(next);
+            if (next >= 0)
+            {
+                _framesDropped += next - _shown - 1;
+                ShowFrame(next);
+                if (_timeline.HasAudio)
+                {
+                    double lagMs = (Played() - _timeline.DueAudioFrame(next)) * 1000.0 / _timeline.Movie.SampleRate;
+                    _lagMsSum += lagMs;
+                    _lagMsMax = Math.Max(_lagMsMax, lagMs);
+                }
+            }
 
             if (audioDone && _shown >= _timeline.VideoFrames.Count - 1) Finish();
         }
@@ -168,13 +192,45 @@ namespace DK2.Unity
             Input.GetKeyDown(KeyCode.KeypadEnter) || Input.GetKeyDown(KeyCode.Space) ||
             Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2);
 
+        private long Played() => (long)((AudioSettings.dspTime - _startDsp) * _timeline.Movie.SampleRate);
+
+        // The worker owns _ahead and the decoder until its task completes; the main thread waits
+        // for it before touching either.
+        private void DecodeAhead(int index)
+        {
+            _aheadIndex = -1;
+            _decodeAhead = null;
+            if (index >= _timeline.VideoFrames.Count) return;
+            EaMovieChunk chunk = _timeline.VideoFrames[index];
+            var (width, height) = TqiDecoder.FrameSize(_timeline.Movie.Payload(chunk));
+            if (width != _frameWidth || height != _frameHeight) return; // a size change is not expected in DK2's movies
+            _aheadIndex = index;
+            byte[] target = _ahead;
+            _decodeAhead = Task.Run(() =>
+            {
+                var watch = Stopwatch.StartNew();
+                _decoder.Decode(_timeline.Movie.Payload(chunk), target);
+                return watch.Elapsed.TotalMilliseconds;
+            });
+        }
+
         private void ShowFrame(int index)
         {
             _shown = index;
-            ReadOnlySpan<byte> payload = _timeline.Movie.Payload(_timeline.VideoFrames[index]);
-            var (width, height) = TqiDecoder.FrameSize(payload);
-            if (width != _frameWidth || height != _frameHeight) return; // a size change is not expected in DK2's movies
-            _decoder.Decode(payload, _rgba);
+            if (_decodeAhead == null) return;
+            double decodeMs = _decodeAhead.Result; // waits only if the worker is still decoding
+            if (_aheadIndex != index)
+            {
+                // Frames were dropped past the one decoded ahead: decode the due one now.
+                DecodeAhead(index);
+                if (_decodeAhead == null) return;
+                decodeMs = _decodeAhead.Result;
+            }
+            _decodeMsSum += decodeMs;
+            _decodeMsMax = Math.Max(_decodeMsMax, decodeMs);
+            _framesShown++;
+            (_rgba, _ahead) = (_ahead, _rgba);
+            DecodeAhead(index + 1);
 
             // The decoder writes rows top-down; Unity textures start at the bottom row.
             NativeArray<byte> pixels = _texture.GetPixelData<byte>(0);
@@ -202,12 +258,22 @@ namespace DK2.Unity
             if (_finished) return;
             _finished = true;
             if (_source != null) _source.Stop();
+            if (_framesShown > 0)
+            {
+                AudioSettings.GetDSPBufferSize(out int bufferLength, out int bufferCount);
+                double mixAheadMs = 1000.0 * bufferLength * bufferCount / AudioSettings.outputSampleRate;
+                Debug.Log($"DK2 movie {moviePath}: {_framesShown} frames shown, {_framesDropped} dropped; " +
+                          $"decode {_decodeMsSum / _framesShown:F1} ms average, {_decodeMsMax:F1} ms max; " +
+                          $"shown {_lagMsSum / _framesShown:F0} ms average after due by the mixer clock, {_lagMsMax:F0} ms max; " +
+                          $"the mixer runs up to {mixAheadMs:F0} ms ahead of the speakers");
+            }
             Finished?.Invoke();
             Destroy(gameObject);
         }
 
         private void OnDestroy()
         {
+            _decodeAhead?.Wait(); // the worker writes into buffers this object owns
             if (_source != null) _source.Stop();
             if (_clip != null) Destroy(_clip);
             if (_texture != null) Destroy(_texture);

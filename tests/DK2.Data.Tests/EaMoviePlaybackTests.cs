@@ -38,6 +38,15 @@ public class EaMoviePlaybackTests
     }
 
     [Theory]
+    [InlineData(0, 4)] // frame 0 is due when the second block starts
+    [InlineData(1, 8)]
+    [InlineData(2, 12)] // past the last block: the end of the audio
+    public void AFramesDueTimeIsTheStartOfTheBlockThatFollowsIt(int frame, long dueAudioFrame)
+    {
+        Assert.Equal(dueAudioFrame, Interleaved().DueAudioFrame(frame));
+    }
+
+    [Theory]
     [InlineData(-1, 0, -1)] // nothing due yet
     [InlineData(-1, 1, 0)]
     [InlineData(0, 4, 1)]   // two behind: decode the next one
