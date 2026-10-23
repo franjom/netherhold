@@ -255,6 +255,14 @@ public sealed partial class WorldView
             }
         }
 
+        // A loose level gem bobs and spins in its state-50 process (0x004A3C30).
+        if (LevelGemIdle.Applies(definition) && thing.CarriedByCreatureId < 0)
+        {
+            long gemTurn = LevelGemIdle.Turn(world);
+            z = LevelGemIdle.Height(gemTurn);
+            heading = LevelGemIdle.Heading(thing.Heading, gemTurn);
+        }
+
         int previousX = posX, previousY = posY, previousHeading = heading;
         int previousZ = z, previousPitch = pitch, previousRoll = roll;
         bool stateAnimation = thing.ObjectTypeId == EggId && thing.ProcessState == 32

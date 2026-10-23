@@ -137,6 +137,13 @@ namespace DK2.Unity
                             source.Blend, source.SelfIllumination);
                 }
                 for (int i = 0; i < materials.Length; i++) materials[i] = TerrainTinted(materials[i], addedLight);
+                // The model's environment passes follow its own materials (TryBuild).
+                if (TryBuild(asset, false, out Built built) && built.Materials.Length > materials.Length)
+                {
+                    int own = materials.Length;
+                    System.Array.Resize(ref materials, built.Materials.Length);
+                    System.Array.Copy(built.Materials, own, materials, own, built.Materials.Length - own);
+                }
                 _heartMaterials[key] = materials;
             }
             go.GetComponent<ClassicCreatureAnimation>()?.SetMainMaterials(materials);
@@ -293,14 +300,28 @@ namespace DK2.Unity
                 mesh.SetNormals(ToUnity(source.Normals));
                 mesh.SetUVs(0, ToUnity(source.Uvs));
                 SetLightBounds(mesh, model, lightingMode);
-                mesh.subMeshCount = source.Triangles.Count;
-                for (int i = 0; i < source.Triangles.Count; i++)
+                // DK2 queues each environment-mapped opaque material's triangles a second time
+                // (0x00581797, 0x005851E0); ours appends them as extra submeshes after the model's
+                // own, so every submesh index below the material count keeps its meaning.
+                int own = source.Triangles.Count;
+                _environmentScratch.Clear();
+                for (int i = 0; i < own; i++)
+                {
+                    Material environment = i < model.Materials.Count ? EnvironmentPass(model.Materials[i]) : null;
+                    if (environment != null) _environmentScratch.Add((i, environment));
+                }
+                mesh.subMeshCount = own + _environmentScratch.Count;
+                for (int i = 0; i < own; i++)
                     mesh.SetTriangles(source.Triangles[i], i, calculateBounds: false);
+                for (int k = 0; k < _environmentScratch.Count; k++)
+                    mesh.SetTriangles(source.Triangles[_environmentScratch[k].Submesh], own + k, calculateBounds: false);
                 mesh.RecalculateBounds();
 
-                var materials = new Material[source.Triangles.Count];
-                for (int i = 0; i < materials.Length; i++)
+                var materials = new Material[mesh.subMeshCount];
+                for (int i = 0; i < own; i++)
                     materials[i] = MaterialFor(i < model.Materials.Count ? model.Materials[i] : null);
+                for (int k = 0; k < _environmentScratch.Count; k++)
+                    materials[own + k] = _environmentScratch[k].Material;
                 built = new Built(mesh, materials);
             }
             _built[(asset.InstallEntry, lastFrame, lightingMode)] = built;
@@ -335,6 +356,49 @@ namespace DK2.Unity
             return kmf == null ? ForTexture(texture) : ForTexture(texture, kmf.Blend, kmf.SelfIllumination);
         }
 
+        private readonly List<(int Submesh, Material Material)> _environmentScratch = new List<(int, Material)>();
+        private readonly Dictionary<(string, float), Material> _environmentPasses = new Dictionary<(string, float), Material>();
+        private readonly HashSet<Material> _environmentMaterials = new HashSet<Material>();
+
+        /// <summary>The additive environment pass DK2 draws over a material's triangles
+        /// (<see cref="KmfMaterial.HasEnvironmentPass"/>, kmf-materials.md §8): the environment
+        /// texture at the coordinates <c>EnvironmentMapCoordinates</c> states, ONE/ONE, no depth
+        /// write, lit by the thing's light times <see cref="KmfMaterial.EnvironmentPassLight"/>.
+        /// Shared per (texture, light). Null when the material has none, when its texture is not
+        /// in the install, or without the classic vertex-lit shader, which carries the coordinates.</summary>
+        private Material EnvironmentPass(KmfMaterial kmf)
+        {
+            if (kmf == null || !kmf.HasEnvironmentPass || !UsesClassicVertexLighting
+                || string.IsNullOrEmpty(kmf.EnvironmentTextureName)) return null;
+            var key = (kmf.EnvironmentTextureName, kmf.EnvironmentPassLight);
+            if (_environmentPasses.TryGetValue(key, out Material material)) return material;
+            using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Material);
+            Texture2D texture = null;
+            try
+            {
+                RgbaImage image = _art.LoadTexture(kmf.EnvironmentTextureName);
+                using (LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Texture))
+                    texture = ToTexture(image, kmf.EnvironmentTextureName);
+            }
+            catch (System.IO.FileNotFoundException)
+            {
+                Debug.LogWarning($"DK2: environment texture '{kmf.EnvironmentTextureName}' not found; no environment pass.");
+            }
+            if (texture != null)
+            {
+                float light = kmf.EnvironmentPassLight;
+                material = new Material(_shader) { name = "ENV_" + kmf.EnvironmentTextureName, mainTexture = texture };
+                material.SetColor("_BaseColor", new Color(light, light, light, 1f));
+                material.EnableKeyword("DK2_ENVIRONMENT_MAP");
+                MakeTransparent(material, BlendMode.One, BlendMode.One, 2f);
+                // Counted as blended so the hover's red pass does not cover it twice.
+                _kmfBlended.Add(material);
+                _environmentMaterials.Add(material);
+            }
+            _environmentPasses[key] = material;
+            return material;
+        }
+
         /// <summary>The dig tag's colour, which DK2 adds to a tagged piece's vertex light
         /// (<c>0x0059A050</c>, <c>0x0059A200</c>, summed by <c>0x0057B6D0</c>; tag-highlight.md).</summary>
         public static readonly Color TagTint = new Color(128f / 255f, 128f / 255f, 200f / 255f);
@@ -351,7 +415,7 @@ namespace DK2.Unity
         public Material Tagged(Material material, bool red = false)
         {
             // Additive materials already supply white diffuse before native RGB saturation.
-            if (!material.HasProperty("_EmissionColor")) return material;
+            if (!material.HasProperty("_EmissionColor") || _environmentMaterials.Contains(material)) return material;
             var cache = red ? _redHighlighted : _tagged;
             if (cache.TryGetValue(material, out Material tagged)) return tagged;
             tagged = Copy(material, " (tagged)");
@@ -403,7 +467,9 @@ namespace DK2.Unity
         public Material TerrainTinted(Material material, DK2.Data.Model.TerrainLightColour tint)
         {
             tint = ClassicTerrainTint.PieceColour(tint);
-            if (tint == default || !material.HasProperty("_EmissionColor")) return material;
+            // The environment pass is lit through its own colour, not an added emission.
+            if (tint == default || !material.HasProperty("_EmissionColor")
+                || _environmentMaterials.Contains(material)) return material;
             if (_tinted.TryGetValue((material, tint), out Material tinted)) return tinted;
             tinted = Copy(material, " (terrain light)");
             Color own = material.IsKeywordEnabled("_EMISSION") ? material.GetColor("_EmissionColor") : Color.black;
@@ -435,11 +501,14 @@ namespace DK2.Unity
         public bool IsKmfBlended(Material material) => material != null && _kmfBlended.Contains(material);
 
         /// <summary>Every copy of a cached material goes through here, so it keeps its source's blend
-        /// (<see cref="IsKmfBlended"/>) whatever Unity's copy constructor carries over.</summary>
+        /// (<see cref="IsKmfBlended"/>) and stays an environment pass when its source is one (so a
+        /// faded copy is still skipped by tagging and terrain tint), whatever Unity's copy
+        /// constructor carries over.</summary>
         private Material Copy(Material source, string suffix)
         {
             var copy = new Material(source) { name = source.name + suffix };
             if (_kmfBlended.Contains(source)) _kmfBlended.Add(copy);
+            if (_environmentMaterials.Contains(source)) _environmentMaterials.Add(copy);
             return copy;
         }
 
@@ -604,6 +673,13 @@ namespace DK2.Unity
             var cacheKey = (source, (byte)alpha, writeDepth);
             if (_faded.TryGetValue(cacheKey, out Material faded)) return faded;
             faded = Copy(source, " (alpha " + alpha + ")");
+            if (_environmentMaterials.Contains(source))
+            {
+                // A blended draw gets no environment pass (state bits 0x21, 0x00581797): black adds nothing.
+                faded.SetColor("_BaseColor", Color.clear);
+                _faded[cacheKey] = faded;
+                return faded;
+            }
             MakeTransparent(faded, BlendMode.SrcAlpha, BlendMode.OneMinusSrcAlpha, 0f);
             if (writeDepth) faded.SetFloat("_ZWrite", 1f);
             if (faded.HasProperty("_BaseColor"))

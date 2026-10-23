@@ -44,6 +44,9 @@ Shader "DK2/Classic Vertex Lit"
             // Install materials select these keywords at runtime, after player variant stripping.
             #pragma multi_compile_local _ _EMISSION
             #pragma multi_compile_local_fragment _ _SURFACE_TYPE_TRANSPARENT
+            // DK2's environment pass (kmf-materials.md §8): the material's environment texture,
+            // sampled where EnvironmentMapCoordinates.Of says, drawn ONE/ONE by ClassicMeshes.
+            #pragma multi_compile_local_vertex _ DK2_ENVIRONMENT_MAP
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
@@ -274,7 +277,20 @@ Shader "DK2/Classic Vertex Lit"
                     sum *= saturate((_DK2DistanceFade.y - reach) / (_DK2DistanceFade.y - _DK2DistanceFade.x));
                 }
                 output.positionCS = position.positionCS;
+            #if defined(DK2_ENVIRONMENT_MAP)
+                // 0x00582290: the eye vector in camera space, normalised, and the world normal in
+                // DK2's frame (x, -z, -y of ours), halved. Tested reference: EnvironmentMapCoordinates.
+                // GUESS: DK2's camera space is Direct3D's (z into the screen); its axes and the sign
+                // of v are unconfirmed. The uv can leave 0..1; our texture clamps, DK2's address
+                // mode for this stage is unread.
+                float3 viewPosition = TransformWorldToView(position.positionWS);
+                float3 eye = normalize(float3(viewPosition.x, viewPosition.y, -viewPosition.z));
+                float3 normalDK2 = 0.5 * float3(normalWS.x, -normalWS.z, -normalWS.y);
+                output.uv = float2(normalDK2.z * eye.x - normalDK2.x * eye.z,
+                    normalDK2.z * eye.y - normalDK2.y * eye.z) + 0.5;
+            #else
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+            #endif
                 output.diffuse = DK2PackedDiffuse(sum);
                 return output;
             }

@@ -90,6 +90,17 @@ The classic catalogue loads this separate record; the dead-creature view
 uses it as the model and stops living animation. It does not change the
 death/rescue/countdown simulation or add a gradual decay effect.
 
+Q622 (2026-10-23 claude): every creature that leaves a body has a type-5 art 41
+(38 of them). Only the Lord's is checked by a test, which resolves it to
+`LOL-DiePose.kmf` through the install provider; the other 37 are not covered by a test. Level 1's Lord
+of the Land (type 29, `GenerateDeadBody` set) dies outright and leaves `LOL-DiePose`;
+ours keeps that corpse for its 60 seconds and the view draws it
+(`LordOfTheLandCorpseTests`). No missing body or texture was found on our side. What
+ours lacked was the shine of his armour: `frontenv`/`KnightBack` are environment-mapped
+(file 0x40, shininess 0.2) and DK2 draws them a second time, additively, with
+`DefaultEnvMap`. That pass is now built for every model, kmf-materials.md §8. Whether
+the owner's missing corpse is still missing after it is a play question (Q622).
+
 ## Open questions
 
 - Which of `0x00459560`'s five callers is the ordinary collapse, and what the

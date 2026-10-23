@@ -109,6 +109,11 @@ public sealed record ObjectDef
     /// <summary>Which state the object starts in — its own small state machine.</summary>
     public required byte StartState { get; init; }
 
+    /// <summary>File word 0x358, copied to definition +0x117: the effect the state-50 process
+    /// (<c>0x004A3C30</c>) ties to a loose object once a second. Only the Portal Gem (28) starts in
+    /// state 50; its value is 297, Level Gem Idle Effect. 0 for none.</summary>
+    public ushort IdleEffectId { get; init; }
+
     /// <summary>Ordering for what an imp picks up first when several things lie about.</summary>
     public required byte PickUpPriority { get; init; }
 

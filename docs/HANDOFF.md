@@ -39,6 +39,12 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   may be sparser than DK2's (Q606). The star icon above him is Q607. A live
   check rig: reverse-engineering/dk2runs/level1-lord-sparkle/run.ps1 -Live,
   with dk2reveal.py exploring the map in memory.
+  The Step6 branch (classic-look/step6, presentation only, no hash change) also
+  draws DK2's additive environment-map pass over every 0x40 material and animates
+  the loose gem as state 50 does (float, spin, effect 297 each second; that a
+  dropped gem stays in state 50 is LIKELY): kmf-materials.md §8, objects.md §8.
+  Q622 (Lord corpse: no missing body found, the armour shine was the gap),
+  Q623 and Q637 (camera frame and v sign unconfirmed) await the owner.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

@@ -162,6 +162,9 @@ namespace DK2.Unity
         private InstallArtProvider _installArt;
         private ClassicMeshes _classic;
         private ClassicConstructionEffects _constructionEffects;
+        // The Portal Gem's idle sparkle (0x004A3C30), collected once a frame for the turns run.
+        private LevelGemIdleEffects _gemIdleEffects;
+        private readonly List<ViewEffectRequest> _gemIdleRequests = new List<ViewEffectRequest>();
         private Action<HeartHealthChange> _heartHealthObserver;
         private WorldState _heartHealthWorld;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
@@ -321,6 +324,7 @@ namespace DK2.Unity
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
                     attachment: _scene.CreatureAttachment, clock: EffectClock);
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
+                _gemIdleEffects = new LevelGemIdleEffects(database);
                 // 0x0043A8E0's owner is the render sink's word +0xC, whose writer is unread; taken as the viewer.
                 _scene.GemSparkleRequested = point => _constructionEffects.Model.Request(new ViewEffectRequest(
                     new EffectId(CreatureView.GemDustSparkle.EffectId), new PlayerId((byte)viewingPlayerId), point));
@@ -585,6 +589,12 @@ namespace DK2.Unity
             _scene.SetCreatureFrameTime(_simulation.World.CurrentTick, fraction);
             _worldView.SetPossessionView(_simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0);
             using (PresentMarker.Auto()) _presenter.Present(_simulation.World);
+            if (_gemIdleEffects != null)
+            {
+                _gemIdleRequests.Clear();
+                _gemIdleEffects.Collect(_simulation.World, _gemIdleRequests);
+                for (int i = 0; i < _gemIdleRequests.Count; i++) _constructionEffects.Model.Request(_gemIdleRequests[i]);
+            }
             _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
             double preparedElapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: 0, maximumDeltaSeconds: Math.Max(0, Time.maximumDeltaTime - elapsed), timeScale: Time.timeScale);

@@ -19,8 +19,8 @@ namespace DK2.Data.Kwd;
 /// bed, 26 the Vampire's, 31-34 the Graveyard's; <c>ObjectsOnRealDataTests</c>).
 /// Evidence: docs/research/objects.md §§1-2.</para>
 /// <para>Deliberately not read, all presentation or unexplained: the nine art
-/// resource visuals, <c>material</c>, the three unknown bytes
-/// at 0x341, the three effect ids, the sound category.</para></remarks>
+/// resource visuals, <c>material</c>, the three unknown bytes at 0x341, two of the
+/// three effect ids (0x358 is <see cref="ObjectDef.IdleEffectId"/>), the sound category.</para></remarks>
 public static class KwdObjects
 {
     public static byte[] WriteRecord(ObjectDef record, KwdRecordImage template)
@@ -36,6 +36,7 @@ public static class KwdObjects
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetFlags), (uint)record.Flags);
         U16(OffsetHp, record.Hp);
         U16(OffsetManaValue, record.ManaValue);
+        U16(OffsetIdleEffect, record.IdleEffectId);
         U16(OffsetNameStringId, record.NameStringId);
         U16(OffsetTooltipStringId, record.TooltipStringId);
         Fp(OffsetWidth, record.Width);
@@ -73,6 +74,7 @@ public static class KwdObjects
     private const int OffsetManaValue = 0x34E;
     private const int OffsetTooltipStringId = 0x350;
     private const int OffsetNameStringId = 0x352;
+    private const int OffsetIdleEffect = 0x358;
     private const int OffsetObjectId = 0x35A;
     private const int OffsetStartState = 0x35B;
     private const int OffsetRoomCapacity = 0x35C;
@@ -129,6 +131,7 @@ public static class KwdObjects
             ManaValue = U16(OffsetManaValue),
             RoomCapacity = rec[b + OffsetRoomCapacity],
             StartState = rec[b + OffsetStartState],
+            IdleEffectId = U16(OffsetIdleEffect),
             PickUpPriority = rec[b + OffsetPickUpPriority],
 
             Width = Fp(OffsetWidth),

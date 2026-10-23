@@ -27,6 +27,7 @@ pipeline; resource layout is in [object-drawing.md §2](object-drawing.md#2-reso
 | 0x348 | **hp**, u16 | see §5 for the Dungeon Heart |
 | 0x34E | mana value | non-zero on very few |
 | 0x350 / 0x352 | tooltip / name string ids | presentation |
+| 0x358 | idle effect id, u16 | definition +0x117; 297 on the Portal Gem (§8) |
 | 0x35A | **object id** | what creatures and rooms point at |
 | 0x35B | start state | its own small state machine |
 | 0x35C | room capacity | |
@@ -320,3 +321,20 @@ One extra detail worth keeping from the wording: the creature **drops** its bed,
 so the placement is an act the creature performs on arrival. That is presentation
 rather than simulation as far as anything here is concerned, but it is also why
 `FlagDestroyWhenDropped` sits next to `CreatureId` in the object's union.
+
+## 8. The level gem (object 28) — Q623, 2026-10-23 claude
+
+The Portal Gem is the only object whose start state is **50**, the process
+[0x004A3C30](functions/004A3C30.md). Each turn it moves the gem toward height
+`0x1400` plus the sine table at 0x006C1488 (2048 entries scaled by 65536; entry
+`(turn & 15) * 128`, shifted right 8 toward zero: ±256 over 16 turns), at most `0x80`
+a turn, and adds `0x40` to its heading. Once a game second, while not carried, it
+creates the definition's idle effect (file 0x358, effect 297, Level Gem Idle Effect,
+gem-dust sparkles) tied to the gem. The process is CONFIRMED (decompile and table bytes,
+2026-10-23); that a loose (dropped) gem stays in state 50 is LIKELY (unread; a world-log
+dump after the drop would settle it).
+
+Its mesh is `Gem.kmf`: a noise texture whose look is DK2's additive environment pass
+(`EnvmapK`, kmf-materials.md §8) plus additive rays. Built in the view: `LevelGemIdle` (bob and spin from the turn, idle
+effect once a second, untied) and the environment pass. Approximated: the climb limit
+after a drop and the starting heading; the effect is placed, not tied.

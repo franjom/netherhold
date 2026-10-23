@@ -144,6 +144,8 @@ countdown, Imprison tag, Leaving/S-Gem and lifts; left: the casino Dollar mesh, 
 trigger window (action 30), the global gate, state 0x110 and the disguise colour,
 [status-flowers.md](../research/status-flowers.md) §3.
 
+Model look, built 2026-10-23: DK2's additive environment-map pass on every model with a 0x40 material, and the loose Portal Gem's float, spin and once-a-second sparkle ([kmf-materials.md](../research/kmf-materials.md) §8, [objects.md](../research/objects.md) §8). Owner checks: Q622 (Lord corpse and armour shine), Q623 (gem), Q637 (shine look).
+
 For each delivered slice: independent review, relevant headless presentation/input
 tests, adapter build, and owner comparison at 1024×768 and 2560×1440 or above.
 Check UI scaling, widescreen anchors, readable text, overlapping tooltips and

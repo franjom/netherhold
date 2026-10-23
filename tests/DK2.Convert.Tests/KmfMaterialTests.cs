@@ -40,6 +40,43 @@ public class KmfMaterialTests(ITestOutputHelper output)
         Assert.Equal(1f, Material(0x00, 3f).SelfIllumination);
     }
 
+    [Theory]
+    [InlineData(0x40u, true)] // frontenv: opaque and environment-mapped
+    [InlineData(0x42u, true)] // the dropped "double sided" bit changes nothing
+    [InlineData(0xC0u, true)]
+    [InlineData(0x00u, false)]
+    [InlineData(0x41u, false)] // blended: 0x00581797 skips a state with bits 0x21
+    [InlineData(0x44u, false)] // additive likewise
+    public void OnlyAnOpaqueEnvironmentMappedMaterialGetsTheEnvironmentPass(uint flags, bool expected) =>
+        Assert.Equal(expected, Material(flags, 0f).HasEnvironmentPass);
+
+    [Fact]
+    public void TheEnvironmentPassIsLitByShininessNotBrightness()
+    {
+        Assert.Equal(0.2f, new KmfMaterial("m", ["t"], 0x40, 0.6f, 0.2f, "DefaultEnvMap").EnvironmentPassLight, 5);
+        Assert.Equal(0f, new KmfMaterial("m", ["t"], 0x40, 0.6f, -1f, "DefaultEnvMap").EnvironmentPassLight);
+    }
+
+    /// <summary>Q623: the Portal Gem (object 28, <c>Gem.kmf</c>) is a dull noise texture
+    /// (<c>128gem1</c>) whose look is its environment pass (<c>EnvmapK</c>, light 1), with additive
+    /// rays (<c>rayolight</c>) that get none. Q622: the Lord's dead pose has the same environment
+    /// passes as his living armour.</summary>
+    [InstallFact]
+    public void ThePortalGemAndTheLordsArmourCarryEnvironmentPasses()
+    {
+        string install = Dk2InstallGate.Path;
+        using var wad = WadArchive.Open(Path.Combine(install, "Data", "Meshes.WAD"));
+        KmfModel gem = KmfReader.Read(wad.Extract("Gem.kmf"));
+        KmfMaterial rays = Assert.Single(gem.Materials, material => material.TextureNames.Contains("rayolight"));
+        KmfMaterial body = Assert.Single(gem.Materials, material => material.TextureNames.Contains("128gem1"));
+        Assert.Equal((KmfBlend.Additive, false), (rays.Blend, rays.HasEnvironmentPass));
+        Assert.Equal((true, "EnvmapK", 1f), (body.HasEnvironmentPass, body.EnvironmentTextureName, body.EnvironmentPassLight));
+
+        KmfModel lord = KmfReader.Read(wad.Extract("LOL-DiePose.kmf"));
+        Assert.Contains(lord.Materials, material => material.HasEnvironmentPass
+            && material.TextureNames.Contains("LordFrnt") && material.EnvironmentTextureName == "DefaultEnvMap");
+    }
+
     [InstallFact]
     public void TreasuryAndCasinoMaterialsReadTheirShippedFlags()
     {

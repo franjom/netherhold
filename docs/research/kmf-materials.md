@@ -49,7 +49,7 @@ The material constructor [0x0057C420](functions/0057C420.md) starts the state wo
 | 0x400 | `& ~0x80 \| 0x1200` | ZERO/INVSRCCOLOR (not reachable from a KMF) |
 | 0x002, 0x004, 0x008 | `& ~0x80 \| 0x220` | SRCALPHA/INVSRCALPHA, no z-write, deferred |
 | 0x040 | `& ~0x40` | state bit 0x40, meaning UNREAD |
-| 0x200 | `\| 0x800`, loads the environment texture | second stage, UNREAD in detail |
+| 0x200 | `\| 0x800`, loads the environment texture into material +0x8 | a separate additive pass, §8 |
 
 CONFIRMED for the state words. In the applier, bit 0x1 sets SRCBLEND ONE, DESTBLEND
 ONE; bit 0x20 sets SRCALPHA/INVSRCALPHA and is issued after bit 0x1, so a state with
@@ -124,8 +124,8 @@ A material with several textures draws the first, or the one its art's texture p
 selects (the Heart's decay; a hovered gold object's `_HIGHLIGHT`,
 [gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §1).
 
-Back faces stay culled (§4). Not drawn yet: the environment-map stage (file 0x40),
-the UNREAD state bits 0x2 and 0x40. Blended terrain faces now sort across chunks and
+Back faces stay culled (§4). The environment pass (file 0x40) is drawn as §8 says. Not
+drawn: the UNREAD state bits 0x2 and 0x40. Blended terrain faces now sort across chunks and
 materials before each camera, batching only adjacent equal materials into explicitly ordered
 renderers. Standalone object meshes and liquids still use Unity's object sort.
 The terrain runs use sortingOrder 1..N, so they follow those other blended renderers
@@ -161,3 +161,54 @@ adapter uses continuous camera-facing centroid depth with stable equal-depth tie
 DK2's bucket quantisation and within-bucket tie order are not reproduced.
 `TriangleDepthOrderTests` covers material interleaving, camera reversal, centroid
 versus maximum depth, stable ties and the shipped Portal's complete blended stream.
+
+## 8. The environment pass (2026-10-23 claude, Q622/Q623)
+
+CONFIRMED (binary): a material with state bit 0x800 is drawn **twice**. The static mesh
+queue (0x0058178E-0x00581840, inside a function Ghidra has not defined) and the animated
+one ([0x00584900](functions/00584900.md), test at 0x005851E0) add a second batch entry
+for the same triangles when all hold: the material state has 0x800; the item-adjusted
+state has none of bits 0x21 (opaque), unless the item's flag bit 0x400 is set; the item's
+flag bit 0x200 is clear; global 0x00764BE4 is non-zero. The item flags are read from
+`+0x50` in the static queue (0x0058158B for 0x400, 0x00581597 for 0x200) and from
+`+0x4C` in the animated one (0x00584FD1, 0x00584FDD). The entry carries the material's
+environment texture (+0x8, §2), render state **0x741** (ONE/ONE additive, z-test on,
+no z-write, depth-sorted) and sub-mesh id + 1000, which the dispatch (0x00582CE0,
+0x005848B0) sends to the environment emitters 0x00582290 (static) and 0x00583DC0
+(animated). It is one texture in one pass, not a second texture stage.
+
+- **Coordinates** (0x00582503-0x00582769, CONFIRMED arithmetic): E = vertex minus
+  camera (0x00760AB8), rotated by the view matrix at 0x00760AC4 and normalised; N =
+  the vertex normal turned by the object's own matrix, times 0.5 (0x0066FC20);
+  `u = Nz·Ex − Nx·Ez + 0.5`, `v = Nz·Ey − Ny·Ez + 0.5`. No clock: the shine moves
+  only with the camera and the object. LIKELY: E is camera space and N world space.
+  Unconfirmed (LIKELY at most): the camera-space axis convention and with it the sign of
+  v; the matrix at 0x00760AC4 was not traced to its builder. The coordinates can leave
+  0..1; DK2's texture address mode for this pass is unread (ours clamps).
+- **Colour**: the item's base colour (+0x3C..+0x44) plus its point lights
+  (0x0057C190; the light collection 0x00582140/0x0057BD70 is skipped when item `+0x50`
+  bit 0x4 is set, 0x0058237B), times material +0x1D, the descriptor's **shininess**. Brightness
+  plays no part. That the texture is modulated by it is LIKELY (stage set-up UNREAD).
+- **Option**: global 0x00764BE4 is the EnvironmentMapping setting (settings +0x5C,
+  setter [0x00566420](functions/00566420.md), through engine slot +0x70 = 0x0059C110
+  -> 0x005747B0, from renderer init 0x005983C0 and the options toggle 0x0042A0F0).
+  Default on, LIKELY: 0x00564B00 writes 1 when the stored value is missing, and
+  0x00574310 writes 1 to 0x00764BE4 directly (0x005744DF).
+
+Shipped examples: the Portal Gem (`Gem.kmf`, object 28) is `128gem1`, a dull
+grey-violet noise, flags 0x42, shininess 1, environment `EnvmapK`; its look is the
+pass. Its `Rays_Of_Light` (`rayolight`, flags 0x6) are additive and get none. The Lord
+of the Land's armour, living and dead (`LOL-DiePose`), is `frontenv`/`KnightBack`,
+flags 0x40/0x42, shininess 0.2, `DefaultEnvMap`; his sword 0.5.
+
+**Built** (adapter): `KmfMaterial.HasEnvironmentPass` and `EnvironmentPassLight`
+(DK2.Art) carry the gate and the scale; the classic vertex-lit shader
+(`ClassicVertexLit.shader`, keyword `DK2_ENVIRONMENT_MAP`) computes the coordinates
+inline, and `EnvironmentMapCoordinates` (DK2.Presentation) is only the tested C#
+reference of that formula; nothing calls it at run time. `ClassicMeshes` appends each such material's triangles as an
+extra submesh drawn ONE/ONE with the environment texture, lit by the shader's own light
+sum times shininess. Approximated: our light sum includes the owner-tuned Unity fill
+(ADR-0522); DK2's camera space is assumed to be Direct3D's (GUESS); animated meshes keep
+their first frame's normals; terrain pieces and effect frames get no pass; a fading
+object drops its pass, as DK2's blended gate does; the option is always on. Without the
+classic vertex-lit shader no pass is drawn.
