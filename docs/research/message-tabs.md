@@ -164,8 +164,13 @@ indicator widgets are not built, so ours always takes 40. Types 17 and 18 take
 Speech `base + complaint`, base the creature's unhappy or angry line (`def+0x6CD`/`+0x6CF`, file
 `0xD05`/`0xD07`; `0x004C4600`), fixed when the view first sees the record. The goto button (art 133, x 440) shows when
 `0x004C4BE0` gives a tile, a live creature or a room centre (the box middle, Q515), and moves our
-focus there at once (HYPOTHESIS: `0x00415B30`'s submission is unread). Not mirrored: the
-thing-kind check and the Query-mode hide (`+0x4B1D`); our 42 carries no room, so shows no goto. Not built: type 20
+focus there: `0x00415B30` submits game action 4 with the point's tile, a glide of at most
+500 ms to its centre (`0x00442650`). Not mirrored: the thing-kind check and the Query-mode hide
+(`+0x4B1D`). Type 42 shows no goto in either game: DK2's producers post it with Data2 0
+(computer-keeper-messages.md's producer table; only 44 carries the room), which names no room (STRONGLY INFERRED: thing slot 0 is never a room).
+Complaint 9 (cell, Temple, spectating; state-categories.md §7.2) reads one past a creature's
+nine lines, so its 17/18 text names the next creature type's first complaint, in DK2 as in ours:
+the Imp's 585 + 9 is Speech 594, "A Bile Demon has become unhappy because it has no Lair". Not built: type 20
 (`def+0x6D1`, file `0xD09`, "has left your Dungeon"), which our queue never posts; the slide sounds, the Ally button, the goto
 location of a kind-2 thing (22, 26, 48) or the Heart (85..87), none posted by us, player-name substitution for 82..87, menu40's own frame art
 (the panel is a dark box) and its sharing with the creature Query. Only the kinds our queue posts

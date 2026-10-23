@@ -103,14 +103,10 @@ namespace DK2.Unity
                         (_gotoMessage, _gotoTick, _gotoLocation) = (message.Id, tick, _messageView.Location(_simulation.World, message));
                     return _gotoLocation;
                 },
-                (x, y) =>
-                {
-                    // 0x004C3DC0's point; our camera takes it as the focus at once, as the overview's Focus
-                    // does (HYPOTHESIS: what 0x00415B30's submission does with it is unread).
-                    _cameraFocus = new Vector3(Mathf.Clamp(x, 0, _cameraBounds.x - 1f / Fp32.One), _cameraFocus.y,
-                        Mathf.Clamp(-y, -_cameraBounds.y + 1f / Fp32.One, 0));
-                    _glideMilliseconds = 0;
-                });
+                // 0x00415B30 submits game action 4 with the point's tile (x >> 12, y >> 12): the focus
+                // glides to that tile's centre (0x00442650), as room navigation does. x and y are tiles;
+                // DK2 first drops an off-map point (World_ContainsPosition), ours clamps in StartGlide.
+                (x, y) => StartGlide(new TilePos((int)Math.Floor(x), (int)Math.Floor(y))));
             _startup.Step("hud.messages");
         }
 

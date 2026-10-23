@@ -123,8 +123,8 @@ public sealed class MessageTabsView
     /// 18, 27) or Data1 (7, 8, 13, 14, 19, 57, 58, 60, 64, 72, 73, 78, 79, 81), its position; a room
     /// (32 to 35, 42, 44, 45 with Data1 below 0xFF; 25, 61, 66), its centre (<c>+0x27</c>, ours
     /// <see cref="RoomInstance.CentreFieldX"/>, the box middle: STRONGLY INFERRED, Q515), Data2 being
-    /// ours the room's first slab; our 42 carries none (<see cref="PlayerMessageQueue.PostRoom"/>), so it
-    /// never shows the button. DK2 also checks a thing's kind (<c>+0x12</c> 0), which ours does not.
+    /// ours the room's first slab; 42 carries none in either game (<see cref="PlayerMessageQueue.PostRoom"/>),
+    /// so it never shows the button. DK2 also checks a thing's kind (<c>+0x12</c> 0), which ours does not.
     /// Not built: types 22, 26 and 48 (a kind-2 thing), 36 and 37 (a tile packed in Data2) and 85 to 87
     /// (the Heart), none of which our queue posts.</summary>
     public (float X, float Y)? Location(WorldState world, in PlayerMessage message)
