@@ -116,12 +116,17 @@ The ordinary Hand held-item arm in `0x0040AE80` fills it as
 `(tileX,tileY,tileX+1,tileY+1)`, with invalid/drop-special flags separately.
 The early dig-hover arm does not fill that rectangle. `0x0040ACD0` publishes
 it through `0x0044E130` into bridge `+0x10..+0x1C`, and through `0x0044E1C0`
-into `+0x4E..+0x5A`. Both retain previous bounds and store the hover thing id
+into `+0x4E..+0x5A`. Each call replaces the current bounds; the previous ones go
+only to `+0x24..+0x30` / `+0x62..+0x6E`, through `0x005B7090` (unread) after the
+first call. Both store the hover thing id
 at bridge `+0x34`; bridge `+0x36` receives interface flag bit `0x10` as 0/1.
-This publication does not by itself establish the cursor-tile edge geometry.
+Every other caller passes a zero rectangle, so the secondary equals the primary here.
 The tool arms that fill this rectangle (room/sell only while dragging; doors,
 traps and spells never) and the tool icon, No Go and price overlay drawn by
 `0x0040CAE0` are in [placement-cursor.md](placement-cursor.md) (2026-10-23).
+With both rectangles empty, the one-tile cage under the pointer is the Hand
+light `+0x33E`'s own kind3 art, which `Presentation_Update` shows (edge word
+`0x1F`, or `0x3F` with `+0x36`). See placement-cursor.md §2a (2026-10-23).
 
 ## Selection outline rendering
 
@@ -168,8 +173,10 @@ or 1, and clamps at those endpoints. It is updated after the kind3 draw,
 not per simulation tick.
 The texture handle comes from render sink `+0x8E`; its resource and final
 blend/depth state remain UNKNOWN. Keep this separate from the persistent
-dig-tag mesh tint in [tag-highlight.md](tag-highlight.md). Complete hover
-eligibility and the source of a dig-hover rectangle remain UNKNOWN.
+dig-tag mesh tint in [tag-highlight.md](tag-highlight.md). The one-tile hover
+cage is the Hand light's (placement-cursor.md §2a). Its visibility flag (view host
+`+0xC` slot `+0x20`) is unread, so whether it shows over a diggable tile remains
+UNKNOWN.
 
 Implementation: `TileHoverOutline` retains the full-height rest grid, endpoint
 table, radius and blue peak. `ClassicTileHoverOutline` emits one camera-facing

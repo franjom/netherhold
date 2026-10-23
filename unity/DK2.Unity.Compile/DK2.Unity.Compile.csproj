@@ -26,6 +26,9 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AssemblyName>DK2.Unity.Compile</AssemblyName>
     <RootNamespace>DK2.Unity</RootNamespace>
+    <!-- Unity 6 compiles C# 9; 'latest' from Directory.Build.props let C# 10 'with' on a struct
+         pass here and fail in the Editor (2026-10-23). -->
+    <LangVersion>9.0</LangVersion>
 
     <!-- Unity's own C# is not warning-clean at this project's usual settings,
          and its API surface is not ours to fix. Errors still fail the build,

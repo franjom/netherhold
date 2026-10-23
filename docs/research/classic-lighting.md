@@ -114,7 +114,7 @@ The first two also receive post-creation flags/animation setup. Followup reads
 on 2026-10-15 distinguish these handles from global ambient/fill:
 
 - `+0x33E`: the Hand's light (RGB 511, radius `0x1C00`), under the pick, white over explored
-  cells; not a world fill. BUILT 2026-10-22 (`FromHand`); details in the `0x0043B220` record.
+  cells; not a world fill; its kind3 art is likely the hover cage (placement-cursor.md §2a). BUILT 2026-10-22 (`FromHand`); details in `0x0043B220`.
 - `+0x35D`: the per-tile render pass reuses it for the selection rectangle's
   boundary tiles, setting edge bits and moving it to each boundary tile centre.
 - `+0x35B`: reused per-tile terrain point light; section9 owns its inputs and

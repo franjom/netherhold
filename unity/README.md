@@ -95,6 +95,7 @@ dotnet build unity/DK2.Unity.Compile/DK2.Unity.Compile.csproj
 ```
 
 Compiles `Assets/DK2/*.cs` against the editor's real `UnityEngine` module assemblies.
+It pins `LangVersion` 9.0 like Unity 6's compiler, so C# 10 syntax (struct `with`) fails here, not in the Editor.
 **This is how the project's "do not commit code you have not built" rule reaches
 Unity code**, and it is the only way it can: a `MonoBehaviour` that does not compile
 otherwise sits in a repository for months looking finished.

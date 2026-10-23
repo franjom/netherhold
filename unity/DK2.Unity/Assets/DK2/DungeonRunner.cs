@@ -1240,7 +1240,7 @@ namespace DK2.Unity
                 if (ActiveTool == PlayerToolMode.Hand) cursor = HandCursorKind.SmallPoint;
                 // 0x0040BBE0 sets No Go over the GUI for the room, sell, door, trap and spell tools.
                 PlacementFeedback over = Placement(_simulation.World, new PlayerId((byte)viewingPlayerId), null);
-                if (over.Icon != PlacementIcon.None) placement = over with { Cage = null, NoGo = true, Valid = false };
+                if (over.Icon != PlacementIcon.None) placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable);
             }
             bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
             if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal)
@@ -1257,9 +1257,20 @@ namespace DK2.Unity
             else _tileHighlight?.Update(highlightedTile, Camera.main, Time.unscaledTimeAsDouble);
         }
 
+        /// <summary>With no rectangle, room and sell mode show a one-tile hover cage, most likely the Hand
+        /// light's own (+0x33E, 0x0043B220; placement-cursor.md §2a), coloured by the arm's validity and
+        /// hidden on a border tile. Whether Hand, door and trap mode show it too waits on an unread flag
+        /// (0x0043B7DA). Unity compiles C# 9, which has no 'with' on a struct.</summary>
+        private PlacementFeedback Caged(in PlacementFeedback feedback, TilePos at)
+        {
+            WorldState world = _simulation.World;
+            bool border = at.X <= 0 || at.Y <= 0 || at.X >= world.Width - 1 || at.Y >= world.Height - 1;
+            return new PlacementFeedback(border ? null : new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1),
+                feedback.Valid, feedback.Price, feedback.Icon, feedback.NoGo, feedback.Affordable);
+        }
+
         /// <summary>The placement cursor of the selected tool over <paramref name="tile"/> (null: over the
-        /// HUD). In room and sell mode ours cages the hovered tile too: the owner's photos (2026-10-23, no button held)
-        /// show a one-tile cage there, where the 0x0040B210 reading fills no rectangle until a drag.</summary>
+        /// HUD).</summary>
         private PlacementFeedback Placement(WorldState world, PlayerId viewer, TilePos? tile)
         {
             GameDatabase database = _simulation.Database;
@@ -1269,13 +1280,13 @@ namespace DK2.Unity
                 if (tile is not TilePos at || !database.Rooms.TryGetValue(selectedRoomId, out RoomDef room))
                     return tile is null ? new PlacementFeedback(null, false, 0, PlacementIcon.PlaceRoom, true, true) : PlacementFeedback.None;
                 PlacementFeedback built = PlacementCursor.Room(world, database, viewer, room, at, _input.DragFrom(PlayerToolMode.BuildRoom), gold);
-                return built.Cage is null ? built with { Cage = new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1) } : built;
+                return built.Cage is null ? Caged(built, at) : built;
             }
             if (ActiveTool == PlayerToolMode.SellRoom)
             {
                 if (tile is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.Sell, true, true);
                 PlacementFeedback sold = PlacementCursor.Sell(world, database, viewer, at, _input.DragFrom(PlayerToolMode.SellRoom));
-                return sold.Cage is null ? sold with { Cage = new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1) } : sold;
+                return sold.Cage is null ? Caged(sold, at) : sold;
             }
             if (ActiveTool != PlayerToolMode.Hand || _panelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
             bool workshop = _bottomView.Choice(choice)?.NeedsWorkshop != true;
