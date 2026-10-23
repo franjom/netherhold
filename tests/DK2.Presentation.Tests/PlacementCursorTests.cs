@@ -132,6 +132,80 @@ public sealed class PlacementCursorTests
         Assert.Equal(PlacementFeedback.None, PlacementCursor.HandDrop(world, db, keeper, Claimed(world, db, keeper, 0)));
     }
 
+    [InstallFact]
+    public void APlaceSpellShowsItsIconWithNoCageOrPriceAndNoGoWhereTheSimulationRefusesTheCast_FlagTwoNotMirrored()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        byte spell = CallToArmsRules.SpellId;
+        world.Player(keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, spell, 3));
+        world.Player(keeper).Mana = 1_000_000;
+        var simulation = new GameSimulation(db, world, 1);
+        simulation.Navigation.Refresh();
+        TilePos own = Claimed(world, db, keeper, 0);
+
+        PlacementFeedback ok = PlacementCursor.Spell(world, db, simulation.Navigation, keeper, spell, own,
+            new WorldHoverHit(WorldHoverKind.Tile, own));
+        Assert.Equal((true, false, 0, PlacementIcon.Spell, spell, (TileRectangle?)null),
+            (ok.Valid, ok.NoGo, ok.Price, ok.Icon, ok.SpellId, ok.Cage));
+
+        // Rock is solid to location selector 4, as the cast's own permission finds.
+        TilePos rock = new(0, 0);
+        Assert.Equal(KeeperSpellRefusal.Location, KeeperSpellRules.CanCastAtPlace(world, db, simulation.Navigation,
+            world.CurrentTick, new CastSpellAtPlaceCommand(keeper, spell, CreatureState.CentreOf(0), CreatureState.CentreOf(0))));
+        PlacementFeedback refused = PlacementCursor.Spell(world, db, simulation.Navigation, keeper, spell, rock,
+            new WorldHoverHit(WorldHoverKind.Tile, rock));
+        Assert.Equal((false, true, PlacementIcon.Spell), (refused.Valid, refused.NoGo, refused.Icon));
+
+        Assert.True(db.KeeperSpellById(spell)!.ManaCost > 0);
+        world.Player(keeper).Mana = 0;
+        Assert.True(PlacementCursor.Spell(world, db, simulation.Navigation, keeper, spell, own,
+            new WorldHoverHit(WorldHoverKind.Tile, own)).NoGo);
+        Assert.True(PlacementCursor.Spell(world, db, simulation.Navigation, keeper, spell, null, default).NoGo);
+    }
+
+    [InstallFact]
+    public void HealIsNoGoOffACreatureAndOnAnUninjuredOneAsTheCastRefuses_OursAtLeastMaxWhereDk2TestsEquality()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        world.Player(keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Heal, 3));
+        world.Player(keeper).Mana = 1_000_000;
+        CreatureState creature = world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, keeper, Claimed(world, db, keeper, 0));
+        var simulation = new GameSimulation(db, world, 1);
+        simulation.Navigation.Refresh();
+        var onCreature = new WorldHoverHit(WorldHoverKind.Creature, creature.Tile, creature.Id);
+        int max = CreatureHealthRules.MaxHealth(db, db.CreatureById(creature.CreatureTypeId), creature);
+
+        creature.Health = max;
+        Assert.True(PlacementCursor.Spell(world, db, simulation.Navigation, keeper, KeeperSpellRules.Heal, creature.Tile, onCreature).NoGo);
+        creature.Health = max - 1;
+        PlacementFeedback injured = PlacementCursor.Spell(world, db, simulation.Navigation, keeper, KeeperSpellRules.Heal,
+            creature.Tile, onCreature);
+        Assert.Equal((true, false, KeeperSpellRules.Heal), (injured.Valid, injured.NoGo, injured.SpellId));
+        // A thing spell over a bare tile: our click sends no command there.
+        Assert.True(PlacementCursor.Spell(world, db, simulation.Navigation, keeper, KeeperSpellRules.Heal, creature.Tile,
+            new WorldHoverHit(WorldHoverKind.Tile, creature.Tile)).NoGo);
+    }
+
+    [InstallFact]
+    public void CreateImpShowsItsSpellIconAndNoGoOnlyWhenTheManaIsShort_TileTestNotMirrored()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        int cost = ImpSupplyRules.CreateImpCost(world, db, keeper);
+        world.Player(keeper).Mana = cost;
+        Assert.Equal((true, false, PlacementIcon.Spell, (byte)4), Shape(PlacementCursor.CreateImp(world, db, keeper, 4)));
+        world.Player(keeper).Mana = cost - 1;
+        Assert.True(PlacementCursor.CreateImp(world, db, keeper, 4).NoGo);
+
+        static (bool, bool, PlacementIcon, byte) Shape(PlacementFeedback f) => (f.Valid, f.NoGo, f.Icon, f.SpellId);
+    }
+
+    [Fact]
+    public void QueryShowsOnlyTheQueryIcon()
+    {
+        PlacementFeedback query = PlacementCursor.Query();
+        Assert.Equal((PlacementIcon.Query, false, 0, (TileRectangle?)null), (query.Icon, query.NoGo, query.Price, query.Cage));
+    }
+
     private static (GameDatabase, WorldState, PlayerId) Level1()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);

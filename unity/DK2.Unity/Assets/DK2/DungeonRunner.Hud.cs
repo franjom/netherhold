@@ -59,6 +59,8 @@ namespace DK2.Unity
             var bottomAssets = new InstallClassicBottomPanelAssets(_hudSources, database);
             _bottomView = new BottomPanelView(database, new PlayerId((byte)viewingPlayerId), bottomAssets.Name, bottomAssets.Order, campaignLevel);
             _bottomPanel = new ClassicBottomPanel(transform, bottomAssets, _bottomView);
+            // The cursor's spell icon is the panel's own resource (0x0040D310 reads the same art).
+            _placementOverlay.SpellIconName = id => bottomAssets.Icon(new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, id));
             _bottomPanel.SelectCategory(BottomPanelCategory.Creatures);
             _bottomPanel.Selected += SelectPanelChoice;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));

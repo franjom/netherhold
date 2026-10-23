@@ -101,12 +101,24 @@ public static class KeeperSpellRules
 
     /// <summary>The position permission helper <c>0x004BB8A0</c> for the spells read: cost,
     /// cooldown, then the location and target validators the record selects.</summary>
-    public static KeeperSpellRefusal CanCastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast)
+    public static KeeperSpellRefusal CanCastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast) =>
+        CanCastAtPlace(context.World, context.Database, context.Navigation, context.Navigation, context.Tick, cast);
+
+    /// <summary><see cref="CanCastAtPlace(SimulationContext, CastSpellAtPlaceCommand)"/> for a reader
+    /// between turns, such as the placement cursor: the same verdict for a cast executed at
+    /// <paramref name="tick"/>, against <paramref name="navigation"/> as last refreshed. It never
+    /// refreshes the grid, because the mesh behind it is hashed state.</summary>
+    public static KeeperSpellRefusal CanCastAtPlace(WorldState world, GameDatabase database, INavByteGrid navigation,
+        GameTick tick, CastSpellAtPlaceCommand cast) =>
+        CanCastAtPlace(world, database, navigation, null, tick, cast);
+
+    // The context path refreshes the grid at the same point as before the split, so a refusal
+    // ahead of it still leaves the mesh untouched.
+    private static KeeperSpellRefusal CanCastAtPlace(WorldState world, GameDatabase database, INavByteGrid navigation,
+        Navigation.WorldSteering? refresh, GameTick tick, CastSpellAtPlaceCommand cast)
     {
         if (!ExecutesAtPlace(cast.SpellId)) return KeeperSpellRefusal.UnsupportedSpell;
         if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
-        WorldState world = context.World;
-        GameDatabase database = context.Database;
         KeeperSpellDef? spell = database.KeeperSpellById(cast.SpellId);
         if (spell is null) return KeeperSpellRefusal.MissingDefinition;
         if (!world.HasPlayer(cast.PlayerId)) return KeeperSpellRefusal.MissingPlayer;
@@ -116,18 +128,18 @@ public static class KeeperSpellRules
         AvailabilityState availability = player.Availabilities[row];
         if (spell.ManaCost != 0 && spell.ManaCost > player.Mana) return KeeperSpellRefusal.Mana;
         long cooldown = (uint)unchecked(spell.CooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
-        if (availability.LastCastTick != 0 && context.Tick.Value - availability.LastCastTick < cooldown)
+        if (availability.LastCastTick != 0 && tick.Value - availability.LastCastTick < cooldown)
             return KeeperSpellRefusal.Cooldown;
         if (cast.SpellId == ReaperRules.SpellId && ReaperRules.OwnedReaper(world, database, player) is not null)
             return KeeperSpellRefusal.ExistingReaper;
         if (cast.SpellId == ReaperRules.OneShotSpellId && player.OneShotReaperUsed)
             return KeeperSpellRefusal.OneShotReaperUsed;
         var at = new TilePos(cast.X >> 12, cast.Y >> 12);
-        context.Navigation.Refresh();
+        refresh?.Refresh();
         switch (spell.LocationSelector)
         {
-            case 1: if (!LocationOne(world, database, context.Navigation, cast.PlayerId, at, default)) return KeeperSpellRefusal.Location; break;
-            case 4: if (!LocationFour(world, context.Navigation, at)) return KeeperSpellRefusal.Location; break;
+            case 1: if (!LocationOne(world, database, navigation, cast.PlayerId, at, default)) return KeeperSpellRefusal.Location; break;
+            case 4: if (!LocationFour(world, navigation, at)) return KeeperSpellRefusal.Location; break;
             case 5: break;
             default: return KeeperSpellRefusal.UnsupportedLocationSelector;
         }
@@ -273,14 +285,23 @@ public static class KeeperSpellRules
 
     /// <summary>The creature permission helper <c>0x004BBA40</c> for the spells read, then the
     /// cast helper's own maximum-health test: what the command would refuse before paying.</summary>
-    public static KeeperSpellRefusal CanCast(SimulationContext context, CastSpellOnCreatureCommand cast)
+    public static KeeperSpellRefusal CanCast(SimulationContext context, CastSpellOnCreatureCommand cast) =>
+        CanCast(context.World, context.Database, context.Navigation, context.Navigation, context.Tick, cast);
+
+    /// <summary><see cref="CanCast(SimulationContext, CastSpellOnCreatureCommand)"/> for a reader between
+    /// turns, such as the placement cursor: the same verdict for a cast executed at <paramref name="tick"/>,
+    /// against <paramref name="navigation"/> as last refreshed, which it never refreshes.</summary>
+    public static KeeperSpellRefusal CanCast(WorldState world, GameDatabase database, INavByteGrid navigation,
+        GameTick tick, CastSpellOnCreatureCommand cast) =>
+        CanCast(world, database, navigation, null, tick, cast);
+
+    private static KeeperSpellRefusal CanCast(WorldState world, GameDatabase database, INavByteGrid navigation,
+        Navigation.WorldSteering? refresh, GameTick tick, CastSpellOnCreatureCommand cast)
     {
         // The researched creature casts share this boundary; Create Imp retains its own command.
         if (!ExecutesOnCreature(cast.SpellId)) return KeeperSpellRefusal.UnsupportedSpell;
         // The ordinary packet path is read; bypass/inverted targeting is a separate boundary.
         if (cast.Flags != 0) return KeeperSpellRefusal.UnsupportedFlags;
-        WorldState world = context.World;
-        GameDatabase database = context.Database;
         KeeperSpellDef? spell = database.KeeperSpellById(cast.SpellId);
         if (spell is null) return KeeperSpellRefusal.MissingDefinition;
         if (!world.HasPlayer(cast.PlayerId)) return KeeperSpellRefusal.MissingPlayer;
@@ -292,14 +313,14 @@ public static class KeeperSpellRules
         if (row < 0) return KeeperSpellRefusal.NoSpellEntry;
         AvailabilityState availability = player.Availabilities[row];
         long cooldown = (uint)unchecked(spell.CooldownRaw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
-        if (availability.LastCastTick != 0 && context.Tick.Value - availability.LastCastTick < cooldown)
+        if (availability.LastCastTick != 0 && tick.Value - availability.LastCastTick < cooldown)
             return KeeperSpellRefusal.Cooldown;
         if (spell.ManaCost != 0 && spell.ManaCost > player.Mana) return KeeperSpellRefusal.Mana;
         CreatureState? target = world.CreatureById(cast.CreatureId);
         if (target is null || !CreatureStateMachine.HasState(target)) return KeeperSpellRefusal.MissingCreature;
         if (spell.LocationSelector is not (1 or 4 or 5)) return KeeperSpellRefusal.UnsupportedLocationSelector;
-        context.Navigation.Refresh();
-        if (!LocationAllowed(world, database, context.Navigation, cast.PlayerId, spell, target.Tile)) return KeeperSpellRefusal.Location;
+        refresh?.Refresh();
+        if (!LocationAllowed(world, database, navigation, cast.PlayerId, spell, target.Tile)) return KeeperSpellRefusal.Location;
         if (spell.TargetSelector is not (1 or 2 or 3 or 6)) return KeeperSpellRefusal.UnsupportedTargetSelector;
         if (!TargetAllowed(world, database, cast.PlayerId, spell, target)) return KeeperSpellRefusal.Target;
         var effect = spell.Shot(availability.Upgraded);

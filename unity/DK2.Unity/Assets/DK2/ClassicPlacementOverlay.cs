@@ -39,11 +39,17 @@ namespace DK2.Unity
             for (int i = 0; i < MaxDigits; i++) _digits[i] = Picture(root);
         }
 
+        /// <summary>A keeper spell's GUI icon resource by spell id: the record's first art resource,
+        /// which 0x0040D310 installs from the runtime spell (KeeperSpells file +0x20, the bottom
+        /// panel's icon). Null or an unknown id draws no spell icon.</summary>
+        public Func<byte, string> SpellIconName { get; set; }
+
         /// <param name="pointer">The pointer in screen pixels from the top left.</param>
         /// <param name="overHud">DK2 moves the icon left by 40 * W / 640 over the GUI.</param>
         public void Draw(in PlacementFeedback feedback, Vector2 pointer, bool overHud)
         {
-            bool shown = feedback.Icon != PlacementIcon.None;
+            string iconName = IconName(feedback);
+            bool shown = iconName != null;
             _icon.style.display = shown ? DisplayStyle.Flex : DisplayStyle.None;
             _noGo.style.display = shown && feedback.NoGo ? DisplayStyle.Flex : DisplayStyle.None;
             if (!shown) { HideDigits(0); return; }
@@ -53,16 +59,13 @@ namespace DK2.Unity
             // The draw passes 0x20 x 0x20 and the +30/+10 price offset in pixels whose screen scale
             // is unread; both are taken at the owner's 1200-line photos (2026-10-23), HYPOTHESIS.
             float scale = height / 1200f, size = 32 * scale;
-            _icon.image = Texture("GUI\\Cursors\\" + feedback.Icon switch
-            {
-                PlacementIcon.PlaceRoom => "I-Place_Room",
-                PlacementIcon.Sell => "I-Sell",
-                PlacementIcon.PlaceDoor => "I-Place_Door",
-                _ => "I-Place_Trap",
-            });
+            _icon.image = Texture(iconName);
             Place(_icon, x, y, size, size);
-            Place(_noGo, x, y, size, size);
-            if (feedback.Price == 0) { HideDigits(0); return; }
+            // 0x0040D310 draws the spell's art at the same anchor and size, then moves the No Go
+            // anchor by (-2, +2) unscaled pixels; it draws no price.
+            float shift = feedback.Icon == PlacementIcon.Spell ? 2 * scale : 0;
+            Place(_noGo, x - shift, y + shift, size, size);
+            if (feedback.Price == 0 || feedback.Icon == PlacementIcon.Spell) { HideDigits(0); return; }
             // 0x00415650 mode 0 (48 square, 40 advance, i- digits from 640 wide), on screen as our gold
             // counter scales it (H/1920): fitted, not read.
             string family = width >= 640 ? "GUI\\Icons\\i-" : "GUI\\Icons\\lo-";
@@ -80,6 +83,22 @@ namespace DK2.Unity
                 Place(digit, x + 30 * scale + i * advance, y + 10 * scale, glyph, glyph);
             }
             HideDigits(text.Length);
+        }
+
+        private string IconName(in PlacementFeedback feedback)
+        {
+            switch (feedback.Icon)
+            {
+                case PlacementIcon.PlaceRoom: return "GUI\\Cursors\\I-Place_Room";
+                case PlacementIcon.Sell: return "GUI\\Cursors\\I-Sell";
+                case PlacementIcon.PlaceDoor: return "GUI\\Cursors\\I-Place_Door";
+                case PlacementIcon.PlaceTrap: return "GUI\\Cursors\\I-Place_Trap";
+                case PlacementIcon.Query: return "GUI\\Cursors\\I-Query";
+                case PlacementIcon.Spell:
+                    string name = SpellIconName?.Invoke(feedback.SpellId);
+                    return string.IsNullOrEmpty(name) ? null : name;
+                default: return null;
+            }
         }
 
         private void HideDigits(int from)

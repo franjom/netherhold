@@ -1226,7 +1226,7 @@ namespace DK2.Unity
                         cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
                     if (ActiveTool == PlayerToolMode.Hand) _scene.DrawHoverOverlay(hit);
                     // In room mode a diggable tile keeps the pickaxe and draws no icon (0x0040B210).
-                    if (!(ActiveTool == PlayerToolMode.BuildRoom && dig)) placement = Placement(world, viewer, tile);
+                    if (!(ActiveTool == PlayerToolMode.BuildRoom && dig)) placement = Placement(world, viewer, tile, hit);
                     // The arms test the dig tag on a tile hover target (+0x1084 == 1, +0x1088 bit 0).
                     placement = HoverCaged(placement, world, viewer, tile, hit.Kind == WorldHoverKind.Tile && dig);
                 }
@@ -1238,9 +1238,11 @@ namespace DK2.Unity
                 // 0x0040BEFE set while interface +0x12B2 (pointer over the GUI) is set (LIKELY;
                 // its producer at 0x00403D1C..0x00403D69 is partly read; owner-observed in play).
                 if (ActiveTool == PlayerToolMode.Hand) cursor = HandCursorKind.SmallPoint;
-                // 0x0040BBE0 sets No Go over the GUI for the room, sell, door, trap and spell tools.
+                // Over the GUI 0x0040BBE0 sets No Go for the room, sell, door, trap and spell tools, and
+                // 0x0040CAE0 for every tool that draws an icon, Query included (0x0040CDD9..0x0040CDE1).
                 PlacementFeedback over = Placement(_simulation.World, new PlayerId((byte)viewingPlayerId), null);
-                if (over.Icon != PlacementIcon.None) placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable);
+                if (over.Icon != PlacementIcon.None)
+                    placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable, over.SpellId);
             }
             bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
             if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal)
@@ -1269,7 +1271,8 @@ namespace DK2.Unity
             if (!PlacementCursor.HoverCageShows(tool, dig, holds)) return feedback;
             if (tool == HoverCageTool.Hand && !dig) return PlacementCursor.HandDrop(world, _simulation.Database, viewer, at);
             return new PlacementFeedback(PlacementCursor.HoverCage(at, world.Width, world.Height),
-                PlacementCursor.HoverCageBlue(tool, dig, feedback.Valid), feedback.Price, feedback.Icon, feedback.NoGo, feedback.Affordable);
+                PlacementCursor.HoverCageBlue(tool, dig, feedback.Valid), feedback.Price, feedback.Icon, feedback.NoGo, feedback.Affordable,
+                feedback.SpellId);
         }
 
         /// <summary>The active tool as 0x004096B0 sees it; null for tools DK2's cursor has no mode for.</summary>
@@ -1279,6 +1282,8 @@ namespace DK2.Unity
             {
                 case PlayerToolMode.BuildRoom: return HoverCageTool.Room;
                 case PlayerToolMode.SellRoom: return HoverCageTool.Sell;
+                // Create Imp is a keeper spell, DK2's mode 8.
+                case PlayerToolMode.CreateImp: return HoverCageTool.SpellOrQuery;
                 case PlayerToolMode.Hand:
                     if (_queryTool) return HoverCageTool.SpellOrQuery;
                     if (_panelChoice is not BottomPanelChoiceKey choice) return HoverCageTool.Hand;
@@ -1290,8 +1295,8 @@ namespace DK2.Unity
         }
 
         /// <summary>The placement cursor of the selected tool over <paramref name="tile"/> (null: over the
-        /// HUD).</summary>
-        private PlacementFeedback Placement(WorldState world, PlayerId viewer, TilePos? tile)
+        /// HUD), whose hover target is <paramref name="hit"/>.</summary>
+        private PlacementFeedback Placement(WorldState world, PlayerId viewer, TilePos? tile, WorldHoverHit hit = default)
         {
             GameDatabase database = _simulation.Database;
             int gold = _resources.Gold.Value;
@@ -1306,7 +1311,13 @@ namespace DK2.Unity
                 if (tile is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.Sell, true, true);
                 return PlacementCursor.Sell(world, database, viewer, at, _input.DragFrom(PlayerToolMode.SellRoom));
             }
-            if (ActiveTool != PlayerToolMode.Hand || _panelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
+            if (ActiveTool == PlayerToolMode.CreateImp) return PlacementCursor.CreateImp(world, database, viewer, 4);
+            if (ActiveTool != PlayerToolMode.Hand) return PlacementFeedback.None;
+            if (_queryTool) return PlacementCursor.Query();
+            if (_panelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
+            // The simulation's navigation bytes as its last turn left them; the cursor never refreshes them.
+            if (choice.Kind == BottomPanelChoiceKind.Spell)
+                return PlacementCursor.Spell(world, database, _simulation.Navigation, viewer, choice.Value, tile, hit);
             bool workshop = _bottomView.Choice(choice)?.NeedsWorkshop != true;
             if (choice.Kind == BottomPanelChoiceKind.Door && database.Doors.TryGetValue(choice.Value, out DoorDef door))
                 return PlacementCursor.Door(world, database, viewer, door, tile, workshop, gold);

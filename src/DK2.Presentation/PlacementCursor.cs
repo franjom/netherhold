@@ -4,12 +4,16 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Pathfinding;
 using DK2.Simulation;
+using DK2.Simulation.Commands;
 
 namespace DK2.Presentation;
 
-/// <summary>The tool icon beside the hand (<c>gui\cursors\I-*</c>, table <c>0x0068F978</c>).</summary>
-public enum PlacementIcon { None, PlaceRoom, Sell, PlaceDoor, PlaceTrap }
+/// <summary>The tool icon beside the hand: <c>gui\cursors\I-*</c> (table <c>0x0068F978</c>), or for
+/// <see cref="Spell"/> the keeper spell's own GUI icon (<c>0x0040D310</c>), named by
+/// <see cref="PlacementFeedback.SpellId"/>.</summary>
+public enum PlacementIcon { None, PlaceRoom, Sell, PlaceDoor, PlaceTrap, Query, Spell }
 
 /// <summary>The tool as the hover-cage flag <c>0x004096B0</c> sees it (modes 0, 3, 4, 6, 7, and 8/10).</summary>
 public enum HoverCageTool { Hand, Room, Sell, Door, Trap, SpellOrQuery }
@@ -22,17 +26,19 @@ public readonly record struct TileRectangle(int X0, int Y0, int X1, int Y1)
 
 /// <summary>One frame of placement feedback: the selection cage (null draws none), blue when
 /// <see cref="Valid"/> and red otherwise, the tool icon with the No Go icon over it, and the
-/// price beside them (negative a cost, positive a refund, zero none).</summary>
+/// price beside them (negative a cost, positive a refund, zero none). <see cref="SpellId"/> names
+/// the keeper spell whose icon <see cref="PlacementIcon.Spell"/> draws, and is zero otherwise.</summary>
 public readonly record struct PlacementFeedback(
-    TileRectangle? Cage, bool Valid, int Price, PlacementIcon Icon, bool NoGo, bool Affordable)
+    TileRectangle? Cage, bool Valid, int Price, PlacementIcon Icon, bool NoGo, bool Affordable, byte SpellId = 0)
 {
     public static PlacementFeedback None => default;
 }
 
 /// <summary>DK2's per-frame placement cursor (docs/research/placement-cursor.md): the tool arms
 /// of <c>0x0040BBE0</c> for room build (<c>0x0040B210</c>), sell (<c>0x0040B600</c>), door
-/// (<c>0x0040B3C0</c>) and trap (<c>0x0040B4F0</c>), drawn by <c>0x0040CAE0</c>. Validity comes
-/// from the simulation's own placement rules.</summary>
+/// (<c>0x0040B3C0</c>), trap (<c>0x0040B4F0</c>), keeper spell (<c>0x0040B7F0</c>) and Query
+/// (<c>0x0040BB60</c>), drawn by <c>0x0040CAE0</c>. Validity comes from the simulation's own
+/// placement and cast rules.</summary>
 public static class PlacementCursor
 {
     /// <summary>Hand_Click's room release (<c>0x00408194..0x004081FD</c>): an end further than
@@ -172,6 +178,56 @@ public static class PlacementCursor
         bool valid = affordable && BlueprintPlacementRules.CanDoor(world, database, at, player, door) == BlueprintPlacementRules.Verdict.Allowed;
         return new PlacementFeedback(null, valid, -door.GoldCost, PlacementIcon.PlaceDoor, !valid, affordable);
     }
+
+    /// <summary>Keeper spell, mode 8 (<c>0x0040B7F0</c>, drawn by <c>0x0040D310</c>): no cage, no price,
+    /// the spell's own icon, and No Go over a target the cast would refuse. The verdict is the
+    /// simulation's own, for the command the click sends (<c>DungeonRunner</c>): a thing spell
+    /// (<see cref="KeeperSpellRules.TargetsAThing"/>) on the hovered creature through
+    /// <see cref="KeeperSpellRules.CanCast(WorldState, GameDatabase, INavByteGrid, GameTick, CastSpellOnCreatureCommand)"/>,
+    /// with no creature none; a place spell at the hovered tile's centre through
+    /// <see cref="KeeperSpellRules.CanCastAtPlace(WorldState, GameDatabase, INavByteGrid, GameTick, CastSpellAtPlaceCommand)"/>.
+    /// Both are asked for the next tick, against <paramref name="navigation"/> as the simulation
+    /// last refreshed it. Not mirrored (placement-cursor.md §2): DK2's cast flag 2 (tile flag 0x2000
+    /// for location selector 4), its object target (kind 4, slot <c>+0x25C</c>) and its Temple offering
+    /// (a Temple interior tile, action 0x87), none of which our click sends.</summary>
+    public static PlacementFeedback Spell(WorldState world, GameDatabase database, INavByteGrid navigation,
+        PlayerId player, byte spellId, TilePos? hovered, WorldHoverHit hit)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (navigation is null) throw new ArgumentNullException(nameof(navigation));
+        bool valid = false;
+        if (hovered is TilePos at && database.KeeperSpellById(spellId) is KeeperSpellDef spell)
+        {
+            if (!KeeperSpellRules.TargetsAThing(spell.TargetSelector))
+                valid = KeeperSpellRules.CanCastAtPlace(world, database, navigation, world.CurrentTick,
+                    new CastSpellAtPlaceCommand(player, spellId, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y)))
+                    == KeeperSpellRefusal.None;
+            else if (hit.Kind == WorldHoverKind.Creature)
+                valid = KeeperSpellRules.CanCast(world, database, navigation, world.CurrentTick,
+                    new CastSpellOnCreatureCommand(player, spellId, hit.EntityId)) == KeeperSpellRefusal.None;
+        }
+        return SpellIcon(spellId, valid);
+    }
+
+    /// <summary>Create Imp (spell 4) is mode 8 too, so it draws its spell icon. Our click casts it with
+    /// no tile (<see cref="CreateImpCommand"/>, onto the Heart), which refuses, among other cases (no
+    /// Heart, spell not yet available), a keeper short of <see cref="ImpSupplyRules.CreateImpCost"/>; No Go
+    /// shows only for the mana. DK2 tests the hovered tile
+    /// (slot <c>+0x254</c>, location 1 and target 4); ours does not, as the click does not.</summary>
+    public static PlacementFeedback CreateImp(WorldState world, GameDatabase database, PlayerId player, byte spellId)
+    {
+        if (world is null) throw new ArgumentNullException(nameof(world));
+        if (database is null) throw new ArgumentNullException(nameof(database));
+        return SpellIcon(spellId, world.Player(player).Mana >= ImpSupplyRules.CreateImpCost(world, database, player));
+    }
+
+    private static PlacementFeedback SpellIcon(byte spellId, bool valid) =>
+        new PlacementFeedback(null, valid, 0, PlacementIcon.Spell, !valid, true, spellId);
+
+    /// <summary>Query, mode 10 (<c>0x0040BB60</c>): the I-Query icon only. The arm writes neither the
+    /// No Go bit nor the price; over the GUI <c>0x0040CAE0</c> still sets No Go (the caller's).</summary>
+    public static PlacementFeedback Query() => new PlacementFeedback(null, true, 0, PlacementIcon.Query, false, true);
 
     /// <summary>Trap (<c>0x0040B4F0</c>): as <see cref="Door"/> with the trap's <c>GoldCost</c>.</summary>
     public static PlacementFeedback Trap(WorldState world, GameDatabase database, PlayerId player, TrapDef trap,

@@ -36,11 +36,11 @@ mode `+0x13DB`:
 | 4 | `0x0040B600` | sell |
 | 6 | `0x0040B3C0` | door placement |
 | 7 | `0x0040B4F0` | trap placement |
-| 8 | `0x0040B7F0` | keeper spell (LIKELY; spell id in `+0x13E8`) |
+| 8 | `0x0040B7F0` | keeper spell (CONFIRMED: the click arm posts the cast actions; spell id in `+0x13E8`) |
 | 10 | `0x0040BB60` | Query |
 
 Over the GUI it requests the small pointer (state 2). For modes 3, 4, 6, 7 and 8 it also sets
-bit 0x02, so the No Go icon shows over the HUD (see §3).
+bit 0x02, so the No Go icon shows over the HUD; `0x0040CAE0` adds Query (§3).
 
 Bits of `+0x132E` that the arms use:
 - 0x10: placement valid. `0x0040ACD0` copies it to bridge `+0x36`, which turns the cage blue.
@@ -98,15 +98,18 @@ for modes 6 and 7; not owner-confirmed).
   Barricade bit, def `+0x8B` & 0x40) and `+0x24C` for a trap.
 - The arm requests middle-channel state 1 (Point).
 
-**Keeper spell, mode 8, `0x0040B7F0` (LIKELY tool identity).** It never fills the
-rectangle, so there is no cage, and it never writes `+0x13E4`. Cancel clears the price when
-the tool changes, so no price shows (LIKELY).
-- It only sets 0x02 for an invalid target. The checks are tile reach (`+0x200`), an owned
-  Portal at `-1`, the spell's tile test (`+0x254`), and the creature tests (`+0x258`/`+0x25C`)
-  for target kinds 2, 3 and 4.
-- Spell id 10 is refused on a creature at full health: `+0x40` equals max HP, scaled by
-  level.
-- The arm requests middle-channel icon id 0xC.
+**Keeper spell, mode 8, `0x0040B7F0` (CONFIRMED, re-read 2026-10-23).** No rectangle, no
+`+0x13E4` or bit 0x10 write; it sets 0x02 where the cast would be refused. Its tests (record
+[0040B7F0](functions/0040B7F0.md)): a place spell needs the tile in the map, then is valid on a
+Temple interior tile (the click's action 0x87, the offering) or where the position permission
+`0x004BB8A0` passes; a thing spell asks `0x004BBA40` on a creature (hover kinds 2, 3),
+`0x004BBBC0` on an object (4), and on a tile (1) passes only the Temple interior; Heal is
+refused on a creature at exactly its level-scaled maximum. Each gets cast flags 2 (6 when
+interface `+0x3E6F` is 1): location selector 4 (`0x00517F10`) then also wants tile flag 0x2000; the other selectors are unread. The click arm of
+`0x004075E0` runs the same tests and flags before posting 0x36/0x37/0x38/0x87, so DK2's No Go is
+where its click does nothing.
+
+**Query, mode 10, `0x0040BB60` (CONFIRMED).** Point cursor, hover id; never No Go off the GUI.
 
 **Hand, mode 0, `0x0040AE80`.** This arm fills a 1×1 rectangle while the hand holds
 something, and that is the drop cage. See hand-cursor-rendering.md.
@@ -304,9 +307,12 @@ not yet checked in `Sprite.WAD`).
 `0x20×0x20`. The mapping of that size to screen pixels is unread. In room mode the icon is
 skipped while the pickaxe dig-hover shows.
 
-**Spell icon.** Mode 8 uses `0x0040D310` instead. It draws at the same offset, using art
-taken from the spell definition (vtable `+0x110`; the exact field is unread). It then moves
-the No Go anchor by `(-2, +2)`.
+**Spell icon (CONFIRMED, read 2026-10-23).** Mode 8 calls `0x0040D310` and leaves the icon
+index at 13, so no I-* icon and **no price**. It draws, at the same anchor and `0x20×0x20` size,
+the spell's GUI icon: the KeeperSpells record's first art (file `+0x20`, `gui\spells\<name>`, the
+bottom panel's resource), never the upgraded `…-2`. Then the No Go anchor moves by `(-2, +2)`.
+Record [0040D310](functions/0040D310.md). **Over the GUI** this function sets bit 0x02 for every
+mode with an icon (3–8, 10), so Query too shows No Go over the HUD (CONFIRMED).
 
 **Price.** When an icon was drawn and `+0x13E4 != 0`, `Hud_DrawResourceDigits 0x00415650` is
 called with the absolute value. The digits are left-aligned at `(iconX + 30, iconY + 10)` in
@@ -336,24 +342,22 @@ anchor comes from the held-item helper `0x0040CFE0`.
 | Sell | one-tile hover cage, rectangle while dragging | I-Sell | refund (128,255,255) | No Go when the refund is ≤ 0 |
 | Door | one-tile hover cage | I-Place_Door | door cost | No Go (no Workshop, unaffordable, world test fails) |
 | Trap | one-tile hover cage | I-Place_Trap | trap cost | as door |
-| Keeper spell | hover cage over a dig-taggable tile only | the spell's own art | none (LIKELY) | No Go, offset (-2,+2) |
-| Query | hover cage over a dig-taggable tile only | I-Query | — | — |
+| Keeper spell | hover cage over a dig-taggable tile only | the spell's GUI icon (file `+0x20`) | none (CONFIRMED) | No Go where the click casts nothing, offset (-2,+2) |
+| Query | hover cage over a dig-taggable tile only | I-Query | none | No Go only over the HUD |
 
 ## 5. Unknowns
 
 - The pixel scale of the icon's `0x20` size field and of the price's `+30/+10` offset.
-- The spell art field, and the identity of mode 1.
+- The identity of mode 1, and of interface `+0x3E6F == 1` (cast flag 4 in the spell arms).
 - The 0xFFFFFF80 byte order (the sell refund colour).
-- **Cage while hovering: the producer is read (§2a).** The owner's phone photos
-  (2026-10-23, Water and Claimed Path, no button held) show a one-tile, full-height cage, red
-  over water and blue over claimed path, growing over the tiles when dragged. The Hand
-  light's kind3 cage most likely accounts for it (LIKELY, §2a). Its visibility flag is read
-  (CONFIRMED, §2a): interface vtable slot `+0x20`, `0x004096B0`, decides it per tool mode.
-  Still open: how the light thing reaches the draw (LIKELY the tile thing chain, untraced),
-  and who clears the rectangle-union flag `+0x20`/`+0x5E`.
-- For the owner, from play: the cage is built per mode (§6). Seeing it with a door or trap
-  selected on every interior tile, and in plain Hand mode only over a dig-taggable wall
-  (blue), would confirm that it is the Hand light's (the LIKELY link above).
+- **Cage while hovering** (producer read, §2a): the owner's photos (2026-10-23) show a one-tile
+  cage, red over water, blue over claimed path; the Hand light's kind3 cage most likely is it
+  (LIKELY). Open: how the light reaches the draw, and who clears the union flag `+0x20`/`+0x5E`.
+- For the owner: is the cage on every interior tile with a door or trap selected, and in Hand mode only over a dig-taggable wall (blue)?
+  That would confirm the link.
+- For the owner, from play: does Call to Arms show No Go on some open floor; is the Temple
+  interior valid for a place spell; Heal slightly below full; Create Imp over enemy or
+  unclaimed floor.
 
 The icons are engine textures, `GUI\Cursors\I-*` (32x32 with a 16x16 MIP), not `Sprite.WAD`.
 
@@ -378,6 +382,19 @@ and Query mode, otherwise the arm's validity (`HoverCageBlue`). The hand-drop ca
 (ADR-0526; The drop cage's colour, above). Not applied: `0x004096B0`'s view-mode, over-GUI and camera gates. The cursor
 rectangle and the sell release keep the low corner (`0x0040B2B0`, `0x0040B661`, `0x004083DA`),
 the room release the anchor (`0x00408194`); ours does each. Over the HUD ours forces No Go
-even during a drag, where DK2's `+0x10C` gate runs the normal arm. Not
-built: keeper-spell and Query arms, the hovered door/trap sell refund, the room hover's
+even during a drag, where DK2's `+0x10C` gate runs the normal arm. Not built: the hovered door/trap sell refund, the room hover's
 terrain `+0x17B` gate, and a door/trap's stale price when invalid.
+
+**Keeper spell and Query (2026-10-23).** `PlacementCursor.Spell`: the spell's icon, no cage
+or price, No Go where the simulation refuses the command our click sends (`CanCast` on the hovered
+creature, `CanCastAtPlace` at the tile's centre), asked for the next tick through a between-turns
+overload that reads the navigation bytes as last refreshed and never refreshes them. Our click
+differs from DK2's, simulation unchanged, to follow up: the flag-2 tile test (location selector
+4 wants tile flag 0x2000); object targets (kind 4); the Temple offering (0x87); Heal, refused
+at or above the maximum where DK2 refuses only equality (a reincarnated Vampire is above it,
+creature-death.md; DK2 lets you Heal it); our `TargetAtMaxHealth` applies to any positive
+Modify Health shot, not only spell 10. Only creature kinds publish the hover id (`0x0040B7F0`).
+`PlacementCursor.CreateImp` (our CreateImp tool, DK2's mode 8): No Go only when the mana is
+short, as our click casts on the Heart; DK2 tests the tile. `PlacementCursor.Query`: I-Query
+alone. Both show No Go over the HUD. The overlay shifts the spell's No Go by 2 pixels scaled as
+the price offset (HYPOTHESIS, the same unread scale).
