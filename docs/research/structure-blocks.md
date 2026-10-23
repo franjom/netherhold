@@ -79,12 +79,17 @@ hole unwalkable made it undroppable — the opposite of what the tile is for.
 **There are two unwalkable disposal targets:** the portal hole for non-Imps and
 the Dungeon Heart for Imps (owner, 2026-09-13). **Built 2026-09-15 as ADR-0148**,
 in `DisposalRules`, asked before the walkability refusal. The two are **exclusive**:
-a worker is refused the hole, and anything else is refused the platform. Neither
+a worker is refused the hole, and anything else is refused the centre. Neither
 bypasses ownership, so a rival's heart is refused the way a rival's portal was.
 
 **All of it seen, 2026-09-15** (owner, two screenshots; Q312 closed). It is the
-heart's **single centre tile** that accepts an imp — not the raised 3x3, whose other
-eight refuse a drop like any unwalkable tile. That refusal is STRONGLY INFERRED from play: DK2's drop gate `0x0040D8F0` has no arm that refuses them and no navigation-byte writer was found for them, so where DK2 refuses is open (Q198); ours refuses through walkability (`HandRules.DropLands`, ADR-0526). The imp's **gold vanishes with it**.
+heart's **single centre tile** that disposes of an imp — not the raised 3x3. The other
+eight take a held Imp as a **normal drop**: a blue cage with the ordinary held-Imp icon, and
+the Imp stays and walks off; on the centre the cage is blue with a red rubbish-bin icon and the
+Imp dies with the Imp death effect (owner, three photos, 2026-10-23). CONFIRMED by play and by the
+binary: the drop gate `0x0040D8F0` accepts all nine, and 76's keeper-worker arm sends only the
+centre (cell byte `0x40`) to 71 (refused-states.md §3). Ours lands it on the eight past the
+walkability test (`HandRules.CreatureLands`, ADR-0526 amendment). The imp's **gold vanishes with it**.
 A **goblin is refused** the heart outright, so the two tiles are exclusive both ways.
 And a dungeon heart is **always 5x5**, so the size guard is defensive, not a case.
 
@@ -280,7 +285,8 @@ stuck.
 CONFIRMED, and BUILT — both tiles unwalkable; non-Imps, including converted goodly
 creatures, leave with their gold through a portal; Imps are refused there and go
 through the heart's single centre tile, gold and all, while a non-worker is refused
-that tile (owner, 2026-09-07, 2026-09-13 and 2026-09-15; ADR-0084, ADR-0148).
+that tile; an Imp dropped on the eight platform tiles around it lands (owner, 2026-09-07,
+2026-09-13, 2026-09-15 and 2026-10-23; ADR-0084, ADR-0148, ADR-0526 amendment).
 STRONGLY INFERRED — Q209: furniture collision does not write the navigation
 tile cache; the binary's writer graph and continuous obstacle consumers are §5.
 

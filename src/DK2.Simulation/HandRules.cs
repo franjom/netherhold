@@ -127,10 +127,10 @@ public static class HandRules
 
     /// <summary>Past DK2's gate (ADR-0526): a creature must be able to stand on the tile
     /// (<see cref="WorldPathGrid.IsWalkable"/>) unless the tile disposes of it
-    /// (<see cref="DisposalRules"/>; never a prisoner). Once the gate has passed this refuses only a
-    /// structure tile: the eight Heart platform tiles around the centre for an Imp on its own
-    /// Heart, which the owner saw refused (2026-09-15), and a Portal centre for a non-evil worker.
-    /// Where DK2 refuses the platform is not found: no navigation-byte writer marks it.</summary>
+    /// (<see cref="DisposalRules"/>; never a prisoner) or is one of a Heart's eight platform tiles
+    /// around the centre, which only a creature the gate let onto the inner 3×3 reaches: an Imp
+    /// on its own Heart lands there and walks off (owner, 2026-10-23). So this refuses only a
+    /// Portal centre for a non-evil worker, and a prisoner on the Heart's centre.</summary>
     public static bool CreatureLands(
         WorldState world, GameDatabase database, PlayerId playerId, CreatureState creature,
         TilePos tile, out bool disposed)
@@ -138,7 +138,19 @@ public static class HandRules
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
         disposed = !PrisonRules.IsImprisoned(creature)
             && DisposalRules.Disposes(world, database, definition, tile, playerId);
-        return disposed || new WorldPathGrid(database, world, definition).IsWalkable(tile.X, tile.Y);
+        return disposed || IsHeartPlatformRing(world, database, tile)
+            || new WorldPathGrid(database, world, definition).IsWalkable(tile.X, tile.Y);
+    }
+
+    /// <summary>A Heart's inner 3×3 (<see cref="IsHeartInner"/>) less its centre: the eight raised
+    /// platform tiles <see cref="StructureBlocks"/> keeps out of the path grid.</summary>
+    private static bool IsHeartPlatformRing(WorldState world, GameDatabase database, TilePos tile)
+    {
+        if (!world.Contains(tile)
+            || database.RoomByTerrain(world.Tile(tile.X, tile.Y).TerrainId)?.TypeId != RoomTypeId.DungeonHeart
+            || RoomIndex.RoomAt(world, database, world.TileIndex(tile)) is not { } heart) return false;
+        int dx = tile.X - heart.MinX, dy = tile.Y - heart.MinY;
+        return dx is >= 1 and <= 3 && dy is >= 1 and <= 3 && !(dx == 2 && dy == 2);
     }
 
     /// <summary>DK2's drop gate <c>0x0040D8F0</c>: whether <paramref name="playerId"/> may put

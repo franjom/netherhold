@@ -269,8 +269,8 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // Ours past the gate: a disposal tile (DisposalRules, ADR-0148; never a prisoner) or one
-        // the creature can stand on.
+        // Ours past the gate: a disposal tile (DisposalRules, ADR-0148; never a prisoner), a Heart
+        // platform tile the gate let it onto (ADR-0526), or one the creature can stand on.
         if (!HandRules.CreatureLands(world, context.Database, command.PlayerId, creature, command.Tile, out bool disposed))
         {
             context.Emit(SystemName, "drop_refused",
@@ -317,6 +317,17 @@ public sealed class HandSystem : ISimulationSystem
         // vanishes with it at the heart too (owner, 2026-09-15). No captive here.
         if (disposed)
         {
+            // A worker through its Heart's centre is 71's give-back (76 sets 71 on cell byte 0x40):
+            // Create Imp's mana to the tile owner first, then its gold is lost and it is destroyed.
+            if (definition.Flags.HasFlag(CreatureFlags.IsWorker))
+            {
+                PlayerId owner = world.TileAtIndex(landingTileIndex).OwnerPlayerId;
+                int refund = DropLandingRules.CreditWorkerGivenBack(world, context.Database, owner);
+                context.Emit(SystemName, "worker_given_back",
+                    $"creature={creature.Id} player={owner} mana={refund} gold_lost={creature.GoldHeld} " +
+                    $"at=({command.Tile.X},{command.Tile.Y})");
+            }
+
             context.Emit(SystemName, "creature_left",
                 $"creature={creature.Id} type={definition.Name} " +
                 $"player={creature.OwnerPlayerId} " +

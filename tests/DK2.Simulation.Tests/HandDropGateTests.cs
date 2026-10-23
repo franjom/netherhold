@@ -291,6 +291,110 @@ public class HandDropGateTests
     }
 
     [Fact]
+    public void AnImpLandsOnEachOfItsHeartsEightPlatformTiles_AndOnlyTheCentreDisposesOfIt()
+    {
+        // The owner's photos, 2026-10-23: a blue cage on all nine, the Imp staying on the eight
+        // and dying on the centre. DK2's 76 sends a keeper's worker to 71 on the centre only
+        // (cell byte 0x40, 0x0046F0BE); a platform tile goes to 11 (refused-states.md §3).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Set(world, 7, 3, 13, 9, Dk2TerrainFixture.ClaimedPath, Keeper);
+        Paint(db, world, RoomTypeId.DungeonHeart, 8, 4, 12, 8);
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 3));
+        var events = new ListEventSink();
+        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+        sim.ObserveWith(events);
+
+        for (int y = 5; y <= 7; y++)
+            for (int x = 9; x <= 11; x++)
+            {
+                if (x == 10 && y == 6) continue;
+                var tile = new TilePos(x, y);
+                sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+                Assert.True(HandRules.DropLands(world, db, Keeper, HandItem.Of(imp), tile));
+                sim.Tick(InputFrame.Of(new DropCommand(Keeper, tile)));
+                Assert.Same(imp, world.CreatureById(imp.Id));
+                Assert.False(imp.InHand);
+                Assert.Equal(tile, imp.Tile);
+            }
+        Assert.DoesNotContain(events.Events, e => e.Kind is "drop_refused" or "creature_left" or "worker_given_back");
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        Assert.True(HandRules.DropLands(world, db, Keeper, HandItem.Of(imp), new TilePos(10, 6)));
+        world.Player(Keeper).Mana = 100;
+        imp.GoldHeld = 75;
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+        Assert.Null(world.CreatureById(imp.Id));
+        Assert.Contains(events.Events, e => e.Kind == "creature_left" && e.Detail.Contains("via=thrown_in") && e.Detail.Contains("gold_lost=75"));
+
+        // 71's give-back: Create Imp's mana cost to the tile owner (Player_AddMana, 0x004C19C0).
+        int cost = db.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
+        Assert.Equal(100 + cost, world.Player(Keeper).Mana);
+        Assert.Contains(events.Events, e => e.Kind == "worker_given_back" && e.Detail.Contains($"mana={cost}"));
+        Assert.Empty(world.Objects);
+    }
+
+    [Fact]
+    public void AnImpGivenBackThroughTheHeartCentreCreditsManaOnlyUpToTheCeiling()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Set(world, 7, 3, 13, 9, Dk2TerrainFixture.ClaimedPath, Keeper);
+        Paint(db, world, RoomTypeId.DungeonHeart, 8, 4, 12, 8);
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 3));
+        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+        int ceiling = ManaRules.Threshold(db);
+        world.Player(Keeper).Mana = ceiling - 1;
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+
+        Assert.Null(world.CreatureById(imp.Id));
+        Assert.Equal(ceiling, world.Player(Keeper).Mana);
+    }
+
+    [Fact]
+    public void AnImpDroppedOnARuinedHeartsCentreIsNeitherDisposedNorCredited()
+    {
+        // 71 finds no Heart object (type 13) in a ruined Heart and sends the worker to 11.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Set(world, 7, 3, 13, 9, Dk2TerrainFixture.ClaimedPath, Keeper);
+        Paint(db, world, RoomTypeId.DungeonHeart, 8, 4, 12, 8);
+        world.Player(Keeper).HeartRuined = true;
+        world.Player(Keeper).Mana = 100;
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 3));
+        var events = new ListEventSink();
+        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+        sim.ObserveWith(events);
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
+
+        Assert.Same(imp, world.CreatureById(imp.Id));
+        Assert.Equal(100, world.Player(Keeper).Mana);
+        Assert.DoesNotContain(events.Events, e => e.Kind is "creature_left" or "worker_given_back");
+        // A ruined Heart blocks nothing (StructureBlocks), so the centre is an ordinary landing.
+        Assert.False(imp.InHand);
+        Assert.Equal(new TilePos(10, 6), imp.Tile);
+    }
+
+    [Fact]
+    public void AGoblinsDropIsRefusedTheWholeInnerThreeByThree()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Set(world, 7, 3, 13, 9, Dk2TerrainFixture.ClaimedPath, Keeper);
+        Paint(db, world, RoomTypeId.DungeonHeart, 8, 4, 12, 8);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 3));
+
+        for (int y = 5; y <= 7; y++)
+            for (int x = 9; x <= 11; x++)
+                Assert.False(HandRules.DropLands(world, db, Keeper, HandItem.Of(goblin), new TilePos(x, y)));
+        Assert.True(HandRules.DropLands(world, db, Keeper, HandItem.Of(goblin), new TilePos(8, 4)));
+    }
+
+    [Fact]
     public void ARefusedDropStaysInTheHandAndTheCageIsRed()
     {
         GameDatabase db = Db;

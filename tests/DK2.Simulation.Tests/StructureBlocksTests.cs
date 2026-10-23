@@ -339,10 +339,13 @@ public sealed class StructureBlocksTests
         Assert.Contains(events.Events, e => e.Kind == "drop_refused");
 
         // Not the raised 3x3, only its middle: a platform tile beside the centre
-        // is refused like any other unwalkable tile (owner, 2026-09-15).
+        // takes the imp as a normal drop (owner's photos, 2026-10-23).
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(9, 6))));
         Assert.Contains(world.Creatures, c => c.Id == imp.Id);
+        Assert.Equal(new TilePos(9, 6), imp.Tile);
+        Assert.False(imp.InHand);
 
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(10, 6))));
 
         Assert.DoesNotContain(world.Creatures, c => c.Id == imp.Id);

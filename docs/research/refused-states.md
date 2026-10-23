@@ -49,16 +49,34 @@ handler never runs. Ours ends 68 idle, which is the same.
 
 **Entries.** The room drop `0x004E8DA0(0)` reads a Heart's `+0x19` = 71 for any Heart, own or not,
 and kicks to 1 then 71: from 257 after the drop stun (`0x00481351`) and from 76 (`0x0046F17D`).
-76's worker arm also sets 71 at `0x0046F0BE` for a keeper's worker dropped on the Heart's centre
-(the builder `0x004EFBE0` marks only (2,2) with cell byte `0x40`). The Heart's `+0x1D` = 71 is
-never read for a Heart.
+76 (`0x0046EAB0`) takes that room-drop arm only for a non-worker or a worker whose owner's
+`Number` (`player+0x10FC`) is below 3, not a keeper's, and there it first asks
+`0x004E8DA0(1)` (`0x0046F17D`), which returns 1 for a Heart tile, so the creature is stunned (255,
+`0x0046F191`) and reaches 71 only through 257's tail after getting up. A keeper's worker takes the worker arm:
+on its own room tile (cell owner = creature owner) the switch on room type sets 71 for a Heart
+only when the cell byte `+0x0C` is `0x40` (`0x0046F0BE`), which the builder `0x004EFBE0` writes on
+the centre (2,2) alone; any other Heart tile goes to the gold store if it carries gold, else 11.
+CONFIRMED (disassembly, 2026-10-23). So a keeper's Imp dropped on the eight platform tiles never
+enters 71 and is not given back, which is what the owner's photos of 2026-10-23 show; 71's own
+inner 3×3 test (step 3) is met only by a worker that reaches 71 through 257's tail after a stun.
+The Heart's `+0x1D` = 71 is never read for a Heart.
 
-**Ours.** `DropLandingRules.HeartDrop`, after the get-up: ours now sends a worker getting up on a
-Heart there too (it idled every worker). Not built: 76's worker arm (`0x00481400`, ADR-0226). The
-Heart object is ours' living Heart (`HeartRuined` false), and the inner 3×3 is measured from the
-room's bounding box: STRONGLY INFERRED that `+0x2D`/`+0x2E` is that corner, the first slab of a 5×5
-Heart (Q515). The mana is Create Imp's cost, CONFIRMED: `0x0050DD60` reads keeper spell 4's `+0x58`. 71's handler runs in the turn
+**Ours.** `DropLandingRules.HeartDrop`, after the get-up: ours sends a worker getting up on a Heart
+there. A hand-dropped worker is not stunned and never reaches it: `HandSystem` gives back an Imp
+dropped on its Heart's centre (`DisposalRules`, ADR-0148), crediting the tile owner the same mana
+through `DropLandingRules.CreditWorkerGivenBack` (`Player_AddMana` `0x004C19C0` adds, then clamps a
+gain at the ceiling `+0x10EA`), and lands one on the eight platform tiles (ADR-0526 amendment).
+A ruined Heart (no type-13 object, so 71 sends the worker to 11) disposes of nothing and credits
+nothing: `DisposalRules.Disposes` requires `HeartRuined` false, and the drop lands as usual. Not
+built: 76's victim-or-door pick (`0x00481400`, ADR-0226). The Heart object is ours' living Heart (`HeartRuined` false), and the inner
+3×3 is measured from the room's bounding box: STRONGLY INFERRED that `+0x2D`/`+0x2E` is that corner,
+the first slab of a 5×5 Heart (Q515); the owner's play no longer bears on it. The mana is Create
+Imp's cost, CONFIRMED: `0x0050DD60` reads keeper spell 4's `+0x58`. 71's handler runs in the turn
 it is entered.
+
+Owner play questions, not yet asked: does the mana bar rise by Create Imp's cost when an Imp is
+disposed of on the Heart's centre; what happens to an Imp dropped on a ruined Heart's centre
+(ours lands it); and can a captured enemy Imp be dropped on your own platform.
 
 ## 4. 113, back into a Training Room `0x00485A60` — CONFIRMED
 

@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**295** — `0x96C10C159666BE72`. Behaviour only: a keeper's Imp dropped on one of its own Heart's eight platform tiles lands there instead of being refused; only the centre disposes of it, now crediting Create Imp's mana cost as state 71 does, and never on a ruined Heart (ADR-0526 amendment, owner 2026-10-23). No new fields.
+
 **294** — `0xA9B05FB68CF7011B`. Four saved tutorial-highlight rectangles, ids and signed tick timers (ADR-0528), plus predictive crystal contacts replacing oversized steering circles (ADR-0527 amendment). The pinned fixture has no active highlights or portal route; separate tests cover both behaviors.
 
 **293** — `0xAA764D602CDE17DC`. Behaviour only: swept portal-crystal bounds, body clearance, target projection and steering contacts (ADR-0527). Bounds are derived from room tiles; no new saved fields.

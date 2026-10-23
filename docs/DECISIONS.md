@@ -3260,8 +3260,8 @@ has **two** unwalkable targets rather than one, and a prison refuses a delivery
 **at the door** rather than before the imp sets off.
 
 **Decision 1: `DisposalRules`, and the two targets are exclusive.** A portal's
-hole takes anything that is not a worker; a dungeon heart's raised platform takes
-a worker and nothing else. Both bypass the walkability refusal in
+hole takes anything that is not a worker; a dungeon heart's centre tile takes
+a worker and nothing else (the eight platform tiles round it take an Imp as a drop, ADR-0526). Both bypass the walkability refusal in
 `HandSystem.Drop`, as the hole alone did (ADR-0084); neither bypasses ownership,
 so a rival's heart is refused the way a rival's portal already was. A captive is
 refused both, which is now CONFIRMED rather than the conservative fallback it was
@@ -12106,12 +12106,9 @@ rig's drop fallback asks it too. The check stays in `HandSystem`, our authoritat
   nothing found) has no field here: ours is imprisoned or collapsed. Our hand holds no dead body, so `0x00450D40` has no arm.
 
 **Past the gate.** A creature must still stand on the tile (`WorldPathGrid.IsWalkable`) unless
-`DisposalRules` takes it. Once the gate has passed this refuses only structure tiles: an Imp on
-its own Heart's eight platform tiles around the centre, and a non-evil worker on its own Portal
-centre. The Heart refusal is the owner's 2026-09-15 observation (ADR-0148): STRONGLY INFERRED
-from play. Where DK2 refuses those eight is not found: the gate's map test has no arm for them,
-and no navigation-byte writer marks them (the Heart's builder writes 3 on its centre only,
-structure-blocks.md §5.4).
+`DisposalRules` takes it or the tile is one of a Heart's eight platform tiles around the centre
+(amendment below). Once the gate has passed this refuses only a non-evil worker on its own
+Portal centre and a prisoner on the Heart's centre.
 
 **Consequences.** Hash and snapshot 292, behaviour only. Newly accepted: an ally's ground, a
 worker on neutral-owned claimed floor, Call To Arms anywhere open. Newly refused: closed door
@@ -12120,6 +12117,16 @@ keeper's Portal centre, Chicken and Call To Arms on a Portal centre or the Heart
 an unbeaten tool in a Prison, Temple, Combat Pit or Torture Chamber. DK2's computer keeper
 drops without this gate (`0x004BC710`, Q541); ours goes through it, and its targets are its
 own ground.
+
+**Amendment (2026-10-23): the platform takes an Imp.** The owner's photos that day show a blue
+cage over all nine inner tiles with a held Imp: on the eight it lands and walks away, on the
+centre it dies (green stars). The earlier refusal of the eight was a session's inference, never
+the owner's words. The binary agrees: 76's keeper-worker arm (`0x0046EAB0`) sets 71 only on cell byte `0x40`,
+the centre, and sends a platform tile to 11, so 71's inner 3×3 test never meets a hand-dropped Imp
+(refused-states.md §3). `HandRules.CreatureLands` now accepts those eight tiles: only an Imp
+on its own Heart passes the gate there. The centre's disposal is 71's give-back, so it now also
+credits the tile owner Create Imp's mana cost, clamped at the ceiling (`Player_AddMana`
+`0x004C19C0`), before the gold is lost (never on a ruined Heart: refused-states.md §3). Hash and snapshot 295, behaviour only.
 
 ## ADR-0527 — Keep creatures outside portal crystals
 

@@ -123,6 +123,26 @@ public sealed class HeartPlatformMovementTests
         Assert.Equal(new TilePos(10, 6), goblin.Tile);
     }
 
+    [Theory]
+    [InlineData(5, 5)]
+    [InlineData(6, 5)]
+    [InlineData(7, 7)]
+    public void AnImpDroppedOnAPlatformTileWalksOffIt(int x, int y)
+    {
+        // The owner's photos, 2026-10-23: dropped on one of the eight, the Imp stays and walks away.
+        var (db, world, steering, _) = Setup(new TilePos(2, 6));
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
+        var hand = new GameSimulation(db, world, 5, [new HandSystem()]);
+        hand.Tick(InputFrame.Of(new Commands.PickUpCreatureCommand(PlayerIds.FirstKeeper, imp.Id)));
+        hand.Tick(InputFrame.Of(new Commands.DropCommand(PlayerIds.FirstKeeper, new TilePos(x, y))));
+        Assert.Equal(new TilePos(x, y), imp.Tile);
+
+        Assert.True(steering.TryRoute(imp, new TilePos(10, 6), MoveOptions.Loose));
+        var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
+        for (int tick = 0; tick < 400 && imp.Tile != new TilePos(10, 6); tick++) sim.Tick(InputFrame.Empty);
+        Assert.Equal(new TilePos(10, 6), imp.Tile);
+    }
+
     [Fact]
     public void RuiningAHeartRemovesCoreProtectionWithoutChangingTheRoutingBytes()
     {

@@ -23,16 +23,20 @@ public static class DisposalRules
     public static bool Disposes(
         WorldState world, GameDatabase database, CreatureDef mover, TilePos at, PlayerId playerId)
     {
+        // 71 gives a worker back only with the Heart object (type 13) in the room; a ruined Heart
+        // has none, so 71 sends it to 11 and the drop is an ordinary landing.
         if (mover.Flags.HasFlag(CreatureFlags.IsWorker))
-            return IsHeartCentreTile(world, database, at, playerId);
+            return IsHeartCentreTile(world, database, at, playerId)
+                && world.HasPlayer(playerId) && !world.Player(playerId).HeartRuined;
 
         return PortalRules.IsHoleTile(world, database, at, playerId);
     }
 
     /// <summary>Whether this tile is the <b>single centre tile</b> of a dungeon heart this
-    /// player owns — <b>the one tile that takes an imp</b>, and not the raised 3x3 around it
-    /// that <see cref="StructureBlocks"/> makes unwalkable. CONFIRMED (owner, 2026-09-15, two
-    /// screenshots), which also settles that a heart is <b>always 5x5</b>, never smaller.</summary>
+    /// player owns — <b>the one tile that disposes of an imp</b>; the eight raised platform tiles
+    /// around it take one as a normal drop (<see cref="HandRules.CreatureLands"/>). CONFIRMED
+    /// (owner, 2026-09-15 and 2026-10-23, screenshots and photos), which also settles that a heart
+    /// is <b>always 5x5</b>, never smaller.</summary>
     public static bool IsHeartCentreTile(
         WorldState world, GameDatabase database, TilePos at, PlayerId playerId)
     {

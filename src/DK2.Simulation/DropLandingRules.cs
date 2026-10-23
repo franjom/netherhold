@@ -153,7 +153,10 @@ public static class DropLandingRules
     /// <summary>71's handler, run in the turn it is entered (ours; DK2 runs it the next): a non-worker
     /// goes to 188 for its wages; a worker off the inner 3×3 (<c>0x004DA150</c>), or with no Heart object,
     /// to 11; a worker on it is given back, the tile owner credited Create Imp's mana cost
-    /// (<c>Player_AddMana</c>, capped at the threshold), its gold lost, and it is gone (as state 196).</summary>
+    /// (<c>Player_AddMana</c>, capped at the threshold), its gold lost, and it is gone (as state 196).
+    /// A keeper's hand-dropped worker never comes here: 76's worker arm sets 71 on the centre only
+    /// (cell byte <c>0x40</c>), which ours disposes in <see cref="Systems.HandSystem"/>, and a platform
+    /// tile goes to 11 (refused-states.md §3). This arm is a worker getting up on the Heart (257).</summary>
     private static void HeartDrop(SimulationContext context, string system, CreatureState creature, CreatureDef definition, RoomInstance heart)
     {
         WorldState world = context.World;
@@ -173,16 +176,24 @@ public static class DropLandingRules
             return;
         }
 
-        int refund = context.Database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
-        if (world.HasPlayer(owner))
-        {
-            ref PlayerState player = ref world.Player(owner);
-            player.Mana = Math.Min(player.Mana + refund, ManaRules.Threshold(context.Database));
-        }
+        int refund = CreditWorkerGivenBack(world, context.Database, owner);
         context.Emit(system, "worker_given_back",
             $"creature={creature.Id} player={owner} mana={refund} gold_lost={creature.GoldHeld} at=({creature.Tile.X},{creature.Tile.Y})");
         creature.GoldHeld = 0;
         world.RemoveCreature(creature.Id);
+    }
+
+    /// <summary>71's credit for a worker given back: Create Imp's mana cost (keeper spell 4's
+    /// <c>+0x58</c>, <c>0x0050DD60</c>) to <paramref name="owner"/> through <c>Player_AddMana</c>
+    /// (<c>0x004C19C0</c>), which adds and then clamps a gain at the ceiling <c>+0x10EA</c>.
+    /// Returns the amount credited before the clamp, or 0 for an owner with no player.</summary>
+    public static int CreditWorkerGivenBack(WorldState world, GameDatabase database, PlayerId owner)
+    {
+        if (!world.HasPlayer(owner)) return 0;
+        int refund = database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
+        ref PlayerState player = ref world.Player(owner);
+        player.Mana = Math.Min(player.Mana + refund, ManaRules.Threshold(database));
+        return refund;
     }
 
     /// <summary>State 250: true while it stands (<c>now &lt; +0x7E + 50</c>).</summary>

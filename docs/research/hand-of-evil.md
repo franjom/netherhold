@@ -357,7 +357,8 @@ duration in ticks and not a live mechanism disabled by its value (Q160, binary,
 dropper's prison is re-imprisoned; elsewhere it is freed. **Both** disposal tiles
 exist: ordinary and converted goodly creatures go through a
 portal's hole with their gold, an Imp is refused there and goes through the
-Heart's platform instead, and a captive is refused both (`DisposalRules`,
+Heart's centre instead (the eight platform tiles round it take it as a normal
+drop), and a captive is refused both (`DisposalRules`,
 ADR-0148; `structure-blocks.md` §4.2). What is assumed inside that is Q312. A drop
 onto a room enters the room's drop state (`DropLandingRules.RoomDropState`; ADR-0215,
 ADR-0226, ADR-0227); which rooms' states idle here is in `hand-drop-landing.md`.
