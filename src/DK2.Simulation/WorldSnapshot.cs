@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 292;
+    private const int FormatVersion = 295;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
