@@ -204,6 +204,11 @@ interface vtable slot `+0x20`, `0x004096B0` (CONFIRMED, 2026-10-23): in Hand mod
 over a dig-taggable tile (blue) or with a full hand and no drop rectangle, and never over
 plain floor with an empty hand.
 
+What the Hand points at is tinted red by the hover-id rule of `0x0040C290`, and a hovered
+gold object shows its `_HIGHLIGHT` texture ([gold-hover-and-sparkle.md](gold-hover-and-sparkle.md)).
+Ours shows the pickup hand over own creatures and loose gold and the pointing cursor over
+doors, traps and store piles (owner, 2026-10-23).
+
 Implementation: `TileHoverOutline` retains the full-height rest grid, endpoint
 table, radius and blue peak. `ClassicTileHoverOutline` emits one camera-facing
 quad per segment in a retained mesh. Native emits two crossed textured ribbons

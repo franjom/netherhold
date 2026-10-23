@@ -1154,6 +1154,13 @@ namespace DK2.Unity
                 (x, y) = (creature.PosX / (float)Fp32.One, creature.PosY / (float)Fp32.One);
             else if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is ObjectState thing)
                 (x, y) = (thing.PosX / (float)Fp32.One, thing.PosY / (float)Fp32.One);
+            // A store pile stands for DK2's Gold Pile 1, a real thing there: its point, the tile centre
+            // (WorldView.StorePiles places it with no offset).
+            else if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId))
+            {
+                int pile = WorldView.DecorationTileIndex(hit.EntityId);
+                (x, y) = (pile % world.Width + .5f, pile / world.Width + .5f);
+            }
             else if (hit.Kind == WorldHoverKind.Door || hit.Kind == WorldHoverKind.Trap)
                 (x, y) = (tile.X + .5f, tile.Y + .5f);
             else
@@ -1226,7 +1233,10 @@ namespace DK2.Unity
                     bool dig = HandCursor.ShowsDig(world, _simulation.Database, tile, viewer);
                     if (ActiveTool == PlayerToolMode.Hand)
                         cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);
-                    if (ActiveTool == PlayerToolMode.Hand) _scene.DrawHoverOverlay(hit);
+                    // Only the Hand's hover id is tinted: own pickable creatures, own pickable or
+                    // slappable objects and loose gold on own land, own doors and traps (0x0040C290).
+                    if (ActiveTool == PlayerToolMode.Hand && HoverTint.Applies(world, _simulation.Database, hit, viewer))
+                        _scene.DrawHoverOverlay(hit);
                     // In room mode a diggable tile keeps the pickaxe and draws no icon (0x0040B210).
                     if (!(ActiveTool == PlayerToolMode.BuildRoom && dig)) placement = Placement(world, viewer, tile, hit);
                     // The arms test the dig tag on a tile hover target (+0x1084 == 1, +0x1088 bit 0).

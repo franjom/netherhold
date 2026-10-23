@@ -71,6 +71,23 @@ public sealed partial class WorldView
     /// <summary>Whether an object id is a decoration of <see cref="Decorations"/>, not the simulation's.</summary>
     public static bool IsDecoration(int objectId) => objectId < 0;
 
+    /// <summary>The tile index a decoration id was made from (<see cref="Decoration"/>); −1 for a
+    /// simulation object.</summary>
+    public static int DecorationTileIndex(int objectId) => objectId < 0 ? (-objectId - 1) / DecorSlots : -1;
+
+    /// <summary>Whether a decoration id is a treasury or heart tile's store pile (<see cref="StorePiles"/>).</summary>
+    public static bool IsStorePile(int objectId) => objectId < 0 && (-objectId - 1) % DecorSlots == PileSlot;
+
+    // Per object type: 0 unknown, 1 no, 2 yes (ObjectHoverHighlight.UsesHoverTexture).
+    private readonly byte[] _hoverTexture = new byte[256];
+
+    private bool HoverTexture(byte objectTypeId)
+    {
+        if (_hoverTexture[objectTypeId] == 0)
+            _hoverTexture[objectTypeId] = ObjectHoverHighlight.UsesHoverTexture(_database.ObjectById(objectTypeId)) ? (byte)2 : (byte)1;
+        return _hoverTexture[objectTypeId] == 2;
+    }
+
     /// <summary>
     /// The objects DK2's room passes place that the simulation does not hold: the Heart's set
     /// (<c>0x004DB700</c>), room pillars (<c>0x004EF1F0</c>), the Guard Room's posts, the Workshop's
@@ -287,7 +304,8 @@ public sealed partial class WorldView
             animationLoops: !stateAnimation || thing.ObjectTypeId == CallToArmsRules.ObjectTypeId && thing.ProcessState is 13 or 14,
             previousHeight: previousZ, previousPitch: previousPitch, previousRoll: previousRoll,
             heartVisual: HeartVisual(world, thing.ObjectTypeId, thing.OwnerPlayerId, at), light: definition?.Light,
-            addedLight: thing.AutoPlaced ? RoomObjectAddedLight(world, tileIndex) : default);
+            addedLight: thing.AutoPlaced ? RoomObjectAddedLight(world, tileIndex) : default)
+        { HoverTexture = HoverTexture(thing.ObjectTypeId) };
     }
 
     /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun
@@ -474,7 +492,7 @@ public sealed partial class WorldView
             int slot = gold < cap / 3 ? 5 : gold < 2 * cap / 3 ? 6 : 0;
             ObjectView pile = Decoration(world, tile, PileSlot, StorePileId, owner, 0, 0, -1, Spread(tile, 0x800), slot, autoPlaced: false);
             into.Add(new ObjectView(pile.Id, StorePileId, owner, pile.Tile, pile.Mesh, gold,
-                pile.PosX, pile.PosY, pile.Height, pile.Heading, pile.Scale));
+                pile.PosX, pile.PosY, pile.Height, pile.Heading, pile.Scale) { HoverTexture = pile.HoverTexture });
         }
     }
 
@@ -517,7 +535,8 @@ public sealed partial class WorldView
             playsAnimation: objectTypeId == DungeonHeartId,
             heartVisual: HeartVisual(world, objectTypeId, owner, new TilePos(x, y)), alpha: alpha,
             light: _database.ObjectById(objectTypeId)?.Light,
-            addedLight: autoPlaced ? RoomObjectAddedLight(world, tileIndex) : default);
+            addedLight: autoPlaced ? RoomObjectAddedLight(world, tileIndex) : default)
+        { HoverTexture = HoverTexture(objectTypeId) };
     }
 
     private TerrainLightColour RoomObjectAddedLight(WorldState world, int tileIndex)

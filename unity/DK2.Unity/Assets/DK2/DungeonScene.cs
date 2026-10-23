@@ -84,6 +84,7 @@ namespace DK2.Unity
         private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)> _objectClips =
             new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
+        private readonly Dictionary<StructureId, TilePos> _structureTiles = new Dictionary<StructureId, TilePos>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private readonly ClassicTorchLightBuffer _torchLights;
@@ -124,21 +125,44 @@ namespace DK2.Unity
         }
         public int ObjectObjects => _objects.Count;
 
-        /// <summary>DK2 draws the Hand's hover target a second time with AA_RedTexture each frame
-        /// (Presentation_Update, 0x0043BE40). The creature's mesh holds its sampled pose, so the
-        /// overlay follows the animation. Creatures only for now: their slot +0x34 (0x00628BC0) returns 1;
-        /// doors, traps and objects may tint too, but their slots are unread. Drawn in Hand mode off
-        /// the HUD, which is our gate; DK2's own tool test is unread.</summary>
+        /// <summary>DK2 draws the Hand's hover id a second time with AA_RedTexture each frame
+        /// (Presentation_Update, 0x0043BE40): the caller decides which picks are tinted
+        /// (<see cref="HoverTint"/>). A gold object's art (flag 0x10000) first swaps each material to
+        /// its last texture, the spill cards' _HIGHLIGHT twin, drawn here over the original one queue
+        /// later. The red pass covers every material (owner, 2026-10-23; gold-hover-and-sparkle.md §2).
+        /// A mesh holds its sampled pose, so both follow the animation.</summary>
         public void DrawHoverOverlay(WorldHoverHit hit)
         {
-            if (_classic == null || hit.Kind != WorldHoverKind.Creature) return;
-            if (!_creatures.TryGetValue(hit.EntityId, out GameObject go) || go == null || !go.activeInHierarchy) return;
-            if (!go.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null) return;
-            var parameters = new RenderParams(_classic.HoverOverlay())
+            if (_classic == null) return;
+            GameObject go;
+            Material[] swapped = null;
+            if (hit.Kind == WorldHoverKind.Creature)
+            {
+                if (!_creatures.TryGetValue(hit.EntityId, out go)) return;
+            }
+            else if (hit.Kind == WorldHoverKind.Object && _meshObjects.Contains(hit.EntityId)
+                && _objects.TryGetValue(hit.EntityId, out go) && _objectPoses.TryGetValue(hit.EntityId, out ObjectView pose))
+            {
+                if (pose.HoverTexture) swapped = _classic.HoverTextures(pose.Mesh);
+            }
+            else if (hit.Kind == WorldHoverKind.Door || hit.Kind == WorldHoverKind.Trap)
+            {
+                var id = new StructureId(hit.Kind == WorldHoverKind.Door ? StructureKind.Door : StructureKind.Trap, hit.EntityId);
+                if (!_structures.TryGetValue(id, out go)) return;
+            }
+            else return;
+            if (go == null || !go.activeInHierarchy || !go.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null) return;
+            var overlay = new RenderParams(_classic.HoverOverlay())
             { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off, receiveShadows = false };
             Mesh mesh = filter.sharedMesh;
             Matrix4x4 matrix = go.transform.localToWorldMatrix;
-            for (int sub = 0; sub < mesh.subMeshCount; sub++) Graphics.RenderMesh(parameters, mesh, sub, matrix);
+            for (int sub = 0; sub < mesh.subMeshCount; sub++)
+            {
+                if (swapped != null && sub < swapped.Length && swapped[sub] != null)
+                    Graphics.RenderMesh(new RenderParams(swapped[sub])
+                    { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off, receiveShadows = false }, mesh, sub, matrix);
+                Graphics.RenderMesh(overlay, mesh, sub, matrix);
+            }
         }
 
         public WorldHoverHit PickHoverEntity(Ray ray, float terrainDistance, TilePos tile, Vector3 pointerGround)
@@ -148,8 +172,13 @@ namespace DK2.Unity
             foreach (var entry in _creatures)
                 TestBounds(entry.Value, WorldHoverKind.Creature, entry.Key, _creaturePoses[entry.Key].Tile);
             foreach (var entry in _objects)
-                if (entry.Key > 0 && _objectPoses.TryGetValue(entry.Key, out ObjectView pose))
+                if (_objectPoses.TryGetValue(entry.Key, out ObjectView pose)
+                    && ObjectHoverHighlight.IsHoverTarget(entry.Key, pose.ObjectTypeId))
                     TestBounds(entry.Value, WorldHoverKind.Object, entry.Key, pose.Tile);
+            foreach (var entry in _structures)
+                if (_structureTiles.TryGetValue(entry.Key, out TilePos at))
+                    TestBounds(entry.Value, entry.Key.Kind == StructureKind.Door ? WorldHoverKind.Door : WorldHoverKind.Trap,
+                        entry.Key.Value, at);
             if (hit.Kind != WorldHoverKind.Tile) return hit;
 
             var pointer = new FpPosition3(new Fp32((int)(pointerGround.x * Fp32.One)),
@@ -163,7 +192,7 @@ namespace DK2.Unity
                             && go != null && go.activeSelf && Distance(go) < Fp32.One / 2)
                             return new WorldHoverHit(WorldHoverKind.Creature, entry.Value.Tile, entry.Key);
                     foreach (var entry in _objectPoses)
-                        if (entry.Key > 0 && entry.Value.Tile == new TilePos(x, y)
+                        if (ObjectHoverHighlight.IsHoverTarget(entry.Key, entry.Value.ObjectTypeId) && entry.Value.Tile == new TilePos(x, y)
                             && _objects.TryGetValue(entry.Key, out GameObject go) && go != null && go.activeSelf)
                         {
                             int distance = Distance(go);
@@ -560,6 +589,7 @@ namespace DK2.Unity
             if (go == null && _classic == null) go = Instantiate(mesh, $"{id.Kind} {id.Value}");
             if (go == null) return;
             _structures[id] = go;
+            _structureTiles[id] = structure.Tile;
             float x = structure.PosX / (float)Fp32.One, y = structure.PosY / (float)Fp32.One;
             go.transform.position = Ground(x, y, structure.Height / (float)Fp32.One);
             go.transform.localRotation = Quaternion.Euler(0f, structure.MeshYaw * 360f / 2048f, 0f);
@@ -578,6 +608,7 @@ namespace DK2.Unity
         {
             if (_structures.TryGetValue(id, out GameObject go) && go != null) Object.Destroy(go);
             _structures.Remove(id);
+            _structureTiles.Remove(id);
         }
 
         /// <summary>A wall torch: a point light, and its mesh when it has one. How DK2's light
@@ -774,6 +805,7 @@ namespace DK2.Unity
             _objectClips.Clear();
             while (_heartAdvances.TryDequeue(out _)) { }
             _structures.Clear();
+            _structureTiles.Clear();
             _meshObjects.Clear();
             _artless.Clear();
             _meshCreatures.Clear();

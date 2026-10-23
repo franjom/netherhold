@@ -124,6 +124,9 @@ are separate object branches. A ruined Heart returns empty ordinary status.
 use 2544 and type 3 uses 2543, substituting its gold amount at `%73`. Casino
 and prison fixtures have special room-state-dependent branches. Object
 NameStringId is a separate field and controls short popup eligibility.
+A hovered store pile (the Treasury or Heart gold decoration) reads "N Gold"
+(string 2543, the tile's gold), as a type 3 object would; see
+[gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §5.
 
 ## Original fonts, artwork and geometry
 

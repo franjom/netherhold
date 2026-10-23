@@ -161,6 +161,7 @@ Runtime flags = file flags | (type ≠ 0). Proved by use (names only where the b
 | `0x100` | `0x0059B880` | types 1–3 drawn by `0x0059C720` instead of `0x0059C360` |
 | `0x200` | `0x0059CCF0`, `0x0059C880` | ORs `0x4000` into the engine flags |
 | `0x400` | `0x004B37D0` | 50% chance to swap in an art from a creature's definition (`+0x370`, `+0x46E`) |
+| `0x10000` | `0x0043BE7D` | while the Hand hovers the thing, texture phase forced to `0xFFF`: the last texture ([gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §1) |
 | `0x40000` | `0x0059B880` | skipped while `0x00759ADC` is 0 |
 
 Bits `0x2` and `0x40` are **not tested** anywhere on the object draw path read here;

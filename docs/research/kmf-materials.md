@@ -120,6 +120,10 @@ material per (texture, blend, self-illumination):
 - additive: URP Unlit, white, ONE/ONE, no depth write, queue 3000;
 - brightness above 0: emission = texture × brightness.
 
+A material with several textures draws the first, or the one its art's texture phase
+selects (the Heart's decay; a hovered gold object's `_HIGHLIGHT`,
+[gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §1).
+
 Back faces stay culled (§4). Not drawn yet: the environment-map stage (file 0x40),
 the UNREAD state bits 0x2 and 0x40. Blended terrain faces now sort across chunks and
 materials before each camera, batching only adjacent equal materials into explicitly ordered

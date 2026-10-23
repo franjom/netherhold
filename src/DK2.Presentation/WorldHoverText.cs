@@ -71,6 +71,16 @@ public sealed class WorldHoverText
             }
             return new(status, _resolve(definition.NameStringId), hit);
         }
+        // Ours keeps a store tile's gold in the tile and draws DK2's Gold Pile 1 as a decoration
+        // (WorldView.StorePiles); hovered, it reads as that object would: "%73 Gold" (SHOT0228).
+        if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId)
+            && WorldView.DecorationTileIndex(hit.EntityId) is int pileTile && pileTile < world.Width * world.Height
+            && world.TileAtIndex(pileTile).GoldHeld > 0
+            && _database.ObjectById(ObjectHoverHighlight.StorePileObjectId) is { NameStringId: > 0 } pile)
+        {
+            _tokens[73] = Number(world.TileAtIndex(pileTile).GoldHeld);
+            return new(Substitute(_resolve(2543u), _tokens), _resolve(pile.NameStringId), hit);
+        }
         int tileIndex = world.TileIndex(hit.Tile);
         foreach (RoomInstance room in _rooms)
             if (room.Contains(tileIndex)) return Room(world, room, hit);

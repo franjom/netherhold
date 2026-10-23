@@ -425,6 +425,30 @@ namespace DK2.Unity
         /// every frame, no pulse.</summary>
         public Material HoverOverlay() => _hoverOverlay ??= Additive("AA_RedTexture", HoverOverlayColour);
 
+        private readonly Dictionary<AssetRef, Material[]> _hoverTextures = new Dictionary<AssetRef, Material[]>();
+
+        /// <summary>Per material of the asset's model, the twin a hovered gold object draws over it:
+        /// the material's texture at <see cref="ObjectHoverHighlight.HoverTextureIndex"/>, one render
+        /// queue later so it lands on top at equal depth; null where that is the first texture, and
+        /// null for the whole array when no material changes. Shared and cached per asset.</summary>
+        public Material[] HoverTextures(AssetRef key)
+        {
+            if (_hoverTextures.TryGetValue(key, out Material[] cached)) return cached;
+            Material[] result = null;
+            if (_art.TryResolve(key, out ResolvedAsset asset) && _art.TryLoadModel(asset, out KmfModel model))
+                for (int i = 0; i < model.Materials.Count; i++)
+                {
+                    KmfMaterial kmf = model.Materials[i];
+                    int index = ObjectHoverHighlight.HoverTextureIndex(kmf.TextureNames.Count);
+                    if (index == 0) continue;
+                    Material source = MaterialFor(kmf, index);
+                    result ??= new Material[model.Materials.Count];
+                    result[i] = new Material(source) { name = source.name + " (hover)", renderQueue = source.renderQueue + 1 };
+                }
+            _hoverTextures[key] = result;
+            return result;
+        }
+
         /// <summary>The additive pass over every tagged piece: flat <see cref="TagOverlayColour"/>.</summary>
         public Material TagOverlay(bool red = false)
         {

@@ -91,6 +91,10 @@ disc entry to the full map are integrated; see
   localized names and supported status fields; do not invent missing producers.
 - [x] Capture hover facts before worker dispatch; rendering reads retained data.
   Verify target precedence, fog/input gates, scaling and independent review.
+- [x] Tint hovered objects and give hovered gold its `_HIGHLIGHT` texture; let
+  the Treasury/Heart store pile be picked and read "N Gold" (2026-10-23,
+  [gold hover](../research/gold-hover-and-sparkle.md)). The store sparkle and
+  lifting gold out of a store need simulation work there; owner comparison remains.
 
 The current slice covers pointing, pickup, dig, held-item/gold, tagging, drop
 and slap sprites, the blue terrain-following cage, the room/sell/door/trap placement

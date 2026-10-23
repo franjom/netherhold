@@ -378,6 +378,10 @@ public readonly struct ObjectView
     /// <summary>Which of the 145 definitions this is.</summary>
     public byte ObjectTypeId { get; }
 
+    /// <summary>Whether its art swaps each material to its last texture while the Hand hovers it
+    /// (<see cref="ObjectHoverHighlight.UsesHoverTexture"/>): the gold objects 1, 2 and 3.</summary>
+    public bool HoverTexture { get; init; }
+
     /// <summary>Whose it is. A bed belongs to its sleeper's keeper; a floor pile to nobody.</summary>
     public byte OwnerPlayerId { get; }
 
