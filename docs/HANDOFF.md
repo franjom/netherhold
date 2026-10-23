@@ -104,8 +104,9 @@ The owner accepted the current appearance, including restored Heart arches,
 wall caps, frame-independent torches and standalone rack transparency.
 Matched-original startup-smoke and Levels7/8 comparisons remain pending.
 
-Preserve the accepted brighter preview with Native Initial Ambient off;
-+/− controls native ambient. Discovery schema/cadence limits are in
+The saved Dungeon scene uses the owner's Native Initial Ambient setting (on);
+the brighter preview remains available with it off. +/− controls native ambient.
+Discovery schema/cadence limits are in
 research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
 Scripted camera paths are built separately (ADR-0496; research/camera-paths.md).
 Step6 ordinary camera controls now follow native packets (ADR-0531); matched

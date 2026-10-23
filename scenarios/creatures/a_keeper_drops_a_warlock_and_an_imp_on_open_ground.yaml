@@ -76,7 +76,7 @@ setup:
     - { type: Imp, at: [3, 3], player: 3 }
 commands:
   - { at_tick: 10, player: 3, pick_up: 1 }
-  # Unclaimed Dirt Path, well clear of the lair. Expect drop_refused/not_owned
+  # Unclaimed Dirt Path, well clear of the lair. Expect drop_refused/not_allowed
   # and the Goblin still held.
   - { at_tick: 20, player: 3, drop: [8, 6] }
   # Its own floor. Expect it to land - which is what proves the refusal above
@@ -92,7 +92,7 @@ observe:
 # dropped.
 expect:
   - event: drop_refused
-    detail: "not_owned"
+    detail: "creature=1 tile=8,6 not_allowed"
     because: >
       A non-worker may only be put down on ground its keeper holds, and the hand
       REFUSES rather than finding somewhere else. CONFIRMED (owner).
