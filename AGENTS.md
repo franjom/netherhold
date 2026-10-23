@@ -246,6 +246,18 @@ When a tool, an encoding, a shell quirk or a process step costs you time, add on
 Codex's memory are private to each agent and neither reads the other's; the repository is the
 only place a lesson reaches the next session of either. Delete the line when its cause is fixed.
 
+### Every verified task ends with a documentation pass
+
+The order for each implemented task is: implement, run the `reviewer` subagent
+(the verifier), fix its objections, then run the `documenter` subagent
+(`.claude/agents/documenter.md`), then commit. The documenter rewrites every
+document the change made stale and runs the `docs` and `kb check` gates; it
+makes no new claim about DKII.EXE. The session that ran the implementation
+invokes it (a subagent cannot spawn one, so its caller does), passing the diff
+range, a task summary, the ADR/Q/hash numbers, the reviewer's verdicts and the
+verification results. Read its edits before staging them by name. Codex has no
+such subagent and does this pass itself, by the same file.
+
 ### What is worth recording
 
 Record: a decision and its reason; a DK2 fact and how it was established; an
