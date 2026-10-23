@@ -1209,9 +1209,16 @@ namespace DK2.Unity
             TileView shown = _worldView.TileAt(world, tile.X, tile.Y);
             var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
             if (!plane.Raycast(ray, out float distance)) return new WorldHoverHit(WorldHoverKind.Tile, tile);
-            WorldHoverHit hit = _scene.PickHoverEntity(ray, distance + .02f, tile, ray.GetPoint(distance));
+            _renderedPick ??= (kind, id) => HoverPickRules.Rendered(_simulation.World, _simulation.Database, kind, id);
+            _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(_simulation.World, _simulation.Database, kind, id);
+            _resolvesPick ??= (kind, id) => HoverPickRules.Resolves(_simulation.World, kind, id, new PlayerId((byte)viewingPlayerId));
+            WorldHoverHit hit = _scene.PickHoverEntity(ray, distance + .02f, tile, ray.GetPoint(distance),
+                _renderedPick, _fallbackPick, _resolvesPick);
             return new WorldHoverHit(hit.Kind, tile, hit.EntityId);
         }
+
+        // The picker's eligibility (HoverPickRules), made once so a frame's pick allocates nothing.
+        private System.Func<WorldHoverKind, int, bool> _renderedPick, _fallbackPick, _resolvesPick;
 
         private void CaptureWorldHover()
         {

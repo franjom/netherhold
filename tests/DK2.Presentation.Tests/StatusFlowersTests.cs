@@ -228,6 +228,78 @@ public sealed class StatusFlowersTests
         Assert.Equal("SJ-Fighting", StatusFlowerCentre.Status(true, false, false, false, 0, 1, heroSlotValue: 7));
     }
 
+    /// <summary>0x00597270's order past fear: unconscious, stunned, leaving (bit 14), fear, then the
+    /// Portal Gem (0x0048B5C0).</summary>
+    [Fact]
+    public void LeavingComesBeforeFearAndTheGemComesLast()
+    {
+        Assert.Equal("SJ-Leaving", StatusFlowerCentre.Status(false, false, false, false, 9, 1, leaving: true, carriesPortalGem: true));
+        Assert.Equal("SJ-Stunned", StatusFlowerCentre.Status(false, false, true, false, 9, 1, leaving: true));
+        Assert.Equal("ST-Fear", StatusFlowerCentre.Status(false, false, false, false, 9, 1, carriesPortalGem: true));
+        Assert.Equal("S-Gem", StatusFlowerCentre.Status(false, false, false, true, 9, 1, carriesPortalGem: true));
+        Assert.Null(StatusFlowerCentre.Status(true, false, false, false, 9, 1, leaving: true, carriesPortalGem: true));
+    }
+
+    /// <summary>0x0048F110 with four turns a second: 1 at the stamp, one more a second, 5 from five
+    /// seconds on; 0x0048F0F0 draws the ring on the second half of each second.</summary>
+    [Fact]
+    public void RemovalCountdownStepsOnceASecondAndBlinksTheRing()
+    {
+        Assert.Equal(0, StatusFlowerRules.RemovalStep(0, new GameTick(100)));
+        Assert.Equal(1, StatusFlowerRules.RemovalStep(100, new GameTick(100)));
+        Assert.Equal(1, StatusFlowerRules.RemovalStep(100, new GameTick(103)));
+        Assert.Equal(2, StatusFlowerRules.RemovalStep(100, new GameTick(104)));
+        Assert.Equal(5, StatusFlowerRules.RemovalStep(100, new GameTick(119)));
+        Assert.Equal(5, StatusFlowerRules.RemovalStep(100, new GameTick(500)));
+        Assert.False(StatusFlowerRules.CountdownRingOn(new GameTick(8)));
+        Assert.False(StatusFlowerRules.CountdownRingOn(new GameTick(9)));
+        Assert.True(StatusFlowerRules.CountdownRingOn(new GameTick(10)));
+        Assert.True(StatusFlowerRules.CountdownRingOn(new GameTick(11)));
+        Assert.True(StatusFlowerRules.Shows(OwnIdle with { MarkedForRemoval = true }));
+    }
+
+    /// <summary>0x0059C360: scale 0x400 (0x200 possessing) times the descriptor, 0x1000 or 0x2000
+    /// for Imprison and the Objectives, in 12.12, over 4096.</summary>
+    [Fact]
+    public void AFlowerIsAQuarterTileAcross()
+    {
+        Assert.Equal(0.25f, StatusFlowerRules.WorldSize("H-05", possessing: false));
+        Assert.Equal(0.25f, StatusFlowerRules.WorldSize("SJ-Dig", possessing: false));
+        Assert.Equal(0.5f, StatusFlowerRules.WorldSize("Imprison", possessing: false));
+        Assert.Equal(0.5f, StatusFlowerRules.WorldSize("Objective-2", possessing: false));
+        Assert.Equal(0.125f, StatusFlowerRules.WorldSize("SL-01", possessing: true));
+    }
+
+    /// <summary>0x005955C0: torture +0x580 off a floor slot, +0x280 on one; +0x80 for a slot holder.
+    /// The on-slot value assumes global 0x00759ADC is 1; it has no writer we have found, and at 0 DK2
+    /// adds 0x400 more (Q635).</summary>
+    [Fact]
+    public void TortureAndHeroSlotsLiftTheFlower_AssumingGlobal759ADCIsOneQ635()
+    {
+        var body = new Fp32(4096);
+        Assert.Equal(new Fp32(4096 + 460 + 0x580),
+            StatusFlowerRules.Height(body, 3, StatusFlowerTortureLift.OffFloorSlot));
+        Assert.Equal(new Fp32(4096 + 460 + 0x280 + 0x80),
+            StatusFlowerRules.Height(body, 3, StatusFlowerTortureLift.OnFloorSlot, holdsHeroSlot: true));
+        Assert.Equal(new Fp32(4096 + 0x80), StatusFlowerRules.Height(body, 0, holdsHeroSlot: true));
+    }
+
+    [InstallFact]
+    public void ARemovalCountdownShowsTheDigitAndAViewerMarkShowsTheTag()
+    {
+        (GameDatabase db, WorldState world, CreatureState own) = Setup();
+        own.ManaRemovalStamp = 40;
+        RescuePriorityRules.Set(own, PlayerIds.FirstKeeper, true);
+        var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
+        StatusFlower flower = Assert.Single(flowers.Capture(world, new GameTick(44), CreatureQueryTarget.None),
+            f => f.CreatureId == own.Id);
+        Assert.Equal("SL-04", flower.Centre);
+        Assert.True(flower.Imprison);
+        Assert.False(flower.DrawRing);
+        Assert.True(Assert.Single(flowers.Capture(world, new GameTick(46), CreatureQueryTarget.None),
+            f => f.CreatureId == own.Id).DrawRing);
+    }
+
     private static (GameDatabase, WorldState, CreatureState) Setup()
     {
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);

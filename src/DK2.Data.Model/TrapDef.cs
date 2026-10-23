@@ -60,4 +60,8 @@ public sealed record TrapDef
     public int ShotOffsetY { get; init; }
     public int ShotOffsetZ { get; init; }
     public short HealthGain { get; init; }
+
+    /// <summary>Text.str id of the trap's name, record offset 0x208, runtime <c>def+0xA8</c>
+    /// (loader <c>0x004AA440</c>); the hover status <c>0x004A9B70</c> and popup <c>0x0042D4A0</c> read it.</summary>
+    public ushort NameStringId { get; init; }
 }

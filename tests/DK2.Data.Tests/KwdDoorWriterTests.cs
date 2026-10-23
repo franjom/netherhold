@@ -26,6 +26,7 @@ public class KwdDoorWriterTests
             (d => d with { GoldCost = 789 }, 0x22E, 2),
             (d => d with { ManufactureRequired = 0xF1234567 }, 0x234, 4),
             (d => d with { Flags = (DoorFlags)0x81 }, 0x228, 1),
+            (d => d with { NameStringId = 2528 }, 0x23C, 2),
         };
         foreach (var edit in edits)
         {

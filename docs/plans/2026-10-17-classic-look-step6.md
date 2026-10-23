@@ -129,11 +129,20 @@ and the four creature views. Evidence and adapter ordering limitations live in
 
 Built 2026-10-23: the six indicator boxes (ADR-0532), the menu-40 text scrollbar (message panel scrolls, query panel bar inert as in DK2), Shift-click pinning of two bottom panels. Still open: owner comparison of the research, manufacture and
 spell recharge sectors ([panel-indicators.md](../research/panel-indicators.md) §8); portrait hover previews (the tooltip text is built); full-map markers/legend;
-complete special object/door/trap/name status; Q197 and
+the special creature name (+0x895) and the tile +0xB bit 0 "Enemy Wall" status
+(door, trap, dead-body and Casino/Prison fixture status built 2026-10-23,
+[world-hover-text.md](../research/world-hover-text.md)); Q197 and
 the remaining Q611 modal producers. Options exposes Continue; its other rows
 remain disabled until their corresponding frontends exist. These are not
-successful-looking placeholder actions. Save/load/settings frontends, exact
-outline material/picking and status flowers require further binary work.
+successful-looking placeholder actions. Save/load/settings frontends require further
+binary work. The hover red pass and its material are built; picking now follows DK2's
+two stages (triangle hit, then centre, then the 3×3 sweep, each with its native
+eligibility; [hand-cursor-rendering.md](../research/hand-cursor-rendering.md)); left: the
+screen-circle radius, terrain occlusion, the object ownership arm and the resolver's
+tile-hit and class-table gates. Status flowers have DK2's size, blend,
+countdown, Imprison tag, Leaving/S-Gem and lifts; left: the casino Dollar mesh, the
+trigger window (action 30), the global gate, state 0x110 and the disguise colour,
+[status-flowers.md](../research/status-flowers.md) §3.
 
 For each delivered slice: independent review, relevant headless presentation/input
 tests, adapter build, and owner comparison at 1024×768 and 2560×1440 or above.

@@ -26,6 +26,7 @@ public static class KwdTraps
         U16(OffsetGoldCost, record.GoldCost);
         U16(OffsetManufactureRequired, record.ManufactureRequired);
         U16(OffsetManaUpkeepPerSecond, record.ManaUpkeepPerSecond);
+        U16(OffsetNameStringId, record.NameStringId);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetFlags), record.Flags);
         BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(OffsetHealthGain), record.HealthGain);
         I32(OffsetRange, record.RangeTiles);
@@ -65,6 +66,7 @@ public static class KwdTraps
     private const int OffsetShotY = 0x235;
     private const int OffsetShotZ = 0x239;
     private const int OffsetHealthGain = 0x241;
+    private const int OffsetNameStringId = 0x208;
 
     public static List<TrapDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -98,6 +100,7 @@ public static class KwdTraps
         ShotTypeId = record[at + OffsetShotTypeId],
         CrateObjectId = record[at + OffsetCrateObjectId],
         ManaUpkeepPerSecond = U16(record, at + OffsetManaUpkeepPerSecond),
+        NameStringId = U16(record, at + OffsetNameStringId),
         Flags = BinaryPrimitives.ReadUInt32LittleEndian(record.AsSpan(at + OffsetFlags)),
         TriggerType = record[at + OffsetTriggerType],
         RangeTiles = I32(record, at + OffsetRange),

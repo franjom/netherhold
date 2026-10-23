@@ -14,33 +14,38 @@ namespace DK2.Presentation;
 /// <summary>The ring's colour: the owner's keeper palette entry (0x006E5058, as ClassicKeeperPalette).</summary>
 public readonly record struct StatusFlowerColour(byte Red, byte Green, byte Blue);
 
-/// <summary>One creature's status flower: what the renderer needs to draw it.</summary>
-/// <param name="Colour">The colour this frame: the owner's, cycled for a neutral creature and
-/// scaled by the blink (0x005956E0).</param>
-/// <param name="Height">Lift above the creature's position (Fp32 tiles), <see cref="StatusFlowerRules.Height"/>.</param>
-/// <param name="Blink">Health below a sixth, or inside the health-change window (0x005956E0).</param>
-/// <param name="Ring">The petal ring texture's number n, <c>GUI\moods\H-0n</c> (0x00596EB0).</param>
+/// <summary>One creature's status flower: what the renderer needs to draw it (status-flowers.md §2).</summary>
+/// <param name="Colour">The owner's colour, cycled when neutral, scaled by the blink (0x005956E0).</param>
+/// <param name="Height">Lift above the creature's position, <see cref="StatusFlowerRules.Height"/>.</param>
+/// <param name="Ring">The petal ring's n, <c>GUI\moods\H-0n</c> (0x00596EB0).</param>
 /// <param name="Centre">The centre texture under <c>GUI\moods\</c> (0x00596590).</param>
-/// <param name="ExperienceArcs">Draw the centre at half colour with a full-colour wedge of
-/// <paramref name="Experience"/> (0x005966B0); otherwise draw it plain at full colour.</param>
-/// <param name="Experience">The wedge's share of a turn, 0 to just under 1. Drawn clockwise from the
-/// top as the owner's captures show; the native angle-to-screen mapping is unread.</param>
-/// <param name="Objective">The ring over a marked hero's centre (0x00596770, ADR-0523); null for none.</param>
+/// <param name="ExperienceArcs">Half colour with a full-colour wedge of <paramref name="Experience"/>, a
+/// share of a turn clockwise from the top (0x005966B0); otherwise plain at full colour.</param>
+/// <param name="Objective"><c>Objective</c>, or <c>Objective-2</c> when the viewer marked the hero, over a
+/// slotted hero (0x00596770); null for none.</param>
+/// <param name="Imprison">The viewer's bit in <c>+0x3F7</c> (<see cref="CreatureState.RescuePriorityMask"/>).</param>
+/// <param name="DrawRing">False on the dark half of the removal countdown's blink (0x005958F0).</param>
 public readonly record struct StatusFlower(int CreatureId, int Level, PlayerId Owner, StatusFlowerColour Colour,
     Fp32 Height, bool Blink, int Ring, string Centre, bool ExperienceArcs, float Experience,
-    string? Objective = null);
+    string? Objective = null, bool Imprison = false, bool DrawRing = true);
 
 /// <summary>What 0x0048E830 reads about one creature, as our state answers it.</summary>
 /// <param name="Never">One of the predicate's refusals: <see cref="StatusFlowerRules.NeverShows"/>.</param>
 /// <param name="InWindow">Before the hover or health-change stamp (native <c>+0x38</c>, 0x004B34F0).</param>
+/// <param name="MarkedForRemoval">The mana-removal stamp <c>+0x4B3</c> is set (our
+/// <see cref="CreatureState.ManaRemovalStamp"/>).</param>
 public readonly record struct StatusFlowerFacts(bool Own, bool Never, bool ViewerPossessing, bool Hovered,
-    bool Dying, bool InCombat, CreatureMood Mood, bool BelowSixthHealth, bool InWindow);
+    bool Dying, bool InCombat, CreatureMood Mood, bool BelowSixthHealth, bool InWindow,
+    bool MarkedForRemoval = false);
+
+/// <summary>The torture lift's case in 0x005955C0 (category 15, the cell under the creature).</summary>
+public enum StatusFlowerTortureLift : byte { None = 0, OffFloorSlot = 1, OnFloorSlot = 2 }
 
 /// <summary>Whether a creature shows its flower, Creature_ShowsStatusFlower (0x0048E830), and where
 /// it sits (0x005955C0); docs/research/status-flowers.md §2.
 /// <para>Left out, with no counterpart in our state: the viewer's global gate (player <c>+0x76</c>
-/// bits 0x400000/0x40, mode 0x0075AD4B), the trigger window <c>+0x4B7</c> and the removal countdown
-/// <c>+0x4B3</c>. The draw bits (<c>+0x6C</c>/<c>+0xF3</c>) are the adapter's: it draws only
+/// bits 0x400000/0x40, mode 0x0075AD4B) and the trigger window <c>+0x4B7</c> (creature trigger
+/// action 30). The draw bits (<c>+0x6C</c>/<c>+0xF3</c>) are the adapter's: it draws only
 /// creatures its scene shows.</para></summary>
 // The rule order is CONFIRMED (0x0048E830); mapping +0x3E6 bit 0x200000 to our dying states is inferred.
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/status-flowers.md")]
@@ -63,7 +68,37 @@ public static class StatusFlowerRules
         if (facts.ViewerPossessing) return facts.Hovered;
         if (facts.Dying || !facts.Own) return true;
         return facts.InCombat || facts.Mood is CreatureMood.Unhappy or CreatureMood.Angry
-            || facts.BelowSixthHealth || facts.InWindow;
+            || facts.BelowSixthHealth || facts.InWindow || facts.MarkedForRemoval;
+    }
+
+    /// <summary>The removal countdown's step (0x0048F110): 0 with no stamp, 5 from
+    /// <c>stamp + 5</c> seconds, else <c>(turn − stamp)/rate + 1</c>, unsigned. The centre then shows
+    /// <c>SL-0(6 − step)</c>, five down to one.</summary>
+    public static int RemovalStep(uint stamp, GameTick turn)
+    {
+        if (stamp == 0) return 0;
+        const uint rate = SimulationTiming.TicksPerSecond;
+        uint now = (uint)turn.Value;
+        return stamp + rate * 5 <= now ? 5 : (int)((now - stamp) / rate + 1);
+    }
+
+    /// <summary>Whether the ring is drawn during the countdown (0x0048F0F0): the second half of each
+    /// game second, <c>turn mod rate ≥ rate/2</c>.</summary>
+    public static bool CountdownRingOn(GameTick turn) =>
+        (uint)turn.Value % SimulationTiming.TicksPerSecond >= SimulationTiming.TicksPerSecond >> 1;
+
+    /// <summary>The icons the loader sizes at 0x2000 rather than 0x1000 (0x00596850, table 0x006BE580
+    /// entries 0, 6 and 10).</summary>
+    public static bool IsLargeIcon(string icon) => icon is "Imprison" or "Objective" or "Objective-2";
+
+    /// <summary>A flower sprite's width and height in tiles (0x0059C360): the overlay scale (0x400, or
+    /// 0x200 while possessing; 0x005953D0) times the descriptor size (0x1000, or 0x2000 for
+    /// <see cref="IsLargeIcon"/>) in 12.12, then /4096. A quarter tile, centred on the lifted point.</summary>
+    public static float WorldSize(string icon, bool possessing)
+    {
+        int scale = possessing ? 0x200 : 0x400;
+        int descriptor = IsLargeIcon(icon) ? 0x2000 : 0x1000;
+        return (int)(((long)scale * descriptor) >> 12) / (float)Fp32.One;
     }
 
     /// <summary>The refusals we can map: an own creature whose definition is Horny (<c>+0x686</c>
@@ -89,9 +124,10 @@ public static class StatusFlowerRules
         return 5 - entry;
     }
 
-    /// <summary>The level-mode wedge (0x0048EA40): <c>(exp·4096/needed)/2 &amp; 0x7FF</c> of a
-    /// 0x800 turn, so the share of the way to the next level, wrapping past it; none when nothing
-    /// is needed.</summary>
+    /// <summary>The level-mode wedge: 0x0048EA40 returns <c>((exp·4096/needed)/2 + 0x400) &amp; 0x7FF</c>
+    /// (0x400 when nothing is needed) and 0x005966B0 draws the full-colour arc from
+    /// <c>(0x1000 − that) &amp; 0x7FF</c> to 0x400, so its span is the share of a 0x800 turn, wrapping
+    /// past a level.</summary>
     public static float ExperienceShare(int experience, int needed)
     {
         if (needed <= 0) return 0;
@@ -113,12 +149,30 @@ public static class StatusFlowerRules
     /// <summary>The overlay's clock step, 0x14D milliseconds (0x005956E0, 0x00596410).</summary>
     public const int CycleMs = 0x14D;
 
-    /// <summary>The flower's lift: the body's height plus <c>level·0x600/10</c>. The sleeping lift
-    /// (category 15: +0x580 off a bed slot, +0x280 or +0x680 on one, by an unread global) and the
-    /// +0x80 when 0x00491B40 ≠ -1 are left out. That vtable <c>+0x40</c> is the definition's
-    /// <c>Height</c> is assumed.</summary>
-    public static Fp32 Height(Fp32 bodyHeight, int level) =>
-        new(bodyHeight.Raw + (int)((uint)level * LevelLiftRawTimesTen / 10u));
+    /// <summary>0x005955C0's lifts (raw Fp32): torture (category 15) off a floor slot, on one, the
+    /// extra on one while 0x00759ADC is 0, and a creature holding a world hero slot.</summary>
+    public const int TortureLiftOffSlot = 0x580, TortureLiftOnSlot = 0x280, TortureLiftAltArt = 0x400,
+        HeroSlotLift = 0x80;
+
+    /// <summary>The flower's lift (0x005955C0): the body's height plus <c>level·0x600/10</c>; in
+    /// category 15 (Torture) +0x580 off a floor slot, else +0x280; then +0x80 for a hero-slot holder.
+    /// The on-slot case adds 0x400 more while 0x00759ADC is 0, the flag that also names the Torture
+    /// Wheel's art <c>g_</c>. GUESS: ours takes the flag as 1, matching the plain art it loads, but the
+    /// global has only reads (no writer found), so vanilla may well hold 0 and lift 0x400 higher
+    /// (open-questions.md Q635). That vtable
+    /// <c>+0x40</c> is the definition's <c>Height</c> is assumed.</summary>
+    public static Fp32 Height(Fp32 bodyHeight, int level,
+        StatusFlowerTortureLift torture = StatusFlowerTortureLift.None, bool holdsHeroSlot = false)
+    {
+        int raw = bodyHeight.Raw + (int)((uint)level * LevelLiftRawTimesTen / 10u);
+        raw += torture switch
+        {
+            StatusFlowerTortureLift.OffFloorSlot => TortureLiftOffSlot,
+            StatusFlowerTortureLift.OnFloorSlot => TortureLiftOnSlot,
+            _ => 0,
+        };
+        return new Fp32(holdsHeroSlot ? raw + HeroSlotLift : raw);
+    }
 }
 
 /// <summary>The centre's modes, creature <c>+0x388</c> (0x00596410).</summary>
@@ -184,18 +238,30 @@ public static class StatusFlowerCentre
     /// <summary>The status icon (0x00597270), the icon table at renderer <c>+0x124</c> indexed by
     /// its kind. A hero takes it from the world slot that holds it (trigger action 42): value 2
     /// SJ-Prison, 3 SJ-Torture, anything else SJ-Fighting, none when it holds no slot. Anyone else,
-    /// first match: unconscious (dying), stunned, afraid (not fearless and <c>CurrentFear</c> over the
-    /// scaled <c>Fear</c>). Left out: Leaving (<c>+0x3E6</c> bit 14, unmapped) and S-Gem (carrying
-    /// object type 0x1C, 0x0048B5C0).</summary>
+    /// first match: unconscious (dying), stunned, leaving (<c>+0x3E6</c> bit 14), afraid (not fearless
+    /// and <c>CurrentFear</c> over the scaled <c>Fear</c>), carrying a Portal Gem (0x0048B5C0).</summary>
     public static string? Status(bool hero, bool dying, bool stunned, bool fearless, int currentFear, int fearThreshold,
-        byte? heroSlotValue = null)
+        byte? heroSlotValue = null, bool leaving = false, bool carriesPortalGem = false)
     {
         if (hero) return heroSlotValue switch { null => null, 2 => "SJ-Prison", 3 => "SJ-Torture", _ => "SJ-Fighting" };
         if (dying) return "SJ-Unconscious";
         if (stunned) return "SJ-Stunned";
+        if (leaving) return "SJ-Leaving";
         if (!fearless && fearThreshold < currentFear) return "ST-Fear";
+        if (carriesPortalGem) return "S-Gem";
         return null;
     }
+
+    /// <summary>Our stand-in for <c>+0x3E6</c> bit 14 (<c>Leaving</c>): states 194–196. DK2 sets the
+    /// bit on entering 194 (0x00459DE0) and a rebellion clears it; we keep no bit, so a leaver that
+    /// is moved out of those states loses the icon here and not in DK2.</summary>
+    public static bool IsLeaving(CreatureState creature) =>
+        creature.Dk2StateId is >= LeavingRules.ChoosingState and <= LeavingRules.SackedState;
+
+    /// <summary>0x0048B5C0: the carried thing (<c>+0x3C3</c>) is an object of type 0x1C, the Portal Gem.</summary>
+    public static bool CarriesPortalGem(WorldState world, CreatureState creature) =>
+        creature.CarriedObjectId >= 0
+        && world.ObjectById(creature.CarriedObjectId)?.ObjectTypeId == TriggerExecutor.PortalGemObjectId;
 
     /// <summary>The job icon (0x00596FC0): No_Go within 5 s of a drop on a room, else by resolved
     /// category, worker states by id; null where DK2 falls back to the level.</summary>
@@ -317,7 +383,8 @@ public sealed class StatusFlowers
                 InCombat: !never && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Combat,
                 Mood: creature.Mood,
                 BelowSixthHealth: belowSixth,
-                InWindow: healthWindow || hoverWindow);
+                InWindow: healthWindow || hoverWindow,
+                MarkedForRemoval: creature.ManaRemovalStamp != 0);
             if (!StatusFlowerRules.Shows(facts)) continue;
             bool blink = belowSixth || healthWindow;
             bool neutral = creature.OwnerPlayerId == PlayerIds.Neutral;
@@ -326,14 +393,21 @@ public sealed class StatusFlowers
             var colour = new StatusFlowerColour(red, green, blue);
             if (blink && !neutral) colour = StatusFlowerRules.Blinked(colour, milliseconds, _blinkUntil);
             int maxHealth = CreatureHealthRules.MaxHealth(_database, definition, creature);
-            byte? slot = creature.OwnerPlayerId == PlayerIds.Good ? HeroSlotValue(world, creature.Id) : null;
-            var (icon, arcs) = Centre(creature, definition, turn, milliseconds, facts.Dying, slot);
+            // 0x00491B40 searches the world's slots for any creature; only heroes are put in them.
+            byte? slot = HeroSlotValue(world, creature.Id);
+            byte? heroSlot = creature.OwnerPlayerId == PlayerIds.Good ? slot : null;
+            int countdown = StatusFlowerRules.RemovalStep(creature.ManaRemovalStamp, turn);
+            var (icon, arcs) = Centre(world, creature, definition, turn, milliseconds, facts.Dying, heroSlot, countdown);
+            bool marked = RescuePriorityRules.IsMarked(creature, _viewer);
             _shown.Add(new StatusFlower(creature.Id, creature.Level, new PlayerId(creature.OwnerPlayerId),
-                colour, StatusFlowerRules.Height(definition.Height, creature.Level), blink,
+                colour, StatusFlowerRules.Height(definition.Height, creature.Level, TortureLift(world, creature),
+                    slot is not null), blink,
                 StatusFlowerRules.Ring(facts.Dying, creature.Health, maxHealth), icon, arcs,
                 StatusFlowerRules.ExperienceShare(creature.ExperiencePoints,
                     CreatureLevelRules.ExperienceForNextLevel(_database, definition, creature.Level)),
-                slot is null ? null : "Objective"));
+                heroSlot is null ? null : marked ? "Objective-2" : "Objective",
+                Imprison: marked,
+                DrawRing: countdown == 0 || StatusFlowerRules.CountdownRingOn(turn)));
         }
         Prune(turn);
         return _shown;
@@ -347,10 +421,29 @@ public sealed class StatusFlowers
         return null;
     }
 
-    /// <summary>Steps this creature's centre cycle when its 333 ms are up and picks the icon.</summary>
-    private (string Icon, bool Arcs) Centre(CreatureState creature, CreatureDef definition, GameTick turn,
-        long milliseconds, bool dying, byte? heroSlot)
+    /// <summary>0x005955C0's torture case: resolved category 15 and whether the cell under the
+    /// creature is a floor slot (Room_IsFloorSlot); a cell with no room is taken as not one.</summary>
+    private StatusFlowerTortureLift TortureLift(WorldState world, CreatureState creature)
     {
+        if (NeedRules.ResolvedCategory(creature) != CreatureStateCategory.Torture) return StatusFlowerTortureLift.None;
+        TilePos at = creature.Tile;
+        if (!world.Contains(at)) return StatusFlowerTortureLift.OffFloorSlot;
+        int index = (at.Y * world.Width) + at.X;
+        return RoomIndex.RoomAt(world, _database, index) is { } room && AutoFurnitureRules.IsFloorSlot(world, room, index)
+            ? StatusFlowerTortureLift.OnFloorSlot : StatusFlowerTortureLift.OffFloorSlot;
+    }
+
+    /// <summary>Steps this creature's centre cycle when its 333 ms are up and picks the icon. During
+    /// the removal countdown (0x005961A0) the cycle is not stepped and the centre is
+    /// <c>SL-0(6 − step)</c>, with the wedge when the held mode is the level.</summary>
+    private (string Icon, bool Arcs) Centre(WorldState world, CreatureState creature, CreatureDef definition,
+        GameTick turn, long milliseconds, bool dying, byte? heroSlot, int countdown)
+    {
+        if (countdown != 0)
+        {
+            StatusFlowerMode kept = _centre.TryGetValue(creature.Id, out var entry) ? entry.Mode : StatusFlowerMode.Level;
+            return (StatusFlowerCentre.LevelIcon(6 - countdown), kept == StatusFlowerMode.Level);
+        }
         bool hero = creature.OwnerPlayerId == PlayerIds.Good;
         var facts = new StatusFlowerCentreFacts(
             Hero: hero,
@@ -360,7 +453,9 @@ public sealed class StatusFlowers
             LargestAnger: StatusFlowerCentre.LargestAnger(creature.Anger),
             Status: StatusFlowerCentre.Status(hero, dying, StatusEffectRules.IsStunned(creature),
                 (definition.Flags & CreatureFlags.IsFearless) != 0, creature.CurrentFear,
-                FearRules.FearThreshold(_database, definition, creature.Level), heroSlot),
+                FearRules.FearThreshold(_database, definition, creature.Level), heroSlot,
+                leaving: StatusFlowerCentre.IsLeaving(creature),
+                carriesPortalGem: StatusFlowerCentre.CarriesPortalGem(world, creature)),
             Job: StatusFlowerCentre.Job(creature.DroppedOnARoom
                     && HandRules.LastDroppedCounter(creature, turn.Value) < SimulationTiming.TicksPerSecond * 5,
                 NeedRules.ResolvedCategory(creature), creature.Dk2StateId),

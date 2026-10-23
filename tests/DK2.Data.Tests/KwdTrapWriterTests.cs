@@ -17,7 +17,7 @@ public class KwdTrapWriterTests
             "ManufactureRequired:1FA:2 ShotTypeId:20D:1 CrateObjectId:20E:1 ManaUpkeepPerSecond:202:2 " +
             "Flags:1EC:4 TriggerType:20B:1 RangeTiles:1DC:4 RechargeSecondsRaw:1C8:4 " +
             "ChargeSecondsRaw:1CC:4 ThreatSecondsRaw:1D0:4 ManaCostToFire:1D4:4 " +
-            "ShotData1:1E0:4 ShotData2:1E4:4 ShotOffsetX:231:4 ShotOffsetY:235:4 ShotOffsetZ:239:4 HealthGain:241:2");
+            "ShotData1:1E0:4 ShotData2:1E4:4 ShotOffsetX:231:4 ShotOffsetY:235:4 ShotOffsetZ:239:4 HealthGain:241:2 NameStringId:208:2");
 
     [InstallFact]
     public void EveryShippedTrapTypedOverlayIsByteIdentical()

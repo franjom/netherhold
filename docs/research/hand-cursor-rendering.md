@@ -107,6 +107,23 @@ hit helper `0x00572820`, then calls `0x0044DEC0` as a fallback. Some implicit
 register arguments in the picker remain unresolved; do not turn this reading
 into an invented complete fog or ray-depth policy.
 
+**The rendered hit (CONFIRMED, read 2026-10-23).** Only meshes enter it. The static and
+animated mesh draws append themselves to a 256-entry screen list (`0x00769A78`: x, y, radius
+squared, item) when they carry a thing tag ([0x00572820](functions/00572820.md)), and
+[Thing_DrawRenderInfo](functions/0059B880.md) passes the tag only for: a creature whose definition
+has CanBePickedUp (`+0x686` bit 1) and is not dying (`+0x3E6` bit 21), while the sink's `+0xD1` is
+clear (unread); an object whose definition has CanBePickedUp, CanBeSlapped or Highlightable
+(`+0xF4` & 0x400300); any door or trap. Dead bodies and sprites never enter. `0x00572820` offers
+each listed item whose circle holds the pointer ([0x00588A60](functions/00588A60.md)) twice: first
+to its triangle test ([0x00585AD0](functions/00585AD0.md), static twin
+[0x00582D30](functions/00582D30.md)), which keeps the least mean vertex depth over the triangles
+under the pointer in one winding; only when no triangle is hit, to the centre test, the nearest
+mesh centre. Terrain is not in the list. The winner then becomes an entity hit only by its
+owner (read 2026-10-23, [0x005992B0](functions/005992B0.md)): a creature always (kind 2 own, 3
+other); a door (5) or trap (7) only the viewer's, another keeper's leaving the tile hit with no
+fallback; an object (4) by an ownership test not yet built; a dead body (6) never in practice,
+since none is listed. See world-hover-text.md and Q634.
+
 Fallback `0x0044DEC0` scans the clipped 3×3 neighbourhood row-major and each
 tile's thing list. Distance is `max(abs(dx),abs(dy))+min(abs(dx),abs(dy))/2`.
 Ordinary mode takes the first eligible creature strictly within half a tile,
@@ -115,8 +132,8 @@ rejecting definition byte `+0x36F == 0x2E`, flag `+0x3E6 & 0x200000` and states
 strictly within a quarter tile (definition flag `+0xF4 & 0x100` or object id13).
 A creature supersedes the object candidate. Object-only mode instead searches
 eligible objects within half a tile. This is not arbitrary same-tile picking.
-Rendered-bounds selection may approximate the first native rendered-hit stage,
-but is an adapter approximation until that stage's full depth contract is read.
+Built (2026-10-23) as `HoverPickRules` (both stages' eligibility) and `RenderedPick` (triangle hit
+over centre) in src/DK2.Presentation/HoverPickRules.cs, used by `DungeonScene.PickHoverEntity`.
 
 ## Implemented cursor subset and limits
 
@@ -126,11 +143,12 @@ instead of native per-axis integer scaling. The runner captures hover state
 before the worker tick starts; drawing reads retained presentation data only.
 Pointer hiding is restored on focus loss, disable and disposal.
 
-The adapter uses visible renderer bounds before a row-major distance fallback.
-Bounds are not native mesh intersections; fallback presentation poses do not
-yet reproduce native creature-state exclusions, object-definition eligibility
-or thing-list ordering within one tile. These are explicit picking limits, not
-confirmed equivalents of the complete native resolver. Held-item cursor
+The adapter's rendered stage offers each eligible creature, object, door and trap whose renderer
+bounds the ray crosses before the terrain plane, tests the posed mesh's triangles (either winding,
+exact ray distance rather than DK2's mean vertex depth), and falls back to the nearest bounds
+centre along the ray. Bounds stand in for DK2's screen circles, whose radius is unread; terrain
+still occludes, where DK2's list holds no terrain. The fallback sweep applies the native
+exclusions; thing-list order within one tile is not reproduced. Held-item cursor
 channels and transient tag/slap states 5/11 remain unimplemented; contextual
 Point/Idle/PickAxeHold selection does not change existing click commands.
 

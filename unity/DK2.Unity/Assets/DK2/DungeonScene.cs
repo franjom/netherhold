@@ -170,21 +170,38 @@ namespace DK2.Unity
             }
         }
 
-        public WorldHoverHit PickHoverEntity(Ray ray, float terrainDistance, TilePos tile, Vector3 pointerGround)
+        /// <summary>What the Hand points at (Hand_ResolveScreenTarget 0x005992B0): first the rendered
+        /// hit, every mesh <paramref name="rendered"/> admits whose bounds the ray crosses before the
+        /// terrain, the nearest triangle under the pointer winning over the nearest centre
+        /// (<see cref="RenderedPick"/>); then the 3×3 sweep (0x0044DEC0) over what
+        /// <paramref name="fallback"/> admits. A rendered winner <paramref name="resolves"/> refuses (another
+        /// keeper's door or trap) leaves the tile hit without trying the sweep, as 0x005992B0 does. Null
+        /// filters admit everything. Bounds stand in for DK2's screen circles, and the ray distance for
+        /// its mean vertex depth. The triangle test reads the MeshFilter's mesh, which for a creature
+        /// holds the posed vertices (ClassicCreatureAnimation sets them each frame); a renderer without
+        /// one (a placeholder) gets the centre test only.</summary>
+        public WorldHoverHit PickHoverEntity(Ray ray, float terrainDistance, TilePos tile, Vector3 pointerGround,
+            System.Func<WorldHoverKind, int, bool> rendered = null, System.Func<WorldHoverKind, int, bool> fallback = null,
+            System.Func<WorldHoverKind, int, bool> resolves = null)
         {
             WorldHoverHit hit = new WorldHoverHit(WorldHoverKind.Tile, tile);
-            float nearest = terrainDistance;
+            _pickCandidates.Clear();
+            var pick = new RenderedPick();
             foreach (var entry in _creatures)
-                TestBounds(entry.Value, WorldHoverKind.Creature, entry.Key, _creaturePoses[entry.Key].Tile);
+                Offer(entry.Value, new WorldHoverHit(WorldHoverKind.Creature, _creaturePoses[entry.Key].Tile, entry.Key));
             foreach (var entry in _objects)
                 if (_objectPoses.TryGetValue(entry.Key, out ObjectView pose)
                     && ObjectHoverHighlight.IsHoverTarget(entry.Key, pose.ObjectTypeId))
-                    TestBounds(entry.Value, WorldHoverKind.Object, entry.Key, pose.Tile);
+                    Offer(entry.Value, new WorldHoverHit(WorldHoverKind.Object, pose.Tile, entry.Key));
             foreach (var entry in _structures)
                 if (_structureTiles.TryGetValue(entry.Key, out TilePos at))
-                    TestBounds(entry.Value, entry.Key.Kind == StructureKind.Door ? WorldHoverKind.Door : WorldHoverKind.Trap,
-                        entry.Key.Value, at);
-            if (hit.Kind != WorldHoverKind.Tile) return hit;
+                    Offer(entry.Value, new WorldHoverHit(entry.Key.Kind == StructureKind.Door ? WorldHoverKind.Door : WorldHoverKind.Trap,
+                        at, entry.Key.Value));
+            if (pick.TryResult(out int picked, out _))
+            {
+                WorldHoverHit winner = _pickCandidates[picked];
+                return resolves == null || resolves(winner.Kind, winner.EntityId) ? winner : hit;
+            }
 
             var pointer = new FpPosition3(new Fp32((int)(pointerGround.x * Fp32.One)),
                 new Fp32((int)(-pointerGround.z * Fp32.One)), new Fp32(0));
@@ -194,11 +211,13 @@ namespace DK2.Unity
                 {
                     foreach (var entry in _creaturePoses)
                         if (entry.Value.Tile == new TilePos(x, y) && _creatures.TryGetValue(entry.Key, out GameObject go)
-                            && go != null && go.activeSelf && Distance(go) < Fp32.One / 2)
+                            && go != null && go.activeSelf && Distance(go) < Fp32.One / 2
+                            && (fallback == null || fallback(WorldHoverKind.Creature, entry.Key)))
                             return new WorldHoverHit(WorldHoverKind.Creature, entry.Value.Tile, entry.Key);
                     foreach (var entry in _objectPoses)
                         if (ObjectHoverHighlight.IsHoverTarget(entry.Key, entry.Value.ObjectTypeId) && entry.Value.Tile == new TilePos(x, y)
-                            && _objects.TryGetValue(entry.Key, out GameObject go) && go != null && go.activeSelf)
+                            && _objects.TryGetValue(entry.Key, out GameObject go) && go != null && go.activeSelf
+                            && (fallback == null || fallback(WorldHoverKind.Object, entry.Key)))
                         {
                             int distance = Distance(go);
                             if (distance < closestObject)
@@ -216,14 +235,59 @@ namespace DK2.Unity
                 return HandHoverDistance.Between(pointer, new FpPosition3(new Fp32((int)(point.x * Fp32.One)),
                     new Fp32((int)(-point.z * Fp32.One)), new Fp32(0)));
             }
-            void TestBounds(GameObject go, WorldHoverKind kind, int id, TilePos at)
+            void Offer(GameObject go, WorldHoverHit candidate)
             {
                 if (go == null || !go.activeSelf || !go.TryGetComponent<Renderer>(out Renderer renderer)) return;
-                if (renderer.bounds.IntersectRay(ray, out float distance) && distance < nearest)
+                if (!renderer.bounds.IntersectRay(ray, out float entryDistance) || entryDistance >= terrainDistance) return;
+                if (rendered != null && !rendered(candidate.Kind, candidate.EntityId)) return;
+                float? triangle = go.TryGetComponent(out MeshFilter filter) && filter.sharedMesh != null
+                    ? NearestTriangle(filter.sharedMesh, go.transform, ray, terrainDistance) : null;
+                pick.Offer(_pickCandidates.Count, triangle, Vector3.Dot(renderer.bounds.center - ray.origin, ray.direction));
+                _pickCandidates.Add(candidate);
+            }
+        }
+
+        private readonly List<WorldHoverHit> _pickCandidates = new List<WorldHoverHit>();
+        private readonly List<Vector3> _pickVertices = new List<Vector3>();
+        private readonly List<int> _pickTriangles = new List<int>();
+
+        /// <summary>The ray distance to the nearest triangle of <paramref name="mesh"/> it crosses before
+        /// <paramref name="limit"/>, either winding, or null (Möller-Trumbore in the mesh's own space; an
+        /// affine transform keeps the ray parameter). A mesh the CPU cannot read counts as missed.
+        /// DK2 (0x00585AD0) accepts one screen winding only (all three edge products &lt;= 0); which of
+        /// our windings that is has not been mapped through the KMF import and DK2's projection, so
+        /// both are taken. A ray through a closed mesh meets its near side first either way, so this
+        /// differs only where the pointer reaches a triangle's back alone.</summary>
+        private float? NearestTriangle(Mesh mesh, Transform transform, Ray ray, float limit)
+        {
+            if (!mesh.isReadable) return null;
+            Matrix4x4 toLocal = transform.worldToLocalMatrix;
+            Vector3 origin = toLocal.MultiplyPoint3x4(ray.origin), direction = toLocal.MultiplyVector(ray.direction);
+            mesh.GetVertices(_pickVertices);
+            float best = limit;
+            bool found = false;
+            for (int sub = 0; sub < mesh.subMeshCount; sub++)
+            {
+                mesh.GetTriangles(_pickTriangles, sub);
+                for (int i = 0; i + 2 < _pickTriangles.Count; i += 3)
                 {
-                    nearest = distance; hit = new WorldHoverHit(kind, at, id);
+                    Vector3 a = _pickVertices[_pickTriangles[i]];
+                    Vector3 ab = _pickVertices[_pickTriangles[i + 1]] - a, ac = _pickVertices[_pickTriangles[i + 2]] - a;
+                    Vector3 p = Vector3.Cross(direction, ac);
+                    float det = Vector3.Dot(ab, p);
+                    if (det > -1e-9f && det < 1e-9f) continue;
+                    float inv = 1f / det;
+                    Vector3 s = origin - a;
+                    float u = Vector3.Dot(s, p) * inv;
+                    if (u < 0f || u > 1f) continue;
+                    Vector3 q = Vector3.Cross(s, ab);
+                    float v = Vector3.Dot(direction, q) * inv;
+                    if (v < 0f || u + v > 1f) continue;
+                    float t = Vector3.Dot(ac, q) * inv;
+                    if (t > 0f && t < best) { best = t; found = true; }
                 }
             }
+            return found ? best : (float?)null;
         }
 
         /// <summary>

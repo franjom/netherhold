@@ -60,17 +60,15 @@ public sealed class WorldHoverText
             return new(_resolve(2473), _resolve(348), hit);
         if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is { } creature)
             return Creature(creature, hit, personalName);
+        if (hit.Kind == WorldHoverKind.Door && world.DoorById(hit.EntityId) is { } door
+            && _database.Doors.TryGetValue(door.DoorId, out DoorDef? doorDef))
+            return Door(door, doorDef, hit);
+        if (hit.Kind == WorldHoverKind.Trap && world.TrapById(hit.EntityId) is { } trap
+            && _database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef))
+            return Trap(trap, trapDef, hit);
         if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is { } obj
             && _database.ObjectById(obj.ObjectTypeId) is { NameStringId: > 0 } definition)
-        {
-            string status = definition.TooltipStringId == 0 ? "" : Substitute(_resolve(definition.TooltipStringId), _tokens);
-            if (obj.ObjectTypeId is 1 or 2 or 3)
-            {
-                _tokens[73] = Number(obj.GoldHeld);
-                status = Substitute(_resolve(obj.ObjectTypeId == 3 ? 2543u : 2544u), _tokens);
-            }
-            return new(status, _resolve(definition.NameStringId), hit);
-        }
+            return new(ObjectStatus(world, obj, definition), _resolve(definition.NameStringId), hit);
         // Ours keeps a store tile's gold in the tile and draws DK2's Gold Pile 1 as a decoration
         // (WorldView.StorePiles); hovered, it reads as that object would: "%73 Gold" (SHOT0228).
         if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId)
@@ -123,10 +121,97 @@ public sealed class WorldHoverText
         return new(Substitute(_resolve(definition.DescriptionStringId), tokens), "", default);
     }
 
+    /// <summary><c>0x0049C8C0</c>: the definition's tooltip, except loose gold (1/2: 2544, 3: 2543 with
+    /// %73), the Casino lever 95 (2508 generous, 2509 rigged, from its room's payout setting) and the
+    /// Prison bolt 116 (2503 closed, 2504 taking captives, from its room's activation). A fixture
+    /// with no linked room has empty status; ours links the room the object stands in.</summary>
+    private string ObjectStatus(WorldState world, ObjectState obj, ObjectDef definition)
+    {
+        switch (obj.ObjectTypeId)
+        {
+            case 1 or 2 or 3:
+                _tokens[73] = Number(obj.GoldHeld);
+                return Substitute(_resolve(obj.ObjectTypeId == 3 ? 2543u : 2544u), _tokens);
+            case AutoFurnitureRules.CasinoLeverObjectId:
+                return RoomAt(obj.TileIndex) is null ? "" : _resolve(obj.Setting == 0 ? 2508u : 2509u);
+            case PrisonBoltObjectId:
+                return RoomAt(obj.TileIndex) is { } prison
+                    ? _resolve((JailBreakRules.DoorOf(world, prison) & JailBreakRules.Activated) != 0 ? 2504u : 2503u) : "";
+            default:
+                return definition.TooltipStringId == 0 ? "" : Substitute(_resolve(definition.TooltipStringId), _tokens);
+        }
+    }
+
+    /// <summary>The Prison door's bolt object, the second fixture arm of <c>0x0049C8C0</c>.</summary>
+    public const int PrisonBoltObjectId = 116;
+
+    private RoomInstance? RoomAt(int tileIndex)
+    {
+        foreach (RoomInstance room in _rooms)
+            if (room.Contains(tileIndex)) return room;
+        return null;
+    }
+
+    /// <summary><c>0x004A68C0</c> (door vtable <c>0x0066D6EC</c> +0x4C): a blueprint reads 2512 with %68 the
+    /// name; another keeper's door its bare name (unreachable through the Hand pick, which resolves
+    /// only the viewer's own door: <see cref="HoverPickRules.Resolves"/>); an owned barricade 2536; any other owned door 2532 with
+    /// %68 name, %37 health and %72 its lock mode (2515 open to yours, 2516 locked).</summary>
+    private HoverTextSnapshot Door(DoorState door, DoorDef definition, WorldHoverHit hit)
+    {
+        string name = definition.NameStringId == 0 ? "" : _resolve(definition.NameStringId);
+        _tokens[68] = name;
+        _tokens[37] = Number(HealthPercent(door.Health, definition.Health));
+        if (door.UnderConstruction) return new(Substitute(_resolve(2512), _tokens), name, hit);
+        if (door.PlayerId != _viewer.Value) return new(name, name, hit);
+        if (definition.Flags.HasFlag(DoorFlags.Barricade)) return new(Substitute(_resolve(2536), _tokens), name, hit);
+        _tokens[72] = _resolve(door.LockMode != 0 ? 2516u : 2515u);
+        return new(Substitute(_resolve(2532), _tokens), name, hit);
+    }
+
+    /// <summary><c>0x004A9B70</c> (trap vtable <c>0x0066D754</c> +0x4C): a blueprint reads 2512; another
+    /// keeper's trap its bare name; an owned Guard Post (flag 0x800) 2538; any other owned trap 2527 with
+    /// %68 name, %37 health, %25 mana drain (<c>def+0x96</c>), %26 mana to fire (<c>def+0x9A</c>) and
+    /// %71 always 2514.</summary>
+    private HoverTextSnapshot Trap(TrapState trap, TrapDef definition, WorldHoverHit hit)
+    {
+        string name = definition.NameStringId == 0 ? "" : _resolve(definition.NameStringId);
+        _tokens[68] = name;
+        _tokens[37] = Number(HealthPercent(trap.Health, definition.Health));
+        _tokens[25] = Number((short)definition.ManaUpkeepPerSecond);
+        _tokens[26] = Number(definition.ManaCostToFire);
+        if (trap.UnderConstruction) return new(Substitute(_resolve(2512), _tokens), name, hit);
+        if (trap.PlayerId != _viewer.Value) return new(name, name, hit);
+        if ((definition.Flags & TrapRules.GuardPostBranch) != 0) return new(_resolve(2538), name, hit);
+        _tokens[71] = _resolve(2514);
+        return new(Substitute(_resolve(2527), _tokens), name, hit);
+    }
+
+    /// <summary>The structure health percentage of <c>0x004A68C0</c>/<c>0x004A9B70</c>: 12.12 fixed
+    /// 100 / definition health (100 when that is 0, <c>0x00441990</c>), times health
+    /// (<c>0x004363F0</c>), truncated toward zero.</summary>
+    public static int HealthPercent(int health, int definitionHealth)
+    {
+        Fp32 ratio = definitionHealth == 0 ? new Fp32(100 << 12)
+            : new Fp32((int)(((long)(100 << 12) << 12) / ((long)definitionHealth << 12)));
+        int product = (new Fp32(health << 12) * ratio).Raw;
+        return (product + (product < 0 ? 0xFFF : 0)) >> 12;
+    }
+
     private HoverTextSnapshot Creature(CreatureState creature, WorldHoverHit hit, string personalName)
     {
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string kind = _resolve(definition.NameStringId);
+        if (CreatureDeathRules.IsCorpse(creature))
+        {
+            // DK2's dead body (class 6, 0x004B1740): 2791 with %30 the type name and %88 its level.
+            // %29 is written only for a special-name definition (+0x895), which is not modelled;
+            // for others DK2 leaves that buffer unwritten, so ours printing it empty is a GUESS
+            // (Q634). Unreachable in play: neither DK2's Hand pick (0x005992B0) nor ours returns
+            // a corpse, so no hover ever gets here.
+            _tokens[30] = kind;
+            _tokens[88] = Number(creature.Level);
+            return new(Substitute(_resolve(2791), _tokens), kind, hit);
+        }
         _tokens[29] = personalName;
         _tokens[30] = kind;
         if (creature.OwnerPlayerId == PlayerIds.Good)

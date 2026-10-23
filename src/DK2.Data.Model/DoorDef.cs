@@ -35,6 +35,10 @@ public sealed record DoorDef
     /// <summary>The flags byte at record offset 0x228, runtime <c>def+0x8B</c>
     /// (doors-and-traps.md, "Door runtime behavior").</summary>
     public DoorFlags Flags { get; init; }
+
+    /// <summary>Text.str id of the door's name, record offset 0x23C, runtime <c>def+0xA1</c>
+    /// (loader <c>0x004A7100</c>); the hover status <c>0x004A68C0</c> and popup <c>0x0042D4A0</c> read it.</summary>
+    public ushort NameStringId { get; init; }
 }
 
 /// <summary>The door record's flags byte. Named by which shipped records carry each bit: the

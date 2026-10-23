@@ -22,6 +22,7 @@ public static class KwdDoors
         BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(OffsetHealthGain), record.HealthGain);
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetGoldCost), record.GoldCost);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetManufactureRequired), record.ManufactureRequired);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetNameStringId), record.NameStringId);
         return bytes;
     }
     private const int RecordSize = 616;
@@ -35,6 +36,7 @@ public static class KwdDoors
     private const int OffsetManufactureRequired = 0x234;
     private const int OffsetDoorId = 0x244;
     private const int OffsetCrateObjectId = 0x246;
+    private const int OffsetNameStringId = 0x23C;
 
     public static List<DoorDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -68,6 +70,7 @@ public static class KwdDoors
         ManufactureRequired = BinaryPrimitives.ReadUInt32LittleEndian(
             record.AsSpan(at + OffsetManufactureRequired)),
         Flags = (DoorFlags)record[at + OffsetFlags],
+        NameStringId = U16(record, at + OffsetNameStringId),
     };
 
     private static ushort U16(byte[] record, int at) =>

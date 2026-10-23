@@ -9,10 +9,13 @@ stays under `reverse-engineering/hover-*`. Function records carry the verdicts.
 The top strip callback `0x0042E140` runs the world status producer
 `0x0042D1F0`, or the GUI status producer when a widget owns the pointer. The
 world path checks tile exploration before entity details. Entity hit kinds
-2/3, 4, 5, 6, 7 select creatures, objects, doors, traps and shots respectively;
-the live thing must also have its expected class. An object with no definition
-name string falls through. Without an eligible entity, a room takes precedence
-over terrain. Unexplored terrain takes the fog description.
+2/3, 4, 5, 6, 7 select creatures (class 0), objects (2), doors (4), dead bodies
+(6) and traps (3); the live thing must have that class, and its vtable +0x4C
+formatter writes the status. Shots have no hit kind. An object with no
+definition name string falls through. Without an eligible entity, a room takes
+precedence over terrain. A tile with byte +0xB bit 0 reads 2481 / 2480 ("Enemy
+Wall") in place of its terrain text; that bit's writer is unread and the arm is
+unbuilt. Unexplored terrain takes the fog description.
 
 The near-cursor popup renderer `0x0042E590` calls a different producer,
 `0x0042D4A0`: short names, rather than the status description. That producer
@@ -121,12 +124,59 @@ The Hatchery room template has no food-count field; chicken and fixture hover
 are separate object branches. A ruined Heart returns empty ordinary status.
 
 `0x0049C8C0` uses object definition TooltipStringId normally. Gold types 1/2
-use 2544 and type 3 uses 2543, substituting its gold amount at `%73`. Casino
-and prison fixtures have special room-state-dependent branches. Object
+use 2544 and type 3 uses 2543, substituting its gold amount at `%73`. Its jump
+table (types 1–116) has two fixture arms, both reading the room tagged at
+object +0x138: the Casino lever 95 reads 2508 when the room's payout setting
+(`0x004D6880`) is 0, else 2509; the Prison bolt 116 reads 2503 when the room's
+activation +0x59 is 0, else 2504. With no linked room the status is empty.
+Ours links the room the object stands in and reads the lever's mirrored
+Setting; the bolt is not spawned by our simulation yet. Crates, chickens,
+spell books and other objects use the default tooltip. Object
 NameStringId is a separate field and controls short popup eligibility.
 A hovered store pile (the Treasury or Heart gold decoration) reads "N Gold"
 (string 2543, the tile's gold), as a type 3 object would; see
 [gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §5.
+
+## Doors, traps and dead bodies — CONFIRMED
+
+Read 2026-10-23 from the vtable slots +0x4C. Tokens are raw id + 1, as above.
+Health `%37` is the 12.12 ratio 100 / definition health (`0x00441990`, IDIV,
+truncating; 100 when the health is 0) times current health, shifted right 12
+toward zero. A 2000-health Wooden Door at full health therefore reads **99%**
+(not yet compared on screen).
+
+| thing | formatter | blueprint | other keeper | owned |
+|---|---|---|---|---|
+| door | `0x004A68C0` | 2512, `%68` name | bare name | barricade (def+0x8B bit 0x40): 2536 `%37`; else 2532 `%68 %37 %72` |
+| trap | `0x004A9B70` | 2512, `%68` name | bare name | Guard Post (flag 0x800): 2538; else 2527 `%68 %37 %25 %26 %71` |
+
+Door `%72` is 2515 when lock mode +0x111 is 0, else 2516. Trap `%25` is the
+signed upkeep word def+0x96, `%26` mana to fire def+0x9A, and `%71` is always
+2514 ("Concealed until triggered."). Both templates end `%72.` / `%71.`, so the
+sentence's own full stop doubles (read from the code, not seen on screen: Q624). The "Enemy Door/Trap" strings 2540/2542 are not
+used by these formatters. Names: door def+0xA1 (record 0x23C), trap def+0xA8
+(record 0x208), now `DoorDef`/`TrapDef.NameStringId`. The popup uses the same names.
+
+**Which arms the Hand can reach (read 2026-10-23).** The status producer takes its hit kind
+from interface `+0x1084`/`+0x1088`, the kind and id of the pick struct at `+0x1068` that
+`0x0040BFF0` hands to the view's pick (vtable +0x48, `0x005992B0`); the only other store is
+`0x0040C600`'s 300 ms restore of a saved kind 2 or 3. `0x005992B0` gives kind 5 or 7 only to a
+door or trap **the viewer owns** (thing `+0x28`): another keeper's leaves the tile hit, so the
+"other keeper" column above is unreachable through the Hand, and ours now does the same
+(`HoverPickRules.Resolves`). It gives kind 6 only to a class-6 thing that won the rendered
+first pass, and no dead body is ever in the rendered list ([0x0059B880](functions/0059B880.md)
+clears its tag; [0x0059D260](functions/0059D260.md) passes none), while the fallback
+`0x0044DEC0` returns only creatures and objects. **So 2791 is unreachable through the Hand
+pick**; any other source of kind 6 is unread (Q634).
+
+The dead body (`0x004B1740`) formats 2791, "It's the dead body of %29 a level %88
+%30.": `%30` its creature type name, `%88` its level +0x12D. `%29` is filled only
+for a definition with special name +0x895 (unmodelled); otherwise this function
+never writes that buffer, so what DK2 prints there is unread, and ours prints it empty
+(a GUESS, Q634). No owner test. The popup name is the type name, with no +0x895
+override. `WorldHoverText` formats it for `CreatureDeathRules.IsCorpse`, but our picker,
+like DK2's, never returns a corpse, so it is kept unreachable.
+The shot formatter `0x004B5C20` writes an empty string.
 
 ## Original fonts, artwork and geometry
 
@@ -173,9 +223,13 @@ owner's choice, not DK2's: the strip uses the largest shipped size within height
 vertically centred, and the popup half that, height/120. On 2026-10-19 the owner
 approved that size and rejected a DK2-proportioned height/96, top-aligned trial. Scrolling is time-based at 60 pixels
 per second, approximating the original's one-pixel-per-callback motion.
-Ordinary room templates and their supported state substitutions are built as
-described above. Special object branches, creature personal-name generation, shots and structure status
-producers also remain incomplete. Unsupported substitutions are omitted rather
+Ordinary room templates, doors, traps, dead bodies and the Casino/Prison
+fixture branches are built as described above; the dead-body line and the
+other-keeper door and trap names are formatted but, as in DK2, no pick reaches
+them. Still unbuilt: the special creature name +0x895 (popup override and
+dead-body `%29`), the tile +0xB bit 0 "Enemy Wall" arm, and the resolver's object
+ownership arm (`0x005992B0` kind 4: an object hovers only when the viewer, or the
+player its vtable +0xC4 names on a tile one of them owns, owns it). Unsupported substitutions are omitted rather
 than displaying raw localization tokens. See `fog-of-war.md` for fog assets.
 
 The Unity integration captures text after presenting settled poses and before
@@ -187,8 +241,11 @@ row-major 3×3 tile neighbourhood, with the researched octagonal distance:
 first creature within half a tile, otherwise closest object within a quarter
 tile. Within-tile ordering follows retained presentation dictionaries, not
 DK2's thing-chain order; interpolated Unity positions supply the distance.
-Decorative objects without simulation ids and structures are not entity picks;
-they fall back to room or terrain text. World tooltips use entity identity, a
+Decorative objects without simulation ids are not entity picks; they fall back
+to room or terrain text. Doors and traps are, but only the viewer's own resolve
+(`0x005992B0`); another keeper's leaves the tile. The triangle test takes both
+windings, where `0x00585AD0` takes one whose mapping onto ours is unread, and a
+renderer without a readable MeshFilter mesh gets the centre test only. World tooltips use entity identity, a
 room's canonical first tile or the terrain tile itself; this preserves timing
 within a room but does not reproduce native tag reuse or terrain x+y collisions.
 The asset provider currently uses `Text/Default`, consistent with the existing

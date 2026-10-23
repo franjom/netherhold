@@ -45,8 +45,19 @@ The assets are in `GUI\moods\` (EngineTextures; loader [00596850](functions/0059
 4. Then:
    - the height (0x005955C0);
    - the colour (0x005956E0);
-   - the ring (0x005958F0, then 0x00596EB0; the ring index is unread);
+   - the ring ([005958F0](functions/005958F0.md), then 0x00596EB0);
    - the creature centre (0x005961A0).
+
+**Size, anchor, blend (size CONFIRMED; anchor and blend inferred; read 2026-10-23).** Every mood icon is loaded as a type-2 sprite
+with descriptor size 0x1000, or 0x2000 for Imprison and both Objectives, on an `A_` material
+([00596850](functions/00596850.md); only its kind-2 argument is read, so that the material is
+`A_` is inferred): SRCALPHA/INVSRCALPHA, depth-tested, no depth write, texture
+times vertex colour ([0057C420](functions/0057C420.md), [00589250](functions/00589250.md)). The
+billboard draw [0059C360](functions/0059C360.md) makes it scale × descriptor in 12.12 over 4096:
+**a quarter tile across** (half for the large three; halved again while possessing), a square.
+That it is centred on the lifted point is inferred: 0x0059C360 moves a sprite (by half its height)
+only with art flag 0x40, which no mood art has, and the quad's own anchor is unread. Whether the overlay's sprite takes
+the tile's light list (Q609) is unread.
 
 ### When an own creature's flower shows (0048E830, CONFIRMED)
 
@@ -90,13 +101,14 @@ So pointing at any creature shows its flower, and the flower lingers ¾ s after 
 - It blinks on a 333-unit triangle wave below max/6 health, or for ¾ s after a health change (`+0x3C`).
 
 **Height** ([005955C0](functions/005955C0.md)):
-- Creature vtable `+0x40`, plus level × 0x600/10 (0.15 tile per level).
-- Sleeping (category 15): +0x580, or +0x280 on a bed slot.
-- +0x80 if 0x00491B40 ≠ -1.
+- Creature vtable `+0x40`, plus level × 0x600/10 (0.0375 tile per level).
+- Torture (category 15): +0x580 when the cell under it is not a floor slot, else +0x280, plus
+  0x400 more while 0x00759ADC is 0. That global (23 reads, no direct store found) also gives the
+  Torture Wheel and Electric Chair their `g_` art unless it is 1. Its vanilla value is unknown
+  (Q635): a zero-initialised global would be 0.
+- +0x80 when 0x00491B40 finds the creature in a world slot (trigger action 42).
 
-The flower is a world sprite that scales with distance. Facing the camera is STRONGLY INFERRED.
-
-## 3. Built (passes 1 and 2)
+## 3. Built (passes 1 to 3)
 
 `StatusFlowerRules`, `StatusFlowerCentre` and `StatusFlowers` (src/DK2.Presentation/StatusFlowers.cs) decide who shows a flower and what it shows; `ClassicStatusFlowers` (Unity) draws the ring and the centre as camera-facing quads. Both ¾ s windows live in presentation, keyed by creature id: the hover from the Hand's hover id in any tool, the health change from the health seen at each capture. Nothing simulated reads the native `+0x38`.
 
@@ -108,15 +120,22 @@ Read and built (pass 2, 2026-10-20):
 - The owner confirmed (2026-10-20) that a knocked-out creature keeps its flower, own or enemy, and that an imprisoned enemy shows one; both follow from [0048E830](functions/0048E830.md).
 
 Approximated:
-- The ring is coloured by `saturate(2·luminance)` × the colour, not by the texel: the owner's screenshot shows flat petals at about 0.96 of the palette entry (221,49,49 against 230,50,50), where a plain multiply of the pale H-xx art gives a dull grey-red. The centre is a plain multiply. The engine's sprite blend is unread.
-- The flower is 0.259 tile across: 0.4 eyeballed from the owner's screenshot, then 10%, 10% and 20% smaller on three owner comparisons. It is halved while possessing.
+- The ring is coloured by `saturate(2·luminance)` × the colour, not by the texel: the owner's screenshot shows flat petals at about 0.96 of the palette entry (221,49,49 against 230,50,50), where a plain multiply of the pale H-xx art gives a dull grey-red. The centre is a plain multiply. The blend itself matches DK2's (§2); a plain multiply would be DK2's too unless the sprite adds the tile's lights (Q609), which may be what brightens the petals.
 - The body height is taken to be the definition's `Height`, as vtable `+0x40`.
 - A health change seen at settled turn T is taken to be stamped at T. Native turn numbering is not matched.
 
+Read and built (pass 3, 2026-10-23), each from state ours already keeps:
+- **Removal countdown**: `+0x4B3` is our `ManaRemovalStamp`. It shows the flower; the centre is `SL-0(6 − step)` with step ([0048F110](functions/0048F110.md)) 1 at the stamp, one more a game second, 5 from five seconds; the cycle is not stepped; the ring shows only on the second half of each game second ([0048F0F0](functions/0048F0F0.md)).
+- **Imprison tag and Objective-2**: `+0x3F7` is our `RescuePriorityMask`. With the viewer's bit set the Imprison icon is drawn over the centre ([005961A0](functions/005961A0.md)) and a slotted hero's ring is `Objective-2` ([00596770](functions/00596770.md)).
+- **Leaving and S-Gem** ([00597270](functions/00597270.md)): S-Gem when the carried object is the Portal Gem (object 28, [0048B5C0](functions/0048B5C0.md)); Leaving in states 194–196. DK2's bit 14 is set on entering 194 and cleared only by a rebellion, so a leaver moved out of those states keeps its icon in DK2 and not here.
+- **Lifts**: torture and +0x80 for a slot holder. The on-slot torture lift takes 0x00759ADC as 1, to match the plain device art ours loads; that is a GUESS, since the global has no writer found and may be 0 in vanilla, which would lift the flower 0x400 (a quarter tile) higher (Q635).
+- **Size**: 0.25 tile from the descriptor, replacing the 0.259 the owner's three comparisons had reached by eye; icons are no longer sized by their texture width.
+
 Left out:
-- The global gate (player `+0x76`, mode 0x0075AD4B), the trigger window `+0x4B7` and the removal countdown `+0x4B3` ([0048F110](functions/0048F110.md), drawn as SL-05..SL-01 with a flashing ring): our state has none of them.
-- The sleeping and 0x00491B40 lifts, the sneaking disguise colour.
-- Status icons Leaving (`+0x3E6` bit 14, unmapped) and S-Gem (carrying object type 0x1C, [0048B5C0](functions/0048B5C0.md)); the Imprison tag and Objective-2 (`+0x3F7`); the casino winner's Dollar mesh.
+- The global gate (player `+0x76`, mode 0x0075AD4B): unread meaning.
+- The trigger window `+0x4B7`: creature trigger action 30 sets it to turn + seconds × the action value ([0049AC80](functions/0049AC80.md), arm 0x0049AF08). Ours does not run that action, so there is no field to read.
+- The casino winner (`+0x3F2`, our `JackpotDeadlineTicks`): no ring, no centre, an animated `Dollar` mesh (kind 6) at render scale 0x1000. Needs animated-mesh playback in the flower draw; its size and rate are unread.
+- The sneaking disguise colour.
 - A possession hover. The adapter has no possession camera, so while possessing, only the creature under the ordinary Hand pointer shows a flower.
 
 Inferred, not read: `+0x3E6` bit 0x200000 ("always") is mapped to our falling/dying states or
@@ -126,7 +145,5 @@ health ≤ 0, but 0x004B2CE0 sets it with a positive `+0x40` on collapse, so the
 ## 4. Open
 
 - The owner's first screenshot (2026-10-20) shows a red keeper's level badge white, where the code and two later captures tint it. It was taken with the Hand on the creature; whether hovering changes the centre's colour is unread.
-- The wedge's orientation in the code: 0x005966B0 anchors the full-colour arc at angle 0x400 of a 0x800 turn, and which screen direction that is depends on 0x00594E10 and the quad's texture order, unread. The build follows the captures and the owner (clockwise from 12).
-- The flower sprite's blend.
-- The flower's world size, and whether it is anchored at its centre or its base.
-- What `+0x4B7` (trigger window), `+0x4B3` (removal countdown), `+0x3E6` bit 14 and state 0x110 map to in our state.
+- The wedge's orientation: [00595990](functions/00595990.md) puts angle 0 at camera +y and 0x400 at −y, and [005966B0](functions/005966B0.md) grows the full-colour arc from 0x400 by the share, so the wedge starts at the top and grows clockwise **if** camera +x is right and +y down (the billboard reading, [object-drawing.md](object-drawing.md) §10; 0x00594E10's matrix is not traced). LIKELY, and it agrees with the captures and the owner.
+- What state 0x110 is.
