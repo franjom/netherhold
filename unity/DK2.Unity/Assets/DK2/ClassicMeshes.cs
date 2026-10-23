@@ -423,7 +423,15 @@ namespace DK2.Unity
         public Material HoverOverlay() => _hoverOverlay ??= Additive("AA_RedTexture", HoverOverlayColour);
 
         /// <summary>The additive pass over every tagged piece: flat <see cref="TagOverlayColour"/>.</summary>
-        public Material TagOverlay() => _tagOverlay ??= Additive("AA_BlueTexture", TagOverlayColour);
+        public Material TagOverlay()
+        {
+            if (_tagOverlay != null) return _tagOverlay;
+            _tagOverlay = Additive("AA_BlueTexture", TagOverlayColour);
+            _tagOverlay.SetOverrideTag("DK2TagOverlay", "dig");
+            return _tagOverlay;
+        }
+
+        public static bool IsTagOverlay(Material material) => material.GetTag("DK2TagOverlay", false) == "dig";
 
         private static Material Additive(string name, Color colour)
         {

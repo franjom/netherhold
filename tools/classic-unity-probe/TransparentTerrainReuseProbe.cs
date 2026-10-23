@@ -87,6 +87,7 @@ namespace DK2.Unity.Editor
                         for (int run = 0; run < expected.Count; run++)
                         {
                             MeshRenderer renderer = renderers[run];
+                            if (renderer.sortingOrder != run + 1) throw new Exception("Ordinary terrain ordering changed.");
                             if (renderer.sharedMaterial != materials[expected[run].MaterialIndex]) throw new Exception("Material mismatch.");
                             Mesh mesh = renderer.GetComponent<MeshFilter>().sharedMesh;
                             Vector3[] vertices = mesh.vertices, meshNormals = mesh.normals;

@@ -186,7 +186,10 @@ namespace DK2.Unity
                 if (!run.Object.activeSelf) run.Object.SetActive(true);
                 Material material = _materials[ordered[i].MaterialIndex];
                 if (run.Renderer.sharedMaterial != material) run.Renderer.sharedMaterial = material;
-                if (run.Renderer.sortingOrder != i + 1) run.Renderer.sortingOrder = i + 1;
+                // Sorting order precedes material queue. Tag passes must precede actors/flowers;
+                // other blended terrain retains its existing ordering (including water and fog).
+                int sortingOrder = ClassicMeshes.IsTagOverlay(material) ? i - short.MaxValue : i + 1;
+                if (run.Renderer.sortingOrder != sortingOrder) run.Renderer.sortingOrder = sortingOrder;
                 var triangles = ordered[i].Triangles;
                 if (!geometryChanged && SameTriangles(run.Triangles, triangles)) continue;
                 if (!geometryChanged && ReorderIndices(run, triangles)) continue;

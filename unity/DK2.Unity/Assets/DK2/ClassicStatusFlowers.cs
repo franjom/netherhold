@@ -116,9 +116,9 @@ namespace DK2.Unity
             // native sprite blend is open (status-flowers.md §4).
             var material = new Material(_shader) { name = "status flower " + name, mainTexture = texture };
             material.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-            // After every other transparent pass (tag and hover overlays sort by distance in the
-            // Transparent queue, the outline at +100), so a flower is never painted over; it still
-            // depth-tests against solid geometry. Owner 2026-10-20: flowers draw over the tag overlay.
+            // After actor hover passes and the outline at +100. Terrain tag passes use negative
+            // sorting orders (TransparentTerrain), which take precedence over material queues.
+            // Flowers still depth-test against solid geometry.
             material.renderQueue = (int)RenderQueue.Transparent + 200;
             // H-xx is painted pale pink-grey; DK2 shows the petals in the flat keeper colour
             // (owner's screenshot: about 0.96 of the palette entry), so colour by luminance.

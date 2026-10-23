@@ -1,5 +1,14 @@
 # Unity crowd performance probe
 
+## Dig-tag overlay ordering
+
+Run `tools/classic-unity-probe/run-tag-overlay.ps1` with an activated Unity editor.
+It prepares a separate marked project and checks seven GPU pixel cases: the tag,
+opaque/transparent/faded creatures, flowers, ordinary blended terrain in front,
+and solid-wall occlusion. It also runs the 96 terrain stream/reuse cases. The
+original positive tag sorting order reproduces a red creature turning magenta;
+tag-only negative orders pass. The owner's editor project is never opened.
+
 ## Camera rotation and allocation capture
 
 Use the prepared, marked isolated project; never point the launcher at an owner
