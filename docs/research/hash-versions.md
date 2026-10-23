@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**292** — `0x3CA3464C77E0C2AD`. Behaviour only: a hand drop obeys DK2's drop gate `0x0040D8F0` (alliance, solid and door tiles, the Heart, Portal, Prison, Temple, Torture and Combat Pit arms; ADR-0526). No new fields.
+
 **291** — `0x4F7FEF46308B6B76`. The rooms' border cursors (room `+0x81..+0x89`: tile, orientation, phase), hashed and saved after the marked-creature slots: each room with HasFlame and an owner runs one round its contour and asks for a Flame Round Room on odd turns (ADR-0524). The pin's fixture has no rooms, so the change is the version and an empty list.
 
 **290** — `0xE6FC955DAC6ECF7F`. The world's six marked-creature slots (world `+0x72BD`, creature id and value), hashed and saved after the Tremor slots: trigger action 42 fills them and a creature's removal frees its slot (ADR-0523). The pin's fixture marks nobody, so the change is the version and six empty slots; `PortalGemOnRealDataTests` round-trips Level 1's marked Lord.
@@ -389,12 +391,4 @@ creatures have no roots, so this is composition only.
 per-room decomposition tallies (ADR-0151). The fixture has no Graveyard tally,
 so this is composition only: the empty collection count and version move the pin.
 
-**59** — `0x659AB04378E4C2FE`. Temple rooms gained ordered, saved
-three-offering histories (ADR-0149). The fixture has no Temple history, so this
-is composition only: the empty collection count and version move the pin.
-
-**58** — `0xD5508579D84F193F`. Objects gained the saved `AutoPlaced`
-ownership bit used by room furniture reconciliation (ADR-0146). The fixture has
-no objects, so this is composition only.
-
-[Versions 9–57](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–59](hash-versions-early.md) retain the earlier pins and their reasons.

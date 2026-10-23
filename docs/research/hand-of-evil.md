@@ -24,8 +24,8 @@ about the binary in our own words**; no decompiler output enters this repository
 | The hand is an array on the keeper, capacity `MaxNumberOfThingsInHand` = 64 | **STRONGLY INFERRED** — read from the pick-up handler and from DK2's own debug dump, which prints `NumberOfThingsInHand` and `MaxNumberOfThingsInHand` side by side; a thing already in a hand is refused by an explicit scan of the array |
 | **Dropping is last-in-first-out** | **CONFIRMED** (owner, 2026-09-06), on top of the drop handler reading back the slot it is about to free. It holds **across kinds**: DK2 keeps one array of things, so a creature and a chicken share the slots |
 | **The hand holds objects too** — a chicken, a pile of gold, a special | **CONFIRMED, BUILT** (owner, 2026-09-06; ADR-0075): *"I can pick up a chicken and drop it in the prison, or anywhere in the dungeon, on my owned tiles"*, with a screenshot of four held at once. `CanBePickedUp` is 26 of the 145 OBJECTS records and excludes spell books, crates and beds. **Gold lifts only from the keeper's own claimed land** (owner, 2026-09-25): not from unclaimed dirt, not from a rival's floor (Q196). It is the cursor's rule: action 59 (`0x005135B0`, hand state 2 `0x004C0CB0`) tests no ownership, and DK2's replay of `l2live2` lifts two piles off unclaimed dirt (ADR-0310) |
-| **An object is dropped on the keeper's own ground** | **CONFIRMED** (owner, same day). The gate is in the input layer, **read 2026-10-23**: `0x0040D8F0` → world slot `+0x234` → `0x00450BE0` (placement-cursor.md, "The drop cage's colour"). It accepts allied ground, refuses walls and doors, and reads `CanBeDroppedOnAnyLand` (set only on Call To Arms) at `0x00450C4B`. Ours still tests ownership only; the port is pending |
-| **A creature is dropped on the keeper's own ground — except a worker, which may also go down on unclaimed floor** | **CONFIRMED, BUILT** (owner, 2026-09-06; `HandRules.CanDropCreatureOn`, ADR-0077). A prisoner lifted from the keeper's prison may likewise be placed on owned tiles, a torture rack or in a Combat Pit (owner, 2026-09-13); the latter room effects are not built. The edges of “unclaimed” remain UNKNOWN (Q198) |
+| **An object is dropped on the keeper's own ground** | **CONFIRMED** (owner, same day). The gate is in the input layer, **read 2026-10-23**: `0x0040D8F0` → world slot `+0x234` → `0x00450BE0` (placement-cursor.md, "The drop cage's colour"). It accepts allied ground, refuses walls and doors, and reads `CanBeDroppedOnAnyLand` (set only on Call To Arms) at `0x00450C4B`. Built as `HandRules.CanDrop` (ADR-0526) |
+| **A creature is dropped on the keeper's own ground — except a worker, which may also go down on unclaimed floor** | **CONFIRMED, BUILT** (owner, 2026-09-06; DK2's gate `0x0040D8F0` as `HandRules.CanDrop`, ADR-0526). A prisoner lifted from the keeper's prison may likewise be placed on owned tiles, a torture rack or in a Combat Pit (owner, 2026-09-13); the latter room effects are not built. The binary's edges: allied ground counts, and water, lava and neutral room floor do not (ADR-0526) |
 | A slap raises Efficiency by ten points, and does not stack | **CONFIRMED** (owner, 2026-09-05) — *"it raises from 273 to 310 after the first slap and stays there no matter how many times i slap that imp"* |
 | **Being dropped next to work the keeper marked** raises it by ten points too, and dropping on empty ground is worth nothing | **CONFIRMED** (owner, 2026-09-05) — both halves watched |
 | **There is no cooldown on a slap** | **STRONGLY INFERRED** — the `LastSlapTick` window guards the knock-back impulse and nothing else. See §4 |
@@ -369,17 +369,11 @@ ADR-0226, ADR-0227); which rooms' states idle here is in `hand-drop-landing.md`.
 - **Dropping onto enemy ground.** The original's drop handler changes the
   creature's owner under a condition, and that branch proves only that the
   *handler* does not refuse — the gate is the input layer's (Q196), so whatever
-  reaches that branch is not the ordinary drop. The owned-ground rule is the
-  creature drop's too, with one exception (Q198, ADR-0077):
-  `HandRules.CanDropCreatureOn` allows the dropping keeper's own tile for everyone
-  plus *unclaimed floor* for anything carrying `IsWorker`. `IsUnclaimedFloor` is
-  structural rather than by id — not `Solid`, not `Ownable`, not `Room`, and
-  neither `Water` nor `Lava` — which in the shipped table of 41 is **Dirt Path and
-  the Mana Vault**, the identical flag word `0x10008000`, each with an `Ownable`
-  claimed counterpart. The edges of "unclaimed" (water, a bridge, a rival's
-  *unclaimed* room floor) are UNKNOWN and **refused**, the narrower reading; item 5
-  of the observation checklist would change it. Keyed on `IsWorker`, which also
-  admits the Dwarf where the owner said *imps* — deliberate, and unreachable today.
+  reaches that branch is not the ordinary drop. That gate is `0x0040D8F0`, read
+  2026-10-23 and built as `HandRules.CanDrop` (placement-cursor.md, "The drop cage's
+  colour"; ADR-0526): allied ground for everyone, plus neutral roomless floor that is
+  neither water nor lava for a worker, with Heart, Portal, Prison, Temple, Torture and
+  Combat Pit exceptions.
 - **A chicken dropped into somebody else's Hatchery becomes theirs** — the handler
   tests object id 9 against another keeper's tile in a room of type 4. **Unreachable
   by the Hand**: nothing can be dropped on another keeper's tile (owner, 2026-09-25).

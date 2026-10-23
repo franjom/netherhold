@@ -260,33 +260,22 @@ public sealed class HandSystem : ISimulationSystem
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
 
-        // Disposal's tiles are the ones a keeper may drop onto though nothing may
-        // stand there, so the walkability refusal is asked second: a portal's
-        // centre for anything but a worker, a heart's platform for a worker
-        // (DisposalRules, ADR-0148). A prisoner is refused both - DK2 does not
-        // take a captive through a portal (CONFIRMED, owner 2026-09-13).
-        bool disposed = !PrisonRules.IsImprisoned(creature)
-            && DisposalRules.Disposes(
-                world, context.Database, definition, command.Tile, command.PlayerId);
+        // DK2's drop gate (0x0040D8F0, ADR-0526), which DK2 asks before a drop exists; ours here.
+        if (!HandRules.CanDrop(world, context.Database, command.PlayerId, held, command.Tile))
+        {
+            context.Emit(SystemName, "drop_refused",
+                $"player={command.PlayerId} creature={creature.Id} " +
+                $"tile={command.Tile.X},{command.Tile.Y} not_allowed");
+            return;
+        }
 
-        var grid = new WorldPathGrid(context.Database, world, definition);
-        if (!disposed && !grid.IsWalkable(command.Tile.X, command.Tile.Y))
+        // Ours past the gate: a disposal tile (DisposalRules, ADR-0148; never a prisoner) or one
+        // the creature can stand on.
+        if (!HandRules.CreatureLands(world, context.Database, command.PlayerId, creature, command.Tile, out bool disposed))
         {
             context.Emit(SystemName, "drop_refused",
                 $"player={command.PlayerId} creature={creature.Id} " +
                 $"tile={command.Tile.X},{command.Tile.Y} not_walkable");
-            return;
-        }
-
-        // Standing somewhere is not the same as being allowed to be put there.
-        // Own ground for everybody, plus unclaimed floor for a worker - Q198,
-        // CONFIRMED by the owner, and this test is the whole of ADR-0077.
-        if (!HandRules.CanDropCreatureOn(
-                world, context.Database, command.Tile, command.PlayerId, definition))
-        {
-            context.Emit(SystemName, "drop_refused",
-                $"player={command.PlayerId} creature={creature.Id} " +
-                $"tile={command.Tile.X},{command.Tile.Y} not_owned");
             return;
         }
 
@@ -450,14 +439,12 @@ public sealed class HandSystem : ISimulationSystem
     }
 
 
-    /// <summary>Puts an object down on a tile the keeper owns — CONFIRMED by the
-    /// owner (2026-09-06) (<see cref="HandRules.CanDropObjectOn"/>). DK2's own gate,
-    /// read 2026-10-23, is the cursor's <c>0x0040D8F0</c>, which also reads
-    /// <c>CanBeDroppedOnAnyLand</c>; not yet ported.</summary>
+    /// <summary>Puts an object down where DK2's drop gate lets it (<see cref="HandRules.CanDrop"/>,
+    /// ADR-0526): allied ground, or any open tile for Call To Arms.</summary>
     /// <remarks>A chicken or gold dropped onto a creature feeds or pays it at once
     /// (<see cref="DropDeliveryRules"/>, ADR-0217). Not implemented: the handler's
     /// branch giving a chicken to the keeper of the Hatchery it lands in, which the
-    /// hand cannot reach because nothing drops on another keeper's tile (Q196).</remarks>
+    /// hand reaches only on an ally's Hatchery.</remarks>
     private static void DropObject(
         SimulationContext context, DropCommand command, HandItem held)
     {
@@ -473,11 +460,11 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        if (!HandRules.CanDropObjectOn(world, command.Tile, command.PlayerId))
+        if (!HandRules.CanDrop(world, context.Database, command.PlayerId, held, command.Tile))
         {
             context.Emit(SystemName, "drop_refused",
                 $"player={command.PlayerId} object={thing.Id} " +
-                $"tile={command.Tile.X},{command.Tile.Y} not_owned");
+                $"tile={command.Tile.X},{command.Tile.Y} not_allowed");
             return;
         }
 

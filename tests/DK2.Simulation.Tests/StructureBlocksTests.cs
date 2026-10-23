@@ -408,11 +408,8 @@ public sealed class StructureBlocksTests
     [Fact]
     public void APrisonerIsRefusedTheHoleRatherThanPostedHomeOrFreedOntoIt()
     {
-        // A deliberate narrowing, flagged in the code too. Whether DK2 lets a
-        // keeper post an enemy captive home through its own portal is UNKNOWN;
-        // ejecting it and freeing it into the dungeon both invent something, while
-        // refusing the drop invents least, leaves the prisoner rules (ADR-0064)
-        // untouched, and does not stand a freed prisoner on an unwalkable tile.
+        // DK2's drop gate refuses a creature the keeper does not own on a Portal
+        // centre (0x0040D8F0, ADR-0526), so a captive never reaches the hole.
         GameDatabase db = Db;
         WorldState world = World(db);
         Claim(world, 4, 4, 9, 9);
@@ -431,7 +428,7 @@ public sealed class StructureBlocksTests
 
         Assert.Contains(world.Creatures, c => c.Id == captive.Id);
         Assert.Contains(events.Events, e =>
-            e.Kind == "drop_refused" && e.Detail.Contains("not_walkable"));
+            e.Kind == "drop_refused" && e.Detail.Contains("not_allowed"));
         Assert.DoesNotContain(events.Events, e => e.Kind == "creature_left");
         Assert.DoesNotContain(events.Events, e => e.Kind == "prisoner_freed");
 

@@ -113,54 +113,171 @@ public static class HandRules
         database.ObjectById(thing.ObjectTypeId)?.IsGold != true
         || world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId;
 
-    /// <summary>Where a keeper may put an <b>object</b> down: <b>a tile it owns</b>. CONFIRMED
-    /// (owner, Q198); creatures have one exception, <see cref="CanDropCreatureOn"/>. The original's
-    /// gate is in the input layer, <c>0x0040D8F0</c> → <c>0x00450BE0</c> (read 2026-10-23): allied
-    /// ground, no wall or door, and <c>CanBeDroppedOnAnyLand</c> read at <c>0x00450C4B</c>. Not yet
-    /// ported; this still reproduces the observation.</summary>
-    public static bool CanDropObjectOn(WorldState world, TilePos tile, PlayerId playerId) =>
-        world.Contains(tile) && world.Tile(tile.X, tile.Y).OwnerPlayerId == playerId;
-
-    /// <summary>Where a keeper may put a <b>creature</b> down: <b>a tile it owns</b>, and for a
-    /// worker only, <b>unclaimed floor</b>. CONFIRMED (owner, Q198): imps are the only creature
-    /// droppable onto unclaimed dirt path. Where the rule lives is UNREAD, as for objects.
-    /// Deviates: keyed on <see cref="CreatureFlags.IsWorker"/>, which also admits the Dwarf, where
-    /// the owner said <i>imps</i> — worker behaviour is keyed on the flag throughout, and the
-    /// difference is unreachable today (docs/research/imp-tasks.md).</summary>
-    public static bool CanDropCreatureOn(
-        WorldState world, GameDatabase database, TilePos tile, PlayerId playerId,
-        CreatureDef mover)
-    {
-        if (!world.Contains(tile)) return false;
-        if (world.Tile(tile.X, tile.Y).OwnerPlayerId == playerId) return true;
-        if (!mover.Flags.HasFlag(CreatureFlags.IsWorker)) return false;
-
-        return IsUnclaimedFloor(database.TerrainById(world.Tile(tile.X, tile.Y).TerrainId));
-    }
-
-    /// <summary>Whether a drop of <paramref name="creature"/> on <paramref name="tile"/> would land:
-    /// the two tests <see cref="Systems.HandSystem"/> refuses on, in its order — a disposal tile
-    /// (<see cref="DisposalRules"/>) or a walkable one, and then <see cref="CanDropCreatureOn"/>.</summary>
+    /// <summary>Whether a drop of <paramref name="item"/> on <paramref name="tile"/> lands: the one
+    /// rule the drop cage's colour and <see cref="Systems.HandSystem"/> both ask. DK2's gate
+    /// (<see cref="CanDrop"/>), then for a creature our landing guard (<see cref="CreatureLands"/>).</summary>
     public static bool DropLands(
-        WorldState world, GameDatabase database, CreatureState creature, CreatureDef definition,
-        TilePos tile, PlayerId playerId)
+        WorldState world, GameDatabase database, PlayerId playerId, HandItem item, TilePos tile)
     {
-        if (!world.Contains(tile)) return false;
-        bool disposed = !PrisonRules.IsImprisoned(creature)
-            && DisposalRules.Disposes(world, database, definition, tile, playerId);
-        if (!disposed && !new WorldPathGrid(database, world, definition).IsWalkable(tile.X, tile.Y))
-            return false;
-        return CanDropCreatureOn(world, database, tile, playerId, definition);
+        if (!CanDrop(world, database, playerId, item, tile)) return false;
+        if (item.IsObject) return true;
+        CreatureState creature = world.CreatureById(item.Id)!;
+        return CreatureLands(world, database, playerId, creature, tile, out _);
     }
 
-    /// <summary>Floor that no keeper can have claimed: <b>Dirt Path</b> and the <b>Mana Vault</b>,
-    /// and nothing else in the shipped table of 41. Structural, not by id — not
-    /// <see cref="TerrainFlags.Solid"/>, not <see cref="TerrainFlags.Ownable"/>, not
-    /// <see cref="TerrainFlags.Room"/>. Water and lava are excluded as a deliberate stop: both
-    /// would qualify and 44 of 46 creatures wade, so an imp could be dropped in a lake. UNKNOWN whether the original offers that (checklist item 5); refusing invents least.</summary>
-    public static bool IsUnclaimedFloor(TerrainDef terrain) =>
-        !terrain.IsSolid && !terrain.IsOwnable && !terrain.IsRoom
-        && !terrain.IsWater && !terrain.IsLava;
+    /// <summary>Past DK2's gate (ADR-0526): a creature must be able to stand on the tile
+    /// (<see cref="WorldPathGrid.IsWalkable"/>) unless the tile disposes of it
+    /// (<see cref="DisposalRules"/>; never a prisoner). Once the gate has passed this refuses only a
+    /// structure tile: the eight Heart platform tiles around the centre for an Imp on its own
+    /// Heart, which the owner saw refused (2026-09-15), and a Portal centre for a non-evil worker.
+    /// Where DK2 refuses the platform is not found: no navigation-byte writer marks it.</summary>
+    public static bool CreatureLands(
+        WorldState world, GameDatabase database, PlayerId playerId, CreatureState creature,
+        TilePos tile, out bool disposed)
+    {
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        disposed = !PrisonRules.IsImprisoned(creature)
+            && DisposalRules.Disposes(world, database, definition, tile, playerId);
+        return disposed || new WorldPathGrid(database, world, definition).IsWalkable(tile.X, tile.Y);
+    }
+
+    /// <summary>DK2's drop gate <c>0x0040D8F0</c>: whether <paramref name="playerId"/> may put
+    /// <paramref name="item"/> down on <paramref name="tile"/>. In DK2 it runs in the input layer and
+    /// alone decides whether a click becomes a drop; ours asks it when the drop executes
+    /// (placement-cursor.md, "The drop cage's colour"; ADR-0526). A creature goes through the map
+    /// test <c>0x00450910</c> and the creature-flag arms, an object through <c>0x00450BE0</c>. Our
+    /// hand holds no dead body, so <c>0x00450D40</c> has no arm here. A missing thing is refused.</summary>
+    public static bool CanDrop(
+        WorldState world, GameDatabase database, PlayerId playerId, HandItem item, TilePos tile)
+    {
+        if (!world.Contains(tile)) return false;
+        if (item.IsObject)
+            return world.ObjectById(item.Id) is { } thing && MapAllowsObject(world, database, playerId, thing.ObjectTypeId, tile);
+        return world.CreatureById(item.Id) is { } creature && CreatureMayDrop(world, database, playerId, creature, tile);
+    }
+
+    /// <summary>Terrain 35, Hero Lair, where <c>0x0040D8F0</c> lets an unbeaten tool down whatever the
+    /// map test said.</summary>
+    private const byte HeroLairTerrainId = 35;
+
+    /// <summary><c>0x0040D8F0</c>'s creature arm: the map test, then the flags at <c>+0x3EA</c>.</summary>
+    private static bool CreatureMayDrop(
+        WorldState world, GameDatabase database, PlayerId playerId, CreatureState creature, TilePos tile)
+    {
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        bool tool = creature.IsTool && !HasBeenKnockedOut(creature);
+        if (!MapAllowsCreature(world, database, playerId, definition, tile))
+            return tool && world.Tile(tile.X, tile.Y).TerrainId == HeroLairTerrainId;
+        if (creature.OwnerPlayerId != playerId && IsPortalCentre(world, database, tile, heroPortalToo: false)) return false;
+        if (!tool) return true;
+        RoomTypeId? room = database.RoomByTerrain(world.Tile(tile.X, tile.Y).TerrainId)?.TypeId;
+        if (room is RoomTypeId.Prison or RoomTypeId.Temple or RoomTypeId.CombatPit) return !IsFloorSlot(world, tile);
+        return room != RoomTypeId.TortureChamber;
+    }
+
+    /// <summary>DK2's <c>HasBeenKnockedOut</c> (<c>+0x3EA</c> bit 10), set on entering the death fall,
+    /// state 216 (<c>0x00459560</c> and <c>0x004596D0</c>), and cleared by nothing found. Ours keeps no
+    /// such bit: a prisoner was knocked out to be taken, and a creature still on the floor is; one
+    /// that got up again is missed.</summary>
+    private static bool HasBeenKnockedOut(CreatureState creature) =>
+        PrisonRules.IsImprisoned(creature) || CreatureDeathRules.HasCollapsed(creature);
+
+    /// <summary><c>0x00450910</c> (CWorld slot <c>+0x230</c>): whether a creature of this type may be
+    /// dropped here. A worker goes onto allied ground or neutral roomless dry floor, a non-worker
+    /// onto allied ground only, each with its Heart, Portal, Prison and Combat Pit exceptions.</summary>
+    private static bool MapAllowsCreature(
+        WorldState world, GameDatabase database, PlayerId playerId, CreatureDef definition, TilePos tile)
+    {
+        if (IsSolidOrDoor(world, database, tile)) return false;
+        ref TileState cell = ref world.Tile(tile.X, tile.Y);
+        RoomTypeId? room = database.RoomByTerrain(cell.TerrainId)?.TypeId;
+        bool own = cell.OwnerPlayerId == playerId;
+        // The one neutral id [0x006F2548], player 2; a loaded map gives non-ownable ground to it.
+        bool neutral = cell.OwnerPlayerId == PlayerIds.Neutral;
+        bool allied = !neutral && world.AreAllied(playerId, cell.OwnerPlayerId);
+
+        if (definition.Flags.HasFlag(CreatureFlags.IsWorker))
+        {
+            bool evil = definition.Flags.HasFlag(CreatureFlags.IsEvil);
+            if (room == RoomTypeId.CombatPit && IsFloorSlot(world, tile)) return false;
+            if (room == RoomTypeId.DungeonHeart && !own && IsHeartInner(world, database, tile)) return false;
+            if (evil && room is (RoomTypeId.Portal or RoomTypeId.HeroPortal) && IsPortalCentre(world, database, tile, heroPortalToo: true)) return false;
+            if (!evil && room == RoomTypeId.DungeonHeart && IsHeartInner(world, database, tile)) return false;
+            if (evil && room == RoomTypeId.Prison && IsFloorSlot(world, tile)) return false;
+            if (allied) return true;
+            TerrainDef terrain = database.TerrainById(cell.TerrainId);
+            return neutral && !terrain.IsWater && !terrain.IsLava && room is null;
+        }
+
+        if (!allied) return false;
+        if (room == RoomTypeId.CombatPit && IsFloorSlot(world, tile))
+            return own && CombatPitRules.PitAt(world, database, world.TileIndex(tile)) is { } pit && RoomNeedRules.DropTest(world, pit);
+        if (room == RoomTypeId.DungeonHeart) return !IsHeartInner(world, database, tile);
+        return !(room == RoomTypeId.Portal && !own && IsPortalCentre(world, database, tile, heroPortalToo: false));
+    }
+
+    /// <summary><c>0x00450BE0</c> (CWorld slot <c>+0x234</c>): an object goes onto allied ground, or
+    /// anywhere open with <see cref="ObjectFlags.CanBeDroppedOnAnyLand"/> (only Call To Arms ships
+    /// it); a Chicken or a Call To Arms never onto a Portal centre or a Heart's inner 3×3.</summary>
+    private static bool MapAllowsObject(
+        WorldState world, GameDatabase database, PlayerId playerId, byte objectTypeId, TilePos tile)
+    {
+        if (IsSolidOrDoor(world, database, tile)) return false;
+        ref TileState cell = ref world.Tile(tile.X, tile.Y);
+        bool neutral = cell.OwnerPlayerId == PlayerIds.Neutral;
+        bool allowed = database.ObjectById(objectTypeId)?.Flags.HasFlag(ObjectFlags.CanBeDroppedOnAnyLand) == true
+            || (!neutral && world.AreAllied(playerId, cell.OwnerPlayerId));
+        if (objectTypeId is not (HatcheryRules.ChickenObjectId or CallToArmsRules.ObjectTypeId)) return allowed;
+        RoomTypeId? room = database.RoomByTerrain(cell.TerrainId)?.TypeId;
+        if (room == RoomTypeId.Portal && IsPortalCentre(world, database, tile, heroPortalToo: false)) return false;
+        return allowed && !(room == RoomTypeId.DungeonHeart && IsHeartInner(world, database, tile));
+    }
+
+    /// <summary>Navigation-grid bit 3 (solid) or a door (<c>0x004528E0</c>: the same byte's high
+    /// nibble). Ours from what writes that byte (<see cref="Navigation.WorldSteering"/>): solid
+    /// terrain, and a closed, completed door; an open one leaves floor.</summary>
+    private static bool IsSolidOrDoor(WorldState world, GameDatabase database, TilePos tile)
+    {
+        if (database.TerrainById(world.Tile(tile.X, tile.Y).TerrainId).IsSolid) return true;
+        return world.DoorAt(tile.X, tile.Y) is { UnderConstruction: false, Open: false } door && (door.PlayerId & 0xF) != 0;
+    }
+
+    /// <summary>Whether the tile and its neighbour belong to one room: same terrain, same owner.</summary>
+    private static bool SameRoom(WorldState world, in TileState cell, int x, int y) =>
+        world.Contains(x, y) && world.Tile(x, y).TerrainId == cell.TerrainId
+        && world.Tile(x, y).OwnerPlayerId == cell.OwnerPlayerId;
+
+    /// <summary><c>Room_IsFloorSlot</c> (<c>0x00454110</c>) for Prison, Temple and Combat Pit, whose
+    /// type rule accepts every interior cell (<c>+0x0C == 0xFF</c>: all eight neighbours in the room).</summary>
+    private static bool IsFloorSlot(WorldState world, TilePos tile)
+    {
+        ref TileState cell = ref world.Tile(tile.X, tile.Y);
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if ((dx | dy) != 0 && !SameRoom(world, cell, tile.X + dx, tile.Y + dy)) return false;
+        return true;
+    }
+
+    /// <summary>A Portal's (and for <paramref name="heroPortalToo"/> a Hero Portal's) centre: cell
+    /// byte <c>+0x0C == 4</c>, the 3×3 code <c>0x004EF730</c> gives a tile with its own room on all
+    /// four sides.</summary>
+    private static bool IsPortalCentre(WorldState world, GameDatabase database, TilePos tile, bool heroPortalToo)
+    {
+        ref TileState cell = ref world.Tile(tile.X, tile.Y);
+        RoomTypeId? room = database.RoomByTerrain(cell.TerrainId)?.TypeId;
+        if (room != RoomTypeId.Portal && !(heroPortalToo && room == RoomTypeId.HeroPortal)) return false;
+        return SameRoom(world, cell, tile.X - 1, tile.Y) && SameRoom(world, cell, tile.X + 1, tile.Y)
+            && SameRoom(world, cell, tile.X, tile.Y - 1) && SameRoom(world, cell, tile.X, tile.Y + 1);
+    }
+
+    /// <summary><c>0x004DA150</c> returning 0: the Heart's inner 3×3, its first slab plus 1 to 3 on
+    /// each axis (ours the bounding box's corner, as <see cref="DropLandingRules"/> reads it).</summary>
+    private static bool IsHeartInner(WorldState world, GameDatabase database, TilePos tile)
+    {
+        if (RoomIndex.RoomAt(world, database, world.TileIndex(tile)) is not { } heart) return false;
+        int dx = tile.X - heart.MinX, dy = tile.Y - heart.MinY;
+        return dx is >= 1 and <= 3 && dy is >= 1 and <= 3;
+    }
 
     /// <summary>Whether <paramref name="creature"/> may be slapped by
     /// <paramref name="playerId"/>: <see cref="CreatureFlags.CanBeSlapped"/>, the keeper's own

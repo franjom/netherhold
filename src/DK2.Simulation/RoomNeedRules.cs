@@ -476,7 +476,7 @@ public static class RoomNeedRules
     /// <summary><c>0x004D8430</c> at a floor slot: true while the creatures standing on the pit's floor
     /// slots number fewer than its floor slots (<c>0x004D84FB</c> <c>CMP EBP,EDI</c>). Creatures in the
     /// hand are off the map and do not count.</summary>
-    private static bool DropTest(WorldState world, RoomInstance pit)
+    internal static bool DropTest(WorldState world, RoomInstance pit)
     {
         HashSet<int> slots = AutoFurnitureRules.FloorSlotSet(world, pit);
         int standing = 0;

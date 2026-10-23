@@ -84,7 +84,7 @@ bypasses ownership, so a rival's heart is refused the way a rival's portal was.
 
 **All of it seen, 2026-09-15** (owner, two screenshots; Q312 closed). It is the
 heart's **single centre tile** that accepts an imp — not the raised 3x3, whose other
-eight refuse a drop like any unwalkable tile. The imp's **gold vanishes with it**.
+eight refuse a drop like any unwalkable tile. That refusal is STRONGLY INFERRED from play: DK2's drop gate `0x0040D8F0` has no arm that refuses them and no navigation-byte writer was found for them, so where DK2 refuses is open (Q198); ours refuses through walkability (`HandRules.DropLands`, ADR-0526). The imp's **gold vanishes with it**.
 A **goblin is refused** the heart outright, so the two tiles are exclusive both ways.
 And a dungeon heart is **always 5x5**, so the size guard is defensive, not a case.
 

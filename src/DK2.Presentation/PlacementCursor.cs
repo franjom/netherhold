@@ -84,22 +84,16 @@ public static class PlacementCursor
 
     /// <summary>Hand mode with something held (<c>0x0040AE80</c>): the 1×1 drop cage on the hovered tile,
     /// red when the top item may not be dropped there. DK2 colours it by its drop gate
-    /// <c>0x0040D8F0</c> (placement-cursor.md, "The drop cage's colour"), which differs from ours:
-    /// allied ground, no walls or doors, Combat Pit, Heart and Portal arms. Until that gate is ported
-    /// to the simulation this asks the simulation's observed rules (<see cref="HandRules.DropLands"/>,
-    /// <see cref="HandRules.CanDropObjectOn"/>), so the colour follows what a click does here.
-    /// None with an empty hand.</summary>
+    /// <c>0x0040D8F0</c> (placement-cursor.md, "The drop cage's colour"); this asks
+    /// <see cref="HandRules.DropLands"/>, that gate plus ours (ADR-0526), the same rule the drop
+    /// runs, so the colour is what a click does. None with an empty hand.</summary>
     public static PlacementFeedback HandDrop(WorldState world, GameDatabase database, PlayerId player, TilePos hovered)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (database is null) throw new ArgumentNullException(nameof(database));
         List<HandItem> hand = world.Player(player).Hand;
         if (hand.Count == 0) return PlacementFeedback.None;
-        HandItem top = hand[hand.Count - 1];
-        bool valid = top.IsObject
-            ? HandRules.CanDropObjectOn(world, hovered, player)
-            : world.CreatureById(top.Id) is CreatureState creature && database.CreatureById(creature.CreatureTypeId) is CreatureDef definition
-              && HandRules.DropLands(world, database, creature, definition, hovered, player);
+        bool valid = HandRules.DropLands(world, database, player, hand[hand.Count - 1], hovered);
         return new PlacementFeedback(new TileRectangle(hovered.X, hovered.Y, hovered.X + 1, hovered.Y + 1),
             valid, 0, PlacementIcon.None, false, true);
     }

@@ -17,9 +17,9 @@ namespace DK2.Simulation;
 public static class DisposalRules
 {
     /// <summary>Whether dropping <paramref name="mover"/> here gets rid of it. Keyed on
-    /// <see cref="CreatureFlags.IsWorker"/>, as <see cref="HandRules.CanDropCreatureOn"/> is
-    /// and for the same reason: the owner said <i>imps</i>, the flag also admits the Dwarf,
-    /// and the difference is unreachable today.</summary>
+    /// <see cref="CreatureFlags.IsWorker"/>: the owner said <i>imps</i>, the flag also admits the
+    /// Dwarf, and DK2's drop gate refuses a non-evil worker the Heart's inner 3×3
+    /// (<see cref="HandRules.CanDrop"/>), so only an Imp reaches the Heart's centre.</summary>
     public static bool Disposes(
         WorldState world, GameDatabase database, CreatureDef mover, TilePos at, PlayerId playerId)
     {

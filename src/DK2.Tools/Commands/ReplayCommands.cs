@@ -225,10 +225,9 @@ internal static class ReplayCommands
         {
             List<HandItem> hand = world.Player(player).Hand;
             if (hand.Count == 0 || hand[^1].IsObject) return tile;
-            CreatureState? creature = world.CreatureById(hand[^1].Id);
-            if (creature is null) return tile;
-            CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-            if (HandRules.DropLands(world, database, creature, definition, tile, player)) return tile;
+            HandItem held = hand[^1];
+            if (world.CreatureById(held.Id) is null) return tile;
+            if (HandRules.DropLands(world, database, player, held, tile)) return tile;
 
             TilePos best = tile;
             long bestDistance = long.MaxValue;
@@ -240,7 +239,7 @@ internal static class ReplayCommands
                     if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != r) continue;
                     var at = new TilePos(tile.X + dx, tile.Y + dy);
                     long d = ((long)dx * dx) + ((long)dy * dy);
-                    if (d >= bestDistance || !HandRules.DropLands(world, database, creature, definition, at, player))
+                    if (d >= bestDistance || !HandRules.DropLands(world, database, player, held, at))
                         continue;
                     best = at;
                     bestDistance = d;

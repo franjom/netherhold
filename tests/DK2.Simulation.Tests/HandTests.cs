@@ -1193,11 +1193,8 @@ public class HandTests
     [Fact]
     public void AChickenMayOnlyBeDroppedOnTheKeepersOwnGround()
     {
-        // CONFIRMED by the owner - "on my owned tiles". Where the rule lives in
-        // the original is unread: its drop handler has no ownership test at all,
-        // so the gate is in the input layer that draws the marker the
-        // screenshot shows. And it is NOT CanBeDroppedOnAnyLand, which is set on
-        // one record and read by nothing in the executable.
+        // CONFIRMED by the owner - "on my owned tiles" - and by DK2's drop gate
+        // (0x00450BE0, ADR-0526): allied ground, which the neutral player never is.
         GameDatabase db = Db;
         WorldState world = World(db);
         Pave(world, 1, 1, 3, 3);
@@ -1218,7 +1215,7 @@ public class HandTests
         Assert.True(bird.InHand);
         Assert.Single(HandOf(world));
         Assert.Contains(sink.Events, e =>
-            e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
+            e.Kind == "drop_refused" && e.Detail.Contains("not_allowed"));
 
         // The keeper's own ground takes it.
         bird.PosX = CreatureState.CentreOf(Floor.X) + 0x180;
@@ -1305,10 +1302,11 @@ public class HandTests
     /// Carves one tile to a terrain and an owner, and hands back its position.
     ///
     /// <para>The fixture map is a claimed 3x3 room in solid rock, so every test
-    /// below has to make the ground it is about to argue over.</para>
+    /// below has to make the ground it is about to argue over. Unclaimed ground is the neutral
+    /// player's, as <see cref="WorldState.FromMap"/> gives non-ownable terrain.</para>
     /// </summary>
     private static TilePos Carve(
-        WorldState world, TilePos at, byte terrain, byte owner = PlayerIds.Unowned)
+        WorldState world, TilePos at, byte terrain, byte owner = PlayerIds.Neutral)
     {
         // ref, because TileState is a struct behind a ref return - a plain
         // local would carve a copy and leave the map alone.
@@ -1345,7 +1343,7 @@ public class HandTests
         Assert.True(goblin.InHand);
         Assert.Equal([goblin.Id], HandIdsOf(world));
         Assert.Contains(sink.Events, e =>
-            e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
+            e.Kind == "drop_refused" && e.Detail.Contains("not_allowed"));
     }
 
     [Fact]
@@ -1395,10 +1393,10 @@ public class HandTests
         GameDatabase db = Db;
         WorldState world = World(db);
 
-        // Claimed by somebody else: Ownable terrain with another keeper's id,
-        // which is the case the owner's "unclaimed by any keeper" excludes.
+        // Claimed by another keeper, who is no ally. (Claimed floor the neutral
+        // player holds is neutral ground, and a worker goes onto it: 0x00450910.)
         TilePos theirs = Carve(
-            world, new TilePos(4, 2), Dk2TerrainFixture.ClaimedPath, PlayerIds.Neutral);
+            world, new TilePos(4, 2), Dk2TerrainFixture.ClaimedPath, (byte)(Keeper + 1));
 
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         var sink = new ListEventSink();
@@ -1408,7 +1406,7 @@ public class HandTests
 
         Assert.True(imp.InHand);
         Assert.Contains(sink.Events, e =>
-            e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
+            e.Kind == "drop_refused" && e.Detail.Contains("not_allowed"));
     }
 
     [Fact]
@@ -1431,15 +1429,11 @@ public class HandTests
 
         PickUpAndDrop(sim, imp, pond);
 
-        // Deliberately narrower than what is known: water is unownable non-solid
-        // terrain and would qualify as "unclaimed floor" on the structural
-        // reading, and 44 of the 46 creatures can wade, so without an explicit
-        // stop a keeper could drop an imp mid-lake. Whether the original offers
-        // that is UNKNOWN (item 5 on the observation checklist); refusing invents
-        // least, and this is the test that changes if the answer is yes.
+        // DK2's gate refuses a worker neutral water or lava (0x00450910, terrain
+        // flags 0x80 and 0x100), though the Imp could wade there.
         Assert.True(imp.InHand);
         Assert.Contains(sink.Events, e =>
-            e.Kind == "drop_refused" && e.Detail.Contains("not_owned"));
+            e.Kind == "drop_refused" && e.Detail.Contains("not_allowed"));
     }
 
     [Fact]

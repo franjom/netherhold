@@ -1,6 +1,14 @@
 # Early state-hash versions
 
-Versions 9–57, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–59, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**59** — `0x659AB04378E4C2FE`. Temple rooms gained ordered, saved
+three-offering histories (ADR-0149). The fixture has no Temple history, so this
+is composition only: the empty collection count and version move the pin.
+
+**58** — `0xD5508579D84F193F`. Objects gained the saved `AutoPlaced`
+ownership bit used by room furniture reconciliation (ADR-0146). The fixture has
+no objects, so this is composition only.
 
 **57** — `0xE9C81166EA405084`. Doors and traps gained derived, saved
 `UnderConstruction` state for player trigger conditions 27 and 28 (ADR-0141). The

@@ -1279,7 +1279,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Q192 is open: `All Owned Reveal`, `Re-shroud` and `Re-fog` are real strings and the configuration value behind fog is boolean, so they are not one enum behind that value, and where they *are* selected is unread. The campaign's *Stay Revealed* is the one mode the owner has confirmed and the one mode built.
 
 ## ADR-0077 — A creature goes down on the keeper's own ground, and only a worker may go anywhere else
-**Date:** 2026-09-06 · **Status:** accepted · supersedes a paragraph of ADR-0075's reasoning, not its decision · Q198 · Research: `docs/research/hand-of-evil.md` §8
+**Date:** 2026-09-06 · **Status:** accepted, superseded by ADR-0526 (DK2's drop gate) · supersedes a paragraph of ADR-0075's reasoning, not its decision · Q198 · Research: `docs/research/hand-of-evil.md` §8
 
 **Context.** Owner, 2026-09-06, CONFIRMED in the original: *"imps are the only creature that can be dropped onto dirt path tiles, those are tiles that are unclaimed by any keeper"*. `HandSystem.Drop` refused exactly one thing, a tile the creature could not have stood on, so a keeper could put a Goblin down on unclaimed dirt, on a rival's claimed floor, or in the middle of somebody else's dungeon — a wrong rule, wrong since the hand was built (ADR-0062).
 
@@ -12077,3 +12077,46 @@ Speech.str, the level table or Text.str by the reference's band.
 **Consequences.** Every message our queue posts now tabs and flashes until opened; all but the
 creature-anger types 17 and 18, whose text DK2 builds from the creature, read out on hover. A reload forgets which tabs were opened or dismissed (DK2 saves the bits with the record).
 Sounds, the Ally and goto buttons, and name substitution wait (message-tabs.md §8).
+
+## ADR-0526 — A hand drop obeys DK2's drop gate
+**Date:** 2026-10-23 · **Status:** accepted · supersedes ADR-0077 · Q198
+
+**Context.** DK2 decides where the hand may put a thing in the input layer: `0x0040D8F0`
+colours the drop cage and alone lets a click become a drop, through the map tests
+`0x00450910` (creature) and `0x00450BE0` (object); the simulation never tests the tile again
+(placement-cursor.md, "The drop cage's colour"; records `0x0040D8F0`, `0x00450910`,
+`0x00450BE0`, `0x00450D40`, `0x0040AE80`, `0x00408EE0`). Ours tested `owner == player` plus
+unclaimed floor for a worker (ADR-0077), and the cage asked a copy of that.
+
+**Decision.** `HandRules.CanDrop` mirrors `0x0040D8F0` per item kind, and `HandRules.DropLands`
+(the gate, then ours below) is the one rule the cage and `HandSystem.Drop` ask; the replay
+rig's drop fallback asks it too. The check stays in `HandSystem`, our authoritative place.
+- Allied ground is `WorldState.AreAllied` (`0x004BF3D0`, self included), never the neutral player.
+  Neutral is the one id `[0x006F2548]`, player 2, as the binary compares it; a loaded map gives
+  non-ownable ground to player 2, so owner 0 is not neutral.
+- Nav-solid and door tiles are refused: solid terrain, and a closed, completed door, the two
+  writers of bit 3 and the high nibble in our navigation bytes. An open door is floor
+  (CONFIRMED: `0x004A66F0` writes the nibble only for a completed door that is not open).
+- A Portal centre is a Portal (or Hero Portal) tile with its own room on all four sides,
+  the `+0x0C == 4` code of `0x004EF730`; the Heart's inner 3×3 is first slab +1..+3
+  (`0x004DA150`), ours the bounding box's corner; a floor slot is an interior cell
+  (`0x00454110` for Prison, Temple and Combat Pit); a Combat Pit's free slot is
+  `RoomNeedRules.DropTest` (`0x004D8430`).
+- `HasBeenKnockedOut` (set by `0x00459560` and `0x004596D0` on entering state 216, cleared by
+  nothing found) has no field here: ours is imprisoned or collapsed. Our hand holds no dead body, so `0x00450D40` has no arm.
+
+**Past the gate.** A creature must still stand on the tile (`WorldPathGrid.IsWalkable`) unless
+`DisposalRules` takes it. Once the gate has passed this refuses only structure tiles: an Imp on
+its own Heart's eight platform tiles around the centre, and a non-evil worker on its own Portal
+centre. The Heart refusal is the owner's 2026-09-15 observation (ADR-0148): STRONGLY INFERRED
+from play. Where DK2 refuses those eight is not found: the gate's map test has no arm for them,
+and no navigation-byte writer marks them (the Heart's builder writes 3 on its centre only,
+structure-blocks.md §5.4).
+
+**Consequences.** Hash and snapshot 292, behaviour only. Newly accepted: an ally's ground, a
+worker on neutral-owned claimed floor, Call To Arms anywhere open. Newly refused: closed door
+tiles, a Combat Pit floor slot for a worker or when the pit is full, a non-worker on another
+keeper's Portal centre, Chicken and Call To Arms on a Portal centre or the Heart's inner 3×3,
+an unbeaten tool in a Prison, Temple, Combat Pit or Torture Chamber. DK2's computer keeper
+drops without this gate (`0x004BC710`, Q541); ours goes through it, and its targets are its
+own ground.

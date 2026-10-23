@@ -257,10 +257,18 @@ slots `+0x230`, `+0x234` and `+0x238`. The three bodies are reached only through
 The click arm submits a drop only when `0x0040D8F0` passes, so a refused drop never becomes a
 command. The simulation does not test the tile again.
 
-**Ours (2026-10-23):**
-- `HandRules.CanDropCreatureOn` and `CanDropObjectOn` test `owner == player`.
-- The binary tests alliance, refuses solid and door tiles, and has the room exceptions above.
-- `IsUnclaimedFloor` already refuses water and lava for a worker, which DK2 does too.
+**Ours (ADR-0526).** `HandRules.CanDrop` is this gate, asked when the drop executes; the cage
+and the drop both ask `HandRules.DropLands`, which adds our walkability guard. The Portal centre
+is `0x004EF730`'s code 4, a tile with its own room on all four sides; the Heart's `0x40` is its
+centre only (`0x004EFBE0`'s table). The dead-body arm is not built.
+- "Neutral" is the one id `[0x006F2548]`, our player 2; a loaded map gives it non-ownable ground.
+- The floor-slot test takes all eight neighbours, the `+0x0C == 0xFF` interior byte
+  (room-floors-and-liquids.md §1). `RoomIndex.InteriorTileIndices` and
+  `AutoFurnitureRules.FloorSlotSet` use four; they are left as they are.
+- An Imp on its own Heart's eight platform tiles around the centre: this gate has no arm that
+  refuses it, and no navigation-byte writer marks them (structure-blocks.md §5.4; the Heart's
+  builder writes 3 on the centre only). The owner saw them refused (2026-09-15), and ours
+  refuses them by walkability. Where DK2 refuses them is not found.
 
 ## 3. Tool icon and price drawing, `0x0040CAE0` (CONFIRMED)
 
@@ -366,9 +374,8 @@ trap mode; in Hand mode while holding something or over a dig-taggable tile (hit
 with a spell or Query only over a dig-taggable tile; hidden on border tiles, while Options is
 open and during possession. Its colour is blue over a dig-taggable tile in Hand, room, spell
 and Query mode, otherwise the arm's validity (`HoverCageBlue`). The hand-drop cage's colour
-(`HandDrop`) still uses our simulation's drop rules, which differ from the binary's (The drop
-cage's colour, above). Pending: port the gate `0x0040D8F0` into the simulation (needs an ADR and
-a hash bump). Not applied: `0x004096B0`'s view-mode, over-GUI and camera gates. The cursor
+(`HandDrop`) asks `HandRules.DropLands`, the drop gate `0x0040D8F0` plus our walkability guard
+(ADR-0526; The drop cage's colour, above). Not applied: `0x004096B0`'s view-mode, over-GUI and camera gates. The cursor
 rectangle and the sell release keep the low corner (`0x0040B2B0`, `0x0040B661`, `0x004083DA`),
 the room release the anchor (`0x00408194`); ours does each. Over the HUD ours forces No Go
 even during a drag, where DK2's `+0x10C` gate runs the normal arm. Not
