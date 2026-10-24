@@ -7,6 +7,55 @@ namespace DK2.Presentation.Tests;
 public sealed class ClassicHudControlsTests
 {
     [Fact]
+    public void ScriptedCameraRetainsResultInputSuppressionUntilExplicitRestoration()
+    {
+        var controls = new ClassicHudControls();
+        controls.UpdateResult(new HudResultState(HasResult: true));
+        controls.UpdateResult(default, CameraModeId.ScriptedPath);
+        Assert.True(controls.InputSuppressed);
+        controls.UpdateResult(new HudResultState(Continued: true, RestoreRequested: true), CameraModeId.ScriptedPath);
+        Assert.False(controls.InputSuppressed);
+    }
+
+    [Fact]
+    public void PendingResultHidesHudAndBlocksWorldInputEvenWithOptionsOpen()
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.UpdateResult(new HudResultState(HasResult: true));
+        Assert.False(controls.Visibility(new(true, true)).ShowNormalHud);
+        Assert.False(controls.Visibility(new(true, true)).AllowOrdinaryInput);
+        controls.Apply(ClassicHudAction.ToggleGui);
+        Assert.False(controls.GuiVisible);
+    }
+
+    [Fact]
+    public void ClearingResultAloneReleasesInputButDoesNotRestoreGui()
+    {
+        var controls = new ClassicHudControls();
+        controls.UpdateResult(new HudResultState(HasResult: true));
+        controls.UpdateResult(default);
+        Assert.False(controls.GuiVisible);
+        Assert.True(controls.Visibility(new(true, true)).AllowOrdinaryInput);
+        controls.UpdateResult(new HudResultState(Continued: true));
+        Assert.False(controls.GuiVisible);
+        controls.UpdateResult(new HudResultState(Continued: true, RestoreRequested: true));
+        Assert.True(controls.GuiVisible);
+    }
+
+    [Fact]
+    public void ResultRestorationDoesNotOverrideTheCameraGateOrCloseOptions()
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.UpdateResult(new HudResultState(HasResult: true));
+        controls.UpdateResult(new HudResultState(Continued: true, RestoreRequested: true));
+        Assert.True(controls.OptionsVisible);
+        Assert.False(controls.Visibility(HudVisibilityRules.ForCamera(new(3), 1)).ShowNormalHud);
+        Assert.True(controls.Visibility(HudVisibilityRules.ForCamera(new(3), 0)).ShowNormalHud);
+    }
+
+    [Fact]
     public void OptionsRejectsMapAndGuiTogglesUntilClosed()
     {
         var controls=new ClassicHudControls();

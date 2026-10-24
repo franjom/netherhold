@@ -193,6 +193,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
   one run with `-c 'mcp_servers.<server>.tools.<tool>.approval_mode="approve"'`.
 - A Python CLI that prints non-ASCII to a cp1252 console crashes after its work is done
   (`mcp-for-blender install-addon` copied the add-on, then raised); set `PYTHONIOENCODING=utf-8`.
+- Ghidra scripts using plain `open(..., 'w')` can fail on non-ASCII decompiler text under Windows cp1252; set `PYTHONUTF8=1` for the runner (stdout encoding alone does not fix file writes).
 - `unity/DK2.Unity.Compile` references Unity's module DLLs directly, so it passes code that the
   project itself rejects when the built-in module is not in `Packages/manifest.json` (the movie
   player's `AudioSource` compiled there and failed in the editor until `com.unity.modules.audio`

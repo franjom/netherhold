@@ -179,8 +179,9 @@ introduction and script-forced flowers are built (ADR-0535, hash/save 302;
 research/message-tabs.md §10). Matched visual acceptance is pending (2026-10-24).
 Hash/save 283 adds native identity and
 last-payday state; ADR-0521 documents initial constructor RNG ordering limits.
-remaining modal/panel/full-map rules
-and original-game comparison are Q611 (research/hud-visibility.md).
+Campaign result suppression and scripted GUI restoration are built; Q611's
+remaining continuation boundary and original-game comparison are in
+research/hud-visibility.md (Q648/Q649).
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 

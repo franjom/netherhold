@@ -23,8 +23,8 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
 
 - [x] Implement confirmed camera/count-based letterbox HUD visibility and ordinary
   input gates, including nested requests and restoration before the bars finish.
-- [ ] Research remaining panel, modal and full-map visibility/input producers
-  and compare restoration in original DK2 (Q611).
+- [ ] Compare intro/modal restoration in original DK2 (Q648/Q649); Q611's
+  direct producer audit and campaign gate subset are in hud-visibility.md.
 - [ ] Inventory install-supplied interface bitmaps, font sizes, widget states and
   existing asset-provider support. Keep original/derived artwork out of Git.
 - [ ] Resolve the remaining overlay producers and secondary map/corner
@@ -59,8 +59,8 @@ Alarm ring, textured camera footprint, magnifier zoom and primary click navigati
 and heading-dependent native north marker are built. The zoomed map has the
 native phased Heart direction dots. The camera ribbon is masked
 to the disc; other overlays and corner controls remain. Whole-HUD
-camera/letterbox visibility and input gates are built; remaining panel/modal rules
-are Q611, with the current reading in [hud-visibility.md](../research/hud-visibility.md).
+camera/letterbox and campaign result gates are built; Q611's continuation limits
+and original-game checks are in [hud-visibility.md](../research/hud-visibility.md).
 Disc/frame layout and rotation still need owner comparison. Static native menu
 and corner-art mapping and default primary/secondary bindings are recorded;
 Query/Sell/Options corner bindings, Heart/GUI/full-map hotkeys and secondary
@@ -137,7 +137,7 @@ the tile +0xB bit 0 "Enemy Wall" status, which needs the Secret Door's tile flag
 and reveal in the simulation (door, trap, dead-body and Casino/Prison fixture status
 built 2026-10-23, the special creature name +0x895 2026-10-24,
 [world-hover-text.md](../research/world-hover-text.md)); Q197 and
-the remaining Q611 modal producers. Options exposes Continue; its other rows
+Q611's continuation boundary and restoration acceptance. Options exposes Continue; its other rows
 remain disabled until their corresponding frontends exist. These are not
 successful-looking placeholder actions. Save/load/settings frontends require further
 binary work. The hover red pass and its material are built; picking now follows DK2's

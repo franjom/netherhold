@@ -199,7 +199,7 @@ namespace DK2.Unity
 
         private void ApplyHudAction(ClassicHudAction action)
         {
-            if (action == ClassicHudAction.None) return;
+            if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
             _input.CancelPointerGesture(); _bottomPanel?.CancelPointerGesture();
             if (action == ClassicHudAction.NavigateHeart)
             {
@@ -225,7 +225,7 @@ namespace DK2.Unity
         private void UpdateHudControls(bool allowOptionsKey)
         {
             HudVisibility camera = _scriptedView.HudFor(cameraPreset);
-            if (camera.AllowOrdinaryInput)
+            if (camera.AllowOrdinaryInput && !_hudControls.InputSuppressed)
             {
                 if (allowOptionsKey && Input.GetKeyDown(KeyCode.Escape) && !_hudControls.FullMapVisible)
                     ApplyHudAction(ClassicHudAction.ToggleOptions);
@@ -238,7 +238,7 @@ namespace DK2.Unity
             }
             HudVisibility hud = CurrentHud;
             _bottomPanel?.SetVisibility(new HudVisibility(hud.ShowNormalHud, hud.AllowOrdinaryInput && !HudModal));
-            _optionsPanel?.SetVisible(camera.ShowNormalHud && _hudControls.OptionsVisible && !_hudControls.FullMapVisible);
+            _optionsPanel?.SetVisible(hud.ShowNormalHud && _hudControls.OptionsVisible);
             _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
             _queryPanel?.Draw(_querySnapshot, hud, HudModal);
             _overviewPanel?.Draw(hud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);

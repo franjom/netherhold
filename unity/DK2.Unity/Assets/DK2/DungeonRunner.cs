@@ -334,6 +334,7 @@ namespace DK2.Unity
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
                 CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
                 (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance);
+            _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
             _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
                 new PlayerId((byte)viewingPlayerId), _scriptedView));
 
@@ -532,6 +533,9 @@ namespace DK2.Unity
             // is the world this frame draws; on the main thread this frame's ticks come after.
             _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
                 _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d));
+            _hudControls.UpdateResult(new HudResultState(HasResult: PlayerStatus.HasEnded(
+                _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Status)),
+                _scriptedView.PathPlaying ? CameraModeId.ScriptedPath : new CameraModeId((ushort)cameraPreset));
             using (InputMarker.Auto())
             {
                 ApplyLetterbox();

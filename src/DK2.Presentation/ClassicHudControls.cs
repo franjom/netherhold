@@ -17,8 +17,29 @@ public sealed class ClassicHudControls
     public bool GuiVisible { get; private set; } = true;
     public bool OptionsVisible { get; private set; }
     public bool FullMapVisible { get; private set; }
+    public bool InputSuppressed { get; private set; }
+
+    public void SetGuiVisible(bool visible) => GuiVisible = visible;
+
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hud-visibility.md#result-and-special-player-state-binary-2026-10-24")]
+    public void UpdateResult(HudResultState result, CameraModeId camera = default)
+    {
+        if (camera != CameraModeId.ScriptedPath) InputSuppressed = false;
+        if (result.HasResult && !result.Continued)
+        {
+            InputSuppressed = true;
+            GuiVisible = false;
+        }
+        if (result.RestoreRequested && result.Continued)
+        {
+            InputSuppressed = false;
+            GuiVisible = true;
+        }
+    }
+
     public void Apply(ClassicHudAction action)
     {
+        if (InputSuppressed) return;
         if (FullMapVisible && action != ClassicHudAction.ToggleFullMap) return;
         if (OptionsVisible && action != ClassicHudAction.ToggleOptions) return;
         switch (action)
@@ -29,7 +50,7 @@ public sealed class ClassicHudControls
         }
     }
     public HudVisibility Visibility(HudVisibility camera) =>
-        new(camera.ShowNormalHud && GuiVisible && !FullMapVisible, camera.AllowOrdinaryInput);
+        new(camera.ShowNormalHud && GuiVisible && !FullMapVisible, camera.AllowOrdinaryInput && !InputSuppressed);
 }
 
 [Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-controls.md")]

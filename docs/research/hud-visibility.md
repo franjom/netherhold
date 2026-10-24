@@ -17,7 +17,7 @@ minimap and heading decoration. Within that gate, view slot `+0xCC` returning
 `0xB` draws a different element and returns; player flags `+0x76 & 0x80000`
 also select a special callback instead of normal HUD. Interface field `+0xF5`
 zero skips ordinary menus, resources, minimap, north and tooltips; its alternate
-context branch remains separate. Other numeric modes/flags remain unclassified.
+context branch remains separate. Result and special-player flags are classified below.
 
 Menu rendering itself (`0x0052BBD0`) additionally tests each menu's `+0x48`
 before drawing it and its children. Individual menu visibility is separate
@@ -54,8 +54,8 @@ through that ordinary path.
 When initial input passes, GUI delivery additionally requires interface `+0xF5`
 nonzero, `+0xFD` zero, mode not 7, the HUD gate true, mode not 2 unless `+0x2722`
 is nonzero, and interface byte `+0x10C` zero. The outer `+0x10DE` modal condition
-must also pass. If GUI handling declines an event, ordinary world-hand routing
-has its own world `+0x284 == 0` condition. Thus hiding a panel is not sufficient
+must also pass. FD encloses both GUI delivery and ordinary world-hand routing;
+the latter also requires world `+0x284 == 0`. Thus hiding a panel is not sufficient
 evidence that all world input should be enabled.
 
 ## Implemented subset
@@ -87,7 +87,7 @@ The `+0xF5` GUI toggle does not appear in the camera HUD predicate or ordinary
 input predicate. It hides ordinary interface drawing without blocking the
 ordinary world-hand path or suppressing its cursor by itself.
 
-## Additional modal producers (bounded binary reading, 2026-10-18)
+## Additional modal producers
 
 `0x00426070` sets `+0x10DE/+0x10E2` while menu21's chat edit control is active.
 The key dispatcher opens it through the broadcast/allies/recipient bindings;
@@ -95,10 +95,16 @@ The key dispatcher opens it through the broadcast/allies/recipient bindings;
 This gate is chat input capture, separate from Options pause. The menu21
 resource-panel interpretation was wrong; sender/recipient text is decisive.
 
-`0x00423360` toggles menu38 and `+0x272A`, populating an eligible player count;
-`0x00425070` toggles menu42 and `+0x1C1F` in game mode3 only. Both exclude
-Options and each other and save/restore generic detail-menu40 visibility
-through `0x00428990`. Their full content and command contracts remain unread.
+The menu contracts were completed on 2026-10-24:
+
+| Menu | Content and commands | Campaign / HUD contract |
+|---|---|---|
+| 38 (`0x00423360`, `+0x272A`) | Player-information table: eligible player rows, eleven statistic columns (`0x00423450`), close button. Binding `0x28` calls it without a multiplayer guard (`0x00405C85..0x00405CAC`); the default I binding is in controls.md. | Campaign-accessible. Toggles menu38, excludes Options/menu42, and saves/hides/restores detail menu40 through `0x00428990`. Neither F5 nor FD changes, so no whole-HUD hiding gate is needed. The statistics table remains outside this gate implementation. |
+| 42 (`0x00425070`, `+0x1C1F`) | Other-player rows, alliance state/matrix and private-message button. `0x00425AB0` selects a player; `0x00425B50` queues alliance actions 118/122/123; `0x00425D40` closes the panel and selects a chat recipient. Other row callbacks have function records. | Explicitly mode 3 only. Excludes Options/menu38 and saves/restores menu40; neither F5 nor FD changes. Multiplayer commands/presentation are not built for Q611. |
+
+Menu38 data is `0x00693A78` → widgets `0x00691478`; menu42 data is
+`0x00693B98` → widgets `0x00692148`. The shared menu40 save is one field
+(`+0x272E`), not a stack of previous modal visibility states.
 
 The `+0x10C` byte is ordinary world gesture capture. Its set sites are in
 `0x004075E0` (including build/sell drag arms); resets occur in the ordinary
@@ -107,17 +113,72 @@ It suppresses GUI delivery while the world gesture owns the pointer, rather
 than being a global simulation pause. The adapter's separate drag capture
 implements that purpose without copying the raw numeric field.
 
-`0x00402B50` also exposes `+0xFD` through a vtable setter. A direct-store census
-found initialization and per-frame result-state updates (`0x004039A0`), with the known
-pointer-router guard as positive control. A result without player flag0x400000 sets FD=1 and F5=0; resuming the
-result path restores them. Vtable callers and indirect writes remain unclassified, so this is not a complete producer proof.
+## Result and special-player state (binary, 2026-10-24)
+
+**CONFIRMED direct store contracts:** player flag `+0x76 & 0x80000` is set
+by `0x004C0120` only when continuing old Status 1 (conquered). This store is
+not multiplayer-only: the routine also serves campaign action 134 through
+`0x00512950`. Player initialization `0x004B8640` clears it in every mode.
+The store/mask census found no other direct bit-19 setter/clearer on the player;
+Reaper-state masks concern a different record, and `0x004B9740` changes only
+notification bits 16/17. Bulk save restoration and computed aliases are outside
+that direct-store census.
+
+`0x00419DF0` suppresses normal menus, resources and minimap when this bit is
+set, calling only menu21's callback when interface `+0x247B` permits it. It is
+a post-conquest special view, separate from the ordinary GUI-toggle flag.
+
+`0x00402B50` is the FD setter at interface table `0x0066C4A4 +0x1C`.
+All-block address scans find only its table entry and no absolute reference to
+that entry. None of the 89 listed constant-slot calls was resolved to the HUD
+interface (resource, render, session/packet and other receivers). No extra
+campaign modal producer was established; computed dispatch remains unproved.
+
+The direct result updater `0x004039A0` establishes these campaign rules:
+
+- Outside camera mode 18, clear FD/101 and enable 105 before checking results.
+  A path camera leaves FD unchanged at this initial step.
+- Nonzero player Status with continue flag `0x400000` clear sets FD/101,
+  clears F5/105 and sets `+0x132E` bit 0 (tool/held-icon suppression).
+- Local restore request `+0x13DA` plus continue flag `0x400000` clears
+  FD/101, sets F5/105, clears tool-icon suppression and consumes the request.
+  Status becoming zero alone is not the GUI restoration operation.
+- A separate Status-2/game-mode-4 arm restores these fields, forces letterbox
+  action `0x74` value 2 and shows menu51. Mode 4 is outside the campaign gate.
+
+`ClassicHudControls.UpdateResult` implements the campaign FD/F5 subset;
+Unity reads the existing player's terminal Status after joining the worker.
+Both GUI and world-pointer dispatch are suppressed, and held gestures cancel
+through the existing input gate. Explicit continuation restoration is tested
+as a presentation input; its producer is **not wired**: our simulation keeps
+Status terminal and has no action-134 continue flag. No simulation change or
+HashVersion bump was made. The special post-conquest view is likewise unbuilt.
+
+## Scripted GUI restoration and nested letterboxes
+
+**CONFIRMED setters:** interface `+0x34` is `0x00402B70` (F5=1), and `+0x38`
+is `0x00402B80` (F5=0). Action 38 calls hide on enable and show on disable,
+independently of its counted letterbox request. The non-mode-3 celebration
+`0x004BF9E0` also calls hide. The script's show sets F5=1 unconditionally; it
+does not remember an earlier manual GUI toggle or clear Options/menu state.
+
+Path end/skip `0x0044D8F0` restores the saved camera mode and normally releases
+one request, with no F5, FD or menu restoration. Its flag-0x10 arm clears
+viewport rectangles without clearing the count; the front-end flag-0x8 arm is
+separate. Count behavior is recorded in camera-paths.md §4/§6.
+
+The director now sends the script's explicit GUI request to the HUD controls.
+A path alone preserves a manually hidden GUI. With script and path requests
+nested, either release order keeps the camera gate shut until the final
+release; an open Options panel survives and resumes drawing when both F5 and
+the camera predicate allow it. This implements the binary predicates;
+visible original-game acceptance remains Q648.
 
 ## Still open
 
-Identify all special player-flag `0x80000` writers, all vtable callers of the
-`+0xFD` setter and complete multiplayer menu38/42 contracts. Full-map terrain
-and entry/exit/input are implemented; its room hover symbol, creature squares
-and legend still need their complete rendering/refresh contract. Validate
-intro, standalone/nested letterboxes and restoration in original DK2. Q611 owns
-these remaining limits; they are not prerequisites for ordinary campaign
-Options pause, GUI visibility or current world-gesture capture semantics.
+Q611's direct producer audit and campaign gate build are complete to the
+boundaries above. Original-game restoration acceptance is Q648; campaign
+post-conquest continuation is Q649. Implementing action 134's simulation
+lifecycle requires a separate task. Computed virtual dispatch has not been
+proved absent. Full-map hover symbols, creature squares and legend are a
+separate Step6 item, outside Q611.

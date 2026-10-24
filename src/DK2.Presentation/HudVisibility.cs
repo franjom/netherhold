@@ -13,6 +13,10 @@ public readonly record struct CameraModeId(ushort Value)
 
 public readonly record struct HudVisibility(bool ShowNormalHud, bool AllowOrdinaryInput);
 
+/// <summary>The result, continue flag and local restore request read by 0x004039A0.</summary>
+public readonly record struct HudResultState(
+    bool HasResult = false, bool Continued = false, bool RestoreRequested = false);
+
 [Dk2Behavior(Confidence.Confirmed, "docs/research/hud-visibility.md")]
 public static class HudVisibilityRules
 {

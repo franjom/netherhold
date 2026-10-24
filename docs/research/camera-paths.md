@@ -205,8 +205,8 @@ player only. It does two things:
   +0x34 otherwise.
 
 The level-won sequence `0x004BF9E0` makes the same pair (0x74 with 1, then slot
-+0x38). What the two slots change on screen is unread. That they hide and show the
-control panel is INFERRED from that pairing.
++0x38). The slots explicitly hide and show the GUI; their resolved setters and
+interaction with other modals are in [hud-visibility.md](hud-visibility.md#scripted-gui-restoration-and-nested-letterboxes).
 
 Action 0x74's handler is `0x004426F0`; the pair `(0x74, 0x004426F0)` is in the same
 table as 0x73's. It calls the letterbox `0x0044D320` with its argument. With 2 it

@@ -40,6 +40,7 @@ public sealed class ScriptedViewDirector(
     }
 
     public bool PathPlaying => _path is not null;
+    public event Action<bool>? GuiVisibilityRequested;
     public int LetterboxRequestCount => _letterbox.RequestCount;
     public HudFlashTarget? ActiveFlashTarget => _flash?.Target;
     public KeeperResourceFlash ResourceFlash => _flash?.Target == HudFlashTarget.Mana ? KeeperResourceFlash.Mana
@@ -146,6 +147,7 @@ public sealed class ScriptedViewDirector(
                 if (_path is not null) EndPath();
                 break;
             case ScriptedViewKind.Letterbox:
+                GuiVisibilityRequested?.Invoke(!request.Flag);
                 if (request.Flag) _letterbox.Raise(_now);
                 else _letterbox.Lower(_now);
                 break;
