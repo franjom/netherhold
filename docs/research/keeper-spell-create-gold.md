@@ -80,6 +80,8 @@ Hand commands accept an optional fixed-point position within their validated
 tile, following `0x004BC710`'s supplied position (see its function record). That DK2's
 human click supplies the pointer's floor intersection is STRONGLY INFERRED: the handler's
 read callers are the AI handlers and `0x004BCA40`, and the human click path to it is unread.
+The owner confirms the outcome (Q650, 2026-10-24): a drop merges only when the pointer is on
+the pile, and drops at different spots on one tile stay separate.
 Unity passes the pointer's floor-plane intersection through PlayerIntent and
 PlayerInput, allowing drops into off-centre mining bands. Missing coordinates
 retain tile-centre placement. GoldLandingTests covers the off-centre merge,
