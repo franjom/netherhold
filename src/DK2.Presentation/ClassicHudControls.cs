@@ -21,7 +21,7 @@ public sealed class ClassicHudControls
 
     public void SetGuiVisible(bool visible) => GuiVisible = visible;
 
-    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hud-visibility.md#result-and-special-player-state-binary-2026-10-24")]
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/hud-visibility.md#result-and-special-player-state-binary-2026-10-24")]
     public void UpdateResult(HudResultState result, CameraModeId camera = default)
     {
         if (camera != CameraModeId.ScriptedPath) InputSuppressed = false;

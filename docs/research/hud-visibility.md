@@ -118,7 +118,13 @@ implements that purpose without copying the raw numeric field.
 **CONFIRMED direct store contracts:** player flag `+0x76 & 0x80000` is set
 by `0x004C0120` only when continuing old Status 1 (conquered). This store is
 not multiplayer-only: the routine also serves campaign action 134 through
-`0x00512950`. Player initialization `0x004B8640` clears it in every mode.
+`0x00512950`. A second caller, `0x00428230` (reviewer, 2026-10-24), is a widget
+callback held only in static widget record data at `0x0069318E`; it calls player
+vtable `+0x260` with the interface's player id, then `0x004C0120`. Its neighbour
+record's callback `0x004281D0` posts action record (0,0,0,1) through `0x004346E0`,
+the same payload `0x004039A0` posts at `0x00403A90..0x00403AD5` when Status is neither
+0 nor 2 outside game mode 3 and path mode. That pair is LIKELY a result menu's
+continue and leave buttons; which menu owns the records and their labels is unread. Player initialization `0x004B8640` clears it in every mode.
 The store/mask census found no other direct bit-19 setter/clearer on the player;
 Reaper-state masks concern a different record, and `0x004B9740` changes only
 notification bits 16/17. Bulk save restoration and computed aliases are outside
@@ -146,12 +152,14 @@ The direct result updater `0x004039A0` establishes these campaign rules:
 - A separate Status-2/game-mode-4 arm restores these fields, forces letterbox
   action `0x74` value 2 and shows menu51. Mode 4 is outside the campaign gate.
 
-`ClassicHudControls.UpdateResult` implements the campaign FD/F5 subset;
-Unity reads the existing player's terminal Status after joining the worker.
-Both GUI and world-pointer dispatch are suppressed, and held gestures cancel
-through the existing input gate. Explicit continuation restoration is tested
-as a presentation input; its producer is **not wired**: our simulation keeps
-Status terminal and has no action-134 continue flag. No simulation change or
+`ClassicHudControls.UpdateResult` implements the FD/F5 subset (CONFIRMED against
+`0x004039A0`'s stores) and is tested, but **Unity does not feed it**. The key
+dispatcher `0x00405010` tests Status and FD before the Options (0x18) and GUI (0x26)
+bindings, so DK2 also refuses Options and G after a result; its way out is Space/Esc
+(Status 2, not game mode 3: Space posts action 1, Esc posts action 134 then 0x4B and
+sets `+0x13DA`) or the result menu above. The remake has neither, so suppressing input on
+a terminal Status would strand the player. Wire it together with the end-of-level flow.
+Our simulation keeps Status terminal and has no action-134 continue flag. No simulation change or
 HashVersion bump was made. The special post-conquest view is likewise unbuilt.
 
 ## Scripted GUI restoration and nested letterboxes
