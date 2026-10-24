@@ -4,7 +4,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using DK2.Presentation;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -23,6 +22,10 @@ namespace DK2.Unity
         private readonly PanelSettings _settings;
         private readonly Image _icon, _noGo, _more, _dispose;
         private readonly Image[] _digits = new Image[MaxDigits];
+        // The price the digit images show; a count of 0 means none set yet.
+        private long _priceMagnitude;
+        private string _priceFamily;
+        private int _priceDigitCount;
         private readonly Image[] _held = new Image[HeldItemStack.MaxIcons];
 
         public ClassicPlacementOverlay(Transform parent, IClassicResourceAssets assets)
@@ -98,20 +101,35 @@ namespace DK2.Unity
             // 0x00415650 mode 0 (48 square, 40 advance, i- digits from 640 wide), on screen as our gold
             // counter scales it (H/1920): fitted, not read.
             string family = width >= 640 ? "GUI\\Icons\\i-" : "GUI\\Icons\\lo-";
-            string text = Math.Abs(feedback.Price).ToString(CultureInfo.InvariantCulture);
-            if (text.Length > MaxDigits) text = text.Substring(text.Length - MaxDigits);
+            int count = PriceDigits(Math.Abs((long)feedback.Price), family);
             Color32 colour = feedback.Price > 0 ? new Color32(128, 255, 255, 255)
                 : feedback.Affordable ? new Color32(255, 128, 128, 255) : new Color32(255, 0, 0, 255);
             float glyph = 48 * height / 1920f, advance = 40 * height / 1920f;
-            for (int i = 0; i < text.Length; i++)
+            for (int i = 0; i < count; i++)
             {
                 Image digit = _digits[i];
-                digit.image = Texture(family + text[i]);
                 digit.tintColor = colour;
                 digit.style.display = DisplayStyle.Flex;
                 Place(digit, x + 30 * scale + i * advance, y + 10 * scale, glyph, glyph);
             }
-            HideDigits(text.Length);
+            HideDigits(count);
+        }
+
+        /// <summary>Sets the digit images to the price's last <see cref="MaxDigits"/> decimal digits, as
+        /// the formatted number's tail was; returns how many. The images keep their textures until the
+        /// price or the family changes, so a steady price builds no string (as ClassicResourceHud's rows).</summary>
+        private int PriceDigits(long magnitude, string family)
+        {
+            if (_priceDigitCount > 0 && magnitude == _priceMagnitude && family == _priceFamily)
+                return _priceDigitCount;
+            int count = 0;
+            for (long rest = magnitude; count == 0 || rest > 0; rest /= 10) count++;
+            count = Math.Min(count, MaxDigits);
+            long value = magnitude;
+            for (int i = count - 1; i >= 0; i--, value /= 10)
+                _digits[i].image = Texture(family + (char)('0' + (int)(value % 10)));
+            _priceMagnitude = magnitude; _priceFamily = family; _priceDigitCount = count;
+            return count;
         }
 
         private string IconName(in PlacementFeedback feedback)

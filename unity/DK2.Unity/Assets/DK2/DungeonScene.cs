@@ -88,6 +88,7 @@ namespace DK2.Unity
         private readonly List<Material> _hoverMaterials = new List<Material>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
+        private bool _disposed;
         private readonly ClassicTorchLightBuffer _torchLights;
         private readonly ClassicTileFillBuffer _tileFill;
         private ClassicTileLightBuffer _tileLights;
@@ -892,6 +893,20 @@ namespace DK2.Unity
             _creatureShadows?.Dispose();
             _torchLights?.Dispose();
             _tileFill?.Dispose();
+        }
+
+        /// <summary>The scene's final teardown (L3 of performance-audit-2026-10.md), idempotent: its
+        /// objects, chunk and liquid meshes (<see cref="Clear"/>), its light resources, then the
+        /// placeholder materials. The shared art those objects drew (ClassicMeshes) is the caller's,
+        /// released after this.</summary>
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            Clear();
+            DisposeLightResources();
+            foreach (Material material in _materials.Values) if (material != null) Object.Destroy(material);
+            _materials.Clear();
         }
 
         /// <summary>Destroys everything. Pair with <see cref="ScenePresenter.Resync"/>.</summary>

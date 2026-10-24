@@ -48,6 +48,9 @@ namespace DK2.Unity
         private readonly HashSet<int> _dirty = new HashSet<int>();
         private readonly List<int> _dirtyOrder = new List<int>();
         private readonly Dictionary<int, GameObject> _chunks = new Dictionary<int, GameObject>();
+        // Each chunk's mesh, held apart from its object so a teardown frees it even when the object
+        // went first with its parent.
+        private readonly Dictionary<int, Mesh> _chunkMeshes = new Dictionary<int, Mesh>();
         private readonly System.Diagnostics.Stopwatch _flushClock = new System.Diagnostics.Stopwatch();
 
         /// <summary>How long one <see cref="Flush"/> may spend rebuilding chunks before it leaves the
@@ -155,8 +158,10 @@ namespace DK2.Unity
 
         public void Clear()
         {
-            foreach (GameObject go in _chunks.Values) DestroyChunk(go);
+            foreach (GameObject go in _chunks.Values) if (go != null) Object.Destroy(go);
+            foreach (Mesh mesh in _chunkMeshes.Values) if (mesh != null) Object.Destroy(mesh);
             _chunks.Clear();
+            _chunkMeshes.Clear();
             _transparent.Clear();
             _dirty.Clear();
             System.Array.Clear(_drawn, 0, _drawn.Length);
@@ -181,11 +186,12 @@ namespace DK2.Unity
         }
 
         // The mesh is the chunk's own: destroying the object alone would leak it.
-        private static void DestroyChunk(GameObject go)
+        private void DestroyChunk(int chunk)
         {
-            if (go == null) return;
-            Object.Destroy(go.GetComponent<MeshFilter>().sharedMesh);
-            Object.Destroy(go);
+            if (_chunks.TryGetValue(chunk, out GameObject go) && go != null) Object.Destroy(go);
+            if (_chunkMeshes.TryGetValue(chunk, out Mesh mesh) && mesh != null) Object.Destroy(mesh);
+            _chunks.Remove(chunk);
+            _chunkMeshes.Remove(chunk);
         }
 
         private int ChunkOf(int tileIndex) =>
@@ -223,8 +229,7 @@ namespace DK2.Unity
             _chunks.TryGetValue(chunk, out GameObject go);
             if (_positions.Count == 0)
             {
-                DestroyChunk(go);
-                _chunks.Remove(chunk);
+                DestroyChunk(chunk);
                 return;
             }
 
@@ -259,9 +264,9 @@ namespace DK2.Unity
                 go.AddComponent<MeshRenderer>();
                 _chunks[chunk] = go;
             }
-            var filter = go.GetComponent<MeshFilter>();
-            if (filter.sharedMesh != null) Object.Destroy(filter.sharedMesh);
-            filter.sharedMesh = mesh;
+            if (_chunkMeshes.TryGetValue(chunk, out Mesh previous) && previous != null) Object.Destroy(previous);
+            _chunkMeshes[chunk] = mesh;
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
             go.GetComponent<MeshRenderer>().sharedMaterials = _opaque.ToArray();
         }
 

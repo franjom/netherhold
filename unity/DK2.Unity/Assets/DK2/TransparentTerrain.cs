@@ -184,7 +184,8 @@ namespace DK2.Unity
             _sources.Clear();
             _effects.Clear(); _effectCount = 0;
             _dirty = true;
-            foreach (Run run in _runs) run.Object.SetActive(false);
+            // A teardown on scene unload can find a run's object already gone with its parent.
+            foreach (Run run in _runs) if (run.Object != null) run.Object.SetActive(false);
         }
 
         private void Collect()

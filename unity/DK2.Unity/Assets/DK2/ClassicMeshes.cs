@@ -49,6 +49,9 @@ namespace DK2.Unity
         private readonly Dictionary<(AssetRef, int), PieceSource> _pieces = new Dictionary<(AssetRef, int), PieceSource>();
         private readonly Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]> _heartMaterials = new Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]>();
         private readonly Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]> _tintedSets = new Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]>();
+        // Every mesh, texture and material this class made (Own), once each however many caches hold
+        // it; Release destroys exactly these. Shaders and anything loaded from Resources are not in it.
+        private readonly HashSet<UnityEngine.Object> _owned = new HashSet<UnityEngine.Object>();
 
         public ClassicMeshes(InstallArtProvider art, bool classicVertexLighting = false, bool nativeInitialAmbient = false)
         {
@@ -214,7 +217,7 @@ namespace DK2.Unity
             {
                 using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Mesh);
                 RenderMesh source = RenderMesh.FromModel(model, frame);
-                var frameMesh = new Mesh { name = asset.InstallEntry + " " + frame };
+                var frameMesh = Own(new Mesh { name = asset.InstallEntry + " " + frame });
                 frameMesh.SetVertices(ToUnity(source.Positions));
                 frameMesh.SetNormals(ToUnity(source.Normals));
                 frameMesh.SetUVs(0, ToUnity(source.Uvs));
@@ -295,7 +298,7 @@ namespace DK2.Unity
             {
                 RenderMesh source = RenderMesh.FromModel(model, lastFrame && model.Animation is { IsComplete: true }
                     ? model.Animation.Frames.Count - 1 : 0);
-                var mesh = new Mesh { name = asset.InstallEntry };
+                var mesh = Own(new Mesh { name = asset.InstallEntry });
                 mesh.SetVertices(ToUnity(source.Positions));
                 mesh.SetNormals(ToUnity(source.Normals));
                 mesh.SetUVs(0, ToUnity(source.Uvs));
@@ -378,7 +381,7 @@ namespace DK2.Unity
             {
                 RgbaImage image = _art.LoadTexture(kmf.EnvironmentTextureName);
                 using (LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Texture))
-                    texture = ToTexture(image, kmf.EnvironmentTextureName);
+                    texture = Own(ToTexture(image, kmf.EnvironmentTextureName));
             }
             catch (System.IO.FileNotFoundException)
             {
@@ -387,7 +390,7 @@ namespace DK2.Unity
             if (texture != null)
             {
                 float light = kmf.EnvironmentPassLight;
-                material = new Material(_shader) { name = "ENV_" + kmf.EnvironmentTextureName, mainTexture = texture };
+                material = Own(new Material(_shader) { name = "ENV_" + kmf.EnvironmentTextureName, mainTexture = texture });
                 material.SetColor("_BaseColor", new Color(light, light, light, 1f));
                 material.EnableKeyword("DK2_ENVIRONMENT_MAP");
                 MakeTransparent(material, BlendMode.One, BlendMode.One, 2f);
@@ -492,7 +495,7 @@ namespace DK2.Unity
         public Material HoverOverlay() => _hoverOverlay ??= Additive("AA_RedTexture", HoverOverlayColour);
 
         // The materials this class made from an additive or alpha-blended KMF material, and every
-        // copy of one (Copy). Bounded by the material caches, which keep each material for the session.
+        // copy of one (Copy). Bounded by the material caches, which keep each material until Release.
         private readonly HashSet<Material> _kmfBlended = new HashSet<Material>();
 
         /// <summary>Whether a material was made from an additive or alpha-blended KMF material
@@ -506,7 +509,7 @@ namespace DK2.Unity
         /// constructor carries over.</summary>
         private Material Copy(Material source, string suffix)
         {
-            var copy = new Material(source) { name = source.name + suffix };
+            var copy = Own(new Material(source) { name = source.name + suffix });
             if (_kmfBlended.Contains(source)) _kmfBlended.Add(copy);
             if (_environmentMaterials.Contains(source)) _environmentMaterials.Add(copy);
             return copy;
@@ -555,10 +558,10 @@ namespace DK2.Unity
 
         public static bool IsTagOverlay(Material material) => material.GetTag("DK2TagOverlay", false) is "dig" or "tutorial";
 
-        private static Material Additive(string name, Color colour)
+        private Material Additive(string name, Color colour)
         {
             Shader unlit = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            var overlay = new Material(unlit) { name = name, color = colour };
+            var overlay = Own(new Material(unlit) { name = name, color = colour });
             overlay.SetFloat("_Surface", 1f);
             overlay.SetFloat("_Blend", 2f);
             overlay.SetFloat("_SrcBlend", (float)BlendMode.One);
@@ -589,12 +592,12 @@ namespace DK2.Unity
                 // Additive: the constructor forces the colour to white, so the texture is drawn at
                 // full light whatever lights the scene; Unlit is that.
                 Shader unlit = Shader.Find("Universal Render Pipeline/Unlit") ?? _shader;
-                material = new Material(unlit) { name = "AA_" + name, color = Color.white };
+                material = Own(new Material(unlit) { name = "AA_" + name, color = Color.white });
                 MakeTransparent(material, BlendMode.One, BlendMode.One, 2f);
             }
             else
             {
-                material = new Material(_shader) { name = blend == KmfBlend.AlphaBlend ? "A_" + name : name };
+                material = Own(new Material(_shader) { name = blend == KmfBlend.AlphaBlend ? "A_" + name : name });
                 // DK2 never enables specular light (SPECULARENABLE 0, 0x005899F0).
                 material.SetFloat("_Smoothness", 0f);
                 material.SetFloat("_SpecularHighlights", 0f);
@@ -611,7 +614,7 @@ namespace DK2.Unity
                 {
                     RgbaImage image = _art.LoadTexture(texture);
                     using (LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Texture))
-                        material.mainTexture = ToTexture(image, texture);
+                        material.mainTexture = Own(ToTexture(image, texture));
                 }
                 catch (System.IO.FileNotFoundException)
                 {
@@ -634,6 +637,7 @@ namespace DK2.Unity
         /// own _Blend enum (0 alpha, 2 additive), kept for its inspector.</summary>
         private readonly Dictionary<(Material, byte, bool), Material> _faded = new Dictionary<(Material, byte, bool), Material>();
         private readonly Dictionary<GameObject, Material[]> _opaqueOf = new Dictionary<GameObject, Material[]>();
+        private Material[] _fadedScratch = System.Array.Empty<Material>();
 
         /// <summary>Draws a static mesh object at <paramref name="alpha"/> (object <c>+0x8F</c>): opaque
         /// at 255 with its own materials, hidden at 0, and between with alpha-blended twins of its
@@ -656,9 +660,10 @@ namespace DK2.Unity
             if (!_opaqueOf.TryGetValue(go, out Material[] source)) _opaqueOf[go] = source = renderer.sharedMaterials;
             renderer.enabled = alpha > 0;
             if (alpha == 0) return;
-            var faded = new Material[source.Length];
-            for (int i = 0; i < source.Length; i++) faded[i] = Faded(source[i], alpha, writeDepth: true);
-            renderer.sharedMaterials = faded;
+            // The setter copies the array, so one scratch of the right length serves every call.
+            if (_fadedScratch.Length != source.Length) _fadedScratch = new Material[source.Length];
+            for (int i = 0; i < source.Length; i++) _fadedScratch[i] = Faded(source[i], alpha, writeDepth: true);
+            renderer.sharedMaterials = _fadedScratch;
         }
 
         public Material SightFog(Material source, byte packedAlpha) => Faded(source, packedAlpha, writeDepth: false);
@@ -708,6 +713,33 @@ namespace DK2.Unity
             material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             material.SetOverrideTag("RenderType", "Transparent");
             material.renderQueue = (int)RenderQueue.Transparent;
+        }
+
+        private T Own<T>(T asset) where T : UnityEngine.Object
+        {
+            _owned.Add(asset);
+            return asset;
+        }
+
+        /// <summary>Destroys every mesh, texture and material this class made and forgets every cache,
+        /// once each (L1 of performance-audit-2026-10.md). Idempotent. The caller runs it last, after
+        /// every object, chunk and effect drawing them is gone: a destroyed asset still on a renderer
+        /// draws pink or nothing. Shaders and Resources assets are not this class's and stay.</summary>
+        public void Release()
+        {
+            foreach (UnityEngine.Object asset in _owned)
+            {
+                if (asset == null) continue;
+                if (Application.isPlaying) UnityEngine.Object.Destroy(asset);
+                else UnityEngine.Object.DestroyImmediate(asset);
+            }
+            _owned.Clear();
+            _built.Clear(); _builtFrames.Clear(); _materials.Clear(); _pieces.Clear(); _animations.Clear();
+            _groupParts.Clear(); _tagged.Clear(); _redHighlighted.Clear(); _tinted.Clear(); _tintedSets.Clear();
+            _elementTinted.Clear(); _heartMaterials.Clear(); _hoverTextures.Clear(); _faded.Clear();
+            _opaqueOf.Clear(); _environmentPasses.Clear(); _environmentMaterials.Clear(); _kmfBlended.Clear();
+            System.Array.Clear(_fadedScratch, 0, _fadedScratch.Length);
+            _tagOverlay = null; _redTerrainOverlay = null; _hoverOverlay = null;
         }
 
         private static Texture2D ToTexture(RgbaImage image, string name)

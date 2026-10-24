@@ -101,7 +101,8 @@ namespace DK2.Unity
 
         public void Clear()
         {
-            foreach (var drawn in _drawn.Values) Object.Destroy(drawn.Renderer.gameObject);
+            // A teardown on scene unload can find the sprites already gone with their parent.
+            foreach (var drawn in _drawn.Values) if (drawn.Renderer != null) Object.Destroy(drawn.Renderer.gameObject);
             _drawn.Clear();
         }
 

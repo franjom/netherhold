@@ -214,6 +214,46 @@ public sealed class StructureViewTests
         Assert.Equal(4, target.Creates);
     }
 
+    /// <summary>The structure pass reuses its seen/gone scratch across presents (performance audit C3):
+    /// the call sequence is what fresh containers gave, removals sorted doors first then by id even
+    /// when the trap was created first, and nothing from an earlier pass leaks into a later one.</summary>
+    [Fact]
+    public void ReusedStructureScratchKeepsTheCallSequenceAndSortedRemovals()
+    {
+        var (database, world) = Fixture();
+        var target = new Target();
+        var presenter = new ScenePresenter(new WorldView(database), AssetProviderChain.Standard(), target);
+        DoorState[] doors = world.Doors.OrderBy(door => door.Id).ToArray();
+        TrapState trap = world.Traps.Single();
+        string Door(DoorState door) => $"Door {door.Id}";
+        string Trap() => $"Trap {trap.Id}";
+        void Show(bool shown)
+        {
+            foreach (DoorState door in doors) door.UnderConstruction = !shown;
+            trap.Hidden = !shown;
+        }
+        List<string> Present()
+        {
+            target.Calls.Clear();
+            presenter.Present(world);
+            return target.Calls.ToList();
+        }
+
+        Show(false);
+        trap.Hidden = false;
+        Assert.Equal(new[] { "create " + Trap() }, Present());
+        Show(true);
+        Assert.Equal(world.Doors.Select(door => "create " + Door(door)), Present());
+        Show(false);
+        Assert.Equal(doors.Select(door => "remove " + Door(door)).Append("remove " + Trap()), Present());
+        Assert.Empty(Present());
+        Show(true);
+        Assert.Equal(3, Present().Count);
+        trap.Hidden = true;
+        Assert.Equal(new[] { "remove " + Trap() }, Present());
+        Assert.Empty(Present());
+    }
+
     [Fact]
     public void BothWallOrientationsAndFogAreRespected()
     {
@@ -257,10 +297,13 @@ public sealed class StructureViewTests
     private sealed class Target : IRenderTarget
     {
         public readonly Dictionary<StructureId, StructureView> Visible = [];
+        public readonly List<string> Calls = [];
         public int Creates, Updates, Removes;
-        public void CreateStructure(StructureId id, in StructureView s, in ResolvedAsset m) { Visible[id] = s; Creates++; }
-        public void UpdateStructure(StructureId id, in StructureView s, in ResolvedAsset m) { Visible[id] = s; Updates++; }
-        public void RemoveStructure(StructureId id) { Visible.Remove(id); Removes++; }
+        public void CreateStructure(StructureId id, in StructureView s, in ResolvedAsset m)
+        { Visible[id] = s; Creates++; Calls.Add($"create {id.Kind} {id.Value}"); }
+        public void UpdateStructure(StructureId id, in StructureView s, in ResolvedAsset m)
+        { Visible[id] = s; Updates++; Calls.Add($"update {id.Kind} {id.Value}"); }
+        public void RemoveStructure(StructureId id) { Visible.Remove(id); Removes++; Calls.Add($"remove {id.Kind} {id.Value}"); }
         public void CreateTile(int i, in TileView t, in ResolvedAsset g, in ResolvedAsset f) { }
         public void UpdateTile(int i, in TileView t, in ResolvedAsset g, in ResolvedAsset f) { }
         public void CreateCreature(int i, in CreatureView c, in ResolvedAsset m, in ResolvedAsset a) { }

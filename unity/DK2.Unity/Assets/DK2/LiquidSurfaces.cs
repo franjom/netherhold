@@ -64,13 +64,19 @@ namespace DK2.Unity
 
         public void Clear()
         {
-            foreach (Layer layer in new[] { _water, _lava })
-            {
-                if (layer.Object != null) Object.Destroy(layer.Object);
-                layer.Object = null;
-                layer.Tiles.Clear();
-            }
+            Clear(_water);
+            Clear(_lava);
             System.Array.Clear(_kinds, 0, _kinds.Length);
+        }
+
+        // The mesh is the layer's own (Rebuild destroys the previous one too); the object alone would leak it.
+        private static void Clear(Layer layer)
+        {
+            if (layer.Object != null) Object.Destroy(layer.Object);
+            if (layer.Mesh != null) Object.Destroy(layer.Mesh);
+            layer.Object = null;
+            layer.Mesh = null;
+            layer.Tiles.Clear();
         }
 
         private void Rebuild(Layer layer)

@@ -122,7 +122,7 @@ namespace DK2.Unity
             _torches.Clear();
             _draws.Clear();
             _receiverMesh.Clear();
-            _receiverRenderer.enabled = false;
+            if (_receiverRenderer != null) _receiverRenderer.enabled = false;
         }
 
         // Called by the owning scene before this camera renders; snapshot ground data is supplied separately.
@@ -343,7 +343,7 @@ namespace DK2.Unity
         {
             if (_disposed) return;
             _disposed = true;
-            _receiverRenderer.enabled = false;
+            if (_receiverRenderer != null) _receiverRenderer.enabled = false;
             _casters.Clear(); _torches.Clear(); _draws.Clear();
             _commands.Dispose();
             ReleaseAtlas();

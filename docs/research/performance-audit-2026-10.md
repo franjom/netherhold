@@ -70,6 +70,7 @@ Gain: at least two container objects/frame plus populated backing storage
 removed; low whole-frame benefit alone. No H; low V if call order is retained.
 Object/creature passes also enumerate every Present; gate only after measuring
 and identifying all between-tick preview/visibility inputs.
+Fixed (2026-10-24): structure seen/gone scratch reused, removals sorted by a shared comparer; test pins the calls.
 
 **C4 — CONFIRMED: placement price formatting and digit keys per frame.**
 `U/ClassicPlacementOverlay.cs:97,101,109`: an active priced preview formats its
@@ -77,6 +78,7 @@ number and concatenates a texture key per digit on every draw, despite cached
 textures. Proposed: retain digits and texture references until price/family
 changes, as `ClassicResourceHud.cs:223` already does. Gain: one number string
 and up to MaxDigits key strings per applicable frame. Low V; no H.
+Fixed (2026-10-24): digit textures retained until price/family changes; no number string per frame.
 
 **C5 — SUSPECTED: redundant retained-UI layout work.**
 `U/ClassicBottomPanel.cs:181,188,215,239`; `U/ClassicMessageTabs.cs:227`;
@@ -130,6 +132,8 @@ Gain: reclaim all owned runtime art at unload, magnitude requires snapshots.
 No H; V risk from destroying shared/live meshes or Resources-owned assets.
 Automatic unused-asset cleanup can hide the gap; measure both natural unload
 and retained references before treating it as permanent growth across scenes.
+Fixed (2026-10-24): `ClassicMeshes.Release` destroys only what it created (deduplicated registry), run by
+Runner.OnDestroy after effects and `DungeonScene.Dispose`. Unity play/stop/reload check pending.
 
 **L2 — CONFIRMED retention; growth rate SUSPECTED: variant caches.**
 `U/ClassicMeshes.cs:124,443,451,635,642`;
@@ -144,6 +148,7 @@ canonical texture-index keys, explicit Forget on removal and safe bounded
 variant ownership. Gain: avoid one material per distinct tint/alpha and redundant
 phase arrays; actual palette/phase diversity needs a soak. V: blend, depth,
 emission and batching equivalence; no H. Do not quantize colours to save memory.
+Partly fixed (2026-10-24): SetAlpha reuses a scratch Material[]; the cache redesign remains open.
 
 **L3 — CONFIRMED: smaller generated-resource teardown omissions.**
 `U/LiquidSurfaces.cs:65,81,112`: Clear destroys layer objects but not layer.Mesh;
@@ -156,6 +161,7 @@ atlas on size change but `:487` omits final disposal. Proposed: one scene-owned
 teardown path plus liquid/atlas cleanup, ordered before shared-art release.
 Gain: generated mesh/material/atlas memory per unload, no steady-state FPS
 promise. No H; low V with correct ownership and destruction order.
+Fixed (2026-10-24): `DungeonScene.Dispose` (Clear, lights, placeholders) on final teardown; liquid and chunk meshes freed; atlas disposed.
 
 **L4 — CONFIRMED negative evidence, warning remains SUSPECTED.**
 A source sweep of `src/**/*.cs` and `unity/DK2.Unity/Assets/**/*.cs` found no

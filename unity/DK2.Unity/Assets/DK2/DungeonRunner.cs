@@ -496,8 +496,16 @@ namespace DK2.Unity
             _resourceHud?.Dispose();
             if (_heartHealthWorld != null && _heartHealthObserver != null)
                 _heartHealthWorld.HeartHealthChanged -= _heartHealthObserver;
+            // Users of the shared art first, then the art (performance audit L1/L3): the effects and
+            // every scene object, chunk and liquid mesh stop drawing before ClassicMeshes destroys the
+            // meshes, materials and textures they drew with. Destroy is deferred to the frame's end,
+            // but nothing renders between, and this order holds if any of it becomes immediate.
             _constructionEffects?.Dispose();
-            _scene?.DisposeLightResources();
+            _scene?.Dispose();
+            _classic?.Release();
+            _subtitleFont?.Dispose();
+            _subtitleFont = null;
+            _subtitleFontFile = null;
             _installArt?.Dispose();
             _installArt = null;
         }

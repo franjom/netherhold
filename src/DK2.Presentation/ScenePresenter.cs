@@ -304,6 +304,8 @@ public sealed class ScenePresenter
     private readonly List<int> _goneObjects = [];
     private readonly HashSet<int> _seenObjects = [];
     private readonly Dictionary<StructureId, StructureView> _lastStructures = [];
+    private readonly HashSet<StructureId> _seenStructures = [];
+    private readonly List<StructureId> _goneStructures = [];
 
     public ScenePresenter(WorldView view, IAssetProvider assets, IRenderTarget target)
         : this(view, assets, target, null)
@@ -557,10 +559,11 @@ public sealed class ScenePresenter
 
     private void PresentStructures(WorldState world)
     {
-        var seen = new HashSet<StructureId>();
+        // Per-presenter scratch, cleared each pass, so an unchanged frame allocates no container.
+        _seenStructures.Clear();
         foreach (StructureView structure in _view.Structures(world))
         {
-            seen.Add(structure.Id);
+            _seenStructures.Add(structure.Id);
             bool known = _lastStructures.TryGetValue(structure.Id, out StructureView last);
             if (known && last == structure) continue;
             ResolvedAsset mesh = Resolve(structure.Mesh);
@@ -568,16 +571,25 @@ public sealed class ScenePresenter
             else _target.CreateStructure(structure.Id, structure, mesh);
             _lastStructures[structure.Id] = structure;
         }
-        var gone = new List<StructureId>();
+        _goneStructures.Clear();
         foreach (StructureId id in _lastStructures.Keys)
-            if (!seen.Contains(id)) gone.Add(id);
-        gone.Sort((left, right) => left.Kind != right.Kind
-            ? left.Kind.CompareTo(right.Kind) : left.Value.CompareTo(right.Value));
-        foreach (StructureId id in gone)
+            if (!_seenStructures.Contains(id)) _goneStructures.Add(id);
+        _goneStructures.Sort(StructureIdOrder.Instance);
+        foreach (StructureId id in _goneStructures)
         {
             _target.RemoveStructure(id);
             _lastStructures.Remove(id);
         }
+    }
+
+    /// <summary>Removals go doors first, then traps, each in ascending id order, so the call sequence
+    /// is reproducible. One shared instance: sorting with it allocates nothing.</summary>
+    private sealed class StructureIdOrder : IComparer<StructureId>
+    {
+        public static readonly StructureIdOrder Instance = new();
+
+        public int Compare(StructureId left, StructureId right) => left.Kind != right.Kind
+            ? left.Kind.CompareTo(right.Kind) : left.Value.CompareTo(right.Value);
     }
 
     private void PresentObjects(WorldState world)
