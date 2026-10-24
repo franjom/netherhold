@@ -12,6 +12,21 @@ namespace DK2.Presentation.Tests;
 
 public sealed class HandCursorTests
 {
+    [Theory]
+    [InlineData(480)]
+    [InlineData(1080)]
+    [InlineData(2160)]
+    public void PlacementExtrasStayBesideTheHandAfterItsClawAnchorMoves(int height)
+    {
+        var pointer = new Vector2(300, 250);
+        HandCursorPlacement hand = HandCursor.Place(HandCursorKind.Point, 0, pointer, height);
+        Vector2 icon = HandCursor.OverlayAnchor(HandCursorKind.Point, pointer, height);
+        float scale = height / 480f;
+
+        Assert.Equal(hand.Origin.X + hand.Size.X + 2 * scale, icon.X);
+        Assert.Equal(hand.Origin.Y + 27 * scale, icon.Y);
+    }
+
     [Fact]
     public void HeldThingAndGoldCursorsAndFiniteDropSlapFeedbackUseOriginalSheets()
     {

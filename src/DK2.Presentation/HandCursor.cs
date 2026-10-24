@@ -104,6 +104,17 @@ public static class HandCursor
         float scale = screenHeight / 480f;
         return new(pointerPixels - Anchor(kind, frame) * scale, sprite.FrameSize * scale);
     }
+
+    /// <summary>DK2's tool-icon offset from the hand's native hotspot, translated with the drawn
+    /// hand when its click anchor changes. Uses the hand's uniform height scale.</summary>
+    public static Vector2 OverlayAnchor(HandCursorKind kind, Vector2 pointerPixels, int screenHeight,
+        bool overHud = false)
+    {
+        if (screenHeight <= 0) throw new ArgumentOutOfRangeException(nameof(screenHeight));
+        if (kind == HandCursorKind.Default) kind = HandCursorKind.Point;
+        Vector2 relative = Sprite(kind).Hotspot - Anchor(kind, 0) + new Vector2(overHud ? 42 : 82, 10);
+        return pointerPixels + relative * (screenHeight / 480f);
+    }
 }
 
 public sealed class HandCursorFeedback

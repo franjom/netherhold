@@ -361,8 +361,8 @@ the tiles `CanBuild` or the span rule accepts, and with none it is invalid and u
 clamps its end to `RubberBandAreaLimit` (`PlayerInputTranslator`, as `0x00408194..0x004081FD`); the
 cursor rectangle and sell release keep the low corner (`0x0040B2B0`, `0x0040B661`, `0x004083DA`),
 the room release the anchor (`0x00408194`); ours does each.
-`ClassicTileHoverOutline` cages any rectangle; `ClassicPlacementOverlay` draws the icon at the
-pointer plus `(82*W/640, 10*H/480)`, No Go over it, and the price in the gold counter's digits,
+`ClassicTileHoverOutline` cages any rectangle; `ClassicPlacementOverlay` draws the icon beside
+the rendered Hand (anchor correction below), No Go over it, and the price in the gold counter's digits,
 pink, red when unaffordable, (128,255,255) for a refund. The hover cage follows `0x004096B0`
 (`HoverCageShows`, `DungeonRunner.HoverCaged`; in Hand mode over a dig-taggable tile, hit kind
 Tile), hidden on border tiles, with Options open and
@@ -372,6 +372,10 @@ plus our walkability guard (ADR-0526). Not applied: `0x004096B0`'s view-mode, ov
 gates; over the HUD ours forces No Go even during a drag, where DK2's `+0x10C` gate runs the
 normal arm. Not built: the hovered door/trap sell refund, the room hover's terrain `+0x17B` gate,
 and a door/trap's stale price when invalid.
+**Anchor correction (2026-10-24).** Native photo `D:\DK2Evidence\room-placement-anchor-20261024-87734497223a40fab8abbd9ced40495e\IMG20261023083831.jpg` confirms the icon/price beside the right wrist.
+`HandCursor.OverlayAnchor` follows the sprite's native hotspot after the chosen claw anchor moves it, using the Hand's uniform height scale (ART_DIRECTION §13).
+This adapts §3's native per-axis offsets; the old pointer/width scaling displaced the overlay relative to the Hand. Icon, price and No Go move together.
+The GUI's leftward shift uses the same height scale; `HandCursorTests` checks the wrist relationship at 480, 1080 and 2160 pixels high.
 
 **Keeper spell and Query (2026-10-23).** `PlacementCursor.Spell`: the spell's icon, no cage or
 price, No Go where the simulation refuses the command our click sends (`CanCast` on the hovered

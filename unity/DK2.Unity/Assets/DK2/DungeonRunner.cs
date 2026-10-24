@@ -1341,7 +1341,7 @@ namespace DK2.Unity
             float reach = cursor == HandCursorKind.Default ? 80 : HandCursor.Reach(cursor);
             _hoverHud?.Draw(_hoverSnapshot, pointerGui, reach);
             if (allowed && placement.Icon == PlacementIcon.Held) _heldStack.Refresh(_simulation.World, new PlayerId((byte)viewingPlayerId));
-            _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse), _heldStack);
+            _placementOverlay?.Draw(allowed ? placement : PlacementFeedback.None, pointerGui, PointerOverHud(mouse), _heldStack, cursor);
             _tileHighlight?.Update(placement.Cage, placement.Valid, Camera.main, Time.unscaledTimeAsDouble);
         }
 

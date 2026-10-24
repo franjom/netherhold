@@ -64,14 +64,16 @@ namespace DK2.Unity
         public Func<byte, string> ObjectIconName { get; set; }
 
         /// <param name="pointer">The pointer in screen pixels from the top left.</param>
-        /// <param name="overHud">DK2 moves the icon left by 40 * W / 640 over the GUI.</param>
+        /// <param name="overHud">Moves the icon left by 40 reference units over the GUI.</param>
         /// <param name="held">The hand's icons, read when <paramref name="feedback"/> shows
         /// <see cref="PlacementIcon.Held"/>.</param>
-        public void Draw(in PlacementFeedback feedback, Vector2 pointer, bool overHud, HeldItemStack held = null)
+        public void Draw(in PlacementFeedback feedback, Vector2 pointer, bool overHud, HeldItemStack held = null,
+            HandCursorKind handKind = HandCursorKind.Point)
         {
             float width = Screen.width, height = Screen.height;
-            float x = pointer.x + 82 * width / 640 - (overHud ? 40 * width / 640 : 0);
-            float y = pointer.y + 10 * height / 480;
+            System.Numerics.Vector2 anchor = HandCursor.OverlayAnchor(handKind,
+                new System.Numerics.Vector2(pointer.x, pointer.y), Screen.height, overHud);
+            float x = anchor.X, y = anchor.Y;
             // The draw passes 0x20 x 0x20 and the +30/+10 price offset in pixels whose screen scale
             // is unread; both are taken at the owner's 1200-line photos (2026-10-23), HYPOTHESIS.
             float scale = height / 1200f, size = 32 * scale;
