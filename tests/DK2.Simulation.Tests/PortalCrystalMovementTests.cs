@@ -94,7 +94,8 @@ public class PortalCrystalMovementTests
         Assert.True(navigation.CanMove(Point(4.2, 4.3), Point(5.6, 4.3)));
         Assert.False(navigation.CanMove(Point(4.2, 4.3), Point(5.6, 4.3), Fp32.FromDouble(.2)));
         var projected = navigation.ConstrainTarget(Point(4.2, 4.7), Point(5.0, 4.7), Fp32.FromDouble(.2));
-        Assert.True(projected.X < Point(4.58, 4.7).X);
+        Assert.NotEqual(Point(5.0, 4.7), projected);
+        Assert.Equal(projected, navigation.ConstrainTarget(Point(4.2, 4.7), projected, Fp32.FromDouble(.2)));
         Assert.True(navigation.CanMove(Point(4.2, 4.7), projected, Fp32.FromDouble(.2)));
         Assert.True(navigation.CanMove(Point(4.8, 4.7), Point(4.6, 4.7)));
         Assert.False(navigation.CanMove(Point(4.8, 4.7), Point(5.0, 4.7)));

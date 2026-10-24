@@ -12136,8 +12136,8 @@ credits the tile owner Create Imp's mana cost, clamped at the ceiling (`Player_A
 The checked native paths do not establish their original collision geometry.
 Evidence: [portal-crystal-collision.md](research/portal-crystal-collision.md).
 
-**Decision.** Use the four original crystal primitives' conservative horizontal
-bounds, expanded by creature radius, for swept movement checks, destination
+**Decision.** Use the four original crystal primitives' footprints (amendment 2:
+convex hulls below body height; first conservative boxes), expanded by creature radius, for swept movement checks, destination
 projection and steering contacts. Match the rendered piece classifier even on
 partial ownership fragments. Preserve the portal hole's navigation categories.
 
@@ -12151,6 +12151,14 @@ at predicted swept-boundary crossings, retaining the same crystal bounds and
 hole rules. Three admitted near-wall routes stalled under the former contacts;
 the repaired90-route matrix completes. Still an explicit remake deviation.
 Hash/save294 includes this behavior repair and ADR-0528's rectangle state.
+
+**Amendment 2 (2026-10-24).** Owner report: creatures walked around the crystals in a wider
+arc than needed. The axis-aligned box, not the leaning tops, was the slack: each gem's convex
+hull below body height (render 1.85) fills 42–70% of its former box, whose corners stood up to
+0.24 tile clear of the crystal. Footprints become those hulls, padded by the crowd radius (half
+KWD `0xEA0`) along bevelled supporting lines. Swept checks, target projection, predictive
+contacts, the 90-route matrix and the hole's navigation categories are unchanged. Still an
+explicit remake deviation. HashVersion 300, behaviour only; FormatVersion stays 297.
 
 ## ADR-0528 — Show scripted tutorial dig guidance
 

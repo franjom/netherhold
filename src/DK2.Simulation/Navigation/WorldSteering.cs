@@ -326,7 +326,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid, IMovementConta
     public bool CanMove(Fixed16Vector from, Fixed16Vector to, Fp32 bodyRadius = default)
     {
         foreach (PortalCrystalBounds crystal in _portalCrystals)
-            if (!crystal.Expanded(bodyRadius).Allows(from, to)) return false;
+            if (!crystal.Allows(from, to, bodyRadius)) return false;
         if (_structures is null || !_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return true;
         to = new Fixed16Vector((to.X >> 4) << 4, (to.Y >> 4) << 4);
         long radius = (heart.Width.Raw >> 1) << 4;
@@ -364,7 +364,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid, IMovementConta
         var radius = new Fp32(body.Radius >> 4);
         foreach (PortalCrystalBounds crystal in _portalCrystals)
         {
-            if (crystal.Expanded(radius).Allows(body.Pos, body.Pos + motion)) continue;
+            if (crystal.Allows(body.Pos, body.Pos + motion, radius)) continue;
             Fixed16Vector normal = Fixed16.Normalise(body.Pos - crystal.Centre);
             if (normal == Fixed16Vector.Zero) continue;
             body.SolidContacts.Add(new SolidContact(normal, false));
@@ -375,7 +375,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid, IMovementConta
     {
         Refresh();
         foreach (PortalCrystalBounds crystal in _portalCrystals)
-            target = crystal.Expanded(bodyRadius).Project(from, target);
+            target = crystal.Project(from, target, bodyRadius);
         if (!_database.Objects.TryGetValue(DungeonHeartObjectId, out ObjectDef? heart)) return target;
         (int x, int y) = target.Tile();
         if (!_world.Contains(new TilePos(x, y)) ||

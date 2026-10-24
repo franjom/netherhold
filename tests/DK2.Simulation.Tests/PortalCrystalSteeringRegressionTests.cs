@@ -49,11 +49,12 @@ public class PortalCrystalSteeringRegressionTests
     {
         var (db, world) = Setup(0);
         var nav = new WorldSteering(db, world); nav.Refresh();
-        var body = new SteeringBody { Pos = Point(5.52, 4.5), Radius = 5200, EscapeStuckMode = true };
+        // 5.32 (was 5.52) by design: the hull footprint is smaller than the old box (ADR-0527 amendment 2).
+        var body = new SteeringBody { Pos = Point(5.32, 4.5), Radius = 5200, EscapeStuckMode = true };
         nav.CollectMovementContacts(body, Point(-.25, 0));
         Assert.Single(body.SolidContacts);
         body.SolidContacts.Clear();
-        body.Pos = Point(5.5, 4.74);
+        body.Pos = Point(5.4, 4.74);
         nav.CollectMovementContacts(body, Point(0, -.02));
         Assert.Empty(body.SolidContacts);
         var ordinary = new List<SteeringObstacle>(); nav.CollectObstacles(body.Pos, Fixed16.One, ordinary);
@@ -82,7 +83,7 @@ public class PortalCrystalSteeringRegressionTests
     {
         var (db, world) = Setup(0);
         var nav = new WorldSteering(db, world); nav.Refresh();
-        var body = new SteeringBody { Pos = Point(5.52, 4.5), Vel = Point(-.25, 0), Radius = 5200,
+        var body = new SteeringBody { Pos = Point(5.32, 4.5), Vel = Point(-.25, 0), Radius = 5200,
             EscapeStuckMode = escape, MaxSpeed = Fixed16.One };
         var from = body.Pos;
         SteeringIntegrator.Step(body, Fixed16Vector.Zero, MoverProfile.Walker, nav);

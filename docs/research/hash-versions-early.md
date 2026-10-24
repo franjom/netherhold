@@ -1,6 +1,11 @@
 # Early state-hash versions
 
-Versions 9–61, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–62, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**62** — `0xE4BA93698075EF4F`. The tile path, its index and the
+movement remainder left the creature; its heading and the steering body's
+surviving fields entered (ADR-0157 phase 3). The pinned world moves nobody, so
+this is composition only.
 
 **61** — `0x57435BC71CE1BBDC`. Creatures gained their saved trigger root
 and repeat snapshot for the creature trigger walker (ADR-0152). The fixture's

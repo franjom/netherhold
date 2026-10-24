@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**300** — `0x2F1568CD9D248B1B`. FormatVersion stays 297. Behaviour only: each portal crystal blocks the convex hull of its `Portal_Gem` primitive below body height instead of that primitive's full bounding box, padded by the mover's radius with bevelled corners (ADR-0527 amendment 2). No new fields.
+
 **299** — `0xC9315DE4157C529E`. FormatVersion stays 297. Behaviour only: every live store's turn draws the sparkle `0x004F3A00` on the world stream before its sweep — `random(100)` per Treasury and unruined Heart, and below 30 one more per tile holding gold, below 10 requesting effect 34 at the pile (ADR-0534); `PickUpStoreGoldCommand` lifts a store tile's whole gold into the hand as a neutral Gold Pile 1 (`0x004C0CB0`). Moves every replay rig: each level's Heart now draws every turn. No new fields.
 
 **298** — `0x3E2A6741A425B7F1`. FormatVersion stays 297. Behaviour only: the keeper's own dig mark on a goldless wall ends reinforce and repair work there (a rival's tag and a gold wall do not) — the pool raise of kind 1 (`0x00507BB0`) removes the tile's kind-6/16 entries and refuses new ones, and states 22 and 24 drop their task once its action ends (`0x004663C4`); the wall keeps its health (ADR-0533, Q621). No new fields.
@@ -392,9 +394,4 @@ has no doors and makes no alliance, so this is composition only.
 mode and open state entered (ADR-0158: doors in the navigation byte). The pinned
 world has no doors and requests no route, so this is composition only.
 
-**62** — `0xE4BA93698075EF4F`. The tile path, its index and the
-movement remainder left the creature; its heading and the steering body's
-surviving fields entered (ADR-0157 phase 3). The pinned world moves nobody, so
-this is composition only.
-
-[Versions 9–61](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–62](hash-versions-early.md) retain the earlier pins and their reasons.

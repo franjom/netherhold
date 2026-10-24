@@ -30,7 +30,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   is built (ADR-0534, hash 299): every Treasury and unruined Heart draws the
   store sparkle each turn and the Hand lifts a store pile whole. Those draws
   move every replay and win rig (Levels 1-4, the level2/level4 live rigs, L11A,
-  L17); none has been rerun since hash 298.
+  L17); none has been rerun since hash 298. Hash 300 (crystal hulls, ADR-0527
+  amendment 2) moves every replay and win rig again (l1live, l2live2, Levels 3/4
+  replays, capture comparisons); none has been rerun since.
 - The navigation mesh's locate is DK2's cell-cache walk and the whole-map
   builder writes DK2's slots (ADR-0486, hash 255): on the owner's Level 10
   mesh capture 130 of 140 intervals reproduce slot for slot and the first dump
@@ -140,8 +142,10 @@ Room/Portal capture uses the native full-slab profile (ADR-0529), replacing the
 thin edge ring: [capture comparison](research/room-construction-effects.md#62-portal-capture-comparison-shot02310240).
 Creature promotions now request the original sparkle effect, including imp work
 levels and scripted grants: [promotion sparkles](research/creature-levels.md#promotion-sparkles-2026-10-23).
-Portal crystals now have swept movement guards and steering contacts (ADR-0527),
-an explicit remake correction; predictive contacts repair near-wall stalls:
+Portal crystals have swept movement guards and steering contacts (ADR-0527), an
+explicit remake correction: each gem's convex hull below body height 1.85, padded
+by the creature radius (amendment 2, hash 300), not the former boxes; predictive
+contacts repair near-wall stalls. Q642 asks the owner to judge it:
 [evidence and tests](research/portal-crystal-collision.md).
 Level1's scripted red tutorial tile guidance is built (ADR-0528):
 [native slots and pulse](research/tag-highlight.md#scripted-tutorial-red-flash).
