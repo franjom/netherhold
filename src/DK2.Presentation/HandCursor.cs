@@ -56,12 +56,53 @@ public static class HandCursor
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
-    public static HandCursorPlacement Place(HandCursorKind kind, Vector2 pointerPixels, int screenHeight)
+    // Point.png frame 0's claw tip, the claws at rest: the opaque pixel (alpha > 0) furthest along
+    // (-1, 0.25), left and slightly down, the way the claws point. Checked against the shipped sheet
+    // by HandCursorArtTests when the install is present.
+    private static readonly Vector2 PointRestingTip = new(6, 33);
+
+    /// <summary>The frame pixel drawn on the pointer: the claw or finger tip where the art points
+    /// with one, otherwise DK2's hotspot. A deliberate deviation (owner, 2026-10-24): DK2 puts the
+    /// hotspot on the pointer, up and left of Point's claw (hand-cursor-rendering.md, "Where the
+    /// hotspot lands"). Point takes frame 0's tip, the claw at rest, in every frame, so the hand stays
+    /// still while the claws flex as DK2's does (owner, 2026-10-24: per-frame tips moved the hand
+    /// about the pointer). The pointing fingers of SmallPoint and the pickup hand reach two pixels left of
+    /// their hotspots (faint edge pixels); HoldThing's hotspot already sits on its pinch. The pick (Dig, Tag, Tagging), the slap and
+    /// the drops keep the hotspot: their art swings through it, and pinning a tip would stop the
+    /// swing; HoldGold has no tip.</summary>
+    public static Vector2 Anchor(HandCursorKind kind, int frame)
+    {
+        HandCursorSprite sprite = Sprite(kind);
+        if ((uint)frame >= (uint)sprite.FrameCount) throw new ArgumentOutOfRangeException(nameof(frame));
+        return kind switch
+        {
+            HandCursorKind.Point => PointRestingTip,
+            HandCursorKind.SmallPoint => new(0, 2),
+            HandCursorKind.Pickup => new(0, 4),
+            _ => sprite.Hotspot,
+        };
+    }
+
+    /// <summary>How far right of the pointer the cursor can reach over its loop, in 640×480 units:
+    /// frame width minus the least anchor X. The hover tooltip sits this far plus 18 to the right,
+    /// clear of the hand.</summary>
+    public static float Reach(HandCursorKind kind)
+    {
+        HandCursorSprite sprite = Sprite(kind);
+        float least = float.MaxValue;
+        for (int frame = 0; frame < sprite.FrameCount; frame++)
+            least = Math.Min(least, Anchor(kind, frame).X);
+        return sprite.FrameSize.X - least;
+    }
+
+    /// <summary>Draws <paramref name="frame"/> with its <see cref="Anchor"/> on the pointer, scaled
+    /// uniformly by height/480 (ART_DIRECTION §13). The world pick stays at the pointer.</summary>
+    public static HandCursorPlacement Place(HandCursorKind kind, int frame, Vector2 pointerPixels, int screenHeight)
     {
         if (screenHeight <= 0) throw new ArgumentOutOfRangeException(nameof(screenHeight));
         HandCursorSprite sprite = Sprite(kind);
         float scale = screenHeight / 480f;
-        return new(pointerPixels - sprite.Hotspot * scale, sprite.FrameSize * scale);
+        return new(pointerPixels - Anchor(kind, frame) * scale, sprite.FrameSize * scale);
     }
 }
 

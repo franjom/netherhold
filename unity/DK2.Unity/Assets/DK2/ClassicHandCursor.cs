@@ -97,7 +97,8 @@ namespace DK2.Unity
         {
             if (_image == null) return;
             HandCursorSprite sprite = HandCursor.Sprite(_kind);
-            HandCursorPlacement placed = HandCursor.Place(_kind,
+            // The frame's claw tip goes on the pointer (HandCursor.Anchor), not DK2's hotspot.
+            HandCursorPlacement placed = HandCursor.Place(_kind, _frame,
                 new System.Numerics.Vector2(pointerGui.x, pointerGui.y), Screen.height);
             float scale = Screen.height / 768f;
             _visual.style.translate = new Translate(placed.Origin.X / scale, placed.Origin.Y / scale, 0);

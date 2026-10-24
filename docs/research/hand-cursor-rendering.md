@@ -50,7 +50,7 @@ Read for the owner's report that our Hand feels "too far down and right" of the 
 - **The pointer source (LIKELY).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is LIKELY, not CONFIRMED.
 - **The art (CONFIRMED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
 
-**Ours (CONFIRMED, code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which is the hotspot, as in DK2.
+**Ours (CONFIRMED, code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
 
 Claw-tip offset from the pointer in screen pixels (Point frame 0):
 
@@ -63,9 +63,21 @@ Claw-tip offset from the pointer in screen pixels (Point frame 0):
 The DK2 column is ±1 px: the resampler's pixel centres are unread, and `0x0040C710`'s
 hotspot division is a signed `idiv`, which truncates toward zero. The art was re-checked on
 2026-10-23 by decoding Point.png (Adam7-interlaced RGBA): frame 0 has alpha 0 at (2,17) and the
-claw tip at (6,33) (the finger column is 6-7); frame 28's finger reaches (1,12). The hotspot pixel itself is at offset 0 in both. Vertically ours matches DK2. Horizontally ours is the same or closer, because DK2 stretches the sprite by `W/640`. No placement defect was found.
+claw tip at (6,33) (the finger column is 6-7); frame 28's finger reaches (1,12). The hotspot pixel itself is at offset 0 in both. Vertically ours matches DK2. Horizontally ours is the same or closer, because DK2 stretches the sprite by `W/640`. No placement defect was found. (These figures describe the placement before the 2026-10-24 decision below.)
 
-**Open (owner choice, not decided).** Keep DK2's click point (the hotspot, up-left of the claw), or move the click point to the claw tip as a deliberate deviation from DK2. No code was changed.
+**Owner decision (2026-10-24): the claw tip is the click point, a deliberate deviation from DK2.** On wide and high-resolution screens the hand felt too far from what it points at. `HandCursor.Anchor(kind, frame)` names the frame pixel drawn on the pointer, and `HandCursor.Place(kind, frame, pointer, H)` draws at `pointer - anchor * H/480`; the sprite table keeps DK2's hotspots. The pick, hover, cage and drops still use the pointer, so they now line up with the claw tip. A tip is the opaque pixel (alpha > 0) furthest along (-1, 0.25), the first in row order on a tie, measured from the shipped sheets; `HandCursorArtTests` re-measures Point, SmallPoint and Idle from Sprite.WAD when the install is present.
+
+| State | Anchor | DK2 hotspot | Why |
+|---|---|---|---|
+| 1 Point | frame 0's tip (6,33) in every frame (`HandCursor.PointRestingTip`) | 2,17 | the resting claw tip |
+| 2 SmallPoint | 0,2 | 2,2 | finger tip (faint edge pixel) |
+| 3 Idle (pickup) | 0,4 | 2,4 | finger tip (faint edge pixel) |
+| 4 PickAxeHold, 5 PickAxeTag, 6 PickAxeHoldTagging | hotspot | 4,51 / 7,30 | the pick is held above the hotspot and Tag's blade crosses it; pinning the blade point would jump the hand between Dig and Tag and lose the strike |
+| 7 HoldThing | hotspot | 8,42 | already on the pinch |
+| 8 DropThing, 10 DropGold, 11 Slap | hotspot, every frame | 2,64 / 5,59 / 2,64 | action swings drawn around the hotspot; a per-frame tip would pin the swing |
+| 9 HoldGold | hotspot | -18,7 | no tip (a cupped hand) |
+
+Point's claws flex over the loop (the tip ranges over x 0-15 and y 12-43 frame pixels), so pinning each frame's tip moved the whole hand about the pointer; the owner chose (2026-10-24) one anchor, frame 0's resting tip, so the hand stays still as DK2's does and the claw tip at rest is the click point. The hover tooltip keeps a fixed offset: `HandCursor.Reach` is the frame width minus the anchor X (Point 76, SmallPoint 42, Idle 83), plus 18, so Point's tooltip sits 94 units right where DK2's sat 98.
 
 ## Channel selection and hover eligibility (CONFIRMED subset)
 
@@ -155,7 +167,8 @@ calls `PickHoverEntity` only when `ScreenToTile` returns one, the same outcome (
 
 `HandCursor` and `ClassicHandCursor` use the original Point, Idle and
 PickAxeHold sheets, with uniform height-based scaling under ART_DIRECTION §13
-instead of native per-axis integer scaling. The runner captures hover state
+instead of native per-axis integer scaling. The claw tip, not the hotspot, goes on the
+pointer (owner, 2026-10-24, "Where the hotspot lands"). The runner captures hover state
 before the worker tick starts; drawing reads retained presentation data only.
 Pointer hiding is restored on focus loss, disable and disposal.
 

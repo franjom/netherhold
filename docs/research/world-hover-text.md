@@ -217,7 +217,7 @@ vertically. Exact piece scaling and all layout helper semantics remain
 **UNKNOWN**; the Unity renderer uses a retained nine-slice approximation. DK2 scales
 the Hand by width/640 too; ours scales the Hand by height/480, so the adapter scales
 the 98/30/40 offsets by height/480 to keep the gap the Hand's size (owner, 2026-10-19). The 98 is read as the
-Point hand's reach (82 wide, hotspot 2) plus 18; over the HUD the 42-wide small pointer uses 58 (owner, 2026-10-20).
+Point hand's reach (82 wide, hotspot 2) plus 18; over the HUD the 42-wide small pointer uses 58 (owner, 2026-10-20). Since the claw tip went on the pointer (owner, 2026-10-24, [hand-cursor-rendering.md](hand-cursor-rendering.md)), the reach is `HandCursor.Reach`, the frame width minus the least tip X over the loop: Point 82 (offset 100), SmallPoint 42 (offset 60), Idle 83 (offset 101).
 
 ## Implementation limits
 

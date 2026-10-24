@@ -138,8 +138,9 @@ namespace DK2.Unity
 
         /// <summary>Refreshes retained visuals in Update, before worker simulation dispatch.</summary>
         /// <param name="cursorReach">How far the drawn cursor reaches right of the pointer, in DK2's
-        /// 640×480 units. DK2's 98-unit offset is the 82-wide Point hand (hotspot 2) plus 18; the
-        /// small pointer shown over the HUD is 42 wide, so the same offset left a wide gap (owner, 2026-10-20).</param>
+        /// 640×480 units (<see cref="HandCursor.Reach"/>). DK2's 98-unit offset is the 82-wide Point hand
+        /// (hotspot 2) plus 18; ours anchors Point at its claw tip, whose least X over the loop is 0, so
+        /// 100. The small pointer shown over the HUD is 42 wide, so the same offset left a wide gap (owner, 2026-10-20).</param>
         public void Draw(HoverTextSnapshot snapshot, Vector2 cursorGui, float cursorReach = 80)
         {
             _cursorReach = cursorReach;

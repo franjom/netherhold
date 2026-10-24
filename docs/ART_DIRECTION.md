@@ -272,7 +272,10 @@ pixel-faithful classic mode: DK2's design, drawn at the display's resolution.
   large size ours is sharp and nothing is smaller on screen than at 1024×768.
 - **Cursor, front end, status flowers:** their 2D icons, sprites and text follow
   this section. The Hand of Evil's form is ADR-0242's and only its on-screen
-  size follows this section (that it is a 3D model is not yet checked). The
+  size follows this section (that it is a 3D model is not yet checked). A
+  deliberate deviation (owner, 2026-10-24): the cursor's claw or finger tip, not
+  DK2's hotspot, goes on the pointer
+  ([hand-cursor-rendering.md](research/hand-cursor-rendering.md)). The
   front end is a 3D level in DK2 (`FrontEnd3DLevel`); its scene goes with the
   classic-look work. The flowers are world-space sprites whose size follows
   camera distance, a rule still to be read from the binary.

@@ -58,23 +58,79 @@ public sealed class HandCursorTests
         Assert.Equal(new Vector2(4, 51), sprite.Hotspot);
         Assert.Equal(1, sprite.FrameCount);
         Assert.Equal(1, sprite.FramesPerSecond);
-        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Dig, new(640, 400), 1440);
+        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Dig, 0, new(640, 400), 1440);
         Assert.Equal(new Vector2(628, 247), placement.Origin);
         Assert.Equal(new Vector2(252, 258), placement.Size);
     }
 
-    // 0x005DC120 stores -hotspot and 0x005DC580 draws at pointer + offset: the hotspot pixel is on the pointer.
+    // DK2 (0x005DC120, 0x005DC580) puts the hotspot on the pointer; ours puts the claw tip there
+    // (owner, 2026-10-24), keeping DK2's hotspot in the sprite table.
     [Theory]
-    [InlineData(1271.5f, 487f, 974)]
-    [InlineData(1280f, 720f, 1440)]
-    public void PointHotspotPixelLandsOnThePointer(float x, float y, int screenHeight)
+    [InlineData(1271.5f, 487f, 974, 0)]
+    [InlineData(1280f, 720f, 1440, 0)]
+    [InlineData(1280f, 720f, 1440, 28)]
+    [InlineData(512f, 384f, 768, 40)]
+    public void PointRestingClawTipLandsOnThePointerInEveryFrame(float x, float y, int screenHeight, int frame)
     {
         HandCursorSprite sprite = HandCursor.Sprite(HandCursorKind.Point);
         Assert.Equal(new Vector2(2, 17), sprite.Hotspot);
-        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Point, new(x, y), screenHeight);
-        Vector2 hotspotOnScreen = placement.Origin + sprite.Hotspot * (placement.Size.Y / sprite.FrameSize.Y);
-        Assert.True(Vector2.Distance(new(x, y), hotspotOnScreen) < 1e-3f);
+        Vector2 tip = HandCursor.Anchor(HandCursorKind.Point, frame);
+        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Point, frame, new(x, y), screenHeight);
+        Vector2 tipOnScreen = placement.Origin + tip * (placement.Size.Y / sprite.FrameSize.Y);
+        Assert.True(Vector2.Distance(new(x, y), tipOnScreen) < 1e-3f);
     }
+
+    /// <summary>One anchor for the whole loop, frame 0's resting claw tip, so the hand stays still
+    /// while the claws flex (owner, 2026-10-24).</summary>
+    [Fact]
+    public void PointAnchorsOnTheRestingClawTipInEveryFrame()
+    {
+        for (int frame = 0; frame < 41; frame++)
+            Assert.Equal(new Vector2(6, 33), HandCursor.Anchor(HandCursorKind.Point, frame));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HandCursor.Anchor(HandCursorKind.Point, 41));
+    }
+
+    // At 1440 high the claw tip of Point frame 0 moves from (+12, +48) of the pointer to (0, 0).
+    [Fact]
+    public void PointFrameZeroDrawsUpAndLeftOfDk2sPlacementByTheTipOffset()
+    {
+        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Point, 0, new(1280, 720), 1440);
+        Assert.Equal(new Vector2(1280 - 18, 720 - 99), placement.Origin);
+        Assert.Equal(new Vector2(246, 159), placement.Size);
+    }
+
+    [Theory]
+    [InlineData(HandCursorKind.SmallPoint, 0f, 2f)]
+    [InlineData(HandCursorKind.Pickup, 0f, 4f)]
+    [InlineData(HandCursorKind.Dig, 4f, 51f)]
+    [InlineData(HandCursorKind.Tag, 7f, 30f)]
+    [InlineData(HandCursorKind.Tagging, 7f, 30f)]
+    [InlineData(HandCursorKind.HoldThing, 8f, 42f)]
+    [InlineData(HandCursorKind.HoldGold, -18f, 7f)]
+    public void SingleFrameStatesUseTheirTipOrKeepDk2sHotspot(HandCursorKind kind, float x, float y) =>
+        Assert.Equal(new Vector2(x, y), HandCursor.Anchor(kind, 0));
+
+    // The pick, slap and drops swing through DK2's hotspot; pinning a tip would stop the swing.
+    [Theory]
+    [InlineData(HandCursorKind.DropThing)]
+    [InlineData(HandCursorKind.DropGold)]
+    [InlineData(HandCursorKind.Slap)]
+    public void ActionAnimationsKeepDk2sHotspotInEveryFrame(HandCursorKind kind)
+    {
+        HandCursorSprite sprite = HandCursor.Sprite(kind);
+        for (int frame = 0; frame < sprite.FrameCount; frame++)
+            Assert.Equal(sprite.Hotspot, HandCursor.Anchor(kind, frame));
+    }
+
+    // DK2's tooltip sits 98 = 82 - 2 + 18 right of the pointer; with the tip anchor the Point hand
+    // reaches 76 (82 wide less the resting tip's x 6), so the tooltip stays clear of the hand.
+    [Theory]
+    [InlineData(HandCursorKind.Point, 76f)]
+    [InlineData(HandCursorKind.SmallPoint, 42f)]
+    [InlineData(HandCursorKind.Pickup, 83f)]
+    [InlineData(HandCursorKind.Dig, 80f)]
+    public void ReachIsTheFrameWidthRightOfTheLeastAnchor(HandCursorKind kind, float reach) =>
+        Assert.Equal(reach, HandCursor.Reach(kind));
 
     [Fact]
     public void CompletingAnAnimationDiscardsOvershootAndChangingStateRestarts()
