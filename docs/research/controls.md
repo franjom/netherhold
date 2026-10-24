@@ -188,7 +188,10 @@ save format of our own.
 ## What is open
 
 1. **Does PAGE UP pick up objects in v1.70?** The manual card's row is absent from
-   both patched-era documents. Observable, and the owner has the install.
+   both patched-era documents. Observable, and the owner has the install. The binary keeps it
+   (read 2026-10-24): binding 26 defaults to PAGE UP (0x005604C0) and, held, sets the render sink's
+   objects-only pick flag (0x0059C130), which keeps creatures out of the Hand's pick
+   (hand-cursor-rendering.md). Not built.
 2. **Where does DK2 persist a rebound keymap?** No `.cfg`, `.ini` or keymap file at
    the install root, so the registry is the candidate. Unread.
 3. **The Define Keys action roster.** Reading it would confirm whether the shipped

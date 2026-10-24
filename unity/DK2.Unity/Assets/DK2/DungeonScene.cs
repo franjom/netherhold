@@ -171,18 +171,20 @@ namespace DK2.Unity
         }
 
         /// <summary>What the Hand points at (Hand_ResolveScreenTarget 0x005992B0): first the rendered
-        /// hit, every mesh <paramref name="rendered"/> admits whose bounds the ray crosses before the
-        /// terrain, the nearest triangle under the pointer winning over the nearest centre
-        /// (<see cref="RenderedPick"/>); then the 3×3 sweep (0x0044DEC0) over what
-        /// <paramref name="fallback"/> admits. A rendered winner <paramref name="resolves"/> refuses (another
-        /// keeper's door or trap) leaves the tile hit without trying the sweep, as 0x005992B0 does. Null
-        /// filters admit everything. Bounds stand in for DK2's screen circles, and the ray distance for
-        /// its mean vertex depth. The triangle test reads the MeshFilter's mesh, which for a creature
-        /// holds the posed vertices (ClassicCreatureAnimation sets them each frame); a renderer without
-        /// one (a placeholder) gets the centre test only.</summary>
-        public WorldHoverHit PickHoverEntity(Ray ray, float terrainDistance, TilePos tile, Vector3 pointerGround,
-            System.Func<WorldHoverKind, int, bool> rendered = null, System.Func<WorldHoverKind, int, bool> fallback = null,
-            System.Func<WorldHoverKind, int, bool> resolves = null)
+        /// hit, every mesh <paramref name="rendered"/> admits whose screen circle (KMF bounding sphere
+        /// from UV2, else renderer bounds; <see cref="HoverPickRules.CircleHolds"/>) holds the pointer
+        /// and which the terrain does not hide, the nearest triangle under the pointer winning over the
+        /// nearest centre in view depth along <paramref name="viewForward"/> (<see cref="RenderedPick"/>);
+        /// then the 3×3 sweep (0x0044DEC0) over what <paramref name="fallback"/> admits. A rendered winner
+        /// <paramref name="resolves"/> refuses leaves the tile hit without the sweep, as 0x005992B0 does; a
+        /// refused sweep object leaves it too.
+        /// Null filters admit everything. The ray distance stands in for DK2's mean vertex depth; the
+        /// terrain test uses the ray's entry into the renderer bounds, or, when only the circle holds,
+        /// the ray distance at the sphere centre's depth. The triangle test reads the MeshFilter's mesh
+        /// (a creature's posed vertices); a placeholder gets the centre test only.</summary>
+        public WorldHoverHit PickHoverEntity(Ray ray, Vector3 viewForward, float terrainDistance, TilePos tile,
+            Vector3 pointerGround, System.Func<WorldHoverKind, int, bool> rendered = null,
+            System.Func<WorldHoverKind, int, bool> fallback = null, System.Func<WorldHoverHit, bool> resolves = null)
         {
             WorldHoverHit hit = new WorldHoverHit(WorldHoverKind.Tile, tile);
             _pickCandidates.Clear();
@@ -200,7 +202,7 @@ namespace DK2.Unity
             if (pick.TryResult(out int picked, out _))
             {
                 WorldHoverHit winner = _pickCandidates[picked];
-                return resolves == null || resolves(winner.Kind, winner.EntityId) ? winner : hit;
+                return resolves == null || resolves(winner) ? winner : hit;
             }
 
             var pointer = new FpPosition3(new Fp32((int)(pointerGround.x * Fp32.One)),
@@ -227,7 +229,10 @@ namespace DK2.Unity
                             }
                         }
                 }
-            return hit;
+            // The sweep's winner reaches the same class dispatch (0x00599710): an object the
+            // ownership arm refuses leaves the tile hit; the next-nearest object is not tried.
+            return hit.Kind == WorldHoverKind.Object && resolves != null && !resolves(hit)
+                ? new WorldHoverHit(WorldHoverKind.Tile, tile) : hit;
 
             int Distance(GameObject go)
             {
@@ -238,16 +243,60 @@ namespace DK2.Unity
             void Offer(GameObject go, WorldHoverHit candidate)
             {
                 if (go == null || !go.activeSelf || !go.TryGetComponent<Renderer>(out Renderer renderer)) return;
-                if (!renderer.bounds.IntersectRay(ray, out float entryDistance) || entryDistance >= terrainDistance) return;
+                Mesh mesh = go.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
+                Bounds bounds = renderer.bounds;
+                Vector3 centre;
+                float radius;
+                if (mesh != null && TryPickSphere(mesh, out Vector4 sphere))
+                {
+                    Transform t = go.transform;
+                    centre = t.TransformPoint(sphere.x, sphere.y, sphere.z);
+                    Vector3 scale = t.lossyScale;
+                    radius = sphere.w * Mathf.Max(Mathf.Abs(scale.x), Mathf.Max(Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+                }
+                else
+                {
+                    centre = bounds.center;
+                    radius = bounds.extents.magnitude;
+                }
+                float depth = Vector3.Dot(centre - ray.origin, viewForward);
+                float along = Vector3.Dot(ray.direction, viewForward);
+                if (along <= 0f) return;
+                float rayDistance = depth / along;
+                if (!HoverPickRules.CircleHolds(depth, radius, (centre - ray.GetPoint(rayDistance)).sqrMagnitude)) return;
+                float entryDistance = bounds.IntersectRay(ray, out float boundsEntry) ? boundsEntry : rayDistance;
+                if (entryDistance >= terrainDistance) return;
                 if (rendered != null && !rendered(candidate.Kind, candidate.EntityId)) return;
-                float? triangle = go.TryGetComponent(out MeshFilter filter) && filter.sharedMesh != null
-                    ? NearestTriangle(filter.sharedMesh, go.transform, ray, terrainDistance) : null;
-                pick.Offer(_pickCandidates.Count, triangle, Vector3.Dot(renderer.bounds.center - ray.origin, ray.direction));
+                float? triangle = mesh != null ? NearestTriangle(mesh, go.transform, ray, terrainDistance) : null;
+                pick.Offer(_pickCandidates.Count, triangle, depth);
                 _pickCandidates.Add(candidate);
             }
         }
 
         private readonly List<WorldHoverHit> _pickCandidates = new List<WorldHoverHit>();
+        private readonly Dictionary<Mesh, Vector4> _pickSpheres = new Dictionary<Mesh, Vector4>();
+        private readonly List<Vector4> _pickSphereScratch = new List<Vector4>();
+
+        /// <summary>The mesh's KMF bounding sphere in its own space (xyz the Origin, w BoundsScale), which
+        /// ClassicMeshes writes into every vertex's UV2 and an instanced creature mesh copies; read once
+        /// per mesh. False for a mesh without it (a placeholder) or one the CPU cannot read.</summary>
+        private bool TryPickSphere(Mesh mesh, out Vector4 sphere)
+        {
+            if (!_pickSpheres.TryGetValue(mesh, out sphere))
+            {
+                sphere = new Vector4(0f, 0f, 0f, -1f);
+                if (mesh.isReadable && mesh.HasVertexAttribute(UnityEngine.Rendering.VertexAttribute.TexCoord2))
+                {
+                    mesh.GetUVs(2, _pickSphereScratch);
+                    if (_pickSphereScratch.Count > 0) sphere = _pickSphereScratch[0];
+                    _pickSphereScratch.Clear();
+                }
+                // Destroyed creature meshes stay as keys; a bound keeps the table from growing for ever.
+                if (_pickSpheres.Count >= 4096) _pickSpheres.Clear();
+                _pickSpheres[mesh] = sphere;
+            }
+            return sphere.w > 0f;
+        }
         private readonly List<Vector3> _pickVertices = new List<Vector3>();
         private readonly List<int> _pickTriangles = new List<int>();
 

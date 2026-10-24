@@ -35,6 +35,33 @@ public sealed class HoverPickRulesTests
         Assert.True(HoverPickRules.Resolves(WorldHoverKind.Creature, (byte)(PlayerIds.FirstKeeper + 1), viewer));
     }
 
+    /// <summary>0x005992B0's object arm (kind 4): the viewer's own object anywhere; a neutral one only on
+    /// the viewer's or neutral ground; another keeper's never.</summary>
+    [Fact]
+    public void AnObjectResolvesForItsOwnerOrWhenNeutralOnOwnOrNeutralGround()
+    {
+        var viewer = new PlayerId(PlayerIds.FirstKeeper);
+        byte rival = PlayerIds.FirstKeeper + 1;
+        Assert.True(HoverPickRules.ResolvesObject(PlayerIds.FirstKeeper, rival, viewer));
+        Assert.True(HoverPickRules.ResolvesObject(PlayerIds.Neutral, PlayerIds.FirstKeeper, viewer));
+        Assert.True(HoverPickRules.ResolvesObject(PlayerIds.Neutral, PlayerIds.Neutral, viewer));
+        Assert.False(HoverPickRules.ResolvesObject(PlayerIds.Neutral, rival, viewer));
+        Assert.False(HoverPickRules.ResolvesObject(PlayerIds.Neutral, PlayerIds.Unowned, viewer));
+        Assert.False(HoverPickRules.ResolvesObject(rival, PlayerIds.FirstKeeper, viewer));
+        Assert.False(HoverPickRules.ResolvesObject(PlayerIds.Good, PlayerIds.Neutral, viewer));
+    }
+
+    /// <summary>0x00588A60 / 0x00575F10: the pointer must fall inside the projected bounding sphere;
+    /// a sphere reaching behind the eye always holds it.</summary>
+    [Fact]
+    public void TheScreenCircleIsTheProjectedBoundingSphere()
+    {
+        Assert.True(HoverPickRules.CircleHolds(10f, 2f, 3.9f));
+        Assert.False(HoverPickRules.CircleHolds(10f, 2f, 4f));
+        Assert.True(HoverPickRules.CircleHolds(1f, 2f, 100f));
+        Assert.False(HoverPickRules.CircleHolds(2f, 2f, 100f));
+    }
+
     /// <summary>0x0044DEC0: no creature of type 0x2E, dying, or in states 0xD6/0x4C/0xD1; objects
     /// with CanBePickedUp or of type 13.</summary>
     [Fact]

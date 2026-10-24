@@ -56,6 +56,26 @@ public class KwdCreaturesTests
         Assert.Equal(27, By(all, "Horny").CreatureId);
     }
 
+    /// <summary>The special personal name at file <c>0x14DF</c> (<c>0x00568E30</c> to staging <c>+0x18CF</c>,
+    /// <c>0x00492320</c> to <c>def+0x895</c>): Text.str 1765..1777 for the thirteen uniques ("Bzzzt".."Zachariah"),
+    /// the princes' own names 1778..1780 and King Reginald's 2396; zero for every other creature.</summary>
+    [InstallFact]
+    public void SpecialNames_AreSetOnlyForTheUniquesPrincesAndKing()
+    {
+        List<CreatureDef> all = Load();
+        var named = all.Where(c => c.SpecialNameStringId != 0)
+            .ToDictionary(c => c.Name, c => (int)c.SpecialNameStringId);
+        Assert.Equal(17, named.Count);
+        Assert.Equal(1765, named["Unique Firefly"]);
+        Assert.Equal(1766, named["Unique Goblin"]);
+        Assert.Equal(1777, named["Unique Dark Angel"]);
+        Assert.Equal(1778, named["Prince Tristran"]);
+        Assert.Equal(1780, named["Prince Balder"]);
+        Assert.Equal(2396, named["King Reginald"]);
+        Assert.Equal(13, named.Keys.Count(n => n.StartsWith("Unique ", StringComparison.Ordinal)));
+        Assert.Equal(0, By(all, "Lord Of The Land").SpecialNameStringId);
+    }
+
     /// <summary>A spell slot's shot origin, the slot record's first twelve bytes (memory <c>+6</c>,
     /// <c>+0xA</c>, <c>+0xE</c>, read by <c>0x00498990</c>; combat-spells.md §3): the Warlock's is
     /// (0, −1761, 1433) and the Dark Elf's (0, −2048, 2662), the same in every slot of one creature.</summary>

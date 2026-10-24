@@ -121,7 +121,7 @@ under the pointer in one winding; only when no triangle is hit, to the centre te
 mesh centre. Terrain is not in the list. The winner then becomes an entity hit only by its
 owner (read 2026-10-23, [0x005992B0](functions/005992B0.md)): a creature always (kind 2 own, 3
 other); a door (5) or trap (7) only the viewer's, another keeper's leaving the tile hit with no
-fallback; an object (4) by an ownership test not yet built; a dead body (6) never in practice,
+fallback; an object (4) when the viewer owns it, or when the neutral player owns it and the tile under it belongs to the viewer or to the neutral player (built 2026-10-24 as `HoverPickRules.ResolvesObject`; a neutral gold pile on a rival's floor stays a tile hit); a dead body (6) never in practice,
 since none is listed. See world-hover-text.md and Q634.
 
 Fallback `0x0044DEC0` scans the clipped 3×3 neighbourhood row-major and each
@@ -134,6 +134,22 @@ A creature supersedes the object candidate. Object-only mode instead searches
 eligible objects within half a tile. This is not arbitrary same-tile picking.
 Built (2026-10-23) as `HoverPickRules` (both stages' eligibility) and `RenderedPick` (triangle hit
 over centre) in src/DK2.Presentation/HoverPickRules.cs, used by `DungeonScene.PickHoverEntity`.
+**Picking leftovers (read 2026-10-24).** The screen circle is the projected bounding sphere
+(CONFIRMED): the animated draw ([0x00584900](functions/00584900.md)) takes the model's KMF Origin
+through the draw matrix plus the draw position as centre and BoundsScale times the draw scale
+(`+0x60`) as radius; the static draw ([0x00580EC0](functions/00580EC0.md)) the same with its own
+offsets (scale `+0x58`). [0x00575F10](functions/00575F10.md) projects it, radius = focal / depth
+times the world radius; a sphere reaching behind the eye gets a 1e30 radius, so it always holds
+the pointer. Built: `DungeonScene.PickHoverEntity` tests `HoverPickRules.CircleHolds` on the sphere
+ClassicMeshes writes into UV2 (read once per mesh), with the sphere centre's view depth as the
+centre-pass depth; a mesh without it uses its renderer bounds. Terrain occlusion is unchanged.
+The two gates in [0x005992B0](functions/005992B0.md): `[0x006ED540 + tag]` is the live-slot byte
+of the thing table, which ours meets by looking every candidate up by id (nothing to build); sink
+`+0xD1` is set while binding 26 is held (default PAGE UP, LIKELY the manual's "Pick up Objects
+(Not creatures)", see controls.md) through the setter [0x0059C130](functions/0059C130.md): creatures
+leave the rendered list, a non-creature winner falls to the sweep and the sweep runs object-only.
+Not built (ours has no binding 26). The entity arms run only with a tile under the pointer; ours
+calls `PickHoverEntity` only when `ScreenToTile` returns one, the same outcome (LIKELY).
 
 ## Implemented cursor subset and limits
 

@@ -250,6 +250,39 @@ public sealed class WorldHoverTextTests
             .Capture(world, new(WorldHoverKind.Object, new TilePos(21, 20), lever.Id)).TopStatus);
     }
 
+    [InstallFact]
+    public void ASpecialCreatureShowsItsOwnNameInStatusAndPopup_AndItsUnreachableBodyLikelyRepeatsTheTypeNameAtPercent29()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.Load(install);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
+        CreatureDef unique = db.CreatureByName("Unique Goblin")!;
+        Assert.Equal(1766, unique.SpecialNameStringId);
+        CreatureState grubb = world.SpawnCreature(db, unique.CreatureId, PlayerIds.FirstKeeper, new TilePos(11, 11));
+        // 0x0048D880: a non-zero def+0x895 replaces the name-pool name; 0x0042D4A0 shows it as the popup.
+        HoverTextSnapshot live = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper)
+            .Capture(world, new(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
+        Assert.Contains("Name: Grubb", live.TopStatus);
+        Assert.DoesNotContain("Delver", live.TopStatus);
+        Assert.Equal("Grubb", live.TooltipName);
+        // Another keeper's special creature: no status, the popup still names it (no owner test).
+        HoverTextSnapshot enemy = new WorldHoverText(db, strings.Resolve, PlayerIds.Good)
+            .Capture(world, new(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
+        Assert.Equal(("", "Grubb"), (enemy.TopStatus, enemy.TooltipName));
+
+        // 0x004B1740 writes %29 only for a special definition, and then with the type name +0x6AA of
+        // the body's creature id, not def+0x895; the popup is the type name (0x0042D4A0 kind 6).
+        // Read from the code and unreachable through the Hand pick (0x005992B0; Q634).
+        grubb.Level = 3;
+        grubb.Dk2StateId = -1;
+        Assert.True(CreatureDeathRules.IsCorpse(grubb));
+        HoverTextSnapshot dead = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper)
+            .Capture(world, new(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
+        Assert.Equal(("It's the dead body of Goblin a level 3 Goblin.", "Goblin"), (dead.TopStatus, dead.TooltipName));
+    }
+
     [Theory]
     [InlineData(1, 0, 2599)]
     [InlineData(8, 14, 2600)]

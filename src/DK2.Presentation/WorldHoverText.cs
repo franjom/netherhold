@@ -201,34 +201,44 @@ public sealed class WorldHoverText
     {
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string kind = _resolve(definition.NameStringId);
+        ushort special = definition.SpecialNameStringId;
         if (CreatureDeathRules.IsCorpse(creature))
         {
             // DK2's dead body (class 6, 0x004B1740): 2791 with %30 the type name and %88 its level.
-            // %29 is written only for a special-name definition (+0x895), which is not modelled;
-            // for others DK2 leaves that buffer unwritten, so ours printing it empty is a GUESS
-            // (Q634). Unreachable in play: neither DK2's Hand pick (0x005992B0) nor ours returns
-            // a corpse, so no hover ever gets here.
+            // %29 is written only when def+0x895 is non-zero, and then with the type name of the body's
+            // creature id +0x128 (the id +0x129 came from, 0x004B0F20), not the special name. Otherwise
+            // DK2 leaves that buffer unwritten; ours printing it empty is a GUESS (Q634). The popup is
+            // the type name (0x0042D4A0 kind 6). Unreachable: no Hand pick returns a corpse (0x005992B0).
+            if (special != 0) _tokens[29] = kind;
             _tokens[30] = kind;
             _tokens[88] = Number(creature.Level);
             return new(Substitute(_resolve(2791), _tokens), kind, hit);
         }
-        _tokens[29] = personalName;
+        // 0x0048D880: the Lord of the Land's name comes first, from a level string (unbuilt: ours
+        // passes its pool name); then a non-zero def+0x895 replaces the name-pool personal name.
+        // 0x0042D4A0 shows def+0x895 as the popup name in place of the type name, for any owner.
+        string popup = special != 0 ? _resolve(special) : kind;
+        _tokens[29] = special != 0 && creature.CreatureTypeId != LordOfTheLandCreatureId ? popup : personalName;
         _tokens[30] = kind;
         if (creature.OwnerPlayerId == PlayerIds.Good)
-            return new(Substitute(_resolve(2412), _tokens), kind, hit);
+            return new(Substitute(_resolve(2412), _tokens), popup, hit);
         if (creature.OwnerPlayerId == PlayerIds.Neutral)
-            return new(Substitute(_resolve(2415), _tokens), kind, hit);
-        if (creature.OwnerPlayerId != _viewer) return new("", kind, hit);
+            return new(Substitute(_resolve(2415), _tokens), popup, hit);
+        if (creature.OwnerPlayerId != _viewer) return new("", popup, hit);
         if (definition.Flags.HasFlag(CreatureFlags.IsHorny))
-            return new(Substitute(_resolve(2793), _tokens), kind, hit);
+            return new(Substitute(_resolve(2793), _tokens), popup, hit);
         _tokens[31] = _resolve((uint)ActionStringId(creature.Dk2StateId, creature.UtilityNewState));
         _tokens[74] = Number(EfficiencyRules.Percent(creature, definition));
         _tokens[33] = _resolve(creature.Mood switch
         {
             CreatureMood.Unhappy => 2342u, CreatureMood.Angry => 2344u, _ => 2340u,
         });
-        return new(Substitute(_resolve(2841), _tokens), kind, hit);
+        return new(Substitute(_resolve(2841), _tokens), popup, hit);
     }
+
+    /// <summary>The Lord of the Land, creature 29 (0x1D), whose status name <c>0x0048D880</c> takes from
+    /// level strings 2866..2879 or 3079 before it tests <c>def+0x895</c>.</summary>
+    private const int LordOfTheLandCreatureId = 29;
 
     private HoverTextSnapshot Room(WorldState world, RoomInstance room, WorldHoverHit hit)
     {

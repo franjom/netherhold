@@ -25,7 +25,8 @@ public static class HoverPickRules
     /// (<c>+0x686</c> bit 1) and is not dying (<c>+0x3E6</c> bit 21); an object whose definition has
     /// CanBePickedUp, CanBeSlapped or Highlightable (<c>+0xF4</c> &amp; 0x400300); a door or trap
     /// always. Dead bodies (kind 6) never. The creature arm also needs the sink's <c>+0xD1</c>
-    /// clear, which is unread.</summary>
+    /// clear, which binding 26 (default PAGE UP, objects only) sets while held (0x0059C130); ours has
+    /// no such binding, so it is taken as clear (its initial value is unread, LIKELY zero).</summary>
     public static bool RenderedCreature(CreatureFlags definition, bool dying) =>
         (definition & CreatureFlags.CanBePickedUp) != 0 && !dying;
 
@@ -67,19 +68,51 @@ public static class HoverPickRules
     /// fallback sweep is not tried.</summary>
     public static bool ResolvesStructure(byte ownerPlayerId, PlayerId viewer) => ownerPlayerId == viewer.Value;
 
-    /// <summary>Whether a rendered-hit winner becomes the hover entity (0x005992B0): doors and traps by
-    /// <see cref="ResolvesStructure"/>; creatures always (kind 2 own, 3 other). The object arm (kind 4:
-    /// own, or the other player slot 0x005992B0 asks for with the tile's owner) is not modelled, so
-    /// every rendered object resolves. A dead body would need kind 6, which no rendered hit can carry
-    /// (<see cref="Rendered"/>).</summary>
-    public static bool Resolves(WorldState world, WorldHoverKind kind, int id, PlayerId viewer) => Resolves(kind,
-        kind == WorldHoverKind.Door ? world.DoorById(id)?.PlayerId
-        : kind == WorldHoverKind.Trap ? world.TrapById(id)?.PlayerId : null, viewer);
+    /// <summary>The resolver's object arm (0x005992B0, kind 4): an object becomes the hover entity when
+    /// the viewer owns it (thing <c>+0x28</c>), or when the neutral player owns it (the view's second
+    /// player word, set from <c>[0x006F2548]</c>) and the tile under the object belongs to the viewer or
+    /// to the neutral player (tile <c>+0x8 &amp; 0xFFF</c>). Anything else, a neutral gold pile on another
+    /// keeper's floor among them, leaves the hit on the tile with no fallback.</summary>
+    public static bool ResolvesObject(byte ownerPlayerId, byte tileOwnerPlayerId, PlayerId viewer) =>
+        ownerPlayerId == viewer.Value
+        || ownerPlayerId == PlayerIds.Neutral && (tileOwnerPlayerId == viewer.Value || tileOwnerPlayerId == PlayerIds.Neutral);
 
-    /// <summary>The same test on the hit's owner: a door or trap (or one not found) needs the viewer's
-    /// own; every other kind resolves.</summary>
+    /// <summary>Whether a rendered-hit winner becomes the hover entity (0x005992B0): doors and traps by
+    /// <see cref="ResolvesStructure"/>; objects by <see cref="ResolvesObject"/> on the tile they stand on
+    /// (a store pile, which has no object record, is taken to be owned by its room tile's owner: our assumption, unread); creatures always
+    /// (kind 2 own, 3 other). A dead body would need kind 6, which no rendered hit can carry
+    /// (<see cref="Rendered"/>).</summary>
+    public static bool Resolves(WorldState world, WorldHoverHit hit, PlayerId viewer)
+    {
+        switch (hit.Kind)
+        {
+            case WorldHoverKind.Door: return Resolves(hit.Kind, world.DoorById(hit.EntityId)?.PlayerId, viewer);
+            case WorldHoverKind.Trap: return Resolves(hit.Kind, world.TrapById(hit.EntityId)?.PlayerId, viewer);
+            case WorldHoverKind.Object:
+                if (world.ObjectById(hit.EntityId) is { } thing)
+                    return (uint)thing.TileIndex < (uint)world.Tiles.Length
+                        && ResolvesObject(thing.OwnerPlayerId, world.TileAtIndex(thing.TileIndex).OwnerPlayerId, viewer);
+                if (!WorldView.IsStorePile(hit.EntityId) || !world.Contains(hit.Tile)) return false;
+                byte roomOwner = world.Tile(hit.Tile).OwnerPlayerId;
+                return ResolvesObject(roomOwner, roomOwner, viewer);
+            default: return true;
+        }
+    }
+
+    /// <summary>The door and trap test on the hit's owner: a door or trap (or one not found) needs the
+    /// viewer's own; every other kind passes here (objects are <see cref="ResolvesObject"/>).</summary>
     public static bool Resolves(WorldHoverKind kind, byte? owner, PlayerId viewer) =>
         kind is not (WorldHoverKind.Door or WorldHoverKind.Trap) || owner is byte o && ResolvesStructure(o, viewer);
+
+    /// <summary>The rendered stage's screen-circle test (0x00588A60 over the list the mesh draws fill,
+    /// 0x00581107 static and 0x00584AC1 animated): the pointer must lie inside the projection of the
+    /// model's bounding sphere, centre the KMF Origin through the draw's matrix and position, radius
+    /// the KMF BoundsScale times the draw's scale; 0x00575F10 projects the radius as focal / depth.
+    /// The same test in view space: <paramref name="offsetSquared"/> is the squared distance, in the
+    /// plane at the centre's view depth, between the centre and the pointer ray. A sphere reaching
+    /// behind the eye (depth - radius negative) gets an unbounded circle, so it always holds.</summary>
+    public static bool CircleHolds(float centreDepth, float radius, float offsetSquared) =>
+        centreDepth - radius < 0f || offsetSquared < radius * radius;
 
     /// <summary>Whether <paramref name="id"/> may come from the fallback sweep.</summary>
     public static bool Fallback(WorldState world, GameDatabase database, WorldHoverKind kind, int id) => kind switch

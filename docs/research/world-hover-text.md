@@ -14,13 +14,23 @@ world path checks tile exploration before entity details. Entity hit kinds
 formatter writes the status. Shots have no hit kind. An object with no
 definition name string falls through. Without an eligible entity, a room takes
 precedence over terrain. A tile with byte +0xB bit 0 reads 2481 / 2480 ("Enemy
-Wall") in place of its terrain text; that bit's writer is unread and the arm is
-unbuilt. Unexplored terrain takes the fog description.
+Wall") in place of its terrain text, with no owner test. That bit is the
+secret-door flag (`0x00450FF0`): set for a Secret Door by the level loader and
+by door installation (state 37), cleared by the door's reveal in `0x004A55F0`,
+its removal `0x004A5290`, its sale `0x004C3670` and an enemy Imp's state 39.
+The Hand resolves only the viewer's own door (`0x005992B0`), so another keeper
+hovering an unrevealed Secret Door reads Enemy Wall. Ours keeps no such tile bit
+and simulates neither reveal, so this arm is unbuilt. Unexplored terrain takes
+the fog description.
 
 The near-cursor popup renderer `0x0042E590` calls a different producer,
 `0x0042D4A0`: short names, rather than the status description. That producer
 also supports creatures: a definition's special personal-name string at
-runtime `+0x895`, falling back to its type name at `+0x6AA`. The original does
+runtime `+0x895`, falling back to its type name at `+0x6AA`. `+0x895` is the u16
+at Creatures.kwd file `0x14DF` (`0x00568E30` to staging `+0x18CF`, `0x00492320`
+to the definition), `CreatureDef.SpecialNameStringId`. It is non-zero for the
+thirteen uniques (1765..1777, "Bzzzt".."Zachariah"), the three princes
+(1778..1780) and King Reginald (2396), whose type names are also their own. The original does
 not exclude creature short-name popups. Objects require nonzero NameStringId;
 otherwise the tile's room or terrain name wins. The user's preference is to
 preserve this researched behavior (2026-10-18).
@@ -53,7 +63,9 @@ then **one added**. The ordinary constructor value `0xCCC` displays 80.
 Hero-owner and neutral-owner creatures use templates 2412 and 2415. Other
 nonowned keepers' creatures return empty status. Owned IsHorny creatures use
 2793, the volatile mood sentence. Personal names use the indexed name pool,
-with separate special-definition and multiplayer paths. The formatter accepts
+with separate special-definition and multiplayer paths: the Lord of the Land
+(creature 29) takes a level string (2866..2879, else 3079; unbuilt), then a
+non-zero `+0x895` replaces the pool name, so Unique Goblin reads "Name: Grubb". The formatter accepts
 the resolved identity from the asset provider; it consumes no RNG.
 
 ## Personal identities — CONFIRMED
@@ -171,10 +183,12 @@ pick**; any other source of kind 6 is unread (Q634).
 
 The dead body (`0x004B1740`) formats 2791, "It's the dead body of %29 a level %88
 %30.": `%30` its creature type name, `%88` its level +0x12D. `%29` is filled only
-for a definition with special name +0x895 (unmodelled); otherwise this function
-never writes that buffer, so what DK2 prints there is unread, and ours prints it empty
-(a GUESS, Q634). No owner test. The popup name is the type name, with no +0x895
-override. `WorldHoverText` formats it for `CreatureDeathRules.IsCorpse`, but our picker,
+when the definition's special name +0x895 is non-zero, and then with the type
+name `+0x6AA` of the definition for the body's creature id `+0x128`, the one
+`+0x129` was looked up from (`0x004B0F20`), so "the dead body of Goblin a level 3
+Goblin" for Unique Goblin, not "Grubb". Otherwise this function never writes that
+buffer, so what DK2 prints there is unread, and ours prints it empty (a GUESS,
+Q634). No owner test. The popup name is the type name, with no +0x895 override. `WorldHoverText` formats it for `CreatureDeathRules.IsCorpse`, but our picker,
 like DK2's, never returns a corpse, so it is kept unreachable.
 The shot formatter `0x004B5C20` writes an empty string.
 
@@ -226,10 +240,11 @@ per second, approximating the original's one-pixel-per-callback motion.
 Ordinary room templates, doors, traps, dead bodies and the Casino/Prison
 fixture branches are built as described above; the dead-body line and the
 other-keeper door and trap names are formatted but, as in DK2, no pick reaches
-them. Still unbuilt: the special creature name +0x895 (popup override and
-dead-body `%29`), the tile +0xB bit 0 "Enemy Wall" arm, and the resolver's object
-ownership arm (`0x005992B0` kind 4: an object hovers only when the viewer, or the
-player its vtable +0xC4 names on a tile one of them owns, owns it). Unsupported substitutions are omitted rather
+them. The special creature name +0x895 is built (status `%29`, popup, dead-body
+`%29` gate). Still unbuilt: the tile +0xB bit 0 "Enemy Wall" arm (no secret-door
+tile state) and the Lord of the Land's level name. The resolver's object
+ownership arm (`0x005992B0` kind 4) is built as `HoverPickRules.ResolvesObject`
+(hand-cursor-rendering.md). Unsupported substitutions are omitted rather
 than displaying raw localization tokens. See `fog-of-war.md` for fog assets.
 
 The Unity integration captures text after presenting settled poses and before

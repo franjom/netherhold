@@ -63,6 +63,7 @@ is in [the loader record](functions/00492320.md#writer-offset-check).
 0x0F34 u16 initialGoldHeld     0x0F4B u8 creatureId
 0x0F4E u8 hungerFill    0x0F4F u8 unhappyThreshold   0x0F50 u8 meleeAttackType
 0x0F52 u8 lairObjectId  0x107F s16 tortureHpChange   0x1081 s16 tortureMoodChange
+0x14DF u16 specialNameStringId (def+0x895; uniques, princes, King)
 0x14F1 ArtResource[84]   uniqueResource (not parsed)  0x1545 u32 flags2
 ```
 
