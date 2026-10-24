@@ -182,8 +182,9 @@ last-payday state; ADR-0521 documents initial constructor RNG ordering limits.
 Campaign result suppression and scripted GUI restoration are built; Q611's
 remaining continuation boundary and original-game comparison are in
 research/hud-visibility.md (Q648/Q649).
-Native minimap raster
-and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
+Native minimap raster and overlay reading: research/minimap-rendering.md.
+Q197's explored portal screenshots and remaining discovery/light/flash boundary:
+research/portal-visibility.md (play check Q650). Input research remains.
 
 Current verification (2026-10-24, ADR-0535): the full solution suite passed,
 including 3,787 Simulation and 388 Behavior tests (3 skipped). After review
