@@ -22,7 +22,8 @@ namespace DK2.Unity
     {
         private const string Folder = "GUI\\moods\\";
 
-        // Draws the centre this far nearer the camera than the ring, so sorting and depth put it on top.
+        // Draws each later layer this much nearer the camera, along the eye ray, so sorting and depth
+        // put it on top while it stays concentric on screen.
         private const float CentreLift = 0.01f;
 
         private static readonly string[] Rings = { "H-00", "H-01", "H-02", "H-03", "H-04", "H-05" };
@@ -51,7 +52,8 @@ namespace DK2.Unity
         {
             if (camera == null || scene == null || !hudVisible) return;
             Quaternion facing = camera.transform.rotation;
-            Vector3 towardCamera = -camera.transform.forward * CentreLift;
+            Vector3 eye = camera.transform.position;
+            Vector3 forward = camera.transform.forward;
             int block = 0;
             for (int i = 0; i < flowers.Count; i++)
             {
@@ -60,16 +62,26 @@ namespace DK2.Unity
                 Vector3 centre = feet + Vector3.up * (flower.Height.Raw / (float)Fp32.One);
                 var colour = new Color32(flower.Colour.Red, flower.Colour.Green, flower.Colour.Blue, 255);
                 if (flower.DrawRing)
-                    Sprite(Rings[Mathf.Clamp(flower.Ring, 0, 5)], centre, colour, -1, ring: true);
-                Sprite(flower.Centre, centre + towardCamera, colour, flower.ExperienceArcs ? flower.Experience : -1, ring: false);
-                if (flower.Imprison) Sprite("Imprison", centre + towardCamera * 2, colour, -1, ring: false);
-                if (flower.Objective != null) Sprite(flower.Objective, centre + towardCamera * 3, colour, -1, ring: false);
+                    Sprite(Rings[Mathf.Clamp(flower.Ring, 0, 5)], centre, 0, colour, -1, ring: true);
+                Sprite(flower.Centre, centre, 1, colour, flower.ExperienceArcs ? flower.Experience : -1, ring: false);
+                if (flower.Imprison) Sprite("Imprison", centre, 2, colour, -1, ring: false);
+                if (flower.Objective != null) Sprite(flower.Objective, centre, 3, colour, -1, ring: false);
             }
 
-            void Sprite(string name, Vector3 at, Color colour, float wedge, bool ring) =>
+            // DK2 draws every layer at one point (no per-icon offset; 0x0059C360, 0x0057F3D0) and
+            // layers them by draw order. Ours lifts each layer toward the camera for sorting, along
+            // the eye ray so it stays concentric on screen (StatusFlowerRules.LayerPlacement). Valid for
+            // a perspective camera only, which the runner always sets.
+            void Sprite(string name, Vector3 anchor, int layer, Color colour, float wedge, bool ring)
+            {
+                var (at, scale) = StatusFlowerRules.LayerPlacement(Numerics(anchor), Numerics(eye), Numerics(forward), layer, CentreLift);
                 Graphics.RenderMesh(Params(Art(name, ring), Block(ref block, colour, wedge)), _quad, 0,
-                    Matrix4x4.TRS(at, facing, Vector3.one * StatusFlowerRules.WorldSize(name, possessing)));
+                    Matrix4x4.TRS(new Vector3(at.X, at.Y, at.Z), facing,
+                        Vector3.one * (StatusFlowerRules.WorldSize(name, possessing) * scale)));
+            }
         }
+
+        private static System.Numerics.Vector3 Numerics(Vector3 v) => new System.Numerics.Vector3(v.x, v.y, v.z);
 
         public void Dispose()
         {

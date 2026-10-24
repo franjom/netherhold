@@ -55,9 +55,37 @@ with descriptor size 0x1000, or 0x2000 for Imprison and both Objectives, on an `
 times vertex colour ([0057C420](functions/0057C420.md), [00589250](functions/00589250.md)). The
 billboard draw [0059C360](functions/0059C360.md) makes it scale × descriptor in 12.12 over 4096:
 **a quarter tile across** (half for the large three; halved again while possessing), a square.
-That it is centred on the lifted point is inferred: 0x0059C360 moves a sprite (by half its height)
-only with art flag 0x40, which no mood art has, and the quad's own anchor is unread. Whether the overlay's sprite takes
-the tile's light list (Q609) is unread.
+Whether the overlay's sprite takes the tile's light list (Q609) is unread.
+
+**Every layer is centred on one point (read 2026-10-24).** The ring ([005958F0](functions/005958F0.md)),
+the centre and Imprison tag ([005961A0](functions/005961A0.md)) and the Objective
+([00596770](functions/00596770.md)) all draw through one RenderInfo (flower object `+0x3D`) at one
+position (`+0x25`/`+0x31`); only the descriptor at `+0xED` changes. The descriptor
+([00596850](functions/00596850.md)) holds a size, a type and a material, no origin, hotspot or
+UV rectangle (CONFIRMED). The sprite path ([0059C360](functions/0059C360.md)) offsets the quad by
+RenderInfo `+0x57`/`+0x59`, and the half-height move needs art flag 0x40, which no mood art has; no
+store to `+0x57`/`+0x59` (`+0x94`/`+0x96` of the flower object) exists in the flower code
+(StoreAt over the binary), so they stay at their initial value, LIKELY 0. The quad
+([0057F3D0](functions/0057F3D0.md)) is ±w/2 by ±h/2 about those offsets with UVs (0,0), (1,0),
+(1,1), (0,1): the whole texture, no sub-rectangle (CONFIRMED). The level badge's fan
+([00595990](functions/00595990.md)) pivots on UV (0.5, 0.5) at the same point, so the wedge turns
+about the texture centre, as our shader's does. So DK2 places a centre icon with no offset, and
+layers the icons only by draw order (no depth write).
+
+The 32×32 centre icons are centred art: the disc of SL-01 and SJ-Fighting (opaque, bright) spans
+x 6..25, y 6..25 of the decoded image (row 0 at the top), centre (15.5, 15.5). What makes their
+alpha centroid (14.3, 17.5) sit low-left is a soft black drop shadow (alpha up to about 200)
+painted to the lower left of the disc, which DK2 draws too. SHOT0068 shows the Lord's "1" disc
+concentric with his star.
+
+Ours was off-centre because it lifted each later layer 0.01 tile toward the camera **along the
+view axis** (centre 0.01, Imprison 0.02, Objective 0.03) to sort them. Off the view axis such a
+step moves a sprite sideways on screen by the lift × (lateral offset / depth): at the side of the
+view, about 0.016 tile between the ring and the star, two texels of the 64-texel star, whose hole
+the ring exactly fills, so the points touched the ring on one side and left a gap on the other.
+Ours now lifts along the ray to the eye and scales by the depth ratio
+(`StatusFlowerRules.LayerPlacement`), which keeps every layer on the anchor's screen point at its
+own screen size.
 
 ### When an own creature's flower shows (0048E830, CONFIRMED)
 

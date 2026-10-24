@@ -101,6 +101,28 @@ public static class StatusFlowerRules
         return (int)(((long)scale * descriptor) >> 12) / (float)Fp32.One;
     }
 
+    /// <summary>Where a flower layer is drawn so that it stays concentric with the others. DK2 draws
+    /// the ring, the centre, the Imprison tag and the Objective at one point with one RenderInfo and
+    /// no per-icon offset (0x005958F0, 0x005961A0, 0x00596770: the sprite offsets +0x57/+0x59 are not
+    /// written, the quad 0x0057F3D0 spans UV 0..1 centred on them, and the level badge's fan
+    /// 0x00595990 pivots on UV 0.5,0.5), layered only by draw order. A renderer that separates the
+    /// layers in depth instead must move layer <paramref name="layer"/> along the ray to the eye, by
+    /// <c>layer · <paramref name="lift"/></c>: a point on that ray projects where the anchor does,
+    /// while a step along the view axis moves off-axis sprites sideways on screen. The returned scale
+    /// (the lifted depth over the anchor's) keeps the projected size equal. A camera at or inside the
+    /// lift returns the anchor unscaled.</summary>
+    public static (System.Numerics.Vector3 Position, float Scale) LayerPlacement(System.Numerics.Vector3 anchor,
+        System.Numerics.Vector3 eye, System.Numerics.Vector3 forward, int layer, float lift)
+    {
+        System.Numerics.Vector3 toEye = eye - anchor;
+        float distance = toEye.Length();
+        float step = layer * lift;
+        float anchorDepth = System.Numerics.Vector3.Dot(anchor - eye, forward);
+        if (step <= 0 || distance <= step * 2 || anchorDepth <= 1e-6f) return (anchor, 1f);
+        System.Numerics.Vector3 position = anchor + toEye * (step / distance);
+        return (position, System.Numerics.Vector3.Dot(position - eye, forward) / anchorDepth);
+    }
+
     /// <summary>The refusals we can map: an own creature whose definition is Horny (<c>+0x686</c>
     /// bit 0x4000), states 0xC1 and 0x110 (<c>+0x25E</c>), in a hand (<c>+0x3E6</c> bit 0), and a
     /// creature with no state, our model's corpse; how DK2's dead body answers the overlay is unread.</summary>

@@ -270,6 +270,42 @@ public sealed class StatusFlowersTests
         Assert.Equal(0.125f, StatusFlowerRules.WorldSize("SL-01", possessing: true));
     }
 
+    /// <summary>DK2 draws every flower layer at one point (0x005958F0, 0x005961A0, 0x00596770; no
+    /// offset in 0x0059C360/0x0057F3D0). Layers lifted along the eye ray must project to the anchor's
+    /// screen point at the anchor's screen size, even far off the view axis, where a lift along the
+    /// view axis shifted the Objective star sideways off the ring (owner, 2026-10-24).</summary>
+    [Fact]
+    public void FlowerLayersStayConcentricOnScreen()
+    {
+        var eye = new System.Numerics.Vector3(0, 8, -6);
+        var forward = System.Numerics.Vector3.Normalize(new System.Numerics.Vector3(0, -0.8f, 0.6f));
+        var right = System.Numerics.Vector3.UnitX;
+        var up = System.Numerics.Vector3.Cross(forward, right);
+        var anchor = new System.Numerics.Vector3(-6, 0.9f, 3); // near the left edge of the view
+        (float X, float Y, float Size) Project(System.Numerics.Vector3 p, float size)
+        {
+            System.Numerics.Vector3 d = p - eye;
+            float depth = System.Numerics.Vector3.Dot(d, forward);
+            return (System.Numerics.Vector3.Dot(d, right) / depth, System.Numerics.Vector3.Dot(d, up) / depth, size / depth);
+        }
+
+        var reference = Project(anchor, 0.5f);
+        for (int layer = 1; layer <= 3; layer++)
+        {
+            var (position, scale) = StatusFlowerRules.LayerPlacement(anchor, eye, forward, layer, 0.01f);
+            var drawn = Project(position, 0.5f * scale);
+            Assert.Equal(reference.X, drawn.X, 5);
+            Assert.Equal(reference.Y, drawn.Y, 5);
+            Assert.Equal(reference.Size, drawn.Size, 5);
+            Assert.True(System.Numerics.Vector3.Distance(position, eye) < System.Numerics.Vector3.Distance(anchor, eye));
+        }
+
+        // The old lift, 0.03 along -forward, moved the star a visible fraction of its hole sideways.
+        var axisLift = Project(anchor - forward * 0.03f, 0.5f);
+        Assert.True(Math.Abs(axisLift.X - reference.X) / reference.Size > 0.02f);
+        Assert.Equal((anchor, 1f), StatusFlowerRules.LayerPlacement(anchor, eye, forward, 0, 0.01f));
+    }
+
     /// <summary>0x005955C0: torture +0x580 off a floor slot, +0x280 on one; +0x80 for a slot holder.
     /// The on-slot value assumes global 0x00759ADC is 1; it has no writer we have found, and at 0 DK2
     /// adds 0x400 more (Q635).</summary>
