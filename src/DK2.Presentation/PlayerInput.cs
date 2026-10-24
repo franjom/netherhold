@@ -32,7 +32,8 @@ public enum PointerButtonTransition : byte
 
 /// <summary>
 /// One renderer-independent sample of local input. A host converts its pointer
-/// coordinates to a tile and records button edges; no camera or engine type crosses here.
+/// coordinates to a tile and optional fixed-point point, and records button edges;
+/// no camera or engine type crosses here.
 /// </summary>
 public readonly record struct PlayerIntent(
     PlayerId PlayerId,
@@ -41,7 +42,8 @@ public readonly record struct PlayerIntent(
     PointerButtonTransition PrimaryButton,
     RoomTypeId RoomId = 0,
     PointerButtonTransition SecondaryButton = PointerButtonTransition.None,
-    bool PointerOverHud = false);
+    bool PointerOverHud = false,
+    FpPosition2? PointerPosition = null);
 
 public readonly record struct ExcavationTarget(TilePos Tile, bool IsTagged);
 
@@ -307,7 +309,7 @@ public sealed class PlayerInputTranslator
         if (intent.Tool != PlayerToolMode.Hand || intent.PointerTile is not TilePos tile) return null;
         PlayerInputTarget? creature = TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.Creature);
         if (snapshot.IsHolding)
-            return new DropCommand(intent.PlayerId, tile, creature?.Id ?? 0);
+            return new DropCommand(intent.PlayerId, tile, creature?.Id ?? 0, intent.PointerPosition);
         return creature is PlayerInputTarget c ? new SlapCreatureCommand(intent.PlayerId, c.Id) : null;
     }
 

@@ -221,7 +221,7 @@ CONFIRMED (disassembly `0x004ECEB0..0x004ED189`, `0x004544B1..0x00454507`, `0x00
 ## 6. The liquid surface
 
 **Who draws it** (CONFIRMED, disassembly `0x0043D1C5..0x0043D394` in the per-tile pass
-`0x0043CC30`, on a tile visible by its explored bit, sight or the fog flags of §5). The terrain is
+`0x0043CC30`, through the visibility gate below). The terrain is
 the tile's own, except that a bridge tile (8, 0x11, 0x16) **over water** uses the Water terrain; a
 bridge over lava keeps its own, so **no lava surface is drawn under a bridge** (only the bed).
 Water (0x80) calls renderer slot `+0xF8` when art 2's flags have bit 0 (Water: 0x20005) or
@@ -230,6 +230,21 @@ water (mask 0xFF) and shore tiles alike. A Temple tile (grid bit 0x4000) calls `
 room definition `+0x261` bit 0 is set (never: loaded with 0x20000) or Translucent Water is off.
 The renderer vtable is `0x00670574`: `+0xF8` = `0x005A2570`, `+0xFC` = `0x005A2BE0`, `+0x100` =
 `0x005A2F10`. Every call passes colour (0, 0, 0, 255).
+
+**Fog gate, rechecked 2026-10-24.** CONFIRMED in disassembly
+`0x0043D187..0x0043D1BF`: liquid drawing is admitted by explored (`tile+9 & 0x20`),
+Sight (world slot `+0xDC`), possession camera (`0x0044DB70`), or the conjunction
+of terrain flag `0x01000000` and scanned (`tile+0xB & 0x40`). Both shipped Water
+and Lava carry that terrain flag. An unscanned, unexplored liquid is hidden;
+a scanned liquid can draw without exploration. `0x0043E320` independently
+substitutes terrain 27 only for the former, retaining real terrain for the latter.
+`FogOfWarViewTests.LiquidVisibilityDistinguishesUnscannedFogFromScannedTerrain`
+checks both liquids against these states. This is a binary rule, not a matched
+original-game visual comparison. Its Level2 shipped-map test also checks every
+Water tile before and after scanning. The owner's Level2 screenshot reports visible
+water/black tile shapes under fog; its tiles' scan bits and native appearance
+have not been captured (Q643). Hiding every unexplored liquid would contradict
+the checked gate and is not implemented.
 
 **Textures.** The loader `0x004F66E0` (`0x004F73C2..0x004F7719`) gives Water and Lava, besides
 art 2 at `+0x36`, a copy "\<art2\>SOLID" at `+0x160` as type 1 with art 2's flags and, for flag

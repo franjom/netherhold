@@ -18,6 +18,57 @@ namespace DK2.Presentation.Tests;
 /// is to be right for 145 object definitions it did not choose.</summary>
 public class ObjectViewTests
 {
+    [InstallTheory]
+    [InlineData(1, 0, 2, 0xD54, 0x2AA)]
+    [InlineData(1, 0, 8, 0xD54, 0xD54)]
+    [InlineData(1, 16, 4, 0x600, 0x900)]
+    [InlineData(2, 16, 4, 0x600, 0x900)]
+    [InlineData(3, 16, 4, 0x600, 0x900)]
+    public void GoldUsesItsRepresentedLandingPosition(byte type, byte process, byte cell, int offsetX, int offsetY)
+    {
+        if (RealLevel() is not var (database, world)) return;
+        const int index = 40;
+        ObjectState pile = world.SpawnObject(database, type, PlayerIds.Neutral, index);
+        pile.ProcessState = process;
+        pile.Cell = cell;
+        pile.PosX = (index % world.Width) * Fp32.One + offsetX;
+        pile.PosY = (index / world.Width) * Fp32.One + offsetY;
+
+        ObjectView drawn = new WorldView(database).Objects(world).Single(o => o.Id == pile.Id);
+
+        Assert.Equal(pile.PosX, drawn.PosX);
+        Assert.Equal(pile.PosY, drawn.PosY);
+    }
+
+    [InstallTheory]
+    [InlineData(RoomTypeId.DungeonHeart)]
+    [InlineData(RoomTypeId.Treasury)]
+    public void StoreGoldRetainsItsCreationDrawAcrossRefillsAndRestoration(RoomTypeId type)
+    {
+        if (RealLevel() is not var (database, _)) return;
+        byte terrain = database.Room(type).TerrainId;
+        var map = new LevelMap(5, 5, Enumerable.Repeat(
+            new MapTile(terrain, PlayerIds.FirstKeeper, 0, 0), 25).ToArray());
+        WorldState world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        RoomInstance room = RoomIndex.RoomAt(world, database, 0)!;
+        var simulation = new GameSimulation(database, world, 7361, []);
+        var expected = new SimRandom(7361);
+        int heading = expected.NextInt(0x800);
+        GoldStore.FillAlongChain(world, database, room, 100, simulation.Rng);
+        var view = new WorldView(database);
+        ObjectView before = Assert.Single(view.Decorations(world), o => WorldView.IsStorePile(o.Id));
+        Assert.Equal(heading, before.Heading);
+
+        GoldStore.FillAlongChain(world, database, room, type == RoomTypeId.DungeonHeart ? 800 : 2100, simulation.Rng);
+        ObjectView filled = Assert.Single(new WorldView(database).Decorations(world), o => WorldView.IsStorePile(o.Id));
+        Assert.Equal(heading, filled.Heading);
+        Assert.NotEqual(before.Mesh, filled.Mesh);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(simulation), database, []);
+        ObjectView saved = Assert.Single(new WorldView(database).Decorations(restored.World), o => WorldView.IsStorePile(o.Id));
+        Assert.Equal(heading, saved.Heading);
+        Assert.Equal(simulation.StateHash(), restored.StateHash());
+    }
+
     [InstallFact]
     public void AnAirborneEggRetainsItsPreviousHeightAndTurnsForInterpolation()
     {

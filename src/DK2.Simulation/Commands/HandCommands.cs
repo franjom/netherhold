@@ -49,7 +49,8 @@ public sealed record PickUpStoreGoldCommand(PlayerId PlayerId, TilePos Tile)
 /// keeps it in the keeper record (<c>+0x196</c>) rather than passing it to the handler, and only
 /// a chicken or gold dropped onto a creature reads it (<see cref="DropDeliveryRules"/>,
 /// ADR-0217).</para></summary>
-public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCreatureId = 0)
+public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCreatureId = 0,
+    FpPosition2? Position = null)
     : PlayerCommand(PlayerId)
 {
     public override void HashInto(ref Hash64 hash)
@@ -58,6 +59,8 @@ public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCrea
         hash.Add(Tile.X);
         hash.Add(Tile.Y);
         hash.Add(TargetCreatureId);
+        hash.Add(Position.HasValue);
+        if (Position is FpPosition2 position) position.HashInto(ref hash);
     }
 }
 

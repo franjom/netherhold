@@ -742,7 +742,8 @@ namespace DK2.Unity
             var intent = new PlayerIntent(
                 (byte)viewingPlayerId, ActiveTool, tile, button, selectedRoomId,
                 SecondaryButton: secondaryButton,
-                PointerOverHud: PointerOverHud(Input.mousePosition));
+                PointerOverHud: PointerOverHud(Input.mousePosition),
+                PointerPosition: tile is TilePos pointTile ? ScreenToPosition(Input.mousePosition, pointTile) : null);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
                 _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile);
             if (tile is TilePos at && (ActiveTool == PlayerToolMode.Hand || ActiveTool == PlayerToolMode.Slap))
@@ -786,6 +787,21 @@ namespace DK2.Unity
                 _simulation.World,
                 DungeonScene.SolidHeight,
                 DungeonScene.OpenHeight);
+        }
+
+        private FpPosition2? ScreenToPosition(Vector3 screenPosition, TilePos tile)
+        {
+            Camera camera = Camera.main;
+            if (camera == null) return null;
+            Ray ray = camera.ScreenPointToRay(screenPosition);
+            bool solid = _worldView.TileAt(_simulation.World, tile.X, tile.Y).Solid;
+            var plane = new Plane(Vector3.up,
+                new Vector3(0, solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
+            if (!plane.Raycast(ray, out float distance)) return null;
+            Vector3 point = ray.GetPoint(distance);
+            var position = new FpPosition2(new Fp32((int)Mathf.Floor(point.x * Fp32.One)),
+                new Fp32((int)Mathf.Floor(-point.z * Fp32.One)));
+            return position.Tile == tile ? position : null;
         }
 
         private PlayerToolMode ActiveTool

@@ -136,6 +136,19 @@ public class PlayerInputTests
     }
 
     [Fact]
+    public void RightHandClickRetainsThePointerPointForAnOffCentreGoldDrop()
+    {
+        TilePos tile = new(4, 5);
+        var point = new FpPosition2(new Fp32(tile.X * Fp32.One + 3412),
+            new Fp32(tile.Y * Fp32.One + 682));
+        var intent = new PlayerIntent(Keeper, PlayerToolMode.Hand, tile, PointerButtonTransition.None,
+            SecondaryButton: PointerButtonTransition.Pressed, PointerPosition: point);
+        DropCommand command = Assert.IsType<DropCommand>(Assert.Single(
+            _translator.Translate(intent, new PlayerInputSnapshot(true)).All));
+        Assert.Equal(point, command.Position);
+    }
+
+    [Fact]
     public void SlapClickTargetsTheFirstCreatureOnTheTile()
     {
         TilePos tile = new(4, 5);

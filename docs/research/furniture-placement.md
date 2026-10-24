@@ -1,9 +1,9 @@
 # Where furniture stands in its tile, and which way it faces
 
 Status: DRAFT, 2026-10-10. Every placement below is **CONFIRMED** by a static read of
-`DKII.EXE` (decompile plus the jump tables named) unless marked otherwise. Which way a
-model's front is drawn for a given heading is **UNKNOWN** (the renderer is unread); the
-heading values and the direction the binary's own trig gives them are read. Which tiles get
+`DKII.EXE` (decompile plus the jump tables named) unless marked otherwise. Mesh-heading
+conversion is established in [object-drawing.md §4](object-drawing.md#4-position-and-rotation).
+The heading values and the direction the binary's own trig gives them are read. Which tiles get
 furniture, and the coordinate selector, stay in `auto-placed-furniture.md`; the Hatchery's
 coop *choice* stays in `hatchery.md` §2.
 
@@ -170,7 +170,26 @@ re-created by `0x004E3C20`, not re-placed.
   on the simulation stream (source line `0xAE6`); the room's effect `+0x423` plays there.
 - **Gold Pile 1** (`0x004F4090`, `0x004F3C60`): a chain tile with no store pile gets one at
   its centre, heading `Random_Next(0x800)` on the simulation stream (line `0x207`), after the
-  room effect `+0x425`. Built (ADR-0355) except for the heading itself.
+  room effect `+0x425`. Rechecked 2026-10-24: both deposits write the masked draw into
+  thing `+0xF4` and `+0x102` only when creating the pile, not when adding to it. This applies
+  equally to a Heart's rim and a Treasury; there is no inward/outward-facing rule.
+  `0x004F4440` changes its art without changing either heading. The continuous mesh yaw
+  remains as established in [object-drawing.md §4](object-drawing.md#4-position-and-rotation),
+  rechecked through `0x0059CCF0` and `0x00580480` on 2026-10-24.
+
+Runtime deposit headings are now retained in `TileState.StoreGoldHeading`, hashed,
+saved, and published unchanged through the Urn/Chest art switches (hash/save 301).
+The previously discarded draw is reused, so this adds no runtime random draws.
+**UNKNOWN:** the exact Level 2 load-time heading sequence. The level action
+`0x00513870` and storage initializer `0x005099A0` both seed the world stream with 1
+before loading; see [dk2-random.md §3](dk2-random.md#3-the-seed-confirmed).
+`0x00521420` invokes the Heart builder from the room record. Which draws precede its
+gold deposit is not established; for example, creature art installation can draw
+on the same stream (`0x004B37D0`). A seed-1 sequence beginning at the deposit would
+therefore be an assumption. Ours still skips load-time deposit draws and keeps the
+existing coordinate-hash visual fallback only when no heading was sampled. Close
+this gap by tracing the preceding load calls or recording the native deposit's
+incoming seed and created headings; initial Level 2 visual equivalence is unverified.
 
 ## 8. Open
 
@@ -182,4 +201,4 @@ re-created by `0x004E3C20`, not re-placed.
 - What a z of 0 becomes for pillars and the Heart's objects (`object-drawing.md` §4: a resting object falls to its floor height,
   which is `0x1000` on ordinary floor and `0xE00` in a Hatchery, matching the Guard Post,
   candlestick, lever and coop values).
-- Which heading a model's front is drawn along.
+- Exact initial store headings; see §7.

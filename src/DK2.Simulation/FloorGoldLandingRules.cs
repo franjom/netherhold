@@ -13,8 +13,10 @@ public static class FloorGoldLandingRules
     private enum LandingState : byte { ImplicitPosition = 0, Temple = 4, Store = 5, Standing = 16 }
     private const int BandWidth = 0x555, PositionMask = Fp32.One - 1;
 
+    public static bool Handles(ObjectState pile) => pile.ObjectTypeId is 1 or 2 or 3;
+
     public static bool HasPosition(ObjectState pile) =>
-        pile.ObjectTypeId == FloorGold.FloorGoldObjectId && pile.ProcessState != (byte)LandingState.ImplicitPosition;
+        Handles(pile) && pile.ProcessState != (byte)LandingState.ImplicitPosition;
 
     /// <summary>The gold arm of 0x0049EF90. Height is collapsed; positions and strict candidate
     /// bounds are retained. Legacy floor piles use their represented cell or tile centre.</summary>
@@ -33,6 +35,7 @@ public static class FloorGoldLandingRules
         };
         incoming.ProcessState = (byte)state;
         if (state != LandingState.Standing) return;
+        incoming.OwnerPlayerId = PlayerIds.Neutral;
 
         int lowX = bandX * BandWidth, highX = bandX == 2 ? PositionMask : lowX + BandWidth - 1;
         int lowY = bandY * BandWidth, highY = bandY == 2 ? PositionMask : lowY + BandWidth - 1;

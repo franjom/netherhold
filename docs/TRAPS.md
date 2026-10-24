@@ -253,3 +253,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Unity Mono rounds `TimeSpan.FromSeconds(1f/60f)` to170000ticks; construct elapsed time with `FromTicks(round(seconds*TicksPerSecond))` when sub-millisecond accumulation matters.
 - A Unity editor callback can report another window's `Screen` dimensions; sample live Game-view projection in `RenderPipelineManager.endCameraRendering`, not immediately after assembly reload.
 - The source license gate requires all three notice lines plus a blank line, including the LICENSE reference; a copyright and SPDX pair alone fails, including in Unity editor scripts.
+- A sandbox account can differ from the checkout owner; use per-command `git -c safe.directory=D:/DungeonKeeperRemake` (or inherited `GIT_CONFIG_COUNT` entries for repo tools), without changing the owner's global Git config.

@@ -47,6 +47,9 @@ public struct TileState
     /// </summary>
     public int GoldHeld;
 
+    /// <summary>The store pile's sampled 11-bit heading; null when its creation stream is unknown.</summary>
+    public ushort? StoreGoldHeading;
+
     /// <summary>
     /// Which players have this tile tagged for digging: bit <c>n</c> is set for
     /// player id <c>n</c>. STRONGLY INFERRED that tagging is per player rather
@@ -261,6 +264,7 @@ public struct TileState
         hash.Add(Flags);
         hash.Add(Health);
         hash.Add(GoldHeld);
+        hash.Add(StoreGoldHeading ?? ushort.MaxValue);
         hash.Add(TaggedBy.Bits);
         hash.Add(DiscoveredBy.Bits);
         hash.Add(ExploredBy.Bits);

@@ -3,8 +3,10 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
 
@@ -106,6 +108,40 @@ public sealed class FogOfWarViewTests
     }
 
     [Theory]
+    [InlineData((byte)4, false, false, LiquidSurface.None)]
+    [InlineData((byte)4, true, false, LiquidSurface.Water)]
+    [InlineData((byte)4, false, true, LiquidSurface.Water)]
+    [InlineData((byte)5, false, false, LiquidSurface.None)]
+    [InlineData((byte)5, true, false, LiquidSurface.Lava)]
+    [InlineData((byte)5, false, true, LiquidSurface.Lava)]
+    public void LiquidVisibilityDistinguishesUnscannedFogFromScannedTerrain(
+        byte terrainId, bool scanned, bool explored, LiquidSurface expected)
+    {
+        GameDatabase database = Database();
+        var map = new LevelMap(1, 1, [new MapTile(terrainId, 2, 0, 0)]);
+        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        if (scanned) world.Tile(0, 0).SetDiscoveredBy(1);
+        if (explored) world.Tile(0, 0).SetExploredBy(1);
+
+        TileView tile = new WorldView(database, 1).TileAt(world, 0, 0);
+
+        Assert.Equal(expected, tile.Surface);
+        Assert.Equal(explored, tile.Explored);
+        Assert.Equal(scanned, tile.Scanned);
+        if (expected == LiquidSurface.None)
+        {
+            Assert.Equal("terrain.fog_of_war.mesh", tile.Ground.Key);
+            Assert.True(tile.Solid);
+            Assert.True(tile.Pieces.HasTop);
+            Assert.True(tile.Bed.IsEmpty);
+        }
+        else
+        {
+            Assert.False(tile.Solid);
+        }
+    }
+
+    [Theory]
     [InlineData(false, "fog_of_war")]
     [InlineData(true, "claim_scan")]
     public void HiddenTerrainSuppliesClassicPiecesInsteadOfPlaceholder(bool scanned, string terrainKey)
@@ -127,12 +163,42 @@ public sealed class FogOfWarViewTests
         Assert.Equal((byte)0, tile.OwnerPlayerId);
     }
 
+    [InstallFact]
+    public void Level2WaterIsCoveredBeforeScanningAndAdmittedAfterScanning()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level2");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "Level2")!;
+        WorldState world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
+        var view = new WorldView(database, 1);
+        int checkedTiles = 0;
+        for (int y = 0; y < world.Height; y++)
+            for (int x = 0; x < world.Width; x++)
+            {
+                if (!database.TerrainById(world.Tile(x, y).TerrainId).IsWater) continue;
+                TileView hidden = view.TileAt(world, x, y);
+                Assert.Equal(LiquidSurface.None, hidden.Surface);
+                Assert.True(hidden.Solid);
+                Assert.True(hidden.Pieces.HasTop);
+
+                world.Tile(x, y).SetDiscoveredBy(1);
+                TileView scanned = view.TileAt(world, x, y);
+                Assert.Equal(LiquidSurface.Water, scanned.Surface);
+                Assert.False(scanned.Explored);
+                Assert.False(scanned.Solid);
+                checkedTiles++;
+            }
+        Assert.True(checkedTiles > 0);
+    }
+
     private static GameDatabase Database() => new(
         [
             Terrain(1, "Secret", TerrainFlags.Ownable),
             Terrain(27, "Fog Of War", TerrainFlags.Solid | TerrainFlags.Impenetrable | TerrainFlags.Taggable),
             Terrain(38, "Claim Scan", TerrainFlags.Solid),
             Terrain(3, "Gold", TerrainFlags.Solid | TerrainFlags.RevealThroughFogOfWar),
+            Terrain(4, "Water", TerrainFlags.Water | TerrainFlags.ConstructionTypeWater | TerrainFlags.RevealThroughFogOfWar),
+            Terrain(5, "Lava", TerrainFlags.Lava | TerrainFlags.ConstructionTypeWater | TerrainFlags.RevealThroughFogOfWar),
         ],
         rooms: [],
         creatures: [],

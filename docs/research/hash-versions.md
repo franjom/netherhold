@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**301** — `0x6DC0EE1B1BAD1B68`. FormatVersion301: retain runtime store-pile headings (furniture-placement.md §7). All Hand gold drops use the landing merge with optional fixed-point input, hashed with the command (gold-on-the-floor.md; keeper-spell-create-gold.md §3). Earlier replay/win measurements have not been rerun.
+
 **300** — `0x2F1568CD9D248B1B`. FormatVersion stays 297. Behaviour only: each portal crystal blocks the convex hull of its `Portal_Gem` primitive below body height instead of that primitive's full bounding box, padded by the mover's radius with bevelled corners (ADR-0527 amendment 2). No new fields.
 
 **299** — `0xC9315DE4157C529E`. FormatVersion stays 297. Behaviour only: every live store's turn draws the sparkle `0x004F3A00` on the world stream before its sweep — `random(100)` per Treasury and unruined Heart, and below 30 one more per tile holding gold, below 10 requesting effect 34 at the pile (ADR-0534); `PickUpStoreGoldCommand` lifts a store tile's whole gold into the hand as a neutral Gold Pile 1 (`0x004C0CB0`). Moves every replay rig: each level's Heart now draws every turn. No new fields.

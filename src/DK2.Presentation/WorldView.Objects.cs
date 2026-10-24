@@ -173,6 +173,13 @@ public sealed partial class WorldView
         int heading = 0, scale = One, slot = 0, pitch = 0, roll = 0;
         ObjectDef? definition = _database.ObjectById(thing.ObjectTypeId);
         RoomInstance? room = RoomAt(world, tileIndex);
+        if (FloorGoldLandingRules.HasPosition(thing))
+            (posX, posY) = (thing.PosX, thing.PosY);
+        else if (FloorGoldLandingRules.Handles(thing) && thing.Cell < 9)
+        {
+            posX = x * One + thing.Cell % 3 * 0x555 + 0x2AA;
+            posY = y * One + thing.Cell / 3 * 0x555 + 0x2AA;
+        }
 
         // A wall-pass object faces into the room, moved toward its wall (0x004EE9CE).
         int side = room is not null && thing.AutoPlaced && AutoFurnitureRules.IsWallFurniture(room.Definition, thing)
@@ -487,7 +494,7 @@ public sealed partial class WorldView
 
     /// <summary>A treasury or heart tile's gold as DK2's Gold Pile 1 (<c>0x004F4440</c>): Urn1 below a
     /// third of the tile cap (1000 on a live Heart, else 3000), Urn2 below two thirds, else the
-    /// Chest. Its heading is a simulation-stream draw ours does not keep (<c>0x004F4090</c>).</summary>
+    /// Chest. Retains its creation heading; unknown load headings keep the visual fallback.</summary>
     private void StorePiles(WorldState world, RoomInstance room, PlayerId owner, List<ObjectView> into)
     {
         bool liveHeart = room.Definition.TypeId == RoomTypeId.DungeonHeart
@@ -495,10 +502,12 @@ public sealed partial class WorldView
         int cap = liveHeart ? 1000 : 3000;
         foreach (int tile in room.TileIndices)
         {
-            int gold = world.Tile(tile % world.Width, tile / world.Width).GoldHeld;
+            TileState state = world.TileAtIndex(tile);
+            int gold = state.GoldHeld;
             if (gold <= 0) continue;
             int slot = gold < cap / 3 ? 5 : gold < 2 * cap / 3 ? 6 : 0;
-            ObjectView pile = Decoration(world, tile, PileSlot, StorePileId, owner, 0, 0, -1, Spread(tile, 0x800), slot, autoPlaced: false);
+            int heading = state.StoreGoldHeading ?? Spread(tile, 0x800);
+            ObjectView pile = Decoration(world, tile, PileSlot, StorePileId, owner, 0, 0, -1, heading, slot, autoPlaced: false);
             into.Add(new ObjectView(pile.Id, StorePileId, owner, pile.Tile, pile.Mesh, gold,
                 pile.PosX, pile.PosY, pile.Height, pile.Heading, pile.Scale) { HoverTexture = pile.HoverTexture });
         }

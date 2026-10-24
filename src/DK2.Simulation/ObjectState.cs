@@ -144,7 +144,7 @@ public sealed class ObjectState
     public int Health;
 
     /// <summary>The position, the header's <c>+0x1A/+0x1E</c>, in 1/4096 tiles. Kept only for an
-    /// boulder, spell-created floor gold, Rat or hatchery egg/chicken; other objects use the tile centre.</summary>
+    /// boulder, landed gold, Rat or hatchery egg/chicken; other objects use the tile centre.</summary>
     public int PosX, PosY;
 
     /// <summary>The header heading (+0xF4), and process age (+0x13E). Chicken and Rat movement own them here.</summary>

@@ -30,9 +30,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   is built (ADR-0534, hash 299): every Treasury and unruined Heart draws the
   store sparkle each turn and the Hand lifts a store pile whole. Those draws
   move every replay and win rig (Levels 1-4, the level2/level4 live rigs, L11A,
-  L17); none has been rerun since hash 298. Hash 300 (crystal hulls, ADR-0527
-  amendment 2) moves every replay and win rig again (l1live, l2live2, Levels 3/4
-  replays, capture comparisons); none has been rerun since.
+  L17); none has been rerun since hash 298. Hash/save 301 retains runtime store
+  headings and corrects loose-gold Hand merging/positions (research/hash-versions.md).
+  It also includes hash 300's crystal hulls (ADR-0527 amendment 2); replay and win
+  rigs have not been rerun. Initial chest headings remain Q644; Level2's reported
+  water shapes under fog await a native visual comparison (Q643).
 - The navigation mesh's locate is DK2's cell-cache walk and the whole-map
   builder writes DK2's slots (ADR-0486, hash 255): on the owner's Level 10
   mesh capture 130 of 140 intervals reproduce slot for slot and the first dump

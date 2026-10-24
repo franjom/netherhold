@@ -263,6 +263,12 @@ public sealed class HandSystem : ISimulationSystem
         List<HandItem> hand = world.Player(command.PlayerId).Hand;
         if (hand.Count == 0) return;
 
+        if (command.Position is FpPosition2 position && position.Tile != command.Tile)
+        {
+            context.Emit(SystemName, "drop_refused", $"player={command.PlayerId} position_outside_tile");
+            return;
+        }
+
         if (!world.Contains(command.Tile))
         {
             context.Emit(SystemName, "drop_refused",
@@ -529,11 +535,12 @@ public sealed class HandSystem : ISimulationSystem
         hand.RemoveAt(hand.Count - 1);
         thing.InHand = false;
         thing.TileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
-        if (FloorGoldLandingRules.HasPosition(thing)
+        if (FloorGoldLandingRules.Handles(thing)
             || thing.ObjectTypeId is HatcheryRules.ChickenObjectId or HatcheryRules.EggObjectId)
         {
-            thing.PosX = CreatureState.CentreOf(command.Tile.X);
-            thing.PosY = CreatureState.CentreOf(command.Tile.Y);
+            FpPosition2? point = FloorGoldLandingRules.Handles(thing) ? command.Position : null;
+            thing.PosX = point?.X.Raw ?? CreatureState.CentreOf(command.Tile.X);
+            thing.PosY = point?.Y.Raw ?? CreatureState.CentreOf(command.Tile.Y);
         }
 
         context.Emit(SystemName, "object_dropped",
@@ -544,7 +551,7 @@ public sealed class HandSystem : ISimulationSystem
         if (DropDeliveryRules.RecipientOf(world, context.Database, thing, command.TargetCreatureId)
             is not { } recipient)
         {
-            if (FloorGoldLandingRules.HasPosition(thing)) FloorGoldLandingRules.Land(context, thing);
+            if (FloorGoldLandingRules.Handles(thing)) FloorGoldLandingRules.Land(context, thing);
             if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.Land(context, thing);
             return;
         }

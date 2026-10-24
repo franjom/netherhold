@@ -253,7 +253,8 @@ public static class GoldStore
         int capacity = Capacity(world, database, tile, room);
         if (capacity == 0) return 0;
         ref TileState state = ref world.TileAtIndex(tile);
-        if (state.GoldHeld == 0) rng?.NextInt(0x800);
+        if (state.GoldHeld == 0)
+            state.StoreGoldHeading = rng is null ? null : (ushort)rng.NextInt(0x800);
         int put = Math.Min(Math.Max(0, capacity - state.GoldHeld), amount);
         state.GoldHeld += put;
         return put;

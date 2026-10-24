@@ -152,12 +152,10 @@ death, which is the only teardown this project has. Leaving through a portal is
 **not** one: a creature keeps its gold when it is thrown through (Q137,
 ANSWERED — owner, 2026-09-07), so nothing in `PortalSystem` drops.
 
-## 7. Sub-tile position, which is not modelled
+## 7. Sub-tile positions and Hand landing
 
-The original is precise about where within a tile a pile lands, and our
-`ObjectState` has a tile index and no finer position, so all of this collapses
-to "on this tile". Recorded because it is presentation the day there is a
-renderer for objects, and because the three layouts differ:
+DK2's creation paths place piles differently. Most legacy piles retain only
+a tile/cell here; spell-created and Hand-dropped gold retain PosX/PosY:
 
 - **an overflowing treasury** puts the pile at one of **eight fixed points**,
   chosen at random: the ring of quarter-points around the tile centre, each
@@ -171,7 +169,8 @@ renderer for objects, and because the three layouts differ:
   will stand in. This note first read them as a put-down layout (corrected
   2026-09-28).
 
-Our `FloorGold` merges on that one path (`PutDown`), per tile rather than per point.
+Mining uses `PutDown` per cell. All three gold types dropped from the Hand use
+the shared landing merge; see [keeper-spell-create-gold.md §3](keeper-spell-create-gold.md#3-implementation-boundary).
 
 ## 8. Who owns a floor pile
 
@@ -218,10 +217,9 @@ on the same tile, a nearer pile beats a farther wall.
 
 **Not built, and named:**
 
-- per-slot piles and merging within 1/64 of a tile (§10): ours merges per tile;
+- exact mining-point distance merges (§10): ours retains the cell approximation;
 - treasury gold as an object (§2), deliberately: a lifted pile becomes one only in the hand;
-- sub-tile position (§7). `ObjectView` carries a tile and no finer position, so a
-  renderer draws a pile at the tile centre wherever the original would offset it.
+- exact legacy creation positions (§7); their views use cell centres where retained.
 
 **Open here:** Q136 (whose a floor pile is), Q139 (which tile an overflowing
 refund uses), Q143 (whether the pick-up costs time), Q145 (whether fetching
@@ -238,7 +236,7 @@ searches having to walk.
 
 ## 10. Gold a miner cannot hold goes down at its feet (Q138, Q140)
 
-Read 2026-09-28 with Ghidra 12.1.4. STRONGLY INFERRED from the binary; the
+Read 2026-09-28, re-read 2026-10-24 with Ghidra. STRONGLY INFERRED from the binary; the
 outcome is CONFIRMED by the owner's Level 2 recording (`navigation-captures.md`).
 
 - **The strike** (`0x004971D0`, the mining action's effect) takes gold out of the
@@ -247,7 +245,7 @@ outcome is CONFIRMED by the owner's Level 2 recording (`navigation-captures.md`)
   scaled by the level table) less what it carries (`+0x3FB`), through
   `0x0048AE70`. **The rest goes to `0x004510C0` at the imp's own position.**
 - **The put-down** (`0x004510C0`, a map method) adds the amount to a floor pile
-  (object 1) lying within `0x40` of that point, Chebyshev, or creates a new pile
+  (object 1) at Chebyshev distance strictly less than `0x40`, or creates a new pile
   there owned by the neutral global. Its other caller, `0x004A4710`, spreads a
   lump of gold (`0x006F25B4`) over the Treasuries and Heart and puts the rest down
   the same way.
@@ -269,7 +267,9 @@ outcome is CONFIRMED by the owner's Level 2 recording (`navigation-captures.md`)
 `FloorGold.PutDown`. The miner gives the slot up once that cell passes the limit,
 and the chooser hands out only a free slot whose cell is at or under it (ADR-0264).
 Deviates: the cell stands for DK2's exact point, merging where it merges within
-1/64 of a tile, and the hand limit is unscaled, which agrees below level 5.
+1/64 of a tile. `GoldCarryingTests.AnImpWithNowhereToPutGold_KeepsMining_AndGrowsALumpAtItsFeet`
+verifies repeated strikes leave one accumulated pile. Different mining positions
+may legitimately leave separate piles; DK2 does not merge all gold on a tile.
 
 ## 11. A store sweeps loose gold on its own tiles back in (built, ADR-0285)
 

@@ -114,6 +114,32 @@ public class StoreChooserAndDepositTests
         Assert.Equal(2, counting.ByBound.GetValueOrDefault(0x800));
     }
 
+    [Fact]
+    public void AStorePileKeepsItsNativeCreationHeadingUntilItsLastGoldIsTaken()
+    {
+        (GameDatabase db, WorldState world) = World();
+        RoomInstance treasury = Room(db, world, Dk2TerrainFixture.TreasuryTerrain, 5, 5, 7, 5);
+        int tile = SlabChain.Order(world, treasury)[0];
+        var rng = new SimRandom(new Dk2Lcg(1));
+        var expected = new Dk2Lcg(1);
+        ushort first = (ushort)expected.NextInt(0x800);
+        GoldStore.FillAlongChainFrom(world, db, treasury, tile, 100, rng);
+        Assert.Equal(first, world.TileAtIndex(tile).StoreGoldHeading);
+        GoldStore.FillAlongChainFrom(world, db, treasury, tile, 100, rng);
+        Assert.Equal(first, world.TileAtIndex(tile).StoreGoldHeading);
+
+        world.TileAtIndex(tile).GoldHeld = 0;
+        GoldStore.FillAlongChainFrom(world, db, treasury, tile, 100, rng);
+        Assert.Equal((ushort)expected.NextInt(0x800), world.TileAtIndex(tile).StoreGoldHeading);
+        var hash = Hash64.Start();
+        world.TileAtIndex(tile).HashInto(ref hash);
+        ulong before = hash.Value;
+        world.TileAtIndex(tile).StoreGoldHeading = (ushort)(world.TileAtIndex(tile).StoreGoldHeading!.Value ^ 1);
+        hash = Hash64.Start();
+        world.TileAtIndex(tile).HashInto(ref hash);
+        Assert.NotEqual(before, hash.Value);
+    }
+
     /// <summary>A live Heart sweeps every 16th turn full or not, and the sweep destroys each loose
     /// pile it deposits, so a pile on a full Heart goes back down as a new pile at one of eight
     /// points, a rand(8) each time. Ours left a pile nothing could take where it lay.</summary>

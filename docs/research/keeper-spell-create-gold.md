@@ -58,8 +58,9 @@ for delivery to a creature and the other shared landing arms.
 
 The cast is enabled at the existing command boundary. Create Object gives
 type-1 piles the neutral owner and data-driven, nonnegative amount.
-`FloorGoldLandingRules` preserves the cast's sub-tile position and band and
-merges into a live floor pile using the strict candidate bounds. Held/carried
+`FloorGoldLandingRules` handles both spell creation and Hand drops of object
+types 1–3; it preserves the incoming position and merges into a live type-1
+floor pile using the strict candidate bounds. Held/carried
 objects are omitted because our flat object list retains their old tile.
 It follows the existing newest-created-first object-order approximation
 (boulder.md §10), rather than modelling exact tile relinking.
@@ -67,7 +68,20 @@ It follows the existing newest-created-first object-order approximation
 Spell piles keep their coordinates in the existing PosX/PosY fields; their
 nonzero process state distinguishes them from legacy floor piles, whose
 represented point is the cell centre or, without a cell, the tile centre.
-A Hand drop updates a spell pile's coordinates before landing or delivery.
+A Hand drop initializes every gold object's coordinates before landing or delivery.
+Re-read 2026-10-24: `0x0049EF90` dispatches incoming types 1, 2 and 3 through
+the same merge arm. Previously HandSystem only landed already-positioned spell
+gold, so mined, map-placed, wage and withdrawn store gold bypassed merging.
+`GoldLandingTests` covers repeated legacy drops of all three types, accumulated
+value beyond 2000 and a first dropped pile receiving subsequent drops.
+The view now uses these coordinates or a legacy pile's cell centre, so distinct
+mining cells remain visibly separate. `ObjectViewTests` checks both representations.
+Hand commands accept an optional fixed-point position within their validated
+tile, following `0x004BC710`'s supplied position (see its function record).
+Unity passes the pointer's floor-plane intersection through PlayerIntent and
+PlayerInput, allowing drops into off-centre mining bands. Missing coordinates
+retain tile-centre placement. GoldLandingTests covers the off-centre merge,
+out-of-tile refusal, command JSON/hash and restoration while holding a pile.
 This collapses the state-1 vertical fall into the current flat model; M9's
 height boundary remains. Room states are recorded, but their original object
 update lifecycle is not run. Deposit timing is tracked separately in Q532.
@@ -83,5 +97,5 @@ both axes' excluded edges, incoming-edge asymmetry, dead/held/carried objects,
 other object types/tiles, foreign pile ownership, and a moved pile's snapshot
 continuation and position hash sensitivity.
 
-No new state fields or serialization layout were introduced. Baseline scenario
+Spell storage uses the existing object fields. Baseline scenario
 comparison belongs to ADR-0350; this document is the evidence home.

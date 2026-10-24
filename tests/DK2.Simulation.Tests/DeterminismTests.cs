@@ -160,13 +160,8 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 300: behaviour only, portal crystal footprints are body-height hulls (ADR-0527).
-        // HashVersion 299: behaviour only, the store sparkle's draws and lifting a store pile (ADR-0534).
-        // HashVersion 298: behaviour only, a dig mark ends reinforce and repair on its wall (ADR-0533).
-        // HashVersion 297: HeroesDestroyed, the health source, MaximumSlaps and the Current Holder (ADR-0532).
-        // HashVersion 296: an Imp lands on its Heart's eight platform tiles (ADR-0526 amendment).
-        // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x2F1568CD9D248B1BUL, sim.StateHash());
+        // HashVersion 301; pin history and reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x6DC0EE1B1BAD1B68UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

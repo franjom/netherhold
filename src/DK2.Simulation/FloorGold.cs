@@ -14,7 +14,7 @@ namespace DK2.Simulation;
 /// carrying the amount in <see cref="ObjectState.GoldHeld"/>, created wherever
 /// gold leaves a player's books for the world.</para>
 /// <para><see cref="PutDown"/> merges miner overflow; <see cref="FloorGoldLandingRules"/>
-/// merges spell-created piles at their landing position. Other paths make new objects.
+/// merges spell-created and Hand-dropped gold at their landing position. Other paths make new objects.
 /// <see cref="MaxPile"/> remains unenforced; legacy piles use their tile/cell centre.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
