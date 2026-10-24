@@ -97,7 +97,7 @@ public sealed class TutorialNotificationsTests
     }
 
     [InstallFact]
-    public void LevelOnesFlowerTutorialShowsEveryImpWithoutHoverAndSurvivesSaving()
+    public void LevelOnesFlowerTutorialShowsEveryImpWithoutHoverAndSurvivesSaving_TickEqualsNativeTurnStronglyInferred()
     {
         var (db, world) = LevelOneWorld();
         string install = Dk2InstallGate.Path;

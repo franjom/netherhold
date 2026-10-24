@@ -71,6 +71,8 @@ public static class PortalRules
         return creature;
     }
 
+    /// <summary>0x004DC9A0's first-arrival branch; the override match's unread [[0x0075B468]+0x60] call is not mirrored.</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/004DC9A0.md")]
     private static void NotifyArrival(in StateHookContext hooks, CreatureState creature)
     {
         var playerId = new PlayerId(creature.OwnerPlayerId);

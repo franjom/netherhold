@@ -49,7 +49,7 @@ public sealed class StatusFlowersTests
     }
 
     [InstallFact]
-    public void AnUnstartedWorldDoesNotShowAnOwnCreaturesUnrequestedFlower()
+    public void AnUnstartedWorldDoesNotShowAnOwnCreaturesUnrequestedFlower_StartupTurnOneStronglyInferred()
     {
         var (db, world, own) = Setup();
         var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);

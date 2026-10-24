@@ -1050,6 +1050,8 @@ public sealed class TriggerExecutor
             GivePortalGem(_world, _database, run.Creature);
             return true;
         }
+        // Action 30 (0x0049AF08): turn + turns-per-second x Value, modulo 32 bits. That our tick equals
+        // the native turn is STRONGLY INFERRED (0048E830.md).
         if (context == TriggerContext.Creature && record.Type == 30 && run.Creature is not null)
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));

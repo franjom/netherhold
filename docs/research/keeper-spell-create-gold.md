@@ -77,11 +77,16 @@ value beyond 2000 and a first dropped pile receiving subsequent drops.
 The view now uses these coordinates or a legacy pile's cell centre, so distinct
 mining cells remain visibly separate. `ObjectViewTests` checks both representations.
 Hand commands accept an optional fixed-point position within their validated
-tile, following `0x004BC710`'s supplied position (see its function record).
+tile, following `0x004BC710`'s supplied position (see its function record). That DK2's
+human click supplies the pointer's floor intersection is STRONGLY INFERRED: the handler's
+read callers are the AI handlers and `0x004BCA40`, and the human click path to it is unread.
 Unity passes the pointer's floor-plane intersection through PlayerIntent and
 PlayerInput, allowing drops into off-centre mining bands. Missing coordinates
 retain tile-centre placement. GoldLandingTests covers the off-centre merge,
 out-of-tile refusal, command JSON/hash and restoration while holding a pile.
+Known gap: a tile emptied by lift, payday, defeat or bridge burn keeps its stale
+`StoreGoldHeading`, and a refill through `GoldStore.Deposit`/`DepositInto` reuses it, where
+native draws a new heading with each new pile (deterministic; fidelity only).
 This collapses the state-1 vertical fall into the current flat model; M9's
 height boundary remains. Room states are recorded, but their original object
 update lifecycle is not run. Deposit timing is tracked separately in Q532.
