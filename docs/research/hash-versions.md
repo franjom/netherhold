@@ -15,6 +15,8 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 ## Versions
 
+**299** — `0xC9315DE4157C529E`. FormatVersion stays 297. Behaviour only: every live store's turn draws the sparkle `0x004F3A00` on the world stream before its sweep — `random(100)` per Treasury and unruined Heart, and below 30 one more per tile holding gold, below 10 requesting effect 34 at the pile (ADR-0534); `PickUpStoreGoldCommand` lifts a store tile's whole gold into the hand as a neutral Gold Pile 1 (`0x004C0CB0`). Moves every replay rig: each level's Heart now draws every turn. No new fields.
+
 **298** — `0x3E2A6741A425B7F1`. FormatVersion stays 297. Behaviour only: the keeper's own dig mark on a goldless wall ends reinforce and repair work there (a rival's tag and a gold wall do not) — the pool raise of kind 1 (`0x00507BB0`) removes the tile's kind-6/16 entries and refuses new ones, and states 22 and 24 drop their task once its action ends (`0x004663C4`); the wall keeps its health (ADR-0533, Q621). No new fields.
 
 **297** — `0xC05DD2EF3BEE644C`. FormatVersion also 297. `TriggerState.SpecialInfoPlayerId` (action 46) and `MaximumSlaps` (player action 50, init -1); `CreatureState.HealthSourcePlayerId` (`+0x36`, stamped at each health-change call site) and `DeathUncounted` (`+0x3E6` bit 0x40, nothing sets it yet); `PlayerState.HeroesDestroyed` (`+0x14A`), credited in `CreatureHealthSystem.Die`/`CreditHeroKill` (ADR-0532). The level-end pass `0x004BE9E6`, the My Pet Dungeon score, `+0x146` and the `0x19E`/`0x173` tallies are not built.

@@ -157,7 +157,7 @@ public class StoreChooserAndDepositTests
         for (int i = 0; i <= StoreSweepSystem.SweepTurns; i++) sim.Tick(InputFrame.Empty);
 
         Assert.Contains(pile, world.Objects);
-        Assert.Empty(counting.ByBound);
+        Assert.Equal([100], counting.ByBound.Keys);   // the sparkle's draws (0x004F3A00) only
     }
 
     /// <summary>A failed aimed claim retry falls through to the per-kind record (<c>0x00463EEC</c>),

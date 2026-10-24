@@ -28,8 +28,8 @@ public static class FloorGold
 
     /// <summary>The object a treasury tile's gold is in the original: <b>3, "Gold Pile 1"</b>, one
     /// per tile, created on first deposit. Deviates: treasury gold lives in
-    /// <see cref="TileState.GoldHeld"/> (ADR-0015) and no rule here creates object 3. Recorded so
-    /// the difference is written down rather than inferred from its absence.</summary>
+    /// <see cref="TileState.GoldHeld"/> (ADR-0015), and object 3 exists only once it leaves a store
+    /// for the hand: the counter withdrawal and the lift of a store pile (ADR-0534).</summary>
     public const byte TreasuryPileObjectId = 3;
 
     /// <summary>The gold a creature carries splits into <b>one pile below 1000, two below 3000,

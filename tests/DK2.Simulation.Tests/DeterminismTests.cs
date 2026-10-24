@@ -160,13 +160,13 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
+        // HashVersion 299: behaviour only, the store sparkle's draws and lifting a store pile (ADR-0534).
         // HashVersion 298: behaviour only, a dig mark ends reinforce and repair on its wall (ADR-0533).
         // HashVersion 297: HeroesDestroyed, the health source, MaximumSlaps and the Current Holder (ADR-0532).
         // HashVersion 296: an Imp lands on its Heart's eight platform tiles (ADR-0526 amendment).
         // HashVersion 295: behaviour only, the room placement obstruction 0x0044F800 (ADR-0530).
-        // HashVersion 294: tutorial rectangles and predictive crystal contacts (ADR-0527/0528).
         // Earlier pins and their reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x3E2A6741A425B7F1UL, sim.StateHash());
+        Assert.Equal(0xC9315DE4157C529EUL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

@@ -55,11 +55,11 @@ until it comes back to where it started or runs out of gold. On each tile:
   `MaxGoldPerDungeonHeartTile` (**1000**) when the room is a dungeon heart;
 - fill to the cap and carry the remainder to the next tile.
 
-Ours keeps the same number in `TileState.GoldHeld` (ADR-0015). The behaviour is
-the same because the cap is per tile either way, and **no behaviour has been
-found that separates them**; the place it would show is a keeper picking a
-treasury pile up in the hand, which does not exist here. Written down so the
-difference is a known one.
+Ours keeps the same number in `TileState.GoldHeld` (ADR-0015): a store tile holding gold
+stands for exactly one such object, since the withdrawal `0x004F4510` deletes a pile with its
+last gold. The two behaviours that read the object are built on that mapping (ADR-0534,
+[gold-hover-and-sparkle.md](gold-hover-and-sparkle.md) §3, §4): the sparkle, one world-stream
+draw per pile, and the Hand's lift, which makes the object from the tile's whole gold.
 
 **A dungeon heart's capacity is `MaxGoldPerDungeonHeartTile << 4`.** Hardcoded,
 as a shift — not as a count of the room's tiles. That is **16000**, which is
@@ -219,7 +219,7 @@ on the same tile, a nearer pile beats a farther wall.
 **Not built, and named:**
 
 - per-slot piles and merging within 1/64 of a tile (§10): ours merges per tile;
-- treasury gold as an object (§2), deliberately;
+- treasury gold as an object (§2), deliberately: a lifted pile becomes one only in the hand;
 - sub-tile position (§7). `ObjectView` carries a tile and no finer position, so a
   renderer draws a pile at the tile centre wherever the original would offset it.
 

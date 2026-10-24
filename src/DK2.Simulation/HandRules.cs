@@ -113,6 +113,25 @@ public static class HandRules
         database.ObjectById(thing.ObjectTypeId)?.IsGold != true
         || world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId;
 
+    /// <summary>Whether <paramref name="playerId"/> may lift the store pile on <paramref name="tile"/>
+    /// now: a Treasury or Heart tile holding gold (one Gold Pile 1, <c>0x004F3C60</c>), the pile's
+    /// definition liftable, a free hand slot. Like <see cref="CanPickUpObject"/>, no owner test:
+    /// that is the cursor's (<see cref="MayReachStoreGold"/>).</summary>
+    public static bool CanPickUpStoreGold(WorldState world, GameDatabase database, TilePos tile, PlayerId playerId)
+    {
+        if (!world.Contains(tile) || world.Tile(tile).GoldHeld <= 0) return false;
+        if (database.ObjectById(FloorGold.TreasuryPileObjectId) is not { CanBePickedUp: true }) return false;
+        if (world.Player(playerId).Hand.Count >= Capacity(database)) return false;
+        RoomInstance? room = RoomIndex.RoomAt(world, database, world.TileIndex(tile));
+        return room?.Definition.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart;
+    }
+
+    /// <summary>Whether the cursor offers a store pile to <paramref name="playerId"/>'s hand: the pile
+    /// is the room owner's (<c>0x004F3C60</c> creates it with the room's <c>+0x1D</c>), and
+    /// <c>0x0049CBB0</c> publishes an object only to its owner.</summary>
+    public static bool MayReachStoreGold(WorldState world, TilePos tile, PlayerId playerId) =>
+        world.Contains(tile) && world.Tile(tile).OwnerPlayerId == playerId;
+
     /// <summary>Whether a drop of <paramref name="item"/> on <paramref name="tile"/> lands: the one
     /// rule the drop cage's colour and <see cref="Systems.HandSystem"/> both ask. DK2's gate
     /// (<see cref="CanDrop"/>), then for a creature our landing guard (<see cref="CreatureLands"/>).</summary>

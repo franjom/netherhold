@@ -39,6 +39,7 @@ public sealed class HandSystem : ISimulationSystem
             {
                 case PickUpCreatureCommand pick: PickUp(context, pick); break;
                 case PickUpObjectCommand lift: PickUpObject(context, lift); break;
+                case PickUpStoreGoldCommand store: PickUpStoreGold(context, store); break;
                 case DropCommand drop: Drop(context, drop); break;
                 case SlapCreatureCommand slap: Slap(context, slap); break;
                 case MintWageCommand mint: MintWage(context, mint); break;
@@ -191,6 +192,37 @@ public sealed class HandSystem : ISimulationSystem
             $"type={thing.ObjectTypeId} " +
             $"from=({thing.TileIndex % world.Width},{thing.TileIndex / world.Width}) " +
             $"held={world.Player(command.PlayerId).Hand.Count}");
+    }
+
+    /// <summary>Lifts a store tile's pile whole (<c>0x004C0CB0</c>): all its gold leaves the room's
+    /// tally and the keeper's total, and the tile is left with no pile. Ours makes the Gold Pile 1
+    /// object here, from the tile's gold (ADR-0015).</summary>
+    /// <remarks>Deviates: the pile is the neutral player's from the lift, as the counter's is
+    /// (<see cref="WithdrawCounterGold"/>); DK2's keeps its keeper until its landing hands it to the
+    /// neutral player (<c>0x0049EF90</c>). Not modelled: the floating amount (<c>0x0050FB70</c>), the
+    /// lift sound (<c>0xC3</c>) and <c>+0x146</c> bit 4.</remarks>
+    private static void PickUpStoreGold(SimulationContext context, PickUpStoreGoldCommand command)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        if (!HandRules.CanPickUpStoreGold(world, database, command.Tile, command.PlayerId))
+        {
+            context.Emit(SystemName, "store_gold_pickup_refused",
+                $"player={command.PlayerId} tile={command.Tile.X},{command.Tile.Y}");
+            return;
+        }
+
+        int tileIndex = world.TileIndex(command.Tile);
+        ref TileState tile = ref world.TileAtIndex(tileIndex);
+        int gold = tile.GoldHeld;
+        tile.GoldHeld = 0;
+        ObjectState pile = world.SpawnObject(database, FloorGold.TreasuryPileObjectId, PlayerIds.Neutral, tileIndex);
+        pile.GoldHeld = gold;
+        pile.InHand = true;
+        List<HandItem> hand = world.Player(command.PlayerId).Hand;
+        hand.Add(HandItem.Of(pile));
+        context.Emit(SystemName, "store_gold_picked_up",
+            $"player={command.PlayerId} tile={command.Tile.X},{command.Tile.Y} gold={gold} object={pile.Id} held={hand.Count}");
     }
 
     /// <summary>

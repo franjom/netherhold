@@ -121,22 +121,46 @@ CONFIRMED from Effects.kwd/EffectElements.kwd.
 That the glint in the screenshots is this effect, rather than something unread, is
 STRONGLY INFERRED: it appears and moves on the chest only, frame to frame.
 
+**Built (ADR-0534).** `StoreSweepSystem` runs each live store's turn: the sparkle, then the
+16-turn sweep. Mapping: a store tile holding gold is one Gold Pile 1 (the deposit creates it,
+`0x004F4510` deletes it with its last gold), so the chain walk (`SlabChain.Order`, DK2's `+0x2D`
+chain) draws once per tile with gold. Every Treasury and unruined Heart draws, whatever its owner
+(`Room_Tick` calls the type handler unconditionally), in `RoomIndex` order (ADR-0327). The pile
+stands at its tile's centre on the floor, `0x1000` (`0x004F3C60` creates it at z 0 and the
+floor step `0x004B5020` raises it, STRONGLY INFERRED), so the request is effect 34 at height
+`0x1000` + 1068. The effect's own randomness is the view's. Tests: `StoreGoldTests`.
+
 The dumper's `SparkleEffectTimer` (`+0x14A`, [object-thing-object.md](object-thing-object.md))
 belongs to objects with definition flag 0x4 (TypeSpecial), and the one at `+0x151` to
 object type 4 (dumper 0x0049D68D, 0x0049D6B5); neither is gold.
 
-## 4. Picking the store gold up
+## 4. Picking the store gold up — the lift CONFIRMED, built
 
 Gold Pile 1 carries `CanBePickedUp`, and the owner lifts and drops chests and urns and sees
-the pickup hand over gold piles, chests and urns (2026-10-23). CONFIRMED for the flags and
-by play; the lift's own rule (how much leaves the store) is unread.
+the pickup hand over gold piles, chests and urns (2026-10-23).
 
-Ours keeps a store tile's gold in the tile (ADR-0015,
-[gold-on-the-floor.md](gold-on-the-floor.md) §2), so the chest is a presentation
-decoration with no object behind it and no hand command can lift it. A loose pile (types 1
-and 2) is a simulation object: the cursor shows the pickup hand over it when
-`HandRules.CanPickUpObject` and `MayReachObject` (gold only from the keeper's own claimed
-tile, Q196) allow.
+**The lift** (hand state 2's enter, [0x004C0CB0](functions/004C0CB0.md), read whole by decompile
+2026-10-24; reached from action 59, [0x005135B0](functions/005135B0.md)): the named object goes
+into the hand **whole**. For an object in a Treasury or Heart (room types 1 and 5) it unlinks the
+object from the room (`0x004E6130`) and takes its whole `+0x14A` gold off the room's tally `+0x49`
+and the keeper (`Player_ChangeGold(-gold, 1, 0, 0)`). There is no fixed amount and no gold cap;
+the only limit is the hand's 64 things. The tile is left with no pile, so its chest or urn is
+gone, not shrunk. The object stays type 3. Also: process state 0x16, `+0x146` bit 0x10, the
+amount shown through `0x0050FB70` (presentation), sound `0xC3`. No owner or tile test, as for
+any object (ADR-0310); the cursor offers only the viewer's own pile (`0x0049CBB0`).
+
+**The drop.** The landing [0x0049EF90](functions/0049EF90.md) treats types 1-3 alike: onto a
+creature it pays half; otherwise it merges into a gold object in its cell or is kept as the
+neutral player's; on a Treasury or Heart tile it selects store state 5, whose deposit and its
+timing are Q532 ([keeper-spell-create-gold.md](keeper-spell-create-gold.md) §2). The sweep
+never takes it ([0x004F47E0](functions/004F47E0.md) skips type 3).
+
+**Built (ADR-0534).** `PickUpStoreGoldCommand` by tile: `HandRules.CanPickUpStoreGold` (a
+Treasury or Heart tile with gold, the definition liftable, a free slot) and the cursor's
+`HandRules.MayReachStoreGold` (the tile's owner). `HandSystem` zeroes the tile and puts a neutral
+Gold Pile 1 with that gold in the hand, as the counter withdrawal does
+([hud-resources.md](hud-resources.md)). Deviations: neutral from the lift, not from the landing;
+dropped back on a store it lies as a loose pile for an imp, not deposited (Q532).
 
 ## 5. What ours draws (2026-10-23)
 
@@ -151,6 +175,8 @@ tile, Q196) allow.
   Portcullis), for creatures, objects, doors and traps.
 - `DungeonScene.PickHoverEntity` admits the store pile decoration, doors and traps;
   `WorldHoverText` reads a store pile as "N Gold" from its tile.
+- `PlayerInputSnapshot` offers an own store pile as a `StoreGold` target carrying its tile; a
+  click lifts it (§4), and `DungeonRunner` shows the pickup hand over it.
 - The Hand's light aims at a store pile's point, its tile centre (the pile's `Spread` value
   is its heading; it has no offset), as at a simulation object (`DungeonRunner.AimHandLight`;
   the map-edge test of 0x0043BCB8 is `ClassicPointLight.FromHand`'s).
@@ -162,17 +188,11 @@ DK2's fade flags (§2).
 
 ## 6. Open follow-ups
 
-1. **The store sparkle (§3), simulation.** Build 0x004F3A00 in the Treasury and Heart
-   updates and request effect 34. Its two `random(100)` draws are on the world stream every
-   Treasury turn and every live Heart turn, so it needs a hash bump and moves every replay rig.
-2. **Lifting gold out of a store (§4), simulation.** Needs a liftable store pile; how much
-   one lift takes, and what the tile shows after, is unread.
-3. **The pickup hand over a store pile.** DK2 shows it (owner). Ours stays the plain
-   pointing cursor until 2 exists, so the cursor does not offer a lift the click cannot do
-   (owner's choice, 2026-10-23).
-4. **Faded objects (§2).** Which draws carry flags 0x2001 or 0x2, and so lose the red on
+The sparkle (§3), the lift (§4) and the pickup hand over a store pile are built (ADR-0534).
+
+1. **Faded objects (§2).** Which draws carry flags 0x2001 or 0x2, and so lose the red on
    every material while fading, is unread.
-5. **The status flower's hover stamp.** It reads the same hover id (0x0043B7F1); ours stamps
+2. **The status flower's hover stamp.** It reads the same hover id (0x0043B7F1); ours stamps
    any hovered creature in any tool. In Hand mode it should follow `HoverTint`.
 
 ## 7. Owner answers and open questions
@@ -187,12 +207,12 @@ Answered from play, 2026-10-23:
   tinted, chest pink as a whole), which the owner withdrew after seeing ours tint the cards.
 - "1000 Gold" is the amount in that chest's tile, not the room's.
 
-Open:
+Open (the sparkle, lift and pickup-hand questions are Q641):
 
 1. Does the glint come only on Treasury and Heart chests and urns, never on a loose pile,
    in short bursts at random moments?
-2. Lifting from a Treasury chest: how much comes up — the whole tile, or a set amount —
-   and does the chest shrink to an urn?
+2. Lifting from a Treasury chest takes the tile's whole amount and leaves no chest (§4, binary).
+   Does a lifted chest, dropped back on the Treasury, go back in?
 3. ~~Is an own chicken, crate or spell book tinted?~~ Yes (owner, 2026-10-23), as the binary says.
 4. Is a rival's door tinted when pointed at?
 5. Does an own Fear Trap or Hero Portcullis show red on its translucent parts too (mode 1)?

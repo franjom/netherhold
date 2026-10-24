@@ -51,13 +51,18 @@ public enum PlayerInputTargetKind : byte
     Object,
     /// <summary>A special's box, which the hand activates and never lifts (specials.md §3).</summary>
     Special,
+    /// <summary>A Treasury or Heart tile's store pile, a view decoration over the tile's gold
+    /// (<see cref="WorldView.IsStorePile"/>); the hand lifts it by tile.</summary>
+    StoreGold,
 }
 
-/// <summary>An entity the player's current view permits the pointer to target.</summary>
+/// <summary>An entity the player's current view permits the pointer to target. <paramref name="Origin"/>
+/// is the tile the entity itself is on, for a store pile, which the hand lifts by tile.</summary>
 public readonly record struct PlayerInputTarget(
     PlayerInputTargetKind Kind,
     int Id,
-    TilePos Tile);
+    TilePos Tile,
+    TilePos Origin = default);
 
 /// <summary>The small, immutable part of the presented world needed to interpret a click.</summary>
 public sealed class PlayerInputSnapshot
@@ -85,10 +90,11 @@ public sealed class PlayerInputSnapshot
             _ => null,
         };
         foreach (PlayerInputTarget target in Targets)
-            if ((target.Kind == kind || kind == PlayerInputTargetKind.Object && target.Kind == PlayerInputTargetKind.Special)
+            if ((target.Kind == kind || kind == PlayerInputTargetKind.Object
+                    && target.Kind is PlayerInputTargetKind.Special or PlayerInputTargetKind.StoreGold)
                 && target.Id == hit.EntityId)
                 return new PlayerInputSnapshot(IsHolding,
-                    [new PlayerInputTarget(target.Kind, target.Id, hit.Tile)], Excavation);
+                    [new PlayerInputTarget(target.Kind, target.Id, hit.Tile, target.Origin)], Excavation);
         return new PlayerInputSnapshot(IsHolding, NoTargets, Excavation);
     }
 
@@ -131,6 +137,13 @@ public sealed class PlayerInputSnapshot
             targets.Add(new PlayerInputTarget(
                 PlayerInputTargetKind.Object, instance.Id, instance.Tile));
         }
+
+        // The store piles, drawn from the tiles' gold: liftable from the keeper's own stores only.
+        if (database is not null && world.HasPlayer(playerId))
+            foreach (ObjectView pile in view.Decorations(world))
+                if (WorldView.IsStorePile(pile.Id) && HandRules.MayReachStoreGold(world, pile.Tile, playerId)
+                    && HandRules.CanPickUpStoreGold(world, database, pile.Tile, playerId))
+                    targets.Add(new PlayerInputTarget(PlayerInputTargetKind.StoreGold, pile.Id, pile.Tile, pile.Tile));
 
         ExcavationTarget? excavation = null;
         if (pointerTile is TilePos at && world.Contains(at) && database is not null)
@@ -271,8 +284,9 @@ public sealed class PlayerInputTranslator
 
             PlayerInputTarget? instance = TargetAt(
                 snapshot.Targets, tile, PlayerInputTargetKind.Object);
-            return instance is PlayerInputTarget o
-                ? new PickUpObjectCommand(intent.PlayerId, o.Id)
+            if (instance is PlayerInputTarget o) return new PickUpObjectCommand(intent.PlayerId, o.Id);
+            return TargetAt(snapshot.Targets, tile, PlayerInputTargetKind.StoreGold) is PlayerInputTarget g
+                ? new PickUpStoreGoldCommand(intent.PlayerId, g.Origin)
                 : null;
         }
 

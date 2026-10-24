@@ -74,6 +74,22 @@ public class HandInputTests
         Assert.Empty(input.Translate(Intent(Start, PointerButtonTransition.Released), snapshot).All);
     }
 
+    /// <summary>A store pile is a view decoration; the click lifts it by its own tile, which the
+    /// hover keeps when it re-anchors the target on the pointer tile.</summary>
+    [Fact]
+    public void AClickOnAStorePileLiftsItByItsOwnTile()
+    {
+        var pileTile = new TilePos(7, 7);
+        var captured = new PlayerInputSnapshot(false,
+            [new PlayerInputTarget(PlayerInputTargetKind.StoreGold, -5, pileTile, pileTile)]);
+        PlayerInputSnapshot snapshot = captured.ForHover(new WorldHoverHit(WorldHoverKind.Object, Start, -5));
+
+        PickUpStoreGoldCommand lift = Assert.IsType<PickUpStoreGoldCommand>(Assert.Single(new PlayerInputTranslator()
+            .Translate(Intent(Start, PointerButtonTransition.Pressed), snapshot).All));
+
+        Assert.Equal(pileTile, lift.Tile);
+    }
+
     [Fact]
     public void SwitchingToolsCancelsExcavationEvenWithoutAMouseEdge()
     {

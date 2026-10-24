@@ -26,7 +26,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   DK2's turn (Q596). The stun counts from its first call (ADR-0480). Only a
   keeper's creatures run the needs, need-anger and mood choosers; heroes skip
   them (ADR-0485, Q599). The L1–4 wins above predate this hash 254 change
-  and ADR-0486's hash 255; neither has been re-measured on the rig.
+  and ADR-0486's hash 255; neither has been re-measured on the rig. Store gold
+  is built (ADR-0534, hash 299): every Treasury and unruined Heart draws the
+  store sparkle each turn and the Hand lifts a store pile whole. Those draws
+  move every replay and win rig (Levels 1-4, the level2/level4 live rigs, L11A,
+  L17); none has been rerun since hash 298.
 - The navigation mesh's locate is DK2's cell-cache walk and the whole-map
   builder writes DK2's slots (ADR-0486, hash 255): on the owner's Level 10
   mesh capture 130 of 140 intervals reproduce slot for slot and the first dump

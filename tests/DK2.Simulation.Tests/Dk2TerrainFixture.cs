@@ -623,7 +623,7 @@ internal static class Dk2TerrainFixture
         // is why the rules that pick one name it outright.
         GoldObject(FloorGold.FloorGoldObjectId, "Gold", 0x00810140u, 0, 256, 1228),
         GoldObject(2, "Gold Bag", 0x00810140u, 1, 585, 1228),
-        GoldObject(FloorGold.TreasuryPileObjectId, "Gold Pile 1", 0x00014140u, 1, 1085, 1068),
+        GoldObject(FloorGold.TreasuryPileObjectId, "Gold Pile 1", 0x00014140u, 1, 1085, 1068, idleEffect: 34),
     ];
 
     /// <summary>
@@ -639,9 +639,10 @@ internal static class Dk2TerrainFixture
     /// independently in the binary.</para>
     /// </summary>
     private static ObjectDef GoldObject(
-        byte id, string name, uint flags, byte roomCapacity, int width, int height) => new()
+        byte id, string name, uint flags, byte roomCapacity, int width, int height, ushort idleEffect = 0) => new()
     {
         Name = name,
+        IdleEffectId = idleEffect, // Gold Pile 1's 34, Gold Sparkle (gold-hover-and-sparkle.md §3)
         ObjectId = id,
         Flags = (ObjectFlags)flags,
         Hp = 128,

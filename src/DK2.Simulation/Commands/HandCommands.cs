@@ -23,6 +23,22 @@ public sealed record PickUpCreatureCommand(PlayerId PlayerId, int CreatureId)
     }
 }
 
+/// <summary>Lifts a Treasury or Heart tile's store pile (Gold Pile 1) into the hand, by tile: ours
+/// keeps a store tile's gold in the tile (ADR-0015), so the pile has no object id until it is
+/// lifted. DK2's action 59 names the object (<c>0x005135B0</c>) and hand state 2 lifts it whole
+/// (<c>0x004C0CB0</c>, gold-hover-and-sparkle.md §4). Refused when the tile holds no store gold or
+/// the hand is full (<see cref="HandRules.CanPickUpStoreGold"/>).</summary>
+public sealed record PickUpStoreGoldCommand(PlayerId PlayerId, TilePos Tile)
+    : PlayerCommand(PlayerId)
+{
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+        hash.Add(Tile.X);
+        hash.Add(Tile.Y);
+    }
+}
+
 /// <summary>Puts down whatever the keeper is holding on the given tile — a creature or an object,
 /// whichever came last. One gesture, one command (ADR-0075): DK2 has a single drop handler
 /// branching on the kind it read back, so the hand chooses what goes down. Last in, first out —

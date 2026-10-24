@@ -1272,6 +1272,13 @@ namespace DK2.Unity
                         pickup = _simulation.Database.ObjectById(obj.ObjectTypeId)?.IsSpecial != true
                             && HandRules.CanPickUpObject(world, _simulation.Database, obj, viewer)
                             && HandRules.MayReachObject(world, _simulation.Database, obj, viewer);
+                    else if (hit.Kind == WorldHoverKind.Object && WorldView.IsStorePile(hit.EntityId))
+                    {
+                        // A Treasury or Heart pile, lifted whole from its own tile (gold-hover-and-sparkle.md §4).
+                        TilePos pileTile = world.TilePosition(WorldView.DecorationTileIndex(hit.EntityId));
+                        pickup = HandRules.MayReachStoreGold(world, pileTile, viewer)
+                            && HandRules.CanPickUpStoreGold(world, _simulation.Database, pileTile, viewer);
+                    }
                     bool dig = HandCursor.ShowsDig(world, _simulation.Database, tile, viewer);
                     if (ActiveTool == PlayerToolMode.Hand)
                         cursor = HandCursor.ForHover(hit.Kind == WorldHoverKind.Tile, dig, pickup);

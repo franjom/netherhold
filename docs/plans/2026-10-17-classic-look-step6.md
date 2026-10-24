@@ -94,7 +94,7 @@ disc entry to the full map are integrated; see
 - [x] Tint hovered objects and give hovered gold its `_HIGHLIGHT` texture; let
   the Treasury/Heart store pile be picked and read "N Gold" (2026-10-23,
   [gold hover](../research/gold-hover-and-sparkle.md)). The store sparkle and
-  lifting gold out of a store need simulation work there; owner comparison remains.
+  lifting gold out of a store are built (ADR-0534); owner comparison remains (Q641).
 
 The current slice covers pointing, pickup, dig, held-item/gold, tagging, drop
 and slap sprites, the blue terrain-following cage, the room/sell/door/trap placement

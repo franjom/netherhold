@@ -12277,3 +12277,38 @@ nothing, and no gold wall is reinforced or repaired. Behaviour only (HashVersion
 **Consequences.** The current strike finishes, then the Imp re-chooses; the reinforce health
 it added stays on the wall for the dig to take down. An untag does not bring the reinforce back
 until the selection finds the wall again, as in DK2, where the kind-6 entry is simply gone.
+
+## ADR-0534 — A store's gold sparkles and lifts as DK2's Gold Pile 1
+**Date:** 2026-10-24 · **Status:** accepted · Research: `docs/research/gold-hover-and-sparkle.md` §3, §4
+
+**Context.** DK2 keeps a store tile's gold in one object, Gold Pile 1 (type 3), created by the
+deposit `0x004F3C60` and deleted with its last gold by `0x004F4510`. Ours keeps the amount in
+the tile (ADR-0015). Two behaviours read the object: the Treasury tick `0x004F39A0` and the
+Heart update `0x004D9690` (past its ruin return) first run the sparkle `0x004F3A00`, which draws
+`random(100)` on the world stream every turn and, below 30, `random(100)` per store pile along
+the chain, below 10 making effect 34 at the pile; and the Hand's state 2 `0x004C0CB0` lifts the
+pile whole, taking its gold off the room tally and the keeper's total.
+
+**Decision.** A store tile holding gold stands for exactly one Gold Pile 1. `StoreSweepSystem`
+becomes the store's turn: for each Treasury and unruined Heart in `RoomIndex` order, any owner,
+the sparkle (draws, then `ViewEffectRequest` of the definition's `IdleEffectId` at the tile
+centre, floor `0x1000` plus Height, heading 0, the room's owner), then the existing 16-turn
+sweep. `PickUpStoreGoldCommand` lifts by tile: `HandRules.CanPickUpStoreGold` (store tile with
+gold, liftable definition, free slot; no owner test, as action 59 has none) and the cursor's
+`MayReachStoreGold` (the tile's owner, `0x0049CBB0`'s object-owner test). `HandSystem` zeroes the
+tile and puts a neutral Gold Pile 1 holding that gold in the hand, as the counter withdrawal does.
+The input snapshot offers a store-pile decoration as a `StoreGold` target carrying its own tile,
+and the runner shows the pickup hand over one. Behaviour only (HashVersion 299).
+
+**Deviations.** The lifted pile is neutral from the lift (DK2's keeps its keeper until its landing
+hands it to the neutral player); a lifted pile dropped back on a store lies as a loose type-3
+pile (DK2's landing hands it to the store, Q532) and is not a sparkle candidate; the floating
+amount, lift sound and `+0x146` bit 4 are not modelled; the effect's own draws are view-side.
+DK2 runs each room's handler, border effect and health step room by room (0x004EC450); ours runs
+every store first, then the other room systems, so the sparkle's draws are grouped by handler, not
+interleaved per room (with ADR-0327's room order). The lifted pile stays tile-linked to its empty
+store tile while held, as other lifted objects do; DK2's chain at that moment is unread.
+
+**Consequences.** Every level with a Heart or Treasury draws at least once more per turn, so every
+replay rig and win rig moves. The owner can lift a chest or urn and drop it; the pickup hand
+shows over own store piles.
