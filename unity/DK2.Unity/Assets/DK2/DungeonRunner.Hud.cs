@@ -146,7 +146,7 @@ namespace DK2.Unity
         /// -128..-1 the level's table entry -1 - ref, a positive one Text.str.</summary>
         private static string MessageText(int reference, Dk2StringTable speech, Dk2StringTable text, Dk2StringTable level)
         {
-            Dk2StringTable table = reference < -10000 ? speech : reference is >= -128 and <= -1 ? level : reference > 0 ? text : null;
+            Dk2StringTable table = reference < -10000 ? speech : reference < 0 ? level : reference > 0 ? text : null;
             uint id = reference < -10000 ? (uint)(-10000 - reference) : reference < 0 ? (uint)(-1 - reference) : (uint)reference;
             return table != null && table.TryResolve(id, out string value) ? value : null;
         }

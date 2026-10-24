@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 301;
+    private const int FormatVersion = 302;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -214,6 +214,8 @@ public static class WorldSnapshot
                 w.Write(entrance.Boost);
                 w.Write(entrance.Block);
             }
+            w.Write(p.IntroducedCreatureTypes.Count);
+            foreach (byte creatureType in p.IntroducedCreatureTypes) w.Write(creatureType);
             w.Write(p.ManufacturePoints);
             w.Write(p.ManufacturingCreatures);
             w.Write(p.InformationGiven);
@@ -326,6 +328,7 @@ public static class WorldSnapshot
             w.Write(c.JustDropped);
             w.Write(c.WorkerIdle);
             w.Write(c.ManaRemovalStamp);
+            w.Write(c.StatusFlowerUntilTurn);
             w.Write(c.CorpseSuppressed);
             w.Write((byte)c.DroppedTask);
             w.Write((byte)c.LastTaskKind);
@@ -912,6 +915,7 @@ public static class WorldSnapshot
                 GraveyardWantedPosted = r.ReadBoolean(),
                 Availabilities = [],
                 EntranceInfo = [],
+                IntroducedCreatureTypes = [],
                 ManufactureQueue = [],
                 Blueprints = [],
                 Hand = [],
@@ -924,6 +928,9 @@ public static class WorldSnapshot
             int entranceCount = r.ReadInt32();
             for (int a = 0; a < entranceCount; a++)
                 players[i].EntranceInfo.Add(new EntranceInfoState(r.ReadByte(), r.ReadInt32(), r.ReadInt32()));
+            int introducedCount = r.ReadInt32();
+            if ((uint)introducedCount > 256) throw new InvalidDataException("Invalid introduced creature count.");
+            for (int a = 0; a < introducedCount; a++) players[i].IntroducedCreatureTypes.Add(r.ReadByte());
 
             players[i].ManufacturePoints = r.ReadInt32();
             players[i].ManufacturingCreatures = r.ReadInt32();
@@ -1027,6 +1034,7 @@ public static class WorldSnapshot
                 JustDropped = r.ReadBoolean(),
                 WorkerIdle = r.ReadBoolean(),
                 ManaRemovalStamp = r.ReadUInt32(),
+                StatusFlowerUntilTurn = r.ReadUInt32(),
                 CorpseSuppressed = r.ReadBoolean(),
                 DroppedTask = (ImpTaskKind)r.ReadByte(),
                 LastTaskKind = (ImpTaskKind)r.ReadByte(),

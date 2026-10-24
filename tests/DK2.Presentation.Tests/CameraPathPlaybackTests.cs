@@ -308,4 +308,26 @@ public class CameraPathPlaybackTests
 
     private static SimEvent View(ScriptedViewKind kind, PlayerId player, int value) =>
         new(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, player, value, default, false) };
+
+    [Fact]
+    public void ACreatureIntroductionReplacesEarlierTutorialSubtitles()
+    {
+        var viewer = new PlayerId(3);
+        var director = new ScriptedViewDirector(viewer, _ => Frames(399),
+            line => line == 53 ? "Look well. A Goblin has entered your domain." : new string('x', 500));
+        director.Emit(View(ScriptedViewKind.Speech, viewer, 4));
+        director.Update(100, 0);
+        director.Emit(View(ScriptedViewKind.Speech, viewer, 5));
+        director.Emit(new SimEvent(default, "t", "scripted_view", "")
+        {
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.Speech, viewer, 54, default, true),
+        });
+        director.Emit(View(ScriptedViewKind.CameraPath, viewer, 61));
+        director.Update(200, 1);
+
+        Assert.Equal("Look well. A Goblin has entered your domain.", director.Subtitle);
+        director.Update(5000, 2);
+        director.Update(7000, 3);
+        Assert.Null(director.Subtitle);
+    }
 }

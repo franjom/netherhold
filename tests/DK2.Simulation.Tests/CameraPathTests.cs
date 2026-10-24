@@ -128,7 +128,33 @@ public class CameraPathTests
 
         Assert.Equal(spoken ? [new ScriptedViewRequest(ScriptedViewKind.Speech, new PlayerId(Keeper), 3, default, false)] : [],
             Requests(events));
-        Assert.Contains(sim.LastTriggerRun!.Partial, b => b.Type == 24);
+        Assert.DoesNotContain(sim.LastTriggerRun!.Partial, b => b.Type == 24);
+        Assert.Equal(spoken ? 1 : 0, sim.World.Messages.Entries.Count);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, 0)]
+    [InlineData(255, 0)]
+    public void ScriptedSpeechRetainsOnlyTheMessagesNotMarkedSpeakOnly(byte speakOnly, int messages)
+    {
+        (GameSimulation sim, ListEventSink events) = Simulation(
+            Action(24, new Dictionary<string, long> { ["SpeechId"] = 4, ["SpeakOnly"] = speakOnly }));
+        var disable = Action(45, new Dictionary<string, long> { ["Available"] = 0 });
+        new TriggerExecutor(new TriggerTree([disable], disable.TriggerId), sim.World.Triggers, sim.World).Run(1);
+
+        sim.Tick();
+        sim.Tick();
+
+        Assert.Equal(messages * 2, sim.World.Messages.Entries.Count);
+        Assert.Equal(2, Requests(events).Length);
+        Assert.All(sim.World.Messages.Entries, m =>
+        {
+            Assert.Equal(21u, (uint)m.Kind);
+            Assert.Equal(4, m.Data1);
+            Assert.Equal(200u, m.Timeout);
+            Assert.True(m.NeedsTab);
+        });
     }
 
     [Fact]

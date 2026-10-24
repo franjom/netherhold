@@ -621,6 +621,9 @@ public sealed class CreatureState
     /// creature's health (imp-mana-removal.md, ADR-0277).</summary>
     public uint ManaRemovalStamp;
 
+    /// <summary>Native +0x4B7: the inclusive game turn through which action 30 forces the status flower.</summary>
+    public uint StatusFlowerUntilTurn;
+
     /// <summary>Runtime bit <c>0x20</c> of <c>+0x3E6</c>, cleared: the constructor copies the
     /// definition's <c>GenerateDeadBody</c> flag there and mana-removal selection clears it, so
     /// the death bookkeeping makes no corpse (<see cref="CreatureDeathRules.LeavesBody"/>).</summary>
@@ -1357,6 +1360,7 @@ public sealed class CreatureState
         hash.Add(JustDropped);
         hash.Add(WorkerIdle);
         hash.Add(ManaRemovalStamp);
+        hash.Add(StatusFlowerUntilTurn);
         hash.Add(CorpseSuppressed);
         hash.Add((byte)DroppedTask);
         hash.Add((byte)LastTaskKind);

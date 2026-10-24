@@ -367,8 +367,9 @@ condition.
 - `CameraPathPlayback` (§3), on the drawn world's tick (see the deviations);
 - `CinematicLetterbox` (§4, §6), on the wall clock;
 - `SubtitleQueue` (§7), with the speech-off timing, since Unity plays no speech
-  audio. Our choice: a skip clears them, the line on screen included, as the owner sees
-  DK2 do with speech on (2026-10-20). `0x00568140` zeroes `+0xC8`/`+0x14C`/`+0x15C` and,
+  audio. A skip clears it including the shown line, as the owner sees DK2 do
+  with speech on (2026-10-20); an introduction uses the same choice (ADR-0535).
+  `0x00568140` zeroes `+0xC8`/`+0x14C`/`+0x15C` and,
   with `+0x150` set, calls slot `+0x38` of the object at `0x0075B468`; its effect is unread.
 
 **Unity:**
@@ -386,7 +387,6 @@ condition.
 - the overflow scroll;
 - `0x0041A190` (unread; a camera icon shows at the top right in the owner's capture);
 - speech audio;
-- the message record action 24 posts.
 
 **Deviations:**
 - The simulation measures the path in game ticks, where DK2 measures wall clock.

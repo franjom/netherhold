@@ -153,7 +153,9 @@ public sealed class ScriptedViewDirector(
                 _move = request.Tile;
                 break;
             case ScriptedViewKind.Speech:
-                // The queue takes the sound event id and subtracts one for Speech.str.
+                // An introduction clears waiting speech. With subtitles standing in for audio,
+                // also end the shown line, as on a skip (camera-paths.md section 9).
+                if (request.Flag) _subtitles.Clear(endShown: true);
                 int line = request.Value - 1;
                 if (subtitle(line) is { } text) _subtitles.Enqueue(line, text.Length);
                 break;

@@ -180,7 +180,7 @@ public sealed class SubtitleQueue
     private double _lastCleared;
     private double _until;
 
-    /// <summary>The Speech.str index on screen, or -1.</summary>
+    /// <summary>The level-text index on screen, or -1.</summary>
     public int Current { get; private set; } = -1;
 
     public void Enqueue(int line, int characters)

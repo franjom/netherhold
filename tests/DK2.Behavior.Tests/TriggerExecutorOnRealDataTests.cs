@@ -36,10 +36,10 @@ public class TriggerExecutorOnRealDataTests
             Census(simulation.LastTriggerRun!.Summary));
 
         // Actions, which descend whatever we do because their dispatcher succeeds. 31 and
-        // 38 left it for the view's camera path and letterbox (ADR-0496); 24 still posts no
-        // message record.
+        // 38 left it for the view's camera path and letterbox (ADR-0496); 24 now retains
+        // its message as well (ADR-0535).
         Assert.Equal(
-            "214:14@World=2,214:24@Player=2",
+            "214:14@World=2",
             Census(simulation.LastTriggerRun!.PartialSummary));
 
         // Nothing on level 1's opening turn reaches a type DK2 itself refuses.

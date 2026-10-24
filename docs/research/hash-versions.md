@@ -14,6 +14,7 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**302** — `0x2A9B65A5C2262075`. FormatVersion also 302. Scripted speech retains type 21 when SpeakOnly is zero; first Portal types retain 13/14 and request the level override line. `PlayerState.IntroducedCreatureTypes` and `CreatureState.StatusFlowerUntilTurn` are hashed/saved (ADR-0535). The fixture has no introductions but hashes the new empty lists and zero deadlines; sensitivity and restore tests cover nonzero state.
 
 **301** — `0x6DC0EE1B1BAD1B68`. FormatVersion301: retain runtime store-pile headings (furniture-placement.md §7). All Hand gold drops use the landing merge with optional fixed-point input, hashed with the command (gold-on-the-floor.md; keeper-spell-create-gold.md §3). Earlier replay/win measurements have not been rerun.
 

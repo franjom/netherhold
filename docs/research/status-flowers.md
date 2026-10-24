@@ -158,10 +158,10 @@ Read and built (pass 3, 2026-10-23), each from state ours already keeps:
 - **Leaving and S-Gem** ([00597270](functions/00597270.md)): S-Gem when the carried object is the Portal Gem (object 28, [0048B5C0](functions/0048B5C0.md)); Leaving in states 194–196. DK2's bit 14 is set on entering 194 and cleared only by a rebellion, so a leaver moved out of those states keeps its icon in DK2 and not here.
 - **Lifts**: torture and +0x80 for a slot holder. The on-slot torture lift takes 0x00759ADC as 1, to match the plain device art ours loads; that is a GUESS, since the global has no writer found and may be 0 in vanilla, which would lift the flower 0x400 (a quarter tile) higher (Q635).
 - **Size**: 0.25 tile from the descriptor, replacing the 0.259 the owner's three comparisons had reached by eye; icons are no longer sized by their texture width.
+- **Scripted window (ADR-0535)**: action 30 stores native turn + 4 times its first dword, modulo 32 bits, at `+0x4B7`; the predicate includes its last turn. Built as saved/hashed `StatusFlowerUntilTurn` (version 302). Level1's four Imp roots request 60 seconds under flag 71; root 274 also speaks level line 4 and requests 120 seconds. `TutorialNotificationsTests` drives the four shipped Imp roots and checks visibility without hover and after restore. Matched play remains pending.
 
 Left out:
 - The global gate (player `+0x76`, mode 0x0075AD4B): unread meaning.
-- The trigger window `+0x4B7`: creature trigger action 30 sets it to turn + seconds × the action value ([0049AC80](functions/0049AC80.md), arm 0x0049AF08). Ours does not run that action, so there is no field to read.
 - The casino winner (`+0x3F2`, our `JackpotDeadlineTicks`): no ring, no centre, an animated `Dollar` mesh (kind 6) at render scale 0x1000. Needs animated-mesh playback in the flower draw; its size and rate are unread.
 - The sneaking disguise colour.
 - A possession hover. The adapter has no possession camera, so while possessing, only the creature under the ordinary Hand pointer shows a flower.

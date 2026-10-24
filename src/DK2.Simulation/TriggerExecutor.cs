@@ -1050,6 +1050,13 @@ public sealed class TriggerExecutor
             GivePortalGem(_world, _database, run.Creature);
             return true;
         }
+        if (context == TriggerContext.Creature && record.Type == 30 && run.Creature is not null)
+        {
+            run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
+            run.Creature.StatusFlowerUntilTurn = unchecked((uint)run.CurrentTick
+                + (uint)record.Parameters["Value"] * SimulationTiming.OriginalTicksPerGameSecond);
+            return true;
+        }
         if (context == TriggerContext.Creature && record.Type == 42 && run.Creature is not null)
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
@@ -1091,9 +1098,8 @@ public sealed class TriggerExecutor
     /// <summary>Actions 24, 26, 31 and 38, whose effect is on the keeper's own view. DK2 runs 26
     /// (<c>0x004C86CF</c>), 31 (<c>0x004C886E</c>) and 38 (<c>0x004C8955</c>) only for its local
     /// player; here every
-    /// keeper's request is sent and the view keeps its own (camera-paths.md section 6). 24 posts
-    /// a message record as well (<c>Message_Post</c> type 0x15), which is not built, so it stays
-    /// partial. Every arm returns 1.</summary>
+    /// keeper's request is sent and the view keeps its own (camera-paths.md section 6).
+    /// Action 24 also retains a message unless SpeakOnly is set. Every arm returns 1.</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/camera-paths.md")]
     private bool RequestView(TriggerRecord record, TriggerContext context, TriggerRun run)
     {
@@ -1134,9 +1140,14 @@ public sealed class TriggerExecutor
                 // Message_Post returns before the speech when the recipient's +0x19A, our
                 // Status, is set (trigger-action-arms.md, Q227).
                 if (keeper.Status == 0)
+                {
+                    if (Byte(p, "SpeakOnly") == 0)
+                        _world.Messages.Post(_world, player.Value, PlayerMessageKind.ScriptedSpeech,
+                            unchecked((int)p["SpeechId"]), 0);
                     ViewRequested?.Invoke(new ScriptedViewRequest(
                         ScriptedViewKind.Speech, player, unchecked((int)p["SpeechId"]), default, false));
-                return Unperformed(record, context, run.Partial);
+                }
+                return true;
         }
     }
 

@@ -109,8 +109,12 @@ public sealed class MessageTabsView
 
     /// <summary>The message's string reference (record <c>+0x0F</c>): its type's row, or for a type
     /// with a variant list the variant its Data1 names.</summary>
-    public static int StringReference(PlayerMessage message) =>
-        MessageTypeTable.StringReference((int)message.Kind, message.Data1);
+    public static int StringReference(PlayerMessage message) => message.Kind switch
+    {
+        PlayerMessageKind.ScriptedSpeech => unchecked(-message.Data1),
+        PlayerMessageKind.CreatureIntroduction => unchecked(-message.Data2),
+        _ => MessageTypeTable.StringReference((int)message.Kind, message.Data1),
+    };
 
     /// <summary>The reference a tabbed message was given when first seen, as DK2 fixes it at post
     /// (<c>0x004C4600</c>); else <see cref="StringReference(PlayerMessage)"/>.</summary>

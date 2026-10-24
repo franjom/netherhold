@@ -64,10 +64,35 @@ public static class PortalRules
         creature.Heading = 0x400;
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
         creature.PortalEntranceTile = entrance;
+        NotifyArrival(hooks, creature);
         // A keeper portal's creature enters 193 (a Hero Portal's enters 278, not built).
         if (IsKeeperPortal(portal.Definition))
             CreatureStateMachine.TrySetState(hooks, creature, JoiningState, world.CurrentTick.Value);
         return creature;
+    }
+
+    private static void NotifyArrival(in StateHookContext hooks, CreatureState creature)
+    {
+        var playerId = new PlayerId(creature.OwnerPlayerId);
+        List<byte> introduced = hooks.World.Player(playerId).IntroducedCreatureTypes;
+        int index = introduced.BinarySearch(creature.CreatureTypeId);
+        if (index >= 0) return;
+        introduced.Insert(~index, creature.CreatureTypeId);
+        LevelDef? level = hooks.Database.Level;
+        int speechId = 0;
+        bool hasOverride = false;
+        if (level is not null)
+            for (int i = 0; i < level.IntroductionOverrideObjects.Length; i++)
+                if (level.IntroductionOverrideObjects.Span[i] == creature.CreatureTypeId)
+                {
+                    hasOverride = true;
+                    speechId = level.IntroductionOverrideTextIds[i];
+                    break;
+                }
+        PlayerMessageKind kind = hasOverride ? PlayerMessageKind.CreatureIntroduction : PlayerMessageKind.CreatureArrived;
+        PlayerMessage? message = hooks.World.Messages.Post(hooks.World, playerId.Value, kind, creature.Id, speechId);
+        if (message is not null && kind == PlayerMessageKind.CreatureIntroduction)
+            hooks.Triggers?.ViewRequested?.Invoke(new ScriptedViewRequest(ScriptedViewKind.Speech, playerId, speechId, default, true));
     }
 
     /// <summary>The effect <c>Portal_CreateArrival</c> asks for right after creating the creature

@@ -44,8 +44,7 @@ public enum StatusFlowerTortureLift : byte { None = 0, OffFloorSlot = 1, OnFloor
 /// <summary>Whether a creature shows its flower, Creature_ShowsStatusFlower (0x0048E830), and where
 /// it sits (0x005955C0); docs/research/status-flowers.md §2.
 /// <para>Left out, with no counterpart in our state: the viewer's global gate (player <c>+0x76</c>
-/// bits 0x400000/0x40, mode 0x0075AD4B) and the trigger window <c>+0x4B7</c> (creature trigger
-/// action 30). The draw bits (<c>+0x6C</c>/<c>+0xF3</c>) are the adapter's: it draws only
+/// bits 0x400000/0x40, mode 0x0075AD4B). The draw bits (<c>+0x6C</c>/<c>+0xF3</c>) are the adapter's: it draws only
 /// creatures its scene shows.</para></summary>
 // The rule order is CONFIRMED (0x0048E830); mapping +0x3E6 bit 0x200000 to our dying states is inferred.
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/status-flowers.md")]
@@ -387,6 +386,8 @@ public sealed class StatusFlowers
         var until = new GameTick(turn.Value + StatusFlowerRules.WindowTicks);
         if (hovered != CreatureQueryTarget.None) _hoverUntil[hovered.Value] = until;
         bool possessing = world.Player(_viewer).PossessedCreatureId != 0;
+        // Before our first tick, DK2 is already on turn 1; afterwards the settled tick is its turn.
+        uint flowerTurn = unchecked((uint)Math.Max(1, turn.Value));
         foreach (CreatureState creature in world.Creatures)
         {
             bool healthWindow = turn < Observe(creature, until);
@@ -405,7 +406,8 @@ public sealed class StatusFlowers
                 InCombat: !never && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Combat,
                 Mood: creature.Mood,
                 BelowSixthHealth: belowSixth,
-                InWindow: healthWindow || hoverWindow,
+                InWindow: healthWindow || hoverWindow
+                    || flowerTurn <= creature.StatusFlowerUntilTurn,
                 MarkedForRemoval: creature.ManaRemovalStamp != 0);
             if (!StatusFlowerRules.Shows(facts)) continue;
             bool blink = belowSixth || healthWindow;

@@ -258,7 +258,51 @@ from `CreatureState.HealthSourcePlayerId` (`+0x36`, stamped at each health-chang
 set by actions 50 and 46. Not built: the level-end pass of [0x004BE630](functions/004BE630.md) (its
 `+0x146` and the `0x19E`/`0x173` tallies) and the My Pet Dungeon score for a hero kill.
 
-## 10. Open
+## 10. Support audit (2026-10-24)
+
+The small `mt-info` buttons are retained messages, not permanent controls. The
+queue producer, local-player selection, NeedsTab/age and first-eight-record
+filter must all admit a record (sections 2 and 8). The normal HUD must be visible;
+`ClassicMessageTabs.Draw` also gates clicks on ordinary input and the objective
+viewer being closed. Existing left/right clicks, text frame, scrollbar, close,
+dismiss and conditional goto are wired through `DungeonRunner.Hud.cs`.
+
+**Built (ADR-0535).** Action 24 retains type 21 only when `SpeakOnly == 0`;
+speech-only delivery still works. Types 13/14/21 allow duplicates, last 50 seconds
+and start with a tab. Types 14/21 bypass ordinary notification disabling but
+still refuse a player whose status is nonzero. Type 21's text is level entry
+`Data1 - 1`, type 14's `Data2 - 1`, fixed by `MessageTabsView`'s dynamic reference.
+Sources: [Message_Post](functions/004C4600.md), [the dispatcher](functions/004C8620.md),
+[the text resolver](functions/004C51D0.md).
+
+**The first Goblin's wrong subtitle (STRONGLY INFERRED cause; reproduced pipeline).**
+Level1's first introduction override is creature type 7 with speech id 54:
+`LEVEL1.str` entry 53, the Goblin introduction. Its action 28 creates the Goblin,
+then action 31 starts path 61 at point 19. The first-arrival notification was
+missing, so older tutorial subtitles could remain while that path played.
+[Portal_CreateArrival](functions/004DC9A0.md) stamps a per-player/type byte,
+matches the eight override slots and posts type 14 (or type 13 without a match).
+Type 14 clears waiting speech and queues the level line. Built over a saved,
+hashed `IntroducedCreatureTypes` list; this is distinct from attraction's noticed
+flag. The subtitle-only presentation also ends the shown line (ADR-0535).
+Mode 3 skips overrides and mode 4 skips the stamp/post in DK2; those exceptions
+await a session mode in simulation. No native capture of the reported play exists.
+
+`TutorialNotificationsTests` exercises installed Level1 text, the queue-to-tab
+path, panel selection, expiry, first Goblin override and no reintroduction after
+restore; `CameraPathTests` covers SpeakOnly, status and notification disabling.
+The screenshot alone cannot identify which messages its five tabs represent.
+Matched Unity/DK2 visual acceptance remains pending.
+
+Verification: full solution suite passed; after the review's flower-boundary
+corrections, Presentation passed 1,041 tests. The Unity adapter compiled with
+zero warnings/errors. The reviewer found no remaining issues. No live native
+capture or Unity playthrough was made for this change.
+
+Other unposted notification families and presentation gaps remain in section 8.
+The tab/panel infrastructure needs no replacement to support scripted messages.
+
+## 11. Open
 
 - Sound bank of 0x320-0x322 and the argument `[0x006ACB34]`.
 - Writer of `0x00759C29`; producer of graphic 4.

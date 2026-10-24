@@ -49,6 +49,14 @@ public sealed class StatusFlowersTests
     }
 
     [InstallFact]
+    public void AnUnstartedWorldDoesNotShowAnOwnCreaturesUnrequestedFlower()
+    {
+        var (db, world, own) = Setup();
+        var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
+        Assert.DoesNotContain(flowers.Capture(world, GameTick.Zero, CreatureQueryTarget.None), f => f.CreatureId == own.Id);
+    }
+
+    [InstallFact]
     public void EnemyShowsAndOwnIsHiddenWithNothingToReport()
     {
         (GameDatabase db, WorldState world, CreatureState own) = Setup();

@@ -12320,3 +12320,19 @@ store tile while held, as other lifted objects do; DK2's chain at that moment is
 **Consequences.** Every level with a Heart or Treasury draws at least once more per turn, so every
 replay rig and win rig moves. The owner can lift a chest or urn and drop it; the pickup hand
 shows over own store piles.
+
+## ADR-0535 — Retain tutorial messages and honour their scripted presentation
+**Date:** 2026-10-24 · **Status:** accepted · Research: `research/message-tabs.md` §10, `research/status-flowers.md` §4
+
+**Context.** Scripted speech lacked retained tabs, first Portal introductions lacked their
+level-specific line, and creature action 30 did not force flowers to show.
+
+**Decision.** Reuse the retained queue and message panel for types 13/14/21. Keep first-introduced
+types per player separately from attraction state, and the flower deadline per creature.
+Hash/save version 302 retains both. Presentation resolves the scripted level text dynamically.
+With speech audio still absent, an introduction ends the shown subtitle as well as waiting
+lines, as the existing skip does; this is an audio stand-in, not native speech-off timing.
+
+**Consequences.** Campaign scripts produce readable tabs and timed flowers. Old saves require
+their previous build. Native multiplayer/MPD introduction exceptions await a session-mode model;
+audio playback and matched original-game visual acceptance remain outside this change.

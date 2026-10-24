@@ -12,6 +12,15 @@ public enum PlayerMessageKind : uint
     HeartAttacked = 1,
     CombatStarted = 6,
 
+    /// <summary>Type 13: the first Portal arrival of a type without a level introduction override.</summary>
+    CreatureArrived = 13,
+
+    /// <summary>Type 14: first arrival with a level introduction; Data1 the creature, Data2 the speech id.</summary>
+    CreatureIntroduction = 14,
+
+    /// <summary>Type 21: retained trigger speech; Data1 the one-based level speech id.</summary>
+    ScriptedSpeech = 21,
+
     /// <summary>Type 12: work brought down a Solid, Ownable tile of the recipient's that another
     /// player's worker was working (<c>0x0045313E</c>); Data1 and Data2 are the tile. Row
     /// <c>0x2032</c>: fifty seconds, tab, no duplicates. The name is ours.</summary>
@@ -119,8 +128,8 @@ public readonly record struct PlayerMessage(
 }
 
 /// <summary>The shared retained queue: the two combat position messages, the mood pair, the
-/// room-ownership family, the two mana-pressure messages, unpaid training, the three room messages
-/// and the Alarm trap's. Any other kind, or a subtype its table lacks, is refused.</summary>
+/// room-ownership family, mana pressure, room needs, Alarm, scripted speech and first arrivals.
+/// Any unsupported kind, or a subtype its table lacks, is refused.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-messages.md")]
 public sealed class PlayerMessageQueue
 {
@@ -207,6 +216,8 @@ public sealed class PlayerMessageQueue
         {
             PlayerMessageKind.HeartAttacked => (uint)SimulationTiming.TicksFromSeconds(120),
             PlayerMessageKind.CombatStarted => 0,
+            PlayerMessageKind.CreatureArrived or PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech =>
+                (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.CallToArmsUnreachable => (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.AlarmRaised or PlayerMessageKind.WallBreached => (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry =>
@@ -235,10 +246,12 @@ public sealed class PlayerMessageQueue
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
         if (timeout == uint.MaxValue) return null;
-        if (world.Player(recipient).Status != PlayerStatus.Playing || !world.Triggers.NotificationsEnabled)
+        if (world.Player(recipient).Status != PlayerStatus.Playing
+            || !world.Triggers.NotificationsEnabled && kind is not (PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech))
             return null;
         if (graveyardWanted && world.Player(recipient).GraveyardWantedPosted) return null;
-        if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy)
+        if (kind is not (PlayerMessageKind.RoomLost or PlayerMessageKind.CasinoRowdy
+            or PlayerMessageKind.CreatureArrived or PlayerMessageKind.CreatureIntroduction or PlayerMessageKind.ScriptedSpeech)
             && Unexpired(recipient, kind, HasSubtypes(kind) ? data1 : null) is PlayerMessage retained) return retained;
         if (_entries.Count == Capacity) _entries.RemoveAt(0);
         var added = new PlayerMessage(_nextId, recipient, kind, data1, data2, 0, timeout, true, false);

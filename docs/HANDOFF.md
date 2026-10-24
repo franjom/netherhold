@@ -30,7 +30,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   is built (ADR-0534, hash 299): every Treasury and unruined Heart draws the
   store sparkle each turn and the Hand lifts a store pile whole. Those draws
   move every replay and win rig (Levels 1-4, the level2/level4 live rigs, L11A,
-  L17); none has been rerun since hash 298. Hash/save 301 retains runtime store
+  L17); none has been rerun since hash 298. Hash/save 302 includes 301's runtime store
   headings and corrects loose-gold Hand merging/positions (research/hash-versions.md).
   It also includes hash 300's crystal hulls (ADR-0527 amendment 2); replay and win
   rigs have not been rerun. Initial chest headings remain Q644; Level2's reported
@@ -174,18 +174,20 @@ adds gold withdrawal, payday/alarm/flash state, original personal names and bloo
 groups, G/H/M and corner controls, campaign Options pause, full-map terrain and
 navigation, creature query/follow, bottom choices (slot recharge, manufacture and research sectors: research/panel-indicators.md), message tabs with the framed message panel, its scrollbar and the six indicator boxes (research/message-tabs.md; hash/save 297, ADR-0532), Shift-click tab pinning with two side-by-side panels (research/tab-alerts.md §3), Reaper state, room cycling
 and all four creature overview modes. Canonical scope and remaining gates:
-plans/2026-10-17-classic-look-step6.md. Hash/save 283 adds native identity and
+plans/2026-10-17-classic-look-step6.md. Tutorial messages, the first Goblin
+introduction and script-forced flowers are built (ADR-0535, hash/save 302;
+research/message-tabs.md §10). Matched visual acceptance is pending (2026-10-24).
+Hash/save 283 adds native identity and
 last-payday state; ADR-0521 documents initial constructor RNG ordering limits.
 remaining modal/panel/full-map rules
 and original-game comparison are Q611 (research/hud-visibility.md).
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 
-Current verification, after merging master 3c19fa0b (2026-10-19): 3,636
-simulation tests and the AI, Assets, Convert, Core, Data, Oracle, Presentation
-and Tools suites pass, and the adapter compiles (unity/DK2.Unity.Compile). The
-behavior suite passes 386, skips 3 and fails only the known Level1 variable
-override. Prison chicken passes with master's central (5,4) drop. The branch's
+Current verification (2026-10-24, ADR-0535): the full solution suite passed,
+including 3,787 Simulation and 388 Behavior tests (3 skipped). After review
+corrections, all 1,041 Presentation tests pass; the Unity adapter compiles.
+Prison chicken passes with master's central (5,4) drop. The branch's
 earlier failure is master's edge-route symptom, whose native cause is still
 unresolved (research/imp-fidelity-integration.md). Our side, from runs on
 2026-10-19: at af4768e7 both prisoners at (4,4)/(5,4) get the two-point route
@@ -210,7 +212,7 @@ effects (ADR-0464, 0465, 0467); the Heart sparkles and opening sequence; rock
 dust prominence (Q593); live Heart platform guards and Arch Pillar targets
 (Q585, Q586); Level8's guard placement (Q589). Unbuilt: non-creature threat
 flight (combat-fear.md §7), free-range and Prison chicken loops (Q584),
-creature status flowers (the HUD). Reported graininess: inspect the Game view
+the remaining flower gaps (research/status-flowers.md §4). Reported graininess: inspect the Game view
 scale before changing rendering (TRAPS.md). Crowd profiling limits are in
 tools/classic-unity-probe/README.md.
 

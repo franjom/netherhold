@@ -409,6 +409,9 @@ public struct PlayerState
     /// two modifiers its pick applies (<see cref="PortalChoiceRules"/>, ADR-0272).</summary>
     public List<EntranceInfoState> EntranceInfo;
 
+    /// <summary>CreatureEntranceInfo row +1 (player +0xB58): types already introduced by a Portal arrival.</summary>
+    public List<byte> IntroducedCreatureTypes;
+
     /// <summary>DK2's manufacture points, <c>player+0x217</c>, a word (ADR-0203).</summary>
     public int ManufacturePoints;
 
@@ -559,6 +562,8 @@ public struct PlayerState
         hash.Add(EntranceInfo.Count);
         foreach (EntranceInfoState entrance in EntranceInfo)
             entrance.HashInto(ref hash);
+        hash.Add(IntroducedCreatureTypes.Count);
+        foreach (byte creatureType in IntroducedCreatureTypes) hash.Add(creatureType);
         hash.Add(ManufacturePoints);
         hash.Add(ManufacturingCreatures);
         hash.Add(InformationGiven);
@@ -701,6 +706,7 @@ public sealed class WorldState
             _players[i].Hand ??= [];
             _players[i].Availabilities ??= [];
             _players[i].EntranceInfo ??= [];
+            _players[i].IntroducedCreatureTypes ??= [];
             _players[i].ManufactureQueue ??= [];
             _players[i].Blueprints ??= [];
         }

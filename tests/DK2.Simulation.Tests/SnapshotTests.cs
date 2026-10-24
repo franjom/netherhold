@@ -11,6 +11,24 @@ namespace DK2.Simulation.Tests;
 public class SnapshotTests
 {
     [Fact]
+    public void TutorialPresentationStateChangesTheHashAndSurvivesRestore()
+    {
+        GameSimulation original = TestWorld.Simulation();
+        ulong before = original.StateHash();
+        original.World.Creatures[0].StatusFlowerUntilTurn = 123;
+        Assert.NotEqual(before, original.StateHash());
+        ulong flowerOnly = original.StateHash();
+        PlayerId player = original.World.Creatures[0].OwnerPlayerId;
+        original.World.Player(player).IntroducedCreatureTypes.Add(7);
+        Assert.NotEqual(flowerOnly, original.StateHash());
+
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), TestWorld.Database());
+        Assert.Equal(original.StateHash(), restored.StateHash());
+        Assert.Equal(123u, restored.World.Creatures[0].StatusFlowerUntilTurn);
+        Assert.Equal([7], restored.World.Player(player).IntroducedCreatureTypes);
+    }
+
+    [Fact]
     public void RoundTrip_PreservesStateHash()
     {
         GameSimulation original = TestWorld.Simulation();

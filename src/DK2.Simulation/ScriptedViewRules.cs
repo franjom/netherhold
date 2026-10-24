@@ -22,8 +22,9 @@ public enum ScriptedViewKind : byte
     /// <summary>Action 38: letterbox on (<see cref="ScriptedViewRequest.Flag"/>) or off.</summary>
     Letterbox = 3,
 
-    /// <summary>Action 24: Mentor line <see cref="ScriptedViewRequest.Value"/>, the sound-bank
-    /// event id; its subtitle is <c>Speech.str</c> entry <c>Value - 1</c>.</summary>
+    /// <summary>A level Mentor line: <see cref="ScriptedViewRequest.Value"/> is one-based;
+    /// its subtitle is the level text entry Value - 1. Flag replaces preceding speech for
+    /// a Portal introduction (type 14).</summary>
     Speech = 4,
 
     /// <summary>Action 26: the keeper camera glides to the centre of
