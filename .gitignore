@@ -72,3 +72,7 @@ reverse-engineering/**
 # Python bytecode from tools/ghidra scripts run or imported directly
 __pycache__/
 *.pyc
+
+# Experiment write-ups and run outputs live in D:\DK2Evidence (owner, 2026-10-24).
+# The files already tracked here stay tracked.
+docs/experiments/
