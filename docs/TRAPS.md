@@ -245,6 +245,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A compile harness can reference an installed Unity module that the project's Package manifest has disabled; verify in Unity too (HUD pilot: `com.unity.modules.imageconversion`).
 - A centred GPU minimap fixture hides row-origin errors; test an asymmetric fit and a rotated marker, and retain integer division for native projected boundaries rather than flooring an inexact floating-point quotient.
 - pyghidra search_code defaults to full code even with preview_length; pass include_full_code=false for bounded search results.
+- Ghidra's decompiler search omits undefined functions; a negative field-offset query needs a scan across both executable sections and a known positive control.
 
 - PowerShell does not expand path globs for `rg`; search a directory with `-g 'WorldState*.cs'` rather than passing `WorldState*.cs` as a path.
 - Native byte arguments can have unrelated upper stack bits; oracle stubs must mask to the callee's actual width before indexing or testing availability.

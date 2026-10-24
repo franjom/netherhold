@@ -121,6 +121,10 @@ and material contracts remain research/integration work; see
 
 ## Acceptance and boundaries
 
+Closed 2026-10-24: portrait hover previews. The binary shows the unchanged portrait,
+existing count highlight and status text; no additional preview was built. Read and
+play-only limits: [creature overview](../research/creature-overview.md#portrait-and-count-hover-text).
+
 Built bottom-panel details: original room/spell/workshop ordering, researched
 availability and cost feedback, Reaper/talisman state, secondary room cycling,
 and the four creature views. Evidence and adapter ordering limitations live in
@@ -128,7 +132,7 @@ and the four creature views. Evidence and adapter ordering limitations live in
 [creature-overview.md](../research/creature-overview.md).
 
 Built 2026-10-23: the six indicator boxes (ADR-0532), the menu-40 text scrollbar (message panel scrolls, query panel bar inert as in DK2), Shift-click pinning of two bottom panels. Still open: owner comparison of the research, manufacture and
-spell recharge sectors ([panel-indicators.md](../research/panel-indicators.md) §8); portrait hover previews (the tooltip text is built); full-map markers/legend;
+spell recharge sectors ([panel-indicators.md](../research/panel-indicators.md) §8); full-map markers/legend;
 the tile +0xB bit 0 "Enemy Wall" status, which needs the Secret Door's tile flag
 and reveal in the simulation (door, trap, dead-body and Casino/Prison fixture status
 built 2026-10-23, the special creature name +0x895 2026-10-24,

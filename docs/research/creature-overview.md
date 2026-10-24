@@ -57,7 +57,7 @@ above page_back (11, `0x00690028`). `0x00417730` adds a delta and clamps; the wi
 Hover highlight is catalogue162 GUI/Tabs/t-cp-hilight tinted 0x00FFC9, red in the low byte: RGB (201,255,0).
 The byte order is settled by the selected-mode tints (00417B40), which the owner saw as green, red and orange.
 Menu6's worker row icons are records 0x00690078 + 160·r, local (0, 4/68/132/196, 80, 72/68/72/72), text ids
-2308..2314; its count widgets 0x006900C8 + 160·r, local (72, 12+64r, 120, 64), highlight on hover. The mode
+2308..2314; its count widgets 0x006900C8 + 160·r draw at local x72, y12/72/136/200, size120×64. Their hit heights are60/64/64/64. The mode
 selectors carry text ids 2316..2322; hovering one draws t-creature_panel-i over the strip (00417B40).
 Numeric family selection follows [HUD resources](hud-resources.md).
 
@@ -74,24 +74,48 @@ GUI/Tabs/t-creature_panel, at local(208,8,64,264); this is the four-button strip
 Mode-specific counts and selection filters are connected. The adapter consumes
 host press edges, matching type0's once-per-press callback, without reproducing
 the GUI manager's full held-channel arbitration. Worker-row and mode tooltips, count highlights, mode hover art and the portrait and count hover
-text (status strip, below) are built (2026-10-20, 2026-10-23). A native capture must settle header overlap and
-pixel positioning at unusual aspect ratios.
+text (status strip, below) are built (2026-10-20, 2026-10-23). Native hit coverage is now read below; unusual-aspect positioning remains a visual check. The binary audit closes the separate portrait-preview item without new drawing.
 
 ## Portrait and count hover text
 
-Read 2026-10-23 from DKII.EXE 1.70, the shipped Text.str and Creatures.kwd.
+Read 2026-10-23 and rechecked 2026-10-24 from DKII.EXE 1.70, shipped Text.str and Creatures.kwd.
 
-**No portrait widget exists — STRONGLY INFERRED** (a negative read from the one draw callback). `0x004201B0` is the draw callback of
-the first row menu of each mode (menus 7, 8, 12, 15; static menu records near
-`0x006935CE`) and only draws pictures. A portrait, and the numbers on it, lie over
-that column's count widgets, whose update callback is `0x00418DD0` (draw
-`0x00417850`). The Imp portrait lies over menu6's four worker count widgets
-`0x006900C8 + 160·r`, absolute (544, 1612+64r, 120, 64). An ordinary column's widgets
-are (924+136i, 1616+row·h, 108, h) by `0x00418BC0`, with h = 244, 64, 84, 84 for Total,
-Jobs, Combat, Moods. Neither the portrait nor a count number has its own text. The
-portrait is drawn about 128×264 from a small offset, wider and (in Total mode) taller than
-the 108-wide widgets, so its right and bottom edges are LIKELY outside every widget and give
-no text; ours hit-tests the widget rectangles only.
+**Portrait image — CONFIRMED within the audited draw path (2026-10-24).**
+`0x004201B0`, draw callback of menus7/8/12/15, always installs compact
+definition `+0x52B` at `0x00420394`/`0x00420495` and draws through renderer
+slot `+0x5C`. Its complete body has no hover `+0x49` test, alternate portrait,
+3D-preview call or sound call. Count hover in `0x00417850` draws only
+catalogue162; mode hover art238..241 belongs to `0x00417B40`. Count records'
+sound slots are0. No additional hover picture or sound was found.
+
+`0x00492320` copies file `+0xD40` to the portrait descriptor; neighbours are
+compact `+0x510` and `+0x546`. All 33 nonempty portraits among 46 shipped
+definitions use type1 `-bg` art, flags0 or1, without animated/start/end paths.
+The full 5,767-entry texture directory has no creature portrait `hilight`,
+`-on` or `big` variant. Generic `GUI/Icons/Hilight-Creature` textures exist,
+but their name occurs neither in the executable nor shipped editor KWDs.
+Archive presence is not an active draw path; the name search alone does not
+exclude dynamic construction elsewhere.
+
+**Hit coverage — CONFIRMED for the retained overview layout.** Portraits are
+separate draw submissions. `0x00418BC0` lays out ordinary count rectangles;
+`0x00528300` preserves separate worker draw/hit geometry; `0x00528430` tests
+half-open bounds. Menus4/5 have no widget arrays. Sidebar and row templates
+have no extra widget covering the portrait's right/bottom edge.
+Coordinates below are1920-high units; ordinary column i starts at0.
+
+| Portrait | Draw bounds x / y | Count hit bounds x / y |
+|---|---|---|
+| Worker | [544,672) / [1608,1872) | [544,664) / [1612,1864) |
+| Ordinary, Total | [912+136i,1040+136i) / [1612,1876) | [924+136i,1032+136i) / [1616,1860) |
+| Ordinary, Jobs | same | same x / [1616,1872) |
+| Ordinary, Fighting or Moods | same | same x / [1616,1868) |
+
+The rightmost8 units have no creature hover target; bottom overhang varies
+by mode. Worker row icons overlap its leftmost8 units and carry their own text.
+The adapter retains a coarser hit union (worker256 high, ordinary244 in every
+mode); exact row-boundary parity is not built by this no-preview audit.
+Existing status text and count highlights are unchanged.
 
 **Trigger — CONFIRMED.** While a visible count widget has the pointer (`+0x49`),
 `0x00418DD0` writes interface `+0x4658 = 4` and `+0x465C` = the column's creature type.
@@ -114,22 +138,33 @@ Firefly reads "Firefly.  Scout.  Fighting Style: Flanker."; the Imp's 2347 has n
 No name, level, count or mood is substituted. The strip has no delay: it is written
 every frame the widget is hovered and scrolls when too long, as for other widgets.
 
-**Near-cursor popup — STRONGLY INFERRED: none.** Case 4 also queues the type name
-`+0x6AA` (kwd `0xF24`: Imp 2771 "Imp", Firefly 2348) with the hovered widget `+0x116A`
-for `0x0042E590`. The strip callback ends by writing `+0x4658 = 6`. It is widget
-`0x00693318` of HUD menu `0x00693EB0`, drawn by `0x0052BBD0` inside `0x00419DF0`
-before `0x0042E590` runs. So `0x0042E590` compares the queued widget with `+0x116E`,
-which `0x0052BC50` sets only to a hovered widget with a nonzero text id. Count widgets
-have text id 0, so the queue is cleared every frame and the 250 ms delay never expires.
-The same frame order would make `0x0042E590`'s category 0..3 branch to `0x0042EA70`
-unreachable, which is the main doubt. Ours shows no popup (`WorldHoverTextTests` names the doubt).
-Open for the owner, from play:
-- does hovering a creature portrait show a box near the pointer, or only the top-bar text?
-- does hovering a room, spell, trap or door button show a box (the binary says that branch is dead)?
-- where does the portrait's hover end at its edge (ours: the widget rectangles only)?
-- does the Moods row's "Happy" flicker?
+**Near-cursor popup — STRONGLY INFERRED: none in the ordinary initialized HUD.**
+Case4 queues type name `+0x6AA` with hovered widget `+0x116A`. Menu53's strip
+widget `0x00693318` calls `0x0042E140`, resetting `+0x4658` to6 at `0x0042E559`.
+`0x0052B8F0` appends menus; `0x0052BBD0` draws backwards, so menu53 draws
+first. `0x00419DF0` calls the draw at `0x00419F9A`, reads the hover category
+at `0x00419F9F`, then calls `0x0042E590` at `0x0041A036`. No update occurs
+between them. The branch skipping normal drawing also skips the popup.
+Hiding the strip widget alone does not suppress its callback.
 
-**Mood row anomaly — UNKNOWN effect.** Of the eleven count-widget templates
+Category0..4 producers are update callbacks. Whole-image pointer and E8/E9
+scans across both executable sections found room/spell/workshop producers only
+in static widget `+0x34` update slots; the count updater is a positive control.
+Later draw bodies, including `0x00412FC0`, do not republish the category.
+There is no ordinary frame-order window restoring0..3 after reset; no legitimate
+menu53-only suppression path was established. Absolute xrefs on `0x4658`/`0x465C`
+resolve no symbol because these are field offsets. Direct-displacement scans
+found status/popup formatting and frame-selection readers, not a preview reader.
+
+After reset `0x0042E590` uses text-bearing widget `+0x116E`, which
+`0x0052BC50` excludes for zero-text count widgets; their250ms delay cannot
+complete. The category0..3 route to `0x0042EA70` is inactive in this ordinary
+frame order. Popup id2238 is a separate route to that formatter, independent
+of category: the complete cost formatter is not dead. Actual portrait and
+cost-popup appearance remain play checks Q645/Q646; no new popup or preview
+was built. The existing `WorldHoverTextTests` expectation is retained.
+
+**Mood row anomaly — UNKNOWN effect (Q647).** Of the eleven count-widget templates
 (`0x00690578`..`0x00690BB8`, stride 160), only `0x00690A78` (Moods row 0, filter 27)
 has a text id: 2340 "Happy". Its status is still the creature description; on the
 reading above, the popup alternates between 2340 and the type name each frame and is
