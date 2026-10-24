@@ -184,7 +184,8 @@ namespace DK2.Unity
         /// (a creature's posed vertices); a placeholder gets the centre test only.</summary>
         public WorldHoverHit PickHoverEntity(Ray ray, Vector3 viewForward, float terrainDistance, TilePos tile,
             Vector3 pointerGround, System.Func<WorldHoverKind, int, bool> rendered = null,
-            System.Func<WorldHoverKind, int, bool> fallback = null, System.Func<WorldHoverHit, bool> resolves = null)
+            System.Func<WorldHoverKind, int, bool> fallback = null, System.Func<WorldHoverHit, bool> resolves = null,
+            Plane[] frustum = null)
         {
             WorldHoverHit hit = new WorldHoverHit(WorldHoverKind.Tile, tile);
             _pickCandidates.Clear();
@@ -245,6 +246,10 @@ namespace DK2.Unity
                 if (go == null || !go.activeSelf || !go.TryGetComponent<Renderer>(out Renderer renderer)) return;
                 Mesh mesh = go.TryGetComponent(out MeshFilter filter) ? filter.sharedMesh : null;
                 Bounds bounds = renderer.bounds;
+                // DK2 culls a draw outside the view (0x00575D70) before it can enter the pick list; without
+                // this, a sphere reaching behind the eye "holds" every pointer (CircleHolds' unbounded case)
+                // and an off-screen thing behind the camera wins the nearest-depth test.
+                if (frustum != null && !GeometryUtility.TestPlanesAABB(frustum, bounds)) return;
                 Vector3 centre;
                 float radius;
                 if (mesh != null && TryPickSphere(mesh, out Vector4 sphere))

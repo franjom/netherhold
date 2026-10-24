@@ -1223,13 +1223,15 @@ namespace DK2.Unity
             _renderedPick ??= (kind, id) => HoverPickRules.Rendered(_simulation.World, _simulation.Database, kind, id);
             _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(_simulation.World, _simulation.Database, kind, id);
             _resolvesPick ??= candidate => HoverPickRules.Resolves(_simulation.World, candidate, new PlayerId((byte)viewingPlayerId));
+            GeometryUtility.CalculateFrustumPlanes(view, _pickFrustum);
             WorldHoverHit hit = _scene.PickHoverEntity(ray, view.transform.forward, distance + .02f, tile,
-                ray.GetPoint(distance), _renderedPick, _fallbackPick, _resolvesPick);
+                ray.GetPoint(distance), _renderedPick, _fallbackPick, _resolvesPick, _pickFrustum);
             return new WorldHoverHit(hit.Kind, tile, hit.EntityId);
         }
 
         // The picker's eligibility (HoverPickRules), made once so a frame's pick allocates nothing.
         private System.Func<WorldHoverKind, int, bool> _renderedPick, _fallbackPick;
+        private readonly Plane[] _pickFrustum = new Plane[6];
         private System.Func<WorldHoverHit, bool> _resolvesPick;
 
         private void CaptureWorldHover()
