@@ -37,7 +37,7 @@ namespace DK2.Unity.Editor
         private static void CaptureWhenPlaying(ScriptableRenderContext context, Camera camera)
         {
             if (!EditorApplication.isPlaying || camera != Camera.main) return;
-            DungeonRunner runner = UnityEngine.Object.FindFirstObjectByType<DungeonRunner>();
+            DungeonRunner runner = UnityEngine.Object.FindAnyObjectByType<DungeonRunner>();
             if (runner == null) return;
             object scripted = typeof(DungeonRunner).GetField("_scriptedView", BindingFlags.Instance | BindingFlags.NonPublic)
                 .GetValue(runner);
@@ -53,7 +53,7 @@ namespace DK2.Unity.Editor
             if (!EditorApplication.isPlaying) return;
             Camera camera = Camera.main;
             if (camera == null) return;
-            DungeonRunner runner = UnityEngine.Object.FindFirstObjectByType<DungeonRunner>();
+            DungeonRunner runner = UnityEngine.Object.FindAnyObjectByType<DungeonRunner>();
             var record = new CameraRecord
             {
                 screenWidth = Screen.width, screenHeight = Screen.height,
