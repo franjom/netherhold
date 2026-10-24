@@ -329,7 +329,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DK2.Unity::DK2.Unity.DungeonRunner
   installDirectory: 
-  levelName: Level1
+  levelName: Level2
   saveFile: 
   seed: 1
   fogOfWar: 1
