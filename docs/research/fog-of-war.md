@@ -242,18 +242,17 @@ The owner reported two dim Portals over unexplored ground (2026-09-06).
 establishes no Portal visibility exception. No adapter change is justified;
 ADR-0076's discovery boundary remains in force.
 
-**The same day's TrapTime saves narrow it (read 2026-10-19).** At the true
-tile alignment (`fog-reveal-sources.md` §2), `fow_1..3.SAV` hold three 3×3
-Portals (terrain 12) at x 15–17, 54–56 and 92–94, y 33–35. All are owner 2 in
-saves 1 and 2; in save 3 player 4 owns the left one, above its own Heart. None
-of their tiles is explored in any save. The middle one, above player 3's
-Heart, is fully scanned; the other two are neither explored nor scanned.
-Every direct-call class-grid writer calls `0x00451C90` or writes tag class 13
-(the writer contracts live in their function records). The level start's
-whole-map rebuild (`0x0050C058`) runs after the fog seed (`0x0050B5D5`), so
-no class from before the seed survives.
-That the screenshot and the saves are the same game is an assumption: the
-screenshot is not in the repository, and which two Portals it shows is not
+**The map is unknown; TrapTime is ruled out (owner, 2026-10-24).** The 2026-09-06
+report was two screenshots "from a skirmish", with no map named. Linking it to
+TrapTime was our inference from same-day saves, not the owner's statement. The owner
+reports that TrapTime shows no Portals through the fog on the minimap, so the saves
+below are not the screenshot's session and their evidence does not bear on Q197.
+
+**TrapTime saves (read 2026-10-19; not the screenshot's map).** `fow_1..3.SAV` hold
+three Portals, none explored (the middle one scanned). Every direct-call class-grid
+writer calls `0x00451C90` or writes tag class 13, and the level-start rebuild
+(`0x0050C058`) runs after the fog seed (`0x0050B5D5`); these exclusions hold for any map.
+The screenshot is not in the repository, and which two Portals it shows is not
 recorded.
 
 The remaining leads were checked on 2026-10-24 (binary facts CONFIRMED;
@@ -268,9 +267,10 @@ exclusion of a different, unlocated mechanism is not claimed):
 | Scanned bit | The byte-offset/mask census includes the known colour predicate `0x00451C90` as positive control and also non-tile false positives. No direct scanned reader occurs in the reviewed raster/overlay bodies; rectangle highlight `0x00451A80` still writes only the ordinary class or 13. The census is not an exhaustive semantic classification of other readers. |
 | Shipped definition / level start | `Rooms.kwd` Portal 3 flags are `0x1004`; `Terrain.kwd` Portal 12 flags are `0x20000034`, without reveal-through-fog. Neither raster/overlay reads a Portal show flag. TrapTime's descriptor references map/player/thing/trigger/variable data, with no room or terrain override. A scripted exploration would set the explored bit, unlike all three saved Portals. This does not exclude a different screenshot session or later script action. |
 
-Next owner check: in TrapTime, before approaching any Portal, are any visible
-on the minimap; which positions are visible, and do they blink or move with
-the camera? Confirm whether the original report was from TrapTime.
+Next owner check: which skirmish map the 2026-09-06 screenshots came from, if
+recalled, or any map where Portals show dimly on the minimap before a creature
+reaches them. Without a map, the observation itself cannot be reproduced and the
+binary exclusions above are the whole record.
 
 ## 10. The multiplayer argument, and why it points the other way
 
