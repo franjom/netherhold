@@ -93,8 +93,8 @@ for a modern smooth-rim representation, not a requirement to enlarge its pixels.
 The whole-map camera-footprint geometry and remaining material boundary are
 recorded in [Camera footprint](#camera-footprint-binary).
 
-[Q197](open-questions.md) is still open: these readings do not establish why
-the owner's fogged Portals appear. Do not invent a Portal visibility exception.
+[Q197](open-questions.md) remains open; the raster/overlay and grid-getter
+exclusions are in [fog-of-war.md §9.4](fog-of-war.md#94-two-portals-show-through-the-fog-dimmed).
 
 ## Native resource loading (STRONGLY INFERRED, binary and shipped data)
 
