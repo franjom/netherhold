@@ -54,6 +54,7 @@ public sealed class ScenePresenter
             SightFogOpacity = tile.SightFogOpacity;
             HasDoor = tile.HasDoor;
             RoomFloor = tile.RoomFloor;
+            ExtraRoomPiece = tile.ExtraRoomPiece;
             RoomKeys = tile.RoomKeys;
             Bed = tile.Bed;
             Surface = tile.Surface;
@@ -77,6 +78,7 @@ public sealed class ScenePresenter
         public byte SightFogOpacity { get; }
         public bool HasDoor { get; }
         public PieceSet RoomFloor { get; }
+        public AssetRef ExtraRoomPiece { get; }
         public RoomPieceKeys? RoomKeys { get; }
         public PieceSet Bed { get; }
         public LiquidSurface Surface { get; }
@@ -100,6 +102,7 @@ public sealed class ScenePresenter
             && SightFogOpacity == other.SightFogOpacity
             && HasDoor == other.HasDoor
             && RoomFloor == other.RoomFloor
+            && ExtraRoomPiece == other.ExtraRoomPiece
             && ReferenceEquals(RoomKeys, other.RoomKeys)
             && Bed == other.Bed
             && Surface == other.Surface
@@ -111,7 +114,7 @@ public sealed class ScenePresenter
         public override int GetHashCode() => HashCode.Combine(
             HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged, RedHighlighted), GoldHeld, HealthPermille, Walls, Pieces,
             HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface, AmbientTint, QuarterAmbientTint),
-            HashCode.Combine(Scanned, PointLight, SightFogOverlay, SightFogOpacity));
+            HashCode.Combine(Scanned, PointLight, SightFogOverlay, SightFogOpacity, ExtraRoomPiece));
     }
 
     /// <summary>The part of a creature a renderer can see.</summary>
@@ -195,6 +198,7 @@ public sealed class ScenePresenter
     {
         public ObjectVisual(in ObjectView instance)
         {
+            AnimationInitialPhase = instance.AnimationInitialPhase;
             Mesh = instance.Mesh;
             Tile = instance.Tile;
             OwnerPlayerId = instance.OwnerPlayerId;
@@ -220,6 +224,7 @@ public sealed class ScenePresenter
             AddedLight = instance.AddedLight;
         }
 
+        public Fp32 AnimationInitialPhase { get; }
         public TerrainLightColour AddedLight { get; }
         public byte Alpha { get; }
         public int Pitch { get; }
@@ -263,14 +268,15 @@ public sealed class ScenePresenter
             && PreviousHeading == other.PreviousHeading && PlaysAnimation == other.PlaysAnimation
             && PreviousHeight == other.PreviousHeight && PreviousPitch == other.PreviousPitch && PreviousRoll == other.PreviousRoll
             && AnimationStartedAt == other.AnimationStartedAt && AnimationLoops == other.AnimationLoops
-            && HeartVisual == other.HeartVisual && Alpha == other.Alpha && AddedLight == other.AddedLight;
+            && HeartVisual == other.HeartVisual && Alpha == other.Alpha && AddedLight == other.AddedLight
+            && AnimationInitialPhase == other.AnimationInitialPhase;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll),
             HashCode.Combine(PreviousPosX, PreviousPosY, PreviousHeading, PlaysAnimation, AnimationStartedAt, AnimationLoops,
-                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll, HeartVisual, Alpha, AddedLight)));
+                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll, HeartVisual, Alpha, AddedLight, AnimationInitialPhase)));
     }
 
     private readonly WorldView _view;

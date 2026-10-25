@@ -34,9 +34,11 @@ public sealed class RenderAnimationClock
     public long CompletedLoops { get; private set; }
 
     public RenderAnimationClock(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale = null,
-        Fp32? initialMovementSpeed = null)
+        Fp32? initialMovementSpeed = null, Fp32 initialPhase = default)
     {
+        if (initialPhase.Raw < 0 || initialPhase.Raw >= One) throw new ArgumentOutOfRangeException(nameof(initialPhase));
         Install(timing, loop, authoredMovementScale, initialMovementSpeed);
+        _phase = _previousPhase = initialPhase.Raw;
     }
 
     public void Replace(CreatureAnimationTiming timing, bool loop, AnimationReplacement replacement,

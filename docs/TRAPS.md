@@ -17,7 +17,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - PowerShell 5 with ErrorActionPreference=Stop treats native stderr as NativeCommandError; capture child stdout/stderr directly when expecting test failures.
 
-- ClassicLightWindowTests.WarmGatherDoesNotAllocate once measured6440 bytes in a full run; isolated and full reruns passed. Investigate the allocation source before weakening its zero-allocation assertion.
 
 - Inspect original BMP captures in small batches; nine 1600×1200 images exceeded code-mode's 64MiB IPC frame limit.
 
@@ -272,3 +271,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Mono Stopwatch and Unity frame timestamps can have different epochs despite equal frequencies; align Windows captures with QueryPerformanceCounter.
 - ShaderUtil reports an uninitialized SRP compatibility result before a shader has actually drawn; check after a GPU render.
 - Start PresentMon before creating the graphics context, retain its process Handle for ExitCode, reject lost ETW events, and stop only the probe's own named session on failure.
+- Warm light-allocation tests can report transient bytes in a concurrent solution run (ClassicLightWindowTests and ClassicObjectLightTests); rerun the failed test and the full Presentation suite before changing their zero-allocation assertions.
+- Runtime level switching must release the old scene before activating its replacement: deferred OnDestroy can clear or dispose shader globals already published by the new scene.
+- Legacy Unity Font atlases can have black RGB with valid glyph alpha; UI Toolkit textured meshes need an in-memory white-RGB copy of that coverage.
+- Restoring source with `Copy-Item` can preserve a timestamp older than the compiled DLL; touch the restored file or rebuild before trusting an incremental regression retest.

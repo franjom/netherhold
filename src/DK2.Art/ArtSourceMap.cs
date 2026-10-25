@@ -137,6 +137,8 @@ public static class ArtSourceMap
                 entries.Add(Missing(AssetRef.ForRoom(room.Name, AssetKind.Mesh), reason));
                 for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
                     entries.Add(Missing(AssetCatalogue.RoomPiece(room.Name, piece), reason));
+                if (room.Construction == TileConstruction.HeroGateFrontEndTile)
+                    entries.Add(Missing(FrontEndAssets.EntranceCap(room.Name), reason));
                 if (room.TypeId == RoomTypeId.DungeonHeart)
                     for (int piece = 0; piece < 6; piece++)
                         entries.Add(Missing(AssetCatalogue.DestroyedHeartPiece(room.Name, piece), reason));
@@ -149,7 +151,10 @@ public static class ArtSourceMap
             // The loader names each piece art 2's name plus its number (0x004EACC0).
             for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
                 entries.Add(Model(AssetCatalogue.RoomPiece(room.Name, piece),
-                    new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name + piece, 0), "room piece"));
+                    new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name
+                        + (room.Construction == TileConstruction.HeroGateFrontEndTile ? piece + 1 : piece), 0), "room piece"));
+            if (room.Construction == TileConstruction.HeroGateFrontEndTile)
+                entries.Add(Model(FrontEndAssets.EntranceCap(room.Name), resources[8], "front-end entrance cap"));
             if (room.TypeId == RoomTypeId.DungeonHeart)
                 for (int piece = 0; piece < 6; piece++)
                     entries.Add(Model(AssetCatalogue.DestroyedHeartPiece(room.Name, piece),

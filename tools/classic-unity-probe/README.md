@@ -1,4 +1,16 @@
-# Unity crowd performance probe
+﻿# Unity crowd performance probe
+
+## Front-end session
+
+Build Release, then run `tools/classic-unity-probe/run-front-end.ps1`. It creates
+a fresh isolated Unity project beneath this checkout's `build/`, renders five
+front-end stations and the multiplayer return, and checks a campaign round trip,
+one active runner, unchanged campaign fog, no front-end HUD and no simulation
+ticks. Captures and logs stay under the generated directory. It reads the original
+install at runtime and does not change the owner's open project or save a scene.
+These checks establish remake rendering/lifecycle behavior, not matched-original
+visual fidelity. Unity's Search indexing exception may occur independently during
+fresh-project import; runner/render errors and blank captures fail the probe.
 
 ## Dig-tag overlay ordering
 
@@ -437,3 +449,17 @@ Earlier HEAD-source CPU baselines are `20261011-184034` (Imp) and
 4.679/6.198 ms respectively; final production changes show no consistent timing
 regression across these single captures. Screen-only batch attempts are excluded
 because their PNGs were black and triangle counts zero.
+
+## Menu verification
+
+Run `run-front-end.ps1 -Menus` after building Release. The isolated project uses
+its own copied scene and DLLs; it does not save the source scene. The local
+`DungeonKeeperII.ttf` described in `unity/README.md` is required for the font path.
+The probe checks menu navigation, station gates, option-shell return and Quit
+cancel, checks the root 48px Confirm/Cancel pair, captures hover, and compares font/bitmap alpha bounds within two pixels
+at 1024x768 and 1600x900. It also rejects black replacement glyphs. Each run writes
+a fresh `menu-captures-*` folder beneath its scratch root.
+
+The 2026-10-25 F3 run passed: first-label bounds were 298x43 versus 299x43 at
+1024x768 and 465x50 versus 467x51 at 1600x900. This verifies replacement sizing;
+it is not original-game visual acceptance.

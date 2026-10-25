@@ -12357,3 +12357,49 @@ keep GPU diagnostic tracing separate. Include first-use gameplay frames and visu
 
 **Consequences.** A single slow frame fails a capture. CI verifies the checker, while
 hardware captures verify performance. One introduction cannot certify the whole game.
+
+## ADR-0538 — Keep front-end progress in our own versioned file
+**Date:** 2026-10-25 · **Status:** accepted · Scope: front-end F1
+
+**Context.** The approved front-end plan separates campaign rules from Unity and
+allows a one-time import of the owner's original progress. The native profile and
+runtime score-table layouts are in `research/campaign-map-and-progression.md` §1
+and `research/front-end-assets.md` §8.
+
+**Decision.** `CampaignProfile` is a native-width storage snapshot in Data.Model;
+Data owns its fixed-layout `D2CP` version-1 file, with a strict length/version check.
+The application supplies its own persistent-data path. First-run import is optional
+and reads only campaign values from HKCU, using raw bytes for known arrays. It never
+creates or writes an original registry key. Missing/unsupported scalar values retain
+defaults; malformed binary lengths fail. Existing local files bypass import.
+Save writes and flushes a same-directory temporary file before an atomic replacement;
+initial creation refuses to overwrite an existing file. The runtime `HiScores.dat`
+codec writes ten 132-byte rows and clears unused string padding; its output belongs
+in our own data directory. No original assets are converted to disk.
+
+**Consequences.** CI can test storage with synthetic data, Unity can load the same
+netstandard2.1 code, and options remain outside this campaign snapshot. Progression,
+new-campaign reset, score qualification and level-loop integration remain F4/F5.
+There is no simulation or hash-format change. F1's `.444` decoder supports all shipped
+unmasked images and explicitly refuses the optional masked format.
+
+## ADR-0539 — Keep original menu metrics when replacing the font
+
+**Status:** accepted (owner, 2026-10-25).
+
+**Context.** The owner wants the DK2 TrueType font for menu text, with the
+original label images as fallback, while retaining the original glyph sizes.
+Native label preparation is recorded in `research/front-end-menus.md` and its
+function records.
+
+**Decision.** Front-end labels prefer the local `DungeonKeeperII` font. Their
+layout always comes from the original BF4 font: advance width, line height,
+bearings and visible glyph rectangles. Replacement glyphs draw into those same
+rectangles. If the font or a required glyph is unavailable, the whole label
+uses its original bitmap glyphs, rendered in memory. Font availability changes
+neither layout nor hit bounds. Original text ids and widget geometry remain data.
+
+**Consequences.** The modern font stays aligned with the original fallback at
+each viewport size. Its shapes are an intentional presentation substitution;
+native pixel identity is not claimed. Asset access remains behind the menu
+asset interface, with no converted asset files or bundled proprietary font.

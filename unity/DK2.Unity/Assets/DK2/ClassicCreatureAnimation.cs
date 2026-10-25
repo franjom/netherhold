@@ -41,7 +41,7 @@ namespace DK2.Unity
         public void Configure(RenderAnimation[] clips, Mesh[] templates, Material[][] materials,
             CreatureAnimationTiming timing, bool loop, double start, Fp32? authoredMovementScale = null,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
-            bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null)
+            bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null, Fp32 initialPhase = default)
         {
             if (_clock != null && replacement == AnimationReplacement.Deferred)
             {
@@ -55,7 +55,7 @@ namespace DK2.Unity
                 }
             }
             Stop();
-            _clock = new RenderAnimationClock(timing, loop, authoredMovementScale, initialMovementSpeed);
+            _clock = new RenderAnimationClock(timing, loop, authoredMovementScale, initialMovementSpeed, initialPhase);
             _resourceRevision = _clock.ResourceRevision;
             _startTick = (long)System.Math.Floor(start * 4);
             _advanced = 0;

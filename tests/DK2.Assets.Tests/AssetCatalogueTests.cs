@@ -251,10 +251,10 @@ public class AssetCatalogueTests
         // 14 walled rooms are the Normal and DoubleQuad ones (Q71).
         Assert.Equal(14, walled);
         int pieces = database.Rooms.Values.Sum(AssetCatalogue.RoomPieceCount);
-        Assert.Equal((11 * 10) + (3 * 15) + (2 * 9) + (3 * 4) + 4 + 4 + 7, pieces);
-          Assert.Equal((database.Rooms.Count * 2) + pieces + 6, keys.Count);
+        Assert.Equal((11 * 10) + (3 * 15) + (2 * 9) + (3 * 4) + 4 + 4 + 7 + 16, pieces);
+        Assert.Equal((database.Rooms.Count * 2) + pieces + 7, keys.Count);
         Assert.Equal(database.Rooms.Count, keys.Count(k => k.Kind == AssetKind.Texture));
-          Assert.Equal(database.Rooms.Count + pieces + 6, keys.Count(k => k.Kind == AssetKind.Mesh));
+        Assert.Equal(database.Rooms.Count + pieces + 7, keys.Count(k => k.Kind == AssetKind.Mesh));
     }
     /// <summary>
     /// Every object definition gets a mesh, and beyond it only the arts the view switches

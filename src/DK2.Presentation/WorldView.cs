@@ -45,7 +45,8 @@ public readonly struct TileView
         AssetRef sightFogOverlay = default,
         byte sightFogOpacity = 0,
         int faceTexture = -1,
-        bool redHighlighted = false)
+        bool redHighlighted = false,
+        AssetRef extraRoomPiece = default)
     {
         Position = position;
         FaceTexture = faceTexture;
@@ -63,6 +64,7 @@ public readonly struct TileView
         Explored = explored;
         HasDoor = hasDoor;
         RoomFloor = roomFloor;
+        ExtraRoomPiece = extraRoomPiece;
         RoomKeys = roomKeys;
         Bed = bed;
         BedKeys = bedKeys;
@@ -134,9 +136,10 @@ public readonly struct TileView
 
     /// <summary>The room floor pieces this tile draws (<see cref="PieceSet"/>); empty off a room.</summary>
     public PieceSet RoomFloor { get; }
+    public AssetRef ExtraRoomPiece { get; }
 
     /// <summary>The keys <see cref="RoomFloor"/> and <see cref="Walls"/> draw with; null off a room
-    /// and on the constructions not built (the Final, FrontEnd and Tile hero gates).</summary>
+    /// and on the constructions not built (the Final and Tile hero gates).</summary>
     public RoomPieceKeys? RoomKeys { get; }
 
     /// <summary>The water or lava bed under this tile (<c>0x0043E440</c>): a water or lava tile's
@@ -296,8 +299,10 @@ public readonly struct ObjectView
         Fp32? previousPosX = null, Fp32? previousPosY = null, int? previousHeading = null,
         bool playsAnimation = false, GameTick? animationStartedAt = null, bool animationLoops = true,
         int? previousHeight = null, int? previousPitch = null, int? previousRoll = null,
-        DungeonHeartVisual? heartVisual = null, byte alpha = 255, KwdLight? light = null, TerrainLightColour addedLight = default)
+        DungeonHeartVisual? heartVisual = null, byte alpha = 255, KwdLight? light = null, TerrainLightColour addedLight = default,
+        Fp32 animationInitialPhase = default)
     {
+        AnimationInitialPhase = animationInitialPhase;
         AddedLight = addedLight;
         Light = light;
         Alpha = alpha;
@@ -358,6 +363,7 @@ public readonly struct ObjectView
     public GameTick? AnimationStartedAt { get; }
     public bool AnimationLoops { get; }
 
+    public Fp32 AnimationInitialPhase { get; }
     public TerrainLightColour AddedLight { get; }
     public KwdLight? Light { get; }
     public DungeonHeartVisual? HeartVisual { get; }
@@ -663,6 +669,9 @@ public sealed partial class WorldView
                 foreach (AssetRef key in pieces.All()) yield return key;
             if (_roomKeys.TryGetValue(id, out RoomPieceKeys? room))
                 foreach (AssetRef key in room.All()) yield return key;
+            if (_database.RoomsByTerrain.TryGetValue(id, out RoomDef? definition)
+                && definition.Construction == TileConstruction.HeroGateFrontEndTile)
+                yield return FrontEndAssets.EntranceCap(definition.Name);
             if (_destroyedHeartKeys.TryGetValue(id, out RoomPieceKeys? ruined))
                 foreach (AssetRef key in ruined.All()) yield return key;
         }
@@ -747,7 +756,8 @@ public sealed partial class WorldView
             SightFogOverlay(world, new TilePos(x, y), explored, solid, out byte fogOpacity),
             fogOpacity,
             DecayStage(admitted ? tile.Health : terrain.StartingHealth, terrain),
-            _highlightPhase && world.TileHighlights.Contains(new TilePos(x, y)));
+            _highlightPhase && world.TileHighlights.Contains(new TilePos(x, y)),
+            admitted ? FrontEndEntranceCap(world, x, y) : default);
     }
 
     /// <summary>A Decay terrain's damage stage (<c>0x004419D0</c>, flag <c>0x20000</c>, n the
@@ -878,7 +888,7 @@ public sealed partial class WorldView
     /// Normal <c>0x00444970</c>, Quad (bridges) <c>0x00443910</c>, 3×3 <c>0x00446140</c>, 3×3
     /// rotated <c>0x00446210</c>, the Heart <c>0x004462E0</c>, DoubleQuad <c>0x00443F20</c>, and
     /// the 2×2 and 3×1 hero gates <c>0x00446800</c> (room-floors-and-liquids.md §7).
-    /// <para>Deviates: the Final, FrontEnd and Tile hero gates and destroyed gates are not built.
+    /// <para>Deviates: the Final and Tile hero gates and destroyed gates are not built.
     /// The destroyed Heart uses room +0x63's zero constructor default for piece 5.</para>
     /// </summary>
     private PieceSet RoomFloorOf(WorldState world, int x, int y, in TileState tile)
@@ -897,6 +907,7 @@ public sealed partial class WorldView
             TileConstruction.DoubleQuad => DoubleQuadFloor(world, room, x, y, tile),
             TileConstruction.HeroGate2By2 => HeroGate2By2Floor(world, x, y),
             TileConstruction.HeroGate3By1 => HeroGate3By1Floor(world, x, y, tile),
+            TileConstruction.HeroGateFrontEndTile => FrontEndFloor(world, x, y),
             _ => default,
         };
     }
@@ -961,6 +972,21 @@ public sealed partial class WorldView
             return dx == 1 && dy == 1 ? default(PieceSet).WithWhole(5, 0) : Coded(code);
         return code >> 4 == 4 ? default : Coded(code);
     }
+
+    private PieceSet FrontEndFloor(WorldState world, int x, int y)
+    {
+        if (FactsAt(world, x, y) is not { } room) return default;
+        int dx = x - room.FirstX, dy = y - room.FirstY;
+        int piece = dx is >= 0 and < 3 && dy is >= 0 and < 6 ? dy == 5 ? 15 : dx + 3 * dy : 1;
+        return default(PieceSet).WithWhole(piece, 0);
+    }
+
+    private AssetRef FrontEndEntranceCap(WorldState world, int x, int y)
+        => _database.RoomsByTerrain.TryGetValue(world.Tile(new TilePos(x, y)).TerrainId, out RoomDef? definition)
+            && definition.Construction == TileConstruction.HeroGateFrontEndTile
+            && FactsAt(world, x, y) is { } room
+            && x == room.FirstX + 1 && y == room.FirstY + 5
+            ? FrontEndAssets.EntranceCap(_database.Room(RoomTypeId.HeroGateFrontEnd).Name) : default;
 
     /// <summary>The 2×2 hero gate (<c>0x004F0070</c>, <c>0x00446800</c>): piece dx + 2·dy whole at
     /// rotation 0 by the tile's offset from the room's first slab (table <c>0x0066DD88</c>); a tile
