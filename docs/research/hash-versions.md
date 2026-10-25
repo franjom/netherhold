@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**305** — `0xC092D747329875C4`. FormatVersion also 305. Behavior only: hero updates and both party-link scans run newest first (ADR-0541). No new fields; the pin fixture has no active hero pass. Initial party destinations, follower numbering and removal have separate regressions.
+
 **304** — `0x050D6062F2D6C047`. FormatVersion also 304. Global Secret Door concealment, per-keeper entry order and retained holders, and the creature's selected Secret Door marker enter state (ADR-0536). The pin fixture has no doors; focused hash sensitivity and snapshot checks cover the additions.
 
 **303** — `0x391985F81BB2BA42`. FormatVersion also 303. Owner-directed withdrawal of the portal-crystal correction (ADR-0527): remove derived footprints, swept movement guards, target projection and predictive contacts; restore pre-correction steering. Portal rendering, hole navigation and Heart protection remain. No new snapshot fields. Packet outcomes are [remeasured against hash 302](../experiments/2026-10-25-packet-replay-hash303/README.md).
@@ -393,8 +395,4 @@ only: the pinned fixture fires no action 6.
 trigger-controlled anger and notification gates entered (ADR-0160). Both stay
 at their initial enabled values in the pinned fixture, so this is composition only.
 
-**64** — `0x8FAF223321EE1523`. A keeper's alliance bits and a door's
-lock-pick timer entered (ADR-0159: the rest of the door model). The pinned world
-has no doors and makes no alliance, so this is composition only.
-
-[Versions 9–63](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–64](hash-versions-early.md) retain the earlier pins and their reasons.

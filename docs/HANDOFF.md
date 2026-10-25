@@ -67,6 +67,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   dropped gem stays in state 50 is LIKELY): kmf-materials.md §8, objects.md §8.
   Q622 (Lord corpse: no missing body found, the armour shine was the gap),
   Q623 and Q637 (camera frame and v sign unconfirmed) await the owner.
+- Hero-party ordering is corrected (ADR-0541, hash/save 305); opening Dwarf
+  reproduction, cross-level scope and remaining comparison limits:
+  [hero-party walk](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0541).
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
@@ -203,11 +206,11 @@ research/hud-visibility.md (Q648/Q649).
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 
-Current verification (2026-10-25, ADR-0536): the combined solution and enabled
-native CPU-oracle checks pass 6,481 cases with no failures; seven capture-dependent
-checks skip. This includes 3,779 Simulation and 1,047 Presentation cases;
-the Unity adapter compiles with zero warnings/errors. Logs are in the retained
-`build/imp-secret-door-2026-10-25/build/secret-door-verification/` worktree directory.
+Current verification (2026-10-25, ADR-0541): the combined solution and enabled
+native CPU-oracle checks pass 6,554 cases with no failures; seven capture-dependent
+checks skip. This includes 3,787 Simulation and 1,084 Presentation cases;
+the Unity adapter compiles with zero warnings/errors. Logs:
+`D:/DungeonKeeperRemake/build/dwarf-trace/` (final-build, final-tests, adapter-build).
 Prison chicken passes with master's central (5,4) drop. The branch's
 earlier failure is master's edge-route symptom, whose native cause is still
 unresolved (research/imp-fidelity-integration.md). Our side, from runs on

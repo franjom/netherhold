@@ -146,6 +146,73 @@ public class HeroWalkTests
     }
 
     [Fact]
+    public void FollowersChooseBeforeTheLeaderStartsItsNextWalk()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ThingProjection.Place(world, db,
+        [
+            new ActionPointThing(new byte[56]) { StartX = 8, StartY = 9, EndX = 8, EndY = 9, ActionPointId = 3, Name = "" },
+        ]);
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        leader.GoodJob = JobType.SendToActionPoint;
+        leader.GoodJobActionPointId = 3;
+        StatePlacement.Place(leader, HeroJobRules.ToThePointState);
+        CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        follower.LeaderId = leader.Id;
+        follower.PositionInParty = 1;
+        StatePlacement.Place(follower, HeroJobRules.FollowingState);
+        CreatureState[] storage = world.Creatures.ToArray();
+
+        new GameSimulation(db, world, 7, [new HeroSystem()]).Tick();
+
+        Assert.Equal(new TilePos(9, 5), follower.Destination);
+        Assert.Equal(new TilePos(8, 9), leader.Destination);
+        Assert.Equal(storage, world.Creatures);
+    }
+
+    [Fact]
+    public void PartyFollowersAreNumberedNewestFirst()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        leader.PartyId = 1;
+        leader.Flags = 2;
+        CreatureState[] followers = Enumerable.Range(0, 3).Select(_ =>
+        {
+            CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, leader.Tile);
+            follower.PartyId = 1;
+            follower.Flags = 4;
+            return follower;
+        }).ToArray();
+
+        HeroPartyRules.LinkFollowers(world, 1);
+
+        Assert.Equal(new byte[] { 3, 2, 1 }, followers.Select(c => c.PositionInParty));
+        Assert.All(followers, c => Assert.Equal(leader.Id, c.LeaderId));
+        Assert.Equal((byte)3, leader.PositionInParty);
+    }
+
+    [Fact]
+    public void RemovingANewerHeroDoesNotSkipAnOlderHerosTurn()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState survivor = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        CreatureState escaping = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(9, 5));
+        StatePlacement.Place(escaping, StealGoldRules.EscapingState);
+        CreatureState waiting = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(10, 5));
+        StatePlacement.Place(waiting, HeroJobRules.StandingJobState);
+        waiting.GoodJob = JobType.Wait;
+        StatePlacement.Place(survivor, CreatureStateMachine.Idle);
+
+        new GameSimulation(db, world, 7, [new HeroSystem()]).Tick();
+
+        Assert.Null(world.CreatureById(escaping.Id));
+        Assert.Equal(HeroJobRules.StandingJobState, survivor.Dk2StateId);
+        Assert.Equal(HeroJobRules.WaitingState, waiting.Dk2StateId);
+        Assert.Equal(new[] { survivor, waiting }, world.Creatures);
+    }
+
+    [Fact]
     public void ABlockedTrailingStepTurnsAQuarter()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

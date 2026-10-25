@@ -134,11 +134,11 @@ through state 1 and state 90, so a surviving leader repeats its job.
 Rechecked these whole routines on 2026-10-12. HeroSystem now uses the
 shared idle wrapper for state 4; previously it only waited on the deadline.
 State 87 (`0x004808E0`) always requests a route to a random sub-tile point,
-including when no ring destination exists. The same-triangle route retains
-that point (`0x004CF490`); ImpTaskSystem.Wander now preserves it. Level8
-seed1 Guard22's 1500-turn movement regression covers both omitted gates:
-its first movement is turn 991; earlier far-point requests fail. Its initial
-dummy-centre placement remains the authored position; see
+including when no ring destination exists. The same-triangle route retains that point (`0x004CF490`); ImpTaskSystem.Wander now preserves it. The Level8
+Guard22 regression checks failed hunt -> state4 ->87 before the retry deadline;
+actual movement is covered by `AFailedHuntWandersBeforeItsRetryDeadline`.
+Whole-campaign turn 991 movement was seed/draw-order dependent, not a guarantee.
+The initial dummy-centre placement remains authored; see
 [placed-things.md](placed-things.md#2-coordinates-are-tile-indices).
 
 A follower in state 90 does not dispatch its own spawn job: it enters
@@ -377,3 +377,24 @@ tile. **CONFIRMED.**
 
 **State 177's fallback** (`0x004625F7`–`0x00462642`). The centre of the `DungeonHeartPosition`
 tile itself, `0x00471890(centre, 178, 0)`, with no room asked. **CONFIRMED.**
+
+## 7. Opening party order (2026-10-25, ADR-0541)
+
+**CONFIRMED capture:** `D:/DK2Evidence/dk2runs/level2-live2/seed01/level2.dk2cap`,
+Header 4 has Dwarves 440–442 in state 222 and leader 443 in state 173; header 5 targets
+are `(60756,30719)`, `(60756,29354)`, `(58026,29354)`, beside the shared spawn
+`(55296,30720)`. The leader instead targets `(55296,55296)`. Indices 440/441/442
+are 1/2/3. This is Level2's party 1; the investigated saved Unity scene names Level2.
+Level3's opening has three Dwarves in separate parties, not this four-member group.
+**CONFIRMED binary:** `0x004B7830` visits creatures newest first; `0x00519F90`
+walks the hero list newest first when selecting the last flagged leader and
+numbering followers (`0x0051A606..0x0051A741`). State 222's destination depends on
+whether its leader has already entered 6; see section 2.
+Our oldest-first hero pass exposed the leader's new distant target to all three
+followers, merging their first route segment. Reversing that pass and both party
+link scans corrects the shared cause. Seed 1, first 100 modern turns: all three
+followers share exact centres for 24 turns before, four spawn/turning turns after.
+`HeroOpeningOnRealDataTests` checks initial targets/indices on seeds 1/7/21;
+`HeroWalkTests` covers route visibility, numbering and self-removal.
+Separate hero/movement passes still differ from native whole-creature updates;
+complete timing parity, a campaign replay sweep and visual acceptance remain open.

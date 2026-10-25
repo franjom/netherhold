@@ -27,7 +27,8 @@ public sealed class HeroSystem : ISimulationSystem
         if (!SimulationTiming.OnOriginalTick(context.Tick.Value)) return;
         GameDatabase database = context.Database;
         IReadOnlyList<CreatureState> creatures = context.World.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        // Native newest-first order lets followers choose before an older leader reroutes.
+        for (int i = creatures.Count - 1; i >= 0; i--)
         {
             CreatureState creature = creatures[i];
             if (creature.Possessed) continue;
@@ -36,8 +37,6 @@ public sealed class HeroSystem : ISimulationSystem
             if (CreatureEligibility.IsExcluded(creature,
                 CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
             Turn(context, creature);
-            // State 169 removes the thief: the next creature has moved into its slot.
-            if (i < creatures.Count && !ReferenceEquals(creatures[i], creature)) i--;
         }
     }
 

@@ -12403,3 +12403,18 @@ neither layout nor hit bounds. Original text ids and widget geometry remain data
 each viewport size. Its shapes are an intentional presentation substitution;
 native pixel identity is not claimed. Asset access remains behind the menu
 asset interface, with no converted asset files or bundled proprietary font.
+
+## ADR-0541 — Preserve native hero-party ordering
+**Date:** 2026-10-25 · **Status:** accepted
+
+**Context.** Opening Dwarves shared a route because followers read a leader's
+new destination before choosing their own. Evidence and reproduction:
+[hero-party-walk.md §7](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0541).
+
+**Decision.** Run the hero pass and both party-link scans newest first, matching
+DK2. Preserve creature storage order and soft separation. Hash/save 305 marks
+the behavior change; no snapshot fields are added.
+
+**Consequences.** Hero choices and follower numbering change across levels;
+there is no map override. Separate hero and movement passes remain a scheduling
+limit. Focused regressions cover the corrected ordering and self-removal.

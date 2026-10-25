@@ -152,9 +152,9 @@ public class StealGoldTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         Treasury(world, Keeper, 10, 5, [3000, 3000, 3000, 3000]);
-        // The follower first in the list, so the leader's recruiting is still visible at the tick's end.
-        CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(2, 5));
+        // The newer follower runs first, so the leader's recruiting is visible at tick end.
         CreatureState leader = Thief(db, world, Keeper, new TilePos(3, 5));
+        CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(2, 5));
         leader.PartyId = 2;
         leader.Flags = 0x02;
         follower.PartyId = 2;
