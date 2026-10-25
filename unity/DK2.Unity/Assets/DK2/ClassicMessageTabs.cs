@@ -382,10 +382,10 @@ namespace DK2.Unity
                 // 0x0052A330 measures 64 narrower than the widget, the bar's width; text that
                 // overflows keeps that wrap and gets the bar, text that fits wraps at the full width.
                 string text = MessageText(message.Id) ?? "";
-                Texture2D measured = TextTextureOrBlank(text, (int)V(TextScrollBar.MeasuredWidth));
+                Texture2D measured = PopupTextTexture(text, (int)V(TextScrollBar.MeasuredWidth));
                 int box = (int)V(TextScrollBar.Height);
                 _bar.Reset(measured.height, box);
-                if (!_bar.Enabled) { UnityEngine.Object.Destroy(measured); measured = TextTextureOrBlank(text, (int)V(TextScrollBar.TextWidget)); }
+                if (!_bar.Enabled) { UnityEngine.Object.Destroy(measured); measured = PopupTextTexture(text, (int)V(TextScrollBar.TextWidget)); }
                 _panelTexture = Replace(_panelTexture, measured);
                 _panelText.image = _panelTexture;
                 _barHeld = 0;
@@ -480,6 +480,9 @@ namespace DK2.Unity
 
         private Texture2D TextTextureOrBlank(string text, int wrap) =>
             ClassicOptionsPanel.TextTexture(_textAssets.Font(Height), text, Mathf.Max(1, wrap));
+
+        private Texture2D PopupTextTexture(string text, int wrap) =>
+            ClassicOptionsPanel.TextTexture(_textAssets.Font(Height * 85 / 100), text, Mathf.Max(1, wrap));
 
         private string MessageText(uint messageId)
         {

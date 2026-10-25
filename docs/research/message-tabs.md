@@ -194,6 +194,11 @@ the Imp's 585 + 9 is Speech 594, "A Bile Demon has become unhappy because it has
 location of a kind-2 thing (22, 26, 48) or the Heart (85..87), none posted by us, player-name substitution for 82..87, and menu40's sharing with the creature Query. Only the kinds our queue posts
 can tab (computer-keeper-messages.md).
 
+At the owner's request (2026-10-25), popup messages select their bitmap font at
+85% of screen height: size22 instead of26 at1080p, fitting more text before
+scrolling. Measurement and rendering use the same font; objective text retains
+its existing size. This is a readability choice, not a native sizing claim.
+
 ## 9. Indicator menus 45..50 (CONFIRMED; built in part)
 
 [0x00427BA0](functions/00427BA0.md) runs each frame. It tests six world values and shows a 128-tall
