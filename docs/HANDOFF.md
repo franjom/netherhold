@@ -12,11 +12,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
-  levels (docs/experiments/). M6 remains partial: the hash-302 packet-replay
-  remeasurement and P2 comparison for all four levels are in
-  [the current experiment](experiments/2026-10-24-packet-replay-hash302/README.md),
-  including per-seed maps rebuilt from the restored native Level 2/3 captures
-  and the limits from missing entity counterparts.
+  levels (docs/experiments/). M6 remains partial: the hash-303 packet-replay
+  measurement after withdrawing crystal collision and its hash-302 comparison
+  are in [the current experiment](experiments/2026-10-25-packet-replay-hash303/README.md).
+  It records the per-seed outcome changes, mapping limits and Level 3 progression.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
@@ -30,7 +29,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   the level2/level4 live rigs, L11A and L17 have not been rerun since hash 298.
   Hash/save 303 withdraws portal crystal collision (ADR-0527), retaining
   hash 302's store gold/UI state (research/hash-versions.md). The linked packet
-  measurements remain historical hash 302; no hash-303 sweep has run.
+  measurements now compare hash 303 with the preserved hash-302 set.
   Initial chest headings remain Q644; Level2's reported
   water shapes under fog await a native visual comparison (Q643).
 - The navigation mesh's locate is DK2's cell-cache walk and the whole-map

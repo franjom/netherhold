@@ -14,7 +14,7 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
-**303** — `0x391985F81BB2BA42`. FormatVersion also 303. Owner-directed withdrawal of the portal-crystal correction (ADR-0527): remove derived footprints, swept movement guards, target projection and predictive contacts; restore pre-correction steering. Portal rendering, hole navigation and Heart protection remain. No new snapshot fields. Hash-302 packet rates are historical; no hash-303 sweep has run.
+**303** — `0x391985F81BB2BA42`. FormatVersion also 303. Owner-directed withdrawal of the portal-crystal correction (ADR-0527): remove derived footprints, swept movement guards, target projection and predictive contacts; restore pre-correction steering. Portal rendering, hole navigation and Heart protection remain. No new snapshot fields. Packet outcomes are [remeasured against hash 302](../experiments/2026-10-25-packet-replay-hash303/README.md).
 
 **302** — `0x2A9B65A5C2262075`. FormatVersion also 302. Scripted speech retains type 21 when SpeakOnly is zero; first Portal types retain 13/14 and request the level override line. `PlayerState.IntroducedCreatureTypes` and `CreatureState.StatusFlowerUntilTurn` are hashed/saved (ADR-0535). The fixture has no introductions but hashes the new empty lists and zero deadlines; sensitivity and restore tests cover nonzero state.
 

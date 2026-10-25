@@ -187,9 +187,10 @@ In seed 1, P2 opens at 3288 and kills him at 3556; current never mines that
 seam and leaves him at `(26,5)` with his original action-point job.
 
 This identifies delayed progression before the Lord's fight as a concrete
-failure pattern. Why mining falls behind, and which intervening change causes
-it, remain unresolved; no causal bisection or additional replay was run.
-The next check is the work selection and movement leading to this seam.
+failure pattern. The subsequent [hash-303 rollback experiment](../2026-10-25-packet-replay-hash303/README.md#level-3-progression)
+implicates the withdrawn crystal-collision feature in this replay regression.
+The exact work-selection, movement and subsequent RNG mechanism within that
+feature remains untraced; no per-commit bisection was run.
 Evidence: initial set's `level3-progression-diagnosis/{findings.json,input-manifest.csv}`;
 reader: preserved rig's `diagnose-level3-hash302.py`. These are observations of
 our simulation, not new claims about DKII.EXE.
