@@ -8,7 +8,7 @@ Out of scope, with hand-offs only: the campaign map, unlock rules and profile
 file format: `camera-paths.md`).
 
 Every row is a DKII.EXE v1.70 read unless it says otherwise, so the ceiling is **STRONGLY
-INFERRED** (LIKELY in the function records); nothing here was observed in play. Labels are
+INFERRED** (LIKELY in the function records); owner recollections below are not controlled original-game experiments. Labels are
 `Data/Text/Default/Text.str` ids (file id 1091) decoded with `dk2tools str list`. Function
 records: `docs/research/functions/<ADDRESS>.md`. Path names are the designers' own index
 in `Paths.WAD` (`Engine Path Info.txt.txt`, entries 250-274).
@@ -225,12 +225,10 @@ Estimate: the front-end code spans roughly `0x0052B000-0x00555000`; about 60 of 
 are read here or by the sibling passes, and on the order of 200 remain, most of them the
 multiplayer lobby and session code.
 
-## Questions only the owner can answer
+## Owner recollections (2026-10-25)
 
-1. Does the game show a title screen for about ten seconds before the Bullfrog logo movie,
-   and can a key or click skip either movie?
-2. After a multiplayer game, does the camera return to the same place as the Options menu
-   (the binary uses path 256 for both), while the Multiplayer button itself flies to a
-   different spot (path 271)?
-3. Does the main menu replay the intro movies after about three minutes without touching
-   the mouse?
+The owner recalls a Dungeon Keeper 2 title screen with logos and disclaimers before
+the Bullfrog intro, movie skipping by keys/clicks, and idle intro replay. The exact
+10-second/180-second timings remain binary readings. No multiplayer recollection is
+available; retain the binary's return routing through path 256 without upgrading
+its confidence. These answers do not establish title-screen skipping.

@@ -8,7 +8,7 @@ The menu state machine and the asset inventory are covered elsewhere; this file 
 hand-off addresses only. How to edit the registry for captures: `campaign-progress-registry.md`.
 
 Every row below is a DKII.EXE read (v1.70) unless it says otherwise, so the ceiling is
-**STRONGLY INFERRED**; nothing here was observed in play. Function records:
+**STRONGLY INFERRED**; owner recollections below are not controlled original-game experiments. Function records:
 `docs/research/functions/<ADDRESS>.md`.
 
 ## 1. The profile object
@@ -142,8 +142,7 @@ Special Levels Completed and Pet Dungeon Levels Completed survive it.
 
 The phase is computed with the Numerical Recipes `flmoon` routine (`0x00556EF0`, Julian base
 2415020) between consecutive **new** moons, scaled to -1..1, so by the arithmetic the gate
-opens within about 2.5% of a lunation (~0.7 day) of a new moon. Community lore says "full
-moon"; **owner question**. The map builder `0x004DEF30` uses the same test only for the
+opens within about 2.5% of a lunation (~0.7 day) of a new moon. The owner recalls **full moon** (2026-10-25); that conflicts with this binary reading and requires a dated native check, not a rule change. The map builder `0x004DEF30` uses the same test only for the
 slot-30 (secret 5) piece: its `+0xF3` bit 0 is set only when `0x00559740` returns 1, as in
 `0x005395A0`.
 
@@ -230,10 +229,22 @@ progress**. STRONGLY INFERRED.
 Estimated unread in this scope: about **14 functions** (the nine rows above plus
 `0x00536FA0`, `0x0055B480`, `0x005392E0`, `0x00539490`, `0x0053CAF0`).
 
-## Questions only the owner can answer
+## Owner recollections and remaining checks (2026-10-25)
 
-1. Does secret level 5 appear at the **full** moon or the **new** moon? The arithmetic says new.
-2. After winning a campaign level, does the Horned Reaper appear and walk somewhere before the
-   result screen?
-3. After choosing 6a, is 6b still shown on the map (dimmed) and can it never be played?
-4. Is a text screen with a Mentor line shown before each `CutSceneLevel` movie?
+These are recollections, not new captures; binary findings above keep their confidence.
+The owner recalls a close-up when the Horned Reaper appears, the camera following him
+to the dropped Portal Gem, and a fade after pickup. The unchosen branch stays dimmed;
+the owner does not know whether it is playable. Re-reading `0x005393B0` confirms that
+status 3 cannot be selected; the branch closes on a **win**, not merely on selection.
+The full/new moon discrepancy is in §2.4. The post-win text/Mentor screen is not
+recalled clearly; inspect `0x0053B980` against a recorded ordinary campaign win.
+
+## F1 storage boundary
+
+`CampaignProfile` keeps native-width campaign fields and separate result arrays;
+F4/F5 will provide progression rules. File/import policy is ADR-0536. The native
+query helper `0x00562260` ignores the returned registry type: the owner's 160-byte
+Player Level Status uses type 9, which managed Registry.GetValue cannot decode.
+The importer therefore reads known arrays as raw bytes. Level Attempts is read
+on demand by `0x00561AF0`, independently of the profile loader; a failed query
+zeros its forty dwords. No original registry writes are reproduced by our import.

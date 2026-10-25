@@ -12328,3 +12328,28 @@ lines, as the existing skip does; this is an audio stand-in, not native speech-o
 **Consequences.** Campaign scripts produce readable tabs and timed flowers. Old saves require
 their previous build. Native multiplayer/MPD introduction exceptions await a session-mode model;
 audio playback and matched original-game visual acceptance remain outside this change.
+
+## ADR-0536 — Keep front-end progress in our own versioned file
+**Date:** 2026-10-25 · **Status:** accepted · Scope: front-end F1
+
+**Context.** The approved front-end plan separates campaign rules from Unity and
+allows a one-time import of the owner's original progress. The native profile and
+runtime score-table layouts are in `research/campaign-map-and-progression.md` §1
+and `research/front-end-assets.md` §8.
+
+**Decision.** `CampaignProfile` is a native-width storage snapshot in Data.Model;
+Data owns its fixed-layout `D2CP` version-1 file, with a strict length/version check.
+The application supplies its own persistent-data path. First-run import is optional
+and reads only campaign values from HKCU, using raw bytes for known arrays. It never
+creates or writes an original registry key. Missing/unsupported scalar values retain
+defaults; malformed binary lengths fail. Existing local files bypass import.
+Save writes and flushes a same-directory temporary file before an atomic replacement;
+initial creation refuses to overwrite an existing file. The runtime `HiScores.dat`
+codec writes ten 132-byte rows and clears unused string padding; its output belongs
+in our own data directory. No original assets are converted to disk.
+
+**Consequences.** CI can test storage with synthetic data, Unity can load the same
+netstandard2.1 code, and options remain outside this campaign snapshot. Progression,
+new-campaign reset, score qualification and level-loop integration remain F4/F5.
+There is no simulation or hash-format change. F1's `.444` decoder supports all shipped
+unmasked images and explicitly refuses the optional masked format.

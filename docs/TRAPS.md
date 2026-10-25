@@ -17,7 +17,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - PowerShell 5 with ErrorActionPreference=Stop treats native stderr as NativeCommandError; capture child stdout/stderr directly when expecting test failures.
 
-- ClassicLightWindowTests.WarmGatherDoesNotAllocate once measured6440 bytes in a full run; isolated and full reruns passed. Investigate the allocation source before weakening its zero-allocation assertion.
+- Warm light-allocation tests can report transient bytes in a concurrent solution run (ClassicLightWindowTests and ClassicObjectLightTests); rerun the failed test and the full Presentation suite before changing their zero-allocation assertions.
 
 - Inspect original BMP captures in small batches; nine 1600×1200 images exceeded code-mode's 64MiB IPC frame limit.
 

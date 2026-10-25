@@ -132,5 +132,8 @@ public sealed class WadArchive : IDisposable
             ? Extract(e)
             : throw new FileNotFoundException($"Entry '{name}' not found in {FilePath}");
 
+    /// <summary>Reads by directory index so duplicate names remain independently accessible.</summary>
+    public byte[] Extract(int entryIndex) => Extract(Entries[entryIndex]);
+
     public void Dispose() => _stream.Dispose();
 }

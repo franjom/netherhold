@@ -102,6 +102,12 @@ internal sealed class Dk2TextureDecoder
     }
 
     public static byte[] Decode(ReadOnlySpan<byte> compressed, int width, int height, bool alpha)
+        => Decode(compressed, width, height, alpha, directRgb: false);
+
+    internal static byte[] DecodeLoadingScreen(ReadOnlySpan<byte> compressed, int width, int height, bool alpha)
+        => Decode(compressed, width, height, alpha, directRgb: true);
+
+    private static byte[] Decode(ReadOnlySpan<byte> compressed, int width, int height, bool alpha, bool directRgb)
     {
         if (width <= 0 || height <= 0 || (width & 7) != 0 || (height & 7) != 0)
             throw new InvalidDataException("Engine texture dimensions must be positive multiples of eight.");
@@ -109,27 +115,35 @@ internal sealed class Dk2TextureDecoder
         byte[] pixels = new byte[checked(width * height * 4)];
         for (int y = 0; y < height; y += 8)
             for (int x = 0; x < width; x += 8)
-                decoder.DecodeBlock(pixels, width, x, y, alpha);
+                decoder.DecodeBlock(pixels, width, x, y, alpha, directRgb);
         return pixels;
     }
 
-    private void DecodeBlock(byte[] output, int width, int left, int top, bool alpha)
+    private void DecodeBlock(byte[] output, int width, int left, int top, bool alpha, bool directRgb)
     {
-        DecodeChannel(ref _lumaPredictor, 0);
-        DecodeChannel(ref _bluePredictor, 9);
-        DecodeChannel(ref _redPredictor, 18);
-        if (alpha) DecodeChannel(ref _alphaPredictor, 27);
+        DecodeChannel(ref _lumaPredictor, 0, directRgb);
+        DecodeChannel(ref _bluePredictor, 9, directRgb);
+        DecodeChannel(ref _redPredictor, 18, directRgb);
+        if (alpha) DecodeChannel(ref _alphaPredictor, 27, directRgb);
 
         for (int y = 0; y < 8; y++)
             for (int x = 0; x < 8; x++)
             {
                 int sample = y * 64 + x;
+                int pixel = ((top + y) * width + left + x) * 4;
+                if (directRgb)
+                {
+                    output[pixel] = ClampByte((int)(((long)_samples[sample] + 0x8000) >> 16));
+                    output[pixel + 1] = ClampByte((int)(((long)_samples[sample + 9] + 0x8000) >> 16));
+                    output[pixel + 2] = ClampByte((int)(((long)_samples[sample + 18] + 0x8000) >> 16));
+                    output[pixel + 3] = alpha ? ClampByte(_samples[sample + 27] >> 16) : (byte)255;
+                    continue;
+                }
                 double luma = 1.169 * (_samples[sample] - 1_048_576f);
                 double blue = 2.0250001 * (_samples[sample + 9] - 8_388_608f) + luma;
                 double red = 1.602 * (_samples[sample + 18] - 8_388_608f) + luma;
                 double green = -0.391 * (_samples[sample + 9] - 8_388_608f)
                     - 0.81300002 * (_samples[sample + 18] - 8_388_608f) + luma;
-                int pixel = ((top + y) * width + left + x) * 4;
                 output[pixel] = ClampByte(ConvertColor(red));
                 output[pixel + 1] = ClampByte(ConvertColor(green));
                 output[pixel + 2] = ClampByte(ConvertColor(blue));
@@ -137,8 +151,16 @@ internal sealed class Dk2TextureDecoder
             }
     }
 
-    private void DecodeChannel(ref long predictor, int sampleOffset)
+    private void DecodeChannel(ref long predictor, int sampleOffset, bool directRgb)
     {
+        if (directRgb)
+        {
+            int dc = (int)ReadBits(_bitPosition, 8);
+            _bitPosition = DecodeCoefficients(dc, _bitPosition + 8);
+            for (int i = 0; i < 8; i++) TransformColumns(i * 8, i);
+            for (int i = 0; i < 8; i++) TransformRows(i * 9, i * 64 + sampleOffset);
+            return;
+        }
         int prefix = (int)ReadBits(_bitPosition, 8);
         (int skip, int bits) = Prefix(prefix);
         _bitPosition += skip;
@@ -194,7 +216,6 @@ internal sealed class Dk2TextureDecoder
                         if (coefficient != 0x80)
                         {
                             if (coefficient > 0x80) coefficient -= 0x100;
-                            zigzag--;
                         }
                         else
                         {
@@ -207,6 +228,7 @@ internal sealed class Dk2TextureDecoder
                         coefficient = (int)ReadBits(position, 8);
                         position += 8;
                     }
+                    zigzag--;
                 }
                 else
                 {
@@ -218,6 +240,8 @@ internal sealed class Dk2TextureDecoder
                     coefficient -= signMask;
                     position += length;
                 }
+                if (zigzag < 0 || zigzag >= 64)
+                    throw new InvalidDataException("Texture coefficient run exceeds its block.");
                 int outputIndex = CoefficientControl[zigzag + 1];
                 _coefficients[outputIndex] = unchecked((short)coefficient * Quantizer[outputIndex]);
                 continue;
@@ -230,7 +254,7 @@ internal sealed class Dk2TextureDecoder
             else if (index >= 0x80) control = CoefficientControl[160 + (index >> 3)];
             else if (index >= 0x40) control = CoefficientControl[176 + (index >> 2)];
             else if (index >= 0x20) control = CoefficientControl[192 + (index >> 1)];
-            else continue;
+            else throw new InvalidDataException("Invalid texture coefficient code.");
             selected = true;
         }
     }
@@ -238,7 +262,7 @@ internal sealed class Dk2TextureDecoder
     private void TransformColumns(int input, int output)
     {
         if ((_coefficients[input + 1] | _coefficients[input + 2] | _coefficients[input + 3]
-            | _coefficients[input + 4] | _coefficients[input + 6] | _coefficients[input + 7]) == 0)
+            | _coefficients[input + 4] | _coefficients[input + 5] | _coefficients[input + 6] | _coefficients[input + 7]) == 0)
         {
             int value = _coefficients[input];
             for (int i = 0; i < 8; i++) _firstPass[output + i * 9] = value;
