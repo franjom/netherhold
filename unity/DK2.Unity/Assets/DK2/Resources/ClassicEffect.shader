@@ -22,9 +22,12 @@ Shader "DK2/ClassicEffect"
             #pragma fragment Fragment
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
+            CBUFFER_START(UnityPerMaterial)
+            float _SrcBlend, _DstBlend;
             float _TintByLuminance;
             half4 _Tint;
             float _Wedge;
+            CBUFFER_END
             struct Input { float4 positionOS : POSITION; float2 uv : TEXCOORD0; float4 color : COLOR; };
             struct Output { float4 positionCS : SV_POSITION; float2 uv : TEXCOORD0; float4 color : COLOR; };
             Output Vertex(Input v)

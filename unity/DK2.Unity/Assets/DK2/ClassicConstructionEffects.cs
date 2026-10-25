@@ -21,8 +21,8 @@ namespace DK2.Unity
         private sealed class Group
         {
             public ParticleSystem System;
-            public ParticleSystem.Particle[] Buffer = new ParticleSystem.Particle[64];
-            public int Count;
+            public ParticleSystem.Particle[] Buffer = Array.Empty<ParticleSystem.Particle>();
+            public int Count, SpriteFrames;
             public Material Material;
             public bool IsMesh;
             /// <summary>A mesh element's model and its materials, one per sub-mesh: drawn directly
@@ -234,7 +234,7 @@ namespace DK2.Unity
             float angle = Mathf.LerpAngle(source.PreviousHeadingRaw * (360f / 2048f),
                 source.HeadingRaw * (360f / 2048f), fraction) * Mathf.Deg2Rad;
             float cos = Mathf.Cos(angle), sin = Mathf.Sin(angle);
-            int frames = Math.Max(1, group.Sprites.Count);
+            int frames = Math.Max(1, group.SpriteFrames);
             float age = 1f - source.RemainingSpriteLifetimeFraction;
             int frame = Math.Min(frames - 1, (int)(age * frames));
             float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
@@ -286,7 +286,7 @@ namespace DK2.Unity
         private static void AddBillboardQuad(Group group, ConstructionParticle source, Vector3 position,
             Vector3 right, Vector3 up, float width, float height)
         {
-            int frames = Math.Max(1, group.Sprites.Count);
+            int frames = Math.Max(1, group.SpriteFrames);
             int frame = Math.Min(frames - 1, (int)((1f - source.RemainingSpriteLifetimeFraction) * frames));
             float u0 = frame / (float)frames, u1 = (frame + 1) / (float)frames;
             int first = group.FlatVertices.Count;
@@ -376,19 +376,6 @@ namespace DK2.Unity
                 ? BlendMode.SrcAlpha : BlendMode.One));
             group.Material.SetInt("_DstBlend", (int)(resource.Blend == EffectSpriteBlend.Additive
                 ? BlendMode.One : resource.Blend == EffectSpriteBlend.Alpha ? BlendMode.OneMinusSrcAlpha : BlendMode.Zero));
-            var go = new GameObject("effect " + definition.Name);
-            go.transform.SetParent(_root, false);
-            group.System = go.AddComponent<ParticleSystem>();
-            var main = group.System.main;
-            main.playOnAwake = false;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = 64;
-            var emission = group.System.emission; emission.enabled = false;
-            var shape = group.System.shape; shape.enabled = false;
-            var sheets = group.System.textureSheetAnimation;
-            sheets.enabled = true;
-            sheets.mode = ParticleSystemAnimationMode.Sprites;
-            sheets.frameOverTime = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0, 0, 1, 1));
             var images = new List<RgbaImage>();
             for (int frame = 0; frame < resource.StoredFrameCount; frame++)
             {
@@ -407,26 +394,45 @@ namespace DK2.Unity
             { name = key.Key, wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
             texture.LoadRawTextureData(pixels); texture.Apply(false, true);
             group.Textures.Add(texture); group.Material.SetTexture("_MainTex", texture);
-            for (int frame = 0; frame < images.Count; frame++)
+            group.SpriteFrames = images.Count;
+            if (_transparent == null) CreateParticleSystem(group, definition, texture);
+            group.IsFlat = (definition.ArtResource.Flags & 0x100) != 0;
+            group.WidthPerScale = resource.WidthRaw / 4096f;
+            group.HeightPerScale = resource.HeightRaw / 4096f;
+            group.StandsOnPoint = (definition.ArtResource.Flags & 0x40) != 0;
+            _groups.Add((key, ""), group);
+            return group;
+        }
+
+        private void CreateParticleSystem(Group group, EffectElementDef definition, Texture2D texture)
+        {
+            var go = new GameObject("effect " + definition.Name);
+            go.transform.SetParent(_root, false);
+            group.System = go.AddComponent<ParticleSystem>();
+            group.Buffer = new ParticleSystem.Particle[64];
+            var main = group.System.main;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 64;
+            var emission = group.System.emission; emission.enabled = false;
+            var shape = group.System.shape; shape.enabled = false;
+            var sheets = group.System.textureSheetAnimation;
+            sheets.enabled = true;
+            sheets.mode = ParticleSystemAnimationMode.Sprites;
+            sheets.frameOverTime = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0, 0, 1, 1));
+            int width = texture.width / group.SpriteFrames;
+            for (int frame = 0; frame < group.SpriteFrames; frame++)
             {
-                var sprite = Sprite.Create(texture, new Rect(frame * width, 0, width, height), new Vector2(0.5f, 0.5f));
+                var sprite = Sprite.Create(texture, new Rect(frame * width, 0, width, texture.height), new Vector2(0.5f, 0.5f));
                 group.Sprites.Add(sprite); sheets.AddSprite(sprite);
             }
             var renderer = go.GetComponent<ParticleSystemRenderer>();
-            // Terrain's ordered transparent runs would otherwise paint over these billboards.
-            renderer.enabled = _transparent == null;
             renderer.sharedMaterial = group.Material;
             renderer.renderMode = ParticleSystemRenderMode.Billboard;
             renderer.sortMode = ParticleSystemSortMode.Distance;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             group.System.Play(); group.System.Pause();
-            group.IsFlat = (definition.ArtResource.Flags & 0x100) != 0;
-            group.WidthPerScale = resource.WidthRaw / 4096f;
-            group.HeightPerScale = resource.HeightRaw / 4096f;
-            group.StandsOnPoint = (definition.ArtResource.Flags & 0x40) != 0;
             main.startSize3D = true;
-            _groups.Add((key, ""), group);
-            return group;
         }
 
         public void Dispose()

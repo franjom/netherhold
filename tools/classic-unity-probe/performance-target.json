@@ -1,0 +1,21 @@
+{
+  "name": "owner-laptop-1080p",
+  "minimum_fps": 60,
+  "optimization_goal_fps": 100,
+  "preferred_api_if_accepted": "Vulkan",
+  "fallback_api": "Direct3D12",
+  "metadata": {
+    "CPU": "AMD Ryzen 7 7735HS with Radeon Graphics",
+    "GPU": "AMD Radeon(TM) Graphics",
+    "Resolution": "1920x1080"
+  },
+  "required_scenarios": [
+    "level1-goblin-introduction",
+    "level2-warlock-introduction",
+    "creature-arrival-effect-catalogue",
+    "dense-creatures",
+    "terrain-edit-burst",
+    "large-map-gameplay",
+    "combat-and-spell-effects"
+  ]
+}

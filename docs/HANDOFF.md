@@ -143,6 +143,9 @@ Wet/bloody footprints are built; native rules and pending visual acceptance: res
 Creature asset keys are cached per definition/action; transparent terrain uses
 retained stable-sort buffers and reuses meshes across changes in draw order.
 Measured gains, regression checks and remaining costs: verification document.
+Arrival rendering now shares vertex uploads and culls offscreen triangles;
+the owner's strict 60 FPS target remains unmet. Acceptance and remaining
+coverage: [performance policy](PERFORMANCE.md).
 The debug FPS/frame-time display is built; usage and rotation profiling protocol:
 [Unity performance guidance](../unity/README.md#measuring-performance).
 Creature/cinematic timing now shares a late draw clock (ADR-0501); native tile

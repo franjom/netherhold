@@ -84,6 +84,40 @@ profiling window visible: hidden windows can skip rendering entirely. A failed
 `RenderingVerified` check invalidates performance results. CSV, PNG, metadata,
 logs, source fingerprints and built managed-DLL hashes accompany each capture.
 
+For the strict release FPS gate, install the pinned portable PresentMon once:
+
+```powershell
+./tools/classic-unity-probe/install-presentmon.ps1
+./tools/classic-unity-probe/run-window-frames.ps1 `
+  -Project 'D:/DungeonKeeperRemake/build/tag-overlay-probe/project' `
+  -PortalIntroduction -VisiblePlayer -ReleasePlayer -CheckFrameBudget `
+  -CompareGraphicsApis -GraphicsApi Vulkan
+```
+
+`-CheckFrameBudget` selects lightweight FPS tracing and disables Unity Frame
+Timing Stats at build time. It requires every measured CPU loop and native
+presentation interval to meet the target in `performance-target.json`.
+The current minimum is 60 FPS; a fast average cannot excuse a hitch.
+The helper verifies the official PresentMon download's SHA256 and Intel signature.
+The launcher starts tracing before the player and releases only its own ETW session.
+Cooperating graphics probes use an exclusive file lease to prevent overlap.
+
+`-GraphicsApi Direct3D12` or `Direct3D11` selects another compiled backend;
+`-ExistingPlayer <exe>` reuses the exact player for comparisons. Its built-DLL
+hashes identify executed code; current source hashes alone do not establish a
+reused player's source provenance. Rebuild after source changes. The comparison
+API list affects only the isolated project, not production settings.
+
+Without the gate, `-TraceMode diagnostic-gpu -PresentMon <exe>` captures GPU
+diagnostics. This instrumentation cannot certify FPS acceptance. Recheck captures
+with `python tools/classic-unity-probe/frame_budget.py <run-directory>`;
+use `--mode diagnostic-gpu` for diagnostic captures. Exit codes are 0 pass,
+1 budget failure, 2 invalid evidence, and 3 diagnostic only. Screenshots are
+outside the acceptance interval. Tests run with `python -m unittest discover
+-s tools/classic-unity-probe -p test_frame_budget.py`.
+
+Acceptance scope and remaining coverage: [performance policy](../../docs/PERFORMANCE.md).
+
 Setup, measured results and limits: [portal arrival performance](../../docs/research/portal-arrival-performance.md).
 
 ## Camera reference capture

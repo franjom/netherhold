@@ -12,7 +12,7 @@ The owner's Level2 Warlock-introduction screenshot reports 14 FPS, 71.86ms
 average and 75.69ms slowest in a half-second window. The probe establishes a
 substantial rendering cost. The ordinary-player comparison below reproduces
 that frame interval and isolates the arrival effect as a major contributor.
-No optimization or gameplay change was made.
+The baseline sections below precede the renderer optimization described at the end.
 
 ## Controlled experiment
 
@@ -76,7 +76,7 @@ first-use artwork/mesh preparation is a separate cost from the steady work.
 The source eagerly prepares sprite atlases and all beam animation meshes.
 The measured first draw does not individually attribute that cold cost.
 
-## Mechanism and optimization target
+## Baseline mechanism
 
 `ClassicConstructionEffects.Draw` rebuilds billboard/flat meshes and submits
 them through `TransparentTerrain.AddEffectMesh`. Changed vertices, colours,
@@ -177,12 +177,12 @@ Editor's Direct3D12. This is a controlled reproduction of the introduction,
 not an exact replay of the owner's frame. Effect omission removes both its
 geometry and lighting, so the GPU difference cannot be assigned exclusively
 to either. The separate geometry/light exclusions above narrow the CPU path.
-No optimization or gameplay change was made.
+These baseline captures predate the renderer optimization below.
 
 FrameTimingManager returns delayed completed frames; timestamps are deduplicated,
 and boundary/screenshot windows are excluded. Recorder timing values convert
 nanoseconds to milliseconds; FrameTiming values already use milliseconds.
-Probe CSV formatting allocates, so allocation counters include probe overhead.
+The baseline probe formats CSV during capture, so allocation counters include probe overhead.
 The inspected screenshots and rendering callbacks validate actual screen work.
 
 The earlier Editor probe's edit-mode effect teardown logs Destroy errors;
@@ -192,3 +192,49 @@ claim is made; Mono's allocation-counter trap still applies.
 
 This investigation does not recommend reducing authored particles, colour or
 brightness to hide the performance cost.
+
+## Renderer optimization and Release acceptance
+
+CONFIRMED in the remake, 2026-10-25: the transparent renderer now uploads one
+interleaved vertex stream shared by index-only material-run meshes. Run bounds,
+indices and renderer state are retained where possible. Conservative triangle
+frustum rejection precedes the existing stable depth ordering. The effect shader
+uses a single material constant buffer, and the custom sprite path no longer
+creates unused paused particle systems. Authored effect content is unchanged.
+The retained MeshRenderers preserve per-object lighting; unsupported dynamic
+batching or material instancing configurations fail explicitly.
+
+The GPU probes passed 17 pixel cases, 96 reference-order cases, wide global
+indices, inactive-run bounds refresh, frustum crossings/camera changes, and
+portal animation/expiry checks. Vulkan also passed the no-unused-particle-system
+check. Primary run meshes report zero vertex-buffer bytes; attributes come from
+the shared additional vertex stream. These are bounded checks, not exhaustive
+visual acceptance for every creature effect.
+
+The final all-API Release player uses the same executable and managed DLLs for
+the serial Vulkan and Direct3D12 captures below. VSync is off. FPS qualification
+disables Unity Frame Timing Stats and profiler counters and uses a lightweight
+PresentMon trace without GPU tracking. Raw sampling is buffered; screenshot
+encoding and CSV formatting occur after the measured introduction. Native
+QueryPerformanceCounter timestamps align the presentation window. GPU duration
+is intentionally absent from these captures, not zero.
+
+Artifacts: `build/portal-fps-final/20261025-154243/` (Vulkan, includes player)
+and `20261025-154610/` (Direct3D12). Each retains CSV, logs, rendering proof and
+source/built-assembly fingerprints. Rechecking with the owner's revised 60 FPS
+policy gives valid evidence and a **failed** budget for both:
+
+| API | CPU samples | CPU median / maximum ms | CPU frames above budget | Present median / maximum ms | Presents above budget |
+|---|---:|---:|---:|---:|---:|
+| Vulkan | 1169 | 7.790 / 52.400 | 233 | 8.118 / 68.719 | 241 / 1168 |
+| Direct3D12 | 1221 | 8.735 / 60.437 | 210 | 8.630 / 89.498 | 219 / 1220 |
+
+Typical intervals improved relative to the earlier baseline, but instrumentation,
+API and build mode differ; these tables do not establish a controlled speedup
+ratio. Serial API runs on a shared laptop do not establish a universal backend
+ranking. Earlier full GPU traces were substantially slower; tracing overhead,
+machine load and scheduling have not been separated by a matched repeat series.
+The remaining hitches are unresolved. Resource preloading is not implemented.
+Production graphics API defaults remain unchanged; Vulkan-first with Direct3D12
+fallback is conditional on acceptance. See [performance policy](../PERFORMANCE.md)
+for the target, scenario coverage and acceptance protocol.

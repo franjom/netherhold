@@ -95,6 +95,11 @@ namespace DK2.Unity.Editor
                     {
                         milliseconds = step == 0 ? 0 : step * 50 + 1;
                         effects.Advance(); effects.Draw();
+                        var renderGroups = (System.Collections.IDictionary)typeof(ClassicConstructionEffects)
+                            .GetField("_groups", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(effects);
+                        foreach (object group in renderGroups.Values)
+                            if (group != null && group.GetType().GetField("System").GetValue(group) != null)
+                                throw new Exception("Custom transparent sprites must not create unused particle systems.");
                         if (captureReference != null)
                         {
                             captureReference.AdvanceTo(new EffectTime(milliseconds));

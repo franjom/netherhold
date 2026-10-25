@@ -12344,3 +12344,16 @@ kind-11 additions as commands and removals as completion. Hash/save version is 3
 **Consequences.** The Imp path is reachable without adding a new chooser priority or damaging
 the standing door. Native automatic reveal during opening, input eligibility for an owner's
 door, finite task-pool exhaustion and original-game acceptance remain outside this change.
+
+## ADR-0537 — Gate performance on individual rendered frames
+**Date:** 2026-10-25 · **Status:** accepted
+
+**Context.** Fast averages concealed visible arrival hitches. GPU instrumentation can
+also disturb the cadence being qualified.
+
+**Decision.** Use the owner's hardware and targets in [the performance policy](PERFORMANCE.md).
+Qualify every CPU loop and native presentation interval with lightweight Release captures;
+keep GPU diagnostic tracing separate. Include first-use gameplay frames and visual checks.
+
+**Consequences.** A single slow frame fails a capture. CI verifies the checker, while
+hardware captures verify performance. One introduction cannot certify the whole game.

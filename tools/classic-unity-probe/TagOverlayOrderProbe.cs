@@ -103,14 +103,15 @@ namespace DK2.Unity.Editor
                 Verify("fewer effect submissions", Color.red, false, solid, 0);
                 int effectVertices = 0;
                 foreach (MeshRenderer batch in terrain.GetComponentsInChildren<MeshRenderer>())
-                    if (batch.sharedMaterial == flower) effectVertices += batch.GetComponent<MeshFilter>().sharedMesh.vertexCount;
+                    if (batch.sharedMaterial == flower) effectVertices += batch.GetComponent<MeshFilter>().sharedMesh.triangles.Length;
                 if (effectVertices != 6) throw new Exception("Removed effect retained geometry.");
                 terrain.transform.rotation = Quaternion.Euler(0, 25, 0);
                 Verify("world effect under rotated terrain root", Color.red, false, solid, 0);
                 foreach (MeshRenderer batch in terrain.GetComponentsInChildren<MeshRenderer>())
                     if (batch.sharedMaterial == flower)
                     {
-                        Vector3 point = batch.transform.TransformPoint(batch.GetComponent<MeshFilter>().sharedMesh.vertices[0]);
+                        int first = batch.GetComponent<MeshFilter>().sharedMesh.triangles[0];
+                        Vector3 point = batch.transform.TransformPoint(batch.additionalVertexStreams.vertices[first]);
                         if ((point - effectMesh.vertices[effectMesh.triangles[0]]).sqrMagnitude > .000001f)
                             throw new Exception("World effect moved with terrain root.");
                     }
@@ -129,6 +130,19 @@ namespace DK2.Unity.Editor
                 flower.SetInt("_SrcBlend", (int)BlendMode.One);
                 flower.SetInt("_DstBlend", (int)BlendMode.One);
                 Verify("additive sprite ignores texture alpha", Color.red, true, flower, 0);
+                var batching = typeof(ShaderUtil).GetMethod("GetSRPBatcherCompatibilityCode",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                if (batching == null) throw new Exception("Cannot verify SRP batcher shader compatibility.");
+                Shader effectShader = Shader.Find("DK2/ClassicEffect");
+                int compatibility = (int)batching.Invoke(null, new object[] { effectShader, 0 });
+                if (compatibility != 0)
+                {
+                    var reason = typeof(ShaderUtil).GetMethod("GetSRPBatcherCompatibilityIssueReason",
+                        BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                    object detail = reason == null ? "Unavailable reason" : reason.Invoke(null,
+                        new object[] { effectShader, 0, compatibility });
+                    throw new Exception("Classic effect shader bypasses the enabled SRP batcher: " + compatibility + " " + detail);
+                }
                 Debug.Log("Tag overlay order verification passed: seventeen GPU pixel cases.");
                 EditorApplication.Exit(0);
 
