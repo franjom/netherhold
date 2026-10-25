@@ -1,4 +1,4 @@
-# Unity crowd performance probe
+﻿# Unity crowd performance probe
 
 ## Front-end session
 
@@ -415,3 +415,17 @@ Earlier HEAD-source CPU baselines are `20261011-184034` (Imp) and
 4.679/6.198 ms respectively; final production changes show no consistent timing
 regression across these single captures. Screen-only batch attempts are excluded
 because their PNGs were black and triangle counts zero.
+
+## Menu verification
+
+Run `run-front-end.ps1 -Menus` after building Release. The isolated project uses
+its own copied scene and DLLs; it does not save the source scene. The local
+`DungeonKeeperII.ttf` described in `unity/README.md` is required for the font path.
+The probe checks menu navigation, station gates, option-shell return and Quit
+cancel, checks the root 48px Confirm/Cancel pair, captures hover, and compares font/bitmap alpha bounds within two pixels
+at 1024x768 and 1600x900. It also rejects black replacement glyphs. Each run writes
+a fresh `menu-captures-*` folder beneath its scratch root.
+
+The 2026-10-25 F3 run passed: first-label bounds were 298x43 versus 299x43 at
+1024x768 and 465x50 versus 467x51 at 1600x900. This verifies replacement sizing;
+it is not original-game visual acceptance.

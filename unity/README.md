@@ -28,10 +28,14 @@ is the authority), put `DungeonRunner` on a GameObject in a scene, and press Pla
 Point it at a DK2 install with the component's **Install Directory** field or the
 `DK2_DIR` environment variable.
 
-For the F2 front-end preview, set **Session Mode** to **Front End** on the runner
+For the front end, set **Session Mode** to **Front End** on the runner
 before Play, or use **DK2 / Front End / Open Front End** while playing. The
 **Preview** submenu flies to Options, Extras, the campaign table, Pet Dungeon or
-Multiplayer. These are scenery/camera previews; clickable pages come in F3.
+Multiplayer. Main, Single Player, Options and Extras shells and Quit confirmation
+are clickable. Campaign, loading, multiplayer and media actions remain dimmed
+until their phases are implemented; option values are not yet bound. Menu labels
+use the local TrueType face described below, with original bitmap fallback and
+original glyph metrics (ADR-0537).
 Runtime callers use `DungeonRunner.LoadLevel(GameSessionRequest)` to switch a
 named campaign level or return to the front end. The replacement preserves the
 runner's render settings and campaign fog setting. No scene file is saved.

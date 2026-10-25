@@ -12353,3 +12353,24 @@ netstandard2.1 code, and options remain outside this campaign snapshot. Progress
 new-campaign reset, score qualification and level-loop integration remain F4/F5.
 There is no simulation or hash-format change. F1's `.444` decoder supports all shipped
 unmasked images and explicitly refuses the optional masked format.
+
+## ADR-0537 — Keep original menu metrics when replacing the font
+
+**Status:** accepted (owner, 2026-10-25).
+
+**Context.** The owner wants the DK2 TrueType font for menu text, with the
+original label images as fallback, while retaining the original glyph sizes.
+Native label preparation is recorded in `research/front-end-menus.md` and its
+function records.
+
+**Decision.** Front-end labels prefer the local `DungeonKeeperII` font. Their
+layout always comes from the original BF4 font: advance width, line height,
+bearings and visible glyph rectangles. Replacement glyphs draw into those same
+rectangles. If the font or a required glyph is unavailable, the whole label
+uses its original bitmap glyphs, rendered in memory. Font availability changes
+neither layout nor hit bounds. Original text ids and widget geometry remain data.
+
+**Consequences.** The modern font stays aligned with the original fallback at
+each viewport size. Its shapes are an intentional presentation substitution;
+native pixel identity is not claimed. Asset access remains behind the menu
+asset interface, with no converted asset files or bundled proprietary font.

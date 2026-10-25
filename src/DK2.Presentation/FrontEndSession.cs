@@ -51,6 +51,13 @@ public sealed class FrontEndSession
         return true;
     }
 
+    public bool TryShowPage(FrontEndPage page)
+    {
+        if (PathPlaying) return false;
+        SetPage(page);
+        return true;
+    }
+
     private void Apply(FrontEndStep step)
     {
         if (step.StartPath is FrontEndPath path)

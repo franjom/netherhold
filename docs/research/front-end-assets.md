@@ -85,7 +85,14 @@ exactly the 60 images DK2 loads as `Obj Shots\…`, §1.2; the WAD tool's name
 compression is not read).
 
 As a result **31 names occur twice (62 entries)**: the 14 loading screens (the Japanese and the default runs), 16 `2dLevelS{1..4}-{1..4}.png`, `Cancel.png` (48×48 and 60×60) and `Confirm.png`. `WadArchive.TryGetEntry` keeps the later entry for each, so a lookup
-by bare name cannot reach the first. `WadArchive.Extract(int)` and `WadImageSource.Read(int)` now reach either copy by index; directory-qualified lookup remains unimplemented.
+by bare name cannot reach the first. `WadArchive.Extract(int)` and
+`WadImageSource.Read(int)` reach either copy by index; general directory-qualified
+lookup remains unimplemented. The F3 menu provider selects the initial root run
+by index: root Confirm/Cancel are both 48x48, while the later Buttons run contains
+an opaque green Confirm and a 60x60 outline Cancel. Mixing those later copies
+produced the empty-looking cancel button. Native `0x00534210` requests plain
+Confirm/Cancel; directory-run reconstruction remains STRONGLY INFERRED from the
+shipped names, not proved by the storage-query wrapper.
 
 ### 1.4 `.444` images (bytes CONFIRMED, codec STRONGLY INFERRED)
 
@@ -210,6 +217,7 @@ That is 25 files: 8 single-frame static views and 17 moves. A static path is 72 
 ## 4. Fonts (CONFIRMED)
 
 `Data/Text/Default` holds 22 `.bf4` fonts: 6 `FONT_FRONTEND` and 16 `FONT_INGAME`.
+Menu style selection and measurement: [menu implementation boundary](front-end-menus.md#f3-implementation-boundary). Replacement font policy: ADR-0537.
 
 | File | Bytes | Line height | Glyphs | RLE glyphs | Code-point range |
 |---|---|---|---|---|---|

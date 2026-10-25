@@ -14,11 +14,13 @@ namespace DK2.Unity
     public sealed partial class DungeonRunner
     {
         private FrontEndSession _frontEnd;
+        private ClassicFrontEndMenu _frontEndMenu;
         private IReadOnlyList<FrontEndProp> _frontEndScenery;
         private double _frontEndStarted;
 
         public GameSessionMode SessionMode => sessionMode;
         public FrontEndSession FrontEnd => _frontEnd;
+        public ClassicFrontEndMenu FrontEndMenu => _frontEndMenu;
         public string LoadedLevelName => levelName;
         public string StartupFailure => _failure;
 
@@ -55,6 +57,8 @@ namespace DK2.Unity
             _frontEnd = new FrontEndSession(path => paths((int)path), frontEndReturnPage);
             _frontEndStarted = Time.realtimeSinceStartupAsDouble;
             _frontEnd.Update(TimeSpan.Zero);
+            _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, new InstallClassicFrontEndMenuAssets(install));
+            _frontEndMenu.Model.QuitRequested += QuitFrontEnd;
             _scene.SetCreatureFrameTime(GameTick.Zero, 0);
             _presenter.Present(world);
             _startup.Step("front-end.present");
@@ -66,6 +70,7 @@ namespace DK2.Unity
         {
             double elapsed = Math.Max(0, Time.realtimeSinceStartupAsDouble - _frontEndStarted);
             _frontEnd.Update(TimeSpan.FromSeconds(elapsed));
+            _frontEndMenu?.Refresh();
             if (_frontEnd.Pose is CameraPathPose pose) ApplyFrontEndCamera(pose);
             double turns = elapsed * SimulationTiming.OriginalTicksPerGameSecond;
             var tick = new GameTick((long)Math.Floor(turns));
@@ -78,6 +83,15 @@ namespace DK2.Unity
             _constructionEffects?.Draw();
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
+        }
+
+        private static void QuitFrontEnd()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         private static void ApplyFrontEndCamera(CameraPathPose pose)
@@ -100,7 +114,7 @@ namespace DK2.Unity
         private void DrawFrontEndDiagnostics()
         {
             _frameOverlay.Draw();
-            GUI.Label(new Rect(10, 10, 1200, 22), $"Front end (mode 5) · path {_frontEnd.Path} · page {_frontEnd.Page} · F3 widgets pending");
+            GUI.Label(new Rect(10, 10, 1200, 22), $"Front end (mode 5) · path {_frontEnd.Path} · page {_frontEnd.Page}");
         }
     }
 }

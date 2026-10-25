@@ -161,8 +161,9 @@ was not re-read for this.
 F2 builds the room, decorative props and typed station flow (`FrontEndScenery`,
 `FrontEndFlow`, `FrontEndSession`). Prop creation includes the factory's floor clamp,
 authored animation phases and retained descriptor lights; see the function records
-for `0x004DEF30` and `0x004B5020`. Widgets, picking, status tint/markers and operation
-consumers remain F3 onward. No matched-original visual acceptance is claimed.
+for `0x004DEF30` and `0x004B5020`. F3 adds the 32-page/402-widget catalogue and
+interactive shell pages. Campaign picking, status tint/markers and operation
+consumers remain later phases. No matched-original visual acceptance is claimed.
 
 ## 4. Input, hover and click model
 
@@ -172,6 +173,23 @@ consumers remain F3 onward. No matched-original visual acceptance is claimed.
 | A text item's draw callback `0x00532670` draws one of six pre-rendered label images per item (frontEnd +0x11B61, 6 x 0x28 per slot): image 4 normal, 5 highlighted, 0-3 a fade. When the pointer is inside the label's own rectangle it plays sound 0x30F once per entry, sets the highlight and the item's "clickable" byte, and restarts an 8-frame fade counter (`0x0070D688`) that steps the glow down after the pointer leaves. Alignment comes from the draw argument's low word (2 = centred). | `0x00532670` | STRONGLY INFERRED |
 | Click and release sounds come from the widget's sound slot (+0x4C) through the table at `0x006AC8C4`: main-menu items use slot 32, back icons 36/35. | `0x0052BC50` | STRONGLY INFERRED |
 | Keyboard: Ctrl+Alt-style modifier 3 with key 0x20 (D) loads a demo packet file and starts it (debug); Alt+Enter (0x1C with modifier 2) calls `0x00558BD0`; key 0xB7 sets frontEnd +0x6022 (screenshot, unread). | `0x0052FAF0` | STRONGLY INFERRED (keys); HYPOTHESIS (purposes) |
+
+### F3 implementation boundary
+
+`FrontEndMenuController` supports Main, Single Player, Options/Graphics/Sound/Controls
+shells, Extras and Quit confirmation. Pointer hold suppression, hover/fade and sound
+hooks are implemented; playback is F8. Deferred actions are dimmed as a temporary
+capability gate, not as a reading of native campaign availability. Option values,
+media, campaign reset dialogs and other generic-dialog uses remain later phases.
+
+Font replacement follows ADR-0537. Native measurement uses the advance/line-height
+canvas ([glyph measurement](functions/006335D0.md)); visible ink retains its bearing
+inside that canvas. Main labels use the pre-rendered-label style, while options
+and dialog text use the [common drawer](functions/005323B0.md) and its font thunks.
+Titles use [their own preparation](functions/00536850.md). Glow construction is
+recorded in [dilation](functions/00552770.md), [blur](functions/00552990.md) and
+[alpha scaling](functions/00552620.md). These are binary readings, not a matched
+original-game screenshot acceptance.
 
 ## 5. Transitions
 
@@ -215,19 +233,13 @@ reading is STRONGLY INFERRED from the values (volumes 0..100, shadow 0..3).
 
 | Address | What | Why it matters |
 |---|---|---|
-| `0x00536BA0` | generic dialog builder (title, text, yes/no commands) | dialog layout |
 | `0x0053C830`, `0x0053AC60`, `0x00535C30` | statistics rows and per-level briefing text | results screen contents |
 | `0x005306F0` cases 0x20-0x55, 0x65-0x75 | multiplayer: session lists, lobby, settings | multiplayer menus |
 | pages 10/11/0x20-0x27 widgets (`0x0054EDF0`, `0x0054EE10`, `0x005457A0`, `0x005415D0`, `0x005475A0`...) | multiplayer and skirmish lobby | skirmish setup items |
-| `0x00536700`, `0x005367D0`, `0x00537CA0`, `0x00537E10`, `0x00536070`, `0x00535F50` | title, logo, bottom strip and back/OK icon draws | exact art per page |
-| `0x00536850`, `0x00536A80`, `0x00533570`, `0x0054FCF0`, `0x00552420` | label pre-rendering and fonts | which FONT_FRONTEND size per label (asset sibling) |
+| `0x00537CA0`, `0x00537E10` | bottom strip draws | exact art per page |
 | `0x006BCE48`, `0x0052F9E0` | when the 2D-only run loop is used | |
 | `0x00537FB0`, `0x00537FF0` | `CFrontEndComponent3D` | its role |
 | `0x0054D040`, widget 680 on page 15 | unlabelled graphics button | |
-
-Estimate: the front-end code spans roughly `0x0052B000-0x00555000`; about 60 of its functions
-are read here or by the sibling passes, and on the order of 200 remain, most of them the
-multiplayer lobby and session code.
 
 ## Owner recollections (2026-10-25)
 

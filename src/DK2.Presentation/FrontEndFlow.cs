@@ -8,7 +8,8 @@ public enum FrontEndPage : ushort
 {
     None = 0, Main = 1, SinglePlayer = 2, Multiplayer = 3, Options = 4, Movies = 5, Extras = 6,
     Briefing = 7, Load = 8, Lobby = 9, Sessions = 10, JoinSessions = 11, HighScores = 18,
-    CampaignMap = 37, PetDungeon = 38, AddressSessions = 39, Credits = 40,
+    Graphics = 15, Sound = 16, Controls = 17,
+    CampaignMap = 37, PetDungeon = 38, AddressSessions = 39, Credits = 40, Dialog = 44, Cursor = 47,
 }
 
 public enum FrontEndPath : ushort

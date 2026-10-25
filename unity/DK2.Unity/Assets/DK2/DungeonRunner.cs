@@ -516,6 +516,7 @@ namespace DK2.Unity
             _runtimeReleased = true;
             WaitForTick();
             DisposeHudControls();
+            _frontEndMenu?.Dispose();
             _minimap?.Dispose();
             _handCursor?.Dispose();
             _tileHighlight?.Dispose();
