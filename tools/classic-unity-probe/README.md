@@ -48,6 +48,15 @@ Add `-PortalMovement` for an original-art Goblin walking past the portal crystal
 requires the creature to reach its goal; it no longer enforces crystal clearance
 following the owner's rollback (ADR-0527). Native route parity is not claimed.
 
+## Spell slot state regression
+
+`run-tag-overlay.ps1 -SpellSlotStates` runs only `SpellSlotStateProbe` in the
+marked isolated project. It checks the actual Level2 Unity panel's icon tint and
+selection for availability 2/4/3 at 0/3000/6000 mana, suppression of unknown-slot
+flash sparkles, and retention of the unknown research overlay. It fails the former
+cost-dependent question-mark tint. These are retained widget-state assertions,
+not a screenshot or original-game pixel comparison.
+
 ## Camera reference capture
 
 `run-tag-overlay.ps1 -CameraReference` renders Level1's gold-seam focus at1600x1200

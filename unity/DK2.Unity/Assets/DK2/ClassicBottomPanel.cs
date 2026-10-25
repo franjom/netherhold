@@ -335,13 +335,13 @@ namespace DK2.Unity
                 // 0x00412FC0: a recharging spell skips the unaffordable tint and the flash; the
                 // manufacture tint overwrites the flash and unaffordable tints, and no-Workshop overwrites it.
                 bool recharging = marks.RechargePercent.HasValue;
-                bool flashing = flash.Slot == choice.Key && !recharging;
+                bool flashing = choice.Selectable && flash.Slot == choice.Key && !recharging;
                 if (flashing) { sparkleOn = cell; sparkleSize = BottomPanelSparkles.SizeFor(grid.WidgetBank); }
                 _icons[i].tintColor = recharging ? RechargeTint
                     : choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
                     : marks.ManufacturePercent.HasValue ? ManufactureTint
                     : flashing && flash.Dark ? Dark
-                    : choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
+                    : !choice.Selectable || choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
                 Place(_icons[i], cell);
                 if (progress != 0)
                 {

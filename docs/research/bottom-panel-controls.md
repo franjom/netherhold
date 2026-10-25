@@ -70,6 +70,29 @@ The model sorts by that field. Secondary room-slot navigation uses the separate
 
 ## Spells and workshop (partially CONFIRMED)
 
+### Unknown-slot brightness (2026-10-25)
+
+CONFIRMED binary: [spell updater](functions/004113B0.md), `0x00411563..0x004115C7`,
+maps availability 2 or 4 to widget state 2 before the affordability call.
+[Slot drawing](functions/00412FC0.md) initializes RGB255 at `0x004130AA..0x004130B4`;
+the state-1 guard at `0x00413878` bypasses affordability dimming, recharge and flash
+for state 2. Its draw at `0x00413E02..0x00413E46` retains that base tint for spells.
+The separate research-progress overlay still applies. Unknown spell slots are
+unselectable, but brightness must not depend on their hidden mana costs.
+Level2's initial visible spells are Create Imp and Thunderbolt, both availability 2.
+At 3000 mana their costs (1500 and 6000 in the reproduced initial world) straddle
+affordability: the former adapter drew Create Imp bright and Thunderbolt RGB100.
+The adapter now applies affordability tint and slot
+flash only to selectable slots; both unknown slots retain the base artwork and
+reject clicks, while their research overlay remains available.
+The binary reading and reproduction were independently checked by `verify_arrivals`.
+The isolated `SpellSlotStateProbe` failed on RGB100 before the fix and passes
+18 real-panel tint/selection cases afterward, plus unknown flash suppression and
+retained research overlay. Run `run-tag-overlay.ps1 -SpellSlotStates` under
+`tools/classic-unity-probe`; this checks retained Unity widget state, not native pixels.
+
+### Tab rendering and slot catalogue
+
 The tab strip's background is [0x00418EE0](functions/00418EE0.md): Bar-00 wood tiled from x0 (read;
 the minimap draws over it, and the stone fill also spans the full width), then Bar-02/Bar-03 metal whose
 width depends on the screen width; the adapter's last-480-units placement is a 4:3 reading (LIKELY).

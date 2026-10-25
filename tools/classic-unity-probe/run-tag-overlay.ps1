@@ -5,7 +5,8 @@ param(
     [switch]$CreatureLevel,
     [switch]$PortalMovement,
     [switch]$TutorialHighlight,
-    [switch]$CameraReference
+    [switch]$CameraReference,
+    [switch]$SpellSlotStates
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -20,6 +21,7 @@ foreach ($folder in @('Assets', 'Packages', 'ProjectSettings')) {
     Copy-Item -LiteralPath "$repo/unity/DK2.Unity/$folder" -Destination $project -Recurse -Force
 }
 $entries = @('TagOverlayOrderProbe', 'TransparentTerrainReuseProbe')
+if ($SpellSlotStates) { $entries = @('SpellSlotStateProbe') }
 if ($PortalEntrance) { $entries += 'PortalEntranceProbe' }
 if ($CreatureLevel) { $entries += 'CreatureLevelEffectProbe' }
 if ($PortalMovement) { $entries += 'PortalCrystalMovementProbe' }
