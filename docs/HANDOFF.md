@@ -22,6 +22,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   chooser/RNG and combat checks, but identifies replay-drop and withdrawal limits;
   the [Imp selection study](research/imp-selection-evidence.md) adds three live
   matched choices and 118 binary ordering controls. Full parity remains unestablished.
+  The [navigation controls](research/navigation-partial-rebuild.md#6-level-1-same-input-navigation-controls-2026-10-25)
+  separate fresh-build reconstruction from edit history; campaign update ordering remains open.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as

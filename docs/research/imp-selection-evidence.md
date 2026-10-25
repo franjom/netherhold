@@ -145,8 +145,9 @@ It does not use the timer/cap-omitting public `ChooseJob` diagnostic entry.
 
 **CONFIRMED, bounded:** these three selected jobs match through their RNG calls.
 Supplying the native navigation inputs removes the observed route discrepancy.
-This isolates a navigation-input/reconstruction dependence; it does not establish
-which mesh-history difference produced it during a campaign.
+The [navigation follow-up](navigation-partial-rebuild.md#6-level-1-same-input-navigation-controls-2026-10-25)
+separates the missing fixture byte from mesh history: a native fresh build itself
+produces the changed route. Actual campaign update history remains unverified.
 
 The fixture omits full room state and general non-worker objects, uses modern
 reservation representations, and does not advance the other creatures or the
