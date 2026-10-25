@@ -57,6 +57,16 @@ flash sparkles, and retention of the unknown research overlay. It fails the form
 cost-dependent question-mark tint. These are retained widget-state assertions,
 not a screenshot or original-game pixel comparison.
 
+## Portal arrival performance research
+
+`run-tag-overlay.ps1 -PortalPerformance` runs only the research timing probe.
+It holds a Level2 portal view while comparing effect165, light exclusion,
+geometry/light exclusion, a frozen effect clock and repeated baselines.
+`DK2_PORTAL_PERFORMANCE_OUTPUT` selects the output directory. CSV contains
+scoped CPU timings, recent custom-marker counters and active run counts;
+PNGs check the fixture. Explicit render-request time is not GPU time or FPS.
+Setup, measured results and limits: [portal arrival performance](../../docs/research/portal-arrival-performance.md).
+
 ## Camera reference capture
 
 `run-tag-overlay.ps1 -CameraReference` renders Level1's gold-seam focus at1600x1200

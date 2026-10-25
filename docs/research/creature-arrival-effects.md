@@ -203,7 +203,9 @@ The restored Level1/Level2 requests also reach the real presentation consumer:
 at a controlled 100ms update it produces 10 Goblin particles or 29 Warlock
 particles, plus one light in each case. This verifies consumer output, not a
 camera-close-up image comparison. The Unity adapter compiles and updated
-assemblies are synced; visual acceptance awaits a fresh Play session.
+assemblies are synced.
+The owner's subsequent Warlock screenshot shows the restored effect; measured
+costs and remaining attribution limits are in [arrival performance](portal-arrival-performance.md).
 
 ## Verification and limits
 

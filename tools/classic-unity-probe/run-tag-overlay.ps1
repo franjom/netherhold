@@ -6,7 +6,8 @@ param(
     [switch]$PortalMovement,
     [switch]$TutorialHighlight,
     [switch]$CameraReference,
-    [switch]$SpellSlotStates
+    [switch]$SpellSlotStates,
+    [switch]$PortalPerformance
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -22,6 +23,7 @@ foreach ($folder in @('Assets', 'Packages', 'ProjectSettings')) {
 }
 $entries = @('TagOverlayOrderProbe', 'TransparentTerrainReuseProbe')
 if ($SpellSlotStates) { $entries = @('SpellSlotStateProbe') }
+if ($PortalPerformance) { $entries = @('PortalPerformanceProbe') }
 if ($PortalEntrance) { $entries += 'PortalEntranceProbe' }
 if ($CreatureLevel) { $entries += 'CreatureLevelEffectProbe' }
 if ($PortalMovement) { $entries += 'PortalCrystalMovementProbe' }
@@ -43,5 +45,5 @@ foreach ($entry in $entries) {
     $process = Start-Process -FilePath $Unity -ArgumentList ($quoted -join ' ') -WindowStyle Hidden -PassThru
     if (!$process.WaitForExit(600000)) { $process.Kill(); throw "Probe timed out: $log" }
     if ($process.ExitCode -ne 0) { throw "Probe failed ($($process.ExitCode)): $log" }
-    Select-String -LiteralPath $log -Pattern 'verification passed'
+    Select-String -LiteralPath $log -Pattern 'verification passed|research complete'
 }

@@ -86,6 +86,7 @@ The adapter now applies affordability tint and slot
 flash only to selectable slots; both unknown slots retain the base artwork and
 reject clicks, while their research overlay remains available.
 The binary reading and reproduction were independently checked by `verify_arrivals`.
+The owner accepted the corrected appearance on2026-10-25.
 The isolated `SpellSlotStateProbe` failed on RGB100 before the fix and passes
 18 real-panel tint/selection cases afterward, plus unknown flash suppression and
 retained research overlay. Run `run-tag-overlay.ps1 -SpellSlotStates` under
