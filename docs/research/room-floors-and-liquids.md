@@ -313,7 +313,8 @@ keeps no room record (tested against all 41 records). `RoomWalls` draws the 3×1
 and side piece 6 with their individual rotations. Ruined Hearts use the destroyed table and
 asset keys, including centre piece 4; piece 5 uses room +0x63's zero constructor default
 (`0x004E3800`), whose later writers and meaning remain UNKNOWN.
-Selectors 9, 10 and 12 and destroyed gate sets remain unbuilt. Whether any code places an
+Selector12 FrontEnd floors and the entrance cap are built; its sixteen resources are
+1-based (`004EACC0.md` in the function records). Selectors9/10 and destroyed gate sets remain unbuilt. Whether any code places an
 object on a gate was not searched.
 
 ---

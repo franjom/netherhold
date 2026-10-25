@@ -81,8 +81,8 @@ namespace DK2.Unity
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, ObjectView> _objectPoses = new Dictionary<int, ObjectView>();
-        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)> _objectClips =
-            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight, Fp32 Phase)> _objectClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight, Fp32 Phase)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<StructureId, TilePos> _structureTiles = new Dictionary<StructureId, TilePos>();
         private readonly List<Material> _hoverMaterials = new List<Material>();
@@ -681,7 +681,7 @@ namespace DK2.Unity
                 return;
             }
             _objectPoses[id] = pose;
-            var identity = (mesh.Reference, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight);
+            var identity = (mesh.Reference, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight, pose.AnimationInitialPhase);
             if (_objectClips.TryGetValue(id, out var previous) && previous == identity) return;
             _objectClips[id] = identity;
             double startSeconds = pose.AnimationStartedAt.HasValue
@@ -689,7 +689,7 @@ namespace DK2.Unity
                 : _renderSeconds;
             if (_classic != null && _meshObjects.Contains(id)
                 && _classic.ConfigureAnimation(go, mesh, pose.AnimationLoops, startSeconds,
-                    phaseStepOverride: pose.HeartVisual?.PhaseStep, addedLight: pose.AddedLight)) return;
+                    phaseStepOverride: pose.HeartVisual?.PhaseStep, addedLight: pose.AddedLight, initialPhase: pose.AnimationInitialPhase)) return;
             go.GetComponent<ClassicCreatureAnimation>()?.Stop();
             if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh, pose.AddedLight);
         }

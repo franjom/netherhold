@@ -70,14 +70,15 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
 
     /// <summary>Opens the install's <c>Meshes.WAD</c>, <c>EngineTextures</c> and KWD art records
     /// for the keys <paramref name="database"/> implies.</summary>
-    public static InstallArtProvider Open(string installDirectory, GameDatabase database)
+    public static InstallArtProvider Open(string installDirectory, GameDatabase database, IEnumerable<ArtEntry>? additionalEntries = null)
     {
         if (string.IsNullOrWhiteSpace(installDirectory))
             throw new ArgumentException("An install directory is required.", nameof(installDirectory));
         if (database is null) throw new ArgumentNullException(nameof(database));
 
         Dk2ArtCatalogue catalogue = Dk2ArtCatalogue.Load(installDirectory);
-        IReadOnlyList<ArtEntry> entries = ArtSourceMap.ForDatabase(database, catalogue);
+        IReadOnlyList<ArtEntry> entries = additionalEntries is null ? ArtSourceMap.ForDatabase(database, catalogue)
+            : ArtSourceMap.ForDatabase(database, catalogue).Concat(additionalEntries).ToArray();
         WadMeshSource meshes = WadMeshSource.OpenInstall(installDirectory);
         try
         {

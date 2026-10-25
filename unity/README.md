@@ -28,6 +28,14 @@ is the authority), put `DungeonRunner` on a GameObject in a scene, and press Pla
 Point it at a DK2 install with the component's **Install Directory** field or the
 `DK2_DIR` environment variable.
 
+For the F2 front-end preview, set **Session Mode** to **Front End** on the runner
+before Play, or use **DK2 / Front End / Open Front End** while playing. The
+**Preview** submenu flies to Options, Extras, the campaign table, Pet Dungeon or
+Multiplayer. These are scenery/camera previews; clickable pages come in F3.
+Runtime callers use `DungeonRunner.LoadLevel(GameSessionRequest)` to switch a
+named campaign level or return to the front end. The replacement preserves the
+runner's render settings and campaign fog setting. No scene file is saved.
+
 Path subtitles use Bullfrog's DungeonKeeperII TrueType face when the machine has it
 at `DK2.Unity/Assets/Resources/Fonts/DungeonKeeperII.ttf` (gitignored, not ours to
 ship; a copy is at wfonts.com/font/dungeonkeeperii). Otherwise they use DK2's own

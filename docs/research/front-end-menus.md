@@ -158,7 +158,11 @@ The campaign map pick `0x00538D00` accepts things of type 0x66 or 0x73 by their 
 +0x173 (slots 1-30 and 0x97-0xAE); the 0x66 pieces are the ones `0x004DEF30` makes, the
 creator of the 0x73 ones is unread. The seven MPD pieces (0x85) go through `0x005392E0`, which
 was not re-read for this.
-Which kwd objects 131, 132, 134-136 are (banners, chain...) is the asset sibling's table.
+F2 builds the room, decorative props and typed station flow (`FrontEndScenery`,
+`FrontEndFlow`, `FrontEndSession`). Prop creation includes the factory's floor clamp,
+authored animation phases and retained descriptor lights; see the function records
+for `0x004DEF30` and `0x004B5020`. Widgets, picking, status tint/markers and operation
+consumers remain F3 onward. No matched-original visual acceptance is claimed.
 
 ## 4. Input, hover and click model
 

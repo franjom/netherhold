@@ -17,6 +17,18 @@ namespace DK2.Presentation;
 /// simulation does not hold.</summary>
 public sealed partial class WorldView
 {
+    private IReadOnlyList<FrontEndProp> _frontEndScenery = Array.Empty<FrontEndProp>();
+
+    public IReadOnlyList<FrontEndProp> FrontEndScenery
+    {
+        get => _frontEndScenery;
+        set
+        {
+            _frontEndScenery = value ?? throw new ArgumentNullException(nameof(value));
+            _decorationsWorld = null;
+            _lightObjectsWorld = null;
+        }
+    }
     private const int One = Fp32.One, Half = One / 2, FloorZ = One;
 
     private ObjectView? AttachedWheel(WorldState world, CreatureState creature)
@@ -100,6 +112,8 @@ public sealed partial class WorldView
     public IEnumerable<ObjectView> Decorations(WorldState world)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
+        foreach (FrontEndProp prop in _frontEndScenery)
+            if (prop.Visible) yield return prop.View;
         EnsureDecorations(world);
         foreach (ObjectView decoration in _decorations)
             if (IsVisible(world, decoration.Tile)) yield return decoration;
@@ -121,6 +135,8 @@ public sealed partial class WorldView
                 _lightObjects.Add(Placed(world, thing, new TilePos(thing.TileIndex % world.Width, thing.TileIndex / world.Width)));
         foreach (ObjectView decoration in _decorations)
             if (HasLight(decoration.Light)) _lightObjects.Add(decoration);
+        foreach (FrontEndProp prop in _frontEndScenery)
+            if (prop.Visible && HasLight(prop.View.Light)) _lightObjects.Add(prop.View);
         return _lightObjects;
     }
 

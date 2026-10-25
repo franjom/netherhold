@@ -355,6 +355,8 @@ namespace DK2.Unity
             RoomPieceKeys keys = tile.RoomKeys;
             Vector3 centre = DungeonScene.Ground(x + 0.5f, y + 0.5f);
             AddSet(tile.RoomFloor, keys, null, centre, x, y, tile.AmbientTint, tile.QuarterAmbientTint);
+            if (!tile.ExtraRoomPiece.IsEmpty)
+                Add(_classic.Piece(tile.ExtraRoomPiece), 0, centre, x, y, tint: tile.AmbientTint);
 
             // A wall facing a tagged tile is tinted with it (0x00444F10's per-piece flag, which
             // 0x0043C310 reads).

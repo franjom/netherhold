@@ -50,6 +50,8 @@ namespace DK2.Unity
         [SerializeField] private string installDirectory = "";
 
         [Header("What to load")]
+        [SerializeField] private GameSessionMode sessionMode = GameSessionMode.Campaign;
+        [SerializeField] private FrontEndPage frontEndReturnPage = FrontEndPage.None;
         [SerializeField] private string levelName = "Level1";
         [Tooltip("A .SAV or .QSAV to load instead of the campaign level. " +
                  "Bare filename (looked up in the install's Data/Save) or a full path. " +
@@ -220,6 +222,12 @@ namespace DK2.Unity
 
         private void StartGame()
         {
+            bool frontEnd = sessionMode == GameSessionMode.FrontEnd;
+            if (frontEnd)
+            {
+                levelName = GameSessionRequest.FrontEnd().LevelName;
+                saveFile = "";
+            }
             if (tool != DungeonToolMode.Hand && tool != DungeonToolMode.BuildRoom &&
                 tool != DungeonToolMode.SellRoom && tool != DungeonToolMode.CreateImp)
                 tool = DungeonToolMode.Hand;
@@ -259,8 +267,11 @@ namespace DK2.Unity
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' things.");
                 var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' triggers.");
-                _simulation = CampaignSimulationFactory.Create(database, map, level,
-                    players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
+                _simulation = frontEnd
+                    ? new GameSimulation(database, WorldState.FromMap(database, map,
+                        players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed)
+                    : CampaignSimulationFactory.Create(database, map, level,
+                        players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
             }
             else
             {
@@ -270,6 +281,8 @@ namespace DK2.Unity
             }
             _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
+            if (frontEnd) _frontEndScenery = FrontEndScenery.Create(world, database,
+                new CampaignProfile(), new SimRandom(seed));
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
             _startup.Step("level");
@@ -279,7 +292,7 @@ namespace DK2.Unity
             // normally missing; with the install off too, everything draws as boxes.
             if (classicMeshes)
             {
-                _installArt = InstallArtProvider.Open(install, database);
+                _installArt = InstallArtProvider.Open(install, database, frontEnd ? FrontEndArt.Entries(database) : null);
                 _classic = new ClassicMeshes(_installArt, classicVertexLighting, nativeInitialAmbient);
             }
             _assets = AssetProviderChain.Standard(
@@ -297,7 +310,8 @@ namespace DK2.Unity
             int workers = PrefetchWorkers(); // SystemInfo is main-thread only
             if (art != null && prefetchFirstFrameArt)
             {
-                IReadOnlyCollection<AssetRef> firstFrame = FirstFrameArt.Keys(database, world, new PlayerId((byte)viewingPlayerId));
+                IReadOnlyCollection<AssetRef> firstFrame = FirstFrameArt.Keys(database, world,
+                    new PlayerId((byte)viewingPlayerId), _frontEndScenery);
                 prefetch = Task.Run(() => art.Prefetch(firstFrame, workers));
                 _startup.Step("prefetch.keys");
             }
@@ -308,6 +322,7 @@ namespace DK2.Unity
             _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice, classicCreatureShadows, cheapLighting);
             if (EffectClock != null) _scene.HeartEffectClock = EffectClock;
             _worldView = new WorldView(database, (byte)viewingPlayerId);
+            if (_frontEndScenery != null) _worldView.FrontEndScenery = _frontEndScenery;
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
             _startup.Step("scene");
@@ -330,6 +345,13 @@ namespace DK2.Unity
                     new EffectId(CreatureView.GemDustSparkle.EffectId), new PlayerId((byte)viewingPlayerId), point));
             }
             _startup.Step("effects");
+            if (frontEnd)
+            {
+                WaitForPrefetch(prefetch);
+                StartFrontEnd(install, world);
+                Debug.Log(_startup.Summary(_installArt));
+                return;
+            }
             _textFolder = Path.Combine(install, "Data", "Text", "Default");
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
                 CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
@@ -485,8 +507,13 @@ namespace DK2.Unity
                 milliseconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private void OnDestroy()
+        private bool _runtimeReleased;
+        private void OnDestroy() => ReleaseRuntimeResources();
+
+        private void ReleaseRuntimeResources()
         {
+            if (_runtimeReleased) return;
+            _runtimeReleased = true;
             WaitForTick();
             DisposeHudControls();
             _minimap?.Dispose();
@@ -518,7 +545,8 @@ namespace DK2.Unity
         private void Update()
         {
             _frameOverlay.Sample(showDiagnostics);
-            if (_simulation == null) return;
+            if (_simulation == null || _failure != null) return;
+            if (_frontEnd != null) { UpdateFrontEnd(); return; }
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
 
@@ -1456,6 +1484,11 @@ namespace DK2.Unity
 
         private void OnGUI()
         {
+            if (_frontEnd != null)
+            {
+                if (showDiagnostics) DrawFrontEndDiagnostics();
+                return;
+            }
             DrawCinematic();
             if (showDiagnostics) DrawDiagnostics();
         }
