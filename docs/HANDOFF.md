@@ -106,8 +106,10 @@ Prison rats, Portal entrances, corpse art, terrain debris and the Hand
 (ADR-0431–0438, 0442, 0444 bank heights, 0447, 0449–0452, 0460, 0462–0465,
 0467). The Heart's health pulse (ADR-0463), mana sparkles (ADR-0474, an owner
 adjustment; cause open in Q594), opening sequence (ADR-0475), Portal entrance
-effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built. Visual acceptance
-is tracked in research/classic-lighting-verification.md. Step 5's
+effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built. The complete
+researched arrival roster, including mercenaries, is in
+[creature-arrival-effects.md](research/creature-arrival-effects.md).
+Visual acceptance is tracked in research/classic-lighting-verification.md. Step 5's
 base camera, lighting/fog and follow-up fidelity corrections are on master.
 Milestones and remaining gates: plans/2026-10-14-classic-look-step5.md.
 Research: research/classic-lighting.md; current visual acceptance, standalone
