@@ -4,6 +4,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using DK2.Data.Campaign;
+using DK2.Data.Model;
 using DK2.Core;
 using DK2.Presentation;
 using DK2.Simulation;
@@ -17,6 +20,25 @@ namespace DK2.Unity
         private ClassicFrontEndMenu _frontEndMenu;
         private IReadOnlyList<FrontEndProp> _frontEndScenery;
         private double _frontEndStarted;
+        [SerializeField] private string campaignProfileFile = "";
+        private CampaignProfile _campaignProfile;
+        private string _campaignProfilePath;
+        private bool _secretFiveAvailable;
+        private CampaignMapController _campaignMap;
+        private IReadOnlyList<FrontEndProp> _frontEndBaseScenery;
+        private readonly Dictionary<int, CampaignSlot> _campaignPickSlots = new Dictionary<int, CampaignSlot>();
+        private int _frontEndMapRevision = -1;
+        public CampaignMapController CampaignMap => _campaignMap;
+
+        private void LoadFrontEndProfile()
+        {
+            _campaignProfilePath = string.IsNullOrWhiteSpace(campaignProfileFile)
+                ? Path.Combine(Application.persistentDataPath, "campaign-profile.dk2p") : campaignProfileFile;
+            CampaignProfile loaded = CampaignProfileFile.LoadOrCreate(_campaignProfilePath, InstalledCampaignRegistry.ReadCurrentUser);
+            _campaignProfile = CampaignProgression.EnsureOpenMap(loaded);
+            if (!ReferenceEquals(loaded, _campaignProfile)) CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
+            _secretFiveAvailable = CampaignMoon.IsSecretFiveAvailable(CampaignMoon.PhaseAt(DateTime.Now));
+        }
 
         public GameSessionMode SessionMode => sessionMode;
         public FrontEndSession FrontEnd => _frontEnd;
@@ -56,9 +78,22 @@ namespace DK2.Unity
             var paths = CameraPathLoader(install);
             _frontEnd = new FrontEndSession(path => paths((int)path), frontEndReturnPage);
             _frontEndStarted = Time.realtimeSinceStartupAsDouble;
-            _frontEnd.Update(TimeSpan.Zero);
-            _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, new InstallClassicFrontEndMenuAssets(install));
+            var menuAssets = new InstallClassicFrontEndMenuAssets(install);
+            _campaignMap = new CampaignMapController(_frontEnd, _campaignProfile, _secretFiveAvailable, menuAssets.Briefing);
+            _campaignMap.ProfileChanged += profile =>
+            {
+                _campaignProfile = profile;
+                CampaignProfileFile.Save(_campaignProfilePath, profile);
+            };
+            _campaignPickSlots.Clear();
+            foreach (FrontEndProp prop in _frontEndBaseScenery)
+            {
+                if (prop.MapPiece is DK2.Assets.FrontEndMapPiece piece) _campaignPickSlots[prop.View.Id] = new CampaignSlot((byte)piece);
+                else if (prop.MarkerSlot is CampaignSlot slot) _campaignPickSlots[prop.View.Id] = slot;
+            }
+            _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, menuAssets, _campaignMap);
             _frontEndMenu.Model.QuitRequested += QuitFrontEnd;
+            _frontEnd.Update(TimeSpan.Zero);
             _scene.SetCreatureFrameTime(GameTick.Zero, 0);
             _presenter.Present(world);
             _startup.Step("front-end.present");
@@ -72,6 +107,10 @@ namespace DK2.Unity
             _frontEnd.Update(TimeSpan.FromSeconds(elapsed));
             _frontEndMenu?.Refresh();
             if (_frontEnd.Pose is CameraPathPose pose) ApplyFrontEndCamera(pose);
+            CampaignSlot picked = _campaignMap.IsAtMap && Camera.main != null
+                ? _scene.PickFrontEndMap(Camera.main.ScreenPointToRay(Input.mousePosition), _campaignPickSlots) : CampaignSlot.None;
+            _campaignMap.UpdatePointer(picked, Input.GetMouseButton(0));
+            RefreshCampaignMap();
             double turns = elapsed * SimulationTiming.OriginalTicksPerGameSecond;
             var tick = new GameTick((long)Math.Floor(turns));
             float fraction = (float)(turns - Math.Floor(turns));
@@ -83,6 +122,17 @@ namespace DK2.Unity
             _constructionEffects?.Draw();
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
+        }
+
+        private void RefreshCampaignMap()
+        {
+            if (_frontEndMapRevision != _campaignMap.Revision)
+            {
+                _frontEndMapRevision = _campaignMap.Revision;
+                _frontEndScenery = FrontEndScenery.ApplyCampaignMap(_frontEndBaseScenery, _campaignMap);
+                _worldView.FrontEndScenery = _frontEndScenery;
+                _presenter.Present(_simulation.World);
+            }
         }
 
         private static void QuitFrontEnd()

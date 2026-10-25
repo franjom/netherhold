@@ -199,6 +199,7 @@ public sealed class ScenePresenter
         public ObjectVisual(in ObjectView instance)
         {
             AnimationInitialPhase = instance.AnimationInitialPhase;
+            TexturePhase = instance.TexturePhase;
             Mesh = instance.Mesh;
             Tile = instance.Tile;
             OwnerPlayerId = instance.OwnerPlayerId;
@@ -225,6 +226,7 @@ public sealed class ScenePresenter
         }
 
         public Fp32 AnimationInitialPhase { get; }
+        public Fp32? TexturePhase { get; }
         public TerrainLightColour AddedLight { get; }
         public byte Alpha { get; }
         public int Pitch { get; }
@@ -269,14 +271,14 @@ public sealed class ScenePresenter
             && PreviousHeight == other.PreviousHeight && PreviousPitch == other.PreviousPitch && PreviousRoll == other.PreviousRoll
             && AnimationStartedAt == other.AnimationStartedAt && AnimationLoops == other.AnimationLoops
             && HeartVisual == other.HeartVisual && Alpha == other.Alpha && AddedLight == other.AddedLight
-            && AnimationInitialPhase == other.AnimationInitialPhase;
+            && AnimationInitialPhase == other.AnimationInitialPhase && TexturePhase == other.TexturePhase;
 
         public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(
             Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll),
             HashCode.Combine(PreviousPosX, PreviousPosY, PreviousHeading, PlaysAnimation, AnimationStartedAt, AnimationLoops,
-                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll, HeartVisual, Alpha, AddedLight, AnimationInitialPhase)));
+                HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll, HeartVisual, Alpha, AddedLight, AnimationInitialPhase, TexturePhase)));
     }
 
     private readonly WorldView _view;

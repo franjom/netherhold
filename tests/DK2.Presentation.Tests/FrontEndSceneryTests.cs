@@ -66,6 +66,28 @@ public class FrontEndSceneryTests
         Assert.Empty(world.Objects);
     }
 
+    [InstallFact]
+    public void CampaignMarkersUseTheNativeFactoryAndMapTexturePhaseChangesReachTheView()
+    {
+        var (database, world) = Load();
+        var markers = FrontEndScenery.CreateCampaignMarkers(database);
+        Assert.Equal(24, markers.Count);
+        Assert.All(markers, p => { Assert.Equal(115, p.View.ObjectTypeId); Assert.Equal(0x3800, p.View.PosX);
+            Assert.Equal(0xa800, p.View.PosY); Assert.Equal(0x400, p.View.Heading); Assert.False(p.Visible); });
+        Assert.Equal(new CampaignSlot(6), markers[5].MarkerSlot);
+        var p = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(6));
+        var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1,0,0,0,1,0,0,0,1), 1, 20000) });
+        using var map = new CampaignMapController(session, p, false, slot => new(slot, "", "", "", Array.Empty<string>()));
+        session.Update(TimeSpan.Zero); session.Update(TimeSpan.Zero); map.Continue(); session.Update(TimeSpan.FromSeconds(1));
+        var original = FrontEndScenery.Create(world, database, p, new SimRandom(1)).Concat(markers).ToArray();
+        var projected = FrontEndScenery.ApplyCampaignMap(original, map);
+        var won = projected.Single(s => s.MapPiece == FrontEndMapPiece.Level6a);
+        Assert.Equal(0x55a, won.View.TexturePhase!.Value.Raw);
+        Assert.False(projected.Single(s => s.MarkerSlot == new CampaignSlot(7)).Visible);
+        Assert.True(projected.Single(s => s.MarkerSlot == new CampaignSlot(8)).Visible);
+        Assert.Contains(markers[0].View.Mesh, FirstFrameArt.Keys(database, world, new PlayerId(1), original));
+    }
+
     private static (GameDatabase, WorldState) Load()
     {
         string install = Dk2InstallGate.Path;

@@ -4,9 +4,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using DK2.Data.Model;
+using DK2.Data.Campaign;
 using DK2.Art.Textures;
 using DK2.Presentation;
 using UnityEngine;
@@ -19,34 +18,36 @@ namespace DK2.Unity
         BitmapFont Font(FrontEndFont font);
         Font ReplacementFont { get; }
         Texture2D Image(string name);
+        Texture2D ObjectiveShot(CampaignSlot slot, CampaignObjectiveShot shot);
+        CampaignBriefing Briefing(CampaignSlot slot);
     }
 
     public sealed class InstallClassicFrontEndMenuAssets : IClassicFrontEndMenuAssets
     {
         private readonly InstallHudSources _text;
         private readonly ClassicFrontEndAssets _images;
+        private readonly WadDirectoryIndex _imageIndex;
         private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         public InstallClassicFrontEndMenuAssets(string install)
         {
             _text = new InstallHudSources(install);
             _images = new ClassicFrontEndAssets(install);
+            _imageIndex = new WadDirectoryIndex(((WadImageSource)_images.Images).Entries);
             ReplacementFont = Resources.Load<Font>("Fonts/DungeonKeeperII");
         }
         public Font ReplacementFont { get; }
         public string Text(uint id) => _text.Strings.TryResolve(id, out string text) ? text : string.Empty;
         public BitmapFont Font(FrontEndFont font) => _text.Font(font.FileName);
-        public Texture2D Image(string name)
+        public CampaignBriefing Briefing(CampaignSlot slot) => CampaignBriefingLoader.Load(_text.Install, slot);
+        public Texture2D Image(string name) => LoadImage(name + ".png");
+        public Texture2D ObjectiveShot(CampaignSlot slot, CampaignObjectiveShot shot)
+            => LoadImage("Obj_Shots/" + slot.LevelName + "-" + (int)shot + ".png");
+        private Texture2D LoadImage(string path)
         {
-            if (!_textures.TryGetValue(name, out Texture2D texture))
+            if (!_textures.TryGetValue(path, out Texture2D texture))
             {
-                var source = (WadImageSource)_images.Images;
-                // Root menu art precedes the first directory run; later bare names include Buttons' duplicates.
-                int entry = Enumerable.Range(0, source.Entries.Count)
-                    .TakeWhile(i => source.Entries[i].Name.IndexOf('\\') < 0 && source.Entries[i].Name.IndexOf('/') < 0)
-                    .First(i => string.Equals(Path.GetFileNameWithoutExtension(source.Entries[i].Name), name,
-                        StringComparison.OrdinalIgnoreCase));
-                texture = _images.LoadTexture(entry);
-                _textures.Add(name, texture);
+                texture = _images.LoadTexture(_imageIndex.Find(path));
+                _textures.Add(path, texture);
             }
             return texture;
         }

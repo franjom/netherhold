@@ -490,3 +490,9 @@ a fresh `menu-captures-*` folder beneath its scratch root.
 The 2026-10-25 F3 run passed: first-label bounds were 298x43 versus 299x43 at
 1024x768 and 465x50 versus 467x51 at 1600x900. This verifies replacement sizing;
 it is not original-game visual acceptance.
+
+For F4, use `run-front-end.ps1 -Campaign`. It includes the menu checks, then
+uses its own scratch campaign file to exercise reset cancel/confirm, a real3D
+triangle pick, map hover/lift, briefing font and bitmap paths, and return paths.
+It also replaces the session with a progressed return-to-map profile and checks
+the won texture phase. It never resets the owner's campaign file.

@@ -27,6 +27,9 @@ public static class FirstFrameArt
         var view = new WorldView(database, viewer);
         if (frontEndScenery is not null) view.FrontEndScenery = frontEndScenery;
         var keys = new HashSet<AssetRef>();
+        if (frontEndScenery is not null)
+            foreach (FrontEndProp prop in frontEndScenery)
+                if (prop.MarkerSlot.HasValue) Add(keys, prop.View.Mesh);
         foreach (AssetRef key in view.TerrainArtKeys(world)) Add(keys, key);
 
         foreach (CreatureView creature in view.Creatures(world))

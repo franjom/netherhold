@@ -22,6 +22,7 @@ public sealed class FrontEndSession
         _flow = new FrontEndFlow(returnPage);
     }
 
+    public TimeSpan Now => _now;
     public FrontEndPage Page { get; private set; }
     public bool PathPlaying => _path is { Finished: false };
     public FrontEndPath? Path => _path is null ? null : (FrontEndPath)_path.PathId;
@@ -29,6 +30,7 @@ public sealed class FrontEndSession
     public FrontEndState State => _flow.State;
     public event Action<FrontEndOperation>? OperationRequested;
     public event Action<FrontEndPage>? PageChanged;
+    public event Action<TimeSpan>? Updated;
 
     public void Update(TimeSpan now)
     {
@@ -36,6 +38,7 @@ public sealed class FrontEndSession
         _now = now;
         _path?.Seek(1 + (now - _pathStarted).TotalSeconds * SimulationTiming.TicksPerSecond);
         Apply(_flow.Update(PathPlaying));
+        Updated?.Invoke(now);
     }
 
     public bool TryTransition(FrontEndTransition transition)

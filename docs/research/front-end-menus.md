@@ -146,9 +146,8 @@ order and, by tile index:
 | 10 | thirty land pieces, object 0x66 (102), mesh resource world +0x9F24 + i*0x1B (the `3dmap_level` set), slot byte +0x173 = i+1, state 0x2B; slot 30 shown only when `0x00559740` returns 1 | `0x00713682[25]` (campaign land pieces) followed by `0x007136B4[5]` (the five secret pieces); one 30-entry write fills both | STRONGLY INFERRED |
 
 All are flagged auto-placed room objects. `0x005395A0` (after the level loads and on map entry)
-tints the 25 campaign land pieces by map status (0x55A for status 1 or 3) and shows or hides the five
-secret-level land pieces (`0x007136B4[5]`) and the arrows (`0x00713652[24]`; their creator is
-unread). `0x00535950`, before the level load, requests the `3dmaplevel1_arrows`... mesh set
+sets the texture phase of the 25 campaign land pieces by map status (0x55A for status 1 or 3) and shows or hides the five
+secret-level land pieces (`0x007136B4[5]`) and the arrows (`0x00713652[24]`, created by `0x005357F0`). `0x00535950`, before the level load, requests the `3dmaplevel1_arrows`... mesh set
 (table `0x006B8E28`, stride 0x110) through the engine's resource slot +0x54.
 
 **Menu items are not bound to 3D objects** (STRONGLY INFERRED; object hooks on 0x83, 0x59,
@@ -156,14 +155,14 @@ unread). `0x00535950`, before the level load, requests the `3dmaplevel1_arrows`.
 are 2D widgets drawn over a camera parked at a station; only the tables are picked in 3D.
 The campaign map pick `0x00538D00` accepts things of type 0x66 or 0x73 by their slot byte
 +0x173 (slots 1-30 and 0x97-0xAE); the 0x66 pieces are the ones `0x004DEF30` makes, the
-creator of the 0x73 ones is unread. The seven MPD pieces (0x85) go through `0x005392E0`, which
+0x73 arrows come from `0x005357F0`. The seven MPD pieces (0x85) go through `0x005392E0`, which
 was not re-read for this.
 F2 builds the room, decorative props and typed station flow (`FrontEndScenery`,
 `FrontEndFlow`, `FrontEndSession`). Prop creation includes the factory's floor clamp,
 authored animation phases and retained descriptor lights; see the function records
 for `0x004DEF30` and `0x004B5020`. F3 adds the 32-page/402-widget catalogue and
-interactive shell pages. Campaign picking, status tint/markers and operation
-consumers remain later phases. No matched-original visual acceptance is claimed.
+interactive shell pages; F4 adds campaign picking, marker/texture-phase state and
+briefing navigation (campaign-map sibling). Other consumers remain later phases. No matched-original visual acceptance is claimed.
 
 ## 4. Input, hover and click model
 
@@ -180,7 +179,8 @@ consumers remain later phases. No matched-original visual acceptance is claimed.
 shells, Extras and Quit confirmation. Pointer hold suppression, hover/fade and sound
 hooks are implemented; playback is F8. Deferred actions are dimmed as a temporary
 capability gate, not as a reading of native campaign availability. Option values,
-media, campaign reset dialogs and other generic-dialog uses remain later phases.
+media and other generic-dialog uses remain later phases; F4 builds reset
+confirmation and campaign map/briefing navigation (see the campaign-map sibling).
 
 Font replacement follows ADR-0539. Native measurement uses the advance/line-height
 canvas ([glyph measurement](functions/006335D0.md)); visible ink retains its bearing

@@ -69,13 +69,13 @@ which is a file, not the registry: `Data\Settings\HiScores.dat`, ten 0x84-byte r
 | Value | Meaning | Map shows | Selectable | Provenance |
 |---|---|---|---|---|
 | 0 | locked | hidden marker | no | `0x005395A0`, `0x005393B0` |
-| 1 | won | land piece tinted (`+0x74/+0x78` = `0x55A`) | **yes, replayable** | `0x005393B0` accepts 1 or 2 |
-| 2 | open, not won | marker visible, blinks for the first 10 s | yes | `0x00538D00` |
-| 3 | the branch sibling not taken | land piece tinted | **no** | `0x005393B0` accepts only 1 or 2 |
+| 1 | won | land texture phase `0x55A` | **yes, replayable** | `0x005393B0` accepts 1 or 2 |
+| 2 | open, not won | arrow visible; blink timing in section 3 | yes | `0x00538D00` |
+| 3 | the branch sibling not taken | land texture phase `0x55A` | **no** | `0x005393B0` accepts only 1 or 2 |
 
-Confidence: STRONGLY INFERRED for the values and selectability; the visual meaning of
-`0x55A` / `0xFFF` (written to thing `+0x74`/`+0x78`) is HYPOTHESIS (likely a light/tint
-level).
+Confidence: STRONGLY INFERRED. The visual values are texture phases, not a light
+or RGB tint: thing+0x74/+0x78 are RenderInfo+0x30/+0x34; see
+[the static draw](functions/0059CCF0.md) and [phase getter](functions/0043C240.md).
 
 ### 2.2 What a win and a loss write (`Player_EndLevelStatistics` `0x004BE630`)
 
@@ -155,14 +155,14 @@ level never changes `Player Level Status`.
 | Fact | Provenance | Confidence |
 |---|---|---|
 | It is a 3D scene drawn by the engine: the front end has its own world, and the map's pieces are things in it. The meshes are the `3dmap_*` and `MPD_map*` resources `0x004DFAA0` requests. | `0x004DFAA0`, `0x00538D00` picks things through the renderer (`[world+0x31182]` slot `+0x4C`) | STRONGLY INFERRED |
-| Each map slot has a **land piece** (the `3dmap_level` mesh, object type `0x66`; array `0x00713682`, 25 slots, then five secret pieces at `0x007136B4`; meshes from resource `+0x9F24 + 0x1B i` per `0x004DEF30`) tinted `0x55A` for status 1/3, and a marker (`0x00713652`, 24) shown only at status 2; secret pieces are hidden until unlocked | `0x005395A0`, `0x004DEF30` | STRONGLY INFERRED |
-| Picking: objects whose type byte `+0x12C` is `0x66` (land pieces) or `0x73` (creator unread) carry their slot in byte `+0x173` (1-30, or 151-174 = slot + 150 for a second piece). Hover over a selectable slot lights a piece through front-end world `+0x5F78 + 2n` (`0xFFF`; that this is the `0x00713682` array is unchecked), raises the marker with sound `0x32A`; leaving it restores both | `0x00538D00` | STRONGLY INFERRED |
-| For the first 10 s after entering, open (status 2) markers blink every 200 ms and the route pieces from the last-played map to the newly opened one blink (`0x00539710`, cases for Level Number 6-16, 21, 22) | `0x00538B90` sets the timer, `0x00538D00`, `0x00539710` | STRONGLY INFERRED |
-| Click on a selectable slot: Secret Level Number set, camera path 253 (`0xFD`) and menu `0x25` started, then `0x0053A010` launches the level | `0x005393B0`, `0x0053A010` | STRONGLY INFERRED |
+| Each map slot has a **land piece** (the `3dmap_level` mesh, object type `0x66`; array `0x00713682`, 25 slots, then five secret pieces at `0x007136B4`; meshes from resource `+0x9F24 + 0x1B i` per `0x004DEF30`) texture phase `0x55A` for status 1/3, and a marker (`0x00713652`, 24) shown only at status 2; secret pieces are hidden until unlocked | `0x005395A0`, `0x004DEF30` | STRONGLY INFERRED |
+| Picking: type 0x66 land carries tags 1..30; type 0x73 arrows carry 151..174 (= slot+150). Selectable hover changes its arrow phase and raises the land; leaving releases it. Exact height/timing rules are in the records. | `0x00538D00`, `0x004A35E0`; factory `0x005357F0` | STRONGLY INFERRED |
+| The first 10 seconds blink route land through 0x00539710. A missing route expires that timer. Afterwards open arrows blink every 200 ms while no selectable slot is hovered; another hover freezes their previous phases. | `0x00538B90`, `0x00538D00`, `0x00539710` | STRONGLY INFERRED |
+| Click sets Secret Level Number, starts path 253 and then prepares page 7. The briefing go command starts the session separately. | `0x005393B0`, `0x0053A010`; dispatcher command12 | STRONGLY INFERRED |
 | Entering the map plays front-end camera path 251 (`0xFB`) (`0x00538000` case 13) | `0x00538000` | STRONGLY INFERRED |
 | A 2D fallback exists: when `[0x0075AEAB]` is set the map is a backdrop image and the slot comes from a byte index bitmap (front-end world `+0x310B`, stride `+0x3117`) | `0x00538D00` | STRONGLY INFERRED |
 | New Campaign on an open, never-attempted level 1 skips the reset dialog, resets the profile (command `0x6D` = `0x00538B90(1)`) and flies to the map (path 251); nothing starts level 1 until a map piece is clicked | `0x00538000` case 1 (`0x005380E5`-`0x0053810A`), `0x005306F0` | STRONGLY INFERRED |
-| Per-level text on the map (name, briefing) | not found in the map code; the launch loads two `Obj Shots\<level> <n>` images (`0x0053AC60`) for the next screen | UNKNOWN; next `0x005391F0`(1, 7) menu 7 and `0x005306F0` command `0x2B` |
+| Briefing page 7 uses two Obj_Shots images, a gold heading from briefing strings 0/1, main objective 2 and subobjectives 3..5. Font/layout bindings are in the draw records. | `0x0053AC60`, `0x0053A280`, `0x0053A580` | STRONGLY INFERRED |
 
 ## 4. Transfer Creature
 
@@ -219,15 +219,11 @@ progress**. STRONGLY INFERRED.
 | Who reads Secret/Special Levels Completed (map trophies?) | xrefs of profile `+0x51`/`+0x91`; getter `0x005616A0`, `0x00561540` |
 | What `0x0055DDF0` tests before the reset in `0x0052EFE0` | `0x0055DDF0` |
 | Source of world `+0x722E` (secret/special index) | LEVEL loader; candidate KWD `SpecialLevelIndex` (file 25545) |
-| Briefing screen text and what menu 7 shows | `0x005391F0`, `0x005306F0` command `0x2B`, `0x00535C30` |
 | Text/speech ids in `0x006B0DD0` (0x589 ...): which string table | `0x00553AF0` |
 | Thing id 28 in the finale; state 228 | `0x004BF410`, `0x00473F80` |
 | `0x004C0280` (per-player value at `+0xB15`) | `0x004C0280` |
 | MPD table input | `0x005384F0` |
 | `0x0053C3C0` cases 1-4 fully (restart / next after the result) | `0x0053C3C0`, `0x0053C520` |
-
-Estimated unread in this scope: about **14 functions** (the nine rows above plus
-`0x00536FA0`, `0x0055B480`, `0x005392E0`, `0x00539490`, `0x0053CAF0`).
 
 ## Owner recollections and remaining checks (2026-10-25)
 
@@ -239,12 +235,22 @@ status 3 cannot be selected; the branch closes on a **win**, not merely on selec
 The full/new moon discrepancy is in §2.4. The post-win text/Mentor screen is not
 recalled clearly; inspect `0x0053B980` against a recorded ordinary campaign win.
 
-## F1 storage boundary
+## Implementation boundary
 
-`CampaignProfile` keeps native-width campaign fields and separate result arrays;
-F4/F5 will provide progression rules. File/import policy is ADR-0538. The native
-query helper `0x00562260` ignores the returned registry type: the owner's 160-byte
-Player Level Status uses type 9, which managed Registry.GetValue cannot decode.
-The importer therefore reads known arrays as raw bytes. Level Attempts is read
-on demand by `0x00561AF0`, independently of the profile loader; a failed query
-zeros its forty dwords. No original registry writes are reproduced by our import.
+F1 storage and F4 map/briefing are built. `CampaignProgression` supplies immutable
+reset, first-open repair, win-branch and hidden-land unlock rules. World result
+handling, special-pickup integration, scores and finale consumers remain F5.
+`CampaignMapController` drives selection and camera gates; Unity picks actual
+triangles and presents native arrow/land texture phases. No simulation entities,
+world timing or hash format change is needed.
+
+The briefing resolves all 29 playable map slots through the separate table at
+0x006BC100 (`BriefingTextTable`), including LEVELS1..5 and MPD-specific filenames.
+Original-size live glyphs and bitmap fallback follow ADR-0539. A launch event
+seam exists, but the displayed go button stays disabled until a session consumer
+is attached in F5. No matched original-game visual acceptance is claimed.
+
+File/import policy is ADR-0538. The native query helper 0x00562260 ignores returned
+registry type; the importer reads known arrays as raw bytes. Level Attempts is
+loaded independently on demand. Original registry values are never written by
+our import or by the new campaign file.

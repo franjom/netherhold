@@ -2,11 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Simulation;
+
 namespace DK2.Presentation;
 
 public readonly record struct FrontEndPointer(float X, float Y, bool PrimaryHeld);
 public readonly record struct FrontEndSoundRequest(int Id);
-public sealed record FrontEndDialog(uint TitleTextId, uint BodyTextId, FrontEndPage ReturnPage);
+public enum FrontEndDialogKind { Quit, ResetCampaign }
+public sealed record FrontEndDialog(uint TitleTextId, uint BodyTextId, FrontEndPage ReturnPage,
+    FrontEndDialogKind Kind = FrontEndDialogKind.Quit, uint SecondaryTextId = 0);
 public readonly record struct FrontEndWidgetState(bool Enabled, bool Hovered, bool Pressed, int GlowFrame);
 
 /// <summary>Front-end widget input and shell navigation. Later phases supply campaign and media actions.</summary>
@@ -14,12 +18,14 @@ public sealed class FrontEndMenuController : IDisposable
 {
     private sealed class HoverState { public int Fade = -1; public bool SoundPlayed; }
     private readonly FrontEndSession _session;
+    public CampaignMapController? Campaign { get; }
     private readonly Func<FrontEndWidget, FrontEndRect> _hitBounds;
     private readonly Dictionary<FrontEndWidgetId, HoverState> _hover = new();
     private FrontEndWidgetId? _underPointer;
     private bool _held;
-    public FrontEndMenuController(FrontEndSession session, Func<FrontEndWidget, FrontEndRect> hitBounds)
+    public FrontEndMenuController(FrontEndSession session, Func<FrontEndWidget, FrontEndRect> hitBounds, CampaignMapController? campaign = null)
     {
+        Campaign = campaign;
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _hitBounds = hitBounds ?? throw new ArgumentNullException(nameof(hitBounds));
         _session.PageChanged += PageChanged;
@@ -37,7 +43,9 @@ public sealed class FrontEndMenuController : IDisposable
         return Page switch
         {
             FrontEndPage.Main => id is 1 or 3 or 4 or 5,
-            FrontEndPage.SinglePlayer => id == 9,
+            FrontEndPage.SinglePlayer => id == 9 || Campaign is not null && id is 6 or 567,
+            FrontEndPage.CampaignMap => Campaign is not null && id == 534,
+            FrontEndPage.Briefing => Campaign is not null && (id == 169 || id == 170 && Campaign.CanLaunch),
             FrontEndPage.Options => id is 110 or 111 or 112 or 113,
             FrontEndPage.Graphics => id is 129 or 130,
             FrontEndPage.Sound => id is 146 or 147,
@@ -91,9 +99,25 @@ public sealed class FrontEndMenuController : IDisposable
         if (sound != 0) SoundRequested?.Invoke(new(sound));
         if (Page == FrontEndPage.Dialog)
         {
-            if (id.Value == 667) QuitRequested?.Invoke();
+            if (id.Value == 667)
+            {
+                if (Dialog!.Kind == FrontEndDialogKind.ResetCampaign) return Campaign!.StartNew();
+                QuitRequested?.Invoke();
+            }
             else _session.TryShowPage(Dialog!.ReturnPage);
             return true;
+        }
+        if (Campaign is not null)
+        {
+            if (Page == FrontEndPage.CampaignMap) return Campaign.BackToMenu();
+            if (Page == FrontEndPage.Briefing) return id.Value == 169 ? Campaign.BackToMap() : Campaign.Launch();
+            if (Page == FrontEndPage.SinglePlayer && id.Value == 567) return Campaign.Continue();
+            if (Page == FrontEndPage.SinglePlayer && id.Value == 6)
+            {
+                if (!CampaignProgression.NeedsResetConfirmation(Campaign.Profile)) return Campaign.StartNew();
+                Dialog = new(140, 2847, FrontEndPage.SinglePlayer, FrontEndDialogKind.ResetCampaign, 15);
+                return _session.TryShowPage(FrontEndPage.Dialog);
+            }
         }
         FrontEndAction action = widget.Primary;
         if (action.Kind == FrontEndActionKind.SwapPage)

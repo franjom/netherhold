@@ -225,4 +225,6 @@ optionally imports campaign progress only when our file is absent. Pass a path
 under the application's own persistent-data directory. `Save` replaces our file
 atomically; malformed or unsupported files are reported, never reset silently.
 `HiScoresFile` reads/writes the runtime 10-row format; supply an application-owned
-output path. File/import policy and remaining integration: ADR-0538 and F2-F5.
+output path. File/import policy: ADR-0538.
+`CampaignBriefingLoader` reads campaign metadata and the separate briefing string
+table for the F4 map view; game-session result integration remains F5.

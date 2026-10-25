@@ -27,6 +27,7 @@ namespace DK2.Unity
             public Texture2D[] Glow;
             public CharacterInfo[] FontGlyphs;
             public bool UsesFont;
+            public bool Clip;
             public FrontEndTextAlignment Alignment;
             public FrontEndVerticalAlignment Vertical;
         }
@@ -53,10 +54,10 @@ namespace DK2.Unity
         }
         public bool UsingReplacementFont => _labels.Values.Any(label => label.UsesFont);
 
-        public ClassicFrontEndMenu(Transform parent, FrontEndSession session, IClassicFrontEndMenuAssets assets)
+        public ClassicFrontEndMenu(Transform parent, FrontEndSession session, IClassicFrontEndMenuAssets assets, CampaignMapController campaign = null)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
-            Model = new FrontEndMenuController(session, HitBounds);
+            Model = new FrontEndMenuController(session, HitBounds, campaign);
             _panel = ScriptableObject.CreateInstance<PanelSettings>();
             _panel.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
             _panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
@@ -114,6 +115,10 @@ namespace DK2.Unity
             foreach (FrontEndWidget widget in Model.Widgets)
             {
                 uint textId = widget.TextId;
+                string text = null;
+                bool clip = false;
+                FrontEndTextAlignment alignment = FrontEndLabelStyles.AlignmentFor(widget);
+                FrontEndVerticalAlignment vertical = FrontEndLabelStyles.VerticalFor(widget);
                 FrontEndFont fontSpec = FrontEndLabelStyles.FontFor(widget.Draw);
                 if (widget.Draw == FrontEndDrawKind.Title)
                 { textId = widget.TextId < TitleIds.Length ? TitleIds[widget.TextId] : 0; }
@@ -121,18 +126,34 @@ namespace DK2.Unity
                 {
                     if (widget.Id.Value == 684) textId = Model.Dialog.TitleTextId;
                     else if (widget.Id.Value == 686) textId = Model.Dialog.BodyTextId;
+                    else if (widget.Id.Value == 666) textId = Model.Dialog.SecondaryTextId;
                     else continue;
                 }
+                else if (widget.Draw == FrontEndDrawKind.BriefingSection && Model.Campaign?.Briefing is CampaignBriefing briefing)
+                {
+                    bool heading = widget.DrawArgument2 == 1;
+                    text = widget.DrawArgument2 switch
+                    {
+                        1 => briefing.Heading,
+                        2 => briefing.MainObjective,
+                        3 => string.Join("\n\n", briefing.SubObjectives.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => "- " + s)),
+                        _ => "",
+                    };
+                    fontSpec = new FrontEndFont(heading ? FrontEndFontFamily.InGame : FrontEndFontFamily.FrontEnd, heading ? 24 : 14);
+                    alignment = heading ? FrontEndTextAlignment.Centre : FrontEndTextAlignment.Left;
+                    vertical = heading ? FrontEndVerticalAlignment.Centre : FrontEndVerticalAlignment.Top;
+                    clip = true;
+                }
                 else if (!FrontEndLabelStyles.IsText(widget.Draw)) continue;
-                if (textId == 0) continue;
-                string text = _assets.Text(textId);
+                if (text == null && textId == 0) continue;
+                text ??= _assets.Text(textId);
                 BitmapFont font = _assets.Font(fontSpec);
-                FrontEndLabelGeometry geometry = FrontEndLabelGeometry.Measure(font, text);
+                FrontEndLabelGeometry geometry = FrontEndLabelGeometry.Measure(font, text, clip ? (int)LabelBox(widget).Width : 0);
                 if (widget.Draw == FrontEndDrawKind.Title && geometry.Advance > 629)
                 { font = _assets.Font(new FrontEndFont(FrontEndFontFamily.FrontEnd, 28)); geometry = FrontEndLabelGeometry.Measure(font, text); }
                 _labels.Add(widget.Id, new LabelData { Widget = widget, Text = text, Geometry = geometry, Bitmap = Bitmap(font, geometry),
                     Glow = widget.Draw == FrontEndDrawKind.Label ? Glow(font, geometry) : null,
-                    Alignment = FrontEndLabelStyles.AlignmentFor(widget), Vertical = FrontEndLabelStyles.VerticalFor(widget) });
+                    Alignment = alignment, Vertical = vertical, Clip = clip });
             }
             _fontDirty = true;
         }
@@ -170,6 +191,11 @@ namespace DK2.Unity
             if (_shown == FrontEndPage.None) return;
             float sx = _canvas.contentRect.width / 640, sy = _canvas.contentRect.height / 480;
             if (sx <= 0 || sy <= 0) return;
+            if (Model.Page == FrontEndPage.Briefing && Model.Campaign?.Briefing is CampaignBriefing briefing)
+            {
+                Quad(context, _assets.ObjectiveShot(briefing.Slot, CampaignObjectiveShot.First), new FrontEndRect(20, 110, 144, 112), Color.white, sx, sy);
+                Quad(context, _assets.ObjectiveShot(briefing.Slot, CampaignObjectiveShot.Second), new FrontEndRect(20, 242, 144, 112), Color.white, sx, sy);
+            }
             foreach (FrontEndWidget widget in Model.Widgets)
             {
                 FrontEndWidgetState state = Model.State(widget);
@@ -200,7 +226,7 @@ namespace DK2.Unity
         }
         private static Color32 LabelColour(FrontEndWidget widget, bool hovered, byte alpha)
         {
-            if (widget.Draw == FrontEndDrawKind.Title) return new Color32(255, 176, 51, alpha);
+            if (widget.Draw == FrontEndDrawKind.Title || widget.Draw == FrontEndDrawKind.BriefingSection && widget.DrawArgument2 == 1) return new Color32(255, 176, 51, alpha);
             if (widget.Draw == FrontEndDrawKind.Label)
                 return hovered ? new Color32(255, 255, 255, alpha) : new Color32(191, 191, 191, alpha);
             switch (widget.DrawArgument2 >> 16)
@@ -214,15 +240,26 @@ namespace DK2.Unity
         private void DrawLabel(MeshGenerationContext context, LabelData label, FrontEndRect ink, Color32 tint, float sx, float sy)
         {
             if (!label.UsesFont)
-            { Quad(context, label.Bitmap, ink, tint, sx, sy); return; }
+            { LabelQuad(context, label, label.Bitmap, ink, tint, sx, sy, new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), Vector2.zero); return; }
             Texture atlas = _fontAtlas;
             for (int i = 0; i < label.Geometry.Glyphs.Count; i++)
             {
                 FrontEndGlyph glyph = label.Geometry.Glyphs[i]; CharacterInfo info = label.FontGlyphs[i];
                 var rect = new FrontEndRect(ink.X + glyph.InkBounds.X - label.Geometry.InkBounds.X,
                     ink.Y + glyph.InkBounds.Y - label.Geometry.InkBounds.Y, glyph.InkBounds.Width, glyph.InkBounds.Height);
-                Quad(context, atlas, rect, tint, sx, sy, info.uvTopLeft, info.uvTopRight, info.uvBottomRight, info.uvBottomLeft);
+                LabelQuad(context, label, atlas, rect, tint, sx, sy, info.uvTopLeft, info.uvTopRight, info.uvBottomRight, info.uvBottomLeft);
             }
+        }
+        private void LabelQuad(MeshGenerationContext context, LabelData label, Texture texture, FrontEndRect rect,
+            Color32 tint, float sx, float sy, Vector2 tl, Vector2 tr, Vector2 br, Vector2 bl)
+        {
+            if (!label.Clip) { Quad(context, texture, rect, tint, sx, sy, tl, tr, br, bl); return; }
+            FrontEndRect clipped = rect.Intersect(LabelBox(label.Widget));
+            if (clipped.Width <= 0 || clipped.Height <= 0) return;
+            float x0 = (clipped.X - rect.X) / rect.Width, x1 = (clipped.X + clipped.Width - rect.X) / rect.Width;
+            float y0 = (clipped.Y - rect.Y) / rect.Height, y1 = (clipped.Y + clipped.Height - rect.Y) / rect.Height;
+            Vector2 Uv(float x, float y) => Vector2.Lerp(Vector2.Lerp(tl, tr, x), Vector2.Lerp(bl, br, x), y);
+            Quad(context, texture, clipped, tint, sx, sy, Uv(x0, y0), Uv(x1, y0), Uv(x1, y1), Uv(x0, y1));
         }
         private static void Quad(MeshGenerationContext context, Texture texture, FrontEndRect rect, Color32 tint, float sx, float sy)
             => Quad(context, texture, rect, tint, sx, sy, new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), Vector2.zero);

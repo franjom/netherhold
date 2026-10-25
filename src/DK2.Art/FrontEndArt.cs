@@ -22,6 +22,12 @@ public static class FrontEndArt
             entries.Add(new ArtEntry(FrontEndAssets.CampaignPiece(piece), ArtUse.Model,
                 new Dk2ArtResource(name, 5), "front-end campaign land"));
         }
+        for (int value = 1; value <= 24; value++)
+        {
+            var slot = new CampaignSlot(value);
+            entries.Add(new ArtEntry(FrontEndAssets.CampaignMarker(slot), ArtUse.Model,
+                new Dk2ArtResource("3dmap" + slot.LevelName + "_arrows", 5), "front-end campaign marker"));
+        }
         foreach (PetDungeonMapPiece piece in Enum.GetValues(typeof(PetDungeonMapPiece)))
             entries.Add(new ArtEntry(FrontEndAssets.PetDungeonPiece(piece), ArtUse.Model,
                 new Dk2ArtResource("MPD_map" + (int)piece, 5), "front-end pet dungeon land"));

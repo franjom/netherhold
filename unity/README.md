@@ -32,10 +32,15 @@ For the front end, set **Session Mode** to **Front End** on the runner
 before Play, or use **DK2 / Front End / Open Front End** while playing. The
 **Preview** submenu flies to Options, Extras, the campaign table, Pet Dungeon or
 Multiplayer. Main, Single Player, Options and Extras shells and Quit confirmation
-are clickable. Campaign, loading, multiplayer and media actions remain dimmed
-until their phases are implemented; option values are not yet bound. Menu labels
+are clickable. New/Continue Campaign lead to the3D map and briefing; locked and closed
+branches cannot be picked. Reset confirmation preserves progress on cancel.
+The briefing go button awaits the F5 session consumer. Loading, multiplayer
+and media actions remain dimmed; option values are not yet bound. Menu labels
 use the local TrueType face described below, with original bitmap fallback and
 original glyph metrics (ADR-0539).
+Campaign progress uses `campaign-profile.dk2p` under Unity
+`Application.persistentDataPath`; first creation may import the original registry
+read-only. The runner Campaign Profile File override supports isolated probes.
 Runtime callers use `DungeonRunner.LoadLevel(GameSessionRequest)` to switch a
 named campaign level or return to the front end. The replacement preserves the
 runner's render settings and campaign fog setting. No scene file is saved.
