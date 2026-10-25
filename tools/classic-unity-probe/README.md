@@ -65,6 +65,25 @@ geometry/light exclusion, a frozen effect clock and repeated baselines.
 `DK2_PORTAL_PERFORMANCE_OUTPUT` selects the output directory. CSV contains
 scoped CPU timings, recent custom-marker counters and active run counts;
 PNGs check the fixture. Explicit render-request time is not GPU time or FPS.
+For ordinary screen rendering, use a prepared isolated project with current
+production Assets and DK2 DLLs, then run:
+
+```powershell
+./tools/classic-unity-probe/run-window-frames.ps1 `
+  -Unity 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe' `
+  -Project 'D:/DungeonKeeperRemake/build/tag-overlay-probe/project' `
+  -OutputRoot 'D:/DungeonKeeperRemake/build/portal-introduction-live' `
+  -PortalIntroduction -VisiblePlayer
+```
+
+No open Unity session is needed. The launcher builds an isolated Development
+player and exits after the normal Level2 Warlock introduction capture. Reuse
+that executable with `-ExistingPlayer <path>` and add `-OmitArrivalEffect` for
+the matched control; repeat without omission to check stability. Keep the
+profiling window visible: hidden windows can skip rendering entirely. A failed
+`RenderingVerified` check invalidates performance results. CSV, PNG, metadata,
+logs, source fingerprints and built managed-DLL hashes accompany each capture.
+
 Setup, measured results and limits: [portal arrival performance](../../docs/research/portal-arrival-performance.md).
 
 ## Camera reference capture

@@ -9,7 +9,10 @@ param(
     [string]$OutputRoot = 'D:/DungeonKeeperRemake/build/classic-window-frames',
     [switch]$VisiblePlayer,
     [switch]$RotationCapture,
-    [switch]$AllocationTrace
+    [switch]$AllocationTrace,
+    [switch]$PortalIntroduction,
+    [switch]$OmitArrivalEffect,
+    [string]$ExistingPlayer
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
@@ -52,9 +55,19 @@ foreach ($module in @('com.unity.modules.screencapture', 'com.unity.modules.imag
 Copy-Item -LiteralPath "$PSScriptRoot/ClassicWindowFrameProbe.cs" -Destination "$projectPath/Assets/DK2/ClassicWindowFrameProbe.cs" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/ClassicWindowFrameBuild.cs" -Destination "$projectPath/Assets/DK2/Editor/ClassicWindowFrameBuild.cs" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/ClassicRotationProbe.cs" -Destination "$projectPath/Assets/DK2/ClassicRotationProbe.cs" -Force
+Copy-Item -LiteralPath "$PSScriptRoot/Level8MotionProbe.cs" -Destination "$projectPath/Assets/DK2/Level8MotionProbe.cs" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/ClassicRotationProfileReport.cs" -Destination "$projectPath/Assets/DK2/Editor/ClassicRotationProfileReport.cs" -Force
+Copy-Item -LiteralPath "$PSScriptRoot/PortalIntroductionProfile.cs" -Destination "$projectPath/Assets/DK2/PortalIntroductionProfile.cs" -Force
+if ($PortalIntroduction) {
+    $editorAssemblyPath = "$projectPath/Assets/DK2/Editor/DK2.Unity.Editor.asmdef"
+    $editorAssembly = Get-Content -LiteralPath $editorAssemblyPath -Raw | ConvertFrom-Json
+    $editorAssembly.references = @(@($editorAssembly.references) + @('Unity.RenderPipelines.Universal.Runtime', 'Unity.RenderPipelines.Core.Runtime') | Select-Object -Unique)
+    [IO.File]::WriteAllText($editorAssemblyPath, ($editorAssembly | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
+}
 $env:DK2_DIR = $Install
 $env:DK2_WINDOW_ROTATION_PROBE = if ($RotationCapture) { '1' } else { '0' }
+$env:DK2_PORTAL_INTRO_PROFILE = if ($PortalIntroduction) { '1' } else { '0' }
+Copy-Item -LiteralPath "$PSScriptRoot/PortalIntroductionProfile.cs" -Destination "$run/probe-source.cs"
 if ($AllocationTrace -and !$RotationCapture) { throw '-AllocationTrace requires -RotationCapture.' }
 git -C $repo rev-parse HEAD | Set-Content -LiteralPath "$run/commit.txt"
 Get-ChildItem -LiteralPath "$projectPath/Assets/Plugins/DK2" -Filter '*.dll' |
@@ -111,15 +124,21 @@ function Run-ProbeProcess([string]$Executable, [string[]]$Arguments, [int]$Timeo
     }
     if ($process.ExitCode -ne 0) { throw "Probe PID $($process.Id) exited $($process.ExitCode); see $run." }
 }
-$player = Join-Path $run 'player/ClassicWindowFrame.exe'
-Run-ProbeProcess $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', $projectPath,
-    '-executeMethod', 'DK2.Unity.Editor.ClassicWindowFrameBuild.Build', '-windowProbeBuild', $player,
-    '-logFile', "$run/build.log") 600 $false
+$player = if ($ExistingPlayer) { [IO.Path]::GetFullPath($ExistingPlayer) } else { Join-Path $run 'player/ClassicWindowFrame.exe' }
+if (!$ExistingPlayer) {
+    Run-ProbeProcess $Unity @('-batchmode', '-quit', '-nographics', '-projectPath', $projectPath,
+        '-executeMethod', 'DK2.Unity.Editor.ClassicWindowFrameBuild.Build', '-windowProbeBuild', $player,
+        '-logFile', "$run/build.log") 600 $false
+}
 if (!(Test-Path -LiteralPath $player)) { throw "Player was not built; see $run/build.log." }
+Get-FileHash -LiteralPath $player -Algorithm SHA256 | Select-Object Path, Hash | Export-Csv "$run/player-hash.csv" -NoTypeInformation
+$managed = Join-Path ([IO.Path]::GetDirectoryName($player)) (([IO.Path]::GetFileNameWithoutExtension($player)) + '_Data/Managed')
+Get-ChildItem -LiteralPath $managed -File | Where-Object { $_.Name -eq 'Assembly-CSharp.dll' -or $_.Name -like 'DK2*.dll' } | Get-FileHash -Algorithm SHA256 | Select-Object Path, Hash | Export-Csv "$run/player-managed-hashes.csv" -NoTypeInformation
 Set-Content -LiteralPath "$run/window-mode.txt" -Value "VisiblePlayerExplicitOptIn=$($VisiblePlayer.IsPresent)"
-$playerArguments = @('-screen-fullscreen', '0', '-screen-width', '1280', '-screen-height', '720',
+$playerArguments = @('-screen-fullscreen', '0', '-screen-width', $(if ($PortalIntroduction) { '1920' } else { '1280' }), '-screen-height', $(if ($PortalIntroduction) { '1080' } else { '720' }),
     '-windowProbeOutput', $run, '-logFile', "$run/player.log")
 if ($AllocationTrace) { $playerArguments += '-rotationAllocationTrace' }
+if ($OmitArrivalEffect) { $playerArguments += '-omitArrivalEffect' }
 Run-ProbeProcess $player $playerArguments 240 (!$VisiblePlayer.IsPresent) $VisiblePlayer.IsPresent
 if (!(Test-Path -LiteralPath "$run/frames.csv")) { throw "No completed windowed capture; see $run/player.log." }
 if ($AllocationTrace) {

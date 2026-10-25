@@ -10,7 +10,8 @@ checked the source, all seven phase aggregates and the rendered close-up.
 
 The owner's Level2 Warlock-introduction screenshot reports 14 FPS, 71.86ms
 average and 75.69ms slowest in a half-second window. The probe establishes a
-substantial rendering cost, not the cause of that entire frame interval.
+substantial rendering cost. The ordinary-player comparison below reproduces
+that frame interval and isolates the arrival effect as a major contributor.
 No optimization or gameplay change was made.
 
 ## Controlled experiment
@@ -100,20 +101,94 @@ where ordering permits. Simply bypassing the shared stream would regress the
 disc/chasm occlusion fixed in the arrival renderer. Any optimization needs the
 existing terrain/effect ordering probes and matched moving-effect measurements.
 
-## Limits and next measurement
+## Ordinary player CPU/GPU capture
 
-This is an Editor batch probe with explicit render requests, not the ordinary
-standalone/editor game loop. GPU duration, actual draw calls and GPU overdraw
-were not measured. The exact Level2 camera, fog state, live creature animation,
-HUD and worker waits in the owner's frame remain unprofiled. A full live or
-standalone CPU/GPU capture of that introduction is required to attribute all72ms.
+CONFIRMED in the remake, 2026-10-25: a rendered Development player reproduces
+roughly the reported frame interval. Suppressing only arrival effect165
+substantially reduces CPU frame interval and measured GPU duration. Repeating
+the full effect after the control reproduces the slowdown.
 
-Edit-mode effect teardown logs Destroy errors; all420 measured close-up samples
-recorded zero warnings/errors during their timed work. Cold and teardown frames
-are excluded. Per-frame metric collection and screenshots are outside the scoped
-timers but can perturb later editor/GC scheduling. Marker counters describe
-recent completed editor frames; 15 warmup callbacks exclude phase boundaries.
-No exact allocation claim is made; Mono's allocation-counter trap still applies.
+`PortalIntroductionProfile.cs` runs the production Level2 scene at1920x1080,
+seed1, native ambient, fog, classic meshes/lighting, HUD and worker ticks.
+It claims the portal and reveals its surroundings while simulation is frozen,
+skips the initial cinematic, then invokes the existing trigger executor's
+original action65531 ->65530 chain after10s warmup. This creates the Warlock
+and starts authored camera path60 at AP4. Normal player rendering and simulation
+then run for14s. The control drops only effect165's request; it retains the
+creature, camera path, notifications and other world effects. Each capture
+verified exactly one effect request and one path60 request.
 
-This investigation does not recommend reducing the effect's authored particles,
-colour or brightness to hide the performance cost.
+Environment: Unity6000.6.0f1, Direct3D11, Ryzen7 7735HS and integrated Radeon,
+VSync off and uncapped. These are serial captures of the same built player;
+executable and managed DLL SHA256 fingerprints are retained per run. Artifacts
+under `build/portal-introduction-live/`:
+
+| Capture | Directory | Samples / rendered callbacks |
+|---|---|---:|
+| Full effect | `20261025-134403` | 3052 /3051 |
+| Omit effect165 | `20261025-134444` | 3156 /3155 |
+| Full effect repeated | `20261025-134536` | 3192 /3191 |
+
+All three passed rendering verification, have nonblank screenshots showing the
+Warlock camera introduction, and contain no warning/error/exception log entries.
+The earlier hidden-window run `20261025-134254` had zero rendered callbacks and
+a black screenshot; it failed verification and supplies no performance evidence.
+
+Medians in milliseconds for introduction seconds3.0 through5.5, away from
+injection, the screenshot at2s and delayed timing boundaries:
+
+| Measurement | Full (36 frames) | Omitted (72 frames) | Full repeated (37 frames) |
+|---|---:|---:|---:|
+| Ordinary loop interval | 67.249 | 33.929 | 68.289 |
+| FrameTiming CPU frame | 68.135 | 34.080 | 68.135 |
+| FrameTiming GPU duration | 27.098 | 3.497 | 26.366 |
+| Main thread frame counter | 13.593 | 7.602 | 12.792 |
+| Render thread frame counter | 58.434 | 29.603 | 59.544 |
+| Inclusive transparent sort marker | 5.965 | 2.943 | 5.665 |
+| Depth ordering, nested in sort | 0.840 | 0.435 | 0.818 |
+| Run uploads, nested in sort | 4.893 | 2.375 | 4.507 |
+| Present wait marker | 39.458 | 22.521 | 42.733 |
+
+Full/full-repeat loop nearest-rank p95 is90.222/88.751ms. Earlier introduction
+seconds0.7-1.7 have loop medians88.286/83.194ms, versus23.488ms with the effect
+omitted. At seconds8-13, after the cinematic, all three return to about7ms.
+The inspected full screenshot displays13FPS /76.91ms; the control displays39FPS
+/25.37ms. Those overlays summarize their own earlier half-second windows,
+rather than the table's later window.
+
+Interpretation: the effect adds repeatable transparent preparation work and a
+large GPU-duration increase in this close-up. Rendering/presentation waits are
+also substantial, including in the control. CPU frame, main/render thread,
+GPU and wait counters overlap and describe delayed frames; do not add them to
+reconstruct a frame or attribute the residual interval to one function.
+These measurements do not isolate shader overdraw, driver overhead or the
+specific cause of the remaining presentation waits. The control GPU counter
+has intermittent26-29ms samples (p95 28.235ms); its low median does not imply
+uniformly low GPU time. Only70 of72 control-window rows have valid GPU timing.
+Draw-call and batch
+recorders returned zero despite nonzero triangles and rendered images; those
+counters are unavailable here, not evidence of zero draws.
+
+## Limits
+
+The player uses a prepared initial Level2 state with9 creatures after creation,
+not the owner's tick998 state with5. It uses Direct3D11 rather than the earlier
+Editor's Direct3D12. This is a controlled reproduction of the introduction,
+not an exact replay of the owner's frame. Effect omission removes both its
+geometry and lighting, so the GPU difference cannot be assigned exclusively
+to either. The separate geometry/light exclusions above narrow the CPU path.
+No optimization or gameplay change was made.
+
+FrameTimingManager returns delayed completed frames; timestamps are deduplicated,
+and boundary/screenshot windows are excluded. Recorder timing values convert
+nanoseconds to milliseconds; FrameTiming values already use milliseconds.
+Probe CSV formatting allocates, so allocation counters include probe overhead.
+The inspected screenshots and rendering callbacks validate actual screen work.
+
+The earlier Editor probe's edit-mode effect teardown logs Destroy errors;
+all420 measured close-up samples recorded zero warnings/errors during timed work.
+Cold and teardown frames are excluded from its aggregates. No exact allocation
+claim is made; Mono's allocation-counter trap still applies.
+
+This investigation does not recommend reducing authored particles, colour or
+brightness to hide the performance cost.
