@@ -12,12 +12,12 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
-  levels (docs/experiments/). M6 remains partial: the hash-303 packet-replay
-  measurement after withdrawing crystal collision and its hash-302 comparison
-  are in [the current experiment](experiments/2026-10-25-packet-replay-hash303/README.md).
-  It records the per-seed outcome changes, mapping limits and Level 3 progression.
-  The [Level 1 and Level 4 analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
-  traces their remaining losses and separates observed blockers from open causes.
+  levels (docs/experiments/). M6 remains partial: the latest completed packet
+  measurement is [hash305](experiments/2026-10-25-packet-replay-hash305/README.md),
+  pinned to `ae14f3b3`, with hash303/P2 comparisons and mapping limits. It does not
+  measure later master changes. The historical [hash303 failure analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
+  separates observed blockers from open causes; the current report checks the
+  persistent Level 1 Hatchery refusal and records the changed outcomes.
   The [decision parity audit](research/decision-parity-audit.md) verifies bounded
   chooser/RNG and combat checks, but identifies replay-drop and withdrawal limits;
   the [Imp selection study](research/imp-selection-evidence.md) adds three live
@@ -30,12 +30,13 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   the captured destination and route window. This is now built for the combat
   room cache in [hash/save305](research/room-list.md#persistent-player-list-order-hash305)
   (ADR-0541), including construction/capture/split order and snapshot state.
-  Campaign-loss causation remains open; the next replay measurement is pending.
+  The completed measurement is linked above; broader campaign-loss causation
+  and combat/scheduling parity remain open.
 - The Imp Secret Door job path is built (ADR-0536, hash/save 304), including
   per-keeper entry order and native reservation retention after interruptions.
   Scope, focused verification and pending original-game acceptance:
   [Secret Door work](research/imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
-  The latest campaign rate measurement remains hash303; no hash304 sweep was run.
+  Hash304 has no separate full sweep; the hash305 measurement includes both changes.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as

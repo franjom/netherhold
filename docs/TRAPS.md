@@ -9,6 +9,9 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Replay CSV labels its clock `tick`, but replay events TSV labels it `turn`; inspect the header before sharing a parser.
+- `docs/experiments/` is ignored: stage a requested report with `git add -f -- <exact README path>`, never the whole experiment directory.
+
 - `dotnet run -m:1 -- ...` forwards the unrecognized MSBuild switch to the app; use `dotnet build -m:1`, then run the built DLL.
 
 - If Codex's Windows shell fails before startup with `setup refresh had errors`, an approved command outside the sandbox can still run; Docker context-mode uses `/workspace`, not Windows drive paths.

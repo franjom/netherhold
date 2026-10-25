@@ -14,8 +14,9 @@ Original runs: `reverse-engineering/dk2runs/{level1-live1,level2-live2,
 level3-live1,level4-live1}/seed01/levelN.dk2cap`.
 This audit uses historical P2, now preserved under
 `D:/DK2Evidence/rig-2026-10-24/sets/P2/levelN/seed01–20`.
-P2's exact build commit is not established; its historical rates and the hash-302
-remeasurement are in [the current experiment](../experiments/2026-10-24-packet-replay-hash302/README.md).
+P2's exact build commit is not established. Its saved rates and the latest
+hash305 measurement are in [the current experiment](../experiments/2026-10-25-packet-replay-hash305/README.md).
+The state census below remains historical P2.
 
 Two fresh, serial 1100-turn runs used the existing Release tool on checkout
 `1b7a4cde`, seed 5, the original packets and P2's entity maps. Level 4 matched

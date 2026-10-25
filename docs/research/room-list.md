@@ -119,7 +119,8 @@ The native transfer itself preserves separate adjacent room records; conversion'
 caller immediately merges eligible neighbours (`004C5BE0`/`004EC900`).
 Our connected-component room model still cannot retain distinct adjacent rooms
 when a transfer has no such merge, including defeat. Other room-list consumers
-are not migrated by this change. Campaign-win effects require a new measurement.
+are not migrated by this change. The [completed hash305 comparison](../experiments/2026-10-25-packet-replay-hash305/README.md)
+records campaign outcomes; its hash303 baseline also predates hash304.
 
 Independent review passed110 focused checks and confirmed the production-history
 comparison. Final per-project validation totals6556 passed,0 failed,7 capture

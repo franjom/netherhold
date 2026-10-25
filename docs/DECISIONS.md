@@ -12440,8 +12440,8 @@ snapshots the losing player's list before transferring eligible rooms.
 **Consequences.** Existing snapshots are version-incompatible. The captured
 withdrawal can be reproduced without injecting a reordered combat cache.
 Distinct adjacent native room records remain outside the connected-component
-model, and other room-list readers remain separate work. Campaign-win effects
-require a fresh measurement.
+model, and other room-list readers remain separate work. Campaign outcomes are
+separate evidence: [the hash305 measurement](experiments/2026-10-25-packet-replay-hash305/README.md).
 
 ## ADR-0542 — Preserve native hero-party ordering
 **Date:** 2026-10-25 · **Status:** accepted

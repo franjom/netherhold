@@ -239,7 +239,8 @@ the live pair, controls,19 sealed artifacts and pinned inputs.
    change its policy or relabel it as strict replay.
 3. Room creation/list order is now retained by the combat cache in
    [hash305](room-list.md#persistent-player-list-order-hash305), with a production-history
-   boundary check. Measure campaign effects separately. Capture acquisition inputs at the earlier interruption:
+   boundary check. The [hash305 campaign comparison](../experiments/2026-10-25-packet-replay-hash305/README.md)
+   records outcomes separately. Capture acquisition inputs at the earlier interruption:
    scan counter, poses, candidate/attacker order, sight, target, state/resume and
    RNG. The new withdrawal result does not validate that earlier decision.
 4. Correct only an established mismatch, with native-backed focused fixtures,
