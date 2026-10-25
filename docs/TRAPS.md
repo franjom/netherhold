@@ -9,6 +9,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Docker MCP can list zero tools when a host mount is rejected; inspect `docker mcp gateway run --profile local --dry-run --verbose` and see `tools/context-mode/README.md` for the read-only allowlist.
+
 - `git add` can stage deletions before rejecting an ignored path; inspect the index before retrying, since already-staged deletions no longer match a pathspec.
 
 - PowerShell 5 with ErrorActionPreference=Stop treats native stderr as NativeCommandError; capture child stdout/stderr directly when expecting test failures.

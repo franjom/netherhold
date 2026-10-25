@@ -1,5 +1,13 @@
 {
   "mcpServers": {
+    "MCP_DOCKER": {
+      "type": "stdio",
+      "command": "docker",
+      "args": ["mcp", "gateway", "run", "--profile", "local"],
+      "env": {
+        "MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS": "D:\\DungeonKeeperRemake"
+      }
+    },
     "pyghidra-mcp": {
       "type": "stdio",
       "command": "python",
