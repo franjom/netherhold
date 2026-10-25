@@ -45,8 +45,8 @@ that the promotion emits particles which expire. Source evidence and limits:
 
 Add `-PortalMovement` for an original-art Goblin walking past the portal crystals.
 `DK2_PORTAL_MOVEMENT_CAPTURE_OUTPUT` selects PNG/position-CSV output. The probe
-checks every simulation segment and requires the creature to reach its goal.
-This verifies the remake's clipping correction, not native route parity.
+requires the creature to reach its goal; it no longer enforces crystal clearance
+following the owner's rollback (ADR-0527). Native route parity is not claimed.
 
 ## Camera reference capture
 

@@ -14,9 +14,11 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**303** — `0x391985F81BB2BA42`. FormatVersion also 303. Owner-directed withdrawal of the portal-crystal correction (ADR-0527): remove derived footprints, swept movement guards, target projection and predictive contacts; restore pre-correction steering. Portal rendering, hole navigation and Heart protection remain. No new snapshot fields. Hash-302 packet rates are historical; no hash-303 sweep has run.
+
 **302** — `0x2A9B65A5C2262075`. FormatVersion also 302. Scripted speech retains type 21 when SpeakOnly is zero; first Portal types retain 13/14 and request the level override line. `PlayerState.IntroducedCreatureTypes` and `CreatureState.StatusFlowerUntilTurn` are hashed/saved (ADR-0535). The fixture has no introductions but hashes the new empty lists and zero deadlines; sensitivity and restore tests cover nonzero state.
 
-**301** — `0x6DC0EE1B1BAD1B68`. FormatVersion301: retain runtime store-pile headings (furniture-placement.md §7). All Hand gold drops use the landing merge with optional fixed-point input, hashed with the command (gold-on-the-floor.md; keeper-spell-create-gold.md §3). Earlier replay/win measurements have not been rerun.
+**301** — `0x6DC0EE1B1BAD1B68`. FormatVersion301: retain runtime store-pile headings (furniture-placement.md §7). All Hand gold drops use the landing merge with optional fixed-point input, hashed with the command (gold-on-the-floor.md; keeper-spell-create-gold.md §3). Current packet measurements: [hash-302 experiment](../experiments/2026-10-24-packet-replay-hash302/README.md).
 
 **300** — `0x2F1568CD9D248B1B`. FormatVersion stays 297. Behaviour only: each portal crystal blocks the convex hull of its `Portal_Gem` primitive below body height instead of that primitive's full bounding box, padded by the mover's radius with bevelled corners (ADR-0527 amendment 2). No new fields.
 
@@ -393,8 +395,4 @@ at their initial enabled values in the pinned fixture, so this is composition on
 lock-pick timer entered (ADR-0159: the rest of the door model). The pinned world
 has no doors and makes no alliance, so this is composition only.
 
-**63** — `0xE53ED0F1EDDD2036`. A creature's route option word and a door's lock
-mode and open state entered (ADR-0158: doors in the navigation byte). The pinned
-world has no doors and requests no route, so this is composition only.
-
-[Versions 9–62](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–63](hash-versions-early.md) retain the earlier pins and their reasons.

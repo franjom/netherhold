@@ -9,6 +9,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- `git add` can stage deletions before rejecting an ignored path; inspect the index before retrying, since already-staged deletions no longer match a pathspec.
+
+- PowerShell 5 with ErrorActionPreference=Stop treats native stderr as NativeCommandError; capture child stdout/stderr directly when expecting test failures.
+
 - ClassicLightWindowTests.WarmGatherDoesNotAllocate once measured6440 bytes in a full run; isolated and full reruns passed. Investigate the allocation source before weakening its zero-allocation assertion.
 
 - Inspect original BMP captures in small batches; nine 1600×1200 images exceeded code-mode's 64MiB IPC frame limit.
@@ -96,6 +100,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `WadArchive.TryGetEntry` returns the later of two same-named entries; FrontEnd.WAD has 31 duplicate names (loading screens, `2dLevelS*`, Cancel/Confirm), so look those up by entry index ([front-end-assets.md](research/front-end-assets.md) §1.3).
 
 ## Builds, tests and dk2tools
+
+- Record HEAD with the build command; a later provenance snapshot can name a newer commit while the measured binaries remain unchanged.
 
 - `setup-dotnet` installs the exact SDK from `global.json`, ignoring its roll-forward policy; use a published SDK version, not the runtime version `10.0.0`.
 

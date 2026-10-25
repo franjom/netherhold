@@ -1,6 +1,10 @@
 # Early state-hash versions
 
-Versions 9–62, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–63, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**63** — `0xE53ED0F1EDDD2036`. A creature's route option word and a door's lock
+mode and open state entered (ADR-0158: doors in the navigation byte). The pinned
+world has no doors and requests no route, so this is composition only.
 
 **62** — `0xE4BA93698075EF4F`. The tile path, its index and the
 movement remainder left the creature; its heading and the steering body's

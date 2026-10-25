@@ -12,10 +12,10 @@ one observed state per turn; they are not inferred from event durations.
 
 Original runs: `reverse-engineering/dk2runs/{level1-live1,level2-live2,
 level3-live1,level4-live1}/seed01/levelN.dk2cap`.
-Our distribution: the existing `sets/P2/levelN/seed01–20` under
-`C:/Users/franj/AppData/Local/Temp/claude/d--DungeonKeeperRemake/`
-`ec762c7a-940e-4ac0-b16e-928afe1df4fc/scratchpad/`.
-Its recorded wins are 20/6/14/2. Its exact build commit is not established.
+This audit uses historical P2, now preserved under
+`D:/DK2Evidence/rig-2026-10-24/sets/P2/levelN/seed01–20`.
+P2's exact build commit is not established; its historical rates and the hash-302
+remeasurement are in [the current experiment](../experiments/2026-10-24-packet-replay-hash302/README.md).
 
 Two fresh, serial 1100-turn runs used the existing Release tool on checkout
 `1b7a4cde`, seed 5, the original packets and P2's entity maps. Level 4 matched

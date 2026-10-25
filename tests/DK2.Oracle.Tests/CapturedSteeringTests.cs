@@ -212,8 +212,8 @@ public class CapturedSteeringTests(ITestOutputHelper log)
         public byte NavByte(int x, int y) =>
             x < 0 || y < 0 || x >= width || y >= height ? NavBytes.Solid : (byte)bytes[y * width + x];
 
-        public bool CanMove(Fixed16Vector from, Fixed16Vector to, DK2.Core.Fp32 bodyRadius = default) => throw new NotSupportedException();
-        public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target, DK2.Core.Fp32 bodyRadius = default) => throw new NotSupportedException();
+        public bool CanMove(Fixed16Vector from, Fixed16Vector to) => throw new NotSupportedException();
+        public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target) => throw new NotSupportedException();
         public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into) => throw new NotSupportedException();
         public int CrowdWeight(Fixed16Vector point, int span) => throw new NotSupportedException();
         public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points) => throw new NotSupportedException();

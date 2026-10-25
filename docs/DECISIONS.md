@@ -12128,37 +12128,27 @@ on its own Heart passes the gate there. The centre's disposal is 71's give-back,
 credits the tile owner Create Imp's mana cost, clamped at the ceiling (`Player_AddMana`
 `0x004C19C0`), before the gold is lost (never on a ruined Heart: refused-states.md §3). Hash and snapshot 296 (295 on the branch, renumbered when merged with ADR-0530's 295), behaviour only.
 
-## ADR-0527 — Keep creatures outside portal crystals
+## ADR-0527 — Withdraw portal crystal collision
 
-**Date:** 2026-10-23 · **Status:** accepted · owner-requested clipping correction
+**Date:** 2026-10-23 · **Status:** withdrawn by the owner, 2026-10-25
 
-**Context.** The portal's visible crystals had no movement boundary in the remake.
-The checked native paths do not establish their original collision geometry.
-Evidence: [portal-crystal-collision.md](research/portal-crystal-collision.md).
+**Context.** The owner requested a clipping correction, then requested its removal
+and restoration of the movement from before that correction. Native crystal
+collision geometry remains outside the established evidence boundary; see
+[portal-crystal-collision.md](research/portal-crystal-collision.md).
 
-**Decision.** Use the four original crystal primitives' footprints (amendment 2:
-convex hulls below body height; first conservative boxes), expanded by creature radius, for swept movement checks, destination
-projection and steering contacts. Match the rendered piece classifier even on
-partial ownership fragments. Preserve the portal hole's navigation categories.
+**Decision.** Remove the derived crystal footprints, swept guards, destination
+projection and predictive contacts. Restore the six steering/interface files to
+`3f3811a4^`. Keep the rendered portal, portal-hole navigation and Heart core guard.
 
-**Consequences.** This is an explicit remake correction, not a claim that DK2
-used these bounds. Existing overlaps may escape toward a nearest face.
-Bounds are derived from room tiles; no new snapshot payload is needed.
-HashVersion and FormatVersion293 distinguish the movement change.
+**Consequences.** Creatures may overlap the visible pillars again. The former
+collision-specific near-wall matrix's completion guarantee is withdrawn;
+observed unfinished routes and targeted checks are recorded in the research note.
+No new native-behaviour claim is made. Hash/save 303 distinguishes this rollback;
+there is no new snapshot payload. Hash-302 replay measurements remain historical.
 
-**Amendment (2026-10-23).** Replace circumscribed steering circles with contacts
-at predicted swept-boundary crossings, retaining the same crystal bounds and
-hole rules. Three admitted near-wall routes stalled under the former contacts;
-the repaired90-route matrix completes. Still an explicit remake deviation.
-Hash/save294 includes this behavior repair and ADR-0528's rectangle state.
-
-**Amendment 2 (2026-10-24).** Owner report: creatures walked around the crystals in a wider
-arc than needed. The axis-aligned box, not the leaning tops, was the slack: each gem's convex
-hull below body height (render 1.85) fills 42–70% of its former box, whose corners stood up to
-0.24 tile clear of the crystal. Footprints become those hulls, padded by the crowd radius (half
-KWD `0xEA0`) along bevelled supporting lines. Swept checks, target projection, predictive
-contacts, the 90-route matrix and the hole's navigation categories are unchanged. Still an
-explicit remake deviation. HashVersion 300, behaviour only; FormatVersion stays 297.
+**History.** The withdrawn correction used boxes at hash 293, predictive contacts
+at 294, and hull footprints at 300 (`3305c504`). Git retains those implementations.
 
 ## ADR-0528 — Show scripted tutorial dig guidance
 

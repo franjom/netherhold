@@ -12,28 +12,26 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
-  levels (docs/experiments/). M6 remains partial: the original packet replays
-  of Levels 1–4 run over seeds 1–20 and win 20/6/14/2 on master (2c0473bf, ADR-0499).
-  The Level 1–3 seed spread against DK2's own seeds is in
-  experiments/2026-10-06-packet-replay-seeds/ (open difference Q567); Level 4's
-  is in experiments/2026-10-12-level4-packet-replay/. Level 4's largest gap is
-  Imp losses: the keeper loses a median 5 Imps a seed (272 over 20) where DK2
-  loses none, down from 16 through ADR-0488–0491 and ADR-0499.
+  levels (docs/experiments/). M6 remains partial: the hash-302 packet-replay
+  remeasurement and P2 comparison for all four levels are in
+  [the current experiment](experiments/2026-10-24-packet-replay-hash302/README.md),
+  including per-seed maps rebuilt from the restored native Level 2/3 captures
+  and the limits from missing entity counterparts.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
   DK2's do, with the hated-company rule (ADR-0479); the store sweep runs on
   DK2's turn (Q596). The stun counts from its first call (ADR-0480). Only a
   keeper's creatures run the needs, need-anger and mood choosers; heroes skip
-  them (ADR-0485, Q599). The L1–4 wins above predate this hash 254 change
-  and ADR-0486's hash 255; neither has been re-measured on the rig. Store gold
-  is built (ADR-0534, hash 299): every Treasury and unruined Heart draws the
+  them (ADR-0485, Q599). Store gold is built (ADR-0534, hash 299): every
+  Treasury and unruined Heart draws the
   store sparkle each turn and the Hand lifts a store pile whole. Those draws
-  move every replay and win rig (Levels 1-4, the level2/level4 live rigs, L11A,
-  L17); none has been rerun since hash 298. Hash/save 302 includes 301's runtime store
-  headings and corrects loose-gold Hand merging/positions (research/hash-versions.md).
-  It also includes hash 300's crystal hulls (ADR-0527 amendment 2); replay and win
-  rigs have not been rerun. Initial chest headings remain Q644; Level2's reported
+  move every replay and win rig. The Level 1–4 packet sweep is linked above;
+  the level2/level4 live rigs, L11A and L17 have not been rerun since hash 298.
+  Hash/save 303 withdraws portal crystal collision (ADR-0527), retaining
+  hash 302's store gold/UI state (research/hash-versions.md). The linked packet
+  measurements remain historical hash 302; no hash-303 sweep has run.
+  Initial chest headings remain Q644; Level2's reported
   water shapes under fog await a native visual comparison (Q643).
 - The navigation mesh's locate is DK2's cell-cache walk and the whole-map
   builder writes DK2's slots (ADR-0486, hash 255): on the owner's Level 10
@@ -144,11 +142,9 @@ Room/Portal capture uses the native full-slab profile (ADR-0529), replacing the
 thin edge ring: [capture comparison](research/room-construction-effects.md#62-portal-capture-comparison-shot02310240).
 Creature promotions now request the original sparkle effect, including imp work
 levels and scripted grants: [promotion sparkles](research/creature-levels.md#promotion-sparkles-2026-10-23).
-Portal crystals have swept movement guards and steering contacts (ADR-0527), an
-explicit remake correction: each gem's convex hull below body height 1.85, padded
-by the creature radius (amendment 2, hash 300), not the former boxes; predictive
-contacts repair near-wall stalls. Q642 asks the owner to judge it:
-[evidence and tests](research/portal-crystal-collision.md).
+Portal crystal collision is withdrawn (ADR-0527, Q642 closed). The original
+meshes remain; movement and its observed near-hole limits are recorded in
+[the rollback note](research/portal-crystal-collision.md).
 Level1's scripted red tutorial tile guidance is built (ADR-0528):
 [native slots and pulse](research/tag-highlight.md#scripted-tutorial-red-flash).
 Active tick/presentation stalls remain measurable: research/level8-intro-motion.md.
