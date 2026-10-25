@@ -5,8 +5,8 @@
 | Source(s) | `DKII.EXE` v1.70 — the per-turn gold resync `0x004B9F62`, the room dumper `0x004E70B6`, the room conditions at `0x004C7EB3` / `0x004C7F8E` |
 | Observed behaviour | Sampled live, run 10 (level 1, 2026-09-10) |
 | Confidence | **CONFIRMED** — the walk was read out of a live process and each room's own `PlayerId` agrees with it |
-| Implementation | `RoomLog` replays a captured log; `RoomInstance` is our model |
-| Tests | `RoomLogTests` |
+| Implementation | `RoomLog` replays captures; `RoomLists` retains insertion order for the combat room cache (ADR-0541, hash/save305) |
+| Tests | `RoomLogTests`, `RoomListOrderTests` |
 | Open questions | none; Q289 and Q291 answered below |
 
 ## The walk
@@ -82,6 +82,51 @@ therefore still waits for a room to settle and measures what to place against
 what it has already placed. A 15-slab lair then arrives as 1 slab and later
 14, rather than as one slab and six refusals. Counting the tiles by walking
 the chain (tile `+0x04/+0x05`) would remove the wait.
+
+## Persistent player-list order (hash305)
+
+**STRONGLY INFERRED, binary; captured boundary confirmed.** Re-reading
+`004E3800` and `004E5650` confirms that construction and ownership transfer
+insert at the owner's list head. Growth keeps the first N/E/S/W neighbour's
+record; absorption drops the other record. Removal frees the old record and
+replays its surviving slab chain, constructing new pieces. Row-major initial
+loading uses the same first-neighbour rule. Sources and slab lifecycle are in
+[room-slab-chain.md](room-slab-chain.md).
+
+`RoomListPosition` is a retained ordinal on room tiles; its next counter is
+world state. Growth/absorption keep the survivor's ordinal, reconstructed pieces
+receive new ordinals, and a captured room receives a new head position.
+`RoomCache.Of` reads that order; `RoomIndex.Build` retains its spatial ordering
+for other consumers. Defeat snapshots the losing keeper's list, transferring its
+eligible rooms in that order. Both fields are hashed and saved in format305.
+
+The [captured withdrawal](decision-parity-audit.md#level4-captured-withdrawal-and-room-order-hash304)
+supplies the baseline. Evidence:
+`D:/DK2Evidence/room-list-order-implementation-2026-10-25/`.
+A saved-native list-transition extraction through header3474 restores the final
+surviving constructions and captures through production placement/slab and
+room-transfer routines. It reproduces all15 incoming room slots in order,
+without replacing the combat cache. Actual withdrawal matches the live return's
+ending RNG3162508482, state6, destination(18,48), count14, flags13 and five
+buffered route points. It does not compare all14 route points or advance the
+complete native world; transient earlier incarnations of reused slot1104 are
+excluded from restoration.
+
+Eight focused regressions cover construction, growth, absorption, splitting,
+capture plus its follow-up merge, initial merging, defeat and save/hash state.
+The original three ordering regressions failed before implementation.
+The native transfer itself preserves separate adjacent room records; conversion's
+caller immediately merges eligible neighbours (`004C5BE0`/`004EC900`).
+Our connected-component room model still cannot retain distinct adjacent rooms
+when a transfer has no such merge, including defeat. Other room-list consumers
+are not migrated by this change. Campaign-win effects require a new measurement.
+
+Independent review passed110 focused checks and confirmed the production-history
+comparison. Final per-project validation totals6556 passed,0 failed,7 capture
+skips, including the enabled24-test native-byte oracle result. The evidence root's
+`verify_implementation.py` verifies24 sealed artifacts and the original capture hash.
+Run the archived `fixture-dlls/Analysis.dll <boundary.json> <new-output.json>
+history <native-list-history.json>` to repeat this bounded handler check.
 
 ## Rooms are not imp tasks
 

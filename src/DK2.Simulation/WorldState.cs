@@ -199,6 +199,7 @@ public struct TileState
     /// Zero for the map's own rooms, which DK2 loads in row-major order. Kept by
     /// <see cref="SlabChain"/> (room-slab-chain.md).</summary>
     public int SlabOrder;
+    public RoomListPosition RoomListPosition;
 
     /// <summary>A room's <c>GameTickLastOnChangeSize</c> (<c>room+0x9F</c>), held on each of its tiles:
     /// the tick <see cref="SlabChain"/> last rebuilt the room, which <c>Room_Construct</c> and
@@ -290,6 +291,7 @@ public struct TileState
         hash.Add(PrisonDoor);
         hash.Add(PrisonDoorAnimationTick);
         hash.Add(SlabOrder);
+        hash.Add(RoomListPosition.Value);
         hash.Add(RoomSizeChangedTick);
         hash.Add(RoomKickedTick);
         hash.Add(RoomRuined);
@@ -1182,6 +1184,7 @@ public sealed class WorldState
     /// <summary>The next <see cref="TileState.SlabOrder"/> to hand out. It only climbs, so a
     /// stamped tile always comes after every tile stamped before it.</summary>
     public int NextSlabOrder { get; internal set; } = 1;
+    internal long NextRoomListPosition { get; set; } = 1;
 
     /// <summary>The next <see cref="CreatureState.HeldPlaceSerial"/>: a room's list takes each claim at
     /// its head, so the highest serial is the head.</summary>
@@ -1475,6 +1478,7 @@ public sealed class WorldState
             .ToArray();
 
         var world = new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled);
+        RoomLists.Initialize(world, database);
 
         // The terrain loader explores a tile for its owner, independently of sight.
         foreach (PlayerState player in players)
@@ -1537,6 +1541,7 @@ public sealed class WorldState
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(NextSlabOrder);
+        hash.Add(NextRoomListPosition);
         hash.Add(NextPlaceClaim);
         hash.Add(NextTagOrder);
         hash.Add(SecretDoorEntries.Count);

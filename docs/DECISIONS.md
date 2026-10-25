@@ -12403,3 +12403,24 @@ neither layout nor hit bounds. Original text ids and widget geometry remain data
 each viewport size. Its shapes are an intentional presentation substitution;
 native pixel identity is not claimed. Asset access remains behind the menu
 asset interface, with no converted asset files or bundled proprietary font.
+
+## ADR-0541 — Retain player room-list order for combat destinations
+
+**Date:** 2026-10-25 · **Status:** accepted · Hash/save305.
+
+**Context.** The captured withdrawal chooses different rooms with identical RNG
+because our spatial sweep loses native list order. Binary lifecycle and bounded
+production-history validation are in [room-list.md](research/room-list.md#persistent-player-list-order-hash305).
+
+**Decision.** Retain a typed insertion position on room tiles and a world counter.
+Initialize through row-major first-neighbour union; growth/absorption keep the
+survivor's position. Reconstructed pieces and ownership transfers get new head
+positions. Save and hash this state. The combat room cache reads newest first;
+the spatial room sweep retains its existing order for other consumers. Defeat
+snapshots the losing player's list before transferring eligible rooms.
+
+**Consequences.** Existing snapshots are version-incompatible. The captured
+withdrawal can be reproduced without injecting a reordered combat cache.
+Distinct adjacent native room records remain outside the connected-component
+model, and other room-list readers remain separate work. Campaign-win effects
+require a fresh measurement.

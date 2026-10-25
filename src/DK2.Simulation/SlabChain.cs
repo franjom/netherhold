@@ -58,7 +58,11 @@ public static class SlabChain
             if (after.TypeId == RoomTypeId.Prison) Activate(world, chain);
             if (absorbed is { Count: > 0 }) GraveyardRules.Unlink(world, absorbed);
         }
-        else (tile.SlabOrder, tile.RoomSizeChangedTick, tile.RoomKickedTick) = (0, 0, 0);
+        else
+        {
+            (tile.SlabOrder, tile.RoomSizeChangedTick, tile.RoomKickedTick) = (0, 0, 0);
+            tile.RoomListPosition = default;
+        }
         if (tile.TerrainId != terrainBefore) KickNeighbours(world, database, tileIndex);
     }
 
@@ -137,6 +141,7 @@ public static class SlabChain
         byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
         var taken = new HashSet<int> { tileIndex };
         List<int>? chain = null;
+        RoomListPosition listPosition = default;
         byte door = 0, party = 0;
         long partyStart = 0;
         for (int d = 0; d < Dx.Length; d++)
@@ -147,6 +152,7 @@ public static class SlabChain
             Sort(world, room);
             if (chain is null)
             {
+                listPosition = world.TileAtIndex(room[0]).RoomListPosition;
                 foreach (int t in room)
                 {
                     ref TileState kept = ref world.TileAtIndex(t);
@@ -166,6 +172,8 @@ public static class SlabChain
         }
 
         chain ??= [tileIndex];
+        if (listPosition == default) listPosition = RoomLists.Next(world);
+        RoomLists.Set(world, chain, listPosition);
         Stamp(world, chain);
         int lowest = KeepDoor(world, chain, door);
         ref TileState head = ref world.TileAtIndex(lowest);
@@ -230,6 +238,7 @@ public static class SlabChain
 
         var chainOf = new Dictionary<int, List<int>>(order.Length);
         var chains = new List<List<int>>();
+        var positions = new Dictionary<List<int>, RoomListPosition>();
         foreach (int tile in order)
         {
             List<int>? joined = null;
@@ -260,6 +269,7 @@ public static class SlabChain
                 var alone = new List<int> { tile };
                 chainOf[tile] = alone;
                 chains.Add(alone);
+                positions.Add(alone, RoomLists.Next(world));
             }
         }
 
@@ -277,6 +287,7 @@ public static class SlabChain
 
         foreach (List<int> chain in chains)
         {
+            RoomLists.Set(world, chain, positions[chain]);
             Stamp(world, chain);
             RoomHealthRules.SetPiece(world, database, room, chain, percent);
             KeepDoor(world, chain, door, animationTick);

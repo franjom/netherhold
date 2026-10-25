@@ -1,6 +1,10 @@
 # Early state-hash versions
 
-Versions 9–63, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–64, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**64** — `0x8FAF223321EE1523`. A keeper's alliance bits and a door's
+lock-pick timer entered (ADR-0159: the rest of the door model). The pinned world
+has no doors and makes no alliance, so this is composition only.
 
 **63** — `0xE53ED0F1EDDD2036`. A creature's route option word and a door's lock
 mode and open state entered (ADR-0158: doors in the navigation byte). The pinned

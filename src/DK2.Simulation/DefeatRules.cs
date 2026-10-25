@@ -61,10 +61,11 @@ public static class DefeatRules
         }
 
         int rooms = 0;
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        foreach (RoomInstance room in RoomLists.Of(world, database, playerId))
         {
             if (room.OwnerPlayerId != playerId || IsKept(room.Definition)) continue;
             RoomHealthRules.PostTransfer(world, room, playerId, PlayerIds.Neutral);
+            RoomLists.Set(world, room.TileIndices, RoomLists.Next(world));
             foreach (int index in room.TileIndices)
             {
                 ref TileState tile = ref world.TileAtIndex(index);
