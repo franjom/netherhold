@@ -22,6 +22,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   chooser/RNG and combat checks, but identifies replay-drop and withdrawal limits;
   the [Imp selection study](research/imp-selection-evidence.md) adds three live
   matched choices and 118 binary ordering controls. Full parity remains unestablished.
+- The Imp Secret Door job path is built (ADR-0536, hash/save 304), including
+  per-keeper entry order and native reservation retention after interruptions.
+  Scope, focused verification and pending original-game acceptance:
+  [Secret Door work](research/imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
+  The latest campaign rate measurement remains hash303; no hash304 sweep was run.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as

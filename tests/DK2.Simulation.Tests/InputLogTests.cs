@@ -16,6 +16,14 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class InputLogTests
 {
+    [Fact]
+    public void SecretDoorEntryIsAPlayerTagButItsRemovalIsWorkFinishing()
+    {
+        InputLog log = Read(Row(41, "tag", 11, 10, 20) + Row(61, "untag", 11, 10, 20));
+        Assert.True(Only(log.At(40)).Tagged);
+        Assert.Empty(log.At(60).All);
+    }
+
     private static InputLog Read(
         string body, long lag = 1, long origin = 1, HashSet<byte>? kinds = null) =>
         InputLog.Read(

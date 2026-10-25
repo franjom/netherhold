@@ -171,6 +171,7 @@ public sealed partial class ImpTaskSystem
                     return true;
                 if (TryTakeObject(context, creature, definition, grid)) return true;
                 if (TryTakeBody(context, creature, definition, grid, corpses: true)) return true;
+                if (TrySecretDoorAt(context, creature, tile)) return true;
             }
             return false;
         }
@@ -202,6 +203,7 @@ public sealed partial class ImpTaskSystem
                 : TryTakeFloorGold(context, creature, definition, grid),
             ImpTaskKind.CarryObject => TryTakeObject(context, creature, definition, grid),
             ImpTaskKind.BuildTrap or ImpTaskKind.BuildDoor => TryTakeBlueprint(context, creature, grid),
+            ImpTaskKind.SecretDoor => TryTakeSecretDoor(context, creature),
             ImpTaskKind.CarryCorpse => TryTakeBody(context, creature, definition, grid, corpses: true),
             ImpTaskKind.CarryUnconscious => TryTakeBody(context, creature, definition, grid, corpses: false),
             _ => false,
@@ -271,8 +273,7 @@ public sealed partial class ImpTaskSystem
     /// the tile as a wall to reinforce or repair (<see cref="TryReinforceAt"/>), then the gold on
     /// it, then its loose objects (<c>0x0046B9C0</c>, <see cref="TryObjectAt"/>, ADR-0519). The first
     /// tile that gives a job wins, so a wall one ring nearer beats a pile under the next ring.
-    /// The fourth step, the marked Secret Door (<c>0x0046CB80</c>, kind 11), is not built: ours
-    /// marks no Secret Door, so no kind-11 entry exists for it to find. Q493, ADR-0291.
+    /// The fourth step exposes a marked Secret Door (<c>0x0046CB80</c>, kind 11; ADR-0536).
     /// </summary>
     private bool TrySweep(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -297,6 +298,7 @@ public sealed partial class ImpTaskSystem
             if (creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0
                 && TryObjectAt(context, creature, grid, tile))
                 return true;
+            if (TrySecretDoorAt(context, creature, tile)) return true;
         }
         return false;
     }
@@ -578,7 +580,8 @@ public sealed partial class ImpTaskSystem
     private static void TakeTaskFrom(SimulationContext context, CreatureState holder, CreatureState taker, int tileIndex)
     {
         context.Emit(SystemName, "task_stolen",
-            $"imp={taker.Id} from={holder.Id} {Describe(context.World, tileIndex)} {holder.TargetWork} " +
+            $"imp={taker.Id} from={holder.Id} {Describe(context.World, tileIndex)} " +
+            $"{(holder.SecretDoorTask ? "SecretDoor" : holder.TargetWork.ToString())} " +
             $"holder_state={holder.Dk2StateId}");
         LoseTask(context, holder);
     }
@@ -874,6 +877,7 @@ public sealed partial class ImpTaskSystem
 
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = kind;
+        creature.SecretDoorTask = false;
         creature.WorkSlot = workSlot;
 
         // A worker already on its stance tile still walks to its point (0x004651A0 always walks),

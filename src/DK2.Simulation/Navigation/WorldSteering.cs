@@ -301,7 +301,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             if (door.UnderConstruction || door.Open || !world.Contains(door.X, door.Y)) continue;
             bool barricade = database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Barricade);
             bytes[(door.Y * world.Width) + door.X] =
-                NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, world.Tile(door.X, door.Y).IsTaggedByAnyone);
+                NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, world.Tile(door.X, door.Y).SecretDoor);
         }
     }
 

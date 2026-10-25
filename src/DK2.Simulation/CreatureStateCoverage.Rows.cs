@@ -51,8 +51,8 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(35, typeof(CrateRules), nameof(CrateRules.InstallTrapState)));
         rows.Add(Built(36, typeof(CrateRules), nameof(CrateRules.FetchDoorCrateState)));
         rows.Add(Built(37, typeof(CrateRules), nameof(CrateRules.InstallDoorState)));
-        rows.Add(Unbuilt(38, "read in imp-state-exits.md 2; not built"));
-        rows.Add(Unbuilt(39, "read in imp-state-exits.md 2; not built"));
+        rows.Add(Built(38, typeof(ImpStates), nameof(ImpStates.SecretDoorApproach)));
+        rows.Add(Built(39, typeof(ImpStates), nameof(ImpStates.SecretDoorWork)));
         rows.Add(Built(40, typeof(ImpStates), nameof(ImpStates.PickingUpCorpse)));
         rows.Add(Built(41, typeof(ImpStates), nameof(ImpStates.CarryingCorpse)));
         rows.Add(Built(42, typeof(ImpStates), nameof(ImpStates.PickingUpCasualty)));

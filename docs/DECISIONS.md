@@ -11912,8 +11912,7 @@ five controlled runs of the original bytes confirmed all four; `TrySweep` had th
 ([imp-priority-checks.md](research/imp-priority-checks.md)).
 
 **Decision.** `TrySweep` calls `TryObjectAt` on each tile after the gold step, for an imp
-holding no object or creature. The Secret Door step is not built: ours never marks a Secret
-Door (`0x00512D20`), so no kind-11 entry exists for it to find. The carry gate is ours, as in
+holding no object or creature. The Secret Door step is added by ADR-0536. The carry gate is ours, as in
 `TryTakeObject`: neither `0x00469580` nor state 10 (`0x00463DF0`) tests what the imp carries,
 and a carrying imp should not reach Tier B.
 
@@ -12328,3 +12327,20 @@ lines, as the existing skip does; this is an audio stand-in, not native speech-o
 **Consequences.** Campaign scripts produce readable tabs and timed flowers. Old saves require
 their previous build. Native multiplayer/MPD introduction exceptions await a session-mode model;
 audio playback and matched original-game visual acceptance remain outside this change.
+
+## ADR-0536 — Keep Secret Door concealment separate from marked excavation
+**Date:** 2026-10-25 · **Status:** accepted · Research: `research/imp-task-objects-and-walks.md` §2
+
+**Context.** Imps skipped kind 11 because neither its tile flag nor its task entries existed.
+Using ordinary dig tags would give it the wrong priority, cancellation and area-count rules.
+
+**Decision.** Store the native global concealment flag and per-keeper kind-11 entries with their
+own insertion order and retained holders, independently of a creature's current job.
+Load, install and remove the flag with the door. Dispatch the researched whole-map scanner,
+drop and Tier B handlers, reservations and states 38/39; retain last kind 1 and the completion
+return to idle. Navigation reads concealment independently of ordinary tags. Replay recognizes
+kind-11 additions as commands and removals as completion. Hash/save version is 304.
+
+**Consequences.** The Imp path is reachable without adding a new chooser priority or damaging
+the standing door. Native automatic reveal during opening, input eligibility for an owner's
+door, finite task-pool exhaustion and original-game acceptance remain outside this change.

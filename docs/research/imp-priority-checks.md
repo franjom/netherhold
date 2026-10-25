@@ -45,9 +45,9 @@ stack data. A wrapper reading the entire dword gives invalid results.
 
 Fresh read and five controlled executions of the original
 [Tier-B tile chain](functions/00469580.md) confirm its four handler steps.
-`TrySweep` implemented only the first two; ADR-0519 (2026-10-20) adds the object step,
-and the marked-Secret-Door step remains absent because ours marks no Secret Door. The known Secret
-Door gap is documented in [its handler record](functions/0046CB80.md).
+The historical modern fixture predates both later additions: the object step
+(ADR-0519) and Secret Door work (ADR-0536). Current scope and remaining limits
+are in [the canonical Secret Door section](imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
 Ordinary object search earlier in the chooser often covers the object case;
 this experiment does not prove its later fallback is redundant or impactful.
 Neither omission is established as the cause of the measured Hatchery gap.

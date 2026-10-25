@@ -277,6 +277,12 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             wandered = UpdateWander(context, creature, definition);
         if (wandered) return;
 
+        if (creature.TargetTileIndex >= 0 && creature.SecretDoorTask && IsSecretDoorState(creature))
+        {
+            UpdateSecretDoor(context, creature, definition);
+            return;
+        }
+
         if (StepFor(_carrying, creature) is { } carry)
         {
             using (profiler.Scope(SimulationMarkers.ImpCarry))
@@ -284,7 +290,8 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
             return;
         }
 
-        if (creature.TargetTileIndex >= 0 && !JobStillStands(context, creature) && !HoldsCourse(context, creature))
+        if (creature.TargetTileIndex >= 0 && !creature.SecretDoorTask
+            && !JobStillStands(context, creature) && !HoldsCourse(context, creature))
         {
             // The work state holds while its action runs, and looks at the task only when the
             // action ends (0x004655D0 returns at once while 0x00496D00 reports one running).

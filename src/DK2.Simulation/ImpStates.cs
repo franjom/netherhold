@@ -18,6 +18,12 @@ public static class ImpStates
     /// start every walk to work, and every even work state returns here.</summary>
     public const int TaskSelection = 10;
 
+    /// <summary>Kind 11: turn toward the marked Secret Door, then begin one dig action.</summary>
+    public const int SecretDoorApproach = 38;
+
+    /// <summary>Kind 11: after the action, clear the tile's secret flag and finish.</summary>
+    public const int SecretDoorWork = 39;
+
     /// <summary>State 11 prepares a dropped worker for task selection.</summary>
     public const int AfterDrop = 11;
 

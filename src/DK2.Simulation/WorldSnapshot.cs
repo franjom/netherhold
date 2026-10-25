@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 303;
+    private const int FormatVersion = 304;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -148,6 +148,8 @@ public static class WorldSnapshot
             w.Write(t.RoomHealthLost);
             w.Write(t.KeptManaGain);
             w.Write(t.TaggedBy.Bits);
+            w.Write(t.SecretDoor);
+            w.Write(t.SecretDoorTasks.Bits);
             w.Write(t.DiscoveredBy.Bits);
             w.Write(t.ExploredBy.Bits);
             w.Write(t.FreshlyDug);
@@ -158,6 +160,16 @@ public static class WorldSnapshot
         w.Write(world.NextSlabOrder);
         w.Write(world.NextPlaceClaim);
         w.Write(world.NextTagOrder);
+        w.Write(world.SecretDoorEntries.Count);
+        foreach (var pair in world.SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
+            .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
+        {
+            w.Write(pair.Key.Player.Value);
+            w.Write(pair.Key.Tile.X);
+            w.Write(pair.Key.Tile.Y);
+            w.Write(pair.Value.Order);
+            foreach (int holder in pair.Value.Holders) w.Write(holder);
+        }
         w.Write(world.PlayerCount);
         for (int i = 0; i < world.PlayerCount; i++)
         {
@@ -355,6 +367,7 @@ public static class WorldSnapshot
             w.Write(c.RebelAgainstPlayerId);
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
+            w.Write(c.SecretDoorTask);
             w.Write(c.WorkSlot);
             w.Write(c.TimerTicks);
             w.Write(c.FightTargetId);
@@ -867,6 +880,8 @@ public static class WorldSnapshot
                 RoomHealthLost = r.ReadInt32(),
                 KeptManaGain = r.ReadByte(),
                 TaggedBy = new PlayerMask(r.ReadUInt16()),
+                SecretDoor = r.ReadBoolean(),
+                SecretDoorTasks = new PlayerMask(r.ReadUInt16()),
                 DiscoveredBy = new PlayerMask(r.ReadUInt16()),
                 ExploredBy = new PlayerMask(r.ReadUInt16()),
                 FreshlyDug = r.ReadBoolean(),
@@ -878,6 +893,16 @@ public static class WorldSnapshot
         int nextSlabOrder = r.ReadInt32();
         long nextPlaceClaim = r.ReadInt64();
         int nextTagOrder = r.ReadInt32();
+        int secretDoorEntryCount = r.ReadInt32();
+        var secretDoorEntries = new Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry>();
+        for (int i = 0; i < secretDoorEntryCount; i++)
+        {
+            PlayerId player = r.ReadByte();
+            var tile = new TilePos(r.ReadInt32(), r.ReadInt32());
+            var entry = new SecretDoorTaskEntry { Order = r.ReadInt32() };
+            for (int side = 0; side < 4; side++) entry.Holders[side] = r.ReadInt32();
+            secretDoorEntries.Add((player, tile), entry);
+        }
         int playerCount = r.ReadInt32();
         var players = new PlayerState[playerCount];
         for (int i = 0; i < playerCount; i++)
@@ -955,6 +980,7 @@ public static class WorldSnapshot
         world.NextSlabOrder = nextSlabOrder;
         world.NextPlaceClaim = nextPlaceClaim;
         world.NextTagOrder = nextTagOrder;
+        foreach (var pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);
         world.CurrentTick = tick;
 
         for (int i = 0; i < world.RoomBuildWaveSlots.Length; i++)
@@ -1060,6 +1086,7 @@ public static class WorldSnapshot
                 RebelAgainstPlayerId = r.ReadByte(),
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),
+                SecretDoorTask = r.ReadBoolean(),
                 WorkSlot = r.ReadByte(),
                 TimerTicks = r.ReadInt32(),
                 FightTargetId = r.ReadInt32(),

@@ -241,8 +241,9 @@ Ordinary room templates, doors, traps, dead bodies and the Casino/Prison
 fixture branches are built as described above; the dead-body line and the
 other-keeper door and trap names are formatted but, as in DK2, no pick reaches
 them. The special creature name +0x895 is built (status `%29`, popup, dead-body
-`%29` gate). Still unbuilt: the tile +0xB bit 0 "Enemy Wall" arm (no secret-door
-tile state) and the Lord of the Land's level name. The resolver's object
+`%29` gate). Still unbuilt: the tile +0xB bit 0 "Enemy Wall" presentation arm
+and the Lord of the Land's level name. The simulation flag exists under ADR-0536;
+this text arm is not wired to it. The resolver's object
 ownership arm (`0x005992B0` kind 4) is built as `HoverPickRules.ResolvesObject`
 (hand-cursor-rendering.md). Unsupported substitutions are omitted rather
 than displaying raw localization tokens. See `fog-of-war.md` for fog assets.

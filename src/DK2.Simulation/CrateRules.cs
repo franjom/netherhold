@@ -134,12 +134,20 @@ public static class CrateRules
     /// <summary>States 35 and 37: the crate is used up and the thing is built. A door's navigation
     /// byte is the steering's, which reads the construction flag on its next refresh; a trap's
     /// completion (<c>0x004A96D0</c>) counts its Triggers (<see cref="TrapRules.Complete"/>). The
-    /// Secret Door's terrain update (<c>0x00450FF0</c>) is not built.</summary>
+    /// Secret Door completion also sets its tile's concealment flag (<c>0x00450FF0</c>).</summary>
     public static void Build(WorldState world, GameDatabase database, BlueprintRef blueprint, ObjectState crate)
     {
         world.RemoveObject(crate.Id);
         PlayerId owner = OwnerOf(world, blueprint);
-        if (blueprint.Kind == DoorKind) { if (world.DoorById(blueprint.Id) is { } door) door.UnderConstruction = false; }
+        if (blueprint.Kind == DoorKind)
+        {
+            if (world.DoorById(blueprint.Id) is { } door)
+            {
+                door.UnderConstruction = false;
+                if (database.Doors.GetValueOrDefault(door.DoorId)?.Flags.HasFlag(DoorFlags.Secret) == true)
+                    world.Tile(door.X, door.Y).SecretDoor = true;
+            }
+        }
         else if (world.TrapById(blueprint.Id) is { } trap) TrapRules.Complete(world, database, trap);
         Unregister(world, owner, blueprint);
     }

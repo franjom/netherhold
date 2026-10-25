@@ -392,4 +392,4 @@ kind 3 tests for the *absence* of Lava and Water, and is claiming.
 - **Q155** — task stealing by distance: built for four handlers (§7, ADR-0289).
 - **Q25** — answered 2026-09-29: the nearest by straight-line distance, list
   order only on an exact tie (§2.2).
-- Marked Secret Door work remains unbuilt (functions/0046CB80.md); the `tile+0xb & 0x20` scan pre-filter has remaining unknowns.
+- Marked Secret Door work is built (ADR-0536); scope and remaining limits: imp-task-objects-and-walks.md §2. The `tile+0xb & 0x20` scan pre-filter retains its existing unknowns.

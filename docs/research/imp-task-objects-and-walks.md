@@ -108,11 +108,10 @@ gold value (`+0x185`) and as 1 when not. All three arms need more than 20 free e
 immediate `PUSH 0xB` exists (the trap `player-task-pool.md` warns about). Nothing else
 raises kind 11: `0x0046CB80` only finds an existing entry.
 
-**In play (owner, 2026-10-01).** A Secret Door looks like any reinforced wall to a rival
-keeper, so an attacker tags it for excavation without knowing; that tag is what files
-kind 11, and an imp then digs it in state 38. A keeper cannot tag its own Secret Door.
-Where `0x00512D20` refuses one's own (the flag test comes before the terrain test) is
-unread.
+**Input eligibility.** The owner recalls that rivals see a reinforced wall and can tag it,
+while the owner cannot tag its own door. The native marker and rectangle handler have no
+owner gate; where the input path refuses it remains UNKNOWN. The simulation command
+mirrors the marker and adds no guessed ownership restriction.
 
 **The handler.** Called with the tile. Its steps, in order:
 
@@ -151,15 +150,59 @@ starts action 1 (`0x00496A30(1, 1, …)`). State 39 (`0x00467790`) waits while a
 runs (`0x00496D00`), then clears bit 0 of the task tile, posts tile notification `0x11`
 with the tile and the imp's owner, and frees the entry. One visit ends the job; there is
 no health or swing count. That the cleared bit is the door becoming visible to its enemy
-is STRONGLY INFERRED from the flag's meaning; what notification `0x11` does was not read.
+is STRONGLY INFERRED from the flag's meaning; notification `0x11` is posted through the simulation-to-presentation bridge (`0x00517480`).
 
-**What our engine must change.** We have no kind 11 and drop it from the drop chain
-(Q162); `InputLog` does not replay it (Q288). To build it: keep a per-tile secret flag set
-by the loader and by door installation for Secret Doors; file a marked tile carrying it as
-kind 11 ahead of the rock/gold split, under the same 20-entry floor; add the handler to
-Tier B after objects and to the drop chain, with the steps above, the stance point and
-`+0x98` = 1; states 38 and 39 as read. Build the slot calls on the entry's own id
-(Q496): kind 11 has a holder, with the dig handler's kick and slack.
+**Whole-map kind-11 dispatch (`0x0046C720`).** Existing entries, newest first; stale
+flags remove their entries. Minimise squared distance to the task tile centre, retaining
+the first at a tie. Try sides from the worker-relative start, measuring a held slot
+from the side tile centre: the worker-to-task-centre distance must be strictly less
+than holder-to-side-centre distance, without the tile handler's slack. A free side
+ends that entry's side scan; an eligible held side can be replaced by a later side.
+Kick the selected holder before the one walk attempt; a failed kick/walk ends the scan.
+
+**Built (ADR-0536, hash/save 304).** `TileState.SecretDoor` is global;
+`SecretDoorTasks` is each keeper's separate kind-11 entry. Loading and crate installation
+set the flag; removal clears it. Rectangle untag only removes kinds 1/2 (`0x00512A20`),
+so it leaves kind 11. The native marker selects 11 before terrain; ordinary excavation
+never consumes these entries. Tier B tries it after objects; the drop chain after corpses.
+Both selectors reserve the entry's middle face slot and record last kind **1**, not 11.
+The tile handler retries an occupied, unstealable side without advancing, but its four
+iterations remain bounded. State 38's underfoot-secret rejection and state 39's zero
+return fall to state 1 through the dispatcher (`0x00476FC0`), not directly to 10.
+The ordinary floor case plays one counted dig clip and exposes the door without changing
+door or tile health. `InputLog` replays additions; removals cannot be player untag.
+Navigation bit 1 reads the global flag through `0x00450FC0`, not a keeper's dig tag.
+
+**Interruption and insertion order (review, 2026-10-25).** Each keeper's kind-11 entry
+keeps its own insertion order and four middle-slot holder ids in `WorldState.SecretDoorEntries`.
+Another keeper's tag or an ordinary dig tag cannot reorder it. Holders are not derived from
+the creature's current task: `0x004647D0` resolves travel 6/7 through the resume, omits state
+38, and its state-39 arm at `0x00464949` clears **slot 0**, not the selected slot 1
+(`PUSH 0` at `0x00464962` and `0x00464964`, then side/id and `0x00508160`). The middle
+reservation therefore survives combat and later reassignment until overwritten or the entry
+is freed. Dispatch runs only state 38/39 or state 6 resuming 38; a retained job block in
+combat or idle cannot execute state 39. A new job resets the creature's selected-kind marker
+without deleting the old entry's holder. These entry orders and holders are hashed and saved.
+
+**Remaining limits.** The existing tag model has no finite task-pool capacity, so the native
+20-free-entry floor remains unmodelled. Matched original-game acceptance is pending.
+Automatic reveal is a separate, unbuilt `0x004A55F0` arm: an opening completed Secret Door
+checks nearby enemies, category/fight eligibility and line of sight, then clears the flag,
+posts presentation command 0x11 and rewrites navigation. The Imp completion reports its
+notification as a simulation event; the presentation refresh is outside this change.
+The counted action uses action 1's existing diggable-wall guard and owner-dependent rate:
+a flagged solid, diggable tile receives one strike; ordinary door floor receives none.
+
+**Verification (2026-10-25).** The independent verifier reran 606 focused simulation
+checks: zero failures or skips. Coverage includes selection order, stealing/slack,
+stored actions, solid/floor completion, combat interruption and reassignment,
+per-keeper insertion order, retained holders, snapshot/hash sensitivity and pin.
+The Unity adapter compiles with zero warnings/errors. Tool build, documentation
+budgets, KB check (2,317 records), verification ledger and coverage checks pass.
+No campaign sweep or live original-game acceptance was run for this change.
+The focused command targets `DK2.Simulation.Tests` in Release with filter
+`Imp|TileWork|TaskStealing|StateCoverageTable|Snapshot|InputLog|DoorNavigation|Determinism|CombatCategoryHooks`
+(each term is `FullyQualifiedName~...`), `-m:2 --nologo --no-restore`.
 
 ## 3. A kicked imp stops where it stands
 

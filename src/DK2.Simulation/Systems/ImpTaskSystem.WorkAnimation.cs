@@ -63,6 +63,12 @@ public sealed partial class ImpTaskSystem
     /// the next, whose handler runs again. Out of work, the standing or walking clip replaces it.</summary>
     private static void StepWorkAnimation(SimulationContext context, CreatureState creature, CreatureDef definition, bool struck)
     {
+        if (creature.TargetTileIndex >= 0 && creature.SecretDoorTask
+            && creature.Dk2StateId == ImpStates.SecretDoorWork)
+        {
+            ActionAnimationClock.Advance(creature, definition);
+            return;
+        }
         if (!PlaysWorkLoop(creature, definition))
         {
             if (PlaysIdleAction(creature)) ActionAnimationClock.Advance(creature, definition);

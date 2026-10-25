@@ -300,7 +300,11 @@ public static class ThingProjection
             DiscoveryRules.Rectangle(world, database, world.ActionPoints[world.ActionPoints.Count - 1], explored: true);
     }
 
-    private static void PlaceDoor(WorldState world, GameDatabase database, DoorThing thing) =>
+    private static void PlaceDoor(WorldState world, GameDatabase database, DoorThing thing)
+    {
+        if (world.Contains(thing.X, thing.Y)
+            && database.Doors.GetValueOrDefault(thing.DoorId)?.Flags.HasFlag(DoorFlags.Secret) == true)
+            world.Tile(thing.X, thing.Y).SecretDoor = true;
         world.AddDoor(new DoorState
         {
             X = thing.X,
@@ -317,6 +321,8 @@ public static class ThingProjection
             Health = database.Doors.GetValueOrDefault(thing.DoorId)?.Health ?? 0,
             Unknown_0011 = thing.Unknown_0011.ToArray(),
         });
+
+    }
 
     /// <summary>The authored loader <c>0x00520E50</c>: the trap made under construction
     /// (<c>0x004A7940</c>), then completed through <c>0x004A96D0</c> when the byte parsed as

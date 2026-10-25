@@ -60,6 +60,12 @@ public struct TileState
     /// </summary>
     public PlayerMask TaggedBy;
 
+    /// <summary>Native tile byte +0x0B bit 0: a concealed Secret Door, independent of dig tags.</summary>
+    public bool SecretDoor;
+
+    /// <summary>Keepers with a kind-11 entry here. Rectangle untag removes only kinds 1 and 2.</summary>
+    public PlayerMask SecretDoorTasks;
+
     /// <summary>When this tile was last marked, from <see cref="WorldState.NextTagOrder"/>; 0
     /// unmarked. DK2 files a marked tile at the head of its keeper's task list for the kind
     /// (<c>0x00507bb0</c>), and its dig walk keeps the first of equally near tasks, so the most
@@ -266,6 +272,8 @@ public struct TileState
         hash.Add(GoldHeld);
         hash.Add(StoreGoldHeading ?? ushort.MaxValue);
         hash.Add(TaggedBy.Bits);
+        hash.Add(SecretDoor);
+        hash.Add(SecretDoorTasks.Bits);
         hash.Add(DiscoveredBy.Bits);
         hash.Add(ExploredBy.Bits);
         hash.Add(FreshlyDug ? (byte)1 : (byte)0);
@@ -1182,6 +1190,22 @@ public sealed class WorldState
     /// <summary>The next <see cref="TileState.TagOrder"/>.</summary>
     public int NextTagOrder { get; internal set; } = 1;
 
+    /// <summary>Kind-11 pool insertion order and retained middle-slot holders, independent per keeper.</summary>
+    public Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> SecretDoorEntries { get; } = [];
+
+    internal SecretDoorTaskEntry SecretDoorEntry(PlayerId player, TilePos tile)
+    {
+        if (!SecretDoorEntries.TryGetValue((player, tile), out SecretDoorTaskEntry? entry))
+            SecretDoorEntries.Add((player, tile), entry = new SecretDoorTaskEntry { Order = NextTagOrder++ });
+        return entry;
+    }
+
+    internal void RemoveSecretDoorEntry(PlayerId player, TilePos tile)
+    {
+        Tile(tile).SecretDoorTasks = Tile(tile).SecretDoorTasks.Without(player);
+        SecretDoorEntries.Remove((player, tile));
+    }
+
     internal List<ShotState> RawShots => _shots;
 
     public ShotState? ShotById(int id)
@@ -1515,6 +1539,16 @@ public sealed class WorldState
         hash.Add(NextSlabOrder);
         hash.Add(NextPlaceClaim);
         hash.Add(NextTagOrder);
+        hash.Add(SecretDoorEntries.Count);
+        foreach (var pair in SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
+            .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
+        {
+            hash.Add(pair.Key.Player.Value);
+            hash.Add(pair.Key.Tile.X);
+            hash.Add(pair.Key.Tile.Y);
+            hash.Add(pair.Value.Order);
+            foreach (int holder in pair.Value.Holders) hash.Add(holder);
+        }
         hash.Add(_players.Length);
         foreach (PlayerState p in _players) p.HashInto(ref hash);
         foreach (RoomBuildWaveState? wave in RoomBuildWaveSlots)

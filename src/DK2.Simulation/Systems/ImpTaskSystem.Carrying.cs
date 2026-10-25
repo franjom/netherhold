@@ -685,6 +685,7 @@ public sealed partial class ImpTaskSystem
     /// the walk. Ours begins the walk only once a route is found, where DK2 scans before routing.</summary>
     private static void BeginTaskWalk(SimulationContext context, CreatureState creature, int resume)
     {
+        if (resume != ImpStates.SecretDoorApproach) creature.SecretDoorTask = false;
         CastOnTheWalk(context, creature);
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
     }
