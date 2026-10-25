@@ -39,7 +39,7 @@ namespace DK2.Unity
             public MeshRenderer Renderer;
             public bool Used;
             public long BoundsRevision = -1;
-            public int VertexCapacity, SortingOrder = int.MinValue;
+            public int VertexCapacity, IndexCapacity, SortingOrder = int.MinValue;
             public bool Active = true, SharedBound;
             public Material Material;
             public Bounds Bounds;
@@ -144,7 +144,7 @@ namespace DK2.Unity
         private readonly List<RenderTriangle> _visibleTriangles = new List<RenderTriangle>();
         private readonly Plane[] _frustum = new Plane[6];
         private readonly List<NumericsVector3> _worldPositions = new List<NumericsVector3>();
-        private readonly List<int> _runIndices = new List<int>();
+        private int[] _runIndexData = Array.Empty<int>();
         private readonly TriangleDepthOrderBuffer _sort = new TriangleDepthOrderBuffer();
         private bool _dirty = true;
         private Vector3 _lastForward;
@@ -348,11 +348,12 @@ namespace DK2.Unity
                     // Index-only meshes retain the shared vertex count without allocating duplicate attributes.
                     // Bounds come from the shared positions; recalculating from the primary mesh is invalid.
                     run.Mesh.SetVertexBufferParams(_vertexData.Length, IndexMeshLayout);
-                    run.Mesh.indexFormat = IndexFormat.UInt32;
                     run.VertexCapacity = _vertexData.Length;
                 }
                 if (!run.SharedBound) { run.Renderer.additionalVertexStreams = _sharedVertices; run.SharedBound = true; }
-                if (run.BoundsRevision != _geometryRevision || layoutChanged || !SameTriangles(run.Triangles, triangles))
+                bool sameTriangles = SameTriangles(run.Triangles, triangles);
+                bool boundsChanged = false;
+                if (run.BoundsRevision != _geometryRevision || layoutChanged || !sameTriangles)
                 {
                     Bounds bounds = new Bounds(_positions[triangles[0].A], Vector3.zero);
                     foreach (RenderTriangle triangle in triangles)
@@ -361,19 +362,31 @@ namespace DK2.Unity
                         bounds.Encapsulate(_positions[triangle.B]);
                         bounds.Encapsulate(_positions[triangle.C]);
                     }
-                    if (layoutChanged || bounds != run.Bounds) { run.Mesh.bounds = bounds; run.Bounds = bounds; }
+                    if (layoutChanged || bounds != run.Bounds) { run.Mesh.bounds = bounds; run.Bounds = bounds; boundsChanged = true; }
                     run.BoundsRevision = _geometryRevision;
                 }
-                if (!layoutChanged && SameTriangles(run.Triangles, triangles)) continue;
+                if (!layoutChanged && sameTriangles)
+                {
+                    if (boundsChanged) SetRunDrawRange(run, triangles.Count * 3);
+                    continue;
+                }
                 run.Triangles.Clear();
-                _runIndices.Clear();
+                int indexCount = triangles.Count * 3;
+                if (_runIndexData.Length < indexCount) _runIndexData = new int[Mathf.NextPowerOfTwo(indexCount)];
                 for (int t = 0; t < triangles.Count; t++)
                 {
                     RenderTriangle triangle = triangles[t];
                     run.Triangles.Add(triangle);
-                    _runIndices.Add(triangle.A); _runIndices.Add(triangle.B); _runIndices.Add(triangle.C);
+                    _runIndexData[t * 3] = triangle.A; _runIndexData[t * 3 + 1] = triangle.B; _runIndexData[t * 3 + 2] = triangle.C;
                 }
-                run.Mesh.SetTriangles(_runIndices, 0, calculateBounds: false);
+                if (run.IndexCapacity < indexCount)
+                {
+                    // Changing triangle counts must not resize native backing storage every frame.
+                    run.IndexCapacity = Math.Max(16, Mathf.NextPowerOfTwo(indexCount));
+                    run.Mesh.SetIndexBufferParams(run.IndexCapacity, IndexFormat.UInt32);
+                }
+                run.Mesh.SetIndexBufferData(_runIndexData, 0, 0, indexCount, MeshUpdateFlags.DontRecalculateBounds);
+                SetRunDrawRange(run, indexCount);
             }
             foreach (Run run in _runs)
                 if (!run.Used && run.Active) { run.Object.SetActive(false); run.Active = false; }
@@ -381,6 +394,12 @@ namespace DK2.Unity
             _lastForward = forward;
             _lastMatrix = matrix;
             _lastCullingMatrix = culling;
+        }
+
+        private static void SetRunDrawRange(Run run, int indexCount)
+        {
+            run.Mesh.SetSubMesh(0, new SubMeshDescriptor(0, indexCount, MeshTopology.Triangles)
+            { bounds = run.Bounds, firstVertex = 0, vertexCount = run.VertexCapacity }, MeshUpdateFlags.DontRecalculateBounds);
         }
 
         private void UploadSharedVertices(bool geometryChanged)

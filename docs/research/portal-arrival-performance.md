@@ -234,7 +234,67 @@ API and build mode differ; these tables do not establish a controlled speedup
 ratio. Serial API runs on a shared laptop do not establish a universal backend
 ranking. Earlier full GPU traces were substantially slower; tracing overhead,
 machine load and scheduling have not been separated by a matched repeat series.
-The remaining hitches are unresolved. Resource preloading is not implemented.
+The remaining hitches are narrowed in the next section. Resource preloading is not implemented.
 Production graphics API defaults remain unchanged; Vulkan-first with Direct3D12
 fallback is conditional on acceptance. See [performance policy](../PERFORMANCE.md)
 for the target, scenario coverage and acceptance protocol.
+
+## Index-buffer resizing and residual hitches
+
+CONFIRMED in the remake: `SetTriangles` resized run index buffers as triangle
+counts changed. A GPU regression failed when a run shrank from12 to3 indices;
+the replacement retains capacity, uploads only active indices and updates an
+explicit submesh draw range. Shrink/growth, wide indices, bounds, ordering and
+pixel checks pass. This does not reduce authored geometry or change depth order.
+
+CPU profiles under `build/portal-hitch-cpu/20261025-160959/` and
+`build/portal-hitch-cpu-fixed/20261025-161852/` contain complete close-up frame
+coverage. `cpu-resources.csv` retains every buffer-creation sample, including
+those below the full report's ordinary0.1ms cutoff. Independent review reaggregated
+the resource CSVs. Totals below select only Render Thread `Gfx.CreateBufferResource`
+samples during introduction seconds0..6; worker resource calls are separate.
+
+| CPU diagnostic | Close-up frames | Loop median / max ms | Resource calls | Resource inclusive ms |
+|---|---:|---:|---:|---:|
+| Before retained index capacity | 114 | 45.154 /203.116 | 25453 | 4683.463 |
+| After retained index capacity | 600 | 9.284 /76.305 | 4961 | 332.159 |
+
+These Development profiles establish a large reduction in the observed native
+resource work, not an exact FPS speedup. Profiler logging and allocation recording
+add overhead; per-frame labels allocate diagnostic strings. The later profile
+explicitly disables the GPU profiler area, and the QPC boundary handling differs.
+Nested scopes and concurrent thread durations must not be added.
+
+The follow-up `build/portal-hitch-cold/20261025-162520/` contains complete
+close-up coverage with no invalid self durations. At frame1533, intro0.083s,
+`CreateCreature` took49.538ms, including27.869ms in a cold mesh build.
+`Effects.Draw` took21.831ms in that frame; cold effect resource preparation
+totalled21.024ms across five calls, maximum14.882ms. These are nested timings,
+not additive component totals. A worker simulation tick reached39.014ms nearby;
+the main thread joins its outstanding worker in `WaitForTick`. Worker blocking
+is STRONGLY INFERRED for matching residual main-thread gaps; a new wait marker
+is available to measure it directly. The profile does not prove that every
+Release hitch shares these causes.
+
+### Same-player native GPU comparison
+
+All three serial Vulkan Release captures under `build/portal-hitch-native-gpu/`
+use the executable and managed DLLs from `20261025-163239/player/` at1080p.
+The middle run enables PresentMon GPU tracking with no Unity per-frame GPU
+measurement; all three disable Unity Frame Timing Stats and profiler recorders.
+Each passes rendering and trace completeness checks. Diagnostic GPU tracing
+cannot certify the FPS floor.
+
+| Capture | Mode | CPU median / max ms | CPU above16.67ms | Present median / max ms | Presents above16.67ms |
+|---|---|---:|---:|---:|---:|
+| `20261025-163239` | Lightweight FPS | 6.662 /62.152 | 15 /2004 | 6.260 /86.103 | 19 /2003 |
+| `20261025-163429` | Native GPU diagnostic | 5.857 /49.203 | 10 /2164 | 5.830 /60.298 | 14 /2163 |
+| `20261025-163556` | Lightweight FPS repeat | 5.719 /55.758 | 13 /2212 | 5.658 /79.071 | 11 /2211 |
+
+The native GPU diagnostic has2163 samples: median4.096ms, p99 9.898ms,
+maximum28.665ms. Its two GPU samples over budget occur at intro0.062/0.106s.
+No substantial diagnostic slowdown appears in this series; it does not establish
+zero observer overhead or explain the earlier query-heavy tracing slowdown.
+Both lightweight runs fail the60FPS floor despite typical intervals above100FPS.
+Remaining work is loading-phase preparation, direct measurement of worker waits,
+and the other required scenarios. API defaults remain unchanged.

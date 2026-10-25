@@ -159,8 +159,12 @@ namespace DK2.Unity.Editor
                                     + ".." + effects.Model.Particles.Max(p => p.HeightRaw)
                                     + " scale " + effects.Model.Particles.Max(p => p.ScaleRaw));
                         }
-                        if (++step <= 150) { EditorApplication.QueuePlayerLoopUpdate(); return; }
-                        if (effects.Model.Particles.Count != 0) throw new Exception("Portal arrival failed to expire.");
+                        int emitters = ((System.Collections.ICollection)typeof(RoomConstructionParticles)
+                            .GetField("_emitters", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(effects.Model)).Count;
+                        if (++step <= 150 || (step < 1200 && (effects.Model.Particles.Count != 0 || emitters != 0)))
+                        { EditorApplication.QueuePlayerLoopUpdate(); return; }
+                        if (effects.Model.Particles.Count != 0 || emitters != 0)
+                            throw new Exception("Portal arrival did not quiesce within the probe's 60-second limit.");
                         if (!captureMatchesNative) throw new Exception("Portal capture lost native particles, origin, motion, size or colour.");
                         if (effectId == 8 && maximumCapturePixels < 2000) throw new Exception("Portal capture burst is not visibly rendered.");
                         if (effectId == 8) Debug.Log("Portal capture verification passed: nine slabs, 288 native births, motion, colour, scale and expiry.");

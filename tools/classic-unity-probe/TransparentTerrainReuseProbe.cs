@@ -127,6 +127,7 @@ namespace DK2.Unity.Editor
                 VerifyIndexReuse(terrain, camera, materials[0], before);
                 VerifyInactivePoolInvalidation(terrain, camera, materials, before);
                 VerifyLargeGlobalIndex(terrain, camera, materials, before);
+                VerifyIndexBufferRetention(camera, materials[0], before);
                 VerifyCameraCulling(terrain, camera, materials[0], before);
                 Debug.Log("Transparent terrain reuse verification passed: " + cases + " cases.");
                 EditorApplication.Exit(0);
@@ -138,6 +139,41 @@ namespace DK2.Unity.Editor
                 if (cameraObject != null) Object.DestroyImmediate(cameraObject);
                 foreach (Material material in materials) if (material != null) Object.DestroyImmediate(material);
             }
+        }
+
+        private static void VerifyIndexBufferRetention(Camera camera, Material material, MethodInfo before)
+        {
+            var root = new GameObject("index capacity verification");
+            try
+            {
+                var terrain = root.AddComponent<TransparentTerrain>();
+                var positions = new List<Vector3>(); var normals = new List<Vector3>();
+                var uv = new List<Vector2>(); var anchors = new List<Vector2>();
+                for (int i = 0; i < 24; i++)
+                {
+                    positions.Add(new Vector3(i % 3, 0, i / 3)); normals.Add(Vector3.up);
+                    uv.Add(Vector2.zero); anchors.Add(Vector2.zero);
+                }
+                camera.transform.rotation = Quaternion.identity;
+                camera.transform.position = new Vector3(1, 0, -30);
+                int retainedCapacity = 0;
+                foreach (int count in new[] { 12, 3, 12, 24, 6 })
+                {
+                    var indices = new List<int>();
+                    for (int i = 0; i < count; i++) indices.Add(i);
+                    terrain.SetChunk(0, positions, normals, uv, anchors, new Dictionary<Material, List<int>> { [material] = indices });
+                    before.Invoke(terrain, new object[] { default(ScriptableRenderContext), camera });
+                    Mesh mesh = terrain.GetComponentInChildren<MeshFilter>().sharedMesh;
+                    using (GraphicsBuffer buffer = mesh.GetIndexBuffer())
+                    {
+                        if (buffer.count < retainedCapacity) throw new Exception("Shrinking a run must retain its index-buffer capacity.");
+                        retainedCapacity = buffer.count;
+                    }
+                    if (mesh.GetIndexCount(0) != count || mesh.triangles.Length != count)
+                        throw new Exception("Retained index capacity must not draw stale triangles.");
+                }
+            }
+            finally { Object.DestroyImmediate(root); }
         }
 
         private static void VerifyIndexReuse(TransparentTerrain terrain, Camera camera, Material material, MethodInfo before)

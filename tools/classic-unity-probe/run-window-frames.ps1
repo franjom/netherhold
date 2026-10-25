@@ -18,8 +18,10 @@ param(
     [string]$GraphicsApi = 'Default',
     [string]$PresentMon,
     [switch]$CompareGraphicsApis,
+    [switch]$ArrivalAllocationStacks,
+    [switch]$NoArrivalScreenshot,
     [int]$PresentationTraceSeconds = 60,
-    [ValidateSet('auto', 'fps', 'diagnostic-gpu')]
+    [ValidateSet('auto', 'fps', 'diagnostic-gpu', 'cpu', 'native-gpu')]
     [string]$TraceMode = 'auto',
     [string]$ExistingPlayer
 )
@@ -69,6 +71,7 @@ Copy-Item -LiteralPath "$PSScriptRoot/ClassicRotationProbe.cs" -Destination "$pr
 Copy-Item -LiteralPath "$PSScriptRoot/Level8MotionProbe.cs" -Destination "$projectPath/Assets/DK2/Level8MotionProbe.cs" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/ClassicRotationProfileReport.cs" -Destination "$projectPath/Assets/DK2/Editor/ClassicRotationProfileReport.cs" -Force
 Copy-Item -LiteralPath "$PSScriptRoot/PortalIntroductionProfile.cs" -Destination "$projectPath/Assets/DK2/PortalIntroductionProfile.cs" -Force
+Copy-Item -LiteralPath "$PSScriptRoot/PortalCpuProfileReport.cs" -Destination "$projectPath/Assets/DK2/Editor/PortalCpuProfileReport.cs" -Force
 if ($PortalIntroduction) {
     $editorAssemblyPath = "$projectPath/Assets/DK2/Editor/DK2.Unity.Editor.asmdef"
     $editorAssembly = Get-Content -LiteralPath $editorAssemblyPath -Raw | ConvertFrom-Json
@@ -82,6 +85,8 @@ $env:DK2_PROBE_RELEASE = if ($ReleasePlayer) { '1' } else { '0' }
 $env:DK2_PROBE_COMPARE_APIS = if ($CompareGraphicsApis) { '1' } else { '0' }
 $captureMode = if ($TraceMode -eq 'auto') { if ($CheckFrameBudget) { 'fps' } else { 'diagnostic-gpu' } } else { $TraceMode }
 $env:DK2_PROBE_CAPTURE_MODE = $captureMode
+if ($captureMode -eq 'cpu' -and (!$PortalIntroduction -or $ReleasePlayer)) { throw 'CPU tracing requires a Development portal introduction player.' }
+if ($ArrivalAllocationStacks -and $captureMode -ne 'cpu') { throw 'Arrival allocation stacks require CPU tracing.' }
 if ($CheckFrameBudget -and $captureMode -ne 'fps') { throw 'FPS qualification requires lightweight fps trace mode.' }
 if ($CheckFrameBudget -and !$PresentMon) {
     $PresentMon = Join-Path $repo 'build/profiling-tools/PresentMon-2.6.0-x64.exe'
@@ -91,6 +96,7 @@ if ($CheckFrameBudget -and (!$PortalIntroduction -or !$ReleasePlayer -or $OmitAr
     throw '-CheckFrameBudget requires -PortalIntroduction -ReleasePlayer and the full effect.'
 }
 Copy-Item -LiteralPath "$PSScriptRoot/PortalIntroductionProfile.cs" -Destination "$run/probe-source.cs"
+if ($captureMode -eq 'cpu') { Copy-Item -LiteralPath "$PSScriptRoot/PortalCpuProfileReport.cs" -Destination "$run/cpu-report-source.cs" }
 if ($AllocationTrace -and !$RotationCapture) { throw '-AllocationTrace requires -RotationCapture.' }
 git -C $repo rev-parse HEAD | Set-Content -LiteralPath "$run/commit.txt"
 Get-ChildItem -LiteralPath "$projectPath/Assets/Plugins/DK2" -Filter '*.dll' |
@@ -136,7 +142,7 @@ function Run-ProbeProcess([string]$Executable, [string[]]$Arguments, [int]$Timeo
         $monitorArguments = @('--process_name', [IO.Path]::GetFileName($Executable), '--output_file', "$run/presentmon.csv",
             '--qpc_time', '--no_console_stats', '--no_track_input',
             '--timed', $PresentationTraceSeconds.ToString(), '--terminate_after_timed', '--session_name', $traceSession)
-        if ($captureMode -eq 'fps') { $monitorArguments += '--no_track_gpu' }
+        if ($captureMode -in @('fps', 'cpu')) { $monitorArguments += '--no_track_gpu' }
         $monitorQuoted = foreach ($argument in $monitorArguments) { '"' + $argument + '"' }
         $monitor = Start-Process -FilePath $PresentMon -ArgumentList ($monitorQuoted -join ' ') -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput "$run/presentmon.log" -RedirectStandardError "$run/presentmon-errors.log"
@@ -206,13 +212,21 @@ $playerArguments = @('-screen-fullscreen', '0', '-screen-width', $(if ($PortalIn
     '-windowProbeOutput', $run, '-logFile', "$run/player.log")
 if ($AllocationTrace) { $playerArguments += '-rotationAllocationTrace' }
 if ($OmitArrivalEffect) { $playerArguments += '-omitArrivalEffect' }
-if ($CheckFrameBudget) { $playerArguments += '-noArrivalScreenshot' }
+if ($CheckFrameBudget -or $NoArrivalScreenshot) { $playerArguments += '-noArrivalScreenshot' }
 if ($captureMode -eq 'fps') { $playerArguments += '-fpsQualification' }
+if ($captureMode -eq 'native-gpu') { $playerArguments += '-nativeGpuDiagnostic' }
+if ($captureMode -eq 'cpu') { $playerArguments += @('-arrivalCpuProfile', '-noArrivalScreenshot') }
+if ($ArrivalAllocationStacks) { $playerArguments += '-arrivalAllocationStacks' }
 if ($GraphicsApi -eq 'Direct3D11') { $playerArguments += '-force-d3d11' }
 if ($GraphicsApi -eq 'Direct3D12') { $playerArguments += '-force-d3d12' }
 if ($GraphicsApi -eq 'Vulkan') { $playerArguments += '-force-vulkan' }
 Run-ProbeProcess $player $playerArguments 240 (!$VisiblePlayer.IsPresent) $VisiblePlayer.IsPresent $true
 if (!(Test-Path -LiteralPath "$run/frames.csv")) { throw "No completed windowed capture; see $run/player.log." }
+if ($captureMode -eq 'cpu') {
+    Run-ProbeProcess $Unity @('-batchmode', '-nographics', '-projectPath', $projectPath,
+        '-executeMethod', 'DK2.Unity.Editor.PortalCpuProfileReport.Run', '-arrivalProfile', "$run/arrival-cpu.raw",
+        '-logFile', "$run/cpu-report.log") 240 $false
+}
 if ($AllocationTrace) {
     Run-ProbeProcess $Unity @('-batchmode', '-nographics', '-projectPath', $projectPath,
         '-executeMethod', 'DK2.Unity.Editor.ClassicRotationProfileReport.Run',

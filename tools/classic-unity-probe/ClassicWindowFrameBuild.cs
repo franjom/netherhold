@@ -50,7 +50,7 @@ namespace DK2.Unity.Editor
             else if (Environment.GetEnvironmentVariable("DK2_WINDOW_ROTATION_PROBE") == "1") probe.AddComponent<ClassicRotationProbe>();
             else probe.AddComponent<ClassicWindowFrameProbe>();
             EditorSceneManager.SaveScene(scene, "Assets/ClassicWindowFrameProbe.unity");
-            PlayerSettings.enableFrameTimingStats = Environment.GetEnvironmentVariable("DK2_PROBE_CAPTURE_MODE") != "fps";
+            PlayerSettings.enableFrameTimingStats = Environment.GetEnvironmentVariable("DK2_PROBE_CAPTURE_MODE") == "diagnostic-gpu";
             PlayerSettings.runInBackground = true;
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
             PlayerSettings.defaultScreenWidth = arrival ? 1920 : 1280; PlayerSettings.defaultScreenHeight = arrival ? 1080 : 720;

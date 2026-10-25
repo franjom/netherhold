@@ -540,6 +540,7 @@ namespace DK2.Unity
         }
 
         private static readonly ProfilerMarker TickMarker = new ProfilerMarker("DK2.Simulation.Tick");
+        private static readonly ProfilerMarker WaitTickMarker = new ProfilerMarker("DK2.Simulation.WaitForTick");
         private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Scene.Present");
         private readonly FrameElapsedClock _frameElapsed = new FrameElapsedClock();
 
@@ -716,6 +717,7 @@ namespace DK2.Unity
         {
             Task task = _tickTask;
             if (task == null) return;
+            using var waitScope = WaitTickMarker.Auto();
             _tickTask = null;
             try
             {

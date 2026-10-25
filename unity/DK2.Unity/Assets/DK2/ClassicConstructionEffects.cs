@@ -13,11 +13,14 @@ using DK2.Presentation;
 using DK2.Simulation;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Unity.Profiling;
 
 namespace DK2.Unity
 {
     public sealed class ClassicConstructionEffects : IDisposable
     {
+        private static readonly ProfilerMarker DrawMarker = new ProfilerMarker("DK2.Effects.Draw");
+        private static readonly ProfilerMarker ResourceMarker = new ProfilerMarker("DK2.Effects.PrepareResourceCold");
         private sealed class Group
         {
             public ParticleSystem System;
@@ -56,7 +59,7 @@ namespace DK2.Unity
         private readonly IEffectSpriteProvider _sprites;
         private readonly ClassicMeshes _meshes;
         private readonly TransparentTerrain _transparent;
-        /// <summary>One particle system per element definition, and per mesh entry for a group part.</summary>
+        /// <summary>Cached render resources per sprite asset or group-part mesh entry.</summary>
         private readonly Dictionary<(AssetRef, string), Group> _groups = new Dictionary<(AssetRef, string), Group>();
         public RoomConstructionParticles Model { get; }
 
@@ -107,6 +110,7 @@ namespace DK2.Unity
 
         public void Draw()
         {
+            using var drawScope = DrawMarker.Auto();
             _transparent?.BeginEffectFrame();
             float fraction = _fraction;
             Camera camera = Camera.main;
@@ -361,6 +365,7 @@ namespace DK2.Unity
         {
             AssetRef key = spriteAsset.IsEmpty ? AssetRef.ForEffectElement(definition.Name) : spriteAsset;
             if (_groups.TryGetValue((key, meshEntry ?? ""), out Group existing)) return existing;
+            using var resourceScope = ResourceMarker.Auto();
             if (meshEntry != null || definition.ArtResource.Type == 5 || definition.ArtResource.Type == 6)
                 return MeshGroup(definition, meshEntry, key);
             if (_sprites == null || !_sprites.TryResolve(key, out ResolvedAsset asset)

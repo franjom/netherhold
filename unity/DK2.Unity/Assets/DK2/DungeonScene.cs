@@ -428,6 +428,7 @@ namespace DK2.Unity
 
         public void CreateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
+            using var createScope = CreateCreatureMarker.Auto();
             // The idle model remains the fallback for a missing or unimplemented clip choice.
             GameObject go = _classic?.TryCreate(mesh, $"creature {creatureId}", _root);
             if (go != null) _meshCreatures.Add(creatureId);
@@ -442,6 +443,8 @@ namespace DK2.Unity
             if (_meshCreatures.Contains(creatureId)) _creatureShadows?.Register(go);
             PositionCreature(go, creatureId, creature, mesh.Look);
         }
+
+        private static readonly ProfilerMarker CreateCreatureMarker = new ProfilerMarker("DK2.Scene.CreateCreature");
 
         public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {

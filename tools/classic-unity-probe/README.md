@@ -130,6 +130,33 @@ outside the acceptance interval. Tests run with `python -m unittest discover
 
 Acceptance scope and remaining coverage: [performance policy](../../docs/PERFORMANCE.md).
 
+To attribute introduction hitches, use `-PortalIntroduction -VisiblePlayer
+-TraceMode cpu -GraphicsApi Vulkan` without `-ReleasePlayer`. The Development
+player saves `arrival-cpu.raw`; the launcher exports `cpu-samples.csv` and
+validates that every close-up frame is present. Sample/parent/thread indices
+preserve identity; inclusive and self times describe CPU scopes, not GPU time.
+Ordinary samples below0.1ms are omitted, but DK2 markers, buffer creation and
+allocations are retained. Profiling and unique frame labels add overhead.
+`-ArrivalAllocationStacks` additionally records allocation call stacks in the
+raw profile; the ordinary CSV identifies their immediate parent scope.
+
+```powershell
+python tools/classic-unity-probe/summarize-arrival-cpu.py <run> --output <summary.json>
+./tools/classic-unity-probe/run-arrival-cpu-report.ps1 -ResourcesOnly -Profiles <arrival-cpu.raw>
+python tools/classic-unity-probe/summarize-arrival-cpu.py <run> --samples cpu-resources.csv
+```
+
+Offline reports use the same exclusive lease and marked isolated project.
+Resource-only export avoids writing all allocation events while retaining every
+buffer-creation sample and custom marker. Source snapshots accompany reports.
+
+For native GPU scheduling diagnostics, reuse a current Release FPS player with
+`-TraceMode native-gpu -NoArrivalScreenshot -PresentMon <exe>`. This keeps Unity
+per-frame GPU measurement off and enables GPU tracking in ETW. Run lightweight
+FPS/native GPU/lightweight FPS serially on the same executable. Validate the
+middle capture with `frame_budget.py <run> --mode diagnostic-gpu`; it remains
+diagnostic regardless of its timings. Rebuild old players before using new modes.
+
 Setup, measured results and limits: [portal arrival performance](../../docs/research/portal-arrival-performance.md).
 
 ## Camera reference capture

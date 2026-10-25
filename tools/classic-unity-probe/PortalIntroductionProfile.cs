@@ -18,6 +18,7 @@ using DK2.Simulation;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Profiling;
 
 namespace DK2.Unity
 {
@@ -56,7 +57,7 @@ namespace DK2.Unity
         private TransparentTerrain _transparent;
         private ScriptedViewDirector _director;
         private string _output;
-        private bool _configured, _started, _finished, _omitEffect, _screenshotRequested, _arrivalScreenshot, _captureGpu;
+        private bool _configured, _started, _finished, _omitEffect, _screenshotRequested, _arrivalScreenshot, _captureGpu, _captureCpu, _cpuProfiling, _nativeGpu;
         private double _begin, _introduced, _previous;
         private ulong _lastTiming;
         private long _introCpuStamp, _endCpuStamp;
@@ -83,7 +84,10 @@ namespace DK2.Unity
             _output = args[Array.IndexOf(args, "-windowProbeOutput") + 1];
             _omitEffect = args.Contains("-omitArrivalEffect");
             _arrivalScreenshot = !args.Contains("-noArrivalScreenshot");
-            _captureGpu = !args.Contains("-fpsQualification");
+            _captureCpu = args.Contains("-arrivalCpuProfile");
+            _nativeGpu = args.Contains("-nativeGpuDiagnostic");
+            _captureGpu = !args.Contains("-fpsQualification") && !_captureCpu && !_nativeGpu;
+            if (_captureCpu && !Debug.isDebugBuild) throw new InvalidOperationException("CPU profiling requires a Development player.");
             if (Application.isBatchMode || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
                 throw new InvalidOperationException("Normal standalone screen rendering required.");
             if (!QueryPerformanceFrequency(out _counterFrequency)) throw new InvalidOperationException("Native CPU timer frequency unavailable.");
@@ -120,7 +124,7 @@ namespace DK2.Unity
                 "FrameTimingEnabled=" + FrameTimingManager.IsFeatureEnabled() + "\nGpuTimerFrequency=" + FrameTimingManager.GetGpuTimerFrequency() + "\n");
             File.AppendAllText(Path.Combine(_output, "metadata.txt"), "ProbeStorage=Preallocated frame/counter buffers; CSV formatting after measurement\nRenderTick=Main-thread scene render clock, not a worker world read\n");
             File.AppendAllText(Path.Combine(_output, "metadata.txt"), "ScreenshotDuringMeasurement=" + _arrivalScreenshot + "\n");
-            File.AppendAllText(Path.Combine(_output, "metadata.txt"), "CaptureMode=" + (_captureGpu ? "diagnostic-gpu" : "fps") + "\n");
+            File.AppendAllText(Path.Combine(_output, "metadata.txt"), "CaptureMode=" + (_captureCpu ? "cpu" : _nativeGpu ? "native-gpu" : _captureGpu ? "diagnostic-gpu" : "fps") + "\n");
             _configured = true;
         }
 
@@ -157,8 +161,8 @@ namespace DK2.Unity
             if (_effectRequests != 1 || _pathRequests != 1 || !world.Creatures.Any(c => c.CreatureTypeId == 5))
                 throw new InvalidOperationException("The shipped Warlock introduction did not execute.");
             RunnerField("speed").SetValue(_runner, 1f);
-            _introduced = Time.realtimeSinceStartupAsDouble; _started = true;
             _introCpuStamp = CpuTimestamp();
+            _introduced = Time.realtimeSinceStartupAsDouble; _started = true;
         }
 
         private bool CaptureTimings(out FrameTiming latest)
@@ -196,9 +200,30 @@ namespace DK2.Unity
             {
                 if (!_configured) Configure();
                 double now = Time.realtimeSinceStartupAsDouble, elapsed = now - _begin;
-                if (!_started && elapsed >= 10) { Introduce(); now = Time.realtimeSinceStartupAsDouble; }
+                if (_captureCpu && !_cpuProfiling && !_started && elapsed >= 9)
+                {
+                    Profiler.logFile = Path.Combine(_output, "arrival-cpu.raw");
+                    Profiler.enableBinaryLog = true;
+                    Profiler.SetAreaEnabled(ProfilerArea.GPU, false);
+                    Profiler.enableAllocationCallstacks = Environment.GetCommandLineArgs().Contains("-arrivalAllocationStacks");
+                    Profiler.enabled = true;
+                    File.AppendAllText(Path.Combine(_output, "metadata.txt"), "ProfilerGpuArea=" + Profiler.GetAreaEnabled(ProfilerArea.GPU) + "\n");
+                    _cpuProfiling = true;
+                }
+                if (_cpuProfiling)
+                {
+                    Profiler.BeginSample("DK2.Probe.ArrivalFrame:" + Time.frameCount);
+                    Profiler.EndSample();
+                }
+                if (!_started && elapsed >= 10)
+                {
+                    Profiler.BeginSample("DK2.Probe.Introduce");
+                    try { Introduce(); }
+                    finally { Profiler.EndSample(); }
+                    now = Time.realtimeSinceStartupAsDouble;
+                }
                 bool fresh = CaptureTimings(out FrameTiming timing);
-                double intro = _started ? now - _introduced : -1;
+                double intro = _started ? (CpuTimestamp() - _introCpuStamp) / (double)_counterFrequency : -1;
                 if (_sampleCount == MaximumSamples) throw new InvalidOperationException("Frame capture buffer exhausted.");
                 _samples[_sampleCount] = new FrameSample
                 {
@@ -241,6 +266,12 @@ namespace DK2.Unity
 
         private IEnumerator Complete()
         {
+            if (_cpuProfiling)
+            {
+                Profiler.enabled = false;
+                Profiler.enableBinaryLog = false;
+                _cpuProfiling = false;
+            }
             for (int i = 0; i < 8; i++)
             {
                 yield return null;

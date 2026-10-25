@@ -12,6 +12,7 @@ using DK2.Data.Model;
 using DK2.Presentation;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Unity.Profiling;
 using NumericsVector2 = System.Numerics.Vector2;
 using NumericsVector3 = System.Numerics.Vector3;
 
@@ -30,6 +31,7 @@ namespace DK2.Unity
     /// </remarks>
     public sealed class ClassicMeshes
     {
+        private static readonly ProfilerMarker ColdMeshMarker = new ProfilerMarker("DK2.Art.BuildMeshCold");
         public enum LightingMode { Instance, TerrainPiece }
 
         private const string LitShader = "Universal Render Pipeline/Lit";
@@ -292,6 +294,7 @@ namespace DK2.Unity
         {
             if (_built.TryGetValue((asset.InstallEntry, lastFrame, lightingMode), out built)) return built != null;
 
+            using var coldScope = ColdMeshMarker.Auto();
             using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Mesh);
             built = null;
             if (_art.TryLoadModel(asset, out KmfModel model))

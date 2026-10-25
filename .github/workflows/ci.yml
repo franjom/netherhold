@@ -46,9 +46,9 @@ jobs:
         if: runner.os == 'Windows'
         run: python -m unittest discover -s tools/oracle -p test_decision_boundary.py -v
 
-      - name: Frame budget checker regression tests (no GPU required)
+      - name: Performance capture regression tests (no GPU required)
         if: runner.os == 'Windows'
-        run: python -m unittest discover -s tools/classic-unity-probe -p test_frame_budget.py -v
+        run: python -m unittest discover -s tools/classic-unity-probe -p "test_*.py" -v
 
       - name: Build
         # Directory.Build.props sets TreatWarningsAsErrors, so this is also the
