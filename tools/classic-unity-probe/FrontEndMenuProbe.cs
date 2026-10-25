@@ -26,10 +26,16 @@ namespace DK2.Unity.Editor
         private static FrontEndRect _referenceInk;
         private static RectInt _fontPixels;
         private static string _output;
+        private static bool CampaignMode => SessionState.GetBool("DK2.CampaignMenuProbe", false);
         static FrontEndMenuProbe()
         {
             if (SessionState.GetBool(Active, false))
             { _deadline = EditorApplication.timeSinceStartup + 300; EditorApplication.update += Poll; }
+        }
+        public static void RunCampaign()
+        {
+            SessionState.SetBool("DK2.CampaignMenuProbe", true);
+            Run();
         }
         public static void Run()
         {
@@ -37,6 +43,13 @@ namespace DK2.Unity.Editor
             EditorSceneManager.OpenScene("Assets/DK2/Scenes/Dungeon.unity");
             var runner = UnityEngine.Object.FindAnyObjectByType<DungeonRunner>();
             JsonUtility.FromJsonOverwrite("{\"sessionMode\":5,\"showDiagnostics\":false,\"speed\":0,\"installDirectory\":\"E:/GogGames/Dungeon Keeper 2\"}", runner);
+            if (CampaignMode)
+            {
+                string profile = Path.GetFullPath(Path.Combine(Application.dataPath, "../../campaign-profile-" + DateTime.UtcNow.Ticks + ".dk2p")).Replace('\\', '/');
+                DK2.Data.Campaign.CampaignProfileFile.Save(profile,
+                    DK2.Simulation.CampaignProgression.CompleteMap(new DK2.Data.Model.CampaignProfile(), new DK2.Data.Model.CampaignSlot(1)));
+                JsonUtility.FromJsonOverwrite("{\"campaignProfileFile\":\"" + profile + "\"}", runner);
+            }
             SessionState.SetBool(Active, true); EditorApplication.isPlaying = true;
         }
         private static void Poll()
@@ -120,7 +133,13 @@ namespace DK2.Unity.Editor
                             throw new Exception("Widescreen font and bitmap bounds differ: " + _fontPixels + " vs " + wideBitmap);
                         break;
                     default:
-                        Expect(FrontEndPage.Main);
+                        if (CampaignMode)
+                        {
+                            if (!AdvanceCampaign(menu)) { _stage++; return; }
+                            Debug.Log("Front-end campaign verification passed: reset confirmation, 3D triangle pick, map hover/lift, briefing font/bitmap and return paths.");
+                            SessionState.SetBool("DK2.CampaignMenuProbe", false);
+                        }
+                        else Expect(FrontEndPage.Main);
                         Debug.Log("Front-end menu verification passed: font and bitmap ink within2pixels, navigation, station gates, option shell and Quit cancel.");
                         SessionState.SetBool(Active, false); EditorApplication.update -= Poll; EditorApplication.Exit(0); return;
                 }
@@ -129,6 +148,67 @@ namespace DK2.Unity.Editor
             catch (Exception error)
             { SessionState.SetBool(Active, false); Debug.LogException(error); EditorApplication.Exit(1); }
         }
+        private static bool AdvanceCampaign(ClassicFrontEndMenu menu)
+        {
+            var map = _runner.CampaignMap;
+            var model = menu.Model;
+            switch (_stage)
+            {
+                case 14: menu.UseReplacementFont = true; model.Activate(new FrontEndWidgetId(1)); break;
+                case 15: Expect(FrontEndPage.SinglePlayer); Capture("campaign-single"); model.Activate(new FrontEndWidgetId(6)); break;
+                case 16:
+                    Expect(FrontEndPage.Dialog); Capture("campaign-reset"); model.Activate(new FrontEndWidgetId(668));
+                    if (map.Profile.PlayerLevelStatus[0] != DK2.Data.Model.CampaignLevelStatus.Won) throw new Exception("Reset cancel lost progress.");
+                    model.Activate(new FrontEndWidgetId(6)); model.Activate(new FrontEndWidgetId(667)); FinishPath(); break;
+                case 17:
+                    Expect(FrontEndPage.CampaignMap); Capture("campaign-map"); VerifyMapPick();
+                    _runner.enabled = false; map.Hover(new DK2.Data.Model.CampaignSlot(1));
+                    _runner.FrontEnd.Update(_runner.FrontEnd.Now + TimeSpan.FromSeconds(.05));
+                    typeof(DungeonRunner).GetMethod("RefreshCampaignMap", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(_runner, null);
+                    menu.Refresh(false); break;
+                case 18:
+                    Capture("campaign-hover");
+                    if (map.LandVisual(new DK2.Data.Model.CampaignSlot(1)).Lift <= 0) throw new Exception("Hovered land did not rise.");
+                    if (!map.Select(new DK2.Data.Model.CampaignSlot(1))) throw new Exception("Open campaign slot refused.");
+                    _runner.enabled = true; FinishPath(); break;
+                case 19: Expect(FrontEndPage.Briefing); Capture("campaign-briefing-font"); menu.UseReplacementFont = false; break;
+                case 20: Capture("campaign-briefing-bitmap"); model.Activate(new FrontEndWidgetId(169)); FinishPath(); break;
+                case 21: Expect(FrontEndPage.CampaignMap); Capture("campaign-return"); model.Activate(new FrontEndWidgetId(534)); FinishPath(); break;
+                case 22:
+                    Expect(FrontEndPage.SinglePlayer);
+                    string profile = (string)typeof(DungeonRunner).GetField("campaignProfileFile", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
+                    DK2.Data.Campaign.CampaignProfileFile.Save(profile,
+                        DK2.Simulation.CampaignProgression.CompleteMap(map.Profile, new DK2.Data.Model.CampaignSlot(1)));
+                    _runner = _runner.LoadLevel(GameSessionRequest.FrontEnd(FrontEndPage.CampaignMap)); break;
+                case 23:
+                    menu.Panel.targetTexture = _overlay; menu.Panel.clearColor = true; menu.Panel.colorClearValue = Color.clear;
+                    FinishPath(); break;
+                case 24:
+                    Expect(FrontEndPage.CampaignMap);
+                    if (map.LandVisual(new DK2.Data.Model.CampaignSlot(1)).TexturePhase.Raw != 0x55a)
+                        throw new Exception("Return-to-map session lost won texture phase initialization.");
+                    Capture("campaign-return-session"); break;
+                default: Expect(FrontEndPage.CampaignMap); return true;
+            }
+            return false;
+        }
+        private static void VerifyMapPick()
+        {
+            var scene = (DungeonScene)typeof(DungeonRunner).GetField("_scene", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
+            var slots = (System.Collections.Generic.Dictionary<int, DK2.Data.Model.CampaignSlot>)typeof(DungeonRunner)
+                .GetField("_campaignPickSlots", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(_runner);
+            int id = slots.First(p => p.Value.Value == 1 && p.Key > -2_000_000).Key;
+            var mesh = UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).First(f => f.name == "object " + id);
+            var vertices = mesh.sharedMesh.vertices; var triangles = mesh.sharedMesh.triangles;
+            for (int i = 0; i < triangles.Length; i += 3)
+            {
+                Vector3 point = mesh.transform.TransformPoint((vertices[triangles[i]] + vertices[triangles[i + 1]] + vertices[triangles[i + 2]]) / 3);
+                var ray = new Ray(Camera.main.transform.position, (point - Camera.main.transform.position).normalized);
+                if (scene.PickFrontEndMap(ray, slots).Value == 1) return;
+            }
+            throw new Exception("No rendered triangle could pick campaign slot1.");
+        }
+
         private static void FinishPath()
         {
             FieldInfo field = typeof(DungeonRunner).GetField("_frontEndStarted", BindingFlags.Instance | BindingFlags.NonPublic);

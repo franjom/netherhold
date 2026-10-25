@@ -281,8 +281,13 @@ namespace DK2.Unity
             }
             _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
-            if (frontEnd) _frontEndScenery = FrontEndScenery.Create(world, database,
-                new CampaignProfile(), new SimRandom(seed));
+            if (frontEnd)
+            {
+                LoadFrontEndProfile();
+                _frontEndScenery = FrontEndScenery.Create(world, database, _campaignProfile, new SimRandom(seed), _secretFiveAvailable)
+                    .Concat(FrontEndScenery.CreateCampaignMarkers(database)).ToArray();
+                _frontEndBaseScenery = _frontEndScenery;
+            }
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
             _startup.Step("level");
@@ -517,6 +522,7 @@ namespace DK2.Unity
             WaitForTick();
             DisposeHudControls();
             _frontEndMenu?.Dispose();
+            _campaignMap?.Dispose(); _campaignMap = null;
             _minimap?.Dispose();
             _handCursor?.Dispose();
             _tileHighlight?.Dispose();

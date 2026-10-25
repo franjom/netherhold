@@ -54,4 +54,24 @@ public class FrontEndLabelTests
         Assert.Equal(new FrontEndRect(0, 1, 3, 1), label.InkBounds);
         Assert.Equal(2, label.Glyphs.Count);
     }
+    [Fact]
+    public void BriefingWordsWrapUsingNativeAdvanceAndKeepLineHeightAndBearings()
+    {
+        var font = new BitmapFont(6, new[] { new BitmapGlyph('A', 1, 1, 0, 1, 5, new byte[] { 15 }),
+            new BitmapGlyph(' ', 0, 0, 0, 0, 2, Array.Empty<byte>()) });
+        var text = FrontEndLabelGeometry.Measure(font, "AA AA", 10);
+        Assert.Equal(4, text.Glyphs.Count);
+        Assert.Equal(new FrontEndRect(0, 7, 1, 1), text.Glyphs[2].InkBounds);
+        Assert.Equal(new FrontEndRect(0, 0, 10, 12), text.PlaceCanvas(new(0, 0, 10, 20), FrontEndTextAlignment.Left, FrontEndVerticalAlignment.Top));
+        var paragraphs = FrontEndLabelGeometry.Measure(font, "A\nA", 10);
+        Assert.Equal(2, paragraphs.Glyphs.Count);
+        Assert.Equal(12, paragraphs.CanvasHeight);
+        var mixed = new BitmapFont(6, new[] { new BitmapGlyph('a',1,1,0,1,1,new byte[] {15}),
+            new BitmapGlyph(' ',0,0,0,0,1,Array.Empty<byte>()), new BitmapGlyph('B',1,1,0,1,8,new byte[] {15}),
+            new BitmapGlyph('W',1,1,0,1,10,new byte[] {15}) });
+        var longWord = FrontEndLabelGeometry.Measure(mixed, "a BW", 10);
+        Assert.Equal(18, longWord.CanvasHeight);
+        Assert.Equal(10, longWord.Advance);
+    }
+
 }

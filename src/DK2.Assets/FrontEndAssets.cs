@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Model;
+
 namespace DK2.Assets;
 
 public enum FrontEndMapPiece : byte
@@ -18,6 +20,10 @@ public static class FrontEndAssets
     public static AssetRef CampaignPiece(FrontEndMapPiece piece) => Enum.IsDefined(typeof(FrontEndMapPiece), piece)
         ? AssetRef.Create(AssetRef.UiCategory, "campaign_map", AssetKind.Mesh, piece.ToString())
         : throw new ArgumentOutOfRangeException(nameof(piece));
+
+    public static AssetRef CampaignMarker(CampaignSlot slot) => slot.IsCampaign
+        ? AssetRef.Create(AssetRef.UiCategory, "campaign_marker", AssetKind.Mesh, slot.LevelName!)
+        : throw new ArgumentOutOfRangeException(nameof(slot));
 
     public static AssetRef PetDungeonPiece(PetDungeonMapPiece piece) => Enum.IsDefined(typeof(PetDungeonMapPiece), piece)
         ? AssetRef.Create(AssetRef.UiCategory, "pet_dungeon_map", AssetKind.Mesh, piece.ToString())

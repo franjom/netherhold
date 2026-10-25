@@ -19,7 +19,7 @@ Confidence: **CONFIRMED** = read from the bytes or by a repo reader over every f
 | Front-end meshes (KMF) | 93 FE-named plus shared ones in `Meshes.WAD` | `DK2.Art.KmfReader` (not run on these files here) | none expected (STRONGLY INFERRED) | — |
 | Front-end textures | 560 `3dFe*`/`3dMap*`/`MPD*` entries in `EngineTextures.dir` | `DK2.Art.EngineTextureArchive` | none | — |
 | Camera paths 250-274 | 25 `.KCS` in `Paths.WAD` | `DK2.Data.Camera.KcsCameraPath` | none (format CONFIRMED over all 80 files, camera-paths.md) | — |
-| Fonts `FONT_FRONTEND*.bf4` | 6 | `DK2.Data.Text.Bf4FontReader` (an install test sweeps all 22 `.bf4`) | none | — |
+| Fonts `FONT_FRONTEND*.bf4` | 6 | `DK2.Data.Text.Bf4FontReader` (an install test sweeps all 22 `.bf4`) | original glyph metrics and bitmap fallback in F3/F4 | — |
 | String tables | 92 `.str` | `DK2.Data.Text.Dk2StringTable`, `LevelTextTable` | none | — |
 | SDT sound banks | `FrontEndHD`, `GuiHD`, `Patch_1HD`, 10 `Track_*`, 33 speech banks | `DK2.Convert.Audio.SdtArchive` lists the entries and extracts the raw MPEG payload | an MPEG-1/2 **Layer I and Layer II** decoder in memory at run time | medium |
 | `*BANK.map` / `*SFX.map` event maps | 2 per sound object | none | a reader: bank → archive names, event → groups → variants → (sample, archive) | medium |
@@ -86,13 +86,13 @@ compression is not read).
 
 As a result **31 names occur twice (62 entries)**: the 14 loading screens (the Japanese and the default runs), 16 `2dLevelS{1..4}-{1..4}.png`, `Cancel.png` (48×48 and 60×60) and `Confirm.png`. `WadArchive.TryGetEntry` keeps the later entry for each, so a lookup
 by bare name cannot reach the first. `WadArchive.Extract(int)` and
-`WadImageSource.Read(int)` reach either copy by index; general directory-qualified
-lookup remains unimplemented. The F3 menu provider selects the initial root run
-by index: root Confirm/Cancel are both 48x48, while the later Buttons run contains
-an opaque green Confirm and a 60x60 outline Cancel. Mixing those later copies
-produced the empty-looking cancel button. Native `0x00534210` requests plain
-Confirm/Cancel; directory-run reconstruction remains STRONGLY INFERRED from the
-shipped names, not proved by the storage-query wrapper.
+`WadImageSource.Read(int)` reach either copy by index. F4's `WadDirectoryIndex`
+reconstructs directory runs for image lookup, while the legacy bare-name lookup
+keeps its last-entry behavior. Root Confirm/Cancel are both 48x48; the later
+Buttons run contains an opaque green Confirm and a 60x60 outline Cancel. Mixing
+those copies produced the empty-looking cancel button. Native `0x00534210`
+requests plain Confirm/Cancel. Directory reconstruction remains STRONGLY INFERRED
+from shipped names, not proved by the storage-query wrapper.
 
 ### 1.4 `.444` images (bytes CONFIRMED, codec STRONGLY INFERRED)
 

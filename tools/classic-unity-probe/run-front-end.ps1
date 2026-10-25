@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # See LICENSE in the project root for the full license text.
 
-param([string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe', [switch]$Menus)
+param([string]$Unity = 'C:/Program Files/Unity/Hub/Editor/6000.6.0f1/Editor/Unity.exe', [switch]$Menus, [switch]$Campaign)
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
 $run = Join-Path $repo ('build/front-end-probe-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
@@ -20,7 +20,7 @@ foreach ($assembly in @('Core', 'Assets', 'Data.Model', 'Data', 'Pathfinding', '
     Copy-Item -LiteralPath $dll -Destination $plugins -Force
 }
 Copy-Item -LiteralPath "$PSScriptRoot/FrontEndSessionProbe.cs" -Destination "$project/Assets/DK2/Editor/FrontEndSessionProbe.cs"
-if ($Menus) {
+if ($Menus -or $Campaign) {
     Copy-Item -LiteralPath "$PSScriptRoot/FrontEndMenuProbe.cs" -Destination "$project/Assets/DK2/Editor/FrontEndMenuProbe.cs"
     Copy-Item -LiteralPath "$PSScriptRoot/FrontEndProbeComposite.shader" -Destination "$project/Assets/DK2/Editor/FrontEndProbeComposite.shader"
 }
@@ -30,7 +30,7 @@ $assembly.references = @($assembly.references) + @('Unity.RenderPipelines.Univer
 [IO.File]::WriteAllText($assemblyPath, ($assembly | ConvertTo-Json -Depth 10), [Text.UTF8Encoding]::new($false))
 New-Item -ItemType File -Path "$project/.front-end-session-probe" | Out-Null
 $log = Join-Path $run 'unity.log'
-$entry = if ($Menus) { 'DK2.Unity.Editor.FrontEndMenuProbe.Run' } else { 'DK2.Unity.Editor.FrontEndSessionProbe.Run' }
+$entry = if ($Campaign) { 'DK2.Unity.Editor.FrontEndMenuProbe.RunCampaign' } elseif ($Menus) { 'DK2.Unity.Editor.FrontEndMenuProbe.Run' } else { 'DK2.Unity.Editor.FrontEndSessionProbe.Run' }
 $arguments = @('-batchmode', '-projectPath', $project, '-executeMethod', $entry, '-logFile', $log)
 $quoted = foreach ($argument in $arguments) { '"' + $argument + '"' }
 $process = Start-Process -FilePath $Unity -ArgumentList ($quoted -join ' ') -WindowStyle Hidden -PassThru

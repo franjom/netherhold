@@ -300,8 +300,9 @@ public readonly struct ObjectView
         bool playsAnimation = false, GameTick? animationStartedAt = null, bool animationLoops = true,
         int? previousHeight = null, int? previousPitch = null, int? previousRoll = null,
         DungeonHeartVisual? heartVisual = null, byte alpha = 255, KwdLight? light = null, TerrainLightColour addedLight = default,
-        Fp32 animationInitialPhase = default)
+        Fp32 animationInitialPhase = default, Fp32? texturePhase = null)
     {
+        TexturePhase = texturePhase;
         AnimationInitialPhase = animationInitialPhase;
         AddedLight = addedLight;
         Light = light;
@@ -363,6 +364,7 @@ public readonly struct ObjectView
     public GameTick? AnimationStartedAt { get; }
     public bool AnimationLoops { get; }
 
+    public Fp32? TexturePhase { get; }
     public Fp32 AnimationInitialPhase { get; }
     public TerrainLightColour AddedLight { get; }
     public KwdLight? Light { get; }

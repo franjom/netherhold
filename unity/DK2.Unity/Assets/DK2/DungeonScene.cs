@@ -279,6 +279,23 @@ namespace DK2.Unity
             }
         }
 
+        public CampaignSlot PickFrontEndMap(Ray ray, IReadOnlyDictionary<int, CampaignSlot> mapSlots)
+        {
+            float nearest = float.PositiveInfinity;
+            CampaignSlot result = CampaignSlot.None;
+            foreach (var pair in _objects)
+            {
+                GameObject go = pair.Value;
+                if (go == null || !go.activeSelf || !go.TryGetComponent(out MeshFilter filter)
+                    || !go.TryGetComponent(out Renderer renderer) || !renderer.bounds.IntersectRay(ray)) continue;
+                float? triangle = NearestTriangle(filter.sharedMesh, go.transform, ray, nearest);
+                if (triangle is not float distance || distance >= nearest) continue;
+                nearest = distance;
+                result = mapSlots.TryGetValue(pair.Key, out CampaignSlot slot) ? slot : CampaignSlot.None;
+            }
+            return result;
+        }
+
         private readonly List<WorldHoverHit> _pickCandidates = new List<WorldHoverHit>();
         private readonly Dictionary<Mesh, Vector4> _pickSpheres = new Dictionary<Mesh, Vector4>();
         private readonly List<Vector4> _pickSphereScratch = new List<Vector4>();
@@ -653,6 +670,7 @@ namespace DK2.Unity
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
             if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
+            else if (instance.TexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
@@ -668,6 +686,7 @@ namespace DK2.Unity
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
             if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
+            else if (instance.TexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 

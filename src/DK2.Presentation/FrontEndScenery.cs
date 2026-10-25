@@ -10,7 +10,7 @@ using DK2.Simulation;
 namespace DK2.Presentation;
 
 public sealed record FrontEndProp(ObjectView View, bool Visible = true,
-    FrontEndMapPiece? MapPiece = null, PetDungeonMapPiece? PetDungeonPiece = null);
+    FrontEndMapPiece? MapPiece = null, PetDungeonMapPiece? PetDungeonPiece = null, CampaignSlot? MarkerSlot = null);
 
 /// <summary>Decorative front-end objects from 0x004DEF30; never inserts simulation entities.</summary>
 public static class FrontEndScenery
@@ -68,4 +68,34 @@ public static class FrontEndScenery
         }
         return props.AsReadOnly();
     }
+    public static IReadOnlyList<FrontEndProp> CreateCampaignMarkers(GameDatabase database)
+    {
+        var markers = new List<FrontEndProp>();
+        for (int value = 1; value <= 24; value++)
+        {
+            var slot = new CampaignSlot(value);
+            var view = new ObjectView(-2_000_000 - value, 115, new PlayerId(PlayerIds.Neutral), new TilePos(3, 10),
+                FrontEndAssets.CampaignMarker(slot), 0, 0x3800, 0xa800, Fp32.One, 0x400, Fp32.One);
+            markers.Add(new FrontEndProp(view, false, MarkerSlot: slot));
+        }
+        return markers.AsReadOnly();
+    }
+
+    public static IReadOnlyList<FrontEndProp> ApplyCampaignMap(IReadOnlyList<FrontEndProp> original, CampaignMapController map)
+    {
+        return Array.AsReadOnly(original.Select(prop =>
+        {
+            CampaignMapVisual visual;
+            if (prop.MapPiece is FrontEndMapPiece piece) visual = map.LandVisual(new CampaignSlot((byte)piece));
+            else if (prop.MarkerSlot is CampaignSlot slot) visual = map.MarkerVisual(slot);
+            else return prop;
+            ObjectView v = prop.View;
+            var view = new ObjectView(v.Id, v.ObjectTypeId, new PlayerId(v.OwnerPlayerId), v.Tile, v.Mesh, v.GoldHeld,
+                v.PosX, v.PosY, v.Height + visual.Lift, v.Heading, v.Scale, v.Pitch, v.Roll,
+                playsAnimation: v.PlaysAnimation, light: v.Light, animationInitialPhase: v.AnimationInitialPhase,
+                texturePhase: visual.TexturePhase);
+            return prop with { View = view, Visible = visual.Visible };
+        }).ToArray());
+    }
+
 }
