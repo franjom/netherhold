@@ -14,7 +14,9 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
-**305** — `0xC092D747329875C4`. FormatVersion also 305. Behavior only: hero updates and both party-link scans run newest first (ADR-0541). No new fields; the pin fixture has no active hero pass. Initial party destinations, follower numbering and removal have separate regressions.
+**306** — `0xD4E1B134A3DB5F84`. FormatVersion also 306. Behavior only: hero updates and both party-link scans run newest first (ADR-0542). No new fields; the pin fixture has no active hero pass. Initial party destinations, follower numbering and removal have separate regressions.
+
+**305** — `0xD5067604AB8DBDF9`. FormatVersion305 retains per-tile player-room-list insertion positions and the next world insertion counter (ADR-0541). Construction, capture, absorption and split replay maintain order; the combat room cache uses it. Focused tests check hash sensitivity, snapshot restoration and subsequent insertion.
 
 **304** — `0x050D6062F2D6C047`. FormatVersion also 304. Global Secret Door concealment, per-keeper entry order and retained holders, and the creature's selected Secret Door marker enter state (ADR-0536). The pin fixture has no doors; focused hash sensitivity and snapshot checks cover the additions.
 

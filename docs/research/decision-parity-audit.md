@@ -237,8 +237,9 @@ the live pair, controls,19 sealed artifacts and pinned inputs.
 2. Treat recorded-command application separately from live cursor validation.
    Preserve the existing adaptive rate as its own measurement; do not silently
    change its policy or relabel it as strict replay.
-3. Preserve native room creation/list order before retesting the captured Level4
-   withdrawal. Separately capture acquisition inputs at the earlier interruption:
+3. Room creation/list order is now retained by the combat cache in
+   [hash305](room-list.md#persistent-player-list-order-hash305), with a production-history
+   boundary check. Measure campaign effects separately. Capture acquisition inputs at the earlier interruption:
    scan counter, poses, candidate/attacker order, sight, target, state/resume and
    RNG. The new withdrawal result does not validate that earlier decision.
 4. Correct only an established mismatch, with native-backed focused fixtures,

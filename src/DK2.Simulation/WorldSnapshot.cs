@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 305;
+    private const int FormatVersion = 306;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -142,6 +142,7 @@ public static class WorldSnapshot
             w.Write(t.PrisonDoor);
             w.Write(t.PrisonDoorAnimationTick);
             w.Write(t.SlabOrder);
+            w.Write(t.RoomListPosition.Value);
             w.Write(t.RoomSizeChangedTick);
             w.Write(t.RoomKickedTick);
             w.Write(t.RoomRuined);
@@ -158,6 +159,7 @@ public static class WorldSnapshot
         }
 
         w.Write(world.NextSlabOrder);
+        w.Write(world.NextRoomListPosition);
         w.Write(world.NextPlaceClaim);
         w.Write(world.NextTagOrder);
         w.Write(world.SecretDoorEntries.Count);
@@ -874,6 +876,7 @@ public static class WorldSnapshot
                 PrisonDoor = r.ReadByte(),
                 PrisonDoorAnimationTick = r.ReadInt64(),
                 SlabOrder = r.ReadInt32(),
+                RoomListPosition = new RoomListPosition(r.ReadInt64()),
                 RoomSizeChangedTick = r.ReadInt64(),
                 RoomKickedTick = r.ReadInt64(),
                 RoomRuined = r.ReadBoolean(),
@@ -891,6 +894,7 @@ public static class WorldSnapshot
         }
 
         int nextSlabOrder = r.ReadInt32();
+        long nextRoomListPosition = r.ReadInt64();
         long nextPlaceClaim = r.ReadInt64();
         int nextTagOrder = r.ReadInt32();
         int secretDoorEntryCount = r.ReadInt32();
@@ -978,6 +982,7 @@ public static class WorldSnapshot
 
         WorldState world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);
         world.NextSlabOrder = nextSlabOrder;
+        world.NextRoomListPosition = nextRoomListPosition;
         world.NextPlaceClaim = nextPlaceClaim;
         world.NextTagOrder = nextTagOrder;
         foreach (var pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);

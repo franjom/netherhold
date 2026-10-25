@@ -12404,15 +12404,54 @@ each viewport size. Its shapes are an intentional presentation substitution;
 native pixel identity is not claimed. Asset access remains behind the menu
 asset interface, with no converted asset files or bundled proprietary font.
 
-## ADR-0541 — Preserve native hero-party ordering
+## ADR-0540 — Prefer Vulkan on supported desktop platforms
+**Date:** 2026-10-25 · **Status:** accepted (owner)
+
+**Context.** The owner requests Vulkan by default, with the existing native API
+as fallback on Linux and Direct3D12 on Windows. Unity6000.6 supports Vulkan on
+Windows/Linux, but not macOS; Apple platforms use Metal.
+
+**Decision.** Disable automatic API selection for Windows and Linux. Use
+Vulkan then Direct3D12 on Windows, and Vulkan then OpenGLCore on Linux.
+Keep macOS automatic selection, currently Metal. Do not configure an unsupported
+Vulkan entry on macOS. These settings live in the production Unity project.
+
+**Consequences.** Fresh Windows editor sessions and new Windows/Linux players
+prefer Vulkan. API fallback addresses unsupported backends, not frame-budget
+failures. Linux/macOS runtime validation remains outstanding; Windows Vulkan
+startup and serialized settings readback are verified. The performance target
+remains unmet. Compatibility: [Unity Vulkan support](https://docs.unity3d.com/6000.6/Documentation/Manual/vulkan.html).
+
+## ADR-0541 — Retain player room-list order for combat destinations
+
+**Date:** 2026-10-25 · **Status:** accepted · Hash/save305.
+
+**Context.** The captured withdrawal chooses different rooms with identical RNG
+because our spatial sweep loses native list order. Binary lifecycle and bounded
+production-history validation are in [room-list.md](research/room-list.md#persistent-player-list-order-hash305).
+
+**Decision.** Retain a typed insertion position on room tiles and a world counter.
+Initialize through row-major first-neighbour union; growth/absorption keep the
+survivor's position. Reconstructed pieces and ownership transfers get new head
+positions. Save and hash this state. The combat room cache reads newest first;
+the spatial room sweep retains its existing order for other consumers. Defeat
+snapshots the losing player's list before transferring eligible rooms.
+
+**Consequences.** Existing snapshots are version-incompatible. The captured
+withdrawal can be reproduced without injecting a reordered combat cache.
+Distinct adjacent native room records remain outside the connected-component
+model, and other room-list readers remain separate work. Campaign-win effects
+require a fresh measurement.
+
+## ADR-0542 — Preserve native hero-party ordering
 **Date:** 2026-10-25 · **Status:** accepted
 
 **Context.** Opening Dwarves shared a route because followers read a leader's
 new destination before choosing their own. Evidence and reproduction:
-[hero-party-walk.md §7](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0541).
+[hero-party-walk.md §7](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0542).
 
 **Decision.** Run the hero pass and both party-link scans newest first, matching
-DK2. Preserve creature storage order and soft separation. Hash/save 305 marks
+DK2. Preserve creature storage order and soft separation. Hash/save 306 marks
 the behavior change; no snapshot fields are added.
 
 **Consequences.** Hero choices and follower numbering change across levels;

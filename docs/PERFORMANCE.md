@@ -8,6 +8,8 @@ The resulting frame budget is 1000/60 ms (about 16.67 ms). An average or percent
 not excuse a slower frame.
 The optimization goal remains 100+ FPS; meeting the 60 FPS floor does not end
 performance work.
+Desktop backend selection follows [ADR-0540](DECISIONS.md#adr-0540--prefer-vulkan-on-supported-desktop-platforms).
+Selecting a backend does not certify the frame budget.
 
 ## Measurement and acceptance
 

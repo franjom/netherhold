@@ -796,23 +796,9 @@ public static class FearRules
     }
 }
 
-/// <summary>The room index built at most once a tick, and only when a flight asks for it.</summary>
+/// <summary>The current player room list in native insertion order.</summary>
 public sealed class RoomCache
 {
-    private IReadOnlyList<RoomInstance>? _rooms;
-    private long _tick = -1;
-    private readonly List<RoomInstance> _owned = [];
-
     public IReadOnlyList<RoomInstance> Of(SimulationContext context, PlayerId owner)
-    {
-        if (_rooms is null || _tick != context.Tick.Value)
-        {
-            _rooms = RoomIndex.Build(context.World, context.Database);
-            _tick = context.Tick.Value;
-        }
-        _owned.Clear();
-        for (int i = 0; i < _rooms.Count; i++)
-            if (_rooms[i].OwnerPlayerId == owner) _owned.Add(_rooms[i]);
-        return _owned;
-    }
+        => RoomLists.Of(context.World, context.Database, owner);
 }

@@ -27,7 +27,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   follow-up matches55 native rebuilds and observes one modern write-order reversal;
   its effect on losses remains open. The [captured Level4 withdrawal](research/decision-parity-audit.md#level4-captured-withdrawal-and-room-order-hash304)
   isolates a room-order mismatch with identical RNG; supplying native order matches
-  the captured destination and route window. Campaign-loss causation remains open.
+  the captured destination and route window. This is now built for the combat
+  room cache in [hash/save305](research/room-list.md#persistent-player-list-order-hash305)
+  (ADR-0541), including construction/capture/split order and snapshot state.
+  Campaign-loss causation remains open; the next replay measurement is pending.
 - The Imp Secret Door job path is built (ADR-0536, hash/save 304), including
   per-keeper entry order and native reservation retention after interruptions.
   Scope, focused verification and pending original-game acceptance:
@@ -67,9 +70,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   dropped gem stays in state 50 is LIKELY): kmf-materials.md §8, objects.md §8.
   Q622 (Lord corpse: no missing body found, the armour shine was the gap),
   Q623 and Q637 (camera frame and v sign unconfirmed) await the owner.
-- Hero-party ordering is corrected (ADR-0541, hash/save 305); opening Dwarf
+- Hero-party ordering is corrected (ADR-0542, hash/save 306); opening Dwarf
   reproduction, cross-level scope and remaining comparison limits:
-  [hero-party walk](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0541).
+  [hero-party walk](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0542).
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
@@ -206,11 +209,11 @@ research/hud-visibility.md (Q648/Q649).
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 
-Current verification (2026-10-25, ADR-0541): the combined solution and enabled
-native CPU-oracle checks pass 6,554 cases with no failures; seven capture-dependent
-checks skip. This includes 3,787 Simulation and 1,084 Presentation cases;
+Current verification (2026-10-25, ADR-0542): the combined solution and enabled
+native CPU-oracle checks pass 6,562 cases with no failures; seven capture-dependent
+checks skip. This includes 3,795 Simulation and 1,084 Presentation cases;
 the Unity adapter compiles with zero warnings/errors. Logs:
-`D:/DungeonKeeperRemake/build/dwarf-trace/` (final-build, final-tests, adapter-build).
+`D:/DungeonKeeperRemake/build/dwarf-trace/` (combined-build, combined-tests, combined-adapter).
 Prison chicken passes with master's central (5,4) drop. The branch's
 earlier failure is master's edge-route symptom, whose native cause is still
 unresolved (research/imp-fidelity-integration.md). Our side, from runs on
