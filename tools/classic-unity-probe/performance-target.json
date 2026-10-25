@@ -2,7 +2,7 @@
   "name": "owner-laptop-1080p",
   "minimum_fps": 60,
   "optimization_goal_fps": 100,
-  "preferred_api_if_accepted": "Vulkan",
+  "default_api": "Vulkan",
   "fallback_api": "Direct3D12",
   "metadata": {
     "CPU": "AMD Ryzen 7 7735HS with Radeon Graphics",

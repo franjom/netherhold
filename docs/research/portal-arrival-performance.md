@@ -235,8 +235,7 @@ ratio. Serial API runs on a shared laptop do not establish a universal backend
 ranking. Earlier full GPU traces were substantially slower; tracing overhead,
 machine load and scheduling have not been separated by a matched repeat series.
 The remaining hitches are narrowed in the next section. Resource preloading is not implemented.
-Production graphics API defaults remain unchanged; Vulkan-first with Direct3D12
-fallback is conditional on acceptance. See [performance policy](../PERFORMANCE.md)
+Production graphics API selection follows ADR-0540. See [performance policy](../PERFORMANCE.md)
 for the target, scenario coverage and acceptance protocol.
 
 ## Index-buffer resizing and residual hitches
@@ -297,4 +296,4 @@ No substantial diagnostic slowdown appears in this series; it does not establish
 zero observer overhead or explain the earlier query-heavy tracing slowdown.
 Both lightweight runs fail the60FPS floor despite typical intervals above100FPS.
 Remaining work is loading-phase preparation, direct measurement of worker waits,
-and the other required scenarios. API defaults remain unchanged.
+and the other required scenarios. Backend selection is recorded in ADR-0540.

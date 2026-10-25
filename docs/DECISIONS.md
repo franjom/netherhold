@@ -12403,3 +12403,21 @@ neither layout nor hit bounds. Original text ids and widget geometry remain data
 each viewport size. Its shapes are an intentional presentation substitution;
 native pixel identity is not claimed. Asset access remains behind the menu
 asset interface, with no converted asset files or bundled proprietary font.
+
+## ADR-0540 — Prefer Vulkan on supported desktop platforms
+**Date:** 2026-10-25 · **Status:** accepted (owner)
+
+**Context.** The owner requests Vulkan by default, with the existing native API
+as fallback on Linux and Direct3D12 on Windows. Unity6000.6 supports Vulkan on
+Windows/Linux, but not macOS; Apple platforms use Metal.
+
+**Decision.** Disable automatic API selection for Windows and Linux. Use
+Vulkan then Direct3D12 on Windows, and Vulkan then OpenGLCore on Linux.
+Keep macOS automatic selection, currently Metal. Do not configure an unsupported
+Vulkan entry on macOS. These settings live in the production Unity project.
+
+**Consequences.** Fresh Windows editor sessions and new Windows/Linux players
+prefer Vulkan. API fallback addresses unsupported backends, not frame-budget
+failures. Linux/macOS runtime validation remains outstanding; Windows Vulkan
+startup and serialized settings readback are verified. The performance target
+remains unmet. Compatibility: [Unity Vulkan support](https://docs.unity3d.com/6000.6/Documentation/Manual/vulkan.html).
