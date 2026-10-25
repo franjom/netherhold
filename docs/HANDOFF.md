@@ -23,7 +23,11 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   the [Imp selection study](research/imp-selection-evidence.md) adds three live
   matched choices and 118 binary ordering controls. Full parity remains unestablished.
   The [navigation controls](research/navigation-partial-rebuild.md#6-level-1-same-input-navigation-controls-2026-10-25)
-  separate fresh-build reconstruction from edit history; campaign update ordering remains open.
+  separate fresh-build reconstruction from edit history. The linked actual-history
+  follow-up matches55 native rebuilds and observes one modern write-order reversal;
+  its effect on losses remains open. The [captured Level4 withdrawal](research/decision-parity-audit.md#level4-captured-withdrawal-and-room-order-hash304)
+  isolates a room-order mismatch with identical RNG; supplying native order matches
+  the captured destination and route window. Campaign-loss causation remains open.
 - The Imp Secret Door job path is built (ADR-0536, hash/save 304), including
   per-keeper entry order and native reservation retention after interruptions.
   Scope, focused verification and pending original-game acceptance:

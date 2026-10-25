@@ -185,18 +185,62 @@ Two other limits are already established in native research and rechecked here:
   [the entity-sweep record](functions/004B7830.md). The chooser's matching local
   result does not validate the state those passes present to it in a full turn.
 
+## Level4 captured withdrawal and room order, hash304
+
+**CONFIRMED, bounded decision mismatch.** A new native `l4live` playback captured
+the first keeper Imp withdrawal entry/return at execution3473: slot427, health750,
+state203 to6, staged target0. The earlier flee observation around3023 is a
+different boundary. Both complete stopped-memory images are retained under
+`D:/DK2Evidence/level4-interruption-hash304-2026-10-25-restart1/` (R).
+Modern tools remain the archived clean `5716560c` Release build, HashVersion304.
+
+The captured room picker draws index6 from15 rooms. Native list slot1108 is the
+Library at `(18,48)`; our derived list slot1107 is the Hatchery at `(38,49)`.
+There are no bridges in this list. Both fixtures contain exactly the same room
+slots and centre words, and the captured Heart is unruined. Only room order
+changes between modern controls; the latter supplies the captured native chain.
+
+| Boundary result | Live native | Modern derived order | Modern native-order control |
+|---|---|---|---|
+| RNG start/end |2030929326 /3162508482|same|same|
+| Return / state |1 /6|true /6|true /6|
+| Destination tile |18,48|38,49|18,48|
+| Route count / flags |14 /13|18 /13|14 /13|
+| First five route points |captured|different|all five exact|
+
+The fixture restores captured terrain/owners, raw creature/body poses, target,
+utility state, navigation bytes and retained mesh/free lists/locate cache.
+Seven navigation stamps supply missing reconstruction bytes. Door/lair objects,
+combat lists and other state are not completely imported: this is an order-only
+handler control, not a complete-world equivalence claim. The selected Imp has no
+lair. Its captured return supplies the native result independently of emulation.
+
+Original-byte emulation observes RNG ranges/results `(1,0),(2,1),(2,0),(15,6)`
+and the selected native rooms, then faults fetching `0028C46E`. This is a picker
+prefix observation, **not** a completed handler oracle pass. Preserve that failed
+output. The live capture and modern order-only control establish this mismatch;
+neither proves that room ordering caused any of the17 campaign losses.
+
+Reproduce into fresh paths: `python -B R/capture_withdrawal.py`, then
+`python -B R/export_boundary.py`; the former launches one native playback and
+closes its own child after the pair. `Analysis.dll R/boundary.json <new-output>
+<derived|native-room-order>` runs the preserved standalone fixture. The v2
+results include the route window. `python -B R/verify_withdrawal_v2.py` checks
+the live pair, controls,19 sealed artifacts and pinned inputs.
+
 ## Next verification boundary
 
-1. Trace the pool, poses, reservations and navigation history upstream of the
-   matched Level 1 choices; retain the observed trigger-order difference
-   separately from the still-unexplained late claiming histories.
+1. Isolate the route/deadline effect of the actual Level1 seed7 write-order
+   reversal established in the [navigation follow-up](navigation-partial-rebuild.md#actual-update-history-hash304),
+   retaining the immediate pre-refresh cache. Pool/pose history and trigger order
+   remain separate from the still-unexplained late claiming histories.
 2. Treat recorded-command application separately from live cursor validation.
    Preserve the existing adaptive rate as its own measurement; do not silently
    change its policy or relabel it as strict replay.
-3. For Level 4, capture acquisition/withdrawal inputs at the first relevant worker
-   interruption: scan counter, exact poses, candidate/attacker order, sight,
-   target, state/resume state, room data and RNG. Compare decision, route and
-   draws before advancing to the next boundary.
+3. Preserve native room creation/list order before retesting the captured Level4
+   withdrawal. Separately capture acquisition inputs at the earlier interruption:
+   scan counter, poses, candidate/attacker order, sight, target, state/resume and
+   RNG. The new withdrawal result does not validate that earlier decision.
 4. Correct only an established mismatch, with native-backed focused fixtures,
    then verify the next boundary. No such gameplay correction was made here.
 

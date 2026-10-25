@@ -275,11 +275,8 @@ Our actual `NavMesh.Retriangulate`, given the same starting mesh and each order,
 matches its corresponding native result in all 246 slots in both cases.
 
 This confirms order dependence and these two partial-edit transcriptions.
-It does not establish that the real modern run batched these two edits into
-one refresh: the observed native changes occur on different ticks. Actual
-batching, the first differing write/refresh history, and any resulting campaign
-loss remain **UNKNOWN**. The next comparison must preserve the initial mesh and
-ordered updates, rather than substitute a fresh mesh at every decision.
+The later actual-history study below establishes batching in another pair;
+it does not establish batching of these two native edits or a campaign-loss cause.
 
 Commands (expand N to the evidence root): build `NavigationProbe/ModernProbe.csproj`
 and `MeshEditProbe/MeshEditProbe.csproj` with `dotnet build ... -c Release --nologo -m:2`.
@@ -294,3 +291,45 @@ before a byte write; those failed outputs are preserved and excluded.
 `python -B N/verify_navigation.py --seal` checked the assertions and sealed 108
 artifacts and seven pinned inputs; omit `--seal` for read-only verification.
 These controls launch no native process and advance no complete simulation turns.
+
+### Actual update history, hash304
+
+Evidence root: `D:/DK2Evidence/ordered-navigation-hash304-2026-10-25/`.
+Pinned tools are the Release build of clean `5716560c`, HashVersion304, archived
+under `D:/DK2Evidence/tools/hash304-5716560c-2026-10-25/`. No simulation edits.
+
+A hardware entry/return observer captured 55 complete `004CE770` pairs from one
+native `l1live` playback. The 180-second limit expired at execution clock701;
+the last rebuild was689. The intended850 boundary was **not reached**. Each pair
+retains incoming navigation bytes, triangle/point slots, free chains and the
+16-dword locate cache. Replaying the actual area on that incoming state with
+our `Retriangulate` matches all55 outgoing meshes, free lists and caches exactly.
+The final initialization mesh also matches our first mesh:158 live triangles
+and82 live points. This bounds the result to observed calls, not all navigation.
+
+Standalone modern prefixes replay seeds1,3,7 through turn701. An unobserved twin
+matches every per-tick state hash; event logs also equal each saved hash303 prefix
+(1881/1830/1813 lines). System/event observations force no navigation refresh.
+Refresh counters have no jumps above1. Initial navigation bytes match native.
+These counters track mesh-changing refreshes, not every refresh invocation;
+event/system snapshots can miss transient writes inside a system.
+
+The first two edited tiles agree in order, `(10,28)` then `(10,27)`. The native
+third is `(10,29)` at execution76; all three modern seeds edit `(9,28)` third.
+Different seeds, clocks and preceding decisions prevent attributing this to the
+mesh updater. Native edits rebuild immediately; the first modern write is at
+replay44/tick43 and refresh at45/tick44. This is not a universal clock correction.
+
+Seed1 has53 single-tile partial refreshes; seed3 has55. Seed7 has46 single-tile
+and two double-tile refreshes. At replay106, events observe `(9,30)` before
+`(9,26)`; refresh107 applies `(9,26)` before `(9,30)`. At521, `(17,20)` then
+`(15,32)` retain their order at refresh522. Thus real batching and one reversal
+are **CONFIRMED** in this prefix. Their effect on the Hatchery deadline or loss
+remains **UNKNOWN**; seeds1/3 already diverge without batching in this window.
+
+Commands: `Analysis.dll native <root>/native-events.jsonl <new-results.json>`;
+`Analysis.dll modern <1|3|7> 701 <new-output-directory> neutral`, using the
+preserved standalone project. These are diagnostic prefixes, not new win rates.
+`python -B <root>/verify_ordered_navigation.py` verifies30 sealed artifacts and
+the pinned capture inputs. Independent read-only review confirmed the counts,
+hash controls and observed reversal, with the observation limit above.
