@@ -10,6 +10,83 @@ namespace DK2.Presentation.Tests;
 
 public class HeartManaParticleTests
 {
+    [Theory]
+    [InlineData(223)]
+    [InlineData(205)]
+    public void ManaWaitsForTheOwnersLidAndItsLastParticleToDisappear(ushort lidEffect)
+    {
+        GameDatabase heart = ShippedHeartDatabase();
+        EffectDef lid = heart.Effects[59] with
+        {
+            EffectId = lidEffect, GenerateIds = [lidEffect == 205 ? (ushort)403 : (ushort)406], MinHp = 1, MaxHp = 1,
+            NextEffectId = 0, DeathEffectId = 0
+        };
+        EffectElementDef cover = heart.EffectElements[98] with
+        {
+            EffectElementId = lidEffect == 205 ? (ushort)403 : (ushort)406, MinHp = 2, MaxHp = 2,
+            MinSpeedXy = 0, MaxSpeedXy = 0, MinSpeedYz = 0, MaxSpeedYz = 0
+        };
+        var database = new GameDatabase([], heart.Rooms.Values, [], new GlobalVariables(),
+            effects: [heart.Effects[59], lid], effectElements: [heart.EffectElements[98], cover]);
+        EffectTime now = new(0);
+        var model = new RoomConstructionParticles(database, 7, () => now, floorHeight: _ => new Fp32(0));
+        var mana = new ViewEffectRequest(new EffectId(59), PlayerIds.FirstKeeper,
+            new(new(10240), new(14336), new(8192)));
+        model.Request(mana with { EffectId = new EffectId(lidEffect) });
+        model.Request(mana);
+        model.AdvanceTo(now = new(51));
+        Assert.DoesNotContain(model.Particles, p => p.Definition.EffectElementId == 98);
+        model.Request(mana);
+        model.AdvanceTo(now = new(101));
+        Assert.DoesNotContain(model.Particles, p => p.Definition.EffectElementId == 98);
+        model.AdvanceTo(now = new(151));
+        model.Request(mana);
+        model.AdvanceTo(now = new(201));
+        Assert.Contains(model.Particles, p => p.Definition.EffectElementId == 98);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(250)]
+    public void ManaWaitsForTheFullRevealOnTheEffectClockAndOnlyBlocksItsOwner(ushort startHp)
+    {
+        GameDatabase heart = ShippedHeartDatabase();
+        EffectDef start = heart.Effects[59] with
+        {
+            EffectId = 225, GenerateIds = [], MinHp = startHp, MaxHp = startHp, DeathEffectId = 215
+        };
+        EffectDef burst = start with { EffectId = 215, MinHp = 1, MaxHp = 1, DeathEffectId = 0 };
+        var database = new GameDatabase([], heart.Rooms.Values, [], new GlobalVariables(),
+            effects: [heart.Effects[59], start, burst], effectElements: heart.EffectElements.Values);
+        EffectTime now = new(0);
+        var model = new RoomConstructionParticles(database, 7, () => now, floorHeight: _ => new Fp32(0));
+        var mana = new ViewEffectRequest(new EffectId(59), PlayerIds.FirstKeeper,
+            new(new(10240), new(14336), new(8192)));
+        model.Request(mana with { EffectId = new EffectId(225) });
+        model.AdvanceTo(now = new(51));
+        model.Request(mana);
+        model.AdvanceTo(now = new(101));
+        Assert.Empty(model.Particles);
+        model.Request(mana with { Owner = new PlayerId(2) });
+        model.AdvanceTo(now = new(151));
+        Assert.NotEmpty(model.Particles);
+        for (int ms = 201; ms <= 1501; ms += 50) model.AdvanceTo(now = new(ms));
+        model.AdvanceTo(now = new(8951));
+        model.Request(mana);
+        model.AdvanceTo(now = new(9001));
+        Assert.Empty(model.Particles);
+        model.Request(mana);
+        model.AdvanceTo(now = new(9051));
+        if (startHp > 1)
+        {
+            Assert.Empty(model.Particles);
+            model.AdvanceTo(now = new(12501));
+            model.Request(mana);
+            model.AdvanceTo(now = new(12551));
+        }
+        Assert.NotEmpty(model.Particles);
+    }
+
     [Fact]
     public void ExpiredRisingSparkleCreatesFreshFallingElementAtItsFinalPosition()
     {
