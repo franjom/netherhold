@@ -183,6 +183,28 @@ as displayed intensity. All other reachable effects have radius zero.
 | 342 | 44/144/100 | 10240 | 0x1800 |
 | 366 | 34/144/44 | 10240 | 0x3800 |
 
+## Scripted arrivals in the reimplementation
+
+The shared `PortalRules.CreateArrival` now requests the configured effect through
+`StateHookContext` after notification and before the joining state. Ordinary and
+scripted callers share this request; `PortalSystem` makes no second request.
+The previous ordinary-only dispatch, introduced in `33c47a67`, omitted the
+scripted introductions, including Level1 trigger 65526 and Level2 trigger 65531.
+Missing the root also lost its linked disc/beam and light; camera focus was not
+the cause. ADR-0476 records the integration decision.
+
+`PortalArrivalEffectsOnRealDataTests` verifies all 46 creature definitions on
+first and repeat scripted arrivals, including the four with effect zero, and
+all ten shipped action-28 records across seven levels. Before the fix these
+tests had 52 failures and four passes; afterward all 56 pass. The existing
+ordinary-arrival test still requires exactly one request with its full position,
+owner and heading. These tests require the original installation.
+The restored Level1/Level2 requests also reach the real presentation consumer:
+at a controlled 100ms update it produces 10 Goblin particles or 29 Warlock
+particles, plus one light in each case. This verifies consumer output, not a
+camera-close-up image comparison. The Unity adapter compiles and updated
+assemblies are synced; visual acceptance awaits a fresh Play session.
+
 ## Verification and limits
 
 The verifier independently checked the loader, dispatch assembly, action-table
@@ -196,5 +218,5 @@ for the 408-file sweep and fingerprinted the four primary sources.
 UNKNOWN: matched original-game visual timings and particle trajectories,
 visibility at every graphics setting, and the exact native procedural lightning
 appearance. The named Lightning Bolt data confirms that branch's selection,
-not a complete reconstruction of its renderer. No gameplay or rendering code
-was changed, and this catalogue does not claim current Unity equivalence.
+not a complete reconstruction of its renderer. The integration fix changes
+transient effect requests only; this catalogue does not claim current Unity equivalence.

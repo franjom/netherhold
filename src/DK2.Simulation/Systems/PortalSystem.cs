@@ -144,8 +144,6 @@ public sealed class PortalSystem : ISimulationSystem
             if (!open) continue;
 
             CreatureState spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
-            if (PortalRules.EntranceEffect(context.Database, portal, spawned) is { } entranceEffect)
-                context.RequestEffect(SystemName, entranceEffect);
 
             context.Emit(SystemName, "creature_entered",
                 $"player={playerId} creature={spawned.Id} type={arriving.Name} " +

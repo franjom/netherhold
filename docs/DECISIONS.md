@@ -10971,15 +10971,17 @@ Heart's beam (element 379, additive `Falloff`, which peaks at 68 of 255) drew at
 of DK2's blaze.
 
 **Decision.** `CreatureDef.EntranceEffectId` is read and written at byte 3894.
-`PortalRules.EntranceEffect` gives the request, which `PortalSystem` posts after the
-arrival, at the hole's centre on its floor with the room owner's tag; ours has no detail
+`PortalRules.EntranceEffect` gives the request, which shared `CreateArrival` posts through
+`StateHookContext` for ordinary and scripted arrivals, at the hole's centre on its floor
+with the room owner's tag; ours has no detail
 setting and always asks. The catalogue lists art type 6 elements; the Unity renderer
 builds every frame of such a model once and draws the frame by the particle's age at the
 authored rate, looping. Every additive effect-element mesh material is drawn at twice the
 texture, a presentation choice: DK2's additive texture stage is unread.
 
 **Consequences.** Presentation only: a view effect request is neither saved nor hashed.
-The scripted arrival (action 28) posts no effect yet: its path has no simulation context.
+The 2026-10-25 correction moves dispatch into the shared creator: action 28 now posts
+its entrance effect before scripted promotions, and ordinary arrivals post exactly once.
 Whether DK2's beam brightness is a doubled stage or something else is open; the owner's
 eye decides the look.
 

@@ -65,6 +65,8 @@ public static class PortalRules
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
         creature.PortalEntranceTile = entrance;
         NotifyArrival(hooks, creature);
+        if (EntranceEffect(database, portal, creature) is { } entranceEffect)
+            hooks.RequestEffect("Portal", entranceEffect);
         // A keeper portal's creature enters 193 (a Hero Portal's enters 278, not built).
         if (IsKeeperPortal(portal.Definition))
             CreatureStateMachine.TrySetState(hooks, creature, JoiningState, world.CurrentTick.Value);

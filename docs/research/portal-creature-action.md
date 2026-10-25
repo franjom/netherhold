@@ -178,7 +178,9 @@ That the descriptor's
 second dword (10) is its frame rate is a HYPOTHESIS fitted to the life: 60 frames at 10 a
 second is the element's 6 seconds; no reader of type-6 elements has been read.
 Built: `CreatureDef.EntranceEffectId`, `PortalRules.EntranceEffect`, posted by
-`PortalSystem` after `CreateArrival`; the detail gate is taken as satisfied.
+the shared `CreateArrival` through `StateHookContext` for ordinary and scripted
+arrivals; the detail gate is taken as satisfied. Regression coverage is in the
+[arrival catalogue](creature-arrival-effects.md#scripted-arrivals-in-the-reimplementation).
 
 ### Arrival rendering and the reported colour tail (2026-10-23)
 
