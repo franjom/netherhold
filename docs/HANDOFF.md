@@ -22,6 +22,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   chooser/RNG and combat checks, but identifies replay-drop and withdrawal limits;
   the [Imp selection study](research/imp-selection-evidence.md) adds three live
   matched choices and 118 binary ordering controls. Full parity remains unestablished.
+  The [navigation controls](research/navigation-partial-rebuild.md#6-level-1-same-input-navigation-controls-2026-10-25)
+  separate fresh-build reconstruction from edit history; campaign update ordering remains open.
 - The Imp Secret Door job path is built (ADR-0536, hash/save 304), including
   per-keeper entry order and native reservation retention after interruptions.
   Scope, focused verification and pending original-game acceptance:
@@ -193,9 +195,11 @@ research/hud-visibility.md (Q648/Q649).
 Native minimap raster
 and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
 
-Current verification (2026-10-24, ADR-0535): the full solution suite passed,
-including 3,787 Simulation and 388 Behavior tests (3 skipped). After review
-corrections, all 1,041 Presentation tests pass; the Unity adapter compiles.
+Current verification (2026-10-25, ADR-0536): the combined solution and enabled
+native CPU-oracle checks pass 6,481 cases with no failures; seven capture-dependent
+checks skip. This includes 3,779 Simulation and 1,047 Presentation cases;
+the Unity adapter compiles with zero warnings/errors. Logs are in the retained
+`build/imp-secret-door-2026-10-25/build/secret-door-verification/` worktree directory.
 Prison chicken passes with master's central (5,4) drop. The branch's
 earlier failure is master's edge-route symptom, whose native cause is still
 unresolved (research/imp-fidelity-integration.md). Our side, from runs on

@@ -200,6 +200,8 @@ per-keeper insertion order, retained holders, snapshot/hash sensitivity and pin.
 The Unity adapter compiles with zero warnings/errors. Tool build, documentation
 budgets, KB check (2,317 records), verification ledger and coverage checks pass.
 No campaign sweep or live original-game acceptance was run for this change.
+The subsequent combined-tree integration results and skipped-fixture counts are
+recorded in [the handoff](../HANDOFF.md), separately from the focused review.
 The focused command targets `DK2.Simulation.Tests` in Release with filter
 `Imp|TileWork|TaskStealing|StateCoverageTable|Snapshot|InputLog|DoorNavigation|Determinism|CombatCategoryHooks`
 (each term is `FullyQualifiedName~...`), `-m:2 --nologo --no-restore`.
