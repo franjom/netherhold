@@ -16,6 +16,12 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   measurement after withdrawing crystal collision and its hash-302 comparison
   are in [the current experiment](experiments/2026-10-25-packet-replay-hash303/README.md).
   It records the per-seed outcome changes, mapping limits and Level 3 progression.
+  The [Level 1 and Level 4 analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
+  traces their remaining losses and separates observed blockers from open causes.
+  The [decision parity audit](research/decision-parity-audit.md) verifies bounded
+  chooser/RNG and combat checks, but identifies replay-drop and withdrawal limits;
+  the [Imp selection study](research/imp-selection-evidence.md) adds three live
+  matched choices and 118 binary ordering controls. Full parity remains unestablished.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as

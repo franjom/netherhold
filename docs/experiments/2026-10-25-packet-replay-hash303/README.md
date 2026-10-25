@@ -2,7 +2,14 @@
 
 One sweep of Levels 1–4 over simulation seeds 1–20, compared with
 [hash 302](../2026-10-24-packet-replay-hash302/README.md). These are our simulation's
-outcomes with fixed recorded inputs, not a new measurement of DKII.EXE behavior.
+outcomes driven by the fixed packet files, not a new measurement of DKII.EXE behavior.
+The existing replay adapter can relocate recorded creature drops when our world
+rejects their destination, so applied coordinates can differ between runs.
+The [decision parity audit](../../research/decision-parity-audit.md#recorded-drop-boundary-a-replay-adaptation-changes-the-encounter)
+documents this limit with native capture evidence.
+
+The saved-trace [Level 1 and Level 4 failure analysis](analysis.md) identifies
+where their losing runs stop progressing, with per-seed evidence and limits.
 
 ## Committed code and tool
 

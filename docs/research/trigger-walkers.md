@@ -61,7 +61,7 @@ its own update.
 `FUN_004C2310` walks the player list from world `+0x7A` through link `+0x3A`,
 calling the player frame `FUN_004B9EC0` on each.
 
-## The action point's frame is five instructions and its repeat is a snapshot
+## The action point's frame and repeat snapshot
 
 `0x004B05E0` reads the root id at `+0x34`, returns 1 if it is zero, and otherwise
 passes the byte at `+0x36` as the repeat argument to `0x004B0CC0`. Nothing else.

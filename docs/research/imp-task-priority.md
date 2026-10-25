@@ -26,6 +26,7 @@ marked Secret Door work at each tile. A nearer pile can therefore beat a farther
 wall, while reinforcement beats gold on the same tile. The retry preconditions
 matter: an aimed reinforcer can take another wall before ordinary digging.
 Executable checks and their limits: [imp-priority-checks.md](imp-priority-checks.md).
+Fresh live boundaries and binary coverage: [imp-selection-evidence.md](imp-selection-evidence.md).
 
 ---
 
@@ -76,8 +77,9 @@ distance"*, and it has two shapes:
   tried from the side facing the imp, is not Solid, passes a reachability test
   (`FUN_00471630`, flag `0x80`) and has a free holder slot of three
   (`FUN_00508110`), or a slot whose holder it may take (§7). For seams only, a
-  slot is also refused while a creature stands in that slot's third of the face
-  tile. **After a mining job** (`+0x98` = 2) seams are measured from the last
+  slot is also refused when a gold-pile object above `[0x006F25CD]` lies strictly
+  inside that slot's third; a creature standing there is not this test.
+  **After a mining job** (`+0x98` = 2) seams are measured from the last
   task tile (`+0x8C`/`+0x90`), not the imp, which is what sends a miner back to
   its seam after a delivery. The walk writes `+0x98` = 1 and state 13 for a wall,
   2 and state 25 for a seam, and the task tile to `+0x8C`/`+0x90`;

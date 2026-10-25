@@ -223,8 +223,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `dk2capture.py` records objects from slots 1150-1719 only; an object made after the window
   fills never appears in `object-map.csv`. "DK2 never made X" needs another witness.
 - A recording that ends `"game stopped answering"` early is usually DK2 crashing, not the probe: the Windows Application log has 14 access violations at `DKII-DX.exe+0x1FCB80` (`0x005FCB80`, in the renderer range) since 2026-09-05, one of them the Level 4 dump run at tick 1176 (2026-10-15), well after its tick-500 dump. Check the log before blaming the recorder or a dump.
-- A capture's turn N shows the state before tick N's trigger pass: capture row N is our row N-1.
-  Prefer a tick the game stores (a timer stamp) to one the probe samples.
 - Campaign levels unlock through `Player Level Status` under `HKCU\Software\Bullfrog Productions
   Ltd\...`, 160 bytes indexed by map, not level (`campaign-progress-registry.md`). Close DK2 first;
   it rewrites the key on exit.
@@ -269,4 +267,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - The source license gate requires all three notice lines plus a blank line, including the LICENSE reference; a copyright and SPDX pair alone fails, including in Unity editor scripts.
 - A sandbox account can differ from the checkout owner; use per-command `git -c safe.directory=D:/DungeonKeeperRemake` (or inherited `GIT_CONFIG_COUNT` entries for repo tools), without changing the owner's global Git config.
 - `hand-cursor-rendering.md` contains legacy single-byte section signs among UTF-8 text; strict UTF-8 patching rejects it. Keep unrelated byte normalization out of a cursor fix.
+- Matched-state probes must restore constructor-owned fields before binding RNG; otherwise fixture setup can consume draws before the decision (research/decision-parity-audit.md).
 - A hidden standalone Unity window can skip all screen rendering despite active CPU loops; require camera render callbacks and a nonblank PNG before treating its timings as rendered performance.

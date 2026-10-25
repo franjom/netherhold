@@ -61,6 +61,11 @@ as a replay result; this checker audit does not reverse that verdict.
 
 ## Required boundary for the next behavioral comparison
 
+The [hash-303 audit](decision-parity-audit.md#a-captured-chooser-matches-through-its-rng-calls)
+reruns the retained live boundary with the captured constructor identities restored
+and checks each RNG call. This updates that local control, not the historical
+whole-turn percentages or their reconstruction limits above.
+
 The [first actual boundary pair](imp-boundary-route.md) now supplies a bounded
 selection/route control; it does not repair the historical whole-turn extractor.
 The later [completed strike and claim boundary](imp-strike-choice-boundary.md)
