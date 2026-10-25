@@ -27,7 +27,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   follow-up matches55 native rebuilds and observes one modern write-order reversal;
   its effect on losses remains open. The [captured Level4 withdrawal](research/decision-parity-audit.md#level4-captured-withdrawal-and-room-order-hash304)
   isolates a room-order mismatch with identical RNG; supplying native order matches
-  the captured destination and route window. Campaign-loss causation remains open.
+  the captured destination and route window. This is now built for the combat
+  room cache in [hash/save305](research/room-list.md#persistent-player-list-order-hash305)
+  (ADR-0541), including construction/capture/split order and snapshot state.
+  Campaign-loss causation remains open; the next replay measurement is pending.
 - The Imp Secret Door job path is built (ADR-0536, hash/save 304), including
   per-keeper entry order and native reservation retention after interruptions.
   Scope, focused verification and pending original-game acceptance:
