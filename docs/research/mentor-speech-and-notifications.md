@@ -96,7 +96,7 @@ Type **5** is a variant list, 20 s each: 1 → 1297 *"The King has entered your 
 every player when a hero party spawns King Reginald (`hero-parties-and-effect-generators.md`);
 2 → 1298 *"The King is killing your creatures"*, 3 → 1299 *"The King is dying!"*, 4 → 1300
 *"The King has been slain by your minions"*; type 5 has one call site, `HeroParty_Spawn`
-`0x0051A2B0` (message-table.md §3). Type 6 is the "your creature
+`0x0051A2B0`, which passes variant 1 only: variants 2-4 are never raised (message-table.md §6). Type 6 is the "your creature
 is fighting" notice (`combat-fight-state.md` §1), row `0x2000`: zero seconds, tab graphic 0. Type **19** (row
 `0x006A0BBE`, flags `0x6032`, 50 s, no variant list) → 506 *"Your creatures are rebelling!"*,
 raised by a defection (`rebellion.md` §3, read 2026-10-04).

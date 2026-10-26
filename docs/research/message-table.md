@@ -44,7 +44,7 @@ What OpenKeeper adds, and what this census says of it:
 | 2 | `0x02` | `0x2032` | 50 | 1 | speech 1290 | Heart_OnDestroyed`4DA5D0` |  |
 | 3 | `0x03` | `0x2014` | 20 | 1 | speech 1161 | Heart_OnDestroyed`4DA776` |  |
 | 4 | `0x04` | `0xA000` | 0 | 1 | list `0x0069ff60`: 4 keys, 20 s, no default | **none** |  |
-| 5 | `0x05` | `0xA000` | 0 | 1 | list `0x0069ff88`: 4 keys, 20 s, no default | HeroParty_Spawn`51A2B0` |  |
+| 5 | `0x05` | `0xA000` | 0 | 1 | list `0x0069ff88`: 4 keys, 20 s, no default | HeroParty_Spawn`51A2B0` (variant 1 only, section 6) |  |
 | 6 | `0x06` | `0x2000` | 0 | 0 | speech none (ref 1) | Combat_EngagingState`45EBFA` | CombatStarted |
 | 7 | `0x07` | `0x2032` | 50 | 1 | speech 31 | **none** |  |
 | 8 | `0x08` | `0x2032` | 50 | 1 | speech 333 | **none** |  |
@@ -154,3 +154,12 @@ Not checked: any other writer into the player's message queue (the save and load
 - Only 6 of the 100 rows were listed there; this file is now the full list.
 - `mentor-speech-and-notifications.md` §3 and the `004C4600` record give Message_Post "86 callers"; there are **151 call sites**, in 107 distinct named functions by Ghidra's names (7 sites sit in no named function).
 - Types with no poster (so nothing to build, and nothing a keeper can ever see) and the other types we do not post yet are both visible in the `built` column: a row with raisers and an empty `built` cell is a message DK2 posts that this project does not.
+
+## 6. Type 5, the King: only variant 1 is ever raised
+
+- **Row 5** (`0xA000`, list `0x0069FF88`): keys 1-4, 20 s each, no default. Decoded from `Speech.str`, zero-based entries 1297-1300 (the table stores 1298-1301, `Message_Post` subtracts 9999): "The King has entered your realm", "...is killing your creatures", "...is dying!", "...has been slain by your minions". Type 4 mirrors it for the Lord of the Land (1293-1296).
+- **The one poster** is `HeroParty_Spawn`, call `0x0051A2B0`: Data1 is the literal `1` (`push 1` at `0x0051A2AB`), Data2 the new creature's tag, allocate 1. It runs once per player in the list at world `+0x7A`, right after a member is created, and only when that member's creature id is `0x15` (King Reginald).
+- **Nothing passes 2, 3 or 4.** Only one of the 151 sites pushes type 5. `Message_Post` has no type-5 case: its variant walk matches the key against Data1 and nothing else. No code immediate in 1290-1303 is a speech id, none of the 10 calls to the speech enqueue `0x00568390` carries one, and the keeper AI's message walk does not read type 5. So the King's three later lines are never played from the table: they are table rows and text that DKII.EXE 1.70 never raises. No code posts type 4 (all four Lord of the Land lines) or type 30 either. Type 30's text is not dead, though: its lines are Speech.str entries 34 and 35, and level scripts play those ids directly through trigger action 24 (SpeechId 33-36 in several multiplayer maps), a route that cannot reach 1298-1301 (the corpus maximum is 641).
+- **When variant 1 plays.** Only from a party slot whose `CreatureId` is literally 21 with PartyType 0. A random invader slot cannot draw him: it needs the flag `MpdRandomInvader` (`portals-mercenary.md`: Knight, Dwarf, Giant, Wizard, Elven Archer, Thief, Monk, Fairy, Guard, Royal Guard). Across the 66 shipped Things files creature 21 occurs three times: Level 20's party 10 (raised by action 65492, condition 72, level time of 30 s or more, action point 16); a King placed at (49, 16) in Level 20; and a King placed at (75, 6) in `level8Things.kld`. Placed creatures come from the level loader, so **only Level 20's party 10 raises the message**.
+- **Gates** are `Message_Post`'s: recipient status must be zero, world `+0x72A1` bit 1 must be set (types 0x0E, 0x15, 0x30, 0x31 are exempt), `Message_IsAdmitted` (the `0x004C5530` suppression) must accept, and with the `0x4000` flag clear a second post to the same player with the same variant while the first is unexpired returns the existing record. The speech plays for the local player only.
+- **Ours:** `PlayerMessageKind` has no type 5 and `HeroPartyRules.Spawn` posts nothing, so variant 1 is not built. Not checked: whether the world walker reaches Level 20's condition 72 (authored as a top-level level-time condition), and other writers into the queue (save and load, `0x004C43B0`).
