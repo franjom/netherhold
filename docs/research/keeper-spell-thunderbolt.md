@@ -182,7 +182,8 @@ that casts it is `KeeperBattleStep` (ADR-0283), and other keeper effects are in
 `keeper-spell-casting.md`. The normal/upgraded shot id distinction for modded data
 follows the requested public adapter contract (ADR-0260).
 
-Read but not represented here: the height/display effects; the owner's
+Read but not represented here: the height/display effects (the bolt and the
+electrified display are in [shot-effects.md](shot-effects.md) §6); the owner's
 `+0x1095` damage reduction and the stun-extension call `0x00481360` already
 listed in Q399. Existing simulation approximations remain: health collapse
 is processed by `CreatureHealthSystem`, its countdown is separate from

@@ -80,8 +80,8 @@ second), Arrow and Knives 4915, Firebomb and most others 2048, Grenade 1228.
 ## 4. The tick (`0x004AB180`), in order
 
 1. `age++`. **First tick only:** the creation effect (`+0x59`) at my position and
-   heading; with `Flags` bit 7 it is given my velocity × ticks-a-second / 10 and
-   my max range flag; `DamageType` 5 runs the area handler once (§7);
+   heading; with `Flags` bit 7 it is given my velocity × ticks-a-second / 20 as its
+   carried velocity ([shot-effects.md](shot-effects.md) §2); `DamageType` 5 runs the area handler once (§7);
    **process event 0x40**; then `processedAtStart = 1`.
 2. `health ≤ 0` → the tail (step 8).
 3. Last position and angle := current. If `+0x155` (max range, position units)
@@ -134,8 +134,8 @@ wide (its vtable `+0x3C` returns 0). A door with `+0x10D` or `+0x109` set never
 overlaps; a thing never overlaps itself. Sampled once a tick, so a shot at 3686 units a
 tick can pass a standing creature between two positions where a 2048 one cannot.
 
-**On a hit:** the hit-thing effect (`+0x67`) — on a creature its body `+0x133`
-set to the effect's tag; the **hit-thing shot** (`+0x69`) inherits my target
+**On a hit:** the hit-thing effect (`+0x67`) — on a creature the effect's `+0x133`
+set to the creature's tag, so it follows the creature ([shot-effects.md](shot-effects.md) §2); the **hit-thing shot** (`+0x69`) inherits my target
 position, data words, caster, target and possessed flag and is aimed at my target
 position; **process event 0x4**; `DamageType` 7 → **contact damage** (§7);
 per-class sounds; on a creature with `Flags` bit 8 the creature is turned to
@@ -147,8 +147,9 @@ pick ray; the position moves only through passable spots.
 ## 5. The flags, as read
 
 `Flags` (`+0x43`): bit 0 dies on hitting solid; bit 1 dies on hitting a thing;
-bit 2 health counts down each tick; bit 4 (`0x004B7E30`, slot `+0x84`) the world
-ends it instead of bouncing (§6); bit 7 the creation effect moves with it; bit 8
+bit 2 health counts down each tick; bit 3 bounces off solid (slot `+0x60`, `0x004AB810`);
+bit 4 is the lobbed launch (slot `+0x68`, `0x004B7E30`); bit 6 removes the trail at once on
+teardown; bit 7 the creation effect gets my velocity; bit 8
 turns a struck creature. Bit 5 launches a shot: a trap's fired at a target (`0x004A7FD0`) and
 a door's, tested in the door code at `0x004A6390` (
 `traps.md` §7); the Fireburst, Spike and gas clouds lack it.
@@ -167,8 +168,9 @@ with `Mass` (Grenade 8192; every other creature shot 0, so **they fly flat**).
 The drag hook `vtable+0x64`; force and transitive velocities summed; the step is
 divided into `|v| >> 14 + 1` sub-steps, at most 16; each sub-step tests the next
 spot (`vtable+0x200`) and lava/water; a blocked spot with slot `+0x84` set → health
-0 and return 0 (the solid hit of §4 step 7); otherwise the velocity is halved
-and reflected (a bounce, STRONGLY INFERRED from the sign flips). A shot slower
+0 and return 0 — slot `+0x84` is `0x00402AD0`, 0 for every shot — otherwise, without the
+bounce slot `+0x60` (bit 3), return 0 (the solid hit of §4 step 7), and with it the
+velocity is halved and reflected (a bounce, STRONGLY INFERRED from the sign flips; §10). A shot slower
 than 0x80 a tick returns 0 too. Each sub-step's position is set through
 `0x004B5560`; the last position is the previous tick's.
 
@@ -302,7 +304,7 @@ takes the nearest overlap where DK2 takes tile order;
 objects and bodies as things hit (doors since ADR-0318, traps since ADR-0326) — a shot sent at a heart strikes within a
 quarter tile of its tile (ours, a stand-in: Q363); process types 28 (guided), 34 (instant) and the unread
 ones (Q394, Q395); a stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
-not; the effects. **Thing order (2026-10-04):** `0x004B7830` updates list 0 (creatures)
+not; the effects ([shot-effects.md](shot-effects.md) §7). **Thing order (2026-10-04):** `0x004B7830` updates list 0 (creatures)
 before list 1 (shots, kind 1 from `0x004AAC90`), each newest first (`0x004B4A10` links at
 the head, the next pointer read after each update), so a creature-fired shot should move
 the turn it is made (STRONGLY INFERRED: the factory's fire path was not traced), as ours
