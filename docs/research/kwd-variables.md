@@ -28,8 +28,10 @@ Evidence:
   DeadBodyDiesAfterSeconds=60, PayDayFrequencySeconds=600, ...
   Full table: docs/research/game-database-dump.md
 - `GlobalVariables.kwd` also carries a THINGS(190) chunk of 39 records; they are
-  all tag 205 (Camera) and they parse (Q15, ADR-0091). What the editor uses them
-  *for* is still unrecorded.
+  all tag 205 (Camera) and they parse (Q15, ADR-0091). Answered: they are the
+  camera presets (zoom bounds, lens, pitch, etc.) that `0x00570A20`/`0x0056F900`
+  parse and `0x00449A30` installs by id (1..18); `0x0044ACE0`/`0x0044BD70` pick and
+  commit one per level — `classic-camera.md` §1.
 
 Observed behaviour: this file IS the game's balance specification. Per-level
 *Variables.kld files override it (same record format).
@@ -48,8 +50,8 @@ KWDs, 66 map KWDs, 330 KLDs)
 Known exceptions: LEVEL(220) chunks understate contentSize; reader attaches
 trailing bytes to the chunk (validated look-ahead).
 
-Open questions: unnamed ids; what the global file's 39 camera THINGS are for;
-`CreaturePool` lives in per-level files (global has 0).
+Open questions: unnamed ids; `CreaturePool` lives in per-level files (global has 0).
+(The 39 camera THINGS are answered — see above.)
 
 ---
 
@@ -176,8 +178,8 @@ room and lost with it (`manual-1999.md`).
 
 ### Still open
 
-Q83 (what `GameTicks` = 340 is — not a rate and not Q1), and what the global
-file's 39 camera THINGS records are for. Q85 is answered: `unk1`/`unk2` are
+Q83 (what `GameTicks` = 340 is — not a rate and not Q1). The global file's 39
+camera THINGS records are answered above. Q85 is answered: `unk1`/`unk2` are
 slots 2 and 3 of a generic three-dword payload that the structured ids fill and
 plain variables leave at zero (`variables-corpus-sweep.md`). Q84 is answered: id 66 is an
 alliance and id 77 a creature field override, several records a level each

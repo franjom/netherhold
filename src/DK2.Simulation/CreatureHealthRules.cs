@@ -64,7 +64,8 @@ public static class CreatureHealthRules
         Math.Max(1, MaxHealth(database, creature, state) / KnockoutFraction);
 
     /// <summary>Whether this creature is hurt enough that DK2 sends it to bed —
-    /// <c>CreatureSleepsWhenBelowPercentHealth</c>, 50: what makes a wounded creature lie down without being tired. Read by <see cref="LairRules"/> and <see cref="Systems.CreatureSleepSystem"/>.</summary>
+    /// <c>CreatureSleepsWhenBelowPercentHealth</c>, 50. Puts a bedless creature to sleep untired (state 80, <c>0x0046F785</c>);
+    /// with a bed it also needs tiredness (ADR-0543). Read by <see cref="Systems.CreatureSleepSystem"/>.</summary>
     public static bool ShouldSleepFromWounds(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         state.Health * 100

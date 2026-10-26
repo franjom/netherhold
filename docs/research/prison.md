@@ -222,8 +222,7 @@ support (Q171).
 - **Freed where they stand**, not at the door (§4).
 - **No torture chamber or combat pit.** DK2 permits both destinations, but here
   any non-prison drop frees the prisoner and a prison-tile drop imprisons it.
-- **A prisoner is not slappable.** The ownership exception is for lifting one out
-  of a cell, and nothing observed extends it to slapping a rival's creature.
+- **A prisoner answers to its jailer alone.** Its own keeper cannot slap it (ADR-0140); its jailer can (`HandRules.CanSlap`, `slap-states.md` §1: a jailer's slap on a prisoner runs state 120).
 
 **Capacity is the inner tiles plus one** (Q166, ADR-0070), and DK2 derives it
 once per room at build time rather than continuously. The prison's case walks the

@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**307** — `0xC5540B4DA9053FF3`. FormatVersion also 307. Behaviour only: a creature with a bed goes to it only when tired; a wound alone no longer sends it, because the wound branch's Sleep job routes only on the latch `+0x58` (ADR-0543). No new fields. `CreatureNeedsTests.AWoundedGoblinWithABedWaitsUntilItIsTired` covers it.
+
 **306** — `0xD4E1B134A3DB5F84`. FormatVersion also 306. Behavior only: hero updates and both party-link scans run newest first (ADR-0542). No new fields; the pin fixture has no active hero pass. Initial party destinations, follower numbering and removal have separate regressions.
 
 **305** — `0xD5067604AB8DBDF9`. FormatVersion305 retains per-tile player-room-list insertion positions and the next world insertion counter (ADR-0541). Construction, capture, absorption and split replay maintain order; the combat room cache uses it. Focused tests check hash sensitivity, snapshot restoration and subsequent insertion.
@@ -393,8 +395,4 @@ trap and spell availability rows entered, copied from the level and made mutable
 so trigger action 6 can write them (ADR-0161). Composition and initial values
 only: the pinned fixture fires no action 6.
 
-**65** — `0x15441322D8A9D319`. The world byte holding the
-trigger-controlled anger and notification gates entered (ADR-0160). Both stay
-at their initial enabled values in the pinned fixture, so this is composition only.
-
-[Versions 9–64](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–65](hash-versions-early.md) retain the earlier pins and their reasons.

@@ -1,6 +1,10 @@
 # Early state-hash versions
 
-Versions 9–64, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–65, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**65** — `0x15441322D8A9D319`. The world byte holding the
+trigger-controlled anger and notification gates entered (ADR-0160). Both stay
+at their initial enabled values in the pinned fixture, so this is composition only.
 
 **64** — `0x8FAF223321EE1523`. A keeper's alliance bits and a door's
 lock-pick timer entered (ADR-0159: the rest of the door model). The pinned world
