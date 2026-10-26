@@ -18,6 +18,7 @@ namespace DK2.Unity
         private bool _resultRecorded;
         private int _levelTicksPerSecond;
         private readonly bool[] _statisticsRecorded = new bool[8];
+        private CampaignCarry _carryApplied;
 
         private bool LaunchedFromFrontEnd => sessionMode == GameSessionMode.Campaign && frontEndReturnPage == FrontEndPage.CampaignResults;
 
@@ -28,6 +29,31 @@ namespace DK2.Unity
             CampaignSlot slot = CampaignProgression.PlayedSlot(_campaignProfile);
             // A profile that names another map (edited between sessions) records nothing.
             _playedSlot = string.Equals(slot.LevelName, levelName, System.StringComparison.OrdinalIgnoreCase) ? slot : CampaignSlot.None;
+            if (_campaignProfile.TransferCreatureId == 0) return;
+            // 0x0050C67D: the stored creature arrives before the first turn; both values clear whatever happens.
+            TransferCreatureRules.Arrive(_simulation, new PlayerId((byte)viewingPlayerId),
+                _campaignProfile.TransferCreatureId, _campaignProfile.TransferCreatureLevel);
+            _campaignProfile = _campaignProfile with { TransferCreatureId = 0, TransferCreatureLevel = 0 };
+            CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
+        }
+
+        /// <summary>The profile writes specials 129 and 140 make in DK2 the moment they act.</summary>
+        private void ApplyCampaignCarry()
+        {
+            CampaignCarry carry = _simulation.World.Carry;
+            if (carry.HiddenLandFound == _carryApplied.HiddenLandFound && carry.TransferStored == _carryApplied.TransferStored
+                && carry.TransferCreatureTypeId == _carryApplied.TransferCreatureTypeId
+                && carry.TransferCreatureLevel == _carryApplied.TransferCreatureLevel) return;
+            for (int i = _carryApplied.HiddenLandFound; i < carry.HiddenLandFound; i++)
+                if (_campaignProfile.LevelNumber is >= 1 and <= 30)
+                    _campaignProfile = CampaignProgression.LocateHiddenLand(_campaignProfile, new CampaignSlot(_campaignProfile.LevelNumber));
+            if (carry.TransferStored)
+                _campaignProfile = _campaignProfile with
+                {
+                    TransferCreatureId = carry.TransferCreatureTypeId, TransferCreatureLevel = carry.TransferCreatureLevel,
+                };
+            _carryApplied = carry;
+            CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
         }
 
         /// <summary>0x004BE630's local-player arms when the verdict lands; Space then posts action 1,
@@ -36,6 +62,7 @@ namespace DK2.Unity
         private bool UpdateCampaignResult()
         {
             if (!LaunchedFromFrontEnd) return false;
+            if (_playedSlot != CampaignSlot.None) ApplyCampaignCarry();
             RecordLevelStatistics();
             byte status = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Status;
             bool ended = PlayerStatus.HasEnded(status);

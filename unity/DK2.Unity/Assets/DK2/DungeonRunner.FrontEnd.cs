@@ -106,7 +106,9 @@ namespace DK2.Unity
             _presenter.Present(world);
             _startup.Step("front-end.present");
             Cursor.visible = true;
-            UpdateFrontEnd();
+            // 0x00534F70 plays a won map's title card and cutscene before the front end runs.
+            if (frontEndReturnPage == FrontEndPage.CampaignResults) BeginCutscene(install);
+            if (!UpdateCutscene()) UpdateFrontEnd();
         }
 
         private void UpdateFrontEnd()

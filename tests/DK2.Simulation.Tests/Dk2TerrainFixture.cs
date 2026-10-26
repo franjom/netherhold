@@ -324,6 +324,12 @@ internal static class Dk2TerrainFixture
     /// <summary>Object id 124, Level 4's Receive Imps Special.</summary>
     public const byte ReceiveImpsSpecialObjectId = 124;
 
+    /// <summary>Object id 129, Locate Hidden Land (placed on Levels 5 and 7).</summary>
+    public const byte LocateHiddenLandSpecialObjectId = 129;
+
+    /// <summary>Object id 140, the Transfer Creature Special.</summary>
+    public const byte TransferCreatureSpecialObjectId = 140;
+
     /// <summary>Object id 5, the Alarm trap's crate: <see cref="ObjectFlags.TypeCrate"/>, carried
     /// to the Workshop in state 32.</summary>
     public const byte AlarmCrateObjectId = 5;
@@ -425,6 +431,8 @@ internal static class Dk2TerrainFixture
         Carried(RevealMapSpecialObjectId, "Special [ Reveal Map ]", ObjectFlags.TypeSpecial),
         Carried(IncreaseLevelSpecialObjectId, "Special [ Increase Level ]", ObjectFlags.TypeSpecial),
         Carried(ReceiveImpsSpecialObjectId, "Special [ Receive Imps ]", ObjectFlags.TypeSpecial),
+        Carried(LocateHiddenLandSpecialObjectId, "Special [ Locate Hidden Land ]", ObjectFlags.TypeSpecial),
+        Carried(TransferCreatureSpecialObjectId, "Special [ Transfer Creature ]", ObjectFlags.TypeSpecial),
         Carried(AlarmCrateObjectId, "Crate Alarm", ObjectFlags.TypeCrate),
         Carried(WoodenDoorCrateObjectId, "Crate Wooden Door", ObjectFlags.TypeCrate),
 

@@ -122,4 +122,31 @@ public class CampaignResultsTests
         Assert.True(HiScoreTable.Qualifies(scores, 5000));
         Assert.Equal(-1, HiScoreTable.Position(scores, 10));
     }
+
+    [Theory]
+    [InlineData(1, 1, 0x589u)]
+    [InlineData(6, 6, 0x592u)]
+    [InlineData(7, 6, 0x592u)]
+    [InlineData(14, 11, 0x599u)]
+    [InlineData(19, 15, 0x588u)]
+    [InlineData(23, 19, 0x58Eu)]
+    public void AWonMapPlaysItsLevelsTitleCardAndCutscene(int slot, int level, uint title)
+    {
+        var statuses = new CampaignLevelStatus[40]; statuses[slot - 1] = CampaignLevelStatus.Won;
+        var cutscene = CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = (byte)slot, PlayerLevelStatus = statuses })!;
+        Assert.Equal(level, CampaignCutscene.LevelNumber(new CampaignSlot(slot)));
+        Assert.Equal((title, title + 1), (cutscene.TitleTextId, cutscene.SpeechId));
+        Assert.Equal(new[] { $"Data/Movies/CutSceneLevel{level}.tgq" }, cutscene.Movies);
+    }
+
+    [Fact]
+    public void LevelTwentyPlaysBothOutrosAndLossesOrSecretsPlayNothing()
+    {
+        var statuses = new CampaignLevelStatus[40]; statuses[23] = CampaignLevelStatus.Won; statuses[0] = CampaignLevelStatus.Open;
+        var outro = CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = 24, PlayerLevelStatus = statuses })!;
+        Assert.Equal(0u, outro.TitleTextId);
+        Assert.Equal(new[] { "Data/Movies/Outro.tgq", "Data/Movies/BullfrogOutro.tgq" }, outro.Movies);
+        Assert.Null(CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = 1, PlayerLevelStatus = statuses }));
+        Assert.Null(CampaignCutscene.AfterLevel(new CampaignProfile { LevelNumber = 24, SecretLevelNumber = 2, PlayerLevelStatus = statuses }));
+    }
 }

@@ -102,7 +102,8 @@ All are STRONGLY INFERRED. "Win sets 1, loss sets 2" follows from the two arms' 
 ids (`+0x19E` = `0x2C0` / `0x2BF`) and the attempts increment sitting in the loss arm only.
 The global `0x006F2957` bits 3 and 4 are LEVEL flags (`+0x64C0`) bits 5 and 6, copied by
 `0x0051E6D0`; the names "secret" and "special" come from the registry values they write.
-The source of world `+0x722E` is unread.
+World `+0x722E` is the low byte of LEVEL `SpecialLevelIndex` (1-5 on Secret1-5); flag
+`0x40` is on no shipped level ([campaign-win-sequence.md](campaign-win-sequence.md) §1).
 
 ### 2.3 Branch table (win of slot s; every "= 2" and "= 3" is set-unless-already-1-or-3)
 
@@ -174,6 +175,8 @@ level never changes `Player Level Status`.
 | Kept: type and level only. Experience, name, health, equipment-like state are not stored; health is whatever `Creature_LevelUp` rescales to | same | STRONGLY INFERRED |
 | The level start does not test the game mode, so a stored ID would also appear in a skirmish/MPD start; only mode 1 ever stores one | same | STRONGLY INFERRED |
 
+Built (F5 stage C, hash 310): `TransferCreatureRules.Arrive` does the arrival; not mirrored are scale, the state-1 timer reset and unique-definition substitution ([0x0050B5B0](functions/0050B5B0.md)). The special's store is the host-applied `WorldState.Carry`.
+
 ## 5. Level start and level end
 
 | Step | What happens | Provenance | Confidence |
@@ -182,12 +185,11 @@ level never changes `Player Level Status`.
 | Entrance camera | From the level's own script (trigger action 31, paths 201-222), not from the front end | `camera-paths.md` §2 | STRONGLY INFERRED |
 | Transfer creature | §4 | | |
 | End (in game) | Win/loss writes §2.2; result screen and Escape/Space handling are in `game-actions.md` §3 (`0x0042BE90`, action 134, action 75) | `0x004BE630` | STRONGLY INFERRED |
-| Campaign win finale | `Player_FinaleSequence` `0x004BF410`: finds an object with definition id 28 — the Portal Gem, `objects.md` §8 — (`+0x12C`) in a world list, tries up to 500 random offsets of -8..7 tiles from it (more than ~5 tiles away for the first 128 tries) for a tile that is reachable, not in a room of types 3/5/11/13/16/18-23 and free, takes the keeper's Horned Reaper (def `+0x686 & 0x4000`) or creates one there, puts it in state 228, and queues actions 15, 4 (camera to that point) and 6 (`0x5800`, 1000), then action `0x74` | `0x004BF410`, `objects.md` §8 | STRONGLY INFERRED |
-| Secret/special/MPD win | `0x004BF9E0`: camera to the heart (action 4), a deadline of 6 (14 with `+0x134`) turns at player `+0x111D`, action `0x74`, and every creature not in a room of type 12 is reset and starts a celebration (action `0x39`, state 270) | `0x004BF9E0` | STRONGLY INFERRED |
-| Paths 100/101 | No code starts them: `0x0044A370` is called with constants only by the front end (250-274) and in game only through action `0x73`, which the shipped scripts never issue for 100/101 | `camera-paths.md` §2, xrefs of `0x0044A370` | STRONGLY INFERRED (likely unused) |
+| Campaign win finale | The Horned Reaper appears near the Portal Gem, walks to it and picks it up; camera paths 100 and 101, then the win screen announcing the next level's rewards; the player leaves with Space. Levels 10, 11A-C, 12, 13 and 17 have no gem. Home: [campaign-win-sequence.md](campaign-win-sequence.md) §2-§6 | `0x004BF410`, states 228-234 | STRONGLY INFERRED |
+| Secret/MPD win | Celebration with fireworks at the Heart: [campaign-win-sequence.md](campaign-win-sequence.md) §7 | `0x004BF9E0` | STRONGLY INFERRED |
 | Statistics screen | Front end, one row per player (`0x0053C830`); labels, values and formats in [level-statistics.md](level-statistics.md) §5. Data: profile `+0x8DD` copies | `0x0053C830`, `0x00561E00` | CONFIRMED |
 | Hi-score | If the slot's Total Evil Rating qualifies, a name-entry row is offered and saved to `HiScores.dat` (`0x0053E320`, `0x0053E610`); its label is the level number with branch letters | `0x0053E320` | STRONGLY INFERRED |
-| Cutscene | On the return to the front end after a **won** campaign map (status 1, not secret, `[0x0075AD4F]` = 1), `0x0053B980` plays `CutSceneLevel<N>.tgq`, N = level number (6a/6b share 6, 11a-c 11, 15a/b 15; `0x0053C320`). Before it, a text screen with string id from the 9-byte table `0x006B0DD0` and speech id + 1. Level 20 plays `Outro.tgq` then `BullfrogOutro.tgq`. Level 13's movie is skipped when Language (`+0x109`) is 7 or 0x12 | `0x00534F70`, `0x0053B980` | STRONGLY INFERRED |
+| Cutscene | On the return to the front end after a **won** campaign map (status 1, not secret, `[0x0075AD4F]` = 1), `0x0053B980` plays `CutSceneLevel<N>.tgq`, N = level number (6a/6b share 6, 11a-c 11, 15a/b 15; `0x0053C320`). Before it, a title card: the cutscene's name, Speech.str id from the 9-byte table `0x006B0DD0` (level 1 `0x589` *Hot Lips*; [0x00553AF0](functions/00553AF0.md)), with speech id + 1 played between two 250 ms waits. Level 20 plays `Outro.tgq` then `BullfrogOutro.tgq`. Level 13's movie is skipped when Language (`+0x109`) is 7 or 0x12 | `0x00534F70`, `0x0053B980` | STRONGLY INFERRED |
 | Back to the map | `0x00534F70` re-applies the branch table (not for slot 24) and shows statistics page 26. Its accept (dispatcher 0x55) moves Level Number past a won map (6a/6b to 8, 11a-c to 15, 15a/b to 20, else +1, unless that map is won or closed), offers hi-score entry when the won byte is set and the rating qualifies, else flies path 254 to the map (state 0x12) | `0x00534F70`, `0x005306F0` case 0x55 | STRONGLY INFERRED |
 
 Movie gallery: `0x0053B5F0` sets the "seen" flag (`+5`) of each of the 22 `0x006B0DD0`
@@ -218,9 +220,7 @@ progress**. STRONGLY INFERRED.
 |---|---|
 | Who reads Secret/Special Levels Completed (map trophies?) | xrefs of profile `+0x51`/`+0x91`; getter `0x005616A0`, `0x00561540` |
 | What `0x0055DDF0` tests before the reset in `0x0052EFE0` | `0x0055DDF0` |
-| Source of world `+0x722E` (secret/special index) | LEVEL loader; candidate KWD `SpecialLevelIndex` (file 25545) |
 | Text/speech ids in `0x006B0DD0` (0x589 ...): which string table | `0x00553AF0` |
-| Thing id 28 in the finale; state 228 | `0x004BF410`, `0x00473F80` |
 | MPD table input | `0x005384F0` |
 | `0x0053C3C0` cases 1-4 fully (restart / next after the result) | `0x0053C3C0`, `0x0053C520` |
 
@@ -232,14 +232,16 @@ to the dropped Portal Gem, and a fade after pickup. The unchosen branch stays di
 the owner does not know whether it is playable. Re-reading `0x005393B0` confirms that
 status 3 cannot be selected; the branch closes on a **win**, not merely on selection.
 The full/new moon discrepancy is in §2.4. The post-win text/Mentor screen is not
-recalled clearly; inspect `0x0053B980` against a recorded ordinary campaign win.
+recalled clearly; the in-level win screen speaks the next level's rewards
+([campaign-win-sequence.md](campaign-win-sequence.md) §5), and the front end's title card is `0x0053B980`.
+The recalled close-up and follow match paths 100/101 and view action 17 (same doc, §3).
 
 ## Implementation boundary
 
 F1 storage and F4 map/briefing are built. `CampaignProgression` supplies immutable
 reset, first-open repair, win-branch and hidden-land unlock rules. Level-end
 statistics, keeper rank, Total Evil Rating and hi-score entry are built (F5 stage B,
-ADR-0545); the finale, special-pickup unlocks and transfer creature remain F5.
+ADR-0545); the transfer creature arrival, specials 129/140 and the post-win cutscene are built (F5 stages C, D); the finale and LEVEL-flag completions remain F5.
 `CampaignMapController` drives selection and camera gates; Unity picks actual
 triangles and presents native arrow/land texture phases. No simulation entities,
 world timing change is needed for the map itself; the level-end counters changed the hash (309, ADR-0545).

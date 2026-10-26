@@ -1,6 +1,16 @@
 # Early state-hash versions
 
-Versions 9–65, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–67, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**67** — `0x8E6F0889810E2C53`. A player's `Status` and its tick, and
+the dungeon heart's health, last attacker, death tick and ruin entered
+(ADR-0162). Composition only in the pinned fixture: its players are not
+keepers, so every new field is zero.
+
+**66** — `0x8FE50E548AC844F2`. Each keeper's room, creature, door,
+trap and spell availability rows entered, copied from the level and made mutable
+so trigger action 6 can write them (ADR-0161). Composition and initial values
+only: the pinned fixture fires no action 6.
 
 **65** — `0x15441322D8A9D319`. The world byte holding the
 trigger-controlled anger and notification gates entered (ADR-0160). Both stay

@@ -91,4 +91,80 @@ public sealed class SpecialSystemTests
         Assert.Equal((5 * 0x1000) + 0x800 - 0x2000, imps[0].PosY);
         Assert.Null(world.ObjectById(special.Id));
     }
+
+    [Fact]
+    public void LocateHiddenLandIsCarriedForTheHostAndConsumed()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        const byte keeper = PlayerIds.FirstKeeper;
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
+        ObjectState special = world.SpawnObject(db, Dk2TerrainFixture.LocateHiddenLandSpecialObjectId, PlayerIds.Neutral, 5);
+        var sim = new GameSimulation(db, world, 1, [new SpecialSystem()]);
+        sim.Tick(InputFrame.Of(new ActivateSpecialCommand(keeper, special.Id)));
+        Assert.Equal(1, world.Carry.HiddenLandFound);
+        Assert.Equal(1, world.Player(keeper).Statistics.SpecialsFound);
+        Assert.Null(world.ObjectById(special.Id));
+    }
+
+    /// <summary>Arm 0x8C of 0x004A3FC0: only the activator's own creature, only in the campaign; a
+    /// refused target still uses the box up.</summary>
+    [Fact]
+    public void TransferCreatureStoresAnOwnCreatureWhichLeavesNoBodyAndARefusalStillUsesTheBox()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        const byte keeper = PlayerIds.FirstKeeper, rival = PlayerIds.FirstKeeper + 1;
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper, rival]);
+        CreatureState theirs = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, rival, new TilePos(2, 2));
+        CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, keeper, new TilePos(3, 2));
+        mine.Level = 6;
+        ObjectState first = world.SpawnObject(db, Dk2TerrainFixture.TransferCreatureSpecialObjectId, PlayerIds.Neutral, 5);
+        ObjectState second = world.SpawnObject(db, Dk2TerrainFixture.TransferCreatureSpecialObjectId, PlayerIds.Neutral, 6);
+        var sim = new GameSimulation(db, world, 1, [new SpecialSystem()]);
+
+        sim.Tick(InputFrame.Of(new ActivateSpecialCommand(keeper, first.Id, theirs.Id)));
+        Assert.False(world.Carry.TransferStored);
+        Assert.Null(world.ObjectById(first.Id));
+        Assert.True(theirs.Health > 0);
+
+        sim.Tick(InputFrame.Of(new ActivateSpecialCommand(keeper, second.Id, mine.Id)));
+        Assert.True(world.Carry.TransferStored);
+        Assert.Equal((Dk2TerrainFixture.GoblinCreatureId, (byte)6),
+            (world.Carry.TransferCreatureTypeId, world.Carry.TransferCreatureLevel));
+        Assert.Equal(0, mine.Health);
+        Assert.True(mine.CorpseSuppressed);
+    }
+
+    [Fact]
+    public void TransferCreatureOutsideTheCampaignStoresNothing()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        const byte keeper = PlayerIds.FirstKeeper;
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
+        world.GameMode = 2;
+        CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, keeper, new TilePos(3, 2));
+        ObjectState special = world.SpawnObject(db, Dk2TerrainFixture.TransferCreatureSpecialObjectId, PlayerIds.Neutral, 5);
+        new GameSimulation(db, world, 1, [new SpecialSystem()]).Tick(InputFrame.Of(new ActivateSpecialCommand(keeper, special.Id, mine.Id)));
+        Assert.False(world.Carry.TransferStored);
+        Assert.True(mine.Health > 0);
+    }
+
+    /// <summary>0x0050C67D: two tiles toward lower Y from the heart's centre tile, level − 1 level-ups.</summary>
+    [Fact]
+    public void ATransferredCreatureArrivesTwoTilesNorthOfTheHeartAtItsLevel()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        const byte keeper = PlayerIds.FirstKeeper;
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
+        RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
+        for (int y = 3; y < 8; y++)
+            for (int x = 3; x < 8; x++)
+                RoomRules.Place(db, ref world.Tile(x, y), heart, keeper);
+        var sim = new GameSimulation(db, world, 7, [new SpecialSystem()]);
+        CreatureState arrived = TransferCreatureRules.Arrive(sim, keeper, Dk2TerrainFixture.GoblinCreatureId, 4)!;
+        Assert.Equal(new TilePos(5, 3), arrived.Tile);
+        Assert.Equal((5 * 0x1000 + 0x800, 3 * 0x1000 + 0x800), (arrived.PosX, arrived.PosY));
+        Assert.Equal(4, arrived.Level);
+        Assert.Contains(arrived.Heading, new[] { 0, 0x200, 0x400, 0x600 });
+        Assert.Null(TransferCreatureRules.Arrive(sim, keeper, 0, 4));
+    }
 }

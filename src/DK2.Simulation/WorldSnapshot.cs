@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 309;
+    private const int FormatVersion = 310;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -162,6 +162,8 @@ public static class WorldSnapshot
         w.Write(world.NextRoomListPosition);
         w.Write(world.NextPlaceClaim);
         w.Write(world.NextTagOrder);
+        w.Write(world.GameMode);
+        world.Carry.Write(w);
         w.Write(world.SecretDoorEntries.Count);
         foreach (var pair in world.SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
             .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
@@ -898,6 +900,8 @@ public static class WorldSnapshot
         long nextRoomListPosition = r.ReadInt64();
         long nextPlaceClaim = r.ReadInt64();
         int nextTagOrder = r.ReadInt32();
+        byte gameMode = r.ReadByte();
+        CampaignCarry carry = CampaignCarry.Read(r);
         int secretDoorEntryCount = r.ReadInt32();
         var secretDoorEntries = new Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry>();
         for (int i = 0; i < secretDoorEntryCount; i++)
@@ -987,6 +991,8 @@ public static class WorldSnapshot
         world.NextRoomListPosition = nextRoomListPosition;
         world.NextPlaceClaim = nextPlaceClaim;
         world.NextTagOrder = nextTagOrder;
+        world.GameMode = gameMode;
+        world.Carry = carry;
         foreach (var pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);
         world.CurrentTick = tick;
 

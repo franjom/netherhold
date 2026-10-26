@@ -150,6 +150,9 @@ assumed to be milliseconds (UNKNOWN). So are the meanings of `0x0048AD30`,
 | `0x32` | `0x00513210` place a door | `0x50` | `0x00505ec0` | `0x89` | `0x00514470` |
 | `0x33` | `0x00513240` | `0x51` | `0x00505f00` |  |  |
 | `0x34` | `0x00513270` place a trap | `0x52` | `0x00505f80` |  |  |
+
+View actions (4, 6, 15, 17, `0x73`, `0x74`, `0x84` and 30 more) have no entry here; the bridge
+handles them from its own table at `0x0066CE30` ([campaign-win-sequence.md](campaign-win-sequence.md) §4).
 ## Confidence
 
 **CONFIRMED (binary):** the base, the 20-byte stride, the 86 records and the

@@ -556,7 +556,7 @@ namespace DK2.Unity
         {
             _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null || _failure != null) return;
-            if (_frontEnd != null) { UpdateFrontEnd(); return; }
+            if (_frontEnd != null) { if (!UpdateCutscene()) UpdateFrontEnd(); return; }
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
 
@@ -1497,6 +1497,7 @@ namespace DK2.Unity
         {
             if (_frontEnd != null)
             {
+                DrawCutsceneTitle();
                 if (showDiagnostics) DrawFrontEndDiagnostics();
                 return;
             }

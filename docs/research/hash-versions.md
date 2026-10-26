@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**310** — `0x7F12E00975487C0D`. FormatVersion also 310. `WorldState.GameMode` (DK2's `0x0075AD4B`, 1 by default) and `WorldState.Carry`, the profile writes specials 129 and 140 make during play (`CampaignCarry`); special 140 stores an own creature and kills it bodyless (`0x004A3FC0`). The pin fixture activates no special; `SpecialSystemTests` cover both arms and the transfer arrival.
+
 **309** — `0x28CA6624BD0F769D`. FormatVersion also 309 (308 is held by another branch). `PlayerState.Statistics`: the level-statistics counters DK2 keeps at `player+0x142`..`+0x185` that were not already fields, the level-end sample of `0x004BE630` and the counters frozen at the verdict (ADR-0545, `level-statistics.md`). The pin fixture ends no game; `LevelStatisticsTests` cover sensitivity, snapshot restore and the end sample.
 
 **307** — `0xC5540B4DA9053FF3`. FormatVersion also 307. Behaviour only: a creature with a bed goes to it only when tired; a wound alone no longer sends it, because the wound branch's Sleep job routes only on the latch `+0x58` (ADR-0543). No new fields. `CreatureNeedsTests.AWoundedGoblinWithABedWaitsUntilItIsTired` covers it.
@@ -387,14 +389,4 @@ target entered (ADR-0164). Composition only in the pinned fixture.
 eight-slot engagement arrays entered (ADR-0163). Composition only in the pinned
 fixture: no Blocker stands near an enemy there.
 
-**67** — `0x8E6F0889810E2C53`. A player's `Status` and its tick, and
-the dungeon heart's health, last attacker, death tick and ruin entered
-(ADR-0162). Composition only in the pinned fixture: its players are not
-keepers, so every new field is zero.
-
-**66** — `0x8FE50E548AC844F2`. Each keeper's room, creature, door,
-trap and spell availability rows entered, copied from the level and made mutable
-so trigger action 6 can write them (ADR-0161). Composition and initial values
-only: the pinned fixture fires no action 6.
-
-[Versions 9–65](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–67](hash-versions-early.md) retain the earlier pins and their reasons.

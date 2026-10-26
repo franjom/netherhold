@@ -1198,6 +1198,12 @@ public sealed class WorldState
     /// <summary>The next <see cref="TileState.TagOrder"/>.</summary>
     public int NextTagOrder { get; internal set; } = 1;
 
+    /// <summary>DK2's game mode byte <c>0x0075AD4B</c>; 1, the campaign, unless the host says otherwise.</summary>
+    public byte GameMode { get; set; } = TransferCreatureRules.CampaignMode;
+
+    /// <summary>Profile writes made during play, for the host (<see cref="CampaignCarry"/>).</summary>
+    public CampaignCarry Carry;
+
     /// <summary>Kind-11 pool insertion order and retained middle-slot holders, independent per keeper.</summary>
     public Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> SecretDoorEntries { get; } = [];
 
@@ -1549,6 +1555,8 @@ public sealed class WorldState
         hash.Add(NextRoomListPosition);
         hash.Add(NextPlaceClaim);
         hash.Add(NextTagOrder);
+        hash.Add(GameMode);
+        Carry.HashInto(ref hash);
         hash.Add(SecretDoorEntries.Count);
         foreach (var pair in SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
             .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
