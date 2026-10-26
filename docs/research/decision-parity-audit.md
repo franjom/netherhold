@@ -178,9 +178,13 @@ rarer drops of its target.
 Two other limits are already established in native research and rechecked here:
 
 - The NonFighter hero arm temporarily sets its candidate target before calling
-  withdrawal/alarm. The withdrawal half is built (ADR-0545, hash 309); the alarm
-  still takes the candidate's position directly.
-  [The function record](functions/0045BDF0.md) owns that gap.
+  withdrawal/alarm. The withdrawal half is built (ADR-0545, hash 309). No alarm-half
+  gap was found (2026-10-26, STRONGLY INFERRED): the alarm (`0x004752B0`) takes the threat
+  by pointer; the staged tag is read only by Combat's own leave hook when the alarm's route
+  leaves category 22, whose unregister is a no-op unless the old tag already names that hero;
+  every success exit zeroes the tag, as ours does. Ours passes the candidate's position
+  directly, as the binary does. Unmodelled: the release's victory-nibble gate and the exit
+  tail's forced-target and `+0x232`/`+0x233` writes ([the function record](functions/0045BDF0.md)).
 - Native completes a creature's update before the next; our combat, movement and
   worker-job passes remain separate. The established ordering is in
   [combat acquisition](combat-acquisition.md#1-where-in-the-tick) and

@@ -29,7 +29,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   separates observed blockers from open causes; the current report checks the
   persistent Level 1 Hatchery refusal and records the changed outcomes.
   The [decision parity audit](research/decision-parity-audit.md) verifies bounded
-  chooser/RNG and combat checks, but identifies replay-drop limits and the unbuilt NonFighter alarm candidate;
+  chooser/RNG and combat checks, but identifies replay-drop limits (the NonFighter alarm staging has no observable gap, STRONGLY INFERRED);
   the [Imp selection study](research/imp-selection-evidence.md) adds three live
   matched choices and 118 binary ordering controls. Full parity remains unestablished.
   The [navigation controls](research/navigation-partial-rebuild.md#6-level-1-same-input-navigation-controls-2026-10-25)
