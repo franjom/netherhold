@@ -192,8 +192,8 @@ experience.
 - **Hunger and eating** (`EatingRules` + `CreatureEatSystem`, ADR-0067): the
   accumulator, the once-a-second retry, the walk to a hatchery, the nearest
   chicken and the two subtract amounts. See `eating.md`.
-- **Sleep-from-wounds (50%)** is half of `LairRules.WantsToSleep`, so a hurt
-  creature goes to bed without being tired. `CreatureCriticalHealthPercentageOfMax`
+- **Sleep-from-wounds (50%)** sends only a creature with no bed to sleep untired; with a
+  bed it waits until tired (ADR-0543). `CreatureCriticalHealthPercentageOfMax`
   (20%) is computed and still unread; nothing flees yet.
 - **Collapse, death and the corpse** (`CreatureDeathRules`, ADR-0051 then
   ADR-0063): zero health is a 60-second window on the floor, then death, then a

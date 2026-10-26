@@ -12457,3 +12457,20 @@ the behavior change; no snapshot fields are added.
 **Consequences.** Hero choices and follower numbering change across levels;
 there is no map override. Separate hero and movement passes remain a scheduling
 limit. Focused regressions cover the corrected ordering and self-removal.
+
+## ADR-0543 — A wound alone does not send a bedded creature to bed
+**Date:** 2026-10-26 · **Status:** accepted · Hash/save 307.
+
+**Context.** Ours sent any creature with a bed to it below
+`CreatureSleepsWhenBelowPercentHealth`. DK2's wound branch calls the Sleep job
+`0x0046F440`, which routes to a bed only while the sleep latch `+0x58` is set:
+[creature-needs-routine.md §3](research/creature-needs-routine.md#3-the-three-needs-in-order).
+
+**Decision.** `LairRules.WantsToSleep` is tiredness only. In the Casino's
+states, where ours does not feel tiredness, a bedded creature goes when wounded
+and tired, the wound branch's own test. A bedless wounded creature still sleeps
+untired through the lair attempt and state 80's wound test.
+
+**Consequences.** A wounded, rested creature with a bed fights or works on until
+tired. Ours approximates the latch (HYPOTHESIS): `AwakeTicks` against `TimeAwake`,
+reset on waking, where DK2 reloads `+0x58` each period and drains it only asleep. A bedless wounded creature tries for a lair only from idle.

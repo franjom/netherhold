@@ -125,10 +125,11 @@ public sealed class CreatureSleepSystem : ISimulationSystem
                     if (bedIndex >= 0)
                     {
                         // The needs routine's mask test (NeedRules, ADR-0198); in the Casino's
-                        // states tiredness is not felt, wounds still are.
-                        bool wants = NeedRules.TirednessClockRuns(creature)
-                            ? LairRules.WantsToSleep(database, definition, creature)
-                            : CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
+                        // states tiredness is not felt, but the wound branch still is, and its
+                        // Sleep job routes only on the latch (0x0046F440), so wounded and tired.
+                        bool wants = LairRules.WantsToSleep(database, definition, creature)
+                            && (NeedRules.TirednessClockRuns(creature)
+                                || CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature));
                         if (wants && NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)
                             && !NeedRules.IsBusy(context.World, creature, context.Tick.Value))
                             SetOff(context, creature, definition);
