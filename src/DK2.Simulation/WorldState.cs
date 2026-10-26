@@ -729,9 +729,9 @@ public sealed class WorldState
     public GameMode GameMode { get; internal set; } = GameMode.Campaign;
 
     /// <summary>DK2's active player list (<c>world+0x7A</c>, next <c>+0x3A</c>): activation prepends
-    /// (<c>0x004C2460</c>), so it runs in reverse of activation. STRONGLY INFERRED: that the level
-    /// loader activates in PLAYERS record order (its handler table <c>0x0051EF80</c> is untraced),
-    /// and that a skirmish does the same. The verdict and the heart tail walk it (ADR-0547).</summary>
+    /// (<c>0x004C2460</c>) and the level loader activates one player per PLAYERS record in file
+    /// order, in every mode (win-and-defeat.md §7), so hosts pass the records' order. The verdict
+    /// and the heart tail walk it (ADR-0547).</summary>
     public IReadOnlyList<PlayerId> ActivePlayerOrder => ActivePlayerOrderSlots;
     internal PlayerId[] ActivePlayerOrderSlots { get; set; }
 

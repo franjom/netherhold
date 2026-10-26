@@ -323,4 +323,25 @@ public class LevelVariablesOnRealDataTests
         Assert.False(world.AreAllied(3, 4) || world.AreAllied(3, 5) || world.AreAllied(3, 6));
     }
 
+    /// <summary>DK2 activates one player per PLAYERS record in file order and prepends each to the
+    /// active list (0x0056DAD0, 0x0051EF80, 0x004C2460): the scenario harness orders a campaign
+    /// level's players the same way, whatever order the scenario lists them in, and the world's
+    /// active list is the record order reversed. Id 0, which has no record, going first is the
+    /// harness's convention, not DK2's: DK2 never activates a player without a record.</summary>
+    [InstallFact]
+    public void ACampaignScenarioActivatesItsPlayersInPlayersRecordOrder()
+    {
+        string install = Install();
+        List<PlayerDef> records = GameDatabaseLoader.LoadCampaignPlayers(install, "level18")!;
+        byte[] fileOrder = records.Select(p => p.PlayerId).ToArray();
+        byte[] scrambled = [(byte)0, .. fileOrder.Reverse()];
+
+        IReadOnlyList<byte> order = Harness.ScenarioRunner.ActivationOrder(scrambled, records);
+
+        Assert.Equal([(byte)0, .. fileOrder], order);
+        Simulation.WorldState world = Simulation.WorldState.FromMap(
+            GameDatabaseLoader.LoadForCampaignLevel(install, "level18"),
+            GameDatabaseLoader.LoadCampaignMap(install, "level18")!, order);
+        Assert.Equal(order.Reverse().Select(id => new PlayerId(id)), world.ActivePlayerOrder);
+    }
 }

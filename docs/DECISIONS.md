@@ -12572,7 +12572,8 @@ campaign too.
 
 **Decision.** `GameMode` (DK2's `[0x0075AD4B]`) is world state, the campaign by
 default; `WorldState.ActivePlayerOrder` is the active list, the PLAYERS order
-reversed (STRONGLY INFERRED: the loader's activation order is untraced).
+reversed, as the level loader activates one player per record in file order
+(win-and-defeat.md §7); the scenario harness orders its players the same way.
 `VerdictRules.End` mirrors the routine's recursion and is the only way the heart
 system, `WIN_GAME`/`LOSE_GAME` and the time-limit lapse end a game. The heart tail
 walks the active list and runs the award after each fallen keeper's verdict, every

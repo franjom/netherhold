@@ -251,7 +251,7 @@ indexes another table: UNKNOWN which.
 2026-10-26, CONFIRMED). The loops sit after the score block of `0x004BE630`, which returns
 in modes 1 and 4 (campaign, My Pet Dungeon) and in any mode but 2 and 3 (`0x004BF32E`). All
 three walk the active player list from `world+0x7A` (next `+0x3A`, reverse activation
-order), take only keepers (`Number >= 3`) and call two keepers *mutual allies* when each
+order; the order is the PLAYERS records' in every mode, below), take only keepers (`Number >= 3`) and call two keepers *mutual allies* when each
 one's byte `+0x1AE` at the other's number is set. By the new `Status` (§1):
 
 - **2, won** (`0x004BEFE1`): every other keeper that is not a mutual ally of the winner
@@ -269,6 +269,20 @@ one's byte `+0x1AE` at the other's number is set. By the new `Status` (§1):
 Each call runs these loops again for the player it ends, and a player already ended
 returns at once (`+0x19A`), so the recursion settles. Two keepers allied with *S*
 but not with each other: the first ally's win makes the second one lose.
+
+**The activation order is the PLAYERS file's** (CONFIRMED, read 2026-10-26). The level's KWD
+reader `0x0056C960` reads chunk after chunk while the file has bytes left (`0x0056CBD0` per
+chunk); the PLAYERS chunk (180) goes to `0x0056DAD0`, which reads its records one by one (205
+bytes shipped) and calls slot `+0x6C` of the callback table for each. `0x0051E0A0` fills that
+slot with `Level_LoadPlayerRecord` `0x0051EF80` (`0x0051E108`) only when world `+0x7239` bit
+`0x4` is set: of the level loader's three passes (`0x0050E620`), only the third,
+`0x0051DDC0` (bits 2 and 4), reads player records, so each is read once. The same pass is
+reached from `GameAction_LoadLevel` (`0x00513BC4`). `0x0051EF80` activates the record's number
+through `0x004C2340` (1 heroes, 2 neutral, else the keeper arm `0x0051F0B0`), with no skip in
+any mode. `0x004C2340` is called only from those two arms and is the only caller of
+`Players_Activate` `0x004C2460`, which prepends: whichever load path a mode takes, a player
+becomes active only through its PLAYERS record, in record order. So the active list is the
+PLAYERS records in reverse. A player with no record is never activated.
 
 The level time limit's lapse (`0x0050A67A`, modes 2 and 3 only) calls `0x004BE630(3)` on
 every keeper in list order after setting bit 3, so nobody wins by it.
