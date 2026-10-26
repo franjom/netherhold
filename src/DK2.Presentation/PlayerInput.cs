@@ -193,6 +193,18 @@ public sealed class PlayerInputTranslator
     /// Query and the panel's spells included: a pending special is dropped.</summary>
     public void CancelTool() => Targeting = null;
 
+    /// <summary>SpellPanel_ActivateSpecial (<c>0x0040A280</c>), a stored special clicked in the spells
+    /// panel: action 88 with a zero word, or for 127 and 140 the same targeting mode as the hand, which
+    /// replaces the tool without cancelling it first. Null when it entered targeting; the caller then
+    /// returns the panel to the hand, since targeting lasts only while the hand is the tool.</summary>
+    public PlayerCommand? ActivateStoredSpecial(PlayerId playerId, int objectId, byte typeId)
+    {
+        if (!SpecialTargeting.Needs(typeId)) return new ActivateSpecialCommand(playerId, objectId);
+        _drag = null;
+        Targeting = new SpecialTargeting(objectId, typeId);
+        return null;
+    }
+
     /// <summary>The release clamps' limit, the database's <c>RubberBandAreaLimit</c>: the room release
     /// pulls the end toward the anchor (<see cref="PlacementCursor.ClampDrag"/>), the sell release
     /// keeps the low corner (<see cref="PlacementCursor.DragRectangle"/>). Unbounded until set.</summary>

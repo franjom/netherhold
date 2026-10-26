@@ -112,7 +112,33 @@ public sealed class PacketLogTests
             Assert.Throws<InvalidDataException>(() => packet.At(2, map));
             map.Add(1128, 2, 1, PacketEntityKind.Object);
             var command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(2, map).All));
-            Assert.Equal((new PlayerId(3), 1), (command.PlayerId, command.ObjectId));
+            Assert.Equal((new PlayerId(3), 1, 0), (command.PlayerId, command.ObjectId, command.TargetId));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SpecialActivationCarriesItsTargetCreatureFromTheWordField()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 2, (1128, 0x00070000u | 447, 0, 88));
+        Turn(bytes, 3);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            PacketLog packet = PacketLog.Read(path, 2, 69);
+            Assert.Contains(packet.EntityReferences, reference =>
+                reference == (2L, 447u, PacketEntityKind.Creature));
+            var map = new PacketEntityMap();
+            map.Add(1128, 2, 1, PacketEntityKind.Object);
+            Assert.Throws<InvalidDataException>(() => packet.At(2, map));
+            map.Add(447, 1, 12, PacketEntityKind.Creature);
+            var command = Assert.IsType<ActivateSpecialCommand>(Assert.Single(packet.At(2, map).All));
+            Assert.Equal((1, 12), (command.ObjectId, command.TargetId));
         }
         finally
         {

@@ -9,7 +9,9 @@ using DK2.Simulation;
 namespace DK2.Presentation;
 
 public enum BottomPanelCategory : byte { Creatures, Rooms, Spells, Workshop }
-public enum BottomPanelChoiceKind : byte { Room, Spell, Door, Trap }
+/// <summary><see cref="Special"/> is a special stored in a Library, keyed by its object id
+/// (<see cref="BottomPanelChoice.ObjectId"/> names the box).</summary>
+public enum BottomPanelChoiceKind : byte { Room, Spell, Door, Trap, Special }
 public readonly record struct BottomPanelChoiceKey(BottomPanelChoiceKind Kind, byte Value);
 public readonly record struct BottomPanelSelection(BottomPanelChoiceKey? Choice, PlayerToolMode Tool, RoomTypeId Room);
 public readonly record struct BottomPanelRect(int X, int Y, int Width, int Height);
@@ -74,12 +76,14 @@ public sealed class BottomPanelChoice
     public bool Selected { get; internal set; }
     public bool Unknown { get; internal set; }
     public bool ClearsToolOnClick { get; internal set; }
+    /// <summary>The stored box of a <see cref="BottomPanelChoiceKind.Special"/> choice; zero otherwise.</summary>
+    public int ObjectId { get; internal set; }
     /// <summary>Recharge, manufacture and research sectors (panel-indicators.md).</summary>
     public BottomPanelSlotIndicators Indicators { get; internal set; }
     public BottomPanelCategory Category => Kind switch
     {
         BottomPanelChoiceKind.Room => BottomPanelCategory.Rooms,
-        BottomPanelChoiceKind.Spell => BottomPanelCategory.Spells,
+        BottomPanelChoiceKind.Spell or BottomPanelChoiceKind.Special => BottomPanelCategory.Spells,
         _ => BottomPanelCategory.Workshop,
     };
 }
@@ -90,6 +94,8 @@ public sealed class BottomPanelView
     private readonly GameDatabase _database;
     private readonly PlayerId _player;
     private readonly BottomPanelChoice[] _choices;
+    private readonly Func<BottomPanelChoiceKey, string, string> _name;
+    private readonly List<BottomPanelChoice> _specials = new();
     private readonly bool _oneShotReaper;
     private readonly bool _campaignMode;
     private bool _reaperInitialized;
@@ -100,6 +106,12 @@ public sealed class BottomPanelView
     private bool _spellsTab, _workshopTab, _workshopDim, _creaturesDim;
     private readonly bool[] _ownedRoomTypes = new bool[256];
     public IReadOnlyList<BottomPanelChoice> Choices => _choices;
+
+    /// <summary>The specials stored in the player's Libraries, in the order the spells panel lists them
+    /// after its spells (<c>0x00411140</c>, <c>0x00411790</c>): Libraries in room-list order, each
+    /// Library's objects newest first. Every one is drawn at full colour with no cost, selection or
+    /// recharge (<c>0x00412FC0</c>'s special arm), its icon the object's GUI icon (runtime art slot 0).</summary>
+    public IReadOnlyList<BottomPanelChoice> StoredSpecials => _specials;
 
     /// <summary>The choice for a key, or null when the panel has none.</summary>
     public BottomPanelChoice? Choice(BottomPanelChoiceKey key)
@@ -119,6 +131,7 @@ public sealed class BottomPanelView
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _player = player;
+        _name = name ?? throw new ArgumentNullException(nameof(name));
         _campaignMode = campaignMode;
         _oneShotReaper = campaignMode && ((database.Level?.Flags ?? 0) & 0x10) != 0;
         TalismanPieces = campaignMode ? database.Level?.TalismanPieces ?? 0 : (byte)0;
@@ -179,6 +192,7 @@ public sealed class BottomPanelView
             _capturedWorld = world; _capturedTick = world.CurrentTick;
             _gold = player ? GoldStore.Total(world, _player) : 0;
             _ownedRoomsCaptured = false;
+            CaptureStoredSpecials(world, player);
         }
         int gold = _gold;
         int mana = player ? world.Player(_player).Mana : 0;
@@ -297,6 +311,42 @@ public sealed class BottomPanelView
             studied = research;
         return recharge is null && made is null && studied is null ? BottomPanelSlotIndicators.None
             : new BottomPanelSlotIndicators(recharge, made, studied, studied.HasValue && !normal);
+    }
+
+    /// <summary>DK2 walks the player's room list (<c>+0x36</c>, next <c>+0x8</c>), Libraries only (type
+    /// byte <c>+0x18</c> 6), and each one's object list (<c>+0xC</c>, next <c>+0x126</c>), counting every
+    /// object whose definition has TypeSpecial. <c>Room_AddObject</c> (<c>0x004E5FF0</c>) pushes on the
+    /// head, so a Library lists its newest stored first. Ours keeps no room object list: a stored special is
+    /// one the keeper owns lying on the Library's tiles, neither held nor carried (the shelf count of
+    /// <see cref="ResearchTreeRules"/>), and the newest object stands in for the newest stored.</summary>
+    private void CaptureStoredSpecials(WorldState world, bool player)
+    {
+        int count = 0;
+        bool any = false;
+        for (int i = 0; i < world.Objects.Count && player && !any; i++)
+            any = world.Objects[i].OwnerPlayerId == _player.Value
+                && _database.ObjectById(world.Objects[i].ObjectTypeId) is { IsSpecial: true };
+        if (any)
+            foreach (RoomInstance room in RoomLists.Of(world, _database, _player))
+            {
+                if (room.Definition.TypeId != RoomTypeId.Library) continue;
+                for (int i = world.Objects.Count - 1; i >= 0; i--)
+                {
+                    ObjectState thing = world.Objects[i];
+                    if (thing.OwnerPlayerId != _player.Value || thing.InHand || thing.CarriedByCreatureId >= 0
+                        || !room.Contains(thing.TileIndex)
+                        || _database.ObjectById(thing.ObjectTypeId) is not { IsSpecial: true } definition) continue;
+                    var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Special, thing.ObjectTypeId);
+                    if (count == _specials.Count || _specials[count].Key != key)
+                    {
+                        var stored = new BottomPanelChoice(key, _name(key, definition.Name), 0)
+                        { Visible = true, Selectable = true, Affordable = true };
+                        if (count == _specials.Count) _specials.Add(stored); else _specials[count] = stored;
+                    }
+                    _specials[count++].ObjectId = thing.Id;
+                }
+            }
+        if (count < _specials.Count) _specials.RemoveRange(count, _specials.Count - count);
     }
 
     private bool OwnsRoomTile(WorldState world, RoomTypeId room)

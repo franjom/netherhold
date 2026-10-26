@@ -11,7 +11,7 @@ Original version: DK2 v1.70 (GOG)
 Built: Increase Level and Receive Imps (`SpecialSystem`, `ActivateSpecialCommand`, ADR-0441), and the hand's arm
 (2026-10-21): a hand click on a special on the keeper's own tile activates it, a special is never lifted, and
 hovering one shows the pointing hand (owner report, 2026-10-21; the hover cursor's code is unread); the `+0x74` predicate is not mirrored, and 127/140 post
-the activation instead of entering targeting. Locate Hidden Land (129) and Transfer Creature (140) are built (hash 311): 129 counts in `WorldState.Carry` and the host applies it to the profile; 140 runs in campaign mode only (`WorldState.GameMode`) and kills its target bodyless. The hand's targeting mode (`+0x13DB` = 5) is built in `PlayerInputTranslator.Targeting`: a click on 127 or 140 waits for a creature (140 an own one, 127 another's, `0x00408D07`), posts the activation with its target and returns to the hand; the right button or another tool cancels. The spells-panel path into the same mode (`0x0040A280`) and the packet replay's action-88 word field are not built; no shipped level places it, and 129 is on levels 5 and 7 only. Everything else here is read and not built.
+the activation instead of entering targeting. Locate Hidden Land (129) and Transfer Creature (140) are built (hash 311): 129 counts in `WorldState.Carry` and the host applies it to the profile; 140 runs in campaign mode only (`WorldState.GameMode`) and kills its target bodyless. The hand's targeting mode (`+0x13DB` = 5) is built in `PlayerInputTranslator.Targeting`: a click on 127 or 140 waits for a creature (140 an own one, 127 another's, `0x00408D07`), posts the activation with its target and returns to the hand; the right button or another tool cancels. The spells panel's route (`0x0040A280`) is built too: `BottomPanelView.StoredSpecials` lists the Libraries' specials after the visible spells (full-colour GUI icon, hover shows the plain name), a click posts action 88 or, for 127/140, enters the hand's targeting mode, and the Spells tab ignores specials as DK2 does (`0x00416E20`). The packet replay reads action 88's target, the low word of the action's second dword (`0x00513760`). Ours stands in for Room_AddObject's head push by listing a Library's newest object first (we keep no room object list) and filters to the keeper's own boxes, which DK2 does not test. No shipped level places 127 or 140, and 129 is on levels 5 and 7 only. Everything else here is read and not built.
 
 ## 1. What a player sees — CONFIRMED (owner, 2026-10-09)
 
@@ -66,7 +66,8 @@ Three inputs post action 88 with the object's tag and the player.
      `+0x126`).
    - A click past the spells, while the panel word `+0x2722` is zero, selects the nth stored
      special (`0x00411790`).
-   - `0x0040A280` then posts action 88, or enters the same targeting mode for 127 and 140.
+   - `0x0040A280` then posts action 88 with no target, or enters the same targeting mode for 127 and 140.
+   Of the four posters (the hand's mode-5 arm `0x00408D2A` writes the creature tag; the hand's object arm, this panel and the computer keeper write 0), only the mode-5 arm sets the action's word.
 3. **The computer keeper** (`0x00500520`), `computer-keeper-management.md` §3. It keeps the last
    qualifying object of its scan, and never activates 127 or 140.
 

@@ -245,4 +245,23 @@ public class PlayerInputTests
             new PlayerIntent(new PlayerId(Keeper), PlayerToolMode.Hand, box, PointerButtonTransition.Pressed), snapshot).All));
         Assert.Null(_translator.Targeting);
     }
+
+    /// <summary>SpellPanel_ActivateSpecial (0x0040A280): a stored special posts action 88 with no target,
+    /// while Kill Creatures and Transfer Creature enter the hand's targeting mode and wait for a creature.</summary>
+    [Fact]
+    public void AStoredSpecialFromThePanelActivatesOrWaitsForItsCreature()
+    {
+        var player = new PlayerId(Keeper);
+        ActivateSpecialCommand direct = Assert.IsType<ActivateSpecialCommand>(_translator.ActivateStoredSpecial(player, 7, 124));
+        Assert.Equal((7, 0), (direct.ObjectId, direct.TargetId));
+        Assert.Null(_translator.Targeting);
+
+        Assert.Null(_translator.ActivateStoredSpecial(player, 8, SpecialTargeting.KillCreatures));
+        Assert.Equal(new SpecialTargeting(8, SpecialTargeting.KillCreatures), _translator.Targeting);
+        var theirs = new TilePos(5, 5);
+        var snapshot = new PlayerInputSnapshot(false, [new PlayerInputTarget(PlayerInputTargetKind.Creature, 41, theirs, Own: false)]);
+        ActivateSpecialCommand aimed = Assert.IsType<ActivateSpecialCommand>(Assert.Single(_translator.Translate(
+            new PlayerIntent(player, PlayerToolMode.Hand, theirs, PointerButtonTransition.Pressed), snapshot).All));
+        Assert.Equal((8, 41), (aimed.ObjectId, aimed.TargetId));
+    }
 }
