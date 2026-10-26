@@ -47,12 +47,14 @@ public sealed class FrontEndMenuController : IDisposable
             FrontEndPage.CampaignMap => Campaign is not null && id == 534,
             FrontEndPage.Briefing => Campaign is not null && (id == 169 || id == 170 && Campaign.CanLaunch),
             FrontEndPage.CampaignResults => Campaign is not null && id == 181,
-            FrontEndPage.HighScores => Campaign is { EntryRow: >= 0 } && id == 47,
+            // Outside name entry page 18 is Today's Top Keepers, and its accept goes back to Extras
+            // (DK2's static D0x41; after an entry DK2 may keep the entry's D0x68, Q657).
+            FrontEndPage.HighScores => id == 47,
             FrontEndPage.Options => id is 110 or 111 or 112 or 113,
             FrontEndPage.Graphics => id is 129 or 130,
             FrontEndPage.Sound => id is 146 or 147,
             FrontEndPage.Controls => id is 159 or 160,
-            FrontEndPage.Extras => id == 24,
+            FrontEndPage.Extras => id is 19 or 24,
             FrontEndPage.Dialog => Dialog is not null && id is 667 or 668,
             _ => false,
         };
@@ -146,6 +148,9 @@ public sealed class FrontEndMenuController : IDisposable
         }
         if (action.Kind == FrontEndActionKind.Dispatch)
         {
+            // D0x41 points widget 47's show-page (+0x59) at page 6, which the press then shows (0x00528610).
+            if (Page == FrontEndPage.HighScores && action.Arguments.Command == 0x41)
+                return _session.TryShowPage(FrontEndPage.Extras);
             if (Page is FrontEndPage.Graphics or FrontEndPage.Sound or FrontEndPage.Controls)
                 return _session.TryShowPage(FrontEndPage.Options);
             if (action.Arguments.NextPage != FrontEndPage.None)

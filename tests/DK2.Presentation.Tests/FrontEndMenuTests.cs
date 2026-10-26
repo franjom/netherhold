@@ -86,6 +86,22 @@ public class FrontEndMenuTests
         Assert.Equal(FrontEndPath.OptionsToEntry, session.Path);
     }
 
+    /// <summary>Extras' Today's Top Keepers (2802) swaps 6 for 18 with D0x3D; page 18's accept, D0x41,
+    /// shows Extras again (0x005306F0 case 0x41).</summary>
+    [Fact]
+    public void TodaysTopKeepersShowsTheHiScoresAndItsAcceptReturnsToExtras()
+    {
+        var session = ReadySession();
+        using var menu = new FrontEndMenuController(session, HitBounds);
+        menu.Activate(new(4));
+        session.Update(TimeSpan.FromSeconds(3));
+        Assert.Equal(FrontEndPage.Extras, session.Page);
+        Assert.True(menu.Activate(new(19)));
+        Assert.Equal(FrontEndPage.HighScores, session.Page);
+        Assert.True(menu.Activate(new(47)));
+        Assert.Equal(FrontEndPage.Extras, session.Page);
+    }
+
     private static FrontEndRect HitBounds(FrontEndWidget widget) => new(0, 0, 10, 10);
     private static FrontEndSession ReadySession()
     {

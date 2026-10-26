@@ -114,6 +114,29 @@ public class CampaignResultsTests
         Assert.Equal(FrontEndPath.BriefingToTable, session.Path);
     }
 
+    /// <summary>During name entry page 18's accept finishes the entry (DK2's entry rewrites widget 47 to
+    /// D0x68, 0x0053E320) instead of returning to Extras.</summary>
+    [Fact]
+    public void DuringNameEntryTheAcceptCommitsInsteadOfReturningToExtras()
+    {
+        var frame = new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000);
+        var session = new FrontEndSession(_ => new[] { frame, frame, frame }, FrontEndPage.CampaignResults);
+        var profile = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = 2 }, new CampaignSlot(2), won: true);
+        profile = CampaignProgression.RecordStatistics(profile, Keeper,
+            new LevelStatisticsBlock { LevelWon = true, GoldMined = 700 }, new CampaignSlot(2), keeperRank: 10);
+        var scores = Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), "K" + i, "1")).ToArray();
+        using var map = new CampaignMapController(session, profile, false,
+            slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()), scores);
+        using var menu = new FrontEndMenuController(session, _ => new FrontEndRect(0, 0, 10, 10), map);
+        session.Update(TimeSpan.Zero); session.Update(TimeSpan.FromMilliseconds(10)); session.Update(TimeSpan.FromSeconds(2));
+        Assert.True(map.AcceptResults());
+        Assert.True(map.EntryRow >= 0);
+        Assert.True(menu.Activate(new(47)));
+        Assert.Equal(-1, map.EntryRow);
+        Assert.Equal(FrontEndPath.BriefingToTable, session.Path);
+        Assert.NotEqual(FrontEndPage.Extras, session.Page);
+    }
+
     [Fact]
     public void ALossOrALowScoreGoesStraightBackToTheMap()
     {
