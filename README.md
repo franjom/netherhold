@@ -14,14 +14,14 @@ work](docs/HANDOFF.md) and the [implementation plan](DK2_REIMPLEMENTATION_PLAN.m
 The classic Unity presentation on Level 1, captured from the current build.
 
 <p align="center">
-<img src="screenshots/image_level_1_1.png" alt="Level 1, screenshot 1" width="49%">
-<img src="screenshots/image_level_1_2.png" alt="Level 1, screenshot 2" width="49%">
-<img src="screenshots/image_level_1_3.png" alt="Level 1, screenshot 3" width="49%">
-<img src="screenshots/image_level_1_4.png" alt="Level 1, screenshot 4" width="49%">
-<img src="screenshots/image_level_1_5.png" alt="Level 1, screenshot 5" width="49%">
-<img src="screenshots/image_level_1_6.png" alt="Level 1, screenshot 6" width="49%">
-<img src="screenshots/image_level_1_7.png" alt="Level 1, screenshot 7" width="49%">
-<img src="screenshots/image_level_1_8.png" alt="Level 1, screenshot 8" width="49%">
+<img src="screenshots/image_level_1_1.jpg" alt="Level 1, screenshot 1" width="49%">
+<img src="screenshots/image_level_1_2.jpg" alt="Level 1, screenshot 2" width="49%">
+<img src="screenshots/image_level_1_3.jpg" alt="Level 1, screenshot 3" width="49%">
+<img src="screenshots/image_level_1_4.jpg" alt="Level 1, screenshot 4" width="49%">
+<img src="screenshots/image_level_1_5.jpg" alt="Level 1, screenshot 5" width="49%">
+<img src="screenshots/image_level_1_6.jpg" alt="Level 1, screenshot 6" width="49%">
+<img src="screenshots/image_level_1_7.jpg" alt="Level 1, screenshot 7" width="49%">
+<img src="screenshots/image_level_1_8.jpg" alt="Level 1, screenshot 8" width="49%">
 </p>
 
 ## Build and test
