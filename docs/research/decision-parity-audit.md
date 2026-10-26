@@ -158,27 +158,29 @@ requiring Guard Room conversion before troops can receive recorded drops.
 
 ## Known deterministic gaps still prevent a full parity claim
 
-**CONFIRMED controlled mismatch:** original
-[withdrawal](functions/004611D0.md), with failed Heart and room pickers and no
-lair, returns 0 before local random choices. Native seeds 1 and `0x12345678`
-remain unchanged. The real hash-303 handler on a roomless open fixture instead
-returns true, enters state 6 toward withdrawal and consumes two local draws:
+**Closed (ADR-0544, hash 308):** original [withdrawal](functions/004611D0.md),
+with failed Heart and room pickers and no lair, returns 0 before local random
+choices. The room picker ([`0x004C63D0`](functions/004C63D0.md)) returns no room
+without a draw on an empty list, and none when its one draw lands on a bridge; a
+failed pick ends the withdrawal. Ours now does the same
+(`RoomLists.RandomNonBridgeRoom`, `FearRules.Withdraw` returns false); before
+hash 308 it skipped the failed pick and took the local fallback even with no rooms.
+The campaign effect is unmeasured.
 
-| Starting seed | Native return / ending seed | Ours return / ending seed |
-|---:|---|---|
-| 1 | 0 / 1 | true / 1586005467 |
-| 305419896 | 0 / 305419896 | true / 3442499178 |
-
-The native room pickers are stubbed to failure; the modern fixture actually has
-zero rooms. This verifies the caller's failure branch, not every room-selection
-predicate. It reproduces the previously documented failed-pick gap; there is no
-evidence that this branch caused the measured Level 4 losses.
+**Closed (ADR-0545, hash 309):** the away-from-target stage DK2 runs when the
+thing staged in `+0x502` is a live creature or trap is built
+(`FearRules.AwayFromTarget`); its point is overwritten by the local tries, so
+only its draws are consumed. Each caller now supplies what DK2 leaves staged.
+Campaign effect unmeasured. Not mirrored: the flee back-off keeps an
+unattackable live creature staged where ours drops it, and `spFighting`'s two
+rarer drops of its target.
 
 Two other limits are already established in native research and rechecked here:
 
 - The NonFighter hero arm temporarily sets its candidate target before calling
-  withdrawal/alarm; ours does not. The later fallback inputs can therefore differ
-  before their draws. [The function record](functions/0045BDF0.md) owns that gap.
+  withdrawal/alarm. The withdrawal half is built (ADR-0545, hash 309); the alarm
+  still takes the candidate's position directly.
+  [The function record](functions/0045BDF0.md) owns that gap.
 - Native completes a creature's update before the next; our combat, movement and
   worker-job passes remain separate. The established ordering is in
   [combat acquisition](combat-acquisition.md#1-where-in-the-tick) and

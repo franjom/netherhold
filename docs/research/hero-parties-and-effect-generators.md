@@ -173,7 +173,7 @@ fields `+0x418` and `+0x417` they are copied to (Q258). A slot whose `CreatureId
    link `+0x3A`) is sent notification type **5, variant 1** with the new
    creature's id — speech 1297 *"The King has entered your realm"*, 20 s
    (variants 2–4 are 1298–1300: *"killing your creatures"*, *"dying!"*,
-   *"slain by your minions"*; `mentor-speech-and-notifications.md` §3).
+   *"slain by your minions"*, but no code passes 2, 3 or 4; `message-table.md` §6).
 4. **Level-ups to buy.** `n = (Level − 1 + bonus) mod 10` in byte arithmetic,
    where `bonus` is the party's **spawn count** `byte[world+0x70F0+PartyId]`
    (read by `0x0050FAD0`) when `PartyType` is non-zero and 0 otherwise. A random

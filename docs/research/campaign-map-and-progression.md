@@ -175,7 +175,7 @@ level never changes `Player Level Status`.
 | Kept: type and level only. Experience, name, health, equipment-like state are not stored; health is whatever `Creature_LevelUp` rescales to | same | STRONGLY INFERRED |
 | The level start does not test the game mode, so a stored ID would also appear in a skirmish/MPD start; only mode 1 ever stores one | same | STRONGLY INFERRED |
 
-Built (F5 stage C, hash 310): `TransferCreatureRules.Arrive` does the arrival; not mirrored are scale, the state-1 timer reset and unique-definition substitution ([0x0050B5B0](functions/0050B5B0.md)). The special's store is the host-applied `WorldState.Carry`.
+Built (F5 stage C, hash 311): `TransferCreatureRules.Arrive` does the arrival; not mirrored are scale, the state-1 timer reset and unique-definition substitution ([0x0050B5B0](functions/0050B5B0.md)). The special's store is the host-applied `WorldState.Carry`.
 
 ## 5. Level start and level end
 
@@ -243,10 +243,10 @@ The recalled close-up and follow match paths 100/101 and view action 17 (same do
 F1 storage and F4 map/briefing are built. `CampaignProgression` supplies immutable
 reset, first-open repair, win-branch and hidden-land unlock rules. Level-end
 statistics, keeper rank, Total Evil Rating and hi-score entry are built (F5 stage B,
-ADR-0545); the transfer creature arrival, specials 129/140 and the post-win cutscene are built (F5 stages C, D); the finale and LEVEL-flag completions remain F5.
+ADR-0548); the transfer creature arrival, specials 129/140 and the post-win cutscene are built (F5 stages C, D); the finale and LEVEL-flag completions remain F5.
 `CampaignMapController` drives selection and camera gates; Unity picks actual
 triangles and presents native arrow/land texture phases. No simulation entities,
-world timing change is needed for the map itself; the level-end counters changed the hash (309, ADR-0545).
+world timing change is needed for the map itself; the level-end counters changed the hash (311, ADR-0548).
 
 The briefing resolves all 29 playable map slots through the separate table at
 0x006BC100 (`BriefingTextTable`), including LEVELS1..5 and MPD-specific filenames.

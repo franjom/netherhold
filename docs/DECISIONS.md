@@ -12475,8 +12475,65 @@ untired through the lair attempt and state 80's wound test.
 tired. Ours approximates the latch (HYPOTHESIS): `AwakeTicks` against `TimeAwake`,
 reset on waking, where DK2 reloads `+0x58` each period and drains it only asleep. A bedless wounded creature tries for a lair only from idle.
 
-## ADR-0545 — The simulation keeps DK2's level statistics; the profile keeps the copy
-**Date:** 2026-10-26 · **Status:** accepted · Hash/save 309 · Scope: front-end F5.
+## ADR-0544 — A withdrawal's failed room pick ends it
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** [`0x004611D0`](research/functions/004611D0.md) tries up to three
+rooms through [`0x004C63D0`](research/functions/004C63D0.md), which returns no
+room without a draw on an empty list and no room when its one draw lands on a
+bridge. A pick that finds no room leaves the loop with no destination and the
+handler returns 0; only three picked rooms that all fail to route reach the
+local tries (`0x004613E3`). Ours skipped a failed pick, went to the local tries
+with no rooms at all, and picked the draw-th non-bridge room. The roomless gap is
+[decision-parity-audit.md](research/decision-parity-audit.md#known-deterministic-gaps-still-prevent-a-full-parity-claim)'s.
+
+**Decision.** `RoomLists.RandomNonBridgeRoom` mirrors `0x004C63D0`, as the keeper
+AI's `KeeperView.RandomNonBridgeRoom` already does (ADR-0394), and
+`FearRules.Withdraw` returns false on a failed pick. Hash/save 308 marks the
+behaviour change; no snapshot fields are added.
+
+**Consequences.** A creature whose keeper has no lair, heart or room for it no
+longer withdraws or draws; its caller fights on, flees or ends as before. The
+away-from-target stage DK2 runs before the local tries with a staged target
+(`+0x502`, up to twelve draws) is still not built. Campaign effect unmeasured.
+
+## ADR-0545 — A withdrawal spends the away stage's draws for a staged target
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** Step 5 of [`0x004611D0`](research/functions/004611D0.md), reached after
+three unroutable room picks, first aims away from the thing staged in `+0x502` when
+that is live and of class 0 (creature) or 3 (trap) (`0x004614A8`-`0x004614B2`): a
+random(2) for each zero tile offset, then up to five tries of random(|4dx|) and
+random(|4dy|) tiles away, accepted by the world bounds test `0x00509050` and the
+sight line `0x004512F0`. The two local tries that follow always overwrite that point,
+so only its draws reach the outcome. Callers differ in what they stage: `spFighting`
+and the flee state's back-off leave the live target, `SelectAVictim` zeroes `+0x502`
+first (`0x0045DF2A`), the flee walk clears it (`0x00460AFA`), and the NonFighter arm
+stages its candidate hero (`0x0045C0AF`). Ours skipped the stage and read the fight
+target inside the withdrawal, so `SelectAVictim` counted its fresh target and the
+NonFighter arm counted none.
+
+**Decision.** `FearRules.Withdraw` takes the staged target's tile from its caller;
+`FearRules.StagedTarget` maps a live creature or trap fight target to it and a door
+or heart to none. Step 5 runs the away stage's draws, then two local tries, or five
+with nothing staged. Hash/save 309 marks the behaviour change; no snapshot fields
+are added.
+
+Both stages accept a point the world holds with a clear line to it; the local
+tries' extra walkable-tile test, which the binary does not make
+(`0x004616B7`-`0x004616E0`), is removed.
+
+**Consequences.** Withdrawals that reach step 5 with a target draw more, shifting
+later random choices, and a local try may now pick a point the route then refuses,
+ending the withdrawal as DK2's does. A creature target's tile is its own tile; a
+trap's is its placed tile. Not mirrored: the flee back-off keeps an unattackable
+live creature staged where ours has dropped it, and spFighting's two rarer drops
+(a spell attacker's target at zero health, `+0x16 == 2`) are not modelled. The
+NonFighter arm's alarm still takes the candidate's position directly. Campaign
+effect measured separately.
+
+## ADR-0548 — The simulation keeps DK2's level statistics; the profile keeps the copy
+**Date:** 2026-10-26 · **Status:** accepted · Hash/save 311 · Scope: front-end F5.
 
 **Context.** The statistics page, the Total Evil Rating and the hi-score table all read a
 player's 17-dword statistics block, which DK2 counts during play and copies to the profile

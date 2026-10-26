@@ -137,9 +137,8 @@ Ours starts it at 0, a modelling choice, and saves it (`GraveyardWantedPosted`, 
 and an allocate flag. A rel32 scan of both executable blocks (`.text` and `cseg`)
 finds **151 call sites** and no absolute reference; every known producer is among
 them (the positive control). Each site pushes its type as an immediate; shared call
-tails were read for every function holding a type the walk reads. The only
-wrappers that pass a type on are the anger pair below. Data2 is a thing tag where
-stated, not a stable index. Every type the keeper's walk (`0x004FA400`, §3) reads:
+tails were read for every function holding a type the walk reads. The only wrappers that pass a type on are the anger pair below. The per-type list of every site, and the 25 types no site pushes, are in `message-table.md` §3-4.
+Data2 is a thing tag where stated, not a stable index. Every type the keeper's walk (`0x004FA400`, §3) reads:
 
 | Type | Producer | Recipient; Data1 / Data2 | Gate | Ours |
 |---|---|---|---|---|

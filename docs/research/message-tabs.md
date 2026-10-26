@@ -55,7 +55,7 @@ The record's graphic `+0x13` (from type-table field `+6`; 0 is read as 1)
 selects a three-frame family from the GUI catalogue `0x006A7DF0`
 (`gui\tabs\messages\`):
 
-| graphic | frames | name | types (table `0x006A0B00`) |
+| graphic | frames | name | types (table `0x006A0B00`, all rows in [message-table.md](message-table.md)) |
 |---:|---|---|---|
 | 1 | 127-129 | mt-info | all others, including 0 and 6 (graphic 0) |
 | 2 | 130-132 | mt-creature | 13, 17, 18, 19, 20 |

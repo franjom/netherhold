@@ -13,13 +13,18 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
   levels (docs/experiments/). M6 remains partial: the latest completed packet
-  measurement is [hash305](experiments/2026-10-25-packet-replay-hash305/README.md),
-  pinned to `ae14f3b3`, with hash303/P2 comparisons and mapping limits. It does not
-  measure later master changes. The historical [hash303 failure analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
+  measurement is hash309 at `490b7d82` (2026-10-26; write-up
+  D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
+  18/8/16/1 of 20 against hash305's 18/9/17/1; Level 1 seeds 3 and 7 now win and
+  6 and 11 lose; Level 4 Imp deaths median 14.5 against 7, with Imp flees, alarms
+  and withdrawals all up and no-destination endings not. It spans hashes 306–309,
+  so no change is attributed to one of them. The previous measurement is
+  [hash305](experiments/2026-10-25-packet-replay-hash305/README.md), with
+  hash303/P2 comparisons and mapping limits. The historical [hash303 failure analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
   separates observed blockers from open causes; the current report checks the
   persistent Level 1 Hatchery refusal and records the changed outcomes.
   The [decision parity audit](research/decision-parity-audit.md) verifies bounded
-  chooser/RNG and combat checks, but identifies replay-drop and withdrawal limits;
+  chooser/RNG and combat checks, but identifies replay-drop limits and the unbuilt NonFighter alarm candidate;
   the [Imp selection study](research/imp-selection-evidence.md) adds three live
   matched choices and 118 binary ordering controls. Full parity remains unestablished.
   The [navigation controls](research/navigation-partial-rebuild.md#6-level-1-same-input-navigation-controls-2026-10-25)
@@ -73,6 +78,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - Hero-party ordering is corrected (ADR-0542, hash/save 306); opening Dwarf
   reproduction, cross-level scope and remaining comparison limits:
   [hero-party walk](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0542).
+- A withdrawal whose room pick fails (no rooms, or a drawn bridge) ends with no
+  further draw (ADR-0544, hash/save 308), and step 5 spends the away stage's draws
+  for a staged live creature or trap, each caller staging what DK2 does (ADR-0545,
+  hash/save 309). Measured together with 306–307 at 490b7d82 (below).
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
@@ -267,7 +276,7 @@ tools/classic-unity-probe/README.md.
    in possession-arms-and-inputs.md §4–5.
 6. M10 front end: DK2's menus, campaign map and progression are read from the
    exe (`research/front-end-menus.md`, `research/campaign-map-and-progression.md`,
-   `research/front-end-assets.md`); F1 storage/image plumbing (ADR-0538), F2 front-end scenery/camera sessions, F3 menu shells (ADR-0539), F4 campaign map/briefing and the F7 movie decoder/playback proof of concept are built. F5 stages A (briefing Go launches the level, verdict writes the profile once, Space leaves, statistics page 26 and map return) and B (level-end counters ADR-0545 hash 309, statistics rows, keeper rank, Total Evil Rating, hi-score name entry and `HiScores.dat`) are built, as are C (transfer creature arrival, specials 129/140 with the `TargetId` gap: nothing produces it, hash 310) and D (post-win cutscenes, title-card and speech placeholders); all await a Unity play test. Esc continue, Today's Top Keepers and the finale (`research/campaign-win-sequence.md`) are next. Scope, remaining play checks and import/decoder limits are in `plans/2026-10-23-front-end.md`.
+   `research/front-end-assets.md`); F1 storage/image plumbing (ADR-0538), F2 front-end scenery/camera sessions, F3 menu shells (ADR-0539), F4 campaign map/briefing and the F7 movie decoder/playback proof of concept are built. F5 stages A (briefing Go launches the level, verdict writes the profile once, Space leaves, statistics page 26 and map return) and B (level-end counters ADR-0548 hash 311, statistics rows, keeper rank, Total Evil Rating, hi-score name entry and `HiScores.dat`) are built, as are C (transfer creature arrival, specials 129/140 with the `TargetId` gap: nothing produces it, hash 311) and D (post-win cutscenes, title-card and speech placeholders); all await a Unity play test. Esc continue, Today's Top Keepers and the finale (`research/campaign-win-sequence.md`) are next. Scope, remaining play checks and import/decoder limits are in `plans/2026-10-23-front-end.md`.
 7. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built; the appearance target is the approved AI concepts (ADR-0398,
    ADR-0399, `art/manifests/creature/imp.yaml`). The Tripo candidate was

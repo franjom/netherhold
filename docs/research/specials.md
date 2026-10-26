@@ -11,7 +11,7 @@ Original version: DK2 v1.70 (GOG)
 Built: Increase Level and Receive Imps (`SpecialSystem`, `ActivateSpecialCommand`, ADR-0441), and the hand's arm
 (2026-10-21): a hand click on a special on the keeper's own tile activates it, a special is never lifted, and
 hovering one shows the pointing hand (owner report, 2026-10-21; the hover cursor's code is unread); the `+0x74` predicate is not mirrored, and 127/140 post
-the activation instead of entering targeting. Locate Hidden Land (129) and Transfer Creature (140) are built (hash 310): 129 counts in `WorldState.Carry` and the host applies it to the profile; 140 runs in campaign mode only (`WorldState.GameMode`) and kills its target bodyless. `ActivateSpecialCommand.TargetId` has no producer (hand targeting mode `+0x13DB` = 5 unbuilt, packet replay's action-88 word field unread), so 140 is reachable only from tests; no shipped level places it, and 129 is on levels 5 and 7 only. Everything else here is read and not built.
+the activation instead of entering targeting. Locate Hidden Land (129) and Transfer Creature (140) are built (hash 311): 129 counts in `WorldState.Carry` and the host applies it to the profile; 140 runs in campaign mode only (`WorldState.GameMode`) and kills its target bodyless. `ActivateSpecialCommand.TargetId` has no producer (hand targeting mode `+0x13DB` = 5 unbuilt, packet replay's action-88 word field unread), so 140 is reachable only from tests; no shipped level places it, and 129 is on levels 5 and 7 only. Everything else here is read and not built.
 
 ## 1. What a player sees — CONFIRMED (owner, 2026-10-09)
 
