@@ -206,7 +206,7 @@ experience.
 |---|---|
 | **Starvation** | There is none in DK2 (§3), and a test pins the absence. |
 | **Sleeping anywhere but a bed** | A creature with no bed stays awake indefinitely and never recovers, which is CONFIRMED (owner, Q105): it cannot sleep at all. What it does instead is accrue `angerNoLair`. |
-| **Hated company** | The relation is parsed and unused; `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150) has nothing to read it (`creature-anger.md`). |
+| **Hated company** | Built under ADR-0479 (the mixed-alignment room rule); `creature-anger.md` has the bucket. |
 | **Vampire reincarnation** | Graveyard creation is built (Q165); reincarnation at a sarcophagus remains Q111. |
 | **`ShuffleSpeed` and the water slowdown** | No variable governs it (§3, Q118). |
 

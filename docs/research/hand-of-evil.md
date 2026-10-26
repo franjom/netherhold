@@ -163,8 +163,9 @@ This project has no physics for a creature to be thrown by, so
 `DK2.Simulation` paces a slap**; the only slap interval in the repository is AI
 pacing in `src/DK2.AI/KeeperAI.cs`, which is not a game rule.
 `HandRules.CanSlap` also asks `CreatureFlags.CanBeSlapped` and refuses a held
-creature, one already down, and a prisoner — the ownership exception §3 makes is
-for lifting a captive out of a cell, not for hitting it.
+creature and one already down. A prisoner is different from a free creature:
+it answers to its jailer alone, not its own keeper (ADR-0140), rather than being
+unslappable outright.
 
 ---
 
