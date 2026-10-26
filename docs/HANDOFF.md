@@ -17,8 +17,13 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
   18/8/16/1 of 20 against hash305's 18/9/17/1; Level 1 seeds 3 and 7 now win and
   6 and 11 lose; Level 4 Imp deaths median 14.5 against 7, with Imp flees, alarms
-  and withdrawals all up and no-destination endings not. It spans hashes 306–309,
-  so no change is attributed to one of them. The previous measurement is
+  and withdrawals all up and no-destination endings not. Isolating sweeps at
+  hashes 306, 307 and 308 (D:\DK2Evidence\runs\packet-replay-hash30{6,7,8}\README.md):
+  307, 308 and 309 are byte-identical, so ADR-0544 and ADR-0545 change nothing in
+  these replays; the death median already reads 15 at hash306 (hero-party order),
+  and a permutation test puts the 7 -> 15 shift at p ~ 0.15, inside seed noise.
+  ADR-0543 (hash307) raised withdrawals (median 85 -> 112.5), untested for
+  significance. The previous measurement is
   [hash305](experiments/2026-10-25-packet-replay-hash305/README.md), with
   hash303/P2 comparisons and mapping limits. The historical [hash303 failure analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
   separates observed blockers from open causes; the current report checks the
