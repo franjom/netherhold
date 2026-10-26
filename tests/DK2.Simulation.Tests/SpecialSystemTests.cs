@@ -139,8 +139,7 @@ public sealed class SpecialSystemTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         const byte keeper = PlayerIds.FirstKeeper;
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
-        world.GameMode = 2;
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper], gameMode: GameMode.Skirmish);
         CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, keeper, new TilePos(3, 2));
         ObjectState special = world.SpawnObject(db, Dk2TerrainFixture.TransferCreatureSpecialObjectId, PlayerIds.Neutral, 5);
         new GameSimulation(db, world, 1, [new SpecialSystem()]).Tick(InputFrame.Of(new ActivateSpecialCommand(keeper, special.Id, mine.Id)));

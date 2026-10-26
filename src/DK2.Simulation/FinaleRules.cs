@@ -77,9 +77,6 @@ public static class FinaleRules
     /// <summary>The LEVEL flags of <c>0x004BEDC0</c>: a secret level, and the special one no shipped
     /// level carries.</summary>
     public const ushort SecretLevelFlag = 0x20, SpecialLevelFlag = 0x40;
-    /// <summary>DK2's game mode byte for My Pet Dungeon.</summary>
-    public const byte PetDungeonMode = 4;
-    private const byte MultiplayerMode = 3;
 
     private const int LandingTries = 500, NearTries = 0x80, NearDistanceSquared = 0x19;
     /// <summary>The route request option word of state 232 (<c>0x004744A3</c>).</summary>
@@ -104,12 +101,12 @@ public static class FinaleRules
     {
         if (status != PlayerStatus.Won) return;
         WorldState world = context.World;
-        if (world.GameMode == PetDungeonMode)
+        if (world.GameMode == GameMode.MyPetDungeon)
         {
             Celebrate(context, playerId);
             return;
         }
-        if (world.GameMode != TransferCreatureRules.CampaignMode || playerId != world.LocalPlayerId) return;
+        if (world.GameMode != GameMode.Campaign || playerId != world.LocalPlayerId) return;
         ushort flags = context.Database.Level?.Flags ?? 0;
         if ((flags & (SecretLevelFlag | SpecialLevelFlag)) != 0) Celebrate(context, playerId);
         else Begin(context, playerId);
@@ -120,7 +117,7 @@ public static class FinaleRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        if (world.GameMode == MultiplayerMode) return;
+        if (world.GameMode == GameMode.Multiplayer) return;
         ref PlayerState player = ref world.Player(playerId);
         (ushort hx, ushort hy) = ManaRemovalLifecycle.HeartTile(world, database, playerId);
         player.Finale.PointX = (hx - 2) << 12;
@@ -444,7 +441,7 @@ public static class FinaleRules
     public static void Celebrate(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;
-        if (world.GameMode == MultiplayerMode) return;
+        if (world.GameMode == GameMode.Multiplayer) return;
         ref PlayerState player = ref world.Player(playerId);
         player.Finale.Flags |= SequenceStarted;
         (ushort hx, ushort hy) = ManaRemovalLifecycle.HeartTile(world, context.Database, playerId);
@@ -511,7 +508,7 @@ public static class FinaleRules
             if (creature.InHand || creature.PrisonOwnerPlayerId != PrisonRules.NoPrison) continue;
             CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
         }
-        if (world.GameMode == TransferCreatureRules.CampaignMode && reaper is not null) ReaperRules.Depart(context, reaper);
+        if (world.GameMode == GameMode.Campaign && reaper is not null) ReaperRules.Depart(context, reaper);
         context.Emit(SystemName, "continued", $"player={playerId}");
     }
 

@@ -728,8 +728,19 @@ public sealed class WorldState
             _players[i].Blueprints ??= [];
         }
 
+        ActivePlayerOrderSlots = players.Select(p => p.PlayerId).Reverse().ToArray();
         CurrentTick = GameTick.Zero;
     }
+
+    /// <summary>The front end's mode for this game; the campaign unless the host says otherwise.</summary>
+    public GameMode GameMode { get; internal set; } = GameMode.Campaign;
+
+    /// <summary>DK2's active player list (<c>world+0x7A</c>, next <c>+0x3A</c>): activation prepends
+    /// (<c>0x004C2460</c>) and the level loader activates one player per PLAYERS record in file
+    /// order, in every mode (win-and-defeat.md §7), so hosts pass the records' order. The verdict
+    /// and the heart tail walk it (ADR-0547).</summary>
+    public IReadOnlyList<PlayerId> ActivePlayerOrder => ActivePlayerOrderSlots;
+    internal PlayerId[] ActivePlayerOrderSlots { get; set; }
 
     public int Width { get; }
     public int Height { get; }
@@ -1203,9 +1214,6 @@ public sealed class WorldState
     /// <summary>The next <see cref="TileState.TagOrder"/>.</summary>
     public int NextTagOrder { get; internal set; } = 1;
 
-    /// <summary>DK2's game mode byte <c>0x0075AD4B</c>; 1, the campaign, unless the host says otherwise.</summary>
-    public byte GameMode { get; set; } = TransferCreatureRules.CampaignMode;
-
     /// <summary>Profile writes made during play, for the host (<see cref="CampaignCarry"/>).</summary>
     public CampaignCarry Carry;
 
@@ -1466,8 +1474,10 @@ public sealed class WorldState
         GameDatabase database,
         LevelMap map,
         IEnumerable<byte> playerIds,
-        bool fogOfWarEnabled = false)
+        bool fogOfWarEnabled = false,
+        GameMode gameMode = GameMode.Campaign)
     {
+        byte[] activation = playerIds.Distinct().ToArray();
         var tiles = new TileState[map.Width * map.Height];
         for (int y = 0; y < map.Height; y++)
         {
@@ -1487,8 +1497,7 @@ public sealed class WorldState
             }
         }
 
-        PlayerState[] players = playerIds
-            .Distinct()
+        PlayerState[] players = activation
             .OrderBy(id => id)
             .Select(id => new PlayerState
             {
@@ -1502,8 +1511,20 @@ public sealed class WorldState
             })
             .ToArray();
 
-        var world = new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled);
+        var world = new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled)
+        {
+            GameMode = gameMode,
+            ActivePlayerOrderSlots = Enumerable.Reverse(activation).Select(id => new PlayerId(id)).ToArray(),
+        };
         RoomLists.Initialize(world, database);
+
+        // The level's id-66 records (0x0051DC90): 63 levels ally every keeper with neutral and
+        // neutral with the heroes (Q576). DK2 holds all seven player records whether or not the
+        // level activates them; a pair naming a player this world lacks has nobody to affect.
+        foreach (AllianceEntry pact in database.Variables.Alliances)
+            if (pact.PlayerId is > 0 and < 8 && pact.OtherPlayerId is > 0 and < 8
+                && world.HasPlayer((byte)pact.PlayerId) && world.HasPlayer((byte)pact.OtherPlayerId))
+                world.SetAllied((byte)pact.PlayerId, (byte)pact.OtherPlayerId, allied: true);
 
         // The terrain loader explores a tile for its owner, independently of sight.
         foreach (PlayerState player in players)
@@ -1559,6 +1580,9 @@ public sealed class WorldState
         hash.Add(Width);
         hash.Add(Height);
         hash.Add(FogOfWarEnabled ? (byte)1 : (byte)0);
+        hash.Add((byte)GameMode);
+        hash.Add(ActivePlayerOrderSlots.Length);
+        foreach (PlayerId id in ActivePlayerOrderSlots) hash.Add(id.Value);
         foreach (TremorState tremor in TremorSlots) tremor.HashInto(ref hash);
         foreach (HeroSlot slot in HeroSlotArray) slot.HashInto(ref hash);
         hash.Add(RoomBorderCursorList.Count);
@@ -1569,7 +1593,6 @@ public sealed class WorldState
         hash.Add(NextRoomListPosition);
         hash.Add(NextPlaceClaim);
         hash.Add(NextTagOrder);
-        hash.Add(GameMode);
         Carry.HashInto(ref hash);
         hash.Add(LocalPlayerId.Value);
         hash.Add(SecretDoorEntries.Count);

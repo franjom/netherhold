@@ -33,6 +33,11 @@ public sealed record ResearchEntry(int Kind, int TypeId, int Cost) : KwdVariable
 /// Threat 125 and MeleeDamage 200.</summary>
 public sealed record CreatureFieldOverrideEntry(int CreatureId, int Selector, int Value) : KwdVariableEntry;
 
+/// <summary>Id 66: players <see cref="PlayerId"/> and <see cref="OtherPlayerId"/> start the level
+/// allied. <c>0x0051DC90</c> writes 1 into both players' alliance bytes (<c>player+0x1AE</c>) at
+/// each other's number; no record can break one (variables-corpus-sweep.md §Q84).</summary>
+public sealed record AllianceEntry(int PlayerId, int OtherPlayerId) : KwdVariableEntry;
+
 /// <summary>Plain global rule value — the vast majority of VARIABLES records.</summary>
 public sealed record MiscVariable(VariableTypeId Id, int Value, int Unk1, int Unk2) : KwdVariableEntry;
 
@@ -53,6 +58,9 @@ public sealed class GlobalVariables
     /// <summary>Id 77 records in file order, global then level: each applied in turn, so a later
     /// record for the same field wins, as the handler's stores do.</summary>
     public List<CreatureFieldOverrideEntry> CreatureFieldOverrides { get; } = [];
+
+    /// <summary>Id 66 records, global then level. Each only sets a pair, so order is immaterial.</summary>
+    public List<AllianceEntry> Alliances { get; } = [];
 
     /// <summary>The research list, in file order: 29 entries in the shipped
     /// <c>GlobalVariables.kwd</c> and none in any level file.</summary>
@@ -108,6 +116,7 @@ public sealed class GlobalVariables
         merged.CreatureStats.AddRange(CreatureStats);
         merged.Research.AddRange(Research);
         merged.CreatureFieldOverrides.AddRange(CreatureFieldOverrides);
+        merged.Alliances.AddRange(Alliances);
 
         if (level is null) return merged;
 
@@ -117,6 +126,7 @@ public sealed class GlobalVariables
         Replace(merged.CreaturePool, level.CreaturePool);
         merged.Availabilities.AddRange(level.Availabilities);
         merged.CreatureFieldOverrides.AddRange(level.CreatureFieldOverrides);
+        merged.Alliances.AddRange(level.Alliances);
         Replace(merged.Sacrifices, level.Sacrifices);
         Replace(merged.CreatureStats, level.CreatureStats);
         // Untested for research: no shipped level carries a list, and DK2's handler only

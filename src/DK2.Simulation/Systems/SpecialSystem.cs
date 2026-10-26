@@ -66,7 +66,7 @@ public sealed class SpecialSystem : ISimulationSystem
     {
         WorldState world = context.World;
         CreatureState? target = world.CreatureById(command.TargetId);
-        if (world.GameMode != TransferCreatureRules.CampaignMode || target is null
+        if (world.GameMode != GameMode.Campaign || target is null
             || target.OwnerPlayerId != command.PlayerId.Value) return false;
         world.Carry.TransferStored = true;
         world.Carry.TransferCreatureTypeId = target.CreatureTypeId;

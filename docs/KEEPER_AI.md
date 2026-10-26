@@ -886,6 +886,8 @@ The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues
    does. It never carries a creature *into* the library.)
 10. Have you ever seen an AI keeper drop a creature into its Torture Chamber to work
     there, as opposed to dropping a prisoner in? (Predicted: never.)
+11. On Level 18, do the three computer keepers ever fight each other? (The level allies
+    them with each other, so we never let them; `research/alliances.md`, Q576.)
 
 ---
 

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Kwd;
 using DK2.Data.Model;
 
 namespace DK2.Data.Tests;
@@ -204,6 +205,28 @@ public class GlobalVariablesMergeTests
         NameStringId = 0,
         TooltipStringId = 0,
     };
+
+    /// <summary>Id 66 is its own record (<c>0x0051DC90</c>), several a level: no fold by id, a
+    /// level's pairs add to the global ones, and a cell writes back to the bytes it was read from.</summary>
+    [Fact]
+    public void AllianceRecordsParseAsPairs_Accumulate_AndRoundTrip()
+    {
+        byte[] cell = new byte[16];
+        cell[0] = 66; cell[4] = 6; cell[8] = 5;
+        Assert.Equal(new AllianceEntry(6, 5), KwdVariables.ParseRecord(cell));
+
+        var global = new GlobalVariables();
+        global.Alliances.Add(new AllianceEntry(2, 1));
+        var level = new GlobalVariables();
+        level.Alliances.AddRange([new AllianceEntry(3, 2), new AllianceEntry(4, 2)]);
+        Assert.Equal([new AllianceEntry(2, 1), new AllianceEntry(3, 2), new AllianceEntry(4, 2)],
+            global.MergedWith(level).Alliances);
+        Assert.Empty(global.Misc);
+
+        var image = new KwdRecordImage(KwdRecordType.Variables, cell);
+        Assert.Equal(cell, KwdVariables.WriteRecord(new AllianceEntry(6, 5), image));
+        Assert.Equal(new AllianceEntry(4, 3), KwdVariables.ParseRecord(KwdVariables.WriteRecord(new AllianceEntry(4, 3), image)));
+    }
 
     [Fact]
     public void ForLevelLeavesTheOriginalDatabaseAlone()

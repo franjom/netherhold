@@ -26,7 +26,7 @@ internal static class ScenarioCorpus
         "keepers/level17_harkan_training.yaml",
         "keepers/level17_harkan_treasury_full.yaml",
         "keepers/level17_harkan_unassisted.yaml",
-        "keepers/level18_nemesis_attack.yaml",
+        "keepers/level18_nemesis_allies.yaml",
         "keepers/level18_nemesis_heal.yaml",
     };
 

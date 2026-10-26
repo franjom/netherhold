@@ -375,7 +375,8 @@ public class CombatTests
         Assert.Equal(0, world.Player(Rival).HeartHealth);
         Assert.Equal(Keeper, world.Player(Rival).KilledByPlayerId);
         Assert.Equal(PlayerStatus.Conquered, world.Player(Rival).Status);
-        Assert.Equal(PlayerStatus.Won, world.Player(Keeper).Status);
+        // A campaign world: the last keeper standing is not awarded the win there (ADR-0547).
+        Assert.Equal(PlayerStatus.Playing, world.Player(Keeper).Status);
         Assert.Equal(CreatureActivity.Idle, demon.Activity);
     }
 

@@ -82,6 +82,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   further draw (ADR-0544, hash/save 308), and step 5 spends the away stage's draws
   for a staged live creature or trap, each caller staging what DK2 does (ADR-0545,
   hash/save 309). Measured together with 306–307 at 490b7d82 (below).
+- Level alliances (VARIABLES id 66) are applied at load and saved (ADR-0546); the game mode
+  and the verdict recursion are built (ADR-0547, hash/save 310; Q359, Q576). No packet or
+  win rig has been run since hash 309. Q652: Level 11A's Drako no longer calls at Morgana's
+  front, a known regression.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

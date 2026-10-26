@@ -88,8 +88,8 @@ neutral, and each keeper with neutral. The two exceptions:
 - `level18`: the usual five, then (5, 4), (6, 4) and (6, 5). Its three computer keepers are
   allied with each other.
 
-Nothing in `src/` applies the alliances (Q576); id 77 is applied by `GameDatabase.ForLevel` (ADR-0491). `kwd varsweep` still prints the old
-player-count test.
+`WorldState.FromMap` applies the alliances (Q576, ADR-0546) and `kwd varsweep` lists them; id 77 is applied by
+`GameDatabase.ForLevel` (ADR-0491).
 
 **Id 77 overrides one field of one creature type for the level** (`0x0051DD10`, no Ghidra
 function). The world looks the creature type up by `value` (vtable `+0xC0`); when it exists,

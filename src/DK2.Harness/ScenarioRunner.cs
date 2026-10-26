@@ -195,6 +195,8 @@ public sealed class ScenarioRunner
         IEnumerable<byte> playerIds = scenario.Setup.Players.Count > 0
             ? scenario.Setup.Players.Select(p => p.Id)
             : map.Tiles.Select(t => t.PlayerId).Distinct();
+        if (campaignLevel is not null && _installDir is not null)
+            playerIds = ActivationOrder(playerIds, GameDatabaseLoader.LoadCampaignPlayers(_installDir, campaignLevel));
 
         WorldState world = WorldState.FromMap(
             _database, map, playerIds, fogOfWarEnabled: scenario.FogOfWar);
@@ -319,6 +321,17 @@ public sealed class ScenarioRunner
         }
 
         return failures;
+    }
+
+    /// <summary>The order the world activates its players in: DK2 activates one player per PLAYERS
+    /// record, in file order (<c>0x0056DAD0</c> calls <c>0x0051EF80</c> per record), which sets the
+    /// active list the verdict walks. Ids with no record keep their given order, in front: a
+    /// harness convention (DK2 never activates a player without a record), so they end the list.</summary>
+    public static IReadOnlyList<byte> ActivationOrder(IEnumerable<byte> playerIds, IReadOnlyList<PlayerDef>? records)
+    {
+        if (records is null) return playerIds.ToList();
+        List<byte> recordOrder = records.Select(p => p.PlayerId).ToList();
+        return playerIds.OrderBy(id => recordOrder.IndexOf(id)).ToList();
     }
 
     /// <summary>

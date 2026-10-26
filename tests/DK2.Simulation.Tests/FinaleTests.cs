@@ -15,7 +15,7 @@ public sealed class FinaleTests
 {
     private const byte Keeper = 3;
 
-    private static (GameSimulation Sim, ObjectState Gem, ListEventSink Events) Setup(bool withGem = true)
+    private static (GameSimulation Sim, ObjectState Gem, ListEventSink Events) Setup(bool withGem = true, GameMode mode = GameMode.Campaign)
     {
         (GameDatabase basis, _, _) = SummonHornyTests.Setup();
         var gemDefinition = new ObjectDef
@@ -27,7 +27,7 @@ public sealed class FinaleTests
         };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
             basis.KeeperSpells.Values, objects: basis.Objects.Values.Append(gemDefinition), shots: basis.Shots.Values);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper], gameMode: mode);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
             for (int x = 3; x < 8; x++)
@@ -157,8 +157,7 @@ public sealed class FinaleTests
     [Fact]
     public void APossessingKeepersFireworksWaitFourteenTurnsAndOnlyTheLocalPlayerRevealsTheMap()
     {
-        (GameSimulation sim, _, _) = Setup();
-        sim.World.GameMode = FinaleRules.PetDungeonMode;
+        (GameSimulation sim, _, _) = Setup(mode: GameMode.MyPetDungeon);
         sim.World.Player(Keeper).PossessedCreatureId = 99;
         long won = sim.World.CurrentTick.Value;
         Win(sim);
@@ -171,8 +170,7 @@ public sealed class FinaleTests
     [Fact]
     public void APetDungeonWinCelebratesWithFireworksSixTurnsOn()
     {
-        (GameSimulation sim, _, ListEventSink events) = Setup();
-        sim.World.GameMode = FinaleRules.PetDungeonMode;
+        (GameSimulation sim, _, ListEventSink events) = Setup(mode: GameMode.MyPetDungeon);
         CreatureState goblin = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, new PlayerId(Keeper), new TilePos(14, 14));
         long won = sim.World.CurrentTick.Value;
         Win(sim);

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 312;
+    private const int FormatVersion = 313;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -121,6 +121,9 @@ public static class WorldSnapshot
         w.Write(world.Width);
         w.Write(world.Height);
         w.Write(world.FogOfWarEnabled);
+        w.Write((byte)world.GameMode);
+        w.Write(world.ActivePlayerOrder.Count);
+        foreach (PlayerId id in world.ActivePlayerOrder) w.Write(id.Value);
         w.Write(world.TileCount);
         for (int i = 0; i < world.TileCount; i++)
         {
@@ -162,7 +165,6 @@ public static class WorldSnapshot
         w.Write(world.NextRoomListPosition);
         w.Write(world.NextPlaceClaim);
         w.Write(world.NextTagOrder);
-        w.Write(world.GameMode);
         world.Carry.Write(w);
         w.Write(world.LocalPlayerId.Value);
         w.Write(world.SecretDoorEntries.Count);
@@ -180,6 +182,7 @@ public static class WorldSnapshot
         {
             ref PlayerState p = ref world.PlayerAtIndex(i);
             w.Write(p.PlayerId.Value);
+            w.Write(p.AlliedWith);
             w.Write(p.Mana);
             w.Write(p.OneShotManaSpent);
             w.Write(p.OneShotReaperUsed);
@@ -855,6 +858,9 @@ public static class WorldSnapshot
         int width = r.ReadInt32();
         int height = r.ReadInt32();
         bool fogOfWarEnabled = r.ReadBoolean();
+        var gameMode = (GameMode)r.ReadByte();
+        var activePlayerOrder = new PlayerId[r.ReadInt32()];
+        for (int i = 0; i < activePlayerOrder.Length; i++) activePlayerOrder[i] = new PlayerId(r.ReadByte());
         int tileCount = r.ReadInt32();
         if (tileCount != width * height)
             throw new InvalidDataException(
@@ -903,7 +909,6 @@ public static class WorldSnapshot
         long nextRoomListPosition = r.ReadInt64();
         long nextPlaceClaim = r.ReadInt64();
         int nextTagOrder = r.ReadInt32();
-        byte gameMode = r.ReadByte();
         CampaignCarry carry = CampaignCarry.Read(r);
         byte localPlayer = r.ReadByte();
         int secretDoorEntryCount = r.ReadInt32();
@@ -923,6 +928,7 @@ public static class WorldSnapshot
             players[i] = new PlayerState
             {
                 PlayerId = r.ReadByte(),
+                AlliedWith = r.ReadByte(),
                 Mana = r.ReadInt32(),
                 OneShotManaSpent = r.ReadInt32(),
                 OneShotReaperUsed = r.ReadBoolean(),
@@ -992,11 +998,12 @@ public static class WorldSnapshot
         }
 
         WorldState world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);
+        world.GameMode = gameMode;
+        world.ActivePlayerOrderSlots = activePlayerOrder;
         world.NextSlabOrder = nextSlabOrder;
         world.NextRoomListPosition = nextRoomListPosition;
         world.NextPlaceClaim = nextPlaceClaim;
         world.NextTagOrder = nextTagOrder;
-        world.GameMode = gameMode;
         world.Carry = carry;
         world.LocalPlayerId = new PlayerId(localPlayer);
         foreach (var pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);

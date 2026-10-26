@@ -41,9 +41,6 @@ public struct CampaignCarry
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/campaign-map-and-progression.md")]
 public static class TransferCreatureRules
 {
-    /// <summary>DK2's game mode byte <c>0x0075AD4B</c> for the single-player campaign.</summary>
-    public const byte CampaignMode = 1;
-
     /// <summary><c>Level_InitTriggersAndStart</c> <c>0x0050C67D</c>–<c>0x0050C7BF</c>, before the first
     /// turn of a level that is not a restored save: the stored type is created for the keeper at the
     /// heart's tile centre two tiles toward lower Y, facing a random quarter turn from the world

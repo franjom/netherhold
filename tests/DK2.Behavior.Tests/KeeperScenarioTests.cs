@@ -308,31 +308,24 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
 public class Level18AttackKeeperScenarioTests(ITestOutputHelper output)
 {
     [InstallFact]
-    public void Level18NemesisGrantsLevelsChoosesFabianAndCreepsTheCallTowardHerUnaided()
+    public void Level18NemesisGrantsLevelsAndNeverChoosesItsAllies()
     {
-        Scenario scenario = ScenarioCorpus.Load("keepers/level18_nemesis_attack.yaml");
+        Scenario scenario = ScenarioCorpus.Load("keepers/level18_nemesis_allies.yaml");
         ScenarioResult run = ScenarioCorpus.Run(scenario, output);
 
-        // The planner's own decisions (ADR-0298), not scripted ones: the level's availability
-        // rows, the readiness grants as commands, Fabian as the target and the call at the
-        // Library's position, the own room furthest from the heart, then crept.
+        // The planner's own decisions (ADR-0298), not scripted ones: the readiness grants as
+        // commands, and no attack on Fabian (5) or Faust (6), whom the level allies with Nemesis
+        // (ADR-0546). These zeros alone would also pass if the planner chose nobody: the positive
+        // control, that it skips an ally it would otherwise take, is KeeperAttackPlannerTests'
+        // TheNearestEnemyHeartWinsAndAlliesAndFinishedPlayersAreSkipped, as is the call's creep.
         Assert.Empty(run.ExpectationFailures);
         Assert.All(scenario.Setup.Players, p => Assert.Empty(p.Spells));
         List<GrantCreatureLevelCommand> grants = run.KeeperCommandLog.Select(e => e.Command).OfType<GrantCreatureLevelCommand>().ToList();
         Assert.Equal((12, 4), (grants.Count, grants.Select(g => g.CreatureId).Distinct().Count()));
         Assert.Equal(12, run.Events.Count(e => e.Kind == "level_granted"));
-        // Fabian's one breach is used first; with it spent the scan goes on to the others, so the
-        // flags end holding more than her bit.
         KeeperAIState state = run.KeeperStates[4];
-        Assert.Equal((1 << 5, 1 << 5, (byte)0), (state.PlayersAttackedFlags & (1 << 5), state.FirstAttackFlag & (1 << 5), state.Breaches[5].TunnelsLeft));
-        // Nemesis also casts Sight of Evil at 20 % of her turns (ADR-0352); the call is spell 3.
-        List<CastSpellAtPlaceCommand> casts = run.KeeperCommandLog.Select(e => e.Command).OfType<CastSpellAtPlaceCommand>()
-            .Where(c => c.SpellId == CallToArmsRules.SpellId).ToList();
-        Assert.NotEmpty(casts);
-        Assert.All(casts, c => Assert.Equal((byte)4, c.PlayerId));
-        Assert.Equal((60, 66), (casts[0].X >> 12, casts[0].Y >> 12));
-        Assert.True(casts.Select(c => (c.X >> 12, c.Y >> 12)).Distinct().Count() > 1, "the call never crept");
-        Assert.Contains(run.Events, e => e.Kind == "call_to_arms_slapped" && e.Detail.Contains("player=4"));
+        Assert.Equal(0, state.PlayersAttackedFlags & ((1 << 5) | (1 << 6)));
+        Assert.Equal(0, state.FirstAttackFlag & ((1 << 5) | (1 << 6)));
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
 }
