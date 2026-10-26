@@ -39,7 +39,8 @@ public class CombatFearTests
             var hearts = new HeartSites();
             hearts.Refresh(context.World, context.Database);
             Assert.True(FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
-                hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId), []));
+                hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId),
+                FearRules.StagedTarget(context.World, creature), []));
         }
     }
 
@@ -89,15 +90,7 @@ public class CombatFearTests
     public void ThreeUnroutableRoomPicks_FallBackToATileBesideTheCreature()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        for (int dy = -1; dy <= 1; dy++)
-        {
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                ref TileState tile = ref world.Tile(new TilePos(16 + dx, 16 + dy));
-                tile.TerrainId = dx == 0 && dy == 0 ? Dk2TerrainFixture.TreasuryTerrain : Dk2TerrainFixture.Rock;
-                tile.OwnerPlayerId = dx == 0 && dy == 0 ? Keeper : (byte)0;
-            }
-        }
+        WallInATreasury(world);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
 
         WithdrawCall call = CallWithdraw(db, world, goblin, 1u);
@@ -110,19 +103,139 @@ public class CombatFearTests
         Assert.InRange(goblin.Destination.Y, 11, 13);
     }
 
+    /// <summary>Step 5 with a staged creature target (<c>0x00461484</c>): three unroutable picks, a
+    /// random(2) for the zero y offset, one away try of random(8) and random(4) that an open field
+    /// accepts, then one local try of two random(3)s — eight draws. The away point is discarded, so the
+    /// destination is still a tile beside the creature.</summary>
+    [Fact]
+    public void AStagedCreatureTarget_SpendsTheAwayStagesDraws_BeforeTwoLocalTries()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        WallInATreasury(world);
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, 14, 12);
+
+        WithdrawCall call = CallWithdraw(db, world, goblin, 1u, demon.Tile);
+
+        Assert.True(call.Withdrew);
+        Assert.Equal(Stepped(call.SeedBefore, 8), call.SeedAfter);
+        Assert.InRange(goblin.Destination.X, 11, 13);
+        Assert.InRange(goblin.Destination.Y, 11, 13);
+    }
+
+    /// <summary>The same withdrawal with nothing staged: three picks and one local try, five draws.</summary>
+    [Fact]
+    public void WithNothingStaged_TheLocalTriesFollowThePicksDirectly()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        WallInATreasury(world);
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, 14, 12);
+
+        WithdrawCall call = CallWithdraw(db, world, goblin, 1u, staged: null);
+
+        Assert.True(call.Withdrew);
+        Assert.Equal(Stepped(call.SeedBefore, 5), call.SeedAfter);
+    }
+
+    /// <summary>Only a live creature (class 0) or trap (class 3) counts as staged
+    /// (<c>0x004614A8</c>-<c>0x004614B2</c>); a door or a heart does not, nor a target that is gone.</summary>
+    [Fact]
+    public void OnlyALiveCreatureOrTrapTargetIsStaged()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, 14, 13);
+
+        goblin.FightTargetKind = FightTargetKind.Creature;
+        goblin.FightTargetId = demon.Id;
+        Assert.Equal(new TilePos(14, 13), FearRules.StagedTarget(world, goblin));
+
+        goblin.FightTargetId = demon.Id + 1000;
+        Assert.Null(FearRules.StagedTarget(world, goblin));
+
+        ref TileState trapTile = ref world.Tile(new TilePos(10, 14));
+        trapTile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        trapTile.OwnerPlayerId = Rival;
+        ThingProjection.Place(world, db, [new TrapThing(new byte[16])
+            { X = 10, Y = 14, TrapId = Dk2TerrainFixture.AlarmTrapId, PlayerId = Rival, NumberOfShots = 1 }]);
+        goblin.FightTargetKind = FightTargetKind.Trap;
+        goblin.FightTargetId = world.Traps[^1].Id;
+        Assert.Equal(new TilePos(10, 14), FearRules.StagedTarget(world, goblin));
+
+        goblin.FightTargetKind = FightTargetKind.Door;
+        Assert.Null(FearRules.StagedTarget(world, goblin));
+        goblin.FightTargetKind = FightTargetKind.Heart;
+        Assert.Null(FearRules.StagedTarget(world, goblin));
+    }
+
+    /// <summary>The away stage's retries and direction (<c>0x0046152F</c>-<c>0x00461615</c>): two tiles from the
+    /// west wall with the target two tiles east, a try aims random(8) tiles west and holds only when it
+    /// lands on tile 1 (tile 0 is impenetrable rock the line cannot enter), so the draws are replayed
+    /// here on DK2's generator under that rule: three picks, the zero y offset's random(2), the away
+    /// pairs up to and including the one that holds, then one local try.</summary>
+    [Theory]
+    [InlineData(1u)]
+    [InlineData(7u)]
+    [InlineData(0x12345678u)]
+    public void TheAwayStageRetriesUntilAPointWestOfItHolds(uint seed)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        WallInATreasury(world);
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 2, 12);
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, 4, 12);
+
+        WithdrawCall call = CallWithdraw(db, world, goblin, seed, demon.Tile);
+
+        var replay = new Dk2Lcg(call.SeedBefore);
+        for (int i = 0; i < 3; i++) replay.NextInt(1);
+        replay.NextInt(2);
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            int west = replay.NextInt(8);
+            replay.NextInt(4);
+            if (west <= 1) break;
+        }
+        replay.NextInt(3);
+        replay.NextInt(3);
+        Assert.True(call.Withdrew);
+        Assert.Equal(replay.Seed, call.SeedAfter);
+    }
+
+    private static uint Stepped(uint seed, int draws)
+    {
+        var lcg = new Dk2Lcg(seed);
+        for (int i = 0; i < draws; i++) lcg.NextInt(2);
+        return lcg.Seed;
+    }
+
+    /// <summary>A one-tile Treasury of the keeper's at (16,16) walled in by rock: picked, never routed to.</summary>
+    private static void WallInATreasury(WorldState world)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                ref TileState tile = ref world.Tile(new TilePos(16 + dx, 16 + dy));
+                tile.TerrainId = dx == 0 && dy == 0 ? Dk2TerrainFixture.TreasuryTerrain : Dk2TerrainFixture.Rock;
+                tile.OwnerPlayerId = dx == 0 && dy == 0 ? Keeper : (byte)0;
+            }
+        }
+    }
+
     private readonly record struct WithdrawCall(bool Withdrew, uint SeedBefore, uint SeedAfter);
 
     /// <summary>One <see cref="FearRules.Withdraw"/> call on DK2's own generator, with its position
     /// read just before and just after the call.</summary>
-    private static WithdrawCall CallWithdraw(GameDatabase db, WorldState world, CreatureState creature, uint seed)
+    private static WithdrawCall CallWithdraw(GameDatabase db, WorldState world, CreatureState creature, uint seed, TilePos? staged = null)
     {
-        var caller = new WithdrawCaller(creature);
+        var caller = new WithdrawCaller(creature, staged);
         var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), [caller]);
         sim.Tick();
         return caller.Call;
     }
 
-    private sealed class WithdrawCaller(CreatureState creature) : ISimulationSystem
+    private sealed class WithdrawCaller(CreatureState creature, TilePos? staged) : ISimulationSystem
     {
         public WithdrawCall Call { get; private set; }
         public string Name => "withdrawal call";
@@ -133,7 +246,7 @@ public class CombatFearTests
             hearts.Refresh(context.World, context.Database);
             uint before = ((Dk2Lcg)context.Rng.Algorithm).Seed;
             bool withdrew = FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
-                hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId), []);
+                hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId), staged, []);
             Call = new WithdrawCall(withdrew, before, ((Dk2Lcg)context.Rng.Algorithm).Seed);
         }
     }

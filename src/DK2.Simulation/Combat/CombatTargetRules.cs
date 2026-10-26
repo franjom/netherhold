@@ -139,9 +139,10 @@ public static class CombatTargetRules
         else if (left) return true;
 
         // The acquirer's own withdraw check (0x0045DEE0): a hurt creature far from its heart lets
-        // the target it just chose go and runs instead; finding nowhere to run, it fights.
+        // the target it just chose go and runs instead; finding nowhere to run, it fights. DK2
+        // zeroes +0x502 for the call (0x0045DF2A), so nothing is staged.
         if (FearRules.ShouldWithdraw(context.World, context.Database, hearts, me, definition) && !CreatureDeathRules.IsDown(me))
-            FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch);
+            FearRules.Withdraw(context, sight, hearts, rooms, me, definition, staged: null, scratch);
         return true;
     }
 
@@ -546,9 +547,11 @@ public static class CombatTargetRules
             if (candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId != me.Id) continue;
             if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
 
+            // DK2 stages the candidate in +0x502 before the room test, the alarm and the withdrawal
+            // (0x0045C0AF), and restores the old tag when neither takes the Imp out.
             if (!FearRules.NearOwnGuardRooms(context, rooms, me.OwnerPlayerId, candidate.Tile))
             {
-                if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch)) return true;
+                if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, candidate.Tile, scratch)) return true;
                 continue;
             }
             int theirStrength = FearRules.LocalStrength(context, candidate.OwnerPlayerId, me.PosX, me.PosY);
@@ -556,7 +559,7 @@ public static class CombatTargetRules
             if (ourStrength > theirStrength) continue;
             int deficit = (theirStrength - ourStrength) * 3 / 2;
             if (FearRules.RaiseAlarm(context, rooms, me, definition, candidate.PosX, candidate.PosY, deficit)) return true;
-            if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, scratch)) return true;
+            if (FearRules.Withdraw(context, sight, hearts, rooms, me, definition, candidate.Tile, scratch)) return true;
         }
         return chosen != null;
     }

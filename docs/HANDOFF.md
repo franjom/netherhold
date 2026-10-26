@@ -19,7 +19,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   separates observed blockers from open causes; the current report checks the
   persistent Level 1 Hatchery refusal and records the changed outcomes.
   The [decision parity audit](research/decision-parity-audit.md) verifies bounded
-  chooser/RNG and combat checks, but identifies replay-drop limits and the unbuilt away-from-target withdrawal stage;
+  chooser/RNG and combat checks, but identifies replay-drop limits and the unbuilt NonFighter alarm candidate;
   the [Imp selection study](research/imp-selection-evidence.md) adds three live
   matched choices and 118 binary ordering controls. Full parity remains unestablished.
   The [navigation controls](research/navigation-partial-rebuild.md#6-level-1-same-input-navigation-controls-2026-10-25)
@@ -74,8 +74,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   reproduction, cross-level scope and remaining comparison limits:
   [hero-party walk](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0542).
 - A withdrawal whose room pick fails (no rooms, or a drawn bridge) ends with no
-  further draw (ADR-0544, hash/save 308); the campaign effect is unmeasured and
-  hashes 306–308 have no sweep (last measured: hash305).
+  further draw (ADR-0544, hash/save 308), and step 5 spends the away stage's draws
+  for a staged live creature or trap, each caller staging what DK2 does (ADR-0545,
+  hash/save 309); the campaign effect is unmeasured and hashes 306–309 have no
+  sweep (last measured: hash305).
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**309** — `0x0528E18272904DCD`. FormatVersion also 309. Behavior only: a withdrawal's step 5 spends the away-from-target stage's draws when a live creature or trap is staged, and each caller stages what DK2 leaves in `+0x502` — the NonFighter arm its candidate hero, `SelectAVictim` nothing; the local tries no longer require a walkable tile (ADR-0545). No new fields; the pin fixture has no withdrawal.
+
 **308** — `0xC26E46D419A4702E`. FormatVersion also 308. Behavior only: a withdrawal's failed room pick (no rooms, or a drawn bridge) ends it with no further draw, and the pick is `0x004C63D0`'s list index (ADR-0544). No new fields; the pin fixture has no withdrawal. `CombatFearTests`' roomless and bridge tests fail on 307; its three-unroutable-room test pins that step 5 is still reached.
 
 **307** — `0xC5540B4DA9053FF3`. FormatVersion also 307. Behaviour only: a creature with a bed goes to it only when tired; a wound alone no longer sends it, because the wound branch's Sleep job routes only on the latch `+0x58` (ADR-0543). No new fields. `CreatureNeedsTests.AWoundedGoblinWithABedWaitsUntilItIsTired` covers it.
@@ -392,9 +394,4 @@ the dungeon heart's health, last attacker, death tick and ruin entered
 (ADR-0162). Composition only in the pinned fixture: its players are not
 keepers, so every new field is zero.
 
-**66** — `0x8FE50E548AC844F2`. Each keeper's room, creature, door,
-trap and spell availability rows entered, copied from the level and made mutable
-so trigger action 6 can write them (ADR-0161). Composition and initial values
-only: the pinned fixture fires no action 6.
-
-[Versions 9–65](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–66](hash-versions-early.md) retain the earlier pins and their reasons.

@@ -12496,3 +12496,38 @@ behaviour change; no snapshot fields are added.
 longer withdraws or draws; its caller fights on, flees or ends as before. The
 away-from-target stage DK2 runs before the local tries with a staged target
 (`+0x502`, up to twelve draws) is still not built. Campaign effect unmeasured.
+
+## ADR-0545 — A withdrawal spends the away stage's draws for a staged target
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** Step 5 of [`0x004611D0`](research/functions/004611D0.md), reached after
+three unroutable room picks, first aims away from the thing staged in `+0x502` when
+that is live and of class 0 (creature) or 3 (trap) (`0x004614A8`-`0x004614B2`): a
+random(2) for each zero tile offset, then up to five tries of random(|4dx|) and
+random(|4dy|) tiles away, accepted by the world bounds test `0x00509050` and the
+sight line `0x004512F0`. The two local tries that follow always overwrite that point,
+so only its draws reach the outcome. Callers differ in what they stage: `spFighting`
+and the flee state's back-off leave the live target, `SelectAVictim` zeroes `+0x502`
+first (`0x0045DF2A`), the flee walk clears it (`0x00460AFA`), and the NonFighter arm
+stages its candidate hero (`0x0045C0AF`). Ours skipped the stage and read the fight
+target inside the withdrawal, so `SelectAVictim` counted its fresh target and the
+NonFighter arm counted none.
+
+**Decision.** `FearRules.Withdraw` takes the staged target's tile from its caller;
+`FearRules.StagedTarget` maps a live creature or trap fight target to it and a door
+or heart to none. Step 5 runs the away stage's draws, then two local tries, or five
+with nothing staged. Hash/save 309 marks the behaviour change; no snapshot fields
+are added.
+
+Both stages accept a point the world holds with a clear line to it; the local
+tries' extra walkable-tile test, which the binary does not make
+(`0x004616B7`-`0x004616E0`), is removed.
+
+**Consequences.** Withdrawals that reach step 5 with a target draw more, shifting
+later random choices, and a local try may now pick a point the route then refuses,
+ending the withdrawal as DK2's does. A creature target's tile is its own tile; a
+trap's is its placed tile. Not mirrored: the flee back-off keeps an unattackable
+live creature staged where ours has dropped it, and spFighting's two rarer drops
+(a spell attacker's target at zero health, `+0x16 == 2`) are not modelled. The
+NonFighter arm's alarm still takes the candidate's position directly. Campaign
+effect measured separately.

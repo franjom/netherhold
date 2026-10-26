@@ -225,9 +225,10 @@ A destination, then a run:
    tile centre, routable as above. A failed picker exits with no destination;
    the next fallback is reached only after three selected rooms fail their
    route tests, not because the room list is empty.
-5. Else a point away from the target — `random(4|dx|)` and `random(4|dy|)` tiles
-   opposite the target's side, up to five tries, on the map and in sight — that
-   the next step then **overwrites**: two tries (five when the target is dead or
+5. Else, when `+0x502` holds a live creature or trap (class 0 or 3), a point
+   away from it — `random(2)` for each zero tile offset, then `random(4|dx|)`
+   and `random(4|dy|)` tiles opposite its side, up to five tries, on the map and
+   in sight — that the next step then **overwrites**: two tries (five when the target is dead or
    gone) of `myPos + (random(3) − 1, random(3) − 1)` tiles, accepted when on the
    map (`world` vslot `0x200`) and in my line of sight. So without a lair, heart
    or room a creature withdraws at most one tile, if at all.
@@ -275,9 +276,12 @@ word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 **Not built:** hero gates; the stunned gate (a chicken is skipped, ADR-0302); the owner modifiers (Q375);
 `ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.
 
-Withdrawal is partial: ours falls through after a failed room pick and omits
-the overwritten directional draw stage; the NonFighter caller also omits the
-temporary candidate target. The [hash-303 parity audit](decision-parity-audit.md#known-deterministic-gaps-still-prevent-a-full-parity-claim)
+Withdrawal is built through step 5 (ADR-0544 failed pick, ADR-0545 the away
+stage's draws; each caller supplies what it leaves in `+0x502`, the NonFighter
+arm its candidate hero). The NonFighter alarm still takes the candidate's position
+directly. Not mirrored: the flee back-off keeps an unattackable live creature
+staged where ours drops it, and `spFighting`'s drops of a target at zero health
+and of one with `+0x16 == 2`. The [hash-303 parity audit](decision-parity-audit.md#known-deterministic-gaps-still-prevent-a-full-parity-claim)
 reproduces the failed-pick difference in a bounded control. None is established
 as the cause of the measured Level 4 losses.
 
