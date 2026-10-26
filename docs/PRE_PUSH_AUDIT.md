@@ -58,7 +58,8 @@ equivalent copies under other names or in archives were not established.
 The logs are present in the audited commit and its history: removing or
 ignoring their current paths would not remove them from a push of that history.
 At the final worktree check, both paths appeared as unstaged deletions outside
-this audit's edits. Those deletions were left untouched and excluded from the
+this audit's edits; they were deleted afterwards in 3639b5cd and remain in
+history. This audit left them untouched and excluded them from the
 documentation commit. This audit did not move, rename, overwrite or delete evidence.
 
 ### Developer-specific configuration is tracked

@@ -41,6 +41,8 @@ original glyph metrics (ADR-0539).
 Campaign progress uses `campaign-profile.dk2p` under Unity
 `Application.persistentDataPath`; first creation may import the original registry
 read-only. The runner Campaign Profile File override supports isolated probes.
+The editor menu DK2/Movies/Play Bullfrog Intro plays the install's intro through
+`ClassicMoviePlayer` (decoders in `DK2.Data/Media`; needs Unity's built-in Audio module).
 Runtime callers use `DungeonRunner.LoadLevel(GameSessionRequest)` to switch a
 named campaign level or return to the front end. The replacement preserves the
 runner's render settings and campaign fog setting. No scene file is saved.

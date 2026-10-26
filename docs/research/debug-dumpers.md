@@ -65,11 +65,11 @@ level on the command line; the map was identified from the dump: 81×81 (only Ho
 and Level16 are), four players, and Hopping's placed heroes and four captives. **Each dump is appended** to the one
 `MESSAGE.LOG` of the session, and the game's call-count profiler (`0x00526292`,
 `Navigation:`, `Imps:`, `World Time:`) is added at exit. Kept as
-`samples/worldlog-owner-4dumps.log.gz` (262,843 lines, SHA-256 of the log
+`worldlog-owner-4dumps.log.gz` (removed from the tree in 3639b5cd, in git history before it; 262,843 lines, SHA-256 of the log
 `d9b05ad1…bceddb`); the file lives beside the executable.
 
 **OBSERVED in one outside dump (2026-09-24).** belgianguy attached the file they made; it is
-kept byte-for-byte as [samples/worldlog-envmapshowcase-gt231.log](samples/worldlog-envmapshowcase-gt231.log)
+kept byte-for-byte as `worldlog-envmapshowcase-gt231.log` (removed from the tree in 3639b5cd, in git history before it)
 (26,346 CRLF lines, 606,516 bytes, SHA-256 `1bda4b04…22d27`; `DKII.exe -q -level
 EnvMapShowcase` under Wine, `World Log at GameTick 231`). The world log does **recurse into
 the other dumpers**. In file order:

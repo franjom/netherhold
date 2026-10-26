@@ -38,7 +38,7 @@ The dumper `0x004C3F20` names the following fields; the writers and serializers
 
 `0x004C43B0` saves the queue header and all 256 records. Reading a message or
 setting its handled bit does not remove it. The original debug sample
-`samples/worldlog-envmapshowcase-gt231.log` contains 256 message records and a
+`worldlog-envmapshowcase-gt231.log` (removed from the tree in 3639b5cd; see debug-dumpers.md) contains 256 message records and a
 type-41/Training-Room record aged 229 with timeout 1200: **CONFIRMED** sample
 values, not a capture of its producer or the keeper's response.
 

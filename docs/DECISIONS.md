@@ -12075,9 +12075,9 @@ records, oldest first, tabbed while NeedsTab and not dismissed. The opened and d
 graphic come from the type table copied into `MessageTypeTable`; text resolves through
 Speech.str, the level table or Text.str by the reference's band.
 
-**Consequences.** Every message our queue posts now tabs and flashes until opened; all but the
-creature-anger types 17 and 18, whose text DK2 builds from the creature, read out on hover. A reload forgets which tabs were opened or dismissed (DK2 saves the bits with the record).
-Sounds, the Ally and goto buttons, and name substitution wait (message-tabs.md §8).
+**Consequences.** Every message our queue posts now tabs and flashes until opened; types 17 and 18
+take the creature's own unhappy or angry line, and the panel has the goto button. A reload forgets which tabs were opened or dismissed (DK2 saves the bits with the record).
+Sounds, the Ally button and name substitution wait (message-tabs.md §8).
 
 ## ADR-0526 — A hand drop obeys DK2's drop gate
 **Date:** 2026-10-23 · **Status:** accepted · supersedes ADR-0077 · Q198

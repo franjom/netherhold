@@ -1,5 +1,5 @@
 #!/bin/sh
-# Local gate for AGENTS.md's recording rules. There is no CI, so this is the
+# Local gate for AGENTS.md's recording rules. CI (.github/workflows/ci.yml) runs only after a push, so this is the
 # only thing standing between a session and a 6,000-line handoff.
 #
 # Install once, per clone:

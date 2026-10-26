@@ -10,7 +10,7 @@ about the binary in our own words**; no decompiler output enters this repository
 **Implementation.** `DK2.Simulation.HandRules`, `EfficiencyRules`,
 `Systems.HandSystem`, and the four commands in `Commands/HandCommands.cs`
 (`PickUpCreatureCommand`, `PickUpObjectCommand`, `DropCommand`,
-`SlapCreatureCommand`). Decisions: ADR-0062, ADR-0064, ADR-0069, ADR-0075, ADR-0077.
+`SlapCreatureCommand`). Decisions: ADR-0062, ADR-0064, ADR-0069, ADR-0075, ADR-0526 (supersedes ADR-0077).
 
 **Tests.** `HandTests` (`tests/DK2.Simulation.Tests`);
 `scenarios/creatures/a_keeper_drops_a_warlock_and_an_imp_on_open_ground.yaml`.

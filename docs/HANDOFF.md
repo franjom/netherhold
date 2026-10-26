@@ -49,8 +49,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   move every replay and win rig. The Level 1–4 packet sweep is linked above;
   the level2/level4 live rigs, L11A and L17 have not been rerun since hash 298.
   Hash/save 303 withdraws portal crystal collision (ADR-0527), retaining
-  hash 302's store gold/UI state (research/hash-versions.md). The linked packet
-  measurements now compare hash 303 with the preserved hash-302 set.
+  hash 302's store gold/UI state (research/hash-versions.md).
   Initial chest headings remain Q644; Level2's reported
   water shapes under fog await a native visual comparison (Q643).
 - The navigation mesh's locate is DK2's cell-cache walk and the whole-map
@@ -148,8 +147,8 @@ research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
 Scripted camera paths are built separately (ADR-0496; research/camera-paths.md).
 Step6 ordinary camera controls now follow native packets (ADR-0531); matched
 recording measurements, crop correction and verification limits: research/classic-camera.md §6–8.
-Room/neutral-Portal border flames are researched but unbuilt
-(research/room-border-effects.md); claim-mist bleaching remains open (Q609).
+Room border flames are built (ADR-0524, research/room-border-effects.md); claim-mist
+bleaching is mitigated, its cause open (Q609).
 Wet/bloody footprints are built; native rules and pending visual acceptance: research/creature-footprints.md (Q610, 2026-10-20).
 Creature asset keys are cached per definition/action; transparent terrain uses
 retained stable-sort buffers and reuses meshes across changes in draw order.
@@ -202,7 +201,7 @@ and all four creature overview modes. Canonical scope and remaining gates:
 plans/2026-10-17-classic-look-step6.md. Tutorial messages, the first Goblin
 introduction and script-forced flowers are built (ADR-0535, hash/save 302;
 research/message-tabs.md §10). Matched visual acceptance is pending (2026-10-24).
-Hash/save 283 adds native identity and
+Hash/save 289 adds native identity and
 last-payday state; ADR-0521 documents initial constructor RNG ordering limits.
 Campaign result suppression and scripted GUI restoration are built; Q611's
 remaining continuation boundary and original-game comparison are in
@@ -224,8 +223,7 @@ interior, and PrisonSystem emits `prisoner_freed ... at=(7,2) reason=cell_gone`
 on ticks 295 and 299. At 1f3805e0 creature 1 stood at (6,4), within reach, and
 ate on 281 without walking, so the edge walk never ran. What DK2 does with food
 on the rim is unknown. The HUD probe was not rerun
-after the merge. Hash/save 289; ADR-0521 and Q615/Q616 were 0510, Q612 and Q613
-on this branch before the merge.
+after the merge.
 
 Use serial checks; isolated probes must not save or restart the owner's editor.
 For master, open unity/DK2.Unity; check the retained classic worktree's branch
