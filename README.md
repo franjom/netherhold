@@ -14,7 +14,7 @@ work](docs/HANDOFF.md) and the [implementation plan](DK2_REIMPLEMENTATION_PLAN.m
 The classic Unity presentation on Level 1, captured from the current build.
 
 <p align="center">
-<img src="screenshots/image_level_1.png" alt="Level 1, screenshot 1" width="49%">
+<img src="screenshots/image_level_1_1.png" alt="Level 1, screenshot 1" width="49%">
 <img src="screenshots/image_level_1_2.png" alt="Level 1, screenshot 2" width="49%">
 <img src="screenshots/image_level_1_3.png" alt="Level 1, screenshot 3" width="49%">
 <img src="screenshots/image_level_1_4.png" alt="Level 1, screenshot 4" width="49%">
