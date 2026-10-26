@@ -226,6 +226,8 @@ progress**. STRONGLY INFERRED.
 
 ## Owner recollections and remaining checks (2026-10-25)
 
+On 2026-10-26 the owner confirmed that a won level shows its cutscene's title card on black with a spoken line before the movie (`0x0053B980`).
+
 These are recollections, not new captures; binary findings above keep their confidence.
 The owner recalls a close-up when the Horned Reaper appears, the camera following him
 to the dropped Portal Gem, and a fade after pickup. The unchosen branch stays dimmed;
