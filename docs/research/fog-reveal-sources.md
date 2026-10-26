@@ -270,7 +270,8 @@ unread.
 ### 3.9 An ability effect — `0x00474F80`
 
 This is the four-neighbour trap/door effect in `doors-and-traps.md`. Its tail
-explores one tile. The owning ability is still unknown.
+explores one tile. It is the campaign finale's walk state 234 (creature state
+`0x00474F80`), see `campaign-win-sequence.md`.
 
 ### 3.10 Negative results
 

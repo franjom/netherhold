@@ -124,6 +124,10 @@ public static class ReaperRules
         if (animation.ResourceType is not (1 or 3)) reaper.ReaperAlpha = byte.MaxValue;
     }
 
+    /// <summary>How long action 46, the roar, holds: one first cycle of art 35 or its fallback 8.</summary>
+    internal static int SummonHoldTicks(CreatureDef definition) => AnimationTimingRules.FirstCycleHoldTicks(
+        AnimationTimingRules.SlotOrFallback(definition.ReaperSummonAnimation, definition.ReaperSummonFallbackAnimation));
+
     public static void Create(SimulationContext context, ShotState shot)
     {
         int targetLevel = shot.Data1 == 0 ? 10 : context.Database.Level?.OneShotReaperLevel ?? -1;
@@ -157,7 +161,7 @@ public static class ReaperRules
             reaper.ReaperStateAgeTicks = 0;
     }
 
-    private static CreatureDef? ReaperDefinition(GameDatabase database)
+    internal static CreatureDef? ReaperDefinition(GameDatabase database)
     {
         foreach (CreatureDef candidate in database.Creatures.Values)
         {

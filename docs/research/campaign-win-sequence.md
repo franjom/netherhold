@@ -105,7 +105,7 @@ Ghidra function). STRONGLY INFERRED unless noted.
 | 231 | `0x004743C0` | Age 1: creature action 46 once (the arrival roar, art 35, [keeper-spell-reaper.md](keeper-spell-reaper.md) §1) and sound `0x12C`. Waits for the action to end | 232 |
 | 232 | `0x00474430` | If thing `+0xB3D` is gone or no longer class 2, returns 0 and stays (what the dispatcher does with 0 is unread). When the position test or the route request
 fails it returns 1 with no change, so the Reaper retries every tick. If the gem's position passes `Thing_PositionAllowsCreation` `0x004B35C0` and `Creature_RequestRoute` `0x004D0F60` (options `0x26`) succeeds: state 234 with next state 233 (`+0xDF`) and target (`+0xE3/+0xE7`) | 234 |
-| 234 | `0x00474F80` | The walk: over the 3×3 tiles around it, a trap without `+0x10C` bit `0x20` is destroyed (slot `+0x20`); a door with `+0x109` = 0 is unlocked (`Door_SetLockMode(0)`) when it is the Reaper's owner's and locked, or else has its lock-pick timer started (`0x004A6DF0`, `DoorPickedTimeSeconds` · TPS). Then the en-route step `State06_EnRoute` `0x00470C80` (LIKELY: it resumes the saved 233 on arrival) and `Tile_SetExploredAndRefresh` on its tile | 233 |
+| 234 | `0x00474F80` | The walk: on its own tile and the four beside it (the loop skips a tile whose x and y offsets are both non-zero, `0x00474FAA`), a trap without `+0x10C` bit `0x20` is destroyed (slot `+0x20`); a door with `+0x109` = 0 is unlocked (`Door_SetLockMode(0)`) when it is the Reaper's owner's and locked, or else has its lock-pick timer started (`0x004A6DF0`, `DoorPickedTimeSeconds` · TPS). Then the en-route step `State06_EnRoute` `0x00470C80` (LIKELY: it resumes the saved 233 on arrival) and `Tile_SetExploredAndRefresh` on its tile | 233 |
 | 233 | `0x004744F0` | Age 1: heading `0x400`; view action 17 with 0 (stop following); view action `0x73` path **101** at its tile; view action `0x84` (view `+0x1221 |= 0x10`, unread); creature action 47 once; `+0xF1` bit 3; the gem is removed through its slot `+0x20` (LIKELY destruction, as `0x004A5290` uses it); sound `0x32E`, handle kept at `+0x2E`. Then the age is held. When the game turn exceeds action start `+0x3A5` + 13·TPS (13 s): `+0x3EA |= 0x80000`, and if the renderer gives its mesh point 8000 (bridge slot `+0x10C`, `0x00441AA0`, forwarding to the render sink; point id LIKELY) effect 258 *Horny End of level* there. One turn later, once: **interface slot `+0x40`** `0x0042BE40`, the win screen (§5) | stays in 233 |
 
 The Reaper stays in 233 until the player continues (§6), when `Player_ContinueAfterResult`
@@ -136,7 +136,7 @@ handlers come from the (id, handler) pairs at `0x0066CE30`, 37 pairs (CONFIRMED 
 | 15 | `0x00442780` | if the camera mode is 7, `Camera_SetYaw(0)`; then `Camera_RequestMode(rec[0], 0)` |
 | 17 | `0x004427D0` | creature id to camera `+0xE02` (followed creature), yaw request |
 | `0x73` | `0x00442540` | `Camera_StartPath(rec[0] & 0x7FFFFFFF, x, y, rec[0] >> 31)` |
-| `0x74` | `0x004426F0` | letterbox: 1 raises, 0 lowers, 2 forces off |
+| `0x74` | `0x004426F0` | letterbox: `0x0044D320(rec[0])`, so 1 raises and 0 lowers; 2 first sets camera `+0xE48` = 1 (the request count) and then lowers, so the bars go whatever raised them |
 | `0x84` | `0x00443030` | bridge `+0x1221 |= 0x10` (meaning unread) |
 
 The other pairs: 2, 3, 5, 7-14, 16, 21, 22, 25, 40-42, 44, 47, `0x66`, `0x68`, `0x6F`,
@@ -165,6 +165,11 @@ designers' "1st and 2nd cut of the end-of-level sequence" (camera-paths.md §1).
   (played as id + 1). Level 1's NextRewards are 12 Dark Library and 42 Training; Level 2's
   are Treasury, Workshop, Sentry, Wood Door. So the win screen announces what the next
   level unlocks, one item per speech (STRONGLY INFERRED; layout fields unread).
+  The row is: dword id (0-51, equal to the row index), dword pointer to the UTF-16 name,
+  word icon, word speech id, dword flag (meaning unread; 0 on the spells, the Guard Post and
+  the unused rows). The speech id is a Speech.str text id: 1369 reads "Alarm Traps announce
+  enemy intrusion", 1350 "Devise new spells in the Library" (CONFIRMED, bytes dumped
+  2026-10-26; transcribed in `WinScreen.Items`).
 - **Update, `0x0042C390`** (per frame). Returns at once in camera modes 2, 7 or `0x12` (so
   path 101 holds the screen back) or while the game object's `+0x284` is set. Advances a
   step when the previous speech has finished (`0x00568570`). Once the screen is done
@@ -225,7 +230,9 @@ Of `Object_Create`'s 71 call sites only those were checked; the shot, Temple-rew
 creature-drop callers were not traced to their type. So **no shipped level places or
 scripts object 140** (STRONGLY INFERRED).
 
-## 9. To build, in order
+## 9. Build list (built in F5, ADR-0549)
+
+State 270's update handler is `Stub_ReturnTrue` `0x004B4C20` ([state-categories.md](state-categories.md) §7.1): nothing to read.
 
 1. **Win dispatch** (§1): after `RecordResult`, mode 1 local player: LEVEL flag `0x20` →
    Secret Levels Completed[SpecialLevelIndex low byte - 1] and the celebration; `0x40`
@@ -249,7 +256,7 @@ scripts object 140** (STRONGLY INFERRED).
 
 | Item | Next |
 |---|---|
-| Creature action 59; state 270's handler | creature-action table, state table row 270 |
+| Creature action 59 | creature-action table |
 | What the state dispatcher does when 232 returns 0 | the state dispatcher |
 | Bridge `+0x1221` bit `0x10` (action `0x84`); render point 8000 | `0x00441AA0`'s sink slot `+0x10C` |
 | Player `+0x76` bit `0x200000` setter; `0x0042F040`; `0x0042BC70` | slot scans |

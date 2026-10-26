@@ -1211,6 +1211,9 @@ public sealed class CreatureState
     public uint ReaperStateAgeTicks;
     public bool ReaperCanAcquireFight = true;
     public bool ReaperIsAttackable = true;
+    /// <summary>The draw bit <c>+0xF3</c> bit 0 cleared: the finale hides its Reaper from state 228
+    /// until it appears in 230 (campaign-win-sequence.md §3).</summary>
+    public bool ReaperHidden;
 
     /// <summary>In state 8, the walk to a fight, which resumes 199; while in it
     /// <see cref="Combat.ApproachRules"/> runs instead of <c>spFighting</c>. <see cref="RouteRefreshCountdown"/>
@@ -1547,6 +1550,7 @@ public sealed class CreatureState
         hash.Add(ReaperStateAgeTicks);
         hash.Add(ReaperCanAcquireFight);
         hash.Add(ReaperIsAttackable);
+        hash.Add(ReaperHidden);
         hash.Add(RouteRefreshCountdown);
         hash.Add(ChaseTicks);
         hash.Add(RetreatingCreature);

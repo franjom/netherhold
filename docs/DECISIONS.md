@@ -12553,3 +12553,33 @@ owned tiles at the end instead of DK2's live `DungeonArea`; the collapsed state 
 the dying bit; specials count only for the arms we build. The statistics page's cell layout
 and the hi-score colours are placeholders (DK2's positions are unread). The x87 precision of
 the rank is UNKNOWN.
+
+## ADR-0549 — The campaign win runs DK2's finale in the simulation; the view plays its requests
+**Date:** 2026-10-26 · **Status:** accepted · Hash/save 312 · Scope: front-end F5.
+
+**Context.** A won campaign level does not end by itself: `0x004BE630` runs the Horned Reaper
+finale (`0x004BF410`, states 228-234) or, on a secret level and in My Pet Dungeon, the
+celebration (`0x004BF9E0`), and the player leaves with Space or continues with Escape
+([campaign-win-sequence.md](research/campaign-win-sequence.md)). The finale draws on the
+simulation stream, creates or reuses a creature, walks it and removes the gem, so it is
+simulation; its camera moves, letterbox and win screen are the view's.
+
+**Decision.** `WorldState.EndGame` calls back into the simulation (`FinaleRules.OnVerdict`) in
+the same call, as DK2's tail does. `FinaleRules` mirrors the dispatch, the setup (500 landing
+tries, two draws each), states 228-234 (`FinaleSystem`, beside the other Reaper states), the
+celebration with its fireworks, and action 134 (`ContinueAfterResultCommand`) with action 75
+(`RevealMapCommand`). Camera and interface actions go out as `ScriptedViewRequest`s on the
+ADR-0496 channel, with new kinds for camera mode, zoom, follow, view flag `0x84`, win screen
+and hidden GUI. The two camera holds the states read are kept on the player: the scripted
+path's end tick (already held, ADR-0496) and the glide's (`PlayerFinale.CameraGlideEndTick`).
+`WorldState.LocalPlayerId` names world `+0x264`, the only player the campaign finale runs for.
+
+**Consequences.** Approximations, each stated in code: the glide holds two ticks (DK2's
+500 ms wall-clock cap); effect 258 stands at the Reaper, not at its mesh point 8000; the gem
+search walks objects in creation order; the explored test asks the winner's layer where DK2
+has one bit; the celebration skips a creature by its held room place and enters state 270
+whether or not the action began; creature `+0x3EA` bit `0x80000` (set in 233 at 13 s, cleared
+in 230, meaning unread) is not held; effects stand at z 0. `LocalPlayerId` is hashed state,
+sound only because the finale and action 75 act on it in single-player play. Sounds are not
+played (F8). The win screen itself, Space and Escape are the front end's (`WinScreen`,
+`DungeonRunner.Finale.cs`), with placeholder layout.

@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 311;
+    private const ulong HashVersion = 312;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
@@ -63,6 +63,7 @@ public sealed class GameSimulation
         {
             ScriptedView = request,
         });
+        world.GameEnded = (player, status) => FinaleRules.OnVerdict(_context, player, status);
     }
 
     public GameDatabase Database { get; }
@@ -136,9 +137,16 @@ public sealed class GameSimulation
         // The key handler runs before the turn's walk, so a skip is seen by this turn's condition 72.
         foreach (Commands.SkipCameraPathCommand skip in _context.Commands<Commands.SkipCameraPathCommand>())
         {
+            FinaleRules.SkipGlide(ref World.Player(skip.PlayerId), World.CurrentTick);
             if (CameraPathRules.Skip(ref World.Player(skip.PlayerId), World.CurrentTick))
                 _triggers.ViewRequested?.Invoke(new ScriptedViewRequest(
                     ScriptedViewKind.CameraPathSkipped, skip.PlayerId, 0, default, false));
+        }
+        // Actions 134 and 75 after a result, in the order the packet carries them.
+        foreach (PlayerCommand command in _context.Input.All)
+        {
+            if (command is Commands.ContinueAfterResultCommand go) FinaleRules.Continue(_context, go.PlayerId);
+            else if (command is Commands.RevealMapCommand reveal) FinaleRules.RevealMap(World, reveal.PlayerId);
         }
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.

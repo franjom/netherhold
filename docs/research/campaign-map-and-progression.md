@@ -243,7 +243,7 @@ The recalled close-up and follow match paths 100/101 and view action 17 (same do
 F1 storage and F4 map/briefing are built. `CampaignProgression` supplies immutable
 reset, first-open repair, win-branch and hidden-land unlock rules. Level-end
 statistics, keeper rank, Total Evil Rating and hi-score entry are built (F5 stage B,
-ADR-0548); the transfer creature arrival, specials 129/140 and the post-win cutscene are built (F5 stages C, D); the finale and LEVEL-flag completions remain F5.
+ADR-0548); the transfer creature arrival, specials 129/140 and the post-win cutscene are built (F5 stages C, D); the finale and LEVEL-flag completions are built (F5, ADR-0549).
 `CampaignMapController` drives selection and camera gates; Unity picks actual
 triangles and presents native arrow/land texture phases. No simulation entities,
 world timing change is needed for the map itself; the level-end counters changed the hash (311, ADR-0548).

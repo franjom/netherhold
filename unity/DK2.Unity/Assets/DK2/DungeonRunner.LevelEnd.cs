@@ -74,7 +74,9 @@ namespace DK2.Unity
                 CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
             }
             _resultRecorded = true;
-            if (_scriptedView.PathPlaying || !Input.GetKeyDown(KeyCode.Space)) return false;
+            if (_scriptedView.PathPlaying) return false;
+            if (status == PlayerStatus.Won && UpdateWinKeys()) return false;
+            if (_continueRequested || !Input.GetKeyDown(KeyCode.Space)) return false;
             LoadLevel(GameSessionRequest.FrontEnd(frontEndReturnPage));
             return true;
         }
@@ -114,8 +116,13 @@ namespace DK2.Unity
         {
             // Remake placeholder: DK2's in-level result presentation is unread (front-end plan F5).
             if (!LaunchedFromFrontEnd || !_resultRecorded || _scriptedView.PathPlaying) return;
+            byte status = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Status;
+            if (!PlayerStatus.HasEnded(status)) return;
+            DrawWinScreen();
             var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 18 };
-            GUI.Label(new Rect(0, Screen.height - 60, Screen.width, 30), "Press Space to continue", style);
+            string prompt = status != PlayerStatus.Won || _campaignProfile.SecretLevelNumber != 0 ? "Press Space to leave"
+                : _continueRequested ? "Continuing..." : "Press Space to leave, Escape to keep playing";
+            GUI.Label(new Rect(0, Screen.height - 60, Screen.width, 30), prompt, style);
         }
     }
 }

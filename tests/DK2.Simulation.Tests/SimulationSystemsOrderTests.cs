@@ -35,6 +35,7 @@ public class SimulationSystemsOrderTests
             "CombatSystem",
             "TremorCreatureSystem",
             "ReaperSystem",
+            "FinaleSystem",
             "CombatPitSystem",
             "JackInTheBoxSystem",
             "MovementDustSystem",

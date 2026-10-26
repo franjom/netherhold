@@ -19,7 +19,8 @@ public enum ScriptedViewKind : byte
     /// <summary>The player skipped the path in flight (<c>0x00405362</c>).</summary>
     CameraPathSkipped = 2,
 
-    /// <summary>Action 38: letterbox on (<see cref="ScriptedViewRequest.Flag"/>) or off.</summary>
+    /// <summary>Action 38 and game action <c>0x74</c>: letterbox on (<see cref="ScriptedViewRequest.Flag"/>)
+    /// or off; a <see cref="ScriptedViewRequest.Value"/> of 2 forces it off (<c>0x004426F0</c>).</summary>
     Letterbox = 3,
 
     /// <summary>A level Mentor line: <see cref="ScriptedViewRequest.Value"/> is one-based;
@@ -33,14 +34,36 @@ public enum ScriptedViewKind : byte
 
     /// <summary>World action 9: replace or clear the shared HUD FlashButton descriptor.</summary>
     FlashButton = 6,
+
+    /// <summary>Game action 15 (<c>0x00442780</c>): the camera asked for mode
+    /// <see cref="ScriptedViewRequest.Value"/>, its yaw zeroed first from mode 7.</summary>
+    CameraMode = 7,
+
+    /// <summary>Game action 6 (<c>0x00442290</c>): zoom to <see cref="ScriptedViewRequest.Value"/>
+    /// over <see cref="ScriptedViewRequest.Value2"/> milliseconds.</summary>
+    CameraZoom = 8,
+
+    /// <summary>Game action 17 (<c>0x004427D0</c>): follow creature <see cref="ScriptedViewRequest.Value"/>,
+    /// or stop following with 0.</summary>
+    CameraFollow = 9,
+
+    /// <summary>Game action <c>0x84</c> (<c>0x00443030</c>): view <c>+0x1221 |= 0x10</c>, meaning unread.</summary>
+    ViewFlag84 = 10,
+
+    /// <summary>Interface slot <c>+0x40</c> (<c>0x0042BE40</c>): the win screen starts.</summary>
+    WinScreen = 11,
+
+    /// <summary>Interface slot <c>+0x38</c>: the GUI hidden for the celebration (hud-visibility.md).</summary>
+    HideGui = 12,
 }
 
 /// <param name="Tick">For <see cref="ScriptedViewKind.CameraPath"/>, the tick the path started
 /// on, so the view plays it on the simulation's clock and ends it on the tick
 /// <see cref="CameraPathRules.DurationTicks"/> gives.</param>
+/// <param name="Value2">A second argument where the kind has one (<see cref="ScriptedViewKind.CameraZoom"/>).</param>
 public readonly record struct ScriptedViewRequest(
     ScriptedViewKind Kind, PlayerId Player, int Value, TilePos Tile, bool Flag, long Tick = 0,
-    HudFlashRequest? FlashButton = null);
+    HudFlashRequest? FlashButton = null, int Value2 = 0);
 
 public readonly record struct HudFlashRequest(HudFlashTarget Target, uint DurationSeconds, bool Enabled);
 

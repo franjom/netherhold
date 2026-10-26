@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 311;
+    private const int FormatVersion = 312;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -164,6 +164,7 @@ public static class WorldSnapshot
         w.Write(world.NextTagOrder);
         w.Write(world.GameMode);
         world.Carry.Write(w);
+        w.Write(world.LocalPlayerId.Value);
         w.Write(world.SecretDoorEntries.Count);
         foreach (var pair in world.SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
             .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
@@ -237,6 +238,7 @@ public static class WorldSnapshot
             w.Write(p.InformationGiven);
             w.Write(p.ItemsManufactured);
             p.Statistics.Write(w);
+            p.Finale.Write(w);
             w.Write(p.ManufactureQueue.Count);
             foreach (ManufactureOrder order in p.ManufactureQueue)
             {
@@ -529,6 +531,7 @@ public static class WorldSnapshot
             w.Write(c.ReaperStateAgeTicks);
             w.Write(c.ReaperCanAcquireFight);
             w.Write(c.ReaperIsAttackable);
+            w.Write(c.ReaperHidden);
             w.Write(c.RouteRefreshCountdown);
             w.Write(c.ChaseTicks);
             w.Write(c.RetreatingCreature);
@@ -902,6 +905,7 @@ public static class WorldSnapshot
         int nextTagOrder = r.ReadInt32();
         byte gameMode = r.ReadByte();
         CampaignCarry carry = CampaignCarry.Read(r);
+        byte localPlayer = r.ReadByte();
         int secretDoorEntryCount = r.ReadInt32();
         var secretDoorEntries = new Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry>();
         for (int i = 0; i < secretDoorEntryCount; i++)
@@ -971,6 +975,7 @@ public static class WorldSnapshot
             players[i].InformationGiven = r.ReadUInt64();
             players[i].ItemsManufactured = r.ReadInt32();
             players[i].Statistics = PlayerLevelStatistics.Read(r);
+            players[i].Finale = PlayerFinale.Read(r);
             int orderCount = r.ReadInt32();
             for (int o = 0; o < orderCount; o++)
                 players[i].ManufactureQueue.Add(new ManufactureOrder(r.ReadByte(), r.ReadByte(), r.ReadInt32()));
@@ -993,6 +998,7 @@ public static class WorldSnapshot
         world.NextTagOrder = nextTagOrder;
         world.GameMode = gameMode;
         world.Carry = carry;
+        world.LocalPlayerId = new PlayerId(localPlayer);
         foreach (var pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);
         world.CurrentTick = tick;
 
@@ -1259,6 +1265,7 @@ public static class WorldSnapshot
                 ReaperStateAgeTicks = r.ReadUInt32(),
                 ReaperCanAcquireFight = r.ReadBoolean(),
                 ReaperIsAttackable = r.ReadBoolean(),
+                ReaperHidden = r.ReadBoolean(),
                 RouteRefreshCountdown = r.ReadInt32(),
                 ChaseTicks = r.ReadInt32(),
                 RetreatingCreature = r.ReadInt32(),

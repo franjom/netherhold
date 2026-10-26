@@ -282,6 +282,7 @@ namespace DK2.Unity
             }
             _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
+            if (!frontEnd) world.LocalPlayerId = new PlayerId((byte)viewingPlayerId);
             if (!frontEnd) PrepareCampaignResult();
             if (frontEnd)
             {
@@ -364,6 +365,7 @@ namespace DK2.Unity
                 CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
                 (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance);
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
+            PrepareWinScreen(database);
             _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
                 new PlayerId((byte)viewingPlayerId), _scriptedView));
 
@@ -594,6 +596,7 @@ namespace DK2.Unity
                 else
                 {
                     Glide();
+                    FollowScriptedCreature();
                     if (hud.AllowOrdinaryInput && !HudModal) ControlCamera();
                     else if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
                 }

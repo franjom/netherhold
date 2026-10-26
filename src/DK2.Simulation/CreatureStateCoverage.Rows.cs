@@ -243,13 +243,13 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(225, "not read"));
         rows.Add(Built(226, typeof(StealGoldRules), nameof(StealGoldRules.RunTheJobState)));
         rows.Add(Built(227, typeof(HeroJobRules), nameof(HeroJobRules.NoPointState)));
-        rows.Add(Unbuilt(228, "not read"));
-        rows.Add(Unbuilt(229, "not read"));
-        rows.Add(Unbuilt(230, "not read"));
-        rows.Add(Unbuilt(231, "not read"));
-        rows.Add(Unbuilt(232, "partly read in travel-states.md 2.4; not built"));
-        rows.Add(Unbuilt(233, "not read"));
-        rows.Add(Unbuilt(234, "partly read in fog-reveal-sources.md 3.9, doors-and-traps.md; not built"));
+        rows.Add(Built(228, typeof(FinaleRules), nameof(FinaleRules.Run)));
+        rows.Add(Built(229, typeof(FinaleRules), nameof(FinaleRules.Run)));
+        rows.Add(Built(230, typeof(FinaleRules), nameof(FinaleRules.Run)));
+        rows.Add(Built(231, typeof(FinaleRules), nameof(FinaleRules.Run)));
+        rows.Add(Built(232, typeof(FinaleRules), nameof(FinaleRules.Run)));
+        rows.Add(Built(233, typeof(FinaleRules), nameof(FinaleRules.Run)));
+        rows.Add(Built(234, typeof(FinaleRules), nameof(FinaleRules.Run)));
         rows.Add(Built(235, typeof(ReaperRules), nameof(ReaperRules.RunLifecycle)));
         rows.Add(Built(236, typeof(ReaperRules), nameof(ReaperRules.RunLifecycle)));
         rows.Add(Built(237, typeof(ReaperRules), nameof(ReaperRules.RunLifecycle)));
@@ -286,7 +286,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(267, typeof(RoomAttackRules), nameof(RoomAttackRules.DestroyRoomTile)));
         rows.Add(Unbuilt(268, "its handler 0x00458680 waits out an action, then idles; no SetState or walk pushes 0x10C (room-health.md §5); +0xDF stores and room tables unscanned"));
         rows.Add(Unbuilt(269, "partly read in hero-parties-and-effect-generators.md; not built"));
-        rows.Add(Unbuilt(270, "its handler 0x004B4C20 returns 1 (state-categories.md §7.1); nothing in src/ enters it"));
+        rows.Add(Built(270, typeof(FinaleRules), nameof(FinaleRules.Celebrate))); // its handler 0x004B4C20 returns 1
         rows.Add(Unbuilt(271, "Q410, Q412: two calls in its handler are unread (rebellion.md)"));
         rows.Add(Unbuilt(272, "not read"));
         rows.Add(Built(273, typeof(JackInTheBoxRules), nameof(JackInTheBoxRules.SpringState)));

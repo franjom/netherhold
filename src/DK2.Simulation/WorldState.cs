@@ -442,6 +442,9 @@ public struct PlayerState
     /// <summary>The rest of the level-statistics block (<see cref="LevelStatisticsRules"/>).</summary>
     public PlayerLevelStatistics Statistics;
 
+    /// <summary>The win sequence's player fields (<see cref="FinaleRules"/>).</summary>
+    public PlayerFinale Finale;
+
     /// <summary>DK2's blueprint list, <c>player+0xA21</c>: the keeper's doors and traps waiting for
     /// a crate, in the order they were placed, which is the order task kinds 9 and 10 take them
     /// (ADR-0214).</summary>
@@ -581,6 +584,7 @@ public struct PlayerState
         hash.Add(InformationGiven);
         hash.Add(ItemsManufactured);
         Statistics.HashInto(ref hash);
+        Finale.HashInto(ref hash);
         hash.Add(ManufactureQueue.Count);
         foreach (ManufactureOrder order in ManufactureQueue) order.HashInto(ref hash);
         hash.Add(Blueprints.Count);
@@ -844,6 +848,7 @@ public sealed class WorldState
         player.Status = status;
         player.StatusTick = CurrentTick;
         LevelStatisticsRules.Sample(this, database, playerId, status);
+        GameEnded?.Invoke(playerId, status);
         return true;
     }
 
@@ -1204,6 +1209,15 @@ public sealed class WorldState
     /// <summary>Profile writes made during play, for the host (<see cref="CampaignCarry"/>).</summary>
     public CampaignCarry Carry;
 
+    /// <summary>The player this machine plays, DK2's world slot <c>+0x264</c>: the campaign win
+    /// runs its finale for this player only (<c>0x004BEDC0</c>). The host sets it; a level starts
+    /// with the first keeper.</summary>
+    public PlayerId LocalPlayerId { get; set; } = new(DK2.Data.Model.PlayerIds.FirstKeeper);
+
+    /// <summary>Called once by <see cref="EndGame"/> with the verdict it wrote; the simulation runs
+    /// the win sequence from it, inside the same call as DK2's <c>0x004BE630</c> does.</summary>
+    internal Action<PlayerId, byte>? GameEnded;
+
     /// <summary>Kind-11 pool insertion order and retained middle-slot holders, independent per keeper.</summary>
     public Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> SecretDoorEntries { get; } = [];
 
@@ -1557,6 +1571,7 @@ public sealed class WorldState
         hash.Add(NextTagOrder);
         hash.Add(GameMode);
         Carry.HashInto(ref hash);
+        hash.Add(LocalPlayerId.Value);
         hash.Add(SecretDoorEntries.Count);
         foreach (var pair in SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
             .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))

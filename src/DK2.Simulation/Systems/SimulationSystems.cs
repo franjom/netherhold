@@ -79,6 +79,7 @@ public static class SimulationSystems
         new CombatSystem(),
         new TremorCreatureSystem(), // recovery handler before steering; world Tremor runs after the entity pass
         new ReaperSystem(),
+        new FinaleSystem(), // the finale Reaper's states 228-234 and the fireworks
         new CombatPitSystem(), // the pit's states, after the fight processing as DK2's handler is (ADR-0213)
         // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
         new JackInTheBoxSystem(), // state 273 and the travel toll, before the mover as DK2's state dispatcher is

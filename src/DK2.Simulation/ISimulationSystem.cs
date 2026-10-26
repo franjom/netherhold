@@ -89,6 +89,14 @@ public sealed class SimulationContext
         });
     }
 
+    /// <summary>Asks the player's view to do something (<see cref="ScriptedViewRequest"/>); observation only.</summary>
+    public void RequestView(string system, ScriptedViewRequest request) =>
+        Events.Emit(new SimEvent(Tick, system, "scripted_view",
+            $"player={request.Player} kind={request.Kind} value={request.Value} tile=({request.Tile.X},{request.Tile.Y}) flag={request.Flag}")
+        {
+            ScriptedView = request,
+        });
+
     /// <summary>The level's trigger executor, when the simulation has one: the systems fire DK2's
     /// creature and player trigger events through it at the moment they happen, as the binary
     /// does. Null in a world without triggers, and the firings are no-ops.</summary>
