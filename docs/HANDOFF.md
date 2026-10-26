@@ -267,7 +267,7 @@ tools/classic-unity-probe/README.md.
    in possession-arms-and-inputs.md §4–5.
 6. M10 front end: DK2's menus, campaign map and progression are read from the
    exe (`research/front-end-menus.md`, `research/campaign-map-and-progression.md`,
-   `research/front-end-assets.md`); F1 storage/image plumbing (ADR-0538), F2 front-end scenery/camera sessions, F3 menu shells (ADR-0539), F4 campaign map/briefing and the F7 movie decoder/playback proof of concept are built. F5 session start/results/profile integration is next. Scope, remaining play checks and import/decoder limits are in `plans/2026-10-23-front-end.md`.
+   `research/front-end-assets.md`); F1 storage/image plumbing (ADR-0538), F2 front-end scenery/camera sessions, F3 menu shells (ADR-0539), F4 campaign map/briefing and the F7 movie decoder/playback proof of concept are built. F5 stage A (briefing Go launches the level, verdict writes the profile once, Space leaves, statistics page 26 and map return) is built and awaits a Unity play test; statistics rows, hi-score, finale, specials and transfer creature are next. Scope, remaining play checks and import/decoder limits are in `plans/2026-10-23-front-end.md`.
 7. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built; the appearance target is the approved AI concepts (ADR-0398,
    ADR-0399, `art/manifests/creature/imp.yaml`). The Tripo candidate was

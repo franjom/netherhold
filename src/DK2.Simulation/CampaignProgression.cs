@@ -6,7 +6,7 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>Campaign profile rules; world result handling and score writes are separate.</summary>
+/// <summary>Campaign profile rules over immutable snapshots; score writes are separate.</summary>
 public static class CampaignProgression
 {
     public static bool CanSelect(CampaignProfile profile, CampaignSlot slot, bool secretFiveAvailable)
@@ -45,6 +45,54 @@ public static class CampaignProgression
             return profile with { PlayerLevelStatus = Array.AsReadOnly(statuses) };
         }
         return profile;
+    }
+
+    /// <summary>The map being played: Level Number, or 25 + Secret Level Number (0x0053C3C0 case 4).</summary>
+    public static CampaignSlot PlayedSlot(CampaignProfile profile)
+    {
+        int value = profile.SecretLevelNumber is >= 1 and <= 5 ? 25 + (int)profile.SecretLevelNumber : profile.LevelNumber;
+        return value is >= 1 and <= 30 && value != 25 ? new CampaignSlot(value) : CampaignSlot.None;
+    }
+
+    /// <summary>The local player's mode-1 arms of 0x004BE630: a loss reopens the map, counts an
+    /// attempt and drops the transfer creature; a win runs the branch table or marks the secret.
+    /// Not here: the win tail's LEVEL-flag 0x20/0x40 completions and the finale (0x004BEDC0..).</summary>
+    public static CampaignProfile RecordResult(CampaignProfile profile, CampaignSlot played, bool won)
+    {
+        if (!played.IsCampaign && !played.IsSecret) throw new ArgumentOutOfRangeException(nameof(played));
+        if (won)
+        {
+            if (played.IsCampaign) return CompleteMap(profile, played);
+            var completed = profile.SecretLevelsCompleted.ToArray(); completed[played.Value - 26] = 1;
+            return profile with { SecretLevelsCompleted = Array.AsReadOnly(completed) };
+        }
+        var attempts = profile.LevelAttempts.ToArray(); attempts[played.Value - 1]++;
+        if (played.IsSecret) return profile with { LevelAttempts = Array.AsReadOnly(attempts) };
+        var statuses = profile.PlayerLevelStatus.ToArray();
+        if (statuses[played.Value - 1] is not (CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch))
+            statuses[played.Value - 1] = CampaignLevelStatus.Open;
+        return profile with { PlayerLevelStatus = Array.AsReadOnly(statuses), LevelAttempts = Array.AsReadOnly(attempts),
+            TransferCreatureId = 0 };
+    }
+
+    /// <summary>0x00534F70 on re-entering the front end: a won campaign map re-applies its branch
+    /// row (slot 24 has none), repairing a status lost between the level and the menu.</summary>
+    public static CampaignProfile RepairAfterLevel(CampaignProfile profile)
+    {
+        CampaignSlot played = PlayedSlot(profile);
+        return played.IsCampaign && played.Value != 24 && profile.PlayerLevelStatus[played.Value - 1] == CampaignLevelStatus.Won
+            ? CompleteMap(profile, played) : profile;
+    }
+
+    /// <summary>The statistics page's accept (dispatcher 0x55): after a won campaign map, Level Number
+    /// moves to the map after it (6a/6b to 8, 11a-c to 15, 15a/b to 20) unless that one is won or closed.</summary>
+    public static CampaignProfile AdvanceAfterResults(CampaignProfile profile)
+    {
+        CampaignSlot played = PlayedSlot(profile);
+        if (!played.IsCampaign || profile.PlayerLevelStatus[played.Value - 1] != CampaignLevelStatus.Won) return profile;
+        int next = played.Value switch { 6 or 7 => 8, 12 or 13 or 14 => 15, 18 or 19 => 20, _ => played.Value + 1 };
+        return profile.PlayerLevelStatus[next - 1] is CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch
+            ? profile : profile with { LevelNumber = (byte)next };
     }
 
     public static CampaignProfile CompleteMap(CampaignProfile profile, CampaignSlot slot)

@@ -85,4 +85,23 @@ public class FrontEndFlowTests
 
     private static IReadOnlyList<KcsFrame> Frames(int count) => Enumerable.Range(0, count)
         .Select(i => new KcsFrame(i, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000)).ToArray();
+
+    [Theory]
+    [InlineData(FrontEndPage.CampaignResults, FrontEndPath.Spare, FrontEndOperation.ResultsFourth)]
+    [InlineData(FrontEndPage.MultiplayerResults, FrontEndPath.Spare, FrontEndOperation.ResultsSecond)]
+    [InlineData(FrontEndPage.SkirmishResults, FrontEndPath.Spare, FrontEndOperation.ResultsThird)]
+    [InlineData(FrontEndPage.PetDungeonResults, FrontEndPath.StaticPetDungeon, FrontEndOperation.ResultsFirst)]
+    public void AFinishedGameShowsItsStatisticsPageThenPlaysTheStaticPathUnderIt(
+        FrontEndPage returnPage, FrontEndPath path, FrontEndOperation operation)
+    {
+        var flow = new FrontEndFlow(returnPage);
+        Assert.Equal(new FrontEndStep(ShowPage: returnPage), flow.Update(false));
+        Assert.Equal(new FrontEndStep(path, returnPage, operation), flow.Update(false));
+        Assert.Equal(FrontEndState.Idle, flow.State);
+        Assert.Equal(default, flow.Update(false));
+    }
+
+    [Fact]
+    public void ACampaignLevelReturnsToTheCampaignStatisticsPage() =>
+        Assert.Equal(FrontEndPage.CampaignResults, GameSessionRequest.Campaign("level1").ReturnPage);
 }

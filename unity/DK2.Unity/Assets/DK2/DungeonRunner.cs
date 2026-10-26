@@ -281,6 +281,7 @@ namespace DK2.Unity
             }
             _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
+            if (!frontEnd) PrepareCampaignResult();
             if (frontEnd)
             {
                 LoadFrontEndProfile();
@@ -569,9 +570,9 @@ namespace DK2.Unity
             // is the world this frame draws; on the main thread this frame's ticks come after.
             _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
                 _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d));
-            // ClassicHudControls.UpdateResult (0x004039A0) is not fed here: DK2 leaves a result through
-            // Esc/Space (continue, action 134) or the result menu, and neither exists yet, so suppressing
-            // input on a terminal Status would strand the player (hud-visibility.md, result section).
+            // ClassicHudControls.UpdateResult (0x004039A0) is fed only for a level launched from the front
+            // end, where Space leaves the result; elsewhere suppressing input would strand the player.
+            if (UpdateCampaignResult()) return;
             using (InputMarker.Auto())
             {
                 ApplyLetterbox();
@@ -1499,6 +1500,7 @@ namespace DK2.Unity
                 return;
             }
             DrawCinematic();
+            DrawCampaignResultPrompt();
             if (showDiagnostics) DrawDiagnostics();
         }
 

@@ -31,6 +31,7 @@ public sealed class CampaignMapController : IDisposable
         SecretFiveAvailable = secretFiveAvailable;
         _session.OperationRequested += OnOperation;
         _session.Updated += AdvanceVisuals;
+        ApplyLandPhases(); // 0x005395A0 also runs once the front-end level has loaded.
     }
     public CampaignProfile Profile { get; private set; }
     public bool SecretFiveAvailable { get; }
@@ -92,6 +93,18 @@ public sealed class CampaignMapController : IDisposable
     }
     public bool CanLaunch => LaunchRequested is not null && Briefing is not null;
 
+    /// <summary>The statistics page's accept, dispatcher 0x55: Level Number moves on after a win,
+    /// then path 254 returns to the map (state 0x12). Hi-score entry is not built yet.</summary>
+    public bool AcceptResults()
+    {
+        if (_session.Page != FrontEndPage.CampaignResults) return false;
+        if (!_session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter))) return false;
+        Briefing = null; _selected = CampaignSlot.None;
+        CampaignProfile advanced = CampaignProgression.AdvanceAfterResults(Profile);
+        if (!ReferenceEquals(advanced, Profile)) ChangeProfile(advanced);
+        Revision++; return true;
+    }
+
     public CampaignMapVisual LandVisual(CampaignSlot slot)
     {
         bool visible = slot.IsCampaign || slot.Value == 25 || slot.IsSecret && CampaignProgression.CanSelect(Profile, slot, SecretFiveAvailable);
@@ -104,14 +117,19 @@ public sealed class CampaignMapController : IDisposable
         int phase = slot.IsCampaign ? _markerPhases[slot.Value - 1] : 0;
         return new(visible, new Fp32(phase), 0);
     }
-    private bool IsMapStation => IsAtMap || _session.Page == FrontEndPage.Briefing || _session.Path is FrontEndPath.EntryToTable or FrontEndPath.TableToBriefing or FrontEndPath.BriefingToTable;
+    private bool IsMapStation => IsAtMap || _session.Page is FrontEndPage.Briefing or FrontEndPage.CampaignResults
+        || _session.Path is FrontEndPath.EntryToTable or FrontEndPath.TableToBriefing or FrontEndPath.BriefingToTable;
     private void EnterMap()
     {
         _entered = _updated = _session.Now; _blink = 0xfff; _introPending = true; Hovered = CampaignSlot.None;
         Array.Clear(_markerPhases, 0, _markerPhases.Length);
+        ApplyLandPhases();
+        Revision++;
+    }
+    private void ApplyLandPhases()
+    {
         for (int i = 0; i < 30; i++) _landPhases[i] = i < 25 && Profile.PlayerLevelStatus[i]
             is CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch ? 0x55a : 0;
-        Revision++;
     }
     private void OnOperation(FrontEndOperation operation)
     {
@@ -119,6 +137,13 @@ public sealed class CampaignMapController : IDisposable
         if (operation is FrontEndOperation.CampaignMapFrame or FrontEndOperation.EnterCampaignMap)
         {
             _session.TryShowPage(FrontEndPage.CampaignMap);
+        }
+        if (operation == FrontEndOperation.ResultsFourth)
+        {
+            // 0x0053C3C0 case 4 reloads the played map's briefing (0x0053AC60) for the statistics page.
+            _selected = CampaignProgression.PlayedSlot(Profile);
+            Briefing = _selected == CampaignSlot.None ? null : _loadBriefing(_selected);
+            Revision++;
         }
         if (operation == FrontEndOperation.PrepareCampaign && Briefing is null && _selected != CampaignSlot.None)
         {

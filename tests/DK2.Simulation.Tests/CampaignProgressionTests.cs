@@ -99,4 +99,51 @@ public class CampaignProgressionTests
         Assert.Same(profile, CampaignProgression.LocateHiddenLand(profile, new CampaignSlot(6)));
     }
 
+
+    [Fact]
+    public void ALossReopensTheMapCountsAnAttemptAndDropsOnlyTheTransferCreatureId()
+    {
+        var p = CampaignProgression.NewCampaign(new CampaignProfile()) with { TransferCreatureId = 7, TransferCreatureLevel = 4 };
+        p = CampaignProgression.RecordResult(p, new CampaignSlot(1), won: false);
+        Assert.Equal(CampaignLevelStatus.Open, p.PlayerLevelStatus[0]);
+        Assert.Equal(1u, p.LevelAttempts[0]);
+        Assert.Equal(0, p.TransferCreatureId);
+        Assert.Equal(4, p.TransferCreatureLevel);
+        var won = CampaignProgression.RecordResult(p, new CampaignSlot(1), won: true);
+        Assert.Equal(CampaignLevelStatus.Won, CampaignProgression.RecordResult(won, new CampaignSlot(1), won: false).PlayerLevelStatus[0]);
+        var secret = CampaignProgression.RecordResult(p, new CampaignSlot(27), won: false);
+        Assert.Equal(1u, secret.LevelAttempts[26]);
+        Assert.Equal(CampaignLevelStatus.Open, secret.PlayerLevelStatus[0]);
+        Assert.Equal(1u, CampaignProgression.RecordResult(p, new CampaignSlot(27), won: true).SecretLevelsCompleted[1]);
+    }
+
+    [Theory]
+    [InlineData(5, 6)]
+    [InlineData(6, 8)]
+    [InlineData(7, 8)]
+    [InlineData(13, 15)]
+    [InlineData(19, 20)]
+    [InlineData(23, 24)]
+    public void AcceptingTheResultsMovesLevelNumberPastAWonMap(int won, int next)
+    {
+        var p = CampaignProgression.RecordResult(new CampaignProfile { LevelNumber = (byte)won }, new CampaignSlot(won), won: true);
+        Assert.Equal(next, CampaignProgression.AdvanceAfterResults(p).LevelNumber);
+        var lost = new CampaignProfile { LevelNumber = (byte)won };
+        Assert.Same(lost, CampaignProgression.AdvanceAfterResults(lost));
+        var secret = p with { SecretLevelNumber = 2 };
+        Assert.Equal(new CampaignSlot(27), CampaignProgression.PlayedSlot(secret));
+        Assert.Same(secret, CampaignProgression.AdvanceAfterResults(secret));
+    }
+
+    [Fact]
+    public void ReturningFromAWonMapRepairsItsBranchRowExceptForTheLastMap()
+    {
+        var statuses = new CampaignLevelStatus[40]; statuses[10] = CampaignLevelStatus.Won;
+        var p = new CampaignProfile { LevelNumber = 11, PlayerLevelStatus = statuses };
+        var repaired = CampaignProgression.RepairAfterLevel(p);
+        Assert.All(new[] { 11, 12, 13 }, i => Assert.Equal(CampaignLevelStatus.Open, repaired.PlayerLevelStatus[i]));
+        statuses = new CampaignLevelStatus[40]; statuses[23] = CampaignLevelStatus.Won;
+        var last = new CampaignProfile { LevelNumber = 24, PlayerLevelStatus = statuses };
+        Assert.Same(last, CampaignProgression.RepairAfterLevel(last));
+    }
 }

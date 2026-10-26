@@ -28,6 +28,7 @@ namespace DK2.Unity
         private IReadOnlyList<FrontEndProp> _frontEndBaseScenery;
         private readonly Dictionary<int, CampaignSlot> _campaignPickSlots = new Dictionary<int, CampaignSlot>();
         private int _frontEndMapRevision = -1;
+        private GameSessionRequest _pendingSession;
         public CampaignMapController CampaignMap => _campaignMap;
 
         private void LoadFrontEndProfile()
@@ -36,6 +37,8 @@ namespace DK2.Unity
                 ? Path.Combine(Application.persistentDataPath, "campaign-profile.dk2p") : campaignProfileFile;
             CampaignProfile loaded = CampaignProfileFile.LoadOrCreate(_campaignProfilePath, InstalledCampaignRegistry.ReadCurrentUser);
             _campaignProfile = CampaignProgression.EnsureOpenMap(loaded);
+            if (sessionMode == GameSessionMode.FrontEnd && frontEndReturnPage == FrontEndPage.CampaignResults)
+                _campaignProfile = CampaignProgression.RepairAfterLevel(_campaignProfile);
             if (!ReferenceEquals(loaded, _campaignProfile)) CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
             _secretFiveAvailable = CampaignMoon.IsSecretFiveAvailable(CampaignMoon.PhaseAt(DateTime.Now));
         }
@@ -85,6 +88,8 @@ namespace DK2.Unity
                 _campaignProfile = profile;
                 CampaignProfileFile.Save(_campaignProfilePath, profile);
             };
+            // Dispatcher 0xC: the session ends and the campaign level runs with return page 0x1A.
+            _campaignMap.LaunchRequested += slot => _pendingSession = GameSessionRequest.Campaign(slot.LevelName);
             _campaignPickSlots.Clear();
             foreach (FrontEndProp prop in _frontEndBaseScenery)
             {
@@ -106,6 +111,8 @@ namespace DK2.Unity
             double elapsed = Math.Max(0, Time.realtimeSinceStartupAsDouble - _frontEndStarted);
             _frontEnd.Update(TimeSpan.FromSeconds(elapsed));
             _frontEndMenu?.Refresh();
+            // A click replaces this runner; switch only after the menu has finished with it.
+            if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
             if (_frontEnd.Pose is CameraPathPose pose) ApplyFrontEndCamera(pose);
             CampaignSlot picked = _campaignMap.IsAtMap && Camera.main != null
                 ? _scene.PickFrontEndMap(Camera.main.ScreenPointToRay(Input.mousePosition), _campaignPickSlots) : CampaignSlot.None;

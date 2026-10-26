@@ -46,6 +46,7 @@ public sealed class FrontEndMenuController : IDisposable
             FrontEndPage.SinglePlayer => id == 9 || Campaign is not null && id is 6 or 567,
             FrontEndPage.CampaignMap => Campaign is not null && id == 534,
             FrontEndPage.Briefing => Campaign is not null && (id == 169 || id == 170 && Campaign.CanLaunch),
+            FrontEndPage.CampaignResults => Campaign is not null && id == 181,
             FrontEndPage.Options => id is 110 or 111 or 112 or 113,
             FrontEndPage.Graphics => id is 129 or 130,
             FrontEndPage.Sound => id is 146 or 147,
@@ -111,6 +112,7 @@ public sealed class FrontEndMenuController : IDisposable
         {
             if (Page == FrontEndPage.CampaignMap) return Campaign.BackToMenu();
             if (Page == FrontEndPage.Briefing) return id.Value == 169 ? Campaign.BackToMap() : Campaign.Launch();
+            if (Page == FrontEndPage.CampaignResults) return Campaign.AcceptResults();
             if (Page == FrontEndPage.SinglePlayer && id.Value == 567) return Campaign.Continue();
             if (Page == FrontEndPage.SinglePlayer && id.Value == 6)
             {

@@ -9,6 +9,7 @@ public enum FrontEndPage : ushort
     None = 0, Main = 1, SinglePlayer = 2, Multiplayer = 3, Options = 4, Movies = 5, Extras = 6,
     Briefing = 7, Load = 8, Lobby = 9, Sessions = 10, JoinSessions = 11, HighScores = 18,
     Graphics = 15, Sound = 16, Controls = 17,
+    CampaignResults = 26, MultiplayerResults = 27, PetDungeonResults = 42, SkirmishResults = 45,
     CampaignMap = 37, PetDungeon = 38, AddressSessions = 39, Credits = 40, Dialog = 44, Cursor = 47,
 }
 
@@ -70,6 +71,20 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
                 FrontEndPage.PetDungeon => new(FrontEndPath.StaticPetDungeon, FrontEndState.PetDungeonReady),
                 _ => null,
             };
+            FrontEndState? results = returnPage switch
+            {
+                FrontEndPage.CampaignResults => FrontEndState.ResultsFourth,
+                FrontEndPage.MultiplayerResults => FrontEndState.ResultsSecond,
+                FrontEndPage.SkirmishResults => FrontEndState.ResultsThird,
+                FrontEndPage.PetDungeonResults => FrontEndState.ResultsFirst,
+                _ => null,
+            };
+            if (results.HasValue)
+            {
+                // 0x00534F70 shows the statistics page at once; the station machine takes the state next frame.
+                State = results.Value;
+                return new(ShowPage: returnPage);
+            }
             if (initial.HasValue)
             {
                 FrontEndStep routed = BeginTransition(initial.Value);
@@ -91,10 +106,11 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
             case FrontEndState.CampaignMapEnter:
                 State = FrontEndState.CampaignMap;
                 return new(Operation: FrontEndOperation.EnterCampaignMap);
-            case FrontEndState.ResultsFirst: return new(Operation: FrontEndOperation.ResultsFirst);
-            case FrontEndState.ResultsSecond: return new(Operation: FrontEndOperation.ResultsSecond);
-            case FrontEndState.ResultsThird: return new(Operation: FrontEndOperation.ResultsThird);
-            case FrontEndState.ResultsFourth: return new(Operation: FrontEndOperation.ResultsFourth);
+            // 0x0053C3C0: a static path (264 for My Pet Dungeon, else 255) leaves state 0; the page stays up.
+            case FrontEndState.ResultsFirst: return Results(FrontEndPath.StaticPetDungeon, FrontEndPage.PetDungeonResults, FrontEndOperation.ResultsFirst);
+            case FrontEndState.ResultsSecond: return Results(FrontEndPath.Spare, FrontEndPage.MultiplayerResults, FrontEndOperation.ResultsSecond);
+            case FrontEndState.ResultsThird: return Results(FrontEndPath.Spare, FrontEndPage.SkirmishResults, FrontEndOperation.ResultsThird);
+            case FrontEndState.ResultsFourth: return Results(FrontEndPath.Spare, FrontEndPage.CampaignResults, FrontEndOperation.ResultsFourth);
             case FrontEndState.PrepareCampaign: return new(Operation: FrontEndOperation.PrepareCampaign);
             case FrontEndState.PreparePetDungeon: return new(Operation: FrontEndOperation.PreparePetDungeon);
             case FrontEndState.MainReady: step = new(ShowPage: FrontEndPage.Main); break;
@@ -116,4 +132,7 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
         State = FrontEndState.Idle;
         return step;
     }
+
+    private FrontEndStep Results(FrontEndPath path, FrontEndPage page, FrontEndOperation operation)
+        => BeginTransition(new(path, FrontEndState.Idle)) with { ShowPage = page, Operation = operation };
 }

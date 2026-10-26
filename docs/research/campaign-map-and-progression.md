@@ -38,7 +38,7 @@ at exit" step for these values).
 | `+0x881` | | `Player Level Status` | 40 dwords, 1-based slot n at `+0x87D + 4n` | Map slot state, §2.1 | absent | set `0x00560D60`, set-unless-done `0x00560E00`, get `0x00560D40` | STRONGLY INFERRED |
 | `+0x8DD` | | none | 8 x 0x44 | Per-player copy of the 17-dword level-end score block, for the statistics screen | | `0x00561E00` | STRONGLY INFERRED |
 | `+0xAF9` | | none | 8 dwords | Per-player "row valid" flag for that block | | `0x00561E00` | STRONGLY INFERRED |
-| `+0xB15` | | none | 8 dwords | Per-player value from `0x004C0280` (unread) | | `0x00561E90` | STRONGLY INFERRED |
+| `+0xB15` | | none | 8 dwords | Per-player keeper rank 0-100 from `0x004C0280` ([level-statistics.md](level-statistics.md) §4) | | `0x00561E90` | STRONGLY INFERRED |
 | `+0xB35` | `0x0075A661` | `Secret Level Number` | dword | 1-5 while a secret level is being played, else 0 | 0 | set `0x00561ED0` from `0x005393F8` | STRONGLY INFERRED |
 | `+0xB39` | `0x0075A665` | none | dword | 1 when the MPD level is a user-named file, 0 for `mpd<n>` | 0 | `0x0053A010` | STRONGLY INFERRED |
 | `+0xB3D`, `+0xB7D` | | `Multiplayer Name`, `Multiplayer Game Name` | 0x40 each | sibling scope | | `0x0055F6D0` | STRONGLY INFERRED |
@@ -185,10 +185,10 @@ level never changes `Player Level Status`.
 | Campaign win finale | `Player_FinaleSequence` `0x004BF410`: finds an object with definition id 28 (`+0x12C`) in a world list, tries up to 500 random offsets of -8..7 tiles from it (more than ~5 tiles away for the first 128 tries) for a tile that is reachable, not in a room of types 3/5/11/13/16/18-23 and free, takes the keeper's Horned Reaper (def `+0x686 & 0x4000`) or creates one there, puts it in state 228, and queues actions 15, 4 (camera to that point) and 6 (`0x5800`, 1000), then action `0x74` | `0x004BF410` | STRONGLY INFERRED (what object 28 is: UNKNOWN) |
 | Secret/special/MPD win | `0x004BF9E0`: camera to the heart (action 4), a deadline of 6 (14 with `+0x134`) turns at player `+0x111D`, action `0x74`, and every creature not in a room of type 12 is reset and starts a celebration (action `0x39`, state 270) | `0x004BF9E0` | STRONGLY INFERRED |
 | Paths 100/101 | No code starts them: `0x0044A370` is called with constants only by the front end (250-274) and in game only through action `0x73`, which the shipped scripts never issue for 100/101 | `camera-paths.md` §2, xrefs of `0x0044A370` | STRONGLY INFERRED (likely unused) |
-| Statistics screen | Front end, one row per player (`0x0053C830`): "won"/"lost" title (front-end strings `0x15`/`0x16`), time from `+0x3D` as mm:ss or hh:mm, the score block fields 0-3, 5-10 and 11 (20.12 fixed point shown as `a.b`), and attempts = Level Attempts[slot] (+1 when won). Data: profile `+0x8DD` copies | `0x0053C830`, `0x00561E00` | STRONGLY INFERRED |
+| Statistics screen | Front end, one row per player (`0x0053C830`); labels, values and formats in [level-statistics.md](level-statistics.md) §5. Data: profile `+0x8DD` copies | `0x0053C830`, `0x00561E00` | CONFIRMED |
 | Hi-score | If the slot's Total Evil Rating qualifies, a name-entry row is offered and saved to `HiScores.dat` (`0x0053E320`, `0x0053E610`); its label is the level number with branch letters | `0x0053E320` | STRONGLY INFERRED |
 | Cutscene | On the return to the front end after a **won** campaign map (status 1, not secret, `[0x0075AD4F]` = 1), `0x0053B980` plays `CutSceneLevel<N>.tgq`, N = level number (6a/6b share 6, 11a-c 11, 15a/b 15; `0x0053C320`). Before it, a text screen with string id from the 9-byte table `0x006B0DD0` and speech id + 1. Level 20 plays `Outro.tgq` then `BullfrogOutro.tgq`. Level 13's movie is skipped when Language (`+0x109`) is 7 or 0x12 | `0x00534F70`, `0x0053B980` | STRONGLY INFERRED |
-| Back to the map | `0x00534F70` re-applies the branch table and sends the front end to menu 3 (from state `0x1A`), `0x16`, `0x1B` or `0x17` by the state the game left | `0x00534F70` | STRONGLY INFERRED (menu ids: sibling scope) |
+| Back to the map | `0x00534F70` re-applies the branch table (not for slot 24) and shows statistics page 26. Its accept (dispatcher 0x55) moves Level Number past a won map (6a/6b to 8, 11a-c to 15, 15a/b to 20, else +1, unless that map is won or closed), offers hi-score entry when the won byte is set and the rating qualifies, else flies path 254 to the map (state 0x12) | `0x00534F70`, `0x005306F0` case 0x55 | STRONGLY INFERRED |
 
 Movie gallery: `0x0053B5F0` sets the "seen" flag (`+5`) of each of the 22 `0x006B0DD0`
 rows from the map statuses (row 0 always; a branched level counts if either branch is
@@ -221,7 +221,6 @@ progress**. STRONGLY INFERRED.
 | Source of world `+0x722E` (secret/special index) | LEVEL loader; candidate KWD `SpecialLevelIndex` (file 25545) |
 | Text/speech ids in `0x006B0DD0` (0x589 ...): which string table | `0x00553AF0` |
 | Thing id 28 in the finale; state 228 | `0x004BF410`, `0x00473F80` |
-| `0x004C0280` (per-player value at `+0xB15`) | `0x004C0280` |
 | MPD table input | `0x005384F0` |
 | `0x0053C3C0` cases 1-4 fully (restart / next after the result) | `0x0053C3C0`, `0x0053C520` |
 

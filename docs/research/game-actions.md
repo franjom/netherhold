@@ -103,7 +103,9 @@ player 3's `Status` go from 2 back to 0. Both carry zero fields.
 - **Who issues them.** The key handler `FUN_00405010` runs this arm only while
   player `Status` is non-zero (`0x004054F0`). In the Won, single-player branch,
   **Escape** (scancode `0x01`) sets player `+0x109E` and `+0x76` bit `0x100000`,
-  then issues 75. **Space** (`0x39`) issues action 1 in every branch. In the
+  then issues 75. **Space** (`0x39`) issues action 1 in every branch: leave the game
+  (`0x00510F40` -> world slot `+0xC` `0x00510E90`), which for the local player sets the
+  world flag `+0x723B` that ends the session loop (`0x00509850`, `0x00526590`). In the
   other game modes, Escape issues 134 and then 75 at once. The single-player 134
   comes from `0x0042C390`. Once two interface fields are set, it arms a deadline
   of `0x005B5E90() + 500`, and one of the two is set when the end-screen layout

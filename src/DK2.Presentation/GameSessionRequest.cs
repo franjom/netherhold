@@ -17,7 +17,7 @@ public sealed record GameSessionRequest
     public static GameSessionRequest FrontEnd(FrontEndPage returnPage = FrontEndPage.None)
         => new(GameSessionMode.FrontEnd, "FrontEnd3DLevel", returnPage);
 
-    public static GameSessionRequest Campaign(string levelName, FrontEndPage returnPage = FrontEndPage.CampaignMap)
+    public static GameSessionRequest Campaign(string levelName, FrontEndPage returnPage = FrontEndPage.CampaignResults)
     {
         if (string.IsNullOrEmpty(levelName) || !levelName.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z'
                 or >= '0' and <= '9' or '_' or '-'))
