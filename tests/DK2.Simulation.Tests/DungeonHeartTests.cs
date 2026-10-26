@@ -147,7 +147,7 @@ public class DungeonHeartTests
     public void AHeartDestroyedByAKeeperIsConquered_AndTheLastKeeperStandingWins()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = NewWorld(database);
+        WorldState world = NewWorld(database, GameMode.Skirmish);
         world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, Rival);
         GameSimulation sim = Simulation(database, world);
 
@@ -156,6 +156,59 @@ public class DungeonHeartTests
         Assert.Equal(PlayerStatus.Conquered, sim.World.Player(Keeper).Status);
         Assert.Equal(PlayerStatus.Won, sim.World.Player(Rival).Status);
         Assert.Equal(PlayerStatus.Playing, sim.World.Player(PlayerIds.Good).Status);
+    }
+
+    /// <summary>The tail walks the active list (5, 4, 3 here), so when C's and A's hearts fall on one
+    /// turn C is judged first: its loss leaves A and its ally B, who win together, before A's own
+    /// verdict comes round. Walking by ascending id would judge A first and make B the sole winner.</summary>
+    [Fact]
+    public void TwoHeartsFallingOnOneTurnAreJudgedInActiveListOrder()
+    {
+        const byte A = 3, B = 4, C = 5;
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+            [(byte)0, PlayerIds.Good, PlayerIds.Neutral, A, B, C], gameMode: GameMode.Skirmish);
+        world.SetAllied(A, B, allied: true);
+        world.DamageHeart(A, world.Player(A).HeartHealth, PlayerIds.Good);
+        world.DamageHeart(C, world.Player(C).HeartHealth, PlayerIds.Good);
+        GameSimulation sim = Simulation(database, world);
+
+        sim.Run(1);
+
+        Assert.Equal((PlayerStatus.Won, PlayerStatus.Won, PlayerStatus.Lost),
+            (world.Player(A).Status, world.Player(B).Status, world.Player(C).Status));
+    }
+
+    /// <summary>My Pet Dungeon (mode 4) carries no verdict through alliances (<c>0x004BE630</c> returns
+    /// after its score block), so there the last keeper's win comes from the frame tail's award alone.</summary>
+    [Fact]
+    public void InMyPetDungeonTheAwardAloneMakesTheLastKeeperWin()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = NewWorld(database, GameMode.MyPetDungeon);
+        world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, Rival);
+        GameSimulation sim = Simulation(database, world);
+
+        sim.Run(1);
+
+        Assert.Equal(PlayerStatus.Conquered, sim.World.Player(Keeper).Status);
+        Assert.Equal(PlayerStatus.Won, sim.World.Player(Rival).Status);
+    }
+
+    /// <summary>The frame tail's award is skipped in mode 1 (<c>0x004BB39A</c>): in the campaign the
+    /// last keeper standing wins only when the level's script says so.</summary>
+    [Fact]
+    public void InTheCampaignTheLastKeeperStandingIsNotAwardedTheWin()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = NewWorld(database, GameMode.Campaign);
+        world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, Rival);
+        GameSimulation sim = Simulation(database, world);
+
+        sim.Run(1);
+
+        Assert.Equal(PlayerStatus.Conquered, sim.World.Player(Keeper).Status);
+        Assert.Equal(PlayerStatus.Playing, sim.World.Player(Rival).Status);
     }
 
     [Fact]
@@ -217,7 +270,7 @@ public class DungeonHeartTests
     public void TheVerdictAndTheHeartSurviveASnapshot()
     {
         GameDatabase database = Dk2TerrainFixture.Database();
-        WorldState world = NewWorld(database);
+        WorldState world = NewWorld(database, GameMode.Skirmish);
         GiveHeart(world, database, Keeper, new TilePos(5, 5));
         world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, Rival);
         GameSimulation original = Simulation(database, world);
@@ -234,6 +287,8 @@ public class DungeonHeartTests
         Assert.Equal(before.HeartDiedTick, after.HeartDiedTick);
         Assert.Equal(before.HeartRuined, after.HeartRuined);
         Assert.Equal(PlayerStatus.Won, restored.World.Player(Rival).Status);
+        Assert.Equal(GameMode.Skirmish, restored.World.GameMode);
+        Assert.Equal(original.World.ActivePlayerOrder, restored.World.ActivePlayerOrder);
         Assert.Equal(original.StateHash(), restored.StateHash());
     }
 
@@ -293,9 +348,9 @@ public class DungeonHeartTests
             context.Database.Shots[Dk2TerrainFixture.FireballShotId]);
     }
 
-    private static WorldState NewWorld(GameDatabase database) =>
+    private static WorldState NewWorld(GameDatabase database, GameMode mode = GameMode.Campaign) =>
         WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival], gameMode: mode);
 
     private static GameSimulation Simulation(GameDatabase database, WorldState world) =>
         new(database, world, 1, [new DungeonHeartSystem()]);

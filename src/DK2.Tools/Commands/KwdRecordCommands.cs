@@ -706,26 +706,23 @@ internal static partial class KwdCommands
         Console.WriteLine($"   {constants}");
         Console.WriteLine();
 
-        // Q84: id 66 looks like a player count. Test it against the one
-        // per-level source that names players outright - the creature pool's
-        // player ids - rather than against a hunch.
-        Console.WriteLine("id 66 against the highest player id in the level's creature pool:");
-        int agree = 0, disagree = 0, nopool = 0;
-        var mismatches = new List<string>();
+        // Q576: id 66 is an alliance record (0x0051DC90), several a level. Group the
+        // levels by their pair list so the exceptions stand out.
+        Console.WriteLine("id 66 alliance pairs, levels grouped by identical lists:");
+        var byPairs = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
         foreach (string file in Directory.GetFiles(mapsDir, "*Variables.kld").OrderBy(f => f))
         {
             string level = Path.GetFileName(file)[..^"Variables.kld".Length];
             GlobalVariables v;
             try { v = KwdVariables.Parse(KwdReader.ReadFile(file)); }
             catch { continue; }
-            if (!v.Misc.TryGetValue((VariableTypeId)66, out MiscVariable? m)) continue;
-            if (v.CreaturePool.Count == 0) { nopool++; continue; }
-            int maxPlayer = v.CreaturePool.Max(e => e.PlayerId);
-            if (maxPlayer == m.Value) agree++;
-            else { disagree++; mismatches.Add($"{level}: id66={m.Value} maxPoolPlayer={maxPlayer}"); }
+            if (v.Alliances.Count == 0) continue;
+            string key = string.Join(" ", v.Alliances.Select(a => $"({a.PlayerId},{a.OtherPlayerId})"));
+            if (!byPairs.TryGetValue(key, out List<string>? levels)) byPairs[key] = levels = [];
+            levels.Add(level);
         }
-        Console.WriteLine($"   agree={agree} disagree={disagree} (levels with no pool: {nopool})");
-        foreach (string s2 in mismatches.Take(12)) Console.WriteLine($"      {s2}");
+        foreach ((string pairList, List<string> levels) in byPairs)
+            Console.WriteLine($"   {levels.Count,2} levels: {pairList}   e.g. {string.Join(" ", levels.Take(4))}");
         Console.WriteLine();
 
         Console.WriteLine("ids present in only SOME level files:");

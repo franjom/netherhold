@@ -1,0 +1,68 @@
+# The unaided keeper on a stock map: level 18 gives Nemesis (player 4) IAMinimumCreatures 26,
+# IACreatureSkillLevel 4, IAThreatSuperiority 125, NeverAttack 0, IAFirstEnd 2, IAFirstStart 0,
+# BreachAtXPoints 1, CallToArmsUsage 0 and Call to Arms at availability 3 from its own VARIABLES
+# rows. The level places no creature of Nemesis's, so the scenario stands 27 Black Knights in its
+# Lair and Training Room, 23 at level 4 and four at level 1. No command is scripted.
+# On the first turn the readiness test (0x004FAB10) finds the four under-levelled knights few
+# enough to grant each a level, as commands here (ADR-0298).
+# Level 18's VARIABLES ally its three computer keepers, Nemesis (4), Fabian (5) and Faust (6)
+# (id-66 records, alliances.md section 2), so the planner (0x004FAEF0) never chooses either of them:
+# 0x004BF390 calls an ally no enemy. The human (player 3, 46 tiles off) is the only keeper left to
+# attack, and this run does not pin whether or when Nemesis goes for it.
+#
+# What this run does NOT establish: DK2's timing; no original run of Nemesis has been compared.
+id: keepers-level18-nemesis-allies-001
+question: >
+  Does Nemesis, unaided, grant its under-levelled knights the levels its readiness test wants,
+  and leave its allies Fabian and Faust alone?
+map: campaign:level18
+seed: 12345
+duration_ticks: 400
+viewing_player: 4
+computer_keepers: [4]
+setup:
+  placed_things: true
+  players:
+    - { id: 1, gold: 0, mana: 0 }
+    - { id: 2, gold: 0, mana: 0 }
+    - { id: 3, gold: 0, mana: 0 }
+    - { id: 4, gold: 10000, mana: 200000 }
+    - { id: 5, gold: 0, mana: 0 }
+    - { id: 6, gold: 0, mana: 0 }
+  creatures:
+    - { type: Black Knight, at: [52, 52], player: 4, level: 4 }
+    - { type: Black Knight, at: [53, 52], player: 4, level: 4 }
+    - { type: Black Knight, at: [54, 52], player: 4, level: 4 }
+    - { type: Black Knight, at: [55, 52], player: 4, level: 4 }
+    - { type: Black Knight, at: [56, 52], player: 4, level: 4 }
+    - { type: Black Knight, at: [52, 53], player: 4, level: 4 }
+    - { type: Black Knight, at: [53, 53], player: 4, level: 4 }
+    - { type: Black Knight, at: [54, 53], player: 4, level: 4 }
+    - { type: Black Knight, at: [55, 53], player: 4, level: 4 }
+    - { type: Black Knight, at: [56, 53], player: 4, level: 4 }
+    - { type: Black Knight, at: [52, 54], player: 4, level: 4 }
+    - { type: Black Knight, at: [53, 54], player: 4, level: 4 }
+    - { type: Black Knight, at: [54, 54], player: 4, level: 4 }
+    - { type: Black Knight, at: [55, 54], player: 4, level: 4 }
+    - { type: Black Knight, at: [56, 54], player: 4, level: 4 }
+    - { type: Black Knight, at: [52, 55], player: 4, level: 4 }
+    - { type: Black Knight, at: [53, 55], player: 4, level: 4 }
+    - { type: Black Knight, at: [54, 55], player: 4, level: 4 }
+    - { type: Black Knight, at: [55, 55], player: 4, level: 4 }
+    - { type: Black Knight, at: [56, 55], player: 4, level: 4 }
+    - { type: Black Knight, at: [52, 56], player: 4, level: 4 }
+    - { type: Black Knight, at: [53, 56], player: 4, level: 4 }
+    - { type: Black Knight, at: [54, 56], player: 4, level: 4 }
+    - { type: Black Knight, at: [52, 47], player: 4 }
+    - { type: Black Knight, at: [53, 47], player: 4 }
+    - { type: Black Knight, at: [54, 47], player: 4 }
+    - { type: Black Knight, at: [55, 47], player: 4 }
+observe:
+  - state_hash
+  - events
+expect:
+  - event: level_granted
+    detail: "player=4"
+    because: >
+      Readiness (0x004FAB10) grants each under-levelled non-worker one ordinary level-up when
+      they are at most IACreatureSkillLevel and fewer than the army; a command in ours.

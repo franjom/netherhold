@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**310** — `0x07AD9F97E72E7FD3`. FormatVersion also 310. New fields: `WorldState.GameMode` and `ActivePlayerOrder` are hashed and saved, and `PlayerState.AlliedWith` (already hashed) is now saved (ADR-0546, ADR-0547). Behaviour: the level's id-66 alliances apply at load, imps refuse an ally's floor, verdicts carry to allies in skirmish and multiplayer, the heart tail walks the active list, the last-keeper award is skipped in the campaign, and the time limit counts down before the trigger walk. The pin fixture has no alliance records and no fallen heart; `LevelAllianceTests`, `VerdictRulesTests` and `DungeonHeartTests` cover the rest.
+
 **309** — `0x0528E18272904DCD`. FormatVersion also 309. Behavior only: a withdrawal's step 5 spends the away-from-target stage's draws when a live creature or trap is staged, and each caller stages what DK2 leaves in `+0x502` — the NonFighter arm its candidate hero, `SelectAVictim` nothing; the local tries no longer require a walkable tile (ADR-0545). No new fields; the pin fixture has no withdrawal.
 
 **308** — `0xC26E46D419A4702E`. FormatVersion also 308. Behavior only: a withdrawal's failed room pick (no rooms, or a drawn bridge) ends it with no further draw, and the pick is `0x004C63D0`'s list index (ADR-0544). No new fields; the pin fixture has no withdrawal. `CombatFearTests`' roomless and bridge tests fail on 307; its three-unroutable-room test pins that step 5 is still reached.

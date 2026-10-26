@@ -177,7 +177,7 @@ Re-read 2026-09-30 (Ghidra 12.1.4, MCP and runner, Claude's clone) and **BUILT**
 | Room order | `0x004E3800` | a new room is linked at the head of its owner's list: newest first | STRONGLY INFERRED |
 | Breach counts | `0x004F8993` | `BreachAtXPoints & 0xF` into all sixteen | STRONGLY INFERRED |
 | Tunnel store | `0x004FDC50`, `0x004FDB90` | with the nibble set, an owner `0x004BF390` calls an enemy on any of the nine tiles around the cursor stores start = cursor, end = target in the first empty slot, clears the nibble and ends the task | STRONGLY INFERRED |
-| Neutral land | `0x004BF390`, `0x0051DC90` | alliance bytes start at zero and only a level record sets one. The reading here was that unowned land, held by the neutral player, counts and the store fires at the corridor's first step out; but 63 levels' id-66 records ally every keeper with neutral, so `0x004BF390` calls neutral land no enemy there (Q576) | probably false |
+| Neutral land | `0x004BF390`, `0x0051DC90` | every shipped level allies each keeper with the neutral player (id-66 records, [alliances.md](alliances.md) §2), so `0x004BF390` calls neutral land no enemy: an attack tunnel does not stop at its first step onto unowned ground | CONFIRMED |
 | Heart room extent | | the +3 rule centres a seven-by-seven room; `RoomIndex` sees five by five, so ours lands one tile inside the corner | UNKNOWN |
 
 ## 7. Front and attack management — `0x004FE9C0`, `0x004FECE0`
@@ -192,7 +192,7 @@ Re-read 2026-09-30 (Ghidra 12.1.4, MCP and runner, Claude's clone) and **BUILT**
 Deviations (ADR-0298): the one-tick delay and the keeper's RNG; a room's first slab is its
 first tile and its list order the capture's scan; routes run over the captured bytes, whose
 router selects gate midpoints as mode `0x2000` does. Tests: `KeeperAttackPlannerTests`,
-`GrantCreatureLevelTests`, `level18_nemesis_attack.yaml`, `level11a_drako_attack.yaml`.
+`GrantCreatureLevelTests`, `level18_nemesis_allies.yaml`, `level11a_drako_attack.yaml`.
 
 ## 8. Slapping — `0x00502F00`
 

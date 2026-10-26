@@ -12531,3 +12531,54 @@ live creature staged where ours has dropped it, and spFighting's two rarer drops
 (a spell attacker's target at zero health, `+0x16 == 2`) are not modelled. The
 NonFighter arm's alarm still takes the candidate's position directly. Campaign
 effect measured separately.
+
+## ADR-0546 — Apply the level's alliance records at load
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** Every shipped level carries VARIABLES id-66 records
+([`0x0051DC90`](research/functions/0051DC90.md)): 63 ally each keeper with the
+neutral player and neutral with the heroes, and `level18` also allies its three
+computer keepers. Ours folded id 66 into the plain-value table and started every
+player unallied, so neutral was everybody's enemy, which DK2 never has on a shipped
+level (Q558, Q576). An audit of all 73 readers of the alliance predicates found
+neutral and heroes handled only through the array, except special cases ours
+already mirrors, and one reader ours lacked: the claim handlers refuse an allied,
+non-neutral tile ([alliances.md](research/alliances.md)). The snapshot did not save
+`AlliedWith`.
+
+**Decision.** `AllianceEntry` parses id 66; `GlobalVariables.Alliances` accumulates
+global then level; `WorldState.FromMap` applies each pair whose two players the
+world holds. Imps refuse an allied, non-neutral tile in both claim priorities
+(`IsAlliedFloor`). `AlliedWith` is saved. Hash/save 310.
+
+**Consequences.** On campaign levels keeper and hero creatures, traps, hearts and
+the keeper AI stop treating neutral creatures and unowned land as enemy; imps
+still claim neutral ground. Level 18's allied keepers leave each other's floor
+and creatures alone. Measured on Level 11A (Q652): our Drako no longer calls at
+Morgana's front, which DK2's capture does on turn 700; a known regression
+against that capture, downstream of the readers, and open.
+
+## ADR-0547 — Allies end games together, outside the campaign
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** `0x004BE630` ends a player's game, then in modes 2 and 3 (skirmish,
+multiplayer) carries the verdict through alliances: a winner ends every keeper that
+is not its mutual ally, and a loss leaves the last keeper met the winner when every
+other one left is its mutual ally, its allies winning with it; a lapsed time limit
+skips that and ends every keeper ([win-and-defeat.md](research/win-and-defeat.md) §7,
+Q359). The frame tail's last-keeper award is also skipped in mode 1 (`0x004BB39A`).
+Ours had no game mode, consulted no alliance, and awarded the last keeper in the
+campaign too.
+
+**Decision.** `GameMode` (DK2's `[0x0075AD4B]`) is world state, the campaign by
+default; `WorldState.ActivePlayerOrder` is the active list, the PLAYERS order
+reversed (STRONGLY INFERRED: the loader's activation order is untraced).
+`VerdictRules.End` mirrors the routine's recursion and is the only way the heart
+system, `WIN_GAME`/`LOSE_GAME` and the time-limit lapse end a game. The heart tail
+walks the active list and runs the award after each fallen keeper's verdict, every
+turn, outside the campaign only; the time limit counts down before the trigger walk,
+as `0x0050A450` does. Both fields are hashed and saved; hash/save 310 with ADR-0546.
+
+**Consequences.** A campaign level is won only by its script, as in DK2. Skirmish
+and multiplayer need a host to pass the mode; none does yet. The `+0x76` bits 19
+and 22 the award reads stay unmirrored (UNKNOWN).

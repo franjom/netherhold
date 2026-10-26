@@ -936,6 +936,7 @@ public sealed partial class ImpTaskSystem
             // (Q154). After that it is an ordinary claim, done standing on it.
             case JobPriority.ClaimFreshlyDug:
                 if (!tile.FreshlyDug) return false;
+                if (IsAlliedFloor(world, tile, playerId)) return false;
                 if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId)) return false;
                 if (ADigIsStillMarkedAround(context, world, target, playerId)) return false;
                 kind = TileWorkKind.Claim;
@@ -957,6 +958,7 @@ public sealed partial class ImpTaskSystem
                 // closed, completed door writes (0x004A66F0, imp-claim-path.md §4, ADR-0443).
                 if (world.DoorAt(target.X, target.Y) is { UnderConstruction: false, Open: false })
                     return false;
+                if (IsAlliedFloor(world, tile, playerId)) return false;
                 if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
                     kind = TileWorkKind.Claim;
                 else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.AttackTile, playerId))
@@ -1095,6 +1097,13 @@ public sealed partial class ImpTaskSystem
     internal static bool TouchesOwnLand(
         SimulationContext context, WorldState world, TilePos target, PlayerId playerId) =>
         OwnFloorRules.Touches(context.Database, world, target, playerId);
+
+    /// <summary>Both claim handlers (<c>0x0046967F</c>, <c>0x0046ABCF</c>) refuse a tile whose owner is
+    /// an ally, the keeper included, before choosing between claim, attack and conversion; a neutral
+    /// tile skips the test, so the level's keeper-with-neutral alliances (Q576) leave it claimable.
+    /// Owner 0 counts as neutral here, where the binary compares the neutral tag only; no tile has it.</summary>
+    private static bool IsAlliedFloor(WorldState world, in TileState tile, PlayerId playerId) =>
+        !TileWorkRules.IsNeutralTile(tile) && world.AreAllied(playerId, tile.OwnerPlayerId);
 
     /// <summary>
     /// Whether any of the eight tiles around <paramref name="target"/> is

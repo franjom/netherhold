@@ -99,12 +99,14 @@ public class LevelVariablesOnRealDataTests
         Assert.True(level1.Variables.TryGet(VariableTypeId.GameTicks, out int gameTicks));
         Assert.Equal(340, gameTicks);
 
-        // The merge adds and never loses: level 1 contributes four plain ids the global
-        // table lacks, so the merged count is exactly four higher. Its fifth, id 77, is a
-        // structured record list kept apart from Misc since ADR-0491.
-        Assert.Equal(global.Variables.Misc.Count + 4, level1.Variables.Misc.Count);
+        // The merge adds and never loses: level 1 contributes three plain ids the global
+        // table lacks, so the merged count is exactly three higher. Ids 77 and 66 are
+        // structured record lists kept apart from Misc (ADR-0491, ADR-0546).
+        Assert.Equal(global.Variables.Misc.Count + 3, level1.Variables.Misc.Count);
         Assert.Empty(global.Variables.CreatureFieldOverrides);
         Assert.Equal(2, level1.Variables.CreatureFieldOverrides.Count);
+        Assert.Empty(global.Variables.Alliances);
+        Assert.Equal([new AllianceEntry(2, 1), new AllianceEntry(3, 2)], level1.Variables.Alliances);
     }
 
     /// <summary>
@@ -297,6 +299,28 @@ public class LevelVariablesOnRealDataTests
         Assert.Equal(66, Directory.GetFiles(maps, "*Variables.kld").Length);
         Assert.Equal(25, GameDatabaseLoader.Load(install)
             [VariableTypeId.EntranceGenerationSpeedSeconds]);
+    }
+
+    /// <summary>Level 18's id-66 records (alliances.md §2) reach the world: every keeper allied with
+    /// neutral, neutral with the heroes, and its three computer keepers 4, 5 and 6 with each other,
+    /// none of them with the player (3) or the heroes.</summary>
+    [InstallFact]
+    public void Level18AlliesItsThreeComputerKeepersAndEveryoneWithNeutral()
+    {
+        string install = Install();
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "level18");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level18")!;
+        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "level18")!;
+        Simulation.WorldState world = Simulation.WorldState.FromMap(db, map, players.Select(p => p.PlayerId));
+
+        Assert.True(world.AreAllied(PlayerIds.Neutral, PlayerIds.Good));
+        foreach (byte keeper in new byte[] { 3, 4, 5, 6 })
+        {
+            Assert.True(world.AreAllied(keeper, PlayerIds.Neutral));
+            Assert.False(world.AreAllied(keeper, PlayerIds.Good));
+        }
+        Assert.True(world.AreAllied(4, 5) && world.AreAllied(4, 6) && world.AreAllied(5, 6));
+        Assert.False(world.AreAllied(3, 4) || world.AreAllied(3, 5) || world.AreAllied(3, 6));
     }
 
 }

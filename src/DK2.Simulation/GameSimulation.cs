@@ -20,7 +20,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 309;
+    private const ulong HashVersion = 310;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
@@ -143,11 +143,19 @@ public sealed class GameSimulation
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));
+        // The per-turn world update (0x0050A450) counts the level time limit down at 0x0050A64E,
+        // before its trigger walk at 0x0050A745.
+        if (World.Triggers.CountDownLevelTimeLimit())
+        {
+            _context.Emit(nameof(TriggerExecutor), "level_time_up", $"turn={dk2Turn}");
+            // 0x0050A67A: in skirmish and multiplayer every keeper loses, in active-list order.
+            if (World.GameMode is GameMode.Skirmish or GameMode.Multiplayer)
+                foreach (PlayerId keeper in World.ActivePlayerOrder)
+                    if (Data.Model.PlayerIds.IsKeeper(keeper.Value))
+                        VerdictRules.End(World, keeper, PlayerStatus.Lost);
+        }
         using (profiler.Scope(SimulationMarkers.Triggers))
             LastTriggerRun = _triggers.Run(dk2Turn);
-        // The same per-turn world update (0x0050A450) counts the level time limit down.
-        if (World.Triggers.CountDownLevelTimeLimit())
-            _context.Emit(nameof(TriggerExecutor), "level_time_up", $"turn={dk2Turn}");
         foreach (BlockedTrigger done in LastTriggerRun.CreatureActions)
             _context.Emit(
                 nameof(TriggerExecutor), "trigger_performed",
