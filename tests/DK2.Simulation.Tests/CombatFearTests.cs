@@ -22,6 +22,7 @@ public class CombatFearTests
     public void WithdrawalThroughTheCombatGroupDoesNotDispatchTheBattleHandler()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceTreasury(world, Keeper);
         CreatureState creature = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
         var sim = new GameSimulation(db, world, 1, [new WithdrawWithoutBattle(creature)]);
         sim.Tick();
@@ -39,6 +40,101 @@ public class CombatFearTests
             hearts.Refresh(context.World, context.Database);
             Assert.True(FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
                 hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId), []));
+        }
+    }
+
+    /// <summary><c>0x004611D0</c> with no lair, no heart and no room: both pickers find nothing
+    /// without a draw (<c>0x004C6460</c>, <c>0x004C63D0</c> on a zero count), and the failed room pick
+    /// returns 0 before step 5's local draws. Original-byte controls with the pickers failing return
+    /// 0 with these two seeds unchanged (decision-parity-audit.md); the zero-count no-draw is read,
+    /// not emulated.</summary>
+    [Theory]
+    [InlineData(1u)]
+    [InlineData(0x12345678u)]
+    public void ARoomlessKeepersCreatureDoesNotWithdraw_AndDrawsNothing(uint seed)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+
+        WithdrawCall call = CallWithdraw(db, world, goblin, seed);
+
+        Assert.False(call.Withdrew);
+        Assert.Equal(call.SeedBefore, call.SeedAfter);
+        Assert.NotEqual(CreatureActivity.Withdrawing, goblin.Activity);
+    }
+
+    /// <summary><c>0x004C63D0</c> draws over the whole list, bridges included, and a draw that lands
+    /// on a bridge finds no room; the withdrawal ends there after that one draw.</summary>
+    [Fact]
+    public void ADrawOnABridgeEndsTheWithdrawal_AfterThatOneDraw()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ref TileState bridge = ref world.Tile(new TilePos(15, 12));
+        bridge.TerrainId = Dk2TerrainFixture.WoodenBridgeTerrain;
+        bridge.OwnerPlayerId = Keeper;
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+
+        WithdrawCall call = CallWithdraw(db, world, goblin, 1u);
+
+        var expected = new Dk2Lcg(call.SeedBefore);
+        Assert.Equal(0, expected.NextInt(1));
+        Assert.False(call.Withdrew);
+        Assert.Equal(expected.Seed, call.SeedAfter);
+    }
+
+    /// <summary>Step 5 is reached only when three picked rooms all fail to route: here the one room
+    /// is walled in, three picks draw random(1) each, and a local try then finds a tile beside the
+    /// creature (no staged target, so up to five tries; DK2's away-from-target stage is not built).</summary>
+    [Fact]
+    public void ThreeUnroutableRoomPicks_FallBackToATileBesideTheCreature()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                ref TileState tile = ref world.Tile(new TilePos(16 + dx, 16 + dy));
+                tile.TerrainId = dx == 0 && dy == 0 ? Dk2TerrainFixture.TreasuryTerrain : Dk2TerrainFixture.Rock;
+                tile.OwnerPlayerId = dx == 0 && dy == 0 ? Keeper : (byte)0;
+            }
+        }
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+
+        WithdrawCall call = CallWithdraw(db, world, goblin, 1u);
+
+        var picks = new Dk2Lcg(call.SeedBefore);
+        for (int i = 0; i < 3; i++) picks.NextInt(1);
+        Assert.True(call.Withdrew);
+        Assert.NotEqual(picks.Seed, call.SeedAfter);
+        Assert.InRange(goblin.Destination.X, 11, 13);
+        Assert.InRange(goblin.Destination.Y, 11, 13);
+    }
+
+    private readonly record struct WithdrawCall(bool Withdrew, uint SeedBefore, uint SeedAfter);
+
+    /// <summary>One <see cref="FearRules.Withdraw"/> call on DK2's own generator, with its position
+    /// read just before and just after the call.</summary>
+    private static WithdrawCall CallWithdraw(GameDatabase db, WorldState world, CreatureState creature, uint seed)
+    {
+        var caller = new WithdrawCaller(creature);
+        var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), [caller]);
+        sim.Tick();
+        return caller.Call;
+    }
+
+    private sealed class WithdrawCaller(CreatureState creature) : ISimulationSystem
+    {
+        public WithdrawCall Call { get; private set; }
+        public string Name => "withdrawal call";
+        public void Execute(SimulationContext context)
+        {
+            context.Navigation.Refresh();
+            var hearts = new HeartSites();
+            hearts.Refresh(context.World, context.Database);
+            uint before = ((Dk2Lcg)context.Rng.Algorithm).Seed;
+            bool withdrew = FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
+                hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId), []);
+            Call = new WithdrawCall(withdrew, before, ((Dk2Lcg)context.Rng.Algorithm).Seed);
         }
     }
 
@@ -129,10 +225,12 @@ public class CombatFearTests
         // ADR-0208: 199, 203, then the withdraw's state 6 saving 203 and resuming 202, which
         // ends at once in state 1.
         (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceTreasury(world, Keeper);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
         Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
         Dk2TerrainFixture.SetKnownIdentities(world);
-        GameSimulation sim = Combat(db, world);
+        // The run to the Treasury needs the movement pass, which follows combat in the real order.
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -150,6 +248,7 @@ public class CombatFearTests
     public void AWithdrawalStampsWhereTheFightWas_WithDk2sXInBothWords()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceTreasury(world, Keeper);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 9);
         Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
         GameSimulation sim = Combat(db, world);
@@ -168,6 +267,7 @@ public class CombatFearTests
     public void ABackedOffCreatureKeepsItsTarget_AndRunsWhenTheTimerIsOut()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceTreasury(world, Keeper);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
         CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
         GameSimulation sim = Combat(db, world);
@@ -185,8 +285,8 @@ public class CombatFearTests
             Assert.Equal(demon.Id, goblin.FightTargetId);
         }
 
-        // With no lair, heart or room of its own, the Goblin withdraws to a tile beside it and
-        // stands idle there; it never swings at the Demon on the way.
+        // With no lair or heart, the Goblin withdraws to its Treasury and stands idle there; it
+        // never swings at the Demon on the way.
         sim.Run(timer + 3);
         Assert.Contains(sink.Events, e => e.Kind == "withdraws" && e.Detail.Contains("creature=" + goblin.Id));
         Assert.True(goblin.Activity is CreatureActivity.Withdrawing or CreatureActivity.Idle, goblin.Activity.ToString());
@@ -232,6 +332,7 @@ public class CombatFearTests
     public void AHurtCreatureFarFromItsHeart_WithdrawsInsteadOfFighting()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceTreasury(world, Keeper);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
         goblin.Health = 400; // under a third of 1500
         CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
@@ -406,6 +507,21 @@ public class CombatFearTests
             {
                 ref TileState tile = ref world.Tile(new TilePos(cx + dx, cy + dy));
                 tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+                tile.OwnerPlayerId = owner;
+            }
+        }
+    }
+
+    /// <summary>A two-by-two Treasury of the keeper's at (15..16, 15..16), within reach of the duellists:
+    /// a withdrawal needs a room of its own once it has no lair or heart (<c>0x004611D0</c>).</summary>
+    private static void PlaceTreasury(WorldState world, byte owner)
+    {
+        for (int y = 15; y <= 16; y++)
+        {
+            for (int x = 15; x <= 16; x++)
+            {
+                ref TileState tile = ref world.Tile(new TilePos(x, y));
+                tile.TerrainId = Dk2TerrainFixture.TreasuryTerrain;
                 tile.OwnerPlayerId = owner;
             }
         }

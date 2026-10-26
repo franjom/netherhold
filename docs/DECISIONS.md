@@ -12474,3 +12474,25 @@ untired through the lair attempt and state 80's wound test.
 **Consequences.** A wounded, rested creature with a bed fights or works on until
 tired. Ours approximates the latch (HYPOTHESIS): `AwakeTicks` against `TimeAwake`,
 reset on waking, where DK2 reloads `+0x58` each period and drains it only asleep. A bedless wounded creature tries for a lair only from idle.
+
+## ADR-0544 — A withdrawal's failed room pick ends it
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** [`0x004611D0`](research/functions/004611D0.md) tries up to three
+rooms through [`0x004C63D0`](research/functions/004C63D0.md), which returns no
+room without a draw on an empty list and no room when its one draw lands on a
+bridge. A pick that finds no room leaves the loop with no destination and the
+handler returns 0; only three picked rooms that all fail to route reach the
+local tries (`0x004613E3`). Ours skipped a failed pick, went to the local tries
+with no rooms at all, and picked the draw-th non-bridge room. The roomless gap is
+[decision-parity-audit.md](research/decision-parity-audit.md#known-deterministic-gaps-still-prevent-a-full-parity-claim)'s.
+
+**Decision.** `RoomLists.RandomNonBridgeRoom` mirrors `0x004C63D0`, as the keeper
+AI's `KeeperView.RandomNonBridgeRoom` already does (ADR-0394), and
+`FearRules.Withdraw` returns false on a failed pick. Hash/save 308 marks the
+behaviour change; no snapshot fields are added.
+
+**Consequences.** A creature whose keeper has no lair, heart or room for it no
+longer withdraws or draws; its caller fights on, flees or ends as before. The
+away-from-target stage DK2 runs before the local tries with a staged target
+(`+0x502`, up to twelve draws) is still not built. Campaign effect unmeasured.

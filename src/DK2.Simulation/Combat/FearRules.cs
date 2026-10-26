@@ -477,8 +477,8 @@ public static class FearRules
     // ------------------------------------------------------------------ the withdrawal
 
     /// <summary>The withdraw state (<c>0x004611D0</c>): a destination — my lair, else my heart two
-    /// tiles off on each axis, else one of three random rooms of mine that is not a bridge, else a
-    /// random neighbouring tile I can see — then a run to it, arriving idle. A hero would go to a
+    /// tiles off on each axis, else up to three random rooms of mine, ending the withdrawal if a pick
+    /// finds none, else a random neighbouring tile I can see — then a run to it, arriving idle. A hero would go to a
     /// hero gate; that walk is not built (gates themselves are, ADR-0320), so a hero never withdraws
     /// (Q372). True when the creature is on its way and out of the fight.</summary>
     public static bool Withdraw(
@@ -533,10 +533,13 @@ public static class FearRules
 
             if (destX < 0)
             {
-                for (int attempt = 0; attempt < 3 && destX < 0 && mineRooms.Count > 0; attempt++)
+                // 4. Up to three rooms of mine (0x004613E3): a pick that finds no room — none at
+                // all, or a drawn bridge — ends the withdrawal there, before any local draw. Only
+                // three picked rooms that all fail to route reach step 5.
+                for (int attempt = 0; attempt < 3 && destX < 0; attempt++)
                 {
-                    RoomInstance? room = PickRoom(mineRooms, rng.NextInt(mineRooms.Count));
-                    if (room is null) continue;
+                    RoomInstance? room = RoomLists.RandomNonBridgeRoom(mineRooms, rng);
+                    if (room is null) return false;
                     int x = CreatureState.CentreOf(room.CentreFieldX), y = CreatureState.CentreOf(room.CentreFieldY);
                     if (!CombatTargetRules.CanReach(context.Navigation, me, mine, x, y, int.MaxValue, scratch)) continue;
                     destX = x;
@@ -546,6 +549,8 @@ public static class FearRules
 
             if (destX < 0)
             {
+                // 5. DK2 first spends up to twelve draws on a point away from a staged target
+                // (+0x502), which the two local tries then overwrite; that stage is not built.
                 int attempts = me.FightTargetKind == FightTargetKind.Creature && world.CreatureById(me.FightTargetId) != null ? 2 : 5;
                 for (int attempt = 0; attempt < attempts && destX < 0; attempt++)
                 {
@@ -575,19 +580,6 @@ public static class FearRules
         context.Emit(SystemName, "withdraws",
             $"creature={me.Id} type={mine.Name} health={me.Health} to={destX / Fp32.One},{destY / Fp32.One} lair={bed >= 0}");
         return true;
-    }
-
-    /// <summary><c>0x004C63D0</c>'s walk: the draw is over every room, bridges are skipped without
-    /// counting down, so a draw that lands past the last non-bridge room finds nothing.</summary>
-    private static RoomInstance? PickRoom(IReadOnlyList<RoomInstance> rooms, int draw)
-    {
-        for (int i = 0; i < rooms.Count; i++)
-        {
-            if (BridgeRules.IsBridge(rooms[i].Definition)) continue;
-            if (draw == 0) return rooms[i];
-            draw--;
-        }
-        return null;
     }
 
     /// <summary>State 6 on the way to state 202, which sets the walk speed and ends at once: the

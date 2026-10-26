@@ -158,21 +158,17 @@ requiring Guard Room conversion before troops can receive recorded drops.
 
 ## Known deterministic gaps still prevent a full parity claim
 
-**CONFIRMED controlled mismatch:** original
-[withdrawal](functions/004611D0.md), with failed Heart and room pickers and no
-lair, returns 0 before local random choices. Native seeds 1 and `0x12345678`
-remain unchanged. The real hash-303 handler on a roomless open fixture instead
-returns true, enters state 6 toward withdrawal and consumes two local draws:
-
-| Starting seed | Native return / ending seed | Ours return / ending seed |
-|---:|---|---|
-| 1 | 0 / 1 | true / 1586005467 |
-| 305419896 | 0 / 305419896 | true / 3442499178 |
-
-The native room pickers are stubbed to failure; the modern fixture actually has
-zero rooms. This verifies the caller's failure branch, not every room-selection
-predicate. It reproduces the previously documented failed-pick gap; there is no
-evidence that this branch caused the measured Level 4 losses.
+**Closed (ADR-0544, hash 308):** original [withdrawal](functions/004611D0.md),
+with failed Heart and room pickers and no lair, returns 0 before local random
+choices. The room picker ([`0x004C63D0`](functions/004C63D0.md)) returns no room
+without a draw on an empty list, and none when its one draw lands on a bridge; a
+failed pick ends the withdrawal. Ours now does the same
+(`RoomLists.RandomNonBridgeRoom`, `FearRules.Withdraw` returns false); before
+hash 308 it skipped the failed pick and took the local fallback even with no rooms.
+The campaign effect is unmeasured. The away-from-target stage DK2 runs when a
+staged target is live is still not built; its point is overwritten by the local
+tries, but its up-to-twelve draws are not consumed by ours, and the kind-3 mapping
+is unread.
 
 Two other limits are already established in native research and rechecked here:
 

@@ -26,6 +26,16 @@ public static class RoomLists
             .OrderByDescending(room => world.TileAtIndex(room.TileIndices[0]).RoomListPosition.Value)
             .ThenByDescending(room => room.TileIndices[0]).ToArray();
 
+    /// <summary><c>0x004C63D0</c>: with no rooms, null and no draw; otherwise one random(count) over
+    /// the whole list, bridges included, and null when the drawn entry is a bridge — the walk's
+    /// counter goes negative there and runs off the list's end.</summary>
+    public static RoomInstance? RandomNonBridgeRoom(IReadOnlyList<RoomInstance> rooms, SimRandom rng)
+    {
+        if (rooms.Count == 0) return null;
+        RoomInstance drawn = rooms[rng.NextInt(rooms.Count)];
+        return BridgeRules.IsBridge(drawn.Definition) ? null : drawn;
+    }
+
     internal static void Initialize(WorldState world, GameDatabase database)
     {
         int[] parent = Enumerable.Repeat(-1, world.TileCount).ToArray();

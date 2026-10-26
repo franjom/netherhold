@@ -259,6 +259,9 @@ public class CombatNonFighterTests
     public void AnImpThatSeesAHeroAwayFromItsRoomsWithdraws()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
+        // No Guard Room near the hero, but a room to withdraw to: with none at all the
+        // withdrawal finds no destination (0x004611D0's failed room pick).
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.TreasuryTerrain, 15, 16);
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
         knight.PosX = imp.PosX + 3700; // under a tile: inside an Imp's forced sight

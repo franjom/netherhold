@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**308** — `0xC26E46D419A4702E`. FormatVersion also 308. Behavior only: a withdrawal's failed room pick (no rooms, or a drawn bridge) ends it with no further draw, and the pick is `0x004C63D0`'s list index (ADR-0544). No new fields; the pin fixture has no withdrawal. `CombatFearTests`' roomless and bridge tests fail on 307; its three-unroutable-room test pins that step 5 is still reached.
+
 **307** — `0xC5540B4DA9053FF3`. FormatVersion also 307. Behaviour only: a creature with a bed goes to it only when tired; a wound alone no longer sends it, because the wound branch's Sleep job routes only on the latch `+0x58` (ADR-0543). No new fields. `CreatureNeedsTests.AWoundedGoblinWithABedWaitsUntilItIsTired` covers it.
 
 **306** — `0xD4E1B134A3DB5F84`. FormatVersion also 306. Behavior only: hero updates and both party-link scans run newest first (ADR-0542). No new fields; the pin fixture has no active hero pass. Initial party destinations, follower numbering and removal have separate regressions.
