@@ -143,13 +143,15 @@ the fear-over-time pair the same way.
 **Drain** (type 35): `shots.md` §8 — `min(target health, ShotData1 % of its
 level-scaled Hp)` moved from target to caster.
 
-**Fire** (`0x0048EBD0(creature, 10, owner)`, from a fire-category contact hit on a
-creature under a fifth of its health, from area damage type 3 and process type
-30). `+0x469` = 10 ticks, `+0x46B` = the owner. **No routine that reads `+0x469`
-or `+0x46B` changes health**: the readers are the update above (sound and three
-fire effects a tick), the animation chooser, the effect follower (`0x00487C70`)
-and the serialisers. Burning is a two-and-a-half-second display in v1.70
-(CONFIRMED, negative: every reader of both words was walked).
+**Fire** (`0x0048EBD0(creature, ticks, owner)`): `+0x469` = the ticks, `+0x46B` = the
+owner. Three callers: a fire-category contact hit on a creature at or under a fifth of
+its health, 10 ticks (`0x004AC526`); Modify Health's fire-category ignite under the same
+test, **5** ticks (`0x004ADC4C`); Inferno's process 30, 1 tick every tick (`0x004AF821`).
+**No routine that reads `+0x469` or `+0x46B` changes health**: the readers are the
+update above, the animation chooser, the effect follower (`0x00487C70`) and the
+serialisers (CONFIRMED, negative: every reader of both words was walked). It is not
+display alone: each burning tick the update draws nine times on the simulation stream
+for its flames ([shot-effects.md](shot-effects.md) §5, Q658).
 
 ## 3. The health routine's multipliers (`0x004B2CE0(thing, delta, source, flag)`)
 
