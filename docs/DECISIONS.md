@@ -12474,3 +12474,25 @@ untired through the lair attempt and state 80's wound test.
 **Consequences.** A wounded, rested creature with a bed fights or works on until
 tired. Ours approximates the latch (HYPOTHESIS): `AwakeTicks` against `TimeAwake`,
 reset on waking, where DK2 reloads `+0x58` each period and drains it only asleep. A bedless wounded creature tries for a lair only from idle.
+
+## ADR-0545 — The simulation keeps DK2's level statistics; the profile keeps the copy
+**Date:** 2026-10-26 · **Status:** accepted · Hash/save 309 · Scope: front-end F5.
+
+**Context.** The statistics page, the Total Evil Rating and the hi-score table all read a
+player's 17-dword statistics block, which DK2 counts during play and copies to the profile
+when the verdict lands ([level-statistics.md](research/level-statistics.md)). Ours kept only
+three of its fields.
+
+**Decision.** The running counters live on `PlayerState.Statistics` and are bumped at
+DK2's own event sites; `WorldState.EndGame` runs the level-end sample once per player and
+freezes the counters there, so the copy is the verdict's even when ticks follow in the same
+frame. The front end builds the native-layout block (`LevelStatisticsBlock`) from it and
+writes it, the Total Evil Rating and the keeper rank into our profile file. The rank is
+computed outside the simulation (it is floating point and nothing in play reads it).
+Hi-score rows live in our own `HiScores.dat`, first filled from the install's runtime table.
+
+**Consequences.** Ours approximates three things, each stated in code: `LandOwned` counts
+owned tiles at the end instead of DK2's live `DungeonArea`; the collapsed state stands in for
+the dying bit; specials count only for the arms we build. The statistics page's cell layout
+and the hi-score colours are placeholders (DK2's positions are unread). The x87 precision of
+the rank is UNKNOWN.

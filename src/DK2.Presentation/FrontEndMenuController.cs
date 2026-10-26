@@ -47,6 +47,7 @@ public sealed class FrontEndMenuController : IDisposable
             FrontEndPage.CampaignMap => Campaign is not null && id == 534,
             FrontEndPage.Briefing => Campaign is not null && (id == 169 || id == 170 && Campaign.CanLaunch),
             FrontEndPage.CampaignResults => Campaign is not null && id == 181,
+            FrontEndPage.HighScores => Campaign is { EntryRow: >= 0 } && id == 47,
             FrontEndPage.Options => id is 110 or 111 or 112 or 113,
             FrontEndPage.Graphics => id is 129 or 130,
             FrontEndPage.Sound => id is 146 or 147,
@@ -113,6 +114,8 @@ public sealed class FrontEndMenuController : IDisposable
             if (Page == FrontEndPage.CampaignMap) return Campaign.BackToMenu();
             if (Page == FrontEndPage.Briefing) return id.Value == 169 ? Campaign.BackToMap() : Campaign.Launch();
             if (Page == FrontEndPage.CampaignResults) return Campaign.AcceptResults();
+            // During name entry the page's accept finishes it (DK2 finishes from the edit field).
+            if (Page == FrontEndPage.HighScores && Campaign.EntryRow >= 0) return Campaign.CommitEntry();
             if (Page == FrontEndPage.SinglePlayer && id.Value == 567) return Campaign.Continue();
             if (Page == FrontEndPage.SinglePlayer && id.Value == 6)
             {

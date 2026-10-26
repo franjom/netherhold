@@ -237,11 +237,12 @@ recalled clearly; inspect `0x0053B980` against a recorded ordinary campaign win.
 ## Implementation boundary
 
 F1 storage and F4 map/briefing are built. `CampaignProgression` supplies immutable
-reset, first-open repair, win-branch and hidden-land unlock rules. World result
-handling, special-pickup integration, scores and finale consumers remain F5.
+reset, first-open repair, win-branch and hidden-land unlock rules. Level-end
+statistics, keeper rank, Total Evil Rating and hi-score entry are built (F5 stage B,
+ADR-0545); the finale, special-pickup unlocks and transfer creature remain F5.
 `CampaignMapController` drives selection and camera gates; Unity picks actual
 triangles and presents native arrow/land texture phases. No simulation entities,
-world timing or hash format change is needed.
+world timing change is needed for the map itself; the level-end counters changed the hash (309, ADR-0545).
 
 The briefing resolves all 29 playable map slots through the separate table at
 0x006BC100 (`BriefingTextTable`), including LEVELS1..5 and MPD-specific filenames.

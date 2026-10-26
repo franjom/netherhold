@@ -75,6 +75,26 @@ public static class CampaignProgression
             TransferCreatureId = 0 };
     }
 
+    /// <summary>0x004BE630's shared tail for one player that reached it: the block to profile
+    /// <c>+0x8DD + 0x44 × Number</c> with its valid flag (0x00561E00), the rank for a won or lost
+    /// level (0x00561E90), and in mode 1 the block's Total Evil Rating for the played map, win or
+    /// loss (0x00561BF0); the last player to reach it wins.</summary>
+    public static CampaignProfile RecordStatistics(CampaignProfile profile, PlayerId player, LevelStatisticsBlock block,
+        CampaignSlot played, uint? keeperRank)
+    {
+        int row = player.Value;
+        if (row >= 8) throw new ArgumentOutOfRangeException(nameof(player));
+        var statistics = profile.PlayerStatistics.ToArray();
+        block.ToDwords().CopyTo(statistics, row * LevelStatisticsBlock.Dwords);
+        var valid = profile.PlayerStatisticsValid.ToArray(); valid[row] = 1;
+        var values = profile.PlayerValues.ToArray();
+        if (keeperRank is uint rank) values[row] = rank;
+        var ratings = profile.TotalEvilRating.ToArray();
+        if (played.IsCampaign || played.IsSecret) ratings[played.Value - 1] = block.TotalEvilRating;
+        return profile with { PlayerStatistics = Array.AsReadOnly(statistics), PlayerStatisticsValid = Array.AsReadOnly(valid),
+            PlayerValues = Array.AsReadOnly(values), TotalEvilRating = Array.AsReadOnly(ratings) };
+    }
+
     /// <summary>0x00534F70 on re-entering the front end: a won campaign map re-applies its branch
     /// row (slot 24 has none), repairing a status lost between the level and the menu.</summary>
     public static CampaignProfile RepairAfterLevel(CampaignProfile profile)

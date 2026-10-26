@@ -15,7 +15,7 @@ or a community document.
 |---|---|---|
 | Each offset below carries the name beside it | **Known** | Direct instruction read: the value is loaded from that offset and pushed as the argument to the format string quoted |
 | The bit-named entries are bits of the dword at `+0x76` | **Known** | Each is `SHR`/`AND 1` on `+0x76` before the push |
-| The dump is complete for the fields it prints | **Strongly inferred** | Straight-line code, no branches skipped; but it prints no member of the score block at `+0x142`–`+0x16E` |
+| The dump is complete for the fields it prints | **Strongly inferred** | Straight-line code, no branches skipped; but it prints no member of the score block at `+0x142`–`+0x185` |
 
 ## The fields
 
@@ -69,50 +69,18 @@ one spell array was a mis-transcription of four loops that share a format string
 
 ## The score block, and what it is made of
 
-Twelve dwords at `+0x142`, `+0x146` … `+0x16E` are summed into a weighted total
-at `0x004BF211`–`0x004BF2EA` in the level-end routine `0x004BE630`. The table at
-`0x0069F300` holds **1000, 40, 50, 5, 5, 1, 2, 5, 20, 40, 50, 500**; the first
-eleven weight the other eleven fields in address order (`+0x16E` as 20.12 fixed
-point). `+0x152` is added **unweighted at the sum** (`ADD` at `0x004BF2EA`), and the
-500 at `0x0069F32C` has no reference anywhere (read 2026-10-04).
+`+0x142`..`+0x185` is the level-statistics block (0x44 bytes, the level-statistics
+dumper's names): twelve dwords from `DungeonHeartsDestroyed` to `CreatureTraining`,
+then `LevelWon` (byte), `OwnCreaturesKilled` (the creatures-lost dword `+0x173`
+above), `MoneySpent`, `NumberOfThingsResearched`, `TimeTaken` and three special
+bytes. Each field's writers, the level-end sampling, the two weighted scores
+(table `0x0069F300`, and the My Pet Dungeon `MpdScore*` path), the keeper rank and
+the statistics screen are in [level-statistics.md](level-statistics.md).
 
-The player dumper prints none of them, but the **level-statistics** dumper
-(`debug-dumpers.md`) prints a struct whose first twelve fields land on those
-offsets exactly. `+0x142` is the struct's `+0x00`:
-
-| offset | field | weight |
-|---|---|---:|
-| `+0x142` | `DungeonHeartsDestroyed` | 1000 |
-| `+0x146` | `EnemyCreaturesKilled` | 40 |
-| `+0x14A` | `HeroesDestroyed` | 50 |
-| `+0x14E` | `RoomsTakenOver` | 5 |
-| `+0x152` | `RoomExtraPoints` | unweighted at the sum |
-| `+0x156` | `LandOwned` | 5 |
-| `+0x15A` | **`GoldMined`** | 1 |
-| `+0x15E` | `ManaStored` | 2 |
-| `+0x162` | `ItemsManufactured` | 5 |
-| `+0x166` | `CreaturesCommanded` | 20 |
-| `+0x16A` | `CreaturesConverted` | 40 |
-| `+0x16E` | `CreatureTraining` | 50 |
-
-So **condition type 31 tests how much gold this keeper has mined** (Q260). The
-credit at `0x004973CF` adds to the owning player from a creature, which is what
-mining is.
-
-**There are two scoring systems, split by game mode (Q267, read 2026-10-04).**
-`Variables.kwd` holds `MpdScore*` at ids 228–233 (50, 5, 1, 10, 20, 40; globals
-`0x006F29D5`–`0x006F29E9`). Each is read only at its event: hero killed
-`0x004882FB` and `0x004BEA05`, land owned `0x00455A70`/`0x00455ACB`, gold slab
-mined `0x004973A7`, item manufactured `0x004F5439`, creature entered `0x004DCB81`,
-id 233 `0x004F28B9`. Each read is gated by the mode byte `[0x0075AD4B] == 4` and the
-player's `Number >= 3`, and passes the variable to world slot `+0x344`
-(`0x00511650`), which adds it to `LevelScore` (`+0x72A2`, floored at 0;
-`trigger-state.md` §4). The table above is read only at `0x004BF211`, which
-`0x004BEF14`–`0x004BEF26` enters in modes 1 and 4; mode 4 stores the sum at
-`0x00759C4B`, the others hand it to `0x00561BF0`. So in mode 4 both run, and mode 1
-uses the table alone. **CONFIRMED** for the readers, gates and arithmetic; that
-mode 1 is single-player campaign and mode 4 My Pet Dungeon is STRONGLY INFERRED
-(no mode data read). Ours builds neither.
+So **condition type 31 tests how much gold this keeper has mined** (Q260):
+`GoldMined` `+0x15A` is credited at `0x004973CF` to the owning player of the
+mining creature. Ours keeps `GoldMined`, `HeroesDestroyed` and `ItemsManufactured`;
+the rest of the block is not built.
 
 ## TagId and Number are equal on a level load (Q271, read 2026-10-04)
 

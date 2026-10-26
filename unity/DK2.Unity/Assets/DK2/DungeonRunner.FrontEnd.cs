@@ -82,7 +82,10 @@ namespace DK2.Unity
             _frontEnd = new FrontEndSession(path => paths((int)path), frontEndReturnPage);
             _frontEndStarted = Time.realtimeSinceStartupAsDouble;
             var menuAssets = new InstallClassicFrontEndMenuAssets(install);
-            _campaignMap = new CampaignMapController(_frontEnd, _campaignProfile, _secretFiveAvailable, menuAssets.Briefing);
+            string hiScoresPath = Path.Combine(Application.persistentDataPath, "HiScores.dat");
+            _campaignMap = new CampaignMapController(_frontEnd, _campaignProfile, _secretFiveAvailable, menuAssets.Briefing,
+                LoadHiScores(hiScoresPath, install));
+            _campaignMap.HiScoresChanged += rows => HiScoresFile.Save(hiScoresPath, rows);
             _campaignMap.ProfileChanged += profile =>
             {
                 _campaignProfile = profile;
@@ -110,6 +113,7 @@ namespace DK2.Unity
         {
             double elapsed = Math.Max(0, Time.realtimeSinceStartupAsDouble - _frontEndStarted);
             _frontEnd.Update(TimeSpan.FromSeconds(elapsed));
+            if (_campaignMap.EntryRow >= 0) TypeHiScoreName();
             _frontEndMenu?.Refresh();
             // A click replaces this runner; switch only after the menu has finished with it.
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
@@ -129,6 +133,29 @@ namespace DK2.Unity
             _constructionEffects?.Draw();
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
+        }
+
+        /// <summary>Our own table; on first use the install's runtime table is read (never written), else
+        /// ten empty rows (ADR-0538's import pattern).</summary>
+        private static IReadOnlyList<HiScoreEntry> LoadHiScores(string path, string install)
+        {
+            string original = Path.Combine(install, "Data", "Settings", "HiScores.dat");
+            foreach (string candidate in new[] { path, original })
+            {
+                try { if (File.Exists(candidate)) return HiScoresFile.Read(File.ReadAllBytes(candidate)); }
+                catch (InvalidDataException) { Debug.LogWarning("DK2: unreadable hi-score table " + candidate); }
+            }
+            return HiScoreTable.Empty;
+        }
+
+        private void TypeHiScoreName()
+        {
+            foreach (char typed in Input.inputString)
+            {
+                if (typed == '\b') _campaignMap.EraseEntry();
+                else if (typed == '\n' || typed == '\r') { _campaignMap.CommitEntry(); return; }
+                else _campaignMap.TypeEntry(typed);
+            }
         }
 
         private void RefreshCampaignMap()

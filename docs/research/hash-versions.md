@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**309** — `0x28CA6624BD0F769D`. FormatVersion also 309 (308 is held by another branch). `PlayerState.Statistics`: the level-statistics counters DK2 keeps at `player+0x142`..`+0x185` that were not already fields, the level-end sample of `0x004BE630` and the counters frozen at the verdict (ADR-0545, `level-statistics.md`). The pin fixture ends no game; `LevelStatisticsTests` cover sensitivity, snapshot restore and the end sample.
+
 **307** — `0xC5540B4DA9053FF3`. FormatVersion also 307. Behaviour only: a creature with a bed goes to it only when tired; a wound alone no longer sends it, because the wound branch's Sleep job routes only on the latch `+0x58` (ADR-0543). No new fields. `CreatureNeedsTests.AWoundedGoblinWithABedWaitsUntilItIsTired` covers it.
 
 **306** — `0xD4E1B134A3DB5F84`. FormatVersion also 306. Behavior only: hero updates and both party-link scans run newest first (ADR-0542). No new fields; the pin fixture has no active hero pass. Initial party destinations, follower numbering and removal have separate regressions.

@@ -34,7 +34,7 @@ before Play, or use **DK2 / Front End / Open Front End** while playing. The
 Multiplayer. Main, Single Player, Options and Extras shells and Quit confirmation
 are clickable. New/Continue Campaign lead to the3D map and briefing; locked and closed
 branches cannot be picked. Reset confirmation preserves progress on cancel.
-The briefing go button starts the campaign level; at its result Space returns to the front end's statistics page, and accept there flies back to the map. Loading, multiplayer
+The briefing go button starts the campaign level; at its result Space returns to the front end's statistics page, and the page shows the level-end statistics rows; accept there flies back to the map, first offering hi-score name entry (page 18, typed with Backspace/Enter) when a won level's rating qualifies. Hi-scores load from `HiScores.dat` under `persistentDataPath`, else the install's read-only copy. Loading, multiplayer
 and media actions remain dimmed; option values are not yet bound. Menu labels
 use the local TrueType face described below, with original bitmap fallback and
 original glyph metrics (ADR-0539).

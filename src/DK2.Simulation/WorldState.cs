@@ -346,9 +346,8 @@ public struct PlayerState
     /// <c>IsGood</c> creature dies, to the player its health source names, or else to the owner
     /// of its first engaged attacker; no owner test, so a keeper's own hero counts and the hero
     /// player can credit itself. Zeroed by <c>Player_Initialise</c>.</summary>
-    /// <remarks>Not built: the level-end pass <c>0x004BE9E6</c> that also counts hero-owned
-    /// creatures still dying whose source names the player — we have no level-statistics
-    /// point to run it at.</remarks>
+    /// <remarks>The level-end pass <c>0x004BE9E6</c> also counts hero-owned creatures still
+    /// dying whose source names the player (<see cref="LevelStatisticsRules.Sample"/>).</remarks>
     public int HeroesDestroyed;
 
     /// <summary>Slaps this keeper has been counted for, DK2's <c>player+0xEE6</c> —
@@ -439,6 +438,9 @@ public struct PlayerState
 
     /// <summary>Crates made, DK2's <c>ItemsManufactured</c> (<c>player+0x162</c>).</summary>
     public int ItemsManufactured;
+
+    /// <summary>The rest of the level-statistics block (<see cref="LevelStatisticsRules"/>).</summary>
+    public PlayerLevelStatistics Statistics;
 
     /// <summary>DK2's blueprint list, <c>player+0xA21</c>: the keeper's doors and traps waiting for
     /// a crate, in the order they were placed, which is the order task kinds 9 and 10 take them
@@ -578,6 +580,7 @@ public struct PlayerState
         hash.Add(ManufacturingCreatures);
         hash.Add(InformationGiven);
         hash.Add(ItemsManufactured);
+        Statistics.HashInto(ref hash);
         hash.Add(ManufactureQueue.Count);
         foreach (ManufactureOrder order in ManufactureQueue) order.HashInto(ref hash);
         hash.Add(Blueprints.Count);
@@ -834,12 +837,13 @@ public sealed class WorldState
     /// <summary>Ends the game for one player — DK2's <c>0x004BE630</c>, which returns at
     /// once if <c>Status</c> is already set, so the first verdict stands. Returns whether
     /// this call was the one that ended it (ADR-0162).</summary>
-    public bool EndGame(PlayerId playerId, byte status)
+    public bool EndGame(GameDatabase database, PlayerId playerId, byte status)
     {
         ref PlayerState player = ref Player(playerId);
         if (PlayerStatus.HasEnded(player.Status)) return false;
         player.Status = status;
         player.StatusTick = CurrentTick;
+        LevelStatisticsRules.Sample(this, database, playerId, status);
         return true;
     }
 
@@ -861,6 +865,7 @@ public sealed class WorldState
 
         player.HeartHealth = 0;
         player.KilledByPlayerId = attackerPlayerId.Value;
+        LevelStatisticsRules.CreditHeartDestroyed(this, playerId, attackerPlayerId);
         player.HeartDiedTick = CurrentTick;
         return true;
     }

@@ -57,7 +57,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             byte verdict = PlayerIds.IsKeeper(player.KilledByPlayerId)
                 ? PlayerStatus.Conquered
                 : PlayerStatus.Lost;
-            if (world.EndGame(player.PlayerId, verdict))
+            if (world.EndGame(database, player.PlayerId, verdict))
             {
                 anyoneFell = true;
                 context.Emit(Name, verdict == PlayerStatus.Conquered ? "conquered" : "lost",
@@ -105,7 +105,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             survivor = player.PlayerId.Value;
         }
 
-        if (standing == 1 && world.EndGame(survivor, PlayerStatus.Won))
+        if (standing == 1 && world.EndGame(context.Database, survivor, PlayerStatus.Won))
             context.Emit(Name, "won", $"player={survivor} last keeper standing");
     }
 }

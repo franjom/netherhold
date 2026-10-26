@@ -61,6 +61,7 @@ public static class BlueprintPlacementRules
         Verdict verdict = CanDoor(world, database, at, player, door);
         if (verdict != Verdict.Allowed) return verdict;
         if (!GoldStore.TryWithdraw(world, player, door.GoldCost)) return Verdict.NotEnoughGold;
+        world.Player(player).Statistics.MoneySpent += door.GoldCost; // 0x004C34DE
 
         world.AddDoor(new DoorState
         {
@@ -82,6 +83,7 @@ public static class BlueprintPlacementRules
         Verdict verdict = CanTrap(world, database, at, player);
         if (verdict != Verdict.Allowed) return verdict;
         if (!GoldStore.TryWithdraw(world, player, trap.GoldCost)) return Verdict.NotEnoughGold;
+        world.Player(player).Statistics.MoneySpent += trap.GoldCost; // 0x004C38E0
 
         var placed = new TrapState { X = at.X, Y = at.Y, TrapId = trapId, PlayerId = player.Value, UnderConstruction = true };
         TrapRules.Seed(world, database, placed, trap);

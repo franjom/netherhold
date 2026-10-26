@@ -109,6 +109,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
     private static bool PlacePaidTile(SimulationContext context, PlayerId playerId, TilePos pos, RoomDef room)
     {
         if (!GoldStore.TryWithdraw(context.World, playerId, RoomRules.CostPerTile(room))) return false;
+        context.World.Player(playerId).Statistics.MoneySpent += RoomRules.CostPerTile(room); // 0x004C5D0A
         ref TileState tile = ref context.World.Tile(pos);
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
         RoomRules.Place(context.Database, ref tile, room, playerId);

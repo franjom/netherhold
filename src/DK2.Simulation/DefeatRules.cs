@@ -65,6 +65,7 @@ public static class DefeatRules
         {
             if (room.OwnerPlayerId != playerId || IsKept(room.Definition)) continue;
             RoomHealthRules.PostTransfer(world, room, playerId, PlayerIds.Neutral);
+            LevelStatisticsRules.CreditRoomTakeover(world, room.Definition, room.TileCount, PlayerIds.Neutral);
             RoomLists.Set(world, room.TileIndices, RoomLists.Next(world));
             foreach (int index in room.TileIndices)
             {

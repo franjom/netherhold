@@ -23,8 +23,9 @@ public sealed class CampaignMapController : IDisposable
     private bool _held;
     private int _blink;
     public CampaignMapController(FrontEndSession session, CampaignProfile profile, bool secretFiveAvailable,
-        Func<CampaignSlot, CampaignBriefing> loadBriefing)
+        Func<CampaignSlot, CampaignBriefing> loadBriefing, IReadOnlyList<HiScoreEntry>? hiScores = null)
     {
+        HiScores = hiScores ?? HiScoreTable.Empty;
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _loadBriefing = loadBriefing ?? throw new ArgumentNullException(nameof(loadBriefing));
         Profile = CampaignProgression.EnsureOpenMap(profile ?? throw new ArgumentNullException(nameof(profile)));
@@ -36,6 +37,12 @@ public sealed class CampaignMapController : IDisposable
     public CampaignProfile Profile { get; private set; }
     public bool SecretFiveAvailable { get; }
     public CampaignBriefing? Briefing { get; private set; }
+    /// <summary>The statistics page's rows, null outside it or with no recorded block.</summary>
+    public CampaignResults? Results { get; private set; }
+    public IReadOnlyList<HiScoreEntry> HiScores { get; private set; }
+    /// <summary>The hi-score row whose name is being typed, or -1.</summary>
+    public int EntryRow { get; private set; } = -1;
+    public event Action<IReadOnlyList<HiScoreEntry>>? HiScoresChanged;
     public CampaignSlot Hovered { get; private set; }
     public int Revision { get; private set; }
     public bool IsAtMap => _session.Page == FrontEndPage.CampaignMap && !_session.PathPlaying;
@@ -93,15 +100,62 @@ public sealed class CampaignMapController : IDisposable
     }
     public bool CanLaunch => LaunchRequested is not null && Briefing is not null;
 
-    /// <summary>The statistics page's accept, dispatcher 0x55: Level Number moves on after a win,
-    /// then path 254 returns to the map (state 0x12). Hi-score entry is not built yet.</summary>
+    /// <summary>The statistics page's accept, dispatcher 0x55: Level Number moves on after a win; a
+    /// won map whose Total Evil Rating qualifies opens name entry on page 18 (0x0053E320), else
+    /// path 254 returns to the map (state 0x12).</summary>
     public bool AcceptResults()
     {
-        if (_session.Page != FrontEndPage.CampaignResults) return false;
-        if (!_session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter))) return false;
-        Briefing = null; _selected = CampaignSlot.None;
+        if (_session.Page != FrontEndPage.CampaignResults || _session.PathPlaying) return false;
+        CampaignSlot played = _selected;
         CampaignProfile advanced = CampaignProgression.AdvanceAfterResults(Profile);
         if (!ReferenceEquals(advanced, Profile)) ChangeProfile(advanced);
+        uint rating = played == CampaignSlot.None ? 0 : Profile.TotalEvilRating[played.Value - 1];
+        bool won = LevelStatisticsBlock.FromDwords(Profile.PlayerStatistics, PlayerIds.FirstKeeper).LevelWon;
+        if (played != CampaignSlot.None && won && HiScoreTable.Qualifies(HiScores, rating))
+        {
+            EntryRow = HiScoreTable.Position(HiScores, rating);
+            HiScores = HiScoreTable.Insert(HiScores, EntryRow, new HiScoreEntry(rating, "",
+                HiScoreTable.Label(played, Briefing?.Tagline ?? "")));
+            Revision++;
+            return _session.TryShowPage(FrontEndPage.HighScores);
+        }
+        return FlyBackToMap();
+    }
+
+    public bool TypeEntry(char character)
+    {
+        if (EntryRow < 0 || char.IsControl(character) || HiScores[EntryRow].Name.Length >= HiScoreTable.MaxText) return false;
+        SetEntryName(HiScores[EntryRow].Name + character); return true;
+    }
+
+    public bool EraseEntry()
+    {
+        string name = EntryRow < 0 ? "" : HiScores[EntryRow].Name;
+        if (name.Length == 0) return false;
+        SetEntryName(name.Substring(0, name.Length - 1)); return true;
+    }
+
+    /// <summary>The entry's finish (dispatcher 0x00531BE5): the row keeps the typed name, the table is
+    /// saved (0x0053E610) and path 254 returns to the map.</summary>
+    public bool CommitEntry()
+    {
+        if (EntryRow < 0 || _session.PathPlaying) return false;
+        EntryRow = -1;
+        HiScoresChanged?.Invoke(HiScores);
+        return FlyBackToMap();
+    }
+
+    private void SetEntryName(string name)
+    {
+        var rows = HiScores.ToArray();
+        rows[EntryRow] = rows[EntryRow] with { Name = name };
+        HiScores = Array.AsReadOnly(rows); Revision++;
+    }
+
+    private bool FlyBackToMap()
+    {
+        if (!_session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter))) return false;
+        Briefing = null; Results = null; _selected = CampaignSlot.None;
         Revision++; return true;
     }
 
@@ -143,6 +197,7 @@ public sealed class CampaignMapController : IDisposable
             // 0x0053C3C0 case 4 reloads the played map's briefing (0x0053AC60) for the statistics page.
             _selected = CampaignProgression.PlayedSlot(Profile);
             Briefing = _selected == CampaignSlot.None ? null : _loadBriefing(_selected);
+            Results = CampaignResults.Build(Profile, _selected);
             Revision++;
         }
         if (operation == FrontEndOperation.PrepareCampaign && Briefing is null && _selected != CampaignSlot.None)

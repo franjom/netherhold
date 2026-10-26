@@ -260,6 +260,7 @@ namespace DK2.Unity
                 var level = GameDatabaseLoader.LoadCampaignLevel(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' level definition.");
                 cameraTicksPerSecond = level.TicksPerSecond;
+                _levelTicksPerSecond = level.TicksPerSecond;
                 var players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' players.");
                 startingCameraPlayer = players.FirstOrDefault(p => p.PlayerId == viewingPlayerId);

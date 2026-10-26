@@ -354,9 +354,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     /// <see cref="CreatureState.DeathUncounted"/> victim counts nothing; otherwise an
     /// <c>IsGood</c> victim (definition <c>+0x686</c> bit 8) adds one to that player's
     /// <see cref="PlayerState.HeroesDestroyed"/>, with no owner test. Returns the credited player,
-    /// 0 for none. Not built here: the MPD score (game mode 4), the non-hero
-    /// <c>EnemyCreaturesKilled</c> (<c>+0x146</c>) and the per-owner kill tally
-    /// (<c>+0x19E</c>).</summary>
+    /// 0 for none. The rest of the tally is <see cref="LevelStatisticsRules.CreditDeath"/>; not
+    /// built: the MPD score (game mode 4) and the per-owner kill tally (<c>+0x19E</c>).</summary>
     public static byte CreditHeroKill(WorldState world, CreatureDef creature, CreatureState state)
     {
         if (state.Health > 0) return 0;
@@ -372,6 +371,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 break;
             }
         }
+        LevelStatisticsRules.CreditDeath(world, creature, state, credited);
         if (credited == 0 || state.DeathUncounted) return credited;
         if (creature.Flags.HasFlag(CreatureFlags.IsGood) && world.HasPlayer(credited))
             world.Player(credited).HeroesDestroyed++;

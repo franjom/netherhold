@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Linq;
 using DK2.Data.Campaign;
 using DK2.Data.Model;
 using DK2.Presentation;
@@ -15,6 +16,8 @@ namespace DK2.Unity
     {
         private CampaignSlot _playedSlot;
         private bool _resultRecorded;
+        private int _levelTicksPerSecond;
+        private readonly bool[] _statisticsRecorded = new bool[8];
 
         private bool LaunchedFromFrontEnd => sessionMode == GameSessionMode.Campaign && frontEndReturnPage == FrontEndPage.CampaignResults;
 
@@ -33,6 +36,7 @@ namespace DK2.Unity
         private bool UpdateCampaignResult()
         {
             if (!LaunchedFromFrontEnd) return false;
+            RecordLevelStatistics();
             byte status = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Status;
             bool ended = PlayerStatus.HasEnded(status);
             _hudControls.UpdateResult(new HudResultState(HasResult: ended), _scriptedView.PathPlaying ? CameraModeId.ScriptedPath : default);
@@ -46,6 +50,37 @@ namespace DK2.Unity
             if (_scriptedView.PathPlaying || !Input.GetKeyDown(KeyCode.Space)) return false;
             LoadLevel(GameSessionRequest.FrontEnd(frontEndReturnPage));
             return true;
+        }
+
+        /// <summary>0x004BE630's shared tail for each player as its verdict is sampled, in verdict order.</summary>
+        private void RecordLevelStatistics()
+        {
+            if (_playedSlot == CampaignSlot.None) return;
+            WorldState world = _simulation.World;
+            bool any = false;
+            for (int i = 0; i < world.PlayerCount && !any; i++)
+            {
+                ref PlayerState candidate = ref world.PlayerAtIndex(i);
+                any = candidate.Statistics.Sampled && candidate.PlayerId.Value < _statisticsRecorded.Length
+                    && !_statisticsRecorded[candidate.PlayerId.Value];
+            }
+            if (!any) return;
+            var sampled = Enumerable.Range(0, world.PlayerCount).Select(i => world.PlayerAtIndex(i))
+                .Where(p => p.Statistics.Sampled && p.PlayerId.Value < _statisticsRecorded.Length && !_statisticsRecorded[p.PlayerId.Value])
+                .OrderBy(p => p.StatusTick.Value).ThenBy(p => p.PlayerId.Value).ToArray();
+            if (sampled.Length == 0) return;
+            GameDatabase database = _simulation.Database;
+            foreach (PlayerState player in sampled)
+            {
+                _statisticsRecorded[player.PlayerId.Value] = true;
+                LevelStatisticsBlock block = LevelStatisticsRules.Block(player, _levelTicksPerSecond);
+                uint? rank = player.Status is PlayerStatus.Won or PlayerStatus.Lost
+                    ? KeeperRank.Compute(block, LevelStatisticsRules.NativeEndTurn(player.Statistics), _levelTicksPerSecond,
+                        database[VariableTypeId.AverageTime], database[VariableTypeId.LevelRating])
+                    : (uint?)null;
+                _campaignProfile = CampaignProgression.RecordStatistics(_campaignProfile, player.PlayerId, block, _playedSlot, rank);
+            }
+            CampaignProfileFile.Save(_campaignProfilePath, _campaignProfile);
         }
 
         private void DrawCampaignResultPrompt()

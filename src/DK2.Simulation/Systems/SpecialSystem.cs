@@ -41,6 +41,7 @@ public sealed class SpecialSystem : ISimulationSystem
             }
 
             context.World.RemoveObject(item.Id);
+            context.World.Player(command.PlayerId).Statistics.SpecialsFound++; // 0x004A3FE6
             context.Emit(Name, "special_activated",
                 $"player={command.PlayerId} object={item.Id} type={item.ObjectTypeId} creatures={affected}");
         }

@@ -1308,7 +1308,7 @@ public sealed class TriggerExecutor
         {
             if (_world is null || run.Player is not PlayerId player)
                 return Unperformed(record, context, partial);
-            _world.EndGame(player, record.Type == 10 ? PlayerStatus.Won : PlayerStatus.Lost);
+            _world.EndGame(_database!, player, record.Type == 10 ? PlayerStatus.Won : PlayerStatus.Lost);
             return true;
         }
         if (record.Type == 23)

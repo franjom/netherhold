@@ -179,8 +179,8 @@ public class DungeonHeartTests
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = NewWorld(database);
 
-        Assert.True(world.EndGame(Keeper, PlayerStatus.Won));
-        Assert.False(world.EndGame(Keeper, PlayerStatus.Lost));
+        Assert.True(world.EndGame(database, Keeper, PlayerStatus.Won));
+        Assert.False(world.EndGame(database, Keeper, PlayerStatus.Lost));
         world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, Rival);
         Simulation(database, world).Run(2);
 

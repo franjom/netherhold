@@ -98,6 +98,7 @@ public static class RoomHealthRules
         SimulationContext? context)
     {
         PostTransfer(world, room, room.OwnerPlayerId, playerId);
+        LevelStatisticsRules.CreditRoomTakeover(world, room.Definition, room.TileCount, playerId);
         RoomListPosition listPosition = RoomLists.Next(world);
         RoomLists.Set(world, room.TileIndices, listPosition);
         foreach (int index in SlabChain.Order(world, room))
