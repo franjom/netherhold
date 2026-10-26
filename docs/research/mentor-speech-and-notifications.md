@@ -67,7 +67,7 @@ Most callers never touch this directly. They raise a **notification** instead.
 ## 3. Notifications are (type, variant), not ids
 
 The resolver is `0x004C4600`, taking a message **type**, a player, a **variant**
-selector and an allocate flag. It has 86 callers — this is the game's single
+selector and an allocate flag. It has 151 call sites (message-table.md §4) — this is the game's single
 "tell the player something" entry point.
 
 Types index a table of **100 records of 10 bytes** at **`.data 0x006A0B00`**:
@@ -76,7 +76,9 @@ Types index a table of **100 records of 10 bytes** at **`.data 0x006A0B00`**:
 |---|---|---|
 | `+0` | u16 | flags; **low 13 bits are the on-screen duration in game seconds**, scaled by variable 19 (Q1, = 4 ticks) |
 | `+2` | i32 | either the speech reference, or — when flag `0x8000` is set — a pointer to a variant list |
-| `+6` | u32 | copied to the notification record; role unread |
+| `+6` | u32 | copied to the notification record: the tab graphic 0-6 ([message-tabs.md](message-tabs.md) §3) |
+
+All 100 rows, with their raisers, are in [message-table.md](message-table.md).
 
 Known flag bits: `0x8000` "field `+2` is a variant list", `0x4000` "skip the
 already-queued dedupe scan", `0x2000` copied to the record. A type ≥ 100 falls
@@ -86,15 +88,16 @@ A **variant list** is 8-byte records — `{u16 variantId, u16 durationSeconds,
 i32 speechRef}` — terminated by a record with variant id 0 whose reference is the
 default used when the requested variant is not found.
 
-Rows read so far (2026-09-23): type **1** → speech 345 *"Your Dungeon Heart is under
+Examples (every row and its raisers: [message-table.md](message-table.md)): type **1** → speech 345 *"Your Dungeon Heart is under
 attack!"*, 120 s, raised by the heart's health change on a negative delta; **39** → 346
 *"Your Dungeon Heart is dying!"* and **40** → 344 *"... in a critical state!"*, 50 s each,
 raised by the heart room's frame at exactly 50 % and 10 % (`win-and-defeat.md` §3.1).
 Type **5** is a variant list, 20 s each: 1 → 1297 *"The King has entered your realm"*, raised for
 every player when a hero party spawns King Reginald (`hero-parties-and-effect-generators.md`);
 2 → 1298 *"The King is killing your creatures"*, 3 → 1299 *"The King is dying!"*, 4 → 1300
-*"The King has been slain by your minions"*, their raisers unread. Type 6 is the "your creature
-is fighting" notice (`combat-fight-state.md` §1), its row unread. Type **19** (row
+*"The King has been slain by your minions"*; type 5 has one call site, `HeroParty_Spawn`
+`0x0051A2B0` (message-table.md §3). Type 6 is the "your creature
+is fighting" notice (`combat-fight-state.md` §1), row `0x2000`: zero seconds, tab graphic 0. Type **19** (row
 `0x006A0BBE`, flags `0x6032`, 50 s, no variant list) → 506 *"Your creatures are rebelling!"*,
 raised by a defection (`rebellion.md` §3, read 2026-10-04).
 
