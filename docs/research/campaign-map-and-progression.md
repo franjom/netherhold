@@ -233,8 +233,9 @@ The owner recalls a close-up when the Horned Reaper appears, the camera followin
 to the dropped Portal Gem, and a fade after pickup. The unchosen branch stays dimmed;
 the owner does not know whether it is playable. Re-reading `0x005393B0` confirms that
 status 3 cannot be selected; the branch closes on a **win**, not merely on selection.
-The full/new moon discrepancy is in §2.4. The post-win text/Mentor screen is not
-recalled clearly; the in-level win screen speaks the next level's rewards
+The full/new moon discrepancy is in §2.4. On 2026-10-26 the owner recalled no separate post-win text screen: after the gem scene the camera
+fades to black, the next mission's unlocked rooms appear animated with their icons and effects, and
+ending the level plays the next level's movie and then the hi-score screen; the in-level win screen speaks the next level's rewards
 ([campaign-win-sequence.md](campaign-win-sequence.md) §5), and the front end's title card is `0x0053B980`.
 The recalled close-up and follow match paths 100/101 and view action 17 (same doc, §3).
 
