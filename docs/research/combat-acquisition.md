@@ -27,7 +27,9 @@ tracking timeout at `+0x53B`, cleared when `+0x53E` reaches 60 — then
 **`ProcessFight` `0x0045E9F0`** at `0x00489AC7`, skipped for a `Possessed`
 creature; then `0x0045E4F0`; then the **state handler** through the state table
 (`0x00476FC0`, at `0x0048A030`); then the **attackability recompute**
-`0x0045A8B0` (§4); then the mover (`0x004D59A0` and its neighbours). So
+`0x0045A8B0` (§4); then the physical-movement commit `0x004B2030` (`0x0048A204`, every path); then
+the steering step (`0x0048A266`-`0x0048A2C7`, which calls `0x004D59A0`; gated, see
+[004B7830](functions/004B7830.md)). So
 acquisition precedes both the state machine and steering on the same tick, and
 `CombatSystem` sits before `CreatureMovementSystem` and every job system.
 

@@ -53,8 +53,8 @@ called with `LEA ECX,[ESI+0x8]` at `0x00513A59` and `0x00509B50`).
 body (`0x004B0F20`), 7 `0x004B19A0`; kind 9 is never linked. So **every creature
 updates, walking its root at `0x0048A480`, before any action point**, and each
 class runs **newest first**. The THINGS handler `0x005211A0` creates one point per
-record, so points run in reverse file order (file order of the handler calls is
-STRONGLY INFERRED). Q246's "points interleave with creatures" was wrong. Built as
+record, so points run in reverse file order (CONFIRMED 2026-10-26: the THINGS reader calls the
+handler in file order; see [004B7830](functions/004B7830.md)). Q246's "points interleave with creatures" was wrong. Built as
 ADR-0361, in our trigger pass before the systems; a creature's tree is not yet walked inside
 its own update.
 

@@ -307,8 +307,9 @@ ones (Q394, Q395); a stopped or standing shot counts its lifetime down where DK2
 not; the effects ([shot-effects.md](shot-effects.md) §7). **Thing order (2026-10-04):** `0x004B7830` updates list 0 (creatures)
 before list 1 (shots, kind 1 from `0x004AAC90`), each newest first (`0x004B4A10` links at
 the head, the next pointer read after each update), so a creature-fired shot should move
-the turn it is made (STRONGLY INFERRED: the factory's fire path was not traced), as ours
-does; ours walks `world.Shots` newest first too (ADR-0367).
+the turn it is made (CONFIRMED 2026-10-26: every shot is linked kind 1 through `0x004AAC90`, see
+[004B7830](functions/004B7830.md); a shot created after list 1 has been walked first updates the next turn), as ours
+does for a creature-fired shot (not checked for trap-fired ones); ours walks `world.Shots` newest first too (ADR-0367).
 
 ## Confidence
 
