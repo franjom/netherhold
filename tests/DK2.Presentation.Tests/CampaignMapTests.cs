@@ -112,7 +112,7 @@ public class CampaignMapTests
     }
 
     [Fact]
-    public void HoverRiseUsesTheUnclampedCreationHeightAndStopsSeventyTwoUnitsAboveFloor()
+    public void HoverRiseUsesTheUnclampedCreationHeightAndStopsSeventyTwoUnitsAboveFloorThenLowersAtTheRiseSpeedByOwnersChoice()
     {
         var session = Session();
         using var map = new CampaignMapController(session, new CampaignProfile(), false,
@@ -120,7 +120,11 @@ public class CampaignMapTests
         map.Continue(); session.Update(TimeSpan.FromSeconds(2)); map.Hover(new CampaignSlot(1));
         for (int i = 1; i <= 20; i++) session.Update(TimeSpan.FromSeconds(2 + i * .05));
         Assert.Equal(72, map.LandVisual(new CampaignSlot(1)).Lift);
-        map.Hover(CampaignSlot.None); session.Update(TimeSpan.FromSeconds(5.5));
+        // Ours lowers at the rise's speed, 8 a frame (owner's choice; DK2 lowers 8 an object tick).
+        map.Hover(CampaignSlot.None);
+        for (int i = 1; i <= 8; i++) session.Update(TimeSpan.FromSeconds(3 + i * .05));
+        Assert.Equal(8, map.LandVisual(new CampaignSlot(1)).Lift);
+        session.Update(TimeSpan.FromSeconds(3.5));
         Assert.Equal(0, map.LandVisual(new CampaignSlot(1)).Lift);
     }
 
@@ -135,6 +139,7 @@ public class CampaignMapTests
         Assert.Equal(72, map.LandVisual(new CampaignSlot(1)).Lift);
         map.Select(new CampaignSlot(1)); session.Update(TimeSpan.FromSeconds(3.5));
         Assert.InRange(map.LandVisual(new CampaignSlot(1)).Lift, 1, 71);
+        for (int i = 1; i <= 8; i++) session.Update(TimeSpan.FromSeconds(3.5 + i * .05));
         session.Update(TimeSpan.FromSeconds(5.5));
         Assert.Equal(FrontEndPage.Briefing, session.Page);
         Assert.Equal(0, map.LandVisual(new CampaignSlot(1)).Lift);

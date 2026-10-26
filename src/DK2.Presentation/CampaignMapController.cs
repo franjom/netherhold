@@ -19,7 +19,7 @@ public sealed class CampaignMapController : IDisposable
     private readonly int[] _landPhases = new int[30], _markerPhases = new int[24];
     private bool _introPending;
     private CampaignSlot _selected;
-    private TimeSpan _entered, _updated;
+    private TimeSpan _entered;
     private bool _held;
     private int _blink;
     public CampaignMapController(FrontEndSession session, CampaignProfile profile, bool secretFiveAvailable,
@@ -175,7 +175,7 @@ public sealed class CampaignMapController : IDisposable
         || _session.Path is FrontEndPath.EntryToTable or FrontEndPath.TableToBriefing or FrontEndPath.BriefingToTable;
     private void EnterMap()
     {
-        _entered = _updated = _session.Now; _blink = 0xfff; _introPending = true; Hovered = CampaignSlot.None;
+        _entered = _session.Now; _blink = 0xfff; _introPending = true; Hovered = CampaignSlot.None;
         Array.Clear(_markerPhases, 0, _markerPhases.Length);
         ApplyLandPhases();
         Revision++;
@@ -232,13 +232,15 @@ public sealed class CampaignMapController : IDisposable
         }
         _blink = ((long)(_session.Now - _entered).TotalMilliseconds / 200 & 1) != 0 ? 0xfff : 0;
         }
-        int returnSteps = (int)(_session.Now.TotalSeconds * SimulationTiming.OriginalTicksPerGameSecond) - (int)(_updated.TotalSeconds * SimulationTiming.OriginalTicksPerGameSecond);
+        // 0x00538D00 raises the hovered land 8 units a frame; 0x004A35E0 lowers the others 8 units an object
+        // tick, 2.25 s from the top if the front end ticks at the game's four a second (its rate is unread).
+        // Owner's choice (2026-10-26): ours lowers at the rise's speed, a frame at a time, so both depend
+        // on the frame rate.
         for (int i = 0; i < _lift.Length; i++)
         {
-            int lift = IsAtMap && Hovered.Value == i + 1 ? Math.Min(0x48, _lift[i] + 8) : Math.Max(0, _lift[i] - returnSteps * 8);
+            int lift = IsAtMap && Hovered.Value == i + 1 ? Math.Min(0x48, _lift[i] + 8) : Math.Max(0, _lift[i] - 8);
             if (lift != _lift[i]) { _lift[i] = lift; Revision++; }
         }
-        _updated = _session.Now;
     }
     private void ChangeProfile(CampaignProfile profile)
     { Profile = profile; ProfileChanged?.Invoke(profile); Revision++; }

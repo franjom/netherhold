@@ -190,7 +190,10 @@ namespace DK2.Unity
             if (width <= 0 || height <= 0) return;
             camera.orthographic = false;
             camera.ResetProjectionMatrix();
-            camera.fieldOfView = pose.VerticalFieldOfView(width, height);
+            // DK2 drew the front end on a 4:3 screen and its path field of view is horizontal. On a wider
+            // screen keep the 4:3 vertical extent (the map's castle sits at its top edge) and show more at
+            // the sides; on a narrower one keep the horizontal extent as before.
+            camera.fieldOfView = pose.VerticalFieldOfView(Math.Min(width, height * 4 / 3), height);
             camera.farClipPlane = Mathf.Max(camera.nearClipPlane + .01f, pose.ViewDistance);
             camera.transform.SetPositionAndRotation(new Vector3(pose.Position.X, pose.Position.Y, pose.Position.Z),
                 Quaternion.LookRotation(new Vector3(pose.Forward.X, pose.Forward.Y, pose.Forward.Z),

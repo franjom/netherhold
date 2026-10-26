@@ -64,14 +64,19 @@ namespace DK2.Unity
             _panel.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
             _panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
             _panel.referenceResolution = new Vector2Int(640, 480);
-            _panel.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight; _panel.match = 1;
+            _panel.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
+            _panel.match = Screen.width * 3 >= Screen.height * 4 ? 1 : 0;
             _panel.sortingOrder = 20;
             _owner = new GameObject("Front-end menu"); _owner.transform.SetParent(parent, false);
             var document = _owner.AddComponent<UIDocument>(); document.panelSettings = _panel;
             VisualElement root = document.rootVisualElement; root.pickingMode = PickingMode.Ignore;
             root.style.width = Length.Percent(100); root.style.height = Length.Percent(100);
+            // DK2's menus are a 640x480 screen. Keep that box at one scale, centred, so a wide screen adds
+            // margins (the front-end camera keeps the 4:3 vertical view, so the box still sits on the 3D scene).
             _canvas = new Canvas(Draw);
-            _canvas.style.position = Position.Absolute; _canvas.style.width = Length.Percent(100); _canvas.style.height = Length.Percent(100);
+            _canvas.style.position = Position.Absolute; _canvas.style.width = 640; _canvas.style.height = 480;
+            _canvas.style.left = Length.Percent(50); _canvas.style.top = Length.Percent(50);
+            _canvas.style.marginLeft = -320; _canvas.style.marginTop = -240;
             root.Add(_canvas);
             Font.textureRebuilt += FontRebuilt;
         }
@@ -98,13 +103,19 @@ namespace DK2.Unity
         {
             if (_shown != Model.Page || ContentChanged) RebuildLabels();
             if (_fontDirty) PrepareFont();
+            int width = _panel.targetTexture != null ? _panel.targetTexture.width : Screen.width;
+            int height = _panel.targetTexture != null ? _panel.targetTexture.height : Screen.height;
+            // Match whichever side keeps the whole 640x480 box on screen.
+            if (width > 0 && height > 0) _panel.match = width * 3 >= height * 4 ? 1 : 0;
             if (pollInput)
             {
-                int width = _panel.targetTexture != null ? _panel.targetTexture.width : Screen.width;
-                int height = _panel.targetTexture != null ? _panel.targetTexture.height : Screen.height;
                 Vector3 mouse = Input.mousePosition;
                 if (width > 0 && height > 0)
-                    Model.UpdatePointer(new FrontEndPointer(mouse.x * 640 / width, (height - mouse.y) * 480 / height, Input.GetMouseButton(0)));
+                {
+                    float scale = Mathf.Min(width / 640f, height / 480f);
+                    float left = (width - 640 * scale) / 2, top = (height - 480 * scale) / 2;
+                    Model.UpdatePointer(new FrontEndPointer((mouse.x - left) / scale, (height - mouse.y - top) / scale, Input.GetMouseButton(0)));
+                }
                 Model.AdvanceFrame();
             }
             if (_shown != Model.Page || ContentChanged) { RebuildLabels(); PrepareFont(); }
