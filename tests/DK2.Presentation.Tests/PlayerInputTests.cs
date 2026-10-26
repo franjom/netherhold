@@ -181,4 +181,68 @@ public class PlayerInputTests
         _translator.Translate(
             new PlayerIntent(Keeper, tool, tile, transition, roomId),
             snapshot ?? new PlayerInputSnapshot(false));
+    /// <summary>Tool mode 5 (0x00407BAE, 0x00408D07, 0x00408EE0): Kill Creatures and Transfer Creature wait
+    /// for a creature; Transfer takes only the keeper's own, Kill only another's; the right button cancels.</summary>
+    [Theory]
+    [InlineData(SpecialTargeting.TransferCreature, true)]
+    [InlineData(SpecialTargeting.KillCreatures, false)]
+    public void ATargetedSpecialWaitsForTheRightCreature(byte typeId, bool own)
+    {
+        var box = new TilePos(2, 2);
+        var mine = new TilePos(4, 4);
+        var theirs = new TilePos(5, 5);
+        var snapshot = new PlayerInputSnapshot(false,
+        [
+            new PlayerInputTarget(PlayerInputTargetKind.Special, 9, box, TypeId: typeId),
+            new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, mine, Own: true),
+            new PlayerInputTarget(PlayerInputTargetKind.Creature, 41, theirs, Own: false),
+        ]);
+        InputFrame Click(TilePos tile) => _translator.Translate(
+            new PlayerIntent(new PlayerId(Keeper), PlayerToolMode.Hand, tile, PointerButtonTransition.Pressed), snapshot);
+
+        Assert.Empty(Click(box).All);
+        Assert.Equal(new SpecialTargeting(9, typeId), _translator.Targeting);
+        Assert.Empty(Click(own ? theirs : mine).All);                 // the wrong kind leaves the mode
+        Assert.Empty(Click(new TilePos(0, 0)).All);
+        ActivateSpecialCommand activate = Assert.IsType<ActivateSpecialCommand>(Assert.Single(Click(own ? mine : theirs).All));
+        Assert.Equal((9, own ? 40 : 41), (activate.ObjectId, activate.TargetId));
+        Assert.Null(_translator.Targeting);
+
+        Assert.Empty(Click(box).All);
+        Assert.Empty(_translator.Translate(new PlayerIntent(new PlayerId(Keeper), PlayerToolMode.Hand, mine,
+            PointerButtonTransition.None, SecondaryButton: PointerButtonTransition.Pressed), snapshot).All);
+        Assert.Null(_translator.Targeting);
+        Click(box);
+        _translator.SelectTool(new PlayerId(Keeper), PlayerToolMode.BuildRoom);
+        Assert.Null(_translator.Targeting);
+        Click(box);
+        _translator.CancelTool();                                     // Query or a panel choice
+        Assert.Null(_translator.Targeting);
+    }
+
+    /// <summary>A creature on the special's tile is lifted, as the hand's click has always chosen
+    /// (approximating DK2's hover pick); the special does not enter targeting.</summary>
+    [Fact]
+    public void ACreatureOnTheSpecialsTileIsPickedUpInstead()
+    {
+        var box = new TilePos(2, 2);
+        var snapshot = new PlayerInputSnapshot(false,
+        [
+            new PlayerInputTarget(PlayerInputTargetKind.Special, 9, box, TypeId: SpecialTargeting.KillCreatures),
+            new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, box, Own: true),
+        ]);
+        Assert.IsType<PickUpCreatureCommand>(Assert.Single(_translator.Translate(
+            new PlayerIntent(new PlayerId(Keeper), PlayerToolMode.Hand, box, PointerButtonTransition.Pressed), snapshot).All));
+        Assert.Null(_translator.Targeting);
+    }
+
+    [Fact]
+    public void AnUntargetedSpecialActivatesAtOnce()
+    {
+        var box = new TilePos(2, 2);
+        var snapshot = new PlayerInputSnapshot(false, [new PlayerInputTarget(PlayerInputTargetKind.Special, 9, box, TypeId: 117)]);
+        Assert.IsType<ActivateSpecialCommand>(Assert.Single(_translator.Translate(
+            new PlayerIntent(new PlayerId(Keeper), PlayerToolMode.Hand, box, PointerButtonTransition.Pressed), snapshot).All));
+        Assert.Null(_translator.Targeting);
+    }
 }

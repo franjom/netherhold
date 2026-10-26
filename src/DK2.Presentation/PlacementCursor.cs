@@ -14,7 +14,7 @@ namespace DK2.Presentation;
 /// <see cref="Spell"/> the keeper spell's own GUI icon (<c>0x0040D310</c>), named by
 /// <see cref="PlacementFeedback.SpellId"/>, and for <see cref="Held"/> the Hand's held-item icons
 /// (<c>0x0040CFE0</c>, <see cref="HeldItemStack"/>).</summary>
-public enum PlacementIcon { None, PlaceRoom, Sell, PlaceDoor, PlaceTrap, Query, Spell, Held }
+public enum PlacementIcon { None, PlaceRoom, Sell, PlaceDoor, PlaceTrap, Query, Spell, Held, Kill, Transfer }
 
 /// <summary>The tool as the hover-cage flag <c>0x004096B0</c> sees it (modes 0, 3, 4, 6, 7, and 8/10).</summary>
 public enum HoverCageTool { Hand, Room, Sell, Door, Trap, SpellOrQuery }
@@ -236,6 +236,11 @@ public static class PlacementCursor
     /// <summary>Query, mode 10 (<c>0x0040BB60</c>): the I-Query icon only. The arm writes neither the
     /// No Go bit nor the price; over the GUI <c>0x0040CAE0</c> still sets No Go (the caller's).</summary>
     public static PlacementFeedback Query() => new PlacementFeedback(null, true, 0, PlacementIcon.Query, false, true);
+
+    /// <summary>Mode 5, a special waiting for its creature: <c>0x0040BBE0</c> has no arm for it, so no
+    /// cage and no validity; <c>0x0040CAE0</c> draws I-Kill (subtype <c>0x7F</c>) or I-Transfer (<c>0x8C</c>).</summary>
+    public static PlacementFeedback Targeting(in SpecialTargeting targeting) => new PlacementFeedback(null, true, 0,
+        targeting.TypeId == SpecialTargeting.KillCreatures ? PlacementIcon.Kill : PlacementIcon.Transfer, false, true);
 
     /// <summary>Trap (<c>0x0040B4F0</c>): as <see cref="Door"/> with the trap's <c>GoldCost</c>.</summary>
     public static PlacementFeedback Trap(WorldState world, GameDatabase database, PlayerId player, TrapDef trap,

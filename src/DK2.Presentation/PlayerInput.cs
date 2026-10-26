@@ -59,12 +59,30 @@ public enum PlayerInputTargetKind : byte
 }
 
 /// <summary>An entity the player's current view permits the pointer to target. <paramref name="Origin"/>
-/// is the tile the entity itself is on, for a store pile, which the hand lifts by tile.</summary>
+/// is the tile the entity itself is on, for a store pile, which the hand lifts by tile. <paramref name="TypeId"/>
+/// is a special's object type; <paramref name="Own"/> marks a creature of the viewing keeper.</summary>
 public readonly record struct PlayerInputTarget(
     PlayerInputTargetKind Kind,
     int Id,
     TilePos Tile,
-    TilePos Origin = default);
+    TilePos Origin = default,
+    byte TypeId = 0,
+    bool Own = false);
+
+/// <summary>Tool mode 5 (<c>+0x13DB</c>): a special that needs a creature, waiting for the click that
+/// names it (specials.md §3). <paramref name="TypeId"/> is DK2's subtype <c>+0x13EA</c>, the object
+/// <c>+0x13E8</c>.</summary>
+public readonly record struct SpecialTargeting(int ObjectId, byte TypeId)
+{
+    public const byte KillCreatures = 127, TransferCreature = 140;
+
+    public static bool Needs(byte typeId) => typeId is KillCreatures or TransferCreature;
+
+    /// <summary><c>0x00408D07</c>: Transfer Creature takes an own creature (hover kind 2), Kill
+    /// Creatures any other (kind 3).</summary>
+    public bool Accepts(in PlayerInputTarget creature) =>
+        creature.Kind == PlayerInputTargetKind.Creature && creature.Own == (TypeId == TransferCreature);
+}
 
 /// <summary>The small, immutable part of the presented world needed to interpret a click.</summary>
 public sealed class PlayerInputSnapshot
@@ -95,8 +113,7 @@ public sealed class PlayerInputSnapshot
             if ((target.Kind == kind || kind == PlayerInputTargetKind.Object
                     && target.Kind is PlayerInputTargetKind.Special or PlayerInputTargetKind.StoreGold)
                 && target.Id == hit.EntityId)
-                return new PlayerInputSnapshot(IsHolding,
-                    [new PlayerInputTarget(target.Kind, target.Id, hit.Tile, target.Origin)], Excavation);
+                return new PlayerInputSnapshot(IsHolding, [target with { Tile = hit.Tile }], Excavation);
         return new PlayerInputSnapshot(IsHolding, NoTargets, Excavation);
     }
 
@@ -119,8 +136,8 @@ public sealed class PlayerInputSnapshot
         foreach (CreatureView creature in view.Creatures(world))
         {
             if (world.CreatureById(creature.Id)?.InHand != false) continue;
-            targets.Add(new PlayerInputTarget(
-                PlayerInputTargetKind.Creature, creature.Id, creature.Tile));
+            targets.Add(new PlayerInputTarget(PlayerInputTargetKind.Creature, creature.Id, creature.Tile,
+                Own: world.CreatureById(creature.Id)!.OwnerPlayerId == playerId));
         }
 
         foreach (ObjectView instance in view.Objects(world))
@@ -133,7 +150,7 @@ public sealed class PlayerInputSnapshot
                 // Hand_Click's object arm (0x00407AD5): a special is activated, only from a tile its
                 // keeper owns; its +0x74 predicate (object +0x146 bit 1) is not mirrored.
                 if (world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId)
-                    targets.Add(new PlayerInputTarget(PlayerInputTargetKind.Special, instance.Id, instance.Tile));
+                    targets.Add(new PlayerInputTarget(PlayerInputTargetKind.Special, instance.Id, instance.Tile, TypeId: thing.ObjectTypeId));
                 continue;
             }
             targets.Add(new PlayerInputTarget(
@@ -169,6 +186,13 @@ public sealed class PlayerInputTranslator
     private DragStart? _drag;
     public void CancelPointerGesture() => _drag = null;
 
+    /// <summary>The special waiting for its creature, or null (tool mode 5).</summary>
+    public SpecialTargeting? Targeting { get; private set; }
+
+    /// <summary>Hud_CancelSelectedTool (<c>0x004094C0</c>), which every tool selector calls first,
+    /// Query and the panel's spells included: a pending special is dropped.</summary>
+    public void CancelTool() => Targeting = null;
+
     /// <summary>The release clamps' limit, the database's <c>RubberBandAreaLimit</c>: the room release
     /// pulls the end toward the anchor (<see cref="PlacementCursor.ClampDrag"/>), the sell release
     /// keeps the low corner (<see cref="PlacementCursor.DragRectangle"/>). Unbounded until set.</summary>
@@ -176,6 +200,8 @@ public sealed class PlayerInputTranslator
 
     public void SelectTool(PlayerId playerId, PlayerToolMode tool)
     {
+        // Choosing a tool cancels the pending one first (Hud_CancelSelectedTool 0x004094C0).
+        if (tool != PlayerToolMode.Hand) Targeting = null;
         if (_drag is DragStart drag && (drag.PlayerId != playerId || drag.Tool != tool)) _drag = null;
     }
 
@@ -190,6 +216,25 @@ public sealed class PlayerInputTranslator
         }
 
         PlayerCommand? command = null;
+
+        if ((intent.SecondaryButton & PointerButtonTransition.Pressed) != 0 && Targeting is not null)
+        {
+            // Hand_HandleSecondary 0x00408EE0: with a tool mode set, the right button only cancels it.
+            Targeting = null;
+            return InputFrame.Empty;
+        }
+
+        if ((intent.PrimaryButton & PointerButtonTransition.Pressed) != 0 && Targeting is SpecialTargeting pending)
+        {
+            // 0x00408D07: a creature of the right kind takes the special (action 88 with its tag) and the
+            // hand returns; any other click leaves the mode as it is.
+            if (intent.PointerTile is not TilePos at
+                || TargetAt(snapshot.Targets, at, PlayerInputTargetKind.Creature) is not PlayerInputTarget creature
+                || !pending.Accepts(creature))
+                return InputFrame.Empty;
+            Targeting = null;
+            return InputFrame.Of(new ActivateSpecialCommand(intent.PlayerId, pending.ObjectId, creature.Id));
+        }
 
         if ((intent.SecondaryButton & PointerButtonTransition.Pressed) != 0)
         {
@@ -208,6 +253,15 @@ public sealed class PlayerInputTranslator
             else
             {
                 _drag = null;
+                if (intent.Tool == PlayerToolMode.Hand && intent.PointerTile is TilePos clicked
+                    && TargetAt(snapshot.Targets, clicked, PlayerInputTargetKind.Special) is PlayerInputTarget box
+                    && TargetAt(snapshot.Targets, clicked, PlayerInputTargetKind.Creature) is null
+                    && SpecialTargeting.Needs(box.TypeId))
+                {
+                    // Hand_Click 0x00407BAE: 127 and 140 enter targeting instead of posting action 88.
+                    Targeting = new SpecialTargeting(box.Id, box.TypeId);
+                    return InputFrame.Empty;
+                }
                 command = Click(intent, snapshot);
                 if (command is null && intent.Tool == PlayerToolMode.Hand
                     && snapshot.Excavation is ExcavationTarget excavation

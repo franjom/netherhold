@@ -174,6 +174,7 @@ namespace DK2.Unity
         private void SelectPanelChoice(BottomPanelSelection selection)
         {
             _input.CancelPointerGesture();
+            _input.CancelTool();
             _panelChoice = selection.Choice;
             _queryTarget = CreatureQueryTarget.None;
             _queryTool = false; _selectedCorner = ClassicHudAction.None;
@@ -214,6 +215,7 @@ namespace DK2.Unity
             if (action == ClassicHudAction.SelectQuery || action == ClassicHudAction.SelectSell)
             {
                 _panelChoice = null; _selectedCorner = action;
+                _input.CancelTool();
                 _queryTool = action == ClassicHudAction.SelectQuery;
                 tool = _queryTool ? DungeonToolMode.Hand : DungeonToolMode.SellRoom;
                 _bottomView.SelectTool(ActiveTool, selectedRoomId);

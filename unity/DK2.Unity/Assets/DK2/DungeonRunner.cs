@@ -1461,6 +1461,7 @@ namespace DK2.Unity
             }
             if (ActiveTool == PlayerToolMode.CreateImp) return PlacementCursor.CreateImp(world, database, viewer, 4);
             if (ActiveTool != PlayerToolMode.Hand) return PlacementFeedback.None;
+            if (_input.Targeting is SpecialTargeting targeting) return PlacementCursor.Targeting(targeting);
             if (_queryTool) return PlacementCursor.Query();
             if (_panelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
             // The simulation's navigation bytes as its last turn left them; the cursor never refreshes them.
