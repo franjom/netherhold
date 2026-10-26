@@ -13,9 +13,14 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
   levels (docs/experiments/). M6 remains partial: the latest completed packet
-  measurement is [hash305](experiments/2026-10-25-packet-replay-hash305/README.md),
-  pinned to `ae14f3b3`, with hash303/P2 comparisons and mapping limits. It does not
-  measure later master changes. The historical [hash303 failure analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
+  measurement is hash309 at `490b7d82` (2026-10-26; write-up
+  D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
+  18/8/16/1 of 20 against hash305's 18/9/17/1; Level 1 seeds 3 and 7 now win and
+  6 and 11 lose; Level 4 Imp deaths median 14.5 against 7, with Imp flees, alarms
+  and withdrawals all up and no-destination endings not. It spans hashes 306–309,
+  so no change is attributed to one of them. The previous measurement is
+  [hash305](experiments/2026-10-25-packet-replay-hash305/README.md), with
+  hash303/P2 comparisons and mapping limits. The historical [hash303 failure analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
   separates observed blockers from open causes; the current report checks the
   persistent Level 1 Hatchery refusal and records the changed outcomes.
   The [decision parity audit](research/decision-parity-audit.md) verifies bounded
@@ -76,8 +81,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - A withdrawal whose room pick fails (no rooms, or a drawn bridge) ends with no
   further draw (ADR-0544, hash/save 308), and step 5 spends the away stage's draws
   for a staged live creature or trap, each caller staging what DK2 does (ADR-0545,
-  hash/save 309); the campaign effect is unmeasured and hashes 306–309 have no
-  sweep (last measured: hash305).
+  hash/save 309). Measured together with 306–307 at 490b7d82 (below).
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
