@@ -12671,8 +12671,12 @@ saves is not traced.
 **Context.** The sweep `0x004B7830` walks lists 0..7 in order and reads each list's head only
 when it reaches it; every shot is linked at list 1's head ([004B7830](research/functions/004B7830.md),
 CONFIRMED). So a shot a creature makes in its own update moves that turn, and one made after
-list 1 was walked (a trap's, a shot's own, the computer keeper's cast from the player frame)
-moves the next. Each of our shot creators was checked against that rule. All matched but one:
+list 1 was walked moves the next: our trap firing and a boulder strike (DK2's `Trap_Update`
+`0x004A8C54`, `Trap_TriggerPropagate` `0x004A90A2`/`0x004A9210`, list 3, and the strike `0x004A0B58`, object
+list 2), a shot's own, the computer keeper's cast from the player frame. DK2 has two same-turn trap-shot
+paths ours does not build: a creature disarming (`0x00458F60` -> `0x004590BB` -> `Trap_FireAt`, list 0) and
+the trap's slap reaction (`0x004A7E70`, before the sweep). Every shot creator ours builds was checked
+against that rule. All matched but one:
 the idle body's Bile Demon shot (`0x00477806`, in the state handler `0x00476FC0`, which the
 creature update runs in list 0). It is made in `CreatureJobSystem`, after `ShotSystem`, so it
 moved a turn late. A player's cast matches only because of where the action is dispatched:

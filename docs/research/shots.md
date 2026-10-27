@@ -309,11 +309,22 @@ before list 1 (shots, kind 1 from `0x004AAC90`), each newest first (`0x004B4A10`
 the head, the next pointer read after each update), so a creature-fired shot should move
 the turn it is made (CONFIRMED 2026-10-26: every shot is linked kind 1 through `0x004AAC90`, see
 [004B7830](functions/004B7830.md); a shot created after list 1 has been walked first updates the next turn), as ours
-does for a creature-fired shot; ours walks `world.Shots` newest first too (ADR-0367). Every creator of ours
-was checked on 2026-10-27 (ADR-0551). Same turn: a creature's spell and free-aim shots (`CombatSystem`),
-its training spell (`TrainingActionSystem`) and the Jack's (`JackInTheBoxSystem`), all before `ShotSystem`.
-Next turn: a trap's (`TrapSystem`, and a boulder setting one off), after it, and a chained or death shot,
-made while `ShotSystem` walks its snapshot. The Bile Demon's idle shot was a turn late (`CreatureJobSystem`
+does for a creature-fired shot; ours walks `world.Shots` newest first too (ADR-0367). Every shot creator ours builds
+was checked on 2026-10-27 (ADR-0551). Same turn: a creature's spell and free-aim shots (`CombatSystem`) and
+its training spell (`TrainingActionSystem`), all before `ShotSystem`.
+Next turn: our trap firing (`TrapSystem`, and a boulder strike setting one off), after it, which matches DK2's
+`Trap_Update` `0x004A8C54` and `Trap_TriggerPropagate` `0x004A90A2`/`0x004A9210` (list 3) and the boulder strike
+`0x004A0B58` (object list 2); and a chained or death shot, made while `ShotSystem` walks its snapshot. DK2 has two
+same-turn trap-shot paths ours does not build: a creature disarming (`State206_DisarmAttempt` `0x00458F60` ->
+`0x004590BB` -> `Trap_FireAt` -> `Trap_CreateShot`, list 0) and the trap's slap reaction (`0x004A7E70`, from the
+packet table before the sweep, `Trap_CreateShot` at `0x004A7F6B`). **The Jack's explosion:** DK2 makes shot `0x41` in
+`Thing_ModifyHealth` (`0x004B3132`) whenever a dying type `0x2E` is hit, from any caller; ours makes it only in
+`JackInTheBoxSystem` (before `ShotSystem`) when the Jack's health is <= 0 (`JackInTheBoxRules.Explode`). Killed by
+the travel toll or in melee (list 0), it is made the same turn in both. Killed by a shot (list 1) or a trap (list 3),
+DK2 makes the shot that turn and first moves it the next; ours explodes it the next tick and moves it that tick, so the
+first update lands on the same tick but DK2's explosion is made a turn earlier than ours. **Not accounted:** the
+`Shot_Create` caller `0x004A32C6` (shot `0x3F`, an unnamed thing-update function using fields `+0x13E`, `+0x14E`,
+`+0x14A` and sound `0x2F9`); its list and role are unread. The Bile Demon's idle shot was a turn late (`CreatureJobSystem`
 runs after the shots), and `ShotSystem.Update` now runs it at once. A player's cast moves the turn it is
 made, as packet actions are dispatched before the sweep ([005119C0](functions/005119C0.md), LIKELY). The
 computer keeper casts from the player frame, which in DK2 is after the sweep; its commands reach ours at
