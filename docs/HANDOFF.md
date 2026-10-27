@@ -285,7 +285,7 @@ tools/classic-unity-probe/README.md.
    in possession-arms-and-inputs.md §4–5.
 6. M10 front end: DK2's menus, campaign map and progression are read from the
    exe (`research/front-end-menus.md`, `research/campaign-map-and-progression.md`,
-   `research/front-end-assets.md`); F1 storage/image plumbing (ADR-0538), F2 front-end scenery/camera sessions, F3 menu shells (ADR-0539), F4 campaign map/briefing and the F7 movie decoder/playback proof of concept are built. F5 stages A (briefing Go launches the level, verdict writes the profile once, Space leaves, statistics page 26 and map return) and B (level-end counters ADR-0548 hash 311, statistics rows, keeper rank, Total Evil Rating, hi-score name entry and `HiScores.dat`) are built, as are C (transfer creature arrival, specials 129/140, hash 311; the hand's targeting mode for 127/140 produces `TargetId`; the spells panel lists the Libraries' specials and routes 127/140 into it; the packet replay reads action 88's target word) D (post-win cutscenes, title-card and speech placeholders) and the finale (ADR-0549, hash 312: Reaper, win screen, Esc continue/reveal, celebration; `research/campaign-win-sequence.md`); all await a Unity play test. Today's Top Keepers (Extras, page 18) is built. Scope, remaining play checks and import/decoder limits are in `plans/2026-10-23-front-end.md`.
+   `research/front-end-assets.md`); F1 storage/image plumbing (ADR-0538), F2 front-end scenery/camera sessions, F3 menu shells (ADR-0539), F4 campaign map/briefing and the F7 movie decoder/playback proof of concept are built. F5 stages A (briefing Go launches the level, verdict writes the profile once, Space leaves, statistics page 26 and map return) and B (level-end counters ADR-0548 hash 311, statistics rows laid out as DK2's (`0x0053CAF0`, `0x0053D270`; no scroll bar or objective images yet), keeper rank, Total Evil Rating, hi-score name entry and `HiScores.dat`) are built, as are C (transfer creature arrival, specials 129/140, hash 311; the hand's targeting mode for 127/140 produces `TargetId`; the spells panel lists the Libraries' specials and routes 127/140 into it; the packet replay reads action 88's target word) D (post-win cutscenes, title-card and speech placeholders) and the finale (ADR-0549, hash 312: Reaper, win screen with its reward tablet (`RewardTablet`), Esc continue/reveal, celebration; `research/campaign-win-sequence.md`); all await a Unity play test. Today's Top Keepers (Extras, page 18) is built. Scope, remaining play checks and import/decoder limits are in `plans/2026-10-23-front-end.md`.
 7. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built; the appearance target is the approved AI concepts (ADR-0398,
    ADR-0399, `art/manifests/creature/imp.yaml`). The Tripo candidate was
@@ -294,9 +294,17 @@ tools/classic-unity-probe/README.md.
    Still open: the geometry-index and exact-frame export for all 35 Imp files.
 
 8. Autonomous playtesting (ADR-0552, `plans/2026-10-27-autonomous-playtesting.md`): Stage A,
-   the test-controller hook in `DK2.Harness`, is built. Stage B (input journal and replay,
-   shared with `plans/2026-10-18-crash-and-debug-tooling.md` item 1) and Stage C (fuzzer,
-   coverage, invariants) are not started.
+   the test-controller hook in `DK2.Harness`, Stage B's harness half (input journal,
+   `replay`, `watch`) and Stage C (legal-action fuzzer, coverage, progress and the snapshot
+   check; `src/DK2.Harness/README.md`) are built. Stage D (ADR-0553,
+   `plans/2026-10-27-stage-d-unity-input.md`) Phase 1 is built: Unity writes `frames.journal`
+   (`FrameInputJournal`) and `input.journal` when `DK2_INPUT_JOURNAL` names a folder
+   (`unity/README.md`); it has not been run in the editor. Next: the owner plays three to five
+   journaled baseline sessions (to `D:\DK2Evidence\runs\unity-input-<date>\`), and Phase 1b
+   lets the harness replay a Unity journal; Phases 2-5 (input mapping into Presentation, the
+   Input System ADR, migration, rendered-HUD automation) are not started. Failure bundles hold no
+   snapshots, no DK2-behaviour invariant exists (each needs a cited source), and the fuzzer
+   plays no specials or objects and tags nothing under fog.
 
 After faithful M12, keep it as selectable Classic AI; explore a separate
 Enhanced keeper using the same observation/command interface (KEEPER_AI.md

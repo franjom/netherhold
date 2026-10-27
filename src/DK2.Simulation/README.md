@@ -6,7 +6,8 @@ world and advances it: `Tick(InputFrame)` applies the player's commands, then ru
 each `ISimulationSystem` in order. `SimulationSystems.Default()` is the standard
 system list (under `Systems/`). Rule logic lives in `*Rules.cs` and `*Step.cs`;
 `ThingProjection` places a level's decoded THINGS; `SimEvent` and its sink record
-what happened. State is hashed (`Hash64`) every tick.
+what happened. State is hashed (`Hash64`) every tick. `CommandCodec` and `InputJournal`
+(writer and reader) are the binary input journal of every `PlayerCommand` (ADR-0552).
 
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model` and
 `DK2.Pathfinding`. It reads no files; the data it needs arrives as a `GameDatabase`.

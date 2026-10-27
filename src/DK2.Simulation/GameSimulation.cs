@@ -22,6 +22,10 @@ public sealed class GameSimulation
 {
     private const ulong HashVersion = 315;
 
+    /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
+    /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
+    public static ulong CurrentHashVersion => HashVersion;
+
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
     private readonly SimulationContext _context;

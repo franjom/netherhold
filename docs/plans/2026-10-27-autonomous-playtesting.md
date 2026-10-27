@@ -1,6 +1,6 @@
 # On-demand autonomous playtesting
 
-**Status:** accepted as ADR-0552 (2026-10-27). Stage A built; B and C not started.
+**Status:** accepted as ADR-0552 (2026-10-27). Stages A, B and C built (the harness half of B); snapshots in failure bundles, DK2-behaviour invariants and a fog-aware fuzzer are not. Unity journals and the Unity input path are Stage D, ADR-0553 (`plans/2026-10-27-stage-d-unity-input.md`).
 **Mandate:** `AGENTS.md` Goal 10 (AI/Bot Interface). Related milestones: M5, M6, M9, M10, M12–M14.
 
 ## 1. Objective
@@ -36,20 +36,27 @@ testing; not a boundary for competitive or LLM players, which need a fog-filtere
 The test monitor (Stage B/C) reads `WorldState` directly for progression, objectives and
 invariants; controller observations and monitor diagnostics stay separate.
 
-## 4. Legal command allowlist (Stage C)
+## 4. Legal command allowlist (Stage C, built)
 
 The fuzzer issues only commands a human can issue in the current context. Sources:
 `PlayerInputTranslator` and `PlacementCursor` (`DK2.Presentation`), testable from `src/`;
 and the Unity-only paths in `DungeonRunner.Hud.cs` and `DungeonRunner.Finale.cs` (doors,
 traps, spell casts, `RevealMap`, `ContinueAfterResult`), which `src/` cannot reference. That
-half is a hand-kept list; those files get a comment pointing at it.
+half is a hand-kept list. `HumanCommandPolicy` (version 1, `src/DK2.Harness`) classifies every
+`PlayerCommand` type: 15 Play, 3 OutsidePlay (`SkipCameraPath`, `RevealMap`,
+`ContinueAfterResult`), 13 NoHumanPathYet (lock door, casino lever, alliance, message
+acknowledgement, rescue priority, remove Call to Arms, the 7 possession commands) and 2
+ComputerKeeperOnly (`GrantCreatureLevel`, `MintWage`). `AllowsInPlay` also rejects
+`BuildRoomCommand` outside `PlayerWave` mode. A test scans every `.cs` under `src/DK2.Presentation`
+and `unity/DK2.Unity/Assets/DK2` (comment lines skipped): a command named there must be Play or
+OutsidePlay, and every Play type must be named, so a new input path cannot go unclassified.
 
 Excluded: the readiness level-up, `BuildRoomCommand` Direct mode, scenario setup, cheats.
 `RevealMap` and `ContinueAfterResult` are excluded by default (play after a verdict explores
 little). The allowlist is explicit, versioned and tested. Invalid-input robustness is a
 separate future mode.
 
-## 5. Controller randomness
+## 5. Controller randomness (built)
 
 Each fuzzer owns a `SimRandom` seeded from the scenario seed and its player id, following
 `ScenarioInputBuilder`'s `new SimRandom(scenario.Seed ^ id)`. It never draws from the
@@ -65,10 +72,10 @@ before optimising it. Parallel workers wait for a review of mutable static state
 `ScenarioController.IntervalTicks` bounds observation cost: a `KeeperView` captures
 navigation bytes, the room index and spell-placement checks.
 
-## 7. Command journal (Stage B)
+## 7. Command journal (Stage B, built)
 
 `keeper-commands.tsv` and Stage A's `controller-commands.tsv` hold type and hash only and
-cannot be replayed. Stage B builds the **input journal of
+cannot be replayed; `input.journal` is the replayable record. Stage B builds the **input journal of
 `2026-10-18-crash-and-debug-tooling.md` item 1**, one format for Unity play and harness runs:
 
 - Header: journal version, commit SHA, **whether `src/` was dirty** (`git status --porcelain
@@ -84,7 +91,7 @@ cannot be replayed. Stage B builds the **input journal of
 The YAML `commands` vocabulary covers about ten commands, so the journal, not YAML, is the
 reproduction artifact.
 
-## 8. Replay (Stage B)
+## 8. Replay (Stage B, built)
 
 A harness replay verb: build the scenario's world and setup, keep injecting its `work`
 entries (they are not commands and never appear in a journal), **skip its YAML `commands`**,
@@ -92,25 +99,30 @@ run no controllers or computer keepers, feed the journal's frames, compare hashe
 first divergent tick. Incompatible versions are refused. A clean replay proves reproduction
 at the recorded revision only.
 
-## 9. Runtime coverage (Stage C)
+## 9. Runtime coverage (Stage C, built)
 
-`GameSimulation.TrackTriggerReach` for trigger coverage, plus cheap per-run histograms of
-creature `Dk2StateId` visited and event kinds emitted. `CreatureStateCoverage` and
+`--coverage` writes `coverage.tsv`: trigger records reached (`GameSimulation.TrackTriggerReach`),
+creature-ticks per `Dk2StateId`, and events per kind. `CreatureStateCoverage` and
 `CategoryHooks` are implementation-status tables, not runtime coverage; use them afterwards
 to list built states no run visited. Instrumentation only observes: no hash or RNG effect.
 
-## 10. Failure monitoring
+## 10. Failure monitoring (technical and agent parts built)
 
 - Technical: exceptions, crashes, watchdog timeouts, replay mismatches, and save/load
   continuation failures from an optional snapshot → restore → compare cycle (`WorldSnapshot`,
-  as `SnapshotTests` does) in Stage C.
+  as `SnapshotTests` does). `--snapshot-check N` restores a snapshot into a shadow simulation
+  fed the same frames and work for 40 ticks (none starts on the last tick); a throw or a
+  divergence is an invariant failure and fails the run.
 - Command: refusals through the existing event sink, following the room builder's `built`
   event that names its reason. No separate result channel.
-- Agent: no commands issued, versus commands issued without progress.
+- Agent: `--progress N` writes `progress.tsv` and stall candidates for controlled players,
+  "controller idle" versus "commands issued but ... unchanged", over a 1200-tick window;
+  diagnostics only.
 - Progression (territory, gold, creatures, rooms, objectives, status): candidates, not bugs.
 - Fidelity: a difference from DK2 needs oracle verification and an explicit decision.
 - Every invariant cites an evidence source and confidence. The crash plan's item 5 examples
-  need sources before they qualify.
+  need sources before they qualify. Stage C added no DK2-behaviour invariant; the snapshot
+  cycle is the only check with a failure verdict.
 
 ## 11. Evidence
 
@@ -136,12 +148,40 @@ sample size and uncertainty; a 20-seed median can double by chance.
   zero interval and a null decision are refused. Untested here (computer keepers need a
   campaign map): refusal on a keeper's player, and controller commands following the keepers'
   in the frame.
-- **B — Reproducibility.** Journal and round-trip tests, replay verb, child-process watchdog,
-  incremental logs, failure bundles. Acceptance: a recorded run replays without its
-  controller; an interrupted or failing run leaves enough evidence.
-- **C — Exploration.** Fuzzer, allowlist, runtime coverage, progression and sourced invariant
-  monitoring, the snapshot cycle, bounded multi-seed campaigns. Acceptance: bounded runs
-  exercise several systems and every failure reproduces.
+- **B — Reproducibility (built, harness half).** `CommandCodec` (fixed tags 1–33),
+  `InputJournalWriter`/`InputJournal` in `DK2.Simulation`, `ScenarioRunner.Replay`, the
+  `replay` and `watch` verbs (`src/DK2.Harness/README.md`), `failure.md` per run that did not
+  pass. Acceptance met: Level 17's 1800-tick computer-keeper run (255 commands) replays all
+  1801 hashes without `KeeperAI`; a timed-out run leaves a journal readable to the last flushed
+  tick. Not built here: periodic snapshots in failure bundles and `GameTick` stamps (journal
+  ticks are `long`). Unity writing journals is built as ADR-0553 Phase 1.
+- **C — Exploration (built).** `HumanCommandPolicy` (§4), `LegalActionFuzzer`, `RunMonitor`
+  (§9, §10), option parsing in `HarnessCommandLine`; the harness has `InternalsVisibleTo
+  DK2.Behavior.Tests`.
+  - `LegalActionFuzzer` (version 1): keepers only (player 3 or higher); its own
+    `SimRandom(seed ^ player)`; a weighted menu of tag, untag, build (a rectangle up to 3x3,
+    every tile `CanBuild`), sell, create imp, pick up, drop (a tile centre as the pointer point),
+    slap (empty hand only), cast (HUD dispatch: thing-targeting spells on a live creature not
+    in a hand, others at a tile centre; Create Imp through its tool; Reaper 5 and 14
+    excluded), door and trap (only with an owned Workshop, as the HUD), and withdraw 100. The
+    selectable rule is shared with the panel through `BottomPanelView.IsSelectable` and
+    `IsOnPanel` (trap flag 0x2000); the panel's behaviour is unchanged. Narrower than a human:
+    no specials, objects or store gold in the hand, no tagging under fog.
+  - CLI: `run --fuzz <player>[:<seed>[:<interval>]]` (seed defaults to the scenario's, interval
+    4, progress 40 with fuzz), `--coverage`, `--progress N`, `--snapshot-check N`. `watch`
+    passes them through; `--fuzz` goes unchanged unless `--fuzz-seeds n` (then seeds 1..n);
+    `--fuzz-seeds` without `--fuzz` is refused. `watch-summary.tsv` has a label column. A
+    non-keeper or absent `--fuzz` player is a per-scenario failure (exit 1).
+  - Findings: within a few hundred ticks the fuzzer reached two gaps in the synthetic test
+    database (no `MaxNumberOfThingsInHand` variable; a sold Treasury's terrain reverts to
+    terrain id 0), so its tests run on Level 1 shipped data (`[InstallFact]`). They are fixture
+    gaps, not game bugs.
+  - Results: Level 1, keeper (player 3), 2400 ticks: 284 trigger records reached, no invariant
+    failures, replay matched 2401 hashes, a rerun without the observers was identical. Level
+    10, seed 1, 3000 ticks, after review fixes: all 12 generated command kinds, 5 snapshot
+    checks passed, replay matched 3001 hashes.
+  - Not built: snapshots in failure bundles, DK2-behaviour invariants (each needs a cited
+    source), specials, objects and fog-aware tagging in the fuzzer.
 
 **Deferred:** goal-directed AI, Enhanced Keeper, fog-filtered observations, LLM supervisor
 code (an LLM can read reports by hand), parallel or distributed or continuous execution.

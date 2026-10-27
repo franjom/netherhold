@@ -5,6 +5,7 @@
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Harness;
+using DK2.Simulation;
 
 // DK2.Harness - headless scenario runner.
 //
@@ -17,9 +18,30 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
     Console.WriteLine("""
         DK2.Harness
 
-          run <scenario.yaml|directory> [--out <dir>]
+          run <scenario.yaml|directory> [--out <dir>] [run options]
               Runs one scenario, or every scenario under a directory.
-              Default output: build/scenario-runs/<scenario-id>/
+              Default output: build/scenario-runs/<scenario-id>/, with input.journal.
+
+              run options:
+                --fuzz <player>[:<seed>[:<interval>]]  a legal-action fuzzer plays that
+                    player (seed defaults to the scenario's, interval to 4 ticks)
+                --coverage            coverage.tsv: triggers reached, states, events
+                --progress <ticks>    progress.tsv and stall candidates (40 with --fuzz)
+                --snapshot-check <ticks>  save, restore and compare every that many ticks
+
+          replay <scenario.yaml> <input.journal> [--out <dir>]
+              Re-runs a journal without its keepers or controllers and compares
+              every recorded hash. Exit 0 when all match, 1 on a divergence or
+              a repeated failure.
+
+          watch <scenario.yaml|directory> [--out <dir>] [--timeout-seconds 600]
+                [--budget-minutes 30] [--max-runs 20] [run options] [--fuzz-seeds <n>]
+              Runs each scenario in its own process, one at a time, and kills a
+              run that outlives its limit. Each watch writes a new folder with
+              watch-summary.tsv and, for a run that did not pass, failure.md
+              beside its journal. Exit 1 when a run did not pass, 4 when a limit
+              left scenarios unrun. --fuzz passes through as given; with
+              --fuzz-seeds n each scenario runs n times, with fuzz seeds 1 to n.
 
           list [directory]
               Lists the scenarios found (default: scenarios/).
@@ -86,14 +108,23 @@ switch (args[0])
             return 2;
         }
 
+        if (HarnessCommandLine.RunOptions(args) is not { } template)
+        {
+            Console.Error.WriteLine("--fuzz takes <player>[:<seed>[:<interval>]]; --progress and --snapshot-check a positive whole number.");
+            return 2;
+        }
+
         int failures = 0;
         foreach (string file in files)
         {
             try
             {
                 Scenario scenario = Scenario.Load(file);
-                ScenarioResult result = runner.Run(scenario);
                 string outDir = Path.Combine(outRoot, scenario.Id);
+                Directory.CreateDirectory(outDir);
+                ScenarioResult result;
+                using (FileStream journal = File.Create(Path.Combine(outDir, "input.journal")))
+                    result = runner.Run(scenario, template.For(scenario, journal));
                 ScenarioRunner.WriteReport(result, outDir);
 
                 Console.WriteLine(
@@ -106,16 +137,141 @@ switch (args[0])
                 // catch exactly this, so it must reach the exit code.
                 foreach (string failure in result.ExpectationFailures)
                     Console.Error.WriteLine($"    EXPECTATION FAILED: {failure}");
+                foreach (string failure in result.InvariantFailures)
+                    Console.Error.WriteLine($"    INVARIANT FAILED: {failure}");
+                foreach (string stall in result.StallCandidates)
+                    Console.WriteLine($"    stall candidate: {stall}");
 
-                if (result.ExpectationFailures.Count > 0) failures++;
+                if (result.ExpectationFailures.Count > 0 || result.InvariantFailures.Count > 0) failures++;
             }
-            catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or IOException)
+            catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or IOException or ArgumentException)
             {
+                // ArgumentException: a --fuzz player that is no keeper, or not in this world.
                 Console.Error.WriteLine($"{file}: {ex.Message}");
                 failures++;
             }
         }
         return failures == 0 ? 0 : 1;
+    }
+
+    case "replay":
+    {
+        if (args.Length < 3)
+        {
+            Console.Error.WriteLine("replay needs a scenario file and its input.journal.");
+            return 2;
+        }
+
+        string? install = Dk2Install.Find();
+        if (install is null)
+        {
+            Console.Error.WriteLine(
+                "No Dungeon Keeper 2 installation found. Set DK2_DIR to the folder containing DKII.EXE.");
+            return 3;
+        }
+
+        Scenario scenario = Scenario.Load(args[1]);
+        InputJournal journal;
+        try
+        {
+            using FileStream stream = File.OpenRead(args[2]);
+            journal = InputJournal.Read(stream);
+        }
+        catch (InvalidDataException ex)
+        {
+            Console.Error.WriteLine($"not replayed: {ex.Message}");
+            return 2;
+        }
+        Console.WriteLine($"journal: {journal.Hashes.Count} hashes, ends {journal.EndReason ?? "cut short"}");
+
+        try
+        {
+            JournalHeader.CheckReplayable(scenario, journal);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"not replayed: {ex.Message}");
+            return 2;
+        }
+
+        var runner = new ScenarioRunner(GameDatabaseLoader.Load(install), install);
+        string? recordedFailure = journal.EndReason is "completed" ? null : journal.EndReason;
+        ScenarioResult result;
+        try
+        {
+            result = runner.Replay(scenario, journal);
+        }
+        catch (Exception ex) when (recordedFailure is not null && recordedFailure.Contains(ex.GetType().FullName!, StringComparison.Ordinal))
+        {
+            // The recorded run failed with this exception type; failing the same way is the reproduction.
+            Console.Error.WriteLine($"replay failed as recorded ({recordedFailure}): {ex.GetType().FullName}: {ex.Message}");
+            return 1;
+        }
+
+        string? replayOut = HarnessCommandLine.Value(args, "--out");
+        if (replayOut is not null) ScenarioRunner.WriteReport(result, Path.Combine(replayOut, scenario.Id));
+        ReplayReport report = result.Replay!;
+        if (report.JournalTruncated)
+            Console.WriteLine($"the journal was cut short after tick {journal.LastHashedTick}; later ticks were run but not compared");
+        if (report.Matches && recordedFailure is not null)
+        {
+            // A controller's or keeper's failure is not in the frames, so it cannot recur here.
+            Console.Error.WriteLine(
+                $"hashes match ({report.ComparedTicks} compared) but the recorded failure did not recur: {recordedFailure}");
+            return 1;
+        }
+        if (report.Matches)
+        {
+            Console.WriteLine($"replay matches: {report.ComparedTicks} recorded hashes compared");
+            return 0;
+        }
+        Console.Error.WriteLine(
+            $"replay diverges at tick {report.FirstDivergentTick}: recorded {report.Recorded:x16}, " +
+            $"replayed {report.Replayed:x16} ({report.ComparedTicks} hashes compared)");
+        return 1;
+    }
+
+    case "watch":
+    {
+        if (args.Length < 2)
+        {
+            Console.Error.WriteLine("watch needs a scenario file or directory.");
+            return 2;
+        }
+
+        List<string> files = Directory.Exists(args[1]) ? FindScenarios(args[1]) : [args[1]];
+        if (files.Count == 0)
+        {
+            Console.Error.WriteLine($"No scenario files under '{args[1]}'.");
+            return 2;
+        }
+
+        if (HarnessCommandLine.WatchJobs(files, args) is not { } jobs)
+        {
+            Console.Error.WriteLine("A run option is malformed, or --fuzz-seeds was given without --fuzz; see --help.");
+            return 2;
+        }
+
+        int? perRun = HarnessCommandLine.Int(args, "--timeout-seconds", 600);
+        int? budget = HarnessCommandLine.Int(args, "--budget-minutes", 30);
+        int? maxRuns = HarnessCommandLine.Int(args, "--max-runs", 20);
+        if (perRun is null || budget is null || maxRuns is null)
+        {
+            Console.Error.WriteLine("--timeout-seconds, --budget-minutes and --max-runs take a positive whole number.");
+            return 2;
+        }
+
+        var watchdog = new Watchdog(HarnessCommandLine.Value(args, "--out") ?? "build/watch-runs",
+            new WatchLimits(TimeSpan.FromSeconds(perRun.Value), TimeSpan.FromMinutes(budget.Value), maxRuns.Value));
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            watchdog.Cancel();
+        };
+        WatchSummary summary = watchdog.Watch(jobs, Console.Out);
+        Console.WriteLine($"{summary.Ran} run, {summary.NotPassed} did not pass, {summary.Unrun} not run");
+        // 1: something failed. 4: all that ran passed, but a limit or Ctrl+C left scenarios unrun.
+        return summary.NotPassed > 0 ? 1 : summary.Unrun > 0 ? 4 : 0;
     }
 
     default:
