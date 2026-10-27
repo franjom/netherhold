@@ -296,8 +296,13 @@ tools/classic-unity-probe/README.md.
 8. Autonomous playtesting (ADR-0552, `plans/2026-10-27-autonomous-playtesting.md`): Stage A,
    the test-controller hook in `DK2.Harness`, Stage B's harness half (input journal,
    `replay`, `watch`) and Stage C (legal-action fuzzer, coverage, progress and the snapshot
-   check; `src/DK2.Harness/README.md`) are built. Unity does not write journals
-   yet (`plans/2026-10-18-crash-and-debug-tooling.md` item 1), failure bundles hold no
+   check; `src/DK2.Harness/README.md`) are built. Stage D (ADR-0553,
+   `plans/2026-10-27-stage-d-unity-input.md`) Phase 1 is built: Unity writes `frames.journal`
+   (`FrameInputJournal`) and `input.journal` when `DK2_INPUT_JOURNAL` names a folder
+   (`unity/README.md`); it has not been run in the editor. Next: the owner plays three to five
+   journaled baseline sessions (to `D:\DK2Evidence\runs\unity-input-<date>\`), and Phase 1b
+   lets the harness replay a Unity journal; Phases 2-5 (input mapping into Presentation, the
+   Input System ADR, migration, rendered-HUD automation) are not started. Failure bundles hold no
    snapshots, no DK2-behaviour invariant exists (each needs a cited source), and the fuzzer
    plays no specials or objects and tags nothing under fog.
 

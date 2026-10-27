@@ -117,6 +117,18 @@ its name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
 rooms by name. Choose Lair to build sleeping space. Drag Build and Sell rectangles;
 click Create Imp. The tool hotkeys are interface choices (ADR-0104).
 
+## Recording input
+
+Off by default. Set the runner's **Input Journal Directory** field, or the `DK2_INPUT_JOURNAL`
+environment variable (the field wins), to a folder. Each `DungeonRunner` writes a new
+`session-<utc>-<level or front-end>` folder there with `frames.journal` (one record per rendered
+frame: raw input, HUD flags, intents, queued commands, ticks run) and, once its simulation ticks,
+`input.journal` (the ADR-0552 format: the frame and the hash after each tick). A front-end walk
+into a level leaves two folders. A journal that fails stops itself and logs a warning, never the
+game. Journaling is hash-neutral but not timing-neutral (the tick thread hashes every tick).
+Point it at `D:\DK2Evidence\runs\unity-input-<date>\` for sessions worth keeping. Design and
+what is not built: ADR-0553, `docs/plans/2026-10-27-stage-d-unity-input.md`.
+
 ## Verifying the adapter without opening Unity
 
 ```

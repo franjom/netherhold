@@ -12743,3 +12743,35 @@ keeper commands) replays all 1801 hashes without `KeeperAI`.
 `HumanCommandPolicy` allows, built as our input paths build them; observers that leave the hash
 alone add coverage, progress and stall candidates, and a save/load continuation check, the only
 invariant with a failure verdict. Details: the plan, §13.
+
+## ADR-0553 — Unity input is journaled, then moved into Presentation, then migrated
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+
+**Context.** ADR-0552 tests the simulation headlessly; nothing tests the Unity path from mouse
+and keyboard to `PlayerIntent` and commands. Unity uses legacy input only (about 120 `Input.*`
+reads, mostly in `DungeonRunner` and its HUD partial), which a test cannot inject into, and the
+bottom panel and message tabs take UI Toolkit pointer callbacks that our geometry hit tests do
+not see. IMGUI and `GL` only draw. `DK2.Presentation` already holds the engine-neutral half
+(`PlayerInputTranslator`, `ClassicHudControls`, `ClassicCameraControls`) with xUnit tests. A
+frame runs 0..n ticks from real elapsed time and gives all queued commands to its first tick,
+so frame numbers alone do not reproduce a session.
+
+**Decision.** Five phases, in order. (1) Unity writes two journals when asked, off by default:
+the ADR-0552 `input.journal` (frame per tick, hash after it) and a per-frame
+`FrameInputJournal` in `DK2.Presentation` (raw input, HUD flags, intents, queued commands with
+when they were queued relative to the tick hand-off, ticks run). Journaling only reads and a
+failing journal stops itself; it is hash-neutral, not timing-neutral. (2) The polled-input interpretation
+moves from `DungeonRunner` into a pure Presentation mapping whose input is the journaled frame
+snapshot; owner-played baseline sessions become its regression tests; bottom-panel choices
+enter as recorded inputs. (3) A separate ADR decides the Input System, settling wheel units,
+pan axes, text entry, edge timing and UI Toolkit delivery. (4) Migration behind one adapter,
+both backends only during the baseline comparison, legacy removed after. (5) A windowed Mono
+player from a separate checkout, with a fixed-step mode for the frame clock, virtual input
+devices and `runInBackground`, drives the real HUD. The plan is
+`plans/2026-10-27-stage-d-unity-input.md`.
+
+**Consequences.** Phase 2 needs the owner to play three to five short sessions; nothing can
+drive legacy input. Phase 5's fixed step is a production change to the frame clock, because
+`Time.captureDeltaTime` does not reach a clock that reads real time. Coverage is claimed only
+for interactions with a production input path; possession and door locking have none yet.
+Unity evidence goes to `D:\DK2Evidence`.
