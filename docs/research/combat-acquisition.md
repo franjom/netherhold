@@ -36,8 +36,8 @@ acquisition precedes both the state machine and steering on the same tick, and
 Creature order (rechecked 2026-10-10): `0x004B7830` runs complete creature
 updates newest first, because `0x004B4A10` links at the class-list head; see
 [imp-task-stealing.md §8](imp-task-stealing.md#8-update-order-q6). Our combat
-pass now also runs newest first (ADR-0429). Original updates interleave each
-creature's state and movement; ours retains separate system passes.
+step runs inside `CreatureUpdateSystem`, newest first, one creature's whole update at a time
+(ADR-0429, ADR-0554; differences in [creature-update-order.md](creature-update-order.md) §2).
 No extra Imp-job acquisition call exists among SelectAVictim's twelve callers.
 
 The transition adds no missed scan (binary recheck, 2026-10-11):

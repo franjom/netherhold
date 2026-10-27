@@ -10,10 +10,10 @@ namespace DK2.Simulation.Systems;
 /// <summary>The creature arm of DK2's walk-over gold pick-up (<c>0x00489246</c>–<c>0x0048954B</c>
 /// in the creature update <c>0x00488930</c>): every creature the worker arm does not take puts
 /// each neutral gold pile on its own tile into its purse, every tick, up to its level-scaled
-/// <c>MaxGoldHeld</c> (gold-on-the-floor.md §12, ADR-0300). Runs after movement and before the
-/// state choosers, as <c>ImpTaskSystem.PickUpGoldInPassing</c> does for the worker arm.
+/// <c>MaxGoldHeld</c> (gold-on-the-floor.md §12, ADR-0300). Ours is a pass over the whole list after
+/// every creature's update (<see cref="CreatureUpdateSystem"/>), not inside each one.
 /// <para>Not built: the chicken side arm (a neutral Chicken eaten, action 26). Deviates: every
-/// take here precedes every worker-arm take, and the tile's piles are walked newest first, the
+/// take here follows every worker-arm take, and the tile's piles are walked newest first, the
 /// tile list's own link order being unread (ADR-0300).</para></summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/gold-on-the-floor.md")]
 public sealed class WalkOverGoldSystem : ISimulationSystem

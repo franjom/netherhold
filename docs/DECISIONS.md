@@ -6629,7 +6629,8 @@ corridors keeps your dropped gold, and the keeper's total does not move. A creat
 takes nothing; probably faithful, as a held thing is unlinked from the map (`0x004BC500`).
 Deviations: every creature-arm take comes before every worker-arm take, where DK2 runs each
 creature's whole update newest first, so a newer imp and an older Goblin on one pile get it the
-other way round; a keeper's worker that is imprisoned, down or fighting takes nothing, since
+other way round (*amended by ADR-0554: the worker arm now runs in each creature's update, so every
+worker-arm take comes first*); a keeper's worker that is imprisoned, down or fighting takes nothing, since
 `ImpTaskSystem` skips it before the worker arm (from ADR-0293); a tile's piles go newest first
 (the tile list's order is unread); a pile has no falling phase. Not built: the chicken side arm
 (a neutral Chicken eaten off a Portal or Hatchery tile, action 26).

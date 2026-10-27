@@ -92,15 +92,16 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
 order is part of the simulation's definition: two systems touching the same state
 in a different order are a different game. The sequence is the list in that method
 and is not copied here; it is built from named phases (`Commands`, `RoomLifecycle`,
-`KeeperActions`, `ThingPass`, `Work`, `RoomTicks`, `PlayerFrame`, `Needs`, `Choosers`,
+`KeeperActions`, `ThingPass`, `Work`, `RoomTicks`, `PlayerFrame`, `Needs`, `Promotion`,
 `Verdict`) that only label stretches of the one list. Before the systems,
 `GameSimulation.Tick` acknowledges and sweeps player messages, runs the trigger
 executor and counts the level time limit down (ADR-0152, ADR-0245).
 
 The load-bearing constraints, with the per-position reasoning in the file's own
 XML doc: the hand acts before any creature does; marks land before the work that
-reads them; movement precedes every system that *sets* a path, so a creature is
-noticed on the tick it arrives rather than the next; work queued on a tick
+reads them; one creature's whole update (fight, needs routine, anger, state handlers, mover) runs
+before the next one's, newest first, as `CreatureUpdateSystem` (ADR-0554); fog and gold
+come after every mover, so a creature is noticed on the tick it arrives rather than the next; work queued on a tick
 resolves on that tick, so nothing survives a tick boundary half-done; mana is
 paid after everything that could change what a keeper owns, and imp supply after
 the mana it spends; hunger is asked before tiredness and pay after both, which is
@@ -112,8 +113,9 @@ the level's verdict (`DungeonHeartSystem`) and the world's own records come afte
 **DK2's top-level frame is read; most of our order within it is not.** DK2's per-turn
 update runs the thing pass, then every room's tick, then every player's frame
 (`docs/research/binary-census.md` §2); `RoomTicks` holds that slot (ADR-0479). The rest
-of the sequence, including our `Needs` and `Choosers` phases after the player frame, is
-ours, chosen to be explicable rather than measured against DK2.
+of the sequence, including our `Needs` phase after the player frame, is
+ours, chosen to be explicable rather than measured against DK2. The creature update's own order is read
+(`docs/research/creature-update-order.md`).
 
 ## World state
 
