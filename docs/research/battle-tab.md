@@ -118,7 +118,7 @@ camera is not letterboxed; when interface `+0xF5` is set and the object reports 
 it plays sound `0x32C` and clears `+0x4D75` (with `+0xF5` zero the latch stays and no later
 fly-in plays). That update skips camera modes 2, 7 and `0x12` and a paused game.
 What the object draws, and what 0.15, 2000 ms and 2441 mean, are unread (`0x0042F040`).
-This is the "box" of the census; the owner's account of it is in section 8.
+Whether this or the tab is the "box" of the census is not settled; the owner sees both (§8).
 
 ## 6. Drawing — CONFIRMED
 
@@ -155,8 +155,16 @@ agrees.
 ## 8. Owner's observations
 
 2026-10-14 (binary-census.md): fights make the music intensify, and a box appears that moves
-the camera to the fight when right-clicked. The right-click matches section 4; whether the
-"box" is the tab or the fly-in is not settled (Q664).
+the camera to the fight when right-clicked.
+
+2026-10-27, asked directly: when a fight breaks out the crossed blades appear and flash by
+themselves, **and** something flies in from the top right toward them (both §3 and §5; Q664
+partly answered: which of the two the 2026-10-14 "box" was is not said). Right-clicking them moves the camera to the battle; the tooltip says "Zoom to
+Battle" (Text.str 2165). With two fights, each right-click or F alternates between them, and
+the tab disappears after the fighting stops (§3, §4). A sound is heard **once, at the start of
+the battle**, not on every flash: an outcome, not a mechanism — it fits the fly-in's `0x32B`,
+or a service that ignores a repeated `0x30F` (§6); which, is unread. Whether the Mentor's fight
+lines are ever spoken: the owner does not know (Q663 stays open).
 
 ## 9. Link to the music work
 

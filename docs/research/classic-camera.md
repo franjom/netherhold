@@ -205,6 +205,13 @@ clamp focus immediately. Combining packets before clamping is observably wrong
 at map edges. Focus lock bit0x40 or an active transition suppresses the update.
 Ordinary presets fix height to raw4095 after maximum-exclusive clamping.
 
+CONFIRMED binary (2026-10-27): the edge test in 0x00406DF0 is strict (x < 5, x > width - 5,
+likewise y) and runs whether or not Ctrl or Shift is held. The registry option "Alternative
+Scroll" (profile +0xF1, 0x00759C1D, default 0) swaps LEFT/RIGHT only: plain LEFT/RIGHT rotate
+(action 8, +/-0x40) and Ctrl+LEFT/RIGHT pan with the Shift fast flag (0x004066A0). UP/DOWN
+stay pan and zoom. The adapter implements the default; whether the Options screen exposes the
+switch is unread.
+
 Keyboard yaw packets carry elapsed clock milliseconds masked to26bits from
 HUD+0x10B8; instruction0x00403E66 writes that clock at the end of an inner pass.
 0x004422F0 masks the submitted angle to11bits;0x00449D40 adds it to yaw unless

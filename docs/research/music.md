@@ -48,7 +48,7 @@ pointer held elsewhere could escape the scan; none was seen.
 |---|---|---|
 | raise `0x100` (level 1) | `0x00458417` in `0x00458370` | state 179 finds a route to an enemy room that resumes in **180 attacking rooms** |
 | raise `0x100` | `0x004589A6` in `0x004586B0` | a route found that resumes in **184 attacking walls** |
-| raise `0x100` | `0x0048206E` in `0x00482010` | a route to a Treasury found that resumes in **164 stealing booty**, gated on a world word at `(+0x84)+0x224E` differing from the creature's player (unread) |
+| raise `0x100` | `0x0048206E` in `0x00482010` | a route to **player 3's** (the first keeper's) Treasury found that resumes in **164 stealing booty**; player 3's own creatures refuse (`steal-gold.md` §2) |
 | raise `0x100` | `0x00485ADF` in `0x00485AB0`, `0x00485BA0` in `0x00485B80` | `SetState(186)` accepted: **tunnelling** |
 | raise `0x101`/`0x102`/`0x103` | `0x005054CD`, `0x005054E7` in `Battle_Update` `0x00505310` | a battle's enemy threat reaches variable 215, 216 or 217 (§4) |
 | raise `0x103` (level 4) | `0x00488A44` in `Creature_Update` | every turn while a creature whose definition flag `+0x686` has `0x4000` (the Horned Reaper) exists, unless the next row |
@@ -60,7 +60,7 @@ States are the executable's labels (`creature-state-table.md`). **CONFIRMED.**
 
 So level 1 is not a fight: it is a creature **setting out on a raid** — the raise comes when
 the route is found, as the walk starts, except tunnelling, a direct `SetState`. No raise tests
-the owner (bar the Treasury gate), so any player's raider starts your music. Fighting itself
+the local player, so any player's raider starts your music (163 always walks to player 3). Fighting itself
 raises nothing below level 2. **CONFIRMED.** Bit `0x40` of player `+0x76` is printed as
 `GameWonSequenceActive` by the player dumper (`0x004BD5CD`, `SHR 6`) and set by the win
 sequence (`campaign-win-sequence.md`), so the end-sequence Reaper silences the music rather
@@ -150,14 +150,22 @@ item 130 lists 131 twice at 80–100). **CONFIRMED** (data).
 4. Advance the sound LCG at `0x007A53B0` (`× 0x19660D + 0x3C6EF35F`), `k = rotr(seed, 13) mod n`,
    take the `k`-th matching link in file order: uniform over matching links. **CONFIRMED.**
 
-Start (slot `+0x3C`, `0x006165D0`) is the picker with the instance's own intensity `+0x44`; for
-a fresh instance with no current item the first segment is a target of item 1's links
-(**STRONGLY INFERRED**: that a new instance's `+0x08` is 0 was not read). Resume (slot `+0x20`, `0x00616560`): while stopped and the intensity slot is
+Start (slot `+0x3C`, `0x006165D0`) is the picker with the instance's own intensity `+0x44`; the
+constructor `0x0060C640` zeroes `+0x08`, so the first segment is a target of item 1's links.
+**CONFIRMED.** Resume (slot `+0x20`, `0x00616560`): while stopped and the intensity slot is
 no longer `0x7F`, clear the current item, pick, and queue the result. **CONFIRMED.** The
 segment end (slot 0, `0x006164D0`) picks with the intensity in `+0x44` and queues the item's
 sound on the stream, so a level change is heard at the next segment boundary. **LIKELY**
-(lead; slot 0 not re-read). The intensity reaches `+0x44` through parameter 2 (`0x00608DE0`).
-**LIKELY.** The LCG is the sound system's own, not a game stream.
+(lead; slot 0 not re-read). The intensity reaches `+0x44` every frame: set-parameter
+`0x00608DE0` → `0x0060D990` → `0x0060C750` writes the value into each of slots `+0x44..+0x47`
+whose id byte `+0x40..+0x43` matches, and the instance init (`0x0060C9D0`) copies slot 0's id
+from the group's `+0x12` (2). The per-frame update `0x00608D50` → `0x0060D950` calls the
+instance's slot `+0x20`, the resume. **CONFIRMED** (2026-10-27, deep pass). The init's start
+pick stores item 1 as current even when nothing matches, so at intensity 0 the music instance
+exists, flagged stopped, and retries each frame (**CONFIRMED**). That it is silent is
+**LIKELY**: the init still picks item 1's sound into `+0x0C` (`0x0060CA43..9C`), and whether
+the stopped flag keeps it off the stream (`0x0060C960`, the stream start) is unread; the
+owner hears no music at the start of a level. The LCG is the sound system's own, not a game stream.
 
 ## 7. Where the lead differs
 
@@ -199,9 +207,42 @@ Pick(item, i):
     return m[SoundRand() % m.Count].Target
 ```
 
-## 9. UNKNOWN
+## 9. The owner's play, and one conflict (Q666)
 
-- The Treasury gate's world word in `0x00482010`.
+Asked 2026-10-27: a level starts with no music, only the ambience (§3); the music stays at its
+most intense while a Horned Reaper is about and goes silent when the win sequence starts (§2).
+Both agree with the code.
+
+**Conflict.** The owner hears the music start when raiders *attack* their dungeon or creatures,
+not as they walk in, and never for heroes fighting a computer keeper. The code, re-read end to
+end on 2026-10-27, says otherwise:
+- `Battles_Update` calls `Battle_Update` on all eight records with no guard (`0x00504F06..1C`);
+  creatures of every player join (`+0x7A` player list); each record's `+0x00` is the world
+  (also passed to `World_GetGameTurn`), so the one exclusion is the local player. Threat only
+  grows with level (125–500 % for levels 2–10), and one Knight is 213, Giant 160, Bile Demon 120: a fight with
+  one of those between two other sides passes 100 and raises level 2, after which the decay
+  leaves level 1 playing until a set to `0xFF`.
+- The only writers of the level (`0x0075B8AC`, manager `0x0075B880`) are the constructor and
+  init (`0xFF`), the decay, raise and set (`StoreAt +0x2C`); nothing filters by player.
+- The raid raises are state handlers 163 (`0x00482010`), 179 (`0x00458370`) and 183
+  (`0x004586B0`), raised when the route is found, and the tunnel requests called from inside
+  `Travel_RouteToRoom`/`Travel_RouteToPoint` for a hero worker whose route has option bit 0.
+  A party given StealGold (job 13) enters 163 as soon as its arm's route test passes, and 163
+  walks to player 3's Treasury whatever player the job names (`steal-gold.md` §2), so that
+  raise comes as the walk starts, possibly far away, but only against player 3. The 179 and
+  183 raises have no such limit.
+The binary is the primary source, but every link here is static and the owner's account is
+specific; a live check settles it (Q666). A sampled watch of `0x0075B8AC` shows only 255 and
+256, since a level above 1 decays in the same frame; watch for the 255 → 256 change after the
+Heart's opening, or use "find out what writes to this address" to catch each raise site.
+One reading would reconcile part of it: level 1 is the calm part of the track, and the louder
+parts come only from battle threat, so music that starts quietly as raiders set out and swells
+when blows land may be heard as starting at the attack.
+
+## 10. UNKNOWN
+
+- Q666, above.
+- Whether a stopped music instance is silent (`0x0060C960`, §6).
 - Which levels set which track byte `+0x720D`, and whether any asks for track 2.
 - The one-shot atmosphere's delay-chained player (vtable `0x006740B0`) and the options-screen
   player (`0x006741C8`), not re-read.

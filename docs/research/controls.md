@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Source(s) | `<install>/ReadMe.txt` §7 "FULL KEY LIST" and `<install>/reference_card.pdf` (both shipped, read 2026-09-09); `original-reference/Dungeon_Keeper_2_Manual.pdf` p.3 command card and pp.37, 40–41 |
-| Observed behaviour | Not yet observed in the running game. The three documents are EA's own and agree |
+| Observed behaviour | The owner, 2026-10-27: W/A/S/D does not pan; play pans mostly at the screen edge. The rest is not yet observed. The three documents are EA's own and agree, and the default table 0x005604C0 binds the camera keys as listed |
 | Confidence | **CONFIRMED** for the mapping below, except the four rows marked in [Where the sources disagree](#where-the-sources-disagree) |
 | Implementation | G/H/M and campaign Options: [minimap-controls.md](minimap-controls.md). Ordinary camera controls: [classic-camera.md §7](classic-camera.md#7-ordinary-camera-controls-2026-10-23). `PlayerToolMode` and numeric debug bindings remain ours. |
 | Tests | ClassicHudControlsTests covers visibility and modal routing; the broader original key list is not fully implemented. |
@@ -165,7 +165,8 @@ translate.
 | `+` / `-` ambient light | the same | DK2's; step size unread |
 | Arrow keys pan, SHIFT speed scroll | the same | DK2's; native motion rules in classic-camera.md §7 |
 | W/A/S/D and joystick pan (InputManager `Horizontal`/`Vertical` axes) | A is Ally Window | ours; collides |
-| Q / E, DELETE / PG DN, CTRL + LEFT/RIGHT | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | keyboard bindings built; X/mouse absent |
+| Q / E rotate | unbound (0x005604C0 stores neither) | ours |
+| DELETE / PG DN, CTRL + LEFT/RIGHT | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | keyboard bindings built; X/mouse absent |
 | Wheel, HOME / END, CTRL + UP/DOWN | HOME / END, CTRL + UP/DOWN, hold Z and mouse | keyboard bindings built; Z/mouse absent |
 | 1, 3, 4, 5, 7 tool modes | 1–7 are possession abilities | ours; collides |
 | `[` / `]` room cycle | none | ours |
