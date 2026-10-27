@@ -27,24 +27,33 @@ public class WinScreenTests
         for (int i = 0; i < WinScreen.Items.Count; i++) Assert.Equal(i, WinScreen.Items[i].Id);
     }
 
+    private static void Run(WinScreen screen, double from, double to, bool cameraOnPath = false)
+    {
+        for (double t = from; t <= to; t += 10) screen.Update(t, cameraOnPath, continueRequested: false);
+    }
+
     [Fact]
-    public void EachRewardWaitsForItsLineThenTheDoneScreenTakesAContinueEveryHalfSecond()
+    public void EachRewardWaitsForItsLineAndItsTabletAtAStandInThirtyFramesASecondThenTheDoneScreenTakesAContinueEveryHalfSecond()
     {
         var screen = new WinScreen(new byte[] { 12, 42, 0, 0, 0 }, id => id == 1350 ? "abcd" : "ab");
         screen.Start(0);
         Assert.Equal(12, screen.Current!.Value.Id);
-        Assert.False(screen.Update(300, cameraOnPath: false, continueRequested: true));
-        Assert.Equal(12, screen.Current!.Value.Id);               // 4 characters: 384 ms
-        screen.Update(400, false, true);
+        Run(screen, 0, 3000);
+        // The line ends at 384 ms (4 characters); the tablet reaches frame 35 at 1140 ms and holds 2 s.
+        Assert.Equal(12, screen.Current!.Value.Id);
+        Run(screen, 3010, 3200);
         Assert.Equal(42, screen.Current!.Value.Id);
-        screen.Update(10_000, cameraOnPath: true, continueRequested: true);
+        int frame = screen.Tablet.Frame;
+        Run(screen, 3210, 20_000, cameraOnPath: true);
         Assert.Equal(42, screen.Current!.Value.Id);               // a camera path holds the screen
-        screen.Update(10_000, false, true);
-        Assert.True(screen.Done);
+        Assert.Equal(frame, screen.Tablet.Frame);                   // and its tablet
+        double done = 20_010;
+        for (; !screen.Done; done += 10) screen.Update(done, false, false);
+        Assert.InRange(done, 23_000, 23_300);                       // the second tablet: ~3.1 s more
         Assert.Null(screen.Current);
-        Assert.False(screen.Update(10_100, false, true));          // the 500 ms deadline arms
-        Assert.False(screen.Update(10_550, false, false));         // re-arms without a request
-        Assert.True(screen.Update(11_100, false, true));
+        Assert.False(screen.Update(done + 10, false, true));        // the 500 ms deadline arms
+        Assert.False(screen.Update(done + 520, false, false));      // re-arms without a request
+        Assert.True(screen.Update(done + 1030, false, true));
     }
 
     [Fact]

@@ -162,3 +162,43 @@ string; `0x0053C830` fills the values. Text.str ids are decimal below.
 CONFIRMED (labels by `Text_GetString` `0x00553A60`, formats from the wide
 strings at `0x006B1F98`–`0x006B1FB8`). `RoomExtraPoints` and the block's last
 seven fields are never printed.
+
+**Where page 26 draws them** (read 2026-10-27). Coordinates are the 640 × 480 front end's,
+as (left, top, right, bottom). Colours are the front end's five-byte B, G, R entries set
+by [0x00533E90](functions/00533E90.md).
+
+- **The summary, widget 179, [0x0053CAF0](functions/0053CAF0.md).** It uses fixed screen
+  boxes, not the widget's:
+
+  | box | text | colour |
+  |---|---|---|
+  | (191, 110, 640, 480) | the rank title (2895–2900) | `+0x30332` (255, 84, 0) |
+  | (191, 148, 459, 170) | 1641 *Total Evil Rating For Level* | none set: the style keeps the last restored colour, `+0x5FF4` by every user read (PLAUSIBLE) |
+  | (460, 148, 640, 170) | the score (§3) | fixed (255, 0, 0) |
+  | (191, 172, 459, 194) | 1637 *Overall Total Evil Rating* | `+0x3032D` (191, 191, 191) |
+  | (460, 172, 640, 194) | the sum of `0x00561CC0` over slots 1–25 | `+0x3032D` |
+  | (191, 194, 459, 216) | 1638 *Specials Found* | `+0x3032D` |
+  | (460, 194, 640, 216) | `%d / %d`: block byte `+0x41`, then `+0x41` + `+0x42`, read signed | `+0x3032D` |
+
+  The two Overall rows appear in mode 1 outside a secret level only.
+- **The rows, widget 180 at (190, 242), 375 × 128, [0x0053D270](functions/0053D270.md).**
+  - The list lays out seven cells from its scroll bar's first row and skips the row
+    labelled 1508 *Enemy Keepers Vanquished*: the field is filled but never shown in a
+    single-player game.
+  - Each label is at the box's left in `+0x3031E`, the label colour. Its value is 250 px
+    to the right in `+0x30323` (255, 168, 0), with alignment 1 (taken as right, INFERRED).
+  - Lines are 25 px apart and clipped to the box, so about five show at once. The scroll
+    bar is drawn by the widget's frame callback [0x00551BA0](functions/00551BA0.md). Its
+    input and range are unread.
+- **The label colour `+0x3031E`** (and its copy `+0x5FF4`) is copied from the palette object
+  `0x00756F34`. Its constructor `0x00559820` makes it white (LIKELY).
+- **Page 26's briefing sections 2 and 3** pass mode 1 to [0x0053A580](functions/0053A580.md),
+  which lays text out only in mode 0. On this page they show the objective images, not the
+  objectives' text.
+
+Page 18's colours, read from [0x0053DBD0](functions/0053DBD0.md):
+
+- The header is (255, 168, 0).
+- The entry row is fixed (255, 0, 0).
+- The top row is the label colour.
+- The other rows are `+0x3032D`.

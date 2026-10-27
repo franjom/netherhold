@@ -26,7 +26,7 @@ public enum FrontEndDrawKind : uint
     Accept = 0x00535f50, Cancel = 0x00536070, PlainText = 0x00532370,
     SmallText = 0x005322f0, MediumText = 0x00532310, KeyboardText = 0x00532350,
     OptionText = 0x00532330, DialogTitle = 0x00532390, BriefingSection = 0x0053A280,
-    ResultsTable = 0x0053CAF0, HiScoreEntry = 0x0053D270, HiScoreRow = 0x0053DBD0,
+    ResultsTable = 0x0053CAF0, StatisticsRows = 0x0053D270, HiScoreRow = 0x0053DBD0,
 }
 public enum FrontEndTextAlignment : byte { Left, Right, Centre, Wrapped }
 public readonly record struct FrontEndActionArguments(uint Pages, uint Commands)

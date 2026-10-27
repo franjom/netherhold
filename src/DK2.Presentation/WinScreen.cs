@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Numerics;
 using DK2.Core;
 using DK2.Data.Model;
 
@@ -40,19 +41,29 @@ public sealed class WinScreen
 
     /// <summary>The deadline the done screen re-arms while no continue or leave is asked (<c>0x0042C390</c>).</summary>
     public const double ContinueDelayMilliseconds = 500;
+    /// <summary>DK2 steps the tablet once per drawn frame (<c>0x0042C390</c> → <c>0x0042F040</c>); the
+    /// remake fixes the rate, a stand-in for a frame rate nothing records.</summary>
+    public const double TabletFramesPerSecond = 30;
+    private const double TabletFrameMilliseconds = 1000 / TabletFramesPerSecond;
 
     private readonly byte[] _rewards;
     private readonly Func<uint, string?> _speech;
     private int _step;
     private double _speechEnds;
     private double _deadline;
+    private double _nextTabletFrame;
+    private readonly Vector3[] _tabletPoints;
+    private readonly Random _random;
 
     /// <param name="rewards">World <c>+0x9B86..+0x9B8A</c>: the level's four NextRewards and byte 25606.</param>
     /// <param name="speech">Speech.str text for an id, standing in for the voiced line (F8).</param>
-    public WinScreen(byte[] rewards, Func<uint, string?> speech)
+    /// <param name="tabletPoints">The Tablet mesh's control points, where its sparkles start.</param>
+    public WinScreen(byte[] rewards, Func<uint, string?> speech, Vector3[]? tabletPoints = null, Random? random = null)
     {
         _rewards = rewards;
         _speech = speech;
+        _tabletPoints = tabletPoints ?? [];
+        _random = random ?? new Random();
     }
 
     /// <summary>The reward bytes a level announces (<c>0x0051E6D0</c>): NextRewards, then byte 25606
@@ -70,6 +81,8 @@ public sealed class WinScreen
     public bool Done { get; private set; }
     /// <summary>The item on screen, or null.</summary>
     public RewardItem? Current { get; private set; }
+    /// <summary>The item's tablet (<c>+0x4C6E</c>), drawn while the screen is not done.</summary>
+    public RewardTablet Tablet { get; } = new();
     /// <summary>The announcement's text, or null.</summary>
     public string? Text => Current is { } item ? _speech(item.SpeechTextId) : null;
 
@@ -94,19 +107,26 @@ public sealed class WinScreen
             return;
         }
         Current = Items[id];
+        Tablet.Restart();
+        _nextTabletFrame = now;
         // With speech audio off the line lasts as a subtitle does (SubtitleQueue).
         _speechEnds = now + (Text?.Length ?? 0) * SubtitleQueue.MillisecondsPerCharacter;
     }
 
-    /// <summary><c>0x0042C390</c>, per frame: nothing while the camera is on a path; the next step once
-    /// the line has finished; when done, every 500 ms, a continue the player asked for is taken.</summary>
+    /// <summary><c>0x0042C390</c>, per frame: nothing while the camera is on a path; the tablet's frames;
+    /// the next step once both the line and the tablet have finished; when done, every 500 ms, a
+    /// continue the player asked for is taken.</summary>
     /// <returns>True on the frame the continue (action 134) is due.</returns>
     public bool Update(double now, bool cameraOnPath, bool continueRequested)
     {
         if (!Started || cameraOnPath) return false;
         if (!Done)
         {
-            if (now < _speechEnds) return false;
+            // More than four frames late, the clock restarts; up to four late, the missed frames are drawn.
+            if (now - _nextTabletFrame > 4 * TabletFrameMilliseconds) _nextTabletFrame = now;
+            for (; now >= _nextTabletFrame; _nextTabletFrame += TabletFrameMilliseconds)
+                Tablet.DrawFrame(now, _tabletPoints, _random);
+            if (now < _speechEnds || !Tablet.Done) return false;
             _step++;
             Show(now);
             return false;

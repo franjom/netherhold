@@ -107,6 +107,9 @@ public sealed record KmfModel(uint Version, KmfKind Kind,
 
     /// <summary>The CTRL section's tagged points, in file order.</summary>
     public IReadOnlyList<KmfControlPoint> ControlPoints { get; init; } = [];
+
+    /// <summary>A static mesh's GEOM positions in file order (empty for an animation).</summary>
+    public IReadOnlyList<Vector3> Geometry { get; init; } = [];
 }
 
 /// <summary>A tagged point of a mesh (CTRL), found by <see cref="Id"/> (<c>0x0059D260</c>). In an
@@ -114,7 +117,8 @@ public sealed record KmfModel(uint Version, KmfKind Kind,
 /// its high word, the pair the animated draw's point getter (<c>0x005835E0</c>) hands the vertex
 /// evaluator <c>0x0057E5B0</c> at the drawn frame (a Goblin's head is primitive 1, vertex 8, in
 /// every clip but Eat's, whose two extra primitives make it 3). In a static mesh it is one index
-/// into the resource's vertex array (<c>0x00580E40</c>), which ours does not keep.</summary>
+/// into the resource's vertex array (<c>0x00580E40</c>), taken as <see cref="KmfModel.Geometry"/>
+/// (INFERRED: Tablet.kmf's 16 points then ring its edge).</summary>
 public readonly record struct KmfControlPoint(uint Vertex, uint Id)
 {
     /// <summary>Point 5000, the head: where the stun's dazed effect is tied (<c>0x004810E0</c>).</summary>

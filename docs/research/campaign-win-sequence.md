@@ -158,21 +158,43 @@ designers' "1st and 2nd cut of the end-of-level sequence" (camera-paths.md §1).
   and steps through `0x0042BC70` (unread).
 - **One step, `0x0042BE90(i)`, i < 5.** The byte is world `+0x9B86 + i` through world slot
   `+0x314` (`0x00508D70`): the level's **NextRewards**, the binary's "Current Reward Id",
-  with the fifth from byte 25606. Zero ends the screen. Otherwise it centres an item on
-  screen (scale 0.75, start time, phase 2, an index `(b << 12) / 52`) and queues the
+  with the fifth from byte 25606. Zero ends the screen. Otherwise it restarts the item's
+  tablet (below) with the texture fraction `(b << 12) / 52` and queues the
   item's speech. The item table is `0x0066C780`, 52 rows of 16 bytes: id, UTF-16 name
   (Alarm, Barricade, ..., Workshop, Reaper_Talisman01-04), an icon word and a speech id
   (played as id + 1). Level 1's NextRewards are 12 Dark Library and 42 Training; Level 2's
   are Treasury, Workshop, Sentry, Wood Door. So the win screen announces what the next
-  level unlocks, one item per speech (STRONGLY INFERRED; layout fields unread).
+  level unlocks, one item per speech (STRONGLY INFERRED from the shipped NextRewards).
   The row is: dword id (0-51, equal to the row index), dword pointer to the UTF-16 name,
   word icon, word speech id, dword flag (meaning unread; 0 on the spells, the Guard Post and
   the unused rows). The speech id is a Speech.str text id: 1369 reads "Alarm Traps announce
   enemy intrusion", 1350 "Devise new spells in the Library" (CONFIRMED, bytes dumped
   2026-10-26; transcribed in `WinScreen.Items`).
+- **The tablet, interface `+0x4C6E`** (read 2026-10-27: set-up `0x0042BE90`, draw
+  `0x0042F040`, step `0x0042EE80`, loads `0x0042F4D0`/`0x0042F5E0` from `0x0042BB30`).
+  The reward is not a flat icon. It is the static mesh **Tablet.kmf**, 0.1 × 0.1 × 0.019
+  units, whose front material lists 51 GUI icons (`gui\Traps\Alarm` … `reaper_talisman-01d`;
+  the back is `Tablet_backf`, the sides `Tabside`). The draw's frame rule
+  (`0x00579730`: round(51 × fraction + 1/1024 − 0.49999)) makes item n show icon n − 1.
+  It is drawn orthographically in screen space at (1280, 800) of 2560 × 1920, so half the
+  width and 5/12 of the height (`0x0052C5A0`), at scale × 4096 pixels per unit.
+  Each drawn frame: while the frame counter is below 32, both turns (about axes 0 and 2,
+  2048 units a turn) are frame × 64, and the scale closes 1/(32 − frame) of its gap
+  from 0 to 0.75. That makes one full turn while the tablet grows to 0.75 × 4096 × 0.1 ≈ 307 px wide.
+  Frame 32 sets the turns to 0 and shrinks the scale by 5 %, and frame 33 restores 0.75.
+  While growing, two sparkles leave each of the mesh's control points (the CTRL table,
+  `0x00577DC0`; Tablet.kmf's 16, ids 11000–11015, ring its edge), every second point
+  below graphics detail 5. They move (rand − 16384)/8192 px a frame per axis and live
+  rand/8192 + 8 frames (MSVC `rand`, `0x006359F0`). Each is drawn with the sprite
+  TabletSparkle, its frames left as its size (LIKELY). Past frame 34, once no sparkle is
+  left, a 2 s hold is armed (`+0x57` = 2) and when it passes the tablet is done (`+0x4B`).
+  The frame counter counts drawn frames, not game turns, so the growth takes 32 drawn
+  frames at whatever rate DK2 drew. CONFIRMED arithmetic; the order and sense of the two
+  turns and the sparkles' blend are unread.
 - **Update, `0x0042C390`** (per frame). Returns at once in camera modes 2, 7 or `0x12` (so
-  path 101 holds the screen back) or while the game object's `+0x284` is set. Advances a
-  step when the previous speech has finished (`0x00568570`). Once the screen is done
+  path 101 holds the screen back) or while the game object's `+0x284` is set. While the
+  screen is not done it draws the tablet. It advances a step only when the tablet is done
+  (`+0x4CB9`) and the previous speech has finished (`0x00568570`). Once the screen is done
   (`+0x4CEA`) and it is a win (`+0x4CE2`), it arms a deadline 500 ms ahead (wall clock);
   when it passes, the local player's `+0x76` bit `0x100000` issues action 134 (continue),
   bit `0x200000` issues action 1 (leave); each sets `+0x13DA` and player `+0x109E`, and
@@ -204,8 +226,9 @@ and posts 75 (`0x00405633`–`0x0040569C`).
 
 So the "fade after pickup" the owner recalls is not a level-end fade found in the
 simulation: after the pickup come path 101 (25.7 s if it starts, skippable), effect 258 at 13 s, and
-the reward announcements; the level ends when the player presses Space. Where a fade is
-drawn (`0x0042F040`, called by `0x0042C390`) is unread.
+the reward announcements; the level ends when the player presses Space. `0x0042F040`, once
+listed here as a possible fade, is the reward tablet's draw (§5); where a fade is drawn is
+unread.
 
 ## 7. The celebration `0x004BF9E0` (secret levels and MPD)
 

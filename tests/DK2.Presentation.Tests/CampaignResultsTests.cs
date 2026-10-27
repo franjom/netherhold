@@ -48,6 +48,58 @@ public class CampaignResultsTests
         Assert.Null(CampaignResults.Build(new CampaignProfile(), new CampaignSlot(1)));
     }
 
+    [Fact]
+    public void TheSummarySitsAtItsFixedBoxesWithTheOverallSumAndSpecialsOutsideASecretLevel()
+    {
+        var ratings = new uint[40];
+        ratings[0] = 100; ratings[3] = 250; ratings[24] = 7; ratings[25] = 9000;   // slot 26 is a secret one
+        var profile = new CampaignProfile { TotalEvilRating = ratings };
+        profile = CampaignProgression.RecordStatistics(profile, Keeper,
+            new LevelStatisticsBlock { SpecialsFound = 2, SpecialsMissed = 3 }, new CampaignSlot(4), keeperRank: 60);
+        CampaignResults results = CampaignResults.Build(profile, new CampaignSlot(4))!;
+        CampaignResultText[] summary = results.Summary().ToArray();
+
+        Assert.Equal(new FrontEndRect(191 * 4, 110 * 4, 449 * 4, 370 * 4), summary[0].Rect);
+        Assert.Equal((2898u, FrontEndTextColour.Rank), (summary[0].TextId, summary[0].Colour));
+        Assert.Equal((1641u, 148f * 4), (summary[1].TextId, summary[1].Rect.Y));
+        Assert.Equal((results.Total.ToString(), FrontEndTextColour.Red, 460f * 4), (summary[2].Text, summary[2].Colour, summary[2].Rect.X));
+        Assert.Equal((1637u, FrontEndTextColour.Grey), (summary[3].TextId, summary[3].Colour));
+        Assert.Equal((results.Total + 100 + 7).ToString(), summary[4].Text);      // slots 1-25 only
+        Assert.Equal((1638u, "2 / 5"), (summary[5].TextId, summary[6].Text));
+    }
+
+    [Fact]
+    public void ASecretLevelPrintsNoOverallRating()
+    {
+        var profile = CampaignProgression.RecordStatistics(new CampaignProfile(), Keeper,
+            new LevelStatisticsBlock(), new CampaignSlot(26), keeperRank: 10);
+        CampaignResults results = CampaignResults.Build(profile, new CampaignSlot(26))!;
+        Assert.Null(results.Overall);
+        Assert.DoesNotContain(results.Summary(), t => t.TextId == 1637);
+    }
+
+    [Fact]
+    public void TheRowsSkipEnemyKeepersVanquishedStepTwentyFivePixelsAndClipToTheList()
+    {
+        var profile = CampaignProgression.RecordStatistics(new CampaignProfile(), Keeper,
+            new LevelStatisticsBlock { LevelWon = true }, new CampaignSlot(1), keeperRank: null);
+        CampaignResults results = CampaignResults.Build(profile, new CampaignSlot(1))!;
+        var list = new FrontEndRect(760, 968, 1500, 512);                     // widget 180
+        CampaignResultText[] rows = results.Rows(list, 0).ToArray();
+
+        // Seven listed cells, 1508 hidden: six lines at 0, 25, ..., 125 pixels; the last cut to 3 pixels.
+        Assert.Equal(new uint[] { 1516, 1410, 1413, 1509, 1510, 1511 }, rows.Where((_, i) => i % 2 == 0).Select(r => r.TextId));
+        Assert.Equal(968 + 125 * 4, rows[10].Rect.Y);
+        Assert.Equal(512 - 125 * 4, rows[10].Rect.Height);
+        CampaignResultText value = rows[1];
+        Assert.Equal((21u, FrontEndTextColour.Value, FrontEndTextAlignment.Right), (value.TextId, value.Colour, value.Alignment));
+        Assert.Equal((760f + 1000, 500f), (value.Rect.X, value.Rect.Width));
+        // The scroll range is the remake's: five whole lines fit, so the list stops at row 9.
+        Assert.Equal(9, results.LastFirstRow(list));
+        CampaignResultText last = results.Rows(list, 9).Last(r => r.Colour == FrontEndTextColour.Label);
+        Assert.Equal((1636u, 968f + 100 * 4), (last.TextId, last.Rect.Y));
+    }
+
     [Theory]
     [InlineData(0u, 2895u)]
     [InlineData(17u, 2895u)]
