@@ -10,10 +10,10 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Presentation only, and not built. Nothing here changes a rule; it is how the view
-bends the straight authored pieces (`wall-rendering.md`, `floor-and-terrain-pieces.md`)
-into DK2's uneven walls. Facts in our own words; no decompiler output is reproduced
-(ADR-0046). Every name below is ours.
+Presentation only, built as `TerrainLattice` (`8204b82e`; terrain, torches, hover outline;
+not tile flag `0x8000` or Tremor's lattice). No rule changes; it is how the view bends the
+straight pieces (`wall-rendering.md`, `floor-and-terrain-pieces.md`) into DK2's uneven
+walls. Facts in our own words, no decompiler output (ADR-0046). Every name below is ours.
 
 Labels: **CONFIRMED** (read in the code, the data flow traced to the store),
 **STRONGLY INFERRED** (read, one link resting on an earlier note or an unread
