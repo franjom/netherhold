@@ -12726,3 +12726,15 @@ refusals it can reach without a campaign map. `controller-commands.tsv` is not r
 whole world, so they test the game; they are not competitive players, which need a
 fog-filtered view later. No stage is expected to move `HashVersion`. Refusal diagnostics added
 later must stay observation-only (no hash, RNG or decision change).
+
+**Amendment (2026-10-27): Stage B.** The journal lives in `DK2.Simulation` (`CommandCodec`,
+`InputJournalWriter`, `InputJournal`) so Unity can write the same file later; the harness writes
+it, Unity does not yet. Each command type has a fixed tag that is never reused. A frame with
+commands and the end record are flushed at once and hashes at least every 256 ticks, so a killed
+run loses no command; a reader keeps every whole record. `GameSimulation.CurrentHashVersion`
+exposes the version at run time (a public const would be compiled into callers), and a replay
+refuses another version or another scenario file (SHA-256). `run` always writes `input.journal`;
+`replay` re-runs it without keepers or controllers; `watch` runs each scenario in a child
+process under a time limit, in a new folder per watch so no evidence is deleted, and writes
+`failure.md` for a run that does not pass. On Level 17 an 1800-tick computer-keeper run (255
+keeper commands) replays all 1801 hashes without `KeeperAI`.

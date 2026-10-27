@@ -1,6 +1,6 @@
 # On-demand autonomous playtesting
 
-**Status:** accepted as ADR-0552 (2026-10-27). Stage A built; B and C not started.
+**Status:** accepted as ADR-0552 (2026-10-27). Stages A and B built (the harness half); C not started.
 **Mandate:** `AGENTS.md` Goal 10 (AI/Bot Interface). Related milestones: M5, M6, M9, M10, M12–M14.
 
 ## 1. Objective
@@ -65,10 +65,10 @@ before optimising it. Parallel workers wait for a review of mutable static state
 `ScenarioController.IntervalTicks` bounds observation cost: a `KeeperView` captures
 navigation bytes, the room index and spell-placement checks.
 
-## 7. Command journal (Stage B)
+## 7. Command journal (Stage B, built)
 
 `keeper-commands.tsv` and Stage A's `controller-commands.tsv` hold type and hash only and
-cannot be replayed. Stage B builds the **input journal of
+cannot be replayed; `input.journal` is the replayable record. Stage B builds the **input journal of
 `2026-10-18-crash-and-debug-tooling.md` item 1**, one format for Unity play and harness runs:
 
 - Header: journal version, commit SHA, **whether `src/` was dirty** (`git status --porcelain
@@ -84,7 +84,7 @@ cannot be replayed. Stage B builds the **input journal of
 The YAML `commands` vocabulary covers about ten commands, so the journal, not YAML, is the
 reproduction artifact.
 
-## 8. Replay (Stage B)
+## 8. Replay (Stage B, built)
 
 A harness replay verb: build the scenario's world and setup, keep injecting its `work`
 entries (they are not commands and never appear in a journal), **skip its YAML `commands`**,
@@ -136,9 +136,13 @@ sample size and uncertainty; a 20-seed median can double by chance.
   zero interval and a null decision are refused. Untested here (computer keepers need a
   campaign map): refusal on a keeper's player, and controller commands following the keepers'
   in the frame.
-- **B — Reproducibility.** Journal and round-trip tests, replay verb, child-process watchdog,
-  incremental logs, failure bundles. Acceptance: a recorded run replays without its
-  controller; an interrupted or failing run leaves enough evidence.
+- **B — Reproducibility (built, harness half).** `CommandCodec` (fixed tags 1–33),
+  `InputJournalWriter`/`InputJournal` in `DK2.Simulation`, `ScenarioRunner.Replay`, the
+  `replay` and `watch` verbs (`src/DK2.Harness/README.md`), `failure.md` per run that did not
+  pass. Acceptance met: Level 17's 1800-tick computer-keeper run (255 commands) replays all
+  1801 hashes without `KeeperAI`; a timed-out run leaves a journal readable to the last flushed
+  tick. Not built: Unity writing journals (crash plan item 1's Unity half), periodic snapshots
+  in failure bundles, and `GameTick` stamps (journal ticks are `long`).
 - **C — Exploration.** Fuzzer, allowlist, runtime coverage, progression and sourced invariant
   monitoring, the snapshot cycle, bounded multi-seed campaigns. Acceptance: bounded runs
   exercise several systems and every failure reproduces.

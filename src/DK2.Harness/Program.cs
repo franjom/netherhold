@@ -5,6 +5,7 @@
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Harness;
+using DK2.Simulation;
 
 // DK2.Harness - headless scenario runner.
 //
@@ -19,7 +20,20 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
 
           run <scenario.yaml|directory> [--out <dir>]
               Runs one scenario, or every scenario under a directory.
-              Default output: build/scenario-runs/<scenario-id>/
+              Default output: build/scenario-runs/<scenario-id>/, with input.journal.
+
+          replay <scenario.yaml> <input.journal> [--out <dir>]
+              Re-runs a journal without its keepers or controllers and compares
+              every recorded hash. Exit 0 when all match, 1 on a divergence or
+              a repeated failure.
+
+          watch <scenario.yaml|directory> [--out <dir>] [--timeout-seconds 600]
+                [--budget-minutes 30] [--max-runs 20]
+              Runs each scenario in its own process, one at a time, and kills a
+              run that outlives its limit. Each watch writes a new folder with
+              watch-summary.tsv and, for a run that did not pass, failure.md
+              beside its journal. Exit 1 when a run did not pass, 4 when a limit
+              left scenarios unrun.
 
           list [directory]
               Lists the scenarios found (default: scenarios/).
@@ -92,8 +106,11 @@ switch (args[0])
             try
             {
                 Scenario scenario = Scenario.Load(file);
-                ScenarioResult result = runner.Run(scenario);
                 string outDir = Path.Combine(outRoot, scenario.Id);
+                Directory.CreateDirectory(outDir);
+                ScenarioResult result;
+                using (FileStream journal = File.Create(Path.Combine(outDir, "input.journal")))
+                    result = runner.Run(scenario, journal: journal);
                 ScenarioRunner.WriteReport(result, outDir);
 
                 Console.WriteLine(
@@ -118,6 +135,120 @@ switch (args[0])
         return failures == 0 ? 0 : 1;
     }
 
+    case "replay":
+    {
+        if (args.Length < 3)
+        {
+            Console.Error.WriteLine("replay needs a scenario file and its input.journal.");
+            return 2;
+        }
+
+        string? install = Dk2Install.Find();
+        if (install is null)
+        {
+            Console.Error.WriteLine(
+                "No Dungeon Keeper 2 installation found. Set DK2_DIR to the folder containing DKII.EXE.");
+            return 3;
+        }
+
+        Scenario scenario = Scenario.Load(args[1]);
+        InputJournal journal;
+        try
+        {
+            using FileStream stream = File.OpenRead(args[2]);
+            journal = InputJournal.Read(stream);
+        }
+        catch (InvalidDataException ex)
+        {
+            Console.Error.WriteLine($"not replayed: {ex.Message}");
+            return 2;
+        }
+        Console.WriteLine($"journal: {journal.Hashes.Count} hashes, ends {journal.EndReason ?? "cut short"}");
+
+        try
+        {
+            JournalHeader.CheckReplayable(scenario, journal);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.Error.WriteLine($"not replayed: {ex.Message}");
+            return 2;
+        }
+
+        var runner = new ScenarioRunner(GameDatabaseLoader.Load(install), install);
+        string? recordedFailure = journal.EndReason is "completed" ? null : journal.EndReason;
+        ScenarioResult result;
+        try
+        {
+            result = runner.Replay(scenario, journal);
+        }
+        catch (Exception ex) when (recordedFailure is not null && recordedFailure.Contains(ex.GetType().FullName!, StringComparison.Ordinal))
+        {
+            // The recorded run failed with this exception type; failing the same way is the reproduction.
+            Console.Error.WriteLine($"replay failed as recorded ({recordedFailure}): {ex.GetType().FullName}: {ex.Message}");
+            return 1;
+        }
+
+        string? replayOut = OptionValue(args, "--out");
+        if (replayOut is not null) ScenarioRunner.WriteReport(result, Path.Combine(replayOut, scenario.Id));
+        ReplayReport report = result.Replay!;
+        if (report.JournalTruncated)
+            Console.WriteLine($"the journal was cut short after tick {journal.LastHashedTick}; later ticks were run but not compared");
+        if (report.Matches && recordedFailure is not null)
+        {
+            // A controller's or keeper's failure is not in the frames, so it cannot recur here.
+            Console.Error.WriteLine(
+                $"hashes match ({report.ComparedTicks} compared) but the recorded failure did not recur: {recordedFailure}");
+            return 1;
+        }
+        if (report.Matches)
+        {
+            Console.WriteLine($"replay matches: {report.ComparedTicks} recorded hashes compared");
+            return 0;
+        }
+        Console.Error.WriteLine(
+            $"replay diverges at tick {report.FirstDivergentTick}: recorded {report.Recorded:x16}, " +
+            $"replayed {report.Replayed:x16} ({report.ComparedTicks} hashes compared)");
+        return 1;
+    }
+
+    case "watch":
+    {
+        if (args.Length < 2)
+        {
+            Console.Error.WriteLine("watch needs a scenario file or directory.");
+            return 2;
+        }
+
+        List<string> files = Directory.Exists(args[1]) ? FindScenarios(args[1]) : [args[1]];
+        if (files.Count == 0)
+        {
+            Console.Error.WriteLine($"No scenario files under '{args[1]}'.");
+            return 2;
+        }
+
+        int? perRun = IntOption(args, "--timeout-seconds", 600);
+        int? budget = IntOption(args, "--budget-minutes", 30);
+        int? maxRuns = IntOption(args, "--max-runs", 20);
+        if (perRun is null || budget is null || maxRuns is null)
+        {
+            Console.Error.WriteLine("--timeout-seconds, --budget-minutes and --max-runs take a positive whole number.");
+            return 2;
+        }
+
+        var watchdog = new Watchdog(OptionValue(args, "--out") ?? "build/watch-runs",
+            new WatchLimits(TimeSpan.FromSeconds(perRun.Value), TimeSpan.FromMinutes(budget.Value), maxRuns.Value));
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            watchdog.Cancel();
+        };
+        WatchSummary summary = watchdog.Watch(files, Console.Out);
+        Console.WriteLine($"{summary.Ran} run, {summary.NotPassed} did not pass, {summary.Unrun} not run");
+        // 1: something failed. 4: all that ran passed, but a limit or Ctrl+C left scenarios unrun.
+        return summary.NotPassed > 0 ? 1 : summary.Unrun > 0 ? 4 : 0;
+    }
+
     default:
         Console.Error.WriteLine($"Unknown command '{args[0]}'. Try --help.");
         return 2;
@@ -127,3 +258,14 @@ static List<string> FindScenarios(string dir) =>
     Directory.Exists(dir)
         ? [.. Directory.EnumerateFiles(dir, "*.yaml", SearchOption.AllDirectories).OrderBy(f => f, StringComparer.Ordinal)]
         : [];
+
+static string? OptionValue(string[] args, string name)
+{
+    int index = Array.IndexOf(args, name);
+    return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+}
+
+// The fallback when the option is absent; null when it is present but not a positive whole number.
+static int? IntOption(string[] args, string name, int fallback) =>
+    OptionValue(args, name) is not string value ? fallback
+    : int.TryParse(value, out int parsed) && parsed > 0 ? parsed : null;
