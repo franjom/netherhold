@@ -75,7 +75,7 @@ counts walks that stepped on the tick they started, out of all walk starts.
 - Imp withdrawals from 203 no longer step on their first tick: 0 of 142 (native 0 of 24).
 - Imp job walks from state 10 still never step on their first tick.
 
-### Not explained (Q663)
+### Not explained (Q665)
 
 - Ours now starts fewer Imp walks than native, and fewer from state 87: Level 4, 167 against 809.
 - Withdrawals from 203 stay far above native: Level 4, 100 against 14.
