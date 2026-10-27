@@ -124,9 +124,12 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
         }
     }
 
-    /// <summary>The last first row the list can scroll to. The scroll bar's range is unread; ours stops once
-    /// the last cell's line lies wholly inside the box.</summary>
-    public int LastFirstRow(FrontEndRect list) => Math.Max(0, Cells.Count - Math.Max(1, (int)(list.Height / (25 * 4))));
+    /// <summary>The last first row: 0x0053D810 arms the list's scroll bar after a campaign game with range
+    /// 0–9 at 0 (8 after multiplayer or skirmish), whatever the rows.</summary>
+    public const int ScrollMaximum = 9;
+    /// <summary>Widget 180's record byte <c>+5</c> (0x006B1778): 0x0052A0D0 puts its bar this many
+    /// reference units right of the list.</summary>
+    public const int ScrollBarGap = 90;
 
     private static FrontEndRect Box(float left, float top, float right, float bottom) =>
         new(left * 4, top * 4, (right - left) * 4, (bottom - top) * 4);

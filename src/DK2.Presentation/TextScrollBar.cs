@@ -35,6 +35,15 @@ public sealed class TextScrollBar
         Position = 0;
     }
 
+    /// <summary>0x00528F60 with min 0, the given max and position 0, as 0x0053D810 arms the statistics
+    /// list's bar after a game.</summary>
+    public void Arm(int range)
+    {
+        Enabled = true;
+        Range = Math.Max(0, range);
+        Position = 0;
+    }
+
     /// <summary>An arrow held one GUI update, or one press on the track (0x00528FB0): ±1 pixel, clamped.</summary>
     public void Step(int direction)
     {

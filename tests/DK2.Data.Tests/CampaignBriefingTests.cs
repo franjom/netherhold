@@ -27,6 +27,10 @@ public class CampaignBriefingTests
             uint nativeResource = slot.IsSecret ? (uint)(1005 + slot.Value) : (uint)(999 + slot.Value);
             Assert.Equal(nativeResource, strings.FileId);
             Assert.Equal(strings.Entries.Single(e => e.Id == 2).Value, briefing.MainObjective);
+            Assert.Equal(definition.Flags, briefing.LevelFlags);
+            // The shipped secret levels carry flag 0x20 or 0x40 and the campaign levels neither: one objective
+            // shot each in the WAD's Obj_Shots run, two for the rest (front-end-assets.md §1.2).
+            Assert.Equal(slot.IsSecret, briefing.IsSecretOrSpecial);
         }
     }
 }

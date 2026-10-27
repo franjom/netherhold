@@ -94,9 +94,8 @@ public class CampaignResultsTests
         CampaignResultText value = rows[1];
         Assert.Equal((21u, FrontEndTextColour.Value, FrontEndTextAlignment.Right), (value.TextId, value.Colour, value.Alignment));
         Assert.Equal((760f + 1000, 500f), (value.Rect.X, value.Rect.Width));
-        // The scroll range is the remake's: five whole lines fit, so the list stops at row 9.
-        Assert.Equal(9, results.LastFirstRow(list));
-        CampaignResultText last = results.Rows(list, 9).Last(r => r.Colour == FrontEndTextColour.Label);
+        // 0x0053D810's range stops the list at row 9, where the last cell is the fifth line.
+        CampaignResultText last = results.Rows(list, CampaignResults.ScrollMaximum).Last(r => r.Colour == FrontEndTextColour.Label);
         Assert.Equal((1636u, 968f + 100 * 4), (last.TextId, last.Rect.Y));
     }
 

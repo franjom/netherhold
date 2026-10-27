@@ -42,9 +42,14 @@ namespace DK2.Unity
         private readonly Dictionary<FrontEndWidgetId, LabelData> _labels = new Dictionary<FrontEndWidgetId, LabelData>();
         private readonly List<FrontEndWidget> _resultWidgets = new List<FrontEndWidget>();
         private object _shownBriefing, _shownResults, _shownScores;
-        // The statistics list's first row; DK2 scrolls it with a scroll bar whose input is unread, ours
-        // with the mouse wheel over the list.
-        private int _resultsFirstRow, _shownFirstRow;
+        // The statistics list's scroll bar (widget 180's child, 0x0052A0D0); its position is the first row.
+        private FrontEndScrollBar _resultsBar;
+        private int _shownFirstRow;
+        private int ResultsFirstRow => _resultsBar?.Bar.Position ?? 0;
+        // Glow frames of the scroll bar's art (0x0054FD20), by art name.
+        private readonly Dictionary<string, Texture2D[]> _scrollGlow = new Dictionary<string, Texture2D[]>();
+        // Briefing pictures that are not in the install; DK2 skips a picture whose load failed.
+        private readonly HashSet<(CampaignSlot, FrontEndBriefingImage)> _missingImages = new HashSet<(CampaignSlot, FrontEndBriefingImage)>();
         private FrontEndPage _shown = (FrontEndPage)ushort.MaxValue;
         private bool _fontDirty = true, _useReplacement = true;
         private RenderTexture _fontAtlas;
@@ -119,7 +124,7 @@ namespace DK2.Unity
                     float left = (width - 640 * scale) / 2, top = (height - 480 * scale) / 2;
                     var pointer = new FrontEndPointer((mouse.x - left) / scale, (height - mouse.y - top) / scale, Input.GetMouseButton(0));
                     Model.UpdatePointer(pointer);
-                    ScrollResults(pointer);
+                    UpdateResultsBar(pointer);
                 }
                 Model.AdvanceFrame();
             }
@@ -130,22 +135,29 @@ namespace DK2.Unity
         private bool ContentChanged => !ReferenceEquals(_shownBriefing, Model.Campaign?.Briefing)
             || !ReferenceEquals(_shownResults, Model.Campaign?.Results)
             || Model.Page == FrontEndPage.HighScores && !ReferenceEquals(_shownScores, Model.Campaign?.HiScores)
-            || _shownFirstRow != _resultsFirstRow;
-        private void ScrollResults(FrontEndPointer pointer)
+            || _shownFirstRow != ResultsFirstRow;
+        /// <summary>One GUI update of page 26's scroll bar: its input, then its hover glow (0x005507E0, 0x00551BA0).</summary>
+        private void UpdateResultsBar(FrontEndPointer pointer)
         {
-            float wheel = Input.mouseScrollDelta.y;
-            if (wheel == 0 || Model.Page != FrontEndPage.CampaignResults || Model.Campaign?.Results is not CampaignResults results) return;
-            FrontEndWidget list = Model.Widgets.FirstOrDefault(w => w.Draw == FrontEndDrawKind.StatisticsRows);
-            if (list == null || !list.DrawRect.Scale(.25f, .25f).Contains(new FrontEndPoint(pointer.X, pointer.Y))) return;
-            _resultsFirstRow = Mathf.Clamp(_resultsFirstRow - Math.Sign(wheel), 0, results.LastFirstRow(list.DrawRect));
+            if (Model.Page != FrontEndPage.CampaignResults || _resultsBar == null) return;
+            var point = new FrontEndPoint(pointer.X, pointer.Y);
+            _resultsBar.Update(point, pointer.PrimaryHeld);
+            _resultsBar.Frame(_resultsBar.HitTest(point));
         }
         private void RebuildLabels()
         {
             foreach (LabelData label in _labels.Values) DestroyLabel(label);
             _labels.Clear(); _shown = Model.Page;
-            if (!ReferenceEquals(_shownResults, Model.Campaign?.Results)) _resultsFirstRow = 0;
+            if (!ReferenceEquals(_shownResults, Model.Campaign?.Results)) _resultsBar = null;
+            FrontEndWidget list = Model.Widgets.FirstOrDefault(w => w.Draw == FrontEndDrawKind.StatisticsRows);
+            if (_resultsBar == null && list != null && Model.Campaign?.Results != null)
+            {
+                // 0x0053D810 arms the bar once per game: range 0..9, at the top.
+                _resultsBar = FrontEndScrollBar.Beside(list.DrawRect, CampaignResults.ScrollBarGap);
+                _resultsBar.Bar.Arm(CampaignResults.ScrollMaximum);
+            }
             _shownBriefing = Model.Campaign?.Briefing; _shownResults = Model.Campaign?.Results; _shownScores = Model.Campaign?.HiScores;
-            _shownFirstRow = _resultsFirstRow;
+            _shownFirstRow = ResultsFirstRow;
             foreach (FrontEndWidget widget in Model.Widgets)
             {
                 uint textId = widget.TextId;
@@ -167,10 +179,12 @@ namespace DK2.Unity
                 {
                     bool heading = widget.DrawArgument2 == 1;
                     // 0x0053A580 lays the objectives' text out only in mode 0 (the briefing page); in
-                    // the other modes (page 26 passes 1) sections 2 and 3 draw only their images.
+                    // the other modes (page 26 passes 1) sections 2 and 3 draw only their images. Section 3 draws
+                    // no text on a secret or special level.
                     text = widget.DrawArgument2 switch
                     {
                         2 or 3 when widget.DrawArgument1 != 0 => null,
+                        3 when briefing.IsSecretOrSpecial => null,
                         1 => briefing.Heading,
                         2 => briefing.MainObjective,
                         3 => string.Join("\n\n", briefing.SubObjectives.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => "- " + s)),
@@ -247,7 +261,7 @@ namespace DK2.Unity
         {
             foreach (CampaignResultText text in results.Summary()) ResultCell(text, false);
             if (list == null) return;
-            foreach (CampaignResultText text in results.Rows(list.DrawRect, _resultsFirstRow)) ResultCell(text, true);
+            foreach (CampaignResultText text in results.Rows(list.DrawRect, ResultsFirstRow)) ResultCell(text, true);
         }
         private void ResultCell(CampaignResultText text, bool clip) =>
             Cell(text.Rect, text.Text ?? _assets.Text(text.TextId), ColourIndex(text.Colour), text.Alignment, FrontEndVerticalAlignment.Top, clip);
@@ -293,11 +307,12 @@ namespace DK2.Unity
             if (_shown == FrontEndPage.None) return;
             float sx = _canvas.contentRect.width / 640, sy = _canvas.contentRect.height / 480;
             if (sx <= 0 || sy <= 0) return;
-            if (Model.Page == FrontEndPage.Briefing && Model.Campaign?.Briefing is CampaignBriefing briefing)
-            {
-                Quad(context, _assets.ObjectiveShot(briefing.Slot, CampaignObjectiveShot.First), new FrontEndRect(20, 110, 144, 112), Color.white, sx, sy);
-                Quad(context, _assets.ObjectiveShot(briefing.Slot, CampaignObjectiveShot.Second), new FrontEndRect(20, 242, 144, 112), Color.white, sx, sy);
-            }
+            // The briefing sections come before the page's text widgets, so their pictures lie beneath.
+            if (Model.Campaign?.Briefing is CampaignBriefing briefing)
+                foreach (FrontEndWidget section in Model.Widgets.Where(w => w.Draw == FrontEndDrawKind.BriefingSection))
+                    foreach (FrontEndPlacedImage placed in FrontEndBriefingImages.For(section.DrawArgument1, section.DrawArgument2, briefing.IsSecretOrSpecial))
+                        if (BriefingImage(briefing, placed.Image) is Texture2D image)
+                            Quad(context, image, new FrontEndRect(placed.X, placed.Y, image.width, image.height), Color.white, sx, sy);
             foreach (FrontEndWidget widget in Model.Widgets.Concat(_resultWidgets))
             {
                 FrontEndWidgetState state = Model.State(widget);
@@ -325,6 +340,77 @@ namespace DK2.Unity
                     Quad(context, _assets.Image(name), rect, state.Enabled ? Color.white : new Color(1, 1, 1, .35f), sx, sy);
                 }
             }
+            if (Model.Page == FrontEndPage.CampaignResults && _resultsBar != null) DrawResultsBar(context, sx, sy);
+        }
+        private Texture2D BriefingImage(CampaignBriefing briefing, FrontEndBriefingImage image)
+        {
+            if (_missingImages.Contains((briefing.Slot, image))) return null;
+            try
+            {
+                return image switch
+                {
+                    FrontEndBriefingImage.FirstShot => _assets.ObjectiveShot(briefing.Slot, CampaignObjectiveShot.First),
+                    FrontEndBriefingImage.SecondShot => _assets.ObjectiveShot(briefing.Slot, CampaignObjectiveShot.Second),
+                    _ => _assets.Image(FrontEndBriefingImages.ArtName(image)),
+                };
+            }
+            catch (System.IO.FileNotFoundException) { _missingImages.Add((briefing.Slot, image)); return null; }
+        }
+        /// <summary>0x00551BA0: each part's glow frame, then the up arrow, track and down arrow over them, then
+        /// the thumb cut from its art's row 8 (clipped to the art; whether DK2's wider blit shows is unchecked).</summary>
+        private void DrawResultsBar(MeshGenerationContext context, float sx, float sy)
+        {
+            string[] art = { FrontEndScrollBar.UpArrowArt, FrontEndScrollBar.DownArrowArt, FrontEndScrollBar.TrackArt };
+            for (int part = 0; part < art.Length; part++)
+            {
+                int frame = _resultsBar.GlowFrame(part);
+                if (frame < 0) continue;
+                Texture2D glow = ScrollGlow(art[part])[frame];
+                FrontEndPoint origin = _resultsBar.ArtOrigin(part);
+                Quad(context, glow, new FrontEndRect(origin.X, origin.Y, glow.width, glow.height), Color.white, sx, sy);
+            }
+            const int pad = FrontEndScrollBar.GlowPadding;
+            for (int part = 0; part < art.Length; part++)
+            {
+                Texture2D image = _assets.Image(art[part]);
+                FrontEndPoint origin = _resultsBar.ArtOrigin(part);
+                Quad(context, image, new FrontEndRect(origin.X + pad, origin.Y + pad, image.width, image.height), Color.white, sx, sy);
+            }
+            Texture2D thumb = _assets.Image(FrontEndScrollBar.ThumbArt);
+            FrontEndRect box = _resultsBar.ThumbRect();
+            float width = Mathf.Min(box.Width, thumb.width);
+            float height = Mathf.Min(box.Height, thumb.height - FrontEndScrollBar.ThumbArtTop);
+            float right = width / thumb.width, top = 1 - (float)FrontEndScrollBar.ThumbArtTop / thumb.height;
+            float bottom = top - height / thumb.height;
+            Quad(context, thumb, new FrontEndRect(box.X, box.Y, width, height), Color.white, sx, sy,
+                new Vector2(0, top), new Vector2(right, top), new Vector2(right, bottom), new Vector2(0, bottom));
+        }
+        /// <summary>0x0054FD20's frames 0–3: the art padded by 6 pixels a side, its glow (0x005524F0) at ¼ to full.</summary>
+        private Texture2D[] ScrollGlow(string name)
+        {
+            if (_scrollGlow.TryGetValue(name, out Texture2D[] frames)) return frames;
+            Texture2D image = _assets.Image(name);
+            const int pad = FrontEndScrollBar.GlowPadding;
+            int width = image.width + 2 * pad, height = image.height + 2 * pad;
+            Color32[] colours = image.GetPixels32();
+            var padded = new byte[width * height * 4];
+            for (int y = 0; y < image.height; y++)
+                for (int x = 0; x < image.width; x++)
+                {
+                    Color32 colour = colours[(image.height - 1 - y) * image.width + x];
+                    int at = ((y + pad) * width + x + pad) * 4;
+                    padded[at] = colour.r; padded[at + 1] = colour.g; padded[at + 2] = colour.b; padded[at + 3] = colour.a;
+                }
+            RgbaImage full = FrontEndLabelGlow.Create(new RgbaImage(width, height, padded));
+            frames = new Texture2D[4];
+            for (int frame = 0; frame < frames.Length; frame++)
+            {
+                byte[] pixels = (byte[])full.Pixels.Clone();
+                for (int at = 3; at < pixels.Length; at += 4) pixels[at] = (byte)(pixels[at] * (frame + 1) / 4);
+                frames[frame] = MinimapFrameVisual.Decode(new RgbaImage(width, height, pixels));
+            }
+            _scrollGlow.Add(name, frames);
+            return frames;
         }
         private static Color32 LabelColour(FrontEndWidget widget, bool hovered, byte alpha)
         {
@@ -422,6 +508,7 @@ namespace DK2.Unity
             Font.textureRebuilt -= FontRebuilt;
             Model.Dispose();
             foreach (LabelData label in _labels.Values) DestroyLabel(label);
+            foreach (Texture2D[] frames in _scrollGlow.Values) foreach (Texture2D frame in frames) UnityEngine.Object.Destroy(frame);
             if (_fontAtlas != null) { _fontAtlas.Release(); UnityEngine.Object.Destroy(_fontAtlas); }
             if (_fontMaterial != null) UnityEngine.Object.Destroy(_fontMaterial);
             _assets.Dispose(); UnityEngine.Object.Destroy(_owner); UnityEngine.Object.Destroy(_panel);

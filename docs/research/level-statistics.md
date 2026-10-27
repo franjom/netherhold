@@ -187,14 +187,42 @@ by [0x00533E90](functions/00533E90.md).
     single-player game.
   - Each label is at the box's left in `+0x3031E`, the label colour. Its value is 250 px
     to the right in `+0x30323` (255, 168, 0), with alignment 1 (taken as right, INFERRED).
-  - Lines are 25 px apart and clipped to the box, so about five show at once. The scroll
-    bar is drawn by the widget's frame callback [0x00551BA0](functions/00551BA0.md). Its
-    input and range are unread.
+  - Lines are 25 px apart and clipped to the box, so about five show at once.
+- **The list's scroll bar** is the type-2 child the widget creates
+  ([0x0052A0D0](functions/0052A0D0.md)): x = list x + width + record byte 5 (90), so
+  (2350, 968, 64, 512) in reference units, (587, 242, 16, 128) at 640 × 480 (0x0052C630 truncates).
+  - Its position is the first row. After a game
+    [0x0053D810](functions/0053D810.md) sets its range to 0–9 at 0 (0–8 after
+    multiplayer or skirmish) through [0x00528F60](functions/00528F60.md), whatever the
+    rows.
+  - Input is the class's ([0x00528B20](functions/00528B20.md),
+    [minimap-controls.md](minimap-controls.md#menu40-scrollbar-read-2026-10-23)): an
+    arrow steps one row every GUI update it is held, a press on the track one row, and
+    the thumb can be dragged while the pointer stays in the track column. The scroll-bar class reads
+    only the pointer and the button, no wheel. DK2's front-end update rate is unread; ours steps once
+    per Unity frame.
+  - [0x00551BA0](functions/00551BA0.md) draws it 8 px left of and 6 px above its box:
+    `1-V-Up_Arrow` at the top, `5-V-Scroll_Bar_BG` 10 px lower, `1-V-Down_Arrow` 8 px
+    above the bottom.
+  - The thumb is cut from row 8 of `0-V-Scroll_Bar`, as tall as the thumb (38 units, 9 px)
+    and 16 px wide, which is wider than the 14 px art. Whether DK2's blit of it succeeds
+    is unobserved.
+  - The part under the pointer ([0x005507E0](functions/005507E0.md)) glows orange
+    (255, 168, 0, [0x0054FD20](functions/0054FD20.md)). Its counter restarts at 8 each
+    frame it is hovered and drops by 1 every frame, so the glow stays full for three frames
+    after the pointer leaves, then fades through ¾, ½ and ¼.
 - **The label colour `+0x3031E`** (and its copy `+0x5FF4`) is copied from the palette object
   `0x00756F34`. Its constructor `0x00559820` makes it white (LIKELY).
 - **Page 26's briefing sections 2 and 3** pass mode 1 to [0x0053A580](functions/0053A580.md),
-  which lays text out only in mode 0. On this page they show the objective images, not the
-  objectives' text.
+  which lays text out only in mode 0. On this page they show only images:
+  - the two objective shots at (20, 110) and (20, 242);
+  - the panel strips `BG_Tiles\BG-Objective-00` (456 × 32) at (184, 110) behind the rank,
+    `-01` (456 × 75) at (184, 147) behind the summary, and `-03` (456 × 128) at (184, 242)
+    behind the list.
+
+  On a secret or special level (level flags 0x20 and 0x40) the second shot is not drawn.
+  The briefing page (mode 0) draws `-00` and `-01` behind the main objective, and `-00`
+  and `-02` at (184, 242) and (184, 279) behind the sub-objectives.
 
 Page 18's colours, read from [0x0053DBD0](functions/0053DBD0.md):
 
