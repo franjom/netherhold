@@ -15,7 +15,8 @@ namespace DK2.Simulation.Systems;
 /// and the fear accumulator after each (combat-acquisition.md §3, combat-fight-state.md §2,
 /// combat-fear.md): a neutral creature never looks; one that may look and is due runs
 /// <c>SelectAVictim</c>; a fighter holds its target while it stands, backs off or runs when its
-/// fear says so, winds up and lands its swing, or looks again and walks closer.</summary>
+/// fear says so, winds up and lands its swing, or looks again and walks closer. The scan and the fear
+/// accumulator are <see cref="Update"/>; the handlers are <see cref="States"/>.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fight-state.md")]
 public sealed class CombatSystem : ICreatureUpdateStep
 {

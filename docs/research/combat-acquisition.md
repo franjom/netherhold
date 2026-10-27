@@ -31,12 +31,15 @@ creature; then `0x0045E4F0`; then the **state handler** through the state table
 the steering step (`0x0048A266`-`0x0048A2C7`, which calls `0x004D59A0`; gated, see
 [004B7830](functions/004B7830.md)). So
 acquisition precedes both the state machine and steering on the same tick, and
-`CombatSystem` sits before `CreatureMovementSystem` and every job system.
+`CombatSystem.Update` (the action runner, the scan and the fear radiation) sits before
+`CreatureMovementSystem` and every job system. The combat states' handlers run later in the same
+creature's update, in `CombatSystem.States` after the needs routine (ADR-0555), so a creature the
+scan engages runs its fight state in that update.
 
 Creature order (rechecked 2026-10-10): `0x004B7830` runs complete creature
 updates newest first, because `0x004B4A10` links at the class-list head; see
 [imp-task-stealing.md §8](imp-task-stealing.md#8-update-order-q6). Our combat
-step runs inside `CreatureUpdateSystem`, newest first, one creature's whole update at a time
+steps run inside `CreatureUpdateSystem`, newest first, one creature's whole update at a time
 (ADR-0429, ADR-0554; differences in [creature-update-order.md](creature-update-order.md) §2).
 No extra Imp-job acquisition call exists among SelectAVictim's twelve callers.
 

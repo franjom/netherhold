@@ -364,9 +364,9 @@ turn and attack mode is not 3; it is not a notification on each hit.
 `0x00476D30` writes the entry stamp on every accepted transition, including a
 same-state transition. A transition alone does not emit; if the state changes
 again before its handler runs, no type 6 is sent. Travel arrival only stamps.
-`CombatSystem` runs the message prologue after acquisition on that turn and at
-state-199 update; acquisition precedes state dispatch in the original
-(`combat-acquisition.md` section 2). General state-hook dispatch remains open.
+Ours posts it from state 199's handler (`CombatSystem.States`) on the entry turn, and the scan
+posts none; the scan comes first in the same creature update, as in the original
+(`combat-acquisition.md` section 1, ADR-0555). General state-hook dispatch remains open.
 
 Scheduling and the preserved observation window are ADR-0245. Type 84, a creature that cannot reach the Call to Arms flag, is posted by states 190
 and 89 with a fifty-second lifetime and no duplicates (`call-to-arms.md`). The keeper consumes
