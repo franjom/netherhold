@@ -87,11 +87,18 @@ later. Native Imps reach 203 straight from a walk. Running the fight state in th
 | Level 4, from 87 | 809 | 167 | 41 |
 | Level 4, from 203 | 14 | 100 | 149 |
 
-### Not explained (Q665)
+### What remains on Level 4 (Q665)
 
-- Level 4's Imps flee far more often than native: 236 entries into 201-203 against 41, most now
-  straight from a walk, as native's are.
-- Level 4's Imps start few walks from state 87: 41 against 809.
-- Heroes chasing those Imps drop from the approach back to 199 more often: non-Imp 8 → 199 is 524
-  (before ADR-0555 307, native 291); 252 followed an Imp target and 121 a lost one.
-- Walks from 173 still start later than native: Level 4, 14% against 19% on the first tick.
+The rest of Level 4's gap is one episode. Our heroes kill 12 Imps between ticks 4000 and 4750, and
+native's lose none: at tick 5000, 4 Imps are alive in ours against 20 in native
+(`D:/DK2Evidence/runs/q665-imp-flee-2026-10-27/analysis/population.py`). The other gaps follow from it:
+- 790 of native's 809 Imp walks from 87 come after tick 4000, from Imps that ours no longer has.
+- Ours makes 236 Imp entries into 201-203 against 41.
+- Heroes chasing those Imps drop from the approach to 199 more often: non-Imp 8 → 199 is 524,
+  against 291 native.
+
+Native seed 1 is DK2's quiet extreme. On the same inputs, native seed 2 had 349 Imp flee entries
+and 19 Imp deaths (imp-fidelity-integration.md), and the 2026-10-20 analysis traced our Level 4
+Imp deaths to positions, not to a rule.
+
+Walks from 173 still take their first step on their first tick slightly less often: 14% against 19%.
