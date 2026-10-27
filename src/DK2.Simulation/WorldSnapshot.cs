@@ -1590,7 +1590,7 @@ public static class WorldSnapshot
         for (int i = 0; i < triggerRecordCount; i++)
             world.Triggers.RestoreRecord(r.ReadInt32(), r.ReadUInt16(), r.ReadBoolean(), r.ReadByte());
 
-        var simulation = new GameSimulation(database, world, rng, systems, triggers);
+        var simulation = new GameSimulation(database, world, rng, systems, triggers, levelStart: false);
         simulation.Navigation.Read(r);
         return simulation;
     }

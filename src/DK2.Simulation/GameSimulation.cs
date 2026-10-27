@@ -44,6 +44,19 @@ public sealed class GameSimulation
         SimRandom rng,
         IEnumerable<ISimulationSystem>? systems = null,
         TriggerTree? triggers = null)
+        : this(database, world, rng, systems, triggers, levelStart: true)
+    {
+    }
+
+    /// <summary><paramref name="levelStart"/> false is a restore (<see cref="WorldSnapshot"/>): the
+    /// trigger executor skips the level initialiser's party sweep and creature event 3.</summary>
+    internal GameSimulation(
+        GameDatabase database,
+        WorldState world,
+        SimRandom rng,
+        IEnumerable<ISimulationSystem>? systems,
+        TriggerTree? triggers,
+        bool levelStart)
     {
         Database = database;
         World = world;
@@ -54,7 +67,7 @@ public sealed class GameSimulation
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
         _triggers = triggers is null
             ? new TriggerExecutor(world.Triggers)
-            : new TriggerExecutor(triggers, world.Triggers, world, database, rng);
+            : new TriggerExecutor(triggers, world.Triggers, world, database, rng, levelStart);
         _context.Triggers = _triggers;
         _triggers.EffectRequested = _context.RequestEffect;
         _triggers.ViewRequested = request => _context.Events.Emit(new SimEvent(_context.Tick,

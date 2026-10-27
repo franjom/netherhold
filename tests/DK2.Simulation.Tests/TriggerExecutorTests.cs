@@ -220,6 +220,24 @@ public class TriggerExecutorTests
         Assert.Equal(0, unarmed.Read(3));
     }
 
+    /// <summary>The party sweep is the level initialiser's, so a restore does not repeat it: a party
+    /// subtree a type 14 armed before the save is still armed after the load.</summary>
+    [Fact]
+    public void ARestoredWorldKeepsAnArmedPartySubtreeArmed()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, 3]);
+        HeroPartyThing[] parties = [Party(0, triggerId: 5, (7, 9))];
+        var original = new GameSimulation(database, world, 1, [], new TriggerTree(PartyRecords(), 0xFFFE, parties));
+        original.Run(1);
+        Assert.Equal(1, world.Triggers.Read(3)); // the armed party root ran
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database, [], new TriggerTree(PartyRecords(), 0xFFFE, parties));
+
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
     /// <summary>The arming walk enters a condition's child chain and an action's next
     /// chain, and never an action's child chain — so what hangs under an action keeps
     /// whatever state it was authored with, through both the load sweep and the arm.

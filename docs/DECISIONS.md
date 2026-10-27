@@ -12635,3 +12635,32 @@ in 230, meaning unread) is not held; effects stand at z 0. `LocalPlayerId` is ha
 sound only because the finale and action 75 act on it in single-player play. Sounds are not
 played (F8). The win screen itself, Space and Escape are the front end's (`WinScreen`,
 `DungeonRunner.Finale.cs`), with placeholder layout.
+
+## ADR-0550 — A restore does not repeat the level initialiser's trigger setup
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+
+**Context.** `WorldSnapshot.Read` builds the simulation through the same constructor as a new
+level, and `TriggerExecutor`'s constructor ran the level initialiser's trigger setup on every
+load: the sweep that disables every hero-party subtree, each creature root's repeat snapshot
+from the authored byte, and creature event 3 for every creature in the world (`0x0050B5B0`).
+A restored world already carries their results and what the level did since, so a load
+disabled party subtrees that a type-14 action had armed, reset repeat snapshots taken
+mid-play and fired event 3 a second time. DK2's own restore (`0x0050E920` → `0x0050ADE0` →
+`0x0050B3C0` → `0x0050B5B0`) holds world `+0x7239` bit `0x40` across the initialiser, which
+skips the party sweep (`0x0050C280`) and event 3 (`0x0050BCC4`); CONFIRMED by disassembly
+(the creature roots' snapshot is ours: the creature's saved field is the truth). Found by an order experiment whose checkpoint copies never
+matched the live run: on Level 1 at tick 100, 28 armed tag-213 records came back inactive.
+
+**Decision.** `TriggerExecutor` takes `levelStart`; `GameSimulation` passes it through an
+internal constructor and `WorldSnapshot.Read` passes false. A restore still registers the
+tree's records (adding none it already holds) and builds the area roots; it skips the party
+sweep, the creature roots' repeat snapshot and event 3.
+
+**Consequences.** A save and load keeps armed party subtrees, creature repeat snapshots and
+flags written after event 3; `RoundTrip_PreservesStateHash` had covered only a world without
+triggers. Pinned by `ARestoredWorldKeepsAnArmedPartySubtreeArmed`,
+`ARestoredWorldKeepsACreatureRootsRepeatSnapshot` and
+`ARestoredWorldDoesNotFireTheCreatedEventAgain`. New levels and replays are unchanged, so no
+hash or format moves; a save written before this change loads differently than it did.
+Whether DK2's save reader restores trigger records' active and repeat bytes in the layout ours
+saves is not traced.

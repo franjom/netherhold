@@ -146,7 +146,7 @@ the arm skips it, never re-enabled.
 **The sweep is skipped for a restored save.** The whole loop is skipped when bit
 `0x40` of the world byte at `+0x7239` is set (`0x0050C280`). The file restore
 `0x0050E920` holds that bit set across its call of the initialiser; the KWD level
-load `0x0050E620` clears it first (Q241).
+load `0x0050E620` clears it first (Q241). The creature event-3 loop of the same initialiser is skipped under the same bit (`0x0050BCC4`). Ours skips both on a restore (ADR-0550).
 
 **Which slot a shipped party lands in is not decided by the data.** Action type
 14 selects by id, so a reimplementation should too — but across 66 THINGS files
