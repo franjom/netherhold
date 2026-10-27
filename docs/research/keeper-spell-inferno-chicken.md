@@ -281,8 +281,8 @@ six stores the field scan found writes a nonzero value into a creature.
 
   Those callers are unread (Q397).
 - `shots.md` §4 step 7 is corrected above.
-- **UNKNOWN:** when the shot's first update runs relative to the cast. This is the
-  same gap as Heal's (`keeper-spell-casting.md` §4).
+- **Timing (ADR-0551):** a player's cast moves the turn it is made, the computer keeper's the next
+  turn; ours matches both (`keeper-spell-casting.md` §4).
 - **UNKNOWN:** `+0xF2`.
 - **UNKNOWN:** the original run (Q498).
 

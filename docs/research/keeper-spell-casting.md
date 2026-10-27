@@ -170,8 +170,13 @@ spending one allowance on a passed permission.
 `ShotRules.ModifyHealth`; `KeeperBattleStep` issues the cast from the captured
 `HealTargetAllowed` (schema 12). **Approximation:** a creature's room owner is
 the owner of the floor under it, as no room id is kept on a creature.
-**UNKNOWN:** the vtable `+0x74` predicate; DK2's timing between the cast and the
-shot's first update (ours lands the same tick); the original run (Q491).
+**Timing (ADR-0551):** a player's cast moves the turn it is made, as `0x005119C0` dispatches the
+packet action before the sweep `0x004B7830` ([0050A450](functions/0050A450.md); the record's meaning
+is LIKELY, the placement CONFIRMED by disassembly); the computer keeper's cast is made in the player
+frame after the sweep and moves the next turn. Ours matches both (its commands reach the head of the next
+tick), pinned by `KeeperSpellTests`; the cast's other effects (mana spent and so on) land a tick later
+than DK2's for the computer keeper.
+**UNKNOWN:** the vtable `+0x74` predicate; the original run (Q491).
 
 ## 5. The thirteen spells, built and upgraded (2026-10-04)
 

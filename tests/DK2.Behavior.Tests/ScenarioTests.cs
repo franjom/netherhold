@@ -462,7 +462,7 @@ public class ScenarioTests
     /// game. The numbers are invented and are not claims about DK2; only the
     /// two terrain roles the flat-map builder looks for matter here.
     /// </summary>
-    private static GameDatabase SyntheticDatabase() => new(
+    internal static GameDatabase SyntheticDatabase() => new(
         [
             Terrain(1, "Impenetrable Rock", TerrainFlags.Solid | TerrainFlags.Impenetrable, 0),
             Terrain(2, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable, 165),

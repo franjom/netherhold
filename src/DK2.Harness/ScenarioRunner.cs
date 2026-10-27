@@ -68,6 +68,12 @@ public sealed record ScenarioResult(
     /// decided, which no command shows (the attack target, the flags, the stored tunnels).</summary>
     public IReadOnlyDictionary<PlayerId, KeeperAIState> KeeperStates { get; init; } = new Dictionary<PlayerId, KeeperAIState>();
 
+    /// <summary>Commands emitted by test controllers (<see cref="ScenarioController"/>), in emission order.</summary>
+    public IReadOnlyList<ControllerCommandEmission> ControllerCommandLog { get; init; } = [];
+
+    /// <summary>A replay's verdict against its journal; null for an ordinary run.</summary>
+    public ReplayReport? Replay { get; init; }
+
     /// <summary>Where the run's wall-clock time went. Not part of the report: see <see cref="RunTimings"/>.</summary>
     public RunTimings? Timings { get; init; }
 }
@@ -101,7 +107,27 @@ public sealed class ScenarioRunner
     /// first and a runner built around it does the work; every rule below then
     /// reads the one <c>_database</c> that is correct for this run.</para>
     /// </summary>
-    public ScenarioResult Run(Scenario scenario)
+    /// <param name="journal">When given, the run's input journal is written to it as the run goes
+    /// (<see cref="InputJournalWriter"/>), ending with "completed" or the exception that stopped it.</param>
+    public ScenarioResult Run(
+        Scenario scenario, IReadOnlyList<ScenarioController>? controllers = null, Stream? journal = null) =>
+        RunOnLevel(scenario, new RunMode(controllers ?? [], journal, null));
+
+    /// <summary>
+    /// Replays a journal against its scenario: the scenario's world, setup and <c>work</c> as
+    /// written, its YAML <c>commands</c> skipped and no computer keeper or controller, because the
+    /// journal's frames already hold all of them. Each recorded hash is compared;
+    /// <see cref="ScenarioResult.Replay"/> names the first tick that differs. A run that failed
+    /// fails again here, which is the reproduction. Refuses a journal from another
+    /// <c>HashVersion</c> or another version of the scenario file.
+    /// </summary>
+    public ScenarioResult Replay(Scenario scenario, InputJournal journal)
+    {
+        JournalHeader.CheckReplayable(scenario, journal);
+        return RunOnLevel(scenario, new RunMode([], null, journal));
+    }
+
+    private ScenarioResult RunOnLevel(Scenario scenario, RunMode mode)
     {
         GlobalVariables? levelVariables = ResolveLevelVariables(scenario.Map);
         string? levelName = LevelNameOf(scenario.Map);
@@ -109,10 +135,13 @@ public sealed class ScenarioRunner
             ? null
             : GameDatabaseLoader.LoadCampaignLevel(_installDir, levelName);
         return levelVariables is null && level is null
-            ? RunAgainstThisDatabase(scenario, null)
+            ? RunAgainstThisDatabase(scenario, null, mode)
             : new ScenarioRunner(_database.ForLevel(levelVariables, level), _installDir)
-                .RunAgainstThisDatabase(scenario, levelVariables is null ? null : levelName);
+                .RunAgainstThisDatabase(scenario, levelVariables is null ? null : levelName, mode);
     }
+
+    /// <summary>Where a run's input comes from besides the scenario, and where it is journalled.</summary>
+    private sealed record RunMode(IReadOnlyList<ScenarioController> Controllers, Stream? Record, InputJournal? Replay);
 
     /// <summary>The level's own VARIABLES, for a scenario that names a campaign map.</summary>
     private GlobalVariables? ResolveLevelVariables(string mapSpec)
@@ -128,8 +157,10 @@ public sealed class ScenarioRunner
             ? mapSpec[CampaignPrefix.Length..].Trim()
             : null;
 
-    private ScenarioResult RunAgainstThisDatabase(Scenario scenario, string? campaignLevel)
+    private ScenarioResult RunAgainstThisDatabase(
+        Scenario scenario, string? campaignLevel, RunMode mode)
     {
+        IReadOnlyList<ScenarioController> controllers = mode.Controllers;
         var clock = new RunClock();
         var unsupported = new List<string>();
 
@@ -224,40 +255,89 @@ public sealed class ScenarioRunner
         simulation.ObserveWith(sink);
         simulation.ProfileWith(clock);
 
-        Dictionary<int, InputFrame> input = inputs.BuildInput(scenario, unsupported);
+        // A replay's frames already hold the scripted, keeper and controller commands it recorded;
+        // the scenario's work is not a command, so it is injected either way.
+        InputJournal? replay = mode.Replay;
+        Dictionary<int, InputFrame> input = replay is null ? inputs.BuildInput(scenario, unsupported) : [];
         List<ScenarioWork> work = ScenarioInputBuilder.ResolveWork(scenario, world, unsupported);
-        List<KeeperAI> keepers = inputs.CreateComputerKeepers(scenario, campaignLevel, world, unsupported);
+        List<KeeperAI> keepers = replay is null
+            ? inputs.CreateComputerKeepers(scenario, campaignLevel, world, unsupported)
+            : [];
         var emitted = new List<PlayerCommand>();
         var commandLog = new List<KeeperCommandEmission>();
+        var controllerLog = new List<ControllerCommandEmission>();
+        CheckControllers(controllers, world, keepers);
         IReadOnlyList<PlayerCommand> pending = [];
 
+        using InputJournalWriter? journal = mode.Record is null
+            ? null
+            : new InputJournalWriter(mode.Record, JournalHeader.For(scenario, controllers));
         var hashes = new List<ulong>(scenario.DurationTicks + 1) { simulation.StateHash() };
-        for (int t = 0; t < scenario.DurationTicks; t++)
+        journal?.WriteHash(0, hashes[0]);
+        var divergence = new ReplayComparison(replay);
+        divergence.Compare(0, hashes[0]);
+        int completed = 0;
+        try
         {
-            ScenarioInputBuilder.InjectWork(world, work, t);
-            InputFrame scripted = input.TryGetValue(t, out InputFrame frame) ? frame : InputFrame.Empty;
-            clock.BeginTick(t);
-            simulation.Tick(pending.Count == 0 ? scripted :
-                new InputFrame([.. scripted.All, .. pending]));
-            clock.Begin(RunClock.StateHash);
-            hashes.Add(simulation.StateHash());
-            clock.End(RunClock.StateHash);
-            if (t + 1 == scenario.DurationTicks)
+            for (int t = 0; t < scenario.DurationTicks; t++)
             {
+                ScenarioInputBuilder.InjectWork(world, work, t);
+                InputFrame scripted = input.TryGetValue(t, out InputFrame frame) ? frame : InputFrame.Empty;
+                InputFrame given = replay is not null ? replay.FrameAt(t)
+                    : pending.Count == 0 ? scripted
+                    : new InputFrame([.. scripted.All, .. pending]);
+                journal?.WriteFrame(t, given);
+                clock.BeginTick(t);
+                simulation.Tick(given);
+                clock.Begin(RunClock.StateHash);
+                hashes.Add(simulation.StateHash());
+                clock.End(RunClock.StateHash);
+                completed = t + 1;
+                journal?.WriteHash(t + 1, hashes[t + 1]);
+                divergence.Compare(t + 1, hashes[t + 1]);
+                if (t + 1 == scenario.DurationTicks)
+                {
+                    clock.EndTick();
+                    break;
+                }
+                var next = new List<PlayerCommand>();
+                clock.Begin(RunClock.KeeperAi);
+                foreach (KeeperAI keeper in keepers)
+                    next.AddRange(keeper.Think(_database, world));
+                clock.End(RunClock.KeeperAi);
+                emitted.AddRange(next);
+                foreach (PlayerCommand command in next)
+                    commandLog.Add(new KeeperCommandEmission(t + 1, command));
+                // Test controllers after the computer keepers, in the order given; their commands
+                // ride the same next-tick frame (KEEPER_AI.md §12.1).
+                clock.Begin(RunClock.Controllers);
+                foreach (ScenarioController controller in controllers)
+                {
+                    if (t % controller.IntervalTicks != 0) continue;
+                    IReadOnlyList<PlayerCommand> decided = controller.Decide(new KeeperView(_database, world, controller.PlayerId))
+                        ?? throw new InvalidOperationException($"Controller '{controller.Name}' returned null; return an empty list.");
+                    foreach (PlayerCommand command in decided)
+                    {
+                        if (command.PlayerId != controller.PlayerId)
+                            throw new InvalidOperationException(
+                                $"Controller '{controller.Name}' commands player {controller.PlayerId.Value} " +
+                                $"but emitted {command.GetType().Name} for player {command.PlayerId.Value}.");
+                        next.Add(command);
+                        controllerLog.Add(new ControllerCommandEmission(t + 1, controller.Name, command));
+                    }
+                }
+                clock.End(RunClock.Controllers);
                 clock.EndTick();
-                break;
+                pending = next;
             }
-            var next = new List<PlayerCommand>();
-            clock.Begin(RunClock.KeeperAi);
-            foreach (KeeperAI keeper in keepers)
-                next.AddRange(keeper.Think(_database, world));
-            clock.End(RunClock.KeeperAi);
-            clock.EndTick();
-            emitted.AddRange(next);
-            foreach (PlayerCommand command in next)
-                commandLog.Add(new KeeperCommandEmission(t + 1, command));
-            pending = next;
         }
+        catch (Exception ex)
+        {
+            // The journal's frames reproduce a simulation failure; a controller's is its own.
+            journal?.WriteEnd(completed, $"exception after {completed} ticks: {ex.GetType().FullName}: {ex.Message}");
+            throw;
+        }
+        journal?.WriteEnd(scenario.DurationTicks, "completed");
 
         if (simulation.Systems.Count == 0)
             unsupported.Add("no simulation systems are registered - the world cannot change");
@@ -281,6 +361,8 @@ public sealed class ScenarioRunner
             EmittedKeeperCommands = emitted,
             KeeperCommandLog = commandLog,
             KeeperStates = keepers.ToDictionary(k => k.PlayerId, k => k.State),
+            ControllerCommandLog = controllerLog,
+            Replay = divergence.Report(),
             Timings = clock.Stop(),
         };
     }
@@ -292,6 +374,27 @@ public sealed class ScenarioRunner
     /// case the placeholder covers.
     /// </summary>
     public const string ConvertedAssetRoot = "build/converted";
+
+    /// <summary>Refuses a controller this run cannot honour before any tick runs: one for a player the
+    /// world does not have, one sharing a player with a computer keeper or another controller (two
+    /// inputs for one keeper would make neither's evidence its own), or one with no decision interval.</summary>
+    private static void CheckControllers(
+        IReadOnlyList<ScenarioController> controllers, WorldState world, List<KeeperAI> keepers)
+    {
+        var taken = new HashSet<PlayerId>(keepers.Select(k => k.PlayerId));
+        foreach (ScenarioController controller in controllers)
+        {
+            if (controller.IntervalTicks < 1)
+                throw new ArgumentException(
+                    $"Controller '{controller.Name}': IntervalTicks must be at least 1.", nameof(controllers));
+            if (!world.PlayerIds.Contains(controller.PlayerId))
+                throw new ArgumentException(
+                    $"Controller '{controller.Name}': player {controller.PlayerId.Value} is not in this world.", nameof(controllers));
+            if (!taken.Add(controller.PlayerId))
+                throw new ArgumentException(
+                    $"Controller '{controller.Name}': player {controller.PlayerId.Value} already has a computer keeper or controller.", nameof(controllers));
+        }
+    }
 
     /// <summary>Tests every <see cref="ScenarioExpectation"/> against the events the run
     /// produced, and returns one line per unmet claim. Reports the count it did see, because

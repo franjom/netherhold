@@ -1,7 +1,10 @@
 # Crash and debug tooling — plan for later
 
-**Status: not started.** Written 2026-10-18, parked until there is time for it.
-It is listed as gap 10 in `docs/GOAL_ALIGNMENT.md`.
+**Status: item 1 half built (harness); the rest not started.** Written 2026-10-18.
+It is listed as gap 10 in `docs/GOAL_ALIGNMENT.md`. Item 1's harness half is built as Stage B of
+`2026-10-27-autonomous-playtesting.md` (ADR-0552), which also covers parts of items 2 and 5
+for headless runs; change the two plans together. The Unity half (`DungeonRunner` writing a
+journal) and the rolling snapshot are not built.
 
 ## Why
 

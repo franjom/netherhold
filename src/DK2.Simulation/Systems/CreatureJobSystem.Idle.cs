@@ -104,8 +104,13 @@ public sealed partial class CreatureJobSystem
                     $"creature={creature.Id} action={(roll < 75 ? 43 : 44)} at=({creature.Tile.X},{creature.Tile.Y})");
                 if (creature.CreatureTypeId == BileDemonTypeId && context.Rng.NextInt(100) < BileDemonIdleShotChance
                     && context.Database.Shots.TryGetValue(BileDemonIdleShotId, out ShotDef? shot))
-                    ShotRules.Spawn(context.World, shot, creature.OwnerPlayerId, creature.PosX, creature.PosY, 0, 0, 0,
+                {
+                    ShotState made = ShotRules.Spawn(context.World, shot, creature.OwnerPlayerId, creature.PosX, creature.PosY, 0, 0, 0,
                         FightTargetKind.None, CombatRules.NoTarget, 0, -1, creature.PosX, creature.PosY);
+                    // DK2 makes it in list 0 of 0x004B7830, before list 1 is walked, so it updates this
+                    // turn; ours runs after the shot pass, so it updates here (ADR-0551).
+                    ShotSystem.Update(context, made);
+                }
                 return;
             }
         }

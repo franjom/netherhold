@@ -293,6 +293,12 @@ tools/classic-unity-probe/README.md.
    (`docs/plans/2026-10-07-imp-image-to-3d-trial.md`). No rig or Unity work yet.
    Still open: the geometry-index and exact-frame export for all 35 Imp files.
 
+8. Autonomous playtesting (ADR-0552, `plans/2026-10-27-autonomous-playtesting.md`): Stage A,
+   the test-controller hook in `DK2.Harness`, and Stage B's harness half (input journal,
+   `replay`, `watch`; `src/DK2.Harness/README.md`) are built. Unity does not write journals
+   yet (`plans/2026-10-18-crash-and-debug-tooling.md` item 1), failure bundles hold no
+   snapshots, and Stage C (fuzzer, coverage, invariants) is not started.
+
 After faithful M12, keep it as selectable Classic AI; explore a separate
 Enhanced keeper using the same observation/command interface (KEEPER_AI.md
 §12.7). Enhanced behavior is outside M12's fidelity target.

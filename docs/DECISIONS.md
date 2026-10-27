@@ -12664,3 +12664,77 @@ triggers. Pinned by `ARestoredWorldKeepsAnArmedPartySubtreeArmed`,
 hash or format moves; a save written before this change loads differently than it did.
 Whether DK2's save reader restores trigger records' active and repeat bytes in the layout ours
 saves is not traced.
+
+## ADR-0551 — A Bile Demon's idle shot takes its first update on the turn it is made
+**Date:** 2026-10-27 · **Status:** accepted · Hash/save 314 · Q398.
+
+**Context.** The sweep `0x004B7830` walks lists 0..7 in order and reads each list's head only
+when it reaches it; every shot is linked at list 1's head ([004B7830](research/functions/004B7830.md),
+CONFIRMED). So a shot a creature makes in its own update moves that turn, and one made after
+list 1 was walked moves the next: our trap firing and a boulder strike (DK2's `Trap_Update`
+`0x004A8C54`, `Trap_TriggerPropagate` `0x004A90A2`/`0x004A9210`, list 3, and the strike `0x004A0B58`, object
+list 2), a shot's own, the computer keeper's cast from the player frame. DK2 has two same-turn trap-shot
+paths ours does not build: a creature disarming (`0x00458F60` -> `0x004590BB` -> `Trap_FireAt`, list 0) and
+the trap's slap reaction (`0x004A7E70`, before the sweep). Every shot creator ours builds was checked
+against that rule. All matched but one:
+the idle body's Bile Demon shot (`0x00477806`, in the state handler `0x00476FC0`, which the
+creature update runs in list 0). It is made in `CreatureJobSystem`, after `ShotSystem`, so it
+moved a turn late. A player's cast matches only because of where the action is dispatched:
+`World_UpdateTurn` dispatches packet actions (`0x005119C0`) before the sweep, per the KB record
+(LIKELY). `0x004BBF90`'s other caller, the battle step, runs in the player frame. Our computer
+keeper's commands reach the head of the next tick. So both kinds of cast move on the tick
+`KeeperSpellSystem` makes them, as ours already does.
+
+**Decision.** `ShotSystem.Update` is one shot's update, and `Execute` runs it for every shot,
+newest first. The idle body runs it on the shot it makes as soon as it makes it. No other
+creator changes.
+
+**Consequences.** The Bile Demon's Heal Instant Shot dies at age 1 on its own turn, and its
+death shot stands after that turn. Within the turn, ours updates it after the other shots,
+where DK2 updates it first (list 1's newest). It has no target and data words of 0. The pin
+fixture has no Bile Demon: no new fields, and the pin moves only by the version.
+
+## ADR-0552 — Autonomous playtesting extends the scenario harness; controllers are input sources
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+
+**Context.** AGENTS.md Goal 10 asks for a programmatic player. The owner wants on-demand,
+resource-bounded autonomous playtesting that finds crashes, hangs and invalid states and
+leaves reproducible evidence, without Unity or an LLM. A first draft proposed eight new
+components; review found most already exist: `ScenarioRunner` runs seeded headless scenarios
+with per-tick hashes, `KeeperAI.Think(KeeperView)` is already the controller shape, the
+keeper-as-input-source decision (KEEPER_AI.md §12.1) already keeps a controller's state out of
+`StateHash()`, and `WorldSnapshot` continuation is tested. Review also found gaps:
+`KeeperView` has no fog of war, the command vocabulary holds non-human commands, and
+`keeper-commands.tsv` records type and hash only, so nothing can replay a run.
+
+**Decision.** Extend `DK2.Harness`; no new assembly. A `ScenarioController` (name, player,
+decision interval, `KeeperView` → commands) is passed to `ScenarioRunner.Run`; its commands
+join the next tick's frame after the computer keepers', in the order given, exactly as
+scripted input does. A controller may command only its own player, and a player has at most
+one computer keeper or controller. Controllers do not reference the `KeeperAI` class or
+extend `KeeperView`; `KeeperAI` stays unchanged and is an unverified progression baseline.
+Replay depends only on recorded commands. Stage B builds the input journal planned in
+`plans/2026-10-18-crash-and-debug-tooling.md` (one format for Unity and harness), recording
+the complete merged frame per tick, and a replay verb that keeps the scenario's `work`
+injection but skips its YAML `commands`. Stage C adds a fuzzer limited to human-issuable
+commands, runtime coverage (`TrackTriggerReach`, state and event histograms) and invariants
+that each cite a source. The plan is `plans/2026-10-27-autonomous-playtesting.md`.
+
+**Consequences.** Stage A is built: `ScenarioControllerTests` shows a controller's command is
+the same input as the scripted command one tick later (identical hash series) and pins the
+refusals it can reach without a campaign map. `controller-commands.tsv` is not replayable until Stage B. Controllers see the
+whole world, so they test the game; they are not competitive players, which need a
+fog-filtered view later. No stage is expected to move `HashVersion`. Refusal diagnostics added
+later must stay observation-only (no hash, RNG or decision change).
+
+**Amendment (2026-10-27): Stage B.** The journal lives in `DK2.Simulation` (`CommandCodec`,
+`InputJournalWriter`, `InputJournal`) so Unity can write the same file later; the harness writes
+it, Unity does not yet. Each command type has a fixed tag that is never reused. A frame with
+commands and the end record are flushed at once and hashes at least every 256 ticks, so a killed
+run loses no command; a reader keeps every whole record. `GameSimulation.CurrentHashVersion`
+exposes the version at run time (a public const would be compiled into callers), and a replay
+refuses another version or another scenario file (SHA-256). `run` always writes `input.journal`;
+`replay` re-runs it without keepers or controllers; `watch` runs each scenario in a child
+process under a time limit, in a new folder per watch so no evidence is deleted, and writes
+`failure.md` for a run that does not pass. On Level 17 an 1800-tick computer-keeper run (255
+keeper commands) replays all 1801 hashes without `KeeperAI`.

@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**314** — `0xABEF4268245B9904`. FormatVersion also 314. Behaviour only: a Bile Demon's idle shot takes its first update the turn it is made, as a list-0 shot does in `0x004B7830` (ADR-0551). No new fields; the pin fixture has no Bile Demon. `RefusedStateTests` covers it.
+
 **313** — `0xC84A9341D87683EF`. FormatVersion also 313. The F5 branch (311, 312: ADR-0548, ADR-0549) merged with 310: the composition of both, with the branch's own `GameMode` byte dropped for 310's enum. `VerdictRules.End` now takes the database so each ended player's statistics are sampled. No other change.
 
 **312** — `0xECE45FDBEDAA605E`. FormatVersion also 312. `PlayerState.Finale` (the win sequence's player fields: `+0x76` bits `0x40`, `0x800`, `0x40000`, `0x80000`, `0x400000`, the landing point `+0xB29..+0xB31`, the gem tile and id `+0xB35..+0xB3D`, FireworksTime `+0x111D`, the camera glide hold and state 233's pickup tick and flags), `WorldState.LocalPlayerId` (world `+0x264`) and `CreatureState.ReaperHidden` (`+0xF3` bit 0) (ADR-0549, `campaign-win-sequence.md`). The pin fixture ends no game; `FinaleTests` cover sensitivity and snapshot restore.
@@ -391,9 +393,4 @@ tick entered (ADR-0165). Composition only in the pinned fixture.
 `TimeLastUsedMelee`, and the swing in progress with its start tick and its own
 target entered (ADR-0164). Composition only in the pinned fixture.
 
-**68** — `0xD8CDBD3CD4546586`. A creature's fight target, attack type,
-`AttackRangeSquared`, `FightProcessCounter`, last fight-scan tile and its two
-eight-slot engagement arrays entered (ADR-0163). Composition only in the pinned
-fixture: no Blocker stands near an enemy there.
-
-[Versions 9–67](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–68](hash-versions-early.md) retain the earlier pins and their reasons.

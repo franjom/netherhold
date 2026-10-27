@@ -1,6 +1,11 @@
 # Early state-hash versions
 
-Versions 9–67, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–68, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**68** — `0xD8CDBD3CD4546586`. A creature's fight target, attack type,
+`AttackRangeSquared`, `FightProcessCounter`, last fight-scan tile and its two
+eight-slot engagement arrays entered (ADR-0163). Composition only in the pinned
+fixture: no Blocker stands near an enemy there.
 
 **67** — `0x8E6F0889810E2C53`. A player's `Status` and its tick, and
 the dungeon heart's health, last attacker, death tick and ruin entered
