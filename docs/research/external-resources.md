@@ -25,6 +25,7 @@ file is that they now disagree.**
 |---|---|---|---|
 | **OpenKeeper** | **GPLv3** | code may be combined with a GPLv3 work, with attribution and notices retained | **facts only, with provenance — still no code.** A project choice now, not a legal limit. See below |
 | Flame | unlicensed (re-checked 2026-09-06 against both the GitHub API and the clone: no `LICENSE`, `COPYING` or equivalent anywhere in the tree) | **nothing** | facts only, with provenance — **and never one of its identifiers**, see below |
+| Dethware `DK2` (music and sound research, github.com/Dethware/DK2) | unlicensed (no `LICENSE` in the tree, checked 2026-10-27) | **nothing** | facts only, re-derived from the binary, never its identifiers (`music.md`) |
 | GLKeeper | MIT | inclusion in a GPLv3 work is fine (MIT is one-way compatible) | adapted once, for the WAD decompressor, attributed in `THIRD-PARTY-NOTICES.md` |
 | YamlDotNet | MIT | same | referenced as a package, attributed |
 | KeeperKlan / editor manual / format write-ups | third-party documentation | facts freely, cite the source | same |
