@@ -12834,8 +12834,9 @@ state 199 runs `spFighting` in the same update:
 
 Ours ran the combat states' handlers inside `CombatSystem`, in place of the scan, so a creature
 the scan engaged waited a tick for its handler. Native Level 4, seed 1, shows the cost:
-- native Imps reach 203 straight from a walk (6 → 203 or 202);
-- ours went 6 → 199 → 203 151 times; native Imps essentially never enter 199 from a walk;
+- native Imps reach 203 straight from a walk (6 → 203 or 202), and almost never enter 199;
+- ours entered 199 from a walk 151 times, and 142 of the Imps' 173 entries into 199 fled one tick
+  later;
 - non-Imps reach 199 from the approach in native (291 times; from a walk, 2), while ours went
   6 → 199 directly 103 times.
 
@@ -12852,9 +12853,10 @@ the scan engaged waited a tick for its handler. Native Level 4, seed 1, shows th
 **Consequences.**
 - **Level 2.** Imp walk starts are 852 against native 871 (ADR-0554: 622), and 122 from state 87
   against 124 (ADR-0554: 5).
-- **Level 4.** Imps now flee straight from a walk, as native Imps do. They still enter 203 far
-  more often than native (149 against 14), and start few walks from 87 (41 against 809). This
-  stays open as Q665.
+- **Level 4.** Imps now flee straight from a walk, as native Imps do. They still enter 201-203
+  far more often than native (236 against 41) and start few walks from 87 (41 against 809). Heroes
+  chasing those Imps now drop back from the approach to 199 more often (non-Imp 8 → 199: 524,
+  before 307, native 291; most after an Imp target or a lost one). This stays open as Q665.
 - **Tests.** Five combat tests that pinned the one-tick delay now assert the same update. Two
   victory tests move the victim's own body aside, because a kill on the health step's tick now
   leaves it there.

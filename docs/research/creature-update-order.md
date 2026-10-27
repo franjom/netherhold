@@ -76,7 +76,7 @@ counts walks that stepped on the tick they started, out of all walk starts.
 ### The combat states in the dispatcher (ADR-0555)
 
 Source: `D:/DK2Evidence/runs/q665-imp-flee-2026-10-27`, same rig. After ADR-0554, 151 of the Level 4
-Imps' entries into 199 came from a walk, and 142 of their 199 → 203 flights followed one tick
+Imps' entries into 199 came from a walk, and 142 of their 173 entries into 199 fled one tick
 later. Native Imps reach 203 straight from a walk. Running the fight state in the scan's update:
 
 | Imp walk starts | native | ADR-0554 | ADR-0555 |
@@ -92,4 +92,6 @@ later. Native Imps reach 203 straight from a walk. Running the fight state in th
 - Level 4's Imps flee far more often than native: 236 entries into 201-203 against 41, most now
   straight from a walk, as native's are.
 - Level 4's Imps start few walks from state 87: 41 against 809.
+- Heroes chasing those Imps drop from the approach back to 199 more often: non-Imp 8 → 199 is 524
+  (before ADR-0555 307, native 291); 252 followed an Imp target and 121 a lost one.
 - Walks from 173 still start later than native: Level 4, 14% against 19% on the first tick.

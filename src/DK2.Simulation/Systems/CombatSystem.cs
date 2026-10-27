@@ -33,7 +33,9 @@ public sealed class CombatSystem : ICreatureUpdateStep
 
     /// <summary>The combat states' handlers (<c>spFighting</c>, the flee, withdraw, alarm and
     /// victory states), which DK2's dispatcher <c>0x00476FC0</c> runs after the needs routine, in the
-    /// same update as the fight scan: a creature the scan engages runs its fight state at once.</summary>
+    /// same update as the fight scan: a creature the scan engages runs its fight state at once.
+    /// A <see cref="CreatureUpdateSystem"/> that takes this system must take this step too, or it
+    /// loses every combat handler and the trap reveal.</summary>
     public ICreatureUpdateStep States { get; }
 
     /// <summary>Alone, the scan and the handlers for each creature in turn.</summary>
@@ -124,7 +126,12 @@ public sealed class CombatSystem : ICreatureUpdateStep
     private sealed class StateHandlers(CombatSystem combat) : ICreatureUpdateStep
     {
         public string Name => "combat states";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public void Execute(SimulationContext context)
+        {
+            combat.BeginTurn(context);
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+        // Inside a sweep the scan's BeginTurn ran first; this only covers a sweep without it.
         public void BeginTurn(SimulationContext context)
         {
             if (!ReferenceEquals(combat._sightWorld, context.World)) combat.BeginTurn(context);
