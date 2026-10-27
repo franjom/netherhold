@@ -11,29 +11,26 @@ namespace DK2.Simulation.Systems;
 /// health is spent explodes. DK2 explodes it inside the health routine that kills it; ours does so at
 /// its next update when anything else killed it.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/jack-in-the-box.md")]
-public sealed class JackInTheBoxSystem : ISimulationSystem
+public sealed class JackInTheBoxSystem : ICreatureUpdateStep
 {
     private const string SystemName = "jack_in_the_box";
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    public void Update(SimulationContext context, CreatureState jack)
     {
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        if (!JackInTheBoxRules.IsJack(jack) || jack.DeathShotFired) return;
+        if (!CreatureDeathRules.IsDown(jack) && !HandRules.IsHeld(jack))
         {
-            CreatureState jack = creatures[i];
-            if (!JackInTheBoxRules.IsJack(jack) || jack.DeathShotFired) continue;
-            if (!CreatureDeathRules.IsDown(jack) && !HandRules.IsHeld(jack))
+            if (StateShadow.IsTravelling(jack))
             {
-                if (StateShadow.IsTravelling(jack))
-                {
-                    JackInTheBoxRules.Travelling(context, jack);
-                    if (jack.UtilityNewState == JackInTheBoxRules.SpringState && !jack.HasRoute) StateShadow.Arrive(context, SystemName, jack);
-                }
-                else if (jack.Dk2StateId == JackInTheBoxRules.SpringState) JackInTheBoxRules.Handle(context, jack);
+                JackInTheBoxRules.Travelling(context, jack);
+                if (jack.UtilityNewState == JackInTheBoxRules.SpringState && !jack.HasRoute) StateShadow.Arrive(context, SystemName, jack);
             }
-            if (jack.Health <= 0) JackInTheBoxRules.Explode(context, jack);
+            else if (jack.Dk2StateId == JackInTheBoxRules.SpringState) JackInTheBoxRules.Handle(context, jack);
         }
+        if (jack.Health <= 0) JackInTheBoxRules.Explode(context, jack);
     }
 }

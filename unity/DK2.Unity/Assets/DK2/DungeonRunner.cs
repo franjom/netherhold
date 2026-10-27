@@ -524,6 +524,7 @@ namespace DK2.Unity
             if (_runtimeReleased) return;
             _runtimeReleased = true;
             WaitForTick();
+            CloseInputJournals("destroyed");
             DisposeHudControls();
             _frontEndMenu?.Dispose();
             _campaignMap?.Dispose(); _campaignMap = null;
@@ -556,6 +557,7 @@ namespace DK2.Unity
 
         private void Update()
         {
+            JournalBeginFrame();
             _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null || _failure != null) return;
             if (_frontEnd != null) { if (!UpdateCutscene()) UpdateFrontEnd(); return; }
@@ -619,6 +621,7 @@ namespace DK2.Unity
                 if (ticks > 0 && _pendingCommands.Count > 0)
                 {
                     firstInput = new InputFrame(_pendingCommands.ToArray());
+                    JournalHandOff();
                     _pendingCommands.Clear();
                 }
             }
@@ -661,6 +664,7 @@ namespace DK2.Unity
                 if (ticks > 0 && firstInput.All.Count == 0 && _pendingCommands.Count > 0)
                 {
                     firstInput = new InputFrame(_pendingCommands.ToArray());
+                    JournalHandOff();
                     _pendingCommands.Clear();
                 }
             }
@@ -696,6 +700,7 @@ namespace DK2.Unity
 
             // Nothing on this thread reads the world again before the next Update's wait: OnGUI
             // reads the strings built above, and Simulation's getter waits.
+            JournalTicks(ticks);
             if (ticks > 0 && tickOnWorkerThread)
             {
                 int count = ticks;
@@ -715,7 +720,18 @@ namespace DK2.Unity
                 {
                     using (CaptureMarker.Auto())
                         _worldView.CaptureObjectPositions(_simulation.World);
-                    _simulation.Tick(input);
+                    long tick = _simulation.World.CurrentTick.Value;
+                    JournalTick(tick, input, before: true);
+                    try
+                    {
+                        _simulation.Tick(input);
+                    }
+                    catch (Exception ex)
+                    {
+                        JournalTickFailed(ex);
+                        throw;
+                    }
+                    JournalTick(tick + 1, input, before: false);
                 }
             }
             // The hash is for the diagnostics only, and costs a few milliseconds; here it is off the
@@ -791,6 +807,7 @@ namespace DK2.Unity
                 SecondaryButton: secondaryButton,
                 PointerOverHud: PointerOverHud(Input.mousePosition),
                 PointerPosition: tile is TilePos pointTile ? ScreenToPosition(Input.mousePosition, pointTile) : null);
+            JournalIntent(intent);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
                 _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile);
             if (tile is TilePos at && (ActiveTool == PlayerToolMode.Hand || ActiveTool == PlayerToolMode.Slap))

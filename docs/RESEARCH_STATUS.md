@@ -78,7 +78,7 @@ HYPOTHESIS / UNKNOWN (AGENTS.md). **CONFIRMED is reserved for the running game**
 
 ## Read, with no decision to make
 
-Facts established and recorded; nothing in `src/` turns on them yet.
+Facts established and recorded, with no design decision left open. Some are built (the row names the code); the rest wait for it.
 
 | What | Research note |
 |---|---|
@@ -89,7 +89,7 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 | **File formats:** WAD, KWD/KLD, KMF, STR, textures, video. `.str` string tables, all 92, decode through their `MBToUni.dat` code page (`src/DK2.Data/Text/Dk2StringTable.cs`); ids are table-local and zero-based and the header's second word is a file id running 1000..1091 | `wad-format.md`, `kwd-container.md` |
 | **The Mentor's speech and the notification system.** One entry point turns an event into a spoken line plus subtitle, addressed as **(type, variant)** through a 100-entry table (all 100 rows and every call site of the entry point are read; 25 types have no poster; type 5, the King, is raised with variant 1 only, `message-table.md` section 6); a speech reference is stored **negated with a 10000 bias**, which is why no line's id appears as a constant. Type 89 is the taunt pool (27 of 33 authored `silly` lines); the idle taunt is keyed to **cursor stillness in real milliseconds**, not game time. Six recorded lines have no code path at all (Q282) | `mentor-speech-and-notifications.md`, `message-table.md` |
 | **What each room is for**, in prose, from the shipped manual, paired with the balance variable that quantifies it | `manual-1999.md` |
-| **How DK2 draws its walls** — solid mass with intersections cut into it, pieces chosen by the sides a room runs along, damage as a texture swap, and runtime vertex deformation (inferred by its own source, not proven). The room wall chooser, the wall torches, plain terrain, room floors and liquids are built in the presentation layer and drawn in Unity from the install (ADR-0392, ADR-0391, ADR-0408, `docs/plans/2026-10-09-classic-look.md`). **Rendering only; no rule may depend on it** | `wall-rendering.md`, `wall-pieces.md`, `wall-torches.md`, `floor-and-terrain-pieces.md` |
+| **How DK2 draws its walls** — solid mass with intersections cut into it, pieces chosen by the sides a room runs along, damage as a texture swap, and runtime vertex deformation (read from the binary 2026-10-09, Q72, `terrain-lattice.md`). The room wall chooser, the wall torches, plain terrain bent by the terrain lattice (`TerrainLattice`), room floors and liquids are built in the presentation layer and drawn in Unity from the install (ADR-0392, ADR-0391, ADR-0408, `docs/plans/2026-10-09-classic-look.md`). **Rendering only; no rule may depend on it** | `wall-rendering.md`, `wall-pieces.md`, `wall-torches.md`, `floor-and-terrain-pieces.md`, `terrain-lattice.md` |
 | **Which fields never vary and which the engine never reads.** Balance variables and CREATURES are swept; OBJECTS is swept on the data side only. `dk2tools kwd fieldsweep` | `record-field-sweep.md`, `variables-corpus-sweep.md` |
 
 ## The largest unknowns
@@ -107,7 +107,7 @@ Facts established and recorded; nothing in `src/` turns on them yet.
 | **What defeat does** (Q40) | Built (ADR-0162, ADR-0207, `DefeatRules`, Q358): creatures leave by the nearest portal, rooms and gold go neutral, the heart stays as a ruin. Left: the Destructor (object 100) |
 | **The computer keeper** (Q509, Q555, Q563) | Built and compared with DK2's own keepers on two maps; every verb agrees in kind and the open differences are timing (`computer-keeper-observations.md`). The research move and prisoner decisions are unbuilt, the trap and door step is built on a parked branch and not on master, and the nine personalities load (ADR-0410) (`docs/KEEPER_AI.md` §12) |
 | **Front end, campaign map and progression** | F1 storage/image readers, F2 scenery/camera sessions, F3 menu shells and F4 campaign map/briefing are built; session-loop integration and deferred page operations remain. Evidence: `front-end-menus.md`, `campaign-map-and-progression.md`, `front-end-assets.md`. SDT/MPEG and bank-map readers remain unbuilt; TGQ has a playback proof of concept. Plan: `plans/2026-10-23-front-end.md` |
-| **Audio event semantics** | Menu sound-request hooks are built in F3; playback remains unbuilt. Audio container formats are inventoried in `front-end-assets.md`; movie playback (container, TQI video, EA ADPCM) is read and built as a decoder (`movie-format.md`, `src/DK2.Data/Media`) |
+| **Audio event semantics** | Menu sound-request hooks are built in F3; playback remains unbuilt. The in-game dynamic music is read (`music.md`: level requests, the update, `SFX.map`, the segment picker), not built. Audio container formats are inventoried in `front-end-assets.md`; movie playback (container, TQI video, EA ADPCM) is read and built as a decoder (`movie-format.md`, `src/DK2.Data/Media`) |
 
 ## Per-mechanic notes
 

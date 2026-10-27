@@ -35,7 +35,7 @@ public sealed class FootprintTests
     {
         var systems = SimulationSystems.Default();
         Assert.True(Array.FindIndex(systems, s => s is FootprintSystem)
-            < Array.FindIndex(systems, s => s is CreatureMovementSystem));
+            < Array.FindIndex(systems, s => s is CreatureUpdateSystem update && update.Steps.Any(step => step is CreatureMovementSystem)));
         Assert.Single(systems.OfType<FootprintSystem>());
     }
 

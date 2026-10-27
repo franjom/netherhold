@@ -249,26 +249,21 @@ public static class FinaleRules
         return reaper;
     }
 
-    /// <summary>States 228-234 for every creature in one of them (§3).</summary>
-    public static void Run(SimulationContext context)
+    /// <summary>States 228-234 for a creature in one of them (§3).</summary>
+    public static void Run(SimulationContext context, CreatureState reaper)
     {
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        if (reaper.Dk2StateId is < VanishState or > WalkState) return;
+        uint age = ++reaper.ReaperStateAgeTicks;
+        ref PlayerState player = ref context.World.Player(reaper.OwnerPlayerId);
+        switch (reaper.Dk2StateId)
         {
-            CreatureState reaper = creatures[i];
-            if (reaper.Dk2StateId is < VanishState or > WalkState) continue;
-            uint age = ++reaper.ReaperStateAgeTicks;
-            ref PlayerState player = ref context.World.Player(reaper.OwnerPlayerId);
-            switch (reaper.Dk2StateId)
-            {
-                case VanishState: Vanish(context, ref player, reaper, age); break;
-                case WaitCameraState: WaitCamera(context, ref player, reaper, age); break;
-                case AppearState: Appear(context, ref player, reaper, age); break;
-                case RoarState: Roar(context, reaper, age); break;
-                case RouteToGemState: RouteToGem(context, ref player, reaper); break;
-                case WalkState: Walk(context, reaper); break;
-                case PickUpGemState: PickUpGem(context, ref player, reaper, age); break;
-            }
+            case VanishState: Vanish(context, ref player, reaper, age); break;
+            case WaitCameraState: WaitCamera(context, ref player, reaper, age); break;
+            case AppearState: Appear(context, ref player, reaper, age); break;
+            case RoarState: Roar(context, reaper, age); break;
+            case RouteToGemState: RouteToGem(context, ref player, reaper); break;
+            case WalkState: Walk(context, reaper); break;
+            case PickUpGemState: PickUpGem(context, ref player, reaper, age); break;
         }
     }
 

@@ -91,6 +91,14 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   and the verdict recursion are built (ADR-0547, hash/save 310; Q359, Q576). No packet or
   win rig has been run since hash 309. Q652: Level 11A's Drako no longer calls at Morgana's
   front, a known regression.
+- One creature's whole update runs before the next one's, newest first (ADR-0554, hash/save 315):
+  `CreatureUpdateSystem` runs the fight, needs, anger, state handlers, mover and an Imp's handler
+  per creature; the payday clock runs before the creatures. Non-Imp walks take their first step
+  on the tick they start in 34% (Level 2) and 26% (Level 4) of cases, native 40% and 28%. Not
+  explained: fewer Imp walk starts than native, many more withdrawals from state 203, and walks
+  from state 173 still start late. Differences left and measurements:
+  [creature-update-order.md](research/creature-update-order.md). The win and packet rigs have not
+  been rerun at hash 315.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
@@ -296,8 +304,13 @@ tools/classic-unity-probe/README.md.
 8. Autonomous playtesting (ADR-0552, `plans/2026-10-27-autonomous-playtesting.md`): Stage A,
    the test-controller hook in `DK2.Harness`, Stage B's harness half (input journal,
    `replay`, `watch`) and Stage C (legal-action fuzzer, coverage, progress and the snapshot
-   check; `src/DK2.Harness/README.md`) are built. Unity does not write journals
-   yet (`plans/2026-10-18-crash-and-debug-tooling.md` item 1), failure bundles hold no
+   check; `src/DK2.Harness/README.md`) are built. Stage D (ADR-0553,
+   `plans/2026-10-27-stage-d-unity-input.md`) Phase 1 is built: Unity writes `frames.journal`
+   (`FrameInputJournal`) and `input.journal` when `DK2_INPUT_JOURNAL` names a folder
+   (`unity/README.md`); it has not been run in the editor. Next: the owner plays three to five
+   journaled baseline sessions (to `D:\DK2Evidence\runs\unity-input-<date>\`), and Phase 1b
+   lets the harness replay a Unity journal; Phases 2-5 (input mapping into Presentation, the
+   Input System ADR, migration, rendered-HUD automation) are not started. Failure bundles hold no
    snapshots, no DK2-behaviour invariant exists (each needs a cited source), and the fuzzer
    plays no specials or objects and tags nothing under fog.
 

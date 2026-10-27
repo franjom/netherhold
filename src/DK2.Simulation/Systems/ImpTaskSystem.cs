@@ -23,7 +23,7 @@ namespace DK2.Simulation.Systems;
 /// to a prison, fleeing a fight, gold somebody else dropped (imp-tasks.md).</para>
 /// </summary>
 [Dk2Behavior(Confidence.Hypothesis, "docs/research/imp-tasks.md")]
-public sealed partial class ImpTaskSystem : ISimulationSystem
+public sealed partial class ImpTaskSystem : ICreatureUpdateStep
 {
     private const string SystemName = "ImpTask";
 
@@ -197,48 +197,39 @@ public sealed partial class ImpTaskSystem : ISimulationSystem
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context) => _pathfinder.Profiler = context.Profiler;
+
+    /// <summary>A worker's state handler in its update, after its move: DK2 steps an imp inside the
+    /// walk state's handler (<c>0x00470C80</c>) before that handler tests the arrival, so an imp lands
+    /// and starts its work in one update. Newest first (<see cref="CreatureUpdateSystem"/>), so a
+    /// worker robbed of its task by a newer one chooses again this same tick, and one robbed by an
+    /// older one on the next (imp-task-stealing.md §8).</summary>
+    public void Update(SimulationContext context, CreatureState creature)
     {
-        _pathfinder.Profiler = context.Profiler;
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
+        if (creature.Possessed) return;
+        if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) return;
 
-        // Newest first, as DK2's world turn walks its creature list (0x004B7830), where a new
-        // creature is linked at the head (0x004B4A10). So a worker robbed of its task by a newer
-        // one chooses again this same tick, and one robbed by an older one on the next
-        // (imp-task-stealing.md §8). The list is in id order and ids only climb, so the walk goes
-        // by id: a creature removed during it (a buried corpse) shifts nothing onto a second
-        // update, and one added during it waits for the next tick.
-        int below = int.MaxValue;
-        for (int i = creatures.Count - 1; ; i--)
-        {
-            if (i >= creatures.Count) i = creatures.Count - 1;
-            while (i >= 0 && creatures[i].Id >= below) i--;
-            if (i < 0) break;
-            CreatureState creature = creatures[i];
-            if (creature.Possessed) continue;
-            below = creature.Id;
-            if (context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
-            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            if (!definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
+        // A hero worker is HeroSystem's: DK2's state 1 sends a hero to 90 before it tests the
+        // worker flag (ADR-0216).
+        if (HeroJobRules.IsHero(creature)) return;
 
-            // A hero worker is HeroSystem's: DK2's state 1 sends a hero to 90 before it tests the
-            // worker flag (ADR-0216).
-            if (HeroJobRules.IsHero(creature)) continue;
+        // Held: out of the dungeon until put down (ADR-0062). Down: its job was cleared when it
+        // dropped, so this only stops it taking a new one (ADR-0051). A prisoner as a rule, not a
+        // gap: its wandering is PrisonerWanderSystem's and its health PrisonSystem's (ADR-0073);
+        // still a stated narrowing, the other half of Q172 (racing for a chicken dropped among them).
+        if (CreatureEligibility.IsExcluded(creature,
+            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
 
-            // Held: out of the dungeon until put down (ADR-0062). Down: its job was cleared when it
-            // dropped, so this only stops it taking a new one (ADR-0051). A prisoner as a rule, not a
-            // gap: its wandering is PrisonerWanderSystem's and its health PrisonSystem's (ADR-0073);
-            // still a stated narrowing, the other half of Q172 (racing for a chicken dropped among them).
-            if (CreatureEligibility.IsExcluded(creature,
-                CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
-
-            bool handlerWasDone = creature.ActionHandlerDone;
-            Update(context, creature, definition);
-            // Later workers see this strike before choosing or testing their own finished action.
-            _tileWork.Execute(context);
-            // The animation advances last in the creature's update (0x0048BE50).
-            StepWorkAnimation(context, creature, definition, struck: !handlerWasDone && creature.ActionHandlerDone);
-        }
+        bool handlerWasDone = creature.ActionHandlerDone;
+        Update(context, creature, definition);
+        // Later workers see this strike before choosing or testing their own finished action.
+        _tileWork.Execute(context);
+        // The animation advances last in the creature's update (0x0048BE50).
+        StepWorkAnimation(context, creature, definition, struck: !handlerWasDone && creature.ActionHandlerDone);
     }
 
     private void Update(SimulationContext context, CreatureState creature, CreatureDef definition)

@@ -36,6 +36,11 @@ public sealed class SimulationContext
     internal HashSet<CreatureState> TremorMoodDispatchedThisTick { get; } = [];
     internal HashSet<CreatureState> TremorRebellionStartedThisTick { get; } = [];
 
+    /// <summary>The state the creature being updated held when its update began
+    /// (<see cref="Systems.CreatureUpdateSystem"/>), before any step of that update moved it.
+    /// Never an input to the following turn.</summary>
+    internal int UpdateStartStateId { get; set; } = CreatureStateMachine.NoState;
+
     /// <summary>The mesh, the router and the steering probes over <see cref="World"/>. Systems
     /// request routes through it; the movement system steps bodies against it.</summary>
     public Navigation.WorldSteering Navigation { get; }

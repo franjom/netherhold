@@ -396,5 +396,5 @@ link scans corrects the shared cause. Seed 1, first 100 modern turns: all three
 followers share exact centres for 24 turns before, four spawn/turning turns after.
 `HeroOpeningOnRealDataTests` checks initial targets/indices on seeds 1/7/21;
 `HeroWalkTests` covers route visibility, numbering and self-removal.
-Separate hero/movement passes still differ from native whole-creature updates;
+`HeroSystem` and the mover run in one creature's update (ADR-0554; [what differs](creature-update-order.md));
 complete timing parity, a campaign replay sweep and visual acceptance remain open.

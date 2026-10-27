@@ -23,7 +23,7 @@ Confidence: **CONFIRMED** = read from the bytes or by a repo reader over every f
 | String tables | 92 `.str` | `DK2.Data.Text.Dk2StringTable`, `LevelTextTable` | none | — |
 | SDT sound banks | `FrontEndHD`, `GuiHD`, `Patch_1HD`, 10 `Track_*`, 33 speech banks | `DK2.Convert.Audio.SdtArchive` lists the entries and extracts the raw MPEG payload | an MPEG-1/2 **Layer I and Layer II** decoder in memory at run time | medium |
 | `*BANK.map` / `*SFX.map` event maps | 2 per sound object | none | a reader: bank → archive names, event → groups → variants → (sample, archive) | medium |
-| Music sequencing | `musicSFX.map` (27,042 B), 10 track banks | none | the segment sequencer: its rules are in DKII.EXE | medium-large |
+| Music sequencing | `musicSFX.map` (27,042 B), 10 `Track_*` archives (9 music, `Track_Zero` the ambience) | none | the segment sequencer: read in `music.md` (map layout, level requests, picker) | medium-large |
 | Movies `.tgq` | 24 files, 213 MB | `DK2.Data.Media` and Unity `ClassicMoviePlayer` | playback proof of concept built; front-end sequencing remains F7 | large |
 | `Settings/HiScores.dat` | 1 | `DK2.Data.Campaign.HiScoresFile` | reader/writer built in F1 (§8); qualification and entry UI remain F5 | small |
 | Save games (load menu) | `Data/Save/*.SAV`, `*.QSAV` | `DK2.Data.Save.Dk2SaveReader` | whether it reads the fields the load menu lists was not checked | UNKNOWN |
@@ -309,7 +309,7 @@ window. Only some of them have an object in `Objects.kwd` (§2.1).
 | `Track_3_4HD` | 3,599,716 | 24 | 257 s |
 | `Track_ZeroHD` | 11,319,142 | 39 (21) | 808 s |
 
-The music is made of segments (`1pt1-001.mp2` …) that `musicSFX.map` sequences.
+The music is made of segments (`1pt1-001.mp2` …) that `musicSFX.map` sequences (`music.md`).
 `options_music` plays from `Track_1_4`. Which segments the front end plays is a
 DKII.EXE question (UNKNOWN). `Global/SoundFont.sf2` (404,764 B, RIFF `sfbk`) is a
 SoundFont bank; what uses it is UNKNOWN. binary-census.md places a SoundFont library

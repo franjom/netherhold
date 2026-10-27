@@ -6629,7 +6629,8 @@ corridors keeps your dropped gold, and the keeper's total does not move. A creat
 takes nothing; probably faithful, as a held thing is unlinked from the map (`0x004BC500`).
 Deviations: every creature-arm take comes before every worker-arm take, where DK2 runs each
 creature's whole update newest first, so a newer imp and an older Goblin on one pile get it the
-other way round; a keeper's worker that is imprisoned, down or fighting takes nothing, since
+other way round (*amended by ADR-0554: the worker arm now runs in each creature's update, so every
+worker-arm take comes first*); a keeper's worker that is imprisoned, down or fighting takes nothing, since
 `ImpTaskSystem` skips it before the worker arm (from ADR-0293); a tile's piles go newest first
 (the tile list's order is unread); a pile has no falling phase. Not built: the chicken side arm
 (a neutral Chicken eaten off a Portal or Hatchery tile, action 26).
@@ -12743,3 +12744,80 @@ keeper commands) replays all 1801 hashes without `KeeperAI`.
 `HumanCommandPolicy` allows, built as our input paths build them; observers that leave the hash
 alone add coverage, progress and stall candidates, and a save/load continuation check, the only
 invariant with a failure verdict. Details: the plan, §13.
+
+## ADR-0553 — Unity input is journaled, then moved into Presentation, then migrated
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+
+**Context.** ADR-0552 tests the simulation headlessly; nothing tests the Unity path from mouse
+and keyboard to `PlayerIntent` and commands. Unity uses legacy input only (about 120 `Input.*`
+reads, mostly in `DungeonRunner` and its HUD partial), which a test cannot inject into, and the
+bottom panel and message tabs take UI Toolkit pointer callbacks that our geometry hit tests do
+not see. IMGUI and `GL` only draw. `DK2.Presentation` already holds the engine-neutral half
+(`PlayerInputTranslator`, `ClassicHudControls`, `ClassicCameraControls`) with xUnit tests. A
+frame runs 0..n ticks from real elapsed time and gives all queued commands to its first tick,
+so frame numbers alone do not reproduce a session.
+
+**Decision.** Five phases, in order. (1) Unity writes two journals when asked, off by default:
+the ADR-0552 `input.journal` (frame per tick, hash after it) and a per-frame
+`FrameInputJournal` in `DK2.Presentation` (raw input, HUD flags, intents, queued commands with
+when they were queued relative to the tick hand-off, ticks run). Journaling only reads and a
+failing journal stops itself; it is hash-neutral, not timing-neutral. (2) The polled-input interpretation
+moves from `DungeonRunner` into a pure Presentation mapping whose input is the journaled frame
+snapshot; owner-played baseline sessions become its regression tests; bottom-panel choices
+enter as recorded inputs. (3) A separate ADR decides the Input System, settling wheel units,
+pan axes, text entry, edge timing and UI Toolkit delivery. (4) Migration behind one adapter,
+both backends only during the baseline comparison, legacy removed after. (5) A windowed Mono
+player from a separate checkout, with a fixed-step mode for the frame clock, virtual input
+devices and `runInBackground`, drives the real HUD. The plan is
+`plans/2026-10-27-stage-d-unity-input.md`.
+
+**Consequences.** Phase 2 needs the owner to play three to five short sessions; nothing can
+drive legacy input. Phase 5's fixed step is a production change to the frame clock, because
+`Time.captureDeltaTime` does not reach a clock that reads real time. Coverage is claimed only
+for interactions with a production input path; possession and door locking have none yet.
+Unity evidence goes to `D:\DK2Evidence`.
+
+## ADR-0554 — One creature's whole update before the next one's
+**Date:** 2026-10-27 · **Status:** accepted · Hash/save 315 · amends ADR-0013's order and ADR-0551 · Research: `docs/research/creature-update-order.md`
+
+**Context.**
+- **DK2.** Each turn, DK2 first runs the payday clock once per player (`0x0050A7BE`). Then the sweep
+  `0x004B7830` runs each creature's whole update `0x00488930`, newest first, in this order:
+  1. the fight scan;
+  2. the dispatcher `0x00476FC0`: the need-anger routine, the needs routine, the mood chooser, then
+     the state's handler;
+  3. the steering step, which skips the Imp. The Imp steps inside state 6's handler `0x00470C80`
+     instead, before that handler tests for arrival.
+- **Ours.** Each of these was its own pass over all creatures. The choosers ran after the mover, and
+  after the rooms and the player frame.
+- **The cost.** A native creature sent walking takes its first step that tick in 28-40% of walks;
+  ours did in 1-2%. Ours also stepped withdrawing Imps at once, which DK2 never does.
+
+**Decision.**
+- **The sweep.** `CreatureUpdateSystem` runs `ICreatureUpdateStep`s per creature, newest first by
+  id. It runs the fight, the needs (eat, sleep, pay), the anger step, the state handlers, the mover,
+  then the worker handler.
+  - A creature removed during its own update takes no more steps.
+  - A creature made during the sweep waits for the next tick.
+  - Each step run alone sweeps the list itself in the same order.
+- **Imps.**
+  - An Imp sent walking during its update steps from the next update.
+  - The worker handler runs after the mover, so an Imp lands and resumes in one update. This keeps
+    the captured 13-tick claim cadence.
+- **Payday.** Payday's clock runs before the creatures. It sets a creature off as it credits it,
+  without the needs routine's four-turn stamp.
+- **Manufacture.** The manufacture loss is a player-frame system.
+- **ADR-0551.** Its immediate update of the Bile Demon's shot is no longer needed, because the job
+  handler now runs before the shot pass.
+
+**Consequences.**
+- **Same-tick walk starts.** Non-Imps now take their first step on the tick they start in 34%
+  (Level 2) and 26% (Level 4) of walks, against native 40% and 28%. Imp withdrawals no longer step
+  on their first tick.
+- **Open questions.** Two Imp walk-start counts are not explained, and walks from state 173 still
+  start late. The measurements and the order differences that remain are in the research note.
+- **Profiling.** The sweep has one profiler marker.
+- **Tests.** Three library tests and one scenario's incidental bird id follow the newest-first order.
+- **Pin.** The pin moves only by the version.
+- **Covering tests.** `CreatureUpdateSystemTests`, the `PaydayTests` clock test, `ImpWalkEndTests`
+  and `SimulationSystemsOrderTests`.

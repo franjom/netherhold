@@ -1,6 +1,6 @@
 # On-demand autonomous playtesting
 
-**Status:** accepted as ADR-0552 (2026-10-27). Stages A, B and C built (the harness half of B); Unity journals, snapshots in failure bundles, DK2-behaviour invariants and a fog-aware fuzzer are not.
+**Status:** accepted as ADR-0552 (2026-10-27). Stages A, B and C built (the harness half of B); snapshots in failure bundles, DK2-behaviour invariants and a fog-aware fuzzer are not. Unity journals and the Unity input path are Stage D, ADR-0553 (`plans/2026-10-27-stage-d-unity-input.md`).
 **Mandate:** `AGENTS.md` Goal 10 (AI/Bot Interface). Related milestones: M5, M6, M9, M10, M12–M14.
 
 ## 1. Objective
@@ -153,8 +153,8 @@ sample size and uncertainty; a 20-seed median can double by chance.
   `replay` and `watch` verbs (`src/DK2.Harness/README.md`), `failure.md` per run that did not
   pass. Acceptance met: Level 17's 1800-tick computer-keeper run (255 commands) replays all
   1801 hashes without `KeeperAI`; a timed-out run leaves a journal readable to the last flushed
-  tick. Not built: Unity writing journals (crash plan item 1's Unity half), periodic snapshots
-  in failure bundles, and `GameTick` stamps (journal ticks are `long`).
+  tick. Not built here: periodic snapshots in failure bundles and `GameTick` stamps (journal
+  ticks are `long`). Unity writing journals is built as ADR-0553 Phase 1.
 - **C — Exploration (built).** `HumanCommandPolicy` (§4), `LegalActionFuzzer`, `RunMonitor`
   (§9, §10), option parsing in `HarnessCommandLine`; the harness has `InternalsVisibleTo
   DK2.Behavior.Tests`.
@@ -180,8 +180,8 @@ sample size and uncertainty; a 20-seed median can double by chance.
     failures, replay matched 2401 hashes, a rerun without the observers was identical. Level
     10, seed 1, 3000 ticks, after review fixes: all 12 generated command kinds, 5 snapshot
     checks passed, replay matched 3001 hashes.
-  - Not built: Unity journals, snapshots in failure bundles, DK2-behaviour invariants (each
-    needs a cited source), specials, objects and fog-aware tagging in the fuzzer.
+  - Not built: snapshots in failure bundles, DK2-behaviour invariants (each needs a cited
+    source), specials, objects and fog-aware tagging in the fuzzer.
 
 **Deferred:** goal-directed AI, Enhanced Keeper, fog-filtered observations, LLM supervisor
 code (an LLM can read reports by hand), parallel or distributed or continuous execution.

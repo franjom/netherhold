@@ -10,18 +10,16 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>Payday: the wage bill falls due, every creature is credited, and each
 /// walks to a treasury for its own wages (docs/research/payday.md, ADR-0078).</summary>
-/// <remarks>Two phases in one system, the clock then the collecting, which is the
-/// original's order — its clock calls the collect decision in the same loop that
-/// credits the wage — so a creature credited on this tick sets off on this tick.
-/// Being owed is what charges <c>AngerNoPay</c> +60, and that charge lives in
-/// <see cref="CreatureAngerRules"/> on the anger system's second (ADR-0079,
-/// <see cref="PaydayRules.IsOwedWages"/>). Ours, none of it changing who gets paid:
-/// one activity over states 187-189, held as state ids (ADR-0180); the arrival tile is
-/// the room's gold-bearing tile nearest the creature, not the original's search; and the
-/// Dungeon Heart is admitted unconditionally where the original tests one undecoded
-/// flag bit beside the type.</remarks>
+/// <remarks>The clock runs before any creature's update (<c>0x0050A7BE</c>, before the sweep at
+/// <c>0x0050A7D7</c>) and calls the collect decision as it credits, so a creature credited on this
+/// tick sets off and takes its first walk step on this tick; the pay branch of the needs routine
+/// and states 187-189 run in each creature's update. Being owed charges <c>AngerNoPay</c>
+/// (ADR-0079, <see cref="PaydayRules.IsOwedWages"/>). Ours, none of it changing who gets paid:
+/// one activity over states 187-189 (ADR-0180); the arrival tile is the room's gold-bearing tile
+/// nearest the creature, not the original's search; and the Heart is admitted unconditionally
+/// where the original tests one undecoded flag bit beside the type.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/payday.md")]
-public sealed class PaydaySystem : ISimulationSystem
+public sealed class PaydaySystem : ICreatureUpdateStep
 {
     private const string SystemName = "Payday";
 
@@ -35,11 +33,9 @@ public sealed class PaydaySystem : ISimulationSystem
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
-    {
-        Clock(context);
-        Collect(context);
-    }
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context) => Clock(context);
 
     // ------------------------------------------------------------- the clock
 
@@ -52,7 +48,7 @@ public sealed class PaydaySystem : ISimulationSystem
     /// failed-attempt budget refills; one holding
     /// <see cref="CreatureState.GetPaid"/> is not credited and spends the
     /// ticket.</remarks>
-    private static void Clock(SimulationContext context)
+    private void Clock(SimulationContext context)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -102,10 +98,16 @@ public sealed class PaydaySystem : ISimulationSystem
                 // Every creature's budget of attempts refills, including one
                 // that gave up last time.
                 creature.PayAttemptsFailed = 0;
-                if (wage <= 0) continue;
+                if (wage > 0)
+                {
+                    creature.WageOwed += wage;
+                    billed += wage;
+                }
 
-                creature.WageOwed += wage;
-                billed += wage;
+                // The clock asks the collect decision itself, with no retry stamp: that is the
+                // needs routine's (0x00477F69). Ours keeps the needs routine's other gates.
+                if (MayCollect(context, creature)
+                    && !NeedRules.IsBusy(world, creature, now)) Decide(context, creature, database);
             }
 
             player.NextPaydayTick = new GameTick(now + PaydayRules.IntervalTicks(database));
@@ -120,50 +122,56 @@ public sealed class PaydaySystem : ISimulationSystem
 
     // --------------------------------------------------------- the collecting
 
-    private void Collect(SimulationContext context)
+    /// <summary>The pay branch of the needs routine (<c>0x00477C20</c>), after hunger and sleep, and
+    /// states 187-189, in the creature's update before its state handler.</summary>
+    public void Update(SimulationContext context, CreatureState creature)
     {
-        WorldState world = context.World;
-        GameDatabase database = context.Database;
-
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        if (creature.Activity == CreatureActivity.SeekingWages)
         {
-            CreatureState creature = creatures[i];
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined | CreatureGuards.Imprisoned)) continue;
-
-            if (creature.Activity == CreatureActivity.SeekingWages)
-            {
+            if (!CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined | CreatureGuards.Imprisoned))
                 Walking(context, creature);
-                continue;
-            }
-
-            // A creature walking out for good does not stop to be paid - it is
-            // leaving BECAUSE of things like this. Same narrowing the eat and
-            // sleep systems make, and ours rather than the original's.
-            if (creature.Activity == CreatureActivity.Leaving) continue;
-            if (Combat.CombatRules.Preoccupied(creature)) continue;
-
-            // An idle creature sets off, and so does one at a job whose state admits
-            // Payday: the needs routine's mask test (NeedRules, ADR-0198).
-            if (!NeedRules.MayAsk(creature, CreatureStateCategory.Payday)) continue;
-
-            // Tried every fourth turn: the stamp moves whether or not anything is owed, and
-            // before the busy test (0x00477F69, ADR-0202).
-            long now = context.Tick.Value;
-            if (now < creature.NextPayTryTick) continue;
-            creature.NextPayTryTick = now + (NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
-            if (NeedRules.IsBusy(context.World, creature, now)) continue;
-
-            // SkipNextPayment is spent by this decision whatever it decides: a set flag, nothing
-            // owed or two failures all clear it (0x0047237F, hand-drop-earmark.md §9).
-            bool skip = creature.SkipNextPayment;
-            creature.SkipNextPayment = false;
-            if (skip) continue;
-            if (creature.WageOwed <= 0) continue;
-            if (creature.PayAttemptsFailed >= PaydayRules.MaxFailedAttempts) continue;
-
-            SetOutForTheTreasury(context, creature, database.CreatureById(creature.CreatureTypeId));
+            return;
         }
+        if (!MayCollect(context, creature)) return;
+
+        // Tried every fourth turn: the stamp moves whether or not anything is owed, and
+        // before the busy test (0x00477F69, ADR-0202).
+        long now = context.Tick.Value;
+        if (now < creature.NextPayTryTick) return;
+        creature.NextPayTryTick = now + (NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
+        if (NeedRules.IsBusy(context.World, creature, now)) return;
+
+        Decide(context, creature, context.Database);
+    }
+
+    private static bool MayCollect(SimulationContext context, CreatureState creature)
+    {
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined | CreatureGuards.Imprisoned)) return false;
+        if (creature.Activity == CreatureActivity.SeekingWages) return false;
+
+        // A creature walking out for good does not stop to be paid - it is
+        // leaving BECAUSE of things like this. Same narrowing the eat and
+        // sleep systems make, and ours rather than the original's.
+        if (creature.Activity == CreatureActivity.Leaving) return false;
+        if (Combat.CombatRules.Preoccupied(creature)) return false;
+
+        // An idle creature sets off, and so does one at a job whose state admits
+        // Payday: the needs routine's mask test (NeedRules, ADR-0198).
+        return NeedRules.MayAsk(creature, CreatureStateCategory.Payday);
+    }
+
+    /// <summary>The collect decision <c>0x00472320</c>.</summary>
+    private void Decide(SimulationContext context, CreatureState creature, GameDatabase database)
+    {
+        // SkipNextPayment is spent by this decision whatever it decides: a set flag, nothing
+        // owed or two failures all clear it (0x0047237F, hand-drop-earmark.md §9).
+        bool skip = creature.SkipNextPayment;
+        creature.SkipNextPayment = false;
+        if (skip) return;
+        if (creature.WageOwed <= 0) return;
+        if (creature.PayAttemptsFailed >= PaydayRules.MaxFailedAttempts) return;
+
+        SetOutForTheTreasury(context, creature, database.CreatureById(creature.CreatureTypeId));
     }
 
     /// <summary>Chooses a treasury and starts the walk, or records why not.</summary>
