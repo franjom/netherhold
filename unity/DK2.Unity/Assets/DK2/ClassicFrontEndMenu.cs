@@ -42,6 +42,9 @@ namespace DK2.Unity
         private readonly Dictionary<FrontEndWidgetId, LabelData> _labels = new Dictionary<FrontEndWidgetId, LabelData>();
         private readonly List<FrontEndWidget> _resultWidgets = new List<FrontEndWidget>();
         private object _shownBriefing, _shownResults, _shownScores;
+        // The statistics list's first row; DK2 scrolls it with a scroll bar whose input is unread, ours
+        // with the mouse wheel over the list.
+        private int _resultsFirstRow, _shownFirstRow;
         private FrontEndPage _shown = (FrontEndPage)ushort.MaxValue;
         private bool _fontDirty = true, _useReplacement = true;
         private RenderTexture _fontAtlas;
@@ -114,7 +117,9 @@ namespace DK2.Unity
                 {
                     float scale = Mathf.Min(width / 640f, height / 480f);
                     float left = (width - 640 * scale) / 2, top = (height - 480 * scale) / 2;
-                    Model.UpdatePointer(new FrontEndPointer((mouse.x - left) / scale, (height - mouse.y - top) / scale, Input.GetMouseButton(0)));
+                    var pointer = new FrontEndPointer((mouse.x - left) / scale, (height - mouse.y - top) / scale, Input.GetMouseButton(0));
+                    Model.UpdatePointer(pointer);
+                    ScrollResults(pointer);
                 }
                 Model.AdvanceFrame();
             }
@@ -124,12 +129,23 @@ namespace DK2.Unity
         // The briefing and the statistics arrive a frame after their page appears (0x0053C3C0).
         private bool ContentChanged => !ReferenceEquals(_shownBriefing, Model.Campaign?.Briefing)
             || !ReferenceEquals(_shownResults, Model.Campaign?.Results)
-            || Model.Page == FrontEndPage.HighScores && !ReferenceEquals(_shownScores, Model.Campaign?.HiScores);
+            || Model.Page == FrontEndPage.HighScores && !ReferenceEquals(_shownScores, Model.Campaign?.HiScores)
+            || _shownFirstRow != _resultsFirstRow;
+        private void ScrollResults(FrontEndPointer pointer)
+        {
+            float wheel = Input.mouseScrollDelta.y;
+            if (wheel == 0 || Model.Page != FrontEndPage.CampaignResults || Model.Campaign?.Results is not CampaignResults results) return;
+            FrontEndWidget list = Model.Widgets.FirstOrDefault(w => w.Draw == FrontEndDrawKind.StatisticsRows);
+            if (list == null || !list.DrawRect.Scale(.25f, .25f).Contains(new FrontEndPoint(pointer.X, pointer.Y))) return;
+            _resultsFirstRow = Mathf.Clamp(_resultsFirstRow - Math.Sign(wheel), 0, results.LastFirstRow(list.DrawRect));
+        }
         private void RebuildLabels()
         {
             foreach (LabelData label in _labels.Values) DestroyLabel(label);
             _labels.Clear(); _shown = Model.Page;
+            if (!ReferenceEquals(_shownResults, Model.Campaign?.Results)) _resultsFirstRow = 0;
             _shownBriefing = Model.Campaign?.Briefing; _shownResults = Model.Campaign?.Results; _shownScores = Model.Campaign?.HiScores;
+            _shownFirstRow = _resultsFirstRow;
             foreach (FrontEndWidget widget in Model.Widgets)
             {
                 uint textId = widget.TextId;
@@ -150,8 +166,11 @@ namespace DK2.Unity
                 else if (widget.Draw == FrontEndDrawKind.BriefingSection && Model.Campaign?.Briefing is CampaignBriefing briefing)
                 {
                     bool heading = widget.DrawArgument2 == 1;
+                    // 0x0053A580 lays the objectives' text out only in mode 0 (the briefing page); in
+                    // the other modes (page 26 passes 1) sections 2 and 3 draw only their images.
                     text = widget.DrawArgument2 switch
                     {
+                        2 or 3 when widget.DrawArgument1 != 0 => null,
                         1 => briefing.Heading,
                         2 => briefing.MainObjective,
                         3 => string.Join("\n\n", briefing.SubObjectives.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => "- " + s)),
@@ -167,9 +186,8 @@ namespace DK2.Unity
                 AddLabel(widget, text ?? _assets.Text(textId), fontSpec, alignment, vertical, clip);
             }
             _resultWidgets.Clear();
-            FrontEndWidget table = Model.Widgets.FirstOrDefault(w => w.Draw == FrontEndDrawKind.ResultsTable);
-            if (Model.Page == FrontEndPage.CampaignResults && table != null && Model.Campaign?.Results is CampaignResults results)
-                AddResultLabels(table, results);
+            if (Model.Page == FrontEndPage.CampaignResults && Model.Campaign?.Results is CampaignResults results)
+                AddResultLabels(Model.Widgets.FirstOrDefault(w => w.Draw == FrontEndDrawKind.StatisticsRows), results);
             if (Model.Page == FrontEndPage.HighScores && Model.Campaign != null)
                 foreach (FrontEndWidget row in Model.Widgets.Where(w => w.Draw == FrontEndDrawKind.HiScoreRow))
                     AddHiScoreLabels(row, Model.Campaign);
@@ -186,52 +204,61 @@ namespace DK2.Unity
                 Glow = widget.Draw == FrontEndDrawKind.Label ? Glow(font, geometry) : null,
                 Alignment = alignment, Vertical = vertical, Clip = clip });
         }
-        /// <summary>The statistics rows as synthetic text widgets inside widget 179 (placeholder layout,
-        /// CampaignResults.CellRect); labels pale yellow, values white, the rank title gold.</summary>
-        private void Cell(FrontEndRect rect, string text, uint colour, FrontEndTextAlignment alignment)
+        /// <summary>A synthetic text widget for the statistics and hi-score pages; the colour is a
+        /// LabelColour index.</summary>
+        private void Cell(FrontEndRect rect, string text, uint colour, FrontEndTextAlignment alignment,
+            FrontEndVerticalAlignment vertical = FrontEndVerticalAlignment.Centre, bool clip = false)
         {
             var widget = new FrontEndWidget(new FrontEndWidgetId((ushort)(0xF000 + _resultWidgets.Count)), 7, rect, default, 0, default,
                 default, FrontEndPage.None, false, 0, FrontEndDrawKind.MediumText, 0, colour << 16, 0, 0, 0);
             _resultWidgets.Add(widget);
-            AddLabel(widget, text, new FrontEndFont(FrontEndFontFamily.FrontEnd, 14), alignment, FrontEndVerticalAlignment.Centre, false);
+            AddLabel(widget, text, new FrontEndFont(FrontEndFontFamily.FrontEnd, 14), alignment, vertical, clip);
         }
         /// <summary>Page 18's header and rows (0x0053DBD0): rank, score, level label and name in DK2's
-        /// columns (640-unit x ranges); the entry row shows a caret. Colours are placeholders.</summary>
+        /// columns (640-unit x ranges); the entry row shows a caret. The header is (255, 168, 0), the
+        /// entry row red, the top row the label colour (+0x3031E, white) and the rest grey.</summary>
         private void AddHiScoreLabels(FrontEndWidget row, CampaignMapController campaign)
         {
             FrontEndRect band = row.DrawRect;
             FrontEndRect Column(float from, float to) => new FrontEndRect(from * 4, band.Y, (to - from) * 4, band.Height);
             if (row.DrawArgument1 == 10)
             {
-                Cell(Column(50, 160), _assets.Text(80), 2, FrontEndTextAlignment.Centre);
-                Cell(Column(150, 260), _assets.Text(82), 2, FrontEndTextAlignment.Centre);
-                Cell(Column(260, 400), _assets.Text(2042), 2, FrontEndTextAlignment.Centre);
-                Cell(Column(400, 639), _assets.Text(83), 2, FrontEndTextAlignment.Centre);
+                uint header = ColourIndex(FrontEndTextColour.Value);
+                Cell(Column(50, 160), _assets.Text(80), header, FrontEndTextAlignment.Centre);
+                Cell(Column(150, 260), _assets.Text(82), header, FrontEndTextAlignment.Centre);
+                Cell(Column(260, 400), _assets.Text(2042), header, FrontEndTextAlignment.Centre);
+                Cell(Column(400, 639), _assets.Text(83), header, FrontEndTextAlignment.Centre);
                 return;
             }
             int index = (int)row.DrawArgument1;
             if (index >= campaign.HiScores.Count) return;
             HiScoreEntry entry = campaign.HiScores[index];
-            uint colour = index == campaign.EntryRow ? 0u : 1u;
+            uint colour = ColourIndex(index == campaign.EntryRow ? FrontEndTextColour.Red
+                : index == 0 ? FrontEndTextColour.Label : FrontEndTextColour.Grey);
             Cell(Column(80, 150), (index + 1).ToString(), colour, FrontEndTextAlignment.Centre);
             Cell(Column(150, 270), entry.EvilRating.ToString(), colour, FrontEndTextAlignment.Centre);
             Cell(Column(270, 410), entry.LevelLabel, colour, FrontEndTextAlignment.Centre);
             string name = index == campaign.EntryRow ? entry.Name + "_" : entry.Name;
             if (name.Length > 0) Cell(Column(410, 639), name, colour, FrontEndTextAlignment.Left);
         }
-        private void AddResultLabels(FrontEndWidget table, CampaignResults results)
+        /// <summary>Page 26: 0x0053CAF0's summary at its fixed boxes, then 0x0053D270's rows in the list
+        /// widget, clipped to it.</summary>
+        private void AddResultLabels(FrontEndWidget list, CampaignResults results)
         {
-            (FrontEndRect rank, FrontEndRect total) = CampaignResults.HeaderRects(table.DrawRect);
-            Cell(rank, _assets.Text(results.RankTitleTextId), 2, FrontEndTextAlignment.Left);
-            Cell(total, results.Total.ToString(), 2, FrontEndTextAlignment.Right);
-            for (int i = 0; i < results.Cells.Count; i++)
-            {
-                CampaignResultCell cell = results.Cells[i];
-                (FrontEndRect label, FrontEndRect value) = CampaignResults.CellRect(table.DrawRect, i);
-                Cell(label, _assets.Text(cell.LabelTextId), 1, FrontEndTextAlignment.Left);
-                Cell(value, cell.ValueTextId != 0 ? _assets.Text(cell.ValueTextId) : cell.Value, 0, FrontEndTextAlignment.Right);
-            }
+            foreach (CampaignResultText text in results.Summary()) ResultCell(text, false);
+            if (list == null) return;
+            foreach (CampaignResultText text in results.Rows(list.DrawRect, _resultsFirstRow)) ResultCell(text, true);
         }
+        private void ResultCell(CampaignResultText text, bool clip) =>
+            Cell(text.Rect, text.Text ?? _assets.Text(text.TextId), ColourIndex(text.Colour), text.Alignment, FrontEndVerticalAlignment.Top, clip);
+        private static uint ColourIndex(FrontEndTextColour colour) => colour switch
+        {
+            FrontEndTextColour.Value => 4,
+            FrontEndTextColour.Grey => 3,
+            FrontEndTextColour.Rank => 5,
+            FrontEndTextColour.Red => 6,
+            _ => 0,
+        };
         private void FontRebuilt(Font font) { if (font == _assets.ReplacementFont) _fontDirty = true; }
         private void PrepareFont()
         {
@@ -309,6 +336,9 @@ namespace DK2.Unity
                 case 1: return new Color32(253, 242, 167, alpha);
                 case 2: return new Color32(255, 176, 51, alpha);
                 case 3: return new Color32(191, 191, 191, alpha);
+                case 4: return new Color32(255, 168, 0, alpha);
+                case 5: return new Color32(255, 84, 0, alpha);
+                case 6: return new Color32(255, 0, 0, alpha);
                 default: return new Color32(255, 255, 255, alpha);
             }
         }

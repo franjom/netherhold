@@ -12602,8 +12602,8 @@ Hi-score rows live in our own `HiScores.dat`, first filled from the install's ru
 
 **Consequences.** Ours approximates three things, each stated in code: `LandOwned` counts
 owned tiles at the end instead of DK2's live `DungeonArea`; the collapsed state stands in for
-the dying bit; specials count only for the arms we build. The statistics page's cell layout
-and the hi-score colours are placeholders (DK2's positions are unread). The x87 precision of
+the dying bit; specials count only for the arms we build. The statistics page and the hi-score
+rows follow DK2's layout and colours ([level-statistics.md](research/level-statistics.md)). The x87 precision of
 the rank is UNKNOWN.
 
 ## ADR-0549 — The campaign win runs DK2's finale in the simulation; the view plays its requests
@@ -12634,7 +12634,7 @@ whether or not the action began; creature `+0x3EA` bit `0x80000` (set in 233 at 
 in 230, meaning unread) is not held; effects stand at z 0. `LocalPlayerId` is hashed state,
 sound only because the finale and action 75 act on it in single-player play. Sounds are not
 played (F8). The win screen itself, Space and Escape are the front end's (`WinScreen`,
-`DungeonRunner.Finale.cs`), with placeholder layout.
+`DungeonRunner.Finale.cs`); the win screen draws DK2's reward tablet (`RewardTablet`).
 
 ## ADR-0550 — A restore does not repeat the level initialiser's trigger setup
 **Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
