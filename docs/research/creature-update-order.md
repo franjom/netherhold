@@ -89,16 +89,24 @@ later. Native Imps reach 203 straight from a walk. Running the fight state in th
 
 ### What remains on Level 4 (Q665)
 
-The rest of Level 4's gap is one episode. Our heroes kill 12 Imps between ticks 4000 and 4750, and
-native's lose none: at tick 5000, 4 Imps are alive in ours against 20 in native
-(`D:/DK2Evidence/runs/q665-imp-flee-2026-10-27/analysis/population.py`). The other gaps follow from it:
-- 790 of native's 809 Imp walks from 87 come after tick 4000, from Imps that ours no longer has.
-- Ours makes 236 Imp entries into 201-203 against 41.
-- Heroes chasing those Imps drop from the approach to 199 more often: non-Imp 8 → 199 is 524,
-  against 291 native.
+Scripts and outputs: `D:/DK2Evidence/runs/q665-imp-flee-2026-10-27/analysis/`. Level 4, seed 1, against
+native, three measured gaps:
 
-Native seed 1 is DK2's quiet extreme. On the same inputs, native seed 2 had 349 Imp flee entries
-and 19 Imp deaths (imp-fidelity-integration.md), and the 2026-10-20 analysis traced our Level 4
-Imp deaths to positions, not to a rule.
+- **Imp deaths.** Ours loses 32 Imps over the run (15 in ticks 4000-4750) against 0 native.
+  - 184 of our 236 Imp entries into 201-203 fall in 4000-5999, against 41 native over the whole run
+    (25 into 203 alone).
+  - Who kills them is not traced.
+- **Mining over reinforcing.** In ticks 3000-4000, with as many Imps as native and before the deaths,
+  ours starts 210 walks to mine (state 25) and 25 to reinforce (21); native starts 121 and 75
+  (`walk_starts_resume.py`).
+  - Our reinforcing falls behind and is still running after tick 6000, when native Imps idle in state
+    12 for 27% of Imp-ticks and ours for 0.3% (`imp_states.py`, `state_ticks.py`).
+  - 389 of native's 809 Imp walks from 87, which follow idling, come after 6000, when ours has 13 Imps.
+- **Native spread.** Native seed 2, on the same inputs, made 349 entries into 203 alone (472 into
+  201-203). Its Imp deaths count 8 by slot disappearance, not the 19 that imp-fidelity-integration.md
+  gives.
+
+Non-Imp 8 → 199 is 524 against 291, mostly after an Imp target or a lost one. It falls in the same
+window as the deaths; whether it is the same fight is not tested.
 
 Walks from 173 still take their first step on their first tick slightly less often: 14% against 19%.
