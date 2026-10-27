@@ -41,16 +41,25 @@ use the local TrueType face described below, with original bitmap fallback and
 original glyph metrics (ADR-0539).
 Campaign progress uses `campaign-profile.dk2p` under Unity
 `Application.persistentDataPath`; first creation may import the original registry
-read-only. The runner Campaign Profile File override supports isolated probes.
+read-only. The runner Campaign Profile File and Hi Scores File overrides support isolated probes.
+Two editor-only previews (`DungeonRunner.Preview.cs`) sit in the DungeonRunner component's
+context menu in Play mode, so the level-end screens can be seen without winning. **DK2 / Preview
+win screen** plays the running level's reward tablets; it is refused once the level's result is
+recorded. **DK2 / Preview statistics page** returns to the front end as if the current map had been
+won, with sample statistics, using copies of the campaign profile and `HiScores.dat` in
+`Application.temporaryCachePath/dk2-preview`; the real files are never written, and the copies
+(set into the two override fields) stay in use until Play mode stops.
 The editor menu DK2/Movies/Play Bullfrog Intro plays the install's intro through
 `ClassicMoviePlayer` (decoders in `DK2.Data/Media`; needs Unity's built-in Audio module).
 Runtime callers use `DungeonRunner.LoadLevel(GameSessionRequest)` to switch a
 named campaign level or return to the front end. The replacement preserves the
 runner's render settings and campaign fog setting. No scene file is saved.
 
-Path subtitles use Bullfrog's DungeonKeeperII TrueType face when the machine has it
+Path subtitles and the win screen's Speech.str text (`DungeonRunner.DrawSubtitleText`) use
+Bullfrog's DungeonKeeperII TrueType face when the machine has it
 at `DK2.Unity/Assets/Resources/Fonts/DungeonKeeperII.ttf` (gitignored, not ours to
-ship; a copy is at wfonts.com/font/dungeonkeeperii). Otherwise they use DK2's own
+ship; a copy is at wfonts.com/font/dungeonkeeperii; a fresh worktree's Unity project lacks it,
+see `docs/TRAPS.md`). Otherwise they use DK2's own
 bitmap font from the install, at the shipped size that reads at the screen height
 (`InterfaceFonts.LegibleFileName`, not DK2's own size rule; Q608), and failing
 that Unity's default font.

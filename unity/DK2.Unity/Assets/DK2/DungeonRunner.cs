@@ -573,6 +573,7 @@ namespace DK2.Unity
             // is the world this frame draws; on the main thread this frame's ticks come after.
             _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
                 _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d));
+            UpdateWinScreenPreview();
             // ClassicHudControls.UpdateResult (0x004039A0) is fed only for a level launched from the front
             // end, where Space leaves the result; elsewhere suppressing input would strand the player.
             if (UpdateCampaignResult()) return;
@@ -1088,9 +1089,13 @@ namespace DK2.Unity
             string subtitle = _scriptedView.Subtitle;
             if (subtitle == null) return;
             float height = Screen.height / 8f;
-            var box = new Rect(0f, Screen.height - height, Screen.width, height);
-            // The owner's order (2026-10-17): Bullfrog's DungeonKeeperII TrueType face first,
-            // DK2's own bitmap font second, Unity's default last.
+            DrawSubtitleText(new Rect(0f, Screen.height - height, Screen.width, height), subtitle);
+        }
+
+        /// <summary>Centred subtitle text in the owner's font order (2026-10-17): Bullfrog's
+        /// DungeonKeeperII TrueType face first, DK2's own bitmap font second, Unity's default last.</summary>
+        private void DrawSubtitleText(Rect box, string subtitle)
+        {
             Font trueType = Resources.Load<Font>("Fonts/DungeonKeeperII");
             if (trueType == null)
             {
@@ -1108,7 +1113,7 @@ namespace DK2.Unity
                 fontSize = Mathf.Max(12, Screen.height / 30),
                 normal = { textColor = Color.white },
             };
-            GUI.Label(new Rect(Screen.width * 0.05f, box.y, Screen.width * 0.9f, height), subtitle, _subtitleStyle);
+            GUI.Label(new Rect(Screen.width * 0.05f, box.y, Screen.width * 0.9f, box.height), subtitle, _subtitleStyle);
         }
 
         /// <summary>DK2's own bitmap font, the fallback: the shipped size that reads at this
@@ -1507,6 +1512,7 @@ namespace DK2.Unity
             }
             DrawCinematic();
             DrawCampaignResultPrompt();
+            DrawWinScreenPreview();
             if (showDiagnostics) DrawDiagnostics();
         }
 

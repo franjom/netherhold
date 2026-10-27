@@ -26,6 +26,10 @@ namespace DK2.Unity
         private bool _continueRequested;
         private TabletArt _tabletArt;
 
+        // Editor previews (DungeonRunner.Preview.cs); without UNITY_EDITOR these calls compile away.
+        partial void UpdateWinScreenPreview();
+        partial void DrawWinScreenPreview();
+
         /// <summary>Tablet.kmf for the win screen: its geometry points, triangles, and one material per
         /// texture, made on first use.</summary>
         private sealed class TabletArt
@@ -96,10 +100,7 @@ namespace DK2.Unity
             if (_winScreen == null || !_winScreen.Started || _winScreen.Current is not RewardItem item) return;
             if (_tabletArt != null && Event.current.type == EventType.Repaint) DrawTablet(_tabletArt, _winScreen.Tablet, item.Id);
             if (_winScreen.Text is string text)
-            {
-                var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Screen.height / 32, wordWrap = true };
-                GUI.Label(new Rect(Screen.width * 0.1f, Screen.height * 0.72f, Screen.width * 0.8f, Screen.height * 0.08f), text, style);
-            }
+                DrawSubtitleText(new Rect(0f, Screen.height * 0.70f, Screen.width, Screen.height / 8f), text);
         }
 
         private TabletArt LoadTabletArt()

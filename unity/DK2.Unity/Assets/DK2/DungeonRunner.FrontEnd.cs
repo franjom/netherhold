@@ -21,6 +21,7 @@ namespace DK2.Unity
         private IReadOnlyList<FrontEndProp> _frontEndScenery;
         private double _frontEndStarted;
         [SerializeField] private string campaignProfileFile = "";
+        [SerializeField] private string hiScoresFile = "";
         private CampaignProfile _campaignProfile;
         private string _campaignProfilePath;
         private bool _secretFiveAvailable;
@@ -82,7 +83,8 @@ namespace DK2.Unity
             _frontEnd = new FrontEndSession(path => paths((int)path), frontEndReturnPage);
             _frontEndStarted = Time.realtimeSinceStartupAsDouble;
             var menuAssets = new InstallClassicFrontEndMenuAssets(install);
-            string hiScoresPath = Path.Combine(Application.persistentDataPath, "HiScores.dat");
+            string hiScoresPath = string.IsNullOrWhiteSpace(hiScoresFile)
+                ? Path.Combine(Application.persistentDataPath, "HiScores.dat") : hiScoresFile;
             _campaignMap = new CampaignMapController(_frontEnd, _campaignProfile, _secretFiveAvailable, menuAssets.Briefing,
                 LoadHiScores(hiScoresPath, install));
             _campaignMap.HiScoresChanged += rows => HiScoresFile.Save(hiScoresPath, rows);
