@@ -22,7 +22,7 @@ public static class SimulationSystems
         .. RoomTicks(),
         .. PlayerFrame(),
         .. Needs(),
-        .. Choosers(),
+        .. Promotion(),
         .. Verdict(),
     ];
 
@@ -69,22 +69,38 @@ public static class SimulationSystems
         new PossessionSystem(),
     ];
 
-    /// <summary>DK2's thing pass: creatures fight and move, then shots, objects and traps, then
+    /// <summary>DK2's thing pass: every creature's update, then shots, objects and traps, then
     /// the second walk that removes whatever died.</summary>
     private static ISimulationSystem[] ThingPass() =>
     [
-        // Acquisition before state handlers and steering, as ProcessFight sits in DK2's update.
         new CreatureStatusSystem(), // the status countdowns (0x0048E160) before the fight reads their words
         new FootprintSystem(),
-        new CombatSystem(),
-        new TremorCreatureSystem(), // recovery handler before steering; world Tremor runs after the entity pass
-        new ReaperSystem(),
-        new FinaleSystem(), // the finale Reaper's states 228-234 and the fireworks
-        new CombatPitSystem(), // the pit's states, after the fight processing as DK2's handler is (ADR-0213)
-        // Movement, then the fog it uncovers: an arrival is noticed on its own tick.
-        new JackInTheBoxSystem(), // state 273 and the travel toll, before the mover as DK2's state dispatcher is
-        new MovementDustSystem(), // foot dust for last tick's crossing onto dirt, before the mover as the creature update's request is (ADR-0477)
-        new CreatureMovementSystem(),
+        // One creature's whole update before the next one's, newest first (0x004B7830, ADR-0554):
+        // the fight scan, the dispatcher's needs routine and mood chooser, the state handler, then
+        // the steering step (0x00488930, 0x00476FC0); an imp's walk step is in its handler.
+        new CreatureUpdateSystem(
+            new CombatSystem(),
+            // The needs routine: hunger, then sleep, then pay (creature-needs-routine.md §3).
+            new CreatureEatSystem(),
+            new CreatureSleepSystem(),
+            new PaydaySystem(), // its clock, before the first creature (0x0050A7BE): credited and set off this tick
+            new CreatureAngerSystem(), // the ladder and the angry chooser, after the needs routine
+            // The state handlers. A creature holds one state, so their order among themselves is
+            // only which system owns it.
+            new TremorCreatureSystem(), // recovery handler; world Tremor runs after the entity pass
+            new ReaperSystem(),
+            new FinaleSystem(), // the finale Reaper's states 228-234; the fireworks after the last creature
+            new CombatPitSystem(), // the pit's states (ADR-0213)
+            new JackInTheBoxSystem(), // state 273 and the travel toll
+            new CasinoJackpotSystem(), // the drunk timer, a winner's deadline and its states 152, 155-157 (ADR-0396)
+            new HeroSystem(), // a hero's standing job and its party walk, instead of the choosers (ADR-0216)
+            new CreatureJobSystem(), // a non-worker's jobs and its happy and unhappy choosers
+            new MovementDustSystem(), // foot dust for last tick's crossing onto dirt, before the mover (ADR-0477)
+            new CreatureMovementSystem(),
+            // A worker's handler after the mover: DK2 steps an imp inside its walk state's handler,
+            // before that handler's arrival test (0x00470C80), and the steering step skips imps.
+            // Each worker resolves its queued work before the next.
+            new ImpTaskSystem()),
         // The doors' health after the creatures, as DK2's thing pass updates creatures first; ours
         // puts it before the shots, whose place in that pass is Q398 (door-blocking.md).
         new DoorHealthSystem(),
@@ -100,18 +116,19 @@ public static class SimulationSystems
         new ReaperRemovalSystem(),
         // The Call to Arms flag is an object the shot puts down; its recall, release and the
         // heeding states run in the thing update, before the payment that keeps it (ADR-0279).
+        // Ours after the whole creature list, not in each creature's update: Call to Arms' heeding
+        // states, state 96 and the gold underfoot.
         new CallToArmsSystem(),
         new ChickenSystem(), // state 96: the walk to the Hatchery or the wander (keeper-spell-inferno-chicken.md §3)
-        new FogOfWarSystem(),
-        new WalkOverGoldSystem(), // gold underfoot, after movement and before the state choosers (ADR-0300)
+        new FogOfWarSystem(), // after every creature has moved: an arrival is noticed on its own tick
+        new WalkOverGoldSystem(), // gold underfoot, after movement (ADR-0300)
     ];
 
-    /// <summary>Imp work, queued and resolved inside the tick.</summary>
+    /// <summary>Tile work queued this tick and not yet resolved, and what burns after it.</summary>
     private static ISimulationSystem[] Work() =>
     [
-        // Each worker resolves its work before the next; the final pass drains any other orders.
+        // Each worker resolved its own work in its update; this drains any other orders.
         // Bridges burn after the work (Q67), which makes the fire final.
-        new ImpTaskSystem(),
         new TileWorkSystem(),
         new BridgeBurnSystem(),
     ];
@@ -144,21 +161,20 @@ public static class SimulationSystems
         new ImpSupplySystem(),
         new RoomBuildWaveSystem(), // keeper frame after mana, before its research chooser (0x004BB614)
         new ResearchSystem(), // the same player frame chooses a research target when it has none
+        new ManufactureDecaySystem(), // the player update's manufacture loss (0x004C3340, ADR-0203)
     ];
 
-    /// <summary>The creatures' needs: food, sleep, health, and a prisoner's lot.</summary>
+    /// <summary>The hatchery's laying, health, and a prisoner's lot. The needs routine itself runs
+    /// in each creature's update (<see cref="ThingPass"/>).</summary>
     private static ISimulationSystem[] Needs() =>
     [
-        // Laying, once a game second (ADR-0066), before anything eats; then hunger
-        // before tiredness, the original's needs order (docs/research/eating.md).
+        // Laying, once a game second (ADR-0066).
         new HatcherySystem(),
         new ObjectReactionSystem(),
-        new CreatureEatSystem(),
 
-        // Sleep, health, prison: one asleep this tick heals this second; health settles
-        // damage before death is checked; the health system skips prisoners, so exactly
-        // one system settles a prisoner's second (ADR-0064).
-        new CreatureSleepSystem(),
+        // Health, prison: one asleep this tick heals this second; health settles damage before
+        // death is checked; the health system skips prisoners, so exactly one system settles a
+        // prisoner's second (ADR-0064).
         new CreatureHealthSystem(),
 
         new PrisonSystem(),
@@ -172,21 +188,9 @@ public static class SimulationSystems
         new PrisonerWanderSystem(),
     ];
 
-    /// <summary>Pay, then what each creature chooses to do, then what it thinks of it.</summary>
-    private static ISimulationSystem[] Choosers() =>
+    /// <summary>Experience last: nothing that died or left is promoted (Q124).</summary>
+    private static ISimulationSystem[] Promotion() =>
     [
-        // Payday after the needs - hunger, sleep, pay - then the job chooser, then the
-        // anger ladder: the original's sequence (ADR-0082), so no-work anger lands in
-        // the second it looked and a wage credited now is owed when AngerNoPay is
-        // charged (ADR-0079). Experience last: nothing that died or left is promoted (Q124).
-        new PaydaySystem(),
-        new CasinoJackpotSystem(), // the drunk timer, a winner's deadline and its states 152, 155-157 (ADR-0396)
-
-        new HeroSystem(), // a hero's standing job and its party walk, instead of the choosers (ADR-0216)
-        new CreatureJobSystem(),
-
-        new CreatureAngerSystem(),
-
         new CreatureExperienceSystem(),
     ];
 

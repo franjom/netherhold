@@ -181,8 +181,7 @@ public class TrainingCycleTests
         trainee.TrainingActionStartedTick = 0;
         trainee.TrainingTargetObjectId = target.Id;
         trainee.ActionUntilTick = 100;
-        var sim = new GameSimulation(db, world, 42, SimulationSystems.Default().Where(system =>
-            system is TrainingActionSystem or CreatureMovementSystem or CreatureJobSystem or ShotSystem or ObjectReactionSystem).ToArray());
+        var sim = new GameSimulation(db, world, 42, TrainingPipeline());
         for (int i = 0; i < 20 && target.ProcessState != 18; i++) sim.Tick();
         Assert.Equal(18, target.ProcessState);
         Assert.Equal(1, target.ProcessAgeTicks);
@@ -198,11 +197,19 @@ public class TrainingCycleTests
         trainee.TrainingActionStartedTick = 0;
         trainee.TrainingTargetObjectId = target.Id;
         trainee.ActionUntilTick = 100;
-        var sim = new GameSimulation(db, world, 42, SimulationSystems.Default().Where(system =>
-            system is TrainingActionSystem or CreatureMovementSystem or CreatureJobSystem or ShotSystem or ObjectReactionSystem).ToArray());
+        var sim = new GameSimulation(db, world, 42, TrainingPipeline());
         for (int i = 0; i < 20 && world.Shots.Count == 0; i++) sim.Tick();
         ShotState shot = Assert.Single(world.Shots);
         Assert.Equal(1, shot.Age);
         Assert.NotEqual((trainee.PosX, trainee.PosY), (shot.PosX, shot.PosY));
     }
+
+    // The default order, cut to the trainee's update and what its action makes.
+    private static ISimulationSystem[] TrainingPipeline() =>
+    [
+        new CreatureUpdateSystem(new CreatureJobSystem(), new CreatureMovementSystem()),
+        new TrainingActionSystem(),
+        new ShotSystem(),
+        new ObjectReactionSystem(),
+    ];
 }

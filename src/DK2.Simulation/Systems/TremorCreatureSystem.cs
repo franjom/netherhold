@@ -4,8 +4,10 @@
 
 namespace DK2.Simulation.Systems;
 
-public sealed class TremorCreatureSystem : ISimulationSystem
+public sealed class TremorCreatureSystem : ICreatureUpdateStep
 {
     public string Name => "tremor-creatures";
-    public void Execute(SimulationContext context) => TremorRules.RunRecovery(context);
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void BeginTurn(SimulationContext context) => context.TremorRecoveryCompletedThisTick.Clear();
+    public void Update(SimulationContext context, CreatureState creature) => TremorRules.RunRecovery(context, creature);
 }

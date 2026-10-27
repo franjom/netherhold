@@ -13,14 +13,15 @@ namespace DK2.Simulation.Systems;
 /// (<c>FUN_004780e0</c> happy, <c>FUN_004782c0</c> unhappy) and their dispatcher
 /// <c>FUN_00478800</c> — ADR-0082, docs/research/job-selection.md. The angry chooser
 /// stays in <see cref="CreatureAngerSystem"/> (ADR-0061) and shares the roll, the
-/// ranges and the five-second gate; this runs after the needs and before it, which
-/// is the original's own sequence. Ours: how long a job is kept — all six of DK2's
+/// ranges and the five-second gate; in the creature's update this runs after the needs
+/// routine and the angry chooser, as the state handler follows them in the original's
+/// dispatcher (<c>0x00476FC0</c>). Ours: how long a job is kept — all six of DK2's
 /// duration variables, <c>MotionlessWhileResearchingSeconds</c> through
 /// <c>MinimumJobDurationSeconds</c>, are read by nothing (ADR-0082), so a job lasts
 /// until the room stops being the keeper's or a need intervenes. Leave, Rebel and Explore
 /// are chosen and logged only; StealGold runs <see cref="StealGoldRules"/> (ADR-0223).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/job-selection.md")]
-public sealed partial class CreatureJobSystem : ISimulationSystem
+public sealed partial class CreatureJobSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CreatureJob";
 
@@ -41,111 +42,100 @@ public sealed partial class CreatureJobSystem : ISimulationSystem
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    /// <summary>A non-worker's state handler in its update: the walks and jobs it is in, and the
+    /// happy and unhappy choosers when it is idle.</summary>
+    public void Update(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        if (creature.Possessed) return;
+        // Isolated job-system hosts omit TrainingActionSystem; completed handler work is guarded.
+        if (creature.TrainingActionId != 0) TrainingStep.PollAction(context, creature);
+        if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+
+        // Workers have their own whole system and their own priority order
+        // (ADR-0018). DK2 dispatches them before any of this too - an Imp's
+        // happy table is Explore at 100%, and nothing here would know what
+        // to do with it.
+        if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) return;
+
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
+        if (creature.CombatPitFighter) return;   // idle sends it back to the pit (ADR-0213)
+        // Before the leaving test: 169, the thief's escape, reads as leaving (ADR-0223).
+        if (!HeroJobRules.IsHero(creature) && StealGoldRules.KeeperTurn(context, SystemName, creature)) return;
+        if (creature.Activity == CreatureActivity.Leaving) return;
+        if (HeroJobRules.IsHero(creature)) return;   // HeroSystem: state 1 sends a hero to 90
+        if (PossessionRules.FollowerTurn(context, SystemName, creature)) return;
+
+        // A walk resuming 1 is state 1's own, back to a fight (ADR-0225): the arrival is idle.
+        if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CreatureStateMachine.Idle)
         {
-            CreatureState creature = creatures[i];
-            if (creature.Possessed) continue;
-            // Isolated job-system hosts omit TrainingActionSystem; completed handler work is guarded.
-            if (creature.TrainingActionId != 0) TrainingStep.PollAction(context, creature);
-            if (context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
-            CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-
-
-            // Workers have their own whole system and their own priority order
-            // (ADR-0018). DK2 dispatches them before any of this too - an Imp's
-            // happy table is Explore at 100%, and nothing here would know what
-            // to do with it.
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker)) continue;
-
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) continue;
-            if (creature.CombatPitFighter) continue;   // idle sends it back to the pit (ADR-0213)
-            // Before the leaving test: 169, the thief's escape, reads as leaving (ADR-0223).
-            if (!HeroJobRules.IsHero(creature) && StealGoldRules.KeeperTurn(context, SystemName, creature))
+            if (!creature.HasRoute)
             {
-                if (i < creatures.Count && !ReferenceEquals(creatures[i], creature)) i--;
-                continue;
+                creature.StopMoving();
+                StateShadow.Arrive(context, SystemName, creature);
             }
-            if (creature.Activity == CreatureActivity.Leaving) continue;
-            if (HeroJobRules.IsHero(creature)) continue;   // HeroSystem: state 1 sends a hero to 90
-            if (PossessionRules.FollowerTurn(context, SystemName, creature)) continue;
+            return;
+        }
+        if (Combat.CombatRules.Preoccupied(creature)) return;
 
-            // A walk resuming 1 is state 1's own, back to a fight (ADR-0225): the arrival is idle.
-            if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CreatureStateMachine.Idle)
-            {
-                if (!creature.HasRoute)
-                {
-                    creature.StopMoving();
-                    StateShadow.Arrive(context, SystemName, creature);
-                }
-                continue;
-            }
-            if (Combat.CombatRules.Preoccupied(creature)) continue;
-
-            // 193, joining your Dungeon: the Entrance animation, a step off the portal, then 1 and
-            // a job in the same tick, as 0x00459C20 sets 1 and calls the lair attempt at once.
-            if (creature.Dk2StateId == PortalRules.JoiningState)
-            {
-                if (PortalRules.StillJoining(world, creature, definition)) continue;
-                StateShadow.ToIdle(context, SystemName, creature);
-            }
-
-            // 3 and 87, 89's "nothing to do": an idle action or a wander, then idle (ADR-0228).
-            if (creature.Dk2StateId == DoingNothingState)
-            {
-                DoingNothing(context, creature);
-                continue;
-            }
-            if (creature.Dk2StateId == NeutralIdleState)
-            {
-                NeutralIdle(context, creature);
-                continue;
-            }
-            if (creature.Dk2StateId == ImpStates.Wandering)
-            {
-                if (!ImpTaskSystem.Wander(context, creature, definition)) StateShadow.ToIdle(context, SystemName, creature);
-                continue;
-            }
-
-            // 211, the gold celebration: holds while its action plays, then idle (ADR-0400).
-            if (creature.Dk2StateId == DropDeliveryRules.CelebratingState)
-            {
-                if (!DropDeliveryRules.Celebrating(context, creature)) StateShadow.ToIdle(context, SystemName, creature);
-                continue;
-            }
-
-            // 250, after a drop with nowhere to go: stands, then idle (ADR-0226).
-            if (creature.Dk2StateId == DropLandingRules.StandingState)
-            {
-                if (!DropLandingRules.Stands(context, creature)) StateShadow.ToIdle(context, SystemName, creature);
-                continue;
-            }
-
-            switch (creature.Activity)
-            {
-                case CreatureActivity.GoingToJob:
-                    Travelling(context, creature, definition);
-                    break;
-
-                case CreatureActivity.AtWork:
-                    Working(context, creature, definition);
-                    // 101's offering in a Temple's pool removes the creature (temple-states.md §3).
-                    if (i < creatures.Count && !ReferenceEquals(creatures[i], creature)) i--;
-                    break;
-
-                case CreatureActivity.Idle:
-                    Choose(context, creature, definition);
-                    break;
-            }
+        // 193, joining your Dungeon: the Entrance animation, a step off the portal, then 1 and
+        // a job in the same tick, as 0x00459C20 sets 1 and calls the lair attempt at once.
+        if (creature.Dk2StateId == PortalRules.JoiningState)
+        {
+            if (PortalRules.StillJoining(world, creature, definition)) return;
+            StateShadow.ToIdle(context, SystemName, creature);
         }
 
-        // The player update's manufacture loss, once a game second (0x004C3340, ADR-0203).
-        if (OnTheSecond(context)) ManufactureRules.Decay(world, database);
+        // 3 and 87, 89's "nothing to do": an idle action or a wander, then idle (ADR-0228).
+        if (creature.Dk2StateId == DoingNothingState)
+        {
+            DoingNothing(context, creature);
+            return;
+        }
+        if (creature.Dk2StateId == NeutralIdleState)
+        {
+            NeutralIdle(context, creature);
+            return;
+        }
+        if (creature.Dk2StateId == ImpStates.Wandering)
+        {
+            if (!ImpTaskSystem.Wander(context, creature, definition)) StateShadow.ToIdle(context, SystemName, creature);
+            return;
+        }
+
+        // 211, the gold celebration: holds while its action plays, then idle (ADR-0400).
+        if (creature.Dk2StateId == DropDeliveryRules.CelebratingState)
+        {
+            if (!DropDeliveryRules.Celebrating(context, creature)) StateShadow.ToIdle(context, SystemName, creature);
+            return;
+        }
+
+        // 250, after a drop with nowhere to go: stands, then idle (ADR-0226).
+        if (creature.Dk2StateId == DropLandingRules.StandingState)
+        {
+            if (!DropLandingRules.Stands(context, creature)) StateShadow.ToIdle(context, SystemName, creature);
+            return;
+        }
+
+        switch (creature.Activity)
+        {
+            case CreatureActivity.GoingToJob:
+                Travelling(context, creature, definition);
+                break;
+
+            case CreatureActivity.AtWork:
+                Working(context, creature, definition);
+                break;
+
+            case CreatureActivity.Idle:
+                Choose(context, creature, definition);
+                break;
+        }
     }
 
     // ------------------------------------------------------------- choosing

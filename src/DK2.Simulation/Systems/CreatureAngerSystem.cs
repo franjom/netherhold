@@ -14,14 +14,12 @@ namespace DK2.Simulation.Systems;
 /// (Q9 pay, Q105 lairs, the bed-loss answer), and Q106 gave the unit by stopwatch,
 /// 32767; the arithmetic is <see cref="CreatureAngerRules"/>'s. What an angry
 /// creature does comes from its own record, not from a rule here (ADR-0061, Q122):
-/// see <see cref="Decide"/> and <see cref="Leave"/>. Runs on the last tick of each
-/// game second, the phase <see cref="ManaSystem"/> and
-/// <see cref="CreatureHealthSystem"/> use because every rate it reads is per second,
-/// and after <see cref="CreatureSleepSystem"/> so a creature that claimed a bed this
-/// tick is not charged <c>AngerNoLair</c>, and after the health system so one that
-/// collapsed is already <see cref="CreatureActivity.Dying"/> and skipped (ADR-0051).</remarks>
+/// see <see cref="Decide"/> and <see cref="Leave"/>. Runs on the last tick of each game
+/// second, as every rate it reads is per second, in the creature's update after the needs
+/// routine, as DK2's angry chooser does; ours charges the need-anger there too, where
+/// <c>0x00478D00</c> runs before the needs routine, and before the health system (ADR-0554).</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-anger.md")]
-public sealed class CreatureAngerSystem : ISimulationSystem
+public sealed class CreatureAngerSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CreatureAnger";
 
@@ -29,6 +27,7 @@ public sealed class CreatureAngerSystem : ISimulationSystem
     private readonly LairSeeker _seeker;
     private readonly List<TilePos> _route = [];
     private readonly List<(JobType Job, int Low, int High)> _ranges = [];
+    private bool _onTheSecond;
 
     public CreatureAngerSystem() : this(new GridPathfinder()) { }
 
@@ -40,66 +39,67 @@ public sealed class CreatureAngerSystem : ISimulationSystem
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    // Every tick, because DK2's defection deadline is 30 ticks and 7.5 game seconds is not
+    // something a per-second step can express.
+    public void BeginTurn(SimulationContext context)
     {
-        // Before the once-a-second gate, because DK2's defection deadline is 30 ticks
-        // and 7.5 game seconds is not something a per-second pass can express.
         Defections(context);
+        _onTheSecond = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0;
+    }
 
-        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
-
+    /// <summary>The ladder and the angry chooser, in the creature's update after the needs routine
+    /// and before its state handler (<c>0x00476FC0</c>).</summary>
+    public void Update(SimulationContext context, CreatureState state)
+    {
+        if (!_onTheSecond) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        if (state.Possessed) return;
+        CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
-        // Descending, so a creature that walks out cannot skip its neighbour.
-        for (int i = world.Creatures.Count - 1; i >= 0; i--)
+        if (CreatureEligibility.IsExcluded(state, CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
+        if (!CreatureAngerRules.CanBeAngered(creature)) return;
+
+        // The band this creature was last reported in, not the one it is in
+        // at the top of this step. Anger reaches a creature from four places
+        // and three of them run outside it - a slap, the prison, and having
+        // no work (ADR-0082) - so a "before" read from the anger visible here
+        // would miss every crossing it did not cause. DK2 keeps the band in
+        // its anger object and rewrites it on each add.
+        CreatureMood before = state.Mood;
+
+        CreatureAnger delta = CreatureAngerRules.PerSecond(world, database, creature, state);
+        CreatureAngerRules.Apply(world, creature, state, delta, CreatureAngerRules.NeedComplaints);
+
+        CreatureMood after = CreatureAngerRules.MoodOf(creature, state);
+        state.Mood = after;
+
+        if (after != before)
         {
-            CreatureState state = world.Creatures[i];
-            if (state.Possessed) continue;
-            CreatureDef creature = database.CreatureById(state.CreatureTypeId);
-
-            if (CreatureEligibility.IsExcluded(state, CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
-            if (!CreatureAngerRules.CanBeAngered(creature)) continue;
-
-            // The band this creature was last reported in, not the one it is in
-            // at the top of this pass. Anger reaches a creature from four places
-            // and three of them run earlier in the same tick - a slap, the
-            // prison, and having no work (ADR-0082) - so a "before" read from
-            // the anger visible here would miss every crossing it did not cause.
-            // DK2 keeps the band in its anger object and rewrites it on each add.
-            CreatureMood before = state.Mood;
-
-            CreatureAnger delta = CreatureAngerRules.PerSecond(world, database, creature, state);
-            CreatureAngerRules.Apply(world, creature, state, delta, CreatureAngerRules.NeedComplaints);
-
-            CreatureMood after = CreatureAngerRules.MoodOf(creature, state);
-            state.Mood = after;
-
-            if (after != before)
-            {
-                context.Emit(SystemName, "creature_mood",
-                    $"creature={state.Id} type={creature.Name} " +
-                    $"player={state.OwnerPlayerId} {before}->{after} " +
-                    $"anger={state.Anger.Max}/{CreatureAngerRules.Ceiling} " +
-                    $"worst={state.Anger.Worst} " +
-                    $"unhappy_at={CreatureAngerRules.UnhappyAt(creature)} " +
-                    $"[{state.Anger}]");
-            }
-
-            // A creature in the hand still minds - the ladder above ran, and
-            // AngerInHand rides the same clock in HandSystem - but it can act
-            // on none of it while it is off the ground. It rolls when it lands.
-            // A pit fighter's idle goes back to the pit before any chooser (0x004773D0).
-            // The mood choosers run for a keeper's creatures only (0x00476FC0, ADR-0485).
-            if (after == CreatureMood.Angry
-                && NeedRules.RunsNeeds(state)
-                && state.Activity != CreatureActivity.UnbuiltHandler
-                && !HandRules.IsHeld(state)
-                && !PrisonRules.IsImprisoned(state)
-                && !state.CombatPitFighter
-                && !context.TremorMoodDispatchedThisTick.Contains(state))
-                Decide(context, creature, state);
+            context.Emit(SystemName, "creature_mood",
+                $"creature={state.Id} type={creature.Name} " +
+                $"player={state.OwnerPlayerId} {before}->{after} " +
+                $"anger={state.Anger.Max}/{CreatureAngerRules.Ceiling} " +
+                $"worst={state.Anger.Worst} " +
+                $"unhappy_at={CreatureAngerRules.UnhappyAt(creature)} " +
+                $"[{state.Anger}]");
         }
+
+        // A creature in the hand still minds - the ladder above ran, and
+        // AngerInHand rides the same clock in HandSystem - but it can act
+        // on none of it while it is off the ground. It rolls when it lands.
+        // A pit fighter's idle goes back to the pit before any chooser (0x004773D0).
+        // The mood choosers run for a keeper's creatures only (0x00476FC0, ADR-0485).
+        if (after == CreatureMood.Angry
+            && NeedRules.RunsNeeds(state)
+            && state.Activity != CreatureActivity.UnbuiltHandler
+            && !HandRules.IsHeld(state)
+            && !PrisonRules.IsImprisoned(state)
+            && !state.CombatPitFighter
+            && !context.TremorMoodDispatchedThisTick.Contains(state))
+            Decide(context, creature, state);
     }
 
     /// <summary>A fresh roll on every allowed selection, five game seconds apart,

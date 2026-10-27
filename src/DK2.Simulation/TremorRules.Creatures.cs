@@ -20,36 +20,34 @@ public static partial class TremorRules
     public static bool IsRecovering(CreatureState creature) =>
         creature.Dk2StateId is KnockdownState or WaitingState or GettingUpState;
 
-    public static void RunRecovery(SimulationContext context)
+    /// <summary>One creature's knockdown recovery (210, 263, 264), in its update before the mover.
+    /// <see cref="Systems.TremorCreatureSystem"/> clears the tick's finished set first.</summary>
+    public static void RunRecovery(SimulationContext context, CreatureState creature)
     {
-        context.TremorRecoveryCompletedThisTick.Clear();
-        foreach (CreatureState creature in context.World.Creatures)
+        if (creature.Possessed) return;
+        if (!IsRecovering(creature)) return;
+        creature.TremorRoutePaused = true;
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        switch (creature.Dk2StateId)
         {
-            if (creature.Possessed) continue;
-            if (!IsRecovering(creature)) continue;
-            creature.TremorRoutePaused = true;
-            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
-            switch (creature.Dk2StateId)
-            {
-                case KnockdownState:
-                    creature.ActionUntilTick = context.Tick.Value + AnimationTimingRules.KnockdownHoldTicks(definition);
-                    CreatureStateMachine.TrySetState(context.Hooks, creature, WaitingState, context.Tick.Value);
+            case KnockdownState:
+                creature.ActionUntilTick = context.Tick.Value + AnimationTimingRules.KnockdownHoldTicks(definition);
+                CreatureStateMachine.TrySetState(context.Hooks, creature, WaitingState, context.Tick.Value);
+                break;
+            case WaitingState:
+                if (context.Tick.Value < creature.ActionUntilTick) break;
+                if (creature.ShouldDelayGetUp)
+                {
+                    creature.ShouldDelayGetUp = false;
                     break;
-                case WaitingState:
-                    if (context.Tick.Value < creature.ActionUntilTick) break;
-                    if (creature.ShouldDelayGetUp)
-                    {
-                        creature.ShouldDelayGetUp = false;
-                        break;
-                    }
-                    creature.ActionUntilTick = context.Tick.Value + AnimationTimingRules.GetUpHoldTicks(definition);
-                    if (!CreatureStateMachine.TrySetState(context.Hooks, creature, GettingUpState, context.Tick.Value))
-                        FinishRecovery(context, creature);
-                    break;
-                case GettingUpState:
-                    if (context.Tick.Value >= creature.ActionUntilTick) FinishRecovery(context, creature);
-                    break;
-            }
+                }
+                creature.ActionUntilTick = context.Tick.Value + AnimationTimingRules.GetUpHoldTicks(definition);
+                if (!CreatureStateMachine.TrySetState(context.Hooks, creature, GettingUpState, context.Tick.Value))
+                    FinishRecovery(context, creature);
+                break;
+            case GettingUpState:
+                if (context.Tick.Value >= creature.ActionUntilTick) FinishRecovery(context, creature);
+                break;
         }
     }
 

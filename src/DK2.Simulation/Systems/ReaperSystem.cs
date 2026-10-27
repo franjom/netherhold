@@ -4,8 +4,9 @@
 
 namespace DK2.Simulation.Systems;
 
-public sealed class ReaperSystem : ISimulationSystem
+public sealed class ReaperSystem : ICreatureUpdateStep
 {
     public string Name => "reaper";
-    public void Execute(SimulationContext context) => ReaperRules.RunLifecycle(context);
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Update(SimulationContext context, CreatureState creature) => ReaperRules.RunLifecycle(context, creature);
 }

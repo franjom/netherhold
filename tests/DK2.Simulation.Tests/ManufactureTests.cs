@@ -43,7 +43,7 @@ public class ManufactureTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink)
     {
-        var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
+        var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem(), new ManufactureDecaySystem()]);
         sim.ObserveWith(sink);
         return sim;
     }

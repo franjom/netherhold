@@ -36,9 +36,9 @@ public sealed class ShotSystem : ISimulationSystem
         for (int i = _work.Count - 1; i >= 0; i--) Update(context, _work[i]);
     }
 
-    /// <summary>One shot's update (<c>0x004AB180</c>). <see cref="Execute"/> runs it for every shot; a
-    /// creature state handler that runs after this pass and makes a shot runs it at once, as DK2 makes
-    /// that shot in list 0 of <c>0x004B7830</c> and reads list 1's head afterwards (ADR-0551).</summary>
+    /// <summary>One shot's update (<c>0x004AB180</c>), which <see cref="Execute"/> runs for every shot.
+    /// A shot a creature makes in its update is here before this pass, as DK2 makes it in list 0 of
+    /// <c>0x004B7830</c> and reads list 1's head afterwards (ADR-0551, ADR-0554).</summary>
     internal static void Update(SimulationContext context, ShotState shot)
     {
         WorldState world = context.World;
