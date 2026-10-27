@@ -12693,3 +12693,36 @@ creator changes.
 death shot stands after that turn. Within the turn, ours updates it after the other shots,
 where DK2 updates it first (list 1's newest). It has no target and data words of 0. The pin
 fixture has no Bile Demon: no new fields, and the pin moves only by the version.
+
+## ADR-0552 — Autonomous playtesting extends the scenario harness; controllers are input sources
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+
+**Context.** AGENTS.md Goal 10 asks for a programmatic player. The owner wants on-demand,
+resource-bounded autonomous playtesting that finds crashes, hangs and invalid states and
+leaves reproducible evidence, without Unity or an LLM. A first draft proposed eight new
+components; review found most already exist: `ScenarioRunner` runs seeded headless scenarios
+with per-tick hashes, `KeeperAI.Think(KeeperView)` is already the controller shape, the
+keeper-as-input-source decision (KEEPER_AI.md §12.1) already keeps a controller's state out of
+`StateHash()`, and `WorldSnapshot` continuation is tested. Review also found gaps:
+`KeeperView` has no fog of war, the command vocabulary holds non-human commands, and
+`keeper-commands.tsv` records type and hash only, so nothing can replay a run.
+
+**Decision.** Extend `DK2.Harness`; no new assembly. A `ScenarioController` (name, player,
+decision interval, `KeeperView` → commands) is passed to `ScenarioRunner.Run`; its commands
+join the next tick's frame after the computer keepers', in the order given, exactly as
+scripted input does. A controller may command only its own player, and a player has at most
+one computer keeper or controller. Controllers do not reference the `KeeperAI` class or
+extend `KeeperView`; `KeeperAI` stays unchanged and is an unverified progression baseline.
+Replay depends only on recorded commands. Stage B builds the input journal planned in
+`plans/2026-10-18-crash-and-debug-tooling.md` (one format for Unity and harness), recording
+the complete merged frame per tick, and a replay verb that keeps the scenario's `work`
+injection but skips its YAML `commands`. Stage C adds a fuzzer limited to human-issuable
+commands, runtime coverage (`TrackTriggerReach`, state and event histograms) and invariants
+that each cite a source. The plan is `plans/2026-10-27-autonomous-playtesting.md`.
+
+**Consequences.** Stage A is built: `ScenarioControllerTests` shows a controller's command is
+the same input as the scripted command one tick later (identical hash series) and pins the
+refusals it can reach without a campaign map. `controller-commands.tsv` is not replayable until Stage B. Controllers see the
+whole world, so they test the game; they are not competitive players, which need a
+fog-filtered view later. No stage is expected to move `HashVersion`. Refusal diagnostics added
+later must stay observation-only (no hash, RNG or decision change).

@@ -33,6 +33,16 @@ internal static class ScenarioReportWriter
                     return $"{e.InputTick}\t{e.Command.PlayerId}\t{e.Command.GetType().Name}\t{hash.Value:x16}";
                 }));
 
+        // Type and hash only, like keeper-commands.tsv: not replayable until the trace serializer (ADR-0552 Stage B).
+        if (result.ControllerCommandLog.Count > 0)
+            File.WriteAllLines(Path.Combine(outputDir, "controller-commands.tsv"),
+                result.ControllerCommandLog.Select(e =>
+                {
+                    var hash = Hash64.Start();
+                    e.Command.HashInto(ref hash);
+                    return $"{e.InputTick}\t{e.Controller}\t{e.Command.PlayerId}\t{e.Command.GetType().Name}\t{hash.Value:x16}";
+                }));
+
         var report = new StringBuilder();
         report.AppendLine($"# Scenario run: {result.Scenario.Id}");
         report.AppendLine();
@@ -47,6 +57,8 @@ internal static class ScenarioReportWriter
         report.AppendLine($"- events recorded: {result.Events.Count}");
         if (result.Scenario.ComputerKeepers.Count > 0)
             report.AppendLine($"- keeper commands emitted: {result.KeeperCommandLog.Count} (keeper-commands.tsv)");
+        if (result.ControllerCommandLog.Count > 0)
+            report.AppendLine($"- test controller commands emitted: {result.ControllerCommandLog.Count} (controller-commands.tsv)");
         report.AppendLine();
 
         if (!string.IsNullOrWhiteSpace(result.Scenario.Question))

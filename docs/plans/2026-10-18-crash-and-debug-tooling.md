@@ -1,7 +1,9 @@
 # Crash and debug tooling — plan for later
 
 **Status: not started.** Written 2026-10-18, parked until there is time for it.
-It is listed as gap 10 in `docs/GOAL_ALIGNMENT.md`.
+It is listed as gap 10 in `docs/GOAL_ALIGNMENT.md`. Item 1 is built as Stage B of
+`2026-10-27-autonomous-playtesting.md` (ADR-0552), which also covers parts of items 2 and 5
+for headless runs; change the two plans together.
 
 ## Why
 

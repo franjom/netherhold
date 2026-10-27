@@ -68,6 +68,9 @@ public sealed record ScenarioResult(
     /// decided, which no command shows (the attack target, the flags, the stored tunnels).</summary>
     public IReadOnlyDictionary<PlayerId, KeeperAIState> KeeperStates { get; init; } = new Dictionary<PlayerId, KeeperAIState>();
 
+    /// <summary>Commands emitted by test controllers (<see cref="ScenarioController"/>), in emission order.</summary>
+    public IReadOnlyList<ControllerCommandEmission> ControllerCommandLog { get; init; } = [];
+
     /// <summary>Where the run's wall-clock time went. Not part of the report: see <see cref="RunTimings"/>.</summary>
     public RunTimings? Timings { get; init; }
 }
@@ -101,17 +104,18 @@ public sealed class ScenarioRunner
     /// first and a runner built around it does the work; every rule below then
     /// reads the one <c>_database</c> that is correct for this run.</para>
     /// </summary>
-    public ScenarioResult Run(Scenario scenario)
+    public ScenarioResult Run(Scenario scenario, IReadOnlyList<ScenarioController>? controllers = null)
     {
         GlobalVariables? levelVariables = ResolveLevelVariables(scenario.Map);
         string? levelName = LevelNameOf(scenario.Map);
         LevelDef? level = levelName is null || _installDir is null
             ? null
             : GameDatabaseLoader.LoadCampaignLevel(_installDir, levelName);
+        controllers ??= [];
         return levelVariables is null && level is null
-            ? RunAgainstThisDatabase(scenario, null)
+            ? RunAgainstThisDatabase(scenario, null, controllers)
             : new ScenarioRunner(_database.ForLevel(levelVariables, level), _installDir)
-                .RunAgainstThisDatabase(scenario, levelVariables is null ? null : levelName);
+                .RunAgainstThisDatabase(scenario, levelVariables is null ? null : levelName, controllers);
     }
 
     /// <summary>The level's own VARIABLES, for a scenario that names a campaign map.</summary>
@@ -128,7 +132,8 @@ public sealed class ScenarioRunner
             ? mapSpec[CampaignPrefix.Length..].Trim()
             : null;
 
-    private ScenarioResult RunAgainstThisDatabase(Scenario scenario, string? campaignLevel)
+    private ScenarioResult RunAgainstThisDatabase(
+        Scenario scenario, string? campaignLevel, IReadOnlyList<ScenarioController> controllers)
     {
         var clock = new RunClock();
         var unsupported = new List<string>();
@@ -229,6 +234,8 @@ public sealed class ScenarioRunner
         List<KeeperAI> keepers = inputs.CreateComputerKeepers(scenario, campaignLevel, world, unsupported);
         var emitted = new List<PlayerCommand>();
         var commandLog = new List<KeeperCommandEmission>();
+        var controllerLog = new List<ControllerCommandEmission>();
+        CheckControllers(controllers, world, keepers);
         IReadOnlyList<PlayerCommand> pending = [];
 
         var hashes = new List<ulong>(scenario.DurationTicks + 1) { simulation.StateHash() };
@@ -252,10 +259,29 @@ public sealed class ScenarioRunner
             foreach (KeeperAI keeper in keepers)
                 next.AddRange(keeper.Think(_database, world));
             clock.End(RunClock.KeeperAi);
-            clock.EndTick();
             emitted.AddRange(next);
             foreach (PlayerCommand command in next)
                 commandLog.Add(new KeeperCommandEmission(t + 1, command));
+            // Test controllers after the computer keepers, in the order given; their commands
+            // ride the same next-tick frame (KEEPER_AI.md §12.1).
+            clock.Begin(RunClock.Controllers);
+            foreach (ScenarioController controller in controllers)
+            {
+                if (t % controller.IntervalTicks != 0) continue;
+                IReadOnlyList<PlayerCommand> decided = controller.Decide(new KeeperView(_database, world, controller.PlayerId))
+                    ?? throw new InvalidOperationException($"Controller '{controller.Name}' returned null; return an empty list.");
+                foreach (PlayerCommand command in decided)
+                {
+                    if (command.PlayerId != controller.PlayerId)
+                        throw new InvalidOperationException(
+                            $"Controller '{controller.Name}' commands player {controller.PlayerId.Value} " +
+                            $"but emitted {command.GetType().Name} for player {command.PlayerId.Value}.");
+                    next.Add(command);
+                    controllerLog.Add(new ControllerCommandEmission(t + 1, controller.Name, command));
+                }
+            }
+            clock.End(RunClock.Controllers);
+            clock.EndTick();
             pending = next;
         }
 
@@ -281,6 +307,7 @@ public sealed class ScenarioRunner
             EmittedKeeperCommands = emitted,
             KeeperCommandLog = commandLog,
             KeeperStates = keepers.ToDictionary(k => k.PlayerId, k => k.State),
+            ControllerCommandLog = controllerLog,
             Timings = clock.Stop(),
         };
     }
@@ -292,6 +319,27 @@ public sealed class ScenarioRunner
     /// case the placeholder covers.
     /// </summary>
     public const string ConvertedAssetRoot = "build/converted";
+
+    /// <summary>Refuses a controller this run cannot honour before any tick runs: one for a player the
+    /// world does not have, one sharing a player with a computer keeper or another controller (two
+    /// inputs for one keeper would make neither's evidence its own), or one with no decision interval.</summary>
+    private static void CheckControllers(
+        IReadOnlyList<ScenarioController> controllers, WorldState world, List<KeeperAI> keepers)
+    {
+        var taken = new HashSet<PlayerId>(keepers.Select(k => k.PlayerId));
+        foreach (ScenarioController controller in controllers)
+        {
+            if (controller.IntervalTicks < 1)
+                throw new ArgumentException(
+                    $"Controller '{controller.Name}': IntervalTicks must be at least 1.", nameof(controllers));
+            if (!world.PlayerIds.Contains(controller.PlayerId))
+                throw new ArgumentException(
+                    $"Controller '{controller.Name}': player {controller.PlayerId.Value} is not in this world.", nameof(controllers));
+            if (!taken.Add(controller.PlayerId))
+                throw new ArgumentException(
+                    $"Controller '{controller.Name}': player {controller.PlayerId.Value} already has a computer keeper or controller.", nameof(controllers));
+        }
+    }
 
     /// <summary>Tests every <see cref="ScenarioExpectation"/> against the events the run
     /// produced, and returns one line per unmet claim. Reports the count it did see, because

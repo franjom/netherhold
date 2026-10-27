@@ -20,6 +20,7 @@ Each run writes to `build/scenario-runs/<id>/`:
 | `hashes.tsv` | State hash after every tick |
 | `events.log` | Everything the simulation emitted |
 | `keeper-commands.tsv` | Only with `computer_keepers`: each command the computer keepers emitted, with its input tick |
+| `controller-commands.tsv` | Only when a run is given test controllers from code (`ScenarioRunner.Run(scenario, controllers)`, ADR-0552), never from a scenario file: each controller command by type and hash, with its input tick. Not replayable yet |
 | `world.txt` | The final world as `TextRenderer` draws it for `viewing_player` |
 
 ## Format
