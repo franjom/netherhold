@@ -115,7 +115,7 @@ public class DeterminismTests
         Assert.True(profiler.Calls(SimulationMarkers.NavBuild) > 1, "the walls were dug, so the mesh was rebuilt");
         Assert.True(profiler.Calls(SimulationMarkers.NavRoute) > 0);
         Assert.True(profiler.Calls(SimulationMarkers.ImpJob) > 0);
-        Assert.Equal(300, profiler.Calls(SimulationMarker.Named(new ImpTaskSystem().Name)));
+        Assert.Equal(300, profiler.Calls(SimulationMarker.Named(new CreatureUpdateSystem().Name)));
     }
 
     private static GameSimulation DiggingImp()
@@ -160,8 +160,8 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 314; pin history and reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0xABEF4268245B9904UL, sim.StateHash());
+        // HashVersion 315; pin history and reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0x6D517264B5EC57B9UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

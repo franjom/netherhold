@@ -96,9 +96,10 @@ public class RefusedStateTests
         CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, PlayerIds.Neutral, new TilePos(5, 5));
         CreatureState goblin = world.SpawnCreature(db, Goblin, PlayerIds.Neutral, new TilePos(14, 14));
         var sink = new ListEventSink();
-        // The shots move first, yet the idle action's shot takes its first update on the tick it is made
-        // (list 0 before list 1 in 0x004B7830, ADR-0551): it dies at age 1 and never stands after a tick.
-        var sim = new GameSimulation(db, world, seed: 7, [new ShotSystem(), new CreatureMovementSystem(), new CreatureJobSystem()]);
+        // The idle action's shot takes its first update on the tick it is made (list 0 before list 1 in
+        // 0x004B7830, ADR-0551, ADR-0554): it dies at age 1 and never stands after a tick.
+        var sim = new GameSimulation(db, world, seed: 7,
+            [new CreatureUpdateSystem(new CreatureJobSystem(), new CreatureMovementSystem()), new ShotSystem()]);
         sim.ObserveWith(sink);
 
         for (int i = 0; i < 600 * SimulationTiming.TicksPerSecond; i++)

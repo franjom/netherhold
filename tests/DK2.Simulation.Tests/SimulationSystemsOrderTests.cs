@@ -32,14 +32,23 @@ public class SimulationSystemsOrderTests
             "PossessionSystem",
             "CreatureStatusSystem",
             "FootprintSystem",
-            "CombatSystem",
-            "TremorCreatureSystem",
-            "ReaperSystem",
-            "FinaleSystem",
-            "CombatPitSystem",
-            "JackInTheBoxSystem",
-            "MovementDustSystem",
-            "CreatureMovementSystem",
+            "CreatureUpdateSystem",
+            "CreatureUpdateSystem/CombatSystem",
+            "CreatureUpdateSystem/CreatureEatSystem",
+            "CreatureUpdateSystem/CreatureSleepSystem",
+            "CreatureUpdateSystem/PaydaySystem",
+            "CreatureUpdateSystem/CreatureAngerSystem",
+            "CreatureUpdateSystem/TremorCreatureSystem",
+            "CreatureUpdateSystem/ReaperSystem",
+            "CreatureUpdateSystem/FinaleSystem",
+            "CreatureUpdateSystem/CombatPitSystem",
+            "CreatureUpdateSystem/JackInTheBoxSystem",
+            "CreatureUpdateSystem/CasinoJackpotSystem",
+            "CreatureUpdateSystem/HeroSystem",
+            "CreatureUpdateSystem/CreatureJobSystem",
+            "CreatureUpdateSystem/MovementDustSystem",
+            "CreatureUpdateSystem/CreatureMovementSystem",
+            "CreatureUpdateSystem/ImpTaskSystem",
             "DoorHealthSystem",
             "TrainingActionSystem",
             "ShotSystem",
@@ -53,7 +62,6 @@ public class SimulationSystemsOrderTests
             "ChickenSystem",
             "FogOfWarSystem",
             "WalkOverGoldSystem",
-            "ImpTaskSystem",
             "TileWorkSystem",
             "BridgeBurnSystem",
             "StoreSweepSystem",
@@ -69,26 +77,29 @@ public class SimulationSystemsOrderTests
             "ImpSupplySystem",
             "RoomBuildWaveSystem",
             "ResearchSystem",
+            "ManufactureDecaySystem",
             "HatcherySystem",
             "ObjectReactionSystem",
-            "CreatureEatSystem",
-            "CreatureSleepSystem",
             "CreatureHealthSystem",
             "PrisonSystem",
             "TortureSystem",
             "RescueSystem",
             "PrisonerEatSystem",
             "PrisonerWanderSystem",
-            "PaydaySystem",
-            "CasinoJackpotSystem",
-            "HeroSystem",
-            "CreatureJobSystem",
-            "CreatureAngerSystem",
             "CreatureExperienceSystem",
             "DungeonHeartSystem",
             "TremorSystem",
         ];
 
-        Assert.Equal(expected, SimulationSystems.Default().Select(system => system.GetType().Name).ToArray());
+        Assert.Equal(expected, SimulationSystems.Default().SelectMany(Names).ToArray());
+
+        // A composite's steps follow it, in the order each creature takes them.
+        static IEnumerable<string> Names(ISimulationSystem system)
+        {
+            string name = system.GetType().Name;
+            yield return name;
+            if (system is CreatureUpdateSystem update)
+                foreach (ICreatureUpdateStep step in update.Steps) yield return $"{name}/{step.GetType().Name}";
+        }
     }
 }

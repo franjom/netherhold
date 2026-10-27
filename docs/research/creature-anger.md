@@ -319,9 +319,10 @@ how an angry Goblin walks out.
 ## Implementation
 
 `CreatureAngerRules` + `CreatureAnger` (the six-bucket struct, `AngerBucket`) +
-`CreatureAngerSystem`, once a game second, registered after sleep — so a creature
-that claimed a bed this tick is not charged for the second it arrived — and after
-health, so one that collapsed this second is already `Dying` and is skipped.
+`CreatureAngerSystem`, once a game second, a step of `CreatureUpdateSystem` after sleep — so a
+creature that claimed a bed this tick is not charged for the second it arrived — and before
+the health system, so one that collapses this second can still be charged
+([creature-update-order.md](creature-update-order.md) §2).
 `Ceiling` is 32767, `Saturation` 0xFFFD, `UnhappyAt` the record's percentage,
 `MoodOf` the band, `CanBeAngered` the Q210 flag, `Slap` and `Held` the two
 discrete deltas, `ReselectionGateTicks` the five-second gate, `RollPercent` /

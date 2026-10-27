@@ -16,28 +16,29 @@ namespace DK2.Simulation.Systems;
 /// <see cref="Combat.FightReturnRules"/> (ADR-0225). StealGold's states are <see cref="StealGoldRules"/>
 /// (ADR-0219), tunnelling's <see cref="TunnelRules"/> (ADR-0222).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-party-walk.md")]
-public sealed class HeroSystem : ISimulationSystem
+public sealed class HeroSystem : ICreatureUpdateStep
 {
     private const string SystemName = "Hero";
 
+    private bool _onOriginalTick;
+
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context) => _onOriginalTick = SimulationTiming.OnOriginalTick(context.Tick.Value);
+
+    /// <summary>The hero's state handler in its update. Newest first, so followers choose before an
+    /// older leader reroutes.</summary>
+    public void Update(SimulationContext context, CreatureState creature)
     {
-        if (!SimulationTiming.OnOriginalTick(context.Tick.Value)) return;
-        GameDatabase database = context.Database;
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
-        // Native newest-first order lets followers choose before an older leader reroutes.
-        for (int i = creatures.Count - 1; i >= 0; i--)
-        {
-            CreatureState creature = creatures[i];
-            if (creature.Possessed) continue;
-            if (context.TremorRecoveryCompletedThisTick.Contains(creature)) continue;
-            if (!HeroJobRules.IsHero(creature)) continue;
-            if (CreatureEligibility.IsExcluded(creature,
-                CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) continue;
-            Turn(context, creature);
-        }
+        if (!_onOriginalTick) return;
+        if (creature.Possessed) return;
+        if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
+        if (!HeroJobRules.IsHero(creature)) return;
+        if (CreatureEligibility.IsExcluded(creature,
+            CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
+        Turn(context, creature);
     }
 
     private static void Turn(SimulationContext context, CreatureState creature)

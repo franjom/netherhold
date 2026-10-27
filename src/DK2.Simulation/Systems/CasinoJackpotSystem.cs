@@ -11,25 +11,22 @@ namespace DK2.Simulation.Systems;
 /// countdowns, the drunk timer and a winner's deadline, and a winner's own states 152 and 155–157
 /// (<see cref="CasinoJackpotRules"/>).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/casino.md")]
-public sealed class CasinoJackpotSystem : ISimulationSystem
+public sealed class CasinoJackpotSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CasinoJackpot";
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    public void Update(SimulationContext context, CreatureState creature)
     {
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
-        {
-            CreatureState creature = creatures[i];
-            if (CreatureDeathRules.IsCorpse(creature)) continue;
-            CasinoJackpotRules.CountDown(context, SystemName, creature);
-            if (creature.Activity != CreatureActivity.CollectingWinnings || creature.Possessed) continue;
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down)) continue;
-            if (!CasinoJackpotRules.Turn(context, SystemName, creature) && CreatureStateMachine.HasState(creature)
-                && creature.Dk2StateId != CreatureStateMachine.Idle)
-                StateShadow.ToIdle(context, SystemName, creature);
-        }
+        if (CreatureDeathRules.IsCorpse(creature)) return;
+        CasinoJackpotRules.CountDown(context, SystemName, creature);
+        if (creature.Activity != CreatureActivity.CollectingWinnings || creature.Possessed) return;
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Down)) return;
+        if (!CasinoJackpotRules.Turn(context, SystemName, creature) && CreatureStateMachine.HasState(creature)
+            && creature.Dk2StateId != CreatureStateMachine.Idle)
+            StateShadow.ToIdle(context, SystemName, creature);
     }
 }

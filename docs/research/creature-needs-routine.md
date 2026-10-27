@@ -125,7 +125,9 @@ leaves.
   ours asks whether it is tired at the moment of the decision, where DK2 latches
   `+0x58` when the period passes, so a creature tired before it sat down at a table
   would still be sent to bed by DK2.
-- The order of our systems is DK2's: eat, then sleep, then pay.
+- The order of our systems is DK2's: eat, then sleep, then pay, as steps of `CreatureUpdateSystem`
+  inside each creature's update (ADR-0554); the payday clock's own call skips the stamp and
+  runs before the creatures ([payday.md](payday.md) §2).
 - **The cannot-sleep drain** (ADR-0199), `NeedRules.CannotSleepHealthPerSecond`: variable
   82 ÷ variable 19 a turn, truncated as `IDIV` does (`0x00477E74`), so −5 is −1 a turn
   and −3 nothing. Keepers' non-workers only, not in group 7, not Sleeping through a walk,

@@ -172,9 +172,8 @@ test can honestly use. Adding it caught the Goblin missing `CanWalkOnWater`.
 ## 4. Implementation
 
 `CreatureHealthRules` + `CreatureHealthSystem`, once a game second, registered
-after `CreatureSleepSystem` — so a creature that claimed a bed this tick is not
-charged for the second it arrived — and before payday, jobs, anger and
-experience.
+after every creature's update (`CreatureUpdateSystem`, ADR-0554), so a creature that claimed a
+bed this tick is not charged for the second it arrived, and before experience.
 
 - Health seeded from `Hp` at spawn and clamped to the level-scaled maximum.
   **`WorldState.SpawnCreature` takes the `GameDatabase`** for that one line: a

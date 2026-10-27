@@ -91,6 +91,14 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   and the verdict recursion are built (ADR-0547, hash/save 310; Q359, Q576). No packet or
   win rig has been run since hash 309. Q652: Level 11A's Drako no longer calls at Morgana's
   front, a known regression.
+- One creature's whole update runs before the next one's, newest first (ADR-0554, hash/save 315):
+  `CreatureUpdateSystem` runs the fight, needs, anger, state handlers, mover and an Imp's handler
+  per creature; the payday clock runs before the creatures. Non-Imp walks take their first step
+  on the tick they start in 34% (Level 2) and 26% (Level 4) of cases, native 40% and 28%. Not
+  explained: fewer Imp walk starts than native, many more withdrawals from state 203, and walks
+  from state 173 still start late. Differences left and measurements:
+  [creature-update-order.md](research/creature-update-order.md). The win and packet rigs have not
+  been rerun at hash 315.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
