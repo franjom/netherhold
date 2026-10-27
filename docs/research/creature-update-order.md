@@ -24,11 +24,11 @@ success in a mood chooser skips the handler for that turn.
 
 `CreatureUpdateSystem` runs its steps one creature at a time, newest first by id. The steps, in
 declared order:
-1. `CombatSystem`;
+1. `CombatSystem`: the action runner, the scan and the fear radiation;
 2. `CreatureEatSystem`, `CreatureSleepSystem`, `PaydaySystem`;
 3. `CreatureAngerSystem`;
-4. `TremorCreature`, `Reaper`, `Finale`, `CombatPit`, `JackInTheBox`, `CasinoJackpot`, `Hero`,
-   `CreatureJob`;
+4. `CombatSystem.States` (the combat states, then the trap reveal), `TremorCreature`, `Reaper`,
+   `Finale`, `CombatPit`, `JackInTheBox`, `CasinoJackpot`, `Hero`, `CreatureJob` (ADR-0555);
 5. `MovementDust`, `CreatureMovement`;
 6. `ImpTask`.
 
@@ -36,8 +36,6 @@ declared order:
 
 ### Where ours still differs
 
-- `CombatSystem` runs the combat states' handlers together with the fight scan, before the needs
-  routine. DK2 runs those handlers in the dispatcher, after the needs routine.
 - Ours charges the need-anger after the needs routine, not before it, and before the health
   system. So a creature that claims a bed this tick is not charged `AngerNoLair` that second, and
   a creature that collapses this tick can still be charged.
@@ -75,8 +73,23 @@ counts walks that stepped on the tick they started, out of all walk starts.
 - Imp withdrawals from 203 no longer step on their first tick: 0 of 142 (native 0 of 24).
 - Imp job walks from state 10 still never step on their first tick.
 
+### The combat states in the dispatcher (ADR-0555)
+
+Source: `D:/DK2Evidence/runs/q665-imp-flee-2026-10-27`, same rig. After ADR-0554, 151 of the Level 4
+Imps' entries into 199 came from a walk, and 142 of their 199 → 203 flights followed one tick
+later. Native Imps reach 203 straight from a walk. Running the fight state in the scan's update:
+
+| Imp walk starts | native | ADR-0554 | ADR-0555 |
+|---|---|---|---|
+| Level 2, all | 871 | 622 | 852 |
+| Level 2, from 87 | 124 | 5 | 122 |
+| Level 4, all | 3020 | 2257 | 2165 |
+| Level 4, from 87 | 809 | 167 | 41 |
+| Level 4, from 203 | 14 | 100 | 149 |
+
 ### Not explained (Q665)
 
-- Ours now starts fewer Imp walks than native, and fewer from state 87: Level 4, 167 against 809.
-- Withdrawals from 203 stay far above native: Level 4, 100 against 14.
+- Level 4's Imps flee far more often than native: 236 entries into 201-203 against 41, most now
+  straight from a walk, as native's are.
+- Level 4's Imps start few walks from state 87: 41 against 809.
 - Walks from 173 still start later than native: Level 4, 14% against 19% on the first tick.

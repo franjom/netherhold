@@ -38,6 +38,7 @@ public class SimulationSystemsOrderTests
             "CreatureUpdateSystem/CreatureSleepSystem",
             "CreatureUpdateSystem/PaydaySystem",
             "CreatureUpdateSystem/CreatureAngerSystem",
+            "CreatureUpdateSystem/StateHandlers",
             "CreatureUpdateSystem/TremorCreatureSystem",
             "CreatureUpdateSystem/ReaperSystem",
             "CreatureUpdateSystem/FinaleSystem",

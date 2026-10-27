@@ -68,7 +68,7 @@ public static class SpellRules
         CreatureSpellDef? spell = SpellOf(database, definition, slot);
         if (spell is null) return false;
         long stamp = me.SpellStamps[slot];
-        return stamp == 0 || stamp + CombatRules.Scaled(
+        return stamp == CreatureState.NeverUsed || stamp + CombatRules.Scaled(
             CombatRules.RechargeTicks(database, me, RechargeTicks(spell)), me, definition) < tick;
     }
 

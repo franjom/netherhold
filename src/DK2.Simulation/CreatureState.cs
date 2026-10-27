@@ -844,9 +844,14 @@ public sealed class CreatureState
     public byte FightTargetPlayerId;
     public int FightTargetTileIndex = -1;
 
+    /// <summary>A melee or spell stamp never written: DK2's zero, its turn counter being our tick plus
+    /// one, so a swing on tick 0 is not mistaken for none.</summary>
+    public const long NeverUsed = -1;
+
     /// <summary>DK2's own <c>TimeLastUsedMelee</c> (<c>+0x427</c>): the tick the last melee swing
-    /// began, which <c>MeleeRecharge</c> is measured from (combat-fight-state.md §4).</summary>
-    public long TimeLastUsedMelee;
+    /// began, which <c>MeleeRecharge</c> is measured from (combat-fight-state.md §4);
+    /// <see cref="NeverUsed"/> before the first.</summary>
+    public long TimeLastUsedMelee = NeverUsed;
 
     /// <summary>A melee swing in progress — DK2's creature action 17 being the current action —
     /// with the tick it began (<c>+0x3A5</c>) and the target it was started at (<c>+0x399</c>),
@@ -1111,9 +1116,9 @@ public sealed class CreatureState
     public PlayerId BodyOwnerPlayerId = PlayerIds.Neutral;
 
     /// <summary>The turn each of the three spell slots was last cast at — DK2's <c>+0x41B + 4i</c>;
-    /// zero means never, and a cast stamps it when the action starts, not when the shot leaves
-    /// (combat-spells.md §4, §6).</summary>
-    public readonly long[] SpellStamps = new long[3];
+    /// <see cref="NeverUsed"/> means never (DK2's zero), and a cast stamps it when the action starts,
+    /// not when the shot leaves (combat-spells.md §4, §6).</summary>
+    public readonly long[] SpellStamps = [NeverUsed, NeverUsed, NeverUsed];
 
     /// <summary>The high nibble of <c>creature+0x529</c>: which slot the engagement's spell nibble
     /// casts from. Meaningless while <see cref="AttackType"/> is a melee nibble.</summary>
