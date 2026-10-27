@@ -309,7 +309,15 @@ before list 1 (shots, kind 1 from `0x004AAC90`), each newest first (`0x004B4A10`
 the head, the next pointer read after each update), so a creature-fired shot should move
 the turn it is made (CONFIRMED 2026-10-26: every shot is linked kind 1 through `0x004AAC90`, see
 [004B7830](functions/004B7830.md); a shot created after list 1 has been walked first updates the next turn), as ours
-does for a creature-fired shot (not checked for trap-fired ones); ours walks `world.Shots` newest first too (ADR-0367).
+does for a creature-fired shot; ours walks `world.Shots` newest first too (ADR-0367). Every creator of ours
+was checked on 2026-10-27 (ADR-0551). Same turn: a creature's spell and free-aim shots (`CombatSystem`),
+its training spell (`TrainingActionSystem`) and the Jack's (`JackInTheBoxSystem`), all before `ShotSystem`.
+Next turn: a trap's (`TrapSystem`, and a boulder setting one off), after it, and a chained or death shot,
+made while `ShotSystem` walks its snapshot. The Bile Demon's idle shot was a turn late (`CreatureJobSystem`
+runs after the shots), and `ShotSystem.Update` now runs it at once. A player's cast moves the turn it is
+made, as packet actions are dispatched before the sweep ([005119C0](functions/005119C0.md), LIKELY). The
+computer keeper casts from the player frame, which in DK2 is after the sweep; its commands reach ours at
+the head of the next tick, before the shots. Ours makes no door-fired shot.
 
 ## Confidence
 

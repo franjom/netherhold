@@ -89,37 +89,30 @@ public class RefusedStateTests
     }
 
     [Fact]
-    public void ABileDemonsIdleActionMakesTheHealInstantShotOneTimeInTen_AGoblinsNever()
+    public void ABileDemonsIdleActionMakesTheHealInstantShotOneTimeInTen_AGoblinsNever_ItsFirstUpdateIsThatTurn_0x004B7830()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = Open(db);
         CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, PlayerIds.Neutral, new TilePos(5, 5));
         CreatureState goblin = world.SpawnCreature(db, Goblin, PlayerIds.Neutral, new TilePos(14, 14));
         var sink = new ListEventSink();
-        // The shots move first, so a shot made by an idle action is still standing after its tick.
+        // The shots move first, yet the idle action's shot takes its first update on the tick it is made
+        // (list 0 before list 1 in 0x004B7830, ADR-0551): it dies at age 1 and never stands after a tick.
         var sim = new GameSimulation(db, world, seed: 7, [new ShotSystem(), new CreatureMovementSystem(), new CreatureJobSystem()]);
         sim.ObserveWith(sink);
-        var shots = new HashSet<int>();
 
         for (int i = 0; i < 600 * SimulationTiming.TicksPerSecond; i++)
         {
             sim.Tick();
-            foreach (ShotState shot in world.Shots)
-            {
-                // Only the shot and its death shot, Modify Health with the parent's words of 0.
-                Assert.True(shot.ShotTypeId is Dk2TerrainFixture.HealInstantShotId or Dk2TerrainFixture.ModifyHealthShotId, $"shot type {shot.ShotTypeId}");
-                if (shot.ShotTypeId == Dk2TerrainFixture.HealInstantShotId)
-                {
-                    Assert.Equal(demon.PosX, shot.PosX);
-                    shots.Add(shot.Id);
-                }
-            }
+            // At most its death shot, Modify Health with the parent's words of 0.
+            Assert.All(world.Shots, shot => Assert.Equal(Dk2TerrainFixture.ModifyHealthShotId, shot.ShotTypeId));
         }
 
         int actions = sink.Events.Count(e => e.Kind == "idle_action" && e.Detail.Contains($"creature={demon.Id} "));
+        int shots = sink.Events.Count(e => e.Kind == "shot_died" && e.Detail.Contains($"type={Dk2TerrainFixture.HealInstantShotId} age=1"));
         Assert.Contains(sink.Events, e => e.Kind == "idle_action" && e.Detail.Contains($"creature={goblin.Id} "));
         Assert.True(actions >= 20, $"{actions} idle actions");
-        Assert.InRange(shots.Count, 1, actions / 3);
+        Assert.InRange(shots, 1, actions / 3);
         Assert.Equal(demon.Health, CreatureHealthRules.MaxHealth(db, db.CreatureById(demon.CreatureTypeId), demon));
     }
 

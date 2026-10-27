@@ -12664,3 +12664,28 @@ triggers. Pinned by `ARestoredWorldKeepsAnArmedPartySubtreeArmed`,
 hash or format moves; a save written before this change loads differently than it did.
 Whether DK2's save reader restores trigger records' active and repeat bytes in the layout ours
 saves is not traced.
+
+## ADR-0551 — A Bile Demon's idle shot takes its first update on the turn it is made
+**Date:** 2026-10-27 · **Status:** accepted · Hash/save 314 · Q398.
+
+**Context.** The sweep `0x004B7830` walks lists 0..7 in order and reads each list's head only
+when it reaches it; every shot is linked at list 1's head ([004B7830](research/functions/004B7830.md),
+CONFIRMED). So a shot a creature makes in its own update moves that turn, and one made after
+list 1 was walked (a trap's, a shot's own, the computer keeper's cast from the player frame)
+moves the next. Each of our shot creators was checked against that rule. All matched but one:
+the idle body's Bile Demon shot (`0x00477806`, in the state handler `0x00476FC0`, which the
+creature update runs in list 0). It is made in `CreatureJobSystem`, after `ShotSystem`, so it
+moved a turn late. A player's cast matches only because of where the action is dispatched:
+`World_UpdateTurn` dispatches packet actions (`0x005119C0`) before the sweep, per the KB record
+(LIKELY). `0x004BBF90`'s other caller, the battle step, runs in the player frame. Our computer
+keeper's commands reach the head of the next tick. So both kinds of cast move on the tick
+`KeeperSpellSystem` makes them, as ours already does.
+
+**Decision.** `ShotSystem.Update` is one shot's update, and `Execute` runs it for every shot,
+newest first. The idle body runs it on the shot it makes as soon as it makes it. No other
+creator changes.
+
+**Consequences.** The Bile Demon's Heal Instant Shot dies at age 1 on its own turn, and its
+death shot stands after that turn. Within the turn, ours updates it after the other shots,
+where DK2 updates it first (list 1's newest). It has no target and data words of 0. The pin
+fixture has no Bile Demon: no new fields, and the pin moves only by the version.

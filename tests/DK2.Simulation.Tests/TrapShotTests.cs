@@ -51,6 +51,22 @@ public sealed class TrapShotTests
     }
 
     [Fact]
+    public void ATrapsShotFirstUpdatesTheTurnAfterItIsFired_Traps3AreWalkedAfterShots1_0x004B7830()
+    {
+        // 0x004B7830 walks list 3 after list 1 and reads each head only when it reaches it, so a trap's
+        // shot is linked at list 1's head after that list was walked; ours fires traps after the shots.
+        (GameDatabase db, WorldState world) = Open();
+        Place(db, world, Dk2TerrainFixture.AlarmTrapId, 5, 5);
+        Enemy(db, world, 7, 5);
+        GameSimulation sim = Sim(db, world, new ListEventSink());
+        for (int i = 0; i < 10 && world.Shots.Count == 0; i++) sim.Tick();
+        ShotState shot = Assert.Single(world.Shots);
+        Assert.Equal(0, shot.Age);
+        sim.Tick();
+        Assert.Equal(1, shot.Age);
+    }
+
+    [Fact]
     public void AnAlarmTrapsShotPostsMessage47ToItsOwnerWithTheShotsTile()
     {
         (GameDatabase db, WorldState world) = Open();
