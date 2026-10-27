@@ -81,7 +81,10 @@ for a campaign level matches `ScenarioRunner`'s `campaign:levelN` setup; if it d
 difference is listed and either fixed in one place or recorded here. (2) The frame record gains
 what a raw-to-intent mapping needs and does not have: the adapter's pointer tile and position
 and pointer-over-HUD every frame (they need the camera), the raw tool, `selectedRoomId`, the
-bottom-panel choice, the query tool and the message-tab state.
+bottom-panel choice, the query tool and the message-tab state. The owner uses the message tabs
+in play (2026-10-27), so their state and clicks are required, not optional. A door, trap or
+spell chosen in the panel stays armed after a placement in DK2 (owner, 2026-10-27), as ours does
+(`DungeonRunner.Hud.cs`: only a right-click clears it), so the choice is per-frame state.
 
 **Baseline sessions.** Legacy `Input` is read-only, so nothing can drive it before Phase 4.
 The Phase 2 baseline is three to five short sessions the owner plays with journaling on
@@ -114,7 +117,11 @@ line budget, so this is a new ADR. It must settle, with evidence:
    otherwise normalise in the adapter. Zoom and the front-end wheel must not change speed.
 2. **Pan axes.** `GetAxisRaw` becomes explicit key bindings; Input Manager axis settings
    (dead zone, gravity, snap, alternative keys) are read from `InputManager.asset` and kept or
-   their loss recorded.
+   their loss recorded. The bindings are DK2's default key list (`research/controls.md`; the
+   camera keys also read in the default table 0x005604C0): arrows scroll, SHIFT + arrow
+   speed-scrolls. W/A/S/D, Q/E and joystick axes are ours, not DK2's (A is the Ally Window; the
+   owner confirms WASD does not pan, 2026-10-27), and are dropped. The owner pans mostly at the
+   screen edge (5 pixels, `classic-camera.md` section 7).
 3. **Text.** `Input.inputString` becomes `Keyboard.onTextInput`, buffered per frame.
 4. **Timing.** Press/release edges are read once per rendered frame (dynamic update), as
    today; the frame→tick relation of §2 is unchanged.
@@ -140,6 +147,8 @@ gamepad. Device state stays outside `GameSimulation`.
   the worker-thread tick is pinned off or shown not to change the per-tick frames.
 - **Isolation.** `runInBackground`; physical mouse and keyboard disabled, input from a virtual
   device only; focus loss is part of a test, not an accident.
+- **Edge pan.** The owner's main camera control; the driver moves the virtual pointer to each
+  edge and corner, and the window must not lose the pointer to a second monitor.
 - **Driver.** Injects input through the production backend, by frame number; aims at
   coordinates from real UI geometry; records `frames.journal`, `input.journal` and
   screenshots at checkpoints. Verdicts: input (intent as expected), gameplay (command and
