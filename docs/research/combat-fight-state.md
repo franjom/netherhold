@@ -125,7 +125,8 @@ and then clears the target; **1 and 4 → the melee arm `0x004600DD`**:
 The recharge gate for a melee attacker standing in reach is `MeleeRecharge` ticks over
 its work rate — a quarter longer than the file's seconds for a fresh creature —
 the blow landing `MeleeHitDelay` ticks into each; a fresh creature's stamp is 0
-from the constructor `0x004872A0`, and **a zero stamp passes Gate B at once**, so
+from the constructor `0x004872A0` (ours: `CreatureState.NeverUsed`, −1, because a swing can begin
+on tick 0), and **a zero stamp passes Gate B at once**, so
 its first swing waits nothing (an earlier reading here had it waiting a recharge;
 corrected 2026-09-23 against the disassembly).
 
@@ -183,7 +184,9 @@ heart tile stands in for the Arch Pillar).
 the health routine's multipliers (ADR-0168, `creature-status-effects.md`); state 8, the death
 unlink's `0xF` nibble and the victory states (ADR-0169, `combat-approach-and-victory.md`);
 step 8's Support re-acquisition and the ally arm (ADR-0170, `spell-friendly-arm.md`).
-**Not built, named:** waking a sleeper on the blow; the room notice and player event 6 (§1).
+Where it runs (ADR-0555): the handlers are `CombatSystem.States`, after the needs routine in the
+update whose scan engaged the creature, and state 199's handler raises the battle notice.
+**Not built, named:** waking a sleeper on the blow; the room notice (§2 step 4). Player event 6 (§1) is `CombatMessageRules.UpdateBattle`.
 
 ## Confidence
 

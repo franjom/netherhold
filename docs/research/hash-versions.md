@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**316** — `0x962BD3492ED4F056`. FormatVersion also 316. The combat states' handlers run as a step after the needs routine, so a creature the scan engages runs its fight state in that update (ADR-0555); the scan no longer posts the battle notice; never-used melee and spell stamps are `CreatureState.NeverUsed` (−1), which also moves the pin fixture's creatures' hashed stamps. `CombatAttackerScanTests`, `CombatNonFighterTests`, `CombatFearTests` and `CombatTests` cover it.
+
 **315** — `0x6D517264B5EC57B9`. FormatVersion also 315. Behaviour only: one creature's whole update before the next one's, newest first (`CreatureUpdateSystem`, ADR-0554): the fight, the needs routine, the anger ladder and angry chooser, the state handlers, the mover, then a worker's handler; an imp sent walking during its update steps from the next; payday's clock runs before the creatures and sets a credited creature off whatever its retry stamp; the manufacture loss moves into the player frame. No new fields; the pin fixture's run is unchanged and the pin moves by the version only. `CreatureUpdateSystemTests`, `PaydayTests.TheClockSetsACreditedCreatureOffAtOnce_WhateverTheNeedsRoutinesRetryStamp` and `ImpWalkEndTests` cover it.
 
 **314** — `0xABEF4268245B9904`. FormatVersion also 314. Behaviour only: a Bile Demon's idle shot takes its first update the turn it is made, as a list-0 shot does in `0x004B7830` (ADR-0551). No new fields; the pin fixture has no Bile Demon. `RefusedStateTests` covers it.

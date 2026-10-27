@@ -250,6 +250,9 @@ public class CombatApproachTests
         sim.ObserveWith(sink);
 
         for (int i = 0; i < 40 && !CreatureDeathRules.IsDown(victim); i++) sim.Run(1);
+        // A death on the health step's tick leaves the victim's own body beside the killer; it is
+        // carried off so the placed corpse is the only one the victory arm can weigh.
+        (victim.PosX, victim.PosY) = (CreatureState.CentreOf(12), CreatureState.CentreOf(12));
         Assert.True(CreatureDeathRules.IsDown(victim));
         Assert.Same(corpse, VictoryRules.NearestBody(world, killer));
         sim.Run(1);
@@ -318,6 +321,9 @@ public class CombatApproachTests
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
         for (int i = 0; i < 40 && !CreatureDeathRules.IsDown(victim); i++) sim.Run(1);
+        // A death on the health step's tick leaves the victim's own body beside the killer; it is
+        // carried off so the placed corpse is the only one the victory arm can weigh.
+        (victim.PosX, victim.PosY) = (CreatureState.CentreOf(12), CreatureState.CentreOf(12));
         sim.Run(1);
         Assert.Equal(CreatureActivity.Celebrating, killer.Activity);
         Assert.Null(VictoryRules.NearestBody(world, killer));

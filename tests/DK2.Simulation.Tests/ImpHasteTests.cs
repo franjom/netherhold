@@ -35,7 +35,7 @@ public class ImpHasteTests
         (ListEventSink sink, CreatureState imp) = Run(level: 3, Speed, Teleport);
 
         Assert.DoesNotContain(sink.Events, e => e.Kind == "speed_changed");
-        Assert.Equal(0, imp.SpellStamps[0]);
+        Assert.Equal(CreatureState.NeverUsed, imp.SpellStamps[0]);
     }
 
     /// <summary>A ready teleport slot before the speed slot ends the scan (<c>0x004651A0</c> breaks

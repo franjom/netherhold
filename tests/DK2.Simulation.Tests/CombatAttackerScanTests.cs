@@ -125,7 +125,7 @@ public class CombatAttackerScanTests
         Assert.True(CombatRules.Register(imp, giant.Id, ranged: false));
         GameSimulation simulation = Combat(db, world);
 
-        simulation.Tick();
+        // The scan takes the attacker and 199's handler runs in the same update (ADR-0555).
         simulation.Tick();
 
         Assert.Equal(CreatureActivity.Fleeing, imp.Activity);

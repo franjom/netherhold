@@ -75,32 +75,7 @@ public static class SimulationSystems
     [
         new CreatureStatusSystem(), // the status countdowns (0x0048E160) before the fight reads their words
         new FootprintSystem(),
-        // One creature's whole update before the next one's, newest first (0x004B7830, ADR-0554):
-        // the fight scan, the dispatcher's needs routine and mood chooser, the state handler, then
-        // the steering step (0x00488930, 0x00476FC0); an imp's walk step is in its handler.
-        new CreatureUpdateSystem(
-            new CombatSystem(),
-            // The needs routine: hunger, then sleep, then pay (creature-needs-routine.md §3).
-            new CreatureEatSystem(),
-            new CreatureSleepSystem(),
-            new PaydaySystem(), // its clock, before the first creature (0x0050A7BE): credited and set off this tick
-            new CreatureAngerSystem(), // the ladder and the angry chooser, after the needs routine
-            // The state handlers. A creature holds one state, so their order among themselves is
-            // only which system owns it.
-            new TremorCreatureSystem(), // recovery handler; world Tremor runs after the entity pass
-            new ReaperSystem(),
-            new FinaleSystem(), // the finale Reaper's states 228-234; the fireworks after the last creature
-            new CombatPitSystem(), // the pit's states (ADR-0213)
-            new JackInTheBoxSystem(), // state 273 and the travel toll
-            new CasinoJackpotSystem(), // the drunk timer, a winner's deadline and its states 152, 155-157 (ADR-0396)
-            new HeroSystem(), // a hero's standing job and its party walk, instead of the choosers (ADR-0216)
-            new CreatureJobSystem(), // a non-worker's jobs and its happy and unhappy choosers
-            new MovementDustSystem(), // foot dust for last tick's crossing onto dirt, before the mover (ADR-0477)
-            new CreatureMovementSystem(),
-            // A worker's handler after the mover: DK2 steps an imp inside its walk state's handler,
-            // before that handler's arrival test (0x00470C80), and the steering step skips imps.
-            // Each worker resolves its queued work before the next.
-            new ImpTaskSystem()),
+        CreatureUpdate(),
         // The doors' health after the creatures, as DK2's thing pass updates creatures first; ours
         // puts it before the shots, whose place in that pass is Q398 (door-blocking.md).
         new DoorHealthSystem(),
@@ -123,6 +98,38 @@ public static class SimulationSystems
         new FogOfWarSystem(), // after every creature has moved: an arrival is noticed on its own tick
         new WalkOverGoldSystem(), // gold underfoot, after movement (ADR-0300)
     ];
+
+    /// <summary>One creature's whole update before the next one's, newest first (<c>0x004B7830</c>,
+    /// ADR-0554): the fight scan, the dispatcher's needs routine and mood chooser, the state handler,
+    /// then the steering step (<c>0x00488930</c>, <c>0x00476FC0</c>); an imp's walk step is in its handler.</summary>
+    private static CreatureUpdateSystem CreatureUpdate()
+    {
+        var combat = new CombatSystem();
+        return new CreatureUpdateSystem(
+            combat, // the action runner, the fight scan and the fear radiation
+            // The needs routine: hunger, then sleep, then pay (creature-needs-routine.md §3).
+            new CreatureEatSystem(),
+            new CreatureSleepSystem(),
+            new PaydaySystem(), // its clock, before the first creature (0x0050A7BE): credited and set off this tick
+            new CreatureAngerSystem(), // the ladder and the angry chooser, after the needs routine
+            // The state handlers. A creature holds one state, so their order among themselves is
+            // only which system owns it. A creature the scan engaged runs its fight state now (ADR-0555).
+            combat.States, // the combat states, then the trap reveal (0x0048A0B4)
+            new TremorCreatureSystem(), // recovery handler; world Tremor runs after the entity pass
+            new ReaperSystem(),
+            new FinaleSystem(), // the finale Reaper's states 228-234; the fireworks after the last creature
+            new CombatPitSystem(), // the pit's states (ADR-0213)
+            new JackInTheBoxSystem(), // state 273 and the travel toll
+            new CasinoJackpotSystem(), // the drunk timer, a winner's deadline and its states 152, 155-157 (ADR-0396)
+            new HeroSystem(), // a hero's standing job and its party walk, instead of the choosers (ADR-0216)
+            new CreatureJobSystem(), // a non-worker's jobs and its happy and unhappy choosers
+            new MovementDustSystem(), // foot dust for last tick's crossing onto dirt, before the mover (ADR-0477)
+            new CreatureMovementSystem(),
+            // A worker's handler after the mover: DK2 steps an imp inside its walk state's handler,
+            // before that handler's arrival test (0x00470C80), and the steering step skips imps.
+            // Each worker resolves its queued work before the next.
+            new ImpTaskSystem());
+    }
 
     /// <summary>Tile work queued this tick and not yet resolved, and what burns after it.</summary>
     private static ISimulationSystem[] Work() =>

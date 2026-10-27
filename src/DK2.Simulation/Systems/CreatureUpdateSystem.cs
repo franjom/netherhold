@@ -51,13 +51,13 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
         foreach (ICreatureUpdateStep step in _steps) step.EndTurn(context);
     }
 
-    /// <summary>One step on its own, over the whole list in the sweep's order: what a step's
+    /// <summary>Steps on their own, over the whole list in the sweep's order: what a step's
     /// <see cref="ISimulationSystem.Execute"/> does in a host that runs it without the others.</summary>
-    public static void RunAlone(SimulationContext context, ICreatureUpdateStep step)
+    public static void RunAlone(SimulationContext context, params ICreatureUpdateStep[] steps)
     {
-        step.BeginTurn(context);
-        Sweep(context, [step]);
-        step.EndTurn(context);
+        foreach (ICreatureUpdateStep step in steps) step.BeginTurn(context);
+        Sweep(context, steps);
+        foreach (ICreatureUpdateStep step in steps) step.EndTurn(context);
     }
 
     private static void Sweep(SimulationContext context, ReadOnlySpan<ICreatureUpdateStep> steps)

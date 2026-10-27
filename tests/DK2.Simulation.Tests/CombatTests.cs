@@ -40,7 +40,7 @@ public class CombatTests
         GameSimulation sim = Combat(db, world);
         RunUntilSwing(sim, demon);
         long first = demon.TimeLastUsedMelee; // the tick the swing began; the world's counter is one past it
-        Assert.InRange(first, 1, 3);
+        Assert.InRange(first, 0, 3);
         Assert.Equal(1500, goblin.Health);
 
         sim.Run(delay - 1);
@@ -173,12 +173,12 @@ public class CombatTests
 
         SeedFight(db, knight, goblin);
         SeedFight(db, warlock, goblin);
+        // The demon engages the Knight and, in reach, begins its swing in the same update (its fight
+        // state runs after the scan, ADR-0555); the swing is what turns the Knight.
         sim.Run(1);
-        Assert.Equal(goblin.Id, knight.FightTargetId);
         Assert.Equal(goblin.Id, warlock.FightTargetId);
         Assert.Equal(knight.Id, demon.FightTargetId);
-
-        RunUntilSwing(sim, demon);
+        Assert.True(demon.SwingInProgress);
         Assert.Equal(demon.Id, knight.FightTargetId);
         Assert.Contains(knight.Id, demon.EngagedMelee);
         Assert.DoesNotContain(knight.Id, goblin.EngagedMelee);

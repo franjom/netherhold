@@ -94,11 +94,15 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - One creature's whole update runs before the next one's, newest first (ADR-0554, hash/save 315):
   `CreatureUpdateSystem` runs the fight, needs, anger, state handlers, mover and an Imp's handler
   per creature; the payday clock runs before the creatures. Non-Imp walks take their first step
-  on the tick they start in 34% (Level 2) and 26% (Level 4) of cases, native 40% and 28%. Not
-  explained: fewer Imp walk starts than native, many more withdrawals from state 203, and walks
+  on the tick they start in 34% (Level 2) and 26% (Level 4) of cases, native 40% and 28%. Walks
   from state 173 still start late. Differences left and measurements:
-  [creature-update-order.md](research/creature-update-order.md). The win and packet rigs have not
-  been rerun at hash 315.
+  [creature-update-order.md](research/creature-update-order.md).
+- The combat states' handlers run in the creature's dispatcher turn, after the needs routine, so a
+  creature the scan engages runs its fight state in that update (ADR-0555, hash/save 316):
+  `CombatSystem.States`, then the trap reveal. Level 4's Imps flee straight from a walk, as native
+  Imps do; Level 2's Imp walk starts are 852 (native 871). Still open (Q665): Level 4's Imps flee
+  far more often than native (236 entries into 201-203 against 41) and start few walks from state
+  87 (41 against 809). The win and packet rigs have not been rerun at hash 316.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

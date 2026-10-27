@@ -284,7 +284,7 @@ public static class CombatRules
     /// <summary>Gate B (<c>0x0048C9B0</c>): a melee swing may begin when <c>MeleeRecharge</c> ticks
     /// have passed since the last one began, after possession scaling and the work-rate divisor.</summary>
     public static bool SwingMayBegin(GameDatabase database, CreatureState creature, CreatureDef definition, long tick) =>
-        creature.TimeLastUsedMelee == 0
+        creature.TimeLastUsedMelee == CreatureState.NeverUsed
         || creature.TimeLastUsedMelee + Scaled(
             RechargeTicks(database, creature, TicksOf(definition.MeleeRecharge)), creature, definition) < tick;
 

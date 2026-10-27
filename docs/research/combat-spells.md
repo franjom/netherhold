@@ -217,8 +217,8 @@ by `0x00460DA0` (a route to the spot and the terrain flag) and applied by
 **Built (ADR-0167, `HashVersion` 72):** the survey's attack choice (§5) in
 `SpellRules.SurveyAttack`, run by `CombatTargetRules.Choose` for every non-worker; the
 fight-starter's nibble in `Engage` and `EngageHeart`; the cooldown gate §4 with
-the work-rate divisor; the spell arm §6 as `FightRules.StartCast`, stamping the
-slot at the start; action 16 §7 as `CastFires`/`FireSpell`, firing when the turn is
+the work-rate divisor, a never-cast slot being `CreatureState.NeverUsed` (−1); the spell arm §6 as
+`FightRules.StartCast`, stamping the slot at the start; action 16 §7 as `CastFires`/`FireSpell`, firing when the turn is
 past start + delay, with the lead on the target's last move, from the slot's origin
 turned by the caster's heading (ADR-0489; the height is dropped with the flight's, Q398); the cannot-cast
 fallback §9 and the step-back §10 in `CombatSystem.CannotCast`, except that

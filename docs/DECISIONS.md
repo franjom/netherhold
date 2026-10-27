@@ -12821,3 +12821,43 @@ Unity evidence goes to `D:\DK2Evidence`.
 - **Pin.** The pin moves only by the version.
 - **Covering tests.** `CreatureUpdateSystemTests`, the `PaydayTests` clock test, `ImpWalkEndTests`
   and `SimulationSystemsOrderTests`.
+
+## ADR-0555 — A creature's fight state runs in the update its scan engages it
+**Date:** 2026-10-27 · **Status:** accepted · Hash/save 316 · amends ADR-0554 · Q665 · Research: `docs/research/creature-update-order.md`
+
+**Context.** In `0x00488930` the fight scan (`0x00489AC7`) comes before the dispatcher
+(`0x0048A030`), and the trap reveal (`0x0048A0B4`) comes after the dispatcher. The dispatcher runs
+the handler of whatever state the creature holds at that point. So a creature the scan puts into
+state 199 runs `spFighting` in the same update:
+- out of reach, it enters the approach (state 8);
+- an Imp that a hero is attacking flees (203) through its NonFighter counter.
+
+Ours ran the combat states' handlers inside `CombatSystem`, in place of the scan, so a creature
+the scan engaged waited a tick for its handler. Native Level 4, seed 1, shows the cost:
+- native Imps reach 203 straight from a walk (6 → 203 or 202), and almost never enter 199;
+- ours entered 199 from a walk 151 times, and 142 of the Imps' 173 entries into 199 fled one tick
+  later;
+- non-Imps reach 199 from the approach in native (291 times; from a walk, 2), while ours went
+  6 → 199 directly 103 times.
+
+**Decision.**
+- `CombatSystem` is now the action runner, the scan and the fear radiation. Its `States` step runs
+  the combat states' handlers and then the trap reveal, among the state handlers after the needs
+  routine.
+- Run alone, `CombatSystem` sweeps both steps.
+- The scan no longer raises the battle notice; 199's handler does, on the turn the state is
+  entered (combat-fight-state.md §1).
+- A swing or cast can now begin on tick 0. A never-used melee or spell stamp is therefore
+  `CreatureState.NeverUsed` (−1, DK2's zero turn), not 0.
+
+**Consequences.**
+- **Level 2.** Imp walk starts are 852 against native 871 (ADR-0554: 622), and 122 from state 87
+  against 124 (ADR-0554: 5).
+- **Level 4.** Imps now flee straight from a walk, as native Imps do. They still enter 201-203
+  far more often than native (236 against 41) and start few walks from 87 (41 against 809). Heroes
+  chasing those Imps now drop back from the approach to 199 more often (non-Imp 8 → 199: 524,
+  before 307, native 291; most after an Imp target or a lost one). This stays open as Q665.
+- **Tests.** Five combat tests that pinned the one-tick delay now assert the same update. Two
+  victory tests move the victim's own body aside, because a kill on the health step's tick now
+  leaves it there.
+- **The pin.** The pin moves with the version and with the stamp sentinel.

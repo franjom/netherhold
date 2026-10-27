@@ -315,9 +315,10 @@ public class CombatFearTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        // The newer Demon radiates before the Goblin's handover on tick1;
-        // ticks2,3,4 count that fear over50, and tick4 flees.
-        sim.Run(3);
+        // The newer Demon radiates before the Goblin's update; the Goblin engages on tick 1 and its
+        // fight state runs in that update (ADR-0555), so ticks 1, 2, 3 count that fear over 50 and
+        // tick 3 flees.
+        sim.Run(2);
         Assert.Equal(2, goblin.OverThreatCounter);
         Assert.Equal(CreatureActivity.Fighting, goblin.Activity);
 
@@ -459,8 +460,8 @@ public class CombatFearTests
         Assert.Equal(CombatRules.NoTarget, goblin.FightTargetId);
 
         sim.Run(10);
-        Assert.Equal(0, goblin.TimeLastUsedMelee);
-        Assert.True(demon.TimeLastUsedMelee > 0 || demon.Activity == CreatureActivity.Fighting);
+        Assert.Equal(CreatureState.NeverUsed, goblin.TimeLastUsedMelee);
+        Assert.True(demon.TimeLastUsedMelee >= 0 || demon.Activity == CreatureActivity.Fighting);
     }
 
     [Fact]
