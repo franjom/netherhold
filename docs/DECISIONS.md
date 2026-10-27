@@ -12738,3 +12738,8 @@ refuses another version or another scenario file (SHA-256). `run` always writes 
 process under a time limit, in a new folder per watch so no evidence is deleted, and writes
 `failure.md` for a run that does not pass. On Level 17 an 1800-tick computer-keeper run (255
 keeper commands) replays all 1801 hashes without `KeeperAI`.
+
+**Amendment (2026-10-27): Stage C.** A fuzzer plays a keeper with only the commands
+`HumanCommandPolicy` allows, built as our input paths build them; observers that leave the hash
+alone add coverage, progress and stall candidates, and a save/load continuation check, the only
+invariant with a failure verdict. Details: the plan, §13.

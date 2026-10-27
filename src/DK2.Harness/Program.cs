@@ -18,9 +18,16 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
     Console.WriteLine("""
         DK2.Harness
 
-          run <scenario.yaml|directory> [--out <dir>]
+          run <scenario.yaml|directory> [--out <dir>] [run options]
               Runs one scenario, or every scenario under a directory.
               Default output: build/scenario-runs/<scenario-id>/, with input.journal.
+
+              run options:
+                --fuzz <player>[:<seed>[:<interval>]]  a legal-action fuzzer plays that
+                    player (seed defaults to the scenario's, interval to 4 ticks)
+                --coverage            coverage.tsv: triggers reached, states, events
+                --progress <ticks>    progress.tsv and stall candidates (40 with --fuzz)
+                --snapshot-check <ticks>  save, restore and compare every that many ticks
 
           replay <scenario.yaml> <input.journal> [--out <dir>]
               Re-runs a journal without its keepers or controllers and compares
@@ -28,12 +35,13 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
               a repeated failure.
 
           watch <scenario.yaml|directory> [--out <dir>] [--timeout-seconds 600]
-                [--budget-minutes 30] [--max-runs 20]
+                [--budget-minutes 30] [--max-runs 20] [run options] [--fuzz-seeds <n>]
               Runs each scenario in its own process, one at a time, and kills a
               run that outlives its limit. Each watch writes a new folder with
               watch-summary.tsv and, for a run that did not pass, failure.md
               beside its journal. Exit 1 when a run did not pass, 4 when a limit
-              left scenarios unrun.
+              left scenarios unrun. --fuzz passes through as given; with
+              --fuzz-seeds n each scenario runs n times, with fuzz seeds 1 to n.
 
           list [directory]
               Lists the scenarios found (default: scenarios/).
@@ -100,6 +108,12 @@ switch (args[0])
             return 2;
         }
 
+        if (HarnessCommandLine.RunOptions(args) is not { } template)
+        {
+            Console.Error.WriteLine("--fuzz takes <player>[:<seed>[:<interval>]]; --progress and --snapshot-check a positive whole number.");
+            return 2;
+        }
+
         int failures = 0;
         foreach (string file in files)
         {
@@ -110,7 +124,7 @@ switch (args[0])
                 Directory.CreateDirectory(outDir);
                 ScenarioResult result;
                 using (FileStream journal = File.Create(Path.Combine(outDir, "input.journal")))
-                    result = runner.Run(scenario, journal: journal);
+                    result = runner.Run(scenario, template.For(scenario, journal));
                 ScenarioRunner.WriteReport(result, outDir);
 
                 Console.WriteLine(
@@ -123,11 +137,16 @@ switch (args[0])
                 // catch exactly this, so it must reach the exit code.
                 foreach (string failure in result.ExpectationFailures)
                     Console.Error.WriteLine($"    EXPECTATION FAILED: {failure}");
+                foreach (string failure in result.InvariantFailures)
+                    Console.Error.WriteLine($"    INVARIANT FAILED: {failure}");
+                foreach (string stall in result.StallCandidates)
+                    Console.WriteLine($"    stall candidate: {stall}");
 
-                if (result.ExpectationFailures.Count > 0) failures++;
+                if (result.ExpectationFailures.Count > 0 || result.InvariantFailures.Count > 0) failures++;
             }
-            catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or IOException)
+            catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or IOException or ArgumentException)
             {
+                // ArgumentException: a --fuzz player that is no keeper, or not in this world.
                 Console.Error.WriteLine($"{file}: {ex.Message}");
                 failures++;
             }
@@ -189,7 +208,7 @@ switch (args[0])
             return 1;
         }
 
-        string? replayOut = OptionValue(args, "--out");
+        string? replayOut = HarnessCommandLine.Value(args, "--out");
         if (replayOut is not null) ScenarioRunner.WriteReport(result, Path.Combine(replayOut, scenario.Id));
         ReplayReport report = result.Replay!;
         if (report.JournalTruncated)
@@ -227,23 +246,29 @@ switch (args[0])
             return 2;
         }
 
-        int? perRun = IntOption(args, "--timeout-seconds", 600);
-        int? budget = IntOption(args, "--budget-minutes", 30);
-        int? maxRuns = IntOption(args, "--max-runs", 20);
+        if (HarnessCommandLine.WatchJobs(files, args) is not { } jobs)
+        {
+            Console.Error.WriteLine("A run option is malformed, or --fuzz-seeds was given without --fuzz; see --help.");
+            return 2;
+        }
+
+        int? perRun = HarnessCommandLine.Int(args, "--timeout-seconds", 600);
+        int? budget = HarnessCommandLine.Int(args, "--budget-minutes", 30);
+        int? maxRuns = HarnessCommandLine.Int(args, "--max-runs", 20);
         if (perRun is null || budget is null || maxRuns is null)
         {
             Console.Error.WriteLine("--timeout-seconds, --budget-minutes and --max-runs take a positive whole number.");
             return 2;
         }
 
-        var watchdog = new Watchdog(OptionValue(args, "--out") ?? "build/watch-runs",
+        var watchdog = new Watchdog(HarnessCommandLine.Value(args, "--out") ?? "build/watch-runs",
             new WatchLimits(TimeSpan.FromSeconds(perRun.Value), TimeSpan.FromMinutes(budget.Value), maxRuns.Value));
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
             watchdog.Cancel();
         };
-        WatchSummary summary = watchdog.Watch(files, Console.Out);
+        WatchSummary summary = watchdog.Watch(jobs, Console.Out);
         Console.WriteLine($"{summary.Ran} run, {summary.NotPassed} did not pass, {summary.Unrun} not run");
         // 1: something failed. 4: all that ran passed, but a limit or Ctrl+C left scenarios unrun.
         return summary.NotPassed > 0 ? 1 : summary.Unrun > 0 ? 4 : 0;
@@ -258,14 +283,3 @@ static List<string> FindScenarios(string dir) =>
     Directory.Exists(dir)
         ? [.. Directory.EnumerateFiles(dir, "*.yaml", SearchOption.AllDirectories).OrderBy(f => f, StringComparer.Ordinal)]
         : [];
-
-static string? OptionValue(string[] args, string name)
-{
-    int index = Array.IndexOf(args, name);
-    return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
-}
-
-// The fallback when the option is absent; null when it is present but not a positive whole number.
-static int? IntOption(string[] args, string name, int fallback) =>
-    OptionValue(args, name) is not string value ? fallback
-    : int.TryParse(value, out int parsed) && parsed > 0 ? parsed : null;

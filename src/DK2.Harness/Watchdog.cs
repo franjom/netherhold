@@ -15,7 +15,10 @@ public sealed record WatchLimits(TimeSpan PerRun, TimeSpan Total, int MaxRuns)
     public static readonly WatchLimits Default = new(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(30), 20);
 }
 
-/// <summary>What a watch did: runs started, runs that did not pass, scenarios left unrun.</summary>
+/// <summary>One watched run: a scenario file, the extra <c>run</c> options, and a label for the summary.</summary>
+public sealed record WatchJob(string File, IReadOnlyList<string> Args, string Label);
+
+/// <summary>What a watch did: runs started, runs that did not pass, jobs left unrun.</summary>
 public sealed record WatchSummary(string Root, int Ran, int NotPassed, int Unrun);
 
 /// <summary>
@@ -25,9 +28,9 @@ public sealed record WatchSummary(string Root, int Ran, int NotPassed, int Unrun
 /// deleted or mistaken for an earlier run's. The child writes its report and journal; for a run
 /// that did not pass, the watchdog adds <c>failure.md</c> and keeps the child's output.
 /// </summary>
-/// <param name="launch">Starts one run from a scenario file and an output folder. Defaults to this
-/// harness's <c>run</c> verb; tests substitute another process.</param>
-public sealed class Watchdog(string outRoot, WatchLimits limits, Func<string, string, ProcessStartInfo>? launch = null)
+/// <param name="launch">Starts one job into an output folder. Defaults to this harness's <c>run</c>
+/// verb; tests substitute another process.</param>
+public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, string, ProcessStartInfo>? launch = null)
 {
     private volatile bool _cancelled;
     private Process? _current;
@@ -39,18 +42,22 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<string, st
         Kill(_current);
     }
 
-    public WatchSummary Watch(IReadOnlyList<string> scenarioFiles, TextWriter log)
+    public WatchSummary Watch(IReadOnlyList<string> scenarioFiles, TextWriter log) =>
+        Watch(scenarioFiles.Select(f => new WatchJob(f, [], "")).ToList(), log);
+
+    public WatchSummary Watch(IReadOnlyList<WatchJob> jobs, TextWriter log)
     {
         string root = Path.Combine(outRoot, "watch-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture));
         Directory.CreateDirectory(root);
         log.WriteLine($"watch output: {root}");
         string summaryPath = Path.Combine(root, "watch-summary.tsv");
-        File.WriteAllText(summaryPath, "scenario\tverdict\texit\tseconds\tjournal_ticks\tjournal_end\n");
+        File.WriteAllText(summaryPath, "scenario\tlabel\tverdict\texit\tseconds\tjournal_ticks\tjournal_end\n");
         var total = Stopwatch.StartNew();
         int notPassed = 0;
         int run = 0;
-        foreach (string file in scenarioFiles)
+        foreach (WatchJob job in jobs)
         {
+            string file = job.File;
             TimeSpan left = limits.Total - total.Elapsed;
             if (_cancelled || run >= limits.MaxRuns || left <= TimeSpan.Zero)
             {
@@ -58,23 +65,24 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<string, st
                 break;
             }
             run++;
-            Outcome outcome = RunOne(file, Path.Combine(root, run.ToString("D3", CultureInfo.InvariantCulture)),
+            Outcome outcome = RunOne(job, Path.Combine(root, run.ToString("D3", CultureInfo.InvariantCulture)),
                 left < limits.PerRun ? left : limits.PerRun);
             if (outcome.Verdict != "passed") notPassed++;
             File.AppendAllText(summaryPath, string.Join('\t',
-                outcome.Id, outcome.Verdict, outcome.ExitCode.ToString(CultureInfo.InvariantCulture),
+                outcome.Id, job.Label, outcome.Verdict, outcome.ExitCode.ToString(CultureInfo.InvariantCulture),
                 outcome.Seconds.ToString("F1", CultureInfo.InvariantCulture),
                 outcome.Journal?.LastHashedTick.ToString(CultureInfo.InvariantCulture) ?? "",
                 outcome.Journal?.EndReason ?? (outcome.Journal is null ? "no journal" : "cut short")) + "\n");
-            log.WriteLine($"{outcome.Id,-36} {outcome.Verdict,-8} {outcome.Seconds,7:F1} s");
+            log.WriteLine($"{outcome.Id,-36} {job.Label,-14} {outcome.Verdict,-8} {outcome.Seconds,7:F1} s");
         }
-        return new WatchSummary(root, run, notPassed, scenarioFiles.Count - run);
+        return new WatchSummary(root, run, notPassed, jobs.Count - run);
     }
 
     private sealed record Outcome(string Id, string Verdict, int ExitCode, double Seconds, InputJournal? Journal);
 
-    private Outcome RunOne(string file, string runOut, TimeSpan limit)
+    private Outcome RunOne(WatchJob job, string runOut, TimeSpan limit)
     {
+        string file = job.File;
         Directory.CreateDirectory(runOut);
         string id;
         try { id = Scenario.Load(file).Id; }
@@ -91,7 +99,7 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<string, st
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
         var clock = Stopwatch.StartNew();
-        ProcessStartInfo start = (launch ?? SelfRun)(file, runOut);
+        ProcessStartInfo start = (launch ?? SelfRun)(job, runOut);
         start.RedirectStandardOutput = start.RedirectStandardError = true;
         start.UseShellExecute = false;
         using var child = new Process { StartInfo = start };
@@ -185,7 +193,8 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<string, st
     private static string Header(InputJournal journal, string key) =>
         journal.Header.TryGetValue(key, out string? value) ? value : "unknown";
 
-    private static ProcessStartInfo SelfRun(string file, string runOut) => SelfStart("run", file, "--out", runOut);
+    private static ProcessStartInfo SelfRun(WatchJob job, string runOut) =>
+        SelfStart(["run", job.File, "--out", runOut, .. job.Args]);
 
     /// <summary>This harness again, whether it was started as an apphost or through <c>dotnet</c>.</summary>
     private static ProcessStartInfo SelfStart(params string[] args)

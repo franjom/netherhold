@@ -49,8 +49,8 @@ public class WatchdogTests : IDisposable
         Assert.Equal(2, summary.Ran);
         Assert.Equal(1, summary.NotPassed);
         string[] rows = File.ReadAllLines(Path.Combine(summary.Root, "watch-summary.tsv"));
-        Assert.StartsWith("broken.yaml\tinvalid", rows[1], StringComparison.Ordinal);
-        Assert.StartsWith("watch-probe\tpassed", rows[2], StringComparison.Ordinal);
+        Assert.StartsWith("broken.yaml\t\tinvalid", rows[1], StringComparison.Ordinal);
+        Assert.StartsWith("watch-probe\t\tpassed", rows[2], StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(summary.Root, "001", "invalid.txt")));
     }
 

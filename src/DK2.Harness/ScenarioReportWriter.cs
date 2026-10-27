@@ -33,7 +33,7 @@ internal static class ScenarioReportWriter
                     return $"{e.InputTick}\t{e.Command.PlayerId}\t{e.Command.GetType().Name}\t{hash.Value:x16}";
                 }));
 
-        // Type and hash only, like keeper-commands.tsv: not replayable until the trace serializer (ADR-0552 Stage B).
+        // Type and hash only, like keeper-commands.tsv: a readable summary; input.journal replays.
         if (result.ControllerCommandLog.Count > 0)
             File.WriteAllLines(Path.Combine(outputDir, "controller-commands.tsv"),
                 result.ControllerCommandLog.Select(e =>
@@ -42,6 +42,17 @@ internal static class ScenarioReportWriter
                     e.Command.HashInto(ref hash);
                     return $"{e.InputTick}\t{e.Controller}\t{e.Command.PlayerId}\t{e.Command.GetType().Name}\t{hash.Value:x16}";
                 }));
+
+        if (result.Coverage is RunCoverage coverage)
+            File.WriteAllLines(Path.Combine(outputDir, "coverage.tsv"),
+                [$"triggers\treached\t{coverage.TriggerRecordsReached}",
+                 .. coverage.CreatureTicksByState.OrderBy(kv => kv.Key).Select(kv => $"state\t{kv.Key}\t{kv.Value}"),
+                 .. coverage.EventsByKind.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => $"event\t{kv.Key}\t{kv.Value}")]);
+
+        if (result.Progress.Count > 0)
+            File.WriteAllLines(Path.Combine(outputDir, "progress.tsv"),
+                ["tick\tplayer\tstatus\towned_tiles\troom_tiles\tgold\tmana\tcreatures",
+                 .. result.Progress.Select(p => $"{p.Tick}\t{p.Player}\t{p.Status}\t{p.OwnedTiles}\t{p.RoomTiles}\t{p.Gold}\t{p.Mana}\t{p.Creatures}")]);
 
         var report = new StringBuilder();
         report.AppendLine($"# Scenario run: {result.Scenario.Id}");
@@ -60,6 +71,25 @@ internal static class ScenarioReportWriter
         if (result.ControllerCommandLog.Count > 0)
             report.AppendLine($"- test controller commands emitted: {result.ControllerCommandLog.Count} (controller-commands.tsv)");
         report.AppendLine();
+
+        if (result.SnapshotChecks > 0)
+            report.AppendLine($"Snapshot continuation checks: {result.SnapshotChecks}, failed: {result.InvariantFailures.Count}.{Environment.NewLine}");
+
+        if (result.InvariantFailures.Count > 0)
+        {
+            report.AppendLine("## Invariant failures");
+            report.AppendLine();
+            foreach (string failure in result.InvariantFailures) report.AppendLine($"- **FAILED**: {failure}");
+            report.AppendLine();
+        }
+
+        if (result.StallCandidates.Count > 0)
+        {
+            report.AppendLine("## Stall candidates (diagnostic, not verdicts)");
+            report.AppendLine();
+            foreach (string stall in result.StallCandidates) report.AppendLine($"- {stall}");
+            report.AppendLine();
+        }
 
         if (!string.IsNullOrWhiteSpace(result.Scenario.Question))
         {

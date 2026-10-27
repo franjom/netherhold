@@ -113,6 +113,13 @@ public sealed class BottomPanelView
     /// recharge (<c>0x00412FC0</c>'s special arm), its icon the object's GUI icon (runtime art slot 0).</summary>
     public IReadOnlyList<BottomPanelChoice> StoredSpecials => _specials;
 
+    /// <summary>Whether a click can select a choice with this availability value: it is shown
+    /// (not 1) and neither 2 nor 4. The legal-action fuzzer applies the same rule.</summary>
+    public static bool IsSelectable(int availability) => availability is not (1 or 2 or 4);
+
+    /// <summary>Traps flagged <c>0x2000</c> have no panel choice.</summary>
+    public static bool IsOnPanel(TrapDef trap) => (trap.Flags & 0x2000) == 0;
+
     /// <summary>The choice for a key, or null when the panel has none.</summary>
     public BottomPanelChoice? Choice(BottomPanelChoiceKey key)
     {
@@ -154,7 +161,7 @@ public sealed class BottomPanelView
         foreach (DoorDef door in database.Doors.Values.OrderBy(d => order?.Invoke(new BottomPanelChoiceKey(BottomPanelChoiceKind.Door, d.DoorId)) ?? d.DoorId))
             Add(BottomPanelChoiceKind.Door, door.DoorId, door.Name, door.GoldCost);
         foreach (TrapDef trap in database.Traps.Values.OrderBy(t => order?.Invoke(new BottomPanelChoiceKey(BottomPanelChoiceKind.Trap, t.TrapId)) ?? t.TrapId))
-            if ((trap.Flags & 0x2000) == 0) Add(BottomPanelChoiceKind.Trap, trap.TrapId, trap.Name, trap.GoldCost);
+            if (IsOnPanel(trap)) Add(BottomPanelChoiceKind.Trap, trap.TrapId, trap.Name, trap.GoldCost);
         _choices = choices.ToArray();
     }
 
@@ -240,7 +247,7 @@ public sealed class BottomPanelView
                 choice.Visible = OwnsRoomTile(world, (RoomTypeId)choice.Key.Value);
             choice.Unknown = available == 2;
             choice.ClearsToolOnClick = choice.Kind == BottomPanelChoiceKind.Room && available == 4;
-            choice.Selectable = choice.Visible && available != 2 && available != 4;
+            choice.Selectable = IsSelectable(available);
             if (choice.Kind == BottomPanelChoiceKind.Spell && choice.Key.Value == 4 && player)
                 choice.Cost = ImpSupplyRules.CreateImpCost(world, _database, _player);
             choice.Affordable = choice.Cost <= (choice.Kind == BottomPanelChoiceKind.Spell ? mana : gold);

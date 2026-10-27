@@ -74,6 +74,19 @@ public sealed record ScenarioResult(
     /// <summary>A replay's verdict against its journal; null for an ordinary run.</summary>
     public ReplayReport? Replay { get; init; }
 
+    /// <summary>What the run touched, when <see cref="RunOptions.Coverage"/> asked for it.</summary>
+    public RunCoverage? Coverage { get; init; }
+
+    public IReadOnlyList<ProgressSample> Progress { get; init; } = [];
+
+    /// <summary>Controlled players whose progress stood still: candidates for a look, not bugs.</summary>
+    public IReadOnlyList<string> StallCandidates { get; init; } = [];
+
+    /// <summary>Broken engine contracts (the snapshot continuation check). Each fails the run.</summary>
+    public IReadOnlyList<string> InvariantFailures { get; init; } = [];
+
+    public int SnapshotChecks { get; init; }
+
     /// <summary>Where the run's wall-clock time went. Not part of the report: see <see cref="RunTimings"/>.</summary>
     public RunTimings? Timings { get; init; }
 }
@@ -111,7 +124,11 @@ public sealed class ScenarioRunner
     /// (<see cref="InputJournalWriter"/>), ending with "completed" or the exception that stopped it.</param>
     public ScenarioResult Run(
         Scenario scenario, IReadOnlyList<ScenarioController>? controllers = null, Stream? journal = null) =>
-        RunOnLevel(scenario, new RunMode(controllers ?? [], journal, null));
+        Run(scenario, new RunOptions { Controllers = controllers ?? [], Journal = journal });
+
+    /// <summary>Runs a scenario with controllers, a journal and the observers in <paramref name="options"/>.</summary>
+    public ScenarioResult Run(Scenario scenario, RunOptions options) =>
+        RunOnLevel(scenario, new RunMode(options, null));
 
     /// <summary>
     /// Replays a journal against its scenario: the scenario's world, setup and <c>work</c> as
@@ -124,7 +141,7 @@ public sealed class ScenarioRunner
     public ScenarioResult Replay(Scenario scenario, InputJournal journal)
     {
         JournalHeader.CheckReplayable(scenario, journal);
-        return RunOnLevel(scenario, new RunMode([], null, journal));
+        return RunOnLevel(scenario, new RunMode(new RunOptions(), journal));
     }
 
     private ScenarioResult RunOnLevel(Scenario scenario, RunMode mode)
@@ -141,7 +158,11 @@ public sealed class ScenarioRunner
     }
 
     /// <summary>Where a run's input comes from besides the scenario, and where it is journalled.</summary>
-    private sealed record RunMode(IReadOnlyList<ScenarioController> Controllers, Stream? Record, InputJournal? Replay);
+    private sealed record RunMode(RunOptions Options, InputJournal? Replay)
+    {
+        public IReadOnlyList<ScenarioController> Controllers => Options.Controllers;
+        public Stream? Record => Options.Journal;
+    }
 
     /// <summary>The level's own VARIABLES, for a scenario that names a campaign map.</summary>
     private GlobalVariables? ResolveLevelVariables(string mapSpec)
@@ -276,6 +297,9 @@ public sealed class ScenarioRunner
         journal?.WriteHash(0, hashes[0]);
         var divergence = new ReplayComparison(replay);
         divergence.Compare(0, hashes[0]);
+        var monitor = new RunMonitor(mode.Options, _database,
+            () => builder.ResolveShippedTriggers(scenario, campaignLevel), work, scenario.DurationTicks);
+        monitor.Start(simulation);
         int completed = 0;
         try
         {
@@ -295,6 +319,7 @@ public sealed class ScenarioRunner
                 completed = t + 1;
                 journal?.WriteHash(t + 1, hashes[t + 1]);
                 divergence.Compare(t + 1, hashes[t + 1]);
+                monitor.AfterTick(simulation, t, given, hashes[t + 1]);
                 if (t + 1 == scenario.DurationTicks)
                 {
                     clock.EndTick();
@@ -324,6 +349,7 @@ public sealed class ScenarioRunner
                                 $"but emitted {command.GetType().Name} for player {command.PlayerId.Value}.");
                         next.Add(command);
                         controllerLog.Add(new ControllerCommandEmission(t + 1, controller.Name, command));
+                        monitor.ControllerIssued(controller.PlayerId, t + 1);
                     }
                 }
                 clock.End(RunClock.Controllers);
@@ -363,6 +389,11 @@ public sealed class ScenarioRunner
             KeeperStates = keepers.ToDictionary(k => k.PlayerId, k => k.State),
             ControllerCommandLog = controllerLog,
             Replay = divergence.Report(),
+            Coverage = monitor.Coverage(sink.Events),
+            Progress = monitor.Progress,
+            StallCandidates = monitor.StallCandidates,
+            InvariantFailures = monitor.InvariantFailures,
+            SnapshotChecks = monitor.SnapshotChecks,
             Timings = clock.Stop(),
         };
     }
