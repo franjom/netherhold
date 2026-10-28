@@ -72,8 +72,8 @@ public static class ManufactureRules
     /// keeper's blueprint list (<c>0x00505680</c>) and makes one order through <c>0x005066E0</c>
     /// while the door blueprints of its type outnumber the keeper's crates of that type.</summary>
     /// <remarks>The trap loader <c>0x00520E50</c> does push an authored trap blueprint (an order
-    /// at <c>0x00520F1A</c>, then the list); ours queues none, so a level that authors one would
-    /// order its first crate differently and set another slot-0 cost (Q618). Ours, stated: the counts are taken
+    /// at <c>0x00520F1A</c>, then the list) for a parsed NumberOfShots of 0; ours queues none. No
+    /// shipped level authors one (Q667), so only a custom level would differ. Ours, stated: the counts are taken
     /// once over the whole level rather than as each record is read, and orders go in blueprint
     /// order.</remarks>
     public static void QueueBlueprints(WorldState world, GameDatabase database)

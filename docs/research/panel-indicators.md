@@ -109,6 +109,9 @@ slot 0, or a door or trap sell ([0x005069E0](functions/005069E0.md)) that emptie
 capture shows it: every crate was made as the points passed the first order's 3000. Ours keeps
 the word as `PlayerState.ManufactureSlotZeroCost` (with `ManufactureRingTail`); the panel's
 percent divides by it and `ManufactureRules.Credit` pays at it. The sell is not built.
+Only a sale (game actions 0x33/0x35) changes the ring outside enqueue and pop (Q668): the sells call the remove for a door
+or trap still under construction only, taking the first order of its type and zeroing `+0x217` when
+that was the head; a door or trap destroyed any other way leaves its order queued.
 
 ## 4. Research — CONFIRMED except the colour order
 
