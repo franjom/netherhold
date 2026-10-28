@@ -40,6 +40,8 @@ map tile for tile.
   extent in 470 samples. Our C# itself (`CapturedGuardRoomTests`), every fiftieth tick: all 80
   compared calls equal. Not checked: the callers' early-outs, variable 190, bounds after a room
   loses tiles. So the Level 4 hero-contact lead is not in this test.
+- **Continuing a replay from the tick.** `dk2tools replay --resync` applies the tick's state to a
+  running replay (`resync-replay.md`, ADR-0556).
 
 ## 3. Our C# on a whole-process dump
 

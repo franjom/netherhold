@@ -90,7 +90,8 @@ later. Native Imps reach 203 straight from a walk. Running the fight state in th
 ### What remains on Level 4 (Q665)
 
 Scripts and outputs: `D:/DK2Evidence/runs/q665-imp-flee-2026-10-27/analysis/`. Level 4, seed 1, against
-native, three measured gaps:
+native, three measured gaps (a replay resynced from DK2's tick 2340 matches native's job mix to 3100:
+`resync-replay.md`):
 
 - **Imp deaths.** Ours loses 32 Imps over the run (15 in ticks 4000-4750) against 0 native.
   - 184 of our 236 Imp entries into 201-203 fall in 4000-5999, against 41 native over the whole run
