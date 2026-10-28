@@ -1,8 +1,8 @@
 # Portal visibility (Q197)
 
-Status: **Startup discovery solved; ring lighting remains partial. No new behavior built.** Binary and shipped-data
-read, 2026-10-24. Confidence labels below distinguish the native contracts from
-their possible correspondence to the owner's observation.
+Status: **Startup discovery answered; light path traced, exact source count unresolved. No new behavior built.**
+Binary and shipped-data read through 2026-10-28. Native contracts are CONFIRMED;
+correspondence to the supplied screenshots is STRONGLY INFERRED, without a pixel capture.
 
 ## Observation and data
 
@@ -109,21 +109,70 @@ to explain the four reveals.
 
 ## Entrance light and the ring
 
-**CONFIRMED:** shared refresh `0x004DCD20` creates an engine light on the
-fifth slab of a nine-slab room, at tile centre and raw height2000, through bridge
-slot `+0xA4` (`0x004397E0`). Initializer `0x0043A1E0` resolves its inputs as
-RGB `(255,33,26)`, intensity128, requested radius `0x2800` clamped to `0x2780`
-(2.46875 tiles), and flags `0x15` before the initializer's flag additions.
-The refresh clears bit0 at light `+0x72`. This applies to both entrance
-types, without an arrival, activation or owner test in the refresh. It does
-not write explored or scanned bits. Light `+0x72 bit0` is distinct from the
-generic presentation flag `+0x72 bit0x10` tested for fog admission by the ordinary
-rendered-object path (`0x0043C6E8`, `0x0043CF8E`). The cleared bit's purpose
-remains unresolved; these inputs establish no special discovery mode.
+**CONFIRMED:** shared refresh `0x004DCD20` creates a standalone engine light
+on the fifth slab of a nine-slab entrance, at tile centre and raw height2000,
+through bridge `+0xA4` (`0x004397E0`). Both room3 and room25 use this refresh,
+without an arrival, activation or owner test. It does not explore or scan.
+The source has no expiry (`+0x144 = 0xFF`) or room-stored handle in this path.
+Each qualifying refresh allocates another source. One row-major authored-map pass
+through `0x0051EC60`/`0x004C5C30`/`0x004ED1A0` reaches size9 once per3x3 room
+and requests one light. Generic furniture rebuild `0x004EDFC0` does not itself
+call `0x004E4480`; its startup invocation is not proof of a second request.
+Whole-startup refresh multiplicity and external deletion are not yet established; a single source cannot be assumed.
 
-**GUESS:** this light produces the reported ring. Its actual lighting footprint
-and the meaning of that cleared light flag have not been traced to the fogged
-surface draw. No separate light or fog bypass is implemented from this reading.
+Initializer `0x0043A1E0` takes RGB `(255,33,26)`, intensity128, and requested
+radius `0x2800`, clamped to `0x2780` (2.46875 tiles). Input flags `0x15` become
+`0x3D`; the pulse phase byte `+0x12B` starts1. Before its first update it keeps
+the initial RGB. Under bit4, `0x0043A2E0` computes current RGB as
+`(255*q >> 8, 26*q >> 8, 33*q >> 8)`: the native branch swaps green and blue.
+It then changes q by10, reversing above249 or below11. The computed sequence
+is `1,11,...,241,251,241,...,11`, repeating after50 updates. Peak RGB is
+`(250,25,32)`; phase1 truncates all channels to0. This is a deterministic pulse.
+
+`0x0043B220` admits the update only when elapsed wall time is strictly over50ms,
+advancing its anchor by whole50ms quanta. Each admitted call updates each light
+once, even after a stall; effects separately receive the elapsed quantum count.
+The nominal pulse period is2.5s, stretched by missed presentation updates.
+
+**CONFIRMED source admission:** `0x0043A0D0` creates kind2/mode1; constructor
+`0x004468E0` embeds RenderInfo at `+0x26`. Reset `0x004B3610` already zeroes
+RenderInfo `+0x4C`, hence light `+0x72`. Clearing its bit0 again in the entrance
+refresh does not enable source emission: `0x00599C60` submits a nonzero-radius
+kind2 light without reading that bit, before optional mesh drawing. Its actual
+renderer classification is `0x191` normally or `0x95` with Cheap Lighting
+(`0x00599BD0`), distinct from the initializer flags. The mode1 cache-only path
+in `0x0043CC30` submits it without an exploration test; `0x00571AB0` links it
+into the dynamic cache. This does not bypass admission for room or creature art.
+
+**CONFIRMED receiver path:** the7x7 cache gather `0x00576230` has no exploration
+or line-of-sight test. Unknown ground still substitutes terrain27 in `0x0043E320`.
+The substitute follows the ordinary piece path `0x0043E860`, whole/quarter sinks
+`0x0059A050`/`0x0059A200`, mesh item `0x00585F90` and transform `0x0057AD20`;
+there is no fog-specific lighting suppression in these paths. Shipped Fog Of War
+uses ROCK TOP: source Z=-2 and normal `(0,0,-1)`. Ordinary top flags `0x90`
+invert the lighting normal. In Unity coordinates the flat top is height2 with
+a downward normal, so the lower entrance source can illuminate it. Existing
+terrain piece construction already applies this inversion.
+
+`0x0057BF00` adds light only for strict distance squared < radius squared and
+nonnegative normal incidence, using the existing distance-bin attenuation and
+factor cap. Thus the light fades across the **fog substitute**, without drawing
+the concealed terrain or changing discovery. On a flat height2 top the derived
+horizontal sphere intersection radius is about1.952 tiles, extending about0.452
+past a3x3 room's side; at ground height0 it is about2.420 tiles. These are geometric
+limits, not a fixed tile-shaped reveal. Terrain lattice deformation, normals,
+textures and other lights change the visible edge and brightness. The dim ring's
+correspondence to this path is **STRONGLY INFERRED** from the native source and
+receiver chain plus the owner's screenshots; no matched native pixel capture was run.
+
+**Not built:** review found that one persistent source per centre does not mirror
+the allocator. Every qualifying refresh creates another light with its own pulse state,
+without retaining a handle in the room. The allocator's capacity check is not proof
+that loading suppresses requests. Count the qualifying callbacks during map loading
+and subsequent startup rebuilds before prescribing source count, combined brightness
+or an exact pulse phase. Existing room stamps retain only the last change, so polling
+them cannot reconstruct multiple allocations. No presentation or simulation change
+is retained from this partial reading; ADR-0076 and HashVersion are unchanged.
 
 ## Minimap flash
 
@@ -222,7 +271,9 @@ byte difference is the DDRAW/PATCH import-name substitution.
 
 ## Next evidence
 
-Q197 retains the light/ring boundary; startup discovery is answered and Q669
-is closed. Trace the bridge light's remaining flag through source submission
-and compare the ring before building a lighting change. No simulation state,
-HashVersion, presentation rules or Unity wiring changed.
+Q197 remains open for exact source count and combined ring brightness. Trace each
+startup invocation of `0x004E4480`/`0x004DCD20` through map construction and later
+room rebuilds, including whether the bridge/view exists at each request. Check callback selection in `0x0051E0A0`, alternate tile-change callers and
+view-pool reset timing before first draw. Then wire actual refresh events rather
+than deduplicating centres. Q670 asks for the observable pulse/edge correspondence;
+it does not replace the allocation trace.

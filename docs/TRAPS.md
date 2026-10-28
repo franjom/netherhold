@@ -106,7 +106,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - KB evidence fragments match Markdown headings, not HTML anchors; changing an evidence header also requires a dated History line.
 - KB list fields use repeated `key: value` headers; indented YAML arrays are rejected by `kb check`.
 - In a sibling worktree, `apply_patch` cannot create parent directories; create them with an approved native filesystem command first.
-- Windows Python defaults to a legacy code page here; use `encoding='utf-8-sig'` when reading repository Markdown.
+- Windows Python defaults to a legacy code page here; read Markdown with `encoding='utf-8-sig'` and write with `encoding='utf-8'` (or set `PYTHONUTF8=1`), otherwise existing Unicode can be corrupted.
 - PowerShell here-strings piped into Python can replace non-ASCII source literals with `?`; use ASCII script literals or `apply_patch` for Unicode edits.
 - `WadArchive.TryGetEntry` returns the later of two same-named entries; FrontEnd.WAD has 31 duplicate names (loading screens, `2dLevelS*`, Cancel/Confirm), so look those up by entry index ([front-end-assets.md](research/front-end-assets.md) §1.3).
 
