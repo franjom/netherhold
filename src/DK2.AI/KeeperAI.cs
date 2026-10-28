@@ -18,8 +18,9 @@ namespace DK2.AI;
 /// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>),
 /// the battle step (<see cref="KeeperBattleStep"/>), the retreat (<see cref="KeeperRetreatStep"/>), the
 /// training moves (<see cref="KeeperTrainingStep"/>), the attack planner (<see cref="KeeperAttackPlanner"/>), room
-/// messages 41/42 (<see cref="KeeperRoomRequests"/>) and mood messages 17/18 (<see cref="KeeperMoodRemedies"/>).
-/// Not implemented: traps and doors, prisoners and the researcher's portal move.</para>
+/// messages 41/42 (<see cref="KeeperRoomRequests"/>), mood messages 17/18 (<see cref="KeeperMoodRemedies"/>)
+/// and traps and doors (<see cref="KeeperTrapDoorStep"/>). Not implemented: prisoners and the
+/// researcher's portal move.</para>
 /// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the world's (§12.1).</para>
 /// </remarks>
 public sealed class KeeperAI
@@ -129,6 +130,10 @@ public sealed class KeeperAI
         // tests, and a not-ready army gets the training moves (0x004FF5C0).
         if (_rng.NextInt(100) < 50 && budget > 0 && !readiness.ArmyReady())
             budget = new KeeperTrainingStep(view, State, _p, _rng, commands, readiness, retreat.Prepared).Run(budget);
+
+        // 10. Traps and doors, drawn only with allowance (0x00500E62).
+        if (budget > 0 && _rng.NextInt(100) < 10)
+            budget = new KeeperTrapDoorStep(view, _p, _rng, commands).Run(budget);
 
         // 11. Imps while no fight is on, else the battle step; then 13. slaps.
         if (budget > 0)
