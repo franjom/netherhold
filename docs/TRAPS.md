@@ -243,7 +243,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A doc's "all N records" counts one record type: "every hero has `DestroysRooms`" was true of
   trigger-created creatures and false of party members (825 of 4,545).
 - A clean unstaged diff checks no committed changes; run `git diff --check <base> HEAD` and `--cached` before committing new files.
-- Snapshot tests need the supported xoshiro RNG; scripted `IRandomAlgorithm` test doubles intentionally have no save format (ADR-0275).
+- Snapshot tests need `Xoshiro256StarStar` or `Dk2Lcg`; scripted `IRandomAlgorithm` test doubles intentionally have no save format (ADR-0275, ADR-0564).
 - PowerShell can report failure when a native command writes diagnostics to stderr; finish redirected native runs with `exit $LASTEXITCODE` to preserve the program's exit code.
 - Ghidra can omit callback arguments from a decompiler signature; check caller pushes and callee stack cleanup before assigning constructor versus cleanup roles.
 - After a failed multi-file apply_patch, inspect each target before retrying: earlier files may already contain the change.

@@ -5832,7 +5832,7 @@ Action durations remain approximate. This supplies the stored flag for later
 removal integration; it does not enable live mana removal or keeper defence.
 
 ## ADR-0275 — DK2's generator behind a pluggable algorithm, not yet the default
-**Date:** 2026-09-29 · **Status:** accepted
+**Date:** 2026-09-29 · **Status:** accepted; the snapshot limit lifted by ADR-0564
 
 **Context.** Q3 is answered: DK2's generator, its streams and its seeding are in
 `research/dk2-random.md`. The owner wants it built and switchable, so runs can be
@@ -5846,10 +5846,9 @@ DK2's level-start seed 1. `Dk2Lcg.StepsBetween` reads a capture's per-tick seeds
 as draws per tick. The default's draws, hash and snapshot are bit-identical, so
 there is no hash or save version change.
 
-**Limits.** Snapshots store xoshiro state only; `SaveState` refuses another
-algorithm rather than restore it as the wrong generator. Adding the algorithm to
-the format is the version bump that making `dk2` the default will need. Choosing
-`dk2` does not make our draws line up with DK2's: our call sites, their order and
+**Limits.** `SaveState` is the xoshiro tuple and refuses another algorithm
+rather than restore it as the wrong generator; the snapshot format tags both
+algorithms (ADR-0564). Choosing `dk2` does not make our draws line up with DK2's: our call sites, their order and
 their ranges differ, and `KeeperAI` draws from its own stream, while DK2's
 computer player draws from the world seed. Draw-for-draw alignment is not a goal
 (owner, 2026-09-29: fidelity is judged by outcomes).
@@ -13133,3 +13132,28 @@ and the strike's tick. The strike timer only strikes.
 Tests (GoldCarryingTests): `AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesActionEnds`,
 `AMinerWhoseOverflowTakesItsPileOverTheLimit_OnALaterStrike_GivesTheSlotUpOnThatStrikesTick`, and
 the ADR-0562 tests run with and without the clip.
+
+## ADR-0564 — Snapshots carry DK2's generator as well as xoshiro
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 321 · Issue #1 (item 8)
+
+**Context.** ADR-0275 made the generator pluggable but left snapshots xoshiro-only:
+`SimRandom.SaveState()` throws for `Dk2Lcg`. Scenarios with `random: dk2` and `replay` run on
+the LCG, so those runs could not be saved or restored. A `random: dk2` copy of
+`smoke/campaign_level1_placed_things` with `--snapshot-check 40` failed all 14 checks with
+`NotSupportedException`.
+
+**Decision.** The snapshot writes a one-byte generator tag before the generator's state:
+0 = `Xoshiro256StarStar` (its four words, as before), 1 = `Dk2Lcg` (its 32-bit `Seed`). Read
+builds the generator the tag names and refuses an unknown tag with `InvalidDataException`. A new
+algorithm needs a new tag; writing one without a tag throws. `SimRandom.SaveState()` stays the
+xoshiro-only tuple that tests compare.
+
+**Consequences.**
+- The format changes, so `FormatVersion` and `HashVersion` go to 321 together. No state or hash
+  field changes; the pin fixture moves by the version only.
+- The same scenario now passes all 14 snapshot checks.
+- This is what ADR-0275's "Limits" asked for before `dk2` can be the default. It does not make
+  `dk2` the default.
+
+Tests: `SnapshotTests.RoundTrip_CarriesTheDk2Generator` (restores as `Dk2Lcg` at its seed, and the
+two worlds hash alike 100 ticks later), `SnapshotTests.Read_RefusesAGeneratorTagItDoesNotKnow`.
