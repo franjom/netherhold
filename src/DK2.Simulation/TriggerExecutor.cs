@@ -310,8 +310,8 @@ internal sealed class TriggerRun(int currentTick)
     public CreatureState? Creature { get; set; }
 
     /// <summary>The map's derived rooms, built only if a reached condition asks for them.
-    /// One run sees one world state because trigger actions that alter terrain are not yet
-    /// performed; when one is, it must invalidate this after the write.</summary>
+    /// Cleared between scheduled walks and after a trigger action changes terrain, so
+    /// later roots observe the current world rather than an earlier phase.</summary>
     public IReadOnlyList<RoomInstance>? Rooms { get; set; }
 
     /// <summary>Every record the walk resolved this turn, or null when reach tracking is
@@ -356,6 +356,7 @@ public sealed class TriggerExecutor
     private readonly GameDatabase? _database;
     private readonly SimRandom? _rng;
     private readonly TriggerAreaRoot[] _areaRoots = [];
+    private TriggerRun? _turnRun;
 
     /// <summary>Builds an executor over <paramref name="tree"/>.</summary>
     /// <param name="world">The world whose action points carry the area roots, and whose
@@ -469,39 +470,45 @@ public sealed class TriggerExecutor
     /// </remarks>
     public TriggerRunResult Run(int currentTick)
     {
-        var run = new TriggerRun(currentTick)
+        BeginTurn(new GameTick(currentTick));
+        CreatureState[] creatures = _world?.Creatures.ToArray() ?? [];
+        for (int i = creatures.Length - 1; i >= 0; i--) RunCreature(creatures[i]);
+        RunAreas();
+        RunPlayers();
+        return EndTurn();
+    }
+
+    internal void BeginTurn(GameTick gameTurn)
+    {
+        var run = new TriggerRun(unchecked((int)gameTurn.Value))
         {
             Reached = TrackReach ? [] : null,
             Unsatisfied = TrackReach ? [] : null,
         };
-        if (_tree is null) return run.Result();
-
+        _turnRun = run;
+        if (_tree is null) return;
         Walk(unchecked((short)_tree.RootTriggerId), _tree.RootRepeat, TriggerContext.World, run);
         foreach (TriggerPartySlot slot in _tree.Parties)
-        {
-            if (slot.TriggerId == 0) continue;
-            Walk(unchecked((short)slot.TriggerId), 1, TriggerContext.World, run);
-        }
+            if (slot.TriggerId != 0)
+                Walk(unchecked((short)slot.TriggerId), 1, TriggerContext.World, run);
+    }
 
-        // The frame's entity pass (0x004B7830): list 0, the creatures, then list 5, the action
-        // points, each newest first since the linker 0x004B4A10 adds at the head (Q330, ADR-0361).
-        // A corpse is a dead body, list 6, with no tree. An arrival added by action 28 mid-walk
-        // waits for the next turn, as the snapshot does here. Deviates: DK2 walks a creature's
-        // tree inside its own update (0x00488930 -> 0x0048A480), ours in this pass.
-        CreatureState[] creatures = _world?.Creatures.ToArray() ?? [];
-        for (int i = creatures.Length - 1; i >= 0; i--)
-        {
-            CreatureState creature = creatures[i];
-            if (creature.TriggerId == 0 || creature.Dk2StateId == CreatureStateMachine.NoState) continue;
-            run.Creature = creature;
-            run.Player = creature.OwnerPlayerId;
-            Walk(
-                unchecked((short)creature.TriggerId), creature.TriggerRepeat,
-                TriggerContext.Creature, run);
-        }
+    internal void RunCreature(CreatureState creature)
+    {
+        if (_tree is null || _turnRun is not { } run
+            || creature.TriggerId == 0 || creature.Dk2StateId == CreatureStateMachine.NoState) return;
+        run.Rooms = null;
+        run.Creature = creature;
+        run.Player = creature.OwnerPlayerId;
+        Walk(unchecked((short)creature.TriggerId), creature.TriggerRepeat, TriggerContext.Creature, run);
         run.Creature = null;
         run.Player = null;
+    }
 
+    internal void RunAreas()
+    {
+        if (_tree is null || _turnRun is not { } run) return;
+        run.Rooms = null;
         for (int i = _areaRoots.Length - 1; i >= 0; i--)
         {
             TriggerAreaRoot root = _areaRoots[i];
@@ -509,12 +516,12 @@ public sealed class TriggerExecutor
             Walk(unchecked((short)root.Point.TriggerId), root.Repeat, TriggerContext.Area, run);
         }
         run.Area = null;
+    }
 
-        // Last in the turn, and in the player context: 0x0050A7F5 calls the loop that
-        // gives every player its frame, and the frame walks that player's own root.
-        // The repeat argument is read off the resolved record NOW (0x004B9F04), not
-        // copied at load as the world's +0x731A is -- so a root re-armed this game will
-        // pass 1 here where the world root would still pass its authored value.
+    internal void RunPlayers()
+    {
+        if (_tree is null || _turnRun is not { } run) return;
+        run.Rooms = null;
         foreach (TriggerPlayerRoot root in _tree.PlayerRoots)
         {
             TriggerRecord? record = _tree.ResolveCondition(root.TriggerId);
@@ -523,8 +530,13 @@ public sealed class TriggerExecutor
             Walk(unchecked((short)root.TriggerId), repeat, TriggerContext.Player, run);
         }
         run.Player = null;
+    }
 
-        return run.Result();
+    internal TriggerRunResult EndTurn()
+    {
+        TriggerRunResult result = (_turnRun ?? throw new InvalidOperationException("No trigger turn is open.")).Result();
+        _turnRun = null;
+        return result;
     }
 
     /// <summary>Sets or clears the active bit of <paramref name="triggerId"/> <b>and of
@@ -1238,14 +1250,9 @@ public sealed class TriggerExecutor
         _ => false,
     };
 
-    /// <summary>Whether this executor <b>carries out</b> an action type, as opposed to the
-    /// many more it answers for. Flag write, timer start, party arming — <b>none of them
-    /// touches terrain</b>, which is what lets <see cref="TriggerRun.Rooms"/> hold one
-    /// derived room list for a whole run.</summary>
-    /// <remarks>Adding a type here without invalidating that cache would leave a room
-    /// condition reading the map as it was before the write.
-    /// <c>TriggerExecutorTests.OnlyActionsThatCannotAlterTerrainArePerformed</c> is what
-    /// makes that a failure rather than a silence.</remarks>
+    /// <summary>Whether this executor carries out an action type. Terrain-changing
+    /// actions invalidate <see cref="TriggerRun.Rooms"/>; scheduled walks also clear
+    /// that cache after intervening simulation work.</summary>
     public static bool Performs(byte type) =>
         type is 1 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 50;
 

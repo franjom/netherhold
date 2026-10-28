@@ -235,40 +235,16 @@ view, and all three candidate architectures produce it: shared fog is ruled out,
 but *per-keeper fog* and *one viewpoint plus an omniscient AI* both look exactly
 like this from the keeper's chair.
 
-### 9.4 Two portals show through the fog, dimmed
+### 9.4 Portals visible amid fog (Q197)
 
-The owner reported two dim Portals over unexplored ground (2026-09-06).
-**Q197 remains OPEN: the mechanism is UNKNOWN.** The 2026-10-24 binary audit
-establishes no Portal visibility exception. No adapter change is justified;
-ADR-0076's discovery boundary remains in force.
-
-**The map is Frosty's Lair, and the portals are Hero Portals (owner, 2026-10-24).**
-TrapTime was our inference from same-day saves and is ruled out. The owner's new
-screenshots show a four-pillar portal lit in the 3D view inside fog, with a dim lit
-ring of ground around it and "Fog of War" on the next tile; its minimap location
-flashes, and mercenaries arrive through it. Frosty's Lair holds three Hero Portals
-(room 25), at (15,52), (37,14) and (57,59), and one Portal (room 3) at (37,37),
-all owner 2 (`kwd portals`). The exclusions below examined only the keeper Portal
-(room 3, terrain 12); Hero Portal is not one of the six reveal-through-fog terrains,
-and its terrain flags and minimap and 3D paths are unread. That is the next reading.
-
-The TrapTime saves (`fow_1..3.SAV`, read 2026-10-19) hold no explored Portal tile; level start
-rebuilds the class grid (`0x0050C058`) after the fog seed (`0x0050B5D5`).
-
-The remaining leads were checked on 2026-10-24 (binary facts CONFIRMED;
-exclusion of a different, unlocated mechanism is not claimed):
-
-| Path | Exclusion |
-|---|---|
-| Grid getter `0x00508C70`, world slot `+0x1DC` | Only three constant-slot calls: `0x004042AF`, `0x0041AAA2`, `0x0041AE7F`. All read classes into separate raster output; none writes through the pointer. Address scans cover both executable sections and all initialized blocks. |
-| Zoomed/whole raster `0x0041A9B0` / `0x0041ADA0` | Class 1 uses rock backdrop; other classes directly index the palette. Neither reads discovery bits nor selects a dimmed scanned palette. |
-| Things pass `0x0041CC50`, complete body | Own Heart/reporting circle, Guard Post links, own type-9 Guard Room rectangles, creatures, eight transient signals, traps, doors, Call to Arms and six target signals. No Portal or general room-icon arm. Other-player tile gates read explored, not scanned. |
-| Queued icons `0x0041FB40` and producer `0x0041F600` | Direction sprites for explored active-player Hearts or eligible live creatures; no Portal target arm. |
-| Scanned bit | The byte-offset/mask census includes the known colour predicate `0x00451C90` as positive control and also non-tile false positives. No direct scanned reader occurs in the reviewed raster/overlay bodies; rectangle highlight `0x00451A80` still writes only the ordinary class or 13. The census is not an exhaustive semantic classification of other readers. |
-| Shipped definition / level start | `Rooms.kwd` Portal 3 flags are `0x1004`; `Terrain.kwd` Portal 12 flags are `0x20000034`, without reveal-through-fog. Neither raster/overlay reads a Portal show flag. TrapTime's descriptor references map/player/thing/trigger/variable data, with no room or terrain override. A scripted exploration would set the explored bit, unlike all three saved Portals. This does not exclude a different screenshot session or later script action. |
-
-Next: read Hero Portal (room 25) and its terrain's flags, the minimap paths for a
-flashing room marker, and what lights it in the 3D view through fog.
+The owner's Frosty's Lair screenshots show both Portal and Mercenary Portal
+with their room names and nonowned-room status. The hover producers require
+explored tiles for those labels: the rooms themselves are explored, even when
+neighbouring tiles remain fogged. The discovery source and exact light/flash
+correspondence remain open. Hero terrain40 has the same flags as keeper
+terrain12, without reveal-through-fog; no special presentation rule was built.
+The binary trace, observation, keeper-only exclusions and next lead now live
+in [portal-visibility.md](portal-visibility.md). Fresh-game play check Q669 is answered.
 
 ## 10. The multiplayer argument, and why it points the other way
 
