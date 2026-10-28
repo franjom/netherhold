@@ -235,6 +235,11 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - DK2 runs elevated: start the probe from an elevated shell before the game, and the owner clicks
   two UAC prompts. A packet recording needs `-LEVEL` on both `-PSAVE` and `-PLOAD`, or the front
   end eats the seed and the replay desyncs on turn 1.
+- Launch DKII-DX.exe, not DKII.EXE: `DKII.EXE -LEVEL` exited before its level loaded (2026-10-28).
+  The two share every code byte (1,126 differing bytes: 3 in the header, 5 in .rdata, the rest in
+  data appended after the last section; .data identical), so DKII.EXE's addresses hold in DKII-DX.
+- Idle `-LEVEL` runs of Levels 3 and 12 logged no raid or fight in about 4,700 ticks each; replay a
+  recording (`-PLOAD <name> 0`) to exercise them (music.md §9, *Live capture*).
 - A doc's "all N records" counts one record type: "every hero has `DestroysRooms`" was true of
   trigger-created creatures and false of party members (825 of 4,545).
 - A clean unstaged diff checks no committed changes; run `git diff --check <base> HEAD` and `--cached` before committing new files.

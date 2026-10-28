@@ -234,7 +234,7 @@ end on 2026-10-27, says otherwise:
   data 179 needs a keeper's converted hero and 183 never runs; most parties are KillPlayer,
   with no raise of their own (*When a raid raises level 1*, below).
 The binary is the primary source, but every link here is static and the owner's account is
-specific; a live check settles it (Q666). A sampled watch of `0x0075B8AC` shows only 255 and
+specific; a live check settles it (Q666; done, *Live capture* below: the level is raised as the code says). A sampled watch of `0x0075B8AC` shows only 255 and
 256, since a level above 1 decays in the same frame; watch for the 255 → 256 change after the
 Heart's opening, or use "find out what writes to this address" to catch each raise site.
 One reading would reconcile part of it: level 1 is the calm part of the track, and the louder
@@ -320,11 +320,37 @@ Read 2026-10-28 (literal-push scans of `SetState` `0x00476D30` and its wrappers 
   it only if its route fails and it tunnels, also at set-out. Otherwise its music starts from
   battle threat (§4), when blows land, which fits the owner's account. **CONFIRMED** in the code.
 
+### Live capture, 2026-10-28 (Q666 answered)
+
+`reverse-engineering/dk2music.py` (gitignored) detours slots `+0x4C` and `+0x50` in the running
+game and logs every call (caller, request, level before, tick), and snapshots the battle records'
+owners at each battle raise. Run on DKII-DX.exe (code byte-identical to DKII.EXE) replaying the
+owner's recordings with `-PLOAD`, no input; evidence `D:\DK2Evidence\runs\music-20261028-162920`:
+
+| Recording | What raised the music level | Music level `0x0075B8AC` |
+|---|---|---|
+| `l3live`, Level 3, 3,704 ticks | the tunnel request site (`0x00485BA0`, a hero worker by §2) at tick 1,293, then the stealing-booty site (`0x0048206E`, state 163) at 2,564; the first battle raise only at 3,326 (heroes 1 against the player 3) | `0xFF` until 1,293, then level 1 without a break until the win-sequence Reaper's set to `0xFF` at 3,683 |
+| `m12l11a`, Level 11A | battle threat from tick 765; on all 1,060 ticks with a battle raise (1,155 calls) the live records held only computer keepers 4, 5 and 6, never the local player 3 | level 1 from 765 to the end |
+| `m12l17`, Level 17 | battle threat from tick 1,431, on all 295 ticks heroes (1) against computer keeper 4 | level 1 from 1,431 to the end |
+
+Transition ticks are the logged calls' (the level before each is in `events.csv`); the 1 s
+samples agree. Which creature made a raid raise is read from the call site (§2), not captured.
+
+So DK2 raises the player's music level for fights that do not involve them and for a raid as it
+sets out, and once raised the level stays at 1 to the win sequence, as §2–§4 read: each battle
+asks for level 2 and the decay returns it to 1 in the same frame. **CONFIRMED** (live) for the
+level word. That the music is then *heard* is not measured: the capture logs the level, not the
+music instance or the game's music switch. Every map's LEVEL record (byte 25527) asks for track 1
+or 3 (57 and 8 of 66; FrontEnd3DLevel 0), none for the missing track 2, so nothing in the data
+silences it; the stopped-instance question in §10 is the remaining link. The two idle runs
+(Levels 12 and 3 from `-LEVEL`, 20 minutes, about 4,700 ticks each, `music-20261028-154449`)
+logged no raise at all. The owner's account (§9) differs on what is heard; the capture shows
+only that the level is raised.
+
 ## 10. UNKNOWN
 
-- Q666, above.
 - Whether a stopped music instance is silent (`0x0060C960`, §6).
-- Which levels set which track byte `+0x720D`, and whether any asks for track 2.
+- Whether the raised level is heard: the music instance and the music switch were not captured.
 - The one-shot atmosphere's delay-chained player (vtable `0x006740B0`) and the options-screen
   player (`0x006741C8`), not re-read.
 - Whether `SoundQuality == 1` is Low (the value order of its three labels).
