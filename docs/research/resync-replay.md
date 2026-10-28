@@ -97,7 +97,7 @@ Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "T
 - Full seed 1 replays to 6804: Imp deaths 45 with and without ADR-0559; the hash-316 run had 32,
   one seed, not attributed to ADR-0557.
 - Resynced at 3520 with every creature and the trigger banks copied (below), the parties arrive
-  on time. Next: party 5's Guard, which survives the fight at (15-17,31-34).
+  on time; party 5's Guard still survived the fight at (15-17,31-34), resolved in the next section but one.
 
 ## Every creature, and the trigger banks (ADR-0560)
 
@@ -114,19 +114,102 @@ Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "T
   a game second at a time, so a death can land up to 3 ticks off DK2's.
 - A higher level of ours is kept, since nothing in ours takes a level away.
 - Seed 1 at 3520: 4 Imps lost against none, the door falls at 5314 against about 5313, and flag 11
-  is set at 4330 against 4378. The open divergence is party 5's Guard surviving at (15-17,31-34).
+  is set at 4330 against 4378. Party 5's Guard survived at (15-17,31-34): see the Guard fight below.
 - Not copied:
-  - the trigger records' active and repeat state;
+  - the trigger records' own active bit and repeat byte (record `+0x10`; `+0x0F` STRONGLY INFERRED,
+    [trigger-tree.md](trigger-tree.md); not in the capture);
+  - the hero job triple (creature `+0x409`/`+0x40D`/`+0x40F`, delay `+0x413`; ours GoodJob,
+    GoodJobPlayerId, GoodJobActionPointId, WaypointDeadlineTick);
   - a native in DK2's hand, which the capture does not mark (it is placed at the hand's point);
   - an old-map row for a slot that starts after the resync, and the row for a native left
     unpaired;
   - creatures spawned after the resync, which still go through the old map.
 
+## The Guard fight (resyncs at 3860 and 3790)
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The Guard fight, and a
+resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
+`native_shot_flight_3900_3962.out`, `native_post_guards_job_5270_5320.out`,
+`death_window-run3790.out`). Seed 1, one run each.
+
+- Target choice is consistent with nearest-first in this one fight, with three heroes. At 3895
+  DK2's Guard 418 is the nearest hero to each Dark Elf (squared distance in tiles² × 4096: 40385
+  against 53390 and 100710), and by 3903 all five Elves have picked it. In the 3520 run ours'
+  Thief stood nearer and was picked; ours' heroes had walked east to kill an Imp DK2 never lost.
+- Shots are tested once a tick against a box (shots.md §4a). Ours' half-width for a Dark Elf shot
+  on a Guard is (1638 + 942) / 2 = 1290. DK2's hits fit it once the Guard's own move that tick is
+  allowed for: shot 2965 is sampled at (69,-1473) at 3909, which is (-62,-1272) against the
+  Guard's 3910 point. DK2's shot 2997 is sampled at (2559,1603) and then (-1617,-988), so it
+  passes through the Guard's centre between two samples and is not hit.
+- Ours' Elves stack on one point and fire identical shots, so a pass between samples repeats for
+  all five (3929-3936). DK2's launch points differ by about 700 units. An observation, not a rule
+  change.
+- Resync at 3860: party 5 is beaten (Guard down 3968, native 3957), but the three post Guards kill
+  five Imps. Ours' Guards got KillPlayer jobs at 3805-3847, before the resync, which shows that
+  their roots (records 47/77/80: condition type 6 Attacked, setting flag 14 and action 15
+  objective 19) had fired. DK2's flag 14 is still 0. Rule for a resync: do it before the creature
+  triggers that matter have fired in ours.
+- Resync at 3790, run to 5400:
+  - Party 5 arrives at 3829, 39 ticks after the resync, and is beaten; parties come on time and
+    none extra are raised.
+  - The hero door (24,27) falls at 5310 (native about 5313).
+  - 1 Imp dies, against 0 natively: Imp 26 walks to party 5's gate (14,29) and is killed at 3852.
+    The 3520 run also lost Imp 26, at 3888.
+  - The post Guards switch to KillPlayer at 5323-5347, after their door falls. DK2's switch at
+    5283, 5284 and 5307, before theirs falls.
+- Reading, one seed, STRONGLY INFERRED: from DK2's state at 3790, ours reproduces the window apart
+  from one Imp and a post-Guard switch about 40 ticks late. The full replay's 45 deaths look like
+  drift (creature set, levels, positions), but that was not tested over the same window. Imp levels
+  are not the drift source; other species' were not compared (creature-update-order.md).
+- Open:
+  - why Imp 26 walks to (14,29);
+  - why ours' post Guards switch about 40 ticks after DK2's.
+
+The drift before 3790 (the dig order at about 550) comes from the first dig's lag, which is RNG
+(STRONGLY INFERRED, one seed; creature-update-order.md, "The first dig and RNG").
+
+## Mining against reinforcing (resyncs at 3000 and 3400)
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Mining over reinforcing in
+3000-4000, resynced", and its review corrections; runs in `resync-reinforce/`. Unsynced in 3000-4000
+(`job_taken` events), ours takes 224 mining and 35 reinforcing jobs at hash 316 and 184 and 54 at
+hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different count):
+
+| from | reinforce | claim | mine | Imps walking to or at a seam |
+|---|---|---|---|---|
+| 3000, to 4000 | 90/83 | 74/84 | 127/175 | 5.5/4.8 |
+| 3400, to 4400 | 79/81 | 59/69 | 137/165 | 5.6/5.2 |
+
+- From DK2's state ours reinforces at DK2's rate. The unsynced reinforce shortfall is drift
+  (STRONGLY INFERRED, one seed).
+- Ours starts about 20% more mining walks. From 3400 to 4000 it finishes about as many seams (14
+  against 13, leaving out three the resync tick converts). It has more stints (65 against 48), more
+  full deliveries (46 against 37), and more part-load ends when a seam falls under its miners (16
+  against 8; none at a standing seam on either side). Why the stints are shorter is open.
+- A walk to a seam that fell on the way: DK2's state 25 (`0x00465790`) finds the task entry gone and
+  goes to 10. Ours ends the walk `out_of_reach` through state 1. Both choose two ticks after arrival
+  (20 native, 15 ours), so it is only a label.
+- Mid-walk mine steals with the seam standing: native 1, ours 4 (leaving out the resync tick).
+- From 3000, ours' Imps enter 203 92 times in 3000-4000, against DK2's 22. This is a resync artefact.
+  DK2's two Dwarf party members (423, 424; spawned at 2990 with 750 and 787 gold) were walking to
+  attack the Heart, resuming 222 and 178, and both were down by 3124. The resync placed them on DK2's
+  point, sent them idle and copied neither the job triple nor the gold ("Every creature" above). Ours'
+  32 wanders by the seam crews until it dies at 3624. 77 of the 84 flights after 3127 are within 8
+  tiles of it. A non-Imp attacker sets a NonFighter's flee counter to 3 (`0x0045EC10` through
+  `0x0045EC80`, STRONGLY INFERRED).
+- From 3400, ours' Imps rest or wander more from 4100 (35/33 against 16/11). Only ours has Imps in
+  states 251, 42, 202 and 203. At 4208-4210 six Imps converge on one unconscious body, and the
+  4-selections cap throttles three to rest. 17 of 20 idle entries are over 10 tiles from any hero.
+  Reading: combat drift (a casualty only ours has), HYPOTHESIS.
+
 ## Limits
 
 The resync copies state, not history: routes, action phases, the task pool's holders and room
 occupancy are ours, rebuilt from the same packets. Our loader queues no order for an authored
-trap where DK2's does (Q667). A creature that is
+trap where DK2's does (Q667). An idle or wandering Imp is set choosing. A wander walk's goal, a
+state-12 Imp's running idle action and its `+0x7E` deadline are not copied. So it sees a new mark at
+once, where DK2's waits out its spell or walk. Resynced at 130, the first dig's state 14 is at
+133-134 against DK2's 138. A creature that is
 not an Imp is placed on DK2's point and sent to idle when its state differs (ADR-0560). Treasury gold is tile stores
 here (ADR-0015), so DK2's money is reported, not copied. The run drifts again after the resync;
 compare the first few hundred ticks, and resync again later for the next window.

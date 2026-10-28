@@ -97,15 +97,63 @@ native, three measured gaps (a replay resynced from DK2's tick 2340 matches nati
   318 it loses 45, with or without ADR-0559 (the resyncs into the window: `resync-replay.md`).
   - 184 of our 236 Imp entries into 201-203 fall in 4000-5999, against 41 native over the whole run
     (25 into 203 alone).
-  - Resynced at 3520 with every creature copied, 4 are lost, three to party 5's Guard, which
-    survives the fight at (15-17,31-34) where DK2's party 5 is down by 3960 (ADR-0560). Who kills
-    them in the full replay is not traced.
+  - Resynced at 3520 with every creature copied, 4 are lost, three to party 5's Guard (ours'
+    Thief stood nearer and drew the Elves); resynced at 3790 one is lost (ADR-0560,
+    `resync-replay.md`, "The Guard fight"). The full replay's deaths look like drift (one seed, not
+    tested over the same window); who kills them there is not traced.
 - **Mining over reinforcing.** In ticks 3000-4000, with as many Imps as native and before the deaths,
   ours starts 210 walks to mine (state 25) and 25 to reinforce (21); native starts 121 and 75
-  (`walk_starts_resume.py`).
+  (`walk_starts_resume.py`, the hash-316 trace 7a28fcad).
+  - Resynced at 3000 or 3400, ours reinforces at DK2's rate, so the unsynced shortfall is drift
+    ([resync-replay.md](resync-replay.md), "Mining against reinforcing").
   - Our reinforcing falls behind and is still running after tick 6000, when native Imps idle in state
     12 for 27% of Imp-ticks and ours for 0.3% (`imp_states.py`, `state_ticks.py`).
   - 389 of native's 809 Imp walks from 87, which follow idling, come after 6000, when ours has 13 Imps.
+- **Where the drift starts** (one seed: Level 4 seed 1, hash 318, ticks 1-3520). Evidence:
+  `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Where the seed-1 drift starts".
+  - Imp levels are not the source: native 34 Imp level-ups to 3520, ours 35, spread alike. Pairing
+    Imps one to one is arbitrary, so "six of ours above DK2's level" was a pairing artefact for Imps;
+    other species' levels were not compared.
+  - Ours has 15 Imps at 3520 against 18 because three Create Imp casts are refused.
+    - 1374 for mana by a 79-mana margin (7421 against 7500; native 8492).
+    - 3231 and 3471 for location: (19,33) was not yet dug, (12,33) untouched.
+  - The mana gap (458 at 800, about 1100 from 1000) comes with fewer claimed-path tiles (55 against
+    41 at 800, 71 against 51 at 1000). STRONGLY INFERRED: only net mana is compared.
+  - The first difference is at the level's first dig, (28,54), marked at 131: first strike native
+    138, ours 155 (`imp_jobs_seq-1-400.out`). DK2's Imp 455 stood two ticks from the wall. That lag
+    closes by about 350, and ours is ahead in claimed tiles at 400-500.
+  - The claim deficit opens at about 550, where the marked digs are taken in a different order: ours
+    digs (24,46) 17 ticks after its mark (557 against native 700). DK2 digs (18,53) at 551 and
+    (17,52) at 571; ours digs them at 628 and 656.
+  - That order comes from the north seam crew's size, which is fixed at about 374 (README, "Why the
+    marks at ~550 are taken in another order"). The seam (31,54) falls at 305 in DK2 and at 324 in
+    ours, with different Imps at its face. The walk `0x00469AF0` ranks walls from the Imp and seams
+    from the last seam's centre, the same as ours, so:
+    - DK2's Imp at the north face, (31.16,53.83), takes the seam (30,55): wall d2 2.90 against
+      the seam's 2.0.
+    - Our Imp 1 stands at the same point and takes the seam. Our Imp 3, at (30.83,54.83) on the
+      west face (resume trace), takes the wall (31,55): d2 0.89. So (30,55) falls last.
+    - (30,55) falls with no marked wall beside it, so its kind-14 claim can be taken on the way,
+      and Imp 2 takes it and claims to about 568 instead of mining. In DK2 (30,55) is not
+      claimable on the way until (31,55) falls at 350; whether it was raised is not read.
+    - Two Imps mine the north seams in ours, three in DK2, so ours is still beside (24,46) when it
+      is marked at 540.
+    STRONGLY INFERRED (one seed, no counterfactual run): every step is the faithful rule from each
+    side's state. Other Imps stood at the face when (31,54) fell because of the first-dig lag, which is
+    RNG (next bullet).
+  - The first dig and RNG, STRONGLY INFERRED (README, "The first dig from DK2's state"):
+    - DK2's own first state 14 moves between games: 138 in seed 1, 151 in seed 2, on the same
+      inputs.
+    - Over 30 seeds of ours it falls at 136-157. DK2's 138 is inside that range, at about the 10th
+      percentile (3 of 30 at or before it; one-sided p about 0.1).
+    - From DK2's points (resync at 130), take to strike is 3 ticks beside the wall on both sides;
+      from x 21 it is 16-17 ticks in DK2 and 15 in ours.
+    - State-12 spells take the same four values (1, 20, 25, 26 ticks) on both sides; the means are
+      not distinguishable at n 17.
+    - The wander rule `0x004808E0`/`0x00480A00` matches ours. Ours stands terrain solidity in for
+      nav bit 3, which is the same on this map, and the room-branch helper is unread. DK2's seed 2
+      ends 6 of its 23 walks over ticks 1-200 on (24,51), the tile seed 1's Imps never chose.
+    - So the lag is where the idle cycle leaves the Imps at 131. The exact draw is not replayed.
 - **Native spread.** Native seed 2, on the same inputs, made 349 entries into 203 alone (472 into
   201-203). Its Imp deaths count 8 by slot disappearance, not the 19 that imp-fidelity-integration.md
   gives.
