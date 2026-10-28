@@ -12881,20 +12881,23 @@ the same packets, so that the next few hundred choices are made from DK2's input
   (`ImpTaskSystem.ReissueJob`); any other Imp chooses again. Rooms, blueprints and the
   manufacture queue stay ours. `--resync-map slot,ours.csv` names our creature for a native
   slot where the replay's entity map (converged for another build) names a wrong one.
-- DK2's marks are not in a capture (they are the keeper's task pool): `resync_marks.py`
-  derives them from the packet tags in our tile log and DK2's tile log, and the resync sets
-  them in marking order so the newest-first tie-break holds.
+- DK2's marks are the keeper's task pool's kind-1 and kind-2 entries, which the capture records
+  as a region; the resync sets them in list order, the head last, so the newest-first tie-break
+  holds.
 - `--jobs jobs.csv` traces each creature's state, resume state, task and last kind, a row on
   change, for the comparison.
 - `Dk2Lcg.Reseed` and `GameSimulation.Context` (internal) exist for this tool only.
 
 **Consequences.**
-- Level 4 seed 1, resynced at 2340 and run to 3400, against the capture: job starts dig 10/12,
-  mine 110/118, claim 66/67, reinforce 83/88; Imps per job 4.4/4.3 mining, 0.8/0.8 claiming,
-  4.6/4.6 reinforcing (native/ours). The first run read the aim from `+0x6E` (the dumper's
-  `DroppedToDoJobId`) and got reinforce 83/37: the aim is `+0x9D` (00463DF0). Without the marks
-  the Imp that DK2 had digging (9,57) dropped the dig at once, because ours had dug it earlier.
+- Level 4 seed 1, resynced at 2340 and run to 3400, against the capture: job starts dig 10/14,
+  mine 110/122, claim 66/46, reinforce 83/90; Imps per job 4.4/4.3 mining, 0.8/0.6 claiming,
+  4.6/4.4 reinforcing (native/ours). Through 3100 the windows match; after it DK2 claims the
+  corridor (34,34)-(39,26) (37 claims) and ours does not. The first run read the aim from `+0x6E`
+  (the dumper's `DroppedToDoJobId`) and got reinforce 83/37: the aim is `+0x9D` (00463DF0).
+  Without the marks the Imp that DK2 had digging (9,57) dropped the dig at once, because ours had
+  dug it earlier.
 - What still differs after the resync is what the resync does not copy: the door blueprints
   our replay refused at 2006 and 2229 (tiles not ours yet), whose crate trips put DK2's Imps at
-  the Workshop when the east seams were marked. Copying DK2's blueprints is the next extension.
+  the Workshop when the east seams were marked, and so the on-the-way claim that starts the
+  corridor. Copying DK2's blueprints is the next extension.
 - No simulation rule changed; the hash and the pin stand.

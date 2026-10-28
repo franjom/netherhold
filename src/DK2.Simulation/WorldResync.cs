@@ -26,10 +26,10 @@ public sealed record ResyncReport(
 /// goes on with the same packets, so each Imp's next choice is made from DK2's inputs (Q665).
 /// An Imp walking to or working at tile work is sent to the same tile, side and slot by our own
 /// walk; any other Imp chooses again. Rooms, blueprints, the manufacture queue and the pool's
-/// holders stay ours: the same packets built them, and the reissued jobs re-hold their slots.
-/// Treasury gold is tile stores here (ADR-0015), so DK2's money is only reported. A creature
-/// that is not an Imp keeps its state, and is moved only when it stands free: a sleeper or a
-/// fighter moved off its place would break its handler's assumptions.
+/// holders stay ours (the same packets built them, and the reissued jobs re-hold their slots),
+/// as does a tile the capture gives no owner, and the marks when the state lists none. DK2's
+/// money is only reported (treasury gold is tile stores, ADR-0015). A creature that is not an
+/// Imp keeps its state and moves only when it stands free: a sleeper moved off its bed would break its handler.
 /// </summary>
 public static class WorldResync
 {
@@ -139,6 +139,9 @@ public static class WorldResync
                     kind = tagged;
                 if (ImpTaskSystem.ReissueJob(context, ours, tileIndex, kind, job.TaskSide, (byte)job.TaskSlot))
                 {
+                    // The walk writes the last kind and tile as a choice would; DK2's stand.
+                    ours.LastTaskKind = KindOrNone(job.LastKind);
+                    ours.LastTaskTileIndex = (job.TaskY * world.Width) + job.TaskX;
                     reissued++;
                     continue;
                 }

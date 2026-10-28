@@ -96,7 +96,9 @@ public class WorldResyncTests
         Assert.Equal(1, report.JobsReissued);
         Assert.Equal(TileWorkKind.MineGold, imp.TargetWork);
         Assert.Equal((5 * world.Width) + 5, imp.TargetTileIndex);
-        Assert.Equal(1, imp.WorkSlot);
+        // DK2's side 3 (west) and slot 1: standing at (4,5) with the wall to the right, face 2;
+        // ours is face * 3 + along = 7.
+        Assert.Equal(7, imp.WorkSlot);
         Assert.Equal(6, imp.Dk2StateId);   // DK2's walk to a point, resuming in 25
         Assert.Equal(25, imp.UtilityNewState);
         Assert.Equal(ImpTaskKind.Mine, imp.LastTaskKind);

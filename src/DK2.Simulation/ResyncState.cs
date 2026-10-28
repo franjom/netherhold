@@ -35,9 +35,10 @@ public sealed record ResyncJob(
     int Resume, int TaskX, int TaskY, int TaskId, int TaskSide, int TaskSlot, int LastKind,
     int JustDropped, int DroppedTask, int Gold, int AimedKind = 0);
 
-/// <summary>A dig mark DK2 still held at the tick, derived by <c>tools/oracle/resync_marks.py</c>
-/// (the capture holds no marks: they are the keeper's task pool). <see cref="Order"/> is the
-/// marking tick, for the newest-first tie-break (<see cref="TileState.TagOrder"/>).</summary>
+/// <summary>A dig mark DK2 held at the tick: a kind-1 or kind-2 entry of the keeper's task pool,
+/// which the capture records as a region (player-task-pool.md). <see cref="Order"/> counts up
+/// from the list's tail, the head (raised last) largest, for the newest-first tie-break
+/// (<see cref="TileState.TagOrder"/>).</summary>
 public sealed record ResyncMark(int X, int Y, int Player, int Order);
 
 /// <summary>An object thing: its type id, owner, point and, for gold, the amount.</summary>

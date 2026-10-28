@@ -52,6 +52,16 @@ dump itself, and the JSON also carries what only the dump holds:
     objects: [{slot, type, owner, x, y, gold, flags}]
                                           the decoder's object fields (gold-on-the-floor.md 1)
     players[].money, players[].mana       player +0x7E Money, +0x82 CurrentMana (player-object.md)
+    players[].pool: [{kind, x, y, id, workers}]
+                                          the player's task pool (player-task-pool.md), the capture's
+                                          region REGION_POOL + player index: each kind's list from its
+                                          head (pool +0x4656 + kind*2) by Next (+0x1F), the 36-byte
+                                          entries' Position +0x00/+0x02, Id +0x21 and the twelve
+                                          Worker slots +0x05; absent when the region is not captured
+    marks: [{x, y, player, order}]        the pool's kind-1 (rock) and kind-2 (gold) entries, the
+                                          keeper's dig marks; order counts up from the tail, so the
+                                          head, raised last, has the largest (0x00507BB0 files at
+                                          the head; TileState.TagOrder)
     seed                                  the world random seed at world +0x15A0 (dk2-random.md)
 
 With --state-only no memory image is written: for a resync replay (dk2tools replay --resync),
@@ -122,6 +132,25 @@ def with_dump(out, snap, dump):
     return out
 
 
+ENTRY = 36
+
+
+def pool_entries(data):
+    """A pool region's live entries, kind by kind, each list from its head."""
+    out = []
+    for kind in range(1, 16):
+        head = struct.unpack_from("<H", data, 0x4656 + kind * 2)[0]
+        seen = set()
+        while head and head not in seen and (head + 1) * ENTRY <= len(data):
+            seen.add(head)
+            e = head * ENTRY
+            x, y = struct.unpack_from("<HH", data, e)
+            out.append({"kind": kind, "x": x, "y": y, "id": struct.unpack_from("<H", data, e + 0x21)[0],
+                        "workers": list(struct.unpack_from("<12H", data, e + 5))})
+            head = struct.unpack_from("<H", data, e + 0x1F)[0]
+    return out
+
+
 def state(snap):
     table = snap.region(dk2capture.REGION_THING_TABLE)
     active = snap.region(dk2capture.REGION_ACTIVE)
@@ -140,11 +169,21 @@ def state(snap):
                       struct.unpack_from("<H", t, 0x02)[0] & 0xFFF]
             health.append(struct.unpack_from("<H", t, 0x06)[0])
     paddr, _ = snap.regions[dk2capture.REGION_PLAYERS]
-    players = [{"id": i + 1, "tag": dk2capture.field("player", "tag", snap.player(i)),
-                "ptr": paddr + i * dk2capture.PLAYER_SIZE,
-                "money": struct.unpack_from("<i", snap.player(i), 0x7E)[0],
-                "mana": struct.unpack_from("<i", snap.player(i), 0x82)[0]}
-               for i in range(dk2capture.PLAYER_COUNT) if snap.player(i) is not None]
+    players, marks = [], []
+    for i in range(dk2capture.PLAYER_COUNT):
+        if snap.player(i) is None:
+            continue
+        player = {"id": i + 1, "tag": dk2capture.field("player", "tag", snap.player(i)),
+                  "ptr": paddr + i * dk2capture.PLAYER_SIZE,
+                  "money": struct.unpack_from("<i", snap.player(i), 0x7E)[0],
+                  "mana": struct.unpack_from("<i", snap.player(i), 0x82)[0]}
+        pool = snap.regions.get(dk2capture.REGION_POOL + i)
+        if pool is not None and pool[1] is not None:
+            player["pool"] = pool_entries(pool[1])
+            digs = [e for e in player["pool"] if e["kind"] in (1, 2)]
+            marks += [{"x": e["x"], "y": e["y"], "player": i + 1, "order": len(digs) - n}
+                      for n, e in enumerate(digs)]
+        players.append(player)
     rooms, creatures, doors, objects = [], [], [], []
     for r in snap.records():
         if not r.raw:
@@ -178,7 +217,7 @@ def state(snap):
                             "x": r.f("x"), "y": r.f("y"), "gold": r.f("gold"), "flags": r.f("obj_flags")})
     return {"tick": snap.tick, "width": width, "height": height, "players": players,
             "tiles": tiles, "tileHealth": health, "rooms": rooms, "doors": doors,
-            "creatures": creatures, "objects": objects,
+            "creatures": creatures, "objects": objects, "marks": marks,
             "seed": struct.unpack_from("<I", snap.region(dk2capture.REGION_WORLD), 0x15A0)[0]}
 
 
