@@ -13028,3 +13028,43 @@ Tests:
   `ACreatureInAnotherStateThanDk2sGoesToIdleOnDk2sPoint_AHigherLevelOfOursIsKept`,
   `ADeliveryIsSetChoosing_AndAnImpOursLacksIsMadeAndChoosesToo`
 - `PacketLogTests.AResyncsPairReplacesTheMapsFromItsTurn_EarlierTurnsKeepTheMaps`
+
+## ADR-0561 — The computer keeper lays traps and doors (`0x005000A0`)
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 318 (AI only); keeper observation format 20 · Research: `docs/research/computer-keeper-management.md` §9
+
+**Context.** Step 10 of the keeper's tick was the last unbuilt piece of its management besides
+prisoners and the research move. It was built on 2026-10-09 and held: on Level 17 Harkan's Prison
+stalled for gold in 3 of 10 seeds, after Magic Doors DK2 had not laid yet.
+
+**Finding.**
+- CONFIRMED (decompiled whole): `0x005000A0`, `0x004FFA50`, `0x004FFC40`, `0x004FFD80` and the
+  gate at `0x00500E62` (allowance left, then `random(100) < 10`). The door choice scans door ids in
+  order and stops on `random(100) <= stop * 50`; DoorPreference 0 (Harkan's, from his PLAYERS
+  record) stops 1 time in 100, so the last available door, the Magic Door, is laid otherwise.
+- CONFIRMED (three idle DK2 Level 17 captures, identical): Harkan lays a Magic Door at 204, a
+  Wooden Door at 915 and a Magic Door at 1182. STRONGLY INFERRED: the Wooden Door is one of the
+  1-in-100 stops (the captures are one sample; Harkan's door availability at 915 is not captured).
+  It left 12,650 gold when the Training Room expansion was decided against 500 x 25 = 12,500, which is
+  why DK2 grows Training 12 -> 20 tiles at 1111-1138.
+- Our door sites match DK2's ((19,4) first, (15,20), (15-16,2)). Ours over 10 seeds: Prison
+  finished in 9 of 10; Training grown in 0 of 10 (9 of 10 without the step). With the usual
+  Magic Door the keeper is short at the decision and the planner drops the request
+  (`0x004FC690` takes the request before its cost test). That is DK2's rule on most draws; the
+  keeper's random stream is its own (KEEPER_AI.md §12.1), so DK2's exact draws cannot be matched.
+
+**Decision.** `KeeperTrapDoorStep` runs at step 10 as read. `KeeperView` carries the doors, and
+the keeper observation format moves to 20. The blueprint goes through `PlaceDoorCommand` and
+`PlaceTrapCommand`, a tick later than DK2 lays it; within one pass the spacing and tile tests see
+the blueprints already laid. The site test reads the keeper's dig tag in place of task kinds 1
+and 2 at `0x00508290`, the deviation task 7 already makes (`KeeperAI.DigPath`).
+
+**Consequences.** Computer keepers with a Workshop lay doors and traps. On Level 17 Harkan skips
+the Training growth on most seeds, as DK2 would without its lucky draw.
+- The AI tests that replay a tick's draws count step 10's roll (`KeeperSightTests`,
+  `KeeperGoldStepTests`); `KeeperAttackPlannerTests`' open-way test moves to seed 3.
+- `KeeperTrapDoorStepTests` covers the Workshop gate, the site and spacing tests, the door
+  preferences 0-3, the trap choice, the Boulder's long-corridor rule, the west edge testing only
+  its first tile and the observation packet. The clamp order is not tested on its own.
+
+Evidence: `D:/DK2Evidence/runs/l17-trapdoor-2026-10-28/` (summary.txt, ledger.txt,
+dk2_harkan_doors.txt, dk2_harkan_money_840_1260.txt); captures `D:/DK2Evidence/dk2runs/m12-level17-20261028-*`.

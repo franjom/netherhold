@@ -145,6 +145,7 @@ public sealed class KeeperView : INavByteGrid
         CallToArms = world.Player(playerId).CallToArms;
         Traps = world.Traps.Select(t => new KeeperTrapView(t.TrapId, t.PlayerId, t.X, t.Y,
             database.Traps[t.TrapId].Threat)).ToList().AsReadOnly();
+        Doors = world.Doors.Select(d => new KeeperDoorView(d.DoorId, d.PlayerId, d.X, d.Y)).ToList().AsReadOnly();
     }
 
     /// <summary>The engagement target's owner as the battle step reads it: the creature's owner
@@ -181,7 +182,8 @@ public sealed class KeeperView : INavByteGrid
         KeeperTileView[] tiles, AvailabilityState[] availability,
         KeeperCreatureView[] creatures, KeeperTrapView[] traps, KeeperRoomView[] rooms, PlayerMessage[] messages,
         CallToArmsState callToArms = default, int mana = 0, byte[]? statuses = null, IEnumerable<int>? callRefusedTiles = null,
-        bool[]? heartRuined = null, IEnumerable<int>? sightRefusedTiles = null, int handCount = 0)
+        bool[]? heartRuined = null, IEnumerable<int>? sightRefusedTiles = null, int handCount = 0,
+        KeeperDoorView[]? doors = null)
     {
         HandCount = handCount;
         if (sightRefusedTiles is not null) _sightRefusedTiles.UnionWith(sightRefusedTiles);
@@ -205,6 +207,7 @@ public sealed class KeeperView : INavByteGrid
         _availability = availability;
         Creatures = Array.AsReadOnly(creatures);
         Traps = Array.AsReadOnly(traps);
+        Doors = Array.AsReadOnly(doors ?? []);
         Messages = Array.AsReadOnly(messages);
         AllRooms = Array.AsReadOnly(rooms);
         OwnRooms = rooms.Where(r => r.OwnerPlayerId == playerId).ToList().AsReadOnly();
@@ -328,6 +331,7 @@ public sealed class KeeperView : INavByteGrid
         || (otherId.Value < 8 && (AlliedWith & (1 << otherId.Value)) != 0);
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
     public IReadOnlyList<KeeperTrapView> Traps { get; }
+    public IReadOnlyList<KeeperDoorView> Doors { get; }
     public IReadOnlyList<PlayerMessage> Messages { get; }
 
     /// <summary>This keeper's Call to Arms: on, its flag's tile and the turn its upkeep starts.</summary>
@@ -441,6 +445,35 @@ public sealed class KeeperView : INavByteGrid
 
     /// <summary>Threat-reader candidate gate: ownership and navigation bit 3 (0x00509200).</summary>
     public bool IsThreatDropCandidate(TilePos p) => IsMine(p) && !NavBytes.IsSolid(Tile(p).NavigationByte);
+    /// <summary>World slot <c>+0x208</c> (<c>0x00509200</c>): the route map's solid bit; off the map
+    /// is solid.</summary>
+    public bool IsNavSolid(TilePos p) => !InBounds(p) || NavBytes.IsSolid(Tile(p).NavigationByte);
+
+    /// <summary><see cref="BlueprintPlacementRules.CanTrap"/> (<c>0x00450EB0</c>) over the captured
+    /// tiles, things and the <paramref name="pending"/> ones this tick has placed.</summary>
+    public bool CanPlaceTrap(TilePos p, IReadOnlyCollection<TilePos>? pending = null)
+    {
+        if (!InBounds(p) || Tile(p).OwnerPlayerId != PlayerId) return false;
+        TerrainDef terrain = Terrain(p);
+        if (terrain.IsSolid || Database.RoomByTerrain(terrain.TerrainId) is not null) return false;
+        if (pending is not null && pending.Contains(p)) return false;
+        foreach (KeeperDoorView d in Doors)
+            if (d.X == p.X && d.Y == p.Y) return false;
+        foreach (KeeperTrapView t in Traps)
+            if (t.X == p.X && t.Y == p.Y) return false;
+        return true;
+    }
+
+    /// <summary><see cref="BlueprintPlacementRules.CanDoor"/> (<c>0x00450DB0</c>): the trap's tests
+    /// and, unless a Barricade, solid tiles on both sides north and south or east and west.</summary>
+    public bool CanPlaceDoor(TilePos p, DoorDef door, IReadOnlyCollection<TilePos>? pending = null)
+    {
+        if (!CanPlaceTrap(p, pending)) return false;
+        if (door.Flags.HasFlag(DoorFlags.Barricade)) return true;
+        return (IsSolid(new TilePos(p.X, p.Y - 1)) && IsSolid(new TilePos(p.X, p.Y + 1)))
+            || (IsSolid(new TilePos(p.X + 1, p.Y)) && IsSolid(new TilePos(p.X - 1, p.Y)));
+    }
+
     public bool HasRoom(TilePos p) => InBounds(p) && Terrain(p).IsRoom;
     public bool IsTaggedByMe(TilePos p) => InBounds(p) && Tile(p).IsTaggedBy(PlayerId);
     public bool IsTaggedByAnyone(TilePos p) => InBounds(p) && Tile(p).IsTaggedByAnyone;
