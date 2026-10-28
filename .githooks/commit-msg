@@ -13,6 +13,16 @@
 
 TOOL="src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll"
 
+# --- Blocking: AI assistance is credited as Assisted-by, never as a co-author ---
+#
+# GitHub turns a Co-Authored-By trailer into a contributor entry. Runs before the
+# tool check so an unbuilt tree cannot let one through.
+if grep -qiE '^Co-Authored-By:.*(claude|anthropic|codex|openai|copilot)' "$1"; then
+    echo "commit-msg: AI co-author trailer found. Use 'Assisted-by: Claude <noreply@anthropic.com>'" >&2
+    echo "            (AGENTS.md), never Co-Authored-By." >&2
+    exit 1
+fi
+
 if [ ! -f "$TOOL" ]; then
     echo "commit-msg: DK2.Tools is not built, skipping the checks." >&2
     echo "            dotnet build DK2.slnx -c Release" >&2

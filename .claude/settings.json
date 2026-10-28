@@ -2,7 +2,12 @@
   "enabledPlugins": {
     "unity@claude-plugins-official": true
   },
-  "enabledMcpjsonServers": ["pyghidra-mcp", "dk2kb", "blender"],
+  "includeCoAuthoredBy": false,
+  "attribution": {
+    "commit": "Assisted-by: Claude <noreply@anthropic.com>",
+    "pr": ""
+  },
+  "enabledMcpjsonServers":["pyghidra-mcp", "dk2kb", "blender"],
   "env": {
     "MCP_TIMEOUT": "120000"
   },
