@@ -60,7 +60,8 @@ States are the executable's labels (`creature-state-table.md`). **CONFIRMED.**
 
 So level 1 is not a fight: it is a creature **setting out on a raid** — the raise comes when
 the route is found, as the walk starts, except tunnelling, a direct `SetState`. No raise tests
-the local player, so any player's raider starts your music (163 always walks to player 3). Fighting itself
+the local player (163 always walks to player 3). On shipped data only StealGold parties and
+tunnellers reach these raises (§9, *When a raid raises level 1*). Fighting itself
 raises nothing below level 2. **CONFIRMED.** Bit `0x40` of player `+0x76` is printed as
 `GameWonSequenceActive` by the player dumper (`0x004BD5CD`, `SHR 6`) and set by the win
 sequence (`campaign-win-sequence.md`), so the end-sequence Reaper silences the music rather
@@ -155,8 +156,8 @@ constructor `0x0060C640` zeroes `+0x08`, so the first segment is a target of ite
 **CONFIRMED.** Resume (slot `+0x20`, `0x00616560`): while stopped and the intensity slot is
 no longer `0x7F`, clear the current item, pick, and queue the result. **CONFIRMED.** The
 segment end (slot 0, `0x006164D0`) picks with the intensity in `+0x44` and queues the item's
-sound on the stream, so a level change is heard at the next segment boundary. **LIKELY**
-(lead; slot 0 not re-read). The intensity reaches `+0x44` every frame: set-parameter
+sound on the stream, so a level change is heard at the next segment boundary. **CONFIRMED**
+(read 2026-10-28; nothing is queued when the pick or the sound pick returns 0). The intensity reaches `+0x44` every frame: set-parameter
 `0x00608DE0` → `0x0060D990` → `0x0060C750` writes the value into each of slots `+0x44..+0x47`
 whose id byte `+0x40..+0x43` matches, and the instance init (`0x0060C9D0`) copies slot 0's id
 from the group's `+0x12` (2). The per-frame update `0x00608D50` → `0x0060D950` calls the
@@ -229,8 +230,9 @@ end on 2026-10-27, says otherwise:
   `Travel_RouteToRoom`/`Travel_RouteToPoint` for a hero worker whose route has option bit 0.
   A party given StealGold (job 13) enters 163 as soon as its arm's route test passes, and 163
   walks to player 3's Treasury whatever player the job names (`steal-gold.md` §2), so that
-  raise comes as the walk starts, possibly far away, but only against player 3. The 179 and
-  183 raises have no such limit.
+  raise comes as the walk starts, possibly far away, but only against player 3. On shipped
+  data 179 needs a keeper's converted hero and 183 never runs; most parties are KillPlayer,
+  with no raise of their own (*When a raid raises level 1*, below).
 The binary is the primary source, but every link here is static and the owner's account is
 specific; a live check settles it (Q666). A sampled watch of `0x0075B8AC` shows only 255 and
 256, since a level above 1 decays in the same frame; watch for the 255 → 256 change after the
@@ -238,6 +240,85 @@ Heart's opening, or use "find out what writes to this address" to catch each rai
 One reading would reconcile part of it: level 1 is the calm part of the track, and the louder
 parts come only from battle threat, so music that starts quietly as raiders set out and swells
 when blows land may be heard as starting at the attack.
+
+### Once started, does the music stop again?
+
+The owner cannot say whether it plays through the rest of the level (asked 2026-10-27). The
+binary and data, read 2026-10-28:
+- **The level.** After any raise, the decay holds `L` at `0x100` (level 1, intensity 20). The
+  only things that lower it are the three sets to `0xFF` (§2) — the Heart's opening, the Horned
+  Reaper while its player is in the win sequence, the front end — and the manager's own
+  constructor and init (`0xFF`, the init also from `Display_InitializeMode`, below).
+  **CONFIRMED** (writers of `+0x2C`, and every call on the manager by slot).
+- **The track.** At intensities 20, 40 and 60 every segment of both tracks has a link in range
+  (parsed `musicSFX.map`), and from item 1 at 20 track 1 cycles through 52 segments and track 3
+  through 87, with no blank entry reached (the one blank, `Track_1_2` #36, is unreachable).
+  **CONFIRMED** (data). The segment end (slot 0, `0x006164D0`, read by the 2026-10-28 reviewer)
+  picks with `+0x44` and queues the chosen sound, so at level 1 the picker never runs dry and
+  the music should not stop by itself: **STRONGLY INFERRED** (the stream playing one queued
+  segment into the next is unread).
+- **Every other call on `CSoundSystem`** (RTTI of vtable `0x0066F7FC`), found by a capstone scan
+  of all calls made through `[0x0075B468]` (the 8 raise and 3 set sites as control):
+  - `+0x64` `0x00567E70`, from `World_LoadLevelKwd` only: `StopSFX`, then `StopHandle` on
+    the music, ambience and atmosphere instances (`+0x30/+0x34/+0x38`). At level load.
+  - `+0x60` `0x00567440`: `FlushCatagory` on four categories, the three background ones and the
+    hand's (`+0x3C` MUSIC, `+0x40` AMBIENCE, `+0x44` ONE_SHOT_ATMOS, `+0x48` HAND, named by init).
+    From `GameAction_LoadLevel`, and from `Portal_CreateArrival` (`0x004DCADC`) when a creature
+    type's first arrival has a level speech override, just before that speech is posted. A
+    flush walks the category's sample banks and releases them (`0x00608AA0` → `0x0060EA50`);
+    whether it cuts a playing segment is unread. If it does, the update starts a new instance
+    the next frame (a stale handle comes back as 0, §6), so the music restarts from its entry
+    point at the same level: an interruption, not an end. **LIKELY.**
+  - `+0x0C`/`+0x14` (`0x005677E0`/`0x005677D0`), from `Display_InitializeMode`: clear the music
+    handle and stop the category container (`0x00608A00`, unread); the update restarts the music
+    the next frame at the same level, an interruption. The init `0x00567300` (slot `+0x08`, sets
+    `L` to `0xFF` at `0x005673E2` and the service flag `+0x04` to 1) is reached from
+    `Display_InitializeMode` and `App_Main` only while `+0x04` is 0, i.e. before the service
+    exists; a display re-init with the service up does not touch `L`.
+  - `+0x5C` `SetView`, from `Possession_LeaveAction` and a bridge command: the listener, not
+    the music. The rest are sound effects, settings and storage.
+- **So:** once anything raises the level, the code plays music (at least the calm part 1) until
+  the end of the level, the win sequence's Reaper, or a return to the front end; a flush or a
+  display re-init can cut it, and it restarts at once from its entry point. The music switch stops only the music branch. Loading a saved game is not a
+  writer of `L`: through the front end it starts silent (the front end sets `0xFF` every
+  frame); an in-game load path, if one bypasses the front end, was not traced.
+
+### When a raid raises level 1
+
+Read 2026-10-28 (literal-push scans of `SetState` `0x00476D30` and its wrappers `0x0048AD30`,
+`0x00491830`; calls of the job setter `0x0048BE20`; the shipped `Creatures.kwd`, 66 THINGS and
+66 TRIGGERS files):
+- **One way into each state.** 163 only from job 13's arm (`0x00481FF4`), 179 only from job
+  11's (`0x0045834B`), 183 only from job 12's (`0x00458697`); no route helper resumes in any of
+  them. **CONFIRMED** (a state restored from `+0xDF` was not enumerated, but `+0xDF` holds a resume).
+- **Which jobs ship.** Party, placed and action-15 objectives are only 13, 18, 19, 22 and 23.
+  Job 11 is in two mood tables (Prince Tristran unhappy 10 %, Stone Knight angry 100 %), which
+  heroes never run (ADR-0485), so 179 needs a keeper's converted hero; job 12 is in no table and
+  is handed on only by a leader already in 184 (`0x00458CD3`), so **183 never runs on shipped
+  data**. StealGold: placed heroes in Levels 3 (9), 5 (2), 6a (1), 14 (7), 20 (7) (26, Q275's
+  placed count; party members' objectives not counted), and action 15 in Levels 3 and 8
+  (Level 3's Thieves on arrival, Q530). **CONFIRMED** (data).
+- **No proximity or fog gate.** The arms and handlers 163/179 hold no distance or visibility
+  test, and the route is a whole-map query. 163 always walks to player 3's nearest Treasury and
+  refuses player 3's own creatures (`0x00482027..2E`); arm 13 uses the job's player, else the
+  strongest, only for its own route test, and rejects the creature's own owner (`0x00481FB4`).
+  179's room is the nearest `Buildable` room (`0x004C60E0`, uncapped) of the job's player, else of
+  the strongest (`0x0050EA20`, which excludes no one), so for 11/179 the creature's own player is
+  not excluded.
+  A gate spawn enters 269 (`0x004626A0`: lands, then 210 stunned) and next runs its standing
+  job through 1 and 90 (§1 of `hero-party-walk.md`), so a StealGold party raises level 1 a
+  few turns after it appears, at the gate. **CONFIRMED**, the 210 → 1 timing **LIKELY**.
+- **Tunnelling.** Jobs 18 (`0x41`), 19 (`1`), 23's state 173 (`1`), 163 (`0x69`) and 179 (`1`/`0x61`)
+  all carry option bit 0. When the whole-map route fails — target sealed off by rock or a refused
+  door — a hero leader that is a tunneller (definition `+0x686` bit 0, owner the hero player
+  `[0x006F254C]`, in practice the Dwarf), or a leader with a tunneller party member (`+0x417`),
+  gets `SetState(186)` and the raise at once, at set-out, whatever the target. With an open
+  route nothing tunnels; a converted hero does not self-tunnel. **CONFIRMED.**
+- **So.** A StealGold party raises level 1 at set-out against player 3; a KillPlayer hero (the
+  most common objective: 1,068 placed heroes, Q275, and 370 of the 565 action-15 sets),
+  KillCreatures or SendToActionPoint one raises
+  it only if its route fails and it tunnels, also at set-out. Otherwise its music starts from
+  battle threat (§4), when blows land, which fits the owner's account. **CONFIRMED** in the code.
 
 ## 10. UNKNOWN
 
