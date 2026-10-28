@@ -164,7 +164,8 @@ resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
 - Open:
   - why Imp 26 walks to (14,29);
   - why ours' post Guards switch about 40 ticks after DK2's;
-  - the drift before 3790: the dig order at about 550 (creature-update-order.md).
+  - the drift before 3790: why other Imps stood at the north seam's face when it fell, which sets
+    the dig order at about 550 (creature-update-order.md).
 
 ## Limits
 

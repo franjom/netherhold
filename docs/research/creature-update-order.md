@@ -122,7 +122,22 @@ native, three measured gaps (a replay resynced from DK2's tick 2340 matches nati
     closes by about 350, and ours is ahead in claimed tiles at 400-500.
   - The claim deficit opens at about 550, where the marked digs are taken in a different order: ours
     digs (24,46) 17 ticks after its mark (557 against native 700). DK2 digs (18,53) at 551 and
-    (17,52) at 571; ours digs them at 628 and 656. Whether the first-dig lag causes this is not shown.
+    (17,52) at 571; ours digs them at 628 and 656.
+  - That order comes from the north seam crew's size, which is fixed at about 374 (README, "Why the
+    marks at ~550 are taken in another order"). The seam (31,54) falls at 305 in DK2 and at 324 in
+    ours, with different Imps at its face. The walk `0x00469AF0` ranks walls from the Imp and seams
+    from the last seam's centre, the same as ours, so:
+    - DK2's Imp at the north face, (31.16,53.83), takes the seam (30,55): wall d2 2.90 against
+      the seam's 2.0.
+    - Our Imp 1 stands at the same point and takes the seam. Our Imp 3, at (30.83,54.83) on the
+      west face (resume trace), takes the wall (31,55): d2 0.89. So (30,55) falls last.
+    - (30,55) falls with no marked wall beside it, so its kind-14 claim can be taken on the way,
+      and Imp 2 takes it and claims to about 568 instead of mining. In DK2 (30,55) is not
+      claimable on the way until (31,55) falls at 350; whether it was raised is not read.
+    - Two Imps mine the north seams in ours, three in DK2, so ours is still beside (24,46) when it
+      is marked at 540.
+    STRONGLY INFERRED (one seed, no counterfactual run): every step is the faithful rule from each
+    side's state. Why other Imps stood at the face when (31,54) fell is not shown.
   - The first dig and RNG, HYPOTHESIS: DK2's first strike (138) is earlier than all six of ours
     (145-156; seeds 1-5 and DK2's generator), a 1-in-7 chance for six runs. RNG is not excluded, nor
     shown. The idle Imps' share east of x 26 over ticks 50-131 (native 27%, ours 5-35%) is a weak
