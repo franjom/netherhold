@@ -76,13 +76,14 @@ panel slots, icon buttons, mana and gold) and what clears it are in [tab-alerts.
 
 ## 5. Ours
 
-- `TriggerState.LevelTimeLimit` is set by action 23. `GameSimulation.Tick` counts it down right
-  after the trigger run, emitting `level_time_up` at zero, and `LevelTimeUp` is the world bit.
-  Where DK2 counts it down relative to the trigger walk inside `0x0050A450` is not pinned.
+- `TriggerState.LevelTimeLimit` is set by action 23. `GameSimulation.Tick` counts it down just
+  before the trigger run, as `0x0050A450` does (`0x0050A64E` before the walk at `0x0050A745`),
+  emitting `level_time_up` at zero; `LevelTimeUp` is the world bit.
+- On running out in skirmish or multiplayer every keeper loses in active-list order through
+  `VerdictRules.End` (ADR-0547); the campaign only sets the bit.
 - `SpecialInfoNextRoomTypeId` is set by action 47.
 - Both are hashed and snapshotted (`HashVersion` 122).
 - **Not built:**
-  - the defeat on running out, since game modes are not modelled;
   - action 9's generic icon flash and chime (the mana/gold, tab and slot flashes are built; see tab-alerts.md).
 
 ## 6. Action 15 in a creature's tree — CONFIRMED, built (ADR-0236)

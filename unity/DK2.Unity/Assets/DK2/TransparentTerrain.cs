@@ -4,6 +4,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Reflection;
 using DK2.Art;
 using Unity.Profiling;
 using UnityEngine;
@@ -19,6 +21,7 @@ namespace DK2.Unity
         private static readonly ProfilerMarker SortMarker = new ProfilerMarker("DK2.TransparentTerrain.Sort");
         private static readonly ProfilerMarker OrderMarker = new ProfilerMarker("DK2.TransparentTerrain.DepthOrder");
         private static readonly ProfilerMarker UploadMarker = new ProfilerMarker("DK2.TransparentTerrain.UploadRuns");
+        private static readonly ProfilerMarker CullMarker = new ProfilerMarker("DK2.TransparentTerrain.Cull");
 
         private sealed class Source
         {
@@ -35,11 +38,39 @@ namespace DK2.Unity
             public Mesh Mesh;
             public MeshRenderer Renderer;
             public bool Used;
+            public long BoundsRevision = -1;
+            public int VertexCapacity, IndexCapacity, SortingOrder = int.MinValue;
+            public bool Active = true, SharedBound;
+            public Material Material;
+            public Bounds Bounds;
             public readonly List<RenderTriangle> Triangles = new List<RenderTriangle>();
-            // Triangles tracks drawn order; offsets tracks the retained vertex layout, which
-            // stays unchanged when only indices are reordered or a subset is drawn.
-            public readonly Dictionary<RenderTriangle, int> VertexOffsets = new Dictionary<RenderTriangle, int>();
         }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SharedVertex
+        {
+            public Vector3 Position, Normal;
+            public Color32 Colour;
+            public Vector2 Uv, LightAnchor;
+            public Vector4 StaticLight, LightKind;
+        }
+
+        private static readonly VertexAttributeDescriptor[] SharedLayout =
+        {
+            new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3),
+            new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3),
+            new VertexAttributeDescriptor(VertexAttribute.Color, VertexAttributeFormat.UNorm8, 4),
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2),
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.Float32, 2),
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord2, VertexAttributeFormat.Float32, 4),
+            new VertexAttributeDescriptor(VertexAttribute.TexCoord3, VertexAttributeFormat.Float32, 4),
+        };
+        private static readonly VertexAttributeDescriptor[] IndexMeshLayout = Array.Empty<VertexAttributeDescriptor>();
+        private Mesh _sharedVertices;
+        private SharedVertex[] _vertexData = Array.Empty<SharedVertex>();
+        private long _geometryRevision;
+        private RenderPipelineAsset _checkedPipeline;
+        private PropertyInfo _dynamicBatching;
 
         private sealed class EffectMesh
         {
@@ -57,7 +88,7 @@ namespace DK2.Unity
         private readonly List<Vector2> _effectUvs = new List<Vector2>();
         private readonly List<Color32> _effectColours = new List<Color32>();
         private readonly List<int> _effectIndices = new List<int>();
-        private readonly List<Color32> _colours = new List<Color32>(), _runColours = new List<Color32>();
+        private readonly List<Color32> _colours = new List<Color32>();
 
         public void BeginEffectFrame() => _effectCount = 0;
 
@@ -110,17 +141,15 @@ namespace DK2.Unity
         private readonly List<Vector2> _lightAnchors = new List<Vector2>();
         private readonly List<Material> _materials = new List<Material>();
         private readonly List<RenderTriangle> _triangles = new List<RenderTriangle>();
+        private readonly List<RenderTriangle> _visibleTriangles = new List<RenderTriangle>();
+        private readonly Plane[] _frustum = new Plane[6];
         private readonly List<NumericsVector3> _worldPositions = new List<NumericsVector3>();
-        private readonly List<Vector3> _runPositions = new List<Vector3>();
-        private readonly List<Vector3> _runNormals = new List<Vector3>();
-        private readonly List<Vector2> _runUvs = new List<Vector2>();
-        private readonly List<Vector2> _runLightAnchors = new List<Vector2>();
-        private readonly List<Vector4> _runStaticLightInputs = new List<Vector4>();
-        private readonly List<int> _runIndices = new List<int>();
+        private int[] _runIndexData = Array.Empty<int>();
         private readonly TriangleDepthOrderBuffer _sort = new TriangleDepthOrderBuffer();
         private bool _dirty = true;
         private Vector3 _lastForward;
         private Matrix4x4 _lastMatrix;
+        private Matrix4x4 _lastCullingMatrix;
 
         private void OnEnable() => RenderPipelineManager.beginCameraRendering += BeforeCamera;
         private void OnDisable() => RenderPipelineManager.beginCameraRendering -= BeforeCamera;
@@ -185,7 +214,11 @@ namespace DK2.Unity
             _effects.Clear(); _effectCount = 0;
             _dirty = true;
             // A teardown on scene unload can find a run's object already gone with its parent.
-            foreach (Run run in _runs) if (run.Object != null) run.Object.SetActive(false);
+            foreach (Run run in _runs)
+            {
+                if (run.Object != null && run.Active) run.Object.SetActive(false);
+                run.Active = false;
+            }
         }
 
         private void Collect()
@@ -240,12 +273,27 @@ namespace DK2.Unity
 
         private void BeforeCamera(ScriptableRenderContext context, Camera camera)
         {
+            RenderPipelineAsset pipeline = GraphicsSettings.currentRenderPipeline;
+            if (pipeline != _checkedPipeline)
+            {
+                _checkedPipeline = pipeline;
+                _dynamicBatching = pipeline != null ? pipeline.GetType().GetProperty("supportsDynamicBatching") : null;
+            }
+            if (_dynamicBatching != null && (bool)_dynamicBatching.GetValue(pipeline))
+                throw new InvalidOperationException("Shared transparent vertex streams require dynamic batching disabled.");
+            foreach (Material material in _materials)
+                if (material.enableInstancing)
+                    throw new InvalidOperationException("Shared transparent vertex streams require GPU instancing disabled.");
             Vector3 forward = camera.transform.forward;
             Matrix4x4 matrix = transform.localToWorldMatrix;
-            if (!_dirty && forward == _lastForward && matrix == _lastMatrix) return;
+            Matrix4x4 culling = camera.cullingMatrix;
+            if (!_dirty && forward == _lastForward && matrix == _lastMatrix && culling == _lastCullingMatrix) return;
             using ProfilerMarker.AutoScope scope = SortMarker.Auto();
             bool geometryChanged = _dirty || (_effects.Count != 0 && matrix != _lastMatrix);
-            if (geometryChanged) Collect();
+            if (geometryChanged) { Collect(); _geometryRevision++; }
+            foreach (Material material in _materials)
+                if (material.enableInstancing)
+                    throw new InvalidOperationException("Shared transparent vertex streams require GPU instancing disabled.");
             if (geometryChanged || matrix != _lastMatrix)
             {
                 _worldPositions.Clear();
@@ -255,55 +303,126 @@ namespace DK2.Unity
                     _worldPositions.Add(new NumericsVector3(world.x, world.y, world.z));
                 }
             }
+            using (CullMarker.Auto())
+            {
+                GeometryUtility.CalculateFrustumPlanes(culling, _frustum);
+                _visibleTriangles.Clear();
+                foreach (RenderTriangle triangle in _triangles)
+                {
+                    NumericsVector3 a = _worldPositions[triangle.A], b = _worldPositions[triangle.B], c = _worldPositions[triangle.C];
+                    bool outside = false;
+                    foreach (Plane plane in _frustum)
+                    {
+                        Vector3 n = plane.normal;
+                        if (n.x * a.X + n.y * a.Y + n.z * a.Z + plane.distance < -.0001f
+                            && n.x * b.X + n.y * b.Y + n.z * b.Z + plane.distance < -.0001f
+                            && n.x * c.X + n.y * c.Y + n.z * c.Z + plane.distance < -.0001f)
+                        { outside = true; break; }
+                    }
+                    if (!outside) _visibleTriangles.Add(triangle);
+                }
+            }
             IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered;
             using (OrderMarker.Auto())
-                ordered = _sort.Sort(_worldPositions, _triangles,
+                ordered = _sort.Sort(_worldPositions, _visibleTriangles,
                     new NumericsVector3(forward.x, forward.y, forward.z));
             using ProfilerMarker.AutoScope uploadScope = UploadMarker.Auto();
             if (ordered.Count > short.MaxValue)
                 throw new InvalidOperationException("Transparent terrain exceeds Unity's 32767 ordered-run limit.");
-            SelectRuns(ordered, geometryChanged);
+            UploadSharedVertices(geometryChanged);
+            SelectRuns(ordered);
             for (int i = 0; i < ordered.Count; i++)
             {
                 Run run = _selectedRuns[i];
-                if (!run.Object.activeSelf) run.Object.SetActive(true);
+                if (!run.Active) { run.Object.SetActive(true); run.Active = true; }
                 Material material = _materials[ordered[i].MaterialIndex];
-                if (run.Renderer.sharedMaterial != material) run.Renderer.sharedMaterial = material;
+                if (run.Material != material) { run.Renderer.sharedMaterial = material; run.Material = material; }
                 // Sorting order precedes material queue. Tag passes must precede actors/flowers;
                 // other blended terrain retains its existing ordering (including water and fog).
                 int sortingOrder = ClassicMeshes.IsTagOverlay(material) ? i - short.MaxValue : i + 1;
-                if (run.Renderer.sortingOrder != sortingOrder) run.Renderer.sortingOrder = sortingOrder;
+                if (run.SortingOrder != sortingOrder) { run.Renderer.sortingOrder = sortingOrder; run.SortingOrder = sortingOrder; }
                 var triangles = ordered[i].Triangles;
-                if (!geometryChanged && SameTriangles(run.Triangles, triangles)) continue;
-                if (!geometryChanged && ReorderIndices(run, triangles)) continue;
+                bool layoutChanged = run.VertexCapacity != _vertexData.Length;
+                if (layoutChanged)
+                {
+                    // Index-only meshes retain the shared vertex count without allocating duplicate attributes.
+                    // Bounds come from the shared positions; recalculating from the primary mesh is invalid.
+                    run.Mesh.SetVertexBufferParams(_vertexData.Length, IndexMeshLayout);
+                    run.VertexCapacity = _vertexData.Length;
+                }
+                if (!run.SharedBound) { run.Renderer.additionalVertexStreams = _sharedVertices; run.SharedBound = true; }
+                bool sameTriangles = SameTriangles(run.Triangles, triangles);
+                bool boundsChanged = false;
+                if (run.BoundsRevision != _geometryRevision || layoutChanged || !sameTriangles)
+                {
+                    Bounds bounds = new Bounds(_positions[triangles[0].A], Vector3.zero);
+                    foreach (RenderTriangle triangle in triangles)
+                    {
+                        bounds.Encapsulate(_positions[triangle.A]);
+                        bounds.Encapsulate(_positions[triangle.B]);
+                        bounds.Encapsulate(_positions[triangle.C]);
+                    }
+                    if (layoutChanged || bounds != run.Bounds) { run.Mesh.bounds = bounds; run.Bounds = bounds; boundsChanged = true; }
+                    run.BoundsRevision = _geometryRevision;
+                }
+                if (!layoutChanged && sameTriangles)
+                {
+                    if (boundsChanged) SetRunDrawRange(run, triangles.Count * 3);
+                    continue;
+                }
                 run.Triangles.Clear();
-                run.VertexOffsets.Clear();
-                _runPositions.Clear(); _runNormals.Clear(); _runUvs.Clear(); _runIndices.Clear(); _runColours.Clear();
-                _runLightAnchors.Clear();
-                _runStaticLightInputs.Clear();
+                int indexCount = triangles.Count * 3;
+                if (_runIndexData.Length < indexCount) _runIndexData = new int[Mathf.NextPowerOfTwo(indexCount)];
                 for (int t = 0; t < triangles.Count; t++)
                 {
                     RenderTriangle triangle = triangles[t];
-                    run.VertexOffsets[triangle] = _runPositions.Count;
                     run.Triangles.Add(triangle);
-                    AddVertex(triangle.A); AddVertex(triangle.B); AddVertex(triangle.C);
+                    _runIndexData[t * 3] = triangle.A; _runIndexData[t * 3 + 1] = triangle.B; _runIndexData[t * 3 + 2] = triangle.C;
                 }
-                run.Mesh.Clear();
-                run.Mesh.indexFormat = _runPositions.Count > 65535 ? IndexFormat.UInt32 : IndexFormat.UInt16;
-                run.Mesh.SetVertices(_runPositions);
-                run.Mesh.SetNormals(_runNormals);
-                run.Mesh.SetUVs(0, _runUvs);
-                run.Mesh.SetColors(_runColours);
-                run.Mesh.SetUVs(1, _runLightAnchors);
-                run.Mesh.SetUVs(2, _runStaticLightInputs);
-                run.Mesh.SetUVs(3, _runStaticLightInputs);
-                run.Mesh.SetTriangles(_runIndices, 0, calculateBounds: true);
+                if (run.IndexCapacity < indexCount)
+                {
+                    // Changing triangle counts must not resize native backing storage every frame.
+                    run.IndexCapacity = Math.Max(16, Mathf.NextPowerOfTwo(indexCount));
+                    run.Mesh.SetIndexBufferParams(run.IndexCapacity, IndexFormat.UInt32);
+                }
+                run.Mesh.SetIndexBufferData(_runIndexData, 0, 0, indexCount, MeshUpdateFlags.DontRecalculateBounds);
+                SetRunDrawRange(run, indexCount);
             }
             foreach (Run run in _runs)
-                if (!run.Used && run.Object.activeSelf) run.Object.SetActive(false);
+                if (!run.Used && run.Active) { run.Object.SetActive(false); run.Active = false; }
             _dirty = false;
             _lastForward = forward;
             _lastMatrix = matrix;
+            _lastCullingMatrix = culling;
+        }
+
+        private static void SetRunDrawRange(Run run, int indexCount)
+        {
+            run.Mesh.SetSubMesh(0, new SubMeshDescriptor(0, indexCount, MeshTopology.Triangles)
+            { bounds = run.Bounds, firstVertex = 0, vertexCount = run.VertexCapacity }, MeshUpdateFlags.DontRecalculateBounds);
+        }
+
+        private void UploadSharedVertices(bool geometryChanged)
+        {
+            if (_positions.Count == 0 || (!geometryChanged && _sharedVertices != null)) return;
+            if (_sharedVertices == null)
+            {
+                _sharedVertices = new Mesh { name = "shared transparent vertices" };
+                _sharedVertices.MarkDynamic();
+            }
+            bool grew = _vertexData.Length < _positions.Count;
+            if (grew)
+            {
+                _vertexData = new SharedVertex[Math.Max(1024, Mathf.NextPowerOfTwo(_positions.Count))];
+                _sharedVertices.SetVertexBufferParams(_vertexData.Length, SharedLayout);
+            }
+            for (int i = 0; i < _positions.Count; i++)
+                _vertexData[i] = new SharedVertex
+                {
+                    Position = _positions[i], Normal = _normals[i], Colour = _colours[i],
+                    Uv = _uvs[i], LightAnchor = _lightAnchors[i],
+                };
+            _sharedVertices.SetVertexBufferData(_vertexData, 0, 0, grew ? _vertexData.Length : _positions.Count, 0, MeshUpdateFlags.DontRecalculateBounds);
         }
 
         private static bool SameTriangles(List<RenderTriangle> previous, IReadOnlyList<RenderTriangle> next)
@@ -314,25 +433,20 @@ namespace DK2.Unity
             return true;
         }
 
-        private void SelectRuns(IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered, bool geometryChanged)
+        private void SelectRuns(IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered)
         {
             _runMatches.Clear();
             foreach (Run run in _runs)
             {
                 run.Used = false;
-                if (geometryChanged)
-                {
-                    run.Triangles.Clear();
-                    run.VertexOffsets.Clear();
-                }
-                else _runMatches[TriangleHash(run.Triangles)] = run;
+                _runMatches[TriangleHash(run.Triangles)] = run;
             }
             _selectedRuns.Clear();
             for (int i = 0; i < ordered.Count; i++)
             {
                 Run match = null;
                 var triangles = ordered[i].Triangles;
-                if (!geometryChanged && _runMatches.TryGetValue(TriangleHash(triangles), out Run candidate)
+                if (_runMatches.TryGetValue(TriangleHash(triangles), out Run candidate)
                     && !candidate.Used && SameTriangles(candidate.Triangles, triangles))
                 {
                     match = candidate;
@@ -368,31 +482,6 @@ namespace DK2.Unity
             }
         }
 
-        private bool ReorderIndices(Run run, IReadOnlyList<RenderTriangle> triangles)
-        {
-            _runIndices.Clear();
-            for (int i = 0; i < triangles.Count; i++)
-            {
-                if (!run.VertexOffsets.TryGetValue(triangles[i], out int vertex)) return false;
-                _runIndices.Add(vertex); _runIndices.Add(vertex + 1); _runIndices.Add(vertex + 2);
-            }
-            run.Mesh.SetTriangles(_runIndices, 0, calculateBounds: false);
-            run.Triangles.Clear();
-            for (int i = 0; i < triangles.Count; i++) run.Triangles.Add(triangles[i]);
-            return true;
-        }
-
-        private void AddVertex(int vertex)
-        {
-            _runIndices.Add(_runPositions.Count);
-            _runPositions.Add(_positions[vertex]);
-            _runNormals.Add(_normals[vertex]);
-            _runUvs.Add(_uvs[vertex]);
-            _runColours.Add(_colours[vertex]);
-            _runLightAnchors.Add(_lightAnchors[vertex]);
-            _runStaticLightInputs.Add(Vector4.zero);
-        }
-
         private Run CreateRun(int index)
         {
             var go = new GameObject($"transparent terrain run {index}");
@@ -409,7 +498,18 @@ namespace DK2.Unity
         private void OnDestroy()
         {
             RenderPipelineManager.beginCameraRendering -= BeforeCamera;
-            foreach (Run run in _runs) Destroy(run.Mesh);
+            foreach (Run run in _runs)
+            {
+                if (run.Renderer != null) run.Renderer.additionalVertexStreams = null;
+                ReleaseMesh(run.Mesh);
+            }
+            ReleaseMesh(_sharedVertices);
+        }
+
+        private static void ReleaseMesh(Mesh mesh)
+        {
+            if (mesh == null) return;
+            if (Application.isPlaying) Destroy(mesh); else DestroyImmediate(mesh);
         }
     }
 }

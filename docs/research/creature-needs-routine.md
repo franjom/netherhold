@@ -96,7 +96,14 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
 **Last**, the wounded: `0x00488840` compares health × 100 ÷ the level-scaled
 maximum (definition `+0x692`) with `CreatureSleepsWhenBelowPercentHealth` (50,
 `0x006F28CE`). Below it, a bed attempt with the Sleeping mask, the category test and
-the busy test, but no 4-turn gate.
+the busy test, but no 4-turn gate (`0x00477F94`–`0x00478023`). The attempt is the same
+`0x0046F440`, and nothing on the path writes `+0x58` (re-read 2026-10-26, CONFIRMED):
+
+- **With a bed** it routes only while `+0x58` is non-zero, so a wound alone does not send
+  a bedded creature to bed; it only drops the tired branch's 4-turn gate.
+- **Without a bed** it calls the lair attempt `0x0046F390`, which does not read `+0x58`. State 80 places
+  the bed and then asks the same wound test (`0x0046F785`): hurt is 81, so a bedless
+  wounded creature does sleep untired.
 
 ## 4. Which states stop the clocks
 
@@ -118,7 +125,9 @@ leaves.
   ours asks whether it is tired at the moment of the decision, where DK2 latches
   `+0x58` when the period passes, so a creature tired before it sat down at a table
   would still be sent to bed by DK2.
-- The order of our systems is DK2's: eat, then sleep, then pay.
+- The order of our systems is DK2's: eat, then sleep, then pay, as steps of `CreatureUpdateSystem`
+  inside each creature's update (ADR-0554); the payday clock's own call skips the stamp and
+  runs before the creatures ([payday.md](payday.md) §2).
 - **The cannot-sleep drain** (ADR-0199), `NeedRules.CannotSleepHealthPerSecond`: variable
   82 ÷ variable 19 a turn, truncated as `IDIV` does (`0x00477E74`), so −5 is −1 a turn
   and −3 nothing. Keepers' non-workers only, not in group 7, not Sleeping through a walk,
@@ -134,6 +143,7 @@ leaves.
 
 **Not built:** the alert timer, possession, rebels and the big winner in
 the busy test (the Call To Arms is built, ADR-0279) (each is one of our activities or unbuilt); the wounded attempt's missing
-4-turn gate (ours shares the tired path). Creatures still
+4-turn gate (ours shares the tired path, so with a bed it needs tiredness, ADR-0543); a bedless
+wounded creature's lair attempt from a job (ours tries only from idle, Q150). Creatures still
 on our own activities (combat, leaving, fleeing) are asked by none of the three, as
 before.

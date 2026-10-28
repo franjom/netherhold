@@ -21,9 +21,9 @@ public class HeartPulseGateTests
     }
 
     [Fact]
-    public void EarlyBeatsAreConsumedButEmissionRequiresMoreThanSevenGameSeconds()
+    public void EarlyBeatsAreConsumedButEmissionRequiresMoreThanTheFullReveal()
     {
-        Assert.False(HeartPulseGate.CanEmit(new GameTick(28)));
-        Assert.True(HeartPulseGate.CanEmit(new GameTick(29)));
+        Assert.False(HeartPulseGate.CanEmit(new GameTick(36)));
+        Assert.True(HeartPulseGate.CanEmit(new GameTick(37)));
     }
 }

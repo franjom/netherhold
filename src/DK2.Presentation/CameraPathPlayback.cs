@@ -156,6 +156,13 @@ public sealed class CinematicLetterbox
         if (_count == 0) BlendTo(0, now);
     }
 
+    /// <summary>Game action <c>0x74</c> with 2 (<c>0x004426F0</c>): off whatever raised it.</summary>
+    public void ForceOff(double now)
+    {
+        _count = 0;
+        BlendTo(0, now);
+    }
+
     private void BlendTo(float target, double now)
     {
         // 0x0044D320 starts no blend when the destination rect already is the target.

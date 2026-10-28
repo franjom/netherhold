@@ -45,6 +45,11 @@ comments do.
   `EngineTexturesFile`, `Dk2TextureDecoder`, `EngineTextureDecoder`, and
   `KmfModelLoader`, then reimplemented in `src/DK2.Convert` in this project's
   own structure and idiom.
+- **Loading-screen format research (facts only, no code copied):** OpenKeeper's
+  `LoadingScreenFile` and `LoadingScreenTextureDecoder` corroborated the `.444`
+  header and absolute-DC RGB distinction; native setup and block routines are
+  recorded in `docs/research/front-end-assets.md` §1.4. Independently implemented
+  in `DK2.Art`, reusing this project's engine coefficient/transform code.
 - **SDT format research (facts only, no code copied):** the count and offset
   table, 40-byte entry layout, fixed name field, sample metadata, sound-type
   values, and proposed type names were consulted in OpenKeeper's `SdtFile` and

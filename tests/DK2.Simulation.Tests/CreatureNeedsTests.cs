@@ -1072,6 +1072,47 @@ public class CreatureNeedsTests
     }
 
     [Fact]
+    public void AWoundedGoblinWithABedWaitsUntilItIsTired()
+    {
+        // The needs routine's wound branch calls the Sleep job (0x00478023), and with a bed
+        // that job routes only while the sleep latch +0x58 is set (0x0046F440): a wound
+        // alone does not send a bedded creature to it. TimeAwake is 240 s, so not tired yet.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        var events = new ListEventSink();
+
+        var bed = new TilePos(4, 4);
+        Paint(db, world, RoomTypeId.Lair, bed, Keeper);
+        for (int x = 2; x <= 4; x++)
+        {
+            ref TileState tile = ref world.Tile(x, 4);
+            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain) continue;
+            tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+            tile.OwnerPlayerId = Keeper;
+        }
+
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 4));
+        LairRules.PlaceBed(world, db, goblin, (bed.Y * world.Width) + bed.X);
+        goblin.Health = 300;
+        Assert.True(CreatureHealthRules.ShouldSleepFromWounds(db, db.CreatureById(GoblinId), goblin));
+
+        var sim = new GameSimulation(db, world, 42, [
+            new CreatureMovementSystem(),
+            new CreatureSleepSystem(),
+        ]);
+        sim.ObserveWith(events);
+        sim.Run(Second * 10);
+
+        Assert.DoesNotContain(events.Events, e => e.Kind == "going_to_sleep");
+        Assert.NotEqual(CreatureActivity.Sleeping, goblin.Activity);
+
+        // Tired, it goes, wounded or not.
+        goblin.AwakeTicks = SimulationTiming.TicksFromSeconds(db.CreatureById(GoblinId).TimeAwake);
+        sim.Run(Second * 10);
+        Assert.Contains(events.Events, e => e.Kind == "going_to_sleep");
+    }
+
+    [Fact]
     public void ABedSoldOutFromUnderACreatureIsGivenUp()
     {
         // A bed is not a promise: the lair can be sold, dug out or taken while

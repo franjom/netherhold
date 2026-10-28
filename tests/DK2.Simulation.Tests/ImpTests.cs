@@ -1072,6 +1072,52 @@ public class ImpTests
     }
 
     /// <summary>
+    /// Both claim handlers refuse an ally's tile before choosing claim, attack or conversion
+    /// (<c>0x0046ABCF</c>, alliances.md §4): Level 18's allied keepers leave each other's floor
+    /// alone. A neutral tile skips the test, so the alliance every level makes with neutral
+    /// leaves unowned ground claimable.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnAllysFloorIsNeverAttacked(bool allied)
+    {
+        const byte Ally = Keeper + 1;
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Ally]);
+        world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        ref TileState theirs = ref world.Tile(4, 2);
+        theirs.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        theirs.OwnerPlayerId = Ally;
+        theirs.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
+        world.SetAllied(Keeper, Ally, allied);
+        var run = new Run(new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems()), new ListEventSink());
+        run.Sim.ObserveWith(run.Events);
+
+        run.Ticks(200);
+
+        bool attacked = run.Of("job_taken").Any(e => e.Detail.Contains("(4,2) AttackTile", StringComparison.Ordinal));
+        Assert.Equal(!allied, attacked);
+    }
+
+    [Fact]
+    public void NeutralGroundIsClaimedThoughNeutralIsAnAlly()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = Start(new TilePos(2, 2));
+        run.World.SetAllied(Keeper, PlayerIds.Neutral, allied: true);
+        ref TileState dirt = ref run.World.Tile(4, 2);
+        dirt.TerrainId = Dk2TerrainFixture.DirtPath;
+        dirt.OwnerPlayerId = PlayerIds.Neutral;
+        dirt.Health = database.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
+
+        run.Ticks(200);
+
+        Assert.Contains(run.Of("job_taken"), e => e.Detail.Contains("(4,2) Claim", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// A take fails when its walk cannot start (<c>0x004651A0</c> → <c>0x004D0F60</c>,
     /// imp-task-stealing.md §7, Q588): the claimable dirt at (6,2) lies past a rival's locked
     /// door, which the selection grid walks through and the router does not, so the imp never

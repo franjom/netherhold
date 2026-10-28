@@ -51,18 +51,22 @@ public class WorldStateTests
     }
 
     [Fact]
-    public void Players_AreOrderedById_SoHashingIsStable()
+    public void Players_AreOrderedById_AndTheActiveListKeepsTheirActivationOrderReversed()
     {
         GameDatabase database = TestWorld.Database();
         WorldState ascending = WorldState.FromMap(database, TestWorld.Map(), [(byte)1, (byte)2, (byte)3]);
         WorldState descending = WorldState.FromMap(database, TestWorld.Map(), [(byte)3, (byte)2, (byte)1]);
 
+        Assert.Equal(ascending.PlayerIds, descending.PlayerIds);
+        // Activation prepends (0x004C2460), and the verdict walks that list (ADR-0547), so the
+        // order is state and is hashed.
+        Assert.Equal([new PlayerId(3), new PlayerId(2), new PlayerId(1)], ascending.ActivePlayerOrder);
+        Assert.Equal([new PlayerId(1), new PlayerId(2), new PlayerId(3)], descending.ActivePlayerOrder);
         Hash64 a = Hash64.Start();
         Hash64 b = Hash64.Start();
         ascending.HashInto(ref a);
         descending.HashInto(ref b);
-
-        Assert.Equal(a.Value, b.Value);
+        Assert.NotEqual(a.Value, b.Value);
     }
 
     [Fact]

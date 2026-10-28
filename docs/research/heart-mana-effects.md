@@ -137,3 +137,10 @@ This branch contains no positive-income or mana-cap test. The mana payment
 `0x004C10E0` has no visual-effect creation; room update `0x004D9A60` requests
 intro effects 223, 225 and 314 (the opening sequence, [heart-intro.md](heart-intro.md)). Room-type response `0x004E7FE0` has no Heart
 type-5 arm. Do not attach effect 59 directly to mana payment.
+
+Owner-requested presentation correction (2026-10-25): mana waits for the full
+nine-second Heart reveal, including the arches' fade, rather than the native
+seven-second eligibility check above. The view also waits nine seconds from
+its accepted225 request, for215's plug burst, and for intact/cracked lid
+emitters to lose their last child. These guards use the effect clock so a
+slow opening cannot show mana through the lid or during the reveal.

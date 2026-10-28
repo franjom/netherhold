@@ -294,5 +294,6 @@ input routine `0x0040FDF0` sends action 39 with the inverted bit (CONFIRMED).
   can stand at is in bounds because every shipped border tile is solid.
 - Player order: `Players_Activate` (`0x004C2460`) pushes each player on the head of
   the active list (world +0x7A, next +0x3A), so scans visit players in reverse
-  activation order. Activation follows the level's player records (`0x0051EF80` →
-  `0x004C2340`): LIKELY the last record in the file comes first.
+  activation order. Activation follows the level's PLAYERS records in file order
+  (`0x0051EF80` → `0x004C2340`), so the last record comes first (CONFIRMED;
+  [win-and-defeat.md](win-and-defeat.md) §7).

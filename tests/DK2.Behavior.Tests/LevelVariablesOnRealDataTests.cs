@@ -99,12 +99,14 @@ public class LevelVariablesOnRealDataTests
         Assert.True(level1.Variables.TryGet(VariableTypeId.GameTicks, out int gameTicks));
         Assert.Equal(340, gameTicks);
 
-        // The merge adds and never loses: level 1 contributes four plain ids the global
-        // table lacks, so the merged count is exactly four higher. Its fifth, id 77, is a
-        // structured record list kept apart from Misc since ADR-0491.
-        Assert.Equal(global.Variables.Misc.Count + 4, level1.Variables.Misc.Count);
+        // The merge adds and never loses: level 1 contributes three plain ids the global
+        // table lacks, so the merged count is exactly three higher. Ids 77 and 66 are
+        // structured record lists kept apart from Misc (ADR-0491, ADR-0546).
+        Assert.Equal(global.Variables.Misc.Count + 3, level1.Variables.Misc.Count);
         Assert.Empty(global.Variables.CreatureFieldOverrides);
         Assert.Equal(2, level1.Variables.CreatureFieldOverrides.Count);
+        Assert.Empty(global.Variables.Alliances);
+        Assert.Equal([new AllianceEntry(2, 1), new AllianceEntry(3, 2)], level1.Variables.Alliances);
     }
 
     /// <summary>
@@ -299,4 +301,47 @@ public class LevelVariablesOnRealDataTests
             [VariableTypeId.EntranceGenerationSpeedSeconds]);
     }
 
+    /// <summary>Level 18's id-66 records (alliances.md §2) reach the world: every keeper allied with
+    /// neutral, neutral with the heroes, and its three computer keepers 4, 5 and 6 with each other,
+    /// none of them with the player (3) or the heroes.</summary>
+    [InstallFact]
+    public void Level18AlliesItsThreeComputerKeepersAndEveryoneWithNeutral()
+    {
+        string install = Install();
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "level18");
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level18")!;
+        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "level18")!;
+        Simulation.WorldState world = Simulation.WorldState.FromMap(db, map, players.Select(p => p.PlayerId));
+
+        Assert.True(world.AreAllied(PlayerIds.Neutral, PlayerIds.Good));
+        foreach (byte keeper in new byte[] { 3, 4, 5, 6 })
+        {
+            Assert.True(world.AreAllied(keeper, PlayerIds.Neutral));
+            Assert.False(world.AreAllied(keeper, PlayerIds.Good));
+        }
+        Assert.True(world.AreAllied(4, 5) && world.AreAllied(4, 6) && world.AreAllied(5, 6));
+        Assert.False(world.AreAllied(3, 4) || world.AreAllied(3, 5) || world.AreAllied(3, 6));
+    }
+
+    /// <summary>DK2 activates one player per PLAYERS record in file order and prepends each to the
+    /// active list (0x0056DAD0, 0x0051EF80, 0x004C2460): the scenario harness orders a campaign
+    /// level's players the same way, whatever order the scenario lists them in, and the world's
+    /// active list is the record order reversed. Id 0, which has no record, going first is the
+    /// harness's convention, not DK2's: DK2 never activates a player without a record.</summary>
+    [InstallFact]
+    public void ACampaignScenarioActivatesItsPlayersInPlayersRecordOrder()
+    {
+        string install = Install();
+        List<PlayerDef> records = GameDatabaseLoader.LoadCampaignPlayers(install, "level18")!;
+        byte[] fileOrder = records.Select(p => p.PlayerId).ToArray();
+        byte[] scrambled = [(byte)0, .. fileOrder.Reverse()];
+
+        IReadOnlyList<byte> order = Harness.ScenarioRunner.ActivationOrder(scrambled, records);
+
+        Assert.Equal([(byte)0, .. fileOrder], order);
+        Simulation.WorldState world = Simulation.WorldState.FromMap(
+            GameDatabaseLoader.LoadForCampaignLevel(install, "level18"),
+            GameDatabaseLoader.LoadCampaignMap(install, "level18")!, order);
+        Assert.Equal(order.Reverse().Select(id => new PlayerId(id)), world.ActivePlayerOrder);
+    }
 }

@@ -480,7 +480,7 @@ public sealed class PossessionActTests
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 10, 10);
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Act(me, melee: false, slot: slot)));
-        Assert.All(me.SpellStamps, s => Assert.Equal(0, s));
+        Assert.All(me.SpellStamps, s => Assert.Equal(CreatureState.NeverUsed, s));
         Assert.False(me.SwingInProgress);
     }
 
@@ -494,7 +494,7 @@ public sealed class PossessionActTests
         world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(12, 10));
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Act(me, melee: false, slot: PossessedSlot.FollowerArm)));
-        Assert.All(me.SpellStamps, s => Assert.Equal(0, s));
+        Assert.All(me.SpellStamps, s => Assert.Equal(CreatureState.NeverUsed, s));
         Assert.False(me.SwingInProgress);
     }
 

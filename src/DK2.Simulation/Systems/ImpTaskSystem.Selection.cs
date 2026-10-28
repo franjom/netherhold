@@ -171,6 +171,7 @@ public sealed partial class ImpTaskSystem
                     return true;
                 if (TryTakeObject(context, creature, definition, grid)) return true;
                 if (TryTakeBody(context, creature, definition, grid, corpses: true)) return true;
+                if (TrySecretDoorAt(context, creature, tile)) return true;
             }
             return false;
         }
@@ -202,6 +203,7 @@ public sealed partial class ImpTaskSystem
                 : TryTakeFloorGold(context, creature, definition, grid),
             ImpTaskKind.CarryObject => TryTakeObject(context, creature, definition, grid),
             ImpTaskKind.BuildTrap or ImpTaskKind.BuildDoor => TryTakeBlueprint(context, creature, grid),
+            ImpTaskKind.SecretDoor => TryTakeSecretDoor(context, creature),
             ImpTaskKind.CarryCorpse => TryTakeBody(context, creature, definition, grid, corpses: true),
             ImpTaskKind.CarryUnconscious => TryTakeBody(context, creature, definition, grid, corpses: false),
             _ => false,
@@ -271,8 +273,7 @@ public sealed partial class ImpTaskSystem
     /// the tile as a wall to reinforce or repair (<see cref="TryReinforceAt"/>), then the gold on
     /// it, then its loose objects (<c>0x0046B9C0</c>, <see cref="TryObjectAt"/>, ADR-0519). The first
     /// tile that gives a job wins, so a wall one ring nearer beats a pile under the next ring.
-    /// The fourth step, the marked Secret Door (<c>0x0046CB80</c>, kind 11), is not built: ours
-    /// marks no Secret Door, so no kind-11 entry exists for it to find. Q493, ADR-0291.
+    /// The fourth step exposes a marked Secret Door (<c>0x0046CB80</c>, kind 11; ADR-0536).
     /// </summary>
     private bool TrySweep(
         SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid)
@@ -297,6 +298,7 @@ public sealed partial class ImpTaskSystem
             if (creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0
                 && TryObjectAt(context, creature, grid, tile))
                 return true;
+            if (TrySecretDoorAt(context, creature, tile)) return true;
         }
         return false;
     }
@@ -535,8 +537,7 @@ public sealed partial class ImpTaskSystem
                     break;
                 }
                 if (!TaskStealing.CanLoseItsTask(holder)) continue;
-                (long hx, long hy) = TaskStealing.HolderPosition(holder, MiningSlots.StancePoint(stand, slot));
-                if (mine < TaskStealing.DistanceSquared(hx, hy, px, py))
+                if (mine < TaskStealing.DistanceSquared(holder.PosX, holder.PosY, px, py))
                     (taken, takenSlot, takenWork, takenFrom) = (stand, slot, work, holder);
             }
             if (taken is not null && takenFrom is null) break;
@@ -578,7 +579,8 @@ public sealed partial class ImpTaskSystem
     private static void TakeTaskFrom(SimulationContext context, CreatureState holder, CreatureState taker, int tileIndex)
     {
         context.Emit(SystemName, "task_stolen",
-            $"imp={taker.Id} from={holder.Id} {Describe(context.World, tileIndex)} {holder.TargetWork} " +
+            $"imp={taker.Id} from={holder.Id} {Describe(context.World, tileIndex)} " +
+            $"{(holder.SecretDoorTask ? "SecretDoor" : holder.TargetWork.ToString())} " +
             $"holder_state={holder.Dk2StateId}");
         LoseTask(context, holder);
     }
@@ -614,10 +616,7 @@ public sealed partial class ImpTaskSystem
             if (ImpCrowding.FaceOf(world, other) != faceIndex) continue;
             if (!TaskStealing.CanLoseItsTask(other)) return null;
             var tile = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
-            (long X, long Y) stance = face == tile
-                ? (CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y))
-                : TaskStealing.ReinforceStance(face, MiningSlots.Face(face, tile));
-            return TaskStealing.NearerTheTile(asking, TaskStealing.HolderPosition(other, stance), tile) ? other : null;
+            return TaskStealing.NearerTheTile(asking, (other.PosX, other.PosY), tile) ? other : null;
         }
         return null;
     }
@@ -874,6 +873,7 @@ public sealed partial class ImpTaskSystem
 
         creature.TargetTileIndex = tileIndex;
         creature.TargetWork = kind;
+        creature.SecretDoorTask = false;
         creature.WorkSlot = workSlot;
 
         // A worker already on its stance tile still walks to its point (0x004651A0 always walks),
@@ -889,6 +889,71 @@ public sealed partial class ImpTaskSystem
         context.Emit(SystemName, "job_taken",
             $"imp={creature.Id} player={creature.OwnerPlayerId} " +
             $"{Describe(context.World, tileIndex)} {kind} priority={priority} steps={_route.Count}");
+        return true;
+    }
+
+    /// <summary>A job copied from a DK2 capture (<see cref="WorldResync"/>): the walk
+    /// <see cref="CommitJob"/> starts, to the native side and slot instead of a search's route
+    /// (a dig or mine to its slot's stance point, a reinforce to its side's, claim-like work to
+    /// the tile's centre), so an Imp that DK2 had on its way to a wall is on its way to the same
+    /// face of it. No holder is kicked, no event of a choice is raised; a resync is not a choice.
+    /// The last kind and tile are written as a choice writes them; the caller restores DK2's.
+    /// False when no route reaches the stance.</summary>
+    internal static bool ReissueJob(
+        SimulationContext context, CreatureState creature, int tileIndex, TileWorkKind kind, int side, byte slot)
+    {
+        WorldState world = context.World;
+        var target = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
+        bool onTheTile = kind is TileWorkKind.Claim or TileWorkKind.AttackTile or TileWorkKind.ConvertRoom;
+        TilePos standing = onTheTile ? target : new TilePos(target.X + SideDx[side & 3], target.Y + SideDy[side & 3]);
+        if (!world.Contains(standing)) return false;
+        // DK2 keeps the side and the slot along it; ours is one byte, face * 3 + along, for a
+        // dig as for a mine (the dig search hands CommitJob its slot too).
+        bool excavation = kind is TileWorkKind.MineGold or TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall;
+        int face = MiningSlots.Face(standing, target);
+        byte workSlot = excavation && face >= 0 ? (byte)((face * MiningSlots.PerFace) + (slot % MiningSlots.PerFace)) : MiningSlots.None;
+
+        bool walks;
+        if (workSlot != MiningSlots.None)
+        {
+            (long sx, long sy) = MiningSlots.StancePoint(standing, workSlot);
+            walks = context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
+        }
+        else if (kind is TileWorkKind.Reinforce or TileWorkKind.RepairWall)
+        {
+            if (face < 0) return false;
+            (long sx, long sy) = TaskStealing.ReinforceStance(standing, face);
+            walks = context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
+        }
+        else if (onTheTile)
+        {
+            walks = context.Navigation.TryRouteToStance(creature, CreatureState.CentreOf(target.X),
+                CreatureState.CentreOf(target.Y), Navigation.MoveOptions.Spot);
+        }
+        else
+        {
+            walks = context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Spot);
+        }
+        if (!walks) return false;
+
+        creature.TargetTileIndex = tileIndex;
+        creature.TargetWork = kind;
+        creature.SecretDoorTask = false;
+        creature.WorkSlot = workSlot;
+        bool routed = creature.IsRouted;
+        if (!routed) creature.TimerTicks = WorkCadence.FirstApplicationTicks;
+        SetOutInState(context, creature, kind, routed);
+
+        JobPriority priority = kind switch
+        {
+            TileWorkKind.MineGold or TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => JobPriority.MarkedExcavation,
+            TileWorkKind.Reinforce or TileWorkKind.RepairWall => JobPriority.Reinforce,
+            _ => JobPriority.Claim,
+        };
+        creature.LastTaskKind = KindOf(priority, kind);
+        creature.LastTaskTileIndex = tileIndex;
+        context.Emit(WorldResync.SystemName, "job_reissued",
+            $"imp={creature.Id} {Describe(world, tileIndex)} {kind} side={side} slot={slot} routed={routed}");
         return true;
     }
 
@@ -932,6 +997,7 @@ public sealed partial class ImpTaskSystem
             // (Q154). After that it is an ordinary claim, done standing on it.
             case JobPriority.ClaimFreshlyDug:
                 if (!tile.FreshlyDug) return false;
+                if (IsAlliedFloor(world, tile, playerId)) return false;
                 if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId)) return false;
                 if (ADigIsStillMarkedAround(context, world, target, playerId)) return false;
                 kind = TileWorkKind.Claim;
@@ -953,6 +1019,7 @@ public sealed partial class ImpTaskSystem
                 // closed, completed door writes (0x004A66F0, imp-claim-path.md §4, ADR-0443).
                 if (world.DoorAt(target.X, target.Y) is { UnderConstruction: false, Open: false })
                     return false;
+                if (IsAlliedFloor(world, tile, playerId)) return false;
                 if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Claim, playerId))
                     kind = TileWorkKind.Claim;
                 else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.AttackTile, playerId))
@@ -1091,6 +1158,13 @@ public sealed partial class ImpTaskSystem
     internal static bool TouchesOwnLand(
         SimulationContext context, WorldState world, TilePos target, PlayerId playerId) =>
         OwnFloorRules.Touches(context.Database, world, target, playerId);
+
+    /// <summary>Both claim handlers (<c>0x0046967F</c>, <c>0x0046ABCF</c>) refuse a tile whose owner is
+    /// an ally, the keeper included, before choosing between claim, attack and conversion; a neutral
+    /// tile skips the test, so the level's keeper-with-neutral alliances (Q576) leave it claimable.
+    /// Owner 0 counts as neutral here, where the binary compares the neutral tag only; no tile has it.</summary>
+    private static bool IsAlliedFloor(WorldState world, in TileState tile, PlayerId playerId) =>
+        !TileWorkRules.IsNeutralTile(tile) && world.AreAllied(playerId, tile.OwnerPlayerId);
 
     /// <summary>
     /// Whether any of the eight tiles around <paramref name="target"/> is

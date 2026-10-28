@@ -247,8 +247,8 @@ Read this before adding to `ManaRules`.
   the imp its 7 holds 2000 a second for Summon Horny. Call To Arms' 90 is charged
   after its prepaid period (`call-to-arms.md`, ADR-0279). Trap drain is owner-reported and uninvestigated.
 - **A heart's fall is built** (ADR-0162; `win-and-defeat.md` §7): the verdict, the ruin,
-  the defeated keeper's workers killed and the rest walked to a portal (Q40). Not built
-  there: alliances ending games together (Q359).
+  the defeated keeper's workers killed and the rest walked to a portal (Q40). Alliances
+  end games together outside the campaign (Q359, ADR-0547).
 - **`MaxManaGain` and `DungeonHeartMaxManaIncrease` are read by nothing.**
   `MaxManaGain` is non-zero on exactly one terrain in the whole table, where it
   repeats `ManaGain`; `DungeonHeartMaxManaIncrease` is 32000 against a flat

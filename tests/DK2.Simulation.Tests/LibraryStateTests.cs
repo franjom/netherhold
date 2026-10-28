@@ -212,8 +212,10 @@ public class LibraryStateTests
     {
         GameDatabase db = Db();
         WorldState world = World(db, 3);
-        Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState);
+        // The intruder is the older creature, so the newest-first sweep runs the watcher's look
+        // before the intruder's own chooser can give it a place in the room.
         CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));
+        Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState);
         GameSimulation sim = Simulation(db, world);
         CreatureDef vampire = db.CreatureById(Vampire);
         int current = CreatureMovementSystem.MaxSpeedOf(vampire, intruder.Running) >> 4;
@@ -231,8 +233,8 @@ public class LibraryStateTests
         // vtable +0x90 reads the word SetSpeed last stored, so a party's slower pace is what doubles.
         GameDatabase db = Db();
         WorldState world = World(db, 3);
+        CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));   // older: watched first
         Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState);
-        CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));
         intruder.PartySpeedRaw = db.CreatureById(Vampire).Speed.Raw / 2;
         GameSimulation sim = Simulation(db, world);
         int current = SimulationTiming.LoaderRatePerTick(intruder.PartySpeedRaw);
@@ -249,8 +251,8 @@ public class LibraryStateTests
     {
         GameDatabase db = Db();
         WorldState world = World(db, 3);
+        CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));   // older: watched first
         CreatureState watcher = Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState);
-        CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));
         GameSimulation sim = Simulation(db, world);
 
         HashSet<int> seen = Watch(sim, watcher, 3);

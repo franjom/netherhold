@@ -144,6 +144,42 @@ public class TriggerEventTests
         Assert.Equal(9, world.Triggers.Read(1));
     }
 
+    /// <summary>Event 3 is the level initialiser's, so a restored world does not fire it again: a flag
+    /// the event wrote and the level later cleared stays cleared through a save and load.</summary>
+    [Fact]
+    public void ARestoredWorldDoesNotFireTheCreatedEventAgain()
+    {
+        (WorldState world, GameDatabase database, _) = CreatureWorld(root: 5);
+        TriggerRecord[] records = [Event(5, CreatureTriggerEvent.Created, child: 0xFFFF), Assign(1, flagId: 1)];
+        var original = new GameSimulation(database, world, 1, [], new TriggerTree(records, 0));
+        Assert.Equal(9, world.Triggers.Read(1));
+        world.Triggers.Write(1, FlagWriteMode.Assign, 0);
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database, [], new TriggerTree(records, 0));
+
+        Assert.Equal(0, restored.World.Triggers.Read(1));
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    /// <summary>A creature root's repeat snapshot is taken when the root is attached; a restore
+    /// keeps the saved snapshot rather than taking the authored byte again.</summary>
+    [Fact]
+    public void ARestoredWorldKeepsACreatureRootsRepeatSnapshot()
+    {
+        (WorldState world, GameDatabase database, CreatureState creature) = CreatureWorld(root: 5);
+        TriggerRecord[] records = [Event(5, CreatureTriggerEvent.Created, child: 0xFFFF), Assign(1, flagId: 1)];
+        var original = new GameSimulation(database, world, 1, [], new TriggerTree(records, 0));
+        Assert.Equal(255, creature.TriggerRepeat);
+        creature.TriggerRepeat = 7;
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database, [], new TriggerTree(records, 0));
+
+        Assert.Equal(7, restored.World.Creatures.Single(c => c.Id == creature.Id).TriggerRepeat);
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
     /// <summary>The hook end to end: a Blocker engages the Goblin, the fight-starter fires
     /// event 6 on it, and the Goblin's own tree writes the flag on the same tick.</summary>
     [Fact]

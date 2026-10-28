@@ -1,6 +1,49 @@
 # Early state-hash versions
 
-Versions 9–62, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–72, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**72** — `0xE13D73F01C848BC5`. Every creature's three spell stamps, its
+spell slot, the kind and slot of its current action and its last position; the shots in
+flight with their own id counter (ADR-0167). Composition only in the pinned fixture.
+
+**71** — `0xF7F8F30AF29050DF`. The alarm a Scout carries — the threat's
+position, the deficit, the room — and the ticks stood reporting danger entered
+(ADR-0166). Composition only in the pinned fixture.
+
+**70** — `0x05719C220035BA50`. `TempFear`, `CurrentFear`,
+`OverThreatCounter`, `BackOffTimer`, the run flag and the combat state's entry
+tick entered (ADR-0165). Composition only in the pinned fixture.
+
+**69** — `0xA02044E4AE17A79B`. The target's kind, the heart it names,
+`TimeLastUsedMelee`, and the swing in progress with its start tick and its own
+target entered (ADR-0164). Composition only in the pinned fixture.
+
+**68** — `0xD8CDBD3CD4546586`. A creature's fight target, attack type,
+`AttackRangeSquared`, `FightProcessCounter`, last fight-scan tile and its two
+eight-slot engagement arrays entered (ADR-0163). Composition only in the pinned
+fixture: no Blocker stands near an enemy there.
+
+**67** — `0x8E6F0889810E2C53`. A player's `Status` and its tick, and
+the dungeon heart's health, last attacker, death tick and ruin entered
+(ADR-0162). Composition only in the pinned fixture: its players are not
+keepers, so every new field is zero.
+
+**66** — `0x8FE50E548AC844F2`. Each keeper's room, creature, door,
+trap and spell availability rows entered, copied from the level and made mutable
+so trigger action 6 can write them (ADR-0161). Composition and initial values
+only: the pinned fixture fires no action 6.
+
+**65** — `0x15441322D8A9D319`. The world byte holding the
+trigger-controlled anger and notification gates entered (ADR-0160). Both stay
+at their initial enabled values in the pinned fixture, so this is composition only.
+
+**64** — `0x8FAF223321EE1523`. A keeper's alliance bits and a door's
+lock-pick timer entered (ADR-0159: the rest of the door model). The pinned world
+has no doors and makes no alliance, so this is composition only.
+
+**63** — `0xE53ED0F1EDDD2036`. A creature's route option word and a door's lock
+mode and open state entered (ADR-0158: doors in the navigation byte). The pinned
+world has no doors and requests no route, so this is composition only.
 
 **62** — `0xE4BA93698075EF4F`. The tile path, its index and the
 movement remainder left the creature; its heading and the steering body's

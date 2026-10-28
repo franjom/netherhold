@@ -41,6 +41,15 @@ public sealed class ScriptedViewDirector(
 
     public bool PathPlaying => _path is not null;
     public event Action<bool>? GuiVisibilityRequested;
+
+    /// <summary>The win screen asked for (interface slot <c>+0x40</c>).</summary>
+    public event Action? WinScreenRequested;
+
+    /// <summary>Game action 6: zoom to the first value over the second's milliseconds.</summary>
+    public event Action<int, int>? ZoomRequested;
+
+    /// <summary>The creature game action 17 has the camera follow, 0 for none.</summary>
+    public int FollowedCreatureId { get; private set; }
     public int LetterboxRequestCount => _letterbox.RequestCount;
     public HudFlashTarget? ActiveFlashTarget => _flash?.Target;
     public KeeperResourceFlash ResourceFlash => _flash?.Target == HudFlashTarget.Mana ? KeeperResourceFlash.Mana
@@ -149,10 +158,27 @@ public sealed class ScriptedViewDirector(
             case ScriptedViewKind.Letterbox:
                 GuiVisibilityRequested?.Invoke(!request.Flag);
                 if (request.Flag) _letterbox.Raise(_now);
+                else if (request.Value == 2) _letterbox.ForceOff(_now);
                 else _letterbox.Lower(_now);
                 break;
             case ScriptedViewKind.CameraMove:
                 _move = request.Tile;
+                break;
+            case ScriptedViewKind.CameraZoom:
+                ZoomRequested?.Invoke(request.Value, request.Value2);
+                break;
+            case ScriptedViewKind.CameraFollow:
+                FollowedCreatureId = request.Value;
+                break;
+            case ScriptedViewKind.WinScreen:
+                WinScreenRequested?.Invoke();
+                break;
+            case ScriptedViewKind.HideGui:
+                GuiVisibilityRequested?.Invoke(false);
+                break;
+            // Action 15 asks for mode 3, the keeper camera ours is already in; action 0x84's bit is unread.
+            case ScriptedViewKind.CameraMode:
+            case ScriptedViewKind.ViewFlag84:
                 break;
             case ScriptedViewKind.Speech:
                 // An introduction clears waiting speech. With subtitles standing in for audio,

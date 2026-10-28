@@ -15,7 +15,9 @@ namespace DK2.Simulation.Systems;
 /// flagged to die on solid; the area damage some shots deal each tick; the lifetime counting down;
 /// death chaining a death shot; the process handler on the first tick and on the thing struck,
 /// which becomes the shot's target. Shots are list 1 of the frame's entity pass (<c>0x004B7830</c>),
-/// walked newest first; a shot made while the list is walked waits for the next turn (Q398).</summary>
+/// walked newest first; a shot made while the list is walked (a chained shot) or after it (a
+/// trap's) waits for the next turn, and one a creature makes in its own update moves this turn
+/// (ADR-0367, ADR-0551).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
 public sealed class ShotSystem : ISimulationSystem
 {
@@ -28,89 +30,94 @@ public sealed class ShotSystem : ISimulationSystem
     {
         WorldState world = context.World;
         if (world.Shots.Count == 0) return;
-        GameDatabase database = context.Database;
         _work.Clear();
         _work.AddRange(world.Shots);
 
-        for (int i = _work.Count - 1; i >= 0; i--)
+        for (int i = _work.Count - 1; i >= 0; i--) Update(context, _work[i]);
+    }
+
+    /// <summary>One shot's update (<c>0x004AB180</c>), which <see cref="Execute"/> runs for every shot.
+    /// A shot a creature makes in its update is here before this pass, as DK2 makes it in list 0 of
+    /// <c>0x004B7830</c> and reads list 1's head afterwards (ADR-0551, ADR-0554).</summary>
+    internal static void Update(SimulationContext context, ShotState shot)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        if (!database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition))
         {
-            ShotState shot = _work[i];
-            if (!database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition))
-            {
-                world.RemoveShot(shot.Id);
-                continue;
-            }
-
-            shot.Age++;
-            if (shot.Age == 1) ShotRules.Process(context, shot, definition, ShotRules.FirstTickEvent, null);
-            if (shot.Health <= 0)
-            {
-                Die(context, shot, definition, deathShot: false);
-                continue;
-            }
-
-            // Step 4: the pre-move event (an instant shot moves onto its target here).
-            ShotRules.Process(context, shot, definition, ShotRules.PreMoveEvent, null);
-            if (shot.Health <= 0)
-            {
-                Die(context, shot, definition, deathShot: false);
-                continue;
-            }
-
-            bool stopped = false;
-            bool forced = shot.ForcedCollision;
-            CreatureState? hit = ShotRules.FindHit(world, database, shot, definition);
-            // A forced collision searches nothing; otherwise the nearer of the creature and the trap.
-            int trapDistance = int.MaxValue;
-            TrapState? trapHit = forced ? null : ShotRules.FindTrapHit(world, shot, definition, out trapDistance);
-            if (trapHit != null && hit != null
-                && CombatRules.DistanceSquared(shot.PosX, shot.PosY, hit.PosX, hit.PosY) <= trapDistance) trapHit = null;
-            if (trapHit != null)
-            {
-                // The target word now names a trap, which no creature-side process handler acts on.
-                shot.TargetKind = FightTargetKind.None;
-                shot.TargetId = CombatRules.NoTarget;
-                ShotRules.Chain(context, shot, definition.HitThingShotId);
-                ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
-                ShotRules.ContactDamageTrap(context, shot, definition, trapHit);
-                if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
-            }
-            else if (hit != null)
-            {
-                // 0x004ABE7D: the thing struck is written into the target word before anything else.
-                shot.TargetKind = FightTargetKind.Creature;
-                shot.TargetId = hit.Id;
-                ShotRules.Chain(context, shot, definition.HitThingShotId);
-                ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, hit);
-                ShotRules.ContactDamage(context, shot, definition, hit);
-                if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
-            }
-            else if (ShotRules.HitsHeart(world, database, shot, definition))
-            {
-                ShotRules.Chain(context, shot, definition.HitThingShotId);
-                ShotRules.ContactDamageHeart(context, shot, definition);
-                if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
-            }
-            else if (ShotRules.HitsDoor(world, shot, definition, out DoorState? door))
-            {
-                ShotRules.Chain(context, shot, definition.HitThingShotId);
-                ShotRules.ContactDamageDoor(context, shot, definition, door!);
-                if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
-            }
-            else
-            {
-                stopped = !Move(context, shot, definition);
-            }
-
-            ShotRules.AreaDamage(context, shot, definition);
-            ShotRules.SquareDamage(context, shot, definition);
-
-            // The lifetime counts down every tick the shot is not destroyed by the world; a shot
-            // standing still (an explosion, a cloud, an Inferno) counts down too (Q398), and so does one
-            // the world stopped without killing (0x004AB4B6, keeper-spell-inferno-chicken.md §4).
-            if (shot.Health > 0 && !stopped && (definition.Flags & ShotRules.CountsDown) != 0) shot.Health--;
-            if (shot.Health <= 0) Die(context, shot, definition, deathShot: !stopped);
+            world.RemoveShot(shot.Id);
+            return;
         }
+
+        shot.Age++;
+        if (shot.Age == 1) ShotRules.Process(context, shot, definition, ShotRules.FirstTickEvent, null);
+        if (shot.Health <= 0)
+        {
+            Die(context, shot, definition, deathShot: false);
+            return;
+        }
+
+        // Step 4: the pre-move event (an instant shot moves onto its target here).
+        ShotRules.Process(context, shot, definition, ShotRules.PreMoveEvent, null);
+        if (shot.Health <= 0)
+        {
+            Die(context, shot, definition, deathShot: false);
+            return;
+        }
+
+        bool stopped = false;
+        bool forced = shot.ForcedCollision;
+        CreatureState? hit = ShotRules.FindHit(world, database, shot, definition);
+        // A forced collision searches nothing; otherwise the nearer of the creature and the trap.
+        int trapDistance = int.MaxValue;
+        TrapState? trapHit = forced ? null : ShotRules.FindTrapHit(world, shot, definition, out trapDistance);
+        if (trapHit != null && hit != null
+            && CombatRules.DistanceSquared(shot.PosX, shot.PosY, hit.PosX, hit.PosY) <= trapDistance) trapHit = null;
+        if (trapHit != null)
+        {
+            // The target word now names a trap, which no creature-side process handler acts on.
+            shot.TargetKind = FightTargetKind.None;
+            shot.TargetId = CombatRules.NoTarget;
+            ShotRules.Chain(context, shot, definition.HitThingShotId);
+            ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
+            ShotRules.ContactDamageTrap(context, shot, definition, trapHit);
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+        }
+        else if (hit != null)
+        {
+            // 0x004ABE7D: the thing struck is written into the target word before anything else.
+            shot.TargetKind = FightTargetKind.Creature;
+            shot.TargetId = hit.Id;
+            ShotRules.Chain(context, shot, definition.HitThingShotId);
+            ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, hit);
+            ShotRules.ContactDamage(context, shot, definition, hit);
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+        }
+        else if (ShotRules.HitsHeart(world, database, shot, definition))
+        {
+            ShotRules.Chain(context, shot, definition.HitThingShotId);
+            ShotRules.ContactDamageHeart(context, shot, definition);
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+        }
+        else if (ShotRules.HitsDoor(world, shot, definition, out DoorState? door))
+        {
+            ShotRules.Chain(context, shot, definition.HitThingShotId);
+            ShotRules.ContactDamageDoor(context, shot, definition, door!);
+            if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
+        }
+        else
+        {
+            stopped = !Move(context, shot, definition);
+        }
+
+        ShotRules.AreaDamage(context, shot, definition);
+        ShotRules.SquareDamage(context, shot, definition);
+
+        // The lifetime counts down every tick the shot is not destroyed by the world; a shot
+        // standing still (an explosion, a cloud, an Inferno) counts down too (Q398), and so does one
+        // the world stopped without killing (0x004AB4B6, keeper-spell-inferno-chicken.md §4).
+        if (shot.Health > 0 && !stopped && (definition.Flags & ShotRules.CountsDown) != 0) shot.Health--;
+        if (shot.Health <= 0) Die(context, shot, definition, deathShot: !stopped);
     }
 
     /// <summary>Two half-steps along the velocity, each refused by a solid tile (§4a, §6). False when

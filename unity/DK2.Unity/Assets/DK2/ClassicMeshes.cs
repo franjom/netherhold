@@ -12,6 +12,7 @@ using DK2.Data.Model;
 using DK2.Presentation;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Unity.Profiling;
 using NumericsVector2 = System.Numerics.Vector2;
 using NumericsVector3 = System.Numerics.Vector3;
 
@@ -30,6 +31,7 @@ namespace DK2.Unity
     /// </remarks>
     public sealed class ClassicMeshes
     {
+        private static readonly ProfilerMarker ColdMeshMarker = new ProfilerMarker("DK2.Art.BuildMeshCold");
         public enum LightingMode { Instance, TerrainPiece }
 
         private const string LitShader = "Universal Render Pipeline/Lit";
@@ -47,7 +49,7 @@ namespace DK2.Unity
         private readonly Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material> _tinted =
             new Dictionary<(Material, DK2.Data.Model.TerrainLightColour), Material>();
         private readonly Dictionary<(AssetRef, int), PieceSource> _pieces = new Dictionary<(AssetRef, int), PieceSource>();
-        private readonly Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]> _heartMaterials = new Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]>();
+        private readonly Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]> _texturePhaseMaterials = new Dictionary<(AssetRef, int, DK2.Data.Model.TerrainLightColour), Material[]>();
         private readonly Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]> _tintedSets = new Dictionary<(Material[], DK2.Data.Model.TerrainLightColour), Material[]>();
         // Every mesh, texture and material this class made (Own), once each however many caches hold
         // it; Release destroys exactly these. Shaders and anything loaded from Resources are not in it.
@@ -88,7 +90,7 @@ namespace DK2.Unity
         public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
             bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null,
-            DK2.Data.Model.TerrainLightColour addedLight = default)
+            DK2.Data.Model.TerrainLightColour addedLight = default, Fp32 initialPhase = default)
         {
             using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Animation);
             if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
@@ -120,15 +122,19 @@ namespace DK2.Unity
                 FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
                 StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
             }, loop, seconds, movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null, movementSpeed,
-                replacement, hold, initialMovementSpeed, phaseStepOverride);
+                replacement, hold, initialMovementSpeed, phaseStepOverride, initialPhase);
             return true;
         }
 
         public void ConfigureHeartDecay(GameObject go, in ResolvedAsset asset, Fp32 phase,
             DK2.Data.Model.TerrainLightColour addedLight = default)
+            => ConfigureTexturePhase(go, asset, phase, addedLight);
+
+        public void ConfigureTexturePhase(GameObject go, in ResolvedAsset asset, Fp32 phase,
+            DK2.Data.Model.TerrainLightColour addedLight = default)
         {
             var key = (asset.Reference, phase.Raw, addedLight);
-            if (!_heartMaterials.TryGetValue(key, out Material[] materials))
+            if (!_texturePhaseMaterials.TryGetValue(key, out Material[] materials))
             {
                 if (!_art.TryLoadModel(asset, out KmfModel model)) return;
                 materials = new Material[model.Materials.Count];
@@ -147,9 +153,10 @@ namespace DK2.Unity
                     System.Array.Resize(ref materials, built.Materials.Length);
                     System.Array.Copy(built.Materials, own, materials, own, built.Materials.Length - own);
                 }
-                _heartMaterials[key] = materials;
+                _texturePhaseMaterials[key] = materials;
             }
-            go.GetComponent<ClassicCreatureAnimation>()?.SetMainMaterials(materials);
+            if (go.TryGetComponent(out ClassicCreatureAnimation animation)) animation.SetMainMaterials(materials);
+            else if (go.TryGetComponent(out MeshRenderer renderer)) renderer.sharedMaterials = materials;
         }
 
         public GameObject TryCreate(AssetRef key, string name, Transform parent, bool lastFrame = false,
@@ -292,6 +299,7 @@ namespace DK2.Unity
         {
             if (_built.TryGetValue((asset.InstallEntry, lastFrame, lightingMode), out built)) return built != null;
 
+            using var coldScope = ColdMeshMarker.Auto();
             using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Mesh);
             built = null;
             if (_art.TryLoadModel(asset, out KmfModel model))
@@ -736,7 +744,7 @@ namespace DK2.Unity
             _owned.Clear();
             _built.Clear(); _builtFrames.Clear(); _materials.Clear(); _pieces.Clear(); _animations.Clear();
             _groupParts.Clear(); _tagged.Clear(); _redHighlighted.Clear(); _tinted.Clear(); _tintedSets.Clear();
-            _elementTinted.Clear(); _heartMaterials.Clear(); _hoverTextures.Clear(); _faded.Clear();
+            _elementTinted.Clear(); _texturePhaseMaterials.Clear(); _hoverTextures.Clear(); _faded.Clear();
             _opaqueOf.Clear(); _environmentPasses.Clear(); _environmentMaterials.Clear(); _kmfBlended.Clear();
             System.Array.Clear(_fadedScratch, 0, _fadedScratch.Length);
             _tagOverlay = null; _redTerrainOverlay = null; _hoverOverlay = null;

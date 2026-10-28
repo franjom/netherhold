@@ -34,7 +34,7 @@ public class WorkshopStateTests
         for (int x = 1; x <= 5; x++)
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
         Dk2TerrainFixture.FurnishRooms(db, world);
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(ManufactureRules.DoorKind, 1, 1_000_000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(ManufactureRules.DoorKind, 1, 60_000));
         return world;
     }
 

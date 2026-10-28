@@ -110,6 +110,46 @@ public class HeroWalkTests
         Assert.Equal(JobType.KillCreatures, hero.GoodJob);
     }
 
+    // 00486CF0 starts action 43; 00477850 keeps it on a failed job; 00477680 waits for it before the deadline.
+    [Fact]
+    public void AWaitingHerosIdleActionOutlivesItsFailedJobDeadline()
+    {
+        var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        slots[20] = new CreatureAnimationTiming
+        {
+            ResourceType = 6, Flags = CreatureAnimationFlags.Present,
+            FrameCount = 150, FramesPerSecond = 20,
+        };
+        (GameDatabase db, WorldState world) = OpenWorld(Dk2TerrainFixture.Knight() with
+        {
+            CreatureId = Strong, ArtSlots = slots,
+        });
+        CreatureState hero = world.SpawnCreature(db, Strong, PlayerIds.Good, new TilePos(5, 5));
+        StatePlacement.Place(hero, HeroJobRules.WaitingState);
+        hero.StateDeadlineTick = 2;
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick();
+        long actionEnd = hero.ActionUntilTick;
+        Assert.True(actionEnd > HeroJobRules.RetryTurns);
+        sim.Run(3);
+        Assert.Equal(HeroJobRules.WaitingState, hero.Dk2StateId);
+        Assert.Equal(new TilePos(5, 5), hero.Tile);
+
+        hero.GoodJob = JobType.KillCreatures;
+        hero.GoodJobPlayerId = Keeper;
+        StatePlacement.Place(hero, HeroJobRules.StandingJobState);
+        sim.Tick();
+        Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+        long retry = hero.StateDeadlineTick;
+        Assert.True(retry < actionEnd);
+        while (sim.CurrentTick.Value <= retry) sim.Tick();
+        Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+        Assert.Equal(actionEnd, hero.ActionUntilTick);
+        while (sim.CurrentTick.Value <= actionEnd) sim.Tick();
+        Assert.Equal(CreatureStateMachine.Idle, hero.Dk2StateId);
+    }
+
     [Fact]
     public void AFailedJobWaitKeepsItsActionThenExpiresAtItsDeadline()
     {
@@ -143,6 +183,73 @@ public class HeroWalkTests
         follower.PositionInParty = position;
 
         Assert.Equal((x, y), HeroJobRules.FollowTile(world, db, follower, leader));
+    }
+
+    [Fact]
+    public void FollowersChooseBeforeTheLeaderStartsItsNextWalk()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        ThingProjection.Place(world, db,
+        [
+            new ActionPointThing(new byte[56]) { StartX = 8, StartY = 9, EndX = 8, EndY = 9, ActionPointId = 3, Name = "" },
+        ]);
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        leader.GoodJob = JobType.SendToActionPoint;
+        leader.GoodJobActionPointId = 3;
+        StatePlacement.Place(leader, HeroJobRules.ToThePointState);
+        CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        follower.LeaderId = leader.Id;
+        follower.PositionInParty = 1;
+        StatePlacement.Place(follower, HeroJobRules.FollowingState);
+        CreatureState[] storage = world.Creatures.ToArray();
+
+        new GameSimulation(db, world, 7, [new HeroSystem()]).Tick();
+
+        Assert.Equal(new TilePos(9, 5), follower.Destination);
+        Assert.Equal(new TilePos(8, 9), leader.Destination);
+        Assert.Equal(storage, world.Creatures);
+    }
+
+    [Fact]
+    public void PartyFollowersAreNumberedNewestFirst()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState leader = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        leader.PartyId = 1;
+        leader.Flags = 2;
+        CreatureState[] followers = Enumerable.Range(0, 3).Select(_ =>
+        {
+            CreatureState follower = world.SpawnCreature(db, Knight, PlayerIds.Good, leader.Tile);
+            follower.PartyId = 1;
+            follower.Flags = 4;
+            return follower;
+        }).ToArray();
+
+        HeroPartyRules.LinkFollowers(world, 1);
+
+        Assert.Equal(new byte[] { 3, 2, 1 }, followers.Select(c => c.PositionInParty));
+        Assert.All(followers, c => Assert.Equal(leader.Id, c.LeaderId));
+        Assert.Equal((byte)3, leader.PositionInParty);
+    }
+
+    [Fact]
+    public void RemovingANewerHeroDoesNotSkipAnOlderHerosTurn()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState survivor = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(8, 5));
+        CreatureState escaping = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(9, 5));
+        StatePlacement.Place(escaping, StealGoldRules.EscapingState);
+        CreatureState waiting = world.SpawnCreature(db, Knight, PlayerIds.Good, new TilePos(10, 5));
+        StatePlacement.Place(waiting, HeroJobRules.StandingJobState);
+        waiting.GoodJob = JobType.Wait;
+        StatePlacement.Place(survivor, CreatureStateMachine.Idle);
+
+        new GameSimulation(db, world, 7, [new HeroSystem()]).Tick();
+
+        Assert.Null(world.CreatureById(escaping.Id));
+        Assert.Equal(HeroJobRules.StandingJobState, survivor.Dk2StateId);
+        Assert.Equal(HeroJobRules.WaitingState, waiting.Dk2StateId);
+        Assert.Equal(new[] { survivor, waiting }, world.Creatures);
     }
 
     [Fact]

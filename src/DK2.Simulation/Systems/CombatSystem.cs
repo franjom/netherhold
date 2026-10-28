@@ -15,9 +15,10 @@ namespace DK2.Simulation.Systems;
 /// and the fear accumulator after each (combat-acquisition.md §3, combat-fight-state.md §2,
 /// combat-fear.md): a neutral creature never looks; one that may look and is due runs
 /// <c>SelectAVictim</c>; a fighter holds its target while it stands, backs off or runs when its
-/// fear says so, winds up and lands its swing, or looks again and walks closer.</summary>
+/// fear says so, winds up and lands its swing, or looks again and walks closer. The scan and the fear
+/// accumulator are <see cref="Update"/>; the handlers are <see cref="States"/>.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fight-state.md")]
-public sealed class CombatSystem : ISimulationSystem
+public sealed class CombatSystem : ICreatureUpdateStep
 {
     private const string SystemName = "combat";
 
@@ -27,9 +28,21 @@ public sealed class CombatSystem : ISimulationSystem
     private WorldSight? _sight;
     private WorldState? _sightWorld;
 
+    public CombatSystem() => States = new StateHandlers(this);
+
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    /// <summary>The combat states' handlers (<c>spFighting</c>, the flee, withdraw, alarm and
+    /// victory states), which DK2's dispatcher <c>0x00476FC0</c> runs after the needs routine, in the
+    /// same update as the fight scan: a creature the scan engages runs its fight state at once.
+    /// A <see cref="CreatureUpdateSystem"/> that takes this system must take this step too, or it
+    /// loses every combat handler and the trap reveal.</summary>
+    public ICreatureUpdateStep States { get; }
+
+    /// <summary>Alone, the scan and the handlers for each creature in turn.</summary>
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this, States);
+
+    public void BeginTurn(SimulationContext context)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -41,62 +54,90 @@ public sealed class CombatSystem : ISimulationSystem
             _sightWorld = world;
         }
         _hearts.Refresh(world, database);
+    }
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
-        // 0x004B7830 follows the head-linked creature list: newer creatures react
-        // before older creatures, including fear intake and worker escape decisions.
-        for (int i = creatures.Count - 1; i >= 0; i--)
+    /// <summary>The action runner (<c>0x00489A68</c>), the fight scan (<c>0x00489AC7</c>) and the fear
+    /// radiation (<c>0x00489ACE</c>), before the state dispatcher; newer creatures react before older ones.</summary>
+    public void Update(SimulationContext context, CreatureState creature)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        // DK2's dead creature is a CDeadBody, not on this list; ours keeps the creature with no
+        // state (ADR-0206), whose forced target would otherwise still be pursued (Q598).
+        if (CreatureDeathRules.IsCorpse(creature)) return;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        // Action handlers continue while possession pauses state dispatch.
+        if (creature.SwingInProgress)
         {
-            CreatureState creature = creatures[i];
-            // DK2's dead creature is a CDeadBody, not on this list; ours keeps the creature with no
-            // state (ADR-0206), whose forced target would otherwise still be pursued (Q598).
-            if (CreatureDeathRules.IsCorpse(creature)) continue;
-            CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-            // Action handlers continue while possession pauses state dispatch.
-            if (creature.SwingInProgress)
+            if (creature.SwingKind == SpellRules.SpellCast)
             {
-                if (creature.SwingKind == SpellRules.SpellCast)
-                {
-                    if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireSpell(context, creature, definition);
-                }
-                else if (creature.SwingKind == SpellRules.FreeAimCast)
-                {
-                    if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireFreeAim(context, creature, definition);
-                }
-                else if (CombatRules.BlowLands(creature, definition, context.Tick.Value))
-                {
-                    FightRules.LandBlow(context, creature, definition);
-                }
+                if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireSpell(context, creature, definition);
             }
-
-            if (!CreatureDeathRules.IsPossessed(world, creature))
+            else if (creature.SwingKind == SpellRules.FreeAimCast)
             {
-                switch (creature.Activity)
-                {
-                    case CreatureActivity.Fighting: Fight(context, creature, definition); break;
-                    case CreatureActivity.Fleeing: FearRules.Flee(context, _sight!, _hearts, _rooms, creature, definition, _scratch); break;
-                    case CreatureActivity.Withdrawing: FearRules.Withdrawing(context, creature); break;
-                    case CreatureActivity.RaisingAlarm: FearRules.RaisingAlarm(context, _rooms, creature, definition); break;
-                    case CreatureActivity.Celebrating: VictoryRules.Celebrating(context, creature); break;
-                    case CreatureActivity.GoingToBody: VictoryRules.GoingToBody(context, creature); break;
-                    case CreatureActivity.Reporting:
-                        // States 6 → 254 and 254 are outside the combat group: they look for a fight on the way.
-                        FearRules.Reporting(context, creature);
-                        ProcessFight(context, creature, definition);
-                        break;
-                    default: ProcessFight(context, creature, definition); break;
-                }
+                if (FightRules.CastFires(creature, definition, context.Tick.Value)) FightRules.FireFreeAim(context, creature, definition);
             }
-
-            // 0x0045E4F0 runs in the creature's own update, after its fight processing.
-            FearRules.Radiate(context, _sight!, _hearts, creature, definition);
-
-            TilePos tile = creature.Tile;
-            // 0x0048A0B4, after the fight processing: a creature on a new tile reveals adjacent traps.
-            if (creature.LastFightScanTileIndex != (tile.Y * world.Width) + tile.X && !CreatureDeathRules.IsCorpse(creature))
-                TrapRules.RevealAround(context, creature, definition);
-            creature.LastFightScanTileIndex = (tile.Y * world.Width) + tile.X;
+            else if (CombatRules.BlowLands(creature, definition, context.Tick.Value))
+            {
+                FightRules.LandBlow(context, creature, definition);
+            }
         }
+
+        // A creature in a combat state is its handler's; 6 -> 254 and 254 are outside the combat
+        // group and look for a fight on the way.
+        if (!CreatureDeathRules.IsPossessed(world, creature) && !InCombatState(creature))
+            ProcessFight(context, creature, definition);
+
+        // 0x0045E4F0 runs in the creature's own update, after its fight processing.
+        FearRules.Radiate(context, _sight!, _hearts, creature, definition);
+    }
+
+    private static bool InCombatState(CreatureState creature) => creature.Activity is CreatureActivity.Fighting
+        or CreatureActivity.Fleeing or CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm
+        or CreatureActivity.Celebrating or CreatureActivity.GoingToBody;
+
+    /// <summary>The dispatcher's turn for a combat state (<c>0x0048A030</c>), then the trap reveal that
+    /// follows it (<c>0x0048A0B4</c>).</summary>
+    private void Dispatch(SimulationContext context, CreatureState creature)
+    {
+        WorldState world = context.World;
+        if (CreatureDeathRules.IsCorpse(creature)) return;
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        if (!CreatureDeathRules.IsPossessed(world, creature))
+        {
+            switch (creature.Activity)
+            {
+                case CreatureActivity.Fighting: Fight(context, creature, definition); break;
+                case CreatureActivity.Fleeing: FearRules.Flee(context, _sight!, _hearts, _rooms, creature, definition, _scratch); break;
+                case CreatureActivity.Withdrawing: FearRules.Withdrawing(context, creature); break;
+                case CreatureActivity.RaisingAlarm: FearRules.RaisingAlarm(context, _rooms, creature, definition); break;
+                case CreatureActivity.Celebrating: VictoryRules.Celebrating(context, creature); break;
+                case CreatureActivity.GoingToBody: VictoryRules.GoingToBody(context, creature); break;
+                case CreatureActivity.Reporting: FearRules.Reporting(context, creature); break;
+            }
+        }
+
+        // A creature on a new tile reveals adjacent traps.
+        TilePos tile = creature.Tile;
+        if (creature.LastFightScanTileIndex != (tile.Y * world.Width) + tile.X)
+            TrapRules.RevealAround(context, creature, definition);
+        creature.LastFightScanTileIndex = (tile.Y * world.Width) + tile.X;
+    }
+
+    private sealed class StateHandlers(CombatSystem combat) : ICreatureUpdateStep
+    {
+        public string Name => "combat states";
+        public void Execute(SimulationContext context)
+        {
+            combat.BeginTurn(context);
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+        // Inside a sweep the scan's BeginTurn ran first; this only covers a sweep without it.
+        public void BeginTurn(SimulationContext context)
+        {
+            if (!ReferenceEquals(combat._sightWorld, context.World)) combat.BeginTurn(context);
+        }
+        public void Update(SimulationContext context, CreatureState creature) => combat.Dispatch(context, creature);
     }
 
     private void ProcessFight(SimulationContext context, CreatureState creature, CreatureDef definition)
@@ -109,8 +150,8 @@ public sealed class CombatSystem : ISimulationSystem
         bool moved = creature.LastFightScanTileIndex != (tile.Y * context.World.Width) + tile.X;
         if (!CombatRules.ScanIsDue(creature, moved)) return;
 
+        // A creature this engages raises the battle notice from 199's handler, later in this update.
         CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
-        CombatMessageRules.UpdateBattle(context.World, creature, context.Tick.Value);
     }
 
     /// <summary><c>spFighting</c> in the order it runs (combat-fight-state.md §2), with state 8 as

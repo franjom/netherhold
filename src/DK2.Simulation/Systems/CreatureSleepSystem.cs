@@ -21,7 +21,7 @@ namespace DK2.Simulation.Systems;
 /// ladder. Ours: the idle retry cadence, the room centre as the walk's target (Q157),
 /// the room walk in ascending tile index, and no third-of-a-tile target jitter.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/lair-acquisition.md")]
-public sealed class CreatureSleepSystem : ISimulationSystem
+public sealed class CreatureSleepSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CreatureSleep";
 
@@ -39,121 +39,120 @@ public sealed class CreatureSleepSystem : ISimulationSystem
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    /// <summary>The sleep branch of the needs routine (<c>0x00477C20</c>), after hunger, and the
+    /// lair states, in the creature's update before its state handler.</summary>
+    public void Update(SimulationContext context, CreatureState creature)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        if (creature.Possessed) return;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+
+        // Explicit lair states run their own eligibility checks; autonomous
+        // seeking excludes workers and creatures that never sleep.
+        bool directed = creature.Dk2StateId is >= LairRules.SelectingBedState and <= LairRules.SleepingState
+            || (StateShadow.IsTravelling(creature)
+                && creature.UtilityNewState is >= LairRules.MakingAHomeState and <= LairRules.SleepingState);
+        if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && !directed) return;
+        if (!LairRules.NeedsBed(definition) && !directed) return;
+
+        // A bed on a tile that has stopped being this keeper's lair is not a
+        // bed. Sold, dug out or taken by a rival while its owner was away.
+        int bedIndex = LairRules.BedTileIndex(world, database, creature);
+        if (bedIndex >= 0 && !LairRules.BedStillValid(world, database, creature))
         {
-            CreatureState creature = creatures[i];
-            if (creature.Possessed) continue;
-            CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+            context.Emit(SystemName, "bed_lost",
+                $"creature={creature.Id} type={definition.Name} " +
+                $"player={creature.OwnerPlayerId} tile={bedIndex}");
 
-
-            // Explicit lair states run their own eligibility checks; autonomous
-            // seeking excludes workers and creatures that never sleep.
-            bool directed = creature.Dk2StateId is >= LairRules.SelectingBedState and <= LairRules.SleepingState
-                || (StateShadow.IsTravelling(creature)
-                    && creature.UtilityNewState is >= LairRules.MakingAHomeState and <= LairRules.SleepingState);
-            if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && !directed) continue;
-            if (!LairRules.NeedsBed(definition) && !directed) continue;
-
-            // A bed on a tile that has stopped being this keeper's lair is not a
-            // bed. Sold, dug out or taken by a rival while its owner was away.
-            int bedIndex = LairRules.BedTileIndex(world, database, creature);
-            if (bedIndex >= 0 && !LairRules.BedStillValid(world, database, creature))
+            LairRules.ReleaseBed(world, database, creature);
+            bedIndex = -1;
+            if (creature.Activity is CreatureActivity.Sleeping
+                or CreatureActivity.GoingToSleep)
             {
-                context.Emit(SystemName, "bed_lost",
-                    $"creature={creature.Id} type={definition.Name} " +
-                    $"player={creature.OwnerPlayerId} tile={bedIndex}");
+                Wake(context, creature);
+            }
+        }
 
-                LairRules.ReleaseBed(world, database, creature);
-                bedIndex = -1;
-                if (creature.Activity is CreatureActivity.Sleeping
-                    or CreatureActivity.GoingToSleep)
+        // A creature in the keeper's hand is out of the dungeon: it does
+        // not act until it is put down (HandRules.IsHeld, ADR-0062).
+        if (HandRules.IsHeld(creature)) return;
+
+        // A prisoner's cell IS what it does: it wanders (PrisonerWanderSystem,
+        // every tick), eats what is dropped among it (PrisonerEatSystem) and
+        // its health is the prison's (PrisonSystem, every second). ADR-0073.
+        if (PrisonRules.IsImprisoned(creature)) return;
+        // A collapsed creature does nothing at all (ADR-0051), and where this
+        // line sits is the rule. After the bed-validity check above, because
+        // a tile that stopped being a lair stopped existing whatever its
+        // owner is doing and a leftover bed object would make BedTaken lie;
+        // before the attempt below, because getting a bed is the creature
+        // acting - a walk and a placement (Q107).
+        if (CreatureDeathRules.IsDown(creature)) return;
+
+        // A creature walking out of the dungeon does not stop for a nap,
+        // and above all does not go for a bed on its way past the lair —
+        // which it would, having given its own up when it decided to go
+        // (CreatureAngerSystem.Leave). Without this line a deserter takes
+        // the last free tile out from under a creature that intends to
+        // stay, and then leaves with it.
+        if (creature.Activity == CreatureActivity.Leaving) return;
+        if (Combat.CombatRules.Preoccupied(creature)) return;
+
+        switch (creature.Activity)
+        {
+            case CreatureActivity.Sleeping:
+                Sleep(context, creature, definition);
+                break;
+
+            case CreatureActivity.GoingToSleep:
+                Arriving(context, creature, definition);
+                break;
+
+            case CreatureActivity.SeekingLair:
+                creature.AwakeTicks++;
+                if (creature.Dk2StateId == LairRules.SelectingBedState)
+                    SelectingBed(context, creature, definition);
+                else Seeking(context, creature, definition);
+                break;
+
+            default:
+                creature.AwakeTicks++;
+                if (bedIndex >= 0)
                 {
-                    Wake(context, creature);
+                    // The needs routine's mask test (NeedRules, ADR-0198); in the Casino's
+                    // states tiredness is not felt, but the wound branch still is, and its
+                    // Sleep job routes only on the latch (0x0046F440), so wounded and tired.
+                    bool wants = LairRules.WantsToSleep(database, definition, creature)
+                        && (NeedRules.TirednessClockRuns(creature)
+                            || CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature));
+                    if (wants && NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)
+                        && !NeedRules.IsBusy(context.World, creature, context.Tick.Value))
+                        SetOff(context, creature, definition);
+                    break;
                 }
-            }
 
-            // A creature in the keeper's hand is out of the dungeon: it does
-            // not act until it is put down (HandRules.IsHeld, ADR-0062).
-            if (HandRules.IsHeld(creature)) continue;
+                // No bed. An idle creature's first act is to go and get
+                // one (Q150) — and a tired one's too, which is the same
+                // attempt. Only from idle: a non-worker has no other
+                // state to be in today, and when it has, the attempt
+                // belongs at its idle decision, not mid-job.
+                if (creature.Activity != CreatureActivity.Idle) break;
+                // The hero and neutral players' creatures run no needs or choosers (Q599).
+                if (!NeedRules.RunsNeeds(creature)) break;
 
-            // A prisoner's cell IS what it does: it wanders (PrisonerWanderSystem,
-            // every tick), eats what is dropped among it (PrisonerEatSystem) and
-            // its health is the prison's (PrisonSystem, every second). ADR-0073.
-            if (PrisonRules.IsImprisoned(creature)) continue;
-            // A collapsed creature does nothing at all (ADR-0051), and where this
-            // line sits is the rule. After the bed-validity check above, because
-            // a tile that stopped being a lair stopped existing whatever its
-            // owner is doing and a leftover bed object would make BedTaken lie;
-            // before the attempt below, because getting a bed is the creature
-            // acting - a walk and a placement (Q107).
-            if (CreatureDeathRules.IsDown(creature)) continue;
+                // Same countdown shape as an imp's idle delay: a failed
+                // attempt sets the timer, and the next one runs when it
+                // has counted down — every IdleRedecisionTicks exactly.
+                creature.TimerTicks--;
+                if (creature.TimerTicks > 0) break;
 
-            // A creature walking out of the dungeon does not stop for a nap,
-            // and above all does not go for a bed on its way past the lair —
-            // which it would, having given its own up when it decided to go
-            // (CreatureAngerSystem.Leave). Without this line a deserter takes
-            // the last free tile out from under a creature that intends to
-            // stay, and then leaves with it.
-            if (creature.Activity == CreatureActivity.Leaving) continue;
-            if (Combat.CombatRules.Preoccupied(creature)) continue;
-
-            switch (creature.Activity)
-            {
-                case CreatureActivity.Sleeping:
-                    Sleep(context, creature, definition);
-                    break;
-
-                case CreatureActivity.GoingToSleep:
-                    Arriving(context, creature, definition);
-                    break;
-
-                case CreatureActivity.SeekingLair:
-                    creature.AwakeTicks++;
-                    if (creature.Dk2StateId == LairRules.SelectingBedState)
-                        SelectingBed(context, creature, definition);
-                    else Seeking(context, creature, definition);
-                    break;
-
-                default:
-                    creature.AwakeTicks++;
-                    if (bedIndex >= 0)
-                    {
-                        // The needs routine's mask test (NeedRules, ADR-0198); in the Casino's
-                        // states tiredness is not felt, wounds still are.
-                        bool wants = NeedRules.TirednessClockRuns(creature)
-                            ? LairRules.WantsToSleep(database, definition, creature)
-                            : CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
-                        if (wants && NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)
-                            && !NeedRules.IsBusy(context.World, creature, context.Tick.Value))
-                            SetOff(context, creature, definition);
-                        break;
-                    }
-
-                    // No bed. An idle creature's first act is to go and get
-                    // one (Q150) — and a tired one's too, which is the same
-                    // attempt. Only from idle: a non-worker has no other
-                    // state to be in today, and when it has, the attempt
-                    // belongs at its idle decision, not mid-job.
-                    if (creature.Activity != CreatureActivity.Idle) break;
-                    // The hero and neutral players' creatures run no needs or choosers (Q599).
-                    if (!NeedRules.RunsNeeds(creature)) break;
-
-                    // Same countdown shape as an imp's idle delay: a failed
-                    // attempt sets the timer, and the next one runs when it
-                    // has counted down — every IdleRedecisionTicks exactly.
-                    creature.TimerTicks--;
-                    if (creature.TimerTicks > 0) break;
-
-                    if (!_seeker.TryGoForALair(context, SystemName, creature, definition))
-                        creature.TimerTicks = LairRules.IdleRedecisionTicks;
-                    break;
-            }
+                if (!_seeker.TryGoForALair(context, SystemName, creature, definition))
+                    creature.TimerTicks = LairRules.IdleRedecisionTicks;
+                break;
         }
     }
 

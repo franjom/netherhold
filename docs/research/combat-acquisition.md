@@ -27,15 +27,20 @@ tracking timeout at `+0x53B`, cleared when `+0x53E` reaches 60 — then
 **`ProcessFight` `0x0045E9F0`** at `0x00489AC7`, skipped for a `Possessed`
 creature; then `0x0045E4F0`; then the **state handler** through the state table
 (`0x00476FC0`, at `0x0048A030`); then the **attackability recompute**
-`0x0045A8B0` (§4); then the mover (`0x004D59A0` and its neighbours). So
+`0x0045A8B0` (§4); then the physical-movement commit `0x004B2030` (`0x0048A204`, every path); then
+the steering step (`0x0048A266`-`0x0048A2C7`, which calls `0x004D59A0`; gated, see
+[004B7830](functions/004B7830.md)). So
 acquisition precedes both the state machine and steering on the same tick, and
-`CombatSystem` sits before `CreatureMovementSystem` and every job system.
+`CombatSystem.Update` (the action runner, the scan and the fear radiation) sits before
+`CreatureMovementSystem` and every job system. The combat states' handlers run later in the same
+creature's update, in `CombatSystem.States` after the needs routine (ADR-0555), so a creature the
+scan engages runs its fight state in that update.
 
 Creature order (rechecked 2026-10-10): `0x004B7830` runs complete creature
 updates newest first, because `0x004B4A10` links at the class-list head; see
 [imp-task-stealing.md §8](imp-task-stealing.md#8-update-order-q6). Our combat
-pass now also runs newest first (ADR-0429). Original updates interleave each
-creature's state and movement; ours retains separate system passes.
+steps run inside `CreatureUpdateSystem`, newest first, one creature's whole update at a time
+(ADR-0429, ADR-0554; differences in [creature-update-order.md](creature-update-order.md) §2).
 No extra Imp-job acquisition call exists among SelectAVictim's twelve callers.
 
 The transition adds no missed scan (binary recheck, 2026-10-11):

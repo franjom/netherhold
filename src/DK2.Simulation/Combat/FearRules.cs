@@ -54,11 +54,14 @@ public static class FearRules
 
     /// <summary><c>0x0045E4F0</c>, every tick after the creature's fight processing: hand last
     /// tick's intake over, scale it by the heart distance, then split my threat among everyone I
-    /// fight and add each visible one's share to its intake. A stunned creature or a chicken
-    /// neither fears nor radiates; here a chicken and a fallen one are skipped, a stunned one not yet.</summary>
+    /// fight and add each visible one's share to its intake. A stunned creature (209, 255, 256,
+    /// 257: <c>0x0048F350</c>, tested first at <c>0x0045E4FD</c>) or a chicken neither fears nor
+    /// radiates, and keeps no handover: what its attackers give piles up in <c>TempFear</c> until it
+    /// stands, so a creature dropped beside heroes meets its first fear check with the stun's whole
+    /// intake (Level 4's Goblin 435: 606 at 3498, fleeing at 3500).</summary>
     public static void Radiate(SimulationContext context, ISightBlocker sight, HeartSites hearts, CreatureState me, CreatureDef mine)
     {
-        if (CreatureDeathRules.IsDown(me) || ChickenRules.IsChicken(me)) return;
+        if (CreatureDeathRules.IsDown(me) || StatusEffectRules.IsStunned(me) || ChickenRules.IsChicken(me)) return;
         WorldState world = context.World;
 
         int d = Math.Min(FullFearDistance, HeartDistance(world, hearts, me));
@@ -217,7 +220,7 @@ public static class FearRules
         if (Cornered(context, me, mine, scratch)) return false;
         long tick = context.Tick.Value;
         if (ShouldWithdraw(context.World, context.Database, hearts, me, mine) && tick != me.CombatStateEnteredTick
-            && Withdraw(context, sight, hearts, rooms, me, mine, scratch))
+            && Withdraw(context, sight, hearts, rooms, me, mine, StagedTarget(context.World, me), scratch))
             return true;
         if (!OverThreat(context.World, context.Database, me, mine)) return false;
         PossessionRules.DropFollowFromFear(context.World, me);   // 0x0045F425: a follower lets go first
@@ -289,7 +292,7 @@ public static class FearRules
         if (me.FightTargetKind != FightTargetKind.None && !FightRules.TargetIsValid(world, context.Database, me)) ClearTarget(world, me);
 
         if (ShouldWithdraw(world, database, hearts, me, mine) && tick != me.CombatStateEnteredTick
-            && Withdraw(context, sight, hearts, rooms, me, mine, scratch))
+            && Withdraw(context, sight, hearts, rooms, me, mine, StagedTarget(world, me), scratch))
             return;
 
         bool afraid = OverThreat(world, database, me, mine);
@@ -371,7 +374,7 @@ public static class FearRules
         }
 
         ClearTarget(world, me);
-        if (Withdraw(context, sight, hearts, rooms, me, mine, scratch)) return;
+        if (Withdraw(context, sight, hearts, rooms, me, mine, staged: null, scratch)) return;
         End(context, me, "nowhere_to_go");
     }
 
@@ -477,13 +480,16 @@ public static class FearRules
     // ------------------------------------------------------------------ the withdrawal
 
     /// <summary>The withdraw state (<c>0x004611D0</c>): a destination — my lair, else my heart two
-    /// tiles off on each axis, else one of three random rooms of mine that is not a bridge, else a
-    /// random neighbouring tile I can see — then a run to it, arriving idle. A hero would go to a
+    /// tiles off on each axis, else up to three random rooms of mine, ending the withdrawal if a pick
+    /// finds none, else a random neighbouring tile I can see — then a run to it, arriving idle. A hero would go to a
     /// hero gate; that walk is not built (gates themselves are, ADR-0320), so a hero never withdraws
-    /// (Q372). True when the creature is on its way and out of the fight.</summary>
+    /// (Q372). <paramref name="staged"/> is the tile of the target the caller leaves in <c>+0x502</c>,
+    /// when that is a live creature or trap (class 0 or 3): it decides step 5's away stage and the
+    /// number of local tries; see <see cref="StagedTarget"/>. True when the creature is on its way
+    /// and out of the fight.</summary>
     public static bool Withdraw(
         SimulationContext context, ISightBlocker sight, HeartSites hearts, RoomCache rooms, CreatureState me, CreatureDef mine,
-        List<Fixed16Vector> scratch)
+        TilePos? staged, List<Fixed16Vector> scratch)
     {
         if (me.OwnerPlayerId == PlayerIds.Good) return false;
         WorldState world = context.World;
@@ -533,10 +539,13 @@ public static class FearRules
 
             if (destX < 0)
             {
-                for (int attempt = 0; attempt < 3 && destX < 0 && mineRooms.Count > 0; attempt++)
+                // 4. Up to three rooms of mine (0x004613E3): a pick that finds no room — none at
+                // all, or a drawn bridge — ends the withdrawal there, before any local draw. Only
+                // three picked rooms that all fail to route reach step 5.
+                for (int attempt = 0; attempt < 3 && destX < 0; attempt++)
                 {
-                    RoomInstance? room = PickRoom(mineRooms, rng.NextInt(mineRooms.Count));
-                    if (room is null) continue;
+                    RoomInstance? room = RoomLists.RandomNonBridgeRoom(mineRooms, rng);
+                    if (room is null) return false;
                     int x = CreatureState.CentreOf(room.CentreFieldX), y = CreatureState.CentreOf(room.CentreFieldY);
                     if (!CombatTargetRules.CanReach(context.Navigation, me, mine, x, y, int.MaxValue, scratch)) continue;
                     destX = x;
@@ -546,11 +555,20 @@ public static class FearRules
 
             if (destX < 0)
             {
-                int attempts = me.FightTargetKind == FightTargetKind.Creature && world.CreatureById(me.FightTargetId) != null ? 2 : 5;
+                // 5. With a staged target, a point away from it (0x00461484-0x0046162A), which the
+                // two local tries then overwrite whether or not it was found: only its draws remain.
+                // Without one, up to five local tries. Both stages accept a point the world holds
+                // (0x00509050) with a clear line to it (0x004512F0); neither asks for a walkable tile.
+                int attempts = 5;
+                if (staged is TilePos target)
+                {
+                    AwayFromTarget(world, sight, rng, me, target);
+                    attempts = 2;
+                }
                 for (int attempt = 0; attempt < attempts && destX < 0; attempt++)
                 {
                     int x = me.PosX + ((rng.NextInt(3) - 1) * Fp32.One), y = me.PosY + ((rng.NextInt(3) - 1) * Fp32.One);
-                    if (!Passable(world, context.Navigation, x, y) || !LineOfSight.Clear(sight, me.PosX, me.PosY, x, y)) continue;
+                    if (!InWorld(world, x, y) || !LineOfSight.Clear(sight, me.PosX, me.PosY, x, y)) continue;
                     destX = x;
                     destY = y;
                 }
@@ -577,18 +595,40 @@ public static class FearRules
         return true;
     }
 
-    /// <summary><c>0x004C63D0</c>'s walk: the draw is over every room, bridges are skipped without
-    /// counting down, so a draw that lands past the last non-bridge room finds nothing.</summary>
-    private static RoomInstance? PickRoom(IReadOnlyList<RoomInstance> rooms, int draw)
+    /// <summary>The tile of the target this creature holds, when DK2's withdrawal would find it staged
+    /// in <c>+0x502</c> as a live thing of class 0 or 3 (<c>0x004614A8</c>-<c>0x004614B2</c>): a
+    /// creature or a trap. A door (class 4) or a heart, fought through its Arch Pillar objects
+    /// (class 2), stages nothing that counts. Null when there is no such target. Not mirrored: the
+    /// flee back-off keeps a live creature that cannot be attacked staged, where ours has already
+    /// let it go (<see cref="FightRules.TargetIsValid"/>); spFighting drops a spell attacker's target
+    /// at zero health and a target whose <c>+0x16</c> is 2, which this does not test.</summary>
+    public static TilePos? StagedTarget(WorldState world, CreatureState me) => me.FightTargetKind switch
     {
-        for (int i = 0; i < rooms.Count; i++)
+        FightTargetKind.Creature when world.CreatureById(me.FightTargetId) is { } creature => creature.Tile,
+        FightTargetKind.Trap when world.TrapById(me.FightTargetId) is { } trap => new TilePos(trap.X, trap.Y),
+        _ => null,
+    };
+
+    /// <summary>Step 5's away stage (<c>0x004614BB</c>-<c>0x0046162A</c>). The tile offsets to the target
+    /// take a random(2) each when zero, x first, a zero draw meaning -1; then up to five tries of
+    /// random(|4dx|) and random(|4dy|) whole tiles away from the target, accepted when the world
+    /// holds the point (<c>0x00509050</c>) and the line to it is clear (<c>0x004512F0</c>). The
+    /// point is discarded: the caller's local tries overwrite it.</summary>
+    private static void AwayFromTarget(WorldState world, ISightBlocker sight, SimRandom rng, CreatureState me, TilePos target)
+    {
+        int dx = target.X - (me.PosX >> 12), dy = target.Y - (me.PosY >> 12);
+        if (dx == 0) dx = rng.NextInt(2) == 0 ? -1 : 1;
+        if (dy == 0) dy = rng.NextInt(2) == 0 ? -1 : 1;
+        for (int attempt = 0; attempt < 5; attempt++)
         {
-            if (BridgeRules.IsBridge(rooms[i].Definition)) continue;
-            if (draw == 0) return rooms[i];
-            draw--;
+            int ax = rng.NextInt(Math.Abs(dx * 4)), ay = rng.NextInt(Math.Abs(dy * 4));
+            int x = me.PosX + ((dx > 0 ? -ax : ax) * Fp32.One), y = me.PosY + ((dy > 0 ? -ay : ay) * Fp32.One);
+            if (InWorld(world, x, y) && LineOfSight.Clear(sight, me.PosX, me.PosY, x, y)) return;
         }
-        return null;
     }
+
+    /// <summary><c>0x00509050</c>: the point's tile, unsigned, under the map's width and height.</summary>
+    private static bool InWorld(WorldState world, int x, int y) => x >= 0 && y >= 0 && world.Contains(x >> 12, y >> 12);
 
     /// <summary>State 6 on the way to state 202, which sets the walk speed and ends at once: the
     /// creature stands idle where the route ended, or where it was lost.</summary>
@@ -796,23 +836,9 @@ public static class FearRules
     }
 }
 
-/// <summary>The room index built at most once a tick, and only when a flight asks for it.</summary>
+/// <summary>The current player room list in native insertion order.</summary>
 public sealed class RoomCache
 {
-    private IReadOnlyList<RoomInstance>? _rooms;
-    private long _tick = -1;
-    private readonly List<RoomInstance> _owned = [];
-
     public IReadOnlyList<RoomInstance> Of(SimulationContext context, PlayerId owner)
-    {
-        if (_rooms is null || _tick != context.Tick.Value)
-        {
-            _rooms = RoomIndex.Build(context.World, context.Database);
-            _tick = context.Tick.Value;
-        }
-        _owned.Clear();
-        for (int i = 0; i < _rooms.Count; i++)
-            if (_rooms[i].OwnerPlayerId == owner) _owned.Add(_rooms[i]);
-        return _owned;
-    }
+        => RoomLists.Of(context.World, context.Database, owner);
 }

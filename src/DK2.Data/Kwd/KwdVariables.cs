@@ -33,6 +33,7 @@ public static class KwdVariables
                     case CreatureStatEntry entry: result.CreatureStats.Add(entry); break;
                     case ResearchEntry entry: result.Research.Add(entry); break;
                     case CreatureFieldOverrideEntry entry: result.CreatureFieldOverrides.Add(entry); break;
+                    case AllianceEntry entry: result.Alliances.Add(entry); break;
                     // Table projection deliberately folds repeats; cell writing does not.
                     case MiscVariable entry: result.Misc[entry.Id] = entry; break;
                 }
@@ -56,6 +57,7 @@ public static class KwdVariables
                 I32(p), I32(p[SecondWord..]), I32(p[ThirdWord..]), id == VariableTypeId.CreatureFirstPersonId),
             VariableTypeId.Research => new ResearchEntry(I32(p), I32(p[SecondWord..]), I32(p[ThirdWord..])),
             VariableTypeId.CreatureFieldOverride => new CreatureFieldOverrideEntry(I32(p), I32(p[SecondWord..]), I32(p[ThirdWord..])),
+            VariableTypeId.Alliance => new AllianceEntry(I32(p), I32(p[SecondWord..])),
             _ => new MiscVariable(id, I32(p), I32(p[SecondWord..]), I32(p[ThirdWord..]))
         };
     }
@@ -89,6 +91,9 @@ public static class KwdVariables
                 WriteWords(p, row.Kind, row.TypeId, row.Cost); break;
             case CreatureFieldOverrideEntry row:
                 WriteWords(p, row.CreatureId, row.Selector, row.Value); break;
+            case AllianceEntry row:
+                BinaryPrimitives.WriteInt32LittleEndian(p, row.PlayerId);
+                BinaryPrimitives.WriteInt32LittleEndian(p[SecondWord..], row.OtherPlayerId); break;
             case MiscVariable row:
                 BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(IdOffset), (int)row.Id);
                 if (ParseRecord(image) is not MiscVariable)

@@ -90,7 +90,8 @@ This runs when the head order is paid for (`state-category-hooks.md` §3.4). In 
    room's attached count (`room+10`) is zero; leaving the Manufacture category unlinks each
    creature.
 2. **The crate is made** on the room's first chain tile (`+0x2D`, `+0x2E`). Its object is
-   the order's crate (`0x00506BA0`), its owner is nobody, and its kind and type byte are set
+   the order's crate (`0x00506BA0`), its owner is the neutral player (`[0x006F2548]`, read
+   2026-10-26), and its kind and type byte are set
    from the order.
 3. **The capacity test** (`0x004E53B0`) runs with the crate's units, the object's room
    capacity: 0 for every crate. On a failure, `0x004E69B0` would free a place by sending an
@@ -99,10 +100,11 @@ This runs when the head order is paid for (`state-category-hooks.md` §3.4). In 
    - **With space:** the crate takes the room's owner (vtable `+0x24`), joins the room's
      object list (`0x004E5FF0`: the list head, the room id written to `+0x138`, the units
      added to `+0x6B` and `+0x6F`), and the crates are set down again (`0x004F5040`, §4).
-   - **Without:** it stays on the first tile, belonging to nobody.
+   - **Without:** it stays on the first tile, belonging to the neutral player.
 4. **Then:**
    - sound `0x10F` at the crate;
-   - `ItemsManufactured` goes up;
+   - `ItemsManufactured` goes up on the crate's owner, so the neutral player's when the room
+     refused it ([level-statistics.md](level-statistics.md) §2);
    - message `0x1A` goes to the keeper;
    - a burst of the room definition's effect `+0x421`, one for every nine tiles (at least one)
      at random tiles, and its effect `+0x423` at the crate.

@@ -11,54 +11,51 @@ namespace DK2.Simulation.Systems;
 /// <summary>The Combat Pit's states, once a turn: 137, 138, 139 and 141, 139's one-tile walks, and
 /// idle's return of a fighter to 138 (<c>combat-pit.md</c> §2, ADR-0213). The fight is the combat
 /// system's, through the forced target 139 hands out.</summary>
-/// <remarks>Runs after <see cref="CombatSystem"/>, as DK2's state handler follows its fight
-/// processing, and before the movement. A state entered this turn runs from the next, as
+/// <remarks>Runs in the creature's update after <see cref="CombatSystem"/>, as DK2's state
+/// handler follows its fight processing, and before the movement. A state entered this turn runs from the next, as
 /// DK2's dispatcher does. 138 on the rim of the keeper's own pit hands the creature to the
 /// spectators' 142 (<see cref="CombatPitSpectatorRules"/>, ADR-0227). Not built: 140, which
 /// nothing enters; action <c>0x2C</c> at the level cap.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-pit.md")]
-public sealed class CombatPitSystem : ISimulationSystem
+public sealed class CombatPitSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CombatPit";
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    public void Update(SimulationContext context, CreatureState creature)
     {
         long now = context.Tick.Value;
-        IReadOnlyList<CreatureState> creatures = context.World.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) return;
+
+        int state = creature.Dk2StateId;
+        if (state == CreatureStateMachine.Idle)
         {
-            CreatureState creature = creatures[i];
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) continue;
-
-            int state = creature.Dk2StateId;
-            if (state == CreatureStateMachine.Idle)
-            {
-                if (creature.CombatPitFighter) BackToThePit(context, creature);
-                continue;
-            }
-
-            if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CombatPitRules.WaitingState)
-            {
-                if (creature.HasRoute) continue;
-                creature.StopMoving();
-                StateShadow.Arrive(context, SystemName, creature);
-                creature.PitStateEnteredTick = now;
-                continue;
-            }
-
-            if (!CombatPitRules.IsPitState(state) || creature.PitStateEnteredTick == now) continue;
-
-            bool stays = state switch
-            {
-                CombatPitRules.ArrivingState => Arriving(context, creature),
-                CombatPitRules.PlacingState => Placing(context, creature),
-                CombatPitRules.WaitingState => Waiting(context, creature),
-                _ => ThrownOut(context, creature),
-            };
-            if (!stays) StateShadow.ToIdle(context, SystemName, creature);
+            if (creature.CombatPitFighter) BackToThePit(context, creature);
+            return;
         }
+
+        if (StateShadow.IsTravelling(creature) && creature.UtilityNewState == CombatPitRules.WaitingState)
+        {
+            if (creature.HasRoute) return;
+            creature.StopMoving();
+            StateShadow.Arrive(context, SystemName, creature);
+            creature.PitStateEnteredTick = now;
+            return;
+        }
+
+        if (!CombatPitRules.IsPitState(state) || creature.PitStateEnteredTick == now) return;
+
+        bool stays = state switch
+        {
+            CombatPitRules.ArrivingState => Arriving(context, creature),
+            CombatPitRules.PlacingState => Placing(context, creature),
+            CombatPitRules.WaitingState => Waiting(context, creature),
+            _ => ThrownOut(context, creature),
+        };
+        if (!stays) StateShadow.ToIdle(context, SystemName, creature);
     }
 
     /// <summary>Idle (<c>0x004773D0</c>): 1 and then 138; refused, no longer a fighter.</summary>

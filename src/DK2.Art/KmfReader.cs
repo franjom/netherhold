@@ -109,7 +109,7 @@ public static class KmfReader
                 vertices, sprite.Indices));
         }
         return new KmfModel(version, KmfKind.Mesh, materials,
-            new KmfMesh(name, origin, boundsScale, primitives)) { ControlPoints = controls };
+            new KmfMesh(name, origin, boundsScale, primitives)) { ControlPoints = controls, Geometry = positions };
     }
 
     private static KmfModel ReadAnimatedModel(ref SpanReader reader, uint version,

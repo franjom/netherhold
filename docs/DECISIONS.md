@@ -5832,7 +5832,7 @@ Action durations remain approximate. This supplies the stored flag for later
 removal integration; it does not enable live mana removal or keeper defence.
 
 ## ADR-0275 — DK2's generator behind a pluggable algorithm, not yet the default
-**Date:** 2026-09-29 · **Status:** accepted
+**Date:** 2026-09-29 · **Status:** accepted; the snapshot limit lifted by ADR-0564
 
 **Context.** Q3 is answered: DK2's generator, its streams and its seeding are in
 `research/dk2-random.md`. The owner wants it built and switchable, so runs can be
@@ -5846,10 +5846,9 @@ DK2's level-start seed 1. `Dk2Lcg.StepsBetween` reads a capture's per-tick seeds
 as draws per tick. The default's draws, hash and snapshot are bit-identical, so
 there is no hash or save version change.
 
-**Limits.** Snapshots store xoshiro state only; `SaveState` refuses another
-algorithm rather than restore it as the wrong generator. Adding the algorithm to
-the format is the version bump that making `dk2` the default will need. Choosing
-`dk2` does not make our draws line up with DK2's: our call sites, their order and
+**Limits.** `SaveState` is the xoshiro tuple and refuses another algorithm
+rather than restore it as the wrong generator; the snapshot format tags both
+algorithms (ADR-0564). Choosing `dk2` does not make our draws line up with DK2's: our call sites, their order and
 their ranges differ, and `KeeperAI` draws from its own stream, while DK2's
 computer player draws from the world seed. Draw-for-draw alignment is not a goal
 (owner, 2026-09-29: fidelity is judged by outcomes).
@@ -6351,6 +6350,7 @@ kept a task a nearer one walked past (Q155). The binary answers every part of it
    tile's centre, routing first and then kicking (`0x0046AB50`, `0x0046AEA0`).
 4. The loser goes to 10 (`0x0048AD30`) and keeps its last kind. A worker walks to its
    stance point and works there; one in its entry or work state is measured from it.
+   *Superseded by ADR-0565: every holder is measured from where it stands.*
 5. An attacked floor that turns neutral is claimed by its attacker under the same job,
    20 → 15 → 16, with no second choice (`0x00465F20`).
 6. `ImpTaskSystem` walks workers newest first, by id, as the world turn does
@@ -6629,7 +6629,8 @@ corridors keeps your dropped gold, and the keeper's total does not move. A creat
 takes nothing; probably faithful, as a held thing is unlinked from the map (`0x004BC500`).
 Deviations: every creature-arm take comes before every worker-arm take, where DK2 runs each
 creature's whole update newest first, so a newer imp and an older Goblin on one pile get it the
-other way round; a keeper's worker that is imprisoned, down or fighting takes nothing, since
+other way round (*amended by ADR-0554: the worker arm now runs in each creature's update, so every
+worker-arm take comes first*); a keeper's worker that is imprisoned, down or fighting takes nothing, since
 `ImpTaskSystem` skips it before the worker arm (from ADR-0293); a tile's piles go newest first
 (the tile list's order is unread); a pile has no falling phase. Not built: the chicken side arm
 (a neutral Chicken eaten off a Portal or Hatchery tile, action 26).
@@ -10971,15 +10972,17 @@ Heart's beam (element 379, additive `Falloff`, which peaks at 68 of 255) drew at
 of DK2's blaze.
 
 **Decision.** `CreatureDef.EntranceEffectId` is read and written at byte 3894.
-`PortalRules.EntranceEffect` gives the request, which `PortalSystem` posts after the
-arrival, at the hole's centre on its floor with the room owner's tag; ours has no detail
+`PortalRules.EntranceEffect` gives the request, which shared `CreateArrival` posts through
+`StateHookContext` for ordinary and scripted arrivals, at the hole's centre on its floor
+with the room owner's tag; ours has no detail
 setting and always asks. The catalogue lists art type 6 elements; the Unity renderer
 builds every frame of such a model once and draws the frame by the particle's age at the
 authored rate, looping. Every additive effect-element mesh material is drawn at twice the
 texture, a presentation choice: DK2's additive texture stage is unread.
 
 **Consequences.** Presentation only: a view effect request is neither saved nor hashed.
-The scripted arrival (action 28) posts no effect yet: its path has no simulation context.
+The 2026-10-25 correction moves dispatch into the shared creator: action 28 now posts
+its entrance effect before scripted promotions, and ordinary arrivals post exactly once.
 Whether DK2's beam brightness is a doubled stage or something else is open; the owner's
 eye decides the look.
 
@@ -11910,8 +11913,7 @@ five controlled runs of the original bytes confirmed all four; `TrySweep` had th
 ([imp-priority-checks.md](research/imp-priority-checks.md)).
 
 **Decision.** `TrySweep` calls `TryObjectAt` on each tile after the gold step, for an imp
-holding no object or creature. The Secret Door step is not built: ours never marks a Secret
-Door (`0x00512D20`), so no kind-11 entry exists for it to find. The carry gate is ours, as in
+holding no object or creature. The Secret Door step is added by ADR-0536. The carry gate is ours, as in
 `TryTakeObject`: neither `0x00469580` nor state 10 (`0x00463DF0`) tests what the imp carries,
 and a carrying imp should not reach Tier B.
 
@@ -12074,9 +12076,9 @@ records, oldest first, tabbed while NeedsTab and not dismissed. The opened and d
 graphic come from the type table copied into `MessageTypeTable`; text resolves through
 Speech.str, the level table or Text.str by the reference's band.
 
-**Consequences.** Every message our queue posts now tabs and flashes until opened; all but the
-creature-anger types 17 and 18, whose text DK2 builds from the creature, read out on hover. A reload forgets which tabs were opened or dismissed (DK2 saves the bits with the record).
-Sounds, the Ally and goto buttons, and name substitution wait (message-tabs.md §8).
+**Consequences.** Every message our queue posts now tabs and flashes until opened; types 17 and 18
+take the creature's own unhappy or angry line, and the panel has the goto button. A reload forgets which tabs were opened or dismissed (DK2 saves the bits with the record).
+Sounds, the Ally button and name substitution wait (message-tabs.md §8).
 
 ## ADR-0526 — A hand drop obeys DK2's drop gate
 **Date:** 2026-10-23 · **Status:** accepted · supersedes ADR-0077 · Q198
@@ -12128,37 +12130,27 @@ on its own Heart passes the gate there. The centre's disposal is 71's give-back,
 credits the tile owner Create Imp's mana cost, clamped at the ceiling (`Player_AddMana`
 `0x004C19C0`), before the gold is lost (never on a ruined Heart: refused-states.md §3). Hash and snapshot 296 (295 on the branch, renumbered when merged with ADR-0530's 295), behaviour only.
 
-## ADR-0527 — Keep creatures outside portal crystals
+## ADR-0527 — Withdraw portal crystal collision
 
-**Date:** 2026-10-23 · **Status:** accepted · owner-requested clipping correction
+**Date:** 2026-10-23 · **Status:** withdrawn by the owner, 2026-10-25
 
-**Context.** The portal's visible crystals had no movement boundary in the remake.
-The checked native paths do not establish their original collision geometry.
-Evidence: [portal-crystal-collision.md](research/portal-crystal-collision.md).
+**Context.** The owner requested a clipping correction, then requested its removal
+and restoration of the movement from before that correction. Native crystal
+collision geometry remains outside the established evidence boundary; see
+[portal-crystal-collision.md](research/portal-crystal-collision.md).
 
-**Decision.** Use the four original crystal primitives' footprints (amendment 2:
-convex hulls below body height; first conservative boxes), expanded by creature radius, for swept movement checks, destination
-projection and steering contacts. Match the rendered piece classifier even on
-partial ownership fragments. Preserve the portal hole's navigation categories.
+**Decision.** Remove the derived crystal footprints, swept guards, destination
+projection and predictive contacts. Restore the six steering/interface files to
+`3f3811a4^`. Keep the rendered portal, portal-hole navigation and Heart core guard.
 
-**Consequences.** This is an explicit remake correction, not a claim that DK2
-used these bounds. Existing overlaps may escape toward a nearest face.
-Bounds are derived from room tiles; no new snapshot payload is needed.
-HashVersion and FormatVersion293 distinguish the movement change.
+**Consequences.** Creatures may overlap the visible pillars again. The former
+collision-specific near-wall matrix's completion guarantee is withdrawn;
+observed unfinished routes and targeted checks are recorded in the research note.
+No new native-behaviour claim is made. Hash/save 303 distinguishes this rollback;
+there is no new snapshot payload. Hash-302 replay measurements remain historical.
 
-**Amendment (2026-10-23).** Replace circumscribed steering circles with contacts
-at predicted swept-boundary crossings, retaining the same crystal bounds and
-hole rules. Three admitted near-wall routes stalled under the former contacts;
-the repaired90-route matrix completes. Still an explicit remake deviation.
-Hash/save294 includes this behavior repair and ADR-0528's rectangle state.
-
-**Amendment 2 (2026-10-24).** Owner report: creatures walked around the crystals in a wider
-arc than needed. The axis-aligned box, not the leaning tops, was the slack: each gem's convex
-hull below body height (render 1.85) fills 42–70% of its former box, whose corners stood up to
-0.24 tile clear of the crystal. Footprints become those hulls, padded by the crowd radius (half
-KWD `0xEA0`) along bevelled supporting lines. Swept checks, target projection, predictive
-contacts, the 90-route matrix and the hole's navigation categories are unchanged. Still an
-explicit remake deviation. HashVersion 300, behaviour only; FormatVersion stays 297.
+**History.** The withdrawn correction used boxes at hash 293, predictive contacts
+at 294, and hull footprints at 300 (`3305c504`). Git retains those implementations.
 
 ## ADR-0528 — Show scripted tutorial dig guidance
 
@@ -12336,3 +12328,877 @@ lines, as the existing skip does; this is an audio stand-in, not native speech-o
 **Consequences.** Campaign scripts produce readable tabs and timed flowers. Old saves require
 their previous build. Native multiplayer/MPD introduction exceptions await a session-mode model;
 audio playback and matched original-game visual acceptance remain outside this change.
+
+## ADR-0536 — Keep Secret Door concealment separate from marked excavation
+**Date:** 2026-10-25 · **Status:** accepted · Research: `research/imp-task-objects-and-walks.md` §2
+
+**Context.** Imps skipped kind 11 because neither its tile flag nor its task entries existed.
+Using ordinary dig tags would give it the wrong priority, cancellation and area-count rules.
+
+**Decision.** Store the native global concealment flag and per-keeper kind-11 entries with their
+own insertion order and retained holders, independently of a creature's current job.
+Load, install and remove the flag with the door. Dispatch the researched whole-map scanner,
+drop and Tier B handlers, reservations and states 38/39; retain last kind 1 and the completion
+return to idle. Navigation reads concealment independently of ordinary tags. Replay recognizes
+kind-11 additions as commands and removals as completion. Hash/save version is 304.
+
+**Consequences.** The Imp path is reachable without adding a new chooser priority or damaging
+the standing door. Native automatic reveal during opening, input eligibility for an owner's
+door, finite task-pool exhaustion and original-game acceptance remain outside this change.
+
+## ADR-0537 — Gate performance on individual rendered frames
+**Date:** 2026-10-25 · **Status:** accepted
+
+**Context.** Fast averages concealed visible arrival hitches. GPU instrumentation can
+also disturb the cadence being qualified.
+
+**Decision.** Use the owner's hardware and targets in [the performance policy](PERFORMANCE.md).
+Qualify every CPU loop and native presentation interval with lightweight Release captures;
+keep GPU diagnostic tracing separate. Include first-use gameplay frames and visual checks.
+
+**Consequences.** A single slow frame fails a capture. CI verifies the checker, while
+hardware captures verify performance. One introduction cannot certify the whole game.
+
+## ADR-0538 — Keep front-end progress in our own versioned file
+**Date:** 2026-10-25 · **Status:** accepted · Scope: front-end F1
+
+**Context.** The approved front-end plan separates campaign rules from Unity and
+allows a one-time import of the owner's original progress. The native profile and
+runtime score-table layouts are in `research/campaign-map-and-progression.md` §1
+and `research/front-end-assets.md` §8.
+
+**Decision.** `CampaignProfile` is a native-width storage snapshot in Data.Model;
+Data owns its fixed-layout `D2CP` version-1 file, with a strict length/version check.
+The application supplies its own persistent-data path. First-run import is optional
+and reads only campaign values from HKCU, using raw bytes for known arrays. It never
+creates or writes an original registry key. Missing/unsupported scalar values retain
+defaults; malformed binary lengths fail. Existing local files bypass import.
+Save writes and flushes a same-directory temporary file before an atomic replacement;
+initial creation refuses to overwrite an existing file. The runtime `HiScores.dat`
+codec writes ten 132-byte rows and clears unused string padding; its output belongs
+in our own data directory. No original assets are converted to disk.
+
+**Consequences.** CI can test storage with synthetic data, Unity can load the same
+netstandard2.1 code, and options remain outside this campaign snapshot. Progression,
+new-campaign reset, score qualification and level-loop integration remain F4/F5.
+There is no simulation or hash-format change. F1's `.444` decoder supports all shipped
+unmasked images and explicitly refuses the optional masked format.
+
+## ADR-0539 — Keep original menu metrics when replacing the font
+
+**Status:** accepted (owner, 2026-10-25).
+
+**Context.** The owner wants the DK2 TrueType font for menu text, with the
+original label images as fallback, while retaining the original glyph sizes.
+Native label preparation is recorded in `research/front-end-menus.md` and its
+function records.
+
+**Decision.** Front-end labels prefer the local `DungeonKeeperII` font. Their
+layout always comes from the original BF4 font: advance width, line height,
+bearings and visible glyph rectangles. Replacement glyphs draw into those same
+rectangles. If the font or a required glyph is unavailable, the whole label
+uses its original bitmap glyphs, rendered in memory. Font availability changes
+neither layout nor hit bounds. Original text ids and widget geometry remain data.
+
+**Consequences.** The modern font stays aligned with the original fallback at
+each viewport size. Its shapes are an intentional presentation substitution;
+native pixel identity is not claimed. Asset access remains behind the menu
+asset interface, with no converted asset files or bundled proprietary font.
+
+## ADR-0540 — Prefer Vulkan on supported desktop platforms
+**Date:** 2026-10-25 · **Status:** accepted (owner)
+
+**Context.** The owner requests Vulkan by default, with the existing native API
+as fallback on Linux and Direct3D12 on Windows. Unity6000.6 supports Vulkan on
+Windows/Linux, but not macOS; Apple platforms use Metal.
+
+**Decision.** Disable automatic API selection for Windows and Linux. Use
+Vulkan then Direct3D12 on Windows, and Vulkan then OpenGLCore on Linux.
+Keep macOS automatic selection, currently Metal. Do not configure an unsupported
+Vulkan entry on macOS. These settings live in the production Unity project.
+
+**Consequences.** Fresh Windows editor sessions and new Windows/Linux players
+prefer Vulkan. API fallback addresses unsupported backends, not frame-budget
+failures. Linux/macOS runtime validation remains outstanding; Windows Vulkan
+startup and serialized settings readback are verified. The performance target
+remains unmet. Compatibility: [Unity Vulkan support](https://docs.unity3d.com/6000.6/Documentation/Manual/vulkan.html).
+
+## ADR-0541 — Retain player room-list order for combat destinations
+
+**Date:** 2026-10-25 · **Status:** accepted · Hash/save305.
+
+**Context.** The captured withdrawal chooses different rooms with identical RNG
+because our spatial sweep loses native list order. Binary lifecycle and bounded
+production-history validation are in [room-list.md](research/room-list.md#persistent-player-list-order-hash305).
+
+**Decision.** Retain a typed insertion position on room tiles and a world counter.
+Initialize through row-major first-neighbour union; growth/absorption keep the
+survivor's position. Reconstructed pieces and ownership transfers get new head
+positions. Save and hash this state. The combat room cache reads newest first;
+the spatial room sweep retains its existing order for other consumers. Defeat
+snapshots the losing player's list before transferring eligible rooms.
+
+**Consequences.** Existing snapshots are version-incompatible. The captured
+withdrawal can be reproduced without injecting a reordered combat cache.
+Distinct adjacent native room records remain outside the connected-component
+model, and other room-list readers remain separate work. Campaign outcomes are
+separate evidence: [the hash305 measurement](experiments/2026-10-25-packet-replay-hash305/README.md).
+
+## ADR-0542 — Preserve native hero-party ordering
+**Date:** 2026-10-25 · **Status:** accepted
+
+**Context.** Opening Dwarves shared a route because followers read a leader's
+new destination before choosing their own. Evidence and reproduction:
+[hero-party-walk.md §7](research/hero-party-walk.md#7-opening-party-order-2026-10-25-adr-0542).
+
+**Decision.** Run the hero pass and both party-link scans newest first, matching
+DK2. Preserve creature storage order and soft separation. Hash/save 306 marks
+the behavior change; no snapshot fields are added.
+
+**Consequences.** Hero choices and follower numbering change across levels;
+there is no map override. Separate hero and movement passes remain a scheduling
+limit. Focused regressions cover the corrected ordering and self-removal.
+
+## ADR-0543 — A wound alone does not send a bedded creature to bed
+**Date:** 2026-10-26 · **Status:** accepted · Hash/save 307.
+
+**Context.** Ours sent any creature with a bed to it below
+`CreatureSleepsWhenBelowPercentHealth`. DK2's wound branch calls the Sleep job
+`0x0046F440`, which routes to a bed only while the sleep latch `+0x58` is set:
+[creature-needs-routine.md §3](research/creature-needs-routine.md#3-the-three-needs-in-order).
+
+**Decision.** `LairRules.WantsToSleep` is tiredness only. In the Casino's
+states, where ours does not feel tiredness, a bedded creature goes when wounded
+and tired, the wound branch's own test. A bedless wounded creature still sleeps
+untired through the lair attempt and state 80's wound test.
+
+**Consequences.** A wounded, rested creature with a bed fights or works on until
+tired. Ours approximates the latch (HYPOTHESIS): `AwakeTicks` against `TimeAwake`,
+reset on waking, where DK2 reloads `+0x58` each period and drains it only asleep. A bedless wounded creature tries for a lair only from idle.
+
+## ADR-0544 — A withdrawal's failed room pick ends it
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** [`0x004611D0`](research/functions/004611D0.md) tries up to three
+rooms through [`0x004C63D0`](research/functions/004C63D0.md), which returns no
+room without a draw on an empty list and no room when its one draw lands on a
+bridge. A pick that finds no room leaves the loop with no destination and the
+handler returns 0; only three picked rooms that all fail to route reach the
+local tries (`0x004613E3`). Ours skipped a failed pick, went to the local tries
+with no rooms at all, and picked the draw-th non-bridge room. The roomless gap is
+[decision-parity-audit.md](research/decision-parity-audit.md#known-deterministic-gaps-still-prevent-a-full-parity-claim)'s.
+
+**Decision.** `RoomLists.RandomNonBridgeRoom` mirrors `0x004C63D0`, as the keeper
+AI's `KeeperView.RandomNonBridgeRoom` already does (ADR-0394), and
+`FearRules.Withdraw` returns false on a failed pick. Hash/save 308 marks the
+behaviour change; no snapshot fields are added.
+
+**Consequences.** A creature whose keeper has no lair, heart or room for it no
+longer withdraws or draws; its caller fights on, flees or ends as before. The
+away-from-target stage DK2 runs before the local tries with a staged target
+(`+0x502`, up to twelve draws) is still not built. Campaign effect unmeasured.
+
+## ADR-0545 — A withdrawal spends the away stage's draws for a staged target
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** Step 5 of [`0x004611D0`](research/functions/004611D0.md), reached after
+three unroutable room picks, first aims away from the thing staged in `+0x502` when
+that is live and of class 0 (creature) or 3 (trap) (`0x004614A8`-`0x004614B2`): a
+random(2) for each zero tile offset, then up to five tries of random(|4dx|) and
+random(|4dy|) tiles away, accepted by the world bounds test `0x00509050` and the
+sight line `0x004512F0`. The two local tries that follow always overwrite that point,
+so only its draws reach the outcome. Callers differ in what they stage: `spFighting`
+and the flee state's back-off leave the live target, `SelectAVictim` zeroes `+0x502`
+first (`0x0045DF2A`), the flee walk clears it (`0x00460AFA`), and the NonFighter arm
+stages its candidate hero (`0x0045C0AF`). Ours skipped the stage and read the fight
+target inside the withdrawal, so `SelectAVictim` counted its fresh target and the
+NonFighter arm counted none.
+
+**Decision.** `FearRules.Withdraw` takes the staged target's tile from its caller;
+`FearRules.StagedTarget` maps a live creature or trap fight target to it and a door
+or heart to none. Step 5 runs the away stage's draws, then two local tries, or five
+with nothing staged. Hash/save 309 marks the behaviour change; no snapshot fields
+are added.
+
+Both stages accept a point the world holds with a clear line to it; the local
+tries' extra walkable-tile test, which the binary does not make
+(`0x004616B7`-`0x004616E0`), is removed.
+
+**Consequences.** Withdrawals that reach step 5 with a target draw more, shifting
+later random choices, and a local try may now pick a point the route then refuses,
+ending the withdrawal as DK2's does. A creature target's tile is its own tile; a
+trap's is its placed tile. Not mirrored: the flee back-off keeps an unattackable
+live creature staged where ours has dropped it, and spFighting's two rarer drops
+(a spell attacker's target at zero health, `+0x16 == 2`) are not modelled. The
+NonFighter arm's alarm still takes the candidate's position directly. Campaign
+effect measured separately.
+
+## ADR-0546 — Apply the level's alliance records at load
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** Every shipped level carries VARIABLES id-66 records
+([`0x0051DC90`](research/functions/0051DC90.md)): 63 ally each keeper with the
+neutral player and neutral with the heroes, and `level18` also allies its three
+computer keepers. Ours folded id 66 into the plain-value table and started every
+player unallied, so neutral was everybody's enemy, which DK2 never has on a shipped
+level (Q558, Q576). An audit of all 73 readers of the alliance predicates found
+neutral and heroes handled only through the array, except special cases ours
+already mirrors, and one reader ours lacked: the claim handlers refuse an allied,
+non-neutral tile ([alliances.md](research/alliances.md)). The snapshot did not save
+`AlliedWith`.
+
+**Decision.** `AllianceEntry` parses id 66; `GlobalVariables.Alliances` accumulates
+global then level; `WorldState.FromMap` applies each pair whose two players the
+world holds. Imps refuse an allied, non-neutral tile in both claim priorities
+(`IsAlliedFloor`). `AlliedWith` is saved. Hash/save 310.
+
+**Consequences.** On campaign levels keeper and hero creatures, traps, hearts and
+the keeper AI stop treating neutral creatures and unowned land as enemy; imps
+still claim neutral ground. Level 18's allied keepers leave each other's floor
+and creatures alone. Measured on Level 11A (Q652): our Drako no longer calls at
+Morgana's front, which DK2's capture does on turn 700; a known regression
+against that capture, downstream of the readers, and open.
+
+## ADR-0547 — Allies end games together, outside the campaign
+**Date:** 2026-10-26 · **Status:** accepted
+
+**Context.** `0x004BE630` ends a player's game, then in modes 2 and 3 (skirmish,
+multiplayer) carries the verdict through alliances: a winner ends every keeper that
+is not its mutual ally, and a loss leaves the last keeper met the winner when every
+other one left is its mutual ally, its allies winning with it; a lapsed time limit
+skips that and ends every keeper ([win-and-defeat.md](research/win-and-defeat.md) §7,
+Q359). The frame tail's last-keeper award is also skipped in mode 1 (`0x004BB39A`).
+Ours had no game mode, consulted no alliance, and awarded the last keeper in the
+campaign too.
+
+**Decision.** `GameMode` (DK2's `[0x0075AD4B]`) is world state, the campaign by
+default; `WorldState.ActivePlayerOrder` is the active list, the PLAYERS order
+reversed, as the level loader activates one player per record in file order
+(win-and-defeat.md §7); the scenario harness orders its players the same way.
+`VerdictRules.End` mirrors the routine's recursion and is the only way the heart
+system, `WIN_GAME`/`LOSE_GAME` and the time-limit lapse end a game. The heart tail
+walks the active list and runs the award after each fallen keeper's verdict, every
+turn, outside the campaign only; the time limit counts down before the trigger walk,
+as `0x0050A450` does. Both fields are hashed and saved; hash/save 310 with ADR-0546.
+
+**Consequences.** A campaign level is won only by its script, as in DK2. Skirmish
+and multiplayer need a host to pass the mode; none does yet. The `+0x76` bits 19
+and 22 the award reads stay unmirrored (UNKNOWN).
+
+## ADR-0548 — The simulation keeps DK2's level statistics; the profile keeps the copy
+**Date:** 2026-10-26 · **Status:** accepted · Hash/save 311 · Scope: front-end F5.
+
+**Context.** The statistics page, the Total Evil Rating and the hi-score table all read a
+player's 17-dword statistics block, which DK2 counts during play and copies to the profile
+when the verdict lands ([level-statistics.md](research/level-statistics.md)). Ours kept only
+three of its fields.
+
+**Decision.** The running counters live on `PlayerState.Statistics` and are bumped at
+DK2's own event sites; `WorldState.EndGame` runs the level-end sample once per player and
+freezes the counters there, so the copy is the verdict's even when ticks follow in the same
+frame. The front end builds the native-layout block (`LevelStatisticsBlock`) from it and
+writes it, the Total Evil Rating and the keeper rank into our profile file. The rank is
+computed outside the simulation (it is floating point and nothing in play reads it).
+Hi-score rows live in our own `HiScores.dat`, first filled from the install's runtime table.
+
+**Consequences.** Ours approximates three things, each stated in code: `LandOwned` counts
+owned tiles at the end instead of DK2's live `DungeonArea`; the collapsed state stands in for
+the dying bit; specials count only for the arms we build. The statistics page and the hi-score
+rows follow DK2's layout and colours ([level-statistics.md](research/level-statistics.md)). The x87 precision of
+the rank is UNKNOWN.
+
+## ADR-0549 — The campaign win runs DK2's finale in the simulation; the view plays its requests
+**Date:** 2026-10-26 · **Status:** accepted · Hash/save 312 · Scope: front-end F5.
+
+**Context.** A won campaign level does not end by itself: `0x004BE630` runs the Horned Reaper
+finale (`0x004BF410`, states 228-234) or, on a secret level and in My Pet Dungeon, the
+celebration (`0x004BF9E0`), and the player leaves with Space or continues with Escape
+([campaign-win-sequence.md](research/campaign-win-sequence.md)). The finale draws on the
+simulation stream, creates or reuses a creature, walks it and removes the gem, so it is
+simulation; its camera moves, letterbox and win screen are the view's.
+
+**Decision.** `WorldState.EndGame` calls back into the simulation (`FinaleRules.OnVerdict`) in
+the same call, as DK2's tail does. `FinaleRules` mirrors the dispatch, the setup (500 landing
+tries, two draws each), states 228-234 (`FinaleSystem`, beside the other Reaper states), the
+celebration with its fireworks, and action 134 (`ContinueAfterResultCommand`) with action 75
+(`RevealMapCommand`). Camera and interface actions go out as `ScriptedViewRequest`s on the
+ADR-0496 channel, with new kinds for camera mode, zoom, follow, view flag `0x84`, win screen
+and hidden GUI. The two camera holds the states read are kept on the player: the scripted
+path's end tick (already held, ADR-0496) and the glide's (`PlayerFinale.CameraGlideEndTick`).
+`WorldState.LocalPlayerId` names world `+0x264`, the only player the campaign finale runs for.
+
+**Consequences.** Approximations, each stated in code: the glide holds two ticks (DK2's
+500 ms wall-clock cap); effect 258 stands at the Reaper, not at its mesh point 8000; the gem
+search walks objects in creation order; the explored test asks the winner's layer where DK2
+has one bit; the celebration skips a creature by its held room place and enters state 270
+whether or not the action began; creature `+0x3EA` bit `0x80000` (set in 233 at 13 s, cleared
+in 230, meaning unread) is not held; effects stand at z 0. `LocalPlayerId` is hashed state,
+sound only because the finale and action 75 act on it in single-player play. Sounds are not
+played (F8). The win screen itself, Space and Escape are the front end's (`WinScreen`,
+`DungeonRunner.Finale.cs`); the win screen draws DK2's reward tablet (`RewardTablet`).
+
+## ADR-0550 — A restore does not repeat the level initialiser's trigger setup
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+
+**Context.** `WorldSnapshot.Read` builds the simulation through the same constructor as a new
+level, and `TriggerExecutor`'s constructor ran the level initialiser's trigger setup on every
+load: the sweep that disables every hero-party subtree, each creature root's repeat snapshot
+from the authored byte, and creature event 3 for every creature in the world (`0x0050B5B0`).
+A restored world already carries their results and what the level did since, so a load
+disabled party subtrees that a type-14 action had armed, reset repeat snapshots taken
+mid-play and fired event 3 a second time. DK2's own restore (`0x0050E920` → `0x0050ADE0` →
+`0x0050B3C0` → `0x0050B5B0`) holds world `+0x7239` bit `0x40` across the initialiser, which
+skips the party sweep (`0x0050C280`) and event 3 (`0x0050BCC4`); CONFIRMED by disassembly
+(the creature roots' snapshot is ours: the creature's saved field is the truth). Found by an order experiment whose checkpoint copies never
+matched the live run: on Level 1 at tick 100, 28 armed tag-213 records came back inactive.
+
+**Decision.** `TriggerExecutor` takes `levelStart`; `GameSimulation` passes it through an
+internal constructor and `WorldSnapshot.Read` passes false. A restore still registers the
+tree's records (adding none it already holds) and builds the area roots; it skips the party
+sweep, the creature roots' repeat snapshot and event 3.
+
+**Consequences.** A save and load keeps armed party subtrees, creature repeat snapshots and
+flags written after event 3; `RoundTrip_PreservesStateHash` had covered only a world without
+triggers. Pinned by `ARestoredWorldKeepsAnArmedPartySubtreeArmed`,
+`ARestoredWorldKeepsACreatureRootsRepeatSnapshot` and
+`ARestoredWorldDoesNotFireTheCreatedEventAgain`. New levels and replays are unchanged, so no
+hash or format moves; a save written before this change loads differently than it did.
+Whether DK2's save reader restores trigger records' active and repeat bytes in the layout ours
+saves is not traced.
+
+## ADR-0551 — A Bile Demon's idle shot takes its first update on the turn it is made
+**Date:** 2026-10-27 · **Status:** accepted · Hash/save 314 · Q398.
+
+**Context.** The sweep `0x004B7830` walks lists 0..7 in order and reads each list's head only
+when it reaches it; every shot is linked at list 1's head ([004B7830](research/functions/004B7830.md),
+CONFIRMED). So a shot a creature makes in its own update moves that turn, and one made after
+list 1 was walked moves the next: our trap firing and a boulder strike (DK2's `Trap_Update`
+`0x004A8C54`, `Trap_TriggerPropagate` `0x004A90A2`/`0x004A9210`, list 3, and the strike `0x004A0B58`, object
+list 2), a shot's own, the computer keeper's cast from the player frame. DK2 has two same-turn trap-shot
+paths ours does not build: a creature disarming (`0x00458F60` -> `0x004590BB` -> `Trap_FireAt`, list 0) and
+the trap's slap reaction (`0x004A7E70`, before the sweep). Every shot creator ours builds was checked
+against that rule. All matched but one:
+the idle body's Bile Demon shot (`0x00477806`, in the state handler `0x00476FC0`, which the
+creature update runs in list 0). It is made in `CreatureJobSystem`, after `ShotSystem`, so it
+moved a turn late. A player's cast matches only because of where the action is dispatched:
+`World_UpdateTurn` dispatches packet actions (`0x005119C0`) before the sweep, per the KB record
+(LIKELY). `0x004BBF90`'s other caller, the battle step, runs in the player frame. Our computer
+keeper's commands reach the head of the next tick. So both kinds of cast move on the tick
+`KeeperSpellSystem` makes them, as ours already does.
+
+**Decision.** `ShotSystem.Update` is one shot's update, and `Execute` runs it for every shot,
+newest first. The idle body runs it on the shot it makes as soon as it makes it. No other
+creator changes.
+
+**Consequences.** The Bile Demon's Heal Instant Shot dies at age 1 on its own turn, and its
+death shot stands after that turn. Within the turn, ours updates it after the other shots,
+where DK2 updates it first (list 1's newest). It has no target and data words of 0. The pin
+fixture has no Bile Demon: no new fields, and the pin moves only by the version.
+
+## ADR-0552 — Autonomous playtesting extends the scenario harness; controllers are input sources
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+
+**Context.** AGENTS.md Goal 10 asks for a programmatic player. The owner wants on-demand,
+resource-bounded autonomous playtesting that finds crashes, hangs and invalid states and
+leaves reproducible evidence, without Unity or an LLM. A first draft proposed eight new
+components; review found most already exist: `ScenarioRunner` runs seeded headless scenarios
+with per-tick hashes, `KeeperAI.Think(KeeperView)` is already the controller shape, the
+keeper-as-input-source decision (KEEPER_AI.md §12.1) already keeps a controller's state out of
+`StateHash()`, and `WorldSnapshot` continuation is tested. Review also found gaps:
+`KeeperView` has no fog of war, the command vocabulary holds non-human commands, and
+`keeper-commands.tsv` records type and hash only, so nothing can replay a run.
+
+**Decision.** Extend `DK2.Harness`; no new assembly. A `ScenarioController` (name, player,
+decision interval, `KeeperView` → commands) is passed to `ScenarioRunner.Run`; its commands
+join the next tick's frame after the computer keepers', in the order given, exactly as
+scripted input does. A controller may command only its own player, and a player has at most
+one computer keeper or controller. Controllers do not reference the `KeeperAI` class or
+extend `KeeperView`; `KeeperAI` stays unchanged and is an unverified progression baseline.
+Replay depends only on recorded commands. Stage B builds the input journal planned in
+`plans/2026-10-18-crash-and-debug-tooling.md` (one format for Unity and harness), recording
+the complete merged frame per tick, and a replay verb that keeps the scenario's `work`
+injection but skips its YAML `commands`. Stage C adds a fuzzer limited to human-issuable
+commands, runtime coverage (`TrackTriggerReach`, state and event histograms) and invariants
+that each cite a source. The plan is `plans/2026-10-27-autonomous-playtesting.md`.
+
+**Consequences.** Stage A is built: `ScenarioControllerTests` shows a controller's command is
+the same input as the scripted command one tick later (identical hash series) and pins the
+refusals it can reach without a campaign map. `controller-commands.tsv` is not replayable until Stage B. Controllers see the
+whole world, so they test the game; they are not competitive players, which need a
+fog-filtered view later. No stage is expected to move `HashVersion`. Refusal diagnostics added
+later must stay observation-only (no hash, RNG or decision change).
+
+**Amendment (2026-10-27): Stage B.** The journal lives in `DK2.Simulation` (`CommandCodec`,
+`InputJournalWriter`, `InputJournal`) so Unity can write the same file later; the harness writes
+it, Unity does not yet. Each command type has a fixed tag that is never reused. A frame with
+commands and the end record are flushed at once and hashes at least every 256 ticks, so a killed
+run loses no command; a reader keeps every whole record. `GameSimulation.CurrentHashVersion`
+exposes the version at run time (a public const would be compiled into callers), and a replay
+refuses another version or another scenario file (SHA-256). `run` always writes `input.journal`;
+`replay` re-runs it without keepers or controllers; `watch` runs each scenario in a child
+process under a time limit, in a new folder per watch so no evidence is deleted, and writes
+`failure.md` for a run that does not pass. On Level 17 an 1800-tick computer-keeper run (255
+keeper commands) replays all 1801 hashes without `KeeperAI`.
+
+**Amendment (2026-10-27): Stage C.** A fuzzer plays a keeper with only the commands
+`HumanCommandPolicy` allows, built as our input paths build them; observers that leave the hash
+alone add coverage, progress and stall candidates, and a save/load continuation check, the only
+invariant with a failure verdict. Details: the plan, §13.
+
+## ADR-0553 — Unity input is journaled, then moved into Presentation, then migrated
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+
+**Context.** ADR-0552 tests the simulation headlessly; nothing tests the Unity path from mouse
+and keyboard to `PlayerIntent` and commands. Unity uses legacy input only (about 120 `Input.*`
+reads, mostly in `DungeonRunner` and its HUD partial), which a test cannot inject into, and the
+bottom panel and message tabs take UI Toolkit pointer callbacks that our geometry hit tests do
+not see. IMGUI and `GL` only draw. `DK2.Presentation` already holds the engine-neutral half
+(`PlayerInputTranslator`, `ClassicHudControls`, `ClassicCameraControls`) with xUnit tests. A
+frame runs 0..n ticks from real elapsed time and gives all queued commands to its first tick,
+so frame numbers alone do not reproduce a session.
+
+**Decision.** Five phases, in order. (1) Unity writes two journals when asked, off by default:
+the ADR-0552 `input.journal` (frame per tick, hash after it) and a per-frame
+`FrameInputJournal` in `DK2.Presentation` (raw input, HUD flags, intents, queued commands with
+when they were queued relative to the tick hand-off, ticks run). Journaling only reads and a
+failing journal stops itself; it is hash-neutral, not timing-neutral. (2) The polled-input interpretation
+moves from `DungeonRunner` into a pure Presentation mapping whose input is the journaled frame
+snapshot; owner-played baseline sessions become its regression tests; bottom-panel choices
+enter as recorded inputs. (3) A separate ADR decides the Input System, settling wheel units,
+pan axes, text entry, edge timing and UI Toolkit delivery. (4) Migration behind one adapter,
+both backends only during the baseline comparison, legacy removed after. (5) A windowed Mono
+player from a separate checkout, with a fixed-step mode for the frame clock, virtual input
+devices and `runInBackground`, drives the real HUD. The plan is
+`plans/2026-10-27-stage-d-unity-input.md`.
+
+**Consequences.** Phase 2 needs the owner to play three to five short sessions; nothing can
+drive legacy input. Phase 5's fixed step is a production change to the frame clock, because
+`Time.captureDeltaTime` does not reach a clock that reads real time. Coverage is claimed only
+for interactions with a production input path; possession and door locking have none yet.
+Unity evidence goes to `D:\DK2Evidence`.
+
+## ADR-0554 — One creature's whole update before the next one's
+**Date:** 2026-10-27 · **Status:** accepted · Hash/save 315 · amends ADR-0013's order and ADR-0551 · Research: `docs/research/creature-update-order.md`
+
+**Context.**
+- **DK2.** Each turn, DK2 first runs the payday clock once per player (`0x0050A7BE`). Then the sweep
+  `0x004B7830` runs each creature's whole update `0x00488930`, newest first, in this order:
+  1. the fight scan;
+  2. the dispatcher `0x00476FC0`: the need-anger routine, the needs routine, the mood chooser, then
+     the state's handler;
+  3. the steering step, which skips the Imp. The Imp steps inside state 6's handler `0x00470C80`
+     instead, before that handler tests for arrival.
+- **Ours.** Each of these was its own pass over all creatures. The choosers ran after the mover, and
+  after the rooms and the player frame.
+- **The cost.** A native creature sent walking takes its first step that tick in 28-40% of walks;
+  ours did in 1-2%. Ours also stepped withdrawing Imps at once, which DK2 never does.
+
+**Decision.**
+- **The sweep.** `CreatureUpdateSystem` runs `ICreatureUpdateStep`s per creature, newest first by
+  id. It runs the fight, the needs (eat, sleep, pay), the anger step, the state handlers, the mover,
+  then the worker handler.
+  - A creature removed during its own update takes no more steps.
+  - A creature made during the sweep waits for the next tick.
+  - Each step run alone sweeps the list itself in the same order.
+- **Imps.**
+  - An Imp sent walking during its update steps from the next update.
+  - The worker handler runs after the mover, so an Imp lands and resumes in one update. This keeps
+    the captured 13-tick claim cadence.
+- **Payday.** Payday's clock runs before the creatures. It sets a creature off as it credits it,
+  without the needs routine's four-turn stamp.
+- **Manufacture.** The manufacture loss is a player-frame system.
+- **ADR-0551.** Its immediate update of the Bile Demon's shot is no longer needed, because the job
+  handler now runs before the shot pass.
+
+**Consequences.**
+- **Same-tick walk starts.** Non-Imps now take their first step on the tick they start in 34%
+  (Level 2) and 26% (Level 4) of walks, against native 40% and 28%. Imp withdrawals no longer step
+  on their first tick.
+- **Open questions.** Two Imp walk-start counts are not explained, and walks from state 173 still
+  start late. The measurements and the order differences that remain are in the research note.
+- **Profiling.** The sweep has one profiler marker.
+- **Tests.** Three library tests and one scenario's incidental bird id follow the newest-first order.
+- **Pin.** The pin moves only by the version.
+- **Covering tests.** `CreatureUpdateSystemTests`, the `PaydayTests` clock test, `ImpWalkEndTests`
+  and `SimulationSystemsOrderTests`.
+
+## ADR-0555 — A creature's fight state runs in the update its scan engages it
+**Date:** 2026-10-27 · **Status:** accepted · Hash/save 316 · amends ADR-0554 · Q665 · Research: `docs/research/creature-update-order.md`
+
+**Context.** In `0x00488930` the fight scan (`0x00489AC7`) comes before the dispatcher
+(`0x0048A030`), and the trap reveal (`0x0048A0B4`) comes after the dispatcher. The dispatcher runs
+the handler of whatever state the creature holds at that point. So a creature the scan puts into
+state 199 runs `spFighting` in the same update:
+- out of reach, it enters the approach (state 8);
+- an Imp that a hero is attacking flees (203) through its NonFighter counter.
+
+Ours ran the combat states' handlers inside `CombatSystem`, in place of the scan, so a creature
+the scan engaged waited a tick for its handler. Native Level 4, seed 1, shows the cost:
+- native Imps reach 203 straight from a walk (6 → 203 or 202), and almost never enter 199;
+- ours entered 199 from a walk 151 times, and 142 of the Imps' 173 entries into 199 fled one tick
+  later;
+- non-Imps reach 199 from the approach in native (291 times; from a walk, 2), while ours went
+  6 → 199 directly 103 times.
+
+**Decision.**
+- `CombatSystem` is now the action runner, the scan and the fear radiation. Its `States` step runs
+  the combat states' handlers and then the trap reveal, among the state handlers after the needs
+  routine.
+- Run alone, `CombatSystem` sweeps both steps.
+- The scan no longer raises the battle notice; 199's handler does, on the turn the state is
+  entered (combat-fight-state.md §1).
+- A swing or cast can now begin on tick 0. A never-used melee or spell stamp is therefore
+  `CreatureState.NeverUsed` (−1, DK2's zero turn), not 0.
+
+**Consequences.**
+- **Level 2.** Imp walk starts are 852 against native 871 (ADR-0554: 622), and 122 from state 87
+  against 124 (ADR-0554: 5).
+- **Level 4.** Imps now flee straight from a walk, as native Imps do. They still enter 201-203
+  far more often than native (236 against 41) and start few walks from 87 (41 against 809). Heroes
+  chasing those Imps now drop back from the approach to 199 more often (non-Imp 8 → 199: 524,
+  before 307, native 291; most after an Imp target or a lost one). This stays open as Q665.
+- **Tests.** Five combat tests that pinned the one-tick delay now assert the same update. Two
+  victory tests move the victim's own body aside, because a kill on the health step's tick now
+  leaves it there.
+- **The pin.** The pin moves with the version and with the stamp sentinel.
+
+## ADR-0556 — A replay can continue from a DK2 capture's state: the controlled-input test
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 316 (unchanged: no rule moved) · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** A full replay of Level 4 cannot say whether an Imp's choice differs from DK2's:
+by tick 2340 the two worlds have drifted (claims, refused blueprints, crate timing, where idle
+Imps stand), and every choice is the nearest job from a different position (Q665, the seam-delay
+chase). What was missing is a run that starts from DK2's own state at a tick and continues with
+the same packets, so that the next few hundred choices are made from DK2's inputs.
+
+**Decision.**
+- `dk2tools replay ... --resync <tick.json> --resync-at <turn>` copies a `capture_state.py`
+  tick (`--state-only`) over our world after that turn (`WorldResync`): every tile's terrain,
+  owner and health; each mapped creature's position and health; an Imp's gold in hand, last
+  task kind and tile, aimed kind (`+0x9D`) and drop ticket; floor piles; mana; the world seed
+  (with `--rng dk2`). An Imp walking to or working at a dig, mine, claim, attack, conversion,
+  reinforce or repair is sent to the same tile, side and slot by our own walk
+  (`ImpTaskSystem.ReissueJob`); any other Imp chooses again. Rooms stay ours;
+  doors, traps, crates and the manufacture list are copied from ADR-0558. `--resync-map
+  slot,ours.csv` names our creature for a native
+  slot where the replay's entity map (converged for another build) names a wrong one.
+- DK2's marks are the keeper's task pool's kind-1 and kind-2 entries, which the capture records
+  as a region; the resync sets them in list order, the head last, so the newest-first tie-break
+  holds.
+- `--jobs jobs.csv` traces each creature's state, resume state, task and last kind, a row on
+  change, for the comparison.
+- `Dk2Lcg.Reseed` and `GameSimulation.Context` (internal) exist for this tool only.
+
+**Consequences.**
+- Level 4 seed 1, resynced at 2340 and run to 3400, against the capture: job starts dig 10/14,
+  mine 110/122, claim 66/46, reinforce 83/90; Imps per job 4.4/4.3 mining, 0.8/0.6 claiming,
+  4.6/4.4 reinforcing (native/ours). Through 3100 the windows match; after it DK2 claims the
+  corridor (34,34)-(39,26) (37 claims) and ours does not. The first run read the aim from `+0x6E`
+  (the dumper's `DroppedToDoJobId`) and got reinforce 83/37: the aim is `+0x9D` (00463DF0).
+  Without the marks the Imp that DK2 had digging (9,57) dropped the dig at once, because ours had
+  dug it earlier.
+- What still differs after the resync is what the resync does not copy: the door blueprints
+  our replay refused at 2006 and 2229 (tiles not ours yet), whose crate trips put DK2's Imps at
+  the Workshop when the east seams were marked, and so the on-the-way claim that starts the
+  corridor. ADR-0558 copies them.
+- No simulation rule changed; the hash and the pin stand.
+
+## ADR-0557 — A crate is paid for at the cost in the manufacture ring's slot 0, not the head order's
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 317 · Q618 (answered), Q665 · Research: `docs/research/state-category-hooks.md` §3.4, functions/00506B50.md
+
+**Context.** The adder `0x004C3200` asks `0x00506B50` whether the points pay for the next crate.
+That test compares the points with the cost word at `[ring+0]`, slot 0 of the 128-entry ring, not
+with the head entry (`+0x801`); the pop `0x00506970` only moves the head, so after the first crate
+slot 0 holds the first order's cost until the tail wraps onto it. Q618 waited for a capture of
+the points at each crate over orders of different cost. Level 4 seed 1's capture has 20 crates
+(`D:/DK2Evidence/runs/q665-job-choice-2026-10-28/analysis/manufacture_slot0-seed01.out`): every one,
+door or trap, is made the tick the points pass 3000, slot 0's cost (the first order, a Wooden
+Door), including the 1500-point Sentry Trap heads. Ours paid at the head's cost, so its Sentry
+crates came twice as fast. The resync replay (ADR-0558) found it: with DK2's state copied in,
+our Imp found a trap crate waiting at 2380 where DK2's Imps walked to an empty Workshop and from
+there to the east seams.
+
+**Decision.**
+- `PlayerState.ManufactureRingTail` (the ring's tail `+0x802`) and `ManufactureSlotZeroCost` (the
+  cost word at slot 0). `ManufactureRules.Enqueue` is the one write: an order written at tail 0
+  sets the slot-0 cost, and the tail wraps at 128. `Credit` pays when the points reach the slot-0
+  cost; the head order is still the crate made.
+- The panel's percent (`0x00506B70`) divides by the same word.
+- DK2's sell (`0x005069E0`) also rewrites slot 0 (an emptied ring is zeroed, a removal compacts
+  later entries over it); ours sells no door or trap, so it is not built.
+
+**Consequences.**
+- Level 4 replays with the same packets: the (28-30, 32-34) seam group, late in all five of our
+  seeds, finishes at 2810/3087/3096/2967/3144 (seeds 1-5) against 3282/3098/3224/3151/3516
+  before; native 2815 and 2988 (`analysis/east_group-slot0.out`). The west group moves later in
+  seed 1. Seams mined in ticks 2000-2999: 8/11/9/14/9 (were 8/11/10/10/8; native 12, 14).
+- `CrateTests.TheNextCrateIsPaidAtSlotZerosCostNotTheHeadsOwn_Q618`,
+  `ManufactureTests.AnOrderWrittenOntoSlotZeroAfterTheRingWrapsSetsTheCost` and the panel test
+  cover it; tests that queued by `ManufactureQueue.Add` go through `Enqueue`.
+
+## ADR-0558 — The resync copies doors, traps, crates, the manufacture list and crate trips
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 317 (no rule moved here) · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** ADR-0556's resync left blueprints ours, and our replay had refused DK2's doors at
+(24,39), (9,52), (16,50), (18,51) and four traps, so DK2's crate trips (four Imps on a door crate
+at 2340) had no counterpart.
+
+**Decision.**
+- `capture_state.py` writes each door's and trap's type `+0xF6` (the factories `0x004B7B50`,
+  `0x004B7C10`), construction (door `+0x109`, trap `+0x10C` bit 5) and health, and each player's
+  manufacture ring (points `+0x217`; the ring at `+0x219`: cost word, kind `+2`, type `+3`, the
+  blueprint's point `+4/+8`; tail `+0x802`, count `+0x803`; slot 0's cost).
+- `WorldResync` removes a door or trap DK2 lacks, lays one ours lacks (no gold, no order), takes
+  DK2's construction flag and health, rebuilds each keeper's blueprint list in thing-slot order,
+  replaces every crate with DK2's floor crates, and copies the manufacture list, points, tail
+  and slot-0 cost.
+- An Imp DK2 has on a crate trip (resume 34/36: task tile the blueprint, side word the crate's
+  object; 35/37 carrying) walks to the keeper's nearest crate of that object or is given one and
+  walks to the blueprint (`ImpTaskSystem.ReissueCrateJob`). The side word as the crate's object is
+  STRONGLY INFERRED for 34/36 (four Imps at 2340, all 52, the Wooden Door crate) and a HYPOTHESIS
+  for 35/37 (no carrying Imp captured yet). "Nearest" is ours: several reissued Imps may be sent
+  to one crate where DK2 may have paired them otherwise, so "reissued" means a route exists, not
+  the same crate.
+- The blueprint list's order is DK2's thing-slot order, an assumption while slots are reused.
+
+**Consequences.** Level 4 seed 1 resynced at 2340 (with ADR-0557): crate trips 13/13 before the
+fix, and after it the east seam (29,34) first struck at 2482 against native's 2476 (3232 with
+blueprints alone, 3072 with neither); job starts 2340-3400 mine 110/112, claim 66/57, reinforce
+83/90 (native/ours). With the slot-0 fix our pre-resync world is also closer: 101 tiles differ at
+2340 against 140.
+
+## ADR-0559 — A stunned creature's fear piles up: the accumulator skips it whole
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 318 (behaviour only) · Q665 · Research: `docs/research/combat-fear.md` §2
+
+**Context.** The fear accumulator `0x0045E4F0` calls `0x0048F350` first (`0x0045E4FD`): for a
+creature in state 209, 255, 256 or 257 it returns before the handover (`CurrentFear = TempFear`,
+`TempFear = 0`), so it neither takes its intake nor radiates, while its attackers keep adding to
+its `TempFear`. Ours skipped a chicken and a fallen creature but not a stunned one (the code said
+"not yet"). Level 4 seed 1's capture shows it: Goblin slot 435, dropped beside three heroes at
+3490, holds `TempFear` 404 and 505 through the stun with `CurrentFear` 0, takes 606 at 3498, counts
+1, 2, 3 and flees (203) at 3500.
+
+**Decision.** `FearRules.Radiate` returns for `StatusEffectRules.IsStunned` as for a chicken.
+
+**Consequences.** A creature dropped by hand among enemies meets its first fear check with the
+whole stun's intake. `CombatFearTests.AStunnedCreatureNeitherHandsOverNorRadiates_ItsIntakePilesUp`
+covers it. In the 3496 resync our Goblin still does not flee: its frighteners, party 4, arrive 30
+ticks later in ours (3500 against 3470), so they are not there to give. The lag is drift (ADR-0560).
+
+## ADR-0560 — The resync copies the trigger banks and every creature, and its pairs drive the packets
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 318 (no rule moved here) · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** ADR-0559's 3496 resync could not test the death window. Ours raised Level 4's parties
+30 ticks late. Its non-Imps moved only when standing free. Its entity map, from the hash-306 run,
+named the wrong creature for several slots, and the hand actions after the resync went through it.
+
+**Finding.** The party offset is drift, not a trigger rule.
+- CONFIRMED (trigger dump, timer bank): timers 4-9 start on flag 0. Trigger 1, on the Portal's
+  action point, sets flag 0 when player 3 owns its nine terrain-18 tiles.
+- The Portal turns about 32 ticks after (24,39) is claimed: native 1997 -> 2030, ours 2028 -> 2059.
+- HYPOTHESIS: ours' Imps ran late before the 2340 resync. Ours dug (24,39) 54 ticks after native,
+  but dig to claim took 45 ticks there and 22 in ours, which is unexplained.
+
+**Decision.**
+- `capture_state.py` writes the flag and timer banks (world `+0x3F70`, `+0x3FF0`), creature level
+  `+0x403`, and fear: `+0x524`/`+0x526` handed over in `0x0045E4F0`, the counter `+0x528` in
+  `0x0045EC80`.
+- `WorldResync` copies the banks and pairs each native creature with ours. It takes the map's id
+  when it names a live creature of that player and type, else the nearest unpaired one, greedily.
+- It makes the natives left over (at level 1, then raised) and removes extras through
+  `CreatureHealthSystem.Remove`.
+- It raises ours to DK2's level and copies fear and health. A native dying in 216/217 lies dying in
+  ours; any other non-Imp is put on DK2's point and goes to idle if its state differs.
+- The replay replaces the packet entity map with the pairs from the next turn.
+- Details and limits: resync-replay.md.
+
+**Consequences.** One seed, one resync (seed 1 at 3520, through 5400):
+- Parties 5 and 7 arrive at 3829 and 4189 (native 3830, 4190).
+- Flag 11 is set at 4330 from (8,25) (native 4378, same tile), so no extra parties are raised.
+- The hero door (24,27) falls at 5314 (native about 5313).
+- Ours loses 4 Imps against none, three to party 5's Guard. That Guard survives the fight at
+  (15-17,31-34) where DK2's party 5 is down by 3960; that fight is the next lead.
+- Without the level copy the run lost 24 Imps and raised party 6.
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "The parties' offset".
+Tests:
+- `WorldResyncTests`: `TheTriggerFlagsAndTimerStartsAreCopied`,
+  `AStaleMapIsOverruled_CreaturesPairByPlayerTypeAndPoint_TheRestAreMadeOrRemoved`,
+  `ACreatureDk2HasLyingInTheDyingWindowLiesInOurs_WithTheWindowAlreadyRun`,
+  `ACreatureInAnotherStateThanDk2sGoesToIdleOnDk2sPoint_AHigherLevelOfOursIsKept`,
+  `ADeliveryIsSetChoosing_AndAnImpOursLacksIsMadeAndChoosesToo`
+- `PacketLogTests.AResyncsPairReplacesTheMapsFromItsTurn_EarlierTurnsKeepTheMaps`
+
+## ADR-0561 — The computer keeper lays traps and doors (`0x005000A0`)
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 318 (AI only); keeper observation format 20 · Research: `docs/research/computer-keeper-management.md` §9
+
+**Context.** Step 10 of the keeper's tick was the last unbuilt piece of its management besides
+prisoners and the research move. It was built on 2026-10-09 and held: on Level 17 Harkan's Prison
+stalled for gold in 3 of 10 seeds, after Magic Doors DK2 had not laid yet.
+
+**Finding.**
+- CONFIRMED (decompiled whole): `0x005000A0`, `0x004FFA50`, `0x004FFC40`, `0x004FFD80` and the
+  gate at `0x00500E62` (allowance left, then `random(100) < 10`). The door choice scans door ids in
+  order and stops on `random(100) <= stop * 50`; DoorPreference 0 (Harkan's, from his PLAYERS
+  record) stops 1 time in 100, so the last available door, the Magic Door, is laid otherwise.
+- CONFIRMED (three idle DK2 Level 17 captures, identical): Harkan lays a Magic Door at 204, a
+  Wooden Door at 915 and a Magic Door at 1182. STRONGLY INFERRED: the Wooden Door is one of the
+  1-in-100 stops (the captures are one sample; Harkan's door availability at 915 is not captured).
+  It left 12,650 gold when the Training Room expansion was decided against 500 x 25 = 12,500, which is
+  why DK2 grows Training 12 -> 20 tiles at 1111-1138.
+- Our door sites match DK2's ((19,4) first, (15,20), (15-16,2)). Ours over 10 seeds: Prison
+  finished in 9 of 10; Training grown in 0 of 10 (9 of 10 without the step). With the usual
+  Magic Door the keeper is short at the decision and the planner drops the request
+  (`0x004FC690` takes the request before its cost test). That is DK2's rule on most draws; the
+  keeper's random stream is its own (KEEPER_AI.md §12.1), so DK2's exact draws cannot be matched.
+
+**Decision.** `KeeperTrapDoorStep` runs at step 10 as read. `KeeperView` carries the doors, and
+the keeper observation format moves to 20. The blueprint goes through `PlaceDoorCommand` and
+`PlaceTrapCommand`, a tick later than DK2 lays it; within one pass the spacing and tile tests see
+the blueprints already laid. The site test reads the keeper's dig tag in place of task kinds 1
+and 2 at `0x00508290`, the deviation task 7 already makes (`KeeperAI.DigPath`).
+
+**Consequences.** Computer keepers with a Workshop lay doors and traps. On Level 17 Harkan skips
+the Training growth on most seeds, as DK2 would without its lucky draw.
+- The AI tests that replay a tick's draws count step 10's roll (`KeeperSightTests`,
+  `KeeperGoldStepTests`); `KeeperAttackPlannerTests`' open-way test moves to seed 3.
+- `KeeperTrapDoorStepTests` covers the Workshop gate, the site and spacing tests, the door
+  preferences 0-3, the trap choice, the Boulder's long-corridor rule, the west edge testing only
+  its first tile and the observation packet. The clamp order is not tested on its own.
+
+Evidence: `D:/DK2Evidence/runs/l17-trapdoor-2026-10-28/` (summary.txt, ledger.txt,
+dk2_harkan_doors.txt, dk2_harkan_money_840_1260.txt); captures `D:/DK2Evidence/dk2runs/m12-level17-20261028-*`.
+
+## ADR-0562 — A miner that reaches its seam full leaves on its first tick in state 26
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 319 · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** The 3400 resync of Level 4 seed 1 starts about 20% more mining walks than DK2. An Imp
+can reach a seam already full, after picking gold up in passing. DK2 spends one tick in state 26,
+then walks to the store (5 of 5 in 3400-4000). Ours spent two (7 of 8).
+
+**Finding.** CONFIRMED (KB `0x00465870`): state 26 holds only while an action runs. Its first call
+has none, so the hands test `0x00464360(1)` and the store chooser `0x00464400` come before the first
+strike starts (`0x00496980(2)`). Ours asked them only when the strike timer (ADR-0280) ran out. That
+the first call is the tick after 26 is set is STRONGLY INFERRED: `0x00465790` sets 26 and starts no
+action, and the capture shows one frame in 26.
+
+**Decision.** On its first update in 26, `UpdateWorking` asks the miners' hands test and the store
+chooser before the timer. The first strike, which that call started, does not ask again.
+
+**Consequences.**
+- A full arrival leaves one tick sooner and holds its slot one tick less.
+- The pin fixture moves by the version only.
+- The 3400 resync still starts more mining walks (109 against DK2's 80, to 4000). The one tick is
+  not the cause; resync-replay.md records the crowding reading as a HYPOTHESIS.
+- Not changed: the pile test in the same handler still runs at our strike timer, not at the
+  handler's first call.
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Why ours' mining stints are
+shorter". Tests: `GoldCarryingTests.AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix`,
+`AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick`.
+
+## ADR-0563 — State 26 checks hands, store and pile on the call that begins its next strike
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 320 · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** After ADR-0562 our state 26 asked the hands test at its first update and in each
+strike's tick (ADR-0512), and the pile test at its strike timer. A full miner with no store asked the
+chooser twice per strike.
+
+**Finding.**
+- CONFIRMED (decompile of `0x00465870`): with no action running the handler checks the task, the
+  hands test `0x00464360(1)` and store chooser `0x00464400`, then a gold object strictly inside the
+  third of its own tile the Imp stands in holding more than `[0x006F25CD]` (release the slot, 10).
+  Only then does it begin the strike (`0x00496980(2)`). So the checks run on each call that begins an
+  action, never while one runs.
+- STRONGLY INFERRED (KB `0x00496AA0`, mining-finish.md, capture): the first action, begun at E+1,
+  strikes at E+2 but ends at its clip's wrap, E+5 or E+6. From the second strike on the wrap is
+  sticky and the action ends in the strike's turn. Level 4 seed 1: 22 first-strike fills leave 3 or
+  4 ticks after it (14 and 7; one at 2, unexplained), none in its tick. From the second strike on,
+  leaves in the strike's own frame grow with the strike's number.
+
+**Decision.** `TryLeaveTheSeam` runs the hands/store check, then the pile check. The end of the
+creature's update asks it when the work clock begins a mining action (`MinersActionBegins`). A
+creature without a work clip (test fixtures only; a shipped Imp has one) keeps the first update
+and the strike's tick. The strike timer only strikes.
+
+**Consequences.**
+- A first-strike fill leaves 3 or 4 ticks after the strike, not in its tick. A pile taken over the
+  limit by a later strike's overflow releases the slot on that strike's tick.
+- A full miner with no store asks the chooser once per action.
+- The 3400 resync to 4000 (`resync-reinforce/run3400-checks`): first-strike fills leave 3 or 4
+  ticks after (native 3, 4); mine starts 80 against 101, so the surplus stays.
+- The pin fixture moves by the version only.
+- Not changed: ours finds the pile's cell from the slot, DK2 from the Imp's position.
+
+Tests (GoldCarryingTests): `AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesActionEnds`,
+`AMinerWhoseOverflowTakesItsPileOverTheLimit_OnALaterStrike_GivesTheSlotUpOnThatStrikesTick`, and
+the ADR-0562 tests run with and without the clip.
+
+## ADR-0564 — Snapshots carry DK2's generator as well as xoshiro
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 321 · Issue #1 (item 8)
+
+**Context.** ADR-0275 made the generator pluggable but left snapshots xoshiro-only:
+`SimRandom.SaveState()` throws for `Dk2Lcg`. Scenarios with `random: dk2` and `replay` run on
+the LCG, so those runs could not be saved or restored. A `random: dk2` copy of
+`smoke/campaign_level1_placed_things` with `--snapshot-check 40` failed all 14 checks with
+`NotSupportedException`.
+
+**Decision.** The snapshot writes a one-byte generator tag before the generator's state:
+0 = `Xoshiro256StarStar` (its four words, as before), 1 = `Dk2Lcg` (its 32-bit `Seed`). Read
+builds the generator the tag names and refuses an unknown tag with `InvalidDataException`. A new
+algorithm needs a new tag; writing one without a tag throws. `SimRandom.SaveState()` stays the
+xoshiro-only tuple that tests compare.
+
+**Consequences.**
+- The format changes, so `FormatVersion` and `HashVersion` go to 321 together. No state or hash
+  field changes; the pin fixture moves by the version only.
+- The same scenario now passes all 14 snapshot checks.
+- This is what ADR-0275's "Limits" asked for before `dk2` can be the default. It does not make
+  `dk2` the default.
+
+Tests: `SnapshotTests.RoundTrip_CarriesTheDk2Generator` (restores as `Dk2Lcg` at its seed, and the
+two worlds hash alike 100 ticks later), `SnapshotTests.Read_RefusesAGeneratorTagItDoesNotKnow`.
+
+## ADR-0565 — A steal measures the holder from where it stands, at work or walking
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 322 · Q665 · Research: `docs/research/imp-task-stealing.md`
+
+**Context.** Since ADR-0289 ours measured a holder in its work's entry or work state from its stance
+point (`TaskStealing.HolderPosition`), and a walking one from its position. No binary read backed the
+stance point; the reviewer of the hash-320 docs found the mine arm reads the holder's position.
+
+**Finding.** CONFIRMED (decompile; disassembly `0x0046A1AA`-`0x0046A2F9` for the mine arm): the dig
+walk's two arms (`0x00469AF0`), the claim handler (`0x0046AB50`) and the reinforce/repair handler
+(`0x0046AEA0`) all measure the holder from its `+0x1A/+0x1E` after the shared holder test, whatever
+its state. Only the point measured to differs by handler (imp-task-stealing.md §2).
+
+**Decision.** `HolderPosition` is removed; the dig/mine fallback and `HolderToTakeFrom` measure
+every holder from `PosX/PosY`.
+
+**Consequences.**
+- A holder at work standing off its point can lose its task to an Imp strictly nearer that point.
+  An Imp at work stands about on its point, so the difference is small in any arm.
+- Unexercised so far: the Level 4 seed-1 resync at 3700 (to 4100) and Level 1 seeds 1 and 2 are
+  byte-identical to hash 320; every steal there is from a walking holder.
+- The pin fixture moves by the version only.
+
+Tests: `TaskStealingTests.AHolderAtWorkIsMeasuredFromWhereItStands` (claim; 800 steals, 1600 the same
+distance and 2000 do not) and `AMinerAtWorkIsMeasuredFromWhereItStands` (a miner in 26 off its slot on
+its stance tile); the first row of the one and the other fail without the change.
+
+## ADR-0566 - Waiting heroes keep their idle action across a failed job
+**Date:** 2026-10-28 - **Status:** accepted - Hash/save 323 - Q665
+
+**Context.** State 176's idle action was omitted from HeroJobRules.Wait. A failed standing job
+therefore reached state 4 with nothing to hold, although its wrapper already waited for actions.
+Research and the measured Guard-door comparison: [resync-replay.md](research/resync-replay.md), "The Guard fight".
+
+**Decision.** Wait checks the running action before its deadline and starts counted action 43
+(art slot 20) while parked. The existing ActionUntilTick and CountedHoldTicks carry that action
+through a failed standing job. The retry remains 12 ticks. No target-selector rule changes.
+
+**Consequences.** This uses the existing fresh-install timer surrogate: matching clip phase and
+alternate-install draws are not reproduced (animation-clock.md, timer-based actions).
+HashVersion and FormatVersion rise together; no state fields are added.
+
+Test: HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline failed before the fix
+and now passes. The test checks the action hold across failure, not exact native clip duration.

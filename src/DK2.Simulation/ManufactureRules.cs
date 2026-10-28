@@ -23,8 +23,9 @@ public readonly record struct ManufactureOrder(byte Kind, byte TypeId, int Cost)
 /// <c>state-category-hooks.md</c> §3.4).</summary>
 /// <remarks>The category 5 update <c>0x0047B190</c> credits the level-scaled
 /// <c>ManufacturePerSecond</c> every turn through <c>0x004C3200</c>, which adds it to the keeper's
-/// points (<c>player+0x217</c>, a word). When the list holds an order and its cost is covered, a
-/// crate of the order's type appears in the keeper's nearest Workshop that someone is working
+/// points (<c>player+0x217</c>, a word). When the list holds an order and the points cover the cost
+/// word in the ring's slot 0 (<c>0x00506B50</c>; not the head's, Q618), a crate of the head order's
+/// type appears in the keeper's nearest Workshop that someone is working
 /// in, the points go to zero (the overshoot is lost), the order leaves the list and the
 /// keeper's items manufactured go up. The list is a 128-entry ring, filled when a trap or door
 /// blueprint has no crate of its type waiting (<c>0x005066E0</c>). With points and nobody
@@ -70,8 +71,9 @@ public static class ManufactureRules
     /// <summary>The door loader's pushes (<c>0x00520F40</c>): every placed door blueprint joins its
     /// keeper's blueprint list (<c>0x00505680</c>) and makes one order through <c>0x005066E0</c>
     /// while the door blueprints of its type outnumber the keeper's crates of that type.</summary>
-    /// <remarks>The trap loader pushes neither, so a trap blueprint placed in the level is never
-    /// ordered and never built; the shipped levels place none. Ours, stated: the counts are taken
+    /// <remarks>The trap loader <c>0x00520E50</c> does push an authored trap blueprint (an order
+    /// at <c>0x00520F1A</c>, then the list); ours queues none, so a level that authors one would
+    /// order its first crate differently and set another slot-0 cost (Q618). Ours, stated: the counts are taken
     /// once over the whole level rather than as each record is read, and orders go in blueprint
     /// order.</remarks>
     public static void QueueBlueprints(WorldState world, GameDatabase database)
@@ -124,11 +126,25 @@ public static class ManufactureRules
         foreach (ManufactureOrder o in queue)
             if (o.Kind == kind && o.TypeId == typeId) crates++;
 
-        if (blueprints > crates) queue.Add(new ManufactureOrder(kind, typeId, cost));
+        if (blueprints > crates) Enqueue(ref world.Player(playerId), new ManufactureOrder(kind, typeId, cost));
     }
 
-    /// <summary>The adder: credit, and the crate if the head order is paid for. Returns the crate
-    /// made, or null.</summary>
+    /// <summary>The push's write (<c>0x005066E0</c>): the entry goes in the ring's tail slot and the
+    /// tail moves on, wrapping at 128. Only an entry written to slot 0 changes the cost the adder
+    /// compares with (<see cref="PlayerState.ManufactureSlotZeroCost"/>).</summary>
+    public static void Enqueue(ref PlayerState keeper, ManufactureOrder order)
+    {
+        if (keeper.ManufactureRingTail == 0) keeper.ManufactureSlotZeroCost = order.Cost & 0xFFFF;
+        keeper.ManufactureRingTail = (byte)((keeper.ManufactureRingTail + 1) % QueueCapacity);
+        keeper.ManufactureQueue.Add(order);
+    }
+
+    /// <summary>The adder: credit, and the crate of the head order once the points reach the cost
+    /// word in ring slot 0 (<c>0x00506B50</c> compares with <c>[ring+0]</c>; the pop <c>0x00506970</c>
+    /// only moves the head, so after the first crate that word is the first order's until an
+    /// enqueue wraps onto it). On Level 4 every crate, a 1500-point Sentry Trap's included, is
+    /// made as the points pass 3000, the first order's (a Wooden Door) cost (Q618). Returns the
+    /// crate made, or null.</summary>
     /// <remarks>The crate maker <c>0x004F5240</c> first sends every creature attached to the
     /// Workshop to state 68, which idles it on its next turn (<see cref="CrateRules.CrateMadeState"/>),
     /// then makes the crate on the room's first tile. With space in the Workshop the crate is
@@ -141,7 +157,7 @@ public static class ManufactureRules
         GameDatabase database = hooks.Database;
         ref PlayerState keeper = ref world.Player(creature.OwnerPlayerId);
         keeper.ManufacturePoints = (keeper.ManufacturePoints + amount) & 0xFFFF;
-        if (keeper.ManufactureQueue.Count == 0 || keeper.ManufactureQueue[0].Cost > keeper.ManufacturePoints) return null;
+        if (keeper.ManufactureQueue.Count == 0 || keeper.ManufactureSlotZeroCost > keeper.ManufacturePoints) return null;
 
         ManufactureOrder order = keeper.ManufactureQueue[0];
         byte crateId = CrateObjectId(database, order);

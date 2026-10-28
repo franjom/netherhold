@@ -86,8 +86,9 @@ and by lock mode — 0 any, 1 no worker (definition flag bit 0), 2 workers only.
 player's lock command handler, and an effect handler `0x00474F80` registered
 in a descriptor table at `0x0047F972` that, over the four neighbours of an
 entity's tile, destroys traps, unlocks the entity owner's locked doors (mode 0)
-and hands foreign doors to `0x004A6DF0`. Which ability owns that descriptor is
-UNKNOWN.
+and hands foreign doors to `0x004A6DF0`. It is the walk state of the campaign
+finale (creature state 234, `0x00474F80`; it visits its own tile and the four
+orthogonal neighbours; see [campaign-win-sequence.md](campaign-win-sequence.md) §3).
 
 **The lock command** `0x00513800` reads a thing id from the packet and refuses
 unless the thing is live in `[0x006ED540]`, its type word `+0x12` is 4, and its
@@ -100,8 +101,9 @@ decrements it by one (`0x004A56A1`) above both the construction bypass and the
 open decision, and a nonzero value sets the open accumulator without looking at
 anything else. The read writer is `0x004A6DF0`, four instructions that store
 `[0x006F28D3] * [0x006F2590]` — a duration times the tick rate, the shape every
-timer here has. Both globals live in uninitialised data, so the duration is
-**UNKNOWN**; the effect handler above calls it.
+timer here has. The duration is `DoorPickedTimeSeconds` (variable 93, see
+[balance-variables-in-the-binary.md](balance-variables-in-the-binary.md)); the
+effect handler above calls it.
 
 **Definition flags.** Record offset `0x228` is the flags byte, runtime
 `def+0x8B` (the offset delta is STRONGLY INFERRED from the bits' owners): the
@@ -188,7 +190,7 @@ nonzero comparison, so no shipped record needs the unread availability mode.
 | Record counts, all-zero door trigger ids, 3 unfinished doors and 0 unfinished traps | **CONFIRMED from shipped data** |
 | Loader transforms, saved ranges and runtime state transitions above | **STRONGLY INFERRED from DKII.EXE v1.70** |
 | Door open eligibility and its order, the three tiles, the toggling lock command, the alliance array and the lock-pick countdown | **STRONGLY INFERRED from DKII.EXE v1.70** |
-| The lock-pick duration, and which ability reaches the effect handler | **UNKNOWN** |
+| The lock-pick duration is `DoorPickedTimeSeconds`; the effect handler `0x00474F80` is the finale walk state 234 | **CONFIRMED against DKII.EXE v1.70** (reviewer) |
 | Trap runtime and door contact | See [traps.md](traps.md) and [door-blocking.md](door-blocking.md) |
 | Any semantic meaning for either `Unknown_0008`, door trailing bytes or trap `Unknown_000F` | **UNKNOWN** |
 

@@ -80,7 +80,7 @@ public class HeroKnockOutTests
         KnockOut(db, world, first);
 
         Assert.Equal((0, -1, 0), (first.PartyId, first.LeaderId, first.Flags & 0x06));
-        Assert.Equal((leader.Id, 2), (second.LeaderId, (int)second.PositionInParty));
+        Assert.Equal((leader.Id, 1), (second.LeaderId, (int)second.PositionInParty));
         Assert.Equal(2, leader.PositionInParty);
     }
 

@@ -43,7 +43,7 @@ public class ManufactureTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink)
     {
-        var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
+        var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem(), new ManufactureDecaySystem()]);
         sim.ObserveWith(sink);
         return sim;
     }
@@ -55,7 +55,7 @@ public class ManufactureTests
         WorldState world = World(db);
         CreatureState maker = Maker(db, world);
         Assert.Equal(10, ManufactureRules.PerOriginalTick(db, db.CreatureById(MakerId), maker));
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(ManufactureRules.DoorKind, 1, 1_000_000));   // 63 idles with none
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(ManufactureRules.DoorKind, 1, 60_000));   // 63 idles with none; never paid here
 
         Simulation(db, world, new ListEventSink()).Run(Second * 5);
 
@@ -69,7 +69,7 @@ public class ManufactureTests
         GameDatabase db = Db();
         WorldState world = World(db);
         CreatureState maker = Maker(db, world);
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(ManufactureRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(ManufactureRules.DoorKind, 1, 1000));
         world.Player(Keeper).ManufacturePoints = 995;
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
@@ -82,6 +82,21 @@ public class ManufactureTests
         Assert.Equal(1, world.Player(Keeper).ItemsManufactured);
         Assert.InRange(world.Player(Keeper).ManufacturePoints, 0, 30);
         Assert.Contains(sink.Events, e => e.Kind == "crate_manufactured");
+    }
+
+    [Fact]
+    public void AnOrderWrittenOntoSlotZeroAfterTheRingWrapsSetsTheCost()
+    {
+        var keeper = new PlayerState { ManufactureQueue = [] };
+        for (int i = 0; i < ManufactureRules.QueueCapacity; i++)
+            ManufactureRules.Enqueue(ref keeper, new ManufactureOrder(ManufactureRules.DoorKind, 1, i == 0 ? 3000 : 1500));
+        keeper.ManufactureQueue.Clear();   // all paid: the head has moved past every slot
+        Assert.Equal(0, keeper.ManufactureRingTail);
+        Assert.Equal(3000, keeper.ManufactureSlotZeroCost);
+
+        ManufactureRules.Enqueue(ref keeper, new ManufactureOrder(ManufactureRules.TrapKind, 3, 1500));
+        Assert.Equal(1500, keeper.ManufactureSlotZeroCost);
+        Assert.Equal(1, keeper.ManufactureRingTail);
     }
 
     [Fact]

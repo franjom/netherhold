@@ -222,10 +222,13 @@ A destination, then a run:
 4. Else **three tries** of `0x004C63D0`: `random(NumberOfRooms)` walked over the
    room list **skipping bridges (types 8, 17, 22) without counting down**, so a
    draw past the last non-bridge room finds nothing; the room's `+0x27/+0x29`
-   tile centre, routable as above.
-5. Else a point away from the target — `random(4|dx|)` and `random(4|dy|)` tiles
-   opposite the target's side, up to five tries, on the map and in sight — that
-   the next step then **overwrites**: two tries (five when the target is dead or
+   tile centre, routable as above. A failed picker exits with no destination;
+   the next fallback is reached only after three selected rooms fail their
+   route tests, not because the room list is empty.
+5. Else, when `+0x502` holds a live creature or trap (class 0 or 3), a point
+   away from it — `random(2)` for each zero tile offset, then `random(4|dx|)`
+   and `random(4|dy|)` tiles opposite its side, up to five tries, on the map and
+   in sight — that the next step then **overwrites**: two tries (five when the target is dead or
    gone) of `myPos + (random(3) − 1, random(3) − 1)` tiles, accepted when on the
    map (`world` vslot `0x200`) and in my line of sight. So without a lair, heart
    or room a creature withdraws at most one tile, if at all.
@@ -253,7 +256,8 @@ arrival state walks again.
 **Built** (`FearRules`, `CombatSystem`): §2 steps 1–3 and 5 for creature
 receivers, run after each creature's fight processing newest first; §3.1–3.4
 including the acquirer's withdraw; §4 in order with the nearest-attacker rule,
-the stand-off, head-count and Scout alarm entry (ADR-0425); §5 steps 2–5 and the run, arriving idle;
+the stand-off, head-count and Scout alarm entry (ADR-0425); §5's lair/Heart/room
+destinations and the run, with failure/fallback differences below;
 `Running` as the body's speed cap (the definition's `RunSpeed`, `def+0x5B8` through
 `0x004887D0` mode 1, with no level term; CONFIRMED, ADR-0518). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
 202, entered from 199 when not already in the combat group; both hold those ids since
@@ -269,8 +273,20 @@ straight away from the target, not a heading impulse (Q373); a hero's flag bit 4
 absent, as in every shipped level (§3.2). The room
 word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 
-**Not built:** hero gates; the stunned gate (a chicken is skipped, ADR-0302); the owner modifiers (Q375);
+The stunned gate is built (ADR-0559), beside the chicken's (ADR-0302): a stunned creature's
+`TempFear` piles up and its first standing tick hands the whole intake over.
+
+**Not built:** hero gates; the owner modifiers (Q375);
 `ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.
+
+Withdrawal is built through step 5 (ADR-0544 failed pick, ADR-0545 the away
+stage's draws; each caller supplies what it leaves in `+0x502`, the NonFighter
+arm its candidate hero). The NonFighter alarm's staging has no observable gap
+(STRONGLY INFERRED, [record](functions/0045BDF0.md)). Not mirrored: the flee back-off keeps an unattackable live creature
+staged where ours drops it, and `spFighting`'s drops of a target at zero health
+and of one with `+0x16 == 2`. The [hash-303 parity audit](decision-parity-audit.md#known-deterministic-gaps-still-prevent-a-full-parity-claim)
+reproduces the failed-pick difference in a bounded control. None is established
+as the cause of the measured Level 4 losses.
 
 **Threat outside combat (binary re-read 2026-10-10).** After the accumulator and
 before state dispatch, `0x00488930` checks unpossessed, not dying, not fearless or

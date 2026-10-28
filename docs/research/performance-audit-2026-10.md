@@ -199,7 +199,7 @@ geometry/topology separately, merge dynamic triangles into the identical depth
 order and update only affected runs. Gain potentially high in active effects;
 measure Sort/Order/Upload markers. V high: global transparent ordering is a
 fidelity requirement; separating queues or dropping mist is not an acceptable
-shortcut. No H. Headless probe does not execute this camera callback.
+shortcut. No H. Headless probe does not execute this camera callback. Current implementation and measurements: [portal arrival performance](portal-arrival-performance.md).
 
 **R2 — CONFIRMED: lighting dirty ranges include unchanged gaps.**
 `U/ClassicTileLightBuffer.cs:65,93,97`; `ClassicTileFillBuffer.cs:45`;

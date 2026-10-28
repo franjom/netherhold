@@ -172,9 +172,8 @@ test can honestly use. Adding it caught the Goblin missing `CanWalkOnWater`.
 ## 4. Implementation
 
 `CreatureHealthRules` + `CreatureHealthSystem`, once a game second, registered
-after `CreatureSleepSystem` — so a creature that claimed a bed this tick is not
-charged for the second it arrived — and before payday, jobs, anger and
-experience.
+after every creature's update (`CreatureUpdateSystem`, ADR-0554), so a creature that claimed a
+bed this tick is not charged for the second it arrived, and before experience.
 
 - Health seeded from `Hp` at spawn and clamped to the level-scaled maximum.
   **`WorldState.SpawnCreature` takes the `GameDatabase`** for that one line: a
@@ -192,8 +191,8 @@ experience.
 - **Hunger and eating** (`EatingRules` + `CreatureEatSystem`, ADR-0067): the
   accumulator, the once-a-second retry, the walk to a hatchery, the nearest
   chicken and the two subtract amounts. See `eating.md`.
-- **Sleep-from-wounds (50%)** is half of `LairRules.WantsToSleep`, so a hurt
-  creature goes to bed without being tired. `CreatureCriticalHealthPercentageOfMax`
+- **Sleep-from-wounds (50%)** sends only a creature with no bed to sleep untired; with a
+  bed it waits until tired (ADR-0543). `CreatureCriticalHealthPercentageOfMax`
   (20%) is computed and still unread; nothing flees yet.
 - **Collapse, death and the corpse** (`CreatureDeathRules`, ADR-0051 then
   ADR-0063): zero health is a 60-second window on the floor, then death, then a
@@ -206,7 +205,7 @@ experience.
 |---|---|
 | **Starvation** | There is none in DK2 (§3), and a test pins the absence. |
 | **Sleeping anywhere but a bed** | A creature with no bed stays awake indefinitely and never recovers, which is CONFIRMED (owner, Q105): it cannot sleep at all. What it does instead is accrue `angerNoLair`. |
-| **Hated company** | The relation is parsed and unused; `ModifyAngerInCompanyOfHatedCreaturesPerSecond` (+150) has nothing to read it (`creature-anger.md`). |
+| **Hated company** | Built under ADR-0479 (the mixed-alignment room rule); `creature-anger.md` has the bucket. |
 | **Vampire reincarnation** | Graveyard creation is built (Q165); reincarnation at a sarcophagus remains Q111. |
 | **`ShuffleSpeed` and the water slowdown** | No variable governs it (§3, Q118). |
 

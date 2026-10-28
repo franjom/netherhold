@@ -74,7 +74,7 @@ public static class DoorRules
     /// that never wrote its byte, one placed in play and still under construction, and for an owner
     /// whose number (<c>player+0x10FC</c>) is 0; the first stands on its keeper's claimed floor
     /// and the one shipped door off floor is the Good player's, so ours stamps every door off floor. The
-    /// cleanup's sound, linked objects, secret-door tile flag and the destruction effect
+    /// cleanup's sound, linked objects and the destruction effect
     /// (<c>def+0xAE</c>) are presentation or unbuilt.</summary>
     public static void Remove(SimulationContext context, DoorState door)
     {
@@ -83,6 +83,8 @@ public static class DoorRules
         world.RemoveDoor(door);
         if (world.Contains(door.X, door.Y))
         {
+            if (context.Database.Doors.GetValueOrDefault(door.DoorId)?.Flags.HasFlag(DoorFlags.Secret) == true)
+                world.Tile(door.X, door.Y).SecretDoor = false;
             TerrainDef terrain = context.Database.TerrainById(world.Tile(door.X, door.Y).TerrainId);
             if (!terrain.IsSolid && (terrain.IsWater || terrain.IsLava))
                 world.Stamp((door.Y * world.Width) + door.X, NavBytes.Floor);

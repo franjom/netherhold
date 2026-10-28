@@ -50,6 +50,8 @@ namespace DK2.Unity
         [SerializeField] private string installDirectory = "";
 
         [Header("What to load")]
+        [SerializeField] private GameSessionMode sessionMode = GameSessionMode.Campaign;
+        [SerializeField] private FrontEndPage frontEndReturnPage = FrontEndPage.None;
         [SerializeField] private string levelName = "Level1";
         [Tooltip("A .SAV or .QSAV to load instead of the campaign level. " +
                  "Bare filename (looked up in the install's Data/Save) or a full path. " +
@@ -220,6 +222,12 @@ namespace DK2.Unity
 
         private void StartGame()
         {
+            bool frontEnd = sessionMode == GameSessionMode.FrontEnd;
+            if (frontEnd)
+            {
+                levelName = GameSessionRequest.FrontEnd().LevelName;
+                saveFile = "";
+            }
             if (tool != DungeonToolMode.Hand && tool != DungeonToolMode.BuildRoom &&
                 tool != DungeonToolMode.SellRoom && tool != DungeonToolMode.CreateImp)
                 tool = DungeonToolMode.Hand;
@@ -252,6 +260,7 @@ namespace DK2.Unity
                 var level = GameDatabaseLoader.LoadCampaignLevel(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' level definition.");
                 cameraTicksPerSecond = level.TicksPerSecond;
+                _levelTicksPerSecond = level.TicksPerSecond;
                 var players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' players.");
                 startingCameraPlayer = players.FirstOrDefault(p => p.PlayerId == viewingPlayerId);
@@ -259,8 +268,11 @@ namespace DK2.Unity
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' things.");
                 var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' triggers.");
-                _simulation = CampaignSimulationFactory.Create(database, map, level,
-                    players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
+                _simulation = frontEnd
+                    ? new GameSimulation(database, WorldState.FromMap(database, map,
+                        players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed)
+                    : CampaignSimulationFactory.Create(database, map, level,
+                        players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
             }
             else
             {
@@ -270,6 +282,15 @@ namespace DK2.Unity
             }
             _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
+            if (!frontEnd) world.LocalPlayerId = new PlayerId((byte)viewingPlayerId);
+            if (!frontEnd) PrepareCampaignResult();
+            if (frontEnd)
+            {
+                LoadFrontEndProfile();
+                _frontEndScenery = FrontEndScenery.Create(world, database, _campaignProfile, new SimRandom(seed), _secretFiveAvailable)
+                    .Concat(FrontEndScenery.CreateCampaignMarkers(database)).ToArray();
+                _frontEndBaseScenery = _frontEndScenery;
+            }
             _roomIds = database.Rooms.Keys.OrderBy(id => (byte)id).ToArray();
             SelectKnownRoom();
             _startup.Step("level");
@@ -279,7 +300,7 @@ namespace DK2.Unity
             // normally missing; with the install off too, everything draws as boxes.
             if (classicMeshes)
             {
-                _installArt = InstallArtProvider.Open(install, database);
+                _installArt = InstallArtProvider.Open(install, database, frontEnd ? FrontEndArt.Entries(database) : null);
                 _classic = new ClassicMeshes(_installArt, classicVertexLighting, nativeInitialAmbient);
             }
             _assets = AssetProviderChain.Standard(
@@ -297,7 +318,8 @@ namespace DK2.Unity
             int workers = PrefetchWorkers(); // SystemInfo is main-thread only
             if (art != null && prefetchFirstFrameArt)
             {
-                IReadOnlyCollection<AssetRef> firstFrame = FirstFrameArt.Keys(database, world, new PlayerId((byte)viewingPlayerId));
+                IReadOnlyCollection<AssetRef> firstFrame = FirstFrameArt.Keys(database, world,
+                    new PlayerId((byte)viewingPlayerId), _frontEndScenery);
                 prefetch = Task.Run(() => art.Prefetch(firstFrame, workers));
                 _startup.Step("prefetch.keys");
             }
@@ -308,6 +330,7 @@ namespace DK2.Unity
             _scene = new DungeonScene(transform, world.Width, world.Height, _classic, lattice, classicCreatureShadows, cheapLighting);
             if (EffectClock != null) _scene.HeartEffectClock = EffectClock;
             _worldView = new WorldView(database, (byte)viewingPlayerId);
+            if (_frontEndScenery != null) _worldView.FrontEndScenery = _frontEndScenery;
             _presenter = new ScenePresenter(
                 _worldView, _assets, _scene, new TorchLayout(database));
             _startup.Step("scene");
@@ -330,11 +353,19 @@ namespace DK2.Unity
                     new EffectId(CreatureView.GemDustSparkle.EffectId), new PlayerId((byte)viewingPlayerId), point));
             }
             _startup.Step("effects");
+            if (frontEnd)
+            {
+                WaitForPrefetch(prefetch);
+                StartFrontEnd(install, world);
+                Debug.Log(_startup.Summary(_installArt));
+                return;
+            }
             _textFolder = Path.Combine(install, "Data", "Text", "Default");
             _scriptedView = new ScriptedViewDirector(new PlayerId((byte)viewingPlayerId),
                 CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
                 (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance);
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
+            PrepareWinScreen(database);
             _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
                 new PlayerId((byte)viewingPlayerId), _scriptedView));
 
@@ -485,10 +516,18 @@ namespace DK2.Unity
                 milliseconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private void OnDestroy()
+        private bool _runtimeReleased;
+        private void OnDestroy() => ReleaseRuntimeResources();
+
+        private void ReleaseRuntimeResources()
         {
+            if (_runtimeReleased) return;
+            _runtimeReleased = true;
             WaitForTick();
+            CloseInputJournals("destroyed");
             DisposeHudControls();
+            _frontEndMenu?.Dispose();
+            _campaignMap?.Dispose(); _campaignMap = null;
             _minimap?.Dispose();
             _handCursor?.Dispose();
             _tileHighlight?.Dispose();
@@ -512,13 +551,16 @@ namespace DK2.Unity
         }
 
         private static readonly ProfilerMarker TickMarker = new ProfilerMarker("DK2.Simulation.Tick");
+        private static readonly ProfilerMarker WaitTickMarker = new ProfilerMarker("DK2.Simulation.WaitForTick");
         private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Scene.Present");
         private readonly FrameElapsedClock _frameElapsed = new FrameElapsedClock();
 
         private void Update()
         {
+            JournalBeginFrame();
             _frameOverlay.Sample(showDiagnostics);
-            if (_simulation == null) return;
+            if (_simulation == null || _failure != null) return;
+            if (_frontEnd != null) { if (!UpdateCutscene()) UpdateFrontEnd(); return; }
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
 
@@ -533,9 +575,10 @@ namespace DK2.Unity
             // is the world this frame draws; on the main thread this frame's ticks come after.
             _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
                 _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d));
-            // ClassicHudControls.UpdateResult (0x004039A0) is not fed here: DK2 leaves a result through
-            // Esc/Space (continue, action 134) or the result menu, and neither exists yet, so suppressing
-            // input on a terminal Status would strand the player (hud-visibility.md, result section).
+            UpdateWinScreenPreview();
+            // ClassicHudControls.UpdateResult (0x004039A0) is fed only for a level launched from the front
+            // end, where Space leaves the result; elsewhere suppressing input would strand the player.
+            if (UpdateCampaignResult()) return;
             using (InputMarker.Auto())
             {
                 ApplyLetterbox();
@@ -556,6 +599,7 @@ namespace DK2.Unity
                 else
                 {
                     Glide();
+                    FollowScriptedCreature();
                     if (hud.AllowOrdinaryInput && !HudModal) ControlCamera();
                     else if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
                 }
@@ -577,6 +621,7 @@ namespace DK2.Unity
                 if (ticks > 0 && _pendingCommands.Count > 0)
                 {
                     firstInput = new InputFrame(_pendingCommands.ToArray());
+                    JournalHandOff();
                     _pendingCommands.Clear();
                 }
             }
@@ -619,6 +664,7 @@ namespace DK2.Unity
                 if (ticks > 0 && firstInput.All.Count == 0 && _pendingCommands.Count > 0)
                 {
                     firstInput = new InputFrame(_pendingCommands.ToArray());
+                    JournalHandOff();
                     _pendingCommands.Clear();
                 }
             }
@@ -654,6 +700,7 @@ namespace DK2.Unity
 
             // Nothing on this thread reads the world again before the next Update's wait: OnGUI
             // reads the strings built above, and Simulation's getter waits.
+            JournalTicks(ticks);
             if (ticks > 0 && tickOnWorkerThread)
             {
                 int count = ticks;
@@ -673,7 +720,18 @@ namespace DK2.Unity
                 {
                     using (CaptureMarker.Auto())
                         _worldView.CaptureObjectPositions(_simulation.World);
-                    _simulation.Tick(input);
+                    long tick = _simulation.World.CurrentTick.Value;
+                    JournalTick(tick, input, before: true);
+                    try
+                    {
+                        _simulation.Tick(input);
+                    }
+                    catch (Exception ex)
+                    {
+                        JournalTickFailed(ex);
+                        throw;
+                    }
+                    JournalTick(tick + 1, input, before: false);
                 }
             }
             // The hash is for the diagnostics only, and costs a few milliseconds; here it is off the
@@ -687,6 +745,7 @@ namespace DK2.Unity
         {
             Task task = _tickTask;
             if (task == null) return;
+            using var waitScope = WaitTickMarker.Auto();
             _tickTask = null;
             try
             {
@@ -748,6 +807,7 @@ namespace DK2.Unity
                 SecondaryButton: secondaryButton,
                 PointerOverHud: PointerOverHud(Input.mousePosition),
                 PointerPosition: tile is TilePos pointTile ? ScreenToPosition(Input.mousePosition, pointTile) : null);
+            JournalIntent(intent);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
                 _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile);
             if (tile is TilePos at && (ActiveTool == PlayerToolMode.Hand || ActiveTool == PlayerToolMode.Slap))
@@ -1046,9 +1106,13 @@ namespace DK2.Unity
             string subtitle = _scriptedView.Subtitle;
             if (subtitle == null) return;
             float height = Screen.height / 8f;
-            var box = new Rect(0f, Screen.height - height, Screen.width, height);
-            // The owner's order (2026-10-17): Bullfrog's DungeonKeeperII TrueType face first,
-            // DK2's own bitmap font second, Unity's default last.
+            DrawSubtitleText(new Rect(0f, Screen.height - height, Screen.width, height), subtitle);
+        }
+
+        /// <summary>Centred subtitle text in the owner's font order (2026-10-17): Bullfrog's
+        /// DungeonKeeperII TrueType face first, DK2's own bitmap font second, Unity's default last.</summary>
+        private void DrawSubtitleText(Rect box, string subtitle)
+        {
             Font trueType = Resources.Load<Font>("Fonts/DungeonKeeperII");
             if (trueType == null)
             {
@@ -1066,7 +1130,7 @@ namespace DK2.Unity
                 fontSize = Mathf.Max(12, Screen.height / 30),
                 normal = { textColor = Color.white },
             };
-            GUI.Label(new Rect(Screen.width * 0.05f, box.y, Screen.width * 0.9f, height), subtitle, _subtitleStyle);
+            GUI.Label(new Rect(Screen.width * 0.05f, box.y, Screen.width * 0.9f, box.height), subtitle, _subtitleStyle);
         }
 
         /// <summary>DK2's own bitmap font, the fallback: the shipped size that reads at this
@@ -1419,6 +1483,7 @@ namespace DK2.Unity
             }
             if (ActiveTool == PlayerToolMode.CreateImp) return PlacementCursor.CreateImp(world, database, viewer, 4);
             if (ActiveTool != PlayerToolMode.Hand) return PlacementFeedback.None;
+            if (_input.Targeting is SpecialTargeting targeting) return PlacementCursor.Targeting(targeting);
             if (_queryTool) return PlacementCursor.Query();
             if (_panelChoice is not BottomPanelChoiceKey choice) return PlacementFeedback.None;
             // The simulation's navigation bytes as its last turn left them; the cursor never refreshes them.
@@ -1456,7 +1521,15 @@ namespace DK2.Unity
 
         private void OnGUI()
         {
+            if (_frontEnd != null)
+            {
+                DrawCutsceneTitle();
+                if (showDiagnostics) DrawFrontEndDiagnostics();
+                return;
+            }
             DrawCinematic();
+            DrawCampaignResultPrompt();
+            DrawWinScreenPreview();
             if (showDiagnostics) DrawDiagnostics();
         }
 

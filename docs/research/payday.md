@@ -47,6 +47,10 @@ Nothing happens unless the next-payday stamp at `player+0xB53` is non-zero and
    ticksPerSecond`.
 5. `player+0xB4F` is set to `now`, recording when this payday began.
 
+The world frame calls the clock once per player before the creature sweep, so a creature credited
+there sets off in its own update the same turn; ours is `PaydaySystem.BeginTurn` (ADR-0554,
+[creature-update-order.md](creature-update-order.md)).
+
 **`creature[0x3e2]` is DK2's `GetPaid`**, as its own creature dump prints it (the
 dump's `SkipNextPayment` is a different field, `+0x3EA` bit 5, ADR-0217). Q9 guessed
 it was *"a mood input rather than an accounting flag"*. It is neither: it is a
@@ -134,7 +138,8 @@ creature's own keeper; `PaydayRules.GoldIn` skips a room whose total is zero and
 
 ### 4.1 The decision, `FUN_00472320`
 
-Called from the needs routine. Every gate:
+Called from the needs routine, behind its four-turn retry stamp, and by the clock (§2) without
+the stamp. Every gate:
 
 | Gate | Meaning |
 |---|---|

@@ -159,8 +159,9 @@ Once per tick, for every creature flagged `IsWorker`, in spawn order:
    (Q47, ADR-0020 as corrected by ADR-0089). **Trap: the fifth is the size of an
    application, not its rate.**
 
-`CreatureMovementSystem` runs before `ImpTaskSystem` (`SimulationSystems`), so a
-worker that arrives at its job is noticed on the tick it arrives.
+Inside each creature's update `CreatureMovementSystem` runs before `ImpTaskSystem`
+(`CreatureUpdateSystem`, ADR-0554), so a worker that arrives at its job is noticed on the tick
+it arrives.
 
 ### Where a worker stands
 

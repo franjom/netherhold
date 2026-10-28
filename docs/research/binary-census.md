@@ -75,23 +75,24 @@ the members' mean position at `+0x06`/`+0x0A`/`+0x0E`, a member count at
   takes the first empty record, and when all eight are in use it joins the
   nearest one at any distance. It sets `+0x37A`, recomputes the centre, and
   sets `+0x37E` to four seconds ahead. When the creature is the local player's
-  and the record held none of that player's, it calls slot `+0x4C` of an
-  unidentified object reached through world `+0x4`.
+  and the record held none of that player's, it calls interface slot `+0x4C`,
+  the Battle tab's fly-in ([battle-tab.md](battle-tab.md) §5).
 - `0x00505310` sends a member whose timer `+0x37E` has passed to `0x00505500`
   (not read). It sums the threat of fighting members not owned by the local
   player: definition `+0x698`, scaled above level 1 by the level percentage at
   `[0x006E4154] + 0x105` (`computer-keeper-threat.md`). It passes `0x101`,
   `0x102` or `0x103` to effect service slot `+0x4C` when the sum reaches
   `MusicLevelTwoThreatThreshold`, Three or Four (variables 215 to 217). That
-  slot (`0x00567BC0`) raises the service's `+0x2C` to the larger value, which
-  `0x00567570` maps to four levels; reading it as music intensity is inferred
-  from the variables' names.
+  slot (`0x00567BC0`) raises the sound manager's music level `+0x2C`, which its
+  update `0x005674F0` (at `0x00567570`) turns into the music's intensity, 20 a
+  level: CONFIRMED 2026-10-27 (`music.md`).
 - `0x00505500` takes a member out: it unlinks it, clears `+0x37A`, decrements
   the count and clears the record when it empties.
 - World slot `+0x2B8` (`0x00505250`) returns the next record holding a local
   player's creature, and slot `+0x2B4` returns a record. Only interface code
   calls them (`0x00426974`, `0x004269DB`; `0x0041D872`, `0x0042698B`), with
-  `0x005055D0` under the minimap draw `0x0041CC50`.
+  `0x005055D0` under the minimap draw `0x0041CC50`: the Battle tab, its zoom and
+  a minimap ring ([battle-tab.md](battle-tab.md)).
 
 Every reader of those offsets is one of these, the creature constructor, death
 and collapse bookkeeping (`0x005051F0`), the creature debug dump, or an

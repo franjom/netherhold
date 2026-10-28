@@ -28,9 +28,9 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
 
     public List<SteeringObstacle> Obstacles { get; } = new();
 
-    public bool CanMove(Fixed16Vector from, Fixed16Vector to, DK2.Core.Fp32 bodyRadius = default) => true;
+    public bool CanMove(Fixed16Vector from, Fixed16Vector to) => true;
 
-    public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target, DK2.Core.Fp32 bodyRadius = default) => target;
+    public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target) => target;
 
     public int CrowdWeightValue { get; set; }
 

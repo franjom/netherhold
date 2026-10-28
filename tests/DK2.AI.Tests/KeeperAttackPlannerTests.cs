@@ -445,10 +445,11 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World(open: true);
         Fighter(world, Keeper, 15, 15); Fighter(world, Keeper, 16, 15);
-        // Seed 2 draws the diagonal away from the keeper's own land, which this test needs (no drop
-        // site within five of the call). The idle fighters' slap rolls share the stream, so a change
-        // to who may be slapped moves the draw (seed 3 until 2026-10-06).
-        var keeper = new KeeperAI(Keeper, Attacker(usage: 1), new SimRandom(2));
+        // Seed 3 draws the diagonal away from the keeper's own land, which this test needs (no drop
+        // site within five of the call). The idle fighters' slap rolls and step 10's traps-and-doors
+        // roll share the stream, so a change to either moves the draw (seed 2 from 2026-10-06 until
+        // the traps-and-doors step, 2026-10-28).
+        var keeper = new KeeperAI(Keeper, Attacker(usage: 1), new SimRandom(3));
         var sim = new GameSimulation(Db, world, 1, CallSystems());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);

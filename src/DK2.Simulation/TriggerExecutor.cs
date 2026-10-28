@@ -378,7 +378,8 @@ public sealed class TriggerExecutor
         TriggerState state,
         WorldState? world = null,
         GameDatabase? database = null,
-        SimRandom? rng = null)
+        SimRandom? rng = null,
+        bool levelStart = true)
     {
         _tree = tree ?? throw new ArgumentNullException(nameof(tree));
         _state = state ?? throw new ArgumentNullException(nameof(state));
@@ -386,14 +387,20 @@ public sealed class TriggerExecutor
         _database = database;
         _rng = rng;
         _state.InitializeRecords(tree.Records);
-        DisablePartySubtrees();
+        // The party sweep, the creature roots' repeat snapshots and event 3 are the level
+        // initialiser's; a restored world already holds their results and whatever the level did
+        // since (an armed party, a repeat taken mid-play, a flag written after). DK2's restore
+        // holds world +0x7239 bit 0x40 across 0x0050B5B0, which skips the sweep (0x0050C280) and
+        // event 3 (0x0050BCC4).
+        if (levelStart) DisablePartySubtrees();
         if (world is not null && database is not null)
         {
             _areaRoots = BuildAreaRoots(world);
-            AttachCreatureRoots(world);
+            if (levelStart) AttachCreatureRoots(world);
             // The level initialiser 0x0050B5B0 fires event 3 for every creature it places.
-            foreach (CreatureState creature in world.Creatures.ToArray())
-                FireCreatureEvent(creature, CreatureTriggerEvent.Created, currentTick: 0);
+            if (levelStart)
+                foreach (CreatureState creature in world.Creatures.ToArray())
+                    FireCreatureEvent(creature, CreatureTriggerEvent.Created, currentTick: 0);
         }
     }
 
@@ -593,9 +600,9 @@ public sealed class TriggerExecutor
     /// (<c>0x0050C289</c>–<c>0x0050C2D9</c>), <b>gating on nothing but a non-zero id</b>.
     /// Without it a party root would run from turn 1 and every level would open by
     /// executing script only action type 14 is supposed to reach.</para>
-    /// <para><b>UNKNOWN, reproduced as always-on:</b> the sweep is skipped when bit
-    /// <c>0x40</c> of <c>+0x7239</c> is set (<c>0x0050C280</c>) and no writer is traced
-    /// (Q241). Every path we have runs it.</para>
+    /// <para>The sweep is skipped when bit <c>0x40</c> of <c>+0x7239</c> is set
+    /// (<c>0x0050C280</c>): a save-game restore holds it across the initialiser (Q241). Ours runs
+    /// it for a new level and skips it on a <see cref="WorldSnapshot"/> restore (ADR-0550).</para>
     /// </remarks>
     private void DisablePartySubtrees()
     {
@@ -1050,6 +1057,8 @@ public sealed class TriggerExecutor
             GivePortalGem(_world, _database, run.Creature);
             return true;
         }
+        // Action 30 (0x0049AF08): turn + turns-per-second x Value, modulo 32 bits. That our tick equals
+        // the native turn is STRONGLY INFERRED (0048E830.md).
         if (context == TriggerContext.Creature && record.Type == 30 && run.Creature is not null)
         {
             run.CreatureActions.Add(new BlockedTrigger(record.Tag, record.Type, record.TriggerId, context));
@@ -1306,7 +1315,7 @@ public sealed class TriggerExecutor
         {
             if (_world is null || run.Player is not PlayerId player)
                 return Unperformed(record, context, partial);
-            _world.EndGame(player, record.Type == 10 ? PlayerStatus.Won : PlayerStatus.Lost);
+            VerdictRules.End(_world, _database!, player, record.Type == 10 ? PlayerStatus.Won : PlayerStatus.Lost);
             return true;
         }
         if (record.Type == 23)

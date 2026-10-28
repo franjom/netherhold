@@ -36,6 +36,11 @@ public sealed class SimulationContext
     internal HashSet<CreatureState> TremorMoodDispatchedThisTick { get; } = [];
     internal HashSet<CreatureState> TremorRebellionStartedThisTick { get; } = [];
 
+    /// <summary>The state the creature being updated held when its update began
+    /// (<see cref="Systems.CreatureUpdateSystem"/>), before any step of that update moved it.
+    /// Never an input to the following turn.</summary>
+    internal int UpdateStartStateId { get; set; } = CreatureStateMachine.NoState;
+
     /// <summary>The mesh, the router and the steering probes over <see cref="World"/>. Systems
     /// request routes through it; the movement system steps bodies against it.</summary>
     public Navigation.WorldSteering Navigation { get; }
@@ -88,6 +93,14 @@ public sealed class SimulationContext
             EffectRequest = request,
         });
     }
+
+    /// <summary>Asks the player's view to do something (<see cref="ScriptedViewRequest"/>); observation only.</summary>
+    public void RequestView(string system, ScriptedViewRequest request) =>
+        Events.Emit(new SimEvent(Tick, system, "scripted_view",
+            $"player={request.Player} kind={request.Kind} value={request.Value} tile=({request.Tile.X},{request.Tile.Y}) flag={request.Flag}")
+        {
+            ScriptedView = request,
+        });
 
     /// <summary>The level's trigger executor, when the simulation has one: the systems fire DK2's
     /// creature and player trigger events through it at the moment they happen, as the binary

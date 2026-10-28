@@ -8,7 +8,7 @@ Out of scope, with hand-offs only: the campaign map, unlock rules and profile
 file format: `camera-paths.md`).
 
 Every row is a DKII.EXE v1.70 read unless it says otherwise, so the ceiling is **STRONGLY
-INFERRED** (LIKELY in the function records); nothing here was observed in play. Labels are
+INFERRED** (LIKELY in the function records); owner recollections below are not controlled original-game experiments. Labels are
 `Data/Text/Default/Text.str` ids (file id 1091) decoded with `dk2tools str list`. Function
 records: `docs/research/functions/<ADDRESS>.md`. Path names are the designers' own index
 in `Paths.WAD` (`Engine Path Info.txt.txt`, entries 250-274).
@@ -146,9 +146,8 @@ order and, by tile index:
 | 10 | thirty land pieces, object 0x66 (102), mesh resource world +0x9F24 + i*0x1B (the `3dmap_level` set), slot byte +0x173 = i+1, state 0x2B; slot 30 shown only when `0x00559740` returns 1 | `0x00713682[25]` (campaign land pieces) followed by `0x007136B4[5]` (the five secret pieces); one 30-entry write fills both | STRONGLY INFERRED |
 
 All are flagged auto-placed room objects. `0x005395A0` (after the level loads and on map entry)
-tints the 25 campaign land pieces by map status (0x55A for status 1 or 3) and shows or hides the five
-secret-level land pieces (`0x007136B4[5]`) and the arrows (`0x00713652[24]`; their creator is
-unread). `0x00535950`, before the level load, requests the `3dmaplevel1_arrows`... mesh set
+sets the texture phase of the 25 campaign land pieces by map status (0x55A for status 1 or 3) and shows or hides the five
+secret-level land pieces (`0x007136B4[5]`) and the arrows (`0x00713652[24]`, created by `0x005357F0`). `0x00535950`, before the level load, requests the `3dmaplevel1_arrows`... mesh set
 (table `0x006B8E28`, stride 0x110) through the engine's resource slot +0x54.
 
 **Menu items are not bound to 3D objects** (STRONGLY INFERRED; object hooks on 0x83, 0x59,
@@ -156,9 +155,14 @@ unread). `0x00535950`, before the level load, requests the `3dmaplevel1_arrows`.
 are 2D widgets drawn over a camera parked at a station; only the tables are picked in 3D.
 The campaign map pick `0x00538D00` accepts things of type 0x66 or 0x73 by their slot byte
 +0x173 (slots 1-30 and 0x97-0xAE); the 0x66 pieces are the ones `0x004DEF30` makes, the
-creator of the 0x73 ones is unread. The seven MPD pieces (0x85) go through `0x005392E0`, which
+0x73 arrows come from `0x005357F0`. The seven MPD pieces (0x85) go through `0x005392E0`, which
 was not re-read for this.
-Which kwd objects 131, 132, 134-136 are (banners, chain...) is the asset sibling's table.
+F2 builds the room, decorative props and typed station flow (`FrontEndScenery`,
+`FrontEndFlow`, `FrontEndSession`). Prop creation includes the factory's floor clamp,
+authored animation phases and retained descriptor lights; see the function records
+for `0x004DEF30` and `0x004B5020`. F3 adds the 32-page/402-widget catalogue and
+interactive shell pages; F4 adds campaign picking, marker/texture-phase state and
+briefing navigation (campaign-map sibling). Other consumers remain later phases. No matched-original visual acceptance is claimed.
 
 ## 4. Input, hover and click model
 
@@ -169,12 +173,30 @@ Which kwd objects 131, 132, 134-136 are (banners, chain...) is the asset sibling
 | Click and release sounds come from the widget's sound slot (+0x4C) through the table at `0x006AC8C4`: main-menu items use slot 32, back icons 36/35. | `0x0052BC50` | STRONGLY INFERRED |
 | Keyboard: Ctrl+Alt-style modifier 3 with key 0x20 (D) loads a demo packet file and starts it (debug); Alt+Enter (0x1C with modifier 2) calls `0x00558BD0`; key 0xB7 sets frontEnd +0x6022 (screenshot, unread). | `0x0052FAF0` | STRONGLY INFERRED (keys); HYPOTHESIS (purposes) |
 
+### F3 implementation boundary
+
+`FrontEndMenuController` supports Main, Single Player, Options/Graphics/Sound/Controls
+shells, Extras and Quit confirmation. Pointer hold suppression, hover/fade and sound
+hooks are implemented; playback is F8. Deferred actions are dimmed as a temporary
+capability gate, not as a reading of native campaign availability. Option values,
+media and other generic-dialog uses remain later phases; F4 builds reset
+confirmation and campaign map/briefing navigation (see the campaign-map sibling).
+
+Font replacement follows ADR-0539. Native measurement uses the advance/line-height
+canvas ([glyph measurement](functions/006335D0.md)); visible ink retains its bearing
+inside that canvas. Main labels use the pre-rendered-label style, while options
+and dialog text use the [common drawer](functions/005323B0.md) and its font thunks.
+Titles use [their own preparation](functions/00536850.md). Glow construction is
+recorded in [dilation](functions/00552770.md), [blur](functions/00552990.md) and
+[alpha scaling](functions/00552620.md). These are binary readings, not a matched
+original-game screenshot acceptance.
+
 ## 5. Transitions
 
 | Direction | What happens | Provenance | Confidence |
 |---|---|---|---|
 | Front end -> level | The briefing's go (D0xC) or skirmish start (D0x5A) or Load (D7): sets `0x0075AEB3` = 1 (3D front end) or flags 0xC00 (2D), leaves game mode in `0x0075AD4B` (1 campaign, 2 skirmish, 3 multiplayer, 4 MPD), level name in `0x0075AD57` (from `0x006B83EC[slot]`, `mpd%u`, or the chosen map/save), records the return page in `0x00759B30` (0x1A campaign, 0x2D skirmish, 0x1B multiplayer, 0x2A MPD) and exits the front end naming the session `0x0070D138`. `GameSession_Run` then clears `0x0075AEAF` and runs the session again with the real level. | `0x005306F0` cases 7, 0xC, 0x5A; `0x00525C86` | STRONGLY INFERRED |
-| Level -> front end | When a session ends with `0x0075AEAF` = 0 and `0x0075AEB3` = 1, `GameSession_Run` saves the mode in `0x0075AD4F`, sets mode 5, level `FrontEnd3DLevel`, `0x0075AEAF` = 1, and returns the session again. The return page `0x00759B30` is then routed in two places. **`0x00534F70`** (front-end init) handles 0x1A/0x1B/0x2A/0x2D: the campaign branch table and cutscene first (`campaign-map-and-progression.md` §5), then post-game states 3/0x16/0x1B/0x17 -> `0x0053C3C0(4/2/1/3)`, which plays path 255 ("Spare"; path 264 for MPD) and builds the statistics page through `0x0053C520` -> `0x0053C830`; and the default (any other page: `0x005321A0(page)` when it is not 1, then `0x00759B30` = 1, state 1 -> path 250 -> main menu). For 0x25, 9, 0x0B, 0x0A, 0x27 and 0x26 it returns at once, and **`0x005384F0`'s first-frame block** (gated by `0x0073EDB4` = 0) routes them: 0x25 -> path 251, state 2 (map); 9 -> path 259, state 7 (lobby); 0x0B/0x0A/0x27 -> path 256, state 5 (multiplayer); 0x26 -> path 264, state 0x10 (MPD). | `0x00525C99-0x00525CFB`, `0x00534F70`, `0x005384F0` | STRONGLY INFERRED |
+| Level -> front end | When a session ends with `0x0075AEAF` = 0 and `0x0075AEB3` = 1, `GameSession_Run` saves the mode in `0x0075AD4F`, sets mode 5, level `FrontEnd3DLevel`, `0x0075AEAF` = 1, and returns the session again. The return page `0x00759B30` is then routed in two places. **`0x00534F70`** (front-end init) handles 0x1A/0x1B/0x2A/0x2D, which are the statistics pages' own ids (26 campaign, 27 multiplayer, 42 MPD, 45 skirmish): the campaign branch table and cutscene first (`campaign-map-and-progression.md` §5), then it shows that page at once (`0x005321A0`) and sets post-game states 3/0x16/0x1B/0x17 -> `0x0053C3C0(4/2/1/3)`, which plays path 255 ("Spare"; path 264 for MPD) with station state 0, under the page, and fills it through `0x0053C520` -> `0x0053C830`; and the default (any other page: `0x005321A0(page)` when it is not 1, then `0x00759B30` = 1, state 1 -> path 250 -> main menu). For 0x25, 9, 0x0B, 0x0A, 0x27 and 0x26 it returns at once, and **`0x005384F0`'s first-frame block** (gated by `0x0073EDB4` = 0) routes them: 0x25 -> path 251, state 2 (map); 9 -> path 259, state 7 (lobby); 0x0B/0x0A/0x27 -> path 256, state 5 (multiplayer); 0x26 -> path 264, state 0x10 (MPD). | `0x00525C99-0x00525CFB`, `0x00534F70`, `0x005384F0` | STRONGLY INFERRED |
 | Exit | Quit's yes (D0x6F) exits the front end with no next component; the session returns null and the application loop ends. | `0x005306F0` case 0x6F | STRONGLY INFERRED |
 
 ## 6. Options pages
@@ -211,26 +233,18 @@ reading is STRONGLY INFERRED from the values (volumes 0..100, shadow 0..3).
 
 | Address | What | Why it matters |
 |---|---|---|
-| `0x00536BA0` | generic dialog builder (title, text, yes/no commands) | dialog layout |
 | `0x0053C830`, `0x0053AC60`, `0x00535C30` | statistics rows and per-level briefing text | results screen contents |
 | `0x005306F0` cases 0x20-0x55, 0x65-0x75 | multiplayer: session lists, lobby, settings | multiplayer menus |
 | pages 10/11/0x20-0x27 widgets (`0x0054EDF0`, `0x0054EE10`, `0x005457A0`, `0x005415D0`, `0x005475A0`...) | multiplayer and skirmish lobby | skirmish setup items |
-| `0x00536700`, `0x005367D0`, `0x00537CA0`, `0x00537E10`, `0x00536070`, `0x00535F50` | title, logo, bottom strip and back/OK icon draws | exact art per page |
-| `0x00536850`, `0x00536A80`, `0x00533570`, `0x0054FCF0`, `0x00552420` | label pre-rendering and fonts | which FONT_FRONTEND size per label (asset sibling) |
+| `0x00537CA0`, `0x00537E10` | bottom strip draws | exact art per page |
 | `0x006BCE48`, `0x0052F9E0` | when the 2D-only run loop is used | |
 | `0x00537FB0`, `0x00537FF0` | `CFrontEndComponent3D` | its role |
 | `0x0054D040`, widget 680 on page 15 | unlabelled graphics button | |
 
-Estimate: the front-end code spans roughly `0x0052B000-0x00555000`; about 60 of its functions
-are read here or by the sibling passes, and on the order of 200 remain, most of them the
-multiplayer lobby and session code.
+## Owner recollections (2026-10-25)
 
-## Questions only the owner can answer
-
-1. Does the game show a title screen for about ten seconds before the Bullfrog logo movie,
-   and can a key or click skip either movie?
-2. After a multiplayer game, does the camera return to the same place as the Options menu
-   (the binary uses path 256 for both), while the Multiplayer button itself flies to a
-   different spot (path 271)?
-3. Does the main menu replay the intro movies after about three minutes without touching
-   the mouse?
+The owner recalls a Dungeon Keeper 2 title screen with logos and disclaimers before
+the Bullfrog intro, movie skipping by keys/clicks, and idle intro replay. The exact
+10-second/180-second timings remain binary readings. No multiplayer recollection is
+available; retain the binary's return routing through path 256 without upgrading
+its confidence. These answers do not establish title-screen skipping.

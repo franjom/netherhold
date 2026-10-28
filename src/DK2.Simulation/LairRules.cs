@@ -409,11 +409,11 @@ public static class LairRules
         return world.Contains(at) && (at.Y * world.Width) + at.X == bed;
     }
 
-    /// <summary>Whether it is time for this creature to go to bed: it has been awake
-    /// for the record's <c>TimeAwake</c>, or it is hurt past
-    /// <c>CreatureSleepsWhenBelowPercentHealth</c> (50%). The wounded clause is the
-    /// data's — DK2 carries a percentage for exactly this — and it is what makes a
-    /// losing fight end with creatures streaming home.
+    /// <summary>Whether it is time for a creature with a bed to go to it: it has been awake
+    /// for the record's <c>TimeAwake</c>. A wound alone is not enough: the needs routine's
+    /// wound branch (<c>0x00478023</c>) calls the Sleep job, which routes to a bed only while
+    /// the sleep latch <c>+0x58</c> is set (<c>0x0046F440</c>). Wounds put a <i>bedless</i>
+    /// creature to sleep, through the lair attempt and state 80's wound test.
     /// <para>The cycle itself is a reading (Q103): a Goblin says <c>TimeAwake</c> 240
     /// and <c>TimeSleep</c> 9, and taking both as seconds gives four minutes up and
     /// nine seconds down, which fits because nine seconds at 100 health a second is
@@ -425,9 +425,6 @@ public static class LairRules
     {
         if (!NeedsBed(definition)) return false;
         if (definition.TimeAwake >= CreatureHealthRules.Never) return false;
-
-        if (CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature))
-            return true;
 
         return creature.AwakeTicks >= SimulationTiming.TicksFromSeconds(definition.TimeAwake);
     }

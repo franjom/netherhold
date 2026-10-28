@@ -42,12 +42,11 @@ public sealed class DoorState
     /// <summary>DK2's <c>+0x115</c>: ticks left on a picked lock, counted down one per update
     /// (<c>0x004A56A1</c>) and, while it is not zero, <b>forcing the door open</b> ahead of every
     /// other rule including lock mode 3 (<c>0x004A5D52</c>).</summary>
-    /// <remarks><b>Nothing sets it.</b> The one writer is <c>0x004A6DF0</c>, reached from the
-    /// effect handler <c>0x00474F80</c> that a creature ability dispatches through a descriptor
-    /// table; which ability owns that descriptor is UNKNOWN, and abilities are not built, so a
-    /// lock here is never picked. The duration it writes is the product of two globals in
-    /// uninitialised data, <c>[0x006F28D3] * [0x006F2590]</c>, so its value is unread as
-    /// well.</remarks>
+    /// <remarks>The one writer is <c>0x004A6DF0</c>, called from <c>0x00474F80</c>, the finale
+    /// Reaper's walk state 234, for another keeper's completed door beside it
+    /// (<see cref="FinaleRules"/>, campaign-win-sequence.md §3). It writes
+    /// <c>[0x006F28D3] * [0x006F2590]</c>: variable 93 <c>DoorPickedTimeSeconds</c>
+    /// (balance-variables-in-the-binary.md) times the tick rate.</remarks>
     public int LockPickTicks { get; set; }
 
     /// <summary>DK2's <c>+0x10D</c>, recomputed every tick by <see cref="Systems.DoorSystem"/>:

@@ -118,6 +118,7 @@ public static class ResearchTreeRules
         if (player.ResearchPoints < entry.Cost) return;
         if (!Deliver(context, playerId, entry)) return;
 
+        player.Statistics.ThingsResearched++; // 0x004C2FDC, beside the points reset
         player.ResearchPoints = 0;
         ChooseTarget(context, playerId);
     }

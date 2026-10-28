@@ -24,13 +24,20 @@ public sealed class PacketLog
         [.. _turns.OrderBy(pair => pair.Key)
             .SelectMany(pair => pair.Value
                 .Where(action => action.Kind is 55 or 57 or 59 or 62 or 88)
-                .Select(action => (pair.Key, action.Kind == 55 ? action.Second & 0xffff : action.First,
-                    action.Kind switch
-                    {
-                        88 => PacketEntityKind.Object,
-                        59 => PacketEntityKind.GoldTile,
-                        _ => PacketEntityKind.Creature,
-                    })))];
+                .SelectMany(action => References(pair.Key, action)))];
+
+    private static IEnumerable<(long Turn, uint Original, PacketEntityKind Kind)> References(long turn, PacketAction action)
+    {
+        yield return (turn, action.Kind == 55 ? action.Second & 0xffff : action.First, action.Kind switch
+        {
+            88 => PacketEntityKind.Object,
+            59 => PacketEntityKind.GoldTile,
+            _ => PacketEntityKind.Creature,
+        });
+        // Action 88's target word: a creature for Kill Creatures and Transfer Creature, else zero.
+        if (action.Kind == 88 && (action.Second & 0xffff) != 0)
+            yield return (turn, action.Second & 0xffff, PacketEntityKind.Creature);
+    }
 
     public static PacketLog Read(string path, int throughTurn, int firstRecord)
     {
@@ -182,7 +189,11 @@ public sealed class PacketLog
                     commands.Add(new SlapCreatureCommand(player, Resolve(a.First, PacketEntityKind.Creature)));
                     break;
                 case 88:
-                    commands.Add(new ActivateSpecialCommand(player, Resolve(a.First, PacketEntityKind.Object)));
+                    // 0x00513760 reads the target as the word at +0x4: the creature's tag from the hand's
+                    // targeting (0x00408D07), zero from the hand's object arm, the spells panel and the computer keeper.
+                    uint target = a.Second & 0xffff;
+                    commands.Add(new ActivateSpecialCommand(player, Resolve(a.First, PacketEntityKind.Object),
+                        target == 0 ? 0 : Resolve(target, PacketEntityKind.Creature)));
                     break;
                 case 114:
                     break;

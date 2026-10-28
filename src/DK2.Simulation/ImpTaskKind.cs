@@ -8,11 +8,11 @@ namespace DK2.Simulation;
 /// <remarks>
 /// <para>DK2 stores this as the byte <c>ImpJobData.LastTaskType</c>, written by each
 /// task-accepting routine when it takes the task; these values were read from those writes.
-/// docs/research/imp-task-priority.md §3 identifies the kinds; these are the ten built here.</para>
+/// docs/research/imp-task-priority.md §3 identifies the kinds.</para>
 /// <para>The values are load-bearing in one place: <see cref="CreatureState.DroppedTask"/> is
 /// compared against <see cref="CreatureState.LastTaskKind"/> as raw bytes, as DK2 does, and the keeper's
-/// slap step reads kind 6 (<c>0x00478A20</c>). Not built: kind 11, a marked Secret Door
-/// (<c>0x0046CB80</c>); 4 and 5 are unidentified.</para>
+/// slap step reads kind 6 (<c>0x00478A20</c>). Kind 11's handler records 1;
+/// 4 and 5 are unidentified.</para>
 /// </remarks>
 public enum ImpTaskKind : byte
 {
@@ -59,6 +59,9 @@ public enum ImpTaskKind : byte
     /// <summary>Carry a crate to a placed door and build it — DK2's kind <b>10</b>, states 36 and
     /// 37 (ADR-0214).</summary>
     BuildDoor = 10,
+
+    /// <summary>Expose a marked Secret Door; the handler records last kind 1.</summary>
+    SecretDoor = 11,
 
     /// <summary>Carry a corpse to a Graveyard — DK2's kind <b>12</b>.</summary>
     CarryCorpse = 12,

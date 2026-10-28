@@ -252,7 +252,7 @@ outcome is CONFIRMED by the owner's Level 2 recording (`navigation-captures.md`)
 - **The miner's state** (26, `0x00465870`). An imp the hands test `0x00464360(1)` finds
   full (the level's maximum less variable 74, Q50) first tries the store chooser `0x00464400`, which picks the nearest reachable Treasury or intact
   Heart with room and otherwise posts message `0x29`, `0x2A` or `0x2B` and returns 0.
-  Delivering or not, before the next strike it checks the floor piles in its own
+  Delivering or not, on the same call, before the next strike (ADR-0563), it checks the floor piles in its own
   third-of-a-tile cell. One over `MaxGoldPileOutsideTreasury` gives the task up
   (state 10). Otherwise it strikes again, so a miner with no store keeps mining.
 - **Choosing a spot.** The dig and mine chooser `0x00469AF0`, and `0x0046A550`

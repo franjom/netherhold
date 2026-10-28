@@ -55,6 +55,9 @@ namespace DK2.Unity
         public HoverTextSnapshot HoverText => !string.IsNullOrEmpty(_widgetHover.TooltipName) ? _widgetHover
             : new HoverTextSnapshot(_descriptionText, "", default);
         public event Action<BottomPanelSelection> Selected;
+        /// <summary>A stored special's slot was clicked (SpellPanel_ClickSlot <c>0x00411140</c>); the
+        /// panel's own selection is left as it is.</summary>
+        public event Action<BottomPanelChoice> SpecialChosen;
         public event Action<RoomTypeId> NavigateRoom;
         /// <summary>Raised with the new state when the Resize Panel button collapses or expands.</summary>
         public event Action<bool> CollapsedChanged;
@@ -296,9 +299,14 @@ namespace DK2.Unity
             BottomPanelCategory category = _panelCategory[panel];
             BottomPanelRect area = _panelArea[panel];
             int count = 0;
+            // The spells panel lists the Libraries' stored specials after its spells (0x00411140).
+            IReadOnlyList<BottomPanelChoice> stored = category == BottomPanelCategory.Spells ? _view.StoredSpecials : Array.Empty<BottomPanelChoice>();
             if (items)
+            {
                 for (int i = 0; i < _view.Choices.Count; i++)
                 { BottomPanelChoice choice = _view.Choices[i]; if (choice.Visible && choice.Category == category) count++; }
+                count += stored.Count;
+            }
             BottomPanelGrid grid = items ? BottomPanelLayout.Grid(area.Width, count) : default;
             int pageSize = Math.Min(PanelSlots, grid.PageSize), c = (int)category;
             if (items)
@@ -312,6 +320,8 @@ namespace DK2.Unity
                     if (visible++ < skip) continue;
                     _slots[first + index++] = choice;
                 }
+                for (int k = 0; k < stored.Count && index < pageSize; k++)
+                    if (visible++ >= skip) _slots[first + index++] = stored[k];
                 while (index < PanelSlots) _slots[first + index++] = null;
             }
             else for (int k = 0; k < PanelSlots; k++) _slots[first + k] = null;
@@ -335,13 +345,13 @@ namespace DK2.Unity
                 // 0x00412FC0: a recharging spell skips the unaffordable tint and the flash; the
                 // manufacture tint overwrites the flash and unaffordable tints, and no-Workshop overwrites it.
                 bool recharging = marks.RechargePercent.HasValue;
-                bool flashing = flash.Slot == choice.Key && !recharging;
+                bool flashing = choice.Selectable && flash.Slot == choice.Key && !recharging;
                 if (flashing) { sparkleOn = cell; sparkleSize = BottomPanelSparkles.SizeFor(grid.WidgetBank); }
                 _icons[i].tintColor = recharging ? RechargeTint
                     : choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
                     : marks.ManufacturePercent.HasValue ? ManufactureTint
                     : flashing && flash.Dark ? Dark
-                    : choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
+                    : !choice.Selectable || choice.Affordable ? Color.white : new Color(100 / 255f, 100 / 255f, 100 / 255f, 1);
                 Place(_icons[i], cell);
                 if (progress != 0)
                 {
@@ -430,6 +440,7 @@ namespace DK2.Unity
             // 0x00416C20 pins with the modifier mask 0x005B2A50 == 1: Shift without Ctrl or Alt.
             else if (action >= 100 && action < 104) ClickTab((BottomPanelCategory)(action - 100), evt.shiftKey && !evt.ctrlKey && !evt.altKey);
             else if (action >= 200 && action < 200 + 2 * MaxPanels) Page((action - 200) / 2, (action & 1) == 0 ? -1 : 1);
+            else if (_slots[action] is BottomPanelChoice { Kind: BottomPanelChoiceKind.Special } special) SpecialChosen?.Invoke(special);
             else if (_slots[action] != null && _view.Select(_slots[action].Key)) Selected?.Invoke(_view.Selection);
         }
         private void Wheel(WheelEvent evt)
@@ -461,7 +472,9 @@ namespace DK2.Unity
             if (choice == null) { _hoverChoice = null; SetDescription(""); return; }
             if (_hoverChoice == choice && _hoverCost == choice.Cost && _hoverUnknown == choice.Unknown) return;
             _hoverChoice = choice; _hoverCost = choice.Cost; _hoverUnknown = choice.Unknown;
-            SetDescription(choice.Unknown ? "?" : choice.Name + "  " + choice.Cost.ToString(CultureInfo.InvariantCulture));
+            // Interface_FormatCostPopup (0x0042EA70): a stored special shows its plain name.
+            SetDescription(choice.Unknown ? "?" : choice.Kind == BottomPanelChoiceKind.Special ? choice.Name
+                : choice.Name + "  " + choice.Cost.ToString(CultureInfo.InvariantCulture));
         }
         private Texture2D Texture(string name)
         {

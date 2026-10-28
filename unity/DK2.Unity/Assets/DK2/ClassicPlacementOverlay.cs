@@ -143,6 +143,8 @@ namespace DK2.Unity
                 case PlacementIcon.PlaceDoor: return "GUI\\Cursors\\I-Place_Door";
                 case PlacementIcon.PlaceTrap: return "GUI\\Cursors\\I-Place_Trap";
                 case PlacementIcon.Query: return "GUI\\Cursors\\I-Query";
+                case PlacementIcon.Kill: return "GUI\\Cursors\\I-Kill";
+                case PlacementIcon.Transfer: return "GUI\\Cursors\\I-Transfer";
                 case PlacementIcon.Spell:
                     string name = SpellIconName?.Invoke(feedback.SpellId);
                     return string.IsNullOrEmpty(name) ? null : name;

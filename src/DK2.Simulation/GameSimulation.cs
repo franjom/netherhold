@@ -12,15 +12,19 @@ namespace DK2.Simulation;
 /// <para>Contract: <b>same database + same initial world + same seed + same
 /// input frames, in the same order, produce the same <see cref="StateHash"/> at
 /// every tick — on any machine, in any process.</b></para>
-/// <para>Enforced by <c>DeterminismTests</c>, whose pinned hash is the gate
-/// (there is no CI). Anything that would break it — wall-clock time, unordered
+/// <para>Enforced by <c>DeterminismTests</c>, whose pinned hash CI's determinism
+/// gate checks on Linux and Windows. Anything that would break it — wall-clock time, unordered
 /// collections, floating point in gameplay maths,
 /// <see cref="object.GetHashCode"/> over strings, ambient randomness — is a
 /// defect, not a trade-off.</para>
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 302;
+    private const ulong HashVersion = 323;
+
+    /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
+    /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
+    public static ulong CurrentHashVersion => HashVersion;
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
@@ -44,6 +48,19 @@ public sealed class GameSimulation
         SimRandom rng,
         IEnumerable<ISimulationSystem>? systems = null,
         TriggerTree? triggers = null)
+        : this(database, world, rng, systems, triggers, levelStart: true)
+    {
+    }
+
+    /// <summary><paramref name="levelStart"/> false is a restore (<see cref="WorldSnapshot"/>): the
+    /// trigger executor skips the level initialiser's party sweep and creature event 3.</summary>
+    internal GameSimulation(
+        GameDatabase database,
+        WorldState world,
+        SimRandom rng,
+        IEnumerable<ISimulationSystem>? systems,
+        TriggerTree? triggers,
+        bool levelStart)
     {
         Database = database;
         World = world;
@@ -54,7 +71,7 @@ public sealed class GameSimulation
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
         _triggers = triggers is null
             ? new TriggerExecutor(world.Triggers)
-            : new TriggerExecutor(triggers, world.Triggers, world, database, rng);
+            : new TriggerExecutor(triggers, world.Triggers, world, database, rng, levelStart);
         _context.Triggers = _triggers;
         _triggers.EffectRequested = _context.RequestEffect;
         _triggers.ViewRequested = request => _context.Events.Emit(new SimEvent(_context.Tick,
@@ -63,6 +80,7 @@ public sealed class GameSimulation
         {
             ScriptedView = request,
         });
+        world.GameEnded = (player, status) => FinaleRules.OnVerdict(_context, player, status);
     }
 
     public GameDatabase Database { get; }
@@ -76,6 +94,10 @@ public sealed class GameSimulation
     public ISimulationEventSink Events => _context.Events;
 
     public IReadOnlyList<ISimulationSystem> Systems => _systems;
+
+    /// <summary>The context the systems run in, for a tool that edits the world between ticks
+    /// (<see cref="WorldResync"/>).</summary>
+    internal SimulationContext Context => _context;
 
     /// <summary>The mesh, the router and the steering probes the systems route through. The mesh
     /// is edited in place as tiles change (ADR-0461), so it is state: saved and hashed.</summary>
@@ -136,18 +158,33 @@ public sealed class GameSimulation
         // The key handler runs before the turn's walk, so a skip is seen by this turn's condition 72.
         foreach (Commands.SkipCameraPathCommand skip in _context.Commands<Commands.SkipCameraPathCommand>())
         {
+            FinaleRules.SkipGlide(ref World.Player(skip.PlayerId), World.CurrentTick);
             if (CameraPathRules.Skip(ref World.Player(skip.PlayerId), World.CurrentTick))
                 _triggers.ViewRequested?.Invoke(new ScriptedViewRequest(
                     ScriptedViewKind.CameraPathSkipped, skip.PlayerId, 0, default, false));
         }
+        // Actions 134 and 75 after a result, in the order the packet carries them.
+        foreach (PlayerCommand command in _context.Input.All)
+        {
+            if (command is Commands.ContinueAfterResultCommand go) FinaleRules.Continue(_context, go.PlayerId);
+            else if (command is Commands.RevealMapCommand reveal) FinaleRules.RevealMap(World, reveal.PlayerId);
+        }
 
         // DK2's first game turn is 1; our next-tick clock starts at 0.
         int dk2Turn = unchecked((int)(World.CurrentTick.Value + 1));
+        // The per-turn world update (0x0050A450) counts the level time limit down at 0x0050A64E,
+        // before its trigger walk at 0x0050A745.
+        if (World.Triggers.CountDownLevelTimeLimit())
+        {
+            _context.Emit(nameof(TriggerExecutor), "level_time_up", $"turn={dk2Turn}");
+            // 0x0050A67A: in skirmish and multiplayer every keeper loses, in active-list order.
+            if (World.GameMode is GameMode.Skirmish or GameMode.Multiplayer)
+                foreach (PlayerId keeper in World.ActivePlayerOrder)
+                    if (Data.Model.PlayerIds.IsKeeper(keeper.Value))
+                        VerdictRules.End(World, Database, keeper, PlayerStatus.Lost);
+        }
         using (profiler.Scope(SimulationMarkers.Triggers))
             LastTriggerRun = _triggers.Run(dk2Turn);
-        // The same per-turn world update (0x0050A450) counts the level time limit down.
-        if (World.Triggers.CountDownLevelTimeLimit())
-            _context.Emit(nameof(TriggerExecutor), "level_time_up", $"turn={dk2Turn}");
         foreach (BlockedTrigger done in LastTriggerRun.CreatureActions)
             _context.Emit(
                 nameof(TriggerExecutor), "trigger_performed",

@@ -30,6 +30,7 @@ public static class ActivityRules
     /// walk, and a torturer's steps to face a victim or strap itself on are its job.</summary>
     private static CreatureActivity? Walking(CreatureState creature, int resume) => resume switch
     {
+        ImpStates.SecretDoorApproach => CreatureActivity.MovingToJob,
         LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.GoingToJob : CreatureActivity.GoingToSleep,
         TortureRules.TorturerFacingState or TortureRules.StrappingState => CreatureActivity.AtWork,
         GuardRules.PatrolState or 100 => CreatureActivity.AtWork,
@@ -57,11 +58,15 @@ public static class ActivityRules
 
     private static CreatureActivity? Standing(CreatureState creature, int state) => state switch
     {
+        ImpStates.SecretDoorApproach => CreatureActivity.MovingToJob,
+        ImpStates.SecretDoorWork => CreatureActivity.Working,
         Systems.CreatureJobSystem.HornyIdleState => CreatureActivity.UnbuiltHandler,
         Systems.CreatureJobSystem.NeutralIdleState or DropDeliveryRules.CelebratingState => CreatureActivity.Idle,
         ReaperRules.ArrivingState or ReaperRules.MaterializingState or ReaperRules.GreetingState => CreatureActivity.ReaperArriving,
         PossessionRules.FollowingState => CreatureActivity.Following,
         ReaperRules.DepartingState => CreatureActivity.Leaving,
+        >= FinaleRules.VanishState and <= FinaleRules.WalkState => CreatureActivity.ReaperArriving,
+        FinaleRules.CelebrateState => CreatureActivity.Idle,
         CreatureStateMachine.Idle or Systems.CreatureJobSystem.IdleChooserState or Systems.CreatureJobSystem.DoingNothingState or ImpStates.TaskSelection or ImpStates.AfterDrop or ImpStates.Resting or ImpStates.Wandering => CreatureActivity.Idle,
         HeroJobRules.WaitFailedState or HeroJobRules.StandingJobState or HeroJobRules.WaitingState
             or HeroJobRules.NoPointState or HeroJobRules.FollowingState => CreatureActivity.Idle,

@@ -42,8 +42,8 @@ public class DroppedToDoJobTests
         }
 
         Dk2TerrainFixture.FurnishRooms(db, world);
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
         return world;
     }
 

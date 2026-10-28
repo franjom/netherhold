@@ -70,6 +70,7 @@ namespace DK2.Unity
             _placementOverlay.ObjectIconName = id => heldArt.Objects.TryGetValue(id, out IReadOnlyList<Dk2ArtResource> art) && art.Count > 1 ? art[1].Name : null;
             _bottomPanel.SelectCategory(BottomPanelCategory.Creatures);
             _bottomPanel.Selected += SelectPanelChoice;
+            _bottomPanel.SpecialChosen += ActivateStoredSpecial;
             _roomNavigation = new RoomNavigation(new PlayerId((byte)viewingPlayerId));
             _bottomPanel.NavigateRoom += NavigateRoom;
             _bottomPanel.CollapsedChanged += collapsed =>
@@ -174,12 +175,32 @@ namespace DK2.Unity
         private void SelectPanelChoice(BottomPanelSelection selection)
         {
             _input.CancelPointerGesture();
+            _input.CancelTool();
             _panelChoice = selection.Choice;
             _queryTarget = CreatureQueryTarget.None;
             _queryTool = false; _selectedCorner = ClassicHudAction.None;
             tool = selection.Tool == PlayerToolMode.BuildRoom ? DungeonToolMode.BuildRoom
                 : selection.Tool == PlayerToolMode.CreateImp ? DungeonToolMode.CreateImp : DungeonToolMode.Hand;
             if (selection.Tool == PlayerToolMode.BuildRoom) selectedRoomId = selection.Room;
+        }
+
+        /// <summary>SpellPanel_ActivateSpecial (<c>0x0040A280</c>): action 88 at once, or the hand's targeting
+        /// mode for Kill Creatures and Transfer Creature. Mode 5 overwrites the tool without Hud_CancelSelectedTool,
+        /// and targeting lasts only under the hand, so the panel returns to the hand.</summary>
+        private void ActivateStoredSpecial(BottomPanelChoice special)
+        {
+            // 0x00411140 ignores a special's slot while the Options menu is open (+0x2722).
+            if (_hudControls.OptionsVisible) return;
+            _input.CancelPointerGesture();
+            if (_input.ActivateStoredSpecial(new PlayerId((byte)viewingPlayerId), special.ObjectId, special.Key.Value) is PlayerCommand command)
+            {
+                _pendingCommands.Add(command);
+                return;
+            }
+            _panelChoice = null;
+            _queryTool = false; _selectedCorner = ClassicHudAction.None;
+            tool = DungeonToolMode.Hand;
+            _bottomView.SelectTool(PlayerToolMode.Hand);
         }
 
         private void NavigateRoom(RoomTypeId type)
@@ -214,6 +235,7 @@ namespace DK2.Unity
             if (action == ClassicHudAction.SelectQuery || action == ClassicHudAction.SelectSell)
             {
                 _panelChoice = null; _selectedCorner = action;
+                _input.CancelTool();
                 _queryTool = action == ClassicHudAction.SelectQuery;
                 tool = _queryTool ? DungeonToolMode.Hand : DungeonToolMode.SellRoom;
                 _bottomView.SelectTool(ActiveTool, selectedRoomId);

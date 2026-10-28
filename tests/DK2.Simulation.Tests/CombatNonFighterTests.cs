@@ -51,17 +51,18 @@ public class CombatNonFighterTests
 
         sim.Tick();
 
-        Assert.Equal(CreatureActivity.Fighting, imp.Activity);
-        Assert.Equal(hero.Id, imp.FightTargetId);
+        // The scan engages the hero and, in the same update, the dispatcher runs 199's handler, whose
+        // NonFighter counter sends the Imp into flight (0x00476FC0 after 0x0045E9F0; ADR-0555): the
+        // native capture shows an Imp going from a walk or work state straight to 203.
+        Assert.Equal(CreatureActivity.Fleeing, imp.Activity);
         Assert.Equal(500, imp.Health);
-        int engaged = sink.Events.ToList().FindIndex(e => e.Kind == "engaged" && e.Detail.Contains($"creature={imp.Id} "));
+        int engaged = sink.Events.ToList().FindIndex(e => e.Kind == "engaged" && e.Detail.Contains($"creature={imp.Id} ") && e.Detail.Contains($"target={hero.Id} "));
+        int fled = sink.Events.ToList().FindIndex(e => e.Kind == "flees" && e.Detail.Contains($"creature={imp.Id} "));
         int swing = sink.Events.ToList().FindIndex(e => e.Kind == "swing" && e.Detail.Contains($"creature={hero.Id} "));
         Assert.True(swing >= 0);
-        Assert.True(engaged >= 0);
-        Assert.Equal(impSpawnedLast, engaged < swing);
+        Assert.True(engaged >= 0 && fled > engaged);
+        Assert.Equal(impSpawnedLast, fled < swing);
         Assert.True(hero.SwingInProgress);
-        sim.Tick();
-        Assert.Equal(CreatureActivity.Fleeing, imp.Activity);
         Assert.Equal(0, imp.BackOffTimer);
     }
 
@@ -259,6 +260,9 @@ public class CombatNonFighterTests
     public void AnImpThatSeesAHeroAwayFromItsRoomsWithdraws()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
+        // No Guard Room near the hero, but a room to withdraw to: with none at all the
+        // withdrawal finds no destination (0x004611D0's failed room pick).
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.TreasuryTerrain, 15, 16);
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
         knight.PosX = imp.PosX + 3700; // under a tile: inside an Imp's forced sight

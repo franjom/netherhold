@@ -104,6 +104,41 @@ public sealed class BottomPanelViewTests
     }
 
     [InstallFact]
+    public void StoredSpecialsFollowTheRoomListThenNewestObjectFirstAsAStandInAndOnlyOwnLibraryBoxesCount()
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        PlayerId keeper = PlayerIds.FirstKeeper;
+        RoomRules.Place(db, ref world.Tile(1, 1), db.Room(RoomTypeId.Library), keeper);
+        RoomRules.Place(db, ref world.Tile(3, 1), db.Room(RoomTypeId.Library), keeper);
+        world.Tile(1, 1).RoomListPosition = new RoomListPosition(5);
+        world.Tile(3, 1).RoomListPosition = new RoomListPosition(9);   // the newer room heads the list
+        ObjectState older = world.SpawnObject(db, 117, keeper, world.TileIndex(new TilePos(1, 1)));
+        ObjectState newer = world.SpawnObject(db, 124, keeper, world.TileIndex(new TilePos(1, 1)));
+        ObjectState other = world.SpawnObject(db, 129, keeper, world.TileIndex(new TilePos(3, 1)));
+        world.SpawnObject(db, 127, keeper, world.TileIndex(new TilePos(5, 5)));   // not in a Library
+        world.SpawnObject(db, 140, PlayerIds.Neutral, world.TileIndex(new TilePos(1, 1)));   // not the keeper's
+
+        var panel = new BottomPanelView(db, keeper, (_, name) => name);
+        panel.Capture(world);
+
+        Assert.Equal([other.Id, newer.Id, older.Id], panel.StoredSpecials.Select(c => c.ObjectId));
+        Assert.All(panel.StoredSpecials, c =>
+        {
+            Assert.Equal(BottomPanelChoiceKind.Special, c.Kind);
+            Assert.Equal(BottomPanelCategory.Spells, c.Category);
+            Assert.True(c.Visible && c.Selectable && c.Affordable);
+        });
+        Assert.Equal(db.ObjectById(124)!.Name, panel.StoredSpecials[1].Name);
+
+        world.RemoveObject(newer.Id);
+        panel = new BottomPanelView(db, keeper, (_, name) => name);   // the list is read once a tick
+        panel.Capture(world);
+        Assert.Equal([other.Id, older.Id], panel.StoredSpecials.Select(c => c.ObjectId));
+    }
+
+    [InstallFact]
     public void DoorsAndTrapsNeedAWorkshopRoomsAndSpellsDoNot()
     {
         var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);

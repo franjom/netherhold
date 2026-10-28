@@ -1,0 +1,70 @@
+// Copyright (C) 2026 Franjo Misetic
+// SPDX-License-Identifier: GPL-3.0-or-later
+// See LICENSE in the project root for the full license text.
+
+namespace DK2.Simulation;
+
+/// <summary>One tick of a DK2 full-state capture, as <c>tools/oracle/capture_state.py</c> writes
+/// it: the fields <see cref="WorldResync"/> copies into our world. Positions are DK2's fixed
+/// point (4096 a tile), the same as ours; owners are player ids, 0 where the tile names no
+/// player. The JSON is read by <c>DK2.Tools</c> (<c>ResyncStateFile</c>); fields it carries beyond
+/// these (rooms, pointers) are ignored. <see cref="Flags"/> and <see cref="Timers"/> are the trigger
+/// banks (world <c>+0x3F70</c>, <c>+0x3FF0</c>; trigger-state.md), a timer the tick it started.</summary>
+public sealed record ResyncState(
+    int Tick, int Width, int Height, ResyncPlayer[] Players, int[] Tiles, int[]? TileHealth,
+    ResyncCreature[] Creatures, ResyncObject[]? Objects, uint Seed, ResyncMark[]? Marks = null,
+    ResyncDoor[]? Doors = null, ResyncTrap[]? Traps = null, int[]? Flags = null, int[]? Timers = null)
+{
+    public int Terrain(int index) => Tiles[3 * index];
+
+    public int Owner(int index) => Tiles[(3 * index) + 1];
+}
+
+/// <summary><c>money</c> is player <c>+0x7E</c>, <c>mana</c> <c>+0x82</c> (player-object.md).</summary>
+public sealed record ResyncPlayer(int Id, int Money, int Mana, ResyncManufacture? Manufacture = null);
+
+/// <summary>The manufacture list (the push <c>0x005066E0</c>): the points word <c>player+0x217</c>
+/// and the ring at <c>+0x219</c> from its head, each entry's cost, kind (0 a door, 1 a trap), type
+/// and the blueprint's point; the ring's tail <c>+0x802</c> and the cost word in slot 0, which the
+/// adder pays against (Q618). -1 is a capture written before they were read.</summary>
+public sealed record ResyncManufacture(int Points, ResyncOrder[] Orders, int Tail = -1, int SlotZeroCost = -1);
+
+public sealed record ResyncOrder(int Kind, int Type, int Cost, int X, int Y);
+
+/// <summary>A door thing: its tile, type <c>+0xF6</c>, under construction while <c>+0x109</c> is set,
+/// and health <c>+0x40</c>. A type of 0 is a capture written before the type was read.</summary>
+public sealed record ResyncDoor(int Slot, int X, int Y, int Owner, int Type = 0, bool Constructing = false, int Health = 0);
+
+/// <summary>A trap thing: its tile, type <c>+0xF6</c>, under construction while <c>+0x10C</c> bit 5
+/// is set, and health <c>+0x40</c>.</summary>
+public sealed record ResyncTrap(int Slot, int X, int Y, int Owner, int Type, bool Constructing, int Health);
+
+/// <summary>The decoder's thing and creature fields, and <see cref="Level"/> <c>+0x403</c>;
+/// <see cref="Job"/> and <see cref="Fear"/> only on a record long enough to hold them. A level of 0
+/// is a capture written before it was read.</summary>
+public sealed record ResyncCreature(
+    int Slot, int Owner, int X, int Y, int Type, int State, int Health, ResyncJob? Job, ResyncFear? Fear = null,
+    int Level = 0);
+
+/// <summary>Fear (combat-fear.md): <c>0x0045E4F0</c> hands the words over, <c>0x0045EC80</c> counts; <c>TempFear</c>
+/// <c>+0x524</c>, <c>CurrentFear</c> <c>+0x526</c>, <c>OverThreatCounter</c> <c>+0x528</c>.</summary>
+public sealed record ResyncFear(int Temp, int Current, int Counter);
+
+/// <summary>The state object at creature <c>+0x24E</c> (creature-job-object.md): the resume state
+/// <c>+0xDF</c>, the task tile <c>+0x8C</c>/<c>+0x90</c>, side <c>+0x94</c>, slot <c>+0x96</c>, the
+/// last task kind <c>+0x98</c>, <c>JustDropped</c> <c>+0x99</c>, the aimed kind <c>+0x9D</c> that
+/// state 10 retries first (functions/00463DF0.md), <c>DroppedToDoJobId</c> <c>+0x6E</c> (the dumper's
+/// name; not the aim, kept for the record), and the gold in hand (<c>+0x3FB</c>).</summary>
+public sealed record ResyncJob(
+    int Resume, int TaskX, int TaskY, int TaskId, int TaskSide, int TaskSlot, int LastKind,
+    int JustDropped, int DroppedTask, int Gold, int AimedKind = 0);
+
+/// <summary>A dig mark DK2 held at the tick: a kind-1 or kind-2 entry of the keeper's task pool,
+/// which the capture records as a region (player-task-pool.md). <see cref="Order"/> counts up
+/// from the list's tail, the head (raised last) largest, for the newest-first tie-break
+/// (<see cref="TileState.TagOrder"/>).</summary>
+public sealed record ResyncMark(int X, int Y, int Player, int Order);
+
+/// <summary>An object thing: its type id, owner, point, flags <c>+0x146</c> and the dword at
+/// <c>+0x14A</c>: gold's amount, a crate's kind.</summary>
+public sealed record ResyncObject(int Slot, int Type, int Owner, int X, int Y, int Gold, int Flags);

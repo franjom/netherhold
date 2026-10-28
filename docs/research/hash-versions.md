@@ -14,9 +14,50 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**323** - `0x32086DAF699C9E45`. FormatVersion also 323. Behaviour only: waiting heroes start action 43 and preserve its hold across a failed standing job (ADR-0566). The existing ActionUntilTick carries it; no fields added. Clip timing retains the existing fresh-install surrogate boundary. HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline covers the missing hold; the pin fixture moves by the version only.
+
+**322** — `0x7A521062FC7B6D7A`. FormatVersion also 322. Behaviour only: every steal handler measures the holder from its position (`+0x1A/+0x1E`), at work or walking (`0x00469AF0` both arms, `0x0046AB50`, `0x0046AEA0`; ADR-0565); ours had used the stance point for a holder in its entry or work state. No new fields; the pin fixture moves by the version only. The Level 4 seed-1 3700 resync and Level 1 seeds 1-2 are byte-identical to hash 320. `TaskStealingTests.AHolderAtWorkIsMeasuredFromWhereItStands` and `AMinerAtWorkIsMeasuredFromWhereItStands` cover it.
+
+**321** — `0x2B73025DDCF2DBEF`. FormatVersion also 321. Format only: the snapshot tags its random generator and carries `Dk2Lcg`'s seed as well as xoshiro's state (ADR-0564). No hashed field changes; the pin fixture moves by the version only. `SnapshotTests.RoundTrip_CarriesTheDk2Generator` and `Read_RefusesAGeneratorTagItDoesNotKnow` cover it.
+
+**320** — `0xE8F0B969D072207C`. FormatVersion also 320. Behaviour only: state 26 asks its hands/store check and its pile check on the call that begins its next action, where the work clock begins one (`0x00465870`, `0x00496AA0`; ADR-0563); after the first strike that is the clip's wrap, 3 or 4 ticks later. No new fields; the pin fixture moves by the version only. `GoldCarryingTests.AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesActionEnds` and `AMinerWhoseOverflowTakesItsPileOverTheLimit_OnALaterStrike_GivesTheSlotUpOnThatStrikesTick` cover it.
+
+**319** — `0x1070AB7A291DA881`. FormatVersion also 319. Behaviour only: state 26 asks the hands test and the store chooser on its first update, before the strike timer, so a miner that reaches its seam full leaves on its first tick in 26 (`0x00465870`, ADR-0562). No new fields; the pin fixture moves by the version only. `GoldCarryingTests.AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix` and `AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick` cover it.
+
+**318** — `0x13D94E8C07770596`. FormatVersion also 318. Behaviour only: the fear accumulator returns for a stunned creature (209, 255, 256, 257; `0x0048F350`) before its handover, so an attacked creature's `TempFear` piles up through a stun and it radiates nothing (ADR-0559). No new fields; the pin fixture stuns no creature and moves by the version only. `CombatFearTests.AStunnedCreatureNeitherHandsOverNorRadiates_ItsIntakePilesUp` covers it.
+
+**317** — `0x8718652BBA69C08B`. FormatVersion also 317. `PlayerState.ManufactureRingTail` (the ring's tail `+0x802`) and `ManufactureSlotZeroCost` (the cost word at ring slot 0): the adder pays at slot 0's cost, not the head's (`0x00506B50`, Q618, ADR-0557); the panel's percent divides by it. Enqueues go through `ManufactureRules.Enqueue`. The pin fixture makes no crate. `CrateTests.TheNextCrateIsPaidAtSlotZerosCostNotTheHeadsOwn_Q618`, `SnapshotTests.TheManufactureRingsTailAndSlotZeroCostChangeTheHashAndSurviveRestore` and `BottomPanelIndicatorsTests` cover it.
+
+**316** — `0x962BD3492ED4F056`. FormatVersion also 316. The combat states' handlers run as a step after the needs routine, so a creature the scan engages runs its fight state in that update (ADR-0555); the scan no longer posts the battle notice; never-used melee and spell stamps are `CreatureState.NeverUsed` (−1), which also moves the pin fixture's creatures' hashed stamps. `CombatAttackerScanTests`, `CombatNonFighterTests`, `CombatFearTests` and `CombatTests` cover it.
+
+**315** — `0x6D517264B5EC57B9`. FormatVersion also 315. Behaviour only: one creature's whole update before the next one's, newest first (`CreatureUpdateSystem`, ADR-0554): the fight, the needs routine, the anger ladder and angry chooser, the state handlers, the mover, then a worker's handler; an imp sent walking during its update steps from the next; payday's clock runs before the creatures and sets a credited creature off whatever its retry stamp; the manufacture loss moves into the player frame. No new fields; the pin fixture's run is unchanged and the pin moves by the version only. `CreatureUpdateSystemTests`, `PaydayTests.TheClockSetsACreditedCreatureOffAtOnce_WhateverTheNeedsRoutinesRetryStamp` and `ImpWalkEndTests` cover it.
+
+**314** — `0xABEF4268245B9904`. FormatVersion also 314. Behaviour only: a Bile Demon's idle shot takes its first update the turn it is made, as a list-0 shot does in `0x004B7830` (ADR-0551). No new fields; the pin fixture has no Bile Demon. `RefusedStateTests` covers it.
+
+**313** — `0xC84A9341D87683EF`. FormatVersion also 313. The F5 branch (311, 312: ADR-0548, ADR-0549) merged with 310: the composition of both, with the branch's own `GameMode` byte dropped for 310's enum. `VerdictRules.End` now takes the database so each ended player's statistics are sampled. No other change.
+
+**312** — `0xECE45FDBEDAA605E`. FormatVersion also 312. `PlayerState.Finale` (the win sequence's player fields: `+0x76` bits `0x40`, `0x800`, `0x40000`, `0x80000`, `0x400000`, the landing point `+0xB29..+0xB31`, the gem tile and id `+0xB35..+0xB3D`, FireworksTime `+0x111D`, the camera glide hold and state 233's pickup tick and flags), `WorldState.LocalPlayerId` (world `+0x264`) and `CreatureState.ReaperHidden` (`+0xF3` bit 0) (ADR-0549, `campaign-win-sequence.md`). The pin fixture ends no game; `FinaleTests` cover sensitivity and snapshot restore.
+
+**311** — `0x5D42400187C9E3C2`. FormatVersion also 311 (branch only). `PlayerState.Statistics`: the level-statistics counters DK2 keeps at `player+0x142`..`+0x185` that were not already fields, the level-end sample of `0x004BE630` and the counters frozen at the verdict (ADR-0548, `level-statistics.md`). `WorldState.GameMode` (DK2's `0x0075AD4B`, a byte here; master's enum replaced it in 313) and `WorldState.Carry`, the profile writes specials 129 and 140 make during play (`CampaignCarry`); special 140 stores an own creature and kills it bodyless (`0x004A3FC0`). The pin fixture ends no game and activates no special; `LevelStatisticsTests` and `SpecialSystemTests` cover sensitivity, snapshot restore, the end sample, both arms and the transfer arrival.
+**310** — `0x07AD9F97E72E7FD3`. FormatVersion also 310. New fields: `WorldState.GameMode` and `ActivePlayerOrder` are hashed and saved, and `PlayerState.AlliedWith` (already hashed) is now saved (ADR-0546, ADR-0547). Behaviour: the level's id-66 alliances apply at load, imps refuse an ally's floor, verdicts carry to allies in skirmish and multiplayer, the heart tail walks the active list, the last-keeper award is skipped in the campaign, and the time limit counts down before the trigger walk. The pin fixture has no alliance records and no fallen heart; `LevelAllianceTests`, `VerdictRulesTests` and `DungeonHeartTests` cover the rest.
+
+**309** — `0x0528E18272904DCD`. FormatVersion also 309. Behavior only: a withdrawal's step 5 spends the away-from-target stage's draws when a live creature or trap is staged, and each caller stages what DK2 leaves in `+0x502` — the NonFighter arm its candidate hero, `SelectAVictim` nothing; the local tries no longer require a walkable tile (ADR-0545). No new fields; the pin fixture has no withdrawal.
+
+**308** — `0xC26E46D419A4702E`. FormatVersion also 308. Behavior only: a withdrawal's failed room pick (no rooms, or a drawn bridge) ends it with no further draw, and the pick is `0x004C63D0`'s list index (ADR-0544). No new fields; the pin fixture has no withdrawal. `CombatFearTests`' roomless and bridge tests fail on 307; its three-unroutable-room test pins that step 5 is still reached.
+
+**307** — `0xC5540B4DA9053FF3`. FormatVersion also 307. Behaviour only: a creature with a bed goes to it only when tired; a wound alone no longer sends it, because the wound branch's Sleep job routes only on the latch `+0x58` (ADR-0543). No new fields. `CreatureNeedsTests.AWoundedGoblinWithABedWaitsUntilItIsTired` covers it.
+
+**306** — `0xD4E1B134A3DB5F84`. FormatVersion also 306. Behavior only: hero updates and both party-link scans run newest first (ADR-0542). No new fields; the pin fixture has no active hero pass. Initial party destinations, follower numbering and removal have separate regressions.
+
+**305** — `0xD5067604AB8DBDF9`. FormatVersion305 retains per-tile player-room-list insertion positions and the next world insertion counter (ADR-0541). Construction, capture, absorption and split replay maintain order; the combat room cache uses it. Focused tests check hash sensitivity, snapshot restoration and subsequent insertion.
+
+**304** — `0x050D6062F2D6C047`. FormatVersion also 304. Global Secret Door concealment, per-keeper entry order and retained holders, and the creature's selected Secret Door marker enter state (ADR-0536). The pin fixture has no doors; focused hash sensitivity and snapshot checks cover the additions.
+
+**303** — `0x391985F81BB2BA42`. FormatVersion also 303. Owner-directed withdrawal of the portal-crystal correction (ADR-0527): remove derived footprints, swept movement guards, target projection and predictive contacts; restore pre-correction steering. Portal rendering, hole navigation and Heart protection remain. No new snapshot fields. Packet outcomes are [remeasured against hash 302](../experiments/2026-10-25-packet-replay-hash303/README.md).
+
 **302** — `0x2A9B65A5C2262075`. FormatVersion also 302. Scripted speech retains type 21 when SpeakOnly is zero; first Portal types retain 13/14 and request the level override line. `PlayerState.IntroducedCreatureTypes` and `CreatureState.StatusFlowerUntilTurn` are hashed/saved (ADR-0535). The fixture has no introductions but hashes the new empty lists and zero deadlines; sensitivity and restore tests cover nonzero state.
 
-**301** — `0x6DC0EE1B1BAD1B68`. FormatVersion301: retain runtime store-pile headings (furniture-placement.md §7). All Hand gold drops use the landing merge with optional fixed-point input, hashed with the command (gold-on-the-floor.md; keeper-spell-create-gold.md §3). Earlier replay/win measurements have not been rerun.
+**301** — `0x6DC0EE1B1BAD1B68`. FormatVersion301: retain runtime store-pile headings (furniture-placement.md §7). All Hand gold drops use the landing merge with optional fixed-point input, hashed with the command (gold-on-the-floor.md; keeper-spell-create-gold.md §3). Current packet measurements: [hash-302 experiment](../experiments/2026-10-24-packet-replay-hash302/README.md).
 
 **300** — `0x2F1568CD9D248B1B`. FormatVersion stays 297. Behaviour only: each portal crystal blocks the convex hull of its `Portal_Gem` primitive below body height instead of that primitive's full bounding box, padded by the mover's radius with bevelled corners (ADR-0527 amendment 2). No new fields.
 
@@ -354,47 +395,4 @@ invulnerable, frozen, invisible, speed ticks and percent, poison ticks, amount a
 owner, the stun clock) entered the hash and the snapshot; every blow and shot passes
 the health routine's multipliers (ADR-0168).
 
-**72** — `0xE13D73F01C848BC5` (current). Every creature's three spell stamps, its
-spell slot, the kind and slot of its current action and its last position; the shots in
-flight with their own id counter (ADR-0167). Composition only in the pinned fixture.
-
-**71** — `0xF7F8F30AF29050DF`. The alarm a Scout carries — the threat's
-position, the deficit, the room — and the ticks stood reporting danger entered
-(ADR-0166). Composition only in the pinned fixture.
-
-**70** — `0x05719C220035BA50`. `TempFear`, `CurrentFear`,
-`OverThreatCounter`, `BackOffTimer`, the run flag and the combat state's entry
-tick entered (ADR-0165). Composition only in the pinned fixture.
-
-**69** — `0xA02044E4AE17A79B`. The target's kind, the heart it names,
-`TimeLastUsedMelee`, and the swing in progress with its start tick and its own
-target entered (ADR-0164). Composition only in the pinned fixture.
-
-**68** — `0xD8CDBD3CD4546586`. A creature's fight target, attack type,
-`AttackRangeSquared`, `FightProcessCounter`, last fight-scan tile and its two
-eight-slot engagement arrays entered (ADR-0163). Composition only in the pinned
-fixture: no Blocker stands near an enemy there.
-
-**67** — `0x8E6F0889810E2C53`. A player's `Status` and its tick, and
-the dungeon heart's health, last attacker, death tick and ruin entered
-(ADR-0162). Composition only in the pinned fixture: its players are not
-keepers, so every new field is zero.
-
-**66** — `0x8FE50E548AC844F2`. Each keeper's room, creature, door,
-trap and spell availability rows entered, copied from the level and made mutable
-so trigger action 6 can write them (ADR-0161). Composition and initial values
-only: the pinned fixture fires no action 6.
-
-**65** — `0x15441322D8A9D319`. The world byte holding the
-trigger-controlled anger and notification gates entered (ADR-0160). Both stay
-at their initial enabled values in the pinned fixture, so this is composition only.
-
-**64** — `0x8FAF223321EE1523`. A keeper's alliance bits and a door's
-lock-pick timer entered (ADR-0159: the rest of the door model). The pinned world
-has no doors and makes no alliance, so this is composition only.
-
-**63** — `0xE53ED0F1EDDD2036`. A creature's route option word and a door's lock
-mode and open state entered (ADR-0158: doors in the navigation byte). The pinned
-world has no doors and requests no route, so this is composition only.
-
-[Versions 9–62](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–72](hash-versions-early.md) retain the earlier pins and their reasons.

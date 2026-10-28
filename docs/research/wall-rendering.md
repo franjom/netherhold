@@ -160,7 +160,8 @@ extraction) / **CONFIRMED** (runtime vertex deformation, read from the binary
 floor edges).
 
 Implementation: the general room wall chooser is built (`RoomWalls`, `WorldView`, the
-`wall4`..`wall8` room assets; ADR-0392). The full read, room walls and the floor and
+`wall4`..`wall8` room assets; ADR-0392), and so is the deformation (`TerrainLattice`,
+`8204b82e`). The full read, room walls and the floor and
 plain-terrain pieces, is in `wall-pieces.md` and `floor-and-terrain-pieces.md`.
 
 Tests: none — no claim here is testable against the simulation, which is the

@@ -100,12 +100,20 @@ public static class HeroJobRules
         return took;
     }
 
-    /// <summary>State 176: until the deadline it stands (action 43); then it walks to one of the
+    /// <summary>State 176 holds action 43; without one it plays it before the deadline or walks to one of the
     /// nine points of its own tile and waits 50 to 84 turns more.</summary>
     public static bool Wait(SimulationContext context, CreatureState creature)
     {
         long now = context.Tick.Value;
-        if (now <= creature.StateDeadlineTick) return true;
+        if (now < creature.ActionUntilTick) return true;
+        if (now <= creature.StateDeadlineTick)
+        {
+            // State 176's action 43 survives a failed standing job and holds state 4 (0x00486CF0).
+            CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+            const int idleArtSlot = 20;
+            creature.ActionUntilTick = now + AnimationTimingRules.CountedHoldTicks(definition, idleArtSlot, 1);
+            return true;
+        }
         (int ox, int oy) = SubTile[context.Rng.NextInt(SubTile.Length)];
         creature.StateDeadlineTick = now + 50 + context.Rng.NextInt(35);
         int x = (creature.PosX & ~0xFFF) | ox;

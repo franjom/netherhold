@@ -202,7 +202,7 @@ internal static class StatusCommand
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
-        foreach (string a in new[] { "test", "DK2.slnx", "-c", "Release", "--no-build", "--list-tests" })
+        foreach (string a in new[] { "test", "DK2.slnx", "-c", "Release", "--no-build", "--list-tests", "-m:1" })
             psi.ArgumentList.Add(a);
 
         string output;

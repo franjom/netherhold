@@ -124,6 +124,7 @@ public sealed class TortureSystem : ISimulationSystem
 
         byte from = creature.OwnerPlayerId;
         context.World.ChangeCreatureOwner(context.Database, creature, keeper);
+        context.World.Player(keeper).Statistics.CreaturesConverted++; // 0x004F28FC
         RescuePriorityRules.Set(creature, keeper, false);
         context.Emit(SystemName, "converted",
             $"creature={creature.Id} type={definition.Name} from={from} to={keeper} " +

@@ -8,6 +8,7 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace DK2.Unity.Editor
 {
@@ -24,14 +25,18 @@ namespace DK2.Unity.Editor
             DungeonRunner runner = UnityEngine.Object.FindAnyObjectByType<DungeonRunner>();
             if (runner == null) throw new InvalidOperationException("Production scene has no DungeonRunner.");
             var serialized = new SerializedObject(runner);
-            serialized.FindProperty("levelName").stringValue = "Level8";
+            bool arrival = Environment.GetEnvironmentVariable("DK2_PORTAL_INTRO_PROFILE") == "1";
+            serialized.FindProperty("levelName").stringValue = arrival ? "Level2" : "Level8";
             serialized.FindProperty("installDirectory").stringValue = Environment.GetEnvironmentVariable("DK2_DIR");
-            foreach (string name in new[] { "speed", "cameraPanSpeed", "cameraRotationSpeed" })
+            foreach (string name in new[] { "speed", "cameraPanSpeed" })
                 serialized.FindProperty(name).floatValue = 0;
             foreach (string name in new[] { "classicVertexLighting", "classicMeshes" }) serialized.FindProperty(name).boolValue = true;
             foreach (string name in new[] { "nativeInitialAmbient", "cheapLighting", "tickOnWorkerThread", "showDiagnostics", "fogOfWar", "frameWholeMap" })
                 serialized.FindProperty(name).boolValue = false;
             bool motion = Environment.GetEnvironmentVariable("DK2_LEVEL8_MOTION_PROBE") == "1";
+            if (arrival)
+                foreach (string name in new[] { "nativeInitialAmbient", "tickOnWorkerThread", "showDiagnostics", "fogOfWar" })
+                    serialized.FindProperty(name).boolValue = true;
             if (motion)
             {
                 serialized.FindProperty("speed").floatValue = 1;
@@ -40,19 +45,27 @@ namespace DK2.Unity.Editor
             serialized.FindProperty("seed").intValue = 1;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             var probe = new GameObject("Windowed frame performance probe");
-            if (motion) probe.AddComponent<Level8MotionProbe>();
+            if (arrival) probe.AddComponent<PortalIntroductionProfile>();
+            else if (motion) probe.AddComponent<Level8MotionProbe>();
             else if (Environment.GetEnvironmentVariable("DK2_WINDOW_ROTATION_PROBE") == "1") probe.AddComponent<ClassicRotationProbe>();
             else probe.AddComponent<ClassicWindowFrameProbe>();
             EditorSceneManager.SaveScene(scene, "Assets/ClassicWindowFrameProbe.unity");
-            PlayerSettings.enableFrameTimingStats = true;
+            PlayerSettings.enableFrameTimingStats = Environment.GetEnvironmentVariable("DK2_PROBE_CAPTURE_MODE") == "diagnostic-gpu";
             PlayerSettings.runInBackground = true;
             PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
-            PlayerSettings.defaultScreenWidth = 1280; PlayerSettings.defaultScreenHeight = 720;
+            PlayerSettings.defaultScreenWidth = arrival ? 1920 : 1280; PlayerSettings.defaultScreenHeight = arrival ? 1080 : 720;
             PlayerSettings.resizableWindow = false;
+            if (Environment.GetEnvironmentVariable("DK2_PROBE_COMPARE_APIS") == "1")
+            {
+                PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64, false);
+                PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64,
+                    new[] { GraphicsDeviceType.Vulkan, GraphicsDeviceType.Direct3D12, GraphicsDeviceType.Direct3D11 });
+            }
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = new[] { "Assets/ClassicWindowFrameProbe.unity" }, locationPathName = args[at + 1],
-                target = BuildTarget.StandaloneWindows64, options = BuildOptions.Development,
+                target = BuildTarget.StandaloneWindows64,
+                options = Environment.GetEnvironmentVariable("DK2_PROBE_RELEASE") == "1" ? BuildOptions.None : BuildOptions.Development,
             });
             if (report.summary.result != BuildResult.Succeeded) throw new InvalidOperationException(report.summary.result.ToString());
         }

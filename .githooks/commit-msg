@@ -1,5 +1,5 @@
 #!/bin/sh
-# Local gate for AGENTS.md's recording rules. There is no CI, so this is the
+# Local gate for AGENTS.md's recording rules. CI (.github/workflows/ci.yml) runs only after a push, so this is the
 # only thing standing between a session and a 6,000-line handoff.
 #
 # Install once, per clone:
@@ -12,6 +12,16 @@
 # disable, and disabling it would take the budget check with it.
 
 TOOL="src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll"
+
+# --- Blocking: AI assistance is credited as Assisted-by, never as a co-author ---
+#
+# GitHub turns a Co-Authored-By trailer into a contributor entry. Runs before the
+# tool check so an unbuilt tree cannot let one through.
+if grep -qiE '^Co-Authored-By:.*(claude|anthropic|codex|openai|copilot)' "$1"; then
+    echo "commit-msg: AI co-author trailer found. Use 'Assisted-by: Claude <noreply@anthropic.com>'" >&2
+    echo "            (AGENTS.md), never Co-Authored-By." >&2
+    exit 1
+fi
 
 if [ ! -f "$TOOL" ]; then
     echo "commit-msg: DK2.Tools is not built, skipping the checks." >&2

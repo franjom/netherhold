@@ -667,7 +667,7 @@ and leaves `CurrentGoldArea` at 0 (§5.10).
 
 ### 5.6 Traps and doors (`0x5000A0`, `0x4FFD80`)
 
-Needs a Workshop (10) and `random(100) < TrapAndDoorUsage`. The bounding box of all
+Built as `KeeperTrapDoorStep` (ADR-0561). Needs a Workshop (10) and `random(100) < TrapAndDoorUsage`. The bounding box of all
 own rooms' stored positions is grown by `random(10) − 2` tiles and clamped to the
 map. The west pass tests only its first tile; the other three edges are walked
 fully (`research/computer-keeper-management.md` §9). A **valid site**
@@ -677,7 +677,7 @@ neighbours through world vtable slot `+0x208` (the navigation solid bit;
 and opposite sides solid, a corridor tile. The spacing helper (`0x4FFC40`) rejects a site with an own trap or
 door at squared distance strictly below nine. Placement: `random(4) <
 TrapVsDoorPreference` → a **door**: iterate door types available (skipping a flagged
-kind); `DoorPreference` 0 = continue scanning unless `random(100) == 0`, 1 = stop
+kind); `DoorPreference` 0 or 3 = continue scanning unless `random(100) == 0`, 1 = stop
 at the first, 2 = stop when `random(100) ≤ 50` (the inclusive comparison matters).
 Otherwise a **trap**: type 2 is the boulder — with
 `BoulderTrapsOnLongCorridors` only where a straight run of 4 valid tiles exists in
@@ -886,6 +886,8 @@ The third cast path (`0x004BC290`) is action 56's alone; the keeper never issues
    does. It never carries a creature *into* the library.)
 10. Have you ever seen an AI keeper drop a creature into its Torture Chamber to work
     there, as opposed to dropping a prisoner in? (Predicted: never.)
+11. On Level 18, do the three computer keepers ever fight each other? (The level allies
+    them with each other, so we never let them; `research/alliances.md`, Q576.)
 
 ---
 
@@ -1055,7 +1057,7 @@ the simulation's stream. The delay and separate stream are deliberate deviations
 | `KeeperBattleStep`, `KeeperRetreatStep` | §5.7's battle step with its spells, and §5.8's retreat of the wounded | **exist** (ADR-0283, ADR-0284) |
 | `KeeperTrainingStep` | step 9's training moves | **exists** (ADR-0317) |
 | `KeeperRouteCache` | the routing mesh a keeper rebuilds only when the navigation bytes change | **exists** |
-| `TrapPlacer` | §5.6 | **does not exist** |
+| `KeeperTrapDoorStep` | step 10's traps and doors (§5.6) | **exists** (ADR-0561) |
 | `IWorldView` | a general agent observation interface | **not added**: `KeeperView` supplies the current keeper boundary; extend it with verified observations as §12.4 grows |
 
 The housekeeping steps of §5.1 (imps, slap, gold untag, the task machine) are private
@@ -1072,7 +1074,7 @@ methods on `KeeperAI` rather than a separate type.
 | place room tile by tile | one `BuildRoomCommand` per tile | The command lacks DK2's payment-bypass mode when gold falls below one tile's price (handler research section 6). |
 | spell 4 Create Imp | `CreateImpCommand` | none |
 | spells 3 Call to Arms (+63 remove), the battle spells, Heal, Chicken, Inferno | `CastSpellAtPlaceCommand`, `CastSpellOnCreatureCommand`, `RemoveCallToArmsCommand` (ADR-0279, 0283, 0287, 0302) | none: the keeper casts 13 Create Gold and 1 Sight of Evil, whose simulation cast has an empty effect (ADR-0352, §5.10) |
-| place trap / door | `PlaceTrapCommand`, `PlaceDoorCommand` | placement exists (ADR-0231); AI site choice remains |
+| place trap / door | `PlaceTrapCommand`, `PlaceDoorCommand` | none: `KeeperTrapDoorStep` chooses the site and the blueprint (ADR-0231, ADR-0561) |
 | pay a creature by minting gold on it | `MintWageCommand`, then `DropCommand` naming the creature | none: `GoldStore.Spend` is the withdrawal (ADR-0353) |
 | claim a neutral room | digging a path to it, then `ConvertRoom` work | none (ADR-0044) |
 
@@ -1174,7 +1176,7 @@ Remaining M12 plan:
    Acceptance: an attack on its dungeon causes an unaided defensive response; the
    withdrawal to the heart does, and a reinforcement only debits threat, as DK2's does.
 3. **Dungeon management.** Add prisoners, specials and research decisions; the training moves
-   (ADR-0317), the room needs (ADR-0327, ADR-0335) and every message the walk reads, with make
+   (ADR-0317), the traps and doors (ADR-0561), the room needs (ADR-0327, ADR-0335) and every message the walk reads, with make
    happy and dispose (ADR-0353), are built. Acceptance: a verified need changes its orders. Reuse §12.3–12.4's
    existing commands and state.
 4. **Deliberate attacks.** Readiness with its level grants, enemy selection, the attack
@@ -1182,7 +1184,7 @@ Remaining M12 plan:
    bridges (ADR-0304): Nemesis on Level 18 grants levels, chooses Fabian and creeps the call
    toward her; Drako on Level 11A chooses Morgana, spans the lava with Stone Bridge, tunnels on
    and calls its army to her heart. The original comparison matches in outline (Q497;
-   timing is Q563). Left: the research move and the trap/door decisions.
+   timing is Q563). Left: the research move.
    Acceptance: the keeper prepares and launches an attack without scripted orders.
 5. **Personalities and comparison.** All nine profiles load (ADR-0410). Left: test
    deterministic command streams per profile and compare an active original keeper on the same stock map with availability
@@ -1197,8 +1199,8 @@ gold untag, imp creation, slapping, and the task machine for tasks 0–7, whose 
 Create Gold (ADR-0352). The other files
 are §12.2's table.
 
-`KeeperAI.Think` also runs step 7's attack management and step 9's training moves
-(`KeeperTrainingStep`, ADR-0317).
+`KeeperAI.Think` also runs step 7's attack management, step 9's training moves
+(`KeeperTrainingStep`, ADR-0317) and step 10's traps and doors (`KeeperTrapDoorStep`, ADR-0561).
 `tests/DK2.AI.Tests` runs `KeeperAITests` against a synthetic 30×30 rock world
 (`KeeperWorld`): the creation-time directions for all four heart positions, the site
 finder's placement and its gap gate, the walker in a straight line and round an
@@ -1211,7 +1213,7 @@ identical seeds.
 The observation (`KeeperViewSnapshot`, versioned by its `FormatVersion`; the ADR that
 added each field is in the commit history) holds, beyond the §12.2 row: pickup permissions,
 casualty-priority masks, fixed-point creature positions, hand and carrier state, alliances,
-reverse player activation order, research upgrades, placed-trap threat and navigation bytes
+reverse player activation order, research upgrades, placed-trap threat, placed doors and navigation bytes
 (`research/computer-keeper-threat.md` sections 1 and 2), each creature's state, fight gate,
 health basis, experience, anger buckets and activity code, per-spell last cast and mana, the
 battle, heal, Chicken, Inferno and Sight permissions the steps predict with, every player's
@@ -1239,6 +1241,8 @@ Deviations and approximations, each a candidate ADR:
   other readers still take the bounding-box middle where the binary's field is unread, and
   room-list tie order remains approximate. See handler section 3.
 - The slap's speed timer (§12.5).
+- Step 10's blueprints land a tick later than DK2's, and its site test reads the keeper's dig tag
+  on the neighbour in place of task kinds 1 and 2, as task 7 does (ADR-0561).
 
 The response queue is dispatched by `Think` through `KeeperThreatResponder` (ADR-0278).
 The casualty-priority command and imp reader are built (ADR-0261). Pickup permission
@@ -1247,5 +1251,4 @@ flags (ADR-0263). Ownership order and worker idle flags are persisted (ADRs 0273
 the mana-pressure lifecycle is live: warnings, selection, the stamp's pickup refusal, recovery
 and expiry (ADR-0277); remaining gaps: `research/creature-pickup.md`.
 
-Not built: `TrapPlacer`'s site choice (built and parked, `computer-keeper-observations.md`), the door decisions, the
-prisoner step and the researcher's portal move.
+Not built: the prisoner step and the researcher's portal move.

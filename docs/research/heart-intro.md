@@ -31,7 +31,7 @@ Then, with `now` the game turn and `start` the stamp:
 | elapsed ≥ 7 × tps | every object of type 86 (Arches) and 88 (Big Steps) in the room's list gets alpha `+0x8F = min(255, (elapsed − 7 × tps) × 32)` and its tile is redrawn (`0x004522A0`); at exactly 9 × tps alpha 255 and `+0x9F` bit 0 cleared (`0x004D9CA0`) |
 | elapsed 0, owner is the local player (`+0x264`) | request effect **225** (Start Level Effect) at the Heart's centre, z `0x1000`; sound `0xF1` through the owner's `+0x44E` (`0x004D9D2E`) |
 | elapsed 7 × tps, local player | request effect **314** (Heart Arches fade in effect), same place (`0x004D9E3B`) |
-| elapsed 9 × tps | the owner's `+0xA2` takes the turn; sound manager `+0x50(0xFF)` (`0x004D9EDA`) |
+| elapsed 9 × tps | the owner's `+0xA2` takes the turn; sound manager `+0x50(0xFF)` (`0x004D9EE0`): the music level set to silent (`music.md`) |
 
 `tps` is variable 19, 4. The builder `0x004DB700` creates the local player's 86 and
 88 with alpha 0 and `+0x9F` bit 0 set, so they are invisible until the ramp; another

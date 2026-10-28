@@ -15,6 +15,8 @@ public sealed class SpecialSystem : ISimulationSystem
 {
     private const byte IncreaseLevel = 117;
     private const byte ReceiveImps = 124;
+    private const byte LocateHiddenLand = 129;
+    private const byte TransferCreature = 140;
     public string Name => "Special";
 
     public void Execute(SimulationContext context)
@@ -34,6 +36,15 @@ public sealed class SpecialSystem : ISimulationSystem
                 case ReceiveImps:
                     affected = GiveImps(context, command.PlayerId);
                     break;
+                case LocateHiddenLand:
+                    // 0x004A4F70: the profile write is the host's (CampaignCarry); its effect 0xC6,
+                    // message 49 and sound are not modelled.
+                    context.World.Carry.HiddenLandFound++;
+                    affected = 0;
+                    break;
+                case TransferCreature:
+                    affected = StoreTransferCreature(context, command) ? 1 : 0;
+                    break;
                 default:
                     context.Emit(Name, "special_unimplemented",
                         $"player={command.PlayerId} object={item.Id} type={item.ObjectTypeId}");
@@ -41,9 +52,28 @@ public sealed class SpecialSystem : ISimulationSystem
             }
 
             context.World.RemoveObject(item.Id);
+            context.World.Player(command.PlayerId).Statistics.SpecialsFound++; // 0x004A3FE6
             context.Emit(Name, "special_activated",
                 $"player={command.PlayerId} object={item.Id} type={item.ObjectTypeId} creatures={affected}");
         }
+    }
+
+    /// <summary>Arm 0x8C of <c>0x004A3FC0</c>: in the campaign, a target the activator owns has its
+    /// type and level stored and dies leaving no body (bit 0x20 cleared, health zeroed through the
+    /// thing's slot +0x20, <c>0x004B2AD0</c>), so the death is booked as any other. A refusal still
+    /// uses the box up (<c>0x00513760</c>).</summary>
+    private static bool StoreTransferCreature(SimulationContext context, ActivateSpecialCommand command)
+    {
+        WorldState world = context.World;
+        CreatureState? target = world.CreatureById(command.TargetId);
+        if (world.GameMode != GameMode.Campaign || target is null
+            || target.OwnerPlayerId != command.PlayerId.Value) return false;
+        world.Carry.TransferStored = true;
+        world.Carry.TransferCreatureTypeId = target.CreatureTypeId;
+        world.Carry.TransferCreatureLevel = (byte)target.Level;
+        target.CorpseSuppressed = true;
+        target.Health = 0;
+        return true;
     }
 
     private static int RaiseLevels(SimulationContext context, PlayerId playerId)

@@ -133,13 +133,10 @@ After an edit, DK2's procedure, now ours too:
 - it reuses slots;
 - it coarsens only the rectangle.
 
-That the resulting triangles differ from a fresh build of the same bytes is
-STRONGLY INFERRED. A whole-map build keeps every rectangle corner, and the
-partial path removes some; but no mesh has been dumped after a dig. That
-routes differ is a HYPOTHESIS, since the search and funnel might still choose
-the same path. Our comment there, which said whole-map comparison "gives the
-same mesh", stated as fact what nothing showed. A DK2 mesh dump after one dig
-settles both. Building the partial path faithfully needed, and has (ADR-0461):
+The same navigation bytes can yield different triangles and routes after an
+edit history versus a fresh build: **CONFIRMED by the native controlled rebuild
+in §6**. That result does not prove a campaign loss or a defect in our fresh
+builder. Building the partial path faithfully needed, and has (ADR-0461):
 
 - point and triangle free lists;
 - vertex removal (`0x004CAF40`, `0x004CB8C0`, `0x004CB170`);
@@ -227,3 +224,112 @@ after other route queries than ours can still start from another fan triangle.
 The replay found no interval that needed another start once the builder was
 transcribed, so on this capture the effect did not show; a capture with
 `--navlog` would let the route locates be replayed as well.
+
+## 6. Level 1 same-input navigation controls (2026-10-25)
+
+**CONFIRMED, bounded computation.** The three live choices in
+[Imp selection evidence](imp-selection-evidence.md) match hash303 jobs/RNG, but
+two reconstructed routes differ. The execution-327 choice now separates current
+bytes, retained mesh history and fresh building. Modern target remains
+`e9663974`, hash303; no simulation code changes or campaign sweep were made.
+
+Evidence root N: `D:/DK2Evidence/level1-navigation-audit-2026-10-25/`.
+Inputs are the earlier study's pair02 native before-image, captured navigation,
+native mesh and pair03 mesh. New diagnostics reference the archived hash303 DLLs.
+All output files are new; the earlier 141-file evidence seal is unchanged.
+
+| Pair02 control | Route matches the live native return? |
+|---|---|
+| Default reconstructed bytes and fresh modern mesh | No |
+| Retained native mesh only, default reconstructed bytes | Yes |
+| Captured bytes only, fresh modern mesh | No |
+| Retained native mesh and captured bytes | Yes |
+
+Only one reconstructed byte differs: `(14,28)` is 0 instead of the captured 3,
+the omitted Heart-builder stamp. Supplying it changes the route, but does not
+recover the live route by itself. This omission belongs to fixture reconstruction;
+it does not establish that the real modern campaign omitted its builder stamp.
+
+**Native fresh-build control.** `native_cold_mesh.py` calls the actual
+`004CE770(0,0,30,38)` in the stopped execution-327 image, then the original
+chooser on the resulting mesh. Searches, predicates, router and RNG are not
+stubbed. Only the known presentation cache is cleared in emulator memory;
+debug logging is already off. Each call has a ten-million-instruction bound.
+
+The retained mesh has 242 live triangles. The native fresh build has 210 and
+matches our fresh build from those captured bytes in every live slot: vertices,
+neighbours, navigation byte and constraint flags, after the established winding
+translation. Its subsequent route exactly matches our captured-byte fresh-build
+route, rather than the live retained-mesh route. Both still claim `(14,32)`;
+the rebuild consumes no RNG and the chooser ends at seed 335193053 after one draw.
+The route discrepancy therefore does not establish a fresh-builder or router
+defect: native fresh building itself changes this route.
+
+**Edit-order control.** Pair02 to pair03 changes only two navigation bytes:
+`(15,32)` and `(12,19)`, both 8→0. The separate, previously sealed Level 1
+full-state playback observes their floor transitions at headers 347 and 350.
+Using that order with actual `004D1930` calls on the pair02 native image
+reproduces the pair03 captured mesh in all 246 live slots. Reversing the order
+to tile order yields 246 live triangles but matches only 234 captured slots.
+Our actual `NavMesh.Retriangulate`, given the same starting mesh and each order,
+matches its corresponding native result in all 246 slots in both cases.
+
+This confirms order dependence and these two partial-edit transcriptions.
+The later actual-history study below establishes batching in another pair;
+it does not establish batching of these two native edits or a campaign-loss cause.
+
+Commands (expand N to the evidence root): build `NavigationProbe/ModernProbe.csproj`
+and `MeshEditProbe/MeshEditProbe.csproj` with `dotnet build ... -c Release --nologo -m:2`.
+The first extends the preserved standalone chooser probe with exclusive mesh/byte
+snapshots; its `AUDIT_NAV_PREFIX` selects the new snapshot prefix. The second
+runs as `dotnet N/MeshEditProbe/bin/Release/net10.0/MeshEditProbe.dll chronological`
+and then `tile`. Native controls: `python -B N/native_cold_mesh.py`, followed by
+`python -B N/native_edit_mesh_v2.py --order chronological` and `--order tile`.
+The original `native_edit_mesh.py` draft uses the wrong grid receiver and faults
+before a byte write; those failed outputs are preserved and excluded.
+
+`python -B N/verify_navigation.py --seal` checked the assertions and sealed 108
+artifacts and seven pinned inputs; omit `--seal` for read-only verification.
+These controls launch no native process and advance no complete simulation turns.
+
+### Actual update history, hash304
+
+Evidence root: `D:/DK2Evidence/ordered-navigation-hash304-2026-10-25/`.
+Pinned tools are the Release build of clean `5716560c`, HashVersion304, archived
+under `D:/DK2Evidence/tools/hash304-5716560c-2026-10-25/`. No simulation edits.
+
+A hardware entry/return observer captured 55 complete `004CE770` pairs from one
+native `l1live` playback. The 180-second limit expired at execution clock701;
+the last rebuild was689. The intended850 boundary was **not reached**. Each pair
+retains incoming navigation bytes, triangle/point slots, free chains and the
+16-dword locate cache. Replaying the actual area on that incoming state with
+our `Retriangulate` matches all55 outgoing meshes, free lists and caches exactly.
+The final initialization mesh also matches our first mesh:158 live triangles
+and82 live points. This bounds the result to observed calls, not all navigation.
+
+Standalone modern prefixes replay seeds1,3,7 through turn701. An unobserved twin
+matches every per-tick state hash; event logs also equal each saved hash303 prefix
+(1881/1830/1813 lines). System/event observations force no navigation refresh.
+Refresh counters have no jumps above1. Initial navigation bytes match native.
+These counters track mesh-changing refreshes, not every refresh invocation;
+event/system snapshots can miss transient writes inside a system.
+
+The first two edited tiles agree in order, `(10,28)` then `(10,27)`. The native
+third is `(10,29)` at execution76; all three modern seeds edit `(9,28)` third.
+Different seeds, clocks and preceding decisions prevent attributing this to the
+mesh updater. Native edits rebuild immediately; the first modern write is at
+replay44/tick43 and refresh at45/tick44. This is not a universal clock correction.
+
+Seed1 has53 single-tile partial refreshes; seed3 has55. Seed7 has46 single-tile
+and two double-tile refreshes. At replay106, events observe `(9,30)` before
+`(9,26)`; refresh107 applies `(9,26)` before `(9,30)`. At521, `(17,20)` then
+`(15,32)` retain their order at refresh522. Thus real batching and one reversal
+are **CONFIRMED** in this prefix. Their effect on the Hatchery deadline or loss
+remains **UNKNOWN**; seeds1/3 already diverge without batching in this window.
+
+Commands: `Analysis.dll native <root>/native-events.jsonl <new-results.json>`;
+`Analysis.dll modern <1|3|7> 701 <new-output-directory> neutral`, using the
+preserved standalone project. These are diagnostic prefixes, not new win rates.
+`python -B <root>/verify_ordered_navigation.py` verifies30 sealed artifacts and
+the pinned capture inputs. Independent read-only review confirmed the counts,
+hash controls and observed reversal, with the observation limit above.

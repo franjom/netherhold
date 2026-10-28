@@ -10,7 +10,7 @@ about the binary in our own words**; no decompiler output enters this repository
 **Implementation.** `DK2.Simulation.HandRules`, `EfficiencyRules`,
 `Systems.HandSystem`, and the four commands in `Commands/HandCommands.cs`
 (`PickUpCreatureCommand`, `PickUpObjectCommand`, `DropCommand`,
-`SlapCreatureCommand`). Decisions: ADR-0062, ADR-0064, ADR-0069, ADR-0075, ADR-0077.
+`SlapCreatureCommand`). Decisions: ADR-0062, ADR-0064, ADR-0069, ADR-0075, ADR-0526 (supersedes ADR-0077).
 
 **Tests.** `HandTests` (`tests/DK2.Simulation.Tests`);
 `scenarios/creatures/a_keeper_drops_a_warlock_and_an_imp_on_open_ground.yaml`.
@@ -163,8 +163,9 @@ This project has no physics for a creature to be thrown by, so
 `DK2.Simulation` paces a slap**; the only slap interval in the repository is AI
 pacing in `src/DK2.AI/KeeperAI.cs`, which is not a game rule.
 `HandRules.CanSlap` also asks `CreatureFlags.CanBeSlapped` and refuses a held
-creature, one already down, and a prisoner — the ownership exception §3 makes is
-for lifting a captive out of a cell, not for hitting it.
+creature and one already down. A prisoner is different from a free creature:
+it answers to its jailer alone, not its own keeper (ADR-0140), rather than being
+unslappable outright.
 
 ---
 
@@ -375,9 +376,13 @@ ADR-0226, ADR-0227); which rooms' states idle here is in `hand-drop-landing.md`.
   colour"; ADR-0526): allied ground for everyone, plus neutral roomless floor that is
   neither water nor lava for a worker, with Heart, Portal, Prison, Temple, Torture and
   Combat Pit exceptions.
+  Recorded native playback can nevertheless land troops on enemy room floor;
+  the [decision audit](decision-parity-audit.md#recorded-drop-boundary-a-replay-adaptation-changes-the-encounter)
+  separates stored-command execution from our replay's deliberate relocation.
 - **A chicken dropped into somebody else's Hatchery becomes theirs** — the handler
-  tests object id 9 against another keeper's tile in a room of type 4. **Unreachable
-  by the Hand**: nothing can be dropped on another keeper's tile (owner, 2026-09-25).
+  tests object id 9 against another keeper's tile in a room of type 4. Live,
+  interface-validated drops refuse enemy land (owner, 2026-09-25; ADR-0526).
+  This Chicken transfer has not been tested through stored-command playback.
 - **A chicken or a pile of gold dropped ONTO a creature is earmarked for it**, by
   the creature's id written into a field on the object, when that creature's
   level-scaled `HungerFill` or `Pay` is non-zero. **CONFIRMED by the owner,

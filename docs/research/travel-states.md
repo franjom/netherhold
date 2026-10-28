@@ -300,7 +300,7 @@ harmless, because the substitution applies only in category 2, which is also whe
 Two world-log samples (`debug-dumpers.md`, "Running one"): belgianguy's, 15 creatures
 at GT 231, and the owner's, **four dumps of the skirmish map Hopping** (GT 1234, 1772,
 2522, 3177; 76 to 91 creatures, 336 creature records), kept as
-`samples/worldlog-owner-4dumps.log.gz`. `python tools/worldlog.py <file>` prints
+`worldlog-owner-4dumps.log.gz` (removed from the tree in 3639b5cd; see debug-dumpers.md). `python tools/worldlog.py <file>` prints
 every table below. All 23 states seen, and every resume and saved state, are in the
 table.
 

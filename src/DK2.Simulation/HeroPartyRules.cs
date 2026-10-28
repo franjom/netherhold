@@ -251,21 +251,24 @@ public static class HeroPartyRules
             if (c.OwnerPlayerId == PlayerIds.Good && c.PartyId == partyId) c.PartySpeedRaw = slowest;
     }
 
-    /// <summary>The tail of the handler: the last leader-flagged member of the party is the leader;
+    /// <summary>The tail of the handler, scanning newest first: the last leader-flagged member is leader;
     /// every follower-flagged member points at it and is numbered from 1; the leader's own number is
     /// the follower count.</summary>
     public static void LinkFollowers(WorldState world, byte partyId)
     {
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
         CreatureState? leader = null;
-        foreach (CreatureState creature in world.Creatures)
+        for (int i = creatures.Count - 1; i >= 0; i--)
         {
+            CreatureState creature = creatures[i];
             if (creature.OwnerPlayerId != PlayerIds.Good || creature.PartyId != partyId) continue;
             if ((creature.Flags & 0x02) != 0) leader = creature;
         }
 
         byte k = 0;
-        foreach (CreatureState creature in world.Creatures)
+        for (int i = creatures.Count - 1; i >= 0; i--)
         {
+            CreatureState creature = creatures[i];
             if (creature.OwnerPlayerId != PlayerIds.Good || creature.PartyId != partyId) continue;
             if ((creature.Flags & 0x04) == 0) continue;
             creature.LeaderId = leader?.Id ?? -1;

@@ -38,7 +38,7 @@ The dumper `0x004C3F20` names the following fields; the writers and serializers
 
 `0x004C43B0` saves the queue header and all 256 records. Reading a message or
 setting its handled bit does not remove it. The original debug sample
-`samples/worldlog-envmapshowcase-gt231.log` contains 256 message records and a
+`worldlog-envmapshowcase-gt231.log` (removed from the tree in 3639b5cd; see debug-dumpers.md) contains 256 message records and a
 type-41/Training-Room record aged 229 with timeout 1200: **CONFIRMED** sample
 values, not a capture of its producer or the keeper's response.
 
@@ -137,9 +137,8 @@ Ours starts it at 0, a modelling choice, and saves it (`GraveyardWantedPosted`, 
 and an allocate flag. A rel32 scan of both executable blocks (`.text` and `cseg`)
 finds **151 call sites** and no absolute reference; every known producer is among
 them (the positive control). Each site pushes its type as an immediate; shared call
-tails were read for every function holding a type the walk reads. The only
-wrappers that pass a type on are the anger pair below. Data2 is a thing tag where
-stated, not a stable index. Every type the keeper's walk (`0x004FA400`, §3) reads:
+tails were read for every function holding a type the walk reads. The only wrappers that pass a type on are the anger pair below. The per-type list of every site, and the 25 types no site pushes, are in `message-table.md` §3-4.
+Data2 is a thing tag where stated, not a stable index. Every type the keeper's walk (`0x004FA400`, §3) reads:
 
 | Type | Producer | Recipient; Data1 / Data2 | Gate | Ours |
 |---|---|---|---|---|
@@ -365,9 +364,9 @@ turn and attack mode is not 3; it is not a notification on each hit.
 `0x00476D30` writes the entry stamp on every accepted transition, including a
 same-state transition. A transition alone does not emit; if the state changes
 again before its handler runs, no type 6 is sent. Travel arrival only stamps.
-`CombatSystem` runs the message prologue after acquisition on that turn and at
-state-199 update; acquisition precedes state dispatch in the original
-(`combat-acquisition.md` section 2). General state-hook dispatch remains open.
+Ours posts it from state 199's handler (`CombatSystem.States`) on the entry turn, and the scan
+posts none; the scan comes first in the same creature update, as in the original
+(`combat-acquisition.md` section 1, ADR-0555). General state-hook dispatch remains open.
 
 Scheduling and the preserved observation window are ADR-0245. Type 84, a creature that cannot reach the Call to Arms flag, is posted by states 190
 and 89 with a fifty-second lifetime and no duplicates (`call-to-arms.md`). The keeper consumes

@@ -9,7 +9,19 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
-- ClassicLightWindowTests.WarmGatherDoesNotAllocate once measured6440 bytes in a full run; isolated and full reruns passed. Investigate the allocation source before weakening its zero-allocation assertion.
+- Replay CSV labels its clock `tick`, but replay events TSV labels it `turn`; inspect the header before sharing a parser.
+- `docs/experiments/` is ignored: stage a requested report with `git add -f -- <exact README path>`, never the whole experiment directory.
+
+- `dotnet run -m:1 -- ...` forwards the unrecognized MSBuild switch to the app; use `dotnet build -m:1`, then run the built DLL.
+
+- If Codex's Windows shell fails before startup with `setup refresh had errors`, an approved command outside the sandbox can still run; Docker context-mode uses `/workspace`, not Windows drive paths.
+
+- Docker MCP can list zero tools when a host mount is rejected; inspect `docker mcp gateway run --profile local --dry-run --verbose` and see `tools/context-mode/README.md` for the read-only allowlist.
+
+- `git add` can stage deletions before rejecting an ignored path; inspect the index before retrying, since already-staged deletions no longer match a pathspec.
+
+- PowerShell 5 with ErrorActionPreference=Stop treats native stderr as NativeCommandError; capture child stdout/stderr directly when expecting test failures.
+
 
 - Inspect original BMP captures in small batches; nine 1600×1200 images exceeded code-mode's 64MiB IPC frame limit.
 
@@ -63,6 +75,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - PowerShell can return early from a GUI executable invoked with `&`; use `Start-Process -PassThru` and wait on that process for Unity builds and player captures.
 
 - PowerShell treats curly apostrophes as quote delimiters; avoid them inside single-quoted command arguments.
+- Windows PowerShell redirects native stdout as UTF-16; write JSON artifacts as UTF-8 in the producer instead of using shell redirection.
 - Windows PowerShell Get-Content defaults to ANSI; pass -Encoding UTF8 when deriving patch text from repository files.
 - Windows PowerShell `Set-Content -Encoding UTF8` adds a BOM even to commit-message files; use `UTF8Encoding(false)` when writing them.
 - Run `dk2tools status` with the same `DK2_DIR` as the verified suite; data-dependent discovery otherwise silently reports fewer cases.
@@ -96,6 +109,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `WadArchive.TryGetEntry` returns the later of two same-named entries; FrontEnd.WAD has 31 duplicate names (loading screens, `2dLevelS*`, Cancel/Confirm), so look those up by entry index ([front-end-assets.md](research/front-end-assets.md) §1.3).
 
 ## Builds, tests and dk2tools
+
+- Record HEAD with the build command; a later provenance snapshot can name a newer commit while the measured binaries remain unchanged.
+
+- `setup-dotnet` installs the exact SDK from `global.json`, ignoring its roll-forward policy; use a published SDK version, not the runtime version `10.0.0`.
 
 - Unicorn can retain translated code across oracle requests: use a fixed stub reading variable data, or a fresh process, when varying controlled returns; rewriting an immediate can silently reuse the first value.
 
@@ -159,6 +176,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - After merging master the rig baseline moves: measure a detached worktree at the new master and
   the branch side by side before writing numbers into an ADR.
 - Never `git add -A`: another session may be editing; stage named paths.
+- `DungeonKeeperII.ttf` is gitignored, so a fresh worktree's Unity project lacks it and all its text falls back to DK2's bitmap font or Unity's default: copy `Assets/Resources/Fonts/DungeonKeeperII.ttf` from the main checkout (`unity/README.md`).
 - `git stash push -- <path>` on a path with no changes saves nothing and says so only without `-q`; a `git stash pop` after it applies whatever older stash is on top (2026-10-14: someone's INDEX.md stash landed in the main tree). Check `git diff --quiet -- <path>` first, or pop by the entry's own message, never a bare pop.
 - `kb_upsert` (the dk2kb MCP) writes the main tree, not your worktree, and regenerates the main tree's `INDEX.md` too: copy both files across and `git checkout --` them in the main tree.
 - `kb_upsert` replaces a record's whole body and can drop its UTF-8 BOM: an agent that thinks a record is new
@@ -211,18 +229,21 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `dk2capture.py` records objects from slots 1150-1719 only; an object made after the window
   fills never appears in `object-map.csv`. "DK2 never made X" needs another witness.
 - A recording that ends `"game stopped answering"` early is usually DK2 crashing, not the probe: the Windows Application log has 14 access violations at `DKII-DX.exe+0x1FCB80` (`0x005FCB80`, in the renderer range) since 2026-09-05, one of them the Level 4 dump run at tick 1176 (2026-10-15), well after its tick-500 dump. Check the log before blaming the recorder or a dump.
-- A capture's turn N shows the state before tick N's trigger pass: capture row N is our row N-1.
-  Prefer a tick the game stores (a timer stamp) to one the probe samples.
 - Campaign levels unlock through `Player Level Status` under `HKCU\Software\Bullfrog Productions
   Ltd\...`, 160 bytes indexed by map, not level (`campaign-progress-registry.md`). Close DK2 first;
   it rewrites the key on exit.
 - DK2 runs elevated: start the probe from an elevated shell before the game, and the owner clicks
   two UAC prompts. A packet recording needs `-LEVEL` on both `-PSAVE` and `-PLOAD`, or the front
   end eats the seed and the replay desyncs on turn 1.
+- Launch DKII-DX.exe, not DKII.EXE: `DKII.EXE -LEVEL` exited before its level loaded (2026-10-28).
+  The two share every code byte (1,126 differing bytes: 3 in the header, 5 in .rdata, the rest in
+  data appended after the last section; .data identical), so DKII.EXE's addresses hold in DKII-DX.
+- Idle `-LEVEL` runs of Levels 3 and 12 logged no raid or fight in about 4,700 ticks each; replay a
+  recording (`-PLOAD <name> 0`) to exercise them (music.md §9, *Live capture*).
 - A doc's "all N records" counts one record type: "every hero has `DestroysRooms`" was true of
   trigger-created creatures and false of party members (825 of 4,545).
 - A clean unstaged diff checks no committed changes; run `git diff --check <base> HEAD` and `--cached` before committing new files.
-- Snapshot tests need the supported xoshiro RNG; scripted `IRandomAlgorithm` test doubles intentionally have no save format (ADR-0275).
+- Snapshot tests need `Xoshiro256StarStar` or `Dk2Lcg`; scripted `IRandomAlgorithm` test doubles intentionally have no save format (ADR-0275, ADR-0564).
 - PowerShell can report failure when a native command writes diagnostics to stderr; finish redirected native runs with `exit $LASTEXITCODE` to preserve the program's exit code.
 - Ghidra can omit callback arguments from a decompiler signature; check caller pushes and callee stack cleanup before assigning constructor versus cleanup roles.
 - After a failed multi-file apply_patch, inspect each target before retrying: earlier files may already contain the change.
@@ -257,3 +278,16 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - The source license gate requires all three notice lines plus a blank line, including the LICENSE reference; a copyright and SPDX pair alone fails, including in Unity editor scripts.
 - A sandbox account can differ from the checkout owner; use per-command `git -c safe.directory=D:/DungeonKeeperRemake` (or inherited `GIT_CONFIG_COUNT` entries for repo tools), without changing the owner's global Git config.
 - `hand-cursor-rendering.md` contains legacy single-byte section signs among UTF-8 text; strict UTF-8 patching rejects it. Keep unrelated byte normalization out of a cursor fix.
+- Matched-state probes must restore constructor-owned fields before binding RNG; otherwise fixture setup can consume draws before the decision (research/decision-parity-audit.md).
+- A hidden standalone Unity window can skip all screen rendering despite active CPU loops; require camera render callbacks and a nonblank PNG before treating its timings as rendered performance.
+- Mono Stopwatch and Unity frame timestamps can have different epochs despite equal frequencies; align Windows captures with QueryPerformanceCounter.
+- ShaderUtil reports an uninitialized SRP compatibility result before a shader has actually drawn; check after a GPU render.
+- Start PresentMon before creating the graphics context, retain its process Handle for ExitCode, reject lost ETW events, and stop only the probe's own named session on failure.
+- Warm light-allocation tests can report transient bytes in a concurrent solution run (ClassicLightWindowTests, ClassicObjectLightTests and BottomPanelViewTests.CaptureIsReadOnlyAndAllocatesNothingAfterConstruction); rerun the failed test and the full Presentation suite before changing their zero-allocation assertions.
+- Runtime level switching must release the old scene before activating its replacement: deferred OnDestroy can clear or dispose shader globals already published by the new scene.
+- Legacy Unity Font atlases can have black RGB with valid glyph alpha; UI Toolkit textured meshes need an in-memory white-RGB copy of that coverage.
+- Restoring source with `Copy-Item` can preserve a timestamp older than the compiled DLL; touch the restored file or rebuild before trusting an incremental regression retest.
+- Windows PowerShell Set-Content defaults to a legacy code page; pass -Encoding UTF8 for Python scripts containing non-ASCII prose.
+- An effect's GenerateIds are effect ids, not element ids, when the effect has flag `0x40` (types 4 and 18); a dump that resolved them as elements made the Inferno look like one spark (shot-effects.md §5).
+- Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here. Docker context-mode exposes this checkout read-only at /workspace, not D:/DK2Evidence.
+- Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.

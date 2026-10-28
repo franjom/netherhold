@@ -165,24 +165,22 @@ work. These are not evidence that the corresponding DK2 rules are absent.
 
 ## The entrance effect (read 2026-10-14, built as ADR-0476)
 
-After the notifications and before `CreatureAction_BeginAt(0x31)`, at `0x004DCB8F`, the
-creator reads the creature definition (`creature+0x370`) at `+0x776`; when that is nonzero
-and the dword at `0x00759AEC` is at least 3 (that it is the effects detail setting is
-INFERRED) it requests that effect through the view slot `+0x38C` with five arguments: the
-effect id, the room owner's tag (`room+0x1D`), a pointer to the spawn position (the room's
+The selection, complete creature/mercenary roster and effect dependencies are in
+[creature-arrival-effects.md](creature-arrival-effects.md). The request at
+`0x004DCB8F..0x004DCBD1` takes five arguments: the effect id, the room owner's tag
+(`room+0x1D`), a pointer to the spawn position (the room's
 `+0x2D`/`+0x2E` shifted up 12 plus `0x1800`, z a literal 0), a pointer to the creature's
 heading `+0xF4` (0 then; `0x400` is stored after the call) and a pointer to a zeroed
-local. The field is the creature record's **Portal Entrance effect**: the loader
-`0x00492320` copies staging `+0x1326` to `def+0x776`, file byte 3894 (`0xF36`), which
-holds 181 for the Goblin, 178 for the Dark Elf, 180 for the Troll, 185 for the Rogue,
-179 for the Firefly and 184 for the Black Knight (CONFIRMED). Each of those effects
-chains (`NextEffectId`) to a Portal Beams effect, 159, 161, 166 or 168, whose element
-draws the `Lightbeams` animation (art type 6, 60 frames, HP 120) at scale 3 from 3200
-below the request point, with a white disc sprite over the hole. That the descriptor's
+local. The `Lightbeams` animation (art type 6, 60 frames, HP 120) uses scale 3
+from 3200 below the request point. Beam/disc companions vary by creature; a
+disc-only link does not imply beams, and Black Knight has neither.
+That the descriptor's
 second dword (10) is its frame rate is a HYPOTHESIS fitted to the life: 60 frames at 10 a
 second is the element's 6 seconds; no reader of type-6 elements has been read.
 Built: `CreatureDef.EntranceEffectId`, `PortalRules.EntranceEffect`, posted by
-`PortalSystem` after `CreateArrival`; the detail gate is taken as satisfied.
+the shared `CreateArrival` through `StateHookContext` for ordinary and scripted
+arrivals; the detail gate is taken as satisfied. Regression coverage is in the
+[arrival catalogue](creature-arrival-effects.md#scripted-arrivals-in-the-reimplementation).
 
 ### Arrival rendering and the reported colour tail (2026-10-23)
 

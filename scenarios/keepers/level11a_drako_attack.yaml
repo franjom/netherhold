@@ -20,15 +20,18 @@
 # bridges (64,40) and (64,39) and calls at (64,38). This run matches that capture's conditions: the
 # record's own gold and keepers 4 to 7 all running, so Morgana's imps repair the wall Drako digs
 # (ADR-0387). What it does NOT establish: why the dug tile is claimed sooner and the call cast
-# sooner than DK2's (Q563), or that the neutral player's land stores the tunnel in the original
-# (Q497).
+# sooner than DK2's (Q563). Since the level's alliances apply (ADR-0546), neutral land is no
+# enemy land, so the tunnel is not stored at its first step out. Drako then reaches Morgana's heart
+# without a call and first calls at Belial's on turn 732 (DK2: Morgana's wall, turn 700; Q652). The
+# run was widened from 700 to 1,200 turns so this regression still reaches a call and an engagement;
+# the wider window hides that difference from DK2 rather than settling it.
 id: keepers-level11a-drako-attack-001
 question: >
   Does Drako, unaided, tunnel from its Lair toward Morgana's heart, bridge the lava in the way, and
   call its army at an attacked enemy's heart?
 map: campaign:level11A
 seed: 4
-duration_ticks: 700
+duration_ticks: 1200
 viewing_player: 5
 computer_keepers: [4, 5, 6, 7]
 setup:

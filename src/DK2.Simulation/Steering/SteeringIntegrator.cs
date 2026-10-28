@@ -30,13 +30,6 @@ public static class SteeringIntegrator
     /// <summary>One tick of motion from a combined force.</summary>
     public static void Step(SteeringBody body, Fixed16Vector total, MoverProfile mover, ISteeringWorld world)
     {
-        if (world is IMovementContactWorld contacts)
-        {
-            Fixed16Vector proposed = Fixed16.Truncate(body.Vel + Fixed16.Truncate(total, body.MaxForce).Over(Mass), body.MaxSpeed);
-            if (body.SnapsOnArrival && body.OnLastPoint && (body.CurrentPoint - body.Pos).Octile() < proposed.Octile())
-                proposed = body.CurrentPoint - body.Pos;
-            contacts.CollectMovementContacts(body, proposed);
-        }
         total = Slide(body, total);
         Fixed16Vector clamped = Fixed16.Truncate(total, body.MaxForce);
         body.Vel = Fixed16.Truncate(body.Vel + clamped.Over(Mass), body.MaxSpeed);
@@ -99,22 +92,21 @@ public static class SteeringIntegrator
         (int ox, int oy) = body.Pos.Tile();
         (int nx, int ny) = next.Tile();
         byte own = world.NavByte(ox, oy);
-        var radius = new Fp32(body.Radius >> 4);
 
-        if (Open(own, new TilePos(nx, ny), body.Pos, next, mover, world, radius))
+        if (Open(own, new TilePos(nx, ny), body.Pos, next, mover, world))
         {
             body.Pos = next;
             return true;
         }
 
-        if (Open(own, new TilePos(nx, oy), body.Pos, new Fixed16Vector(next.X, body.Pos.Y), mover, world, radius))
+        if (Open(own, new TilePos(nx, oy), body.Pos, new Fixed16Vector(next.X, body.Pos.Y), mover, world))
         {
             body.Pos = new Fixed16Vector(next.X, body.Pos.Y);
             body.Vel = new Fixed16Vector(body.Vel.X, 0);
             return true;
         }
 
-        if (Open(own, new TilePos(ox, ny), body.Pos, new Fixed16Vector(body.Pos.X, next.Y), mover, world, radius))
+        if (Open(own, new TilePos(ox, ny), body.Pos, new Fixed16Vector(body.Pos.X, next.Y), mover, world))
         {
             body.Pos = new Fixed16Vector(body.Pos.X, next.Y);
             body.Vel = new Fixed16Vector(0, body.Vel.Y);
@@ -123,13 +115,13 @@ public static class SteeringIntegrator
 
         int dx = nx - ox, dy = ny - oy;
         Fixed16Vector step = next - body.Pos;
-        if (Open(own, new TilePos(ox - dy, oy + dx), body.Pos, new Fixed16Vector(body.Pos.X - step.Y, body.Pos.Y + step.X), mover, world, radius))
+        if (Open(own, new TilePos(ox - dy, oy + dx), body.Pos, new Fixed16Vector(body.Pos.X - step.Y, body.Pos.Y + step.X), mover, world))
         {
             body.Pos = new Fixed16Vector(body.Pos.X - step.Y, body.Pos.Y + step.X);
             return true;
         }
 
-        if (Open(own, new TilePos(ox + dy, oy - dx), body.Pos, new Fixed16Vector(body.Pos.X + step.Y, body.Pos.Y - step.X), mover, world, radius))
+        if (Open(own, new TilePos(ox + dy, oy - dx), body.Pos, new Fixed16Vector(body.Pos.X + step.Y, body.Pos.Y - step.X), mover, world))
         {
             body.Pos = new Fixed16Vector(body.Pos.X + step.Y, body.Pos.Y - step.X);
             return true;
@@ -138,8 +130,8 @@ public static class SteeringIntegrator
         return false;
     }
 
-    private static bool Open(byte own, TilePos tile, Fixed16Vector from, Fixed16Vector to, MoverProfile mover, ISteeringWorld world, Fp32 radius) =>
-        world.CanMove(from, to, radius) && MeshRouter.TransitionCost(world.NavByte(tile.X, tile.Y), own, mover) != 0;
+    private static bool Open(byte own, TilePos tile, Fixed16Vector from, Fixed16Vector to, MoverProfile mover, ISteeringWorld world) =>
+        world.CanMove(from, to) && MeshRouter.TransitionCost(world.NavByte(tile.X, tile.Y), own, mover) != 0;
 
     /// <summary>The tick's stuck bit: shift the history and set bit 0 when progress along the route
     /// did not grow; remember the progress.</summary>

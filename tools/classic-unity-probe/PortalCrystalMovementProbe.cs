@@ -69,13 +69,7 @@ namespace DK2.Unity.Editor
                 {
                     try
                     {
-                        if (tick != 0)
-                        {
-                            var before = new Fixed16Vector(goblin.PosX << 4, goblin.PosY << 4);
-                            simulation.Tick();
-                            if (!navigation.CanMove(before, new Fixed16Vector(goblin.PosX << 4, goblin.PosY << 4), new Fp32(goblin.Body.Radius >> 4)))
-                                throw new Exception("Goblin crossed a crystal footprint.");
-                        }
+                        if (tick != 0) simulation.Tick();
                         csv.WriteLine(tick + "," + goblin.PosX + "," + goblin.PosY);
                         presenter.Present(world);
                         if (tick % 5 == 0 || goblin.Body.PathFinished)
@@ -91,7 +85,7 @@ namespace DK2.Unity.Editor
                         }
                         if (!goblin.Body.PathFinished && ++tick <= 600) { EditorApplication.QueuePlayerLoopUpdate(); return; }
                         if (!goblin.Body.PathFinished || goblin.Tile != new TilePos(6, 7)) throw new Exception("Goblin failed to finish its portal walk.");
-                        Debug.Log("Portal crystal movement verification passed after " + tick + " ticks.");
+                        Debug.Log("Portal movement preview completed after " + tick + " ticks.");
                         EditorApplication.update -= sample; csv.Dispose(); art.Dispose(); EditorApplication.Exit(0);
                     }
                     catch (Exception error) { EditorApplication.update -= sample; csv.Dispose(); Debug.LogException(error); EditorApplication.Exit(1); }

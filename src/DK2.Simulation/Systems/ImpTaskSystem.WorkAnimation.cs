@@ -55,6 +55,20 @@ public sealed partial class ImpTaskSystem
             : ActionAnimationClock.AnimationDone(creature);
     }
 
+    /// <summary>Whether this update's end begins a mining action: the first, on the turn after
+    /// state 26 is entered, or the next, when the running one's handler and clip are both done
+    /// (<see cref="StepWorkAnimation"/>'s two begin points). State 26's handler runs its checks on
+    /// exactly that call (<c>0x00465870</c>): after the first strike at E+2 the clip wraps at E+5
+    /// or E+6, after later strikes in the strike's own turn (Level 4 seed 1: 22 first-strike fills
+    /// leave 3 or 4 ticks after it, 14 and 7, one at 2; none in its tick).</summary>
+    private static bool MinersActionBegins(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (creature.TargetWork != TileWorkKind.MineGold || !PlaysWorkLoop(creature, definition)) return false;
+        if (context.Tick.Value <= creature.StateEnteredTick || !LoopTileWorkable(context, creature)) return false;
+        return creature.ActionArtSlot != WorkArtSlot
+            || (creature.ActionHandlerDone && ActionAnimationClock.AnimationDone(creature));
+    }
+
     /// <summary>The end of the creature's update: the work action starts on the turn after the
     /// work state is entered and its clip advances every turn after that (mining-finish.md).
     /// A handler still being called that finds its tile gone asks the clip to stop, as does one
@@ -63,6 +77,12 @@ public sealed partial class ImpTaskSystem
     /// the next, whose handler runs again. Out of work, the standing or walking clip replaces it.</summary>
     private static void StepWorkAnimation(SimulationContext context, CreatureState creature, CreatureDef definition, bool struck)
     {
+        if (creature.TargetTileIndex >= 0 && creature.SecretDoorTask
+            && creature.Dk2StateId == ImpStates.SecretDoorWork)
+        {
+            ActionAnimationClock.Advance(creature, definition);
+            return;
+        }
         if (!PlaysWorkLoop(creature, definition))
         {
             if (PlaysIdleAction(creature)) ActionAnimationClock.Advance(creature, definition);

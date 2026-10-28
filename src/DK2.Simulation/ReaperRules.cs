@@ -61,43 +61,41 @@ public static class ReaperRules
             Depart(context, reaper);
     }
 
-    public static void RunLifecycle(SimulationContext context)
+    /// <summary>One creature's Reaper states 235-237 and 242, in its update.</summary>
+    public static void RunLifecycle(SimulationContext context, CreatureState reaper)
     {
-        foreach (CreatureState reaper in context.World.Creatures)
+        if (reaper.Dk2StateId is not (ArrivingState or MaterializingState or GreetingState or DepartingState)) return;
+        uint age = ++reaper.ReaperStateAgeTicks;
+        switch (reaper.Dk2StateId)
         {
-            if (reaper.Dk2StateId is not (ArrivingState or MaterializingState or GreetingState or DepartingState)) continue;
-            uint age = ++reaper.ReaperStateAgeTicks;
-            switch (reaper.Dk2StateId)
-            {
-                case ArrivingState:
-                    reaper.ReaperComplete = false;
-                    if (age == 1 || age >= 12)
-                        EnterState(context, reaper, ReaperState.Materializing);
-                    break;
-                case MaterializingState:
-                    if (age == 1) reaper.ReaperAlpha = 0;
-                    if (reaper.ReaperAlpha == byte.MaxValue)
-                        EnterState(context, reaper, ReaperState.Greeting);
-                    else reaper.ReaperAlpha = (byte)Math.Min(byte.MaxValue, reaper.ReaperAlpha + 32);
-                    break;
-                case GreetingState:
-                    if (age == 1) BeginAction(context, reaper);
-                    else if (context.Tick.Value >= reaper.ActionUntilTick)
-                    {
-                        reaper.ReaperActionId = 0;
-                        reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = true;
-                        EnterState(context, reaper, ReaperState.Idle);
-                    }
-                    break;
-                case DepartingState:
-                    if (age == 1 && reaper.ReaperActionId != 47) BeginAction(context, reaper);
-                    if (age >= 6 * SimulationTiming.OriginalTicksPerGameSecond)
-                    {
-                        reaper.ReaperAlpha = (byte)Math.Max(0, reaper.ReaperAlpha - 32);
-                        if (reaper.ReaperAlpha == 0) reaper.Health = 0;
-                    }
-                    break;
-            }
+            case ArrivingState:
+                reaper.ReaperComplete = false;
+                if (age == 1 || age >= 12)
+                    EnterState(context, reaper, ReaperState.Materializing);
+                break;
+            case MaterializingState:
+                if (age == 1) reaper.ReaperAlpha = 0;
+                if (reaper.ReaperAlpha == byte.MaxValue)
+                    EnterState(context, reaper, ReaperState.Greeting);
+                else reaper.ReaperAlpha = (byte)Math.Min(byte.MaxValue, reaper.ReaperAlpha + 32);
+                break;
+            case GreetingState:
+                if (age == 1) BeginAction(context, reaper);
+                else if (context.Tick.Value >= reaper.ActionUntilTick)
+                {
+                    reaper.ReaperActionId = 0;
+                    reaper.ReaperCanAcquireFight = reaper.ReaperIsAttackable = true;
+                    EnterState(context, reaper, ReaperState.Idle);
+                }
+                break;
+            case DepartingState:
+                if (age == 1 && reaper.ReaperActionId != 47) BeginAction(context, reaper);
+                if (age >= 6 * SimulationTiming.OriginalTicksPerGameSecond)
+                {
+                    reaper.ReaperAlpha = (byte)Math.Max(0, reaper.ReaperAlpha - 32);
+                    if (reaper.ReaperAlpha == 0) reaper.Health = 0;
+                }
+                break;
         }
     }
 
@@ -123,6 +121,10 @@ public static class ReaperRules
         reaper.ActionUntilTick = context.Tick.Value + AnimationTimingRules.FirstCycleHoldTicks(animation);
         if (animation.ResourceType is not (1 or 3)) reaper.ReaperAlpha = byte.MaxValue;
     }
+
+    /// <summary>How long action 46, the roar, holds: one first cycle of art 35 or its fallback 8.</summary>
+    internal static int SummonHoldTicks(CreatureDef definition) => AnimationTimingRules.FirstCycleHoldTicks(
+        AnimationTimingRules.SlotOrFallback(definition.ReaperSummonAnimation, definition.ReaperSummonFallbackAnimation));
 
     public static void Create(SimulationContext context, ShotState shot)
     {
@@ -157,7 +159,7 @@ public static class ReaperRules
             reaper.ReaperStateAgeTicks = 0;
     }
 
-    private static CreatureDef? ReaperDefinition(GameDatabase database)
+    internal static CreatureDef? ReaperDefinition(GameDatabase database)
     {
         foreach (CreatureDef candidate in database.Creatures.Values)
         {

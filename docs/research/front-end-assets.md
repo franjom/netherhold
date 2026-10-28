@@ -10,22 +10,22 @@ Confidence: **CONFIRMED** = read from the bytes or by a repo reader over every f
 
 | Asset class | Files | Repo reader | Missing piece | Size |
 |---|---|---|---|---|
-| `FrontEnd.WAD` container | 1 archive, 445 entries | `DK2.Data.Wad.WadArchive` | lookup by index or by directory: 31 names occur twice, and the by-name map keeps the last (§1.3) | small |
-| PNG (371) | `FrontEnd.WAD` | none in `src/`. Unity's `ImageConversion` reads PNG | a provider route from the WAD to a texture | small |
-| BMP, 24-bit (42) | `FrontEnd.WAD` | none | an uncompressed 24-bit BMP reader. Unity does not import BMP at run time (HYPOTHESIS: check the Unity docs) | small |
-| `.444` compressed images (29) | `FrontEnd.WAD` | `DK2.Art.Textures.Dk2TextureDecoder` decodes the codec, but nothing reads the 8-byte `.444` header | a wrapper: header, then call `Decode` | small |
+| `FrontEnd.WAD` container | 1 archive, 445 entries | `DK2.Data.Wad.WadArchive` | indexed extraction built in F1; the by-name map still keeps the last (§1.3) | small |
+| PNG (371) | `FrontEnd.WAD` | `WadImageSource` injects the runtime PNG decoder; Unity `ClassicFrontEndAssets` supplies it | built in F1 | small |
+| BMP, 24-bit (42) | `FrontEnd.WAD` | `DK2.Art.Textures.BmpImageReader` | built in F1; all 42 decode | small |
+| `.444` compressed images (29) | `FrontEnd.WAD` | `LoadingScreenImageReader` and the texture decoder's direct-RGB mode | built in F1; all 29 unmasked images decode; masked variant refused | small |
 | GIF (1), PSD (1), `HiScores.dat` (1) | `FrontEnd.WAD` | none | GIF: the age-rating icon. PSD: the title screen's source, probably unused. HiScores: see §8 | small |
 | Front-end level `FrontEnd3DLevel*` | 6 files | `KwdReader`, `MapGrid`, `KwdThings`, `KwdTriggers`, players and variables | none | — |
 | Front-end meshes (KMF) | 93 FE-named plus shared ones in `Meshes.WAD` | `DK2.Art.KmfReader` (not run on these files here) | none expected (STRONGLY INFERRED) | — |
 | Front-end textures | 560 `3dFe*`/`3dMap*`/`MPD*` entries in `EngineTextures.dir` | `DK2.Art.EngineTextureArchive` | none | — |
 | Camera paths 250-274 | 25 `.KCS` in `Paths.WAD` | `DK2.Data.Camera.KcsCameraPath` | none (format CONFIRMED over all 80 files, camera-paths.md) | — |
-| Fonts `FONT_FRONTEND*.bf4` | 6 | `DK2.Data.Text.Bf4FontReader` (an install test sweeps all 22 `.bf4`) | none | — |
+| Fonts `FONT_FRONTEND*.bf4` | 6 | `DK2.Data.Text.Bf4FontReader` (an install test sweeps all 22 `.bf4`) | original glyph metrics and bitmap fallback in F3/F4 | — |
 | String tables | 92 `.str` | `DK2.Data.Text.Dk2StringTable`, `LevelTextTable` | none | — |
-| SDT sound banks | `FrontEndHD`, `GuiHD`, `Patch_1HD`, 10 `Track_*`, 33 speech banks | `DK2.Convert.Audio.SdtArchive` lists the entries and extracts the raw MPEG payload | an MPEG-1/2 **Layer I and Layer II** decoder at run time, or an offline conversion | medium |
+| SDT sound banks | `FrontEndHD`, `GuiHD`, `Patch_1HD`, 10 `Track_*`, 33 speech banks | `DK2.Convert.Audio.SdtArchive` lists the entries and extracts the raw MPEG payload | an MPEG-1/2 **Layer I and Layer II** decoder in memory at run time | medium |
 | `*BANK.map` / `*SFX.map` event maps | 2 per sound object | none | a reader: bank → archive names, event → groups → variants → (sample, archive) | medium |
-| Music sequencing | `musicSFX.map` (27,042 B), 10 track banks | none | the segment sequencer: its rules are in DKII.EXE | medium-large |
-| Movies `.tgq` | 24 files, 213 MB | none | an EA SCHl demuxer, a TGQ video decoder and EA-XA ADPCM audio, or an offline conversion | large (decoder) / small (conversion) |
-| `Settings/HiScores.dat` | 1 | none | a reader and writer for ten 132-byte rows (§8) | small |
+| Music sequencing | `musicSFX.map` (27,042 B), 10 `Track_*` archives (9 music, `Track_Zero` the ambience) | none | the segment sequencer: read in `music.md` (map layout, level requests, picker) | medium-large |
+| Movies `.tgq` | 24 files, 213 MB | `DK2.Data.Media` and Unity `ClassicMoviePlayer` | playback proof of concept built; front-end sequencing remains F7 | large |
+| `Settings/HiScores.dat` | 1 | `DK2.Data.Campaign.HiScoresFile` | reader/writer built in F1 (§8); qualification and entry UI remain F5 | small |
 | Save games (load menu) | `Data/Save/*.SAV`, `*.QSAV` | `DK2.Data.Save.Dk2SaveReader` | whether it reads the fields the load menu lists was not checked | UNKNOWN |
 
 ## 1. `Data/FrontEnd.WAD`
@@ -85,16 +85,36 @@ exactly the 60 images DK2 loads as `Obj Shots\…`, §1.2; the WAD tool's name
 compression is not read).
 
 As a result **31 names occur twice (62 entries)**: the 14 loading screens (the Japanese and the default runs), 16 `2dLevelS{1..4}-{1..4}.png`, `Cancel.png` (48×48 and 60×60) and `Confirm.png`. `WadArchive.TryGetEntry` keeps the later entry for each, so a lookup
-by bare name cannot reach the first. A front-end provider needs entry indices, or a
-name qualified by its directory run.
+by bare name cannot reach the first. `WadArchive.Extract(int)` and
+`WadImageSource.Read(int)` reach either copy by index. F4's `WadDirectoryIndex`
+reconstructs directory runs for image lookup, while the legacy bare-name lookup
+keeps its last-entry behavior. Root Confirm/Cancel are both 48x48; the later
+Buttons run contains an opaque green Confirm and a 60x60 outline Cancel. Mixing
+those copies produced the empty-looking cancel button. Native `0x00534210`
+requests plain Confirm/Cancel. Directory reconstruction remains STRONGLY INFERRED
+from shipped names, not proved by the storage-query wrapper.
 
 ### 1.4 `.444` images (bytes CONFIRMED, codec STRONGLY INFERRED)
 
-The header is `u16 width, u16 height, u32 flags` (little-endian), then compressed data: every file is smaller than its raw size. The width and height match the name in all 29
-files. OpenKeeper's `LoadingScreenFile` reads the same header (alpha = flags >> 7) and
-then decodes with the engine-texture DCT codec. The repo already has that codec in
-`DK2.Art.Textures.Dk2TextureDecoder.Decode(compressed, width, height, alpha)`, used for
-`EngineTextures.dat`. A test decode of a `.444` file through it has not been run.
+The 8-byte header is `u16 width, u16 height`, a flag byte at +4 and three
+replacement-colour bytes at +5..+7. All 29 shipped images have flags `0x65`,
+no alpha and no mask (CONFIRMED from their bytes). Dimensions match their names.
+
+Native header setup `0x005D77A0` takes alpha from flag bit 7 and enables a block
+mask when bit 0 is clear. The 32-bit block routine `0x00668810` reads absolute
+8-bit DC values for RGB (and optional alpha), using the shared AC decoder
+`0x00665EF0` and transforms; it consumes mask data after the colour channels.
+This differs from engine textures' predicted DC and luma/chroma conversion.
+`0x00666210`'s constant-column shortcut checks all seven AC coefficients.
+These are STRONGLY INFERRED from the binary, including the corrected escape
+advance for the extended positive/negative AC forms.
+
+F1 implements the unmasked path, pads to 8-pixel blocks and crops to the header
+size. Synthetic tests cover absolute DC, channel order, cropping, alpha, extended
+escapes and the fifth AC coefficient; all shipped BMP/.444 entries decode.
+This is not a matched native pixel oracle. Masked images are explicitly refused.
+OpenKeeper's `LoadingScreenFile` and `LoadingScreenTextureDecoder` corroborated
+the header and RGB/DC distinction (facts only; THIRD-PARTY-NOTICES.md).
 
 ## 2. The front-end level: `Data/editor/maps/FrontEnd3DLevel*`
 
@@ -197,6 +217,7 @@ That is 25 files: 8 single-frame static views and 17 moves. A static path is 72 
 ## 4. Fonts (CONFIRMED)
 
 `Data/Text/Default` holds 22 `.bf4` fonts: 6 `FONT_FRONTEND` and 16 `FONT_INGAME`.
+Menu style selection and measurement: [menu implementation boundary](front-end-menus.md#f3-implementation-boundary). Replacement font policy: ADR-0539.
 
 | File | Bytes | Line height | Glyphs | RLE glyphs | Code-point range |
 |---|---|---|---|---|---|
@@ -288,7 +309,7 @@ window. Only some of them have an object in `Objects.kwd` (§2.1).
 | `Track_3_4HD` | 3,599,716 | 24 | 257 s |
 | `Track_ZeroHD` | 11,319,142 | 39 (21) | 808 s |
 
-The music is made of segments (`1pt1-001.mp2` …) that `musicSFX.map` sequences.
+The music is made of segments (`1pt1-001.mp2` …) that `musicSFX.map` sequences (`music.md`).
 `options_music` plays from `Track_1_4`. Which segments the front end plays is a
 DKII.EXE question (UNKNOWN). `Global/SoundFont.sf2` (404,764 B, RIFF `sfbk`) is a
 SoundFont bank; what uses it is UNKNOWN. binary-census.md places a SoundFont library
@@ -308,24 +329,10 @@ Which bank speaks the campaign-map briefings is UNKNOWN (binary question).
 
 ## 6. Movies: `Data/Movies/*.tgq`
 
-### 6.1 Format (bytes CONFIRMED; codec names from OpenKeeper and ffmpeg)
+### 6.1 Format
 
-- An EA chunked stream: `tag[4]`, `u32 size` (LE, header included). Each file has one
-  `SCHl` header, one `SCCl`, N `pIQT` video frames, about N `SCDl` audio chunks and one
-  `SCEl` end chunk.
-- `SCHl` uses the `PT` patch format. Tag `0x1B` = 25, `0x82` channels = 2,
-  `0x83` compression = 7, and `0x85` holds the sample count. There is no `0x84`
-  sample-rate tag, so the PT default of 22,050 Hz applies.
-- **The frame rate is 25 fps.** Frames ÷ 25 matches samples ÷ 22,050 to within
-  0.16 s in every file (trailer: 750 frames = 661,500 samples = 30.0 s exactly; INTRO:
-  3,288 frames, 2,900,032 samples, 131.5 s). So tag `0x1B` is the frame rate (STRONGLY
-  INFERRED from 24/24 agreement). OpenKeeper's player hard-codes 25 fps and notes that "the specs say 15".
-- **Video:** every `pIQT` frame header reads width 320 and height 480 (u16 LE after
-  the 8-byte chunk header, CONFIRMED in all 24 files). The codec is EA TGQ, an
-  intra-only 16×16-macroblock DCT codec with YCbCr 4:2:0 (OpenKeeper `TgqFrame`;
-  ffmpeg `eatgq`). How DK2 maps 320×480 onto the screen is UNKNOWN (binary).
-- **Audio:** compression 7 is EA-XA ADPCM (OpenKeeper `TgqFile` maps 0x07 to it),
-  stereo, 22,050 Hz.
+Container, codec and display evidence now live in [movie-format.md](movie-format.md);
+the shipped-file inventory below is the asset catalogue.
 
 ### 6.2 Files (CONFIRMED sizes and chunk counts; durations at 25 fps)
 
@@ -352,23 +359,12 @@ STRONGLY INFERRED there):
 `INTRO.TGQ`, `BullfrogIntro.tgq` and `trailer.tgq` are not tied to a level; when they
 play is the menu machine's question.
 
-### 6.3 Options for Unity playback
+### 6.3 Runtime playback
 
-- **ffmpeg is not installed** on this machine (`where ffmpeg` finds nothing, checked
-  2026-10-23). From the ffmpeg sources as remembered, not checked here (STRONGLY
-  INFERRED): ffmpeg has the `ea` demuxer (`electronicarts.c`, which knows `pIQT`), the
-  `eatgq` video decoder and `adpcm_ea` audio. So one offline command per file on the
-  player's machine could produce WebM (VP8 + Vorbis) or MP4 (H.264 + AAC) for Unity's
-  `VideoPlayer`. ffmpeg's demuxer may assume 15 fps for TGQ. If so, a conversion would
-  need `-r 25` on the input, or it would play at 0.6× speed out of sync (HYPOTHESIS;
-  probe one file first). The converted files are original content: generate them per
-  install and never commit them. ffmpeg would run as an external tool, never linked.
-- **A C# decoder** needs an EA demuxer (small), a TGQ decoder (MPEG-1-style intra DCT
-  with EA's own VLC tables and quantiser: medium) and EA-XA ADPCM (small). About 1,000
-  lines in all, written from a format description. OpenKeeper's Java version is GPLv3,
-  so facts only and no port. Unity would need it to upload a texture each frame.
-- Unity's `VideoPlayer` cannot open `.tgq` (CONFIRMED as far as its supported-format
-  list goes).
+The in-memory C# decoder and Unity proof of concept are built; format evidence,
+timing measurements and limits live in [movie-format.md](movie-format.md).
+The owner requires runtime reads of the install, with no ffmpeg or converted
+asset cache; sequencing remains F7 of the front-end plan.
 
 ## 7. Text (CONFIRMED, `Dk2StringTable` header counts; `str list` spot checks)
 

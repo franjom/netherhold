@@ -81,8 +81,8 @@ namespace DK2.Unity
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
         private readonly Dictionary<int, GameObject> _objects = new Dictionary<int, GameObject>();
         private readonly Dictionary<int, ObjectView> _objectPoses = new Dictionary<int, ObjectView>();
-        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)> _objectClips =
-            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight)>();
+        private readonly Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight, Fp32 Phase)> _objectClips =
+            new Dictionary<int, (AssetRef Clip, GameTick? StartedAt, bool Loops, DK2.Data.Model.TerrainLightColour AddedLight, Fp32 Phase)>();
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<StructureId, TilePos> _structureTiles = new Dictionary<StructureId, TilePos>();
         private readonly List<Material> _hoverMaterials = new List<Material>();
@@ -279,6 +279,23 @@ namespace DK2.Unity
             }
         }
 
+        public CampaignSlot PickFrontEndMap(Ray ray, IReadOnlyDictionary<int, CampaignSlot> mapSlots)
+        {
+            float nearest = float.PositiveInfinity;
+            CampaignSlot result = CampaignSlot.None;
+            foreach (var pair in _objects)
+            {
+                GameObject go = pair.Value;
+                if (go == null || !go.activeSelf || !go.TryGetComponent(out MeshFilter filter)
+                    || !go.TryGetComponent(out Renderer renderer) || !renderer.bounds.IntersectRay(ray)) continue;
+                float? triangle = NearestTriangle(filter.sharedMesh, go.transform, ray, nearest);
+                if (triangle is not float distance || distance >= nearest) continue;
+                nearest = distance;
+                result = mapSlots.TryGetValue(pair.Key, out CampaignSlot slot) ? slot : CampaignSlot.None;
+            }
+            return result;
+        }
+
         private readonly List<WorldHoverHit> _pickCandidates = new List<WorldHoverHit>();
         private readonly Dictionary<Mesh, Vector4> _pickSpheres = new Dictionary<Mesh, Vector4>();
         private readonly List<Vector4> _pickSphereScratch = new List<Vector4>();
@@ -428,6 +445,7 @@ namespace DK2.Unity
 
         public void CreateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
+            using var createScope = CreateCreatureMarker.Auto();
             // The idle model remains the fallback for a missing or unimplemented clip choice.
             GameObject go = _classic?.TryCreate(mesh, $"creature {creatureId}", _root);
             if (go != null) _meshCreatures.Add(creatureId);
@@ -442,6 +460,8 @@ namespace DK2.Unity
             if (_meshCreatures.Contains(creatureId)) _creatureShadows?.Register(go);
             PositionCreature(go, creatureId, creature, mesh.Look);
         }
+
+        private static readonly ProfilerMarker CreateCreatureMarker = new ProfilerMarker("DK2.Scene.CreateCreature");
 
         public void UpdateCreature(int creatureId, in CreatureView creature, in ResolvedAsset mesh, in ResolvedAsset animation)
         {
@@ -653,6 +673,7 @@ namespace DK2.Unity
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
             if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
+            else if (instance.TexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
@@ -668,6 +689,7 @@ namespace DK2.Unity
             PositionObject(go, objectId, instance, mesh.Look);
             ConfigureObjectClip(go, objectId, instance, mesh);
             if (instance.HeartVisual.HasValue) _classic?.ConfigureHeartDecay(go, mesh, instance.HeartVisual.Value.DecayPhase, instance.AddedLight);
+            else if (instance.TexturePhase is Fp32 phase) _classic?.ConfigureTexturePhase(go, mesh, phase, instance.AddedLight);
             if (_meshObjects.Contains(objectId)) _classic?.SetAlpha(go, instance.Alpha);
         }
 
@@ -681,7 +703,7 @@ namespace DK2.Unity
                 return;
             }
             _objectPoses[id] = pose;
-            var identity = (mesh.Reference, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight);
+            var identity = (mesh.Reference, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight, pose.AnimationInitialPhase);
             if (_objectClips.TryGetValue(id, out var previous) && previous == identity) return;
             _objectClips[id] = identity;
             double startSeconds = pose.AnimationStartedAt.HasValue
@@ -689,7 +711,7 @@ namespace DK2.Unity
                 : _renderSeconds;
             if (_classic != null && _meshObjects.Contains(id)
                 && _classic.ConfigureAnimation(go, mesh, pose.AnimationLoops, startSeconds,
-                    phaseStepOverride: pose.HeartVisual?.PhaseStep, addedLight: pose.AddedLight)) return;
+                    phaseStepOverride: pose.HeartVisual?.PhaseStep, addedLight: pose.AddedLight, initialPhase: pose.AnimationInitialPhase)) return;
             go.GetComponent<ClassicCreatureAnimation>()?.Stop();
             if (_classic != null && _meshObjects.Contains(id)) _classic.RestoreModel(go, mesh, pose.AddedLight);
         }

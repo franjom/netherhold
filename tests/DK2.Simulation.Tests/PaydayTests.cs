@@ -279,6 +279,31 @@ public class PaydayTests
     }
 
     [Fact]
+    public void TheClockSetsACreditedCreatureOffAtOnce_WhateverTheNeedsRoutinesRetryStamp()
+    {
+        // payday.md §2: the clock 0x004BE1A0 calls the collect decision 0x00472320 itself for each
+        // creature it credits; the every-fourth-turn stamp is the needs routine's (0x00477F69). The
+        // turn calls the clock (0x0050A7BE) before the creature sweep (0x0050A7D7), so the walk's
+        // first steering step runs on the payday tick too; this Goblin faces away from the treasury,
+        // so that step turns it.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        var sim = new GameSimulation(db, world, seed: 42,
+            [new CreatureUpdateSystem(new PaydaySystem(), new CreatureMovementSystem())]);
+        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++) sim.Tick(InputFrame.Empty);
+        goblin.NextPayTryTick = sim.CurrentTick.Value + 100;
+        int heading = goblin.Heading;
+
+        sim.Tick(InputFrame.Empty);
+
+        Assert.Equal(500, goblin.WageOwed);
+        Assert.Equal(CreatureActivity.SeekingWages, goblin.Activity);
+        Assert.NotEqual(heading, goblin.Heading);
+    }
+
+    [Fact]
     public void ACreatureWhoseHappyTableHoldsDrinkGoesFromItsWagesStraightToTheCasino()
     {
         // State 189's tail (Q421): after a take, the happy table is walked for job 9 and the

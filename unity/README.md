@@ -28,9 +28,38 @@ is the authority), put `DungeonRunner` on a GameObject in a scene, and press Pla
 Point it at a DK2 install with the component's **Install Directory** field or the
 `DK2_DIR` environment variable.
 
-Path subtitles use Bullfrog's DungeonKeeperII TrueType face when the machine has it
+For the front end, set **Session Mode** to **Front End** on the runner
+before Play, or use **DK2 / Front End / Open Front End** while playing. The
+**Preview** submenu flies to Options, Extras, the campaign table, Pet Dungeon or
+Multiplayer. Main, Single Player, Options and Extras shells and Quit confirmation
+are clickable. New/Continue Campaign lead to the3D map and briefing; locked and closed
+branches cannot be picked. Reset confirmation preserves progress on cancel.
+On widescreen the front-end camera keeps DK2's 4:3 vertical view (wide screens show more at the sides) and the menu draws its 640x480 layout as a centred uniform-scale box.
+The briefing go button starts the campaign level; at its result Space returns to the front end's statistics page, and the page shows the level-end statistics rows with DK2's list scroll bar (arrows, track and thumb drag; no mouse wheel) and the objective images; accept there flies back to the map, first offering hi-score name entry (page 18, typed with Backspace/Enter) when a won level's rating qualifies. After a won campaign level the front end plays its cutscene first (`DungeonRunner.Cutscene`: Speech.str title card on black, a 2 s hold, then the movie; level 20 plays two outros); a front-end-launched level starts with the carried transfer creature placed by `DungeonRunner.LevelEnd`. Hi-scores load from `HiScores.dat` under `persistentDataPath`, else the install's read-only copy. Loading, multiplayer
+and media actions remain dimmed; option values are not yet bound. Menu labels
+use the local TrueType face described below, with original bitmap fallback and
+original glyph metrics (ADR-0539).
+Campaign progress uses `campaign-profile.dk2p` under Unity
+`Application.persistentDataPath`; first creation may import the original registry
+read-only. The runner Campaign Profile File and Hi Scores File overrides support isolated probes.
+Two editor-only previews (`DungeonRunner.Preview.cs`) sit in the DungeonRunner component's
+context menu in Play mode, so the level-end screens can be seen without winning. **DK2 / Preview
+win screen** plays the running level's reward tablets; it is refused once the level's result is
+recorded. **DK2 / Preview statistics page** returns to the front end as if the current map had been
+won, with sample statistics, using copies of the campaign profile and `HiScores.dat` in
+`Application.temporaryCachePath/dk2-preview`; the real files are never written, and the copies
+(set into the two override fields) stay in use until Play mode stops.
+The editor menu DK2/Movies/Play Bullfrog Intro plays the install's intro through
+`ClassicMoviePlayer` (decoders in `DK2.Data/Media`; needs Unity's built-in Audio module).
+Runtime callers use `DungeonRunner.LoadLevel(GameSessionRequest)` to switch a
+named campaign level or return to the front end. The replacement preserves the
+runner's render settings and campaign fog setting. No scene file is saved.
+
+Path subtitles and the win screen's Speech.str text (`DungeonRunner.DrawSubtitleText`) use
+Bullfrog's DungeonKeeperII TrueType face when the machine has it
 at `DK2.Unity/Assets/Resources/Fonts/DungeonKeeperII.ttf` (gitignored, not ours to
-ship; a copy is at wfonts.com/font/dungeonkeeperii). Otherwise they use DK2's own
+ship; a copy is at wfonts.com/font/dungeonkeeperii; a fresh worktree's Unity project lacks it,
+see `docs/TRAPS.md`). Otherwise they use DK2's own
 bitmap font from the install, at the shipped size that reads at the screen height
 (`InterfaceFonts.LegibleFileName`, not DK2's own size rule; Q608), and failing
 that Unity's default font.
@@ -87,6 +116,18 @@ Right click drops the held creature, or slaps a creature when the hand is empty.
 its name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
 rooms by name. Choose Lair to build sleeping space. Drag Build and Sell rectangles;
 click Create Imp. The tool hotkeys are interface choices (ADR-0104).
+
+## Recording input
+
+Off by default. Set the runner's **Input Journal Directory** field, or the `DK2_INPUT_JOURNAL`
+environment variable (the field wins), to a folder. Each `DungeonRunner` writes a new
+`session-<utc>-<level or front-end>` folder there with `frames.journal` (one record per rendered
+frame: raw input, HUD flags, intents, queued commands, ticks run) and, once its simulation ticks,
+`input.journal` (the ADR-0552 format: the frame and the hash after each tick). A front-end walk
+into a level leaves two folders. A journal that fails stops itself and logs a warning, never the
+game. Journaling is hash-neutral but not timing-neutral (the tick thread hashes every tick).
+Point it at `D:\DK2Evidence\runs\unity-input-<date>\` for sessions worth keeping. Design and
+what is not built: ADR-0553, `docs/plans/2026-10-27-stage-d-unity-input.md`.
 
 ## Verifying the adapter without opening Unity
 

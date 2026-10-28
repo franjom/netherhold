@@ -1,4 +1,16 @@
-# Unity crowd performance probe
+﻿# Unity crowd performance probe
+
+## Front-end session
+
+Build Release, then run `tools/classic-unity-probe/run-front-end.ps1`. It creates
+a fresh isolated Unity project beneath this checkout's `build/`, renders five
+front-end stations and the multiplayer return, and checks a campaign round trip,
+one active runner, unchanged campaign fog, no front-end HUD and no simulation
+ticks. Captures and logs stay under the generated directory. It reads the original
+install at runtime and does not change the owner's open project or save a scene.
+These checks establish remake rendering/lifecycle behavior, not matched-original
+visual fidelity. Unity's Search indexing exception may occur independently during
+fresh-project import; runner/render errors and blank captures fail the probe.
 
 ## Dig-tag overlay ordering
 
@@ -45,8 +57,107 @@ that the promotion emits particles which expire. Source evidence and limits:
 
 Add `-PortalMovement` for an original-art Goblin walking past the portal crystals.
 `DK2_PORTAL_MOVEMENT_CAPTURE_OUTPUT` selects PNG/position-CSV output. The probe
-checks every simulation segment and requires the creature to reach its goal.
-This verifies the remake's clipping correction, not native route parity.
+requires the creature to reach its goal; it no longer enforces crystal clearance
+following the owner's rollback (ADR-0527). Native route parity is not claimed.
+
+## Spell slot state regression
+
+`run-tag-overlay.ps1 -SpellSlotStates` runs only `SpellSlotStateProbe` in the
+marked isolated project. It checks the actual Level2 Unity panel's icon tint and
+selection for availability 2/4/3 at 0/3000/6000 mana, suppression of unknown-slot
+flash sparkles, and retention of the unknown research overlay. It fails the former
+cost-dependent question-mark tint. These are retained widget-state assertions,
+not a screenshot or original-game pixel comparison.
+
+## Portal arrival performance research
+
+`run-tag-overlay.ps1 -PortalPerformance` runs only the research timing probe.
+It holds a Level2 portal view while comparing effect165, light exclusion,
+geometry/light exclusion, a frozen effect clock and repeated baselines.
+`DK2_PORTAL_PERFORMANCE_OUTPUT` selects the output directory. CSV contains
+scoped CPU timings, recent custom-marker counters and active run counts;
+PNGs check the fixture. Explicit render-request time is not GPU time or FPS.
+For ordinary screen rendering, use a prepared isolated project with current
+production Assets and DK2 DLLs, then run:
+
+```powershell
+./tools/classic-unity-probe/run-window-frames.ps1 `
+  -Unity 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe' `
+  -Project 'D:/DungeonKeeperRemake/build/tag-overlay-probe/project' `
+  -OutputRoot 'D:/DungeonKeeperRemake/build/portal-introduction-live' `
+  -PortalIntroduction -VisiblePlayer
+```
+
+No open Unity session is needed. The launcher builds an isolated Development
+player and exits after the normal Level2 Warlock introduction capture. Reuse
+that executable with `-ExistingPlayer <path>` and add `-OmitArrivalEffect` for
+the matched control; repeat without omission to check stability. Keep the
+profiling window visible: hidden windows can skip rendering entirely. A failed
+`RenderingVerified` check invalidates performance results. CSV, PNG, metadata,
+logs, source fingerprints and built managed-DLL hashes accompany each capture.
+
+For the strict release FPS gate, install the pinned portable PresentMon once:
+
+```powershell
+./tools/classic-unity-probe/install-presentmon.ps1
+./tools/classic-unity-probe/run-window-frames.ps1 `
+  -Project 'D:/DungeonKeeperRemake/build/tag-overlay-probe/project' `
+  -PortalIntroduction -VisiblePlayer -ReleasePlayer -CheckFrameBudget `
+  -CompareGraphicsApis -GraphicsApi Vulkan
+```
+
+`-CheckFrameBudget` selects lightweight FPS tracing and disables Unity Frame
+Timing Stats at build time. It requires every measured CPU loop and native
+presentation interval to meet the target in `performance-target.json`.
+The current minimum is 60 FPS; a fast average cannot excuse a hitch.
+The helper verifies the official PresentMon download's SHA256 and Intel signature.
+The launcher starts tracing before the player and releases only its own ETW session.
+Cooperating graphics probes use an exclusive file lease to prevent overlap.
+
+`-GraphicsApi Direct3D12` or `Direct3D11` selects another compiled backend;
+`-ExistingPlayer <exe>` reuses the exact player for comparisons. Its built-DLL
+hashes identify executed code; current source hashes alone do not establish a
+reused player's source provenance. Rebuild after source changes. The comparison
+API list affects only the isolated project, not production settings.
+
+Without the gate, `-TraceMode diagnostic-gpu -PresentMon <exe>` captures GPU
+diagnostics. This instrumentation cannot certify FPS acceptance. Recheck captures
+with `python tools/classic-unity-probe/frame_budget.py <run-directory>`;
+use `--mode diagnostic-gpu` for diagnostic captures. Exit codes are 0 pass,
+1 budget failure, 2 invalid evidence, and 3 diagnostic only. Screenshots are
+outside the acceptance interval. Tests run with `python -m unittest discover
+-s tools/classic-unity-probe -p test_frame_budget.py`.
+
+Acceptance scope and remaining coverage: [performance policy](../../docs/PERFORMANCE.md).
+
+To attribute introduction hitches, use `-PortalIntroduction -VisiblePlayer
+-TraceMode cpu -GraphicsApi Vulkan` without `-ReleasePlayer`. The Development
+player saves `arrival-cpu.raw`; the launcher exports `cpu-samples.csv` and
+validates that every close-up frame is present. Sample/parent/thread indices
+preserve identity; inclusive and self times describe CPU scopes, not GPU time.
+Ordinary samples below0.1ms are omitted, but DK2 markers, buffer creation and
+allocations are retained. Profiling and unique frame labels add overhead.
+`-ArrivalAllocationStacks` additionally records allocation call stacks in the
+raw profile; the ordinary CSV identifies their immediate parent scope.
+
+```powershell
+python tools/classic-unity-probe/summarize-arrival-cpu.py <run> --output <summary.json>
+./tools/classic-unity-probe/run-arrival-cpu-report.ps1 -ResourcesOnly -Profiles <arrival-cpu.raw>
+python tools/classic-unity-probe/summarize-arrival-cpu.py <run> --samples cpu-resources.csv
+```
+
+Offline reports use the same exclusive lease and marked isolated project.
+Resource-only export avoids writing all allocation events while retaining every
+buffer-creation sample and custom marker. Source snapshots accompany reports.
+
+For native GPU scheduling diagnostics, reuse a current Release FPS player with
+`-TraceMode native-gpu -NoArrivalScreenshot -PresentMon <exe>`. This keeps Unity
+per-frame GPU measurement off and enables GPU tracking in ETW. Run lightweight
+FPS/native GPU/lightweight FPS serially on the same executable. Validate the
+middle capture with `frame_budget.py <run> --mode diagnostic-gpu`; it remains
+diagnostic regardless of its timings. Rebuild old players before using new modes.
+
+Setup, measured results and limits: [portal arrival performance](../../docs/research/portal-arrival-performance.md).
 
 ## Camera reference capture
 
@@ -365,3 +476,23 @@ Earlier HEAD-source CPU baselines are `20261011-184034` (Imp) and
 4.679/6.198 ms respectively; final production changes show no consistent timing
 regression across these single captures. Screen-only batch attempts are excluded
 because their PNGs were black and triangle counts zero.
+
+## Menu verification
+
+Run `run-front-end.ps1 -Menus` after building Release. The isolated project uses
+its own copied scene and DLLs; it does not save the source scene. The local
+`DungeonKeeperII.ttf` described in `unity/README.md` is required for the font path.
+The probe checks menu navigation, station gates, option-shell return and Quit
+cancel, checks the root 48px Confirm/Cancel pair, captures hover, and compares font/bitmap alpha bounds within two pixels
+at 1024x768 and 1600x900. It also rejects black replacement glyphs. Each run writes
+a fresh `menu-captures-*` folder beneath its scratch root.
+
+The 2026-10-25 F3 run passed: first-label bounds were 298x43 versus 299x43 at
+1024x768 and 465x50 versus 467x51 at 1600x900. This verifies replacement sizing;
+it is not original-game visual acceptance.
+
+For F4, use `run-front-end.ps1 -Campaign`. It includes the menu checks, then
+uses its own scratch campaign file to exercise reset cancel/confirm, a real3D
+triangle pick, map hover/lift, briefing font and bitmap paths, and return paths.
+It also replaces the session with a progressed return-to-map profile and checks
+the won texture phase. It never resets the owner's campaign file.

@@ -33,6 +33,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private readonly Func<EffectTime> _clock;
     private readonly HashSet<ushort> _crumblingEffects;
     private readonly HashSet<ushort> _heartManaEffects;
+    private readonly bool _pillarHeightHeartSparkles;
     private readonly Func<string, IReadOnlyList<EffectGroupPart>?>? _groupParts;
     private readonly Func<int, uint, EffectAttachment>? _attachment;
 
@@ -54,6 +55,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private readonly Func<ViewEffectRequest, CaptureEdges>? _captureEdges;
     private long _lastUpdateMilliseconds;
     private int _lastEmitterId;
+    private readonly Dictionary<PlayerId, EffectTime> _heartRevealReadyAt = [];
+    private readonly HashSet<PlayerId> _heartsWaitingForPlugBurst = [];
+    private const ushort HeartPlugGroupExplosionEffectId = 215;
 
     public RoomConstructionParticles(GameDatabase database, ulong seed, Func<EffectTime> clock,
         Func<RoomConstructionEffect, bool>? visible = null,
@@ -68,10 +72,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     {
         _groupParts = groupParts;
         _attachment = attachment;
-        _heartManaEffects = heartSparkleStyle == HeartSparkleStyle.PillarHeight
-            ? new HashSet<ushort>(database.Rooms.Values.Where(r => r.TypeId == RoomTypeId.DungeonHeart)
-                .Select(r => r.CreatedObjectEffectId).Where(id => id != 0))
-            : [];
+        _pillarHeightHeartSparkles = heartSparkleStyle == HeartSparkleStyle.PillarHeight;
+        _heartManaEffects = new HashSet<ushort>(database.Rooms.Values.Where(r => r.TypeId == RoomTypeId.DungeonHeart)
+            .Select(r => r.CreatedObjectEffectId).Where(id => id != 0));
         _database = database;
         _random = new SimRandom(seed);
         _visible = visible;
@@ -110,7 +113,29 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             || !_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
             || !SupportsEffect(definition)) return;
         AdvanceTo(_clock());
+        if (request.EffectId.Value == HeartIntroRules.StartLevelEffectId)
+        {
+            _heartRevealReadyAt[request.Owner] = new EffectTime(
+                _clock().Milliseconds + HeartIntroRules.SequenceSeconds * 1000);
+            _heartsWaitingForPlugBurst.Add(request.Owner);
+        }
+        if (HeartPlugBlocksMana(request)) return;
         AddEmitterChain(definition, request);
+    }
+
+    private bool HeartPlugBlocksMana(ViewEffectRequest request)
+    {
+        if (!_heartManaEffects.Contains(request.EffectId.Value)) return false;
+        if (_heartRevealReadyAt.TryGetValue(request.Owner, out EffectTime readyAt)
+            && (_clock().Milliseconds < readyAt.Milliseconds
+                || _heartsWaitingForPlugBurst.Contains(request.Owner))) return true;
+        // The opening uses its own clock: wait for the intact/cracked lid (heart-intro.md section 2),
+        // including its last child, rather than letting a simulation turn expose mana through it.
+        foreach (Emitter emitter in _emitters)
+            if (emitter.Request.Owner == request.Owner && (emitter.Definition.Flags & 0x40) == 0
+                && (emitter.Definition.GenerateIds.Contains((ushort)406)
+                    || emitter.Definition.GenerateIds.Contains((ushort)403))) return true;
+        return false;
     }
 
     /// <summary>An effect instance and, created with it, its Next effects (<c>0x00440350</c> loops
@@ -122,6 +147,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         for (int link = 0; next != null && link < LongestChain; link++)
         {
             if (!SupportsEffect(next)) break;
+            if (next.EffectId == HeartPlugGroupExplosionEffectId)
+                _heartsWaitingForPlugBurst.Remove(request.Owner);
             // Only the instance the caller was handed is tied to a thing (0x004810E0 writes its +0x133).
             Emitter emitter = CreateEmitter(next, link == 0
                 ? request with { EffectId = new EffectId(next.EffectId) }
@@ -288,7 +315,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             Red = red, Green = green, Blue = blue,
             HeadingRaw = heading, PreviousHeadingRaw = heading,
         };
-        if (replaced == null && _heartManaEffects.Contains(effect.EffectId))
+        if (replaced == null && _pillarHeightHeartSparkles && _heartManaEffects.Contains(effect.EffectId))
         {
             // Owner-requested presentation adjustment (ADR-0474, Q594); native motion remains the default.
             particle.VelocityZ = particle.VelocityZ * HeartSparkleRisePerMille / 1000;

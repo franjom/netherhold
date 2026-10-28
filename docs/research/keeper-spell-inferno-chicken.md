@@ -189,6 +189,9 @@ census only.
 
 ## 4. Inferno
 
+What it shows (the fire carpet, burning creatures, the camera jitter) is
+[shot-effects.md](shot-effects.md) §5.
+
 **The shot.** `0x004BBD30` checks permission and mana. When the row's `Upgraded`
 byte is set it takes the upgraded shot byte as well as the upgraded data. The
 creature path keeps the normal shot byte, but Inferno's two shot bytes are both 15,
@@ -257,7 +260,8 @@ The hit test ignores z, so only the shot's lifetime is at risk.
 Immune: Salamander, Giant, Horny and Unique Salamander (Horny is already refused by
 the health routine). Firefly, Fairy and Unique Firefly burn despite `CanWalkOnLava`,
 because they can fly. Burning is set even on a creature the health routine then
-refuses. Its countdown is display only (`creature-status-effects.md` §1).
+refuses. Its countdown changes no health, but its flames draw on the simulation
+stream (`creature-status-effects.md` §2, Q658).
 **Not involved:** the creature byte `+0x4D6` that the dumper names `SuckedByInferno`.
 `Creature_Update` decrements it and the animation chooser reads it, but none of the
 six stores the field scan found writes a nonzero value into a creature.
@@ -277,8 +281,8 @@ six stores the field scan found writes a nonzero value into a creature.
 
   Those callers are unread (Q397).
 - `shots.md` §4 step 7 is corrected above.
-- **UNKNOWN:** when the shot's first update runs relative to the cast. This is the
-  same gap as Heal's (`keeper-spell-casting.md` §4).
+- **Timing (ADR-0551):** a player's cast moves the turn it is made, the computer keeper's the next
+  turn; ours matches both (`keeper-spell-casting.md` §4).
 - **UNKNOWN:** `+0xF2`.
 - **UNKNOWN:** the original run (Q498).
 

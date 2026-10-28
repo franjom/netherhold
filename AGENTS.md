@@ -242,9 +242,19 @@ one of that line’s numbers, and blocking each one would teach everybody to pas
 ### Traps go where every agent reads them
 
 When a tool, an encoding, a shell quirk or a process step costs you time, add one line to
-`docs/TRAPS.md` in the same change, and read that file before long work. Claude's memory and
-Codex's memory are private to each agent and neither reads the other's; the repository is the
-only place a lesson reaches the next session of either. Delete the line when its cause is fixed.
+`docs/TRAPS.md` in the same change, and read that file before long work. Delete the line when
+its cause is fixed. TRAPS.md holds only what has burned us.
+
+### Shared memory is the Docker MCP memory graph
+
+Owner rule 2026-10-25: Claude and Codex share one memory, the `memory` server of the Docker
+MCP gateway (`MCP_DOCKER`, profile `local`). At the start of a session, read it
+(`search_nodes` for the topic, or `read_graph`). Write to it whatever the next session of
+either agent needs and the repository does not already record: owner decisions and
+preferences, the state of work in progress, where evidence lives. Use `create_entities` for a
+new subject and `add_observations` to add a dated fact to an existing one. Delete
+observations that turn out to be wrong. Each agent's private memory is not read by the other,
+so anything meant for both goes in the graph, and traps go in `docs/TRAPS.md`.
 
 ### Every verified task ends with a documentation pass
 

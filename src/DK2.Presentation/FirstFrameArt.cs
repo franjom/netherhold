@@ -18,13 +18,18 @@ namespace DK2.Presentation;
 /// </summary>
 public static class FirstFrameArt
 {
-    public static IReadOnlyCollection<AssetRef> Keys(GameDatabase database, WorldState world, PlayerId viewer)
+    public static IReadOnlyCollection<AssetRef> Keys(GameDatabase database, WorldState world, PlayerId viewer,
+        IReadOnlyList<FrontEndProp>? frontEndScenery = null)
     {
         if (database is null) throw new ArgumentNullException(nameof(database));
         if (world is null) throw new ArgumentNullException(nameof(world));
 
         var view = new WorldView(database, viewer);
+        if (frontEndScenery is not null) view.FrontEndScenery = frontEndScenery;
         var keys = new HashSet<AssetRef>();
+        if (frontEndScenery is not null)
+            foreach (FrontEndProp prop in frontEndScenery)
+                if (prop.MarkerSlot.HasValue) Add(keys, prop.View.Mesh);
         foreach (AssetRef key in view.TerrainArtKeys(world)) Add(keys, key);
 
         foreach (CreatureView creature in view.Creatures(world))

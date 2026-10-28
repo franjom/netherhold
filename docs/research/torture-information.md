@@ -78,5 +78,5 @@ Speech `0x61` goes to the chamber's keeper. Then `0x60` follows for 3–10, and 
 - `TortureSystem` emits `information` with the reward.
 - **Not built:**
   - the panel;
-  - reward 11's reveal and tag, since there is no fog of war;
+  - reward 11's reveal and tag (fog of war itself shipped under ADR-0076, so this no longer needs one);
   - the speech.

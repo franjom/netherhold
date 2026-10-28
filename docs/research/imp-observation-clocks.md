@@ -30,9 +30,11 @@ timestamps. They must not be silently relabelled as snapshot headers. The live
 165/171 boundary probes and their stored work-entry stamps retain their original
 clock domain; their local binary-call results are unchanged by this correction.
 
-The native starting four workers first appear at header 2; modern starts with
+In that Level 4 capture, the starting four workers first appear at header 2; modern starts with
 them already present at post-turn 1. That initial-condition difference must be
 measured separately rather than erased with a universal one-turn translation.
+The [fresh Level 1 capture](decision-parity-audit.md#level-1-captured-construction-window-and-trigger-visibility)
+has a different initial observation, reinforcing that limit on generalisation.
 
 ## Consequences and reproduction
 

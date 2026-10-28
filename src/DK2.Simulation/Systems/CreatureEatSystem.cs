@@ -21,7 +21,7 @@ namespace DK2.Simulation.Systems;
 /// (Q174); the retry cadence living here; and no post-meal wander round the hatchery
 /// (the original's state 0x5F, cosmetic — Q175).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/eating.md")]
-public sealed class CreatureEatSystem : ISimulationSystem
+public sealed class CreatureEatSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CreatureEat";
 
@@ -35,70 +35,67 @@ public sealed class CreatureEatSystem : ISimulationSystem
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    /// <summary>The hunger branch of the needs routine (<c>0x00477C20</c>) and the eating states,
+    /// in the creature's update before its state handler.</summary>
+    public void Update(SimulationContext context, CreatureState creature)
     {
-        WorldState world = context.World;
         GameDatabase database = context.Database;
+        if (creature.Possessed) return;
+        CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
 
-        IReadOnlyList<CreatureState> creatures = world.Creatures;
-        for (int i = 0; i < creatures.Count; i++)
+
+        if (!CreatureHealthRules.CanGetHungry(definition)) return;
+        if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
+
+        // A creature walking out for good does not stop for lunch, for the
+        // same reason it does not stop for a bed.
+        if (creature.Activity == CreatureActivity.Leaving) return;
+        if (Combat.CombatRules.Preoccupied(creature)) return;
+
+        if (creature.Dk2StateId == EatingRules.AfterMealState)
         {
-            CreatureState creature = creatures[i];
-            if (creature.Possessed) continue;
-            CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+            if (context.Tick.Value < creature.ActionUntilTick) return;
+            creature.ActionUntilTick = 0;
+            if (creature.FoodOwedAfterMeal) BackToTheSearch(context, creature);
+            else GiveUp(context, creature);
+            return;
+        }
 
+        switch (creature.Activity)
+        {
+            case CreatureActivity.FetchingChicken:
+                Fetching(context, creature, definition);
+                break;
 
-            if (!CreatureHealthRules.CanGetHungry(definition)) continue;
-            if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) continue;
+            case CreatureActivity.SeekingFood:
+                Seeking(context, creature, definition);
+                break;
 
-            // A creature walking out for good does not stop for lunch, for the
-            // same reason it does not stop for a bed.
-            if (creature.Activity == CreatureActivity.Leaving) continue;
-            if (Combat.CombatRules.Preoccupied(creature)) continue;
+            default:
+                // Asleep is left asleep: the original's needs routine
+                // refuses outright while the creature is in the sleeping
+                // state category (Q176, read from the binary).
+                if (creature.Activity is CreatureActivity.Sleeping
+                    or CreatureActivity.GoingToSleep) break;
 
-            if (creature.Dk2StateId == EatingRules.AfterMealState)
-            {
-                if (context.Tick.Value < creature.ActionUntilTick) continue;
-                creature.ActionUntilTick = 0;
-                if (creature.FoodOwedAfterMeal) BackToTheSearch(context, creature);
-                else GiveUp(context, creature);
-                continue;
-            }
+                // An idle creature goes looking, and so does one at a job whose state
+                // admits Eating: the needs routine's mask test (NeedRules, ADR-0198).
+                if (!NeedRules.MayAsk(creature, CreatureStateCategory.Eating)) break;
+                if (!EatingRules.IsHungry(database, definition, creature)) break;
 
-            switch (creature.Activity)
-            {
-                case CreatureActivity.FetchingChicken:
-                    Fetching(context, creature, definition);
-                    break;
+                // At most one attempt a game second, the original's
+                // LastAttemptedHunger test.
+                creature.FoodAttemptTicks--;
+                if (creature.FoodAttemptTicks > 0) break;
+                creature.FoodAttemptTicks = EatingRules.RetryTicks;
 
-                case CreatureActivity.SeekingFood:
-                    Seeking(context, creature, definition);
-                    break;
+                // The busy test comes after the stamp, so a busy creature spends the try.
+                if (NeedRules.IsBusy(context.World, creature, context.Tick.Value)) break;
 
-                default:
-                    // Asleep is left asleep: the original's needs routine
-                    // refuses outright while the creature is in the sleeping
-                    // state category (Q176, read from the binary).
-                    if (creature.Activity is CreatureActivity.Sleeping
-                        or CreatureActivity.GoingToSleep) break;
-
-                    // An idle creature goes looking, and so does one at a job whose state
-                    // admits Eating: the needs routine's mask test (NeedRules, ADR-0198).
-                    if (!NeedRules.MayAsk(creature, CreatureStateCategory.Eating)) break;
-                    if (!EatingRules.IsHungry(database, definition, creature)) break;
-
-                    // At most one attempt a game second, the original's
-                    // LastAttemptedHunger test.
-                    creature.FoodAttemptTicks--;
-                    if (creature.FoodAttemptTicks > 0) break;
-                    creature.FoodAttemptTicks = EatingRules.RetryTicks;
-
-                    // The busy test comes after the stamp, so a busy creature spends the try.
-                    if (NeedRules.IsBusy(context.World, creature, context.Tick.Value)) break;
-
-                    TrySetOutForAHatchery(context, creature, definition);
-                    break;
-            }
+                TrySetOutForAHatchery(context, creature, definition);
+                break;
         }
     }
 

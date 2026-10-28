@@ -223,7 +223,7 @@ whose line from the heart's stored position (8,8) meets the wall at (4,8); ours 
 (8,4). Built, seeds 1-10: (4,8) at 7-10, (19,4) at 81 in seed 1, seam from 161, Portals at 36 and
 159 (DK2 40, 164); the Prison's first tile at 708-879 (663-865 before; DK2 855) and a Training
 Room at 1049-1307 in nine seeds (DK2 grows its own at about 1,200), a Torture Chamber in one
-(seven before; DK2 none). (8,4) is still tagged at 151-161 in four seeds, while Portal A is
+(seven before; DK2 none). These are the figures before the traps-and-doors step (ADR-0561); with it the Training growth is gone in all ten seeds (`computer-keeper-management.md` §9). (8,4) is still tagged at 151-161 in four seeds, while Portal A is
 being claimed (159; DK2 164).
 
 **Training drops (Q509, 2026-10-06).** The capture answers Q509: Harkan lifts his three level-7
@@ -385,4 +385,5 @@ record's gold. Ticks are DK2's (ours in brackets).
 | recruits | Level 11A imps | five imps at 1,500-7,500 mana, ticks 23-307 (20-292), in the Level 11A section | — |
 | trains | Level 17 Training drops | the knights lifted at 6, 7, 11 (5, 6, 7) onto the same two cells, refused, lifted again | each knight's first re-lift 45-73 ticks after its refusal, later ones 4-6; DK2's every one 4 (Q509) |
 | defends | Level 11A, Morgana | repairs the wall from 101, which falls at 387 (seeds 1-10: 72-88 where her slapped reinforcer left it rock, else 240-404); her heart sends her imps to fight in the hole (ADR-0407): 11 engage in seed 7, 5 of Drako's and 6 of hers (DK2's capture: 6 of Drako's, 5 of hers); both lift a wounded imp out | the hole is claimed at 420 in seed 7 (638) (Q563) |
+| lays traps and doors | Level 17 Harkan's doors (ADR-0561) | the same door sites, (19,4) first; DK2 lays Magic 204, Wooden 915, Magic 1182 (three identical captures) | Training 12 -> 20 at 1111-1138 in DK2, 0 of 10 seeds in ours (the usual Magic Door leaves the keeper short at the decision); Prison 9 of 10 |
 | attacks | Level 11A, Drako | Morgana first, then Belial; same bridges; the call two tiles off her heart in a drawn diagonal | call 700 on (64,38) (seeds 1-10: Morgana first in 8, calls 192-741, on (64,38) in 2; seeds 4 and 5 turn west, Q574); Morgana falls 1,378 (666-1,028) (Q563) |

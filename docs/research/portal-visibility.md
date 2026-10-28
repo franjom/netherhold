@@ -89,7 +89,7 @@ Battle-record structure has its home in [binary-census.md §3](binary-census.md#
 
 **GUESS:** the reported flashing patch is the ordinary neutral palette cycle.
 This has not been matched to the owner's display. A changing room-colour patch
-and a separate marker are different observations; Q650 asks which is present.
+and a separate marker are different observations; Q669 asks which is present.
 There is no newly established Hero Portal marker to build.
 
 ## Mercenary eligibility
@@ -121,7 +121,7 @@ the fog seed (`0x0050B5D5`).
 
 ## Remaining boundary
 
-Q197 stays open. Q650 asks when the entrances first become visible and what
+Q197 stays open. Q669 asks when the entrances first become visible and what
 shape flashes in a fresh original game. Next identify the discovery source
 and trace the bridge light's flag through surface lighting before attributing
 an exception to room25. No simulation state,

@@ -60,6 +60,12 @@ public struct TileState
     /// </summary>
     public PlayerMask TaggedBy;
 
+    /// <summary>Native tile byte +0x0B bit 0: a concealed Secret Door, independent of dig tags.</summary>
+    public bool SecretDoor;
+
+    /// <summary>Keepers with a kind-11 entry here. Rectangle untag removes only kinds 1 and 2.</summary>
+    public PlayerMask SecretDoorTasks;
+
     /// <summary>When this tile was last marked, from <see cref="WorldState.NextTagOrder"/>; 0
     /// unmarked. DK2 files a marked tile at the head of its keeper's task list for the kind
     /// (<c>0x00507bb0</c>), and its dig walk keeps the first of equally near tasks, so the most
@@ -193,6 +199,7 @@ public struct TileState
     /// Zero for the map's own rooms, which DK2 loads in row-major order. Kept by
     /// <see cref="SlabChain"/> (room-slab-chain.md).</summary>
     public int SlabOrder;
+    public RoomListPosition RoomListPosition;
 
     /// <summary>A room's <c>GameTickLastOnChangeSize</c> (<c>room+0x9F</c>), held on each of its tiles:
     /// the tick <see cref="SlabChain"/> last rebuilt the room, which <c>Room_Construct</c> and
@@ -266,6 +273,8 @@ public struct TileState
         hash.Add(GoldHeld);
         hash.Add(StoreGoldHeading ?? ushort.MaxValue);
         hash.Add(TaggedBy.Bits);
+        hash.Add(SecretDoor);
+        hash.Add(SecretDoorTasks.Bits);
         hash.Add(DiscoveredBy.Bits);
         hash.Add(ExploredBy.Bits);
         hash.Add(FreshlyDug ? (byte)1 : (byte)0);
@@ -282,6 +291,7 @@ public struct TileState
         hash.Add(PrisonDoor);
         hash.Add(PrisonDoorAnimationTick);
         hash.Add(SlabOrder);
+        hash.Add(RoomListPosition.Value);
         hash.Add(RoomSizeChangedTick);
         hash.Add(RoomKickedTick);
         hash.Add(RoomRuined);
@@ -336,9 +346,8 @@ public struct PlayerState
     /// <c>IsGood</c> creature dies, to the player its health source names, or else to the owner
     /// of its first engaged attacker; no owner test, so a keeper's own hero counts and the hero
     /// player can credit itself. Zeroed by <c>Player_Initialise</c>.</summary>
-    /// <remarks>Not built: the level-end pass <c>0x004BE9E6</c> that also counts hero-owned
-    /// creatures still dying whose source names the player — we have no level-statistics
-    /// point to run it at.</remarks>
+    /// <remarks>The level-end pass <c>0x004BE9E6</c> also counts hero-owned creatures still
+    /// dying whose source names the player (<see cref="LevelStatisticsRules.Sample"/>).</remarks>
     public int HeroesDestroyed;
 
     /// <summary>Slaps this keeper has been counted for, DK2's <c>player+0xEE6</c> —
@@ -427,8 +436,22 @@ public struct PlayerState
     /// <summary>DK2's manufacture list, <c>player+0x219</c>: the orders waiting, head first.</summary>
     public List<ManufactureOrder> ManufactureQueue;
 
+    /// <summary>The ring's tail, <c>ring+0x802</c>: the slot the next order is written to, 0 to 127.</summary>
+    public byte ManufactureRingTail;
+
+    /// <summary>The cost word in the ring's slot 0, <c>ring+0</c>, which the adder compares the points
+    /// with (<c>0x00506B50</c>, Q618): the last order written to slot 0, kept after it is paid for.
+    /// DK2's sell (<c>0x005069E0</c>, unbuilt) also rewrites it.</summary>
+    public int ManufactureSlotZeroCost;
+
     /// <summary>Crates made, DK2's <c>ItemsManufactured</c> (<c>player+0x162</c>).</summary>
     public int ItemsManufactured;
+
+    /// <summary>The rest of the level-statistics block (<see cref="LevelStatisticsRules"/>).</summary>
+    public PlayerLevelStatistics Statistics;
+
+    /// <summary>The win sequence's player fields (<see cref="FinaleRules"/>).</summary>
+    public PlayerFinale Finale;
 
     /// <summary>DK2's blueprint list, <c>player+0xA21</c>: the keeper's doors and traps waiting for
     /// a crate, in the order they were placed, which is the order task kinds 9 and 10 take them
@@ -568,8 +591,12 @@ public struct PlayerState
         hash.Add(ManufacturingCreatures);
         hash.Add(InformationGiven);
         hash.Add(ItemsManufactured);
+        Statistics.HashInto(ref hash);
+        Finale.HashInto(ref hash);
         hash.Add(ManufactureQueue.Count);
         foreach (ManufactureOrder order in ManufactureQueue) order.HashInto(ref hash);
+        hash.Add(ManufactureRingTail);
+        hash.Add(ManufactureSlotZeroCost);
         hash.Add(Blueprints.Count);
         foreach (BlueprintRef blueprint in Blueprints) blueprint.HashInto(ref hash);
         hash.Add(Hand.Count);
@@ -711,8 +738,19 @@ public sealed class WorldState
             _players[i].Blueprints ??= [];
         }
 
+        ActivePlayerOrderSlots = players.Select(p => p.PlayerId).Reverse().ToArray();
         CurrentTick = GameTick.Zero;
     }
+
+    /// <summary>The front end's mode for this game; the campaign unless the host says otherwise.</summary>
+    public GameMode GameMode { get; internal set; } = GameMode.Campaign;
+
+    /// <summary>DK2's active player list (<c>world+0x7A</c>, next <c>+0x3A</c>): activation prepends
+    /// (<c>0x004C2460</c>) and the level loader activates one player per PLAYERS record in file
+    /// order, in every mode (win-and-defeat.md §7), so hosts pass the records' order. The verdict
+    /// and the heart tail walk it (ADR-0547).</summary>
+    public IReadOnlyList<PlayerId> ActivePlayerOrder => ActivePlayerOrderSlots;
+    internal PlayerId[] ActivePlayerOrderSlots { get; set; }
 
     public int Width { get; }
     public int Height { get; }
@@ -824,12 +862,14 @@ public sealed class WorldState
     /// <summary>Ends the game for one player — DK2's <c>0x004BE630</c>, which returns at
     /// once if <c>Status</c> is already set, so the first verdict stands. Returns whether
     /// this call was the one that ended it (ADR-0162).</summary>
-    public bool EndGame(PlayerId playerId, byte status)
+    public bool EndGame(GameDatabase database, PlayerId playerId, byte status)
     {
         ref PlayerState player = ref Player(playerId);
         if (PlayerStatus.HasEnded(player.Status)) return false;
         player.Status = status;
         player.StatusTick = CurrentTick;
+        LevelStatisticsRules.Sample(this, database, playerId, status);
+        GameEnded?.Invoke(playerId, status);
         return true;
     }
 
@@ -851,6 +891,7 @@ public sealed class WorldState
 
         player.HeartHealth = 0;
         player.KilledByPlayerId = attackerPlayerId.Value;
+        LevelStatisticsRules.CreditHeartDestroyed(this, playerId, attackerPlayerId);
         player.HeartDiedTick = CurrentTick;
         return true;
     }
@@ -1174,6 +1215,7 @@ public sealed class WorldState
     /// <summary>The next <see cref="TileState.SlabOrder"/> to hand out. It only climbs, so a
     /// stamped tile always comes after every tile stamped before it.</summary>
     public int NextSlabOrder { get; internal set; } = 1;
+    internal long NextRoomListPosition { get; set; } = 1;
 
     /// <summary>The next <see cref="CreatureState.HeldPlaceSerial"/>: a room's list takes each claim at
     /// its head, so the highest serial is the head.</summary>
@@ -1181,6 +1223,34 @@ public sealed class WorldState
 
     /// <summary>The next <see cref="TileState.TagOrder"/>.</summary>
     public int NextTagOrder { get; internal set; } = 1;
+
+    /// <summary>Profile writes made during play, for the host (<see cref="CampaignCarry"/>).</summary>
+    public CampaignCarry Carry;
+
+    /// <summary>The player this machine plays, DK2's world slot <c>+0x264</c>: the campaign win
+    /// runs its finale for this player only (<c>0x004BEDC0</c>). The host sets it; a level starts
+    /// with the first keeper.</summary>
+    public PlayerId LocalPlayerId { get; set; } = new(DK2.Data.Model.PlayerIds.FirstKeeper);
+
+    /// <summary>Called once by <see cref="EndGame"/> with the verdict it wrote; the simulation runs
+    /// the win sequence from it, inside the same call as DK2's <c>0x004BE630</c> does.</summary>
+    internal Action<PlayerId, byte>? GameEnded;
+
+    /// <summary>Kind-11 pool insertion order and retained middle-slot holders, independent per keeper.</summary>
+    public Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> SecretDoorEntries { get; } = [];
+
+    internal SecretDoorTaskEntry SecretDoorEntry(PlayerId player, TilePos tile)
+    {
+        if (!SecretDoorEntries.TryGetValue((player, tile), out SecretDoorTaskEntry? entry))
+            SecretDoorEntries.Add((player, tile), entry = new SecretDoorTaskEntry { Order = NextTagOrder++ });
+        return entry;
+    }
+
+    internal void RemoveSecretDoorEntry(PlayerId player, TilePos tile)
+    {
+        Tile(tile).SecretDoorTasks = Tile(tile).SecretDoorTasks.Without(player);
+        SecretDoorEntries.Remove((player, tile));
+    }
 
     internal List<ShotState> RawShots => _shots;
 
@@ -1414,8 +1484,10 @@ public sealed class WorldState
         GameDatabase database,
         LevelMap map,
         IEnumerable<byte> playerIds,
-        bool fogOfWarEnabled = false)
+        bool fogOfWarEnabled = false,
+        GameMode gameMode = GameMode.Campaign)
     {
+        byte[] activation = playerIds.Distinct().ToArray();
         var tiles = new TileState[map.Width * map.Height];
         for (int y = 0; y < map.Height; y++)
         {
@@ -1435,8 +1507,7 @@ public sealed class WorldState
             }
         }
 
-        PlayerState[] players = playerIds
-            .Distinct()
+        PlayerState[] players = activation
             .OrderBy(id => id)
             .Select(id => new PlayerState
             {
@@ -1450,7 +1521,20 @@ public sealed class WorldState
             })
             .ToArray();
 
-        var world = new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled);
+        var world = new WorldState(map.Width, map.Height, tiles, players, fogOfWarEnabled)
+        {
+            GameMode = gameMode,
+            ActivePlayerOrderSlots = Enumerable.Reverse(activation).Select(id => new PlayerId(id)).ToArray(),
+        };
+        RoomLists.Initialize(world, database);
+
+        // The level's id-66 records (0x0051DC90): 63 levels ally every keeper with neutral and
+        // neutral with the heroes (Q576). DK2 holds all seven player records whether or not the
+        // level activates them; a pair naming a player this world lacks has nobody to affect.
+        foreach (AllianceEntry pact in database.Variables.Alliances)
+            if (pact.PlayerId is > 0 and < 8 && pact.OtherPlayerId is > 0 and < 8
+                && world.HasPlayer((byte)pact.PlayerId) && world.HasPlayer((byte)pact.OtherPlayerId))
+                world.SetAllied((byte)pact.PlayerId, (byte)pact.OtherPlayerId, allied: true);
 
         // The terrain loader explores a tile for its owner, independently of sight.
         foreach (PlayerState player in players)
@@ -1506,6 +1590,9 @@ public sealed class WorldState
         hash.Add(Width);
         hash.Add(Height);
         hash.Add(FogOfWarEnabled ? (byte)1 : (byte)0);
+        hash.Add((byte)GameMode);
+        hash.Add(ActivePlayerOrderSlots.Length);
+        foreach (PlayerId id in ActivePlayerOrderSlots) hash.Add(id.Value);
         foreach (TremorState tremor in TremorSlots) tremor.HashInto(ref hash);
         foreach (HeroSlot slot in HeroSlotArray) slot.HashInto(ref hash);
         hash.Add(RoomBorderCursorList.Count);
@@ -1513,8 +1600,21 @@ public sealed class WorldState
         hash.Add(_tiles.Length);
         foreach (TileState t in _tiles) t.HashInto(ref hash);
         hash.Add(NextSlabOrder);
+        hash.Add(NextRoomListPosition);
         hash.Add(NextPlaceClaim);
         hash.Add(NextTagOrder);
+        Carry.HashInto(ref hash);
+        hash.Add(LocalPlayerId.Value);
+        hash.Add(SecretDoorEntries.Count);
+        foreach (var pair in SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
+            .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
+        {
+            hash.Add(pair.Key.Player.Value);
+            hash.Add(pair.Key.Tile.X);
+            hash.Add(pair.Key.Tile.Y);
+            hash.Add(pair.Value.Order);
+            foreach (int holder in pair.Value.Holders) hash.Add(holder);
+        }
         hash.Add(_players.Length);
         foreach (PlayerState p in _players) p.HashInto(ref hash);
         foreach (RoomBuildWaveState? wave in RoomBuildWaveSlots)

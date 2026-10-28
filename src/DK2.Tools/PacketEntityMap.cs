@@ -29,6 +29,15 @@ public sealed class PacketEntityMap
         spans.Add(fromTurn, (kind, ours));
     }
 
+    /// <summary><see cref="Add"/>, replacing a row that starts on the same turn: a resync's own
+    /// pairing (<c>WorldResync</c>) over the map's.</summary>
+    public void Set(uint original, long fromTurn, int ours, PacketEntityKind kind)
+    {
+        if (_rows.TryGetValue(original, out SortedList<long, (PacketEntityKind Kind, int Id)>? spans))
+            spans.Remove(fromTurn);
+        Add(original, fromTurn, ours, kind);
+    }
+
     public bool TryResolve(uint original, long turn, PacketEntityKind kind, out int ours)
     {
         ours = 0;

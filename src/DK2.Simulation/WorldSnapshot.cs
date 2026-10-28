@@ -29,7 +29,49 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 302;
+    private const int FormatVersion = 323;
+
+    /// <summary>Which generator the snapshot carries; its state follows the tag
+    /// (ADR-0275, ADR-0564).</summary>
+    private enum RandomTag : byte
+    {
+        Xoshiro256StarStar = 0,
+        Dk2Lcg = 1,
+    }
+
+    private static void WriteRandom(BinaryWriter w, SimRandom rng)
+    {
+        switch (rng.Algorithm)
+        {
+            case Xoshiro256StarStar:
+                (ulong s0, ulong s1, ulong s2, ulong s3) = rng.SaveState();
+                w.Write((byte)RandomTag.Xoshiro256StarStar);
+                w.Write(s0);
+                w.Write(s1);
+                w.Write(s2);
+                w.Write(s3);
+                break;
+            case Dk2Lcg lcg:
+                w.Write((byte)RandomTag.Dk2Lcg);
+                w.Write(lcg.Seed);
+                break;
+            default:
+                throw new NotSupportedException(
+                    $"{rng.Algorithm.GetType().Name} has no snapshot tag; add one to {nameof(RandomTag)}.");
+        }
+    }
+
+    private static SimRandom ReadRandom(BinaryReader r)
+    {
+        var tag = (RandomTag)r.ReadByte();
+        return tag switch
+        {
+            RandomTag.Xoshiro256StarStar =>
+                SimRandom.Restore((r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64())),
+            RandomTag.Dk2Lcg => new SimRandom(new Dk2Lcg(r.ReadUInt32())),
+            _ => throw new InvalidDataException($"Snapshot names random generator {(byte)tag}, which this build does not know."),
+        };
+    }
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -112,15 +154,14 @@ public static class WorldSnapshot
         WorldState world = simulation.World;
         w.Write(world.CurrentTick.Value);
 
-        (ulong s0, ulong s1, ulong s2, ulong s3) = simulation.Rng.SaveState();
-        w.Write(s0);
-        w.Write(s1);
-        w.Write(s2);
-        w.Write(s3);
+        WriteRandom(w, simulation.Rng);
 
         w.Write(world.Width);
         w.Write(world.Height);
         w.Write(world.FogOfWarEnabled);
+        w.Write((byte)world.GameMode);
+        w.Write(world.ActivePlayerOrder.Count);
+        foreach (PlayerId id in world.ActivePlayerOrder) w.Write(id.Value);
         w.Write(world.TileCount);
         for (int i = 0; i < world.TileCount; i++)
         {
@@ -142,12 +183,15 @@ public static class WorldSnapshot
             w.Write(t.PrisonDoor);
             w.Write(t.PrisonDoorAnimationTick);
             w.Write(t.SlabOrder);
+            w.Write(t.RoomListPosition.Value);
             w.Write(t.RoomSizeChangedTick);
             w.Write(t.RoomKickedTick);
             w.Write(t.RoomRuined);
             w.Write(t.RoomHealthLost);
             w.Write(t.KeptManaGain);
             w.Write(t.TaggedBy.Bits);
+            w.Write(t.SecretDoor);
+            w.Write(t.SecretDoorTasks.Bits);
             w.Write(t.DiscoveredBy.Bits);
             w.Write(t.ExploredBy.Bits);
             w.Write(t.FreshlyDug);
@@ -156,13 +200,27 @@ public static class WorldSnapshot
         }
 
         w.Write(world.NextSlabOrder);
+        w.Write(world.NextRoomListPosition);
         w.Write(world.NextPlaceClaim);
         w.Write(world.NextTagOrder);
+        world.Carry.Write(w);
+        w.Write(world.LocalPlayerId.Value);
+        w.Write(world.SecretDoorEntries.Count);
+        foreach (var pair in world.SecretDoorEntries.OrderBy(e => e.Key.Player.Value)
+            .ThenBy(e => e.Key.Tile.Y).ThenBy(e => e.Key.Tile.X))
+        {
+            w.Write(pair.Key.Player.Value);
+            w.Write(pair.Key.Tile.X);
+            w.Write(pair.Key.Tile.Y);
+            w.Write(pair.Value.Order);
+            foreach (int holder in pair.Value.Holders) w.Write(holder);
+        }
         w.Write(world.PlayerCount);
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState p = ref world.PlayerAtIndex(i);
             w.Write(p.PlayerId.Value);
+            w.Write(p.AlliedWith);
             w.Write(p.Mana);
             w.Write(p.OneShotManaSpent);
             w.Write(p.OneShotReaperUsed);
@@ -220,6 +278,10 @@ public static class WorldSnapshot
             w.Write(p.ManufacturingCreatures);
             w.Write(p.InformationGiven);
             w.Write(p.ItemsManufactured);
+            p.Statistics.Write(w);
+            p.Finale.Write(w);
+            w.Write(p.ManufactureRingTail);
+            w.Write(p.ManufactureSlotZeroCost);
             w.Write(p.ManufactureQueue.Count);
             foreach (ManufactureOrder order in p.ManufactureQueue)
             {
@@ -355,6 +417,7 @@ public static class WorldSnapshot
             w.Write(c.RebelAgainstPlayerId);
             w.Write(c.TargetTileIndex);
             w.Write((int)c.TargetWork);
+            w.Write(c.SecretDoorTask);
             w.Write(c.WorkSlot);
             w.Write(c.TimerTicks);
             w.Write(c.FightTargetId);
@@ -511,6 +574,7 @@ public static class WorldSnapshot
             w.Write(c.ReaperStateAgeTicks);
             w.Write(c.ReaperCanAcquireFight);
             w.Write(c.ReaperIsAttackable);
+            w.Write(c.ReaperHidden);
             w.Write(c.RouteRefreshCountdown);
             w.Write(c.ChaseTicks);
             w.Write(c.RetreatingCreature);
@@ -829,11 +893,14 @@ public static class WorldSnapshot
                 $"Snapshot format version {version} is not supported (this build reads {FormatVersion}).");
 
         var tick = new GameTick(r.ReadInt64());
-        SimRandom rng = SimRandom.Restore((r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64()));
+        SimRandom rng = ReadRandom(r);
 
         int width = r.ReadInt32();
         int height = r.ReadInt32();
         bool fogOfWarEnabled = r.ReadBoolean();
+        var gameMode = (GameMode)r.ReadByte();
+        var activePlayerOrder = new PlayerId[r.ReadInt32()];
+        for (int i = 0; i < activePlayerOrder.Length; i++) activePlayerOrder[i] = new PlayerId(r.ReadByte());
         int tileCount = r.ReadInt32();
         if (tileCount != width * height)
             throw new InvalidDataException(
@@ -861,12 +928,15 @@ public static class WorldSnapshot
                 PrisonDoor = r.ReadByte(),
                 PrisonDoorAnimationTick = r.ReadInt64(),
                 SlabOrder = r.ReadInt32(),
+                RoomListPosition = new RoomListPosition(r.ReadInt64()),
                 RoomSizeChangedTick = r.ReadInt64(),
                 RoomKickedTick = r.ReadInt64(),
                 RoomRuined = r.ReadBoolean(),
                 RoomHealthLost = r.ReadInt32(),
                 KeptManaGain = r.ReadByte(),
                 TaggedBy = new PlayerMask(r.ReadUInt16()),
+                SecretDoor = r.ReadBoolean(),
+                SecretDoorTasks = new PlayerMask(r.ReadUInt16()),
                 DiscoveredBy = new PlayerMask(r.ReadUInt16()),
                 ExploredBy = new PlayerMask(r.ReadUInt16()),
                 FreshlyDug = r.ReadBoolean(),
@@ -876,8 +946,21 @@ public static class WorldSnapshot
         }
 
         int nextSlabOrder = r.ReadInt32();
+        long nextRoomListPosition = r.ReadInt64();
         long nextPlaceClaim = r.ReadInt64();
         int nextTagOrder = r.ReadInt32();
+        CampaignCarry carry = CampaignCarry.Read(r);
+        byte localPlayer = r.ReadByte();
+        int secretDoorEntryCount = r.ReadInt32();
+        var secretDoorEntries = new Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry>();
+        for (int i = 0; i < secretDoorEntryCount; i++)
+        {
+            PlayerId player = r.ReadByte();
+            var tile = new TilePos(r.ReadInt32(), r.ReadInt32());
+            var entry = new SecretDoorTaskEntry { Order = r.ReadInt32() };
+            for (int side = 0; side < 4; side++) entry.Holders[side] = r.ReadInt32();
+            secretDoorEntries.Add((player, tile), entry);
+        }
         int playerCount = r.ReadInt32();
         var players = new PlayerState[playerCount];
         for (int i = 0; i < playerCount; i++)
@@ -885,6 +968,7 @@ public static class WorldSnapshot
             players[i] = new PlayerState
             {
                 PlayerId = r.ReadByte(),
+                AlliedWith = r.ReadByte(),
                 Mana = r.ReadInt32(),
                 OneShotManaSpent = r.ReadInt32(),
                 OneShotReaperUsed = r.ReadBoolean(),
@@ -936,6 +1020,10 @@ public static class WorldSnapshot
             players[i].ManufacturingCreatures = r.ReadInt32();
             players[i].InformationGiven = r.ReadUInt64();
             players[i].ItemsManufactured = r.ReadInt32();
+            players[i].Statistics = PlayerLevelStatistics.Read(r);
+            players[i].Finale = PlayerFinale.Read(r);
+            players[i].ManufactureRingTail = r.ReadByte();
+            players[i].ManufactureSlotZeroCost = r.ReadInt32();
             int orderCount = r.ReadInt32();
             for (int o = 0; o < orderCount; o++)
                 players[i].ManufactureQueue.Add(new ManufactureOrder(r.ReadByte(), r.ReadByte(), r.ReadInt32()));
@@ -952,9 +1040,15 @@ public static class WorldSnapshot
         }
 
         WorldState world = WorldState.FromParts(width, height, tiles, players, fogOfWarEnabled);
+        world.GameMode = gameMode;
+        world.ActivePlayerOrderSlots = activePlayerOrder;
         world.NextSlabOrder = nextSlabOrder;
+        world.NextRoomListPosition = nextRoomListPosition;
         world.NextPlaceClaim = nextPlaceClaim;
         world.NextTagOrder = nextTagOrder;
+        world.Carry = carry;
+        world.LocalPlayerId = new PlayerId(localPlayer);
+        foreach (var pair in secretDoorEntries) world.SecretDoorEntries.Add(pair.Key, pair.Value);
         world.CurrentTick = tick;
 
         for (int i = 0; i < world.RoomBuildWaveSlots.Length; i++)
@@ -1060,6 +1154,7 @@ public static class WorldSnapshot
                 RebelAgainstPlayerId = r.ReadByte(),
                 TargetTileIndex = r.ReadInt32(),
                 TargetWork = (TileWorkKind)r.ReadInt32(),
+                SecretDoorTask = r.ReadBoolean(),
                 WorkSlot = r.ReadByte(),
                 TimerTicks = r.ReadInt32(),
                 FightTargetId = r.ReadInt32(),
@@ -1219,6 +1314,7 @@ public static class WorldSnapshot
                 ReaperStateAgeTicks = r.ReadUInt32(),
                 ReaperCanAcquireFight = r.ReadBoolean(),
                 ReaperIsAttackable = r.ReadBoolean(),
+                ReaperHidden = r.ReadBoolean(),
                 RouteRefreshCountdown = r.ReadInt32(),
                 ChaseTicks = r.ReadInt32(),
                 RetreatingCreature = r.ReadInt32(),
@@ -1536,7 +1632,7 @@ public static class WorldSnapshot
         for (int i = 0; i < triggerRecordCount; i++)
             world.Triggers.RestoreRecord(r.ReadInt32(), r.ReadUInt16(), r.ReadBoolean(), r.ReadByte());
 
-        var simulation = new GameSimulation(database, world, rng, systems, triggers);
+        var simulation = new GameSimulation(database, world, rng, systems, triggers, levelStart: false);
         simulation.Navigation.Read(r);
         return simulation;
     }

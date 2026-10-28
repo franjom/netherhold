@@ -245,16 +245,50 @@ later, and the side that struck decides between *lost* and *conquered*.
 are not in `Text.str` (that table's 0–704 are placeholders), so `ObjectiveTextId`
 indexes another table: UNKNOWN which.
 
-## 7. Alliances, read and not built; what a defeat does, read and built
+## 7. Alliances; what a defeat does
 
-**Alliances end games together** (Q359). After the snapshot, `0x004BE630`
-walks every player from `game+0x7A`, reading the alliance byte
-`player+0x1AE+otherNumber` both ways: at `0x004BEF88` it counts players whose
-`Status` is 0 or 2 and, if exactly one remains playing, ends it with 2; at
-`0x004BF0AE` it ends the caller with 2 when every other playing keeper is a
-mutual ally, and at `0x004BF172` those allies with 2 as well; at `0x004BEFFB` a
-loop ends allies with 3. Which code each loop is reached under is unread, so the
-structure is CONFIRMED and the conditions are not.
+**Alliances end games together, but only in skirmish and multiplayer** (Q359, read
+2026-10-26, CONFIRMED). The loops sit after the score block of `0x004BE630`, which returns
+in modes 1 and 4 (campaign, My Pet Dungeon) and in any mode but 2 and 3 (`0x004BF32E`). All
+three walk the active player list from `world+0x7A` (next `+0x3A`, reverse activation
+order; the order is the PLAYERS records' in every mode, below), take only keepers (`Number >= 3`) and call two keepers *mutual allies* when each
+one's byte `+0x1AE` at the other's number is set. By the new `Status` (§1):
+
+- **2, won** (`0x004BEFE1`): every other keeper that is not a mutual ally of the winner
+  gets `0x004BE630(3)`, lost (`0x004BF06B`, `ECX` the other keeper). This loop leaves
+  allies playing, but the last of those losses meets only the winner and its allies, and
+  its own branch below makes them win.
+- **3 or 1, lost or conquered** (`0x004BEF40`): nothing when world `+0x72A1` bit 3 is set
+  (world vtable `+0x330` = `0x00509740`; the level time limit has run out,
+  level-time-limit.md §2). Otherwise it counts the other keepers whose `Status` is 0 or 2,
+  keeping the last one met, *S*. One counted: if *S* is still playing it wins (a jump
+  back into the routine with 2, `0x004BEFD6`). Two or more: if every counted keeper but
+  *S* is a mutual ally of *S* (`0x004BF0AE`), *S* gets 2 (`0x004BF152`), then each other
+  keeper still at 0 that is a mutual ally of *S* gets 2 (`0x004BF172`).
+
+Each call runs these loops again for the player it ends, and a player already ended
+returns at once (`+0x19A`), so the recursion settles. Two keepers allied with *S*
+but not with each other: the first ally's win makes the second one lose.
+
+**The activation order is the PLAYERS file's** (CONFIRMED, read 2026-10-26). The level's KWD
+reader `0x0056C960` reads chunk after chunk while the file has bytes left (`0x0056CBD0` per
+chunk); the PLAYERS chunk (180) goes to `0x0056DAD0`, which reads its records one by one (205
+bytes shipped) and calls slot `+0x6C` of the callback table for each. `0x0051E0A0` fills that
+slot with `Level_LoadPlayerRecord` `0x0051EF80` (`0x0051E108`) only when world `+0x7239` bit
+`0x4` is set: of the level loader's three passes (`0x0050E620`), only the third,
+`0x0051DDC0` (bits 2 and 4), reads player records, so each is read once. The same pass is
+reached from `GameAction_LoadLevel` (`0x00513BC4`). `0x0051EF80` activates the record's number
+through `0x004C2340` (1 heroes, 2 neutral, else the keeper arm `0x0051F0B0`), with no skip in
+any mode. `0x004C2340` is called only from those two arms and is the only caller of
+`Players_Activate` `0x004C2460`, which prepends: whichever load path a mode takes, a player
+becomes active only through its PLAYERS record, in record order. So the active list is the
+PLAYERS records in reverse. A player with no record is never activated.
+
+The level time limit's lapse (`0x0050A67A`, modes 2 and 3 only) calls `0x004BE630(3)` on
+every keeper in list order after setting bit 3, so nobody wins by it.
+
+Ours: `VerdictRules.End` is every caller's way in (heart, `WIN_GAME`/`LOSE_GAME`, time
+limit); `WorldState.GameMode` is the mode byte and `ActivePlayerOrder` the list (ADR-0547).
 
 **What a defeat does** (Q358; the owner's Q40: *creatures leave through the nearest
 portal, rivals claim rooms and gold*). Read 2026-09-23. The verdict tail (§6) calls one
@@ -327,8 +361,8 @@ condition type 25 counts it out is still UNKNOWN.
 - A ruined heart has no gold capacity (`GoldStore`) and is claimable
   (`TileWorkRules.Applies(world, …)`).
 
-Not built: §7 entirely; the object damage path that writes `+0x36`; the
-multiplayer-mode branch; the room leaving the room list.
+Not built: the object damage path that writes `+0x36`; the multiplayer-mode branch; the
+`+0x76` bits 19 and 22 the last-keeper count and award test; the room leaving the room list.
 
 ## Confidence
 
@@ -344,9 +378,6 @@ neutral ids, the objective text ids, and the last-keeper-standing count.
 
 **CONFIRMED (data):** the parent types of all 87 shipped `WIN_GAME` and
 `LOSE_GAME` records; no type-13 object in any THINGS file; 100000 and 25.
-
-**STRONGLY INFERRED:** that the alliance loops of §7 propagate a win to allies
-and a loss to allies — structure read, entry conditions not.
 
 **UNKNOWN:** what writes `object+0x36`; bits 19 and 22 of `+0x76`; the world bit
 `+0x7239 & 0x40`; which table `ObjectiveTextId` indexes; everything in §7's

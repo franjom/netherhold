@@ -65,12 +65,16 @@ public static class PortalRules
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
         creature.PortalEntranceTile = entrance;
         NotifyArrival(hooks, creature);
+        if (EntranceEffect(database, portal, creature) is { } entranceEffect)
+            hooks.RequestEffect("Portal", entranceEffect);
         // A keeper portal's creature enters 193 (a Hero Portal's enters 278, not built).
         if (IsKeeperPortal(portal.Definition))
             CreatureStateMachine.TrySetState(hooks, creature, JoiningState, world.CurrentTick.Value);
         return creature;
     }
 
+    /// <summary>0x004DC9A0's first-arrival branch; the override match's unread [[0x0075B468]+0x60] call is not mirrored.</summary>
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/004DC9A0.md")]
     private static void NotifyArrival(in StateHookContext hooks, CreatureState creature)
     {
         var playerId = new PlayerId(creature.OwnerPlayerId);

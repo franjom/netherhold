@@ -73,6 +73,10 @@ public enum VariableTypeId
     DefaultTorchLightBlue = 54,
     PrisonModifyCreatureHealthPerSecond = 55,
     CreatureStatsId = 65,
+
+    /// <summary>Two players start the level allied (<c>0x0051DC90</c>); a structured record,
+    /// several per level (variables-corpus-sweep.md §Q84).</summary>
+    Alliance = 66,
     DefaultCellingHeightTiles = 67,
     PayDayCutOffTimeSeconds = 68,
     CasinoModifyCreatureGoldPerSecond = 70,

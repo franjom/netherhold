@@ -15,8 +15,8 @@ namespace DK2.Simulation.Systems;
 /// — lost to heroes or neutrals, conquered by a keeper — then awards the win to the one
 /// keeper left playing. The verdict is one-shot: a <c>WIN_GAME</c> already performed stands.
 /// <para>The tail then runs the fallen keeper's consequences every turn (<see cref="DefeatRules"/>,
-/// DK2's <c>0x004DAA10</c>). Not built: alliances ending games together (Q359), where here
-/// allies are not consulted.</para></summary>
+/// DK2's <c>0x004DAA10</c>). Each verdict goes through <see cref="VerdictRules.End"/>, which in
+/// skirmish and multiplayer carries it to allies (Q359).</para></summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/win-and-defeat.md")]
 public sealed class DungeonHeartSystem : ISimulationSystem
 {
@@ -29,44 +29,53 @@ public sealed class DungeonHeartSystem : ISimulationSystem
         int max = database[VariableTypeId.DungeonHeartObjectHealth];
         int regen = database[VariableTypeId.DungeonHeartHealthRegenerationPerSecond];
         bool secondEnds = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0;
-        bool anyoneFell = false;
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.PlayerAtIndex(i);
             if (!PlayerIds.IsKeeper(player.PlayerId.Value)) continue;
+            if (ImpSupplyRules.HeartTileOf(world, database, player.PlayerId) < 0) continue;
+            if (!player.HeartRuined) HeartIntroRules.RoomFrame(context, player.PlayerId);
+            // The ordinary frame waits for the opening sequence (0x004D9BA5): no regeneration
+            // and no ruin until nine seconds after its start.
+            if (HeartIntroRules.SequenceOver(HeartIntroRules.Turn(context.Tick), database))
+                RoomFrame(context, ref player, max, regen, secondEnds);
+        }
 
-            if (ImpSupplyRules.HeartTileOf(world, database, player.PlayerId) >= 0)
-            {
-                if (!player.HeartRuined) HeartIntroRules.RoomFrame(context, player.PlayerId);
-                // The ordinary frame waits for the opening sequence (0x004D9BA5): no regeneration
-                // and no ruin until nine seconds after its start.
-                if (HeartIntroRules.SequenceOver(HeartIntroRules.Turn(context.Tick), database))
-                    RoomFrame(context, ref player, max, regen, secondEnds);
-            }
+        // The frame's tail is the player update's, which walks the active list (0x004C2310); a
+        // verdict carries to allies, so which fallen keeper is judged first can decide who wins.
+        foreach (PlayerId id in world.ActivePlayerOrder)
+        {
+            if (!PlayerIds.IsKeeper(id.Value)) continue;
+            ref PlayerState player = ref world.Player(id);
 
-            // The frame's tail: a stamped killer is the whole condition, and the
-            // verdict depends only on which side struck the blow.
+            // A stamped killer is the whole condition, and the verdict depends only on which side
+            // struck the blow.
             if (player.KilledByPlayerId == 0) continue;
             byte fallen = player.PlayerId.Value;
             if (DefeatRules.IsDeathTurn(context.Tick, player.HeartDiedTick)) DefeatRules.OnDeathTurn(context, fallen);
             if (DefeatRules.CreaturesGo(context.Tick, player.HeartDiedTick)) DefeatRules.ScatterCreatures(context, fallen);
 
             player = ref world.Player(fallen);
-            if (PlayerStatus.HasEnded(player.Status)) continue;
             byte verdict = PlayerIds.IsKeeper(player.KilledByPlayerId)
                 ? PlayerStatus.Conquered
                 : PlayerStatus.Lost;
-            if (world.EndGame(player.PlayerId, verdict))
-            {
-                anyoneFell = true;
-                context.Emit(Name, verdict == PlayerStatus.Conquered ? "conquered" : "lost",
-                    $"player={player.PlayerId} by={player.KilledByPlayerId}");
-            }
-        }
+            byte killer = player.KilledByPlayerId;
+            VerdictRules.End(world, database, player.PlayerId, verdict, (who, status) => Report(context, who, status, fallen, killer));
 
-        if (anyoneFell) AwardLastKeeperStanding(context);
+            // The tail's award follows each fallen keeper's verdict, every turn (0x004BB39A).
+            if (world.GameMode != GameMode.Campaign) AwardLastKeeperStanding(context);
+        }
     }
+
+    /// <summary>The fallen keeper's own verdict names its killer; one an alliance carried does not.</summary>
+    private void Report(SimulationContext context, PlayerId id, byte status, byte fallen, byte killer) =>
+        context.Emit(Name, status switch
+        {
+            PlayerStatus.Conquered => "conquered",
+            PlayerStatus.Won => "won",
+            _ => "lost",
+        }, id == fallen ? $"player={id} by={killer}" : $"player={id} by alliance");
 
     /// <summary>Once a second the heart heals by the regeneration rate, never past its
     /// maximum and never from zero — a dead heart does not come back. A full heart is not
@@ -90,8 +99,9 @@ public sealed class DungeonHeartSystem : ISimulationSystem
         context.World.RegenerateHeart(player.PlayerId, amount);
     }
 
-    /// <summary>DK2 counts the keepers still playing only when somebody has just fallen,
-    /// and only outside its multiplayer mode; exactly one left means that one has won.</summary>
+    /// <summary>DK2 counts the keepers still playing each turn a fallen keeper's tail runs, and only
+    /// outside the campaign (<c>0x004BB39A</c>: mode 1 skips it); exactly one left means that one has
+    /// won. Not mirrored: the count also skips <c>+0x76</c> bit 19 and the award bit 22, both UNKNOWN.</summary>
     private void AwardLastKeeperStanding(SimulationContext context)
     {
         WorldState world = context.World;
@@ -105,7 +115,9 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             survivor = player.PlayerId.Value;
         }
 
-        if (standing == 1 && world.EndGame(survivor, PlayerStatus.Won))
-            context.Emit(Name, "won", $"player={survivor} last keeper standing");
+        if (standing == 1)
+            VerdictRules.End(world, context.Database, survivor, PlayerStatus.Won,
+                (id, status) => context.Emit(Name, status == PlayerStatus.Won ? "won" : "lost",
+                    id == survivor ? $"player={id} last keeper standing" : $"player={id} by alliance"));
     }
 }

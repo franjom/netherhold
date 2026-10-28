@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Text;
+using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -29,6 +30,24 @@ public class SnapshotTests
     }
 
     [Fact]
+    public void TheManufactureRingsTailAndSlotZeroCostChangeTheHashAndSurviveRestore()
+    {
+        GameSimulation original = TestWorld.Simulation();
+        PlayerId player = original.World.Creatures[0].OwnerPlayerId;
+        ulong before = original.StateHash();
+        original.World.Player(player).ManufactureRingTail = 13;
+        ulong tailOnly = original.StateHash();
+        Assert.NotEqual(before, tailOnly);
+        original.World.Player(player).ManufactureSlotZeroCost = 3000;
+        Assert.NotEqual(tailOnly, original.StateHash());
+
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), TestWorld.Database());
+        Assert.Equal(original.StateHash(), restored.StateHash());
+        Assert.Equal(13, restored.World.Player(player).ManufactureRingTail);
+        Assert.Equal(3000, restored.World.Player(player).ManufactureSlotZeroCost);
+    }
+
+    [Fact]
     public void RoundTrip_PreservesStateHash()
     {
         GameSimulation original = TestWorld.Simulation();
@@ -39,6 +58,39 @@ public class SnapshotTests
 
         Assert.Equal(original.CurrentTick, restored.CurrentTick);
         Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    /// <summary>A <c>random: dk2</c> run saves and restores as DK2's generator, at its
+    /// seed, and the two worlds keep drawing alike after the restore (ADR-0564).</summary>
+    [Fact]
+    public void RoundTrip_CarriesTheDk2Generator()
+    {
+        GameDatabase database = TestWorld.Database();
+        WorldState world = TestWorld.World(database);
+        world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, ownerPlayerId: 1, new TilePos(3, 3));
+        var original = new GameSimulation(database, world, new SimRandom(new Dk2Lcg()), [new ChaosSystem()]);
+        original.Run(250);
+
+        GameSimulation restored = WorldSnapshot.FromBytes(
+            WorldSnapshot.ToBytes(original), database, [new ChaosSystem()]);
+
+        Dk2Lcg lcg = Assert.IsType<Dk2Lcg>(restored.Rng.Algorithm);
+        Assert.Equal(((Dk2Lcg)original.Rng.Algorithm).Seed, lcg.Seed);
+        Assert.NotEqual(Dk2Lcg.LevelStartSeed, lcg.Seed);
+        Assert.Equal(original.StateHash(), restored.StateHash());
+        original.Run(100);
+        restored.Run(100);
+        Assert.Equal(original.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
+    public void Read_RefusesAGeneratorTagItDoesNotKnow()
+    {
+        byte[] bytes = WorldSnapshot.ToBytes(TestWorld.Simulation());
+        bytes[16] = 0xFF; // magic (4) + format version (4) + tick (8), then the tag
+
+        var ex = Assert.Throws<InvalidDataException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        Assert.Contains("random generator 255", ex.Message);
     }
 
     [Fact]

@@ -48,9 +48,9 @@ public sealed class SimRandom
     }
 
     /// <summary>
-    /// Captures the full generator state for save/load. The snapshot format
-    /// stores xoshiro state only, so another algorithm refuses rather than
-    /// restoring as the wrong generator.
+    /// The xoshiro generator's full state. Another algorithm refuses rather than
+    /// hand back a state that restores as the wrong generator; the snapshot
+    /// tags the algorithm and saves <see cref="Dk2Lcg.Seed"/> itself (ADR-0564).
     /// </summary>
     public (ulong S0, ulong S1, ulong S2, ulong S3) SaveState()
     {
@@ -66,6 +66,6 @@ public sealed class SimRandom
     {
         return _algorithm as Xoshiro256StarStar
         ?? throw new NotSupportedException(
-            $"{_algorithm.GetType().Name} has no 64-bit draw and no snapshot format yet (ADR-0275).");
+            $"{_algorithm.GetType().Name} has no 64-bit draw and no xoshiro state (ADR-0275).");
     }
 }

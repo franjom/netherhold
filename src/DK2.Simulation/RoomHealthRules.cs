@@ -98,6 +98,9 @@ public static class RoomHealthRules
         SimulationContext? context)
     {
         PostTransfer(world, room, room.OwnerPlayerId, playerId);
+        LevelStatisticsRules.CreditRoomTakeover(world, room.Definition, room.TileCount, playerId);
+        RoomListPosition listPosition = RoomLists.Next(world);
+        RoomLists.Set(world, room.TileIndices, listPosition);
         foreach (int index in SlabChain.Order(world, room))
         {
             ref TileState tile = ref world.TileAtIndex(index);
@@ -113,6 +116,8 @@ public static class RoomHealthRules
 
         // The type's slot +0x0D kicks every place-holder (room-return-states.md §1, ADR-0406).
         SlabChain.Kick(world, room);
+        if (RoomIndex.RoomAt(world, database, room.TileIndices[0]) is { } merged)
+            RoomLists.Set(world, merged.TileIndices, listPosition);
     }
 
     /// <summary>The transfer's messages: 35 to the old owner (<c>0x004E58F4</c>), then 32 to the new,

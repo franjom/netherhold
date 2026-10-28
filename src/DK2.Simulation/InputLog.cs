@@ -51,12 +51,10 @@ public sealed class InputLog
         _frames.TryGetValue(turn, out InputFrame frame) ? frame : InputFrame.Empty;
 
     /// <summary>
-    /// The kinds a player's mark enters the pool as: <b>1 is rock and 2 is
-    /// gold</b>, CONFIRMED (owner, 2026-09-10) — four marks placed as two rock
-    /// and two gold arrived as exactly two of each. A tile entering under any
-    /// other kind is DK2 giving one of its imps a job, not a command.
+    /// Player marks: rock (1), gold (2), and Secret Door (11), whose native marker
+    /// tests the tile's secret flag before its terrain (imp-task-objects-and-walks.md §2).
     /// </summary>
-    public static readonly HashSet<byte> TagKinds = [1, 2];
+    public static readonly HashSet<byte> TagKinds = [1, 2, 11];
 
     public static InputLog Read(
         string path, long lag = 1, long origin = 1, HashSet<byte>? kinds = null)
@@ -149,7 +147,7 @@ public sealed class InputLog
         // claimed and a cancelled one stays rock (Q293).
         bool player = now
             ? kinds.Contains(row.Kind)
-            : !held.Worked && !claims.Follows(row.Tile, row.Stamp);
+            : row.Kind != 11 && !held.Worked && !claims.Follows(row.Tile, row.Stamp);
         if (!player)
         {
             tally.Worked++;

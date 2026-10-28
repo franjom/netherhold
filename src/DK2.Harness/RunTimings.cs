@@ -121,6 +121,7 @@ public sealed record WorstTick(int Tick, TimeSpan Time, long Allocated, IReadOnl
 internal sealed class RunClock : ISimulationProfiler
 {
     public static readonly SimulationMarker KeeperAi = SimulationMarker.Named("keeper AI");
+    public static readonly SimulationMarker Controllers = SimulationMarker.Named("test controllers");
     public static readonly SimulationMarker StateHash = SimulationMarker.Named("state hash");
 
     private readonly long _start = Stopwatch.GetTimestamp();

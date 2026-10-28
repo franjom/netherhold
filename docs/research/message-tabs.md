@@ -55,7 +55,7 @@ The record's graphic `+0x13` (from type-table field `+6`; 0 is read as 1)
 selects a three-frame family from the GUI catalogue `0x006A7DF0`
 (`gui\tabs\messages\`):
 
-| graphic | frames | name | types (table `0x006A0B00`) |
+| graphic | frames | name | types (table `0x006A0B00`, all rows in [message-table.md](message-table.md)) |
 |---:|---|---|---|
 | 1 | 127-129 | mt-info | all others, including 0 and 6 (graphic 0) |
 | 2 | 130-132 | mt-creature | 13, 17, 18, 19, 20 |
@@ -193,6 +193,11 @@ the Imp's 585 + 9 is Speech 594, "A Bile Demon has become unhappy because it has
 (`def+0x6D1`, file `0xD09`, "has left your Dungeon"), which our queue never posts; the slide sounds, the Ally button, the goto
 location of a kind-2 thing (22, 26, 48) or the Heart (85..87), none posted by us, player-name substitution for 82..87, and menu40's sharing with the creature Query. Only the kinds our queue posts
 can tab (computer-keeper-messages.md).
+
+At the owner's request (2026-10-25), popup messages select their bitmap font at
+85% of screen height: size22 instead of26 at1080p, fitting more text before
+scrolling. Measurement and rendering use the same font; objective text retains
+its existing size. This is a readability choice, not a native sizing claim.
 
 ## 9. Indicator menus 45..50 (CONFIRMED; built in part)
 

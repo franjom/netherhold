@@ -64,7 +64,9 @@ internal static class KeeperWorld
     public const byte Keeper = 3;
     public static readonly TilePos HeartAt = new(15, 15);
 
-    public static GameDatabase Database(int handCapacity = 64)
+    /// <param name="workshop">Adds the Workshop, doors 1 (Wooden), 2 (a Barricade) and 3 and traps 1
+    /// (trigger 0), 2 (the Boulder) and 3 (trigger 1), for the trap and door step.</param>
+    public static GameDatabase Database(int handCapacity = 64, bool workshop = false)
     {
         return new(
         [
@@ -90,6 +92,7 @@ internal static class KeeperWorld
             Terrain(Water, "Water", TerrainFlags.Impenetrable | TerrainFlags.Water, 0),
             Terrain(WoodenBridgeFloor, "Wooden Bridge", TerrainFlags.Ownable | TerrainFlags.Room, 100),
             Terrain(StoneBridgeFloor, "Stone Bridge", TerrainFlags.Ownable | TerrainFlags.Room, 100),
+            .. workshop ? [Terrain(WorkshopFloor, "Workshop", TerrainFlags.Ownable | TerrainFlags.Room, 100)] : Array.Empty<TerrainDef>(),
         ],
         rooms:
         [
@@ -108,6 +111,7 @@ internal static class KeeperWorld
             // Both bridges as shipped: 0x1083 on each, so either could span water or lava, 200 and 500 a tile.
             Room(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeFloor, buildable: true, BridgeFlags),
             Room(RoomTypeId.StoneBridge, "Stone Bridge", 500, StoneBridgeFloor, buildable: true, BridgeFlags),
+            .. workshop ? [Room(RoomTypeId.Workshop, "Workshop", 0, WorkshopFloor, buildable: false)] : Array.Empty<RoomDef>(),
         ],
         creatures:
         [
@@ -138,8 +142,26 @@ internal static class KeeperWorld
             Shot("Chicken", ChickenShotId, 2048, 16, 0x6, 0x4, ShotRules.ChickenProcess, collide: 2),
             Shot("Inferno", InfernoShotId, 2048, 30, 0x104, 0x2, ShotRules.InfernoProcess),
             Shot("Sight Of Evil", SightShotId, 2048, 64, 0x4, 0x42, SightProcess),
-        ]);
+        ],
+        doors: workshop
+            ? [Door(WoodenDoorId, DoorFlags.None), Door(BarricadeDoorId, DoorFlags.Barricade), Door(LastDoorId, DoorFlags.None)]
+            : null,
+        traps: workshop ? [Trap(1, 0), Trap(BoulderTrapId, 0), Trap(3, 1)] : null);
     }
+
+    public const byte WorkshopFloor = 25;
+    public const byte WoodenDoorId = 1, BarricadeDoorId = 2, LastDoorId = 3, BoulderTrapId = 2;
+
+    private static DoorDef Door(byte id, DoorFlags flags) => new()
+    {
+        Name = "Door " + id, DoorId = id, Health = 1000, GoldCost = 250, ManufactureRequired = 1000, Flags = flags,
+    };
+
+    private static TrapDef Trap(byte id, byte trigger) => new()
+    {
+        Name = "Trap " + id, TrapId = id, Health = 500, GoldCost = 300, ManufactureRequired = 1000,
+        ShotTypeId = 0, ManaUpkeepPerSecond = 0, TriggerType = trigger,
+    };
 
     /// <summary>Spells 1 to 11 and 13 with the shipped ids, costs, flags and selectors, so the battle
     /// step's ascending walk over the descriptor count meets what DK2's meets: Thunderbolt (6),

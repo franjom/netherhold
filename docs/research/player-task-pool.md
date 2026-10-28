@@ -167,6 +167,10 @@ wall,tick,player,event,kind,x,y,type,data,id,workers
 `event` is `tag` or `untag`. That is a command log, not a state dump, so it
 lines up with `GameSimulation.Tick(in InputFrame)` on our side.
 
+A full-state capture holds each keeper's pool as region `REGION_POOL` + player index;
+`tools/oracle/capture_state.py` walks the kind-1 and kind-2 lists from their heads at a tick, and
+the resync replay sets them as our marks (`resync-replay.md`, ADR-0556).
+
 **The coordinates are tile coordinates** (Q287, answered): replaying run 9's
 marks applied 30 tags and had none rejected, so every one landed on terrain our
 independently-loaded map agrees is diggable. The tick column is one late, as

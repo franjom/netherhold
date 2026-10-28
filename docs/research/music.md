@@ -1,0 +1,360 @@
+# Mechanic: the dynamic music — what the game asks for, and how the segments follow
+
+Source(s):
+- `DKII.EXE` v1.70 (SHA-256 `B5E4E2F6…B449`), read in Ghidra (pyghidra-mcp and the headless
+  `CallSlot`/`SlotCallCtx`/`ScanAll` scripts), 2026-10-27
+- The shipped `Data/Sound/Sfx/Global/{music,ambience,one_shot_atmos,options_music}{SFX,BANK}.map`,
+  parsed byte-exact with a scratch reader, 2026-10-27
+- Lead, not a source: the Dethware `DK2` project's `docs/runtime-behaviour.md`,
+  `file-formats.md` and `open-questions.md` (github.com/Dethware/DK2, read 2026-10-27; no
+  licence, so facts only, re-derived here, none of its identifiers; `external-resources.md`).
+  Same binary (its stated SHA-256 is ours). Where this note differs from it, §7 says so
+
+Original version: DK2 v1.70 (GOG)
+
+Presentation only, and not built (no audio playback exists yet; `RESEARCH_STATUS.md`,
+*Audio event semantics*). Nothing here feeds a rule: the battle records that drive the music
+are presentation too (`binary-census.md` §3). Facts in our own words; no decompiler output
+(ADR-0046). Every name below is ours.
+
+Labels: **CONFIRMED** (read in the code or parsed from the data), **STRONGLY INFERRED**,
+**LIKELY** (the lead's reading, consistent with what was checked, not re-read), **UNKNOWN**.
+
+---
+
+## 1. The sound manager and its music level
+
+The in-game sound manager is the object behind the pointer `0x0075B468` (vtable `0x0066F7FC`).
+Its music level `L` is the dword `+0x2C`. **CONFIRMED.**
+
+| Slot | Function | Does |
+|---|---|---|
+| `+0x18` | `0x005674F0` | the update (§3) |
+| `+0x4C` | `0x00567BC0` | **raise**: `L = max(L, x)`, unsigned |
+| `+0x50` | `0x00567BE0` | **set**: `L = x` |
+
+`L` takes `0xFF` (silent) or `0x100`..`0x103` (music levels 1–4). The update maps it to the
+intensity **0, 20, 40, 60, 80** through a jump table at `0x005676FC` (`0xFF` and anything
+else → 0). **CONFIRMED.**
+
+## 2. Every request (the complete list)
+
+Every indirect call through slots `+0x4C` and `+0x50` in `.text` and `cseg`, with the object
+each is made on (`SlotCallCtx`, 25 instructions of context). These are the ones on the sound
+manager; the rest are other classes. **CONFIRMED** for the list. A call on a copy of the
+pointer held elsewhere could escape the scan; none was seen.
+
+| Request | Site | When |
+|---|---|---|
+| raise `0x100` (level 1) | `0x00458417` in `0x00458370` | state 179 finds a route to an enemy room that resumes in **180 attacking rooms** |
+| raise `0x100` | `0x004589A6` in `0x004586B0` | a route found that resumes in **184 attacking walls** |
+| raise `0x100` | `0x0048206E` in `0x00482010` | a route to **player 3's** (the first keeper's) Treasury found that resumes in **164 stealing booty**; player 3's own creatures refuse (`steal-gold.md` §2) |
+| raise `0x100` | `0x00485ADF` in `0x00485AB0`, `0x00485BA0` in `0x00485B80` | `SetState(186)` accepted: **tunnelling** |
+| raise `0x101`/`0x102`/`0x103` | `0x005054CD`, `0x005054E7` in `Battle_Update` `0x00505310` | a battle's enemy threat reaches variable 215, 216 or 217 (§4) |
+| raise `0x103` (level 4) | `0x00488A44` in `Creature_Update` | every turn while a creature whose definition flag `+0x686` has `0x4000` (the Horned Reaper) exists, unless the next row |
+| set `0xFF` (silent) | `0x00488A38` in `Creature_Update` | the same creature, when its player's `+0x76` bit `0x40` is set: **`GameWonSequenceActive`** |
+| set `0xFF` | `0x004D9EE0` in `DungeonHeart_Update` | the end of a Heart's opening sequence (elapsed `9 × tps`, `heart-intro.md` §1); no local-player test |
+| set `0xFF` | `0x00538504` in `0x005384F0` | the top of every front-end station frame, unconditionally |
+
+States are the executable's labels (`creature-state-table.md`). **CONFIRMED.**
+
+So level 1 is not a fight: it is a creature **setting out on a raid** — the raise comes when
+the route is found, as the walk starts, except tunnelling, a direct `SetState`. No raise tests
+the local player (163 always walks to player 3). On shipped data only StealGold parties and
+tunnellers reach these raises (§9, *When a raid raises level 1*). Fighting itself
+raises nothing below level 2. **CONFIRMED.** Bit `0x40` of player `+0x76` is printed as
+`GameWonSequenceActive` by the player dumper (`0x004BD5CD`, `SHR 6`) and set by the win
+sequence (`campaign-win-sequence.md`), so the end-sequence Reaper silences the music rather
+than raising it: **STRONGLY INFERRED** (that the Reaper belongs to the player the win sequence
+marks was not read).
+
+## 3. The update `0x005674F0`, in its order
+
+Called from the session loop right after the world frame (`0x00526B4E`, `GameSession_UpdateLoop`),
+so once per world frame. **CONFIRMED** (call site); the frame's rate is the session loop's.
+
+1. If the music switch (`0x0075AD37`, settings object `0x0075AD0B` field `+0x2C`, written by
+   `Settings_SetMusicSwitch` `0x00563A20`) is on:
+   - with a level loaded (`+0x08`) and no music instance (`+0x30`): start group
+     `theme[track]` in the music category (`+0x3C`), `theme` at `0x006BDB70` = {341, 343, 344,
+     345}, `track` the level's byte `+0x720D` with 0 read as 1;
+   - otherwise set parameter 2 of the music instance to `intensity(L)` and update it;
+   - then **decay**: `L > 0x100` becomes `0x100`. **CONFIRMED.**
+2. Ambience (`+0x34`): none yet → start group **341** (`0x155`); else set its parameter 2 to
+   `intensity(L) + (q == 1 ? 20 : 0)`, `q` = `0x0075AD27`, settings field `+0x1C`, the one
+   **`SoundQuality`** writes (`0x005637E0`). **CONFIRMED** (offsets); its three menu labels are
+   Text.str 1443 *Low*, 281 *Medium*, 1442 *High*; which one is value 1 is **UNKNOWN** (the lead
+   orders them Low first).
+3. One-shot atmosphere: none → start group **746**; else update it. **LIKELY** (lead; the
+   branch was not re-read past the ambience).
+
+Consequences:
+- The decay sits inside the music branch: with music switched off `L` never decays, which
+  matters to nothing audible. A level above 1 lasts only while something re-requests it each
+  frame; level 1 is never decayed and stays until a set to `0xFF`.
+- Group 344 (track 2) is not in `musicSFX.map` (§5): a level asking for track 2 gets no music.
+  The table holds four dwords, so a track byte of 4 or more reads past it. Which shipped levels
+  set which track byte: **UNKNOWN** (not read here).
+- With no raid, battle or Reaper, `L` is `0xFF` (after the Heart's opening) and the intensity 0;
+  neither track's item 1 has a link at 0, so the music instance stays stopped and only the
+  ambience plays. **CONFIRMED** (code and data); `L`'s value before the Heart opens is unread.
+
+## 4. The battle threat (`Battle_Update` `0x00505310`)
+
+Per battle record, the members that are in category 22 (fighting), with neither `+0x25E` nor
+`+0x32D` equal to 202, without flag `+0x3E6 & 0x8000`, and **not owned by the local player**
+(world slot `+0x264` through the record's world pointer `+0x00`, `0x005053AB`) add
+`definition +0x698`, scaled above level 1 by the percentage at `[0x006E4154] + 0x105 + 2·level`
+over 100. Then raise `0x103` if the sum ≥ variable 217 (1500), else `0x102` if ≥ 216 (500), else
+`0x101` if ≥ 215 (100). **CONFIRMED** (read whole; `binary-census.md` §3). All eight records
+are scored every turn, including those with no local creature (`battle-tab.md` §2), so a fight
+between two other players — heroes against a computer keeper — raises your music too. How a
+creature joins (5 tiles) and the HUD tab are in `battle-tab.md`.
+
+## 5. The data (`SFX.map`, `BANK.map`)
+
+The layout parses all four background maps to their last byte. **CONFIRMED** (data).
+`BANK.map`: 16-byte id, two zero dwords, `count` at `0x18`, then per archive a length-prefixed
+name (`Global\Track_1_1` … `Global\Track_3_4`, 9 for music); a sound's bank is a 1-based index.
+`SFX.map`: header to `0x18`, `count`, then entries (24 bytes: group count, …), groups (20 bytes),
+then per group its items (42 bytes) and per item its sounds (16 bytes) and links (8 bytes).
+
+| Field | Offset | Meaning |
+|---|---|---|
+| group | `+0x00`, `+0x04`, `+0x10`, `+0x12` | id, item count, flags (player class), parameter-0 id (2 = intensity) |
+| item | `+0x00`, `+0x04`, `+0x0C/0D`, `+0x10/12`, `+0x26` | sound count, link count, volume min/max %, delay min/max ms, links pointer at run time |
+| sound | `+0x00`, `+0x04`, `+0x08`, `+0x0C` | archive entry (1-based), cumulative weight (low word), length ms, bank |
+| link | `+0x00`, `+0x06`, `+0x07` | target item (1-based), min and max intensity, inclusive |
+
+| Group | Map | Flags | Items | Shape |
+|---|---|---|---|---|
+| 343 track 1 | music | `0x0606` | 135 | 13,235 ms segments, banks 1–5 (`Track_1_1..1_4`, `Track_1SG`); item 1 → 2 at 20–100 |
+| 345 track 3 | music | `0x0606` | 156 | 10,663 ms segments, banks 6–9; item 1 → 13 targets at 20–39 (one itself) and 88 at 40–100 |
+| 341 | ambience | `0x0606` | 21 | 6.6–125 s drones, volume 40, links only at 0–10 and 0–39 |
+| 746 | one_shot_atmos | `0x0204` | 1 | 19 sounds, volume 21, delay 8,000–20,000 ms, no links |
+| 838 | options_music | `0x021E` | 16 | links 0–100 |
+
+No music item has zero links. In track 3 the part-4 items (129–152) link to item **153** at
+0–19, and 153 has no link below 20: with the music silenced mid-part-4, one outro segment
+plays and the music stops. Repeated targets within one range weight the choice (track 3
+item 130 lists 131 twice at 80–100). **CONFIRMED** (data).
+
+## 6. The segment picker `0x006163C0` (linked player, vtable `0x00674180`)
+
+`pick(intensity)` on a playing instance (`+0x04` group, `+0x08` current item):
+
+1. No current item: take the group's first item (the entry point). **CONFIRMED.**
+2. The item has no links: current := none, return 0 (no stop flag). Inert for the shipped
+   music (§5). **CONFIRMED.**
+3. Count the links with `min ≤ intensity ≤ max`. None: write `0x7F` to the intensity slot
+   `+0x44`, set flag `+0x28 |= 0x100` (stopped), return 0. **CONFIRMED.**
+4. Advance the sound LCG at `0x007A53B0` (`× 0x19660D + 0x3C6EF35F`), `k = rotr(seed, 13) mod n`,
+   take the `k`-th matching link in file order: uniform over matching links. **CONFIRMED.**
+
+Start (slot `+0x3C`, `0x006165D0`) is the picker with the instance's own intensity `+0x44`; the
+constructor `0x0060C640` zeroes `+0x08`, so the first segment is a target of item 1's links.
+**CONFIRMED.** Resume (slot `+0x20`, `0x00616560`): while stopped and the intensity slot is
+no longer `0x7F`, clear the current item, pick, and queue the result. **CONFIRMED.** The
+segment end (slot 0, `0x006164D0`) picks with the intensity in `+0x44` and queues the item's
+sound on the stream, so a level change is heard at the next segment boundary. **CONFIRMED**
+(read 2026-10-28; nothing is queued when the pick or the sound pick returns 0). The intensity reaches `+0x44` every frame: set-parameter
+`0x00608DE0` → `0x0060D990` → `0x0060C750` writes the value into each of slots `+0x44..+0x47`
+whose id byte `+0x40..+0x43` matches, and the instance init (`0x0060C9D0`) copies slot 0's id
+from the group's `+0x12` (2). The per-frame update `0x00608D50` → `0x0060D950` calls the
+instance's slot `+0x20`, the resume. **CONFIRMED** (2026-10-27, deep pass). The init's start
+pick stores item 1 as current even when nothing matches, so at intensity 0 the music instance
+exists, flagged stopped, and retries each frame (**CONFIRMED**). That it is silent is
+**CONFIRMED** by the owner (no music before the first raise, §9 *Live capture*); how is unread:
+the init still picks item 1's sound into `+0x0C` (`0x0060CA43..9C`), and what keeps it off the
+stream (`0x0060C960`, the stream start) was not read. The LCG is the sound system's own, not a game stream.
+
+## 7. Where the lead differs
+
+- It files the level-1 states as "probably the states that start a fight". They are the raid
+  states 164, 180, 184 and 186, and three of the four raise as the walk there starts (§2).
+- It guesses `0x005384F0` runs at level start. That is the front-end station tick; the in-game
+  silence at level start comes from the Heart's opening (`0x004D9A60`), a caller it does not list.
+- It leaves player `+0x76` bit `0x40` open: `GameWonSequenceActive` (§2).
+- It names `0x0075AD27` an unknown 1/2/3 option: `SoundQuality` (§3).
+- It merges the no-links and no-match cases of the picker (§6, step 2).
+
+## 8. Pseudocode (ours)
+
+```
+// once per world frame
+Update():
+    if MusicSwitch:
+        if LevelLoaded && music == null: music = Start(MUSIC, Theme[max(1, level.Track)])
+        else: SetIntensity(music, Intensity(L))
+        if L > 0x100: L = 0x100
+    if ambience == null: ambience = Start(AMBIENCE, 341)
+    else: SetIntensity(ambience, Intensity(L) + (SoundQuality == 1 ? 20 : 0))
+    if atmos == null: atmos = Start(ONE_SHOT_ATMOS, 746) else Tick(atmos)
+
+Intensity(L) = L switch { 0x100 => 20, 0x101 => 40, 0x102 => 60, 0x103 => 80, _ => 0 }
+
+// requests, from §2
+OnRaidSetOut(164 | 180 | 184 | 186): L = max(L, 0x100)   // route found, or SetState(186)
+PerBattle(sum): L = max(L, sum >= V217 ? 0x103 : sum >= V216 ? 0x102 : sum >= V215 ? 0x101 : L)
+PerReaper(c):  if c.Player.GameWonSequenceActive: L = 0xFF else L = max(L, 0x103)
+OnHeartOpened, EveryFrontEndFrame: L = 0xFF
+
+// linked player, at each segment end and on resume
+Pick(item, i):
+    if item == null: item = group.Items[0]
+    if item.Links.Count == 0: return none
+    m = item.Links.Where(l => l.Min <= i && i <= l.Max)
+    if m.Count == 0: stopped = true; return none      // resumes when i is set again
+    return m[SoundRand() % m.Count].Target
+```
+
+## 9. The owner's play, and one conflict (Q666)
+
+Asked 2026-10-27: a level starts with no music, only the ambience (§3); the music stays at its
+most intense while a Horned Reaper is about and goes silent when the win sequence starts (§2).
+Both agree with the code.
+
+**Conflict.** The owner hears the music start when raiders *attack* their dungeon or creatures,
+not as they walk in, and never for heroes fighting a computer keeper. The code, re-read end to
+end on 2026-10-27, says otherwise:
+- `Battles_Update` calls `Battle_Update` on all eight records with no guard (`0x00504F06..1C`);
+  creatures of every player join (`+0x7A` player list); each record's `+0x00` is the world
+  (also passed to `World_GetGameTurn`), so the one exclusion is the local player. Threat only
+  grows with level (125–500 % for levels 2–10), and one Knight is 213, Giant 160, Bile Demon 120: a fight with
+  one of those between two other sides passes 100 and raises level 2, after which the decay
+  leaves level 1 playing until a set to `0xFF`.
+- The only writers of the level (`0x0075B8AC`, manager `0x0075B880`) are the constructor and
+  init (`0xFF`), the decay, raise and set (`StoreAt +0x2C`); nothing filters by player.
+- The raid raises are state handlers 163 (`0x00482010`), 179 (`0x00458370`) and 183
+  (`0x004586B0`), raised when the route is found, and the tunnel requests called from inside
+  `Travel_RouteToRoom`/`Travel_RouteToPoint` for a hero worker whose route has option bit 0.
+  A party given StealGold (job 13) enters 163 as soon as its arm's route test passes, and 163
+  walks to player 3's Treasury whatever player the job names (`steal-gold.md` §2), so that
+  raise comes as the walk starts, possibly far away, but only against player 3. On shipped
+  data 179 needs a keeper's converted hero and 183 never runs; most parties are KillPlayer,
+  with no raise of their own (*When a raid raises level 1*, below).
+The binary is the primary source, but every link here is static and the owner's account is
+specific; a live check settles it (Q666; done, *Live capture* below: the level is raised as the code says). A sampled watch of `0x0075B8AC` shows only 255 and
+256, since a level above 1 decays in the same frame; watch for the 255 → 256 change after the
+Heart's opening, or use "find out what writes to this address" to catch each raise site.
+One reading would reconcile part of it: level 1 is the calm part of the track, and the louder
+parts come only from battle threat, so music that starts quietly as raiders set out and swells
+when blows land may be heard as starting at the attack.
+
+### Once started, does the music stop again?
+
+The owner cannot say whether it plays through the rest of the level (asked 2026-10-27). The
+binary and data, read 2026-10-28:
+- **The level.** After any raise, the decay holds `L` at `0x100` (level 1, intensity 20). The
+  only things that lower it are the three sets to `0xFF` (§2) — the Heart's opening, the Horned
+  Reaper while its player is in the win sequence, the front end — and the manager's own
+  constructor and init (`0xFF`, the init also from `Display_InitializeMode`, below).
+  **CONFIRMED** (writers of `+0x2C`, and every call on the manager by slot).
+- **The track.** At intensities 20, 40 and 60 every segment of both tracks has a link in range
+  (parsed `musicSFX.map`), and from item 1 at 20 track 1 cycles through 52 segments and track 3
+  through 87, with no blank entry reached (the one blank, `Track_1_2` #36, is unreachable).
+  **CONFIRMED** (data). The segment end (slot 0, `0x006164D0`, read by the 2026-10-28 reviewer)
+  picks with `+0x44` and queues the chosen sound, so at level 1 the picker never runs dry and
+  the music should not stop by itself: **STRONGLY INFERRED** (the stream playing one queued
+  segment into the next is unread).
+- **Every other call on `CSoundSystem`** (RTTI of vtable `0x0066F7FC`), found by a capstone scan
+  of all calls made through `[0x0075B468]` (the 8 raise and 3 set sites as control):
+  - `+0x64` `0x00567E70`, from `World_LoadLevelKwd` only: `StopSFX`, then `StopHandle` on
+    the music, ambience and atmosphere instances (`+0x30/+0x34/+0x38`). At level load.
+  - `+0x60` `0x00567440`: `FlushCatagory` on four categories, the three background ones and the
+    hand's (`+0x3C` MUSIC, `+0x40` AMBIENCE, `+0x44` ONE_SHOT_ATMOS, `+0x48` HAND, named by init).
+    From `GameAction_LoadLevel`, and from `Portal_CreateArrival` (`0x004DCADC`) when a creature
+    type's first arrival has a level speech override, just before that speech is posted. A
+    flush walks the category's sample banks and releases them (`0x00608AA0` → `0x0060EA50`);
+    whether it cuts a playing segment is unread. If it does, the update starts a new instance
+    the next frame (a stale handle comes back as 0, §6), so the music restarts from its entry
+    point at the same level: an interruption, not an end. **LIKELY.**
+  - `+0x0C`/`+0x14` (`0x005677E0`/`0x005677D0`), from `Display_InitializeMode`: clear the music
+    handle and stop the category container (`0x00608A00`, unread); the update restarts the music
+    the next frame at the same level, an interruption. The init `0x00567300` (slot `+0x08`, sets
+    `L` to `0xFF` at `0x005673E2` and the service flag `+0x04` to 1) is reached from
+    `Display_InitializeMode` and `App_Main` only while `+0x04` is 0, i.e. before the service
+    exists; a display re-init with the service up does not touch `L`.
+  - `+0x5C` `SetView`, from `Possession_LeaveAction` and a bridge command: the listener, not
+    the music. The rest are sound effects, settings and storage.
+- **So:** once anything raises the level, the code plays music (at least the calm part 1) until
+  the end of the level, the win sequence's Reaper, or a return to the front end; a flush or a
+  display re-init can cut it, and it restarts at once from its entry point. The music switch stops only the music branch. Loading a saved game is not a
+  writer of `L`: through the front end it starts silent (the front end sets `0xFF` every
+  frame); an in-game load path, if one bypasses the front end, was not traced.
+
+### When a raid raises level 1
+
+Read 2026-10-28 (literal-push scans of `SetState` `0x00476D30` and its wrappers `0x0048AD30`,
+`0x00491830`; calls of the job setter `0x0048BE20`; the shipped `Creatures.kwd`, 66 THINGS and
+66 TRIGGERS files):
+- **One way into each state.** 163 only from job 13's arm (`0x00481FF4`), 179 only from job
+  11's (`0x0045834B`), 183 only from job 12's (`0x00458697`); no route helper resumes in any of
+  them. **CONFIRMED** (a state restored from `+0xDF` was not enumerated, but `+0xDF` holds a resume).
+- **Which jobs ship.** Party, placed and action-15 objectives are only 13, 18, 19, 22 and 23.
+  Job 11 is in two mood tables (Prince Tristran unhappy 10 %, Stone Knight angry 100 %), which
+  heroes never run (ADR-0485), so 179 needs a keeper's converted hero; job 12 is in no table and
+  is handed on only by a leader already in 184 (`0x00458CD3`), so **183 never runs on shipped
+  data**. StealGold: placed heroes in Levels 3 (9), 5 (2), 6a (1), 14 (7), 20 (7) (26, Q275's
+  placed count; party members' objectives not counted), and action 15 in Levels 3 and 8
+  (Level 3's Thieves on arrival, Q530). **CONFIRMED** (data).
+- **No proximity or fog gate.** The arms and handlers 163/179 hold no distance or visibility
+  test, and the route is a whole-map query. 163 always walks to player 3's nearest Treasury and
+  refuses player 3's own creatures (`0x00482027..2E`); arm 13 uses the job's player, else the
+  strongest, only for its own route test, and rejects the creature's own owner (`0x00481FB4`).
+  179's room is the nearest `Buildable` room (`0x004C60E0`, uncapped) of the job's player, else of
+  the strongest (`0x0050EA20`, which excludes no one), so for 11/179 the creature's own player is
+  not excluded.
+  A gate spawn enters 269 (`0x004626A0`: lands, then 210 stunned) and next runs its standing
+  job through 1 and 90 (§1 of `hero-party-walk.md`), so a StealGold party raises level 1 a
+  few turns after it appears, at the gate. **CONFIRMED**, the 210 → 1 timing **LIKELY**.
+- **Tunnelling.** Jobs 18 (`0x41`), 19 (`1`), 23's state 173 (`1`), 163 (`0x69`) and 179 (`1`/`0x61`)
+  all carry option bit 0. When the whole-map route fails — target sealed off by rock or a refused
+  door — a hero leader that is a tunneller (definition `+0x686` bit 0, owner the hero player
+  `[0x006F254C]`, in practice the Dwarf), or a leader with a tunneller party member (`+0x417`),
+  gets `SetState(186)` and the raise at once, at set-out, whatever the target. With an open
+  route nothing tunnels; a converted hero does not self-tunnel. **CONFIRMED.**
+- **So.** A StealGold party raises level 1 at set-out against player 3; a KillPlayer hero (the
+  most common objective: 1,068 placed heroes, Q275, and 370 of the 565 action-15 sets),
+  KillCreatures or SendToActionPoint one raises
+  it only if its route fails and it tunnels, also at set-out. Otherwise its music starts from
+  battle threat (§4), when blows land, which fits the owner's account. **CONFIRMED** in the code.
+
+### Live capture, 2026-10-28 (Q666 answered)
+
+`reverse-engineering/dk2music.py` (gitignored) detours slots `+0x4C` and `+0x50` in the running
+game and logs every call (caller, request, level before, tick), and snapshots the battle records'
+owners at each battle raise. Run on DKII-DX.exe (code byte-identical to DKII.EXE) replaying the
+owner's recordings with `-PLOAD`, no input; evidence `D:\DK2Evidence\runs\music-20261028-162920`:
+
+| Recording | What raised the music level | Music level `0x0075B8AC` |
+|---|---|---|
+| `l3live`, Level 3, 3,704 ticks | the tunnel request site (`0x00485BA0`, a hero worker by §2) at tick 1,293, then the stealing-booty site (`0x0048206E`, state 163) at 2,564; the first battle raise only at 3,326 (heroes 1 against the player 3) | `0xFF` until 1,293, then level 1 without a break until the win-sequence Reaper's set to `0xFF` at 3,683 |
+| `m12l11a`, Level 11A | battle threat from tick 765; on all 1,060 ticks with a battle raise (1,155 calls) the live records held only computer keepers 4, 5 and 6, never the local player 3 | level 1 from 765 to the end |
+| `m12l17`, Level 17 | battle threat from tick 1,431, on all 295 ticks heroes (1) against computer keeper 4 | level 1 from 1,431 to the end |
+
+Transition ticks are the logged calls' (the level before each is in `events.csv`); the 1 s
+samples agree. Which creature made a raid raise is read from the call site (§2), not captured.
+
+So DK2 raises the player's music level for fights that do not involve them and for a raid as it
+sets out, and once raised the level stays at 1 to the win sequence, as §2–§4 read: each battle
+asks for level 2 and the decay returns it to 1 in the same frame. **CONFIRMED** (live) for the
+level word. That the music is then *heard* is not measured: the capture logs the level, not the
+music instance or the game's music switch. The owner closed that by ear on 2026-10-28: replaying
+`m12l11a`, the music started at about three game-minutes, the tick-765 raise from a fight among
+computer keepers only, and none was heard before it. **CONFIRMED** (owner observation): a raised
+level is heard, and an unraised one is silent. Every map's LEVEL record (byte 25527) asks for
+track 1 or 3 (57 and 8 of 66; FrontEnd3DLevel 0), none for the missing track 2. The two idle runs
+(Levels 12 and 3 from `-LEVEL`, 20 minutes, about 4,700 ticks each, `music-20261028-154449`)
+logged no raise at all. The owner's earlier account (§9) was a recollection; the replay heard
+by the owner agrees with the code.
+
+## 10. UNKNOWN
+
+- How a stopped music instance stays silent (`0x0060C960`, §6); that it is silent is now an
+  owner observation (§9, *Live capture*).
+- The one-shot atmosphere's delay-chained player (vtable `0x006740B0`) and the options-screen
+  player (`0x006741C8`), not re-read.
+- Whether `SoundQuality == 1` is Low (the value order of its three labels).
+- Item fields `+0x14/15`, `+0x22` (a float: 20.0, 100.0, 0.1) and group `+0x0C` (6000, 1000, 149).
+- Whether a level's variables override 215–217 (no shipped level was checked).
