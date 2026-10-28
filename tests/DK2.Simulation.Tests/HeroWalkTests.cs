@@ -196,6 +196,8 @@ public class HeroWalkTests
         Assert.Equal(6, hero.Dk2StateId);   // travelling to a point
         Assert.Equal(HeroJobRules.WaitingState, hero.UtilityNewState);
         Assert.InRange(hero.StateDeadlineTick, 5 + 50, 5 + 84);
+        // Native too: the action has already ended, so the route helper's end (0x00471890) has nothing to
+        // end. Revisit if ours ever mirrors that end on every route.
         Assert.Equal(5, hero.ActionUntilTick);
     }
 

@@ -64,12 +64,12 @@ public sealed class GameSimulation
         TriggerTree? triggers,
         bool levelStart)
     {
+        _systems = systems is null ? [] : [.. systems];
+        _scheduledTriggers = ScheduledTriggers(_systems);
         Database = database;
         World = world;
         Rng = rng;
         world.BindCreatureIdentityRandom(rng);
-        _systems = systems is null ? [] : [.. systems];
-        _scheduledTriggers = ScheduledTriggers(_systems);
         _systemMarkers = [.. _systems.Select(s => SimulationMarker.Named(s.Name))];
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
         _triggers = triggers is null
