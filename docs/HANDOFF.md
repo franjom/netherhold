@@ -116,9 +116,16 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
   11 at 4330 (native 4378) and the hero door falling at 5314 (native about 5313), but 4 Imp
   deaths against 0, three to party 5's Guard, which survives the fight at (15-17,31-34) where
-  DK2's party 5 is down by 3960. That fight is the next lead
-  ([resync-replay.md](research/resync-replay.md)). Some of our trigger timer stamps differ from
-  DK2's by one tick, not investigated. The win and packet rigs have not been rerun at hash 318.
+  DK2's party 5 is down by 3960. In that run the Guard survived because ours' Thief stood nearer
+  and drew the Elves (one fight, consistent with nearest-first). Resynced at 3790 (one seed),
+  ours reproduces the window apart from one Imp (Imp 26 walks to party 5's gate) and a post-Guard
+  switch about 40 ticks late: parties on time, party 5 beaten, door at 5310 (native about 5313)
+  ([resync-replay.md](research/resync-replay.md), "The Guard fight"). The full replay's 45 deaths
+  look like drift, not tested over the same window. Next: those two residuals, then the drift
+  before 3790, creature levels first (six of ours above DK2's at 3520). The resync does not copy
+  a trigger record's active bit and repeat byte or the hero job triple, so resync before the
+  creature triggers that matter fire. Some trigger timer stamps differ from DK2's by one tick,
+  not investigated. The win and packet rigs have not been rerun at hash 318.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

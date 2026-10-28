@@ -97,9 +97,10 @@ native, three measured gaps (a replay resynced from DK2's tick 2340 matches nati
   318 it loses 45, with or without ADR-0559 (the resyncs into the window: `resync-replay.md`).
   - 184 of our 236 Imp entries into 201-203 fall in 4000-5999, against 41 native over the whole run
     (25 into 203 alone).
-  - Resynced at 3520 with every creature copied, 4 are lost, three to party 5's Guard, which
-    survives the fight at (15-17,31-34) where DK2's party 5 is down by 3960 (ADR-0560). Who kills
-    them in the full replay is not traced.
+  - Resynced at 3520 with every creature copied, 4 are lost, three to party 5's Guard (ours'
+    Thief stood nearer and drew the Elves); resynced at 3790 one is lost (ADR-0560,
+    `resync-replay.md`, "The Guard fight"). The full replay's deaths look like drift (one seed, not
+    tested over the same window); who kills them there is not traced.
 - **Mining over reinforcing.** In ticks 3000-4000, with as many Imps as native and before the deaths,
   ours starts 210 walks to mine (state 25) and 25 to reinforce (21); native starts 121 and 75
   (`walk_starts_resume.py`).
