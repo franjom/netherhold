@@ -346,6 +346,25 @@ unengaged enemy ahead of a heavily-shot one — its `s + 8` term crosses its own
 `17` at nine ranged attackers. `Support`'s `9` is a flat floor: it never
 initiates while any melee-engaged enemy is in range.
 
+### 5.1 Level 4: a farther Guard behind the hero door (2026-10-28)
+
+Binary re-read: selectors, both counters, attackability, registration, acquirer and route chain.
+Capture: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/analysis/guard_score_audit_codex_20261028.py`
+and `native_guard_score_audit_codex_20261028.out` (seed 1, six acquisitions, no torn frames).
+The captured `+0x08` update links put 435 before 437 before 440 before 441, then Guards 444-446.
+Troll 440's pre-move Blocker scores prefer 445 at 5283 and 446 at 5284; Troll 437 prefers 445 at 5286.
+Goblin 441 then sees 437 registered on 445; Goblin 435 sees that registration at 5287.
+Both are Flankers: the counter counts Troll 437 even in the ranged array. With `r = 65536`:
+
+| Goblin / tick | 445: `m*r + d` (`m=1`) | 446: `17r + d` (`m=s=0`) |
+|---|---:|---:|
+| 441 / 5286 | 81298 | 1127879 |
+| 435 / 5287 | 85810 | 1134015 |
+
+All Guards retain IsAttackable and free slots; exclusion, disguise and follower fields do not explain these picks.
+CONFIRMED: the score arithmetic and captured fields. STRONGLY INFERRED: these six picks follow the existing scores and update order; no rule difference found.
+The capture lacks temporary route results/waypoints; neither Goblin pick requires 446 to fail reach. Our position comparison and the separate wait-action fix are in resync-replay.md, "The Guard fight"; no selector change was justified.
+
 ## 6. What is left
 
 Small and named. What `def+0x760`'s file field `0xEE4` should be called, and the

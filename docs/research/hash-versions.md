@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**323** - `0x32086DAF699C9E45`. FormatVersion also 323. Behaviour only: waiting heroes start action 43 and preserve its hold across a failed standing job (ADR-0566). The existing ActionUntilTick carries it; no fields added. Clip timing retains the existing fresh-install surrogate boundary. HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline covers the missing hold; the pin fixture moves by the version only.
+
 **322** — `0x7A521062FC7B6D7A`. FormatVersion also 322. Behaviour only: every steal handler measures the holder from its position (`+0x1A/+0x1E`), at work or walking (`0x00469AF0` both arms, `0x0046AB50`, `0x0046AEA0`; ADR-0565); ours had used the stance point for a holder in its entry or work state. No new fields; the pin fixture moves by the version only. The Level 4 seed-1 3700 resync and Level 1 seeds 1-2 are byte-identical to hash 320. `TaskStealingTests.AHolderAtWorkIsMeasuredFromWhereItStands` and `AMinerAtWorkIsMeasuredFromWhereItStands` cover it.
 
 **321** — `0x2B73025DDCF2DBEF`. FormatVersion also 321. Format only: the snapshot tags its random generator and carries `Dk2Lcg`'s seed as well as xoshiro's state (ADR-0564). No hashed field changes; the pin fixture moves by the version only. `SnapshotTests.RoundTrip_CarriesTheDk2Generator` and `Read_RefusesAGeneratorTagItDoesNotKnow` cover it.
@@ -393,8 +395,4 @@ invulnerable, frozen, invisible, speed ticks and percent, poison ticks, amount a
 owner, the stun clock) entered the hash and the snapshot; every blow and shot passes
 the health routine's multipliers (ADR-0168).
 
-**72** — `0xE13D73F01C848BC5` (current). Every creature's three spell stamps, its
-spell slot, the kind and slot of its current action and its last position; the shots in
-flight with their own id counter (ADR-0167). Composition only in the pinned fixture.
-
-[Versions 9–71](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–72](hash-versions-early.md) retain the earlier pins and their reasons.

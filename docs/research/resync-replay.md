@@ -152,18 +152,64 @@ resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
 - Resync at 3790, run to 5400:
   - Party 5 arrives at 3829, 39 ticks after the resync, and is beaten; parties come on time and
     none extra are raised.
-  - The hero door (24,27) falls at 5310 (native about 5313).
-  - 1 Imp dies, against 0 natively: Imp 26 walks to party 5's gate (14,29) and is killed at 3852.
-    The 3520 run also lost Imp 26, at 3888.
-  - The post Guards switch to KillPlayer at 5323-5347, after their door falls. DK2's switch at
-    5283, 5284 and 5307, before theirs falls.
+  - Rerun with the steal-holder tool (hash 322; `resync-guard/run3790-h322`; not bisected, and the
+    resync's own pairing and counts differ from the first run's): no keeper creature dies in
+    3790-5400, against 0 natively. DK2's slot 431, the Imp the first run lost at (14,29) at 3852
+    (id 26, level 2), is now id 34 at level 1: it mines (8,29), heads east and flees party 5 at
+    3842 (DK2 3846), a few ticks' margin. It then chooses another seam where DK2's walks to store.
+  - Party 5 matches DK2's (Thief, Guard in the Dwarf's reused slot 418, Thief), and hero deaths match
+    within 10 ticks except party 7's Thief (4508 against about 4546). The hero door (24,27) falls at
+    5301 (first run 5310, native about 5313).
+  - The post Guards: ours logs `hero_job` only when state 90's dispatch succeeds. A probe of the
+    trigger's objective action (hash-320 build; its events and creatures match `run3790-h322` line
+    for line to 5350) gives ours' Guard 10 5280 (DK2's 446: 5284), Guard 11 5314 (445: 5283) and
+    Guard 12 5319 (444: 5307): the last two after ours' door falls.
+  - DK2's attackers at the closed door re-run `SelectAVictim` every tick out of reach, and each pick
+    fires event 6 on that Guard. Its Trolls (Blockers) take the nearest Guard; its Goblins
+    (Flankers) join the Guard a Troll already fights (combat-target-selection.md §5), so DK2 touches
+    two Guards before the door falls. Ours' attackers all stay on Guard 10.
 - Reading, one seed, STRONGLY INFERRED: from DK2's state at 3790, ours reproduces the window apart
-  from one Imp and a post-Guard switch about 40 ticks late. The full replay's 45 deaths look like
-  drift (creature set, levels, positions), but that was not tested over the same window. Imp levels
-  are not the drift source; other species' were not compared (creature-update-order.md).
-- Open:
-  - why Imp 26 walks to (14,29);
-  - why ours' post Guards switch about 40 ticks after DK2's.
+  from the post Guards' switch (two of three late), which follows from ours' attackers all taking
+  one Guard, and a door falling 12 ticks early. The full replay's 45 deaths look like drift
+  (creature set, levels, positions), but that was not tested over the same window. Imp levels are
+  not the drift source; other species' were not compared (creature-update-order.md).
+### Why ours chose one Guard; the wait-action gap (ADR-0566, hash/save 323)
+
+One seed, 3790 resync. Evidence: `resync-guard/run3790-points-codex-20261028/`
+under the evidence root above: saved tool, logging patch, exact-point log and `comparison.txt`.
+The probe preserves replay/events/creatures/jobs byte for byte against `run3790-h322`.
+At 5283 ours scans before moving, just as DK2 does; the scan repeats while out of reach.
+Our Troll point is (100761,116062), near native 440's pre-move (100766,116167).
+The Guard points differ more: ours 10=(100261,110003), 11=(103081,107062);
+native 446=(98984,107176), 445=(105641,108449). The discounted Blocker scores are:
+
+| Position control at 5283 | Guard 10 / 446 | Guard 11 / 445 | winner |
+|---|---:|---:|---|
+| our attacker, our Guards | 7895 | 18452 | 10 |
+| our attacker, native Guards | 17541 | 17467 | 445 |
+| native 440, our Guards | 8170 | 18853 | 10 |
+
+CONFIRMED in this probe: points explain the Troll choice; the Flanker crowd counts favor
+that engaged Guard, using both arrays and the existing per-creature sweep. Approach meets the door
+and forces its target at 5282/5284/5288 (ours 21/45+16/19); the Guard choice already differs before
+that contact. This does not establish global steering or scheduler parity.
+
+The smaller retry issue has a rule gap. State 176 (`0x00486CF0`) holds a current action regardless
+of its deadline; without an action it starts counted action 43 while the deadline is live, otherwise
+wandering. Failed state 90 (`0x00477850`) still writes
+now+12; state 4 (`0x00477680`) holds the action before testing that deadline. Native 445's action 43
+(start stamp 5276) remains through 5303; 446's (5274) through 5301, explaining their long state-4 stays.
+Their north walks are 87 -> 6 resuming 1 at 5307/5308 and 5305/5306: idle wandering, not KillPlayer success.
+Ours omitted the wait action. ADR-0566 adds its start and hold using existing ActionUntilTick timing.
+Control flow is CONFIRMED; fresh-install timing is STRONGLY INFERRED, retaining the existing
+phase/alternate-draw limits of [the timer surrogate](animation-clock.md).
+
+One post-fix run, `resync-guard/run3790-h323-wait-action-codex`: the two Trolls first choose 11 at
+5280/5281; Goblins 17/18 choose 11 at 5283. Guard-target changes through 5290 are only 11 -> door,
+not native's 445 -> 446 -> door. Native touch times 445/446/444=5283/5284/5307; ours 11/10/12=
+5280/5313/5301 (first state-90 entry). Door destroyed 5307 (baseline 5301, native about 5313).
+The fix changes the pre-3790 run too: resync tiles 95 vs 102, added/removed creatures 7/5 vs 9/4,
+so this is not an identical-input causal A/B. No campaign or win-rate inference follows.
 
 The drift before 3790 (the dig order at about 550) comes from the first dig's lag, which is RNG
 (STRONGLY INFERRED, one seed; creature-update-order.md, "The first dig and RNG").

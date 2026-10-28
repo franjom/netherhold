@@ -1,6 +1,10 @@
 # Early state-hash versions
 
-Versions 9–71, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–72, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**72** — `0xE13D73F01C848BC5`. Every creature's three spell stamps, its
+spell slot, the kind and slot of its current action and its last position; the shots in
+flight with their own id counter (ADR-0167). Composition only in the pinned fixture.
 
 **71** — `0xF7F8F30AF29050DF`. The alarm a Scout carries — the threat's
 position, the deficit, the room — and the ticks stood reporting danger entered

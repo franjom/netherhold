@@ -110,6 +110,46 @@ public class HeroWalkTests
         Assert.Equal(JobType.KillCreatures, hero.GoodJob);
     }
 
+    // 00486CF0 starts action 43; 00477850 keeps it on a failed job; 00477680 waits for it before the deadline.
+    [Fact]
+    public void AWaitingHerosIdleActionOutlivesItsFailedJobDeadline()
+    {
+        var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        slots[20] = new CreatureAnimationTiming
+        {
+            ResourceType = 6, Flags = CreatureAnimationFlags.Present,
+            FrameCount = 150, FramesPerSecond = 20,
+        };
+        (GameDatabase db, WorldState world) = OpenWorld(Dk2TerrainFixture.Knight() with
+        {
+            CreatureId = Strong, ArtSlots = slots,
+        });
+        CreatureState hero = world.SpawnCreature(db, Strong, PlayerIds.Good, new TilePos(5, 5));
+        StatePlacement.Place(hero, HeroJobRules.WaitingState);
+        hero.StateDeadlineTick = 2;
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick();
+        long actionEnd = hero.ActionUntilTick;
+        Assert.True(actionEnd > HeroJobRules.RetryTurns);
+        sim.Run(3);
+        Assert.Equal(HeroJobRules.WaitingState, hero.Dk2StateId);
+        Assert.Equal(new TilePos(5, 5), hero.Tile);
+
+        hero.GoodJob = JobType.KillCreatures;
+        hero.GoodJobPlayerId = Keeper;
+        StatePlacement.Place(hero, HeroJobRules.StandingJobState);
+        sim.Tick();
+        Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+        long retry = hero.StateDeadlineTick;
+        Assert.True(retry < actionEnd);
+        while (sim.CurrentTick.Value <= retry) sim.Tick();
+        Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
+        Assert.Equal(actionEnd, hero.ActionUntilTick);
+        while (sim.CurrentTick.Value <= actionEnd) sim.Tick();
+        Assert.Equal(CreatureStateMachine.Idle, hero.Dk2StateId);
+    }
+
     [Fact]
     public void AFailedJobWaitKeepsItsActionThenExpiresAtItsDeadline()
     {

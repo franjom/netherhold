@@ -289,3 +289,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Restoring source with `Copy-Item` can preserve a timestamp older than the compiled DLL; touch the restored file or rebuild before trusting an incremental regression retest.
 - Windows PowerShell Set-Content defaults to a legacy code page; pass -Encoding UTF8 for Python scripts containing non-ASCII prose.
 - An effect's GenerateIds are effect ids, not element ids, when the effect has flag `0x40` (types 4 and 18); a dump that resolved them as elements made the Inferno look like one spark (shot-effects.md §5).
+- Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here. Docker context-mode exposes this checkout read-only at /workspace, not D:/DK2Evidence.
+- Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.

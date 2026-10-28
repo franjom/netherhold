@@ -13184,3 +13184,21 @@ every holder from `PosX/PosY`.
 Tests: `TaskStealingTests.AHolderAtWorkIsMeasuredFromWhereItStands` (claim; 800 steals, 1600 the same
 distance and 2000 do not) and `AMinerAtWorkIsMeasuredFromWhereItStands` (a miner in 26 off its slot on
 its stance tile); the first row of the one and the other fail without the change.
+
+## ADR-0566 - Waiting heroes keep their idle action across a failed job
+**Date:** 2026-10-28 - **Status:** proposed, implemented - Hash/save 323 - Q665
+
+**Context.** State 176's idle action was omitted from HeroJobRules.Wait. A failed standing job
+therefore reached state 4 with nothing to hold, although its wrapper already waited for actions.
+Research and the measured Guard-door comparison: [resync-replay.md](research/resync-replay.md), "The Guard fight".
+
+**Decision.** Wait checks the running action before its deadline and starts counted action 43
+(art slot 20) while parked. The existing ActionUntilTick and CountedHoldTicks carry that action
+through a failed standing job. The retry remains 12 ticks. No target-selector rule changes.
+
+**Consequences.** This uses the existing fresh-install timer surrogate: matching clip phase and
+alternate-install draws are not reproduced (animation-clock.md, timer-based actions).
+HashVersion and FormatVersion rise together; no state fields are added.
+
+Test: HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline failed before the fix
+and now passes. The test checks the action hold across failure, not exact native clip duration.
