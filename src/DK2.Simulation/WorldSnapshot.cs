@@ -31,6 +31,48 @@ public static class WorldSnapshot
     /// </summary>
     private const int FormatVersion = 322;
 
+    /// <summary>Which generator the snapshot carries; its state follows the tag
+    /// (ADR-0275, ADR-0564).</summary>
+    private enum RandomTag : byte
+    {
+        Xoshiro256StarStar = 0,
+        Dk2Lcg = 1,
+    }
+
+    private static void WriteRandom(BinaryWriter w, SimRandom rng)
+    {
+        switch (rng.Algorithm)
+        {
+            case Xoshiro256StarStar:
+                (ulong s0, ulong s1, ulong s2, ulong s3) = rng.SaveState();
+                w.Write((byte)RandomTag.Xoshiro256StarStar);
+                w.Write(s0);
+                w.Write(s1);
+                w.Write(s2);
+                w.Write(s3);
+                break;
+            case Dk2Lcg lcg:
+                w.Write((byte)RandomTag.Dk2Lcg);
+                w.Write(lcg.Seed);
+                break;
+            default:
+                throw new NotSupportedException(
+                    $"{rng.Algorithm.GetType().Name} has no snapshot tag; add one to {nameof(RandomTag)}.");
+        }
+    }
+
+    private static SimRandom ReadRandom(BinaryReader r)
+    {
+        var tag = (RandomTag)r.ReadByte();
+        return tag switch
+        {
+            RandomTag.Xoshiro256StarStar =>
+                SimRandom.Restore((r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64())),
+            RandomTag.Dk2Lcg => new SimRandom(new Dk2Lcg(r.ReadUInt32())),
+            _ => throw new InvalidDataException($"Snapshot names random generator {(byte)tag}, which this build does not know."),
+        };
+    }
+
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
         w.Write(link.TileIndex);
@@ -112,11 +154,7 @@ public static class WorldSnapshot
         WorldState world = simulation.World;
         w.Write(world.CurrentTick.Value);
 
-        (ulong s0, ulong s1, ulong s2, ulong s3) = simulation.Rng.SaveState();
-        w.Write(s0);
-        w.Write(s1);
-        w.Write(s2);
-        w.Write(s3);
+        WriteRandom(w, simulation.Rng);
 
         w.Write(world.Width);
         w.Write(world.Height);
@@ -855,7 +893,7 @@ public static class WorldSnapshot
                 $"Snapshot format version {version} is not supported (this build reads {FormatVersion}).");
 
         var tick = new GameTick(r.ReadInt64());
-        SimRandom rng = SimRandom.Restore((r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64()));
+        SimRandom rng = ReadRandom(r);
 
         int width = r.ReadInt32();
         int height = r.ReadInt32();

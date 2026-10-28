@@ -83,7 +83,7 @@ public class Dk2LcgTests
     }
 
     [Fact]
-    public void ThroughSimRandom_RefusesTheXoshiroOnlySnapshot()
+    public void ThroughSimRandom_RefusesTheXoshiroOnlyCalls()
     {
         var rng = new SimRandom(new Dk2Lcg());
         Assert.Throws<NotSupportedException>(() => rng.SaveState());
