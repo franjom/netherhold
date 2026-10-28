@@ -52,6 +52,9 @@ dump itself, and the JSON also carries what only the dump holds:
     creatures[].fear: {temp, current, counter}
                                           TempFear +0x524, CurrentFear +0x526, OverThreatCounter
                                           +0x528 (words handed over in 0x0045E4F0, the byte counter in 0x0045EC80; combat-fear.md)
+    creatures[].fightReturn: {x, y, tick}
+                                          OldFightPos +0x52A/+0x52C (the withdraw state writes the x
+                                          tile to both) and OldFightTick +0x52E (ADR-0225)
     flags: 128, timers: 16                the trigger banks on the world object, +0x3F70 bytes and
                                           +0x3FF0 dwords (trigger-state.md 2); a timer is the tick it
                                           was started, 0 when not
@@ -248,6 +251,9 @@ def state(snap):
                 # TempFear +0x524, CurrentFear +0x526, OverThreatCounter +0x528 (0x0045E4F0, 0x0045EC80)
                 creature["fear"] = {"temp": r.u(0x524, "<H"), "current": r.u(0x526, "<H"),
                                     "counter": r.u(0x528, "<B")}
+            if len(r.raw) >= 0x532:
+                # OldFightPos +0x52A/+0x52C (both the x tile) and OldFightTick +0x52E (0x004617FB-0x00461820)
+                creature["fightReturn"] = {"x": r.u(0x52A, "<H"), "y": r.u(0x52C, "<H"), "tick": r.u(0x52E, "<i")}
             creatures.append(creature)
         elif r.kind == "object":
             objects.append({"slot": r.slot, "type": r.f("type_id"), "owner": r.f("owner"),

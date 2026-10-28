@@ -40,11 +40,16 @@ public sealed record ResyncDoor(int Slot, int X, int Y, int Owner, int Type = 0,
 public sealed record ResyncTrap(int Slot, int X, int Y, int Owner, int Type, bool Constructing, int Health);
 
 /// <summary>The decoder's thing and creature fields, and <see cref="Level"/> <c>+0x403</c>;
-/// <see cref="Job"/> and <see cref="Fear"/> only on a record long enough to hold them. A level of 0
-/// is a capture written before it was read.</summary>
+/// <see cref="Job"/>, <see cref="Fear"/> and <see cref="FightReturn"/> only on a record long enough to
+/// hold them. A level of 0 is a capture written before it was read; a null fight return likewise.</summary>
 public sealed record ResyncCreature(
     int Slot, int Owner, int X, int Y, int Type, int State, int Health, ResyncJob? Job, ResyncFear? Fear = null,
-    int Level = 0);
+    int Level = 0, ResyncFightReturn? FightReturn = null);
+
+/// <summary>Where a creature withdrew from a fight, and when (ADR-0225): <c>OldFightPos</c>, two words
+/// at <c>+0x52A</c>/<c>+0x52C</c> that the withdraw state both writes with the x tile, and
+/// <c>OldFightTick</c> <c>+0x52E</c> (<c>0x004617FB</c>-<c>0x00461820</c>). State 1 walks back to it.</summary>
+public sealed record ResyncFightReturn(int X, int Y, long Tick);
 
 /// <summary>Fear (combat-fear.md): <c>0x0045E4F0</c> hands the words over, <c>0x0045EC80</c> counts; <c>TempFear</c>
 /// <c>+0x524</c>, <c>CurrentFear</c> <c>+0x526</c>, <c>OverThreatCounter</c> <c>+0x528</c>.</summary>
