@@ -94,7 +94,7 @@ The whole-map camera-footprint geometry and remaining material boundary are
 recorded in [Camera footprint](#camera-footprint-binary).
 
 [Q197](open-questions.md) remains open; the raster/overlay and grid-getter
-exclusions are in [fog-of-war.md §9.4](fog-of-war.md#94-two-portals-show-through-the-fog-dimmed).
+exclusions and entrance comparison are in [portal-visibility.md](portal-visibility.md).
 
 ## Native resource loading (STRONGLY INFERRED, binary and shipped data)
 
