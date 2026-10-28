@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Tests;
 
@@ -93,6 +94,74 @@ public class TaskStealingTests
         Assert.Equal(steals, run.Of("task_stolen").Any(e => e.Detail.Contains($"imp={second.Id} from={first.Id} (4,2)")));
         Assert.Equal(steals ? second.Id : first.Id,
             run.World.Creatures.Single(c => c.TargetTileIndex == run.Index(new TilePos(4, 2))).Id);
+    }
+
+    /// <summary>
+    /// <b>A holder already at work is measured from where it stands.</b> The claim handler
+    /// (<c>0x0046AB50</c>) reads the holder's <c>+0x1A/+0x1E</c> whatever its state, as do the
+    /// reinforce handler and both arms of the dig walk. The first imp is at work on (4,2), 1600
+    /// right of the centre; the second stands on the tile, 800, 1600 or 2000 left of it, and takes
+    /// the claim on its choosing tick (the second) only when strictly nearer the centre: at the same
+    /// distance it does not (<c>JNC</c> at <c>0x0046AE07</c>).
+    /// </summary>
+    [Theory]
+    [InlineData(800, true)]
+    [InlineData(1600, false)]
+    [InlineData(2000, false)]
+    public void AHolderAtWorkIsMeasuredFromWhereItStands(int secondOffset, bool steals)
+    {
+        Run run = Start();
+        CreatureState first = run.Imp(new TilePos(3, 2));
+        for (int i = 0; i < 200 && first.Dk2StateId is not (15 or 16); i++) run.Ticks(1);
+        Assert.True(first.Dk2StateId is 15 or 16);
+        Assert.Equal(run.Index(new TilePos(4, 2)), first.TargetTileIndex);
+        int centreX = CreatureState.CentreOf(4), centreY = CreatureState.CentreOf(2);
+        first.PosX = first.LastPosX = centreX + 1600;
+        first.PosY = first.LastPosY = centreY;
+
+        CreatureState second = run.Imp(new TilePos(4, 2));
+        second.PosX = second.LastPosX = centreX - secondOffset;
+        second.PosY = second.LastPosY = centreY;
+        run.Ticks(2);
+
+        Assert.Equal(steals, run.Of("task_stolen").Any(e => e.Detail.Contains($"imp={second.Id} from={first.Id} (4,2)")));
+    }
+
+    /// <summary>
+    /// <b>A miner at work is measured from where it stands, not from its slot.</b> The dig walk's
+    /// mine arm (<c>0x00469AF0</c>, compare at <c>0x0046A2CE</c>) takes a held slot when the
+    /// chooser, from where it stands, is strictly nearer the side tile's corner than the holder is
+    /// from its own <c>+0x1A/+0x1E</c>. Three imps hold the seam's three slots on its one open
+    /// side (4,5), all at work (26). The one in the far slot is moved to the far corner of its
+    /// stance tile (4,5): 7882 from that tile's corner by DK2's measure, against 5687 from its
+    /// slot. A fourth in (4,4), 6335 from the corner, takes that slot.
+    /// </summary>
+    [Fact]
+    public void AMinerAtWorkIsMeasuredFromWhereItStands()
+    {
+        Run run = Start();
+        foreach (TilePos p in new[] { new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5) })
+        {
+            ref TileState tile = ref run.World.Tile(p);
+            tile.TerrainId = Dk2TerrainFixture.DirtPath;
+            tile.OwnerPlayerId = PlayerIds.Unowned;
+            tile.Health = run.Db.TerrainById(Dk2TerrainFixture.DirtPath).StartingHealth;
+        }
+        CreatureState[] miners = [run.Imp(new TilePos(2, 2)), run.Imp(new TilePos(2, 3)), run.Imp(new TilePos(3, 2))];
+        run.Sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, new TilePos(5, 5))));
+        int seam = run.Index(new TilePos(5, 5));
+        for (int i = 0; i < 400 && !miners.All(m => m.TargetTileIndex == seam && m.Dk2StateId == 26); i++) run.Ticks(1);
+        Assert.All(miners, m => Assert.True(m.TargetTileIndex == seam && m.Dk2StateId == 26));
+
+        CreatureState moved = miners.Single(m => m.WorkSlot == miners.Max(n => n.WorkSlot));
+        moved.PosX = moved.LastPosX = 20400;
+        moved.PosY = moved.LastPosY = 24500;
+        CreatureState chooser = run.Imp(new TilePos(4, 4));
+        chooser.PosX = chooser.LastPosX = 19500;
+        chooser.PosY = chooser.LastPosY = 16450;
+        run.Ticks(2);
+
+        Assert.Contains(run.Of("task_stolen"), e => e.Detail.StartsWith($"imp={chooser.Id} from={moved.Id} (5,5)"));
     }
 
     /// <summary>

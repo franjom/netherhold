@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**322** — `0x7A521062FC7B6D7A`. FormatVersion also 322. Behaviour only: every steal handler measures the holder from its position (`+0x1A/+0x1E`), at work or walking (`0x00469AF0` both arms, `0x0046AB50`, `0x0046AEA0`; ADR-0565); ours had used the stance point for a holder in its entry or work state. No new fields; the pin fixture moves by the version only. The Level 4 seed-1 3700 resync and Level 1 seeds 1-2 are byte-identical to hash 320. `TaskStealingTests.AHolderAtWorkIsMeasuredFromWhereItStands` and `AMinerAtWorkIsMeasuredFromWhereItStands` cover it.
+
 **321** — `0x2B73025DDCF2DBEF`. FormatVersion also 321. Format only: the snapshot tags its random generator and carries `Dk2Lcg`'s seed as well as xoshiro's state (ADR-0564). No hashed field changes; the pin fixture moves by the version only. `SnapshotTests.RoundTrip_CarriesTheDk2Generator` and `Read_RefusesAGeneratorTagItDoesNotKnow` cover it.
 
 **320** — `0xE8F0B969D072207C`. FormatVersion also 320. Behaviour only: state 26 asks its hands/store check and its pile check on the call that begins its next action, where the work clock begins one (`0x00465870`, `0x00496AA0`; ADR-0563); after the first strike that is the clip's wrap, 3 or 4 ticks later. No new fields; the pin fixture moves by the version only. `GoldCarryingTests.AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesActionEnds` and `AMinerWhoseOverflowTakesItsPileOverTheLimit_OnALaterStrike_GivesTheSlotUpOnThatStrikesTick` cover it.

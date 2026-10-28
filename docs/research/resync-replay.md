@@ -215,11 +215,11 @@ hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different cou
     it may be exaggerated); from 3400 only 4 against 1. A steal adds at most one start, so from 3700
     that is about half of the 21 extra starts, and from 3400 3 of 21. The rest is open, HYPOTHESIS:
     state.
-  - The steal test in `0x00469AF0`'s mine arm ours matches for a walking holder (`TaskStealing`
-    shifts each axis' square right 12 as DK2 does). For a holder at its seam, ours measures from its
-    stance point in 25 and 26 (`TaskStealing.HolderPosition`) where DK2 reads every holder's
-    `+0x1A/+0x1E` (disassembly `0x0046A1AA`-`0x0046A2F9`). No steal counted here is from such a
-    holder, so the difference is real and unexercised.
+  - The steal test in `0x00469AF0`'s mine arm ours matches (`TaskStealing` shifts each axis'
+    square right 12 as DK2 does), for a walking holder and one at its seam alike: both read
+    `+0x1A/+0x1E` (`0x0046A1AA`-`0x0046A2F9`). Ours measured a holder in 25 and 26 from its stance
+    point until ADR-0565; no steal counted here was from such a holder, and the reruns are
+    byte-identical.
 - A walk to a seam that fell on the way: DK2's state 25 (`0x00465790`) finds the task entry gone and
   goes to 10. Ours ends the walk `out_of_reach` through state 1. Both choose two ticks after arrival
   (20 native, 15 ours), so it is only a label.

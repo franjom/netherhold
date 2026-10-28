@@ -318,8 +318,8 @@ public static class DecisionCheck
             : FaceFor(database, world, creature.Tile, target);
         creature.TargetTileIndex = ty * world.Width + tx;
         creature.TargetWork = work;
-        // A holder still walking stays in the walk (6, resuming in the work's entry state): task
-        // stealing measures it from where it is, an arrived one from its stance point.
+        // A holder still walking stays in the walk (6, resuming in the work's entry state); task
+        // stealing measures every holder from where it is.
         if (state == WalkState)
         {
             CreatureStateMachine.Release(creature);
