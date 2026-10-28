@@ -288,6 +288,35 @@ public class CombatFearTests
     }
 
     [Fact]
+    public void AStunnedCreatureNeitherHandsOverNorRadiates_ItsIntakePilesUp()
+    {
+        // 0x0045E4F0 returns before the handover for 209, 255, 256 and 257 (0x0048F350).
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
+        GameSimulation sim = Combat(db, world);
+        sim.Run(1);
+        Assert.Equal(120, goblin.CurrentFear);
+
+        StatePlacement.Place(goblin, 257);   // getting up, the stunned family
+        goblin.ActionUntilTick = sim.World.CurrentTick.Value + 50;
+        sim.Run(1);
+        int afterOne = goblin.TempFear;
+        sim.Run(1);
+        Assert.True(StatusEffectRules.IsStunned(goblin));
+        Assert.Equal(120, goblin.CurrentFear);          // no handover while stunned
+        Assert.True(goblin.TempFear > afterOne && afterOne > 0, $"{afterOne} then {goblin.TempFear}");
+        Assert.Equal(0, demon.TempFear);                 // and no radiation
+
+        // Standing again, the whole stun's intake is handed over at once, with this tick's give
+        // (the Demon, newer, gives before the Goblin's handover): Level 4's Goblin took 606.
+        int piled = goblin.TempFear;
+        StatePlacement.Place(goblin, 1);
+        sim.Run(1);
+        Assert.Equal(piled + 120, goblin.CurrentFear);
+    }
+
+    [Fact]
     public void FearIsScaledByTheDistanceFromTheOwnHeart_AndIsNothingBesideIt()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

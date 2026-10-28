@@ -12966,3 +12966,21 @@ fix, and after it the east seam (29,34) first struck at 2482 against native's 24
 blueprints alone, 3072 with neither); job starts 2340-3400 mine 110/112, claim 66/57, reinforce
 83/90 (native/ours). With the slot-0 fix our pre-resync world is also closer: 101 tiles differ at
 2340 against 140.
+
+## ADR-0559 — A stunned creature's fear piles up: the accumulator skips it whole
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 318 (behaviour only) · Q665 · Research: `docs/research/combat-fear.md` §2
+
+**Context.** The fear accumulator `0x0045E4F0` calls `0x0048F350` first (`0x0045E4FD`): for a
+creature in state 209, 255, 256 or 257 it returns before the handover (`CurrentFear = TempFear`,
+`TempFear = 0`), so it neither takes its intake nor radiates, while its attackers keep adding to
+its `TempFear`. Ours skipped a chicken and a fallen creature but not a stunned one (the code said
+"not yet"). Level 4 seed 1's capture shows it: Goblin slot 435, dropped beside three heroes at
+3490, holds `TempFear` 404 and 505 through the stun with `CurrentFear` 0, takes 606 at 3498, counts
+1, 2, 3 and flees (203) at 3500.
+
+**Decision.** `FearRules.Radiate` returns for `StatusEffectRules.IsStunned` as for a chicken.
+
+**Consequences.** A creature dropped by hand among enemies meets its first fear check with the
+whole stun's intake. `CombatFearTests.AStunnedCreatureNeitherHandsOverNorRadiates_ItsIntakePilesUp`
+covers it. In the 3496 resync our Goblin still does not flee: its frighteners, party 4, arrive 30
+ticks later in ours (3500 against 3470), so they are not there to give.

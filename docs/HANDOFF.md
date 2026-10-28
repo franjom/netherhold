@@ -108,8 +108,13 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   as native does (mine 110/112, claim 66/57, reinforce 83/90, native/ours) and strikes the east
   seam (29,34) at 2482 against 2476. A crate is paid for at the cost in the manufacture ring's
   slot 0, not the head's (ADR-0557, hash/save 317, Q618): Level 4's east seam group now finishes
-  at 2810-3144 in seeds 1-5 (was 3098-3516; native 2815 and 2988). The win and packet rigs have
-  not been rerun at hash 317.
+  at 2810-3144 in seeds 1-5 (was 3098-3516; native 2815 and 2988). A stunned creature's fear
+  piles up and is handed over on its first standing tick (ADR-0559, hash/save 318); Level 4 seed 1
+  loses 45 Imps with and without it (32 at hash 316, one seed, not attributed to ADR-0557).
+  Resyncs into the death window (3900, 3496) and what they show: the hero parties match native
+  in composition but arrive 30 ticks later, and ours raises two more
+  ([resync-replay.md](research/resync-replay.md)). The win and packet rigs have not been rerun
+  at hash 318.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

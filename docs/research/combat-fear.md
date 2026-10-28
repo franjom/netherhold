@@ -273,7 +273,10 @@ straight away from the target, not a heading impulse (Q373); a hero's flag bit 4
 absent, as in every shipped level (§3.2). The room
 word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 
-**Not built:** hero gates; the stunned gate (a chicken is skipped, ADR-0302); the owner modifiers (Q375);
+The stunned gate is built (ADR-0559), beside the chicken's (ADR-0302): a stunned creature's
+`TempFear` piles up and its first standing tick hands the whole intake over.
+
+**Not built:** hero gates; the owner modifiers (Q375);
 `ThreatThing`; the two spell sources of §2; the body bit `+0x10F`.0.
 
 Withdrawal is built through step 5 (ADR-0544 failed pick, ADR-0545 the away
