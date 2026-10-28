@@ -765,6 +765,19 @@ public sealed class WorldState
     /// <summary>The tick the world is currently *at*; the next Tick() executes this one.</summary>
     public GameTick CurrentTick { get; internal set; }
 
+    /// <summary>Observation-only room refreshes; never read back by simulation or included in state.</summary>
+    public event Action<IReadOnlyList<TilePos>>? RoomTilesChanged;
+
+    internal bool ObservesRoomTileChanges => RoomTilesChanged is not null;
+
+    internal void NotifyRoomTilesChanged(IReadOnlyList<int> chain)
+    {
+        if (RoomTilesChanged is not { } observer) return;
+        var tiles = new TilePos[chain.Count];
+        for (int i = 0; i < tiles.Length; i++) tiles[i] = TilePosition(chain[i]);
+        observer(tiles);
+    }
+
     public int TileCount => _tiles.Length;
 
     public ref TileState Tile(int x, int y)

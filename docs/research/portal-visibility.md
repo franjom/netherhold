@@ -1,8 +1,8 @@
 # Portal visibility (Q197)
 
-Status: **PARTIAL; no new presentation behavior built.** Binary and shipped-data
-read, 2026-10-24. Confidence labels below distinguish the native contracts from
-their possible correspondence to the owner's observation.
+Status: **Q197 answered; startup source count verified and entrance lighting built.**
+Binary and shipped-data read through 2026-10-28. Native contracts are CONFIRMED;
+screenshot correspondence is STRONGLY INFERRED. The optional visual check is Q670.
 
 ## Observation and data
 
@@ -27,10 +27,54 @@ Frosty's Lair has three 3×3 Hero Portals centred at (15,52), (37,14), (57,59),
 and a 3×3 keeper Portal at (37,37), all owner2. Each of their nine map cells has
 the corresponding terrain and owner, followed by bytes `(1,1)`; that trailing
 pair is the same throughout this 75×75 map. All four portal action points have
-flags0 and trigger0; the shipped trigger file contains no action records.
-These files establish no portal-specific scripted reveal.
+flags0 and trigger0. They are targets of the keeper roots' scripted reveals,
+not self-running action-point roots.
 The authored map contains no terrain27 Fog tiles, so a neighbour's Fog of War
 label cannot be explained by that terrain being placed directly in this map.
+
+## Scripted startup reveal (Q197, 2026-10-28)
+
+**CONFIRMED from shipped data and native dispatch:** Frosty's Lair's trigger
+chunk contains three conditions and six actions. Each keeper root tests level
+time >= 0 (condition34, comparison5, value0, repeat1) and has two reveal actions:
+
+| Keeper | Root | Action chain (unsigned stored ids) | Reveals |
+|---|---:|---|---|
+| 3 | 1 | 65535 → 65534 | AP1, Mercenary Portal (37,14); AP4, keeper Portal (37,37) |
+| 4 | 2 | 65533 → 65532 | AP2, Mercenary Portal (15,52); AP4 again |
+| 5 | 3 | 65531 → 65530 | AP3, Mercenary Portal (57,59); AP4 again |
+
+Every action is type17, with body byte0 naming its action point and byte1=0.
+Each point covers exactly its 3×3 entrance. These conditions are true on the
+first player-tree evaluation; they do not wait for activation, arrival, Sight
+or the player's approach. The stored action ids are negative signed shorts
+when walked, as documented in [trigger-tree.md](trigger-tree.md).
+
+The keeper loader `0x0051F0B0` passes the authored root to `0x004C7990`
+(player `+0x10DA`). Walker `0x004C79A0` evaluates it; player condition dispatch
+`0x004C7B20` delegates condition34 to `0x00518270` (time arm `0x0051829D`).
+Player action dispatch `0x004C8620` delegates type17 to world arm `0x00519257`
+in `0x00518AD0`. With byte1=0 the arm calls `0x00454B80` across the inclusive
+rectangle. That writes explored `tile+8 bit0x2000`, expanding complete rooms
+through `0x004E8B80`/`0x00454D40` where required.
+
+There is no local-player guard on this world action. The three keeper roots
+therefore expose all four entrance rectangles in the local view, including
+the repeated central Portal reveal. Neighbouring tiles need not be explored.
+This explains both entrance types without a general skirmish or fog exception.
+
+**Existing implementation, inspected:** `TriggerTree` loads the player roots,
+`TriggerExecutor` walks each root, condition34 compares level time, and action17
+calls `DiscoveryRules.Rectangle` with explored=true. The latter applies the
+rectangle to every represented viewer, the project's equivalent of the
+unconditional native local-view write. No new simulation rule or HashVersion
+change is needed from this finding; end-to-end Frosty's Lair acceptance was not
+run. Work stopped before any state/hash change, as requested.
+
+The earlier empty-trigger claim was false. The trigger chunk's content starts
+at byte60 (`headerBlockSize=32`, content offset `28+headerBlockSize`), while
+this level's THINGS content starts at56. A bounded reparse reaches all nine
+records and the exact end of the 276-byte trigger file.
 
 ## 3D admission and ordinary exploration
 
@@ -59,28 +103,107 @@ explored. Both status producer `0x0042D1F0` and short-name producer
 `0x0042D4A0` test tile `+9 bit0x20` before room dispatch; when clear they return
 fog text, without a Sight or possession exception. The screenshots show room
 names and nonowned-room status, so their hovered tiles pass that test.
-Ordinary whole-room exploration explains why the room can be visible while
-its neighbour remains fogged; the source that first explored it remains unknown.
-The portal at (37,14) borders owner3's Heart area, but no native discovery state
-was captured and that proximity alone establishes no cause.
+The scripted rectangles above establish why these rooms are explored while
+their neighbours remain fogged. Proximity to a keeper's Heart is not needed
+to explain the four reveals.
 
 ## Entrance light and the ring
 
-**CONFIRMED:** shared refresh `0x004DCD20` creates an engine light on the
-fifth slab of a nine-slab room, at tile centre and raw height2000, through bridge
-slot `+0xA4` (`0x004397E0`). Initializer `0x0043A1E0` resolves its inputs as
-RGB `(255,33,26)`, intensity128, requested radius `0x2800` clamped to `0x2780`
-(2.46875 tiles), and flags `0x15` before the initializer's flag additions.
-The refresh clears bit0 at light `+0x72`. This applies to both entrance
-types, without an arrival, activation or owner test in the refresh. It does
-not write explored or scanned bits. Light `+0x72 bit0` is distinct from the
-generic presentation flag `+0x72 bit0x10` tested for fog admission by the ordinary
-rendered-object path (`0x0043C6E8`, `0x0043CF8E`). The cleared bit's purpose
-remains unresolved; these inputs establish no special discovery mode.
+**CONFIRMED:** shared refresh `0x004DCD20` creates a standalone engine light
+on the fifth slab of a nine-slab entrance, at tile centre and raw height2000,
+through bridge `+0xA4` (`0x004397E0`). Both room3 and room25 use this refresh,
+without an arrival, activation or owner test. It does not explore or scan.
+The source has no expiry (`+0x144 = 0xFF`) or room-stored handle in this path.
+Each qualifying refresh allocates another source. One row-major authored-map pass
+through `0x0051EC60`/`0x004C5C30`/`0x004ED1A0` reaches size9 once per3x3 room
+and requests one light. Generic furniture rebuild `0x004EDFC0` does not itself
+call `0x004E4480`; its startup invocation is not proof of a second request.
+The complete fresh-load count is established below; later refreshes remain separate
+source allocations rather than updates to the first source.
 
-**GUESS:** this light produces the reported ring. Its actual lighting footprint
-and the meaning of that cleared light flag have not been traced to the fogged
-surface draw. No separate light or fog bypass is implemented from this reading.
+Initializer `0x0043A1E0` takes RGB `(255,33,26)`, intensity128, and requested
+radius `0x2800`, clamped to `0x2780` (2.46875 tiles). Input flags `0x15` become
+`0x3D`; the pulse phase byte `+0x12B` starts1. Before its first update it keeps
+the initial RGB. Under bit4, `0x0043A2E0` computes current RGB as
+`(255*q >> 8, 26*q >> 8, 33*q >> 8)`: the native branch swaps green and blue.
+It then changes q by10, reversing above249 or below11. The computed sequence
+is `1,11,...,241,251,241,...,11`, repeating after50 updates. Peak RGB is
+`(250,25,32)`; phase1 truncates all channels to0. This is a deterministic pulse.
+
+`0x0043B220` admits the update only when elapsed wall time is strictly over50ms,
+advancing its anchor by whole50ms quanta. Each admitted call updates each light
+once, even after a stall; effects separately receive the elapsed quantum count.
+The nominal pulse period is2.5s, stretched by missed presentation updates.
+
+**CONFIRMED source admission:** `0x0043A0D0` creates kind2/mode1; constructor
+`0x004468E0` embeds RenderInfo at `+0x26`. Reset `0x004B3610` already zeroes
+RenderInfo `+0x4C`, hence light `+0x72`. Clearing its bit0 again in the entrance
+refresh does not enable source emission: `0x00599C60` submits a nonzero-radius
+kind2 light without reading that bit, before optional mesh drawing. Its actual
+renderer classification is `0x191` normally or `0x95` with Cheap Lighting
+(`0x00599BD0`), distinct from the initializer flags. The mode1 cache-only path
+in `0x0043CC30` submits it without an exploration test; `0x00571AB0` links it
+into the dynamic cache. This does not bypass admission for room or creature art.
+
+**CONFIRMED receiver path:** the7x7 cache gather `0x00576230` has no exploration
+or line-of-sight test. Unknown ground still substitutes terrain27 in `0x0043E320`.
+The substitute follows the ordinary piece path `0x0043E860`, whole/quarter sinks
+`0x0059A050`/`0x0059A200`, mesh item `0x00585F90` and transform `0x0057AD20`;
+there is no fog-specific lighting suppression in these paths. Shipped Fog Of War
+uses ROCK TOP: source Z=-2 and normal `(0,0,-1)`. Ordinary top flags `0x90`
+invert the lighting normal. In Unity coordinates the flat top is height2 with
+a downward normal, so the lower entrance source can illuminate it. Existing
+terrain piece construction already applies this inversion.
+
+`0x0057BF00` adds light only for strict distance squared < radius squared and
+nonnegative normal incidence, using the existing distance-bin attenuation and
+factor cap. Thus the light fades across the **fog substitute**, without drawing
+the concealed terrain or changing discovery. On a flat height2 top the derived
+horizontal sphere intersection radius is about1.952 tiles, extending about0.452
+past a3x3 room's side; at ground height0 it is about2.420 tiles. These are geometric
+limits, not a fixed tile-shaped reveal. Terrain lattice deformation, normals,
+textures and other lights change the visible edge and brightness. The dim ring's
+correspondence to this path is **STRONGLY INFERRED** from the native source and
+receiver chain plus the owner's screenshots; no matched native pixel capture was run.
+
+**Built:** `PortalCentreLights` keeps separate source identities and pulse state,
+including repeated requests at one tile. `WorldView.PortalLightTiles` reconstructs
+row-major map insertion requests, then consumes observation-only room-refresh
+notifications. Add/remove rebuilds and action10's actual neighbour merges retain
+each intermediate callback, including multiple refreshes within one simulation tick.
+`ClassicWorldLightCache` and the Unity scene/runner publish the resulting sources.
+There is no discovery write, new stored simulation state or HashVersion change.
+
+## Startup light count
+
+**CONFIRMED, fresh Frosty's Lair:** four centre-light requests, one per entrance,
+remain after startup, assuming successful allocations. Its descriptor names one
+Map.kld and its room THINGS records are three Hearts, not additional entrance builds.
+The complete allocation path is:
+
+| Stage | Native evidence | Entrance allocation consequence |
+|---|---|---|
+| View setup | `0x00525370` calls `0x0043AAD0` before `0x0050E620`. | Light head `+0x33A` clears before loading. |
+| Sizing | `0x0051DD40` reaches `0x0051DF90` through descriptor `0x0051DE50` and file callback `0x0051EA40`. | Sizing table has no map callbacks. |
+| Definitions | `0x0051DD80` runs with bit2 set, bit4 clear. | `0x0051E0A0` installs definitions only. |
+| Final level pass | `0x0051DDC0` runs with bits2/4 set. `0x0056C940` zeroes callback slots before installation. | Only this pass installs header `0x0051EC30` and tile `0x0051EC60`. Null tile slots in earlier passes make `0x0056D2D0` skip the map bytes. |
+| Map header | `0x0044E9E0` tears down the old map through `0x0044F280`, then allocates new buffers through command1 `0x00447AC0`. | Command2 destroys old lights before new tiles; command1 allocates grid/ripple buffers without clearing the light list. |
+| Row-major tiles | `0x0056D2D0` invokes `0x0051EC60` once per cell, building through `0x004C5C30`/`0x004ED1A0`. | Each isolated3x3 entrance reaches nine once; `0x004E4480` dispatches `0x004DCD20` once. |
+| Startup room work | `0x0050B5B0` rebuilds furniture; `0x00521420` applies room THINGS. | No additional entrance tile-change callback on these four rooms. Generic furniture `0x004EDFC0` does not dispatch it. |
+| Post-load command7 | `0x00447D50` creates global lights and sweeps dig tags. | Keeps the entrance sources; no entrance refresh or light-list teardown. |
+
+The `0x004E4480` caller census has only additions `0x004ED1A0`, removals
+`0x004ED440`, and neighbour merges `0x004EC900`. The latter is reached by
+conversion action10 `0x00497BF0` through `0x004C5BE0`, not by generic ownership
+transfer alone. Those runtime paths account for later source requests. The merge
+walk saves the next slab before examining N/E/S/W neighbours, then appends each
+absorbed chain and refreshes after each absorption. A tail merge does not visit
+its newly appended slabs. Observation callbacks mirror that order without changing
+the simulation's derived room or hashed slab ordering.
+
+Pool word `0x0069793C` starts4095; `0x004468E0` decrements it on slot assignment.
+Thus the allocator's capacity guard is not a loading gate. As with other engine
+lights, allocation failure can omit a source; four is the successful startup count.
 
 ## Minimap flash
 
@@ -156,11 +279,7 @@ map-byte flag branch changes tile `+8 bit0x1000`, not explored `0x2000`.
 Room-thing loader `0x00521420` applies health/Heart/orientation work, without a
 direct exploration write or mode-specific portal reveal in the body read.
 
-**UNKNOWN:** which operation first explored the photographed rooms. No new
-skirmish-specific portal rule has been established. Construction callees and
-mode setup's indirect effects are not exhaustively excluded. Q669's fresh-start
-answer establishes visibility without player exploration or Sight; the native
-load/first-update operation remains unlocated. A recheck of action-point
+The scripted startup reveal above settles the discovery source. A recheck of action-point
 loader `0x005211A0` confirms that file flags at payload+18 supply runtime bit4,
 the level-start reveal flag. The four authored points have that flag clear.
 Room membership setter `0x00450770` and first-tile constructor `0x004EC5A0`
@@ -168,10 +287,23 @@ delegate terrain assignment through the existing owner; the bodies read have
 no separate entrance exploration write. Their transitive callees remain bounded
 by the earlier exclusions, not proved free of every indirect effect.
 
-## Next evidence
+Other bounded controls: fresh map construction `0x0044E9E0` invokes tile
+constructor `0x00452B30`, which clears explored and scanned state; it does not
+carry room exploration from a previous match. Fog-off `0x00451EF0` explores
+every tile, not entrances alone. Queued action121's `0x00514240` reveals a
+specified player's entire territory through `0x004BFF60`; its located producer
+`0x004267D0` is an other-player panel request, not the authored startup chain.
+Fresh-level path `0x0050E620` and the reload action `0x00513870` converge on
+the common initializer; the latter returns0 in mode3.
 
-Q197 stays open; Q669 is answered. Next identify the discovery source during
-load or the first updates, using the established fresh-game condition,
-and trace the bridge light's remaining flag through surface lighting before attributing
-an exception to room25. No simulation state,
-HashVersion, presentation rules or Unity wiring changed.
+Executable control: Ghidra's DKII.EXE SHA256 matches the installed DKII.EXE.
+The installed DKII-DX.exe has identical on-disk code sections; its only section
+byte difference is the DDRAW/PATCH import-name substitution.
+
+## Verification boundary
+
+Q197 and Q669 are answered. Q670 retains the owner-play check for visible pulse
+and edge correspondence; no matched native pixel capture was run. Regression tests
+cover initial inputs, clock/pulse, separate repeated sources, loaded9-before10,
+same-tick refreshes, capture merges, fog-substitute lighting and unchanged state
+hashes with observation enabled. No replay/native rig was used.
