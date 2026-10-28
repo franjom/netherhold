@@ -55,9 +55,9 @@ public class GoldCarryingTests
     /// (5,5), and the seam marked for mining. The corridor is carved rather than
     /// dug so that the test is about carrying and not about digging.
     /// </summary>
-    private static Run AtTheSeam(TilePos? impAt = null)
+    private static Run AtTheSeam(TilePos? impAt = null, bool workClip = false)
     {
-        GameDatabase database = Dk2TerrainFixture.Database();
+        GameDatabase database = workClip ? WithWorkClip(Dk2TerrainFixture.Database()) : Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt ?? new TilePos(2, 2));
@@ -73,6 +73,22 @@ public class GoldCarryingTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         return new Run(sim, sink);
+    }
+
+    /// <summary>The fixture with the Imp's work clip in art slot 5, as ImpWorkAnimationTests gives
+    /// it: the strike action then ends when the clip says (0x00496AA0), not on the strike.</summary>
+    private static GameDatabase WithWorkClip(GameDatabase fixture)
+    {
+        var art = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        art[5] = new CreatureAnimationTiming
+        {
+            ResourceType = 6, Flags = CreatureAnimationFlags.Present | CreatureAnimationFlags.EndSegment,
+            FrameCount = 15, FramesPerSecond = 20, EndSegmentFrames = 8,
+        };
+        return new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values,
+            fixture.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.ImpCreatureId
+                ? c with { ArtSlots = art } : c), fixture.Variables, objects: fixture.Objects.Values,
+            keeperSpells: fixture.KeeperSpells.Values);
     }
 
     /// <summary>Turns one of the keeper's room tiles into somewhere gold can go.</summary>
@@ -133,13 +149,15 @@ public class GoldCarryingTests
         Assert.Equal(FullLoad, Run.Amount(run.Of("gold_delivered").First()));
     }
 
-    [Fact]
-    public void AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix(bool workClip)
     {
         // 0x00465870 holds only while an action runs. Its first call in 26 has none, so the
         // hands test and the store chooser come before the first strike starts. Level 4
         // seed 1 3400-4000: DK2's full arrivals leave one tick after entering 26, 5 of 5.
-        Run run = AtTheSeam();
+        Run run = AtTheSeam(workClip: workClip);
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
         run.Imp.GoldHeld = FullLoad;
 
@@ -158,13 +176,15 @@ public class GoldCarryingTests
         Assert.Empty(run.Of("gold_mined"));
     }
 
-    [Fact]
-    public void AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick(bool workClip)
     {
         // With no store the first call's chooser fails and the handler starts the strike
         // (0x00465870, 0x00496980(2)); the strike lands two ticks after entering 26, as a
         // miner with room in its hands does (ADR-0280).
-        Run run = AtTheSeam();
+        Run run = AtTheSeam(workClip: workClip);
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Lair);
         run.Imp.GoldHeld = FullLoad;
 
@@ -502,6 +522,48 @@ public class GoldCarryingTests
         Assert.True(FloorGold.PileInCell(run.World, spot, SeamSlotCells[1]) > 0);
         // Conserved: 3000 mined, 1400 in hand, and the 1500 laid beforehand.
         Assert.Equal(3000 + 1500 - run.Imp.GoldHeld, FloorGold.Total(run.World, database));
+    }
+
+    [Fact]
+    public void AMinerWhoseOverflowTakesItsPileOverTheLimit_OnALaterStrike_GivesTheSlotUpOnThatStrikesTick()
+    {
+        // 0x00465870 checks the pile on the call that begins the next action. From the second
+        // strike on the action ends in the strike's own turn (the wrap is sticky, 0x00496AA0),
+        // so the strike that puts the pile over the limit is the slot's last. STRONGLY INFERRED from
+        // the KB's read of 0x00496AA0 and the capture's in-frame leaves from strike 2 on.
+        GameDatabase database = Dk2TerrainFixture.Database();
+        Run run = AtTheSeam(workClip: true);
+        int spot = 5 * run.World.Width + 4;
+        FloorGold.PutDown(run.World, database, spot, SeamSlotCells[0], FloorGold.MaxPile(database) - 400);
+        run.Imp.GoldHeld = CreatureLevelRules.MaxGoldHeld(database, database.CreatureById(Dk2TerrainFixture.ImpCreatureId), level: 1);
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+        for (int t = 0; t < 120 && !run.Of("job_abandoned").Any(); t++) run.Tick();
+
+        SimEvent abandoned = Assert.Single(run.Of("job_abandoned"));
+        Assert.Contains("reason=pile_underfoot_full", abandoned.Detail);
+        // Full hands, so each strike's gold goes onto the pile (TileWorkSystem.HandTo).
+        List<SimEvent> strikes = run.Of("gold_put_down").ToList();
+        Assert.Equal(2, strikes.Count);
+        Assert.Equal(strikes[1].Tick, abandoned.Tick);
+    }
+
+    [Fact]
+    public void AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesActionEnds()
+    {
+        // The first strike lands at E+2 and its action ends when the clip wraps, at E+5 or E+6;
+        // only then does 0x00465870 ask the hands test. Level 4 seed 1: 22 first-strike fills
+        // leave 3 or 4 ticks after the strike (14 and 7, one at 2 unexplained), none in its tick.
+        Run run = AtTheSeam(workClip: true);
+        PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
+        run.Imp.GoldHeld = FullLoad - 273;
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+        for (int t = 0; t < 120 && !run.Of("delivering").Any(); t++) run.Tick();
+
+        SimEvent strike = Assert.Single(run.Of("gold_mined"));
+        long after = run.Of("delivering").First().Tick.Value - strike.Tick.Value;
+        Assert.InRange(after, 3, 4);
     }
 
     [Fact]
