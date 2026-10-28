@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**319** — `0x1070AB7A291DA881`. FormatVersion also 319. Behaviour only: state 26 asks the hands test and the store chooser on its first update, before the strike timer, so a miner that reaches its seam full leaves on its first tick in 26 (`0x00465870`, ADR-0562). No new fields; the pin fixture moves by the version only. `GoldCarryingTests.AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix` and `AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick` cover it.
+
 **318** — `0x13D94E8C07770596`. FormatVersion also 318. Behaviour only: the fear accumulator returns for a stunned creature (209, 255, 256, 257; `0x0048F350`) before its handover, so an attacked creature's `TempFear` piles up through a stun and it radiates nothing (ADR-0559). No new fields; the pin fixture stuns no creature and moves by the version only. `CombatFearTests.AStunnedCreatureNeitherHandsOverNorRadiates_ItsIntakePilesUp` covers it.
 
 **317** — `0x8718652BBA69C08B`. FormatVersion also 317. `PlayerState.ManufactureRingTail` (the ring's tail `+0x802`) and `ManufactureSlotZeroCost` (the cost word at ring slot 0): the adder pays at slot 0's cost, not the head's (`0x00506B50`, Q618, ADR-0557); the panel's percent divides by it. Enqueues go through `ManufactureRules.Enqueue`. The pin fixture makes no crate. `CrateTests.TheNextCrateIsPaidAtSlotZerosCostNotTheHeadsOwn_Q618`, `SnapshotTests.TheManufactureRingsTailAndSlotZeroCostChangeTheHashAndSurviveRestore` and `BottomPanelIndicatorsTests` cover it.

@@ -134,6 +134,56 @@ public class GoldCarryingTests
     }
 
     [Fact]
+    public void AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix()
+    {
+        // 0x00465870 holds only while an action runs. Its first call in 26 has none, so the
+        // hands test and the store chooser come before the first strike starts. Level 4
+        // seed 1 3400-4000: DK2's full arrivals leave one tick after entering 26, 5 of 5.
+        Run run = AtTheSeam();
+        PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
+        run.Imp.GoldHeld = FullLoad;
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+        long entered = -1, left = -1;
+        for (int i = 0; i < 120 && left < 0; i++)
+        {
+            run.Tick();
+            long now = run.World.CurrentTick.Value;
+            if (entered < 0 && run.Imp.Dk2StateId == 26) entered = now;
+            if (entered >= 0 && run.Of("delivering").Any()) left = now;
+        }
+
+        Assert.True(entered >= 0, "the imp never reached the seam");
+        Assert.Equal(entered + 1, left);
+        Assert.Empty(run.Of("gold_mined"));
+    }
+
+    [Fact]
+    public void AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick()
+    {
+        // With no store the first call's chooser fails and the handler starts the strike
+        // (0x00465870, 0x00496980(2)); the strike lands two ticks after entering 26, as a
+        // miner with room in its hands does (ADR-0280).
+        Run run = AtTheSeam();
+        PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Lair);
+        run.Imp.GoldHeld = FullLoad;
+
+        run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
+        long entered = -1, struck = -1;
+        for (int i = 0; i < 120 && struck < 0; i++)
+        {
+            run.Tick();
+            long now = run.World.CurrentTick.Value;
+            if (entered < 0 && run.Imp.Dk2StateId == 26) entered = now;
+            if (entered >= 0 && run.Of("gold_mined").Any()) struck = now;
+        }
+
+        Assert.True(entered >= 0, "the imp never reached the seam");
+        Assert.Equal(entered + 2, struck);
+        Assert.Empty(run.Of("delivering"));
+    }
+
+    [Fact]
     public void AnImpDeliversWhatItIsHoldingWhenTheSeamRunsOut()
     {
         // Eleven swings split four, four and three, so the last trip carries less

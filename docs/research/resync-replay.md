@@ -185,7 +185,26 @@ hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different cou
 - Ours starts about 20% more mining walks. From 3400 to 4000 it finishes about as many seams (14
   against 13, leaving out three the resync tick converts). It has more stints (65 against 48), more
   full deliveries (46 against 37), and more part-load ends when a seam falls under its miners (16
-  against 8; none at a standing seam on either side). Why the stints are shorter is open.
+  against 8; none at a standing seam on either side).
+- Why the stints are shorter, HYPOTHESIS: crowding at the seam (README, "Why ours' mining stints
+  are shorter", and its review corrections). Measured over 3420-4000:
+  - Strikes: native 144, ours 155, at 272-273 gold, 1 or 4 ticks apart. About 3.0 against 2.4 a
+    stint.
+  - Two or more Imps at one seam: DK2 4% of seam-ticks, ours 22%. At each fall DK2 has one Imp at the
+    seam (13 of 13), ours 22 at 14 seams.
+  - This does not hold as a cause on its own:
+    - the 3000 resync is crowded like DK2 (6%), and its stints are short too (not recounted);
+    - DK2 itself crowds 14% of seam-ticks in 2400-3000, and 15% in 3900-4400.
+  - Ours also chooses after a part load more often: mine 24 against 12, claim 7 against 1.
+  - No rule difference was found besides ADR-0562, and the pile test's timing is untested.
+  These match DK2's:
+  - the store walk starts in the tick of the filling strike (native 25 of 36, ours 36 of 44;
+    `0x00465870`, ADR-0512);
+  - gold is picked up in passing on a walk to mine, and the full load is walked on to the seam;
+  - an Imp chooses a job while full.
+  One did not match: a miner that reached its seam full stayed in 26 two ticks where DK2 stays one.
+  ADR-0562 fixes it (hash 319). From the 3400 resync ours still starts 109 mining walks to DK2's 80,
+  to 4000.
 - A walk to a seam that fell on the way: DK2's state 25 (`0x00465790`) finds the task entry gone and
   goes to 10. Ours ends the walk `out_of_reach` through state 1. Both choose two ticks after arrival
   (20 native, 15 ours), so it is only a label.
