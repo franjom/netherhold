@@ -1,21 +1,36 @@
 # Parallelism for shorter, steadier frames
 
-Status: draft roadmap, 2026-10-17. Documentation only; no architecture change
-or implementation is accepted by this proposal.
+Status: draft roadmap, 2026-10-17; revised 2026-10-28 against
+[the performance policy](../PERFORMANCE.md), ADR-0537 and the portal-arrival
+research. Documentation only; no architecture change or implementation is
+accepted by this proposal. Headless tick cost is a separate plan:
+[simulation throughput](2026-10-28-simulation-throughput.md).
 
 ## Problem and target
 
 The aim is **shorter, steadier frames**, rather than maximum CPU/GPU utilization.
-Simulation parallelism needs particular care to preserve DK2's processing order
-and determinism.
 
-The latest Level8 motion capture has 2.72% uneven-timing frames against the
-owner's 1–1.5% target; this is not a count of visible freezes. Definition,
-conditions and evidence: [Level8 motion](../research/level8-intro-motion.md).
-Its 144 FPS cap permits 6.94 ms per frame; 60 Hz permits 16.67 ms. ADR-0458's
-historical tick median was about 15 ms, but that is not a current Level8 result.
-Current opening tick durations, frame p95/p99 and join-blocking frequency remain
+Two targets apply:
+- **Every frame within budget.** [The performance policy](../PERFORMANCE.md) sets
+  60 FPS at 1920x1080 on the owner's laptop as the floor (16.67 ms per frame),
+  aiming for 100+. ADR-0537 qualifies every CPU loop and presentation interval:
+  one slow frame fails a capture, so an average or p95 cannot pass a change.
+- **Even motion.** The latest Level8 motion capture has 2.72% uneven-timing
+  frames against the owner's 1–1.5% target; this is not a count of visible
+  freezes. Definition, conditions and evidence:
+  [Level8 motion](../research/level8-intro-motion.md).
+
+Tick duration: Release .NET runs of the keeper scenarios have an 8–13 ms
+median tick (2026-10-28, measured for the throughput plan). Level8's opening
+ticks, Unity Mono's tick durations and how often the join blocks remain
 unmeasured. P0 must supply them before selecting an architectural change.
+
+The portal-arrival captures (2026-10-25, [portal arrival
+performance](../research/portal-arrival-performance.md)) show the join is one
+suspect among several. Near one hitch a worker tick took 39 ms, and worker
+blocking is STRONGLY INFERRED, not measured. In the same frames the main thread
+spent about 50 ms creating a creature (28 ms of it a cold mesh build) and about
+22 ms drawing effects.
 
 Re-reading that capture (`build/level8-motion-final/motion.csv`, render ticks
 11..24, 2026-10-20) finds 10 error frames in 333. None is long: the slowest is
@@ -23,22 +38,26 @@ Re-reading that capture (`build/level8-motion-final/motion.csv`, render ticks
 boundary. Six stop exactly on it (draw clock clamped at fraction 1) and four
 over-advance just after it (catch-up). In this capture the target is missed at
 tick boundaries in the draw clock, not in blocked frames. Threads cannot fix that.
+As of 2026-10-28 the draw clock has not changed since that capture, so this is
+still open.
 
 Today `DungeonRunner` runs sequential ticks on one worker and joins in
 `WaitForTick` before presenting the mutable world (ADR-0458). A join can return
 immediately when the task has finished; otherwise it blocks. Moving simulation
 off-thread and fixing the draw clock (ADR-0501) do not guarantee steady frames.
 
-At 4 ticks per second a tick starts on roughly one frame in 25 (100 FPS) or 36
-(144 FPS). The join is the next frame's first act. A tick longer than one frame
-therefore blocks that frame, which would give an error share of about 3–4% by
-itself. Whether it blocks depends on tick duration, so measure that first.
+At 4 ticks per second a tick starts on roughly one frame in 15 (60 FPS), 25
+(100 FPS) or 36 (144 FPS). The join is the next frame's first act. A tick longer
+than one frame therefore blocks that frame, which would give an error share of
+about 3–7% by itself, and under ADR-0537 fails the capture outright. Whether it blocks depends on tick duration, so measure that first.
 
 ## P0 — Measure the slow frames and choose one change
 
 - [ ] First, cheaply: the tick-duration distribution for the captured scenes
-  (harness `RunClock` p50/p99/max). Then classify each error frame as boundary
-  clamp, catch-up or long frame. Do this before building new instrumentation.
+  (harness `RunClock` p50/p99/max; each run writes it once the throughput plan's
+  Task 0 lands). The keeper scenarios are measured; Level8's opening is not.
+  Then classify each error frame as boundary clamp, catch-up or long frame. Do
+  this before building new instrumentation.
 - [ ] Log per frame the ticks started (`maxTicksPerFrame` allows 2), the tick debt
   and the draw-clock fraction before and after clamping. A frame that starts two
   ticks after falling behind is slow even without a join wait.
@@ -47,10 +66,13 @@ itself. Whether it blocks depends on tick duration, so measure that first.
   within a 16.67 ms frame.
 - [ ] Correlate worker queue delay, tick execution, main-thread join wait,
   presentation preparation, animation sample/upload, lighting, transparent sort,
-  submission and GPU execution by frame and completed tick. Record how often
-  the join blocks and its contribution specifically within the slowest 5% of frames.
-- [ ] Record p50/p95/p99 frame time, missed frame deadlines, allocations/GC pauses,
-  movement-endpoint holds and input latency. Separate startup from steady state.
+  submission and GPU execution by frame and completed tick. The join wait has
+  its own marker, `DK2.Simulation.WaitForTick` (`DungeonRunner.cs`). Record how
+  often the join blocks, and its share of every frame over budget.
+- [ ] Record what [the performance policy](../PERFORMANCE.md) requires (maximum
+  frame interval, slow-frame count, longest slow sequence, p99), plus
+  allocations/GC pauses, movement-endpoint holds and input latency. Separate
+  startup from steady state.
 - [ ] Capture the Level8 entrance, paused camera rotation and representative
   crowded gameplay with fixed seed, commands, camera, resolution and FPS cap.
   Log hardware, commit, Unity version, Mono/IL2CPP backend and incremental-GC mode.
@@ -110,22 +132,27 @@ workers compute from it, and the main thread applies Unity object changes.
 - [ ] Compare detached and live-world output serially before enabling concurrency.
   Exercise slow/failed workers, pause, catchup, load/reset and scene destruction.
 
-**Exit:** lower measured tail latency without incorrect output or a material
-input/display latency regression. Otherwise retain the joined path.
+**Exit:** captures that pass ADR-0537's per-frame gate where the joined path
+failed, without incorrect output or a material input/display latency
+regression. Otherwise retain the joined path.
 
 ## Later, only if P0 calls for it
 
 - **P2:** select one measured presentation kernel, such as animation sampling.
-  Give it immutable captured inputs and disjoint outputs, coarse bounded batches
+  Before moving one to workers, try its serial reduction: for animation, the
+  audit's C1 (`performance-audit-2026-10.md`) resamples and uploads every posed
+  actor every frame, and skipping provably unchanged poses comes first.
+  Give a kernel that still needs workers immutable captured inputs and disjoint outputs, coarse bounded batches
   and a serial fallback; include scheduling, conversion and upload in the result.
   This can precede P1 with a small safe input capture. Jobs/Burst remain adapter-only.
 - **GPU:** not planned; revisit the existing [animation experiments](../../tools/classic-unity-probe/README.md)
   only if CPU preparation remains the bottleneck and classic fidelity is retained.
-- **Simulation:** stays serial unless P0 shows ticks exceeding the 250 ms tick
-  interval (4 ticks per second), at which point the game falls behind. A tick
-  longer than one frame but shorter than that interval is a join-placement
-  problem for P1, not grounds for parallel simulation. Even then, further
-  research and a separate reviewed proposal are required.
+- **Simulation:** the tick itself stays serial. Shortening it, and the one
+  overlap outside it, are in [simulation
+  throughput](2026-10-28-simulation-throughput.md). Of that plan, the faster
+  state hash also shortens Unity's tick while the input journal is on; the
+  keeper-AI work does not, because Unity runs no computer keeper. A tick longer
+  than one frame is a join-placement problem for P1.
 
 ## Startup loading (measured 2026-10-20)
 
@@ -214,8 +241,8 @@ of interpolation delay. Preserve the shared camera/creature clock. Unchanged
 simulation inputs must retain per-tick state, RNG and ordered events, including
 save/load continuation; never re-pin a changed hash to accept parallelism.
 
-Review one change at a time. Accept only repeatable frame-pacing gains above run
-variance, progress toward the canonical motion target and no material fidelity,
+Review one change at a time. Accept only captures that pass ADR-0537's per-frame
+gate, repeatable frame-pacing gains above run variance, progress toward the canonical motion target and no material fidelity,
 latency or memory regression. Run relevant regression suites and the adapter
 build; visually compare terrain, combat, effects and attachments. Unity worker
 contention and low-core machines belong in that change's checks, not a plan to
