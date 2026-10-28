@@ -13272,3 +13272,26 @@ moves. `--resync-skip` takes part names only and needs `--resync`.
 
 Tests: `WorldResyncTests.ASkippedPartStaysOurs_TheRestIsCopied`, `WithoutTheJobsPartAWorkerIsOnlyPlaced`.
 
+## ADR-0570 - The replay can hold a refused door or trap placement until the tile is the keeper's
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 324 (unchanged: the replay tool only) · Q665 ·
+Research: `docs/research/resync-replay.md`, "Imp deaths and the player's door"
+
+**Context.** DK2 refuses a door or trap on a tile the placing keeper does not own (`0x00450DB0`
+door, `0x00450EB0` trap; `BlueprintPlacementRules`). A packet replay sends each placement on the turn
+DK2's player made it, on a tile DK2's keeper had claimed (STRONGLY INFERRED from those tests); ours may not have claimed it yet, so the placement is
+refused and the door or trap is missing for the rest of the run, which no player would accept. The
+replay already moves a refused creature drop to the nearest tile it lands on for the same reason.
+
+**Decision.** `--blueprints retry` (off by default) holds a recorded `PlaceDoorCommand` or
+`PlaceTrapCommand` whose tile ours does not own and sends it on the first later turn it does
+(`DK2.Tools.BlueprintRetry`). Every other refusal (solid, a room, occupied, gold) stays the
+simulation's, and a sent placement can still meet them. The events log gets `blueprint_held` and `blueprint_sent_later`; the summary counts
+held, sent later and never sent.
+
+**Consequences.** Off by default, so the frozen rigs and earlier runs are unchanged. It adapts the
+replay's input, not a rule: a run with it is no longer the recorded input. Level 4 seed 1 only, one
+run each, at hash 324: Imp deaths 36 -> 30 (default generator; (18,32) never sent) and 23 -> 39
+(`--rng dk2`), with the door at (24,39) built in both (2635, 2382); at hash 323 65 -> 36 and 23 -> 39.
+The refused placements do not explain the full replays' losses (one seed; resync-replay.md).
+
+Tests: `BlueprintRetryTests` (DK2.Tools.Tests).

@@ -136,7 +136,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   replays at hash 323 lose 65 Imps (default generator) and 23 (`--rng dk2`) against DK2's 0; resynced at 3400 the run
   loses 3 (0-4 over seeds 2-9). Leaving one part ours at 3400 (`--resync-skip`, ADR-0569; pose 45, jobs 43, fear 36,
   doors 35, others 0-3) shows the doors part (DK2's door at (24,39) and four trap blueprints ours refused on tiles it had
-  not claimed at that point) is sufficient, but a replay that retries them still loses 36 / 39, so it is not the full runs'
+  not claimed at that point) is sufficient, but a replay that retries them (`--blueprints retry`, ADR-0570) still loses 36 / 39
+  (30 / 39 at hash 324, where the plain runs lose 36 / 23), so it is not the full runs'
   cause (one seed; resync-replay.md, "Imp deaths and the player's door"). Seed 1 (one seed): Imp levels are alike (native 34 level-ups to 3520, ours 35). Ours has 15
   Imps against 18 because three Create Imp casts are refused, one by a 79-mana margin. The first
   difference is the first dig (strike 155 against 138), which closes by about 350. The claim and

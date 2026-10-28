@@ -30,6 +30,9 @@ three runs and `analysis/resync_compare*.out`).
    worker is placed as any other creature and keeps ours' job fields until its next choice),
    players (mana, manufacture), triggers, seed. A skip makes a hybrid state, so it splits what an
    outcome depends on rather than naming a cause.
+   `--blueprints retry` (ADR-0570, with or without a resync) holds a recorded door or trap placement
+   on a tile ours has not claimed yet and sends it once ours has; off, the placement is refused as
+   DK2's tile rule says.
 3. `analysis/resync_compare.py` counts job starts per window and kind from `jobs.csv` and the
    capture's creature records.
 
@@ -309,15 +312,17 @@ hash 323" and "What protects the dungeon at 3400". Seed 1, hash 323.
   doors 35; levels, players, marks, tiles, gold 0-3.
 - The doors part is the player's own: DK2 has a built door at (24,39), north of the dungeon between
   the heart area and the hero door, and trap blueprints at (26,35), (22,35), (29,32), (30,33). Ours
-  refused the placements by DK2's own tile rule (`0x00450EB0`, `BlueprintPlacementRules.CanTrap`),
+  refused the placements by DK2's own tile tests (`0x00450DB0` door, `0x00450EB0` trap; `BlueprintPlacementRules`),
   because it had not yet claimed the tiles: (24,39) claimed at 2093 against 1997 (DK2's placement at
   2006 is 9 ticks after its claim), the trap tiles 190-250 ticks later or not by 3100. The default
   generator's run refused the door and those four traps; the `--rng dk2` run the door, (9,52),
   (29,32), (30,33), (36,32) and (34,32).
-- The placements are not the full runs' cause. A replay that holds a refused placement until ours
-  owns the tile (branch `tools/replay-blueprint-retry`) sends every one and builds the door, yet the
+- The placements do not explain the full runs' losses (one seed). A replay that holds a refused placement until ours
+  owns the tile (`--blueprints retry`, ADR-0570) sends every one and builds the door, yet the
   Imp deaths go 65 -> 36 and 23 -> 39; heroes break the door (also from DK2's 3400 state, at 4264,
-  with 3 deaths). Resyncs at 2340 and 3000 carry the door and still lose 33 and 37.
+  with 3 deaths). Resyncs at 2340 and 3000 carry the door and still lose 33 and 37. At hash 324
+  (ADR-0568) the full replays lose 36 and 23, and with the retry 30 (the trap at (18,32) never sent)
+  and 39.
 - Reading, one seed: the doors part is sufficient to break DK2's 3400 state, HYPOTHESIS as anything
   more. What protects the dungeon from DK2's state is open; the creature parts (pose, jobs) are the
   remaining candidates, and hero positions were not examined. No rule difference was found.
