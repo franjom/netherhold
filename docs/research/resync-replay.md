@@ -113,7 +113,16 @@ Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "T
   window down one a tick is read from the capture (3940-4180), not the binary. Ours books the window
   a game second at a time, so a death can land up to 3 ticks off DK2's.
 - A higher level of ours is kept, since nothing in ours takes a level away.
-- Seed 1 at 3520: 4 Imps lost against none, the door falls at 5314 against about 5313, and flag 11
+- Fight return (ADR-0567): OldFightPos (`+0x52A`/`+0x52C`, both words the x tile) and OldFightTick
+  (`+0x52E`) are copied onto each paired creature, clearing ours' own stamp. Without it a stale
+  pre-resync stamp sent Dark Elf 27 back to (23,23), behind the hero door, at 3502: the 3400 resync
+  lost 36 keeper creatures and the door fell at 3854. With it: 3 lost, door at 5312 (DK2 about
+  5313). At 3000 the copy changes nothing (37 both ways); at 2340 45 becomes 33, not analysed. A
+  capture written before the field leaves ours' stamp as it was. Full seed 1 replays at hash 323 lose
+  65 Imps (default generator) and 23 (`--rng dk2`) against DK2's 0, while resyncs at 3400 (with the
+  copy), 3520 and 3790 lose 3, 0 and 0: the full-replay losses come from drift before 3400 that
+  headcounts do not show (one seed; which part of DK2's 3400 state protects the dungeon is open).
+- Seed 1 at 3520 (measured at ADR-0560's hash; 0 lost on the rerun at hash 323): 4 Imps lost against none, the door falls at 5314 against about 5313, and flag 11
   is set at 4330 against 4378. Party 5's Guard survived at (15-17,31-34): see the Guard fight below.
 - Not copied:
   - the trigger records' own active bit and repeat byte (record `+0x10`; `+0x0F` STRONGLY INFERRED,
@@ -170,8 +179,8 @@ resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
     two Guards before the door falls. Ours' attackers all stay on Guard 10.
 - Reading, one seed, STRONGLY INFERRED: from DK2's state at 3790, ours reproduces the window apart
   from the post Guards' switch (two of three late), which follows from ours' attackers all taking
-  one Guard, and a door falling 12 ticks early. The full replay's 45 deaths look like drift
-  (creature set, levels, positions), but that was not tested over the same window. Imp levels are
+  one Guard, and a door falling 12 ticks early. The full replay's Imp deaths (65 at hash 323) are
+  drift before 3400, not the window itself (see Fight return above). Imp levels are
   not the drift source; other species' were not compared (creature-update-order.md).
 ### Why ours chose one Guard; the wait-action gap (ADR-0566, hash/save 323)
 
@@ -293,3 +302,7 @@ once, where DK2's waits out its spell or walk. Resynced at 130, the first dig's 
 not an Imp is placed on DK2's point and sent to idle when its state differs (ADR-0560). Treasury gold is tile stores
 here (ADR-0015), so DK2's money is reported, not copied. The run drifts again after the resync;
 compare the first few hundred ticks, and resync again later for the next window.
+A DK2 fight-return stamp is copied raw in DK2's turn unit, while ours stamps with the tick before
+the turn it runs, so a copied window can end one tick after DK2's; no creature held a stamp at
+2340, 3000 or 3400, so the copy has so far only cleared ours. It is skipped for a creature in the
+hand and one left unpaired.
