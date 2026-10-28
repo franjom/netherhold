@@ -94,8 +94,10 @@ in a different order are a different game. The sequence is the list in that meth
 and is not copied here; it is built from named phases (`Commands`, `RoomLifecycle`,
 `KeeperActions`, `ThingPass`, `Work`, `RoomTicks`, `PlayerFrame`, `Needs`, `Promotion`,
 `Verdict`) that only label stretches of the one list. Before the systems,
-`GameSimulation.Tick` acknowledges and sweeps player messages, runs the trigger
-executor and counts the level time limit down (ADR-0152, ADR-0245).
+`GameSimulation.Tick` acknowledges and sweeps player messages, counts down the
+level time limit and walks world/party roots. Creature roots follow their own
+update, area roots follow creature work, and player roots follow room ticks
+(ADR-0568); all read one unchanged turn clock.
 
 The load-bearing constraints, with the per-position reasoning in the file's own
 XML doc: the hand acts before any creature does; marks land before the work that

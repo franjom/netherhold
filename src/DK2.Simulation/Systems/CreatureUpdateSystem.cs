@@ -47,7 +47,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (ICreatureUpdateStep step in _steps) step.BeginTurn(context);
-        Sweep(context, _steps);
+        Sweep(context, _steps, walkTriggers: true);
         foreach (ICreatureUpdateStep step in _steps) step.EndTurn(context);
     }
 
@@ -60,7 +60,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
         foreach (ICreatureUpdateStep step in steps) step.EndTurn(context);
     }
 
-    private static void Sweep(SimulationContext context, ReadOnlySpan<ICreatureUpdateStep> steps)
+    private static void Sweep(SimulationContext context, ReadOnlySpan<ICreatureUpdateStep> steps, bool walkTriggers = false)
     {
         IReadOnlyList<CreatureState> creatures = context.World.Creatures;
         int below = int.MaxValue;
@@ -77,6 +77,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                 step.Update(context, creature);
                 if (creature.LinkWorld is null) break;
             }
+            if (walkTriggers && creature.LinkWorld is not null) context.Triggers?.RunCreature(creature);
         }
     }
 }

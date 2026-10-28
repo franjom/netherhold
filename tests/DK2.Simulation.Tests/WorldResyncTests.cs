@@ -48,6 +48,59 @@ public class WorldResyncTests
     private static ResyncState State(WorldState world, ResyncCreature[] creatures, ResyncObject[]? objects = null, uint seed = 99) =>
         new(10, world.Width, world.Height, [new ResyncPlayer(Keeper, 1234, 56)], TilesOf(world), null, creatures, objects, seed);
 
+    /// <summary>
+    /// <b>A skipped part stays ours; the rest is DK2's.</b> The same capture as above, applied
+    /// without the tiles, the pose and the mana: the tile, the Imp's point and the mana are ours,
+    /// while the seed and the Imp's level still come from the capture.
+    /// </summary>
+    [Fact]
+    public void ASkippedPartStaysOurs_TheRestIsCopied()
+    {
+        GameSimulation sim = Start(1);
+        WorldState world = sim.World;
+        CreatureState imp = world.Creatures[0];
+        int[] tiles = TilesOf(world);
+        int i = 3 * ((4 * world.Width) + 2);
+        tiles[i] = Dk2TerrainFixture.DirtPath;
+        tiles[i + 1] = 0;
+        int ourTerrain = world.Tile(2, 4).TerrainId, ourMana = world.Player(Keeper).Mana;
+        var native = Imp(401, new TilePos(3, 3), 10, Job(0, gold: 545)) with { Level = 3 };
+        var state = new ResyncState(10, world.Width, world.Height, [new ResyncPlayer(Keeper, 1234, 56)], tiles, null,
+            [native], null, 4242);
+
+        ResyncReport report = WorldResync.Apply(sim, state, slot => slot == 401 ? imp.Id : null,
+            ResyncParts.All & ~(ResyncParts.Tiles | ResyncParts.Pose | ResyncParts.Players));
+
+        Assert.Equal(0, report.TilesChanged);
+        Assert.Equal(ourTerrain, world.Tile(2, 4).TerrainId);
+        Assert.Equal(new TilePos(2, 2), imp.Tile);
+        Assert.Equal(0, imp.GoldHeld);
+        Assert.Equal(ourMana, world.Player(Keeper).Mana);
+        Assert.Equal(3, imp.Level);
+        Assert.Equal(4242u, ((Dk2Lcg)sim.Rng.Algorithm).Seed);
+    }
+
+    /// <summary>
+    /// <b>Without the jobs part a worker is placed as any other creature.</b> It stands on DK2's
+    /// point, but DK2's gold in hand and last task are not copied and nothing is reissued.
+    /// </summary>
+    [Fact]
+    public void WithoutTheJobsPartAWorkerIsOnlyPlaced()
+    {
+        GameSimulation sim = Start(1);
+        WorldState world = sim.World;
+        CreatureState imp = world.Creatures[0];
+        var state = State(world, [Imp(401, new TilePos(3, 3), 10, Job(0, gold: 545, lastKind: 2, taskX: 5, taskY: 5))]);
+
+        ResyncReport report = WorldResync.Apply(sim, state, slot => slot == 401 ? imp.Id : null,
+            ResyncParts.All & ~ResyncParts.Jobs);
+
+        Assert.Equal(new TilePos(3, 3), imp.Tile);
+        Assert.Equal(0, imp.GoldHeld);
+        Assert.NotEqual(ImpTaskKind.Mine, imp.LastTaskKind);
+        Assert.Equal((0, 0), (report.JobsReissued, report.WorkersSetChoosing));
+    }
+
     [Fact]
     public void TilesTheSeedAndAWorkersPoseComeFromTheCapture()
     {

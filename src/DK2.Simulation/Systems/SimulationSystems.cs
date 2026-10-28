@@ -85,6 +85,7 @@ public static class SimulationSystems
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new ObjectMovementSystem(),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
+        new ActionPointTriggerSystem(), // list 5, after creature work and before the player frame
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
         new TrapRemovalSystem(),
         new DoorRemovalSystem(),
@@ -160,6 +161,7 @@ public static class SimulationSystems
     [
         // The removal countdown reads the stamp and the mana of the last payment before this
         // tick's payment, as DK2's thing update precedes its player update (ADR-0277).
+        new PlayerTriggerSystem(), // player root before the player's counters and mana
         new ManaRemovalSystem(),
         new RatSpawnSystem(),
         // Mana after all ownership changes, so a tile claimed on N pays on N; the imp

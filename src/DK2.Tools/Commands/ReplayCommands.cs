@@ -23,7 +23,8 @@ internal static class ReplayCommands
         PacketEntityMap? entityIds = null, string? creaturePath = null,
         string? eventPath = null, bool dk2Random = false, string? seedPath = null, uint? seed = null,
         ResyncState? resync = null, long resyncAt = 0, string? jobPath = null,
-        IReadOnlyDictionary<int, int>? resyncMap = null, bool retryBlueprints = false)
+        IReadOnlyDictionary<int, int>? resyncMap = null, ResyncParts resyncParts = ResyncParts.All,
+        bool retryBlueprints = false)
     {
         string? install = Dk2Install.Find();
         if (install is null)
@@ -169,7 +170,9 @@ internal static class ReplayCommands
                     PacketEntityMap ids = entityIds ??= new PacketEntityMap();
                     ResyncReport report = WorldResync.Apply(simulation, resync,
                         slot => resyncMap is not null && resyncMap.TryGetValue(slot, out int named) ? named
-                            : ids.TryResolve((uint)slot, turn, PacketEntityKind.Creature, out int id) ? id : null);
+                            : ids.TryResolve((uint)slot, turn, PacketEntityKind.Creature, out int id) ? id : null,
+                        resyncParts);
+                    if (resyncParts != ResyncParts.All) Console.WriteLine($"  resync skips: {ResyncParts.All & ~resyncParts}");
                     foreach ((int slot, int ours) in report.Pairs ?? [])
                         ids.Set((uint)slot, turn + 1, ours, PacketEntityKind.Creature);
                     Console.WriteLine($"  resync at turn {turn} from DK2's tick {resync.Tick}: {report}");
@@ -384,6 +387,7 @@ internal static class ReplayCommands
         long resyncAt = 0;
         string? jobPath = null;
         string? resyncMapPath = null;
+        ResyncParts resyncParts = ResyncParts.All;
         bool retryBlueprints = false;
         for (int i = 4; i < arguments.Length; i += 2)
         {
@@ -455,6 +459,18 @@ internal static class ReplayCommands
                 case "--resync-map":
                     resyncMapPath = value;
                     break;
+                // --resync-skip: parts of the capture left ours (WorldResync's ResyncParts, by name,
+                // comma-separated), to split which of DK2's state an outcome depends on.
+                case "--resync-skip":
+                    foreach (string part in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    {
+                        // By name only: a number would parse too, and a combination would skip silently.
+                        if (!Enum.GetNames<ResyncParts>().Contains(part, StringComparer.OrdinalIgnoreCase)
+                            || !Enum.TryParse(part, ignoreCase: true, out ResyncParts skip) || skip is ResyncParts.None or ResyncParts.All)
+                            return ReplayUsage();
+                        resyncParts &= ~skip;
+                    }
+                    break;
                 default:
                     return ReplayUsage();
             }
@@ -468,6 +484,8 @@ internal static class ReplayCommands
         Dictionary<int, int>? resyncMap = null;
         try
         {
+            if (resyncPath is null && resyncParts != ResyncParts.All)
+                throw new InvalidDataException("--resync-skip needs --resync.");
             if (resyncPath is not null)
             {
                 if (packetPath is null || resyncAt <= 0)
@@ -559,7 +577,7 @@ internal static class ReplayCommands
 
         return RunTriggerCsv(arguments[1], turns, arguments[3],
             log, rooms, tilePath, packet, entityIds, creaturePath, eventPath, dk2Random, seedPath, seed,
-            resync, resyncAt, jobPath, resyncMap, retryBlueprints);
+            resync, resyncAt, jobPath, resyncMap, resyncParts, retryBlueprints);
     }
 
     /// <summary>
@@ -615,7 +633,7 @@ internal static class ReplayCommands
             + "--packet recording.sav --packet-offset N [--entity-map ids.csv] [--turns N] "
             + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv] [--jobs jobs.csv] "
             + "[--rng dk2|xoshiro] [--seed N] [--seeds seeds.csv] "
-            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv]] [--blueprints retry]");
+            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv] [--resync-skip part,...]] [--blueprints retry]");
         return 2;
     }
 }

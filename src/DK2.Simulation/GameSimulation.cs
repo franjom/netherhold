@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
 
@@ -20,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 323;
+    private const ulong HashVersion = 324;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
@@ -30,6 +31,7 @@ public sealed class GameSimulation
     private readonly SimulationMarker[] _systemMarkers;
     private readonly SimulationContext _context;
     private readonly TriggerExecutor _triggers;
+    private readonly bool _scheduledTriggers;
     private TriggerTurnCsvEmitter? _triggerEmitter;
 
     public GameSimulation(
@@ -67,6 +69,7 @@ public sealed class GameSimulation
         Rng = rng;
         world.BindCreatureIdentityRandom(rng);
         _systems = systems is null ? [] : [.. systems];
+        _scheduledTriggers = _systems.Any(s => s is ActionPointTriggerSystem or PlayerTriggerSystem);
         _systemMarkers = [.. _systems.Select(s => SimulationMarker.Named(s.Name))];
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
         _triggers = triggers is null
@@ -184,8 +187,18 @@ public sealed class GameSimulation
                         VerdictRules.End(World, Database, keeper, PlayerStatus.Lost);
         }
         using (profiler.Scope(SimulationMarkers.Triggers))
-            LastTriggerRun = _triggers.Run(dk2Turn);
-        foreach (BlockedTrigger done in LastTriggerRun.CreatureActions)
+        {
+            if (_scheduledTriggers) _triggers.BeginTurn(new GameTick(dk2Turn));
+            else LastTriggerRun = _triggers.Run(dk2Turn);
+        }
+        for (int i = 0; i < _systems.Count; i++)
+        {
+            using (profiler.Scope(_systemMarkers[i]))
+                _systems[i].Execute(_context);
+        }
+
+        if (_scheduledTriggers) LastTriggerRun = _triggers.EndTurn();
+        foreach (BlockedTrigger done in LastTriggerRun!.CreatureActions)
             _context.Emit(
                 nameof(TriggerExecutor), "trigger_performed",
                 $"tag={done.Tag} type={done.Type} id={done.TriggerId} context={done.Context}");
@@ -195,12 +208,6 @@ public sealed class GameSimulation
                 nameof(TriggerExecutor), "trigger_partial",
                 $"tag={partial.Tag} type={partial.Type} id={partial.TriggerId} "
                 + $"context={partial.Context}");
-        }
-
-        for (int i = 0; i < _systems.Count; i++)
-        {
-            using (profiler.Scope(_systemMarkers[i]))
-                _systems[i].Execute(_context);
         }
 
         _triggerEmitter?.Emit(dk2Turn, World.Triggers, _triggers.Tree);

@@ -73,3 +73,39 @@ public sealed record ResyncMark(int X, int Y, int Player, int Order);
 /// <summary>An object thing: its type id, owner, point, flags <c>+0x146</c> and the dword at
 /// <c>+0x14A</c>: gold's amount, a crate's kind.</summary>
 public sealed record ResyncObject(int Slot, int Type, int Owner, int X, int Y, int Gold, int Flags);
+
+/// <summary>The parts of a capture <see cref="WorldResync.Apply"/> copies. A creature part needs
+/// <see cref="Creatures"/>, the pairing itself; without <see cref="Jobs"/> a worker is placed as any
+/// other creature is.</summary>
+[Flags]
+public enum ResyncParts
+{
+    None = 0,
+    /// <summary>Terrain, owner and health of every tile.</summary>
+    Tiles = 1 << 0,
+    /// <summary>The keepers' dig marks, in DK2's order.</summary>
+    Marks = 1 << 1,
+    /// <summary>Doors and traps.</summary>
+    Doors = 1 << 2,
+    /// <summary>Loose gold piles.</summary>
+    Gold = 1 << 3,
+    /// <summary>Crates.</summary>
+    Crates = 1 << 4,
+    /// <summary>Pairing every creature with ours, making DK2's extra ones and removing ours'.</summary>
+    Creatures = 1 << 5,
+    /// <summary>A paired creature's point, health and state.</summary>
+    Pose = 1 << 6,
+    /// <summary>A paired creature's level, raised to DK2's.</summary>
+    Levels = 1 << 7,
+    /// <summary>A paired creature's fear words and fight-return stamp.</summary>
+    Fear = 1 << 8,
+    /// <summary>A worker's job, gold in hand and last task.</summary>
+    Jobs = 1 << 9,
+    /// <summary>Each keeper's mana and manufacture list.</summary>
+    Players = 1 << 10,
+    /// <summary>The trigger flag and timer banks.</summary>
+    Triggers = 1 << 11,
+    /// <summary>DK2's generator seed, under <c>--rng dk2</c>.</summary>
+    Seed = 1 << 12,
+    All = (1 << 13) - 1,
+}

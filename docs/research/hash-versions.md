@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**324** - `0x6F4F1D921054B690`. FormatVersion also 324. Behaviour only: creature roots run after their own update, area roots after creature work, and player roots after room ticks (ADR-0568). Same-turn ownership changes can start timers immediately. No fields added; the pin fixture moves by the version only. `TriggerSchedulingTests` covers visibility and the unchanged shared clock.
+
 **323** - `0x32086DAF699C9E45`. FormatVersion also 323. Behaviour only: waiting heroes start action 43 and preserve its hold across a failed standing job (ADR-0566). The existing ActionUntilTick carries it; no fields added. Clip timing retains the existing fresh-install surrogate boundary. HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline covers the missing hold; the pin fixture moves by the version only.
 
 **322** — `0x7A521062FC7B6D7A`. FormatVersion also 322. Behaviour only: every steal handler measures the holder from its position (`+0x1A/+0x1E`), at work or walking (`0x00469AF0` both arms, `0x0046AB50`, `0x0046AEA0`; ADR-0565); ours had used the stance point for a holder in its entry or work state. No new fields; the pin fixture moves by the version only. The Level 4 seed-1 3700 resync and Level 1 seeds 1-2 are byte-identical to hash 320. `TaskStealingTests.AHolderAtWorkIsMeasuredFromWhereItStands` and `AMinerAtWorkIsMeasuredFromWhereItStands` cover it.
