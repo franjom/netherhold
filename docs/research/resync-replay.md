@@ -332,7 +332,7 @@ hash 323" and "What protects the dungeon at 3400". Seed 1, hash 323.
 
 The resync copies state, not history: routes, action phases, the task pool's holders and room
 occupancy are ours, rebuilt from the same packets. Our loader queues no order for an authored
-trap where DK2's does (Q667). An idle or wandering Imp is set choosing. A wander walk's goal, a
+zero-shot trap where DK2's does; no shipped level has one (Q667). An idle or wandering Imp is set choosing. A wander walk's goal, a
 state-12 Imp's running idle action and its `+0x7E` deadline are not copied. So it sees a new mark at
 once, where DK2's waits out its spell or walk. Resynced at 130, the first dig's state 14 is at
 133-134 against DK2's 138. A creature that is
