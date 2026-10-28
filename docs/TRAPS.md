@@ -9,6 +9,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- KLD content offsets depend on each chunk's headerBlockSize; validate record tags and the final boundary before treating a trigger file as empty (Frosty's Lair TRIGGERS starts at60, THINGS at56).
+
 - Replay CSV labels its clock `tick`, but replay events TSV labels it `turn`; inspect the header before sharing a parser.
 - `docs/experiments/` is ignored: stage a requested report with `git add -f -- <exact README path>`, never the whole experiment directory.
 

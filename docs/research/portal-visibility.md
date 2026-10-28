@@ -1,6 +1,6 @@
 # Portal visibility (Q197)
 
-Status: **PARTIAL; no new presentation behavior built.** Binary and shipped-data
+Status: **Startup discovery solved; ring lighting remains partial. No new behavior built.** Binary and shipped-data
 read, 2026-10-24. Confidence labels below distinguish the native contracts from
 their possible correspondence to the owner's observation.
 
@@ -27,10 +27,54 @@ Frosty's Lair has three 3×3 Hero Portals centred at (15,52), (37,14), (57,59),
 and a 3×3 keeper Portal at (37,37), all owner2. Each of their nine map cells has
 the corresponding terrain and owner, followed by bytes `(1,1)`; that trailing
 pair is the same throughout this 75×75 map. All four portal action points have
-flags0 and trigger0; the shipped trigger file contains no action records.
-These files establish no portal-specific scripted reveal.
+flags0 and trigger0. They are targets of the keeper roots' scripted reveals,
+not self-running action-point roots.
 The authored map contains no terrain27 Fog tiles, so a neighbour's Fog of War
 label cannot be explained by that terrain being placed directly in this map.
+
+## Scripted startup reveal (Q197, 2026-10-28)
+
+**CONFIRMED from shipped data and native dispatch:** Frosty's Lair's trigger
+chunk contains three conditions and six actions. Each keeper root tests level
+time >= 0 (condition34, comparison5, value0, repeat1) and has two reveal actions:
+
+| Keeper | Root | Action chain (unsigned stored ids) | Reveals |
+|---|---:|---|---|
+| 3 | 1 | 65535 → 65534 | AP1, Mercenary Portal (37,14); AP4, keeper Portal (37,37) |
+| 4 | 2 | 65533 → 65532 | AP2, Mercenary Portal (15,52); AP4 again |
+| 5 | 3 | 65531 → 65530 | AP3, Mercenary Portal (57,59); AP4 again |
+
+Every action is type17, with body byte0 naming its action point and byte1=0.
+Each point covers exactly its 3×3 entrance. These conditions are true on the
+first player-tree evaluation; they do not wait for activation, arrival, Sight
+or the player's approach. The stored action ids are negative signed shorts
+when walked, as documented in [trigger-tree.md](trigger-tree.md).
+
+The keeper loader `0x0051F0B0` passes the authored root to `0x004C7990`
+(player `+0x10DA`). Walker `0x004C79A0` evaluates it; player condition dispatch
+`0x004C7B20` delegates condition34 to `0x00518270` (time arm `0x0051829D`).
+Player action dispatch `0x004C8620` delegates type17 to world arm `0x00519257`
+in `0x00518AD0`. With byte1=0 the arm calls `0x00454B80` across the inclusive
+rectangle. That writes explored `tile+8 bit0x2000`, expanding complete rooms
+through `0x004E8B80`/`0x00454D40` where required.
+
+There is no local-player guard on this world action. The three keeper roots
+therefore expose all four entrance rectangles in the local view, including
+the repeated central Portal reveal. Neighbouring tiles need not be explored.
+This explains both entrance types without a general skirmish or fog exception.
+
+**Existing implementation, inspected:** `TriggerTree` loads the player roots,
+`TriggerExecutor` walks each root, condition34 compares level time, and action17
+calls `DiscoveryRules.Rectangle` with explored=true. The latter applies the
+rectangle to every represented viewer, the project's equivalent of the
+unconditional native local-view write. No new simulation rule or HashVersion
+change is needed from this finding; end-to-end Frosty's Lair acceptance was not
+run. Work stopped before any state/hash change, as requested.
+
+The earlier empty-trigger claim was false. The trigger chunk's content starts
+at byte60 (`headerBlockSize=32`, content offset `28+headerBlockSize`), while
+this level's THINGS content starts at56. A bounded reparse reaches all nine
+records and the exact end of the 276-byte trigger file.
 
 ## 3D admission and ordinary exploration
 
@@ -59,10 +103,9 @@ explored. Both status producer `0x0042D1F0` and short-name producer
 `0x0042D4A0` test tile `+9 bit0x20` before room dispatch; when clear they return
 fog text, without a Sight or possession exception. The screenshots show room
 names and nonowned-room status, so their hovered tiles pass that test.
-Ordinary whole-room exploration explains why the room can be visible while
-its neighbour remains fogged; the source that first explored it remains unknown.
-The portal at (37,14) borders owner3's Heart area, but no native discovery state
-was captured and that proximity alone establishes no cause.
+The scripted rectangles above establish why these rooms are explored while
+their neighbours remain fogged. Proximity to a keeper's Heart is not needed
+to explain the four reveals.
 
 ## Entrance light and the ring
 
@@ -156,11 +199,7 @@ map-byte flag branch changes tile `+8 bit0x1000`, not explored `0x2000`.
 Room-thing loader `0x00521420` applies health/Heart/orientation work, without a
 direct exploration write or mode-specific portal reveal in the body read.
 
-**UNKNOWN:** which operation first explored the photographed rooms. No new
-skirmish-specific portal rule has been established. Construction callees and
-mode setup's indirect effects are not exhaustively excluded. Q669's fresh-start
-answer establishes visibility without player exploration or Sight; the native
-load/first-update operation remains unlocated. A recheck of action-point
+The scripted startup reveal above settles the discovery source. A recheck of action-point
 loader `0x005211A0` confirms that file flags at payload+18 supply runtime bit4,
 the level-start reveal flag. The four authored points have that flag clear.
 Room membership setter `0x00450770` and first-tile constructor `0x004EC5A0`
@@ -168,10 +207,22 @@ delegate terrain assignment through the existing owner; the bodies read have
 no separate entrance exploration write. Their transitive callees remain bounded
 by the earlier exclusions, not proved free of every indirect effect.
 
+Other bounded controls: fresh map construction `0x0044E9E0` invokes tile
+constructor `0x00452B30`, which clears explored and scanned state; it does not
+carry room exploration from a previous match. Fog-off `0x00451EF0` explores
+every tile, not entrances alone. Queued action121's `0x00514240` reveals a
+specified player's entire territory through `0x004BFF60`; its located producer
+`0x004267D0` is an other-player panel request, not the authored startup chain.
+Fresh-level path `0x0050E620` and the reload action `0x00513870` converge on
+the common initializer; the latter returns0 in mode3.
+
+Executable control: Ghidra's DKII.EXE SHA256 matches the installed DKII.EXE.
+The installed DKII-DX.exe has identical on-disk code sections; its only section
+byte difference is the DDRAW/PATCH import-name substitution.
+
 ## Next evidence
 
-Q197 stays open; Q669 is answered. Next identify the discovery source during
-load or the first updates, using the established fresh-game condition,
-and trace the bridge light's remaining flag through surface lighting before attributing
-an exception to room25. No simulation state,
+Q197 retains the light/ring boundary; startup discovery is answered and Q669
+is closed. Trace the bridge light's remaining flag through source submission
+and compare the ring before building a lighting change. No simulation state,
 HashVersion, presentation rules or Unity wiring changed.

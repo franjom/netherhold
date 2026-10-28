@@ -283,7 +283,7 @@ Campaign result suppression and scripted GUI restoration are built; Q611's
 remaining continuation boundary and original-game comparison are in
 research/hud-visibility.md (Q648/Q649).
 Native minimap raster and overlay reading: research/minimap-rendering.md.
-Q197's remaining startup-discovery and light boundary: research/portal-visibility.md.
+Q197's startup script reveal is established; the light boundary is in research/portal-visibility.md.
 Its fresh-game visibility/colour-patch play check Q669 is answered. Input research remains.
 
 Current verification (2026-10-25, ADR-0542): the combined solution and enabled
