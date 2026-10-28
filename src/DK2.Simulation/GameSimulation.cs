@@ -12,8 +12,8 @@ namespace DK2.Simulation;
 /// <para>Contract: <b>same database + same initial world + same seed + same
 /// input frames, in the same order, produce the same <see cref="StateHash"/> at
 /// every tick — on any machine, in any process.</b></para>
-/// <para>Enforced by <c>DeterminismTests</c>, whose pinned hash is the gate
-/// (there is no CI). Anything that would break it — wall-clock time, unordered
+/// <para>Enforced by <c>DeterminismTests</c>, whose pinned hash CI's determinism
+/// gate checks on Linux and Windows. Anything that would break it — wall-clock time, unordered
 /// collections, floating point in gameplay maths,
 /// <see cref="object.GetHashCode"/> over strings, ambient randomness — is a
 /// defect, not a trade-off.</para>
