@@ -172,7 +172,7 @@ public class WorldResyncTests
     }
 
     [Fact]
-    public void ADeliveryIsSetChoosingAndAnUnmappedSlotIsReported()
+    public void ADeliveryIsSetChoosing_AndAnImpOursLacksIsMadeAndChoosesToo()
     {
         GameSimulation sim = Start(1);
         WorldState world = sim.World;
@@ -184,13 +184,14 @@ public class WorldResyncTests
 
         ResyncReport report = WorldResync.Apply(sim, state, slot => slot == 401 ? imp.Id : null);
 
-        Assert.Equal(1, report.WorkersSetChoosing);
+        Assert.Equal(2, report.WorkersSetChoosing);
         Assert.Equal(0, report.JobsReissued);
-        Assert.Equal(1, report.Unmapped);
+        Assert.Equal((1, 0), (report.CreaturesAdded, report.Unmapped));
         Assert.Equal(ImpStates.TaskSelection, imp.Dk2StateId);
         Assert.Equal(1092, imp.GoldHeld);
         Assert.Contains(report.Notes, n => n.Contains("28x1"));
-        Assert.Contains(report.Notes, n => n.Contains("slot 402"));
+        CreatureState made = Assert.Single(world.Creatures, c => c.Id != imp.Id);
+        Assert.Equal((new TilePos(1, 2), ImpStates.TaskSelection), (made.Tile, made.Dk2StateId));
     }
 
     [Fact]
@@ -228,5 +229,94 @@ public class WorldResyncTests
         Assert.Equal(1, report.PilesReplaced);
         Assert.Equal(0, FloorGold.OnTile(world, database, (2 * world.Width) + 1));
         Assert.Equal(700, FloorGold.OnTile(world, database, at));
+    }
+
+    [Fact]
+    public void TheTriggerFlagsAndTimerStartsAreCopied()
+    {
+        GameSimulation sim = Start(0);
+        TriggerState triggers = sim.World.Triggers;
+        triggers.StartTimer(5, 2058);   // Level 4 seed 1: ours took the Portal at 2059, DK2 at 2030 (stamp 2029)
+        var flags = new int[TriggerState.FlagCount];
+        flags[11] = 1;
+        var timers = new int[TriggerState.TimerCount];
+        timers[5] = 2029;
+        ResyncState state = State(sim.World, []) with { Flags = flags, Timers = timers };
+
+        ResyncReport report = WorldResync.Apply(sim, state, _ => null);
+
+        Assert.Equal(1, triggers.Read(11));
+        Assert.Equal(2029, triggers.ReadTimer(5));
+        Assert.Equal(2, report.TriggerValuesChanged);
+    }
+
+    [Fact]
+    public void AStaleMapIsOverruled_CreaturesPairByPlayerTypeAndPoint_TheRestAreMadeOrRemoved()
+    {
+        GameSimulation sim = Start(0);
+        WorldState world = sim.World;
+        GameDatabase database = sim.Database;
+        CreatureState near = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
+        CreatureState far = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState extra = world.SpawnCreature(database, Dk2TerrainFixture.MistressCreatureId, Keeper, new TilePos(3, 3));
+        ResyncCreature Native(int slot, byte type, TilePos at, int level = 0, ResyncFear? fear = null) =>
+            new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), type, 1, 700, null, fear, level);
+        ResyncState state = State(world,
+        [
+            Native(500, Dk2TerrainFixture.GoblinCreatureId, new TilePos(5, 4), level: 3, fear: new ResyncFear(30, 40, 2)),
+            Native(501, Dk2TerrainFixture.GoblinCreatureId, new TilePos(2, 3)),
+            Native(502, Dk2TerrainFixture.BileDemonCreatureId, new TilePos(4, 2)),
+        ]);
+
+        // The map names our Mistress for DK2's Goblin 500: another run's spawn order.
+        ResyncReport report = WorldResync.Apply(sim, state, slot => slot == 500 ? extra.Id : null);
+
+        Assert.Null(world.CreatureById(extra.Id));
+        CreatureState made = Assert.Single(world.Creatures, c => c.CreatureTypeId == Dk2TerrainFixture.BileDemonCreatureId);
+        Assert.Equal(new TilePos(4, 2), made.Tile);
+        Assert.Equal([(500, far.Id), (501, near.Id), (502, made.Id)], report.Pairs);
+        Assert.Equal((2, 1, 1, 0), (report.CreaturesPaired, report.CreaturesAdded, report.CreaturesRemoved, report.Unmapped));
+        Assert.Equal(new TilePos(5, 4), far.Tile);
+        Assert.Equal((3, 700), (far.Level, far.Health));
+        Assert.Equal((30, 40, 2), (far.TempFear, far.CurrentFear, far.OverThreatCounter));
+    }
+
+    [Fact]
+    public void ACreatureDk2HasLyingInTheDyingWindowLiesInOurs_WithTheWindowAlreadyRun()
+    {
+        GameSimulation sim = Start(0);
+        WorldState world = sim.World;
+        GameDatabase database = sim.Database;
+        CreatureState goblin = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
+        // DK2's health counts the window down from 240: 172 left is 68 ticks lain.
+        var lying = new ResyncCreature(600, Keeper, CreatureState.CentreOf(3), CreatureState.CentreOf(2),
+            Dk2TerrainFixture.GoblinCreatureId, CreatureDeathRules.DyingState, 172, null);
+
+        WorldResync.Apply(sim, State(world, [lying]), slot => slot == 600 ? goblin.Id : null);
+
+        Assert.Equal(0, goblin.Health);
+        Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
+        Assert.Equal(CreatureDeathRules.DyingWindowTicks(database) - 172, goblin.DyingTicks);
+        Assert.Equal(new TilePos(3, 2), goblin.Tile);
+        Assert.True(CreatureDeathRules.IsDying(goblin));
+    }
+
+    [Fact]
+    public void ACreatureInAnotherStateThanDk2sGoesToIdleOnDk2sPoint_AHigherLevelOfOursIsKept()
+    {
+        GameSimulation sim = Start(0);
+        WorldState world = sim.World;
+        CreatureState goblin = world.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
+        goblin.Dk2StateId = 199;   // engaging, where DK2's flees
+        goblin.Level = 5;
+        var fighting = new ResyncCreature(700, Keeper, CreatureState.CentreOf(4), CreatureState.CentreOf(3),
+            Dk2TerrainFixture.GoblinCreatureId, 203, 900, null, Level: 3);
+
+        ResyncReport report = WorldResync.Apply(sim, State(world, [fighting]), slot => slot == 700 ? goblin.Id : null);
+
+        Assert.Equal(1, report.CreaturesSetIdle);
+        Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
+        Assert.Equal((new TilePos(4, 3), 900, 5), (goblin.Tile, goblin.Health, goblin.Level));
+        Assert.Contains(report.Notes, n => n.Contains("is level 5, DK2's 3; left"));
     }
 }

@@ -12983,4 +12983,48 @@ its `TempFear`. Ours skipped a chicken and a fallen creature but not a stunned o
 **Consequences.** A creature dropped by hand among enemies meets its first fear check with the
 whole stun's intake. `CombatFearTests.AStunnedCreatureNeitherHandsOverNorRadiates_ItsIntakePilesUp`
 covers it. In the 3496 resync our Goblin still does not flee: its frighteners, party 4, arrive 30
-ticks later in ours (3500 against 3470), so they are not there to give.
+ticks later in ours (3500 against 3470), so they are not there to give. The lag is drift (ADR-0560).
+
+## ADR-0560 — The resync copies the trigger banks and every creature, and its pairs drive the packets
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 318 (no rule moved here) · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** ADR-0559's 3496 resync could not test the death window. Ours raised Level 4's parties
+30 ticks late. Its non-Imps moved only when standing free. Its entity map, from the hash-306 run,
+named the wrong creature for several slots, and the hand actions after the resync went through it.
+
+**Finding.** The party offset is drift, not a trigger rule.
+- CONFIRMED (trigger dump, timer bank): timers 4-9 start on flag 0. Trigger 1, on the Portal's
+  action point, sets flag 0 when player 3 owns its nine terrain-18 tiles.
+- The Portal turns about 32 ticks after (24,39) is claimed: native 1997 -> 2030, ours 2028 -> 2059.
+- HYPOTHESIS: ours' Imps ran late before the 2340 resync. Ours dug (24,39) 54 ticks after native,
+  but dig to claim took 45 ticks there and 22 in ours, which is unexplained.
+
+**Decision.**
+- `capture_state.py` writes the flag and timer banks (world `+0x3F70`, `+0x3FF0`), creature level
+  `+0x403`, and fear: `+0x524`/`+0x526` handed over in `0x0045E4F0`, the counter `+0x528` in
+  `0x0045EC80`.
+- `WorldResync` copies the banks and pairs each native creature with ours. It takes the map's id
+  when it names a live creature of that player and type, else the nearest unpaired one, greedily.
+- It makes the natives left over (at level 1, then raised) and removes extras through
+  `CreatureHealthSystem.Remove`.
+- It raises ours to DK2's level and copies fear and health. A native dying in 216/217 lies dying in
+  ours; any other non-Imp is put on DK2's point and goes to idle if its state differs.
+- The replay replaces the packet entity map with the pairs from the next turn.
+- Details and limits: resync-replay.md.
+
+**Consequences.** One seed, one resync (seed 1 at 3520, through 5400):
+- Parties 5 and 7 arrive at 3829 and 4189 (native 3830, 4190).
+- Flag 11 is set at 4330 from (8,25) (native 4378, same tile), so no extra parties are raised.
+- The hero door (24,27) falls at 5314 (native about 5313).
+- Ours loses 4 Imps against none, three to party 5's Guard. That Guard survives the fight at
+  (15-17,31-34) where DK2's party 5 is down by 3960; that fight is the next lead.
+- Without the level copy the run lost 24 Imps and raised party 6.
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "The parties' offset".
+Tests:
+- `WorldResyncTests`: `TheTriggerFlagsAndTimerStartsAreCopied`,
+  `AStaleMapIsOverruled_CreaturesPairByPlayerTypeAndPoint_TheRestAreMadeOrRemoved`,
+  `ACreatureDk2HasLyingInTheDyingWindowLiesInOurs_WithTheWindowAlreadyRun`,
+  `ACreatureInAnotherStateThanDk2sGoesToIdleOnDk2sPoint_AHigherLevelOfOursIsKept`,
+  `ADeliveryIsSetChoosing_AndAnImpOursLacksIsMadeAndChoosesToo`
+- `PacketLogTests.AResyncsPairReplacesTheMapsFromItsTurn_EarlierTurnsKeepTheMaps`

@@ -12,25 +12,28 @@ namespace DK2.Simulation;
 public sealed record ResyncReport(
     int TilesChanged, int CreaturesPlaced, int JobsReissued, int WorkersSetChoosing, int CreaturesLeft,
     int Unmapped, int PilesReplaced, int MarksSet, IReadOnlyList<string> Notes,
-    int DoorsAndTrapsChanged = 0, int CratesPlaced = 0, int CrateTripsReissued = 0)
+    int DoorsAndTrapsChanged = 0, int CratesPlaced = 0, int CrateTripsReissued = 0,
+    int CreaturesPaired = 0, int CreaturesSetIdle = 0, int TriggerValuesChanged = 0,
+    int CreaturesAdded = 0, int CreaturesRemoved = 0, IReadOnlyList<(int Slot, int Ours)>? Pairs = null)
 {
     public override string ToString() =>
         $"tiles changed {TilesChanged}, marks set {MarksSet}, doors and traps changed {DoorsAndTrapsChanged}, "
-        + $"crates placed {CratesPlaced}, creatures placed {CreaturesPlaced}, jobs reissued {JobsReissued} "
-        + $"(crate trips {CrateTripsReissued}), workers set choosing {WorkersSetChoosing}, "
+        + $"crates placed {CratesPlaced}, trigger flags and timers changed {TriggerValuesChanged}, "
+        + $"creatures added {CreaturesAdded}, removed {CreaturesRemoved}, "
+        + $"placed {CreaturesPlaced} (paired by type and point {CreaturesPaired}), jobs reissued {JobsReissued} "
+        + $"(crate trips {CrateTripsReissued}), workers set choosing {WorkersSetChoosing}, others set idle {CreaturesSetIdle}, "
         + $"creatures left as they were {CreaturesLeft}, unmapped {Unmapped}, floor piles replaced {PilesReplaced}";
 }
 
 /// <summary>
 /// Continues our simulation from a DK2 capture's state, the controlled-input test (ADR-0556,
 /// ADR-0558, <c>resync-replay.md</c>): between two ticks of a replay the native tick's tiles,
-/// marks, doors and traps (built or blueprints), crates, manufacture list, creature poses, Imp
-/// jobs, floor gold, mana and world seed are copied over ours, and the replay goes on with the
-/// same packets, so each Imp's next choice is made from DK2's inputs (Q665). An Imp on tile work
-/// or a crate trip is sent to the same tile, side and slot, or crate and blueprint, by our own
-/// walk; any other Imp chooses again. Rooms and the pool's holders stay ours, as does a tile the
-/// capture gives no owner. DK2's money is only reported (treasury gold is tile stores,
-/// ADR-0015). A creature that is not an Imp keeps its state and moves only when it stands free.
+/// marks, doors, traps, crates, manufacture list, trigger banks, creatures (made or removed to
+/// match; pose, level, health, fear), Imp jobs, floor gold, mana and seed are copied over ours,
+/// and the replay goes on with the same packets (ADR-0560, Q665). An Imp on tile work or a crate
+/// trip is sent to the same work by our own walk, any other chooses again; another creature keeps
+/// its state when DK2's is the same or both stand free, else goes to idle. Rooms, the pool's
+/// holders, trigger records' state, lairs and parties stay ours; DK2's money is only reported.
 /// </summary>
 public static class WorldResync
 {
@@ -61,19 +64,41 @@ public static class WorldResync
         int piles = ReplaceFloorGold(world, database, state);
         int crates = ReplaceCrates(world, database, state);
 
-        int placed = 0, reissued = 0, crateTrips = 0, choosing = 0, left = 0, unmapped = 0;
+        int placed = 0, reissued = 0, crateTrips = 0, choosing = 0, idle = 0, left = 0, unmapped = 0;
         var unmappedNotes = new List<string>();
         var otherResumes = new SortedDictionary<int, int>();
-        foreach (ResyncCreature native in state.Creatures)
+        List<(ResyncCreature Native, CreatureState? Ours)> pairs = Match(world, state, creatureOf, out int paired);
+        int removed = RemoveExtras(context, pairs, notes);
+        int added = AddMissing(world, database, pairs);
+        foreach ((ResyncCreature native, CreatureState? ours) in pairs)
         {
-            if (native.Owner == 0) continue;   // a pooled slot
-            int? id = creatureOf(native.Slot);
-            CreatureState? ours = id is int i ? world.CreatureById(i) : null;
             if (ours is null)
             {
                 unmapped++;
                 if (unmappedNotes.Count < 12)
-                    unmappedNotes.Add($"slot {native.Slot} (type {native.Type}, player {native.Owner}, state {native.State}) {(id is null ? "unmapped" : $"maps to {id}, which is gone")}");
+                    unmappedNotes.Add($"slot {native.Slot} (type {native.Type}, player {native.Owner}, state {native.State}, health {native.Health}): not paired and not made");
+                continue;
+            }
+            if (ours.InHand)
+            {
+                left++;
+                notes.Add($"creature {ours.Id} (slot {native.Slot}) left in the hand; DK2's is in state {native.State}");
+                continue;
+            }
+
+            CopyFear(ours, native);
+            RaiseLevel(context, ours, native, notes);
+            if (IsDown(native))
+            {
+                // DK2's health counts the dying window down from 240 a tick at a time (the capture,
+                // 3940-4180); ours lies at zero and counts DyingTicks up to the same window, a game
+                // second at a time, so the death can land up to 3 ticks off DK2's.
+                ours.PosX = native.X;
+                ours.PosY = native.Y;
+                ours.Health = 0;
+                if (!CreatureDeathRules.IsDying(ours)) CreatureDeathRules.Collapse(context.Hooks, ours);
+                ours.DyingTicks = Math.Max(0, CreatureDeathRules.DyingWindowTicks(database) - native.Health);
+                placed++;
                 continue;
             }
 
@@ -81,16 +106,23 @@ public static class WorldResync
                 && database.CreatureById(ours.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
             if (!worker)
             {
-                if (Array.IndexOf(FreeStates, native.State) >= 0 && Array.IndexOf(FreeStates, ours.Dk2StateId) >= 0)
+                bool standing = Array.IndexOf(FreeStates, native.State) >= 0 && Array.IndexOf(FreeStates, ours.Dk2StateId) >= 0;
+                ours.PosX = native.X;
+                ours.PosY = native.Y;
+                ours.Health = native.Health;
+                placed++;
+                if (standing) continue;
+                // A route laid from our point leads nowhere from DK2's; the state's own update lays the next.
+                ours.StopMoving();
+                if (native.State == ours.Dk2StateId) continue;
+                if (CreatureStateMachine.HasState(ours) && StateShadow.TryMove(context, SystemName, ours, CreatureStateMachine.Idle))
                 {
-                    ours.PosX = native.X;
-                    ours.PosY = native.Y;
-                    ours.Health = native.Health;
-                    placed++;
+                    idle++;
                 }
                 else
                 {
                     left++;
+                    notes.Add($"creature {ours.Id} (slot {native.Slot}) left in our state {ours.Dk2StateId}; DK2's is {native.State}");
                 }
                 continue;
             }
@@ -188,6 +220,8 @@ public static class WorldResync
             }
         }
 
+        int triggerValues = ApplyTriggerBanks(world.Triggers, state, notes);
+
         if (simulation.Rng.Algorithm is Dk2Lcg lcg) lcg.Reseed(state.Seed);
         else notes.Add($"DK2 seed {state.Seed} not applied: the run does not draw from DK2's generator (--rng dk2)");
 
@@ -195,7 +229,159 @@ public static class WorldResync
             notes.Add("walks set choosing instead, by resume state: " + string.Join(", ", otherResumes.Select(p => $"{p.Key}x{p.Value}")));
         notes.AddRange(unmappedNotes);
         return new ResyncReport(tilesChanged, placed, reissued, choosing, left, unmapped, piles, marksSet, notes,
-            doorsAndTraps, crates, crateTrips);
+            doorsAndTraps, crates, crateTrips, paired, idle, triggerValues, added, removed,
+            pairs.Where(p => p.Ours is not null).Select(p => (p.Native.Slot, p.Ours!.Id)).ToList());
+    }
+
+    /// <summary>Each of DK2's creatures with ours: the map's while it names a live creature of the
+    /// same player and type, else the nearest live one of that player and type no other has, taken
+    /// greedily in capture order. The map is a packet replay's, and spawn order shifts under it with
+    /// every rule change: a hero's slot can name a keeper's creature, or a corpse.</summary>
+    private static List<(ResyncCreature Native, CreatureState? Ours)> Match(
+        WorldState world, ResyncState state, Func<int, int?> creatureOf, out int paired)
+    {
+        ResyncCreature[] natives = state.Creatures.Where(c => c.Owner != 0).ToArray();   // owner 0: a pooled slot
+        var ours = new CreatureState?[natives.Length];
+        var taken = new HashSet<int>();
+        for (int n = 0; n < natives.Length; n++)
+            if (creatureOf(natives[n].Slot) is int id && world.CreatureById(id) is { } mapped
+                && Same(natives[n], mapped) && taken.Add(mapped.Id))
+                ours[n] = mapped;
+
+        paired = 0;
+        for (int n = 0; n < natives.Length; n++)
+        {
+            if (ours[n] is not null || natives[n].Health <= 0) continue;
+            CreatureState? nearest = null;
+            long best = long.MaxValue;
+            foreach (CreatureState candidate in world.Creatures)
+            {
+                if (taken.Contains(candidate.Id) || !Same(natives[n], candidate)) continue;
+                long dx = candidate.PosX - natives[n].X, dy = candidate.PosY - natives[n].Y;
+                long distance = (dx * dx) + (dy * dy);
+                if (distance < best)
+                {
+                    best = distance;
+                    nearest = candidate;
+                }
+            }
+            if (nearest is null) continue;
+            taken.Add(nearest.Id);
+            ours[n] = nearest;
+            paired++;
+        }
+        return natives.Select((native, n) => (native, ours[n])).ToList();
+    }
+
+    /// <summary>Same player and type, and alive as DK2's is: one of DK2's lying in the dying
+    /// window may be ours standing or dying, never a corpse.</summary>
+    private static bool Same(ResyncCreature native, CreatureState ours) =>
+        ours.OwnerPlayerId == native.Owner && ours.CreatureTypeId == native.Type
+        && (IsDown(native) ? !CreatureDeathRules.IsCorpse(ours) : ours.Health > 0 && !CreatureDeathRules.IsDown(ours));
+
+    private static bool IsDown(ResyncCreature native) =>
+        native.State is CreatureDeathRules.FallingState or CreatureDeathRules.DyingState;
+
+    /// <summary>Live creatures of ours DK2 has no counterpart for (a death DK2 had and ours did not,
+    /// a party ours raised and DK2 did not) are removed by the health system's removal, which puts
+    /// down what they carry and what carries them. One in the hand is left there and reported.</summary>
+    private static int RemoveExtras(
+        SimulationContext context, List<(ResyncCreature Native, CreatureState? Ours)> pairs, List<string> notes)
+    {
+        var matched = pairs.Where(p => p.Ours is not null).Select(p => p.Ours!.Id).ToHashSet();
+        CreatureState[] extras = context.World.Creatures
+            .Where(c => c.OwnerPlayerId != 0 && c.Health > 0 && !CreatureDeathRules.IsDown(c) && !matched.Contains(c.Id))
+            .ToArray();
+        int removed = 0;
+        foreach (CreatureState extra in extras)
+        {
+            if (extra.InHand)
+            {
+                notes.Add($"creature {extra.Id} (player {extra.OwnerPlayerId}, type {extra.CreatureTypeId}) has no DK2 counterpart; left in the hand");
+                continue;
+            }
+            notes.Add($"creature {extra.Id} (player {extra.OwnerPlayerId}, type {extra.CreatureTypeId}) has no DK2 counterpart; removed");
+            CreatureHealthSystem.Remove(context, SystemName, extra);
+            removed++;
+        }
+        return removed;
+    }
+
+    /// <summary>Each of DK2's live creatures left unpaired is made at its point, for the loop to copy
+    /// as any other: made at level 1 and raised to DK2's there, with no lair or party (the capture
+    /// reads neither). One whose point is off the map is left unpaired.</summary>
+    private static int AddMissing(WorldState world, GameDatabase database, List<(ResyncCreature Native, CreatureState? Ours)> pairs)
+    {
+        int added = 0;
+        for (int i = 0; i < pairs.Count; i++)
+        {
+            ResyncCreature native = pairs[i].Native;
+            if (pairs[i].Ours is not null || native.Health <= 0 || !database.Creatures.ContainsKey((byte)native.Type)) continue;
+            var tile = new TilePos(native.X / Fp32.One, native.Y / Fp32.One);
+            if (!world.Contains(tile)) continue;
+            pairs[i] = (native, world.SpawnCreature(database, (byte)native.Type, new PlayerId((byte)native.Owner), tile));
+            added++;
+        }
+        return added;
+    }
+
+    /// <summary>Ours up to DK2's level by the level-up rule, as a scripted arrival is promoted
+    /// (<see cref="PortalRules.CreateScriptedArrival"/>); a level ours is above is reported, as
+    /// nothing in ours takes one away. The health copied after it is DK2's.</summary>
+    private static void RaiseLevel(SimulationContext context, CreatureState ours, ResyncCreature native, List<string> notes)
+    {
+        if (native.Level <= 0 || ours.Level == native.Level) return;
+        if (ours.Level > native.Level)
+        {
+            notes.Add($"creature {ours.Id} (slot {native.Slot}) is level {ours.Level}, DK2's {native.Level}; left");
+            return;
+        }
+        CreatureDef definition = context.Database.CreatureById(ours.CreatureTypeId);
+        int was = ours.Level;
+        while (ours.Level < native.Level && CreatureLevelRules.LevelUp(context.Hooks, definition, ours)) { }
+        notes.Add(ours.Level == native.Level
+            ? $"creature {ours.Id} (slot {native.Slot}, type {ours.CreatureTypeId}) raised from level {was} to {ours.Level}"
+            : $"creature {ours.Id} (slot {native.Slot}, type {ours.CreatureTypeId}) refused the level-up at {ours.Level}; DK2's is {native.Level}");
+    }
+
+    private static void CopyFear(CreatureState ours, ResyncCreature native)
+    {
+        if (native.Fear is not { } fear) return;
+        ours.TempFear = (ushort)fear.Temp;
+        ours.CurrentFear = (ushort)fear.Current;
+        ours.OverThreatCounter = (byte)fear.Counter;
+    }
+
+    /// <summary>DK2's trigger banks: its flags, and its timers' start ticks, which a condition
+    /// reads as a deadline against the same clock (trigger-state.md 5). Without them a party raised
+    /// on a timer comes when ours started the timer, not when DK2 did. The records' own active and
+    /// repeat state is not in the capture and stays ours.</summary>
+    private static int ApplyTriggerBanks(TriggerState triggers, ResyncState state, List<string> notes)
+    {
+        if (state.Flags is not { } flags || state.Timers is not { } timers) return 0;
+        if (flags.Length != TriggerState.FlagCount || timers.Length != TriggerState.TimerCount)
+        {
+            notes.Add($"trigger banks not copied: the capture has {flags.Length} flags and {timers.Length} timers");
+            return 0;
+        }
+        int changed = 0;
+        byte[] ourFlags = triggers.RawFlags;
+        int[] ourTimers = triggers.RawTimers;
+        for (int i = 0; i < flags.Length; i++)
+        {
+            if (ourFlags[i] == (byte)flags[i]) continue;
+            notes.Add($"flag {i}: ours {ourFlags[i]}, DK2's {flags[i]}");
+            ourFlags[i] = (byte)flags[i];
+            changed++;
+        }
+        for (int i = 0; i < timers.Length; i++)
+        {
+            if (ourTimers[i] == timers[i]) continue;
+            notes.Add($"timer {i}: ours started {ourTimers[i]}, DK2's {timers[i]}");
+            ourTimers[i] = timers[i];
+            changed++;
+        }
+        return changed;
     }
 
     /// <summary>Ours made DK2's: a door or trap DK2 lacks (by tile, owner and type) is removed, one

@@ -8,11 +8,12 @@ namespace DK2.Simulation;
 /// it: the fields <see cref="WorldResync"/> copies into our world. Positions are DK2's fixed
 /// point (4096 a tile), the same as ours; owners are player ids, 0 where the tile names no
 /// player. The JSON is read by <c>DK2.Tools</c> (<c>ResyncStateFile</c>); fields it carries beyond
-/// these (rooms, pointers) are ignored.</summary>
+/// these (rooms, pointers) are ignored. <see cref="Flags"/> and <see cref="Timers"/> are the trigger
+/// banks (world <c>+0x3F70</c>, <c>+0x3FF0</c>; trigger-state.md), a timer the tick it started.</summary>
 public sealed record ResyncState(
     int Tick, int Width, int Height, ResyncPlayer[] Players, int[] Tiles, int[]? TileHealth,
     ResyncCreature[] Creatures, ResyncObject[]? Objects, uint Seed, ResyncMark[]? Marks = null,
-    ResyncDoor[]? Doors = null, ResyncTrap[]? Traps = null)
+    ResyncDoor[]? Doors = null, ResyncTrap[]? Traps = null, int[]? Flags = null, int[]? Timers = null)
 {
     public int Terrain(int index) => Tiles[3 * index];
 
@@ -38,10 +39,16 @@ public sealed record ResyncDoor(int Slot, int X, int Y, int Owner, int Type = 0,
 /// is set, and health <c>+0x40</c>.</summary>
 public sealed record ResyncTrap(int Slot, int X, int Y, int Owner, int Type, bool Constructing, int Health);
 
-/// <summary>The decoder's thing and creature fields; <see cref="Job"/> only on a record long
-/// enough to hold the state object.</summary>
+/// <summary>The decoder's thing and creature fields, and <see cref="Level"/> <c>+0x403</c>;
+/// <see cref="Job"/> and <see cref="Fear"/> only on a record long enough to hold them. A level of 0
+/// is a capture written before it was read.</summary>
 public sealed record ResyncCreature(
-    int Slot, int Owner, int X, int Y, int Type, int State, int Health, ResyncJob? Job);
+    int Slot, int Owner, int X, int Y, int Type, int State, int Health, ResyncJob? Job, ResyncFear? Fear = null,
+    int Level = 0);
+
+/// <summary>Fear (combat-fear.md): <c>0x0045E4F0</c> hands the words over, <c>0x0045EC80</c> counts; <c>TempFear</c>
+/// <c>+0x524</c>, <c>CurrentFear</c> <c>+0x526</c>, <c>OverThreatCounter</c> <c>+0x528</c>.</summary>
+public sealed record ResyncFear(int Temp, int Current, int Counter);
 
 /// <summary>The state object at creature <c>+0x24E</c> (creature-job-object.md): the resume state
 /// <c>+0xDF</c>, the task tile <c>+0x8C</c>/<c>+0x90</c>, side <c>+0x94</c>, slot <c>+0x96</c>, the

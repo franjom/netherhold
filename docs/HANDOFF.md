@@ -111,10 +111,14 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   at 2810-3144 in seeds 1-5 (was 3098-3516; native 2815 and 2988). A stunned creature's fear
   piles up and is handed over on its first standing tick (ADR-0559, hash/save 318); Level 4 seed 1
   loses 45 Imps with and without it (32 at hash 316, one seed, not attributed to ADR-0557).
-  Resyncs into the death window (3900, 3496) and what they show: the hero parties match native
-  in composition but arrive 30 ticks later, and ours raises two more
-  ([resync-replay.md](research/resync-replay.md)). The win and packet rigs have not been rerun
-  at hash 318.
+  The 30-tick party offset in the death window is drift (the Portal claim at 2059 against 2030),
+  not a trigger rule. The resync copies the trigger banks and every creature and pairs them
+  itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
+  11 at 4330 (native 4378) and the hero door falling at 5314 (native about 5313), but 4 Imp
+  deaths against 0, three to party 5's Guard, which survives the fight at (15-17,31-34) where
+  DK2's party 5 is down by 3960. That fight is the next lead
+  ([resync-replay.md](research/resync-replay.md)). Some of our trigger timer stamps differ from
+  DK2's by one tick, not investigated. The win and packet rigs have not been rerun at hash 318.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
