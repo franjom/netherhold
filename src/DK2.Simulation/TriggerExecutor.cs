@@ -1250,9 +1250,9 @@ public sealed class TriggerExecutor
         _ => false,
     };
 
-    /// <summary>Whether this executor carries out an action type. Terrain-changing
-    /// actions invalidate <see cref="TriggerRun.Rooms"/>; scheduled walks also clear
-    /// that cache after intervening simulation work.</summary>
+    /// <summary>Whether this executor carries out an action type. Of these only action 22,
+    /// the terrain change, invalidates <see cref="TriggerRun.Rooms"/>; each scheduled walk
+    /// also clears that cache as it starts, after intervening simulation work.</summary>
     public static bool Performs(byte type) =>
         type is 1 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 50;
 

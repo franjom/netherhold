@@ -6,7 +6,7 @@
 | Confidence | **CONFIRMED**: the terrain substitution, the six-tile radius, that reveal-through-fog terrain shows through, monotonic discovery, and one bit for one viewpoint. **STRONGLY INFERRED**: that fog is simulation state, the strict-circle footprint, that the setting is a boolean. **UNKNOWN**: whether any AI consults fog, what the five setup labels select, RevealMap, the minimap's portals |
 | Implementation | `Systems/FogOfWarSystem`, `TileState.DiscoveredBy` / `IsDiscoveredBy` / `SetDiscoveredBy`, `WorldState.FogOfWarEnabled`, `TerrainDef.IsRevealedThroughFog`, `WorldView` (constructed with a viewing player). ADR-0076 |
 | Tests | `FogOfWarTests`, `FogOfWarOnRealDataTests`, `FogOfWarViewTests`; `Dk2SaveReader` for the save-side evidence |
-| Open questions | Q190's AI half, Q192 (the setup labels), Q193's mechanism, Q194 (Reveal Map; Sight answered in `keeper-spell-sight.md`), Q197 (portals on the minimap) |
+| Open questions | Q190's AI half, Q192 (the setup labels), Q193's mechanism, Q194 (Reveal Map; Sight answered in `keeper-spell-sight.md`), Q670 (entrance-light visual acceptance) |
 | Reveal sources | Every writer of both discovery bits, and the second, *explored* bit this file's §11 missed: `fog-reveal-sources.md` (Q429, Q430) |
 
 ## 1. The substitution — CONFIRMED
@@ -237,14 +237,13 @@ like this from the keeper's chair.
 
 ### 9.4 Portals visible amid fog (Q197)
 
-The owner's Frosty's Lair screenshots show both Portal and Mercenary Portal
-with their room names and nonowned-room status. The hover producers require
-explored tiles for those labels: the rooms themselves are explored, even when
-neighbouring tiles remain fogged. The discovery source and exact light/flash
-correspondence remain open. Hero terrain40 has the same flags as keeper
-terrain12, without reveal-through-fog; no special presentation rule was built.
-The binary trace, observation, keeper-only exclusions and next lead now live
-in [portal-visibility.md](portal-visibility.md). Fresh-game play check Q669 is answered.
+Frosty's Lair's keeper bootstrap scripts reveal all four entrance rectangles
+through ordinary action17. The rooms are explored; neighbouring ground can
+remain fogged. This rule already exists in `TriggerExecutor` and
+`DiscoveryRules.Rectangle`, without a Hero Portal exception. Neutral palette
+cycling matches the minimap patch. The script-to-binary trace, verified fog-surface
+lighting and verified startup source count are in
+[portal-visibility.md](portal-visibility.md). Fresh-game play check Q669 is answered.
 
 ## 10. The multiplayer argument, and why it points the other way
 

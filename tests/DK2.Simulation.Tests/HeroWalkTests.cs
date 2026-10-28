@@ -165,6 +165,61 @@ public class HeroWalkTests
         Assert.Equal(CreatureStateMachine.Idle, hero.Dk2StateId);
     }
 
+    // 00486CF0: with no action running and the turn not above +0x7E, action 43 starts again.
+    [Fact]
+    public void AWaitingHeroRestartsItsIdleActionWhileTheDeadlineIsLive()
+    {
+        (GameSimulation sim, CreatureState hero) = WaitingHeroWithIdleArt(deadline: 5, actionUntil: 5);
+        int x = hero.PosX, y = hero.PosY;
+
+        sim.Run(5);
+        Assert.Equal(5, hero.ActionUntilTick);
+        sim.Tick(); // turn 5: the action has ended and 5 is not above the deadline
+
+        Assert.Equal(HeroJobRules.WaitingState, hero.Dk2StateId);
+        Assert.True(hero.ActionUntilTick > 6, $"action 43 should restart, until={hero.ActionUntilTick}");
+        Assert.Equal(5, hero.StateDeadlineTick);
+        Assert.Equal((x, y), (hero.PosX, hero.PosY));
+    }
+
+    // 00486CF0: once the action ends on a turn above +0x7E, the walk arm runs, not the action.
+    [Fact]
+    public void AWaitingHeroWalksWhenItsActionEndsAfterTheDeadline()
+    {
+        (GameSimulation sim, CreatureState hero) = WaitingHeroWithIdleArt(deadline: 4, actionUntil: 5);
+
+        sim.Run(5);
+        Assert.Equal(HeroJobRules.WaitingState, hero.Dk2StateId);
+        Assert.Equal(4, hero.StateDeadlineTick);
+        sim.Tick(); // turn 5: the action has ended and 5 is above the deadline
+
+        Assert.Equal(6, hero.Dk2StateId);   // travelling to a point
+        Assert.Equal(HeroJobRules.WaitingState, hero.UtilityNewState);
+        Assert.InRange(hero.StateDeadlineTick, 5 + 50, 5 + 84);
+        // Native too: the action has already ended, so the route helper's end (0x00471890) has nothing to
+        // end. Revisit if ours ever mirrors that end on every route.
+        Assert.Equal(5, hero.ActionUntilTick);
+    }
+
+    private static (GameSimulation, CreatureState) WaitingHeroWithIdleArt(long deadline, long actionUntil)
+    {
+        var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
+        slots[20] = new CreatureAnimationTiming
+        {
+            ResourceType = 6, Flags = CreatureAnimationFlags.Present,
+            FrameCount = 150, FramesPerSecond = 20,
+        };
+        (GameDatabase db, WorldState world) = OpenWorld(Dk2TerrainFixture.Knight() with
+        {
+            CreatureId = Strong, ArtSlots = slots,
+        });
+        CreatureState hero = world.SpawnCreature(db, Strong, PlayerIds.Good, new TilePos(5, 5));
+        StatePlacement.Place(hero, HeroJobRules.WaitingState);
+        hero.StateDeadlineTick = deadline;
+        hero.ActionUntilTick = actionUntil;
+        return (Simulation(db, world), hero);
+    }
+
     /// <summary>DK2's facing test (<c>h &gt; 0x700 &amp;&amp; h &lt; 0x100</c>) never picks direction 0,
     /// so a leader facing 0 is trailed from direction 3; the depth is half the follower's number,
     /// at least one; a blocked step turns a quarter.</summary>

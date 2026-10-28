@@ -16,7 +16,7 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 ## Versions
 **325** - `0x55C440B501A59863`. FormatVersion also 325. Behaviour only: a door or trap order is pushed while the keeper's blueprints of the type outnumber its crates, queued orders no longer counted as crates (`0x005066E0`), and an authored door blueprint is queued at its own record (`0x00520F40`, ADR-0571). No fields added; the pin moves by the version only (the fixture has no blueprints).
 
-**324** - `0x6F4F1D921054B690`. FormatVersion also 324. Behaviour only: creature roots run after their own update, area roots after creature work, and player roots after room ticks (ADR-0568). Same-turn ownership changes can start timers immediately. No fields added; the pin fixture moves by the version only. `TriggerSchedulingTests` covers visibility and the unchanged shared clock.
+**324** - `0x6F4F1D921054B690`. FormatVersion also 324. Behaviour only: creature roots run after their own update, area roots after creature work, and player roots after room ticks (ADR-0568). Same-turn ownership changes can start timers immediately. No fields added; the pin fixture moves by the version only. `TriggerSchedulingTests` covers visibility, the root order within a turn and the one-based turn every walk stamps.
 
 **323** - `0x32086DAF699C9E45`. FormatVersion also 323. Behaviour only: waiting heroes start action 43 and preserve its hold across a failed standing job (ADR-0566). The existing ActionUntilTick carries it; no fields added. Clip timing retains the existing fresh-install surrogate boundary. HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline covers the missing hold; the pin fixture moves by the version only.
 

@@ -13254,6 +13254,9 @@ that room to be captured early. The existing nominal camera-path duration is
 unchanged; no timer or level-specific offset is introduced. No saved fields are
 added; hash/save advance together to 324. Player roots remain grouped before
 player counters; per-player interleaving remains outside this correction.
+A tick's `trigger_performed` and `trigger_partial` events, and `LastTriggerRun` when scheduled,
+now come after every system has run, in both modes (`GameSimulation.Tick`), so an event stream
+lists them after that tick's system events. A list that schedules only some roots is refused.
 
 ## ADR-0569 - The resync can leave named parts ours
 **Date:** 2026-10-28 · **Status:** accepted · Hash/save 323 (unchanged: the replay tool only) · Q665 ·

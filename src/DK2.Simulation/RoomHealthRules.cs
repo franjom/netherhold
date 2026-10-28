@@ -164,7 +164,9 @@ public static class RoomHealthRules
             return new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId);
 
         int delta = ConvertPerApplication(database, tile.OwnerPlayerId, efficiency);
-        TileWorkOutcome outcome = Apply(world, database, room, delta, playerId, context) == RoomHealthOutcome.TookOver
+        RoomHealthOutcome applied = Apply(world, database, room, delta, playerId, context);
+        if (applied == RoomHealthOutcome.TookOver) SlabChain.ObserveCaptureMerges(world, room);
+        TileWorkOutcome outcome = applied == RoomHealthOutcome.TookOver
             ? TileWorkOutcome.Transformed
             : delta == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed;
         return new TileWorkResult(outcome, delta, 0, 0, tile.TerrainId);

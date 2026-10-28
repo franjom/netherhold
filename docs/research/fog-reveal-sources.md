@@ -88,8 +88,10 @@ Re-read at the true alignment (live `+2..+0xB`):
 
 ## 3. Every writer
 
-A scan for masked stores to the fog byte found **one setter of the scanned bit
-(`0x00454CB3` in `0x00454C90`) and no clearer**. It covered all 743k
+A scan for masked gameplay stores found **one setter of the scanned bit
+(`0x00454CB3` in `0x00454C90`) and no gameplay clearer**. Tile construction
+`0x00452B30` clears scanned with the compound mask0xA0 and clears explored
+with the whole-word initialization at+8. The gameplay scan covered all 743k
 instructions of both code blocks (`.text` and `cseg`, `0x00401000`–`0x0066BE19`)
 in four forms: a `+0xB` byte with `0x40`/`0xBF`, a `+0xA` word with
 `0x4000`/`0xBFFF`, a `+8` dword with `0x40000000`/`0xBFFFFFFF`, and a
@@ -252,6 +254,7 @@ dispatch `0x00518AD0` and the defeat routines `0x004DAE40` and `0x004DAA10`.
 point's rectangle and non-zero **un-explores** it, through `0x00454B80` and
 `0x00454E00`. There is no player test, so it applies to whichever player is
 local. 268 of the 291 shipped records reveal.
+Frosty's Lair's startup use is mapped in [portal-visibility.md](portal-visibility.md#scripted-startup-reveal-q197-2026-10-28).
 
 ### 3.7 The Torture Chamber's information — `0x004F2370`
 
@@ -277,7 +280,8 @@ explores one tile. It is the campaign finale's walk state 234 (creature state
 
 Each negative gives the range it covers.
 
-- **Nothing clears the scanned bit.** The range is §3's scans.
+- **No gameplay clearer of scanned was found.** New tiles clear it through
+  `0x00452B30`; see §3 for the masked-store scan's scope.
 - **No spell writes either bit directly.** The writer set of the explored
   bit is closed over the direct and helper forms scanned. Its callers are §3.1
   and §3.2–§3.9, and none of them is a keeper-spell handler. Sight's process25
