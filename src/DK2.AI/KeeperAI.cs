@@ -15,12 +15,8 @@ namespace DK2.AI;
 /// <para>Once per tick <see cref="Think"/> returns the commands this keeper would issue by hand, for the
 /// host to put in the next <see cref="InputFrame"/>. Nothing in the simulation sees this type, so the
 /// world hash is untouched. Source: the original's <c>ComputerPlayer.cpp</c> (docs/KEEPER_AI.md §5, §12.1).</para>
-/// <para>The proactive foundation of §12.8, the attack response (<see cref="KeeperThreatResponder"/>),
-/// the battle step (<see cref="KeeperBattleStep"/>), the retreat (<see cref="KeeperRetreatStep"/>), the
-/// training moves (<see cref="KeeperTrainingStep"/>), the attack planner (<see cref="KeeperAttackPlanner"/>), room
-/// messages 41/42 (<see cref="KeeperRoomRequests"/>), mood messages 17/18 (<see cref="KeeperMoodRemedies"/>)
-/// and traps and doors (<see cref="KeeperTrapDoorStep"/>). Not implemented: prisoners and the
-/// researcher's portal move.</para>
+/// <para>Which steps are built, and the two that are not (prisoners, the researcher's portal move),
+/// is listed in docs/KEEPER_AI.md §12.8.</para>
 /// <para>Deviates: randomness is the keeper's own <see cref="SimRandom"/>, not the world's (§12.1).</para>
 /// </remarks>
 public sealed class KeeperAI
