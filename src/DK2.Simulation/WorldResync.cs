@@ -45,7 +45,10 @@ public static class WorldResync
 
     /// <param name="creatureOf">Our creature id for a native thing-table slot, or null when the
     /// slot is not mapped at this turn (the packet replay's entity map).</param>
-    public static ResyncReport Apply(GameSimulation simulation, ResyncState state, Func<int, int?> creatureOf)
+    /// <param name="parts">What to copy; <see cref="ResyncParts.All"/> by default. Leaving parts out
+    /// splits which of DK2's state a later outcome depends on; the rest stays ours.</param>
+    public static ResyncReport Apply(
+        GameSimulation simulation, ResyncState state, Func<int, int?> creatureOf, ResyncParts parts = ResyncParts.All)
     {
         if (simulation is null) throw new ArgumentNullException(nameof(simulation));
         if (state is null) throw new ArgumentNullException(nameof(state));
@@ -57,19 +60,24 @@ public static class WorldResync
             throw new InvalidDataException($"the capture's map is {state.Width}x{state.Height}, ours {world.Width}x{world.Height}");
 
         var notes = new List<string>();
-        int tilesChanged = ApplyTiles(world, state);
-        int marksSet = ApplyMarks(world, state);
-        int doorsAndTraps = ApplyDoorsAndTraps(context, state, notes);
+        int tilesChanged = parts.HasFlag(ResyncParts.Tiles) ? ApplyTiles(world, state) : 0;
+        int marksSet = parts.HasFlag(ResyncParts.Marks) ? ApplyMarks(world, state) : 0;
+        int doorsAndTraps = parts.HasFlag(ResyncParts.Doors) ? ApplyDoorsAndTraps(context, state, notes) : 0;
         simulation.Navigation.Refresh();
-        int piles = ReplaceFloorGold(world, database, state);
-        int crates = ReplaceCrates(world, database, state);
+        int piles = parts.HasFlag(ResyncParts.Gold) ? ReplaceFloorGold(world, database, state) : 0;
+        int crates = parts.HasFlag(ResyncParts.Crates) ? ReplaceCrates(world, database, state) : 0;
 
         int placed = 0, reissued = 0, crateTrips = 0, choosing = 0, idle = 0, left = 0, unmapped = 0;
         var unmappedNotes = new List<string>();
         var otherResumes = new SortedDictionary<int, int>();
-        List<(ResyncCreature Native, CreatureState? Ours)> pairs = Match(world, state, creatureOf, out int paired);
-        int removed = RemoveExtras(context, pairs, notes);
-        int added = AddMissing(world, database, pairs);
+        int paired = 0, removed = 0, added = 0;
+        List<(ResyncCreature Native, CreatureState? Ours)> pairs = [];
+        if (parts.HasFlag(ResyncParts.Creatures))
+        {
+            pairs = Match(world, state, creatureOf, out paired);
+            removed = RemoveExtras(context, pairs, notes);
+            added = AddMissing(world, database, pairs);
+        }
         foreach ((ResyncCreature native, CreatureState? ours) in pairs)
         {
             if (ours is null)
@@ -86,9 +94,13 @@ public static class WorldResync
                 continue;
             }
 
-            CopyFear(ours, native);
-            CopyFightReturn(ours, native);
-            RaiseLevel(context, ours, native, notes);
+            if (parts.HasFlag(ResyncParts.Fear))
+            {
+                CopyFear(ours, native);
+                CopyFightReturn(ours, native);
+            }
+            if (parts.HasFlag(ResyncParts.Levels)) RaiseLevel(context, ours, native, notes);
+            if (!parts.HasFlag(ResyncParts.Pose)) continue;
             if (IsDown(native))
             {
                 // DK2's health counts the dying window down from 240 a tick at a time (the capture,
@@ -103,7 +115,7 @@ public static class WorldResync
                 continue;
             }
 
-            bool worker = native.Job is not null && PlayerIds.IsKeeper(ours.OwnerPlayerId)
+            bool worker = parts.HasFlag(ResyncParts.Jobs) && native.Job is not null && PlayerIds.IsKeeper(ours.OwnerPlayerId)
                 && database.CreatureById(ours.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
             if (!worker)
             {
@@ -204,7 +216,7 @@ public static class WorldResync
             choosing++;
         }
 
-        foreach (ResyncPlayer player in state.Players)
+        foreach (ResyncPlayer player in parts.HasFlag(ResyncParts.Players) ? state.Players : [])
         {
             if (!PlayerIds.IsKeeper((byte)player.Id) || !world.HasPlayer((byte)player.Id)) continue;
             ref PlayerState keeper = ref world.Player((byte)player.Id);
@@ -221,9 +233,10 @@ public static class WorldResync
             }
         }
 
-        int triggerValues = ApplyTriggerBanks(world.Triggers, state, notes);
+        int triggerValues = parts.HasFlag(ResyncParts.Triggers) ? ApplyTriggerBanks(world.Triggers, state, notes) : 0;
 
-        if (simulation.Rng.Algorithm is Dk2Lcg lcg) lcg.Reseed(state.Seed);
+        if (!parts.HasFlag(ResyncParts.Seed)) notes.Add("DK2 seed not applied: skipped");
+        else if (simulation.Rng.Algorithm is Dk2Lcg lcg) lcg.Reseed(state.Seed);
         else notes.Add($"DK2 seed {state.Seed} not applied: the run does not draw from DK2's generator (--rng dk2)");
 
         if (otherResumes.Count > 0)
@@ -415,12 +428,14 @@ public static class WorldResync
         foreach (DoorState door in world.Doors.ToArray())
             if (!doors.Any(d => d.X == door.X && d.Y == door.Y && d.Owner == door.PlayerId && d.Type == door.DoorId))
             {
+                notes.Add($"door {door.Id} type {door.DoorId} of player {door.PlayerId} at ({door.X},{door.Y}) is not DK2's; removed");
                 DoorRules.Remove(context, door);
                 changed++;
             }
         foreach (TrapState trap in world.Traps.ToArray())
             if (!traps.Any(t => t.X == trap.X && t.Y == trap.Y && t.Owner == trap.PlayerId && t.Type == trap.TrapId))
             {
+                notes.Add($"trap {trap.Id} type {trap.TrapId} of player {trap.PlayerId} at ({trap.X},{trap.Y}) is not DK2's; removed");
                 TrapRules.Remove(context, trap);
                 changed++;
             }
@@ -440,9 +455,16 @@ public static class WorldResync
                     Unknown_0011 = new byte[DoorState.Unknown0011Length],
                 });
                 door = world.Doors[^1];
+                notes.Add($"door type {native.Type} of player {native.Owner} at ({native.X},{native.Y}) made, DK2's{(native.Constructing ? " blueprint" : string.Empty)}");
                 changed++;
             }
-            if (door.UnderConstruction != native.Constructing) changed++;
+            if (door.UnderConstruction != native.Constructing)
+            {
+                notes.Add($"door {door.Id} at ({door.X},{door.Y}): construction flag ours {(door.UnderConstruction ? "set" : "clear")}, DK2's {(native.Constructing ? "set" : "clear")}");
+                changed++;
+            }
+            if (native.Health > 0 && door.Health != native.Health)
+                notes.Add($"door {door.Id} at ({door.X},{door.Y}): health ours {door.Health}, DK2's {native.Health}");
             door.UnderConstruction = native.Constructing;
             if (def.Flags.HasFlag(DoorFlags.Secret)) world.Tile(door.X, door.Y).SecretDoor = !native.Constructing;
             if (native.Health > 0) door.Health = native.Health;
@@ -457,10 +479,12 @@ public static class WorldResync
                 trap = new TrapState { X = native.X, Y = native.Y, TrapId = (byte)native.Type, PlayerId = (byte)native.Owner, UnderConstruction = true };
                 TrapRules.Seed(world, database, trap, def);
                 world.AddTrap(trap);
+                notes.Add($"trap type {native.Type} of player {native.Owner} at ({native.X},{native.Y}) made, DK2's{(native.Constructing ? " blueprint" : string.Empty)}");
                 changed++;
             }
             if (trap.UnderConstruction && !native.Constructing)
             {
+                notes.Add($"trap {trap.Id} at ({trap.X},{trap.Y}): a blueprint in ours, built in DK2; completed");
                 TrapRules.Complete(world, database, trap);
                 changed++;
             }
@@ -468,6 +492,8 @@ public static class WorldResync
             {
                 notes.Add($"trap {trap.Id} at ({trap.X},{trap.Y}) is built in ours and a blueprint in DK2; left built");
             }
+            if (native.Health > 0 && trap.Health != native.Health)
+                notes.Add($"trap {trap.Id} at ({trap.X},{trap.Y}): health ours {trap.Health}, DK2's {native.Health}");
             if (native.Health > 0) trap.Health = native.Health;
             if (trap.UnderConstruction) blueprints.Add((native.Slot, trap.PlayerId, new BlueprintRef(CrateRules.TrapKind, trap.Id)));
         }
