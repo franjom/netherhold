@@ -105,6 +105,73 @@ public class WorldResyncTests
     }
 
     [Fact]
+    public void DoorsTrapsCratesAndTheManufactureListAreTheCaptures_AndCrateTripsAreReissued()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        for (int y = 1; y <= 3; y++)
+        for (int x = 1; x <= 3; x++)
+            RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Workshop), Keeper);
+        for (int x = 4; x <= 12; x++)
+        {
+            world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
+            world.Tile(x, 2).OwnerPlayerId = Keeper;
+        }
+        Dk2TerrainFixture.FurnishRooms(database, world);
+        CreatureState fetcher = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 2));
+        CreatureState carrier = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(5, 2));
+        ObjectState oursCrate = world.SpawnObject(database, Dk2TerrainFixture.WoodenDoorCrateObjectId, Keeper, (2 * world.Width) + 2);
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(ManufactureRules.DoorKind, 1, 1000));
+        var sim = new GameSimulation(database, world, new SimRandom(new Dk2Lcg(7)), Dk2TerrainFixture.DefaultSystems());
+        const byte door = Dk2TerrainFixture.WoodenDoorCrateObjectId, alarm = Dk2TerrainFixture.AlarmCrateObjectId;
+        ResyncState state = State(world,
+            [
+                Imp(401, new TilePos(8, 2), 6, Job(36, taskX: 10, taskY: 2, side: door, lastKind: 10)),
+                Imp(402, new TilePos(5, 2), 6, Job(35, taskX: 6, taskY: 2, side: alarm, lastKind: 9)),
+            ],
+            [new ResyncObject(900, door, Keeper, CreatureState.CentreOf(1), CreatureState.CentreOf(1), 0, 0x1)]) with
+        {
+            Players = [new ResyncPlayer(Keeper, 1234, 56, new ResyncManufacture(1575, [new ResyncOrder(1, 7, 1000, 0, 0)], 13, 3000))],
+            Doors = [new ResyncDoor(800, 10, 2, Keeper, 1, true, 400)],
+            Traps = [new ResyncTrap(801, 6, 2, Keeper, 7, true, 100)],
+        };
+
+        ResyncReport report = WorldResync.Apply(sim, state, slot => slot switch { 401 => fetcher.Id, 402 => carrier.Id, _ => null });
+
+        DoorState laid = Assert.Single(world.Doors);
+        Assert.True(laid.UnderConstruction);
+        Assert.Equal((10, 2), (laid.X, laid.Y));
+        TrapState trap = Assert.Single(world.Traps);
+        Assert.Equal(
+            [new BlueprintRef(CrateRules.DoorKind, laid.Id), new BlueprintRef(CrateRules.TrapKind, trap.Id)],
+            world.Player(Keeper).Blueprints);
+        Assert.Equal(2, report.DoorsAndTrapsChanged);
+
+        Assert.Null(world.ObjectById(oursCrate.Id));
+        ObjectState listed = Assert.Single(world.Objects, o => o.ObjectTypeId == door);
+        Assert.Equal((1 * world.Width) + 1, listed.TileIndex);
+        Assert.Equal(1, report.CratesPlaced);
+
+        PlayerState keeper = world.Player(Keeper);
+        Assert.Equal([new ManufactureOrder(ManufactureRules.TrapKind, 7, 1000)], keeper.ManufactureQueue);
+        Assert.Equal(1575, keeper.ManufacturePoints);
+        Assert.Equal(3000, keeper.ManufactureSlotZeroCost);
+        Assert.Equal(13, keeper.ManufactureRingTail);
+
+        // On the way to the Workshop's crate for the door at (10,2), resuming in 36; carrying an
+        // Alarm crate to (6,2), resuming in 35.
+        Assert.Equal(2, report.CrateTripsReissued);
+        Assert.Equal(6, fetcher.Dk2StateId);
+        Assert.Equal(CrateRules.FetchDoorCrateState, fetcher.UtilityNewState);
+        Assert.Equal((2 * world.Width) + 10, fetcher.TargetTileIndex);
+        Assert.Equal(listed.Id, fetcher.TargetObjectId);
+        Assert.Equal(CrateRules.InstallTrapState, carrier.UtilityNewState);
+        Assert.Equal((2 * world.Width) + 6, carrier.TargetTileIndex);
+        Assert.Equal(alarm, world.ObjectById(carrier.CarriedObjectId)!.ObjectTypeId);
+        Assert.Equal(ImpTaskKind.BuildDoor, fetcher.LastTaskKind);
+    }
+
+    [Fact]
     public void ADeliveryIsSetChoosingAndAnUnmappedSlotIsReported()
     {
         GameSimulation sim = Start(1);

@@ -151,6 +151,22 @@ def pool_entries(data):
     return out
 
 
+def manufacture(player):
+    """The manufacture list (the push 0x005066E0): points the word at +0x217, then a ring of 128
+    16-byte entries from +0x219 (cost word +0, kind +2 with 0 a door and 1 a trap, type +3, the
+    blueprint's point +4/+8), its tail index at ring +0x802 and count at +0x803."""
+    ring = 0x219
+    tail, count = player[ring + 0x802], player[ring + 0x803]
+    orders = []
+    for n in range(count):
+        e = ring + ((tail - count + n) % 128) * 16
+        orders.append({"kind": player[e + 2], "type": player[e + 3], "cost": struct.unpack_from("<H", player, e)[0],
+                       "x": struct.unpack_from("<i", player, e + 4)[0], "y": struct.unpack_from("<i", player, e + 8)[0]})
+    # 0x00506B50 pays against the cost word at ring slot 0, not the head's (Q618)
+    return {"points": struct.unpack_from("<H", player, 0x217)[0], "orders": orders, "tail": tail,
+            "slotZeroCost": struct.unpack_from("<H", player, ring)[0]}
+
+
 def state(snap):
     table = snap.region(dk2capture.REGION_THING_TABLE)
     active = snap.region(dk2capture.REGION_ACTIVE)
@@ -176,7 +192,8 @@ def state(snap):
         player = {"id": i + 1, "tag": dk2capture.field("player", "tag", snap.player(i)),
                   "ptr": paddr + i * dk2capture.PLAYER_SIZE,
                   "money": struct.unpack_from("<i", snap.player(i), 0x7E)[0],
-                  "mana": struct.unpack_from("<i", snap.player(i), 0x82)[0]}
+                  "mana": struct.unpack_from("<i", snap.player(i), 0x82)[0],
+                  "manufacture": manufacture(snap.player(i))}
         pool = snap.regions.get(dk2capture.REGION_POOL + i)
         if pool is not None and pool[1] is not None:
             player["pool"] = pool_entries(pool[1])
@@ -184,7 +201,7 @@ def state(snap):
             marks += [{"x": e["x"], "y": e["y"], "player": i + 1, "order": len(digs) - n}
                       for n, e in enumerate(digs)]
         players.append(player)
-    rooms, creatures, doors, objects = [], [], [], []
+    rooms, creatures, doors, traps, objects = [], [], [], [], []
     for r in snap.records():
         if not r.raw:
             continue
@@ -194,8 +211,15 @@ def state(snap):
                           "owner": r.f("player"), "minX": r.u(0x49, "<H"), "maxX": r.u(0x4B, "<H"),
                           "minY": r.u(0x4D, "<H"), "maxY": r.u(0x4F, "<H")})
         elif r.kind == "door":
+            # type +0xF6 (the factory 0x004B7B50), construction +0x109 (0x004A5070), health +0x40
             doors.append({"slot": r.slot, "x": r.f("x") >> 12, "y": r.f("y") >> 12, "owner": r.f("owner"),
+                          "type": r.u(0xF6, "<B"), "constructing": r.u(0x109) != 0, "health": r.u(0x40, "<i"),
                           "open": r.u(0x10D, "<B"), "lockMode": r.u(0x111, "<B")})
+        elif r.kind == "trap":
+            # type +0xF6 (0x004B7C10), construction +0x10C bit 5 (0x004A7940), health +0x40
+            traps.append({"slot": r.slot, "x": r.f("x") >> 12, "y": r.f("y") >> 12, "owner": r.f("owner"),
+                          "type": r.u(0xF6, "<B"), "constructing": (r.u(0x10C, "<B") & 0x20) != 0,
+                          "health": r.u(0x40, "<i")})
         elif r.kind == "creature":
             target = r.f("target")
             trec = snap.record(target) if target else None
@@ -216,7 +240,7 @@ def state(snap):
             objects.append({"slot": r.slot, "type": r.f("type_id"), "owner": r.f("owner"),
                             "x": r.f("x"), "y": r.f("y"), "gold": r.f("gold"), "flags": r.f("obj_flags")})
     return {"tick": snap.tick, "width": width, "height": height, "players": players,
-            "tiles": tiles, "tileHealth": health, "rooms": rooms, "doors": doors,
+            "tiles": tiles, "tileHealth": health, "rooms": rooms, "doors": doors, "traps": traps,
             "creatures": creatures, "objects": objects, "marks": marks,
             "seed": struct.unpack_from("<I", snap.region(dk2capture.REGION_WORLD), 0x15A0)[0]}
 
