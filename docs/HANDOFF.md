@@ -118,10 +118,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   piles up and is handed over on its first standing tick (ADR-0559, hash/save 318); Level 4 seed 1
   loses 45 Imps with and without it (32 at hash 316, one seed, not attributed to ADR-0557).
   The 30-tick party offset in the death window is drift (the Portal claim at 2059 against 2030),
-  not a trigger rule. The resync copies the trigger banks and every creature and pairs them
-  itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
+  not a trigger rule. The resync copies the trigger banks and every creature (pose, level, health, fear and,
+  since ADR-0567, the fight-return stamp) and pairs them itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
   11 at 4330 (native 4378) and the hero door falling at 5314 (native about 5313), but 4 Imp
-  deaths against 0, three to party 5's Guard, which survives the fight at (15-17,31-34) where
+  deaths against 0 (0 on the rerun at hash 323), three to party 5's Guard, which survives the fight at (15-17,31-34) where
   DK2's party 5 is down by 3960. In that run the Guard survived because ours' Thief stood nearer
   and drew the Elves (one fight, consistent with nearest-first). Resynced at 3790 (one seed),
   ours reproduces the window apart from the post Guards' switch: rerun at hash 322, no keeper
@@ -130,15 +130,19 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   at the closed door all take one Guard where DK2's Goblins join a second
   ([resync-replay.md](research/resync-replay.md), "The Guard fight"). The point probe explains that
   target choice. A separate state-176 action hold is built here (ADR-0566, hash/save 323); its
-  measurement and timer-surrogate limits are in the same section. The full replay's 45 deaths
-  look like drift, not tested over the same window. Seed 1 (one seed): Imp levels are alike (native 34 level-ups to 3520, ours 35). Ours has 15
+  measurement and timer-surrogate limits are in the same section. The 3400 resync's 36 keeper deaths were an artefact: a stale walk-back stamp
+  of ours' own sent Dark Elf 27 behind the hero door, and the resync now copies DK2's stamp
+  (ADR-0567; 3 lost, door at 5312, DK2 about 5313). Resyncs at 3520 and 3790 lose 0; the full
+  replays at hash 323 lose 65 Imps (default generator) and 23 (`--rng dk2`) against DK2's 0, so
+  those deaths are drift before 3400 that creature headcounts do not show (one seed;
+  resync-replay.md, "Every creature, and the trigger banks"). Seed 1 (one seed): Imp levels are alike (native 34 level-ups to 3520, ours 35). Ours has 15
   Imps against 18 because three Create Imp casts are refused, one by a 79-mana margin. The first
   difference is the first dig (strike 155 against 138), which closes by about 350. The claim and
   mana deficit opens at about 550, where ours digs a fresh mark at (24,46) ahead of older ones.
   That order follows from the north seam (31,54) falling at 324 against 305 with other Imps at its
   face, each step the faithful rule, and the first-dig lag is RNG (STRONGLY INFERRED, one seed;
   [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
-  the drift from 131 to about 550 needs no rule difference. Next: the residual Guard-fight timing after ADR-0566, why ours' mining stints are shorter and more numerous from DK2's state (ADR-0562 and ADR-0563, hash/save 320, fixed when state 26 asks its hands, store and pile checks: on the call that begins an action; the surplus stays, 101 mining walks to DK2's 80 from the 3400 resync and 91 to 70 from a 3700 resync, with equal Imp-time on mining; from 3700 about half of the extra starts follow steals of a walking Imp's seam slot (18 against 6, DK2's count inferred from capture frames; from 3400 only 4 against 1), and the steal test in `0x00469AF0` ours matches for every holder (ADR-0565, hash/save 322; the reruns are byte-identical to hash 320, so it is unexercised), so what fills ours' seams with walkers and the rest of the surplus is open, HYPOTHESIS: state; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), deaths across seeds. The resync does not copy
+  the drift from 131 to about 550 needs no rule difference. Next: the residual Guard-fight timing after ADR-0566, why ours' mining stints are shorter and more numerous from DK2's state (ADR-0562 and ADR-0563, hash/save 320, fixed when state 26 asks its hands, store and pile checks: on the call that begins an action; the surplus stays, 101 mining walks to DK2's 80 from the 3400 resync and 91 to 70 from a 3700 resync, with equal Imp-time on mining; from 3700 about half of the extra starts follow steals of a walking Imp's seam slot (18 against 6, DK2's count inferred from capture frames; from 3400 only 4 against 1), and the steal test in `0x00469AF0` ours matches for every holder (ADR-0565, hash/save 322; the reruns are byte-identical to hash 320, so it is unexercised), so what fills ours' seams with walkers and the rest of the surplus is open, HYPOTHESIS: state; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), the drift before 3400 behind the full replays' Imp deaths (a resync that copies one part at a time would split it), deaths across seeds. The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
   creature triggers that matter fire. Level 4 timer offsets split into camera-clock approximation and early room
   capture plus a late trigger read; ADR-0568 corrects the read order. Evidence:
@@ -279,8 +283,9 @@ last-payday state; ADR-0521 documents initial constructor RNG ordering limits.
 Campaign result suppression and scripted GUI restoration are built; Q611's
 remaining continuation boundary and original-game comparison are in
 research/hud-visibility.md (Q648/Q649).
-Native minimap raster
-and overlay reading: research/minimap-rendering.md; Q197 and input research remain.
+Native minimap raster and overlay reading: research/minimap-rendering.md.
+Q197's remaining startup-discovery and light boundary: research/portal-visibility.md.
+Its fresh-game visibility/colour-patch play check Q669 is answered. Input research remains.
 
 Current verification (2026-10-25, ADR-0542): the combined solution and enabled
 native CPU-oracle checks pass 6,562 cases with no failures; seven capture-dependent

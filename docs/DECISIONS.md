@@ -13203,8 +13203,36 @@ HashVersion and FormatVersion rise together; no state fields are added.
 Test: HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline failed before the fix
 and now passes. The test checks the action hold across failure, not exact native clip duration.
 
+## ADR-0567 - The resync copies DK2's fight-return stamp
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 323 (unchanged: the replay tool only) · Q665 ·
+Research: `docs/research/resync-replay.md`
+
+**Context.** ADR-0560's resync pairs every creature and copies its pose, level, health and fear, but
+kept ours' walk-back stamp (ADR-0225). Evidence:
+`D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Level 4 Imp deaths, seed 1, at hash 323".
+Resynced at 3400, Dark Elf 27 kept a stamp from ours' own pre-resync fight. At 3502 it walked to
+(23,23), behind the hero door (the stamp's y is the x tile, DK2's quirk). It burned the door down by
+3854 and the freed Guards and later parties killed 36 keeper creatures. DK2's counterpart (slot 422)
+has no stamp and goes to its lair.
+
+**Finding.** CONFIRMED (disassembly `0x004617F2`-`0x00461820`): the withdraw state writes word
+`+0x52A` and word `+0x52C` from `[+0x1A] >> 12` and dword `+0x52E` from the game turn (`0x00517490`),
+skipping an Imp; state 1 (`0x004773D0`) reads them as FightReturnRules does.
+
+**Decision.** `capture_state.py` writes `creatures[].fightReturn {x, y, tick}` from those fields;
+`WorldResync` copies them onto each paired creature (`ResyncFightReturn`). A capture without them
+leaves ours' stamp.
+
+**Consequences.** The 3400 resync loses 3 keeper creatures (was 36) and the hero door falls at 5312
+(DK2 about 5313); 3000 is unchanged (37), 2340 goes from 45 to 33, not analysed. No captured
+creature held a stamp at 2340, 3000 or 3400. The tick is copied raw; ours' window can end one tick
+after DK2's (resync-replay.md, Limits). No simulation rule moves.
+
+Test: `WorldResyncTests.APairedCreatureTakesDk2sFightReturnStamp_ClearingOurs` (fails without the
+copy).
+
 ## ADR-0568 - Trigger roots observe their turn's work
-**Date:** 2026-10-28 ? **Status:** proposed ? Hash/save 324
+**Date:** 2026-10-28 - **Status:** accepted - Hash/save 324
 
 **Context.** Level 4's Guard Room capture and timers change in one native turn,
 but our pre-system trigger walk observed the capture a turn late. Binary order

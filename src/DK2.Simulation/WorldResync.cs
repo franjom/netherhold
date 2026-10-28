@@ -29,7 +29,7 @@ public sealed record ResyncReport(
 /// Continues our simulation from a DK2 capture's state, the controlled-input test (ADR-0556,
 /// ADR-0558, <c>resync-replay.md</c>): between two ticks of a replay the native tick's tiles,
 /// marks, doors, traps, crates, manufacture list, trigger banks, creatures (made or removed to
-/// match; pose, level, health, fear), Imp jobs, floor gold, mana and seed are copied over ours,
+/// match; pose, level, health, fear, fight return), Imp jobs, floor gold, mana and seed are copied over ours,
 /// and the replay goes on with the same packets (ADR-0560, Q665). An Imp on tile work or a crate
 /// trip is sent to the same work by our own walk, any other chooses again; another creature keeps
 /// its state when DK2's is the same or both stand free, else goes to idle. Rooms, the pool's
@@ -87,6 +87,7 @@ public static class WorldResync
             }
 
             CopyFear(ours, native);
+            CopyFightReturn(ours, native);
             RaiseLevel(context, ours, native, notes);
             if (IsDown(native))
             {
@@ -342,6 +343,17 @@ public static class WorldResync
         notes.Add(ours.Level == native.Level
             ? $"creature {ours.Id} (slot {native.Slot}, type {ours.CreatureTypeId}) raised from level {was} to {ours.Level}"
             : $"creature {ours.Id} (slot {native.Slot}, type {ours.CreatureTypeId}) refused the level-up at {ours.Level}; DK2's is {native.Level}");
+    }
+
+    /// <summary>DK2's walk-back memory (ADR-0225, ADR-0567), so a paired creature does not walk back to
+    /// a fight only ours had. The tick is copied raw, in DK2's turn unit; ours stamps with the tick
+    /// before the turn it runs, so the window can end one tick after DK2's.</summary>
+    private static void CopyFightReturn(CreatureState ours, ResyncCreature native)
+    {
+        if (native.FightReturn is not { } fight) return;
+        ours.OldFightTileX = fight.X;
+        ours.OldFightTileY = fight.Y;
+        ours.OldFightTick = fight.Tick;
     }
 
     private static void CopyFear(CreatureState ours, ResyncCreature native)

@@ -281,6 +281,35 @@ public class WorldResyncTests
         Assert.Equal((30, 40, 2), (far.TempFear, far.CurrentFear, far.OverThreatCounter));
     }
 
+    /// <summary>
+    /// <b>A paired creature carries DK2's walk-back memory, not ours</b> (ADR-0225). Ours' Goblin
+    /// withdrew from a fight at x 9 and would walk back; DK2's has no stamp, so ours' is cleared. A
+    /// second Goblin takes DK2's stamp, both words the x tile as the withdraw state writes them.
+    /// </summary>
+    [Fact]
+    public void APairedCreatureTakesDk2sFightReturnStamp_ClearingOurs()
+    {
+        GameSimulation sim = Start(0);
+        WorldState world = sim.World;
+        GameDatabase database = sim.Database;
+        CreatureState ours = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
+        CreatureState other = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        (ours.OldFightTileX, ours.OldFightTileY, ours.OldFightTick) = (9, 9, 1);
+        ResyncCreature Native(int slot, TilePos at, ResyncFightReturn fight) =>
+            new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y),
+                Dk2TerrainFixture.GoblinCreatureId, 1, 700, null, FightReturn: fight);
+        ResyncState state = State(world,
+        [
+            Native(500, new TilePos(2, 2), new ResyncFightReturn(0, 0, 0)),
+            Native(501, new TilePos(5, 5), new ResyncFightReturn(4, 4, 3)),
+        ]);
+
+        WorldResync.Apply(sim, state, _ => null);
+
+        Assert.Equal((0, 0, 0L), (ours.OldFightTileX, ours.OldFightTileY, ours.OldFightTick));
+        Assert.Equal((4, 4, 3L), (other.OldFightTileX, other.OldFightTileY, other.OldFightTick));
+    }
+
     [Fact]
     public void ACreatureDk2HasLyingInTheDyingWindowLiesInOurs_WithTheWindowAlreadyRun()
     {

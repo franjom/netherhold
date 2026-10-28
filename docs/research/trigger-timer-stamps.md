@@ -100,6 +100,6 @@ DK2 remains at 1575: the remaining 51-turn lead is capture-state drift. This
 measurement validates same-turn visibility; it does not claim absolute stamp
 parity or isolate the creature-timing contribution to that drift.
 
-The final solution suite passes 6,820 cases, with 28 skips and no failures
-(`solution-final.log`); Simulation contributes 3,936. The Release build has
+The merged solution suite passes 6,821 cases, with 28 skips and no failures
+(`merged-solution.log`); Simulation contributes 3,937. The Release build has
 zero warnings/errors. Documentation and KB gates are required before commit.
