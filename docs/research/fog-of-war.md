@@ -244,7 +244,7 @@ neighbouring tiles remain fogged. The discovery source and exact light/flash
 correspondence remain open. Hero terrain40 has the same flags as keeper
 terrain12, without reveal-through-fog; no special presentation rule was built.
 The binary trace, observation, keeper-only exclusions and next lead now live
-in [portal-visibility.md](portal-visibility.md). Q669 is the remaining play check.
+in [portal-visibility.md](portal-visibility.md). Fresh-game play check Q669 is answered.
 
 ## 10. The multiplayer argument, and why it points the other way
 

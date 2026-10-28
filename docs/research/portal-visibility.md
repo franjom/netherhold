@@ -12,6 +12,12 @@ tile's tooltip says Fog of War. Follow-up screenshots show both entrance types
 with their own short names and the nonowned-room status message. The earlier
 attribution to TrapTime was an inference, superseded by this map identification.
 
+**CONFIRMED by owner play, 2026-10-28 (Q669):** all three Mercenary Portals
+and the keeper Portal are visible in a fresh Frosty's Lair skirmish before
+exploring or casting Sight. On the minimap the room patch itself changes
+colour; no separate flashing icon or outline was reported. This establishes
+fresh-game visibility, not the exact native turn or operation that explores it.
+
 **CONFIRMED:** Hero Portal is room25/terrain40; keeper Portal is room3/terrain12.
 Neither terrain has bit24 (reveal through fog) or bit9 (AlwaysExplored). Their terrain
 ambient RGB is `(115,97,65)` and light RGB `(0,0,0)`. Handler equality and the
@@ -23,6 +29,8 @@ the corresponding terrain and owner, followed by bytes `(1,1)`; that trailing
 pair is the same throughout this 75×75 map. All four portal action points have
 flags0 and trigger0; the shipped trigger file contains no action records.
 These files establish no portal-specific scripted reveal.
+The authored map contains no terrain27 Fog tiles, so a neighbour's Fog of War
+label cannot be explained by that terrain being placed directly in this map.
 
 ## 3D admission and ordinary exploration
 
@@ -91,10 +99,11 @@ Their green outline requires record `+0x1E`, local-player participation
 sprites accept active-player Hearts or eligible creatures, not rooms25/3.
 Battle-record structure has its home in [binary-census.md §3](binary-census.md#3-battles-are-presentation).
 
-**GUESS:** the reported flashing patch is the ordinary neutral palette cycle.
-This has not been matched to the owner's display. A changing room-colour patch
-and a separate marker are different observations; Q669 asks which is present.
-There is no newly established Hero Portal marker to build.
+**STRONGLY INFERRED correspondence:** the owner's Q669 answer identifies the
+changing room patch expected from the ordinary neutral palette cycle. The
+native cycle itself is CONFIRMED above; exact colours and phase have not been
+measured against play. There is no separate entrance marker to build from
+this observation, and the neutral cycle is already implemented.
 
 ## Mercenary eligibility
 
@@ -150,12 +159,19 @@ direct exploration write or mode-specific portal reveal in the body read.
 **UNKNOWN:** which operation first explored the photographed rooms. No new
 skirmish-specific portal rule has been established. Construction callees and
 mode setup's indirect effects are not exhaustively excluded. Q669's fresh-start
-comparison can distinguish an initial condition from discovery during play.
+answer establishes visibility without player exploration or Sight; the native
+load/first-update operation remains unlocated. A recheck of action-point
+loader `0x005211A0` confirms that file flags at payload+18 supply runtime bit4,
+the level-start reveal flag. The four authored points have that flag clear.
+Room membership setter `0x00450770` and first-tile constructor `0x004EC5A0`
+delegate terrain assignment through the existing owner; the bodies read have
+no separate entrance exploration write. Their transitive callees remain bounded
+by the earlier exclusions, not proved free of every indirect effect.
 
 ## Next evidence
 
-Q197 stays open. Q669 asks when the entrances first become visible and what
-shape flashes in a fresh original game. Next identify the discovery source
+Q197 stays open; Q669 is answered. Next identify the discovery source during
+load or the first updates, using the established fresh-game condition,
 and trace the bridge light's remaining flag through surface lighting before attributing
 an exception to room25. No simulation state,
 HashVersion, presentation rules or Unity wiring changed.
