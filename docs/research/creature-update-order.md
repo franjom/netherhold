@@ -103,7 +103,9 @@ native, three measured gaps (a replay resynced from DK2's tick 2340 matches nati
     tested over the same window); who kills them there is not traced.
 - **Mining over reinforcing.** In ticks 3000-4000, with as many Imps as native and before the deaths,
   ours starts 210 walks to mine (state 25) and 25 to reinforce (21); native starts 121 and 75
-  (`walk_starts_resume.py`).
+  (`walk_starts_resume.py`, the hash-316 trace 7a28fcad).
+  - Resynced at 3000 or 3400, ours reinforces at DK2's rate, so the unsynced shortfall is drift
+    ([resync-replay.md](resync-replay.md), "Mining against reinforcing").
   - Our reinforcing falls behind and is still running after tick 6000, when native Imps idle in state
     12 for 27% of Imp-ticks and ours for 0.3% (`imp_states.py`, `state_ticks.py`).
   - 389 of native's 809 Imp walks from 87, which follow idling, come after 6000, when ours has 13 Imps.
