@@ -132,7 +132,7 @@ through state 1 and state 90, so a surviving leader repeats its job.
 `0x00476FC0`.
 
 Rechecked these whole routines on 2026-10-12. HeroSystem now uses the
-shared idle wrapper for state 4; previously it only waited on the deadline. State 176's action carry is ADR-0566 (resync-replay.md). Leaving 176 by trigger action 15 or Chicken ends no action (the two exits audited), so state 4 waits out action 43 natively too; only the route helper ends it (`00486CF0.md`).
+shared idle wrapper for state 4; previously it only waited on the deadline. State 176's action carry is ADR-0566 (resync-replay.md). Leaving 176 by trigger action 15 or Chicken ends no action (the two exits audited), so state 4 waits out action 43 natively too; only the route helper ends it (`00486CF0.md`, Q670).
 State 87 (`0x004808E0`) always requests a route to a random sub-tile point,
 including when no ring destination exists. The same-triangle route retains that point (`0x004CF490`); ImpTaskSystem.Wander now preserves it. The Level8
 Guard22 regression checks failed hunt -> state4 ->87 before the retry deadline;
