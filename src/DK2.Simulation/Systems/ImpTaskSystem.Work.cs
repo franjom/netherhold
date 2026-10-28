@@ -118,14 +118,31 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
+        // State 26's first call has no action running, so its hands test and store chooser
+        // come before the first strike starts (0x00465870): a miner arriving full leaves now,
+        // not when the strike timer runs out. An update that skips this tick also misses the
+        // timer's decrement, so its first strike falls later than E+2 and asks below.
+        bool firstCall = context.Tick.Value == creature.StateEnteredTick + 1;
+        if (firstCall
+            && MinersHandsFull(context, creature, definition)
+            && TryRouteToSomewhereItFits(context, creature))
+        {
+            BeginDelivering(creature);
+            ToTheStore(context, creature);
+            return;
+        }
+
         // Decrement first, then act on zero. The timer is WorkCadence's: three ticks
         // from arrival, a kind-dependent gap, then every tick (ADR-0280).
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
 
         // Before another strike, full hands try the store chooser (0x00465870: 0x00464360(1),
-        // then 0x00464400); an imp with nowhere to take the load keeps mining (Q31).
-        if (MinersHandsFull(context, creature, definition)
+        // then 0x00464400); an imp with nowhere to take the load keeps mining (Q31). The first
+        // strike's call was the first update's, which started it, so it is not asked twice.
+        bool firstStrike = context.Tick.Value == creature.StateEnteredTick + 2;
+        if (!firstStrike
+            && MinersHandsFull(context, creature, definition)
             && TryRouteToSomewhereItFits(context, creature))
         {
             // 26 walks to the store in 6 resuming in 28.

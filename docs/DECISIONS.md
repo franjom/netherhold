@@ -13068,3 +13068,31 @@ the Training growth on most seeds, as DK2 would without its lucky draw.
 
 Evidence: `D:/DK2Evidence/runs/l17-trapdoor-2026-10-28/` (summary.txt, ledger.txt,
 dk2_harkan_doors.txt, dk2_harkan_money_840_1260.txt); captures `D:/DK2Evidence/dk2runs/m12-level17-20261028-*`.
+
+## ADR-0562 — A miner that reaches its seam full leaves on its first tick in state 26
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 319 · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** The 3400 resync of Level 4 seed 1 starts about 20% more mining walks than DK2. An Imp
+can reach a seam already full, after picking gold up in passing. DK2 spends one tick in state 26,
+then walks to the store (5 of 5 in 3400-4000). Ours spent two (7 of 8).
+
+**Finding.** CONFIRMED (KB `0x00465870`): state 26 holds only while an action runs. Its first call
+has none, so the hands test `0x00464360(1)` and the store chooser `0x00464400` come before the first
+strike starts (`0x00496980(2)`). Ours asked them only when the strike timer (ADR-0280) ran out. That
+the first call is the tick after 26 is set is STRONGLY INFERRED: `0x00465790` sets 26 and starts no
+action, and the capture shows one frame in 26.
+
+**Decision.** On its first update in 26, `UpdateWorking` asks the miners' hands test and the store
+chooser before the timer. The first strike, which that call started, does not ask again.
+
+**Consequences.**
+- A full arrival leaves one tick sooner and holds its slot one tick less.
+- The pin fixture moves by the version only.
+- The 3400 resync still starts more mining walks (109 against DK2's 80, to 4000). The one tick is
+  not the cause; resync-replay.md records the crowding reading as a HYPOTHESIS.
+- Not changed: the pile test in the same handler still runs at our strike timer, not at the
+  handler's first call.
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Why ours' mining stints are
+shorter". Tests: `GoldCarryingTests.AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix`,
+`AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick`.
