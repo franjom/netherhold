@@ -196,15 +196,17 @@ hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different cou
     - the 3000 resync is crowded like DK2 (6%), and its stints are short too (not recounted);
     - DK2 itself crowds 14% of seam-ticks in 2400-3000, and 15% in 3900-4400.
   - Ours also chooses after a part load more often: mine 24 against 12, claim 7 against 1.
-  - No rule difference was found besides ADR-0562, and the pile test's timing is untested.
+  - No rule difference was found besides ADR-0562 and ADR-0563 (when state 26 asks its checks).
   These match DK2's:
   - the store walk starts in the tick of the filling strike (native 25 of 36, ours 36 of 44;
     `0x00465870`, ADR-0512);
   - gold is picked up in passing on a walk to mine, and the full load is walked on to the seam;
   - an Imp chooses a job while full.
   One did not match: a miner that reached its seam full stayed in 26 two ticks where DK2 stays one.
-  ADR-0562 fixes it (hash 319). From the 3400 resync ours still starts 109 mining walks to DK2's 80,
-  to 4000.
+  ADR-0562 fixes it (hash 319). ADR-0563 (hash 320) moves the hands, store and pile checks to the
+  call that begins an action, so a first-strike fill leaves 3 or 4 ticks after its strike, as DK2's
+  do. From the 3400 resync ours still starts 101 mining walks to DK2's 80, to 4000. The counts above
+  (strikes, crowding, stints) were taken before ADR-0563 and are not recounted.
 - A walk to a seam that fell on the way: DK2's state 25 (`0x00465790`) finds the task entry gone and
   goes to 10. Ours ends the walk `out_of_reach` through state 1. Both choose two ticks after arrival
   (20 native, 15 ours), so it is only a label.

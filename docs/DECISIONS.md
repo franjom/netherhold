@@ -13096,3 +13096,40 @@ chooser before the timer. The first strike, which that call started, does not as
 Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Why ours' mining stints are
 shorter". Tests: `GoldCarryingTests.AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix`,
 `AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick`.
+
+## ADR-0563 — State 26 checks hands, store and pile on the call that begins its next strike
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 320 · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** After ADR-0562 our state 26 asked the hands test at its first update and in each
+strike's tick (ADR-0512), and the pile test at its strike timer. A full miner with no store asked the
+chooser twice per strike.
+
+**Finding.**
+- CONFIRMED (decompile of `0x00465870`): with no action running the handler checks the task, the
+  hands test `0x00464360(1)` and store chooser `0x00464400`, then a gold object strictly inside the
+  third of its own tile the Imp stands in holding more than `[0x006F25CD]` (release the slot, 10).
+  Only then does it begin the strike (`0x00496980(2)`). So the checks run on each call that begins an
+  action, never while one runs.
+- STRONGLY INFERRED (KB `0x00496AA0`, mining-finish.md, capture): the first action, begun at E+1,
+  strikes at E+2 but ends at its clip's wrap, E+5 or E+6. From the second strike on the wrap is
+  sticky and the action ends in the strike's turn. Level 4 seed 1: 22 first-strike fills leave 3 or
+  4 ticks after it (14 and 7; one at 2, unexplained), none in its tick. From the second strike on,
+  leaves in the strike's own frame grow with the strike's number.
+
+**Decision.** `TryLeaveTheSeam` runs the hands/store check, then the pile check. The end of the
+creature's update asks it when the work clock begins a mining action (`MinersActionBegins`). A
+creature without a work clip (test fixtures only; a shipped Imp has one) keeps the first update
+and the strike's tick. The strike timer only strikes.
+
+**Consequences.**
+- A first-strike fill leaves 3 or 4 ticks after the strike, not in its tick. A pile taken over the
+  limit by a later strike's overflow releases the slot on that strike's tick.
+- A full miner with no store asks the chooser once per action.
+- The 3400 resync to 4000 (`resync-reinforce/run3400-checks`): first-strike fills leave 3 or 4
+  ticks after (native 3, 4); mine starts 80 against 101, so the surplus stays.
+- The pin fixture moves by the version only.
+- Not changed: ours finds the pile's cell from the slot, DK2 from the Imp's position.
+
+Tests (GoldCarryingTests): `AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesActionEnds`,
+`AMinerWhoseOverflowTakesItsPileOverTheLimit_OnALaterStrike_GivesTheSlotUpOnThatStrikesTick`, and
+the ADR-0562 tests run with and without the clip.

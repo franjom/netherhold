@@ -118,55 +118,20 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
-        // State 26's first call has no action running, so its hands test and store chooser
-        // come before the first strike starts (0x00465870): a miner arriving full leaves now,
-        // not when the strike timer runs out. An update that skips this tick also misses the
-        // timer's decrement, so its first strike falls later than E+2 and asks below.
-        bool firstCall = context.Tick.Value == creature.StateEnteredTick + 1;
-        if (firstCall
-            && MinersHandsFull(context, creature, definition)
-            && TryRouteToSomewhereItFits(context, creature))
-        {
-            BeginDelivering(creature);
-            ToTheStore(context, creature);
+        // State 26's handler runs its checks only on a call with no action running
+        // (0x00465870), just before it begins the next strike's action: the end of the creature's
+        // update asks them when the work clock begins one (MinersActionBegins). Without the
+        // clock (test fixtures only; a shipped Imp has its work clip), the first update and the
+        // strike's own tick stand in. The strike timer below
+        // only strikes.
+        if (context.Tick.Value == creature.StateEnteredTick + 1 && !PlaysWorkLoop(creature, definition)
+            && TryLeaveTheSeam(context, creature, definition))
             return;
-        }
 
         // Decrement first, then act on zero. The timer is WorkCadence's: three ticks
         // from arrival, a kind-dependent gap, then every tick (ADR-0280).
         creature.TimerTicks--;
         if (creature.TimerTicks > 0) return;
-
-        // Before another strike, full hands try the store chooser (0x00465870: 0x00464360(1),
-        // then 0x00464400); an imp with nowhere to take the load keeps mining (Q31). The first
-        // strike's call was the first update's, which started it, so it is not asked twice.
-        bool firstStrike = context.Tick.Value == creature.StateEnteredTick + 2;
-        if (!firstStrike
-            && MinersHandsFull(context, creature, definition)
-            && TryRouteToSomewhereItFits(context, creature))
-        {
-            // 26 walks to the store in 6 resuming in 28.
-            BeginDelivering(creature);
-            ToTheStore(context, creature);
-            return;
-        }
-
-        // A miner not going to deliver gives its slot up once the pile in the slot's cell holds
-        // more than MaxGoldPileOutsideTreasury, and state 26 falls to 10 (0x00465870; its overflow
-        // lands in that cell, TileWorkSystem.HandTo). The chooser may then give it the face's next
-        // slot, which is how a seam gets mined out with nowhere to take the gold (Q140).
-        if (creature.TargetWork == TileWorkKind.MineGold
-            && FloorGold.PileInCell(context.World, creature.Tile.Y * context.World.Width + creature.Tile.X,
-                creature.WorkSlot == MiningSlots.None ? MiningSlots.AnyCell : MiningSlots.Cell(creature.WorkSlot))
-                > FloorGold.MaxPile(context.Database))
-        {
-            context.Emit(SystemName, "job_abandoned",
-                $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
-                $"{creature.TargetWork} reason=pile_underfoot_full");
-            WorkEnded(context, creature);
-            GoIdle(creature);
-            return;
-        }
 
         context.World.QueueWork(new TileWorkOrder(
             creature.TargetTileIndex, creature.TargetWork, creature.OwnerPlayerId, creature.Id));
@@ -180,18 +145,38 @@ public sealed partial class ImpTaskSystem
         // Native action work precedes the state/hands check. An exhausted seam
         // keeps the work state this turn; its remaining action lifetime is separate.
         if (!JobStillStands(context, creature)) return;
-        if (HandsFull(context, creature, definition) && TryRouteToSomewhereItFits(context, creature))
-        {
-            BeginDelivering(creature);
-            ToTheStore(context, creature);
-        }
+        if (!PlaysWorkLoop(creature, definition)) TryLeaveTheSeam(context, creature, definition);
     }
 
     /// <summary>
-    /// State 26's hands test before another strike. Whether the load can be
-    /// stored is checked separately (ADR-0296).
+    /// State 26's checks on a call with no action running (0x00465870), in its order. Full
+    /// hands try the store chooser (0x00464360(1), then 0x00464400); an imp with nowhere to take
+    /// the load keeps mining (Q31). Then a miner gives its slot up once a pile in the cell it
+    /// stands in holds more than MaxGoldPileOutsideTreasury, and falls to 10; its overflow
+    /// lands in that cell (TileWorkSystem.HandTo), and the chooser may give it the face's next
+    /// slot, which is how a seam gets mined out with nowhere to take the gold (Q140). True when
+    /// the imp left the seam.
     /// </summary>
-    private static bool MinersHandsFull(
-        SimulationContext context, CreatureState creature, CreatureDef definition) =>
-        creature.TargetWork == TileWorkKind.MineGold && HandsFull(context, creature, definition);
+    private bool TryLeaveTheSeam(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (creature.TargetWork != TileWorkKind.MineGold) return false;
+        if (HandsFull(context, creature, definition) && TryRouteToSomewhereItFits(context, creature))
+        {
+            // 26 walks to the store in 6 resuming in 28.
+            BeginDelivering(creature);
+            ToTheStore(context, creature);
+            return true;
+        }
+
+        if (FloorGold.PileInCell(context.World, creature.Tile.Y * context.World.Width + creature.Tile.X,
+                creature.WorkSlot == MiningSlots.None ? MiningSlots.AnyCell : MiningSlots.Cell(creature.WorkSlot))
+            <= FloorGold.MaxPile(context.Database))
+            return false;
+        context.Emit(SystemName, "job_abandoned",
+            $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
+            $"{creature.TargetWork} reason=pile_underfoot_full");
+        WorkEnded(context, creature);
+        GoIdle(creature);
+        return true;
+    }
 }

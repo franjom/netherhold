@@ -62,7 +62,8 @@ state, so three imps take the same seam in 4 ticks.
   from timing. On tick 156 pile 1173 (235) vanished and imp 449, still in state
   26 on that tile, gained exactly 235. Pile 1174 (273) went the same way into
   imp 448 on tick 165, the same tick as its own strike (+546). This fits the
-  floor-pile check before each strike that `gold-on-the-floor.md` §10 read.
+  floor-pile check that `gold-on-the-floor.md` §10 read, asked on the call that begins
+an action (ADR-0563).
 - Of 142 increases of type-1 floor piles over the whole playback, 98 are one
   strike (64 × 273, 34 × 272). 17 leave the amount unchanged while another
   column (position or owner) changes. The other 27 are not strikes: 21 rises
@@ -166,7 +167,8 @@ of the imp beside it (for example (15,33) at 333). So the shipped `DigRockHealth
 -500 is wrong.
 
 **The mechanism, read (STRONGLY INFERRED).** State 26 (`0x00465870`) holds while
-an action runs, then checks its task, hands and cell pile before restarting.
+an action runs, then, on the call that begins the next one, checks its task, hands and
+cell pile (ADR-0563).
 Mode 3 requires both handler and animation completion; a handler that returns
 busy can run on multiple polls. Cycle flags can complete the animation before
 its rate becomes zero. See [the runner](functions/00496AA0.md) and

@@ -228,6 +228,9 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         Update(context, creature, definition);
         // Later workers see this strike before choosing or testing their own finished action.
         _tileWork.Execute(context);
+        // State 26 asks its checks on the call that begins its next action (0x00465870); one that
+        // sends the miner off begins none.
+        if (MinersActionBegins(context, creature, definition)) TryLeaveTheSeam(context, creature, definition);
         // The animation advances last in the creature's update (0x0048BE50).
         StepWorkAnimation(context, creature, definition, struck: !handlerWasDone && creature.ActionHandlerDone);
     }

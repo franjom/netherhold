@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**320** — `0xE8F0B969D072207C`. FormatVersion also 320. Behaviour only: state 26 asks its hands/store check and its pile check on the call that begins its next action, where the work clock begins one (`0x00465870`, `0x00496AA0`; ADR-0563); after the first strike that is the clip's wrap, 3 or 4 ticks later. No new fields; the pin fixture moves by the version only. `GoldCarryingTests.AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesActionEnds` and `AMinerWhoseOverflowTakesItsPileOverTheLimit_OnALaterStrike_GivesTheSlotUpOnThatStrikesTick` cover it.
+
 **319** — `0x1070AB7A291DA881`. FormatVersion also 319. Behaviour only: state 26 asks the hands test and the store chooser on its first update, before the strike timer, so a miner that reaches its seam full leaves on its first tick in 26 (`0x00465870`, ADR-0562). No new fields; the pin fixture moves by the version only. `GoldCarryingTests.AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix` and `AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick` cover it.
 
 **318** — `0x13D94E8C07770596`. FormatVersion also 318. Behaviour only: the fear accumulator returns for a stunned creature (209, 255, 256, 257; `0x0048F350`) before its handover, so an attacked creature's `TempFear` piles up through a stun and it radiates nothing (ADR-0559). No new fields; the pin fixture stuns no creature and moves by the version only. `CombatFearTests.AStunnedCreatureNeitherHandsOverNorRadiates_ItsIntakePilesUp` covers it.
