@@ -159,12 +159,12 @@ resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
     5283, 5284 and 5307, before theirs falls.
 - Reading, one seed, STRONGLY INFERRED: from DK2's state at 3790, ours reproduces the window apart
   from one Imp and a post-Guard switch about 40 ticks late. The full replay's 45 deaths look like
-  drift (creature set, levels, positions), but that was not tested over the same window. At 3520
-  six creatures of ours, Imps included, were above DK2's level and kept theirs.
+  drift (creature set, levels, positions), but that was not tested over the same window. Imp levels
+  are not the drift source; other species' were not compared (creature-update-order.md).
 - Open:
   - why Imp 26 walks to (14,29);
   - why ours' post Guards switch about 40 ticks after DK2's;
-  - the drift sources before 3790, creature levels first.
+  - the drift before 3790: the dig order at about 550 (creature-update-order.md).
 
 ## Limits
 
