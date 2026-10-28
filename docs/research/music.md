@@ -164,9 +164,9 @@ from the group's `+0x12` (2). The per-frame update `0x00608D50` → `0x0060D950`
 instance's slot `+0x20`, the resume. **CONFIRMED** (2026-10-27, deep pass). The init's start
 pick stores item 1 as current even when nothing matches, so at intensity 0 the music instance
 exists, flagged stopped, and retries each frame (**CONFIRMED**). That it is silent is
-**LIKELY**: the init still picks item 1's sound into `+0x0C` (`0x0060CA43..9C`), and whether
-the stopped flag keeps it off the stream (`0x0060C960`, the stream start) is unread; the
-owner hears no music at the start of a level. The LCG is the sound system's own, not a game stream.
+**CONFIRMED** by the owner (no music before the first raise, §9 *Live capture*); how is unread:
+the init still picks item 1's sound into `+0x0C` (`0x0060CA43..9C`), and what keeps it off the
+stream (`0x0060C960`, the stream start) was not read. The LCG is the sound system's own, not a game stream.
 
 ## 7. Where the lead differs
 
@@ -340,17 +340,19 @@ So DK2 raises the player's music level for fights that do not involve them and f
 sets out, and once raised the level stays at 1 to the win sequence, as §2–§4 read: each battle
 asks for level 2 and the decay returns it to 1 in the same frame. **CONFIRMED** (live) for the
 level word. That the music is then *heard* is not measured: the capture logs the level, not the
-music instance or the game's music switch. Every map's LEVEL record (byte 25527) asks for track 1
-or 3 (57 and 8 of 66; FrontEnd3DLevel 0), none for the missing track 2, so nothing in the data
-silences it; the stopped-instance question in §10 is the remaining link. The two idle runs
+music instance or the game's music switch. The owner closed that by ear on 2026-10-28: replaying
+`m12l11a`, the music started at about three game-minutes, the tick-765 raise from a fight among
+computer keepers only, and none was heard before it. **CONFIRMED** (owner observation): a raised
+level is heard, and an unraised one is silent. Every map's LEVEL record (byte 25527) asks for
+track 1 or 3 (57 and 8 of 66; FrontEnd3DLevel 0), none for the missing track 2. The two idle runs
 (Levels 12 and 3 from `-LEVEL`, 20 minutes, about 4,700 ticks each, `music-20261028-154449`)
-logged no raise at all. The owner's account (§9) differs on what is heard; the capture shows
-only that the level is raised.
+logged no raise at all. The owner's earlier account (§9) was a recollection; the replay heard
+by the owner agrees with the code.
 
 ## 10. UNKNOWN
 
-- Whether a stopped music instance is silent (`0x0060C960`, §6).
-- Whether the raised level is heard: the music instance and the music switch were not captured.
+- How a stopped music instance stays silent (`0x0060C960`, §6); that it is silent is now an
+  owner observation (§9, *Live capture*).
 - The one-shot atmosphere's delay-chained player (vtable `0x006740B0`) and the options-screen
   player (`0x006741C8`), not re-read.
 - Whether `SoundQuality == 1` is Low (the value order of its three labels).
