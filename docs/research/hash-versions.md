@@ -14,7 +14,7 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
-**324** - `0x6F4F1D921054B690`. FormatVersion also 324. Behaviour only: creature roots run after their own update, area roots after creature work, and player roots after room ticks (ADR-0568). Same-turn ownership changes can start timers immediately. No fields added; the pin fixture moves by the version only. `TriggerSchedulingTests` covers visibility and the unchanged shared clock.
+**324** - `0x6F4F1D921054B690`. FormatVersion also 324. Behaviour only: creature roots run after their own update, area roots after creature work, and player roots after room ticks (ADR-0568). Same-turn ownership changes can start timers immediately. No fields added; the pin fixture moves by the version only. `TriggerSchedulingTests` covers visibility, the root order within a turn and the one-based turn every walk stamps.
 
 **323** - `0x32086DAF699C9E45`. FormatVersion also 323. Behaviour only: waiting heroes start action 43 and preserve its hold across a failed standing job (ADR-0566). The existing ActionUntilTick carries it; no fields added. Clip timing retains the existing fresh-install surrogate boundary. HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline covers the missing hold; the pin fixture moves by the version only.
 

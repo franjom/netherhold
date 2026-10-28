@@ -69,7 +69,7 @@ public sealed class GameSimulation
         Rng = rng;
         world.BindCreatureIdentityRandom(rng);
         _systems = systems is null ? [] : [.. systems];
-        _scheduledTriggers = _systems.Any(s => s is ActionPointTriggerSystem or PlayerTriggerSystem);
+        _scheduledTriggers = ScheduledTriggers(_systems);
         _systemMarkers = [.. _systems.Select(s => SimulationMarker.Named(s.Name))];
         _context = new SimulationContext(database, world, rng, NullEventSink.Instance);
         _triggers = triggers is null
@@ -84,6 +84,31 @@ public sealed class GameSimulation
             ScriptedView = request,
         });
         world.GameEnded = (player, status) => FinaleRules.OnVerdict(_context, player, status);
+    }
+
+    /// <summary>Whether the list walks the trigger roots inside the turn (ADR-0568). A list that
+    /// schedules them must hold all three walkers: one alone would drop the others' roots silently.</summary>
+    private static bool ScheduledTriggers(IReadOnlyList<ISimulationSystem> systems)
+    {
+        bool areas = false, players = false, creatures = false;
+        foreach (ISimulationSystem system in systems)
+        {
+            areas |= system is ActionPointTriggerSystem;
+            players |= system is PlayerTriggerSystem;
+            creatures |= system is CreatureUpdateSystem;
+        }
+        if (!areas && !players) return false;
+        if (areas && players && creatures) return true;
+        string missing = string.Join(", ", new[]
+        {
+            areas ? null : nameof(ActionPointTriggerSystem),
+            players ? null : nameof(PlayerTriggerSystem),
+            creatures ? null : nameof(CreatureUpdateSystem),
+        }.Where(name => name is not null));
+        throw new ArgumentException(
+            $"A system list that schedules trigger roots needs {nameof(ActionPointTriggerSystem)}, "
+            + $"{nameof(PlayerTriggerSystem)} and {nameof(CreatureUpdateSystem)}; missing: {missing}.",
+            nameof(systems));
     }
 
     public GameDatabase Database { get; }
