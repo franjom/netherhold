@@ -102,7 +102,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   `CombatSystem.States`, then the trap reveal. Level 4's Imps flee straight from a walk, as native
   Imps do; Level 2's Imp walk starts are 852 (native 871). Still open (Q665): Level 4's Imps flee
   far more often than native (236 entries into 201-203 against 41) and start few walks from state
-  87 (41 against 809). The win and packet rigs have not been rerun at hash 316.
+  87 (41 against 809). `dk2tools replay --resync` continues a replay from a DK2 capture's tick
+  (ADR-0556, [resync-replay.md](research/resync-replay.md)); Level 4 seed 1 resynced at 2340 matches
+  native's job mix to 3100. The win and packet rigs have not been rerun at hash 316.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

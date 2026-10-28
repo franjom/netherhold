@@ -121,8 +121,8 @@ activator. That includes allies, heroes and the neutral player.
   (`0x004C19C0`, clamped at the ceiling `+0x10EA`). It also adds the same amount to the player
   dword `+0x10EE`, whose meaning is UNKNOWN.
 - **123 Stun Imps.** Every worker (`IsWorker`, definition `+0x686` bit 0) of every other player
-  is kicked to state 209, *stunned*, after a state-move test (`0x00477310`, whose rule is only
-  outlined). How long it lasts is state 209's business and is unread here.
+  is kicked to state 209, *stunned*, after a state-move test (`0x00477310`, SetState's transition
+  rule asked without a transition: `functions/00477310.md`). How long it lasts is state 209's business and is unread here.
 - **124 Receive Imps.** It takes the first creature type with `IsWorker`, in the world's
   creature-type order: the Imp in shipped data. It creates `SpecialReceiveImpsAmount` (188; 10)
   of them for the keeper (`0x004B78D0`). They are spaced evenly on a circle of radius two tiles

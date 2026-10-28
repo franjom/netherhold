@@ -3,7 +3,7 @@
 # See LICENSE in the project root for the full license text.
 """capture_state: ticks of a full-state capture as plain values, for C# to rebuild our world from.
 
-Usage: python -I capture_state.py <capture.dk2cap> <out folder> <tick>... [--dump <tick>.mem.z]
+Usage: python -I capture_state.py <capture.dk2cap> <out folder> <tick>... [--dump <tick>.mem.z] [--state-only]
 
 For each tick, writes <out>/<tick>.json and the matching memory image <out>/<tick>.mem
 (capture_memory.py's format), so a test can run the original on exactly the state it rebuilds.
@@ -38,6 +38,34 @@ dump itself, and the JSON also carries what only the dump holds:
     creatures: [{slot, ptr, owner, x, y, type, state, health, target, targetClass}]
                                           the decoder's thing and creature fields; targetClass is
                                           the target's cls (0 a creature), null if none is stored
+    creatures[].job: {resume, taskX, taskY, taskId, taskSide, taskSlot, lastKind, justDropped,
+                      aimedKind, lastSearch, droppedTask, gold}
+                                          the state object at creature +0x24E (creature-job-object.md):
+                                          UtilityNewState +0xDF, ImpTaskPositionX/Y +0x8C/+0x90,
+                                          ImpTaskID +0x8A, ImpTaskSurface +0x94, ImpTaskSlot +0x96,
+                                          LastTaskType +0x98, JustDropped +0x99, the aimed kind +0x9D
+                                          and the last search's turn +0x9E (functions/00463DF0.md),
+                                          DroppedToDoJobId +0x6E (the dumper's name; not the aim);
+                                          gold is the decoder's gold_held (+0x3FB). Absent on a
+                                          record too short to hold them
+    tileHealth: w*h                       tile +0x06 (runtime-map.md)
+    objects: [{slot, type, owner, x, y, gold, flags}]
+                                          the decoder's object fields (gold-on-the-floor.md 1)
+    players[].money, players[].mana       player +0x7E Money, +0x82 CurrentMana (player-object.md)
+    players[].pool: [{kind, x, y, id, workers}]
+                                          the player's task pool (player-task-pool.md), the capture's
+                                          region REGION_POOL + player index: each kind's list from its
+                                          head (pool +0x4656 + kind*2) by Next (+0x1F), the 36-byte
+                                          entries' Position +0x00/+0x02, Id +0x21 and the twelve
+                                          Worker slots +0x05; absent when the region is not captured
+    marks: [{x, y, player, order}]        the pool's kind-1 (rock) and kind-2 (gold) entries, the
+                                          keeper's dig marks; order counts up from the tail, so the
+                                          head, raised last, has the largest (0x00507BB0 files at
+                                          the head; TileState.TagOrder)
+    seed                                  the world random seed at world +0x15A0 (dk2-random.md)
+
+With --state-only no memory image is written: for a resync replay (dk2tools replay --resync),
+which rebuilds our world from the JSON alone.
 """
 import json
 import os
@@ -104,6 +132,25 @@ def with_dump(out, snap, dump):
     return out
 
 
+ENTRY = 36
+
+
+def pool_entries(data):
+    """A pool region's live entries, kind by kind, each list from its head."""
+    out = []
+    for kind in range(1, 16):
+        head = struct.unpack_from("<H", data, 0x4656 + kind * 2)[0]
+        seen = set()
+        while head and head not in seen and (head + 1) * ENTRY <= len(data):
+            seen.add(head)
+            e = head * ENTRY
+            x, y = struct.unpack_from("<HH", data, e)
+            out.append({"kind": kind, "x": x, "y": y, "id": struct.unpack_from("<H", data, e + 0x21)[0],
+                        "workers": list(struct.unpack_from("<12H", data, e + 5))})
+            head = struct.unpack_from("<H", data, e + 0x1F)[0]
+    return out
+
+
 def state(snap):
     table = snap.region(dk2capture.REGION_THING_TABLE)
     active = snap.region(dk2capture.REGION_ACTIVE)
@@ -114,17 +161,30 @@ def state(snap):
             slot_of_ptr.setdefault(p, slot)
     by_tag = snap.player_by_tag()
     width, height = snap.map_size()
-    tiles = []
+    tiles, health = [], []
     for y in range(height):
         for x in range(width):
             t = snap.tile(x, y)
             tiles += [t[0x0A], by_tag.get(struct.unpack_from("<H", t, 0x08)[0] & 0xFFF, 0),
                       struct.unpack_from("<H", t, 0x02)[0] & 0xFFF]
+            health.append(struct.unpack_from("<H", t, 0x06)[0])
     paddr, _ = snap.regions[dk2capture.REGION_PLAYERS]
-    players = [{"id": i + 1, "tag": dk2capture.field("player", "tag", snap.player(i)),
-                "ptr": paddr + i * dk2capture.PLAYER_SIZE} for i in range(dk2capture.PLAYER_COUNT)
-               if snap.player(i) is not None]
-    rooms, creatures, doors = [], [], []
+    players, marks = [], []
+    for i in range(dk2capture.PLAYER_COUNT):
+        if snap.player(i) is None:
+            continue
+        player = {"id": i + 1, "tag": dk2capture.field("player", "tag", snap.player(i)),
+                  "ptr": paddr + i * dk2capture.PLAYER_SIZE,
+                  "money": struct.unpack_from("<i", snap.player(i), 0x7E)[0],
+                  "mana": struct.unpack_from("<i", snap.player(i), 0x82)[0]}
+        pool = snap.regions.get(dk2capture.REGION_POOL + i)
+        if pool is not None and pool[1] is not None:
+            player["pool"] = pool_entries(pool[1])
+            digs = [e for e in player["pool"] if e["kind"] in (1, 2)]
+            marks += [{"x": e["x"], "y": e["y"], "player": i + 1, "order": len(digs) - n}
+                      for n, e in enumerate(digs)]
+        players.append(player)
+    rooms, creatures, doors, objects = [], [], [], []
     for r in snap.records():
         if not r.raw:
             continue
@@ -139,17 +199,33 @@ def state(snap):
         elif r.kind == "creature":
             target = r.f("target")
             trec = snap.record(target) if target else None
-            creatures.append({"slot": r.slot, "ptr": r.ptr, "owner": r.f("owner"), "x": r.f("x"), "y": r.f("y"),
-                              "type": r.f("creature_id"), "state": r.f("state"), "health": r.f("health"),
-                              "target": target,
-                              "targetClass": None if trec is None or trec.raw is None else trec.f("cls")})
+            creature = {"slot": r.slot, "ptr": r.ptr, "owner": r.f("owner"), "x": r.f("x"), "y": r.f("y"),
+                        "type": r.f("creature_id"), "state": r.f("state"), "health": r.f("health"),
+                        "target": target,
+                        "targetClass": None if trec is None or trec.raw is None else trec.f("cls")}
+            if len(r.raw) >= 0x3FF:
+                job = 0x24E
+                creature["job"] = {"resume": r.u(job + 0xDF), "taskX": r.u(job + 0x8C, "<i"),
+                                   "taskY": r.u(job + 0x90, "<i"), "taskId": r.u(job + 0x8A, "<H"),
+                                   "taskSide": r.u(job + 0x94, "<H"), "taskSlot": r.u(job + 0x96, "<H"),
+                                   "lastKind": r.u(job + 0x98, "<B"), "justDropped": r.u(job + 0x99),
+                                   "aimedKind": r.u(job + 0x9D, "<B"), "lastSearch": r.u(job + 0x9E),
+                                   "droppedTask": r.u(job + 0x6E), "gold": r.f("gold_held")}
+            creatures.append(creature)
+        elif r.kind == "object":
+            objects.append({"slot": r.slot, "type": r.f("type_id"), "owner": r.f("owner"),
+                            "x": r.f("x"), "y": r.f("y"), "gold": r.f("gold"), "flags": r.f("obj_flags")})
     return {"tick": snap.tick, "width": width, "height": height, "players": players,
-            "tiles": tiles, "rooms": rooms, "doors": doors, "creatures": creatures}
+            "tiles": tiles, "tileHealth": health, "rooms": rooms, "doors": doors,
+            "creatures": creatures, "objects": objects, "marks": marks,
+            "seed": struct.unpack_from("<I", snap.region(dk2capture.REGION_WORLD), 0x15A0)[0]}
 
 
 def main():
     args = sys.argv[1:]
     dump = None
+    state_only = "--state-only" in args
+    args = [a for a in args if a != "--state-only"]
     if "--dump" in args:
         i = args.index("--dump")
         dump, args = args[i + 1], args[:i] + args[i + 2:]
@@ -167,7 +243,7 @@ def main():
         if dump is not None:
             values = with_dump(values, snap, Dump(dump))
             values["memoryImage"] = os.path.abspath(dump)
-        else:
+        elif not state_only:
             capture_memory.write(os.path.join(out, f"{tick}.mem"), capture_memory.image(snap))
         with open(os.path.join(out, f"{tick}.json"), "w", encoding="utf-8") as f:
             json.dump(values, f, separators=(",", ":"))

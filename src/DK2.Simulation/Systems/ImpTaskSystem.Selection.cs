@@ -896,6 +896,71 @@ public sealed partial class ImpTaskSystem
         return true;
     }
 
+    /// <summary>A job copied from a DK2 capture (<see cref="WorldResync"/>): the walk
+    /// <see cref="CommitJob"/> starts, to the native side and slot instead of a search's route
+    /// (a dig or mine to its slot's stance point, a reinforce to its side's, claim-like work to
+    /// the tile's centre), so an Imp that DK2 had on its way to a wall is on its way to the same
+    /// face of it. No holder is kicked, no event of a choice is raised; a resync is not a choice.
+    /// The last kind and tile are written as a choice writes them; the caller restores DK2's.
+    /// False when no route reaches the stance.</summary>
+    internal static bool ReissueJob(
+        SimulationContext context, CreatureState creature, int tileIndex, TileWorkKind kind, int side, byte slot)
+    {
+        WorldState world = context.World;
+        var target = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
+        bool onTheTile = kind is TileWorkKind.Claim or TileWorkKind.AttackTile or TileWorkKind.ConvertRoom;
+        TilePos standing = onTheTile ? target : new TilePos(target.X + SideDx[side & 3], target.Y + SideDy[side & 3]);
+        if (!world.Contains(standing)) return false;
+        // DK2 keeps the side and the slot along it; ours is one byte, face * 3 + along, for a
+        // dig as for a mine (the dig search hands CommitJob its slot too).
+        bool excavation = kind is TileWorkKind.MineGold or TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall;
+        int face = MiningSlots.Face(standing, target);
+        byte workSlot = excavation && face >= 0 ? (byte)((face * MiningSlots.PerFace) + (slot % MiningSlots.PerFace)) : MiningSlots.None;
+
+        bool walks;
+        if (workSlot != MiningSlots.None)
+        {
+            (long sx, long sy) = MiningSlots.StancePoint(standing, workSlot);
+            walks = context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
+        }
+        else if (kind is TileWorkKind.Reinforce or TileWorkKind.RepairWall)
+        {
+            if (face < 0) return false;
+            (long sx, long sy) = TaskStealing.ReinforceStance(standing, face);
+            walks = context.Navigation.TryRouteToStance(creature, sx, sy, Navigation.MoveOptions.ExactSpot);
+        }
+        else if (onTheTile)
+        {
+            walks = context.Navigation.TryRouteToStance(creature, CreatureState.CentreOf(target.X),
+                CreatureState.CentreOf(target.Y), Navigation.MoveOptions.Spot);
+        }
+        else
+        {
+            walks = context.Navigation.TryRoute(creature, standing, Navigation.MoveOptions.Spot);
+        }
+        if (!walks) return false;
+
+        creature.TargetTileIndex = tileIndex;
+        creature.TargetWork = kind;
+        creature.SecretDoorTask = false;
+        creature.WorkSlot = workSlot;
+        bool routed = creature.IsRouted;
+        if (!routed) creature.TimerTicks = WorkCadence.FirstApplicationTicks;
+        SetOutInState(context, creature, kind, routed);
+
+        JobPriority priority = kind switch
+        {
+            TileWorkKind.MineGold or TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => JobPriority.MarkedExcavation,
+            TileWorkKind.Reinforce or TileWorkKind.RepairWall => JobPriority.Reinforce,
+            _ => JobPriority.Claim,
+        };
+        creature.LastTaskKind = KindOf(priority, kind);
+        creature.LastTaskTileIndex = tileIndex;
+        context.Emit(WorldResync.SystemName, "job_reissued",
+            $"imp={creature.Id} {Describe(world, tileIndex)} {kind} side={side} slot={slot} routed={routed}");
+        return true;
+    }
+
     /// <summary>
     /// Whether a worker standing at <paramref name="standing"/> can do work of
     /// this priority on <paramref name="target"/>.
