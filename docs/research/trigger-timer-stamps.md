@@ -34,7 +34,8 @@ siblings under condition 48; both stamps are written in its successful walk.
 | Condition 48 succeeds / both stamps written, executed turn | 107 | 108 |
 | First native capture header with the stamps | 108 | n/a |
 
-**STRONGLY INFERRED:** this is the existing camera-clock approximation, not
+**HYPOTHESIS** (review 2026-10-28; the turn DK2 started path 204 is not read, and an off-by-one
+there would give the same 107 against 108): this is the existing camera-clock approximation, not
 an action-8 tick error. Type 72 at `0x004C84B8` tests camera mode `0x12` and
 deadlines `+0xDD8/+0xDFA/+0xE20`. `0x0044BED0` advances paths by elapsed real
 milliseconds times 0.03; ours uses nominal 250-ms turns (ADR-0496/0498).

@@ -13246,7 +13246,10 @@ one-based game turn; invalidate derived room observations between walks.
 custom simulations without the scheduled trigger systems.
 
 **Consequences.** Conditions see current-turn work, including the Guard Room's
-new owner. This corrects visibility, not the earlier state drift which caused
+new owner. (Review 2026-10-28: only work done by the systems placed before each walk. The `Needs()`
+systems, `Promotion()` and, after the area roots, `CallToArms`, `ChickenSystem`, `FogOfWar` and
+`WalkOverGold` still run later, where DK2 runs them inside `0x004B7830` before the player update;
+conditions on health, prison or experience still see the previous turn.) This corrects visibility, not the earlier state drift which caused
 that room to be captured early. The existing nominal camera-path duration is
 unchanged; no timer or level-specific offset is introduced. No saved fields are
 added; hash/save advance together to 324. Player roots remain grouped before

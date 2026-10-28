@@ -128,8 +128,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   creature dies (DK2 0), parties and hero deaths match within 10 ticks but one, door at 5301 (native
   about 5313); one post Guard switches on time and two 12 and 31 ticks late, because ours' attackers
   at the closed door all take one Guard where DK2's Goblins join a second
-  ([resync-replay.md](research/resync-replay.md), "The Guard fight"). The point probe explains that
-  target choice. A separate state-176 action hold is built here (ADR-0566, hash/save 323); its
+  ([resync-replay.md](research/resync-replay.md), "The Guard fight"). In the point probe that
+  target choice flips with the Guards' points; why the points differ (RNG or timing) is not established. A separate state-176 action hold is built here (ADR-0566, hash/save 323); its
   measurement and timer-surrogate limits are in the same section. The 3400 resync's 36 keeper deaths were an artefact: a stale walk-back stamp
   of ours' own sent Dark Elf 27 behind the hero door, and the resync now copies DK2's stamp
   (ADR-0567; 3 lost, door at 5312, DK2 about 5313). Resyncs at 3520 and 3790 lose 0; the full

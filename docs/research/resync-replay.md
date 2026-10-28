@@ -208,7 +208,8 @@ native 446=(98984,107176), 445=(105641,108449). The discounted Blocker scores ar
 | our attacker, native Guards | 17541 | 17467 | 445 |
 | native 440, our Guards | 8170 | 18853 | 10 |
 
-CONFIRMED in this probe: points explain the Troll choice; the Flanker crowd counts favor
+CONFIRMED in this probe (arithmetic): swapping the Guards' points flips the Troll choice, so the points
+decide it; why ours stand elsewhere (RNG or timing) is not established; the Flanker crowd counts favor
 that engaged Guard, using both arrays and the existing per-creature sweep. Approach meets the door
 and forces its target at 5282/5284/5288 (ours 21/45+16/19); the Guard choice already differs before
 that contact. This does not establish global steering or scheduler parity.
