@@ -87,7 +87,8 @@ Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "T
 - Resynced at 3900, ours already differs in who is alive, and 12 native slots map to nothing (a
   stale entity map, Imps cast after 2340); ours then loses 27 Imps by 4800, native 0.
 - With slot reuse handled, the hero parties match native in composition. Native arrives at
-  2990, 3470, 3830, 4190; ours 30 ticks later, because timers 4-9 start at 2029 natively.
+  2990, 3470, 3830, 4190; ours 30 ticks later. The offset is drift, not a trigger rule (ADR-0560):
+  ours claims the Portal at 2059 against 2030, and flag 0 from trigger 1 starts timers 4-9.
 - Ours also raises parties 6 (4460) and 8 (4940). A party spawns only while flag 11 is 0; native's
   Imps reach (8,25) in action point 8 at 4378 and set it, ours mines (9,26) at 4572 against
   native's 4320 and never does.
@@ -95,13 +96,37 @@ Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "T
   resync ours still does not flee: its frighteners, party 4, are not spawned yet.
 - Full seed 1 replays to 6804: Imp deaths 45 with and without ADR-0559; the hash-316 run had 32,
   one seed, not attributed to ADR-0557.
-- Next: resync after both sides' parties exist, with non-Imp creature state copied.
+- Resynced at 3520 with every creature and the trigger banks copied (below), the parties arrive
+  on time. Next: party 5's Guard, which survives the fight at (15-17,31-34).
+
+## Every creature, and the trigger banks (ADR-0560)
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The parties' offset".
+
+- Pairing: the map's id while it names a live creature of the same player and type, else the
+  nearest unpaired one, greedily in capture order. A native lying in 216/217 may pair with ours
+  standing or dying, never with a corpse.
+- Made creatures come at level 1 and are raised with the rest. They have no lair or party, and a
+  native whose point is off the map is left unpaired. Extras are removed the way a creature that
+  dies is, so what they carry goes on the floor; one in the hand is left.
+- Dying: health 0, collapsed, with `DyingTicks` = 240 − DK2's health. That DK2's health counts the
+  window down one a tick is read from the capture (3940-4180), not the binary. Ours books the window
+  a game second at a time, so a death can land up to 3 ticks off DK2's.
+- A higher level of ours is kept, since nothing in ours takes a level away.
+- Seed 1 at 3520: 4 Imps lost against none, the door falls at 5314 against about 5313, and flag 11
+  is set at 4330 against 4378. The open divergence is party 5's Guard surviving at (15-17,31-34).
+- Not copied:
+  - the trigger records' active and repeat state;
+  - a native in DK2's hand, which the capture does not mark (it is placed at the hand's point);
+  - an old-map row for a slot that starts after the resync, and the row for a native left
+    unpaired;
+  - creatures spawned after the resync, which still go through the old map.
 
 ## Limits
 
 The resync copies state, not history: routes, action phases, the task pool's holders and room
 occupancy are ours, rebuilt from the same packets. Our loader queues no order for an authored
 trap where DK2's does (Q667). A creature that is
-not an Imp keeps its state and is moved only when it stands free. Treasury gold is tile stores
+not an Imp is placed on DK2's point and sent to idle when its state differs (ADR-0560). Treasury gold is tile stores
 here (ADR-0015), so DK2's money is reported, not copied. The run drifts again after the resync;
 compare the first few hundred ticks, and resync again later for the next window.

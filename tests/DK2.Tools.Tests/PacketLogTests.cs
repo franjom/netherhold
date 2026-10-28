@@ -121,6 +121,20 @@ public sealed class PacketLogTests
     }
 
     [Fact]
+    public void AResyncsPairReplacesTheMapsFromItsTurn_EarlierTurnsKeepTheMaps()
+    {
+        var map = new PacketEntityMap();
+        map.Add(435, 3000, 16, PacketEntityKind.Creature);
+        map.Add(435, 3521, 70, PacketEntityKind.Creature);
+
+        map.Set(435, 3521, 52, PacketEntityKind.Creature);
+
+        Assert.True(map.TryResolve(435, 3520, PacketEntityKind.Creature, out int before));
+        Assert.True(map.TryResolve(435, 3600, PacketEntityKind.Creature, out int after));
+        Assert.Equal((16, 52), (before, after));
+    }
+
+    [Fact]
     public void SpecialActivationCarriesItsTargetCreatureFromTheWordField()
     {
         var bytes = new List<byte>(new byte[69]);

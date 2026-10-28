@@ -159,11 +159,14 @@ internal static class ReplayCommands
                 if (resync is not null && turn == resyncAt)
                 {
                     // A slot named in --resync-map is that creature; the rest resolve through the
-                    // packet replay's entity map at this turn.
-                    PacketEntityMap ids = entityIds ?? new PacketEntityMap();
+                    // packet replay's entity map at this turn. The packets after it name DK2's
+                    // creatures by slot, so the resync's pairs replace the map's from the next turn.
+                    PacketEntityMap ids = entityIds ??= new PacketEntityMap();
                     ResyncReport report = WorldResync.Apply(simulation, resync,
                         slot => resyncMap is not null && resyncMap.TryGetValue(slot, out int named) ? named
                             : ids.TryResolve((uint)slot, turn, PacketEntityKind.Creature, out int id) ? id : null);
+                    foreach ((int slot, int ours) in report.Pairs ?? [])
+                        ids.Set((uint)slot, turn + 1, ours, PacketEntityKind.Creature);
                     Console.WriteLine($"  resync at turn {turn} from DK2's tick {resync.Tick}: {report}");
                     foreach (string note in report.Notes) Console.WriteLine($"    {note}");
                 }

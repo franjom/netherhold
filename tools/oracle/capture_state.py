@@ -48,6 +48,13 @@ dump itself, and the JSON also carries what only the dump holds:
                                           DroppedToDoJobId +0x6E (the dumper's name; not the aim);
                                           gold is the decoder's gold_held (+0x3FB). Absent on a
                                           record too short to hold them
+    creatures[].level                     Level +0x403 (creature-object.md)
+    creatures[].fear: {temp, current, counter}
+                                          TempFear +0x524, CurrentFear +0x526, OverThreatCounter
+                                          +0x528 (words handed over in 0x0045E4F0, the byte counter in 0x0045EC80; combat-fear.md)
+    flags: 128, timers: 16                the trigger banks on the world object, +0x3F70 bytes and
+                                          +0x3FF0 dwords (trigger-state.md 2); a timer is the tick it
+                                          was started, 0 when not
     tileHealth: w*h                       tile +0x06 (runtime-map.md)
     objects: [{slot, type, owner, x, y, gold, flags}]
                                           the decoder's object fields (gold-on-the-floor.md 1)
@@ -235,6 +242,12 @@ def state(snap):
                                    "lastKind": r.u(job + 0x98, "<B"), "justDropped": r.u(job + 0x99),
                                    "aimedKind": r.u(job + 0x9D, "<B"), "lastSearch": r.u(job + 0x9E),
                                    "droppedTask": r.u(job + 0x6E), "gold": r.f("gold_held")}
+            if len(r.raw) >= 0x404:
+                creature["level"] = r.u(0x403, "<B")   # creature-object.md: Level +0x403
+            if len(r.raw) >= 0x529:
+                # TempFear +0x524, CurrentFear +0x526, OverThreatCounter +0x528 (0x0045E4F0, 0x0045EC80)
+                creature["fear"] = {"temp": r.u(0x524, "<H"), "current": r.u(0x526, "<H"),
+                                    "counter": r.u(0x528, "<B")}
             creatures.append(creature)
         elif r.kind == "object":
             objects.append({"slot": r.slot, "type": r.f("type_id"), "owner": r.f("owner"),
@@ -242,6 +255,7 @@ def state(snap):
     return {"tick": snap.tick, "width": width, "height": height, "players": players,
             "tiles": tiles, "tileHealth": health, "rooms": rooms, "doors": doors, "traps": traps,
             "creatures": creatures, "objects": objects, "marks": marks,
+            "flags": list(snap.flags_bank() or b""), "timers": snap.timers() or [],
             "seed": struct.unpack_from("<I", snap.region(dk2capture.REGION_WORLD), 0x15A0)[0]}
 
 
