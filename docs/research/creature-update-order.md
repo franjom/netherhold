@@ -107,6 +107,26 @@ native, three measured gaps (a replay resynced from DK2's tick 2340 matches nati
   - Our reinforcing falls behind and is still running after tick 6000, when native Imps idle in state
     12 for 27% of Imp-ticks and ours for 0.3% (`imp_states.py`, `state_ticks.py`).
   - 389 of native's 809 Imp walks from 87, which follow idling, come after 6000, when ours has 13 Imps.
+- **Where the drift starts** (one seed: Level 4 seed 1, hash 318, ticks 1-3520). Evidence:
+  `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Where the seed-1 drift starts".
+  - Imp levels are not the source: native 34 Imp level-ups to 3520, ours 35, spread alike. Pairing
+    Imps one to one is arbitrary, so "six of ours above DK2's level" was a pairing artefact for Imps;
+    other species' levels were not compared.
+  - Ours has 15 Imps at 3520 against 18 because three Create Imp casts are refused.
+    - 1374 for mana by a 79-mana margin (7421 against 7500; native 8492).
+    - 3231 and 3471 for location: (19,33) was not yet dug, (12,33) untouched.
+  - The mana gap (458 at 800, about 1100 from 1000) comes with fewer claimed-path tiles (55 against
+    41 at 800, 71 against 51 at 1000). STRONGLY INFERRED: only net mana is compared.
+  - The first difference is at the level's first dig, (28,54), marked at 131: first strike native
+    138, ours 155 (`imp_jobs_seq-1-400.out`). DK2's Imp 455 stood two ticks from the wall. That lag
+    closes by about 350, and ours is ahead in claimed tiles at 400-500.
+  - The claim deficit opens at about 550, where the marked digs are taken in a different order: ours
+    digs (24,46) 17 ticks after its mark (557 against native 700). DK2 digs (18,53) at 551 and
+    (17,52) at 571; ours digs them at 628 and 656. Whether the first-dig lag causes this is not shown.
+  - The first dig and RNG, HYPOTHESIS: DK2's first strike (138) is earlier than all six of ours
+    (145-156; seeds 1-5 and DK2's generator), a 1-in-7 chance for six runs. RNG is not excluded, nor
+    shown. The idle Imps' share east of x 26 over ticks 50-131 (native 27%, ours 5-35%) is a weak
+    proxy.
 - **Native spread.** Native seed 2, on the same inputs, made 349 entries into 203 alone (472 into
   201-203). Its Imp deaths count 8 by slot disappearance, not the 19 that imp-fidelity-integration.md
   gives.

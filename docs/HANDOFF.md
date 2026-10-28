@@ -121,8 +121,13 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   ours reproduces the window apart from one Imp (Imp 26 walks to party 5's gate) and a post-Guard
   switch about 40 ticks late: parties on time, party 5 beaten, door at 5310 (native about 5313)
   ([resync-replay.md](research/resync-replay.md), "The Guard fight"). The full replay's 45 deaths
-  look like drift, not tested over the same window. Next: those two residuals, then the drift
-  before 3790, creature levels first (six of ours above DK2's at 3520). The resync does not copy
+  look like drift, not tested over the same window. Seed 1 (one seed): Imp levels are alike (native 34 level-ups to 3520, ours 35). Ours has 15
+  Imps against 18 because three Create Imp casts are refused, one by a 79-mana margin. The first
+  difference is the first dig (strike 155 against 138), which closes by about 350. The claim and
+  mana deficit opens at about 550, where ours digs a fresh mark at (24,46) ahead of older ones
+  ([creature-update-order.md](research/creature-update-order.md), "Where the drift starts"). Next:
+  that dig order at 550, Imp 26's walk, the late post-Guard switch, mining over reinforcing in
+  3000-4000, deaths across seeds. The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
   creature triggers that matter fire. Some trigger timer stamps differ from DK2's by one tick,
   not investigated. The win and packet rigs have not been rerun at hash 318.
