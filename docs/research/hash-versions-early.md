@@ -1,6 +1,11 @@
 # Early state-hash versions
 
-Versions 9–72, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–73, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**73** — `0x187461CFD5C6ADF0`. The ten status words on every creature (armour,
+invulnerable, frozen, invisible, speed ticks and percent, poison ticks, amount and
+owner, the stun clock) entered the hash and the snapshot; every blow and shot passes
+the health routine's multipliers (ADR-0168).
 
 **72** — `0xE13D73F01C848BC5`. Every creature's three spell stamps, its
 spell slot, the kind and slot of its current action and its last position; the shots in

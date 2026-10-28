@@ -111,6 +111,22 @@ public sealed class BlueprintPlacementTests
         Assert.Equal([new BlueprintRef(CrateRules.TrapKind, world.Traps[0].Id)], world.Player(Keeper).Blueprints);
     }
 
+    /// <summary><c>0x005066E0</c> counts the keeper's blueprints of the type against its crates of
+    /// the type (door arm <c>0x00506825..0x00506890</c>) and never reads the ring. An order whose
+    /// blueprint was destroyed stays queued (Q668), so the next blueprint of that type still orders
+    /// its own crate.</summary>
+    [Fact]
+    public void AnOrderLeftByADestroyedBlueprintIsNotCountedAsACrate()
+    {
+        (GameDatabase db, WorldState world) = World();
+        ManufactureRules.Enqueue(ref world.Player(Keeper),
+            new ManufactureOrder(CrateRules.TrapKind, Alarm, db.Traps[Alarm].ManufactureRequired));
+
+        Assert.Equal(BlueprintPlacementRules.Verdict.Allowed, BlueprintPlacementRules.PlaceTrap(world, db, OpenFloor, Keeper, Alarm));
+
+        Assert.Equal(2, world.Player(Keeper).ManufactureQueue.Count(o => o.Kind == CrateRules.TrapKind && o.TypeId == Alarm));
+    }
+
     [Fact]
     public void AKeeperWhoCannotPayGetsNothing()
     {

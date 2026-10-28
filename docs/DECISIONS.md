@@ -13298,3 +13298,26 @@ run each, at hash 324: Imp deaths 36 -> 30 (default generator; (18,32) never sen
 The refused placements do not explain the full replays' losses (one seed; resync-replay.md).
 
 Tests: `BlueprintRetryTests` (DK2.Tools.Tests).
+
+## ADR-0571 - Manufacture orders count blueprints against crates only, per record at load
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 325 · Q668 ·
+Research: `docs/research/panel-indicators.md` §3; KB `005066E0`, `00520F40`
+
+**Context.** `0x005066E0` pushes an order while the keeper's blueprints of the type (door `+0x109`,
+trap `+0x10C` bit `0x20`) outnumber its crate objects of the type (door arm `0x00506825..0x00506890`);
+it never reads the ring. Ours also counted queued orders as crates. The two agree while every order
+has its blueprint, but a blueprint destroyed in play leaves its order queued (Q668), and then DK2
+orders a crate for the next blueprint of that type where ours did not. The door loader `0x00520F40`
+pushes at each record with what is loaded so far; ours counted once over the whole level.
+
+**Decision.** `ManufactureRules.TryQueue` counts crates only. `ThingProjection.PlaceDoor` queues an
+authored door blueprint at its record (`ManufactureRules.QueueAuthoredDoor`), replacing the
+whole-level `QueueBlueprints`.
+
+**Consequences.** A level that authors a crate after its door blueprints orders one crate more than
+before; no shipped level authors a player-3 crate beside its blueprints (Level6a's three blueprints
+queue three orders either way). Ours still has no door or trap sale, the only path that removes an
+order (Q668).
+
+Tests: `BlueprintPlacementTests.AnOrderLeftByADestroyedBlueprintIsNotCountedAsACrate`,
+`ManufactureTests.AnAuthoredDoorBlueprintCountsTheCratesLoadedBeforeIt`.

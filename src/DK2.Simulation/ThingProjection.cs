@@ -159,9 +159,6 @@ public static class ThingProjection
             }
         }
 
-        // Every placed blueprint without a crate goes on its keeper's manufacture list (ADR-0203).
-        ManufactureRules.QueueBlueprints(world, database);
-
         return new ThingProjectionResult(
             creatures, objects, actionPoints, doors, traps,
             heroParties, effectGenerators, rooms, skipped);
@@ -321,7 +318,7 @@ public static class ThingProjection
             Health = database.Doors.GetValueOrDefault(thing.DoorId)?.Health ?? 0,
             Unknown_0011 = thing.Unknown_0011.ToArray(),
         });
-
+        ManufactureRules.QueueAuthoredDoor(world, database, world.Doors[^1]);
     }
 
     /// <summary>The authored loader <c>0x00520E50</c>: the trap made under construction

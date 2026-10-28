@@ -68,28 +68,23 @@ public static class ManufactureRules
             ? database.Traps.TryGetValue(order.TypeId, out TrapDef? trap) ? trap.CrateObjectId : (byte)0
             : database.Doors.TryGetValue(order.TypeId, out DoorDef? door) ? door.CrateObjectId : (byte)0;
 
-    /// <summary>The door loader's pushes (<c>0x00520F40</c>): every placed door blueprint joins its
-    /// keeper's blueprint list (<c>0x00505680</c>) and makes one order through <c>0x005066E0</c>
-    /// while the door blueprints of its type outnumber the keeper's crates of that type.</summary>
+    /// <summary>The door loader's push (<c>0x00520F40</c>) for the authored door just placed: a
+    /// blueprint makes an order through <c>0x005066E0</c> while the keeper's door blueprints of its
+    /// type outnumber its crates of that type, both as loaded so far (the loader runs per record),
+    /// then joins the keeper's blueprint list (<c>0x00505680</c>).</summary>
     /// <remarks>The trap loader <c>0x00520E50</c> does push an authored trap blueprint (an order
     /// at <c>0x00520F1A</c>, then the list) for a parsed NumberOfShots of 0; ours queues none. No
-    /// shipped level authors one (Q667), so only a custom level would differ. Ours, stated: the counts are taken
-    /// once over the whole level rather than as each record is read, and orders go in blueprint
-    /// order.</remarks>
-    public static void QueueBlueprints(WorldState world, GameDatabase database)
+    /// shipped level authors one (Q667), so only a custom level would differ.</remarks>
+    public static void QueueAuthoredDoor(WorldState world, GameDatabase database, DoorState door)
     {
-        for (int i = 0; i < world.Doors.Count; i++)
-        {
-            DoorState door = world.Doors[i];
-            if (!door.UnderConstruction) continue;
-            if (!database.Doors.TryGetValue(door.DoorId, out DoorDef? def)) continue;
-            TryQueue(world, database, door.PlayerId, DoorKind, door.DoorId, (int)def.ManufactureRequired, def.CrateObjectId);
-            CrateRules.Register(world, door.PlayerId, new BlueprintRef(DoorKind, door.Id));
-        }
+        if (!door.UnderConstruction) return;
+        if (!database.Doors.TryGetValue(door.DoorId, out DoorDef? def)) return;
+        TryQueue(world, database, door.PlayerId, DoorKind, door.DoorId, (int)def.ManufactureRequired, def.CrateObjectId);
+        CrateRules.Register(world, door.PlayerId, new BlueprintRef(DoorKind, door.Id));
     }
 
     /// <summary><c>0x005066E0(kind, type)</c> for one blueprint placed in play (ADR-0231): an order
-    /// while the keeper's blueprints of the type outnumber its crates and orders of it.</summary>
+    /// while the keeper's blueprints of the type outnumber its crates of it.</summary>
     public static void QueueOne(WorldState world, GameDatabase database, PlayerId playerId, byte kind, byte typeId)
     {
         if (kind == TrapKind)
@@ -120,11 +115,11 @@ public static class ManufactureRules
                 if (d.UnderConstruction && d.PlayerId == playerId && d.DoorId == typeId) blueprints++;
         }
 
+        // Crates only: 0x005066E0 never reads the ring, so an order left by a destroyed blueprint
+        // (Q668) does not stand in for a crate.
         int crates = 0;
         foreach (ObjectState o in world.Objects)
             if (crateId != 0 && o.ObjectTypeId == crateId && o.OwnerPlayerId == playerId) crates++;
-        foreach (ManufactureOrder o in queue)
-            if (o.Kind == kind && o.TypeId == typeId) crates++;
 
         if (blueprints > crates) Enqueue(ref world.Player(playerId), new ManufactureOrder(kind, typeId, cost));
     }

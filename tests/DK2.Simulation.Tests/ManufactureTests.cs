@@ -131,24 +131,25 @@ public class ManufactureTests
         Assert.Equal(0, world.Player(Keeper).ManufacturePoints);
     }
 
-    [Fact]
-    public void ABlueprintWithoutACrateIsQueuedAndOneWithACrateIsNot()
+    /// <summary>0x005066E0: an order only while the blueprints of a type outnumber its crates. The
+    /// loader 0x00520F40 pushes per record, so a crate authored after the doors counts for neither:
+    /// crate first gives one order, crate last two.</summary>
+    [Theory]
+    [InlineData(true, 1)]
+    [InlineData(false, 2)]
+    public void AnAuthoredDoorBlueprintCountsTheCratesLoadedBeforeIt(bool crateFirst, int orders)
     {
-        // 0x005066E0: an order only while the blueprints of a type outnumber its crates.
         GameDatabase db = Db();
         WorldState world = World(db);
-        ThingProjection.Place(world, db,
-        [
-            Door(6, 6), Door(7, 6),
-            new ObjectThing(new byte[24])
-            {
-                X = 3, Y = 3, ObjectId = Dk2TerrainFixture.WoodenDoorCrateObjectId, PlayerId = Keeper,
-                Unknown_0008 = new byte[4],
-            },
-        ]);
+        var crate = new ObjectThing(new byte[24])
+        {
+            X = 3, Y = 3, ObjectId = Dk2TerrainFixture.WoodenDoorCrateObjectId, PlayerId = Keeper,
+            Unknown_0008 = new byte[4],
+        };
+        ThingProjection.Place(world, db, crateFirst ? [crate, Door(6, 6), Door(7, 6)] : [Door(6, 6), Door(7, 6), crate]);
 
-        ManufactureOrder order = Assert.Single(world.Player(Keeper).ManufactureQueue);
-        Assert.Equal(new ManufactureOrder(ManufactureRules.DoorKind, 1, 1000), order);
+        Assert.Equal(Enumerable.Repeat(new ManufactureOrder(ManufactureRules.DoorKind, 1, 1000), orders),
+            world.Player(Keeper).ManufactureQueue);
         Assert.Null(JobRules.Refused(world, db, db.CreatureById(MakerId), new CreatureState { OwnerPlayerId = Keeper }, JobType.Manufacture));
     }
 
