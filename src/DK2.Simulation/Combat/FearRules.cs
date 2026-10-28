@@ -54,11 +54,14 @@ public static class FearRules
 
     /// <summary><c>0x0045E4F0</c>, every tick after the creature's fight processing: hand last
     /// tick's intake over, scale it by the heart distance, then split my threat among everyone I
-    /// fight and add each visible one's share to its intake. A stunned creature or a chicken
-    /// neither fears nor radiates; here a chicken and a fallen one are skipped, a stunned one not yet.</summary>
+    /// fight and add each visible one's share to its intake. A stunned creature (209, 255, 256,
+    /// 257: <c>0x0048F350</c>, tested first at <c>0x0045E4FD</c>) or a chicken neither fears nor
+    /// radiates, and keeps no handover: what its attackers give piles up in <c>TempFear</c> until it
+    /// stands, so a creature dropped beside heroes meets its first fear check with the stun's whole
+    /// intake (Level 4's Goblin 435: 606 at 3498, fleeing at 3500).</summary>
     public static void Radiate(SimulationContext context, ISightBlocker sight, HeartSites hearts, CreatureState me, CreatureDef mine)
     {
-        if (CreatureDeathRules.IsDown(me) || ChickenRules.IsChicken(me)) return;
+        if (CreatureDeathRules.IsDown(me) || StatusEffectRules.IsStunned(me) || ChickenRules.IsChicken(me)) return;
         WorldState world = context.World;
 
         int d = Math.Min(FullFearDistance, HeartDistance(world, hearts, me));

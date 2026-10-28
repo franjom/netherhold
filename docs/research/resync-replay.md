@@ -80,6 +80,23 @@ with neither); this run's corridor claims are not recorded here.
   slot 0's 3000 (ADR-0557). The tiles that differ at the resync fall from 140 to 101.
 - Job starts 2340-3400, native/ours: mine 110/112, claim 66/57, reinforce 83/90.
 
+## The death window (resyncs at 3900 and 3496)
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The death window".
+
+- Resynced at 3900, ours already differs in who is alive, and 12 native slots map to nothing (a
+  stale entity map, Imps cast after 2340); ours then loses 27 Imps by 4800, native 0.
+- With slot reuse handled, the hero parties match native in composition. Native arrives at
+  2990, 3470, 3830, 4190; ours 30 ticks later, because timers 4-9 start at 2029 natively.
+- Ours also raises parties 6 (4460) and 8 (4940). A party spawns only while flag 11 is 0; native's
+  Imps reach (8,25) in action point 8 at 4378 and set it, ours mines (9,26) at 4572 against
+  native's 4320 and never does.
+- Goblin slot 435 flees at 3500 natively on the intake its stun piled up (ADR-0559). In the 3496
+  resync ours still does not flee: its frighteners, party 4, are not spawned yet.
+- Full seed 1 replays to 6804: Imp deaths 45 with and without ADR-0559; the hash-316 run had 32,
+  one seed, not attributed to ADR-0557.
+- Next: resync after both sides' parties exist, with non-Imp creature state copied.
+
 ## Limits
 
 The resync copies state, not history: routes, action phases, the task pool's holders and room
