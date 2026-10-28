@@ -1,8 +1,8 @@
 # Portal visibility (Q197)
 
-Status: **Startup discovery answered; light path traced, exact source count unresolved. No new behavior built.**
+Status: **Q197 answered; startup source count verified and entrance lighting built.**
 Binary and shipped-data read through 2026-10-28. Native contracts are CONFIRMED;
-correspondence to the supplied screenshots is STRONGLY INFERRED, without a pixel capture.
+screenshot correspondence is STRONGLY INFERRED. The optional visual check is Q670.
 
 ## Observation and data
 
@@ -118,7 +118,8 @@ Each qualifying refresh allocates another source. One row-major authored-map pas
 through `0x0051EC60`/`0x004C5C30`/`0x004ED1A0` reaches size9 once per3x3 room
 and requests one light. Generic furniture rebuild `0x004EDFC0` does not itself
 call `0x004E4480`; its startup invocation is not proof of a second request.
-Whole-startup refresh multiplicity and external deletion are not yet established; a single source cannot be assumed.
+The complete fresh-load count is established below; later refreshes remain separate
+source allocations rather than updates to the first source.
 
 Initializer `0x0043A1E0` takes RGB `(255,33,26)`, intensity128, and requested
 radius `0x2800`, clamped to `0x2780` (2.46875 tiles). Input flags `0x15` become
@@ -165,14 +166,44 @@ textures and other lights change the visible edge and brightness. The dim ring's
 correspondence to this path is **STRONGLY INFERRED** from the native source and
 receiver chain plus the owner's screenshots; no matched native pixel capture was run.
 
-**Not built:** review found that one persistent source per centre does not mirror
-the allocator. Every qualifying refresh creates another light with its own pulse state,
-without retaining a handle in the room. The allocator's capacity check is not proof
-that loading suppresses requests. Count the qualifying callbacks during map loading
-and subsequent startup rebuilds before prescribing source count, combined brightness
-or an exact pulse phase. Existing room stamps retain only the last change, so polling
-them cannot reconstruct multiple allocations. No presentation or simulation change
-is retained from this partial reading; ADR-0076 and HashVersion are unchanged.
+**Built:** `PortalCentreLights` keeps separate source identities and pulse state,
+including repeated requests at one tile. `WorldView.PortalLightTiles` reconstructs
+row-major map insertion requests, then consumes observation-only room-refresh
+notifications. Add/remove rebuilds and action10's actual neighbour merges retain
+each intermediate callback, including multiple refreshes within one simulation tick.
+`ClassicWorldLightCache` and the Unity scene/runner publish the resulting sources.
+There is no discovery write, new stored simulation state or HashVersion change.
+
+## Startup light count
+
+**CONFIRMED, fresh Frosty's Lair:** four centre-light requests, one per entrance,
+remain after startup, assuming successful allocations. Its descriptor names one
+Map.kld and its room THINGS records are three Hearts, not additional entrance builds.
+The complete allocation path is:
+
+| Stage | Native evidence | Entrance allocation consequence |
+|---|---|---|
+| View setup | `0x00525370` calls `0x0043AAD0` before `0x0050E620`. | Light head `+0x33A` clears before loading. |
+| Sizing | `0x0051DD40` reaches `0x0051DF90` through descriptor `0x0051DE50` and file callback `0x0051EA40`. | Sizing table has no map callbacks. |
+| Definitions | `0x0051DD80` runs with bit2 set, bit4 clear. | `0x0051E0A0` installs definitions only. |
+| Final level pass | `0x0051DDC0` runs with bits2/4 set. `0x0056C940` zeroes callback slots before installation. | Only this pass installs header `0x0051EC30` and tile `0x0051EC60`. Null tile slots in earlier passes make `0x0056D2D0` skip the map bytes. |
+| Map header | `0x0044E9E0` tears down the old map through `0x0044F280`, then allocates new buffers through command1 `0x00447AC0`. | Command2 destroys old lights before new tiles; command1 allocates grid/ripple buffers without clearing the light list. |
+| Row-major tiles | `0x0056D2D0` invokes `0x0051EC60` once per cell, building through `0x004C5C30`/`0x004ED1A0`. | Each isolated3x3 entrance reaches nine once; `0x004E4480` dispatches `0x004DCD20` once. |
+| Startup room work | `0x0050B5B0` rebuilds furniture; `0x00521420` applies room THINGS. | No additional entrance tile-change callback on these four rooms. Generic furniture `0x004EDFC0` does not dispatch it. |
+| Post-load command7 | `0x00447D50` creates global lights and sweeps dig tags. | Keeps the entrance sources; no entrance refresh or light-list teardown. |
+
+The `0x004E4480` caller census has only additions `0x004ED1A0`, removals
+`0x004ED440`, and neighbour merges `0x004EC900`. The latter is reached by
+conversion action10 `0x00497BF0` through `0x004C5BE0`, not by generic ownership
+transfer alone. Those runtime paths account for later source requests. The merge
+walk saves the next slab before examining N/E/S/W neighbours, then appends each
+absorbed chain and refreshes after each absorption. A tail merge does not visit
+its newly appended slabs. Observation callbacks mirror that order without changing
+the simulation's derived room or hashed slab ordering.
+
+Pool word `0x0069793C` starts4095; `0x004468E0` decrements it on slot assignment.
+Thus the allocator's capacity guard is not a loading gate. As with other engine
+lights, allocation failure can omit a source; four is the successful startup count.
 
 ## Minimap flash
 
@@ -269,11 +300,10 @@ Executable control: Ghidra's DKII.EXE SHA256 matches the installed DKII.EXE.
 The installed DKII-DX.exe has identical on-disk code sections; its only section
 byte difference is the DDRAW/PATCH import-name substitution.
 
-## Next evidence
+## Verification boundary
 
-Q197 remains open for exact source count and combined ring brightness. Trace each
-startup invocation of `0x004E4480`/`0x004DCD20` through map construction and later
-room rebuilds, including whether the bridge/view exists at each request. Check callback selection in `0x0051E0A0`, alternate tile-change callers and
-view-pool reset timing before first draw. Then wire actual refresh events rather
-than deduplicating centres. Q670 asks for the observable pulse/edge correspondence;
-it does not replace the allocation trace.
+Q197 and Q669 are answered. Q670 retains the owner-play check for visible pulse
+and edge correspondence; no matched native pixel capture was run. Regression tests
+cover initial inputs, clock/pulse, separate repeated sources, loaded9-before10,
+same-tick refreshes, capture merges, fog-substitute lighting and unchanged state
+hashes with observation enabled. No replay/native rig was used.

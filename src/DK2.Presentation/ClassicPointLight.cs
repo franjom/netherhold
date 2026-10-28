@@ -32,6 +32,12 @@ public readonly record struct ClassicPointLight
             new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f),
             intensity: 1, radius: 4608f / Fp32.One, ClassicLightFlags.Terrain);
 
+    public static ClassicPointLight FromPortal(TilePos tile, TerrainLightColour colour, bool cheapLighting = false)
+        => new(new Vector3(tile.X + .5f, 2000f / Fp32.One, -tile.Y - .5f),
+            new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f),
+            intensity: 1, radius: 0x2780 / (float)Fp32.One,
+            cheapLighting ? ClassicLightFlags.CheapObject : ClassicLightFlags.NormalObject);
+
     /// <summary>The existing vertex-light reference uses the cheap torch classification.</summary>
     public static ClassicPointLight FromTorch(in TorchView torch)
         => FromTorch(torch, ClassicLightFlags.CheapTorch);

@@ -17,8 +17,8 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     private readonly ClassicPointLight[]?[] _sourceBuffers, _dynamicBuffers;
     private readonly List<ObjectSource>?[] _objectsByTile;
     private readonly Dictionary<long, ObjectSource> _objects = new();
-    /// <summary>The sources of each kind (objects, effects, the Hand), so a kind's update scans only its own.</summary>
-    private readonly List<ObjectSource>[] _entries = { new(), new(), new() };
+    /// <summary>The sources of each kind (objects, effects, the Hand, entrances), so a kind's update scans only its own.</summary>
+    private readonly List<ObjectSource>[] _entries = { new(), new(), new(), new() };
 
     /// <summary>A dynamic source: an object's light or an effect instance's. Both are engine lights
     /// in one list (<c>+0x33A</c>), so they share each tile's insertion order.</summary>
@@ -30,7 +30,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         public bool Seen;
     }
 
-    private const int ObjectKind = 0, EffectKind = 1, HandKind = 2;
+    private const int ObjectKind = 0, EffectKind = 1, HandKind = 2, PortalKind = 3;
     private readonly ClassicLightCacheCell[] _cells;
     private readonly bool[] _dirty, _prepared;
     private List<int> _preparedIndices = new(), _previousIndices = new();
@@ -63,6 +63,14 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     public ReadOnlySpan<ClassicLightTable> VisibleTables => _visibleTables.AsSpan(0, _visibleCount);
     public void SetTerrain(TilePos tile, ClassicPointLight? light) => SetSource(_terrain, tile, light);
     public void SetTorch(TilePos tile, ClassicPointLight? light) => SetSource(_torches, tile, light);
+
+    public void UpdatePortalLights(IReadOnlyList<PortalLightView> lights)
+    {
+        List<ObjectSource> entries = _entries[PortalKind];
+        foreach (ObjectSource source in entries) source.Seen = false;
+        foreach (PortalLightView source in lights) Place(PortalKind, source.Id.Value, source.Light, source.Light);
+        RemoveUnseen(entries);
+    }
 
     public void UpdateObjects(IReadOnlyList<ObjectView> objects, float fraction, bool cheapLighting = false)
     {
