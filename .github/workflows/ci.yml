@@ -15,6 +15,67 @@ env:
   DK2_DIR: /nonexistent
 
 jobs:
+  docs:
+    # The commit-msg hook (.githooks/commit-msg) is the same check, but it is
+    # opt-in per clone, passes when DK2.Tools is not built, and --no-verify
+    # skips it. This job judges what the push or pull request adds, so a commit
+    # that got past the hook still gets judged here.
+    name: docs and kb gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build DK2.Tools
+        run: dotnet build src/DK2.Tools/DK2.Tools.csproj --configuration Release
+
+      - name: Find the base
+        # A pull request is judged against where it forks from its target. A
+        # push against the commit it replaced; a new branch, or a force-push
+        # whose old tip is gone, has none, so it is judged as its last commit.
+        env:
+          PR_BASE: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -n "$PR_BASE" ]; then
+            base=$(git merge-base "origin/$PR_BASE" HEAD)
+          elif [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            base=$BEFORE
+          else
+            base=$(git rev-parse HEAD~1)
+          fi
+          echo "BASE=$base" >> "$GITHUB_ENV"
+          echo "judging $(git rev-list --count "$base..HEAD") commit(s) since $base"
+
+      - name: Documentation budgets
+        run: dotnet src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll docs --since "$BASE"
+
+      - name: Function knowledge base
+        run: dotnet src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll kb check --since "$BASE"
+
+      - name: Commit messages
+        # Merge commits are skipped: git writes their messages, not the author.
+        run: |
+          status=0
+          msg=$(mktemp)
+          for c in $(git rev-list --no-merges "$BASE..HEAD"); do
+            git log -1 --format=%B "$c" > "$msg"
+            if grep -qiE '^Co-Authored-By:.*(claude|anthropic|codex|openai|copilot)' "$msg"; then
+              echo "$c: AI co-author trailer; use Assisted-by (AGENTS.md)" >&2
+              status=1
+            fi
+            if ! dotnet src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll docs --message "$msg" >/dev/null; then
+              echo "$c: $(git log -1 --format=%s "$c")" >&2
+              status=1
+            fi
+          done
+          exit $status
+
   build:
     name: build and test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
