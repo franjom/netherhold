@@ -60,11 +60,15 @@ was captured and that proximity alone establishes no cause.
 
 **CONFIRMED:** shared refresh `0x004DCD20` creates an engine light on the
 fifth slab of a nine-slab room, at tile centre and raw height2000, through bridge
-slot `+0xA4` (`0x004397E0`). Its remaining literals are `0xFF,0x21,0x1A,0x80,
-0x2800,0x15`; it clears bit0 at light `+0x72`. This applies to both entrance
+slot `+0xA4` (`0x004397E0`). Initializer `0x0043A1E0` resolves its inputs as
+RGB `(255,33,26)`, intensity128, requested radius `0x2800` clamped to `0x2780`
+(2.46875 tiles), and flags `0x15` before the initializer's flag additions.
+The refresh clears bit0 at light `+0x72`. This applies to both entrance
 types, without an arrival, activation or owner test in the refresh. It does
-not write explored or scanned bits. These light parameters remain undecoded
-here; they are not evidence of a special fog mode.
+not write explored or scanned bits. Light `+0x72 bit0` is distinct from the
+generic presentation flag `+0x72 bit0x10` tested for fog admission by the ordinary
+rendered-object path (`0x0043C6E8`, `0x0043CF8E`). The cleared bit's purpose
+remains unresolved; these inputs establish no special discovery mode.
 
 **GUESS:** this light produces the reported ring. Its actual lighting footprint
 and the meaning of that cleared light flag have not been traced to the fogged
@@ -119,10 +123,39 @@ the fog seed (`0x0050B5D5`).
 | Scanned readers | Offset/mask census found the known colour predicate and non-tile false positives. No direct reader in reviewed raster/overlay bodies. Highlight `0x00451A80` writes ordinary class or13. Not an exhaustive semantic classification of other readers. |
 | Keeper definition / TrapTime | Portal flags lack bit24; no room/terrain override in that descriptor. Script exploration would set the explored bit, absent in these three saves. A different session or later script is not excluded. |
 
-## Remaining boundary
+## Skirmish startup follow-up (2026-10-28)
+
+**CONFIRMED:** the direct fog dispatch in `0x0050C800` applies to modes2/3 on
+a fresh load. Fog switch `0x0075AE8B` selects explore-all or the local seed
+`0x00451FD0`. The latter uses the local player getter (world slot `+0x264`,
+`0x00508C60`, world `+0x7243`), ownership, orthogonal neighbours and terrain
+AlwaysExplored. It has no portal/neutral-room reveal arm. This excludes that
+specific fog-seed mechanism, not every indirect effect of mode initialization.
+
+The level initializer `0x0050B5B0` also has a neutral-room pass. It supplies a
+positive health/size delta to `0x004E5300`; the positive branch clamps health
+and never transfers ownership or explores. Other inspected startup work is
+also separate from discovery: `0x004F1040` sets pillar movement bit `+8 bit0x4000`,
+`0x004526C0` writes the high nibble of tile `+2`, and `0x004BE370` clears level
+statistics. The direct map-byte writes near `0x0050B79A`/`0x0050B867` modify
+tile `+0xB bit0x20`, neither of the two discovery bits.
+
+**CONFIRMED:** authored map callback `0x0051EC60` resolves the recorded player
+and passes that player as the room-builder receiver (`0x0051ED93..0x0051ED9F`).
+It does not temporarily build every entrance for the local player. Its final
+map-byte flag branch changes tile `+8 bit0x1000`, not explored `0x2000`.
+Room-thing loader `0x00521420` applies health/Heart/orientation work, without a
+direct exploration write or mode-specific portal reveal in the body read.
+
+**UNKNOWN:** which operation first explored the photographed rooms. No new
+skirmish-specific portal rule has been established. Construction callees and
+mode setup's indirect effects are not exhaustively excluded. Q669's fresh-start
+comparison can distinguish an initial condition from discovery during play.
+
+## Next evidence
 
 Q197 stays open. Q669 asks when the entrances first become visible and what
 shape flashes in a fresh original game. Next identify the discovery source
-and trace the bridge light's flag through surface lighting before attributing
+and trace the bridge light's remaining flag through surface lighting before attributing
 an exception to room25. No simulation state,
 HashVersion, presentation rules or Unity wiring changed.
