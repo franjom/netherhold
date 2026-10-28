@@ -13186,7 +13186,7 @@ distance and 2000 do not) and `AMinerAtWorkIsMeasuredFromWhereItStands` (a miner
 its stance tile); the first row of the one and the other fail without the change.
 
 ## ADR-0566 - Waiting heroes keep their idle action across a failed job
-**Date:** 2026-10-28 - **Status:** proposed, implemented - Hash/save 323 - Q665
+**Date:** 2026-10-28 - **Status:** accepted - Hash/save 323 - Q665
 
 **Context.** State 176's idle action was omitted from HeroJobRules.Wait. A failed standing job
 therefore reached state 4 with nothing to hold, although its wrapper already waited for actions.
