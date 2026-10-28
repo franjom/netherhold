@@ -152,18 +152,32 @@ resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
 - Resync at 3790, run to 5400:
   - Party 5 arrives at 3829, 39 ticks after the resync, and is beaten; parties come on time and
     none extra are raised.
-  - The hero door (24,27) falls at 5310 (native about 5313).
-  - 1 Imp dies, against 0 natively: Imp 26 walks to party 5's gate (14,29) and is killed at 3852.
-    The 3520 run also lost Imp 26, at 3888.
-  - The post Guards switch to KillPlayer at 5323-5347, after their door falls. DK2's switch at
-    5283, 5284 and 5307, before theirs falls.
+  - Rerun with the steal-holder tool (hash 322; `resync-guard/run3790-h322`; not bisected, and the
+    resync's own pairing and counts differ from the first run's): no keeper creature dies in
+    3790-5400, against 0 natively. DK2's slot 431, the Imp the first run lost at (14,29) at 3852
+    (id 26, level 2), is now id 34 at level 1: it mines (8,29), heads east and flees party 5 at
+    3842 (DK2 3846), a few ticks' margin. It then chooses another seam where DK2's walks to store.
+  - Party 5 matches DK2's (Thief, Guard in the Dwarf's reused slot 418, Thief), and hero deaths match
+    within 10 ticks except party 7's Thief (4508 against about 4546). The hero door (24,27) falls at
+    5301 (first run 5310, native about 5313).
+  - The post Guards: ours logs `hero_job` only when state 90's dispatch succeeds. A probe of the
+    trigger's objective action (hash-320 build; its events and creatures match `run3790-h322` line
+    for line to 5350) gives ours' Guard 10 5280 (DK2's 446: 5284), Guard 11 5314 (445: 5283) and
+    Guard 12 5319 (444: 5307): the last two after ours' door falls.
+  - DK2's attackers at the closed door re-run `SelectAVictim` every tick out of reach, and each pick
+    fires event 6 on that Guard. Its Trolls (Blockers) take the nearest Guard; its Goblins
+    (Flankers) join the Guard a Troll already fights (combat-target-selection.md §5), so DK2 touches
+    two Guards before the door falls. Ours' attackers all stay on Guard 10.
 - Reading, one seed, STRONGLY INFERRED: from DK2's state at 3790, ours reproduces the window apart
-  from one Imp and a post-Guard switch about 40 ticks late. The full replay's 45 deaths look like
-  drift (creature set, levels, positions), but that was not tested over the same window. Imp levels
-  are not the drift source; other species' were not compared (creature-update-order.md).
+  from the post Guards' switch (two of three late), which follows from ours' attackers all taking
+  one Guard, and a door falling 12 ticks early. The full replay's 45 deaths look like drift
+  (creature set, levels, positions), but that was not tested over the same window. Imp levels are
+  not the drift source; other species' were not compared (creature-update-order.md).
 - Open:
-  - why Imp 26 walks to (14,29);
-  - why ours' post Guards switch about 40 ticks after DK2's.
+  - why ours' attackers at the door all take Guard 10 (likely their points: DK2's Trolls stand at
+    x 24.6-24.7 where 445 and 446 are near-equal; ours' points are not in the trace);
+  - DK2's Guards start walking about 7 ticks before their door falls; ours' dispatch succeeds only
+    after it (the 0x00477850 retry and DK2's longer state-4 wait, not read).
 
 The drift before 3790 (the dig order at about 550) comes from the first dig's lag, which is RNG
 (STRONGLY INFERRED, one seed; creature-update-order.md, "The first dig and RNG").
