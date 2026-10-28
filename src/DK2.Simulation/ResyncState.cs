@@ -8,10 +8,11 @@ namespace DK2.Simulation;
 /// it: the fields <see cref="WorldResync"/> copies into our world. Positions are DK2's fixed
 /// point (4096 a tile), the same as ours; owners are player ids, 0 where the tile names no
 /// player. The JSON is read by <c>DK2.Tools</c> (<c>ResyncStateFile</c>); fields it carries beyond
-/// these (rooms, doors, pointers) are ignored.</summary>
+/// these (rooms, pointers) are ignored.</summary>
 public sealed record ResyncState(
     int Tick, int Width, int Height, ResyncPlayer[] Players, int[] Tiles, int[]? TileHealth,
-    ResyncCreature[] Creatures, ResyncObject[]? Objects, uint Seed, ResyncMark[]? Marks = null)
+    ResyncCreature[] Creatures, ResyncObject[]? Objects, uint Seed, ResyncMark[]? Marks = null,
+    ResyncDoor[]? Doors = null, ResyncTrap[]? Traps = null)
 {
     public int Terrain(int index) => Tiles[3 * index];
 
@@ -19,7 +20,23 @@ public sealed record ResyncState(
 }
 
 /// <summary><c>money</c> is player <c>+0x7E</c>, <c>mana</c> <c>+0x82</c> (player-object.md).</summary>
-public sealed record ResyncPlayer(int Id, int Money, int Mana);
+public sealed record ResyncPlayer(int Id, int Money, int Mana, ResyncManufacture? Manufacture = null);
+
+/// <summary>The manufacture list (the push <c>0x005066E0</c>): the points word <c>player+0x217</c>
+/// and the ring at <c>+0x219</c> from its head, each entry's cost, kind (0 a door, 1 a trap), type
+/// and the blueprint's point; the ring's tail <c>+0x802</c> and the cost word in slot 0, which the
+/// adder pays against (Q618). -1 is a capture written before they were read.</summary>
+public sealed record ResyncManufacture(int Points, ResyncOrder[] Orders, int Tail = -1, int SlotZeroCost = -1);
+
+public sealed record ResyncOrder(int Kind, int Type, int Cost, int X, int Y);
+
+/// <summary>A door thing: its tile, type <c>+0xF6</c>, under construction while <c>+0x109</c> is set,
+/// and health <c>+0x40</c>. A type of 0 is a capture written before the type was read.</summary>
+public sealed record ResyncDoor(int Slot, int X, int Y, int Owner, int Type = 0, bool Constructing = false, int Health = 0);
+
+/// <summary>A trap thing: its tile, type <c>+0xF6</c>, under construction while <c>+0x10C</c> bit 5
+/// is set, and health <c>+0x40</c>.</summary>
+public sealed record ResyncTrap(int Slot, int X, int Y, int Owner, int Type, bool Constructing, int Health);
 
 /// <summary>The decoder's thing and creature fields; <see cref="Job"/> only on a record long
 /// enough to hold the state object.</summary>
@@ -41,5 +58,6 @@ public sealed record ResyncJob(
 /// (<see cref="TileState.TagOrder"/>).</summary>
 public sealed record ResyncMark(int X, int Y, int Player, int Order);
 
-/// <summary>An object thing: its type id, owner, point and, for gold, the amount.</summary>
+/// <summary>An object thing: its type id, owner, point, flags <c>+0x146</c> and the dword at
+/// <c>+0x14A</c>: gold's amount, a crate's kind.</summary>
 public sealed record ResyncObject(int Slot, int Type, int Owner, int X, int Y, int Gold, int Flags);

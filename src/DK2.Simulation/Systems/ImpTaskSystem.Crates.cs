@@ -191,6 +191,31 @@ public sealed partial class ImpTaskSystem
         return true;
     }
 
+    /// <summary>A crate trip copied from a DK2 capture (<see cref="WorldResync"/>): the walk
+    /// <see cref="CommitCrateFetch"/> starts, to the crate resuming in 34 or 36, or, with the crate
+    /// already in hand, the walk state 34 or 36 starts to the blueprint, resuming in 35 or 37. No
+    /// ability is cast on the walk; a resync is not a choice. False when no route reaches it.</summary>
+    internal static bool ReissueCrateJob(
+        SimulationContext context, CreatureState creature, int blueprintTile, byte kind, ObjectState crate, bool carrying)
+    {
+        WorldState world = context.World;
+        int to = carrying ? blueprintTile : crate.TileIndex;
+        if (!context.Navigation.TryRoute(creature, new TilePos(to % world.Width, to / world.Width), Navigation.MoveOptions.ExactSpot))
+            return false;
+
+        creature.TargetTileIndex = blueprintTile;
+        creature.TargetWork = default;
+        creature.TargetObjectId = carrying ? -1 : crate.Id;
+        creature.TimerTicks = 0;
+        creature.SecretDoorTask = false;
+        creature.LastTaskKind = TaskKindOf(kind);
+        CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint,
+            carrying ? InstallStateOf(kind) : FetchStateOf(kind));
+        context.Emit(WorldResync.SystemName, "crate_job_reissued",
+            $"imp={creature.Id} crate={crate.Id} for={Describe(world, blueprintTile)} carrying={carrying}");
+        return true;
+    }
+
     /// <summary>States 34 and 36 on arrival: a crate of the task's kind and object on this tile
     /// that nobody carries; the walk to the blueprint's tile, resuming in 35 or 37; and only
     /// then the crate leaves its Workshop and is picked up. None, or no walk: the task is let go

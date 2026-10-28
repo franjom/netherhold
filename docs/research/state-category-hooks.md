@@ -284,7 +284,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
   Manufacture job handler `0x00470080` tests). `0x00506B50`: non-empty and the cost word at
   ring **slot 0** ≤ points. The pop `0x00506970` moves the head without shifting, so that word
   goes stale; only an enqueue wrapping onto slot 0, or a sell (`0x005069E0`) emptying the ring or
-  compacting over it, rewrites it (2026-10-23, Q618; ours compares the head's cost). Then `0x004C3B50` picks the keeper's Workshop nearest the creature with someone
+  compacting over it, rewrites it (2026-10-23, Q618; ours pays at the same slot-0 word, ADR-0557). Then `0x004C3B50` picks the keeper's Workshop nearest the creature with someone
   attached; `0x004F5240` sends everyone attached to it to state 68, makes the crate (the
   definition's crate object: trap file `0x20E`, door `0x246`) on the room's first chain
   tile, owned by the keeper when the room has space, and adds to `ItemsManufactured`

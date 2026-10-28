@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**317** — `0x8718652BBA69C08B`. FormatVersion also 317. `PlayerState.ManufactureRingTail` (the ring's tail `+0x802`) and `ManufactureSlotZeroCost` (the cost word at ring slot 0): the adder pays at slot 0's cost, not the head's (`0x00506B50`, Q618, ADR-0557); the panel's percent divides by it. Enqueues go through `ManufactureRules.Enqueue`. The pin fixture makes no crate. `CrateTests.TheNextCrateIsPaidAtSlotZerosCostNotTheHeadsOwn_Q618`, `SnapshotTests.TheManufactureRingsTailAndSlotZeroCostChangeTheHashAndSurviveRestore` and `BottomPanelIndicatorsTests` cover it.
+
 **316** — `0x962BD3492ED4F056`. FormatVersion also 316. The combat states' handlers run as a step after the needs routine, so a creature the scan engages runs its fight state in that update (ADR-0555); the scan no longer posts the battle notice; never-used melee and spell stamps are `CreatureState.NeverUsed` (−1), which also moves the pin fixture's creatures' hashed stamps. `CombatAttackerScanTests`, `CombatNonFighterTests`, `CombatFearTests` and `CombatTests` cover it.
 
 **315** — `0x6D517264B5EC57B9`. FormatVersion also 315. Behaviour only: one creature's whole update before the next one's, newest first (`CreatureUpdateSystem`, ADR-0554): the fight, the needs routine, the anger ladder and angry chooser, the state handlers, the mover, then a worker's handler; an imp sent walking during its update steps from the next; payday's clock runs before the creatures and sets a credited creature off whatever its retry stamp; the manufacture loss moves into the player frame. No new fields; the pin fixture's run is unchanged and the pin moves by the version only. `CreatureUpdateSystemTests`, `PaydayTests.TheClockSetsACreditedCreatureOffAtOnce_WhateverTheNeedsRoutinesRetryStamp` and `ImpWalkEndTests` cover it.
@@ -385,16 +387,4 @@ the health routine's multipliers (ADR-0168).
 spell slot, the kind and slot of its current action and its last position; the shots in
 flight with their own id counter (ADR-0167). Composition only in the pinned fixture.
 
-**71** — `0xF7F8F30AF29050DF`. The alarm a Scout carries — the threat's
-position, the deficit, the room — and the ticks stood reporting danger entered
-(ADR-0166). Composition only in the pinned fixture.
-
-**70** — `0x05719C220035BA50`. `TempFear`, `CurrentFear`,
-`OverThreatCounter`, `BackOffTimer`, the run flag and the combat state's entry
-tick entered (ADR-0165). Composition only in the pinned fixture.
-
-**69** — `0xA02044E4AE17A79B`. The target's kind, the heart it names,
-`TimeLastUsedMelee`, and the swing in progress with its start tick and its own
-target entered (ADR-0164). Composition only in the pinned fixture.
-
-[Versions 9–68](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–71](hash-versions-early.md) retain the earlier pins and their reasons.

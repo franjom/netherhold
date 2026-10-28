@@ -1,6 +1,18 @@
 # Early state-hash versions
 
-Versions 9–68, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–71, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**71** — `0xF7F8F30AF29050DF`. The alarm a Scout carries — the threat's
+position, the deficit, the room — and the ticks stood reporting danger entered
+(ADR-0166). Composition only in the pinned fixture.
+
+**70** — `0x05719C220035BA50`. `TempFear`, `CurrentFear`,
+`OverThreatCounter`, `BackOffTimer`, the run flag and the combat state's entry
+tick entered (ADR-0165). Composition only in the pinned fixture.
+
+**69** — `0xA02044E4AE17A79B`. The target's kind, the heart it names,
+`TimeLastUsedMelee`, and the swing in progress with its start tick and its own
+target entered (ADR-0164). Composition only in the pinned fixture.
 
 **68** — `0xD8CDBD3CD4546586`. A creature's fight target, attack type,
 `AttackRangeSquared`, `FightProcessCounter`, last fight-scan tile and its two

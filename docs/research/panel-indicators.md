@@ -81,7 +81,7 @@ only; library specials, the Reaper (spell 5) and the one-shot Reaper (14) are no
 `KeeperSpellRules.CanCast` already uses,
 `(uint)(CooldownRaw × OriginalTicksPerGameSecond) >> 12`. Built (§8).
 
-## 3. Manufacture — CONFIRMED, one simulation divergence (Q618)
+## 3. Manufacture — CONFIRMED
 
 Drawn in the Workshop arm (0x0041349D..0x00413723 marks the slot, 0x00413C4B draws).
 
@@ -100,14 +100,15 @@ Drawn in the Workshop arm (0x0041349D..0x00413723 marks the slot, 0x00413C4B dra
 
 **Simulation values:** `PlayerState.ManufacturePoints` and `PlayerState.ManufactureQueue`
 (`ManufactureOrder.Kind`, `TypeId`, `Cost`; `ManufactureRules.DoorKind` 0, `TrapKind` 1). The
-head is `ManufactureQueue[0]`. **Divergence (Q618):** DK2's ring starts head and tail at slot 0
-([reset](functions/00506690.md)) and moves the head on each pop
+head is `ManufactureQueue[0]`. **Slot 0 (Q618, ADR-0557):** DK2's ring starts head and tail at
+slot 0 ([reset](functions/00506690.md)) and moves the head on each pop
 ([0x00506970](functions/00506970.md)) without shifting. After the first crate, DK2 pays for
 later orders at the cost left in slot 0 until something rewrites it: an enqueue wrapping onto
 slot 0, or a door or trap sell ([0x005069E0](functions/005069E0.md)) that empties the ring
-(zeroed, head and tail reset to 0) or compacts later entries down over slot 0. Ours pays each
-order at its own cost. A faithful indicator needs that slot-0 cost: either the simulation keeps
-the ring, or the view shows our head cost and inherits the divergence.
+(zeroed, head and tail reset to 0) or compacts later entries down over slot 0. The Level 4
+capture shows it: every crate was made as the points passed the first order's 3000. Ours keeps
+the word as `PlayerState.ManufactureSlotZeroCost` (with `ManufactureRingTail`); the panel's
+percent divides by it and `ManufactureRules.Credit` pays at it. The sell is not built.
 
 ## 4. Research — CONFIRMED except the colour order
 
@@ -185,7 +186,7 @@ owner-comparison item that page leaves.
   tint variable: recharge `0x666666` replaces flash and unaffordable, and a recharging slot shows
   no sparkles. Manufacture `0x780078` overwrites flash and unaffordable, and no-Workshop
   overwrites it (0x00413D3C..0x00413D72).
-- **Deviations.** Manufacture divides by our head order's cost, not ring slot 0 (Q618). The pressed
+- **Deviations.** The pressed
   inset (`w − 2`, and the manufacture skip while pressed) is not mirrored: widget `+0x41`/`+0x45`
   are unread and our slot draws no pressed state. A zero manufacture cost (a DK2 divide fault)
   gives 0, and a zero cooldown with a negative elapsed gives 100.
@@ -201,5 +202,5 @@ owner-comparison item that page leaves.
   upgrading spell get a gold frame drawn around it? Does a recharging Inferno slot go grey and
   refill clockwise, with no sparkles?
 - Owner check: does a queued crate show a magenta tint and fill on the head order only, and does
-  the second crate's fill seem to stop at the first's cost (Q618)? Does selling a queued door or
-  trap change the Workshop fill?
+  a queued trap's fill take as long as the first door's, whatever its own cost (Q618)? Does
+  selling a queued door or trap change the Workshop fill?

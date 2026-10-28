@@ -172,7 +172,7 @@ public class JobRoomFinderMessageTests
         Available(world, RoomTypeId.Workshop);
         Room(world, RoomTypeId.Workshop, 5, 1);
         Assert.Null(Seek(world, RoomTypeId.Workshop));
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(ManufactureRules.TrapKind, 1, 100));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(ManufactureRules.TrapKind, 1, 100));
         Assert.Equal(PlayerMessageKind.RoomUnequipped, Seek(world, RoomTypeId.Workshop)?.Kind);
     }
 
