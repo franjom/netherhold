@@ -15,8 +15,8 @@ namespace DK2.Simulation;
 /// Claim (<c>0x0046AB50</c>) and reinforce (<c>0x0046AEA0</c>) measure to the tile's centre;
 /// the dig walk (<c>0x00469AF0</c>) is in <c>ImpTaskSystem.TryExcavationAt</c>. Not built: the
 /// drop scan's dig handler (<c>0x0046A550</c>), which allows the holder <c>0x32</c> slack.
-/// <para>A holder in its entry or work state is measured from its stance point, where it
-/// settles; a walking one from where it is (imp-task-stealing.md §2).</para>
+/// <para>Every handler measures the holder from where it is (<c>+0x1A/+0x1E</c>), walking or
+/// at work (imp-task-stealing.md §2).</para>
 /// </summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/imp-task-stealing.md")]
 public static class TaskStealing
@@ -53,15 +53,6 @@ public static class TaskStealing
         return CreatureStateMachine.HasState(holder)
             && holder.Dk2StateId is not (TeleportingOut or TeleportingIn)
             && CreatureStateMachine.Classify(holder, ImpStates.TaskSelection) != StateTransition.Refused;
-    }
-
-    /// <summary>Where the handler measures a holder from: its stance point once it is in the
-    /// work's entry or work state, else its position.</summary>
-    public static (long X, long Y) HolderPosition(CreatureState holder, (long X, long Y) stance)
-    {
-        if (holder is null) throw new ArgumentNullException(nameof(holder));
-        (int entry, int work) = ImpStates.For(holder.TargetWork);
-        return holder.Dk2StateId == entry || holder.Dk2StateId == work ? stance : (holder.PosX, holder.PosY);
     }
 
     /// <summary>The claim and reinforce rule: strictly nearer the tile's centre.</summary>

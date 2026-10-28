@@ -51,6 +51,10 @@ non-zero, state `+0x25E` not `0x33`/`0x34`, then `0x00477310(10)` with `ECX = cr
 + 0x24E`. `0x0048AD30` is called with `ECX` = the holder creature in every site
 (`pre_48ad30`, 8 sites); its result is `SetState`'s.
 
+Every handler above reads the holder's own `+0x1A/+0x1E` for its distance, after the holder test
+and in any state; none substitutes a stance point (re-read 2026-10-28: `0x00469AF0` both arms,
+`0x0046AB50`, `0x0046AEA0` reinforce and repair, `0x00469600`; ADR-0565).
+
 **Kick order matters twice.** Claim and reinforce start their own walk
 (`0x004651A0`) before kicking; if the kick is refused they return 0 with the thief
 already walking under state 6 and its job block still naming its previous task. The

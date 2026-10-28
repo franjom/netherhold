@@ -537,8 +537,7 @@ public sealed partial class ImpTaskSystem
                     break;
                 }
                 if (!TaskStealing.CanLoseItsTask(holder)) continue;
-                (long hx, long hy) = TaskStealing.HolderPosition(holder, MiningSlots.StancePoint(stand, slot));
-                if (mine < TaskStealing.DistanceSquared(hx, hy, px, py))
+                if (mine < TaskStealing.DistanceSquared(holder.PosX, holder.PosY, px, py))
                     (taken, takenSlot, takenWork, takenFrom) = (stand, slot, work, holder);
             }
             if (taken is not null && takenFrom is null) break;
@@ -617,10 +616,7 @@ public sealed partial class ImpTaskSystem
             if (ImpCrowding.FaceOf(world, other) != faceIndex) continue;
             if (!TaskStealing.CanLoseItsTask(other)) return null;
             var tile = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
-            (long X, long Y) stance = face == tile
-                ? (CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y))
-                : TaskStealing.ReinforceStance(face, MiningSlots.Face(face, tile));
-            return TaskStealing.NearerTheTile(asking, TaskStealing.HolderPosition(other, stance), tile) ? other : null;
+            return TaskStealing.NearerTheTile(asking, (other.PosX, other.PosY), tile) ? other : null;
         }
         return null;
     }

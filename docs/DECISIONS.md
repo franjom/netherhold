@@ -6351,6 +6351,7 @@ kept a task a nearer one walked past (Q155). The binary answers every part of it
    tile's centre, routing first and then kicking (`0x0046AB50`, `0x0046AEA0`).
 4. The loser goes to 10 (`0x0048AD30`) and keeps its last kind. A worker walks to its
    stance point and works there; one in its entry or work state is measured from it.
+   *Superseded by ADR-0565: every holder is measured from where it stands.*
 5. An attacked floor that turns neutral is claimed by its attacker under the same job,
    20 → 15 → 16, with no second choice (`0x00465F20`).
 6. `ImpTaskSystem` walks workers newest first, by id, as the world turn does
@@ -13133,3 +13134,29 @@ and the strike's tick. The strike timer only strikes.
 Tests (GoldCarryingTests): `AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesActionEnds`,
 `AMinerWhoseOverflowTakesItsPileOverTheLimit_OnALaterStrike_GivesTheSlotUpOnThatStrikesTick`, and
 the ADR-0562 tests run with and without the clip.
+
+## ADR-0565 — A steal measures the holder from where it stands, at work or walking
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 322 · Q665 · Research: `docs/research/imp-task-stealing.md`
+
+**Context.** Since ADR-0289 ours measured a holder in its work's entry or work state from its stance
+point (`TaskStealing.HolderPosition`), and a walking one from its position. No binary read backed the
+stance point; the reviewer of the hash-320 docs found the mine arm reads the holder's position.
+
+**Finding.** CONFIRMED (decompile; disassembly `0x0046A1AA`-`0x0046A2F9` for the mine arm): the dig
+walk's two arms (`0x00469AF0`), the claim handler (`0x0046AB50`) and the reinforce/repair handler
+(`0x0046AEA0`) all measure the holder from its `+0x1A/+0x1E` after the shared holder test, whatever
+its state. Only the point measured to differs by handler (imp-task-stealing.md §2).
+
+**Decision.** `HolderPosition` is removed; the dig/mine fallback and `HolderToTakeFrom` measure
+every holder from `PosX/PosY`.
+
+**Consequences.**
+- A holder at work standing off its point can lose its task to an Imp strictly nearer that point.
+  An Imp at work stands about on its point, so the difference is small in any arm.
+- Unexercised so far: the Level 4 seed-1 resync at 3700 (to 4100) and Level 1 seeds 1 and 2 are
+  byte-identical to hash 320; every steal there is from a walking holder.
+- The pin fixture moves by the version only.
+
+Tests: `TaskStealingTests.AHolderAtWorkIsMeasuredFromWhereItStands` (claim; 800 steals, 1600 the same
+distance and 2000 do not) and `AMinerAtWorkIsMeasuredFromWhereItStands` (a miner in 26 off its slot on
+its stance tile); the first row of the one and the other fail without the change.
