@@ -8360,7 +8360,7 @@ dead body in list 6, with no tree. Ours walked the points first, oldest first.
 **Decision.** `TriggerExecutor.Run` walks creatures newest first, skipping corpses, then the
 points newest first. Deviates: DK2 walks a creature's tree inside that creature's update
 (`0x00488930` → `0x0048A480`), interleaved with the creature's own work; ours keeps one
-trigger pass before the systems.
+trigger pass before the systems. This placement is superseded by ADR-0568.
 
 **Measured, ADR-0355 to ADR-0361 together** (hash 186), against master `82b128fe`: Level 1
 packet rig 20/20 wins (master 19/20), Level 2 4/20 (master 3/20; seeds 3, 13, 14, 17), Level 3
@@ -11527,8 +11527,8 @@ therefore ran on turn 2:
   for the fly-over. These are DK2's wall-clock lengths at 250 ms a tick; no capture
   pins the real turn counts. Its point 2 is explored for the fly-over and hidden after
   it. Level win rates may move, toward DK2.
-- The path's length is measured in game ticks, where DK2 measures wall clock; the
-  two agree at normal speed.
+- The path's length uses nominal game ticks, where DK2 measures wall clock; Level 4
+  completes a turn earlier natively (research/trigger-timer-stamps.md).
 - The state is per keeper, where DK2 has one local camera.
 - Not built: the timed moves condition 72 also waits for (action 26's glide,
   action 27), the subtitle overflow scroll, speech audio, action 38's interface
@@ -13202,3 +13202,24 @@ HashVersion and FormatVersion rise together; no state fields are added.
 
 Test: HeroWalkTests.AWaitingHerosIdleActionOutlivesItsFailedJobDeadline failed before the fix
 and now passes. The test checks the action hold across failure, not exact native clip duration.
+
+## ADR-0568 - Trigger roots observe their turn's work
+**Date:** 2026-10-28 ? **Status:** proposed ? Hash/save 324
+
+**Context.** Level 4's Guard Room capture and timers change in one native turn,
+but our pre-system trigger walk observed the capture a turn late. Binary order
+and measured boundaries: [timer stamps](research/trigger-timer-stamps.md).
+
+**Decision.** Keep world/party roots in the early pass. Walk each creature's root
+after its own update steps, action-point roots after creature work, and player
+roots after room ticks and before player counters. All phases retain the same
+one-based game turn; invalidate derived room observations between walks.
+`TriggerExecutor.Run` remains a complete walk for standalone trigger tools and
+custom simulations without the scheduled trigger systems.
+
+**Consequences.** Conditions see current-turn work, including the Guard Room's
+new owner. This corrects visibility, not the earlier state drift which caused
+that room to be captured early. The existing nominal camera-path duration is
+unchanged; no timer or level-specific offset is introduced. No saved fields are
+added; hash/save advance together to 324. Player roots remain grouped before
+player counters; per-player interleaving remains outside this correction.

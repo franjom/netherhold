@@ -140,8 +140,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
   the drift from 131 to about 550 needs no rule difference. Next: the residual Guard-fight timing after ADR-0566, why ours' mining stints are shorter and more numerous from DK2's state (ADR-0562 and ADR-0563, hash/save 320, fixed when state 26 asks its hands, store and pile checks: on the call that begins an action; the surplus stays, 101 mining walks to DK2's 80 from the 3400 resync and 91 to 70 from a 3700 resync, with equal Imp-time on mining; from 3700 about half of the extra starts follow steals of a walking Imp's seam slot (18 against 6, DK2's count inferred from capture frames; from 3400 only 4 against 1), and the steal test in `0x00469AF0` ours matches for every holder (ADR-0565, hash/save 322; the reruns are byte-identical to hash 320, so it is unexercised), so what fills ours' seams with walkers and the rest of the surplus is open, HYPOTHESIS: state; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), deaths across seeds. The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
-  creature triggers that matter fire. Some trigger timer stamps differ from DK2's by one tick,
-  not investigated. The Level 1-4 packet sweep, which also gives the win counts, was rerun at hash 320
+  creature triggers that matter fire. Level 4 timer offsets split into camera-clock approximation and early room
+  capture plus a late trigger read; ADR-0568 corrects the read order. Evidence:
+  [timer stamps](research/trigger-timer-stamps.md). The Level 1-4 packet sweep, which also gives the win counts, was rerun at hash 320
   (M6 above). DK2's own Level 11A ten-seed captures (`dk2runs/level11A-seeds`) were lost in the
   2026-10-18 cleanup; the capture driver `run.ps1` was recovered from session logs but has not
   been re-run (D:\DK2Evidence\recovered-rig-2026-10-19\RECOVERY.md); the packet `m12l11a.sav` survives.

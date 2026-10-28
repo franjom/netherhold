@@ -55,8 +55,9 @@ updates, walking its root at `0x0048A480`, before any action point**, and each
 class runs **newest first**. The THINGS handler `0x005211A0` creates one point per
 record, so points run in reverse file order (CONFIRMED 2026-10-26: the THINGS reader calls the
 handler in file order; see [004B7830](functions/004B7830.md)). Q246's "points interleave with creatures" was wrong. Built as
-ADR-0361, in our trigger pass before the systems; a creature's tree is not yet walked inside
-its own update.
+ADR-0361 and ADR-0568: creature roots run after their own update, action points
+after creature work, and player roots after room ticks. The timing evidence is
+in [Level 4 timer stamps](trigger-timer-stamps.md).
 
 `FUN_004C2310` walks the player list from world `+0x7A` through link `+0x3A`,
 calling the player frame `FUN_004B9EC0` on each.

@@ -379,11 +379,11 @@ exactly once per turn.
 per-level data. No code puts them in one place, so a level shipping 5 would scale
 authored seconds by 5 against a clock still running at 4. All 66 ship 4.
 
-**Built.** `GameSimulation.Tick` runs `TriggerExecutor.Run(dk2Turn)` before the
-systems, once per tick, with `dk2Turn = CurrentTick + 1` because DK2's first game
-turn is 1 where our next-tick clock starts at 0. Only flag (action type 7) and
-timer (type 8) actions execute; an unsupported record blocks its child chain and
-is censused in `TriggerRunResult.Summary`.
+**Built (ADR-0568).** World/party roots run early; creature roots follow their
+own work, area roots follow creature updates, and player roots follow room ticks.
+Every walk uses `dk2Turn = CurrentTick + 1`. Standalone `TriggerExecutor.Run`
+still walks all roots; [timer stamps](trigger-timer-stamps.md) separates native
+capture headers, stored stamps, camera timing and state drift.
 
 ## 7. Scope in the shipped campaign
 
