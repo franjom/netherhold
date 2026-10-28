@@ -124,8 +124,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   deaths against 0, three to party 5's Guard, which survives the fight at (15-17,31-34) where
   DK2's party 5 is down by 3960. In that run the Guard survived because ours' Thief stood nearer
   and drew the Elves (one fight, consistent with nearest-first). Resynced at 3790 (one seed),
-  ours reproduces the window apart from one Imp (Imp 26 walks to party 5's gate) and a post-Guard
-  switch about 40 ticks late: parties on time, party 5 beaten, door at 5310 (native about 5313)
+  ours reproduces the window apart from the post Guards' switch: rerun at hash 322, no keeper
+  creature dies (DK2 0), parties and hero deaths match within 10 ticks but one, door at 5301 (native
+  about 5313); one post Guard switches on time and two 12 and 31 ticks late, because ours' attackers
+  at the closed door all take one Guard where DK2's Goblins join a second
   ([resync-replay.md](research/resync-replay.md), "The Guard fight"). The full replay's 45 deaths
   look like drift, not tested over the same window. Seed 1 (one seed): Imp levels are alike (native 34 level-ups to 3520, ours 35). Ours has 15
   Imps against 18 because three Create Imp casts are refused, one by a 79-mana margin. The first
@@ -134,7 +136,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   That order follows from the north seam (31,54) falling at 324 against 305 with other Imps at its
   face, each step the faithful rule, and the first-dig lag is RNG (STRONGLY INFERRED, one seed;
   [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
-  the drift from 131 to about 550 needs no rule difference. Next: Imp 26's walk, the late post-Guard switch, why ours' mining stints are shorter and more numerous from DK2's state (ADR-0562 and ADR-0563, hash/save 320, fixed when state 26 asks its hands, store and pile checks: on the call that begins an action; the surplus stays, 101 mining walks to DK2's 80 from the 3400 resync and 91 to 70 from a 3700 resync, with equal Imp-time on mining; from 3700 about half of the extra starts follow steals of a walking Imp's seam slot (18 against 6, DK2's count inferred from capture frames; from 3400 only 4 against 1), and the steal test in `0x00469AF0` ours matches for every holder (ADR-0565, hash/save 322; the reruns are byte-identical to hash 320, so it is unexercised), so what fills ours' seams with walkers and the rest of the surplus is open, HYPOTHESIS: state; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), deaths across seeds. The resync does not copy
+  the drift from 131 to about 550 needs no rule difference. Next: why ours' attackers at the closed door all take one Guard, why ours' mining stints are shorter and more numerous from DK2's state (ADR-0562 and ADR-0563, hash/save 320, fixed when state 26 asks its hands, store and pile checks: on the call that begins an action; the surplus stays, 101 mining walks to DK2's 80 from the 3400 resync and 91 to 70 from a 3700 resync, with equal Imp-time on mining; from 3700 about half of the extra starts follow steals of a walking Imp's seam slot (18 against 6, DK2's count inferred from capture frames; from 3400 only 4 against 1), and the steal test in `0x00469AF0` ours matches for every holder (ADR-0565, hash/save 322; the reruns are byte-identical to hash 320, so it is unexercised), so what fills ours' seams with walkers and the rest of the surplus is open, HYPOTHESIS: state; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), deaths across seeds. The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
   creature triggers that matter fire. Some trigger timer stamps differ from DK2's by one tick,
   not investigated. The Level 1-4 packet sweep, which also gives the win counts, was rerun at hash 320
