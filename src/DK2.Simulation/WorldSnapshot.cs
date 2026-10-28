@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 316;
+    private const int FormatVersion = 317;
 
     private static void WriteLink(BinaryWriter w, ThingTileLink link)
     {
@@ -242,6 +242,8 @@ public static class WorldSnapshot
             w.Write(p.ItemsManufactured);
             p.Statistics.Write(w);
             p.Finale.Write(w);
+            w.Write(p.ManufactureRingTail);
+            w.Write(p.ManufactureSlotZeroCost);
             w.Write(p.ManufactureQueue.Count);
             foreach (ManufactureOrder order in p.ManufactureQueue)
             {
@@ -982,6 +984,8 @@ public static class WorldSnapshot
             players[i].ItemsManufactured = r.ReadInt32();
             players[i].Statistics = PlayerLevelStatistics.Read(r);
             players[i].Finale = PlayerFinale.Read(r);
+            players[i].ManufactureRingTail = r.ReadByte();
+            players[i].ManufactureSlotZeroCost = r.ReadInt32();
             int orderCount = r.ReadInt32();
             for (int o = 0; o < orderCount; o++)
                 players[i].ManufactureQueue.Add(new ManufactureOrder(r.ReadByte(), r.ReadByte(), r.ReadInt32()));

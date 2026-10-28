@@ -12878,8 +12878,9 @@ the same packets, so that the next few hundred choices are made from DK2's input
   task kind and tile, aimed kind (`+0x9D`) and drop ticket; floor piles; mana; the world seed
   (with `--rng dk2`). An Imp walking to or working at a dig, mine, claim, attack, conversion,
   reinforce or repair is sent to the same tile, side and slot by our own walk
-  (`ImpTaskSystem.ReissueJob`); any other Imp chooses again. Rooms, blueprints and the
-  manufacture queue stay ours. `--resync-map slot,ours.csv` names our creature for a native
+  (`ImpTaskSystem.ReissueJob`); any other Imp chooses again. Rooms stay ours;
+  doors, traps, crates and the manufacture list are copied from ADR-0558. `--resync-map
+  slot,ours.csv` names our creature for a native
   slot where the replay's entity map (converged for another build) names a wrong one.
 - DK2's marks are the keeper's task pool's kind-1 and kind-2 entries, which the capture records
   as a region; the resync sets them in list order, the head last, so the newest-first tie-break
@@ -12899,5 +12900,69 @@ the same packets, so that the next few hundred choices are made from DK2's input
 - What still differs after the resync is what the resync does not copy: the door blueprints
   our replay refused at 2006 and 2229 (tiles not ours yet), whose crate trips put DK2's Imps at
   the Workshop when the east seams were marked, and so the on-the-way claim that starts the
-  corridor. Copying DK2's blueprints is the next extension.
+  corridor. ADR-0558 copies them.
 - No simulation rule changed; the hash and the pin stand.
+
+## ADR-0557 — A crate is paid for at the cost in the manufacture ring's slot 0, not the head order's
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 317 · Q618 (answered), Q665 · Research: `docs/research/state-category-hooks.md` §3.4, functions/00506B50.md
+
+**Context.** The adder `0x004C3200` asks `0x00506B50` whether the points pay for the next crate.
+That test compares the points with the cost word at `[ring+0]`, slot 0 of the 128-entry ring, not
+with the head entry (`+0x801`); the pop `0x00506970` only moves the head, so after the first crate
+slot 0 holds the first order's cost until the tail wraps onto it. Q618 waited for a capture of
+the points at each crate over orders of different cost. Level 4 seed 1's capture has 20 crates
+(`D:/DK2Evidence/runs/q665-job-choice-2026-10-28/analysis/manufacture_slot0-seed01.out`): every one,
+door or trap, is made the tick the points pass 3000, slot 0's cost (the first order, a Wooden
+Door), including the 1500-point Sentry Trap heads. Ours paid at the head's cost, so its Sentry
+crates came twice as fast. The resync replay (ADR-0558) found it: with DK2's state copied in,
+our Imp found a trap crate waiting at 2380 where DK2's Imps walked to an empty Workshop and from
+there to the east seams.
+
+**Decision.**
+- `PlayerState.ManufactureRingTail` (the ring's tail `+0x802`) and `ManufactureSlotZeroCost` (the
+  cost word at slot 0). `ManufactureRules.Enqueue` is the one write: an order written at tail 0
+  sets the slot-0 cost, and the tail wraps at 128. `Credit` pays when the points reach the slot-0
+  cost; the head order is still the crate made.
+- The panel's percent (`0x00506B70`) divides by the same word.
+- DK2's sell (`0x005069E0`) also rewrites slot 0 (an emptied ring is zeroed, a removal compacts
+  later entries over it); ours sells no door or trap, so it is not built.
+
+**Consequences.**
+- Level 4 replays with the same packets: the (28-30, 32-34) seam group, late in all five of our
+  seeds, finishes at 2810/3087/3096/2967/3144 (seeds 1-5) against 3282/3098/3224/3151/3516
+  before; native 2815 and 2988 (`analysis/east_group-slot0.out`). The west group moves later in
+  seed 1. Seams mined in ticks 2000-2999: 8/11/9/14/9 (were 8/11/10/10/8; native 12, 14).
+- `CrateTests.TheNextCrateIsPaidAtSlotZerosCostNotTheHeadsOwn_Q618`,
+  `ManufactureTests.AnOrderWrittenOntoSlotZeroAfterTheRingWrapsSetsTheCost` and the panel test
+  cover it; tests that queued by `ManufactureQueue.Add` go through `Enqueue`.
+
+## ADR-0558 — The resync copies doors, traps, crates, the manufacture list and crate trips
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 317 (no rule moved here) · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** ADR-0556's resync left blueprints ours, and our replay had refused DK2's doors at
+(24,39), (9,52), (16,50), (18,51) and four traps, so DK2's crate trips (four Imps on a door crate
+at 2340) had no counterpart.
+
+**Decision.**
+- `capture_state.py` writes each door's and trap's type `+0xF6` (the factories `0x004B7B50`,
+  `0x004B7C10`), construction (door `+0x109`, trap `+0x10C` bit 5) and health, and each player's
+  manufacture ring (points `+0x217`; the ring at `+0x219`: cost word, kind `+2`, type `+3`, the
+  blueprint's point `+4/+8`; tail `+0x802`, count `+0x803`; slot 0's cost).
+- `WorldResync` removes a door or trap DK2 lacks, lays one ours lacks (no gold, no order), takes
+  DK2's construction flag and health, rebuilds each keeper's blueprint list in thing-slot order,
+  replaces every crate with DK2's floor crates, and copies the manufacture list, points, tail
+  and slot-0 cost.
+- An Imp DK2 has on a crate trip (resume 34/36: task tile the blueprint, side word the crate's
+  object; 35/37 carrying) walks to the keeper's nearest crate of that object or is given one and
+  walks to the blueprint (`ImpTaskSystem.ReissueCrateJob`). The side word as the crate's object is
+  STRONGLY INFERRED for 34/36 (four Imps at 2340, all 52, the Wooden Door crate) and a HYPOTHESIS
+  for 35/37 (no carrying Imp captured yet). "Nearest" is ours: several reissued Imps may be sent
+  to one crate where DK2 may have paired them otherwise, so "reissued" means a route exists, not
+  the same crate.
+- The blueprint list's order is DK2's thing-slot order, an assumption while slots are reused.
+
+**Consequences.** Level 4 seed 1 resynced at 2340 (with ADR-0557): crate trips 13/13 before the
+fix, and after it the east seam (29,34) first struck at 2482 against native's 2476 (3232 with
+blueprints alone, 3072 with neither); job starts 2340-3400 mine 110/112, claim 66/57, reinforce
+83/90 (native/ours). With the slot-0 fix our pre-resync world is also closer: 101 tiles differ at
+2340 against 140.

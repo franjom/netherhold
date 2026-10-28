@@ -218,12 +218,11 @@ public sealed class BottomPanelView
             ref PlayerState keeper = ref world.Player(_player);
             rows = keeper.Availabilities;
             // DK2 marks the head order's item (0x00506930) but divides by the cost at ring slot 0
-            // (0x00506B70), which after the first pop is the first order's cost (Q618). Our queue is a
-            // list whose [0] is the head, so the head's own cost stands in, inheriting the divergence.
+            // (0x00506B70), the word the adder pays against too (Q618).
             if (keeper.ManufactureQueue is { Count: > 0 } queue)
             {
                 head = queue[0];
-                manufacture = BottomPanelProgress.ManufacturePercent(keeper.ManufacturePoints, queue[0].Cost);
+                manufacture = BottomPanelProgress.ManufacturePercent(keeper.ManufacturePoints, keeper.ManufactureSlotZeroCost);
             }
             List<ResearchEntry> list = _database.Variables.Research;
             if (keeper.ResearchTarget > 0 && keeper.ResearchTarget <= list.Count)

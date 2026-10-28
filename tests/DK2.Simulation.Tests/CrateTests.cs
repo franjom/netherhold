@@ -126,7 +126,7 @@ public class CrateTests
         WorldState world = World(db);
         CreatureState maker = Maker(db, world, new TilePos(2, 2));
         CreatureState other = Maker(db, world, new TilePos(3, 3));
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
         world.Player(Keeper).ManufacturePoints = 995;
         var sink = new ListEventSink();
 
@@ -149,8 +149,8 @@ public class CrateTests
         Maker(db, world, new TilePos(1, 1));
         Maker(db, world, new TilePos(3, 3));
         List<ManufactureOrder> queue = world.Player(Keeper).ManufactureQueue;
-        queue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
-        queue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
         GameSimulation sim = Simulation(db, world, new ListEventSink());
 
         sim.Run(Second * 12);
@@ -169,8 +169,8 @@ public class CrateTests
         WorldState world = World(db);
         TilePos at = new(2, 2);
         CreatureState maker = Maker(db, world, at);
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
-        world.Player(Keeper).ManufactureQueue.Add(new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
         world.Player(Keeper).ManufacturePoints = 995;
         var sink = new ListEventSink();
 
@@ -181,6 +181,37 @@ public class CrateTests
             string.Join(" | ", sink.Events.Select(e => $"{e.Tick} {e.Kind} {e.Detail}")));
         Assert.Equal(CreatureStateCategory.Manufacture, CreatureStateMachine.UpdatingCategory(maker));
         Assert.Equal(at, maker.Tile);
+    }
+
+    [Fact]
+    public void TheNextCrateIsPaidAtSlotZerosCostNotTheHeadsOwn_Q618()
+    {
+        // 0x00506B50 compares the points with the cost word at ring slot 0, and the pop 0x00506970
+        // only moves the head: after the 1000-point order is paid, the 500-point one waits for
+        // 1000 too. Level 4's captures make every 1500-point Sentry crate at 3000, the first order's.
+        GameDatabase db = Db();
+        WorldState world = World(db);
+        Maker(db, world, new TilePos(2, 2));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
+        ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 500));
+        Assert.Equal(1000, world.Player(Keeper).ManufactureSlotZeroCost);
+        Assert.Equal(2, world.Player(Keeper).ManufactureRingTail);
+        world.Player(Keeper).ManufacturePoints = 995;
+        GameSimulation sim = Simulation(db, world, new ListEventSink());
+
+        sim.Run(Second);
+        Assert.Equal(500, Assert.Single(world.Player(Keeper).ManufactureQueue).Cost);
+
+        // Past the head's 500 and still being credited, short of slot 0's 1000: no crate.
+        world.Player(Keeper).ManufacturePoints = 600;
+        sim.Run(Second * 5);
+        Assert.InRange(world.Player(Keeper).ManufacturePoints, 601, 999);
+        Assert.Single(world.Player(Keeper).ManufactureQueue);
+        Assert.Equal(1, world.Player(Keeper).ItemsManufactured);
+
+        sim.Run(Second * 10);
+        Assert.Empty(world.Player(Keeper).ManufactureQueue);
+        Assert.Equal(2, world.Player(Keeper).ItemsManufactured);
     }
 
     [Fact]

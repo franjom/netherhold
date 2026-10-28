@@ -436,6 +436,14 @@ public struct PlayerState
     /// <summary>DK2's manufacture list, <c>player+0x219</c>: the orders waiting, head first.</summary>
     public List<ManufactureOrder> ManufactureQueue;
 
+    /// <summary>The ring's tail, <c>ring+0x802</c>: the slot the next order is written to, 0 to 127.</summary>
+    public byte ManufactureRingTail;
+
+    /// <summary>The cost word in the ring's slot 0, <c>ring+0</c>, which the adder compares the points
+    /// with (<c>0x00506B50</c>, Q618): the last order written to slot 0, kept after it is paid for.
+    /// DK2's sell (<c>0x005069E0</c>, unbuilt) also rewrites it.</summary>
+    public int ManufactureSlotZeroCost;
+
     /// <summary>Crates made, DK2's <c>ItemsManufactured</c> (<c>player+0x162</c>).</summary>
     public int ItemsManufactured;
 
@@ -587,6 +595,8 @@ public struct PlayerState
         Finale.HashInto(ref hash);
         hash.Add(ManufactureQueue.Count);
         foreach (ManufactureOrder order in ManufactureQueue) order.HashInto(ref hash);
+        hash.Add(ManufactureRingTail);
+        hash.Add(ManufactureSlotZeroCost);
         hash.Add(Blueprints.Count);
         foreach (BlueprintRef blueprint in Blueprints) blueprint.HashInto(ref hash);
         hash.Add(Hand.Count);

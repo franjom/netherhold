@@ -29,6 +29,24 @@ public class SnapshotTests
     }
 
     [Fact]
+    public void TheManufactureRingsTailAndSlotZeroCostChangeTheHashAndSurviveRestore()
+    {
+        GameSimulation original = TestWorld.Simulation();
+        PlayerId player = original.World.Creatures[0].OwnerPlayerId;
+        ulong before = original.StateHash();
+        original.World.Player(player).ManufactureRingTail = 13;
+        ulong tailOnly = original.StateHash();
+        Assert.NotEqual(before, tailOnly);
+        original.World.Player(player).ManufactureSlotZeroCost = 3000;
+        Assert.NotEqual(tailOnly, original.StateHash());
+
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), TestWorld.Database());
+        Assert.Equal(original.StateHash(), restored.StateHash());
+        Assert.Equal(13, restored.World.Player(player).ManufactureRingTail);
+        Assert.Equal(3000, restored.World.Player(player).ManufactureSlotZeroCost);
+    }
+
+    [Fact]
     public void RoundTrip_PreservesStateHash()
     {
         GameSimulation original = TestWorld.Simulation();

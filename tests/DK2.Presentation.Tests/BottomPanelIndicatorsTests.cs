@@ -83,7 +83,7 @@ public sealed class BottomPanelIndicatorsTests
     }
 
     [InstallFact]
-    public void ManufactureMarksOnlyTheHeadOrdersItemAndNotAtZero_UsesHeadCostNotSlotZero_Q618()
+    public void ManufactureMarksOnlyTheHeadOrdersItemAndNotAtZero_DividesBySlotZerosCost_Q618()
     {
         (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
         DoorDef first = db.Doors.Values.First(), second = db.Doors.Values.Skip(1).First();
@@ -91,17 +91,24 @@ public sealed class BottomPanelIndicatorsTests
         SetRow(world, keeper, AvailabilityKind.Door, second.DoorId, 3);
         ref PlayerState state = ref world.Player(keeper);
         state.ManufactureQueue.Clear();
-        state.ManufactureQueue.Add(new ManufactureOrder(ManufactureRules.DoorKind, first.DoorId, 200));
-        state.ManufactureQueue.Add(new ManufactureOrder(ManufactureRules.DoorKind, second.DoorId, 100));
+        state.ManufactureRingTail = 0;
+        ManufactureRules.Enqueue(ref state, new ManufactureOrder(ManufactureRules.DoorKind, first.DoorId, 200));
+        ManufactureRules.Enqueue(ref state, new ManufactureOrder(ManufactureRules.DoorKind, second.DoorId, 100));
         state.ManufacturePoints = 50;
         var panel = new BottomPanelView(db, keeper, (_, name) => name);
         panel.Capture(world);
         Assert.Equal((byte?)25, Door(panel, first).Indicators.ManufacturePercent);
         Assert.Null(Door(panel, second).Indicators.ManufacturePercent);
 
+        // The first order paid: the head is the 100-point one, and 0x00506B70 still divides by
+        // slot 0's 200, so 50 points show 25, not 50.
+        world.Player(keeper).ManufactureQueue.RemoveAt(0);
+        panel.Capture(world);
+        Assert.Equal((byte?)25, Door(panel, second).Indicators.ManufacturePercent);
+
         world.Player(keeper).ManufacturePoints = 1;
         panel.Capture(world);
-        Assert.Null(Door(panel, first).Indicators.ManufacturePercent);
+        Assert.Null(Door(panel, second).Indicators.ManufacturePercent);
     }
 
     [InstallFact]
