@@ -128,7 +128,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   That order follows from the north seam (31,54) falling at 324 against 305 with other Imps at its
   face, each step the faithful rule, and the first-dig lag is RNG (STRONGLY INFERRED, one seed;
   [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
-  the drift from 131 to about 550 needs no rule difference. Next: Imp 26's walk, the late post-Guard switch, mining over reinforcing in 3000-4000, deaths across seeds. The resync does not copy
+  the drift from 131 to about 550 needs no rule difference. Next: Imp 26's walk, the late post-Guard switch, why ours' mining stints are shorter and more numerous from DK2's state (about 20% more mining walks; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), deaths across seeds. The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
   creature triggers that matter fire. Some trigger timer stamps differ from DK2's by one tick,
   not investigated. The win and packet rigs have not been rerun at hash 318.

@@ -168,6 +168,40 @@ resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
 The drift before 3790 (the dig order at about 550) comes from the first dig's lag, which is RNG
 (STRONGLY INFERRED, one seed; creature-update-order.md, "The first dig and RNG").
 
+## Mining against reinforcing (resyncs at 3000 and 3400)
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Mining over reinforcing in
+3000-4000, resynced", and its review corrections; runs in `resync-reinforce/`. Unsynced in 3000-4000
+(`job_taken` events), ours takes 224 mining and 35 reinforcing jobs at hash 316 and 184 and 54 at
+hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different count):
+
+| from | reinforce | claim | mine | Imps walking to or at a seam |
+|---|---|---|---|---|
+| 3000, to 4000 | 90/83 | 74/84 | 127/175 | 5.5/4.8 |
+| 3400, to 4400 | 79/81 | 59/69 | 137/165 | 5.6/5.2 |
+
+- From DK2's state ours reinforces at DK2's rate. The unsynced reinforce shortfall is drift
+  (STRONGLY INFERRED, one seed).
+- Ours starts about 20% more mining walks. From 3400 to 4000 it finishes about as many seams (14
+  against 13, leaving out three the resync tick converts). It has more stints (65 against 48), more
+  full deliveries (46 against 37), and more part-load ends when a seam falls under its miners (16
+  against 8; none at a standing seam on either side). Why the stints are shorter is open.
+- A walk to a seam that fell on the way: DK2's state 25 (`0x00465790`) finds the task entry gone and
+  goes to 10. Ours ends the walk `out_of_reach` through state 1. Both choose two ticks after arrival
+  (20 native, 15 ours), so it is only a label.
+- Mid-walk mine steals with the seam standing: native 1, ours 4 (leaving out the resync tick).
+- From 3000, ours' Imps enter 203 92 times in 3000-4000, against DK2's 22. This is a resync artefact.
+  DK2's two Dwarf party members (423, 424; spawned at 2990 with 750 and 787 gold) were walking to
+  attack the Heart, resuming 222 and 178, and both were down by 3124. The resync placed them on DK2's
+  point, sent them idle and copied neither the job triple nor the gold ("Every creature" above). Ours'
+  32 wanders by the seam crews until it dies at 3624. 77 of the 84 flights after 3127 are within 8
+  tiles of it. A non-Imp attacker sets a NonFighter's flee counter to 3 (`0x0045EC10` through
+  `0x0045EC80`, STRONGLY INFERRED).
+- From 3400, ours' Imps rest or wander more from 4100 (35/33 against 16/11). Only ours has Imps in
+  states 251, 42, 202 and 203. At 4208-4210 six Imps converge on one unconscious body, and the
+  4-selections cap throttles three to rest. 17 of 20 idle entries are over 10 tiles from any hero.
+  Reading: combat drift (a casualty only ours has), HYPOTHESIS.
+
 ## Limits
 
 The resync copies state, not history: routes, action phases, the task pool's holders and room
