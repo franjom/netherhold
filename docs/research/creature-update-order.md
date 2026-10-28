@@ -137,11 +137,21 @@ native, three measured gaps (a replay resynced from DK2's tick 2340 matches nati
     - Two Imps mine the north seams in ours, three in DK2, so ours is still beside (24,46) when it
       is marked at 540.
     STRONGLY INFERRED (one seed, no counterfactual run): every step is the faithful rule from each
-    side's state. Why other Imps stood at the face when (31,54) fell is not shown.
-  - The first dig and RNG, HYPOTHESIS: DK2's first strike (138) is earlier than all six of ours
-    (145-156; seeds 1-5 and DK2's generator), a 1-in-7 chance for six runs. RNG is not excluded, nor
-    shown. The idle Imps' share east of x 26 over ticks 50-131 (native 27%, ours 5-35%) is a weak
-    proxy.
+    side's state. Other Imps stood at the face when (31,54) fell because of the first-dig lag, which is
+    RNG (next bullet).
+  - The first dig and RNG, STRONGLY INFERRED (README, "The first dig from DK2's state"):
+    - DK2's own first state 14 moves between games: 138 in seed 1, 151 in seed 2, on the same
+      inputs.
+    - Over 30 seeds of ours it falls at 136-157. DK2's 138 is inside that range, at about the 10th
+      percentile (3 of 30 at or before it; one-sided p about 0.1).
+    - From DK2's points (resync at 130), take to strike is 3 ticks beside the wall on both sides;
+      from x 21 it is 16-17 ticks in DK2 and 15 in ours.
+    - State-12 spells take the same four values (1, 20, 25, 26 ticks) on both sides; the means are
+      not distinguishable at n 17.
+    - The wander rule `0x004808E0`/`0x00480A00` matches ours. Ours stands terrain solidity in for
+      nav bit 3, which is the same on this map, and the room-branch helper is unread. DK2's seed 2
+      ends 6 of its 23 walks over ticks 1-200 on (24,51), the tile seed 1's Imps never chose.
+    - So the lag is where the idle cycle leaves the Imps at 131. The exact draw is not replayed.
 - **Native spread.** Native seed 2, on the same inputs, made 349 entries into 203 alone (472 into
   201-203). Its Imp deaths count 8 by slot disappearance, not the 19 that imp-fidelity-integration.md
   gives.
