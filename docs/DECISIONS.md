@@ -13251,3 +13251,24 @@ that room to be captured early. The existing nominal camera-path duration is
 unchanged; no timer or level-specific offset is introduced. No saved fields are
 added; hash/save advance together to 324. Player roots remain grouped before
 player counters; per-player interleaving remains outside this correction.
+
+## ADR-0569 - The resync can leave named parts ours
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 323 (unchanged: the replay tool only) · Q665 ·
+Research: `docs/research/resync-replay.md`, "Imp deaths and the player's door"
+
+**Context.** Resynced from DK2's state at 3400 or later, Level 4 seed 1 loses almost no keeper
+creature; the full replay loses 23-65. Headcounts at 3400 are close, so which part of DK2's state
+protects the dungeon was unknown.
+
+**Decision.** `WorldResync.Apply` takes `ResyncParts` (default all) and the replay takes
+`--resync-skip part,...`. Each part is one of Apply's existing steps; the creature parts need the
+pairing. The door and trap step names each change in the report.
+
+**Consequences.** A skipped part makes a hybrid state, so a skip splits dependence, not cause; pose
+includes jobs. At 3400 the doors part alone turns 3 deaths into 35: in the default generator's full
+run ours refused DK2's recorded door at (24,39) and four trap placements on tiles it had not yet
+claimed. That is sufficient there, not the full runs' cause (resync-replay.md). No simulation rule
+moves. `--resync-skip` takes part names only and needs `--resync`.
+
+Tests: `WorldResyncTests.ASkippedPartStaysOurs_TheRestIsCopied`, `WithoutTheJobsPartAWorkerIsOnlyPlaced`.
+

@@ -23,6 +23,13 @@ three runs and `analysis/resync_compare*.out`).
    `WorldResync.Apply` copies the state (ADR-0556 and ADR-0558 list what it copies and what it
    leaves) and the replay goes on. `--resync-map` names our creature for native slots the replay's entity map gets
    wrong for this build; the map here was built from the packet imp casts' turns, which match.
+   `--resync-skip part,...` leaves the named parts ours (ADR-0569): tiles, marks, doors (and traps),
+   gold, crates, creatures (the pairing; the parts below need it, and without it the entity map is
+   not refreshed), pose (point, health, state; it also skips the dying collapse and the worker
+   handling, so it includes jobs), levels, fear (with the fight-return stamp), jobs (without it a
+   worker is placed as any other creature and keeps ours' job fields until its next choice),
+   players (mana, manufacture), triggers, seed. A skip makes a hybrid state, so it splits what an
+   outcome depends on rather than naming a cause.
 3. `analysis/resync_compare.py` counts job starts per window and kind from `jobs.csv` and the
    capture's creature records.
 
@@ -290,6 +297,30 @@ hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different cou
   states 251, 42, 202 and 203. At 4208-4210 six Imps converge on one unconscious body, and the
   4-selections cap throttles three to rest. 17 of 20 idle entries are over 10 tiles from any hero.
   Reading: combat drift (a casualty only ours has), HYPOTHESIS.
+
+## Imp deaths and the player's door (resyncs at 3400, by part)
+
+Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Level 4 Imp deaths, seed 1, at
+hash 323" and "What protects the dungeon at 3400". Seed 1, hash 323.
+- Full replays lose 65 Imps (default generator) and 23 (`--rng dk2`), DK2 none. Resynced at 3400
+  they lose 3 keeper creatures, and 0-4 over seeds 2-9 with the hero door at 5309-5316: from DK2's
+  state the outcome is robust.
+- Leaving one part ours at 3400: pose 45, jobs 43 (nested in pose), fear 36 (the stale stamp),
+  doors 35; levels, players, marks, tiles, gold 0-3.
+- The doors part is the player's own: DK2 has a built door at (24,39), north of the dungeon between
+  the heart area and the hero door, and trap blueprints at (26,35), (22,35), (29,32), (30,33). Ours
+  refused the placements by DK2's own tile rule (`0x00450EB0`, `BlueprintPlacementRules.CanTrap`),
+  because it had not yet claimed the tiles: (24,39) claimed at 2093 against 1997 (DK2's placement at
+  2006 is 9 ticks after its claim), the trap tiles 190-250 ticks later or not by 3100. The default
+  generator's run refused the door and those four traps; the `--rng dk2` run the door, (9,52),
+  (29,32), (30,33), (36,32) and (34,32).
+- The placements are not the full runs' cause. A replay that holds a refused placement until ours
+  owns the tile (branch `tools/replay-blueprint-retry`) sends every one and builds the door, yet the
+  Imp deaths go 65 -> 36 and 23 -> 39; heroes break the door (also from DK2's 3400 state, at 4264,
+  with 3 deaths). Resyncs at 2340 and 3000 carry the door and still lose 33 and 37.
+- Reading, one seed: the doors part is sufficient to break DK2's 3400 state, HYPOTHESIS as anything
+  more. What protects the dungeon from DK2's state is open; the creature parts (pose, jobs) are the
+  remaining candidates, and hero positions were not examined. No rule difference was found.
 
 ## Limits
 
