@@ -126,10 +126,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   difference is the first dig (strike 155 against 138), which closes by about 350. The claim and
   mana deficit opens at about 550, where ours digs a fresh mark at (24,46) ahead of older ones.
   That order follows from the north seam (31,54) falling at 324 against 305 with other Imps at its
-  face, each step the faithful rule (STRONGLY INFERRED, one seed;
-  [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"). Next:
-  why other Imps stood at the face when (31,54) fell (the first-dig lag and RNG, HYPOTHESIS), Imp
-  26's walk, the late post-Guard switch, mining over reinforcing in 3000-4000, deaths across seeds. The resync does not copy
+  face, each step the faithful rule, and the first-dig lag is RNG (STRONGLY INFERRED, one seed;
+  [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
+  the drift from 131 to about 550 needs no rule difference. Next: Imp 26's walk, the late post-Guard switch, mining over reinforcing in 3000-4000, deaths across seeds. The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
   creature triggers that matter fire. Some trigger timer stamps differ from DK2's by one tick,
   not investigated. The win and packet rigs have not been rerun at hash 318.

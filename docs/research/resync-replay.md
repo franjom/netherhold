@@ -163,15 +163,19 @@ resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
   are not the drift source; other species' were not compared (creature-update-order.md).
 - Open:
   - why Imp 26 walks to (14,29);
-  - why ours' post Guards switch about 40 ticks after DK2's;
-  - the drift before 3790: why other Imps stood at the north seam's face when it fell, which sets
-    the dig order at about 550 (creature-update-order.md).
+  - why ours' post Guards switch about 40 ticks after DK2's.
+
+The drift before 3790 (the dig order at about 550) comes from the first dig's lag, which is RNG
+(STRONGLY INFERRED, one seed; creature-update-order.md, "The first dig and RNG").
 
 ## Limits
 
 The resync copies state, not history: routes, action phases, the task pool's holders and room
 occupancy are ours, rebuilt from the same packets. Our loader queues no order for an authored
-trap where DK2's does (Q667). A creature that is
+trap where DK2's does (Q667). An idle or wandering Imp is set choosing. A wander walk's goal, a
+state-12 Imp's running idle action and its `+0x7E` deadline are not copied. So it sees a new mark at
+once, where DK2's waits out its spell or walk. Resynced at 130, the first dig's state 14 is at
+133-134 against DK2's 138. A creature that is
 not an Imp is placed on DK2's point and sent to idle when its state differs (ADR-0560). Treasury gold is tile stores
 here (ADR-0015), so DK2's money is reported, not copied. The run drifts again after the resync;
 compare the first few hundred ticks, and resync again later for the next window.
