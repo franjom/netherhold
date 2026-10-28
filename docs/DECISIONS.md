@@ -12861,3 +12861,40 @@ the scan engaged waited a tick for its handler. Native Level 4, seed 1, shows th
   victory tests move the victim's own body aside, because a kill on the health step's tick now
   leaves it there.
 - **The pin.** The pin moves with the version and with the stamp sentinel.
+
+## ADR-0556 — A replay can continue from a DK2 capture's state: the controlled-input test
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 316 (unchanged: no rule moved) · Q665 · Research: `docs/research/resync-replay.md`
+
+**Context.** A full replay of Level 4 cannot say whether an Imp's choice differs from DK2's:
+by tick 2340 the two worlds have drifted (claims, refused blueprints, crate timing, where idle
+Imps stand), and every choice is the nearest job from a different position (Q665, the seam-delay
+chase). What was missing is a run that starts from DK2's own state at a tick and continues with
+the same packets, so that the next few hundred choices are made from DK2's inputs.
+
+**Decision.**
+- `dk2tools replay ... --resync <tick.json> --resync-at <turn>` copies a `capture_state.py`
+  tick (`--state-only`) over our world after that turn (`WorldResync`): every tile's terrain,
+  owner and health; each mapped creature's position and health; an Imp's gold in hand, last
+  task kind and tile, aimed kind (`+0x9D`) and drop ticket; floor piles; mana; the world seed
+  (with `--rng dk2`). An Imp walking to or working at a dig, mine, claim, attack, conversion,
+  reinforce or repair is sent to the same tile, side and slot by our own walk
+  (`ImpTaskSystem.ReissueJob`); any other Imp chooses again. Rooms, blueprints and the
+  manufacture queue stay ours. `--resync-map slot,ours.csv` names our creature for a native
+  slot where the replay's entity map (converged for another build) names a wrong one.
+- DK2's marks are not in a capture (they are the keeper's task pool): `resync_marks.py`
+  derives them from the packet tags in our tile log and DK2's tile log, and the resync sets
+  them in marking order so the newest-first tie-break holds.
+- `--jobs jobs.csv` traces each creature's state, resume state, task and last kind, a row on
+  change, for the comparison.
+- `Dk2Lcg.Reseed` and `GameSimulation.Context` (internal) exist for this tool only.
+
+**Consequences.**
+- Level 4 seed 1, resynced at 2340 and run to 3400, against the capture: job starts dig 10/12,
+  mine 110/118, claim 66/67, reinforce 83/88; Imps per job 4.4/4.3 mining, 0.8/0.8 claiming,
+  4.6/4.6 reinforcing (native/ours). The first run read the aim from `+0x6E` (the dumper's
+  `DroppedToDoJobId`) and got reinforce 83/37: the aim is `+0x9D` (00463DF0). Without the marks
+  the Imp that DK2 had digging (9,57) dropped the dig at once, because ours had dug it earlier.
+- What still differs after the resync is what the resync does not copy: the door blueprints
+  our replay refused at 2006 and 2229 (tiles not ours yet), whose crate trips put DK2's Imps at
+  the Workshop when the east seams were marked. Copying DK2's blueprints is the next extension.
+- No simulation rule changed; the hash and the pin stand.

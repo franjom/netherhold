@@ -95,6 +95,10 @@ public sealed class GameSimulation
 
     public IReadOnlyList<ISimulationSystem> Systems => _systems;
 
+    /// <summary>The context the systems run in, for a tool that edits the world between ticks
+    /// (<see cref="WorldResync"/>).</summary>
+    internal SimulationContext Context => _context;
+
     /// <summary>The mesh, the router and the steering probes the systems route through. The mesh
     /// is edited in place as tiles change (ADR-0461), so it is state: saved and hashed.</summary>
     public Navigation.WorldSteering Navigation => _context.Navigation;

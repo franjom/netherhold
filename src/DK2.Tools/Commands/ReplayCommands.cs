@@ -20,7 +20,9 @@ internal static class ReplayCommands
         string levelName, int turns, string outPath, InputLog? log = null, RoomLog? rooms = null,
         string? tilePath = null, PacketLog? packet = null,
         PacketEntityMap? entityIds = null, string? creaturePath = null,
-        string? eventPath = null, bool dk2Random = false, string? seedPath = null, uint? seed = null)
+        string? eventPath = null, bool dk2Random = false, string? seedPath = null, uint? seed = null,
+        ResyncState? resync = null, long resyncAt = 0, string? jobPath = null,
+        IReadOnlyDictionary<int, int>? resyncMap = null)
     {
         string? install = Dk2Install.Find();
         if (install is null)
@@ -97,6 +99,11 @@ internal static class ReplayCommands
         creatureWriter?.WriteLine("tick,id,type,owner,x,y,health,state,target");
         var seenCreatures = new Dictionary<int,
             (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target)>();
+        // --jobs: each creature's state, resume state and task as a worker's choice leaves them,
+        // a row on change, for comparing Imp choices after a resync with the capture's.
+        using var jobWriter = jobPath is null ? null : new StreamWriter(jobPath);
+        jobWriter?.WriteLine("tick,id,state,resume,task,work,lastkind,lasttask,gold");
+        var seenJobs = new Dictionary<int, (int State, int Resume, int Task, TileWorkKind Work, ImpTaskKind Last, int LastTile, int Gold)>();
 
         int goldAsked = 0, goldMissed = 0, goldMoved = 0, dropsMoved = 0;
         using (var writer = new StreamWriter(outPath))
@@ -136,6 +143,30 @@ internal static class ReplayCommands
                             + $"{now.OwnerPlayerId},{now.Tile.X},{now.Tile.Y},"
                             + $"{now.Health},{now.Dk2StateId},{now.FightTargetId}");
                     }
+
+                if (jobWriter is not null)
+                    foreach (CreatureState creature in world.Creatures)
+                    {
+                        var now = (creature.Dk2StateId, creature.UtilityNewState, creature.TargetTileIndex,
+                            creature.TargetWork, creature.LastTaskKind, creature.LastTaskTileIndex, creature.GoldHeld);
+                        if (seenJobs.TryGetValue(creature.Id, out var was) && was == now) continue;
+                        seenJobs[creature.Id] = now;
+                        jobWriter.WriteLine($"{turn},{creature.Id},{now.Dk2StateId},{now.UtilityNewState},"
+                            + $"{now.TargetTileIndex},{now.TargetWork},{now.LastTaskKind},{now.LastTaskTileIndex},{now.GoldHeld}");
+                    }
+
+                // --resync: this turn's state is DK2's, and the rest of the run continues from it.
+                if (resync is not null && turn == resyncAt)
+                {
+                    // A slot named in --resync-map is that creature; the rest resolve through the
+                    // packet replay's entity map at this turn.
+                    PacketEntityMap ids = entityIds ?? new PacketEntityMap();
+                    ResyncReport report = WorldResync.Apply(simulation, resync,
+                        slot => resyncMap is not null && resyncMap.TryGetValue(slot, out int named) ? named
+                            : ids.TryResolve((uint)slot, turn, PacketEntityKind.Creature, out int id) ? id : null);
+                    Console.WriteLine($"  resync at turn {turn} from DK2's tick {resync.Tick}: {report}");
+                    foreach (string note in report.Notes) Console.WriteLine($"    {note}");
+                }
             }
         }
 
@@ -292,6 +323,10 @@ internal static class ReplayCommands
         bool dk2Random = false;
         string? seedPath = null;
         uint? seed = null;
+        string? resyncPath = null;
+        long resyncAt = 0;
+        string? jobPath = null;
+        string? resyncMapPath = null;
         for (int i = 4; i < arguments.Length; i += 2)
         {
             if (i + 1 >= arguments.Length) return ReplayUsage();
@@ -341,6 +376,22 @@ internal static class ReplayCommands
                 case "--rng" when value is "dk2" or "xoshiro":
                     dk2Random = value == "dk2";
                     break;
+                // --resync: a capture_state.py tick (--state-only) copied over our world after the
+                // turn --resync-at, the controlled-input test (WorldResync).
+                case "--resync":
+                    resyncPath = value;
+                    break;
+                case "--resync-at" when long.TryParse(value, System.Globalization.NumberStyles.Integer, ic, out long at) && at > 0:
+                    resyncAt = at;
+                    break;
+                case "--jobs":
+                    jobPath = value;
+                    break;
+                // --resync-map: slot,ours rows naming our creature for a native slot at the resync,
+                // where the replay's entity map (converged for another build) names a wrong one.
+                case "--resync-map":
+                    resyncMapPath = value;
+                    break;
                 default:
                     return ReplayUsage();
             }
@@ -350,8 +401,30 @@ internal static class ReplayCommands
         RoomLog? rooms = null;
         PacketLog? packet = null;
         PacketEntityMap? entityIds = null;
+        ResyncState? resync = null;
+        Dictionary<int, int>? resyncMap = null;
         try
         {
+            if (resyncPath is not null)
+            {
+                if (packetPath is null || resyncAt <= 0)
+                    throw new InvalidDataException("--resync needs a packet replay and --resync-at <turn>.");
+                resync = ResyncStateFile.Load(resyncPath);
+                if (resync.Tick != resyncAt)
+                    Console.WriteLine($"  note: {resyncPath} is DK2's tick {resync.Tick}, applied after our turn {resyncAt}");
+            }
+            if (resyncMapPath is not null)
+            {
+                resyncMap = [];
+                foreach (string line in File.ReadLines(resyncMapPath))
+                {
+                    if (line.Length == 0 || line.StartsWith("slot", StringComparison.Ordinal)) continue;
+                    string[] fields = line.Split(',');
+                    if (fields.Length != 2 || !int.TryParse(fields[0], out int slot) || !int.TryParse(fields[1], out int ours))
+                        throw new InvalidDataException($"{resyncMapPath}: expected slot,ours rows, got '{line}'.");
+                    resyncMap[slot] = ours;
+                }
+            }
             if (packetPath is null)
             {
                 log = InputLog.Read(arguments[2], lag, origin);
@@ -422,7 +495,8 @@ internal static class ReplayCommands
         }
 
         return RunTriggerCsv(arguments[1], turns, arguments[3],
-            log, rooms, tilePath, packet, entityIds, creaturePath, eventPath, dk2Random, seedPath, seed);
+            log, rooms, tilePath, packet, entityIds, creaturePath, eventPath, dk2Random, seedPath, seed,
+            resync, resyncAt, jobPath, resyncMap);
     }
 
     /// <summary>
@@ -476,8 +550,9 @@ internal static class ReplayCommands
             + "[--turns N] [--lag L] [--origin T] [--rooms rooms.csv] [--tiles tiles.csv]\n"
             + "       dk2tools replay <level> - <out.csv> "
             + "--packet recording.sav --packet-offset N [--entity-map ids.csv] [--turns N] "
-            + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv] "
-            + "[--rng dk2|xoshiro] [--seed N] [--seeds seeds.csv]");
+            + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv] [--jobs jobs.csv] "
+            + "[--rng dk2|xoshiro] [--seed N] [--seeds seeds.csv] "
+            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv]]");
         return 2;
     }
 }
