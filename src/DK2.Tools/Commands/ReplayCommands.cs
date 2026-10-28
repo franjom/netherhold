@@ -6,6 +6,7 @@ using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
 
 namespace DK2.Tools.Commands;
@@ -22,7 +23,7 @@ internal static class ReplayCommands
         PacketEntityMap? entityIds = null, string? creaturePath = null,
         string? eventPath = null, bool dk2Random = false, string? seedPath = null, uint? seed = null,
         ResyncState? resync = null, long resyncAt = 0, string? jobPath = null,
-        IReadOnlyDictionary<int, int>? resyncMap = null)
+        IReadOnlyDictionary<int, int>? resyncMap = null, bool retryBlueprints = false)
     {
         string? install = Dk2Install.Find();
         if (install is null)
@@ -106,6 +107,10 @@ internal static class ReplayCommands
         var seenJobs = new Dictionary<int, (int State, int Resume, int Task, TileWorkKind Work, ImpTaskKind Last, int LastTile, int Gold)>();
 
         int goldAsked = 0, goldMissed = 0, goldMoved = 0, dropsMoved = 0;
+        // A recorded door or trap placement on a tile DK2's keeper owned but ours does not yet,
+        // held until ours owns it (see Deferred below).
+        var pendingBlueprints = new List<(long Turn, PlayerCommand Command)>();
+        int blueprintsHeld = 0, blueprintsPlacedLater = 0;
         using (var writer = new StreamWriter(outPath))
         {
             simulation.EmitTriggerTurnsTo(writer);
@@ -115,7 +120,7 @@ internal static class ReplayCommands
                 long turn = simulation.CurrentTick.Value + 1;
                 simulation.Tick(packet is null
                     ? Merge(log?.At(turn), rooms?.At(turn))
-                    : packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile, DropAt));
+                    : Deferred(turn, packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile, DropAt)));
 
                 if (seedWriter is not null && simulation.Rng.Algorithm is Dk2Lcg lcg)
                     seedWriter.WriteLine($"{turn},{lcg.Seed}");
@@ -181,6 +186,9 @@ internal static class ReplayCommands
                 + $"{goldMoved} took ours from the next tile");
         if (dropsMoved > 0)
             Console.WriteLine($"  drops: {dropsMoved} moved to the nearest tile they land on, as the player would");
+        if (blueprintsHeld > 0)
+            Console.WriteLine($"  blueprints: {blueprintsHeld} held for a tile ours did not own yet, {blueprintsPlacedLater} "
+                + $"sent once it did, {pendingBlueprints.Count} never");
 
         // How many workers were available to answer the marks. A capture's approach
         // times cannot be compared against ours without it: two imps and five imps
@@ -249,6 +257,52 @@ internal static class ReplayCommands
             Console.WriteLine($"  ASSUMED tag {r.Tag} type {r.Type} in {r.Context}: {r.Count} "
                 + "-- taken as true: no modal interface state in a headless run");
         return 0;
+
+        // A recorded door or trap placement was made on a tile DK2's keeper had claimed. Ours may not
+        // have claimed it yet, and refusing it would leave the dungeon without a door or trap the
+        // player built for the rest of the run, which no player does: hold the placement and send
+        // it on the first turn ours owns the tile (owner, 2026-10-28). Every other refusal (solid,
+        // a room, occupied, gold) is the simulation's, as recorded.
+        // Off unless --blueprints retry: a replay's results stay comparable with the frozen rigs'.
+        InputFrame Deferred(long turn, InputFrame frame)
+        {
+            if (!retryBlueprints) return frame;
+            List<PlayerCommand>? kept = null;
+            foreach (PlayerCommand command in frame.All)
+            {
+                if (command is PlaceDoorCommand or PlaceTrapCommand && !OwnsTile(command))
+                {
+                    pendingBlueprints.Add((turn, command));
+                    blueprintsHeld++;
+                    eventWriter?.WriteLine($"{turn}	replay	blueprint_held	{Describe(command)}");
+                    continue;
+                }
+                (kept ??= []).Add(command);
+            }
+            for (int i = 0; i < pendingBlueprints.Count; i++)
+            {
+                (long heldAt, PlayerCommand command) = pendingBlueprints[i];
+                if (heldAt == turn || !OwnsTile(command)) continue;
+                (kept ??= []).Add(command);
+                pendingBlueprints.RemoveAt(i--);
+                blueprintsPlacedLater++;
+                eventWriter?.WriteLine($"{turn}	replay	blueprint_sent_later	{Describe(command)} recorded={heldAt}");
+            }
+            return kept is null ? (frame.All.Count == 0 ? frame : InputFrame.Empty) : new InputFrame(kept);
+        }
+
+        bool OwnsTile(PlayerCommand command)
+        {
+            TilePos at = command switch { PlaceDoorCommand d => d.Tile, PlaceTrapCommand t => t.Tile, _ => default };
+            return world.Contains(at) && world.Tile(at).OwnerPlayerId == command.PlayerId;
+        }
+
+        static string Describe(PlayerCommand command) => command switch
+        {
+            PlaceDoorCommand d => $"player={d.PlayerId} kind=door type={d.DoorId} at=({d.Tile.X},{d.Tile.Y})",
+            PlaceTrapCommand t => $"player={t.PlayerId} kind=trap type={t.TrapId} at=({t.Tile.X},{t.Tile.Y})",
+            _ => command.ToString() ?? string.Empty,
+        };
 
         // A packet's gold pickup names DK2's pile; ours is whichever loose pile lies on its tile.
         // A recorded drop lands where DK2's world let it. Ours may not have dug or claimed that
@@ -330,6 +384,7 @@ internal static class ReplayCommands
         long resyncAt = 0;
         string? jobPath = null;
         string? resyncMapPath = null;
+        bool retryBlueprints = false;
         for (int i = 4; i < arguments.Length; i += 2)
         {
             if (i + 1 >= arguments.Length) return ReplayUsage();
@@ -392,6 +447,11 @@ internal static class ReplayCommands
                     break;
                 // --resync-map: slot,ours rows naming our creature for a native slot at the resync,
                 // where the replay's entity map (converged for another build) names a wrong one.
+                // --blueprints retry: hold a recorded door or trap placement on a tile ours does not
+                // own yet and send it once ours does (the drop rule's reasoning, for blueprints).
+                case "--blueprints" when value == "retry":
+                    retryBlueprints = true;
+                    break;
                 case "--resync-map":
                     resyncMapPath = value;
                     break;
@@ -499,7 +559,7 @@ internal static class ReplayCommands
 
         return RunTriggerCsv(arguments[1], turns, arguments[3],
             log, rooms, tilePath, packet, entityIds, creaturePath, eventPath, dk2Random, seedPath, seed,
-            resync, resyncAt, jobPath, resyncMap);
+            resync, resyncAt, jobPath, resyncMap, retryBlueprints);
     }
 
     /// <summary>
@@ -555,7 +615,7 @@ internal static class ReplayCommands
             + "--packet recording.sav --packet-offset N [--entity-map ids.csv] [--turns N] "
             + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv] [--jobs jobs.csv] "
             + "[--rng dk2|xoshiro] [--seed N] [--seeds seeds.csv] "
-            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv]]");
+            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv]] [--blueprints retry]");
         return 2;
     }
 }
