@@ -93,6 +93,8 @@ namespace DK2.Unity
         private readonly ClassicTileFillBuffer _tileFill;
         private ClassicTileLightBuffer _tileLights;
         private readonly ClassicWorldLightCache _worldLights;
+        private readonly PortalCentreLights _portalCentreLights;
+        private int _portalLightRequestsPublished;
         private readonly ClassicLightFlags _torchFlags;
         private TilePos[] _visibleLightTiles = System.Array.Empty<TilePos>();
         private readonly HashSet<TilePos> _publishedLightTiles = new HashSet<TilePos>();
@@ -390,6 +392,7 @@ namespace DK2.Unity
                 _torchLights = new ClassicTorchLightBuffer(worldWidth, worldHeight);
                 _tileFill = new ClassicTileFillBuffer(worldWidth, worldHeight);
                 _worldLights = new ClassicWorldLightCache(worldWidth, worldHeight);
+                _portalCentreLights = new PortalCentreLights(new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)));
                 _torchFlags = cheapLighting ? ClassicLightFlags.CheapTorch : ClassicLightFlags.NormalTorch;
                 Shader.SetGlobalFloat("_DK2InitialAmbientPreview", classic.NativeInitialAmbient ? 1 : 0);
             }
@@ -641,6 +644,15 @@ namespace DK2.Unity
                         torch.transform.GetChild(0).GetComponent<ClassicTorchGeometry>()?.Refresh();
                 _torchGeometryDirty = false;
             }
+        }
+
+        public void SetPortalLights(IReadOnlyList<TilePos> requests)
+        {
+            if (_worldLights == null) return;
+            while (_portalLightRequestsPublished < requests.Count)
+                _portalCentreLights.Create(requests[_portalLightRequestsPublished++]);
+            _worldLights.UpdatePortalLights(_portalCentreLights.Advance(
+                new EffectTime((long)(Time.unscaledTimeAsDouble * 1000d)), _torchFlags == ClassicLightFlags.CheapTorch));
         }
 
         public void SetObjectLights(IReadOnlyList<ObjectView> objects, float fraction)

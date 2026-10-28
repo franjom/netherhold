@@ -13,7 +13,7 @@ view vtable `0x0066CC94` slot `+0xD4` is `0x004412E0`, forwarding coordinates to
 the presentation-grid bit-13 reader `0x004434B0` (see [tag-highlight.md §1](tag-highlight.md#1-the-state-presentation-grid-bit-13)).
 The adjacent slot `+0xD0` is `0x0043A980`, returning view camera `+0x3E5` and
 providing a positive control. Direct World slot `+0xD4` is instead `0x0050DEB0`,
-a no-argument list-byte getter. Q197 remains open.
+a no-argument list-byte getter. Q197 is answered in [portal-visibility.md](portal-visibility.md).
 
 Class 1 samples the repeated rock backdrop at HUD `+0x13BB`; other classes index
 the palette at `+0x138A`. Before rasterizing, the neutral player's three palette
@@ -93,7 +93,7 @@ for a modern smooth-rim representation, not a requirement to enlarge its pixels.
 The whole-map camera-footprint geometry and remaining material boundary are
 recorded in [Camera footprint](#camera-footprint-binary).
 
-[Q197](open-questions.md) remains open; the raster/overlay and grid-getter
+[Q197](open-questions.md) is answered; the raster/overlay and grid-getter
 exclusions and entrance comparison are in [portal-visibility.md](portal-visibility.md).
 
 ## Native resource loading (STRONGLY INFERRED, binary and shipped data)

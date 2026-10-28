@@ -431,6 +431,7 @@ namespace DK2.Unity
             InitializeHudControls(install, database, campaignLevel);
             _hoverText = new WorldHoverText(database, _hudSources.Strings.Resolve, new PlayerId((byte)viewingPlayerId));
             _startup.Step("hud.text");
+            _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             if (_classicCamera != null)
@@ -679,6 +680,7 @@ namespace DK2.Unity
             }
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
             FollowQueriedCreature();
+            _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());
             // The pick is last frame's: the hover is captured after the HUD is drawn, below.

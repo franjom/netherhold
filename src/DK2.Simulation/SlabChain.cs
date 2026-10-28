@@ -328,6 +328,41 @@ public static class SlabChain
             state.SlabOrder = world.NextSlabOrder++;
             state.RoomSizeChangedTick = now;
         }
+        world.NotifyRoomTilesChanged(chain);
+    }
+
+    /// <summary>Observation-only callbacks for action10's neighbour merges (0x004EC900).
+    /// The derived room already merges in state; this preserves each intermediate refresh.</summary>
+    internal static void ObserveCaptureMerges(WorldState world, RoomInstance room)
+    {
+        if (!world.ObservesRoomTileChanges) return;
+        List<int> chain = [.. Order(world, room)];
+        var taken = new HashSet<int>(chain);
+        var next = new Dictionary<int, int>();
+        Link(chain);
+        byte terrain = world.TileAtIndex(chain[0]).TerrainId;
+        PlayerId owner = world.TileAtIndex(chain[0]).OwnerPlayerId;
+        for (int current = chain[0]; current >= 0;)
+        {
+            int savedNext = next[current];
+            for (int d = 0; d < Dx.Length; d++)
+            {
+                int n = Neighbour(world, current, d);
+                if (n < 0 || taken.Contains(n) || !Same(world, n, terrain, owner)) continue;
+                List<int> other = Fill(world, n, terrain, owner, taken);
+                Sort(world, other);
+                next[chain[chain.Count - 1]] = other[0];
+                Link(other);
+                chain.AddRange(other);
+                world.NotifyRoomTilesChanged(chain);
+            }
+            current = savedNext;
+        }
+
+        void Link(List<int> tiles)
+        {
+            for (int i = 0; i < tiles.Count; i++) next[tiles[i]] = i + 1 < tiles.Count ? tiles[i + 1] : -1;
+        }
     }
 
     /// <summary>The room's <c>GameTickLastOnChangeSize</c> (<c>room+0x9F</c>); every tile of a room
