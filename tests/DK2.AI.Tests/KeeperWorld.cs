@@ -64,7 +64,7 @@ internal static class KeeperWorld
     public const byte Keeper = 3;
     public static readonly TilePos HeartAt = new(15, 15);
 
-    /// <param name="workshop">Adds the Workshop, doors 1 (Wooden) and 2 (a Barricade) and traps 1
+    /// <param name="workshop">Adds the Workshop, doors 1 (Wooden), 2 (a Barricade) and 3 and traps 1
     /// (trigger 0), 2 (the Boulder) and 3 (trigger 1), for the trap and door step.</param>
     public static GameDatabase Database(int handCapacity = 64, bool workshop = false)
     {
@@ -143,12 +143,14 @@ internal static class KeeperWorld
             Shot("Inferno", InfernoShotId, 2048, 30, 0x104, 0x2, ShotRules.InfernoProcess),
             Shot("Sight Of Evil", SightShotId, 2048, 64, 0x4, 0x42, SightProcess),
         ],
-        doors: workshop ? [Door(WoodenDoorId, DoorFlags.None), Door(BarricadeDoorId, DoorFlags.Barricade)] : null,
+        doors: workshop
+            ? [Door(WoodenDoorId, DoorFlags.None), Door(BarricadeDoorId, DoorFlags.Barricade), Door(LastDoorId, DoorFlags.None)]
+            : null,
         traps: workshop ? [Trap(1, 0), Trap(BoulderTrapId, 0), Trap(3, 1)] : null);
     }
 
     public const byte WorkshopFloor = 25;
-    public const byte WoodenDoorId = 1, BarricadeDoorId = 2, BoulderTrapId = 2;
+    public const byte WoodenDoorId = 1, BarricadeDoorId = 2, LastDoorId = 3, BoulderTrapId = 2;
 
     private static DoorDef Door(byte id, DoorFlags flags) => new()
     {

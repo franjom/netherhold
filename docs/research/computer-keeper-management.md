@@ -230,6 +230,10 @@ with 400 ticks since the last slap.
 
 ## 9. Traps and doors — `0x005000A0`, `0x004FFD80`
 
+**BUILT** as `KeeperTrapDoorStep` (ADR-0561). Records: [005000A0](functions/005000A0.md) (the step and
+its gate at `0x00500E62`), [004FFA50](functions/004FFA50.md) (site test),
+[004FFC40](functions/004FFC40.md) (spacing), [004FFD80](functions/004FFD80.md) (door or trap).
+
 The rectangle uses minima/maxima of the owned rooms' stored positions, not all
 their slabs, with the random margin and map clamp described in `KEEPER_AI.md`
 §5.6. The west-edge pass examines **only its first tile**: `0x0050021D` loads
@@ -246,6 +250,17 @@ otherwise its stop test is `random(4) > preference`. Other trap types with
 descriptor `+0xBD == 1` stop on `random(5) > preference`, the rest on
 `random(5) < preference`. A chosen type still requires its world placement
 predicate; after that passes, dispatch costs one allowance even if dispatch fails.
+
+Level 17 (three identical idle DK2 captures, 2026-10-28). Harkan's PLAYERS record has
+DoorPreference 0 and TrapVsDoor 4, so a door is laid whenever a site passes and each eligible
+door stops the scan 1 time in 100. He lays a Magic Door at tick 204, a Wooden Door at 915 and a
+Magic Door at 1182 (sites (19,4), (15,20), (15-16,2)); ours picks the same sites. The Wooden Door
+is STRONGLY INFERRED to be one of the 1-in-100 stops: the captures are one sample and his door
+availability at 915 is not captured. It leaves 12,650 gold when the Training Room expansion is
+decided against 500 x 25 = 12,500, which is why DK2 grows Training 12 -> 20 tiles at 1111-1138.
+Ours, 10 seeds x 3000 ticks: the usual Magic Door leaves the keeper short at that
+decision and the planner drops the request, so Training grew in 0 of 10 (9 of 10 without the step)
+and Harkan's Prison finished in 9 of 10 (10 of 10). Evidence paths: ADR-0561.
 
 ## 10. Room expansion — `0x004FBE00`
 

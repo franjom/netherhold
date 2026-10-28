@@ -111,6 +111,62 @@ public class KeeperTrapDoorStepTests
         Assert.Equal(1, left);
     }
 
+    [Theory]
+    [InlineData(0, KeeperWorld.LastDoorId)]  // stops on random(100) <= 0 only: the last door, as Harkan's Magic Door
+    [InlineData(1, KeeperWorld.WoodenDoorId)] // stops on random(100) <= 100: the first
+    [InlineData(3, KeeperWorld.LastDoorId)]  // 0x18000 maps to stop 0, as 0 does
+    public void DoorPreference_zero_lays_the_last_available_door_and_one_the_first(byte preference, byte expected)
+    {
+        WorldState world = World();
+        CorridorOnNorthEdge(world);
+        Available(world, AvailabilityKind.Door, KeeperWorld.WoodenDoorId);
+        Available(world, AvailabilityKind.Door, KeeperWorld.LastDoorId);
+
+        (_, List<PlayerCommand> commands) = Run(world, Params(trapVsDoor: 4, doorPreference: preference));
+
+        Assert.Equal(expected, Assert.IsType<PlaceDoorCommand>(Assert.Single(commands)).DoorId);
+    }
+
+    [Fact]
+    public void DoorPreference_two_stops_at_the_first_door_on_a_roll_of_fifty_or_less()
+    {
+        WorldState world = World();
+        CorridorOnNorthEdge(world);
+        Available(world, AvailabilityKind.Door, KeeperWorld.WoodenDoorId);
+        Available(world, AvailabilityKind.Door, KeeperWorld.LastDoorId);
+        // The Workshop, usage and margin draws, the door-or-trap roll, then the Wooden Door's stop roll.
+        var twin = new SimRandom(Seed);
+        twin.NextInt(1); twin.NextInt(100); twin.NextInt(10); twin.NextInt(4);
+        byte expected = twin.NextInt(100) <= 50 ? KeeperWorld.WoodenDoorId : KeeperWorld.LastDoorId;
+
+        (_, List<PlayerCommand> commands) = Run(world, Params(trapVsDoor: 4, doorPreference: 2));
+
+        Assert.Equal(expected, Assert.IsType<PlaceDoorCommand>(Assert.Single(commands)).DoorId);
+    }
+
+    [Fact]
+    public void The_west_edge_tests_only_its_first_tile_and_the_east_edge_all_of_its()
+    {
+        // The box is the Workshop (14,10) and the heart (18,18) grown by the margin; a corridor on
+        // the west edge two tiles below its corner is never reached (0x0050025F compares with the
+        // same minimum), one on the east edge is.
+        int m = Margin();
+        var west = new TilePos(14 - m, 10 - m + 2);
+        var east = new TilePos(18 + m, 10 - m + 2);
+
+        WorldState world = World();
+        KeeperWorld.Set(world, Db, west, KeeperWorld.ClaimedPath, Keeper);
+        Available(world, AvailabilityKind.Door, KeeperWorld.WoodenDoorId);
+        (_, List<PlayerCommand> commands) = Run(world, Params(trapVsDoor: 4));
+        Assert.Empty(commands);
+
+        world = World();
+        KeeperWorld.Set(world, Db, east, KeeperWorld.ClaimedPath, Keeper);
+        Available(world, AvailabilityKind.Door, KeeperWorld.WoodenDoorId);
+        (_, commands) = Run(world, Params(trapVsDoor: 4));
+        Assert.Equal(east, Assert.IsType<PlaceDoorCommand>(Assert.Single(commands)).Tile);
+    }
+
     [Fact]
     public void An_own_trap_within_three_tiles_keeps_the_site_empty()
     {

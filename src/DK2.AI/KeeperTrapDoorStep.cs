@@ -19,7 +19,7 @@ namespace DK2.AI;
 /// this pass's spacing and tile tests see through <see cref="_pendingDoors"/> and
 /// <see cref="_pendingTraps"/>, held only when the gold is there, as DK2 lays nothing short of
 /// gold; the next tick's pass does not see them. The dig-tag test reads the tile's tag for the
-/// keeper, not its task pool's kinds 1 and 2 (<c>0x00508290</c>, ADR-0408).</remarks>
+/// keeper, not its task pool's kinds 1 and 2 (<c>0x00508290</c>), as task 7 does (KeeperAI.DigPath).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-management.md")]
 public sealed class KeeperTrapDoorStep
 {
@@ -64,7 +64,7 @@ public sealed class KeeperTrapDoorStep
         if (_view.RandomRoomOfType(_view.PlayerId, RoomTypeId.Workshop, _rng) is null) return allowance;
         if ((uint)_rng.NextInt(100) >= _p.TrapAndDoorUsage) return allowance;
 
-        // The rooms' stored positions (+0x27), compared unsigned.
+        // The rooms' stored positions (+0x27): two 16-bit words, so the signed compares cannot go negative.
         int minX = int.MaxValue, minY = int.MaxValue, maxX = 0, maxY = 0;
         foreach (KeeperRoomView room in _view.RoomsOf(_view.PlayerId))
         {

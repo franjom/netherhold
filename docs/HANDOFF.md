@@ -149,15 +149,15 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (ADR-0470) are built. Left unbuilt: Horny's idle AI, the third cast path
   (action 56 only, Q537) and the held-creature regeneration in Q152.
 - M12 remains partial. DK2.AI.KeeperAI is an input source that emits
-  PlayerCommands through a detached, serialisable observation (schema 19).
+  PlayerCommands through a detached, serialisable observation (schema 20).
   The task machine digs, expands, builds rooms, manages gold and imps, and
   bridges water and lava; every message type its walk reads is produced and
   consumed (ADR-0353, ADR-0412–0418); the threat response, retreat, battle step,
   Call to Arms, Thunderbolt, Heal, Chicken, Inferno, Create Gold and Sight of
   Evil run through simulation commands; the attack planner tunnels, stages and
   calls its army; the nine lobby personalities load (ADR-0410). Left: the
-  research move, prisoner/special decisions and the trap/door step (parked,
-  below). See KEEPER_AI.md §12.7–12.8. Same-map comparisons against DK2's own
+  research move and prisoner/special decisions. The traps-and-doors step is
+  built (ADR-0561). See KEEPER_AI.md §12.7–12.8. Same-map comparisons against DK2's own
   keepers (Level 17, Level 11A) are in computer-keeper-observations.md, whose
   last section is the acceptance table; open timing differences are Q563 and
   Q574.
@@ -317,8 +317,9 @@ tools/classic-unity-probe/README.md.
 2. Owner's standing priority (2026-10-10): the excess Level7 Imp deaths (Q582),
    not an accepted deviation; see combat-acquisition.md §1.
 3. M12: the owner decides whether Q563 and Q574 close M12 or are narrowed
-   first; the trap/door step resumes when digging matches DK2 better (Level 17's
-   Prison still stalls in some seeds). Compare with every computer keeper running and
+   first; Level 17 with the traps-and-doors step finishes Harkan's Prison in 9 of
+   10 seeds and grows Training in 0 of 10 (DK2: 12 -> 20 tiles), an open
+   difference of ADR-0561. Compare with every computer keeper running and
    on the record's gold. Do not infer an UNKNOWN rule from a name.
 4. M7: Q513 and the owner observations in experiments/doors-and-traps.md.
 5. Possession: the Unity first-person camera and input
@@ -367,12 +368,10 @@ Run git worktree list first; another session may own these.
   research/imp-dig-sequence.md. Next: matched arrival-to-choice inputs, and
   moving the other actions' closed-form holds onto the stored clock. Heart visual acceptance remains Q585.
 
-- build/classic-step6, classic-look/step6: unmerged presentation work with local
-  changes; preserve it.
 - Merged checkouts and two obsolete detached probes were removed on 2026-10-18.
-  Three named `housekeeping 2026-10-18` stashes preserve the classic Unity edits,
-  parked trap/door work and work-only probe. Recovery hashes and the verified
-  unique-file archive are recorded in
+  The three `housekeeping 2026-10-18` stashes were dropped on 2026-10-28: the
+  trap/door work is built (ADR-0561); the classic Unity edits were material
+  re-serialisation and the work-only probe a debug print. The archive is in
   reverse-engineering/housekeeping-20261018/manifest.json (local, gitignored).
 
 ## Where to work
