@@ -13,8 +13,14 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
   levels (docs/experiments/). M6 remains partial: the latest completed packet
-  measurement is hash309 at `490b7d82` (2026-10-26; write-up
-  D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
+  measurement is hash320 at `65e529b7` (2026-10-28; write-up
+  D:\DK2Evidence\runs\packet-replay-hash320\README.md): 79 of 80 runs valid (Level 4
+  seed 4's fixed-map remap ran out of creatures to pair), wins 19/8/13/3 (of 20, 20, 20
+  and 19 valid) against hash309's 18/8/16/1 of 20, per-seed outcomes reshuffled on every
+  level, none beyond 20-seed noise; Level 4 Imp deaths median 8 (19 runs) against 14.5
+  (0-55 per seed; 13 of 19 seeds moved by 10 or more, so not a direction). It spans hashes
+  310-320; no sweep isolates them. The previous measurement is hash309 at `490b7d82`
+  (2026-10-26; D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
   18/8/16/1 of 20 against hash305's 18/9/17/1; Level 1 seeds 3 and 7 now win and
   6 and 11 lose; Level 4 Imp deaths median 14.5 against 7, with Imp flees, alarms
   and withdrawals all up and no-destination endings not. Isolating sweeps at
@@ -23,7 +29,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   these replays; the death median already reads 15 at hash306 (hero-party order),
   and a permutation test puts the 7 -> 15 shift at p ~ 0.15, inside seed noise.
   ADR-0543 (hash307) raised withdrawals (median 85 -> 112.5), untested for
-  significance. The previous measurement is
+  significance. The one before is
   [hash305](experiments/2026-10-25-packet-replay-hash305/README.md), with
   hash303/P2 comparisons and mapping limits. The historical [hash303 failure analysis](experiments/2026-10-25-packet-replay-hash303/analysis.md)
   separates observed blockers from open causes; the current report checks the
@@ -88,8 +94,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   for a staged live creature or trap, each caller staging what DK2 does (ADR-0545,
   hash/save 309). Measured together with 306–307 at 490b7d82 (below).
 - Level alliances (VARIABLES id 66) are applied at load and saved (ADR-0546); the game mode
-  and the verdict recursion are built (ADR-0547, hash/save 310; Q359, Q576). No packet or
-  win rig has been run since hash 309. Q652: Level 11A's Drako no longer calls at Morgana's
+  and the verdict recursion are built (ADR-0547, hash/save 310; Q359, Q576). The packet
+  sweep was rerun at hash 320 (above). Q652: Level 11A's Drako no longer calls at Morgana's
   front, a known regression.
 - One creature's whole update runs before the next one's, newest first (ADR-0554, hash/save 315):
   `CreatureUpdateSystem` runs the fight, needs, anger, state handlers, mover and an Imp's handler
@@ -128,10 +134,13 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   That order follows from the north seam (31,54) falling at 324 against 305 with other Imps at its
   face, each step the faithful rule, and the first-dig lag is RNG (STRONGLY INFERRED, one seed;
   [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
-  the drift from 131 to about 550 needs no rule difference. Next: Imp 26's walk, the late post-Guard switch, why ours' mining stints are shorter and more numerous from DK2's state (ADR-0562 and ADR-0563, hash/save 320, fixed when state 26 asks its hands, store and pile checks: on the call that begins an action; the surplus stays, 101 mining walks to DK2's 80 from the 3400 resync, HYPOTHESIS: crowding; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), deaths across seeds. The resync does not copy
+  the drift from 131 to about 550 needs no rule difference. Next: Imp 26's walk, the late post-Guard switch, why ours' mining stints are shorter and more numerous from DK2's state (ADR-0562 and ADR-0563, hash/save 320, fixed when state 26 asks its hands, store and pile checks: on the call that begins an action; the surplus stays, 101 mining walks to DK2's 80 from the 3400 resync and 91 to 70 from a 3700 resync, with equal Imp-time on mining; from 3700 about half of the extra starts follow steals of a walking Imp's seam slot (18 against 6, DK2's count inferred from capture frames; from 3400 only 4 against 1), and the steal test in `0x00469AF0` ours matches for a walking holder (a holder at its seam is measured from its stance point in ours, from its position in DK2), so what fills ours' seams with walkers and the rest of the surplus is open, HYPOTHESIS: state; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), deaths across seeds. The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
   creature triggers that matter fire. Some trigger timer stamps differ from DK2's by one tick,
-  not investigated. The win and packet rigs have not been rerun at hash 320.
+  not investigated. The Level 1-4 packet sweep, which also gives the win counts, was rerun at hash 320
+  (M6 above). DK2's own Level 11A ten-seed captures (`dk2runs/level11A-seeds`) were lost in the
+  2026-10-18 cleanup; the capture driver `run.ps1` was recovered from session logs but has not
+  been re-run (D:\DK2Evidence\recovered-rig-2026-10-19\RECOVERY.md); the packet `m12l11a.sav` survives.
 - M7 remains partial: combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and

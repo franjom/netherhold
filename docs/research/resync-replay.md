@@ -168,7 +168,7 @@ resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
 The drift before 3790 (the dig order at about 550) comes from the first dig's lag, which is RNG
 (STRONGLY INFERRED, one seed; creature-update-order.md, "The first dig and RNG").
 
-## Mining against reinforcing (resyncs at 3000 and 3400)
+## Mining against reinforcing (resyncs at 3000, 3400 and 3700)
 
 Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Mining over reinforcing in
 3000-4000, resynced", and its review corrections; runs in `resync-reinforce/`. Unsynced in 3000-4000
@@ -207,6 +207,19 @@ hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different cou
   call that begins an action, so a first-strike fill leaves 3 or 4 ticks after its strike, as DK2's
   do. From the 3400 resync ours still starts 101 mining walks to DK2's 80, to 4000. The counts above
   (strikes, crowding, stints) were taken before ADR-0563 and are not recounted.
+- A third point, 3700 to 4100 at hash 320 (`resync-reinforce/run3700`, "The mining surplus at a second
+  resync point"): mine starts 70 native, 91 ours; reinforce 22/24, claim 21/27. Imp-time on mining is
+  equal (6.8 and 6.9 Imps), so ours spends it in more, shorter starts. Seam crowding is 19% against
+  7% native there but 8% from the 3400 resync, so it is not a steady rule difference.
+  - Steals of a walking Imp's seam slot: 18 against 6 (DK2's count is inferred from capture frames, so
+    it may be exaggerated); from 3400 only 4 against 1. A steal adds at most one start, so from 3700
+    that is about half of the 21 extra starts, and from 3400 3 of 21. The rest is open, HYPOTHESIS:
+    state.
+  - The steal test in `0x00469AF0`'s mine arm ours matches for a walking holder (`TaskStealing`
+    shifts each axis' square right 12 as DK2 does). For a holder at its seam, ours measures from its
+    stance point in 25 and 26 (`TaskStealing.HolderPosition`) where DK2 reads every holder's
+    `+0x1A/+0x1E` (disassembly `0x0046A1AA`-`0x0046A2F9`). No steal counted here is from such a
+    holder, so the difference is real and unexercised.
 - A walk to a seam that fell on the way: DK2's state 25 (`0x00465790`) finds the task entry gone and
   goes to 10. Ours ends the walk `out_of_reach` through state 1. Both choose two ticks after arrival
   (20 native, 15 ours), so it is only a label.
