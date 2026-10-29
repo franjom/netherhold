@@ -727,7 +727,7 @@ public class LairAcquisitionTests
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         LairRules.PlaceBed(world, db, goblin, Index(world, 8, 3));
-        goblin.AwakeTicks = SimulationTiming.TicksFromSeconds(db.CreatureById(GoblinId).TimeAwake);
+        goblin.SleepDebtTicks = SimulationTiming.TicksFromSeconds(db.CreatureById(GoblinId).TimeSleep);
         GameSimulation sim = Walking(db, world, events);
 
         Assert.Equal(

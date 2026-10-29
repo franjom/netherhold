@@ -281,7 +281,6 @@ public static class CreatureDeathRules
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
-        creature.AwakeTicks = 0;
         CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
         CreatureStateMachine.TrySetState(context.Hooks, creature, LairRules.SleepingState);
         return true;
@@ -305,7 +304,6 @@ public static class CreatureDeathRules
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
-        creature.AwakeTicks = 0;
         // 217's way out is SetState(1); ours then lies down in the bed, 83 (ADR-0206).
         CreatureStateMachine.TrySetState(hooks, creature, CreatureStateMachine.Idle);
         CreatureStateMachine.TrySetState(hooks, creature, LairRules.SleepingState);

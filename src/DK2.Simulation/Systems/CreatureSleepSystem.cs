@@ -8,18 +8,9 @@ using DK2.Pathfinding;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>Beds and sleep: how a creature gets a bed, walks to it, sleeps in it and
-/// wakes.</summary>
-/// <remarks>STRONGLY INFERRED from the original's own lair state, the owner's
-/// recordings CONFIRMing the outcome (ADR-0060, docs/research/lair-acquisition.md §4,
-/// §5). An idle creature with no bed tries to get one before anything else, whatever
-/// its mood (Q150), and a creature whose <c>TimeAwake</c> has run out makes the same
-/// attempt; a failed one retries every <see cref="LairRules.IdleRedecisionTicks"/>. A
-/// bed that stops existing is replaced, not mourned — CONFIRMED (owner, 2026-09-04) —
-/// so losing one drops the creature to idle and back into that attempt, and only one
-/// that finds no free tile is left bedless and on <see cref="CreatureAngerSystem"/>'s
-/// ladder. Ours: the idle retry cadence, the room centre as the walk's target (Q157),
-/// the room walk in ascending tile index, and no third-of-a-tile target jitter.</remarks>
+/// <summary>Lair acquisition and sleep, including persistent debt and the four-turn tired retry.</summary>
+/// <remarks>STRONGLY INFERRED from creature-needs-routine.md and lair-acquisition.md.
+/// Bedless idle acquisition retains its separate twelve-turn fallback.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/lair-acquisition.md")]
 public sealed class CreatureSleepSystem : ICreatureUpdateStep
 {
@@ -81,6 +72,8 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         // not act until it is put down (HandRules.IsHeld, ADR-0062).
         if (HandRules.IsHeld(creature)) return;
 
+        NeedRules.UpdateSleepClock(definition, creature, context.Tick);
+
         // A prisoner's cell IS what it does: it wanders (PrisonerWanderSystem,
         // every tick), eats what is dropped among it (PrisonerEatSystem) and
         // its health is the prison's (PrisonSystem, every second). ADR-0073.
@@ -89,9 +82,9 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         // line sits is the rule. After the bed-validity check above, because
         // a tile that stopped being a lair stopped existing whatever its
         // owner is doing and a leftover bed object would make BedTaken lie;
-        // before the attempt below, because getting a bed is the creature
-        // acting - a walk and a placement (Q107).
-        if (CreatureDeathRules.IsDown(creature)) return;
+        // before an autonomous attempt. A rescued state-83 sleeper at zero
+        // health still runs its sleep hook and handler while waiting for healing.
+        if (CreatureDeathRules.IsDown(creature) && creature.Dk2StateId != LairRules.SleepingState) return;
 
         // A creature walking out of the dungeon does not stop for a nap,
         // and above all does not go for a bed on its way past the lair —
@@ -113,24 +106,23 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
                 break;
 
             case CreatureActivity.SeekingLair:
-                creature.AwakeTicks++;
                 if (creature.Dk2StateId == LairRules.SelectingBedState)
                     SelectingBed(context, creature, definition);
                 else Seeking(context, creature, definition);
                 break;
 
             default:
-                creature.AwakeTicks++;
                 if (bedIndex >= 0)
                 {
-                    // The needs routine's mask test (NeedRules, ADR-0198); in the Casino's
-                    // states tiredness is not felt, but the wound branch still is, and its
-                    // Sleep job routes only on the latch (0x0046F440), so wounded and tired.
-                    bool wants = LairRules.WantsToSleep(database, definition, creature)
-                        && (NeedRules.TirednessClockRuns(creature)
-                            || CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature));
-                    if (wants && NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)
-                        && !NeedRules.IsBusy(context.World, creature, context.Tick.Value))
+                    if (!LairRules.WantsToSleep(database, definition, creature)
+                        || !NeedRules.MayAsk(creature, CreatureStateCategory.Sleeping)) break;
+                    bool wounded = CreatureHealthRules.ShouldSleepFromWounds(database, definition, creature);
+                    bool retryDue = context.Tick >= creature.NextSleepTryTick;
+                    if (retryDue)
+                        creature.NextSleepTryTick = new GameTick(context.Tick.Value
+                            + NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks);
+                    else if (!wounded) break;
+                    if (!NeedRules.IsBusy(context.World, creature, context.Tick.Value))
                         SetOff(context, creature, definition);
                     break;
                 }
@@ -422,6 +414,11 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     {
         if (creature.SleepTicks == 0 && LairRules.BedOf(context.World, context.Database, creature) is { ObjectTypeId: LairRules.MistressBedObjectId } bed)
             PlaceOnBed(context.World, creature, bed);
+        if (creature.Dk2StateId == LairRules.SleepingState)
+        {
+            creature.SleepDebtTicks = Math.Max(0, creature.SleepDebtTicks - 1);
+            creature.LastSleptTick = context.Tick;
+        }
         creature.SleepTicks++;
 
         if (!LairRules.HasSleptEnough(context.Database, definition, creature)) return;
@@ -445,7 +442,6 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
     /// <summary>83's own exit for an ordinary bed returns failure, which is idle.</summary>
     private static void Wake(SimulationContext context, CreatureState creature)
     {
-        creature.AwakeTicks = 0;
         creature.SleepTicks = 0;
         creature.StopMoving();
         StateShadow.ToIdle(context, SystemName, creature);

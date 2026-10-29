@@ -409,25 +409,10 @@ public static class LairRules
         return world.Contains(at) && (at.Y * world.Width) + at.X == bed;
     }
 
-    /// <summary>Whether it is time for a creature with a bed to go to it: it has been awake
-    /// for the record's <c>TimeAwake</c>. A wound alone is not enough: the needs routine's
-    /// wound branch (<c>0x00478023</c>) calls the Sleep job, which routes to a bed only while
-    /// the sleep latch <c>+0x58</c> is set (<c>0x0046F440</c>). Wounds put a <i>bedless</i>
-    /// creature to sleep, through the lair attempt and state 80's wound test.
-    /// <para>The cycle itself is a reading (Q103): a Goblin says <c>TimeAwake</c> 240
-    /// and <c>TimeSleep</c> 9, and taking both as seconds gives four minutes up and
-    /// nine seconds down, which fits because nine seconds at 100 health a second is
-    /// 900, over half a Goblin's 1500 — a short sleep is a big heal. Only the owner can
-    /// settle it.</para>
-    /// </summary>
+    /// <summary>A bedded creature routes for unpaid sleep debt; wounds alone do not create debt.</summary>
     public static bool WantsToSleep(
-        GameDatabase database, CreatureDef definition, CreatureState creature)
-    {
-        if (!NeedsBed(definition)) return false;
-        if (definition.TimeAwake >= CreatureHealthRules.Never) return false;
-
-        return creature.AwakeTicks >= SimulationTiming.TicksFromSeconds(definition.TimeAwake);
-    }
+        GameDatabase database, CreatureDef definition, CreatureState creature) =>
+        NeedsBed(definition) && NeedRules.IsTired(definition, creature);
 
     /// <summary>Whether this creature may wake. DK2's state 83 leaves only when its rest
     /// need has run out <b>and</b> its health has reached the level-scaled maximum, so a
@@ -439,6 +424,6 @@ public static class LairRules
     /// way out either way (<see cref="BedStillValid"/>).</remarks>
     public static bool HasSleptEnough(
         GameDatabase database, CreatureDef definition, CreatureState creature) =>
-        creature.SleepTicks >= SimulationTiming.TicksFromSeconds(definition.TimeSleep)
+        creature.SleepDebtTicks == 0
         && creature.Health >= CreatureHealthRules.MaxHealth(database, definition, creature);
 }

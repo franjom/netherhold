@@ -11,6 +11,10 @@ The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
+- Sleep debt, needs-clock suppression and tired retries are built at hash/save 330
+  (ADR-0579, Q651/Q674). Native replay outcomes remain measured only through
+  hash328; remaining needs timing gaps are in creature-needs-routine.md section 5.
+
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
   levels (docs/experiments/). M6 remains partial: the latest completed packet
   measurement is hash328 at `0c0f7042` (2026-10-29; write-up

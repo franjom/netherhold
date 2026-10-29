@@ -147,18 +147,21 @@ one-second throttle for autonomous lair attempts.
   is asked whenever its state admits the need. Hunger sets 91 and pay sets 187
   directly from the job's state, as `0x004633D0` and the payday check do. The job
   ends.
-- The hunger clock stops in bit-3 states. Tiredness is not felt in bit-4 states:
-  ours asks whether it is tired at the moment of the decision, where DK2 latches
-  `+0x58` when the period passes, so a creature tired before it sat down at a table
-  would still be sent to bed by DK2.
-- **Remaining clock gaps (2026-10-29):** ours' hunger update tests only bit 3,
-  so group-7 eating/lair/pay states can accrue hunger before DK2 would. Its
-  sleep system increments `AwakeTicks` while making a lair, but skips prisoners
-  entirely. `SleepTicks` resets on sleep entry and requires a fresh `TimeSleep`,
-  unlike the persistent debt described in section 3 (Q651). The constant
-  `LairRules.IdleRedecisionTicks = 12` is the bedless idle fallback, while a
-  bedded tired attempt currently lacks the native 4-turn retry timestamp.
-- The order of our systems is DK2's: eat, then sleep, then pay, as steps of `CreatureUpdateSystem`
+- **Persistent sleep debt (ADR-0579, hash/save 330):** `LastSleptTick`,
+  `SleepDebtTicks` and `NextSleepTryTick` replace the awake counter. Debt is
+  loaded when overdue, preserved across entry, interruption, capture and rescue,
+  and reduced only in state 83. That handler refreshes the last-sleep stamp;
+  waking requires zero debt and full health. `SleepTicks` is only a session counter.
+- Hunger is checked every tick. Raw group 7 and the respective clock flags
+  defer overdue hunger/debt updates without stopping elapsed time. Captivity
+  permits clock updates but blocks bed attempts. Tired attempts stamp the
+  four-turn retry before checking busy; the wounded branch can bypass the gate.
+- **Remaining clock gaps:** constructor stamps still use the spawn tick rather
+  than the native entity-id eight-turn stagger (Q102). Hunger updates still run
+  in the health pass after creature handlers, rather than ahead of sleep/pay
+  decisions in the native needs routine (Q674). Native capture timing has not
+  been compared for this change.
+- Need attempts run eat, then sleep, then pay, as steps of `CreatureUpdateSystem`
   inside each creature's update (ADR-0554); the payday clock's own call skips the stamp and
   runs before the creatures ([payday.md](payday.md) §2).
 - **The cannot-sleep drain** (ADR-0199), `NeedRules.CannotSleepHealthPerSecond`: variable
@@ -175,8 +178,7 @@ one-second throttle for autonomous lair attempts.
   attempts test it after their own stamps.
 
 **Not built:** the alert timer, possession, rebels and the big winner in
-the busy test (the Call To Arms is built, ADR-0279) (each is one of our activities or unbuilt); the wounded attempt's missing
-4-turn gate (ours shares the tired path, so with a bed it needs tiredness, ADR-0543); a bedless
+the busy test (the Call To Arms is built, ADR-0279) (each is one of our activities or unbuilt); a bedless
 wounded creature's lair attempt from a job (ours tries only from idle, Q150). Creatures still
 on our own activities (combat, leaving, fleeing) are asked by none of the three, as
 before.

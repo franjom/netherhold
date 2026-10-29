@@ -417,14 +417,16 @@ public sealed class CreatureState
     // Ask LairRules.BedTileIndex or LairRules.BedOf; docs/research/objects.md
     // section 7, Q130.
 
-    /// <summary>Ticks this creature has been awake, counting up towards the record's
-    /// <c>TimeAwake</c> in seconds (240 for a Goblin). Reset on waking, not on
-    /// falling asleep, so the cycle is "awake for TimeAwake, then asleep for
-    /// TimeSleep" rather than a fixed period. Whether that is DK2's cycle is
-    /// UNKNOWN (Q103).</summary>
-    public int AwakeTicks;
+    /// <summary>Native LastSleptTime (+0x54): refreshed on debt reload and each state-83 update.</summary>
+    public GameTick LastSleptTick;
 
-    /// <summary>Ticks this creature has been asleep, counting up towards <c>TimeSleep</c>.</summary>
+    /// <summary>Unpaid sleep need (+0x58), in ticks; only state 83 pays it down.</summary>
+    public int SleepDebtTicks;
+
+    /// <summary>Earliest tired-need retry; the native +0x5C last-attempt stamp plus four turns.</summary>
+    public GameTick NextSleepTryTick;
+
+    /// <summary>Ticks in this sleep session, for presentation and diagnostics; debt controls waking.</summary>
     public int SleepTicks;
 
     /// <summary>Ticks spent in the current death state, counting up — two clocks in one
@@ -1344,7 +1346,9 @@ public sealed class CreatureState
         hash.Add(HungerNeed);
         hash.Add(FoodOwedAfterMeal);
         hash.Add(FoodAttemptTicks);
-        hash.Add(AwakeTicks);
+        hash.Add(LastSleptTick.Value);
+        hash.Add(SleepDebtTicks);
+        hash.Add(NextSleepTryTick.Value);
         hash.Add(SleepTicks);
         hash.Add(DyingTicks);
         Anger.Hash(ref hash);

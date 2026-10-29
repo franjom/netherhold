@@ -7,16 +7,9 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>Regeneration, hunger's clock, and death — once a game second, on its last
-/// tick, the phase <see cref="ManaSystem"/> uses.</summary>
-/// <remarks>Per second rather than per tick because every number it applies is written
-/// per second in the data; Q1 is settled at DK2's own four ticks a second and these are
-/// still per-second numbers. Zero health is not death: a creature collapses for
-/// <c>CreatureDyingStateDurationSeconds</c> (60), rescuable by an imp that carries it
-/// back to its bed, and only then dies — CONFIRMED by the owner (Q99); the whole
-/// process, and which half of it is missing, is in <see cref="CreatureDeathRules"/>.
-/// Registered after <see cref="PortalSystem"/>, so a creature that arrives this tick is
-/// not regenerated on it and its hunger clock starts from a full second.</remarks>
+/// <summary>Hunger clock updates each tick; regeneration, damage and death once per game second.</summary>
+/// <remarks>Zero health enters the rescue window rather than immediately creating a corpse.
+/// Lair healing follows the sleep step so a rescued sleeper can recover before collapse is booked.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-needs.md")]
 public sealed class CreatureHealthSystem : ISimulationSystem
 {
@@ -26,7 +19,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
+        bool healthDue = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -35,6 +28,12 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         for (int i = world.Creatures.Count - 1; i >= 0; i--)
         {
             CreatureState state = world.Creatures[i];
+            if (!healthDue)
+            {
+                if (!state.Possessed && !CreatureDeathRules.IsDying(state) && !CreatureDeathRules.IsCorpse(state))
+                    Hunger(context, database.CreatureById(state.CreatureTypeId), state);
+                continue;
+            }
 
             // A prisoner's HEALTH belongs to PrisonSystem alone: it withers at
             // PrisonModifyCreatureHealthPerSecond and dies into a Skeleton, not a
@@ -160,9 +159,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     {
         if (!CreatureHealthRules.CanGetHungry(creature)) return;
 
-        state.HungerTicks += SimulationTiming.TicksPerSecond;
+        state.HungerTicks++;
 
-        // The Casino's states stop the clock but not its time (NeedRules, ADR-0198).
+        // Group 7 and clock flags defer the update, not elapsed time (ADR-0579).
         if (!NeedRules.HungerClockRuns(state)) return;
 
         // The clock ADDS a helping and restarts; it does not raise a flag. A

@@ -332,10 +332,9 @@ zero-sleep bed users can complete a directed relocation, while bedless types
 reach state 79's rejection instead of remaining stuck in it.
 
 The state-category hook supplies rest depletion and the once-per-second lair
-effect. The persistent sleep debt, its zero-debt manual-drop case and the
-remaining `SleepTicks` mismatch are in
-[creature-needs-routine.md](creature-needs-routine.md) section 3 (Q651).
-ADR-0173 corrected ours' health gate (Q403); it did not implement that latch.
+effect. Persistent debt and the zero-debt manual-drop case are now built
+(ADR-0579); see [creature-needs-routine.md](creature-needs-routine.md) sections 3-5
+for evidence and remaining clock gaps. ADR-0173 supplies the health gate (Q403).
 
 States 82 and 84 have table flag byte `+0x18 = 5`, while 83 has 4. The only
 difference is bit 0. None of these handlers reads that byte, and the executable
