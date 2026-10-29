@@ -1,5 +1,11 @@
 # DK2.Harness
 
+Each run writes `timings.txt` beside its deterministic report, with tick percentiles,
+marker times, allocations and the worst tick after two warm-up ticks. The harness hashes
+while computer keepers think (ADR-0578); `state hash wait` is the remaining join time.
+`RunOptions.OverlapStateHash = false` measures hashing serially. Allocations count the run
+thread and exclude pool-thread hash allocations when overlap is enabled.
+
 The headless scenario runner (an `Exe` on `net10.0`, not loaded by Unity). It loads
 YAML scenarios (`Scenario.cs`), builds a world, runs the simulation and any computer
 keepers, checks `expect` claims, and writes a report per run.

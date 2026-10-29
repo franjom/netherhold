@@ -13477,3 +13477,32 @@ no change to simulation registration, RNG order or keeper decisions. Keeper stag
 the simulation hash and snapshot, so neither version changes. Hosts can omit staging to obtain
 the original independent builds. Tests compare complete view packets, changed routing bytes,
 multiple keepers and reuse through the router's generation wrap.
+
+## ADR-0578 - The harness hashes the world while the keepers think
+**Date:** 2026-10-29 · **Status:** accepted · No hash change
+
+**Context.** After ADR-0576/0577, Drako still spends 0.651 ms/tick hashing and 1.927 ms in keeper
+AI. Both can read the settled world after the serial simulation tick.
+
+**Decision.** `RunOptions.OverlapStateHash` defaults to true. On a nonfinal tick with computer
+keepers, run the hash on a pool thread while keeper views and thinking remain serial on the
+run's thread. Join the hash before journals, divergence checks, monitoring, controllers or the
+next tick. False keeps a serial measurement and equivalence control. Unity is unaffected.
+
+**Audit (82e583ab).** `StateHash` calls world, navigation and RNG `HashInto`; nested hashes read
+stored fields, collections and wrappers only. Navigation hashes its existing mesh without
+refresh/query calls. The built-in RNGs hash stored words without drawing. Secret-door and trigger
+ordering uses private LINQ buffers; level counters allocate a private array. No hash path reads
+`StructureCache`, `RoomSweepCache` or `KeeperStaging`. The scenario factory only constructs the
+audited Xoshiro and DK2 generators. Views write the first two derived world caches and staging;
+`StructureBlocks.For` rewrites cache scratch even on hits. Those writes require serial views.
+Keeper state, RNG and route caches belong to individual keepers. The two shared route scratch
+lists belong to tick-only rules and are reached by neither hash nor keeper observation.
+
+**Consequences.** Keep the hash's exception precedence: a hash failure wins; a keeper failure
+is captured with its stack and thrown after that tick's hash and monitor are recorded. Keeper
+profiling spans close in `finally`. Thinking now precedes `AfterTick`; its snapshot writer reads
+the live world, shadow ticks mutate a separate world, and progress sampling only observes the
+live state. Monitored equivalence tests exercise that order. `state hash wait` measures the
+remaining join time; the full hash duration is visible in serial mode. Allocation measures only
+the run thread, as before; it excludes pool-thread hashing allocations in overlap mode.
