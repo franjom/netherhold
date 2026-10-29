@@ -36,6 +36,15 @@ public sealed class SimulationContext
     internal HashSet<CreatureState> TremorMoodDispatchedThisTick { get; } = [];
     // Cleared before every turn; the creatures CreatureAngerSystem ran the angry chooser for.
     internal HashSet<CreatureState> AngryChooserRanThisTick { get; } = [];
+    // Cleared before every turn; the creatures a combat handler left in state 1, whose own handler
+    // runs on the next turn (0x00476FC0 runs one handler a turn).
+    internal HashSet<CreatureState> IdledByCombatHandlerThisTick { get; } = [];
+
+    /// <summary>The creature is in state 1 because a combat handler set it this turn, so 1's own
+    /// handler waits for the next turn. A host sweeping steps alone on a context of its own
+    /// (<see cref="Systems.CreatureUpdateSystem.RunAlone"/>) never clears the set.</summary>
+    internal bool IdleHandlerWaits(CreatureState creature) =>
+        creature.Dk2StateId == CreatureStateMachine.Idle && IdledByCombatHandlerThisTick.Contains(creature);
     internal HashSet<CreatureState> TremorRebellionStartedThisTick { get; } = [];
 
     /// <summary>The state the creature being updated held when its update began

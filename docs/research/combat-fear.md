@@ -239,7 +239,8 @@ state 202** — sets the **run** speed (`0x004887D0(1)`), plays the definition's
 `+0x6E3` sound, and stamps `OldFightPos`/`OldFightTick` unless an Imp. Return 1.
 
 **State 202** (`0x00461850`, "fleeing") sets the **walk** speed and returns 0:
-the dispatcher makes the creature idle where it arrived. The gate
+the dispatcher makes the creature idle where it arrived, on the turn after the arrival (the
+arrival turn ends in 202; ADR-0580). The gate
 `0x0045A6D0` refuses a creature en route to 202 or 251, so it will not look for
 a fight on the way.
 
@@ -261,7 +262,8 @@ destinations and the run, with failure/fallback differences below;
 `Running` as the body's speed cap (the definition's `RunSpeed`, `def+0x5B8` through
 `0x004887D0` mode 1, with no level term; CONFIRMED, ADR-0518). `CreatureActivity.Fleeing` is state 203, `Withdrawing` state 6 toward
 202, entered from 199 when not already in the combat group; both hold those ids since
-ADR-0208.
+ADR-0208. The arrival's turn ends in 202, which idles on the next turn, and a creature a
+combat handler leaves in state 1 runs 1's handler the turn after (ADR-0580).
 
 The first Level7 death in Q582 takes the NonFighter hero-avoidance path
 (combat-alarm.md §1), which calls withdrawal without waiting for CurrentFear

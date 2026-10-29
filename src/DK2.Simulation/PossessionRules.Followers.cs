@@ -133,8 +133,9 @@ public static partial class PossessionRules
     /// 246 arrives, and 246 runs. True when the turn was the follow's.</summary>
     internal static bool FollowerTurn(SimulationContext context, string system, CreatureState c)
     {
+        // 1's arm, not in the turn a combat handler set 1 (0x00476FC0).
         if (c.Dk2StateId == CreatureStateMachine.Idle && c.FollowLeaderId != 0)
-            return StartFollowing(context, c, c.FollowLeaderId);
+            return context.IdleHandlerWaits(c) || StartFollowing(context, c, c.FollowLeaderId);
         if (StateShadow.IsTravelling(c) && c.UtilityNewState == FollowingState)
         {
             if (c.HasRoute) return true;

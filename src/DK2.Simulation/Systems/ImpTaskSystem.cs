@@ -266,6 +266,8 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         }
         PickUpGoldInPassing(context, creature, definition);
         if (claimed) return;
+        // A combat handler set 1 this turn: 1's handler is next turn's (0x00476FC0).
+        if (context.IdleHandlerWaits(creature)) return;
         bool wandered;
         using (profiler.Scope(SimulationMarkers.ImpWander))
             wandered = UpdateWander(context, creature, definition);

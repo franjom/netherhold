@@ -55,6 +55,8 @@ public sealed class HeroSystem : ICreatureUpdateStep
             return;
         }
 
+        // A combat handler set 1 this turn: 1's handler is next turn's (0x00476FC0).
+        if (context.IdleHandlerWaits(creature)) return;
         if (creature.Dk2StateId == CreatureStateMachine.Idle) creature.Fleeing = false;
         bool stays = creature.Dk2StateId switch
         {

@@ -269,8 +269,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(251, typeof(CombatStates), nameof(CombatStates.RespondingToThreat)));
         rows.Add(Built(252, typeof(CombatStates), nameof(CombatStates.StandingDown)));
         rows.Add(Unbuilt(253, "Q411: its handler 0x00484940 returns 0 (hero-party-walk.md); its entry is not read"));
-        rows.Add(Built(254, typeof(CombatStates), nameof(CombatStates.ReportingDanger),
-            "no simulation test runs an alarm responder to its arrival at the threat"));
+        rows.Add(Built(254, typeof(CombatStates), nameof(CombatStates.ReportingDanger)));
         rows.Add(Built(255, typeof(CombatStates), nameof(CombatStates.Stunned)));
         rows.Add(Built(256, typeof(StatusEffectRules), nameof(StatusEffectRules.StunInto)));
         rows.Add(Built(257, typeof(CombatStates), nameof(CombatStates.GettingUp)));

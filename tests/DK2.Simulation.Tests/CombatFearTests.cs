@@ -365,8 +365,8 @@ public class CombatFearTests
     [Fact]
     public void AFrightenedCreatureFleesInTwoHundredThree_AndWithdrawsInSixTowardsTwoHundredTwo()
     {
-        // ADR-0208: 199, 203, then the withdraw's state 6 saving 203 and resuming 202, which
-        // ends at once in state 1.
+        // ADR-0208: 199, 203, then the withdraw's state 6 saving 203 and resuming 202; 202 holds the
+        // arrival's turn and returns 0 on the next (ADR-0580).
         (GameDatabase db, WorldState world) = OpenWorld();
         PlaceTreasury(world, Keeper);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
@@ -381,6 +381,8 @@ public class CombatFearTests
 
         Assert.Equal([199, 203, 6], seen.Select(s => s.State).Take(3));
         Assert.Contains((6, 203, 202), seen);
+        Assert.Equal(202, goblin.Dk2StateId);
+        sim.Tick();
         Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }

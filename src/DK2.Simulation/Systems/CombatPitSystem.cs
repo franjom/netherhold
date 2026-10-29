@@ -33,7 +33,8 @@ public sealed class CombatPitSystem : ICreatureUpdateStep
         int state = creature.Dk2StateId;
         if (state == CreatureStateMachine.Idle)
         {
-            if (creature.CombatPitFighter) BackToThePit(context, creature);
+            // 1's handler sends a fighter back; not in the turn a combat handler set 1 (0x00476FC0).
+            if (creature.CombatPitFighter && !context.IdleHandlerWaits(creature)) BackToThePit(context, creature);
             return;
         }
 

@@ -13505,3 +13505,34 @@ the live world, shadow ticks mutate a separate world, and progress sampling only
 live state. Monitored equivalence tests exercise that order. `state hash wait` measures the
 remaining join time; the full hash duration is visible in serial mode. Allocation measures only
 the run thread, as before; it excludes pool-thread hashing allocations in overlap mode.
+
+## ADR-0580 - The states a flight ends through hold a turn each
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 330 · Q665 ·
+Research: `docs/research/level4-outcomes.md`, `combat-fear.md` §5, `combat-alarm.md` §3-§4; KB `00476FC0`, `00470C80`, `00461850`, `00475660`, `00458680`, `004759A0`
+
+**Context.** The dispatcher `0x00476FC0` runs one state handler a turn; a handler's 0 sets state 1
+and ends the turn (ADR-0574). State 6 (`0x00470C80`) enters its resume state on arrival, whose
+handler runs next turn. 202 (`0x00461850`) sets the walk speed and returns 0. 251 (`0x00475660`)
+dispatches, sets 1 then 252, and a worker starts action 79 (`0x004969D0(0x4F, 1, 0, 0, 0)`, one play
+of art slot 29) and returns 1, anyone else returns 0. 252 (`0x00458680`) returns 1 while an action
+runs. 254 (`0x004759A0`) counts a turn up from its first call and returns 1 for thirty. Ours ran
+202, 251, 252 and 254's first count in the arrival turn and, the combat step preceding the later
+handler steps, state 1's handler in the same turn: our Imps went 6 -> 10 and 203 -> 10 in one turn.
+DK2's Level 4 captures, seeds 1-8 (`D:/DK2Evidence/runs/l4-flight-dwell-2026-10-29`), hold Imps one
+tick in 1 (4238), 202 (665), 203 (1577) and 251 (468), four in 252 (432 of 432), 31 in 254 (7 whole
+stands); other creatures one tick in 1 (2964 of 2972) and 202 (56).
+
+**Decision.** `FearRules.Withdrawing`, `RaisingAlarm` and `Reporting` end the walk's turn on
+entering 202, 251 or 254. 202's turn stops running and idles. 251's turn is `RespondToThreat`: a
+worker is left in 252 with `ActionUntilTick` one play of slot 29 (`CountedHoldTicks(def, 29, 1)`: 4
+for the Imp), held until it runs out; anyone else idles in that turn. `CombatSystem` adds a creature
+its handler left in state 1 to `SimulationContext.IdledByCombatHandlerThisTick` (cleared each turn),
+and `IdleHandlerWaits` keeps state 1's handler for the next turn in `ImpTaskSystem` (after the gold
+pick-up in passing), `CreatureJobSystem`, `HeroSystem`, `CombatPitSystem` and the possession
+follower's state-1 arm.
+
+**Consequences.** A withdrawn Imp is 202, 1, 10 on three turns (was 10 at once); a Goblin 202, 1, 89;
+a raising Imp 251, 252 x4, 1, 10; a raising non-worker 251, 1, 89; a responder stands 31 turns in 254
+(was 30). Every combat handler that idles, the fight's disengage included, leaves 1's handler to the
+next turn. Not built: 251's eight-tile 252 test (DK2 goes 251 -> 1 in about 4% of alarms); what zeroes
+254's count on entry is unread (ours zeroes it when the walk starts).

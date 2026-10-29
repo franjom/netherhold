@@ -630,15 +630,20 @@ public static class FearRules
     /// <summary><c>0x00509050</c>: the point's tile, unsigned, under the map's width and height.</summary>
     private static bool InWorld(WorldState world, int x, int y) => x >= 0 && y >= 0 && world.Contains(x >> 12, y >> 12);
 
-    /// <summary>State 6 on the way to state 202, which sets the walk speed and ends at once: the
-    /// creature stands idle where the route ended, or where it was lost.</summary>
+    /// <summary>State 6 on the way to state 202: the walk's turn enters 202 where the route ended, or
+    /// where it was lost; 202's handler (<c>0x00461850</c>) runs on the next turn, sets the walk speed
+    /// and returns 0, so the creature stands idle (ADR-0580).</summary>
     public static void Withdrawing(SimulationContext context, CreatureState me)
     {
-        if (me.HasRoute) return;
+        if (Systems.StateShadow.IsTravelling(me))
+        {
+            if (me.HasRoute) return;
+            CombatStates.Arrive(context, me);
+            context.Emit(SystemName, "withdrawn", $"creature={me.Id} tile={me.Tile.X},{me.Tile.Y}");
+            return;
+        }
         me.Running = false;
-        CombatStates.Arrive(context, me);
         CombatStates.Idle(context.Hooks, me);
-        context.Emit(SystemName, "withdrawn", $"creature={me.Id} tile={me.Tile.X},{me.Tile.Y}");
     }
 
     // ------------------------------------------------------------------ the alarm
@@ -728,18 +733,38 @@ public static class FearRules
         return false;
     }
 
-    /// <summary>State 6 on the way to 251: arriving, the Scout dispatches the room (<see cref="RespondToThreat"/>).</summary>
+    /// <summary>State 6 on the way to 251, then 251 and 252, a turn each: the walk's turn enters 251;
+    /// 251's handler dispatches the room (<see cref="RespondToThreat"/>) on the next; 252 holds while
+    /// the worker's action 79 plays (ADR-0580).</summary>
     public static void RaisingAlarm(SimulationContext context, RoomCache rooms, CreatureState me, CreatureDef mine)
     {
-        if (me.HasRoute) return;
+        if (Systems.StateShadow.IsTravelling(me))
+        {
+            if (me.HasRoute) return;
+            CombatStates.Arrive(context, me);
+            return;
+        }
+        if (me.Dk2StateId == CombatStates.StandingDown)
+        {
+            StandingDown(context, me);
+            return;
+        }
         RespondToThreat(context, rooms, me, mine);
+    }
+
+    /// <summary>State 252 (<c>0x00458680</c>): returns 1 while an action is current, else 0, idle.</summary>
+    private static void StandingDown(SimulationContext context, CreatureState me)
+    {
+        if (context.Tick.Value < me.ActionUntilTick) return;
+        me.ActionUntilTick = 0;
+        CombatStates.Idle(context.Hooks, me);
     }
 
     /// <summary>State 251 (<c>0x00475660</c>), "responding to a threat": every creature of the owner
     /// working in the alarm's room — no worker, no Horned Reaper, not fighting, allowed to fight,
     /// above a quarter of its health — is sent running to the threat's position until their summed
-    /// level-scaled <c>Threat</c> covers the deficit. The Scout then stands down (state 252, which
-    /// ends at once here; DK2 plays a worker's action 79 first, of unread length).</summary>
+    /// level-scaled <c>Threat</c> covers the deficit. The Scout then stands down: 1, then 252, and a
+    /// worker starts action 79 (<c>0x004969D0(0x4F, 1, 0, 0, 0)</c>), one play of art slot 29.</summary>
     public static void RespondToThreat(SimulationContext context, RoomCache rooms, CreatureState me, CreatureDef mine)
     {
         WorldState world = context.World;
@@ -777,20 +802,30 @@ public static class FearRules
         me.AlarmRoomTile = -1;
         me.AlarmDeficit = 0;
         me.Running = false;
-        // 251, then SetState(1) and SetState(252), which ends at once here.
-        CombatStates.Arrive(context, me);
+        // SetState(1) and SetState(252); a worker starts action 79 and returns 1, so 252 holds on it;
+        // anyone else returns 0, idle in this turn (0x00475943-0x00475988).
         CombatStates.Enter(context, me, CreatureStateMachine.Idle);
         CombatStates.Enter(context, me, CombatStates.StandingDown);
-        CombatStates.Idle(context.Hooks, me);
+        if (mine.Flags.HasFlag(CreatureFlags.IsWorker))
+            me.ActionUntilTick = context.Tick.Value + AnimationTimingRules.CountedHoldTicks(mine, AlarmArtSlot, 1);
+        else
+            CombatStates.Idle(context.Hooks, me);
     }
+
+    /// <summary>Action 79's animation block (combat-alarm.md §3).</summary>
+    private const int AlarmArtSlot = 29;
 
     /// <summary>State 6 on the way to 254, then state 254 "reporting danger" (<c>0x004759A0</c>):
     /// stand at the threat's position for thirty ticks, looking for a fight the ordinary way each
     /// tick, then walk again and stand down.</summary>
     public static void Reporting(SimulationContext context, CreatureState me)
     {
-        if (me.HasRoute) return;
-        CombatStates.Arrive(context, me);
+        if (Systems.StateShadow.IsTravelling(me))
+        {
+            // The walk's turn enters 254; its count starts on the next (ADR-0580).
+            if (!me.HasRoute) CombatStates.Arrive(context, me);
+            return;
+        }
         if (++me.ReportTicks <= ReportTicks) return;
         me.ReportTicks = 0;
         me.Running = false;

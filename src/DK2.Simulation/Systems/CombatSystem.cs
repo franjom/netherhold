@@ -105,6 +105,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         if (!CreatureDeathRules.IsPossessed(world, creature))
         {
+            bool handled = true;
             switch (creature.Activity)
             {
                 case CreatureActivity.Fighting: Fight(context, creature, definition); break;
@@ -114,7 +115,11 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 case CreatureActivity.Celebrating: VictoryRules.Celebrating(context, creature); break;
                 case CreatureActivity.GoingToBody: VictoryRules.GoingToBody(context, creature); break;
                 case CreatureActivity.Reporting: FearRules.Reporting(context, creature); break;
+                default: handled = false; break;
             }
+            // A handler's zero, or its own SetState(1), ends the turn: state 1's handler runs on the
+            // next one (0x00476FC0 runs one handler a turn, ADR-0574).
+            if (handled && creature.Dk2StateId == CreatureStateMachine.Idle) context.IdledByCombatHandlerThisTick.Add(creature);
         }
 
         // A creature on a new tile reveals adjacent traps.

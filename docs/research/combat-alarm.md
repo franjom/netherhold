@@ -98,10 +98,10 @@ at `+0xB1`; **run speed**; the definition's `+0x6E3` sound. Return 1.
 3. **Stand down.** The `+0x6E3` sound; `SetState(1)` then `SetState(252)`; a
    worker starts action 79 (`0x004969D0(0x4F, 1, 0, 0, 0)`) — the alarm animation.
    State 252's handler (`0x00458680`) returns 1 only while an action is current, so
-   a non-worker is idle at once and a worker when the action ends. Action 79's record
+   a non-worker is idle in the 251 turn and a worker when the action ends. Action 79's record
    (`0x006E4A8B`, filled in `0x004950C0`) has no handler, animation block 29 and mode 3,
    so `CreatureAction_Run` `0x00496AA0` ends it when the animation stops, as action 55
-   (`combat-approach-and-victory.md` §7); what a worker's block 29 plays is unread (Q391).
+   (`combat-approach-and-victory.md` §7); one play of slot 29 (count 1) is 4 turns for the Imp, as its captures hold 252 (ADR-0580); what the clip shows is unread (Q391).
 
 ## 4. Answering: state 6 to state 254, "reporting danger" (`0x004759A0`)
 
@@ -121,7 +121,7 @@ tag, and worker jobs are group 8. Ours keeps the room-job match, which no group-
 state passes.
 
 **On state ids** (ADR-0208): the raiser enters 199 unless already in the combat group and
-walks in state 6 resuming 251; arriving, it sets 1 and 252, which ends at once here; a
+walks in state 6 resuming 251; arriving, it sets 1 and 252, which a worker holds for action 79 and anyone else leaves at once; a
 responder walks from its job state in 6 resuming 254, then stands thirty ticks and goes
 to state 1.
 
@@ -135,8 +135,12 @@ exclusions as the room-job activities, and the raiser's-speed slip replaced by t
 responder's own run speed; §4 with `CreatureActivity.Reporting` covering both the
 walk and the thirty ticks.
 
-**Not built, named:** step 1's eight-tile test and action 79 (state 252 ends at
-once here); the Turncoat side; the angry skip (`state+0x3C`); the `+0x6E3` sounds;
+**Built at hash 330** (ADR-0580): 251's handler runs the turn after the arrival, and
+a worker is held in 252 for action 79, one play of art slot 29 (`CountedHoldTicks`: 4 turns
+for the Imp; DK2 holds an Imp four ticks, 432 of 432); anyone else idles in the 251 turn. A
+responder's 254 counts from the turn after the arrival.
+
+**Not built, named:** step 1's eight-tile test; the Turncoat side; the angry skip (`state+0x3C`); the `+0x6E3` sounds;
 Jack, the other NonFighter.
 
 The Call to Arms alarm gate is built with ADR-0425; it reads the owner's `On`
@@ -320,4 +324,4 @@ and compares that byte with the requested room type (3 and 25 for portals).
 **STRONGLY INFERRED:** that `RoomId` is the room
 a creature works in.
 
-**UNKNOWN:** Q391 (what a worker's animation block 29 plays, so action 79's length).
+**UNKNOWN:** Q391 (what a worker's animation block 29 shows; its length for the Imp, 4 turns, is STRONGLY INFERRED from the clip clock and the captures).

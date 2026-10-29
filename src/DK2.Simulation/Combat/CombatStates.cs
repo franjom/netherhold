@@ -21,7 +21,7 @@ internal static class CombatStates
     /// <summary>199, "engaging in battle": the fight, entered from any state.</summary>
     public const int Engaging = 199;
 
-    /// <summary>202, the withdraw's arrival, which ends at once.</summary>
+    /// <summary>202, the withdraw's arrival: holds the arrival's turn, idles on the next.</summary>
     public const int Withdrawn = 202;
 
     /// <summary>203, fleeing: backing off, then the run.</summary>
@@ -33,7 +33,7 @@ internal static class CombatStates
     /// <summary>251, the alarm raiser's arrival, "responding to a threat".</summary>
     public const int RespondingToThreat = 251;
 
-    /// <summary>252, the raiser standing down; ends at once but for a worker's action.</summary>
+    /// <summary>252, the raiser standing down; a worker is held while its action runs, anyone else idles in the 251 turn.</summary>
     public const int StandingDown = 252;
 
     /// <summary>254, "reporting danger": a responder standing at the threat for thirty ticks.</summary>

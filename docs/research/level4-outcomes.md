@@ -45,17 +45,20 @@ events. State entries are counted from change-only rows, so a state held under a
   shared). Alarms: 479 arrivals in 251 against 684, 30% against 40%, the walk 9 ticks and 2.2 tiles
   against 10 and 2.2. Ours' withdraw walks are longer (median 39 ticks, 15.3 tiles straight-line,
   against 27 and 10.4); why is not tested.
-- After a flight DK2 holds each of 202, 251, 252 and 1 for a tick (1: always exactly one), and goes
-  203 -> 1 -> 10 when the flight ends without a walk. Ours runs 202, 251 and 252 inside the arrival
-  tick (`FearRules.Withdrawing`, `RespondToThreat`) and goes 203 -> 10 in one tick, so it chooses
-  sooner: median 6 ticks from leaving 203 to choosing against DK2's 14, 43 against 58 to a job (ours
-  seeds 1, 3, 7, 8; DK2 2, 4, 6, 8). Open as a rule difference (not read in the binary here).
+- After a flight DK2 holds each of 202, 251 and 1 for a tick (1: always exactly one) and 252 for
+  four (Imps; 432 of 432), and goes 203 -> 1 -> 10 when the flight ends without a walk. The
+  dispatcher `0x00476FC0` runs one handler a turn, so the arrival's turn ends in the state it
+  enters. Through hash 329 ours ran 202, 251 and 252 inside the arrival tick and went 203 -> 10 in
+  one tick, so it chose sooner: median 6 ticks from leaving 203 to choosing against DK2's 14, 43
+  against 58 to a job (ours seeds 1, 3, 7, 8; DK2 2, 4, 6, 8). Built at hash 330 (ADR-0580); the
+  figures are not remeasured. DK2 captures: `D:/DK2Evidence/runs/l4-flight-dwell-2026-10-29`.
 - Ours' overrun runs differ from its held runs in 3400-3900 by choices after a cut walk or a flight
-  (6 -> 10 and 203 -> 10, 36.5 and 36.6 a run, against 17.8 and 3.2): what being attacked looks like.
+  (at hash 329, 6 -> 10 and 203 -> 10, 36.5 and 36.6 a run, against 17.8 and 3.2): what being attacked looks like.
 - Resynced at 2400 from each of the eight DK2 states (hash 329, native seed 1's entity map, unmapped
   0): ours' mining stints match DK2's for 600 ticks (2401-2700 24.8 against 26.4, 2700-3000 24.9
   against 23.9, per-seed signs mixed); from 3000 four seeds fall 9-16 behind as fights begin. Ours
   enters 22 a little more in 2401-2700 (18.4 against 16.4; more in 7 of 8, fewer in none), not chased.
 - Reading, HYPOTHESIS (8 native seeds): DK2 is overrun on Level 4 too; only its runs without a death
   are significantly more frequent than ours. No mining rule differs (the 2400 resync); the full
-  replays' mining shortfall is drift. The post-flight dwell above is the one rule-shaped lead.
+  replays' mining shortfall is drift. The post-flight dwell above was the one rule-shaped lead; it
+  is built and not yet remeasured over seeds.

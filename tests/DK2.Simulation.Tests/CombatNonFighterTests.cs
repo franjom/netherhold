@@ -342,7 +342,8 @@ public class CombatNonFighterTests
     public void TheAlarmWalksInSixTowardsTwoFiftyOne_AndTheRespondersTowardsTwoFiftyFour()
     {
         // ADR-0208: the Scout enters 199 and walks in 6 resuming 251, then stands down through
-        // 1 and 252; a responder walks from where it was in 6 resuming 254.
+        // 1 and 252; a responder walks from where it was in 6 resuming 254. 251 and 252 each hold
+        // a turn, as DK2's dispatcher runs one handler a turn (ADR-0580).
         (GameDatabase db, WorldState world) = OpenWorld();
         PlaceRoom(world, Keeper, Dk2TerrainFixture.GuardRoomTerrain, 13, 5);
         int roomTile = (5 * world.Width) + 13;
@@ -375,7 +376,7 @@ public class CombatNonFighterTests
                     && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199)) responders.Add(g.Id);
         });
 
-        Assert.Equal([(6, 199, 251), (CreatureStateMachine.Idle, 199, 1)], seen);
+        Assert.Equal([(6, 199, 251), (251, 199, 1), (252, 199, 1), (CreatureStateMachine.Idle, 199, 1)], seen);
         Assert.Equal(2, responders.Count);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }

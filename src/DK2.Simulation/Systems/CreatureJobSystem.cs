@@ -82,6 +82,8 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             return;
         }
         if (Combat.CombatRules.Preoccupied(creature)) return;
+        // A combat handler set 1 this turn: 1's handler is next turn's (0x00476FC0).
+        if (context.IdleHandlerWaits(creature)) return;
 
         // 193, joining your Dungeon: the Entrance animation, a step off the portal, then 1 and the
         // lair attempt in the same tick, its result unread (0x00459C20, the call at 0x00459D34).
