@@ -299,3 +299,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - UI Toolkit pointer event positions and worldBound are panel units; multiplying them by physical screen-height scaling truncates scrollbar travel above the reference resolution.
 - EditorApplication.update callbacks can outpace rendered play frames; UI capture probes must wait on Time.frameCount before checking page images.
+- Procedural class-grid UVs and Graphics.Blit image UVs can have opposite Y origins; check logical tile colours against UI overlay positions on the active graphics backend.
+- Run watchdog overlap timing checks without simultaneous Unity imports; helper-process startup contention can make parallel wall time exceed the serial comparison.
