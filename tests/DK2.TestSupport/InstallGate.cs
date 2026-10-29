@@ -95,3 +95,32 @@ public sealed class InstallTheoryAttribute : TheoryAttribute
 {
     public InstallTheoryAttribute() => Skip = Dk2InstallGate.SkipReason;
 }
+
+/// <summary>
+/// <c>[Fact]</c> for a wall-clock budget: runs only when the install is present and
+/// <see cref="SpeedBudgetGate.Variable"/> is 1. Opt-in because a timing assert fails on a loaded machine, and
+/// the suite is often run beside other work on a shared CPU; run the budget on an idle one.
+/// </summary>
+public sealed class SpeedBudgetFactAttribute : FactAttribute
+{
+    public SpeedBudgetFactAttribute() => Skip = SpeedBudgetGate.SkipReason;
+}
+
+/// <summary><c>[Theory]</c> twin of <see cref="SpeedBudgetFactAttribute"/>.</summary>
+public sealed class SpeedBudgetTheoryAttribute : TheoryAttribute
+{
+    public SpeedBudgetTheoryAttribute() => Skip = SpeedBudgetGate.SkipReason;
+}
+
+/// <summary>The opt-in on top of <see cref="Dk2InstallGate"/>: the install's skip reason first,
+/// then <see cref="Variable"/>.</summary>
+public static class SpeedBudgetGate
+{
+    public const string Variable = "DK2_SPEED_BUDGET";
+
+    public static string? SkipReason =>
+        Dk2InstallGate.SkipReason
+        ?? (Environment.GetEnvironmentVariable(Variable) == "1"
+            ? null
+            : $"A wall-clock budget; set {Variable}=1 on an idle machine to run it.");
+}

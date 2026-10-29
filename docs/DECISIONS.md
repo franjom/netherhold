@@ -13403,3 +13403,35 @@ refusals, so an unhappy creature's refused job leaves no `job_refused` line. Als
 Level 11A's Drako run diverges after the joiners' lair walks: its second Call to Arms lands at
 another attacked Heart at turn 1185, too late to be answered, so the scenario test now requires an
 engagement for the first call only.
+
+## ADR-0575 - Goal 9's speed budget: 50x real time per campaign level, 100 ms per tick
+**Date:** 2026-10-29 · **Status:** accepted · No hash change · Goal 9, GOAL_ALIGNMENT.md gap 4
+
+**Context.** `RunTimings` timed every headless run and nothing compared the times with real time.
+A DK2 turn is 250 ms. Measured on hash 328, Release build: campaign Levels 1-4 run headless for
+their packet recordings' lengths in 2.3-21 s (80-220x real time); the worst tick after the first
+two in any corpus scenario, run alone, is 36.5-40.5 ms over two runs (a computer keeper's scenario).
+Ticks 0-1 of a keeper scenario take up to about 230 ms (warm-up and the first scans). Run eight at
+a time the keeper scenarios' worst ticks reached 165-180 ms, so a wall-clock assert is only
+meaningful on an otherwise idle machine.
+
+**Decision.** `SpeedBudgetTests` (DK2.Behavior.Tests, its own serial collection) asserts two budgets:
+campaign Levels 1-4, run from their placed things with no input for 2044/3657/3704/6804 turns, last
+all their turns and take at most 1/50 of that game time, setup included; and in every corpus
+scenario longer than two ticks no tick after the first two takes more than 100 ms, under half a
+turn. A tick's time includes the harness's state hash and monitor, so it errs on the slow side.
+Both are opt-in (`[SpeedBudgetTheory]`: the install plus `DK2_SPEED_BUDGET=1`), because the suite
+is run beside other work on a shared CPU and GitHub's runners have neither the install nor a quiet
+CPU, and both refuse an unoptimised build. Run them alone, since other test assemblies run in
+parallel processes: `DK2_SPEED_BUDGET=1 dotnet test tests/DK2.Behavior.Tests -c Release --filter
+FullyQualifiedName~SpeedBudgetTests`. `RunTimings.TickTimes` carries each tick's time so the
+warm-up can be left out.
+
+**Consequences.** Both budgets pass today: throughput with 1.6x headroom on Level 4 (21.3 s against
+34 s), latency with about 2.5x. Nothing runs them automatically; they are run on an idle machine after a
+change that could cost time, and their output prints each run's timing and worst tick. The first
+filtered run also pays assembly load and JIT inside Level 1's total. The computer keeper's
+allocation (2-4.7 MB per tick) is the likeliest cost to watch.
+
+Tests: `SpeedBudgetTests.ACampaignLevelRunsFiftyTimesFasterThanRealTime`,
+`NoTickAfterWarmUpTakesMoreThanTheBudget` (opt-in); `RunTimingsTests.TheTimingsCarryOneTimePerTick_InTickOrder`.

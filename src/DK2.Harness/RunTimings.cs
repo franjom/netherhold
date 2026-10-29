@@ -17,7 +17,7 @@ namespace DK2.Harness;
 public sealed class RunTimings
 {
     internal RunTimings(TimeSpan total, int ticks, TimeSpan ticking, long allocated,
-        TickDistribution perTick, IReadOnlyList<MarkerTiming> markers, WorstTick worst)
+        TickDistribution perTick, IReadOnlyList<MarkerTiming> markers, WorstTick worst, IReadOnlyList<TimeSpan> tickTimes)
     {
         Total = total;
         Ticks = ticks;
@@ -26,6 +26,7 @@ public sealed class RunTimings
         PerTick = perTick;
         Markers = markers;
         Worst = worst;
+        TickTimes = tickTimes;
     }
 
     /// <summary>The whole run, setup included.</summary>
@@ -53,6 +54,10 @@ public sealed class RunTimings
 
     /// <summary>The slowest tick, marker by marker.</summary>
     public WorstTick Worst { get; }
+
+    /// <summary>How long each tick took, in the order they ran: index i is the i-th tick run, which
+    /// for <see cref="ScenarioRunner"/> is tick i.</summary>
+    public IReadOnlyList<TimeSpan> TickTimes { get; }
 
     /// <summary>A few lines for a test's output: the per-tick distribution, the markers with the
     /// most self time, then the worst tick's breakdown.</summary>
@@ -241,6 +246,7 @@ internal sealed class RunClock : ISimulationProfiler
             .OrderByDescending(m => m.Self)
             .ThenBy(m => m.Name, StringComparer.Ordinal)];
 
+        TimeSpan[] tickTimes = [.. _ticks.Select(t => Elapsed(t.Time))];
         long[] times = [.. _ticks.Select(t => t.Time)];
         Array.Sort(times);
         TickDistribution distribution = ticks == 0
@@ -255,7 +261,7 @@ internal sealed class RunClock : ISimulationProfiler
                     .OrderByDescending(m => m.Self)
                     .ThenBy(m => m.Name, StringComparer.Ordinal)]);
 
-        return new RunTimings(Elapsed(total), ticks, Elapsed(_ticking), _tickAllocated, distribution, markers, worst);
+        return new RunTimings(Elapsed(total), ticks, Elapsed(_ticking), _tickAllocated, distribution, markers, worst, tickTimes);
     }
 
     /// <summary>Nearest rank over a sorted, non-empty series.</summary>

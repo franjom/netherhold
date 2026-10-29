@@ -537,9 +537,10 @@ flag bytes, 16 timer dwords, one opaque special value. Hashed and snapshotted.
   (ADR-0155, ADR-0157) and DK2's own route log agrees on all but a handful of
   requests (`docs/RESEARCH_STATUS.md`); the residue is open questions, not a
   placeholder.
-- **Speed is timed, not budgeted.** `RunTimings` (`DK2.Harness`) splits every
-  run into per-system, keeper-AI and hashing time, but no target for "faster
-  than real time" (goal 9) is asserted.
+- **Speed is budgeted, but only by opt-in tests.** `RunTimings` (`DK2.Harness`)
+  splits every run into per-system, keeper-AI and hashing time; `SpeedBudgetTests`
+  assert 50x real time and 100 ms per tick on an idle machine (ADR-0575). The
+  default run and CI do not run them.
 - **The oracle comparison is per scenario.** Levels 1, 2 and 3 have recorded
   packets replayed headlessly over 20 seeds (Q444, ADR-0339; idle captures in
   `docs/experiments/`); there is no automatic divergence report across all
