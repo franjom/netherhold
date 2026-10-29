@@ -11,9 +11,9 @@ namespace DK2.Pathfinding;
 /// <para>Points are tile corners in whole tiles. A triangle holds three point indices, a neighbour
 /// across each edge, the navigation byte of the tiles it covers, and a constraint bit per edge.
 /// Edge <c>i</c> runs from vertex <c>i</c> to vertex <c>i+1</c>; every live triangle is wound so
-/// that <see cref="Orient"/> is positive. Point location gives the lowest slot holding the point, as
-/// a scan would, not where the original's walk ends — a labelled residual (ADR-0157) that yields the
-/// same mesh, pinned slot for slot by <c>NavMeshBuildOnRealDataTests</c>. Deliberately absent, because
+/// that <see cref="Orient"/> is positive. Point location walks from the cell cache and returns
+/// the first holder reached (ADR-0486). The mesh is pinned slot for slot by
+/// <c>NavMeshBuildOnRealDataTests</c>. Deliberately absent, because
 /// the shipped game never engages them: edge width classes, mover classes and region ids (§2.2).</para>
 /// <para>Determinism: integer arithmetic only, arrays indexed by insertion order, free lists
 /// reused in a fixed order. Not thread-safe.</para></summary>
@@ -174,6 +174,17 @@ public sealed partial class NavMesh
             if (t < 0) return -1;
         }
         return -1;
+    }
+
+    /// <summary>A copy of the locate cache. Independent questioners restore the build's copy
+    /// before routing so each sees the edge and vertex answers of a fresh build (ADR-0486).</summary>
+    public int[] CaptureLocateCache() => (int[])_locateCache.Clone();
+
+    public void RestoreLocateCache(int[] cache)
+    {
+        if (cache is null || cache.Length != _locateCache.Length)
+            throw new ArgumentException($"a locate cache has {_locateCache.Length} slots", nameof(cache));
+        Array.Copy(cache, _locateCache, cache.Length);
     }
 
     /// <summary>The cell of the original's locate cache for a position in 1/256-tile units: the

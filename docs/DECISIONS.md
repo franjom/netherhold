@@ -13457,3 +13457,23 @@ Every pre-329 journal and save is refused, including evidence under `D:\DK2Evide
 must be replayed at its own commit. Keeper/controller command hash columns cannot be compared
 across 328/329. The deterministic pin is recorded in `research/hash-versions.md`.
 Equivalence and measured speed checks are required by the throughput plan before committing.
+
+## ADR-0577 - The keepers' staging routes share one mesh, rebuilt whole
+**Date:** 2026-10-29 · **Status:** accepted · No hash change
+
+**Context.** Each keeper view built another whole-map mesh to ask whether its fighters could
+reach their heart's staging point. The mesh's locate cache affects edge and vertex answers
+(ADR-0486), so handing a previously queried mesh to another view could change its answers.
+
+**Decision.** The harness owns one `KeeperStaging` per run and passes it to keeper and controller
+views. It lazily builds a mesh when a view routes a fighter, keeps it while routing bytes agree,
+and restores the whole build's locate cache before each view. Changed bytes trigger another
+whole build; an incrementally edited mesh need not equal a fresh build. Views remain serial.
+The existing two-argument `WorldSteering` constructor retains incremental editing for the
+simulation. Router scratch is generation-stamped and clears its stamps when the generation wraps.
+
+**Consequences.** A view receives the mesh and locate state a fresh build would supply, with
+no change to simulation registration, RNG order or keeper decisions. Keeper staging is outside
+the simulation hash and snapshot, so neither version changes. Hosts can omit staging to obtain
+the original independent builds. Tests compare complete view packets, changed routing bytes,
+multiple keepers and reuse through the router's generation wrap.

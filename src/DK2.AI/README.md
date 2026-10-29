@@ -7,6 +7,10 @@ own `KeeperAIState`. Its pieces (planning, threat response, room planning, train
 battle and retreat steps, route cache) are the other `Keeper*` types. What each one
 does, and how sure we are of it, is in `docs/KEEPER_AI.md`.
 
+Hosts can pass one `KeeperStaging` to successive `Think` calls and controller views
+to share staging-route builds while preserving independent-view answers (ADR-0577).
+Build views serially because their derived world caches and staging are mutable.
+
 Targets `netstandard2.1`. Depends on `DK2.Core`, `DK2.Data.Model` and `DK2.Simulation`.
 It sends the simulation commands only, never touching state.
 

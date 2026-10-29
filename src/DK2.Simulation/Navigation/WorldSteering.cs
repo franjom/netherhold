@@ -41,12 +41,20 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     private int _navStampSnapshot;
     private readonly List<NavPoint> _waypoints = [];
     private readonly List<ObjectState> _objectObstacles = [];
+    private readonly bool _wholeBuilds;
+    private int[] _builtLocate = [];
 
-    public WorldSteering(GameDatabase database, WorldState world)
+    public WorldSteering(GameDatabase database, WorldState world) : this(database, world, wholeBuilds: false) { }
+
+    /// <param name="wholeBuilds">Rebuild whole when routing bytes change, never edit in place,
+    /// and keep the build's locate cache for <see cref="RestoreBuiltLocate"/>. Used by independent
+    /// keeper probes; the simulation's own steering keeps its in-place edits.</param>
+    public WorldSteering(GameDatabase database, WorldState world, bool wholeBuilds)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _world = world ?? throw new ArgumentNullException(nameof(world));
         _routingGrid = new PlatformRoutingGrid(this);
+        _wholeBuilds = wholeBuilds;
     }
 
     public int Width => _world.Width;
@@ -84,10 +92,11 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
             return;
         }
         using ProfileScope build = Profiler.Scope(SimulationMarkers.NavBuild);
-        if (_mesh is null)
+        if (_mesh is null || _wholeBuilds)
         {
             _mesh = NavMesh.Build(_routingGrid);
             _router = new MeshRouter(_mesh);
+            if (_wholeBuilds) _builtLocate = _mesh.CaptureLocateCache();
         }
         else
         {
@@ -101,6 +110,13 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         }
         Rebuilds++;
         Snapshot();
+    }
+
+    /// <summary>Restores the last whole build's locate cache for an independent questioner.</summary>
+    public void RestoreBuiltLocate()
+    {
+        if (!_wholeBuilds) throw new InvalidOperationException("only a whole-build steering keeps its build's locate cache");
+        _mesh?.RestoreLocateCache(_builtLocate);
     }
 
     /// <summary>Recomputes the navigation bytes. False when a mesh stands and

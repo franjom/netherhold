@@ -66,8 +66,8 @@ public sealed class KeeperAI
     public int RouteMeshBuilds => _routes.Builds;
 
     /// <summary>One player tick (§5.1). Returns the commands to put in the next input frame.</summary>
-    public IReadOnlyList<PlayerCommand> Think(GameDatabase database, WorldState world)
-        => Think(new KeeperView(database, world, PlayerId, _playerActivationOrder));
+    public IReadOnlyList<PlayerCommand> Think(GameDatabase database, WorldState world, KeeperStaging? staging = null)
+        => Think(new KeeperView(database, world, PlayerId, _playerActivationOrder, staging));
 
     public IReadOnlyList<PlayerCommand> Think(KeeperView view)
     {

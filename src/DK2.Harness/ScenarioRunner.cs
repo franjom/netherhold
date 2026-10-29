@@ -285,6 +285,7 @@ public sealed class ScenarioRunner
             ? inputs.CreateComputerKeepers(scenario, campaignLevel, world, unsupported)
             : [];
         var emitted = new List<PlayerCommand>();
+        var staging = new KeeperStaging();
         var commandLog = new List<KeeperCommandEmission>();
         var controllerLog = new List<ControllerCommandEmission>();
         CheckControllers(controllers, world, keepers);
@@ -328,7 +329,7 @@ public sealed class ScenarioRunner
                 var next = new List<PlayerCommand>();
                 clock.Begin(RunClock.KeeperAi);
                 foreach (KeeperAI keeper in keepers)
-                    next.AddRange(keeper.Think(_database, world));
+                    next.AddRange(keeper.Think(_database, world, staging));
                 clock.End(RunClock.KeeperAi);
                 emitted.AddRange(next);
                 foreach (PlayerCommand command in next)
@@ -339,7 +340,7 @@ public sealed class ScenarioRunner
                 foreach (ScenarioController controller in controllers)
                 {
                     if (t % controller.IntervalTicks != 0) continue;
-                    IReadOnlyList<PlayerCommand> decided = controller.Decide(new KeeperView(_database, world, controller.PlayerId))
+                    IReadOnlyList<PlayerCommand> decided = controller.Decide(new KeeperView(_database, world, controller.PlayerId, staging: staging))
                         ?? throw new InvalidOperationException($"Controller '{controller.Name}' returned null; return an empty list.");
                     foreach (PlayerCommand command in decided)
                     {
