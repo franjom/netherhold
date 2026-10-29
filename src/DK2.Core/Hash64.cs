@@ -5,53 +5,61 @@
 namespace DK2.Core;
 
 /// <summary>
-/// A stable 64-bit structural hash (FNV-1a).
-///
-/// Used for the determinism gate: two simulation runs that agree on this value
-/// at every tick are behaviourally identical. It must therefore be
-/// *reproducible across machines, runtimes and process restarts*, which rules
-/// out <see cref="object.GetHashCode"/> (randomised per process for strings).
-///
-/// Not cryptographic and not collision-proof; it is a divergence detector, so
-/// a false "identical" is the only dangerous outcome and 64 bits makes that
-/// vanishingly unlikely for the state sizes involved.
+/// The simulation's stable structural hash: one multiply-rotate round per value,
+/// finished by xxHash64's avalanche. Byte-wise FNV-1a lives in <see cref="Fnv1a64"/>.
+/// For a fixed value each round is a bijection on the state (xor, rotate,
+/// multiply by an odd constant, add), so distinct states cannot merge on that value.
+/// Reproducible across machines, runtimes and restarts; <see cref="object.GetHashCode"/>
+/// is ruled out because string hashes are randomised per process.
+/// Not cryptographic or collision-proof: this is a 64-bit divergence detector.
 /// </summary>
 public struct Hash64
 {
-    private const ulong Offset = 14695981039346656037UL;
-    private const ulong Prime = 1099511628211UL;
+    private const ulong Prime1 = 0x9E3779B185EBCA87UL;
+    private const ulong Prime2 = 0xC2B2AE3D27D4EB4FUL;
+    private const ulong Prime3 = 0x165667B19E3779F9UL;
+    private const ulong Prime4 = 0x85EBCA77C2B2AE63UL;
+    private const ulong Prime5 = 0x27D4EB2F165667C5UL;
 
     private ulong _h;
 
-    public static Hash64 Start() => new() { _h = Offset };
+    public static Hash64 Start() => new() { _h = Prime5 };
 
-    public readonly ulong Value => _h;
-
-    public void Add(byte b)
+    public readonly ulong Value
     {
-        _h ^= b;
-        _h *= Prime;
+        get
+        {
+            ulong h = _h;
+            h ^= h >> 33;
+            h *= Prime2;
+            h ^= h >> 29;
+            h *= Prime3;
+            h ^= h >> 32;
+            return h;
+        }
     }
 
     public void Add(ulong v)
     {
-        for (int i = 0; i < 8; i++)
-            Add((byte)(v >> (i * 8)));
+        ulong x = _h ^ (v * Prime2);
+        // netstandard2.1 has no BitOperations; the JIT turns this pattern into one rotate.
+        _h = (((x << 31) | (x >> 33)) * Prime1) + Prime4;
     }
 
+    public void Add(byte b) => Add((ulong)b);
     public void Add(long v) => Add(unchecked((ulong)v));
     public void Add(int v) => Add(unchecked((ulong)(long)v));
     public void Add(uint v) => Add((ulong)v);
     public void Add(short v) => Add((long)v);
     public void Add(ushort v) => Add((ulong)v);
-    public void Add(bool v) => Add((byte)(v ? 1 : 0));
+    public void Add(bool v) => Add(v ? 1UL : 0UL);
     public void Add(GameTick t) => Add(t.Value);
     public void Add(Fp32 f) => Add(f.Raw);
 
-    /// <summary>Hashes a string by its bytes, never by <c>GetHashCode</c>.</summary>
+    /// <summary>Hashes a string by its characters, never by <c>GetHashCode</c>.</summary>
     public void Add(string? s)
     {
-        if (s is null) { Add((byte)0xFF); return; }
+        if (s is null) { Add(ulong.MaxValue); return; }
         Add(s.Length);
         foreach (char c in s) Add((ushort)c);
     }

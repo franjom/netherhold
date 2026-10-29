@@ -51,7 +51,7 @@
 
 **Context.** Two runs can share visible state while having consumed different RNG draws; they are about to diverge.
 **Decision.**
-- `GameSimulation.StateHash()` is FNV-1a (`DK2.Core.Hash64`) over the world plus the RNG position; CI pins one exact value on Linux and Windows (`DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines`).
+- `GameSimulation.StateHash()` uses `DK2.Core.Hash64` (algorithm: ADR-0576) over the world plus the RNG position; CI pins one exact value on Linux and Windows (`DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines`).
 - `GetHashCode` is forbidden in the hash path: .NET randomises string hashing per process.
 - A test-only `ChaosSystem` (`tests/DK2.Simulation.Tests/TestWorld.cs`) mutates state and consumes randomness every tick. It implements no DK2 mechanic; without it no system would run and the gate would pass with a broken loop, hash or snapshot.
 **Consequences.**
@@ -12698,15 +12698,10 @@ fixture has no Bile Demon: no new fields, and the pin moves only by the version.
 ## ADR-0552 — Autonomous playtesting extends the scenario harness; controllers are input sources
 **Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
 
-**Context.** AGENTS.md Goal 10 asks for a programmatic player. The owner wants on-demand,
-resource-bounded autonomous playtesting that finds crashes, hangs and invalid states and
-leaves reproducible evidence, without Unity or an LLM. A first draft proposed eight new
-components; review found most already exist: `ScenarioRunner` runs seeded headless scenarios
-with per-tick hashes, `KeeperAI.Think(KeeperView)` is already the controller shape, the
-keeper-as-input-source decision (KEEPER_AI.md §12.1) already keeps a controller's state out of
-`StateHash()`, and `WorldSnapshot` continuation is tested. Review also found gaps:
-`KeeperView` has no fog of war, the command vocabulary holds non-human commands, and
-`keeper-commands.tsv` records type and hash only, so nothing can replay a run.
+**Context.** Goal 10 needs a programmatic player and reproducible, bounded headless playtesting.
+`ScenarioRunner`, `KeeperView` and `WorldSnapshot` already provide the runner, observation and
+continuation. Views expose the whole world, commands include non-human actions, and type/hash
+command logs cannot replay a run; those are the gaps this extension addresses.
 
 **Decision.** Extend `DK2.Harness`; no new assembly. A `ScenarioController` (name, player,
 decision interval, `KeeperView` → commands) is passed to `ScenarioRunner.Run`; its commands
@@ -12721,29 +12716,33 @@ injection but skips its YAML `commands`. Stage C adds a fuzzer limited to human-
 commands, runtime coverage (`TrackTriggerReach`, state and event histograms) and invariants
 that each cite a source. The plan is `plans/2026-10-27-autonomous-playtesting.md`.
 
-**Consequences.** Stage A is built: `ScenarioControllerTests` shows a controller's command is
-the same input as the scripted command one tick later (identical hash series) and pins the
-refusals it can reach without a campaign map. `controller-commands.tsv` is not replayable until Stage B. Controllers see the
-whole world, so they test the game; they are not competitive players, which need a
-fog-filtered view later. No stage is expected to move `HashVersion`. Refusal diagnostics added
-later must stay observation-only (no hash, RNG or decision change).
+**Consequences.** `ScenarioControllerTests` covers delayed input equivalence and refusals.
+Controller state stays outside the hash; full-world views test the game, not competitive play.
+Fog filtering remains future work. Diagnostics must change no hash, RNG or decision.
 
 **Amendment (2026-10-27): Stage B.** The journal lives in `DK2.Simulation` (`CommandCodec`,
-`InputJournalWriter`, `InputJournal`) so Unity can write the same file later; the harness writes
-it, Unity does not yet. Each command type has a fixed tag that is never reused. A frame with
-commands and the end record are flushed at once and hashes at least every 256 ticks, so a killed
-run loses no command; a reader keeps every whole record. `GameSimulation.CurrentHashVersion`
-exposes the version at run time (a public const would be compiled into callers), and a replay
-refuses another version or another scenario file (SHA-256). `run` always writes `input.journal`;
-`replay` re-runs it without keepers or controllers; `watch` runs each scenario in a child
-process under a time limit, in a new folder per watch so no evidence is deleted, and writes
-`failure.md` for a run that does not pass. On Level 17 an 1800-tick computer-keeper run (255
-keeper commands) replays all 1801 hashes without `KeeperAI`.
+`InputJournalWriter`, `InputJournal`), shared with Unity (ADR-0553). Fixed command tags are never
+reused. Command frames and end records flush at once, hashes at least every 256 ticks; a reader
+keeps every whole record. `GameSimulation.CurrentHashVersion` exposes the version at run time
+because a public const would be compiled into callers. Replay refuses another hash version or
+scenario SHA-256. `run` writes `input.journal`; `replay` feeds it without keepers or controllers.
+`watch` uses time-limited child processes and new folders, preserving evidence, and writes
+`failure.md` for a run that does not pass. Usage and journal details: `src/DK2.Harness/README.md`.
 
 **Amendment (2026-10-27): Stage C.** A fuzzer plays a keeper with only the commands
 `HumanCommandPolicy` allows, built as our input paths build them; observers that leave the hash
 alone add coverage, progress and stall candidates, and a save/load continuation check, the only
 invariant with a failure verdict. Details: the plan, §13.
+
+**Amendment (2026-10-29): Parallel watch, owner approved.** `watch --jobs N` runs at most N
+children, default 1; the CLI refuses counts above the processor count. Each run is its own
+process, so the static-state risks in the throughput plan's "Not done" section are not shared.
+Admission checks cancellation, run count and remaining wall-clock budget in job order after
+acquiring a slot. Summary rows and console outcomes publish only a finished prefix, in job order;
+cancellation kills all active children. Unexpected worker failures cancel and join the rest.
+Every child loads its own database, so memory grows with N; CPU contention can cause false
+timeouts. Raise the per-run limit when needed. Concurrent simulations within one process remain
+outside this decision.
 
 ## ADR-0553 — Unity input is journaled, then moved into Presentation, then migrated
 **Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
@@ -13435,3 +13434,74 @@ allocation (2-4.7 MB per tick) is the likeliest cost to watch.
 
 Tests: `SpeedBudgetTests.ACampaignLevelRunsFiftyTimesFasterThanRealTime`,
 `NoTickAfterWarmUpTakesMoreThanTheBudget` (opt-in); `RunTimingsTests.TheTimingsCarryOneTimePerTick_InTickOrder`.
+
+## ADR-0576 - The state hash mixes one value per round
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 329
+
+**Context.** Byte-wise FNV-1a widened each integer to eight bytes, each requiring a dependent
+multiply. Baseline Release hashing cost 4.665 ms/tick on Drako and 5.621 ms/tick on Harkan.
+The structural stream and simulation rules need no change to remove that cost.
+
+**Decision.** `Hash64` mixes each value with xor, rotate, an odd multiply and an added constant,
+then applies xxHash64's avalanche when read. For a fixed input each round is bijective;
+the constant prevents zero being an absorbing state for zero inputs. Strings retain their
+length and character sequence with a separate null sentinel. Equal numeric values of different
+primitive widths share a word; the stream layout is fixed within a hash version.
+`Fnv1a64` preserves asset placeholder colours and pinned navigation fingerprints.
+Do not add `System.IO.Hashing.XxHash3`: the Unity-bound netstandard2.1 assembly would need
+another package. The rotate uses shifts supported by that target.
+
+**Consequences.** No hashed field, simulation behavior or snapshot layout changes.
+Every pre-329 journal and save is refused, including evidence under `D:\DK2Evidence`, which
+must be replayed at its own commit. Keeper/controller command hash columns cannot be compared
+across 328/329. The deterministic pin is recorded in `research/hash-versions.md`.
+Equivalence and measured speed checks are required by the throughput plan before committing.
+
+## ADR-0577 - The keepers' staging routes share one mesh, rebuilt whole
+**Date:** 2026-10-29 · **Status:** accepted · No hash change
+
+**Context.** Each keeper view built another whole-map mesh to ask whether its fighters could
+reach their heart's staging point. The mesh's locate cache affects edge and vertex answers
+(ADR-0486), so handing a previously queried mesh to another view could change its answers.
+
+**Decision.** The harness owns one `KeeperStaging` per run and passes it to keeper and controller
+views. It lazily builds a mesh when a view routes a fighter, keeps it while routing bytes agree,
+and restores the whole build's locate cache before each view. Changed bytes trigger another
+whole build; an incrementally edited mesh need not equal a fresh build. Views remain serial.
+The existing two-argument `WorldSteering` constructor retains incremental editing for the
+simulation. Router scratch is generation-stamped and clears its stamps when the generation wraps.
+
+**Consequences.** A view receives the mesh and locate state a fresh build would supply, with
+no change to simulation registration, RNG order or keeper decisions. Keeper staging is outside
+the simulation hash and snapshot, so neither version changes. Hosts can omit staging to obtain
+the original independent builds. Tests compare complete view packets, changed routing bytes,
+multiple keepers and reuse through the router's generation wrap.
+
+## ADR-0578 - The harness hashes the world while the keepers think
+**Date:** 2026-10-29 · **Status:** accepted · No hash change
+
+**Context.** After ADR-0576/0577, Drako still spends 0.651 ms/tick hashing and 1.927 ms in keeper
+AI. Both can read the settled world after the serial simulation tick.
+
+**Decision.** `RunOptions.OverlapStateHash` defaults to true. On a nonfinal tick with computer
+keepers, run the hash on a pool thread while keeper views and thinking remain serial on the
+run's thread. Join the hash before journals, divergence checks, monitoring, controllers or the
+next tick. False keeps a serial measurement and equivalence control. Unity is unaffected.
+
+**Audit (82e583ab).** `StateHash` calls world, navigation and RNG `HashInto`; nested hashes read
+stored fields, collections and wrappers only. Navigation hashes its existing mesh without
+refresh/query calls. The built-in RNGs hash stored words without drawing. Secret-door and trigger
+ordering uses private LINQ buffers; level counters allocate a private array. No hash path reads
+`StructureCache`, `RoomSweepCache` or `KeeperStaging`. The scenario factory only constructs the
+audited Xoshiro and DK2 generators. Views write the first two derived world caches and staging;
+`StructureBlocks.For` rewrites cache scratch even on hits. Those writes require serial views.
+Keeper state, RNG and route caches belong to individual keepers. The two shared route scratch
+lists belong to tick-only rules and are reached by neither hash nor keeper observation.
+
+**Consequences.** Keep the hash's exception precedence: a hash failure wins; a keeper failure
+is captured with its stack and thrown after that tick's hash and monitor are recorded. Keeper
+profiling spans close in `finally`. Thinking now precedes `AfterTick`; its snapshot writer reads
+the live world, shadow ticks mutate a separate world, and progress sampling only observes the
+live state. Monitored equivalence tests exercise that order. `state hash wait` measures the
+remaining join time; the full hash duration is visible in serial mode. Allocation measures only
+the run thread, as before; it excludes pool-thread hashing allocations in overlap mode.

@@ -122,7 +122,7 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
             WorldState world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
             byte[] shipped = WorldSteering.CaptureNavigationBytes(database, world);
 
-            Hash64 hash = Hash64.Start();
+            Fnv1a64 hash = Fnv1a64.Start();
             foreach (int rewrites in Rewrites)
             {
                 byte[] bytes = Rewrite(shipped, rewrites, seed: (uint)(level.GetStableHashCode() ^ rewrites));
@@ -231,7 +231,7 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
         return bytes;
     }
 
-    private static void Fingerprint(NavMesh mesh, ref Hash64 hash)
+    private static void Fingerprint(NavMesh mesh, ref Fnv1a64 hash)
     {
         hash.Add(mesh.PointSlots);
         for (int p = 0; p < mesh.PointSlots; p++)

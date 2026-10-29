@@ -17,6 +17,10 @@ public sealed record RunOptions
     /// <summary>Where to write the input journal, or null for none.</summary>
     public Stream? Journal { get; init; }
 
+    /// <summary>Hash on a pool thread while keepers think (ADR-0578). False keeps serial
+    /// measurement and equivalence checks available; simulation ticks always remain serial.</summary>
+    public bool OverlapStateHash { get; init; } = true;
+
     /// <summary>Record trigger records reached, creature-ticks per DK2 state and event kinds.</summary>
     public bool Coverage { get; init; }
 

@@ -4,8 +4,9 @@
 > commit and a measurement. Do not start a task before the previous one's gate passes. Where a
 > step says **STOP**, stop and ask the owner.
 
-**Status:** proposed 2026-10-28; re-checked against master at hash 328 on 2026-10-29 (line
-references, version and ADR numbers, gates). Nothing below is built. Covers headless tick cost only.
+**Status:** Tasks 0–5 implemented and verified on 2026-10-29 at hash/save 329
+(ADR-0576–0578 and ADR-0552's owner-approved parallel-watch amendment). Implementation steps below retain
+their original baseline and instructions. Covers headless tick cost only.
 Frame pacing in Unity is the [parallelism roadmap](2026-10-17-parallelism-design.md),
 whose simulation bullet now points here.
 
@@ -1147,3 +1148,33 @@ dotnet $H watch scenarios/keepers --out build/perf/watch-j4 --jobs 4
 - The speed-budget gate (ADR-0575) passes. Its Level 1–4 totals and worst tick, against Task 0's
   baseline, are recorded in the last commit's body.
 - Drako's median tick, against Task 0's baseline, is recorded in the last commit's body.
+
+## Not done
+
+- **Parallel keeper thinking:** private RNG, state and route caches permit independent thinking
+  after serial view capture. The prior profile put total thinking at 0.8 ms/tick and the slowest
+  keeper at 0.5–0.56 ms: an ideal ceiling of 0.24–0.30 ms before scheduling overhead. The plan's
+  ≤0.2 ms net estimate is unverified. Not built.
+- **A narrower navigation refresh key:** whole `TileState` comparison lets health, gold, fog and
+  tag writes trigger refills (prior profile: 8–18/tick, about 0.4–0.5 ms self time). Any narrower
+  key must cover terrain, owner, secret doors, doors, ruined hearts, crypts and navigation stamps.
+  Not built.
+- **Parallel view construction:** unsafe because `StructureBlocks.For` rewrites the world's
+  structure-cache scratch even on a hit; prewarming does not help. Room sweeps also retain
+  world-owned derived state. Views remain serial (ADR-0578).
+- **Shared navigation bytes:** each view still calls `CaptureNavigationBytes` and staging fills
+  its own bytes. A Task 2 probe of the initial Level 11A map, without placed things, measured
+  0.0390 ms and about 10.3 KiB per warm fill (median of three 2,000-fill samples after 20,000
+  warm-ups). This bounds that fixture only, not the populated run. Sharing a per-tick copy is
+  unbuilt.
+- **Unsafe static route scratch:** `CallToArmsRules.RouteScratch` and `FightRules.RouteScratch`
+  are shared mutable lists without `[ThreadStatic]`. The first is never cleared and grows
+  across runs, including in Unity; `WorldSteering.Route` appends. Both callers only consume
+  route success, so retained points do not affect hashes, but simultaneous appends can race.
+  Make them thread-local and clear them, as `ApproachRules` does, in a separate task. They must
+  be addressed before concurrent simulations in one process, including concurrent shadow ticks;
+  existing xUnit class parallelism can also expose them. Process workers do not share them.
+  The static-state audit identified these unsafe scratch lists; locked caches such as
+  `TrapRules.FiringBuilt` and fixed lookup arrays are separate cases. No fix built here.
+- **Creature and Imp update parallelism:** not built; these updates remain serial by the hard
+  ordering constraints above.

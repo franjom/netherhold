@@ -79,7 +79,9 @@ public static class HarnessCommandLine
     }
 
     /// <summary>The fallback when the option is absent; null when present but not a positive whole number.</summary>
-    public static int? Int(string[] args, string name, int fallback) =>
-        Value(args, name) is not string value ? fallback
-        : int.TryParse(value, out int parsed) && parsed > 0 ? parsed : null;
+    public static int? Int(string[] args, string name, int fallback)
+    {
+        if (Array.IndexOf(args, name) < 0) return fallback;
+        return Value(args, name) is string value && int.TryParse(value, out int parsed) && parsed > 0 ? parsed : null;
+    }
 }

@@ -54,8 +54,8 @@ about 3–7% by itself, and under ADR-0537 fails the capture outright. Whether i
 ## P0 — Measure the slow frames and choose one change
 
 - [ ] First, cheaply: the tick-duration distribution for the captured scenes
-  (harness `RunClock` p50/p99/max; each run writes it once the throughput plan's
-  Task 0 lands). The keeper scenarios are measured; Level8's opening is not.
+  (harness `RunClock` p50/p99/max in each run's `timings.txt`, built by the throughput plan's
+  Task 0). The keeper scenarios are measured; Level8's opening is not.
   Then classify each error frame as boundary clamp, catch-up or long frame. Do
   this before building new instrumentation.
 - [ ] Log per frame the ticks started (`maxTicksPerFrame` allows 2), the tick debt

@@ -158,7 +158,7 @@ any machine.**
 
 - The RNG's position is part of the state hash — two runs that look identical but
   have consumed different draws are about to diverge.
-- `Hash64` is FNV-1a. `GetHashCode` is forbidden in the hash path, because .NET
+- `Hash64` uses the versioned value mixer of ADR-0576. `GetHashCode` is forbidden in the hash path, because .NET
   randomises string hashing per process.
 - One pinned literal in
   `DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines` guards

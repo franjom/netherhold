@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Runtime.ExceptionServices;
 using DK2.Assets;
 using DK2.AI;
 using DK2.Data;
@@ -285,6 +286,7 @@ public sealed class ScenarioRunner
             ? inputs.CreateComputerKeepers(scenario, campaignLevel, world, unsupported)
             : [];
         var emitted = new List<PlayerCommand>();
+        var staging = new KeeperStaging();
         var commandLog = new List<KeeperCommandEmission>();
         var controllerLog = new List<ControllerCommandEmission>();
         CheckControllers(controllers, world, keepers);
@@ -301,6 +303,18 @@ public sealed class ScenarioRunner
             () => builder.ResolveShippedTriggers(scenario, campaignLevel), work, scenario.DurationTicks);
         monitor.Start(simulation);
         int completed = 0;
+        List<PlayerCommand> Think()
+        {
+            var next = new List<PlayerCommand>();
+            clock.Begin(RunClock.KeeperAi);
+            try
+            {
+                foreach (KeeperAI keeper in keepers)
+                    next.AddRange(keeper.Think(_database, world, staging));
+                return next;
+            }
+            finally { clock.End(RunClock.KeeperAi); }
+        }
         try
         {
             for (int t = 0; t < scenario.DurationTicks; t++)
@@ -313,23 +327,39 @@ public sealed class ScenarioRunner
                 journal?.WriteFrame(t, given);
                 clock.BeginTick(t);
                 simulation.Tick(given);
-                clock.Begin(RunClock.StateHash);
-                hashes.Add(simulation.StateHash());
-                clock.End(RunClock.StateHash);
+                bool last = t + 1 == scenario.DurationTicks;
+                ulong hash;
+                List<PlayerCommand>? thought = null;
+                ExceptionDispatchInfo? keeperFailure = null;
+                if (mode.Options.OverlapStateHash && !last && keepers.Count > 0)
+                {
+                    // Hashing reads no derived world caches; view construction writes them,
+                    // so keepers and staging stay serial on this thread (ADR-0578).
+                    Task<ulong> hashing = Task.Run(simulation.StateHash);
+                    try { thought = Think(); }
+                    catch (Exception ex) { keeperFailure = ExceptionDispatchInfo.Capture(ex); }
+                    clock.Begin(RunClock.StateHashWait);
+                    try { hash = hashing.GetAwaiter().GetResult(); }
+                    finally { clock.End(RunClock.StateHashWait); }
+                }
+                else
+                {
+                    clock.Begin(RunClock.StateHash);
+                    hash = simulation.StateHash();
+                    clock.End(RunClock.StateHash);
+                }
+                hashes.Add(hash);
                 completed = t + 1;
-                journal?.WriteHash(t + 1, hashes[t + 1]);
-                divergence.Compare(t + 1, hashes[t + 1]);
-                monitor.AfterTick(simulation, t, given, hashes[t + 1]);
-                if (t + 1 == scenario.DurationTicks)
+                journal?.WriteHash(t + 1, hash);
+                divergence.Compare(t + 1, hash);
+                monitor.AfterTick(simulation, t, given, hash);
+                keeperFailure?.Throw();
+                if (last)
                 {
                     clock.EndTick();
                     break;
                 }
-                var next = new List<PlayerCommand>();
-                clock.Begin(RunClock.KeeperAi);
-                foreach (KeeperAI keeper in keepers)
-                    next.AddRange(keeper.Think(_database, world));
-                clock.End(RunClock.KeeperAi);
+                List<PlayerCommand> next = thought ?? Think();
                 emitted.AddRange(next);
                 foreach (PlayerCommand command in next)
                     commandLog.Add(new KeeperCommandEmission(t + 1, command));
@@ -339,7 +369,7 @@ public sealed class ScenarioRunner
                 foreach (ScenarioController controller in controllers)
                 {
                     if (t % controller.IntervalTicks != 0) continue;
-                    IReadOnlyList<PlayerCommand> decided = controller.Decide(new KeeperView(_database, world, controller.PlayerId))
+                    IReadOnlyList<PlayerCommand> decided = controller.Decide(new KeeperView(_database, world, controller.PlayerId, staging: staging))
                         ?? throw new InvalidOperationException($"Controller '{controller.Name}' returned null; return an empty list.");
                     foreach (PlayerCommand command in decided)
                     {

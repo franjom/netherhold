@@ -35,8 +35,8 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
               a repeated failure.
 
           watch <scenario.yaml|directory> [--out <dir>] [--timeout-seconds 600]
-                [--budget-minutes 30] [--max-runs 20] [run options] [--fuzz-seeds <n>]
-              Runs each scenario in its own process, one at a time, and kills a
+                [--budget-minutes 30] [--max-runs 20] [--jobs 1] [run options] [--fuzz-seeds <n>]
+              Runs each scenario in its own process, at most --jobs at a time, and kills a
               run that outlives its limit. Each watch writes a new folder with
               watch-summary.tsv and, for a run that did not pass, failure.md
               beside its journal. Exit 1 when a run did not pass, 4 when a limit
@@ -255,14 +255,20 @@ switch (args[0])
         int? perRun = HarnessCommandLine.Int(args, "--timeout-seconds", 600);
         int? budget = HarnessCommandLine.Int(args, "--budget-minutes", 30);
         int? maxRuns = HarnessCommandLine.Int(args, "--max-runs", 20);
-        if (perRun is null || budget is null || maxRuns is null)
+        int? parallelJobs = HarnessCommandLine.Int(args, "--jobs", 1);
+        if (perRun is null || budget is null || maxRuns is null || parallelJobs is null)
         {
-            Console.Error.WriteLine("--timeout-seconds, --budget-minutes and --max-runs take a positive whole number.");
+            Console.Error.WriteLine("--timeout-seconds, --budget-minutes, --max-runs and --jobs take a positive whole number.");
+            return 2;
+        }
+        if (parallelJobs > Environment.ProcessorCount)
+        {
+            Console.Error.WriteLine($"--jobs cannot exceed the processor count ({Environment.ProcessorCount}).");
             return 2;
         }
 
         var watchdog = new Watchdog(HarnessCommandLine.Value(args, "--out") ?? "build/watch-runs",
-            new WatchLimits(TimeSpan.FromSeconds(perRun.Value), TimeSpan.FromMinutes(budget.Value), maxRuns.Value));
+            new WatchLimits(TimeSpan.FromSeconds(perRun.Value), TimeSpan.FromMinutes(budget.Value), maxRuns.Value, parallelJobs.Value));
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;

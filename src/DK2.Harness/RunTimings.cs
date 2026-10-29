@@ -128,6 +128,7 @@ internal sealed class RunClock : ISimulationProfiler
     public static readonly SimulationMarker KeeperAi = SimulationMarker.Named("keeper AI");
     public static readonly SimulationMarker Controllers = SimulationMarker.Named("test controllers");
     public static readonly SimulationMarker StateHash = SimulationMarker.Named("state hash");
+    public static readonly SimulationMarker StateHashWait = SimulationMarker.Named("state hash wait");
 
     private readonly long _start = Stopwatch.GetTimestamp();
 

@@ -21,7 +21,7 @@ public sealed class KeeperView : INavByteGrid
     private readonly AvailabilityState[] _availability;
 
     public KeeperView(GameDatabase database, WorldState world, PlayerId playerId,
-        IEnumerable<PlayerId>? playerActivationOrder = null)
+        IEnumerable<PlayerId>? playerActivationOrder = null, KeeperStaging? staging = null)
     {
         Database = database;
         PlayerId = playerId;
@@ -108,7 +108,7 @@ public sealed class KeeperView : INavByteGrid
             bool routed = false;
             if (fighter && Heart is TilePos heartTile)
             {
-                steering ??= new WorldSteering(database, world);
+                steering ??= staging?.SteeringFor(database, world) ?? new WorldSteering(database, world);
                 route.Clear();
                 routed = steering.Route(StagingPoint(heartTile), new Fixed16Vector(c.PosX << 4, c.PosY << 4),
                     StagingWalker(playerId), route, refresh: false);
