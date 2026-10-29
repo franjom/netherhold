@@ -4715,7 +4715,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 5. `HashVersion` and `FormatVersion` **111**, pin `0x92F1E00A712726B0`.
 
 **Consequences.**
-- A creature dropped in the Workshop goes back to it after every crate until the queue is empty, whatever its table says.
+- A creature dropped in the Workshop goes back to it after every crate until the queue is empty, whatever its table says (a creature with no `ManufacturePerSecond` is idled by the update hook: ADR-0573).
 - Not built:
   - the escape (121) clear (the Torture-leave clear: ADR-0322);
   - the Hatchery, Treasury, Lair, Portal, Heart, Prison and Crypt drop states;
@@ -13352,3 +13352,24 @@ treats the same.
 
 Tests: `CreatureStateMachineTests.ARouteHelpersWalkEndsTheRunningAction`,
 `TheCombatApproachKeepsTheRunningAction`; `HeroWalkTests.AWaitingHeroWalksWhenItsActionEndsAfterTheDeadline`.
+
+## ADR-0573 - A creature that cannot manufacture leaves the Workshop
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 327 · Issue #4 ·
+Research: `docs/research/state-category-hooks.md` §3.4; KB `0047B190`, `0047B000`, `00476FC0`, `004E8DA0`
+
+**Context.** The room drop `0x004E8DA0` refuses only a keeper's creature that hates the room's job
+(CONFIRMED); no rate or job-class test. What a creature earns is its category hook's. The Manufacture
+update `0x0047B190` returns 0 when the level-scaled `ManufacturePerSecond` is 0, and the dispatcher
+`0x00476FC0` then sets 1. The Research update `0x0047B000` credits a zero and returns 1. Ours kept a
+zero-rate manufacturer at work, counted in `ManufacturingCreatures`, which holds off the idle-Workshop
+point loss.
+
+**Decision.** `CreatureJobSystem.Manufacture` fails on a zero credit: `job_lost`
+(`reason=cannot_manufacture`), the job stopped, idle. Research is unchanged.
+
+**Consequences.** Shipped, every non-worker with a zero rate but two hates that job, so the drop
+refuses it first; of Horny and the Unique Skeleton only the Skeleton can be picked up. Dropped in a
+Workshop it never earns, and with an order queued it alternates 63 and 1 every turn: `DroppedToDoJob`
+stays Manufacture (DK2 stores it before the state and 89 clears it only on a refusal), and the job
+handler `0x00470080` tests the order count, not the rate (STRONGLY INFERRED for DK2, Q672). In a
+Library it stays and earns nothing.

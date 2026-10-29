@@ -85,6 +85,74 @@ public class DroppedToDoJobTests
         Assert.Equal(EfficiencyRules.BasePercent + EfficiencyRules.BonusPercent, EfficiencyRules.Percent(maker, db.CreatureById(MakerId)));
     }
 
+    /// <summary>The Manufacture update <c>0x0047B190</c> returns 0 on a zero credit, and the
+    /// dispatcher idles the creature (ADR-0573): shipped, the Unique Skeleton, which neither
+    /// manufactures nor hates it, and the hand can lift. Idle retries the dropped job, which only a
+    /// refusal forgets, so with orders queued it goes back and is idled again (Q672).</summary>
+    [Fact]
+    public void ACreatureThatCannotManufactureIsDroppedInTheWorkshop_NeverEarns_AndIsIdledByEveryHook()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Goblin() with
+        {
+            CreatureId = MakerId, Name = "Idler", ManufacturePerSecond = 0, ResearchPerSecond = 0,
+            HappyJobs = [new(JobType.Train, 0, 0, 100)], HateJobs = [],
+        });
+        WorldState world = World(db);
+        CreatureState idler = world.SpawnCreature(db, MakerId, Keeper, Aside);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        DropOnTheBench(sim, idler);
+        int idleTurns = 0;
+        for (int t = 0; t < 2 * Second; t++)
+        {
+            sim.Tick();
+            Assert.Equal(0, world.Player(Keeper).ManufacturePoints);
+            Assert.InRange(world.Player(Keeper).ManufacturingCreatures, 0, 1);
+            if (idler.CurrentJob == JobType.None) idleTurns++;
+        }
+
+        Assert.Contains(sink.Events, e => e.Kind == "dropped_to_job");
+        Assert.True(sink.Events.Count(e => e.Kind == "job_lost"
+            && e.Detail.Contains("reason=cannot_manufacture", StringComparison.Ordinal)) >= 2);
+        Assert.True(idleTurns > 0);
+        Assert.Equal(JobType.Manufacture, idler.DroppedToDoJob);
+        Assert.Equal(0, world.Player(Keeper).ItemsManufactured);
+    }
+
+    /// <summary>The Research update <c>0x0047B000</c> credits the scaled rate, zero included, and
+    /// returns 1: a dropped creature that cannot research stays at work and earns nothing.</summary>
+    [Fact]
+    public void ACreatureThatCannotResearchIsDroppedInTheLibraryAndStaysEarningNothing()
+    {
+        var level = new GlobalVariables();
+        level.Research.Add(new ResearchEntry(ResearchTreeRules.KindSpell, Dk2TerrainFixture.CreateImpSpellId, 1_000_000));
+        GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Goblin() with
+        {
+            CreatureId = MakerId, Name = "Idler", ManufacturePerSecond = 0, ResearchPerSecond = 0,
+            HappyJobs = [new(JobType.Train, 0, 0, 100)], HateJobs = [],
+        }).ForLevel(level);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
+        for (int y = 1; y <= 3; y++)
+        for (int x = 1; x <= 3; x++)
+            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, Dk2TerrainFixture.CreateImpSpellId, 3));
+        world.Player(Keeper).ResearchTarget = 1;
+        Dk2TerrainFixture.FurnishRooms(db, world);
+        CreatureState idler = world.SpawnCreature(db, MakerId, Keeper, Aside);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        DropOnTheBench(sim, idler);
+        sim.Run(5 * Second);
+
+        Assert.Contains(sink.Events, e => e.Kind == "dropped_to_job");
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "job_lost");
+        Assert.Equal(JobType.Research, idler.CurrentJob);
+        Assert.Equal(JobType.Research, idler.DroppedToDoJob);
+        Assert.Equal(0, world.Player(Keeper).ResearchPoints);
+    }
+
     [Fact]
     public void ACreatureThatHatesTheRoomsJobIsDroppedThereLikeAnywhereElse()
     {

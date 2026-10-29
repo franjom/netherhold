@@ -117,8 +117,8 @@ public static class CategoryHooks
             Enter = static (in StateHookContext hooks, CreatureState creature) => ManufactureRules.Enter(in hooks, creature),
         },
         Arm(CreatureStateCategory.Manufacture, 0x0047B190, HookStatus.Partial,
-            "credit per turn (ADR-0203); not built: a zero credit failing the hook, and the turn % v19 call "
-            + "to 0x004F2300 (state-category-hooks.md §3.4)",
+            "credit per turn (ADR-0203), a zero credit failing the hook (ADR-0573); not built: the turn % v19 "
+            + "call to 0x004F2300 (state-category-hooks.md §3.4)",
             typeof(CreatureJobSystem), "Manufacture"),
         new(CreatureStateCategory.Manufacture, HookKind.Leave, 0x0047B120, HookStatus.Partial,
             "player +0x8A down on the tile's keeper, with no floor (ADR-0322), then " + Release)

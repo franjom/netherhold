@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**327** - `0x0A899428097E5E19`. FormatVersion also 327. Behaviour only: a zero Manufacture credit fails the category 5 update (`0x0047B190` returns 0), and the creature goes idle (ADR-0573). No fields added; the pin fixture moves by the version only. `DroppedToDoJobTests.ACreatureThatCannotManufactureIsDroppedInTheWorkshop_NeverEarns_AndIsIdledByEveryHook` and `ACreatureThatCannotResearchIsDroppedInTheLibraryAndStaysEarningNothing` cover it.
+
 **326** - `0x7867DC185C8E72EE`. FormatVersion also 326. Behaviour only: the two route helpers' walks (states 6 and 7) end a running action (`0x00471890`, `0x00471A70` -> `0x00496D20`; ADR-0572, Q671), so a hold or a cast begun before the walk does not outlive it; state 8's approach keeps it. No fields added; the pin fixture moves by the version only. `CreatureStateMachineTests.ARouteHelpersWalkEndsTheRunningAction` and `TheCombatApproachKeepsTheRunningAction` cover it.
 
 **325** - `0x55C440B501A59863`. FormatVersion also 325. Behaviour only: a door or trap order is pushed while the keeper's blueprints of the type outnumber its crates, queued orders no longer counted as crates (`0x005066E0`), and an authored door blueprint is queued at its own record (`0x00520F40`, ADR-0571). No fields added; the pin moves by the version only (the fixture has no blueprints).
@@ -392,8 +394,4 @@ Nothing writes it yet, so every creature hashes the unassigned `-1`: the bump is
 field's arrival, not a behaviour change. `-1` rather than `0` because state 0 is a
 real row.
 
-**74** — `0x434B838F6410D5F7`. State 8's flag and route-refresh countdown, the chase
-counter, the retreating target given up, the celebration clock and the body target
-entered on every creature (ADR-0169).
-
-[Versions 9–73](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–74](hash-versions-early.md) retain the earlier pins and their reasons.

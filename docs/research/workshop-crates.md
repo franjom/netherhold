@@ -199,7 +199,8 @@ worker credits the keeper's one pool of points (ADR-0203).
   state 121 (`0x004739E0`), the Torture leave hook (`0x0047B4A0`), and 89 itself when the job
   refuses. The pick-up leaves it alone.
 - **What it does.** A creature dropped in the Workshop keeps going back to it after every crate
-  until the queue is empty.
+  until the queue is empty, unless its credit is zero: the update hook `0x0047B190` then returns
+  0 and it is idled, and with an order queued it alternates 63 and 1 (ADR-0573, Q672).
 - **Ours:** the Library, Training Room, Guard Room, Workshop, Temple and Casino. The Torture
   clear is built (ADR-0322); the escape's is not.
 

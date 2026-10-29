@@ -75,7 +75,7 @@ the category operation failed; a return of one means it remains valid.
 | `0x0047B000` | Research update | Reads level and definition `ResearchPerSecond` (`+0x6BB`), scales levels 2-10 by stat 17, clamps `0..65534`, and credits the owning keeper through `0x004C2DC0`. See `library-and-research.md` for the canonical rate analysis. |
 | `0x0047B0A0` | Manufacture enter | Increments `NumberOfManufacturingCreatures`, **player** `+0x8A` of the tile's keeper; clears state `+0xB9` (unread); claims. Built: ADR-0322 (`leave-hook-bodies.md` §4). |
 | `0x0047B120` | Manufacture leave | Decrements the same player `+0x8A`, with no floor, and releases. Built: ADR-0322. |
-| `0x0047B190` | Manufacture update | Reads definition `ManufacturePerSecond` (`+0x6BD`), scales levels 2-10 by stat 18, clamps `0..65534`, and credits the keeper through `0x004C3200`; zero returns failure. |
+| `0x0047B190` | Manufacture update | Reads definition `ManufacturePerSecond` (`+0x6BD`), scales levels 2-10 by stat 18, clamps `0..65534`, and credits the keeper through `0x004C3200` and returns 1; a zero scaled credit skips the adder and returns 0, so the dispatcher idles the creature (re-read 2026-10-29, ADR-0573). The Research update `0x0047B000` has no such test and returns 1 on a zero credit. |
 | `0x0047B230` | Training enter | **CONFIRMED** (re-read 2026-10-01). First the gold: `-ModifyPlayerColdWhileTrainingPerSecond` (5) against player `+0x7E` (`Money`), `CMP`/`JBE`, so 5 ≤ Money passes. Failing, it raises message 55 to the creature's keeper on every refusal (`0x004C4600(0x37, owner, 5, 0, 1)`: Data1 5, subtable `0x006A0690`, 240 s) and returns 0, writing nothing. Passing, it clears `+0xB4`, sets `+0xB3` = variable 19, then the lookup and claim of §3.5, so a claim refusal leaves the seed written. The update hook raises the same message. Built: ADR-0313. |
 | `0x0047B2D0` | Training update | At the level cap it returns 1 at once: no experience, no charge, no countdown step. Below it, adds level-scaled `ExpPerSecondTraining` every tick. Once per second (`+0xB3`) it checks the keeper can pay 5: if not, message 55 and failure; if so, it charges 5 at the creature's tile (`0x004BA420`), and every fourth charge calls `0x0050FB70` with 20, the floating "−20" (re-read 2026-10-01; this row said 20 gold every fourth check). |
 | `0x0047B430` | Torture enter | Claims, then initializes `+0xAC`. |
@@ -275,7 +275,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
 - **The credit.** The update `0x0047B190` takes `ManufacturePerSecond` (`+0x6BD`), which
   the loader divides by variable 19 with a floor of one (`0x004938B8`, beside
   `ResearchPerSecond` at `+0x6B9`), scales levels 2–10 by stat row 18, clamps to
-  `0..0xFFFE` and passes it to `0x004C3200` every turn. The adder's other calls read the
+  `0..0xFFFE` and passes it to `0x004C3200` every turn. A zero credit is not passed: the hook returns 0 and the dispatcher `0x00476FC0` sets 1, so a creature with no `ManufacturePerSecond` cannot stay at work (ADR-0573; shipped, the only non-workers with it zero and unhated are Horny and the Unique Skeleton, and only the Skeleton can be picked up; with an order queued, idle's retry of the dropped job sends it straight back, Q672). The adder's other calls read the
   turn and discard it; a `turn % v19 == 0` call to `0x004F2300` is unread.
 - **The points and the list.** The adder adds to `player+0x217` (a word). The list at
   `player+0x219` is a ring of 128 sixteen-byte entries: cost word, kind byte `+2` (0 door,

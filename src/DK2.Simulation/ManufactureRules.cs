@@ -23,14 +23,14 @@ public readonly record struct ManufactureOrder(byte Kind, byte TypeId, int Cost)
 /// <c>state-category-hooks.md</c> §3.4).</summary>
 /// <remarks>The category 5 update <c>0x0047B190</c> credits the level-scaled
 /// <c>ManufacturePerSecond</c> every turn through <c>0x004C3200</c>, which adds it to the keeper's
-/// points (<c>player+0x217</c>, a word). When the list holds an order and the points cover the cost
-/// word in the ring's slot 0 (<c>0x00506B50</c>; not the head's, Q618), a crate of the head order's
-/// type appears in the keeper's nearest Workshop that someone is working
-/// in, the points go to zero (the overshoot is lost), the order leaves the list and the
-/// keeper's items manufactured go up. The list is a 128-entry ring, filled when a trap or door
-/// blueprint has no crate of its type waiting (<c>0x005066E0</c>). With points and nobody
-/// manufacturing, the player update takes <c>ManufacturePointLossWhileNoWorkersPerSecond</c> off
-/// once a second (<c>0x004C3340</c>).</remarks>
+/// points (<c>player+0x217</c>, a word); a zero credit is not added and idles the creature (ADR-0573).
+/// When the list holds an order and the points cover the cost word in the ring's slot 0
+/// (<c>0x00506B50</c>; not the head's, Q618), a crate of the head order's type appears in the keeper's
+/// nearest Workshop that someone is working in, the points go to zero (the overshoot is lost), the
+/// order leaves the list and the keeper's items manufactured go up. The list is a 128-entry ring,
+/// filled when a trap or door blueprint has no crate of its type waiting (<c>0x005066E0</c>). With
+/// points and nobody manufacturing, the player update takes
+/// <c>ManufacturePointLossWhileNoWorkersPerSecond</c> off once a second (<c>0x004C3340</c>).</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public static class ManufactureRules
 {

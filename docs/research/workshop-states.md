@@ -84,7 +84,8 @@ It remembers its position. While the action runs, 1; ended, `SetState(63)` and i
 ## 6. Ours
 
 - `WorkshopStep` runs 63, 64 and 65 under the Manufacture job, after the credit hook, as the
-  Library's step does.
+  Library's step does. A zero credit fails the hook and idles the creature before the step runs
+  (`job_lost reason=cannot_manufacture`, ADR-0573).
 - **The work's length** is `AnimationTimingRules.CountedHoldTicks` for art 22 and the count, LIKELY
   (the runner's end after its cycles is the renderer's flags, not read); "the action runs" is
   `now < ActionUntilTick`. 64 goes to 65 whether or not the action starts; DK2 goes only when

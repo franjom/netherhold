@@ -14,7 +14,8 @@ public class WorkshopStateTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Vampire = Dk2TerrainFixture.VampireCreatureId;
 
-    /// <summary>The Vampire with the work's art (slot 22).</summary>
+    /// <summary>The Vampire with the work's art (slot 22), and a manufacture rate: with none the
+    /// Manufacture hook fails and idles it (ADR-0573).</summary>
     private static GameDatabase Db()
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
@@ -22,7 +23,7 @@ public class WorkshopStateTests
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
         foreach (int slot in new[] { 1, 20, WorkshopStep.WorkArtSlot }) slots[slot] = clip;
         return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
-            basis.Creatures.Values.Select(c => c.CreatureId == Vampire ? c with { ArtSlots = slots } : c),
+            basis.Creatures.Values.Select(c => c.CreatureId == Vampire ? c with { ArtSlots = slots, ManufacturePerSecond = 40 } : c),
             basis.Variables, basis.KeeperSpells.Values, objects: basis.Objects.Values, shots: basis.Shots.Values);
     }
 

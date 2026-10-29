@@ -606,7 +606,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             if (!originalTick) return;
             if (CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Manufacture)
             {
-                Manufacture(context, world, database, creature, definition);
+                if (!Manufacture(context, world, database, creature, definition)) return;
                 // The maker's own handler runs after its hook, in the state the crate maker set.
                 if (creature.Dk2StateId == CrateRules.CrateMadeState)
                 {
@@ -820,20 +820,31 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     }
 
     /// <summary>One turn in the Workshop: the credit, and a crate when an order is paid for
-    /// (ADR-0203, <see cref="ManufactureRules"/>).</summary>
-    private void Manufacture(
+    /// (ADR-0203, <see cref="ManufactureRules"/>). A zero credit fails the hook (<c>0x0047B190</c>
+    /// returns 0), which is idle: a hand-dropped creature that cannot manufacture leaves at once,
+    /// where the Research hook keeps a zero-rate creature (ADR-0573). False when the hook failed.</summary>
+    private static bool Manufacture(
         SimulationContext context, WorldState world, GameDatabase database,
         CreatureState creature, CreatureDef definition)
     {
         int amount = ManufactureRules.PerOriginalTick(database, definition, creature);
-        if (amount <= 0) return;
+        if (amount <= 0)
+        {
+            context.Emit(SystemName, "job_lost",
+                $"creature={creature.Id} type={definition.Name} " +
+                $"player={creature.OwnerPlayerId} job={creature.CurrentJob} " +
+                $"at=({creature.Tile.X},{creature.Tile.Y}) reason=cannot_manufacture");
+            Stop(context, creature);
+            return false;
+        }
 
         ObjectState? crate = ManufactureRules.Credit(context.Hooks, creature, amount);
-        if (crate is null) return;
+        if (crate is null) return true;
         context.Emit(SystemName, "crate_manufactured",
             $"creature={creature.Id} player={creature.OwnerPlayerId} object={crate.ObjectTypeId} " +
             $"at=({crate.TileIndex % world.Width},{crate.TileIndex / world.Width}) " +
             $"made={world.Player(creature.OwnerPlayerId).ItemsManufactured}");
+        return true;
     }
 
     /// <summary>State 68 (<c>0x00470B20</c>): a creature whose definition has the celebration
