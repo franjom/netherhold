@@ -160,9 +160,15 @@ Read and built (pass 3, 2026-10-23), each from state ours already keeps:
 - **Size**: 0.25 tile from the descriptor, replacing the 0.259 the owner's three comparisons had reached by eye; icons are no longer sized by their texture width.
 - **Scripted window (ADR-0535)**: action 30 stores native turn + 4 times its first dword, modulo 32 bits, at `+0x4B7`; the predicate includes its last turn. Built as saved/hashed `StatusFlowerUntilTurn` (version 302). Level1's four Imp roots request 60 seconds under flag 71; root 274 also speaks level line 4 and requests 120 seconds (`kwd triggers Level1Triggers.kld`: roots 276/278/279/280 and 274; later stages under flags 73, 75, 77 and 78 repeat speech 4 with further 60-second roots, untested). `TutorialNotificationsTests` drives the four shipped Imp roots and checks visibility without hover and after restore. Matched play remains pending.
 
+The casino winner is built: nonzero `JackpotDeadlineTicks` replaces all ordinary
+layers with the original Dollar mesh. [The loader](functions/00596850.md) supplies
+its30-frame/30-fps descriptor. [The centre draw](functions/005961A0.md) advances a
+shared animation after each winner draw; an intervening ordinary flower replaces
+that descriptor. The host retains this draw-driven clock, unit mesh scale and the
+ordinary mesh half-turn. Its rendered size and motion still need owner comparison.
+
 Left out:
 - The global gate (player `+0x76`, mode 0x0075AD4B): unread meaning.
-- The casino winner (`+0x3F2`, our `JackpotDeadlineTicks`): no ring, no centre, an animated `Dollar` mesh (kind 6) at render scale 0x1000. Needs animated-mesh playback in the flower draw; its size and rate are unread.
 - The sneaking disguise colour.
 - A possession hover. The adapter has no possession camera, so while possessing, only the creature under the ordinary Hand pointer shows a flower.
 

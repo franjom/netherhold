@@ -13,6 +13,38 @@ namespace DK2.Presentation.Tests;
 
 public sealed class WorldHoverTextTests
 {
+    [InstallTheory]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void ConcealedSecretDoorUsesEnemyWallTextWithoutAnOwnershipTest(byte owner)
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        ref TileState tile = ref world.Tile(10, 10);
+        tile.TerrainId = 2; tile.OwnerPlayerId = owner; tile.SecretDoor = true;
+        var text = new WorldHoverText(db, id => id.ToString(), PlayerIds.FirstKeeper);
+        var snapshot = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(10, 10)));
+        Assert.Equal("2481", snapshot.TopStatus); Assert.Equal("2480", snapshot.TooltipName);
+    }
+
+    [Theory]
+    [InlineData(1, 2866)]
+    [InlineData(6, 2871)]
+    [InlineData(7, 2871)]
+    [InlineData(12, 3079)]
+    [InlineData(15, 2876)]
+    [InlineData(17, 2877)]
+    [InlineData(18, 2878)]
+    [InlineData(19, 2878)]
+    [InlineData(20, 2879)]
+    [InlineData(24, 3079)]
+    public void LordPersonalNameUsesTheNativeCampaignSlotTable(int slot, uint expected)
+    {
+        Assert.Equal(expected, WorldHoverText.LordNameTextId(GameMode.Campaign, new CampaignSlot(slot)));
+        Assert.Equal(3079u, WorldHoverText.LordNameTextId(GameMode.Skirmish, new CampaignSlot(slot)));
+    }
+
     [InstallFact]
     public void LibraryStatusSeparatesResearchersFromBooksAndWorkshopCountsStoredCrates()
     {

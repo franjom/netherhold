@@ -25,10 +25,9 @@ public static class HoverPickRules
     /// (<c>+0x686</c> bit 1) and is not dying (<c>+0x3E6</c> bit 21); an object whose definition has
     /// CanBePickedUp, CanBeSlapped or Highlightable (<c>+0xF4</c> &amp; 0x400300); a door or trap
     /// always. Dead bodies (kind 6) never. The creature arm also needs the sink's <c>+0xD1</c>
-    /// clear, which binding 26 (default PAGE UP, objects only) sets while held (0x0059C130); ours has
-    /// no such binding, so it is taken as clear (its initial value is unread, LIKELY zero).</summary>
-    public static bool RenderedCreature(CreatureFlags definition, bool dying) =>
-        (definition & CreatureFlags.CanBePickedUp) != 0 && !dying;
+    /// clear, which binding26 (default PAGE UP) sets while held (0x0059C130).</summary>
+    public static bool RenderedCreature(CreatureFlags definition, bool dying, bool objectsOnly = false) =>
+        !objectsOnly && (definition & CreatureFlags.CanBePickedUp) != 0 && !dying;
 
     /// <inheritdoc cref="RenderedCreature"/>
     public static bool RenderedObject(ObjectFlags definition) =>
@@ -36,8 +35,10 @@ public static class HoverPickRules
 
     /// <summary>The fallback's creature test (0x0044DEC0): not type 0x2E, not dying, and not in
     /// state 0xD6, 0x4C or 0xD1.</summary>
-    public static bool FallbackCreature(byte creatureTypeId, bool dying, int stateId) =>
-        creatureTypeId != FallbackRefusedCreatureType && !dying && stateId is not (0xD6 or 0x4C or 0xD1);
+    public static bool FallbackCreature(byte creatureTypeId, bool dying, int stateId, bool objectsOnly = false) =>
+        !objectsOnly && creatureTypeId != FallbackRefusedCreatureType && !dying && stateId is not (0xD6 or 0x4C or 0xD1);
+
+    public static int FallbackObjectRadius(bool objectsOnly) => Fp32.One / (objectsOnly ? 2 : 4);
 
     /// <summary>The fallback's object test (0x0044DEC0): definition CanBePickedUp
     /// (<c>+0xF4</c> &amp; 0x100) or object type 13.</summary>
@@ -51,10 +52,10 @@ public static class HoverPickRules
         || CreatureDeathRules.HasCollapsed(creature);
 
     /// <summary>Whether <paramref name="hit"/> may come from the rendered stage.</summary>
-    public static bool Rendered(WorldState world, GameDatabase database, WorldHoverKind kind, int id) => kind switch
+    public static bool Rendered(WorldState world, GameDatabase database, WorldHoverKind kind, int id, bool objectsOnly = false) => kind switch
     {
         WorldHoverKind.Creature => world.CreatureById(id) is { } creature
-            && RenderedCreature(database.CreatureById(creature.CreatureTypeId).Flags, IsDying(creature)),
+            && RenderedCreature(database.CreatureById(creature.CreatureTypeId).Flags, IsDying(creature), objectsOnly),
         WorldHoverKind.Object => world.ObjectById(id) is { } thing
             ? RenderedObject(ObjectFlagsOf(database, thing.ObjectTypeId))
             : WorldView.IsStorePile(id) && RenderedObject(ObjectFlagsOf(database, ObjectHoverHighlight.StorePileObjectId)),
@@ -115,10 +116,10 @@ public static class HoverPickRules
         centreDepth - radius < 0f || offsetSquared < radius * radius;
 
     /// <summary>Whether <paramref name="id"/> may come from the fallback sweep.</summary>
-    public static bool Fallback(WorldState world, GameDatabase database, WorldHoverKind kind, int id) => kind switch
+    public static bool Fallback(WorldState world, GameDatabase database, WorldHoverKind kind, int id, bool objectsOnly = false) => kind switch
     {
         WorldHoverKind.Creature => world.CreatureById(id) is { } creature
-            && FallbackCreature(creature.CreatureTypeId, IsDying(creature), creature.Dk2StateId),
+            && FallbackCreature(creature.CreatureTypeId, IsDying(creature), creature.Dk2StateId, objectsOnly),
         WorldHoverKind.Object => world.ObjectById(id) is { } thing
             ? FallbackObject(ObjectFlagsOf(database, thing.ObjectTypeId), thing.ObjectTypeId)
             : WorldView.IsStorePile(id)

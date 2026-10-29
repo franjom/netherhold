@@ -222,6 +222,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 Front-end startup/title/intros, idle replay, Trailer and movie gallery are built;
 the gallery refreshes unlocks when the campaign profile resets. Full-loop and
 media runtime acceptance remain in plans/2026-10-23-front-end.md, F5/F7.
+Completion-phase map preview, creature/room markers and keeper legend, PAGE UP
+objects-only picking, X/Z pointer camera controls, Portal navigation, Lord names
+and the casino Dollar are built. Settings-key integration and matched captures
+remain in plans/2026-10-29-hud-and-front-end-completion.md; no acceptance is implied.
 
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,
@@ -291,7 +295,7 @@ and primary click navigation are built. Remaining overlays
 and owner comparison remain. The Step6 branch now implements camera/letterbox
 HUD hiding, restoration and input blocking, plus the native heading-dependent
 north marker, camera-ribbon disc containment and zoomed Heart direction trail.
-The branch also has original Hand/dig/pickup sprites, a terrain-deformed hover cage per tool mode (blue over dig tiles), a placement cage with tool icon and price (room, sell, door, trap, keeper spell, Query), the held-item icons beside the hand with the disposal bin over the Heart or Portal centre, the red hover tint and the gold `_HIGHLIGHT` texture (store sparkle and lifting store gold not built: research/gold-hover-and-sparkle.md §6), delayed localized names and a top status strip with door, trap, dead-body (unreachable through the Hand pick, Q634) and Casino/Prison fixture status, and DK2's two-stage pick (triangle hit, centre, 3×3 sweep, projected-sphere circle, object ownership arm; objects-only PAGE UP key and terrain occlusion not built; Q636 for rival doors and traps), the special creature name +0x895 (Lord of the Land's level name and the secret-door "Enemy Wall" arm not built). Status flowers have DK2's size, Leaving/S-Gem and Imprison icons, the removal countdown and the torture lift (Q635). Evidence and limits:
+The branch also has original Hand/dig/pickup sprites, a terrain-deformed hover cage per tool mode (blue over dig tiles), a placement cage with tool icon and price (room, sell, door, trap, keeper spell, Query), the held-item icons beside the hand with the disposal bin over the Heart or Portal centre, the red hover tint and the gold `_HIGHLIGHT` texture (store sparkle and lifting store gold not built: research/gold-hover-and-sparkle.md §6), delayed localized names and a top status strip with door, trap, dead-body (unreachable through the Hand pick, Q634) and Casino/Prison fixture status, and DK2's two-stage pick (triangle hit, centre, 3×3 sweep, projected-sphere circle, object ownership arm; objects-only PAGE UP built; terrain occlusion comparison pending; Q636 for rival doors and traps), the special creature name +0x895 (Lord of the Land's campaign-slot name built; the concealed Secret Door's "Enemy Wall" text built). Status flowers have DK2's size, Leaving/S-Gem and Imprison icons, the removal countdown and the torture lift (Q635). Evidence and limits:
 research/hand-cursor-rendering.md, research/placement-cursor.md, research/world-hover-text.md and research/status-flowers.md;
 live gold/mana, separate rates and the Heart health ring now occupy the original
 resource region, with status text to its right. The Step6 branch integration

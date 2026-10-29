@@ -1,4 +1,4 @@
-﻿# Minimap corner controls and related view navigation
+# Minimap corner controls and related view navigation
 
 Read 2026-10-18 from DKII.EXE callbacks, key dispatch and static menu records.
 Original corner artwork, active variants and widget geometry remain canonical
@@ -104,27 +104,32 @@ the camera's existing height and calls the guarded, clamped immediate focus
 setter. This is distinct from the minimap's command4 timed glide.
 Secondary `0x00408EE0` exits to mode3 without navigating. `ClassicFullMapLayout`
 mirrors that display/pointer geometry; `ClassicFullMap` draws cached class and
-palette textures without consulting a running world.
+palette textures. Supplementary overlays read the settled world.
+
+### Full-map markers and legend
+
+CONFIRMED from [the overlay](functions/00403FB0.md): discovered creatures not
+in hand draw3-pixel squares in palette17+owner, without the minimap blink.
+The hovered room's symbol is centred on its stored centre tile, which must be
+explored; the pointer tile must be inside the map border. Native room art and
+missing entries are recorded in [the loader](functions/00403060.md).
+The symbol is32W/640 by32H/480. Keeper names use the player's colour and
+Number>2, starting at reference474,274 in the right-hand legend.
+
+Built: GPU creature squares and room symbols, and original-font keeper names.
+Room centres reuse the existing derived centre fields, whose Heart offset
+remains STRONGLY INFERRED. The host scales creature squares by screen height
+relative to768 for readability; DK2 uses3device pixels. Matched acceptance is pending.
 
 ### Preview and legend (CONFIRMED, binary 2026-10-29)
 
-`0x00598880` tests camera mode 7 at `0x0059899C`; its dedicated render branch
-(`0x005989BB..0x00598C92`) unprojects the live pointer through the fitted map,
-uses that continuous map position as the eye X/Y, engine Z = -8.0, an identity
-rotation and focal length 240 pixels. Its viewport endpoints are
-`(W*466/640, H*33/480, W*594/640, H*225/480)`, each divided with integer
-truncation: **128×192 at (466,33)** at 640×480. This is a live top-down dungeon
-preview, not an OpenKeeper addition. It sets view distance 10.0. The branch
-has no separate discovered-tile or pointer-inside-map test before camera setup;
-normal terrain visibility still applies. Do not clamp the pointer to a tile centre.
-
-`0x00403FB0` (`0x00404A17` onward) draws the legend rectangle with endpoints
-`(W*466/640, H*266/480, W*572/640, H*417/480)`: **106×151 at (466,266)**.
-Player rows begin at reference (474,274); the producer selects rows by player
-`+0x10FC > 2` and draws names in player colours. The discovered-room hover
-symbol and discovered creature squares belong to this full-map pass too.
-These are separate from minimap overlays. The preview, legend and markers
-remain unimplemented; completion plan Task E1 owns them.
+[Mode7 rendering](functions/00598880.md) unprojects the continuous pointer
+position, without a separate inside-map or discovery guard. Engine eyeZ is-8,
+rotation identity, focal240pixels and view distance10. Viewport endpoints are
+(466W/640,33H/480)..(594W/640,225H/480), with integer division. Ordinary scene
+visibility still applies. The adapter uses a dedicated overhead render texture;
+it maps native view distance to Unity's far plane. The keeper legend bounds
+are(466W/640,266H/480)..(572W/640,417H/480). Rendered comparison is pending.
 Normal-HUD toggle producers and remaining Q611 boundaries remain in
 [hud-visibility.md](hud-visibility.md#normal-gui-toggle-producers).
 

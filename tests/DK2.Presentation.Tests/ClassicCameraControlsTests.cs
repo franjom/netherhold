@@ -10,6 +10,33 @@ namespace DK2.Presentation.Tests;
 
 public class ClassicCameraControlsTests
 {
+    [Fact]
+    public void MouseRotateArmsOnTheFirstHeldFrameAndUsesMinusEightAngleUnitsPerPixel()
+    {
+        var camera = new ClassicCamera(Profile());
+        var controls = new ClassicCameraControls(camera);
+        controls.AdvancePointer(new Vector2(4, 0), rotateHeld: true, zoomHeld: false);
+        Assert.Equal(0 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        controls.AdvancePointer(new Vector2(4, 0), rotateHeld: true, zoomHeld: false);
+        Assert.Equal(2016 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        controls.AdvancePointer(default, rotateHeld: false, zoomHeld: false);
+        controls.AdvancePointer(new Vector2(4, 0), rotateHeld: true, zoomHeld: false);
+        Assert.Equal(2016 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+    }
+
+    [Fact]
+    public void MouseZoomUsesOnlyVerticalSignAndRotationTakesPriority()
+    {
+        var camera = new ClassicCamera(Profile());
+        var controls = new ClassicCameraControls(camera);
+        controls.AdvancePointer(default, rotateHeld: false, zoomHeld: true);
+        controls.AdvancePointer(new Vector2(0, 1), rotateHeld: false, zoomHeld: true);
+        Assert.Equal(38720, camera.Zoom.Raw);
+        controls.AdvancePointer(new Vector2(1, 5), rotateHeld: true, zoomHeld: true);
+        Assert.Equal(38720, camera.Zoom.Raw);
+        Assert.Equal(2040 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+    }
+
     [Theory]
     [InlineData(0, ClassicCameraKeys.Left, ClassicCameraKeys.Right, 200)]
     [InlineData(4095, ClassicCameraKeys.Right, ClassicCameraKeys.Left, 3895)]

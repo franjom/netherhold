@@ -3,11 +3,26 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Data.Model;
+using DK2.Core;
 
 namespace DK2.Presentation.Tests;
 
 public sealed class HoverPickRulesTests
 {
+    [Fact]
+    public void ObjectsOnlySkipsTheCreatureSoTheRenderedGoldCanWin()
+    {
+        var pick = new RenderedPick();
+        if (HoverPickRules.RenderedCreature(CreatureFlags.CanBePickedUp, dying: false, objectsOnly: true))
+            pick.Offer(1, 1f, 1f);
+        if (HoverPickRules.RenderedObject(ObjectFlags.CanBePickedUp)) pick.Offer(2, 2f, 2f);
+        Assert.True(pick.TryResult(out int id, out _));
+        Assert.Equal(2, id);
+        Assert.False(HoverPickRules.FallbackCreature(3, dying: false, stateId: 7, objectsOnly: true));
+        Assert.Equal(Fp32.One / 2, HoverPickRules.FallbackObjectRadius(objectsOnly: true));
+        Assert.Equal(Fp32.One / 4, HoverPickRules.FallbackObjectRadius(objectsOnly: false));
+    }
+
     /// <summary>Thing_DrawRenderInfo (0x0059B880) tags a creature's mesh only with CanBePickedUp and
     /// not dying, and an object's with CanBePickedUp, CanBeSlapped or Highlightable.</summary>
     [Fact]

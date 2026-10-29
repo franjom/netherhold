@@ -7,7 +7,7 @@ using DK2.Data.Model;
 
 namespace DK2.Presentation;
 
-public enum MinimapMarkerKind { Creature, Trap, VerticalDoor, HorizontalDoor, Ring, Rectangle }
+public enum MinimapMarkerKind { Creature, Trap, VerticalDoor, HorizontalDoor, Ring, Rectangle, FullMapCreature, FullMapRoom }
 
 [Flags]
 public enum MinimapMarkerFlags : byte
@@ -19,7 +19,8 @@ public readonly record struct MinimapMarkerFacts(
     MinimapMarkerKind Kind, FpPosition3 Position, PlayerId Owner, MinimapMarkerFlags Flags);
 
 public readonly record struct MinimapMarker(MinimapMarkerKind Kind, FpPosition3 Position, uint ColourArgb,
-    int RadiusRasterPixels = 1, FpPosition3 EndPosition = default, int ReportingDistanceTiles = -1);
+    int RadiusRasterPixels = 1, FpPosition3 EndPosition = default, int ReportingDistanceTiles = -1,
+    RoomTypeId RoomType = default);
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-rendering.md")]
 public static class MinimapMarkerRules
