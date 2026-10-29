@@ -44,6 +44,8 @@ namespace DK2.Unity
         private object _shownBriefing, _shownResults, _shownScores;
         // The statistics list's scroll bar (widget 180's child, 0x0052A0D0); its position is the first row.
         private FrontEndScrollBar _resultsBar;
+        private FrontEndScrollBar _movieBar;
+        private int _shownMovieRow = -1;
         private int _shownFirstRow;
         private int ResultsFirstRow => _resultsBar?.Bar.Position ?? 0;
         // Glow frames of the scroll bar's art (0x0054FD20), by art name.
@@ -97,6 +99,7 @@ namespace DK2.Unity
             return _labels.TryGetValue(widget.Id, out LabelData label) && widget.Draw == FrontEndDrawKind.Label
                 ? label.Geometry.PlaceCanvas(rect, label.Alignment, label.Vertical).Inflate(8).Intersect(hit) : hit;
         }
+        public void SetVisible(bool visible) => _owner.SetActive(visible);
         public FrontEndRect LabelInkBounds(FrontEndWidgetId id)
         {
             LabelData label = _labels[id];
@@ -125,6 +128,18 @@ namespace DK2.Unity
                     var pointer = new FrontEndPointer((mouse.x - left) / scale, (height - mouse.y - top) / scale, Input.GetMouseButton(0));
                     Model.UpdatePointer(pointer);
                     UpdateResultsBar(pointer);
+                    if (Model.Page == FrontEndPage.Movies && Model.Movies != null)
+                    {
+                        if (_movieBar == null)
+                        {
+                            _movieBar = new FrontEndScrollBar(FrontEndPages.Get(FrontEndPage.Movies).Widgets.First(w => w.Id.Value == 52).DrawRect);
+                            _movieBar.Bar.Arm(17);
+                        }
+                        var moviePointer = new FrontEndPoint(pointer.X, pointer.Y);
+                        _movieBar.Update(moviePointer, pointer.PrimaryHeld);
+                        _movieBar.Frame(_movieBar.HitTest(moviePointer));
+                        Model.Movies.ScrollTo(_movieBar.Bar.Position);
+                    }
                 }
                 Model.AdvanceFrame();
             }
@@ -135,7 +150,8 @@ namespace DK2.Unity
         private bool ContentChanged => !ReferenceEquals(_shownBriefing, Model.Campaign?.Briefing)
             || !ReferenceEquals(_shownResults, Model.Campaign?.Results)
             || Model.Page == FrontEndPage.HighScores && !ReferenceEquals(_shownScores, Model.Campaign?.HiScores)
-            || _shownFirstRow != ResultsFirstRow;
+            || _shownFirstRow != ResultsFirstRow
+            || Model.Page == FrontEndPage.Movies && _shownMovieRow != Model.Movies?.FirstRow;
         /// <summary>One GUI update of page 26's scroll bar: its input, then its hover glow (0x005507E0, 0x00551BA0).</summary>
         private void UpdateResultsBar(FrontEndPointer pointer)
         {
@@ -158,6 +174,7 @@ namespace DK2.Unity
             }
             _shownBriefing = Model.Campaign?.Briefing; _shownResults = Model.Campaign?.Results; _shownScores = Model.Campaign?.HiScores;
             _shownFirstRow = ResultsFirstRow;
+            _shownMovieRow = Model.Movies?.FirstRow ?? -1;
             foreach (FrontEndWidget widget in Model.Widgets)
             {
                 uint textId = widget.TextId;
@@ -168,6 +185,12 @@ namespace DK2.Unity
                 FrontEndFont fontSpec = FrontEndLabelStyles.FontFor(widget.Draw);
                 if (widget.Draw == FrontEndDrawKind.Title)
                 { textId = widget.TextId < TitleIds.Length ? TitleIds[widget.TextId] : 0; }
+                else if (Model.Page == FrontEndPage.Movies && Model.Movies != null && widget.Id.Value >= 59 && widget.Id.Value <= 63)
+                {
+                    text = Model.Movies.Entries[Model.Movies.FirstRow + widget.Id.Value - 59].Title;
+                    fontSpec = new FrontEndFont(FrontEndFontFamily.FrontEnd, 14);
+                    alignment = FrontEndTextAlignment.Left;
+                }
                 else if (Model.Dialog != null)
                 {
                     if (widget.Id.Value == 684) textId = Model.Dialog.TitleTextId;
@@ -332,6 +355,12 @@ namespace DK2.Unity
                     Texture2D logo = _assets.Image("Logo");
                     Quad(context, logo, new FrontEndRect(rect.X, rect.Y, logo.width, logo.height), Color.white, sx, sy);
                 }
+                else if (Model.Page == FrontEndPage.Movies && Model.Movies != null && widget.Id.Value >= 53 && widget.Id.Value <= 57)
+                {
+                    MovieGalleryEntry row = Model.Movies.Entries[Model.Movies.FirstRow + widget.Id.Value - 53];
+                    Quad(context, _assets.Image(row.Thumbnail), rect, Color.white, sx, sy);
+                    if (state.Hovered) Quad(context, _assets.Image("Mov_Shots/M-Hilight"), rect, Color.white, sx, sy);
+                }
                 else if (widget.Draw == FrontEndDrawKind.Accept || widget.Draw == FrontEndDrawKind.Cancel)
                 {
                     string name = widget.Draw == FrontEndDrawKind.Accept ? "Confirm" : "Cancel";
@@ -341,6 +370,7 @@ namespace DK2.Unity
                 }
             }
             if (Model.Page == FrontEndPage.CampaignResults && _resultsBar != null) DrawResultsBar(context, sx, sy);
+            if (Model.Page == FrontEndPage.Movies && _movieBar != null) DrawResultsBar(context, sx, sy, _movieBar);
         }
         private Texture2D BriefingImage(CampaignBriefing briefing, FrontEndBriefingImage image)
         {
@@ -358,26 +388,27 @@ namespace DK2.Unity
         }
         /// <summary>0x00551BA0: each part's glow frame, then the up arrow, track and down arrow over them, then
         /// the thumb cut from its art's row 8 (clipped to the art; whether DK2's wider blit shows is unchecked).</summary>
-        private void DrawResultsBar(MeshGenerationContext context, float sx, float sy)
+        private void DrawResultsBar(MeshGenerationContext context, float sx, float sy, FrontEndScrollBar bar = null)
         {
+            bar = bar ?? _resultsBar;
             string[] art = { FrontEndScrollBar.UpArrowArt, FrontEndScrollBar.DownArrowArt, FrontEndScrollBar.TrackArt };
             for (int part = 0; part < art.Length; part++)
             {
-                int frame = _resultsBar.GlowFrame(part);
+                int frame = bar.GlowFrame(part);
                 if (frame < 0) continue;
                 Texture2D glow = ScrollGlow(art[part])[frame];
-                FrontEndPoint origin = _resultsBar.ArtOrigin(part);
+                FrontEndPoint origin = bar.ArtOrigin(part);
                 Quad(context, glow, new FrontEndRect(origin.X, origin.Y, glow.width, glow.height), Color.white, sx, sy);
             }
             const int pad = FrontEndScrollBar.GlowPadding;
             for (int part = 0; part < art.Length; part++)
             {
                 Texture2D image = _assets.Image(art[part]);
-                FrontEndPoint origin = _resultsBar.ArtOrigin(part);
+                FrontEndPoint origin = bar.ArtOrigin(part);
                 Quad(context, image, new FrontEndRect(origin.X + pad, origin.Y + pad, image.width, image.height), Color.white, sx, sy);
             }
             Texture2D thumb = _assets.Image(FrontEndScrollBar.ThumbArt);
-            FrontEndRect box = _resultsBar.ThumbRect();
+            FrontEndRect box = bar.ThumbRect();
             float width = Mathf.Min(box.Width, thumb.width);
             float height = Mathf.Min(box.Height, thumb.height - FrontEndScrollBar.ThumbArtTop);
             float right = width / thumb.width, top = 1 - (float)FrontEndScrollBar.ThumbArtTop / thumb.height;

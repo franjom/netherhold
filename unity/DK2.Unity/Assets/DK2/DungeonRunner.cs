@@ -528,6 +528,7 @@ namespace DK2.Unity
             CloseInputJournals("destroyed");
             DisposeHudControls();
             _frontEndMenu?.Dispose();
+            if (_frontEndMovie != null) Destroy(_frontEndMovie.gameObject);
             _campaignMap?.Dispose(); _campaignMap = null;
             _minimap?.Dispose();
             _handCursor?.Dispose();
@@ -561,7 +562,7 @@ namespace DK2.Unity
             JournalBeginFrame();
             _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null || _failure != null) return;
-            if (_frontEnd != null) { if (!UpdateCutscene()) UpdateFrontEnd(); return; }
+            if (_frontEnd != null) { if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd(); return; }
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
 
@@ -1526,6 +1527,7 @@ namespace DK2.Unity
             if (_frontEnd != null)
             {
                 DrawCutsceneTitle();
+                DrawStartupTitle();
                 if (showDiagnostics) DrawFrontEndDiagnostics();
                 return;
             }

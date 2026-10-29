@@ -42,7 +42,7 @@ namespace DK2.Unity.Editor
             if (!Application.isBatchMode || !File.Exists(".front-end-session-probe")) throw new Exception("Isolated probe project required.");
             EditorSceneManager.OpenScene("Assets/DK2/Scenes/Dungeon.unity");
             var runner = UnityEngine.Object.FindAnyObjectByType<DungeonRunner>();
-            JsonUtility.FromJsonOverwrite("{\"sessionMode\":5,\"showDiagnostics\":false,\"speed\":0,\"installDirectory\":\"E:/GogGames/Dungeon Keeper 2\"}", runner);
+            JsonUtility.FromJsonOverwrite("{\"sessionMode\":5,\"skipStartup\":true,\"showDiagnostics\":false,\"speed\":0,\"installDirectory\":\"E:/GogGames/Dungeon Keeper 2\"}", runner);
             if (CampaignMode)
             {
                 string profile = Path.GetFullPath(Path.Combine(Application.dataPath, "../../campaign-profile-" + DateTime.UtcNow.Ticks + ".dk2p")).Replace('\\', '/');

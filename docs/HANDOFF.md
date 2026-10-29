@@ -209,6 +209,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Classic look
 
+Front-end startup/title/intros, idle replay, Trailer and movie gallery are built;
+the gallery refreshes unlocks when the campaign profile resets. Full-loop and
+media runtime acceptance remain in plans/2026-10-23-front-end.md, F5/F7.
+
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,
 Prison rats, Portal entrances, corpse art, terrain debris and the Hand
