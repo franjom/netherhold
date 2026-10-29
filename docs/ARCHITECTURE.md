@@ -174,10 +174,12 @@ any machine.**
   of ticks, not by comparing bytes.
 - `.github/workflows/ci.yml` declares the gate on Linux and Windows with
   `DK2_DIR=/nonexistent`, so every install-gated test is reported skipped there.
-  **No CI is actually running** (the repository has no remote), which makes the commit-msg hook —
-  `git config core.hooksPath .githooks`, running `dk2tools docs` and
-  `dk2tools status --check` — the only gate in force, and leaves the pin's
-  cross-platform claim resting on local runs.
+  It runs on GitHub for every push to master and every pull request (since
+  2026-10-24), with a docs and KB gate beside the two test jobs. Pushes are
+  batched, so the commit-msg hook — `git config core.hooksPath .githooks`,
+  running `dk2tools docs` and `dk2tools status --check` — is still the gate on
+  each local commit. The pin is checked on both platforms; anything that needs
+  the game data is not.
 - A test that needs the shipped game data uses `[InstallFact]`/`[InstallTheory]`
   and **skips** without an install; an early `return` on a null install is the
   defect ADR-0100 removed and `InstallGateTests` fails the build on it.

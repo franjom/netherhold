@@ -68,9 +68,10 @@ CI or on a contributor's machine.
 asserts an exact literal (its pin history: `docs/research/hash-versions.md`). Its job is to catch the silent killers of
 cross-machine reproducibility — string hashing, dictionary iteration order,
 struct layout drift — which every other determinism test would happily pass,
-because they compare two runs *in the same process*. `.github/workflows/ci.yml` declares it
-for Linux and Windows, but no CI runs today (the repository has no remote), so the
-cross-platform property rests on local runs (`docs/ARCHITECTURE.md`).
+because they compare two runs *in the same process*. `.github/workflows/ci.yml` runs it
+on Linux and Windows for every push to master and every pull request (GitHub, since 2026-10-24),
+so the pin holds on both platforms. CI has no game install, so campaign-level determinism
+still rests on local runs (`docs/ARCHITECTURE.md`).
 
 Changing simulation state deliberately will break it. That is correct: bump
 `GameSimulation.HashVersion`, bump `WorldSnapshot.FormatVersion` to match, and
