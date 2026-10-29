@@ -4,7 +4,8 @@
 > commit and a measurement. Do not start a task before the previous one's gate passes. Where a
 > step says **STOP**, stop and ask the owner.
 
-**Status:** proposed 2026-10-28. Nothing below is built. Covers headless tick cost only.
+**Status:** proposed 2026-10-28; re-checked against master at hash 328 on 2026-10-29 (line
+references, version and ADR numbers, gates). Nothing below is built. Covers headless tick cost only.
 Frame pacing in Unity is the [parallelism roadmap](2026-10-17-parallelism-design.md),
 whose simulation bullet now points here.
 
@@ -19,8 +20,9 @@ The plan has three parts:
   read the world.
 - **Process-level parallelism** in `watch`, behind an owner decision.
 
-**Tech stack:** .NET 10 (`net10.0`); `DK2.Core`, `DK2.Pathfinding` and `DK2.Simulation` also
-build as netstandard2.1 for Unity. Tests use xUnit, with `[InstallFact]` for tests that need
+**Tech stack:** .NET 10 (`net10.0`); `DK2.Core`, `DK2.Pathfinding`, `DK2.Simulation`,
+`DK2.AI`, `DK2.Assets` and the other projects importing `UnityBound.props` also build as
+netstandard2.1 for Unity, so new code there (e.g. `KeeperStaging`) must compile for it. Tests use xUnit, with `[InstallFact]` for tests that need
 the DK2 install.
 
 ---
@@ -29,7 +31,13 @@ the DK2 install.
 
 Read first, briefly: `AGENTS.md` (Critical rule, *One fact, one home*, *Replace, do not
 append*, Goal 9); `docs/research/hash-versions.md` (the top section); ADR-0454, ADR-0458,
-ADR-0486 and ADR-0552 in `docs/DECISIONS.md`.
+ADR-0486, ADR-0552 and ADR-0575 (the speed budget) in `docs/DECISIONS.md`.
+
+**Numbers this plan reserves.** As of master `1db766f0`: `HashVersion` is 328 and the top ADR
+is ADR-0575. This plan uses `HashVersion` **329** (Task 1) and ADR-**0576** (Task 1),
+ADR-**0577** (Task 2), ADR-**0578** (Task 3). Before each task, re-read
+`GameSimulation.HashVersion` and the last `## ADR-` heading in `docs/DECISIONS.md`. If master
+has moved past them, take the next free number and use it everywhere this plan names the old one.
 
 **Hard constraints.**
 - **Determinism.** Same inputs give the same `GameSimulation.StateHash()` at every tick. Only
@@ -42,8 +50,9 @@ ADR-0486 and ADR-0552 in `docs/DECISIONS.md`.
     writes state that the next creature reads. It must stay serial.
 - **No invented DK2 behaviour.** Nothing here changes what the game does.
 
-**Measured baseline.** Release build, this machine, one run each. Expect 20–40% run-to-run
-noise. Figures are ms per tick.
+**Measured baseline.** Release build, this machine, one run each, **at hash 324**. Hashes
+325–328 (ADR-0571 to ADR-0574) changed behaviour since, so Task 0 re-baselines. Expect 20–40%
+run-to-run noise. Figures are ms per tick.
 
 | Scenario | median tick | state hash | keeper AI | of which: views | of which: `Think` |
 |---|---|---|---|---|---|
@@ -65,7 +74,7 @@ noise. Figures are ms per tick.
 | Task | Item from the review | Expected saving (drako) | Changes hash values? |
 |---|---|---|---|
 | 0 | measurement output | none | no |
-| 1 | faster state hash | about −4 ms, every map, Unity journaling too | **yes, `HashVersion` 324** |
+| 1 | faster state hash | about −4 ms, every map, Unity journaling too | **yes, `HashVersion` 329** |
 | 2 | one shared staging mesh | about −4 to −5 ms on keeper maps | no |
 | 3 | hash overlapped with keeper AI | about min(hash, keeper AI) left after Tasks 1–2, ≈ −1 ms | no |
 | 4 | record what is not done; fix a false comment | none | no |
@@ -79,7 +88,7 @@ before Task 3, and skip it if its gate fails.
 Every task that must not change results runs this before and after its change, and compares.
 
 ```bash
-cd /d/DungeonKeeperRemake
+cd <the repo root of your worktree>
 export DK2_DIR="E:/GogGames/Dungeon Keeper 2"
 dotnet build DK2.slnx -c Release -v q
 H=src/DK2.Harness/bin/Release/net10.0/DK2.Harness.dll
@@ -88,14 +97,35 @@ dotnet $H run scenarios/keepers --out build/perf/$LABEL
 dotnet $H run scenarios/smoke   --out build/perf/$LABEL-smoke
 ```
 
-Compare with `diff -r -x timings.txt build/perf/before-taskN build/perf/after-taskN`. Do the
-same for `-smoke`. Expected output: **nothing**. The check covers:
-- `hashes.tsv`, `input.journal` and `events.log`;
-- `keeper-commands.tsv` and `world.txt`;
-- `report.md`.
+**Gate A: the files.**
+`diff -r -x timings.txt -x input.journal build/perf/before-taskN build/perf/after-taskN` must
+print **nothing**. Do the same for `-smoke`. This covers `hashes.tsv`, `events.log`,
+`keeper-commands.tsv`, `world.txt` and `report.md`.
+- `input.journal` is excluded because it is binary. Its header holds the commit, `src.dirty`
+  and `started_utc` (`src/DK2.Harness/JournalHeader.cs:24-37`), so it always differs.
+
+**Gate B: the journals replay** (Tasks 0 and 2–5; not Task 1, because `replay` refuses a journal
+from another `HashVersion`).
+- On the *after* build, replay every *before* journal:
+  `dotnet $H replay <the run's scenario yaml> build/perf/before-taskN/<run folder>/input.journal`.
+- Each must print `replay matches: … recorded hashes compared`. Any other output is a diff.
 
 A failing scenario expectation (exit 1) is fine if it fails the same way on both sides. Any
-diff means the change altered behaviour: fix it, never re-pin.
+diff in either gate means the change altered behaviour: fix it, never re-pin.
+
+**The speed-budget gate (ADR-0575).** Run it alone, in Release, with the install:
+
+```bash
+DK2_DIR="E:/GogGames/Dungeon Keeper 2" DK2_SPEED_BUDGET=1 dotnet test tests/DK2.Behavior.Tests -c Release \
+  --filter FullyQualifiedName~SpeedBudgetTests --logger "console;verbosity=detailed"
+```
+
+- It must pass: campaign Levels 1–4 at 50× real time or better, and no corpus tick slower than
+  100 ms after warm-up.
+- Record the Level 1–4 totals and the worst tick. At hash 328, Level 4 takes 21.3 s against a
+  34 s budget, and the worst tick is 36.5–40.5 ms.
+- If it fails on a loaded machine, rerun it alone before calling it a regression. A real
+  regression is a **STOP**.
 
 **Measuring.** Read `timings.txt` (added by Task 0) in each run folder: the `tick p50` line
 and the marker table. The machine is shared and noisy:
@@ -111,15 +141,21 @@ The harness already collects per-marker timings (`RunTimings`, `src/DK2.Harness/
 and discards them. Every later task needs them.
 
 **Files:**
-- Modify: `src/DK2.Harness/ScenarioReportWriter.cs` (inside `Write`, beside `world.txt`, line ~147)
-- Test: `tests/DK2.Behavior.Tests/` (find the existing test that checks the files
-  `ScenarioReportWriter.Write` produces; `grep -rn "world.txt" tests`)
+- Modify: `src/DK2.Harness/ScenarioReportWriter.cs` (inside `Write`, after the `report.md`
+  write at line ~150, **outside** the `if (!string.IsNullOrEmpty(result.Picture))` block, which
+  only runs when the run drew a picture)
+- Create: `tests/DK2.Behavior.Tests/ScenarioReportWriterTests.cs` (no test checks the report
+  files today)
 
-**Step 1: Write the failing test.** Next to the existing report-files test, assert that
-`timings.txt` exists after `ScenarioReportWriter.Write` for a result with `Timings` set, and
-that it contains `"ticks: tick p50"`. If no such test exists, write one: run a 1-tick
-synthetic scenario (the `flat_8x8` YAML in `WatchdogTests` constructor is a model), write to a
-temp dir, assert the file.
+**Step 1: Write the failing test.**
+- Run a 1-tick synthetic scenario: the `flat_8x8` YAML at the top of `WatchdogTests` is the
+  model. Use `new ScenarioRunner(ScenarioTests.SyntheticDatabase(), null).Run(...)`, as
+  `RunMonitorTests.cs:67` does.
+- Call `ScenarioRunner.WriteReport(result, tempDir)` (`ScenarioRunner.cs:497`).
+  `ScenarioReportWriter` is internal, but `DK2.Harness.csproj` has `InternalsVisibleTo` for the
+  tests.
+- Assert that `timings.txt` exists and contains `"ticks: tick p50"` and `"worst tick after
+  warm-up"`.
 
 **Step 2: Run it; expect FAIL.**
 `dotnet test tests/DK2.Behavior.Tests --filter "FullyQualifiedName~<TestName>"`
@@ -132,16 +168,25 @@ temp dir, assert the file.
             File.WriteAllText(Path.Combine(outputDir, "timings.txt"), timings.Summarise(top: 30));
 ```
 
+- Also write one line, `worst tick after warm-up: <ms>`. Compute it from `RunTimings.TickTimes`
+  (`RunTimings.cs:60`), skipping the first two ticks as `SpeedBudgetTests` does.
+- Write `Allocated` too: ADR-0575 names keeper allocation (2–4.7 MB per tick) as the cost to
+  watch.
+
 **Step 4: Run the test; expect PASS.** Then run the whole `DK2.Behavior.Tests`.
 
-**Step 5: Record the baseline.** Run the shared procedure with `LABEL=baseline`, 3 times.
-Keep the medians for the commit message of Task 1.
+**Step 5: Record the baseline.**
+- Run the shared procedure with `LABEL=baseline`, 3 times.
+- Run the speed-budget gate once.
+- Keep the medians and the speed-budget figures for the commit message of Task 1.
+- Gate A against a run of the parent commit must show no diff, apart from the new
+  `timings.txt` files.
 
 **Step 6: Commit.** `harness: write each run's timings beside its report`
 
 ---
 
-### Task 1: One mixing round per value in the state hash (`HashVersion` 324)
+### Task 1: One mixing round per value in the state hash (`HashVersion` 329)
 
 **The design.**
 - **`Hash64` stays the state hash's type.** It is the `ref Hash64` parameter in about 60
@@ -177,11 +222,12 @@ fixed per `HashVersion`, so this cannot hide a divergence within one version.
   at ~125 and in `Fingerprint` ~234)
 - Create: `tests/DK2.Core.Tests/Fnv1a64Tests.cs`
 - Modify: `tests/DK2.Core.Tests/Hash64Tests.cs`
-- Modify: `src/DK2.Simulation/GameSimulation.cs:23` (`HashVersion = 324`)
-- Modify: `src/DK2.Simulation/WorldSnapshot.cs:32` (`FormatVersion = 324`)
-- Modify: `tests/DK2.Simulation.Tests/DeterminismTests.cs:164` (pin and the comment above it)
-- Modify: `docs/research/hash-versions.md` (new **324** entry on top)
-- Modify: `docs/DECISIONS.md` (new ADR, next free number)
+- Modify: `src/DK2.Simulation/GameSimulation.cs:24` (`HashVersion = 329`)
+- Modify: `src/DK2.Simulation/WorldSnapshot.cs:32` (`FormatVersion = 329`)
+- Modify: `tests/DK2.Simulation.Tests/DeterminismTests.cs:163-164` (pin `0x2B98D9C202582A74UL`
+  and the comment above it)
+- Modify: `docs/research/hash-versions.md` (new **329** entry on top)
+- Modify: `docs/DECISIONS.md` (ADR-0576)
 - Regenerate: the status line in `DK2_REIMPLEMENTATION_PLAN.md` (see Step 11)
 
 **Step 1: Split FNV out, behaviour-neutral.**
@@ -276,7 +322,7 @@ is a divergence detector). Replace its first line, and add the paragraph on the 
 /// <summary>
 /// The simulation's stable 64-bit structural hash: one multiply-rotate round per value added,
 /// finished by xxHash64's avalanche (its PRIME64 constants). Byte-wise FNV-1a, used here until
-/// HashVersion 323, cost eight dependent multiplies per value and was most of a headless tick;
+/// HashVersion 328, cost eight dependent multiplies per value and was most of a headless tick;
 /// it lives on as <see cref="Fnv1a64"/> for hashes that must not move.
 ///
 /// For a fixed value a round is a bijection on the state (xor, rotate, multiply by an odd
@@ -345,14 +391,14 @@ overload that exists today must still exist, with the same widening as before.
 - Put the printed value into the test and run again: all pass.
 - That pin comes from the implementation, so it guards regressions, not correctness.
 
-**Step 7: Bump the versions.** `HashVersion = 324` in `GameSimulation.cs` and
-`FormatVersion = 324` in `WorldSnapshot.cs`. Both must change in the same commit (see their
+**Step 7: Bump the versions.** `HashVersion = 329` in `GameSimulation.cs` and
+`FormatVersion = 329` in `WorldSnapshot.cs`. Both must change in the same commit (see their
 doc comments).
 
 **Step 8: Re-pin the determinism test.**
 - Run: `dotnet test tests/DK2.Simulation.Tests --filter "FullyQualifiedName~DeterminismTests"`.
   Expected: `StateHash_IsStableAcrossBuildsAndMachines` fails with the new value.
-- Put that value in the assertion and change the comment to `// HashVersion 324; ...`.
+- Put that value in the assertion and change the comment to `// HashVersion 329; ...`.
 - Re-run. Expected: PASS.
 - Then run `ThePinnedWorldIsPopulated...`. Expected: PASS, unchanged.
 
@@ -360,8 +406,8 @@ doc comments).
 - Run the shared procedure with `LABEL=after-task1`, against Task 0's baseline.
 - Expected:
   - `events.log` and `world.txt`: no diff in any run folder;
-  - `hashes.tsv`, `input.journal`, `report.md` (if it prints a hash) and `keeper-commands.tsv`:
-    may differ in hash columns only;
+  - `hashes.tsv`, `report.md` (if it prints a hash) and `keeper-commands.tsv`: may differ in
+    hash columns only (`input.journal` is excluded, as in Gate A);
   - `keeper-commands.tsv`: tick, player and type columns identical.
 - Check that last point with:
 
@@ -383,18 +429,18 @@ Expected: all pass. In-process hash comparisons (`KeeperViewTests`, `StructureVi
 `PacketLogTests`, …) compare two runs, not literals, so they need no change.
 
 **Step 11: Docs and gates.**
-- **`docs/research/hash-versions.md`:** a new top entry in the existing style. **324** — the new
-  pin. FormatVersion also 324. Hash algorithm only: `Hash64` is one multiply–rotate round per
-  value plus xxHash64's avalanche (ADR-NNNN). No hashed field, behaviour or save layout
-  changes; journals and saves from 323 are refused by version. Evidence: the Task 1 Step 9
+- **`docs/research/hash-versions.md`:** a new top entry in the existing style. **329** — the new
+  pin. FormatVersion also 329. Hash algorithm only: `Hash64` is one multiply–rotate round per
+  value plus xxHash64's avalanche (ADR-0576). No hashed field, behaviour or save layout
+  changes; journals and saves from 328 are refused by version. Evidence: the Task 1 Step 9
   equivalence run.
-- **ADR-NNNN in `docs/DECISIONS.md`:** "The state hash mixes one value per round". Include the
+- **ADR-0576 in `docs/DECISIONS.md`:** "The state hash mixes one value per round". Include the
   context (the measured cost from Step 12), the decision (the design above, why not XxHash3,
   why `Fnv1a64` stays) and the consequences:
-  - every journal and save from before 324 is refused, including evidence under `D:\DK2Evidence`,
+  - every journal and save from before 329 is refused, including evidence under `D:\DK2Evidence`,
     which replays only at its own commit;
   - `keeper-commands.tsv` and `controller-commands.tsv` hash columns are not comparable
-    across 323/324;
+    across 328/329;
   - Unity placeholder colours are unchanged.
 - **Status line:** `dotnet run --project src/DK2.Tools -c Release -- status` prints the status
   line. Paste it into `DK2_REIMPLEMENTATION_PLAN.md` as the tool says. Then
@@ -406,9 +452,11 @@ Expected: all pass. In-process hash comparisons (`KeeperViewTests`, `StructureVi
 **Step 12: Measure.** Shared procedure, 3 runs. Expected: the `state hash` marker drops from
 ~4.7 to ≤ 1.2 ms/tick on drako, and from ~5.7 to ≤ 1.5 on harkan. If it drops by less than
 half, stop and profile before going on.
+- Run the speed-budget gate. This is the only task that speeds up the campaign levels, which
+  have no keepers, so Level 1–4 totals should fall. They must not rise.
 
-**Step 13: Commit.** `core: the state hash mixes one value per round (HashVersion 324)`. Put
-the baseline and after medians in the body.
+**Step 13: Commit.** `core: the state hash mixes one value per round (HashVersion 329)`. Put
+the baseline and after medians, and the speed-budget figures, in the body.
 
 ---
 
@@ -454,9 +502,10 @@ the baseline and after medians in the body.
 
 **Step 1: Read before writing, and confirm three facts.** If any one is false, **STOP** and
 report.
-1. `PlatformRoutingGrid` (`WorldSteering.cs`) reads only `_routingBytes` and data that
-   `RoutingBytesChanged()` / `Snapshot()` cover. Check `_platformCentres` especially: if it can
-   change while the routing bytes do not, the reuse check must include it.
+1. `PlatformRoutingGrid` (`WorldSteering.cs:238-244`) reads only `owner._routingBytes`.
+   `_platformCentres` is not read by the build (the audit on 2026-10-29 found this; confirm
+   it). `ConstrainTarget` (`WorldSteering.cs:357-374`) reads the live world on every `Route`,
+   but it does so for a fresh steering and a shared one alike, so it needs no reuse key.
 2. Nothing in `NavMesh` besides `_locateCache` changes during a query and affects a later
    answer. `_fan` is scratch. `_pointTri` is a lookup index that, per its comment, changes no
    answer.
@@ -473,10 +522,12 @@ report.
         int[] built = mesh.CaptureLocateCache();
         NavMesh fresh = NavMesh.Build(/* same grid */);
 
-        // Move the cache: locate points all over the map.
-        for (int y = 0; y < mesh.MaxY; y += 7)
-            for (int x = 0; x < mesh.MaxX; x += 5)
-                mesh.Locate(x, y);
+        // Move the cache: locate points all over the grid. Locate takes 1/256-tile units (U);
+        // MaxX/MaxY are the 1280-tile canvas, and the cache cell is x >> 14, so looping over
+        // MaxX in raw units would only ever touch cell 0.
+        for (int y = 0; y < grid.Height; y += 3)
+            for (int x = 0; x < grid.Width; x += 3)
+                mesh.Locate(x * U, y * U);
         mesh.RestoreLocateCache(built);
 
         // A point on a shared edge or vertex is where the start matters (ADR-0486).
@@ -489,8 +540,12 @@ report.
         Assert.Throws<ArgumentException>(() => NavMesh.Build(/* grid */).RestoreLocateCache(new int[3]));
 ```
 
-Use the grids and points from `tests/DK2.Simulation.Tests/NavMeshLocateTests.cs`, which already
-covers the start-dependence. Run: expected FAIL, the methods do not exist.
+Use the grid, `U` and the vertex case from
+`NavMeshLocateTests.ALocateAtAVertexNamesTheFanTriangleReachedFirst_WhichTheLastLocateDecides`
+(`tests/DK2.Simulation.Tests/NavMeshLocateTests.cs:18-30`), which already covers the
+start-dependence. The grid must span more than one 64-tile cache cell, or the test proves
+nothing: add an assertion that the scramble loop changed `CaptureLocateCache()`. Run: expected
+FAIL, the methods do not exist.
 
 **Step 3: Implement in `NavMesh.cs`,** next to `Locate`:
 
@@ -511,11 +566,15 @@ covers the start-dependence. Run: expected FAIL, the methods do not exist.
 Run: expected PASS.
 
 **Step 4: Write the failing `KeeperStaging` tests** in `tests/DK2.AI.Tests/KeeperStagingTests.cs`.
-- Build the world the way `KeeperAttackPlannerTests` does around line 535–560: a keeper with a
-  heart and own creatures in a combat state, so the view routes fighters.
+- Build the world the way `KeeperBattleStepTests.cs:198` and `:639` do (they assert
+  `HeartRouteExists`): a keeper with a heart and own creatures in a combat state, so the view
+  routes fighters.
 - Compare views by their bytes: `KeeperViewSnapshot.ToBytes(view)`
   (`src/DK2.AI/KeeperViewSnapshot.cs:18`) serialises everything a view holds, including each
-  creature's routed flag.
+  creature's routed flag, `KeeperCreatureView.HeartRouteExists` (written at
+  `KeeperViewSnapshot.cs:52`).
+- Each test must also assert that at least one creature has `HeartRouteExists == true`.
+  Otherwise nothing was routed and the comparison is empty.
 
 ```csharp
     [Fact]
@@ -664,14 +723,19 @@ Confirm that against `Refresh`.
 - Expected: all PASS, including the four new ones.
 
 **Step 9: Equivalence check.** Shared procedure with `LABEL=after-task2`, against a fresh
-`before-task2` run of the Task 1 commit. Expected: **no diff at all**. A diff here means a
+`before-task2` run of the Task 1 commit. Gates A and B: **no diff at all**. A diff here means a
 view routed differently. Find which by diffing `keeper-commands.tsv` first.
 
-**Step 10: Measure.** Expected: `keeper AI` on drako falls from ~5–7 to ~1.5–2.5 ms/tick.
-Record it.
+**Step 10: Measure.**
+- Expected: `keeper AI` on drako falls from ~5–7 to ~1.5–2.5 ms/tick. Record it, with
+  `Allocated` per tick before and after.
+- If the drop is much smaller, profile what is left of the `KeeperView` constructor before
+  going on. Each view also refills the whole map's navigation bytes (`CaptureNavigationBytes`,
+  `KeeperView.cs:49`); see Task 4's "Not done".
+- Run the speed-budget gate. It must pass, with the worst tick no higher than in Task 1.
 
 **Step 11: Docs.**
-- An ADR: "The keepers' staging routes share one mesh, rebuilt whole". Cover the locate-cache
+- ADR-0577: "The keepers' staging routes share one mesh, rebuilt whole". Cover the locate-cache
   restore and why the game's own steering still edits in place.
 - No `HashVersion` change: keeper state is outside the hash. Say so in the ADR.
 
@@ -709,13 +773,19 @@ They can run at the same time.
 
 **Step 1: Audit, and write down what you find in the commit body.**
 - **What the hash reads.** List every method reached from `GameSimulation.StateHash()`
-  (`GameSimulation.cs:228-236`). Use the LSP tool (`ToolSearch select:LSP`;
+  (`GameSimulation.cs:261-271`). Use the LSP tool (`ToolSearch select:LSP`;
   `workspaceSymbol` once, then `findReferences` / go-to-definition). Confirm that none of them
   *writes* anything (no lazy fill, no in-place sort, no cache) and that none reads
   `StructureCache`, `RoomSweepCache` or `KeeperStaging`.
 - **What the keepers write.** List every write reachable from `KeeperView`'s constructor and
   `KeeperAI.Think` outside the keeper's own objects. Expected: exactly the two world caches and
-  the staging.
+  the staging. `KeeperAI` draws from its own `SimRandom` (`KeeperAI.cs:40`), never the
+  simulation's.
+- **Mutable statics.** `grep -rn "static.*List<\|static.*\[\]\|static.*Dictionary<" src/DK2.Simulation src/DK2.AI src/DK2.Pathfinding src/DK2.Core`.
+  The 2026-10-29 audit found two non-`[ThreadStatic]` statics: `CallToArmsRules.RouteScratch`
+  (`CallToArmsRules.cs:233`) and `FightRules.RouteScratch` (`Combat/FightRules.cs:535`). Both
+  are reached from `Tick`, which is not overlapped, so they do not block this task. Confirm
+  that neither is reachable from `StateHash()` or from the keepers' code. If either is, **STOP**.
 - **Anything else is a blocker. STOP** and report it.
 
 **Step 2: Write the failing test.**
@@ -740,16 +810,19 @@ public class PostTickOverlapTests
 
         Assert.Equal(serial.HashPerTick, overlapped.HashPerTick);
         Assert.Equal(
-            serial.KeeperCommandLog.Select(e => (e.InputTick, e.Command.ToString())),
-            overlapped.KeeperCommandLog.Select(e => (e.InputTick, e.Command.ToString())));
+            serial.KeeperCommandLog.Select(e => (e.InputTick, Fingerprint(e.Command))),
+            overlapped.KeeperCommandLog.Select(e => (e.InputTick, Fingerprint(e.Command))));
         Assert.Equal(serial.Events.Select(e => e.ToString()), overlapped.Events.Select(e => e.ToString()));
     }
 }
 ```
 
 `HashPerTick`, `ScenarioCorpus.Database` and `[InstallTheory]` exist. Check the name of the
-events list on `ScenarioResult` (`ScenarioRunner.cs:19-92`). If `PlayerCommand.ToString()` is
-not a full rendering, compare command hashes made with `Hash64` as `ScenarioReportWriter` does.
+events list on `ScenarioResult` (`ScenarioRunner.cs:19-92`).
+- `Fingerprint` hashes each command with `Hash64`, as `KeeperScenarioTests.cs:244-249` does.
+  Copy it, or make that one shared.
+- Do not compare `ToString()`: on records with list members (e.g. `TagTilesCommand.Tiles`) it
+  prints the collection's type name, not its contents.
 
 Run: expected FAIL (compile error: `OverlapStateHash`).
 
@@ -770,7 +843,7 @@ hash's own duration shows only in serial mode.
 **Step 4: Restructure the loop.**
 - Extract the keepers' loop (today lines 328–335: `foreach (KeeperAI keeper in keepers) next.AddRange(...)`
   inside `clock.Begin/End(RunClock.KeeperAi)`) into a local function `List<PlayerCommand> Think()`.
-- Then replace lines 315–335 with this shape. Keep everything else in the loop (journal, the
+- Then replace lines 314–335 with this shape. Keep everything else in the loop (journal, the
   controllers block, `pending = next`) exactly as it is.
 
 ```csharp
@@ -825,24 +898,34 @@ If the hash throws in overlapped mode, `GetResult()` rethrows that exception and
 failure is dropped. That matches today's order, where the hash ran first. Add
 `using System.Runtime.ExceptionServices;`.
 
+**One order change, and why it is safe.** `Think` now runs *before* `monitor.AfterTick`, not
+after it. The 2026-10-29 audit found that `AfterTick` only observes:
+- `StartShadow` writes a snapshot and builds a separate simulation;
+- `Sample` at most fills `RoomSweepCache` (`RunMonitor.cs:77-93`, `100-123`).
+
+Re-confirm this in Step 1's audit, and say it in the ADR.
+
 **Step 5: Run the test.**
 `DK2_REQUIRE_INSTALL=1 dotnet test tests/DK2.Behavior.Tests --filter "FullyQualifiedName~PostTickOverlap"`.
 Expected: PASS. Then run the whole `DK2.Behavior.Tests`.
 
 **Step 6: Stress check.**
-- Run the test 20 times: `for i in $(seq 20); do dotnet test ... --no-build || break; done`.
+- Run the `nemesis` case 20 times (drako's 1200 ticks × 2 runs × 20 is too slow):
+  `for i in $(seq 20); do dotnet test ... --filter "FullyQualifiedName~PostTickOverlap&DisplayName~nemesis" --no-build || break; done`.
+  Cap it at 30 minutes.
 - Expected: 20 passes. A data race shows up here as an occasional failure.
 - Any failure: **STOP**, set the default to `false`, and report.
 
-**Step 7: Equivalence check.** Shared procedure against the Task 2 commit. Expected: no diff.
+**Step 7: Equivalence check.** Shared procedure against the Task 2 commit. Gates A and B: no diff.
 
 **Step 8: Measure.**
 - Expected: the `tick p50` on drako falls by roughly min(hash, keeper AI).
 - `state hash wait` should be near zero when keeper AI is the longer side.
 - Harkan (one keeper, tiny AI) should be unchanged within noise.
+- Run the speed-budget gate. It must pass.
 
 **Step 9: Docs.**
-- An ADR: "The harness hashes the world while the keepers think". Cover the read-only audit
+- ADR-0578: "The harness hashes the world while the keepers think". Cover the read-only audit
   result, the exception ordering, and `OverlapStateHash`.
 - Name the two cache writes as the reason views stay serial.
 
@@ -882,6 +965,30 @@ Expected: PASS. Then run the whole `DK2.Behavior.Tests`.
   - A narrower key would have to name every input of the fill (terrain, owner, secret door,
     doors, ruined hearts, crypts, nav stamps).
   - Not built.
+- **Building keeper views in parallel.**
+  - Unsafe as the code stands. `StructureBlocks.For` rewrites `world.StructureCache.Scratch` on
+    every call, even on a cache hit (`StructureBlocks.cs:81-93`). So even pre-warmed caches
+    cannot be read from two threads.
+  - Not built.
+- **Sharing the navigation bytes between views (a serial saving).**
+  - Each `KeeperView` refills the whole map's navigation bytes (`CaptureNavigationBytes`,
+    `KeeperView.cs:49`), and the staging steering fills them again.
+  - They are a pure function of the world at that tick, so `KeeperStaging` could hand out one
+    copy.
+  - Record what Task 2's profile showed it costs. Not built.
+- **Two mutable statics that block any in-process parallel runs.**
+  - `CallToArmsRules.RouteScratch` (`CallToArmsRules.cs:233`) and `FightRules.RouteScratch`
+    (`Combat/FightRules.cs:535`) are shared `List`s, not `[ThreadStatic]`.
+  - `CallToArmsRules`' list is never cleared, so it grows for the life of the process, Unity
+    included.
+  - Only the bool result is used, so hashes are unaffected. But a concurrent `List.Add` can
+    throw. That blocks parallel `run <dir>` scenarios, shadow ticks, and today's xUnit
+    class-level parallelism (no `xunit.runner.json` or `CollectionBehavior` exists).
+  - The fix is `[ThreadStatic]` plus `Clear()`, as `ApproachRules.cs:77` does. It is
+    behaviour-neutral. These are the only such statics in DK2.Simulation, DK2.AI, DK2.Core,
+    DK2.Pathfinding, DK2.Data and DK2.Harness: this is the "review of mutable static state" that
+    the autonomous-playtesting plan §6 asks for.
+  - Not built here; propose it to the owner as its own task.
 - **The creature and imp updates.** Serial by definition (see *Hard constraints*).
 - **Task 3**, if its gate skipped it, with the measured min(hash, keeper AI).
 
@@ -892,15 +999,19 @@ Expected: PASS. Then run the whole `DK2.Behavior.Tests`.
 ### Task 5: `watch --jobs N` runs scenarios in parallel processes
 
 **Step 1: STOP. Owner decision required.**
-- ADR-0552 §6 and `docs/plans/2026-10-27-autonomous-playtesting.md` §6 say "one worker", and
-  "Parallel workers wait for a review of mutable static state". The `WatchLimits` summary says
-  "one run at a time, always".
+- `docs/plans/2026-10-27-autonomous-playtesting.md` §6 (lines 67 and 71) says "one worker", and
+  "Parallel workers wait for a review of mutable static state". ADR-0552 has no §6; the
+  `WatchLimits` comment (`Watchdog.cs:12`) cites "ADR-0552 §6" for it, and says "one run at a
+  time, always".
+- The static-state review is now done: see the two `RouteScratch` statics in Task 4's "Not done"
+  list. They do not affect `--jobs`, because each run is its own process.
 - Each run is its own child process (`Watchdog.SelfRun`), so in-process static state is not
   shared between runs. Present that to the owner, with the risks:
   - CPU contention can turn a slow run into a false `timeout` verdict;
   - each child loads its own `GameDatabase`, so memory is about N times one run's;
   - `watch-summary.tsv` and console lines need a fixed order.
-- Ask for approval to amend ADR-0552 §6. Without it, do not implement this task.
+- Ask for approval to amend ADR-0552 and the playtesting plan's §6. Without it, do not
+  implement this task.
 
 **Files (after approval):**
 - Modify: `src/DK2.Harness/Watchdog.cs` (`WatchLimits`, `_current`, `Cancel`, `Watch`, `RunOne`)
@@ -919,10 +1030,17 @@ command that sleeps:
     [Fact]
     public void WithTwoJobs_TwoRunsOverlap()
     {
-        var limits = new WatchLimits(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5), 20, Jobs: 2);
-        var clock = Stopwatch.StartNew();
-        new Watchdog(Path.Combine(_root, "out"), limits, (_, _) => Sleep(2)).Watch([_good, _good], TextWriter.Null);
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(3.5), $"took {clock.Elapsed}");
+        // Relative, not absolute: PowerShell takes 0.5-1 s to start on Windows.
+        TimeSpan serial = TimeWatch(jobs: 1), parallel = TimeWatch(jobs: 2);
+        Assert.True(parallel < serial * 0.75, $"jobs 1: {serial}, jobs 2: {parallel}");
+
+        TimeSpan TimeWatch(int jobs)
+        {
+            var limits = new WatchLimits(TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(5), 20, Jobs: jobs);
+            var clock = Stopwatch.StartNew();
+            new Watchdog(Path.Combine(_root, $"out{jobs}"), limits, (_, _) => Sleep(2)).Watch([_good, _good], TextWriter.Null);
+            return clock.Elapsed;
+        }
     }
 
     [Fact]
@@ -947,7 +1065,7 @@ Use `WatchJob` labels to tell the rows apart. Run: expected FAIL (no `Jobs`).
 **Step 3: Implement.**
 - **`WatchLimits`:** add `int Jobs = 1` as the last positional parameter. Validate it in the
   record's body (`Jobs >= 1`). Update its summary: "at most `Jobs` runs at a time, each in its
-  own process (ADR-0552 §6 as amended)".
+  own process (ADR-0552 as amended; playtesting plan §6)".
 - **Children:** replace `Process? _current` with a `HashSet<Process>` guarded by a `lock`.
   `RunOne` adds its child after `Start()` and removes it after the final `WaitForExit`.
   `Cancel()` sets `_cancelled`, then kills every child in the set (copy the set under the lock,
@@ -983,12 +1101,20 @@ dotnet $H watch scenarios/keepers --out build/perf/watch-j4 --jobs 4
 - Record wall time for both.
 - Record peak memory for `--jobs 4`: watch Task Manager, or sample with
   `Get-Process DK2.Harness | Measure-Object WorkingSet64 -Sum` every second.
-- Compare verdicts: they must be the same in both summaries.
-- Compare each run's `hashes.tsv` between the two watches (`diff -r`): no diff.
+- Compare verdicts: `diff <(cut -f1-4 build/perf/watch-j1/watch-*/watch-summary.tsv) <(cut -f1-4 build/perf/watch-j4/watch-*/watch-summary.tsv)`
+  must print nothing. The `seconds` column is excluded.
+- Compare the run folders:
+  `diff -r -x stdout.log -x stderr.log -x input.journal -x timings.txt -x watch-summary.tsv build/perf/watch-j1/watch-*/ build/perf/watch-j4/watch-*/`
+  must print nothing. `stdout.log` names the output path, which differs between the watches
+  (`Program.cs:128`).
+- The 10 keeper scenarios fit within the defaults `--max-runs 20` and `--budget-minutes 30`.
 
 **Step 7: Docs.**
-- Amend ADR-0552's §6 decision in place (*Replace, do not append*), and update the matching
-  line in `2026-10-27-autonomous-playtesting.md` §6 to link it.
+- Add a dated **Amendment** paragraph to ADR-0552, in the style of its existing Stage B/C
+  amendments.
+- Edit `2026-10-27-autonomous-playtesting.md` §6, lines 67–71, in place (*Replace, do not
+  append*), and link the amendment.
+- Update the `WatchLimits` comment at `Watchdog.cs:12`.
 - Update the harness README's `watch` paragraph: `--jobs`, the order guarantee, and the
   timeout caveat ("a contended run is slower; raise `--timeout-seconds` with `--jobs`").
 - Pre-existing and unchanged: two *concurrent* `watch` commands can collide on the
@@ -1005,6 +1131,10 @@ dotnet $H watch scenarios/keepers --out build/perf/watch-j4 --jobs 4
 - **Never bypass the hook.**
 - **Message format:** subject in the repo's style (lower case, scope prefix as above). Trailer
   `Assisted-by: <tool> <address>`, never `Co-Authored-By` for an AI (the hook rejects it).
+- **Status line.** The hook's status check (`.githooks/commit-msg:55-66`) only warns. The status
+  paragraph counts tests and ADRs (`StatusCommand.cs:150-158`), so every task that adds a test
+  or an ADR makes it stale, not only Task 1. In each such task, regenerate it as in Task 1
+  Step 11, and confirm `status --check` says "agrees with the tree".
 - **One task, one commit** (Task 1 has two). Do not push.
 - **After each task,** update `docs/HANDOFF.md` only where it states something this task made
   false (for example a hash version it names). Otherwise leave it.
@@ -1014,4 +1144,6 @@ dotnet $H watch scenarios/keepers --out build/perf/watch-j4 --jobs 4
 - Tasks 0–4 merged, and Task 5 either merged after owner approval or recorded as declined.
 - `DK2_REQUIRE_INSTALL=1 dotnet test DK2.slnx -c Release` passes.
 - `status --check` agrees.
-- Drako's median tick, against the 12.1 ms baseline, is recorded in the last commit's body.
+- The speed-budget gate (ADR-0575) passes. Its Level 1–4 totals and worst tick, against Task 0's
+  baseline, are recorded in the last commit's body.
+- Drako's median tick, against Task 0's baseline, is recorded in the last commit's body.
