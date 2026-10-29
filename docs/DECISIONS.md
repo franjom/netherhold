@@ -51,7 +51,7 @@
 
 **Context.** Two runs can share visible state while having consumed different RNG draws; they are about to diverge.
 **Decision.**
-- `GameSimulation.StateHash()` is FNV-1a (`DK2.Core.Hash64`) over the world plus the RNG position; CI pins one exact value on Linux and Windows (`DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines`).
+- `GameSimulation.StateHash()` uses `DK2.Core.Hash64` (algorithm: ADR-0576) over the world plus the RNG position; CI pins one exact value on Linux and Windows (`DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines`).
 - `GetHashCode` is forbidden in the hash path: .NET randomises string hashing per process.
 - A test-only `ChaosSystem` (`tests/DK2.Simulation.Tests/TestWorld.cs`) mutates state and consumes randomness every tick. It implements no DK2 mechanic; without it no system would run and the gate would pass with a broken loop, hash or snapshot.
 **Consequences.**
@@ -13435,3 +13435,25 @@ allocation (2-4.7 MB per tick) is the likeliest cost to watch.
 
 Tests: `SpeedBudgetTests.ACampaignLevelRunsFiftyTimesFasterThanRealTime`,
 `NoTickAfterWarmUpTakesMoreThanTheBudget` (opt-in); `RunTimingsTests.TheTimingsCarryOneTimePerTick_InTickOrder`.
+
+## ADR-0576 - The state hash mixes one value per round
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 329
+
+**Context.** Byte-wise FNV-1a widened each integer to eight bytes, each requiring a dependent
+multiply. Baseline Release hashing cost 4.665 ms/tick on Drako and 5.621 ms/tick on Harkan.
+The structural stream and simulation rules need no change to remove that cost.
+
+**Decision.** `Hash64` mixes each value with xor, rotate, an odd multiply and an added constant,
+then applies xxHash64's avalanche when read. For a fixed input each round is bijective;
+the constant prevents zero being an absorbing state for zero inputs. Strings retain their
+length and character sequence with a separate null sentinel. Equal numeric values of different
+primitive widths share a word; the stream layout is fixed within a hash version.
+`Fnv1a64` preserves asset placeholder colours and pinned navigation fingerprints.
+Do not add `System.IO.Hashing.XxHash3`: the Unity-bound netstandard2.1 assembly would need
+another package. The rotate uses shifts supported by that target.
+
+**Consequences.** No hashed field, simulation behavior or snapshot layout changes.
+Every pre-329 journal and save is refused, including evidence under `D:\DK2Evidence`, which
+must be replayed at its own commit. Keeper/controller command hash columns cannot be compared
+across 328/329. The deterministic pin is recorded in `research/hash-versions.md`.
+Equivalence and measured speed checks are required by the throughput plan before committing.

@@ -160,8 +160,8 @@ public class DeterminismTests
         GameSimulation sim = TestWorld.Simulation(seed: 0xDEADBEEF);
         sim.Run(500);
 
-        // HashVersion 328; pin history and reasons live in docs/research/hash-versions.md.
-        Assert.Equal(0x2B98D9C202582A74UL, sim.StateHash());
+        // HashVersion 329; pin history and reasons live in docs/research/hash-versions.md.
+        Assert.Equal(0xAC8AC17E507DA2D0UL, sim.StateHash());
     }
 
     /// <summary>The pin above only guards creature state while there is creature state

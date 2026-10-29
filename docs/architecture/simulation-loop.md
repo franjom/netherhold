@@ -37,7 +37,7 @@ records noise. The gate is cheap now and impossible to retrofit later.
 | `InputFrame` / `PlayerCommand` | Everything entering the simulation on a tick. |
 | `SimEvent` / `ISimulationEventSink` | Write-only observation. Never read back. |
 | `WorldSnapshot` | Binary save/load, including RNG position. Carries `FormatVersion`, kept equal to `HashVersion`. |
-| `Hash64` | FNV-1a structural hash, stable across processes and machines. |
+| `Hash64` | Versioned structural hash (ADR-0576), stable across processes and machines. |
 
 Tick N executes with `context.Tick == N`; afterwards `World.CurrentTick` is
 N+1. That ordering is our convention, chosen for legibility. Within `Tick`: player
@@ -59,7 +59,7 @@ this they would compare equal now and diverge later — precisely the failure th
 gate exists to catch early, arriving at the point where it is hardest to
 diagnose.
 
-**The hash is FNV-1a, never `GetHashCode`.** .NET randomises string hash codes
+**The hash uses ADR-0576, never `GetHashCode`.** .NET randomises string hash codes
 per process, so a hash built from `GetHashCode` would be stable within a run and
 worthless across runs — a gate that passes locally and cannot be reproduced on
 CI or on a contributor's machine.
