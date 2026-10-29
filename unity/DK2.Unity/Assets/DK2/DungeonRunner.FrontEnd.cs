@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -119,6 +119,7 @@ namespace DK2.Unity
             _frontEnd.Update(TimeSpan.FromSeconds(elapsed));
             if (_campaignMap.EntryRow >= 0) TypeHiScoreName();
             _frontEndMenu?.Refresh();
+            if (_frontEndMenu != null) _soundPlayer?.Play(_frontEndMenu.Model.Sounds);
             // A click replaces this runner; switch only after the menu has finished with it.
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
             if (_frontEnd.Pose is CameraPathPose pose) ApplyFrontEndCamera(pose);

@@ -13505,3 +13505,18 @@ the live world, shadow ticks mutate a separate world, and progress sampling only
 live state. Monitored equivalence tests exercise that order. `state hash wait` measures the
 remaining join time; the full hash duration is visible in serial mode. Allocation measures only
 the run thread, as before; it excludes pool-thread hashing allocations in overlap mode.
+
+## ADR-0583 - MPEG audio is decoded by NLayer, in memory, at load time
+**Date:** 2026-10-29 · **Status:** accepted · No hash change
+
+**Context.** The installed effects use MPEG Layer I and speech/music use Layer II.
+The owner chose NLayer (MIT); derived game assets must remain in memory.
+
+**Decision.** `DK2.Data.Media.MpegAudioDecoder` wraps NLayer 3.0.0. Unity receives
+its dependency-free netstandard2.0 DLL through `sync-assemblies.ps1`. `SoundBank`
+decodes entries on first use and retains PCM for the session. No decoded cache
+is written to disk. SDT reading belongs to the runtime data assembly.
+
+**Consequences.** Callers depend on our PCM type, not NLayer. Install tests prove
+FrontEndHD entry 0 decodes 68 × 384 mono samples and Mentor entry 0 decodes
+51 × 1152 mono samples, both at 22,050 Hz. Simulation state and RNG are untouched.

@@ -1,8 +1,9 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Simulation;
+using DK2.Data.Media;
 
 namespace DK2.Presentation;
 
@@ -35,6 +36,13 @@ public sealed class FrontEndMenuController : IDisposable
     public IReadOnlyList<FrontEndWidget> Widgets => FrontEndPages.Find(Page)?.Widgets ?? Array.Empty<FrontEndWidget>();
     public event Action? QuitRequested;
     public event Action<FrontEndSoundRequest>? SoundRequested;
+    public SoundRequests Sounds { get; } = new();
+
+    private void RequestSound(int id, SoundCategory category)
+    {
+        Sounds.Add(new SoundRequest(category, new SoundId((uint)id)));
+        SoundRequested?.Invoke(new(id));
+    }
 
     public bool IsEnabled(FrontEndWidget widget)
     {
@@ -80,7 +88,7 @@ public sealed class FrontEndMenuController : IDisposable
             if (widget.Draw == FrontEndDrawKind.Label)
             {
                 HoverState state = Hover(hovered);
-                if (!state.SoundPlayed) { SoundRequested?.Invoke(new(0x30f)); state.SoundPlayed = true; }
+                if (!state.SoundPlayed) { RequestSound(0x30f, SoundCategory.FrontEnd); state.SoundPlayed = true; }
                 state.Fade = 8;
             }
         }
@@ -100,7 +108,7 @@ public sealed class FrontEndMenuController : IDisposable
         FrontEndWidget? widget = Widgets.FirstOrDefault(w => w.Id == id);
         if (widget is null || !IsEnabled(widget)) return false;
         int sound = widget.SoundSlot switch { 32 => 0x30a, 33 => 0x30b, 34 => 0x30c, 35 => 0x30d, 36 => 0x30e, _ => 0 };
-        if (sound != 0) SoundRequested?.Invoke(new(sound));
+        if (sound != 0) RequestSound(sound, SoundCategory.FrontEndClick);
         if (Page == FrontEndPage.Dialog)
         {
             if (id.Value == 667)

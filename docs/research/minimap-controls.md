@@ -1,4 +1,4 @@
-# Minimap corner controls and related view navigation
+﻿# Minimap corner controls and related view navigation
 
 Read 2026-10-18 from DKII.EXE callbacks, key dispatch and static menu records.
 Original corner artwork, active variants and widget geometry remain canonical
@@ -40,11 +40,13 @@ name over them follows the owner's report; its native producer is unread (`HudWi
 ## Options toggle (CONFIRMED control flow; menu identity strongly inferred)
 
 `0x00428710` requires player `+0x19A == 0` and first resets ordinary tool state.
-Opening hides menu ids 22..35, shows menu 22, sets `+0x2722=1`, plays sound
+Opening hides menu ids 22..35, shows menu 22, sets `+0x2722=1`, attempts sound
 `0x139`, saves menu 40's visibility at `+0x272E` and hides that menu if needed.
-Closing hides ids 22..35, clears `+0x2722`, plays `0x13A`, optionally restores
+Closing hides ids 22..35, clears `+0x2722`, attempts `0x13A`, optionally restores
 menu 33 when `+0x2726==1`, then restores menu 40's saved visibility. Other
 active panels at `+0x272A/+0x1C1F` are closed through their existing callbacks.
+Both requests pass a zero category; `0x00567810` rejects them, so these attempts are silent
+(CONFIRMED2026-10-29). The runtime keeps the same None-category requests.
 In non-mode-3 games an additional session request uses outer field `+0x284`;
 its pause/network semantics are not established by this reading.
 

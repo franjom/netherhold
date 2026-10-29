@@ -12,8 +12,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Presentation only, and not built (no audio playback exists yet; `RESEARCH_STATUS.md`,
-*Audio event semantics*). Nothing here feeds a rule: the battle records that drive the music
+Presentation only; F8 runtime playback is built (ADR-0583), with Unity hearing acceptance pending. Nothing here feeds a rule: the battle records that drive the music
 are presentation too (`binary-census.md` §3). Facts in our own words; no decompiler output
 (ADR-0046). Every name below is ours.
 
@@ -358,3 +357,14 @@ by the owner agrees with the code.
 - Whether `SoundQuality == 1` is Low (the value order of its three labels).
 - Item fields `+0x14/15`, `+0x22` (a float: 20.0, 100.0, 0.1) and group `+0x0C` (6000, 1000, 149).
 - Whether a level's variables override 215–217 (no shipped level was checked).
+
+## Runtime boundary
+
+`MusicDirector`, `MusicSegmentPicker` and `MusicWorldObserver` own presentation-only state;
+Unity queues decoded segments to `PcmAudioQueue` before they finish. SoundRand is independent
+of simulation RNG. The observer reconstructs eight battles from settled turns and detects
+raid starts/Reapers without writing the world; a third-party fight and world-hash test pass.
+If a host skips simulation turns between captures, transient requests can be missed. This
+view does not restore native audio handles or L from a save. Sound ducking, the atmosphere
+player, options/front-end music and idle taunts remain unimplemented. A32-source effect pool
+is a remake resource budget, not an established native cap. Hearing acceptance remains open.

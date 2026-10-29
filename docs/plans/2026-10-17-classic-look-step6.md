@@ -160,6 +160,7 @@ avoid full tile-grid uploads when nothing changed.
 Cursor hover work above is prioritized before the remaining panels. Status-flower
 2D work follows §13 after the core slices; its unknown
 3D/scale behaviour is researched before implementation. The front-end 3D scene,
-audio, new game mechanics and replacement-art production are separate work.
+new game mechanics and replacement-art production are separate work. F8 audio is wired
+(ADR-0583); Unity hearing acceptance remains in the front-end plan.
 Performance P0 remains [its own roadmap](2026-10-17-parallelism-design.md), not a
 new requirement to parallelize the HUD before measuring it.

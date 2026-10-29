@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using System.Numerics;
 using DK2.Core;
+using DK2.Data.Media;
 namespace DK2.Presentation;
 
 public enum ClassicHudAction : byte
@@ -14,6 +15,7 @@ public enum ClassicHudAction : byte
 [Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-controls.md")]
 public sealed class ClassicHudControls
 {
+    public SoundRequests Sounds { get; } = new();
     public bool GuiVisible { get; private set; } = true;
     public bool OptionsVisible { get; private set; }
     public bool FullMapVisible { get; private set; }
@@ -45,7 +47,10 @@ public sealed class ClassicHudControls
         switch (action)
         {
             case ClassicHudAction.ToggleGui: GuiVisible = !GuiVisible; break;
-            case ClassicHudAction.ToggleOptions: OptionsVisible = !OptionsVisible; GuiVisible = true; break;
+            case ClassicHudAction.ToggleOptions:
+                OptionsVisible = !OptionsVisible; GuiVisible = true;
+                Sounds.Add(new SoundRequest(SoundCategory.None, new SoundId(OptionsVisible ? 0x139u : 0x13au)));
+                break;
             case ClassicHudAction.ToggleFullMap: FullMapVisible = !FullMapVisible; break;
         }
     }

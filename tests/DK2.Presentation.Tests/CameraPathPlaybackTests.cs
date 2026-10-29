@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -8,6 +8,7 @@ using DK2.Data;
 using DK2.Data.Camera;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
+using DK2.Data.Media;
 using DK2.Data.Wad;
 using DK2.Simulation;
 using DK2.TestSupport;
@@ -22,6 +23,27 @@ public class CameraPathPlaybackTests
 
     private static KcsFrame[] Frames(int count, float z = -3f) =>
         [.. Enumerable.Range(0, count).Select(i => new KcsFrame(0, 0, z, Identity, 1f, 12000f))];
+
+    [Fact]
+    public void SpeechEnabledSubtitlesFollowThePlayingLineAndDisabledSpeechUsesTheTimedFallback()
+    {
+        var viewer = new PlayerId(3);
+        var director = new ScriptedViewDirector(viewer, _ => Frames(399), line => line == 0 ? "first" : "second");
+        director.Emit(View(ScriptedViewKind.CameraPath, viewer, 1));
+        director.Emit(View(ScriptedViewKind.Speech, viewer, 1));
+        director.Update(0, 0);
+        director.SetSpeechPlayback(true, new SpeechLineId(0));
+        director.Update(5000, 0);
+        Assert.Equal("first", director.Subtitle);
+        director.SetSpeechPlayback(true, null);
+        Assert.Null(director.Subtitle);
+        director.SetSpeechPlayback(false, null);
+        director.Emit(View(ScriptedViewKind.Speech, viewer, 2));
+        director.Update(6001, 0);
+        Assert.Equal("second", director.Subtitle);
+        Assert.True(director.Skip());
+        Assert.Null(director.Subtitle);
+    }
 
     [Fact]
     public void HudUsesNestedRequestsAndRestoresBeforeTheBarsFinishShrinking()

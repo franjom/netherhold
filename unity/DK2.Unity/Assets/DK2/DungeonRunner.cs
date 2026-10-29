@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -353,6 +353,7 @@ namespace DK2.Unity
                     new EffectId(CreatureView.GemDustSparkle.EffectId), new PlayerId((byte)viewingPlayerId), point));
             }
             _startup.Step("effects");
+            _soundPlayer = new ClassicSoundPlayer(transform, new InstallClassicSoundAssets(install));
             if (frontEnd)
             {
                 WaitForPrefetch(prefetch);
@@ -365,6 +366,7 @@ namespace DK2.Unity
                 CameraPathLoader(install), SubtitleLoader(install, database.Level?.TextTableId ?? 0),
                 (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance);
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
+            WireSpeech(database);
             PrepareWinScreen(database);
             _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
                 new PlayerId((byte)viewingPlayerId), _scriptedView));
@@ -527,6 +529,7 @@ namespace DK2.Unity
             WaitForTick();
             CloseInputJournals("destroyed");
             DisposeHudControls();
+            _soundPlayer?.Dispose(); _soundPlayer = null;
             _frontEndMenu?.Dispose();
             _campaignMap?.Dispose(); _campaignMap = null;
             _minimap?.Dispose();
@@ -561,6 +564,7 @@ namespace DK2.Unity
             JournalBeginFrame();
             _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null || _failure != null) return;
+            _soundPlayer?.UpdateSpeech((long)(Time.unscaledTimeAsDouble * 1000));
             if (_frontEnd != null) { if (!UpdateCutscene()) UpdateFrontEnd(); return; }
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
@@ -568,6 +572,7 @@ namespace DK2.Unity
             // The tick started at the end of the last frame, if any, has the world until it is done.
             WaitForTick();
             if (_simulation == null) return;
+            UpdateWorldSound(_simulation.World, _simulation.Database);
             double elapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: Time.deltaTime, maximumDeltaSeconds: Time.maximumDeltaTime, timeScale: Time.timeScale);
 

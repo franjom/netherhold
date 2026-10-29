@@ -1,4 +1,4 @@
-﻿# The Unity project
+# The Unity project
 
 Presentation only. It holds no game state, decides no rule and stores no balance
 number — see `docs/DECISIONS.md` ADR-0002, ADR-0035 and ADR-0036.
@@ -35,10 +35,15 @@ Multiplayer. Main, Single Player, Options and Extras shells and Quit confirmatio
 are clickable. New/Continue Campaign lead to the3D map and briefing; locked and closed
 branches cannot be picked. Reset confirmation preserves progress on cancel.
 On widescreen the front-end camera keeps DK2's 4:3 vertical view (wide screens show more at the sides) and the menu draws its 640x480 layout as a centred uniform-scale box.
-The briefing go button starts the campaign level; at its result Space returns to the front end's statistics page, and the page shows the level-end statistics rows with DK2's list scroll bar (arrows, track and thumb drag; no mouse wheel) and the objective images; accept there flies back to the map, first offering hi-score name entry (page 18, typed with Backspace/Enter) when a won level's rating qualifies. After a won campaign level the front end plays its cutscene first (`DungeonRunner.Cutscene`: Speech.str title card on black, a 2 s hold, then the movie; level 20 plays two outros); a front-end-launched level starts with the carried transfer creature placed by `DungeonRunner.LevelEnd`. Hi-scores load from `HiScores.dat` under `persistentDataPath`, else the install's read-only copy. Loading, multiplayer
+The briefing go button starts the campaign level; at its result Space returns to the front end's statistics page, and the page shows the level-end statistics rows with DK2's list scroll bar (arrows, track and thumb drag; no mouse wheel) and the objective images; accept there flies back to the map, first offering hi-score name entry (page 18, typed with Backspace/Enter) when a won level's rating qualifies. After a won campaign level the front end plays its cutscene first (`DungeonRunner.Cutscene`: Speech.str title card on black, held for the spoken line, then the movie; level 20 plays two outros); a front-end-launched level starts with the carried transfer creature placed by `DungeonRunner.LevelEnd`. Hi-scores load from `HiScores.dat` under `persistentDataPath`, else the install's read-only copy. Loading, multiplayer
 and media actions remain dimmed; option values are not yet bound. Menu labels
 use the local TrueType face described below, with original bitmap fallback and
 original glyph metrics (ADR-0539).
+Sound reads SDT entries from the install through `IClassicSoundAssets`, decodes in memory
+with NLayer (ADR-0583), and keeps no disk cache. Menu/HUD effects, the Mentor and
+scripted level lines, music and ambience are wired; Unity hearing acceptance is pending.
+Options/front-end music, the atmosphere player and idle taunts remain unbuilt.
+
 Campaign progress uses `campaign-profile.dk2p` under Unity
 `Application.persistentDataPath`; first creation may import the original registry
 read-only. The runner Campaign Profile File and Hi Scores File overrides support isolated probes.

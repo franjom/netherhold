@@ -1,4 +1,4 @@
-# The Mentor's speech, the notification table, and six lines DK2 never says
+﻿# The Mentor's speech, the notification table, and six lines DK2 never says
 
 **Scope:** how DK2 v1.70 turns a game event into a spoken Mentor line with a
 subtitle — the notification type table, the encoding it stores speech references
@@ -53,7 +53,7 @@ mind; it is the reason a search for a line's id finds nothing.
 ## 2. The speech queue
 
 `CSpeechSystem` carries MSVC RTTI, so the class name is the binary's own. Its
-constructor at `0x00567F90` loads the bank named `SPEECH_MENTOR`.
+initialization at `0x00567F90` loads the bank named `SPEECH_MENTOR`.
 
 | Address | What it does |
 |---|---|
@@ -61,6 +61,12 @@ constructor at `0x00567F90` loads the bank named `SPEECH_MENTOR`.
 | `0x005681D0` | **update / dequeue.** Enforces a minimum **1000 ms** gap between lines |
 | `0x00568570` | is this line still playing? |
 | `0x00568140` | clear the queue |
+
+The re-read on2026-10-29 confirms FIFO order: no priority/preemption field or repeat timer.
+Dedupe compares a waiting line's event id and category; playing lines are outside that scan.
+The first line starts without a completion stamp; subsequent lines wait strictly more than1000ms
+after the previous completion. Scripted lines use the level's SoundCategory and1-based event id
+(camera-paths.md section7); common notification references use SPEECH_MENTOR.
 
 Most callers never touch this directly. They raise a **notification** instead.
 

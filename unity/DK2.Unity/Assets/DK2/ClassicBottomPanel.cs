@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -63,6 +63,7 @@ namespace DK2.Unity
         public event Action<bool> CollapsedChanged;
         /// <summary>HUD <c>+0x109</c> == 0 (0x004167D0): the strip at the bottom, categories,
         /// creature panels and the Reaper hidden.</summary>
+        public SoundRequests Sounds => _tabState.Sounds;
         public bool Collapsed => _tabState.Collapsed;
         // 0x00417170 moves the strip from y 0x5B4 to 0x6EC.
         private int Drop => Collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0;
@@ -159,6 +160,7 @@ namespace DK2.Unity
                 !Collapsed && ReaperBounds.Contains(new Vector2(screenPosition.x, Height - screenPosition.y)));
         public void CancelPointerGesture()
         {
+            _view.ReleaseChoice();
             int pointer = _captured; _captured = -1; _pressed = -1;
             if (pointer >= 0 && _root.HasPointerCapture(pointer)) _root.ReleasePointer(pointer);
         }
@@ -391,6 +393,8 @@ namespace DK2.Unity
                 bool roomSecondary = evt.button == 1 && action >= 0 && action < SlotCount &&
                     _slots[action] != null && _slots[action].Kind == BottomPanelChoiceKind.Room;
                 if (evt.button == 1 && !roomSecondary) return;
+                if (evt.button == 0 && action >= 0 && action < SlotCount && _slots[action] != null)
+                    _view.PressChoice(_slots[action].Key);
                 _pressed = action; _pressedButton = evt.button;
                 _captured = evt.pointerId; _root.CapturePointer(evt.pointerId); evt.StopPropagation();
             });
@@ -427,9 +431,8 @@ namespace DK2.Unity
             }
             if (action == 400)
             {
-                // 0x004167D0 also moves the pointer onto the moved button and plays sound 0x134/0x135;
-                // the legacy input handler cannot move the pointer, and the sounds are not wired.
-                _tabState.Collapsed = !Collapsed;
+                // The native pointer jump is not mirrored by legacy input; the sound request is retained by the model.
+                _tabState.Toggle();
                 if (Collapsed) { _hoverChoice = null; SetDescription(""); }
                 CollapsedChanged?.Invoke(Collapsed);
             }

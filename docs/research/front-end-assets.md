@@ -1,4 +1,4 @@
-# Front-end assets: what the menus, campaign map, movies and menu sounds ship as
+﻿# Front-end assets: what the menus, campaign map, movies and menu sounds ship as
 
 DK2 v1.70 (GOG install), read 2026-10-23 from the shipped files with one-off scripts and the repo's own readers (`DK2.Tools.exe`: `kwd map|things|triggers|objects|terrain|rooms`, `sdt list`, `str list`). No asset bytes are in the repo; this document holds names, sizes and counts only.
 
@@ -266,7 +266,7 @@ records it for `SdtArchive`.
 | `Global/GuiHD.sdt` | 411,299 | 66 | 47 | GUI sounds, including the `FE3D TAB END`, `FE3D TAB SLIDE` and `FE3D CLICK ON T…` front-end entries |
 | `Global/Patch_1HD.sdt` | 11,613 | 1 | 1 | "QUIT DUNGEON FX", the `multi_player` bank |
 
-### 5.3 Event maps (`*BANK.map`, `*SFX.map`); no reader in the repo
+### 5.3 Event maps (`*BANK.map`, `*SFX.map`)
 
 A `BANK.map` holds a 16-byte GUID-like id, two `u32`s and `u32 count` at 0x18, then
 `count` 11-byte records, then `count` length-prefixed archive names. CONFIRMED by
@@ -288,7 +288,7 @@ parsing; the field meanings are from OpenKeeper's `BankMapFile` (facts only).
 `SFX.map` sizes (bytes): front_end 248, music 27,042, options 1,224, options_music 1,128, options_speech 732, object_fe_parchment 982, _spike 224, _torch 178, _window 138, _map 130, multi_player 130. Per OpenKeeper's `SfxMapFile`: a 28-byte
 header, then 24-byte event records (group count, distances, scale), then 20-byte group
 records, then variant and sound records (`index`, `archiveId`). That layout was only
-spot-checked here: the group counts it gives are 4 (front_end), 18 (options) and 13
+checked by the runtime `BankMap`/`SfxMap` readers and install tests: the group counts it gives are 4 (front_end), 18 (options) and 13
 (parchment). So it is STRONGLY INFERRED.
 
 The `object_fe_*` banks name five front-end props: map, parchment, spike, torch and

@@ -1,10 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Data.Media;
 using DK2.Simulation;
 using DK2.TestSupport;
 
@@ -12,6 +13,26 @@ namespace DK2.Presentation.Tests;
 
 public sealed class BottomPanelViewTests
 {
+    [InstallFact]
+    public void AVisibleChoicePlaysItsPressAndReleaseOnceAndUnknownChoicesStaySilent()
+    {
+        var db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => name);
+        var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, (byte)RoomTypeId.Lair);
+        world.SetAvailability(PlayerIds.FirstKeeper, AvailabilityKind.Room, key.Value, 2);
+        panel.Capture(world);
+        Assert.False(panel.PressChoice(key)); Assert.Empty(panel.Sounds.Pending);
+        world.SetAvailability(PlayerIds.FirstKeeper, AvailabilityKind.Room, key.Value, 3);
+        panel.Capture(world);
+        Assert.True(panel.PressChoice(key)); Assert.False(panel.PressChoice(key));
+        Assert.Null(panel.Selection.Choice);
+        panel.ReleaseChoice(); panel.ReleaseChoice();
+        Assert.Equal(new uint[] { 0x104, 0x136 }, panel.Sounds.Pending.Select(r => r.Id.Value));
+        Assert.All(panel.Sounds.Pending, r => Assert.Equal(new SoundCategory("gui_button_icon_large"), r.Category));
+    }
+
     [InstallFact]
     public void OwnedTimedReaperBlocksAnotherSummonAndShowsWholeSeconds()
     {

@@ -1,4 +1,4 @@
-﻿# Third-party notices
+# Third-party notices
 
 This project is licensed under the GNU GPL version 3 (see LICENSE, ADR-0041).
 Everything listed below is GPL-compatible and keeps its own licence and
@@ -12,6 +12,8 @@ comments do.
   algorithm from GLKeeper's `src/DK2WADArchive.cpp`.
 
 ## OpenKeeper
+- **Sound map layout research (facts only):** `BankMapFile.java` and `SfxMapFile.java`
+  supplied field widths/order, checked against shipped maps. No code copied.
 - **Bottom-panel metadata (facts only):** `KwdFile.java` at
   `4f2ab4016f042bd607dbdfe8d5b406a7901113aa` corroborated keeper-spell, door and
   trap localized-name and display-order fields after the native ordinal
@@ -54,7 +56,7 @@ comments do.
   table, 40-byte entry layout, fixed name field, sample metadata, sound-type
   values, and proposed type names were consulted in OpenKeeper's `SdtFile` and
   `SdtFileEntry`, checked against every shipped SDT and its MPEG frame headers,
-  then independently implemented in `src/DK2.Convert`.
+  then independently implemented in `src/DK2.Data/Media`.
 - **STR format research (facts only, no code copied):** the 12-byte header,
   header-relative offset origin, typed entry chunks, parameter numbering, and
   `MBToUni.dat` variable-width character indexing were consulted in
@@ -115,3 +117,27 @@ comments do.
   and contributors
 - Used by `DK2.Harness` to read scenario files. Tooling only — no simulation
   assembly references it.
+
+## NLayer
+
+- https://github.com/naudio/NLayer, version 3.0.0, MIT licence, Copyright (c) 2018 Mark Heath, Andrew Ward & Contributors.
+- Runtime MPEG Layer I/II audio decoder, used only behind `DK2.Data.Media.MpegAudioDecoder`.
+  Unity loads its dependency-free netstandard2.0 assembly. See ADR-0583.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
