@@ -7,10 +7,10 @@ using DK2.Pathfinding;
 namespace DK2.AI;
 
 /// <summary>A keeper's last routing mesh, kept across turns while the navigation bytes it was
-/// built from are unchanged. A whole-map build costs tens of milliseconds on a campaign map and a
-/// view is made afresh every turn, so without this every turn that asks a route paid one, though
-/// the bytes are the same on almost every turn. A mesh is a function of its bytes alone, and a
-/// router keeps nothing from one query to the next, so a reused router answers as a new one would.
+/// built from are unchanged. Its locate cache carries across queries and turns, so edge and
+/// vertex answers may differ from a fresh mesh's (ADR-0486). That history is deterministic
+/// because the cache belongs to one keeper. <see cref="KeeperStaging"/> shows how to restore
+/// a reused mesh to the locate cache its whole build left when fresh-view answers are required.
 /// </summary>
 public sealed class KeeperRouteCache
 {
