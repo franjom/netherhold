@@ -114,6 +114,7 @@ namespace DK2.Unity
 
         public RenderTexture ClassTexture => _gpu.Classes;
         public Texture PaletteTexture => _gpu.PaletteTexture;
+        public MinimapPalette Palette => _palette;
         public int MapWidth => _grid.Width;
         public int MapHeight => _grid.Height;
 

@@ -25,6 +25,7 @@ public sealed class WorldHoverText
     private readonly GameDatabase _database;
     private readonly Func<uint, string> _resolve;
     private readonly PlayerId _viewer;
+    private readonly CampaignSlot _playedSlot;
     private readonly Dictionary<int, string> _tokens = new();
     private IReadOnlyList<RoomInstance> _rooms = Array.Empty<RoomInstance>();
     private WorldState? _world;
@@ -33,11 +34,13 @@ public sealed class WorldHoverText
     private string _personalName = "";
     private HoverTextSnapshot _snapshot = HoverTextSnapshot.Empty;
 
-    public WorldHoverText(GameDatabase database, Func<uint, string> resolveString, PlayerId viewingPlayer)
+    public WorldHoverText(GameDatabase database, Func<uint, string> resolveString, PlayerId viewingPlayer,
+        CampaignSlot playedSlot = default)
     {
         _database = database ?? throw new ArgumentNullException(nameof(database));
         _resolve = resolveString ?? throw new ArgumentNullException(nameof(resolveString));
         _viewer = viewingPlayer;
+        _playedSlot = playedSlot;
     }
 
     public HoverTextSnapshot Capture(WorldState world, WorldHoverHit hit, string personalName = "")
@@ -59,7 +62,7 @@ public sealed class WorldHoverText
         if (world.FogOfWarEnabled && !tile.IsExploredBy(_viewer))
             return new(_resolve(2473), _resolve(348), hit);
         if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is { } creature)
-            return Creature(creature, hit, personalName);
+            return Creature(creature, hit, personalName, world.GameMode);
         if (hit.Kind == WorldHoverKind.Door && world.DoorById(hit.EntityId) is { } door
             && _database.Doors.TryGetValue(door.DoorId, out DoorDef? doorDef))
             return Door(door, doorDef, hit);
@@ -82,6 +85,7 @@ public sealed class WorldHoverText
         int tileIndex = world.TileIndex(hit.Tile);
         foreach (RoomInstance room in _rooms)
             if (room.Contains(tileIndex)) return Room(world, room, hit);
+        if (tile.SecretDoor) return new(_resolve(2481), _resolve(2480), hit);
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
         _tokens[37] = Number(terrain.MaxHealth / 100 == 0 ? 0 : tile.Health / (terrain.MaxHealth / 100));
         _tokens[66] = Number(terrain.ManaGain);
@@ -197,7 +201,7 @@ public sealed class WorldHoverText
         return (product + (product < 0 ? 0xFFF : 0)) >> 12;
     }
 
-    private HoverTextSnapshot Creature(CreatureState creature, WorldHoverHit hit, string personalName)
+    private HoverTextSnapshot Creature(CreatureState creature, WorldHoverHit hit, string personalName, GameMode mode)
     {
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
         string kind = _resolve(definition.NameStringId);
@@ -214,11 +218,9 @@ public sealed class WorldHoverText
             _tokens[88] = Number(creature.Level);
             return new(Substitute(_resolve(2791), _tokens), kind, hit);
         }
-        // 0x0048D880: the Lord of the Land's name comes first, from a level string (unbuilt: ours
-        // passes its pool name); then a non-zero def+0x895 replaces the name-pool personal name.
-        // 0x0042D4A0 shows def+0x895 as the popup name in place of the type name, for any owner.
         string popup = special != 0 ? _resolve(special) : kind;
-        _tokens[29] = special != 0 && creature.CreatureTypeId != LordOfTheLandCreatureId ? popup : personalName;
+        _tokens[29] = creature.CreatureTypeId == LordOfTheLandCreatureId ? _resolve(LordNameTextId(mode, _playedSlot))
+            : special != 0 ? popup : personalName;
         _tokens[30] = kind;
         if (creature.OwnerPlayerId == PlayerIds.Good)
             return new(Substitute(_resolve(2412), _tokens), popup, hit);
@@ -239,6 +241,12 @@ public sealed class WorldHoverText
     /// <summary>The Lord of the Land, creature 29 (0x1D), whose status name <c>0x0048D880</c> takes from
     /// level strings 2866..2879 or 3079 before it tests <c>def+0x895</c>.</summary>
     private const int LordOfTheLandCreatureId = 29;
+    public static uint LordNameTextId(GameMode mode, CampaignSlot playedSlot) => mode != GameMode.Campaign ? 3079u : playedSlot.Value switch
+    {
+        >= 1 and <= 5 => 2865u + playedSlot.Value,
+        6 or 7 => 2871, 8 => 2872, 9 => 2873, 10 => 2874, 11 => 2875,
+        15 => 2876, 17 => 2877, 18 or 19 => 2878, 20 => 2879, _ => 3079,
+    };
 
     private HoverTextSnapshot Room(WorldState world, RoomInstance room, WorldHoverHit hit)
     {

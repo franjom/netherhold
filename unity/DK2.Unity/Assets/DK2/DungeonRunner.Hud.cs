@@ -88,6 +88,9 @@ namespace DK2.Unity
             _optionsPanel = new ClassicOptionsPanel(transform, new InstallClassicOptionsAssets(_hudSources));
             _startup.Step("hud.options");
             _fullMap = new ClassicFullMap(transform, _minimap);
+            _fullMap.SetLegendAssets(new InstallClassicOptionsAssets(_hudSources),
+                PlayerNames(campaignLevel ? GameDatabaseLoader.LoadCampaignPlayers(install, levelName) : null),
+                new InstallClassicResourceAssets(_hudSources));
             _startup.Step("hud.fullmap");
             _identityNames = new InstallClassicCreatureNames(install);
             _hudStrings = _hudSources.Strings;
@@ -96,7 +99,7 @@ namespace DK2.Unity
             _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(_hudSources), _hudSources.Texture);
             _startup.Step("hud.query");
             _statusFlowers = new StatusFlowers(database, new PlayerId((byte)viewingPlayerId));
-            _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources));
+            _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources), _installArt, _classic);
             _startup.Step("hud.flowers");
             _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId), database);
             Dk2StringTable speech = OpenText(Path.Combine(_hudSources.TextDirectory, "Speech.str"));
@@ -222,6 +225,11 @@ namespace DK2.Unity
         {
             if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
             _input.CancelPointerGesture(); _bottomPanel?.CancelPointerGesture();
+            if (action == ClassicHudAction.NavigatePortal)
+            {
+                NavigateRoom(RoomTypeId.Portal);
+                return;
+            }
             if (action == ClassicHudAction.NavigateHeart)
             {
                 if (_worldView.MinimapHeartTile is TilePos heart) StartGlide(heart);
@@ -256,6 +264,7 @@ namespace DK2.Unity
                 {
                     if (Input.GetKeyDown(KeyCode.G)) ApplyHudAction(ClassicHudAction.ToggleGui);
                     if (Input.GetKeyDown(KeyCode.H)) ApplyHudAction(ClassicHudAction.NavigateHeart);
+                    if (Input.GetKeyDown(KeyCode.P)) ApplyHudAction(ClassicHudAction.NavigatePortal);
                 }
             }
             HudVisibility hud = CurrentHud;
@@ -404,6 +413,7 @@ namespace DK2.Unity
                 _scriptedView.ClearFlash(flash);
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
             _bottomPanel.Draw();
+            _fullMap.Capture(_simulation.World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
             _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
                 HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)));

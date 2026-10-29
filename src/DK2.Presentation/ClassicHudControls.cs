@@ -8,7 +8,7 @@ namespace DK2.Presentation;
 
 public enum ClassicHudAction : byte
 {
-    None, ToggleGui, ToggleOptions, ToggleFullMap, NavigateHeart, SelectQuery, SelectSell, ZoomIn, ZoomOut,
+    None, ToggleGui, ToggleOptions, ToggleFullMap, NavigateHeart, SelectQuery, SelectSell, ZoomIn, ZoomOut, NavigatePortal,
 }
 
 [Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-controls.md")]

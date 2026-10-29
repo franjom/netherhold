@@ -164,19 +164,19 @@ translate.
 | G, H, M, ESC (Options) | the same | DK2's |
 | `+` / `-` ambient light | the same | DK2's; step size unread |
 | Arrow keys pan, SHIFT speed scroll | the same | DK2's; native motion rules in classic-camera.md §7 |
-| W/A/S/D and joystick pan (InputManager `Horizontal`/`Vertical` axes) | A is Ally Window | ours; collides |
-| Q / E rotate | unbound (0x005604C0 stores neither) | ours |
-| DELETE / PG DN, CTRL + LEFT/RIGHT | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | keyboard bindings built; X/mouse absent |
-| Wheel, HOME / END, CTRL + UP/DOWN | HOME / END, CTRL + UP/DOWN, hold Z and mouse | keyboard bindings built; Z/mouse absent |
-| 1, 3, 4, 5, 7 tool modes | 1–7 are possession abilities | ours; collides |
-| `[` / `]` room cycle | none | ours |
+| W/A/S/D and joystick pan | A is Ally Window | adapter aliases removed; Ally Window unavailable |
+| Q / E rotate | unbound (0x005604C0 stores neither) | adapter aliases removed |
+| DELETE / PG DN, CTRL + LEFT/RIGHT | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | keyboard and mouse yaw built |
+| Wheel, HOME / END, CTRL + UP/DOWN | HOME / END, CTRL + UP/DOWN, hold Z and mouse | keyboard and mouse zoom built; wheel remains a host extension |
+| 1, 3, 4, 5, 7 tool modes | 1–7 are possession abilities | adapter tool aliases removed |
+| `[` / `]` room cycle | none | adapter aliases removed |
 | ESC / SPACE end a camera path | the same (`0x00405010`, camera-paths.md §5) | DK2's |
 | SHIFT / CTRL / ALT on overview and gold-counter clicks | the same (hud-resources.md) | DK2's |
-| P (Zoom To Portal), F, I, A | listed above | absent |
+| P (Zoom To Portal), F, I, A | listed above | Portal glide built; Fight/input integration pending; player information and multiplayer Ally Window unavailable |
 
-None of the "ours" rows is presented in the HUD as a DK2 control. Whether to
-keep them as diagnostics, move them off DK2's keys, or add DK2's missing
-rotate/zoom keys is a decision for the owner (Step 6 plan §6.3).
+Room and tool selection use the HUD or Inspector. Mouse yaw/zoom retain the
+native first-frame latch and rotate precedence; [the handler](functions/004066A0.md)
+records the motion payloads. Settings-key integration is tracked in the completion plan.
 
 Against what exists today, of the 62 default bindings: three act on state we have
 (`H`, `P`, `ESC`), about thirty are camera and renderer work whose constants are

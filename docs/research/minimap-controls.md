@@ -101,13 +101,32 @@ the camera's existing height and calls the guarded, clamped immediate focus
 setter. This is distinct from the minimap's command4 timed glide.
 Secondary `0x00408EE0` exits to mode3 without navigating. `ClassicFullMapLayout`
 mirrors that display/pointer geometry; `ClassicFullMap` draws cached class and
-palette textures without consulting a running world.
+palette textures. Supplementary overlays read the settled world.
 
-The full map also has a discovered-room hover symbol, discovered creature
-squares and a right-hand player/creature legend. These are not equivalent to
-the minimap's dot/trap/door/reporting overlays. Their complete layout, strings
-and refresh contract remain outside the implemented terrain/input subset.
-The adapter therefore does not repurpose minimap markers for this view.
+### Full-map markers and legend
+
+CONFIRMED from [the overlay](functions/00403FB0.md): discovered creatures not
+in hand draw3-pixel squares in palette17+owner, without the minimap blink.
+The hovered room's symbol is centred on its stored centre tile, which must be
+explored; the pointer tile must be inside the map border. Native room art and
+missing entries are recorded in [the loader](functions/00403060.md).
+The symbol is32W/640 by32H/480. Keeper names use the player's colour and
+Number>2, starting at reference474,274 in the right-hand legend.
+
+Built: GPU creature squares and room symbols, and original-font keeper names.
+Room centres reuse the existing derived centre fields, whose Heart offset
+remains STRONGLY INFERRED. The host scales creature squares by screen height
+relative to768 for readability; DK2 uses3device pixels. Matched acceptance is pending.
+
+### Preview and legend (CONFIRMED, binary 2026-10-29)
+
+[Mode7 rendering](functions/00598880.md) unprojects the continuous pointer
+position, without a separate inside-map or discovery guard. Engine eyeZ is-8,
+rotation identity, focal240pixels and view distance10. Viewport endpoints are
+(466W/640,33H/480)..(594W/640,225H/480), with integer division. Ordinary scene
+visibility still applies. The adapter uses a dedicated overhead render texture;
+it maps native view distance to Unity's far plane. The keeper legend bounds
+are(466W/640,266H/480)..(572W/640,417H/480). Rendered comparison is pending.
 Normal-HUD toggle producers and remaining Q611 boundaries remain in
 [hud-visibility.md](hud-visibility.md#normal-gui-toggle-producers).
 

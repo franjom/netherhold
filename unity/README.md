@@ -93,7 +93,9 @@ the dug-out parts of a level read as dug out. Colour is derived from each asset'
 key, so a terrain is always the same colour; see `PlaceholderProvider`. A tile marked
 for digging is tinted amber, and wall torches are placed by `TorchLayout`.
 
-WASD or the arrow keys pan and the mouse wheel zooms. With Classic Vertex Lighting,
+Arrow keys pan; Shift speeds scrolling. Hold X and move the pointer to rotate,
+or Z and move vertically to zoom; P navigates to an owned Portal. The mouse
+wheel also zooms. With Classic Vertex Lighting,
 `=`/`+` and `-` adjust native ambient light; keypad plus/minus work too.
 The bottom tabs select Creatures, Rooms, Spells and Workshop. Room choices show
 their original icons and names; secondary click cycles owned rooms. Creature
@@ -106,16 +108,16 @@ with secondary click. Gold-counter primary click withdraws100, Shift1000 or
 Control10000, subject to actual funds and hand capacity. The complete scope and
 unfinished controls are in [Step6](../docs/plans/2026-10-17-classic-look-step6.md).
 
-The numeric tool shortcuts below remain debugging controls.
-The default Hand (`1` or `5`)
+Select tools and rooms through the HUD or DungeonRunner Inspector.
+The default Hand
 uses left click to pick up a creature or toggle a diggable tile's excavation tag.
 Left drag applies the inverse of the starting tile's tag state to a rectangle;
 this drag policy is a modern interface choice, not a claim about DK2's exact drag behavior.
 Right click drops the held creature, or slaps a creature when the hand is empty.
-`3` selects Build, `4` Sell, and `7` Create Imp. `[` and `]` select the room used by Build; the Game view displays
-its name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
+The bottom panel selects Build and Create Imp; the corner selects Sell. The Game view displays
+the selected room's name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
 rooms by name. Choose Lair to build sleeping space. Drag Build and Sell rectangles;
-click Create Imp. The tool hotkeys are interface choices (ADR-0104).
+click Create Imp. The former numeric, bracket, WASD and Q/E debug shortcuts are removed.
 
 ## Recording input
 

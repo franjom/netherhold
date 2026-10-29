@@ -300,7 +300,8 @@ namespace DK2.Unity
             // normally missing; with the install off too, everything draws as boxes.
             if (classicMeshes)
             {
-                _installArt = InstallArtProvider.Open(install, database, frontEnd ? FrontEndArt.Entries(database) : null);
+                _installArt = InstallArtProvider.Open(install, database, frontEnd
+                    ? FrontEndArt.Entries(database).Concat(StatusFlowerArt.Entries) : StatusFlowerArt.Entries);
                 _classic = new ClassicMeshes(_installArt, classicVertexLighting, nativeInitialAmbient);
             }
             _assets = AssetProviderChain.Standard(
@@ -429,7 +430,13 @@ namespace DK2.Unity
             _resourceView = new KeeperResourceView(_simulation.Database, new PlayerId((byte)viewingPlayerId));
             _startup.Step("hud.resources");
             InitializeHudControls(install, database, campaignLevel);
-            _hoverText = new WorldHoverText(database, _hudSources.Strings.Resolve, new PlayerId((byte)viewingPlayerId));
+            CampaignSlot hoverSlot = CampaignSlot.None;
+            for (int slot = 1; slot <= 30; slot++)
+            {
+                var candidate = new CampaignSlot(slot);
+                if (string.Equals(candidate.LevelName, levelName, StringComparison.OrdinalIgnoreCase)) { hoverSlot = candidate; break; }
+            }
+            _hoverText = new WorldHoverText(database, _hudSources.Strings.Resolve, new PlayerId((byte)viewingPlayerId), hoverSlot);
             _startup.Step("hud.text");
             _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), 1);
@@ -596,16 +603,25 @@ namespace DK2.Unity
                 _minimap?.SetVisibility(hud);
                 _hoverHud?.SetVisibility(hud);
                 _resourceHud?.SetVisibility(hud);
-                if (_scriptedView.PathPlaying) ApplyPathCamera();
+                if (_scriptedView.PathPlaying)
+                {
+                    _classicCameraControls?.AdvancePointer(default, false, false);
+                    _cameraPointer = Input.mousePosition;
+                    ApplyPathCamera();
+                }
                 else
                 {
                     Glide();
                     FollowScriptedCreature();
                     if (hud.AllowOrdinaryInput && !HudModal) ControlCamera();
-                    else if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
+                    else
+                    {
+                        _classicCameraControls?.AdvancePointer(default, false, false);
+                        _cameraPointer = Input.mousePosition;
+                        if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
+                    }
                 }
                 ReadAmbientKeys();
-                if (hud.AllowOrdinaryInput && !HudModal) ReadToolKeys();
                 QueueInput();
             }
 
@@ -687,9 +703,11 @@ namespace DK2.Unity
             _scene.SetHandLight(_handLight);
             // After the camera is placed, so a path's first and last frames take the right fade.
             ApplyClassicLook();
+            _fullMap?.PreparePreview();
             if (_classicCamera != null)
                 _scene.PrepareClassicLighting(Camera.main,
-                    _scriptedView.Pose is CameraPathPose path ? path.ViewDistance : _classicCamera.NativeViewDistance);
+                    _scriptedView.Pose is CameraPathPose path ? path.ViewDistance : _classicCamera.NativeViewDistance,
+                    _fullMap?.PreviewCamera);
             _scene.AdvanceTorchAnimation();
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
@@ -884,24 +902,6 @@ namespace DK2.Unity
             }
         }
 
-        private void ReadToolKeys()
-        {
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha5)) tool = DungeonToolMode.Hand;
-            if (Input.GetKeyDown(KeyCode.Alpha3)) tool = DungeonToolMode.BuildRoom;
-            if (Input.GetKeyDown(KeyCode.Alpha4)) tool = DungeonToolMode.SellRoom;
-            if (Input.GetKeyDown(KeyCode.Alpha7)) tool = DungeonToolMode.CreateImp;
-
-            if (Input.GetKeyDown(KeyCode.LeftBracket)) SelectAdjacentRoom(-1);
-            if (Input.GetKeyDown(KeyCode.RightBracket)) SelectAdjacentRoom(1);
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Alpha5)
-                || Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Alpha4)
-                || Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.LeftBracket) || Input.GetKeyDown(KeyCode.RightBracket))
-            {
-                _panelChoice = null; _queryTool = false; _selectedCorner = ClassicHudAction.None;
-                _bottomView?.SelectTool(ActiveTool, selectedRoomId);
-            }
-        }
-
         private void SelectKnownRoom()
         {
             if (_roomIds.Length == 0) return;
@@ -909,16 +909,7 @@ namespace DK2.Unity
             selectedRoomId = _roomIds[0];
         }
 
-        private void SelectAdjacentRoom(int direction)
-        {
-            if (_roomIds.Length == 0) return;
-
-            int index = Array.IndexOf(_roomIds, selectedRoomId);
-            if (index < 0) index = 0;
-            index = (index + direction + _roomIds.Length) % _roomIds.Length;
-            selectedRoomId = _roomIds[index];
-        }
-
+        private Vector3 _cameraPointer;
         private void ControlCamera()
         {
             Camera camera = Camera.main;
@@ -927,11 +918,12 @@ namespace DK2.Unity
             if (_classicCamera != null && !frameWholeMap)
             {
                 bool control = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
-                float panHorizontal = Input.GetAxisRaw("Horizontal"), panVertical = Input.GetAxisRaw("Vertical");
+                float panHorizontal = (Input.GetKey(KeyCode.RightArrow) ? 1 : 0) - (Input.GetKey(KeyCode.LeftArrow) ? 1 : 0);
+                float panVertical = (Input.GetKey(KeyCode.UpArrow) ? 1 : 0) - (Input.GetKey(KeyCode.DownArrow) ? 1 : 0);
                 ClassicCameraKeys keys = ClassicCameraKeys.None, edges = ClassicCameraKeys.None;
-                if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.Delete) || (control && panHorizontal < 0))
+                if (Input.GetKey(KeyCode.Delete) || (control && panHorizontal < 0))
                     keys |= ClassicCameraKeys.TurnLeft;
-                if (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.PageDown) || (control && panHorizontal > 0))
+                if (Input.GetKey(KeyCode.PageDown) || (control && panHorizontal > 0))
                     keys |= ClassicCameraKeys.TurnRight;
                 if (!control)
                 {
@@ -956,12 +948,15 @@ namespace DK2.Unity
                 float wheel = PointerOverHud(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
                 if (wheel > 0 || Input.GetKey(KeyCode.Home) || (control && panVertical > 0)) _classicCamera.ZoomIn();
                 else if (wheel < 0 || Input.GetKey(KeyCode.End) || (control && panVertical < 0)) _classicCamera.ZoomOut();
+                _classicCameraControls.AdvancePointer(new System.Numerics.Vector2(pointer.x - _cameraPointer.x, _cameraPointer.y - pointer.y),
+                    Input.GetKey(KeyCode.X), Input.GetKey(KeyCode.Z));
+                _cameraPointer = pointer;
                 ApplyClassicCamera();
                 return;
             }
 
-            float horizontal = Input.GetAxisRaw("Horizontal");
-            float vertical = Input.GetAxisRaw("Vertical");
+            float horizontal = (Input.GetKey(KeyCode.RightArrow) ? 1 : 0) - (Input.GetKey(KeyCode.LeftArrow) ? 1 : 0);
+            float vertical = (Input.GetKey(KeyCode.UpArrow) ? 1 : 0) - (Input.GetKey(KeyCode.DownArrow) ? 1 : 0);
             var pan = new Vector3(horizontal, 0f, vertical);
             if (pan.sqrMagnitude > 1f) pan.Normalize();
             camera.transform.position += pan * cameraPanSpeed * Time.unscaledDeltaTime;
@@ -1314,17 +1309,19 @@ namespace DK2.Unity
             TileView shown = _worldView.TileAt(world, tile.X, tile.Y);
             var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
             if (!plane.Raycast(ray, out float distance)) return new WorldHoverHit(WorldHoverKind.Tile, tile);
-            _renderedPick ??= (kind, id) => HoverPickRules.Rendered(_simulation.World, _simulation.Database, kind, id);
-            _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(_simulation.World, _simulation.Database, kind, id);
+            _objectsOnlyPick = Input.GetKey(KeyCode.PageUp);
+            _renderedPick ??= (kind, id) => HoverPickRules.Rendered(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
+            _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
             _resolvesPick ??= candidate => HoverPickRules.Resolves(_simulation.World, candidate, new PlayerId((byte)viewingPlayerId));
             GeometryUtility.CalculateFrustumPlanes(view, _pickFrustum);
             WorldHoverHit hit = _scene.PickHoverEntity(ray, view.transform.forward, distance + .02f, tile,
-                ray.GetPoint(distance), _renderedPick, _fallbackPick, _resolvesPick, _pickFrustum);
+                ray.GetPoint(distance), _renderedPick, _fallbackPick, _resolvesPick, _pickFrustum, _objectsOnlyPick);
             return new WorldHoverHit(hit.Kind, tile, hit.EntityId);
         }
 
         // The picker's eligibility (HoverPickRules), made once so a frame's pick allocates nothing.
         private System.Func<WorldHoverKind, int, bool> _renderedPick, _fallbackPick;
+        private bool _objectsOnlyPick;
         private readonly Plane[] _pickFrustum = new Plane[6];
         private System.Func<WorldHoverHit, bool> _resolvesPick;
 

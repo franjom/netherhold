@@ -188,7 +188,7 @@ namespace DK2.Unity
         public WorldHoverHit PickHoverEntity(Ray ray, Vector3 viewForward, float terrainDistance, TilePos tile,
             Vector3 pointerGround, System.Func<WorldHoverKind, int, bool> rendered = null,
             System.Func<WorldHoverKind, int, bool> fallback = null, System.Func<WorldHoverHit, bool> resolves = null,
-            Plane[] frustum = null)
+            Plane[] frustum = null, bool objectsOnly = false)
         {
             WorldHoverHit hit = new WorldHoverHit(WorldHoverKind.Tile, tile);
             _pickCandidates.Clear();
@@ -211,12 +211,12 @@ namespace DK2.Unity
 
             var pointer = new FpPosition3(new Fp32((int)(pointerGround.x * Fp32.One)),
                 new Fp32((int)(-pointerGround.z * Fp32.One)), new Fp32(0));
-            int closestObject = Fp32.One / 4;
+            int closestObject = HoverPickRules.FallbackObjectRadius(objectsOnly);
             for (int y = tile.Y - 1; y <= tile.Y + 1; y++)
                 for (int x = tile.X - 1; x <= tile.X + 1; x++)
                 {
                     foreach (var entry in _creaturePoses)
-                        if (entry.Value.Tile == new TilePos(x, y) && _creatures.TryGetValue(entry.Key, out GameObject go)
+                        if (!objectsOnly && entry.Value.Tile == new TilePos(x, y) && _creatures.TryGetValue(entry.Key, out GameObject go)
                             && go != null && go.activeSelf && Distance(go) < Fp32.One / 2
                             && (fallback == null || fallback(WorldHoverKind.Creature, entry.Key)))
                             return new WorldHoverHit(WorldHoverKind.Creature, entry.Value.Tile, entry.Key);
@@ -872,7 +872,7 @@ namespace DK2.Unity
             _tileLights.Set(table);
         }
 
-        public void PrepareClassicLighting(Camera camera, float nativeViewDistance)
+        public void PrepareClassicLighting(Camera camera, float nativeViewDistance, Camera additionalCamera = null)
         {
             if (_worldLights == null || camera == null) return;
             using (LightMarker.Auto())
@@ -895,7 +895,21 @@ namespace DK2.Unity
                     _visibleLightTiles = ClassicLightVisibility.EnumerateTiles(polygon);
                     _lightCameraPose = pose; _lightViewport = viewport; _lightViewDistance = nativeViewDistance;
                 }
-                _worldLights.PrepareFrame(_visibleLightTiles);
+                TilePos[] visible = _visibleLightTiles;
+                if (additionalCamera != null)
+                {
+                    Vector3 at = additionalCamera.transform.position, ahead = additionalCamera.transform.forward,
+                        upward = additionalCamera.transform.up;
+                    var additionalPose = new ClassicCameraPose(new System.Numerics.Vector3(at.x, at.y, at.z),
+                        new System.Numerics.Vector3(ahead.x, ahead.y, ahead.z), new System.Numerics.Vector3(upward.x, upward.y, upward.z),
+                        additionalCamera.fieldOfView, additionalCamera.farClipPlane, 0, 0);
+                    var additionalViewport = new CameraViewport(Screen.width, additionalCamera.pixelWidth, additionalCamera.pixelHeight);
+                    var tiles = new HashSet<TilePos>(visible);
+                    foreach (TilePos tile in ClassicLightVisibility.EnumerateTiles(
+                        ClassicLightVisibility.BuildPolygon(additionalPose, additionalViewport, 10))) tiles.Add(tile);
+                    visible = new TilePos[tiles.Count]; tiles.CopyTo(visible);
+                }
+                _worldLights.PrepareFrame(visible);
                 _tileLights ??= new ClassicTileLightBuffer(_worldWidth, _worldHeight);
                 foreach (TilePos previous in _publishedLightTiles)
                     if (!_worldLights.IsVisible(previous)) _tileLights.Remove(previous);

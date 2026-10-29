@@ -6,6 +6,8 @@ using DK2.Core;
 using System.Numerics;
 namespace DK2.Presentation;
 
+public readonly record struct FullMapPreview(Vector2 Origin, Vector2 Size, ClassicCameraPose Pose);
+
 [Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-controls.md")]
 public readonly record struct ClassicFullMapLayout(Vector2 Origin, Vector2 Size, int MapWidth, int MapHeight)
 {
@@ -22,4 +24,14 @@ public readonly record struct ClassicFullMapLayout(Vector2 Origin, Vector2 Size,
     }
     public TilePos ResolveTile(Vector2 screenPoint) => new(
         (int)((screenPoint.X-Origin.X)*MapWidth/Size.X), (int)((screenPoint.Y-Origin.Y)*MapHeight/Size.Y));
+
+    public FullMapPreview Preview(int screenWidth, int screenHeight, Vector2 screenPoint)
+    {
+        int left = screenWidth * 466 / 640, top = screenHeight * 33 / 480;
+        int width = screenWidth * 594 / 640 - left, height = screenHeight * 225 / 480 - top;
+        Vector2 point = (screenPoint - Origin) / Size * new Vector2(MapWidth, MapHeight);
+        return new(new(left, top), new(width, height), new ClassicCameraPose(
+            new Vector3(point.X, 8, -point.Y), -Vector3.UnitY, Vector3.UnitZ,
+            2 * (float)Math.Atan(height / 480f) * (180f / (float)Math.PI), 10, 90, 0));
+    }
 }
