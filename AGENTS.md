@@ -234,7 +234,7 @@ a commit body, for a commit-msg hook. Budgets live in one place,
 this table is a bug.
 
 **Install the hook once per clone:** `git config core.hooksPath .githooks`.
-CI (`.github/workflows/ci.yml`) builds and tests on Linux and Windows with no DK2 install; it does not run the doc budgets, so the hook is the only gate for those. It **blocks** on a budget
+CI (`.github/workflows/ci.yml`) builds and tests on Linux and Windows with no DK2 install, and its `docs and kb gate` job reruns the budgets and `kb check` on what each push or pull request adds. The hook catches them before the commit. It **blocks** on a budget
 violation and merely **notes** a stale status line — almost every commit changes
 one of that line’s numbers, and blocking each one would teach everybody to pass
 `--no-verify`, which would switch off the budget check too.
