@@ -1,6 +1,8 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
+
+using DK2.Data.Media;
 
 namespace DK2.Presentation;
 
@@ -26,6 +28,17 @@ public readonly record struct BottomPanelOpenSet
 public sealed class BottomPanelTabs
 {
     private BottomPanelOpenSet _remembered;
+    public SoundRequests Sounds { get; } = new();
+    public void Toggle()
+    {
+        Collapsed = !Collapsed;
+        Sounds.Add(new SoundRequest(new SoundCategory("gui_button_size"), new SoundId(Collapsed ? 0x135u : 0x134u)));
+    }
+    private static SoundCategory CategorySound(BottomPanelCategory category) => new(category switch
+    {
+        BottomPanelCategory.Rooms => "gui_button_tab_rooms", BottomPanelCategory.Spells => "gui_button_tab_spells",
+        BottomPanelCategory.Workshop => "gui_button_tab_workshop", _ => "gui_button_tab_creature",
+    });
 
     public BottomPanelCategory? Pinned { get; private set; }
 
@@ -37,10 +50,12 @@ public sealed class BottomPanelTabs
 
     /// <summary>A click on tab <paramref name="category"/>. <paramref name="shiftOnly"/> is the modifier mask
     /// <c>0x005B2A50</c> equal to 1: Shift without Ctrl or Alt. Returns true when the click expanded a
-    /// collapsed panel (DK2 then plays sound <c>0x138</c>, not wired).</summary>
+    /// collapsed panel (DK2 then plays sound <c>0x138</c>, requested through Sounds).</summary>
     public bool Click(BottomPanelCategory category, bool shiftOnly)
     {
         bool expanded = Collapsed;
+        Sounds.Add(new SoundRequest(CategorySound(category), new SoundId(0x104)));
+        if (expanded) Sounds.Add(new SoundRequest(CategorySound(category), new SoundId(0x138)));
         Collapsed = false;
         if (!shiftOnly)
         {

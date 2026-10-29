@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using System.Collections.Concurrent;
 using DK2.Core;
+using DK2.Data.Media;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -31,6 +32,8 @@ public sealed class ScriptedViewDirector(
     private double _renderTick;
     private HudFlashRequest? _flash;
     private uint _flashStartedAt;
+    private bool _speechAudioEnabled;
+    private SpeechLineId? _speechLine;
 
     public void Emit(in SimEvent simEvent)
     {
@@ -44,6 +47,8 @@ public sealed class ScriptedViewDirector(
 
     /// <summary>The win screen asked for (interface slot <c>+0x40</c>).</summary>
     public event Action? WinScreenRequested;
+    public event Action<int, bool>? SpeechRequested;
+    public event Action? SpeechSkipped;
 
     /// <summary>Game action 6: zoom to the first value over the second's milliseconds.</summary>
     public event Action<int, int>? ZoomRequested;
@@ -73,7 +78,18 @@ public sealed class ScriptedViewDirector(
 
     /// <summary>The subtitle to draw: DK2 draws one only while the camera is on a path
     /// (<c>0x00403FB0</c>), in the bottom bar.</summary>
-    public string? Subtitle => _path is not null && _subtitles.Current >= 0 ? subtitle(_subtitles.Current) : null;
+    public string? Subtitle
+    {
+        get
+        {
+            int line = _speechAudioEnabled ? _speechLine?.Value ?? -1 : _subtitles.Current;
+            return _path is not null && line >= 0 ? subtitle(line) : null;
+        }
+    }
+    public void SetSpeechPlayback(bool enabled, SpeechLineId? line)
+    {
+        _speechAudioEnabled = enabled; _speechLine = line;
+    }
 
     /// <summary>Takes the latest action 26 glide target, if one came since the last call.</summary>
     public bool TryTakeCameraMove(out TilePos tile)
@@ -130,6 +146,8 @@ public sealed class ScriptedViewDirector(
     {
         if (_path is null) return false;
         _subtitles.Clear(endShown: true);
+        _speechLine = null;
+        SpeechSkipped?.Invoke();
         EndPath();
         return true;
     }
@@ -181,8 +199,9 @@ public sealed class ScriptedViewDirector(
             case ScriptedViewKind.ViewFlag84:
                 break;
             case ScriptedViewKind.Speech:
-                // An introduction clears waiting speech. With subtitles standing in for audio,
-                // also end the shown line, as on a skip (camera-paths.md section 9).
+                SpeechRequested?.Invoke(request.Value, request.Flag);
+                // The parallel timer queue supplies speech-off subtitles; its introduction/skip
+                // clear retains ADR-0535's presentation choice (camera-paths.md section9).
                 if (request.Flag) _subtitles.Clear(endShown: true);
                 int line = request.Value - 1;
                 if (subtitle(line) is { } text) _subtitles.Enqueue(line, text.Length);

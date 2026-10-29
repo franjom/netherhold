@@ -1,4 +1,4 @@
-﻿# Research status
+# Research status
 
 What is known against what is not. Three neighbours own the things this page
 deliberately does not:
@@ -107,7 +107,7 @@ Facts established and recorded, with no design decision left open. Some are buil
 | **What defeat does** (Q40) | Built (ADR-0162, ADR-0207, `DefeatRules`, Q358): creatures leave by the nearest portal, rooms and gold go neutral, the heart stays as a ruin. Left: the Destructor (object 100) |
 | **The computer keeper** (Q509, Q555, Q563) | Built and compared with DK2's own keepers on two maps; every verb agrees in kind and the open differences are timing (`computer-keeper-observations.md`). The research move and prisoner decisions are unbuilt, the trap and door step is built (ADR-0561), and the nine personalities load (ADR-0410) (`docs/KEEPER_AI.md` §12) |
 | **Front end, campaign map and progression** | F1 storage/image readers, F2 scenery/camera sessions, F3 menu shells and F4 campaign map/briefing are built; session-loop integration and deferred page operations remain. Evidence: `front-end-menus.md`, `campaign-map-and-progression.md`, `front-end-assets.md`. SDT/MPEG and bank-map readers remain unbuilt; TGQ has a playback proof of concept. Plan: `plans/2026-10-23-front-end.md` |
-| **Audio event semantics** | Menu sound-request hooks are built in F3; playback remains unbuilt. The in-game dynamic music is read (`music.md`: level requests, the update, `SFX.map`, the segment picker), not built. Audio container formats are inventoried in `front-end-assets.md`; movie playback (container, TQI video, EA ADPCM) is read and built as a decoder (`movie-format.md`, `src/DK2.Data/Media`) |
+| **Audio event semantics** | F8 supplies in-memory LayerI/II decode, event-map resolution, UI effects, queued Mentor/level speech, music and ambience (ADR-0583). Hearing acceptance in Unity remains pending; music.md section10 and Q282 retain the unbuilt atmosphere, options music and idle-taunt boundaries. Audio container formats are inventoried in `front-end-assets.md`; movie playback (container, TQI video, EA ADPCM) is read and built as a decoder (`movie-format.md`, `src/DK2.Data/Media`) |
 
 ## Per-mechanic notes
 

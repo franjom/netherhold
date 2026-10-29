@@ -272,7 +272,7 @@ records it for `SdtArchive`.
 | `Global/GuiHD.sdt` | 411,299 | 66 | 47 | GUI sounds, including the `FE3D TAB END`, `FE3D TAB SLIDE` and `FE3D CLICK ON T…` front-end entries |
 | `Global/Patch_1HD.sdt` | 11,613 | 1 | 1 | "QUIT DUNGEON FX", the `multi_player` bank |
 
-### 5.3 Event maps (`*BANK.map`, `*SFX.map`); no reader in the repo
+### 5.3 Event maps (`*BANK.map`, `*SFX.map`)
 
 A `BANK.map` holds a 16-byte id, two `u32`s and `u32 count` at 0x18, then
 `count` 11-byte records, then length-prefixed archive names. CONFIRMED by

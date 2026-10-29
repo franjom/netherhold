@@ -1,11 +1,11 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using System.Buffers.Binary;
 using System.Text;
 
-namespace DK2.Convert.Audio;
+namespace DK2.Data.Media;
 
 public enum SdtCodec
 {
@@ -50,13 +50,13 @@ public sealed class SdtArchive
 
     public static SdtArchive Open(string path)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path is required.", nameof(path));
         return Read(File.ReadAllBytes(path));
     }
 
     public static SdtArchive Read(Stream stream)
     {
-        ArgumentNullException.ThrowIfNull(stream);
+        if (stream is null) throw new ArgumentNullException(nameof(stream));
         using var copy = new MemoryStream();
         stream.CopyTo(copy);
         return Read(copy.ToArray());
@@ -116,7 +116,7 @@ public sealed class SdtArchive
 
     public byte[] Extract(SdtEntry entry)
     {
-        ArgumentNullException.ThrowIfNull(entry);
+        if (entry is null) throw new ArgumentNullException(nameof(entry));
         SdtEntry owned = Entry(entry);
         ReadOnlySpan<byte> payload = _data.AsSpan(checked((int)owned.DataOffset), checked((int)owned.StoredSize));
         return owned.Codec == SdtCodec.Pcm ? Wave(payload, owned) : payload.ToArray();
@@ -124,7 +124,7 @@ public sealed class SdtArchive
 
     public string OutputFileName(SdtEntry entry)
     {
-        ArgumentNullException.ThrowIfNull(entry);
+        if (entry is null) throw new ArgumentNullException(nameof(entry));
         SdtEntry owned = Entry(entry);
         string stem = owned.Name;
         int dot = stem.LastIndexOf('.');
@@ -158,9 +158,9 @@ public sealed class SdtArchive
         int byteRate = checked(entry.SampleRate * blockAlign);
         int fileLength = checked(44 + pcm.Length + (pcm.Length & 1));
         var result = new byte[fileLength];
-        "RIFF"u8.CopyTo(result);
+        Encoding.ASCII.GetBytes("RIFF").CopyTo(result, 0);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4), checked((uint)(fileLength - 8)));
-        "WAVEfmt "u8.CopyTo(result.AsSpan(8));
+        Encoding.ASCII.GetBytes("WAVEfmt ").CopyTo(result, 8);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(16), 16);
         BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(20), 1);
         BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(22), checked((ushort)channels));
@@ -168,7 +168,7 @@ public sealed class SdtArchive
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(28), checked((uint)byteRate));
         BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(32), checked((ushort)blockAlign));
         BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(34), entry.BitsPerSample);
-        "data"u8.CopyTo(result.AsSpan(36));
+        Encoding.ASCII.GetBytes("data").CopyTo(result, 36);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(40), checked((uint)pcm.Length));
         pcm.CopyTo(result.AsSpan(44));
         return result;
@@ -213,7 +213,7 @@ public sealed class SdtArchive
     {
         int length = bytes.IndexOf((byte)0);
         if (length < 0) length = bytes.Length;
-        return Encoding.ASCII.GetString(bytes[..length]).TrimEnd();
+        return Encoding.ASCII.GetString(bytes[..length].ToArray()).TrimEnd();
     }
 
     private static ushort U16(ReadOnlySpan<byte> data, int offset) =>

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -15,6 +15,19 @@ namespace DK2.Presentation.Tests;
 /// dismissed and opened bits; the type table's strings and graphics.</summary>
 public sealed class MessageTabsViewTests
 {
+    [InstallFact]
+    public void ASlidingTabRequestsStartSlideAndLandingOnOneVoice()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+        world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
+        var view = new MessageTabsView(PlayerIds.FirstKeeper);
+        view.Capture(world, 1000); view.Capture(world, 1010); view.Capture(world, 1640); view.Capture(world, 1650);
+        Assert.Equal(new uint[] { 0x320, 0x321, 0x322 }, view.Sounds.Pending.Select(r => r.Id.Value));
+        Assert.All(view.Sounds.Pending, r => Assert.Equal(new SoundVoiceId(1), r.Voice));
+    }
+
     [Fact]
     public void TheTypeTableGivesEachTypeItsStringAndTabGraphic()
     {

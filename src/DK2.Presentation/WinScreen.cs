@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -46,6 +46,7 @@ public sealed class WinScreen
     public const double TabletFramesPerSecond = 30;
     private const double TabletFrameMilliseconds = 1000 / TabletFramesPerSecond;
 
+    public event Action<uint>? SpeechRequested;
     private readonly byte[] _rewards;
     private readonly Func<uint, string?> _speech;
     private int _step;
@@ -56,7 +57,7 @@ public sealed class WinScreen
     private readonly Random _random;
 
     /// <param name="rewards">World <c>+0x9B86..+0x9B8A</c>: the level's four NextRewards and byte 25606.</param>
-    /// <param name="speech">Speech.str text for an id, standing in for the voiced line (F8).</param>
+    /// <param name="speech">Speech.str text for an id, used for subtitles with speech disabled.</param>
     /// <param name="tabletPoints">The Tablet mesh's control points, where its sparkles start.</param>
     public WinScreen(byte[] rewards, Func<uint, string?> speech, Vector3[]? tabletPoints = null, Random? random = null)
     {
@@ -107,6 +108,7 @@ public sealed class WinScreen
             return;
         }
         Current = Items[id];
+        if (Items[id].SpeechTextId != 0) SpeechRequested?.Invoke(Items[id].SpeechTextId);
         Tablet.Restart();
         _nextTabletFrame = now;
         // With speech audio off the line lasts as a subtitle does (SubtitleQueue).
@@ -117,7 +119,7 @@ public sealed class WinScreen
     /// the next step once both the line and the tablet have finished; when done, every 500 ms, a
     /// continue the player asked for is taken.</summary>
     /// <returns>True on the frame the continue (action 134) is due.</returns>
-    public bool Update(double now, bool cameraOnPath, bool continueRequested)
+    public bool Update(double now, bool cameraOnPath, bool continueRequested, bool? speechPlaying = null)
     {
         if (!Started || cameraOnPath) return false;
         if (!Done)
@@ -126,7 +128,7 @@ public sealed class WinScreen
             if (now - _nextTabletFrame > 4 * TabletFrameMilliseconds) _nextTabletFrame = now;
             for (; now >= _nextTabletFrame; _nextTabletFrame += TabletFrameMilliseconds)
                 Tablet.DrawFrame(now, _tabletPoints, _random);
-            if (now < _speechEnds || !Tablet.Done) return false;
+            if ((speechPlaying ?? now < _speechEnds) || !Tablet.Done) return false;
             _step++;
             Show(now);
             return false;

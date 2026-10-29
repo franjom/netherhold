@@ -1,11 +1,25 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using System.Numerics;
+using DK2.Data.Media;
 namespace DK2.Presentation.Tests;
 public sealed class ClassicHudControlsTests
 {
+    [Fact]
+    public void OptionsToggleRetainsTheNativeSilentRequestsAndBlockedTogglesEmitNothing()
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.ToggleGui);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.Equal(new uint[] { 0x139, 0x13a }, controls.Sounds.Pending.Select(r => r.Id.Value));
+        Assert.All(controls.Sounds.Pending, sound => Assert.Equal(SoundCategory.None, sound.Category));
+    }
+
     [Fact]
     public void ScriptedCameraRetainsResultInputSuppressionUntilExplicitRestoration()
     {

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -10,6 +10,7 @@ using DK2.Assets;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Data.Text;
+using DK2.Data.Media;
 using DK2.Presentation;
 using DK2.Simulation;
 using DK2.Simulation.Commands;
@@ -53,7 +54,12 @@ namespace DK2.Unity
             _tabletArt ??= LoadTabletArt();
             _winScreen = new WinScreen(WinScreen.RewardsOf(database.Level),
                 id => speech != null && speech.TryResolve(id, out string text) ? text : null, _tabletArt?.Points);
-            _scriptedView.WinScreenRequested += () => _winScreen.Start(Time.unscaledTimeAsDouble * 1000d);
+            _winScreen.SpeechRequested += id => _soundPlayer?.QueueSpeech(SoundCategory.Mentor, new SoundId(id + 1));
+            _scriptedView.WinScreenRequested += () =>
+            {
+                _soundPlayer?.StopSpeech((long)(Time.unscaledTimeAsDouble * 1000));
+                _winScreen.Start(Time.unscaledTimeAsDouble * 1000d);
+            };
             _scriptedView.ZoomRequested += (zoom, _) => _classicCamera?.SetZoom(new Fp32(zoom));
         }
 
@@ -74,7 +80,8 @@ namespace DK2.Unity
             var player = new PlayerId((byte)viewingPlayerId);
             double now = Time.unscaledTimeAsDouble * 1000d;
             bool secret = _campaignProfile.SecretLevelNumber != 0;
-            if (_winScreen != null && _winScreen.Update(now, _scriptedView.PathPlaying, _continueRequested))
+            if (_winScreen != null && _winScreen.Update(now, _scriptedView.PathPlaying, _continueRequested,
+                speechPlaying: _soundPlayer != null && _soundPlayer.SpeechEnabled ? _soundPlayer.SpeechBusy : (bool?)null))
             {
                 Continue(player);
                 return true;
@@ -93,13 +100,13 @@ namespace DK2.Unity
             _continueRequested = false;
         }
 
-        /// <summary>The win screen's tablet (0x0042F040) and, standing in for the spoken line until F8, its
+        /// <summary>The win screen's tablet (0x0042F040) and, with speech disabled, its
         /// Speech.str text near the bottom (DK2 shows no text).</summary>
         private void DrawWinScreen()
         {
             if (_winScreen == null || !_winScreen.Started || _winScreen.Current is not RewardItem item) return;
             if (_tabletArt != null && Event.current.type == EventType.Repaint) DrawTablet(_tabletArt, _winScreen.Tablet, item.Id);
-            if (_winScreen.Text is string text)
+            if ((_soundPlayer == null || !_soundPlayer.SpeechEnabled) && _winScreen.Text is string text)
                 DrawSubtitleText(new Rect(0f, Screen.height * 0.70f, Screen.width, Screen.height / 8f), text);
         }
 

@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -405,6 +405,11 @@ namespace DK2.Unity
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
             _bottomPanel.Draw();
             _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
+            _soundPlayer?.Play(_hudControls.Sounds);
+            _soundPlayer?.Play(_bottomPanel.Sounds);
+            _soundPlayer?.Play(_bottomView.Sounds);
+            _soundPlayer?.Play(_messageView.Sounds);
+            _soundPlayer?.QueueSpeech(_messageView.Speech);
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
                 HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)));
             _overviewView.Capture(_simulation.World);

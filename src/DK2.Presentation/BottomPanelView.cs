@@ -1,9 +1,10 @@
-// Copyright (C) 2026 Franjo Misetic
+﻿// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Data.Media;
 using DK2.Simulation;
 
 namespace DK2.Presentation;
@@ -106,6 +107,22 @@ public sealed class BottomPanelView
     private bool _spellsTab, _workshopTab, _workshopDim, _creaturesDim;
     private readonly bool[] _ownedRoomTypes = new bool[256];
     public IReadOnlyList<BottomPanelChoice> Choices => _choices;
+    public SoundRequests Sounds { get; } = new();
+    private bool _choicePressed;
+    public bool PressChoice(BottomPanelChoiceKey key)
+    {
+        BottomPanelChoice? choice = Choice(key) ?? _specials.FirstOrDefault(c => c.Key == key);
+        if (_choicePressed || choice is null || !choice.Visible || !choice.Selectable && !choice.ClearsToolOnClick) return false;
+        _choicePressed = true;
+        Sounds.Add(new SoundRequest(new SoundCategory("gui_button_icon_large"), new SoundId(0x104)));
+        return true;
+    }
+    public void ReleaseChoice()
+    {
+        if (!_choicePressed) return;
+        _choicePressed = false;
+        Sounds.Add(new SoundRequest(new SoundCategory("gui_button_icon_large"), new SoundId(0x136)));
+    }
 
     /// <summary>The specials stored in the player's Libraries, in the order the spells panel lists them
     /// after its spells (<c>0x00411140</c>, <c>0x00411790</c>): Libraries in room-list order, each

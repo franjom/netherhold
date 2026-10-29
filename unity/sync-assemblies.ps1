@@ -66,7 +66,19 @@ and ArchitectureTests.UnityLoadableAssemblies_TargetNetStandard21.
     Write-Host "  $project.dll"
 }
 
+$assets = Get-Content (Join-Path $repo 'src/DK2.Data/obj/project.assets.json') -Raw | ConvertFrom-Json
+$package = $assets.libraries.PSObject.Properties | Where-Object { $_.Name -like 'NLayer/*' } | Select-Object -First 1
+if (-not $package) { throw 'NLayer package is missing from DK2.Data restore assets.' }
+$nlayer = $null
+foreach ($folder in $assets.packageFolders.PSObject.Properties.Name) {
+    $candidate = Join-Path $folder "$($package.Value.path)/lib/netstandard2.0/NLayer.dll"
+    if (Test-Path -LiteralPath $candidate) { $nlayer = $candidate; break }
+}
+if (-not $nlayer) { throw 'NLayer netstandard2.0 assembly was not found in the NuGet cache.' }
+Copy-Item -LiteralPath $nlayer -Destination $target -Force
+Write-Host '  NLayer.dll (netstandard2.0)'
+
 Write-Host ""
-Write-Host "Copied $($projects.Count) assemblies to unity/DK2.Unity/Assets/Plugins/DK2."
+Write-Host "Copied $($projects.Count + 1) assemblies to unity/DK2.Unity/Assets/Plugins/DK2."
 Write-Host "Open unity/DK2.Unity in Unity 6000.6.0f1, add DungeonRunner to a GameObject, and press Play."
 Write-Host "Set DK2_DIR, or fill in the component's Install Directory field."
