@@ -412,6 +412,41 @@ Prepared on the integration branch after A–E; the owner merges each phase:
 4. The acceptance table (Definition of done, six rows) with the journal folder per row; the owner's gameplay feedback becomes the next plan.
 5. Memory graph: `add_observations` on `front-end-plan` with the merge commit, what is built, what remains.
 
+### Acceptance record
+
+The integration branch is `codex/hud-completion-final` in
+`D:/DungeonKeeperRemake/build/hud-completion-final`; master is unchanged.
+The combined Release suite passes 7,072 tests with 30 expected skips; solution and
+Unity adapter builds have zero warnings. Docs, KB (2,642 records), coverage and
+verification ledger (336 rules) gates pass. Hash/save remains 332.
+
+The clean integrated walkthrough is preserved at
+`D:/DK2Evidence/runs/unity-input-2026-10-29-completion/20261029-221115-1d91224b/`:
+`reports/completed.json`, nine sessions under `journals/`, and
+`source-and-evidence-hashes.json`. Below, **C** refers to this run. It rejects
+unexpected product exceptions; the known Editor Search indexing exception is
+reported separately. The earlier model-flow run exposed missing gallery image
+suffixes; the shipped-WAD regression fails before the fix and passes afterward.
+
+Automated callbacks and labelled fixtures do not mark the owner's checkboxes.
+The original-game comparison requests and capture paths have one home in the
+[HUD checklist](../research/hud-comparison-checklist.md).
+
+| # | Acceptance criterion | Automated verification | Owner acceptance |
+|---|---|---|---|
+| 1 | Title 10 s, both intros, menu and hover/click sound | C: real 10 s hold, both movie decoders/audio clips/repaints, gallery/attract and nonzero menu PCM | [ ] Play and hear |
+| 2 | New campaign, Level1 map, briefing and Go | C: actual campaign consumers launch Level1 through map and briefing; API actions are labelled | [ ] Play |
+| 3 | Full HUD, opening Mentor and first-fight music | C: opening speech PCM/subtitle and advancing music playhead/nonzero queue. Battle request is synthetic; first played fight remains open | [ ] Play and hear |
+| 4 | Objective, save/restart/load, live settings and Continue | `build/hud-completion-a/build/asl-203817` checks both load hashes/profile/carry; `build/hud-completion-a/build/igo-212359` checks live sliders/key capture; final `build/isc-214759` checks scaled hits, saved/live audio state and rebound navigation; C checks save hash and comparative live GameSpeed ticks | [ ] Gameplay and native comparison |
+| 5 | Abandon→map37; separately loss→statistics and win→rewards/movie/statistics/hi-score | C: labelled loss/win fixtures traverse rewards, cutscene, statistics, hi-score, Level2, restart and abandon→map37; no played victory claim | [ ] Play |
+| 6 | 1024×768 and 2560×1440 sizing/readability | E5 checklist has both-size full-view captures; A6 checks1440p scrollbar; final scaled-hit probe checks100/125/capped200% | [ ] Compare both sizes |
+
+ADR-0497 remains proposed until the owner accepts the comparisons. Credits,
+unresolved page26 paragraph(Q685), native overwrite/disable policies(Q683),
+sensitivity backend mapping(Q686) and unsupported settings/actions retain their
+documented limits. Distant full-map preview lighting is not established by the
+Heart-only fixture. The owner's next gameplay feedback defines the next plan.
+
 Commit: `docs: step 6 and the front end are playable end to end; what remains`.
 
 ---

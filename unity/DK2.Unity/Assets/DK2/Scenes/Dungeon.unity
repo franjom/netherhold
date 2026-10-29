@@ -406,7 +406,7 @@ MonoBehaviour:
   campaignProfileFile: 
   installDirectory: 
   sessionMode: 5
-  frontEndReturnPage: 1
+  frontEndReturnPage: 0
   levelName: Level2
   saveFile: 
   seed: 1

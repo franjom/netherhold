@@ -497,6 +497,15 @@ triangle pick, map hover/lift, briefing font and bitmap paths, and return paths.
 It also replaces the session with a progressed return-to-map profile and checks
 the won texture phase. It never resets the owner's campaign file.
 
+## Integrated completion flow
+
+`run-completion-flow.ps1 -EditorGui` runs the isolated startup/campaign/audio/
+save/result walkthrough. Evidence is add-only under `D:/DK2Evidence/runs/`;
+the [probe guide](COMPLETION_FLOW.md) defines its fixtures and limits. The
+[acceptance record](../../docs/plans/2026-10-29-hud-and-front-end-completion.md#acceptance-record)
+owns the verified run path and owner checks. Unexpected product exceptions fail
+the probe even when model assertions pass.
+
 ## Session save/load and Options
 
 Build the Release adapter, then run `run-session-save-load.ps1`. Every run creates

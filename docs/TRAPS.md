@@ -301,3 +301,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - EditorApplication.update callbacks can outpace rendered play frames; UI capture probes must wait on Time.frameCount before checking page images.
 - Procedural class-grid UVs and Graphics.Blit image UVs can have opposite Y origins; check logical tile colours against UI overlay positions on the active graphics backend.
 - Run watchdog overlap timing checks without simultaneous Unity imports; helper-process startup contention can make parallel wall time exceed the serial comparison.
+- Startup probes inherit the scene's Front End Return Page; reset it to None before expecting title/intros instead of diagnosing a missing repaint from a skipped stage.
+- UI Toolkit can log generateVisualContent exceptions while model updates continue; runtime probes must reject product log exceptions as well as failed assertions.

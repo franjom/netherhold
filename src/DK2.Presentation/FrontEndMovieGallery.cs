@@ -34,8 +34,8 @@ public sealed class FrontEndMovieGallery
             string path = movie == 0 ? "Data/Movies/Intro.tgq" : movie == 20 ? "Data/Movies/Outro.tgq"
                 : $"Data/Movies/CutSceneLevel{movie}.tgq";
             bool available = unlocked && _exists(path);
-            string thumbnail = !available ? "Mov_Shots/M-Unavailable" : movie == 0 ? "Mov_Shots/M-Intro"
-                : movie == 20 ? "Mov_Shots/M-Outro" : $"Mov_Shots/M-{movie - 1:000}";
+            string thumbnail = !available ? "Mov_Shots/M-Unavailable-0" : movie == 0 ? "Mov_Shots/M-Intro-0"
+                : movie == 20 ? "Mov_Shots/M-Outro-0" : $"Mov_Shots/M-{movie - 1:000}-0";
             string title = movie == 0 ? _text?.Invoke(77) ?? "" : movie < 21
                 ? _speech?.Invoke(CampaignCutscene.TitleAt(movie)) ?? "" : "";
             rows[movie] = new(path, thumbnail, title, available);

@@ -19,8 +19,8 @@ powershell -File unity/sync-assemblies.ps1
 ```
 
 Unity cannot reference a `.csproj`, so the simulation arrives as DLLs in
-`DK2.Unity/Assets/Plugins/DK2` — eight `netstandard2.1` assemblies, listed in
-`sync-assemblies.ps1`. Run this after any change under `src/`. The DLLs are build
+`DK2.Unity/Assets/Plugins/DK2` — eight `netstandard2.1` assemblies plus NLayer,
+listed in `copy-runtime-assemblies.ps1`. Run the sync after any change under `src/`. The DLLs are build
 output and are gitignored.
 
 Then open `unity/DK2.Unity` in Unity 6000.6.0f1 (`ProjectSettings/ProjectVersion.txt`
