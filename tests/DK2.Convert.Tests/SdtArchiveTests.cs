@@ -12,6 +12,11 @@ namespace DK2.Convert.Tests;
 
 public class SdtArchiveTests
 {
+    // TODO C1: establish SampleCountField units and trimming before comparing
+    // decoded PCM length with it (front-end-assets.md section 5.1). Cover mono
+    // and stereo MPEG I/II and retain the final decoded frame when EOF follows
+    // a partial output read; frame walking below does not exercise a decoder.
+
     [Fact]
     public void SyntheticBankEnumeratesEveryVariantAndWrapsOnlyKnownPcmAsWave()
     {

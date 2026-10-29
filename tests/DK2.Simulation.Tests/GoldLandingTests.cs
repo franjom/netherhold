@@ -42,6 +42,49 @@ public class GoldLandingTests
         Assert.Equal(2300, merged.GoldHeld);
     }
 
+    [Theory]
+    [InlineData(0x2AA, 0x2AA, true)]
+    [InlineData(0x800, 0x800, true)]
+    [InlineData(0xD54, 0xD54, true)]
+    [InlineData(0x2AA, 0x800, false)]
+    public void FloorLandingMergesOnlyWithinItsCellAndMakesTheGoldNeutral(int offsetX, int offsetY, bool merges)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
+            [PlayerIds.Unowned, PlayerIds.Neutral, Keeper.Value]);
+        int tile = world.TileIndex(Destination);
+        ObjectState existing = FloorGold.Drop(world, database, tile, 1800)!;
+        existing.OwnerPlayerId = Keeper.Value;
+        existing.ProcessState = 16;
+        existing.PosX = Destination.X * Fp32.One + offsetX;
+        existing.PosY = Destination.Y * Fp32.One + offsetX;
+        ObjectState incoming = world.SpawnObject(database, 2, Keeper, tile);
+        incoming.GoldHeld = 500;
+        incoming.PosX = Destination.X * Fp32.One + offsetX;
+        incoming.PosY = Destination.Y * Fp32.One + offsetY;
+        var simulation = new GameSimulation(database, world, 42, [new LandPile(incoming)]);
+
+        simulation.Tick();
+
+        Assert.Equal(merges ? 1 : 2, world.Objects.Count);
+        Assert.Same(existing, world.ObjectById(existing.Id));
+        Assert.Equal(merges ? 2300 : 1800, existing.GoldHeld);
+        Assert.Equal(merges ? PlayerIds.Neutral : Keeper.Value, existing.OwnerPlayerId);
+        if (merges) Assert.Null(world.ObjectById(incoming.Id));
+        else
+        {
+            Assert.Same(incoming, world.ObjectById(incoming.Id));
+            Assert.Equal(500, incoming.GoldHeld);
+            Assert.Equal(PlayerIds.Neutral, incoming.OwnerPlayerId);
+        }
+    }
+
+    private sealed class LandPile(ObjectState pile) : ISimulationSystem
+    {
+        public string Name => "gold landing probe";
+        public void Execute(SimulationContext context) => FloorGoldLandingRules.Land(context, pile);
+    }
+
     [Fact]
     public void APointOutsideTheCommandTileCannotReleaseTheHeldPile()
     {

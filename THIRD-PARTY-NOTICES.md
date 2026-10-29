@@ -55,6 +55,9 @@ comments do.
   values, and proposed type names were consulted in OpenKeeper's `SdtFile` and
   `SdtFileEntry`, checked against every shipped SDT and its MPEG frame headers,
   then independently implemented in `src/DK2.Convert`.
+- **Audio behavior leads (facts only, no code copied):** OpenKeeper PRs #778,
+  #593, #792 and #589 supplied questions checked against DKII.EXE and shipped
+  data; findings and remaining uncertainty are in `docs/research/sound-effects.md`.
 - **STR format research (facts only, no code copied):** the 12-byte header,
   header-relative offset origin, typed entry chunks, parameter numbering, and
   `MBToUni.dat` variable-width character indexing were consulted in

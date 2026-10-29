@@ -269,3 +269,14 @@ existing terrain lattice at the unbiased layer positions, then applies the
 until compared against the native procedural grid builder. The pulse draws
 the previous level, advances only on active draws, clamps overshoot and retains
 the native strict endpoint reversal.
+
+## Refused drop feedback (CONFIRMED, binary 2026-10-29)
+
+The click arm of `0x00408EE0` tests `0x0040D8F0` before submitting a normal
+Hand drop. Only success calls `0x0040DAB0`, whose tail at `0x0040DCF6..0x0040DD08`
+requests cursor state8 (DropThing) through `0x0040ABC0`. A refused ordinary
+drop does not reach that animation request. Pending pickups first queue a
+drop on a successful gate; their later dispatch timing is not established here.
+Ours emits DropCommand from PlayerInput whenever holding, then DungeonRunner
+plays DropGold/DropThing for every such command before execution-time refusal.
+This is a confirmed presentation mismatch, queued without a source change.

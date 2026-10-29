@@ -84,6 +84,16 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
 
 - Once `+0x5D2` has passed since `+0x54`, and the flag byte lacks bit 4, `+0x58` is
   set to `+0x5D6` and `+0x54` to now.
+- **Latch writers, rechecked 2026-10-29 (CONFIRMED binary).** The constructor
+  initializes `+0x58` to zero; the needs routine loads it at `0x00477E10`;
+  `0x00477B20` subtracts with a zero floor. State 83's category hook calls the
+  subtractor with 1 each turn, while its handler refreshes `+0x54` to now
+  (`0x0046FAB5`, `0x0046FB26`). Entering sleep does not reload the latch. A
+  full-health creature manually directed to an ordinary bed with zero debt
+  can therefore finish on its first state-83 handler call, without spending
+  `TimeSleep` there. A wounded one remains until fully healed. A partial sleep
+  retains its unpaid debt. The slap's other subtractor call is unreachable
+  after its state move; see [slap-states.md](slap-states.md) section 1.
 - While `+0x58` is non-zero and the category is not 9, each turn takes
   `CannotSleepModifyCreatureHealthPerSecond` ÷ variable 19 of health through
   `0x004B2CE0`, unless creature `+0x3E6` has both bits 21 and 15.
@@ -108,8 +118,24 @@ the busy test, but no 4-turn gate (`0x00477F94`–`0x00478023`). The attempt is 
 ## 4. Which states stop the clocks
 
 Bit 3 (`SuppressHungerClock`) and bit 4 (`SuppressTirednessClock`) are set together
-only on the Casino family, 145–159. A gambler's hunger and tiredness wait until it
-leaves.
+only on the Casino family, 145–159. They suppress the overdue update, without
+advancing its timestamp; the update can happen immediately after leaving.
+
+The earlier **group-7 return** (`0x00477C5F`–`0x00477C66`) also skips both
+updates, including eating 91–95, active lair/bed states 79–84 and payday
+187–189. Their elapsed time still passes. A travel state has group 2, so the
+same skip does not automatically cover a walk resuming one of these states.
+Captivity is different: the usual prisoner states are group 1 with neither
+clock flag. The busy test blocks their attempts, but their overdue hunger and
+sleep-latch updates still run. These distinctions are CONFIRMED from the whole
+routine and state table, rechecked 2026-10-29; a blanket captivity clock pause
+is not supported.
+
+The tired need's retry is **4 native turns**, independently of the idle lair
+search (`0x00477EF5`–`0x00477F0C`). State 89 tries a bedless lair search before
+jobs with no such retry gate; its later idle fallback has a 12-turn deadline
+([idle-fallback.md](idle-fallback.md) section 1). Neither is a universal
+one-second throttle for autonomous lair attempts.
 
 ## 5. Implementation (ADR-0198)
 
@@ -125,6 +151,13 @@ leaves.
   ours asks whether it is tired at the moment of the decision, where DK2 latches
   `+0x58` when the period passes, so a creature tired before it sat down at a table
   would still be sent to bed by DK2.
+- **Remaining clock gaps (2026-10-29):** ours' hunger update tests only bit 3,
+  so group-7 eating/lair/pay states can accrue hunger before DK2 would. Its
+  sleep system increments `AwakeTicks` while making a lair, but skips prisoners
+  entirely. `SleepTicks` resets on sleep entry and requires a fresh `TimeSleep`,
+  unlike the persistent debt described in section 3 (Q651). The constant
+  `LairRules.IdleRedecisionTicks = 12` is the bedless idle fallback, while a
+  bedded tired attempt currently lacks the native 4-turn retry timestamp.
 - The order of our systems is DK2's: eat, then sleep, then pay, as steps of `CreatureUpdateSystem`
   inside each creature's update (ADR-0554); the payday clock's own call skips the stamp and
   runs before the creatures ([payday.md](payday.md) §2).
