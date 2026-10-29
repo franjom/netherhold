@@ -237,7 +237,9 @@ The drift before 3790 (the dig order at about 550) comes from the first dig's la
 ## Mining against reinforcing (resyncs at 3000, 3400 and 3700)
 
 Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Mining over reinforcing in
-3000-4000, resynced", and its review corrections; runs in `resync-reinforce/`. Unsynced in 3000-4000
+3000-4000, resynced", and its review corrections; runs in `resync-reinforce/`. These are one seed;
+the mining surplus below does not hold over seeds ([level4-outcomes.md](level4-outcomes.md): from 2400,
+ours mines as DK2 does for 600 ticks). Unsynced in 3000-4000
 (`job_taken` events), ours takes 224 mining and 35 reinforcing jobs at hash 316 and 184 and 54 at
 hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different count):
 
@@ -328,21 +330,10 @@ hash 323" and "What protects the dungeon at 3400". Seed 1, hash 323.
   more. What protects the dungeon from DK2's state is open; the creature parts (pose, jobs) are the
   remaining candidates, and hero positions were not examined. No rule difference was found.
 
-## Level 4's two outcomes, over seeds (hashes 320-328)
+## Level 4's outcomes over seeds
 
-Evidence: `D:/DK2Evidence/runs/l4-modes-2026-10-29`, `l4-bisect-2026-10-29`, `l4-60seeds-hash328-2026-10-29`.
-- Full replays end held out (under 20 Imp deaths) or overrun (20-55); at hash 328, 37 of 60 seeds are
-  overrun and 1 wins. No hash in 321-328 moves that beyond seed noise: ADR-0566 (323) shifts the
-  generator's draws from turn ~58 and so re-rolls every seed (322 vs 323 deaths p = 0.38).
-- Over 73 runs (hashes 320, 323, 326, 328): held-out runs all set flag 11 (median 4336; DK2 4378),
-  overrun runs half of them (median 6002), so parties 6 and 8 come. But overrun runs already lose Imps
-  at 3660-3830, as parties 3 and 4 arrive (28 of 43 before 3900; 5 of 30 held out): the late flag
-  amplifies an overrun that has begun.
-- Those deaths fall at (23-29, 33-37), between the hero entrance and the heart; 68 of 111 Imps carry
-  gold, last seen mining (e.g. (37,35)), withdrawing or raising the alarm. Tile work there ends by about
-  3300 in both outcomes, so it is not a late claim.
-- Reading, STRONGLY INFERRED: the outcome follows how many Imps are on that gold route when parties 3
-  and 4 arrive; this is the mining surplus of "Mining against reinforcing" (Q665). No rule difference found.
+Moved to [level4-outcomes.md](level4-outcomes.md) (2026-10-29): the full replays' two outcomes, DK2's own
+spread over 8 native seeds, and resyncs at 2400 from each.
 
 ## Limits
 

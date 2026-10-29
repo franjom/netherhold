@@ -91,7 +91,8 @@ later. Native Imps reach 203 straight from a walk. Running the fight state in th
 
 Scripts and outputs: `D:/DK2Evidence/runs/q665-imp-flee-2026-10-27/analysis/`. Level 4, seed 1, against
 native, three measured gaps (a replay resynced from DK2's tick 2340 matches native's job mix to 3100:
-`resync-replay.md`):
+`resync-replay.md`). Seed 1 only: over 8 native seeds DK2 loses 0-64 Imps itself and flights are alike
+([level4-outcomes.md](level4-outcomes.md)).
 
 - **Imp deaths.** Ours loses 32 Imps over the run (15 in ticks 4000-4750) against 0 native; at hash
   318 it loses 45, with or without ADR-0559 (the resyncs into the window: `resync-replay.md`).

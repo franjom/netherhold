@@ -1,0 +1,61 @@
+# Level 4's outcomes: full replays against DK2's own spread
+
+Q665. Moved from [resync-replay.md](resync-replay.md) on 2026-10-29; that file describes the resync tool the
+runs below use. "Above" in the second section means the first. In "X against Y" DK2 is X and ours Y.
+
+## Level 4's two outcomes, over seeds (hashes 320-328)
+
+Evidence: `D:/DK2Evidence/runs/l4-modes-2026-10-29`, `l4-bisect-2026-10-29`, `l4-60seeds-hash328-2026-10-29`.
+- Full replays end held out (under 20 Imp deaths) or overrun (20-55); at hash 328, 37 of 60 seeds are
+  overrun and 1 wins. No hash in 321-328 moves that beyond seed noise: ADR-0566 (323) shifts the
+  generator's draws from turn ~58 and so re-rolls every seed (322 vs 323 deaths p = 0.38).
+- Over 73 runs (hashes 320, 323, 326, 328): held-out runs all set flag 11 (median 4336; DK2 4378),
+  overrun runs half of them (median 6002), so parties 6 and 8 come. But overrun runs already lose Imps
+  at 3660-3830, as parties 3 and 4 arrive (28 of 43 before 3900; 5 of 30 held out): the late flag
+  amplifies an overrun that has begun.
+- Those deaths fall at (23-29, 33-37), between the hero entrance and the heart; 68 of 111 Imps carry
+  gold, last seen mining (e.g. (37,35)), withdrawing or raising the alarm. Tile work there ends by about
+  3300 in both outcomes, so it is not a late claim.
+- Reading: ours' held and overrun runs differ in how many Imps are on that gold route when parties 3
+  and 4 arrive (3.01 against 3.62, next section), but DK2's do not, and over seeds ours does not mine
+  more than DK2; the "mining surplus" is a resync-point result (3000-3700). No rule difference found.
+
+## DK2's own spread over 8 seeds (hash 328)
+
+Evidence: `D:/DK2Evidence/runs/l4-native-seeds-2026-10-29`, `l4-imp-states-2026-10-29` and
+`l4-resync2400-2026-10-29` (scripts, outputs, READMEs). DK2: native captures of the l4live packets under
+DK2 RNG seeds 1-8 (seeds 3-8 recorded 2026-10-29). Ours: the hash-328 runs above, whose generator is
+not DK2's, so only distributions compare. Death counts use all 60; the state counts use 58 (seeds 14
+and 18 ran under `rig-v2-check-2026-10-29`, 31 and 55 deaths). A DK2 death is a player-3 Imp's
+`creature-map.csv` slot leaving type 1 (reproduces seeds 1 and 2: 0 and 19); ours' are `creature_died`
+events. State entries are counted from change-only rows, so a state held under a tick is not seen.
+- Imp deaths, DK2: 0, 19, 0, 56, 0, 19, 16, 64. None: DK2 3 of 8, ours 1 of 60 (one-sided Fisher
+  p = 0.004). 20 or more: 2 of 8 against 37 of 60 (p = 0.056), but with DK2 at 16-19 three times the
+  threshold decides it (at 15: 5 of 8 against 38 of 58, p = 0.58). First death median 3920 against 4012.
+- The Imp headcount is DK2's through 3900 (16-18). Imps in (16-29, 32-37) over 3400-3900: DK2 2.97
+  (2.47-3.60), not ranked with deaths (3.60 with 19, 2.88 with 64); ours 3.01 held, 3.62 overrun.
+- Mining stints (state 26 entries) in 2400-3400: DK2 87.6 (66-106), ours 72.7 (13 of 58 below DK2's
+  least, about 6 expected); in 3400-3900 38.8 against 37.2. Reinforce walks (21): 54.0 against 61.9
+  in 2400-3400, 30.6 against 21.3 in 3400-3900. State 25 is not compared: DK2 enters it about 20 times
+  a run and goes to 10 (`0x00465790`: task entry gone, or the Imp not within a tile; seed 1 read the
+  first), where ours ends the walk without entering 25.
+- Flights (ours: seeds 1-8, 6 of them overrun, against DK2's 2): 203 entries 1595 against 1704.
+  Withdraws (202) 42% against 43%, and their destinations are the same room words (`0x004611D0`
+  step 4, the room's `+0x27/+0x29`; arrivals at (23,53) 177 against 178; 13 of the top 15 tiles
+  shared). Alarms: 479 arrivals in 251 against 684, 30% against 40%, the walk 9 ticks and 2.2 tiles
+  against 10 and 2.2. Ours' withdraw walks are longer (median 39 ticks, 15.3 tiles straight-line,
+  against 27 and 10.4); why is not tested.
+- After a flight DK2 holds each of 202, 251, 252 and 1 for a tick (1: always exactly one), and goes
+  203 -> 1 -> 10 when the flight ends without a walk. Ours runs 202, 251 and 252 inside the arrival
+  tick (`FearRules.Withdrawing`, `RespondToThreat`) and goes 203 -> 10 in one tick, so it chooses
+  sooner: median 6 ticks from leaving 203 to choosing against DK2's 14, 43 against 58 to a job (ours
+  seeds 1, 3, 7, 8; DK2 2, 4, 6, 8). Open as a rule difference (not read in the binary here).
+- Ours' overrun runs differ from its held runs in 3400-3900 by choices after a cut walk or a flight
+  (6 -> 10 and 203 -> 10, 36.5 and 36.6 a run, against 17.8 and 3.2): what being attacked looks like.
+- Resynced at 2400 from each of the eight DK2 states (hash 329, native seed 1's entity map, unmapped
+  0): ours' mining stints match DK2's for 600 ticks (2401-2700 24.8 against 26.4, 2700-3000 24.9
+  against 23.9, per-seed signs mixed); from 3000 four seeds fall 9-16 behind as fights begin. Ours
+  enters 22 a little more in 2401-2700 (18.4 against 16.4; more in 7 of 8, fewer in none), not chased.
+- Reading, HYPOTHESIS (8 native seeds): DK2 is overrun on Level 4 too; only its runs without a death
+  are significantly more frequent than ours. No mining rule differs (the 2400 resync); the full
+  replays' mining shortfall is drift. The post-flight dwell above is the one rule-shaped lead.

@@ -23,7 +23,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   D:\DK2Evidence\runs\packet-replay-hash320\README.md): 79 of 80 valid, wins 19/8/13/3
   against hash309's 18/8/16/1, Level 4 Imp deaths median 8 against 14.5, spanning hashes
   310-320. A Level 4 bisection and 60 seeds at hash328 show no change in 321-328 beyond seed noise
-  (`docs/research/resync-replay.md`, "Level 4's two outcomes"); rig v2
+  (`docs/research/level4-outcomes.md`); rig v2
   (D:\DK2Evidence\rig-2026-10-29-v2) fixes lmap.py's batch-pairing crash and takes levels and seeds
   from the environment. The previous measurement is hash309 at `490b7d82`
   (2026-10-26; D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
@@ -112,9 +112,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - The combat states' handlers run in the creature's dispatcher turn, after the needs routine, so a
   creature the scan engages runs its fight state in that update (ADR-0555, hash/save 316):
   `CombatSystem.States`, then the trap reveal. Level 4's Imps flee straight from a walk, as native
-  Imps do; Level 2's Imp walk starts are 852 (native 871). Still open (Q665): Level 4's Imps flee
-  far more often than native (236 entries into 201-203 against 41) and start few walks from state
-  87 (41 against 809). `dk2tools replay --resync` continues a replay from a DK2 capture's tick
+  Imps do; Level 2's Imp walk starts are 852 (native 871). Q665, measured at hash 316 on seed 1: Level 4's Imps fled
+  far more often than native (236 entries into 201-203 against 41) and started few walks from state
+  87 (41 against 809); over 8 DK2 seeds at hash 328 flight counts are alike and DK2 is overrun too
+  ([level4-outcomes.md](research/level4-outcomes.md)). `dk2tools replay --resync` continues a replay from a DK2 capture's tick
   (ADR-0556, ADR-0558, [resync-replay.md](research/resync-replay.md)), copying DK2's doors, traps,
   crates, manufacture list and Imp crate trips; Level 4 seed 1 resynced at 2340 starts jobs to 3400
   as native does (mine 110/112, claim 66/57, reinforce 83/90, native/ours) and strikes the east
@@ -151,7 +152,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   That order follows from the north seam (31,54) falling at 324 against 305 with other Imps at its
   face, each step the faithful rule, and the first-dig lag is RNG (STRONGLY INFERRED, one seed;
   [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
-  the drift from 131 to about 550 needs no rule difference. Next: the residual Guard-fight timing after ADR-0566, why ours' mining stints are shorter and more numerous from DK2's state (ADR-0562 and ADR-0563, hash/save 320, fixed when state 26 asks its hands, store and pile checks: on the call that begins an action; the surplus stays, 101 mining walks to DK2's 80 from the 3400 resync and 91 to 70 from a 3700 resync, with equal Imp-time on mining; from 3700 about half of the extra starts follow steals of a walking Imp's seam slot (18 against 6, DK2's count inferred from capture frames; from 3400 only 4 against 1), and the steal test in `0x00469AF0` ours matches for every holder (ADR-0565, hash/save 322; the reruns are byte-identical to hash 320, so it is unexercised), so what fills ours' seams with walkers and the rest of the surplus is open, HYPOTHESIS: state; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"), what protects the dungeon from DK2's state at 3400, behind the full replays' Imp deaths (the creature parts; hero positions not examined), deaths across seeds. The resync does not copy
+  the drift from 131 to about 550 needs no rule difference. Next: the residual Guard-fight timing after ADR-0566; the tick DK2 holds in 202, 251, 252 and 1 after an Imp's flight, which ours runs inside the arrival tick (HYPOTHESIS, not read in the binary; [level4-outcomes.md](research/level4-outcomes.md)); what protects the dungeon from DK2's state at 3400, behind the full replays' Imp deaths (the creature parts; hero positions not examined). Mining is not a lead: ours mines as DK2 does for 600 ticks after a 2400 resync from each of 8 DK2 seeds, and the 3000-3700 resync surplus (101 mining walks to DK2's 80 from 3400, 91 to 70 from 3700, one seed; ADR-0562, ADR-0563 and ADR-0565 moved when state 26 asks its checks) does not hold over seeds (Q665; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"). The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
   creature triggers that matter fire. Level 4 timer offsets split into camera-clock approximation and early room
   capture plus a late trigger read; ADR-0568 corrects the read order. Evidence:
@@ -331,7 +332,8 @@ tools/classic-unity-probe/README.md.
 
 ## Next work
 
-1. M6: Level 4's Imp losses (a median 5 a seed against DK2's none). They die on
+1. M6: Level 4's Imp losses (hash 328: 37 of 60 seeds lose 20 or more; DK2 loses 0-64 over
+   8 seeds, [level4-outcomes.md](research/level4-outcomes.md)). They die on
    alarm runs to the (24,37) Guard Room after a gate party survives; the seeds
    that lose most claim the portal late (663–1437 against DK2's 787) because an
    Imp keeps reinforcing walls while a claim waits (seed 5's Imp 13, 398–1060;
