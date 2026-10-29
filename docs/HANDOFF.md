@@ -22,7 +22,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   isolates them. Before it, hash320 at `65e529b7` (2026-10-28;
   D:\DK2Evidence\runs\packet-replay-hash320\README.md): 79 of 80 valid, wins 19/8/13/3
   against hash309's 18/8/16/1, Level 4 Imp deaths median 8 against 14.5, spanning hashes
-  310-320. The previous measurement is hash309 at `490b7d82`
+  310-320. A Level 4 bisection and 60 seeds at hash328 show no change in 321-328 beyond seed noise
+  (`docs/research/resync-replay.md`, "Level 4's two outcomes"); rig v2
+  (D:\DK2Evidence\rig-2026-10-29-v2) fixes lmap.py's batch-pairing crash and takes levels and seeds
+  from the environment. The previous measurement is hash309 at `490b7d82`
   (2026-10-26; D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
   18/8/16/1 of 20 against hash305's 18/9/17/1; Level 1 seeds 3 and 7 now win and
   6 and 11 lose; Level 4 Imp deaths median 14.5 against 7, with Imp flees, alarms
