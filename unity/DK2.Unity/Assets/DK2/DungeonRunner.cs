@@ -222,6 +222,7 @@ namespace DK2.Unity
 
         private void StartGame()
         {
+            InitializeSettings();
             bool frontEnd = sessionMode == GameSessionMode.FrontEnd;
             if (frontEnd)
             {
@@ -407,6 +408,7 @@ namespace DK2.Unity
             }
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
             else LookAt(world);
+            ApplyGameSettings(_gameSettings);
             _startup.Step("camera");
             var minimapAssets = new InstallMinimapAssets(install, _installArt != null ? _installArt.LoadTexture : null);
             _startup.Step("minimap.assets");
@@ -533,6 +535,7 @@ namespace DK2.Unity
             _handCursor?.Dispose();
             _tileHighlight?.Dispose();
             _placementOverlay?.Dispose();
+            _settingsRendering?.Dispose();
             _hoverHud?.Dispose();
             _resourceHud?.Dispose();
             if (_heartHealthWorld != null && _heartHealthObserver != null)
@@ -613,7 +616,7 @@ namespace DK2.Unity
             InputFrame firstInput = InputFrame.Empty;
             if (speed > 0f && !_hudControls.OptionsVisible)
             {
-                _tickDebt += elapsed * SimulationTiming.TicksPerSecond * speed;
+                _tickDebt += elapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
 
                 // Whole ticks only, and a cap so a long editor stall does not
                 // fast-forward the game by a thousand ticks in one frame.
@@ -656,7 +659,7 @@ namespace DK2.Unity
             _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
             double preparedElapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: 0, maximumDeltaSeconds: Math.Max(0, Time.maximumDeltaTime - elapsed), timeScale: Time.timeScale);
-            if (speed > 0f && !_hudControls.OptionsVisible) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed;
+            if (speed > 0f && !_hudControls.OptionsVisible) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
             if (tickOnWorkerThread && speed > 0f && !_hudControls.OptionsVisible)
             {
                 int preparedTicks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame) - ticks);

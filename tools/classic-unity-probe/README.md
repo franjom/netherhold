@@ -496,3 +496,16 @@ uses its own scratch campaign file to exercise reset cancel/confirm, a real3D
 triangle pick, map hover/lift, briefing font and bitmap paths, and return paths.
 It also replaces the session with a progressed return-to-map profile and checks
 the won texture phase. It never resets the owner's campaign file.
+
+## Options settings
+
+`run-options.ps1` creates an isolated Unity project and runs `OptionsSettingsProbe`.
+Build the Debug adapter first. The probe renders Graphics, Sound and Control,
+checks the live/revert transaction and key capture, and verifies the URP brightness
+override. It writes regenerated menu captures and logs under `build/`; it does not
+load or write the owner's profile/settings. UiScale remains unavailable pending
+HUD pointer-coordinate mapping.
+
+`run-options.ps1 -Gameplay` checks persisted Gamma and ScrollSpeed on a fresh Level1
+and again after restarting through `LoadLevel`, using probe-local settings/profile.
+The menu probe also checks each page's Confirm and Cancel pixels separately.

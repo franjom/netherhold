@@ -293,3 +293,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - An effect's GenerateIds are effect ids, not element ids, when the effect has flag `0x40` (types 4 and 18); a dump that resolved them as elements made the Inferno look like one spark (shot-effects.md §5).
 - Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here. Docker context-mode exposes this checkout read-only at /workspace, not D:/DK2Evidence.
 - Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.
+- URP `Volume.sharedProfile` is a public field, so reflection must use `GetField`; `GetProperty` compiled but failed during the Options runtime probe.

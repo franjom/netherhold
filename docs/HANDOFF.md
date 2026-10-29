@@ -209,6 +209,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Classic look
 
+Front-end settings persistence, widgets and key capture are built; runtime limits
+and the remaining integration are in plans/2026-10-23-front-end.md, F9.
+
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,
 Prison rats, Portal entrances, corpse art, terrain debris and the Hand

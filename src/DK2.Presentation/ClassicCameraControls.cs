@@ -24,7 +24,9 @@ public readonly record struct CameraFocusBounds(Vector3 Minimum, Vector3 Maximum
 public sealed class ClassicCameraControls
 {
     private readonly ClassicCamera _camera;
-    private readonly int _ticksPerSecond, _scrollSpeed;
+    private readonly int _ticksPerSecond;
+    private int _scrollSpeed;
+    public int ScrollSpeed { get => _scrollSpeed; set => _scrollSpeed = Math.Clamp(value, 5, 20); }
     private readonly CameraFocusBounds? _bounds;
     private int _horizontalCoast, _verticalCoast;
     private long _fractionalMillisecondTicks;
