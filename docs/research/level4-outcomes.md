@@ -61,4 +61,34 @@ events. State entries are counted from change-only rows, so a state held under a
 - Reading, HYPOTHESIS (8 native seeds): DK2 is overrun on Level 4 too; only its runs without a death
   are significantly more frequent than ours. No mining rule differs (the 2400 resync); the full
   replays' mining shortfall is drift. The post-flight dwell above was the one rule-shaped lead; it
-  is built and not yet remeasured over seeds.
+  is built (ADR-0580), remeasured below.
+
+## From DK2's state at 2400, five runs a state (hashes 329-331)
+
+Evidence: `D:/DK2Evidence/runs/l4-resync2400-multi-2026-10-29` (README, `compare.out`), and the one-run
+tries beside it (`l4-resync2400-full-…`, `-split-…`), whose rank matches with DK2 (-0.28 to +0.72 over
+four builds) are within the spread one run a state gives. Each of the eight DK2 states runs to 6804 under
+five generator seeds, for hash 329, ADR-0580 alone (`e8eb76b9`, which read hash 330 in its own tree) and
+`b2c2d089` (hash 331: ADR-0580 with ADR-0579, sleep debt, hunger checked every tick and need-group gating).
+Limits: one DK2 run a state, each under its own native seed, so DK2's per-state figure is one noisy draw
+(ours' within-state SD is 12-15); ours' generator is not DK2's; native seed 1's entity map serves every
+state's packets (hand pick-ups land 30-61 times by state); DK2's deaths are player-3 Imp slots changing
+type in `creature-map.csv`, ours' `creature_died` events, not matched event for event.
+
+| Build | Imp deaths a run | Runs with none | 20 or more | Rank match of per-state means with DK2 |
+|---|---|---|---|---|
+| DK2 (one run a state) | 21.8 | 3/8 | 2/8 | |
+| Hash 329 | 22.9 | 0/40 | 22/40 | +0.71 (p 0.028) |
+| ADR-0580 alone | 25.9 | 0/40 | 25/40 | +0.53 (p 0.093) |
+| Hash 331 | 28.9 | 0/40 | 27/40 | +0.93 (p 0.001) |
+
+- Ours' state means differ only pooled over the three builds (permutation p 0.026; no build alone
+  significant); their ranking agrees with DK2's single runs. That the state at 2400 carries part of the
+  outcome is HYPOTHESIS.
+- Together the two changes add about 6 deaths a run (hash 331 against 329, sign-flip p 0.016); the split
+  (+2.9 for ADR-0580, +3.1 for ADR-0579) is not resolved, each interval spanning zero. Both follow the
+  binary and are not tuned.
+- No run of ours loses no Imp (0 of 120, from any state, minimum 1), against DK2's 3 of 8 (one-sided
+  Fisher p 0.0002). DK2's three came from states 1, 3 and 5 under native seeds 1, 3 and 5, so whether the
+  state or DK2's own later draws hold them is untested; a count of 1 against 0 may be the counting
+  difference above.
