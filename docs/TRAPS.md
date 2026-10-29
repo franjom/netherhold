@@ -295,3 +295,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.
 - Windows PowerShell can strip nested quotes from Python `-c` arguments; use a script file for replacements containing quoted prose.
 - Keep isolated Unity project paths short: PackageCache importer paths can hit MAX_PATH (260 chars) and fail even when the project copy succeeded.
+- Procedural class-grid UVs and Graphics.Blit image UVs can have opposite Y origins; check logical tile colours against UI overlay positions on the active graphics backend.

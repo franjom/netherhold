@@ -19,6 +19,10 @@ Shader "Hidden/DK2/FullMap"
             fixed4 Frag(v2f_img i) : SV_Target
             {
                 float2 uv = i.uv;
+                // Match the procedural minimap's top-down class grid to the Blit image UVs.
+                #if UNITY_UV_STARTS_AT_TOP
+                uv.y = 1 - uv.y;
+                #endif
                 float2 packed = floor(tex2D(_Classes, uv).rg * 255 + .5);
                 float tileClass = packed.x + packed.y * 256;
                 return tileClass == 1 ? fixed4(0,0,0,1)
