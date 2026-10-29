@@ -277,6 +277,36 @@ public class CombatNonFighterTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "engaged" && e.Detail.Contains("creature=" + imp.Id));
     }
 
+    [Theory]
+    [InlineData(FightTargetKind.None, false, true)]
+    [InlineData(FightTargetKind.Door, false, false)]
+    [InlineData(FightTargetKind.Trap, false, false)]
+    [InlineData(FightTargetKind.Heart, false, false)]
+    [InlineData(FightTargetKind.Creature, true, true)]
+    public void AnImpPassesOverAHeroBusyWithAThing_AndWithdrawsFromOneWithNoTarget(FightTargetKind heroTarget, bool targetsTheImp, bool withdraws)
+    {
+        // 0x0045C07B-0x0045C08E: the hero's +0x502 must be empty or the Imp itself (ADR-0585).
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.TreasuryTerrain, 15, 16);
+        CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
+        // Spawned after the Knight, so it scans first in the tick (newest first).
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
+        knight.PosX = imp.PosX + 3700;
+        knight.PosY = imp.PosY;
+        if (heroTarget != FightTargetKind.None)
+        {
+            knight.FightTargetKind = heroTarget;
+            knight.FightTargetId = targetsTheImp ? imp.Id : 1;
+        }
+        GameSimulation sim = Combat(db, world);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Tick();
+
+        Assert.Equal(withdraws, sink.Events.Any(e => e.Kind == "withdraws" && e.Detail.Contains("creature=" + imp.Id + " ")));
+    }
+
     [Fact]
     public void AnImpNearItsRoomsThatOutnumbersTheHeroKeepsScanning()
     {

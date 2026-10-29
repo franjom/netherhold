@@ -13622,3 +13622,27 @@ only (`alive.out`): heroes choose a player creature they meet at DK2's rate (oth
 0.258 a pair-tick) and an Imp less often (0.104 against 0.159); our hero-Imp pairs within four tiles
 are 2.3 times DK2's, with our live heroes 1.7 times as long and our Imps 1.3 times as long in
 (16-29, 32-38). The hero choice is not why our Imps die more.
+
+## ADR-0585 - Attackability reads the state flag; an Imp passes over a hero busy with a thing
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 334 · Q185 ·
+Research: `docs/research/combat-target-selection.md` §3.1, `creature-state-table.md` §6; KB `0045A8B0`, `0045BDF0`
+
+**Context.** `0x0045A8B0` clears `IsAttackable` for a creature whose current state has bit 2 of the
+table's flag byte (`0x0045A948`): 75, 76, 79-84, 153, 155-159, 193, 235-237, 242, 269, 272, 273,
+278-280. Ours approximated it with the lair-seeking, going-to-sleep and sleeping activities, which
+made a walk to bed (state 6) unattackable and the Casino, joining and the others attackable. The Imp's
+arm `0x0045BDF0` looks at a hero only when the hero's `+0x502` is 0 or the Imp's own tag
+(`0x0045C07B`-`0x0045C08E`); ours skipped a hero only when it targeted another creature, so an Imp also
+withdrew from or raised the alarm at a hero busy with a door, a trap or a heart.
+
+**Decision.** `CreatureStateFlags.Unread2` is `NotAttackable`, and `CombatRules.IsAttackable` tests it on
+the state held in place of the three activities; the other guards (leaving, the Reaper's arrival, the
+landing, the hand, prison, torture, the pit, invisibility, full slots) are unchanged. The NonFighter
+hero path passes over a hero with any target but the Imp.
+
+**Consequences.** A creature walking to its bed can be attacked; one in the Casino's states, joining the
+dungeon or states 75, 269, 272, 273 and 278-280 cannot. Our leaving guard (194-196, 169, 242)
+approximates `0x0045A8B0`'s `+0x3E6` bit 14 (`Leaving`, `0x0045A924`), set by state 194; whether a thief
+escaping in 169 carries it is open (ours refuses it). Our Reaper guard (228-237) and hand guard are not
+yet matched to a test there (vtable `+0x28`, `+0x46F` bit 3 unread). State 84 (the Mistress bed's exit)
+is not built, so no creature of ours holds it.

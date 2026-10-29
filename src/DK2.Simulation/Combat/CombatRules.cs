@@ -166,12 +166,14 @@ public static class CombatRules
 
     /// <summary>DK2's <c>IsAttackable</c>, recomputed every tick by <c>0x0045A8B0</c> rather than
     /// stored, so it is a predicate here. Cleared for a dying creature, a captive, one leaving, one
-    /// in a state whose table flag says so — the lair walk and sleep among them — one with all
+    /// in a state whose table flag says so (<see cref="CreatureStateFlags.NotAttackable"/>, tested on
+    /// the state held, so a walk to bed in state 6 is attackable; ADR-0585), one with all
     /// sixteen slots taken, one whose invisible word runs (creature-status-effects.md §2), and a
     /// Combat Pit fighter, which only its forced opponent reaches (combat-pit.md §4).
     /// State 76 and involuntary torture also prevent attackability.</summary>
     public static bool IsAttackable(CreatureState creature) =>
         !CreatureDeathRules.IsDown(creature)
+        // 76 carries the flag too; DK2 also tests it by number (0x0045A8CC).
         && creature.Dk2StateId != DropLandingRules.LandingState
         && (creature.TortureVoluntary || !OnTortureDevice(creature))
         && creature.Activity != CreatureActivity.ReaperArriving
@@ -179,7 +181,7 @@ public static class CombatRules
         && !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Leaving
         && !HandRules.IsHeld(creature)
-        && creature.Activity is not (CreatureActivity.SeekingLair or CreatureActivity.GoingToSleep or CreatureActivity.Sleeping)
+        && !(CreatureStateMachine.HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).Has(CreatureStateFlags.NotAttackable))
         && !StatusEffectRules.IsInvisible(creature)
         && !AllSlotsTaken(creature);
 

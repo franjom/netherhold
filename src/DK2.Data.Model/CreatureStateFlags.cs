@@ -29,9 +29,11 @@ public enum CreatureStateFlags : byte
     /// `AngerNoPay` (ADR-0079). 43 states, including all eleven captive ones.</summary>
     SuppressNeedAnger = 1 << 1,
 
-    /// <summary>25 states. A reader is located at <c>0x0045A94B</c>; what it decides is
-    /// unread.</summary>
-    Unread2 = 1 << 2,
+    /// <summary>The creature is not attackable while in the state: <c>0x0045A8B0</c> clears
+    /// <c>IsAttackable</c> (<c>TEST [state*25 + 0x6DA8C8], 4</c> at <c>0x0045A948</c>). 25 states:
+    /// 75, 76, the lair and sleep run 79-84, the Casino's 153 and 155-159, joining (193), the
+    /// Reaper's 235-237 and 242, and 269, 272, 273, 278-280 (ADR-0585).</summary>
+    NotAttackable = 1 << 2,
 
     /// <summary>Stops the hunger clock <i>accumulating</i> — not the attempt to eat.
     /// Exactly the 15 Casino states, which is why the room makes a creature neither hungry

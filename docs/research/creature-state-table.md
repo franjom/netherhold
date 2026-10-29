@@ -360,7 +360,7 @@ labels in §3 were resolved independently from the install's own `Text.str`.
   one in 18), so category 17 does not delimit the room and a mechanic keyed on
   it alone would miss seven states. Bit 1 suppresses the need-anger routine and
   all eleven captive states carry it. Bit 6 refuses the fight lookup (`0x0045A71F`,
-  ADR-0488). Bits 0 and 2 are UNKNOWN (Q185, `eating.md` §3, `payday.md` §6).
+  ADR-0488). Bit 2 makes the creature not attackable (`0x0045A8B0` at `0x0045A948`, ADR-0585). Bit 0 is UNKNOWN (Q185, `eating.md` §3, `payday.md` §6).
 
   **The 147 this section used to give for bit 0 was the count of states whose
   flag byte is exactly `1`**; six values carry the bit and 195 states have it.

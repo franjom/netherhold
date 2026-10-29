@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 333;
+    private const int FormatVersion = 334;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>

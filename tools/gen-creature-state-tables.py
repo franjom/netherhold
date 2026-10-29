@@ -36,8 +36,8 @@ def category_names():
     return found
 
 FLAG_NAME = {
-    0: "Unread0", 1: "SuppressNeedAnger", 2: "Unread2",
-    3: "SuppressHungerClock", 4: "SuppressTirednessClock", 6: "Unread6",
+    0: "Unread0", 1: "SuppressNeedAnger", 2: "NotAttackable",
+    3: "SuppressHungerClock", 4: "SuppressTirednessClock", 6: "NoFightLookup",
 }
 
 LICENCE = """﻿// Copyright (C) 2026 Franjo Misetic

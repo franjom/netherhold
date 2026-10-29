@@ -99,13 +99,23 @@ public sealed class CreatureStateTableTests
         }
     }
 
+    /// <summary>ADR-0585: the states <c>0x0045A8B0</c> makes unattackable (flag bit 2, <c>0x0045A948</c>).</summary>
+    [Fact]
+    public void TheNotAttackableStatesAreTheTwentyFive()
+    {
+        int[] expected = [75, 76, 79, 80, 81, 82, 83, 84, 153, 155, 156, 157, 158, 159, 193, 235, 236, 237, 242, 269, 272, 273, 278, 279, 280];
+        int[] carrying = Enumerable.Range(0, CreatureStateTable.Count)
+            .Where(i => CreatureStateTable.Get(i).Has(CreatureStateFlags.NotAttackable)).ToArray();
+        Assert.Equal(expected, carrying);
+    }
+
     /// <summary>How many states carry each understood flag. <b>Bit 0's population is 195,
     /// not the 147 Q185 recorded</b> — 147 is the count of states whose flag byte is exactly
     /// 1, where six distinct values carry the bit. Bit 1's 43 was counted correctly.</summary>
     [Theory]
     [InlineData(CreatureStateFlags.Unread0, 195)]
     [InlineData(CreatureStateFlags.SuppressNeedAnger, 43)]
-    [InlineData(CreatureStateFlags.Unread2, 25)]
+    [InlineData(CreatureStateFlags.NotAttackable, 25)]
     [InlineData(CreatureStateFlags.SuppressHungerClock, 15)]
     [InlineData(CreatureStateFlags.SuppressTirednessClock, 15)]
     [InlineData(CreatureStateFlags.NoFightLookup, 15)]

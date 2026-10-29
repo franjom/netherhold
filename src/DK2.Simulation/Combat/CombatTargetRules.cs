@@ -544,7 +544,10 @@ public static class CombatTargetRules
             if (candidate.OwnerPlayerId != PlayerIds.Good) continue;
             if (d >= sightSq || !LineOfSight.Clear(sight, me.PosX, me.PosY, candidate.PosX, candidate.PosY)) continue;
             if (d >= best) continue;
-            if (candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId != me.Id) continue;
+            // The hero's target word (+0x502) empty or me: one busy with any other thing, a door, a
+            // trap or a heart included, is passed over (0x0045C07B-0x0045C08E, ADR-0585).
+            if (candidate.FightTargetKind != FightTargetKind.None
+                && !(candidate.FightTargetKind == FightTargetKind.Creature && candidate.FightTargetId == me.Id)) continue;
             if (!CombatRules.IsAttackable(candidate) || PossessionRules.IsDisguisedFrom(me, candidate)) continue;
 
             // DK2 stages the candidate in +0x502 before the room test, the alarm and the withdrawal

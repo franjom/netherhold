@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**334** - `0x39D79860F86C6E73`. FormatVersion also 334. Behaviour only: attackability tests the state table's flag bit 2 (`NotAttackable`, `0x0045A948`) in place of the lair and sleep activities, and an Imp passes over a hero whose target is anything but itself (`0x0045C07B`; ADR-0585). No fields added; the pin fixture moves by the version only. `StateFlagAttackabilityTests` and `CombatNonFighterTests.AnImpPassesOverAHeroBusyWithAThing_AndWithdrawsFromOneWithNoTarget` cover it.
+
 **333** - `0x78BE0375DDCD7C95`. FormatVersion also 333. A creature that gave up chasing a retreating target (`+0x53B`) passes over candidates in state 6 resuming 251 or 202 in the Blocker, Support and Flanker arms, and the record lapses after 60 turns (`AvoidRetreatersCounter`, `+0x53E`, new hashed and saved field); retreating is `0x0045F000`, no longer state 203; the chase count (`+0x53D`) is left over the limit at the give-up and zeroed only on a creature target that is not retreating, in state 8 and in the fight (ADR-0584). `RetreatTrackingTests` covers it.
 
 **332** - `0x57C44CA19C21077D`. FormatVersion also 332. Behavior only: Thunderbolt checks captive binding/resolved dying category after damage before stun; states 255/256 check expiry before the first-handler dazed effect (ADR-0581, Q675). No fields added; saves/journals from 331 are refused. `ThunderboltStunTests` covers bound prison/pit states and the zero/one/two-turn effect boundary.
