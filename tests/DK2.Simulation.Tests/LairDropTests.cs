@@ -147,6 +147,69 @@ public sealed class LairDropTests
         Assert.DoesNotContain(sim.World.Objects, o => o.Id == oldBed.Id);
     }
 
+    [Fact]
+    public void RelocationMovesOccupancyAndTheBedStaysInTheNewLair()
+    {
+        var (sim, creature, _) = Start();
+        RoomInstance oldLair = LairAt(sim, OldTile), newLair = LairAt(sim, NewTile);
+        Assert.Equal((1, 0), (LairRules.Occupied(sim.World, sim.Database, oldLair),
+            LairRules.Occupied(sim.World, sim.Database, newLair)));
+        Drop(sim, creature, NewTile);
+        sim.Run(160);
+        ObjectState bed = Assert.IsType<ObjectState>(LairRules.BedOf(sim.World, sim.Database, creature));
+
+        // Long enough to tire and sleep: it sleeps in the new bed, never makes another.
+        bool slept = false;
+        for (int i = 0; i < 2000; i++)
+        {
+            sim.Tick();
+            Assert.Same(bed, LairRules.BedOf(sim.World, sim.Database, creature));
+            Assert.Single(sim.World.Objects, o => LairRules.IsBed(sim.Database, o));
+            slept |= LairRules.AsleepInOwnBed(sim.World, sim.Database, creature);
+        }
+        Assert.True(slept);
+        Assert.Equal((0, 1), (LairRules.Occupied(sim.World, sim.Database, oldLair),
+            LairRules.Occupied(sim.World, sim.Database, newLair)));
+    }
+
+    [Fact]
+    public void KeepersCreatureThatHatesSleepIsRefusedAndKeepsItsBed()
+    {
+        // 0x004E8DA0 refuses a keeper's creature that hates the room's job (hand-drop-landing.md §4).
+        CreatureDef definition = Dk2TerrainFixture.Goblin() with
+            { CreatureId = 60, Name = "Sleep Hater", HateJobs = [JobType.Sleep] };
+        var (sim, creature, oldBed) = Start(definition);
+        Drop(sim, creature, NewTile);
+        for (int i = 0; i < 160; i++)
+        {
+            sim.Tick();
+            Assert.NotEqual(LairRules.SelectingBedState, creature.Dk2StateId);
+        }
+        Assert.Same(oldBed, LairRules.BedOf(sim.World, sim.Database, creature));
+        Assert.NotEqual(JobType.Sleep, creature.DroppedToDoJob);
+        Assert.True(LairRules.IsFreeLairTile(sim.World, sim.Database,
+            sim.World.TileIndex(NewTile), PlayerIds.FirstKeeper));
+    }
+
+    [Fact]
+    public void RelocationIsDeterministicAcrossRuns()
+    {
+        var (first, a, _) = Start(defaultPipeline: true);
+        var (second, b, _) = Start(defaultPipeline: true);
+        Drop(first, a, NewTile);
+        Drop(second, b, NewTile);
+        for (int i = 0; i < 200; i++)
+        {
+            first.Tick();
+            second.Tick();
+            Assert.Equal(first.StateHash(), second.StateHash());
+        }
+        Assert.Equal(first.World.TileIndex(NewTile), LairRules.BedTileIndex(first.World, first.Database, a));
+    }
+
+    private static RoomInstance LairAt(GameSimulation sim, TilePos at) =>
+        Assert.IsType<RoomInstance>(RoomIndex.RoomAt(sim.World, sim.Database, sim.World.TileIndex(at)));
+
     private static void Drop(GameSimulation sim, CreatureState creature, TilePos at)
     {
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(PlayerIds.FirstKeeper, creature.Id)));
