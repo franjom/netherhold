@@ -9,9 +9,14 @@ using DK2.Simulation;
 
 namespace DK2.Harness;
 
-/// <summary>Limits for <see cref="Watchdog"/> (ADR-0552 §6): one run at a time, always.</summary>
-public sealed record WatchLimits(TimeSpan PerRun, TimeSpan Total, int MaxRuns)
+/// <summary>At most Jobs runs at a time, each in its own process (ADR-0552, parallel-watch
+/// amendment; autonomous-playtesting plan §6).</summary>
+public sealed record WatchLimits(TimeSpan PerRun, TimeSpan Total, int MaxRuns, int Jobs = 1)
 {
+    private int _jobs = Positive(Jobs);
+    public int Jobs { get => _jobs; init => _jobs = Positive(value); }
+    private static int Positive(int value) => value >= 1 ? value : throw new ArgumentOutOfRangeException(nameof(Jobs));
+
     public static readonly WatchLimits Default = new(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(30), 20);
 }
 
@@ -22,7 +27,7 @@ public sealed record WatchJob(string File, IReadOnlyList<string> Args, string La
 public sealed record WatchSummary(string Root, int Ran, int NotPassed, int Unrun);
 
 /// <summary>
-/// Runs scenarios one at a time, each in its own harness process, and kills a run that outlives
+/// Runs scenarios in bounded parallel harness processes, and kills a run that outlives
 /// its limit: a hang inside <c>GameSimulation.Tick()</c> cannot be cancelled from inside. Every
 /// watch writes under a new folder and every run under its own numbered one, so no evidence is
 /// deleted or mistaken for an earlier run's. The child writes its report and journal; for a run
@@ -33,13 +38,16 @@ public sealed record WatchSummary(string Root, int Ran, int NotPassed, int Unrun
 public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, string, ProcessStartInfo>? launch = null)
 {
     private volatile bool _cancelled;
-    private Process? _current;
+    private readonly object _childrenGate = new();
+    private readonly HashSet<Process> _children = [];
 
-    /// <summary>Stops launching runs and kills the current one (Ctrl+C).</summary>
+    /// <summary>Stops launching runs and kills every active child (Ctrl+C).</summary>
     public void Cancel()
     {
         _cancelled = true;
-        Kill(_current);
+        Process[] children;
+        lock (_childrenGate) children = [.. _children];
+        foreach (Process child in children) Kill(child);
     }
 
     public WatchSummary Watch(IReadOnlyList<string> scenarioFiles, TextWriter log) =>
@@ -55,27 +63,66 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         var total = Stopwatch.StartNew();
         int notPassed = 0;
         int run = 0;
-        foreach (WatchJob job in jobs)
+        int written = 0;
+        string? stopped = null;
+        var outcomes = new Outcome?[jobs.Count];
+        var outputGate = new object();
+        using var slots = new SemaphoreSlim(limits.Jobs, limits.Jobs);
+        var workers = new List<Task>();
+        try
         {
-            string file = job.File;
-            TimeSpan left = limits.Total - total.Elapsed;
-            if (_cancelled || run >= limits.MaxRuns || left <= TimeSpan.Zero)
+            foreach (WatchJob job in jobs)
             {
-                log.WriteLine($"stopping before {file}: {(_cancelled ? "cancelled" : run >= limits.MaxRuns ? "run limit" : "time budget")} reached");
-                break;
+                slots.Wait();
+                bool launched = false;
+                try
+                {
+                    TimeSpan left = limits.Total - total.Elapsed;
+                    if (_cancelled || run >= limits.MaxRuns || left <= TimeSpan.Zero)
+                    {
+                        stopped = $"stopping before {job.File}: {(_cancelled ? "cancelled" : run >= limits.MaxRuns ? "run limit" : "time budget")} reached";
+                        break;
+                    }
+                    int index = run++;
+                    TimeSpan limit = left < limits.PerRun ? left : limits.PerRun;
+                    workers.Add(Task.Run(() =>
+                    {
+                        try
+                        {
+                            Outcome outcome = RunOne(job, Path.Combine(root, (index + 1).ToString("D3", CultureInfo.InvariantCulture)), limit);
+                            lock (outputGate)
+                            {
+                                outcomes[index] = outcome;
+                                Flush();
+                            }
+                        }
+                        catch { Cancel(); throw; }
+                        finally { slots.Release(); }
+                    }));
+                    launched = true;
+                }
+                finally { if (!launched) slots.Release(); }
             }
-            run++;
-            Outcome outcome = RunOne(job, Path.Combine(root, run.ToString("D3", CultureInfo.InvariantCulture)),
-                left < limits.PerRun ? left : limits.PerRun);
-            if (outcome.Verdict != "passed") notPassed++;
-            File.AppendAllText(summaryPath, string.Join('\t',
-                outcome.Id, job.Label, outcome.Verdict, outcome.ExitCode.ToString(CultureInfo.InvariantCulture),
-                outcome.Seconds.ToString("F1", CultureInfo.InvariantCulture),
-                outcome.Journal?.LastHashedTick.ToString(CultureInfo.InvariantCulture) ?? "",
-                outcome.Journal?.EndReason ?? (outcome.Journal is null ? "no journal" : "cut short")) + "\n");
-            log.WriteLine($"{outcome.Id,-36} {job.Label,-14} {outcome.Verdict,-8} {outcome.Seconds,7:F1} s");
         }
+        finally { Task.WhenAll(workers).GetAwaiter().GetResult(); }
+        if (stopped is not null) log.WriteLine(stopped);
         return new WatchSummary(root, run, notPassed, jobs.Count - run);
+
+        void Flush()
+        {
+            // Publish only a finished prefix, even when later children finish first.
+            while (written < outcomes.Length && outcomes[written] is Outcome outcome)
+            {
+                WatchJob job = jobs[written++];
+                if (outcome.Verdict != "passed") notPassed++;
+                File.AppendAllText(summaryPath, string.Join('\t',
+                    outcome.Id, job.Label, outcome.Verdict, outcome.ExitCode.ToString(CultureInfo.InvariantCulture),
+                    outcome.Seconds.ToString("F1", CultureInfo.InvariantCulture),
+                    outcome.Journal?.LastHashedTick.ToString(CultureInfo.InvariantCulture) ?? "",
+                    outcome.Journal?.EndReason ?? (outcome.Journal is null ? "no journal" : "cut short")) + "\n");
+                log.WriteLine($"{outcome.Id,-36} {job.Label,-14} {outcome.Verdict,-8} {outcome.Seconds,7:F1} s");
+            }
+        }
     }
 
     private sealed record Outcome(string Id, string Verdict, int ExitCode, double Seconds, InputJournal? Journal);
@@ -102,19 +149,30 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         ProcessStartInfo start = (launch ?? SelfRun)(job, runOut);
         start.RedirectStandardOutput = start.RedirectStandardError = true;
         start.UseShellExecute = false;
+        start.CreateNoWindow = true;
         using var child = new Process { StartInfo = start };
         child.OutputDataReceived += (_, e) => { if (e.Data is not null) lock (stdout) stdout.AppendLine(e.Data); };
         child.ErrorDataReceived += (_, e) => { if (e.Data is not null) lock (stderr) stderr.AppendLine(e.Data); };
         child.Start();
-        _current = child;
-        if (_cancelled) Kill(child);
-        child.BeginOutputReadLine();
-        child.BeginErrorReadLine();
-        bool exited = child.WaitForExit(limit);
-        if (!exited) Kill(child);
-        // A descendant that survives the kill may hold the output pipes; do not wait on it forever.
-        child.WaitForExit(30_000);
-        _current = null;
+        lock (_childrenGate) _children.Add(child);
+        bool exited;
+        try
+        {
+            if (_cancelled) Kill(child);
+            child.BeginOutputReadLine();
+            child.BeginErrorReadLine();
+            exited = child.WaitForExit(limit);
+            if (!exited) Kill(child);
+            // A descendant that survives the kill may hold the output pipes; bound the wait.
+            child.WaitForExit(30_000);
+        }
+        catch
+        {
+            Kill(child);
+            child.WaitForExit(30_000);
+            throw;
+        }
+        finally { lock (_childrenGate) _children.Remove(child); }
 
         int exit = exited ? child.ExitCode : -1;
         string verdict = Classify(exited, exit, _cancelled);

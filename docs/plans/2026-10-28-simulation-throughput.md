@@ -4,8 +4,8 @@
 > commit and a measurement. Do not start a task before the previous one's gate passes. Where a
 > step says **STOP**, stop and ask the owner.
 
-**Status:** Tasks 0–4 implemented and verified on 2026-10-29 at hash/save 329
-(ADR-0576–0578); Task 5 awaits the owner's separate decision. Implementation steps below retain
+**Status:** Tasks 0–5 implemented and verified on 2026-10-29 at hash/save 329
+(ADR-0576–0578 and ADR-0552's owner-approved parallel-watch amendment). Implementation steps below retain
 their original baseline and instructions. Covers headless tick cost only.
 Frame pacing in Unity is the [parallelism roadmap](2026-10-17-parallelism-design.md),
 whose simulation bullet now points here.
@@ -1178,5 +1178,3 @@ dotnet $H watch scenarios/keepers --out build/perf/watch-j4 --jobs 4
   `TrapRules.FiringBuilt` and fixed lookup arrays are separate cases. No fix built here.
 - **Creature and Imp update parallelism:** not built; these updates remain serial by the hard
   ordering constraints above.
-- **Parallel watchdog processes (Task 5):** unbuilt pending the owner decision required below
-  Task 5's heading. Default remains one child at a time.

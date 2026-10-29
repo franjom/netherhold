@@ -6,6 +6,13 @@ while computer keepers think (ADR-0578); `state hash wait` is the remaining join
 `RunOptions.OverlapStateHash = false` measures hashing serially. Allocations count the run
 thread and exclude pool-thread hash allocations when overlap is enabled.
 
+`watch --jobs N` runs at most N child processes, default 1 and at most the processor count.
+Summary rows and console outcomes retain job order even when children finish out of order;
+Ctrl+C kills every active child. Each child loads its own database. A contended run is slower;
+raise `--timeout-seconds` with `--jobs` when needed. Separate simultaneous `watch` commands
+can still collide on their millisecond-stamped output-root names; that existing limitation
+is unchanged (ADR-0552's parallel-watch amendment).
+
 The headless scenario runner (an `Exe` on `net10.0`, not loaded by Unity). It loads
 YAML scenarios (`Scenario.cs`), builds a world, runs the simulation and any computer
 keepers, checks `expect` claims, and writes a report per run.
@@ -13,7 +20,7 @@ keepers, checks `expect` claims, and writes a report per run.
     dotnet run --project src/DK2.Harness -- list [dir]
     dotnet run --project src/DK2.Harness -- run <file|dir> [--out <dir>] [--fuzz <player>[:<seed>[:<interval>]]] [--coverage] [--progress <ticks>] [--snapshot-check <ticks>]
     dotnet run --project src/DK2.Harness -- replay <scenario> <input.journal> [--out <dir>]
-    dotnet run --project src/DK2.Harness -- watch <file|dir> [--out <dir>] [--timeout-seconds 600] [--budget-minutes 30] [--max-runs 20] [run options] [--fuzz-seeds <n>]
+    dotnet run --project src/DK2.Harness -- watch <file|dir> [--out <dir>] [--timeout-seconds 600] [--budget-minutes 30] [--max-runs 20] [--jobs 1] [run options] [--fuzz-seeds <n>]
 
 `run` always writes `input.journal`: every tick's merged input frame (scripted, computer
 keeper and controller commands), hashes at least every 256 ticks, and an end record. `replay`

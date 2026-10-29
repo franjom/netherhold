@@ -12698,15 +12698,10 @@ fixture has no Bile Demon: no new fields, and the pin moves only by the version.
 ## ADR-0552 — Autonomous playtesting extends the scenario harness; controllers are input sources
 **Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
 
-**Context.** AGENTS.md Goal 10 asks for a programmatic player. The owner wants on-demand,
-resource-bounded autonomous playtesting that finds crashes, hangs and invalid states and
-leaves reproducible evidence, without Unity or an LLM. A first draft proposed eight new
-components; review found most already exist: `ScenarioRunner` runs seeded headless scenarios
-with per-tick hashes, `KeeperAI.Think(KeeperView)` is already the controller shape, the
-keeper-as-input-source decision (KEEPER_AI.md §12.1) already keeps a controller's state out of
-`StateHash()`, and `WorldSnapshot` continuation is tested. Review also found gaps:
-`KeeperView` has no fog of war, the command vocabulary holds non-human commands, and
-`keeper-commands.tsv` records type and hash only, so nothing can replay a run.
+**Context.** Goal 10 needs a programmatic player and reproducible, bounded headless playtesting.
+`ScenarioRunner`, `KeeperView` and `WorldSnapshot` already provide the runner, observation and
+continuation. Views expose the whole world, commands include non-human actions, and type/hash
+command logs cannot replay a run; those are the gaps this extension addresses.
 
 **Decision.** Extend `DK2.Harness`; no new assembly. A `ScenarioController` (name, player,
 decision interval, `KeeperView` → commands) is passed to `ScenarioRunner.Run`; its commands
@@ -12721,29 +12716,33 @@ injection but skips its YAML `commands`. Stage C adds a fuzzer limited to human-
 commands, runtime coverage (`TrackTriggerReach`, state and event histograms) and invariants
 that each cite a source. The plan is `plans/2026-10-27-autonomous-playtesting.md`.
 
-**Consequences.** Stage A is built: `ScenarioControllerTests` shows a controller's command is
-the same input as the scripted command one tick later (identical hash series) and pins the
-refusals it can reach without a campaign map. `controller-commands.tsv` is not replayable until Stage B. Controllers see the
-whole world, so they test the game; they are not competitive players, which need a
-fog-filtered view later. No stage is expected to move `HashVersion`. Refusal diagnostics added
-later must stay observation-only (no hash, RNG or decision change).
+**Consequences.** `ScenarioControllerTests` covers delayed input equivalence and refusals.
+Controller state stays outside the hash; full-world views test the game, not competitive play.
+Fog filtering remains future work. Diagnostics must change no hash, RNG or decision.
 
 **Amendment (2026-10-27): Stage B.** The journal lives in `DK2.Simulation` (`CommandCodec`,
-`InputJournalWriter`, `InputJournal`) so Unity can write the same file later; the harness writes
-it, Unity does not yet. Each command type has a fixed tag that is never reused. A frame with
-commands and the end record are flushed at once and hashes at least every 256 ticks, so a killed
-run loses no command; a reader keeps every whole record. `GameSimulation.CurrentHashVersion`
-exposes the version at run time (a public const would be compiled into callers), and a replay
-refuses another version or another scenario file (SHA-256). `run` always writes `input.journal`;
-`replay` re-runs it without keepers or controllers; `watch` runs each scenario in a child
-process under a time limit, in a new folder per watch so no evidence is deleted, and writes
-`failure.md` for a run that does not pass. On Level 17 an 1800-tick computer-keeper run (255
-keeper commands) replays all 1801 hashes without `KeeperAI`.
+`InputJournalWriter`, `InputJournal`), shared with Unity (ADR-0553). Fixed command tags are never
+reused. Command frames and end records flush at once, hashes at least every 256 ticks; a reader
+keeps every whole record. `GameSimulation.CurrentHashVersion` exposes the version at run time
+because a public const would be compiled into callers. Replay refuses another hash version or
+scenario SHA-256. `run` writes `input.journal`; `replay` feeds it without keepers or controllers.
+`watch` uses time-limited child processes and new folders, preserving evidence, and writes
+`failure.md` for a run that does not pass. Usage and journal details: `src/DK2.Harness/README.md`.
 
 **Amendment (2026-10-27): Stage C.** A fuzzer plays a keeper with only the commands
 `HumanCommandPolicy` allows, built as our input paths build them; observers that leave the hash
 alone add coverage, progress and stall candidates, and a save/load continuation check, the only
 invariant with a failure verdict. Details: the plan, §13.
+
+**Amendment (2026-10-29): Parallel watch, owner approved.** `watch --jobs N` runs at most N
+children, default 1; the CLI refuses counts above the processor count. Each run is its own
+process, so the static-state risks in the throughput plan's "Not done" section are not shared.
+Admission checks cancellation, run count and remaining wall-clock budget in job order after
+acquiring a slot. Summary rows and console outcomes publish only a finished prefix, in job order;
+cancellation kills all active children. Unexpected worker failures cancel and join the rest.
+Every child loads its own database, so memory grows with N; CPU contention can cause false
+timeouts. Raise the per-run limit when needed. Concurrent simulations within one process remain
+outside this decision.
 
 ## ADR-0553 — Unity input is journaled, then moved into Presentation, then migrated
 **Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change

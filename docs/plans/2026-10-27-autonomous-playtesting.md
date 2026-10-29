@@ -64,11 +64,14 @@ simulation's stream. Replay depends only on recorded commands.
 
 ## 6. Execution limits
 
-Explicit launch only. Defaults: one worker, at most 20 matches, 30 minutes wall clock, a
+Explicit launch only. Defaults: one child, at most 20 matches, 30 minutes wall clock, a
 configurable tick budget, deterministic seeds, cancellation. Each match runs in a child
 process under a parent watchdog, because a hang inside synchronous `GameSimulation.Tick()`
-cannot be cancelled cooperatively. Measure the per-process database load from `DK2_DIR`
-before optimising it. Parallel workers wait for a review of mutable static state.
+cannot be cancelled cooperatively. `watch --jobs N` permits bounded parallel child processes,
+with ordered outcomes and all-child cancellation (ADR-0552's 2026-10-29 amendment). Each child
+loads its own database; CPU contention can cause timeouts. The static-state review is in the
+throughput plan's "Not done" section; unsafe scratch remains a bar to parallel worlds within
+one process, not separate workers. Measure the per-process load before optimising it.
 `ScenarioController.IntervalTicks` bounds observation cost: a `KeeperView` captures
 navigation bytes, the room index and spell-placement checks.
 
@@ -184,4 +187,4 @@ sample size and uncertainty; a 20-seed median can double by chance.
     source), specials, objects and fog-aware tagging in the fuzzer.
 
 **Deferred:** goal-directed AI, Enhanced Keeper, fog-filtered observations, LLM supervisor
-code (an LLM can read reports by hand), parallel or distributed or continuous execution.
+code (an LLM can read reports by hand), in-process parallel worlds, distributed or continuous execution.
