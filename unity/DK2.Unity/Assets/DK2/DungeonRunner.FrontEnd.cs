@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -68,6 +68,8 @@ namespace DK2.Unity
             runner.levelName = request.LevelName;
             runner.frontEndReturnPage = request.ReturnPage;
             runner.saveFile = "";
+            runner._resumeSession = _pendingResumeSession;
+            runner._resumeSimulation = _pendingResumeSimulation;
             runner.enabled = true;
             gameObject.SetActive(false);
             // Shader globals belong to one scene; release them before the replacement publishes its buffers.
@@ -102,8 +104,13 @@ namespace DK2.Unity
                 if (prop.MapPiece is DK2.Assets.FrontEndMapPiece piece) _campaignPickSlots[prop.View.Id] = new CampaignSlot((byte)piece);
                 else if (prop.MarkerSlot is CampaignSlot slot) _campaignPickSlots[prop.View.Id] = slot;
             }
-            _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, menuAssets, _campaignMap);
+            _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, menuAssets, _campaignMap, _optionsPages);
             _frontEndMenu.Model.QuitRequested += QuitFrontEnd;
+            InitializeSaves(install);
+            _frontEndMenu.Model.SetSaveBrowser(_saves);
+            _frontEndMenu.Model.LoadRequested += LoadSession;
+
+            ApplyGameSettings(_gameSettings);
             string speechPath = Path.Combine(install, "Data", "Text", "Default", "Speech.str");
             DK2.Data.Text.Dk2StringTable movieTitles = File.Exists(speechPath) ? DK2.Data.Text.Dk2StringTable.Open(speechPath) : null;
             _frontEndMenu.Model.SetMovieGallery(new FrontEndMovieGallery(_campaignProfile,
@@ -129,6 +136,7 @@ namespace DK2.Unity
             if (_campaignMap.EntryRow >= 0) TypeHiScoreName();
             _frontEndMenu?.Refresh();
             if (_frontEndMenu != null) _soundPlayer?.Play(_frontEndMenu.Model.Sounds);
+            DrawSavePanel(frontEnd: true);
             // A click replaces this runner; switch only after the menu has finished with it.
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
             if (_frontEnd.Pose is CameraPathPose pose) ApplyFrontEndCamera(pose);

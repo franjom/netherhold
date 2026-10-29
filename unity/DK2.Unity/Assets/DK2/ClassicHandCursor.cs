@@ -32,6 +32,7 @@ namespace DK2.Unity
         private readonly Image _visual;
         private readonly bool _manageSystemPointer;
         public PanelSettings Panel => _panel;
+        public int UiScale { get; set; } = 100;
         private HandCursorKind _kind;
         private Texture2D _image;
         private readonly HandCursorAnimation _animation = new HandCursorAnimation();
@@ -95,13 +96,16 @@ namespace DK2.Unity
 
         public void Draw(Vector2 pointerGui)
         {
+            float uiFactor = ClassicHudScaling.Layout(UiScale).Factor;
+            _panel.scale = uiFactor;
             if (_image == null) return;
             HandCursorSprite sprite = HandCursor.Sprite(_kind);
             // The frame's claw tip goes on the pointer (HandCursor.Anchor), not DK2's hotspot.
             HandCursorPlacement placed = HandCursor.Place(_kind, _frame,
                 new System.Numerics.Vector2(pointerGui.x, pointerGui.y), Screen.height);
             float scale = Screen.height / 768f;
-            _visual.style.translate = new Translate(placed.Origin.X / scale, placed.Origin.Y / scale, 0);
+            _visual.style.translate = new Translate((placed.Origin.X - pointerGui.x + pointerGui.x / uiFactor) / scale,
+                (placed.Origin.Y - pointerGui.y + pointerGui.y / uiFactor) / scale, 0);
             _visual.style.width = placed.Size.X / scale; _visual.style.height = placed.Size.Y / scale;
             _visual.uv = new Rect(0, 1f - (_frame + 1f) / sprite.FrameCount, 1, 1f / sprite.FrameCount);
         }

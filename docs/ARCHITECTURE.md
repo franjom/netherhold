@@ -24,14 +24,14 @@ DK2.AI ──────► DK2.Simulation ──┘                  │
 
 `DK2.Pathfinding` references only `DK2.Core`; `DK2.Data` never references
 `DK2.Simulation`. `DK2.Convert` references `DK2.Art`, `DK2.Assets` and `DK2.Data`; the
-`.csproj` references are the authority, not this sketch. `DK2.Presentation` also reads
-`DK2.Data` media through `IClassicSoundAssets`; `DK2.Assets` keeps no dependency on Data.
+`DK2.Presentation` reads media through `IClassicSoundAssets`, settings and saved sessions
+from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references are the authority.
 
 | Project | Holds |
 |---|---|
 | `DK2.Core` | primitives, no game rules: `Fp32`, `GameTick`, `TilePos`, `Hash64`, `SimRandom`, `Confidence`, `Dk2BehaviorAttribute` |
 | `DK2.Data.Model` | immutable definitions, no IO — the data/simulation seam |
-| `DK2.Data` | original data readers, KWD/KLD writers, campaign profile/high-score storage and read-only progress import (ADR-0538), SDT/maps and MPEG audio (ADR-0583), the EA movie container, audio and TQI video decoders (`Media/`, `docs/research/movie-format.md`) |
+| `DK2.Data` | original data readers, KWD/KLD writers, campaign/high-score/session/settings storage and registry import (ADR-0538), SDT/maps and MPEG audio (ADR-0583), EA movie/audio/TQI decoding (`Media/`) |
 | `DK2.Simulation` | all game rules and all mutable state |
 | `DK2.Pathfinding` | the original's router (`NavMesh`, `MeshRouter`, `Funnel`); `GridPathfinder` survives as `TryFindNearest` (ADR-0155, ADR-0157) |
 | `DK2.Assets` | logical asset keys and their resolution (ADR-0034) |

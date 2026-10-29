@@ -14,11 +14,7 @@ foreach ($folder in @('Assets', 'Packages', 'ProjectSettings')) {
 }
 $plugins = Join-Path $project 'Assets/Plugins/DK2'
 New-Item -ItemType Directory -Path $plugins -Force | Out-Null
-foreach ($assembly in @('Core', 'Assets', 'Data.Model', 'Data', 'Pathfinding', 'Simulation', 'Presentation', 'Art')) {
-    $dll = "$repo/src/DK2.$assembly/bin/Release/netstandard2.1/DK2.$assembly.dll"
-    if (!(Test-Path -LiteralPath $dll)) { throw "Build the Release assemblies first: missing $dll" }
-    Copy-Item -LiteralPath $dll -Destination $plugins -Force
-}
+& "$repo/unity/copy-runtime-assemblies.ps1" -RepositoryRoot $repo -Destination $plugins -Configuration Release
 Copy-Item -LiteralPath "$PSScriptRoot/FrontEndSessionProbe.cs" -Destination "$project/Assets/DK2/Editor/FrontEndSessionProbe.cs"
 if ($Menus -or $Campaign) {
     Copy-Item -LiteralPath "$PSScriptRoot/FrontEndMenuProbe.cs" -Destination "$project/Assets/DK2/Editor/FrontEndMenuProbe.cs"

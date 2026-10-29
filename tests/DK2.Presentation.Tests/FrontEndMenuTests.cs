@@ -9,6 +9,27 @@ namespace DK2.Presentation.Tests;
 public class FrontEndMenuTests
 {
     [Fact]
+    public void LoadPageEnablesOnlyWithABrowserAndItsLoadRaisesTheSelectedPath()
+    {
+        var session = ReadySession();
+        using var menu = new FrontEndMenuController(session, HitBounds);
+        var entry = new DK2.Data.Save.SavedSessionEntry("first.dk2g", new("Level1", 1, 26,
+            new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc), "First save"));
+        var view = new SaveSlotsView("unused", () => new[] { entry });
+        menu.SetSaveBrowser(view);
+        menu.Activate(new(1));
+        Assert.True(menu.Activate(new(7)));
+        session.Update(TimeSpan.FromSeconds(3));
+        Assert.Equal(FrontEndPage.Load, session.Page);
+        string? requested = null;
+        menu.LoadRequested += path => requested = path;
+        Assert.False(menu.Activate(new(73)));
+        view.Select(0);
+        Assert.True(menu.Activate(new(73)));
+        Assert.Equal("first.dk2g", requested);
+    }
+
+    [Fact]
     public void CatalogueRetainsAllThirtyTwoPagesAndFourHundredTwoWidgets()
     {
         Assert.Equal(32, FrontEndPages.All.Count);

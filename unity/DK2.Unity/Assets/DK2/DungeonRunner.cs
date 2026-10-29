@@ -13,6 +13,7 @@ using DK2.Core;
 using DK2.Data;
 using DK2.Data.Camera;
 using DK2.Data.Model;
+using DK2.Data.Settings;
 using DK2.Data.Text;
 using DK2.Data.Wad;
 using DK2.Data.Save;
@@ -223,6 +224,7 @@ namespace DK2.Unity
 
         private void StartGame()
         {
+            InitializeSettings();
             bool frontEnd = sessionMode == GameSessionMode.FrontEnd;
             if (frontEnd)
             {
@@ -269,11 +271,11 @@ namespace DK2.Unity
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' things.");
                 var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' triggers.");
-                _simulation = frontEnd
+                _simulation = _resumeSimulation ?? (frontEnd
                     ? new GameSimulation(database, WorldState.FromMap(database, map,
                         players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed)
                     : CampaignSimulationFactory.Create(database, map, level,
-                        players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
+                        players, things, triggers, seed, fogOfWarEnabled: fogOfWar));
             }
             else
             {
@@ -284,7 +286,7 @@ namespace DK2.Unity
             _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
             if (!frontEnd) world.LocalPlayerId = new PlayerId((byte)viewingPlayerId);
-            if (!frontEnd) PrepareCampaignResult();
+            if (!frontEnd) PrepareCampaignResult(resumed: _resumeSession != null);
             if (frontEnd)
             {
                 LoadFrontEndProfile();
@@ -356,6 +358,7 @@ namespace DK2.Unity
             }
             _startup.Step("effects");
             _soundPlayer = new ClassicSoundPlayer(transform, new InstallClassicSoundAssets(install));
+            ApplySoundSettings(_gameSettings);
             if (frontEnd)
             {
                 WaitForPrefetch(prefetch);
@@ -384,7 +387,8 @@ namespace DK2.Unity
             // no frame before its first turn (heart-intro.md §4, an inference from 0x004D9A60's
             // guard). The first tick runs here, and the effect model one update, so the first frame
             // shows the lid and not the open pit beneath it.
-            RunTicks(1, InputFrame.Empty);
+            // A restored checkpoint already includes its starting turn.
+            if (_resumeSession == null) RunTicks(1, InputFrame.Empty);
             _constructionEffects?.Model.UpdateNow();
             _startup.Step("tick");
             WaitForPrefetch(prefetch);
@@ -412,6 +416,7 @@ namespace DK2.Unity
             }
             if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
             else LookAt(world);
+            ApplyGameSettings(_gameSettings);
             _startup.Step("camera");
             var minimapAssets = new InstallMinimapAssets(install, _installArt != null ? _installArt.LoadTexture : null);
             _startup.Step("minimap.assets");
@@ -546,6 +551,7 @@ namespace DK2.Unity
             _handCursor?.Dispose();
             _tileHighlight?.Dispose();
             _placementOverlay?.Dispose();
+            _settingsRendering?.Dispose();
             _hoverHud?.Dispose();
             _resourceHud?.Dispose();
             if (_heartHealthWorld != null && _heartHealthObserver != null)
@@ -629,15 +635,16 @@ namespace DK2.Unity
                         if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
                     }
                 }
-                ReadAmbientKeys();
+                if (hud.AllowOrdinaryInput && !HudModal) ReadAmbientKeys();
                 QueueInput();
             }
+            if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
 
             int ticks = 0;
             InputFrame firstInput = InputFrame.Empty;
             if (speed > 0f && !_hudControls.OptionsVisible)
             {
-                _tickDebt += elapsed * SimulationTiming.TicksPerSecond * speed;
+                _tickDebt += elapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
 
                 // Whole ticks only, and a cap so a long editor stall does not
                 // fast-forward the game by a thousand ticks in one frame.
@@ -681,7 +688,7 @@ namespace DK2.Unity
             _minimap?.Capture(_simulation.World, _worldView, _simulation.Navigation);
             double preparedElapsed = _frameElapsed.Sample(Time.realtimeSinceStartupAsDouble,
                 fallbackDeltaSeconds: 0, maximumDeltaSeconds: Math.Max(0, Time.maximumDeltaTime - elapsed), timeScale: Time.timeScale);
-            if (speed > 0f && !_hudControls.OptionsVisible) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed;
+            if (speed > 0f && !_hudControls.OptionsVisible) _tickDebt += preparedElapsed * SimulationTiming.TicksPerSecond * speed * (_gameSettings.GameSpeed / 4.0);
             if (tickOnWorkerThread && speed > 0f && !_hudControls.OptionsVisible)
             {
                 int preparedTicks = (int)Math.Min(_tickDebt, Math.Max(1, maxTicksPerFrame) - ticks);
@@ -924,22 +931,8 @@ namespace DK2.Unity
 
             if (_classicCamera != null && !frameWholeMap)
             {
-                bool control = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
-                float panHorizontal = (Input.GetKey(KeyCode.RightArrow) ? 1 : 0) - (Input.GetKey(KeyCode.LeftArrow) ? 1 : 0);
-                float panVertical = (Input.GetKey(KeyCode.UpArrow) ? 1 : 0) - (Input.GetKey(KeyCode.DownArrow) ? 1 : 0);
-                ClassicCameraKeys keys = ClassicCameraKeys.None, edges = ClassicCameraKeys.None;
-                if (Input.GetKey(KeyCode.Delete) || (control && panHorizontal < 0))
-                    keys |= ClassicCameraKeys.TurnLeft;
-                if (Input.GetKey(KeyCode.PageDown) || (control && panHorizontal > 0))
-                    keys |= ClassicCameraKeys.TurnRight;
-                if (!control)
-                {
-                    if (panHorizontal < 0) keys |= ClassicCameraKeys.Left;
-                    if (panHorizontal > 0) keys |= ClassicCameraKeys.Right;
-                    if (panVertical > 0) keys |= ClassicCameraKeys.Up;
-                    if (panVertical < 0) keys |= ClassicCameraKeys.Down;
-                }
-                if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) keys |= ClassicCameraKeys.Fast;
+                GameBindingInput input = ClassicKeyBindings.Read(_gameSettings);
+                ClassicCameraKeys keys = input.CameraKeys, edges = ClassicCameraKeys.None;
                 Vector3 pointer = Input.mousePosition;
                 if (Application.isFocused && pointer.x >= 0 && pointer.x < Screen.width && pointer.y >= 0 && pointer.y < Screen.height)
                 {
@@ -953,17 +946,18 @@ namespace DK2.Unity
                     TimeSpan.FromTicks((long)Math.Round(Time.unscaledDeltaTime * (double)TimeSpan.TicksPerSecond)), edges);
                 _cameraFocus = new Vector3(nextFocus.X, nextFocus.Y, nextFocus.Z);
                 float wheel = PointerOverHud(Input.mousePosition) ? 0 : Input.mouseScrollDelta.y;
-                if (wheel > 0 || Input.GetKey(KeyCode.Home) || (control && panVertical > 0)) _classicCamera.ZoomIn();
-                else if (wheel < 0 || Input.GetKey(KeyCode.End) || (control && panVertical < 0)) _classicCamera.ZoomOut();
-                _classicCameraControls.AdvancePointer(new System.Numerics.Vector2(pointer.x - _cameraPointer.x, _cameraPointer.y - pointer.y),
-                    Input.GetKey(KeyCode.X), Input.GetKey(KeyCode.Z));
+                if (wheel > 0 || input.ZoomIn) _classicCamera.ZoomIn();
+                else if (wheel < 0 || input.ZoomOut) _classicCamera.ZoomOut();
+                _classicCameraControls.AdvancePointer(GameBindingInput.HostPointerDelta(new System.Numerics.Vector2(pointer.x - _cameraPointer.x, _cameraPointer.y - pointer.y), _gameSettings.MouseSensitivity),
+                    input.Held(GameAction.MouseRotate, exactModifiers: true), input.Held(GameAction.MouseZoom, exactModifiers: true));
                 _cameraPointer = pointer;
                 ApplyClassicCamera();
                 return;
             }
 
-            float horizontal = (Input.GetKey(KeyCode.RightArrow) ? 1 : 0) - (Input.GetKey(KeyCode.LeftArrow) ? 1 : 0);
-            float vertical = (Input.GetKey(KeyCode.UpArrow) ? 1 : 0) - (Input.GetKey(KeyCode.DownArrow) ? 1 : 0);
+            ClassicCameraKeys panKeys = ClassicKeyBindings.Read(_gameSettings).CameraKeys;
+            float horizontal = ((panKeys & ClassicCameraKeys.Right) != 0 ? 1 : 0) - ((panKeys & ClassicCameraKeys.Left) != 0 ? 1 : 0);
+            float vertical = ((panKeys & ClassicCameraKeys.Up) != 0 ? 1 : 0) - ((panKeys & ClassicCameraKeys.Down) != 0 ? 1 : 0);
             var pan = new Vector3(horizontal, 0f, vertical);
             if (pan.sqrMagnitude > 1f) pan.Normalize();
             camera.transform.position += pan * cameraPanSpeed * Time.unscaledDeltaTime;
@@ -993,9 +987,9 @@ namespace DK2.Unity
         {
             if (!classicVertexLighting) return;
             bool changed = false;
-            if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus))
+            if (ClassicKeyBindings.Pressed(_gameSettings, GameAction.AmbientUp))
             { _ambientLight.Increase(); changed = true; }
-            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus))
+            if (ClassicKeyBindings.Pressed(_gameSettings, GameAction.AmbientDown))
             { _ambientLight.Decrease(); changed = true; }
             if (changed)
             {
@@ -1265,6 +1259,7 @@ namespace DK2.Unity
         private bool PointerOverHud(Vector3 position) =>
             (_minimap != null && _minimap.ContainsPointer(position)) || (_hoverHud != null && _hoverHud.ContainsPointer(position))
             || (_resourceHud != null && _resourceHud.ContainsPointer(position))
+            || (_gameOptionsPanel != null && _gameOptionsPanel.ContainsPointer(position))
             || (_bottomPanel != null && _bottomPanel.ContainsPointer(position))
             || (_messageTabs != null && _messageTabs.ContainsPointer(position))
             || (_overviewPanel != null && _overviewPanel.ContainsPointer(position))
@@ -1316,7 +1311,7 @@ namespace DK2.Unity
             TileView shown = _worldView.TileAt(world, tile.X, tile.Y);
             var plane = new Plane(Vector3.up, new Vector3(0, shown.Solid ? DungeonScene.SolidHeight : DungeonScene.OpenHeight, 0));
             if (!plane.Raycast(ray, out float distance)) return new WorldHoverHit(WorldHoverKind.Tile, tile);
-            _objectsOnlyPick = Input.GetKey(KeyCode.PageUp);
+            _objectsOnlyPick = !HudModal && CurrentHud.AllowOrdinaryInput && ClassicKeyBindings.Held(_gameSettings, GameAction.ObjectsOnly, exactModifiers: true);
             _renderedPick ??= (kind, id) => HoverPickRules.Rendered(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
             _fallbackPick ??= (kind, id) => HoverPickRules.Fallback(_simulation.World, _simulation.Database, kind, id, _objectsOnlyPick);
             _resolvesPick ??= candidate => HoverPickRules.Resolves(_simulation.World, candidate, new PlayerId((byte)viewingPlayerId));

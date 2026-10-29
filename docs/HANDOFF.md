@@ -219,13 +219,15 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Classic look
 
-Front-end startup/title/intros, idle replay, Trailer and movie gallery are built;
-the gallery refreshes unlocks when the campaign profile resets. Full-loop and
-media runtime acceptance remain in plans/2026-10-23-front-end.md, F5/F7.
-Completion-phase map preview, creature/room markers and keeper legend, PAGE UP
-objects-only picking, X/Z pointer camera controls, Portal navigation, Lord names
-and the casino Dollar are built. Settings-key integration and matched captures
-remain in plans/2026-10-29-hud-and-front-end-completion.md; no acceptance is implied.
+HUD/front-end completion is integrated on `codex/hud-completion-final` in
+`build/hud-completion-final`; master is unchanged by this session. Startup,
+gallery/attract, Options objective/settings/save/load/restart/end, runtime audio,
+rebound keys, scalable HUD, full-map preview/markers/legend and hover/flower
+leftovers are built. The [completion plan](plans/2026-10-29-hud-and-front-end-completion.md)
+owns the runtime evidence and owner acceptance table; the
+[HUD comparison checklist](research/hud-comparison-checklist.md) owns captures.
+ADR-0497 remains proposed pending owner comparison. Host settings adaptations
+and disabled consumers are in research/front-end-menus.md section6.
 
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,
@@ -373,9 +375,9 @@ tools/classic-unity-probe/README.md.
 5. Possession: the Unity first-person camera and input
    (plans/2026-10-12-possession-arms-build-plan.md); owner play questions are
    in possession-arms-and-inputs.md §4–5.
-6. M10 front end: DK2's menus, campaign map and progression are read from the
-   exe (`research/front-end-menus.md`, `research/campaign-map-and-progression.md`,
-   `research/front-end-assets.md`); F1 storage/image plumbing (ADR-0538), F2 front-end scenery/camera sessions, F3 menu shells (ADR-0539), F4 campaign map/briefing and the F7 movie decoder/playback proof of concept are built. F5 stages A (briefing Go launches the level, verdict writes the profile once, Space leaves, statistics page 26 and map return) and B (level-end counters ADR-0548 hash 311, statistics rows laid out as DK2's (`0x0053CAF0`, `0x0053D270`) with DK2's scroll bar (`FrontEndScrollBar`; no mouse wheel, DK2's class reads none) and the objective images of `0x0053A580` on page 26 and the briefing (`FrontEndBriefingImages`; `research/level-statistics.md` §5), keeper rank, Total Evil Rating, hi-score name entry and `HiScores.dat`) are built, as are C (transfer creature arrival, specials 129/140, hash 311; the hand's targeting mode for 127/140 produces `TargetId`; the spells panel lists the Libraries' specials and routes 127/140 into it; the packet replay reads action 88's target word) D (post-win cutscenes and title-card) and the finale (ADR-0549, hash 312: Reaper, win screen with its reward tablet (`RewardTablet`), Esc continue/reveal, celebration; `research/campaign-win-sequence.md`); all await a Unity play test. Today's Top Keepers (Extras, page 18) is built. F8 sound is built (ADR-0583); scope and pending Unity hearing acceptance: [runtime sound](research/sound-playback.md). Scope, remaining play checks and import/decoder limits are in `plans/2026-10-23-front-end.md`. Completion plan: `plans/2026-10-29-hud-and-front-end-completion.md`.
+6. M10 front end: owner play/visual/hearing acceptance of the integrated branch;
+   see [completion and remaining gates](plans/2026-10-29-hud-and-front-end-completion.md).
+   Campaign behaviour gaps beyond the menu loop remain in GOAL_ALIGNMENT.md row2.
 7. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built; the appearance target is the approved AI concepts (ADR-0398,
    ADR-0399, `art/manifests/creature/imp.yaml`). The Tripo candidate was

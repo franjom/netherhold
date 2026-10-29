@@ -17,6 +17,13 @@ public sealed record GameSessionRequest
     public static GameSessionRequest FrontEnd(FrontEndPage returnPage = FrontEndPage.None)
         => new(GameSessionMode.FrontEnd, "FrontEnd3DLevel", returnPage);
 
+    public static GameSessionRequest Restart(GameSessionRequest current)
+    {
+        if (current is null) throw new ArgumentNullException(nameof(current));
+        if (current.Mode != GameSessionMode.Campaign) throw new ArgumentException("Only a running level can restart.", nameof(current));
+        return Campaign(current.LevelName, current.ReturnPage);
+    }
+
     public static GameSessionRequest Campaign(string levelName, FrontEndPage returnPage = FrontEndPage.CampaignResults)
     {
         if (string.IsNullOrEmpty(levelName) || !levelName.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z'

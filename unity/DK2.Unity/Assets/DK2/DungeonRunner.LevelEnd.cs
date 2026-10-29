@@ -22,13 +22,14 @@ namespace DK2.Unity
 
         private bool LaunchedFromFrontEnd => sessionMode == GameSessionMode.Campaign && frontEndReturnPage == FrontEndPage.CampaignResults;
 
-        private void PrepareCampaignResult()
+        private void PrepareCampaignResult(bool resumed = false)
         {
             if (!LaunchedFromFrontEnd) return;
             LoadFrontEndProfile();
             CampaignSlot slot = CampaignProgression.PlayedSlot(_campaignProfile);
             // A profile that names another map (edited between sessions) records nothing.
             _playedSlot = string.Equals(slot.LevelName, levelName, System.StringComparison.OrdinalIgnoreCase) ? slot : CampaignSlot.None;
+            if (resumed) { _carryApplied = _simulation.World.Carry; return; }
             if (_campaignProfile.TransferCreatureId == 0) return;
             // 0x0050C67D: the stored creature arrives before the first turn; both values clear whatever happens.
             TransferCreatureRules.Arrive(_simulation, new PlayerId((byte)viewingPlayerId),

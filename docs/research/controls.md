@@ -37,7 +37,7 @@ p.41's camera combos) are what caught it.
 
 Rebindable in-game: **Options → Control → Define Keys** picks an action from a
 scrolling list and takes the next key pressed (manual §16.1.4.3). So this is the
-default map, not the only one. The roster that screen lists is unread.
+default map, not the only one. The native roster is now read: [row mapping](functions/00560FD0.md).
 
 ### Possessed creature, first person
 
@@ -172,17 +172,17 @@ translate.
 | `[` / `]` room cycle | none | adapter aliases removed |
 | ESC / SPACE end a camera path | the same (`0x00405010`, camera-paths.md §5) | DK2's |
 | SHIFT / CTRL / ALT on overview and gold-counter clicks | the same (hud-resources.md) | DK2's |
-| P (Zoom To Portal), F, I, A | listed above | Portal glide built; Fight/input integration pending; player information and multiplayer Ally Window unavailable |
+| P (Zoom To Portal), F, I, A | listed above | Portal and local-fight glides built; player information and multiplayer Ally Window unavailable |
 
 Room and tool selection use the HUD or Inspector. Mouse yaw/zoom retain the
 native first-frame latch and rotate precedence; [the handler](functions/004066A0.md)
-records the motion payloads. Settings-key integration is tracked in the completion plan.
+records the motion payloads. Implemented gameplay actions read the persisted
+keymap through the shared resolver; modal name entry and key capture suppress
+gameplay shortcuts.
 
-Against what exists today, of the 62 default bindings: three act on state we have
-(`H`, `P`, `ESC`), about thirty are camera and renderer work whose constants are
-all unread, and about twenty-nine need features that do not exist — possession and
-combat, multiplayer, the Control Panel, the map screen, the creature panel, and a
-save format of our own.
+The keyboard list displays all63 native action names. Supported camera, HUD,
+map, Heart/Portal/fight navigation, ambient and objects-only actions can be
+rebound; consumers outside the current campaign adapter remain dimmed.
 
 ---
 
@@ -192,16 +192,13 @@ save format of our own.
    both patched-era documents. Observable, and the owner has the install. The binary keeps it
    (read 2026-10-24): binding 26 defaults to PAGE UP (0x005604C0) and, held, sets the render sink's
    objects-only pick flag (0x0059C130), which keeps creatures out of the Hand's pick
-   (hand-cursor-rendering.md). Not built.
+   (hand-cursor-rendering.md). Built; original-game comparison remains.
 2. **Where does DK2 persist a rebound keymap?** No `.cfg`, `.ini` or keymap file at
    the install root, so the registry is the candidate. Unread.
-3. **The Define Keys action roster.** Reading it would confirm whether the shipped
-   key list is the complete set of bindable actions.
-4. **Every camera constant.** Scroll speed, rotation rate, the speed-scroll
-   multiplier, the F1/F2/F3 preset tilt and zoom, and the ambient-light and gamma
-   step sizes. None read from the binary and none measured. The Options screen
-   exposes Scroll Speed and Sensitivity sliders, so several are settings with a
-   default rather than a single value.
+3. **The Define Keys action roster.** Closed by the [native row mapping](functions/00560FD0.md):63 rows, including Restart and action63. Our list shows all native names and permits capture for implemented consumers.
+4. **Remaining camera constants and presets.** Built motion rules and their
+   native evidence live in classic-camera.md §7. F1/F2/F3 preset consumers and
+   user-camera storage remain unavailable; the sensitivity backend link is Q686.
 
 ## Pointer delta and sensitivity
 
@@ -215,5 +212,6 @@ The profile sensitivity field is+0xF5 (global00759C21); its missing-registry pat
 stores2, while the two settings pages declare slider bounds5..20. The setter
 persists the raw integer. Bounded absolute-reference and field-read scans found
 storage/UI consumers; their relationship to the device multiplier remains
-UNKNOWN (Q686). A linear Unity mapping would be a host adaptation, not a
-confirmed native sensitivity curve.
+UNKNOWN (Q686). The adapter multiplies pointer displacement by the clamped
+5..20 setting divided by10. This is a host adaptation, not a confirmed native
+sensitivity curve.
