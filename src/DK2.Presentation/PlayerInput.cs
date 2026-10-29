@@ -97,6 +97,7 @@ public sealed class PlayerInputSnapshot
         Excavation = excavation;
     }
 
+    /// <summary>A held item or a local pickup awaiting execution, so a drop may be queued.</summary>
     public bool IsHolding { get; }
     public IReadOnlyList<PlayerInputTarget> Targets { get; }
     public ExcavationTarget? Excavation { get; }
@@ -125,12 +126,20 @@ public sealed class PlayerInputSnapshot
     /// </summary>
     public static PlayerInputSnapshot Capture(
         WorldView view, WorldState world, PlayerId playerId, GameDatabase? database = null,
-        TilePos? pointerTile = null)
+        TilePos? pointerTile = null, IReadOnlyList<PlayerCommand>? pendingCommands = null)
     {
         if (view is null) throw new ArgumentNullException(nameof(view));
         if (world is null) throw new ArgumentNullException(nameof(world));
 
         bool isHolding = world.HasPlayer(playerId) && world.Player(playerId).Hand.Count > 0;
+        if (!isHolding && pendingCommands is not null)
+            foreach (PlayerCommand pending in pendingCommands)
+                if (pending.PlayerId == playerId && pending is PickUpCreatureCommand or PickUpObjectCommand
+                    or PickUpStoreGoldCommand or WithdrawCounterGoldCommand)
+                {
+                    isHolding = true;
+                    break;
+                }
         var targets = new List<PlayerInputTarget>();
 
         foreach (CreatureView creature in view.Creatures(world))

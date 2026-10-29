@@ -257,6 +257,12 @@ public sealed class HandSystem : ISimulationSystem
 
     // ------------------------------------------------------------------- drop
 
+    private static void AcceptedDrop(SimulationContext context, PlayerId player, bool gold) =>
+        context.Events.Emit(new SimEvent(context.Tick, SystemName, "hand_drop_accepted", $"player={player} gold={gold}")
+        {
+            HandDrop = new HandDropFeedback(player, gold),
+        });
+
     private static void Drop(SimulationContext context, DropCommand command)
     {
         WorldState world = context.World;
@@ -316,6 +322,8 @@ public sealed class HandSystem : ISimulationSystem
                 $"tile={command.Tile.X},{command.Tile.Y} not_walkable");
             return;
         }
+
+        AcceptedDrop(context, command.PlayerId, gold: false);
 
         // A captive IS an offering, and the Temple is ADR-0064's one exception:
         // a wizard prisoner dropped on a Temple is sacrificed, not freed (Q314,
@@ -516,6 +524,8 @@ public sealed class HandSystem : ISimulationSystem
                 $"tile={command.Tile.X},{command.Tile.Y} not_allowed");
             return;
         }
+
+        AcceptedDrop(context, command.PlayerId, context.Database.ObjectById(thing.ObjectTypeId)!.IsGold);
 
         int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         TempleSacrificeRules.Reconcile(world, context.Database);
