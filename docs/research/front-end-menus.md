@@ -173,14 +173,14 @@ briefing navigation (campaign-map sibling). Other consumers remain later phases.
 | Click and release sounds come from the widget's sound slot (+0x4C) through the table at `0x006AC8C4`: main-menu items use slot 32, back icons 36/35. | `0x0052BC50` | STRONGLY INFERRED |
 | Keyboard: Ctrl+Alt-style modifier 3 with key 0x20 (D) loads a demo packet file and starts it (debug); Alt+Enter (0x1C with modifier 2) calls `0x00558BD0`; key 0xB7 sets frontEnd +0x6022 (screenshot, unread). | `0x0052FAF0` | STRONGLY INFERRED (keys); HYPOTHESIS (purposes) |
 
-### F3 implementation boundary
+### Implementation boundary
 
-`FrontEndMenuController` supports Main, Single Player, Options/Graphics/Sound/Controls
-shells, Extras and Quit confirmation. Pointer hold suppression, hover/fade and sound
-hooks are implemented; playback is F8. Deferred actions are dimmed as a temporary
-capability gate, not as a reading of native campaign availability. Option values,
-media and other generic-dialog uses remain later phases; F4 builds reset
-confirmation and campaign map/briefing navigation (see the campaign-map sibling).
+`FrontEndMenuController` supports Main, Single Player, Extras, Quit confirmation
+and the Options pages described in section 6. Pointer hold suppression,
+hover/fade and sound hooks are implemented; playback remains F8 integration.
+Deferred actions are dimmed as a capability gate, not as a reading of native
+campaign availability. Reset confirmation and campaign map/briefing navigation
+are described in the campaign-map sibling; remaining scope is in the front-end plan.
 
 Font replacement follows ADR-0539. Native measurement uses the advance/line-height
 canvas ([glyph measurement](functions/006335D0.md)); visible ink retains its bearing
@@ -212,22 +212,40 @@ writes one value and closes it (`0x005621E0` closes). Key names are the setters'
 | 15 | 134 Resolution | button `0x0054C2A0` -> `0x00566A70` | resolution (key unread) | HYPOTHESIS |
 | 15 | 135 Gamma | slider 15..60, `0x0054B9B0` | `Gamma Level` (`0x00566220`) | STRONGLY INFERRED |
 | 15 | 1445 Shadow Detail Level | slider 0..3, `0x0054B980` | `Shadow Level` (`0x005663A0`) | STRONGLY INFERRED |
-| 15 | (buttons) | D0x1E applies all through `0x0054BB80` (also `Texture Reduction Level` `0x00566620`); D0x1F leaves | | STRONGLY INFERRED |
+| 15 | (buttons) | D0x1E (Confirm, widget129) applies all through `0x0054BB80` (also `Texture Reduction Level` `0x00566620`); D0x1F (Cancel, widget130) leaves | | STRONGLY INFERRED |
 | 16 Sound | 1464 Sound Quality | button `0x0054C810` | `SoundQuality` (`0x005637E0`) | STRONGLY INFERRED |
 | 16 | 1674 Speaker Configuration | button `0x0054C970` | `Headphones` (`0x00563870`) | STRONGLY INFERRED |
 | 16 | 1460 Master / 1457 Voice / 1459 Music / 1458 Sfx Volume | sliders 0..100, `0x0054B940`/`0x0054B820`/`0x0054B860`/`0x0054B8A0`, live | `MasterVolume`, `SpeechVolume`, `MusicVolume`, `SoundEffectVolume` | STRONGLY INFERRED |
 | 16 | on/off beside Voice, Music, Sfx | `0x0054C9F0` | `SpeechSwitch`, `MusicSwitch`, `SFXSwtich` (sic) | STRONGLY INFERRED |
 | 16 | 1679 QSound, 1472 Environmental Effects | toggles `0x0054B910`, `0x0054B8E0` | `QSound`, `EnvironmentalEffects` | STRONGLY INFERRED |
-| 16 | (buttons) | D0x1C re-applies the eight values captured on entry (D0x1A, `0x0054B4B0`): a revert; D0x1B keeps the live values | | STRONGLY INFERRED (behaviour); HYPOTHESIS (which icon is OK) |
+| 16 | (buttons) | D0x1C re-applies the eight values captured on entry (D0x1A, `0x0054B4B0`): a revert; D0x1B (Confirm, widget146) keeps the live values; D0x1C is Cancel (widget147) | | STRONGLY INFERRED (behaviour and icon mapping) |
 | 17 Control | 1477 Keyboard Setup | key list `0x0054BD70`, capture `0x0054BD90` | key bindings via `InputBindings_CopyToConfiguration` / `RestoreFromConfiguration` | STRONGLY INFERRED |
 | 17 | 1466 Mouse Sensitivity | slider 5..20, `0x0054BAF0` | `Mouse Sensitivity` (`0x00560B30`) | STRONGLY INFERRED |
 | 17 | 1469 Game Speed | slider 1..16, `0x0054BAC0` | `GameSpeed` (`0x0055D590`) | STRONGLY INFERRED |
 | 17 | 1468 Scroll Speed | slider 5..20, `0x0054BA90` | `ScrollSpeed` (`0x00560BC0`) | STRONGLY INFERRED |
 | 17 | 2840 Invert Mouse (1st Person) | toggle `0x0054BB20` | `Invert Mouse` (`0x00560940`) | STRONGLY INFERRED |
-| 17 | (buttons) | D0x38 restores bindings and sensitivity; D0x39 writes Invert Mouse, Game Speed, Scroll Speed (`0x0054BB40`) | | STRONGLY INFERRED (behaviour); HYPOTHESIS (which icon is OK) |
+| 17 | (buttons) | D0x38 (Cancel, widget160) restores bindings and sensitivity; D0x39 (Confirm, widget159) writes Invert Mouse, Game Speed, Scroll Speed (`0x0054BB40`) | | STRONGLY INFERRED (behaviour and icon mapping) |
 
 Slider ranges are the widget's +0x16 low word (minimum) and +0x1A low word (maximum); that
 reading is STRONGLY INFERRED from the values (volumes 0..100, shadow 0..3).
+
+
+The Sound revert restores those eight values only: the three Speech/Music/SFX switches
+are captured on entry but have no restore call in D0x1C. This oddity is preserved.
+D1's suggested default-block address, [save restore](functions/0055B980.md), does not
+initialize defaults. Unresolved defaults in `GameSettings` remain HYPOTHESIS.
+Our file and display correction differ from the registry/device implementation:
+UTF-8 settings beside the campaign profile, and URP exposure as a brightness proxy
+for Gamma (30 is neutral). This does not reproduce the native gamma ramp.
+
+Keyboard Setup's roster/capture is recorded in [the row mapping](functions/00560FD0.md)
+and [key assignment](functions/00561200.md). The adapter shows all63 native action
+names and dims actions without a consumer. Rebound keys persist in our settings.
+Water translucency, environment mapping, shadow detail, Headphones, QSound,
+Environmental Effects and first-person Invert Mouse are stored but their widgets
+are disabled until runtime consumers exist. UiScale is stored but disabled
+until HUD screen/panel coordinate conversion supports it. Gameplay startup and restart
+apply the loaded Gamma and ScrollSpeed after camera creation.
 
 ## Unread / next
 

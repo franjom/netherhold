@@ -14,7 +14,7 @@ using UnityEngine.UIElements;
 namespace DK2.Unity
 {
     /// <summary>Front-end overlay over the native station view, with bitmap-matched replacement glyphs.</summary>
-    public sealed class ClassicFrontEndMenu : IDisposable
+    public sealed partial class ClassicFrontEndMenu : IDisposable
     {
         private static readonly uint[] TitleIds = { 71, 1476, 1403, 2803, 96, 2802, 145, 73, 93, 2800,
             94, 95, 98, 168, 162, 141, 149, 2729, 1478, 2801, 372, 1675, 140, 0 };
@@ -64,10 +64,10 @@ namespace DK2.Unity
         }
         public bool UsingReplacementFont => _labels.Values.Any(label => label.UsesFont);
 
-        public ClassicFrontEndMenu(Transform parent, FrontEndSession session, IClassicFrontEndMenuAssets assets, CampaignMapController campaign = null)
+        public ClassicFrontEndMenu(Transform parent, FrontEndSession session, IClassicFrontEndMenuAssets assets, CampaignMapController campaign = null, OptionsPagesController options = null)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
-            Model = new FrontEndMenuController(session, HitBounds, campaign);
+            Model = new FrontEndMenuController(session, HitBounds, campaign, options);
             _panel = ScriptableObject.CreateInstance<PanelSettings>();
             _panel.themeStyleSheet = Resources.Load<ThemeStyleSheet>("DK2Hud");
             _panel.scaleMode = PanelScaleMode.ScaleWithScreenSize;
@@ -123,6 +123,7 @@ namespace DK2.Unity
                     float scale = Mathf.Min(width / 640f, height / 480f);
                     float left = (width - 640 * scale) / 2, top = (height - 480 * scale) / 2;
                     var pointer = new FrontEndPointer((mouse.x - left) / scale, (height - mouse.y - top) / scale, Input.GetMouseButton(0));
+                    UpdateOptionsPointer(pointer);
                     Model.UpdatePointer(pointer);
                     UpdateResultsBar(pointer);
                 }
@@ -132,7 +133,8 @@ namespace DK2.Unity
             _canvas.MarkDirtyRepaint();
         }
         // The briefing and the statistics arrive a frame after their page appears (0x0053C3C0).
-        private bool ContentChanged => !ReferenceEquals(_shownBriefing, Model.Campaign?.Briefing)
+        private bool ContentChanged => !ReferenceEquals(_shownOptions, Model.Options?.Pending) || _shownKeysFirst != _keysFirst
+            || _shownCapturing != Model.Options?.CapturingAction || !ReferenceEquals(_shownBriefing, Model.Campaign?.Briefing)
             || !ReferenceEquals(_shownResults, Model.Campaign?.Results)
             || Model.Page == FrontEndPage.HighScores && !ReferenceEquals(_shownScores, Model.Campaign?.HiScores)
             || _shownFirstRow != ResultsFirstRow;
@@ -160,6 +162,8 @@ namespace DK2.Unity
             _shownFirstRow = ResultsFirstRow;
             foreach (FrontEndWidget widget in Model.Widgets)
             {
+                if (Model.Page == FrontEndPage.Graphics && Model.Options != null
+                    && (widget.Id.Value >= 119 && widget.Id.Value <= 124 || widget.Id.Value == 679 || widget.Id.Value == 680)) continue;
                 uint textId = widget.TextId;
                 string text = null;
                 bool clip = false;
@@ -205,6 +209,7 @@ namespace DK2.Unity
             if (Model.Page == FrontEndPage.HighScores && Model.Campaign != null)
                 foreach (FrontEndWidget row in Model.Widgets.Where(w => w.Draw == FrontEndDrawKind.HiScoreRow))
                     AddHiScoreLabels(row, Model.Campaign);
+            RebuildOptionLabels();
             _fontDirty = true;
         }
         private void AddLabel(FrontEndWidget widget, string text, FrontEndFont fontSpec, FrontEndTextAlignment alignment,
@@ -320,7 +325,10 @@ namespace DK2.Unity
                 if (_labels.TryGetValue(widget.Id, out LabelData label))
                 {
                     bool decoration = widget.Draw != FrontEndDrawKind.Label && widget.Primary.Kind == FrontEndActionKind.None;
-                    byte alpha = state.Enabled || decoration ? (byte)255 : (byte)90;
+                    bool unsupportedKey = widget.Id.Value >= 800 && widget.Id.Value < 815
+                        && !KeyboardSetup.IsBuilt(KeyboardSetup.Actions[_keysFirst + (widget.Id.Value - 800) % 5].Action);
+                    bool unsupportedGraphics = Model.Page == FrontEndPage.Graphics && (widget.Id.Value == 115 || widget.Id.Value == 117 || widget.Id.Value == 127);
+                    byte alpha = unsupportedKey || unsupportedGraphics || widget.Id.Value == 901 ? (byte)90 : state.Enabled || decoration ? (byte)255 : (byte)90;
                     Color32 tint = LabelColour(widget, state.Hovered, alpha);
                     FrontEndRect ink = label.Geometry.PlaceInk(rect, label.Alignment, label.Vertical);
                     if (state.GlowFrame >= 0 && label.Glow != null)
@@ -341,6 +349,7 @@ namespace DK2.Unity
                 }
             }
             if (Model.Page == FrontEndPage.CampaignResults && _resultsBar != null) DrawResultsBar(context, sx, sy);
+            DrawOptions(context, sx, sy);
         }
         private Texture2D BriefingImage(CampaignBriefing briefing, FrontEndBriefingImage image)
         {
@@ -358,26 +367,27 @@ namespace DK2.Unity
         }
         /// <summary>0x00551BA0: each part's glow frame, then the up arrow, track and down arrow over them, then
         /// the thumb cut from its art's row 8 (clipped to the art; whether DK2's wider blit shows is unchecked).</summary>
-        private void DrawResultsBar(MeshGenerationContext context, float sx, float sy)
+        private void DrawResultsBar(MeshGenerationContext context, float sx, float sy) => DrawFrontEndBar(context, _resultsBar, sx, sy);
+        private void DrawFrontEndBar(MeshGenerationContext context, FrontEndScrollBar bar, float sx, float sy)
         {
             string[] art = { FrontEndScrollBar.UpArrowArt, FrontEndScrollBar.DownArrowArt, FrontEndScrollBar.TrackArt };
             for (int part = 0; part < art.Length; part++)
             {
-                int frame = _resultsBar.GlowFrame(part);
+                int frame = bar.GlowFrame(part);
                 if (frame < 0) continue;
                 Texture2D glow = ScrollGlow(art[part])[frame];
-                FrontEndPoint origin = _resultsBar.ArtOrigin(part);
+                FrontEndPoint origin = bar.ArtOrigin(part);
                 Quad(context, glow, new FrontEndRect(origin.X, origin.Y, glow.width, glow.height), Color.white, sx, sy);
             }
             const int pad = FrontEndScrollBar.GlowPadding;
             for (int part = 0; part < art.Length; part++)
             {
                 Texture2D image = _assets.Image(art[part]);
-                FrontEndPoint origin = _resultsBar.ArtOrigin(part);
+                FrontEndPoint origin = bar.ArtOrigin(part);
                 Quad(context, image, new FrontEndRect(origin.X + pad, origin.Y + pad, image.width, image.height), Color.white, sx, sy);
             }
             Texture2D thumb = _assets.Image(FrontEndScrollBar.ThumbArt);
-            FrontEndRect box = _resultsBar.ThumbRect();
+            FrontEndRect box = bar.ThumbRect();
             float width = Mathf.Min(box.Width, thumb.width);
             float height = Mathf.Min(box.Height, thumb.height - FrontEndScrollBar.ThumbArtTop);
             float right = width / thumb.width, top = 1 - (float)FrontEndScrollBar.ThumbArtTop / thumb.height;

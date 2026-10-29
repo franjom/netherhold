@@ -103,11 +103,13 @@ namespace DK2.Unity
                 if (prop.MapPiece is DK2.Assets.FrontEndMapPiece piece) _campaignPickSlots[prop.View.Id] = new CampaignSlot((byte)piece);
                 else if (prop.MarkerSlot is CampaignSlot slot) _campaignPickSlots[prop.View.Id] = slot;
             }
-            _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, menuAssets, _campaignMap);
+            _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, menuAssets, _campaignMap, _optionsPages);
             _frontEndMenu.Model.QuitRequested += QuitFrontEnd;
             InitializeSaves(install);
             _frontEndMenu.Model.SetSaveBrowser(_saves);
             _frontEndMenu.Model.LoadRequested += LoadSession;
+
+            ApplyGameSettings(_gameSettings);
             _frontEnd.Update(TimeSpan.Zero);
             _scene.SetCreatureFrameTime(GameTick.Zero, 0);
             _presenter.Present(world);

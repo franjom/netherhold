@@ -36,7 +36,7 @@ are clickable. New/Continue Campaign lead to the3D map and briefing; locked and 
 branches cannot be picked. Reset confirmation preserves progress on cancel.
 On widescreen the front-end camera keeps DK2's 4:3 vertical view (wide screens show more at the sides) and the menu draws its 640x480 layout as a centred uniform-scale box.
 The briefing go button starts the campaign level; at its result Space returns to the front end's statistics page, and the page shows the level-end statistics rows with DK2's list scroll bar (arrows, track and thumb drag; no mouse wheel) and the objective images; accept there flies back to the map, first offering hi-score name entry (page 18, typed with Backspace/Enter) when a won level's rating qualifies. After a won campaign level the front end plays its cutscene first (`DungeonRunner.Cutscene`: Speech.str title card on black, a 2 s hold, then the movie; level 20 plays two outros); a front-end-launched level starts with the carried transfer creature placed by `DungeonRunner.LevelEnd`. Hi-scores load from `HiScores.dat` under `persistentDataPath`, else the install's read-only copy. Multiplayer
-and media actions remain dimmed; option values are not yet bound. Menu labels
+and media actions remain dimmed; the settings scope is described below. Menu labels
 use the local TrueType face described below, with original bitmap fallback and
 original glyph metrics (ADR-0539).
 Campaign progress uses `campaign-profile.dk2p` under Unity
@@ -112,6 +112,11 @@ Options; Back returns to its rows. Save/Load uses named `.dk2g` files under
 same browser. These files contain our simulation checkpoint and campaign profile,
 separate from original DK2 saves. Loading restores the saved campaign profile.
 Runtime save/load acceptance is tracked in the front-end plan F6.
+
+Front-end Options edits settings beside the campaign profile. Gamma uses a URP
+exposure proxy; Game Speed and Scroll Speed apply to gameplay. Unsupported
+controls are dimmed. Keyboard Setup persists captured keys; gameplay key and
+audio consumers are integrated separately (front-end plan F9).
 
 The numeric tool shortcuts below remain debugging controls.
 The default Hand (`1` or `5`)

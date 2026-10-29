@@ -37,7 +37,7 @@ p.41's camera combos) are what caught it.
 
 Rebindable in-game: **Options → Control → Define Keys** picks an action from a
 scrolling list and takes the next key pressed (manual §16.1.4.3). So this is the
-default map, not the only one. The roster that screen lists is unread.
+default map, not the only one. The native roster is now read: [row mapping](functions/00560FD0.md).
 
 ### Possessed creature, first person
 
@@ -195,8 +195,7 @@ save format of our own.
    (hand-cursor-rendering.md). Not built.
 2. **Where does DK2 persist a rebound keymap?** No `.cfg`, `.ini` or keymap file at
    the install root, so the registry is the candidate. Unread.
-3. **The Define Keys action roster.** Reading it would confirm whether the shipped
-   key list is the complete set of bindable actions.
+3. **The Define Keys action roster.** Closed by the [native row mapping](functions/00560FD0.md):63 rows, including Restart and action63. Our list shows all native names and permits capture for implemented consumers.
 4. **Every camera constant.** Scroll speed, rotation rate, the speed-scroll
    multiplier, the F1/F2/F3 preset tilt and zoom, and the ambient-light and gamma
    step sizes. None read from the binary and none measured. The Options screen

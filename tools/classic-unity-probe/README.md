@@ -505,3 +505,16 @@ checks tick/hash, level, profile and carry through in-game and front-end loads,
 then the original Level1/seed restart and the paused objective/Continue state.
 The owner project and its profile/saves are not written. This is adapter regression
 verification, not owner gameplay or matched-original acceptance.
+
+## Options settings
+
+`run-options.ps1` creates an isolated Unity project and runs `OptionsSettingsProbe`.
+Build the Debug adapter first. The probe renders Graphics, Sound and Control,
+checks the live/revert transaction and key capture, and verifies the URP brightness
+override. It writes regenerated menu captures and logs under `build/`; it does not
+load or write the owner's profile/settings. UiScale remains unavailable pending
+HUD pointer-coordinate mapping.
+
+`run-options.ps1 -Gameplay` checks persisted Gamma and ScrollSpeed on a fresh Level1
+and again after restarting through `LoadLevel`, using probe-local settings/profile.
+The menu probe also checks each page's Confirm and Cancel pixels separately.
