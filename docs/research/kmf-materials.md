@@ -212,3 +212,37 @@ sum times shininess. Approximated: our light sum includes the owner-tuned Unity 
 their first frame's normals; terrain pieces and effect frames get no pass; a fading
 object drops its pass, as DK2's blended gate does; the option is always on. Without the
 classic vertex-lit shader no pass is drawn.
+
+## 9. Unique creature textures (2026-10-29, Q681)
+
+CONFIRMED native mechanism: `0x0059A3C0` uses `unique_%s` when variant
+bit 0 is set, and otherwise keeps the supplied texture name. Its caller
+`0x005924A0` passes texture descriptor `+0x38`; a failed nonzero-variant
+lookup returns -1. `0x0057C420` fills material variant rows and uses the
+invalid-material texture when that lookup fails. This is not evidence
+for falling back to the ordinary texture when a unique texture is absent.
+
+The creature constructor `0x004872A0` sets RenderInfo `+0xAC` (thing `+0xF0`)
+to 1 for definition flag `0x08000000`, `IsUnique`; the ordinary initializer
+sets zero. Animated/static mesh submission `0x0059C880`/`0x0059CCF0` passes
+that byte separately from animation and texture phase. The install's
+`EngineTextures.dir` contains `Unique_` body textures for all 13 unique
+archetypes, and `Unique_Creature Bed_...` families. Native material variants
+are therefore supported independently of the extra creature art block 50.
+
+Each unique creature still has its own animation fields and `LairObjectId`.
+The base-id byte is not a license to substitute the base record's art.
+Our `Dk2ArtCatalogue` and `ArtSourceMap` select those fields by the unique
+record's own id, but `InstallArtProvider` loads the KMF's ordinary material
+names: the variant selector is unimplemented. The separate file `+0x14F1`
+resource and its unresolved slot-50 requester remain in kwd-creatures.md.
+
+**Unique bed selection is UNDETERMINED.** `0x004E03F0`/`0x0048AD50` create
+the record's ordinary bed type and link it to the creature; neither copies
+the unique selector there. Whole-section direct stores to thing `+0xF0`
+and RenderInfo `+0xAC`, with creature initialization as the positive control,
+found no bed activation. Computed/indirect assignment is not excluded.
+Texture existence and OpenKeeper's linked-creature material remap do not
+prove native use. Capture an original unique creature making and using its
+bed; inspect the bed's selector and submitted material alongside the
+creature's. Preserve the capture outside the checkout.

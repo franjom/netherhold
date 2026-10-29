@@ -121,7 +121,7 @@ then per group its items (42 bytes) and per item its sounds (16 bytes) and links
 
 | Field | Offset | Meaning |
 |---|---|---|
-| group | `+0x00`, `+0x04`, `+0x10`, `+0x12` | id, item count, flags (player class), parameter-0 id (2 = intensity) |
+| group | `+0x00`, `+0x04`, `+0x10`, `+0x12` | id, item count, u16 flags, separate parameter-0 id (2 = intensity); [flag consumers](#51-native-group-flag-consumers-2026-10-29) |
 | item | `+0x00`, `+0x04`, `+0x0C/0D`, `+0x10/12`, `+0x26` | sound count, link count, volume min/max %, delay min/max ms, links pointer at run time |
 | sound | `+0x00`, `+0x04`, `+0x08`, `+0x0C` | archive entry (1-based), cumulative weight (low word), length ms, bank |
 | link | `+0x00`, `+0x06`, `+0x07` | target item (1-based), min and max intensity, inclusive |
@@ -138,6 +138,26 @@ No music item has zero links. In track 3 the part-4 items (129–152) link to it
 0–19, and 153 has no link below 20: with the music silenced mid-part-4, one outro segment
 plays and the music stops. Repeated targets within one range weight the choice (track 3
 item 130 lists 131 twice at 80–100). **CONFIRMED** (data).
+
+### 5.1 Native group flag consumers (2026-10-29)
+
+**CONFIRMED:** group `+0x10` is a 16-bit flag word, and `+0x12` begins a
+separate parameter-id field. Id 2 is the intensity used by the music and
+ambience requests. See [instance init](functions/0060C9D0.md).
+The [factory](functions/0060DA70.md) dispatches on `0x04`, `0x10`, `0x02` and
+`0x0400` to distinct constructors; music's linked picker independently
+confirms the parameter-linked segmented route. OpenKeeper's repeating,
+sequential and segmented labels for the other routes remain **UNDETERMINED**
+until their player bodies are read. `0x01` selects the alternate
+request path at the [request entry](functions/00608C20.md); its deferred
+creation meaning is **UNDETERMINED**, with its queue body unread.
+
+[Flag initialization](functions/0060C960.md) maps `0x08` to looping/repeating
+instance state, `0x0200` to the head-relative path and `0x20` to instance
+bit `0x1000`. Head-relative binding and loop count 9999 are visible in the
+[voice binder](functions/0060CDB0.md). The `0x20` label "backend event" is
+**UNDETERMINED** beyond that state mapping: its downstream consumer was not
+read. The flags are not one undivided "player class" field.
 
 ## 6. The segment picker `0x006163C0` (linked player, vtable `0x00674180`)
 
@@ -166,7 +186,8 @@ pick stores item 1 as current even when nothing matches, so at intensity 0 the m
 exists, flagged stopped, and retries each frame (**CONFIRMED**). That it is silent is
 **CONFIRMED** by the owner (no music before the first raise, §9 *Live capture*); how is unread:
 the init still picks item 1's sound into `+0x0C` (`0x0060CA43..9C`), and what keeps it off the
-stream (`0x0060C960`, the stream start) was not read. The LCG is the sound system's own, not a game stream.
+stream remains unread. `0x0060C960` initializes flags, not playback
+([record](functions/0060C960.md)). The LCG is the sound system's own, not a game stream.
 
 ## 7. Where the lead differs
 
@@ -351,7 +372,7 @@ by the owner agrees with the code.
 
 ## 10. UNKNOWN
 
-- How a stopped music instance stays silent (`0x0060C960`, §6); that it is silent is now an
+- How a stopped music instance stays silent (§6); that it is silent is now an
   owner observation (§9, *Live capture*).
 - The one-shot atmosphere's delay-chained player (vtable `0x006740B0`) and the options-screen
   player (`0x006741C8`), not re-read.

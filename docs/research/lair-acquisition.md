@@ -331,14 +331,11 @@ State 79 tests the bed definition, not autonomous sleep eligibility. The state
 zero-sleep bed users can complete a directed relocation, while bedless types
 reach state 79's rejection instead of remaining stuck in it.
 
-The state-category hook supplies the rest operation that state 83 itself does
-not: it subtracts one from `SleepNeeded` every game tick, flooring at zero, and
-runs the lair effect once per game second. The handler leaves only after
-`SleepNeeded == 0` **and** current health has reached the creature's
-level-scaled maximum. This is a real mismatch with `CreatureSleepSystem`, which
-woke after `TimeSleep` regardless of health until ADR-0173 corrected it (Q403,
-owner 2026-09-23): `LairRules.HasSleptEnough` now takes the database and requires
-both.
+The state-category hook supplies rest depletion and the once-per-second lair
+effect. The persistent sleep debt, its zero-debt manual-drop case and the
+remaining `SleepTicks` mismatch are in
+[creature-needs-routine.md](creature-needs-routine.md) section 3 (Q651).
+ADR-0173 corrected ours' health gate (Q403); it did not implement that latch.
 
 States 82 and 84 have table flag byte `+0x18 = 5`, while 83 has 4. The only
 difference is bit 0. None of these handlers reads that byte, and the executable

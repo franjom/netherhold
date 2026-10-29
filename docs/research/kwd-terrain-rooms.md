@@ -173,6 +173,28 @@ the dump agrees (every record's `0x1D6` is its own id and the values are sensibl
 
 Our parser does not read them yet.
 
+## Ceiling fields: bounded binary audit (2026-10-29, Q679)
+
+CONFIRMED: `0x0043AD70` loads common resource `Ceiling` as type 1 with
+flags `0x20000`, through the same loader interface as torch resources.
+Loading a texture does not establish a ceiling mesh or its visibility rules.
+
+The shipped `Rooms.kwd` has 26 records; all have zero at file `+0x368`
+and an empty tenth art block (file `+0x314`, conventionally ceiling art).
+`RoomDef.CeilingHeight` preserves the four bytes, but its height meaning is
+UNDETERMINED: `0x004EACC0` reads intermediate `+0x43C` (file `+0x368`)
+and stores only its low byte at runtime `+0x455` (`0x004EAD4B..51`).
+A whole-executable instruction scan for `+0x455`, with that store as its
+positive control, found initialization/stores but no room-definition reader.
+The other matching readers use creature records. This does not exclude
+computed or indirect access.
+
+Neither the original ceiling draw path nor its geometry, room-art override,
+height curve or possession-only visibility is established by this audit.
+Do not import OpenKeeper's distance curve as original behavior. Close Q679
+by tracing a native ceiling draw or capturing the possessed original view
+with controlled room widths; keep any resulting evidence in `D:/DK2Evidence`.
+
 ## Confidence
 
 CONFIRMED — record sizes, all parsed field offsets, the transition graph, room

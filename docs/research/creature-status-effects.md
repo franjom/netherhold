@@ -109,9 +109,12 @@ an invisible creature that stands in their way.)
 
 **Lightning** (type 9). Damage `ShotData1` (300), **doubled on a water tile**,
 through the health routine (`shots.md` §8); `+0x4E3` = 20 (the electrified
-animation); then, unless held (`+0x3CB`), in state 23, `IsHorny` or `Possessed`,
+animation); then, unless `PrisonOwner` (`+0x3CB`) is set, in resolved category 23,
+`IsHorny` or `Possessed`,
 `0x00491830(creature, 255)`: `SetState(255)` "stunned", action 52, and
-`0x0049AA30(15)`. **The Reaper Fireball** (type 29, `0x004AF610`) stuns the same
+`0x0049AA30(15)`. The prisoner and zero-duration checks are in
+[keeper-spell-thunderbolt.md](keeper-spell-thunderbolt.md) section 3.
+**The Reaper Fireball** (type 29, `0x004AF610`) stuns the same
 way, refused only for a dying or `IsHorny` target.
 
 **The stun needs its state.** `0x00491830` tests `SetState(255)` and on a refusal

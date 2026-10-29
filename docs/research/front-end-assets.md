@@ -239,6 +239,12 @@ Menu style selection and measurement: [menu implementation boundary](front-end-m
 `u32 headerSize (40)`, `u32 storedSize`, `char[16] name`, `u16 sampleRate`,
 `u8 bitsPerSample`, `u8 type`, then three `u32`s. The payload follows the header.
 
+The `u32` at entry `+32` is exposed as `SampleCountField`; its units/trimming are
+UNKNOWN. All 211 PCM entries have zero; all 7,749 MPEG entries differ from full-frame
+sample and PCM-byte counts. AmbienceHD entry 1 declares 237,182 versus 119,040 mono
+samples (238,080 bytes). A pre-padding PCM-byte length remains possible; C1 must
+establish units before asserting decoder output equality (Q677).
+
 | Type | Meaning | Where |
 |---|---|---|
 | 0, size 0 | empty slot, usually named "Blank" | 32 of 43 in FrontEndHD |
@@ -268,9 +274,10 @@ records it for `SdtArchive`.
 
 ### 5.3 Event maps (`*BANK.map`, `*SFX.map`); no reader in the repo
 
-A `BANK.map` holds a 16-byte GUID-like id, two `u32`s and `u32 count` at 0x18, then
-`count` 11-byte records, then `count` length-prefixed archive names. CONFIRMED by
-parsing; the field meanings are from OpenKeeper's `BankMapFile` (facts only).
+A `BANK.map` holds a 16-byte id, two `u32`s and `u32 count` at 0x18, then
+`count` 11-byte records, then length-prefixed archive names. CONFIRMED by
+parsing and the native reader; flags at record `+9` are in
+[sound-effects.md section 2](sound-effects.md#2-bankmap-archive-flags).
 
 | Bank | Archives it names |
 |---|---|
@@ -285,11 +292,9 @@ parsing; the field meanings are from OpenKeeper's `BankMapFile` (facts only).
 | `music` | `Global\Track_1_1..1_4`, `Track_1SG`, `Track_3_1..3_4` (9 archives; `Track_Zero` is named by no bank) |
 | `speech_mentor` | `speech_mentor\speech_mentor` |
 
-`SFX.map` sizes (bytes): front_end 248, music 27,042, options 1,224, options_music 1,128, options_speech 732, object_fe_parchment 982, _spike 224, _torch 178, _window 138, _map 130, multi_player 130. Per OpenKeeper's `SfxMapFile`: a 28-byte
-header, then 24-byte event records (group count, distances, scale), then 20-byte group
-records, then variant and sound records (`index`, `archiveId`). That layout was only
-spot-checked here: the group counts it gives are 4 (front_end), 18 (options) and 13
-(parchment). So it is STRONGLY INFERRED.
+`SFX.map` sizes (bytes): front_end 248, music 27,042, options 1,224, options_music 1,128, options_speech 732, object_fe_parchment 982, _spike 224, _torch 178, _window 138, _map 130, multi_player 130. The confirmed record layout is in
+[music.md section 5](music.md#5-the-data-sfxmap-bankmap); native flag semantics
+are in [music.md section 5.1](music.md#51-native-group-flag-consumers-2026-10-29).
 
 The `object_fe_*` banks name five front-end props: map, parchment, spike, torch and
 window. Only some of them have an object in `Objects.kwd` (§2.1).
@@ -311,9 +316,8 @@ window. Only some of them have an object in `Objects.kwd` (§2.1).
 
 The music is made of segments (`1pt1-001.mp2` …) that `musicSFX.map` sequences (`music.md`).
 `options_music` plays from `Track_1_4`. Which segments the front end plays is a
-DKII.EXE question (UNKNOWN). `Global/SoundFont.sf2` (404,764 B, RIFF `sfbk`) is a
-SoundFont bank; what uses it is UNKNOWN. binary-census.md places a SoundFont library
-in the engine range.
+DKII.EXE question (UNKNOWN). `Global/SoundFont.sf2` (404,764 B, RIFF `sfbk`) is
+selected by one_shot_atmos; see [sound-effects.md section 2](sound-effects.md#2-bankmap-archive-flags).
 
 ### 5.5 Speech (CONFIRMED)
 

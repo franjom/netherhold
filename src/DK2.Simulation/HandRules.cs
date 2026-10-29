@@ -312,8 +312,8 @@ public static class HandRules
 
     /// <summary>Whether <paramref name="creature"/> may be slapped by
     /// <paramref name="playerId"/>: <see cref="CreatureFlags.CanBeSlapped"/>, the keeper's own
-    /// creature, not in a hand, not down, and no timing gate (see
-    /// <see cref="KnockBackWindowSeconds"/>). A prisoner is pickable but not slappable. Horny is
+    /// creature at liberty, not in a hand, not down, and no timing gate (see
+    /// <see cref="KnockBackWindowSeconds"/>). A prisoner may be slapped only by its jailer. Horny is
     /// excluded before every other test, as in the original: a slap on
     /// <see cref="CreatureFlags.IsHorny"/> runs another routine and never reaches the work bonus
     /// (Q158).</summary>
