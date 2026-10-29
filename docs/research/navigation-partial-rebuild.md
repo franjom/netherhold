@@ -333,3 +333,27 @@ preserved standalone project. These are diagnostic prefixes, not new win rates.
 `python -B <root>/verify_ordered_navigation.py` verifies30 sealed artifacts and
 the pinned capture inputs. Independent read-only review confirmed the counts,
 hash controls and observed reversal, with the observation limit above.
+
+### Batch frequency, hash328
+
+How often batching can matter, measured on `7030c48a` (2026-10-29) with temporary
+instrumentation in `WorldSteering.Refresh`, not committed: each refresh that edits
+two or more tiles is cloned (`NavMesh.Write`/`Read`), the clone edited in reverse
+tile order, and the live triangles' geometry and bytes compared.
+
+| scenario | mesh edits | batches of 2+ | order-sensitive |
+|---|---|---|---|
+| `keepers/level11a_drako_attack` | 230 | 36 | 3 |
+| `keepers/level17_harkan_unassisted` | 257 | 19 | 4 |
+| `keepers/level17_harkan_call_to_arms` | 25 | 2 | 0 |
+| `keepers/level10_asmodeus_idle` | 828 | 185 | 0 |
+| Level 1 `placed_things`, fuzzer as player 3, 4000 ticks | 168 | 1 | 0 |
+
+Every order-sensitive batch held two edits within 2 tiles of each other; distant
+edits commuted. Reversal is a proxy: whether tile order differs from DK2's write
+order in those batches is not known, so 7 of 1,508 edits bounds this drift from
+above. A synthetic control (300 random batches of 2-6 edits on a 16x11 map)
+gave different geometry in 135 and different Walker routes in 104 when reversed,
+with every order still a valid mesh. Editing in write order would need a log of
+routing writes (tiles, doors, stamps, hearts, crypts) replayed by `Refresh`; not
+justified until a batch is shown to change an outcome (Q591's next step).
