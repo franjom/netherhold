@@ -11,6 +11,9 @@ The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
+- Hand drops animate only after acceptance (ADR-0582); native packet-submit
+  timing and pending-entry scheduling remain partial (Q682).
+
 - Thunderbolt captive-binding and expired-stun-effect guards are built at
   hash/save 332 (ADR-0581); Combat Pit binding integration remains Q675.
 

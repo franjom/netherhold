@@ -275,8 +275,23 @@ the native strict endpoint reversal.
 The click arm of `0x00408EE0` tests `0x0040D8F0` before submitting a normal
 Hand drop. Only success calls `0x0040DAB0`, whose tail at `0x0040DCF6..0x0040DD08`
 requests cursor state8 (DropThing) through `0x0040ABC0`. A refused ordinary
-drop does not reach that animation request. Pending pickups first queue a
-drop on a successful gate; their later dispatch timing is not established here.
-Ours emits DropCommand from PlayerInput whenever holding, then DungeonRunner
-plays DropGold/DropThing for every such command before execution-time refusal.
-This is a confirmed presentation mismatch, queued without a source change.
+drop does not reach that animation request.
+
+Pending pickups first queue a drop on a successful gate. The dispatcher
+`0x0040E0D0` checks actual hand membership through `0x004BCAE0` at `0x0040E175`.
+Only with the queued flag at entry `+0x0C` set and the dispatched flag at
+`+0x10` clear does it call `0x0040DAB0` (`0x0040E1A7`), then marks it dispatched.
+Thus queuing the click does not itself request the animation. The complete
+pending-entry scheduling and its millisecond alignment remain unmodelled.
+
+**Built (ADR-0582):** `HandSystem` emits typed accepted-drop feedback after
+its creature/object guards, including disposal and delivery routes. The local
+cursor observer queues it for the render thread. Queued local pickups admit a
+right-click drop before their tick; failed pickups, refused drops and empty
+hand commands emit no feedback. Gold/thing art is chosen from the released
+item rather than the pre-tick stack. `HandDropFeedbackTests` covers those
+cases, mixed stacks, other-player filtering and worker-thread delivery.
+
+**Timing limit:** our animation starts after command execution and the next
+render-thread drain. DK2 requests it at packet submission after its input gate;
+this change does not claim that phase or the native pending-entry scheduler.

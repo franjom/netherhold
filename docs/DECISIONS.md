@@ -13572,3 +13572,20 @@ damage. Expired zero/one-turn stuns skip effect 101; a two-turn stun still asks
 for it. Hash/save 332 marks changed behavior with no new fields; 331 saves and
 journals are refused. Combat Pit's missing binding write remains outside this
 fix (combat-pit.md section 10). Native replay outcomes are unmeasured.
+
+## ADR-0582 — Animate only accepted hand drops
+**Date:** 2026-10-29 · **Status:** accepted · Q682.
+
+**Context.** Unity played a drop animation whenever input queued a DropCommand,
+including refused drops. The native acceptance and pending-pickup evidence is
+[hand-cursor-rendering.md](research/hand-cursor-rendering.md#refused-drop-feedback-confirmed-binary-2026-10-29).
+
+**Decision.** Emit typed observer feedback after the existing creature/object
+drop guards accept. Select gold/thing art from that accepted item. Queue the
+local feedback across worker ticks and apply it on the render thread. Admit
+right-click drops while a local human pickup command awaits its tick.
+
+**Consequences.** Refused drops and failed pickups do not animate. Batched drops
+follow the actual stack order. No saved or hashed state changes; hash/save 332
+and its pin remain unchanged. Animation waits for execution and a render drain;
+native packet-submit timing and pending-entry scheduling remain partial (Q682).

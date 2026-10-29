@@ -171,6 +171,7 @@ namespace DK2.Unity
         private WorldState _heartHealthWorld;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
         private TilePos? _dragTo;
+        private HandCursorEventSink _handCursorEvents;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
         private ScriptedViewDirector _scriptedView;
         private Vector3 _glideFrom;
@@ -366,8 +367,9 @@ namespace DK2.Unity
                 (ISimulationEventSink)_constructionEffects?.Model ?? NullEventSink.Instance);
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
             PrepareWinScreen(database);
-            _simulation.ObserveWith(new VisibilityEventSink(_worldView, world,
-                new PlayerId((byte)viewingPlayerId), _scriptedView));
+            _handCursorEvents = new HandCursorEventSink(_cursorFeedback, new PlayerId((byte)viewingPlayerId),
+                new VisibilityEventSink(_worldView, world, new PlayerId((byte)viewingPlayerId), _scriptedView));
+            _simulation.ObserveWith(_handCursorEvents);
 
             int maximumHeartHealth = database[VariableTypeId.DungeonHeartObjectHealth];
             _heartHealthObserver = change => _scene.QueueHeartHealthChange(change.Owner,
@@ -628,6 +630,7 @@ namespace DK2.Unity
             }
 
             if (ticks > 0 && !tickOnWorkerThread) RunTicks(ticks, firstInput);
+            _handCursorEvents?.Drain((long)(Time.unscaledTimeAsDouble * 1000));
             // Retain released tag previews until the command's tick has actually completed,
             // including the frame before a worker tick starts.
             _worldView.AcknowledgeTagPreviews(_simulation.World.CurrentTick);
@@ -811,7 +814,7 @@ namespace DK2.Unity
                 PointerPosition: tile is TilePos pointTile ? ScreenToPosition(Input.mousePosition, pointTile) : null);
             JournalIntent(intent);
             PlayerInputSnapshot snapshot = PlayerInputSnapshot.Capture(
-                _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile);
+                _worldView, _simulation.World, (byte)viewingPlayerId, _simulation.Database, pointerTile: tile, pendingCommands: _pendingCommands);
             if (tile is TilePos at && (ActiveTool == PlayerToolMode.Hand || ActiveTool == PlayerToolMode.Slap))
                 snapshot = snapshot.ForHover(ResolveWorldHover(at));
             InputFrame frame = _input.Translate(intent, snapshot);
@@ -823,8 +826,6 @@ namespace DK2.Unity
             {
                 _pendingCommands.Add(command);
                 if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs);
-                if (command is DK2.Simulation.Commands.DropCommand)
-                    _cursorFeedback.Play(HoldingGold() ? HandCursorKind.DropGold : HandCursorKind.DropThing, nowMs);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, _simulation.World.CurrentTick.Next);
                 if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)

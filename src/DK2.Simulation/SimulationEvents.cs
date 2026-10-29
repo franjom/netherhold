@@ -3,8 +3,12 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
+
+/// <summary>A hand release accepted by the drop rules; presentation only.</summary>
+public readonly record struct HandDropFeedback(PlayerId Player, bool Gold);
 
 /// <summary>Something the simulation did, recorded for observation only.</summary>
 /// <remarks>Events are the harness's and the oracle comparison's window into the simulation,
@@ -17,6 +21,7 @@ namespace DK2.Simulation;
 /// <param name="Detail">Human-readable specifics; never parsed by the simulation.</param>
 public readonly record struct SimEvent(GameTick Tick, string System, string Kind, string Detail)
 {
+    public HandDropFeedback? HandDrop { get; init; }
     public RoomConstructionEffect? ConstructionEffect { get; init; }
     public ViewEffectRequest? EffectRequest { get; init; }
     public SightRegionRequest? SightRegion { get; init; }
