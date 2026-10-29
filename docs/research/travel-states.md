@@ -346,4 +346,4 @@ are, not the order they move through states. A tighter series would show that.
 
 Both route helpers are mirrored: `CreatureStateMachine.BeginTravel` enters the walk and
 writes the resume; `TunnelRules.RouteOrTunnel` (`0x00471890`, `0x00471A70`) and
-`StealGoldRules.ToRoom` (`0x00471A70`) call it.
+`StealGoldRules.ToRoom` (`0x00471A70`) call it. For states 6 and 7 it ends a running action last (§2.1 step 7, §2.2 step 7) through `CreatureStateMachine.EndAction`, the same routine the combat enter hook uses; state 8's entry does not (ADR-0572, Q671).

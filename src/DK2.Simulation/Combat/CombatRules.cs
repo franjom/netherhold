@@ -355,10 +355,7 @@ public static class CombatRules
     internal static bool EnterCombat(CreatureState creature)
     {
         creature.StopMoving();
-        TrainingStep.CancelAction(creature);
-        creature.SwingInProgress = false;
-        creature.ActionUntilTick = 0;
-        creature.Tunnel.ActionUntilTick = 0;
+        CreatureStateMachine.EndAction(creature);
         return true;
     }
 

@@ -24,6 +24,8 @@ public class CreatureStateMachineTests
     private const int EnRouteToRoom = 7;         // group 9, Movement - the room helper's
     private const int HatcheryWalkCaller = 91;   // group 7, Eating - the trace's first state
     private const int Eating = 92;               // group 7, Eating - its resume
+    private const int Approaching = 8;           // group 9, Movement - combat's own walk
+    private const int Engaging = 199;            // its resume
 
     private static CreatureState Fresh() => new() { Id = 1 };
 
@@ -125,6 +127,49 @@ public class CreatureStateMachineTests
         Assert.Equal(Idle, creature.StateBeforeUtilityState);
         Assert.True(CreatureStateMachine.TrySetState(DetachedHooks.Context, creature, EnRouteToRoom));
         Assert.Equal(CreatureStateMachine.Idle, creature.StateBeforeUtilityState);
+    }
+
+    [Theory]
+    [InlineData(EnRoute)]
+    [InlineData(EnRouteToRoom)]
+    public void ARouteHelpersWalkEndsTheRunningAction(int travelState)
+    {
+        // 0x00471890 and 0x00471A70 end a running action after a successful route
+        // (0x00496D00, then 0x00496D20), so a hold started before the walk does not
+        // outlive it (Q671).
+        CreatureState creature = Running(HatcheryWalkCaller);
+
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, travelState, Eating);
+
+        Assert.Equal(0, creature.ActionUntilTick);
+        Assert.Equal(0, creature.Tunnel.ActionUntilTick);
+        Assert.False(creature.SwingInProgress);
+        Assert.Equal(0, creature.TrainingActionId);
+    }
+
+    [Fact]
+    public void TheCombatApproachKeepsTheRunningAction()
+    {
+        // State 8's entry 0x00471D10 requests its route directly and ends no action.
+        CreatureState creature = Running(Idle);
+
+        CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, Approaching, Engaging);
+
+        Assert.Equal(900, creature.ActionUntilTick);
+        Assert.Equal(900, creature.Tunnel.ActionUntilTick);
+        Assert.True(creature.SwingInProgress);
+        Assert.Equal(1, creature.TrainingActionId);
+    }
+
+    private static CreatureState Running(int state)
+    {
+        CreatureState creature = Fresh();
+        StatePlacement.Place(creature, state);
+        creature.ActionUntilTick = 900;
+        creature.Tunnel.ActionUntilTick = 900;
+        creature.SwingInProgress = true;
+        creature.TrainingActionId = 1;
+        return creature;
     }
 
     [Fact]

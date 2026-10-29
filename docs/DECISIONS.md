@@ -13324,3 +13324,31 @@ order (Q668).
 
 Tests: `BlueprintPlacementTests.AnOrderLeftByADestroyedBlueprintIsNotCountedAsACrate`,
 `ManufactureTests.AnAuthoredDoorBlueprintCountsTheCratesLoadedBeforeIt`.
+
+## ADR-0572 - A route helper's walk ends the running action
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 326 · Q671 ·
+Research: `docs/research/travel-states.md` §2.1, §2.2; KB `00471890`, `00471A70`, `00471D10`, `00496D20`
+
+**Context.** DK2's two route helpers, `0x00471890` (to a point, state 6) and `0x00471A70` (to a room,
+state 7), end a running action on a successful route: `0x00496D00` (action `+0x3A9` neither 0 nor 21),
+then `0x00496D20`, which zeroes the action block (its record byte is 1 for all 81 actions). They do it
+after SetState and the combat-leave step, whatever SetState returned. State 8's entry `0x00471D10` does
+not. Ours left every action stand-in running, so a hold begun before a walk could outlive it and a cast
+begun before a walk still released its shot.
+
+**Decision.** `CreatureStateMachine.EndAction` clears our stand-ins for DK2's one action block (the
+training action, the swing or cast, `ActionUntilTick`, the tunnel's dig hold). `BeginTravel` calls it
+last for states 6 and 7; the Combat enter hook (`CombatRules.EnterCombat`) calls it instead of its own
+four clears.
+
+**Consequences.** A caster that disengages and walks to a job before its shot leaves fires nothing
+(STRONGLY INFERRED: the end zeroes action 16's block, which the action runner `0x00489A68` reads; not
+seen in a capture). In
+the Level 4 seed-1 full replay that is the first divergence from hash 325 under both generators (Dark
+Elf at 3893 -> 3899 with `--rng dk2`, Warlock at 4767 -> 4779 by default); Imp deaths move 36 -> 40
+and 23 -> 37, chaotic after the divergence (evidence `runs/q671-route-ends-action-2026-10-29`). A
+waiting hero's walk now leaves `ActionUntilTick` at 0 rather than at its past end, which every reader
+treats the same.
+
+Tests: `CreatureStateMachineTests.ARouteHelpersWalkEndsTheRunningAction`,
+`TheCombatApproachKeepsTheRunningAction`; `HeroWalkTests.AWaitingHeroWalksWhenItsActionEndsAfterTheDeadline`.

@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**326** - `0x7867DC185C8E72EE`. FormatVersion also 326. Behaviour only: the two route helpers' walks (states 6 and 7) end a running action (`0x00471890`, `0x00471A70` -> `0x00496D20`; ADR-0572, Q671), so a hold or a cast begun before the walk does not outlive it; state 8's approach keeps it. No fields added; the pin fixture moves by the version only. `CreatureStateMachineTests.ARouteHelpersWalkEndsTheRunningAction` and `TheCombatApproachKeepsTheRunningAction` cover it.
+
 **325** - `0x55C440B501A59863`. FormatVersion also 325. Behaviour only: a door or trap order is pushed while the keeper's blueprints of the type outnumber its crates, queued orders no longer counted as crates (`0x005066E0`), and an authored door blueprint is queued at its own record (`0x00520F40`, ADR-0571). No fields added; the pin moves by the version only (the fixture has no blueprints).
 
 **324** - `0x6F4F1D921054B690`. FormatVersion also 324. Behaviour only: creature roots run after their own update, area roots after creature work, and player roots after room ticks (ADR-0568). Same-turn ownership changes can start timers immediately. No fields added; the pin fixture moves by the version only. `TriggerSchedulingTests` covers visibility, the root order within a turn and the one-based turn every walk stamps.

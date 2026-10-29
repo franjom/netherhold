@@ -83,6 +83,23 @@ public static class CreatureStateMachine
         if (caller >= 0 && CreatureStateTable.Get(caller).Category == CreatureStateCategory.Combat
             && CreatureStateTable.Get(resumeStateId).Category != CreatureStateCategory.Combat)
             Combat.CombatRules.LeaveFight(in hooks, creature);
+
+        // Both helpers end a running action last, whatever SetState returned (travel-states.md 2.1
+        // step 7, 2.2 step 7). State 8's entry 0x00471D10 does not.
+        if (travelStateId is Systems.StateShadow.TravelToPoint or Systems.StateShadow.TravelToRoom)
+            EndAction(creature);
+    }
+
+    /// <summary><c>0x00496D20</c>, reached through <c>0x00496D00</c>: ends whatever action the
+    /// creature is running. DK2 has one action block; ours has a stand-in for each kind, all
+    /// cleared. Its record byte is 1 for all 81 actions, so the end is never refused. The
+    /// running test's exception, action 21, has no starter, so ours skips that test.</summary>
+    internal static void EndAction(CreatureState creature)
+    {
+        TrainingStep.CancelAction(creature);
+        creature.SwingInProgress = false;
+        creature.ActionUntilTick = 0;
+        creature.Tunnel.ActionUntilTick = 0;
     }
 
     /// <summary>The arrival branch of a travel handler: hand control to the resume state and
