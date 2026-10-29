@@ -148,5 +148,13 @@ internal static class ScenarioReportWriter
         }
 
         File.WriteAllText(Path.Combine(outputDir, "report.md"), report.ToString());
+        // Wall-clock measurements stay separate from the deterministic report.
+        if (result.Timings is RunTimings timings)
+        {
+            double worst = timings.TickTimes.Skip(2).Select(t => t.TotalMilliseconds).DefaultIfEmpty(0).Max();
+            File.WriteAllText(Path.Combine(outputDir, "timings.txt"), timings.Summarise(top: 30) +
+                Environment.NewLine + FormattableString.Invariant($"worst tick after warm-up: {worst:F3} ms") +
+                Environment.NewLine);
+        }
     }
 }
