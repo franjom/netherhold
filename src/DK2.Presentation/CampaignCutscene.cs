@@ -21,6 +21,7 @@ public sealed record CampaignCutscene(uint TitleTextId, uint SpeechId, IReadOnly
         0x4D, 0x589, 0x59F, 0x59B, 0x5A5, 0x594, 0x592, 0x596, 0x598, 0x5A1, 0x597,
         0x599, 0x58B, 0x586, 0x59D, 0x588, 0x58C, 0x58D, 0x5A3, 0x58E, 0xB1B,
     };
+    internal static uint TitleAt(int movie) => TitleIds[movie];
 
     /// <summary>The waits around the voiced line (<c>0x0053BA9B</c>, <c>0x0053BB72</c>), in milliseconds.</summary>
     public const int PauseMilliseconds = 250;

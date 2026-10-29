@@ -124,6 +124,13 @@ click Create Imp. The tool hotkeys are interface choices (ADR-0104).
 
 ## Recording input
 
+The first front-end session shows the title for10seconds, then BullfrogIntro and
+Intro before entering the menu. Enable the runner's Skip Startup switch for
+editor iteration. Idle replay uses the native strict180-second timeout and
+blocked pages. Extras offers the original movie gallery and Trailer when their
+files exist; campaign wins unlock their gallery entries. Locked/missing movies
+and Credits are disabled. Runtime media acceptance is tracked in the front-end plan.
+
 Off by default. Set the runner's **Input Journal Directory** field, or the `DK2_INPUT_JOURNAL`
 environment variable (the field wins), to a folder. Each `DungeonRunner` writes a new
 `session-<utc>-<level or front-end>` folder there with `frames.journal` (one record per rendered

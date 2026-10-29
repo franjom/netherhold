@@ -47,7 +47,7 @@ namespace DK2.Unity.Editor
                 throw new InvalidOperationException("Requires the isolated front-end probe project.");
             EditorSceneManager.OpenScene("Assets/DK2/Scenes/Dungeon.unity");
             var runner = UnityEngine.Object.FindAnyObjectByType<DungeonRunner>();
-            JsonUtility.FromJsonOverwrite("{\"sessionMode\":5,\"fogOfWar\":true,\"showDiagnostics\":false,\"speed\":0,\"installDirectory\":\"E:/GogGames/Dungeon Keeper 2\"}", runner);
+            JsonUtility.FromJsonOverwrite("{\"sessionMode\":5,\"skipStartup\":true,\"fogOfWar\":true,\"showDiagnostics\":false,\"speed\":0,\"installDirectory\":\"E:/GogGames/Dungeon Keeper 2\"}", runner);
             SessionState.SetBool(Active, true);
             EditorApplication.isPlaying = true;
         }

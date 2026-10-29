@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -43,6 +43,9 @@ public sealed class FrontEndMenuController : IDisposable
         Sounds.Add(new SoundRequest(category, new SoundId((uint)id)));
         SoundRequested?.Invoke(new(id));
     }
+    public FrontEndMovieGallery? Movies { get; private set; }
+    public event Action<string>? MovieRequested;
+    public void SetMovieGallery(FrontEndMovieGallery gallery) => Movies = gallery;
 
     public bool IsEnabled(FrontEndWidget widget)
     {
@@ -62,7 +65,9 @@ public sealed class FrontEndMenuController : IDisposable
             FrontEndPage.Graphics => id is 129 or 130,
             FrontEndPage.Sound => id is 146 or 147,
             FrontEndPage.Controls => id is 159 or 160,
-            FrontEndPage.Extras => id is 19 or 24,
+            FrontEndPage.Extras => id is 19 or 24 || id == 22 && Movies is not null || id == 21 && MovieRequested is not null,
+            FrontEndPage.Movies => id == 65 || Movies is not null && id is >= 53 and <= 57
+                && Movies.Entries[Movies.FirstRow + id - 53].Available && MovieRequested is not null,
             FrontEndPage.Dialog => Dialog is not null && id is 667 or 668,
             _ => false,
         };
@@ -119,6 +124,14 @@ public sealed class FrontEndMenuController : IDisposable
             else _session.TryShowPage(Dialog!.ReturnPage);
             return true;
         }
+        if (Page == FrontEndPage.Movies)
+        {
+            if (id.Value == 65) return _session.TryShowPage(FrontEndPage.Extras);
+            MovieRequested?.Invoke(Movies!.Entries[Movies.FirstRow + id.Value - 53].Path);
+            return true;
+        }
+        if (Page == FrontEndPage.Extras && id.Value == 21)
+        { MovieRequested?.Invoke("Data/Movies/Trailer.tgq"); return true; }
         if (Campaign is not null)
         {
             if (Page == FrontEndPage.CampaignMap) return Campaign.BackToMenu();

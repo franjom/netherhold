@@ -33,7 +33,7 @@ in `Paths.WAD` (`Engine Path Info.txt.txt`, entries 250-274).
 | Then it stops CD audio (MCI `cdaudio` stop) and plays `<movies>\BullfrogIntro.tgq` (`0x0053C020`), then `<movies>\Intro.tgq` (`0x0053BFD0`). | `0x0052F140` | STRONGLY INFERRED |
 | Movie playback `0x0053BCD0` runs only when movies are on (`0x0075B170`, cleared by `-NOMOVIES`). Its key handler `0x0053C270` sets the skip flag `0x0073F598` on Esc (scan 1), Enter (0x1C) or Space (0x39); the decoder (`0x005A8F70` open, `0x005A8FB0` step) is in `movie-format.md`. The second handler `0x0053C2A0` sets the same skip flag on a mouse button. | `0x0053BCD0` | STRONGLY INFERRED (skip keys, mouse skip) |
 | Then the front-end resources (`0x00534210`), the page tree (`Gui_LoadMenuTree 0x0052B8F0` over the table `0x006AE4E0`), and the return router `0x00534F70`: in its default branch (return page `0x00759B30` not one of the routed values) it first calls `0x005321A0(page)` when the page is not 1, then sets `0x00759B30` = 1 and state 1, which plays path 250 "Intro to 3D Front End" and then shows the main menu (page 1). | `0x00534F70`, `0x005384F0` | STRONGLY INFERRED |
-| **Attract mode:** if the mouse has not moved for 180 s and the active page is not 10, 11, 0x20, 0x23, 0x27 or 0x2C (multiplayer pages), the tick replays `BullfrogIntro.tgq` the first time and `Intro.tgq` the next, alternately. Any key also resets the idle timer. | `0x00533D30`, `0x0052FAF0` | STRONGLY INFERRED |
+| **Attract mode:** if the mouse has not moved for strictly more than 180 s and the active page is not 10, 11, 0x20, 0x23, 0x27 or 0x2C (multiplayer pages), the tick replays `BullfrogIntro.tgq` the first time and `Intro.tgq` the next, alternately. Any key also resets the idle timer. | `0x00533D30`, `0x0052FAF0` | STRONGLY INFERRED |
 
 ## 3. Pages, items and stations
 
@@ -248,3 +248,26 @@ the Bullfrog intro, movie skipping by keys/clicks, and idle intro replay. The ex
 10-second/180-second timings remain binary readings. No multiplayer recollection is
 available; retain the binary's return routing through path 256 without upgrading
 its confidence. These answers do not establish title-screen skipping.
+
+## Movie gallery
+
+STRONGLY INFERRED from the complete callbacks `0x0053B3F0`, `0x0053B5F0`,
+`0x0053B750`, `0x0053B480`, `0x0053B810` and `0x0053B840` (2026-10-29):
+page5 is a five-row window over the22-row table at `0x006B0DD0`, not a directory
+listing. Row0 is Intro and always unlocked; campaign wins unlock rows1..20,
+with any won branch sufficient for6/11/15. Row13 is unavailable in languages7
+and18; row21 is available only in7. This host has no language selection and
+uses the English roster, retaining row21 as unavailable. Missing files also
+remain disabled. Gallery row20 plays Outro alone; the post-win path separately
+plays BullfrogOutro. Movie thumbnails are M-Intro, M-Outro, M-000..M-018,
+or M-Unavailable, under Mov_Shots. Native locked-row presses show a dialog;
+ours leaves the rows disabled. The five static buttons are53..57, names59..63,
+scrollbar52 and return65; the existing catalogue owns their rectangles.
+
+The native idle tick resets its timer after a blocked-page timeout too, and
+after movie playback returns. It requires an active page. The title remains
+unskippable; movie skip is handled by the existing player. `skipStartup` is a
+development switch; returning from a level skips first-entry startup.
+
+Credits stays disabled: dispatcher99 selects path265/state17, but its content
+producer has not been established. Trailer uses the existing movie player.

@@ -230,3 +230,11 @@ Page 18's colours, read from [0x0053DBD0](functions/0053DBD0.md):
 - The entry row is fixed (255, 0, 0).
 - The top row is the label colour.
 - The other rows are `+0x3032D`.
+
+## Statistics paragraph source
+
+CONFIRMED read,2026-10-29: `0x0053CAF0` treats front-end `+0x3118E` as a
+Text.str id. A nonzero id goes through `0x00553A60` and the existing scrolling
+text setter `0x0052A330` once, guarded by `0x0074034C` bit0x80. Its producer
+remains UNKNOWN (Q685). A direct-offset store search found none; initialization
+or indirect writes have not been excluded. No paragraph is fabricated.

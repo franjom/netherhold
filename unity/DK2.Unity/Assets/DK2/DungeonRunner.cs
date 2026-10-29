@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -533,6 +533,7 @@ namespace DK2.Unity
             DisposeHudControls();
             _soundPlayer?.Dispose(); _soundPlayer = null;
             _frontEndMenu?.Dispose();
+            if (_frontEndMovie != null) Destroy(_frontEndMovie.gameObject);
             _campaignMap?.Dispose(); _campaignMap = null;
             _minimap?.Dispose();
             _handCursor?.Dispose();
@@ -567,7 +568,7 @@ namespace DK2.Unity
             _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null || _failure != null) return;
             _soundPlayer?.UpdateSpeech((long)(Time.unscaledTimeAsDouble * 1000));
-            if (_frontEnd != null) { if (!UpdateCutscene()) UpdateFrontEnd(); return; }
+            if (_frontEnd != null) { if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd(); return; }
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
             if (settled != null) Debug.Log(settled);
 
@@ -1532,6 +1533,7 @@ namespace DK2.Unity
             if (_frontEnd != null)
             {
                 DrawCutsceneTitle();
+                DrawStartupTitle();
                 if (showDiagnostics) DrawFrontEndDiagnostics();
                 return;
             }

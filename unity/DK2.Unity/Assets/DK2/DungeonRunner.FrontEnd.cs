@@ -91,6 +91,7 @@ namespace DK2.Unity
             _campaignMap.ProfileChanged += profile =>
             {
                 _campaignProfile = profile;
+                _frontEndMenu?.Model.Movies?.Refresh(profile);
                 CampaignProfileFile.Save(_campaignProfilePath, profile);
             };
             // Dispatcher 0xC: the session ends and the campaign level runs with return page 0x1A.
@@ -103,18 +104,26 @@ namespace DK2.Unity
             }
             _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, menuAssets, _campaignMap);
             _frontEndMenu.Model.QuitRequested += QuitFrontEnd;
-            _frontEnd.Update(TimeSpan.Zero);
+            string speechPath = Path.Combine(install, "Data", "Text", "Default", "Speech.str");
+            DK2.Data.Text.Dk2StringTable movieTitles = File.Exists(speechPath) ? DK2.Data.Text.Dk2StringTable.Open(speechPath) : null;
+            _frontEndMenu.Model.SetMovieGallery(new FrontEndMovieGallery(_campaignProfile,
+                path => File.Exists(Path.Combine(install, path)),
+                id => movieTitles != null && movieTitles.TryResolve(id, out string title) ? title : "", menuAssets.Text));
+            _frontEndMenu.Model.MovieRequested += PlayFrontEndMovie;
+            BeginStartup(install, menuAssets);
+            if (_frontEndStartup == null) _frontEnd.Update(TimeSpan.Zero);
             _scene.SetCreatureFrameTime(GameTick.Zero, 0);
             _presenter.Present(world);
             _startup.Step("front-end.present");
             Cursor.visible = true;
             // 0x00534F70 plays a won map's title card and cutscene before the front end runs.
             if (frontEndReturnPage == FrontEndPage.CampaignResults) BeginCutscene(install);
-            if (!UpdateCutscene()) UpdateFrontEnd();
+            if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd();
         }
 
         private void UpdateFrontEnd()
         {
+            if (UpdateAttract()) return;
             double elapsed = Math.Max(0, Time.realtimeSinceStartupAsDouble - _frontEndStarted);
             _frontEnd.Update(TimeSpan.FromSeconds(elapsed));
             if (_campaignMap.EntryRow >= 0) TypeHiScoreName();
