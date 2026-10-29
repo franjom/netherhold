@@ -30,6 +30,9 @@ public sealed class CombatSystem : ICreatureUpdateStep
 
     public CombatSystem() => States = new StateHandlers(this);
 
+    /// <summary>Turns a creature keeps tracking one it gave up chasing (<c>0x00489AA3</c>: 0x3C).</summary>
+    public const int RetreatTrackingTicks = 60;
+
     public string Name => SystemName;
 
     /// <summary>The combat states' handlers (<c>spFighting</c>, the flee, withdraw, alarm and
@@ -82,6 +85,19 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 FightRules.LandBlow(context, creature, definition);
             }
         }
+
+        // The tracking of a creature given up for retreating lapses after 60 turns, the chase
+        // counter with it (0x00489A8A-0x00489AB5, ADR-0584).
+        if (creature.RetreatingCreature != 0)
+        {
+            if (++creature.RetreatTicks >= RetreatTrackingTicks)
+            {
+                creature.RetreatingCreature = 0;
+                creature.ChaseTicks = 0;
+                creature.RetreatTicks = 0;
+            }
+        }
+        else creature.RetreatTicks = 0;
 
         // A creature in a combat state is its handler's; 6 -> 254 and 254 are outside the combat
         // group and look for a fight on the way.

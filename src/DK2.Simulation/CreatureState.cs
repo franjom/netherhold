@@ -1225,11 +1225,13 @@ public sealed class CreatureState
     /// <summary>In state 8, the walk to a fight, which resumes 199; while in it
     /// <see cref="Combat.ApproachRules"/> runs instead of <c>spFighting</c>. <see cref="RouteRefreshCountdown"/>
     /// is the state's <c>+0xF5</c>, <see cref="ChaseTicks"/> the creature's <c>+0x53D</c>, and
-    /// <see cref="RetreatingCreature"/> DK2's own name for the target given up (combat-approach-and-victory.md).</summary>
+    /// <see cref="RetreatingCreature"/> DK2's own name for the target given up (combat-approach-and-victory.md), its
+    /// <c>+0x53B</c>, which <see cref="RetreatTicks"/> (<c>+0x53E</c>) clears after 60 turns (ADR-0584).</summary>
     public bool Approaching => Dk2StateId == Combat.CombatStates.Approaching;
     public int RouteRefreshCountdown;
     public int ChaseTicks;
     public int RetreatingCreature;
+    public int RetreatTicks;
 
     /// <summary>The victory pause left to stand, and the corpse a <c>NeedBodyForFightIdle</c> creature walks
     /// to (DK2's <c>state+0xA7</c>).</summary>
@@ -1563,6 +1565,7 @@ public sealed class CreatureState
         hash.Add(RouteRefreshCountdown);
         hash.Add(ChaseTicks);
         hash.Add(RetreatingCreature);
+        hash.Add(RetreatTicks);
         hash.Add(CelebrationTicks);
         hash.Add(BodyTargetId);
         hash.Add(PartyId);

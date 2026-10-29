@@ -616,6 +616,10 @@ public static class CombatTargetRules
         {
             CreatureState candidate = creatures[i];
             if (!TurncoatRules.AreCombatEnemies(world, me, candidate)) continue;
+            // Every arm but Blitzer passes over a candidate walking to 251 or 202 while I track one I
+            // gave up on (0x0045B224, 0x0045B5E4, 0x0045BBB4; ADR-0584).
+            if (definition.FightStyle != FightStyle.Blitzer && me.RetreatingCreature != 0
+                && ApproachRules.IsRetreating(candidate)) continue;
 
             CreatureDef theirs = database.CreatureById(candidate.CreatureTypeId);
             int d = CombatRules.DistanceSquared(me.PosX, me.PosY, candidate.PosX, candidate.PosY);

@@ -96,10 +96,11 @@ public static class ApproachRules
         return seconds * SimulationTiming.OriginalTicksPerGameSecond;
     }
 
-    /// <summary>A target walking away from the fight — DK2's en route to state 202 or 251, the flee
-    /// run and the withdrawal.</summary>
+    /// <summary><c>0x0045F000</c>: a target in state 6 resuming 251 or 202, walking to raise the alarm or
+    /// to withdraw (ADR-0584). Fleeing in 203 itself is not retreating.</summary>
     public static bool IsRetreating(CreatureState target) =>
-        target.Activity is CreatureActivity.Fleeing or CreatureActivity.Withdrawing;
+        target.Dk2StateId == Systems.StateShadow.TravelToPoint
+        && target.UtilityNewState is CombatStates.Withdrawn or CombatStates.RespondingToThreat;
 
     /// <summary>The handler before movement (<c>0x00470E30</c>, §2) and the refresh (§3), one call.
     /// True when the creature is still approaching after it.</summary>
@@ -161,6 +162,7 @@ public static class ApproachRules
             if (me.ChaseTicks > ChaseLimitTicks(database, me))
             {
                 me.RetreatingCreature = target.Id;
+                me.RetreatTicks = 0;
                 context.Emit(SystemName, "gives_up_chase", $"creature={me.Id} target={target.Id} ticks={me.ChaseTicks}");
                 me.ChaseTicks = 0;
                 CombatRules.Disengage(context.Hooks, me);
