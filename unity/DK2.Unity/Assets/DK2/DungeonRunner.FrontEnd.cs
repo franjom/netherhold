@@ -68,6 +68,8 @@ namespace DK2.Unity
             runner.levelName = request.LevelName;
             runner.frontEndReturnPage = request.ReturnPage;
             runner.saveFile = "";
+            runner._resumeSession = _pendingResumeSession;
+            runner._resumeSimulation = _pendingResumeSimulation;
             runner.enabled = true;
             gameObject.SetActive(false);
             // Shader globals belong to one scene; release them before the replacement publishes its buffers.
@@ -103,6 +105,9 @@ namespace DK2.Unity
             }
             _frontEndMenu = new ClassicFrontEndMenu(transform, _frontEnd, menuAssets, _campaignMap);
             _frontEndMenu.Model.QuitRequested += QuitFrontEnd;
+            InitializeSaves(install);
+            _frontEndMenu.Model.SetSaveBrowser(_saves);
+            _frontEndMenu.Model.LoadRequested += LoadSession;
             _frontEnd.Update(TimeSpan.Zero);
             _scene.SetCreatureFrameTime(GameTick.Zero, 0);
             _presenter.Present(world);
@@ -119,6 +124,7 @@ namespace DK2.Unity
             _frontEnd.Update(TimeSpan.FromSeconds(elapsed));
             if (_campaignMap.EntryRow >= 0) TypeHiScoreName();
             _frontEndMenu?.Refresh();
+            DrawSavePanel(frontEnd: true);
             // A click replaces this runner; switch only after the menu has finished with it.
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
             if (_frontEnd.Pose is CameraPathPose pose) ApplyFrontEndCamera(pose);

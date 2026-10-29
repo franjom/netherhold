@@ -496,3 +496,12 @@ uses its own scratch campaign file to exercise reset cancel/confirm, a real3D
 triangle pick, map hover/lift, briefing font and bitmap paths, and return paths.
 It also replaces the session with a progressed return-to-map profile and checks
 the won texture phase. It never resets the owner's campaign file.
+
+## Session save/load and Options
+
+Build the Release adapter, then run `run-session-save-load.ps1`. Every run creates
+a fresh isolated Unity project and uses probe-local profile/save paths. The probe
+checks tick/hash, level, profile and carry through in-game and front-end loads,
+then the original Level1/seed restart and the paused objective/Continue state.
+The owner project and its profile/saves are not written. This is adapter regression
+verification, not owner gameplay or matched-original acceptance.

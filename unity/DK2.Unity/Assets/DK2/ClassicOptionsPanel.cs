@@ -39,7 +39,10 @@ namespace DK2.Unity
         private readonly VisualElement _root;
         private readonly Image[] _labels = new Image[8];
         private readonly Texture2D[] _textures = new Texture2D[8];
-        private readonly bool[] _supported = new bool[8];
+        private readonly bool[] _supported = new bool[13];
+        private ClassicOptionsPage _page;
+        private ClassicSessionAction _confirmation;
+        private IReadOnlyList<ClassicOptionsEntry> Entries => ClassicOptionsLayout.ForPage(_page);
         private bool _visible;
         private int _height;
         private Vector2Int _viewport;
@@ -64,19 +67,32 @@ namespace DK2.Unity
                 label.style.position=Position.Absolute; _root.Add(label); _labels[i]=label;
             }
             SetSupported(ClassicOptionsAction.ContinueGame,true);
+            SetSupported(ClassicOptionsAction.LevelObjective,true);
+            SetSupported(ClassicOptionsAction.Back,true);
+            SetSupported(ClassicOptionsAction.EndGame,true);
+            SetSupported(ClassicOptionsAction.RestartLevel,true);
+            SetSupported(ClassicOptionsAction.ReturnToMenu,true);
+            SetSupported(ClassicOptionsAction.QuitGame,true);
+            SetSupported(ClassicOptionsAction.Confirm,true);
+            SetSupported(ClassicOptionsAction.Cancel,true);
             SetVisible(false);
         }
         public void SetSupported(ClassicOptionsAction action,bool supported)
         { if(action!=ClassicOptionsAction.None) _supported[(int)action]=supported; }
         public void SetVisible(bool visible)
         { _visible=visible; _root.style.display=visible?DisplayStyle.Flex:DisplayStyle.None; }
+        public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation)
+        {
+            if (_page == page && _confirmation == confirmation) return;
+            _page = page; _confirmation = confirmation; _height = 0;
+        }
         public bool ContainsPointer(Vector3 screenPosition) => _visible;
         public ClassicOptionsAction ActionAt(Vector3 screenPosition)
         {
             if (!_visible || Height<=0) return ClassicOptionsAction.None;
             float scale=Height/768f;
             float x=screenPosition.x/scale,y=768-screenPosition.y/scale;
-            foreach(ClassicOptionsEntry entry in ClassicOptionsLayout.Entries)
+            foreach(ClassicOptionsEntry entry in Entries)
                 if(_supported[(int)entry.Action] && x>=entry.X && x<entry.X+entry.Width && y>=entry.Y && y<entry.Y+38.4f)
                     return entry.Action;
             return ClassicOptionsAction.None;
@@ -87,10 +103,11 @@ namespace DK2.Unity
             if (!_visible) return;
             if (_height!=Height) { _height=Height; RebuildText(); }
             ClassicOptionsAction hover=ActionAt(pointer);
-            for(int i=0;i<ClassicOptionsLayout.Entries.Count;i++)
+            for(int i=0;i<Entries.Count;i++)
             {
-                var entry=ClassicOptionsLayout.Entries[i];
-                float colour=!_supported[(int)entry.Action] ? .4f : hover==entry.Action ? 1 : 200/255f;
+                var entry=Entries[i];
+                float colour=entry.Action == ClassicOptionsAction.None ? 200/255f
+                    : !_supported[(int)entry.Action] ? .4f : hover==entry.Action ? 1 : 200/255f;
                 _labels[i+1].tintColor=new Color(colour,colour,colour,1);
             }
         }
@@ -100,10 +117,13 @@ namespace DK2.Unity
             for(int i=0;i<_labels.Length;i++)
             {
                 if(_textures[i]!=null) UnityEngine.Object.Destroy(_textures[i]);
-                uint id=i==0 ? ClassicOptionsLayout.TitleTextId : ClassicOptionsLayout.Entries[i-1].TextId;
+                bool shown = i == 0 ? _page != ClassicOptionsPage.Objective : i <= Entries.Count;
+                _labels[i].style.display = shown ? DisplayStyle.Flex : DisplayStyle.None;
+                if (!shown) { _textures[i] = null; _labels[i].image = null; continue; }
+                uint id=i==0 ? ClassicOptionsLayout.TitleFor(_page, _confirmation) : Entries[i-1].TextId;
                 _textures[i]=TextTexture(font,_assets.Text(id)); _labels[i].image=_textures[i];
-                float x=i==0?8:ClassicOptionsLayout.Entries[i-1].X;
-                float y=i==0?72:ClassicOptionsLayout.Entries[i-1].Y;
+                float x=i==0?8:Entries[i-1].X;
+                float y=i==0?72:Entries[i-1].Y;
                 float scale=768f/_height;
                 _labels[i].style.left=x; _labels[i].style.top=y;
                 _labels[i].style.width=_textures[i].width*scale;

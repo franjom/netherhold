@@ -268,11 +268,11 @@ namespace DK2.Unity
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' things.");
                 var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, levelName)
                     ?? throw new InvalidOperationException($"the install has no '{levelName}' triggers.");
-                _simulation = frontEnd
+                _simulation = _resumeSimulation ?? (frontEnd
                     ? new GameSimulation(database, WorldState.FromMap(database, map,
                         players.Select(player => player.PlayerId), fogOfWarEnabled: false), seed)
                     : CampaignSimulationFactory.Create(database, map, level,
-                        players, things, triggers, seed, fogOfWarEnabled: fogOfWar);
+                        players, things, triggers, seed, fogOfWarEnabled: fogOfWar));
             }
             else
             {
@@ -283,7 +283,7 @@ namespace DK2.Unity
             _simulation.ProfileWith(new UnitySimulationProfiler());
             WorldState world = _simulation.World;
             if (!frontEnd) world.LocalPlayerId = new PlayerId((byte)viewingPlayerId);
-            if (!frontEnd) PrepareCampaignResult();
+            if (!frontEnd) PrepareCampaignResult(resumed: _resumeSession != null);
             if (frontEnd)
             {
                 LoadFrontEndProfile();
@@ -379,7 +379,8 @@ namespace DK2.Unity
             // no frame before its first turn (heart-intro.md §4, an inference from 0x004D9A60's
             // guard). The first tick runs here, and the effect model one update, so the first frame
             // shows the lid and not the open pit beneath it.
-            RunTicks(1, InputFrame.Empty);
+            // A restored checkpoint already includes its starting turn.
+            if (_resumeSession == null) RunTicks(1, InputFrame.Empty);
             _constructionEffects?.Model.UpdateNow();
             _startup.Step("tick");
             WaitForPrefetch(prefetch);
@@ -608,6 +609,7 @@ namespace DK2.Unity
                 if (hud.AllowOrdinaryInput && !HudModal) ReadToolKeys();
                 QueueInput();
             }
+            if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
 
             int ticks = 0;
             InputFrame firstInput = InputFrame.Empty;

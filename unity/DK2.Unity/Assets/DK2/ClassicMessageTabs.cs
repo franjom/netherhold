@@ -83,7 +83,7 @@ namespace DK2.Unity
         private Texture2D _panelTexture, _objectiveTexture;
         private uint _shownId;
         private int _shownHeight;
-        private bool _objectiveHovered, _objectiveOpen, _visible = true, _allowInput = true;
+        private bool _objectiveHovered, _objectiveOpen, _optionsOpen, _visible = true, _allowInput = true;
         private int Height => Screen.height;
         private float V(int value) => value * Height / 1920f;
 
@@ -195,7 +195,8 @@ namespace DK2.Unity
             // Menu33's own background is unread: a translucent dark pane, as before.
             _objectivePanel.style.backgroundColor = new Color(0.08f, 0.08f, 0.08f, 0.6f);
             _objectivePanel.pickingMode = PickingMode.Position;
-            _objectivePanel.RegisterCallback<PointerDownEvent>(evt => { evt.StopPropagation(); _objectiveOpen = false; });
+            _objectivePanel.RegisterCallback<PointerDownEvent>(evt =>
+            { evt.StopPropagation(); if (!_optionsOpen) _objectiveOpen = false; });
         }
 
         /// <summary>The hovered tab's message text, for the status line (0x0042D820 case 5); the
@@ -224,8 +225,10 @@ namespace DK2.Unity
         }
 
         /// <param name="indicators">0x00427BA0's indicators this frame; any shown lifts menu40 by 128.</param>
-        public void Draw(HudVisibility visibility, bool collapsed, in HudIndicatorSnapshot indicators)
+        public void Draw(HudVisibility visibility, bool collapsed, in HudIndicatorSnapshot indicators,
+            bool optionsOpen = false, bool optionsObjective = false)
         {
+            _optionsOpen = optionsOpen;
             _visible = visibility.ShowNormalHud; _allowInput = visibility.AllowOrdinaryInput;
             _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
             if (!_visible) { _view.Hovered = -1; _objectiveHovered = false; return; }
@@ -243,7 +246,8 @@ namespace DK2.Unity
             DrawIndicators(indicators, top);
             ScrollHolder();
             DrawPanel(top, indicators.Any);
-            DrawObjective();
+            if (optionsOpen) _panel.style.display = DisplayStyle.None;
+            DrawObjective(optionsObjective || (!optionsOpen && _objectiveOpen));
         }
 
         /// <summary>Each indicator (0x00427010): its art 256x128 at the menu's corner, gold-bg-01 188x128
@@ -459,10 +463,10 @@ namespace DK2.Unity
 
         /// <summary>Menu33 (0x004207E0): "Main Objective" (Text.str 1408), briefing line 2, "Sub
         /// Objective" (1409), briefing lines 3 to 5, over the play area (0,180) 2560x1280.</summary>
-        private void DrawObjective()
+        private void DrawObjective(bool visible)
         {
-            _objectivePanel.style.display = _objectiveOpen ? DisplayStyle.Flex : DisplayStyle.None;
-            if (!_objectiveOpen) return;
+            _objectivePanel.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            if (!visible) return;
             if (_objectiveTexture == null)
             {
                 string text = _assets.Text(1408) + "\n" + (_briefing?.Invoke(2) ?? "") + "\n\n" + _assets.Text(1409);

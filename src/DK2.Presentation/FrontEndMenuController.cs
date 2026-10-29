@@ -35,6 +35,9 @@ public sealed class FrontEndMenuController : IDisposable
     public IReadOnlyList<FrontEndWidget> Widgets => FrontEndPages.Find(Page)?.Widgets ?? Array.Empty<FrontEndWidget>();
     public event Action? QuitRequested;
     public event Action<FrontEndSoundRequest>? SoundRequested;
+    public event Action<string>? LoadRequested;
+    public SaveSlotsView? Saves { get; private set; }
+    public void SetSaveBrowser(SaveSlotsView view) => Saves = view;
 
     public bool IsEnabled(FrontEndWidget widget)
     {
@@ -43,7 +46,8 @@ public sealed class FrontEndMenuController : IDisposable
         return Page switch
         {
             FrontEndPage.Main => id is 1 or 3 or 4 or 5,
-            FrontEndPage.SinglePlayer => id == 9 || Campaign is not null && id is 6 or 567,
+            FrontEndPage.SinglePlayer => id == 9 || id == 7 && Saves is not null || Campaign is not null && id is 6 or 567,
+            FrontEndPage.Load => id == 74 || id == 73 && Saves?.Selected is not null && LoadRequested is not null,
             FrontEndPage.CampaignMap => Campaign is not null && id == 534,
             FrontEndPage.Briefing => Campaign is not null && (id == 169 || id == 170 && Campaign.CanLaunch),
             FrontEndPage.CampaignResults => Campaign is not null && id == 181,
@@ -111,6 +115,11 @@ public sealed class FrontEndMenuController : IDisposable
             else _session.TryShowPage(Dialog!.ReturnPage);
             return true;
         }
+        if (Page == FrontEndPage.Load)
+        {
+            if (id.Value == 73) { LoadRequested?.Invoke(Saves!.Selected!.Path); return true; }
+            return _session.TryTransition(new(FrontEndPath.MultiplayerToEntry, FrontEndState.ReturnSinglePlayer));
+        }
         if (Campaign is not null)
         {
             if (Page == FrontEndPage.CampaignMap) return Campaign.BackToMenu();
@@ -135,6 +144,7 @@ public sealed class FrontEndMenuController : IDisposable
             {
                 5 => new(FrontEndPath.EntryToOptions, FrontEndState.OptionsReady),
                 6 => new(FrontEndPath.EntryToExtras, FrontEndState.ExtrasReady),
+                7 when Saves is not null => new(FrontEndPath.EntryToMultiplayer, FrontEndState.LoadReady),
                 15 => new(FrontEndPath.OptionsToEntry, FrontEndState.ReturnMain),
                 16 => new(FrontEndPath.ExtrasToEntry, FrontEndState.ReturnMain),
                 _ => null,

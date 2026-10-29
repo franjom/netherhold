@@ -52,8 +52,9 @@ Static menu 22 at `0x00696BE8` uses widgets at `0x006945C8`.
 `ClassicOptionsLayout` preserves its shipped text ids and reference positions;
 `ClassicOptionsPanel` loads Text.str and BF4 through its asset abstraction.
 The rows are Level Objective, Game Options, Load, Save, End Game, Restart Level
-and Continue Game. Unsupported host actions are disabled; no save browser is
-invented. Save/load callbacks prepare a `.sav` file list (`0x0042A760`).
+and Continue Game. Level Objective is wired with Continue/Back navigation; the other host actions remain
+disabled pending their consumers. Row destinations, confirmations and the named-file
+browser are in [options-menu.md](options-menu.md).
 `0x00428A30` draws enabled option text with grey 200 and hover white 255;
 `0x00428C30` restricts the objective row to game modes 1/4. Restart opens menu35
 and seeds its confirmation state (`0x00420570`), rather than restarting directly.

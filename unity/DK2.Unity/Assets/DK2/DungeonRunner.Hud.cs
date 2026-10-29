@@ -86,6 +86,9 @@ namespace DK2.Unity
             _overviewPanel = new ClassicCreatureOverview(transform, overviewAssets, _overviewView);
             _startup.Step("hud.overview");
             _optionsPanel = new ClassicOptionsPanel(transform, new InstallClassicOptionsAssets(_hudSources));
+            _optionsPanel.SetSupported(ClassicOptionsAction.Save, true);
+            _optionsPanel.SetSupported(ClassicOptionsAction.Load, true);
+            InitializeSaves(install);
             _startup.Step("hud.options");
             _fullMap = new ClassicFullMap(transform, _minimap);
             _startup.Step("hud.fullmap");
@@ -169,6 +172,7 @@ namespace DK2.Unity
         {
             _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _messageTabs?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
             _statusFlowerArt?.Dispose();
+            _savePanel?.Dispose();
             _hudSources?.Dispose();
         }
 
@@ -260,7 +264,9 @@ namespace DK2.Unity
             }
             HudVisibility hud = CurrentHud;
             _bottomPanel?.SetVisibility(new HudVisibility(hud.ShowNormalHud, hud.AllowOrdinaryInput && !HudModal));
-            _optionsPanel?.SetVisible(hud.ShowNormalHud && _hudControls.OptionsVisible);
+            _optionsPanel?.SetVisible(hud.ShowNormalHud && _hudControls.OptionsVisible
+                && _hudControls.OptionsPage != ClassicOptionsPage.Save && _hudControls.OptionsPage != ClassicOptionsPage.Load);
+            _optionsPanel?.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
             _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
             _queryPanel?.Draw(_querySnapshot, hud, HudModal);
             _overviewPanel?.Draw(hud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
@@ -283,8 +289,27 @@ namespace DK2.Unity
             }
             if (_hudControls.OptionsVisible)
             {
-                if (Input.GetMouseButtonDown(0) && _optionsPanel.ActionAt(Input.mousePosition) == ClassicOptionsAction.ContinueGame)
-                    ApplyHudAction(ClassicHudAction.ToggleOptions);
+                if (Input.GetMouseButtonDown(0))
+                {
+                    ClassicOptionsAction action = _optionsPanel.ActionAt(Input.mousePosition);
+                    if (action == ClassicOptionsAction.ContinueGame) ApplyHudAction(ClassicHudAction.ToggleOptions);
+                    else if (action == ClassicOptionsAction.LevelObjective) ApplyHudAction(ClassicHudAction.ShowObjective);
+                    else if (action == ClassicOptionsAction.Back) ApplyHudAction(ClassicHudAction.BackToOptions);
+                    else if (action == ClassicOptionsAction.RestartLevel) ApplyHudAction(ClassicHudAction.RestartLevel);
+                    else if (action == ClassicOptionsAction.EndGame) ApplyHudAction(ClassicHudAction.EndGame);
+                    else if (action == ClassicOptionsAction.ReturnToMenu) ApplyHudAction(ClassicHudAction.ReturnToMenu);
+                    else if (action == ClassicOptionsAction.QuitGame) ApplyHudAction(ClassicHudAction.QuitGame);
+                    else if (action == ClassicOptionsAction.Confirm) ApplyHudAction(ClassicHudAction.Confirm);
+                    else if (action == ClassicOptionsAction.Cancel) ApplyHudAction(ClassicHudAction.CancelConfirmation);
+                    else if (action == ClassicOptionsAction.Save) { _saves.Refresh(); ApplyHudAction(ClassicHudAction.OpenSave); }
+                    else if (action == ClassicOptionsAction.Load) { _saves.Refresh(); ApplyHudAction(ClassicHudAction.OpenLoad); }
+                    ClassicSessionAction session = _hudControls.TakeSessionAction();
+                    if (session == ClassicSessionAction.Restart)
+                        _pendingSession = GameSessionRequest.Restart(GameSessionRequest.Campaign(levelName, frontEndReturnPage));
+                    else if (session == ClassicSessionAction.ReturnToMenu)
+                        _pendingSession = GameSessionRequest.FrontEnd(LaunchedFromFrontEnd ? FrontEndPage.CampaignMap : FrontEndPage.None);
+                    else if (session == ClassicSessionAction.Quit) QuitFrontEnd();
+                }
                 return true;
             }
             bool primary = Input.GetMouseButtonDown(0), secondary = Input.GetMouseButtonDown(1);
@@ -404,9 +429,11 @@ namespace DK2.Unity
                 _scriptedView.ClearFlash(flash);
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
             _bottomPanel.Draw();
+            DrawSavePanel(frontEnd: false);
             _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
-                HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)));
+                HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),
+                _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
             _overviewView.Capture(_simulation.World);
             _overviewPanel.Draw(CurrentHud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);
