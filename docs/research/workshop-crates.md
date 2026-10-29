@@ -200,9 +200,41 @@ worker credits the keeper's one pool of points (ADR-0203).
   refuses. The pick-up leaves it alone.
 - **What it does.** A creature dropped in the Workshop keeps going back to it after every crate
   until the queue is empty, unless its credit is zero: the update hook `0x0047B190` then returns
-  0 and it is idled, and with an order queued it alternates 63 and 1 (ADR-0573, Q672).
+  0 and it is idled (ADR-0573). The retry timing is in section 5.1 (Q672).
 - **Ours:** the Library, Training Room, Guard Room, Workshop, Temple and Casino. The Torture
   clear is built (ADR-0322); the escape's is not.
+
+### 5.1 Zero-rate dropped workers (Q672, binary, 2026-10-29)
+
+**CONFIRMED control flow:** a zero manufacture credit causes repeated job retries
+when the remembered drop job is Manufacture, the queue remains nonempty, a usable
+Workshop accepts the creature, and earlier needs/idle priorities take nothing.
+For a creature already inside the selected Workshop, successive dispatcher updates
+end in **1, 89, 63, 1**: the repeating cycle takes three updates, not two.
+
+- `0x0047B190` tests the credit at `0x0047B20A`; zero returns 0. The dispatcher
+  `0x00476FC0` sets 1 and returns immediately at `0x004770E6`, before state 63's
+  handler can run. It calls only one state handler per update.
+- State 1's `0x004773D0` requests 89 at `0x00477644` and returns. On a later
+  update, 89's `0x004778E0` retries the dropped job at `0x00477A42`; only a
+  refusal clears it (`0x00477A57`). Casino, Call to Arms and lair work precede it.
+- Job 5's `0x00470080` requires an order and a reachable Workshop with space;
+  neither it nor its finder `0x004F6200` tests manufacture rate. The inside-room
+  shortcut `0x00471A70` enters 63 immediately; an outside creature instead walks.
+  Admission, claim and Manufacture enter/leave hooks add no rate test and do not
+  clear the remembered job. See their function records for the capacity gates.
+
+An empty queue or failed job dispatch clears the remembered job; higher priorities
+can interrupt the loop. **STRONGLY INFERRED observable result:** repeated brief
+Workshop/idle activity, not sustained manufacturing. No native visual experiment
+was run; icon/animation flicker is not established by this control-flow proof.
+The Library comparison is [the Research hook](library-and-research.md#1-the-hook-in-full):
+a zero credit returns success and does not itself evict the creature.
+
+**Implementation boundary:** ADR-0573 builds the zero-credit exit. Ordinary,
+non-fleeing idle in `CreatureJobSystem.Choose` retries the dropped job directly;
+only its Fleeing path preserves the separate 1-to-89 update. The full native
+three-update cadence remains unbuilt; this research change does not alter it.
 
 ## 6. Kinds 9 and 10: a crate to a blueprint
 

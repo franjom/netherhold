@@ -13368,8 +13368,7 @@ point loss.
 (`reason=cannot_manufacture`), the job stopped, idle. Research is unchanged.
 
 **Consequences.** Shipped, every non-worker with a zero rate but two hates that job, so the drop
-refuses it first; of Horny and the Unique Skeleton only the Skeleton can be picked up. Dropped in a
-Workshop it never earns, and with an order queued it alternates 63 and 1 every turn: `DroppedToDoJob`
-stays Manufacture (DK2 stores it before the state and 89 clears it only on a refusal), and the job
-handler `0x00470080` tests the order count, not the rate (STRONGLY INFERRED for DK2, Q672). In a
-Library it stays and earns nothing.
+refuses it first; of Horny and the Unique Skeleton only the Skeleton can be picked up.
+Q672's binary trace corrects the retry timing and bounds the repeated Workshop/idle activity:
+see [workshop-crates.md section 5.1](research/workshop-crates.md#51-zero-rate-dropped-workers-q672-binary-2026-10-29).
+A zero Research credit does not itself fail the Library update hook.

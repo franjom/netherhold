@@ -275,7 +275,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
 - **The credit.** The update `0x0047B190` takes `ManufacturePerSecond` (`+0x6BD`), which
   the loader divides by variable 19 with a floor of one (`0x004938B8`, beside
   `ResearchPerSecond` at `+0x6B9`), scales levels 2–10 by stat row 18, clamps to
-  `0..0xFFFE` and passes it to `0x004C3200` every turn. A zero credit is not passed: the hook returns 0 and the dispatcher `0x00476FC0` sets 1, so a creature with no `ManufacturePerSecond` cannot stay at work (ADR-0573; shipped, the only non-workers with it zero and unhated are Horny and the Unique Skeleton, and only the Skeleton can be picked up; with an order queued, idle's retry of the dropped job sends it straight back, Q672). The adder's other calls read the
+  `0..0xFFFE` and passes it to `0x004C3200` every turn. A zero credit is not passed: the hook returns 0 and the dispatcher `0x00476FC0` sets 1, so a creature with no `ManufacturePerSecond` cannot stay at work (ADR-0573; retry timing and conditions: [workshop-crates.md section 5.1](workshop-crates.md#51-zero-rate-dropped-workers-q672-binary-2026-10-29), Q672). The adder's other calls read the
   turn and discard it; a `turn % v19 == 0` call to `0x004F2300` is unread.
 - **The points and the list.** The adder adds to `player+0x217` (a word). The list at
   `player+0x219` is a ring of 128 sixteen-byte entries: cost word, kind byte `+2` (0 door,
