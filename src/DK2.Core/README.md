@@ -1,7 +1,8 @@
 # DK2.Core
 
 The deterministic primitives every other assembly stands on: fixed-point `Fp32` and
-`FpPosition3`, `TilePos`, `GameTick`, `Hash64` (state hashing), the random generators
+`FpPosition3`, `TilePos`, `GameTick`, `Hash64` (state hashing), `Fnv1a64` (stable asset
+and test fingerprints), the random generators
 (`SimRandom` over `Xoshiro256StarStar` or DK2's own `Dk2Lcg`, behind
 `IRandomAlgorithm`), integer math helpers, and the `Confidence` enum with the
 `Dk2BehaviorAttribute` that tags code with a research note.

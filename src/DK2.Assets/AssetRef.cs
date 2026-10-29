@@ -247,7 +247,7 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     /// </summary>
     public ulong StableHash()
     {
-        Hash64 hash = Hash64.Start();
+        Fnv1a64 hash = Fnv1a64.Start();
         hash.Add(Key);
         hash.Add((int)Kind);
         return hash.Value;
