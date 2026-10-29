@@ -209,9 +209,12 @@ controls when the pause ends.
 **Built (ADR-0169, `HashVersion` 74).** `ApproachRules` is state 8, a walk resuming 199
 (ADR-0483; until then a flag on 199, `Approaching`, now derived from the state): entry with a plain route and the countdown at ten (§1); each tick
 a target gone ends it, an ordinary creature target is chosen afresh and a changed choice
-ends it, the fear counter runs without the withdrawal test, a target fleeing or
-withdrawing counts the chase against variable 213 or 214 and is given up as
-`RetreatingCreature`, strict reach with line of sight ends it, and every tenth call the
+ends it, the fear counter runs without the withdrawal test, a creature target in state 6
+resuming 251 or 202 (`0x0045F000`; not 203) counts the chase against variable 213 or 214 and is
+given up as `RetreatingCreature`, the count left over the limit (any other creature target zeroes
+it, a thing target leaves it); while it is set the Blocker, Support and Flanker arms pass over
+retreating candidates, and the creature update clears it after 60 turns (ADR-0584); strict reach
+with line of sight ends it, and every tenth call the
 route is refreshed to the target's position — a Flanker two tiles or a quarter tile
 behind a moving target (§2—§3). `spFighting` (`CombatSystem.Fight`) enters it out of reach
 and runs the tick it hands back. `VictoryRules`: the death leaves the `0xF` nibble

@@ -92,3 +92,17 @@ type in `creature-map.csv`, ours' `creature_died` events, not matched event for 
   Fisher p 0.0002). DK2's three came from states 1, 3 and 5 under native seeds 1, 3 and 5, so whether the
   state or DK2's own later draws hold them is untested; a count of 1 against 0 may be the counting
   difference above.
+
+## Where ours' first Imps die, and the heroes' choice (hash 333, ADR-0584)
+
+Evidence: `D:/DK2Evidence/runs/l4-retreat-tracking-2026-10-29` (README, `alive.out`). The first Imp
+death in each of the 15 hash-331 runs from states 1, 3 and 5 follows the same loop: a job, engaged by a
+hero, a flight, a disengage, the next job, engaged again; the killers are party heroes (9 Guards, 5
+Thieves, 1 Dwarf), not the post Guards, whose flag 14 is set near DK2's 5283. Counting live creatures
+only, 2400-4400:
+- heroes choose a player creature they meet at DK2's rate (0.264 against 0.258 a pair-tick) and an Imp
+  less often (0.104 against 0.159); the target choice was audited against the binary (ADR-0584 built its
+  one missing rule, which did not move the deaths);
+- hero-Imp pairs within four tiles are 2.3 times DK2's; live heroes spend 1.7 times as long in
+  (16-29, 32-38) and Imps 1.3 times. Which side's rule keeps them apart is open; the Imp's own arm
+  (`0x0045BDF0`) matches the binary but for a thing-target detail that would make ours flee more.

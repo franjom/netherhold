@@ -13589,3 +13589,36 @@ right-click drops while a local human pickup command awaits its tick.
 follow the actual stack order. No saved or hashed state changes; hash/save 332
 and its pin remain unchanged. Animation waits for execution and a render drain;
 native packet-submit timing and pending-entry scheduling remain partial (Q682).
+
+## ADR-0584 - A creature that gave up a chase passes over retreating candidates for 60 turns
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 333 · Q665 ·
+Research: `docs/research/combat-target-selection.md` §2, `combat-approach-and-victory.md`; KB `0045F000`, `0045B140`, `0045B500`, `0045BAD0`, `0045B800`, `00470E30`, `0045F030`, `00488930`
+
+**Context.** Retreating is `0x0045F000`: state 6 resuming 251 or 202 (state 8's caller; spFighting,
+`0x0045A7D6` and `0x0045E0D0` test the same words inline). State 8 (`0x00470E30`) counts
+`CreatureRetreatingCounter` (`+0x53D`) up on a retreating creature target and zeroes it on any other
+creature target; past variable 213 or 214 it stores the target's tag in `RetreatingCreature`
+(`+0x53B`), zeroes `AvoidRetreatersCounter` (`+0x53E`) and leaves `+0x53D` over the limit. spFighting
+zeroes `+0x53D` on a creature target that is not retreating (`0x0045F97D`). While `+0x53B` is set, the
+Blocker, Support and Flanker selectors skip a retreating candidate (`0x0045B224`, `0x0045B5E4`,
+`0x0045BBB4`; Blitzer and `SelectAVictim`'s own scans do not), and `Creature_Update`
+(`0x00489A8A`-`0x00489AB5`) counts `+0x53E` up a turn, clearing all three at 60. The names are DK2's
+dumper's. Ours set `RetreatingCreature` and never read or cleared it, zeroed the chase count at the
+give-up and on a thing target, and counted state 203 as retreating.
+
+**Decision.** `ApproachRules.IsRetreating` is `0x0045F000`. State 8 counts on a retreating creature
+target, zeroes on any other creature target, leaves the count on a thing target and at the give-up.
+`CombatSystem.Fight` zeroes it on entry for a creature target that is not retreating (DK2 does it
+further into spFighting). `CombatTargetRules.Scan` skips a retreating candidate for every arm but
+Blitzer while `RetreatingCreature` is set. `AvoidRetreatersCounter` (new, hashed and saved) counts in
+`CombatSystem.Update` before the fight scan and at 60 clears it, `RetreatingCreature` and `ChaseTicks`.
+
+**Consequences.** A Blitzer that takes the same retreating creature again within the 60 turns gives up
+on its first approach turn, its count still over the limit. On Level 4, from DK2's eight 2400 states
+with five generator seeds each (`D:/DK2Evidence/runs/l4-retreat-tracking-2026-10-29`; h333 summed over
+40 runs and divided by 5 to compare with DK2's 8), the first build of this rule moved Imp deaths from
+28.9 to 28.3 a run (p 0.42; not a test of no effect). The audit around it, counting live creatures
+only (`alive.out`): heroes choose a player creature they meet at DK2's rate (others 0.264 against
+0.258 a pair-tick) and an Imp less often (0.104 against 0.159); our hero-Imp pairs within four tiles
+are 2.3 times DK2's, with our live heroes 1.7 times as long and our Imps 1.3 times as long in
+(16-29, 32-38). The hero choice is not why our Imps die more.

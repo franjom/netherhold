@@ -155,22 +155,26 @@ public static class ApproachRules
             return false;
         }
 
-        // 4. The chase limit on a retreating target.
-        if (target != null && IsRetreating(target))
+        // 4. The chase limit on a retreating creature target; any other creature target zeroes the count,
+        // a thing target leaves it. The give-up leaves it over the limit, for the 60-turn lapse to clear
+        // (0x004710E6-0x0047118B, ADR-0584).
+        if (target != null)
         {
-            me.ChaseTicks++;
-            if (me.ChaseTicks > ChaseLimitTicks(database, me))
+            if (IsRetreating(target))
             {
-                me.RetreatingCreature = target.Id;
-                me.RetreatTicks = 0;
-                context.Emit(SystemName, "gives_up_chase", $"creature={me.Id} target={target.Id} ticks={me.ChaseTicks}");
-                me.ChaseTicks = 0;
-                CombatRules.Disengage(context.Hooks, me);
-                End(me, "retreating", context);
-                return false;
+                me.ChaseTicks++;
+                if (me.ChaseTicks > ChaseLimitTicks(database, me))
+                {
+                    me.RetreatingCreature = target.Id;
+                    me.AvoidRetreatersCounter = 0;
+                    context.Emit(SystemName, "gives_up_chase", $"creature={me.Id} target={target.Id} ticks={me.ChaseTicks}");
+                    CombatRules.Disengage(context.Hooks, me);
+                    End(me, "retreating", context);
+                    return false;
+                }
             }
+            else me.ChaseTicks = 0;
         }
-        else me.ChaseTicks = 0;
 
         // 5. Strictly in reach with line of sight: spFighting swings next tick.
         if (!FightRules.TargetPosition(world, context.Database, me, out int x, out int y, out TilePos targetTile))

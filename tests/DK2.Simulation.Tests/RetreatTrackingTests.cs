@@ -70,9 +70,9 @@ public class RetreatTrackingTests
         GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
 
         sim.Run(CombatSystem.RetreatTrackingTicks - 1);
-        Assert.Equal((999, 3, CombatSystem.RetreatTrackingTicks - 1), (knight.RetreatingCreature, knight.ChaseTicks, knight.RetreatTicks));
+        Assert.Equal((999, 3, CombatSystem.RetreatTrackingTicks - 1), (knight.RetreatingCreature, knight.ChaseTicks, knight.AvoidRetreatersCounter));
         sim.Tick();
-        Assert.Equal((0, 0, 0), (knight.RetreatingCreature, knight.ChaseTicks, knight.RetreatTicks));
+        Assert.Equal((0, 0, 0), (knight.RetreatingCreature, knight.ChaseTicks, knight.AvoidRetreatersCounter));
     }
 
     [Theory]
@@ -87,6 +87,7 @@ public class RetreatTrackingTests
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         CreatureStateMachine.TrySetState(default, goblin, state);
         goblin.UtilityNewState = resume;
+        Assert.Equal(state, goblin.Dk2StateId);
 
         Assert.Equal(retreating, ApproachRules.IsRetreating(goblin));
     }

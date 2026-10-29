@@ -580,7 +580,7 @@ public static class WorldSnapshot
             w.Write(c.RouteRefreshCountdown);
             w.Write(c.ChaseTicks);
             w.Write(c.RetreatingCreature);
-            w.Write(c.RetreatTicks);
+            w.Write(c.AvoidRetreatersCounter);
             w.Write(c.CelebrationTicks);
             w.Write(c.BodyTargetId);
             w.Write(c.PartyId);
@@ -1323,7 +1323,7 @@ public static class WorldSnapshot
                 RouteRefreshCountdown = r.ReadInt32(),
                 ChaseTicks = r.ReadInt32(),
                 RetreatingCreature = r.ReadInt32(),
-                RetreatTicks = r.ReadInt32(),
+                AvoidRetreatersCounter = r.ReadInt32(),
                 CelebrationTicks = r.ReadInt32(),
                 BodyTargetId = r.ReadInt32(),
                 PartyId = r.ReadByte(),

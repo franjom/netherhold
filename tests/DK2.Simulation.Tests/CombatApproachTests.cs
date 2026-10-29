@@ -179,6 +179,9 @@ public class CombatApproachTests
         Assert.Contains("creature=" + hero.Id, gaveUp.Detail);
         Assert.Contains("ticks=13", gaveUp.Detail);
         Assert.Equal(runner.Id, hero.RetreatingCreature);
+        // DK2 leaves the chase count over the limit and starts the 60-turn lapse (0x0047113F, ADR-0584).
+        Assert.Equal(13, hero.ChaseTicks);
+        Assert.InRange(hero.AvoidRetreatersCounter, 1, CombatSystem.RetreatTrackingTicks - 1);
         Assert.False(hero.Approaching);
         Assert.Equal(CreatureActivity.Idle, hero.Activity);
         // The evil Knight's seven seconds outlast the walk: it never gives up.

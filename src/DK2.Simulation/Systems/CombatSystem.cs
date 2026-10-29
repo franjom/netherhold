@@ -90,14 +90,14 @@ public sealed class CombatSystem : ICreatureUpdateStep
         // counter with it (0x00489A8A-0x00489AB5, ADR-0584).
         if (creature.RetreatingCreature != 0)
         {
-            if (++creature.RetreatTicks >= RetreatTrackingTicks)
+            if (++creature.AvoidRetreatersCounter >= RetreatTrackingTicks)
             {
                 creature.RetreatingCreature = 0;
                 creature.ChaseTicks = 0;
-                creature.RetreatTicks = 0;
+                creature.AvoidRetreatersCounter = 0;
             }
         }
-        else creature.RetreatTicks = 0;
+        else creature.AvoidRetreatersCounter = 0;
 
         // A creature in a combat state is its handler's; 6 -> 254 and 254 are outside the combat
         // group and look for a fight on the way.
@@ -198,6 +198,12 @@ public sealed class CombatSystem : ICreatureUpdateStep
             ApproachRules.Tick(context, _sight!, _hearts, _rooms, creature, definition, _scratch);
             return;
         }
+
+        // spFighting zeroes the chase count for a creature target that is not retreating (0x0045F960-
+        // 0x0045F97D, ADR-0584); ours does it on entry to the handler.
+        if (creature.FightTargetKind == FightTargetKind.Creature && world.CreatureById(creature.FightTargetId) is { } fought
+            && !ApproachRules.IsRetreating(fought))
+            creature.ChaseTicks = 0;
 
         // Step 1: a target that has died is dropped with the 0xF nibble (§6); the victory arm runs next tick.
         // A healer holds no attacker slot on its ally, so an ally's death marks nothing.
