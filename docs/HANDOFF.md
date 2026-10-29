@@ -13,13 +13,16 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
   levels (docs/experiments/). M6 remains partial: the latest completed packet
-  measurement is hash320 at `65e529b7` (2026-10-28; write-up
-  D:\DK2Evidence\runs\packet-replay-hash320\README.md): 79 of 80 runs valid (Level 4
-  seed 4's fixed-map remap ran out of creatures to pair), wins 19/8/13/3 (of 20, 20, 20
-  and 19 valid) against hash309's 18/8/16/1 of 20, per-seed outcomes reshuffled on every
-  level, none beyond 20-seed noise; Level 4 Imp deaths median 8 (19 runs) against 14.5
-  (0-55 per seed; 13 of 19 seeds moved by 10 or more, so not a direction). It spans hashes
-  310-320; no sweep isolates them. The previous measurement is hash309 at `490b7d82`
+  measurement is hash328 at `0c0f7042` (2026-10-29; write-up
+  D:\DK2Evidence\runs\packet-replay-hash328\README.md): 78 of 80 runs valid (Level 4
+  seeds 14 and 18: the fixed-map remap ran out of creatures to pair), wins 19/7/14/0 (of
+  20, 20, 20 and 18 valid) against hash320's 19/8/13/3, none beyond 20-seed noise (Level 4
+  Fisher p = 0.23); Level 4 Imp deaths median 27 (18 runs) against 8 (0-55 per seed at
+  both; Mann-Whitney p ~ 0.26, so not a direction). It spans hashes 321-328; no sweep
+  isolates them. Before it, hash320 at `65e529b7` (2026-10-28;
+  D:\DK2Evidence\runs\packet-replay-hash320\README.md): 79 of 80 valid, wins 19/8/13/3
+  against hash309's 18/8/16/1, Level 4 Imp deaths median 8 against 14.5, spanning hashes
+  310-320. The previous measurement is hash309 at `490b7d82`
   (2026-10-26; D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
   18/8/16/1 of 20 against hash305's 18/9/17/1; Level 1 seeds 3 and 7 now win and
   6 and 11 lose; Level 4 Imp deaths median 14.5 against 7, with Imp flees, alarms
