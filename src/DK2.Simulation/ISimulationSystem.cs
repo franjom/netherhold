@@ -34,6 +34,8 @@ public sealed class SimulationContext
     internal HashSet<CreatureState> TremorRecoveryCompletedThisTick { get; } = [];
     // Cleared before every turn; suppresses a second mood selection later in that turn.
     internal HashSet<CreatureState> TremorMoodDispatchedThisTick { get; } = [];
+    // Cleared before every turn; the creatures CreatureAngerSystem ran the angry chooser for.
+    internal HashSet<CreatureState> AngryChooserRanThisTick { get; } = [];
     internal HashSet<CreatureState> TremorRebellionStartedThisTick { get; } = [];
 
     /// <summary>The state the creature being updated held when its update began

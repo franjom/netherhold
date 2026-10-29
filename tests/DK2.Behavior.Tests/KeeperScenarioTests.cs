@@ -117,8 +117,11 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
                 && (state.PlayersAttackedFlags & (1 << room.OwnerPlayerId)) != 0
                 && callX >= room.MinX - 2 && callX <= room.MaxX + 2
                 && callY >= room.MinY - 2 && callY <= room.MaxY + 2);
-            Assert.Contains(run.Events, e => e.Kind == "engaged"
-                && e.Detail.Contains($"type=Mistress player=5 heart={enemyHeart.OwnerPlayerId}"));
+            // Every call is at an attacked enemy's Heart; only the first is sure to be answered inside
+            // the run, as a later one may come too near its end (since ADR-0574, one at 1185 of 1200).
+            if (callEmission == calls[0])
+                Assert.Contains(run.Events, e => e.Kind == "engaged"
+                    && e.Detail.Contains($"type=Mistress player=5 heart={enemyHeart.OwnerPlayerId}"));
         }
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }

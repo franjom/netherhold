@@ -231,10 +231,9 @@ was run; icon/animation flicker is not established by this control-flow proof.
 The Library comparison is [the Research hook](library-and-research.md#1-the-hook-in-full):
 a zero credit returns success and does not itself evict the creature.
 
-**Implementation boundary:** ADR-0573 builds the zero-credit exit. Ordinary,
-non-fleeing idle in `CreatureJobSystem.Choose` retries the dropped job directly;
-only its Fleeing path preserves the separate 1-to-89 update. The full native
-three-update cadence remains unbuilt; this research change does not alter it.
+**Implementation boundary:** ADR-0573 builds the zero-credit exit and ADR-0574
+the separate 1-to-89 update for every creature but a Horny that is not fleeing,
+so ours runs the native three-update cycle 63, 1, 89.
 
 ## 6. Kinds 9 and 10: a crate to a blueprint
 

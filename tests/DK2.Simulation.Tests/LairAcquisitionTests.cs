@@ -158,8 +158,9 @@ public class LairAcquisitionTests
         sim.ObserveWith(events);
 
         // State 89's step 5 (0x004778E0): the idle decision itself tries for the lair, before
-        // the dropped job and the chooser, so the very first decision sets off (ADR-0328).
-        sim.Run(1);
+        // the dropped job and the chooser, so the very first decision sets off (ADR-0328): 1 hands
+        // over to 89 on the first turn, and 89 sets off on the second (ADR-0574).
+        sim.Run(2);
         Assert.Equal(CreatureActivity.SeekingLair, goblin.Activity);
         Assert.DoesNotContain(events.Events, e => e.Kind == "job_taken");
         Assert.Contains(events.Events, e => e.Kind == "lair_sought" && e.System == "CreatureJob");
@@ -187,7 +188,8 @@ public class LairAcquisitionTests
         ]);
         sim.ObserveWith(events);
 
-        sim.Run(1);
+        // 1 hands over to 89 (ADR-0574); 89's lair step, outside any gate, sets off the next turn.
+        sim.Run(2);
         Assert.Equal(CreatureActivity.SeekingLair, goblin.Activity);
         Assert.DoesNotContain(events.Events, e => e.Kind == "job_taken");
     }

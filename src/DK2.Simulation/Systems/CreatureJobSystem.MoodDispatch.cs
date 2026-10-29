@@ -12,7 +12,10 @@ public sealed partial class CreatureJobSystem
     public const int NeutralIdleState = 5;
     public const int HornyIdleState = 238;
 
-    private void DispatchFleeingIdle(SimulationContext context, CreatureState creature, CreatureDef definition)
+    /// <summary>State 1 under the dispatcher (<c>0x00476FC0</c>, <c>0x004773D0</c>): the mood prelude,
+    /// the Fleeing clear, the fight return, then the role's next state, whose handler runs on a later
+    /// turn (ADR-0574).</summary>
+    private void DispatchIdle(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (TryDispatchMoodPrelude(context, creature, definition)) return;
         creature.Fleeing = false;
@@ -41,7 +44,17 @@ public sealed partial class CreatureJobSystem
         // Unmodeled body flags and possessed-following are scoped in the Tremor research.
         if (eligible && mood != CreatureMood.Content)
         {
-            if (mood == CreatureMood.Angry && TryChooseDispatchedMood(context, creature, definition, mood)) return true;
+            // The dispatcher runs the angry chooser once a turn, and its failure falls into the
+            // unhappy one (0x00477244, 0x00477256). CreatureAngerSystem ran it earlier in this
+            // update: a choice made there skips the handler, and none goes on to unhappy.
+            if (mood == CreatureMood.Angry)
+            {
+                if (context.AngryChooserRanThisTick.Contains(creature))
+                {
+                    if (creature.LastAngryChoiceTick == context.Tick.Value) return true;
+                }
+                else if (TryChooseDispatchedMood(context, creature, definition, mood)) return true;
+            }
             if (TryChooseDispatchedMood(context, creature, definition, CreatureMood.Unhappy)) return true;
         }
         return false;

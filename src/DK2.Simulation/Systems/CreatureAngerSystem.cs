@@ -99,7 +99,10 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
             && !PrisonRules.IsImprisoned(state)
             && !state.CombatPitFighter
             && !context.TremorMoodDispatchedThisTick.Contains(state))
+        {
+            context.AngryChooserRanThisTick.Add(state);
             Decide(context, creature, state);
+        }
     }
 
     /// <summary>A fresh roll on every allowed selection, five game seconds apart,

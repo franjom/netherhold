@@ -117,7 +117,8 @@ public class DoorCombatTests
         (GameDatabase db, WorldState world) = Walled(Keeper);
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, West);
         goblin.RebelActive = true;
-        new GameSimulation(db, world, 1, [new CreatureJobSystem()]).Run(1);
+        // 1 hands over to 89, whose handler runs the next turn (ADR-0574).
+        new GameSimulation(db, world, 1, [new CreatureJobSystem()]).Run(2);
         Assert.False(goblin.RebelActive);
     }
 

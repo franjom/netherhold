@@ -1,6 +1,12 @@
 # Early state-hash versions
 
-Versions 9–74, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–75, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**75** — `0x51E5A81A5FE19DE8`. `CreatureState.Dk2StateId`, DK2's own state id beside
+the retiring `Activity` enum (ADR-0135, decided 2026-09-10 and landed 2026-09-23).
+Nothing writes it yet, so every creature hashes the unassigned `-1`: the bump is the
+field's arrival, not a behaviour change. `-1` rather than `0` because state 0 is a
+real row.
 
 **74** — `0x434B838F6410D5F7`. State 8's flag and route-refresh countdown, the chase
 counter, the retreating target given up, the celebration clock and the body target

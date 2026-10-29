@@ -52,8 +52,9 @@ Each chooser does the same five things:
   did (Q150, ADR-0060).
 - **Only the happy chooser charges `AngerNoWork`.** Its tail, when every job has
   failed, is `FUN_00478b80(3, def+0x6c7, 3)`. The unhappy chooser's identical
-  tail is a bare `return 0`, and so is the angry one's. **A creature that is
-  already unhappy is never made crosser by idleness.**
+  tail is a bare `return 0`, and so is the angry one's. **But 89 calls the happy
+  chooser whatever the mood** (`0x00477A7B`, it tests none), so an unhappy creature
+  whose mood prelude took nothing is charged no-work anger by 89 (ADR-0574).
 
 That asymmetry is the same shape as `AngerNoPay` having no treasury clause where
 both its siblings test for the room (ADR-0079). Twice: a plausible symmetry the

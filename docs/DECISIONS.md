@@ -1413,7 +1413,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 **Decision.**
 - **Three choosers, one per mood** — happy `FUN_004780e0`, unhappy `FUN_004782c0`, angry `FUN_004784c0` (built since ADR-0061). Each gates on five game seconds against **its own timestamp** — the creature carries three side by side — builds cumulative ranges from that mood's table, rolls `rand(100)`, tries the job whose range holds the roll, and on failure tries every job in the table in record order. A failed selection stamps nothing.
 - **One dispatcher, `FUN_00478800`** — a 28-way switch to the job's handler, and every handler is *(a cheap test on the keeper or creature) → (find the nearest room) → (enter the job's state, which can still fail)*. That boolean is the whole of job availability, which closes the clause Q2 had open: what makes Research or Train *fail* so the list falls through.
-- **Only the happy chooser charges `AngerNoWork`.** Its tail, when every job has failed, charges `def+0x6c7`; the unhappy chooser's identical tail is a bare return, and so is the angry one's. A creature already unhappy is never made crosser by idleness. Same shape as ADR-0079's `AngerNoPay` having no treasury clause: twice now, a plausible symmetry the game does not have, and both times the symmetric version would have been the natural thing to write.
+- **Only the happy chooser charges `AngerNoWork`.** Its tail, when every job has failed, charges `def+0x6c7`; the unhappy chooser's identical tail is a bare return, and so is the angry one's. State 89 calls the happy chooser whatever the mood, so an unhappy creature that reaches 89 is charged too (ADR-0574). Same shape as ADR-0079's `AngerNoPay` having no treasury clause: twice now, a plausible symmetry the game does not have, and both times the symmetric version would have been the natural thing to write.
 - **Sulking is going to your lair and moping in it.** `FUN_00482ef0` is the Sleep handler with one digit changed — same three preconditions, same room, state `0x55` where sleep uses `0x51`. A creature with no bed cannot sulk at all, and every unhappy table in the shipped game is Sulk and Drink.
 - **The mood band is stored on the creature**, as DK2 stores it in slot 7 of its anger object and rewrites it on every add. Anger reaches a creature from four places and three run before `CreatureAngerSystem` in the same tick — a slap, the prison, and now having no work — so a "mood before" worked out from the anger visible at the top of that system's pass missed every crossing it did not cause itself. The scenario found it: two Goblins went from content to unhappy on pure `AngerNoWork` and nothing said so.
 
@@ -13372,3 +13372,34 @@ refuses it first; of Horny and the Unique Skeleton only the Skeleton can be pick
 Q672's binary trace corrects the retry timing and bounds the repeated Workshop/idle activity:
 see [workshop-crates.md section 5.1](research/workshop-crates.md#51-zero-rate-dropped-workers-q672-binary-2026-10-29).
 A zero Research credit does not itself fail the Library update hook.
+
+## ADR-0574 - Raw idle hands over to 89 on a later turn
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 328 · Q672 ·
+Research: `docs/research/workshop-crates.md` §5.1, `docs/research/idle-fallback.md` §1; KB `004773D0`, `004778E0`, `004780E0`, `00476FC0`
+
+**Context.** The dispatcher `0x00476FC0` runs one state handler per turn, after the mood prelude
+(the angry and unhappy choosers). State 1's handler `0x004773D0` tries the fight return and then
+requests the role's next state, 89 for a keeper's creature, and returns; 89's body `0x004778E0`
+(Call to Arms, lair, dropped and remembered job, `Job_ChooseHappy` `0x004780E0`, fallback, 3)
+runs on a later turn. Ours did this only for a fleeing creature and otherwise ran 89's body inside
+state 1, with the unhappy table in place of the prelude. Re-read 2026-10-29: 89 calls the happy
+chooser whatever the mood, and it tests none; a failed pass charges `def+0x6C7`.
+
+**Decision.** `CreatureJobSystem.DispatchIdle` (the former fleeing-only path) is state 1 for every
+creature except a Horny that is not fleeing: the prelude, the Fleeing clear, the fight return, then
+5 for a neutral creature, 238 for a Horny, else 89. 89's turn runs the prelude again and then its body.
+`CreatureAngerSystem` is the prelude's angry pass and runs first in a creature's update; it marks the
+creature, and the prelude then skips the angry pass: a choice made there ends the turn, none goes on to
+the unhappy chooser (`0x00477244`, `0x00477256`). 193's tail sets 1 and calls the lair attempt itself,
+its result unread (`0x00459D34`), and ends the turn.
+
+**Consequences.** A creature that turns idle takes its job, lair walk or fallback one turn later, and
+a job's walk is saved with 89 as its caller. An unhappy creature whose prelude takes nothing is
+charged no-work anger by 89, as a content one always was. A zero-rate creature dropped on a Workshop
+cycles 63, 1, 89 (Q672). Not built: Horny's 238 handler (a Horny not fleeing still chooses in 1),
+and 89's casino countdown and `ReturnToJobId` (idle-fallback.md §5). The prelude reports no
+refusals, so an unhappy creature's refused job leaves no `job_refused` line. Also not built: state 1's
+`+0x3E6` bit 15 arm and its zeroing of the current job `+0x64` and `+0x3CB` (KB `004773D0`).
+Level 11A's Drako run diverges after the joiners' lair walks: its second Call to Arms lands at
+another attacked Heart at turn 1185, too late to be answered, so the scenario test now requires an
+engagement for the first call only.

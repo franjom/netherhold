@@ -62,7 +62,8 @@ effects.
   no route, so every one of our portal arrivals stood on it for good.
 
 Built: `PortalRules.JoiningState`, `JoiningTicks` and `StillJoining`;
-`CreatureJobSystem` holds 193, steps and chooses in the same tick. `WorldView`
+`CreatureJobSystem` holds 193, steps, sets 1 and makes the lair attempt in the same tick
+(`0x00459D34`, result unread) and ends the turn; state 1's handler runs on the next (ADR-0574). `WorldView`
 plays the Entrance clip once from the state-entry stamp; `ArtSourceMap` selects
 file block 30 (catalogue index 29, which omits the initial unrelated block).
 The creator now also sets the original heading `0x400`, so authored motion

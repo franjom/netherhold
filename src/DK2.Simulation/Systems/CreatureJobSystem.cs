@@ -83,12 +83,15 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         }
         if (Combat.CombatRules.Preoccupied(creature)) return;
 
-        // 193, joining your Dungeon: the Entrance animation, a step off the portal, then 1 and
-        // a job in the same tick, as 0x00459C20 sets 1 and calls the lair attempt at once.
+        // 193, joining your Dungeon: the Entrance animation, a step off the portal, then 1 and the
+        // lair attempt in the same tick, its result unread (0x00459C20, the call at 0x00459D34).
+        // State 1's handler runs on the next turn (ADR-0574).
         if (creature.Dk2StateId == PortalRules.JoiningState)
         {
             if (PortalRules.StillJoining(world, creature, definition)) return;
             StateShadow.ToIdle(context, SystemName, creature);
+            _seeker.TryGoForALair(context, SystemName, creature, definition);
+            return;
         }
 
         // 3 and 87, 89's "nothing to do": an idle action or a wander, then idle (ADR-0228).
@@ -150,9 +153,12 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         SimulationContext context, CreatureState creature, CreatureDef definition)
     {
         if (creature.Dk2StateId == IdleChooserState && TryDispatchMoodPrelude(context, creature, definition)) return;
-        if (creature.Fleeing && creature.Dk2StateId == CreatureStateMachine.Idle)
+        // State 1 (0x004773D0) requests 89 and returns; 89's body runs on a later turn (ADR-0574).
+        // A Horny's arm is 238, which is not built, so a Horny not fleeing still chooses below.
+        if (creature.Dk2StateId == CreatureStateMachine.Idle
+            && (creature.Fleeing || !definition.Flags.HasFlag(CreatureFlags.IsHorny)))
         {
-            DispatchFleeingIdle(context, creature, definition);
+            DispatchIdle(context, creature, definition);
             return;
         }
         // State 1's first arm, before it sends the creature to 89: back to a fight it withdrew from.
@@ -222,9 +228,9 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             return;
         }
 
-        // The unhappy chooser's own first line is the same lair attempt inside its gate
-        // (creature-anger.md); 89's ungated one above has already made it this tick, so a
-        // second call here could only repeat the same answer.
+        // The unhappy chooser 0x004782C0 is the dispatcher's prelude (TryDispatchMoodPrelude): its
+        // five-second gate first, then the lair attempt (0x00478346-0x00478382). 89's ungated
+        // attempt above has already been made this tick, so none is repeated here.
 
         // While the owner's CallToArmsOn bit is set the dispatcher admits only Leave and Rebel
         // and fails every other job untried (0x00478849, ADR-0145): TryTake's first refusal.
@@ -263,11 +269,10 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             return;
         }
 
-        // Nothing in the table could be done, and only a content creature pays
-        // for that: the unhappy chooser's tail is a bare return where the happy
-        // one's charges angerNoWork (JobRules.ChargesNoWorkAnger), on every failed
-        // pass. Nothing is stamped either way, exactly as the angry chooser leaves
-        // a failed selection unstamped. Then 89's fallback and state 3 (ADR-0228).
+        // Nothing in the table could be done: only the happy chooser's tail charges
+        // angerNoWork (JobRules.ChargesNoWorkAnger), on every failed pass; an unhappy
+        // creature is charged by 89's happy pass instead (ADR-0574). Nothing is
+        // stamped on failure. Then 89's fallback and state 3 (ADR-0228).
         // The charge is the loaded def+0x6C7: the file's per-second figure over four (ADR-0228).
         int charge = SimulationTiming.LoaderRatePerTick(definition.AngerNoWork);
         if (JobRules.ChargesNoWorkAnger(mood) && charge != 0)

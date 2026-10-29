@@ -141,13 +141,14 @@ with this bit. Idle `0x004773D0` clears it when its handler executes, not at
 every transition into 1. Broad initialization, record copies and indirect
 writes prevent an absolute-absence conclusion from the census.
 The state dispatcher runs needs and mood selection before the current handler.
-The simulation's Fleeing-only keeper idle prelude now uses explicit selector
+The simulation's keeper idle prelude (`DispatchIdle`, every creature but a non-fleeing Horny, ADR-0574) uses explicit selector
 acceptance, including angry-to-unhappy fallback; accepted rebellion can retain
 raw idle. Refusal reaches idle and ends after requesting89. Heroes and workers
 retain their separate handlers. See [the dispatcher](functions/00476FC0.md),
 [idle](functions/004773D0.md), [Leave](functions/00459FD0.md) and
-[Rebel](functions/00475170.md). The dispatcher record scopes unmapped gates. The legacy
-non-Fleeing job dispatcher and its unbuilt angry-job deviation are unchanged.
+[Rebel](functions/00475170.md). The dispatcher record scopes unmapped gates. The
+non-fleeing Horny's state 1 still runs the legacy job dispatcher, and its unbuilt angry-job
+deviation is unchanged.
 State 210's `0x00481520` ends the current action, starts action 64 and enters
 263. Its `0x004815A0` waits for completion, optionally consumes the
 dumper-named ShouldDelayGetUp (+0x3E6 bit 27) as one handler delay, then

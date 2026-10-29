@@ -221,9 +221,10 @@ public static class JobRules
         _ => creature.AngryJobs,
     };
 
-    /// <summary><b>Only a happy creature is angered by having nothing to do</b>, and the
-    /// asymmetry is the original's: with every job failed the happy chooser charges
-    /// <c>angerNoWork</c> (<c>def+0x6c7</c>) where the unhappy and angry choosers have a
-    /// bare <c>return 0</c>, so a creature already unhappy is never made crosser by idleness. Same shape as <c>AngerNoPay</c> having no treasury clause (ADR-0079).</summary>
+    /// <summary><b>Only the happy chooser charges <c>angerNoWork</c></b>: with every job failed it
+    /// charges <c>def+0x6c7</c> where the unhappy and angry choosers have a bare <c>return 0</c>.
+    /// State 89 calls the happy chooser whatever the mood, so an unhappy creature that reaches
+    /// 89 is charged too (ADR-0574); this predicate is true for the mood passed to the chooser
+    /// that ran. Same shape as <c>AngerNoPay</c> having no treasury clause (ADR-0079).</summary>
     public static bool ChargesNoWorkAnger(CreatureMood mood) => mood == CreatureMood.Content;
 }

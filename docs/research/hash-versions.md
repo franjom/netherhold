@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**328** - `0x2B98D9C202582A74`. FormatVersion also 328. Behaviour only: a keeper's raw idle (state 1) runs the mood prelude and its arms, then hands over to 89, whose body (Call to Arms, lair, dropped job, happy chooser, fallback) runs on a later turn (`0x004773D0` -> `0x004778E0`; ADR-0574, Q672). A job's walk is saved with 89 as its caller, and an unhappy creature whose prelude takes nothing is charged no-work anger by 89's happy chooser; the angry chooser runs once a turn (`CreatureAngerSystem` marks it for the prelude); a Portal joiner makes its lair attempt as it leaves 193 (`0x00459D34`). No fields added; the pin fixture moves by the version only. `CreatureJobTests.AnUnhappyCreatureWithNothingToDoIsChargedByEightyNinesHappyChooser`, `AnAngryCreatureChoosesOnceInATurn_AndTakesNoJobInTheTurnItsAngryChooserChose`, `PortalCreatureActionTests.AJoinerSetsOffForALairInTheTickItLeaves193` and the 1 -> 89 sequences in `CreatureJobTests`, `CombatTests` and `LairAcquisitionTests` cover it.
+
 **327** - `0x0A899428097E5E19`. FormatVersion also 327. Behaviour only: a zero Manufacture credit fails the category 5 update (`0x0047B190` returns 0), and the creature goes idle (ADR-0573). No fields added; the pin fixture moves by the version only. `DroppedToDoJobTests.ACreatureThatCannotManufactureIsDroppedInTheWorkshop_NeverEarns_AndIsIdledByEveryHook` and `ACreatureThatCannotResearchIsDroppedInTheLibraryAndStaysEarningNothing` cover it.
 
 **326** - `0x7867DC185C8E72EE`. FormatVersion also 326. Behaviour only: the two route helpers' walks (states 6 and 7) end a running action (`0x00471890`, `0x00471A70` -> `0x00496D20`; ADR-0572, Q671), so a hold or a cast begun before the walk does not outlive it; state 8's approach keeps it. No fields added; the pin fixture moves by the version only. `CreatureStateMachineTests.ARouteHelpersWalkEndsTheRunningAction` and `TheCombatApproachKeepsTheRunningAction` cover it.
@@ -388,10 +390,4 @@ resume slot the transition rule reads in place of the current state while the ca
 is 2, and it is where the thirteen travelling `CreatureActivity` entries land when they
 retire together. Nothing writes either; composition only.
 
-**75** — `0x51E5A81A5FE19DE8`. `CreatureState.Dk2StateId`, DK2's own state id beside
-the retiring `Activity` enum (ADR-0135, decided 2026-09-10 and landed 2026-09-23).
-Nothing writes it yet, so every creature hashes the unassigned `-1`: the bump is the
-field's arrival, not a behaviour change. `-1` rather than `0` because state 0 is a
-real row.
-
-[Versions 9–74](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–75](hash-versions-early.md) retain the earlier pins and their reasons.

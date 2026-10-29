@@ -38,12 +38,12 @@
 #
 # ## The asymmetry worth watching for
 #
-# ONLY A HAPPY CREATURE IS ANGERED BY HAVING NOTHING TO DO. The happy chooser
-# ends, when every job in the table has failed, with a call charging angerNoWork
-# (def+0x6c7). The unhappy chooser's identical tail is a bare return, and so is
-# the angry one's. A creature that is already unhappy is never made crosser by
-# idleness - the grievance belongs to the creature that was fine until its
-# keeper ran out of work for it.
+# ONLY THE HAPPY CHOOSER CHARGES angerNoWork. It ends, when every job in the
+# table has failed, with a call charging angerNoWork (def+0x6c7). The unhappy
+# chooser's identical tail is a bare return, and so is the angry one's. State 89
+# calls the happy chooser whatever the creature's mood, so an unhappy creature
+# whose mood prelude took nothing is charged by 89 as well (ADR-0574); the
+# Goblins here are content, so the charge below is the plain case.
 #
 # The same shape as AngerNoPay having no treasury clause where both its siblings
 # test for the room (ADR-0079). Twice now, a plausible symmetry the game does

@@ -231,7 +231,10 @@ public sealed class CallToArmsTests
         PlayerMessage message = Assert.Single(world.Messages.Entries, m => m.Kind == PlayerMessageKind.CallToArmsUnreachable);
         Assert.Equal((Keeper, 0, 0, (uint)SimulationTiming.TicksFromSeconds(50)), (message.PlayerId, message.Data1, message.Data2, message.Timeout));
         Assert.False(fighter.HeedingCallToArms);
-        Assert.Equal(CreatureStateMachine.Idle, fighter.Dk2StateId);
+        // 89 goes on past the message to its chooser and fallback, 3, which wanders in 87 or plays
+        // an idle action (ADR-0574, ADR-0228): not walking to the flag.
+        Assert.Contains(fighter.Dk2StateId, new[] { CreatureJobSystem.DoingNothingState, ImpStates.Wandering });
+        Assert.False(fighter.HeedingCallToArms);
     }
 
     [Fact]

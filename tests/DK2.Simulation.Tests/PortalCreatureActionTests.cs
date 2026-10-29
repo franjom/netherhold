@@ -185,6 +185,30 @@ public class PortalCreatureActionTests
         Assert.NotEqual(PortalRules.JoiningState, creature.Dk2StateId);
     }
 
+    /// <summary>193's tail sets 1 and calls the lair attempt itself (<c>0x00459D34</c>), so a joiner
+    /// sets off for a lair in the tick it leaves 193, not after idle has handed over to 89
+    /// (ADR-0574).</summary>
+    [Fact]
+    public void AJoinerSetsOffForALairInTheTickItLeaves193()
+    {
+        CreatureDef joiner = Dk2TerrainFixture.Database().CreatureById(7) with
+        {
+            CreatureId = 91, EntranceOffsetX = 0, EntranceOffsetY = 2929,
+            EntranceFrames = 147, EntranceFramesPerSecond = 30,
+        };
+        GameDatabase db = Dk2TerrainFixture.Database(joiner);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
+        Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
+        Paint(db, world, RoomTypeId.Lair, 8, 5, 3);
+        var sim = new GameSimulation(db, world, seed: 1, Dk2TerrainFixture.DefaultSystems());
+        CreatureState creature = PortalRules.CreateScriptedArrival(new StateHookContext(world, db), 3, 91, 1)!;
+        Assert.Equal(PortalRules.JoiningState, creature.Dk2StateId);
+
+        for (int i = 0; i < 100 && creature.Dk2StateId == PortalRules.JoiningState; i++) sim.Tick();
+
+        Assert.Equal(CreatureActivity.SeekingLair, creature.Activity);
+    }
+
     [Theory]
     [InlineData(147, 30, 20)]
     [InlineData(197, 30, 27)]

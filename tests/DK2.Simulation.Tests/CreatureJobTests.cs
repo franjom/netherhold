@@ -194,13 +194,12 @@ public sealed class CreatureJobTests
     }
 
     [Fact]
-    public void AnUnhappyCreatureIsNotAngeredByHavingNothingToDo()
+    public void AnUnhappyCreatureWithNothingToDoIsChargedByEightyNinesHappyChooser()
     {
-        // The asymmetry is the original's: the happy chooser's tail charges
-        // angerNoWork, the unhappy chooser's tail is a bare return and so is the
-        // angry one's. A creature that is already unhappy is never made crosser by
-        // idleness. Same dungeon as AGoblinWithNowhereToTrain and the same empty
-        // tables; the only difference is where the creature starts on the ladder.
+        // The unhappy chooser's tail is a bare return, but it is the dispatcher's prelude: with
+        // nothing taken, state 1 hands over to 89, and 89 always calls the happy chooser
+        // (0x004778E0 -> 0x004780E0), which tests no mood and charges angerNoWork on a failed
+        // pass (ADR-0574). Same dungeon as AGoblinWithNowhereToTrain and the same empty tables.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
@@ -213,10 +212,44 @@ public sealed class CreatureJobTests
 
         Simulation(db, world).Run(Second * 10);
 
-        // Its unhappy table is Drink at 100% and there is no casino, so it
-        // found nothing - and was charged nothing for it.
-        Assert.Equal(0, goblin.Anger.Work);
+        // Its unhappy table is Drink at 100% and there is no casino, so the prelude found
+        // nothing; its happy table found nothing either, and 89 charged it for that.
+        Assert.True(goblin.Anger.Work > 0);
         Assert.Equal(JobType.None, goblin.CurrentJob);
+    }
+
+    /// <summary>The dispatcher runs the angry chooser once a turn and a choice skips the handler
+    /// (0x00476FC0). CreatureAngerSystem is that chooser; the prelude in state 1 must not choose
+    /// again in the turn it chose, here an unbuilt Sulk beside an unhappy table that could train.</summary>
+    [Fact]
+    public void AnAngryCreatureChoosesOnceInATurn_AndTakesNoJobInTheTurnItsAngryChooserChose()
+    {
+        const byte SulkerId = 60;
+        GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Goblin() with
+        {
+            CreatureId = SulkerId, Name = "Sulker",
+            AngryJobs = [new(JobType.Sulk, 0, 0, 100)],
+            UnhappyJobs = [new(JobType.Train, 0, 0, 100)],
+            HappyJobs = [new(JobType.Train, 0, 0, 100)],
+        });
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
+        Fund(world, 10_000);
+        var sink = new ListEventSink();
+        // The production order: the angry chooser before the state handlers.
+        var sim = new GameSimulation(db, world, seed: 42,
+            [new CreatureMovementSystem(), new CreatureAngerSystem(), new CreatureJobSystem()]);
+        sim.ObserveWith(sink);
+
+        // Arrives idle on the anger system's tick, the last of a game second.
+        sim.Run(SimulationTiming.TicksPerSecond - 1);
+        CreatureState sulker = world.SpawnCreature(db, SulkerId, Keeper, Floor);
+        sulker.Anger.Lair = CreatureAngerRules.Ceiling + 1;
+        sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "creature_angry" && e.Detail.Contains("chose=Sulk", StringComparison.Ordinal));
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "job_taken");
+        Assert.NotEqual(JobType.Train, sulker.CurrentJob);
     }
 
     [Fact]
@@ -257,12 +290,16 @@ public sealed class CreatureJobTests
         goblin.Anger.Treatment = CreatureAngerRules.UnhappyAt(db.CreatureById(GoblinId));
         goblin.GoldHeld = 8;
 
-        var sink = new ListEventSink();
-        Simulation(db, world, sink).Run(Second * 30);
-
-        Assert.Equal(JobType.None, goblin.CurrentJob);
-        Assert.Contains(sink.Events, e => e.Kind == "job_refused"
-            && e.Detail.Contains("job=Drink") && e.Detail.Contains("reason=cannot_afford_to_gamble"));
+        // The unhappy table is the dispatcher's prelude now (ADR-0574), which reports no refusal.
+        Assert.Equal("cannot_afford_to_gamble",
+            JobRules.Refused(world, db, db.CreatureById(GoblinId), goblin, JobType.Drink));
+        GameSimulation sim = Simulation(db, world);
+        for (int t = 0; t < Second * 30; t++)
+        {
+            sim.Tick();
+            Assert.NotEqual(JobType.Drink, goblin.CurrentJob);
+        }
+        Assert.Equal(8, goblin.GoldHeld);
     }
 
     [Fact]
@@ -500,8 +537,9 @@ public sealed class CreatureJobTests
         world.Tile(4, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
         seen.AddRange(StatesSeen(sim, goblin, Second * 2));
 
+        // Idle hands over to 89, whose job handler sets off: the walk's saved caller is 89 (ADR-0574).
         // Then, with nothing left to choose, 89 parks it in 3 (ADR-0228).
-        Assert.Equal([(7, CreatureStateMachine.Idle), (108, CreatureStateMachine.Idle)], seen.Take(2));
+        Assert.Equal([(89, 0), (7, 89), (108, 89)], seen.Take(3));
         Assert.Contains(seen, entry => entry.State == TrainingStep.AtMachineState);
         Assert.Contains(seen, entry => entry.State == TrainingStep.WorkingState);
         Assert.Contains(seen, entry => entry.State == TrainingRules.ReturningState);
@@ -522,7 +560,8 @@ public sealed class CreatureJobTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         var events = new ListEventSink();
 
-        Assert.Equal((108, 0), StatesSeen(Simulation(db, world, events), goblin, Second * 10).First());
+        // 1 hands over to 89 first (ADR-0574), whose job handler takes the shortcut.
+        Assert.Equal([(89, 0), (108, 0)], StatesSeen(Simulation(db, world, events), goblin, Second * 10).Take(2));
         Assert.DoesNotContain(events.Events, e => e.Kind == "state_refused");
     }
 

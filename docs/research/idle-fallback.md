@@ -73,18 +73,21 @@ through 89.
   room. The Goblin's Train is its happy table anyway; the fallback matters for the others.
 - **`AngerNoWork` is far slower.** The happy chooser adds the loaded value, the file's figure
   over four (`creature-anger.md`), once a failed pass. Ours charged 50 once a second, which was
-  right only while ours retried every tick. Passes are about eight turns apart, because the 87
-  walk back to 1 cuts 3's twelve turns short.
+  right only while ours retried every tick. Passes are 14 to 32 turns apart for a Goblin with
+  nowhere to train (measured 2026-10-29, hash 328: 14, 24, 30, 15, 32), each one turn more than
+  before the handover to 89 moved to its own turn (ADR-0574).
 - The Combat Pit's 139 adds the same loaded value every turn (`combat-pit.md` §2). Ours added the
   file's figure.
 
 ## 5. Ours
 
-- The newly entered raw89 path runs the dispatcher mood prelude before `Choose`,
-  then the happy chooser for every mood and the fallback to3. See
-  [its function record](functions/004778E0.md). The existing raw1 path still combines
-  selection with idle, uses the unhappy table for unhappy creatures, and leaves
-  angry selection to `CreatureAngerSystem`.
+- The raw89 path runs the dispatcher mood prelude before `Choose`, then the happy chooser
+  for every mood and the fallback to 3. See [its function record](functions/004778E0.md).
+- Raw 1 (`DispatchIdle`, ADR-0574) is the prelude, the Fleeing clear and the fight return,
+  then 5, 238 or 89, and ends the turn; 89's body runs on a later turn. A Horny that is not
+  fleeing still chooses inside state 1, since its 238 handler is not built. Angry selection
+  is `CreatureAngerSystem`, which runs first and marks the creature so the prelude does not
+  run the angry chooser a second time.
 - **The refusal log** now reports every refusal, since passes are rare.
 - **Guessed:** that every creature has actions 43 and 44, and their length
   (`ImpTaskSystem.IdleActionGuessTicks` = 8).

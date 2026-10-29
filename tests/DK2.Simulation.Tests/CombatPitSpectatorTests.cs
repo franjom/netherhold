@@ -144,6 +144,7 @@ public sealed class CombatPitSpectatorTests
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world, seed);
         for (int i = 0; i < 3; i++) sim.Tick();
         CreatureState watcher = world.SpawnCreature(db, Watcher, Keeper, Outside);
+        sim.Tick();   // 1 hands over to 89 (ADR-0574)
 
         long taken = sim.World.CurrentTick.Value;
         sim.Tick();
@@ -273,6 +274,7 @@ public sealed class CombatPitSpectatorTests
         CreatureState a = world.SpawnCreature(db, Watcher, Keeper, Rim);
         CreatureState b = world.SpawnCreature(db, Watcher, Keeper, Rim);
 
+        sim.Tick();   // 1 hands over to 89 (ADR-0574)
         sim.Tick();   // job 26 on the rim with a fight on: 142 where they stand
         Assert.Equal(CombatPitSpectatorRules.ChoosingState, a.Dk2StateId);
         Assert.Equal(CombatPitSpectatorRules.ChoosingState, b.Dk2StateId);
