@@ -50,7 +50,7 @@ events. State entries are counted from change-only rows, so a state held under a
   dispatcher `0x00476FC0` runs one handler a turn, so the arrival's turn ends in the state it
   enters. Through hash 329 ours ran 202, 251 and 252 inside the arrival tick and went 203 -> 10 in
   one tick, so it chose sooner: median 6 ticks from leaving 203 to choosing against DK2's 14, 43
-  against 58 to a job (ours seeds 1, 3, 7, 8; DK2 2, 4, 6, 8). Built at hash 330 (ADR-0580); the
+  against 58 to a job (ours seeds 1, 3, 7, 8; DK2 2, 4, 6, 8). Built at hash 331 (ADR-0580); the
   figures are not remeasured. DK2 captures: `D:/DK2Evidence/runs/l4-flight-dwell-2026-10-29`.
 - Ours' overrun runs differ from its held runs in 3400-3900 by choices after a cut walk or a flight
   (at hash 329, 6 -> 10 and 203 -> 10, 36.5 and 36.6 a run, against 17.8 and 3.2): what being attacked looks like.

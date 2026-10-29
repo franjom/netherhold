@@ -1107,7 +1107,7 @@ public class CreatureNeedsTests
         Assert.NotEqual(CreatureActivity.Sleeping, goblin.Activity);
 
         // Tired, it goes, wounded or not.
-        goblin.AwakeTicks = SimulationTiming.TicksFromSeconds(db.CreatureById(GoblinId).TimeAwake);
+        goblin.SleepDebtTicks = SimulationTiming.TicksFromSeconds(db.CreatureById(GoblinId).TimeSleep);
         sim.Run(Second * 10);
         Assert.Contains(events.Events, e => e.Kind == "going_to_sleep");
     }
@@ -1211,6 +1211,6 @@ public class CreatureNeedsTests
         new GameSimulation(db, world, 42, [new CreatureSleepSystem()]).Run(Second * 300);
 
         Assert.Equal(CreatureActivity.Idle, imp.Activity);
-        Assert.Equal(0, imp.AwakeTicks);
+        Assert.Equal(0, imp.SleepDebtTicks);
     }
 }

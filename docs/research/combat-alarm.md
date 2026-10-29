@@ -135,7 +135,7 @@ exclusions as the room-job activities, and the raiser's-speed slip replaced by t
 responder's own run speed; §4 with `CreatureActivity.Reporting` covering both the
 walk and the thirty ticks.
 
-**Built at hash 330** (ADR-0580): 251's handler runs the turn after the arrival, and
+**Built at hash 331** (ADR-0580): 251's handler runs the turn after the arrival, and
 a worker is held in 252 for action 79, one play of art slot 29 (`CountedHoldTicks`: 4 turns
 for the Imp; DK2 holds an Imp four ticks, 432 of 432); anyone else idles in the 251 turn. A
 responder's 254 counts from the turn after the arrival.

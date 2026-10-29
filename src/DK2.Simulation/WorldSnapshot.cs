@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 330;
+    private const int FormatVersion = 331;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -357,7 +357,9 @@ public static class WorldSnapshot
             w.Write(c.HungerNeed);
             w.Write(c.FoodOwedAfterMeal);
             w.Write(c.FoodAttemptTicks);
-            w.Write(c.AwakeTicks);
+            w.Write(c.LastSleptTick.Value);
+            w.Write(c.SleepDebtTicks);
+            w.Write(c.NextSleepTryTick.Value);
             w.Write(c.SleepTicks);
             w.Write(c.DyingTicks);
             w.Write(c.Anger.Company);
@@ -1092,7 +1094,9 @@ public static class WorldSnapshot
                 HungerNeed = r.ReadInt32(),
                 FoodOwedAfterMeal = r.ReadBoolean(),
                 FoodAttemptTicks = r.ReadInt32(),
-                AwakeTicks = r.ReadInt32(),
+                LastSleptTick = new GameTick(r.ReadInt64()),
+                SleepDebtTicks = r.ReadInt32(),
+                NextSleepTryTick = new GameTick(r.ReadInt64()),
                 SleepTicks = r.ReadInt32(),
                 DyingTicks = r.ReadInt32(),
                 Anger = new CreatureAnger

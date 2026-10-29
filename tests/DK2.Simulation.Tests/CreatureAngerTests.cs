@@ -616,6 +616,7 @@ public class CreatureAngerTests
         // bucket instead would show nothing happening at all, which is the
         // point of ABedStopsTheGrievanceGrowingButDoesNotUndoIt.
         goblin.Anger.Treatment = 10_000;
+        goblin.SleepDebtTicks = 36;
         StatePlacement.As(goblin, CreatureActivity.Sleeping);
         StatePlacement.Place(goblin, LairRules.SleepingState);
 

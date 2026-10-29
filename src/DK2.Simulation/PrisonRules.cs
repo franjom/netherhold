@@ -360,7 +360,6 @@ public static class PrisonRules
         creature.HealthSourcePlayerId = playerId.Value;
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
-        creature.AwakeTicks = 0;
 
         // Into the captive's states: 114 from an imp; from the hand, 1 and then 114, the Prison's
         // enemy state (76, ADR-0226); then 115 (ADR-0191).

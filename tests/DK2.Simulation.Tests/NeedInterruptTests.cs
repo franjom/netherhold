@@ -132,7 +132,7 @@ public class NeedInterruptTests
         CreatureState goblin = Trainee(db, world, sim);
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, goblin));
 
-        goblin.AwakeTicks = 1_000_000;
+        goblin.SleepDebtTicks = 36;
         sim.Run(Second);
 
         Assert.Equal(CreatureActivity.GoingToSleep, goblin.Activity);
@@ -175,7 +175,7 @@ public class NeedInterruptTests
         sim.Run(Second);
         Assert.Equal(CreatureActivity.SeekingFood, goblin.Activity);
 
-        goblin.AwakeTicks = 1_000_000;
+        goblin.SleepDebtTicks = 36;
         sim.Run(Second);
 
         Assert.Equal(CreatureActivity.SeekingFood, goblin.Activity);
@@ -254,7 +254,7 @@ public class NeedInterruptTests
         sim.Run(Second);
         Assert.Equal(before, goblin.Health);
 
-        goblin.AwakeTicks = SimulationTiming.TicksFromSeconds(def.TimeAwake);
+        goblin.SleepDebtTicks = SimulationTiming.TicksFromSeconds(def.TimeSleep);
         sim.Run(Second);
         Assert.Equal(before + landed, goblin.Health);
     }
@@ -265,7 +265,7 @@ public class NeedInterruptTests
         GameDatabase db = Db;
         CreatureDef goblin = db.CreatureById(GoblinId);
         var tired = new CreatureState { Id = 1, OwnerPlayerId = Keeper,
-            AwakeTicks = SimulationTiming.TicksFromSeconds(goblin.TimeAwake) };
+            SleepDebtTicks = SimulationTiming.TicksFromSeconds(goblin.TimeSleep) };
         db.Variables.Misc[VariableTypeId.CannotSleepModifyCreatureHealthPerSecond] =
             new MiscVariable(VariableTypeId.CannotSleepModifyCreatureHealthPerSecond, -8, 0, 0);
         Assert.Equal(-8, NeedRules.CannotSleepHealthPerSecond(db, goblin, tired));

@@ -135,7 +135,7 @@ public static class CategoryHooks
 
         Slot(CreatureStateCategory.Sleeping, HookKind.Enter, 0x004B4C20, HookStatus.Stub, "success stub"),
         Arm(CreatureStateCategory.Sleeping, 0x0047AC00, HookStatus.Partial,
-            "anger cools (ADR-0185); state 83's 0x00477B20(1) is not built (state-category-hooks.md §3)",
+            "anger cools (ADR-0185); state 83 pays debt (ADR-0579); healing predicate unread (Q123)",
             typeof(LairRules), nameof(LairRules.CoolsAngerInLair)),
         Slot(CreatureStateCategory.Sleeping, HookKind.Leave, 0x0047AB90, HookStatus.NotBuilt,
             "believed presentation only: sets the draw bit (thing +0xF3 bit 0) on the lair and the creature, "

@@ -733,7 +733,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 **Context.** Owner, CONFIRMED: *"A lair is a room with tiles, on each tile only one bed/chair/whatever per creature can be present. When a creature enters a dungeon through a portal it goes to a lair, finds a free tile and occupies it with its bed. When a creature is injured it heals while it sleeps in its own bed."* Also: a skeleton has no lair; Horny is a summon, not a roster creature — both consistent with `LairObjectId` = 0, and the second is why Horny carries no `AvailableViaPortal`.
 
 **Decision.**
-- `CreatureState` gains `LairTileIndex`, `AwakeTicks`, `SleepTicks`. `LairRules` holds the rules; `CreatureSleepSystem` claims a bed, walks the creature there, sleeps and wakes it. `HashVersion` 11 → 12, `FormatVersion` 11 → 12.
+- `CreatureState` gains bed and sleep counters (persistent debt replaces the awake counter in ADR-0579). `LairRules` holds the rules; `CreatureSleepSystem` claims a bed, walks the creature there, sleeps and wakes it. `HashVersion` 11 → 12, `FormatVersion` 11 → 12.
 - `CreatureHealthRules.LairHealPerSecond` = `AsleepInOwnBed ? 100 : 0`. Replaces ADR-0048's proxy, which was wrong twice: awake creatures do not heal; a creature heals only in its own bed, never on its keeper's lair floor.
 - A lair's capacity is its tile count (one bed per tile). Not the general rule for rooms: a temple's capacity is its rim `2(w+h) − 4` (Q60); a heart stores gold in an outer ring. Capacity is per room type.
 - `CreatureSleepSystem` reuses the imps' pathfinder and movement system; registered after `ImpTaskSystem` and before `CreatureHealthSystem`, so a creature that falls asleep this tick is healed the same game second. Workers are skipped by an explicit `IsWorker` check, not because their record says 0.
@@ -4038,13 +4038,12 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 
 **Context.** Codex's read of states 79–84 reached a mechanic this project had already built and found it built differently, and the brief's stop rule recorded it as Q403 rather than changing behaviour on a research branch — the same route Q402 took the day before. State 83's exit test was re-derived instruction by instruction before merging: it reads `SleepNeeded`, stays while positive, then compares current health against the level-scaled maximum and stays while it is short.
 
-**Decision.** Waking requires both. `LairRules.HasSleptEnough` takes the `GameDatabase` and returns true only when `SleepTicks` has reached `TimeSleep` **and** `Health` has reached `CreatureHealthRules.MaxHealth`. A wounded creature sleeps past its record's `TimeSleep` until it is whole.
+**Decision.** Waking requires both. `LairRules.HasSleptEnough` takes the `GameDatabase` and returns true only when sleep debt is zero **and** `Health` has reached `CreatureHealthRules.MaxHealth` (debt representation corrected by ADR-0579). A wounded creature remains asleep until it is whole.
 
 **Consequences.**
 - **It only became visible when combat landed.** Before ADR-0163–0170 nothing wounded a creature that then went to bed, so a time-only wake and DK2's agreed on every run. It is live on every level now, and a Goblin that lies down at 300 of 1500 is in bed for twelve seconds where it used to be up at nine.
 - **A creature that cannot heal to full would sleep for ever.** So would DK2's; losing the bed is the way out of both, and `CreatureSleepSystem` already wakes on `BedStillValid` failing.
 - **The pinned world exercises none of it**, so the literal moved only because `HashVersion` is folded into the hash. That is the point of the bump: two builds that disagree about when a creature wakes must not compare states. Verified by flipping the predicate off and watching both tests fail, so neither is a vacuous pin (Q206's lesson).
-- **Not adopted:** DK2 counts `SleepNeeded` **down** from `TimeSleep` in the category hook, gated on the state id, where ours counts `SleepTicks` up in the system. Same clock read the other way; it costs a hashed field to change and buys nothing until the state machine is wired, so it waits for ADR-0135.
 - `HashVersion` and `FormatVersion` **79**, pin `0x6ACE9686C2A3E64E`.
 
 ## ADR-0174 — One door into the state machine, built before anything walks through it
@@ -12467,14 +12466,13 @@ limit. Focused regressions cover the corrected ordering and self-removal.
 `0x0046F440`, which routes to a bed only while the sleep latch `+0x58` is set:
 [creature-needs-routine.md §3](research/creature-needs-routine.md#3-the-three-needs-in-order).
 
-**Decision.** `LairRules.WantsToSleep` is tiredness only. In the Casino's
-states, where ours does not feel tiredness, a bedded creature goes when wounded
-and tired, the wound branch's own test. A bedless wounded creature still sleeps
-untired through the lair attempt and state 80's wound test.
+**Decision.** A bedded creature requires unpaid sleep debt to route to bed,
+including the wounded branch. A bedless wounded creature still sleeps untired
+through the lair attempt and state 80's wound test. Persistent debt and the
+wounded branch's retry behavior are built by ADR-0579.
 
 **Consequences.** A wounded, rested creature with a bed fights or works on until
-tired. Ours approximates the latch (HYPOTHESIS): `AwakeTicks` against `TimeAwake`,
-reset on waking, where DK2 reloads `+0x58` each period and drains it only asleep. A bedless wounded creature tries for a lair only from idle.
+tired. A bedless wounded creature tries for a lair only from idle (Q150).
 
 ## ADR-0544 — A withdrawal's failed room pick ends it
 **Date:** 2026-10-26 · **Status:** accepted
@@ -13506,8 +13504,27 @@ live state. Monitored equivalence tests exercise that order. `state hash wait` m
 remaining join time; the full hash duration is visible in serial mode. Allocation measures only
 the run thread, as before; it excludes pool-thread hashing allocations in overlap mode.
 
+## ADR-0579 — Preserve sleep debt across state changes
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 330 · Q651/Q674.
+
+**Context.** The awake/session counters forced a fresh full sleep after manual
+entry or interruption. Native evidence and remaining limits are in
+[creature-needs-routine.md sections 3-5](research/creature-needs-routine.md#3-the-three-needs-in-order).
+
+**Decision.** Store the last-sleep stamp, unpaid debt and tired-attempt deadline.
+Reload overdue debt, pay it only in state 83, and require zero debt plus full
+health to wake. Entry, capture and rescue preserve debt. Apply raw-group and
+clock-flag suppression to overdue updates; captivity blocks attempts rather
+than clocks. Stamp tired retries before the busy test, with the wound bypass.
+
+**Consequences.** Healthy zero-debt manual sleep ends on its first handler;
+interrupted sleep pays only its remaining debt. Hunger is checked every tick.
+Snapshots and hashes include all three fields; saves/journals from 329 are
+refused. Constructor staggering, hunger-pass ordering and bedless mid-job
+attempts remain partial (Q674/Q150); native replay outcomes are unmeasured.
+
 ## ADR-0580 - The states a flight ends through hold a turn each
-**Date:** 2026-10-29 · **Status:** accepted · Hash/save 330 · Q665 ·
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 331 · Q665 ·
 Research: `docs/research/level4-outcomes.md`, `combat-fear.md` §5, `combat-alarm.md` §3-§4; KB `00476FC0`, `00470C80`, `00461850`, `00475660`, `00458680`, `004759A0`
 
 **Context.** The dispatcher `0x00476FC0` runs one state handler a turn; a handler's 0 sets state 1

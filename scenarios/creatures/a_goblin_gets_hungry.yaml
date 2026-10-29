@@ -1,68 +1,7 @@
-﻿# Creatures with needs, next to one that has none.
-#
-# Three **Goblins** and an **Imp** are placed and nothing else happens. A goblin
-# gets hungry every 180 seconds, sleeps every 240, and has a bed of its own
-# (`LairObjectId` 22). An imp does none of the three — its record says 32767 for
-# both hunger and sleep and 0 for its bed object, and the owner confirms that is
-# real: a skeleton has no lair either, and Horny is a summon rather than a
-# roster creature.
-#
-# The lair is **two tiles**, which is two beds and no more, because a lair holds
-# one creature per tile (ADR-0049, CONFIRMED by the owner). Three goblins into
-# two beds is the point.
-#
-# What the event log shows, in order:
-#
-#   t0      `bed_claimed ... object=22 tile=(5,5)` and `tile=(6,5)`
-#           Two goblins take the two beds on the tick they exist, in creature
-#           order. **The third gets nothing and never will** — its keeper has no
-#           more lair tiles. In DK2 that is what `angerNoLair` is for (100 for a
-#           Goblin, joint-largest in its record) and anger does not exist here
-#           yet, so the only visible consequence is that it never sleeps and
-#           would never recover from a wound. Q105.
-#
-#   t3599   `creature_hungry ... need=1 after=180s`  — all three
-#           Exactly the record's HungerRate, and one helping of hunger, which is
-#           its HungerFill. A Bile Demon would say five. t3599 and not t3600
-#           because the health system runs on the *last* tick of each game
-#           second, the same phase ManaSystem uses; 3599 is 20x180 - 1.
-#
-#           `need=`, not `chickens=`, since ADR-0067: DK2 keeps an accumulator
-#           it calls HungerNeed and *adds* HungerFill to it every period rather
-#           than raising a flag, so a creature with nowhere to eat owes every
-#           helping it missed. **Which is exactly what happens here** - there is
-#           no hatchery on this map, so they go on owing more of it for the rest
-#           of the run. It costs them no health, and that is a finding rather
-#           than mercy: 21 health variables and nine anger ones were searched and
-#           there is no starvation. DK2 charges anger for going unfed.
-#
-#           What a hungry creature does when there IS a hatchery is
-#           `a_goblin_eats_a_chicken`.
-#
-#   t4799   `going_to_sleep ... to=(5,5) steps=3 health=1500/1500`
-#           240 seconds awake, which is TimeAwake. Note it walks — three tiles —
-#           because `CreatureSleepSystem` is **the first driver a non-worker
-#           creature has ever had**, and it reuses the imps' pathfinder and
-#           movement rather than growing a second way to walk.
-#
-#   t4900   `fell_asleep at=(5,5)`   — five seconds of walking
-#   t5080   `woke_up slept=180`      — nine seconds asleep, which is TimeSleep
-#
-# Nine seconds looks like a short night until you multiply: at
-# `ModifyHealthOfCreatureInLairPerSecond` = 100, one sleep is **900 health** of a
-# Goblin's 1500. So a short sleep is a big heal, which is why the 240/9 ratio is
-# implemented as written rather than assumed to be a misread (Q103).
-#
-# Nothing heals in this run because nothing is hurt, and there is no command that
-# wounds a creature — that half is covered by tests. What the tests also cover
-# and this cannot: healing needs the creature to be **asleep in its own bed**, so
-# standing awake in the lair heals nothing and lying on somebody else's bed heals
-# nothing.
-#
-# What this run does NOT establish: whether the 240/9 cycle is DK2's (Q103);
-# whether zero health is death or a 60-second unconscious window (Q99); whether
-# regeneration applies while a creature is busy (Q100); and when DK2 actually
-# starts the hunger clock, which here is spawn (Q102).
+﻿# Three Goblins compete for two lair beds; an Imp has neither need.
+# Needs use shipped creature values at four native turns per game second.
+# Persistent sleep debt and retry timing: ADR-0579.
+# This is a simulation regression, not an original-game timing experiment.
 id: creatures-a-goblin-gets-hungry-001
 question: >
   Do three Goblins take the two beds a two-tile lair has, get hungry after
@@ -105,10 +44,10 @@ expect:
       to do with hunger - the goblin with no lair owes exactly what the two in
       bed owe.
   - event: going_to_sleep
-    at_tick: 959
+    at_tick: 960
     because: >
-      TimeAwake is 240 game seconds, so 240 x 4 - 1. Only the two with beds set
-      off; the third has nowhere to go.
+      TimeAwake is 240 game seconds from the spawn timestamp, so 240 x 4.
+      Only the two with beds set off; the third has nowhere to go (ADR-0579).
   - event: woke_up
     detail: "slept=36"
     because: >
