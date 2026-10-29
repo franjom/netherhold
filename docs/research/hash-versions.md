@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**332** - `0x57C44CA19C21077D`. FormatVersion also 332. Behavior only: Thunderbolt checks captive binding/resolved dying category after damage before stun; states 255/256 check expiry before the first-handler dazed effect (ADR-0581, Q675). No fields added; saves/journals from 331 are refused. `ThunderboltStunTests` covers bound prison/pit states and the zero/one/two-turn effect boundary.
+
 **331** - `0xC2162DBCC558268D`. FormatVersion also 331. Behaviour only: the states a flight ends through hold a turn each, as the dispatcher `0x00476FC0` runs one handler a turn (ADR-0580): a withdraw's arrival enters 202, whose handler (`0x00461850`) returns 0 on the next turn; the alarm's arrival enters 251, whose handler dispatches the room on the next and leaves a worker in 252 while its action 79 plays (`0x00458680`; one play of art slot 29, 4 turns for the Imp) and anyone else idle; a responder's 254 counts from the turn after its arrival; and a creature a combat handler sets to 1 runs 1's handler on the next turn (`IdleHandlerWaits`). No fields added; the pin fixture moves by the version only. `PostFlightDwellTests`, `AlarmActionOnRealDataTests` and the updated sequences in `CombatFearTests` and `CombatNonFighterTests` cover it.
 
 **330** - `0x2E386CC6EEFC0C1B`. FormatVersion also 330. Persistent sleep debt and timestamps replace the awake counter; group/flag overdue gating, captive clock updates, four-turn tired retries and per-tick hunger checks are built (ADR-0579). All three new fields are hashed and saved; saves/journals from 329 are refused. `SleepDebtTests` covers behavior, field sensitivity and save continuation.
@@ -360,40 +362,4 @@ branch, which changed no hashed state (ADR-0251), so it was never used.
 state-199 message prologue; ADR-0246.
 
 **124** — `0x00C706A5C1D92221`, retained player messages and their next id (ADR-0245). **123** — `0x14316E84B1FDB0F7`, each room tile's place in its slab chain and the next one to hand out (ADR-0240). **122** — `0xED95A480A9DB92C5`, `LevelTimeLimit` and `SpecialInfoNextRoomTypeId` (ADR-0235). **121** — `0x954849F97CFC0296`, a door's orientation (ADR-0233). **120** — `0x88F728EFC351D95D`, what a keeper has learned from torture (ADR-0230). **119** — `0xE5005E1E7800B920`, a Prison's door (ADR-0229). **118** — `0x89637C687FBCC88D`, a spectator's remembered position and a Combat Pit's fight stamp (ADR-0227). **117** — `0xFA805D7B0DCA5668`, OldFightPos and OldFightTick (ADR-0225). **116** — `0xAACD3B15D9CFDCFF`, an idle worker's wander stamp and action timer (ADR-0224). **115** — `0x9D966A6EC7AC034A`, a tunnelling worker's plan (ADR-0222). **114** — `0x7AE4DE645C0A63A1`, a creature's origin tile, where a thief escapes to (ADR-0219). **113** — `0xFBE9C5B2CC6DE5EC`, `SkipNextPayment` joins `GetPaid` (ADR-0217). **112** — `0x2EF320B63DEDBBD1`, a hero's standing job and its party walk (ADR-0216). **111** — `0x92F1E00A712726B0`, the job a creature was dropped on (ADR-0215). **110** — `0x2B65E45AF14CB7A7`, a keeper's blueprint list (ADR-0214). **109** — `0x1754FA244591A3A6`, a Combat Pit fighter, its forced target and its state's turn (ADR-0213). **108** — `0xEE02B16BC2932E35`, a guard's facing, deadline and lost turn (ADR-0212). **107** — `0x01B0EBC839B5A5B4`, the activity is derived from the state and leaves the hash and the save (ADR-0211). **106** — `0x52719F6004D8BDBB`, every creature holds a state from its constructor on: 1 where it had held none, so the pinned world's two creatures moved it (ADR-0209). **105** — `0xDBC19E3981F90A36`, the Workshop's points, list and crates (ADR-0203). **104** — `0xFB68B3CB26783D05`, pay's cadence and the drop grace (ADR-0202). **103** — `0x1A5F99A4C9E39974`, freeing comrades (ADR-0201). **102** — `0x91DAFF09144DBA4F`, needs take a creature off its job (ADR-0198). **101** — `0x4543E72F3F20FE22`, a hero party raised by action 14 (ADR-0197); **100** — `0xFB318DBAE28A937F`, The Mistress's Torture job (ADR-0196).
-**99** — `0xD079580BE0144072`, a prisoner walks each step in 116 (ADR-0194); **98** — `0xD686048703B6ED8D`, a captive on a torture device (ADR-0193); **97** — `0x99249045AA085298`, the countdown hooks (ADR-0192); **96** — `0xA2D20DF5116200CB`, a captive on DK2's state ids (ADR-0191).
-**95** — `0xA22834D9084DFA9E`, the lever on a furniture slot (ADR-0190); **94** — `0x71F6772A33262059`, paid then to the Casino (ADR-0189).
-**93** — `0xD783D2057BC97FE4`, the Casino's lever (ADR-0188); **92** — `0x669BBBA8B0751A77`, a creature's purse and the Casino (ADR-0187); **91** — `0xA5F9A90F3ED7133A`, work effects by category (ADR-0186); **90** — `0xFD1E03A96BC65015`, the dispatcher's category rule (ADR-0185); **89** — `0x584E9B5AC2195900`, an imp's bodies (ADR-0184).
-**88** — `0x89B5AB8D13B66793`, objects by their flags (ADR-0183); **87** — `0x1B90606BEF13CDC6`, an imp's gold (ADR-0182); **86** — `0xDEB6A8B84200ED21`, its tile work (ADR-0181).
-**85** — `0xE0EDFEC6BD215E6C`, collecting wages (ADR-0180); **84** — `0xDB5AAE21ABF713BF`, the anger wipes (ADR-0179); **83** — `0xDFC977B66E524362`, the lair and sleep (ADR-0178); **82** — `0xF1F260238F3D713D`, a job's walk and work (ADR-0177).
-**81** — `0xE54D6E7BACCB5868`. Eating on DK2's state ids (ADR-0176). From 81 on, traces pin the chains.
-
-**80** — `0xF53826B464578C5B`. The resume pair stops carrying a sentinel
-(ADR-0175). `StateBeforeUtilityState` and `UtilityNewState` default to **0**, as
-DK2's state-object constructor writes, not to -1; the resume slot is never unset
-while a creature travels, so the transition rule may read it unconditionally.
-A composition bump: both fields hold their default for the whole pinned run.
-
-**79** — `0x6ACE9686C2A3E64E`. A bed is a hospital (ADR-0173). Waking needs
-both an elapsed `TimeSleep` and full level-scaled health, as DK2's state 83
-does. **The pinned world exercises none of it** — nothing in it sleeps
-wounded — so the literal moved on the version alone. The behaviour is pinned
-by two tests instead, both verified to fail with the predicate flipped off.
-
-**78** — `0x00C68551383ADF89`. Rebellion (ADR-0172). Angry job 16 walks out
-through its own keeper's nearest Portal, and with none reachable waits
-`RebelCountdownTicks` and changes owner to the hero side, carrying
-`JobType.KillPlayer` and `RebelAgainstPlayerId`. Two new hashed fields.
-
-**77** — `0x2EC7D308858908C2`. The two Q402 divergences the hook read found (ADR-0171):
-a cell bites `4 × PrisonModifyCreatureHealthPerSecond` every four game seconds instead of
-one second's worth each second, and adds `ModifyAngerInCompanyOfHatedCreaturesPerSecond`
-with it; anger cools in all seven states of categories 6, 9 and 10 rather than only asleep
-in one's own bed. `CreatureState.PrisonWitherTicks` carries the per-creature phase.
-
-**76** — `0xFD44E939D714F3F1`. The utility-state pair beside it — DK2's own
-`StateBeforeUtilityState` (`+0x40`) and `UtilityNewState` (`+0xDF`). The second is the
-resume slot the transition rule reads in place of the current state while the category
-is 2, and it is where the thirteen travelling `CreatureActivity` entries land when they
-retire together. Nothing writes either; composition only.
-
-[Versions 9–75](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–99](hash-versions-early.md) retain the earlier pins and their reasons.

@@ -1,6 +1,42 @@
 # Early state-hash versions
 
-Versions 9–75, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–99, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**99** — `0xD079580BE0144072`, a prisoner walks each step in 116 (ADR-0194); **98** — `0xD686048703B6ED8D`, a captive on a torture device (ADR-0193); **97** — `0x99249045AA085298`, the countdown hooks (ADR-0192); **96** — `0xA2D20DF5116200CB`, a captive on DK2's state ids (ADR-0191).
+**95** — `0xA22834D9084DFA9E`, the lever on a furniture slot (ADR-0190); **94** — `0x71F6772A33262059`, paid then to the Casino (ADR-0189).
+**93** — `0xD783D2057BC97FE4`, the Casino's lever (ADR-0188); **92** — `0x669BBBA8B0751A77`, a creature's purse and the Casino (ADR-0187); **91** — `0xA5F9A90F3ED7133A`, work effects by category (ADR-0186); **90** — `0xFD1E03A96BC65015`, the dispatcher's category rule (ADR-0185); **89** — `0x584E9B5AC2195900`, an imp's bodies (ADR-0184).
+**88** — `0x89B5AB8D13B66793`, objects by their flags (ADR-0183); **87** — `0x1B90606BEF13CDC6`, an imp's gold (ADR-0182); **86** — `0xDEB6A8B84200ED21`, its tile work (ADR-0181).
+**85** — `0xE0EDFEC6BD215E6C`, collecting wages (ADR-0180); **84** — `0xDB5AAE21ABF713BF`, the anger wipes (ADR-0179); **83** — `0xDFC977B66E524362`, the lair and sleep (ADR-0178); **82** — `0xF1F260238F3D713D`, a job's walk and work (ADR-0177).
+**81** — `0xE54D6E7BACCB5868`. Eating on DK2's state ids (ADR-0176). From 81 on, traces pin the chains.
+
+**80** — `0xF53826B464578C5B`. The resume pair stops carrying a sentinel
+(ADR-0175). `StateBeforeUtilityState` and `UtilityNewState` default to **0**, as
+DK2's state-object constructor writes, not to -1; the resume slot is never unset
+while a creature travels, so the transition rule may read it unconditionally.
+A composition bump: both fields hold their default for the whole pinned run.
+
+**79** — `0x6ACE9686C2A3E64E`. A bed is a hospital (ADR-0173). Waking needs
+both an elapsed `TimeSleep` and full level-scaled health, as DK2's state 83
+does. **The pinned world exercises none of it** — nothing in it sleeps
+wounded — so the literal moved on the version alone. The behaviour is pinned
+by two tests instead, both verified to fail with the predicate flipped off.
+
+**78** — `0x00C68551383ADF89`. Rebellion (ADR-0172). Angry job 16 walks out
+through its own keeper's nearest Portal, and with none reachable waits
+`RebelCountdownTicks` and changes owner to the hero side, carrying
+`JobType.KillPlayer` and `RebelAgainstPlayerId`. Two new hashed fields.
+
+**77** — `0x2EC7D308858908C2`. The two Q402 divergences the hook read found (ADR-0171):
+a cell bites `4 × PrisonModifyCreatureHealthPerSecond` every four game seconds instead of
+one second's worth each second, and adds `ModifyAngerInCompanyOfHatedCreaturesPerSecond`
+with it; anger cools in all seven states of categories 6, 9 and 10 rather than only asleep
+in one's own bed. `CreatureState.PrisonWitherTicks` carries the per-creature phase.
+
+**76** — `0xFD44E939D714F3F1`. The utility-state pair beside it — DK2's own
+`StateBeforeUtilityState` (`+0x40`) and `UtilityNewState` (`+0xDF`). The second is the
+resume slot the transition rule reads in place of the current state while the category
+is 2, and it is where the thirteen travelling `CreatureActivity` entries land when they
+retire together. Nothing writes either; composition only.
 
 **75** — `0x51E5A81A5FE19DE8`. `CreatureState.Dk2StateId`, DK2's own state id beside
 the retiring `Activity` enum (ADR-0135, decided 2026-09-10 and landed 2026-09-23).

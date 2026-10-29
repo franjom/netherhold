@@ -11056,13 +11056,14 @@ loader stored it in turns (`0x00493B57`: file × ticks a second >> 12), so the G
 four turns, the shortest of the creatures checked (Warlock and Troll 2 s, Bile Demon 5 s);
 `CreatureStunnedTimeSeconds` (2) is only written (`Variables_SetMisc`), never read. Ours
 counted the stun down in the tick it was set, one turn short of Level 1's 255 × 4. On its
-first call (Age 1) the handler creates effect 101, Creature Dazed Effect (two "dazed" star
+first call (Age 1), while its duration hold remains, the handler creates effect 101 (two "dazed" star
 elements and a sparkle on a circular path, one wave, elements 60 updates), at the point
 `0x10C(creature, 0x1388)` gives, and ties it to the creature (effect `+0x133`, `+0x135`);
 `0x00434E80` moves the effect and its elements with that point. Ours never asked for it.
 
 **Decision.** For 255 and 256, the countdown and the request wait for the turn after the
-state was set; the first counted turn asks for 101 at the creature, one tile up (the height
+state was set; the first counted turn asks for 101 only while the duration hold remains
+(ADR-0581), at the creature, one tile up (the height
 the foot dust is asked at) plus half its eye height. Hash 250, no new saved field.
 
 **Consequences.** A hand drop now lies 4 turns, gets up in 11 and stands from the 15th,
@@ -13553,3 +13554,21 @@ a raising Imp 251, 252 x4, 1, 10; a raising non-worker 251, 1, 89; a responder s
 (was 30). Every combat handler that idles, the fight's disengage included, leaves 1's handler to the
 next turn. Not built: 251's eight-tile 252 test (DK2 goes 251 -> 1 in about 4% of alarms); what zeroes
 254's count on entry is unread (ours zeroes it when the walk starts).
+
+## ADR-0581 — Thunderbolt preserves bound captives and skips expired stun effects
+**Date:** 2026-10-29 · **Status:** accepted · Hash/save 332 · Q675.
+
+**Context.** Thunderbolt could stun a bound captive, and an already expired
+stun still requested dazed stars. Native evidence and remaining limits are in
+[keeper-spell-thunderbolt.md section 3](research/keeper-spell-thunderbolt.md#3-effect-and-limits--strongly-inferred).
+
+**Decision.** Apply Lightning damage before testing the captive binding and
+resolved dying category for stun refusal. Leave the shared stun helper's
+caller-specific gates intact. In states 255/256, test expiry before requesting
+the first-handler dazed effect. Retain zero Imp stun duration without a floor.
+
+**Consequences.** Bound targets retain their state after nonlethal Lightning
+damage. Expired zero/one-turn stuns skip effect 101; a two-turn stun still asks
+for it. Hash/save 332 marks changed behavior with no new fields; 331 saves and
+journals are refused. Combat Pit's missing binding write remains outside this
+fix (combat-pit.md section 10). Native replay outcomes are unmeasured.

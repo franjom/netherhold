@@ -11,6 +11,9 @@ The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
+- Thunderbolt captive-binding and expired-stun-effect guards are built at
+  hash/save 332 (ADR-0581); Combat Pit binding integration remains Q675.
+
 - Sleep debt, needs-clock suppression and tired retries are built at hash/save 330
   (ADR-0579, Q651/Q674). Native replay outcomes remain measured only through
   hash328; remaining needs timing gaps are in creature-needs-routine.md section 5.

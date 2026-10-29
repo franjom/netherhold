@@ -141,7 +141,8 @@ public static class StatusEffectRules
     /// <summary>Creature Dazed Effect (<c>0x65</c>): stars and a sparkle circling the stunned creature.</summary>
     public const ushort DazedEffectId = 101;
 
-    /// <summary>255's first call (<c>0x004810E0</c>, Age 1) asks for <see cref="DazedEffectId"/> at the
+    /// <summary>255's first call (<c>0x004810E0</c>, Age 1), while its duration hold remains, asks for
+    /// <see cref="DazedEffectId"/> at the
     /// point the creature's mesh tags 5000, its head (world <c>+4→+0x10</c> slot <c>+0x10C</c>,
     /// <c>0x0059D260</c>), else at its position, and ties the effect to it (effect <c>+0x133</c> the
     /// creature, <c>+0x135</c> <c>0x1388</c>); the effect update <c>0x00434E80</c> moves it and its
@@ -251,6 +252,8 @@ public static class StatusEffectRules
         int dealt = water ? damage * 2 : damage;
         int landed = Hurt(world, database, targetDef, target, dealt, source); // 0x004AF2D1: the shot's owner
         context.Emit(SystemName, "lightning", $"target={target.Id} caster={casterId} damage={dealt} landed={landed} health={target.Health}");
+        if (target.PrisonOwnerPlayerId != PrisonRules.NoPrison
+            || NeedRules.ResolvedCategory(target) == CreatureStateCategory.Dying) return;
         Stun(context, target, targetDef);
     }
 

@@ -118,18 +118,21 @@ The stun guard is **creature `+0x3CB != 0`**, the `PrisonOwner` word also used
 for Combat Pit ownership, rather than a transition-table refusal for prisoners.
 A group-1 Prison state
 can transition to 255 (group 3/category 7, all-bits entry mask), but process 9
-does not ask while that binding is set (`0x004AF2E3`–`0x004AF2EB`). Ours'
-`StatusEffectRules.Stun` tests keeper-hand holding and the transition table,
-but lacks this binding/category guard; a standing prisoner can therefore be
-stunned in ours when DK2 leaves it in its captive state.
+does not ask while that binding is set (`0x004AF2E3`–`0x004AF2EB`). `StatusEffectRules.Lightning` now tests the existing binding and resolved
+category after damage, before calling `Stun` (ADR-0581, hash/save 332). General
+stun callers retain their own gates. Combat Pit's missing binding write
+remains a representation gap; see [combat-pit.md section 10](combat-pit.md#10-read-not-built).
 
 Zero `StunDuration` is not replaced by a minimum or the knockdown clip length.
 The first call of 255's handler takes the elapsed-duration exit at
 `0x00481103`, starts action 53, then requests 257; it skips the effect-101 hold
 arm. Action 52 still starts at stun entry. This covers the shipped Imp's zero
 duration ([hand-drop-landing.md](hand-drop-landing.md) section 3). Ours already
-sets `StunTicks` to zero without a minimum, but requests the dazed effect before
-testing that zero in `CreatureStatusSystem`, a separate presentation mismatch.
+sets `StunTicks` to zero without a minimum. `CreatureStatusSystem` now checks
+expiry before the first-handler dazed request (ADR-0581); zero- and one-turn
+stuns set after the victim's update therefore skip that request.
+`ThunderboltStunTests` covers bound targets taking damage without stun and
+the zero/one/two-turn effect boundary. Native playback outcomes are unmeasured.
 Do not copy a minimum-duration or clip-length floor from another engine.
 `0x004B32A0`, called first with radius 2, searches using `radius*(radius>>12)`;
 that bound is zero, so its strictly-inside loop cannot reach its fear callback

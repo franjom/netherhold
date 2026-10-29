@@ -126,7 +126,8 @@ returns 0 before the action and event 15. The rule refuses 255 from 216–218, 2
 `def+0x74C`, a count of turns: the loader (`0x00493B57`) stores the file value × ticks a
 second >> 12, read from staging `+0x12C0` (file `0xED0`; the staging record sits
 `+0x3F0` past the file, `0x00568E30`), parsed as `CreatureDef.StunDuration` — with
-effect 101, Creature Dazed Effect, tied to it on the handler's first call (Age 1; ADR-0480);
+effect 101, Creature Dazed Effect, tied to it on the handler's first call only
+while the duration hold remains active (Age 1; ADR-0480, corrected by ADR-0581);
 when the time is up, action 53 (getting up) and `SetState(257)`, whose handler
 (`0x00481200`) returns 1 while an action is current, then runs `0x00481400` and the
 room drop `0x004E8DA0(0)` (CONFIRMED, `hand-drop-landing.md` §3); `+0x3CB` := 0.
