@@ -256,6 +256,24 @@ public sealed class FunctionKbTests
         Assert.EndsWith("is new and has no History line dated 2026-10-01", born, StringComparison.Ordinal);
     }
 
+    /// <summary>CI checks a pushed range after the fact: a line dated on the day a commit in the range wrote it
+    /// passes, though that day is not today.</summary>
+    [Fact]
+    public void ARangeCheckAcceptsTheDayACommitWroteTheRecord()
+    {
+        var before = Record("0050EA70");
+        var now = before with
+        {
+            Confidence = "DISPUTED",
+            History = [.. before.History, new HistoryEntry("2026-10-24", "codex", "disputed")],
+        };
+        DateOnly written = new(2026, 10, 24), pushed = new(2026, 10, 28);
+        Assert.Single(FunctionKb.HistoryRequired(now, before, pushed));
+        Assert.Empty(FunctionKb.HistoryRequired(now, before, [pushed, written]));
+        string missing = Assert.Single(FunctionKb.HistoryRequired(now, before, [pushed, new DateOnly(2026, 10, 25)]));
+        Assert.EndsWith("dated 2026-10-25 or 2026-10-28", missing, StringComparison.Ordinal);
+    }
+
     /// <summary>A merge brings in records the other side dated on its own day; one whose header equals
     /// MERGE_HEAD's copy is inherited, and only a header the merge itself changes needs today's line.</summary>
     [Fact]

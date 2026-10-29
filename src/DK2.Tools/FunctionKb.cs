@@ -175,11 +175,17 @@ public static partial class FunctionKb
     /// <summary>A header that differs from its base, or a record with no base, needs a History line dated today.
     /// In a merge, a header equal to the incoming side's (<paramref name="merged"/>, MERGE_HEAD) was dated there.</summary>
     public static IEnumerable<string> HistoryRequired(FunctionRecord now, FunctionRecord? before, DateOnly today, FunctionRecord? merged = null)
+        => HistoryRequired(now, before, [today], merged);
+
+    /// <summary>As above, with any of <paramref name="days"/> accepted: a range check (CI's <c>--since</c>)
+    /// accepts the days the range's commits touched the record, since it runs after they were written.</summary>
+    public static IEnumerable<string> HistoryRequired(FunctionRecord now, FunctionRecord? before, IReadOnlyCollection<DateOnly> days, FunctionRecord? merged = null)
     {
         if (before is not null && before.HeaderKey == now.HeaderKey) yield break;
         if (merged is not null && merged.HeaderKey == now.HeaderKey) yield break;
-        string date = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        if (now.History.Any(h => h.Date == date)) yield break;
+        string[] dates = days.Distinct().Order().Select(d => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).ToArray();
+        if (now.History.Any(h => dates.Contains(h.Date))) yield break;
+        string date = string.Join(" or ", dates);
         yield return before is null
             ? $"{now.RelativePath}: is new and has no History line dated {date}"
             : $"{now.RelativePath}: header changed but no History line is dated {date}";

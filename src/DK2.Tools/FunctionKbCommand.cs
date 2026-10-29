@@ -201,7 +201,8 @@ static class FunctionKbCommand
                 var before = baseLines.Length == 0 ? null : FunctionKb.Parse(relative, baseLines, []);
                 string[] mergedLines = merging ? Repo.GitLines(root, $"MERGE_HEAD:{relative}") : [];
                 var merged = mergedLines.Length == 0 ? null : FunctionKb.Parse(relative, mergedLines, []);
-                findings.AddRange(FunctionKb.HistoryRequired(now, before, today, merged));
+                IReadOnlyCollection<DateOnly> days = staged ? [today] : [today, .. Repo.CommitDays(root, baseRef, relative)];
+                findings.AddRange(FunctionKb.HistoryRequired(now, before, days, merged));
             }
             findings.AddRange(FunctionKb.MissingRecords(changes, recorded));
         }

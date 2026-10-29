@@ -111,6 +111,15 @@ static class Repo
         return text.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
     }
 
+    /// <summary>The author and commit days of the commits in <c>baseRef..HEAD</c> that touch this path,
+    /// merged-in side branches included.</summary>
+    internal static IEnumerable<DateOnly> CommitDays(string root, string baseRef, string relative)
+        => RunGit(root, "log", "--full-history", "--format=%ad%n%cd", "--date=short", $"{baseRef}..HEAD", "--", relative)
+            .Split('\n')
+            .Select(l => l.Trim())
+            .Where(l => l.Length > 0)
+            .Select(l => DateOnly.ParseExact(l, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+
     /// <summary>Every tracked path, for the --all backlog report.</summary>
     internal static IEnumerable<string> AllTrackedFiles(string root)
         => RunGit(root, "ls-files").Split('\n')
