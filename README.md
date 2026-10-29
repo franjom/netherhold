@@ -116,3 +116,9 @@ with `git config core.hooksPath .githooks`.
 Project source is licensed under [GPL-3.0-or-later](LICENSE). Dependencies and
 referenced projects retain their own terms; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 The project license does not grant redistribution rights to original DK2 files.
+
+This repository contains no original DK2 game files. Everything the game needs
+is read at run time from your own installation (`DK2_DIR`). The screenshots
+above show the original game's artwork as this build renders it from such an
+installation. Dungeon Keeper is a trademark of its owner; this project is not
+affiliated with or endorsed by Electronic Arts or Bullfrog Productions.
