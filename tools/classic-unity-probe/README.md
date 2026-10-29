@@ -518,3 +518,15 @@ HUD pointer-coordinate mapping.
 `run-options.ps1 -Gameplay` checks persisted Gamma and ScrollSpeed on a fresh Level1
 and again after restarting through `LoadLevel`, using probe-local settings/profile.
 The menu probe also checks each page's Confirm and Cancel pixels separately.
+
+
+`run-in-game-options.ps1` uses an isolated project with the Release adapter.
+It exercises the native in-game Game Options pages over Level1, live slider drag,
+Back/Continue, key capture/cancellation, persistence and paused/resumed ticks.
+The 2560x1440 target also checks actual thumb-pointer events reach the keyboard
+scrollbar maximum. Each page checks Continue and Back pixels after rendered
+play frames. Captures contain the options UI layer, not the level image.
+The fixture ends the bootstrap presentation path/letterbox without advancing the
+simulation; it does not establish original-game visual or gameplay parity.
+It writes fresh profile/settings, UI captures and logs under `build/igo-*`.
+An existing closed scratch project can be refreshed with `-CachedProject build/igo-HHmmss/p`; each run still uses a new output/profile/settings directory.

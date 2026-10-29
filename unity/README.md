@@ -113,7 +113,10 @@ same browser. These files contain our simulation checkpoint and campaign profile
 separate from original DK2 saves. Loading restores the saved campaign profile.
 Runtime save/load acceptance is tracked in the front-end plan F6.
 
-Front-end Options edits settings beside the campaign profile. Gamma uses a URP
+Front-end Options edits settings beside the campaign profile. In-game Game Options
+uses the shared settings controller with its native layout and live edits, keeping
+the Options pause. Its isolated regression probe passes; native parity remains
+unverified. Gamma uses a URP
 exposure proxy; Game Speed and Scroll Speed apply to gameplay. Unsupported
 controls are dimmed. Keyboard Setup persists captured keys; gameplay key and
 audio consumers are integrated separately (front-end plan F9).

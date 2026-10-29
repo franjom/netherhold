@@ -213,7 +213,8 @@ In-game Options objective, restart/end confirmations and save/load routes are bu
 Isolated save/load, restart and objective checks pass; owner gameplay comparison
 remains unverified in plans/2026-10-23-front-end.md, F6.
 
-Front-end settings persistence, widgets and key capture are built; runtime limits
+Front-end and in-game settings persistence, widgets and key capture are built;
+isolated in-game pause/live-edit/capture checks pass. Runtime limits
 and the remaining integration are in plans/2026-10-23-front-end.md, F9.
 
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,

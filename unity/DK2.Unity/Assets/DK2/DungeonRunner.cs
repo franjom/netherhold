@@ -608,7 +608,7 @@ namespace DK2.Unity
                     if (hud.AllowOrdinaryInput && !HudModal) ControlCamera();
                     else if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
                 }
-                ReadAmbientKeys();
+                if (!_hudControls.OptionsVisible) ReadAmbientKeys();
                 if (hud.AllowOrdinaryInput && !HudModal) ReadToolKeys();
                 QueueInput();
             }
@@ -1268,6 +1268,7 @@ namespace DK2.Unity
         private bool PointerOverHud(Vector3 position) =>
             (_minimap != null && _minimap.ContainsPointer(position)) || (_hoverHud != null && _hoverHud.ContainsPointer(position))
             || (_resourceHud != null && _resourceHud.ContainsPointer(position))
+            || (_gameOptionsPanel != null && _gameOptionsPanel.ContainsPointer(position))
             || (_bottomPanel != null && _bottomPanel.ContainsPointer(position))
             || (_messageTabs != null && _messageTabs.ContainsPointer(position))
             || (_overviewPanel != null && _overviewPanel.ContainsPointer(position))

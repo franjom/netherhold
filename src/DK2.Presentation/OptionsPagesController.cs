@@ -6,10 +6,13 @@ using DK2.Data.Settings;
 
 namespace DK2.Presentation;
 
-/// <summary>Native page transactions: sound edits are live; graphics commit on OK; controls restore on Cancel.</summary>
+public enum OptionsApplicationMode { FrontEnd, InGame }
+
+/// <summary>Front-end page transactions and immediate in-game settings application.</summary>
 public sealed class OptionsPagesController
 {
     private GameSettings _entry;
+    private OptionsApplicationMode _applicationMode;
     public OptionsPagesController(GameSettings settings) { Current = Pending = _entry = settings.Clamped(); }
     public GameSettings Current { get; private set; }
     public GameSettings Pending { get; private set; }
@@ -55,15 +58,18 @@ public sealed class OptionsPagesController
         }
         CapturingAction = null; return true;
     }
-    public void Enter(FrontEndPage page)
+    public void CancelKeyCapture() => CapturingAction = null;
+    public void Enter(FrontEndPage page, OptionsApplicationMode applicationMode = OptionsApplicationMode.FrontEnd)
     {
-        if (Page == page) return;
+        if (Page == page && _applicationMode == applicationMode) return;
+        _applicationMode = applicationMode;
         CapturingAction = null; Page = page; _entry = Current.Clamped(); Pending = Current;
     }
     public void Edit(Func<GameSettings, GameSettings> edit)
     {
         Pending = edit(Pending).Clamped();
-        if (Page == FrontEndPage.Sound) { Apply(Pending); SaveRequested?.Invoke(Current); }
+        if (_applicationMode == OptionsApplicationMode.InGame) { Apply(Pending); SaveRequested?.Invoke(Current); }
+        else if (Page == FrontEndPage.Sound) { Apply(Pending); SaveRequested?.Invoke(Current); }
         else if (Page == FrontEndPage.Controls)
             Apply(Current with { MouseSensitivity = Pending.MouseSensitivity, Bindings = Pending.Bindings });
     }

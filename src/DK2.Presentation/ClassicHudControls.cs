@@ -10,10 +10,10 @@ public enum ClassicHudAction : byte
 {
     None, ToggleGui, ToggleOptions, ToggleFullMap, NavigateHeart, SelectQuery, SelectSell, ZoomIn, ZoomOut,
     ShowObjective, CloseObjective,
-    RestartLevel, EndGame, ReturnToMenu, QuitGame, Confirm, CancelConfirmation, BackToOptions, OpenSave, OpenLoad,
+    RestartLevel, EndGame, ReturnToMenu, QuitGame, Confirm, CancelConfirmation, BackToOptions, OpenSave, OpenLoad, OpenGameOptions,
 }
 
-public enum ClassicOptionsPage : byte { Root, Objective, Exit, Confirmation, Save, Load }
+public enum ClassicOptionsPage : byte { Root, Objective, Exit, Confirmation, Save, Load, GameOptions }
 public enum ClassicSessionAction : byte { None, Restart, ReturnToMenu, Quit }
 
 [Dk2Behavior(Confidence.Confirmed, "docs/research/minimap-controls.md")]
@@ -24,6 +24,7 @@ public sealed class ClassicHudControls
     public ClassicOptionsPage OptionsPage { get; private set; }
     public ClassicSessionAction Confirmation { get; private set; }
     private ClassicSessionAction _sessionAction;
+    public bool GameOptionsVisible => OptionsVisible && OptionsPage == ClassicOptionsPage.GameOptions;
     public bool ObjectiveVisible => OptionsVisible && OptionsPage == ClassicOptionsPage.Objective;
     public ClassicSessionAction TakeSessionAction()
     {
@@ -76,6 +77,9 @@ public sealed class ClassicHudControls
                 break;
             case ClassicHudAction.EndGame:
                 if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) OptionsPage = ClassicOptionsPage.Exit;
+                break;
+            case ClassicHudAction.OpenGameOptions:
+                if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) OptionsPage = ClassicOptionsPage.GameOptions;
                 break;
             case ClassicHudAction.OpenSave:
                 if (OptionsVisible && OptionsPage == ClassicOptionsPage.Root) OptionsPage = ClassicOptionsPage.Save;

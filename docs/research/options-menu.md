@@ -55,3 +55,44 @@ own overwrite policy is unread. Save and Load are disabled in game mode3
 or when `0x0044D870` returns1 (`0x0042A360`); the latter predicate's meaning
 is UNKNOWN. Native Game Options has its own pages25..32, not front-end
 pages15..17; it leads from25 to26,27,29,31.
+
+## Game Options children
+
+CONFIRMED: the static descriptors for menus25..32 begin at `0x00696CC0`
+with 72-byte menu records; menu25 widgets begin at `0x00694C08` with
+80-byte widgets and a `0xFF00` terminator. Root25 links Graphics26,
+Sound27, Control29 and User Cameras31. Control29 links Keyboard30;
+Keyboard Back returns29. Graphics/Sound/Control Back returns25; Root Back
+returns22. These children keep the Options pause. Advanced Sound28 has only
+Back to27; User Cameras31 links editor32, whose Store/Back returns31.
+The static layout is represented in `ClassicGameOptionsLayout`; its rectangles
+map the native virtual coordinates to the existing Options reference as
+`x * 0.4, (y + 180) * 0.4, width * 0.4, height * 0.4`.
+
+These pages apply edits live rather than using the front-end Confirm/Cancel
+transaction. `0x00429CD0` applies and persists Gamma immediately, using
+`0x00566220` and renderer slot `0x78`; slider15..60 scales by4096/30.
+`0x00428F00` applies Speech Volume through `0x00563490`.
+`0x00429C30`, `0x00428E90` and `0x0042AE40` initialize graphics, sound
+and control sliders respectively. Control callbacks `0x0042AE90`,
+`0x0042AF20` and `0x0042AF50` apply Game Speed, Scroll Speed and Sensitivity
+through `0x0055D590`, `0x00560BC0` and `0x00560B30`; Game Speed also
+requests action46. `0x0042B750` starts key capture at interface `+0x111`
+and records the selected row at `+0x10D`.
+
+`0x00414750` draws the slider through `0x00414850`, then its end labels.
+The latter uses runtime GUI slots `+0x144`, `+0x15F`, `+0x17A`, `+0x195`;
+resource table `0x006A8120` identifies the shipped horizontal left/right
+arrows, background and thumb. `0x0042A9F0` draws clipped action/modifier/key
+columns at native offsets0/200/300 with renderer font line height.
+Its keyboard list has Continue and Back, rather than the front-end icons.
+User-camera editing and the extra Message Tabs, Alternative Scroll and World
+Tooltips settings are not implemented by this change and remain dimmed.
+
+
+The in-game Sensitivity widget's declared limits are5..20, like Scroll Speed.
+Initialization `0x0042AE40` passes global `0x00759C21` to its value setter;
+`0x0042AF50` and front-end `0x0054BAF0` pass the slider value unchanged to
+`0x00560B30`. This establishes no conversion in those callbacks. The interaction
+with the registry fallback value and the eventual native input consumer remains
+unresolved; these UI limits do not establish a native default or input multiplier.
