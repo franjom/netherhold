@@ -22,6 +22,52 @@ art metadata for the additional slots, and render/bulk field consumers were
 outside this focused audit. Casino collection-position aliases in state156
 also remain unchecked in assembly. The records distinguish these limits.
 
+## Horny's targets, and his own creatures (read 2026-10-29)
+
+The owner remembers that Horny cannot flee and that, finding no enemies, he
+turns on his allies (Q673). Read so far, the binary agrees with the first and
+does not yet show the second.
+
+- **He never flees.** STRONGLY INFERRED: the shipped record carries `IsFearless`
+  and fear's flee test exits on it (`combat-fear.md`); ours too (`FearRules`). Other
+  ways into a flee state were not traced. ADR-0574's fleeing-Horny arm in
+  `DispatchIdle` is not expected to run.
+- **The target he chooses is never his own keeper's or an ally's.** CONFIRMED.
+  State 238 ([004748E0](functions/004748E0.md)) and `SelectAVictim` with his forced
+  bit (`+0x3E6` bit 2) clear (`0x0045CE8D`, `0x0045D078`) call
+  [0045E1B0](functions/0045E1B0.md): pass 1 skips every player allied with his owner
+  (a player is allied with itself, `0x004BF3D0`) and takes the nearest attackable,
+  routable creature other than himself; pass 2, from 238 only and only when pass 1
+  found none, takes an enemy Heart's Arch Pillar by its own metric (dx² + 2·dy, in
+  tiles). With neither, 238 sets 242 and he departs. In `SelectAVictim` this call
+  stands in for the gate `0x0045A6D0`; `ProcessFight` still applies that gate first
+  (`0x0045EA18`) while the forced bit is clear.
+- **With nothing found there, he falls into the ordinary scans.** CONFIRMED control
+  flow (`0x0045D069`-`0x0045D08C`, no bail-out for Horny): scans B, C and D, the
+  fight-type arm and F (`combat-acquisition.md` §6). Whether any of them can pick his
+  own side was not read; this is the path a "no enemies" Horny takes.
+- **Scan A takes any side, but is rarely reached.** Scan A (`0x0045CF0B`-`0x0045D067`)
+  walks every player's creatures with no owner or alliance test (CONFIRMED), and a
+  dead forced id falls into it (`0x0045CEBC`, `0x0045CF02`). But the fight handler
+  clears a dead engaged target's forced id before `SelectAVictim`
+  (`0x0045F0A7`-`0x0045F0C6`), death bookkeeping clears it too (`0x0045E4A0`), and his
+  own kill sends him to 239 (`0x004992A1`-`0x004992C4`). A target killed by someone
+  else before he engages it is the one window seen. HYPOTHESIS that scan A is what
+  the owner remembers.
+- **His blow on his own keeper's creature kills it outright.** CONFIRMED control
+  flow in the melee swing ([00498E30](functions/00498E30.md), `0x00499077`-`0x004990C3`),
+  for a creature target (`+0x12` = 0, `0x00498F2A`) with `+0x445` zero (`0x0049904B`):
+  same owner (`+0x28`) as Horny → his forced target cleared, `SetState(242)` on him,
+  the target's `DeadBodyOnDestroy` (`+0x3E6` bit 5) cleared and its health zeroed
+  through slot `+0x20` ([004B2AD0](functions/004B2AD0.md)), before any damage. So it
+  dies with no body; whether 242 is accepted from his fight state (and he departs)
+  is PLAUSIBLE, unchecked. An ally's creature (another owner) takes the ordinary blow.
+- After any blow, a target whose death test (slot `+0x28`) is true sends him to 239.
+  The health routine `0x004B2CE0` refuses him negative deltas ([0047A9B0](functions/0047A9B0.md)).
+
+None of this is built: ours has no Horny 238-241 controller, no forced-target
+reselection and no same-owner branch in the blow.
+
 ## Census scope
 
 Direct bit/offset searches covered initialized .text and cseg with the
