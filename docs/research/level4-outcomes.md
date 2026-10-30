@@ -249,4 +249,12 @@ The lead for the remaining 14% is turning. DK2's heroes turn Guard 256, Thief 51
 variable 19) and seldom face the Imp on entering state 199. Of stints with a swing, DK2 starts the swing
 two or more turns in for 44% of Guard stints (177 of 398), ours 16% (41 of 264). Ours stepped a fighter's
 facing by the file rate, four times DK2's (only movement converted it). ADR-0602 (hash 344) uses the
-per-tick rate for every creature turn. Level 4 is not re-measured at hash 344.
+per-tick rate for every creature turn.
+
+Measured at hash 344 (README "Hash 344, every creature turns at the loader's rate"; 40 runs): blows per
+targeted Imp-tick DK2 / h342 / h344 0.0476 / 0.0543 / 0.0444, per-state paired h344 - DK2 sign-flip p 0.73;
+Guard swings two or more turns in, of stints with a swing, 44% / 16% / 35%. The hit rate now matches. Imp
+deaths per run did not follow: 21.75 / 26.2 / 28.5 (h344 - h342 p 0.14), with targeted Imp-ticks per eight
+runs 10662 / 11962 / 12426, zone hero-ticks 8405 / 12357 / 11081 (p 0.13) and hero-Imp pair-ticks
+34288 / 65660 / 58349 (p 0.12). The remaining death excess is exposure, more time with Imps targeted, not
+how often a targeted Imp is struck.
