@@ -62,6 +62,7 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     public const string TrapCategory = "trap";
     public const string EffectElementCategory = "effect_element";
     public const string EffectCategory = "effect";
+    public const string ShotCategory = "shot";
 
     /// <summary>A Meshes.WAD entry no record names, keyed by the entry itself: a member of an
     /// effect's group art (the Heart plug's nine pieces).</summary>
@@ -71,7 +72,7 @@ public readonly struct AssetRef : IEquatable<AssetRef>
         new(StringComparer.Ordinal)
         {
             TerrainCategory, RoomCategory, CreatureCategory, ObjectCategory, UiCategory, DoorCategory, TrapCategory,
-            EffectElementCategory, EffectCategory, MeshEntryCategory,
+            EffectElementCategory, EffectCategory, ShotCategory, MeshEntryCategory,
         };
 
     private readonly string? _key;
@@ -147,6 +148,8 @@ public readonly struct AssetRef : IEquatable<AssetRef>
 
     public static AssetRef ForEffect(string effectName) =>
         Create(EffectCategory, effectName, AssetKind.Effect);
+
+    public static AssetRef ForShot(string shotName) => Create(ShotCategory, shotName, AssetKind.Effect);
 
     /// <summary>
     /// The role segment for a kind. Deliberately a total function over the enum,

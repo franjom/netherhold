@@ -135,6 +135,25 @@ executable was not walked for them).
 - Only the yaw is stored, so bodies draw without pitch (STRONGLY INFERRED).
 - No shipped shot has a light: the glow is the trail's own effect light.
 
+**Body adapter (ADR-0600).** `ShotBodyParticles` reads live shots without mutation.
+Types1-3 sprites (including flat), type5 meshes and type6 animated meshes share the
+existing runtime asset providers and Unity drawer; type7 is section6. All observation
+position axes interpolate, with yaw only. Type5 scale comes from the compact art
+first dword (Arrow4096, Grenade26624). Sprite phase advances per game tick; type6
+uses the existing quantized Duration/AdvanceRate calculation at four ticks/second.
+Stopped phase reaches4096; the cached frame uses `phase*(frameCount-1)`, so phase1024
+of60frames selects14 and phase4096 selects59. Lights read their descriptor and
+interpolated point with separate source keys; body visibility does not suppress them.
+Every shipped body asset loads at run time through logical shot keys, without converted files.
+
+**Body limits.** Native reset gives scales4096, pitch/roll0, RGB0 and alpha255; art
+installation makes sprite types1/3 white, while type2 retains RGB0. The modern unlit
+sprite drawer uses neutral white for type2/CannonBall until its radial-light input
+is resolved (Q609). Type6 bodies select discrete cached frames rather than continuous
+vertex interpolation. The shipped Cyclone/FlyCyclone bodies have60frames/FPS30 and
+no start/end segments; mod-authored segmented shot playback is unbuilt. General
+vertical flight and exact restored launch pose remain Q398.
+
 ## 3. What the engine does that shot effects need
 
 Effect definition runtime offsets are in [room-construction-effects.md](room-construction-effects.md).
@@ -333,19 +352,22 @@ these timers or permanent link latches. Crackle adds bolts, not a tint.
   generation3/6/18 (ADR-0597). The effect engine owns an independent native LCG.
   ADR-0599 adds typed procedural kinds, CRT bolt subdivision/forks, projected ribbons,
   shot kinds2/7 and effect kind8, view-local endpoint latches, ordered animated CTRL
-  points and electrified crackle with a presentation timer. Native visual acceptance
-  has not been performed.
+  points and electrified crackle with a presentation timer. ADR-0600 adds sprite, flat,
+  static-mesh and animated-mesh shot bodies through the existing runtime asset providers.
+  Native visual acceptance has not been performed.
 - **Approximations:** additive lightning blending (Q659); animation-install proxy and
   unrestored view timers/links (Q660); quarter-tile wall reflection (Q690); general
   vertical shot flight/view origins (Q398); camera frustum sphere (Q689). Restored
-  shot poses do not recover launch height/yaw or view handles. Trail-kind remains Q662.
+  shot poses do not recover launch height/yaw or view handles. Type2 sprite lighting
+  remains approximate (Q609); type6 uses cached frames. Trail-kind remains Q662.
 - **Not built:** numeric generation14 (no request caller); procedural kinds1/4/6;
-  other shot bodies; burning overlay/sound; Inferno camera jitter.
+  mod-authored segmented shot playback; burning overlay/sound; Inferno camera jitter.
 
-**Verification (ADR-0599).** Simulation: 4103 and Presentation: 1350 tests passed; four
-RenderMesh tests passed. Unity Compile passed with no warnings/errors; nine runtime
-DLLs were copied into this branch Unity project. No editor was running; visual checks
-remain pending. Hash/save341 and pin `0x068253C19085D205` are unchanged.
+**Verification (ADR-0600).** Presentation: 1361 tests passed; focused ShotAssets/ArtCatalogue
+conversion: 17 and asset contracts: 64 passed. The latest Simulation pass remains 4103;
+this slice changes no simulation source/state. Unity Compile passed with no warnings/errors;
+nine runtime DLLs were copied into this branch Unity project. No live visual acceptance
+has been performed. Hash/save341 and pin `0x068253C19085D205` remain unchanged.
 
 ## Confidence
 

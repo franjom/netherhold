@@ -84,6 +84,10 @@ public static class AssetCatalogue
         database.EffectElements.Values.OrderBy(element => element.EffectElementId)
             .Where(element => element.ArtResource.Type is 5 or 6 && !string.IsNullOrWhiteSpace(element.ArtResource.Name));
 
+    public static IEnumerable<ShotDef> MeshShots(GameDatabase database) => database.Shots.Values
+        .OrderBy(shot => shot.ShotId).Where(shot => shot.MeshResource.Type is 5 or 6
+            && !string.IsNullOrWhiteSpace(shot.MeshResource.Name));
+
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so
     /// that two runs produce the same list and a converter's output is reproducible.
@@ -105,6 +109,7 @@ public static class AssetCatalogue
             yield return AssetRef.ForTrap(database.Traps[id].Name);
         foreach (EffectElementDef element in MeshEffectElements(database))
             yield return AssetRef.ForEffectElement(element.Name);
+        foreach (ShotDef shot in MeshShots(database)) yield return AssetRef.ForShot(shot.Name);
     }
 
     /// <summary>The bridge's own torch art, which a wall torch over a floor with no room carries

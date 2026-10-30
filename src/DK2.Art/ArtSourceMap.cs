@@ -54,6 +54,17 @@ public static class ArtSourceMap
         foreach (EffectElementDef element in AssetCatalogue.MeshEffectElements(database))
             entries.Add(Model(AssetRef.ForEffectElement(element.Name),
                 new Dk2ArtResource(element.ArtResource.Name, element.ArtResource.Type), "effect element mesh"));
+        foreach (ShotDef shot in AssetCatalogue.MeshShots(database))
+        {
+            KwdArtResource resource = shot.MeshResource;
+            ReadOnlySpan<byte> block = resource.Unknown_0044.Span;
+            entries.Add(Model(AssetRef.ForShot(shot.Name), new Dk2ArtResource(resource.Name, resource.Type)
+            {
+                AnimationFlags = (CreatureAnimationFlags)resource.Flags,
+                FrameCount = resource.Type == 6 && block.Length >= 2 ? BitConverter.ToUInt16(block.Slice(0, 2)) : (ushort)0,
+                FramesPerSecond = resource.Type == 6 && block.Length >= 6 ? BitConverter.ToUInt16(block.Slice(4, 2)) : (ushort)0,
+            }, "shot body"));
+        }
 
         IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
         if (entries.Count != expected.Count || !entries.Select(entry => entry.Reference).SequenceEqual(expected))

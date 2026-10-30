@@ -361,7 +361,8 @@ namespace DK2.Unity
                     terrainFlags: tile => world.Contains(tile)
                         ? database.Terrain[world.Tile(tile).TerrainId].Flags : 0,
                     solidTile: tile => !world.Contains(tile)
-                        || DK2.Pathfinding.NavBytes.IsSolid(_simulation.Navigation.NavByte(tile.X, tile.Y)));
+                        || DK2.Pathfinding.NavBytes.IsSolid(_simulation.Navigation.NavByte(tile.X, tile.Y)),
+                    shotVisible: shot => _worldView.CanShowTile(world, new TilePos(shot.PosX >> 12, shot.PosY >> 12)));
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
                 _lightning = new ClassicLightning(transform, _installArt.LoadTexture, _constructionEffects.Model, unchecked((uint)seed));
                 _scene.Lightning = _lightning;
@@ -761,6 +762,7 @@ namespace DK2.Unity
             _lightning?.BeginFrame(Camera.main);
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
             _shotDrawFraction = fraction;
+            _constructionEffects?.CaptureShots(_simulation.World.Shots, fraction);
             RefreshEffectCamera();
             FollowQueriedCreature();
             _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));

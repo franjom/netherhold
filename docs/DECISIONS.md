@@ -14009,3 +14009,22 @@ presentation remain separate slices. Native visual acceptance remains pending.
 **Consequences.** CRT jitter and render-LCG pairing use private presentation streams;
 hash/save341 and its deterministic pin are unchanged. Q661 is answered only for
 kind8 endpoints and the ordinary keeper creature-targeted Thunderbolt path.
+
+## ADR-0600 - draw shot bodies through the existing asset and effect adapters
+
+**Status:** implemented, 2026-10-30.
+
+**Decision.** Project live shots read-only into the existing sprite/mesh draw format.
+Use logical shot asset keys and runtime install providers, interpolate observed positions
+and draw yaw only, advance sprite/type6 phase from game ticks, and preserve authored mesh scale.
+Merge descriptor lights with separate source keys independently of body visibility.
+
+**Evidence and verification:** [shot-effects.md sections2/7](research/shot-effects.md#2-a-shots-effects-event-by-event).
+
+**Limits.** Type2 sprites use neutral white while native radial-light input remains
+untraced (Q609). Animated bodies use discrete cached frames; mod-authored start/end
+segments are unbuilt. General vertical flight/restored launch pose remain Q398.
+Native visual acceptance is pending.
+
+**Consequences.** No converted install files or simulation mutations are introduced.
+Hash/save341 and its deterministic pin remain unchanged on this branch.

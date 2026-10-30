@@ -810,11 +810,14 @@ public sealed class ConstructionParticle
     {
         get
         {
+            if (TexturePhaseRawOverride.HasValue) return TexturePhaseRawOverride.Value;
             if ((Definition.ArtResource.Flags & 4) == 0 || FrameDuration <= 0) return 0;
             int phase = InitialPhase + VisualUpdates * (4096 / FrameDuration);
             return (Definition.ArtResource.Flags & 0x80) != 0 ? Math.Min(4096, phase) : phase & 4095;
         }
     }
+    internal int? TexturePhaseRawOverride;
+    public int? MeshPhaseRaw { get; internal set; }
     public float RemainingSpriteLifetimeFraction => 1f - Math.Min(PhaseRaw, 4095) / 4096f;
     public int ScaleRaw => _parentScaleStep != 0 ? ParentScale()
         : (Definition.Flags & 6) == 0 ? InitialScale

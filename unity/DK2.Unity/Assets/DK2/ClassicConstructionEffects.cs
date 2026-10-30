@@ -62,6 +62,7 @@ namespace DK2.Unity
         /// <summary>Cached render resources per sprite asset or group-part mesh entry.</summary>
         private readonly Dictionary<(AssetRef, string), Group> _groups = new Dictionary<(AssetRef, string), Group>();
         public RoomConstructionParticles Model { get; }
+        public ShotBodyParticles ShotBodies { get; }
 
         public ClassicConstructionEffects(Transform root, GameDatabase database, IEffectSpriteProvider sprites, ulong seed,
             Func<RoomConstructionEffect, bool> visible = null,
@@ -74,12 +75,14 @@ namespace DK2.Unity
             Func<ShotId, ShotEffectAttachment> shotAttachment = null,
             Func<ViewEffectRequest, bool> cameraVisible = null,
             Func<TilePos, TerrainFlags> terrainFlags = null,
-            Func<TilePos, bool> solidTile = null)
+            Func<TilePos, bool> solidTile = null,
+            Func<ShotState, bool> shotVisible = null)
         {
             _root = root;
             _sprites = sprites;
             _meshes = meshes;
             _transparent = root.GetComponentInChildren<TransparentTerrain>();
+            ShotBodies = new ShotBodyParticles(database, unchecked((uint)seed), shotVisible);
             Model = new RoomConstructionParticles(database, seed, clock ?? ReadClock, visible, effectVisible, floorHeight,
                 terrainDebrisStyle: TerrainDebrisStyle.Crumbling,
                 captureEffectStyle: CaptureEffectStyle.Native, captureEdges: captureEdges,
@@ -111,8 +114,11 @@ namespace DK2.Unity
         {
             _fraction = Model.Advance();
             Model.CollectLights(_lights);
+            foreach (EffectLightView light in ShotBodies.Lights) _lights.Add(light);
             return _lights;
         }
+
+        public void CaptureShots(IReadOnlyList<ShotState> shots, float fraction) => ShotBodies.Capture(shots, fraction);
 
         public void Draw()
         {
@@ -128,9 +134,10 @@ namespace DK2.Unity
                 if (!group.IsFlat && _transparent == null) continue;
                 group.FlatVertices.Clear(); group.FlatUvs.Clear(); group.FlatColours.Clear(); group.FlatTriangles.Clear();
             }
-            for (int i = 0; i < Model.Particles.Count; i++)
+            int effectCount = Model.Particles.Count;
+            for (int i = 0; i < effectCount + ShotBodies.Particles.Count; i++)
             {
-                ConstructionParticle source = Model.Particles[i];
+                ConstructionParticle source = i < effectCount ? Model.Particles[i] : ShotBodies.Particles[i - effectCount];
                 Group group = For(source.Definition, source.MeshEntry, source.SpriteAsset);
                 if (group == null) continue;
                 Vector3 position = DungeonScene.Ground(
@@ -145,9 +152,11 @@ namespace DK2.Unity
                     Material[] materials = group.Materials;
                     if (group.Frames != null)
                     {
-                        // The animation plays at its authored rate from the element's birth, one
-                        // update being 50 ms, and loops.
-                        int frame = (source.VisualUpdates * group.FramesPerSecond / 20) % group.Frames.Length;
+                        // Shot bodies supply their game-tick phase. Other mesh elements loop
+                        // from birth at the authored rate, with one visual update per 50 ms.
+                        int frame = source.MeshPhaseRaw.HasValue
+                            ? ShotBodyParticles.FrameIndex(new Fp32(source.MeshPhaseRaw.Value), group.Frames.Length)
+                            : (source.VisualUpdates * group.FramesPerSecond / 20) % group.Frames.Length;
                         mesh = group.Frames[frame];
                         materials = group.FrameMaterials[frame];
                     }
