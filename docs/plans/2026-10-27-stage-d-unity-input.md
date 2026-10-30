@@ -115,12 +115,12 @@ line budget, so this is a new ADR. It must settle, with evidence:
    reported ±120. Check whether the installed version's scroll-normalisation setting
    (`InputSettings.scrollDeltaBehavior`, unverified for this version) gives legacy units;
    otherwise normalise in the adapter. Zoom and the front-end wheel must not change speed.
-2. **Pan axes.** `GetAxisRaw` becomes explicit key bindings; Input Manager axis settings
-   (dead zone, gravity, snap, alternative keys) are read from `InputManager.asset` and kept or
-   their loss recorded. The bindings are DK2's default key list (`research/controls.md`; the
+2. **Pan axes.** Already done on master (2026-10-29): the camera reads DK2's rebindable key
+   table, not `GetAxisRaw`; only the Phase 1 frame journal still samples the Horizontal/Vertical
+   axes, and the migration drops those fields. The bindings are DK2's default key list (`research/controls.md`; the
    camera keys also read in the default table 0x005604C0): arrows scroll, SHIFT + arrow
-   speed-scrolls. W/A/S/D, Q/E and joystick axes are ours, not DK2's (A is the Ally Window; the
-   owner confirms WASD does not pan, 2026-10-27), and are dropped. The owner pans mostly at the
+   speed-scrolls. W/A/S/D, Q/E and joystick axes were ours, not DK2's (A is the Ally Window; the
+   owner confirms WASD does not pan, 2026-10-27), and are removed; there is no gamepad support. The owner pans mostly at the
    screen edge (5 pixels, `classic-camera.md` section 7).
 3. **Text.** `Input.inputString` becomes `Keyboard.onTextInput`, buffered per frame.
 4. **Timing.** Press/release edges are read once per rendered frame (dynamic update), as

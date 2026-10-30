@@ -231,7 +231,8 @@ use preset 9 with flags 0, so X with vertical mouse and the pitch keys tilt ther
 data, not code. We build only the ordinary views and do not apply pitch or roll.
 
 The adapter implements the shipped Home/End, Delete/PageDown and Ctrl-arrow
-bindings in addition to existing WASD/Q/E/wheel aliases. Pure-controller tests
+bindings through the rebindable key table; the WASD, Q/E and Unity-axis (joystick)
+aliases were removed (2026-10-29), and the wheel stays. Pure-controller tests
 cover held/released counters, fast/edge distinctions, fractional timing and
 locks. The native executable oracle checks630 pan combinations and both
 opposing-packet map-edge cases; only its virtual mode query is stubbed.

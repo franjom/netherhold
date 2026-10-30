@@ -135,8 +135,8 @@ all entrants reach that endpoint by 4400. This is not permanent mortality: nativ
 217 -> 75/78 transitions occur in these logs. The gap includes survival into the zone, not only
 longer individual visits. These are distributions over distinct RNG streams.
 
-The binary comparison found the chase-boundary differences in ADR-0588; see
-[combat-approach-and-victory.md](combat-approach-and-victory.md#the-chase-boundary-adr-0588).
+The binary comparison found the chase-boundary differences in ADR-0590; see
+[combat-approach-and-victory.md](combat-approach-and-victory.md#the-chase-boundary-adr-0590).
 The matched-master comparison uses clean detached tools at `31a05119` (hash 335)
 and `33fcd18f` (336), the same eight native states and five generators to 6804,
 two workers, all 80 exits zero. All 80 paired creature/event prefixes through

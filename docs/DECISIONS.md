@@ -13613,7 +13613,7 @@ Research: `docs/research/combat-target-selection.md` §2, `combat-approach-and-v
 `CreatureRetreatingCounter` (`+0x53D`) up on a retreating creature target and zeroes it on any other
 creature target; past variable 213 or 214 it stores the target's tag in `RetreatingCreature`
 (`+0x53B`), zeroes `AvoidRetreatersCounter` (`+0x53E`) and leaves `+0x53D` over the limit. spFighting
-zeroes `+0x53D` only out of reach after selecting a non-retreating creature (`0x0045F97D`; ADR-0588). While `+0x53B` is set, the
+zeroes `+0x53D` only out of reach after selecting a non-retreating creature (`0x0045F97D`; ADR-0590). While `+0x53B` is set, the
 Blocker, Support and Flanker selectors skip a retreating candidate (`0x0045B224`, `0x0045B5E4`,
 `0x0045BBB4`; Blitzer and `SelectAVictim`'s own scans do not), and `Creature_Update`
 (`0x00489A8A`-`0x00489AB5`) counts `+0x53E` up a turn, clearing all three at 60. The names are DK2's
@@ -13622,11 +13622,11 @@ give-up and on a thing target, and counted state 203 as retreating.
 
 **Decision.** `ApproachRules.IsRetreating` is `0x0045F000`. State 8 counts on a retreating creature
 target, zeroes on any other creature target, leaves the count on a thing target and at the give-up.
-The fight reset and approach-entry boundaries are corrected by ADR-0588. `CombatTargetRules.Scan` skips a retreating candidate for every arm but
+The fight reset and approach-entry boundaries are corrected by ADR-0590. `CombatTargetRules.Scan` skips a retreating candidate for every arm but
 Blitzer while `RetreatingCreature` is set. `AvoidRetreatersCounter` (new, hashed and saved) counts in
 `CombatSystem.Update` before the fight scan and at 60 clears it, `RetreatingCreature` and `ChaseTicks`.
 
-**Consequences.** Re-entry retains the count at hash/save 336 (ADR-0588). On Level 4, from DK2's eight 2400 states
+**Consequences.** Re-entry retains the count at hash/save 336 (ADR-0590). On Level 4, from DK2's eight 2400 states
 with five generator seeds each (`D:/DK2Evidence/runs/l4-retreat-tracking-2026-10-29`; h333 summed over
 40 runs and divided by 5 to compare with DK2's 8), the first build of this rule moved Imp deaths from
 28.9 to 28.3 a run (p 0.42; not a test of no effect). The audit around it, counting live creatures
@@ -13675,11 +13675,106 @@ not a native field. The adapter contract is in
 Hash/save 335 refuses 334 saves and journals. Exact native timing and resource
 retention remain Q685; this decision does not establish playback parity.
 
-## ADR-0588 - Keep the retreat chase count across approach entries
-**Date:** 2026-10-30 · **Status:** proposed · Hash/save 336 · amends ADR-0584 · Q665.
+## ADR-0587 - Interface text goes through one catalog, in the player's language
+**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Presentation only · No hash/save change.
+
+**Context.** DK2's own text is already looked up by string id: `Dk2StringTable` reads the
+install's `BFST` tables through `MBToUni.dat`, and `LevelTextTable` and `BriefingTextTable`
+build on it. But seven call sites hard-code `Data/Text/Default` (e.g. `DungeonRunner.cs`,
+`CampaignBriefingLoader.cs`), nothing chooses a language, and text the remake adds (the
+save/load errors, and soon save refusal and cheat messages) is English literals in code.
+DK2's language id also changes behaviour: `0x0053B980` skips the Level 13 cutscene for
+languages 7 and 0x12, which `CampaignCutscene` leaves out because ours has no language.
+
+**Decision.**
+- One `TextCatalog` in `DK2.Presentation` resolves every string the player sees, from two
+  sources: DK2's tables under `Data/Text/<language>/`, falling back to `Default`, and a remake
+  table in the repository, one file per language keyed by stable string ids, with English
+  as the fallback. A remake id is never reused for a different meaning.
+- The player's language is a setting in the profile and options. It selects both sources,
+  and it supplies DK2's language id to rules that depend on it (the Level 13 skip).
+- The simulation never holds display text, only ids and typed events (as ADR-0276 already
+  has it report). Unity draws what the catalog returns. Where DK2's `.bf4` fonts lack a
+  character, Unity falls back to a font that has it.
+- New remake strings go into the remake table from the start, beginning with the save
+  refusal and cheat messages. Existing literals move when their code is next touched.
+
+**Consequences.** Adding a language needs only its table and, for DK2 text, an install that
+carries it; no code change. A missing id falls back to English and is reported by a test
+that checks every language table against the English one. Out of scope: translating DK2's
+own text, which comes from the install; the language codes DK2 uses on disk are to be read
+from the binary when a second language is built.
+
+## ADR-0588 - A save is refused only when its layout cannot be read, and always with a reason
+**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Changes the save format when built · Issue #1 (item 1).
+
+**Context.** Session saves (`.dk2g`, `SavedSessionFile`) wrap a `WorldSnapshot`, whose `FormatVersion`
+must equal `HashVersion`. A save is therefore refused after any hashed change, layout or not: of
+the last 60 commits touching `WorldSnapshot.cs`, 37 changed only the version line, and HashVersion
+moved on 10 commits in one day. The snapshot is positional, so one changed field shifts the rest.
+A throwaway fuzz of a 56 KB snapshot (one byte set to 0xFF/0x7F/0x80, and 400 truncations) gave
+166,851 loads of a different world with no error, 905 errors the load screen catches, and 9 it
+does not (`OverflowException` from a negative count at byte 62, `OutOfMemoryException`).
+
+**Decision.**
+- The snapshot carries its own `SaveFormatVersion`, bumped only when the layout changes, and
+  `HashVersion` for information. Loading a save never checks `HashVersion`; journals, replays,
+  the harness shadow check and the pinned test check it themselves. An old save loads and runs
+  under the current rules.
+- Each record (tile, creature, player, door, ...) is written as `(field id, length, value)`.
+  An unknown id is skipped, a missing id takes the field's default rule, a rename keeps the id,
+  and a change of meaning takes a new id with an optional conversion from the old one. Ids are
+  never reused. The field tables are built once, with no reflection or allocation per field;
+  the payload is compressed.
+- `OldestReadableSaveFormat` bounds what loads (owner: a save too far from the current design is
+  of no use). Anything outside it, and any malformed input, fails as `SaveIncompatibleException`
+  with a reason the load screen shows (through ADR-0587's catalog); nothing else escapes. Counts
+  are read through one bounded reader, checked against sane limits and the bytes left.
+- `.dk2g` version 2 stores an xxHash64 of its payload, so a damaged file is refused rather than
+  loaded as a different world. It does not depend on the state hash.
+- `tests/Fixtures/saves/` keeps one real save per `SaveFormatVersion` inside the window; a test
+  loads each and checks the restored world. Raising the window deletes fixtures deliberately.
+
+**Consequences.** Behaviour-only changes no longer break saves. Layout changes break them only
+when a field cannot be defaulted or converted. No existing saves are converted: none exist yet,
+and the new format starts at 1. The save writer and reader must be kept in the field tables, not
+hand-mirrored.
+
+## ADR-0589 - Cheats: DK2's phrases behind a visible entry box, and a tamper-evident record
+**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Hash/save change when built · Research: `research/cheats.md`, Q688.
+
+**Context.** DK2 opens cheat entry with Ctrl+Alt+C and matches eight typed phrases; each fires an
+ordinary game action (`0x0040A760` through `0x004346E0`). Nothing on screen shows the typing, and
+the keys also trigger their hotkeys (binary and owner, 2026-10-30). DK2 records no use of a cheat
+anywhere (STRONGLY INFERRED; a cheated win scores like an honest one, owner). "Feel the power"
+never ends for a dead creature below level 10 in the list (`0x00505E20`, CONFIRMED); the owner
+recalls it freezing.
+
+**Decision.**
+- Kept: Ctrl+Alt+C, the eight phrases and their effects, DK2's entry gates and its refusal in
+  multiplayer (`cheats.md` §5), and the cheat as a game action, so it is an input frame,
+  journalled and replayed like any other.
+- Not kept: hidden typing and hotkey bleed-through. Entry opens a popup with a text box; keys
+  typed there never reach gameplay bindings. Its text goes through ADR-0587's catalog. Also not
+  kept: the level-10 hang; ours skips dead creatures.
+- The record is tamper-evident, not tamper-proof (owner): the source is public and any check in
+  the client can be removed. `PlayerState.CheatFlags` (DK2 cheat, console command, memory edit,
+  save edit) is set by the action, never cleared, hashed and saved. Copies go to the save header,
+  the campaign profile and any hi-score entry; on load they are ORed, and a disagreement sets
+  the save-edit flag.
+- Later layers: an economy audit each game second (treasury gold, mana and research against the
+  running totals in `PlayerState`), whose finding enters as an input; then replay verification,
+  where a save's level, seed and journal must replay to its state hash.
+- Undecided (owner): how the flags are shown, and how a cheated game is scored.
+
+**Consequences.** This departs from DK2, which marks nothing; the departure is the record and the
+entry box, not the cheats. Adding `CheatFlags` bumps the hash and the save layout.
+
+## ADR-0590 - Keep the retreat chase count across approach entries
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 336 · amends ADR-0584 · Q665.
 
 **Context.** The Q665 binary comparison found extra chase-counter clears and a different
-give-up transition. Evidence: [the chase boundary](research/combat-approach-and-victory.md#the-chase-boundary-adr-0588).
+give-up transition. Evidence: [the chase boundary](research/combat-approach-and-victory.md#the-chase-boundary-adr-0590).
 
 **Decision.** Approach entry preserves `ChaseTicks`. The fight clears it only out of reach,
 after re-selection of a creature that is not retreating. Giving up unlinks the outgoing

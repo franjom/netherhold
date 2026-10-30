@@ -74,8 +74,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Scope, focused verification and pending original-game acceptance:
   [Secret Door work](research/imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
-- The reviewed chase-boundary correction is implemented on `sim/q665-hero-chase`
-  at hash/save 336 (ADR-0588, proposed; not merged, 2026-10-30). The completed
+- The reviewed chase-boundary correction is built at hash/save 336
+  (ADR-0590, accepted for integration, 2026-10-30). The completed
   matched-master comparison leaves Q665's exposure gap unresolved; results and limits:
   [hero phases](research/level4-outcomes.md#hero-phases-in-the-gold-route-zone-q665-follow-up-hash-333).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
@@ -356,7 +356,7 @@ tools/classic-unity-probe/README.md.
 
 ## Next work
 
-1. M6: isolate Q665's remaining hero-exposure gap after ADR-0588's completed
+1. M6: isolate Q665's remaining hero-exposure gap after ADR-0590's completed
    matched-master comparison (2026-10-30). The cause remains UNKNOWN; results
    and open leads are in [level4-outcomes.md](research/level4-outcomes.md).
    Then the state 8
