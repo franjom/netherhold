@@ -191,4 +191,8 @@ Episode lengths (4, 13 and 22 ticks by creature) match DK2. Over 2401-4400 alone
 celebrate 3 times in eight runs, ours about 90 per eight. Ours' fight checked the victory
 nibble before looking for another victim, so every kill celebrated even with enemies in
 sight; DK2 celebrates only after a failed `SelectAVictim` (ADR-0592, hash/save 338). The
-effect of that fix on these figures is not measured. Gaps left open by the fix are in the ADR.
+fix at hash 338 (`D:/DK2Evidence/runs/l4-celebration-2026-10-30`, 40 runs): per eight runs over
+2401-4400, celebrations 3 / 89.6 / 16.4 (DK2 / h336 / h338), zone 260 hero-ticks 26 / 1,241 / 195;
+over 2401-6804 celebrations 76 / 255.2 / 97.4. Zone hero-ticks barely move (8,405 / 13,746 / 13,360):
+the time goes to fight and approach (6,864 / 9,992 / 11,008), and Imp deaths per run rise
+(21.75 / 26.6 / 33.4; h338 - h336 sign-flip p 0.023). Gaps left open by the fix are in the ADR.

@@ -76,7 +76,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
 - The reviewed chase-boundary correction is built (ADR-0590, accepted for
   integration, 2026-10-30); its give-up drops a held forced target at hash/save 337 (ADR-0591). The completed
-  matched-master comparison leaves Q665's exposure gap unresolved; a fighter now looks for a victim before it celebrates (ADR-0592, hash/save 338), impact on ours' 3x celebration excess unmeasured
+  matched-master comparison leaves Q665's exposure gap unresolved; a fighter now looks for a victim before it celebrates (ADR-0592, hash/save 338), which brings celebrations near DK2's but not zone time, and Imp deaths rose
   ([celebrations](research/level4-outcomes.md#celebrations-q665-lead-hash-336-adr-0592), [hero phases](research/level4-outcomes.md#hero-phases-in-the-gold-route-zone-q665-follow-up-hash-333)).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
