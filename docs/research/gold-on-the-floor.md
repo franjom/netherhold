@@ -137,7 +137,7 @@ The cleanest rule of the lot. On creature teardown, if it is carrying anything:
 
 - every pile is an object **1** on the creature's own tile;
 - **the remainder is destroyed** — 2999 carried leaves two piles of 1499 and one
-  gold that ceases to exist;
+  gold that ceases to exist. A known DK2 defect, kept so runs stay comparable with native captures and fixed once the implementation is complete (owner, 2026-10-30; issue #2, DK2-019);
 - the position is drawn uniformly across the whole tile, and the pile is spawned
   **three tiles up** so that it falls;
 - the creature's hands are then zeroed.
