@@ -233,4 +233,6 @@ One cause is found. The commonest interval between one hero's consecutive blows 
 Thief 10 / 9 (42 of 76). The Guard is recharge-bound, the Dwarf and Thief clip-bound: ours released the
 melee action a turn before its poll (kmf-animation-playback.md §7). ADR-0598 (hash 342) holds it to the
 poll; its two new test cases give 8 and 10. That is the Dwarf and Thief share of the gap, 10-12%; the
-rest is not located, and the effect on hits per targeted tick and on Imp deaths is not yet measured.
+rest is not located. Measured at hash 342 (40 runs, README "Hash 342"): the intervals now equal DK2's
+(11 / 8 / 10), but hits per targeted Imp-tick stay 0.0543 (h340 0.0560, DK2 0.0384); Imp deaths per run
+26.2 (h340 29.1, p 0.59). The hit-rate gap is not the swing cadence.
