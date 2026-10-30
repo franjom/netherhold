@@ -69,7 +69,7 @@ public static class WorldSnapshot
             RandomTag.Xoshiro256StarStar =>
                 SimRandom.Restore((r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64(), r.ReadUInt64())),
             RandomTag.Dk2Lcg => new SimRandom(new Dk2Lcg(r.ReadUInt32())),
-            _ => throw new InvalidDataException($"Snapshot names random generator {(byte)tag}, which this build does not know."),
+            _ => throw SaveReader.Error(r, SaveIncompatibleReason.Corrupt, $"Snapshot names random generator {(byte)tag}, which this build does not know."),
         };
     }
 
@@ -885,15 +885,25 @@ public static class WorldSnapshot
         IEnumerable<ISimulationSystem>? systems = null,
         TriggerTree? triggers = null)
     {
+        if (!stream.CanSeek)
+            throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "A snapshot requires a seekable stream.");
+        try { return ReadCore(stream, database, systems, triggers); }
+        catch (Exception ex) when (SaveReader.IsMalformed(ex))
+        { throw SaveReader.Wrap(ex, stream.Position); }
+    }
+
+    private static GameSimulation ReadCore(Stream stream, GameDatabase database,
+        IEnumerable<ISimulationSystem>? systems, TriggerTree? triggers)
+    {
         using var r = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
 
-        byte[] magic = r.ReadBytes(MagicBytes.Length);
+        byte[] magic = SaveReader.Bytes(r, MagicBytes.Length, "snapshot magic");
         if (magic.Length != MagicBytes.Length || !magic.SequenceEqual(MagicBytes))
-            throw new InvalidDataException("Not a DK2 simulation snapshot (bad magic).");
+            throw SaveReader.Error(r, SaveIncompatibleReason.NotASave, "Not a DK2 simulation snapshot (bad magic)");
 
         int version = r.ReadInt32();
         if (version != FormatVersion)
-            throw new InvalidDataException(
+            throw SaveReader.Error(r, SaveIncompatibleReason.UnsupportedVersion,
                 $"Snapshot format version {version} is not supported (this build reads {FormatVersion}).");
 
         var tick = new GameTick(r.ReadInt64());
@@ -901,13 +911,15 @@ public static class WorldSnapshot
 
         int width = r.ReadInt32();
         int height = r.ReadInt32();
+        if (width <= 0 || height <= 0 || (long)width * height > int.MaxValue)
+            throw SaveReader.Error(r, SaveIncompatibleReason.OutOfRange, $"Invalid map dimensions {width}x{height}");
         bool fogOfWarEnabled = r.ReadBoolean();
         var gameMode = (GameMode)r.ReadByte();
-        var activePlayerOrder = new PlayerId[r.ReadInt32()];
+        var activePlayerOrder = new PlayerId[SaveReader.Count(r, "active players", 1, byte.MaxValue + 1)];
         for (int i = 0; i < activePlayerOrder.Length; i++) activePlayerOrder[i] = new PlayerId(r.ReadByte());
-        int tileCount = r.ReadInt32();
-        if (tileCount != width * height)
-            throw new InvalidDataException(
+        int tileCount = SaveReader.Count(r, "tileCount", 109);
+        if (tileCount != (long)width * height)
+            throw SaveReader.Error(r, SaveIncompatibleReason.Corrupt,
                 $"Snapshot claims {width}x{height} but carries {tileCount} tiles.");
 
         var tiles = new TileState[tileCount];
@@ -955,7 +967,7 @@ public static class WorldSnapshot
         int nextTagOrder = r.ReadInt32();
         CampaignCarry carry = CampaignCarry.Read(r);
         byte localPlayer = r.ReadByte();
-        int secretDoorEntryCount = r.ReadInt32();
+        int secretDoorEntryCount = SaveReader.Count(r, "secretDoorEntryCount", 29);
         var secretDoorEntries = new Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry>();
         for (int i = 0; i < secretDoorEntryCount; i++)
         {
@@ -965,7 +977,7 @@ public static class WorldSnapshot
             for (int side = 0; side < 4; side++) entry.Holders[side] = r.ReadInt32();
             secretDoorEntries.Add((player, tile), entry);
         }
-        int playerCount = r.ReadInt32();
+        int playerCount = SaveReader.Count(r, "playerCount", 132, byte.MaxValue + 1);
         var players = new PlayerState[playerCount];
         for (int i = 0; i < playerCount; i++)
         {
@@ -1009,15 +1021,14 @@ public static class WorldSnapshot
                 Hand = [],
             };
 
-            int availabilityCount = r.ReadInt32();
+            int availabilityCount = SaveReader.Count(r, "availabilityCount", 27);
             for (int a = 0; a < availabilityCount; a++)
                 players[i].Availabilities.Add(new AvailabilityState(
                     (AvailabilityKind)r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt64(), r.ReadInt64()));
-            int entranceCount = r.ReadInt32();
+            int entranceCount = SaveReader.Count(r, "entranceCount", 9);
             for (int a = 0; a < entranceCount; a++)
                 players[i].EntranceInfo.Add(new EntranceInfoState(r.ReadByte(), r.ReadInt32(), r.ReadInt32()));
-            int introducedCount = r.ReadInt32();
-            if ((uint)introducedCount > 256) throw new InvalidDataException("Invalid introduced creature count.");
+            int introducedCount = SaveReader.Count(r, "introducedCount", 1, byte.MaxValue + 1);
             for (int a = 0; a < introducedCount; a++) players[i].IntroducedCreatureTypes.Add(r.ReadByte());
 
             players[i].ManufacturePoints = r.ReadInt32();
@@ -1028,14 +1039,16 @@ public static class WorldSnapshot
             players[i].Finale = PlayerFinale.Read(r);
             players[i].ManufactureRingTail = r.ReadByte();
             players[i].ManufactureSlotZeroCost = r.ReadInt32();
-            int orderCount = r.ReadInt32();
+            int orderCount = SaveReader.Count(r, "orderCount", 6, ManufactureRules.QueueCapacity);
             for (int o = 0; o < orderCount; o++)
                 players[i].ManufactureQueue.Add(new ManufactureOrder(r.ReadByte(), r.ReadByte(), r.ReadInt32()));
-            int blueprintCount = r.ReadInt32();
+            int blueprintCount = SaveReader.Count(r, "blueprintCount", 5);
             for (int o = 0; o < blueprintCount; o++)
                 players[i].Blueprints.Add(new BlueprintRef(r.ReadByte(), r.ReadInt32()));
 
-            int handCount = r.ReadInt32();
+            int handCount = SaveReader.Count(r, "handCount", 5);
+            if (handCount > 0)
+                SaveReader.CheckCount(r, handCount, "hand items", 5, HandRules.Capacity(database));
             for (int h = 0; h < handCount; h++)
             {
                 var kind = (HandItemKind)r.ReadByte();
@@ -1061,7 +1074,7 @@ public static class WorldSnapshot
                     new TilePos(r.ReadInt32(), r.ReadInt32()), new TilePos(r.ReadInt32(), r.ReadInt32()),
                     new GameTick(r.ReadInt64()), r.ReadUInt16());
 
-        int workCount = r.ReadInt32();
+        int workCount = SaveReader.Count(r, "workCount", 18);
         for (int i = 0; i < workCount; i++)
         {
             world.QueueWork(new TileWorkOrder(
@@ -1069,7 +1082,7 @@ public static class WorldSnapshot
         }
 
         int nextCreatureId = r.ReadInt32();
-        int creatureCount = r.ReadInt32();
+        int creatureCount = SaveReader.Count(r, "creatureCount", 890);
         for (int i = 0; i < creatureCount; i++)
         {
             var creature = new CreatureState
@@ -1356,12 +1369,13 @@ public static class WorldSnapshot
         // creatures die must not hand out an id it has already used.
         world.NextCreatureId = nextCreatureId;
 
+        SaveReader.CheckCount(r, creatureCount, "creature ownership order", 4);
         int[] ownershipOrder = new int[creatureCount];
         for (int i = 0; i < ownershipOrder.Length; i++) ownershipOrder[i] = r.ReadInt32();
         world.RestoreCreatureOwnershipOrder(ownershipOrder);
 
         int nextShotId = r.ReadInt32();
-        int shotCount = r.ReadInt32();
+        int shotCount = SaveReader.Count(r, "shotCount", 70);
         for (int i = 0; i < shotCount; i++)
         {
             var shot = new ShotState
@@ -1394,7 +1408,7 @@ public static class WorldSnapshot
         world.NextShotId = nextShotId;
 
         int nextObjectId = r.ReadInt32();
-        int objectCount = r.ReadInt32();
+        int objectCount = SaveReader.Count(r, "objectCount", 155);
         for (int i = 0; i < objectCount; i++)
         {
             var loaded = new ObjectState
@@ -1458,7 +1472,7 @@ public static class WorldSnapshot
         // out again to the next bed.
         world.NextObjectId = nextObjectId;
 
-        int actionPointCount = r.ReadInt32();
+        int actionPointCount = SaveReader.Count(r, "actionPointCount", 17, byte.MaxValue + 1);
         for (int i = 0; i < actionPointCount; i++)
         {
             world.RawActionPoints.Add(new ActionPointState
@@ -1478,7 +1492,7 @@ public static class WorldSnapshot
 
         world.TileHighlights.Read(r);
         world.NextDoorId = r.ReadInt32();
-        int doorCount = r.ReadInt32();
+        int doorCount = SaveReader.Count(r, "doorCount", 49);
         for (int i = 0; i < doorCount; i++)
         {
             world.RawDoors.Add(new DoorState
@@ -1499,14 +1513,14 @@ public static class WorldSnapshot
                 Orientation = r.ReadByte(),
                 Health = r.ReadInt32(),
                 RecoveryDeadline = r.ReadInt64(),
-                Unknown_0011 = r.ReadBytes(DoorState.Unknown0011Length),
+                Unknown_0011 = SaveReader.Bytes(r, DoorState.Unknown0011Length, "door state"),
             });
         }
-        int navStampCount = r.ReadInt32();
+        int navStampCount = SaveReader.Count(r, "navStampCount", 6);
         for (int i = 0; i < navStampCount; i++) world.RawNavStamps.Add(new NavStamp(r.ReadInt32(), r.ReadByte(), r.ReadByte()));
 
         world.NextTrapId = r.ReadInt32();
-        int trapCount = r.ReadInt32();
+        int trapCount = SaveReader.Count(r, "trapCount", 82);
         for (int i = 0; i < trapCount; i++)
         {
             world.RawTraps.Add(new TrapState
@@ -1549,23 +1563,23 @@ public static class WorldSnapshot
         }
         for (int i = 0; i < WorldState.HeroSlotCount; i++)
             world.HeroSlotArray[i] = new HeroSlot { CreatureId = r.ReadInt32(), Value = r.ReadByte() };
-        int borderCursorCount = r.ReadInt32();
+        int borderCursorCount = SaveReader.Count(r, "borderCursorCount", 7);
         for (int i = 0; i < borderCursorCount; i++)
             world.RoomBorderCursorList.Add(new RoomBorderCursor
             {
                 X = r.ReadByte(), Y = r.ReadByte(), Orientation = r.ReadByte(), Phase = r.ReadInt32(),
             });
 
-        int heroPartyCount = r.ReadInt32();
+        int heroPartyCount = SaveReader.Count(r, "heroPartyCount", 17, byte.MaxValue + 1);
         for (int i = 0; i < heroPartyCount; i++)
         {
-            string name = r.ReadString();
+            string name = SaveReader.String(r);
             ushort triggerId = r.ReadUInt16();
             byte partyId = r.ReadByte();
             int unknown0023 = r.ReadInt32();
             int unknown0027 = r.ReadInt32();
             byte spawnCount = r.ReadByte();
-            int memberCount = r.ReadInt32();
+            int memberCount = SaveReader.Count(r, "memberCount", 32);
             var members = new HeroPartyMemberState[memberCount];
             for (int m = 0; m < memberCount; m++)
             {
@@ -1587,13 +1601,13 @@ public static class WorldSnapshot
             });
         }
 
-        int effectGeneratorCount = r.ReadInt32();
+        int effectGeneratorCount = SaveReader.Count(r, "effectGeneratorCount", 26);
         for (int i = 0; i < effectGeneratorCount; i++)
         {
             int x = r.ReadInt32(); int y = r.ReadInt32();
             int unknown0008 = r.ReadInt32(); int unknown000C = r.ReadInt32();
             ushort unknown0010 = r.ReadUInt16(); ushort unknown0012 = r.ReadUInt16();
-            int effectIdCount = r.ReadInt32();
+            int effectIdCount = SaveReader.Count(r, "effectIdCount", 2);
             var effectIds = new ushort[effectIdCount];
             for (int e = 0; e < effectIdCount; e++) effectIds[e] = r.ReadUInt16();
             world.RawEffectGenerators.Add(new EffectGeneratorState
@@ -1601,15 +1615,15 @@ public static class WorldSnapshot
                 X = x, Y = y, Unknown_0008 = unknown0008, Unknown_000C = unknown000C,
                 Unknown_0010 = unknown0010, Unknown_0012 = unknown0012, EffectIds = effectIds,
                 Frequency = r.ReadByte(), GeneratorId = r.ReadByte(),
-                Unknown_001E = r.ReadBytes(EffectGeneratorState.Unknown001ELength),
+                Unknown_001E = SaveReader.Bytes(r, EffectGeneratorState.Unknown001ELength, "effect generator state"),
             });
         }
 
-        int templeCount = r.ReadInt32();
+        int templeCount = SaveReader.Count(r, "templeCount", 13);
         for (int i = 0; i < templeCount; i++)
         {
             var temple = new TempleSacrificeState(r.ReadInt32(), r.ReadByte());
-            int count = r.ReadInt32();
+            int count = SaveReader.Count(r, "sacrifice ingredients", 6, TempleSacrificeState.Capacity);
             int nextInsertionIndex = r.ReadInt32();
             var entries = new SacrificeIngredient[TempleSacrificeState.Capacity];
             for (int slot = 0; slot < entries.Length; slot++)
@@ -1618,7 +1632,7 @@ public static class WorldSnapshot
             world.RawTempleSacrifices.Add(temple);
         }
 
-        int graveyardCount = r.ReadInt32();
+        int graveyardCount = SaveReader.Count(r, "graveyardCount", 9);
         for (int i = 0; i < graveyardCount; i++)
         {
             var graveyard = new GraveyardState(r.ReadInt32(), r.ReadByte());
@@ -1636,12 +1650,14 @@ public static class WorldSnapshot
         world.Triggers.SpecialInfoNextRoomTypeId = r.ReadByte();
         world.Triggers.SpecialInfoPlayerId = r.ReadByte();
         world.Triggers.MaximumSlaps = r.ReadInt32();
-        int triggerRecordCount = r.ReadInt32();
+        int triggerRecordCount = SaveReader.Count(r, "triggerRecordCount", 8);
         for (int i = 0; i < triggerRecordCount; i++)
             world.Triggers.RestoreRecord(r.ReadInt32(), r.ReadUInt16(), r.ReadBoolean(), r.ReadByte());
 
         var simulation = new GameSimulation(database, world, rng, systems, triggers, levelStart: false);
         simulation.Navigation.Read(r);
+        if (SaveReader.Remaining(r) != 0)
+            throw SaveReader.Error(r, SaveIncompatibleReason.Corrupt, "Unexpected bytes after the snapshot");
         return simulation;
     }
 

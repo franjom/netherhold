@@ -324,8 +324,7 @@ public sealed class PlayerMessageQueue
     internal void Read(BinaryReader reader)
     {
         _nextId = reader.ReadUInt32();
-        int count = reader.ReadInt32();
-        if ((uint)count > Capacity) throw new InvalidDataException("Invalid retained message count.");
+        int count = SaveReader.Count(reader, "retained messages", 27, Capacity);
         _entries.Clear();
         for (int i = 0; i < count; i++)
             _entries.Add(new PlayerMessage(reader.ReadUInt32(), reader.ReadByte(),

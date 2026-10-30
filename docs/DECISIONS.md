@@ -13706,15 +13706,14 @@ own text, which comes from the install; the language codes DK2 uses on disk are 
 from the binary when a second language is built.
 
 ## ADR-0588 - A save is refused only when its layout cannot be read, and always with a reason
-**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Changes the save format when built · Issue #1 (item 1).
+**Date:** 2026-10-30 · **Status:** accepted, partly built (owner) · Session envelope v2 built; snapshot format 336 unchanged · Issue #1 (item 1).
 
 **Context.** Session saves (`.dk2g`, `SavedSessionFile`) wrap a `WorldSnapshot`, whose `FormatVersion`
-must equal `HashVersion`. A save is therefore refused after any hashed change, layout or not: of
+must equal `HashVersion`. A save is still refused after any hashed change, layout or not: of
 the last 60 commits touching `WorldSnapshot.cs`, 37 changed only the version line, and HashVersion
 moved on 10 commits in one day. The snapshot is positional, so one changed field shifts the rest.
-A throwaway fuzz of a 56 KB snapshot (one byte set to 0xFF/0x7F/0x80, and 400 truncations) gave
-166,851 loads of a different world with no error, 905 errors the load screen catches, and 9 it
-does not (`OverflowException` from a negative count at byte 62, `OutOfMemoryException`).
+Unbounded counts previously allowed malformed snapshots to escape the load screen
+as overflow or allocation failures; damaged payloads could load as a different world.
 
 **Decision.**
 - The snapshot carries its own `SaveFormatVersion`, bumped only when the layout changes, and
@@ -13730,15 +13729,26 @@ does not (`OverflowException` from a negative count at byte 62, `OutOfMemoryExce
   of no use). Anything outside it, and any malformed input, fails as `SaveIncompatibleException`
   with a reason the load screen shows (through ADR-0587's catalog); nothing else escapes. Counts
   are read through one bounded reader, checked against sane limits and the bytes left.
-- `.dk2g` version 2 stores an xxHash64 of its payload, so a damaged file is refused rather than
-  loaded as a different world. It does not depend on the state hash.
+- `.dk2g` version 2 stores independent xxHash64 checksums for snapshot and profile payloads,
+  both verified before profile parsing. These checksums do not depend on the state hash.
 - `tests/Fixtures/saves/` keeps one real save per `SaveFormatVersion` inside the window; a test
   loads each and checks the restored world. Raising the window deletes fixtures deliberately.
 
-**Consequences.** Behaviour-only changes no longer break saves. Layout changes break them only
-when a field cannot be defaulted or converted. No existing saves are converted: none exist yet,
-and the new format starts at 1. The save writer and reader must be kept in the field tables, not
-hand-mirrored.
+**Built (first part).** Snapshot and delegated readers bound counts by collection limits and
+remaining encoded bytes; dimensions use a wide product, and party names use bounded strict UTF-8.
+Malformed snapshot/session input raises `SaveIncompatibleException` with a stable
+`SaveIncompatibleReason`, byte position where available and the inner error when wrapping one.
+It derives from `IOException`: `System.IO.InvalidDataException` is sealed, and Unity already
+catches `IOException`. Messages remain English pending ADR-0587's catalog. Session envelope v2
+and its two checksums are built; v1 is refused as `UnsupportedVersion`. Snapshot writes/layout,
+format 336, `Hash64` and the determinism pin are unchanged.
+
+**Remaining.** Separate `SaveFormatVersion`/`HashVersion`, the oldest-readable window,
+field-id records/compression and committed fixtures are not built. Until then, snapshot loading
+still requires exact version equality. Once built, behaviour-only changes no longer break saves,
+and layout changes break them only when a field cannot be defaulted or converted. No existing
+saves will be converted; the redesigned snapshot format starts at 1. Its writer and reader will
+be kept in the field tables rather than hand-mirrored.
 
 ## ADR-0589 - Cheats: DK2's phrases behind a visible entry box, and a tamper-evident record
 **Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Hash/save change when built · Research: `research/cheats.md`, Q688.

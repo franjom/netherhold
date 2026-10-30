@@ -231,7 +231,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 HUD/front-end completion (`codex/hud-completion-final`) is merged (2026-10-30), awaiting owner play,
 visual and hearing acceptance: startup/gallery, Options pages, save/load, runtime audio, rebound keys,
 scalable HUD, full map and hover/flower leftovers. Evidence and acceptance: [completion plan](plans/2026-10-29-hud-and-front-end-completion.md);
-captures: [HUD checklist](research/hud-comparison-checklist.md). ADR-0497 stays proposed; host settings in front-end-menus.md §6.
+captures: [HUD checklist](research/hud-comparison-checklist.md). Save-loading hardening is built;
+compatibility redesign remains pending (ADR-0588). ADR-0497 stays proposed; host settings in front-end-menus.md §6.
 
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,

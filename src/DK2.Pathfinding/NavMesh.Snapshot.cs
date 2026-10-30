@@ -51,8 +51,7 @@ public sealed partial class NavMesh
         mesh.MinY = r.ReadInt32();
         mesh.MaxX = r.ReadInt32();
         mesh.MaxY = r.ReadInt32();
-        int points = r.ReadInt32();
-        if (points < 0) throw new InvalidDataException("negative point count in a navigation mesh");
+        int points = SaveReader.Count(r, "mesh points", 13);
         int pointCapacity = Math.Max(64, points);
         mesh._px = new int[pointCapacity];
         mesh._py = new int[pointCapacity];
@@ -66,10 +65,9 @@ public sealed partial class NavMesh
             mesh._pointDead[p] = r.ReadBoolean();
             mesh._pointTri[p] = r.ReadInt32();
         }
-        int pointFree = r.ReadInt32();
+        int pointFree = SaveReader.Count(r, "free mesh points", 4, points);
         for (int i = 0; i < pointFree; i++) mesh._pointFree.Add(r.ReadInt32());
-        int triangles = r.ReadInt32();
-        if (triangles < 0) throw new InvalidDataException("negative triangle count in a navigation mesh");
+        int triangles = SaveReader.Count(r, "mesh triangles", 26, int.MaxValue / 3);
         int triangleCapacity = Math.Max(64, triangles);
         mesh._v = new int[3 * triangleCapacity];
         mesh._n = new int[3 * triangleCapacity];
@@ -83,7 +81,7 @@ public sealed partial class NavMesh
             mesh._nav[t] = r.ReadByte();
             mesh._constraint[t] = r.ReadByte();
         }
-        int triFree = r.ReadInt32();
+        int triFree = SaveReader.Count(r, "free mesh triangles", 4, triangles);
         for (int i = 0; i < triFree; i++) mesh._triFree.Add(r.ReadInt32());
         for (int i = 0; i < mesh._locateCache.Length; i++) mesh._locateCache[i] = r.ReadInt32();
         return mesh;

@@ -77,7 +77,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - PowerShell can return early from a GUI executable invoked with `&`; use `Start-Process -PassThru` and wait on that process for Unity builds and player captures.
 
 - PowerShell treats curly apostrophes as quote delimiters; avoid them inside single-quoted command arguments.
-- Windows PowerShell redirects native stdout as UTF-16; write JSON artifacts as UTF-8 in the producer instead of using shell redirection.
+- Windows PowerShell redirects native stdout as UTF-16; detect the BOM when aggregating logs in Python, or regex matches can silently return zero; write JSON artifacts as UTF-8 in the producer.
 - Windows PowerShell Get-Content defaults to ANSI; pass -Encoding UTF8 when deriving patch text from repository files.
 - Windows PowerShell `Set-Content -Encoding UTF8` adds a BOM even to commit-message files; use `UTF8Encoding(false)` when writing them.
 - Run `dk2tools status` with the same `DK2_DIR` as the verified suite; data-dependent discovery otherwise silently reports fewer cases.
