@@ -13676,3 +13676,33 @@ not a native field. The adapter contract is in
 **Consequences.** State coverage marks 84 built and its activity alias is Sleeping.
 Hash/save 335 refuses 334 saves and journals. Exact native timing and resource
 retention remain Q685; this decision does not establish playback parity.
+
+## ADR-0587 - Interface text goes through one catalog, in the player's language
+**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Presentation only · No hash/save change.
+
+**Context.** DK2's own text is already looked up by string id: `Dk2StringTable` reads the
+install's `BFST` tables through `MBToUni.dat`, and `LevelTextTable` and `BriefingTextTable`
+build on it. But seven call sites hard-code `Data/Text/Default` (e.g. `DungeonRunner.cs`,
+`CampaignBriefingLoader.cs`), nothing chooses a language, and text the remake adds (the
+save/load errors, and soon save refusal and cheat messages) is English literals in code.
+DK2's language id also changes behaviour: `0x0053B980` skips the Level 13 cutscene for
+languages 7 and 0x12, which `CampaignCutscene` leaves out because ours has no language.
+
+**Decision.**
+- One `TextCatalog` in `DK2.Presentation` resolves every string the player sees, from two
+  sources: DK2's tables under `Data/Text/<language>/`, falling back to `Default`, and a remake
+  table in the repository, one file per language keyed by stable string ids, with English
+  as the fallback. A remake id is never reused for a different meaning.
+- The player's language is a setting in the profile and options. It selects both sources,
+  and it supplies DK2's language id to rules that depend on it (the Level 13 skip).
+- The simulation never holds display text, only ids and typed events (as ADR-0276 already
+  has it report). Unity draws what the catalog returns. Where DK2's `.bf4` fonts lack a
+  character, Unity falls back to a font that has it.
+- New remake strings go into the remake table from the start, beginning with the save
+  refusal and cheat messages. Existing literals move when their code is next touched.
+
+**Consequences.** Adding a language needs only its table and, for DK2 text, an install that
+carries it; no code change. A missing id falls back to English and is reported by a test
+that checks every language table against the English one. Out of scope: translating DK2's
+own text, which comes from the install; the language codes DK2 uses on disk are to be read
+from the binary when a second language is built.
