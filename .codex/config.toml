@@ -1,2 +1,9 @@
+[mcp_servers.MCP_DOCKER]
+command = "docker.exe"
+args = ["mcp", "gateway", "run", "--profile", "local"]
+
 [mcp_servers.MCP_DOCKER.env]
 MCP_GATEWAY_DOCKER_BIND_ALLOWED_PATHS = 'D:\DungeonKeeperRemake'
+
+[agents]
+enabled = true

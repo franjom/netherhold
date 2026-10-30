@@ -22,10 +22,10 @@ not by kind of work.
   `GameSimulation`'s hash, the replay rigs' scratchpad drivers, and anything that
   waits on an owner capture. Numbers can be coordinated across worktrees; a merge
   conflict in those files is the real cost.
-- **What Codex lacks:** Claude's private memory (anything it needs must be in the
-  repository, which is why `docs/TRAPS.md` exists) and Claude's `reviewer`
-  subagent. A Codex brief has its own verifier read `.claude/agents/reviewer.md`
-  and apply that method; "Template for a simulation slice" below is the shape.
+- **Shared protocol:** Codex and Claude use the same canonical reviewer and
+  documenter roles and Docker memory graph; see [AGENTS.md](../AGENTS.md)
+  sections "Every verified task ends with a documentation pass" and
+  "Shared memory is the Docker MCP memory graph".
 
 **Ranked by what they have actually produced:** Brief 4 (reversed shipped
 behaviour three weeks old), Brief 1 (the characteristic-defect audit), Brief 3

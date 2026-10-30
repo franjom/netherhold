@@ -265,8 +265,17 @@ document the change made stale and runs the `docs` and `kb check` gates; it
 makes no new claim about DKII.EXE. The session that ran the implementation
 invokes it (a subagent cannot spawn one, so its caller does), passing the diff
 range, a task summary, the ADR/Q/hash numbers, the reviewer's verdicts and the
-verification results. Read its edits before staging them by name. Codex has no
-such subagent and does this pass itself, by the same file.
+verification results. Read its edits before staging them by name.
+
+Codex's project definitions are `.codex/agents/reviewer.toml` and
+`.codex/agents/documenter.toml`. They use the same canonical role bodies in
+`.claude/agents/`; update those bodies rather than copying them into Codex's
+files. Use the named roles when the spawn tool supports them. Otherwise read
+the matching role file and instruct the spawned agent to read and follow its
+complete body before starting. Both passes still require actual subagents; do
+not silently replace them with an inline self-review or documentation pass. If
+delegation is unavailable, report the limitation before claiming the protocol
+is complete.
 
 ### What is worth recording
 
