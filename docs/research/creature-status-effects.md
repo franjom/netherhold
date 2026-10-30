@@ -148,9 +148,8 @@ the fear-over-time pair the same way.
 level-scaled Hp)` moved from target to caster.
 
 **Fire** (`0x0048EBD0(creature, ticks, owner)`): `+0x469` = the ticks, `+0x46B` = the
-owner. Three callers: a fire-category contact hit on a creature at or under a fifth of
-its health, 10 ticks (`0x004AC526`); Modify Health's fire-category ignite under the same
-test, **5** ticks (`0x004ADC4C`); Inferno's process 30, 1 tick every tick (`0x004AF821`).
+owner. The three caller durations and the truncated pre-hit health-percentage gate are
+in [shot-effects.md section5](shot-effects.md#5-the-inferno).
 **No routine that reads `+0x469` or `+0x46B` changes health**: the readers are the
 update above, the animation chooser, the effect follower (`0x00487C70`) and the
 serialisers (CONFIRMED, negative: every reader of both words was walked). It is not

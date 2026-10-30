@@ -394,6 +394,8 @@ public static class FightRules
         ShotState shot = ShotRules.Spawn(world, shotDef, me.OwnerPlayerId, originX, originY, (int)spell.ShotData1, (int)spell.ShotData2,
             me.Id, me.SwingTargetKind, me.SwingTargetId, me.SwingTargetPlayerId, targetTile, aimX, aimY);
         ShotRules.Launch(shot, shotDef, aimX, aimY);
+        ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)me.Heading),
+            new Fp32(Fp32.One + me.PosZ + mine.Spells[me.SwingSpellSlot].OriginZ));
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={aimX},{aimY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
     }
@@ -457,6 +459,7 @@ public static class FightRules
             me.Id, FightTargetKind.None, CombatRules.NoTarget, 0, -1, me.SwingPointX, me.SwingPointY);
         shot.Sniper = me.Possessed && me.SniperMode;
         ShotRules.Launch(shot, shotDef, me.SwingPointX, me.SwingPointY);
+        ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)me.Heading), new Fp32(Fp32.One + me.PosZ));
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={me.SwingPointX},{me.SwingPointY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
     }

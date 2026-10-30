@@ -36,6 +36,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private readonly bool _pillarHeightHeartSparkles;
     private readonly Func<string, IReadOnlyList<EffectGroupPart>?>? _groupParts;
     private readonly Func<int, uint, EffectAttachment>? _attachment;
+    private readonly Func<ShotId, ShotEffectAttachment>? _shotAttachment;
+    private readonly Func<ViewEffectRequest, bool>? _cameraVisible;
 
     /// <summary>The longest Next chain followed from one request (<c>0x00440350</c> loops until a
     /// zero id; shipped chains are two long). A guard against a data cycle.</summary>
@@ -68,10 +70,14 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         Func<ViewEffectRequest, CaptureEdges>? captureEdges = null,
         HeartSparkleStyle heartSparkleStyle = HeartSparkleStyle.Native,
         Func<string, IReadOnlyList<EffectGroupPart>?>? groupParts = null,
-        Func<int, uint, EffectAttachment>? attachment = null)
+        Func<int, uint, EffectAttachment>? attachment = null,
+        Func<ShotId, ShotEffectAttachment>? shotAttachment = null,
+        Func<ViewEffectRequest, bool>? cameraVisible = null)
     {
         _groupParts = groupParts;
         _attachment = attachment;
+        _shotAttachment = shotAttachment;
+        _cameraVisible = cameraVisible;
         _pillarHeightHeartSparkles = heartSparkleStyle == HeartSparkleStyle.PillarHeight;
         _heartManaEffects = new HashSet<ushort>(database.Rooms.Values.Where(r => r.TypeId == RoomTypeId.DungeonHeart)
             .Select(r => r.CreatedObjectEffectId).Where(id => id != 0));
@@ -109,9 +115,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
 
     public void Request(in ViewEffectRequest request)
     {
-        if ((_effectVisible != null && !_effectVisible(request))
-            || !_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
-            || !SupportsEffect(definition)) return;
+        if (!_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
+            || !SupportsEffect(definition) || !AllowsEffect(request, definition)) return;
         AdvanceTo(_clock());
         if (request.EffectId.Value == HeartIntroRules.StartLevelEffectId)
         {
@@ -122,6 +127,11 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         if (HeartPlugBlocksMana(request)) return;
         AddEmitterChain(definition, request);
     }
+
+    private bool AllowsEffect(ViewEffectRequest request, EffectDef definition) =>
+        request.Visibility == EffectVisibility.Ungated
+        || ((_effectVisible == null || _effectVisible(request))
+            && ((definition.Flags & 0x8000) != 0 || _cameraVisible == null || _cameraVisible(request)));
 
     private bool HeartPlugBlocksMana(ViewEffectRequest request)
     {
@@ -152,7 +162,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             // Only the instance the caller was handed is tied to a thing (0x004810E0 writes its +0x133).
             Emitter emitter = CreateEmitter(next, link == 0
                 ? request with { EffectId = new EffectId(next.EffectId) }
-                : request with { EffectId = new EffectId(next.EffectId), AttachedCreatureId = 0, AttachPoint = 0 });
+                : request with { EffectId = new EffectId(next.EffectId), AttachedCreatureId = 0, AttachPoint = 0,
+                    AttachedShotId = ShotId.None, CarriedVelocity = null, RemoveWithShot = false });
             _emitters.Add(emitter);
             SpawnDirectSprite(emitter);
             SpawnGroupParts(emitter);
@@ -248,6 +259,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                         Heading = DrawAngularOffset(effect.OrientationRange * 8),
                         AttachedCreatureId = 0,
                         AttachPoint = 0,
+                        AttachedShotId = ShotId.None,
+                        CarriedVelocity = null,
+                        RemoveWithShot = false,
                     });
                 return;
             }
@@ -462,7 +476,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                 if (emitter.Definition.GenerationType == 4)
                     EmitWave(emitter.Definition, emitter.Request, emitter.CaptureBoundary, emitter);
             }
-            emitter.Health -= elapsedUpdates;
+            if (emitter.Request.AttachedShotId == ShotId.None) emitter.Health -= elapsedUpdates;
         }
         // The view update (0x0043BFE0) updates every effect, then every light (0x0043A2E0), then
         // removes the spent effects, whose lights go with them (0x004354F0, slot +0xA8 0x00439A20).
@@ -480,7 +494,15 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                 _emitters.RemoveAt(i);
                 if (emitter.Definition.DeathEffectId != 0
                     && _database.Effects.TryGetValue(emitter.Definition.DeathEffectId, out EffectDef? death))
-                    AddEmitterChain(death, emitter.Request);
+                {
+                    ViewEffectRequest request = emitter.Request with
+                    {
+                        EffectId = new EffectId(death.EffectId), AttachedShotId = ShotId.None,
+                        AttachedCreatureId = 0, AttachPoint = 0, Visibility = EffectVisibility.Gated,
+                        CarriedVelocity = null, SecondPoint = emitter.Request.Position, RemoveWithShot = false,
+                    };
+                    if (AllowsEffect(request, death)) AddEmitterChain(death, request);
+                }
             }
         }
         return (now.Milliseconds - _lastUpdateMilliseconds) / 50f;
@@ -492,6 +514,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     /// <c>+0x135</c> cleared); with the point not found this update, nothing moves.</summary>
     private void FollowAttachments()
     {
+        FollowShotAttachments();
         if (_attachment == null) return;
         Dictionary<Emitter, (int X, int Y, int Z)>? moved = null;
         foreach (Emitter emitter in _emitters)
@@ -685,6 +708,10 @@ public readonly record struct EffectAttachment(bool CreatureExists, FpPosition3?
     public static EffectAttachment Gone => default;
     public static EffectAttachment At(FpPosition3 point) => new(true, point);
     public static EffectAttachment NotFound => new(true, null);
+    public static EffectAttachment AtPreviousBody(CreatureState? creature, Fp32 groundHeight) =>
+        creature == null || CreatureDeathRules.IsCorpse(creature) ? Gone
+            : At(new FpPosition3(new Fp32(creature.LastPosX), new Fp32(creature.LastPosY),
+                new Fp32(groundHeight.Raw + creature.LastPosZ)));
 }
 
 /// <summary>An effect instance's light this update: its descriptor, the instance's owner and point

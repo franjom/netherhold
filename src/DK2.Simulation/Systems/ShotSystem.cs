@@ -49,11 +49,19 @@ public sealed class ShotSystem : ISimulationSystem
             return;
         }
 
+        FpPosition3 start = shot.ViewPosition;
+        shot.PreviousViewPosition = start;
         shot.Age++;
-        if (shot.Age == 1) ShotRules.Process(context, shot, definition, ShotRules.FirstTickEvent, null);
+        if (shot.Age == 1)
+        {
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.CreationEffectId), start,
+                carryVelocity: (definition.Flags & 0x80) != 0);
+            ShotRules.Process(context, shot, definition, ShotRules.FirstTickEvent, null);
+        }
         if (shot.Health <= 0)
         {
-            Die(context, shot, definition, deathShot: false);
+            ShotRules.RequestTimedEffect(context, shot, definition, shot.ViewPosition);
+            Die(context, shot, definition, deathShot: false, showDeathEffect: false);
             return;
         }
 
@@ -61,7 +69,8 @@ public sealed class ShotSystem : ISimulationSystem
         ShotRules.Process(context, shot, definition, ShotRules.PreMoveEvent, null);
         if (shot.Health <= 0)
         {
-            Die(context, shot, definition, deathShot: false);
+            ShotRules.RequestEffectsAfterProcessKill(context, shot, definition, start);
+            Die(context, shot, definition, deathShot: false, showDeathEffect: false);
             return;
         }
 
@@ -78,6 +87,7 @@ public sealed class ShotSystem : ISimulationSystem
             // The target word now names a trap, which no creature-side process handler acts on.
             shot.TargetKind = FightTargetKind.None;
             shot.TargetId = CombatRules.NoTarget;
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
             ShotRules.Chain(context, shot, definition.HitThingShotId);
             ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, null);
             ShotRules.ContactDamageTrap(context, shot, definition, trapHit);
@@ -88,6 +98,8 @@ public sealed class ShotSystem : ISimulationSystem
             // 0x004ABE7D: the thing struck is written into the target word before anything else.
             shot.TargetKind = FightTargetKind.Creature;
             shot.TargetId = hit.Id;
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition,
+                attachedCreatureId: new CreatureId(hit.Id));
             ShotRules.Chain(context, shot, definition.HitThingShotId);
             ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, hit);
             ShotRules.ContactDamage(context, shot, definition, hit);
@@ -95,19 +107,21 @@ public sealed class ShotSystem : ISimulationSystem
         }
         else if (ShotRules.HitsHeart(world, database, shot, definition))
         {
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
             ShotRules.Chain(context, shot, definition.HitThingShotId);
             ShotRules.ContactDamageHeart(context, shot, definition);
             if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
         }
         else if (ShotRules.HitsDoor(world, shot, definition, out DoorState? door))
         {
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitThingEffectId), shot.ViewPosition);
             ShotRules.Chain(context, shot, definition.HitThingShotId);
             ShotRules.ContactDamageDoor(context, shot, definition, door!);
             if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
         }
         else
         {
-            stopped = !Move(context, shot, definition);
+            stopped = !Move(context, shot, definition, start);
         }
 
         ShotRules.AreaDamage(context, shot, definition);
@@ -117,17 +131,22 @@ public sealed class ShotSystem : ISimulationSystem
         // standing still (an explosion, a cloud, an Inferno) counts down too (Q398), and so does one
         // the world stopped without killing (0x004AB4B6, keeper-spell-inferno-chicken.md §4).
         if (shot.Health > 0 && !stopped && (definition.Flags & ShotRules.CountsDown) != 0) shot.Health--;
-        if (shot.Health <= 0) Die(context, shot, definition, deathShot: !stopped);
+        if (shot.Health <= 0) Die(context, shot, definition, deathShot: !stopped, showDeathEffect: !stopped);
+        if (!stopped) ShotRules.RequestTimedEffect(context, shot, definition, shot.ViewPosition);
     }
 
     /// <summary>Two half-steps along the velocity, each refused by a solid tile (§4a, §6). False when
     /// the world stopped the shot this tick and its <c>Flags</c> bit 0 destroyed it; a shot stopped
     /// without that bit goes on to the countdown and the flying death, as DK2's falls through.</summary>
-    private static bool Move(SimulationContext context, ShotState shot, ShotDef definition)
+    private static bool Move(SimulationContext context, ShotState shot, ShotDef definition, FpPosition3 start)
     {
         WorldState world = context.World;
         WorldSteering navigation = context.Navigation;
-        if (shot.VelX == 0 && shot.VelY == 0) return true;
+        if (shot.VelX == 0 && shot.VelY == 0)
+        {
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitSolidEffectId), start);
+            return true;
+        }
 
         int halfX = shot.VelX / 2, halfY = shot.VelY / 2;
         for (int step = 0; step < 2; step++)
@@ -142,6 +161,7 @@ public sealed class ShotSystem : ISimulationSystem
                 continue;
             }
 
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitSolidEffectId), start);
             ShotRules.Chain(context, shot, definition.HitSolidShotId);
             if ((definition.Flags & ShotRules.Bounces) != 0)
             {
@@ -172,10 +192,13 @@ public sealed class ShotSystem : ISimulationSystem
 
     /// <summary>Death (§4 step 7): the death shot for a shot spent on a thing or its lifetime, none
     /// for one the world stopped; then the thing is gone.</summary>
-    private static void Die(SimulationContext context, ShotState shot, ShotDef definition, bool deathShot)
+    private static void Die(SimulationContext context, ShotState shot, ShotDef definition, bool deathShot,
+        bool showDeathEffect = true)
     {
         // The flying death (§4 step 7): the death shot, then process event 0x80; a shot the
         // world stopped is removed without either.
+        if (showDeathEffect)
+            ShotRules.RequestShotEffect(context, shot, new EffectId(definition.DeathEffectId), shot.ViewPosition);
         if (deathShot)
         {
             ShotRules.Chain(context, shot, definition.DeathShotId);

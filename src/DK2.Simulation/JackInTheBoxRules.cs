@@ -100,6 +100,7 @@ public static class JackInTheBoxRules
         jack.DeathShotFired = true;
         ShotState shot = ShotRules.Spawn(context.World, definition, jack.OwnerPlayerId, jack.PosX, jack.PosY,
             (int)definition.Unknown_0098, (int)definition.Unknown_009C, 0, FightTargetKind.None, CombatRules.NoTarget, 0, -1, jack.PosX, jack.PosY);
+        ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)jack.Heading), new Fp32(Fp32.One + jack.PosZ));
         context.Emit(SystemName, "jack_exploded", $"jack={jack.Id} shot={shot.Id} at={jack.PosX >> 12},{jack.PosY >> 12}");
     }
 

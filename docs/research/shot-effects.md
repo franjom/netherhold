@@ -68,7 +68,13 @@ never reads them back. A shot's save record (`0x004AB090`, `0x004AB120`) streams
   to 1. The generators add it to each new child when the effect has flag `0x100` (§3). Most
   shipped trails have `0x100`, so their particles leave with the shot's speed; Alarm 273, Fear
   239 and Cyclone 153 do not, so theirs start at rest. Only the launch
-  writes it; the Guided Bolt's re-aims do not refresh it.
+  writes it; the Guided Bolt's re-aims do not refresh it. The source is
+  `[[world]+4]+8`, independent of variable19: constructor `0x00526020` initializes
+  it to4 at `0x0052602F`. The native velocity is16times our per-tick displacement,
+  so the bridge carries unchecked32-bit `modernVelocity*16*4 / 20`, divided toward zero.
+- **Heading.** Initializer `0x004AAC90` copies the supplied caster/trap heading (keeper casts
+  supply0). Launch `0x004AB8A0` replaces the shot body heading from its aim, but leaves
+  the trail heading unchanged. Creation and later effects use the body heading.
 - **Aim.** `0x004AB830` stores the aim `+0x131` and pushes it into the trail's second point.
 - **Following the shot.** A shot is thing class 1 (`0x004AAC90` passes 1 down through
   `0x004B1DF0` and `0x004B28D0` to `0x004B4A10`, which stores `+0x12`). `0x00434E80`'s class-1 arm places the effect at the shot's
@@ -101,6 +107,9 @@ never divides. Only Raise Dead (shot 40) ships one: effect 286, every tick.
 - The creature's own fields are not written.
 
 **Death timing.**
+- The physics/countdown/death arm is entered only with positive health; already-dead shots
+  skip its death effect but can still run the timed tail. A process34 returning-one kill
+  inside that arm continues to physics and death/timed effects (`0x004AFCB0`).
 - A max-range kill and a die-on-hit-thing kill only zero health, so the death effect and the
   death shot still play in that tick.
 - A die-on-solid kill (bit 0) returns early: it shows the hit-solid effect and no death effect.
@@ -206,8 +215,8 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
 
 **Burning creatures (CONFIRMED, `0x0048E4B7..0x0048E631`, re-read).**
 - `0x0048EBD0` stores ticks at `+0x469` and the burner at `+0x46B`. The Inferno sets 1 every
-  tick (`0x004AF821`). A fire-category shot sets it only on a creature at or under a fifth of
-  its health: 10 ticks by contact damage (`0x004AC526`), 5 by Modify Health (`0x004ADC4C`).
+  tick (`0x004AF821`). Fire-category ignition sets10 ticks by contact damage (`0x004AC526`)
+  and5 by Modify Health (`0x004ADC4C`), under the following gate.
   Both read health before the hit and test unsigned32-bit `health*100 / levelScaledMaximum <= 20`
   with truncation; only terrain bit0x80 (Water) suppresses ignition. The height bound is
   `0x004B5D80`: unsigned definition+0x648, scaled by HeightTiles above level1; the
@@ -310,11 +319,20 @@ cached: **a new shape every rendered frame**.
 
 - **Built:** the effect engine's type 4 with `0x40`, `0x400` slot choice, Next chains, the
   attachment arm for creatures, lights and their flags, type-5 mesh elements; creature burning
-  simulation, including ignition, nine ordered draws and effect88 requests (ADR-0595).
+  simulation, including ignition, nine ordered draws and effect88 requests (ADR-0595);
+  shot creation, timed, solid-hit, thing-hit and death requests; ungated shot trails with
+  constructor headings, launch carried-velocity metadata and current aim; creature-hit
+  attachments at the previous body point; tied lifetime, ordinary/immediate removal and lingering
+  trail lights (ADR-0596).
+  Visibility separates exploration/solidity and camera tests; `0x8000` skips only camera.
+  These requests and observation-only shot poses leave hash/save341 and simulation RNG unchanged.
+- **Approximations:** native vertical shot flight remains unbuilt (Q398); view source heights
+  use the existing one-tile-ground convention plus authored offsets. Camera acceptance uses
+  a one-tile frustum sphere (Q689); the native forwarding slot is `0x004412C0`. Restored poses
+  use the ordinary floor and velocity/aim bearing; original launch height/yaw and live view
+  handles are not recovered. Native trail-kind uncertainty remains Q662.
 - **Not built:**
-  - every shot effect request of §2 (no trail, creation, timed, hit or death effect);
-  - the shot attachment arm;
-  - flag `0x100`'s carried velocity;
+  - flag `0x100`'s application of carried velocity to generated children (metadata is built);
   - DirectionalSpread;
   - `0x400`'s heading;
   - effect flag `0x1`;
@@ -323,7 +341,11 @@ cached: **a new shape every rendered frame**.
   - generation types 18, 14, 6 and 3;
   - creature burning overlay and sound;
   - the Inferno camera jitter;
-  - art type 7.
+  - shot body rendering and art type 7.
+
+**Verification (ADR-0596).** Simulation: 4100 tests passed; Presentation: 1306 passed. Unity Compile
+passed with no warnings or errors. Nine runtime DLLs were copied into this branch Unity project;
+no Unity editor was running, so live-project sync and visual acceptance were not performed.
 
 ## Confidence
 

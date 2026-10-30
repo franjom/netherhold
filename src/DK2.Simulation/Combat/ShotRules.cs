@@ -17,7 +17,7 @@ namespace DK2.Simulation.Combat;
 /// Height, the overlap test's exact shape and objects as targets are not modelled; a door or a heart
 /// aimed at is struck within a quarter tile of its tile (Q398, Q363).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
-public static class ShotRules
+public static partial class ShotRules
 {
     private const string SystemName = "shots";
 
@@ -119,6 +119,8 @@ public static class ShotRules
     /// tick; a shot already at its aim does not move.</summary>
     public static void Launch(ShotState shot, ShotDef definition, int aimX, int aimY)
     {
+        shot.ViewHeading = new Dk2Angle((ushort)Steering.Bearing.Of(aimX - shot.PosX, aimY - shot.PosY));
+        shot.HasLaunchHeading = true;
         long dx = aimX - shot.PosX, dy = aimY - shot.PosY;
         long dist = Isqrt((dx * dx) + (dy * dy));
         if (dist == 0) return;
@@ -134,6 +136,7 @@ public static class ShotRules
         if (childType == 0 || !context.Database.Shots.TryGetValue(childType, out ShotDef? definition)) return null;
         ShotState child = Spawn(context.World, definition, parent.OwnerPlayerId, parent.PosX, parent.PosY, parent.Data1, parent.Data2,
             parent.CasterId, parent.TargetKind, parent.TargetId, parent.TargetPlayerId, parent.TargetTileIndex, parent.TargetX, parent.TargetY);
+        RequestTrail(context, child, parent.ViewHeading, parent.ViewHeight);
         context.Emit(SystemName, "shot_chained", $"shot={parent.Id} child={child.Id} type={definition.ShotId} data1={child.Data1} data2={child.Data2}");
         return child;
     }

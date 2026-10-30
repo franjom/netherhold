@@ -425,6 +425,8 @@ public static class TrapRules
         ShotState? shot = Shoot(context, trap, definition, x, y, null);
         if (shot != null && (context.Database.Shots[shot.ShotTypeId].Flags & ShotLaunches) != 0)
             ShotRules.Launch(shot, context.Database.Shots[shot.ShotTypeId], x, y);
+        if (shot != null) ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)trap.Heading),
+            new Fp32(Fp32.One + definition.ShotOffsetZ));
     }
 
     /// <summary>Readiness 2, short of mana: the no-mana effect (presentation) and <c>0x004C1A30</c> on
@@ -544,11 +546,16 @@ public static class TrapRules
         {
             int aimX = trap.PosX + (int)(((long)Sine(trap.Heading) * 0x1000) >> 16);
             int aimY = trap.PosY - (int)(((long)Cosine(trap.Heading) * 0x1000) >> 16);
-            return Shoot(context, trap, definition, aimX, aimY, null);
+            ShotState? directional = Shoot(context, trap, definition, aimX, aimY, null);
+            if (directional != null) ShotRules.RequestTrail(context, directional, new Dk2Angle((ushort)trap.Heading),
+                new Fp32(Fp32.One + definition.ShotOffsetZ));
+            return directional;
         }
         ShotState? shot = Shoot(context, trap, definition, creature.PosX, creature.PosY, creature);
         if (shot != null && (context.Database.Shots[shot.ShotTypeId].Flags & ShotLaunches) != 0)
             ShotRules.Launch(shot, context.Database.Shots[shot.ShotTypeId], creature.PosX, creature.PosY);
+        if (shot != null) ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)trap.Heading),
+            new Fp32(Fp32.One + definition.ShotOffsetZ));
         // DK2 writes the target's thing tag, a slot ours does not model; ours writes its id.
         if (shot != null && trap.TrapId == JackInTheBoxId) shot.Data2 = creature.Id;
         return shot;
@@ -682,9 +689,13 @@ public static class TrapRules
                 if (readiness == TrapReadiness.InsufficientMana)
                     NoMana(context, found, definition);
                 else if (readiness == TrapReadiness.Ready)
-                    Shoot(context, found, definition,
+                {
+                    ShotState? made = Shoot(context, found, definition,
                         found.PosX + (int)(((long)Sine(toward) * 0x1000) >> 16),
                         found.PosY - (int)(((long)Cosine(toward) * 0x1000) >> 16), null);
+                    if (made != null) ShotRules.RequestTrail(context, made, new Dk2Angle((ushort)found.Heading),
+                        new Fp32(Fp32.One + definition.ShotOffsetZ));
+                }
             }
     }
 

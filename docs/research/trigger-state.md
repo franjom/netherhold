@@ -369,7 +369,8 @@ The world frame runs once per main-loop iteration, ungated; the accumulator
 beside it at `+0x288` gates world slot `0x28`, the multiplayer resync. The loop
 advances only when the driver's slot `0x14` (`FUN_00522760`) reports a turn due,
 which `FUN_00521BA0` decides as `lastTurnMs + 1000 / container[+8] < nowMs`.
-`container[+8]` is **4**, an immediate at `0x00526264`; `container[+4]`, the game
+`container[+8]` defaults to **4** in constructor `0x00526020` at `0x0052602F`;
+`0x00526264` rewrites it only in mode5. `container[+4]`, the game
 turn, is set to **1** at `0x00526254` and incremented once per iteration.
 `FUN_00517490` returns `world->container->turn` — the `%d` in the binary's own
 `**** GameTurn %d ****`. A turn is 250 ms, and the trigger tree is evaluated

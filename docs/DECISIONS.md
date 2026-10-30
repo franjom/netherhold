@@ -13946,3 +13946,26 @@ remain observation-only; overlay and sound are presentation work.
 thresholds, water suppression, all ignition paths, expiry, Horny, draw positions/order,
 per-creature sequencing, corpse/dying-target guards and independent snapshot/hash coverage.
 `DK2.Simulation.Tests`: 4087 passed. Native fire-stream acceptance remains Q658.
+
+## ADR-0596 - request shot effects without changing gameplay
+
+**Status:** implemented, 2026-10-30.
+
+**Decision.** Extend view requests with shot attachment, aim, carried velocity and
+visibility policy. Producers request trails after their same-call launch so the view
+gets the initial heading and carried velocity together. Other effects follow native
+event order. Tied emitters ignore HP decay, follow only their shot and die with it,
+retaining elements/light until teardown unless immediate removal is requested.
+
+**Evidence:** [shot-effects.md](research/shot-effects.md) sections1-2.
+
+**Limits.** Pose fields on ShotState are observation-only and excluded from hash/save;
+restored view handles are not reconstructed. Restored pose uses the ordinary floor
+and a bearing from velocity, or aim when stopped; original launch height/yaw are not
+recoverable exactly. A process34 early kill projects its view tail without changing
+the existing gameplay removal. The existing planar shot simulation
+still lacks native vertical flight. View origins use the existing one-tile ground
+convention plus authored offsets; unusual floor heights remain approximate (Q398).
+Unity substitutes a one-tile frustum sphere for the native camera predicate (Q689).
+Hash/save341 and its deterministic pin are unchanged. Project test counts and Unity
+compile/sync limits: [shot-effects.md section7](research/shot-effects.md#7-ours).

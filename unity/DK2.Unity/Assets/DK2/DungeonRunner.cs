@@ -150,6 +150,10 @@ namespace DK2.Unity
         private GameSimulation _simulation;
         private ScenePresenter _presenter;
         private WorldView _worldView;
+        private float _shotDrawFraction = 1f;
+        private readonly Plane[] _effectCameraPlanes = new Plane[6];
+        private readonly object _effectCameraLock = new object();
+        private bool _effectCameraReady;
         private DungeonMinimap _minimap;
         private ClassicHandCursor _handCursor;
         private ClassicPlacementOverlay _placementOverlay;
@@ -345,11 +349,14 @@ namespace DK2.Unity
                 _constructionEffects = new ClassicConstructionEffects(transform, database, sprites, seed,
                     request => _worldView.CanShowTile(world, request.Tile),
                     request => _worldView.CanShowTile(world, request.Tile)
+                        && !DK2.Pathfinding.NavBytes.IsSolid(_simulation.Navigation.NavByte(request.Tile.X, request.Tile.Y))
                         // DK2 asks for the Heart's opening effects only for the local player (0x004D9A60).
                         && (!HeartIntroRules.IsViewerOnly(request.EffectId.Value) || request.Owner.Value == viewingPlayerId),
                     point => _worldView.GroundHeightAt(world, point), meshes: _classic,
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
-                    attachment: _scene.CreatureAttachment, clock: EffectClock);
+                    attachment: (id, point) => ResolveCreatureEffect(world, new CreatureId(id), point), clock: EffectClock,
+                    shotAttachment: id => ShotEffectAttachment.Resolve(world, _simulation.Navigation, id, _shotDrawFraction),
+                    cameraVisible: IsEffectInCamera);
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
                 _gemIdleEffects = new LevelGemIdleEffects(database);
                 // 0x0043A8E0's owner is the render sink's word +0xC, whose writer is unread; taken as the viewer.
@@ -575,6 +582,39 @@ namespace DK2.Unity
         private static readonly ProfilerMarker PresentMarker = new ProfilerMarker("DK2.Scene.Present");
         private readonly FrameElapsedClock _frameElapsed = new FrameElapsedClock();
 
+        private EffectAttachment ResolveCreatureEffect(WorldState world, CreatureId id, uint point)
+        {
+            if (point != 0) return _scene.CreatureAttachment(id.Value, point);
+            CreatureState creature = world.CreatureById(id.Value);
+            if (creature == null) return EffectAttachment.Gone;
+            var at = new FpPosition3(new Fp32(creature.LastPosX), new Fp32(creature.LastPosY), new Fp32(Fp32.One));
+            return EffectAttachment.AtPreviousBody(creature, _worldView.GroundHeightAt(world, at));
+        }
+
+        private void RefreshEffectCamera()
+        {
+            Camera camera = Camera.main;
+            lock (_effectCameraLock)
+            {
+                _effectCameraReady = camera != null;
+                if (camera != null) GeometryUtility.CalculateFrustumPlanes(camera, _effectCameraPlanes);
+            }
+        }
+
+        private bool IsEffectInCamera(ViewEffectRequest request)
+        {
+            Vector3 point = DungeonScene.Ground(request.Position.X.Raw / 4096f,
+                request.Position.Y.Raw / 4096f, request.Position.Z.Raw / 4096f);
+            lock (_effectCameraLock)
+            {
+                if (!_effectCameraReady) return true;
+                // The native +80 camera query uses radius4096; use a one-tile frustum sphere.
+                foreach (Plane plane in _effectCameraPlanes)
+                    if (plane.GetDistanceToPoint(point) < -1f) return false;
+                return true;
+            }
+        }
+
         private void Update()
         {
             JournalBeginFrame();
@@ -711,6 +751,8 @@ namespace DK2.Unity
                 else LookAt(_simulation.World);
             }
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
+            _shotDrawFraction = fraction;
+            RefreshEffectCamera();
             FollowQueriedCreature();
             _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);

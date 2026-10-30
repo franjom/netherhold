@@ -9,7 +9,8 @@ namespace DK2.Simulation;
 /// <summary>A shot in flight — DK2's shot thing (docs/research/shots.md §1), made by a creature's
 /// spell cast (combat-spells.md §7) or by another shot it chained from. Positions are 1/4096
 /// tile; the velocity is position units a tick, so the definition's <c>Speed</c> is the distance
-/// covered each tick. Height is not modelled: every shot flies flat (Q398).</summary>
+/// covered each tick. Simulation flight remains planar; observation-only view origins
+/// approximate height separately (Q398, ADR-0595).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/shots.md")]
 public sealed class ShotState
 {
@@ -51,6 +52,22 @@ public sealed class ShotState
 
     public int VelX;
     public int VelY;
+
+    // Observation metadata only: native view handles and their pose are not simulation inputs.
+    // Like those handles, these values are excluded from the hash and snapshot.
+    private Dk2Angle? _viewHeading;
+    public Dk2Angle ViewHeading
+    {
+        get => _viewHeading ?? new Dk2Angle((ushort)Steering.Bearing.Of(
+            VelX != 0 || VelY != 0 ? VelX : TargetX - PosX,
+            VelX != 0 || VelY != 0 ? VelY : TargetY - PosY));
+        internal set => _viewHeading = value;
+    }
+    // Save files omit view metadata: restore uses the ordinary floor and a derived bearing.
+    public Fp32 ViewHeight { get; internal set; } = new(Fp32.One);
+    public FpPosition3? PreviousViewPosition { get; internal set; }
+    internal bool HasLaunchHeading;
+    public FpPosition3 ViewPosition => new(new Fp32(PosX), new Fp32(PosY), ViewHeight);
 
     /// <summary>The definition's <c>Health</c>: a lifetime in ticks when its flags count it down, a
     /// number of hits otherwise (shots.md §4).</summary>

@@ -297,14 +297,18 @@ Health handler 3 (§8, the heal and the Disruption); the finder's overlap box (�
 **(ADR-0287):** §4a's forced collision as `ShotState.ForcedCollision`, set by the instant
 handler and a keeper's cast at a thing, hitting the target tag if live and spent either way;
 handler 3's `SetState(1)` with its four exclusions (`keeper-spell-casting.md` §4).
+**(ADR-0596):** shot view requests and trail lifetime are built without changing gameplay,
+state hashing or simulation draws. Scope, restored-pose fallback and remaining effect-engine
+work: [shot-effects.md section7](shot-effects.md#7-ours).
 
 **Not built, named (Q398):** height — every shot flies flat and gravity, the lob and
 the aim's half-height are dropped, the overlap box's height test with them; the finder
 takes the nearest overlap where DK2 takes tile order;
 objects and bodies as things hit (doors since ADR-0318, traps since ADR-0326) — a shot sent at a heart strikes within a
-quarter tile of its tile (ours, a stand-in: Q363); process types 28 (guided), 34 (instant) and the unread
+quarter tile of its tile (ours, a stand-in: Q363); process type 28 (guided) and the unread
 ones (Q394, Q395); a stopped or standing shot counts its lifetime down where DK2's physics returns 0 and does
-not; the effects ([shot-effects.md](shot-effects.md) §7). **Thing order (2026-10-04):** `0x004B7830` updates list 0 (creatures)
+not. Process 34 retains its early gameplay removal, with its native view tail projected separately
+(ADR-0596). **Thing order (2026-10-04):** `0x004B7830` updates list 0 (creatures)
 before list 1 (shots, kind 1 from `0x004AAC90`), each newest first (`0x004B4A10` links at
 the head, the next pointer read after each update), so a creature-fired shot should move
 the turn it is made (CONFIRMED 2026-10-26: every shot is linked kind 1 through `0x004AAC90`, see

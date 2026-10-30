@@ -65,6 +65,8 @@ public static class KeeperSpellRules
             FightTargetKind.Creature, target.Id, target.OwnerPlayerId, -1, target.PosX, target.PosY);
         // 0x004BC1CF: a thing-targeting selector forces the shot's first collision onto the target.
         shot.ForcedCollision = TargetsAThing(spell.TargetSelector);
+        ShotRules.RequestTrail(context, shot, default,
+            new Fp32(Fp32.One + target.PosZ + (cast.SpellId == Thunderbolt ? 0x2000 : 0)));
         player.Mana -= spell.ManaCost;
         player.OneShotManaSpent += spell.ManaCost;
         player.Availabilities[row] = availability with
@@ -87,8 +89,9 @@ public static class KeeperSpellRules
         int row = player.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == cast.SpellId);
         AvailabilityState availability = player.Availabilities[row];
         var effect = spell.Shot(availability.Upgraded);
-        ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
+        ShotState shot = ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
             cast.X, cast.Y, effect.Data1, effect.Data2, 0, FightTargetKind.None, -1, cast.PlayerId, -1, cast.X, cast.Y);
+        ShotRules.RequestTrail(context, shot, default, new Fp32(Fp32.One));
         player.Mana -= spell.ManaCost;
         player.OneShotManaSpent += spell.ManaCost;
         player.Availabilities[row] = availability with
