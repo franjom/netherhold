@@ -496,3 +496,55 @@ uses its own scratch campaign file to exercise reset cancel/confirm, a real3D
 triangle pick, map hover/lift, briefing font and bitmap paths, and return paths.
 It also replaces the session with a progressed return-to-map profile and checks
 the won texture phase. It never resets the owner's campaign file.
+
+## Integrated completion flow
+
+`run-completion-flow.ps1 -EditorGui` runs the isolated startup/campaign/audio/
+save/result walkthrough. Evidence is add-only under `D:/DK2Evidence/runs/`;
+the [probe guide](COMPLETION_FLOW.md) defines its fixtures and limits. The
+[acceptance record](../../docs/plans/2026-10-29-hud-and-front-end-completion.md#acceptance-record)
+owns the verified run path and owner checks. Unexpected product exceptions fail
+the probe even when model assertions pass.
+
+## Session save/load and Options
+
+Build the Release adapter, then run `run-session-save-load.ps1`. Every run creates
+a fresh isolated Unity project and uses probe-local profile/save paths. The probe
+checks tick/hash, level, profile and carry through in-game and front-end loads,
+then the original Level1/seed restart and the paused objective/Continue state.
+The owner project and its profile/saves are not written. This is adapter regression
+verification, not owner gameplay or matched-original acceptance.
+
+## Options settings
+
+`run-options.ps1` creates an isolated Unity project and runs `OptionsSettingsProbe`.
+Build the Release adapter first. The probe renders Graphics, Sound and Control,
+checks the live/revert transaction and key capture, and verifies the URP brightness
+override. It writes regenerated menu captures and logs under `build/`; it does not
+load or write the owner's profile/settings. The integrated scale/audio/key probe
+checks the gameplay consumers separately.
+
+`run-options.ps1 -Gameplay` checks persisted Gamma and ScrollSpeed on a fresh Level1
+and again after restarting through `LoadLevel`, using probe-local settings/profile.
+The menu probe also checks each page's Confirm and Cancel pixels separately.
+
+
+`run-in-game-options.ps1` uses an isolated project with the Release adapter.
+It exercises the native in-game Game Options pages over Level1, live slider drag,
+Back/Continue, key capture/cancellation, persistence and paused/resumed ticks.
+The 2560x1440 target also checks actual thumb-pointer events reach the keyboard
+scrollbar maximum. Each page checks Continue and Back pixels after rendered
+play frames. Captures contain the options UI layer, not the level image.
+The fixture ends the bootstrap presentation path/letterbox without advancing the
+simulation; it does not establish original-game visual or gameplay parity.
+It writes fresh profile/settings, UI captures and logs under `build/igo-*`.
+An existing closed scratch project can be refreshed with `-CachedProject build/igo-HHmmss/p`; each run still uses a new output/profile/settings directory.
+
+`run-scaled-integration.ps1` checks100%,125% and requested200% (viewport-capped)
+HUD overlays and inverse hits, including minimap, Gold and room callbacks.
+It checks saved/live audio source state and rebound Heart/Fight navigation.
+The2026-10-29 regression failed at125% before the pointer fix
+(`build/isc-214713/unity.log`) and passed afterward (`build/isc-214759/unity.log`).
+These use explicit adapter input/battle fixtures and UI-layer captures; OS input,
+human hearing and original-game comparison remain unverified. All launchers copy
+the eight game assemblies plus NLayer through `unity/copy-runtime-assemblies.ps1`.

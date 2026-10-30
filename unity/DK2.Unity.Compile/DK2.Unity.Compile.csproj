@@ -64,6 +64,10 @@
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.ScriptingModule">
+      <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.ScriptingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.JSONSerializeModule">
       <HintPath>$(UnityManagedDir)\UnityEngine\UnityEngine.JSONSerializeModule.dll</HintPath>
       <Private>false</Private>

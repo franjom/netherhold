@@ -3,9 +3,106 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Numerics;
+using DK2.Data.Media;
 namespace DK2.Presentation.Tests;
 public sealed class ClassicHudControlsTests
 {
+    [Fact]
+    public void OptionsToggleRetainsTheNativeSilentRequestsAndBlockedTogglesEmitNothing()
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.ToggleGui);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.Equal(new uint[] { 0x139, 0x13a }, controls.Sounds.Pending.Select(r => r.Id.Value));
+        Assert.All(controls.Sounds.Pending, sound => Assert.Equal(SoundCategory.None, sound.Category));
+    }
+
+    [Fact]
+    public void RestartNeedsConfirmationAndCancelReturnsToOptions()
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.RestartLevel);
+        Assert.Equal(ClassicOptionsPage.Confirmation, controls.OptionsPage);
+        Assert.Equal(ClassicSessionAction.None, controls.TakeSessionAction());
+        controls.Apply(ClassicHudAction.CancelConfirmation);
+        Assert.Equal(ClassicOptionsPage.Root, controls.OptionsPage);
+        controls.Apply(ClassicHudAction.RestartLevel);
+        controls.Apply(ClassicHudAction.Confirm);
+        Assert.Equal(ClassicSessionAction.Restart, controls.TakeSessionAction());
+        Assert.Equal(ClassicSessionAction.None, controls.TakeSessionAction());
+    }
+
+    [Theory]
+    [InlineData(ClassicHudAction.ReturnToMenu, ClassicSessionAction.ReturnToMenu)]
+    [InlineData(ClassicHudAction.QuitGame, ClassicSessionAction.Quit)]
+    public void EndGameOffersExitDestinationsAndCancelKeepsTheExitPage(ClassicHudAction action, ClassicSessionAction expected)
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.EndGame);
+        Assert.Equal(ClassicOptionsPage.Exit, controls.OptionsPage);
+        controls.Apply(action);
+        Assert.Equal(ClassicOptionsPage.Confirmation, controls.OptionsPage);
+        controls.Apply(ClassicHudAction.CancelConfirmation);
+        Assert.Equal(ClassicOptionsPage.Exit, controls.OptionsPage);
+        controls.Apply(action);
+        controls.Apply(ClassicHudAction.Confirm);
+        Assert.Equal(expected, controls.TakeSessionAction());
+    }
+
+    [Fact]
+    public void PendingResultRejectsEndAndRestartAndConfirmRequiresADialog()
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.Confirm);
+        Assert.Equal(ClassicSessionAction.None, controls.TakeSessionAction());
+        controls.UpdateResult(new HudResultState(HasResult: true));
+        controls.Apply(ClassicHudAction.EndGame);
+        controls.Apply(ClassicHudAction.RestartLevel);
+        Assert.Equal(ClassicOptionsPage.Root, controls.OptionsPage);
+        Assert.Equal(ClassicSessionAction.None, controls.TakeSessionAction());
+    }
+
+    [Fact]
+    public void OptionsObjectiveKeepsPauseUntilContinueAndBackReturnsToRows()
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.ShowObjective);
+        Assert.True(controls.ObjectiveVisible);
+        Assert.True(controls.OptionsVisible);
+        controls.Apply(ClassicHudAction.CloseObjective);
+        Assert.False(controls.ObjectiveVisible);
+        Assert.True(controls.OptionsVisible);
+        controls.Apply(ClassicHudAction.ShowObjective);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        Assert.False(controls.ObjectiveVisible);
+        Assert.False(controls.OptionsVisible);
+    }
+
+    [Fact]
+    public void OptionsObjectiveRequiresOptionsAndRejectsWorldHotkeysAndPendingResult()
+    {
+        var controls = new ClassicHudControls();
+        controls.Apply(ClassicHudAction.ShowObjective);
+        Assert.False(controls.ObjectiveVisible);
+        controls.Apply(ClassicHudAction.ToggleOptions);
+        controls.Apply(ClassicHudAction.ShowObjective);
+        controls.Apply(ClassicHudAction.ToggleFullMap);
+        controls.Apply(ClassicHudAction.ToggleGui);
+        Assert.False(controls.FullMapVisible);
+        Assert.True(controls.GuiVisible);
+        controls.Apply(ClassicHudAction.CloseObjective);
+        controls.UpdateResult(new HudResultState(HasResult: true));
+        controls.Apply(ClassicHudAction.ShowObjective);
+        Assert.False(controls.ObjectiveVisible);
+    }
+
     [Fact]
     public void ScriptedCameraRetainsResultInputSuppressionUntilExplicitRestoration()
     {

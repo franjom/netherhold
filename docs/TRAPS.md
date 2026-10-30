@@ -1,4 +1,4 @@
-﻿# Traps
+# Traps
 
 Tooling, encoding and process traps that have cost a session time, one line each, for every
 agent (Claude's private memory and Codex's are not shared; this file is). Add a line in the change
@@ -293,3 +293,13 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - An effect's GenerateIds are effect ids, not element ids, when the effect has flag `0x40` (types 4 and 18); a dump that resolved them as elements made the Inferno look like one spark (shot-effects.md §5).
 - Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here. Docker context-mode exposes this checkout read-only at /workspace, not D:/DK2Evidence.
 - Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.
+- Windows PowerShell can strip nested quotes from Python `-c` arguments; use a script file for replacements containing quoted prose.
+- Keep isolated Unity project paths short: PackageCache importer paths can hit MAX_PATH (260 chars) and fail even when the project copy succeeded.
+- URP `Volume.sharedProfile` is a public field, so reflection must use `GetField`; `GetProperty` compiled but failed during the Options runtime probe.
+
+- UI Toolkit pointer event positions and worldBound are panel units; multiplying them by physical screen-height scaling truncates scrollbar travel above the reference resolution.
+- EditorApplication.update callbacks can outpace rendered play frames; UI capture probes must wait on Time.frameCount before checking page images.
+- Procedural class-grid UVs and Graphics.Blit image UVs can have opposite Y origins; check logical tile colours against UI overlay positions on the active graphics backend.
+- Run watchdog overlap timing checks without simultaneous Unity imports; helper-process startup contention can make parallel wall time exceed the serial comparison.
+- Startup probes inherit the scene's Front End Return Page; reset it to None before expecting title/intros instead of diagnosing a missing repaint from a skipped stage.
+- UI Toolkit can log generateVisualContent exceptions while model updates continue; runtime probes must reject product log exceptions as well as failed assertions.

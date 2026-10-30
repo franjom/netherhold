@@ -4,6 +4,7 @@
 
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Data.Media;
 using DK2.Simulation;
 
 namespace DK2.Presentation;
@@ -41,6 +42,10 @@ public sealed class MessageTabsView
         _database = database;
     }
 
+    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Speech { get; } = new();
+    private readonly HashSet<uint> _heard = new();
+    private readonly HashSet<uint> _landed = new();
     public IReadOnlyList<MessageTab> Tabs => _tabs;
     /// <summary>The message menu40 shows, or null when it is closed.</summary>
     public PlayerMessage? Open { get; private set; }
@@ -61,19 +66,28 @@ public sealed class MessageTabsView
         {
             if (message.PlayerId != _viewer) continue;
             _live[message.Id] = message;
+            if (_heard.Add(message.Id) && message.Kind is not (PlayerMessageKind.ScriptedSpeech or PlayerMessageKind.CreatureIntroduction))
+            {
+                int reference = ReferenceAtPost(world, message);
+                if (reference < -10000) Speech.Add(new SoundRequest(SoundCategory.Mentor, new SoundId((uint)(-reference - 9999))));
+            }
             if (examined++ >= RecordsExamined) continue;
             if (!message.NeedsTab || _dismissed.Contains(message.Id)) continue;
-            if (!_stamps.TryGetValue(message.Id, out long stamp)) _stamps[message.Id] = stamp = nowMilliseconds;
+            bool arrived = !_stamps.TryGetValue(message.Id, out long stamp);
+            if (arrived) _stamps[message.Id] = stamp = nowMilliseconds;
             if (!_references.ContainsKey(message.Id)) _references[message.Id] = ReferenceAtPost(world, message);
             int slot = _tabs.Count;
             long age = (nowMilliseconds - stamp) / 10;
             int x = (slot + 1) * SlotWidth + (age < SlideSteps ? SlideStart - SlideStep * (int)age : 0);
+            if (age < SlideSteps || _landed.Add(message.Id))
+                Sounds.Add(new SoundRequest(new SoundCategory("gui_message_bar"),
+                    new SoundId(age >= SlideSteps ? 0x322u : arrived ? 0x320u : 0x321u), Voice: new SoundVoiceId((uint)slot + 1)));
             int frame = slot == Hovered ? 1 : flashTurn && !_opened.Contains(message.Id) ? 2 : 0;
             _tabs.Add(new MessageTab(message.Id, MessageTypeTable.Graphic((int)message.Kind), frame, x));
         }
         _gone.Clear();
         foreach (uint id in _stamps.Keys) if (!_live.ContainsKey(id)) _gone.Add(id);
-        foreach (uint id in _gone) { _stamps.Remove(id); _dismissed.Remove(id); _opened.Remove(id); _references.Remove(id); }
+        foreach (uint id in _gone) { _stamps.Remove(id); _landed.Remove(id); _dismissed.Remove(id); _opened.Remove(id); _references.Remove(id); }
         if (Open is PlayerMessage open && !_live.ContainsKey(open.Id)) Open = null;
     }
 

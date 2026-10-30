@@ -37,7 +37,7 @@ p.41's camera combos) are what caught it.
 
 Rebindable in-game: **Options → Control → Define Keys** picks an action from a
 scrolling list and takes the next key pressed (manual §16.1.4.3). So this is the
-default map, not the only one. The roster that screen lists is unread.
+default map, not the only one. The native roster is now read: [row mapping](functions/00560FD0.md).
 
 ### Possessed creature, first person
 
@@ -164,25 +164,25 @@ translate.
 | G, H, M, ESC (Options) | the same | DK2's |
 | `+` / `-` ambient light | the same | DK2's; step size unread |
 | Arrow keys pan, SHIFT speed scroll | the same | DK2's; native motion rules in classic-camera.md §7 |
-| W/A/S/D and joystick pan (InputManager `Horizontal`/`Vertical` axes) | A is Ally Window | ours; collides |
-| Q / E rotate | unbound (0x005604C0 stores neither) | ours |
-| DELETE / PG DN, CTRL + LEFT/RIGHT | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | keyboard bindings built; X/mouse absent |
-| Wheel, HOME / END, CTRL + UP/DOWN | HOME / END, CTRL + UP/DOWN, hold Z and mouse | keyboard bindings built; Z/mouse absent |
-| 1, 3, 4, 5, 7 tool modes | 1–7 are possession abilities | ours; collides |
-| `[` / `]` room cycle | none | ours |
+| W/A/S/D and joystick pan | A is Ally Window | adapter aliases removed; Ally Window unavailable |
+| Q / E rotate | unbound (0x005604C0 stores neither) | adapter aliases removed |
+| DELETE / PG DN, CTRL + LEFT/RIGHT | DELETE / PG DN, CTRL + LEFT/RIGHT, hold X and mouse | keyboard and mouse yaw built |
+| Wheel, HOME / END, CTRL + UP/DOWN | HOME / END, CTRL + UP/DOWN, hold Z and mouse | keyboard and mouse zoom built; wheel remains a host extension |
+| 1, 3, 4, 5, 7 tool modes | 1–7 are possession abilities | adapter tool aliases removed |
+| `[` / `]` room cycle | none | adapter aliases removed |
 | ESC / SPACE end a camera path | the same (`0x00405010`, camera-paths.md §5) | DK2's |
 | SHIFT / CTRL / ALT on overview and gold-counter clicks | the same (hud-resources.md) | DK2's |
-| P (Zoom To Portal), F, I, A | listed above | absent |
+| P (Zoom To Portal), F, I, A | listed above | Portal and local-fight glides built; player information and multiplayer Ally Window unavailable |
 
-None of the "ours" rows is presented in the HUD as a DK2 control. Whether to
-keep them as diagnostics, move them off DK2's keys, or add DK2's missing
-rotate/zoom keys is a decision for the owner (Step 6 plan §6.3).
+Room and tool selection use the HUD or Inspector. Mouse yaw/zoom retain the
+native first-frame latch and rotate precedence; [the handler](functions/004066A0.md)
+records the motion payloads. Implemented gameplay actions read the persisted
+keymap through the shared resolver; modal name entry and key capture suppress
+gameplay shortcuts.
 
-Against what exists today, of the 62 default bindings: three act on state we have
-(`H`, `P`, `ESC`), about thirty are camera and renderer work whose constants are
-all unread, and about twenty-nine need features that do not exist — possession and
-combat, multiplayer, the Control Panel, the map screen, the creature panel, and a
-save format of our own.
+The keyboard list displays all63 native action names. Supported camera, HUD,
+map, Heart/Portal/fight navigation, ambient and objects-only actions can be
+rebound; consumers outside the current campaign adapter remain dimmed.
 
 ---
 
@@ -192,13 +192,26 @@ save format of our own.
    both patched-era documents. Observable, and the owner has the install. The binary keeps it
    (read 2026-10-24): binding 26 defaults to PAGE UP (0x005604C0) and, held, sets the render sink's
    objects-only pick flag (0x0059C130), which keeps creatures out of the Hand's pick
-   (hand-cursor-rendering.md). Not built.
+   (hand-cursor-rendering.md). Built; original-game comparison remains.
 2. **Where does DK2 persist a rebound keymap?** No `.cfg`, `.ini` or keymap file at
    the install root, so the registry is the candidate. Unread.
-3. **The Define Keys action roster.** Reading it would confirm whether the shipped
-   key list is the complete set of bindable actions.
-4. **Every camera constant.** Scroll speed, rotation rate, the speed-scroll
-   multiplier, the F1/F2/F3 preset tilt and zoom, and the ambient-light and gamma
-   step sizes. None read from the binary and none measured. The Options screen
-   exposes Scroll Speed and Sensitivity sliders, so several are settings with a
-   default rather than a single value.
+3. **The Define Keys action roster.** Closed by the [native row mapping](functions/00560FD0.md):63 rows, including Restart and action63. Our list shows all native names and permits capture for implemented consumers.
+4. **Remaining camera constants and presets.** Built motion rules and their
+   native evidence live in classic-camera.md §7. F1/F2/F3 preset consumers and
+   user-camera storage remain unavailable; the sensitivity backend link is Q686.
+
+## Pointer delta and sensitivity
+
+The backend [drains accumulated device movement](functions/005DD6A0.md), not
+absolute cursor displacement. [The axis accumulator](functions/005DD4A0.md)
+has its own multiplier. This does not establish a native per-frame reset or
+camera-path latch policy; the adapter resets its absolute-position baseline
+at view boundaries to avoid replaying movement from another view.
+
+The profile sensitivity field is+0xF5 (global00759C21); its missing-registry path
+stores2, while the two settings pages declare slider bounds5..20. The setter
+persists the raw integer. Bounded absolute-reference and field-read scans found
+storage/UI consumers; their relationship to the device multiplier remains
+UNKNOWN (Q686). The adapter multiplies pointer displacement by the clamped
+5..20 setting divided by10. This is a host adaptation, not a confirmed native
+sensitivity curve.

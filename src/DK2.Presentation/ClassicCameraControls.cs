@@ -24,10 +24,13 @@ public readonly record struct CameraFocusBounds(Vector3 Minimum, Vector3 Maximum
 public sealed class ClassicCameraControls
 {
     private readonly ClassicCamera _camera;
-    private readonly int _ticksPerSecond, _scrollSpeed;
+    private readonly int _ticksPerSecond;
+    private int _scrollSpeed;
+    public int ScrollSpeed { get => _scrollSpeed; set => _scrollSpeed = Math.Clamp(value, 5, 20); }
     private readonly CameraFocusBounds? _bounds;
     private int _horizontalCoast, _verticalCoast;
     private long _fractionalMillisecondTicks;
+    private bool _mouseMotionArmed;
     private readonly record struct ScreenPan(int XRaw, int YRaw);
 
     public ClassicCameraControls(ClassicCamera camera,
@@ -89,6 +92,17 @@ public sealed class ClassicCameraControls
                 _verticalCoast = Math.Clamp(_verticalCoast + vertical * 2, -6, 6);
             }
         }
+    }
+
+    /// <summary>Native screen deltas (right/down), after host sensitivity. X takes priority over Z;
+    /// the first held frame arms the motion latch. Ordinary presets lock the vertical X angle.</summary>
+    public void AdvancePointer(Vector2 delta, bool rotateHeld, bool zoomHeld)
+    {
+        if (!rotateHeld && !zoomHeld) { _mouseMotionArmed = false; return; }
+        if (!_mouseMotionArmed) { _mouseMotionArmed = true; return; }
+        if (rotateHeld) _camera.Rotate(new Dk2Angle(unchecked((ushort)(-8 * (int)delta.X))));
+        else if (delta.Y > 0) _camera.ZoomIn();
+        else if (delta.Y < 0) _camera.ZoomOut();
     }
 
     private Vector3 TransformPan(ScreenPan pan)

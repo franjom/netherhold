@@ -19,8 +19,9 @@ secret-door flag (`0x00450FF0`): set for a Secret Door by the level loader and
 by door installation (state 37), cleared by the door's reveal in `0x004A55F0`,
 its removal `0x004A5290`, its sale `0x004C3670` and an enemy Imp's state 39.
 The Hand resolves only the viewer's own door (`0x005992B0`), so another keeper
-hovering an unrevealed Secret Door reads Enemy Wall. Ours keeps no such tile bit
-and simulates neither reveal, so this arm is unbuilt. Unexplored terrain takes
+hovering an unrevealed Secret Door reads Enemy Wall. The presentation reads the
+existing `TileState.SecretDoor` flag (ADR-0536); automatic opening reveal remains
+outside that simulation implementation. Unexplored terrain takes
 the fog description.
 
 The near-cursor popup renderer `0x0042E590` calls a different producer,
@@ -64,7 +65,7 @@ Hero-owner and neutral-owner creatures use templates 2412 and 2415. Other
 nonowned keepers' creatures return empty status. Owned IsHorny creatures use
 2793, the volatile mood sentence. Personal names use the indexed name pool,
 with separate special-definition and multiplayer paths: the Lord of the Land
-(creature 29) takes a level string (2866..2879, else 3079; unbuilt), then a
+(creature29) takes a campaign map-slot string (mapping in [the formatter](functions/0048D880.md)); otherwise a
 non-zero `+0x895` replaces the pool name, so Unique Goblin reads "Name: Grubb". The formatter accepts
 the resolved identity from the asset provider; it consumes no RNG.
 
@@ -241,9 +242,8 @@ Ordinary room templates, doors, traps, dead bodies and the Casino/Prison
 fixture branches are built as described above; the dead-body line and the
 other-keeper door and trap names are formatted but, as in DK2, no pick reaches
 them. The special creature name +0x895 is built (status `%29`, popup, dead-body
-`%29` gate). Still unbuilt: the tile +0xB bit 0 "Enemy Wall" presentation arm
-and the Lord of the Land's level name. The simulation flag exists under ADR-0536;
-this text arm is not wired to it. The resolver's object
+`%29` gate), the Lord's campaign-slot name and the tile concealment flag's
+Enemy Wall status/name are built. The resolver's object
 ownership arm (`0x005992B0` kind 4) is built as `HoverPickRules.ResolvesObject`
 (hand-cursor-rendering.md). Unsupported substitutions are omitted rather
 than displaying raw localization tokens. See `fog-of-war.md` for fog assets.

@@ -68,12 +68,15 @@ namespace DK2.Unity
         private int _screenWidth, _screenHeight;
         public bool ShowCreatureTooltip { get; set; } = true;
         public PanelSettings Panel => _settings;
+        public int UiScale { get; set; } = 100;
+        private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale);
+        private int Width => Mathf.RoundToInt(ScaleLayout.LogicalWidth);
         public Rect StatusBounds => new Rect(ResourceWidth, StatusTop,
-            Mathf.Max(0, Screen.width - ResourceWidth), StatusHeight);
+            Mathf.Max(0, Width - ResourceWidth), StatusHeight);
         /// <summary>The wooden bar: the whole width, behind the Heart, mana and gold panels, as in DK2.</summary>
-        public Rect BarBounds => new Rect(0, StatusTop, Screen.width, StatusHeight);
+        public Rect BarBounds => new Rect(0, StatusTop, Width, StatusHeight);
         private static float StatusTop => 8 * Screen.height / 768f;
-        private float ResourceWidth => Mathf.Min(Screen.width, Mathf.Floor(1020 * Screen.height / 1920f));
+        private float ResourceWidth => Mathf.Min(Width, Mathf.Floor(1020 * Screen.height / 1920f));
         private float StatusHeight => Mathf.Max(22 * Screen.height / 480f, (_font?.LineHeight ?? 12) + 12);
 
         public ClassicHoverHud(IClassicHoverAssets assets) : this(null, assets) { }
@@ -134,7 +137,7 @@ namespace DK2.Unity
         }
 
         public bool ContainsPointer(Vector3 screenPosition) => _visible && _allowInput
-            && BarBounds.Contains(new Vector2(screenPosition.x, Screen.height - screenPosition.y));
+            && BarBounds.Contains(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false));
 
         /// <summary>Refreshes retained visuals in Update, before worker simulation dispatch.</summary>
         /// <param name="cursorReach">How far the drawn cursor reaches right of the pointer, in DK2's
@@ -146,14 +149,16 @@ namespace DK2.Unity
             _cursorReach = cursorReach;
             if (!_visible) return;
             BitmapFont font = _font, tooltipFont = _tooltipFont;
-            bool sizeChanged = _screenWidth != Screen.width || _screenHeight != Screen.height;
+            _settings.scale = _barSettings.scale = ScaleLayout.Factor;
+            cursorGui /= ScaleLayout.Factor;
+            bool sizeChanged = _screenWidth != Width || _screenHeight != Screen.height;
             if (font == null || _screenHeight != Screen.height)
             {
                 font = _assets.Font(InterfaceFonts.HudTextFileName(Screen.height));
                 tooltipFont = _assets.Font(InterfaceFonts.HudTooltipFileName(Screen.height));
             }
             bool fontChanged = !ReferenceEquals(font, _font) || !ReferenceEquals(tooltipFont, _tooltipFont);
-            _font = font; _tooltipFont = tooltipFont; _screenHeight = Screen.height; _screenWidth = Screen.width;
+            _font = font; _tooltipFont = tooltipFont; _screenHeight = Screen.height; _screenWidth = Width;
             string status = snapshot.TopStatus ?? "", tooltip = snapshot.TooltipName ?? "";
             if (_statusText != status || fontChanged)
             {
@@ -165,7 +170,7 @@ namespace DK2.Unity
             {
                 _tooltipText = tooltip;
                 ReplaceText(_tooltipImage, ref _tooltipTextTexture, tooltipFont,
-                    BitmapTextLayout.Wrap(tooltipFont, tooltip, Mathf.Max(1, Screen.width / 2)), true);
+                    BitmapTextLayout.Wrap(tooltipFont, tooltip, Mathf.Max(1, Width / 2)), true);
             }
             Rect strip = StatusBounds;
             if (sizeChanged || fontChanged) LayoutStrip(strip);
@@ -218,17 +223,17 @@ namespace DK2.Unity
             if (_tooltipTextTexture == null) return;
             float textWidth = _tooltipTextTexture.width, textHeight = _tooltipTextTexture.height;
             float padding = Mathf.Max(4, InterfaceFonts.HudTooltipPixels(Screen.height));
-            float width = Mathf.Min(Screen.width, textWidth + padding * 2);
+            float width = Mathf.Min(Width, textWidth + padding * 2);
             float height = textHeight + padding * 2;
             // DK2 offsets the popup 98 units at width 640, and scales the Hand by that width too.
             // Our Hand scales by height/480 (HandCursor.Place), so the offsets follow it.
             float unit = Screen.height / 480f;
             float x = cursor.x + (_cursorReach + 18) * unit;
-            if (x + width > Screen.width - 40 * unit)
+            if (x + width > Width - 40 * unit)
                 x = cursor.x - width - 30 * unit;
-            x = Mathf.Clamp(x, 0, Mathf.Max(0, Screen.width - width));
+            x = Mathf.Clamp(x, 0, Mathf.Max(0, Width - width));
             float y = Mathf.Clamp(cursor.y - _tooltipFont.LineHeight, StatusHeight,
-                Mathf.Max(StatusHeight, Screen.height - height - 10));
+                Mathf.Max(StatusHeight, Screen.height / ScaleLayout.Factor - height - 10));
             Place(_popup, x, y, width, height);
             float border = Mathf.Min(padding, Mathf.Min(width, height) / 2);
             for (int row = 0; row < 3; row++)

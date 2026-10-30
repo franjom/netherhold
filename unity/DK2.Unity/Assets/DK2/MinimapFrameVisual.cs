@@ -87,9 +87,9 @@ namespace DK2.Unity
             _root.Add(image);
         }
 
-        public static bool ContainsPointer(Vector3 position)
+        public static bool ContainsPointer(Vector3 position, float uiFactor = 1)
         {
-            float scale = Screen.height / 768f;
+            float scale = Screen.height / 768f * uiFactor;
             return position.x >= 8 * scale && position.x < 192 * scale
                 && position.y >= 0 && position.y < 184 * scale;
         }

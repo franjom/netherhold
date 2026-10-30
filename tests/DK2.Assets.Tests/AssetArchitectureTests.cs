@@ -41,6 +41,7 @@ public class AssetArchitectureTests
     /// months and never actually applied. See ADR-0036.
     /// </summary>
     [Theory]
+    [InlineData(typeof(DK2.Data.Dk2Install))]
     [InlineData(typeof(AssetRef))]
     [InlineData(typeof(DK2.Presentation.WorldView))]
     public void TheRenderingAssembliesTargetNetStandard21(Type witness)

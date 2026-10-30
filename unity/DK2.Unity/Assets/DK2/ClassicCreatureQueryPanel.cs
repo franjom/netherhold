@@ -20,6 +20,7 @@ namespace DK2.Unity
         private string _previous;
         private int _height;
         public PanelSettings Panel => _settings;
+        public int UiScale { get; set; } = 100;
         public ClassicCreatureQueryPanel(Transform parent,IClassicOptionsAssets assets,Func<string,DK2.Art.Textures.RgbaImage> image=null)
         {
             _assets=assets;
@@ -55,6 +56,7 @@ namespace DK2.Unity
         }
         public void Draw(CreatureQuerySnapshot snapshot,HudVisibility visibility,bool otherPanelOpen=false,Vector2Int viewport=default)
         {
+            ClassicHudScaling.Apply(_settings,_root,ClassicHudScaling.Layout(UiScale,viewport.x,viewport.y),true,768);
             bool visible=visibility.ShowNormalHud && !otherPanelOpen && !string.IsNullOrEmpty(snapshot.Text);
             _root.style.display=visible?DisplayStyle.Flex:DisplayStyle.None;
             if(!visible) return;
@@ -75,7 +77,7 @@ namespace DK2.Unity
         { e.style.left=x; e.style.top=y; e.style.width=w; e.style.height=h; }
         public bool ContainsPointer(Vector3 screenPosition,HudVisibility visibility) =>
             visibility.ShowNormalHud && visibility.AllowOrdinaryInput && _root.style.display.value!=DisplayStyle.None
-                && new Rect(408,392,480,176).Contains(new Vector2(screenPosition.x*768/Screen.height,768-screenPosition.y*768/Screen.height));
+                && new Rect(408,392,480,176).Contains(_root.WorldToLocal(ClassicHudScaling.PanelPointer(_root,screenPosition,Screen.height)));
         public void Dispose()
         {
             if(_texture!=null) UnityEngine.Object.Destroy(_texture);

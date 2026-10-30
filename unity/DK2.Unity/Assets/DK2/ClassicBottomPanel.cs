@@ -63,6 +63,7 @@ namespace DK2.Unity
         public event Action<bool> CollapsedChanged;
         /// <summary>HUD <c>+0x109</c> == 0 (0x004167D0): the strip at the bottom, categories,
         /// creature panels and the Reaper hidden.</summary>
+        public SoundRequests Sounds => _tabState.Sounds;
         public bool Collapsed => _tabState.Collapsed;
         // 0x00417170 moves the strip from y 0x5B4 to 0x6EC.
         private int Drop => Collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0;
@@ -72,7 +73,9 @@ namespace DK2.Unity
         public BottomPanelRect? PanelArea(BottomPanelCategory category) =>
             BottomPanelLayout.PanelOf(category, _tabState.Open, _tabState.Pinned);
         public bool HasPointerCapture => _captured >= 0;
-        private int Width => _viewport.x > 0 ? _viewport.x : Screen.width;
+        public int UiScale { get; set; } = 100;
+        private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale, _viewport.x, _viewport.y);
+        private int Width => Mathf.RoundToInt(ScaleLayout.LogicalWidth);
         private int Height => _viewport.y > 0 ? _viewport.y : Screen.height;
         private float V(int value) => value * Height / 1920f;
         public Rect Bounds => new Rect(V(472), V(1460 + Drop), Mathf.Max(0, Width - V(760)), Height - V(1460 + Drop));
@@ -155,10 +158,11 @@ namespace DK2.Unity
             _root.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
         }
         public bool ContainsPointer(Vector3 screenPosition) => _visible && _allowInput &&
-            (HasPointerCapture || Bounds.Contains(new Vector2(screenPosition.x, Height - screenPosition.y)) ||
-                !Collapsed && ReaperBounds.Contains(new Vector2(screenPosition.x, Height - screenPosition.y)));
+            (HasPointerCapture || Bounds.Contains(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, true)) ||
+                !Collapsed && ReaperBounds.Contains(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, true)));
         public void CancelPointerGesture()
         {
+            _view.ReleaseChoice();
             int pointer = _captured; _captured = -1; _pressed = -1;
             if (pointer >= 0 && _root.HasPointerCapture(pointer)) _root.ReleasePointer(pointer);
         }
@@ -184,6 +188,7 @@ namespace DK2.Unity
         public void Draw(Vector2Int viewport = default)
         {
             _viewport = viewport;
+            ClassicHudScaling.Apply(_settings, _root, ScaleLayout, true);
             if (!_visible) return;
             // The stone and the rail both span the whole screen width, under the minimap at the
             // left and the Reaper talisman at the right (owner's DK2 screenshot, 2026-10-19).
@@ -391,6 +396,8 @@ namespace DK2.Unity
                 bool roomSecondary = evt.button == 1 && action >= 0 && action < SlotCount &&
                     _slots[action] != null && _slots[action].Kind == BottomPanelChoiceKind.Room;
                 if (evt.button == 1 && !roomSecondary) return;
+                if (evt.button == 0 && action >= 0 && action < SlotCount && _slots[action] != null)
+                    _view.PressChoice(_slots[action].Key);
                 _pressed = action; _pressedButton = evt.button;
                 _captured = evt.pointerId; _root.CapturePointer(evt.pointerId); evt.StopPropagation();
             });
@@ -427,9 +434,8 @@ namespace DK2.Unity
             }
             if (action == 400)
             {
-                // 0x004167D0 also moves the pointer onto the moved button and plays sound 0x134/0x135;
-                // the legacy input handler cannot move the pointer, and the sounds are not wired.
-                _tabState.Collapsed = !Collapsed;
+                // The native pointer jump is not mirrored by legacy input; the sound request is retained by the model.
+                _tabState.Toggle();
                 if (Collapsed) { _hoverChoice = null; SetDescription(""); }
                 CollapsedChanged?.Invoke(Collapsed);
             }
@@ -445,12 +451,12 @@ namespace DK2.Unity
         }
         private void Wheel(WheelEvent evt)
         {
-            if (!_visible || !_allowInput || Collapsed || !Bounds.Contains(evt.mousePosition)) return;
+            if (!_visible || !_allowInput || Collapsed || !Bounds.Contains(_root.WorldToLocal(evt.mousePosition))) return;
             // The wheel pages the panel under the pointer (ours; DK2's wheel paging is unread).
             for (int p = 0; p < _panelCount; p++)
             {
                 BottomPanelRect area = _panelArea[p];
-                if (new Rect(V(area.X), V(area.Y), V(area.Width), V(area.Height)).Contains(evt.mousePosition))
+                if (new Rect(V(area.X), V(area.Y), V(area.Width), V(area.Height)).Contains(_root.WorldToLocal(evt.mousePosition)))
                     Page(p, evt.delta.y > 0 ? 1 : -1);
             }
             evt.StopPropagation();

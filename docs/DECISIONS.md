@@ -13590,6 +13590,21 @@ follow the actual stack order. No saved or hashed state changes; hash/save 332
 and its pin remain unchanged. Animation waits for execution and a render drain;
 native packet-submit timing and pending-entry scheduling remain partial (Q682).
 
+## ADR-0583 - MPEG audio is decoded by NLayer, in memory, at load time
+**Date:** 2026-10-29 · **Status:** accepted · No hash change
+
+**Context.** The installed effects use MPEG Layer I and speech/music use Layer II.
+The owner chose NLayer (MIT); derived game assets must remain in memory.
+
+**Decision.** `DK2.Data.Media.MpegAudioDecoder` wraps NLayer 3.0.0. Unity receives
+its dependency-free netstandard2.0 DLL through `sync-assemblies.ps1`. `SoundBank`
+decodes entries on first use and retains PCM for the session. No decoded cache
+is written to disk. SDT reading belongs to the runtime data assembly.
+
+**Consequences.** Callers depend on our PCM type, not NLayer. Install tests prove
+FrontEndHD entry 0 decodes 68 × 384 mono samples and Mentor entry 0 decodes
+51 × 1152 mono samples, both at 22,050 Hz. Simulation state and RNG are untouched.
+
 ## ADR-0584 - A creature that gave up a chase passes over retreating candidates for 60 turns
 **Date:** 2026-10-29 · **Status:** accepted · Hash/save 333 · Q665 ·
 Research: `docs/research/combat-target-selection.md` §2, `combat-approach-and-victory.md`; KB `0045F000`, `0045B140`, `0045B500`, `0045BAD0`, `0045B800`, `00470E30`, `0045F030`, `00488930`

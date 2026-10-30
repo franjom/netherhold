@@ -19,6 +19,30 @@ public class WinScreenTests
         };
 
     [Fact]
+    public void ARewardWithNoSpeechDoesNotPlayMentorEntryZero()
+    {
+        var screen = new WinScreen(new byte[] { 30, 0, 0, 0, 0 }, _ => "x");
+        var spoken = new List<uint>(); screen.SpeechRequested += spoken.Add;
+        screen.Start(0);
+        Assert.Empty(spoken);
+    }
+
+    [Fact]
+    public void ARewardWaitsForTheAudioChannelEvenAfterItsSubtitleAndTabletEnd()
+    {
+        var spoken = new List<uint>();
+        var screen = new WinScreen(new byte[] { 12, 42, 0, 0, 0 }, _ => "x");
+        screen.SpeechRequested += spoken.Add;
+        screen.Start(0);
+        for (double now = 0; now <= 5000; now += 10) screen.Update(now, false, false, speechPlaying: true);
+        Assert.Equal(12, screen.Current!.Value.Id);
+        Assert.Equal(new uint[] { 1350 }, spoken);
+        screen.Update(5010, false, false, speechPlaying: false);
+        Assert.Equal(42, screen.Current!.Value.Id);
+        Assert.Equal(new uint[] { 1350, 1351 }, spoken);
+    }
+
+    [Fact]
     public void TheTableAnnouncesLevelOnesRewardsWithTheirSpeechLines()
     {
         Assert.Equal(52, WinScreen.Items.Count);

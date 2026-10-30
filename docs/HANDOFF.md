@@ -219,6 +219,16 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Classic look
 
+HUD/front-end completion (Codex's `codex/hud-completion-final`) is merged to
+master (2026-10-30); it awaits the owner's play, visual and hearing acceptance. Startup,
+gallery/attract, Options objective/settings/save/load/restart/end, runtime audio,
+rebound keys, scalable HUD, full-map preview/markers/legend and hover/flower
+leftovers are built. The [completion plan](plans/2026-10-29-hud-and-front-end-completion.md)
+owns the runtime evidence and owner acceptance table; the
+[HUD comparison checklist](research/hud-comparison-checklist.md) owns captures.
+ADR-0497 remains proposed pending owner comparison. Host settings adaptations
+and disabled consumers are in research/front-end-menus.md section6.
+
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,
 Prison rats, Portal entrances, corpse art, terrain debris and the Hand
@@ -287,7 +297,7 @@ and primary click navigation are built. Remaining overlays
 and owner comparison remain. The Step6 branch now implements camera/letterbox
 HUD hiding, restoration and input blocking, plus the native heading-dependent
 north marker, camera-ribbon disc containment and zoomed Heart direction trail.
-The branch also has original Hand/dig/pickup sprites, a terrain-deformed hover cage per tool mode (blue over dig tiles), a placement cage with tool icon and price (room, sell, door, trap, keeper spell, Query), the held-item icons beside the hand with the disposal bin over the Heart or Portal centre, the red hover tint and the gold `_HIGHLIGHT` texture (store sparkle and lifting store gold not built: research/gold-hover-and-sparkle.md §6), delayed localized names and a top status strip with door, trap, dead-body (unreachable through the Hand pick, Q634) and Casino/Prison fixture status, and DK2's two-stage pick (triangle hit, centre, 3×3 sweep, projected-sphere circle, object ownership arm; objects-only PAGE UP key and terrain occlusion not built; Q636 for rival doors and traps), the special creature name +0x895 (Lord of the Land's level name and the secret-door "Enemy Wall" arm not built). Status flowers have DK2's size, Leaving/S-Gem and Imprison icons, the removal countdown and the torture lift (Q635). Evidence and limits:
+The branch also has original Hand/dig/pickup sprites, a terrain-deformed hover cage per tool mode (blue over dig tiles), a placement cage with tool icon and price (room, sell, door, trap, keeper spell, Query), the held-item icons beside the hand with the disposal bin over the Heart or Portal centre, the red hover tint and the gold `_HIGHLIGHT` texture (store sparkle and lifting store gold not built: research/gold-hover-and-sparkle.md §6), delayed localized names and a top status strip with door, trap, dead-body (unreachable through the Hand pick, Q634) and Casino/Prison fixture status, and DK2's two-stage pick (triangle hit, centre, 3×3 sweep, projected-sphere circle, object ownership arm; objects-only PAGE UP built; terrain occlusion comparison pending; Q636 for rival doors and traps), the special creature name +0x895 (Lord of the Land's campaign-slot name built; the concealed Secret Door's "Enemy Wall" text built). Status flowers have DK2's size, Leaving/S-Gem and Imprison icons, the removal countdown and the torture lift (Q635). Evidence and limits:
 research/hand-cursor-rendering.md, research/placement-cursor.md, research/world-hover-text.md and research/status-flowers.md;
 live gold/mana, separate rates and the Heart health ring now occupy the original
 resource region, with status text to its right. The Step6 branch integration
@@ -365,9 +375,9 @@ tools/classic-unity-probe/README.md.
 5. Possession: the Unity first-person camera and input
    (plans/2026-10-12-possession-arms-build-plan.md); owner play questions are
    in possession-arms-and-inputs.md §4–5.
-6. M10 front end: DK2's menus, campaign map and progression are read from the
-   exe (`research/front-end-menus.md`, `research/campaign-map-and-progression.md`,
-   `research/front-end-assets.md`); F1 storage/image plumbing (ADR-0538), F2 front-end scenery/camera sessions, F3 menu shells (ADR-0539), F4 campaign map/briefing and the F7 movie decoder/playback proof of concept are built. F5 stages A (briefing Go launches the level, verdict writes the profile once, Space leaves, statistics page 26 and map return) and B (level-end counters ADR-0548 hash 311, statistics rows laid out as DK2's (`0x0053CAF0`, `0x0053D270`) with DK2's scroll bar (`FrontEndScrollBar`; no mouse wheel, DK2's class reads none) and the objective images of `0x0053A580` on page 26 and the briefing (`FrontEndBriefingImages`; `research/level-statistics.md` §5), keeper rank, Total Evil Rating, hi-score name entry and `HiScores.dat`) are built, as are C (transfer creature arrival, specials 129/140, hash 311; the hand's targeting mode for 127/140 produces `TargetId`; the spells panel lists the Libraries' specials and routes 127/140 into it; the packet replay reads action 88's target word) D (post-win cutscenes, title-card and speech placeholders) and the finale (ADR-0549, hash 312: Reaper, win screen with its reward tablet (`RewardTablet`), Esc continue/reveal, celebration; `research/campaign-win-sequence.md`); all await a Unity play test. Today's Top Keepers (Extras, page 18) is built. Scope, remaining play checks and import/decoder limits are in `plans/2026-10-23-front-end.md`. The step-by-step plan to finish step 6 and M10 (for Codex): `plans/2026-10-29-hud-and-front-end-completion.md`.
+6. M10 front end: owner play/visual/hearing acceptance of the integrated branch;
+   see [completion and remaining gates](plans/2026-10-29-hud-and-front-end-completion.md).
+   Campaign behaviour gaps beyond the menu loop remain in GOAL_ALIGNMENT.md row2.
 7. Asset PoC (ASSET_PIPELINE.md §10): the original Imp's Blender reference is
    built; the appearance target is the approved AI concepts (ADR-0398,
    ADR-0399, `art/manifests/creature/imp.yaml`). The Tripo candidate was

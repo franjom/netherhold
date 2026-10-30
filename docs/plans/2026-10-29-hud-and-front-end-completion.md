@@ -26,17 +26,17 @@ Read these before anything else; this plan does not repeat them.
 
 Built and merged: steps 0–5 of the classic look; the minimap, top bar, cursor, hover text, bottom panel, creature panels, message tabs, status flowers, HUD hide/restore; front-end F1–F5 (menus, campaign map, briefing, level loop, statistics, hi-scores, transfer creature, cutscenes, finale), F7's movie decoder and playback proof of concept, Today's Top Keepers.
 
-**What stops the game being playable end to end today:**
+**Implementation status (2026-10-29):** A–E are built in their phase branches
+and integrated on `codex/hud-completion-final`, merged to master 2026-10-30.
+Options objective, confirmations, versioned remake saves, startup/gallery/attract,
+runtime audio, settings/key consumers, scalable HUD and the Step6 leftovers are
+implemented. Prepared HUD captures and original-game requests live in the
+[comparison checklist](../research/hud-comparison-checklist.md).
 
-1. The in-game Options menu (`ClassicOptionsPanel`) offers only *Continue*. Level Objective, Game Options, Load, Save, End Game and Restart Level are dimmed. A player who is losing cannot restart or leave except by winning or losing.
-2. No save or load of our own (F6). `saveFile` on the runner reads *DK2's* saves, terrain only (Q182).
-3. No start-up sequence (F7's second half): the game opens on the main menu with no title screen, intro or attract mode; Extras' View Movies is dimmed.
-4. No sound at all (F8): no interface sounds, no Mentor, no music. The owner's decision stands: decoded in C# at load time, in memory, no cache.
-5. The Options pages (F9) show their labels and bind nothing.
-6. F5 has never been played in Unity; its screens exist only under editor previews.
-7. Step 6 leftovers: full-map markers and legend, the PAGE UP objects-only pick, the debug key bindings that collide with DK2's keys, and the owner comparisons at 1024×768 and 1440p that close each slice.
-
-Phases A–E below remove those seven blockers. Phase F closes the documents.
+Owner play, hearing and matched-original acceptance remain open. The PhaseF
+table below records automated runtime evidence separately. Unresolved policies
+and disabled consumers remain explicit in Q683/Q685/Q686 and the research;
+this implementation adds no simulation hash change.
 
 ## 1. Rules for the executor
 
@@ -72,7 +72,7 @@ A recorded Unity session (`DK2_INPUT_JOURNAL` set, folder under `D:\DK2Evidence\
 2. starts a new campaign, picks Level 1 on the map, reads the briefing, presses Go;
 3. plays with the full HUD and hears the Mentor's first lines and the music start on the first fight;
 4. opens Options: reads the objective, saves, restarts the level, loads the save, changes a slider on Game Options and sees it applied, and returns with Continue;
-5. ends the level by End Game and arrives at the statistics page, then at the map; and separately wins Level 1 and sees the reward screen, the cutscene, the statistics and the hi-score entry;
+5. abandons through End Game and returns directly to campaign map37 without recording a result; separately loses and reaches statistics, and wins Level1 to see rewards, cutscene, statistics and hi-score entry (the original statistics-on-abandon criterion was corrected by A1's binary reading);
 6. does all of the above at 1024×768 and at 2560×1440 with nothing smaller on screen than at 1024×768 (ART_DIRECTION §13).
 
 Each of the six is a checkbox in Phase F's acceptance table with the journal folder beside it.
@@ -390,7 +390,7 @@ controls.md's audit table: W/A/S/D, Q/E, `1 3 4 5 7` and `[ ]` are ours and coll
 Each is one read and one small change; do them together.
 
 - Lord of the Land's level string (world-hover-text.md:67, 2866..2879 else 3079): read the arm, add to `WorldHoverText`, test, done.
-- The "Enemy Wall" arm (tile `+0xB` bit 0) needs the Secret Door's tile flag in the simulation: **blocked**, note it in the row and move on.
+- The "Enemy Wall" arm (tile `+0xB` bit0) reuses the existing Secret Door tile flag (ADR-0536); built without a simulation/hash change. The original blocker in this plan was stale.
 - Status flowers §4: the casino Dollar mesh, the trigger window (action 30), state 0x110. Read; build the Dollar and the window if CONFIRMED; 0x110 stays open.
 - Terrain occlusion of the pick and the Options-pause `+0x2722` special slot (already noted at `DungeonRunner.Hud.cs:192`): owner comparison only.
 
@@ -404,13 +404,49 @@ Every Step 6 slice ends "owner comparison at 1024×768 and 2560×1440". None is 
 
 ## Phase F — Close the documents
 
-After A–E land (the owner merges each phase):
+Prepared on the integration branch after A–E; the owner merges each phase:
 
-1. `docs/plans/2026-10-17-classic-look-step6.md`: status line rewritten to what is built; every `[ ]` either `[x]` or moved to an owner-comparison row. Propose ADR-0497 → accepted (owner) in `docs/DECISIONS.md` with a one-line status change.
+1. `docs/plans/2026-10-17-classic-look-step6.md`: status line rewritten to what is built; every `[ ]` either `[x]` or moved to an owner-comparison row. ADR-0497 is ready for the owner's acceptance decision after comparison; retain its proposed status until then.
 2. `docs/plans/2026-10-23-front-end.md`: F6–F9 checkboxes; "After F5" line replaced by what is true; deferred list unchanged.
 3. `docs/GOAL_ALIGNMENT.md` rows 2 and 11 and gap 5; `docs/HANDOFF.md` "Classic look" and "Next work" 6; `unity/README.md` "Running it" (the Options rows, save/load, sound, settings, startup switch).
 4. The acceptance table (Definition of done, six rows) with the journal folder per row; the owner's gameplay feedback becomes the next plan.
 5. Memory graph: `add_observations` on `front-end-plan` with the merge commit, what is built, what remains.
+
+### Acceptance record
+
+The integration branch `codex/hud-completion-final` was merged to master on 2026-10-30; the merged
+Release suite passed 7,095 tests with 30 skips and the gates were clean.
+Branch-time record:
+The combined Release suite passes 7,072 tests with 30 expected skips; solution and
+Unity adapter builds have zero warnings. Docs, KB (2,642 records), coverage and
+verification ledger (336 rules) gates pass. Hash/save remains 332.
+
+The clean integrated walkthrough is preserved at
+`D:/DK2Evidence/runs/unity-input-2026-10-29-completion/20261029-221115-1d91224b/`:
+`reports/completed.json`, nine sessions under `journals/`, and
+`source-and-evidence-hashes.json`. Below, **C** refers to this run. It rejects
+unexpected product exceptions; the known Editor Search indexing exception is
+reported separately. The earlier model-flow run exposed missing gallery image
+suffixes; the shipped-WAD regression fails before the fix and passes afterward.
+
+Automated callbacks and labelled fixtures do not mark the owner's checkboxes.
+The original-game comparison requests and capture paths have one home in the
+[HUD checklist](../research/hud-comparison-checklist.md).
+
+| # | Acceptance criterion | Automated verification | Owner acceptance |
+|---|---|---|---|
+| 1 | Title 10 s, both intros, menu and hover/click sound | C: real 10 s hold, both movie decoders/audio clips/repaints, gallery/attract and nonzero menu PCM | [ ] Play and hear |
+| 2 | New campaign, Level1 map, briefing and Go | C: actual campaign consumers launch Level1 through map and briefing; API actions are labelled | [ ] Play |
+| 3 | Full HUD, opening Mentor and first-fight music | C: opening speech PCM/subtitle and advancing music playhead/nonzero queue. Battle request is synthetic; first played fight remains open | [ ] Play and hear |
+| 4 | Objective, save/restart/load, live settings and Continue | `build/hud-completion-a/build/asl-203817` checks both load hashes/profile/carry; `build/hud-completion-a/build/igo-212359` checks live sliders/key capture; final `build/isc-214759` checks scaled hits, saved/live audio state and rebound navigation; C checks save hash and comparative live GameSpeed ticks | [ ] Gameplay and native comparison |
+| 5 | Abandon→map37; separately loss→statistics and win→rewards/movie/statistics/hi-score | C: labelled loss/win fixtures traverse rewards, cutscene, statistics, hi-score, Level2, restart and abandon→map37; no played victory claim | [ ] Play |
+| 6 | 1024×768 and 2560×1440 sizing/readability | E5 checklist has both-size full-view captures; A6 checks1440p scrollbar; final scaled-hit probe checks100/125/capped200% | [ ] Compare both sizes |
+
+ADR-0497 remains proposed until the owner accepts the comparisons. Credits,
+unresolved page26 paragraph(Q685), native overwrite/disable policies(Q683),
+sensitivity backend mapping(Q686) and unsupported settings/actions retain their
+documented limits. Distant full-map preview lighting is not established by the
+Heart-only fixture. The owner's next gameplay feedback defines the next plan.
 
 Commit: `docs: step 6 and the front end are playable end to end; what remains`.
 

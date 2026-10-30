@@ -91,6 +91,8 @@ namespace DK2.Unity
         private long _capturedTick = -1;
         private int _capturedPreview = -1;
         private MinimapZoom _zoom = MinimapZoom.WholeMap;
+        public int UiScale { get; set; } = 100;
+        private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale);
         public ClassicHudAction HandleCornerPress(Vector3 screenPosition, bool primaryPressed, bool secondaryPressed)
         {
             if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || Screen.height <= 0
@@ -106,14 +108,15 @@ namespace DK2.Unity
         public void UpdateControls(Vector3 screenPosition, ClassicHudAction selected, bool optionsVisible)
             => _frame.UpdateControls(ReferencePoint(screenPosition), selected, optionsVisible);
 
-        private static System.Numerics.Vector2 ReferencePoint(Vector3 point)
+        private System.Numerics.Vector2 ReferencePoint(Vector3 point)
         {
-            float scale = Screen.height / 768f;
+            float scale = Screen.height / 768f * ScaleLayout.Factor;
             return new System.Numerics.Vector2(point.x / scale, 768 - point.y / scale);
         }
 
         public RenderTexture ClassTexture => _gpu.Classes;
         public Texture PaletteTexture => _gpu.PaletteTexture;
+        public MinimapPalette Palette => _palette;
         public int MapWidth => _grid.Width;
         public int MapHeight => _grid.Height;
 
@@ -123,7 +126,7 @@ namespace DK2.Unity
         {
             if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput) return;
             if (!primaryPressed && !secondaryPressed || Screen.height <= 0) return;
-            float scale = Screen.height / 768f;
+            float scale = Screen.height / 768f * ScaleLayout.Factor;
             if (!MinimapControlLayout.IsMagnifier(new System.Numerics.Vector2(
                 screenPosition.x / scale, 768 - screenPosition.y / scale))) return;
             if (primaryPressed) ZoomIn();
@@ -134,7 +137,7 @@ namespace DK2.Unity
         {
             target = default;
             if (!_visibility.ShowNormalHud || !_visibility.AllowOrdinaryInput || camera == null || Screen.height <= 0) return false;
-            float scale = Screen.height / 768f;
+            float scale = Screen.height / 768f * ScaleLayout.Factor;
             var point = new System.Numerics.Vector2(screenPosition.x / scale, 768 - screenPosition.y / scale);
             var heading = new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(camera.transform.eulerAngles.y * (2048f / 360))));
             return MinimapNavigation.TryResolve(point, new MinimapNavigationView(
@@ -219,6 +222,7 @@ namespace DK2.Unity
 
         public void Draw(Camera camera, Vector3? focus = null)
         {
+            _settings.scale = ScaleLayout.Factor;
             if (!_visibility.ShowNormalHud || camera == null) return;
             Vector3 centre = focus ?? camera.transform.position;
             if (!focus.HasValue)
@@ -228,16 +232,16 @@ namespace DK2.Unity
                 if (floor.Raycast(ray, out float distance)) centre = ray.GetPoint(distance);
             }
             _gpu.SetView(_zoom, FixedFocus(centre));
-            _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(Diameter * Screen.height / 768f));
+            _gpu.Render(camera.transform.eulerAngles.y, Mathf.CeilToInt(Diameter * Screen.height / 768f * ScaleLayout.Factor));
             if (_image.image != _gpu.Disc) _image.image = _gpu.Disc;
             _footprint.UpdateCamera(_zoom.IsWholeMap ? camera : null);
             _north.UpdateHeading(new Dk2Angle(unchecked((ushort)Mathf.RoundToInt(
-                camera.transform.eulerAngles.y * (2048f / 360)))), Screen.height);
+                camera.transform.eulerAngles.y * (2048f / 360)))), Screen.height, ScaleLayout.Factor);
         }
 
         public bool ContainsPointer(Vector3 position)
         {
-            return _visibility.ShowNormalHud && _visibility.AllowOrdinaryInput && MinimapFrameVisual.ContainsPointer(position);
+            return _visibility.ShowNormalHud && _visibility.AllowOrdinaryInput && MinimapFrameVisual.ContainsPointer(position, ScaleLayout.Factor);
         }
 
         public void SetVisibility(HudVisibility visibility)
@@ -263,6 +267,7 @@ namespace DK2.Unity
         private readonly Texture2D _texture;
         private Dk2Angle _heading;
         private int _screenHeight;
+        private float _uiFactor = 1;
 
         public MinimapNorthVisual(RgbaImage source)
         {
@@ -274,13 +279,13 @@ namespace DK2.Unity
             style.width = 8; style.height = 8;
         }
 
-        public void UpdateHeading(Dk2Angle heading, int screenHeight)
+        public void UpdateHeading(Dk2Angle heading, int screenHeight, float uiFactor = 1)
         {
-            if (screenHeight <= 0 || _heading == heading && _screenHeight == screenHeight) return;
-            _heading = heading; _screenHeight = screenHeight;
+            if (screenHeight <= 0 || _heading == heading && _screenHeight == screenHeight && _uiFactor == uiFactor) return;
+            _heading = heading; _screenHeight = screenHeight; _uiFactor = uiFactor;
             System.Numerics.Vector2 origin = MinimapNorth.SpriteOriginPixels(heading, screenHeight);
             float scale = screenHeight / 768f;
-            style.left = origin.X / scale; style.top = origin.Y / scale;
+            style.left = origin.X / scale; style.top = origin.Y / scale + 768 / uiFactor - 768;
         }
 
         public void Dispose()

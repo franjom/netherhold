@@ -37,13 +37,15 @@ namespace DK2.Unity
         private readonly Dictionary<string, Material> _art = new Dictionary<string, Material>();
         private readonly List<MaterialPropertyBlock> _blocks = new List<MaterialPropertyBlock>();
         private readonly Mesh _quad;
+        private readonly ClassicFlowerDollar _dollar;
 
-        public ClassicStatusFlowers(IClassicResourceAssets assets)
+        public ClassicStatusFlowers(IClassicResourceAssets assets, DK2.Art.InstallArtProvider art = null, ClassicMeshes meshes = null)
         {
             _assets = assets ?? throw new ArgumentNullException(nameof(assets));
             _shader = Shader.Find("DK2/ClassicEffect");
             if (_shader == null) throw new InvalidOperationException("The classic effect shader is unavailable.");
             _quad = Quad();
+            _dollar = new ClassicFlowerDollar(art, meshes);
         }
 
         /// <summary>Draws this frame's flowers. Creatures the scene does not show (fog, removed,
@@ -60,6 +62,12 @@ namespace DK2.Unity
                 StatusFlower flower = flowers[i];
                 if (!scene.TryGetCreaturePosition(new CreatureQueryTarget(flower.CreatureId), out Vector3 feet)) continue;
                 Vector3 centre = feet + Vector3.up * (flower.Height.Raw / (float)Fp32.One);
+                if (flower.Dollar)
+                {
+                    _dollar.Draw(flower.CreatureId, centre, (float)(Time.unscaledTimeAsDouble * 4 % 1));
+                    continue;
+                }
+                _dollar.Reset();
                 var colour = new Color32(flower.Colour.Red, flower.Colour.Green, flower.Colour.Blue, 255);
                 if (flower.DrawRing)
                     Sprite(Rings[Mathf.Clamp(flower.Ring, 0, 5)], centre, 0, colour, -1, ring: true);
@@ -85,6 +93,7 @@ namespace DK2.Unity
 
         public void Dispose()
         {
+            _dollar.Dispose();
             foreach (Object owned in _owned) if (owned != null) Object.Destroy(owned);
             _owned.Clear();
             _art.Clear();

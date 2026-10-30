@@ -27,7 +27,7 @@ public readonly record struct StatusFlowerColour(byte Red, byte Green, byte Blue
 /// <param name="DrawRing">False on the dark half of the removal countdown's blink (0x005958F0).</param>
 public readonly record struct StatusFlower(int CreatureId, int Level, PlayerId Owner, StatusFlowerColour Colour,
     Fp32 Height, bool Blink, int Ring, string Centre, bool ExperienceArcs, float Experience,
-    string? Objective = null, bool Imprison = false, bool DrawRing = true);
+    string? Objective = null, bool Imprison = false, bool DrawRing = true, bool Dollar = false);
 
 /// <summary>What 0x0048E830 reads about one creature, as our state answers it.</summary>
 /// <param name="Never">One of the predicate's refusals: <see cref="StatusFlowerRules.NeverShows"/>.</param>
@@ -410,6 +410,14 @@ public sealed class StatusFlowers
                     || flowerTurn <= creature.StatusFlowerUntilTurn,
                 MarkedForRemoval: creature.ManaRemovalStamp != 0);
             if (!StatusFlowerRules.Shows(facts)) continue;
+            if (creature.JackpotDeadlineTicks != 0)
+            {
+                _shown.Add(new StatusFlower(creature.Id, creature.Level, new PlayerId(creature.OwnerPlayerId),
+                    default, StatusFlowerRules.Height(definition.Height, creature.Level, TortureLift(world, creature),
+                        HeroSlotValue(world, creature.Id) is not null), false, 0, "", false, 0,
+                    DrawRing: false, Dollar: true));
+                continue;
+            }
             bool blink = belowSixth || healthWindow;
             bool neutral = creature.OwnerPlayerId == PlayerIds.Neutral;
             var (red, green, blue) = ClassicKeeperPalette.Colour(

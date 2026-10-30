@@ -40,11 +40,13 @@ name over them follows the owner's report; its native producer is unread (`HudWi
 ## Options toggle (CONFIRMED control flow; menu identity strongly inferred)
 
 `0x00428710` requires player `+0x19A == 0` and first resets ordinary tool state.
-Opening hides menu ids 22..35, shows menu 22, sets `+0x2722=1`, plays sound
+Opening hides menu ids 22..35, shows menu 22, sets `+0x2722=1`, attempts sound
 `0x139`, saves menu 40's visibility at `+0x272E` and hides that menu if needed.
-Closing hides ids 22..35, clears `+0x2722`, plays `0x13A`, optionally restores
+Closing hides ids 22..35, clears `+0x2722`, attempts `0x13A`, optionally restores
 menu 33 when `+0x2726==1`, then restores menu 40's saved visibility. Other
 active panels at `+0x272A/+0x1C1F` are closed through their existing callbacks.
+Both requests pass a zero category; `0x00567810` rejects them, so these attempts are silent
+(CONFIRMED2026-10-29). The runtime keeps the same None-category requests.
 In non-mode-3 games an additional session request uses outer field `+0x284`;
 its pause/network semantics are not established by this reading.
 
@@ -52,9 +54,8 @@ Static menu 22 at `0x00696BE8` uses widgets at `0x006945C8`.
 `ClassicOptionsLayout` preserves its shipped text ids and reference positions;
 `ClassicOptionsPanel` loads Text.str and BF4 through its asset abstraction.
 The rows are Level Objective, Game Options, Load, Save, End Game, Restart Level
-and Continue Game. Row/page evidence is in [options-menu.md](options-menu.md).
-Unsupported host actions are disabled; no save browser is
-invented. Save/load callbacks prepare a `.sav` file list (`0x0042A760`).
+and Continue Game. Native row destinations and our implemented objective, confirmation,
+session/browser and settings hosts are in [options-menu.md](options-menu.md).
 `0x00428A30` draws enabled option text with grey 200 and hover white 255;
 `0x00428C30` restricts the objective row to game modes 1/4. Restart opens menu35
 and seeds its confirmation state (`0x00420570`), rather than restarting directly.
@@ -102,27 +103,32 @@ the camera's existing height and calls the guarded, clamped immediate focus
 setter. This is distinct from the minimap's command4 timed glide.
 Secondary `0x00408EE0` exits to mode3 without navigating. `ClassicFullMapLayout`
 mirrors that display/pointer geometry; `ClassicFullMap` draws cached class and
-palette textures without consulting a running world.
+palette textures. Supplementary overlays read the settled world.
+
+### Full-map markers and legend
+
+CONFIRMED from [the overlay](functions/00403FB0.md): discovered creatures not
+in hand draw3-pixel squares in palette17+owner, without the minimap blink.
+The hovered room's symbol is centred on its stored centre tile, which must be
+explored; the pointer tile must be inside the map border. Native room art and
+missing entries are recorded in [the loader](functions/00403060.md).
+The symbol is32W/640 by32H/480. Keeper names use the player's colour and
+Number>2, starting at reference474,274 in the right-hand legend.
+
+Built: GPU creature squares and room symbols, and original-font keeper names.
+Room centres reuse the existing derived centre fields, whose Heart offset
+remains STRONGLY INFERRED. The host scales creature squares by screen height
+relative to768 for readability; DK2 uses3device pixels. Matched acceptance is pending.
 
 ### Preview and legend (CONFIRMED, binary 2026-10-29)
 
-`0x00598880` tests camera mode 7 at `0x0059899C`; its dedicated render branch
-(`0x005989BB..0x00598C92`) unprojects the live pointer through the fitted map,
-uses that continuous map position as the eye X/Y, engine Z = -8.0, an identity
-rotation and focal length 240 pixels. Its viewport endpoints are
-`(W*466/640, H*33/480, W*594/640, H*225/480)`, each divided with integer
-truncation: **128×192 at (466,33)** at 640×480. This is a live top-down dungeon
-preview, not an OpenKeeper addition. It sets view distance 10.0. The branch
-has no separate discovered-tile or pointer-inside-map test before camera setup;
-normal terrain visibility still applies. Do not clamp the pointer to a tile centre.
-
-`0x00403FB0` (`0x00404A17` onward) draws the legend rectangle with endpoints
-`(W*466/640, H*266/480, W*572/640, H*417/480)`: **106×151 at (466,266)**.
-Player rows begin at reference (474,274); the producer selects rows by player
-`+0x10FC > 2` and draws names in player colours. The discovered-room hover
-symbol and discovered creature squares belong to this full-map pass too.
-These are separate from minimap overlays. The preview, legend and markers
-remain unimplemented; completion plan Task E1 owns them.
+[Mode7 rendering](functions/00598880.md) unprojects the continuous pointer
+position, without a separate inside-map or discovery guard. Engine eyeZ is-8,
+rotation identity, focal240pixels and view distance10. Viewport endpoints are
+(466W/640,33H/480)..(594W/640,225H/480), with integer division. Ordinary scene
+visibility still applies. The adapter uses a dedicated overhead render texture;
+it maps native view distance to Unity's far plane. The keeper legend bounds
+are(466W/640,266H/480)..(572W/640,417H/480). Rendered comparison is pending.
 Normal-HUD toggle producers and remaining Q611 boundaries remain in
 [hud-visibility.md](hud-visibility.md#normal-gui-toggle-producers).
 

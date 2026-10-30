@@ -57,7 +57,9 @@ namespace DK2.Unity
         private readonly NumericRow _gold, _mana, _income, _upkeep;
         private bool _visible = true, _allowInput = true;
         private Vector2Int _viewport;
-        private int Width => _viewport.x > 0 ? _viewport.x : Screen.width;
+        public int UiScale { get; set; } = 100;
+        private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale, _viewport.x, _viewport.y);
+        private int Width => Mathf.RoundToInt(ScaleLayout.LogicalWidth);
         private int Height => _viewport.y > 0 ? _viewport.y : Screen.height;
         public PanelSettings Panel => _settings;
         public float Bottom => 68 * Height / 768f;
@@ -98,11 +100,11 @@ namespace DK2.Unity
         }
 
         public bool ContainsPointer(Vector3 screenPosition) => _visible && _allowInput &&
-            Bounds.Contains(new Vector2(screenPosition.x, Height - screenPosition.y));
+            Bounds.Contains(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false));
 
         public KeeperResourceKind ResourceAt(Vector3 screenPosition) => !_visible || !_allowInput
             ? KeeperResourceKind.None : KeeperResourceInteraction.HitTest(
-                new System.Numerics.Vector2(screenPosition.x, Height - screenPosition.y), Height);
+                new System.Numerics.Vector2(ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false).x, ClassicHudScaling.LocalPointer(screenPosition, ScaleLayout, false).y), Height);
 
         public void Draw(KeeperResourceSnapshot snapshot) => Draw(snapshot, default);
 
@@ -113,6 +115,7 @@ namespace DK2.Unity
             KeeperResourceFlash flash = KeeperResourceFlash.None)
         {
             _viewport = viewport;
+            ClassicHudScaling.Apply(_settings, _root, ScaleLayout, false);
             if (!_visible) return;
             KeeperResourceFrame frame = _animation.Evaluate(snapshot, milliseconds, flash);
             var size = new Vector2Int(Width, Height);

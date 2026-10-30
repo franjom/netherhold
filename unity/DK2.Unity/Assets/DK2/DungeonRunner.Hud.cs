@@ -9,6 +9,7 @@ using DK2.Art;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
+using DK2.Data.Settings;
 using DK2.Data.Text;
 using DK2.Presentation;
 using DK2.Simulation;
@@ -48,6 +49,9 @@ namespace DK2.Unity
         private StatusFlowers _statusFlowers;
         private ClassicStatusFlowers _statusFlowerArt;
         private CreatureQueryTarget _hoveredCreature;
+        private InGameOptionsController _gameOptions;
+        private BattleNavigation _battleNavigation;
+        private ClassicGameOptionsPanel _gameOptionsPanel;
         private MessageTabsView _messageView;
         private ClassicMessageTabs _messageTabs;
         private uint _gotoMessage;
@@ -86,8 +90,18 @@ namespace DK2.Unity
             _overviewPanel = new ClassicCreatureOverview(transform, overviewAssets, _overviewView);
             _startup.Step("hud.overview");
             _optionsPanel = new ClassicOptionsPanel(transform, new InstallClassicOptionsAssets(_hudSources));
+            _optionsPanel.SetSupported(ClassicOptionsAction.Save, true);
+            _optionsPanel.SetSupported(ClassicOptionsAction.Load, true);
+            _optionsPanel.SetSupported(ClassicOptionsAction.GameOptions, true);
+            _gameOptions = new InGameOptionsController(_hudControls, _optionsPages);
+            _battleNavigation = new BattleNavigation(new PlayerId((byte)viewingPlayerId));
+            _gameOptionsPanel = new ClassicGameOptionsPanel(transform, _hudSources, _gameOptions);
+            InitializeSaves(install);
             _startup.Step("hud.options");
             _fullMap = new ClassicFullMap(transform, _minimap);
+            _fullMap.SetLegendAssets(new InstallClassicOptionsAssets(_hudSources),
+                PlayerNames(campaignLevel ? GameDatabaseLoader.LoadCampaignPlayers(install, levelName) : null),
+                new InstallClassicResourceAssets(_hudSources));
             _startup.Step("hud.fullmap");
             _identityNames = new InstallClassicCreatureNames(install);
             _hudStrings = _hudSources.Strings;
@@ -96,7 +110,7 @@ namespace DK2.Unity
             _queryPanel = new ClassicCreatureQueryPanel(transform, new InstallClassicOptionsAssets(_hudSources), _hudSources.Texture);
             _startup.Step("hud.query");
             _statusFlowers = new StatusFlowers(database, new PlayerId((byte)viewingPlayerId));
-            _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources));
+            _statusFlowerArt = new ClassicStatusFlowers(new InstallClassicResourceAssets(_hudSources), _installArt, _classic);
             _startup.Step("hud.flowers");
             _messageView = new MessageTabsView(new PlayerId((byte)viewingPlayerId), database);
             Dk2StringTable speech = OpenText(Path.Combine(_hudSources.TextDirectory, "Speech.str"));
@@ -167,8 +181,9 @@ namespace DK2.Unity
 
         private void DisposeHudControls()
         {
-            _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _messageTabs?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
+            _gameOptionsPanel?.Dispose(); _overviewPanel?.Dispose(); _bottomPanel?.Dispose(); _messageTabs?.Dispose(); _optionsPanel?.Dispose(); _fullMap?.Dispose(); _queryPanel?.Dispose();
             _statusFlowerArt?.Dispose();
+            _savePanel?.Dispose();
             _hudSources?.Dispose();
         }
 
@@ -221,10 +236,22 @@ namespace DK2.Unity
         private void ApplyHudAction(ClassicHudAction action)
         {
             if (action == ClassicHudAction.None || _hudControls.InputSuppressed) return;
+            if (HudModal && action is ClassicHudAction.NavigateHeart or ClassicHudAction.NavigatePortal or ClassicHudAction.NavigateFight
+                or ClassicHudAction.SelectQuery or ClassicHudAction.SelectSell or ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut) return;
             _input.CancelPointerGesture(); _bottomPanel?.CancelPointerGesture();
+            if (action == ClassicHudAction.NavigatePortal)
+            {
+                NavigateRoom(RoomTypeId.Portal);
+                return;
+            }
             if (action == ClassicHudAction.NavigateHeart)
             {
                 if (_worldView.MinimapHeartTile is TilePos heart) StartGlide(heart);
+                return;
+            }
+            if (action == ClassicHudAction.NavigateFight)
+            {
+                if (_musicObserver != null && _battleNavigation.Next(_musicObserver.Battles) is TilePos battle) StartGlide(battle);
                 return;
             }
             if (action == ClassicHudAction.ZoomIn || action == ClassicHudAction.ZoomOut)
@@ -247,20 +274,24 @@ namespace DK2.Unity
         private void UpdateHudControls(bool allowOptionsKey)
         {
             HudVisibility camera = _scriptedView.HudFor(cameraPreset);
-            if (camera.AllowOrdinaryInput && !_hudControls.InputSuppressed)
+            GameBindingInput keys = ClassicKeyBindings.Read(_gameSettings);
+            ClassicHudAction shortcut = keys.HudShortcut(new GameShortcutContext
             {
-                if (allowOptionsKey && Input.GetKeyDown(KeyCode.Escape) && !_hudControls.FullMapVisible)
-                    ApplyHudAction(ClassicHudAction.ToggleOptions);
-                else if (!_hudControls.OptionsVisible && Input.GetKeyDown(KeyCode.M)) ApplyHudAction(ClassicHudAction.ToggleFullMap);
-                else if (!_hudControls.FullMapVisible && !_hudControls.OptionsVisible)
-                {
-                    if (Input.GetKeyDown(KeyCode.G)) ApplyHudAction(ClassicHudAction.ToggleGui);
-                    if (Input.GetKeyDown(KeyCode.H)) ApplyHudAction(ClassicHudAction.NavigateHeart);
-                }
-            }
+                OrdinaryInput = camera.AllowOrdinaryInput && !_hudControls.InputSuppressed,
+                AllowOptionsKey = allowOptionsKey,
+                OptionsVisible = _hudControls.OptionsVisible,
+                FullMapVisible = _hudControls.FullMapVisible,
+                EditingText = _hudControls.OptionsVisible && _hudControls.OptionsPage == ClassicOptionsPage.Save,
+                CapturingKey = _optionsPages.CapturingAction != null,
+            }, escapePressed: Input.GetKeyDown(KeyCode.Escape));
+            ApplyHudAction(shortcut);
             HudVisibility hud = CurrentHud;
             _bottomPanel?.SetVisibility(new HudVisibility(hud.ShowNormalHud, hud.AllowOrdinaryInput && !HudModal));
-            _optionsPanel?.SetVisible(hud.ShowNormalHud && _hudControls.OptionsVisible);
+            _optionsPanel?.SetVisible(hud.ShowNormalHud && _hudControls.OptionsVisible
+                && _hudControls.OptionsPage != ClassicOptionsPage.Save && _hudControls.OptionsPage != ClassicOptionsPage.Load
+                && !_hudControls.GameOptionsVisible);
+            _gameOptionsPanel?.Show(hud.ShowNormalHud && _hudControls.GameOptionsVisible);
+            _optionsPanel?.SetPage(_hudControls.OptionsPage, _hudControls.Confirmation);
             _fullMap?.SetVisible(camera.ShowNormalHud && _hudControls.FullMapVisible);
             _queryPanel?.Draw(_querySnapshot, hud, HudModal);
             _overviewPanel?.Draw(hud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
@@ -283,8 +314,29 @@ namespace DK2.Unity
             }
             if (_hudControls.OptionsVisible)
             {
-                if (Input.GetMouseButtonDown(0) && _optionsPanel.ActionAt(Input.mousePosition) == ClassicOptionsAction.ContinueGame)
-                    ApplyHudAction(ClassicHudAction.ToggleOptions);
+                if (_hudControls.GameOptionsVisible) { _gameOptionsPanel?.PollKeyboard(); return true; }
+                if (Input.GetMouseButtonDown(0))
+                {
+                    ClassicOptionsAction action = _optionsPanel.ActionAt(Input.mousePosition);
+                    if (action == ClassicOptionsAction.ContinueGame) ApplyHudAction(ClassicHudAction.ToggleOptions);
+                    else if (action == ClassicOptionsAction.GameOptions) ApplyHudAction(ClassicHudAction.OpenGameOptions);
+                    else if (action == ClassicOptionsAction.LevelObjective) ApplyHudAction(ClassicHudAction.ShowObjective);
+                    else if (action == ClassicOptionsAction.Back) ApplyHudAction(ClassicHudAction.BackToOptions);
+                    else if (action == ClassicOptionsAction.RestartLevel) ApplyHudAction(ClassicHudAction.RestartLevel);
+                    else if (action == ClassicOptionsAction.EndGame) ApplyHudAction(ClassicHudAction.EndGame);
+                    else if (action == ClassicOptionsAction.ReturnToMenu) ApplyHudAction(ClassicHudAction.ReturnToMenu);
+                    else if (action == ClassicOptionsAction.QuitGame) ApplyHudAction(ClassicHudAction.QuitGame);
+                    else if (action == ClassicOptionsAction.Confirm) ApplyHudAction(ClassicHudAction.Confirm);
+                    else if (action == ClassicOptionsAction.Cancel) ApplyHudAction(ClassicHudAction.CancelConfirmation);
+                    else if (action == ClassicOptionsAction.Save) { _saves.Refresh(); ApplyHudAction(ClassicHudAction.OpenSave); }
+                    else if (action == ClassicOptionsAction.Load) { _saves.Refresh(); ApplyHudAction(ClassicHudAction.OpenLoad); }
+                    ClassicSessionAction session = _hudControls.TakeSessionAction();
+                    if (session == ClassicSessionAction.Restart)
+                        _pendingSession = GameSessionRequest.Restart(GameSessionRequest.Campaign(levelName, frontEndReturnPage));
+                    else if (session == ClassicSessionAction.ReturnToMenu)
+                        _pendingSession = GameSessionRequest.FrontEnd(LaunchedFromFrontEnd ? FrontEndPage.CampaignMap : FrontEndPage.None);
+                    else if (session == ClassicSessionAction.Quit) QuitFrontEnd();
+                }
                 return true;
             }
             bool primary = Input.GetMouseButtonDown(0), secondary = Input.GetMouseButtonDown(1);
@@ -396,6 +448,7 @@ namespace DK2.Unity
 
         private void DrawHudControls()
         {
+            ApplyHudScale();
             _resources = _resourceView.Capture(_simulation.World, displayHealth: CurrentHud.ShowNormalHud);
             _bottomView.Capture(_simulation.World);
             // FLASH_BUTTON on the panel (tab-alerts.md): the target drawn, and dropped once its item is in use.
@@ -404,9 +457,18 @@ namespace DK2.Unity
                 _scriptedView.ClearFlash(flash);
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
             _bottomPanel.Draw();
+            _fullMap.Capture(_simulation.World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
+            DrawSavePanel(frontEnd: false);
+            _gameOptionsPanel?.Draw();
             _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
+            _soundPlayer?.Play(_hudControls.Sounds);
+            _soundPlayer?.Play(_bottomPanel.Sounds);
+            _soundPlayer?.Play(_bottomView.Sounds);
+            _soundPlayer?.Play(_messageView.Sounds);
+            _soundPlayer?.QueueSpeech(_messageView.Speech);
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
-                HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)));
+                HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),
+                _hudControls.OptionsVisible, _hudControls.ObjectiveVisible);
             _overviewView.Capture(_simulation.World);
             _overviewPanel.Draw(CurrentHud, HudModal ? null : _bottomPanel.PanelArea(BottomPanelCategory.Creatures), Input.mousePosition);
             _minimap.UpdateControls(Input.mousePosition, _selectedCorner, _hudControls.OptionsVisible);

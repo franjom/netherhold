@@ -13,7 +13,10 @@ Original version: DK2 v1.70 (GOG)
 
 The battle records themselves were first read for the census
 ([binary-census.md §3](binary-census.md#3-battles-are-presentation)); this page is the home of
-the whole mechanism, from the records to the HUD. Nothing here is built.
+the whole mechanism, from the records to the HUD. Read-only membership is built
+for music; `BattleNavigation` selects the next local record and the rebound
+Zoom To Fight action glides to its tile centre. The visual battle tab and its
+fly-in remain pending.
 
 ## 1. Where the tab lives — CONFIRMED
 

@@ -1,4 +1,4 @@
-﻿# The Unity project
+# The Unity project
 
 Presentation only. It holds no game state, decides no rule and stores no balance
 number — see `docs/DECISIONS.md` ADR-0002, ADR-0035 and ADR-0036.
@@ -19,8 +19,8 @@ powershell -File unity/sync-assemblies.ps1
 ```
 
 Unity cannot reference a `.csproj`, so the simulation arrives as DLLs in
-`DK2.Unity/Assets/Plugins/DK2` — eight `netstandard2.1` assemblies, listed in
-`sync-assemblies.ps1`. Run this after any change under `src/`. The DLLs are build
+`DK2.Unity/Assets/Plugins/DK2` — eight `netstandard2.1` assemblies plus NLayer,
+listed in `copy-runtime-assemblies.ps1`. Run the sync after any change under `src/`. The DLLs are build
 output and are gitignored.
 
 Then open `unity/DK2.Unity` in Unity 6000.6.0f1 (`ProjectSettings/ProjectVersion.txt`
@@ -35,10 +35,14 @@ Multiplayer. Main, Single Player, Options and Extras shells and Quit confirmatio
 are clickable. New/Continue Campaign lead to the3D map and briefing; locked and closed
 branches cannot be picked. Reset confirmation preserves progress on cancel.
 On widescreen the front-end camera keeps DK2's 4:3 vertical view (wide screens show more at the sides) and the menu draws its 640x480 layout as a centred uniform-scale box.
-The briefing go button starts the campaign level; at its result Space returns to the front end's statistics page, and the page shows the level-end statistics rows with DK2's list scroll bar (arrows, track and thumb drag; no mouse wheel) and the objective images; accept there flies back to the map, first offering hi-score name entry (page 18, typed with Backspace/Enter) when a won level's rating qualifies. After a won campaign level the front end plays its cutscene first (`DungeonRunner.Cutscene`: Speech.str title card on black, a 2 s hold, then the movie; level 20 plays two outros); a front-end-launched level starts with the carried transfer creature placed by `DungeonRunner.LevelEnd`. Hi-scores load from `HiScores.dat` under `persistentDataPath`, else the install's read-only copy. Loading, multiplayer
-and media actions remain dimmed; option values are not yet bound. Menu labels
+The briefing go button starts the campaign level; at its result Space returns to the front end's statistics page, and the page shows the level-end statistics rows with DK2's list scroll bar (arrows, track and thumb drag; no mouse wheel) and the objective images; accept there flies back to the map, first offering hi-score name entry (page 18, typed with Backspace/Enter) when a won level's rating qualifies. After a won campaign level the front end plays its cutscene first (`DungeonRunner.Cutscene`: Speech.str title card on black, held for the spoken line, then the movie; level 20 plays two outros); a front-end-launched level starts with the carried transfer creature placed by `DungeonRunner.LevelEnd`. Hi-scores load from `HiScores.dat` under `persistentDataPath`, else the install's read-only copy. Multiplayer and unsupported media remain dimmed; settings and save/load are available. Menu labels
 use the local TrueType face described below, with original bitmap fallback and
 original glyph metrics (ADR-0539).
+Sound reads SDT entries from the install through `IClassicSoundAssets`, decodes in memory
+with NLayer (ADR-0583), and keeps no disk cache. Menu/HUD effects, the Mentor and
+scripted level lines, music and ambience are wired; Unity hearing acceptance is pending.
+Options/front-end music, the atmosphere player and idle taunts remain unbuilt.
+
 Campaign progress uses `campaign-profile.dk2p` under Unity
 `Application.persistentDataPath`; first creation may import the original registry
 read-only. The runner Campaign Profile File and Hi Scores File overrides support isolated probes.
@@ -93,31 +97,59 @@ the dug-out parts of a level read as dug out. Colour is derived from each asset'
 key, so a terrain is always the same colour; see `PlaceholderProvider`. A tile marked
 for digging is tinted amber, and wall torches are placed by `TorchLayout`.
 
-WASD or the arrow keys pan and the mouse wheel zooms. With Classic Vertex Lighting,
+Arrow keys pan; Shift speeds scrolling. Hold X and move the pointer to rotate,
+or Z and move vertically to zoom; P navigates to an owned Portal and F cycles
+local fights. Hold Page Up for objects-only picking. Keyboard Setup can rebind
+implemented actions; unsupported actions remain dimmed. The mouse
+wheel also zooms. With Classic Vertex Lighting,
 `=`/`+` and `-` adjust native ambient light; keypad plus/minus work too.
 The bottom tabs select Creatures, Rooms, Spells and Workshop. Room choices show
 their original icons and names; secondary click cycles owned rooms. Creature
 portraits support primary pickup, Shift for lowest level, Control for highest,
 and secondary camera focus. The four small selectors switch totals/jobs/combat/moods.
 `G` toggles the HUD, `H` navigates to the Heart, `M` toggles the full map, and
-Escape opens/closes campaign Options. Options pauses the simulation; only
-Continue is currently enabled. Query follows a selected creature until cancelled
+Escape opens/closes campaign Options. Options pauses the simulation; its
+objective, settings, save/load, restart/end confirmations and Continue are enabled. Query follows a selected creature until cancelled
 with secondary click. Gold-counter primary click withdraws100, Shift1000 or
 Control10000, subject to actual funds and hand capacity. The complete scope and
 unfinished controls are in [Step6](../docs/plans/2026-10-17-classic-look-step6.md).
 
-The numeric tool shortcuts below remain debugging controls.
-The default Hand (`1` or `5`)
+Options provides Level Objective, Restart, End Game and Save/Load. Continue closes
+Options; Back returns to its rows. Save/Load uses named `.dk2g` files under
+`Application.persistentDataPath/Saves` (or the runner's Saved Session Directory); front-end Single Player > Load reads the
+same browser. These files contain our simulation checkpoint and campaign profile,
+separate from original DK2 saves. Loading restores the saved campaign profile.
+Runtime save/load acceptance is tracked in the front-end plan F6.
+
+Front-end Options edits settings beside the campaign profile. In-game Game Options
+uses the shared settings controller with its native layout and live edits, keeping
+the Options pause. Its isolated regression probe passes; native parity remains
+unverified. Gamma uses a URP
+exposure proxy; Game Speed and Scroll Speed apply to gameplay. Unsupported
+controls are dimmed. Keyboard Setup persists captured keys and gameplay reads
+them. Audio settings apply after player creation and on live edits. UI Scale
+changes the gameplay HUD with inverse pointer mapping; its viewport-fit cap is
+described in [host limits](../docs/research/front-end-menus.md#6-options-pages).
+
+Select tools and rooms through the HUD or DungeonRunner Inspector.
+The default Hand
 uses left click to pick up a creature or toggle a diggable tile's excavation tag.
 Left drag applies the inverse of the starting tile's tag state to a rectangle;
 this drag policy is a modern interface choice, not a claim about DK2's exact drag behavior.
 Right click drops the held creature, or slaps a creature when the hand is empty.
-`3` selects Build, `4` Sell, and `7` Create Imp. `[` and `]` select the room used by Build; the Game view displays
-its name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
+The bottom panel selects Build and Create Imp; the corner selects Sell. The Game view displays
+the selected room's name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
 rooms by name. Choose Lair to build sleeping space. Drag Build and Sell rectangles;
-click Create Imp. The tool hotkeys are interface choices (ADR-0104).
+click Create Imp. The former numeric, bracket, WASD and Q/E debug shortcuts are removed.
 
 ## Recording input
+
+The first front-end session shows the title for10seconds, then BullfrogIntro and
+Intro before entering the menu. Enable the runner's Skip Startup switch for
+editor iteration. Idle replay uses the native strict180-second timeout and
+blocked pages. Extras offers the original movie gallery and Trailer when their
+files exist; campaign wins unlock their gallery entries. Locked/missing movies
+and Credits are disabled. Runtime media acceptance is tracked in the front-end plan.
 
 Off by default. Set the runner's **Input Journal Directory** field, or the `DK2_INPUT_JOURNAL`
 environment variable (the field wins), to a folder. Each `DungeonRunner` writes a new
@@ -222,7 +254,7 @@ unscaled time once per Update and caches the displayed text between windows;
 these are whole-frame intervals, not GPU timings. Release builds omit the box.
 
 For camera-rotation stutter, pause simulation and keep focus, zoom, resolution
-and fog fixed: record5seconds idle,10seconds holding Q or E, then5seconds idle.
+and fog fixed: record5seconds idle,10seconds holding X while moving the pointer, then5seconds idle.
 Repeat the sweep to separate first-exposure allocations from recurring costs.
 Inspect `DK2.TransparentTerrain.Sort` first: a changed camera direction triggers
 global transparent-triangle sorting and run-mesh uploads. Also inspect

@@ -73,6 +73,8 @@ namespace DK2.Unity
                 _numberTextures[family,digit]=Texture((family==0?"GUI\\Icons\\i-":"GUI\\Icons\\lo-")+digit);
             _root.style.display=DisplayStyle.None;
         }
+        public int UiScale { get; set; } = 100;
+        private HudScaleLayout ScaleLayout => ClassicHudScaling.Layout(UiScale, _width, _height);
         private float V(float value)=>value*_height/1920f;
         // The widget positions below are menu 5's at its lone place, x 472; X moves them with the panel
         // when a pinned tab shares the strip (0x00417310).
@@ -81,13 +83,16 @@ namespace DK2.Unity
         public void Draw(HudVisibility visibility,BottomPanelRect? area,Vector3 pointer,Vector2Int viewport=default)
         {
             _width=viewport.x>0?viewport.x:Screen.width;_height=viewport.y>0?viewport.y:Screen.height;
+            ClassicHudScaling.Apply(_settings,_root,ScaleLayout,true);
+            Vector3 screenPointer=pointer;
+            pointer=new Vector3(pointer.x/ScaleLayout.Factor,pointer.y/ScaleLayout.Factor,0);
             _visible=visibility.ShowNormalHud && area.HasValue;
             _root.style.display=_visible?DisplayStyle.Flex:DisplayStyle.None;
             if(!_visible) return;
             _left=area.Value.X;_areaWidth=area.Value.Width;
             // 0x00417470: (W - 432) / 116 columns. Alone, the overview keeps the wider screen's extra width
             // (the strip runs to the Reaper at width - 288); sharing the strip, it gets its 1800 / n.
-            if(_areaWidth>=BottomPanelLayout.Span) _areaWidth=Math.Max(_areaWidth,(int)(_width*1920f/_height)-760);
+            if(_areaWidth>=BottomPanelLayout.Span) _areaWidth=Math.Max(_areaWidth,(int)(ScaleLayout.LogicalWidth*1920f/_height)-760);
             _columns=Math.Min(MaximumColumns-1,Math.Max(1,BottomPanelLayout.OverviewColumns(_areaWidth)));
             int ordinary=Math.Max(0,_view.Entries.Count-1),pages=Math.Max(1,(ordinary+_columns-1)/_columns);
             _page=Math.Min(_page,pages-1);
@@ -135,7 +140,7 @@ namespace DK2.Unity
             Color pageTint=pages<=1?new Color32(100,100,100,255):Color.white;
             _next.tintColor=pageTint;_previous.tintColor=pageTint;
             Place(_modeStrip,X(680),V(1608),V(64),V(264));
-            Vector2 at=new Vector2(pointer.x,_height-pointer.y);
+            Vector2 at=ClassicHudScaling.LocalPointer(screenPointer,ScaleLayout,true);
             int modeHovered=-1,workerHovered=-1;
             for(int i=0;i<4;i++)
             {
@@ -162,7 +167,7 @@ namespace DK2.Unity
         public int HoveredTextId(Vector3 pointer)
         {
             if(!_visible) return 0;
-            Vector2 at=new Vector2(pointer.x,_height-pointer.y);
+            Vector2 at=ClassicHudScaling.LocalPointer(pointer,ScaleLayout,true);
             for(int i=0;i<4;i++)
             {
                 if(ModeRect(i).Contains(at)) return 2316+2*i;
@@ -176,7 +181,7 @@ namespace DK2.Unity
         public CreatureOverviewType? HoveredColumnType(Vector3 pointer)
         {
             if(!_visible) return null;
-            Vector2 at=new Vector2(pointer.x,_height-pointer.y);
+            Vector2 at=ClassicHudScaling.LocalPointer(pointer,ScaleLayout,true);
             for(int i=0;i<=_columns;i++)
             {
                 int entry=i==0?0:1+_page*_columns+i-1;
@@ -192,11 +197,11 @@ namespace DK2.Unity
         private Rect HitRect(int column)=>column==0?new Rect(X(544),V(1612),V(120),V(256))
             :new Rect(X(924+(column-1)*136),V(1616),V(108),V(244));
         public bool ContainsPointer(Vector3 pointer)=>_visible && new Rect(X(472),V(1600),V(_areaWidth),V(320))
-            .Contains(new Vector2(pointer.x,_height-pointer.y));
+            .Contains(ClassicHudScaling.LocalPointer(pointer,ScaleLayout,true));
         public bool TryPress(Vector3 pointer,bool primary,bool secondary,bool lowestLevel,bool highestLevel,out CreatureOverviewRequest request)
         {
             request=default;if(!_visible || !primary && !secondary) return false;
-            Vector2 point=new Vector2(pointer.x,_height-pointer.y);
+            Vector2 point=ClassicHudScaling.LocalPointer(pointer,ScaleLayout,true);
             if(primary)
                 for(int i=0;i<4;i++)
                     if(new Rect(X(692),V(1616+i*64),V(44),V(52)).Contains(point))

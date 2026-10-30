@@ -33,7 +33,7 @@ in `Paths.WAD` (`Engine Path Info.txt.txt`, entries 250-274).
 | Then it stops CD audio (MCI `cdaudio` stop) and plays `<movies>\BullfrogIntro.tgq` (`0x0053C020`), then `<movies>\Intro.tgq` (`0x0053BFD0`). | `0x0052F140` | STRONGLY INFERRED |
 | Movie playback `0x0053BCD0` runs only when movies are on (`0x0075B170`, cleared by `-NOMOVIES`). Its key handler `0x0053C270` sets the skip flag `0x0073F598` on Esc (scan 1), Enter (0x1C) or Space (0x39); the decoder (`0x005A8F70` open, `0x005A8FB0` step) is in `movie-format.md`. The second handler `0x0053C2A0` sets the same skip flag on a mouse button. | `0x0053BCD0` | STRONGLY INFERRED (skip keys, mouse skip) |
 | Then the front-end resources (`0x00534210`), the page tree (`Gui_LoadMenuTree 0x0052B8F0` over the table `0x006AE4E0`), and the return router `0x00534F70`: in its default branch (return page `0x00759B30` not one of the routed values) it first calls `0x005321A0(page)` when the page is not 1, then sets `0x00759B30` = 1 and state 1, which plays path 250 "Intro to 3D Front End" and then shows the main menu (page 1). | `0x00534F70`, `0x005384F0` | STRONGLY INFERRED |
-| **Attract mode:** if the mouse has not moved for 180 s and the active page is not 10, 11, 0x20, 0x23, 0x27 or 0x2C (multiplayer pages), the tick replays `BullfrogIntro.tgq` the first time and `Intro.tgq` the next, alternately. Any key also resets the idle timer. | `0x00533D30`, `0x0052FAF0` | STRONGLY INFERRED |
+| **Attract mode:** if the mouse has not moved for strictly more than 180 s and the active page is not 10, 11, 0x20, 0x23, 0x27 or 0x2C (multiplayer pages), the tick replays `BullfrogIntro.tgq` the first time and `Intro.tgq` the next, alternately. Any key also resets the idle timer. | `0x00533D30`, `0x0052FAF0` | STRONGLY INFERRED |
 
 ## 3. Pages, items and stations
 
@@ -173,14 +173,14 @@ briefing navigation (campaign-map sibling). Other consumers remain later phases.
 | Click and release sounds come from the widget's sound slot (+0x4C) through the table at `0x006AC8C4`: main-menu items use slot 32, back icons 36/35. | `0x0052BC50` | STRONGLY INFERRED |
 | Keyboard: Ctrl+Alt-style modifier 3 with key 0x20 (D) loads a demo packet file and starts it (debug); Alt+Enter (0x1C with modifier 2) calls `0x00558BD0`; key 0xB7 sets frontEnd +0x6022 (screenshot, unread). | `0x0052FAF0` | STRONGLY INFERRED (keys); HYPOTHESIS (purposes) |
 
-### F3 implementation boundary
+### Implementation boundary
 
-`FrontEndMenuController` supports Main, Single Player, Options/Graphics/Sound/Controls
-shells, Extras and Quit confirmation. Pointer hold suppression, hover/fade and sound
-hooks are implemented; playback is F8. Deferred actions are dimmed as a temporary
-capability gate, not as a reading of native campaign availability. Option values,
-media and other generic-dialog uses remain later phases; F4 builds reset
-confirmation and campaign map/briefing navigation (see the campaign-map sibling).
+`FrontEndMenuController` supports Main, Single Player, Extras, Quit confirmation
+and the Options pages described in section 6. Pointer hold suppression,
+hover/fade and sound hooks are implemented; playback uses F8 (ADR-0583).
+Deferred actions are dimmed as a capability gate, not as a reading of native
+campaign availability. Reset confirmation and campaign map/briefing navigation
+are described in the campaign-map sibling; remaining scope is in the front-end plan.
 
 Font replacement follows ADR-0539. Native measurement uses the advance/line-height
 canvas ([glyph measurement](functions/006335D0.md)); visible ink retains its bearing
@@ -212,22 +212,46 @@ writes one value and closes it (`0x005621E0` closes). Key names are the setters'
 | 15 | 134 Resolution | button `0x0054C2A0` -> `0x00566A70` | resolution (key unread) | HYPOTHESIS |
 | 15 | 135 Gamma | slider 15..60, `0x0054B9B0` | `Gamma Level` (`0x00566220`) | STRONGLY INFERRED |
 | 15 | 1445 Shadow Detail Level | slider 0..3, `0x0054B980` | `Shadow Level` (`0x005663A0`) | STRONGLY INFERRED |
-| 15 | (buttons) | D0x1E applies all through `0x0054BB80` (also `Texture Reduction Level` `0x00566620`); D0x1F leaves | | STRONGLY INFERRED |
+| 15 | (buttons) | D0x1E (Confirm, widget129) applies all through `0x0054BB80` (also `Texture Reduction Level` `0x00566620`); D0x1F (Cancel, widget130) leaves | | STRONGLY INFERRED |
 | 16 Sound | 1464 Sound Quality | button `0x0054C810` | `SoundQuality` (`0x005637E0`) | STRONGLY INFERRED |
 | 16 | 1674 Speaker Configuration | button `0x0054C970` | `Headphones` (`0x00563870`) | STRONGLY INFERRED |
 | 16 | 1460 Master / 1457 Voice / 1459 Music / 1458 Sfx Volume | sliders 0..100, `0x0054B940`/`0x0054B820`/`0x0054B860`/`0x0054B8A0`, live | `MasterVolume`, `SpeechVolume`, `MusicVolume`, `SoundEffectVolume` | STRONGLY INFERRED |
 | 16 | on/off beside Voice, Music, Sfx | `0x0054C9F0` | `SpeechSwitch`, `MusicSwitch`, `SFXSwtich` (sic) | STRONGLY INFERRED |
 | 16 | 1679 QSound, 1472 Environmental Effects | toggles `0x0054B910`, `0x0054B8E0` | `QSound`, `EnvironmentalEffects` | STRONGLY INFERRED |
-| 16 | (buttons) | D0x1C re-applies the eight values captured on entry (D0x1A, `0x0054B4B0`): a revert; D0x1B keeps the live values | | STRONGLY INFERRED (behaviour); HYPOTHESIS (which icon is OK) |
+| 16 | (buttons) | D0x1C re-applies the eight values captured on entry (D0x1A, `0x0054B4B0`): a revert; D0x1B (Confirm, widget146) keeps the live values; D0x1C is Cancel (widget147) | | STRONGLY INFERRED (behaviour and icon mapping) |
 | 17 Control | 1477 Keyboard Setup | key list `0x0054BD70`, capture `0x0054BD90` | key bindings via `InputBindings_CopyToConfiguration` / `RestoreFromConfiguration` | STRONGLY INFERRED |
 | 17 | 1466 Mouse Sensitivity | slider 5..20, `0x0054BAF0` | `Mouse Sensitivity` (`0x00560B30`) | STRONGLY INFERRED |
 | 17 | 1469 Game Speed | slider 1..16, `0x0054BAC0` | `GameSpeed` (`0x0055D590`) | STRONGLY INFERRED |
 | 17 | 1468 Scroll Speed | slider 5..20, `0x0054BA90` | `ScrollSpeed` (`0x00560BC0`) | STRONGLY INFERRED |
 | 17 | 2840 Invert Mouse (1st Person) | toggle `0x0054BB20` | `Invert Mouse` (`0x00560940`) | STRONGLY INFERRED |
-| 17 | (buttons) | D0x38 restores bindings and sensitivity; D0x39 writes Invert Mouse, Game Speed, Scroll Speed (`0x0054BB40`) | | STRONGLY INFERRED (behaviour); HYPOTHESIS (which icon is OK) |
+| 17 | (buttons) | D0x38 (Cancel, widget160) restores bindings and sensitivity; D0x39 (Confirm, widget159) writes Invert Mouse, Game Speed, Scroll Speed (`0x0054BB40`) | | STRONGLY INFERRED (behaviour and icon mapping) |
 
 Slider ranges are the widget's +0x16 low word (minimum) and +0x1A low word (maximum); that
 reading is STRONGLY INFERRED from the values (volumes 0..100, shadow 0..3).
+
+
+The Sound revert restores those eight values only: the three Speech/Music/SFX switches
+are captured on entry but have no restore call in D0x1C. This oddity is preserved.
+D1's suggested default-block address, [save restore](functions/0055B980.md), does not
+initialize defaults. Unresolved defaults in `GameSettings` remain HYPOTHESIS.
+Our file and display correction differ from the registry/device implementation:
+UTF-8 settings beside the campaign profile, and URP exposure as a brightness proxy
+for Gamma (30 is neutral). This does not reproduce the native gamma ramp.
+
+Keyboard Setup's roster/capture is recorded in [the row mapping](functions/00560FD0.md)
+and [key assignment](functions/00561200.md). The adapter shows all63 native action
+names and dims actions without a consumer. Rebound keys persist in our settings.
+Water translucency, environment mapping, shadow detail, Headphones, QSound,
+Environmental Effects and first-person Invert Mouse are stored but their widgets
+are disabled until runtime consumers exist. Gameplay startup/restart apply loaded
+Gamma and ScrollSpeed after camera creation, then audio values after player creation.
+Rebound gameplay keys use the shared resolver; modal text/key capture suppresses them.
+
+UiScale is a remake setting (50..200%). Gameplay HUD transforms share inverse
+pointer mapping and bottom docking. Its effective factor is capped at the
+viewport aspect divided by4:3, with a minimum cap of100%; thus a200% request
+fits at100% on1024×768 and133% on2560×1440. The label displays the effective
+value when capped. Front-end and modal Options layouts retain their native sizing.
 
 ## Unread / next
 
@@ -248,3 +272,26 @@ the Bullfrog intro, movie skipping by keys/clicks, and idle intro replay. The ex
 10-second/180-second timings remain binary readings. No multiplayer recollection is
 available; retain the binary's return routing through path 256 without upgrading
 its confidence. These answers do not establish title-screen skipping.
+
+## Movie gallery
+
+STRONGLY INFERRED from the complete callbacks `0x0053B3F0`, `0x0053B5F0`,
+`0x0053B750`, `0x0053B480`, `0x0053B810` and `0x0053B840` (2026-10-29):
+page5 is a five-row window over the22-row table at `0x006B0DD0`, not a directory
+listing. Row0 is Intro and always unlocked; campaign wins unlock rows1..20,
+with any won branch sufficient for6/11/15. Row13 is unavailable in languages7
+and18; row21 is available only in7. This host has no language selection and
+uses the English roster, retaining row21 as unavailable. Missing files also
+remain disabled. Gallery row20 plays Outro alone; the post-win path separately
+plays BullfrogOutro. Movie thumbnails are M-Intro, M-Outro, M-000..M-018,
+or M-Unavailable, under Mov_Shots. Native locked-row presses show a dialog;
+ours leaves the rows disabled. The five static buttons are53..57, names59..63,
+scrollbar52 and return65; the existing catalogue owns their rectangles.
+
+The native idle tick resets its timer after a blocked-page timeout too, and
+after movie playback returns. It requires an active page. The title remains
+unskippable; movie skip is handled by the existing player. `skipStartup` is a
+development switch; returning from a level skips first-entry startup.
+
+Credits stays disabled: dispatcher99 selects path265/state17, but its content
+producer has not been established. Trailer uses the existing movie player.

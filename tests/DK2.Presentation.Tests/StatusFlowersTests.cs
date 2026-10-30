@@ -12,6 +12,21 @@ namespace DK2.Presentation.Tests;
 
 public sealed class StatusFlowersTests
 {
+    [InstallFact]
+    public void CasinoWinnerReplacesEveryOrdinaryFlowerLayerUntilItsTimerClears()
+    {
+        var (db, world, own) = Setup(); own.JackpotDeadlineTicks = 12;
+        var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
+        StatusFlower winner = Assert.Single(flowers.Capture(world, new GameTick(10), new CreatureQueryTarget(own.Id)),
+            f => f.CreatureId == own.Id);
+        Assert.True(winner.Dollar);
+        Assert.False(winner.DrawRing); Assert.False(winner.Imprison);
+        Assert.Null(winner.Objective); Assert.Empty(winner.Centre);
+        own.JackpotDeadlineTicks = 0;
+        Assert.False(Assert.Single(flowers.Capture(world, new GameTick(10), new CreatureQueryTarget(own.Id)),
+            f => f.CreatureId == own.Id).Dollar);
+    }
+
     private static readonly StatusFlowerFacts OwnIdle = new(Own: true, Never: false, ViewerPossessing: false,
         Hovered: false, Dying: false, InCombat: false, CreatureMood.Content, BelowSixthHealth: false, InWindow: false);
 

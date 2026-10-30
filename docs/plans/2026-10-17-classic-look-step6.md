@@ -1,12 +1,11 @@
 # Step 6 — HUD and controls
 
-Status: minimap, resource controls, ordinary campaign visibility and Options
-pause, full-map terrain/navigation, query/follow, bottom choices and creature
-overview are integrated on classic-look/step6, 2026-10-18. The overview includes
-totals, jobs, combat and moods with filtered pickup/focus. All milestones remain
-subject to their remaining research and owner-comparison gates below;
-ADR-0497 remains proposed. Step5's outstanding visual/performance
-gates remain in [its checklist](2026-10-14-classic-look-step5.md).
+Status: the gameplay HUD, Options/save/load/settings, full-map preview and
+markers/legend, objects-only picking and native camera/key consumers are built
+on `codex/hud-completion-final` (2026-10-29), merged to master 2026-10-30. Implementation and runtime
+verification are tracked in the [completion plan](2026-10-29-hud-and-front-end-completion.md).
+Owner comparison remains open; ADR-0497 remains proposed pending that decision.
+Step5's visual/performance gates remain in [its checklist](2026-10-14-classic-look-step5.md).
 
 ## Design reference
 
@@ -23,14 +22,13 @@ existing command/camera interfaces. No gameplay rules move into UI callbacks.
 
 - [x] Implement confirmed camera/count-based letterbox HUD visibility and ordinary
   input gates, including nested requests and restoration before the bars finish.
-- [ ] Compare intro/modal restoration in original DK2 (Q648/Q649); Q611's
+- Owner comparison: intro/modal restoration in original DK2 (Q648/Q649); Q611's
   direct producer audit and campaign gate subset are in hud-visibility.md.
-- [ ] Inventory install-supplied interface bitmaps, font sizes, widget states and
-  existing asset-provider support. Keep original/derived artwork out of Git.
-- [ ] Resolve the remaining overlay producers and secondary map/corner
-  controls before implementing them; use the current function records and
-  [minimap research](../research/minimap-rendering.md).
-- [ ] Read the remaining layout/input paths. Q197's startup/minimap mechanism is
+- [x] Map the shipped widgets/fonts used by the built HUD and Options through
+  asset providers. Original/derived artwork remains outside Git.
+- Deferred research: remaining overlay producers and secondary controls are
+  bounded by the current records and [minimap research](../research/minimap-rendering.md).
+- Deferred research: remaining layout/input paths. Q197's startup/minimap mechanism is
   established in [portal-visibility.md](../research/portal-visibility.md); its light-source count is verified and entrance lighting built. `0x00427BA0` lays out only indicator menus45-50 (built: research/message-tabs.md §9).
 - [x] Pilot UI Toolkit's custom minimap shader integration and `.bf4` font quality
   at reference and large sizes. Record results before selecting production UI
@@ -58,7 +56,7 @@ Guard Post reporting-distance outlines, Guard Room rectangle, possession ring an
 Alarm ring, textured camera footprint, magnifier zoom and primary click navigation
 and heading-dependent native north marker are built. The zoomed map has the
 native phased Heart direction dots. The camera ribbon is masked
-to the disc; other overlays and corner controls remain. Whole-HUD
+to the disc; unbuilt overlay producers remain explicit in the research. Whole-HUD
 camera/letterbox and campaign result gates are built; Q611's continuation limits
 and original-game checks are in [hud-visibility.md](../research/hud-visibility.md).
 Disc/frame layout and rotation still need owner comparison. Static native menu
@@ -71,8 +69,10 @@ disc entry to the full map are integrated; see
   palette, rotated map, mask and background on the GPU as specified in §13.
 - [x] Add researched creature/trap/door markers, reporting and pulse outlines,
   zoom, camera footprint and primary navigation, preserving discovery rules.
-- [ ] Complete the remaining overlays and corner controls against their research.
-- [ ] Compare beside DK2 at the same location and obtain owner acceptance.
+- [x] Build the researched map/corner controls; unsupported overlay producers
+  remain deferred in the research.
+- Owner comparison: disc/frame/rotation at the same DK2 location; use the
+  [capture checklist](../research/hud-comparison-checklist.md).
 
 ## 6.2 — Top bar
 
@@ -81,7 +81,7 @@ disc entry to the full map are integrated; see
 - [x] Complete resource hover/clicks, payday countdown and wage-bill flashing,
   damage alarms and message flashing. Native evidence and remaining producers:
   [hud-resources.md](../research/hud-resources.md).
-- [ ] Match DK2's anchors, content, states and timing; obtain owner acceptance.
+- Owner comparison: anchors, content, states and timing; use the capture checklist.
 
 ### Cursor and world hover (owner priority, 2026-10-18)
 
@@ -115,9 +115,8 @@ and material contracts remain research/integration work; see
   producers rather than manufacture successful-looking actions.
 - [x] Prevent HUD clicks/drags/scrolls from also issuing world actions. Handle
   pointer capture, cancellation, focus loss and camera controls consistently.
-- [ ] Review debug key bindings against [controls research](../research/controls.md)
-  and the binary before presenting them as original DK2 controls. Keep diagnostics
-  available without making them the player interface.
+- [x] Replace conflicting debug shortcuts with researched keys and bind supported
+  actions through Keyboard Setup; see [controls research](../research/controls.md).
 
 ## Acceptance and boundaries
 
@@ -132,27 +131,27 @@ and the four creature views. Evidence and adapter ordering limitations live in
 [creature-overview.md](../research/creature-overview.md).
 
 Built 2026-10-23: the six indicator boxes (ADR-0532), the menu-40 text scrollbar (message panel scrolls, query panel bar inert as in DK2), Shift-click pinning of two bottom panels. Still open: owner comparison of the research, manufacture and
-spell recharge sectors ([panel-indicators.md](../research/panel-indicators.md) §8); full-map markers/legend;
-the tile +0xB bit 0 "Enemy Wall" status, which needs the Secret Door's tile flag
-and reveal in the simulation (door, trap, dead-body and Casino/Prison fixture status
-built 2026-10-23, the special creature name +0x895 2026-10-24,
-[world-hover-text.md](../research/world-hover-text.md)); remaining layout/input paths and
-Q611's continuation boundary and restoration acceptance. Options exposes Continue; its other rows
-remain disabled until their corresponding frontends exist. These are not
-successful-looking placeholder actions. Save/load/settings frontends require further
-binary work. The hover red pass and its material are built; picking now follows DK2's
+spell recharge sectors ([panel-indicators.md](../research/panel-indicators.md) §8),
+remaining layout/input paths and Q611's continuation/restoration boundary.
+Full-map preview, markers, legend, Lord names and Enemy Wall status are built;
+Enemy Wall reuses the existing Secret Door tile flag without a hash change.
+Options objective, save/load, restart/end and the native Game Options family are
+built; unresolved native policies remain Q683. See [hover text](../research/world-hover-text.md)
+and [Options](../research/options-menu.md). The hover red pass and its material are built; picking now follows DK2's
 two stages (triangle hit, then centre, then the 3×3 sweep, each with its native
 eligibility; [hand-cursor-rendering.md](../research/hand-cursor-rendering.md)); the screen circle,
 the object ownership arm and the resolver's gates are built or mapped (2026-10-24); left:
-terrain occlusion (owner comparison) and the objects-only key (PAGE UP, binding 26). Status flowers have DK2's size, blend,
-countdown, Imprison tag, Leaving/S-Gem and lifts; left: the casino Dollar mesh, the
-trigger window (action 30), the global gate, state 0x110 and the disguise colour,
+terrain occlusion (owner comparison). Objects-only picking (default PAGE UP) is
+built. Status flowers include the casino Dollar mesh and action30's trigger
+window alongside size, blend, countdown, Imprison, Leaving/S-Gem and lifts.
+Remaining research: the global gate, state0x110 and disguise colour,
 [status-flowers.md](../research/status-flowers.md) §3.
 
 Model look, built 2026-10-23: DK2's additive environment-map pass on every model with a 0x40 material, and the loose Portal Gem's float, spin and once-a-second sparkle ([kmf-materials.md](../research/kmf-materials.md) §8, [objects.md](../research/objects.md) §8). Owner checks: Q622 (Lord corpse and armour shine), Q623 (gem), Q637 (shine look).
 
 For each delivered slice: independent review, relevant headless presentation/input
-tests, adapter build, and owner comparison at 1024×768 and 2560×1440 or above.
+tests and adapter build. Owner comparison at1024×768 and2560×1440 remains
+in the capture checklist; prepared Unity images do not close acceptance.
 Check UI scaling, widescreen anchors, readable text, overlapping tooltips and
 no commands passing through the HUD. Profile UI updates and minimap transfers;
 avoid full tile-grid uploads when nothing changed.
@@ -160,6 +159,7 @@ avoid full tile-grid uploads when nothing changed.
 Cursor hover work above is prioritized before the remaining panels. Status-flower
 2D work follows §13 after the core slices; its unknown
 3D/scale behaviour is researched before implementation. The front-end 3D scene,
-audio, new game mechanics and replacement-art production are separate work.
+new game mechanics and replacement-art production are separate work. F8 audio is wired
+(ADR-0583); Unity hearing acceptance remains in the front-end plan.
 Performance P0 remains [its own roadmap](2026-10-17-parallelism-design.md), not a
 new requirement to parallelize the HUD before measuring it.

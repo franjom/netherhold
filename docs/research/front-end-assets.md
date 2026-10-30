@@ -21,11 +21,11 @@ Confidence: **CONFIRMED** = read from the bytes or by a repo reader over every f
 | Camera paths 250-274 | 25 `.KCS` in `Paths.WAD` | `DK2.Data.Camera.KcsCameraPath` | none (format CONFIRMED over all 80 files, camera-paths.md) | — |
 | Fonts `FONT_FRONTEND*.bf4` | 6 | `DK2.Data.Text.Bf4FontReader` (an install test sweeps all 22 `.bf4`) | original glyph metrics and bitmap fallback in F3/F4 | — |
 | String tables | 92 `.str` | `DK2.Data.Text.Dk2StringTable`, `LevelTextTable` | none | — |
-| SDT sound banks | `FrontEndHD`, `GuiHD`, `Patch_1HD`, 10 `Track_*`, 33 speech banks | `DK2.Convert.Audio.SdtArchive` lists the entries and extracts the raw MPEG payload | an MPEG-1/2 **Layer I and Layer II** decoder in memory at run time | medium |
-| `*BANK.map` / `*SFX.map` event maps | 2 per sound object | none | a reader: bank → archive names, event → groups → variants → (sample, archive) | medium |
-| Music sequencing | `musicSFX.map` (27,042 B), 10 `Track_*` archives (9 music, `Track_Zero` the ambience) | none | the segment sequencer: read in `music.md` (map layout, level requests, picker) | medium-large |
-| Movies `.tgq` | 24 files, 213 MB | `DK2.Data.Media` and Unity `ClassicMoviePlayer` | playback proof of concept built; front-end sequencing remains F7 | large |
-| `Settings/HiScores.dat` | 1 | `DK2.Data.Campaign.HiScoresFile` | reader/writer built in F1 (§8); qualification and entry UI remain F5 | small |
+| SDT sound banks | `FrontEndHD`, `GuiHD`, `Patch_1HD`, 10 `Track_*`, 33 speech banks | `DK2.Data.Media.SdtArchive` and `MpegAudioDecoder` | built in F8; scope and limits: ADR-0583 | medium |
+| `*BANK.map` / `*SFX.map` event maps | 2 per sound object | `DK2.Data.Media.BankMap` and `SfxMap` | built in F8; native unknown fields remain explicit | medium |
+| Music sequencing | `musicSFX.map` (27,042 B), 10 `Track_*` archives (9 music, `Track_Zero` the ambience) | `MusicDirector`, `MusicSegmentPicker` and the runtime player | built in F8; remaining producers and acceptance: `music.md` section10 | medium-large |
+| Movies `.tgq` | 24 files, 213 MB | `DK2.Data.Media` and Unity `ClassicMoviePlayer` | decoder and sequencing built; [runtime/owner acceptance](../plans/2026-10-29-hud-and-front-end-completion.md#acceptance-record) | large |
+| `Settings/HiScores.dat` | 1 | `DK2.Data.Campaign.HiScoresFile` | reader/writer and F5 qualification/name entry built; owner acceptance remains in the completion plan | small |
 | Save games (load menu) | `Data/Save/*.SAV`, `*.QSAV` | `DK2.Data.Save.Dk2SaveReader` | whether it reads the fields the load menu lists was not checked | UNKNOWN |
 
 ## 1. `Data/FrontEnd.WAD`
@@ -272,7 +272,7 @@ records it for `SdtArchive`.
 | `Global/GuiHD.sdt` | 411,299 | 66 | 47 | GUI sounds, including the `FE3D TAB END`, `FE3D TAB SLIDE` and `FE3D CLICK ON T…` front-end entries |
 | `Global/Patch_1HD.sdt` | 11,613 | 1 | 1 | "QUIT DUNGEON FX", the `multi_player` bank |
 
-### 5.3 Event maps (`*BANK.map`, `*SFX.map`); no reader in the repo
+### 5.3 Event maps (`*BANK.map`, `*SFX.map`)
 
 A `BANK.map` holds a 16-byte id, two `u32`s and `u32 count` at 0x18, then
 `count` 11-byte records, then length-prefixed archive names. CONFIRMED by
