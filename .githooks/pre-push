@@ -1,0 +1,44 @@
+#!/bin/sh
+# Backstop for commit-msg's leak checks. commit-msg does not run on cherry-pick,
+# rebase, filter-branch or --no-verify; this checks every commit about to leave,
+# however it was made. Patterns are in leak-guard.sh.
+
+. "$(dirname "$0")/leak-guard.sh"
+
+zero=0000000000000000000000000000000000000000
+status=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ "$local_sha" = "$zero" ] && continue   # deleting a remote ref sends nothing
+
+    # Commits the remote does not have yet. A remote tip we have locally gives an
+    # exact range; otherwise (new branch, or a tip we never fetched) everything
+    # not already on a remote-tracking ref.
+    if [ "$remote_sha" != "$zero" ] && git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+        range="$remote_sha..$local_sha"
+    else
+        range="$local_sha --not --remotes=$1"
+    fi
+
+    # Message and both identities, one record per commit, \001 marks the start.
+    hits=$(git log --format='%x01%h%n%an <%ae>%n%cn <%ce>%n%B' $range | awk -v co="$LEAK_COAUTHOR_RE" -v work="$LEAK_WORK_RE" '
+        /^\001/ { c = substr($0, 2); next }
+        { l = tolower($0) }
+        l ~ co || l ~ work { print "    " c ": " $0 }')
+    if [ -n "$hits" ]; then
+        echo "pre-push: $local_ref carries a co-author trailer or the work account:" >&2
+        echo "$hits" | head -20 >&2
+        status=1
+    fi
+
+    # Any added or removed line of text with the work domain, in any commit.
+    files=$(git log --format='    %h %s' --regexp-ignore-case -G"$LEAK_WORK_DOMAIN_RE" $range)
+    if [ -n "$files" ]; then
+        echo "pre-push: $local_ref has commits whose diff touches the work domain:" >&2
+        echo "$files" | head -20 >&2
+        status=1
+    fi
+done
+
+[ $status -ne 0 ] && echo "pre-push: refusing to push. Rewrite those commits first." >&2
+exit $status

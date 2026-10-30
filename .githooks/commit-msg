@@ -13,13 +13,34 @@
 
 TOOL="src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll"
 
-# --- Blocking: AI assistance is credited as Assisted-by, never as a co-author ---
+# --- Blocking: no co-author trailer of any kind, no trace of the work account ---
 #
-# GitHub turns a Co-Authored-By trailer into a contributor entry. Runs before the
-# tool check so an unbuilt tree cannot let one through.
-if grep -qiE '^Co-Authored-By:.*(claude|anthropic|codex|openai|copilot)' "$1"; then
-    echo "commit-msg: AI co-author trailer found. Use 'Assisted-by: Claude <noreply@anthropic.com>'" >&2
-    echo "            (AGENTS.md), never Co-Authored-By." >&2
+# Patterns live in leak-guard.sh, shared with pre-push. Runs before the tool
+# check so an unbuilt tree cannot let one through.
+. "$(dirname "$0")/leak-guard.sh"
+
+if grep -qiE "$LEAK_COAUTHOR_RE" "$1"; then
+    echo "commit-msg: co-author trailer found. No Co-Authored-By of any kind; AI help is" >&2
+    echo "            credited as 'Assisted-by: Claude <noreply@anthropic.com>' (AGENTS.md)." >&2
+    exit 1
+fi
+
+if grep -qi "$LEAK_WORK_RE" "$1"; then
+    echo "commit-msg: the message mentions the work account. Remove it." >&2
+    exit 1
+fi
+
+for ident in GIT_AUTHOR_IDENT GIT_COMMITTER_IDENT; do
+    if git var "$ident" | grep -qi "$LEAK_WORK_RE"; then
+        echo "commit-msg: $ident is the work account: $(git var "$ident" | sed 's/>.*/>/')" >&2
+        echo "            git config user.email franjo.misetic@outlook.com" >&2
+        exit 1
+    fi
+done
+
+if git diff --cached -U0 --no-color --no-ext-diff | grep '^+' | grep -v '^+++' | grep -qiE "$LEAK_WORK_DOMAIN_RE"; then
+    echo "commit-msg: a staged line adds the work domain:" >&2
+    git diff --cached -U0 --no-color --no-ext-diff | grep -n '^+' | grep -iE "$LEAK_WORK_DOMAIN_RE" | head -5 >&2
     exit 1
 fi
 
