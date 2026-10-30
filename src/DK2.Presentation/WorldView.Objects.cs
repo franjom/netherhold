@@ -167,11 +167,17 @@ public sealed partial class WorldView
         if (thing.ObjectTypeId == HeroBedId || thing.CreatureId <= 0) return false;
         if (_database.ObjectById(thing.ObjectTypeId) is not { } definition || !definition.Flags.HasFlag(ObjectFlags.TypeLair))
             return false;
-        return world.CreatureById(thing.CreatureId) is { Dk2StateId: LairRules.SleepingState } sleeper
-            && !IsMistressBedEntrance(world, sleeper);
+        if (world.CreatureById(thing.CreatureId) is not { } sleeper) return false;
+        return sleeper.Dk2StateId == LairRules.SleepingState && !IsMistressBedEntrance(world, sleeper)
+            || sleeper.Dk2StateId == LairRules.MistressBedExitState && !IsMistressBedExit(world, sleeper);
     }
 
     private const byte HeroBedId = 6;
+
+    private bool IsMistressBedExit(WorldState world, CreatureState creature) =>
+        creature.Dk2StateId == LairRules.MistressBedExitState
+        && world.CurrentTick.Value - creature.StateEnteredTick > 1
+        && LairRules.BedOf(world, _database, creature) is { ObjectTypeId: LairRules.MistressBedObjectId };
 
     private bool IsMistressBedEntrance(WorldState world, CreatureState creature)
     {
@@ -309,11 +315,12 @@ public sealed partial class WorldView
         }
         GameTick? objectAnimationStartedAt = stateAnimation ? new GameTick(thing.ProcessDeadline) : null;
         if (thing.ObjectTypeId == LairRules.MistressBedObjectId && world.CreatureById(thing.CreatureId) is { } sleeper
-            && IsMistressBedEntrance(world, sleeper))
+            && (IsMistressBedEntrance(world, sleeper) || IsMistressBedExit(world, sleeper)))
         {
             slot = 7;
             stateAnimation = true;
-            objectAnimationStartedAt = new GameTick(sleeper.StateEnteredTick);
+            objectAnimationStartedAt = new GameTick(sleeper.StateEnteredTick
+                + (sleeper.Dk2StateId == LairRules.MistressBedExitState ? 1 : 0));
         }
         if (thing.ObjectTypeId == CallToArmsRules.ObjectTypeId)
             objectAnimationStartedAt = new GameTick(thing.AnimationStartedTick);

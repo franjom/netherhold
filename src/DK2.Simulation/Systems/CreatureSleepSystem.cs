@@ -40,6 +40,11 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         GameDatabase database = context.Database;
         if (creature.Possessed) return;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        if (creature.Dk2StateId == LairRules.MistressBedExitState)
+        {
+            if (!HandRules.IsHeld(creature)) ExitMistressBed(context, creature);
+            return;
+        }
 
 
         // Explicit lair states run their own eligibility checks; autonomous
@@ -428,7 +433,27 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             $"player={creature.OwnerPlayerId} slept={creature.SleepTicks} " +
             $"health={creature.Health}/{definition.Hp}");
 
-        Wake(context, creature);
+        if (LairRules.BedOf(context.World, context.Database, creature) is { ObjectTypeId: LairRules.MistressBedObjectId })
+            StateShadow.Move(context, SystemName, creature, LairRules.MistressBedExitState);
+        else Wake(context, creature);
+    }
+
+    private static void ExitMistressBed(SimulationContext context, CreatureState creature)
+    {
+        ObjectState? bed = LairRules.BedOf(context.World, context.Database, creature);
+        if (bed is null) return;
+        int hold = AnimationTimingRules.FirstCycleHoldTicks(context.Database.ObjectById(bed.ObjectTypeId)!.ArtSlot(7));
+        if (context.Tick.Value - creature.StateEnteredTick <= hold) return;
+        CreatureStateMachine.EndAction(creature);
+        PlaceOnBed(context.World, creature, bed);
+        creature.PosZ = bed.PosZ;
+        creature.LastBedExitTick = context.Tick;
+        // The native offset is in12.12 units; ours uses16.16 positions.
+        int angle = (-410 * bed.Heading) & 0x7FF;
+        creature.PosX += (TrapRules.Sine(angle) >> 16) << 4;
+        creature.PosY += (TrapRules.Cosine(angle) >> 16) << 4;
+        creature.SleepTicks = 0;
+        StateShadow.Move(context, SystemName, creature, ImpStates.Wandering);
     }
 
     private static void PlaceOnBed(WorldState world, CreatureState creature, ObjectState bed)

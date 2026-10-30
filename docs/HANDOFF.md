@@ -11,6 +11,11 @@ The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
+- The Mistress bed exit runs through state 84 at hash/save 335 (ADR-0586).
+  Its inferred completion clock and presentation contract are in
+  [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
+  native playback acceptance remains Q685.
+
 - Hand drops animate only after acceptance (ADR-0582); native packet-submit
   timing and pending-entry scheduling remain partial (Q682).
 

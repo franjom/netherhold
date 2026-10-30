@@ -4120,10 +4120,10 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** The lair states 80–83 were read, but 82's "too far" exit to 81 is a move DK2's rule refuses. Reading 82 settled it: every move it makes falls back to idle and retries, so 81 is reached through state 1. With that, the whole chain is legal.
 
 **Decision.**
-1. **`SeekingLair`, `GoingToSleep` and `Sleeping` retire together.** The lair attempt walks in 7 resuming in 80; 80 re-walks in 6 resuming in 80; a wounded creature's 80 moves to 81; the Sleep job walks in 7 resuming in 81; 81 walks in 6 resuming in 82; 82 moves to 83. Healthy after placement, a blocked walk and waking all go to 1 and release.
+1. **`SeekingLair`, `GoingToSleep` and `Sleeping` retire together.** The lair attempt walks in 7 resuming in 80; 80 re-walks in 6 resuming in 80; a wounded creature's 80 moves to 81; the Sleep job walks in 7 resuming in 81; 81 walks in 6 resuming in 82; 82 moves to 83. Healthy after placement, a blocked walk and ordinary waking go to 1 and release; the Mistress bed exits through 84 (ADR-0586).
 2. **Our one walk to a bed is DK2's two.** The switch from 7 to 81's walk in 6 happens on the first tile of the bed's room, because our route goes straight to the bed.
 3. **The shared moves live in `StateShadow`**, used by the eating, job and lair systems: `Move`, `MoveOrViaIdle` (82's retry through idle), `Arrive` and `ToIdle`.
-4. **Not built:** 79 (no known entry), 84 (the Mistress bed's exit) and 82's "too far" branch, since our creature always arrives on its bed.
+4. Later slices build 79 (ADR-0450) and 84 (ADR-0586). State 82 retains its tile-level arrival approximation (ADR-0460).
 
 **Consequences.**
 - As with eating, 80 and 82 are entered and left inside one tick, so the traces pin them through the saved caller and the resume slot, not by being seen. With 80's candidate walk resuming in 81, with the Sleep job walking in 6, or with the wounded 80 not moving to 81, a trace test fails. Dropping `Sleeping` from the retired set fails the cross-shim test.
@@ -10608,9 +10608,8 @@ an existing departure route only when its travel resumes in state 195;
 an unrelated wander route must not bypass portal selection. Evidence:
 research/creature-leaving.md §1.
 
-**Consequences.** The changes apply across maps. State 82's existing tile-level
-arrival approximation and the Mistress's unbuilt wake-door sequence remain
-fidelity boundaries; this change restores sleep entry, not that exit sequence.
+**Consequences.** The changes apply across maps. State 82 retains its tile-level
+arrival approximation. ADR-0586 supplies the Mistress bed exit.
 
 ## ADR-0459 — A tunneller's walks keep their destination within its own tile
 **Date:** 2026-10-13 · **Status:** accepted · advances ADR-0222, ADR-0430 · Research: `docs/research/tunnelling.md` §5, hero-party-walk.md §1
@@ -13644,5 +13643,21 @@ hero path passes over a hero with any target but the Imp.
 dungeon or states 75, 269, 272, 273 and 278-280 cannot. Our leaving guard (194-196, 169, 242)
 approximates `0x0045A8B0`'s `+0x3E6` bit 14 (`Leaving`, `0x0045A924`), set by state 194; whether a thief
 escaping in 169 carries it is open (ours refuses it). Our Reaper guard (228-237) and hand guard are not
-yet matched to a test there (vtable `+0x28`, `+0x46F` bit 3 unread). State 84 (the Mistress bed's exit)
-is not built, so no creature of ours holds it.
+yet matched to a test there (vtable `+0x28`, `+0x46F` bit 3 unread). State 84 is built by ADR-0586.
+
+## ADR-0586 - Complete the Mistress bed exit through state 84
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 335 · Q685.
+
+**Context.** The Mistress woke directly to idle, bypassing the bed-exit handler.
+The native reading remains LIKELY in [0046FE90](research/functions/0046FE90.md).
+
+**Decision.** Dispatch state 84 through the sleep system and classic bed/creature
+presentation, then enter wandering without running its handler in that update.
+Use the existing first-cycle resource clock for completion. Save and hash a
+`LastBedExitTick` stamp for the completion pose; it is modern adapter provenance,
+not a native field. The adapter contract is in
+[object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586).
+
+**Consequences.** State coverage marks 84 built and its activity alias is Sleeping.
+Hash/save 335 refuses 334 saves and journals. Exact native timing and resource
+retention remain Q685; this decision does not establish playback parity.

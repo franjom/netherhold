@@ -288,6 +288,7 @@ public static class LairRules
     public const int GoingToBedState = 81;
     public const int LyingDownState = 82;
     public const int SleepingState = 83;
+    public const int MistressBedExitState = 84;
 
     /// <summary>Puts this creature's own bed on the first free tile of any lair its
     /// keeper owns, from wherever it happens to be — <b>with no journey</b>. Not how a
