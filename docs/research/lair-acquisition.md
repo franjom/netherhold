@@ -371,6 +371,8 @@ Three exits, each read instruction by instruction on 2026-09-24:
 Every other move of the chain is legal under the rule: 1→7, 80→81, 81→6, each
 handover, and 80, 81, 82 and 83 down to 1.
 
+State 84 is built; see the [adapter contract](object-drawing.md#81-state-84-adapter-adr-0586).
+
 ## Tests
 
 `LairAcquisitionTests` and `CreatureAngerTests`

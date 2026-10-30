@@ -97,7 +97,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(81, typeof(LairRules), nameof(LairRules.GoingToBedState)));
         rows.Add(Built(82, typeof(LairRules), nameof(LairRules.LyingDownState)));
         rows.Add(Built(83, typeof(LairRules), nameof(LairRules.SleepingState)));
-        rows.Add(Unbuilt(84, "read in lair-acquisition.md 9; not built"));
+        rows.Add(Built(84, typeof(LairRules), nameof(LairRules.MistressBedExitState)));
         rows.Add(Built(85, typeof(JobRules), nameof(JobRules.StateFor)));
         rows.Add(Built(86, typeof(TunnelRules), nameof(TunnelRules.WanderState)));
         rows.Add(Built(87, typeof(ImpStates), nameof(ImpStates.Wandering)));

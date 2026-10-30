@@ -420,6 +420,9 @@ public sealed class CreatureState
     /// <summary>Native LastSleptTime (+0x54): refreshed on debt reload and each state-83 update.</summary>
     public GameTick LastSleptTick;
 
+    /// <summary>Modern state-84 completion stamp for its completion-turn pose (ADR-0586).</summary>
+    public GameTick LastBedExitTick = new(-1);
+
     /// <summary>Unpaid sleep need (+0x58), in ticks; only state 83 pays it down.</summary>
     public int SleepDebtTicks;
 
@@ -1349,6 +1352,7 @@ public sealed class CreatureState
         hash.Add(FoodOwedAfterMeal);
         hash.Add(FoodAttemptTicks);
         hash.Add(LastSleptTick.Value);
+        hash.Add(LastBedExitTick.Value);
         hash.Add(SleepDebtTicks);
         hash.Add(NextSleepTryTick.Value);
         hash.Add(SleepTicks);

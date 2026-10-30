@@ -198,7 +198,7 @@ rebound; consumers outside the current campaign adapter remain dimmed.
 3. **The Define Keys action roster.** Closed by the [native row mapping](functions/00560FD0.md):63 rows, including Restart and action63. Our list shows all native names and permits capture for implemented consumers.
 4. **Remaining camera constants and presets.** Built motion rules and their
    native evidence live in classic-camera.md §7. F1/F2/F3 preset consumers and
-   user-camera storage remain unavailable; the sensitivity backend link is Q686.
+   user-camera storage remain unavailable; the sensitivity backend link is Q687.
 
 ## Pointer delta and sensitivity
 
@@ -212,6 +212,6 @@ The profile sensitivity field is+0xF5 (global00759C21); its missing-registry pat
 stores2, while the two settings pages declare slider bounds5..20. The setter
 persists the raw integer. Bounded absolute-reference and field-read scans found
 storage/UI consumers; their relationship to the device multiplier remains
-UNKNOWN (Q686). The adapter multiplies pointer displacement by the clamped
+UNKNOWN (Q687). The adapter multiplies pointer displacement by the clamped
 5..20 setting divided by10. This is a host adaptation, not a confirmed native
 sensitivity curve.

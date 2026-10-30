@@ -71,6 +71,6 @@ public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modi
     public bool ZoomIn => Held(GameAction.ZoomIn, true) || Held(GameAction.CameraModifier) && Held(GameAction.ScrollUp);
     public bool ZoomOut => Held(GameAction.ZoomOut, true) || Held(GameAction.CameraModifier) && Held(GameAction.ScrollDown);
 
-    // Modern host mapping only: the native sensitivity consumer remains unresolved (Q686).
+    // Modern host mapping only: the native sensitivity consumer remains unresolved (Q687).
     public static Vector2 HostPointerDelta(Vector2 delta, int sensitivity) => delta * (Math.Clamp(sensitivity, 5, 20) / 10f);
 }

@@ -196,11 +196,9 @@ creature vtable `+0x278` call on the bed (at `0x0046FAF9`, meaning unread) retur
   `door_opens`; normalized 12.12 phase greater than 25 moves the Mistress onto
   the bed (the shipped clip crosses this on its first advance). When it ends it sets her draw
   bit, clears the bed's, and starts action 24. On waking it goes to state 84.
-- **State 84 is `0x0046FE90`**: the turn handler in table entry 84 (`0x0047D15C` stores
-  it; entry 83 holds `0x0046FA60`). It is not a category enter/leave hook. On its first
-  turn (`+0x1C == 1`) it plays #7 again with the bed drawn and the Mistress hidden. When
-  the clip ends it shows her, reinstalls the bed's #0 and sets her next state. Only the
-  Mistress bed reaches 84 (`lair-acquisition.md`).
+- **State 84:** native handler verdict and exit-art evidence live in
+  [0046FE90](functions/0046FE90.md). The built adapter and its completion pose
+  are described in [object-drawing.md section 8.1](object-drawing.md#81-state-84-adapter-adr-0586).
 - **A bed's #5 swing:** no bed-specific installer was found. The generic "struck"
   state 18 (`0x004A13F0`) would install any object's #5. Beds also hold the swing in file
   #3, the in-hand art the hand installs (§3), so a bed in the hand swings. Whether a bed's
@@ -272,6 +270,17 @@ animation metadata comes from the nine file resources. Launch collisions use
 the engine's terrain solids; original voxel volumes, liquid contacts and floor
 geometry outside the Hatchery remain absent. The Hatchery ground zones follow
 `0x004545C0`; other room floors retain the engine's existing approximation.
+
+### 8.1 State 84 adapter (ADR-0586)
+
+State 84 is built in `CreatureSleepSystem`, with classic bed/creature drawing in
+`WorldView`. The native verdict is [0046FE90](functions/0046FE90.md); Q685 owns
+the remaining native timing and resource questions. Completion uses
+`FirstCycleHoldTicks` and `StateEnteredTick`, an inferred clock. Saved and hashed
+`LastBedExitTick` (default -1) selects a static first walk pose for the completion
+simulation turn only; several rendered frames can occur in that turn. Other
+idle actors keep their existing selection. Tests: `MistressBedExitTests` and
+`ObjectPlacementTests.MistressBedExitUsesTheInferredClipClockAndRestoresBothOnCompletion`.
 
 ## 9. Torture victims on wheels
 

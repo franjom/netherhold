@@ -11,6 +11,11 @@ The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
+- The Mistress bed exit runs through state 84 at hash/save 335 (ADR-0586).
+  Its inferred completion clock and presentation contract are in
+  [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
+  native playback acceptance remains Q685.
+
 - Hand drops animate only after acceptance (ADR-0582); native packet-submit
   timing and pending-entry scheduling remain partial (Q682).
 
@@ -219,15 +224,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 ## Classic look
 
-HUD/front-end completion (Codex's `codex/hud-completion-final`) is merged to
-master (2026-10-30); it awaits the owner's play, visual and hearing acceptance. Startup,
-gallery/attract, Options objective/settings/save/load/restart/end, runtime audio,
-rebound keys, scalable HUD, full-map preview/markers/legend and hover/flower
-leftovers are built. The [completion plan](plans/2026-10-29-hud-and-front-end-completion.md)
-owns the runtime evidence and owner acceptance table; the
-[HUD comparison checklist](research/hud-comparison-checklist.md) owns captures.
-ADR-0497 remains proposed pending owner comparison. Host settings adaptations
-and disabled consumers are in research/front-end-menus.md section6.
+HUD/front-end completion (`codex/hud-completion-final`) is merged (2026-10-30), awaiting owner play,
+visual and hearing acceptance: startup/gallery, Options pages, save/load, runtime audio, rebound keys,
+scalable HUD, full map and hover/flower leftovers. Evidence and acceptance: [completion plan](plans/2026-10-29-hud-and-front-end-completion.md);
+captures: [HUD checklist](research/hud-comparison-checklist.md). ADR-0497 stays proposed; host settings in front-end-menus.md §6.
 
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,

@@ -35,7 +35,7 @@ implemented. Prepared HUD captures and original-game requests live in the
 
 Owner play, hearing and matched-original acceptance remain open. The PhaseF
 table below records automated runtime evidence separately. Unresolved policies
-and disabled consumers remain explicit in Q683/Q685/Q686 and the research;
+and disabled consumers remain explicit in Q683/Q686/Q687 and the research;
 this implementation adds no simulation hash change.
 
 ## 1. Rules for the executor
@@ -443,8 +443,8 @@ The original-game comparison requests and capture paths have one home in the
 | 6 | 1024×768 and 2560×1440 sizing/readability | E5 checklist has both-size full-view captures; A6 checks1440p scrollbar; final scaled-hit probe checks100/125/capped200% | [ ] Compare both sizes |
 
 ADR-0497 remains proposed until the owner accepts the comparisons. Credits,
-unresolved page26 paragraph(Q685), native overwrite/disable policies(Q683),
-sensitivity backend mapping(Q686) and unsupported settings/actions retain their
+unresolved page26 paragraph(Q686), native overwrite/disable policies(Q683),
+sensitivity backend mapping(Q687) and unsupported settings/actions retain their
 documented limits. Distant full-map preview lighting is not established by the
 Heart-only fixture. The owner's next gameplay feedback defines the next plan.
 

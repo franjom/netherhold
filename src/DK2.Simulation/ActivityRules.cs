@@ -98,7 +98,7 @@ public static class ActivityRules
         LairRules.SelectingBedState or LairRules.MakingAHomeState => CreatureActivity.SeekingLair,
         LairRules.GoingToBedState => creature.CurrentJob == JobType.Sleep ? CreatureActivity.AtWork : CreatureActivity.GoingToSleep,
         LairRules.LyingDownState => CreatureActivity.GoingToSleep,
-        LairRules.SleepingState => CreatureActivity.Sleeping,
+        LairRules.SleepingState or LairRules.MistressBedExitState => CreatureActivity.Sleeping,
         EatingRules.FindHatcheryState or EatingRules.InHatcheryState or EatingRules.AfterMealState => CreatureActivity.SeekingFood,
         EatingRules.EatState => CreatureActivity.FetchingChicken,
         ChickenRules.ChickenState => CreatureActivity.Chicken,

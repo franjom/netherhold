@@ -1481,7 +1481,7 @@ public sealed partial class WorldView
             if (creature.InHand) continue;
             // The finale Reaper's draw bit (+0xF3 bit 0) is off from state 228 until 230.
             if (creature.ReaperHidden) continue;
-            if (IsMistressBedEntrance(world, creature)) continue;
+            if (IsMistressBedEntrance(world, creature) || IsMistressBedExit(world, creature)) continue;
             TilePos position = creature.Tile;
             if (!IsVisible(world, position)) continue;
 
@@ -1510,10 +1510,11 @@ public sealed partial class WorldView
             bool castAnimation = IsCastAnimation(creature, world.CurrentTick);
             bool trainingAnimation = IsTrainingAnimation(creature);
             bool entranceAnimation = creature.Dk2StateId == PortalRules.JoiningState;
-            bool playsAnimation = PlaysMappedAnimation(creature, world.CurrentTick);
+            bool bedExitPose = IsBedExitPose(creature, world.CurrentTick);
+            bool playsAnimation = !bedExitPose && PlaysMappedAnimation(creature, world.CurrentTick);
             AssetRef animation = AnimationFor(creature, world.CurrentTick);
             bool stationaryMovement = animation == _creatureAnimations[creature.CreatureTypeId]["movement_idle"];
-            if (stationaryMovement) mesh = animation;
+            if (stationaryMovement || bedExitPose) mesh = animation;
             if (creature.Activity == CreatureActivity.Dead)
                 mesh = _creatureCorpses[creature.CreatureTypeId];
             if (AttachedWheel(world, creature) is { } wheel)
@@ -1587,6 +1588,10 @@ public sealed partial class WorldView
         }
     }
 
+    private static bool IsBedExitPose(CreatureState creature, GameTick tick) =>
+        creature.Dk2StateId == ImpStates.Wandering && creature.LastBedExitTick.Value >= 0
+        && creature.LastBedExitTick.Value == tick.Value - 1;
+
     /// <summary>
     /// The animation key for a creature's current activity.
     ///
@@ -1600,6 +1605,7 @@ public sealed partial class WorldView
         if (creature is null) throw new ArgumentNullException(nameof(creature));
 
         CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
+        if (IsBedExitPose(creature, tick)) return _creatureAnimations[creature.CreatureTypeId]["moving_to_job"];
         string clip = ActivityKeySegment(creature.Activity);
         if (creature.Dk2StateId == PortalRules.JoiningState) clip = "entrance";
         else if (IsDropRecoveryAnimation(creature)) clip = creature.Dk2StateId == DropLandingRules.GettingUpState

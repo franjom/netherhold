@@ -109,6 +109,7 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         }
         if (creature.Dk2StateId == ImpStates.Wandering)
         {
+            if (context.UpdateStartStateId == LairRules.MistressBedExitState) return;
             if (!ImpTaskSystem.Wander(context, creature, definition)) StateShadow.ToIdle(context, SystemName, creature);
             return;
         }

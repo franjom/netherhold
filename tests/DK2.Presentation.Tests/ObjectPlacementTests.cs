@@ -301,6 +301,31 @@ public class ObjectPlacementTests
         Assert.True(sleeping.PlaysAnimation);
     }
 
+    [InstallFact]
+    public void MistressBedExitUsesTheInferredClipClockAndRestoresBothOnCompletion()
+    {
+        Room room = Carve(RoomTypeId.Lair, 3, 3);
+        CreatureDef mistress = room.Database.Creatures.Values.First(c => c.LairObjectId == 23);
+        CreatureState creature = room.World.SpawnCreature(room.Database, mistress.CreatureId, Keeper, new TilePos(X0 + 1, Y0 + 1));
+        ObjectState bed = LairRules.PlaceBed(room.World, room.Database, creature, room.World.TileIndex(creature.Tile));
+        CreatureStateMachine.TrySetState(new StateHookContext(room.World, room.Database), creature, 84, currentTick: 0);
+        var sim = new GameSimulation(room.Database, room.World, 42, [new DK2.Simulation.Systems.CreatureSleepSystem()]);
+        sim.Run(2);
+        ObjectView exit = room.View.Objects(room.World).Single(o => o.Id == bed.Id);
+        Assert.Equal(AssetCatalogue.ObjectArt(room.Database.ObjectById(23)!.Name, 7), exit.Mesh);
+        Assert.Equal(new GameTick(1), exit.AnimationStartedAt);
+        Assert.False(exit.AnimationLoops);
+        Assert.DoesNotContain(room.View.Creatures(room.World), c => c.Id == creature.Id);
+        int hold = AnimationTimingRules.FirstCycleHoldTicks(room.Database.ObjectById(23)!.ArtSlot(7));
+        sim.Run(hold);
+        Assert.Equal(87, creature.Dk2StateId);
+        Assert.Equal(AssetRef.ForObject(room.Database.ObjectById(23)!.Name, AssetKind.Mesh),
+            room.View.Objects(room.World).Single(o => o.Id == bed.Id).Mesh);
+        CreatureView restored = room.View.Creatures(room.World).Single(c => c.Id == creature.Id);
+        Assert.Equal(AssetRef.ForCreature(mistress.Name, AssetKind.Animation, "moving_to_job"), restored.Animation);
+        Assert.False(restored.PlaysAnimation);
+    }
+
     /// <summary>A Prison's door and bar stand on its door tile, facing 0x400 (<c>0x004E32C0</c>).</summary>
     [InstallFact]
     public void APrisonStandsItsDoorAndBarOnTheDoorTile()
