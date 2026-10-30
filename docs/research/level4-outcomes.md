@@ -209,6 +209,8 @@ Dwarfs dying first 13 / 4.4 / 8.0. Back-offs ending in a walk home stay 25.0: mo
 The h339 step back walked a route, which turned the heading and flipped the next turn's "behind". Keeper
 creatures backing off in 203 (stays of 4+ turns), per DK2 / h338 / h339 (`backoff-motion.out`,
 `backoff-damage.out`): 0.069 / 0.072 / 0.004 tiles a turn, 94% of h339's never leaving their tile; health
-share lost a turn in 203 0.0071 / 0.0092 / 0.0149. At hash 340 (ADR-0594, scratch: eight runs, one generator
-per state, not evidence-grade) 0.090 tiles a turn, 23% never leave their tile (DK2 25%), 0.0064 lost a turn.
-The 40-run measurement is not yet made.
+share lost a turn in 203 0.0071 / 0.0092 / 0.0149. At hash 340 (ADR-0594; 40 runs, README "Hash 340"):
+0.092 tiles a turn, 19% never leave their tile, 0.0068 lost a turn; healthy back-offs ending in the fight
+43.2 and in a walk home 18.2 (DK2 52 / 13). Zone hero-ticks 10,998 (DK2 8,405; h340 - h338 p 0.12),
+hero-Imp pair-ticks 54,937 (34,288; h340 - h339 p 0.023), Dwarfs dying first 7.8 (13), Imp deaths per run
+29.1 (21.75; h340 - h339 p 0.59): the back-off matches DK2's, the deaths do not move.
