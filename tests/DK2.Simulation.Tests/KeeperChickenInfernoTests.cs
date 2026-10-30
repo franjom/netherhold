@@ -17,6 +17,31 @@ public class KeeperChickenInfernoTests
     private const byte Keeper = 3, Rival = 4;
     private const byte ImmuneId = 40, SalamanderId = 41, FireflyId = 42, BoltId = 99;
 
+    [Fact]
+    public void InfernoRearmsBurningForItsWholeLifeAndTheLastFlamesFollowOnTheNextCreatureTurn()
+    {
+        var (db, world) = Setup();
+        CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
+        target.Health = 1000;
+        var sim = new GameSimulation(db, world, 1,
+            [new KeeperSpellSystem(), new CreatureStatusSystem(), new ShotSystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+        sim.Tick(InputFrame.Of(new CastSpellAtPlaceCommand(Keeper, KeeperSpellRules.Inferno, target.PosX, target.PosY)));
+        Assert.Equal(1, target.BurningTicks);
+        for (int tick = 1; tick < 30; tick++)
+        {
+            sim.Tick();
+            Assert.Equal(1, target.BurningTicks);
+        }
+        Assert.Empty(world.Shots);
+        Assert.Equal(87, events.Events.Count(e => e.EffectRequest is ViewEffectRequest r && r.EffectId == new EffectId(88)));
+        sim.Tick();
+        Assert.Equal(90, events.Events.Count(e => e.EffectRequest is ViewEffectRequest r && r.EffectId == new EffectId(88)));
+        Assert.False(target.IsBurning);
+        Assert.Equal(700, target.Health);
+    }
+
     // ------------------------------------------------------------------ Chicken
 
     [Fact]

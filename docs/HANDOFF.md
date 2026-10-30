@@ -18,9 +18,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 - Hand drops animate only after acceptance (ADR-0582); native packet-submit
   timing and pending-entry scheduling remain partial (Q682).
-
-- Thunderbolt captive-binding and expired-stun-effect guards are built at
-  hash/save 332 (ADR-0581); Combat Pit binding integration remains Q675.
+- Burning simulation is built at hash/save 343 (ADR-0595); presentation and native
+  stream acceptance remain [shot-effects.md section5](research/shot-effects.md#5-the-inferno), Q658.
+- Thunderbolt guards are built at hash/save 332 (ADR-0581); Pit binding remains Q675.
 
 - Sleep debt, needs-clock suppression and tired retries are built at hash/save 330
   (ADR-0579, Q651/Q674). Native replay outcomes remain measured only through

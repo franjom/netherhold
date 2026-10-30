@@ -1165,6 +1165,10 @@ public sealed class CreatureState
     public int PoisonTicks;
     public int PoisonAmount;
     public byte PoisonOwner;
+    /// <summary>Original words +0x469 and +0x46B: fire countdown and the burner's player tag.</summary>
+    public ushort BurningTicks;
+    public ushort BurningOwnerTag;
+    public bool IsBurning => BurningTicks != 0;
     public int StunTicks;
 
     /// <summary>DK2's <c>ChickenTimer</c> (<c>+0x44B</c>): set to data1 × ticks-a-second by the Chicken
@@ -1535,6 +1539,8 @@ public sealed class CreatureState
         hash.Add(PoisonTicks);
         hash.Add(PoisonAmount);
         hash.Add(PoisonOwner);
+        hash.Add(BurningTicks);
+        hash.Add(BurningOwnerTag);
         hash.Add(StunTicks);
         hash.Add(ChickenTicks);
         hash.Add(TurncoatTicks);

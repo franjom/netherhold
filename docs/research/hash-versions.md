@@ -14,7 +14,9 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
-**342** - `0x5E4D855251A4E4F0`. FormatVersion also 342. Behaviour only: melee action 17 stays busy for `ActionHoldTicks` turns instead of one fewer, so the next swing begins a turn later when the clip is the longer clock (ADR-0598). No fields added; saves and journals from 340 are refused. 341 is left to the concurrent shot-effects branch. `CombatAnimationTests` pins the busy window and the Guard, Dwarf and Thief hit intervals.
+**343** - `0xC9236A4CFBFEC07D`. FormatVersion also343. Burning words, ignition and nine simulation draws per active creature per turn; status moves into each creature update before action/fight on master342's melee hold (ADR-0595).
+
+**342** - `0x5E4D855251A4E4F0`. FormatVersion also 342. Behaviour only: melee action 17 stays busy for `ActionHoldTicks` turns instead of one fewer, so the next swing begins a turn later when the clip is the longer clock (ADR-0598). No fields added; saves and journals from 340 are refused. `CombatAnimationTests` pins the busy window and the Guard, Dwarf and Thief hit intervals.
 
 **340** - `0x29DB932DDB58A140`. FormatVersion also 340. Behaviour only: the step back slides the creature a sixteenth of its vector in sub-steps, as the physical pass spends DK2's impulse, with the heading and the route kept (ADR-0594). No fields added; saves and journals from 339 are refused. `StepBackTests` covers the slide.
 

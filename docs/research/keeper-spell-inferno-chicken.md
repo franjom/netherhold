@@ -292,8 +292,9 @@ the timer's end, with `CreatureState.ChickenTicks` read by the fight gate, the f
 accumulator and the Pit finder; `ChickenSystem` runs state 96; the battle step casts
 both from captured permissions. Approximations: the Hatchery is measured from its
 centroid tile rather than `NavigationPos`, and the tile box clamps to the last
-column. Not modelled: burning, the source stamp, bridge command 10, the chicken art
-and `+0xF2`. Level 18's Nemesis casts both unaided
+column. Burning simulation is built (ADR-0595); its presentation and native stream
+acceptance are in [shot-effects.md section5](shot-effects.md#5-the-inferno). The health
+source stamp is built. Not modelled: bridge command 10, the chicken art and `+0xF2`. Level 18's Nemesis casts both unaided
 (`scenarios/keepers/level18_nemesis_inferno_chicken.yaml`). Inferno needs a stationary 30-tick
 shot with process 30. The battle step's predicted permission for Chicken is
 Thunderbolt's location test with target 3, and for Inferno the location test alone,

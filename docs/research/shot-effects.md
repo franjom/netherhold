@@ -208,6 +208,10 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
 - `0x0048EBD0` stores ticks at `+0x469` and the burner at `+0x46B`. The Inferno sets 1 every
   tick (`0x004AF821`). A fire-category shot sets it only on a creature at or under a fifth of
   its health: 10 ticks by contact damage (`0x004AC526`), 5 by Modify Health (`0x004ADC4C`).
+  Both read health before the hit and test unsigned32-bit `health*100 / levelScaledMaximum <= 20`
+  with truncation; only terrain bit0x80 (Water) suppresses ignition. The height bound is
+  `0x004B5D80`: unsigned definition+0x648, scaled by HeightTiles above level1; the
+  loader truncates file Height and FootprintRadius to unsigned words.
 - Each tick of `0x0048E160`, while `+0x469` is nonzero:
   - it decrements it;
   - it keeps sound `0x340` from the creature's bank running;
@@ -219,8 +223,18 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
 - At zero it clears the overlay (`0x004B4610`) and `+0x46B`, and stops the sound.
 - The chooser `0x0048BE50` gives a burning creature the additive red material (world
   `+0xA36B`, at `0x0048BEE8`). Frozen, poison and invisible take precedence.
-- The draws make burning a **simulation** matter as well as a look: none is modelled in ours,
-  so the stream diverges from the first burning tick (Q658).
+- Burning simulation is built (ADR-0595): the saved/hashed words, three ignition paths,
+  countdown and ordered draws run inside each creature update before its action/fight, newest
+  first. Corpse records and Horny skip the pass; the expiry tick still requests three flames.
+  Both fire handlers ignite dying creatures before our existing health-change refusal.
+  Sound `0x340` and the red overlay await presentation.
+
+**Native comparison (2026-10-30, Q658).** The existing Level4 seed01 capture first records
+burning on slot419 (type18) at snapshot3940, with ten ticks falling to zero at3950.
+One modern fixed-map replay through turn3952 (`--rng dk2 --seed 1`) completed and requested
+30 effect88 flames. Its seeds already differ before the native ignition (snapshots3937
+to3939), so this run does not establish burning-stream alignment or isolate its cause.
+SHA-256-verified artifacts: `D:/DK2Evidence/experiments/shot-burning-hash340-20261030T161144Z/`.
 
 ## 6. Procedural lightning (art type 7)
 
@@ -295,7 +309,8 @@ cached: **a new shape every rendered frame**.
 ## 7. Ours
 
 - **Built:** the effect engine's type 4 with `0x40`, `0x400` slot choice, Next chains, the
-  attachment arm for creatures, lights and their flags, type-5 mesh elements.
+  attachment arm for creatures, lights and their flags, type-5 mesh elements; creature burning
+  simulation, including ignition, nine ordered draws and effect88 requests (ADR-0595).
 - **Not built:**
   - every shot effect request of §2 (no trail, creation, timed, hit or death effect);
   - the shot attachment arm;
@@ -306,7 +321,7 @@ cached: **a new shape every rendered frame**.
   - the hit ids of effects and elements;
   - element flag `0x40` and element NextEffectId;
   - generation types 18, 14, 6 and 3;
-  - creature burning (simulation and display);
+  - creature burning overlay and sound;
   - the Inferno camera jitter;
   - art type 7.
 

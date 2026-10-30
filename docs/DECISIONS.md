@@ -6692,7 +6692,8 @@ damage, Salamanders spared, Fairies and Fireflies burning, and a recast timeout.
 2. Shot process 30 (`InfernoRules.Burn`, `0x004AF660`) runs before each move: every creature of any
    owner on a non-solid tile with `dx²>>12 + dy²>>12` below `(data2<<12)²>>12`, halved on the first
    tick, takes data1 through the health routine unless its kind walks on lava without flying, and
-   unless it is held, carried or down. Burning, the source stamp and bridge command 10 are display.
+   unless it is held, carried or down. Burning is superseded by ADR-0594; the health source
+   stamp is built, while bridge command 10 remains unbuilt.
 3. Shot process 15 (`ChickenRules.Strike`, `0x004AE2A0`) stores `ChickenTicks` = data1 × 4 before
    asking for state 96, unless the kind is `IsImmuneToChicken`. `CreatureStatusSystem` counts it down
    and at zero sets idle whatever the state. The fight gate, the fear accumulator and the Combat Pit
@@ -13922,9 +13923,26 @@ the zero rate is installed on start + hold - 1 and the poll on start + hold clea
 start is the larger of the recharge interval and the hold. The victory pause (action 55) ends by the same
 rule (kmf-animation-playback.md §7).
 
-**Consequences.** Hash/save 342 refuses 340; 341 is left to the concurrent shot-effects branch.
+**Consequences.** Hash/save 342 refuses 340.
 `CombatAnimationTests` pins the busy window and a new install-gated test the Guard 11, Dwarf 8 and Thief
 10 intervals (the Dwarf and Thief cases fail on the old rule); `DK2.Simulation.Tests` 4067 and
 `DK2.Presentation.Tests` 1304 passed. The hit rate is not yet measured; Q665 stays open. Unchecked: a
 zero-wind-up swing (`MeleeHitDelay` 0: Imp, uniques) lands in ours on its start turn, while DK2's handler
 runs at the next poll.
+
+## ADR-0595 - reproduce creature burning and its simulation draws
+
+**Status:** implemented, 2026-10-30.
+
+**Decision.** Store the native burning countdown and burner tag as unsigned words,
+save and hash them, and mirror the three ignition paths and ordered z/x/y draws.
+Run the status step inside each creature update before its action/fight, newest first,
+because burning deliberately consumes simulation randomness. The display requests
+remain observation-only; overlay and sound are presentation work.
+
+**Evidence:** [shot-effects.md section5](research/shot-effects.md#5-the-inferno).
+
+**Consequences.** Hash/save343 rejects342. Focused tests cover truncating pre-hit
+thresholds, water suppression, all ignition paths, expiry, Horny, draw positions/order,
+per-creature sequencing, corpse/dying-target guards and independent snapshot/hash coverage.
+`DK2.Simulation.Tests`: 4087 passed. Native fire-stream acceptance remains Q658.

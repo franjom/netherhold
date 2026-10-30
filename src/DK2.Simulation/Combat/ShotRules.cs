@@ -267,13 +267,15 @@ public static class ShotRules
 
     /// <summary>Contact damage (§7, <c>0x004AC420</c>): the data word flat, refused while the target's
     /// invulnerable word runs, through the melee blow's health routine and its multipliers. The fire a
-    /// fire-category hit lights is display in v1.70 (creature-status-effects.md §2).</summary>
+    /// fire-category hit lights also consumes simulation draws (shot-effects.md §5).</summary>
     public static void ContactDamage(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target)
     {
-        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0 || CreatureDeathRules.IsDown(target)) return;
+        if (definition.DamageType != ContactDamageType || shot.Data1 <= 0 || CreatureDeathRules.IsCorpse(target)) return;
         if (StatusEffectRules.IsInvulnerable(target)) return;
         GameDatabase database = context.Database;
         // 0x004AC589: both callers (0x004ABFD2, 0x004B25B6) pass the shot's owner (+0x28).
+        StatusEffectRules.IgniteWeakTarget(context, definition, target, 10, shot.OwnerPlayerId);
+        if (CreatureDeathRules.IsDown(target)) return;
         int landed = StatusEffectRules.Hurt(context.World, database, database.CreatureById(target.CreatureTypeId), target, ContactAmount(shot), shot.OwnerPlayerId);
         context.Emit(SystemName, "shot_hit", $"shot={shot.Id} type={definition.ShotId} caster={shot.CasterId} target={target.Id} damage={ContactAmount(shot)} landed={landed} health={target.Health}");
     }
@@ -522,8 +524,8 @@ public static class ShotRules
         context.Emit(SystemName, "shot_object_created", $"shot={shot.Id} object={made.Id} type={shot.Data1} tile={tile.X},{tile.Y}");
     }
 
-    /// <summary>Type 3, <c>0x004ADB30</c> (§8): nothing for <c>IsHorny</c>; a fire-category shot's ignition is
-    /// display; the Disruption shot sets health to five percent of the level-scaled maximum, or
+    /// <summary>Type 3, <c>0x004ADB30</c> (§8): nothing for <c>IsHorny</c>; fire ignition precedes the
+    /// health-change refusal (shot-effects.md §5). Disruption sets five percent of the level-scaled maximum, or
     /// kills under it; every other carrier heals the lesser of its data word and the missing
     /// health — through the health routine, which refuses <c>OnlyAttackableByHorny</c> and lets a
     /// target over its maximum lose the excess — after <c>SetState(1)</c>, which interrupts what the
@@ -531,9 +533,11 @@ public static class ShotRules
     /// attacking abnormal targets (rebellion.md §7.2).</summary>
     public static void ModifyHealth(SimulationContext context, ShotState shot, ShotDef definition, CreatureState target, CreatureDef targetDef)
     {
-        if (targetDef.Flags.HasFlag(CreatureFlags.IsHorny) || CreatureDeathRules.IsDown(target)) return;
+        if (targetDef.Flags.HasFlag(CreatureFlags.IsHorny) || CreatureDeathRules.IsCorpse(target)) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        StatusEffectRules.IgniteWeakTarget(context, definition, target, 5, shot.OwnerPlayerId);
+        if (CreatureDeathRules.IsDown(target)) return;
         int max = CreatureHealthRules.MaxHealth(database, targetDef, target);
         if (definition.ShotId == DisruptionShotId)
         {

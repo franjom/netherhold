@@ -21,7 +21,7 @@ the word while it is nonzero. Freeze is a state that stands still; Lightning and
 the Reaper Fireball are a stun state of `StunDuration`; Haste and Slow change the
 speed the body is set to and put it back; Armour halves damage; Invulnerable
 refuses it; Invisible makes the creature untargetable and drops its attackers;
-Poison bleeds a fixed amount a tick; **fire does nothing but burn on screen**. The
+Poison bleeds a fixed amount a tick; fire consumes simulation draws for its flames (§2). The
 health routine every blow and shot ends in scales damage by 128ths: stunned
 double, frozen five quarters, armoured or possessed half.
 
@@ -209,8 +209,9 @@ by the work rate was corrected first (`combat-fight-state.md` §4). On state ids
 the rule refuses it, and gets up through 257 to 1.
 
 **Not built, named (Q399):** the per-player byte `+0x1095`, the Stone
-Knight's blow path, state 257's length, the ignite
-and every other display, the fear-over-time pair, the unread words. Ours lets the
+Knight's blow path and other status display, the fear-over-time pair, the unread words.
+Burning simulation is built (ADR-0595); presentation and native stream acceptance:
+[shot-effects.md section5](shot-effects.md#5-the-inferno). Ours lets the
 engagement go on freeze and stun where DK2 only changes the state, and scales the
 cap every tick where DK2 writes the body speed once and the next speed-mode change
 replaces it (§2). The hit's lengthening of the stun, `0x00481360`, is built (ADR-0348).

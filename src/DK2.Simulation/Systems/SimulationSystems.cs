@@ -73,7 +73,6 @@ public static class SimulationSystems
     /// the second walk that removes whatever died.</summary>
     private static ISimulationSystem[] ThingPass() =>
     [
-        new CreatureStatusSystem(), // the status countdowns (0x0048E160) before the fight reads their words
         new FootprintSystem(),
         CreatureUpdate(),
         // The doors' health after the creatures, as DK2's thing pass updates creatures first; ours
@@ -107,6 +106,7 @@ public static class SimulationSystems
     {
         var combat = new CombatSystem();
         return new CreatureUpdateSystem(
+            new CreatureStatusSystem(), // 0x0048957D: timed effects before this creature's action and fight
             combat, // the action runner, the fight scan and the fear radiation
             // The needs routine: hunger, then sleep, then pay (creature-needs-routine.md §3).
             new CreatureEatSystem(),

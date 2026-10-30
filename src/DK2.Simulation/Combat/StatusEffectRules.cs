@@ -15,6 +15,44 @@ namespace DK2.Simulation.Combat;
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-status-effects.md")]
 public static class StatusEffectRules
 {
+    /// <summary>0x0048EBD0: replace both burning words, including a shorter re-arm.</summary>
+    public static void SetBurning(CreatureState creature, ushort durationTicks, PlayerId owner)
+    {
+        creature.BurningTicks = durationTicks;
+        creature.BurningOwnerTag = owner.Value;
+    }
+
+    /// <summary>Fire ignition is tested before health changes, using unsigned, truncated percent.</summary>
+    public static void IgniteWeakTarget(SimulationContext context, ShotDef shot, CreatureState target,
+        ushort durationTicks, PlayerId owner)
+    {
+        if (shot.AttackCategory != 4) return;
+        if (context.Database.TerrainById(context.World.Tile(target.Tile).TerrainId).IsWater) return;
+        CreatureDef definition = context.Database.CreatureById(target.CreatureTypeId);
+        uint max = (uint)CreatureHealthRules.MaxHealth(context.Database, definition, target);
+        if (max != 0 && unchecked((uint)(target.Health * 100)) / max <= 20)
+            SetBurning(target, durationTicks, owner);
+    }
+
+    /// <summary>0x0048E160's last status arm: nine simulation draws, including the expiry tick.</summary>
+    public static void UpdateBurning(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        if (creature.BurningTicks == 0) return;
+        creature.BurningTicks--;
+        int height = CreatureLevelRules.Scale((ushort)definition.Height.Raw,
+            CreatureLevelRules.Percent(context.Database, CreatureStatId.HeightTiles, creature.Level));
+        int footprint = (ushort)definition.FootprintRadius.Raw;
+        for (int i = 0; i < 3; i++)
+        {
+            int z = unchecked(creature.PosZ + context.Rng.NextInt(height));
+            int x = unchecked(creature.PosX - footprint / 2 + context.Rng.NextInt(footprint));
+            int y = unchecked(creature.PosY - footprint / 2 + context.Rng.NextInt(footprint));
+            context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(88), creature.OwnerPlayerId,
+                new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z))));
+        }
+        if (creature.BurningTicks == 0) creature.BurningOwnerTag = 0;
+    }
+
     private const string SystemName = "status";
 
     /// <summary>The health routine's multiplier, in 128ths (§3).</summary>

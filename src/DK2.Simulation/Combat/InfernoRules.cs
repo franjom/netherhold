@@ -12,8 +12,7 @@ namespace DK2.Simulation.Combat;
 /// creature of <b>any</b> owner on a non-solid tile strictly within data2 tiles by data1, sparing a
 /// kind that walks on lava and cannot fly. The owner's own casts confirmed the owner test's absence
 /// and the exemption (Q498).</summary>
-/// <remarks>Not modelled: the burning display (<c>0x0048EBD0</c>), the source stamp the health routine
-/// writes, bridge command 10, and the <c>0x004B32A0</c> call, whose bound is zero for data2 below
+/// <remarks>Not modelled: bridge command 10 and the <c>0x004B32A0</c> call, whose bound is zero for data2 below
 /// 4096. DK2 clamps the tile box's upper edge to the map width and height inclusively, one past the
 /// last tile; ours clamps to the last tile, which differs only on a map edge that shipped maps keep
 /// as rock.</remarks>
@@ -51,6 +50,7 @@ public static class InfernoRules
             long dx = Math.Abs((long)target.PosX - shot.PosX), dy = Math.Abs((long)target.PosY - shot.PosY);
             uint distance = unchecked((uint)((dx * dx) >> 12) + (uint)((dy * dy) >> 12));
             if (distance >= (uint)bound) continue;
+            StatusEffectRules.SetBurning(target, 1, shot.OwnerPlayerId);
             // 0x004B2CE0 refuses a dying creature; it tests no owner and no invulnerability.
             // The refusal comes after the source stamp, so a dying creature still takes the caster's owner (0x004AF838).
             if (CreatureDeathRules.IsDown(target)) { target.HealthSourcePlayerId = shot.OwnerPlayerId; continue; }
