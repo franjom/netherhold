@@ -317,7 +317,7 @@ public sealed partial class ImpTaskSystem
             int remaining = Steering.Bearing.TurnToward(ref heading,
                 Steering.Bearing.Of(CreatureState.CentreOf(creature.Tile.X) - creature.PosX,
                     CreatureState.CentreOf(creature.Tile.Y) - creature.PosY),
-                context.Database.CreatureById(creature.CreatureTypeId).TurnRate);
+                SimulationTiming.TurnRatePerTick(context.Database.CreatureById(creature.CreatureTypeId)));
             creature.Heading = heading;
             if (remaining == 0
                 && !StateShadow.TryMove(context, SystemName, creature, ImpStates.PuttingDownGold))

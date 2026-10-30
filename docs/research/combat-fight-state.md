@@ -91,7 +91,7 @@ correction that `+0xDF`/`+0xEB` hold state 199 are in
 ## 4. The swing, two clocks
 
 In reach, the turn step `0x004B2AE0(&out, &targetPos)` (`0x0045FB3E`) turns the creature
-toward the target, writing its heading `+0xF4` by at most the turn rate, and returns the angle
+toward the target, writing its heading `+0xF4` by at most the turn rate (the file's over variable 19: Guard 256 a tick, ADR-0602), and returns the angle
 left (`tunnelling.md` §3); a nonzero word returns 1 (`0x0045FB47`), so the creature strikes only
 once it faces the target, as ours (`Bearing.TurnToward`). Then the **AttackType switch** (`0x004602C0`): nibbles 0 and 2
 → the spell arm `0x0045FB65`; 3 → the ally-spell arm `0x00460011`, which casts

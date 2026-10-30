@@ -173,7 +173,7 @@ public static class TunnelRules
 
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         int heading = creature.Heading;
-        int left = Steering.Bearing.TurnToward(ref heading, Steering.Bearing.Of(t.DigX - creature.PosX, t.DigY - creature.PosY), definition.TurnRate);
+        int left = Steering.Bearing.TurnToward(ref heading, Steering.Bearing.Of(t.DigX - creature.PosX, t.DigY - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
         creature.Heading = heading;
         if (left != 0) return true;
 

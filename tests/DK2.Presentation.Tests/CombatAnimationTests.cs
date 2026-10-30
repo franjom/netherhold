@@ -71,7 +71,7 @@ public class CombatAnimationTests
         int expected = 0x600;
         for (int i = 0; i < 8; i++)
         {
-            int left = Bearing.TurnToward(ref expected, 0x200, definition.TurnRate);
+            int left = Bearing.TurnToward(ref expected, 0x200, SimulationTiming.TurnRatePerTick(definition));
             simulation.Tick();
             Assert.Equal(expected, attacker.Heading);
             if (left != 0) Assert.False(attacker.SwingInProgress);
@@ -79,6 +79,30 @@ public class CombatAnimationTests
         }
         Assert.True(attacker.SwingInProgress);
         Assert.Equal(0x200, attacker.Heading);
+    }
+
+    /// <summary>A fighter in reach turns <c>def+0x6A0</c> a tick, the file's turn rate over variable 19
+    /// (<c>0x00492320</c>): the largest one-turn heading change of a hero closing on an Imp in DK2's
+    /// Level 4 captures is Guard 256, Thief 512 and Dwarf 341 (swingstart-native-sNN.tsv,
+    /// D:/DK2Evidence/runs/l4-celebration-2026-10-30). Turning by the file's 1024, 2048 and 1365, ours
+    /// faced any target in one turn and swung a turn or two sooner (ADR-0602).</summary>
+    [InstallTheory]
+    [InlineData("Guard", 256, 4)]
+    [InlineData("Thief", 512, 2)]
+    [InlineData("Dwarf", 341, 4)]
+    public void AFighterFacingAwayTurnsItsCapturedRateATick_AndSwingsOnceItFaces(string name, int perTick, int turns)
+    {
+        var (database, world, attacker, _) = Fighters(name, "Imp");
+        attacker.Heading = 0x600;   // the target lies at 0x200, half a circle round
+        var simulation = new GameSimulation(database, world, 7, [new CombatSystem()]);
+        var sink = new ListEventSink();
+        simulation.ObserveWith(sink);
+        long begin = world.CurrentTick.Value;
+        simulation.Tick();
+        Assert.Equal(0x400 - perTick, Bearing.Distance(attacker.Heading, 0x200));
+        simulation.Run(8);
+        long first = sink.Events.First(e => e.Kind == "swing" && e.Detail.Contains("creature=" + attacker.Id + " ")).Tick.Value;
+        Assert.Equal(begin + turns - 1, first);
     }
 
     /// <summary>The commonest interval between one hero's consecutive blows on one keeper creature in

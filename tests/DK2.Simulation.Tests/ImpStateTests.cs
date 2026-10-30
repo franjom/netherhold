@@ -58,7 +58,7 @@ public class ImpStateTests
     [Fact]
     public void AReinforcementEntryWaitsForTheTurnBeforeStartingWork()
     {
-        (GameSimulation sim, _) = Start(new TilePos(2, 2), turnRate: 128);
+        (GameSimulation sim, _) = Start(new TilePos(2, 2), turnRate: 512);
         CreatureState imp = sim.World.Creatures[0];
         ReachReinforcementEntry(sim, imp);
         int target = WorkHeading(sim, imp);
@@ -218,7 +218,7 @@ public class ImpStateTests
     [InlineData(true)]
     public void ACompletedStoreWalkStopsBeforeTurningAndDepositing(bool pathFinished)
     {
-        (GameSimulation initial, _) = Start(new TilePos(3, 3), turnRate: 128);
+        (GameSimulation initial, _) = Start(new TilePos(3, 3), turnRate: 512);
         Store(initial, new TilePos(3, 3), RoomTypeId.Treasury);
         CreatureState imp = initial.World.Creatures[0];
         imp.GoldHeld = 1000;
@@ -257,7 +257,7 @@ public class ImpStateTests
     [Fact]
     public void AStoreArrivalTurnsTowardTheTileCentreBeforeDepositing()
     {
-        (GameSimulation sim, CreatureState imp, _) = ReachStoreArrival(turnRate: 128);
+        (GameSimulation sim, CreatureState imp, _) = ReachStoreArrival(turnRate: 512);
         int held = imp.GoldHeld;
         imp.Heading = (WorkStoreHeading(imp) + 1024) & 2047;
         for (int i = 0; i < 7; i++)

@@ -170,6 +170,10 @@ public class CombatTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         demon.PosX = knight.PosX + 1500;
         demon.PosY = knight.PosY;
+        // Both strikers already face their targets, the demon the Knight (-x) and the Goblin the Warlock
+        // (+y), so each swings in this update: they turn 170 and 512 a tick (ADR-0602).
+        demon.Heading = 0x600;
+        goblin.Heading = 0x400;
         GameSimulation sim = Combat(db, world);
 
         SeedFight(db, knight, goblin);

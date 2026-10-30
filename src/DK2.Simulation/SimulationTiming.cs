@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
@@ -63,6 +64,13 @@ public static class SimulationTiming
         int perTick = fileValue / OriginalTicksPerGameSecond;
         return perTick != 0 ? perTick : 1;
     }
+
+    /// <summary>A creature's turn a tick, <c>def+0x6A0</c>: the file's <see cref="CreatureDef.TurnRate"/>
+    /// through <see cref="LoaderRatePerTick"/> (<c>0x00492320</c>), the rate every creature turn
+    /// (<c>0x004B2AE0</c>) steps its heading by. Guard 256, Thief 512 and Dwarf 341 of the 2048 a
+    /// circle, as DK2's Level 4 captures turn them (ADR-0602).</summary>
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/steering-behaviours.md#53-turning-comes-first")]
+    public static int TurnRatePerTick(CreatureDef definition) => LoaderRatePerTick(definition.TurnRate);
 
     /// <summary>How many times a game second a worker applies work to a tile: four, once a tick,
     /// which is the creature update's own rate (Q1, Q47, ADR-0089). An imp mining a gold seam frees

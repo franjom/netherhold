@@ -105,7 +105,7 @@ public static class JailBreakRules
         int heading = rescuer.Heading;
         int left = Steering.Bearing.TurnToward(ref heading,
             Steering.Bearing.Of(CreatureState.CentreOf(cx) - rescuer.PosX, CreatureState.CentreOf(cy) - rescuer.PosY),
-            context.Database.CreatureById(rescuer.CreatureTypeId).TurnRate);
+            SimulationTiming.TurnRatePerTick(context.Database.CreatureById(rescuer.CreatureTypeId)));
         rescuer.Heading = heading;
         if (left != 0) return true;
 

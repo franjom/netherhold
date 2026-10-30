@@ -223,7 +223,8 @@ Evidence: the same folder's README, "The Imps' side at hash 340" (`imptargeted.p
 fighting (199) 5 / 20. While a hero targets an Imp the two behave alike: 10,662 / 11,264 Imp-ticks, state 6
 72% / 73%, 203 13% / 14%, the same number of heroes on one Imp, the nearest within 0 / 1 / 2 / 3+ tiles
 24 / 45 / 19 / 12% against 22 / 43 / 20 / 15%, 0.372 / 0.410 tiles a turn in state 6. Heroes hit more
-often: 0.0384 / 0.0560 health drops per targeted Imp-tick (mean drop 458 / 427), 17.6 / 23.9 health per tick.
+often: 0.0476 / 0.0560 hits per targeted Imp-tick counting kills (below); the mean drop 458 / 427 and 17.6 / 23.9
+health per tick are as first measured, from DK2's non-lethal blows only.
 Imp health by level (500 + 125 a level) and the heroes' work rate 3276 (seed 1 capture) match; the
 loader truncates `MeleeRecharge` to ticks in both. The "health share lost" and max-health columns in
 those scripts are unusable: DK2 reuses a dead Imp's slot id for later, higher-level Imps.
@@ -232,7 +233,20 @@ One cause is found. The commonest interval between one hero's consecutive blows 
 (`hitinterval-all.out`), DK2 / h340: Guard 11 / 11 (29 of 55 cases in DK2), Dwarf 8 / 7 (23 of 43),
 Thief 10 / 9 (42 of 76). The Guard is recharge-bound, the Dwarf and Thief clip-bound: ours released the
 melee action a turn before its poll (kmf-animation-playback.md §7). ADR-0598 (hash 342) holds it to the
-poll; its two new test cases give 8 and 10. That is the Dwarf and Thief share of the gap, 10-12%; the
-rest is not located. Measured at hash 342 (40 runs, README "Hash 342"): the intervals now equal DK2's
-(11 / 8 / 10), but hits per targeted Imp-tick stay 0.0543 (h340 0.0560, DK2 0.0384); Imp deaths per run
-26.2 (h340 29.1, p 0.59). The hit-rate gap is not the swing cadence.
+poll; its two new test cases give 8 and 10. Measured at hash 342 (40 runs, README "Hash 342"): the
+intervals now equal DK2's (11 / 8 / 10); Imp deaths per run 26.2 (h340 29.1, p 0.59). The hit rate
+barely moved (next section): the gap is not the swing cadence.
+
+## Swing by swing: the hit gap is turning (Q665, hash 342, ADR-0602)
+
+Evidence: the same folder's README, "Swing by swing: the hit gap is turning" (`swingstart-native-sNN.tsv`,
+`swingstart-ours.out`). DK2's creature-map log turns a killed Imp into a body row with no 0-health row, so
+the hit counts above never included DK2's kills. Counted alike (non-lethal blows and kills), hits per
+targeted Imp-tick are DK2 0.0476, h340 0.0560, h342 0.0543: +14% at hash 342, 7 of 8 states higher,
+sign-flip p 0.03; the earlier "~40% excess" was this miscount.
+
+The lead for the remaining 14% is turning. DK2's heroes turn Guard 256, Thief 512 and Dwarf 341 a tick (the file rate over
+variable 19) and seldom face the Imp on entering state 199. Of stints with a swing, DK2 starts the swing
+two or more turns in for 44% of Guard stints (177 of 398), ours 16% (41 of 264). Ours stepped a fighter's
+facing by the file rate, four times DK2's (only movement converted it). ADR-0602 (hash 344) uses the
+per-tick rate for every creature turn. Level 4 is not re-measured at hash 344.

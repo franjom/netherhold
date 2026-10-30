@@ -440,7 +440,7 @@ public static class CasinoStep
     internal static int TurnTo(SimulationContext context, CreatureState creature, int x, int y)
     {
         int heading = creature.Heading;
-        int rate = context.Database.CreatureById(creature.CreatureTypeId).TurnRate;
+        int rate = SimulationTiming.TurnRatePerTick(context.Database.CreatureById(creature.CreatureTypeId));
         int left = Bearing.TurnToward(ref heading, Bearing.Of(x - creature.PosX, y - creature.PosY), rate);
         creature.Heading = heading;
         return left;

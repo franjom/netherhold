@@ -152,7 +152,7 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         {
             IsWorker = definition.Flags.HasFlag(CreatureFlags.IsWorker),
             Heading = creature.Heading,
-            TurnRate = SimulationTiming.LoaderRatePerTick(definition.TurnRate),
+            TurnRate = SimulationTiming.TurnRatePerTick(definition),
             SizeClass = definition.SizeClass,
             CrowdWord = body.Radius,
             Profile = WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, creature.RouteOptions),

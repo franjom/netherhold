@@ -386,7 +386,7 @@ public class CombatApproachTests
     [Fact]
     public void AtTheBodyTheCreatureTurnsToFaceItBeforeTheCelebration()
     {
-        CreatureDef slow = Dk2TerrainFixture.Goblin() with { Name = "Slow turner", CreatureId = BodyLoverCreatureId, TurnRate = 256 };
+        CreatureDef slow = Dk2TerrainFixture.Goblin() with { Name = "Slow turner", CreatureId = BodyLoverCreatureId, TurnRate = 1024 };
         GameDatabase db = Dk2TerrainFixture.Database(slow);
         WorldState world = OpenWorld(db);
         CreatureState killer = Spawn(db, world, BodyLoverCreatureId, Keeper, 5, 5);
@@ -406,7 +406,7 @@ public class CombatApproachTests
         sim.Run(8);
 
         Assert.Equal(CreatureActivity.Celebrating, killer.Activity);
-        Assert.Equal(4, calls); // 1024 to turn at 256 a tick
+        Assert.Equal(4, calls); // 1024 to turn at 256 a tick, the file's 1024 over variable 19
     }
 
     /// <summary>Q398: shots are list 1 of the frame's entity pass (<c>0x004B7830</c>), each list

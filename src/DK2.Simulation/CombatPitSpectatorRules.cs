@@ -266,7 +266,7 @@ public static class CombatPitSpectatorRules
         {
             (int cx, int cy) = Middle(room);
             int heading = creature.Heading;
-            int rate = context.Database.CreatureById(creature.CreatureTypeId).TurnRate;
+            int rate = SimulationTiming.TurnRatePerTick(context.Database.CreatureById(creature.CreatureTypeId));
             int left = Steering.Bearing.TurnToward(ref heading,
                 Steering.Bearing.Of(CreatureState.CentreOf(cx) - creature.PosX, CreatureState.CentreOf(cy) - creature.PosY), rate);
             creature.Heading = heading;

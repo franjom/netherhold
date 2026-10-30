@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**344** - `0x6F13BA502A25806F`. FormatVersion also 344. Behaviour only: every creature turn steps its heading by the file `TurnRate` over variable 19 (`def+0x6A0`, `0x00492320`), as movement already did; eight turn sites had used the file value, four times DK2's rate (ADR-0602). No fields added; saves and journals from 343 are refused.
+
 **343** - `0xC9236A4CFBFEC07D`. FormatVersion also343. Burning words, ignition and nine simulation draws per active creature per turn; status moves into each creature update before action/fight on master342's melee hold, and every status countdown now skips corpses (ADR-0595).
 
 **342** - `0x5E4D855251A4E4F0`. FormatVersion also 342. Behaviour only: melee action 17 stays busy for `ActionHoldTicks` turns instead of one fewer, so the next swing begins a turn later when the clip is the longer clock (ADR-0598). No fields added; saves and journals from 340 are refused. `CombatAnimationTests` pins the busy window and the Guard, Dwarf and Thief hit intervals.

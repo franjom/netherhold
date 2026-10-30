@@ -215,7 +215,7 @@ public class LibraryStateTests
         // The intruder is the older creature, so the newest-first sweep runs the watcher's look
         // before the intruder's own chooser can give it a place in the room.
         CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));
-        Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState);
+        Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState).Heading = 0x400;   // facing the intruder (+y): the hurry needs under 0x80 left at age 2 (ADR-0602)
         GameSimulation sim = Simulation(db, world);
         CreatureDef vampire = db.CreatureById(Vampire);
         int current = CreatureMovementSystem.MaxSpeedOf(vampire, intruder.Running) >> 4;
@@ -234,7 +234,7 @@ public class LibraryStateTests
         GameDatabase db = Db();
         WorldState world = World(db, 3);
         CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));   // older: watched first
-        Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState);
+        Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState).Heading = 0x400;   // facing the intruder (+y): the hurry needs under 0x80 left at age 2 (ADR-0602)
         intruder.PartySpeedRaw = db.CreatureById(Vampire).Speed.Raw / 2;
         GameSimulation sim = Simulation(db, world);
         int current = SimulationTiming.LoaderRatePerTick(intruder.PartySpeedRaw);
@@ -253,6 +253,7 @@ public class LibraryStateTests
         WorldState world = World(db, 3);
         CreatureState intruder = world.SpawnCreature(db, Vampire, Keeper, new TilePos(1, 2));   // older: watched first
         CreatureState watcher = Researcher(db, world, new TilePos(1, 1), ResearchStep.DisturbedState);
+        watcher.Heading = 0x400;   // facing the intruder (+y): the hurry needs under 0x80 left at age 2 (ADR-0602)
         GameSimulation sim = Simulation(db, world);
 
         HashSet<int> seen = Watch(sim, watcher, 3);

@@ -14051,3 +14051,25 @@ fixture verifies remake rendering, not original-game pixel parity.
 
 **Consequences.** View metadata/events add no simulation state or random draws.
 Hash/save 343 and its deterministic pin remain unchanged by this presentation slice.
+
+## ADR-0602 - Every creature turn uses the loader's per-tick rate
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 344 · Q665 · Research: [steering-behaviours.md](research/steering-behaviours.md#53-turning-comes-first), [combat-fight-state.md](research/combat-fight-state.md#4-the-swing-two-clocks), [level4-outcomes.md](research/level4-outcomes.md); KB `00492320`, `004B2AE0`
+
+**Context.** The turn step `0x004B2AE0` moves a creature's heading by `def+0x6A0 & 0x7FF` a tick, and
+`CreatureDef_BuildFromRecord` (`0x00492320`) fills `def+0x6A0` with the file's `TurnRate` (kwd `0xF20`)
+divided by variable 19, 1 when that is 0 and the file word is not. The movement system converted it;
+the fight's facing step, the victory turn, `CasinoStep.TurnTo` (casino, library, temple, training,
+workshop), the Combat Pit spectators, the jailbreak rescuer, three Imp task turns and tunnelling passed
+the file value, four times DK2's rate. A Guard (file 1024) faced any target in one turn. DK2's eight
+Level 4 captures turn Guard 256, Thief 512 and Dwarf 341 a tick, and a hero entering state 199 on an Imp
+starts its swing two or more turns into the stint in 44% of Guard stints with a swing (177 of 398) against 16% in ours at hash 342 (41 of 264)
+(`swingstart-native-sNN.tsv`, `swingstart-ours.out`, D:/DK2Evidence/runs/l4-celebration-2026-10-30).
+
+**Decision.** `SimulationTiming.TurnRatePerTick(definition)` is `LoaderRatePerTick(TurnRate)`, and every
+creature turn uses it. Imps (file 4096, 1024 a tick) still face any bearing in one turn.
+
+**Consequences.** Hash/save 344 refuses 343. A new install-gated `CombatAnimationTests` case pins the
+captured rates and the swing turn of a hero facing away (fails on the file rate). Tests that set a
+synthetic `TurnRate` as a per-tick figure now set four times it; three Library watch tests and the
+crowded-retaliation test start their creatures facing the target, which the file rate had done in one
+turn. Level 4 is not yet re-measured; Q665 stays open.

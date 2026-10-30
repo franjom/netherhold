@@ -81,7 +81,7 @@ public sealed partial class ImpTaskSystem
                     int heading = creature.Heading;
                     int remaining = Steering.Bearing.TurnToward(ref heading,
                         Steering.Bearing.Of(CreatureState.CentreOf(target.X) - creature.PosX,
-                            CreatureState.CentreOf(target.Y) - creature.PosY), definition.TurnRate);
+                            CreatureState.CentreOf(target.Y) - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
                     creature.Heading = heading;
                     if (remaining != 0) return;
                 }

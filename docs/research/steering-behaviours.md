@@ -228,8 +228,8 @@ offset **`0xF20`** and divides by variable 19, the four game ticks a second,
 flooring at 1 when the file value is nonzero. The shipped values, in 2048ths of
 a turn: Imp `4096` (1024 a tick: half a turn), most creatures `2048` (512),
 Warlock, Vampire and Skeleton `1365` (341), Troll `1024` (256), Bile Demon `682`
-(170, so a U-turn costs it seven ticks). `KwdCreatures.cs` does not yet read
-this field; it is a phase-3 addition.
+(170, so a U-turn costs it seven ticks). Built as `SimulationTiming.TurnRatePerTick`,
+which every creature turn uses (ADR-0602).
 
 ### 5.4 The seek
 

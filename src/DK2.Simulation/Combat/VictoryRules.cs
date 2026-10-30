@@ -138,7 +138,7 @@ public static class VictoryRules
         int heading = me.Heading;
         int left = Steering.Bearing.TurnToward(ref heading,
             Steering.Bearing.Of(body.PosX - me.PosX, body.PosY - me.PosY),
-            context.Database.CreatureById(me.CreatureTypeId).TurnRate);
+            SimulationTiming.TurnRatePerTick(context.Database.CreatureById(me.CreatureTypeId)));
         me.Heading = heading;
         if (left == 0) Celebrate(context, me);
     }

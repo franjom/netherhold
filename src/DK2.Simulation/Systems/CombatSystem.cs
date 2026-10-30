@@ -269,7 +269,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         {
             creature.StopMoving();
             int heading = creature.Heading;
-            int left = Bearing.TurnToward(ref heading, Bearing.Of(x - creature.PosX, y - creature.PosY), definition.TurnRate);
+            int left = Bearing.TurnToward(ref heading, Bearing.Of(x - creature.PosX, y - creature.PosY), SimulationTiming.TurnRatePerTick(definition));
             creature.Heading = heading;
             if (left != 0) return;
             if (creature.AttackType == CombatRules.AttackMode.SpellAtAlly)

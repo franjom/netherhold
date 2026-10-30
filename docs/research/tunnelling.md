@@ -94,6 +94,6 @@ The first that is clear (`+0x208`) and reachable (`0x00471630`, options 2) becom
 
 - **The dig lands as imp work.** It is one application per work period (`TileWorkRules`, Dig or MineGold, which resolves an owned wall itself), while an "action" of one period plays.
 - **The solid bit is terrain `Solid`.**
-- **The turn is `Bearing.TurnToward`** at the definition's `TurnRate`.
+- **The turn is `Bearing.TurnToward`** at the per-tick rate (`SimulationTiming.TurnRatePerTick`, ADR-0602).
 - **Not built:** sound `0x100`, and state 86 (the worker idles instead).
 - **A same-tile walk keeps its point** (since ADR-0459). DK2's route request retains its destination even within one triangle (`0x004CF490`, rechecked for ADR-0430), so a tunneller more than `0x555` off its stand tile's centre walks to that centre and digs. Until 2026-10-13 ours ended such a walk at once (`WorldSteering.TryRouteTo`'s same-tile shortcut) and the tunneller re-planned it every period without moving; Level 1's leader Dwarf stood that way on the tile above the softened rock. `TunnelRules.Walk` now asks `TryRouteToStance`, as the waiting state does.
