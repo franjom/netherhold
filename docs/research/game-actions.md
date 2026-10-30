@@ -86,11 +86,9 @@ player 3's `Status` go from 2 back to 0. Both carry zero fields.
   does it call `0x00451EF0` on the runtime map, which explores every tile
   (`fog-reveal-sources.md` §3.3). DK2 keeps one fog bit per machine, so this is a
   view of the issuing player's own map.
-- **The cheat issues 75 too.** Ctrl+Alt+C (scancode `0x2E` with both modifier bits,
-  `0x0040A600`, not in game mode 3) opens cheat entry; `0x0040A680` matches typed
-  characters against eight phrases from `0x0068F550`, and `0x0040A760` queues one action
-  each. "now the rain has gone" queues 75, so it reveals the map as the result screen
-  does, and travels in the packet record like any action.
+- **The cheat issues 75 too.** "now the rain has gone" queues 75, so it reveals the map as
+  the result screen does, and travels in the packet record like any action. Entry, the
+  eight phrases and their actions: [cheats.md](cheats.md).
 - **134 lets the player carry on.** Handler `0x00512950` calls `0x004C0120` on the
   player and clears bit `0x10` of an interface field (`+0xE3C`), then calls
   `0x0044DB90(0)`. `0x004C0120` sets player `+0x76` bits: `0x440000` after a win,

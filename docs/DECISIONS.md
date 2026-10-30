@@ -13706,3 +13706,68 @@ carries it; no code change. A missing id falls back to English and is reported b
 that checks every language table against the English one. Out of scope: translating DK2's
 own text, which comes from the install; the language codes DK2 uses on disk are to be read
 from the binary when a second language is built.
+
+## ADR-0588 - A save is refused only when its layout cannot be read, and always with a reason
+**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Changes the save format when built · Issue #1 (item 1).
+
+**Context.** Session saves (`.dk2g`, `SavedSessionFile`) wrap a `WorldSnapshot`, whose `FormatVersion`
+must equal `HashVersion`. A save is therefore refused after any hashed change, layout or not: of
+the last 60 commits touching `WorldSnapshot.cs`, 37 changed only the version line, and HashVersion
+moved on 10 commits in one day. The snapshot is positional, so one changed field shifts the rest.
+A throwaway fuzz of a 56 KB snapshot (one byte set to 0xFF/0x7F/0x80, and 400 truncations) gave
+166,851 loads of a different world with no error, 905 errors the load screen catches, and 9 it
+does not (`OverflowException` from a negative count at byte 62, `OutOfMemoryException`).
+
+**Decision.**
+- The snapshot carries its own `SaveFormatVersion`, bumped only when the layout changes, and
+  `HashVersion` for information. Loading a save never checks `HashVersion`; journals, replays,
+  the harness shadow check and the pinned test check it themselves. An old save loads and runs
+  under the current rules.
+- Each record (tile, creature, player, door, ...) is written as `(field id, length, value)`.
+  An unknown id is skipped, a missing id takes the field's default rule, a rename keeps the id,
+  and a change of meaning takes a new id with an optional conversion from the old one. Ids are
+  never reused. The field tables are built once, with no reflection or allocation per field;
+  the payload is compressed.
+- `OldestReadableSaveFormat` bounds what loads (owner: a save too far from the current design is
+  of no use). Anything outside it, and any malformed input, fails as `SaveIncompatibleException`
+  with a reason the load screen shows (through ADR-0587's catalog); nothing else escapes. Counts
+  are read through one bounded reader, checked against sane limits and the bytes left.
+- `.dk2g` version 2 stores an xxHash64 of its payload, so a damaged file is refused rather than
+  loaded as a different world. It does not depend on the state hash.
+- `tests/Fixtures/saves/` keeps one real save per `SaveFormatVersion` inside the window; a test
+  loads each and checks the restored world. Raising the window deletes fixtures deliberately.
+
+**Consequences.** Behaviour-only changes no longer break saves. Layout changes break them only
+when a field cannot be defaulted or converted. No existing saves are converted: none exist yet,
+and the new format starts at 1. The save writer and reader must be kept in the field tables, not
+hand-mirrored.
+
+## ADR-0589 - Cheats: DK2's phrases behind a visible entry box, and a tamper-evident record
+**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Hash/save change when built · Research: `research/cheats.md`, Q688.
+
+**Context.** DK2 opens cheat entry with Ctrl+Alt+C and matches eight typed phrases; each fires an
+ordinary game action (`0x0040A760` through `0x004346E0`). Nothing on screen shows the typing, and
+the keys also trigger their hotkeys (binary and owner, 2026-10-30). DK2 records no use of a cheat
+anywhere (STRONGLY INFERRED; a cheated win scores like an honest one, owner). "Feel the power"
+never ends for a dead creature below level 10 in the list (`0x00505E20`, CONFIRMED); the owner
+recalls it freezing.
+
+**Decision.**
+- Kept: Ctrl+Alt+C, the eight phrases and their effects, DK2's entry gates and its refusal in
+  multiplayer (`cheats.md` §5), and the cheat as a game action, so it is an input frame,
+  journalled and replayed like any other.
+- Not kept: hidden typing and hotkey bleed-through. Entry opens a popup with a text box; keys
+  typed there never reach gameplay bindings. Its text goes through ADR-0587's catalog. Also not
+  kept: the level-10 hang; ours skips dead creatures.
+- The record is tamper-evident, not tamper-proof (owner): the source is public and any check in
+  the client can be removed. `PlayerState.CheatFlags` (DK2 cheat, console command, memory edit,
+  save edit) is set by the action, never cleared, hashed and saved. Copies go to the save header,
+  the campaign profile and any hi-score entry; on load they are ORed, and a disagreement sets
+  the save-edit flag.
+- Later layers: an economy audit each game second (treasury gold, mana and research against the
+  running totals in `PlayerState`), whose finding enters as an input; then replay verification,
+  where a save's level, seed and journal must replay to its state hash.
+- Undecided (owner): how the flags are shown, and how a cheated game is scored.
+
+**Consequences.** This departs from DK2, which marks nothing; the departure is the record and the
+entry box, not the cheats. Adding `CheatFlags` bumps the hash and the save layout.
