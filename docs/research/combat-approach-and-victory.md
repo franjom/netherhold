@@ -65,7 +65,8 @@ The handler runs these checks in order.
    does **not** call the low-health withdrawal test `0x0045EDA0`, and it zeroes the
    timer only for an `AlwaysFlee` definition (`combat-fear.md` §3.4).
 4. For a creature target walking toward state 202 or 251, a chase counter at
-   `creature+0x53D` advances. It is otherwise cleared. Exceeding variable 213
+   `creature+0x53D` advances with byte wraparound. A non-retreating creature target
+   clears it; a thing target leaves it unchanged. Exceeding variable 213
    `GoodCreaturesChaseEnemyDurationSeconds` (3) for the Good player, or variable
    214 `EvilCreaturesChaseEnemyDurationSeconds` (7) for anyone else, multiplied
    by the level tick rate, records the target as `RetreatingCreature`, unlinks,
@@ -248,3 +249,25 @@ in state 259.
 dead-body list — state 259 requires kind 6 before using the selected entry; the
 per-creature turn counts in §7 (Tremor's clock, validated by six get-up captures; no
 capture of action 55); state 259 being reached on route arrival or state 6's other exits.
+
+## The chase boundary (ADR-0587)
+
+STRONGLY INFERRED from whole-body decompilation and instruction reads (2026-10-30):
+`0x00471D10` writes the approach fields at `0x00471E11`-`0x00471E6B`, not the creature's
+`+0x53D`. `SetState` has no such write. The fight clears that counter only out of reach,
+after selecting a non-retreating creature (`0x0045F92A`-`0x0045F992`), not on an in-range
+or busy tick. Giving up in state 8 (`0x0047113F`-`0x0047118B`) unlinks its own target,
+stops moving and resumes 199. It stays in Combat, retaining its incoming attackers.
+
+Through hash 335 ours reset the count on every approach entry and on every fight tick
+against a non-retreating creature; giving up entered idle and released incoming attackers.
+ADR-0587 corrects these three boundaries and keeps the byte-wide increment
+(`0x004710F3`-`0x004710F8`, zero-extended at `0x00471126`): 255 wraps to 0. Regressions start at the chase limit, re-enter
+8 and give up on its next call for both 202 and 251 walks, preserving an incoming attacker;
+the in-range/out-of-range pair pins the reset branch. Level 4 measurements are in
+[level4-outcomes.md](level4-outcomes.md).
+
+CONFIRMED in Level 4's eight native captures: 137 of 1,404 hero entries into 8 in
+turns 2400-4400 retain a nonzero chase count (seed 2, turn 3483: Dwarf 425, 199 -> 8,
+count 4 on both snapshots). Evidence: `native-chase-v2.out` under
+`D:/DK2Evidence/runs/q665-hero-zone-codex-2026-10-30`.

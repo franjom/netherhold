@@ -52,7 +52,6 @@ public static class ApproachRules
         // SetState(8), then 199 into the resume slot: a walk from 199 back to 199, so no hook runs.
         CreatureStateMachine.BeginTravel(context.Hooks, me, CombatStates.Approaching, CombatStates.Engaging);
         me.RouteRefreshCountdown = RefreshCalls;
-        me.ChaseTicks = 0;
         context.Emit(SystemName, "approaches", $"creature={me.Id} target={me.FightTargetId} kind={(byte)me.FightTargetKind} to={targetX},{targetY}");
         return true;
     }
@@ -162,13 +161,13 @@ public static class ApproachRules
         {
             if (IsRetreating(target))
             {
-                me.ChaseTicks++;
+                me.ChaseTicks = unchecked((byte)(me.ChaseTicks + 1));
                 if (me.ChaseTicks > ChaseLimitTicks(database, me))
                 {
                     me.RetreatingCreature = target.Id;
                     me.AvoidRetreatersCounter = 0;
                     context.Emit(SystemName, "gives_up_chase", $"creature={me.Id} target={target.Id} ticks={me.ChaseTicks}");
-                    CombatRules.Disengage(context.Hooks, me);
+                    CombatRules.Unlink(world, me);
                     End(me, "retreating", context);
                     return false;
                 }

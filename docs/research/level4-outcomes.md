@@ -106,3 +106,34 @@ only, 2400-4400:
 - hero-Imp pairs within four tiles are 2.3 times DK2's; live heroes spend 1.7 times as long in
   (16-29, 32-38) and Imps 1.3 times. Which side's rule keeps them apart is open; the Imp's own arm
   (`0x0045BDF0`) matches the binary but for a thing-target detail that would make ours flee more.
+
+## Hero phases in the gold-route zone (Q665 follow-up, hash 333)
+
+Evidence: `D:/DK2Evidence/runs/q665-hero-zone-codex-2026-10-30` (`phase-v2.out`,
+`lives.out`, scripts and README). Exact change-row intervals over turns 2401-4400,
+alive only, zone (16-29,32-38). Ours is 40 resyncs normalized to eight runs; DK2 is
+eight native runs. The corrected final interval adds seven hero-ticks to each
+earlier zone total (14,077 / 8,405). Counts below are ours / DK2.
+
+| Phase in zone | Hero-ticks |
+|---|---|
+| Fight 199 | 6,309 / 4,072 |
+| Approach 8 | 3,869 / 2,792 |
+| Walk 6 | 1,690 / 700 |
+| Victory 260 | 1,297 / 26 |
+| Standing job 90 | 250 / 78 |
+| Flee 203 | 250 / 329 |
+
+By spawn wave and type, party 4's 3470 Dwarfs account for 2,196 / 172 zone-ticks:
+11 / 4 enter, mean 200 / 43 zone-ticks per entrant. Party 4's 3470 Thieves account
+for 1,443 / 677 (4.6 / 1 entrants), party 5's 3830 Thieves 3,944 / 2,350 (15.4 / 14),
+and its 3830 Guards 3,195 / 2,346 (8 / 7). Counts include repeat zone visits.
+Party ids are checked in `party-map.out`. Modern births are one turn earlier at the same gates;
+entry ages from birth, ours / DK2: Dwarf3470 mean 122 / 185 turns, Thief3830
+65 / 81, Guard3830 64 / 68. Party 3's Dwarf2990 age at death averages 240 / 198 turns;
+all entrants die by 4400. The gap includes survival into the zone, not only
+longer individual visits. These are distributions over distinct RNG streams.
+
+The binary comparison found the chase-boundary differences in ADR-0587; see
+[combat-approach-and-victory.md](combat-approach-and-victory.md#the-chase-boundary-adr-0587).
+The Level 4 causal effect awaits the matched-master resync comparison.

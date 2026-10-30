@@ -92,6 +92,90 @@ public class RetreatTrackingTests
         Assert.Equal(retreating, ApproachRules.IsRetreating(goblin));
     }
 
+    [Theory]
+    [InlineData(Withdrawn, 12, 13, true)]
+    [InlineData(RespondingToThreat, 12, 13, true)]
+    [InlineData(Withdrawn, 254, 255, true)]
+    [InlineData(Withdrawn, 255, 0, false)]
+    public void ApproachReentryPreservesTheByteChaseCounter(int resume, int initial, int next, bool givesUp)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState imp = Walking(db, world, resume);
+        CreatureState knight = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId,
+            PlayerIds.Good, new TilePos(7, 10));
+        CreatureStateMachine.TrySetState(default, knight, 199);
+        knight.FightTargetKind = FightTargetKind.Creature;
+        knight.FightTargetId = imp.Id;
+        knight.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        knight.AttackRangeSquared = CombatRules.MeleeReachSquared(
+            db.CreatureById(knight.CreatureTypeId), db.CreatureById(imp.CreatureTypeId));
+        CombatRules.Register(imp, knight.Id, ranged: false);
+        Assert.Equal(12, ApproachRules.ChaseLimitTicks(db, knight));
+        knight.ChaseTicks = initial;
+        CreatureState attacker = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,
+            Keeper, new TilePos(17, 17));
+        attacker.FightTargetKind = FightTargetKind.Creature;
+        attacker.FightTargetId = knight.Id;
+        CombatRules.Register(knight, attacker.Id, ranged: false);
+        int calls = 0;
+        var sim = new GameSimulation(db, world, 1, [new Probe(context =>
+        {
+            if (++calls == 1)
+                Assert.True(ApproachRules.Enter(context, knight, imp.PosX, imp.PosY));
+            else
+            {
+                var hearts = new HeartSites();
+                hearts.Refresh(world, db);
+                ApproachRules.Tick(context, new WorldSight(context.Navigation, world, db),
+                    hearts, new RoomCache(), knight, db.CreatureById(knight.CreatureTypeId), []);
+            }
+        })]);
+
+        sim.Tick();
+        Assert.Equal(initial, knight.ChaseTicks);
+        Assert.Equal(8, knight.Dk2StateId);
+        sim.Tick();
+        Assert.Equal(next, knight.ChaseTicks);
+        Assert.Equal(givesUp ? imp.Id : 0, knight.RetreatingCreature);
+        Assert.Contains(attacker.Id, knight.EngagedMelee);
+        Assert.Equal(knight.Id, attacker.FightTargetId);
+        Assert.Equal(givesUp ? FightTargetKind.None : FightTargetKind.Creature, knight.FightTargetKind);
+        Assert.Equal(givesUp ? 199 : 8, knight.Dk2StateId);
+    }
+
+    [Theory]
+    [InlineData(false, 7)]
+    [InlineData(true, 0)]
+    public void FightingClearsTheRetreatCountOnlyWhenItNeedsAnotherApproach(bool outOfReach, int expected)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(10, 10));
+        CreatureState knight = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId,
+            PlayerIds.Good, new TilePos(outOfReach ? 7 : 10, 10));
+        knight.PosX -= outOfReach ? 0 : 1000;
+        CreatureStateMachine.TrySetState(default, knight, 199);
+        knight.FightTargetKind = FightTargetKind.Creature;
+        knight.FightTargetId = imp.Id;
+        knight.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        knight.AttackRangeSquared = CombatRules.MeleeReachSquared(
+            db.CreatureById(knight.CreatureTypeId), db.CreatureById(imp.CreatureTypeId));
+        CombatRules.Register(imp, knight.Id, ranged: false);
+        knight.ChaseTicks = 7;
+        var combat = new CombatSystem();
+        var sim = new GameSimulation(db, world, 1, [combat.States]);
+
+        sim.Tick();
+
+        Assert.Equal(expected, knight.ChaseTicks);
+        Assert.Equal(outOfReach ? 8 : 199, knight.Dk2StateId);
+    }
+
+    private sealed class Probe(Action<SimulationContext> run) : ISimulationSystem
+    {
+        public string Name => "probe";
+        public void Execute(SimulationContext context) => run(context);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static CreatureState Walking(GameDatabase db, WorldState world, int resume)

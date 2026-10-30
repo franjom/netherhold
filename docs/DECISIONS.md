@@ -13613,7 +13613,7 @@ Research: `docs/research/combat-target-selection.md` §2, `combat-approach-and-v
 `CreatureRetreatingCounter` (`+0x53D`) up on a retreating creature target and zeroes it on any other
 creature target; past variable 213 or 214 it stores the target's tag in `RetreatingCreature`
 (`+0x53B`), zeroes `AvoidRetreatersCounter` (`+0x53E`) and leaves `+0x53D` over the limit. spFighting
-zeroes `+0x53D` on a creature target that is not retreating (`0x0045F97D`). While `+0x53B` is set, the
+zeroes `+0x53D` only out of reach after selecting a non-retreating creature (`0x0045F97D`; ADR-0587). While `+0x53B` is set, the
 Blocker, Support and Flanker selectors skip a retreating candidate (`0x0045B224`, `0x0045B5E4`,
 `0x0045BBB4`; Blitzer and `SelectAVictim`'s own scans do not), and `Creature_Update`
 (`0x00489A8A`-`0x00489AB5`) counts `+0x53E` up a turn, clearing all three at 60. The names are DK2's
@@ -13622,20 +13622,18 @@ give-up and on a thing target, and counted state 203 as retreating.
 
 **Decision.** `ApproachRules.IsRetreating` is `0x0045F000`. State 8 counts on a retreating creature
 target, zeroes on any other creature target, leaves the count on a thing target and at the give-up.
-`CombatSystem.Fight` zeroes it on entry for a creature target that is not retreating (DK2 does it
-further into spFighting). `CombatTargetRules.Scan` skips a retreating candidate for every arm but
+The fight reset and approach-entry boundaries are corrected by ADR-0587. `CombatTargetRules.Scan` skips a retreating candidate for every arm but
 Blitzer while `RetreatingCreature` is set. `AvoidRetreatersCounter` (new, hashed and saved) counts in
 `CombatSystem.Update` before the fight scan and at 60 clears it, `RetreatingCreature` and `ChaseTicks`.
 
-**Consequences.** A Blitzer that takes the same retreating creature again within the 60 turns gives up
-on its first approach turn, its count still over the limit. On Level 4, from DK2's eight 2400 states
+**Consequences.** Re-entry retains the count at hash/save 336 (ADR-0587). On Level 4, from DK2's eight 2400 states
 with five generator seeds each (`D:/DK2Evidence/runs/l4-retreat-tracking-2026-10-29`; h333 summed over
 40 runs and divided by 5 to compare with DK2's 8), the first build of this rule moved Imp deaths from
 28.9 to 28.3 a run (p 0.42; not a test of no effect). The audit around it, counting live creatures
 only (`alive.out`): heroes choose a player creature they meet at DK2's rate (others 0.264 against
 0.258 a pair-tick) and an Imp less often (0.104 against 0.159); our hero-Imp pairs within four tiles
 are 2.3 times DK2's, with our live heroes 1.7 times as long and our Imps 1.3 times as long in
-(16-29, 32-38). The hero choice is not why our Imps die more.
+(16-29, 32-38). Follow-up and remaining causal limits: [level4-outcomes.md](research/level4-outcomes.md).
 
 ## ADR-0585 - Attackability reads the state flag; an Imp passes over a hero busy with a thing
 **Date:** 2026-10-29 · **Status:** accepted · Hash/save 334 · Q185 ·
@@ -13676,3 +13674,18 @@ not a native field. The adapter contract is in
 **Consequences.** State coverage marks 84 built and its activity alias is Sleeping.
 Hash/save 335 refuses 334 saves and journals. Exact native timing and resource
 retention remain Q685; this decision does not establish playback parity.
+
+## ADR-0587 - Keep the retreat chase count across approach entries
+**Date:** 2026-10-30 · **Status:** proposed · Hash/save 336 · amends ADR-0584 · Q665.
+
+**Context.** The Q665 binary comparison found extra chase-counter clears and a different
+give-up transition. Evidence: [the chase boundary](research/combat-approach-and-victory.md#the-chase-boundary-adr-0587).
+
+**Decision.** Approach entry preserves `ChaseTicks`. The fight clears it only out of reach,
+after re-selection of a creature that is not retreating. Giving up unlinks the outgoing
+engagement and resumes 199, retaining incoming attackers and the over-limit count.
+Increment the native byte with wraparound, including 255 -> 0.
+
+**Consequences.** Repeated approaches share the existing allowance. No chase duration or
+selector score changes. Hash/save 336 refuses version 335. Level 4 outcome effect awaits
+the authorized eight-state, five-seed resync comparison; no causal outcome claim yet.

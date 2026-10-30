@@ -74,7 +74,8 @@ current state id, `+0x18` the turn entered. `EDI` is the engagement record
 10. **Out of reach.** Not busy; then, for a creature target without
     `AttackAbnormalTargets`, **unlink and run `SelectAVictim` again** — every
     tick out of reach. No target → return 0 (the state ends). A target whose
-    state is en route to a threat or fleeing keeps `+0x53D`, else it is cleared.
+    state is 6 resuming 202 or 251 keeps `+0x53D`; another creature target
+    clears it, while a thing target leaves it unchanged (ADR-0587).
     Then **the approach** `0x00471D10(state, target, AttackRangeSquared,
     currentState)`: §3. Its failure for a spell nibble (0 or 2) with line of sight
     tries a point part-way to the target (`isqrt` of the distance, one to

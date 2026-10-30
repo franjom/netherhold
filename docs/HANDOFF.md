@@ -74,6 +74,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Scope, focused verification and pending original-game acceptance:
   [Secret Door work](research/imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
+- The reviewed chase-boundary correction is implemented on `sim/q665-hero-chase`
+  at hash/save 336 (ADR-0587, proposed; not merged, 2026-10-30). Its Level 4 outcome effect
+  awaits the matched-master eight-state, five-seed resync comparison (2026-10-30); see
+  [hero phases](research/level4-outcomes.md#hero-phases-in-the-gold-route-zone-q665-follow-up-hash-333).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
@@ -167,7 +171,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   That order follows from the north seam (31,54) falling at 324 against 305 with other Imps at its
   face, each step the faithful rule, and the first-dig lag is RNG (STRONGLY INFERRED, one seed;
   [creature-update-order.md](research/creature-update-order.md), "Where the drift starts"), so
-  the drift from 131 to about 550 needs no rule difference. Next: the residual Guard-fight timing after ADR-0566; where ours' first Imp dies from DK2's 2400 states: ours loses at least one in all 120 runs (five a state), DK2 none in 3 of 8 (states 1, 3, 5; state or DK2's later draws untested) (after ADR-0580, hash/save 331; [level4-outcomes.md](research/level4-outcomes.md)); what protects the dungeon from DK2's state at 3400, behind the full replays' Imp deaths (the creature parts; hero positions not examined). Mining is not a lead: ours mines as DK2 does for 600 ticks after a 2400 resync from each of 8 DK2 seeds, and the 3000-3700 resync surplus (101 mining walks to DK2's 80 from 3400, 91 to 70 from 3700, one seed; ADR-0562, ADR-0563 and ADR-0565 moved when state 26 asks its checks) does not hold over seeds (Q665; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"). The resync does not copy
+  the drift from 131 to about 550 needs no rule difference. Next: the residual Guard-fight timing after ADR-0566; where ours' first Imp dies from DK2's 2400 states: ours loses at least one in all 120 runs (five a state), DK2 none in 3 of 8 (states 1, 3, 5; state or DK2's later draws untested) (after ADR-0580, hash/save 331; [level4-outcomes.md](research/level4-outcomes.md)); the remaining hero-exposure and survival gap in Q665 (see [hero phases](research/level4-outcomes.md#hero-phases-in-the-gold-route-zone-q665-follow-up-hash-333)). Mining is not a lead: ours mines as DK2 does for 600 ticks after a 2400 resync from each of 8 DK2 seeds, and the 3000-3700 resync surplus (101 mining walks to DK2's 80 from 3400, 91 to 70 from 3700, one seed; ADR-0562, ADR-0563 and ADR-0565 moved when state 26 asks its checks) does not hold over seeds (Q665; [resync-replay.md](research/resync-replay.md), "Mining against reinforcing"). The resync does not copy
   a trigger record's active bit and repeat byte or the hero job triple, so resync before the
   creature triggers that matter fire. Level 4 timer offsets split into camera-clock approximation and early room
   capture plus a late trigger read; ADR-0568 corrects the read order. Evidence:
@@ -352,12 +356,9 @@ tools/classic-unity-probe/README.md.
 
 ## Next work
 
-1. M6: Level 4's Imp losses (hash 328: 37 of 60 seeds lose 20 or more; DK2 loses 0-64 over
-   8 seeds, [level4-outcomes.md](research/level4-outcomes.md)). They die on
-   alarm runs to the (24,37) Guard Room after a gate party survives; the seeds
-   that lose most claim the portal late (663–1437 against DK2's 787) because an
-   Imp keeps reinforcing walls while a claim waits (seed 5's Imp 13, 398–1060;
-   ours spends a median ~300 Imp-ticks in state 22 before tick 1100, DK2 102).
+1. M6: measure ADR-0587's chase correction against matched master before attributing
+   Q665's hero-exposure gap (2026-10-30). Prior outcomes and open exposure/claim
+   leads are in [level4-outcomes.md](research/level4-outcomes.md).
    Then the state 8
    residual (ours spends 52 of 61 ticks in state 8 where DK2 spends 27 of 58;
    state 8's routeless movement `0x00470C80` and `0x0048ECE0` are unread).
