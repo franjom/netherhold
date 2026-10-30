@@ -175,11 +175,29 @@ The classic view uses the melee start stamp and authored action duration to
 keep a nonlooping swing visible after impact. Melee-mode and state-entry
 guards reject ranged resets and interrupted actions. Combat routes select
 walk/run independently of the Fighting activity label. ADR-0436.
-The simulation now keeps melee busy through the animation-completion poll
+The simulation keeps melee busy through the animation-completion poll
 after impact (ADR-0447). Target validation and fear checks still run before
 the busy gate. Shipped Guard/Dwarf/Salamander regressions cover facing and
 post-impact holds; their normal efficiency-scaled recharge does not truncate
 these clips. This does not close Q582's original-game casualty comparison.
+
+End turn (CONFIRMED by an independent read, 2026-10-30): in one creature turn
+`0x00488930` polls the runner (`0x00489A68`), runs the fight, runs the state
+dispatcher, then `0x0048BE50` advances the clip (`0x0048C73D`, unless `+0x447`
+is nonzero), so a clip the state starts is advanced on its start turn T.
+`ActionHoldTicks` is the count n+1: the advance that sets `+0xAD` bit 1 is n,
+the zero rate is installed on T+hold-1, and the poll on T+hold clears the
+action. `spFighting` starts action 17 through `0x004969D0` with count 1 (`+0x3AE`
+= 2, loop bit cleared), the counted mode-3 action Tremor's holds use. The
+cycle-flag path cannot end it early (count 2, 1, 0xFF). The action is free at
+T+hold, where the busy test `0x00496D00` and the strict recharge gate
+`0x0048C9B0` can start the next swing: start to start is the larger of the
+recharge interval and the hold (ADR-0598). DK2's Level 4 one-hero hit
+intervals agree: Guard 11 (recharge-bound), Dwarf 8, Thief 10 (clip-bound;
+level4-outcomes.md). The victory pause (action 55) clears at the first
+zero-rate poll, so its T+PauseTicks end is the same rule. Unchecked: a
+zero-wind-up swing (`MeleeHitDelay` 0) lands in ours on its start turn,
+while DK2's handler runs at the next poll.
 
 Chicken Walk/Eat/Scared art selection is documented in object-drawing.md §8.
 Their meshes use the shared fractional sampler. Positions and headings are

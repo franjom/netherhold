@@ -214,3 +214,23 @@ share lost a turn in 203 0.0071 / 0.0092 / 0.0149. At hash 340 (ADR-0594; 40 run
 43.2 and in a walk home 18.2 (DK2 52 / 13). Zone hero-ticks 10,998 (DK2 8,405; h340 - h338 p 0.12),
 hero-Imp pair-ticks 54,937 (34,288; h340 - h339 p 0.023), Dwarfs dying first 7.8 (13), Imp deaths per run
 29.1 (21.75; h340 - h339 p 0.59): the back-off matches DK2's, the deaths do not move.
+
+## The Imps' side at hash 340 (Q665, ADR-0598)
+
+Evidence: the same folder's README, "The Imps' side at hash 340" (`imptargeted.py`, `imphits.py`,
+`impchase.py`, `hitinterval-all.py`, each with a `.out`). Per eight runs DK2 / h340: Imp deaths
+174 / 232.8, the same death tiles; first targeted while walking (6) 117 / 134, fleeing (203) 35 / 52.6,
+fighting (199) 5 / 20. While a hero targets an Imp the two behave alike: 10,662 / 11,264 Imp-ticks, state 6
+72% / 73%, 203 13% / 14%, the same number of heroes on one Imp, the nearest within 0 / 1 / 2 / 3+ tiles
+24 / 45 / 19 / 12% against 22 / 43 / 20 / 15%, 0.372 / 0.410 tiles a turn in state 6. Heroes hit more
+often: 0.0384 / 0.0560 health drops per targeted Imp-tick (mean drop 458 / 427), 17.6 / 23.9 health per tick.
+Imp health by level (500 + 125 a level) and the heroes' work rate 3276 (seed 1 capture) match; the
+loader truncates `MeleeRecharge` to ticks in both. The "health share lost" and max-health columns in
+those scripts are unusable: DK2 reuses a dead Imp's slot id for later, higher-level Imps.
+
+One cause is found. The commonest interval between one hero's consecutive blows on one keeper creature
+(`hitinterval-all.out`), DK2 / h340: Guard 11 / 11 (29 of 55 cases in DK2), Dwarf 8 / 7 (23 of 43),
+Thief 10 / 9 (42 of 76). The Guard is recharge-bound, the Dwarf and Thief clip-bound: ours released the
+melee action a turn before its poll (kmf-animation-playback.md §7). ADR-0598 (hash 342) holds it to the
+poll; its two new test cases give 8 and 10. That is the Dwarf and Thief share of the gap, 10-12%; the
+rest is not located, and the effect on hits per targeted tick and on Imp deaths is not yet measured.

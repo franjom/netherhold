@@ -13906,3 +13906,25 @@ heading kept; repeated steps; sideways `0x3000`/16; a solid tile) and `CombatFea
 from tile 10; `DK2.Simulation.Tests` 4067 passed. A scratch run of eight moves backing-off creatures
 0.090 tiles a turn; the 40-run measurement follows. Q373 closes, Q665 stays open. Also corrected:
 `CreatureStateFlags.Unread0` (bit 0) is tested, at `0x0048A23B`-`0x0048A248`, where it gates steering.
+
+## ADR-0598 - The melee hold ends on the poll turn
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 342 · amends ADR-0447 · Q665, Q376 · Research: [kmf-animation-playback.md](research/kmf-animation-playback.md#7-melee-and-chicken-playback), [combat-fight-state.md](research/combat-fight-state.md#4-the-swing-two-clocks), [level4-outcomes.md](research/level4-outcomes.md#the-imps-side-at-hash-340-q665-adr-0598); KB `00496AA0`, `004969D0`, `0045F030`, `00498E30`, `004B3C10`, `004B3AD0`
+
+**Context.** ADR-0447 held melee action 17 busy for `ActionHoldTicks(art slot 5) - 1` turns after the
+swing started, so the next swing could begin a turn before DK2's. In DK2's eight Level 4 recordings the
+commonest interval between one hero's consecutive blows on one keeper creature is Guard 11, Dwarf 8, Thief
+10; ours at hash 340 gave 11, 7, 9.
+
+**Decision.** `FightRules.MeleeActionIsRunning` holds for `ActionHoldTicks` turns: busy through
+start + hold - 1, free at start + hold. In one creature turn the runner `0x00496AA0` polls, the fight and
+state dispatch run, then the animation advance, so a clip the state starts is advanced on its start turn,
+the zero rate is installed on start + hold - 1 and the poll on start + hold clears the action. Start to
+start is the larger of the recharge interval and the hold. The victory pause (action 55) ends by the same
+rule (kmf-animation-playback.md §7).
+
+**Consequences.** Hash/save 342 refuses 340; 341 is left to the concurrent shot-effects branch.
+`CombatAnimationTests` pins the busy window and a new install-gated test the Guard 11, Dwarf 8 and Thief
+10 intervals (the Dwarf and Thief cases fail on the old rule); `DK2.Simulation.Tests` 4067 and
+`DK2.Presentation.Tests` 1304 passed. The hit rate is not yet measured; Q665 stays open. Unchecked: a
+zero-wind-up swing (`MeleeHitDelay` 0: Imp, uniques) lands in ours on its start turn, while DK2's handler
+runs at the next poll.

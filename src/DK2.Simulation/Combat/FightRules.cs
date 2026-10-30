@@ -109,8 +109,11 @@ public static class FightRules
         navigation.TryRouteTo(me, targetX, targetY, MoveOptions.Plain);
     }
 
-    /// <summary>Mode-3 melee holds past impact until the animation completion poll;
-    /// ActionHoldTicks includes the starting turn (kmf-animation-playback.md §7).</summary>
+    /// <summary>Mode-3 melee holds past impact until the animation completion poll
+    /// (kmf-animation-playback.md §7). <see cref="AnimationTimingRules.ActionHoldTicks"/> counts the
+    /// start turn and ends on the poll turn, so the action is free at start + hold, as the victory
+    /// pause it also times ends (Q376); DK2's one-hero hit intervals on Level 4 are Dwarf 8 and Thief 10,
+    /// their holds, where a release a turn earlier gave 7 and 9 (ADR-0598).</summary>
     public static bool MeleeActionIsRunning(CreatureState creature, CreatureDef definition, GameTick tick)
     {
         if (creature.SwingInProgress) return true;
@@ -119,7 +122,7 @@ public static class FightRules
             || creature.TimeLastUsedMelee != creature.SwingStartTick
             || creature.StateEnteredTick > creature.SwingStartTick) return false;
         long elapsed = tick.Value - creature.SwingStartTick;
-        return elapsed >= 0 && elapsed < AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5)) - 1;
+        return elapsed >= 0 && elapsed < AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5));
     }
 
 

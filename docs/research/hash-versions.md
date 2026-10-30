@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**342** - `0x5E4D855251A4E4F0`. FormatVersion also 342. Behaviour only: melee action 17 stays busy for `ActionHoldTicks` turns instead of one fewer, so the next swing begins a turn later when the clip is the longer clock (ADR-0598). No fields added; saves and journals from 340 are refused. 341 is left to the concurrent shot-effects branch. `CombatAnimationTests` pins the busy window and the Guard, Dwarf and Thief hit intervals.
+
 **340** - `0x29DB932DDB58A140`. FormatVersion also 340. Behaviour only: the step back slides the creature a sixteenth of its vector in sub-steps, as the physical pass spends DK2's impulse, with the heading and the route kept (ADR-0594). No fields added; saves and journals from 339 are refused. `StepBackTests` covers the slide.
 
 **339** - `0x7992DA9E348727DF`. FormatVersion also 339. Behaviour only: the step back follows the creature's heading and DK2's route tests (`0x00460DA0`), with the flee state's and the cannot-cast path's own lengths (ADR-0593). No fields added; saves and journals from 338 are refused. `StepBackTests` covers the lengths, the directions and the wall cases.

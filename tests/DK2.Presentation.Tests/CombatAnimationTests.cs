@@ -38,6 +38,7 @@ public class CombatAnimationTests
         target.PosX += 3 * Fp32.One;
         while (world.CurrentTick.Value < started + hold - 1)
         {
+            Assert.True(FightRules.MeleeActionIsRunning(attacker, definition, world.CurrentTick));
             simulation.Tick();
             Assert.False(attacker.HasRoute);
             Assert.Equal(started, attacker.SwingStartTick);
@@ -45,7 +46,14 @@ public class CombatAnimationTests
             Assert.Equal(AssetRef.ForCreature(name, AssetKind.Animation, "fighting"), pose.Animation);
             Assert.Equal(new GameTick(started), pose.AnimationStartedAt);
         }
+        // The clip has played; the completion poll is the next turn, the one the hold counts to with the
+        // start turn included, so the action is busy through started + hold - 1 and free at started + hold,
+        // as the victory pause's same count ends (Q376, ADR-0598).
+        Assert.True(FightRules.MeleeActionIsRunning(attacker, definition, world.CurrentTick));
+        Assert.False(FightRules.MeleeActionIsRunning(attacker, definition, new GameTick(started + hold)));
         target.PosX = attacker.PosX - 1300;
+        simulation.Tick();
+        Assert.Equal(0x200, attacker.Heading);   // started + hold - 1, the last busy turn
         simulation.Tick();
         Assert.NotEqual(0x200, attacker.Heading);
     }
@@ -73,7 +81,30 @@ public class CombatAnimationTests
         Assert.Equal(0x200, attacker.Heading);
     }
 
-    private static (GameDatabase, WorldState, CreatureState, CreatureState) Fighters(string name)
+    /// <summary>The commonest interval between one hero's consecutive blows on one keeper creature in
+    /// DK2's eight Level 4 recordings (D:/DK2Evidence/runs/l4-celebration-2026-10-30, hitinterval-all.out):
+    /// Guard 11 (its recharge), Dwarf 8 and Thief 10 (their melee clips' holds). Released a turn early,
+    /// ours struck the Dwarf's and Thief's at 7 and 9 (ADR-0598).</summary>
+    [InstallTheory]
+    [InlineData("Guard", "Guard", 11)]
+    [InlineData("Dwarf", "Imp", 8)]
+    [InlineData("Thief", "Imp", 10)]
+    public void ConsecutiveSwingsAreTheRechargeOrTheClipApart_AsDk2sRecordingsShow(string name, string targetName, int interval)
+    {
+        // A low-threat Imp keeps the Dwarf and Thief from backing off in fear; any target serves the clock.
+        var (database, world, attacker, _) = Fighters(name, targetName);
+        var simulation = new GameSimulation(database, world, 7, [new CombatSystem()]);
+        var sink = new ListEventSink();
+        simulation.ObserveWith(sink);
+        simulation.Run(80);
+        long[] starts = sink.Events.Where(e => e.Kind == "swing" && e.Detail.Contains("creature=" + attacker.Id + " "))
+            .Select(e => e.Tick.Value).ToArray();
+        Assert.True(starts.Length >= 3, $"swings {starts.Length}");
+        Assert.Equal(interval, starts[1] - starts[0]);
+        Assert.Equal(interval, starts[2] - starts[1]);
+    }
+
+    private static (GameDatabase, WorldState, CreatureState, CreatureState) Fighters(string name, string targetName = "Guard")
     {
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         byte path = database.Terrain.Values.Single(t => t.Name.Trim() == "Dirt Path").TerrainId;
@@ -82,7 +113,7 @@ public class CombatAnimationTests
         new GameSimulation(database, world, 7, []).Tick();
         CreatureState attacker = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId,
             1, new TilePos(5, 5));
-        CreatureState target = world.SpawnCreature(database, database.CreatureByName("Guard")!.CreatureId,
+        CreatureState target = world.SpawnCreature(database, database.CreatureByName(targetName)!.CreatureId,
             0, new TilePos(5, 5));
         target.PosX = attacker.PosX + 1300;
         target.Health = 30000;

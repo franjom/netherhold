@@ -17,7 +17,8 @@ happens between them: the state that holds a target, walks up to it, swings and
 listens for the target's answer.
 
 **What this settles:** a melee swing is a creature *action* that winds up for
-`def+0x5CA` ticks and lands once, started at most every `MeleeRecharge` ticks;
+`def+0x5CA` ticks and lands once, started no sooner than `MeleeRecharge` ticks, or its clip's
+hold, after the last;
 the target it lands on is the one the swing began at; a struck creature turns
 on its attacker only when its own target is already double-teamed; and fear —
 read here in outline — is combat-fear.md's, built with ADR-0165.
@@ -122,6 +123,13 @@ and then clears the target; **1 and 4 → the melee arm `0x004600DD`**:
    as the source**, which is what stamps a heart's killer — and the routine
    returns 0, marking the handler complete. Action 17 is mode 3: the action
    runner also waits for animation completion (kmf-animation-playback.md §7).
+
+**The next swing** can begin when both clocks allow: the action is free at start + the clip's
+`ActionHoldTicks` (the zero rate is installed a turn earlier and cleared by the next poll), and
+Gate B passes. Start to start is therefore the larger of the recharge interval and the hold
+(kmf-animation-playback.md §7, ADR-0598). On Level 4 DK2's one-hero hit interval is Guard 11
+(recharge: 2.0 s is 8 ticks by the loader's truncation, over the 0.8 work rate 10, strict gate 11),
+Dwarf 8 and Thief 10 (clip).
 
 The recharge gate for a melee attacker standing in reach is `MeleeRecharge` ticks over
 its work rate — a quarter longer than the file's seconds for a fresh creature —
