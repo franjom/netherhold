@@ -41,7 +41,7 @@ public static class FearRules
     /// <summary>The back-off keeps at least a tile's reach from its attacker, and five quarters of it.</summary>
     public const int MinimumStandOffSquared = 0x4000;
 
-    /// <summary>The axis fall-back of the step back, three quarters of a tile (<c>0x3000</c>), and here its length.</summary>
+    /// <summary>The axis fall-back of the step back, three tiles (<c>0x3000</c>).</summary>
     public const int StepBackLength = 0x3000;
 
     /// <summary>The withdraw walk's option words: the exact spot, then the same with no door rule.</summary>
@@ -127,15 +127,6 @@ public static class FearRules
         int d = me.OwnerPlayerId == PlayerIds.Good ? 0 : HeartDistance(world, hearts, me);
         if (d <= WithdrawHeartDistance) return false;
         return me.Health < CreatureLevelRules.MaxHealth(database, mine, me.Level) / 3;
-    }
-
-    private static long Isqrt(long value)
-    {
-        if (value <= 0) return 0;
-        long root = (long)Math.Sqrt(value);
-        while (root * root > value) root--;
-        while ((root + 1) * (root + 1) <= value) root++;
-        return root;
     }
 
     /// <summary><c>0x0045EC80</c>, the counter: clamped, cleared for the fearless and a pit fighter, up by one each
@@ -337,7 +328,7 @@ public static class FearRules
             me.Running = true;
             return;
         }
-        if (StepBack(context, me, mine, tx, ty, scratch))
+        if (StepBack(context, me, mine, FleeStepBackLength(mine), scratch))
         {
             me.Running = false;
             return;
@@ -445,30 +436,56 @@ public static class FearRules
         return chosen;
     }
 
-    /// <summary><c>0x00460DA0</c>: a step straight back from the target when a route exists and one
-    /// of the two axis tiles is not solid; failing that, along whichever axis routes. DK2 gives the
-    /// body an impulse of twenty-four ticks of shuffle along its heading; here, with no impulse in
-    /// the steering, it is a short route three quarters of a tile away from the target (Q373).</summary>
-    public static bool StepBack(SimulationContext context, CreatureState me, CreatureDef mine, int targetX, int targetY, List<Fixed16Vector> scratch)
+    /// <summary>The flee state's step back (<c>0x004602E0</c>): twenty-four ticks of shuffle,
+    /// <c>(ShuffleSpeed·3 &amp; 0x1FFFFFFE)·−8</c> from the definition's per-tick rate (<c>def+0x5BC</c>).</summary>
+    public static int FleeStepBackLength(CreatureDef mine) =>
+        unchecked((ShufflePerTick(mine) * 3 & 0x1FFFFFFE) * -8);
+
+    /// <summary>The cannot-cast step back (<c>0x0045FF51</c>-<c>0x0045FF69</c>): sixteen ticks of
+    /// shuffle, <c>−(ShuffleSpeed &lt;&lt; 4)</c>.</summary>
+    public static int CastStepBackLength(CreatureDef mine) => -(ShufflePerTick(mine) << 4);
+
+    /// <summary><c>def+0x5BC</c>: the record's shuffle speed over variable 19, floored at 1
+    /// (<c>CreatureDef_BuildFromRecord</c>, <c>0x00492517</c>-<c>0x00492536</c>).</summary>
+    private static int ShufflePerTick(CreatureDef mine) => SimulationTiming.LoaderRatePerTick(mine.ShuffleSpeed.Raw);
+
+    /// <summary>The step's vector along my heading through the sine tables (<c>0x006C1488</c>,
+    /// <c>0x006C1C88</c>): <c>x = (L·sin) &gt;&gt; 16</c>, <c>y = −((L·cos) &gt;&gt; 16)</c>, so a negative
+    /// length points behind me.</summary>
+    public static (int X, int Y) StepBackVector(CreatureState me, int length) =>
+        ((int)(((long)length * TrapRules.Sine(me.Heading)) >> 16),
+         -(int)(((long)length * TrapRules.Cosine(me.Heading)) >> 16));
+
+    /// <summary><c>0x00460DA0</c>: the step allowed when a route reaches its point and the tile at
+    /// <c>(x, y+vy)</c> or <c>(x+vx, y)</c> is not solid; when no route reaches it, <c>±0x3000</c> (three
+    /// tiles) along y if <c>(x, y+vy)</c> routes, else along x if <c>(x+vx, y)</c> routes, signed by the
+    /// component (<c>&lt; 1</c> negative). Every route test passes <c>0x80</c>, the door rule, for every
+    /// creature (<c>0x00460DEA</c>, <c>0x00460ED1</c>, <c>0x00460F1F</c>). DK2 gives the body that vector
+    /// as an impulse at the shuffle speed (<c>0x004887D0(2, 0)</c>); ours routes to its point at the
+    /// walk speed, and the step counts as taken by the tests alone, as DK2's (Q373).</summary>
+    public static bool StepBack(SimulationContext context, CreatureState me, CreatureDef mine, int length, List<Fixed16Vector> scratch)
     {
         WorldSteering navigation = context.Navigation;
         WorldState world = context.World;
-        long dx = me.PosX - targetX, dy = me.PosY - targetY;
-        long dist = Isqrt((dx * dx) + (dy * dy));
-        if (dist == 0) return false;
-        int vx = (int)(dx * StepBackLength / dist), vy = (int)(dy * StepBackLength / dist);
+        (int vx, int vy) = StepBackVector(me, length);
 
-        int px = me.PosX + vx, py = me.PosY + vy;
-        if (Passable(world, navigation, px, py)
-            && CombatTargetRules.CanReach(navigation, me, mine, px, py, int.MaxValue, scratch)
-            && (Passable(world, navigation, me.PosX, py) || Passable(world, navigation, px, me.PosY)))
-            return navigation.TryRouteTo(me, px, py, MoveOptions.Loose);
-
-        if (vy != 0 && Passable(world, navigation, me.PosX, py) && CombatTargetRules.CanReach(navigation, me, mine, me.PosX, py, int.MaxValue, scratch))
-            return navigation.TryRouteTo(me, me.PosX, me.PosY + (vy > 0 ? StepBackLength : -StepBackLength), MoveOptions.Loose);
-        if (vx != 0 && Passable(world, navigation, px, me.PosY) && CombatTargetRules.CanReach(navigation, me, mine, px, me.PosY, int.MaxValue, scratch))
-            return navigation.TryRouteTo(me, me.PosX + (vx > 0 ? StepBackLength : -StepBackLength), me.PosY, MoveOptions.Loose);
+        if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX + vx, me.PosY + vy, int.MaxValue, scratch, MoveOptions.Loose))
+        {
+            if (Passable(world, navigation, me.PosX, me.PosY + vy) || Passable(world, navigation, me.PosX + vx, me.PosY))
+                return Step(navigation, me, vx, vy);
+            return false;
+        }
+        if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX, me.PosY + vy, int.MaxValue, scratch, MoveOptions.Loose))
+            return Step(navigation, me, 0, vy < 1 ? -StepBackLength : StepBackLength);
+        if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX + vx, me.PosY, int.MaxValue, scratch, MoveOptions.Loose))
+            return Step(navigation, me, vx < 1 ? -StepBackLength : StepBackLength, 0);
         return false;
+    }
+
+    private static bool Step(WorldSteering navigation, CreatureState me, int vx, int vy)
+    {
+        navigation.TryRouteTo(me, me.PosX + vx, me.PosY + vy, MoveOptions.Loose);
+        return true;
     }
 
     private static bool Passable(WorldState world, WorldSteering navigation, int x, int y)

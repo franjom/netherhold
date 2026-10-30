@@ -204,13 +204,16 @@ fight-starter `0x0045A550` (§8 of the acquisition doc); then §10.
 the slots, clears `Attacking`, re-arms `AttackingId` to the old target
 (`0x0048F390`), runs `SelectAVictim` and returns its result.
 
-## 10. Step back or run (`0x0045FEA0`)
+## 10. Step back or run (`0x0045FF3D`)
 
-`d²` to the target. Busy (`0x00496D00`) → return 1. Within a **quarter** of both
-range² and sight² → an impulse against my heading of `def+0x5BC × 16` (the
-shuffle speed; the flee state's back-off uses × 24, `combat-fear.md` §3), checked
-by `0x00460DA0` (a route to the spot and the terrain flag) and applied by
-`0x004B1F60` at the shuffle speed mode; else the run speed mode. Return 1.
+Inside `spFighting` (`0x0045F030`, `0x0045FF3D`-`0x0045FFB5`); `0x0045FEA0` is mid-body,
+not a function entry. `d²` to the target. Busy (`0x00496D00`) → return 1. Within a
+**quarter** of both range² and sight² → a step back of length `L = −(def+0x5BC << 4)`
+(sixteen ticks of the shuffle rate; the flee state's is 24 ticks less its low bits,
+`combat-fear.md` §4) along my heading, decided by `0x00460DA0` (its arms are in
+`combat-fear.md` §4 step 8), then the shuffle speed mode (`0x004887D0(2, 0)`,
+`0x0045FFC5`-`0x0045FFC9`) and the impulse `0x004B1F60` on success; else the run speed
+mode. Return 1.
 
 ## 11. Built and not built
 
@@ -221,7 +224,8 @@ the work-rate divisor, a never-cast slot being `CreatureState.NeverUsed` (−1);
 `FightRules.StartCast`, stamping the slot at the start; action 16 §7 as `CastFires`/`FireSpell`, firing when the turn is
 past start + delay, with the lead on the target's last move, from the slot's origin
 turned by the caster's heading (ADR-0489; the height is dropped with the flight's, Q398); the cannot-cast
-fallback §9 and the step-back §10 in `CombatSystem.CannotCast`, except that
+fallback §9 and the step-back §10 in `CombatSystem.CannotCast` (the step through
+`FearRules.StepBack` with `CastStepBackLength`, ADR-0593), except that
 nothing found leaves the creature idle where DK2 restores the old target. The
 `AttackAbnormalTargets` arm of §9 is built too (ADR-0591): a Support goes to §10,
 anyone else unlinks, is forced again on the old id and kind, and returns

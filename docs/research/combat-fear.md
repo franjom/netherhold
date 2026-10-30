@@ -180,14 +180,26 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    nibble; registration refused → clear the target, return 0.
 8. **Stand off.** `range = max(0x4000, target.AttackRangeSquared if the target is
    in the combat group) × 5/4`. Farther than that: run speed, return 1. Nearer:
-   **step back** (`0x00460DA0`) — a body impulse of `−(shufflePerTick × 24 & ~15)`
-   along my heading (`+0xF4`, the sine and cosine tables at `0x006C1C88` and
-   `0x006C1488`), allowed when a route to the point exists and the tile at
-   `(x, y+vy)` or `(x+vx, y)` is not solid, else `±0x3000` along whichever axis
-   routes; `0x004B1F60` adds it to the creature's `+0x110/+0x114/+0x118`
-   accumulator, after the shuffle speed is set (`0x004887D0(2, 0)`). What spends
-   the accumulator is unread (Q373). Impossible: cornered (§3.1) → `SetState(199)`, else
-   `BackOffTimer = 0`.
+   the **step back** below. Impossible (it returns 0): cornered (§3.1) →
+   `SetState(199)`, else `BackOffTimer = 0` (`+0x532`).
+
+   The step back (`0x00460DA0`) takes a vector along my heading (`+0xF4`) through
+   the sine and cosine tables `0x006C1488` and `0x006C1C88`: `x = (L·sin) >> 16`,
+   `y = −((L·cos) >> 16)`. Here `L = (def+0x5BC·3 & 0x1FFFFFFE)·−8`
+   (`0x00460790`-`0x004607E5`): 24 ticks of the shuffle rate with its low four bits
+   dropped, behind me. `def+0x5BC` is the record's `ShuffleSpeed / var19` floored at 1
+   (`0x00492517`-`0x00492536`). The cannot-cast path's length is in combat-spells.md §10.
+   - `CanRouteTo(me, (x+vx, y+vy), 0x80)` (`0x004D0E60`; `0x80` for every creature,
+     `0x00460DEA`, `0x00460ED1`, `0x00460F1F`). Routes: allowed when the tile at
+     `(x, y+vy)` or `(x+vx, y)` is not solid (terrain `+0x17B` bit 0); otherwise return 0
+     (`0x00460E99` to `0x00460F4F`, read from the instructions).
+   - Does not route: if `(x, y+vy)` routes, the vector becomes `(0, vy < 1 ? −0x3000 : +0x3000)`
+     and it returns 1; else if `(x+vx, y)` routes, `(vx < 1 ? −0x3000 : +0x3000, 0)` and 1
+     (`0x00460EA9`-`0x00460F47`); else return 0. There is no zero-component guard, and
+     `0x3000` is three tiles (`Fp32.One` is 4096).
+   - On success the caller sets the shuffle speed mode (`0x004887D0(2, 0)`) and
+     `0x004B1F60` adds the vector to the creature's `+0x110/+0x114/+0x118`. What spends
+     that accumulator is unread (Q373).
 9. **The run.** `0x00460B50`: a keeper's creature (not neutral, not Good) whose
    live creature target stands strictly inside one of its owner's **Guard Rooms**
    (room type byte `+0x18` == 9, `0x00460BC8`; other rooms are skipped) grown by
@@ -270,8 +282,9 @@ The first Level7 death in Q582 takes the NonFighter hero-avoidance path
 or the over-threat counter. Its healthy retreat decision is already observed;
 the unresolved timing and movement comparison is in combat-acquisition.md §1.
 
-**Approximated, named:** the step back is a route three quarters of a tile
-straight away from the target, not a heading impulse (Q373); a hero's flag bit 4 is
+**Approximated, named:** the step back's vector and tests are DK2's (§4 step 8,
+`FearRules.StepBack`, ADR-0593), but its motion is a best-effort route to the vector's
+point at walk speed, not the shuffle-speed impulse (Q373); a hero's flag bit 4 is
 absent, as in every shipped level (§3.2). The room
 word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 

@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**339** - `0x7992DA9E348727DF`. FormatVersion also 339. Behaviour only: the step back follows the creature's heading and DK2's route tests (`0x00460DA0`), with the flee state's and the cannot-cast path's own lengths (ADR-0593). No fields added; saves and journals from 338 are refused. `StepBackTests` covers the lengths, the directions and the wall cases.
+
 **338** - `0xA4D1AE2F7AA19CDE`. FormatVersion also 338. Behaviour only: a fighter with no target runs `SelectAVictim` before the victory arm, so a killer with another enemy in sight fights on and celebrates only when none is found (ADR-0592). No fields added; saves and journals from 337 are refused. `CombatApproachTests.AKillerWithAnotherEnemyInSightFightsOn_AndDoesNotCelebrate` covers it.
 
 **337** - `0xA82A80816886C62A`. FormatVersion also 337. Behaviour only: unlinking an engagement drops a held forced target (the chase give-up and the hypnosis release now do); a forced fighter out of reach keeps and walks to its target; the forced cannot-cast arm is built (ADR-0591). No fields added; saves and journals from 336 are refused. `CombatCategoryHooksTests.UnlinkingAnEngagement_DropsAHeldForcedTarget` and `AForcedFighterOutOfReach_KeepsItsForcedTarget_AndApproachesIt` cover the first two; `CombatPitTests` and `DoorCombatTests` cover the cannot-cast arm.

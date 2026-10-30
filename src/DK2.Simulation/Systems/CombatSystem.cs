@@ -357,7 +357,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         StepBackOrRun(context, creature, definition, targetX, targetY, previous);
     }
 
-    /// <summary>combat-spells.md §10 (<c>0x0045FEA0</c>): within a quarter of both range and sight the
+    /// <summary>combat-spells.md §10 (inside <c>spFighting</c>, <c>0x0045FF3D</c>): within a quarter of both range and sight the
     /// caster steps back, else it runs.</summary>
     private void StepBackOrRun(SimulationContext context, CreatureState creature, CreatureDef definition, int targetX, int targetY, int previous)
     {
@@ -365,7 +365,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);
         if (distance < creature.AttackRangeSquared / 4 && distance < sightSq / 4)
         {
-            if (FearRules.StepBack(context, creature, definition, targetX, targetY, _scratch))
+            if (FearRules.StepBack(context, creature, definition, FearRules.CastStepBackLength(definition), _scratch))
                 context.Emit(SystemName, "steps_back", $"creature={creature.Id} target={previous}");
         }
         else

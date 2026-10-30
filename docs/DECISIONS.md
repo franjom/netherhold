@@ -3828,7 +3828,7 @@ sets the run speed, not a cue.
 **Decision.** `FearRules` builds that order, run by `CombatSystem` after each
 creature's fight processing. `CreatureActivity.Fleeing` is state 203,
 `Withdrawing` the walk to state 202; `Running` is the body's speed cap. The step
-back is a short route away from the target, and a state ending lets the
+back is approximated as a route (along the heading since ADR-0593), and a state ending lets the
 engagement go — both named as approximations (Q373). Heroes fear in full and
 never withdraw for want of a creature flag and hero gates (Q372); the Scout's
 alarm (Q374; built in ADR-0166, routed as read in ADR-0332) and three per-type owner modifiers (Q375) are not built.
@@ -13812,7 +13812,7 @@ and the forced cannot-cast arm of the fight were not built for a forced fighter.
 - `CombatSystem` out of reach skips the unlink and re-selection while `AttackAbnormalTargets` is
   set, and walks to the forced target (`0x0045F885`).
 - `CombatSystem.CannotCast` builds the forced arm (`0x0045FC2F` to `0x0045FDB7`): a Support goes
-  straight to the step-back-or-run (`StepBackOrRun`, `0x0045FEA0`); anyone else unlinks, is forced
+  straight to the step-back-or-run (`StepBackOrRun`, inside `spFighting` at `0x0045FF3D`-`0x0045FFB5`); anyone else unlinks, is forced
   again on the old engaged id and kind (`0x0045FE7B`-`0x0045FE82`, `0x0048F390`), runs
   `SelectAVictim` and returns its result; none found lets the fight go.
 
@@ -13854,3 +13854,35 @@ Known gaps, not fixed:
   ([combat-category-hooks.md](research/combat-category-hooks.md#open-questions)).
 - `VictoryRules.Victory` is void; `0x00460FE0` returns 0 when `SetState(260)` is refused or no
   route to a body exists, and the fight then leaves through `SetState(1)`.
+
+## ADR-0593 - The step back follows the creature's heading and DK2's route tests
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 339 · amends ADR-0165, ADR-0167 · Q665, Q373 · Research: [combat-fear.md](research/combat-fear.md#4-state-203-fleeing-0x004602e0-in-order), [combat-spells.md](research/combat-spells.md#10-step-back-or-run-0x0045ff3d); KB `00460DA0`, `004602E0`, `0045F030`
+
+**Context.** Healthy keeper non-Imps leaving the flee state (203) go back to the fight less often
+in ours than in DK2: per eight Level 4 runs the next state is 199 / 6 for 52 / 13 of 100 in DK2
+and 31.8 / 25.2 of 79.4 in ours (hash 338; `D:/DK2Evidence/runs/l4-celebration-2026-10-30`,
+README, "Why the keeper fighters break off"). A debug replay showed a keeper Goblin's step back
+failing three tiles south into a wall and the creature withdrawing to its lair at full health.
+Ours stepped back `0x3000` (three tiles, `Fp32.One` being 4096; documented as three quarters of
+a tile) straight away from the target, with extra `Passable` checks, the Imp-only door rule, and
+counted the step as taken only when the route succeeded. DK2's `0x00460DA0` does none of that.
+
+**Decision.** `FearRules.StepBack` mirrors `0x00460DA0`: a vector along the heading through the
+sine tables (`StepBackVector`), its length from the caller (`FleeStepBackLength` for the flee
+state, `CastStepBackLength` for the cannot-cast path), every route test with `MoveOptions.Loose`
+(`0x80`) for every creature, solidity from `NavBytes.IsSolid` (terrain `+0x17B` bit 0), and the
+step counted as taken by the tests alone. The arms and addresses are in the research sections
+above. The motion is a best-effort route to the vector's point at walk speed, an approximation
+of DK2's shuffle-speed impulse (Q373). The unused `Isqrt` is removed.
+
+**Consequences.** Hash/save 339 refuses version 338. `StepBackTests` covers the lengths (24 and 16
+ticks of shuffle), the directions for headings 0, 512 and 1024, a wall three tiles behind but not
+2.4 (taken), a wall inside the step (three tiles west by a route) and a routed point between two
+solid corners (refused); the two behaviour tests fail against the old `StepBack`.
+`DK2.Simulation.Tests` 4065 passed. The effect on Level 4's flee exits is not yet measured.
+Known gaps, not fixed:
+- `FearRules.Cornered` (`0x00460C50`) still uses `CanReach`'s Imp-only door rule where DK2
+  passes `0x80` for every creature.
+- `0x004D0E60`'s write of `+0x3E6` bits 17-19 is not modelled.
+- `SimulationTiming.LoaderRatePerTick` does not model the loader's `& 0xFFFF` mask or the
+  `+0x10C` presence dword (`CreatureDef_BuildFromRecord`, `0x00492517`-`0x00492536`).
