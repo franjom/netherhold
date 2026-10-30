@@ -105,6 +105,12 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
 
     public void Emit(in SimEvent simEvent)
     {
+        if (simEvent.ElectrifiedCreature is CreatureId creature)
+        {
+            if (!_creatureLightning.TryGetValue(creature, out CreatureLightningVisual? visual))
+                _creatureLightning.Add(creature, visual = new CreatureLightningVisual());
+            visual.Ignite(simEvent.Tick);
+        }
         if (simEvent.EffectRequest is ViewEffectRequest request)
             Request(request);
         else if (simEvent.ConstructionEffect is RoomConstructionEffect construction)

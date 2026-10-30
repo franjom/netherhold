@@ -15,6 +15,23 @@ namespace DK2.Convert.Tests;
 /// <summary>The renderer frame of ADR-0408's classic look: X east, Y up, Z north, left-handed.</summary>
 public sealed class RenderMeshTests
 {
+    [Fact]
+    public void LightningControlPointsRetainCtrlOrderAndRepeatedIds()
+    {
+        var primitive = new KmfPrimitive(0, 0,
+            [new KmfVertex(Vector3.Zero, Vector3.UnitZ, Vector2.Zero),
+                new KmfVertex(Vector3.UnitX, Vector3.UnitZ, Vector2.Zero)], []);
+        var mesh = new KmfMesh("test", Vector3.Zero, 1, [primitive]);
+        var model = new KmfModel(1, KmfKind.Animation, [], mesh, new KmfAnimation(1, [mesh]))
+        {
+            ControlPoints = [new(0x10000, 1001), new(0, 1000), new(0, 1001)],
+        };
+        RenderMesh rendered = RenderMesh.FromModel(model);
+        Assert.Equal(new uint[] { 1001, 1000, 1001 }, rendered.TaggedPoints.Select(p => p.Id));
+        Assert.Equal(new[] { 1, 0, 0 }, rendered.TaggedPoints.Select(p => p.VertexIndex));
+        Assert.Equal(1, rendered.ControlPoints[1001]);
+    }
+
     /// <summary>Pins the formula; the owner's Level 1 comparison found the layout it gives
     /// unmirrored (ADR-0411).</summary>
     [Fact]

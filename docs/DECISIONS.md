@@ -13989,3 +13989,23 @@ callers or level THINGS. Native visual acceptance remains pending.
 **Consequences.** Each effect engine owns an independent native LCG, separate from the
 simulation stream; hash/save341 and its deterministic pin are unchanged. The engine keeps
 existing public names and asset access.
+
+## ADR-0599 - draw procedural lightning and electrified creatures
+
+**Status:** implemented, 2026-10-30.
+
+**Decision.** Decode procedural kinds in the data model, build bolts/ribbons in
+engine-neutral presentation, and draw them through the Unity asset abstraction.
+Retain ordered animated control points, including duplicate ids, for crackle.
+Keep render-link latches and electrified timers outside simulation state.
+
+**Evidence and verification:** [shot-effects.md sections6/7](research/shot-effects.md#6-procedural-lightning-art-type-7).
+
+**Limits.** Additive blending is inferred (Q659); animation-install revisions proxy
+the incomplete native chooser (Q660). View timers/latches are not restored by the
+existing save boundary. Kinds1/4/6 are deferred; other shot bodies and burning
+presentation remain separate slices. Native visual acceptance remains pending.
+
+**Consequences.** CRT jitter and render-LCG pairing use private presentation streams;
+hash/save341 and its deterministic pin are unchanged. Q661 is answered only for
+kind8 endpoints and the ordinary keeper creature-targeted Thunderbolt path.

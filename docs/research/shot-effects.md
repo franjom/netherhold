@@ -260,97 +260,92 @@ SHA-256-verified artifacts: `D:/DK2Evidence/experiments/shot-burning-hash340-202
 
 ## 6. Procedural lightning (art type 7)
 
-**Kind.**
-- The kind is the first dword of the art resource's type block at file `+0x44`
-  (`KwdArtResource.Unknown_0044`), not its name (CONFIRMED data):
-  - Thunderbolt 21: 2;
-  - Lightning 30, Lightning Trap 59, Deconstructor 63: 7;
-  - Gas Missile Cloud 55: 2;
-  - effect 4 Lightning Bolt: 8;
-  - effect 28 Frost Ball Ring: 4.
-- `0x005A01A0` dispatches on it:
-  - 1: a scrolling 5×5 quad grid (no shipped user found);
-  - 2: one bolt;
-  - 3: the selection cage ([hand-cursor-rendering.md](hand-cursor-rendering.md));
-  - 4 and 6: two eight-segment "Ice Ring" rings;
-  - 7: three bolts;
-  - 8: one bolt to a fixed end.
-- Textures: the render sink's init (`0x005984E2..`) loads "Lightning", "Cursor", "Ice Ring" and
-  "White".
+**Kinds (CONFIRMED data).** `KwdArtResource.ProceduralKind` decodes the first dword of
+the type block at file `+0x44`; dispatch is `0x005A01A0`.
 
-**Endpoints (`0x005A0450..0x005A05C4`, CONFIRMED).**
-- The start is the thing's drawn position.
-- For kinds 2 and 7 on a shot:
-  - the end is the target `+0x147`'s base point, with no height offset;
-  - a dead target, or a room (class 9), clears the link and the bolt is never drawn again;
-  - a live creature caster `+0x16D` replaces the start's x and y with its interpolated position
-    (`0x0044CE70`), keeping the shot's z.
-- Otherwise, kind 8 included, the end is straight down or up at height `0x1000` (sign
-  STRONGLY INFERRED, Q661).
+| kind | native draw | shipped examples |
+|---|---|---|
+| 1 | scrolling 5x5 quad grid | no shipped user found |
+| 2 | one bolt | Thunderbolt21, Gas Missile Cloud55 |
+| 3 | selection cage | [hand-cursor-rendering.md](hand-cursor-rendering.md) |
+| 4/6 | two eight-segment Ice Ring rings | effect28 (kind4) |
+| 7 | three bolts | Lightning30, Lightning Trap59, Deconstructor63 |
+| 8 | one bolt to a fixed end | effect4 |
 
-**The bolt (`0x005A0030`, CONFIRMED).**
-1. Subdivide recursively at midpoints (`0x0059F940`) until a segment is at most 0.06 tile.
-   Each midpoint moves on every axis by `U(−1,1) × amp × len / 2048`, with amp the dword
-   `0x006BE8F0` = **192** (±9.4% of the segment).
-2. A fork spawns when a quarter of the bolt's length exceeds 0.2 and the raw `rand()`
-   (0..32767) is below `256 / (len / 4)`, a chance of that over 32768 per subdivision. It runs
-   to the end jittered by ±len/4, and forks recurse.
-3. `0x0059FBE0` halves the node list until at most 32 nodes remain. It then builds a
-   camera-facing ribbon of half-width 0.03 tile, mitred by averaging the neighbouring normals,
-   zero-width at both ends.
-4. `0x0059FDD0` draws one double-sided quad per segment: U 0..1 along it, white, texture
-   "Lightning", flag `0x1000`.
+The renderer loads Lightning, Cursor, Ice Ring and White textures. Unity reads the
+original Lightning texture through the asset provider at run time.
 
-The randomness is the C runtime `rand` (`0x006359F0`), never the simulation's. Nothing is
-cached: **a new shape every rendered frame**.
+**Endpoints and links (reviewed binary, 2026-10-30).** Kinds2/7 start at the shot's
+drawn point and end at its target's base point. A live creature caster replaces only
+start XY with its interpolated point, preserving shot Z. A dead/non-creature caster
+permanently loses that caster link; a dead target or room permanently disables the
+procedural render link. `0x004B49D0(0)` clears RenderInfo+4F/+4E bit6, not shot+147.
+Our latches are view-local and do not modify the simulation's target/caster fields.
+Kind8 keeps the start XY and ends at absolute native height+4096: `0x005A04AB`
+writes draw Z=-4096 (Q661).
 
-**Thunderbolt (shot 21).**
-- It draws one bolt from the shot, made `0x2000` above its target
-  ([keeper-spell-thunderbolt.md](keeper-spell-thunderbolt.md) §2), to the target's feet.
-- It draws for its 8 ticks of health (bit 2).
-- The hit-thing effect 39 shows 16 sparks a pass plus smoke at the target, carried with it.
-- No light, flash or shake was found on the path.
+**Shape and ribbon (reviewed `0x0059F940`, `0x005A0030`, `0x0059FBE0`).**
+1. Recursive midpoint subdivision stops at0.06tile before thinning. Per-axis XYZ jitter
+   is `U(-1,1) * amplitude * segmentLength / 2048`, amplitude192 for shots or256 for crackle.
+2. After left and right recursion, a raw15-bit CRT draw tests `256/forkScale`, only when
+   forkScale>0.2. The scale is the whole bolt's length/4, constant for its subdivision
+   nodes. Forks run from the displaced middle to the global end jittered XYZ by that scale.
+3. Drop every other interior node until at most32 remain. Normals use projected view XY,
+   dividing by depth clamped to0.1. Normalize adjacent normals separately; normalize their
+   sum when its length exceeds0.1, otherwise keep the previous normal. Half-width is0.03tile,
+   with zero width at both ends. Thinning can lengthen final segments beyond0.06tile.
+4. Submit one quad per segment with both windings, white vertex colour, U0..1 and the
+   Lightning texture (`0x0059FDD0`). Unity uses both windings with back-face culling to
+   avoid drawing the same surface twice. Shape and ribbons rebuild every rendered frame.
 
-**Creature Lightning (shot 30).**
-- Three bolts per frame from the caster's moving x/y at the spawn height to the target's feet,
-  for 8 ticks.
-- Its creation effect 283 is a flash of `Linechrg` sprites with a violet light, made at launch.
-- The trap's shot 59 starts at the shot.
+Bolts use a private CRT15 stream (`0x006359F0`); crackle pair selection uses the render
+LCG. Neither accesses simulation randomness. **Blending remains STRONGLY INFERRED
+additive (Q659).** The kind3/AA material path supports that default ([tag-highlight.md](tag-highlight.md) §6).
+Flag0x1000 enters constructor argument7, stored at+58; its later draw
+selects a vertex processor. That does not settle blending. Queue material resolution
+through `0x005888A0`/`0x0057C780`/`0x00589140` still needs its backend blend-state trace.
 
-**Electrified creatures.**
-- `+0x4E3`, "LightningTimer", is set to 20 by process 9.
-- `0x0048BE50` decrements it and clears thing `+0x92` bit 1 each tick (`0x0048BEBE`). It sets
-  the bit again only when it installs a new animation while the timer runs; the stun's action
-  52 normally does.
-- With the bit set, `0x005A3AA0` (after the creature's mesh draw) passes the mesh control
-  points with id below 2000 to `0x005A1340`. That draws bolts at amplitude 256 between pairs of
-  points not in the same run of consecutive ids, each pair at chance `1/(8i)` a frame, from the
-  render seed `0x00795850`.
-- Crawling bolts on the body, no tint. How long they show in play is Q660.
+**Keeper Thunderbolt (Q661).** Ordinary creature-targeted shot21 is made+8192 above
+the target, with caster0, zero velocity and shipped Mass0. The creation path does not
+launch it; its speed setter writes a word, not velocity. Thus it stays at its origin
+for its eight-tick life, drawing one bolt to the target's feet. See records004BBF90,
+004B7CD0,004AAC90 and004B5F30. Hit effect39 follows the struck creature with16sparks/pass
+plus smoke; no separate light,
+flash or shake was found. Creature Lightning30 draws three bolts from caster XY at the
+spawn height for eight ticks, with creation283's Linechrg flash/violet light; trap59 starts
+at the shot.
+
+**Electrified creatures (Q660).** Process9 sets LightningTimer+4E3 to20. The native
+chooser decrements it, clears the crackle bit each tick and sets it only on a new animation install
+while that timer runs. The presentation tracker consumes typed lightning events and
+uses the adapter's InstallationRevision as a proxy; the native chooser is not complete.
+CTRL points retain file order and duplicate ids; the older named lookup keeps the first.
+Current animated points with id<2000 feed `0x005A1340`'s mirrored pair scan: outer i and
+inner j descend, consecutive-id runs advance the previous index, random failures do not.
+Accepted pairs run j->i when render-LCG `Random(8*i)==1`, with amplitude256. Native onset
+and duration still require comparison; rebuilding or loading the view does not restore
+these timers or permanent link latches. Crackle adds bolts, not a tint.
 
 ## 7. Ours
 
-- **Built:** type4 emission, flag-`0x40` effect children, slot choice, Next chains, creature
-  attachments, lights and mesh elements; burning simulation (ADR-0595); every shot effect
-  request and tied trail lifecycle (ADR-0596). ADR-0597 adds type4 carried/own velocity,
-  DirectionalSpread with its initial uniform draw retained, both flag-`0x400` headings,
-  floor/wall hit ids and kill distinctions, flight yaw, per-update element NextEffect,
-  and generation types3/6/18. Internally generated effects are ungated and newborns wait
-  until the next update. Own-art sprites follow their moving emitter; lights survive
-  emission until teardown. Effect106's isolated test confirms Randomness3 gates its waves.
-  Each model owns a native LCG seeded independently from the simulation; the seed7 regression
-  checks the discarded uniform draw and DirectionalSpread override against hand-computed values.
-- **Approximations:** quarter-tile wall sampling and both-axis reflection (Q690); native
-  vertical shot flight and view origins (Q398); camera frustum sphere (Q689). Restored
-  poses use ordinary floor and velocity/aim bearing, without recovering original launch
-  height/yaw or live view handles. Native trail-kind uncertainty remains Q662.
-- **Not built:** numeric generation14 (no request caller); burning overlay/sound;
-  Inferno camera jitter; shot body rendering and procedural art type7.
+- **Built:** burning simulation (ADR-0595); shot requests/trail lifecycle (ADR-0596);
+  type4 inheritance/headings, DirectionalSpread, contacts, element NextEffect and
+  generation3/6/18 (ADR-0597). The effect engine owns an independent native LCG.
+  ADR-0599 adds typed procedural kinds, CRT bolt subdivision/forks, projected ribbons,
+  shot kinds2/7 and effect kind8, view-local endpoint latches, ordered animated CTRL
+  points and electrified crackle with a presentation timer. Native visual acceptance
+  has not been performed.
+- **Approximations:** additive lightning blending (Q659); animation-install proxy and
+  unrestored view timers/links (Q660); quarter-tile wall reflection (Q690); general
+  vertical shot flight/view origins (Q398); camera frustum sphere (Q689). Restored
+  shot poses do not recover launch height/yaw or view handles. Trail-kind remains Q662.
+- **Not built:** numeric generation14 (no request caller); procedural kinds1/4/6;
+  other shot bodies; burning overlay/sound; Inferno camera jitter.
 
-**Verification (ADR-0597).** Simulation: 4102 tests passed; Presentation: 1332 passed.
-Unity Compile passed with no warnings/errors; nine runtime DLLs were copied into this
-branch Unity project. No live editor was running; visual acceptance remains pending.
-Hash/save341 and pin `0x068253C19085D205` are unchanged by the effect-engine work.
+**Verification (ADR-0599).** Simulation: 4103 and Presentation: 1350 tests passed; four
+RenderMesh tests passed. Unity Compile passed with no warnings/errors; nine runtime
+DLLs were copied into this branch Unity project. No editor was running; visual checks
+remain pending. Hash/save341 and pin `0x068253C19085D205` are unchanged.
 
 ## Confidence
 
@@ -361,6 +356,6 @@ endpoints and bolt arithmetic.
 **CONFIRMED (data):** the shot and effect ids, effect 106's contents, the type-7 kinds.
 
 **STRONGLY INFERRED:** hit-lava/water inert; bodies without pitch; inert effect flags `0x80`,
-`0x200`, element flag `0x20` and effect Radius; the jitter as a shake; the kind-8 end height's sign.
+`0x200`, element flag `0x20` and effect Radius; the jitter as a shake; additive lightning blending.
 
-**UNKNOWN:** Q658–Q662.
+**UNKNOWN/PARTIAL:** Q658–Q660 and Q662; Q661 is answered for the ordinary keeper cast.

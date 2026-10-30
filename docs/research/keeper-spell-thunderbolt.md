@@ -46,7 +46,9 @@ zero return are in `keeper-spell-casting.md` §§1–2. Instruction verification
 `0x004BC178..0x004BC259` creates the shot, writes data and target, debits mana,
 adds the cost to player `+0x10F2`, and stamps both clocks. Target selectors
 1–3 and 6 also set the shot's forced-target word. Thunderbolt's origin is
-raised by `0x2000` in height; the current simulation's shots omit height.
+raised by `0x2000` in height. Its stationary type7 view body is now drawn (ADR-0599);
+[shot-effects.md section6](shot-effects.md#6-procedural-lightning-art-type-7) owns the
+creation/endpoint evidence and scoped Q661 answer. General vertical flight remains Q398.
 The helper's creation call uses the normal shot byte even after selecting
 upgraded parameters; the shipped Thunderbolt's two shot ids are identical.
 The public adapter selects the requested upgraded descriptor (ADR-0260).

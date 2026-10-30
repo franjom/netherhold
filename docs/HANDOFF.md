@@ -18,8 +18,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 
 - Hand drops animate only after acceptance (ADR-0582); native packet-submit
   timing and pending-entry scheduling remain partial (Q682).
-- Burning, shot requests/trails and their effect engine are built (ADR-0595/0596/0597, hash/save341).
-  Scope and pending acceptance: [shot effects](research/shot-effects.md#7-ours), Q658/Q689/Q690.
+- Burning, shot effects and procedural lightning are built (hash/save341).
+  Scope and pending acceptance: [shot effects](research/shot-effects.md#7-ours), Q658/Q659/Q660/Q689/Q690.
 - Thunderbolt guards are built at hash/save 332 (ADR-0581); Pit binding remains Q675.
 
 - Sleep debt, needs-clock suppression and tired retries are built at hash/save 330

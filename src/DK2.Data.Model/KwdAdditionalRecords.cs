@@ -28,7 +28,18 @@ public sealed record KwdArtResource(
     byte Type,
     byte Unknown_0051,
     byte Unknown_0052,
-    byte Unknown_0053);
+    byte Unknown_0053)
+{
+    public ProceduralArtKind ProceduralKind => Type == 7 && Unknown_0044.Length >= 4
+        ? (ProceduralArtKind)System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(Unknown_0044.Span)
+        : ProceduralArtKind.None;
+}
+
+public enum ProceduralArtKind : uint
+{
+    None = 0, ScrollingGrid = 1, Lightning = 2, SelectionCage = 3,
+    IceRing = 4, DoubleIceRing = 6, TripleLightning = 7, FixedLightning = 8,
+}
 
 /// <summary>A 24-byte light descriptor embedded in SHOTS and EFFECTS.</summary>
 public sealed record KwdLight(

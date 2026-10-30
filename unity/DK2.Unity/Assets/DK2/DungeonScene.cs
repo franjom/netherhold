@@ -76,6 +76,7 @@ namespace DK2.Unity
         public System.Action<ViewEffectRequest> HeartEffectRequested { get; set; }
         /// <summary>A drawn gem carrier's mesh point 10001, once per draw (CreatureView.GemDustSparkle).</summary>
         public System.Action<FpPosition3> GemSparkleRequested { get; set; }
+        public ClassicLightning Lightning { get; set; }
         private readonly Dictionary<int, long> _gemSparkleQuanta = new Dictionary<int, long>();
         public System.Func<EffectTime> HeartEffectClock { get; set; } =
             () => new EffectTime((long)(Time.realtimeSinceStartupAsDouble * 1000));
@@ -588,6 +589,7 @@ namespace DK2.Unity
                     _meshCreatures.Contains(entry.Key) ? ground.y : position.y, ground.z);
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
+                Lightning?.DrawCreature(new CreatureId(entry.Key), tick, player);
                 _creatureHeads[entry.Key] = player != null
                     && player.TryGetControlPoint(DK2.Art.Kmf.KmfControlPoint.Head, out Vector3 head)
                         ? new FpPosition3(new Fp32((int)(head.x * Fp32.One)), new Fp32((int)(-head.z * Fp32.One)),

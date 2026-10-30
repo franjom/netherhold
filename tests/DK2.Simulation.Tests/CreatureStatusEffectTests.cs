@@ -246,6 +246,22 @@ public class CreatureStatusEffectTests
     }
 
     [Fact]
+    public void LightningReportsTheCreatureForItsPresentationTimer()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState target = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 8, 10);
+        GameSimulation sim = Sim(db, world);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+        ShotRules.Spawn(world, db.Shots[Dk2TerrainFixture.LightningShotId], Keeper,
+            CreatureState.CentreOf(5), CreatureState.CentreOf(10), 10, 0, 0,
+            FightTargetKind.Creature, target.Id, 0, -1, target.PosX, target.PosY);
+        sim.Tick();
+        SimEvent hit = Assert.Single(events.Events, e => e.Kind == "lightning");
+        Assert.Equal(new CreatureId(target.Id), hit.ElectrifiedCreature);
+    }
+
+    [Fact]
     public void PoisonBleedsItsAmountATickForItsTicks_AndPausesWhileFrozen()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

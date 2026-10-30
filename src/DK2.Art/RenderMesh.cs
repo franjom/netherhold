@@ -20,9 +20,10 @@ namespace DK2.Art;
 public sealed class RenderMesh
 {
     private RenderMesh(Vector3[] positions, Vector3[] normals, Vector2[] uvs, int[][] triangles,
-        KmfBlend[] blends, Dictionary<uint, int> controlPoints)
+        KmfBlend[] blends, Dictionary<uint, int> controlPoints, IReadOnlyList<RenderControlPoint> taggedPoints)
     {
         ControlPoints = controlPoints;
+        TaggedPoints = taggedPoints;
         Positions = positions;
         Normals = normals;
         Uvs = uvs;
@@ -35,6 +36,8 @@ public sealed class RenderMesh
     /// <summary>An animation's tagged points (<see cref="KmfControlPoint"/>) as indices into
     /// <see cref="Positions"/>, by id; a static mesh's are not resolved (empty).</summary>
     public IReadOnlyDictionary<uint, int> ControlPoints { get; }
+    /// <summary>Resolved animation CTRL points in file order, including repeated ids.</summary>
+    public IReadOnlyList<RenderControlPoint> TaggedPoints { get; }
     public IReadOnlyList<Vector3> Normals { get; }
     public IReadOnlyList<Vector2> Uvs { get; }
 
@@ -84,14 +87,20 @@ public sealed class RenderMesh
         for (int i = 0; i < blends.Length && i < model.Materials.Count; i++)
             blends[i] = model.Materials[i].Blend;
         var controlPoints = new Dictionary<uint, int>();
+        var taggedPoints = new List<RenderControlPoint>();
         if (model.Kind == KmfKind.Animation)
             foreach (KmfControlPoint control in model.ControlPoints)
             {
                 int primitive = (int)(control.Vertex & 0xFFFF), vertex = (int)(control.Vertex >> 16);
                 if (primitive < mesh.Primitives.Count && vertex < mesh.Primitives[primitive].Vertices.Count)
+                {
                     controlPoints.TryAdd(control.Id, firsts[primitive] + vertex);
+                    taggedPoints.Add(new(control.Id, firsts[primitive] + vertex));
+                }
             }
         return new RenderMesh([.. positions], [.. normals], [.. uvs],
-            triangles.Select(list => list.ToArray()).ToArray(), blends, controlPoints);
+            triangles.Select(list => list.ToArray()).ToArray(), blends, controlPoints, taggedPoints);
     }
 }
+
+public readonly record struct RenderControlPoint(uint Id, int VertexIndex);

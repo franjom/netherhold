@@ -289,7 +289,11 @@ public static class StatusEffectRules
         bool water = world.Contains(at) && database.TerrainById(world.Tile(at.X, at.Y).TerrainId).IsWater;
         int dealt = water ? damage * 2 : damage;
         int landed = Hurt(world, database, targetDef, target, dealt, source); // 0x004AF2D1: the shot's owner
-        context.Emit(SystemName, "lightning", $"target={target.Id} caster={casterId} damage={dealt} landed={landed} health={target.Health}");
+        context.Events.Emit(new SimEvent(context.Tick, SystemName, "lightning",
+            $"target={target.Id} caster={casterId} damage={dealt} landed={landed} health={target.Health}")
+        {
+            ElectrifiedCreature = new CreatureId(target.Id),
+        });
         if (target.PrisonOwnerPlayerId != PrisonRules.NoPrison
             || NeedRules.ResolvedCategory(target) == CreatureStateCategory.Dying) return;
         Stun(context, target, targetDef);

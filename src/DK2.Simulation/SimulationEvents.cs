@@ -24,6 +24,7 @@ public readonly record struct SimEvent(GameTick Tick, string System, string Kind
     public HandDropFeedback? HandDrop { get; init; }
     public RoomConstructionEffect? ConstructionEffect { get; init; }
     public ViewEffectRequest? EffectRequest { get; init; }
+    public CreatureId? ElectrifiedCreature { get; init; }
     public SightRegionRequest? SightRegion { get; init; }
     public ScriptedViewRequest? ScriptedView { get; init; }
     public override string ToString() => $"{Tick} [{System}] {Kind}: {Detail}";

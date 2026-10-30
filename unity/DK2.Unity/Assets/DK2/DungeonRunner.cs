@@ -172,6 +172,7 @@ namespace DK2.Unity
         // The Portal Gem's idle sparkle (0x004A3C30), collected once a frame for the turns run.
         private LevelGemIdleEffects _gemIdleEffects;
         private readonly List<ViewEffectRequest> _gemIdleRequests = new List<ViewEffectRequest>();
+        private ClassicLightning _lightning;
         private Action<HeartHealthChange> _heartHealthObserver;
         private WorldState _heartHealthWorld;
         private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
@@ -362,6 +363,8 @@ namespace DK2.Unity
                     solidTile: tile => !world.Contains(tile)
                         || DK2.Pathfinding.NavBytes.IsSolid(_simulation.Navigation.NavByte(tile.X, tile.Y)));
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
+                _lightning = new ClassicLightning(transform, _installArt.LoadTexture, _constructionEffects.Model, unchecked((uint)seed));
+                _scene.Lightning = _lightning;
                 _gemIdleEffects = new LevelGemIdleEffects(database);
                 // 0x0043A8E0's owner is the render sink's word +0xC, whose writer is unread; taken as the viewer.
                 _scene.GemSparkleRequested = point => _constructionEffects.Model.Request(new ViewEffectRequest(
@@ -572,6 +575,7 @@ namespace DK2.Unity
             // meshes, materials and textures they drew with. Destroy is deferred to the frame's end,
             // but nothing renders between, and this order holds if any of it becomes immediate.
             _constructionEffects?.Dispose();
+            _lightning?.Dispose();
             _scene?.Dispose();
             _classic?.Release();
             _subtitleFont?.Dispose();
@@ -754,6 +758,7 @@ namespace DK2.Unity
                 if (_classicCamera != null && !frameWholeMap) ApplyClassicCamera();
                 else LookAt(_simulation.World);
             }
+            _lightning?.BeginFrame(Camera.main);
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
             _shotDrawFraction = fraction;
             RefreshEffectCamera();
@@ -773,6 +778,9 @@ namespace DK2.Unity
             _scene.AdvanceTorchAnimation();
             _scene.DrawCreatureShadows(Camera.main, _worldView, _simulation.World);
             _constructionEffects?.Draw();
+            _lightning?.DrawShots(_simulation.World, _simulation.Database, _worldView, fraction);
+            _lightning?.DrawEffects();
+            _lightning?.EndFrame();
             _minimap?.SetVisibility(CurrentHud);
             _minimap?.Draw(Camera.main, _scriptedView.PathPlaying ? (Vector3?)null : _cameraFocus);
             DrawHudControls();

@@ -27,6 +27,7 @@ namespace DK2.Unity
         private (RenderAnimation[] Clips, Mesh[] Templates, Material[][] Materials)? _pending;
         private int _resourceRevision;
         public bool BeatPending { get; private set; }
+        public int InstallationRevision { get; private set; }
 
         public void ConsumeBeat() => BeatPending = false;
 
@@ -65,6 +66,7 @@ namespace DK2.Unity
 
         private void InstallMeshes(RenderAnimation[] clips, Mesh[] templates, Material[][] materials)
         {
+            InstallationRevision++;
             ReleaseMeshes();
             _clips = clips;
             _materials = materials;
@@ -145,6 +147,22 @@ namespace DK2.Unity
                 || index >= vertices.Length) return false;
             world = transform.TransformPoint(vertices[index]);
             return true;
+        }
+
+        public void CollectLightningControlPoints(System.Collections.Generic.List<DK2.Presentation.LightningControlPoint> points)
+        {
+            points.Clear();
+            if (!_drawnSegment.HasValue || _clips == null) return;
+            RenderAnimation clip = _clips[(int)_drawnSegment.Value];
+            if (clip == null) return;
+            Vector3[] vertices = _vertices[(int)_drawnSegment.Value];
+            foreach (RenderControlPoint control in clip.Mesh.TaggedPoints)
+                if (control.Id < 2000 && control.VertexIndex < vertices.Length)
+                {
+                    Vector3 point = transform.TransformPoint(vertices[control.VertexIndex]);
+                    points.Add(new DK2.Presentation.LightningControlPoint(control.Id,
+                        new System.Numerics.Vector3(point.x, -point.z, point.y)));
+                }
         }
 
         public void Stop()
