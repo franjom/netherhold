@@ -124,9 +124,10 @@ earlier zone total (14,077 / 8,405). Counts below are ours / DK2.
 | Standing job 90 | 250 / 78 |
 | Flee 203 | 250 / 329 |
 
-Note 2026-10-30: the DK2 figure 26 for Victory 260 counted change-only rows (entries into
-the state), not turns spent in it; it is not comparable with ours. Section "Celebrations"
-below has the duration measurement.
+Note 2026-10-30 (corrected later the same day): an earlier note here said 26 counted
+change-only rows. It was wrong: 26 is the exact interval count for 2401-4400, and episode
+durations agree (DK2: 3 celebrations, 39 hero-ticks, 26 in zone; ours h336 per eight runs:
+89.6, 1,357, 1,260). Section "Celebrations" below covers 2401-6804.
 
 By spawn wave and type, party 4's 3470 Dwarfs account for 2,196 / 172 zone-ticks:
 11 / 4 enter, mean 200 / 43 zone-ticks per entrant. Party 4's 3470 Thieves account
@@ -186,7 +187,8 @@ episode measured from its first to its last turn in the change-only rows, not a 
 | Imp deaths | 21.75 | 26.6 |
 | Deaths followed by a celebration | 25% (a hero entering 260 within 3 ticks) | 54% |
 
-Episode lengths (4, 13 and 22 ticks by creature) match DK2. Ours' fight checked the victory
+Episode lengths (4, 13 and 22 ticks by creature) match DK2. Over 2401-4400 alone DK2's heroes
+celebrate 3 times in eight runs, ours about 90 per eight. Ours' fight checked the victory
 nibble before looking for another victim, so every kill celebrated even with enemies in
 sight; DK2 celebrates only after a failed `SelectAVictim` (ADR-0592, hash/save 338). The
 effect of that fix on these figures is not measured. Gaps left open by the fix are in the ADR.
