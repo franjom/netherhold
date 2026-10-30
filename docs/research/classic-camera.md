@@ -219,6 +219,17 @@ flag bit1 locks yaw. Thus one input millisecond is one of2048 angle units,
 with pan preceding yaw. Keyboard zoom submits signed1024 to action7, but
 0x004422B0 consumes only its sign: the wheel's multiplicative rule still applies.
 
+Pitch and roll (read 2026-10-30, CONFIRMED). Command 8 carries yaw in field0, roll in field1 and
+pitch in field2. X held sends dx*-8 as yaw and dy*-8 as pitch; Pitch Up/Down (bindings 0x2F/0x30)
+send pitch -8/+8, and 0x31/0x32 send roll. `0x00449D40` does nothing during a timed transition
+(+0xDD8) and skips each angle whose lock bit in +0xD92 is set (0x01 yaw, 0x02 roll, 0x04 pitch).
+Outside modes 1, 2, 10 and 11, pitch is clamped to 0..0x1CC (0 is straight down) and roll to ±0x200.
+Camera_SetMode writes +0xD92 from the preset's Flags (THINGS camera payload +0x48 via `0x0056F900`).
+In the shipped GlobalVariables.kwd, presets 3, 4 and 5 have flags 0x26, so pitch and roll are locked
+in the ordinary views; the owner saw no tilt there (2026-10-30). The user cameras (modes 13-15, F4-F6)
+use preset 9 with flags 0, so X with vertical mouse and the pitch keys tilt there. The lock is
+data, not code. We build only the ordinary views and do not apply pitch or roll.
+
 The adapter implements the shipped Home/End, Delete/PageDown and Ctrl-arrow
 bindings in addition to existing WASD/Q/E/wheel aliases. Pure-controller tests
 cover held/released counters, fast/edge distinctions, fractional timing and
