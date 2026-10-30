@@ -27,6 +27,9 @@ public static class KeeperSpellRules
 {
     public const byte Thunderbolt = 6;
 
+    /// <summary>Shot 0x15, the one 0x004BC160 lifts by 0x2000 at the cast.</summary>
+    private const byte ThunderboltShot = 0x15;
+
     public const byte CreateGold = 13;
 
     /// <summary>Sight of Evil (1): cast at a place through location 5 and target 4. Its shot's only
@@ -65,8 +68,9 @@ public static class KeeperSpellRules
             FightTargetKind.Creature, target.Id, target.OwnerPlayerId, -1, target.PosX, target.PosY);
         // 0x004BC1CF: a thing-targeting selector forces the shot's first collision onto the target.
         shot.ForcedCollision = TargetsAThing(spell.TargetSelector);
+        // 0x004BC160 keys the lift on the shot type, not the spell.
         ShotRules.RequestTrail(context, shot, default,
-            new Fp32(Fp32.One + target.PosZ + (cast.SpellId == Thunderbolt ? 0x2000 : 0)));
+            new Fp32(Fp32.One + target.PosZ + (effect.ShotTypeId == ThunderboltShot ? 0x2000 : 0)));
         player.Mana -= spell.ManaCost;
         player.OneShotManaSpent += spell.ManaCost;
         player.Availabilities[row] = availability with

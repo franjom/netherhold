@@ -13946,6 +13946,9 @@ remain observation-only; overlay and sound are presentation work.
 thresholds, water suppression, all ignition paths, expiry, Horny, draw positions/order,
 per-creature sequencing, corpse/dying-target guards and independent snapshot/hash coverage.
 Current branch verification is in shot-effects.md section7. Native fire-stream acceptance remains Q658.
+The move also changes the other status countdowns (poison, stun, get-up, slap, speed, chicken):
+they now run per creature, newest first, and skip corpses, which native updates as class 6
+outside 0x0048957D. Only tests back that reorder; no capture does.
 
 ## ADR-0596 - request shot effects without changing gameplay
 

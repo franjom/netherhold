@@ -14,7 +14,7 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
-**343** - `0xC9236A4CFBFEC07D`. FormatVersion also343. Burning words, ignition and nine simulation draws per active creature per turn; status moves into each creature update before action/fight on master342's melee hold (ADR-0595).
+**343** - `0xC9236A4CFBFEC07D`. FormatVersion also343. Burning words, ignition and nine simulation draws per active creature per turn; status moves into each creature update before action/fight on master342's melee hold, and every status countdown now skips corpses (ADR-0595).
 
 **342** - `0x5E4D855251A4E4F0`. FormatVersion also 342. Behaviour only: melee action 17 stays busy for `ActionHoldTicks` turns instead of one fewer, so the next swing begins a turn later when the clip is the longer clock (ADR-0598). No fields added; saves and journals from 340 are refused. `CombatAnimationTests` pins the busy window and the Guard, Dwarf and Thief hit intervals.
 
