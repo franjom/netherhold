@@ -125,7 +125,7 @@ public sealed class SavedSessionFileTests : IDisposable
     }
 
     [Fact]
-    public void ListingReadsOnlyHeadersAndIgnoresCorruptFiles()
+    public void ListingReadsOnlyHeadersAndListsUnreadableFilesWithTheirReason()
     {
         Assert.Empty(SavedSessionFile.List(_directory));
         string path = SavedSessionFile.PathForName(_directory, "First save");
@@ -137,9 +137,30 @@ public sealed class SavedSessionFileTests : IDisposable
             Assert.Equal(Sample().Header, header);
         }
         File.WriteAllBytes(Path.Combine(_directory, "corrupt.dk2g"), new byte[] { 1, 2, 3 });
-        SavedSessionEntry row = Assert.Single(SavedSessionFile.List(_directory));
-        Assert.Equal("First save", row.Header.DisplayName);
+
+        IReadOnlyList<SavedSessionEntry> rows = SavedSessionFile.List(_directory);
+
+        Assert.Equal(["corrupt", "First save"], rows.Select(r => r.DisplayName));
+        Assert.False(rows[0].Readable);
+        Assert.Null(rows[0].Header);
+        Assert.Equal(SaveIncompatibleReason.Truncated, rows[0].Refusal!.Reason);
+        Assert.True(rows[1].Readable);
+        Assert.Null(rows[1].Refusal);
         Assert.Throws<SaveIncompatibleException>(() => SavedSessionFile.Load(path));
+    }
+
+    [Fact]
+    public void ListingShowsAVersionOneSaveAsRefusedRatherThanHidingIt()
+    {
+        byte[] data = SavedBytes();
+        data[4] = 1;
+        File.WriteAllBytes(SavedSessionFile.PathForName(_directory, "save"), data);
+
+        SavedSessionEntry row = Assert.Single(SavedSessionFile.List(_directory));
+
+        Assert.Equal("save", row.DisplayName);
+        Assert.Equal(SaveIncompatibleReason.UnsupportedVersion, row.Refusal!.Reason);
+        Assert.Contains("version 1", row.Refusal.Message);
     }
 
     [Fact]

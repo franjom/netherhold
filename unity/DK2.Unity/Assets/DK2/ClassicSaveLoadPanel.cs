@@ -82,10 +82,19 @@ namespace DK2.Unity
             {
                 int index = _first + i;
                 SavedSessionEntry entry = _view.Entries[index];
-                string caption = entry.Header.DisplayName;
-                if (_frontEnd) caption += "   " + entry.Header.SavedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
-                Image image = Text(caption, x, y + i * 32, () => { _view.Select(index); _revision = -1; });
-                image.tintColor = index == _view.SelectedIndex ? Color.white : new Color(200/255f,200/255f,200/255f);
+                string caption = entry.DisplayName;
+                // An unreadable save stays listed so the player can see why it will not load (ADR-0588).
+                // English until ADR-0587's catalog exists.
+                if (!entry.Readable) caption += "   (cannot be loaded)";
+                else if (_frontEnd && entry.Header is { } header) caption += "   " + header.SavedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+                Image image = Text(caption, x, y + i * 32, () =>
+                {
+                    _view.Select(index);
+                    _error = entry.Readable ? "" : entry.Refusal?.Message ?? "";
+                    _revision = -1;
+                });
+                Color unselected = entry.Readable ? new Color(200/255f,200/255f,200/255f) : new Color(120/255f,120/255f,120/255f);
+                image.tintColor = index == _view.SelectedIndex ? Color.white : unselected;
             }
             if (!_frontEnd)
             {

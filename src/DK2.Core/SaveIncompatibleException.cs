@@ -12,6 +12,7 @@ public enum SaveIncompatibleReason
     Corrupt = 4,
     OutOfRange = 5,
     ChecksumMismatch = 6,
+    Inaccessible = 7,
 }
 
 /// <summary>A refused save, with a stable code for the future text catalog (ADR-0587).

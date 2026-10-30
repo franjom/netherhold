@@ -33,7 +33,7 @@ public sealed class SaveSlotsView
     public bool Select(int index)
     {
         if ((uint)index >= (uint)Entries.Count) return false;
-        SelectedIndex = index; Name = Entries[index].Header.DisplayName; Revision++;
+        SelectedIndex = index; Name = Entries[index].DisplayName; Revision++;
         return true;
     }
     public void SetName(string value)
