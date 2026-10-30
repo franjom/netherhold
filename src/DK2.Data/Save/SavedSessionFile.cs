@@ -105,11 +105,14 @@ public static class SavedSessionFile
                 using var stream = File.OpenRead(path);
                 entries.Add(new SavedSessionEntry(path, ReadHeader(stream)));
             }
-            catch (InvalidDataException) { }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            catch (SaveIncompatibleException ex) { entries.Add(new SavedSessionEntry(path, null, ex)); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                entries.Add(new SavedSessionEntry(path, null, new SaveIncompatibleException(
+                    SaveIncompatibleReason.Inaccessible, "The save file cannot be opened.", innerException: ex)));
+            }
         }
-        return entries.OrderBy(e => e.Header.DisplayName, StringComparer.OrdinalIgnoreCase).ToArray();
+        return entries.OrderBy(e => e.DisplayName, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     private static void Validate(SavedSessionHeader header)

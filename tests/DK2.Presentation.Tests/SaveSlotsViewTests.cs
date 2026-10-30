@@ -29,9 +29,23 @@ public sealed class SaveSlotsViewTests : IDisposable
         var view = new SaveSlotsView(_directory);
         Assert.True(view.Select(0));
         Assert.Equal("First save", view.Name);
-        Assert.Equal(time, view.Selected!.Header.SavedAtUtc);
+        Assert.Equal(time, view.Selected!.Header!.SavedAtUtc);
         view.SetName("New save");
         Assert.Equal("New save", view.Name);
+    }
+
+    [Fact]
+    public void AnUnreadableFileIsListedAndSelectableUnderItsFileName()
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllBytes(Path.Combine(_directory, "broken" + SavedSessionFile.Extension), new byte[] { 1, 2, 3 });
+        var view = new SaveSlotsView(_directory);
+
+        Assert.True(view.Select(0));
+
+        Assert.False(view.Selected!.Readable);
+        Assert.NotNull(view.Selected.Refusal);
+        Assert.Equal("broken", view.Name);
     }
 
     public void Dispose()

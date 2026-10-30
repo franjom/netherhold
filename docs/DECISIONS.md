@@ -13741,7 +13741,8 @@ Malformed snapshot/session input raises `SaveIncompatibleException` with a stabl
 It derives from `IOException`: `System.IO.InvalidDataException` is sealed, and Unity already
 catches `IOException`. Messages remain English pending ADR-0587's catalog. Session envelope v2
 and its two checksums are built; v1 is refused as `UnsupportedVersion`. Hardening leaves snapshot writes/layout/version,
-`Hash64` and the current determinism pin unchanged.
+`Hash64` and the current determinism pin unchanged. The save list keeps a file it cannot read, under its file name with its refusal
+(`Inaccessible` when it cannot be opened); the load screen shows it dimmed and gives the reason.
 
 **Remaining.** Separate `SaveFormatVersion`/`HashVersion`, the oldest-readable window,
 field-id records/compression and committed fixtures are not built. Until then, snapshot loading
