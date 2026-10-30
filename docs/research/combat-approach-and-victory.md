@@ -121,8 +121,12 @@ was found for it (travel-states.md §7, which owns states 6, 7, 9 and 88).
 
 ## 5. Choosing the victory branch (`0x00460FE0`)
 
-The victory arm is reached when `spFighting` has no target and the `AttackType`
-nibble is `0xF`.
+`spFighting` with no target calls `SelectAVictim` (`0x0045CB00`) first; only when
+that fails does an `AttackType` nibble of `0xF` take the victory arm
+(`0x0045F1C1`-`0x0045F1F1`, ADR-0592). Any other nibble returns 0. A killer with
+another enemy in sight picks it and fights on without celebrating. The same order
+holds at `0x004601D7`, reached from `0x0045F661`. A successful selection writes the
+low nibble itself, as ours' `Engage*` methods do; a failed one does not touch it.
 
 Without `NeedBodyForFightIdle` (`def+0x686` bit 20), it enters state 260 and
 starts action 55 at the creature's own position. If the state transition is
@@ -219,7 +223,7 @@ with line of sight ends it, and every tenth call the
 route is refreshed to the target's position — a Flanker two tiles or a quarter tile
 behind a moving target (§2—§3). `spFighting` (`CombatSystem.Fight`) enters it out of reach
 and runs the tick it hands back. `VictoryRules`: the death leaves the `0xF` nibble
-(`TargetDied`); the victory arm celebrates in `Celebrating` (state 260) or, for
+(`TargetDied`); only a failed `SelectAVictim` reaches the victory arm (ADR-0592), which celebrates in `Celebrating` (state 260) or, for
 `NeedBodyForFightIdle`, walks to the nearest corpse strictly within `0x2000` squared
 (`GoingToBody`, state 259) and celebrates there; the celebrant is attackable, does not scan
 and does not turn on a blow (§5—§7). On state ids (ADR-0208): the fight is 199, the walk

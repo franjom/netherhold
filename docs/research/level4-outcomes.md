@@ -120,9 +120,13 @@ earlier zone total (14,077 / 8,405). Counts below are ours / DK2.
 | Fight 199 | 6,309 / 4,072 |
 | Approach 8 | 3,869 / 2,792 |
 | Walk 6 | 1,690 / 700 |
-| Victory 260 | 1,297 / 26 |
+| Victory 260 | 1,297 / 26 (see the 2026-10-30 note below) |
 | Standing job 90 | 250 / 78 |
 | Flee 203 | 250 / 329 |
+
+Note 2026-10-30: the DK2 figure 26 for Victory 260 counted change-only rows (entries into
+the state), not turns spent in it; it is not comparable with ours. Section "Celebrations"
+below has the duration measurement.
 
 By spawn wave and type, party 4's 3470 Dwarfs account for 2,196 / 172 zone-ticks:
 11 / 4 enter, mean 200 / 43 zone-ticks per entrant. Party 4's 3470 Thieves account
@@ -167,3 +171,22 @@ fight/approach time is high. No matched native RNG continuation or controlled
 defender-combat comparison has isolated that residual. No win-rate inference
 or tuning follows. Archived tool manifests and verification are in the evidence
 folder's `README-final.md`.
+
+## Celebrations (Q665 lead, hash 336, ADR-0592)
+
+Evidence: `D:/DK2Evidence/runs/q665-hero-zone-codex-2026-10-30` (h336 runs) and the native
+`dk2runs/level4-live1*` logs. Window 2401-6804, per run; a celebration (state 260) is an
+episode measured from its first to its last turn in the change-only rows, not a row count.
+
+| Per run | DK2 (8 runs) | ours h336 (40 runs) |
+|---|---:|---:|
+| Celebrations | 9.5 | 31.9 |
+| Celebration hero-ticks | 97.6 | 454.8 |
+| Of those, in zone (16-29,32-38) | 76 | 313.7 |
+| Imp deaths | 21.75 | 26.6 |
+| Deaths followed by a celebration | 25% (a hero entering 260 within 3 ticks) | 54% |
+
+Episode lengths (4, 13 and 22 ticks by creature) match DK2. Ours' fight checked the victory
+nibble before looking for another victim, so every kill celebrated even with enemies in
+sight; DK2 celebrates only after a failed `SelectAVictim` (ADR-0592, hash/save 338). The
+effect of that fix on these figures is not measured. Gaps left open by the fix are in the ADR.

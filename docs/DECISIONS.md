@@ -13812,3 +13812,34 @@ out-of-reach re-selection when the target thing's `+0x12` is nonzero (`0x0045F8A
 `AForcedFighterOutOfReach_KeepsItsForcedTarget_AndApproachesIt` cover the first two rules;
 `CombatPitTests` and `DoorCombatTests.AWarlockMeetingARivalDoorCastsAtIt_AndItsShotsBreakTheDoor`
 cover the cannot-cast arm.
+
+## ADR-0592 - A fighter with no target looks for a victim before it celebrates
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 338 · amends ADR-0319, ADR-0580 · Q665 · Research: [combat-approach-and-victory.md](research/combat-approach-and-victory.md#5-choosing-the-victory-branch-0x00460fe0), [combat-fight-state.md](research/combat-fight-state.md); KB `0045F030`, `0045CB00`, `00460FE0`.
+
+**Context.** Ours checked the `0xF` victory nibble before `SelectAVictim`, so every kill
+celebrated even with other enemies in sight. DK2's `spFighting` (`0x0045F030`) with `+0x502`
+empty calls `SelectAVictim` (`0x0045CB00`) at `0x0045F1C1`-`0x0045F1CA`; success returns 1 and
+the fight goes on. Only on failure does a nibble of `0xF` take the victory arm `0x00460FE0`
+(`0x0045F1E2`-`0x0045F1F1`); any other nibble returns 0 at `0x0046021C` (dispatcher
+`SetState(1)`, the Combat leave hook, ours' `LetGo`). The same order holds at `0x004601D7`,
+reached from `0x0045F661`; ours has no separate path for it. The Level 4 measurement that
+pointed here: [Celebrations](research/level4-outcomes.md#celebrations-q665-lead-hash-336-adr-0592).
+
+**Decision.** `CombatSystem.Fight` step 3 runs `SelectAVictim` first and returns on success.
+On failure it takes `VictoryRules.Victory` when `AttackType` is `Victorious`, else `LetGo`. A
+failed selection writes no `AttackType`; every success overwrites its low nibble, as
+`0x0045DE9B`, `0x0045DEE4` and `0x0045DEF2` do and ours' `Engage*` methods do.
+
+**Consequences.** Hash/save 338 refuses version 337. A killer with another enemy in sight fights
+on. `CombatApproachTests.AKillerWithAnotherEnemyInSightFightsOn_AndDoesNotCelebrate` covers it.
+The effect on Level 4's celebration count (ours 31.9 a run against DK2's 9.5) is not measured.
+Known gaps, not fixed:
+- DK2's `StartFight` (`0x0045A550`), when `RegisterAttacker` fails (all slots taken), zeroes
+  `+0x502` (`0x0045A5CA`) and restores the nibble `SelectAVictim` wrote, and `SelectAVictim`
+  still returns 1 (`0x0045DF13`-`0x0045DF18`): the killer stays in the fight with no target and
+  never celebrates. Ours' `Engage` returns false before writing `AttackType`, so a killer whose
+  next victim's slots are full still celebrates.
+- `CombatRules.Unlink` zeroes `AttackType`; `0x0045EF50` and `0x0048F3F0` keep `+0x529`
+  ([combat-category-hooks.md](research/combat-category-hooks.md#open-questions)).
+- `VictoryRules.Victory` is void; `0x00460FE0` returns 0 when `SetState(260)` is refused or no
+  route to a body exists, and the fight then leaves through `SetState(1)`.

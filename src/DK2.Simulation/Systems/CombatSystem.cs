@@ -225,14 +225,14 @@ public sealed class CombatSystem : ICreatureUpdateStep
         }
 
         // Step 3: no target — a victim is sought, or the victory arm taken.
+        // The victim search comes first: only a fighter that finds none celebrates (0x0045F1C1-0x0045F1F1).
         if (creature.FightTargetKind == FightTargetKind.None)
         {
-            if (creature.AttackType == CombatRules.AttackMode.Victorious)
-            {
-                VictoryRules.Victory(context, creature, definition);
+            if (CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
                 return;
-            }
-            if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+            if (creature.AttackType == CombatRules.AttackMode.Victorious)
+                VictoryRules.Victory(context, creature, definition);
+            else
                 LetGo(context, creature, "nobody");
             return;
         }

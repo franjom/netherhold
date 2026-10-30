@@ -234,6 +234,34 @@ public class CombatApproachTests
         Assert.Contains(sink.Events, e => e.Kind == "celebration_over" && e.Detail.Contains("creature=" + demon.Id));
     }
 
+    /// <summary><c>spFighting</c> with no target (<c>0x0045F1AA</c>-<c>0x0045F1F1</c>, and again at
+    /// <c>0x004601D7</c>): <c>SelectAVictim</c> runs first and a victim found keeps the fight; only
+    /// when none is found does the <c>0xF</c> nibble take the victory arm.</summary>
+    [Fact]
+    public void AKillerWithAnotherEnemyInSightFightsOn_AndDoesNotCelebrate()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
+        CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
+        goblin.DieInstantly = true;
+        CreatureState next = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 5, 8);
+        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++) sim.Run(1);
+        Assert.Contains(sink.Events, e => e.Kind == "target_died" && e.Detail.Contains("victim=" + goblin.Id));
+        Assert.Equal(CombatRules.AttackMode.Victorious, demon.AttackType);
+
+        sim.Run(1);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "celebrates");
+        Assert.NotEqual(CreatureActivity.Celebrating, demon.Activity);
+        Assert.Equal(FightTargetKind.Creature, demon.FightTargetKind);
+        Assert.Equal(next.Id, demon.FightTargetId);
+        // The new engagement overwrites the 0xF nibble (0x0045DE9B), so no later turn celebrates it.
+        Assert.Equal(CombatRules.AttackMode.MeleeAtCreature, demon.AttackType);
+    }
+
     [Fact]
     public void ANeedBodyForFightIdleCreatureWalksToACorpseInReach_AndCelebratesThere()
     {
