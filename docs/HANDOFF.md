@@ -19,7 +19,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - Hand drops animate only after acceptance (ADR-0582); native packet-submit
   timing and pending-entry scheduling remain partial (Q682).
 - Burning simulation/red, shot effects/bodies, lightning and Inferno jitter are built (hash/save 343).
-  Scope and pending acceptance: [shot effects](research/shot-effects.md#7-ours), Q658/Q659/Q660/Q689/Q690.
+  Scope and pending acceptance: [shot effects](research/shot-effects.md#7-ours), Q658/Q659/Q660/Q689/Q690; owner checks Q660 and Q691-Q693.
 - Thunderbolt guards are built at hash/save 332 (ADR-0581); Pit binding remains Q675.
 
 - Sleep debt, needs-clock suppression and tired retries are built at hash/save 330
