@@ -72,7 +72,9 @@ namespace DK2.Unity
             Func<ViewEffectRequest, CaptureEdges> captureEdges = null,
             Func<int, uint, EffectAttachment> attachment = null,
             Func<ShotId, ShotEffectAttachment> shotAttachment = null,
-            Func<ViewEffectRequest, bool> cameraVisible = null)
+            Func<ViewEffectRequest, bool> cameraVisible = null,
+            Func<TilePos, TerrainFlags> terrainFlags = null,
+            Func<TilePos, bool> solidTile = null)
         {
             _root = root;
             _sprites = sprites;
@@ -83,7 +85,8 @@ namespace DK2.Unity
                 captureEffectStyle: CaptureEffectStyle.Native, captureEdges: captureEdges,
                 heartSparkleStyle: HeartSparkleStyle.PillarHeight,
                 groupParts: meshes != null ? meshes.GroupParts : null, attachment: attachment,
-                shotAttachment: shotAttachment, cameraVisible: cameraVisible);
+                shotAttachment: shotAttachment, cameraVisible: cameraVisible,
+                terrainFlags: terrainFlags, solidTile: solidTile);
         }
 
         // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread

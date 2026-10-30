@@ -16,7 +16,7 @@ public sealed partial class RoomConstructionParticles
         && effect.Mass == 0 && effect.MinSpeedXy == 0 && effect.MaxSpeedXy == 0
         && effect.MinSpeedYz == 0 && effect.MaxSpeedYz == 0;
 
-    private static bool SupportsEffect(EffectDef effect) => effect.GenerationType == 4 || HasDirectSprite(effect);
+    private static bool SupportsEffect(EffectDef effect) => effect.GenerationType is 3 or 4 or 6 or 18 || HasDirectSprite(effect);
 
     /// <summary>The parent's own sprite (<c>0x004347E0</c>'s art arm), born at the instance's point
     /// with its lifetime. Its size follows the first of definition flags 2 (MaxScale shrinking to
@@ -51,6 +51,7 @@ public sealed partial class RoomConstructionParticles
                 MinHp = effect.MinHp, MaxHp = effect.MaxHp,
             },
             SpriteAsset = AssetRef.ForEffect(effect.Name),
+            IsEmitterArt = true,
             XRaw = point.X.Raw, PreviousXRaw = point.X.Raw,
             YRaw = point.Y.Raw, PreviousYRaw = point.Y.Raw,
             HeightRaw = point.Z.Raw, PreviousHeightRaw = point.Z.Raw,

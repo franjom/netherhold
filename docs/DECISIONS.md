@@ -13945,7 +13945,7 @@ remain observation-only; overlay and sound are presentation work.
 **Consequences.** Hash/save343 rejects342. Focused tests cover truncating pre-hit
 thresholds, water suppression, all ignition paths, expiry, Horny, draw positions/order,
 per-creature sequencing, corpse/dying-target guards and independent snapshot/hash coverage.
-`DK2.Simulation.Tests`: 4087 passed. Native fire-stream acceptance remains Q658.
+Current branch verification is in shot-effects.md section7. Native fire-stream acceptance remains Q658.
 
 ## ADR-0596 - request shot effects without changing gameplay
 
@@ -13969,3 +13969,23 @@ convention plus authored offsets; unusual floor heights remain approximate (Q398
 Unity substitutes a one-tile frustum sphere for the native camera predicate (Q689).
 Hash/save341 and its deterministic pin are unchanged. Project test counts and Unity
 compile/sync limits: [shot-effects.md section7](research/shot-effects.md#7-ours).
+
+## ADR-0597 - complete the effect-engine paths used by shots
+
+**Status:** implemented, 2026-10-30.
+
+**Decision.** Extend the shared view engine with type4 velocity inheritance and headings,
+DirectionalSpread, contact-child selection, flight yaw, element NextEffect, and generation
+types3/6/18. Internal effect allocation bypasses camera visibility and newborns wait until
+the next update. Preserve the native liquid-field selection despite its swapped names.
+
+**Evidence and verification:** [shot-effects.md sections3/7](research/shot-effects.md#3-what-the-engine-does-that-shot-effects-need).
+
+**Limits.** Wall response is a documented quarter-tile segment approximation (Q690).
+Numeric generation14 is deferred because ours has no cost-number caller. The bounded
+global-data census finds no request sources for27/182; it proves nothing about all native
+callers or level THINGS. Native visual acceptance remains pending.
+
+**Consequences.** Each effect engine owns an independent native LCG, separate from the
+simulation stream; hash/save341 and its deterministic pin are unchanged. The engine keeps
+existing public names and asset access.

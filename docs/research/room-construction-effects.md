@@ -212,8 +212,9 @@ Built: `RoomConstructionParticles` rebases its injected millisecond clock at
 creation, retains the strict 50ms gate and remainder, subtracts batched lifetime
 and advances ordinary motion, texture and scale once. Unity samples unscaled
 wall time and interpolates positions using this clock's own fraction. Burst
-creation remains immediate on the accepted event rather than waiting for the
-next global effect gate; this leaves up to one gate of emission-phase difference.
+creation remains immediate on the accepted external event rather than waiting for the
+next global effect gate. Internally generated child effects wait until the next update
+(ADR-0597); the external-event phase difference remains.
 
 **UNKNOWN:** all visibility/collision edge cases and a measured original-game
 particle count/trajectory comparison. The owner's comparison found the
@@ -256,8 +257,9 @@ Elements144/147 use grey rockchip sprites (type2, RGB125); 145/146 use
 sm/SM sprites (type3): 145 is keeper-coloured (`0x86`), while146
 uses authored RGB210/126/60 (`0x84`). Particle lifetime
 is 24..32 for 144..146 and 32..48 for147. Art80 completion follows section4.
-The shared particle consumer already supports these resources; the omitted
-reinforcement producer is restored in TileWorkSystem. Visual parity is pending.
+The shared particle consumer supports these resources and the reinforcement producer
+is restored in TileWorkSystem. Shot-related generation/contact extensions and their
+remaining approximations are in [shot-effects.md section3](shot-effects.md#3-what-the-engine-does-that-shot-effects-need). Visual parity is pending.
 
 The three parent effects below have no art, zero mass/friction/elasticity and
 zero horizontal/vertical speed. Their nominal scale is 1024. Parent initial

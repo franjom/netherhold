@@ -356,7 +356,11 @@ namespace DK2.Unity
                     captureEdges: request => CaptureEffectLayout.Boundary(world, database, request),
                     attachment: (id, point) => ResolveCreatureEffect(world, new CreatureId(id), point), clock: EffectClock,
                     shotAttachment: id => ShotEffectAttachment.Resolve(world, _simulation.Navigation, id, _shotDrawFraction),
-                    cameraVisible: IsEffectInCamera);
+                    cameraVisible: IsEffectInCamera,
+                    terrainFlags: tile => world.Contains(tile)
+                        ? database.Terrain[world.Tile(tile).TerrainId].Flags : 0,
+                    solidTile: tile => !world.Contains(tile)
+                        || DK2.Pathfinding.NavBytes.IsSolid(_simulation.Navigation.NavByte(tile.X, tile.Y)));
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
                 _gemIdleEffects = new LevelGemIdleEffects(database);
                 // 0x0043A8E0's owner is the render sink's word +0xC, whose writer is unread; taken as the viewer.

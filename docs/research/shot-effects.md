@@ -143,16 +143,22 @@ These are the pieces that the shot effects exercise:
 | piece | behaviour | address | confidence |
 |---|---|---|---|
 | effect flag `0x40` | generated ids are **effects**, made through view `+0x94` (`0x0043895D`); without it, elements through `0x004352E0` (`0x00438DFA`, `0x00438FA9`). Shot users: 107 Inferno → 106, 153 Wind → 152/154/155, 245, 284 → 4, 362 Armour Hit → 361/363 | `0x004386F0` | CONFIRMED |
-| effect flag `0x100` | each new child's velocity += the carried velocity `+0x149` (+ the effect's own) | `0x00438A58..0x00438A94` | CONFIRMED |
+| effect flag `0x100` | type4 adds carried velocity `+0x149` and the emitter's own velocity to each generated child; other generation/contact paths do not inherit it | `0x00438A58..0x00438A94` | CONFIRMED |
 | DirectionalSpread `+0x43` | nonzero: the element's velocity heading is its heading + `Random(8s) − 4s`, not uniform. ds 1 a jet along the launch heading (77, 148, 156, 158); ds 255 a fan (232, 234, 245) | `0x00435F20` (`0x0043609E..0x004360D5`) | CONFIRMED |
 | effect flag `0x400` | besides one random slot a pass, on the element path the element heading is the orientation offset alone, without the parent's (158 Haste). On the `0x40` path it is the reverse: with `0x400` the offset plus the parent heading (`0x00438A03`), without it the offset alone (`0x00438BBB`); effect 284 is the shipped case | `0x00438DE0` | CONFIRMED |
-| effect flag `0x1` | the floor hit effect is raised either way; `0x1` adds the Kill (runtime bit 4). At a wall, only with `0x1`, HitSolid is raised and the move fails; the update then zeroes the velocity and keeps the old point, no Kill (156 Disruption) | `0x00446C70`, `0x004476E0` | CONFIRMED |
-| effect hit ids | on the floor: HitWater if terrain `+0x17B` has `0x100`, else HitLava for `0x80`, else HitSolid; HitSolid on a wall. Fireball trail 64 → 51 | `0x00446C70`, `0x004476E0` | CONFIRMED; the terrain bits' meaning STRONGLY INFERRED |
+| effect flag `0x1` | floor contact always raises its hit id; `0x1` also Kills. Wall collision always raises HitSolid through ungated `+0x94`; `0x1` makes movement fail. The effect caller stops at the old point without Kill, while the element caller removes the failed element | `0x00446C70`, `0x004476E0` | CONFIRMED |
+| effect hit ids | floor: file HitWater (`+0xC6`, runtime `+0x81`) on terrain `0x100` (Lava), else file HitLava (`+0xC8`, runtime `+0x83`) on `0x80` (Water), else HitSolid; wall: HitSolid. Preserve this native swapped-field selection | `0x00446C70`, `0x004476E0`, `0x004358C0` | CONFIRMED (binary; terrain loader and registration checked) |
 | element hit ids | on the floor: the first nonzero of HitWater, HitLava, HitSolid, no terrain test; HitSolid on a wall | same | CONFIRMED |
 | element flag `0x40` | yaw := atan2 of the initial XY velocity, a mesh points along its flight (187 iceicle) | `0x00435F20` (`0x0043615F..0x00436190`) | CONFIRMED |
-| element NextEffectId | that effect is made **every update** at the element (550 → 337) | `0x00436430` | CONFIRMED |
+| element NextEffectId | made every update before angles/motion, including expiry, through ungated `+0x94` (550 → 337) | `0x00436430` | CONFIRMED |
 | effect light | made once at init, moved with the effect plus the descriptor offset, released at teardown, so it outlasts emission; light flags `0x2`/`0x4` are not tested there | `0x00439880` | CONFIRMED for that path |
 | effect flags `0x80`, `0x200`; element flag `0x20`; effect Radius | no reader found among the decompiled functions' tests of the flags words (`0x004347E0`, `0x004376E0`, `0x004386F0`, `0x00439100`, `0x00440420`) and of `+0x6D` (only the loader `0x004358C0` and constructor `0x004357E0`); undefined functions were not scanned | | STRONGLY INFERRED inert |
+
+Generation, contact children and element NextEffect use ungated view `+0x94`; teardown
+uses gated `+0x90`. Newborn child effects wait for the next view update. Effect age
+advances by elapsed quanta before generation. Our wall response approximates native
+grid-boundary reflection with quarter-tile segment tests, retaining the old XY point
+and reflecting both XY velocity axes (Q690).
 
 **Generation types other than 4** (table `0x00697668`, five-byte rows: 18 entries; type 0 null):
 - **18, `0x00439100`:**
@@ -162,7 +168,9 @@ These are the pieces that the shot effects exercise:
   - users: Lava Spill 69, Fireburst 87, Tremor 103, Horny Teleport 123/124, Graveyard Mist 130.
     All have HP 1, so each fires one burst.
 - **14, `0x00439480`:** draws the decimal digits of instance `+0x12F` as elements (first id +
-  digit). Gold Cost 22 and Mana Cost 364, through `0x00441060` (view `+0x64`).
+  digit). Gold Cost 22 and Mana Cost 364, through `0x00441060` (view `+0x64`). Numeric
+  display remains deferred: ours has no cost-number request caller. The element
+  render-offset contract is recorded in [00439480](functions/00439480.md).
 - **6, `0x00439330`:**
   - ids form a range;
   - elements are born at the exact point with heading `Random(64) − 32`;
@@ -172,6 +180,11 @@ These are the pieces that the shot effects exercise:
   - a tile burst kicked by the effect's own speed fields;
   - the effect named by `+0x37` at 1 in 15;
   - only Black Knight Portal 182 uses it.
+
+Types 3/6/18 are built (ADR-0597). The global-database census finds no direct effect-id
+request sources for 27/182 among Shots, Creatures, Rooms, Objects, Traps, Doors, KeeperSpells,
+Effects or Elements, and no generating flag-`0x40` parent; ours has no hardcoded requests
+for them. This does not establish absence from the whole binary or level THINGS.
 
 ## 4. The shipped shot effects that matter
 
@@ -240,7 +253,7 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
 
 **Native comparison (2026-10-30, Q658).** The existing Level4 seed01 capture first records
 burning on slot419 (type18) at snapshot3940, with ten ticks falling to zero at3950.
-One modern fixed-map replay through turn3952 (`--rng dk2 --seed 1`) completed and requested
+One pre-rebase hash340 fixed-map replay through turn3952 (`--rng dk2 --seed 1`) completed and requested
 30 effect88 flames. Its seeds already differ before the native ignition (snapshots3937
 to3939), so this run does not establish burning-stream alignment or isolate its cause.
 SHA-256-verified artifacts: `D:/DK2Evidence/experiments/shot-burning-hash340-20261030T161144Z/`.
@@ -317,35 +330,27 @@ cached: **a new shape every rendered frame**.
 
 ## 7. Ours
 
-- **Built:** the effect engine's type 4 with `0x40`, `0x400` slot choice, Next chains, the
-  attachment arm for creatures, lights and their flags, type-5 mesh elements; creature burning
-  simulation, including ignition, nine ordered draws and effect88 requests (ADR-0595);
-  shot creation, timed, solid-hit, thing-hit and death requests; ungated shot trails with
-  constructor headings, launch carried-velocity metadata and current aim; creature-hit
-  attachments at the previous body point; tied lifetime, ordinary/immediate removal and lingering
-  trail lights (ADR-0596).
-  Visibility separates exploration/solidity and camera tests; `0x8000` skips only camera.
-  These requests and observation-only shot poses leave hash/save341 and simulation RNG unchanged.
-- **Approximations:** native vertical shot flight remains unbuilt (Q398); view source heights
-  use the existing one-tile-ground convention plus authored offsets. Camera acceptance uses
-  a one-tile frustum sphere (Q689); the native forwarding slot is `0x004412C0`. Restored poses
-  use the ordinary floor and velocity/aim bearing; original launch height/yaw and live view
-  handles are not recovered. Native trail-kind uncertainty remains Q662.
-- **Not built:**
-  - flag `0x100`'s application of carried velocity to generated children (metadata is built);
-  - DirectionalSpread;
-  - `0x400`'s heading;
-  - effect flag `0x1`;
-  - the hit ids of effects and elements;
-  - element flag `0x40` and element NextEffectId;
-  - generation types 18, 14, 6 and 3;
-  - creature burning overlay and sound;
-  - the Inferno camera jitter;
-  - shot body rendering and art type 7.
+- **Built:** type4 emission, flag-`0x40` effect children, slot choice, Next chains, creature
+  attachments, lights and mesh elements; burning simulation (ADR-0595); every shot effect
+  request and tied trail lifecycle (ADR-0596). ADR-0597 adds type4 carried/own velocity,
+  DirectionalSpread with its initial uniform draw retained, both flag-`0x400` headings,
+  floor/wall hit ids and kill distinctions, flight yaw, per-update element NextEffect,
+  and generation types3/6/18. Internally generated effects are ungated and newborns wait
+  until the next update. Own-art sprites follow their moving emitter; lights survive
+  emission until teardown. Effect106's isolated test confirms Randomness3 gates its waves.
+  Each model owns a native LCG seeded independently from the simulation; the seed7 regression
+  checks the discarded uniform draw and DirectionalSpread override against hand-computed values.
+- **Approximations:** quarter-tile wall sampling and both-axis reflection (Q690); native
+  vertical shot flight and view origins (Q398); camera frustum sphere (Q689). Restored
+  poses use ordinary floor and velocity/aim bearing, without recovering original launch
+  height/yaw or live view handles. Native trail-kind uncertainty remains Q662.
+- **Not built:** numeric generation14 (no request caller); burning overlay/sound;
+  Inferno camera jitter; shot body rendering and procedural art type7.
 
-**Verification (ADR-0596).** Simulation: 4100 tests passed; Presentation: 1306 passed. Unity Compile
-passed with no warnings or errors. Nine runtime DLLs were copied into this branch Unity project;
-no Unity editor was running, so live-project sync and visual acceptance were not performed.
+**Verification (ADR-0597).** Simulation: 4102 tests passed; Presentation: 1332 passed.
+Unity Compile passed with no warnings/errors; nine runtime DLLs were copied into this
+branch Unity project. No live editor was running; visual acceptance remains pending.
+Hash/save341 and pin `0x068253C19085D205` are unchanged by the effect-engine work.
 
 ## Confidence
 
@@ -356,7 +361,6 @@ endpoints and bolt arithmetic.
 **CONFIRMED (data):** the shot and effect ids, effect 106's contents, the type-7 kinds.
 
 **STRONGLY INFERRED:** hit-lava/water inert; bodies without pitch; inert effect flags `0x80`,
-`0x200`, element flag `0x20` and effect Radius; the terrain bits' water/lava meaning; the
-jitter as a shake; the kind-8 end height's sign.
+`0x200`, element flag `0x20` and effect Radius; the jitter as a shake; the kind-8 end height's sign.
 
 **UNKNOWN:** Q658–Q662.

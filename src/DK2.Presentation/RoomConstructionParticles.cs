@@ -38,6 +38,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private readonly Func<int, uint, EffectAttachment>? _attachment;
     private readonly Func<ShotId, ShotEffectAttachment>? _shotAttachment;
     private readonly Func<ViewEffectRequest, bool>? _cameraVisible;
+    private readonly Func<TilePos, TerrainFlags>? _terrainFlags;
+    private readonly Func<TilePos, bool>? _solidTile;
 
     /// <summary>The longest Next chain followed from one request (<c>0x00440350</c> loops until a
     /// zero id; shipped chains are two long). A guard against a data cycle.</summary>
@@ -72,17 +74,21 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         Func<string, IReadOnlyList<EffectGroupPart>?>? groupParts = null,
         Func<int, uint, EffectAttachment>? attachment = null,
         Func<ShotId, ShotEffectAttachment>? shotAttachment = null,
-        Func<ViewEffectRequest, bool>? cameraVisible = null)
+        Func<ViewEffectRequest, bool>? cameraVisible = null,
+        Func<TilePos, TerrainFlags>? terrainFlags = null,
+        Func<TilePos, bool>? solidTile = null)
     {
         _groupParts = groupParts;
         _attachment = attachment;
         _shotAttachment = shotAttachment;
         _cameraVisible = cameraVisible;
+        _terrainFlags = terrainFlags;
+        _solidTile = solidTile;
         _pillarHeightHeartSparkles = heartSparkleStyle == HeartSparkleStyle.PillarHeight;
         _heartManaEffects = new HashSet<ushort>(database.Rooms.Values.Where(r => r.TypeId == RoomTypeId.DungeonHeart)
             .Select(r => r.CreatedObjectEffectId).Where(id => id != 0));
         _database = database;
-        _random = new SimRandom(seed);
+        _random = new SimRandom(new Dk2Lcg(unchecked((uint)seed)));
         _visible = visible;
         _effectVisible = effectVisible;
         _floorHeight = floorHeight ?? (_ => new Fp32(Fp32.One));
@@ -253,20 +259,26 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                 // element origin draw, not linked to this one (0x004386F0 through vtable +0x94). Their
                 // heading is the draw alone (DK2 draws it over def+0x43; the orientation range stands in).
                 if (_database.Effects.TryGetValue(effect.GenerateIds[slot], out EffectDef? generated))
+                {
+                    int start = _emitters.Count;
                     AddEmitterChain(generated, request with
                     {
                         Position = DrawOrigin(effect, request.Position),
-                        Heading = DrawAngularOffset(effect.OrientationRange * 8),
+                        Heading = new((ushort)((DrawAngularOffset(effect.DirectionalSpread * 8).Value
+                            + ((effect.Flags & 0x400) != 0 ? request.Heading.Value : 0)) & 2047)),
                         AttachedCreatureId = 0,
                         AttachPoint = 0,
                         AttachedShotId = ShotId.None,
                         CarriedVelocity = null,
                         RemoveWithShot = false,
                     });
+                    if ((effect.Flags & 0x100) != 0 && _emitters.Count > start)
+                        AddInheritedVelocity(_emitters[start], parent, request);
+                }
                 return;
             }
             if (_database.EffectElements.TryGetValue(effect.GenerateIds[slot], out EffectElementDef? element))
-                EmitElement(element, effect, request, edges, parent);
+                EmitElement(element, effect, request, edges, parent, inheritVelocity: (effect.Flags & 0x100) != 0);
         }
         for (int pass = 0; pass < effect.ElementsPerTurn; pass++)
         {
@@ -292,19 +304,24 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     /// <param name="atExactPoint">A group part (0x004352E0 given a ready position): no origin ring,
     /// height or orientation draw, as for a replacement.</param>
     private ConstructionParticle? EmitElement(EffectElementDef element, EffectDef effect, ViewEffectRequest request, CaptureEdges? edges,
-        Emitter? parent = null, ConstructionParticle? replaced = null, bool atExactPoint = false)
+        Emitter? parent = null, ConstructionParticle? replaced = null, bool atExactPoint = false,
+        bool exactOrigin = false, bool inheritVelocity = false)
     {
-        bool drawn = replaced == null && !atExactPoint;
+        bool drawn = replaced == null && !atExactPoint && !exactOrigin;
         int radius = drawn ? DrawExclusive(effect.InnerOriginRange * 23, effect.OuterOriginRange * 23) : 0;
         double angle = drawn ? _random.NextInt(2048) * Math.PI / 1024 : 0;
         int x = request.Position.X.Raw + (int)(Math.Sin(angle) * radius);
         int y = request.Position.Y.Raw - (int)(Math.Cos(angle) * radius);
         int height = request.Position.Z.Raw + (drawn
             ? DrawExclusive(effect.LowerHeightLimit * 16, effect.UpperHeightLimit * 16) : 0);
-        int heading = (request.Heading.Value + (drawn
+        int heading = ((!drawn || (effect.Flags & 0x400) == 0 ? request.Heading.Value : 0) + (drawn
             ? DrawAngularOffset(effect.OrientationRange * 8).Value : 0)) & 2047;
         int speed = DrawInclusive(element.MinSpeedXy, element.MaxSpeedXy);
-        double direction = _random.NextInt(2048) * Math.PI / 1024;
+        int velocityHeading = _random.NextInt(2048);
+        if (effect.DirectionalSpread != 0)
+            velocityHeading = (heading + _random.NextInt(effect.DirectionalSpread * 8)
+                - effect.DirectionalSpread * 4) & 2047;
+        double direction = velocityHeading * Math.PI / 1024;
         int frames = element.ArtResource.Unknown_0044.Length >= 10
             ? BitConverter.ToUInt16(element.ArtResource.Unknown_0044.ToArray(), 8) : 0;
         int phase = (element.ArtResource.Flags & 0x24) == 0x24 && frames > 0
@@ -329,6 +346,15 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             Red = red, Green = green, Blue = blue,
             HeadingRaw = heading, PreviousHeadingRaw = heading,
         };
+        if ((element.Flags & 0x40) != 0)
+            particle.HeadingRaw = particle.PreviousHeadingRaw = FlightHeading(particle.VelocityX, particle.VelocityY);
+        if (inheritVelocity)
+        {
+            FpPosition3 carried = request.CarriedVelocity ?? default;
+            particle.VelocityX += carried.X.Raw + (parent?.VelocityX ?? 0);
+            particle.VelocityY += carried.Y.Raw + (parent?.VelocityY ?? 0);
+            particle.VelocityZ += carried.Z.Raw + (parent?.VelocityZ ?? 0);
+        }
         if (replaced == null && _pillarHeightHeartSparkles && _heartManaEffects.Contains(effect.EffectId))
         {
             // Owner-requested presentation adjustment (ADR-0474, Q594); native motion remains the default.
@@ -418,12 +444,12 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         int elapsedUpdates = checked((int)(elapsedMilliseconds / 50));
         _lastUpdateMilliseconds += elapsedUpdates * 50L;
         FollowAttachments();
+        int existingEmitters = _emitters.Count;
         for (int i = _particles.Count - 1; i >= 0; i--)
         {
             ConstructionParticle particle = _particles[i];
             particle.Health -= elapsedUpdates;
-            if (particle.Health <= 0 && particle.Definition.DeathElementId == 0)
-            { RemoveParticle(i, particle); continue; }
+            SpawnElementNext(particle);
             particle.VisualUpdates++;
             particle.PreviousXRaw = particle.XRaw;
             particle.PreviousYRaw = particle.YRaw;
@@ -444,7 +470,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             particle.YRaw += particle.VelocityY >> 4;
             particle.HeightRaw += particle.VelocityZ >> 4;
             ApplyFallingSway(particle);
-            if (!ApplyFloorContact(particle) || particle.Health <= 0)
+            if (!ApplyWallContact(particle) || !ApplyFloorContact(particle) || particle.Health <= 0)
             { RemoveParticle(i, particle); continue; }
             if ((particle.Definition.Flags & 8) != 0
                 && Math.Max(particle.Red, Math.Max(particle.Green, particle.Blue)) >= particle.Health)
@@ -454,9 +480,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                 particle.Blue = (byte)(particle.Blue * (particle.Health - 1) / particle.Health);
             }
         }
-        for (int i = _emitters.Count - 1; i >= 0; i--)
+        for (int i = existingEmitters - 1; i >= 0; i--)
         {
             Emitter emitter = _emitters[i];
+            emitter.Age += elapsedUpdates;
             int drag = 4096 - emitter.Definition.AirFriction;
             emitter.VelocityZ -= emitter.Definition.Mass;
             emitter.VelocityX = (int)((long)emitter.VelocityX * drag / 4096);
@@ -465,19 +492,24 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             FpPosition3 old = emitter.Request.Position;
             var point = new FpPosition3(new(old.X.Raw + (emitter.VelocityX >> 4)),
                 new(old.Y.Raw + (emitter.VelocityY >> 4)), new(old.Z.Raw + (emitter.VelocityZ >> 4)));
-            int floor = _floorHeight(point).Raw;
-            if (point.Z.Raw < floor) point = point with { Z = new(floor) };
+            point = ApplyEmitterContact(emitter, old, point);
             emitter.Request = emitter.Request with { Position = point };
             if (emitter.Health > 0)
             {
                 if (_captureAtEdges && !emitter.CaptureBoundary.HasValue
                     && emitter.Definition.EffectId == CaptureEffectLayout.RoomEffectId)
                     emitter.CaptureBoundary = _captureEdges?.Invoke(emitter.Request) ?? CaptureEdges.All;
-                if (emitter.Definition.GenerationType == 4)
-                    EmitWave(emitter.Definition, emitter.Request, emitter.CaptureBoundary, emitter);
+                Generate(emitter);
             }
             if (emitter.Request.AttachedShotId == ShotId.None) emitter.Health -= elapsedUpdates;
         }
+        foreach (ConstructionParticle particle in _particles)
+            if (particle.IsEmitterArt && _parents.TryGetValue(particle, out Emitter? parent))
+            {
+                particle.XRaw = parent.Request.Position.X.Raw;
+                particle.YRaw = parent.Request.Position.Y.Raw;
+                particle.HeightRaw = parent.Request.Position.Z.Raw;
+            }
         // The view update (0x0043BFE0) updates every effect, then every light (0x0043A2E0), then
         // removes the spent effects, whose lights go with them (0x004354F0, slot +0xA8 0x00439A20).
         // An effect created by a removal is first lit as created and stepped on the next update.
@@ -547,6 +579,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     {
         int floor = _floorHeight(new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw))).Raw;
         if (particle.HeightRaw >= floor) return true;
+        SpawnContactElement(particle, floorContact: true);
         if ((particle.Definition.Flags & 1) != 0) return false;
         particle.HeadingSpinRaw = particle.PitchSpinRaw = particle.RollSpinRaw = 0;
         if ((particle.Definition.Flags & 16) != 0)
@@ -644,6 +677,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         public CaptureEdges? CaptureBoundary;
         public int Health = health;
         public int ChildCount;
+        public int Age;
         public int VelocityX = velocityX, VelocityY = velocityY, VelocityZ = velocityZ;
         /// <summary>The instance's light (<c>+0x12B</c>) and its fade ramp: the mode (light
         /// <c>+0x134</c> bits 0x100 in, 0x200 out, 0x400 in then out), the steps (<c>+0x138</c>), the
@@ -728,6 +762,7 @@ public sealed class ConstructionParticle
     public required EffectElementDef Definition { get; init; }
     /// <summary>A parent effect's own sprite key; empty for generated elements.</summary>
     public AssetRef SpriteAsset { get; internal set; }
+    internal bool IsEmitterArt;
 
     /// <summary>The mesh entry a group part draws instead of its definition's art (null for every
     /// other particle): the renderer keys its mesh groups by it.</summary>
