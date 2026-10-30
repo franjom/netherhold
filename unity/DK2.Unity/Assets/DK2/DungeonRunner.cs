@@ -180,6 +180,7 @@ namespace DK2.Unity
         private HandCursorEventSink _handCursorEvents;
         private readonly List<PlayerCommand> _pendingCommands = new List<PlayerCommand>();
         private ScriptedViewDirector _scriptedView;
+        private Vector3 _appliedCameraJitter;
         private Vector3 _glideFrom;
         private Vector3 _glideTo;
         private double _glideStart;
@@ -362,7 +363,9 @@ namespace DK2.Unity
                         ? database.Terrain[world.Tile(tile).TerrainId].Flags : 0,
                     solidTile: tile => !world.Contains(tile)
                         || DK2.Pathfinding.NavBytes.IsSolid(_simulation.Navigation.NavByte(tile.X, tile.Y)),
-                    shotVisible: shot => _worldView.CanShowTile(world, new TilePos(shot.PosX >> 12, shot.PosY >> 12)));
+                    shotVisible: shot => _worldView.CanShowTile(world, new TilePos(shot.PosX >> 12, shot.PosY >> 12)),
+                    creatureGroundHeight: id => world.CreatureById(id.Value) is CreatureState creature
+                        ? _worldView.CreatureEffectGround(world, creature) : (Fp32?)null);
                 _scene.HeartEffectRequested = request => _constructionEffects.Model.Request(request);
                 _lightning = new ClassicLightning(transform, _installArt.LoadTexture, _constructionEffects.Model, unchecked((uint)seed));
                 _scene.Lightning = _lightning;
@@ -629,6 +632,8 @@ namespace DK2.Unity
             JournalBeginFrame();
             _frameOverlay.Sample(showDiagnostics);
             if (_simulation == null || _failure != null) return;
+            if (Camera.main != null) Camera.main.transform.position -= _appliedCameraJitter;
+            _appliedCameraJitter = Vector3.zero;
             _soundPlayer?.UpdateSpeech((long)(Time.unscaledTimeAsDouble * 1000));
             if (_frontEnd != null) { if (!UpdateStartup() && !UpdateCutscene()) UpdateFrontEnd(); return; }
             string settled = _startup?.Frame(Time.unscaledDeltaTime * 1000d, _installArt);
@@ -763,8 +768,14 @@ namespace DK2.Unity
             _scene.DrawCreatureFrame(_simulation.World.CurrentTick, fraction);
             _shotDrawFraction = fraction;
             _constructionEffects?.CaptureShots(_simulation.World.Shots, fraction);
-            RefreshEffectCamera();
             FollowQueriedCreature();
+            if (Camera.main != null && !_scriptedView.PathPlaying)
+            {
+                FpPosition3 jitter = _scriptedView.CameraJitter;
+                _appliedCameraJitter = new Vector3(jitter.X.Raw / (float)Fp32.One, 0, -jitter.Y.Raw / (float)Fp32.One);
+                Camera.main.transform.position += _appliedCameraJitter;
+            }
+            RefreshEffectCamera();
             _scene.SetPortalLights(_worldView.PortalLightTiles(_simulation.World));
             _scene.SetObjectLights(_worldView.LightObjects(_simulation.World), fraction);
             if (_constructionEffects != null) _scene.SetEffectLights(_constructionEffects.Advance());

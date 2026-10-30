@@ -240,9 +240,12 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
 **The camera jitter.**
 - Bridge command 10 → `0x004483A0` → `0x00441230` adds 1 to `+0x132B`, for the local caster
   only.
-- `0x0043B220` at `0x0043C0D0` (and `0x00441250`) spends it one a view update. Each step adds
-  `Random(200) − 100` to the camera offset (`0x00449B00`, camera `+0xD74..+0xD7C`) from the
-  bridge's own generator `+0x72`.
+- `0x0043B220` at `0x0043C0D0` spends one per presentation call, outside the 50 ms
+  particle gate, using a fresh baseline. Helper `0x00441250` adds independent
+  `Random(200) − 100` draws to its supplied XY vector; freshness belongs to this caller,
+  not the helper. The bridge generator +0x72 feeds `0x00449B00`. The setter
+  suppresses offsets for flag 0x40/mode transitions. One process run posts one impulse
+  even without a creature hit: 30 over the Inferno's life.
 - The mechanism is CONFIRMED; that it reads as a shake is STRONGLY INFERRED.
 
 **Burning creatures (CONFIRMED, `0x0048E4B7..0x0048E631`, re-read).**
@@ -268,7 +271,12 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
   countdown and ordered draws run inside each creature update before its action/fight, newest
   first. Corpse records and Horny skip the pass; the expiry tick still requests three flames.
   Both fire handlers ignite dying creatures before our existing health-change refusal.
-  Sound `0x340` and the red overlay await presentation.
+  ADR-0601 adds the red pass with the stated precedence and Horny suppression. Hover
+  replaces the same override, so the adapter deduplicates red passes per frame. Effect 88
+  requests carry above-ground height and resolve the flying/Portal-aware creature body
+  base plane before visibility, with centre-ground fallback without a resolver. Simulation
+  points/draws are unchanged. Native capture Z is 4096 where ordinary modern PosZ is 0.
+  Sound 0x340 is unbuilt: no per-creature loop API.
 
 **Native comparison (2026-10-30, Q658).** The existing Level4 seed01 capture first records
 burning on slot419 (type18) at snapshot3940, with ten ticks falling to zero at3950.
@@ -354,20 +362,25 @@ these timers or permanent link latches. Crackle adds bolts, not a tint.
   shot kinds2/7 and effect kind8, view-local endpoint latches, ordered animated CTRL
   points and electrified crackle with a presentation timer. ADR-0600 adds sprite, flat,
   static-mesh and animated-mesh shot bodies through the existing runtime asset providers.
-  Native visual acceptance has not been performed.
+  ADR-0601 adds burning red and local Inferno camera impulses.
 - **Approximations:** additive lightning blending (Q659); animation-install proxy and
   unrestored view timers/links (Q660); quarter-tile wall reflection (Q690); general
   vertical shot flight/view origins (Q398); camera frustum sphere (Q689). Restored
   shot poses do not recover launch height/yaw or view handles. Type2 sprite lighting
   remains approximate (Q609); type6 uses cached frames. Trail-kind remains Q662.
+  Camera jitter uses a private seed 1 bridge LCG without other bridge consumers, and
+  suppresses scripted paths only; other native transition gates are not mirrored.
 - **Not built:** numeric generation14 (no request caller); procedural kinds1/4/6;
-  mod-authored segmented shot playback; burning overlay/sound; Inferno camera jitter.
+  mod-authored segmented shot playback; per-creature burning sound 0x340.
 
-**Verification (ADR-0600).** Presentation: 1361 tests passed; focused ShotAssets/ArtCatalogue
-conversion: 17 and asset contracts: 64 passed. The latest Simulation pass remains 4103;
-this slice changes no simulation source/state. Unity Compile passed with no warnings/errors;
-nine runtime DLLs were copied into this branch Unity project. No live visual acceptance
-has been performed. Hash/save341 and pin `0x068253C19085D205` remain unchanged.
+**Verification (ADR-0601).** After master integration, full Presentation 1369/Simulation 4103,
+focused Convert 21 and asset contracts 42 passed. Six focused base-height tests passed,
+including Portal-floor and flying-water cases. Unity Compile passed with no warnings/errors; nine
+runtime DLLs were copied into the branch project. The reviewed original-asset GPU probe
+passed with 1539 peak particles and burning/hover pixel equality. Inspected earlier
+0/2500 ms images show a lasting fire sheet and red Goblin. These checks establish remake
+rendering, not native pixel parity or camera-jitter GPU acceptance. Hash/save 343 and
+pin `0xC9236A4CFBFEC07D` preserve master 342 plus burning. Procedure: [README](../../tools/classic-unity-probe/README.md#shot-effects).
 
 ## Confidence
 

@@ -76,7 +76,8 @@ namespace DK2.Unity
             Func<ViewEffectRequest, bool> cameraVisible = null,
             Func<TilePos, TerrainFlags> terrainFlags = null,
             Func<TilePos, bool> solidTile = null,
-            Func<ShotState, bool> shotVisible = null)
+            Func<ShotState, bool> shotVisible = null,
+            Func<CreatureId, Fp32?> creatureGroundHeight = null)
         {
             _root = root;
             _sprites = sprites;
@@ -89,7 +90,7 @@ namespace DK2.Unity
                 heartSparkleStyle: HeartSparkleStyle.PillarHeight,
                 groupParts: meshes != null ? meshes.GroupParts : null, attachment: attachment,
                 shotAttachment: shotAttachment, cameraVisible: cameraVisible,
-                terrainFlags: terrainFlags, solidTile: solidTile);
+                terrainFlags: terrainFlags, solidTile: solidTile, creatureGroundHeight: creatureGroundHeight);
         }
 
         // A stopwatch rather than Unity's clock: the model's Emit runs on the runner's worker thread

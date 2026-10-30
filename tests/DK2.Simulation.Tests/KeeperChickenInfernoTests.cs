@@ -35,6 +35,7 @@ public class KeeperChickenInfernoTests
             Assert.Equal(1, target.BurningTicks);
         }
         Assert.Empty(world.Shots);
+        Assert.Equal(30, events.Events.Count(e => e.ScriptedView is { Kind: ScriptedViewKind.CameraJitter, Value: 1 }));
         Assert.Equal(87, events.Events.Count(e => e.EffectRequest is ViewEffectRequest r && r.EffectId == new EffectId(88)));
         sim.Tick();
         Assert.Equal(90, events.Events.Count(e => e.EffectRequest is ViewEffectRequest r && r.EffectId == new EffectId(88)));

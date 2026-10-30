@@ -2,6 +2,7 @@ param(
     [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
     [string]$OutputRoot = "$PSScriptRoot/../../build/tag-overlay-probe",
     [switch]$PortalEntrance,
+    [switch]$ShotEffects,
     [switch]$CreatureLevel,
     [switch]$PortalMovement,
     [switch]$TutorialHighlight,
@@ -32,6 +33,7 @@ foreach ($module in @('com.unity.modules.screencapture', 'com.unity.modules.imag
 }
 [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 20), [Text.UTF8Encoding]::new($false))
 $entries = @('TagOverlayOrderProbe', 'TransparentTerrainReuseProbe')
+if ($ShotEffects) { $entries = @('ShotEffectsProbe') }
 if ($SpellSlotStates) { $entries = @('SpellSlotStateProbe') }
 if ($PortalPerformance) { $entries = @('PortalPerformanceProbe') }
 if ($PortalEntrance) { $entries += 'PortalEntranceProbe' }

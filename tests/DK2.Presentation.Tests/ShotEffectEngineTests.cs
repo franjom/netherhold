@@ -11,6 +11,23 @@ namespace DK2.Presentation.Tests;
 
 public class ShotEffectEngineTests
 {
+    [Theory]
+    [InlineData(false, 4596)]
+    [InlineData(true, 7500)]
+    public void GroundRelativeFlamesResolveBeforeTheVisibilityGateWithoutChangingTheirRandomOffset(bool hasCreature, int expected)
+    {
+        FpPosition3 observed = default;
+        var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(),
+            effects: [Effect()], effectElements: [Element()]), 7, () => default,
+            floorHeight: point => new(point.X.Raw < 10000 ? 4096 : 0), effectVisible: request => { observed = request.Position; return true; },
+            creatureGroundHeight: id => id.Value == 3 ? new Fp32(7000) : null);
+        model.Request(Request() with { Position = Point(10000, 12000, 500), HeightSpace = EffectHeightSpace.AboveGround,
+            GroundAnchor = Point(9999, 12000, 0), GroundCreatureId = new(hasCreature ? 3 : 0) });
+        Assert.Equal(expected, observed.Z.Raw);
+        model.AdvanceTo(new(51));
+        Assert.Equal(expected, Assert.Single(model.Particles).HeightRaw);
+    }
+
     [Fact]
     public void ViewRandomnessUsesTheNativeGeneratorAndKeepsTheDiscardedUniformDraw()
     {

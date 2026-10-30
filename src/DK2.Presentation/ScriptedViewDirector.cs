@@ -26,6 +26,10 @@ public sealed class ScriptedViewDirector(
     private readonly ConcurrentQueue<ScriptedViewRequest> _requests = new();
     private readonly CinematicLetterbox _letterbox = new();
     private readonly SubtitleQueue _subtitles = new();
+    // Bridge +0x72 is separate from world randomness. Other bridge consumers are not yet shared.
+    private readonly Dk2Lcg _bridgeRandom = new(1);
+    public int PendingCameraJitters { get; private set; }
+    public FpPosition3 CameraJitter { get; private set; }
     private CameraPathPlayback? _path;
     private TilePos? _move;
     private double _now;
@@ -119,6 +123,12 @@ public sealed class ScriptedViewDirector(
         // started on that tick follows it.
         SeekPath();
         while (_requests.TryDequeue(out ScriptedViewRequest request)) Apply(request);
+        CameraJitter = default;
+        if (PendingCameraJitters > 0)
+        {
+            PendingCameraJitters--;
+            CameraJitter = new(new(_bridgeRandom.NextInt(200) - 100), new(_bridgeRandom.NextInt(200) - 100), new(0));
+        }
         SeekPath();
         _subtitles.Update(_now);
     }
@@ -156,6 +166,9 @@ public sealed class ScriptedViewDirector(
     {
         switch (request.Kind)
         {
+            case ScriptedViewKind.CameraJitter:
+                PendingCameraJitters = unchecked(PendingCameraJitters + request.Value);
+                break;
             case ScriptedViewKind.FlashButton:
                 _flash = request.FlashButton is { Enabled: true } active && active.Target.Category != byte.MaxValue
                     ? active : null;

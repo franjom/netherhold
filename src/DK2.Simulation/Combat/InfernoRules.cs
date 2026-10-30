@@ -12,7 +12,7 @@ namespace DK2.Simulation.Combat;
 /// creature of <b>any</b> owner on a non-solid tile strictly within data2 tiles by data1, sparing a
 /// kind that walks on lava and cannot fly. The owner's own casts confirmed the owner test's absence
 /// and the exemption (Q498).</summary>
-/// <remarks>Not modelled: bridge command 10 and the <c>0x004B32A0</c> call, whose bound is zero for data2 below
+/// <remarks>Not modelled: the <c>0x004B32A0</c> call, whose bound is zero for data2 below
 /// 4096. DK2 clamps the tile box's upper edge to the map width and height inclusively, one past the
 /// last tile; ours clamps to the last tile, which differs only on a map edge that shipped maps keep
 /// as rock.</remarks>
@@ -58,5 +58,6 @@ public static class InfernoRules
             context.Emit(SystemName, "inferno_hit",
                 $"shot={shot.Id} target={target.Id} owner={target.OwnerPlayerId} damage={shot.Data1} landed={landed} health={target.Health}");
         }
+        context.RequestView(SystemName, new(ScriptedViewKind.CameraJitter, shot.OwnerPlayerId, 1, default, false));
     }
 }

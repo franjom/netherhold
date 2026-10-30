@@ -55,6 +55,8 @@ public enum ScriptedViewKind : byte
 
     /// <summary>Interface slot <c>+0x38</c>: the GUI hidden for the celebration (hud-visibility.md).</summary>
     HideGui = 12,
+    /// <summary>Bridge command10: add Value camera impulses for the local caster.</summary>
+    CameraJitter = 13,
 }
 
 /// <param name="Tick">For <see cref="ScriptedViewKind.CameraPath"/>, the tick the path started

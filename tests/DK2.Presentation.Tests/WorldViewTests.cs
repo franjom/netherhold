@@ -638,6 +638,7 @@ public class WorldViewTests
         CreatureState creature = world.SpawnCreature(database, flying.CreatureId, 1, water);
         CreatureView rendered = new WorldView(database).Creatures(world).Single(c => c.Id == creature.Id);
         Assert.Equal(Fp32.One, rendered.Height);
+        Assert.Equal(Fp32.One, new WorldView(database).CreatureEffectGround(world, creature).Raw);
     }
 
     [InstallFact]

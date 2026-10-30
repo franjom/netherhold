@@ -10,7 +10,7 @@ namespace DK2.Simulation.Combat;
 /// <summary>What a status shot leaves on the creature it hits — docs/research/creature-status-effects.md:
 /// tick countdowns on the creature (§1), the setters the shot handlers call (§2), and the health
 /// routine's multipliers in 128ths that every blow and shot pass through (§3). Fire is cosmetic in
-/// v1.70 and has no word here; the per-player damage byte, the pit fighter, the Stone Knight's blow
+/// v1.70; the per-player damage byte, the pit fighter, the Stone Knight's blow
 /// path and the stun's early end are not modelled (Q399).</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-status-effects.md")]
 public static class StatusEffectRules
@@ -48,7 +48,9 @@ public static class StatusEffectRules
             int x = unchecked(creature.PosX - footprint / 2 + context.Rng.NextInt(footprint));
             int y = unchecked(creature.PosY - footprint / 2 + context.Rng.NextInt(footprint));
             context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(88), creature.OwnerPlayerId,
-                new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z))));
+                new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)))
+                { HeightSpace = EffectHeightSpace.AboveGround,
+                    GroundAnchor = new(new(creature.PosX), new(creature.PosY), default), GroundCreatureId = new(creature.Id) });
         }
         if (creature.BurningTicks == 0) creature.BurningOwnerTag = 0;
     }

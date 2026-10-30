@@ -30,6 +30,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private readonly Func<RoomConstructionEffect, bool>? _visible;
     private readonly Func<ViewEffectRequest, bool>? _effectVisible;
     private readonly Func<FpPosition3, Fp32> _floorHeight;
+    private readonly Func<CreatureId, Fp32?>? _creatureGroundHeight;
     private readonly Func<EffectTime> _clock;
     private readonly HashSet<ushort> _crumblingEffects;
     private readonly HashSet<ushort> _heartManaEffects;
@@ -76,9 +77,11 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         Func<ShotId, ShotEffectAttachment>? shotAttachment = null,
         Func<ViewEffectRequest, bool>? cameraVisible = null,
         Func<TilePos, TerrainFlags>? terrainFlags = null,
-        Func<TilePos, bool>? solidTile = null)
+        Func<TilePos, bool>? solidTile = null,
+        Func<CreatureId, Fp32?>? creatureGroundHeight = null)
     {
         _groupParts = groupParts;
+        _creatureGroundHeight = creatureGroundHeight;
         _attachment = attachment;
         _shotAttachment = shotAttachment;
         _cameraVisible = cameraVisible;
@@ -125,8 +128,12 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         }
     }
 
-    public void Request(in ViewEffectRequest request)
+    public void Request(in ViewEffectRequest incoming)
     {
+        ViewEffectRequest request = incoming.HeightSpace == EffectHeightSpace.AboveGround
+            ? incoming with { Position = incoming.Position with { Z = new(incoming.Position.Z.Raw
+                + (_creatureGroundHeight?.Invoke(incoming.GroundCreatureId) ?? _floorHeight(incoming.GroundAnchor ?? incoming.Position)).Raw) },
+                HeightSpace = EffectHeightSpace.Absolute } : incoming;
         if (!_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
             || !SupportsEffect(definition) || !AllowsEffect(request, definition)) return;
         AdvanceTo(_clock());

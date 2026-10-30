@@ -620,6 +620,11 @@ public sealed partial class WorldView
         return art;
     }
 
+    /// <summary>The creature body's base plane, before relative falling height; not the Portal hole.</summary>
+    public Fp32 CreatureEffectGround(WorldState world, CreatureState creature) =>
+        WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature) ? new(FloorZ)
+            : CreatureGroundHeight(world, new(new(creature.PosX), new(creature.PosY), default));
+
     /// <summary>Ground for effects and shadows, including the keeper Portal's zero-height hole.</summary>
     public Fp32 GroundHeightAt(WorldState world, FpPosition3 point)
     {

@@ -13967,7 +13967,7 @@ the existing gameplay removal. The existing planar shot simulation
 still lacks native vertical flight. View origins use the existing one-tile ground
 convention plus authored offsets; unusual floor heights remain approximate (Q398).
 Unity substitutes a one-tile frustum sphere for the native camera predicate (Q689).
-Hash/save341 and its deterministic pin are unchanged. Project test counts and Unity
+Hash/save343 and its deterministic pin are unchanged. Project test counts and Unity
 compile/sync limits: [shot-effects.md section7](research/shot-effects.md#7-ours).
 
 ## ADR-0597 - complete the effect-engine paths used by shots
@@ -13987,7 +13987,7 @@ global-data census finds no request sources for27/182; it proves nothing about a
 callers or level THINGS. Native visual acceptance remains pending.
 
 **Consequences.** Each effect engine owns an independent native LCG, separate from the
-simulation stream; hash/save341 and its deterministic pin are unchanged. The engine keeps
+simulation stream; hash/save343 and its deterministic pin are unchanged. The engine keeps
 existing public names and asset access.
 
 ## ADR-0599 - draw procedural lightning and electrified creatures
@@ -14007,7 +14007,7 @@ existing save boundary. Kinds1/4/6 are deferred; other shot bodies and burning
 presentation remain separate slices. Native visual acceptance remains pending.
 
 **Consequences.** CRT jitter and render-LCG pairing use private presentation streams;
-hash/save341 and its deterministic pin are unchanged. Q661 is answered only for
+hash/save343 and its deterministic pin are unchanged. Q661 is answered only for
 kind8 endpoints and the ordinary keeper creature-targeted Thunderbolt path.
 
 ## ADR-0600 - draw shot bodies through the existing asset and effect adapters
@@ -14027,4 +14027,24 @@ segments are unbuilt. General vertical flight/restored launch pose remain Q398.
 Native visual acceptance is pending.
 
 **Consequences.** No converted install files or simulation mutations are introduced.
-Hash/save341 and its deterministic pin remain unchanged on this branch.
+Hash/save343 and its deterministic pin remain unchanged on this branch.
+
+## ADR-0601 - present burning and local Inferno camera impulses
+
+**Status:** implemented, 2026-10-30.
+
+**Decision.** Project burning into the existing additive red pass with native status
+precedence and Horny suppression. Deduplicate that pass when the creature is hovered.
+Normalize free-standing flame heights against the flying/Portal-aware creature body
+base plane before visibility, with centre-ground fallback without a resolver. Post one local-player camera impulse per Inferno process run and consume
+one per presentation call using an independent bridge LCG and a fresh offset.
+
+**Evidence and verification:** [shot-effects.md sections5/7](research/shot-effects.md#5-the-inferno).
+
+**Limits.** The bridge stream starts at seed 1 and does not share other native bridge
+consumers. Scripted paths suppress camera offsets; other native transition gates are
+not mirrored. Per-creature sound 0x340 remains unbuilt without a loop API. The GPU
+fixture verifies remake rendering, not original-game pixel parity.
+
+**Consequences.** View metadata/events add no simulation state or random draws.
+Hash/save 343 and its deterministic pin remain unchanged by this presentation slice.

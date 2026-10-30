@@ -12,6 +12,15 @@ These checks establish remake rendering/lifecycle behavior, not matched-original
 visual fidelity. Unity's Search indexing exception may occur independently during
 fresh-project import; runner/render errors and blank captures fail the probe.
 
+## Shot effects
+
+Run `tools/classic-unity-probe/run-tag-overlay.ps1 -ShotEffects` for the isolated
+original-asset Inferno/burning fixture. `ShotEffectsProbe` advances the 50 ms view
+clock through 9 s and writes sampled PNGs; `DK2_SHOT_EFFECTS_CAPTURE_OUTPUT` selects
+their directory. It checks nonempty particles and compares burning-only with hovered
+burning pixels to reject a doubled red pass. It neither opens the owner's scene nor
+establishes native pixel parity. Current verification: [shot effects](../../docs/research/shot-effects.md#7-ours).
+
 ## Dig-tag overlay ordering
 
 Run `tools/classic-unity-probe/run-tag-overlay.ps1` with an activated Unity editor.

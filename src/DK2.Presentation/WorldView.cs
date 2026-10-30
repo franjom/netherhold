@@ -198,10 +198,11 @@ public readonly struct CreatureView
         bool animationDeferred = false,
         int? previousHeight = null,
         Fp32? animationInitialMovementSpeed = null,
-        bool gemCarrier = false)
+        bool gemCarrier = false, bool burningRed = false)
     {
         Id = id;
         GemCarrier = gemCarrier;
+        BurningRed = burningRed;
         OwnerPlayerId = ownerPlayerId.Value;
         PosX = posX;
         PosY = posY;
@@ -264,6 +265,7 @@ public readonly struct CreatureView
     /// <c>+0x92</c> bit 2): each draw gives off effect 257, Gem dust sparkles, at every mesh control
     /// point 10001 (<see cref="GemDustSparkle"/>).</summary>
     public bool GemCarrier { get; }
+    public bool BurningRed { get; }
 
     /// <summary>What a drawn gem carrier gives off, and where (<c>Render_MeshEffectPoints</c>,
     /// <c>0x005A3AA0</c>, the push at <c>0x005A426B</c>): effect 257 through the view's gated
@@ -1559,7 +1561,8 @@ public sealed partial class WorldView
                 animationDeferred: IsDeferredLanding(creature), previousHeight: previousHeight,
                 animationInitialMovementSpeed: !stationaryMovement && IsTravelAnimation(creature)
                     ? new Fp32(creature.Body.MaxSpeed >> 4) : null,
-                gemCarrier: creature.GemCarrier);
+                gemCarrier: creature.GemCarrier,
+                burningRed: CreatureBurningVisual.ShowsRed(creature, _database.CreatureById(creature.CreatureTypeId).Flags));
         }
     }
 

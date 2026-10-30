@@ -87,6 +87,7 @@ namespace DK2.Unity
         private readonly Dictionary<StructureId, GameObject> _structures = new Dictionary<StructureId, GameObject>();
         private readonly Dictionary<StructureId, TilePos> _structureTiles = new Dictionary<StructureId, TilePos>();
         private readonly List<Material> _hoverMaterials = new List<Material>();
+        private readonly HashSet<int> _redCreatures = new HashSet<int>();
         private readonly Dictionary<int, GameObject> _torches = new Dictionary<int, GameObject>();
         private readonly Dictionary<uint, Material> _materials = new Dictionary<uint, Material>();
         private bool _disposed;
@@ -140,6 +141,8 @@ namespace DK2.Unity
         public void DrawHoverOverlay(WorldHoverHit hit, bool coversBlended = false)
         {
             if (_classic == null) return;
+            bool redAlreadyDrawn = hit.Kind == WorldHoverKind.Creature && _redCreatures.Contains(hit.EntityId);
+            if (redAlreadyDrawn && !coversBlended) return;
             GameObject go;
             Material[] swapped = null;
             if (hit.Kind == WorldHoverKind.Creature)
@@ -170,8 +173,10 @@ namespace DK2.Unity
                     Graphics.RenderMesh(new RenderParams(swapped[sub])
                     { shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off, receiveShadows = false }, mesh, sub, matrix);
                 bool blended = sub < _hoverMaterials.Count && _classic.IsKmfBlended(_hoverMaterials[sub]);
-                if (HoverTint.DrawsOverlay(blended, coversBlended)) Graphics.RenderMesh(overlay, mesh, sub, matrix);
+                if ((!redAlreadyDrawn || blended) && HoverTint.DrawsOverlay(blended, coversBlended))
+                    Graphics.RenderMesh(overlay, mesh, sub, matrix);
             }
+            if (hit.Kind == WorldHoverKind.Creature) _redCreatures.Add(hit.EntityId);
         }
 
         /// <summary>What the Hand points at (Hand_ResolveScreenTarget 0x005992B0): first the rendered
@@ -568,6 +573,7 @@ namespace DK2.Unity
 
         public void DrawCreatureFrame(GameTick tick, float fraction)
         {
+            _redCreatures.Clear();
             using var frameScope = FrameMarker.Auto();
             fraction = Mathf.Clamp01(fraction);
             SetCreatureFrameTime(tick, fraction);
@@ -589,6 +595,7 @@ namespace DK2.Unity
                     _meshCreatures.Contains(entry.Key) ? ground.y : position.y, ground.z);
                 ClassicCreatureAnimation player = go.GetComponent<ClassicCreatureAnimation>();
                 if (player != null) player.Draw(_renderSeconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
+                if (pose.BurningRed) DrawHoverOverlay(new WorldHoverHit(WorldHoverKind.Creature, pose.Tile, entry.Key));
                 Lightning?.DrawCreature(new CreatureId(entry.Key), tick, player);
                 _creatureHeads[entry.Key] = player != null
                     && player.TryGetControlPoint(DK2.Art.Kmf.KmfControlPoint.Head, out Vector3 head)

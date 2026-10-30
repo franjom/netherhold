@@ -8,6 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 public enum EffectVisibility : byte { Gated, Ungated }
+public enum EffectHeightSpace : byte { Absolute, AboveGround }
 
 public readonly record struct ShotId(int Value)
 {
@@ -36,6 +37,9 @@ public readonly record struct ViewEffectRequest(
     public FpPosition3? SecondPoint { get; init; }
     public FpPosition3? CarriedVelocity { get; init; }
     public bool RemoveWithShot { get; init; }
+    public EffectHeightSpace HeightSpace { get; init; }
+    public FpPosition3? GroundAnchor { get; init; }
+    public CreatureId GroundCreatureId { get; init; }
     public TilePos Tile => new(Position.X.Raw >> 12, Position.Y.Raw >> 12);
     public Fp32 Height => Position.Z;
 
