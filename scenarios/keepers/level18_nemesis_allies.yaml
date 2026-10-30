@@ -5,6 +5,8 @@
 # Lair and Training Room, 23 at level 4 and four at level 1. No command is scripted.
 # On the first turn the readiness test (0x004FAB10) finds the four under-levelled knights few
 # enough to grant each a level, as commands here (ADR-0298).
+# Placed knights do not count against the portal cap (0x004DBF90), so the portal also brings
+# level-1 creatures in the 400 ticks, and the test grants them levels too.
 # Level 18's VARIABLES ally its three computer keepers, Nemesis (4), Fabian (5) and Faust (6)
 # (id-66 records, alliances.md section 2), so the planner (0x004FAEF0) never chooses either of them:
 # 0x004BF390 calls an ally no enemy. The human (player 3, 46 tiles off) is the only keeper left to

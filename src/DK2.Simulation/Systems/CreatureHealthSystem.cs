@@ -269,12 +269,18 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
     /// <summary>
     /// Drops a creature to the floor. It is still alive, still its keeper's, and
-    /// still holds its bed and its gold.
+    /// still holds its bed, but its gold falls out: the state-216 entry 0x004596D0
+    /// calls 0x0048F930, so a rescued creature comes back with empty hands.
     /// </summary>
     private static void Collapse(
         SimulationContext context, CreatureDef creature, CreatureState state)
     {
         if (!CreatureDeathRules.Collapse(context.Hooks, state)) return;
+        // Only when 216 took: 0x004596D0 returns before the drop if SetState refuses it.
+        int carried = state.GoldHeld;
+        int dropped = state.Dk2StateId == CreatureDeathRules.FallingState
+            ? FloorGold.DropFrom(context.World, context.Database, state, context.Rng)
+            : 0;
         HeroPartyRules.KnockedOut(context.Hooks, state);
 
         // Creature event 16, "dying", from the countdown start 0x0048B770 (trigger-walkers.md,
@@ -286,7 +292,8 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             $"player={state.OwnerPlayerId} at=({state.Tile.X},{state.Tile.Y}) " +
             $"rescue_window={CreatureDeathRules.DyingWindowTicks(context.Database)
                 / SimulationTiming.TicksPerSecond}s " +
-            $"bed={LairRules.BedTileIndex(context.World, context.Database, state)}");
+            $"bed={LairRules.BedTileIndex(context.World, context.Database, state)} " +
+            $"gold_dropped={dropped} gold_lost_to_rounding={carried - dropped}");
     }
 
     /// <summary>DK2's death bookkeeping (<c>0x00487C70</c>): the Killed event, the bed, the
@@ -319,7 +326,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
         // number, because the two are different amounts and the difference is
         // DK2's own quirk.
         int carried = state.GoldHeld;
-        int dropped = FloorGold.DropFrom(context.World, context.Database, state);
+        int dropped = FloorGold.DropFrom(context.World, context.Database, state, context.Rng);
         PortalRules.ArrivalDied(context.World, state);
         CreditHeroKill(context.World, creature, state);
 

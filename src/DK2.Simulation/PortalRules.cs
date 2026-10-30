@@ -62,6 +62,7 @@ public static class PortalRules
         CreatureState creature = world.SpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
             new TilePos(entrance % world.Width, entrance / world.Width));
         creature.Heading = 0x400;
+        creature.CameThroughPortal = true;
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;
         creature.PortalEntranceTile = entrance;
         NotifyArrival(hooks, creature);
@@ -276,22 +277,19 @@ public static class PortalRules
             : database[VariableTypeId.CreaturesSupportedByFirstPortal]
               + ((keeperPortalCount - 1) * database[VariableTypeId.CreaturesSupportedPerAdditionalPortal]);
 
-    /// <summary>How many creatures this keeper holds against the cap. Workers do not
-    /// count — free imps arrive on their own clock up to <c>MinimumImpThreshold</c>
-    /// regardless of portals, and Create Imp has no portal precondition. STRONGLY
-    /// INFERRED (docs/research/binary-entrance.md §3). By
-    /// <see cref="CreatureFlags.IsWorker"/> as <see cref="ImpSupplyRules.ImpCount"/>
-    /// does, so the Dwarf is out too.</summary>
-    public static int CreatureCount(WorldState world, GameDatabase database, PlayerId playerId)
+    /// <summary>How many creatures this keeper holds against the cap, <c>0x004DBF90</c>: those
+    /// that came through a portal (<see cref="CreatureState.CameThroughPortal"/>). Placed, converted,
+    /// captured and created creatures are not counted, and neither is any Imp, which no portal makes.</summary>
+    public static int CreatureCount(WorldState world, PlayerId playerId)
     {
         int count = 0;
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState creature = creatures[i];
-            if (creature.OwnerPlayerId != playerId) continue;
-            if (!database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
-                count++;
+            // DK2's corpse is a CDeadBody off the player's list; ours stays in Creatures (ADR-0206).
+            if (creature.OwnerPlayerId == playerId && creature.CameThroughPortal
+                && !CreatureDeathRules.IsCorpse(creature)) count++;
         }
         return count;
     }
@@ -356,35 +354,46 @@ public static class PortalRules
         return limit;
     }
 
-    /// <summary>Whether this keeper's dungeon holds what this creature wants. A
-    /// creature that fills both slots needs both — CONFIRMED from the binary, not
-    /// inferred: the gate at <c>0x004DC810</c> walks every entry and fails on the first.
-    /// <para>The size is the keeper's <b>total</b> slabs of that room type, not one
-    /// room's: <c>0x004C6EB0</c> sums <c>room+0xA7</c> over the room list, so five
-    /// 5-tile hatcheries <i>do</i> make the Bile Demon's 25. That reverses OpenKeeper's
-    /// reading (portals.md §3). The test is the total against the size and nothing
-    /// else (<c>0x004DC86B</c>: <c>JC</c> on the sum below the size byte), so a size of
-    /// 0 admits a keeper who owns none of the room: Level 4's Goblin came through a
-    /// portal with no Lair (portals.md §3). Not gated on IsFunctional (Q45). A room
-    /// type with no size still needs the room for its weight (<see cref="AttractionBudget"/>),
-    /// except the Lair, whose weight is flat.</para></summary>
+    /// <summary>Whether this keeper's dungeon holds what this creature wants, <c>0x004DC810</c>:
+    /// every entry must pass, by its kind (the file's <c>Present</c>). Kind 1, the only one shipped,
+    /// is the keeper's <b>total</b> slabs of the room (<c>0x004C6EB0</c> sums <c>room+0xA7</c>),
+    /// failing only below the size, so five 5-tile hatcheries make the Bile Demon's 25 and a size
+    /// of 0 admits a keeper with none of the room (Level 4's Goblin, portals.md §3). Kinds 2 and 3
+    /// compare keeper gold (<c>+0x7E</c>, unsigned) and mana (<c>+0x82</c>, signed) with the word
+    /// the loader packs, room byte low and size byte high. Kind 4 calls <c>0x004BA7D0</c> and
+    /// compares with a zero-extended word shifted right 16, so it always passes; kind 0 tests
+    /// nothing. Not gated on IsFunctional (Q45). This overload is for a keeper with no gold and no
+    /// mana, so a kind 2 or 3 entry above zero refuses.</summary>
     public static bool IsAttracted(CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms)
+        => IsAttracted(creature, keeperRooms, new GoldAmount(0), new ManaAmount(0));
+
+    /// <inheritdoc cref="IsAttracted(CreatureDef, IReadOnlyList{RoomInstance})"/>
+    public static bool IsAttracted(
+        CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms, GoldAmount money, ManaAmount mana)
     {
         foreach (CreatureAttraction attraction in creature.Attractions)
         {
-            // Present is 0 exactly where RoomId is 0 on all 46 shipped creatures, so
-            // either would do; both are checked because neither field is documented.
-            if (attraction.Present == 0 || attraction.RoomId == 0) continue;
-
-            int slabs = 0;
-            for (int i = 0; i < keeperRooms.Count; i++)
+            int packed = (attraction.RoomId & 0xFF) | ((attraction.RoomSize & 0xFF) << 8);
+            switch (attraction.Present)
             {
-                RoomInstance room = keeperRooms[i];
-                if (room.Definition.RoomId != attraction.RoomId) continue;
-                slabs += room.TileCount;
+                case 1:
+                    // Present is 0 exactly where RoomId is 0 on all 46 shipped creatures.
+                    if (attraction.RoomId == 0) continue;
+                    int slabs = 0;
+                    for (int i = 0; i < keeperRooms.Count; i++)
+                    {
+                        RoomInstance room = keeperRooms[i];
+                        if (room.Definition.RoomId == attraction.RoomId) slabs += room.TileCount;
+                    }
+                    if (slabs < attraction.RoomSize) return false;
+                    break;
+                case 2:
+                    if ((uint)money.Value < (uint)packed) return false;
+                    break;
+                case 3:
+                    if (mana.Value < packed) return false;
+                    break;
             }
-
-            if (slabs < attraction.RoomSize) return false;
         }
         return true;
     }

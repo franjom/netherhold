@@ -482,7 +482,7 @@ public class CombatFearTests
         (GameDatabase db, WorldState world) = OpenWorld();
         PlaceTreasury(world, Keeper);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
-        goblin.Health = 400; // under a third of 1500
+        goblin.Health = 200; // under a sixth of 1500 (0x0048F250)
         CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
         GameSimulation sim = Combat(db, world);
         var sink = new ListEventSink();
@@ -504,7 +504,7 @@ public class CombatFearTests
         (GameDatabase db, WorldState world) = OpenWorld();
         PlaceHeart(world, Keeper, 8, 12);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12); // four tiles off
-        goblin.Health = 400;
+        goblin.Health = 200;
         CreatureState knight = Touching(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, goblin);
         GameSimulation sim = Combat(db, world);
         var sink = new ListEventSink();
@@ -525,7 +525,7 @@ public class CombatFearTests
         (GameDatabase db, WorldState world) = OpenWorld();
         PlaceHeart(world, Keeper, 3, 3);
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
-        goblin.Health = 400;
+        goblin.Health = 200;
         CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
         GameSimulation sim = Combat(db, world);
 
@@ -562,7 +562,7 @@ public class CombatFearTests
             }
         }
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 9, 9);
-        goblin.Health = 400;
+        goblin.Health = 200;
         CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
         GameSimulation sim = Combat(db, world);
 

@@ -468,7 +468,7 @@ public struct PlayerState
     public GameTick StatusTick;
 
     /// <summary>The dungeon heart object's health, <c>object+0x40</c>. Starts at
-    /// <c>DungeonHeartObjectHealth</c>, regenerates once a second while above zero, and
+    /// <c>DungeonHeartObjectHealth</c>, regenerates every fifth turn while above zero, and
     /// at zero the heart is dead: <see cref="KilledByPlayerId"/> is stamped from
     /// <see cref="HeartLastAttackerPlayerId"/> and the room ruins on the next turn.</summary>
     public int HeartHealth;
@@ -483,6 +483,10 @@ public struct PlayerState
     /// <summary>Bit 0 of the heart room's <c>+0x9A</c>: set by the room's own frame when it
     /// finds no heart object. A ruined heart stores no gold and can be claimed (Q93, Q263).</summary>
     public bool HeartRuined;
+
+    /// <summary>The heart room's regeneration counter, <c>room+0x56</c>: at 0 the heart heals and it
+    /// is reset to <c>var19</c>, otherwise it counts down, so a heal every <c>var19 + 1</c> turns.</summary>
+    public byte HeartRegenCountdown;
 
     /// <summary>The low-mana warning clocks and the removal-scan deadline, DK2's player
     /// <c>+0x76</c> bits 0 and 8, <c>+0x9E</c>, <c>+0xA6</c> and <c>+0xB48</c>; advanced by
@@ -565,6 +569,7 @@ public struct PlayerState
         hash.Add(HeartLastAttackerPlayerId);
         hash.Add(HeartDiedTick);
         hash.Add(HeartRuined ? (byte)1 : (byte)0);
+        hash.Add(HeartRegenCountdown);
         hash.Add(ManaPressure.WarningDeadline);
         hash.Add(ManaPressure.WarningStage);
         hash.Add(ManaPressure.WarningsSuppressed);

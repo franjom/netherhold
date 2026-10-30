@@ -323,7 +323,8 @@ public static class WorldResync
 
     /// <summary>Each of DK2's live creatures left unpaired is made at its point, for the loop to copy
     /// as any other: made at level 1 and raised to DK2's there, with no lair or party (the capture
-    /// reads neither). One whose point is off the map is left unpaired.</summary>
+    /// reads neither, nor <c>+0x3E6</c>, so an added creature lacks <see cref="CreatureState.CameThroughPortal"/>
+    /// and the portal cap undercounts). One whose point is off the map is left unpaired.</summary>
     private static int AddMissing(WorldState world, GameDatabase database, List<(ResyncCreature Native, CreatureState? Ours)> pairs)
     {
         int added = 0;

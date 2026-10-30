@@ -782,6 +782,21 @@ public class PortalTests
     }
 
     [Fact]
+    public void GoldAndManaAttractionsCompareTheWordTheLoaderPacks_AndKindFourAlwaysPasses()
+    {
+        // 0x004DC810: the word is room byte low, size byte high; 0x10 | 0x02 << 8 = 528.
+        GameDatabase db = Dk2TerrainFixture.Database();
+        CreatureDef goblin = db.CreatureById(GoblinId);
+        CreatureDef greedy = goblin with { Attractions = [new CreatureAttraction(2, 0x10, 0x02), new CreatureAttraction(4, 0xFF, 0xFF)] };
+        CreatureDef learned = goblin with { Attractions = [new CreatureAttraction(3, 0x10, 0x02)] };
+
+        Assert.False(PortalRules.IsAttracted(greedy, [], new GoldAmount(527), new ManaAmount(0)));
+        Assert.True(PortalRules.IsAttracted(greedy, [], new GoldAmount(528), new ManaAmount(0)));
+        Assert.False(PortalRules.IsAttracted(learned, [], new GoldAmount(0), new ManaAmount(527)));
+        Assert.True(PortalRules.IsAttracted(learned, [], new GoldAmount(0), new ManaAmount(528)));
+    }
+
+    [Fact]
     public void ALairAttractedTypeIsNeverCappedHoweverManyAreHeld()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
@@ -1023,19 +1038,24 @@ public class PortalTests
     }
 
     [Fact]
-    public void ImpsDoNotCountAgainstThePortalCap()
+    public void OnlyCreaturesThatCameThroughAPortalCountAgainstTheCap()
     {
+        // The builder 0x004DBF90 counts +0x3E6 bit 1, which only the portal creator 0x004DC9A0 sets.
         GameDatabase db = Database();
         WorldState world = World(db);
 
         CreatureDef imp = db.CreatureByName("Imp")!;
         for (int i = 0; i < 30; i++)
             world.SpawnCreature(db, imp.CreatureId, Keeper, new TilePos(2, 2));
-
-        Assert.Equal(0, PortalRules.CreatureCount(world, db, Keeper));
-
         world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
-        Assert.Equal(1, PortalRules.CreatureCount(world, db, Keeper));
+        Assert.Equal(0, PortalRules.CreatureCount(world, Keeper));
+
+        CreatureState arrived = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        arrived.CameThroughPortal = true;
+        Assert.Equal(1, PortalRules.CreatureCount(world, Keeper));
+
+        arrived.Dk2StateId = -1; // a corpse (ADR-0206)
+        Assert.Equal(0, PortalRules.CreatureCount(world, Keeper));
     }
 
     [Fact]
@@ -1045,10 +1065,10 @@ public class PortalTests
         WorldState world = World(db);
 
         for (int i = 0; i < 5; i++)
-            world.SpawnCreature(db, GoblinId, Rival, new TilePos(2, 2));
+            world.SpawnCreature(db, GoblinId, Rival, new TilePos(2, 2)).CameThroughPortal = true;
 
-        Assert.Equal(0, PortalRules.CreatureCount(world, db, Keeper));
-        Assert.Equal(5, PortalRules.CreatureCount(world, db, Rival));
+        Assert.Equal(0, PortalRules.CreatureCount(world, Keeper));
+        Assert.Equal(5, PortalRules.CreatureCount(world, Rival));
     }
 
     // ---- what counts as a portal at all ----------------------------------

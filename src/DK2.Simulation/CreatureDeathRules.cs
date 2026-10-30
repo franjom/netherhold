@@ -226,7 +226,7 @@ public static class CreatureDeathRules
     /// false if it was already dying. It keeps its bed on purpose: the rescue path is an imp
     /// carrying the creature to that bed, so a lair tile freed on collapse would be claimed by
     /// somebody else while its owner lay on the floor; the bed is released at death, by
-    /// <see cref="Systems.CreatureHealthSystem"/> or <see cref="BecomeCorpse"/>. It keeps its gold too: DK2 drops what a creature carried when the creature is destroyed, not when it collapses (<see cref="FloorGold.DropFrom"/>).</summary>
+    /// <see cref="Systems.CreatureHealthSystem"/> or <see cref="BecomeCorpse"/>. Its gold is dropped by the caller (<see cref="Systems.CreatureHealthSystem"/>), not here, so a capture resync that collapses a creature does not add piles to the floor gold it has just replaced.</summary>
     public static bool Collapse(in StateHookContext hooks, CreatureState creature)
     {
         if (IsDying(creature)) return false;

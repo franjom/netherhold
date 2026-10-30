@@ -24,7 +24,7 @@ public class CombatFriendlySpellTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState priest = Spawn(db, world, Dk2TerrainFixture.PriestCreatureId, Keeper, 5, 10);
-        // A fearless fighter: under a quarter health is under a third, and anyone else would withdraw.
+        // A fearless fighter, so it stays in the fight at the low health the Priest's heal wants.
         CreatureState fighter = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Keeper, 8, 10);
         Frozen(Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, fighter));
         fighter.Health = 300;

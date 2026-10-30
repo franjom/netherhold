@@ -298,8 +298,8 @@ creature carries it to a treasury or dungeon-heart tile (Q31, ADR-0019). The
 rules stay pure: `TileWorkResult.GoldReleased` credits nobody, and
 `TileWorkSystem` reads the creature id off the order and fills the right pair of
 hands; work with nothing behind it still has its gold reported and dropped. What
-an imp cannot hold is lost rather than left on the floor, because a lump is an
-object (M6). Where the imp stops mining is Q50 — *"one more swing would free more
+an imp cannot hold is put down at its own position as a floor pile, merging into
+one within 1/64 of a tile (`gold-on-the-floor.md` §10, ADR-0264). Where the imp stops mining is Q50 — *"one more swing would free more
 gold than I can hold"*, HYPOTHESIS, and `TileWorkRules.GoldYield` is what lets it
 ask without applying.
 

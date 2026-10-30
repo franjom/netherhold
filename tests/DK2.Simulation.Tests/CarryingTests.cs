@@ -344,6 +344,26 @@ public class CarryingTests
     }
 
     [Fact]
+    public void ACollapsedCreatureDropsItsGoldAsItFalls()
+    {
+        // 0x004596D0 calls 0x0048F930 on entering 216: 2999 is two piles of 1499, one gold lost.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
+        goblin.GoldHeld = 2999;
+        goblin.Health = 0;
+        var sink = new ListEventSink();
+        GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < 2 * Second && !sink.Events.Any(e => e.Kind == "creature_collapsed"); i++) sim.Tick();
+
+        Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
+        Assert.Equal(0, goblin.GoldHeld);
+        Assert.Equal(2998, FloorGold.Total(world, db));
+    }
+
+    [Fact]
     public void ACreatureCollapsesOutOfWhateverStateItHeld()
     {
         // The rule admits 216 from every state, the Refused category included (group 3's

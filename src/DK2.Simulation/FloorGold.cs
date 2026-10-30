@@ -39,6 +39,9 @@ public static class FloorGold
     /// <inheritdoc cref="TwoPilesAbove"/>
     public const int ThreePilesAbove = 3000;
 
+    /// <summary>The range of each of <c>0x0048F930</c>'s two draws per pile, a tile in fixed point.</summary>
+    private const int PileScatter = 0x1000;
+
     /// <summary>Is this object a pile of gold?</summary>
     public static bool IsPile(GameDatabase database, ObjectState instance)
     {
@@ -202,13 +205,17 @@ public static class FloorGold
     /// returns how much actually reached the floor — sometimes less than it was carrying, because
     /// the original divides by the pile count with integer division and gives each pile that share,
     /// destroying the remainder: 2999 carried becomes two piles of 1499. Reproduced, not corrected.
-    /// Called when a creature is <b>destroyed</b>; in the original that is one function covering
-    /// every way of leaving the world, ours calls it from death only (Q137).</summary>
+    /// DK2's <c>0x0048F930</c>, called on entering the dying state (<c>0x004596D0</c>,
+    /// <c>0x00459560</c>) and again by the death bookkeeping, which finds the hands empty unless
+    /// the creature skipped the dying window. DK2 scatters each pile at a random point of the tile,
+    /// x then y from the simulation stream; ours takes the same two draws per pile, to keep the
+    /// stream in step, but puts the pile at the tile. A creature leaving by a portal keeps its gold (Q137).</summary>
     public static int DropFrom(
-        WorldState world, GameDatabase database, CreatureState creature)
+        WorldState world, GameDatabase database, CreatureState creature, SimRandom rng)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (creature is null) throw new ArgumentNullException(nameof(creature));
+        if (rng is null) throw new ArgumentNullException(nameof(rng));
 
         int piles = PileCount(creature.GoldHeld);
         if (piles == 0) return 0;
@@ -218,7 +225,12 @@ public static class FloorGold
         if (each <= 0) return 0;
 
         int tileIndex = creature.Tile.Y * world.Width + creature.Tile.X;
-        for (int i = 0; i < piles; i++) Drop(world, database, tileIndex, each);
+        for (int i = 0; i < piles; i++)
+        {
+            rng.NextInt(PileScatter);
+            rng.NextInt(PileScatter);
+            Drop(world, database, tileIndex, each);
+        }
         return each * piles;
     }
 }

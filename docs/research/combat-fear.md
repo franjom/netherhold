@@ -19,7 +19,7 @@ the intake of each opponent it can see; a creature's own fear is last tick's
 intake scaled by how far it stands from its heart, nothing at all beside it. Three
 ticks over its level-scaled `Fear` and it **backs off** — holds its attacker at
 five quarters of reach for a timer between two balance variables — then **runs**
-for its lair, its heart, a room or a nearby tile. A creature under a third of its
+for its lair, its heart, a room or a nearby tile. A creature under a sixth of its
 health and more than five tiles from its heart runs without the preamble.
 
 ---
@@ -102,7 +102,7 @@ Not a `CombatPitFighter`; the owner's `Number` (`player+0x10FC`) equal to 1 —
 the **Good** player — counts as 6 tiles when `Flags +0x46F` bit 4 is set and 0
 otherwise, anyone else measures Chebyshev tiles to `DungeonHeartPosition`; not
 `IsFearless` (`def+0x686` bit 18); the turn past `FearlessUntil`; **more than 5
-tiles**; and health under a third of the level-scaled `Hp` (`0x0048F250`). In
+tiles**; and health under a sixth of the level-scaled `Hp` (`0x0048F250`, `max * 100 / 600`). In
 `spFighting` the state must also be a turn old; then the withdraw state (§5)
 takes over and, succeeding, the handler returns 1. **Bit 4 is never set in the shipped
 game** (read 2026-10-04): its one setter `0x0048E060` is called only by trigger action 1

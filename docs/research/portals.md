@@ -67,7 +67,7 @@ Two consequences:
 
 **Four gates.** Three are re-checked at every roll inside `PortalSystem.Pick` —
 the creature's own flags, the pool, attraction — and the fourth, capacity, is read
-once per tick per keeper. **Availability is not one (ADR-0316):** `0x004DBF90` reads
+once per tick per keeper, counting only portal-made creatures (`binary-entrance.md` §3). **Availability is not one (ADR-0316):** `0x004DBF90` reads
 the pool (`0x00506400`, remaining count non-zero), the flag bits, the attraction and the
 capacity, never the creature table at `+0x4E/+0x52`. Level 3's trigger 79 disables the
 Firefly, Goblin and Warlock at the start and its portal still produced them (1002, 1506, 1694, 2398).
@@ -116,7 +116,7 @@ counted list — `byte[def+0x788]` entries of **3 bytes** from `def+0x5DA`,
 `{u8 param, u8 amount, u8 kind}`, fetched by `FUN_00494380` — and returns 0
 on the first entry that fails, 1 only after all of them pass. By the jump table at
 `0x004DC8D4`, kind 0 passes, 1 is the room test, 2 and 3 compare the player's `+0x7E`
-and `+0x82`, and 4 calls `0x004BA7D0` (corrected 2026-10-17; the file's Present is the kind).
+and `+0x82`, and 4 calls `0x004BA7D0` and always passes (corrected 2026-10-17; the file's Present is the kind). Kinds 2 and 3 are built in `PortalRules.IsAttracted` against the keeper's gold and mana; only kind 1 ships.
 
 **One room: REFUTED.** Kind 1 calls `FUN_004C6EB0(player, roomId)`, which
 **sums** `room+0xA7` — the slab count (`room-object.md`) — over every room

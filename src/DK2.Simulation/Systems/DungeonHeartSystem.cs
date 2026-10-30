@@ -9,7 +9,7 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>The dungeon heart's own frame and the verdict it can bring, three of DK2's
 /// routines in the order their turn runs them (docs/research/win-and-defeat.md, ADR-0162):
-/// the heart room's update <c>0x004D9A60</c> regenerates the heart object once a second
+/// the heart room's update <c>0x004D9A60</c> regenerates the heart object every fifth turn
 /// and, finding no object, ruins the room (<c>0x004E9130</c>, <c>+0x9A</c> bit 0); the
 /// player frame's tail <c>0x004BB2A0</c> reads <c>KilledByPlayerId</c> and ends the game
 /// — lost to heroes or neutrals, conquered by a keeper — then awards the win to the one
@@ -28,7 +28,6 @@ public sealed class DungeonHeartSystem : ISimulationSystem
         GameDatabase database = context.Database;
         int max = database[VariableTypeId.DungeonHeartObjectHealth];
         int regen = database[VariableTypeId.DungeonHeartHealthRegenerationPerSecond];
-        bool secondEnds = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0;
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
@@ -39,7 +38,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             // The ordinary frame waits for the opening sequence (0x004D9BA5): no regeneration
             // and no ruin until nine seconds after its start.
             if (HeartIntroRules.SequenceOver(HeartIntroRules.Turn(context.Tick), database))
-                RoomFrame(context, ref player, max, regen, secondEnds);
+                RoomFrame(context, ref player, max, regen);
         }
 
         // The frame's tail is the player update's, which walks the active list (0x004C2310); a
@@ -77,13 +76,14 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             _ => "lost",
         }, id == fallen ? $"player={id} by={killer}" : $"player={id} by alliance");
 
-    /// <summary>Once a second the heart heals by the regeneration rate, never past its
+    /// <summary>Every <c>var19 + 1</c> turns (<see cref="PlayerState.HeartRegenCountdown"/>,
+    /// <c>0x004D9A60</c>) the heart heals by the regeneration rate, never past its
     /// maximum and never from zero — a dead heart does not come back. A full heart is not
     /// touched at all (DK2 skips the call when the capped amount is zero), so its last source
     /// stays whoever struck it. The room whose heart object is gone becomes a ruin on this
     /// frame, one turn after the death.</summary>
     private void RoomFrame(
-        SimulationContext context, ref PlayerState player, int max, int regen, bool secondEnds)
+        SimulationContext context, ref PlayerState player, int max, int regen)
     {
         if (player.HeartHealth <= 0)
         {
@@ -93,7 +93,12 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             return;
         }
 
-        if (!secondEnds) return;
+        if (player.HeartRegenCountdown != 0)
+        {
+            player.HeartRegenCountdown--;
+            return;
+        }
+        player.HeartRegenCountdown = (byte)SimulationTiming.TicksPerSecond;
         int amount = Math.Min(regen, max - player.HeartHealth);
         if (amount <= 0) return;
         context.World.RegenerateHeart(player.PlayerId, amount);

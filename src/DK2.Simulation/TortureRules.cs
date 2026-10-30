@@ -24,6 +24,9 @@ public static class TortureRules
     /// state (<c>+0x19</c>), as the slap's reaction sends a Torture Chamber's place-holder; 130
     /// straps it to the device underfoot and moves to 131, being tortured.</summary>
     public const int StrappingState = 130;
+
+    /// <summary>The creature type id 76's worker switch tests at <c>+0x36F</c>: the Imp.</summary>
+    private const byte ImpTypeId = 1;
     public const int TorturedState = 131;
 
     /// <summary>135 (<c>0x00484CC0</c>): zeroes three animation words and returns 0, idle. The kick a
@@ -136,15 +139,16 @@ public static class TortureRules
 
     /// <summary>A keeper's own creature dropped on a free device of its own chamber: 1, 130 and
     /// 131, the room's drop state (76, <c>0x004E8DA0(0)</c>, ADR-0226), as for a captive, but it
-    /// stays its own and is not a prisoner. A Horned Reaper is not strapped. Returns whether it
-    /// took, as <see cref="TryStrap"/>.</summary>
+    /// stays its own and is not a prisoner. A Horned Reaper is not strapped, and neither is an Imp:
+    /// a keeper's worker takes 76's own room switch, whose Torture Chamber case (<c>0x0046F034</c>)
+    /// sets 130 only for type ids other than 1. Returns whether it took, as <see cref="TryStrap"/>.</summary>
     public static bool TryStrapOwn(
         in StateHookContext hooks, CreatureState creature, int tileIndex)
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
-        if ((definition.Flags & CreatureFlags.IsHorny) != 0) return false;
+        if ((definition.Flags & CreatureFlags.IsHorny) != 0 || creature.CreatureTypeId == ImpTypeId) return false;
         ObjectState? device = FreeDeviceAt(world, database, creature.OwnerPlayerId, tileIndex, creature.Id);
         if (device is null || !Holds(device, definition)) return false;
 

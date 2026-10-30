@@ -83,7 +83,7 @@ public sealed class PortalSystem : ISimulationSystem
 
         // Read once, used for every one of this keeper's portals this tick. See
         // the quirk in the type doc — this is the line that reproduces it.
-        int held = PortalRules.CreatureCount(world, database, playerId);
+        int held = PortalRules.CreatureCount(world, playerId);
         int capacity = PortalRules.CreatureCapacity(database, portalsHeld);
 
         // RoomIndex.Build returns rooms in ascending order of their lowest tile
@@ -178,6 +178,8 @@ public sealed class PortalSystem : ISimulationSystem
 
         var candidates = new List<CreatureDef>();
         var rejected = new List<string>();
+        var money = new GoldAmount(GoldStore.Total(world, playerId));
+        var mana = new ManaAmount(world.Player(playerId).Mana);
         foreach (CreatureDef creature in database.Creatures.Values.OrderBy(c => c.CreatureId))
         {
             // Cheapest gate and the most fundamental: two creature flags, and
@@ -195,7 +197,7 @@ public sealed class PortalSystem : ISimulationSystem
                 continue;
             }
 
-            if (!PortalRules.IsAttracted(creature, ownedRooms))
+            if (!PortalRules.IsAttracted(creature, ownedRooms, money, mana))
             {
                 rejected.Add($"{creature.Name}:room");
                 continue;

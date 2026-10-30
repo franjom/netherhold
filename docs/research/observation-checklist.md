@@ -286,10 +286,8 @@ computes. `mana.md` §*The cap*.
 ### Q9's leftover — what is `PayDayCutOffTimeSeconds` = 120?
 `PayDayFrequencySeconds` is 600 and names itself; so do
 `TimeBeforeFirstPayDaySeconds` (600) and `DelayBeforePayReevaluationSeconds` (4).
-The 120 is unread, and the guess is how long a creature has to reach the treasury
-before it counts as unpaid.
-**Do:** at payday, follow a creature that is slow to arrive.
-**Watch:** whether it gets angry, and roughly how late it was when it did.
+The 120 is read: a creature made within that many turns of payday skips that one
+(`payday.md` §2.1, ADR-0295). Nothing is left to watch.
 
 ### Q63 — what does training cost, and where is the number?
 Measured: **20 gold** an action at a training dummy, **0** at the moving target,

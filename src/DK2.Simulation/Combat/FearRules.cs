@@ -17,7 +17,7 @@ namespace DK2.Simulation.Combat;
 /// state, <c>OverThreatCounter</c> climbs while <c>CurrentFear</c> exceeds the level-scaled
 /// <c>Fear</c> stat and at three the creature backs off for <c>BackOffTimer</c> ticks (state 203),
 /// then runs for a lair, its heart, a room or a nearby tile (the withdraw state,
-/// <c>FightWithDrawState.cpp</c>). A creature below a third of its health and far from its heart
+/// <c>FightWithDrawState.cpp</c>). A creature below a sixth of its health and far from its heart
 /// withdraws at once. The hero gates, per-type player modifiers and the steering impulse of
 /// the step back remain outside this implementation.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/combat-fear.md")]
@@ -116,7 +116,7 @@ public static class FearRules
 
     // ------------------------------------------------------------------ the two checks
 
-    /// <summary><c>0x0045EDA0</c>: hurt below a third of my level-scaled health, more than five tiles
+    /// <summary><c>0x0045EDA0</c>: hurt below a sixth of my level-scaled health (<c>0x0048F250</c>), more than five tiles
     /// from my heart, not fearless (by definition or a Casino win) and not a Combat Pit fighter. A hero
     /// counts as six tiles away only with a creature flag this simulation does not carry, so here a
     /// hero never withdraws (Q372).</summary>
@@ -126,7 +126,7 @@ public static class FearRules
             || CasinoRules.IsFearlessFromGambling(world, me)) return false;
         int d = me.OwnerPlayerId == PlayerIds.Good ? 0 : HeartDistance(world, hearts, me);
         if (d <= WithdrawHeartDistance) return false;
-        return me.Health < CreatureLevelRules.MaxHealth(database, mine, me.Level) / 3;
+        return me.Health < CreatureLevelRules.MaxHealth(database, mine, me.Level) * 100 / 600;
     }
 
     /// <summary><c>0x0045EC80</c>, the counter: clamped, cleared for the fearless and a pit fighter, up by one each

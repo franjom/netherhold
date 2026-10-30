@@ -301,6 +301,18 @@ public class TortureTests
     }
 
     [Fact]
+    public void AnOwnImpDroppedOnTheWheelIsNotStrapped()
+    {
+        // 76's keeper-worker switch, Torture Chamber case 0x0046F034: no 130 for type id 1.
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState imp = world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, Keeper, ChamberFloor);
+
+        Assert.False(TortureRules.TryStrapOwn(new StateHookContext(world, db), imp, Index(world, Wheel)));
+        Assert.False(TortureRules.IsBeingTortured(imp));
+    }
+
+    [Fact]
     public void AWillingTortureeAnswersACallToArmsThroughState135_LeavingTheWheel()
     {
         // 0x004BDDA0: TortureVoluntary (+0x3EA bit 14) lifts the recruit's refusals and kicks it to 135

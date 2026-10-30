@@ -120,8 +120,9 @@ ruin and its starting gold is not paid.
 `0x004D9EFB` walks the room's object list (`word[room+0xE]`, next at
 `+0x12A`) for an object whose type byte `+0x12C` is 13:
 
-- **Found:** the countdown byte at `room+0x56` runs down and is reloaded from
-  variable 19, so the rest happens once a second. If the heart's health is not
+- **Found:** the countdown byte at `room+0x56` (zero at construction) counts
+  down by one a turn; at 0 it is reloaded from variable 19, so the heart heals
+  every variable 19 + 1 = 5 turns, not once a second. If the heart's health is not
   zero, it gains `min(regen, max - health)` — never past the maximum — by
   finding the owner through `0x004E52F0` (called with the room) and calling
   `0x004DA200` with the owner, the amount and the owner's tag. The health is
@@ -356,7 +357,7 @@ condition type 25 counts it out is still UNKNOWN.
 - `HeartHealth`, `HeartLastAttackerPlayerId`, `HeartDiedTick`, `HeartRuined`;
   `WorldState.DamageHeart` is the death handler's stamp, called by the melee blow
   (`FightRules`), a shot's contact (`ShotRules`) and the Boulder (ADR-0164, ADR-0333).
-- `DungeonHeartSystem`, last in the tick: regeneration once a second, ruin one
+- `DungeonHeartSystem`, last in the tick: regeneration every fifth turn (`PlayerState.HeartRegenCountdown`), ruin one
   turn after death, verdict from the killer's side, last keeper standing.
 - A ruined heart has no gold capacity (`GoldStore`) and is claimable
   (`TileWorkRules.Applies(world, …)`).

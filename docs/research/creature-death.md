@@ -293,8 +293,8 @@ paths. Rescue and healing remain the only way out before the countdown expires.
 `CanBeResurrected`, `IsDying`, `IsCorpse`, `IsDown`, `DyingWindowTicks`,
 `BodyWindowTicks`, `DyingWindowElapsed`, `BodyWindowElapsed`, `Collapse`,
 `BecomeCorpse`, `Rescue`), and the collapse/die pair in `CreatureHealthSystem`
-(ADR-0051, then ADR-0063). A collapsed creature keeps its owner, its tile, its
-gold and its bed, and **does nothing at all** — no movement, no work, no sleep,
+(ADR-0051, then ADR-0063). A collapsed creature keeps its owner, its tile and its
+bed, drops the gold it carried (`gold-on-the-floor.md` §6), and **does nothing at all** — no movement, no work, no sleep,
 no hunger, no regeneration.
 
 The bed is held for the whole window on purpose: the rescue carries the creature

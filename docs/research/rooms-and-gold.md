@@ -266,14 +266,11 @@ immediate here. **A room's `ObjectIds` are placed by nothing** — the list is r
 `ObjectCarryRules` using it to decide which room an object belongs in, but no rule
 furnishes a newly built room with the objects the record names.
 
-**Gold a mining imp cannot carry is lost. UNKNOWN (Q138).** In the original the
-imp keeps mining and a lump grows on the floor in front of it. Here the imp keeps
-mining — that half is DK2's — but the surplus is reported as `gold_uncollected`
-and dropped, because whether the original leaves it on the floor has not been
-read. Keeping mining rather than standing still is the important half: a keeper
-with no treasury still gets their seams dug out. **An imp with a full treasury
-keeps its load** and is sent to look for other work still carrying it (Q140,
-UNKNOWN).
+**Gold a mining imp cannot carry goes down at its feet (Q138, Q140, ANSWERED
+and BUILT, ADR-0264).** The imp keeps mining and a floor pile grows in front of
+it, as in the original; `gold-on-the-floor.md` §10. A keeper with no treasury
+still gets their seams dug out. `gold_uncollected` now means only a swing with
+no worker to receive the gold.
 
 ---
 

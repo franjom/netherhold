@@ -213,14 +213,10 @@ Two decisions are ours rather than the game's, and both are stated in the code:
 - **Where it stops mining.** When the hands test `0x00464360(1)` reads full, the
   level's `MaxGoldHeld` less variable 74 — CONFIRMED (Q50, ADR-0296). At level 1:
   four swings, a 1090 load, a seam in three trips of 1090, 1091 and 819.
-- **Nowhere to unload.** It keeps mining, which is DK2's behaviour; the gold it
-  cannot hold is reported as `gold_uncollected` and lost, which is not — the
-  original leaves a lump on the floor. Standing still holding a full load would
-  stop a keeper with no treasury from mining at all. The lump is representable
-  (`FloorGold`) and still not made, because whether the original leaves one
-  from *mined* surplus is not established (Q138; Q140 for an imp that cannot
-  deliver). `MaxGoldPileOutsideTreasury` governs which spot an imp puts a load
-  down in, not how big a lump grows (ADR-0055).
+- **Nowhere to unload.** It keeps mining, as DK2's does, and the gold it cannot
+  hold goes down at its feet as a floor pile (`gold-on-the-floor.md` §10, Q138,
+  Q140, ADR-0264). It gives the seam up once the pile in its cell passes
+  `MaxGoldPileOutsideTreasury`.
 
 **Carrying is not in the priority order.** `CreatureActivity.DeliveringGold` is
 a state and `JobPriority` has no entry for it (ADR-0018).
@@ -283,7 +279,7 @@ STRONGLY INFERRED.
 | ~500 ms linger after claiming | Observed | Goes straight to the next job; cooldown or animation is indistinguishable from outside | Q49 |
 | Fetching a Workshop crate for a placed trap or door (kinds 9/10) | Tier A task | Crate delivery runs when a blueprint exists; placing blueprints in play remains open | `workshop-crates.md` |
 | **Fleeing a fight** | Imps flee | Combat flight runs; see `combat-fear.md` for its limits | `combat-fear.md` |
-| Floor lump from mined surplus with nowhere to unload | Lump grows in front of the imp | `gold_uncollected`, lost | Q138, Q140 |
+| Floor lump from mined surplus with nowhere to unload | Lump grows in front of the imp | The same, through `FloorGold.PutDown` (ADR-0264) | Q138, Q140 |
 | **Building rooms** | An imp walks to a marked room tile and constructs it | `RoomBuildSystem` lays the terrain down instantly; where the job sits in the order is UNKNOWN | — |
 
 The other task kinds **are** built: carrying the unconscious (kind 13, own → Lair,

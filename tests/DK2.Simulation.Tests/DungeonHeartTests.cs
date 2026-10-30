@@ -70,24 +70,30 @@ public class DungeonHeartTests
     }
 
     [Fact]
-    public void TheHeartRegeneratesOncePerSecondAndNeverPastItsMaximum()
+    public void TheHeartRegeneratesEveryFifthTurnAndNeverPastItsMaximum()
     {
+        // 0x004D9A60: counter room+0x56 heals at 0 and is reset to var19 (4), so var19 + 1 turns apart.
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = NewWorld(database);
         GiveHeart(world, database, Keeper, new TilePos(5, 5));
         int max = database[VariableTypeId.DungeonHeartObjectHealth];
         int regen = database[VariableTypeId.DungeonHeartHealthRegenerationPerSecond];
-        world.Player(Keeper).HeartHealth = max - 2 * regen - 1;
+        int start = max - 3 * regen - 1;
+        world.Player(Keeper).HeartHealth = start;
         GameSimulation sim = Simulation(database, world);
 
         // Nothing regenerates during the opening sequence (0x004D9BA5, heart-intro.md).
-        SkipOpening(sim);
-        Assert.Equal(max - 2 * regen - 1, sim.World.Player(Keeper).HeartHealth);
+        while (!HeartIntroRules.SequenceOver(HeartIntroRules.Turn(sim.CurrentTick), database)) sim.Tick();
+        Assert.Equal(start, sim.World.Player(Keeper).HeartHealth);
 
+        sim.Tick(); // the first ordinary frame finds the counter at 0
+        Assert.Equal(start + regen, sim.World.Player(Keeper).HeartHealth);
         sim.Run(SimulationTiming.TicksPerSecond);
-        Assert.Equal(max - regen - 1, sim.World.Player(Keeper).HeartHealth);
+        Assert.Equal(start + regen, sim.World.Player(Keeper).HeartHealth);
+        sim.Tick();
+        Assert.Equal(start + 2 * regen, sim.World.Player(Keeper).HeartHealth);
 
-        sim.Run(SimulationTiming.TicksPerSecond * 3);
+        sim.Run((SimulationTiming.TicksPerSecond + 1) * 3);
         Assert.Equal(max, sim.World.Player(Keeper).HeartHealth);
     }
 

@@ -1317,7 +1317,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - `PaydayRules` (interval, first payday, wage, paying-room test, single-tile withdrawal); `PaydaySystem` (clock and collecting, registered after the needs systems and before `CreatureAngerSystem`); `CreatureState.WageOwed` / `PayAttemptsFailed` / `SkipNextPayment`; `PlayerState.NextPaydayTick`; `CreatureActivity.SeekingWages`.
 - Divergences, each stated: three states folded into one activity (`SeekingWages`), as `SeekingFood` folds the hunger walk. The arrival tile is the room's gold-bearing tile nearest the creature, because the original searches the arrival tile's *object list* for a gold pile and gold here is a field on the tile (ADR-0015) — ours makes the empty-tile case rarer, not impossible, since somebody else can empty the tile during the walk. The Dungeon Heart is admitted unconditionally where the original tests one undecoded flag bit beside the type test; the heart matters because a keeper's first treasury is bought out of it. `NextPaydayTick == 0` means "not scheduled yet" and the system seeds it, where the original seeds it in an initialiser and reads zero as *never* — `WorldState.FromMap` has no `GameDatabase` to seed from, and nothing needs *never*. A prisoner is not on the payroll: the original's loop walks the player's own creature chain and a captive has been moved off it, so our skip is explicit.
 - **Not built here (built in ADR-0079): nothing charged `AngerNoPay`.** Both ends exist — the owner's consequence (Q9: unhappy, then angry, then leaves, or rebels if converted) and the anger ladder (ADR-0053) — and the connecting routine was not found in the payday path, so it was not invented. Wrong *visibly*: `wages_unreachable` fires twice per creature per payday and the scenario header says nobody gets angry about it. Standing hypothesis: the needs routine, in `AngerNoFood`'s shape. **Code now: `AngerNoPay` is charged on the debt alone (see ADR-0079).**
-- `PayDayCutOffTimeSeconds` is unread. Q9 guessed a window for reaching the treasury; it is live (three references) but neither reader is in the payday path, which is evidence against that reading. Left UNKNOWN.
+- `PayDayCutOffTimeSeconds` is not a window for reaching the treasury: it is how close to payday a new creature joins too late to be paid (read and built, ADR-0295).
 - 13 tests in `PaydayTests`, and `scenarios/creatures/a_keeper_meets_its_wage_bill.yaml` — two keepers, one with gold and one without.
 - Two fixture lessons kept in the scenario header: with an imp per keeper, two imps spend twelve thousand ticks re-claiming every tile including each other's treasuries, and since gold belongs to whoever owns the tile the broke keeper ended the run holding the other's money (correct behaviour, useless scenario). And with no lairs every Goblin spent the run in the lair search and was never idle when payday fell — **a creature has to have somewhere to live before it can be paid**, because the collecting decision only fires on an idle creature, here and in the original.
 - `HashVersion` and `FormatVersion` 30 → **31** on the composition (three creature fields, one player field); pin `0xC026542547419606`.
@@ -3719,7 +3719,7 @@ records hang off flag or timer conditions the executor already evaluates.
 performed for the player of the player or creature tree that reached them and
 refused in a world tree, as the dispatchers do. The heart is health on the
 player, from `DungeonHeartObjectHealth`: `DamageHeart` stamps `KilledByPlayerId`
-at zero; `DungeonHeartSystem`, last in the tick, regenerates once a second, ruins
+at zero; `DungeonHeartSystem`, last in the tick, regenerates every fifth turn, ruins
 the room one turn after death (`+0x9A` bit 0, Q263), turns a stamped killer into
 *lost* or *conquered* by side, and awards the win to the last keeper standing.
 A ruined heart stores no gold and can be claimed.
@@ -3821,7 +3821,7 @@ tick's intake scaled by its distance from its heart, nothing beside it; three
 ticks over its level-scaled `Fear`, with an escape tile free, it enters state 203
 for a `BackOffTimer` between the two BackOff variables, shorter the more afraid,
 then runs for its lair, its heart two tiles off, one of three random rooms or a
-neighbouring tile; under a third of its health and over five tiles from its
+neighbouring tile; under a sixth of its health and over five tiles from its
 heart it runs at once, from the fight or from the acquirer. The fight's entry
 sets the run speed, not a cue.
 
@@ -4448,7 +4448,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** Only captives could be strapped on. DK2's drop state 77 (`0x0046F1F0`) sends any creature landing in a Torture Chamber to 130, except a Horned Reaper, which goes to 238. And a victim whose device went away was let go, where DK2's 136 (`0x00484CE0`) first looks for another free device within √1.5 of a tile.
 
 **Decision.**
-1. `TortureRules.TryStrapOwn`: a keeper's own creature dropped on a free device of its own chamber goes through 77, 130 and 131 and stays its own. `HandSystem` tries it after the captive branch. The hook already hurts it and, as the chamber is its own keeper's, applies `TortureMoodChange`.
+1. `TortureRules.TryStrapOwn`: a keeper's own creature dropped on a free device of its own chamber goes through 77, 130 and 131 and stays its own. A Horned Reaper is refused, and so is an Imp: a keeper's worker takes state 76's own room switch, whose Torture Chamber case sets 130 for any type id but 1 (`docs/research/hand-drop-landing.md` §2). `HandSystem` tries it after the captive branch. The hook already hurts it and, as the chamber is its own keeper's, applies `TortureMoodChange`.
 2. `TortureRules.DeviceWithinReach` and `Restrap`: 131 with its device gone moves through 136 onto a free device on its own tile or a side neighbour (squared distance under `0x1800`), then 130 and 131. A captive stays a captive. With none in reach, the old release.
 
 **Consequences.**
@@ -11631,7 +11631,7 @@ the room test.
 - portals.md's "Level 1 produces nothing until its keeper builds a lair" is withdrawn; no
   capture had tested it, since every other recording built the Lair first.
 - Every shipped attraction entry is kind 0 or 1, so `IsAttracted` treating each enabled entry
-  as a room test is exact for the shipped data; kinds 2-4 remain unbuilt.
+  as a room test is exact for the shipped data; kinds 2 and 3 (gold, mana) are built later, kind 4 always passes (`portals.md` §3).
 - Open: our portal claim comes at 663–1437 against DK2's 787, and the late seeds lose the
   most Imps. Digging matches DK2; our Imps claim the tile in front of the portal late.
 

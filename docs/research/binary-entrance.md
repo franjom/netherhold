@@ -108,18 +108,17 @@ unambiguous.
 
 ---
 
-## 3. The creature count behind the cap is flag-filtered, not imp-compared — STRONGLY INFERRED
+## 3. The creature count behind the cap is the portal-made bit — CONFIRMED (KB `0x004DBF90`)
 
 The count the cap is compared against walks the player's creature list and
-includes an entry only if a **bit in the creature instance is set**. It does not
-compare against the imp's type id.
+counts an entry only if instance bit `+0x3E6` bit 1 is set. The portal creator
+`0x004DC9A0` is the only writer of that bit, so the count is the creatures that
+came through a portal: placed, converted, captured and created creatures, and any
+Imp, are not in it. The builder tests the bit inline; `0x004DCCE0` is the same
+count for the computer keeper's eviction helper, not the cap's.
 
-That supports the choice `PortalRules.CreatureCount` already made — filter on
-`CreatureFlags.IsWorker` rather than on "is it the imp" — over OpenKeeper's,
-which removes the imp *type* by identity. The two differ only for a keeper
-holding a Dwarf. **Which bit it is remains UNKNOWN:** the offset is in the
-creature *instance*, not the definition, so it is not one of the flags this
-project parses.
+`PortalRules.CreatureCount` counts `CreatureState.CameThroughPortal`, set by
+`PortalRules.CreateArrival`. A creature added by a capture resync lacks the flag.
 
 ---
 

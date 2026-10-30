@@ -230,7 +230,7 @@ Category 14 holds 114–121 and 123–125; 122 and 126 are in Refused.
 - **Read 2026-09-24: 77, 136 and the others' way in.** 77 (`0x0046F1F0`), once the landing
   action ends, sends a Horned Reaper (`IsHorny`, definition flag bit 14) to **238** in any
   room; otherwise by the room at `+0x3B9`: Workshop 63, Prison 115, Torture Chamber 130. So
-  any creature, a keeper's own included, is strapped on by a drop. **136** (`0x00484CE0`),
+  any creature, a keeper's own included, is strapped on by 77, but a keeper's own Imp dropped from the Hand is not (`hand-drop-landing.md` §2). **136** (`0x00484CE0`),
   in a Torture Chamber, takes `0x004F2180`'s nearest free device and needs its squared
   distance under `0x1800` (1.5 tiles²): from a tile's centre, that tile or a side
   neighbour. It moves onto it (sound `0x24` wheel, `0x25` chair; a chair turns away a

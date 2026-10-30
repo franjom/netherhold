@@ -130,7 +130,7 @@ share from each gold room, then another round for whatever is left.
 
 ## 6. A creature drops its gold in one, two or three piles
 
-The cleanest rule of the lot. On creature teardown, if it is carrying anything:
+The cleanest rule of the lot. On entering the dying state, if it is carrying anything:
 
     piles = 1 if gold < 1000, 2 if gold < 3000, else 3
     each pile gets gold / piles     <- integer division
@@ -142,15 +142,16 @@ The cleanest rule of the lot. On creature teardown, if it is carrying anything:
   **three tiles up** so that it falls;
 - the creature's hands are then zeroed.
 
-The routine is called from creature destruction, so it covers **every** way of
-leaving the world rather than dying specifically. Two of its three callers are
-in the casino's state code, which is presumably how a creature loses its money
-gambling.
+The routine is `0x0048F930` (KB record), called by the dying-state entries
+`0x00459560` and `0x004596D0`, each only after `SetState(216)` took, and by the
+death bookkeeping `0x0048814B`. A collapsing creature (`0x0048B770` enters 216
+through `0x004596D0`) drops its gold at the collapse; a rescued one has empty
+hands, and by death the purse is empty unless it skipped the dying window.
 
-**Implemented:** `FloorGold.DropFrom`, called from `CreatureHealthSystem` on
-death, which is the only teardown this project has. Leaving through a portal is
-**not** one: a creature keeps its gold when it is thrown through (Q137,
-ANSWERED — owner, 2026-09-07), so nothing in `PortalSystem` drops.
+**Implemented:** `FloorGold.DropFrom`, called from `CreatureHealthSystem.Collapse`
+when 216 took, and from the death path, with DK2's two draws per pile (`0x1000`,
+x then y, simulation stream); the pile lands on the tile, not the drawn point. A
+creature thrown through a portal keeps its gold (Q137, ANSWERED — owner, 2026-09-07).
 
 ## 7. Sub-tile positions and Hand landing
 
@@ -201,7 +202,7 @@ question was really about.
 - the pile as object 1 carrying `ObjectState.GoldHeld`;
 - the one/two/three split and its destroyed remainder;
 - `MaxPile` and `AcceptsMore` **exposed and never applied as a clamp**;
-- drops wired into selling a store, destroying a store, and a creature dying.
+- drops wired into selling a store, destroying a store, and a creature collapsing or dying.
 
 **An imp fetches a pile and carries it to a treasury once its hands are full**
 (ADR-0056, ADR-0288), so the drops above are a delay rather than a loss. State 27

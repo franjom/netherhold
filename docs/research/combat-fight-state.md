@@ -59,7 +59,7 @@ current state id, `+0x18` the turn entered. `EDI` is the engagement record
 6. **The fear checks**, run only when `0x00460C50` finds an **escape**: a
    neighbouring tile I can route to that holds no hostile creature attacking me
    (combat-fear.md §3.1; an earlier reading had this inverted). Then the withdraw
-   check `0x0045EDA0` — under a third of health, more than five tiles from my
+   check `0x0045EDA0` — under a sixth of health, more than five tiles from my
    heart, the state a turn old — hands to the withdraw state `0x004611D0`; else
    the counter `0x0045EC80` over `CurrentFear` (`+0x526`, filled by `0x0045E4F0`)
    against the level-scaled `Fear` sends the creature into state **203** with its

@@ -324,8 +324,10 @@ public class Level18AttackKeeperScenarioTests(ITestOutputHelper output)
         Assert.Empty(run.ExpectationFailures);
         Assert.All(scenario.Setup.Players, p => Assert.Empty(p.Spells));
         List<GrantCreatureLevelCommand> grants = run.KeeperCommandLog.Select(e => e.Command).OfType<GrantCreatureLevelCommand>().ToList();
-        Assert.Equal((12, 4), (grants.Count, grants.Select(g => g.CreatureId).Distinct().Count()));
-        Assert.Equal(12, run.Events.Count(e => e.Kind == "level_granted"));
+        // The 27 placed knights do not count against the portal cap (0x004DBF90 counts portal-made
+        // creatures only), so the portal adds level-1 arrivals the test grants to as well.
+        Assert.Equal((39, 13), (grants.Count, grants.Select(g => g.CreatureId).Distinct().Count()));
+        Assert.Equal(39, run.Events.Count(e => e.Kind == "level_granted"));
         KeeperAIState state = run.KeeperStates[4];
         Assert.Equal(0, state.PlayersAttackedFlags & ((1 << 5) | (1 << 6)));
         Assert.Equal(0, state.FirstAttackFlag & ((1 << 5) | (1 << 6)));

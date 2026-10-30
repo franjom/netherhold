@@ -791,6 +791,11 @@ public sealed class CreatureState
     /// keeper's shut door (<c>0x0048A36C</c>, rebellion.md §4, door-blocking.md).</summary>
     public bool RebelActive;
 
+    /// <summary><c>+0x3E6</c> bit 1: set by the portal creator <c>0x004DC9A0</c>, its only writer,
+    /// and counted against the portal cap by <c>0x004DBF90</c> (<see cref="PortalRules.CreatureCount"/>).
+    /// Kept through a change of owner.</summary>
+    public bool CameThroughPortal;
+
     /// <summary>Where DK2's tile thing chain holds this creature: the tile it was last linked on
     /// (<c>-1</c> off the map) and the order of that link. The position setter <c>0x004B5020</c>
     /// relinks a thing only when it changes tile, at the head of the chain (<c>0x004B4E70</c>), so the
@@ -1495,6 +1500,7 @@ public sealed class CreatureState
         hash.Add(AttackingId);
         hash.Add((byte)AttackingKind);
         hash.Add(RebelActive);
+        hash.Add(CameThroughPortal);
         hash.Add(ChainTileIndex);
         hash.Add(ChainOrder);
         TileLink.HashInto(ref hash);

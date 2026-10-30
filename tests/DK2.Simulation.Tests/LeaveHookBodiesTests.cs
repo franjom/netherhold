@@ -140,6 +140,23 @@ public class LeaveHookBodiesTests
         Assert.True(Combat.FearRules.ShouldWithdraw(world, db, noHeart, me, mine));
     }
 
+    [Fact]
+    public void Withdraw_NeedsHealthBelowASixth_NotAThird()
+    {
+        // 0x0045EDA0 asks 0x0048F250: health < max * 100 / 600.
+        GameDatabase db = Database();
+        WorldState world = TestWorld.World(db);
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 2, new TilePos(12, 12));
+        CreatureDef mine = db.CreatureById(me.CreatureTypeId);
+        int sixth = CreatureLevelRules.MaxHealth(db, mine, me.Level) * 100 / 600;
+        var noHeart = new Combat.HeartSites();
+
+        me.Health = sixth;
+        Assert.False(Combat.FearRules.ShouldWithdraw(world, db, noHeart, me, mine));
+        me.Health = sixth - 1;
+        Assert.True(Combat.FearRules.ShouldWithdraw(world, db, noHeart, me, mine));
+    }
+
     // --- Torture leave (0x0047B4A0) -------------------------------------------------------
 
     [Fact]

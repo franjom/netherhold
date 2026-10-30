@@ -55,7 +55,7 @@ After its landing work (the pit scatter, the fall, and the sound gate above), it
 4. **A non-worker, or a creature of player 1 or 2.**
    - **Taken over:** on a room that takes it over, `0x004E8DA0(0)`.
    - **Otherwise:** `0x00491830(255)` — `SetState(255)`, action 52, creature event 15. **This is the drop's stun.**
-5. **A keeper's worker** has its own arms (`0x00481400`, the Treasury, Portal, Heart, Workshop and Temple cases), and falls back to 11.
+5. **A keeper's worker** has its own arms (`0x00481400`, the Treasury, Portal, Heart, Workshop and Temple cases), and falls back to 11. Its Torture Chamber case (`0x0046F034`) sets 130 for any type id but 1, so a keeper's own Imp dropped on a wheel is not strapped (`TortureRules.TryStrapOwn`).
 
 **`0x004E8DA0(1)`, "does this tile take the creature over".** It returns 0 (yes) for:
 - a Portal or Hero Portal tile whose cell byte `+0xC` is 4,

@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**345** - `0xB53ADB3B057AE7AD`. FormatVersion also 345. Fields added: `CreatureState.CameThroughPortal` (`+0x3E6` bit 1, counted against the portal cap) and `PlayerState.HeartRegenCountdown` (`room+0x56`); both hashed and snapshotted. Behaviour: fear withdraw below a sixth of health, a collapse drops carried gold with DK2's two draws per pile, the heart heals every fifth turn, attraction kinds 2 to 4, an own Imp is not strapped on a Torture Chamber. Saves and journals from 344 are refused.
+
 **344** - `0x6F13BA502A25806F`. FormatVersion also 344. Behaviour only: every creature turn steps its heading by the file `TurnRate` over variable 19 (`def+0x6A0`, `0x00492320`), as movement already did; eight turn sites had used the file value, four times DK2's rate (ADR-0602). No fields added; saves and journals from 343 are refused.
 
 **343** - `0xC9236A4CFBFEC07D`. FormatVersion also343. Burning words, ignition and nine simulation draws per active creature per turn; status moves into each creature update before action/fight on master342's melee hold, and every status countdown now skips corpses (ADR-0595).

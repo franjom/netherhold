@@ -202,7 +202,7 @@ public sealed class FloorGoldTests
         CreatureState imp = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 2));
         imp.GoldHeld = 2999;
 
-        int dropped = FloorGold.DropFrom(world, db, imp);
+        int dropped = FloorGold.DropFrom(world, db, imp, new SimRandom(1));
 
         Assert.Equal(2998, dropped);
         Assert.Equal(0, imp.GoldHeld);
@@ -223,7 +223,7 @@ public sealed class FloorGoldTests
         CreatureState imp = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
         imp.GoldHeld = 3000;
 
-        Assert.Equal(3000, FloorGold.DropFrom(world, db, imp));
+        Assert.Equal(3000, FloorGold.DropFrom(world, db, imp, new SimRandom(1)));
 
         var piles = new List<ObjectState>();
         FloorGold.PilesOn(world, db, (1 * world.Width) + 1, piles);
@@ -237,7 +237,7 @@ public sealed class FloorGoldTests
         (WorldState world, GameDatabase db) = Empty();
         CreatureState imp = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
 
-        Assert.Equal(0, FloorGold.DropFrom(world, db, imp));
+        Assert.Equal(0, FloorGold.DropFrom(world, db, imp, new SimRandom(1)));
         Assert.Empty(world.Objects);
     }
 

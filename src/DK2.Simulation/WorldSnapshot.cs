@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 344;
+    private const int FormatVersion = 345;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -241,6 +241,7 @@ public static class WorldSnapshot
             w.Write(p.HeartLastAttackerPlayerId);
             w.Write(p.HeartDiedTick.Value);
             w.Write(p.HeartRuined);
+            w.Write(p.HeartRegenCountdown);
             w.Write(p.ManaPressure.WarningDeadline);
             w.Write(p.ManaPressure.WarningStage);
             w.Write(p.ManaPressure.WarningsSuppressed);
@@ -502,6 +503,7 @@ public static class WorldSnapshot
             w.Write(c.AttackingId);
             w.Write((byte)c.AttackingKind);
             w.Write(c.RebelActive);
+            w.Write(c.CameThroughPortal);
             w.Write(c.ChainTileIndex);
             w.Write(c.ChainOrder);
             WriteLink(w, c.TileLink);
@@ -1007,6 +1009,7 @@ public static class WorldSnapshot
                 HeartLastAttackerPlayerId = r.ReadByte(),
                 HeartDiedTick = new GameTick(r.ReadInt64()),
                 HeartRuined = r.ReadBoolean(),
+                HeartRegenCountdown = r.ReadByte(),
                 ManaPressure = new ManaPressureState(
                     r.ReadUInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadBoolean(), r.ReadUInt32()),
                 CallToArms = new CallToArmsState(
@@ -1261,6 +1264,7 @@ public static class WorldSnapshot
                 AttackingId = r.ReadInt32(),
                 AttackingKind = (Combat.FightTargetKind)r.ReadByte(),
                 RebelActive = r.ReadBoolean(),
+                CameThroughPortal = r.ReadBoolean(),
                 ChainTileIndex = r.ReadInt32(),
                 ChainOrder = r.ReadInt32(),
                 TileLink = ReadLink(r),
