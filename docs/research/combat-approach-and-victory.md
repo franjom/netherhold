@@ -250,7 +250,7 @@ dead-body list — state 259 requires kind 6 before using the selected entry; th
 per-creature turn counts in §7 (Tremor's clock, validated by six get-up captures; no
 capture of action 55); state 259 being reached on route arrival or state 6's other exits.
 
-## The chase boundary (ADR-0587)
+## The chase boundary (ADR-0588)
 
 STRONGLY INFERRED from whole-body decompilation and instruction reads (2026-10-30):
 `0x00471D10` writes the approach fields at `0x00471E11`-`0x00471E6B`, not the creature's
@@ -261,7 +261,7 @@ stops moving and resumes 199. It stays in Combat, retaining its incoming attacke
 
 Through hash 335 ours reset the count on every approach entry and on every fight tick
 against a non-retreating creature; giving up entered idle and released incoming attackers.
-ADR-0587 corrects these three boundaries and keeps the byte-wide increment
+ADR-0588 corrects these three boundaries and keeps the byte-wide increment
 (`0x004710F3`-`0x004710F8`, zero-extended at `0x00471126`): 255 wraps to 0. Regressions start at the chase limit, re-enter
 8 and give up on its next call for both 202 and 251 walks, preserving an incoming attacker;
 the in-range/out-of-range pair pins the reset branch. Level 4 measurements are in

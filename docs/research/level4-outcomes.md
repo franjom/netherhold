@@ -130,10 +130,40 @@ for 1,443 / 677 (4.6 / 1 entrants), party 5's 3830 Thieves 3,944 / 2,350 (15.4 /
 and its 3830 Guards 3,195 / 2,346 (8 / 7). Counts include repeat zone visits.
 Party ids are checked in `party-map.out`. Modern births are one turn earlier at the same gates;
 entry ages from birth, ours / DK2: Dwarf3470 mean 122 / 185 turns, Thief3830
-65 / 81, Guard3830 64 / 68. Party 3's Dwarf2990 age at death averages 240 / 198 turns;
-all entrants die by 4400. The gap includes survival into the zone, not only
+65 / 81, Guard3830 64 / 68. Party 3's Dwarf2990 age at first excluded state averages 240 / 198 turns;
+all entrants reach that endpoint by 4400. This is not permanent mortality: native
+217 -> 75/78 transitions occur in these logs. The gap includes survival into the zone, not only
 longer individual visits. These are distributions over distinct RNG streams.
 
-The binary comparison found the chase-boundary differences in ADR-0587; see
-[combat-approach-and-victory.md](combat-approach-and-victory.md#the-chase-boundary-adr-0587).
-The Level 4 causal effect awaits the matched-master resync comparison.
+The binary comparison found the chase-boundary differences in ADR-0588; see
+[combat-approach-and-victory.md](combat-approach-and-victory.md#the-chase-boundary-adr-0588).
+The matched-master comparison uses clean detached tools at `31a05119` (hash 335)
+and `33fcd18f` (336), the same eight native states and five generators to 6804,
+two workers, all 80 exits zero. All 80 paired creature/event prefixes through
+2400 match byte for byte. `final-comparison.out` reports exact windows below;
+modern occupancy totals are normalized to eight runs.
+
+| Metric | DK2 | h333 | h335 baseline | h336 correction |
+|---|---:|---:|---:|---:|
+| Imp deaths/run, 2401-6804 | 21.75 | 28.30 | 29.63 | 26.60 |
+| Runs without an Imp death | 3/8 | 0/40 | 1/40 | 1/40 |
+| Zone hero-ticks, 2401-4400 | 8,405 | 14,077 | 14,146 | 13,746 |
+| Zone Imp-ticks, 2401-4400 | 58,314 | 74,617 | 74,312 | 72,341 |
+| Global four-tile hero-Imp pair-ticks | 34,288 | 78,984 | 79,073 | 73,698 |
+
+The correction leaves 6,180 fight-199 and 3,812 approach-8 zone-ticks (DK2
+4,072 and 2,792). Relative to h335, deaths fall 3.025/run, zone hero-time
+400.6/eight runs and global proximity 5,374.2/eight runs. Exact two-sided
+sign-flips of eight state means (five generators each, 256 signs) give
+p = 0.172, 0.664 and 0.305; against h333, deaths fall 1.7 (p = 0.422),
+zone hero-time 331.2 (p = 0.648). These shifts are unresolved over seeds.
+The rule difference is established; it does not explain the residual 1.64x
+zone time. Pair-ticks count every nearby Imp using integer tile coordinates,
+not unique hero time or zone-local exposure. Native death counts are Imp-slot
+departures, ours events; they are not matched individual deaths.
+
+UNKNOWN: why party 4 reaches the zone eligible more often and why the remaining
+fight/approach time is high. No matched native RNG continuation or controlled
+defender-combat comparison has isolated that residual. No win-rate inference
+or tuning follows. Archived tool manifests and verification are in the evidence
+folder's `README-final.md`.

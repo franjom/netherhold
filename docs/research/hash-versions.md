@@ -14,7 +14,7 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
-**336** - `0x34C0EB3B02D6D0C0`. FormatVersion also 336. Behavior only: approach entry retains the byte-wrapping chase count; the fight resets it only out of reach after selection of a non-retreating creature; giving up resumes 199 and retains incoming attackers (ADR-0587). No fields added; saves and journals from 335 are refused. `RetreatTrackingTests` pins re-entry, the reset boundary and give-up.
+**336** - `0x34C0EB3B02D6D0C0`. FormatVersion also 336. Behavior only: approach entry retains the byte-wrapping chase count; the fight resets it only out of reach after selection of a non-retreating creature; giving up resumes 199 and retains incoming attackers (ADR-0588). No fields added; saves and journals from 335 are refused. `RetreatTrackingTests` pins re-entry, the reset boundary and give-up.
 
 **335** - `0x03BE5BF8D88D4C94`. FormatVersion also 335. State 84 completes the Mistress bed exit (ADR-0586). New saved/hashed `LastBedExitTick` is modern completion-pose provenance, default -1; read, write and hash coverage are tested. See [adapter contract](object-drawing.md#81-state-84-adapter-adr-0586) and Q685 for inferred timing limits. Version 334 saves and journals are refused.
 
