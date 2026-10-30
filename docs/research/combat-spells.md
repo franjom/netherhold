@@ -200,7 +200,7 @@ inline) and clear `Attacking`; `SelectAVictim`. A **different** target → retur
 a creature target with a nibble other than 3 is re-entered through the
 fight-starter `0x0045A550` (§8 of the acquisition doc); then §10.
 
-**With it**: a `Support` (`FightStyle` 4) goes to §10 at once; anyone else leaves
+**With it** (`0x0045FC2F` to `0x0045FDB7`): a `Support` (`FightStyle` 4) goes to §10 at once; anyone else leaves
 the slots, clears `Attacking`, re-arms `AttackingId` to the old target
 (`0x0048F390`), runs `SelectAVictim` and returns its result.
 
@@ -222,7 +222,10 @@ the work-rate divisor, a never-cast slot being `CreatureState.NeverUsed` (−1);
 past start + delay, with the lead on the target's last move, from the slot's origin
 turned by the caster's heading (ADR-0489; the height is dropped with the flight's, Q398); the cannot-cast
 fallback §9 and the step-back §10 in `CombatSystem.CannotCast`, except that
-nothing found leaves the creature idle where DK2 restores the old target. The shot
+nothing found leaves the creature idle where DK2 restores the old target. The
+`AttackAbnormalTargets` arm of §9 is built too (ADR-0591): a Support goes to §10,
+anyone else unlinks, is forced again on the old id and kind, and returns
+`SelectAVictim`'s result. The shot
 itself is `shots.md` §10.
 
 **Built since (ADR-0170):** the ally arm §8 and the friendly survey

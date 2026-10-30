@@ -165,6 +165,54 @@ public class CombatCategoryHooksTests
         Assert.False(winner.AttackAbnormalTargets);
     }
 
+    /// <summary><c>0x0045EF50</c>: with an engagement to drop, a held forced target goes with it
+    /// through <c>0x0048F3F0</c> (<c>0x0045EFD8</c>-<c>0x0045EFF5</c>); without one, or with the
+    /// abnormal-target bit but no forced target, the forced fields stay.</summary>
+    [Theory]
+    [InlineData(true, true, true, true)]
+    [InlineData(false, true, true, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(true, true, false, false)]
+    public void UnlinkingAnEngagement_DropsAHeldForcedTarget(bool engaged, bool forced, bool bit, bool cleared)
+    {
+        (WorldState world, StateHookContext hooks) = OpenWorld(out GameDatabase db);
+        CreatureState target = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
+        CreatureState me = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
+        if (engaged) Engage(hooks, me, target);
+        me.AttackAbnormalTargets = bit;
+        me.AttackingId = forced ? target.Id : CombatRules.NoTarget;
+
+        CombatRules.Unlink(world, me);
+
+        Assert.Equal(FightTargetKind.None, me.FightTargetKind);
+        Assert.DoesNotContain(me.Id, target.EngagedMelee);
+        Assert.Equal(bit && !cleared, me.AttackAbnormalTargets);
+        Assert.Equal(forced && !cleared ? target.Id : CombatRules.NoTarget, me.AttackingId);
+    }
+
+    /// <summary>Out of reach, a creature holding a forced target keeps it and walks to it: DK2 skips
+    /// the unlink and re-selection when <c>+0x3E6</c> bit 2 is set (<c>0x0045F885</c>).</summary>
+    [Fact]
+    public void AForcedFighterOutOfReach_KeepsItsForcedTarget_AndApproachesIt()
+    {
+        (WorldState world, StateHookContext hooks) = OpenWorld(out GameDatabase db);
+        CreatureState target = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 9, 5);
+        CreatureState me = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
+        Engage(hooks, me, target);
+        me.AttackRangeSquared = CombatRules.MeleeReachSquared(
+            db.CreatureById(me.CreatureTypeId), db.CreatureById(target.CreatureTypeId));
+        me.AttackAbnormalTargets = true;
+        me.AttackingId = target.Id;
+        var sim = new GameSimulation(db, world, 1, [new Systems.CombatSystem().States]);
+
+        sim.Tick();
+
+        Assert.True(me.AttackAbnormalTargets);
+        Assert.Equal(target.Id, me.AttackingId);
+        Assert.Equal(target.Id, me.FightTargetId);
+        Assert.Equal(8, me.Dk2StateId);
+    }
+
     [Fact]
     public void AWalkFromCombatToAnErrandOutsideIt_ReleasesTheFight_AsTheRouteHelpersDo()
     {

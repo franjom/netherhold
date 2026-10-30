@@ -13784,3 +13784,31 @@ Increment the native byte with wraparound, including 255 -> 0.
 **Consequences.** Repeated approaches share the existing allowance. No chase duration or
 selector score changes. Hash/save 336 refuses version 335. The eight-state, five-seed
 resync leaves the exposure gap unresolved; see [Level 4 outcomes](research/level4-outcomes.md).
+
+## ADR-0591 - Unlinking an engagement drops a held forced target; a forced fighter keeps its target
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 337 · amends ADR-0590 · Research: [combat-category-hooks.md](research/combat-category-hooks.md#2-leave-0x0047a980-and-the-fight-leave-routine-0x0045adc0), [combat-spells.md](research/combat-spells.md#9-when-the-spell-cannot-be-cast-0x0045fc29); KB `0045EF50`, `0048F3F0`, `0045F030`, `0048F390`.
+
+**Context.** ADR-0590 switched the chase give-up (`0x0047114A`) from `Disengage` to `Unlink`, which
+lost the forced-target clear that DK2's unlink `0x0045EF50` makes. The hypnosis release
+(`0x005145F3`, `0x00516624`) also left the held creature's forced target. The out-of-reach path
+and the forced cannot-cast arm of the fight were not built for a forced fighter.
+
+**Decision.**
+- `CombatRules.Unlink` drops a held forced target when the creature had an engagement
+  (`+0x502` set), `AttackAbnormalTargets` and `AttackingId` are set (`0x0045EFD8`-`0x0045EFF5`,
+  `0x0048F3F0`). `Disengage`'s two arms that run no Combat hook keep the forced target through a
+  private `dropForced: false` overload; no DK2 site was read for them (ours only).
+- `CombatSystem` out of reach skips the unlink and re-selection while `AttackAbnormalTargets` is
+  set, and walks to the forced target (`0x0045F885`).
+- `CombatSystem.CannotCast` builds the forced arm (`0x0045FC2F` to `0x0045FDB7`): a Support goes
+  straight to the step-back-or-run (`StepBackOrRun`, `0x0045FEA0`); anyone else unlinks, is forced
+  again on the old engaged id and kind (`0x0045FE7B`-`0x0045FE82`, `0x0048F390`), runs
+  `SelectAVictim` and returns its result; none found lets the fight go.
+
+**Consequences.** A creature that gives up a chase or is released from hypnosis no longer keeps
+its forced target. Hash/save 337 refuses version 336. Not modelled: DK2 also skips the
+out-of-reach re-selection when the target thing's `+0x12` is nonzero (`0x0045F8A1`).
+`CombatCategoryHooksTests.UnlinkingAnEngagement_DropsAHeldForcedTarget` and
+`AForcedFighterOutOfReach_KeepsItsForcedTarget_AndApproachesIt` cover the first two rules;
+`CombatPitTests` and `DoorCombatTests.AWarlockMeetingARivalDoorCastsAtIt_AndItsShotsBreakTheDoor`
+cover the cannot-cast arm.

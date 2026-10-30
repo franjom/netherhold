@@ -331,7 +331,7 @@ public static class CombatRules
     {
         if (!InCombat(creature))
         {
-            Unlink(hooks.World, creature);
+            Unlink(hooks.World, creature, dropForced: false);
             return;
         }
 
@@ -346,7 +346,7 @@ public static class CombatRules
         }
 
         // Reporting danger (category 26), or a walk saved from outside Combat: no Combat hook runs.
-        Unlink(hooks.World, creature);
+        Unlink(hooks.World, creature, dropForced: false);
         creature.Running = false;
         CombatStates.Idle(hooks, creature);
     }
@@ -410,9 +410,15 @@ public static class CombatRules
     }
 
     /// <summary><c>0x0045EF50</c>: the engagement is let go and the attacker slot on its target
-    /// freed, and the state is left as it is.</summary>
-    public static void Unlink(WorldState world, CreatureState creature)
+    /// freed, and the state is left as it is. A held forced target goes with an engagement
+    /// (<c>0x0045EFD8</c>-<c>0x0045EFF5</c>, <c>0x0048F3F0</c>), whose own unlink then finds none.</summary>
+    public static void Unlink(WorldState world, CreatureState creature) => Unlink(world, creature, dropForced: true);
+
+    /// <summary>Ours: <see cref="Disengage"/>'s two arms that run no Combat hook have no DK2 site
+    /// read, and keep a forced target as they did before ADR-0591.</summary>
+    private static void Unlink(WorldState world, CreatureState creature, bool dropForced)
     {
+        bool engaged = creature.FightTargetId != NoTarget;
         if (creature.FightTargetKind == FightTargetKind.Creature && creature.FightTargetId != NoTarget)
         {
             CreatureState? target = world.CreatureById(creature.FightTargetId);
@@ -424,5 +430,7 @@ public static class CombatRules
         creature.FightTargetTileIndex = -1;
         creature.AttackType = 0;
         creature.AttackRangeSquared = 0;
+        if (dropForced && engaged && creature.AttackAbnormalTargets && creature.AttackingId != NoTarget)
+            CombatPitRules.ClearForcedTarget(world, creature);
     }
 }

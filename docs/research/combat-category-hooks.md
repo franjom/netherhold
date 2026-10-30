@@ -41,7 +41,7 @@ word `+0x3D5` = 0.
 1. `0x0048F3F0`: `AttackingId` `+0x3F9` = 0 and `AttackAbnormalTargets` cleared, then the
    unlink `0x0045EF50`: `+0x502` = 0, and my slot on the target freed only when my attack
    nibble is 0, 1 or 3 and the target is a live creature (class table `0x006ED540`, thing
-   `+0x12` = 0). **Every exit from Combat drops the creature's own forced target.**
+   `+0x12` = 0). **Every exit from Combat drops the creature's own forced target.** The unlink itself makes that call too (`0x0045EFD8`-`0x0045EFF5`) when the creature had an engagement and the flag and `+0x3F9` are set; `CombatRules.Unlink` mirrors it (ADR-0591), so the chase give-up (`0x0047114A`) and the hypnosis release (`0x005145F3`, `0x00516624`) drop a held forced target.
 2. An inline copy of that unlink, dead because `+0x502` is already 0.
 3. Each of my sixteen attacker slots (ranged `+0x514`, then melee `+0x504`, per index): an
    attacker whose `+0x502` is me gets the victory nibble (`+0x529 |= 0xF`) **only if my health

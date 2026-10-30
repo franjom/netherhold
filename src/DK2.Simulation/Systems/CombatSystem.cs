@@ -293,8 +293,9 @@ public sealed class CombatSystem : ICreatureUpdateStep
             return;
         }
 
-        // Out of reach: a creature target is chosen afresh, and no choice ends the fight.
-        if (creature.FightTargetKind == FightTargetKind.Creature)
+        // Out of reach: a creature target is chosen afresh, and no choice ends the fight. A forced
+        // target is kept and walked to (0x0045F885).
+        if (creature.FightTargetKind == FightTargetKind.Creature && !creature.AttackAbnormalTargets)
         {
             int previous = creature.FightTargetId;
             CombatRules.Unlink(world, creature);
@@ -326,6 +327,24 @@ public sealed class CombatSystem : ICreatureUpdateStep
         WorldState world = context.World;
         FightTargetKind kind = creature.FightTargetKind;
         int previous = creature.FightTargetId;
+        if (creature.AttackAbnormalTargets)
+        {
+            // 0x0045FDB7: a Support steps back or runs at once; anyone else drops the engagement and
+            // its forced target, is forced again on the old target (0x0048F390) and re-selects.
+            if (definition.FightStyle == FightStyle.Support)
+            {
+                StepBackOrRun(context, creature, definition, targetX, targetY, previous);
+                return;
+            }
+            // 0x0045FE7B pushes the engaged id, so the forced target is the engaged one, of its kind.
+            CombatRules.Unlink(world, creature);
+            creature.AttackAbnormalTargets = true;
+            creature.AttackingId = previous;
+            creature.AttackingKind = kind;
+            if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
+                LetGo(context, creature, "cannot_cast");
+            return;
+        }
         CombatRules.Unlink(world, creature);
         if (!CombatTargetRules.SelectAVictim(context, _sight!, _hearts, _rooms, creature, definition, _scratch))
         {
@@ -335,7 +354,13 @@ public sealed class CombatSystem : ICreatureUpdateStep
         if (!CombatRules.IsFighting(creature)) return;
         if (creature.FightTargetKind != kind || creature.FightTargetId != previous) return;
         if (creature.AttackType is not (CombatRules.AttackMode.SpellAtCreature or CombatRules.AttackMode.SpellAtThing)) return;
+        StepBackOrRun(context, creature, definition, targetX, targetY, previous);
+    }
 
+    /// <summary>combat-spells.md §10 (<c>0x0045FEA0</c>): within a quarter of both range and sight the
+    /// caster steps back, else it runs.</summary>
+    private void StepBackOrRun(SimulationContext context, CreatureState creature, CreatureDef definition, int targetX, int targetY, int previous)
+    {
         int distance = CombatRules.DistanceSquared(creature.PosX, creature.PosY, targetX, targetY);
         int sightSq = CombatRules.RangeSquared(definition.DistanceCanSee);
         if (distance < creature.AttackRangeSquared / 4 && distance < sightSq / 4)
