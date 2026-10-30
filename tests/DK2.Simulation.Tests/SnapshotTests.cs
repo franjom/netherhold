@@ -89,7 +89,7 @@ public class SnapshotTests
         byte[] bytes = WorldSnapshot.ToBytes(TestWorld.Simulation());
         bytes[16] = 0xFF; // magic (4) + format version (4) + tick (8), then the tag
 
-        var ex = Assert.Throws<InvalidDataException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
+        var ex = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Contains("random generator 255", ex.Message);
     }
 
@@ -372,7 +372,7 @@ public class SnapshotTests
     public void Read_RejectsForeignData()
     {
         using var stream = new MemoryStream(Encoding.ASCII.GetBytes("not a snapshot at all"));
-        Assert.Throws<InvalidDataException>(
+        Assert.Throws<SaveIncompatibleException>(
             () => WorldSnapshot.Read(stream, TestWorld.Database()));
     }
 
@@ -382,7 +382,7 @@ public class SnapshotTests
         byte[] bytes = WorldSnapshot.ToBytes(TestWorld.Simulation());
         bytes[4] = 250; // format version field, immediately after the 4-byte magic
 
-        Assert.Throws<InvalidDataException>(
+        Assert.Throws<SaveIncompatibleException>(
             () => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
     }
 

@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Campaign;
 using DK2.Data.Model;
@@ -65,7 +66,7 @@ namespace DK2.Unity
                 SavedSession session = SavedSessionFile.Load(path);
                 if (session.Header.GameMode != (byte)GameSessionMode.Campaign
                     || !Enum.IsDefined(typeof(FrontEndPage), session.Header.ReturnPageId))
-                    throw new InvalidDataException("This saved session has an unsupported game mode or return page.");
+                    throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "This saved session has an unsupported game mode or return page.");
                 string install = string.IsNullOrWhiteSpace(installDirectory) ? Dk2Install.Find() : installDirectory;
                 string name = session.Header.LevelName;
                 GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, name);
@@ -74,7 +75,7 @@ namespace DK2.Unity
                 var things = GameDatabaseLoader.LoadCampaignThings(install, name);
                 var triggers = GameDatabaseLoader.LoadCampaignTriggers(install, name);
                 if (level == null || players == null || things == null || triggers == null)
-                    throw new InvalidDataException("The saved level is not available in this installation.");
+                    throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "The saved level is not available in this installation.");
                 var tree = new TriggerTree(triggers, level.TriggerId, things.OfType<HeroPartyThing>(),
                     players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
                 // Validate before releasing the current scene. Our checkpoint format preserves its hash exactly.

@@ -8,6 +8,7 @@ and test fingerprints), the random generators
 `Dk2BehaviorAttribute` that tags code with a research note.
 
 Targets `netstandard2.1` (Unity-bound, ADR-0002, `src/Shared/UnityBound.props`). No
-project or package dependencies, and no Unity or file-system access.
+project or package dependencies, and no Unity or file-system access. Shared bounded
+save-reading, refusal and payload-checksum utilities also live here (ADR-0588).
 
 Test: `dotnet test tests/DK2.Core.Tests`.
