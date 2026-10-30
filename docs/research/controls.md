@@ -72,7 +72,7 @@ The overhead mode has three names across the sources: "God Mode" (manual card),
 | Zoom Key | CTRL + UP/DOWN arrow |
 | Rotate View Left / Right | DELETE / PG DN |
 | Rotate Key | CTRL + LEFT/RIGHT arrow |
-| Camera Mouse Rotate | hold X, move mouse left/right |
+| Camera Mouse Rotate | hold X, move mouse left/right (owner, 2026-10-30: up/down does not tilt) |
 | Camera Mouse Zoom | hold Z, move mouse up/down |
 | Camera Isometric / Top Down / Oblique | F1 / F2 / F3 |
 | User Camera 1 / 2 / 3 | F4 / F5 / F6 |
