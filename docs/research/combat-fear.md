@@ -198,8 +198,18 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
      (`0x00460EA9`-`0x00460F47`); else return 0. There is no zero-component guard, and
      `0x3000` is three tiles (`Fp32.One` is 4096).
    - On success the caller sets the shuffle speed mode (`0x004887D0(2, 0)`) and
-     `0x004B1F60` adds the vector to the creature's `+0x110/+0x114/+0x118`. What spends
-     that accumulator is unread (Q373).
+     `0x004B1F60` adds the vector to the creature's `+0x110/+0x114/+0x118`. The physical pass
+     `0x004B2030` (called at `0x0048A204`, after the state handler `0x0048A030` the same turn) sums
+     the persistent `+0x104` and that temporary vector (`0x00437FE0`), clears the temporary
+     (`0x004B20DC`-`0x004B20E2`) and moves by sum/16 per component in
+     `(0x00555990 >> 14) + 1` sub-steps, at most 16 (`0x004B211F`-`0x004B2133`), each point
+     start + `(i·v/n` truncated toward zero `>> 4)` (`0x004B21F4`-`0x004B2207`). The heading
+     `+0xF4` is untouched, and the route and the body's velocity are not cleared: steering still
+     runs in 203 that turn (state 203 has table flag bit 0, gate `0x0048A23B`-`0x0048A248`). The
+     position commits through `0x004B5560` (a pure impulse, persistent 0, passes
+     `0x004B260E`-`0x004B261D`); body position `+0x1A8/+0x1AC` is the position << 4
+     (`0x004B2702`-`0x004B2717`). Walking a route to the point instead turns the heading toward
+     it and flips the next turn's "behind" (ADR-0594).
 9. **The run.** `0x00460B50`: a keeper's creature (not neutral, not Good) whose
    live creature target stands strictly inside one of its owner's **Guard Rooms**
    (room type byte `+0x18` == 9, `0x00460BC8`; other rooms are skipped) grown by
@@ -282,9 +292,13 @@ The first Level7 death in Q582 takes the NonFighter hero-avoidance path
 or the over-threat counter. Its healthy retreat decision is already observed;
 the unresolved timing and movement comparison is in combat-acquisition.md §1.
 
-**Approximated, named:** the step back's vector and tests are DK2's (§4 step 8,
-`FearRules.StepBack`, ADR-0593), but its motion is a best-effort route to the vector's
-point at walk speed, not the shuffle-speed impulse (Q373); a hero's flag bit 4 is
+**Approximated, named:** the step back's vector, tests and slide are DK2's (§4 step 8,
+`FearRules.StepBack`, `FearRules.Slide`, ADR-0593, ADR-0594), except that the commit's creature
+terrain test `0x0048EBF0` (water, lava) is not asked, only solid tiles; the persistent vector
+`+0x104` is taken as zero for a grounded creature (STRONGLY INFERRED, its writers not counted);
+`0x00555990` is lossy above components of `0x800`, which no step back reaches; and a slide
+into a solid tile stops at the last free sub-step where DK2 reflects and halves the rest, the
+same for one sub-step, which every step back is (vectors under 16384). A hero's flag bit 4 is
 absent, as in every shipped level (§3.2). The room
 word `+0x27/+0x29` is `RoomInstance.CentreFieldX/Y` since ADR-0323 (§5 step 3).
 
@@ -330,7 +344,7 @@ definition's, unscaled by level (ADR-0518).
 
 **CONFIRMED (data, 2026-10-06):** no shipped level (all 66 in `Data/editor/maps`) holds a Crypt, so the Crypt counts are 0 there (Q375).
 
-**UNKNOWN:** Q373 (the step back's accumulator).
+**UNKNOWN:** the reflect arm's creature vslots `+0x60` and `+0x84` (§4 step 8), unread.
 
 ## 8. The walk back (read 2026-09-25, ADR-0225)
 

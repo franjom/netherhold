@@ -38,29 +38,56 @@ public class StepBackTests
     }
 
     /// <summary>A wall three tiles behind but not two and a half: ours used to step three tiles
-    /// straight away from its target and fail; DK2's twenty-four ticks of shuffle stop short of it.</summary>
+    /// straight away from its target and fail; DK2's twenty-four ticks of shuffle stop short of it. The
+    /// step is an impulse the physical pass (<c>0x004B2030</c>) spends in one turn at a sixteenth: the
+    /// creature slides 9808 / 16 = 613 back and keeps its heading.</summary>
     [Fact]
-    public void AStepShortOfTheWallBehindIsTaken()
+    public void AStepShortOfTheWallBehindIsTaken_AndSlidesASixteenthOfIt()
     {
         (GameDatabase db, WorldState world) = Open(wallRow: 8);
         CreatureState vampire = Facing(db, world, heading: 0);
+        int y = vampire.PosY;
         Assert.True(Run(db, world, vampire));
-        Assert.True(vampire.HasRoute);
+        Assert.Equal(y + 613, vampire.PosY);
+        Assert.Equal(0, vampire.Heading);
+    }
+
+    /// <summary>Stepping back turn after turn keeps going the same way: the heading never turns
+    /// toward the step, as a walked route would turn it (ours at hash 339 stood still).</summary>
+    [Fact]
+    public void RepeatedStepsKeepSlidingBack()
+    {
+        (GameDatabase db, WorldState world) = Open(wallRow: 10);
+        CreatureState vampire = Facing(db, world, heading: 0);
+        int y = vampire.PosY;
+        for (int i = 0; i < 4; i++) Assert.True(Run(db, world, vampire));
+        Assert.Equal(y + 4 * 613, vampire.PosY);
     }
 
     /// <summary>A wall inside the step: no route reaches its point and <c>(x, y+vy)</c> is in the wall,
-    /// but <c>(x+vx, y)</c> is my own tile, so DK2 steps three tiles along x, west for a zero
-    /// component (<c>0x00460EA9</c>-<c>0x00460F47</c>).</summary>
+    /// but <c>(x+vx, y)</c> is my own tile, so DK2 steps along x, west for a zero component
+    /// (<c>0x00460EA9</c>-<c>0x00460F47</c>): 0x3000 / 16 a turn.</summary>
     [Fact]
-    public void AWallInsideTheStepSendsItSideways_OursByARouteForTheImpulse()
+    public void AWallInsideTheStepSendsItSideways()
     {
         (GameDatabase db, WorldState world) = Open(wallRow: 7);
         CreatureState vampire = Facing(db, world, heading: 0);
         int x = vampire.PosX;
         Assert.True(Run(db, world, vampire));
-        Assert.True(vampire.HasRoute);
-        for (int i = 0; i < 8; i++) Run(db, world, vampire, step: false);
-        Assert.True(vampire.PosX < x, "it moves west");
+        Assert.Equal(x - 0x3000 / 16, vampire.PosX);
+    }
+
+    /// <summary>The slide stops short of a solid tile (ours: DK2's pass reflects and halves, Q373).</summary>
+    [Fact]
+    public void TheSlideStopsAtASolidTile()
+    {
+        (GameDatabase db, WorldState world) = Open(wallRow: 6);
+        CreatureState vampire = Facing(db, world, heading: 0);
+        vampire.PosY = CreatureState.CentreOf(5) + 1800;   // 248 short of the wall row
+        int y = vampire.PosY;
+        var sim = new GameSimulation(db, world, 1, [new Probe(context => FearRules.Slide(context, vampire, 0, 9808))]);
+        sim.Tick();
+        Assert.Equal(y, vampire.PosY);
     }
 
     /// <summary>A routed point is not enough: with both <c>(x, y+vy)</c> and <c>(x+vx, y)</c> solid the

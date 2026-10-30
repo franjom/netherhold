@@ -461,8 +461,8 @@ public static class FearRules
     /// tiles) along y if <c>(x, y+vy)</c> routes, else along x if <c>(x+vx, y)</c> routes, signed by the
     /// component (<c>&lt; 1</c> negative). Every route test passes <c>0x80</c>, the door rule, for every
     /// creature (<c>0x00460DEA</c>, <c>0x00460ED1</c>, <c>0x00460F1F</c>). DK2 gives the body that vector
-    /// as an impulse at the shuffle speed (<c>0x004887D0(2, 0)</c>); ours routes to its point at the
-    /// walk speed, and the step counts as taken by the tests alone, as DK2's (Q373).</summary>
+    /// as an impulse (<c>0x004887D0(2, 0)</c> sets the shuffle speed first), spent by
+    /// <see cref="Slide"/>; the step counts as taken by the tests alone, as DK2's.</summary>
     public static bool StepBack(SimulationContext context, CreatureState me, CreatureDef mine, int length, List<Fixed16Vector> scratch)
     {
         WorldSteering navigation = context.Navigation;
@@ -472,20 +472,46 @@ public static class FearRules
         if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX + vx, me.PosY + vy, int.MaxValue, scratch, MoveOptions.Loose))
         {
             if (Passable(world, navigation, me.PosX, me.PosY + vy) || Passable(world, navigation, me.PosX + vx, me.PosY))
-                return Step(navigation, me, vx, vy);
+                return Step(context, me, vx, vy);
             return false;
         }
         if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX, me.PosY + vy, int.MaxValue, scratch, MoveOptions.Loose))
-            return Step(navigation, me, 0, vy < 1 ? -StepBackLength : StepBackLength);
+            return Step(context, me, 0, vy < 1 ? -StepBackLength : StepBackLength);
         if (CombatTargetRules.CanReach(navigation, me, mine, me.PosX + vx, me.PosY, int.MaxValue, scratch, MoveOptions.Loose))
-            return Step(navigation, me, vx < 1 ? -StepBackLength : StepBackLength, 0);
+            return Step(context, me, vx < 1 ? -StepBackLength : StepBackLength, 0);
         return false;
     }
 
-    private static bool Step(WorldSteering navigation, CreatureState me, int vx, int vy)
+    private static bool Step(SimulationContext context, CreatureState me, int vx, int vy)
     {
-        navigation.TryRouteTo(me, me.PosX + vx, me.PosY + vy, MoveOptions.Loose);
+        Slide(context, me, vx, vy);
         return true;
+    }
+
+    /// <summary>The impulse spent (<c>0x004B1F60</c> into <c>+0x110</c>, then the physical pass
+    /// <c>0x004B2030</c> the same turn): the creature moves a sixteenth of the vector, truncated toward
+    /// zero per component, in <c>(length &gt;&gt; 14) + 1</c> sub-steps (at most 16), without turning. The route
+    /// and the body's velocity are left alone: the steering still runs in 203 the same turn (gate bit 0,
+    /// <c>0x0048A23B</c>), and the pass only writes the body's position (<c>0x004B2702</c>). A sub-step into a
+    /// solid tile ends the slide where the last one left it; DK2 reflects and halves the rest, the same for
+    /// one sub-step, which every step back here is. DK2's commit also asks the creature's terrain test
+    /// (<c>0x0048EBF0</c>, water and lava); ours asks only for a solid tile (Q373).</summary>
+    public static void Slide(SimulationContext context, CreatureState me, int vx, int vy)
+    {
+        long lengthSq = ((long)vx * vx) + ((long)vy * vy);
+        int steps = 1;
+        while (steps < 16 && (long)steps * 16384 * steps * 16384 <= lengthSq) steps++;
+        int x0 = me.PosX, y0 = me.PosY, x = x0, y = y0;
+        for (int i = 1; i <= steps; i++)
+        {
+            int nx = x0 + (i * vx / steps) / 16, ny = y0 + (i * vy / steps) / 16;
+            if (!Passable(context.World, context.Navigation, nx, ny)) break;
+            x = nx;
+            y = ny;
+        }
+        me.PosX = x;
+        me.PosY = y;
+        WorldSteering.SyncBody(me);
     }
 
     private static bool Passable(WorldState world, WorldSteering navigation, int x, int y)

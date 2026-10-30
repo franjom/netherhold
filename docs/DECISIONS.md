@@ -3828,8 +3828,8 @@ sets the run speed, not a cue.
 **Decision.** `FearRules` builds that order, run by `CombatSystem` after each
 creature's fight processing. `CreatureActivity.Fleeing` is state 203,
 `Withdrawing` the walk to state 202; `Running` is the body's speed cap. The step
-back is approximated as a route (along the heading since ADR-0593), and a state ending lets the
-engagement go — both named as approximations (Q373). Heroes fear in full and
+back spends DK2's impulse (ADR-0594), and a state ending lets the
+engagement go — named as an approximation (Q373). Heroes fear in full and
 never withdraw for want of a creature flag and hero gates (Q372); the Scout's
 alarm (Q374; built in ADR-0166, routed as read in ADR-0332) and three per-type owner modifiers (Q375) are not built.
 
@@ -13856,7 +13856,7 @@ Known gaps, not fixed:
   route to a body exists, and the fight then leaves through `SetState(1)`.
 
 ## ADR-0593 - The step back follows the creature's heading and DK2's route tests
-**Date:** 2026-10-30 · **Status:** accepted · Hash/save 339 · amends ADR-0165, ADR-0167 · Q665, Q373 · Research: [combat-fear.md](research/combat-fear.md#4-state-203-fleeing-0x004602e0-in-order), [combat-spells.md](research/combat-spells.md#10-step-back-or-run-0x0045ff3d); KB `00460DA0`, `004602E0`, `0045F030`
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 339 · amends ADR-0165, ADR-0167 · motion amended by ADR-0594 · Q665, Q373 · Research: [combat-fear.md](research/combat-fear.md#4-state-203-fleeing-0x004602e0-in-order), [combat-spells.md](research/combat-spells.md#10-step-back-or-run-0x0045ff3d); KB `00460DA0`, `004602E0`, `0045F030`
 
 **Context.** Healthy keeper non-Imps leaving the flee state (203) go back to the fight less often
 in ours than in DK2: per eight Level 4 runs the next state is 199 / 6 for 52 / 13 of 100 in DK2
@@ -13872,8 +13872,7 @@ sine tables (`StepBackVector`), its length from the caller (`FleeStepBackLength`
 state, `CastStepBackLength` for the cannot-cast path), every route test with `MoveOptions.Loose`
 (`0x80`) for every creature, solidity from `NavBytes.IsSolid` (terrain `+0x17B` bit 0), and the
 step counted as taken by the tests alone. The arms and addresses are in the research sections
-above. The motion is a best-effort route to the vector's point at walk speed, an approximation
-of DK2's shuffle-speed impulse (Q373). The unused `Isqrt` is removed.
+above. The motion is ADR-0594's. The unused `Isqrt` is removed.
 
 **Consequences.** Hash/save 339 refuses version 338. `StepBackTests` covers the lengths (24 and 16
 ticks of shuffle), the directions for headings 0, 512 and 1024, a wall three tiles behind but not
@@ -13886,3 +13885,24 @@ Known gaps, not fixed:
 - `0x004D0E60`'s write of `+0x3E6` bits 17-19 is not modelled.
 - `SimulationTiming.LoaderRatePerTick` does not model the loader's `& 0xFFFF` mask or the
   `+0x10C` presence dword (`CreatureDef_BuildFromRecord`, `0x00492517`-`0x00492536`).
+
+## ADR-0594 - The step back is a slide, as DK2 spends its impulse
+**Date:** 2026-10-30 · **Status:** accepted · Hash/save 340 · amends ADR-0593 · Q665, Q373 · Research: [combat-fear.md](research/combat-fear.md#4-state-203-fleeing-0x004602e0-in-order); KB `004B1F60`, `004B2030`, `00460DA0`, `004602E0`
+
+**Context.** ADR-0593 moved a step back by a route to the vector's point at walk speed. Walking turns
+the heading toward the step, so the next turn's "behind" flipped and creatures oscillated in place. On
+Level 4, keeper creatures backing off (state 203) moved 0.069 tiles a turn in DK2 and 0.004 at hash 339
+(94% never left their tile; hash 338 0.072): [level4-outcomes.md](research/level4-outcomes.md#keeper-fighters-at-the-party-4-gate-q665-hash-338-340-adr-0593-adr-0594).
+
+**Decision.** `FearRules.Slide` spends the impulse as `0x004B2030` does the same turn (combat-fear.md
+§4 step 8): a sixteenth of the vector per component, truncated toward zero, in at most 16 sub-steps; the
+heading, the route and the body's velocity are left alone; a sub-step into a solid tile ends the slide.
+Named approximations: the commit's terrain test `0x0048EBF0` (water, lava) is not asked; the persistent
+vector is taken as zero; DK2's reflect arm is not built (identical for one sub-step, which every step
+back is).
+
+**Consequences.** Hash/save 340 refuses 339. `StepBackTests` pins the slide (613 for the Vampire's 9808,
+heading kept; repeated steps; sideways `0x3000`/16; a solid tile) and `CombatFearTests` the withdrawal
+from tile 10; `DK2.Simulation.Tests` 4067 passed. A scratch run of eight moves backing-off creatures
+0.090 tiles a turn; the 40-run measurement follows. Q373 closes, Q665 stays open. Also corrected:
+`CreatureStateFlags.Unread0` (bit 0) is tested, at `0x0048A23B`-`0x0048A248`, where it gates steering.

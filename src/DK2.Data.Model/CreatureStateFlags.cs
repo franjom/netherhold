@@ -19,9 +19,10 @@ public enum CreatureStateFlags : byte
     /// <summary>No flags. 60 states.</summary>
     None = 0,
 
-    /// <summary>Carried by <b>195</b> of the 281 states, and not one of the seven
-    /// instructions that read this byte tests it. The single most widespread unread fact
-    /// about the table.</summary>
+    /// <summary>Carried by <b>195</b> of the 281 states. It gates the creature's steering: the
+    /// creature update tests it at <c>0x0048A23B</c>-<c>0x0048A248</c>, and a clear bit skips the
+    /// steering pass for that turn (steering-behaviours.md §7.5). The name stands for the bit's
+    /// position; the rest of what it means is not read.</summary>
     Unread0 = 1 << 0,
 
     /// <summary>Suppresses the need-anger routine: a creature busy with something urgent,

@@ -400,10 +400,13 @@ public class CombatFearTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        for (int t = 0; t < 60 && !sink.Events.Any(e => e.Kind == "withdraws"); t++) sim.Tick();
+        for (int t = 0; t < 100 && !sink.Events.Any(e => e.Kind == "withdraws"); t++) sim.Tick();
 
         Assert.Contains(sink.Events, e => e.Kind == "withdraws" && e.Detail.Contains("creature=" + goblin.Id));
-        Assert.InRange(goblin.OldFightTileX, 11, 13);
+        // Fled at 2 with a 60-turn back-off whose steps all slide (ADR-0594), so the timer runs out at 63
+        // two tiles back from 12; the stamp is that tile's x.
+        Assert.Equal(63, sink.Events.First(e => e.Kind == "withdraws").Tick.Value);
+        Assert.Equal(10, goblin.OldFightTileX);
         Assert.Equal(goblin.OldFightTileX, goblin.OldFightTileY);
         Assert.True(goblin.OldFightTick > 0);
     }

@@ -197,7 +197,7 @@ over 2401-6804 celebrations 76 / 255.2 / 97.4. Zone hero-ticks barely move (8,40
 the time goes to fight and approach (6,864 / 9,992 / 11,008), and Imp deaths per run rise
 (21.75 / 26.6 / 33.4; h338 - h336 sign-flip p 0.023). Gaps left open by the fix are in the ADR.
 
-## Keeper fighters at the party-4 gate (Q665, hash 338-339, ADR-0593)
+## Keeper fighters at the party-4 gate (Q665, hash 338-340, ADR-0593, ADR-0594)
 
 Evidence: the same folder's README, "Party 4's Dwarfs" onward. Party 4's Dwarfs die before the zone 13
 of 20 in DK2, 4.4 of 19 in h338: keeper fighters attack them half as long and back off (203) into a
@@ -205,3 +205,10 @@ walk home twice as often (25.2 against 13 per eight runs). The step back now fol
 vector (ADR-0593). At hash 339, per eight runs DK2 / h338 / h339: Imp deaths per run
 21.75 / 33.4 / 28.1 (h339 - h338 sign-flip p 0.14), zone hero-ticks 8,405 / 13,360 / 12,077 (p 0.17),
 Dwarfs dying first 13 / 4.4 / 8.0. Back-offs ending in a walk home stay 25.0: most come another way.
+
+The h339 step back walked a route, which turned the heading and flipped the next turn's "behind". Keeper
+creatures backing off in 203 (stays of 4+ turns), per DK2 / h338 / h339 (`backoff-motion.out`,
+`backoff-damage.out`): 0.069 / 0.072 / 0.004 tiles a turn, 94% of h339's never leaving their tile; health
+share lost a turn in 203 0.0071 / 0.0092 / 0.0149. At hash 340 (ADR-0594, scratch: eight runs, one generator
+per state, not evidence-grade) 0.090 tiles a turn, 23% never leave their tile (DK2 25%), 0.0064 lost a turn.
+The 40-run measurement is not yet made.
