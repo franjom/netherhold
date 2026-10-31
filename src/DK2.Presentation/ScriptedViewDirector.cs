@@ -38,6 +38,8 @@ public sealed class ScriptedViewDirector(
     private uint _flashStartedAt;
     private bool _speechAudioEnabled;
     private CameraModeId _mode;
+    private bool _hasMode;
+    private CameraModeId? _deferredMode;
     private SpeechLineId? _speechLine;
 
     public void Emit(in SimEvent simEvent)
@@ -115,6 +117,8 @@ public sealed class ScriptedViewDirector(
     /// the camera path (<see cref="CameraPathPlayback.Seek"/>).</param>
     public void Update(double nowMilliseconds, double renderTick, CameraModeId mode = default)
     {
+        if (_hasMode && mode != _mode) _letterbox.ChangeMode(_mode, mode, nowMilliseconds);
+        _hasMode = true;
         _mode = mode;
         _now = nowMilliseconds;
         _renderTick = renderTick;
@@ -182,6 +186,7 @@ public sealed class ScriptedViewDirector(
                 if (loadPath(request.Value) is not { Count: > 0 } frames) return;
                 if (_path is not null) EndPath();
                 _path = new CameraPathPlayback(request.Value, frames, request.Tile, request.Tick);
+                _letterbox.ChangeMode(_mode, CameraModeId.ScriptedPath, _now);
                 // Every in-game start leaves camera flag 0x8 clear, so 0x0044A370 raises the letterbox.
                 _letterbox.Raise(_now);
                 break;
@@ -190,13 +195,13 @@ public sealed class ScriptedViewDirector(
                 break;
             case ScriptedViewKind.Letterbox:
                 GuiVisibilityRequested?.Invoke(!request.Flag);
-                bool animate = _mode.Value is not (2 or 10 or 11);
+                bool animate = !_mode.IsPossession;
                 if (request.Flag) _letterbox.Raise(_now, animate);
                 else if (request.Value == 2) _letterbox.ForceOff(_now, animate);
                 else _letterbox.Lower(_now, animate);
                 break;
             case ScriptedViewKind.CameraMove:
-                if (_mode.Value is not (1 or 2 or 10 or 11)) _move = request.Tile;
+                if (!_mode.BlocksScriptedMove) _move = request.Tile;
                 break;
             case ScriptedViewKind.CameraZoom:
                 ZoomRequested?.Invoke(request.Value, request.Value2);
@@ -210,8 +215,10 @@ public sealed class ScriptedViewDirector(
             case ScriptedViewKind.HideGui:
                 GuiVisibilityRequested?.Invoke(false);
                 break;
-            // Action 15 asks for mode 3, the keeper camera ours is already in; action 0x84's bit is unread.
             case ScriptedViewKind.CameraMode:
+                RequestMode(new CameraModeId(unchecked((ushort)request.Value)));
+                break;
+            // Action 0x84's bit is unread.
             case ScriptedViewKind.ViewFlag84:
                 break;
             case ScriptedViewKind.Speech:
@@ -231,5 +238,20 @@ public sealed class ScriptedViewDirector(
     {
         _path = null;
         _letterbox.Lower(_now);
+        if (_deferredMode is CameraModeId mode)
+        {
+            _deferredMode = null;
+            RequestMode(mode);
+        }
+    }
+
+    private void RequestMode(CameraModeId mode)
+    {
+        if (_path is not null) _deferredMode = mode;
+        else
+        {
+            _letterbox.ChangeMode(_mode, mode, _now);
+            _mode = mode;
+        }
     }
 }

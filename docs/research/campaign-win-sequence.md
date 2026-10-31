@@ -136,7 +136,7 @@ handlers come from the (id, handler) pairs at `0x0066CE30`, 37 pairs (CONFIRMED 
 | 15 | `0x00442780` | if the camera mode is 7, `Camera_SetYaw(0)`; then `Camera_RequestMode(rec[0], 0)` |
 | 17 | `0x004427D0` | creature id to camera `+0xE02` (followed creature), yaw request |
 | `0x73` | `0x00442540` | `Camera_StartPath(rec[0] & 0x7FFFFFFF, x, y, rec[0] >> 31)` |
-| `0x74` | `0x004426F0` | letterbox: `0x0044D320(rec[0])`, so 1 raises and 0 lowers; 2 first sets camera `+0xE48` = 1 (the request count) and then lowers, so the bars go whatever raised them |
+| `0x74` | `0x004426F0` | letterbox: `0x0044D320(rec[0])`, so 1 raises and 0 lowers; 2 first sets camera `+0xE48` = 1 (the request count) and then lowers, resetting the count; [viewport guards](camera-possession-guards.md) still apply |
 | `0x84` | `0x00443030` | bridge `+0x1221 |= 0x10` (meaning unread) |
 
 The other pairs: 2, 3, 5, 7-14, 16, 21, 22, 25, 40-42, 44, 47, `0x66`, `0x68`, `0x6F`,

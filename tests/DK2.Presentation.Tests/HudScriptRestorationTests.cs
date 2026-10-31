@@ -4,7 +4,9 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Data;
 using DK2.Simulation;
+using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;
 
@@ -134,7 +136,7 @@ public sealed class HudScriptRestorationTests
     }
 
     [Fact]
-    public void SuppressedForceOffResetsCountWithoutChangingViewport()
+    public void ModeChangeRestoresViewportEvenWhenForceOffAnimationIsSuppressed()
     {
         var director = Director(new ClassicHudControls());
         Letterbox(director, true);
@@ -147,7 +149,107 @@ public sealed class HudScriptRestorationTests
         });
         director.Update(3000, 0, new CameraModeId(10));
         Assert.Equal(0, director.LetterboxRequestCount);
-        Assert.Equal(0.125f, director.LetterboxBar);
+        // Our binary-derived expectations, not owner measurements of this possession case.
+        director.Update(4000, 0, new CameraModeId(10));
+        Assert.Equal(0.0625f, director.LetterboxBar);
+        director.Update(5000, 0, new CameraModeId(10));
+        Assert.Equal(0, director.LetterboxBar);
+    }
+
+    [Theory]
+    [InlineData(3, 4, 500)]
+    [InlineData(3, 10, 2000)]
+    [InlineData(7, 3, 0)]
+    public void ModeChangeRetargetsFullViewportWithoutChangingRaisedCount(ushort from, ushort to, int duration)
+    {
+        var director = Director(new ClassicHudControls());
+        Letterbox(director, true);
+        director.Update(0, 0, new(from));
+        director.Update(2000, 0, new(from));
+        director.Update(3000, 0, new(to));
+        // Expected interpolation from the binary timing rule, not a native gameplay capture.
+        if (duration > 0)
+        {
+            director.Update(3000 + duration / 2, 0, new(to));
+            Assert.Equal(0.0625f, director.LetterboxBar);
+        }
+        director.Update(3000 + duration, 0, new(to));
+        Assert.Equal(0, director.LetterboxBar);
+        Assert.Equal(1, director.LetterboxRequestCount);
+    }
+
+    [Fact]
+    public void EqualFullViewportTargetDoesNotRestartItsBlendOnAnotherModeChange()
+    {
+        var director = Director(new ClassicHudControls());
+        Letterbox(director, true);
+        director.Update(0, 0, new(3));
+        director.Update(2000, 0, new(3));
+        director.Update(3000, 0, new(10));
+        director.Update(4000, 0, new(3));
+        director.Update(5000, 0, new(3));
+        Assert.Equal(0, director.LetterboxBar);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SameModeRequestRestoresFullViewportAndDefersUntilAPathEnds(bool duringPath)
+    {
+        var director = Director(new ClassicHudControls());
+        Letterbox(director, true);
+        if (duringPath) StartPath(director);
+        director.Update(0, 0, new(3));
+        director.Update(2000, 0, new(3));
+        director.Emit(new SimEvent(default, "test", "mode", "")
+        {
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraMode, PlayerIds.FirstKeeper, 3, default, false),
+        });
+        director.Update(3000, 0, new(3));
+        if (duringPath)
+        {
+            director.Update(3500, 0, new(3));
+            Assert.Equal(0.125f, director.LetterboxBar);
+            Assert.True(director.Skip());
+        }
+        int started = duringPath ? 3500 : 3000;
+        // Binary-derived expected interpolation, not an owner measurement.
+        director.Update(started + 250, 0, new(3));
+        Assert.Equal(0.0625f, director.LetterboxBar);
+        director.Update(started + 500, 0, new(3));
+        Assert.Equal(0, director.LetterboxBar);
+        Assert.Equal(1, director.LetterboxRequestCount);
+    }
+
+    [Fact]
+    public void PathEndAfterForceOffLeavesNegativeCountAndHidesHudUntilMatchingRaise()
+    {
+        var director = Director(new ClassicHudControls());
+        StartPath(director);
+        director.Update(0, 0, new(3));
+        director.Emit(new SimEvent(default, "test", "force_off", "")
+        {
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.Letterbox, PlayerIds.FirstKeeper, 2, default, false),
+        });
+        director.Update(100, 0, new(3));
+        Assert.Equal(0, director.LetterboxRequestCount);
+        Assert.True(director.Skip());
+        Assert.Equal(-1, director.LetterboxRequestCount);
+        Assert.False(director.HudFor(ClassicCameraMode.Dungeon).ShowNormalHud);
+        Letterbox(director, true);
+        director.Update(200, 0, new(3));
+        Assert.Equal(0, director.LetterboxRequestCount);
+        Assert.True(director.HudFor(ClassicCameraMode.Dungeon).ShowNormalHud);
+    }
+
+    [InstallFact]
+    public void ShippedLevel14HasAnOffWithoutAnExplicitOnAndStartsPath214()
+    {
+        var records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, "Level14")!;
+        var letterbox = Assert.Single(records, r => r.Tag == 214 && r.Type == 38);
+        Assert.Equal(65500, letterbox.TriggerId);
+        Assert.Equal(0, letterbox.Parameters["Available"]);
+        Assert.Contains(records, r => r.Tag == 214 && r.Type == 31 && r.Parameters["PathId"] == 214);
     }
 
     [Fact]

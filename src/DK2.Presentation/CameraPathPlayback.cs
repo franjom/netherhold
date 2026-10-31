@@ -128,6 +128,7 @@ public sealed class CinematicLetterbox
     private float _from;
     private float _to;
     private double _start;
+    private double _duration = BlendMilliseconds;
     private bool _blending;
 
     /// <summary>The bar height, a fraction of the screen height, at <paramref name="now"/>.</summary>
@@ -135,15 +136,19 @@ public sealed class CinematicLetterbox
     {
         if (!_blending) return _to;
         double elapsed = now - _start;
-        if (elapsed >= BlendMilliseconds)
+        if (elapsed >= _duration)
         {
             _blending = false;
             return _to;
         }
-        return _from + (_to - _from) * (float)(elapsed / BlendMilliseconds);
+        return _from + (_to - _from) * (float)(elapsed / _duration);
     }
 
-    public bool Raised => _count > 0;
+    public bool Raised => _count != 0;
+
+    /// <summary>Camera_SetMode retargets the full viewport without consulting the request count.</summary>
+    public void ChangeMode(CameraModeId from, CameraModeId to, double now) =>
+        BlendTo(0, now, from.ViewportBlendMillisecondsTo(to));
 
     public void Raise(double now, bool animate = true)
     {
@@ -164,13 +169,14 @@ public sealed class CinematicLetterbox
         if (animate) BlendTo(0, now);
     }
 
-    private void BlendTo(float target, double now)
+    private void BlendTo(float target, double now, double duration = BlendMilliseconds)
     {
         // 0x0044D320 starts no blend when the destination rect already is the target.
         if (target == _to) return;
         _from = Bar(now);
         _to = target;
         _start = now;
+        _duration = duration;
         _blending = true;
     }
 }

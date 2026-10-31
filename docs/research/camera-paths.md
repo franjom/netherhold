@@ -284,8 +284,9 @@ INFERRED**, a negative claim):
   camera mode itself: the camera is embedded at bridge `+0x3E5` (`0x0043C36A`), and
   `0x3E5 + 0xDA8 = 0x118D` (read 2026-10-21). A path's mode 0x12 is not admitted.
   It also asks a view slot `+0xDC`, which is unread.
-- `Camera_SetMode` `0x0044ACE0` only records mode 0x12 (its case 0x11). It
-  invalidates the terrain cache only when entering or leaving possession.
+- The mode-0x12-specific arm of `Camera_SetMode` `0x0044ACE0` only records
+  the mode; its common [viewport retargeting](camera-possession-guards.md#mode-changes-and-viewport-retargeting) runs first.
+  Terrain-cache invalidation is recorded in [terrain-lattice.md](terrain-lattice.md).
 - Starting or ending a path touches no explored bit.
 - A path can set renderer flag bits 1 and 3:
   - bit 1 is camera flag 0x20, set only for a path started with `plain == 0`

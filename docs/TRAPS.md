@@ -307,3 +307,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - UI Toolkit can log generateVisualContent exceptions while model updates continue; runtime probes must reject product log exceptions as well as failed assertions.
 - Codex CLI 0.164 rejects an env-only project MCP entry as "invalid transport" before merging user config; repeat that server's command and args in the project entry.
 - PowerShell does not expand wildcard path arguments for rg (`src/Foo*.cs`); search the directory with `-g 'Foo*.cs'` instead.
+- StoreAt.py misses writes through computed bases; follow LEA-based field addresses (Camera_Reset's full-viewport slots) before declaring a writer census complete.

@@ -31,6 +31,8 @@ The HUD predicate restores drawing as soon as the count is zero and mode is
 allowed, even while the viewport's two-second restoration blend continues.
 Ending a path alone does not restore the HUD if another counted letterbox
 request remains active. Mode `0x12` independently keeps it hidden.
+[Mode retargeting and negative counts](camera-possession-guards.md) can separate
+bar geometry from the count; the remaining presentation gaps are recorded there.
 
 `0x00403FB0` draws path subtitles before calling the normal HUD dispatcher,
 and tests letterbox count afterward to draw its separate element. Hiding the
@@ -176,8 +178,8 @@ viewport rectangles without clearing the count; the front-end flag-0x8 arm is
 separate. Count behavior is recorded in camera-paths.md §4/§6.
 
 The director now sends the script's explicit GUI request to the HUD controls.
-A path alone preserves a manually hidden GUI. With script and path requests
-nested, either release order keeps the camera gate shut until the final
+A path alone preserves a manually hidden GUI. With balanced script and path
+requests nested in the dungeon mode, either release order keeps the camera gate shut until the final
 release; an open Options panel survives and resumes drawing when both F5 and
 the camera predicate allow it. This implements the binary predicates;
 visible original-game acceptance remains Q648.

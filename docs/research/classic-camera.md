@@ -75,7 +75,8 @@ from the preset's MaxZoom (53248; no shipped level overrides preset 3). The rend
 (0x00598D26..0x00598DE2), and 0x0058A6F0 divides it by the viewport extents. The camera rect is the
 whole screen (0x004498F0, called from 0x0043ABD8 and 0x00442F1B); the shortened viewport is the
 renderer's own, set through the view's virtual +0x34 by 0x00417170. The rect (left, top, right, bottom) = (0, H/8, W, 7H/8)
-that 0x0044D320 blends in over 2 s is a letterbox; that it is the cinematic one (gated by +0xE3C) is inferred. 
+that 0x0044D320 blends in over 2 s is a letterbox; its guards and mode-change retargeting are in
+[camera-possession-guards.md](camera-possession-guards.md).
 `ClassicCamera.ProjectionCentreFromTop(panelTop)` carries the rule, and the Unity runner builds an
 off-centre frustum from it, switching when the panel collapses. The engine's viewport also stops the
 3D image at that line; the runner instead renders full screen under the opaque panel. The light-visibility volume stays symmetric, as read. The native rule
