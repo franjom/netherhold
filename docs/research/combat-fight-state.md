@@ -225,6 +225,11 @@ requests event `0xD6` at `0x0045F9BD`. The request uses the creature's sound
 handle `+0x2E`, definition bank `+0x6E3`, and position `+0x1A`, then stores
 the returned handle at `0x0045F9C3`. The approach helper itself plays no sound.
 
+Owner confirmation, 2026-10-31: "every creature has its own distinct shout as
+it engages into battle." The owner also hears the separate Battle tab's
+crossed-sabres alert. This supports the per-creature bank call above; it does
+not confirm the once-per-approach rule, which rests on the binary reading.
+
 There is one `0xD6` request in this fight handler, with no battle-call timer,
 random gate or previous-call check. Each successful new approach requests it;
 walking/route refreshes and swings do not. This establishes the state-handler
