@@ -8824,12 +8824,14 @@ an application where DK2 gives 3: the loader divides every rate by variable 19 w
 (`0x0051CBA0`), so 22 is stored as 5, and the action (`0x00497AC0`) floors 5 × 0.8.
 
 **Decision.** The reinforce priority takes `RepairWall` when `Reinforce` does not apply, on the
-same stance and own-floor test, recorded as task kind 6 since both resume through one handler.
+same stance and own-floor test, recorded as task kind 16 (ADR-0405).
 `RepairWall` applies to `0x00453E30`'s tile. `SimulationTiming.WorkApplication` replaces the
 shift of fourteen: truncate the tabled value over four, then floor it times the rate. They differ
 only where four does not divide the value: repair, and claiming (825) and own-wall digging
-(−130) with both bonuses. Deviates: DK2 records kind 16; the own wall below half health that
-`0x00453E90` gives kind 6 (reinforce, rate 50) is repaired at 22 in ours (Q564); the own-floor test omits `0x00453B30`'s Ownable bit, as the reinforce path always has; the divisor is the constant four, not live variable 19.
+(−130) with both bonuses. Fresh kind-6 selection and its separate action guard
+follow ADR-0607 (Q564).
+Remaining deviations: the own-floor test omits `0x00453B30`'s Ownable bit;
+the divisor is the constant four, not live variable 19.
 
 **Measured** (hash 192), Level 11A with keepers 4 to 7 running, as DK2 runs them (the comparison
 had run Drako's AI alone): Morgana repairs from 92 (DK2 101), the wall falls at 362 (387), the
@@ -14120,3 +14122,15 @@ Growth retains the surviving clock; removing a tile starts new piece clocks.
 **Evidence:** [hatchery-startup.md](research/hatchery-startup.md).
 The room's lowest tile stores the clock and startup override; both are hashed
 and snapshotted. Restoring a snapshot skips the level-start override.
+
+## ADR-0607 - separate reinforcement selection from its work guard
+
+**Status:** implemented, 2026-10-31. Q696, Q564, hash/save349.
+
+**Decision.** Select kind6 using its own owner/health predicate before kind16
+repair. Apply action7 only to an eligible neutral wall touching own floor.
+Preserve neutral ownership when the max-health terrain is unchanged.
+
+**Evidence:** [wall-reinforce-eligibility.md](research/wall-reinforce-eligibility.md).
+The own-wall branch selects6 but its action does no health work; this replaces
+Q564's proposed50-rate repair. No new persistent state.

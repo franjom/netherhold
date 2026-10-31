@@ -244,7 +244,8 @@ Tile-owner setter `0x004559D0` emits no effect. Claim action `0x004974C0`
 emits completion sound, while the terrain applier owns the visual request.
 
 Reinforcement was rechecked on 2026-10-13. Action 7 (`0x00497960`) applies
-work but does not request a per-strike effect. In the applier, destination
+work after its [neutral-wall guard](wall-reinforce-eligibility.md#acceptance-is-not-a-health-application)
+and does not request a per-strike effect. In the applier, destination
 terrain 9 selects four calls at `0x00453445`, `0x004534A7`, `0x00453509`
 and `0x00453567`. Their XY points are the four adjacent tile centres and
 height is zero; non-wall max-health conversion retains its centre/Z4096 call.

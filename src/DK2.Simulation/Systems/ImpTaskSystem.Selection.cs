@@ -1037,7 +1037,7 @@ public sealed partial class ImpTaskSystem
             // ADR-0387): a rival's imps digging in are slowed by the defender's repairs.
             case JobPriority.Reinforce:
                 if (DigMarkCancelsWallWork(context.Database, tile, playerId)) return false;
-                if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.Reinforce, playerId))
+                if (ReinforcementRules.CanStart(world, context.Database, target, playerId))
                     kind = TileWorkKind.Reinforce;
                 else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.RepairWall, playerId))
                     kind = TileWorkKind.RepairWall;
@@ -1254,6 +1254,9 @@ public sealed partial class ImpTaskSystem
                     new TilePos(creature.TargetTileIndex % context.World.Width,
                         creature.TargetTileIndex / context.World.Width), creature.OwnerPlayerId);
         }
+
+        if (creature.TargetWork == TileWorkKind.Reinforce)
+            return true; // Entry21 checks the held task and facing, never the fresh-search half-health gate.
 
         if (TileWorkRules.TryResolveDigTask(
                 context.Database, tile, creature.TargetWork, creature.OwnerPlayerId,

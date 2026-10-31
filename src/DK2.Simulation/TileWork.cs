@@ -392,14 +392,10 @@ public static class TileWorkRules
             // is RoomHealthRules.NeedsRepair (0x004E6C00).
             TileWorkKind.RepairRoom => terrain.IsRoom && tile.OwnerPlayerId == playerId,
 
-            // Reinforcing turns rock into a wall; the data says which rock can.
-            // The original splits it by health — reinforce below half MaxHealth
-            // (fresh Rock is 165 of 660), fix anything not at MaxHealth, both at
-            // the same step of the imp's search. This clause is their union.
-            // Q153, binary, 2026-09-05.
+            // Action7's neutral-wall guard differs from kind6 selection (Q696, Q564).
             TileWorkKind.Reinforce =>
-                terrain.IsSolid && !terrain.IsImpenetrable && !terrain.IsOwnable
-                && terrain.MaxHealthTypeTerrainId != tile.TerrainId,
+                terrain.IsSolid && !terrain.IsImpenetrable && terrain.GoldValue == 0
+                && tile.OwnerPlayerId == PlayerIds.Neutral && tile.Health != terrain.MaxHealth,
 
             // 0x00453E30, the repair pass of the reinforce handler: the keeper's own solid,
             // penetrable, goldless tile whose health is not its maximum. Ownable is not tested
@@ -620,6 +616,12 @@ public static class TileWorkRules
                 return new TileWorkResult(
                     delta == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed,
                     delta, 0, 0, tile.TerrainId);
+            }
+
+            if (kind == TileWorkKind.Reinforce && terrain.MaxHealthTypeTerrainId == tile.TerrainId)
+            {
+                tile.Health = terrain.MaxHealth;
+                return new TileWorkResult(TileWorkOutcome.Progressed, delta, 0, 0, tile.TerrainId);
             }
 
             int converted = Convert(

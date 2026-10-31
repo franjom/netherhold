@@ -108,8 +108,9 @@ distance.
 ## 4. Reinforce, gold and Tier B (Q2)
 
 Tier B is the whole-map ring scan with `0x00469580` per tile: reinforce/repair, gold,
-objects, kind 11, first taker wins. Reinforce needs `0x00453E90(owner)` on the wall;
-repair `0x00453E30`. Each walks the four sides from the facing one; a side counts when
+objects, kind 11, first taker wins. Reinforce needs `0x00453E90(owner)` on the wall
+([selection and work guards](wall-reinforce-eligibility.md)); repair `0x00453E30`.
+Each walks the four sides from the facing one; a side counts when
 world slot `+0x1FC` passes, the side tile is not solid and belongs to the imp. The task is
 raised only when a side is taken. On a held side the comparison is to the wall's centre;
 a nearer held side is stolen before a later free side is tried. After a successful walk
