@@ -285,6 +285,9 @@ creatures, leave with their gold through a portal; Imps are refused there and go
 through the heart's single centre tile, gold and all, while a non-worker is refused
 that tile; an Imp dropped on the eight platform tiles around it lands (owner, 2026-09-07,
 2026-09-13, 2026-09-15 and 2026-10-23; ADR-0084, ADR-0148, ADR-0526 amendment).
+Owner, 2026-10-31: an own Hero Portal shows the bin and accepts a creature
+thrown into its centre. This is an informal gameplay observation, not a timing
+measurement; Q704 retains the falling-timeline question.
 STRONGLY INFERRED — Q209: furniture collision does not write the navigation
 tile cache; the binary's writer graph and continuous obstacle consumers are §5.
 

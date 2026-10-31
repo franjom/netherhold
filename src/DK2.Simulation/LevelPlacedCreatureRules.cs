@@ -44,7 +44,7 @@ public static class LevelPlacedCreatureRules
                     : TortureRules.TryStrap(context.Hooks, creature, room.OwnerPlayerId, here))) continue;
             else
             {
-                if (!keeperWorker && room?.Definition.TypeId == RoomTypeId.Portal
+                if (!keeperWorker && room?.Definition.TypeId is RoomTypeId.Portal or RoomTypeId.HeroPortal
                     && LeavingRules.IsDropCentre(world, context.Database, creature.Tile, creature.OwnerPlayerId))
                 {
                     DropLandingRules.AfterGettingUp(context, "LevelStart", creature, definition);

@@ -72,8 +72,8 @@ public static class DropLandingRules
 
     /// <summary>257's tail, <c>0x004E8DA0(0)</c>. On a room with a drop state: the job rooms' state
     /// through 1, with the job remembered (<see cref="JobRules.TryDropOnARoom"/>), and the Combat
-    /// Pit's 137 through 1 (ADR-0227). Portal/Hero Portal enters 197 after the Casino and
-    /// job-hatred gates (ADR-0603); remaining unbuilt states idle. With none, a keeper's creature goes to 250, its
+    /// Pit's 137 through 1 (ADR-0227). Portal/Hero Portal enters 197 after the Casino gate;
+    /// its job 0 is never hated (ADR-0603). Remaining unbuilt states idle. With none, a keeper's creature goes to 250, its
     /// <c>FightProcessCounter</c> at 10; a hero or a neutral creature idles, and so does a
     /// keeper's while its Call To Arms is on (ADR-0279).</summary>
     public static void AfterGettingUp(SimulationContext context, string system, CreatureState creature, CreatureDef definition)
@@ -86,8 +86,7 @@ public static class DropLandingRules
             if (type is RoomTypeId.Portal or RoomTypeId.HeroPortal)
             {
                 StateShadow.ToIdle(context, system, creature);
-                if (creature.CasinoBigWinnerTicks != 0
-                    || creature.OwnerPlayerId >= PlayerIds.FirstKeeper && definition.HateJobs.Contains(JobType.None)) return;
+                if (creature.CasinoBigWinnerTicks != 0) return;
                 if (StateShadow.TryMove(context, system, creature, LeavingRules.PortalDropState))
                     creature.DroppedToDoJob = JobType.None;
                 return;

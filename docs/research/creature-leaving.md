@@ -123,8 +123,9 @@ becomes zero. There is no drop, player-credit or treasury call: **the gold
 vanishes**.
 
 Finally state 196 clears `creature+0x3E6` bit 5 and invokes creature vtable slot
-`+0x20`, `0x004B2AD0`, which sets health at `creature+0x40` to zero. The normal
-finished-object sweep subsequently sees the creature as finished and invokes
+`+0x20`, `0x004B2AD0`, which sets health at `creature+0x40` to zero. The subsequent
+finished-object sweep and its precise scheduling remain STRONGLY INFERRED here;
+the established removal chain invokes
 vtable slot `+0x30`, the creature-specific wrapper `0x0048AF80`; that calls
 `0x004B7A20` with the creature's thing id. Thus this path **does not call the
 generic thing deleter `0x004B7B10`**. The wrapper first runs the creature death
@@ -168,7 +169,8 @@ creature standing instead. The sacking table, notification 20, bank event `0xDF`
 and Portal room effect are built with the hand-drop gate (hash/save 346). Ours
 unlinks immediately; the native deferred finished-object sweep remains unbuilt.
 The accepted disposal, get-up and level-placed entry paths share the gate;
-non-worker room entry retains the Casino countdown and job-hatred checks.
+non-worker room entry retains the Casino countdown; job 0 is never hated
+([room-drop evidence](hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--confirmed)).
 The creature bank event reaches Unity through `CreatureSoundDirector` and
 `ClassicSoundPlayer`; native playback acceptance is pending.
 

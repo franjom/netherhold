@@ -236,6 +236,5 @@ entry. `CreatureSoundDirector` carries its bank, group, position and actor voice
 to the existing `ClassicSoundPlayer`. No simulation state or random draw is added;
 hash/save 346 is unchanged. The parser/bank boundary is in
 [creature-leaving.md section 2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
-Focused verification: 18 combat cases and two presentation playback cases pass
-(`build/battle-call-green.log`, `build/battle-call-playback.log`).
+Focused verification: 18 combat cases and two presentation playback cases pass.
 Unity hearing acceptance has not run.

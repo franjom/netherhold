@@ -65,16 +65,9 @@ public sealed class HeldItemStack
         }
     }
 
-    /// <summary>Whether the bin shows: our click disposes of the top item here, and DK2's bit 0x04 rule
-    /// agrees. The click's rule is <see cref="HandRules.CreatureLands"/>' <c>disposed</c>
-    /// (<see cref="DisposalRules.Disposes"/>, never a prisoner, the Heart not ruined), so the cursor
-    /// never promises a disposal the click does not make. DK2's rule (<c>0x0040AE80</c>) only narrows
-    /// it: the creature is the player's own, and an IsWorker+IsEvil creature is disposed over the
-    /// player's own Heart centre (tile code <c>0x40</c>), any other over its own Portal centre (code 4).
-    /// Where the two disagree the cursor follows the click: a non-evil worker over its own Portal
-    /// centre gets DK2's bin but our No Go, since <see cref="DisposalRules"/> keys the Heart on
-    /// IsWorker alone and our landing guard refuses that drop. Whether DK2 keeps cell <c>0x40</c>, and
-    /// so its bin, once the Heart is ruined is unread; ours shows none.</summary>
+    /// <summary>The bin follows the accepted disposal rule for the player's own creature,
+    /// including Portal and Hero Portal centres. See placement-cursor.md and the owner's
+    /// 2026-10-31 Hero Portal observation. Prisoners and a ruined Heart do not promise disposal.</summary>
     public static bool Disposes(WorldState world, GameDatabase database, PlayerId player, HandItem item, TilePos at)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
@@ -82,11 +75,6 @@ public sealed class HeldItemStack
         if (item.IsObject || world.CreatureById(item.Id) is not CreatureState creature) return false;
         if (creature.OwnerPlayerId != player.Value) return false;
         HandRules.CreatureLands(world, database, player, creature, at, out bool disposed);
-        if (!disposed) return false;
-        CreatureFlags flags = database.CreatureById(creature.CreatureTypeId).Flags;
-        bool evilWorker = (flags & (CreatureFlags.IsWorker | CreatureFlags.IsEvil)) == (CreatureFlags.IsWorker | CreatureFlags.IsEvil);
-        return evilWorker
-            ? DisposalRules.IsHeartCentreTile(world, database, at, player)
-            : PortalRules.IsHoleTile(world, database, at, player);
+        return disposed;
     }
 }

@@ -281,6 +281,17 @@ public sealed class PlacementCursorTests
         Assert.Equal((false, false, true), (heart.Valid, heart.Dispose, heart.NoGo));
     }
 
+    [InstallFact]
+    public void OwnHeroPortalCentreShowsTheBinAsOwnerObservedOn20261031()
+    {
+        (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        TilePos portal = PaintedPortalCentre(world, db, keeper, RoomTypeId.HeroPortal);
+        Hold(world, world.SpawnCreature(db, GoblinType, keeper, Claimed(world, db, keeper, 0)));
+        PlacementFeedback bin = PlacementCursor.HandDrop(world, db, keeper, portal);
+        Assert.Equal((true, true, false), (bin.Valid, bin.Dispose, bin.NoGo));
+        Assert.False(PlacementCursor.HandDrop(world, db, keeper, new TilePos(portal.X - 1, portal.Y)).Dispose);
+    }
+
     /// <summary>The Portal disposal arm excludes type 1, so a converted Dwarf can use it.</summary>
     [InstallFact]
     public void ANonEvilWorkerGetsThePortalBinButCannotUseTheHeart()
@@ -342,7 +353,7 @@ public sealed class PlacementCursorTests
     }
 
     /// <summary>A 3×3 Portal the keeper owns, painted over claimed floor in the map corner away from the Heart.</summary>
-    private static TilePos PaintedPortalCentre(WorldState world, GameDatabase db, PlayerId keeper)
+    private static TilePos PaintedPortalCentre(WorldState world, GameDatabase db, PlayerId keeper, RoomTypeId type = RoomTypeId.Portal)
     {
         byte claimed = world.Tile(Claimed(world, db, keeper, 0)).TerrainId;
         int x0 = HeartCentre(world, db, keeper).X > world.Width / 2 ? 2 : world.Width - 5;
@@ -352,7 +363,7 @@ public sealed class PlacementCursorTests
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = claimed;
                 tile.OwnerPlayerId = keeper.Value;
-                RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Portal), keeper);
+                RoomRules.Place(db, ref tile, db.Room(type), keeper);
             }
         return new TilePos(x0 + 1, 3);
     }

@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**352** - `0x810E5C15FF33ED63`. Remake regression pin, not native evidence. FormatVersion also352. Level-placed non-keeper-workers dispatch through Hero Portal room drops too; the cursor follows accepted disposal and job0 never refuses. No new fields. See [hand-drop-landing.md](hand-drop-landing.md). Saves from351 are refused.
+
 **351** - `0xFB2669798A3D3023`. Remake regression pin, not native evidence. FormatVersion also 351. Behaviour only: the alarm's refusal counts an owner's creature in 251 or 254, or walking to either, not one standing down in 252 (ADR-0609). Saves from 350 are refused.
 
 **350** - `0x788942D055141149`. Remake regression pin, not native evidence. FormatVersion also350. Hash/save CasinoBigWinnerSlappedCount and mirror the unpaid jackpot slap, including its post-debit spawn cap and simulation draws. See [casino-winner-slap.md](casino-winner-slap.md). Saves from349 are refused.
@@ -388,14 +390,4 @@ route targets resolve to their edge; ruins release the structure mask and obstac
 
 **130** — `0x1E3B2DF848B4A2F9`. Constructor worker flags and pickup gates (ADR-0262).
 
-**129** — `0x1E64CAC720660CBC`. Per-player casualty-priority mask (ADR-0261).
-
-**128** — `0xDBFD17A3B1351515`. Keeper-spell last-cast/last-checked clocks and
-one-shot mana expenditure (ADR-0260). 127 was reserved for the doors/traps
-branch, which changed no hashed state (ADR-0251), so it was never used.
-
-**126** — `0x1C559815D4AB992B`, the research tree: a keeper's target, each availability row's `Upgraded`, a book's research kind and type (ADR-0247). **125** — `0x5D8E842FA7697068`. Persist the state-entry turn used by the
-state-199 message prologue; ADR-0246.
-
-**124** — `0x00C706A5C1D92221`, retained player messages and their next id (ADR-0245). **123** — `0x14316E84B1FDB0F7`, each room tile's place in its slab chain and the next one to hand out (ADR-0240). **122** — `0xED95A480A9DB92C5`, `LevelTimeLimit` and `SpecialInfoNextRoomTypeId` (ADR-0235). **121** — `0x954849F97CFC0296`, a door's orientation (ADR-0233). **120** — `0x88F728EFC351D95D`, what a keeper has learned from torture (ADR-0230). **119** — `0xE5005E1E7800B920`, a Prison's door (ADR-0229). **118** — `0x89637C687FBCC88D`, a spectator's remembered position and a Combat Pit's fight stamp (ADR-0227). **117** — `0xFA805D7B0DCA5668`, OldFightPos and OldFightTick (ADR-0225). **116** — `0xAACD3B15D9CFDCFF`, an idle worker's wander stamp and action timer (ADR-0224). **115** — `0x9D966A6EC7AC034A`, a tunnelling worker's plan (ADR-0222). **114** — `0x7AE4DE645C0A63A1`, a creature's origin tile, where a thief escapes to (ADR-0219). **113** — `0xFBE9C5B2CC6DE5EC`, `SkipNextPayment` joins `GetPaid` (ADR-0217). **112** — `0x2EF320B63DEDBBD1`, a hero's standing job and its party walk (ADR-0216). **111** — `0x92F1E00A712726B0`, the job a creature was dropped on (ADR-0215). **110** — `0x2B65E45AF14CB7A7`, a keeper's blueprint list (ADR-0214). **109** — `0x1754FA244591A3A6`, a Combat Pit fighter, its forced target and its state's turn (ADR-0213). **108** — `0xEE02B16BC2932E35`, a guard's facing, deadline and lost turn (ADR-0212). **107** — `0x01B0EBC839B5A5B4`, the activity is derived from the state and leaves the hash and the save (ADR-0211). **106** — `0x52719F6004D8BDBB`, every creature holds a state from its constructor on: 1 where it had held none, so the pinned world's two creatures moved it (ADR-0209). **105** — `0xDBC19E3981F90A36`, the Workshop's points, list and crates (ADR-0203). **104** — `0xFB68B3CB26783D05`, pay's cadence and the drop grace (ADR-0202). **103** — `0x1A5F99A4C9E39974`, freeing comrades (ADR-0201). **102** — `0x91DAFF09144DBA4F`, needs take a creature off its job (ADR-0198). **101** — `0x4543E72F3F20FE22`, a hero party raised by action 14 (ADR-0197); **100** — `0xFB318DBAE28A937F`, The Mistress's Torture job (ADR-0196).
-[Versions 9–99](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–129](hash-versions-early.md) retain the earlier pins and their reasons.

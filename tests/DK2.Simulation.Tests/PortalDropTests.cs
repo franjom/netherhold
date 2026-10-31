@@ -93,6 +93,22 @@ public sealed class PortalDropTests
     }
 
     [Fact]
+    public void LevelPlacedNonKeeperWorkerUsesHeroPortalRoomDropAfterGettingUp()
+    {
+        var (sim, creature, _) = Setup(portalOwner: PlayerIds.Good, worker: true, portalType: RoomTypeId.HeroPortal);
+        sim.World.ChangeCreatureOwner(creature, PlayerIds.Good);
+        creature.PosX = CreatureState.CentreOf(6);
+        creature.PosY = CreatureState.CentreOf(6);
+        creature.Flags |= LevelPlacedCreatureRules.PlacedAsDropped;
+        creature.Dk2StateId = DropLandingRules.LandingState;
+        var placed = new GameSimulation(sim.Database, sim.World, 1, [new AutoFurnitureSystem(), new CreatureStatusSystem(), new CreatureJobSystem()]);
+        placed.Tick();
+        Assert.Equal(197, creature.Dk2StateId);
+        placed.Tick();
+        Assert.DoesNotContain(creature, sim.World.Creatures);
+    }
+
+    [Fact]
     public void NonWorkerHandDropRespectsCasinoWinnerGate()
     {
         var (sim, creature, _) = Setup();
@@ -121,13 +137,13 @@ public sealed class PortalDropTests
         else Assert.NotEqual(197, creature.Dk2StateId);
     }
 
-    private static (GameSimulation Sim, CreatureState Creature, ListEventSink Events) Setup(byte portalOwner = 3, bool worker = false)
+    private static (GameSimulation Sim, CreatureState Creature, ListEventSink Events) Setup(byte portalOwner = 3, bool worker = false, RoomTypeId portalType = RoomTypeId.Portal)
     {
         GameDatabase fixture = Dk2TerrainFixture.Database();
         GameDatabase db = new(fixture.Terrain.Values,
             fixture.Rooms.Values.Select(r => r.TypeId == RoomTypeId.Portal ? r with { CreatedObjectEffectId = 96 } : r),
             fixture.Creatures.Values.Select(c => worker && c.CreatureId == 7 ? c with { Flags = c.Flags | CreatureFlags.IsWorker } : c), fixture.Variables);
-        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, (byte)3, (byte)4]);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, (byte)3, (byte)4]);
         for (int y = 4; y <= 8; y++)
         for (int x = 4; x <= 8; x++)
         {
@@ -135,7 +151,7 @@ public sealed class PortalDropTests
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = PlayerIds.FirstKeeper;
             if (x is >= 5 and <= 7 && y is >= 5 and <= 7)
-                RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Portal), portalOwner);
+                RoomRules.Place(db, ref tile, db.Room(portalType), portalOwner);
         }
         var creature = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(4, 4));
         var events = new ListEventSink();

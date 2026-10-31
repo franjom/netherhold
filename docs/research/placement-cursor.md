@@ -391,10 +391,9 @@ Both show No Go over the HUD. The spell's No Go shift of 2 pixels uses the price
 
 **Held items (2026-10-23).** `HandDrop` returns `PlacementIcon.Held`, No Go where `DropLands`
 refuses, and `Dispose` for a drop that lands. `HeldItemStack.Disposes` asks the click's own rule
-(`CreatureLands`' disposal: `DisposalRules`, no prisoner, the Heart not ruined) and keeps bit
-0x04's only to narrow it, so the bin never promises what the click does not do. Where they differ
-the cursor follows the click: a non-evil worker over its own Portal's centre gets DK2's bin but
-our No Go (`DisposalRules` keys the Heart on IsWorker). Ours has no queued drops, so icon 0 is the
+(`CreatureLands`' disposal: `DisposalRules`, no prisoner, the Heart not ruined), including
+both own Portal and Hero Portal centres. The owner's Hero Portal confirmation is recorded in
+[structure-blocks.md](structure-blocks.md#confidence). Ours has no queued drops, so icon 0 is the
 hand's top. `DungeonRunner.HeldIcons` gates the icons apart from the cage: Options hides them,
 possession and the full map do not; the result bit 0x01 is not mirrored. The overlay draws them in
 DK2's order at the tool icon's scale (HYPOTHESIS).
