@@ -1071,7 +1071,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Interval, read from the original: `interval = (int)( ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776) ) * V19`, returned in whole game seconds; the caller converts to ticks (truncation before the multiply).
 - A fixed-point table rather than `Math.Pow`: eggs are hashed and IEEE-754 `pow` is not bit-identical across runtimes. `HatcheryClockTests` regenerates all 256 entries from `Math.Pow` and compares.
 - The 3×3 quirk is reproduced: `pow(9, e)` = 2.0000566, so `16 / 2.0000566` = 7.99977 truncates to 7, not 8. `hatchery.md`'s table says 7.
-- State: rooms are derived (`RoomInstance`) and DK2 keeps `GameTickLastGenerated` on the room object, so the laying clock is on the room's lowest tile index (`TileState.HatchTicks`, following `EntranceIdleTicks`) and each egg's countdown on the object (`ObjectState.TimerTicks`, where DK2 keeps it in the union). A hatchery whose lowest tile changes restarts its clock (at most one interval).
+- State: the derived room stores its laying clock on its lowest tile and each egg stores its countdown on the object (`ObjectState.TimerTicks`). ADR-0606 supersedes the elapsed laying clock and its room-change reset policy.
 - Hatching runs before laying, so an egg is not aged on the second it is laid.
 
 **Consequences.**
@@ -7676,7 +7676,7 @@ could not fire for any hatchery of six tiles or more.
 
 **Decision.**
 - `EatingRules.HoldsAChicken` is the stocked test, for the walk and the messages alike.
-- `TileState.ChickensGenerated` is `room+0x51` on the lowest tile, as `HatchTicks` is:
+- `TileState.ChickensGenerated` is `room+0x51` on the lowest tile, as the Hatchery clock is:
   `HatcheryRules` counts each egg, and `SlabChain.Changed` drops it from a changed tile.
 - `CreatureEatSystem` runs its finder before the already-inside shortcut, as
   `Hunger_TryToEat` does, and a failure calls `RoomNeedRules.NoHatcheryFor` (41, 43 by an
@@ -14107,3 +14107,16 @@ the terrain health conversion for each fill; same-type healing retains its owner
 
 **Evidence and limits:** [wall-corner-fill.md](research/wall-corner-fill.md).
 No new persistent fields. Campaign wall-count parity remains unestablished.
+
+## ADR-0606 - retain the Hatchery level-start interval
+
+**Status:** implemented, 2026-10-31. Q695, hash/save348.
+
+**Decision.** Apply the size-step interval to existing Hatcheries at level start,
+after ordinary construction. Retain it until a tile pass. Use the native
+last-generated timestamp and check laying every turn, including failed attempts.
+Growth retains the surviving clock; removing a tile starts new piece clocks.
+
+**Evidence:** [hatchery-startup.md](research/hatchery-startup.md).
+The room's lowest tile stores the clock and startup override; both are hashed
+and snapshotted. Restoring a snapshot skips the level-start override.

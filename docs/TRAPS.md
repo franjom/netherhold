@@ -115,6 +115,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Builds, tests and dk2tools
 
+- `SaveLoadingBoundsTests.DuplicateSecretDoorKeysAreWrappedWithPosition` uses the remake snapshot tile stride; update it when tile fields change, or its corruption lands in another section.
+
 - Record HEAD with the build command; a later provenance snapshot can name a newer commit while the measured binaries remain unchanged.
 
 - `setup-dotnet` installs the exact SDK from `global.json`, ignoring its roll-forward policy; use a published SDK version, not the runtime version `10.0.0`.

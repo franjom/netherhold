@@ -1,8 +1,7 @@
 # Handoff
 
-Current state and the next useful action live here. Git holds the history. DK2
-facts and their evidence live in docs/research/, decisions in docs/DECISIONS.md,
-and unknowns in docs/research/open-questions.md (AGENTS.md: one fact, one home).
+Current state and next actions live here; evidence and decisions stay in their
+canonical documents (AGENTS.md: one fact, one home).
 
 ## Current state
 
@@ -11,6 +10,8 @@ The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
+- Hatchery startup and room-change clocks are built (ADR-0606, Q695, hash/save 348);
+  [scope and native validation limits](research/hatchery-startup.md#built-scope).
 - Wall corner fill is built at hash/save 347 (ADR-0605, Q694);
   [scope and replay limits](research/wall-corner-fill.md#built-scope-and-replay-limits).
 

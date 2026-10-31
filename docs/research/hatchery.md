@@ -154,7 +154,12 @@ What matters for the determinism gate is that the draw happens in a fixed order.
 
 ## 4. How often it lays
 
-The interval is computed from the room's tile count, and the formula is exact:
+After a tile pass, the interval is computed from the room's tile count:
+
+Fresh-level Hatcheries instead retain a size-step table until a tile pass.
+The startup table, writer order and first-lay stamp are recorded in
+[hatchery-startup.md](hatchery-startup.md) (Q695, ADR-0606). Runtime construction
+uses the following power formula:
 
     interval = (int)( ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776) ) * V19
 
@@ -201,7 +206,8 @@ the eighth decimal place would hand one machine 8 and another 7 and diverge the
 run. `HatcheryClockTests` regenerates the table from `Math.Pow` and compares, so
 the table is provably the formula while the simulation never touches a float.
 
-So a 3x3 hatchery lays every 7 game seconds and a 6x6 every 5.
+With the runtime formula, a 3x3 hatchery lays every 7 game seconds and a 6x6
+every 5. The fresh-level table gives those sizes 12 and 3 seconds respectively.
 
 `HatcheryRules.LayIntervalSeconds` returns **whole game seconds** and the caller
 converts, because the truncation happens before the multiply.
@@ -241,8 +247,11 @@ per-kind state is **`FreeRange`, `PeckingTimer`, `StayThere`,
 ## 6. Implementation
 
 `HatcherySystem` advances the coop and egg object processes each tick, using
-shipped integer art timing. Laying remains checked once a game second on the
-room interval. `HatcheryRules` counts registered chickens for room capacity;
+shipped integer art timing. Laying is checked every turn against the room's
+last-generated stamp; an attempted lay stamps the turn even on refusal. Coop
+maintenance remains once a game second. Startup and room-change clock handling
+are described in [hatchery-startup.md](hatchery-startup.md#built-scope).
+`HatcheryRules` counts registered chickens for room capacity;
 eggs consume none. Full rooms use the coop branch below the owner's free-range
 cap. Metadata-free synthetic definitions retain the ADR-0066 two-second hatch
 fallback. Object animation and launch evidence lives in
@@ -261,6 +270,9 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 
 ## Known exceptions
 
+- `ChickensGenerated` still follows the lowest tile rather than the room
+  lifetime (section 3, ADR-0335). Clock migration is built separately
+  (ADR-0606); it does not fix this count deviation.
 - The nine-tile truncation to 7 rather than 8 (§4), reproduced.
 - DK2 deletes every auto-placed coop on each change and places them all again,
   with new ids in the new chain order, each with its angle and one

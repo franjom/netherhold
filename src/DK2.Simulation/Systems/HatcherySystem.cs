@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation.Systems;
 
 /// <summary>
-/// The Hatchery: per-tick egg and coop processes, with laying checked once a game second.
+/// The Hatchery: per-tick egg and coop processes and laying checks; coop maintenance once a second.
 /// <para>The rules are <see cref="HatcheryRules"/> — how many coops a room of a
 /// given size gets and where they may stand, an <b>Egg</b> (object 47) laid at a
 /// chosen floor point or a full room's coop, becoming a <b>Chicken</b> (object 9) on art completion,
@@ -27,13 +27,9 @@ public sealed class HatcherySystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         StepObjectAnimations(context);
-        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond != 0) return;
 
-        // Hatching BEFORE laying, so an egg is not aged on the second it is
-        // laid: a thing that arrives this second has not yet spent one. The
-        // other order gives a two-second egg a one-second life
-        // (HatcheryClockTests.AnEggBecomesAChickenTwoSecondsAfterItIsLaid).
-        Hatch(context);
+        // Fallback hatching precedes laying so an egg is not aged on its lay turn.
+        if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0) Hatch(context);
         Lay(context);
     }
 
@@ -84,7 +80,7 @@ public sealed class HatcherySystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Every hatchery gets its coops, then counts towards its next egg.
+    /// Maintains coops once a second and checks each room's last-generated stamp every turn.
     /// </summary>
     private static void Lay(SimulationContext context)
     {
@@ -100,7 +96,8 @@ public sealed class HatcherySystem : ISimulationSystem
             // built: a hatchery that grows gets the coops its new size allows,
             // on the tiles HatcheryRules picks. Cheap when there is nothing to
             // add, which is every second but the first.
-            int added = HatcheryRules.PlaceCoops(world, database, room);
+            int added = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0
+                ? HatcheryRules.PlaceCoops(world, database, room) : 0;
             if (added > 0)
             {
                 context.Emit(SystemName, "coops_placed",
@@ -110,15 +107,12 @@ public sealed class HatcherySystem : ISimulationSystem
             }
 
             // The clock lives on the room's lowest tile, because a room here is
-            // derived and cannot hold state of its own (TileState.HatchTicks).
+            // derived and cannot hold state of its own (TileState.HatcheryLastGeneratedTick).
             ref TileState clock = ref world.TileAtIndex(room.TileIndices[0]);
-            clock.HatchTicks += SimulationTiming.TicksPerSecond;
-
-            int intervalTicks = SimulationTiming.TicksFromSeconds(
-                HatcheryRules.LayIntervalSeconds(database, room));
-
-            if (intervalTicks <= 0 || clock.HatchTicks < intervalTicks) continue;
-            clock.HatchTicks = 0;
+            int intervalTicks = HatcheryRules.GenerationIntervalTicks(world, database, room);
+            long now = context.Tick.Value + 1;
+            if (now < clock.HatcheryLastGeneratedTick + intervalTicks) continue;
+            clock.HatcheryLastGeneratedTick = now;
 
             ObjectState? egg = HatcheryRules.TryLayEgg(world, database, room, context.Rng);
             if (egg is null)
@@ -136,7 +130,7 @@ public sealed class HatcherySystem : ISimulationSystem
             context.Emit(SystemName, "egg_laid",
                 $"player={room.OwnerPlayerId} egg={egg.Id} " +
                 $"{Describe(world, egg.TileIndex)} " +
-                $"interval={HatcheryRules.LayIntervalSeconds(database, room)}s " +
+                $"interval={intervalTicks / SimulationTiming.TicksPerSecond}s " +
                 $"tiles={room.TileCount}");
         }
     }

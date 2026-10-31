@@ -150,36 +150,30 @@ public struct TileState
     /// (<c>ARivalTakingAWornPortalGetsItAtTheBaseInterval</c>).</para></summary>
     public int EntranceCreaturesGenerated;
 
-    /// <summary>
-    /// A hatchery's clock towards its next egg, on the room's lowest tile index
-    /// and zero everywhere else. DK2 keeps it on the room — its room debug dump
-    /// prints <c>GameTickLastGenerated</c>, <c>GenerationSpeed</c> and
-    /// <c>ChickensGenerated</c> for the Hatchery case — but rooms here are derived
-    /// rather than stored (<see cref="RoomInstance"/>), and the lowest tile index
-    /// is stable because <c>RoomInstance.TileIndices</c> is kept ascending.
-    /// <para>Deviation: a hatchery that grows or is cut so that its lowest tile
-    /// changes starts its clock again, where the original's clock belongs to the
-    /// room object and survives. Costs at most one laying interval, and only while
-    /// a keeper is building.</para>
-    /// </summary>
-    public int HatchTicks;
+    /// <summary>Native-turn timestamp of the last lay attempt (room +0x49), kept on
+    /// the room's lowest tile. Growth and merging preserve the surviving room's stamp;
+    /// removal constructs new rooms and restarts it.</summary>
+    public long HatcheryLastGeneratedTick;
+
+    /// <summary>The level-start size-table override; zero uses the ordinary tile-pass formula.</summary>
+    public int HatcheryStartupIntervalTicks;
 
     /// <summary>A hatchery's <c>ChickensGenerated</c> (<c>room+0x51</c>), on the same tile as
-    /// <see cref="HatchTicks"/>: eggs laid since the room was made. Zeroed by the room's init
+    /// <see cref="HatcheryLastGeneratedTick"/>: eggs laid since the room was made. Zeroed by the room's init
     /// <c>0x004DE060</c>, bumped by each egg <c>0x004DE620</c> creates; the finder's 42 needs it
-    /// nonzero (<see cref="RoomNeedRules.NoHatcheryFor"/>). The same lowest-tile deviation: growth
+    /// nonzero (<see cref="RoomNeedRules.NoHatcheryFor"/>). The count still has a lowest-tile deviation: growth
     /// below that tile, a merge or its sale loses the count, and a tile that leaves its room
     /// drops it (<see cref="SlabChain.Changed"/>, Q522).</summary>
     public int ChickensGenerated;
 
     /// <summary>A Combat Pit's <c>+0x53</c>: the turn <c>0x004D7CF0</c> last found a fight on its
-    /// floor, on the room's lowest tile index like <see cref="HatchTicks"/> and zero elsewhere. The
+    /// floor, on the room's lowest tile index like <see cref="HatcheryLastGeneratedTick"/> and zero elsewhere. The
     /// spectators' 144 and job 26 read it for the quiet spell after a fight
     /// (<see cref="CombatPitSpectatorRules"/>). The same deviation: a pit whose lowest tile changes
     /// forgets it.</summary>
     public long PitFightSeenTick;
 
-    /// <summary>A Casino's jackpot party, on the room's lowest tile like <see cref="HatchTicks"/>:
+    /// <summary>A Casino's jackpot party, on the room's lowest tile like <see cref="HatcheryLastGeneratedTick"/>:
     /// <see cref="CasinoJackpotRules.PartyBit"/> is room <c>+0x41</c>, <see cref="CasinoJackpotRules.MusicBit"/>
     /// room <c>+0x3D</c>; <see cref="CasinoPartyStartTick"/> is <c>+0x45</c> (casino.md §8–§9).</summary>
     public byte CasinoParty;
@@ -187,7 +181,7 @@ public struct TileState
     /// <inheritdoc cref="CasinoParty"/>
     public long CasinoPartyStartTick;
 
-    /// <summary>A Prison's door, on the room's lowest tile like <see cref="HatchTicks"/>: its
+    /// <summary>A Prison's door, on the room's lowest tile like <see cref="HatcheryLastGeneratedTick"/>: its
     /// <c>Activation</c>, <c>DoorOpen</c> and <c>PrisonJailBroken</c> as the bits of
     /// <see cref="JailBreakRules.Activated"/>, <see cref="JailBreakRules.Open"/> and
     /// <see cref="JailBreakRules.Broken"/>.</summary>
@@ -283,7 +277,8 @@ public struct TileState
         hash.Add(BurnTicksRemaining);
         hash.Add(EntranceIdleTicks);
         hash.Add(EntranceCreaturesGenerated);
-        hash.Add(HatchTicks);
+        hash.Add(HatcheryLastGeneratedTick);
+        hash.Add(HatcheryStartupIntervalTicks);
         hash.Add(ChickensGenerated);
         hash.Add(PitFightSeenTick);
         hash.Add(CasinoParty);

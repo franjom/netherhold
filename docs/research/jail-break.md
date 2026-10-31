@@ -98,7 +98,7 @@ per creature it releases, and on the no-door path only when a rim tile is found.
 ## 7. Ours
 
 - The door's three flags are one byte, `PrisonDoor`, on the room's lowest tile, like
-  `HatchTicks`.
+  `HatcheryLastGeneratedTick`.
 - The overcrowding break now releases through the door. It used to free prisoners where they
   stood.
 - A prisoner on a 3x3 Prison's rim is not on its floor, and no release reaches it, as in DK2.

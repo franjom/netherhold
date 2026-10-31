@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**348** - `0x2EA2FC3942511454`. Remake regression pin, not native evidence. FormatVersion also348. Hatchery last-generated timestamp replaces elapsed ticks; hash/save the startup size-table interval. Per-turn lay attempts, growth preserves the stamp, removal restarts it. See [hatchery-startup.md](hatchery-startup.md). Saves from347 are refused.
+
 **347** - `0x3DCB1471152C43A9`. Remake regression pin, not native evidence. FormatVersion also347. State22 fills wall corners after its action finishes; no new fields. See [wall-corner-fill.md](wall-corner-fill.md). Saves from346 are refused.
 
 **346** - `0xF10BB96BACBE545B`. FormatVersion also346. Persist/hash the keeper's last-sacked creature type; Portal hand drops enter197 and call196's sacking effects. See creature-leaving.md section2. Saves and journals from345 are refused.
