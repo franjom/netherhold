@@ -1071,7 +1071,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Interval, read from the original: `interval = (int)( ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776) ) * V19`, returned in whole game seconds; the caller converts to ticks (truncation before the multiply).
 - A fixed-point table rather than `Math.Pow`: eggs are hashed and IEEE-754 `pow` is not bit-identical across runtimes. `HatcheryClockTests` regenerates all 256 entries from `Math.Pow` and compares.
 - The 3×3 quirk is reproduced: `pow(9, e)` = 2.0000566, so `16 / 2.0000566` = 7.99977 truncates to 7, not 8. `hatchery.md`'s table says 7.
-- State: rooms are derived (`RoomInstance`) and DK2 keeps `GameTickLastGenerated` on the room object, so the laying clock is on the room's lowest tile index (`TileState.HatchTicks`, following `EntranceIdleTicks`) and each egg's countdown on the object (`ObjectState.TimerTicks`, where DK2 keeps it in the union). A hatchery whose lowest tile changes restarts its clock (at most one interval).
+- State: the derived room stores its laying clock on its lowest tile and each egg stores its countdown on the object (`ObjectState.TimerTicks`). ADR-0606 supersedes the elapsed laying clock and its room-change reset policy.
 - Hatching runs before laying, so an egg is not aged on the second it is laid.
 
 **Consequences.**
@@ -7676,7 +7676,7 @@ could not fire for any hatchery of six tiles or more.
 
 **Decision.**
 - `EatingRules.HoldsAChicken` is the stocked test, for the walk and the messages alike.
-- `TileState.ChickensGenerated` is `room+0x51` on the lowest tile, as `HatchTicks` is:
+- `TileState.ChickensGenerated` is `room+0x51` on the lowest tile, as the Hatchery clock is:
   `HatcheryRules` counts each egg, and `SlabChain.Changed` drops it from a changed tile.
 - `CreatureEatSystem` runs its finder before the already-inside shortcut, as
   `Hunger_TryToEat` does, and a failure calls `RoomNeedRules.NoHatcheryFor` (41, 43 by an
@@ -8824,12 +8824,14 @@ an application where DK2 gives 3: the loader divides every rate by variable 19 w
 (`0x0051CBA0`), so 22 is stored as 5, and the action (`0x00497AC0`) floors 5 × 0.8.
 
 **Decision.** The reinforce priority takes `RepairWall` when `Reinforce` does not apply, on the
-same stance and own-floor test, recorded as task kind 6 since both resume through one handler.
+same stance and own-floor test, recorded as task kind 16 (ADR-0405).
 `RepairWall` applies to `0x00453E30`'s tile. `SimulationTiming.WorkApplication` replaces the
 shift of fourteen: truncate the tabled value over four, then floor it times the rate. They differ
 only where four does not divide the value: repair, and claiming (825) and own-wall digging
-(−130) with both bonuses. Deviates: DK2 records kind 16; the own wall below half health that
-`0x00453E90` gives kind 6 (reinforce, rate 50) is repaired at 22 in ours (Q564); the own-floor test omits `0x00453B30`'s Ownable bit, as the reinforce path always has; the divisor is the constant four, not live variable 19.
+(−130) with both bonuses. Fresh kind-6 selection and its separate action guard
+follow ADR-0607 (Q564).
+Remaining deviations: the own-floor test omits `0x00453B30`'s Ownable bit;
+the divisor is the constant four, not live variable 19.
 
 **Measured** (hash 192), Level 11A with keepers 4 to 7 running, as DK2 runs them (the comparison
 had run Drako's AI alone): Morgana repairs from 92 (DK2 101), the wall falls at 362 (387), the
@@ -14108,8 +14110,33 @@ the terrain health conversion for each fill; same-type healing retains its owner
 **Evidence and limits:** [wall-corner-fill.md](research/wall-corner-fill.md).
 No new persistent fields. Campaign wall-count parity remains unestablished.
 
-## ADR-0606 - Only a raiser or reporter on its way or there refuses another alarm
-**Date:** 2026-10-31 · **Status:** accepted · Hash/save 348 · Q665 · Research: [combat-alarm.md](research/combat-alarm.md#2-raising-the-alarm-0x004752b0state-threatpos-deficit), [level4-outcomes.md](research/level4-outcomes.md); KB `004754D0`, `00460B50`
+## ADR-0606 - retain the Hatchery level-start interval
+
+**Status:** implemented, 2026-10-31. Q695, hash/save348.
+
+**Decision.** Apply the size-step interval to existing Hatcheries at level start,
+after ordinary construction. Retain it until a tile pass. Use the native
+last-generated timestamp and check laying every turn, including failed attempts.
+Growth retains the surviving clock; removing a tile starts new piece clocks.
+
+**Evidence:** [hatchery-startup.md](research/hatchery-startup.md).
+The room's lowest tile stores the clock and startup override; both are hashed
+and snapshotted. Restoring a snapshot skips the level-start override.
+
+## ADR-0607 - separate reinforcement selection from its work guard
+
+**Status:** implemented, 2026-10-31. Q696, Q564, hash/save349.
+
+**Decision.** Select kind6 using its own owner/health predicate before kind16
+repair. Apply action7 only to an eligible neutral wall touching own floor.
+Preserve neutral ownership when the max-health terrain is unchanged.
+
+**Evidence:** [wall-reinforce-eligibility.md](research/wall-reinforce-eligibility.md).
+The own-wall branch selects6 but its action does no health work; this replaces
+Q564's proposed50-rate repair. No new persistent state.
+
+## ADR-0608 - Only a raiser or reporter on its way or there refuses another alarm
+**Date:** 2026-10-31 · **Status:** accepted · Hash/save 350 · Q665 · Research: [combat-alarm.md](research/combat-alarm.md#2-raising-the-alarm-0x004752b0state-threatpos-deficit), [level4-outcomes.md](research/level4-outcomes.md); KB `004754D0`, `00460B50`
 
 **Context.** A fleeing Imp whose hero stands near its keeper's Guard Rooms raises the alarm, and
 when `0x004752B0` refuses, the flee ends and the Imp stands idle (`0x0046097C` to `0x00460B37`). The
@@ -14127,6 +14154,6 @@ walking to either) and measures from `0x004755C0`'s point (a 251 raiser's `Alarm
 `PosX`/`PosY`). The point's category step reads the table at `0x006DA8C7`, unmapped in Ghidra; state 6's
 category 2 and 251's 22 and 254's 26 are the repo's (combat-category-hooks.md, state-categories.md).
 
-**Consequences.** Hash/save 348 refuses 347. `CombatAlarmPointTests` pins the state cases (252 and a walk
+**Consequences.** Hash/save 350 refuses 349. `CombatAlarmPointTests` pins the state cases (252 and a walk
 to it count for nothing, nor a state-7 walk) and the point (a 251 raiser by its threat, a walker by its
 position); four of them fail on the old test. The Guard Post's report (`TrapRules`) uses the same test.

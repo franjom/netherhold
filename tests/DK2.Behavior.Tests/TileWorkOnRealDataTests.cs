@@ -117,8 +117,9 @@ public class TileWorkOnRealDataTests
         Assert.Equal(1, tile.OwnerPlayerId);
 
         TileState wall = Tile(db, rock);
+        wall.OwnerPlayerId = PlayerIds.Neutral;
         int swings = 0;
-        while (wall.TerrainId == rock)
+        while (wall.TerrainId == rock && swings < 1000)
         {
             TileWorkRules.Apply(db, ref wall, TileWorkKind.Reinforce, 1);
             swings++;

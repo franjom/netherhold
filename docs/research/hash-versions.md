@@ -14,7 +14,11 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
-**348** - `0x01A756C382847317`. Remake regression pin, not native evidence. FormatVersion also 348. Behaviour only: the alarm's refusal counts an owner's creature in 251 or 254, or walking to either, not one standing down in 252 (ADR-0606). Saves from 347 are refused.
+**350** - `0xCB161DF2DDAB9309`. Remake regression pin, not native evidence. FormatVersion also 350. Behaviour only: the alarm's refusal counts an owner's creature in 251 or 254, or walking to either, not one standing down in 252 (ADR-0608). Saves from 349 are refused.
+
+**349** - `0xE6AEC8BEDDDA969C`. Remake regression pin, not native evidence. FormatVersion also349. Mirror kind6 selection separately from action7's neutral-wall guard: neutral reinforced walls heal while retaining neutral ownership; own walls below half select6 but receive no health. No new fields. See [wall-reinforce-eligibility.md](wall-reinforce-eligibility.md). Saves from348 are refused.
+
+**348** - `0x2EA2FC3942511454`. Remake regression pin, not native evidence. FormatVersion also348. Hatchery last-generated timestamp replaces elapsed ticks; hash/save the startup size-table interval. Per-turn lay attempts, growth preserves the stamp, removal restarts it. See [hatchery-startup.md](hatchery-startup.md). Saves from347 are refused.
 
 **347** - `0x3DCB1471152C43A9`. Remake regression pin, not native evidence. FormatVersion also347. State22 fills wall corners after its action finishes; no new fields. See [wall-corner-fill.md](wall-corner-fill.md). Saves from346 are refused.
 

@@ -165,7 +165,11 @@ public static class RoomHealthRules
 
         int delta = ConvertPerApplication(database, tile.OwnerPlayerId, efficiency);
         RoomHealthOutcome applied = Apply(world, database, room, delta, playerId, context);
-        if (applied == RoomHealthOutcome.TookOver) SlabChain.ObserveCaptureMerges(world, room);
+        if (applied == RoomHealthOutcome.TookOver)
+        {
+            HatcheryRules.OnCaptureMerge(world, database, room);
+            SlabChain.ObserveCaptureMerges(world, room);
+        }
         TileWorkOutcome outcome = applied == RoomHealthOutcome.TookOver
             ? TileWorkOutcome.Transformed
             : delta == 0 ? TileWorkOutcome.NoChange : TileWorkOutcome.Progressed;

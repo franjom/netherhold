@@ -708,7 +708,7 @@ public class ImpFetchesGoldTests
         ref TileState wall = ref run.World.Tile(4, 2);
         wall.TerrainId = Dk2TerrainFixture.Rock;
         wall.Health = run.Db.TerrainById(Dk2TerrainFixture.Rock).StartingHealth;
-        wall.OwnerPlayerId = PlayerIds.Unowned;
+        wall.OwnerPlayerId = PlayerIds.Neutral;
 
         run.Ticks(4);
         CreatureState holder = run.Imp;
@@ -738,7 +738,7 @@ public class ImpFetchesGoldTests
         ref TileState wall = ref run.World.Tile(4, 2);
         wall.TerrainId = Dk2TerrainFixture.Rock;
         wall.Health = run.Db.TerrainById(Dk2TerrainFixture.Rock).StartingHealth;
-        wall.OwnerPlayerId = PlayerIds.Unowned;
+        wall.OwnerPlayerId = PlayerIds.Neutral;
 
         run.Ticks(4);
         Assert.Contains(run.Of("job_taken"), e => e.Detail.Contains("imp=" + run.Imp.Id) && e.Detail.Contains("Reinforce"));

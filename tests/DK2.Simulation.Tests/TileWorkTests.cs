@@ -120,7 +120,7 @@ public class TileWorkTests
         // Nine, not the ten tabled/5 gave; at ~255 ms a tick that is 14.2 s
         // against the owner's 13.1-13.8 s stopwatch, which the old 50 undershot
         // in one direction for a fortnight (Q47, Q62, ADR-0133).
-        TileState tile = TileOf(Dk2TerrainFixture.Rock);
+        TileState tile = TileOf(Dk2TerrainFixture.Rock, owner: PlayerIds.Neutral);
         int start = Db.TerrainById(Dk2TerrainFixture.Rock).StartingHealth;
 
         for (int i = 1; i <= 54; i++)

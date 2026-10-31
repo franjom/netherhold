@@ -52,9 +52,13 @@ public sealed class TileWorkSystem : ISimulationSystem
             }
             else
             {
-                result = TileWorkRules.Apply(
-                    context.Database, ref tile, order.Kind, order.PlayerId,
-                    EfficiencyOf(context, order.WorkerCreatureId), order.Multiplier, order.Strike);
+                bool lostReinforceFloor = order.Kind == TileWorkKind.Reinforce && order.WorkerCreatureId >= 0
+                    && !OwnFloorRules.Touches(context.Database, world,
+                        new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), order.PlayerId);
+                result = lostReinforceFloor
+                    ? new TileWorkResult(TileWorkOutcome.Rejected, 0, 0, 0, tile.TerrainId)
+                    : TileWorkRules.Apply(context.Database, ref tile, order.Kind, order.PlayerId,
+                        EfficiencyOf(context, order.WorkerCreatureId), order.Multiplier, order.Strike);
 
                 // Anything that made or unmade a room tile, a rival breaking one down, goes
                 // through the chain's own insert and replay.

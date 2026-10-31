@@ -124,8 +124,8 @@ public class HatcheryClockTests
         Assert.Contains(sink.Events, e => e.Kind == "coops_placed");
         Assert.DoesNotContain(sink.Events, e => e.Kind == "egg_laid");
 
-        // Nothing at six seconds, an egg at seven.
-        for (int i = 0; i < 5 * Second; i++) sim.Tick();
+        // This pre-placed 3x3 uses the startup table: nothing at eleven, an egg at twelve.
+        for (int i = 0; i < 10 * Second; i++) sim.Tick();
         Assert.DoesNotContain(sink.Events, e => e.Kind == "egg_laid");
 
         for (int i = 0; i < Second; i++) sim.Tick();
@@ -141,7 +141,7 @@ public class HatcheryClockTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 7 * Second; i++) sim.Tick();
+        for (int i = 0; i < 12 * Second; i++) sim.Tick();
 
         SimEvent laid = sink.Events.Single(e => e.Kind == "egg_laid");
         ObjectState egg = world.Objects.Single(
@@ -181,7 +181,7 @@ public class HatcheryClockTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        for (int i = 0; i < 8 * Second; i++) sim.Tick();
+        for (int i = 0; i < 13 * Second; i++) sim.Tick();
 
         RoomInstance now = RoomIndex.Build(world, db)
             .Single(r => r.Definition.TypeId == RoomTypeId.Hatchery);
@@ -224,7 +224,7 @@ public class HatcheryClockTests
         Hatchery(db, world, 3);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 8 * Second; i++) sim.Tick();
+        for (int i = 0; i < 13 * Second; i++) sim.Tick();
 
         byte[] bytes = WorldSnapshot.ToBytes(sim);
         GameSimulation restored = WorldSnapshot.FromBytes(

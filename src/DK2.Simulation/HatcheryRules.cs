@@ -11,15 +11,57 @@ namespace DK2.Simulation;
 /// <remarks><para>Every number is the original's, read out of <c>DKII.EXE</c>
 /// (docs/research/hatchery.md; balance-variables-in-the-binary.md for how the
 /// variable was identified).</para>
-/// <para>The laying interval is
+/// <para>After a tile pass, the laying interval is
 /// <c>(int)(ChickenGenerationTimePerHatchery / pow(tiles, 0.315477776)) × V19</c>,
 /// where V19 is DK2's ticks-a-game-second — a balance variable no shipped file
 /// supplies, because the <b>level header</b> does (Q132). It is 4 on every
-/// shipped level, and <see cref="Systems.HatcherySystem"/> drives the laying
-/// (ADR-0066).</para></remarks>
+/// shipped level. Fresh-level rooms retain the startup size table until a tile
+/// pass (ADR-0606); <see cref="Systems.HatcherySystem"/> drives laying.</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public static class HatcheryRules
 {
+    public static int StartupIntervalSeconds(int tiles) => tiles switch
+    {
+        <= 0 => 0,
+        <= 3 => 15,
+        <= 6 => 13,
+        <= 9 => 12,
+        <= 16 => 21 - tiles,
+        <= 19 => 4,
+        _ => 3,
+    };
+
+    internal static void InitializeLevelStart(WorldState world, GameDatabase database)
+    {
+        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
+            if (room.Definition.TypeId != RoomTypeId.Hatchery) continue;
+            ref TileState clock = ref world.TileAtIndex(room.TileIndices[0]);
+            clock.HatcheryLastGeneratedTick = world.CurrentTick.Value;
+            clock.HatcheryStartupIntervalTicks = SimulationTiming.TicksFromSeconds(StartupIntervalSeconds(room.TileCount));
+        }
+    }
+
+    public static int GenerationIntervalTicks(WorldState world, GameDatabase database, RoomInstance room)
+    {
+        int startup = world.TileAtIndex(room.TileIndices[0]).HatcheryStartupIntervalTicks;
+        return startup != 0 ? startup : SimulationTiming.TicksFromSeconds(LayIntervalSeconds(database, room));
+    }
+
+    internal static void OnCaptureMerge(WorldState world, GameDatabase database, RoomInstance captured)
+    {
+        if (captured.Definition.TypeId != RoomTypeId.Hatchery) return;
+        RoomInstance? merged = RoomIndex.RoomAt(world, database, captured.TileIndices[0]);
+        if (merged is null || merged.TileCount == captured.TileCount) return;
+        long stamp = world.TileAtIndex(captured.TileIndices[0]).HatcheryLastGeneratedTick;
+        foreach (int tile in merged.TileIndices)
+        {
+            world.TileAtIndex(tile).HatcheryStartupIntervalTicks = 0;
+            world.TileAtIndex(tile).HatcheryLastGeneratedTick = 0;
+        }
+        world.TileAtIndex(merged.TileIndices[0]).HatcheryLastGeneratedTick = stamp;
+    }
+
     /// <summary>Tiles per coop: <b>six</b>, integer division over every tile, the rim
     /// included (room <c>+0xA7</c>). A 3×3 hatchery is owed one coop and a 6×6 six, though
     /// only the interior holds them (<see cref="CoopTiles"/>).</summary>

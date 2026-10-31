@@ -100,7 +100,7 @@ public class CombatAlarmPointTests
 
     /// <summary><c>0x004754D0</c> counts a creature of the owner whose state, or a state-6 walk's arrival
     /// (<c>+0x32D</c>), is 251 or 254, within five tiles. A creature standing down in 252 after raising
-    /// one does not count, nor a walk to 252 or a state-7 walk (ADR-0606).</summary>
+    /// one does not count, nor a walk to 252 or a state-7 walk (ADR-0608).</summary>
     [Theory]
     [InlineData(251, 0, true)]
     [InlineData(254, 0, true)]
@@ -128,7 +128,7 @@ public class CombatAlarmPointTests
 
     /// <summary>The point each is judged by is <c>0x004755C0</c>'s: a raiser standing in 251 by the
     /// threat it raised (state <c>+0xA7/+0xAB</c>), wherever it stands; anyone else, a walker included,
-    /// by its own position and not its route's end (ADR-0606).</summary>
+    /// by its own position and not its route's end (ADR-0608).</summary>
     [Fact]
     public void ARaiserIsJudgedByItsThreatAndAWalkerByWhereItIs()
     {

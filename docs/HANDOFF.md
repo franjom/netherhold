@@ -1,8 +1,7 @@
 # Handoff
 
-Current state and the next useful action live here. Git holds the history. DK2
-facts and their evidence live in docs/research/, decisions in docs/DECISIONS.md,
-and unknowns in docs/research/open-questions.md (AGENTS.md: one fact, one home).
+Current state and next actions live here; evidence and decisions stay in their
+canonical documents (AGENTS.md: one fact, one home).
 
 ## Current state
 
@@ -11,8 +10,10 @@ The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
-- Wall corner fill is built at hash/save 347 (ADR-0605, Q694; the current hash/save is 348, ADR-0606);
-  [scope and replay limits](research/wall-corner-fill.md#built-scope-and-replay-limits).
+- Hatchery startup and room-change clocks are built (ADR-0606, Q695, hash/save 348);
+  [scope and native validation limits](research/hatchery-startup.md#built-scope).
+- Wall work: [corner fill](research/wall-corner-fill.md#built-scope-and-replay-limits) (ADR-0605, Q694, hash/save 347);
+  [reinforcement eligibility](research/wall-reinforce-eligibility.md#built-scope) (ADR-0607, Q696/Q564, hash/save 349).
 
 - The Mistress bed exit runs through state 84 at hash/save 335 (ADR-0586).
   Its inferred completion clock and presentation contract are in
@@ -79,7 +80,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
 - The reviewed chase-boundary correction is built (ADR-0590, accepted for
   integration, 2026-10-30); its give-up drops a held forced target at hash/save 337 (ADR-0591). The completed
-  matched-master comparison leaves Q665's exposure gap unresolved; a fighter now looks for a victim before it celebrates (ADR-0592, hash/save 338), which brings celebrations near DK2's but not zone time, and Imp deaths rose; the step back follows the heading (ADR-0593, hash/save 339): Imp deaths 33.4 to 28.1 a run, not significant; it then slides as DK2 spends its impulse, without turning (ADR-0594, hash/save 340; [measured](research/level4-outcomes.md#keeper-fighters-at-the-party-4-gate-q665-hash-338-340-adr-0593-adr-0594) on eight scratch runs); a melee swing's hold now ends on the animation poll turn, a turn later (ADR-0598, hash/save 342; [Imp-side findings](research/level4-outcomes.md#the-imps-side-at-hash-340-q665-adr-0598): heroes then hit targeted Imps 0.0543 against DK2's 0.0476 per tick, kills counted); every creature turn now steps by DK2's per-tick rate, a quarter of the file value the other sites had used (ADR-0602, hash/save 344; [swing by swing](research/level4-outcomes.md#swing-by-swing-the-hit-gap-is-turning-q665-hash-342-adr-0602); at 344 the hit rate matches DK2's, 0.0444 against 0.0476, while Imp deaths stay 28.5 a run against 21.75: the gap is exposure); the alarm's refusal (`0x004754D0`) now counts only a creature in 251 or 254, or walking to either, measured from its own position or a raiser's stored threat (ADR-0606, hash/save 348; [fleeing Imps near a Guard Room](research/level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0606); Level 4 re-measure pending)
+  matched-master comparison leaves Q665's exposure gap unresolved; a fighter now looks for a victim before it celebrates (ADR-0592, hash/save 338), which brings celebrations near DK2's but not zone time, and Imp deaths rose; the step back follows the heading (ADR-0593, hash/save 339): Imp deaths 33.4 to 28.1 a run, not significant; it then slides as DK2 spends its impulse, without turning (ADR-0594, hash/save 340; [measured](research/level4-outcomes.md#keeper-fighters-at-the-party-4-gate-q665-hash-338-340-adr-0593-adr-0594) on eight scratch runs); a melee swing's hold now ends on the animation poll turn, a turn later (ADR-0598, hash/save 342; [Imp-side findings](research/level4-outcomes.md#the-imps-side-at-hash-340-q665-adr-0598): heroes then hit targeted Imps 0.0543 against DK2's 0.0476 per tick, kills counted); every creature turn now steps by DK2's per-tick rate, a quarter of the file value the other sites had used (ADR-0602, hash/save 344; [swing by swing](research/level4-outcomes.md#swing-by-swing-the-hit-gap-is-turning-q665-hash-342-adr-0602); at 344 the hit rate matches DK2's, 0.0444 against 0.0476, while Imp deaths stay 28.5 a run against 21.75: the gap is exposure); the alarm's refusal (`0x004754D0`) now counts only a creature in 251 or 254, or walking to either, measured from its own position or a raiser's stored threat (ADR-0608, hash/save 350; [fleeing Imps near a Guard Room](research/level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0606); Level 4 re-measure pending)
   ([celebrations](research/level4-outcomes.md#celebrations-q665-lead-hash-336-adr-0592), [hero phases](research/level4-outcomes.md#hero-phases-in-the-gold-route-zone-q665-follow-up-hash-333)).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a

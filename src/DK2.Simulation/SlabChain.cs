@@ -54,7 +54,7 @@ public static class SlabChain
         if (database.RoomByTerrain(tile.TerrainId) is { } after)
         {
             List<int>? absorbed = after.TypeId == RoomTypeId.Graveyard ? [] : null;
-            List<int> chain = Added(world, tileIndex, absorbed);
+            List<int> chain = Added(world, database, tileIndex, absorbed);
             if (after.TypeId == RoomTypeId.Prison) Activate(world, chain);
             if (absorbed is { Count: > 0 }) GraveyardRules.Unlink(world, absorbed);
         }
@@ -135,7 +135,7 @@ public static class SlabChain
     /// (<see cref="CasinoJackpotRules.IsPartyOn"/>), so they move to the new lowest.</remarks>
     /// <param name="absorbed">Gains the tiles of the rooms merged in behind the joined one, whose
     /// records are freed (<c>Room_Free</c>).</param>
-    public static List<int> Added(WorldState world, int tileIndex, List<int>? absorbed = null)
+    public static List<int> Added(WorldState world, GameDatabase database, int tileIndex, List<int>? absorbed = null)
     {
         ref TileState tile = ref world.TileAtIndex(tileIndex);
         byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
@@ -144,6 +144,7 @@ public static class SlabChain
         RoomListPosition listPosition = default;
         byte door = 0, party = 0;
         long partyStart = 0;
+        long hatcheryStamp = world.CurrentTick.Value + 1;
         for (int d = 0; d < Dx.Length; d++)
         {
             int n = Neighbour(world, tileIndex, d);
@@ -152,6 +153,9 @@ public static class SlabChain
             Sort(world, room);
             if (chain is null)
             {
+                int clockTile = int.MaxValue;
+                foreach (int t in room) clockTile = Math.Min(clockTile, t);
+                hatcheryStamp = world.TileAtIndex(clockTile).HatcheryLastGeneratedTick;
                 listPosition = world.TileAtIndex(room[0]).RoomListPosition;
                 foreach (int t in room)
                 {
@@ -178,6 +182,15 @@ public static class SlabChain
         int lowest = KeepDoor(world, chain, door);
         ref TileState head = ref world.TileAtIndex(lowest);
         (head.CasinoParty, head.CasinoPartyStartTick) = (party, partyStart);
+        if (database.RoomByTerrain(terrain)?.TypeId == RoomTypeId.Hatchery)
+        {
+            foreach (int t in chain)
+            {
+                world.TileAtIndex(t).HatcheryLastGeneratedTick = 0;
+                world.TileAtIndex(t).HatcheryStartupIntervalTicks = 0;
+            }
+            head.HatcheryLastGeneratedTick = hatcheryStamp;
+        }
         return chain;
     }
 
@@ -282,6 +295,8 @@ public static class SlabChain
         long animationTick = leaving.PrisonDoorAnimationTick;
         foreach (int tile in old) animationTick = Math.Max(animationTick, world.TileAtIndex(tile).PrisonDoorAnimationTick);
         leaving.PrisonDoorAnimationTick = 0;
+        leaving.HatcheryLastGeneratedTick = 0;
+        leaving.HatcheryStartupIntervalTicks = 0;
         (leaving.PrisonDoor, leaving.CasinoParty, leaving.CasinoPartyStartTick) = (0, 0, 0);
         foreach (int tile in old) door |= world.TileAtIndex(tile).PrisonDoor;
 
@@ -291,6 +306,17 @@ public static class SlabChain
             Stamp(world, chain);
             RoomHealthRules.SetPiece(world, database, room, chain, percent);
             KeepDoor(world, chain, door, animationTick);
+            if (room.TypeId == RoomTypeId.Hatchery)
+            {
+                int lowest = int.MaxValue;
+                foreach (int t in chain)
+                {
+                    lowest = Math.Min(lowest, t);
+                    world.TileAtIndex(t).HatcheryLastGeneratedTick = 0;
+                    world.TileAtIndex(t).HatcheryStartupIntervalTicks = 0;
+                }
+                world.TileAtIndex(lowest).HatcheryLastGeneratedTick = world.CurrentTick.Value + 1;
+            }
             if (room.TypeId == RoomTypeId.Prison) Activate(world, chain);
         }
     }

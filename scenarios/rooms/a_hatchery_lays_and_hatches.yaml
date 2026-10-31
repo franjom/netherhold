@@ -34,18 +34,19 @@ expect:
       A 3x3 hatchery wants one coop. How many it wants is derived from the tile
       count rather than stored, which is why a room that grows lays more.
   - event: egg_laid
-    detail: "interval=7s"
+    detail: "interval=12s"
     because: >
-      The interval the nine-tile room implies. It is a property of the ROOM, not
-      of the egg: the same interval runs whether the room is full or not.
+      This pre-placed nine-tile room retains the level-start table's twelve seconds
+      (hatchery-startup.md). The interval continues while the room is full.
   - event: chicken_hatched
     detail: "animation=complete"
     because: >
       State32 waits for floor art0, installs hatch-end art5, then creates the
       chicken on the following turn (object-drawing.md section 8).
   - event: egg_laid
-    count: 22
+    count: 21
     because: >
       Registered room capacity is nine chickens. Full-room launches continue
       until the free-range census reaches twelve (object-drawing.md section 8); this
-      fixed seed lays twenty-two eggs over the run, including those launches.
+      fixed seed lays twenty-one eggs over the run, including those launches.
+      This count is a remake regression pin, not a native measurement.

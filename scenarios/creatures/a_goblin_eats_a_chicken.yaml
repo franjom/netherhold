@@ -37,9 +37,8 @@ commands: []
 observe:
   - state_hash
   - events
-# A hungry creature and a stocked room. The three numbers that matter are the
-# record's - when it gets hungry, what one bird is worth, and how many birds a
-# room will hold - and none of them is ours.
+# Balance values come from the shipped records. Event ticks and chosen object ids
+# are remake regression pins, not native measurements.
 expect:
   - event: creature_hungry
     detail: "need=1 after=180s"
@@ -65,24 +64,22 @@ expect:
       bird pays off the whole of HungerFill instead, which is the difference
       between the two routes (ADR-0074).
   - event: chicken_eaten
-    detail: "creature=1 type=Goblin player=3 chicken=17"
+    detail: "creature=1 type=Goblin player=3 chicken=21"
     at_tick: 720
     because: >
       Floor laying, full-room coop launches and chicken roaming leave a bird on the
       entry tile, so this seed feeds the Goblin without a separate one-step chase.
       WHICH bird is incidental: it follows every random draw before the meal, so any
-      change that adds or moves a draw re-picks it (since ADR-0574 idle hands over to 89 a
-      turn later, which moves the draws; creature 1 takes bird 17) while the meal tick stays 720. Nearest-bird
-      walks have EatingTests.
+      change that adds or moves a draw re-picks it. At hash348 creature1 takes bird21;
+      the meal tick stays720. Nearest-bird walks have EatingTests.
   - event: egg_laid
-    at_tick: 727
+    at_tick: 767
     because: >
       The room holds nine registered birds and launches free-range eggs when full.
-      Both first meals occur at 720; the uninterrupted interval
-      resumes at 27 + 25 x 28 = 727, rather than restarting the clock on the meal.
+      Both first meals occur at720; the pre-placed room's uninterrupted twelve-second
+      interval resumes at47 + 15 x 48 =767, without restarting on the meal.
   - event: egg_laid
-    at_tick: 1455
+    at_tick: 1487
     because: >
-      Both next meals occur at 1443. The unbroken 7s interval resumes at
-      27 + 51 x 28 = 1455; restarting on the first meal would instead lay at 1471.
-      This pins the clock continuing through a full room despite changed walking times.
+      The unbroken twelve-second interval resumes at47 + 30 x 48 =1487.
+      This remake regression pins the clock continuing through a full room.

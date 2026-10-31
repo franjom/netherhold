@@ -133,7 +133,7 @@ Two *chains* call handlers in a fixed order and stop at the first that takes:
 | **1** | dig a marked wall | `0xd` | raised by the **tile-marking code** when the terrain's `GoldValue` is 0; handler requires Solid, not Impenetrable |
 | **2** | mine a marked seam | `0x19` | same raiser when `GoldValue` ≠ 0; handler requires Solid with `GoldValue` ≠ 0, owner nobody |
 | **3** | **claim floor** | `0xf` / `0x13` / `0x11` | tile **not** the imp's, **not** Solid/Water/Lava, owner nobody **or not allied** (alliance table `FUN_004bf3d0`), no room structure on it, and **orthogonally adjacent to the imp's own floor** (`FUN_00453b30`: a neighbour counts when the keeper owns it, its terrain is Ownable and not Solid — so not the keeper's walls; built ADR-0285). Three states: plain unowned path; enemy floor (flag Attackable); enemy room tile |
-| **6** | **reinforce a wall** | `0x15` | worked from an adjacent tile that is **not Solid and owned by the imp** — the wall-stance. Target: Solid, not Impenetrable, `GoldValue` 0, Ownable; either the imp's own with tile health below **half** a per-terrain ceiling, or nobody's, below half, and adjacent to own floor |
+| **6** | **reinforce a wall** | `0x15` | Own nonsolid standing-side requirement; target selection and the separate action guard: [Q696/Q564](wall-reinforce-eligibility.md). |
 | **16** | **fix (repair) a wall** | `0x17` | same stance; target owned by the imp, Solid, not Impenetrable, `GoldValue` 0, tile health **≠** the ceiling, adjacent to own floor |
 | **7** | **gold off the floor** | `0x1b` | object with definition flag `TypeGold` (0x40), owner = the level-wide floor-gold id; tile must be the imp's own **or water** (Q144). Every search for it is the ring scan, whose filter never visits water, so the water half reaches only the imp's own tile: Level 2 seed01's imp 430 twice passes the pile in water at (9,24) for one on its floor (ADR-0343) |
 | 8 | carry a loose object to its room | `0x1e` | objects owned by nobody on own floor or water; the room is looked up from the object's definition (Library, Workshop…) |
@@ -171,19 +171,13 @@ reading assumed the −0x15 shift extended to it and pointed at file `0x1c2`;
 **not the file record shifted** — a loader reads the 552-byte record at the
 offsets our parser uses and copies each field into its own runtime slot, and
 the slot at `+0x1ad` is filled from file `0x1ff`. The shift held for the flags
-and `GoldValue` by coincidence. So: **kind 6 (reinforce) takes solid rock whose
-health is below half its `MaxHealth`** — fresh Rock is 165 of 660 — and **kind
-16 (fix) takes anything whose health is not `MaxHealth`**, so a wall part-way
-up is a *fix*, at the same step of the ring scan. The runtime ↔ file offset
-table is in `kwd-terrain-rooms.md`.
+and `GoldValue` by coincidence. The runtime ↔ file offset table is in
+`kwd-terrain-rooms.md`.
 
-Ours splits the pair differently and only half of it is a job. `TileWorkKind`
-`.Reinforce` is solid ∧ not Impenetrable ∧ **not Ownable** ∧ the terrain is not
-already its own reinforced type — plain rock, chosen by type rather than by
-health — and it is the only kind `JobPriority.Reinforce` reaches. `TileWorkKind`
-`.RepairWall`, at its own rate (`RepairWallHealth` 22), is taken by the same
-priority when `.Reinforce` does not apply, on `0x00453E30`'s tile: **kind 16 is
-built** (ADR-0387). The own wall below half that kind 6 also takes is not (Q564).
+Kind 6 selection and its distinct work guard are built under ADR-0607
+(hash/save 349); see [Q696/Q564](wall-reinforce-eligibility.md).
+Kind 16 repair is built under ADR-0387 and recorded as kind 16 since ADR-0405;
+a held repair is not reclassified by a fresh kind-6 search.
 
 ---
 

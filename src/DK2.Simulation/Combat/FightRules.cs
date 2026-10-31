@@ -538,5 +538,8 @@ public static class FightRules
         context.Emit(SystemName, "walks_to_trap", $"creature={target.Id} trap={trap.Id}");
     }
 
-    private static readonly List<Fixed16Vector> RouteScratch = [];
+    // Per thread, not per process: the original is single-threaded, the test host is not.
+    [ThreadStatic] private static List<Fixed16Vector>? _routeScratch;
+
+    private static List<Fixed16Vector> RouteScratch => _routeScratch ??= [];
 }

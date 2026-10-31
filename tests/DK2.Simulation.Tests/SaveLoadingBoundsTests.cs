@@ -140,7 +140,8 @@ public class SaveLoadingBoundsTests
     {
         byte[] bytes = Snapshot();
         int tileCountOffset = 63 + BitConverter.ToInt32(bytes, 59);
-        int countOffset = tileCountOffset + 4 + BitConverter.ToInt32(bytes, tileCountOffset) * 109 + 32;
+        // Remake format348 tile records: the generation stamp widened and the startup interval added8bytes.
+        int countOffset = tileCountOffset + 4 + BitConverter.ToInt32(bytes, tileCountOffset) * 117 + 32;
         Assert.Equal(0, BitConverter.ToInt32(bytes, countOffset));
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);

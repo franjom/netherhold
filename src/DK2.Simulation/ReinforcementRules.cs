@@ -14,6 +14,20 @@ public static class ReinforcementRules
 {
     private static readonly TilePos[] Diagonals = [new(-1, -1), new(1, -1), new(1, 1), new(-1, 1)];
 
+    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/wall-reinforce-eligibility.md")]
+    public static bool CanStart(WorldState world, GameDatabase database, TilePos at, PlayerId keeper)
+    {
+        ref TileState tile = ref world.Tile(at);
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        if (!terrain.IsSolid || terrain.IsImpenetrable || terrain.GoldValue != 0) return false;
+        bool belowHalf = tile.Health < (terrain.MaxHealth >> 1);
+        if (tile.OwnerPlayerId == keeper) return terrain.IsOwnable && belowHalf;
+        if (tile.OwnerPlayerId != PlayerIds.Neutral) return false;
+        return terrain.IsOwnable
+            ? belowHalf && OwnFloorRules.Touches(database, world, at, keeper)
+            : tile.Health != terrain.MaxHealth;
+    }
+
     public static bool IsFinished(GameDatabase database, in TileState tile)
     {
         TerrainDef terrain = database.TerrainById(tile.TerrainId);
