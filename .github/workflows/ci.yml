@@ -107,6 +107,10 @@ jobs:
         if: runner.os == 'Windows'
         run: python -m unittest discover -s tools/oracle -p test_decision_boundary.py -v
 
+      - name: Capture state reads (no DK2 install)
+        if: runner.os == 'Windows'
+        run: python -m unittest discover -s tools/oracle -p test_capture_state.py -v
+
       - name: Performance capture regression tests (no GPU required)
         if: runner.os == 'Windows'
         run: python -m unittest discover -s tools/classic-unity-probe -p "test_*.py" -v

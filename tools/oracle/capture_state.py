@@ -117,6 +117,12 @@ class Dump(object):
         return struct.unpack(fmt, self.read(address, struct.calcsize(fmt)))[0]
 
 
+def creature_health(r):
+    """Health +0x40 is signed, as for doors and traps: a dead pool slot holds a negative value, which the
+    decoder's unsigned field turned into a number the resync loader cannot read (Level 4 at 5000)."""
+    return r.u(0x40, "<i")
+
+
 def body(r):
     b = 0x124
     return {"ptr": r.ptr + b, "pos": [r.u(b + 0x84, "<i"), r.u(b + 0x88, "<i")],
@@ -234,7 +240,7 @@ def state(snap):
             target = r.f("target")
             trec = snap.record(target) if target else None
             creature = {"slot": r.slot, "ptr": r.ptr, "owner": r.f("owner"), "x": r.f("x"), "y": r.f("y"),
-                        "type": r.f("creature_id"), "state": r.f("state"), "health": r.f("health"),
+                        "type": r.f("creature_id"), "state": r.f("state"), "health": creature_health(r),
                         "target": target,
                         "targetClass": None if trec is None or trec.raw is None else trec.f("cls")}
             if len(r.raw) >= 0x3FF:
