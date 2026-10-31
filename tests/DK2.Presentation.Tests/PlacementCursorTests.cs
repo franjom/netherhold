@@ -282,14 +282,19 @@ public sealed class PlacementCursorTests
     }
 
     [InstallFact]
-    public void OwnHeroPortalCentreShowsTheBinAsOwnerObservedOn20261031()
+    public void OwnHeroPortalCentreShowsNoBinAndTheCreatureIsNotDisposed()
     {
         (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
         TilePos portal = PaintedPortalCentre(world, db, keeper, RoomTypeId.HeroPortal);
         Hold(world, world.SpawnCreature(db, GoblinType, keeper, Claimed(world, db, keeper, 0)));
-        PlacementFeedback bin = PlacementCursor.HandDrop(world, db, keeper, portal);
-        Assert.Equal((true, true, false), (bin.Valid, bin.Dispose, bin.NoGo));
-        Assert.False(PlacementCursor.HandDrop(world, db, keeper, new TilePos(portal.X - 1, portal.Y)).Dispose);
+        Assert.False(HeldItemStack.Disposes(world, db, keeper, world.Player(keeper).Hand[^1], portal));
+        PlacementFeedback feedback = PlacementCursor.HandDrop(world, db, keeper, portal);
+        Assert.False(feedback.Dispose);
+        var sim = new GameSimulation(db, world, 1, [new DK2.Simulation.Systems.HandSystem()]);
+        CreatureState creature = world.CreatureById(world.Player(keeper).Hand[^1].Id)!;
+        sim.Tick(InputFrame.Of(new DropCommand(keeper, portal)));
+        Assert.True(creature.InHand);
+        Assert.Contains(creature, world.Creatures);
     }
 
     /// <summary>The Portal disposal arm excludes type 1, so a converted Dwarf can use it.</summary>

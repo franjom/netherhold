@@ -168,9 +168,11 @@ is any entrance tile; the no-entrance fallback to state 87 is not built (Q41), t
 creature standing instead. The sacking table, notification 20, bank event `0xDF`
 and Portal room effect are built with the hand-drop gate (hash/save 346). Ours
 unlinks immediately; the native deferred finished-object sweep remains unbuilt.
-The accepted disposal, get-up and level-placed entry paths share the gate;
-non-worker room entry retains the Casino countdown; job 0 is never hated
-([room-drop evidence](hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--confirmed)).
+The hand accepts only ordinary Portal disposal at hash/save 353; Hero Portal
+has no hand bin or accepted throw. Get-up and level-placed room entry can
+still reach its deeper gate; their initial stun distinction is in the
+[room-drop evidence](hand-drop-landing.md#4-0x004e8da00-the-room-drop-and-250--confirmed).
+Non-worker room entry retains the Casino countdown; job 0 is never hated.
 The creature bank event reaches Unity through `CreatureSoundDirector` and
 `ClassicSoundPlayer`; native playback acceptance is pending.
 

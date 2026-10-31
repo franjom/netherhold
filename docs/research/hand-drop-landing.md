@@ -86,8 +86,10 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 - A keeper's creature is refused if it hates the room's job (`0x00494480(+0x25)`).
 - Otherwise it goes to 1 and then the state, and `DroppedToDoJobId` takes the job.
 - Job 0 is never hated: whole `0x00494480` returns 0 before reading its list.
-  The Portal and Hero Portal rows both use job 0 and state 197; level-placed
-  creatures use that same room dispatch after getting up (hash/save 352).
+  The Portal and Hero Portal rows both use job 0 and state 197. A level-placed
+  non-worker or non-keeper worker on a Portal centre dispatches immediately;
+  on Hero Portal it is stunned first and reaches that dispatch after getting up.
+  A keeper worker of a type other than 1 takes either centre directly to 197.
 
 **With none**, for a keeper's creature (not the hero player or the neutral one):
 - `+0x2CC` takes now. **This is the state word `+0x7E`:** the state record lies at `creature+0x24E`, and `0x24E + 0x7E = 0x2CC`.
@@ -103,7 +105,7 @@ It runs only while `CasinoBigWinnerGameTickRemaining` (`+0x3F2`) is 0.
 - **Lair drops** run state 79; see lair-acquisition.md §9 and ADR-0450. Other
   unsupported room drop states still idle. The Combat Pit's 137 is built
   (ADR-0227); the Heart's 71 is built under ADR-0400.
-- **Workers.** A worker getting up on a Heart runs state 71 (ADR-0400); elsewhere it idles. `0x00481400` (read, `door-blocking.md` §8) is not built, in 257 or in 76.
+- **Workers.** A worker getting up on a Heart runs state 71 (ADR-0400); an owned Portal/Hero Portal centre runs 197. Elsewhere it idles, although the native room-drop tail has no worker exclusion. `0x00481400` (read, `door-blocking.md` §8) is not built, in 257 or in 76.
 - **The stun's count and stars** (ADR-0480): 255 and 256 count from the turn after they are set; the first counted turn asks for effect 101 once only while the duration hold remains active (zero duration skips it), at the creature's position on the floor, tied to the creature's mesh point 5000. Point 5000 is a KMF CTRL point, the head: slot `+0x10C` is the engine interface's `0x0059D380` (that the callers' object is that interface is LIKELY), which searches the drawn mesh's tagged points (`0x0059D260`); an animated entry is (primitive, vertex) evaluated at the drawn frame (`0x005835E0`). The view keeps each drawn creature's head and moves the effect and its stars with it each update, as `0x00434E80` does; a creature drawn with a static mesh is not resolved, so its stars stay where they were asked for. The drop goes straight to 255, so ours spends no turn in 76 and gets up one turn before DK2.
 - **Not modelled:** the landing's sound, fall and pit scatter; 257's step along the facing. The Casino countdown gate is built for Portal/Hero Portal room entry (ADR-0603), but remains absent from other room-drop branches. The Call To Arms branch is built (ADR-0279).
 - **257's hold** is `ActionUntilTick`, set at the stun's end to `DropLandingRules.GetUpTicks`, the Getup animation's length (ADR-0348, Q527). Classic presentation plays 255's knockdown once and holds its final pose, then plays 257's Getup once from its state-entry stamp. Action 52's art selector is 24 (`0x00495F36`), action 53's is 27 (`0x00495F6E`); independently checked 2026-10-13.

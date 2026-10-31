@@ -14088,10 +14088,11 @@ the last-sacked type at hash/save346. Use typed sound requests through Presentat
 **Evidence and limits:** [creature-leaving.md section2](research/creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31), Q137/Q704.
 The general hand-release fall and native deferred removal timing remain unbuilt.
 
-**Amendment, 2026-10-31, hash/save352:** include Hero Portal level-placement
-and cursor paths; remove the impossible job0 hatred refusal. No new state.
-Owner observation and evidence remain in the linked research, Q704 and
-[structure-blocks.md](research/structure-blocks.md#confidence).
+**Amendment, 2026-10-31, hash/save353:** restrict hand disposal and its bin to
+Portal type3. Retain Hero Portal's deeper state197 entries: keeper workers other than creature type1
+enter directly; level-placed non-workers and non-keeper workers stun first.
+Remove the impossible job0 hatred refusal. Evidence and the corrected owner
+observation remain in the linked research and [structure-blocks.md](research/structure-blocks.md#confidence).
 
 ## ADR-0604 - request the battle call when an approach starts
 

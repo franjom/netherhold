@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**353** - `0x2349CE113C30B143`. Our regression pin, not native evidence. FormatVersion also 353. The hand offers disposal only over an ordinary Portal. Level-placed non-workers and non-keeper workers stun before Hero Portal room dispatch; the ordinary Portal dispatches immediately. Keeper workers other than creature type1 retain direct entry. No new fields. See [hand-drop-landing.md](hand-drop-landing.md). Saves from 352 are refused.
+
 **352** - `0x810E5C15FF33ED63`. Remake regression pin, not native evidence. FormatVersion also352. Level-placed non-keeper-workers dispatch through Hero Portal room drops too; the cursor follows accepted disposal and job0 never refuses. No new fields. See [hand-drop-landing.md](hand-drop-landing.md). Saves from351 are refused.
 
 **351** - `0xFB2669798A3D3023`. Remake regression pin, not native evidence. FormatVersion also 351. Behaviour only: the alarm's refusal counts an owner's creature in 251 or 254, or walking to either, not one standing down in 252 (ADR-0609). Saves from 350 are refused.

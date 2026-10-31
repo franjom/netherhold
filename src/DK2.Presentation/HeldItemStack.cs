@@ -66,8 +66,8 @@ public sealed class HeldItemStack
     }
 
     /// <summary>The bin follows the accepted disposal rule for the player's own creature,
-    /// including Portal and Hero Portal centres. See placement-cursor.md and the owner's
-    /// 2026-10-31 Hero Portal observation. Prisoners and a ruined Heart do not promise disposal.</summary>
+    /// on a Portal centre or a worker on the Heart centre. Hero Portal has no bin
+    /// (0x0040AFF9..0x0040B00D). Prisoners and a ruined Heart do not promise disposal.</summary>
     public static bool Disposes(WorldState world, GameDatabase database, PlayerId player, HandItem item, TilePos at)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));

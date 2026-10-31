@@ -77,10 +77,12 @@ public sealed class PortalDropTests
         Assert.NotEqual(197, creature.Dk2StateId);
     }
 
-    [Fact]
-    public void PlacedNonImpWorkerUsesThePortalCentreState()
+    [Theory]
+    [InlineData(RoomTypeId.Portal)]
+    [InlineData(RoomTypeId.HeroPortal)]
+    public void PlacedKeeperNonImpWorkerUsesEitherPortalCentreState(RoomTypeId roomType)
     {
-        var (sim, creature, _) = Setup(worker: true);
+        var (sim, creature, _) = Setup(worker: true, portalType: roomType);
         creature.PosX = CreatureState.CentreOf(6);
         creature.PosY = CreatureState.CentreOf(6);
         creature.Flags |= LevelPlacedCreatureRules.PlacedAsDropped;
@@ -92,10 +94,14 @@ public sealed class PortalDropTests
         Assert.DoesNotContain(creature, sim.World.Creatures);
     }
 
-    [Fact]
-    public void LevelPlacedNonKeeperWorkerUsesHeroPortalRoomDropAfterGettingUp()
+    [Theory]
+    [InlineData(RoomTypeId.Portal, false, LeavingRules.PortalDropState)]
+    [InlineData(RoomTypeId.Portal, true, LeavingRules.PortalDropState)]
+    [InlineData(RoomTypeId.HeroPortal, false, DropLandingRules.StunnedState)]
+    [InlineData(RoomTypeId.HeroPortal, true, DropLandingRules.StunnedState)]
+    public void LevelPlacedNonKeeperPortalIsImmediateWhileHeroPortalStuns(RoomTypeId roomType, bool worker, int firstState)
     {
-        var (sim, creature, _) = Setup(portalOwner: PlayerIds.Good, worker: true, portalType: RoomTypeId.HeroPortal);
+        var (sim, creature, _) = Setup(portalOwner: PlayerIds.Good, worker: worker, portalType: roomType);
         sim.World.ChangeCreatureOwner(creature, PlayerIds.Good);
         creature.PosX = CreatureState.CentreOf(6);
         creature.PosY = CreatureState.CentreOf(6);
@@ -103,7 +109,11 @@ public sealed class PortalDropTests
         creature.Dk2StateId = DropLandingRules.LandingState;
         var placed = new GameSimulation(sim.Database, sim.World, 1, [new AutoFurnitureSystem(), new CreatureStatusSystem(), new CreatureJobSystem()]);
         placed.Tick();
-        Assert.Equal(197, creature.Dk2StateId);
+        Assert.Equal(firstState, creature.Dk2StateId);
+        Assert.Contains(creature, sim.World.Creatures);
+        // Our fixture clock: allow its five-second stun and Getup animation to finish.
+        for (int tick = 0; tick < 40 && creature.Dk2StateId != LeavingRules.PortalDropState; tick++) placed.Tick();
+        Assert.Equal(LeavingRules.PortalDropState, creature.Dk2StateId);
         placed.Tick();
         Assert.DoesNotContain(creature, sim.World.Creatures);
     }

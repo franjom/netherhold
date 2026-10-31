@@ -39,12 +39,14 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
             {
                 // 257 (0x00481200) holds while its get-up action plays (0x00496D00), then runs the
                 // victim-or-door pick 0x00481400 (not built) and asks the room underfoot (ADR-0226,
-                // ADR-0345). A worker idles except on a Heart (ADR-0400).
+                // ADR-0345). Worker room drops currently cover the Heart and Portal centres.
                 if (context.Tick.Value >= creature.ActionUntilTick)
                 {
                     context.Emit(SystemName, "recovered", $"creature={creature.Id}");
-                    // A worker on a Heart takes the room drop too: 71 gives it back (ADR-0400).
-                    if (definition.Flags.HasFlag(CreatureFlags.IsWorker) && !DropLandingRules.OnAHeart(world, database, creature))
+                    // 257's room-drop tail has no worker exclusion (0x00481351).
+                    if (definition.Flags.HasFlag(CreatureFlags.IsWorker)
+                        && !DropLandingRules.OnAHeart(world, database, creature)
+                        && !LeavingRules.IsDropCentre(world, database, creature.Tile, creature.OwnerPlayerId))
                         Combat.CombatStates.Idle(context.Hooks, creature);
                     else DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
                     if (world.CreatureById(creature.Id) is null)
