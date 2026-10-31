@@ -312,3 +312,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Codex CLI 0.164 rejects an env-only project MCP entry as "invalid transport" before merging user config; repeat that server's command and args in the project entry.
 - PowerShell does not expand wildcard path arguments for rg (`src/Foo*.cs`); search the directory with `-g 'Foo*.cs'` instead.
 - StoreAt.py misses writes through computed bases; follow LEA-based field addresses (Camera_Reset's full-viewport slots) before declaring a writer census complete.
+- A `replay --resync` with an `--entity-map` from another whole-game run names creatures born after the resync by that run's ids; pickups lift the wrong creature or none. Pass `--births <native creature-map.csv>` ([level4-outcomes.md](research/level4-outcomes.md#hand-drops-after-the-resync)).

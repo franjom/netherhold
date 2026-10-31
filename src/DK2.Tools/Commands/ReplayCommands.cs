@@ -24,7 +24,7 @@ internal static class ReplayCommands
         string? eventPath = null, bool dk2Random = false, string? seedPath = null, uint? seed = null,
         ResyncState? resync = null, long resyncAt = 0, string? jobPath = null,
         IReadOnlyDictionary<int, int>? resyncMap = null, ResyncParts resyncParts = ResyncParts.All,
-        bool retryBlueprints = false)
+        bool retryBlueprints = false, NativeBirths? births = null)
     {
         string? install = Dk2Install.Find();
         if (install is null)
@@ -121,6 +121,8 @@ internal static class ReplayCommands
                     ? Merge(log?.At(turn), rooms?.At(turn))
                     : Blueprints(turn, packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile, DropAt)));
 
+                if (births is not null && entityIds is not null) births.PairNew(entityIds, turn, world.Creatures, eventWriter);
+
                 if (seedWriter is not null && simulation.Rng.Algorithm is Dk2Lcg lcg)
                     seedWriter.WriteLine($"{turn},{lcg.Seed}");
 
@@ -171,8 +173,10 @@ internal static class ReplayCommands
                             : ids.TryResolve((uint)slot, turn, PacketEntityKind.Creature, out int id) ? id : null,
                         resyncParts);
                     if (resyncParts != ResyncParts.All) Console.WriteLine($"  resync skips: {ResyncParts.All & ~resyncParts}");
+                    if (births is not null) ids.DropCreatureRowsAfter(turn);
                     foreach ((int slot, int ours) in report.Pairs ?? [])
                         ids.Set((uint)slot, turn + 1, ours, PacketEntityKind.Creature);
+                    births?.Begin(ids, world.Creatures);
                     Console.WriteLine($"  resync at turn {turn} from DK2's tick {resync.Tick}: {report}");
                     foreach (string note in report.Notes) Console.WriteLine($"    {note}");
                 }
@@ -185,6 +189,9 @@ internal static class ReplayCommands
         if (goldAsked > 0)
             Console.WriteLine($"  gold: {goldAsked} pickups, {goldMissed} found no pile of ours on DK2's tile or next to it, "
                 + $"{goldMoved} took ours from the next tile");
+        if (births is not null)
+            Console.WriteLine($"  births: {births.Births.Count} native after the resync, {births.PairedCount} paired with ours, "
+                + $"{births.Births.Count - births.PairedCount} name nobody");
         if (dropsMoved > 0)
             Console.WriteLine($"  drops: {dropsMoved} moved to the nearest tile they land on, as the player would");
         if (blueprints is { Held: > 0 })
@@ -349,6 +356,7 @@ internal static class ReplayCommands
         long resyncAt = 0;
         string? jobPath = null;
         string? resyncMapPath = null;
+        string? birthsPath = null;
         ResyncParts resyncParts = ResyncParts.All;
         bool retryBlueprints = false;
         for (int i = 4; i < arguments.Length; i += 2)
@@ -421,6 +429,11 @@ internal static class ReplayCommands
                 case "--resync-map":
                     resyncMapPath = value;
                     break;
+                // --births: the native run's creature-map.csv; slots it fills after the resync pair
+                // with our births instead of the entity map's ids from another run (NativeBirths).
+                case "--births":
+                    birthsPath = value;
+                    break;
                 // --resync-skip: parts of the capture left ours (WorldResync's ResyncParts, by name,
                 // comma-separated), to split which of DK2's state an outcome depends on.
                 case "--resync-skip":
@@ -444,6 +457,7 @@ internal static class ReplayCommands
         PacketEntityMap? entityIds = null;
         ResyncState? resync = null;
         Dictionary<int, int>? resyncMap = null;
+        NativeBirths? births = null;
         try
         {
             if (resyncPath is null && resyncParts != ResyncParts.All)
@@ -455,6 +469,12 @@ internal static class ReplayCommands
                 resync = ResyncStateFile.Load(resyncPath);
                 if (resync.Tick != resyncAt)
                     Console.WriteLine($"  note: {resyncPath} is DK2's tick {resync.Tick}, applied after our turn {resyncAt}");
+            }
+            if (birthsPath is not null)
+            {
+                if (resync is null)
+                    throw new InvalidDataException("--births needs --resync.");
+                births = NativeBirths.Read(birthsPath, resyncAt);
             }
             if (resyncMapPath is not null)
             {
@@ -539,7 +559,7 @@ internal static class ReplayCommands
 
         return RunTriggerCsv(arguments[1], turns, arguments[3],
             log, rooms, tilePath, packet, entityIds, creaturePath, eventPath, dk2Random, seedPath, seed,
-            resync, resyncAt, jobPath, resyncMap, resyncParts, retryBlueprints);
+            resync, resyncAt, jobPath, resyncMap, resyncParts, retryBlueprints, births);
     }
 
     /// <summary>
@@ -595,7 +615,7 @@ internal static class ReplayCommands
             + "--packet recording.sav --packet-offset N [--entity-map ids.csv] [--turns N] "
             + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv] [--jobs jobs.csv] "
             + "[--rng dk2|xoshiro] [--seed N] [--seeds seeds.csv] "
-            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv] [--resync-skip part,...]] [--blueprints retry]");
+            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv] [--resync-skip part,...] [--births creature-map.csv]] [--blueprints retry]");
         return 2;
     }
 }

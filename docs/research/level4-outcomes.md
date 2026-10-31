@@ -2,6 +2,9 @@
 
 Q665. Moved from [resync-replay.md](resync-replay.md) on 2026-10-29; that file describes the resync tool the
 runs below use. "Above" in the second section means the first. In "X against Y" DK2 is X and ours Y.
+Resynced runs measured before `--births` (the last section) replay the player's hand pickups of
+creatures born after the resync through another run's entity map; their hand-drop and Imp-death
+figures carry that error.
 
 ## Level 4's two outcomes, over seeds (hashes 320-328)
 
@@ -322,3 +325,17 @@ cohorts have different geometry, earlier decisions and RNG histories. UNKNOWN:
 the first matched input/rule divergence that explains the excess idle endings.
 Next compare target/room-boundary inputs, incoming-slot order and layer-sensitive
 strength totals at the same captured decision, rather than tuning rates.
+
+## Hand drops after the resync
+
+Evidence: `D:/DK2Evidence/runs/l4-celebration-2026-10-30/README.md`, "Hand drops after the resync: the
+entity map and native births" (`mapcheck.py`, `dropmatch.py`). Every resync run used native seed 1's
+`entity-map.csv`; its 43 creature rows after 2400 pair DK2 slots with that run's ids. Over 16 Level 4 resync
+runs they named no creature of ours 451 times, another type 205, the DK2 slot's type 32, so pickups of creatures born after the
+resync were mostly lost or lifted the wrong creature. `--births` (resync-replay.md) drops those rows and pairs
+each native birth with one of ours. Master `9c519d5e` tool, 40 runs each, same build: births paired 1370
+of 2275 native (905 had none of ours: Dark Elves our Portal never attracted, and free Imps from
+MinimumImpThreshold). DK2 hand landings matched by one of ours within 3 turns, turns 4000-4999: 0.41 to
+0.64 (3000-3999: 0.88 to 0.92). Imp deaths per run 33.5 without, 31.6 with (paired per-state p 0.52).
+The fix is faithful to the input and does not by itself close Q665. Resync runs for Q665 should pass
+`--births`; earlier figures were not re-run.

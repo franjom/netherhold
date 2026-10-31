@@ -33,6 +33,14 @@ three runs and `analysis/resync_compare*.out`).
    `--blueprints retry` (ADR-0570, with or without a resync) holds a recorded door or trap placement
    on a tile ours has not claimed yet and sends it once ours has; off, the placement is refused as
    DK2's tile rule says.
+   `--births <native creature-map.csv>` (with `--resync`; `NativeBirths`, `PacketEntityMap.DropCreatureRowsAfter`)
+   fixes how packets name creatures born after the resync. The entity map comes from one earlier
+   whole-game replay, so its creature rows starting after the resync pair DK2 slots with that run's ids. With
+   the option those rows become `NoCreature` from the next turn (a pickup lifts nobody, as DK2's pickup of an
+   empty slot). Each native birth, a slot gaining a creature type, from the capture's `creature-map.csv` (header
+   tick `T` is turn `T-1`, ADR-0119; rows start no earlier than the resync turn + 1), names nobody until one
+   of ours of the same type and owner is born and pairs with it (nearest within 100 turns). Pairings are
+   `birth_paired` / `birth_unpaired` events and a console summary.
 3. `analysis/resync_compare.py` counts job starts per window and kind from `jobs.csv` and the
    capture's creature records.
 
@@ -140,9 +148,9 @@ Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "T
   - the hero job triple (creature `+0x409`/`+0x40D`/`+0x40F`, delay `+0x413`; ours GoodJob,
     GoodJobPlayerId, GoodJobActionPointId, WaypointDeadlineTick);
   - a native in DK2's hand, which the capture does not mark (it is placed at the hand's point);
-  - an old-map row for a slot that starts after the resync, and the row for a native left
-    unpaired;
-  - creatures spawned after the resync, which still go through the old map.
+  - the row for a native left unpaired;
+  - an old-map row for a slot that starts after the resync, and creatures spawned after it: without
+    `--births` they go through the old map, which names another run's ids (see the Limits).
 
 ## The Guard fight (resyncs at 3860 and 3790)
 
@@ -346,6 +354,9 @@ once, where DK2's waits out its spell or walk. Resynced at 130, the first dig's 
 not an Imp is placed on DK2's point and sent to idle when its state differs (ADR-0560). Treasury gold is tile stores
 here (ADR-0015), so DK2's money is reported, not copied. The run drifts again after the resync;
 compare the first few hundred ticks, and resync again later for the next window.
+Pass `--births` for Level 4 resyncs: without it the player's hand pickups of creatures born after the
+resync mostly lost or lifted the wrong creature (measurement: [level4-outcomes.md](level4-outcomes.md),
+"Hand drops after the resync").
 A DK2 fight-return stamp is copied raw in DK2's turn unit, while ours stamps with the tick before
 the turn it runs, so a copied window can end one tick after DK2's; no creature held a stamp at
 2340, 3000 or 3400, so the copy has so far only cleared ours. It is skipped for a creature in the

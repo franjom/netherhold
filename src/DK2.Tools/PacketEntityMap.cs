@@ -38,6 +38,28 @@ public sealed class PacketEntityMap
         Add(original, fromTurn, ours, kind);
     }
 
+    /// <summary>Our id for a slot that names no creature of ours: no creature has it, so a pickup
+    /// of that slot lifts nobody, as DK2's pickup of an empty slot does.</summary>
+    public const int NoCreature = int.MaxValue;
+
+    /// <summary>Replaces creature rows starting after <paramref name="turn"/> with
+    /// <see cref="NoCreature"/> from the next turn: after a resync those rows pair slots with the
+    /// ids of the run the map was recorded from, not this one (<see cref="NativeBirths"/>).</summary>
+    public void DropCreatureRowsAfter(long turn)
+    {
+        foreach (SortedList<long, (PacketEntityKind Kind, int Id)> spans in _rows.Values)
+        {
+            bool dropped = false;
+            for (int i = spans.Count - 1; i >= 0 && spans.Keys[i] > turn; i--)
+                if (spans.Values[i].Kind == PacketEntityKind.Creature)
+                {
+                    spans.RemoveAt(i);
+                    dropped = true;
+                }
+            if (dropped && !spans.ContainsKey(turn + 1)) spans.Add(turn + 1, (PacketEntityKind.Creature, NoCreature));
+        }
+    }
+
     public bool TryResolve(uint original, long turn, PacketEntityKind kind, out int ours)
     {
         ours = 0;
