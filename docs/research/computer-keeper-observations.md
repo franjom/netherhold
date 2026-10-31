@@ -237,7 +237,7 @@ refusal, later ones mostly 4 to 6, as DK2's.
 
 ## Second same-map comparison: Level 11A, Drako, 2,400 ticks (2026-10-06)
 
-Captured as Level 17 was, with the owner idle (`m12-level11A-20261006-105700`, local, since lost; re-captured 2026-10-31 as `D:\DK2Evidence\dk2runs\m12-level11A-20261031`, not yet analysed). Ours is
+Captured as Level 17 was, with the owner idle (`m12-level11A-20261006-105700`, local, since lost; re-captured 2026-10-31 as `D:\DK2Evidence\dk2runs\m12-level11A-20261031`, whose wall timeline repeats the table's DK2 column). Ours is
 Level 11A on the PLAYERS record's own gold and mana, every placed thing, 2,400 ticks, seed 12345.
 DK2's ticks are capture ticks (ADR-0119). The first two columns of ours ran Drako's AI alone; DK2
 runs every computer keeper, as the last column does.
@@ -260,15 +260,13 @@ the other side of her heart, (64,34), the other end of the same drawn diagonal.
 | bridge (64,46) | 1,155 | 420 | 707 | 855 | 832 |
 | Morgana defeated | 1,378 (status 1) | 847 (heart ruined) | 730 | 1,004 (heart ruined) | 887 (heart ruined) |
 
-**The hash-192 columns are historical; ours now loses the wall at 88 (2026-10-31).** The
-`level11a_drako_attack.yaml` scenario with `seed: 12345` and `duration_ticks: 800` opens (64,38) at
-tick 88, never reinforced (Rock, health 165 of 660). It does so at hash 353 and identically at
-`d03a78bb` (hash 344, before the OpenKeeper-led changes of 2026-10-30/31), so those changes did not
-cause it; something between hash 192 and 344 did, not bisected. The mechanism: Morgana's imp 19
-takes the reinforce at tick 1, her keeper slaps it at 15, and after the slap reaction (77) it takes
-a marked dig of her own wall at (62,36) at 21; it is back on (64,38) only at 55, and Drako's three
-imps dig it out at 88. DK2's Morgana finishes the wall by 64, so either DK2's keeper does not slap
-or mark there then, or its imp returns to the wall; Q563.
+**The hash-192 columns are historical; ours now loses the wall at 88 (2026-10-31).** Seed 12345,
+800 ticks, opens (64,38) at 88, never reinforced, at hash 353 and identically at hash 344
+(`d03a78bb`); the change came between 192 and 344, not bisected. Morgana's keeper slaps her
+reinforcing imp at 15; it digs her own (62,36) from 21 and is back on (64,38) only at 55. The
+re-capture: her imp (slot 437) reinforces from 6 without a break to 64; the first slap (state 77)
+is at 122, the (62,36) dig 70–91. Imp 436 repairs from 102 in state 24 until the wall falls at
+387, through half health at about 240 (Q564). The early slap is ours' divergence; Q563.
 
 **Raksha was an ally.** Before ADR-0377 ours attacked every keeper in turn: Morgana at tick 1,
 Raksha at 66 (a tunnel north from (50,43) with eight bridge tiles), Belial at 273 and the human
