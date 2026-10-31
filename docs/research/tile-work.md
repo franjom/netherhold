@@ -358,7 +358,8 @@ direction: **a half-reinforced wall is a tougher wall and looks it.**
 **STRONGLY INFERRED from DKII.EXE v1.70.** After excluding zero health,
 `0x004532D9` loads `MaxHealth`, `0x004532E0` compares the new health, and
 `0x004532E9` loads `MaxHealthTypeTerrainId`; no instruction reads the delta or
-caller. An unchanged destination only clamps health (`0x004535C7`).
+caller. An unchanged destination only clamps health (`0x004535C7`) and retains ownership;
+see [state 22's corner fill](wall-corner-fill.md) for its direct positive-work caller.
 
 The safety is in reachability. `RepairTileHealth` and fill-in have no path
 (Q219), while wall and room repair target terrain whose destination is itself.

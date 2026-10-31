@@ -159,6 +159,20 @@ public enum TileWorkStrike : byte
 /// </summary>
 public static class TileWorkRules
 {
+    internal static bool CompleteWall(GameDatabase database, ref TileState tile, PlayerId owner)
+    {
+        TerrainDef terrain = database.TerrainById(tile.TerrainId);
+        tile.Health = Math.Min(tile.Health + terrain.MaxHealth, MaxTileHealth);
+        if (tile.Health < terrain.MaxHealth) return false;
+        if (terrain.MaxHealthTypeTerrainId == tile.TerrainId)
+        {
+            tile.Health = terrain.MaxHealth;
+            return false;
+        }
+        Convert(database, ref tile, terrain.MaxHealthTypeTerrainId, owner, takeOwnership: true);
+        return true;
+    }
+
     internal static void ReleaseWall(WorldState world, GameDatabase database, TilePos at)
     {
         ref TileState tile = ref world.Tile(at);

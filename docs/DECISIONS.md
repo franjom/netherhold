@@ -14096,3 +14096,14 @@ cooldown and no swing-side request. Sound-manager admission remains separate.
 
 **Evidence:** [combat-fight-state.md section 9](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
 **Consequences.** Observation only; hash/save346 and simulation RNG are unchanged.
+
+## ADR-0605 - fill wall corners when reinforcement finishes
+
+**Status:** implemented, 2026-10-31. Q694, hash/save347.
+
+**Decision.** Run state22's diagonal fill when its action ends and the completed
+reinforce task is released. Use the navigation grid for the open-side test and
+the terrain health conversion for each fill; same-type healing retains its owner.
+
+**Evidence and limits:** [wall-corner-fill.md](research/wall-corner-fill.md).
+No new persistent fields. Campaign wall-count parity remains unestablished.

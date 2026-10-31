@@ -11,6 +11,9 @@ The milestone table and acceptance criteria are in DK2_REIMPLEMENTATION_PLAN.md
 do not maintain counts here. For exact build coverage use dk2tools coverage
 --all and dk2tools coverage states.
 
+- Wall corner fill is built at hash/save 347 (ADR-0605, Q694);
+  [scope and replay limits](research/wall-corner-fill.md#built-scope-and-replay-limits).
+
 - The Mistress bed exit runs through state 84 at hash/save 335 (ADR-0586).
   Its inferred completion clock and presentation contract are in
   [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
@@ -494,7 +497,3 @@ build/scenario-runs/ and is ignored.
   game files and Ghidra output out of commits. Never switch branches in the
   shared main checkout (TRAPS.md). If Git reports dubious ownership in this
   environment, use a per-command safe.directory setting.
-- Documents and source have budgets enforced by dk2tools docs; AGENTS.md
-  has the limits. Replace stale claims rather than adding dated amendments.
-  PowerShell is available here; pwsh is not. If a local shell rewrites a
-  UTF-8 document, preserve its existing BOM and line endings.

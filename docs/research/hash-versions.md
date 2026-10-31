@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**347** - `0x3DCB1471152C43A9`. Remake regression pin, not native evidence. FormatVersion also347. State22 fills wall corners after its action finishes; no new fields. See [wall-corner-fill.md](wall-corner-fill.md). Saves from346 are refused.
+
 **346** - `0xF10BB96BACBE545B`. FormatVersion also346. Persist/hash the keeper's last-sacked creature type; Portal hand drops enter197 and call196's sacking effects. See creature-leaving.md section2. Saves and journals from345 are refused.
 
 **345** - `0xB53ADB3B057AE7AD`. FormatVersion also 345. Fields added: `CreatureState.CameThroughPortal` (`+0x3E6` bit 1, counted against the portal cap) and `PlayerState.HeartRegenCountdown` (`room+0x56`); both hashed and snapshotted. Behaviour: fear withdraw below a sixth of health, a collapse drops carried gold with DK2's two draws per pile, the heart heals every fifth turn, attraction kinds 2 to 4, an own Imp is not strapped on a Torture Chamber. Saves and journals from 344 are refused.
