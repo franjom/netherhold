@@ -171,7 +171,7 @@ the dump agrees (every record's `0x1D6` is its own id and the values are sensibl
 | Most rooms | 102 or 153 | 32 or 48, 0, 0 | 13 or 19 | 4 or 6, 0, 0 |
 | Dungeon Heart, Hero Gates | 0 | 0 or 4, 0, 0 | 0 | 0, 0, 0 |
 
-Our parser does not read them yet.
+`KwdTerrainRooms` reads all eight into `TerrainDef.Wibble`; [terrain-lattice.md](terrain-lattice.md) uses them.
 
 ## Ceiling fields: bounded binary audit (2026-10-29, Q679)
 

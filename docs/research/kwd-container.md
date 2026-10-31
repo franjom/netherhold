@@ -34,7 +34,10 @@ chunkEndOffset, checkOne=sig+1, headerBlockSize), then headerBlockSize bytes of
 type-specific header (general: u32 itemCount, u32 unk, 2 × 10-byte timestamp),
 then u32 checkTwo (sig+2 or sig+3), u32 contentSize, then records. Chunks
 repeat until EOF (`GlobalVariables.kwd` = VARIABLES + THINGS chunks).
-Timestamps are 10 bytes: u16 year, u8 month, u8 day, 2 unk, u8 h, u8 m, u8 s, pad.
+Timestamps are 10 bytes: u16 year, u8 day, u8 month, 2 unk, u8 h, u8 m, u8 s, pad.
+Day before month is read from shipped bytes: `Objects.kwd`'s second stamp is
+`d0 07 1c 03` (2000, 28, 3) and `Terrain.kwd`'s first `cd 07 1b 0b` (1997, 27, 11);
+no month is 28 or 27. Whether the clock is local time is unknown (Q529).
 
 KLD is the same container, level-scoped: 12 editor KWDs, 66 map KWDs and 330
 KLDs, 408 files. `dk2tools kwd corpus` reproduces the file and record counts and
