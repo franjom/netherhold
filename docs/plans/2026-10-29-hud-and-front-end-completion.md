@@ -305,7 +305,7 @@ Owner decisions (2026-10-23): decoded in C# at load time, in memory, no cache, n
 
 **Steps:** failing test "hovering a label raises 0x30F once until the pointer leaves" → implement → PASS; Unity: hover the main menu and hear it. Gate; commit: `sound: the front end's hover and click sounds and the HUD's button sounds`.
 
-**Later world-sound queue:** parse the native 48 animation-mark pairs and route creature footsteps using [sound-effects.md](../research/sound-effects.md), sections1–4. Preserve phase crossing, cumulative thresholds and the native slow-frame throttle; do not import OpenKeeper voice/fade budgets (Q678) or unresolved final conversions (Q684).
+**World sounds** (footsteps, hand, digging, rooms, creatures, objects, spells) are planned in [2026-10-31-world-sounds.md](2026-10-31-world-sounds.md).
 
 ### Task C4: The Mentor speaks
 
