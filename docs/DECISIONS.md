@@ -8830,8 +8830,8 @@ shift of fourteen: truncate the tabled value over four, then floor it times the 
 only where four does not divide the value: repair, and claiming (825) and own-wall digging
 (−130) with both bonuses. Fresh kind-6 selection and its separate action guard
 follow ADR-0607 (Q564).
-Remaining deviations: the own-floor test omits `0x00453B30`'s Ownable bit;
-the divisor is the constant four, not live variable 19.
+Remaining deviation: the divisor is the constant four, not live variable 19.
+The former own-floor Ownable-bit omission is fixed in the shared helper; see ADR-0607.
 
 **Measured** (hash 192), Level 11A with keepers 4 to 7 running, as DK2 runs them (the comparison
 had run Drako's AI alone): Morgana repairs from 92 (DK2 101), the wall falls at 362 (387), the
@@ -14140,6 +14140,12 @@ Preserve neutral ownership when the max-health terrain is unchanged.
 **Evidence:** [wall-reinforce-eligibility.md](research/wall-reinforce-eligibility.md).
 The own-wall branch selects6 but its action does no health work; this replaces
 Q564's proposed50-rate repair. No new persistent state.
+
+**Scope correction (2026-10-31).** Held Reinforce tasks survive outside state22,
+including approach walks. The former ADR-0387 Ownable-bit omission would also
+affect neutral Ownable selection, but current `OwnFloorRules.Touches` checks
+that bit; it is no longer a deviation. Native visible retry behavior remains
+unverified (Q564/Q696); the inspected pool deletion has no per-wall cooldown.
 
 ## ADR-0608 - reproduce the unpaid jackpot slap
 

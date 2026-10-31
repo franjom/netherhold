@@ -2,7 +2,7 @@
 
 ## Selection
 
-STRONGLY INFERRED from whole `0x00453E90`, including its unsigned health
+CONFIRMED binary predicate from whole `0x00453E90`, including its unsigned health
 comparisons, read 2026-10-31. Full executable-block CallScanAll finds only
 `0x0046AEF1`, in the reinforce/repair handler `0x0046AEA0`.
 
@@ -41,10 +41,42 @@ transferring ownership. It therefore stays neutral; see the same-type arm in
 Neutral Rock converts to reinforced terrain and takes the worker's owner.
 The health writes are those of `0x00452F60`, not the selector.
 
+## Own-wall retry cycle
+
+Mechanism CONFIRMED, observable unverified. Whole state 22 (`0x00466390`)
+rejects an own wall at its continuation test and reaches the tail at
+`0x004665DB`: it deletes a matching kind-6 entry, clears its held id and
+returns to 10. The pool wrapper `0x00508040` and remover `0x00507EF0` only
+unlink/free that entry and clear its worker slots; they write no tile,
+blacklist, failure deadline or retry flag. `0x00507BB0` can raise kind 6 again.
+
+Whole state 10 (`0x00463DF0`), ring scan `0x00468D10` and Tier-B callback
+`0x00469580` supply no per-wall failure memory. The selector's per-player
+search throttle can delay a retry, and higher-priority work can interrupt it.
+If the same eligible wall is reached with a free reachable side, the handler
+`0x0046AEA0` takes kind 6 again before its kind-16 pass. The tile's existing
+ring-candidate bit is read, not cleared by task deletion. Thus the inspected
+native mechanism permits repeated approaches without health work; this is
+not a capture proving indefinite visible idling in a running game.
+
+Caller inventories: state 22 has dispatch pointer `0x0047C18C`; the handler
+has three direct callers and one search callback pointer; delete-by-id has 29
+direct sites; remove-by-tile has five. State 10 has dispatch pointer
+`0x0047BDCE`, Tier B pointer `0x004640E9`, and the ring scan six direct sites.
+These were scanned across both executable blocks before reading the bodies.
+
+Owner experiment: damage an own reinforced wall below half health. Do idle
+Imps repair it, or walk up and do nothing? Q564/Q696 remain open for this check.
+
 ## Built scope
 
 Built at hash/save 349 (ADR-0607) through `ReinforcementRules.CanStart`,
 `TileWorkRules` and the Imp selection/work systems. Held kind-6 arrival
 does not repeat the fresh-search health threshold; dig cancellation remains.
+The retained Reinforce task now survives every represented state outside 22,
+including the approach walk; this removes the former abandon-before-arrival
+check rather than changing only state-21 entry.
 No new persistent fields. Native Level 7 outcome and broader replay parity
 have not been measured for this change.
+The [current Level 11A repair-window rerun](computer-keeper-observations.md#second-same-map-comparison-level-11a-drako-2400-ticks-2026-10-06)
+retains the historical calibration separately from our hash/save 353 result.
