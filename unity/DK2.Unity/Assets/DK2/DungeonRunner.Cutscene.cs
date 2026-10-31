@@ -77,11 +77,13 @@ namespace DK2.Unity
 
         private void DrawCutsceneTitle()
         {
-            if (_cutscene == null || _cutscenePlayer != null || _cutsceneTitlePhase >= 3) return;
+            // Black from the card until a movie's first picture is up, and between movies: the movie
+            // decodes for a few frames, and nothing else hides the front end beneath.
+            if (_cutscene == null || _cutscenePlayer != null && _cutscenePlayer.HasFrame) return;
             GUI.color = Color.black;
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;
-            if (_cutsceneTitle == null) return;
+            if (_cutsceneTitle == null || _cutsceneTitlePhase >= 3) return;
             // DK2 draws the title centred in its own font; ours takes the subtitle font chain, about twice
             // the subtitle size (the remake's size, unread).
             DrawSubtitleText(new Rect(0, 0, Screen.width, Screen.height), _cutsceneTitle, 2f);

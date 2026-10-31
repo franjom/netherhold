@@ -53,6 +53,8 @@ namespace DK2.Unity
         private double _startDsp;
         private float _startTime;
         private int _shown = -1;
+        /// <summary>True once the first picture is up; until then the caller keeps the screen covered.</summary>
+        public bool HasFrame => _shown >= 0 && _texture != null;
         private bool _finished;
 
         /// <summary>Raised once when the movie ends or is skipped, just before the player is destroyed.</summary>
