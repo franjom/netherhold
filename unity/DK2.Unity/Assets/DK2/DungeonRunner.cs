@@ -391,8 +391,9 @@ namespace DK2.Unity
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
             WireSpeech(database);
             PrepareWinScreen(database);
+            _creatureSounds = new CreatureSoundDirector(_scriptedView);
             _handCursorEvents = new HandCursorEventSink(_cursorFeedback, new PlayerId((byte)viewingPlayerId),
-                new VisibilityEventSink(_worldView, world, new PlayerId((byte)viewingPlayerId), _scriptedView));
+                new VisibilityEventSink(_worldView, world, new PlayerId((byte)viewingPlayerId), _creatureSounds));
             _simulation.ObserveWith(_handCursorEvents);
 
             int maximumHeartHealth = database[VariableTypeId.DungeonHeartObjectHealth];

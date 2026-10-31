@@ -9,7 +9,8 @@
 | Open questions | the distinction between `+0x19` and `+0x1d` (Q210 (b) is closed) |
 
 Opened while chasing the portal's tally reset, which is why it lives beside
-`portals.md`. It is a table about **rooms**, not about portals.
+`portals.md`. Portal/Hero Portal drop-state197 entry and its direct196 call are
+settled in [creature-leaving.md section2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
 
 DK2 addresses a record as `base + roomTypeId * 41`, guarded by
 `id != 0 && id <= 26`. Each record is a type-id byte followed by ten packed

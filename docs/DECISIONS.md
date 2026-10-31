@@ -14073,3 +14073,15 @@ captured rates and the swing turn of a hero facing away (fails on the file rate)
 synthetic `TurnRate` as a per-tick figure now set four times it; three Library watch tests and the
 crowded-retaliation test start their creatures facing the target, which the file rate had done in one
 turn. Level 4 is not yet re-measured; Q665 stays open.
+
+## ADR-0603 - run the Portal hand-drop exit handler
+
+**Status:** implemented, 2026-10-31.
+
+**Decision.** Enter197 on an accepted own Portal centre disposal and run its owned-centre
+gate before the shared196 handler. Retain the native repeated sacked events,
+entrance penalty, bank sound, notice, Portal effect and purse debit. Persist/hash
+the last-sacked type at hash/save346. Use typed sound requests through Presentation.
+
+**Evidence and limits:** [creature-leaving.md section2](research/creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31), Q137/Q704.
+The general hand-release fall and native deferred removal timing remain unbuilt.

@@ -212,7 +212,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(194, typeof(LeavingRules), nameof(LeavingRules.ChoosingState)));
         rows.Add(Built(195, typeof(LeavingRules), nameof(LeavingRules.AtTheEntranceState)));
         rows.Add(Built(196, typeof(LeavingRules), nameof(LeavingRules.SackedState)));
-        rows.Add(Unbuilt(197, "docs disagree on its entry (creature-leaving.md says UNKNOWN; portals-room-handler-table.md: the Portal drop state)"));
+        rows.Add(Built(197, typeof(LeavingRules), nameof(LeavingRules.PortalDropState)));
         rows.Add(Unbuilt(198, "not read"));
         rows.Add(Built(199, typeof(CombatStates), nameof(CombatStates.Engaging)));
         rows.Add(Unbuilt(200, "read in combat-fight-state.md; nothing in src/ enters it"));

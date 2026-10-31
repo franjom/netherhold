@@ -9,6 +9,9 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- Codex's sandbox helper can fail before process startup with `setup refresh had errors`; an approved `require_escalated` command can still run.
+- Concurrent commits in one checkout share both the index and COMMIT_EDITMSG; serialize staging and commits across sessions, including while hooks run.
+
 - KLD content offsets depend on each chunk's headerBlockSize; validate record tags and the final boundary before treating a trigger file as empty (Frosty's Lair TRIGGERS starts at60, THINGS at56).
 
 - Replay CSV labels its clock `tick`, but replay events TSV labels it `turn`; inspect the header before sharing a parser.

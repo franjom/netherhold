@@ -33,6 +33,7 @@ public enum PlayerMessageKind : uint
 
     /// <summary>Type 18: the band rose to angry; otherwise as <see cref="CreatureUnhappy"/>.</summary>
     CreatureAngry = 18,
+    CreatureLeft = 20,
 
     /// <summary>Type 52: Data1 is the warning stage 1–4 (subtable <c>0x006A0610</c>).</summary>
     LowManaWarning = 52,
@@ -220,7 +221,7 @@ public sealed class PlayerMessageQueue
                 (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.CallToArmsUnreachable => (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.AlarmRaised or PlayerMessageKind.WallBreached => (uint)SimulationTiming.TicksFromSeconds(50),
-            PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry =>
+            PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry or PlayerMessageKind.CreatureLeft =>
                 (uint)SimulationTiming.TicksFromSeconds(50),
             // Both subtables give every listed variant 20 seconds. Warning row 0 names no
             // string, which discards the message; a variant off the table is refused.

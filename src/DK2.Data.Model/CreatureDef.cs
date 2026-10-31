@@ -36,6 +36,8 @@ public sealed record CreatureJobAlternative(JobType Job, short MoodChange, short
 /// </summary>
 public sealed record CreatureDef
 {
+    /// <summary>CREATURES file +0xF56, the bank loaded into definition +0x6E3.</summary>
+    public string SoundCategory { get; init; } = string.Empty;
     private byte _baseCreatureId;
     public required string Name { get; init; }
     public required byte CreatureId { get; init; }

@@ -27,6 +27,27 @@ public static class LeavingRules
 
     /// <summary>State 196: sacked, its gold gone, removed.</summary>
     public const int SackedState = 196;
+    public const int PortalDropState = 197;
+
+    public static bool IsDropCentre(WorldState world, GameDatabase database, TilePos tile, PlayerId owner)
+    {
+        if (!world.Contains(tile)) return false;
+        RoomInstance? room = RoomIndex.RoomAt(world, database, world.TileIndex(tile));
+        return room is not null && room.OwnerPlayerId == owner
+            && room.Definition.TypeId is RoomTypeId.Portal or RoomTypeId.HeroPortal
+            && room.Width >= 3 && room.Height >= 3
+            && PortalRules.EntranceTileIndex(world, room) == world.TileIndex(tile);
+    }
+
+    public static bool PortalDrop(SimulationContext context, CreatureState state, string system)
+    {
+        if (context.Tick.Value - state.StateEnteredTick == 1) state.StopMoving();
+        if (!IsDropCentre(context.World, context.Database, state.Tile, state.OwnerPlayerId)) return false;
+        context.FireCreatureEvent(state, CreatureTriggerEvent.Sacked);
+        context.FirePlayerEvent(state.OwnerPlayerId, PlayerTriggerEvent.CreatureSacked);
+        Sack(context, context.Database.CreatureById(state.CreatureTypeId), state, system, "thrown_in");
+        return true;
+    }
 
     /// <summary>Sets 194. Returns whether the rule took it: it refuses 194 from the captive,
     /// device and pit states, and the creature then stays where it was.</summary>
@@ -67,6 +88,7 @@ public static class LeavingRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         target = state.Tile;
+        if (state.Dk2StateId == PortalDropState) return true;
 
         if (IsExitTile(world, database, state.Tile))
         {
@@ -96,11 +118,29 @@ public static class LeavingRules
         // owner's tree event 61, before the sacking, the gold and the removal.
         Systems.StateShadow.Arrive(context, systemName, state);
         Systems.StateShadow.Move(context, systemName, state, SackedState);
+        Sack(context, creature, state, systemName, "portal");
+    }
+
+    private static void Sack(SimulationContext context, CreatureDef creature, CreatureState state, string systemName, string via)
+    {
         context.FireCreatureEvent(state, CreatureTriggerEvent.Sacked);
         context.FirePlayerEvent(state.OwnerPlayerId, PlayerTriggerEvent.CreatureSacked);
+        ref PlayerState player = ref context.World.Player(state.OwnerPlayerId);
+        player.LastSackedCreatureTypeId = state.CreatureTypeId;
+        for (int i = 0; i < player.EntranceInfo.Count; i++)
+            if (player.EntranceInfo[i].CreatureTypeId == state.CreatureTypeId)
+                player.EntranceInfo[i] = player.EntranceInfo[i] with { Block = PortalChoiceRules.Fresh };
+        CreatureSoundRules.Request(context, systemName, state, CreatureSoundEvent.Sacked);
+        if (state.CreatureTypeId != 45)
+            context.World.Messages.Post(context.World, state.OwnerPlayerId, PlayerMessageKind.CreatureLeft, state.CreatureTypeId, 0);
+        ushort effect = context.Database.Room(RoomTypeId.Portal).CreatedObjectEffectId;
+        if (effect != 0)
+            context.RequestEffect(systemName, new ViewEffectRequest(new EffectId(effect), state.OwnerPlayerId,
+                new(new Fp32(state.PosX), new Fp32(state.PosY), new Fp32(state.PosZ)), new Dk2Angle((ushort)state.Heading)));
+        int gold = PurseRules.Spend(state, state.GoldHeld);
         context.Emit(systemName, "creature_left",
             $"creature={state.Id} type={creature.Name} player={state.OwnerPlayerId} " +
-            $"at=({state.Tile.X},{state.Tile.Y}) gold_lost={state.GoldHeld} via=portal");
+            $"at=({state.Tile.X},{state.Tile.Y}) gold_lost={gold} via={via}");
         context.World.RemoveCreature(state.Id);
     }
 }

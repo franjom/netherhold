@@ -44,6 +44,18 @@ public static class LevelPlacedCreatureRules
                     : TortureRules.TryStrap(context.Hooks, creature, room.OwnerPlayerId, here))) continue;
             else
             {
+                if (!keeperWorker && room?.Definition.TypeId == RoomTypeId.Portal
+                    && LeavingRules.IsDropCentre(world, context.Database, creature.Tile, creature.OwnerPlayerId))
+                {
+                    DropLandingRules.AfterGettingUp(context, "LevelStart", creature, definition);
+                    continue;
+                }
+                if (keeperWorker && definition.CreatureId != 1
+                    && LeavingRules.IsDropCentre(world, context.Database, creature.Tile, creature.OwnerPlayerId))
+                {
+                    StateShadow.Move(context, "LevelStart", creature, LeavingRules.PortalDropState);
+                    continue;
+                }
                 if ((definition.Flags & CreatureFlags.IsWorker) != 0)
                     CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.AfterDrop);
                 else if (!Combat.StatusEffectRules.StunOnLanding(context, creature, definition))

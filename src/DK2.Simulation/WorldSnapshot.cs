@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 345;
+    private const int FormatVersion = 346;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -266,6 +266,7 @@ public static class WorldSnapshot
                 w.Write(availability.LastCastTick);
                 w.Write(availability.LastCheckedTick);
             }
+            w.Write(p.LastSackedCreatureTypeId);
             w.Write(p.EntranceInfo.Count);
             foreach (EntranceInfoState entrance in p.EntranceInfo)
             {
@@ -1030,6 +1031,7 @@ public static class WorldSnapshot
             for (int a = 0; a < availabilityCount; a++)
                 players[i].Availabilities.Add(new AvailabilityState(
                     (AvailabilityKind)r.ReadUInt16(), r.ReadInt32(), r.ReadInt32(), r.ReadBoolean(), r.ReadInt64(), r.ReadInt64()));
+            players[i].LastSackedCreatureTypeId = r.ReadByte();
             int entranceCount = SaveReader.Count(r, "entranceCount", 9);
             for (int a = 0; a < entranceCount; a++)
                 players[i].EntranceInfo.Add(new EntranceInfoState(r.ReadByte(), r.ReadInt32(), r.ReadInt32()));

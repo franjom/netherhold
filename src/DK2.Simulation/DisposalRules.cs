@@ -23,13 +23,14 @@ public static class DisposalRules
     public static bool Disposes(
         WorldState world, GameDatabase database, CreatureDef mover, TilePos at, PlayerId playerId)
     {
+        if (mover.CreatureId != 1 && LeavingRules.IsDropCentre(world, database, at, playerId)) return true;
         // 71 gives a worker back only with the Heart object (type 13) in the room; a ruined Heart
         // has none, so 71 sends it to 11 and the drop is an ordinary landing.
         if (mover.Flags.HasFlag(CreatureFlags.IsWorker))
             return IsHeartCentreTile(world, database, at, playerId)
                 && world.HasPlayer(playerId) && !world.Player(playerId).HeartRuined;
 
-        return PortalRules.IsHoleTile(world, database, at, playerId);
+        return false;
     }
 
     /// <summary>Whether this tile is the <b>single centre tile</b> of a dungeon heart this

@@ -93,13 +93,11 @@ walkability test (`HandRules.CreatureLands`, ADR-0526 amendment). The imp's **go
 A **goblin is refused** the heart outright, so the two tiles are exclusive both ways.
 And a dungeon heart is **always 5x5**, so the size guard is defensive, not a case.
 
-### 4.1 The gold goes with it, and the owner already said so
+### 4.1 Portal disposal and gold
 
-Q137 was answered on 2026-09-07 too: *"a creature leaving (being thrown) through
-portal does not drop its gold"*. This applies to ordinary creatures, including
-converted goodly creatures. A creature posted through the hole takes its gold, and removal reuses
-the same `creature_left` event a deserter gets, with `via=thrown_in` instead of
-`via=portal`. Same thing happening for a different reason.
+Portal disposal now enters state 197 and shares the leaving side effects at
+hash/save 346 (ADR-0603). The native path, owner observation and Q137 distinction
+are recorded in [creature-leaving.md section 2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
 
 ### 4.2 A captive is refused the tile
 

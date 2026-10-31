@@ -417,6 +417,7 @@ public struct PlayerState
     /// for each creature type the portal has noticed, in creature-id order, carrying the
     /// two modifiers its pick applies (<see cref="PortalChoiceRules"/>, ADR-0272).</summary>
     public List<EntranceInfoState> EntranceInfo;
+    public byte LastSackedCreatureTypeId;
 
     /// <summary>CreatureEntranceInfo row +1 (player +0xB58): types already introduced by a Portal arrival.</summary>
     public List<byte> IntroducedCreatureTypes;
@@ -587,6 +588,7 @@ public struct PlayerState
         hash.Add(Availabilities.Count);
         foreach (AvailabilityState availability in Availabilities)
             availability.HashInto(ref hash);
+        hash.Add(LastSackedCreatureTypeId);
         hash.Add(EntranceInfo.Count);
         foreach (EntranceInfoState entrance in EntranceInfo)
             entrance.HashInto(ref hash);

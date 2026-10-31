@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**346** - `0xF10BB96BACBE545B`. FormatVersion also346. Persist/hash the keeper's last-sacked creature type; Portal hand drops enter197 and call196's sacking effects. See creature-leaving.md section2. Saves and journals from345 are refused.
+
 **345** - `0xB53ADB3B057AE7AD`. FormatVersion also 345. Fields added: `CreatureState.CameThroughPortal` (`+0x3E6` bit 1, counted against the portal cap) and `PlayerState.HeartRegenCountdown` (`room+0x56`); both hashed and snapshotted. Behaviour: fear withdraw below a sixth of health, a collapse drops carried gold with DK2's two draws per pile, the heart heals every fifth turn, attraction kinds 2 to 4, an own Imp is not strapped on a Torture Chamber. Saves and journals from 344 are refused.
 
 **344** - `0x6F13BA502A25806F`. FormatVersion also 344. Behaviour only: every creature turn steps its heading by the file `TurnRate` over variable 19 (`def+0x6A0`, `0x00492320`), as movement already did; eight turn sites had used the file value, four times DK2's rate (ADR-0602). No fields added; saves and journals from 343 are refused.

@@ -356,13 +356,22 @@ public sealed class HandSystem : ISimulationSystem
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
         creature.ClearJob();
 
-        // Thrown away: the same removal by the same event kind that a deserter
-        // reaching a portal gets, at whichever of the two tiles took it. The gold
-        // goes with it rather than spilling - "a creature leaving (BEING THROWN)
-        // through portal does not drop its gold" (Q137, owner), and an imp's gold
-        // vanishes with it at the heart too (owner, 2026-09-15). No captive here.
+        // Portal disposal enters 197; its handler shares the leaving side effects.
+        // Neither Portal nor Heart disposal spills gold (creature-leaving.md section 2, Q137).
         if (disposed)
         {
+            if (LeavingRules.IsDropCentre(world, context.Database, command.Tile, creature.OwnerPlayerId))
+            {
+                if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
+                {
+                    if (context.Database.RoomByTerrain(world.Tile(command.Tile.X, command.Tile.Y).TerrainId)?.TypeId == RoomTypeId.HeroPortal
+                        && Combat.StatusEffectRules.StunOnLanding(context, creature, definition)) return;
+                    DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
+                    return;
+                }
+                StateShadow.MoveOrViaIdle(context, SystemName, creature, LeavingRules.PortalDropState);
+                return;
+            }
             // A worker through its Heart's centre is 71's give-back (76 sets 71 on cell byte 0x40):
             // Create Imp's mana to the tile owner first, then its gold is lost and it is destroyed.
             if (definition.Flags.HasFlag(CreatureFlags.IsWorker))
