@@ -114,6 +114,38 @@ public static partial class FunctionKb
     public static IEnumerable<string> Mentions(string text)
         => MentionRx().Matches(text).Select(m => m.Groups[1].Value.ToUpperInvariant());
 
+    /// <summary>Whether <paramref name="text"/> cites <paramref name="address"/> (eight hex digits): after
+    /// <c>0x</c> or <c>FUN_</c> with any leading zeros, or as the bare eight digits, case-insensitively.</summary>
+    public static bool Cites(string text, string address) => CitationRx(address).IsMatch(text);
+
+    static Regex CitationRx(string address) =>
+        new($"(?<![0-9A-Za-z_])(?:(?:0[xX]|FUN_)0*{address.TrimStart('0')}|{address})(?![0-9A-Za-z])",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    /// <summary>Whether a change gave this record a new reading: it is new, or it gained a History line.</summary>
+    public static bool GainedReading(FunctionRecord now, FunctionRecord? before)
+        => before is null || now.History.Count > before.History.Count;
+
+    /// <summary>For each changed record, the files outside the change that cite its address. A note, not
+    /// a finding: the reading moved, and code or prose written against the old one does not move with it
+    /// (2026-10-30: a record said "below a sixth" while the code that relied on it divided by three). The
+    /// record itself, <c>INDEX.md</c> and <c>docs/plans/</c> are skipped.</summary>
+    public static IEnumerable<(string Address, IReadOnlyList<string> Files)> UntouchedCiters(
+        IReadOnlyCollection<string> addresses, IEnumerable<(string File, string Text)> files, ISet<string> changed)
+    {
+        var hits = addresses.ToDictionary(a => a, _ => new List<string>(), StringComparer.Ordinal);
+        var patterns = addresses.ToDictionary(a => a, CitationRx, StringComparer.Ordinal);
+        foreach (var (file, text) in files)
+        {
+            if (changed.Contains(file) || file.StartsWith("docs/plans/", StringComparison.Ordinal)
+                || file.EndsWith("/INDEX.md", StringComparison.Ordinal)) continue;
+            foreach (string address in addresses)
+                if (file != $"{Folder}/{address}.md" && patterns[address].IsMatch(text)) hits[address].Add(file);
+        }
+        foreach (var (address, list) in hits.OrderBy(h => h.Key, StringComparer.Ordinal))
+            if (list.Count > 0) yield return (address, list);
+    }
+
     /// <summary>A Markdown heading's anchor as GitHub makes it: lower-case, punctuation dropped, spaces to hyphens.</summary>
     public static string Slug(string heading)
     {

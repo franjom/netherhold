@@ -183,7 +183,10 @@ a `History` line dated that day.** A document, ADR or source file that names a
 runs it (`docs/plans/` is exempt: a plan is a process document, not a claim).
 Read the record before you decompile: a later session may already have
 disputed what you are about to conclude. `implements` names our code that
-mirrors the function, not code that consumes its output. `INDEX.md` there is
+mirrors the function, not code that consumes its output. When a record gains
+a reading, `kb check` notes the files that cite its address and are not in the
+change: read each one, because code and prose written against the old reading
+do not update themselves. `INDEX.md` there is
 generated (`dk2tools kb index`); never edit it by hand. Design:
 `docs/plans/2026-09-30-function-knowledge-base-design.md`.
 

@@ -203,6 +203,11 @@ Check each one that applies before you write a conclusion down.
   is not a negative. Run a known positive through the same query.
 - **A negative grep licenses "this field is unread", never "this behaviour is
   absent".** Another path may compute the same thing.
+- **List every caller before writing "called from X" or "only when Y".**
+  Run `list_xrefs` (or `CallScanAll.py`) on the function first. "Gold drops
+  only when a creature is destroyed" came from one caller of `0x0048F930`;
+  its other two callers are the collapse entries (2026-10-30). For a field,
+  the same goes for writers: list them all before naming one as the setter.
 - **The loader moves offsets.** A creature record's runtime offset is its
   file offset + `0x3F0`, and the loader may multiply a value in place. Find
   the loader store (`CopyPairs.py`, `StoreAt.py`), not just the file offset.

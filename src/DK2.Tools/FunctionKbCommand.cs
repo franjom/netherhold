@@ -179,16 +179,20 @@ static class FunctionKbCommand
             }
         }
         findings.AddRange(FunctionKb.CheckSet(records, source.Exists, source.Lines));
+        var notes = new List<string>();
 
         if (!all)
         {
             var recorded = records.Select(r => r.Address).ToHashSet(StringComparer.Ordinal);
             IEnumerable<string> files = staged ? Repo.StagedFiles(root) : Repo.ChangedFiles(root, baseRef);
             var changes = new List<(string, string[])>();
+            var changedFiles = new HashSet<string>(StringComparer.Ordinal);
+            var reread = new List<string>();
             var today = DateOnly.FromDateTime(DateTime.Now);
             bool merging = Repo.RunGit(root, "rev-parse", "-q", "--verify", "MERGE_HEAD").Trim().Length > 0;
             foreach (string relative in files)
             {
+                changedFiles.Add(relative);
                 if (!(relative.StartsWith("docs/", StringComparison.Ordinal) || relative.StartsWith("src/", StringComparison.Ordinal))) continue;
                 string[] lines = source.Lines(relative);
                 HashSet<int> added = Repo.AddedLineNumbers(root, baseRef, relative, staged);
@@ -203,20 +207,45 @@ static class FunctionKbCommand
                 var merged = mergedLines.Length == 0 ? null : FunctionKb.Parse(relative, mergedLines, []);
                 IReadOnlyCollection<DateOnly> days = staged ? [today] : [today, .. Repo.CommitDays(root, baseRef, relative)];
                 findings.AddRange(FunctionKb.HistoryRequired(now, before, days, merged));
+                if (FunctionKb.GainedReading(now, before)) reread.Add(now.Address);
             }
             findings.AddRange(FunctionKb.MissingRecords(changes, recorded));
+            notes.AddRange(CitersNote(root, source, reread, changedFiles));
         }
 
         if (findings.Count == 0)
         {
             Console.WriteLine($"kb check: {records.Count} records, no findings.");
+            foreach (string n in notes) Console.WriteLine(n);
             return 0;
         }
         Console.Error.WriteLine($"{findings.Count} KB finding(s):");
         foreach (string f in findings) Console.Error.WriteLine("  " + f);
         Console.Error.WriteLine();
         Console.Error.WriteLine(Pointer);
+        foreach (string n in notes) Console.Error.WriteLine(n);
         return 1;
+    }
+
+    const int CitersShown = 12;
+
+    /// <summary>The files a changed record's address is cited in and this change leaves alone, as a note:
+    /// they were written against the old reading (<see cref="FunctionKb.UntouchedCiters"/>).</summary>
+    static IEnumerable<string> CitersNote(string root, Source source, List<string> addresses, HashSet<string> changed)
+    {
+        if (addresses.Count == 0) yield break;
+        var files = Repo.AllTrackedFiles(root)
+            .Where(f => (f.StartsWith("src/", StringComparison.Ordinal) || f.StartsWith("docs/", StringComparison.Ordinal)
+                || f.StartsWith("tests/", StringComparison.Ordinal)) && (f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".md", StringComparison.Ordinal)))
+            .Select(f => (f, string.Join("\n", source.Lines(f))));
+        bool first = true;
+        foreach (var (address, citers) in FunctionKb.UntouchedCiters(addresses, files, changed))
+        {
+            if (first) yield return "note: these records gained a reading; files that cite them and are not in this change may still state the old one:";
+            first = false;
+            string more = citers.Count > CitersShown ? $" (and {citers.Count - CitersShown} more)" : "";
+            yield return $"  0x{address}: {string.Join(", ", citers.Take(CitersShown))}{more}";
+        }
     }
 }
 

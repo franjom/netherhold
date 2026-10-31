@@ -329,4 +329,48 @@ public sealed class FunctionKbTests
         Assert.Contains(@"counts imps \| dumps the world", row, StringComparison.Ordinal);
         Assert.Equal(7, row.Count(c => c == '|'));   // six cell boundaries plus the escaped one
     }
+
+    [Theory]
+    [InlineData("calls 0x0048F250 for the test", true)]
+    [InlineData("calls 0x48f250 for the test", true)]
+    [InlineData("see FUN_0048F250", true)]
+    [InlineData("KB `0048F250`", true)]
+    [InlineData("0x0048F2500 is another number", false)]
+    [InlineData("0x1048F250 is another address", false)]
+    [InlineData("a bare 48F250 is not a citation", false)]
+    public void CitesMatchesTheAddressInEveryWrittenForm(string text, bool expected)
+        => Assert.Equal(expected, FunctionKb.Cites(text, "0048F250"));
+
+    [Fact]
+    public void UntouchedCitersSkipTheChangeTheRecordItselfTheIndexAndPlans()
+    {
+        (string, string)[] files =
+        [
+            ("src/Fear.cs", "// 0x0048F250: below a third"),
+            ("src/Flowers.cs", "// 0x0048F250: below a sixth"),
+            ("docs/research/functions/0048F250.md", "address: 0x0048F250"),
+            ("docs/research/functions/INDEX.md", "| `0x0048F250` |"),
+            ("docs/plans/old.md", "0x0048F250"),
+            ("src/Other.cs", "0x0045EDA0"),
+        ];
+        var changed = new HashSet<string>(StringComparer.Ordinal) { "src/Flowers.cs" };
+
+        var hits = FunctionKb.UntouchedCiters(["0048F250"], files, changed).ToList();
+
+        (string address, IReadOnlyList<string> citers) = Assert.Single(hits);
+        Assert.Equal("0048F250", address);
+        Assert.Equal(["src/Fear.cs"], citers);
+    }
+
+    [Fact]
+    public void ARecordGainsAReadingWhenNewOrWithANewHistoryLine()
+    {
+        var errors = new List<string>();
+        FunctionRecord before = Parse(Sample, errors);
+        FunctionRecord after = Parse(Sample + "\n- 2026-10-30 claude: re-read.", errors);
+        Assert.Empty(errors);
+        Assert.True(FunctionKb.GainedReading(before, null));
+        Assert.False(FunctionKb.GainedReading(before, before));
+        Assert.True(FunctionKb.GainedReading(after, before));
+    }
 }
