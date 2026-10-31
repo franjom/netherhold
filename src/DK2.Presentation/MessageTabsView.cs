@@ -183,6 +183,9 @@ public sealed class MessageTabsView
     /// keeps the row's reference.</summary>
     private int ReferenceAtPost(WorldState world, in PlayerMessage message)
     {
+        if (_database is not null && message.Kind == PlayerMessageKind.CreatureLeft
+            && _database.Creatures.TryGetValue((byte)message.Data1, out CreatureDef? left))
+            return -10000 - left.LeftSpeechId;
         if (_database is null || message.Kind is not (PlayerMessageKind.CreatureUnhappy or PlayerMessageKind.CreatureAngry))
             return StringReference(message);
         if (world.CreatureById((int)message.Data2) is not CreatureState creature

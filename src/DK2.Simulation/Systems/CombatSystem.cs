@@ -315,7 +315,8 @@ public sealed class CombatSystem : ICreatureUpdateStep
             creature.ChaseTicks = 0;
 
         // State 8 (combat-approach-and-victory.md §1): the walk, with its own handler from next tick.
-        ApproachRules.Enter(context, creature, x, y);
+        if (ApproachRules.Enter(context, creature, x, y))
+            CreatureSoundRules.Request(context, SystemName, creature, CreatureSoundEvent.BattleCall);
     }
 
     /// <summary>A spell that cannot be cast (combat-spells.md §9, §10): the target is let go and

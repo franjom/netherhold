@@ -110,7 +110,7 @@ public static class ActivityRules
             or TortureRules.ReleasedState => CreatureActivity.BeingTortured,
         RescueRules.RescuingState or JailBreakRules.BreakingOutState => CreatureActivity.Rescuing,
         >= PaydayRules.FindTheMoneyState and <= PaydayRules.TakeItState => CreatureActivity.SeekingWages,
-        >= LeavingRules.ChoosingState and <= LeavingRules.SackedState => CreatureActivity.Leaving,
+        >= LeavingRules.ChoosingState and <= LeavingRules.PortalDropState => CreatureActivity.Leaving,
         CombatStates.Engaging or 200 => CreatureActivity.Fighting,
         CombatStates.Withdrawn => CreatureActivity.Withdrawing,
         CombatStates.Fleeing => CreatureActivity.Fleeing,

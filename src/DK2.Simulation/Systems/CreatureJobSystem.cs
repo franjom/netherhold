@@ -55,6 +55,13 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         if (creature.TrainingActionId != 0) TrainingStep.PollAction(context, creature);
         if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
+        if (creature.Dk2StateId == LeavingRules.PortalDropState)
+        {
+            if (HandRules.IsHeld(creature) || CreatureDeathRules.IsDown(creature)) return;
+            if (context.Tick.Value > creature.StateEnteredTick
+                && !LeavingRules.PortalDrop(context, creature, SystemName)) StateShadow.ToIdle(context, SystemName, creature);
+            return;
+        }
 
 
         // Workers have their own whole system and their own priority order

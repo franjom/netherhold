@@ -151,7 +151,7 @@ hands, and by death the purse is empty unless it skipped the dying window.
 **Implemented:** `FloorGold.DropFrom`, called from `CreatureHealthSystem.Collapse`
 when 216 took, and from the death path, with DK2's two draws per pile (`0x1000`,
 x then y, simulation stream); the pile lands on the tile, not the drawn point. A
-creature thrown through a portal keeps its gold (Q137, ANSWERED — owner, 2026-09-07).
+Portal disposal and Q137 are covered in [creature-leaving.md section 2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
 
 ## 7. Sub-tile positions and Hand landing
 
@@ -226,8 +226,8 @@ on the same tile, a nearer pile beats a farther wall.
 refund uses), Q143 (whether the pick-up costs time), Q145 (whether fetching
 interrupts a swing in progress). Q138 and Q140 are answered in §10.
 
-**Answered here:** Q137 — a creature thrown through a portal keeps its gold
-(§6). Q142 — an imp does top up a part-load in the original; ours never does,
+**Answered elsewhere:** Q137 - see [creature-leaving.md section 2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
+**Answered here:** Q142 — an imp does top up a part-load in the original; ours never does,
 because an imp with gold is already delivering before job selection is reached
 (`imp-task-priority.md` §5). Q144 — the refusal is **ownership**, not
 reachability: the original refuses a tile that is neither water nor the worker's

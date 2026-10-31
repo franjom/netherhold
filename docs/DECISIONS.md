@@ -8560,8 +8560,8 @@ Ours never counted and applied every slap in full. The trap and object writers h
 counterpart here: ours slaps only creatures.
 
 **Decision.** `HandSystem.Slap` chooses the arm on `HeldPlace` and increments
-`PlayerState.SlapCount` of the creature's owner where DK2 does. Not built: the state moves (so a
-refused move is still counted), a Horny's state 242 (ours slaps it in full, uncounted).
+`PlayerState.SlapCount` of the creature's owner where DK2 does. The state moves came later
+(ADR-0401). A Horny's state 242 is not built: `HandRules.CanSlap` refuses a slap on a Horny.
 
 ## ADR-0374 — Flag 128 is the level score in a condition
 **Date:** 2026-10-06 · **Status:** accepted
@@ -14073,3 +14073,26 @@ captured rates and the swing turn of a hero facing away (fails on the file rate)
 synthetic `TurnRate` as a per-tick figure now set four times it; three Library watch tests and the
 crowded-retaliation test start their creatures facing the target, which the file rate had done in one
 turn. Level 4 is not yet re-measured; Q665 stays open.
+
+## ADR-0603 - run the Portal hand-drop exit handler
+
+**Status:** implemented, 2026-10-31.
+
+**Decision.** Enter197 on an accepted own Portal centre disposal and run its owned-centre
+gate before the shared196 handler. Retain the native repeated sacked events,
+entrance penalty, bank sound, notice, Portal effect and purse debit. Persist/hash
+the last-sacked type at hash/save346. Use typed sound requests through Presentation.
+
+**Evidence and limits:** [creature-leaving.md section2](research/creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31), Q137/Q704.
+The general hand-release fall and native deferred removal timing remain unbuilt.
+
+## ADR-0604 - request the battle call when an approach starts
+
+**Status:** implemented, 2026-10-31.
+
+**Decision.** Emit creature sound event `0xD6` after a successful fight-approach
+entry through the shared creature-bank presentation path. Add no battle-call
+cooldown and no swing-side request. Sound-manager admission remains separate.
+
+**Evidence:** [combat-fight-state.md section 9](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
+**Consequences.** Observation only; hash/save346 and simulation RNG are unchanged.

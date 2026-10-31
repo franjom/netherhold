@@ -58,7 +58,7 @@ After its landing work (the pit scatter, the fall, and the sound gate above), it
 5. **A keeper's worker** has its own arms (`0x00481400`, the Treasury, Portal, Heart, Workshop and Temple cases), and falls back to 11. Its Torture Chamber case (`0x0046F034`) sets 130 for any type id but 1, so a keeper's own Imp dropped on a wheel is not strapped (`TortureRules.TryStrapOwn`).
 
 **`0x004E8DA0(1)`, "does this tile take the creature over".** It returns 0 (yes) for:
-- a Portal or Hero Portal tile whose cell byte `+0xC` is 4,
+- a Portal (type3 only) tile whose cell byte `+0xC` is4; Hero Portal reaches its table state after getting up,
 - a Prison or Temple tile the cell test `0x00454110` refuses,
 - a free torture device under the creature (`0x004F2180`),
 - a Combat Pit tile the cell test refuses (its floor).
@@ -75,6 +75,8 @@ Anything else, a Library or a Lair included, returns 1.
 `0x004E8DA0` has a fourth caller at `0x00481351`, inside 257. The function-based caller list missed it, because Ghidra had no function there.
 
 **Shipped `StunDuration`, all 46 records.** Most creatures lie 2–3 s, which matches the owner (Q201). Goblin 1, Imp 0, Bile Demon 5, Mistress 3, Knight 4, Stone Knight 5; the Dwarf, Firefly and Fairy 0.
+
+Portal state197 entry and its direct196 call are settled in [creature-leaving.md section2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
 
 ## 4. `0x004E8DA0(0)`, the room drop, and 250 — CONFIRMED
 

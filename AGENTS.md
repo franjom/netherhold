@@ -65,7 +65,10 @@ Before implementing DK2 behavior, check, in this order:
    says, the binary wins (owner, 2026-10-09). Record the recollection beside the
    reading, and do not build on it against the binary.
 4. **OpenKeeper** — cloned at `D:\OpenKeeper`. GPLv3: facts only, with
-   provenance in `THIRD-PARTY-NOTICES.md`.
+   provenance in `THIRD-PARTY-NOTICES.md`. Its pull requests are reviewed
+   against this repo on the owner's say-so; a SessionStart hook asks on
+   Wednesdays and Fridays. After a review, write the highest PR number
+   reviewed to `tools/openkeeper-review/last-reviewed.txt`.
 5. **Flame** — cloned at `D:\Flame` (pinned `f6e2a3d`, 2026-03-01).
    **Unlicensed: no reuse rights at all**, so facts only and *never* one of its
    identifiers in `src/`, `tests/` or the Unity adapter, comments included

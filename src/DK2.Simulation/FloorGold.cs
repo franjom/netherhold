@@ -209,7 +209,7 @@ public static class FloorGold
     /// <c>0x00459560</c>) and again by the death bookkeeping, which finds the hands empty unless
     /// the creature skipped the dying window. DK2 scatters each pile at a random point of the tile,
     /// x then y from the simulation stream; ours takes the same two draws per pile, to keep the
-    /// stream in step, but puts the pile at the tile. A creature leaving by a portal keeps its gold (Q137).</summary>
+    /// stream in step, but puts the pile at the tile. Portal disposal has no floor spill (creature-leaving.md section 2, Q137).</summary>
     public static int DropFrom(
         WorldState world, GameDatabase database, CreatureState creature, SimRandom rng)
     {

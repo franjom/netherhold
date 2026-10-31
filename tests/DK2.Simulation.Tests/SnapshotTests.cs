@@ -12,6 +12,19 @@ namespace DK2.Simulation.Tests;
 public class SnapshotTests
 {
     [Fact]
+    public void LastSackedTypeChangesTheHashAndSurvivesRestore()
+    {
+        GameSimulation sim = TestWorld.Simulation();
+        PlayerId owner = sim.World.Creatures[0].OwnerPlayerId;
+        ulong before = sim.StateHash();
+        sim.World.Player(owner).LastSackedCreatureTypeId = 7;
+        Assert.NotEqual(before, sim.StateHash());
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), TestWorld.Database());
+        Assert.Equal((byte)7, restored.World.Player(owner).LastSackedCreatureTypeId);
+        Assert.Equal(sim.StateHash(), restored.StateHash());
+    }
+
+    [Fact]
     public void TutorialPresentationStateChangesTheHashAndSurvivesRestore()
     {
         GameSimulation original = TestWorld.Simulation();

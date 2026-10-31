@@ -29,6 +29,7 @@ public static partial class KwdCreatures
         uint ReadU32(int offset) => BinaryPrimitives.ReadUInt32LittleEndian(image.AsSpan(offset));
         CreatureDef original = ParseRecord(image, 0);
         KwdOverlay.Ascii(image, 0, 32, row.Name, original.Name, trimmed: false);
+        KwdOverlay.Ascii(image, 0xF56, 32, row.SoundCategory, original.SoundCategory, trimmed: false);
         U8(0xF4B, (byte)row.CreatureId);
         U8(OffsetBaseCreatureId, (byte)row.UniqueBaseCreatureId);
         U32(0xEFC, (uint)row.Flags);

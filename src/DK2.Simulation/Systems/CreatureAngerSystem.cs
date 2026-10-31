@@ -53,6 +53,7 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
     /// and before its state handler (<c>0x00476FC0</c>).</summary>
     public void Update(SimulationContext context, CreatureState state)
     {
+        if (state.Dk2StateId == LeavingRules.PortalDropState) return;
         if (!_onTheSecond) return;
         WorldState world = context.World;
         GameDatabase database = context.Database;

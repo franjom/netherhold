@@ -244,11 +244,13 @@ public sealed class StructureBlocksTests
         goblin.GoldHeld = 350;
         var events = new ListEventSink();
 
-        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+        var sim = new GameSimulation(db, world, 42, [new HandSystem(), new CreatureStatusSystem(), new CreatureJobSystem()]);
         sim.ObserveWith(events);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(6, 6))));
+        Assert.Equal(197, goblin.Dk2StateId);
+        sim.Tick();
 
         Assert.DoesNotContain(world.Creatures, c => c.Id == goblin.Id);
 

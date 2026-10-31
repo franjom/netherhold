@@ -113,8 +113,8 @@ matches the Level 2 recording.
   attracted by the Lair starts with a boost of 10.0. So a type that becomes
   available mid-game is almost certain next, then weighted 9, 8, 7 and so on.
 - **The block.** `0x004DC7E0` sets 10.0 on the type named as last sacked
-  (`+0xB47`, `EntranceLastSackedCreatureTypeId`). Its caller `0x0045A0D0` is
-  unread. Ours has no sacking, so the block is never set.
+  (`+0xB47`, `EntranceLastSackedCreatureTypeId`). Built at hash/save 346;
+  see [creature-leaving.md section 2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
 
 In Level 2 the Library makes Warlocks available at 635. Their boost puts four
 Warlocks through our portal before the first Goblin, against DK2's five. With

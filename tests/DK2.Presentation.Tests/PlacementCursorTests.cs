@@ -281,10 +281,9 @@ public sealed class PlacementCursorTests
         Assert.Equal((false, false, true), (heart.Valid, heart.Dispose, heart.NoGo));
     }
 
-    /// <summary>DK2 sets bit 0x04 for a non-evil worker over its own Portal centre (0x0040AE80 keys the
-    /// Heart on IsWorker+IsEvil); our click refuses that drop, so the cursor shows No Go, not the bin.</summary>
+    /// <summary>The Portal disposal arm excludes type 1, so a converted Dwarf can use it.</summary>
     [InstallFact]
-    public void ANonEvilWorkerGetsNoBinOverItsPortalCentreOrHeartCentre_DisposalRulesKeyOnIsWorkerNotIsEvil()
+    public void ANonEvilWorkerGetsThePortalBinButCannotUseTheHeart()
     {
         (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
         TilePos portal = PaintedPortalCentre(world, db, keeper);
@@ -293,7 +292,7 @@ public sealed class PlacementCursorTests
         Hold(world, world.SpawnCreature(db, dwarf.CreatureId, keeper, Claimed(world, db, keeper, 0)));
 
         PlacementFeedback overPortal = PlacementCursor.HandDrop(world, db, keeper, portal);
-        Assert.Equal((false, false, true), (overPortal.Valid, overPortal.Dispose, overPortal.NoGo));
+        Assert.Equal((true, true, false), (overPortal.Valid, overPortal.Dispose, overPortal.NoGo));
         PlacementFeedback overHeart = PlacementCursor.HandDrop(world, db, keeper, HeartCentre(world, db, keeper));
         Assert.Equal((false, false, true), (overHeart.Valid, overHeart.Dispose, overHeart.NoGo));
     }

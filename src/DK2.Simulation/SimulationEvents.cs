@@ -22,6 +22,7 @@ public readonly record struct HandDropFeedback(PlayerId Player, bool Gold);
 public readonly record struct SimEvent(GameTick Tick, string System, string Kind, string Detail)
 {
     public HandDropFeedback? HandDrop { get; init; }
+    public CreatureSoundRequest? CreatureSound { get; init; }
     public RoomConstructionEffect? ConstructionEffect { get; init; }
     public ViewEffectRequest? EffectRequest { get; init; }
     public CreatureId? ElectrifiedCreature { get; init; }

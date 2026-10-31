@@ -211,7 +211,31 @@ the `0xF` nibble, state 260 and action 55; the names `TimeLastUsedMelee`,
 **CONFIRMED (data):** `0xCF9` and `0xEF8` ticks for the seven creatures tabled
 in combat-cadence.md §3.
 
-**STRONGLY INFERRED:** none retained here; the former state-8 and fear findings
-are settled in `combat-approach-and-victory.md` and `combat-fear.md`.
+**STRONGLY INFERRED:** the battle-call request below; the former state-8 and
+fear findings are settled in `combat-approach-and-victory.md` and `combat-fear.md`.
 
 **UNKNOWN:** Q370–Q371 (§7).
+
+## 9. Battle call on approach (2026-10-31)
+
+**STRONGLY INFERRED**, fresh whole reads of `0x0045F030` and `0x00471D10`,
+with instruction check `0x0045F981..0x0045F9DB`: the fight calls approach
+at `0x0045F992`, tests its result at `0x0045F997`, and only on success
+requests event `0xD6` at `0x0045F9BD`. The request uses the creature's sound
+handle `+0x2E`, definition bank `+0x6E3`, and position `+0x1A`, then stores
+the returned handle at `0x0045F9C3`. The approach helper itself plays no sound.
+
+There is one `0xD6` request in this fight handler, with no battle-call timer,
+random gate or previous-call check. Each successful new approach requests it;
+walking/route refreshes and swings do not. This establishes the state-handler
+repeat rule, not an exemption from the sound manager's admission or voice rules
+([sound playback](sound-playback.md), [sound budgets](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets)).
+
+`CombatSystem` emits a typed creature sound request after successful approach
+entry. `CreatureSoundDirector` carries its bank, group, position and actor voice
+to the existing `ClassicSoundPlayer`. No simulation state or random draw is added;
+hash/save 346 is unchanged. The parser/bank boundary is in
+[creature-leaving.md section 2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).
+Focused verification: 18 combat cases and two presentation playback cases pass
+(`build/battle-call-green.log`, `build/battle-call-playback.log`).
+Unity hearing acceptance has not run.

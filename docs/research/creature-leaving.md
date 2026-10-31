@@ -18,8 +18,7 @@ Implementation: `LeavingRules`, shared by creature anger and defeat; built bound
 Tests: `CreatureAngerTests`, `DefeatTests`.
 Known exceptions: candidate selection ignores reachability, and a failed route
 to the selected portal is retried rather than trying the next portal.
-Open questions: the meanings of event ids 61 and 63, the optional effect selected
-through definition field `+0x423`, and what enters state 197 remain UNKNOWN.
+The hand-drop entry and state 197 are recorded in section 2.
 
 ## 1. State 194 chooses across every player's entrances
 
@@ -63,23 +62,60 @@ that work and resumes the state supplied by the caller (`travel-states.md`).
 | 194 | `0x00459DE0` | Set `Leaving`, choose the globally nearest entrance, and start state 6 with resume state 195. |
 | 195 | `0x0045A000` | At the chosen room, select a point one quarter-tile to either side of its Y centre and start another state-6 route with resume state 196. A failed request returns zero. |
 | 196 | `0x0045A0D0` | Final arrival: update sacking state, notify, discard carried gold, and mark the creature for removal. |
-| 197 | `0x00459D50` | Alternate arrival gate: stop on its first tick; require an active runtime tile (`tile+0xC == 4`) in a Portal or Hero Portal; clear events 63 and 61, then call state 196 directly. Otherwise return zero. |
+| 197 | `0x00459D50` | Hand-drop gate: stop at age 1; require an owned Portal or Hero Portal centre (`tile+0xC == 4`), fire events 63 and 61, then directly call the state-196 handler. Otherwise return zero. |
+
+### Hand drop entry and direct call (2026-10-31)
+
+**STRONGLY INFERRED**, whole handlers and focused instructions re-read:
+`0x0046EAB0`'s keeper-worker Portal/Hero Portal arm at `0x0046F060..0x0046F0B4`
+enters 197 for an owned centre except type 1, the Imp. Non-workers reach the
+room-table drop state through `0x004E8DA0(0)`; its test-only arm singles out
+Portal type 3, not Hero Portal, for immediate room takeover. The latter can
+still reach its table state after getting up. `0x00459D84/0x00459D9A` call
+`0x004539B0` with allied acceptance off, enforcing ownership; `0x00459DA3`
+requires piece 4. `0x00459DCA` calls the 196 handler directly, without storing
+state 196. Both handlers issue the sacked events, so this path issues each twice.
+
+`0x004545C0` returns floor zero for a type-3 Portal piece 4; Hero Portal has
+no such floor-height arm. This establishes the hole's floor, not its falling
+duration. Ours enters 197 on accepted disposal and runs it the next turn;
+the general hand-release fall remains outside this change.
+The native update `0x00488930` calls timed effects `0x0048E160` at `0x0048957D`
+before dispatching the state at `0x0048A030`; possession skips that dispatch
+at `0x0048A026..0x0048A028`. Ours dispatches197 in the job-handler phase,
+so chicken expiry and other preceding state changes can prevent the exit.
+
+`0x0045A10E` invokes `0x004DC7E0`: owner last-sacked type `+0xB47` is set and
+all matching entrance rows get block `0xA000`. Sound event `0xDF` is requested
+at `0x0045A147` from creature bank `def+0x6E3`; notification 20 is posted at
+`0x0045A177` except for type 45. The effect at `0x0045A17C..0x0045A1BE`
+comes from the **Portal type-3 room definition**, slot `+0x423`, even for a
+Hero Portal. `0x004EACC0` copies this from file `+0x384` via staging `+0x458`;
+it is `CreatedObjectEffectId`, shipped Portal value 96. The creature bank is
+loaded by `0x00492320` at `0x00493D7C..0x00493DAE` from staging `+0x1346`,
+file `+0xF56`, a 32-byte name truncated to 31 by the native loader.
+
+`0x0045A1CE` calls `0x0048AF50` with the whole purse before removal. The
+field becomes zero without a pile or a keeper credit. Q137 retains the owner's
+observation that thrown creatures leave **with** their gold: this matches no
+spill, but does not establish the field surviving inside the removed creature.
 
 ### State 196: sacking, notification, gold and removal
 
-Arrival first clears creature event 63 and owner event 61. It calls
+Arrival first fires creature event 63 and owner event 61. It calls
 `0x004DC7E0` on the creature owner's player record with the creature type:
 `player+0xB47` (`EntranceLastSackedCreatureTypeId`, the executable dumper's name)
 is set to that type, and every matching entry in the player's 46-record
 attraction table receives `0xA000`. No room-local portal tally is changed.
 
-The handler plays the creature definition's `+0x6E3` sound. Except for creature
+The handler requests event `0xDF` from the creature definition's `+0x6E3` bank. Except for creature
 type 45, it raises notification **type 20**, addressed to the creature owner and
 using the creature type as the variant. Type 20's row at `0x006A0BC8` has flags
-`0x2032`: 50 game seconds and flag `0x2000`; its reference is zero, so it has **no
-Mentor speech** under the resolver in `mentor-speech-and-notifications.md` §3.
-The role of the row's value 2 at `+6` remains unread. Definition field `+0x423`
-may also select an effect spawned at the creature; its meaning is UNKNOWN.
+`0x2032`: 50 game seconds and flag `0x2000`. Its zero table reference is
+overridden by `0x004C4987..0x004C49AF`: creature definition `+0x6D1` becomes
+reference `-10000 - LeftSpeechId`, and the message plays that Mentor line.
+The row's value 2 at `+6` is its tab graphic. The Portal room's effect `+0x423`
+is spawned at the creature.
 
 `0x0048AF50` is then passed the complete carried-gold value at
 `creature+0x3FB`. It subtracts that amount with a floor at zero, so the field
@@ -118,7 +154,7 @@ begin.
   and resumes its stored next state after validating the destination room, so a
   defeat tick must not replace it.
 
-## 5. Built (2026-09-24, hash-neutral)
+## 5. Built (hash/save 346, ADR-0603)
 
 `LeavingRules` drives both the deserter (`CreatureAngerSystem.Leave`) and a fallen
 keeper's creatures (`DefeatRules`): §1's rule — every player's Portals and Hero
@@ -128,8 +164,13 @@ creature is removed and its gold vanishes (§2). Deviations, each flagged at the
 site: the target is the nearest entrance *tile* that is not the blocked centre,
 where DK2 targets the room's `(x+1, y)` and then a quarter-tile point (195); arrival
 is any entrance tile; the no-entrance fallback to state 87 is not built (Q41), the
-creature standing instead; the sacking table, notification 20 and the `+0x423`
-effect are not modelled.
+creature standing instead. The sacking table, notification 20, bank event `0xDF`
+and Portal room effect are built with the hand-drop gate (hash/save 346). Ours
+unlinks immediately; the native deferred finished-object sweep remains unbuilt.
+The accepted disposal, get-up and level-placed entry paths share the gate;
+non-worker room entry retains the Casino countdown and job-hatred checks.
+The creature bank event reaches Unity through `CreatureSoundDirector` and
+`ClassicSoundPlayer`; native playback acceptance is pending.
 
 **On state ids** (ADR-0207): the decision sets 194 through the gate, so a creature in
 a state the rule refuses 194 from (the captive, device and pit states) does not leave;

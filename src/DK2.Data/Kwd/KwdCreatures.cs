@@ -282,6 +282,7 @@ public static partial class KwdCreatures
             UnhappySpeechId = U16(0xD05),
             AngrySpeechId = U16(0xD07),
             LeftSpeechId = U16(0xD09),
+            SoundCategory = Str(0xF56, 32),
             EntranceEffectId = U16(0xF36),
         };
     }
