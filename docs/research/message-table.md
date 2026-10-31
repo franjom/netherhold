@@ -115,7 +115,7 @@ What OpenKeeper adds, and what this census says of it:
 | 73 | `0x49` | `0x2032` | 50 | 1 | speech 365 | Casino_Jackpot`4D6BEA` | CasinoJackpot |
 | 74 | `0x4A` | `0x2032` | 50 | 1 | speech 372 | **none** |  |
 | 75 | `0x4B` | `0x2032` | 50 | 1 | speech 368 | State146_CasinoAlcove`456CD4` | CasinoDrinking |
-| 76 | `0x4C` | `0x2032` | 50 | 1 | speech 371 | fn 0x004d6cb0`4D6D4C` |  |
+| 76 | `0x4C` | `0x2032` | 50 | 1 | speech 371 | [unpaid winner slap](casino-winner-slap.md)`4D6D4C` | JackpotWinnerSlapped |
 | 77 | `0x4D` | `0x2032` | 50 | 1 | speech 372 | Creature_CasinoWinner155`457465`; Creature_CasinoWinner157`4575A3` | JackpotUnpaid |
 | 78 | `0x4E` | `0x2032` | 50 | 1 | speech 504 | **none** |  |
 | 79 | `0x4F` | `0x2032` | 50 | 1 | speech 505 | **none** |  |

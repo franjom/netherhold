@@ -14134,3 +14134,15 @@ Preserve neutral ownership when the max-health terrain is unchanged.
 **Evidence:** [wall-reinforce-eligibility.md](research/wall-reinforce-eligibility.md).
 The own-wall branch selects6 but its action does no health work; this replaces
 Q564's proposed50-rate repair. No new persistent state.
+
+## ADR-0608 - reproduce the unpaid jackpot slap
+
+**Status:** implemented, 2026-10-31. Q697, hash/save350.
+
+**Decision.** Route a full slap with an outstanding jackpot deadline through
+the winner routine. Preserve its purse debit followed by a second spawn cap,
+wrapping byte counter, repeat-slap anger and two simulation RNG draws per pile.
+
+**Evidence:** [casino-winner-slap.md](research/casino-winner-slap.md).
+The counter is hashed and saved, initially zero and reset by a new jackpot.
+Native gameplay validation remains unmeasured.

@@ -16,6 +16,46 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/slap-states.md")]
 public static class SlapRules
 {
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/casino-winner-slap.md")]
+    public static int SlapCasinoWinner(SimulationContext context, CreatureState winner)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        int quarter = (ushort)winner.JackpotWinnings / 4;
+        PurseRules.Spend(winner, Math.Min(quarter, winner.GoldHeld));
+        int anger = CreatureAngerRules.Apply(world, database.CreatureById(winner.CreatureTypeId), winner,
+            AngerBucket.Treatment, winner.Anger[AngerBucket.Treatment] * 25 / 100, AngerComplaint.Slapped);
+        if (winner.CasinoBigWinnerSlappedCount != 0)
+        {
+            world.Messages.Post(world, winner.OwnerPlayerId, PlayerMessageKind.JackpotWinnerSlapped, 0, 0);
+            foreach (CreatureState other in world.OwnedCreatures(winner.OwnerPlayerId))
+                if (other != winner)
+                    CreatureAngerRules.Apply(world, database.CreatureById(other.CreatureTypeId), other,
+                        AngerBucket.Treatment, 5000, AngerComplaint.Slapped);
+        }
+        // The second cap is against the already debited purse; see the binary's ordered effects.
+        int amount = Math.Min(quarter, winner.GoldHeld);
+        int count = FloorGold.PileCount(amount);
+        if (count > 0)
+        {
+            var tile = new TilePos(winner.PosX >> 12, winner.PosY >> 12);
+            for (int i = 0; i < count; i++)
+            {
+                int x = (winner.PosX & ~4095) | context.Rng.NextInt(4096);
+                int y = (winner.PosY & ~4095) | context.Rng.NextInt(4096);
+                if (FloorGold.Drop(world, database, world.TileIndex(tile), amount / count) is ObjectState pile)
+                {
+                    pile.PosX = x;
+                    pile.PosY = y;
+                    pile.PosZ = 0x3000;
+                    pile.Cell = (byte)(Math.Min((y & 4095) / 0x555, 2) * 3 + Math.Min((x & 4095) / 0x555, 2));
+                }
+            }
+        }
+        winner.CasinoBigWinnerSlappedCount = unchecked((byte)(winner.CasinoBigWinnerSlappedCount + 1));
+        return anger;
+    }
+
     /// <summary>67: slapped in its keeper's Workshop (<c>0x0048B9DB</c>).</summary>
     public const int WorkshopState = 67;
 

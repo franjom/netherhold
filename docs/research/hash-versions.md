@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**350** - `0x788942D055141149`. Remake regression pin, not native evidence. FormatVersion also350. Hash/save CasinoBigWinnerSlappedCount and mirror the unpaid jackpot slap, including its post-debit spawn cap and simulation draws. See [casino-winner-slap.md](casino-winner-slap.md). Saves from349 are refused.
+
 **349** - `0xE6AEC8BEDDDA969C`. Remake regression pin, not native evidence. FormatVersion also349. Mirror kind6 selection separately from action7's neutral-wall guard: neutral reinforced walls heal while retaining neutral ownership; own walls below half select6 but receive no health. No new fields. See [wall-reinforce-eligibility.md](wall-reinforce-eligibility.md). Saves from348 are refused.
 
 **348** - `0x2EA2FC3942511454`. Remake regression pin, not native evidence. FormatVersion also348. Hatchery last-generated timestamp replaces elapsed ticks; hash/save the startup size-table interval. Per-turn lay attempts, growth preserves the stamp, removal restarts it. See [hatchery-startup.md](hatchery-startup.md). Saves from347 are refused.

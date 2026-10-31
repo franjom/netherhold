@@ -100,6 +100,9 @@ public enum PlayerMessageKind : uint
     /// <summary>Type 75: more than two of a Casino's occupants are drunk (state 146).</summary>
     CasinoDrinking = 75,
 
+    /// <summary>Type 76: repeated slapping of an unpaid jackpot winner; zero payload.</summary>
+    JackpotWinnerSlapped = 76,
+
     /// <summary>Type 77: a jackpot winner cannot collect: no route to a Treasury (155) or too little
     /// gold (157).</summary>
     JackpotUnpaid = 77,
@@ -231,7 +234,7 @@ public sealed class PlayerMessageQueue
             PlayerMessageKind.TrainingUnpaid when data1 is >= 1 and <= 4 => (uint)SimulationTiming.TicksFromSeconds(20),
             PlayerMessageKind.TrainingUnpaid when data1 == 5 => (uint)SimulationTiming.TicksFromSeconds(240),
             PlayerMessageKind.CasinoJackpot or PlayerMessageKind.CasinoDrinking or PlayerMessageKind.JackpotUnpaid
-                or PlayerMessageKind.JackpotMissed => (uint)SimulationTiming.TicksFromSeconds(50),
+                or PlayerMessageKind.JackpotMissed or PlayerMessageKind.JackpotWinnerSlapped => (uint)SimulationTiming.TicksFromSeconds(50),
             PlayerMessageKind.CasinoRowdy when data1 == CasinoStep.RowdyVariant => (uint)SimulationTiming.TicksFromSeconds(20),
             // An unlisted room type would take the table's terminator row: discarded for 41 and 43,
             // kept for one sweep for 42. Nothing here posts one, so it is refused.

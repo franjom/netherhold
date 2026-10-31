@@ -94,6 +94,7 @@ public static class CasinoJackpotRules
 
         winner.JackpotDeadlineTicks = database[VariableTypeId.GamblingJackpotPayTimeLimit] * SimulationTiming.OriginalTicksPerGameSecond;
         winner.JackpotWinnings = Math.Max(database[VariableTypeId.GamblingJackpotBasicAmount], WageBill(world, database, keeper));
+        winner.CasinoBigWinnerSlappedCount = 0;
         world.Messages.Post(world, winner.OwnerPlayerId, PlayerMessageKind.CasinoJackpot, winner.Id, 0);
         Kick(context, system, winner, CelebratingState);
         winner.CurrentJob = JobType.None;

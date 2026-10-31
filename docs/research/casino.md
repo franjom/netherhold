@@ -250,10 +250,12 @@ From the 10-byte rows at `0x006A0B00`: 73, 75, 77 and 91 are `0x2032` (50 s, tab
   `+0x53`. Neither case lowers the keeper's count: its only decrements are the room update's two
   (`0x004D6270`), and `Casino_OnFreed` (`0x004D7100`) does not touch it. So the count stays raised and the purse test stays lifted for the rest of the level, as in DK2.
 - Treasury gold is `TileState.GoldHeld` (ADR-0015): "a tile holding object 3" is a tile with gold.
+- The unpaid winner's slap and counter `+0x3F6` are built (ADR-0608, hash/save 350);
+  [scope and validation limits](casino-winner-slap.md#implementation-boundary).
 - Not modelled, all presentation: sounds, the music and its null-handle kick (ours takes the
   music as started), the tile flash and
   effects, the wheel's spin (its `random(2)` is drawn), the drunk walk, 156's turn result beyond
-  waiting for it, and `+0x3F6`.
+  waiting for it.
 - 154, the eviction a Casino's sale, loss or neighbour's change starts (`0x004D70D0`, `0x004D7100`,
   `0x004E44E0`), is built (ADR-0402, ADR-0406); 158 is not (Q571).
 </content>

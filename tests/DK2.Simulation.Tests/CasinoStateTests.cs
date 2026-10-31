@@ -264,6 +264,7 @@ public class CasinoStateTests
         WorldState world = World(db, 5);
         new GameSimulation(db, world, seed: 1, [new AutoFurnitureSystem()]).Tick();
         CreatureState winner = Gambler(db, world, new TilePos(1, 1));
+        winner.CasinoBigWinnerSlappedCount = 7;
         CreatureState other = Gambler(db, world, new TilePos(3, 3));
         bool rolled = false;
         var sim = new GameSimulation(db, world, seed: 1, [new Probe(context =>
@@ -277,6 +278,7 @@ public class CasinoStateTests
         Assert.Equal(CasinoStep.DancingState, other.Dk2StateId);
         Assert.Equal(JobType.Drink, other.CurrentJob);
         Assert.Equal(CasinoJackpotRules.CelebratingState, winner.Dk2StateId);
+        Assert.Equal(0, winner.CasinoBigWinnerSlappedCount);
         Assert.Equal(CreatureActivity.CollectingWinnings, winner.Activity);
         Assert.False(winner.HeldPlace.IsHeld);
         Assert.Equal(1, world.Player(Keeper).CasinoParties);

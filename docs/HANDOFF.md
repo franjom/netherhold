@@ -20,7 +20,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
   native playback acceptance remains Q685.
 
-- Hand drops animate only after acceptance (ADR-0582); native packet-submit
+- Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
   timing and pending-entry scheduling remain partial (Q682). Portal disposal is built (ADR-0603, hash/save 346); [scope and limits](research/creature-leaving.md#5-built-hashsave-346-adr-0603), Q137/Q704.
 - Burning simulation/red, shot effects/bodies, lightning and Inferno jitter are built (hash/save 343).
   Scope and pending acceptance: [shot effects](research/shot-effects.md#7-ours), Q658/Q659/Q660/Q689/Q690; owner checks Q660 and Q691-Q693.

@@ -15,8 +15,9 @@ public static class FloorGoldLandingRules
 
     public static bool Handles(ObjectState pile) => pile.ObjectTypeId is 1 or 2 or 3;
 
+    // Elevated scatter has coordinates before a landing process; legacy implicit piles have Z zero.
     public static bool HasPosition(ObjectState pile) =>
-        Handles(pile) && pile.ProcessState != (byte)LandingState.ImplicitPosition;
+        Handles(pile) && (pile.ProcessState != (byte)LandingState.ImplicitPosition || pile.PosZ != 0);
 
     /// <summary>The gold arm of 0x0049EF90. Height is collapsed; positions and strict candidate
     /// bounds are retained. Legacy floor piles use their represented cell or tile centre.</summary>

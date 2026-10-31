@@ -1113,6 +1113,9 @@ public sealed class CreatureState
     /// <summary>A jackpot winner's winnings still to collect, <c>+0x3F4</c>.</summary>
     public int JackpotWinnings;
 
+    /// <summary>Casino winner slap byte, +0x3F6; see casino-winner-slap.md.</summary>
+    public byte CasinoBigWinnerSlappedCount;
+
     /// <summary>The Graveyard floor slot a corpse lies on, -1 for none: the dead body's room
     /// (<c>+0x132</c>) as <c>Room_AddCorpse</c> (<c>0x004E6490</c>) sets it. Cleared when that room is
     /// freed (<c>Room_RemoveCorpse</c>, <c>0x004E6700</c>), as a sale or a merge frees it.</summary>
@@ -1520,6 +1523,7 @@ public sealed class CreatureState
         hash.Add(DrunkTicks);
         hash.Add(JackpotDeadlineTicks);
         hash.Add(JackpotWinnings);
+        hash.Add(CasinoBigWinnerSlappedCount);
         hash.Add(GraveyardSlot);
         hash.Add((byte)BodyOwnerPlayerId);
         for (int i = 0; i < SpellStamps.Length; i++) hash.Add(SpellStamps[i]);

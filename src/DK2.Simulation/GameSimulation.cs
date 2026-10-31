@@ -21,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 349;
+    private const ulong HashVersion = 350;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>

@@ -82,9 +82,10 @@ public sealed partial class ImpTaskSystem
         }
     }
 
-    /// <summary>A pile's point: the centre of its third-of-a-tile cell, or of the tile.</summary>
+    /// <summary>A pile's explicit point, otherwise its represented cell or tile centre.</summary>
     private static (long X, long Y) PileCentre(WorldState world, ObjectState pile)
     {
+        if (FloorGoldLandingRules.HasPosition(pile)) return (pile.PosX, pile.PosY);
         long x = (pile.TileIndex % world.Width) * 4096L, y = (pile.TileIndex / world.Width) * 4096L;
         if (pile.Cell == MiningSlots.AnyCell) return (x + 2048, y + 2048);
         return (x + 682 + (pile.Cell % 3) * 1365, y + 682 + (pile.Cell / 3) * 1365);
