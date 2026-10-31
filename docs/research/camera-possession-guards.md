@@ -38,23 +38,39 @@ The duration is 500 ms within a mode class, 2000 across classes. Leaving mode
 7 for another mode, or camera flag `+0xE3C` bit `0x40`, selects zero duration.
 The classes are those already recorded in [hud-visibility.md](hud-visibility.md#camera-gate-confirmed-binary).
 Thus possession can blend raised bars back to full while leaving the count
-nonzero. A later return to the dungeon selects its full-viewport slot too.
+nonzero. A later return to the dungeon blends toward its full-viewport slot,
+then the next idle frame restores the bars while the count remains nonzero.
 These interpolation expectations come from our binary reading; the owner
 has not observed this case.
 
 Whole `0x0044A5D0` forwards even a same-mode request to the mode setter;
 while a path plays, it retains the last request until the default path end.
-Consequently an explicit mode3 request can close bars in mode3 without
+Consequently an explicit mode3 request can temporarily close bars in mode3 without
 changing the count. The director now consumes these requests, including
 deferred requests, rather than treating mode3 as a no-op.
 
 CallScanAll finds the mode setter at `0x0044A7AA`; letterbox callers are
 `0x0044270C`, `0x00442720`, `0x0044A495` and `0x0044DAF2`.
-Writer inventories cover `+0xDD8`, `+0xE48`, `+0xE4E`, `+0xE72` and both
-full-viewport slots. A constructor window in `0x00449470` zeros the rects;
+Literal-displacement writer scans cover `+0xDD8`, `+0xE48` and `+0xE4E`.
+The `+0xE72` and full-slot scans are partial: computed-base writes are missed.
+A constructor window in `0x00449470` zeros the rects;
 whole reset `0x00449670` initializes both full slots to the screen rectangle.
 Its computed-base stores are not all found by literal-displacement StoreAt.
 Whole `0x0044DB90` separately restores or clears rects without changing count.
+
+Whole `0x0044BED0`, with idle instructions `0x0044BFE1..0x0044C17B`,
+confirms the snap rule: outside a blend, a nonzero signed count gives bars
+unless the mode is 2, 10 or 11. Zero gives the selected full slot. The frame
+that completes a blend retains its target; the following idle frame snaps.
+See [the function record](functions/0044BED0.md) for the flag/global guards.
+
+Full-slot setters [0x00449840](functions/00449840.md) and
+[0x004498F0](functions/004498F0.md) also write the live rectangles.
+Their direct calls are respectively `0x0043ABE4`, `0x0044135B`, `0x00442F27`
+and `0x0043ABD8`, `0x00442F1B`. Wrapper
+[0x00441350](functions/00441350.md) is stored at `0x0066CCC8`;
+its indirect slot consumers remain unaudited. This does not establish a
+complete census of either full slot's writers or runtime geometry.
 
 ## Negative counts and shipped requests
 
@@ -83,7 +99,10 @@ uses zero for either native full-viewport slot; distinct native rectangle
 geometry and flag `0x40` instant transitions are not represented. Named
 `CameraModeId` predicates own the possession and scripted-move restrictions.
 Negative counts remain visible to the HUD predicate and overlay-state flag.
-No simulation state changes; hash/save 352 is unchanged.
+The idle bar also follows the nonzero count, including -1. The camera's
+bit `0x10` empty-rect arm and global `0x0075AEAF` write suppression are
+unrepresented; their native guards are recorded in `0x0044BED0`.
+No simulation state changes; hash/save 353 is unchanged.
 
 The `+0xDD8` letterbox skip is **not mirrored**: native timed position/lens
 mode transitions are unmodelled, so the renderer has no equivalent transition
@@ -92,8 +111,9 @@ clears it on commit. Action26's represented glide uses a different native
 deadline, `+0xDFA`, and cannot stand in for it. This remains a known deviation
 until those mode transitions are implemented.
 
-Mode is sampled per render `Update`; DK2 tests it when the action is delivered
-on a tick. Requests queued across a possession boundary can consequently see
-different modes. The initial sampled mode establishes a baseline rather than
-inventing an unseen mode-change time. Full timing parity is not claimed.
+External mode changes are sampled per render `Update`; an unchanged adapter
+sample preserves action 15's selected mode. DK2 tests the mode when the action
+is delivered on a tick, so requests queued across a possession boundary can
+see different modes. The initial sample establishes a baseline. Full timing
+parity is not claimed.
 

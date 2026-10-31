@@ -175,6 +175,8 @@ public sealed class HudScriptRestorationTests
         }
         director.Update(3000 + duration, 0, new(to));
         Assert.Equal(0, director.LetterboxBar);
+        director.Update(3001 + duration, 0, new(to));
+        Assert.Equal(new CameraModeId(to).IsPossession ? 0 : 0.125f, director.LetterboxBar);
         Assert.Equal(1, director.LetterboxRequestCount);
     }
 
@@ -189,6 +191,8 @@ public sealed class HudScriptRestorationTests
         director.Update(4000, 0, new(3));
         director.Update(5000, 0, new(3));
         Assert.Equal(0, director.LetterboxBar);
+        director.Update(5001, 0, new(3));
+        Assert.Equal(0.125f, director.LetterboxBar);
     }
 
     [Theory]
@@ -218,6 +222,8 @@ public sealed class HudScriptRestorationTests
         Assert.Equal(0.0625f, director.LetterboxBar);
         director.Update(started + 500, 0, new(3));
         Assert.Equal(0, director.LetterboxBar);
+        director.Update(started + 501, 0, new(3));
+        Assert.Equal(0.125f, director.LetterboxBar);
         Assert.Equal(1, director.LetterboxRequestCount);
     }
 
@@ -262,7 +268,38 @@ public sealed class HudScriptRestorationTests
         Assert.Equal(-32768, letterbox.RequestCount);
         letterbox.Lower(0, animate: false);
         Assert.Equal(32767, letterbox.RequestCount);
-        Assert.Equal(0, letterbox.Bar(3000));
+        Assert.Equal(0.125f, letterbox.Bar(3000));
+    }
+
+    [Theory]
+    [InlineData(3, 0.125f)]
+    [InlineData(10, 0f)]
+    public void NegativeLetterboxCountUsesTheIdleModeRule(ushort mode, float expected)
+    {
+        var director = Director(new ClassicHudControls());
+        Letterbox(director, false);
+        director.Update(0, 0, new(mode));
+        director.Update(1, 0, new(mode));
+        Assert.Equal(-1, director.LetterboxRequestCount);
+        Assert.Equal(expected, director.LetterboxBar);
+    }
+
+    [Fact]
+    public void ScriptedModeSurvivesAnUnchangedSampledDungeonMode()
+    {
+        var director = Director(new ClassicHudControls());
+        director.Update(0, 0, new(3));
+        director.Emit(new SimEvent(default, "test", "mode", "")
+        {
+            ScriptedView = new(ScriptedViewKind.CameraMode, PlayerIds.FirstKeeper, 1, default, false),
+        });
+        director.Update(100, 0, new(3));
+        director.Emit(new SimEvent(default, "test", "move", "")
+        {
+            ScriptedView = new(ScriptedViewKind.CameraMove, PlayerIds.FirstKeeper, 0, new TilePos(3, 4), false),
+        });
+        director.Update(200, 0, new(3));
+        Assert.False(director.TryTakeCameraMove(out _));
     }
 
     private static ScriptedViewDirector Director(ClassicHudControls controls)

@@ -38,6 +38,8 @@ public sealed class ScriptedViewDirector(
     private uint _flashStartedAt;
     private bool _speechAudioEnabled;
     private CameraModeId _mode;
+    // A steady adapter sample must not undo action 15's selected mode on the next render.
+    private CameraModeId _sampledMode;
     private bool _hasMode;
     private CameraModeId? _deferredMode;
     private SpeechLineId? _speechLine;
@@ -117,9 +119,18 @@ public sealed class ScriptedViewDirector(
     /// the camera path (<see cref="CameraPathPlayback.Seek"/>).</param>
     public void Update(double nowMilliseconds, double renderTick, CameraModeId mode = default)
     {
-        if (_hasMode && mode != _mode) _letterbox.ChangeMode(_mode, mode, nowMilliseconds);
-        _hasMode = true;
-        _mode = mode;
+        if (!_hasMode)
+        {
+            _mode = mode;
+            _letterbox.SetInitialMode(mode);
+            _hasMode = true;
+        }
+        else if (mode != _sampledMode)
+        {
+            _letterbox.ChangeMode(_mode, mode, nowMilliseconds);
+            _mode = mode;
+        }
+        _sampledMode = mode;
         _now = nowMilliseconds;
         _renderTick = renderTick;
         if (_flash is { DurationSeconds: > 0 } flash
@@ -137,6 +148,7 @@ public sealed class ScriptedViewDirector(
         }
         SeekPath();
         _subtitles.Update(_now);
+        _ = _letterbox.Bar(_now);
     }
 
     private void SeekPath()

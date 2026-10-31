@@ -117,7 +117,7 @@ public sealed class CameraPathPlayback
 /// <summary>The camera's counted letterbox (<c>0x0044D320</c>, camera-paths.md section 4): each
 /// raise can animate the drawable area over 2000 ms to the screen less an eighth of its height
 /// top and bottom; a lower reaching zero can animate it back. Suppressed animation retains
-/// the signed-word request count.</summary>
+/// the signed-word request count. Idle frames snap to the count and mode (0x0044BED0).</summary>
 public sealed class CinematicLetterbox
 {
     public const double BlendMilliseconds = 2000;
@@ -130,11 +130,28 @@ public sealed class CinematicLetterbox
     private double _start;
     private double _duration = BlendMilliseconds;
     private bool _blending;
+    private CameraModeId _mode;
+    private double _sampledAt = double.NaN;
+    private float _bar;
+
+    internal void SetInitialMode(CameraModeId mode) => _mode = mode;
 
     /// <summary>The bar height, a fraction of the screen height, at <paramref name="now"/>.</summary>
     public float Bar(double now)
     {
-        if (!_blending) return _to;
+        // Multiple consumers of this frame must not turn blend completion into an idle frame.
+        if (now == _sampledAt) return _bar;
+        _sampledAt = now;
+        return _bar = Sample(now);
+    }
+
+    private float Sample(double now)
+    {
+        if (!_blending)
+        {
+            _from = _to = Raised && !_mode.IsPossession ? BarFraction : 0;
+            return _to;
+        }
         double elapsed = now - _start;
         if (elapsed >= _duration)
         {
@@ -147,17 +164,22 @@ public sealed class CinematicLetterbox
     public bool Raised => _count != 0;
 
     /// <summary>Camera_SetMode retargets the full viewport without consulting the request count.</summary>
-    public void ChangeMode(CameraModeId from, CameraModeId to, double now) =>
+    public void ChangeMode(CameraModeId from, CameraModeId to, double now)
+    {
         BlendTo(0, now, from.ViewportBlendMillisecondsTo(to));
+        _mode = to;
+    }
 
     public void Raise(double now, bool animate = true)
     {
+        _ = Bar(now);
         _count = unchecked((short)(_count + 1));
         if (animate) BlendTo(BarFraction, now);
     }
 
     public void Lower(double now, bool animate = true)
     {
+        _ = Bar(now);
         _count = unchecked((short)(_count - 1));
         if (animate && _count == 0) BlendTo(0, now);
     }
@@ -165,6 +187,7 @@ public sealed class CinematicLetterbox
     /// <summary>Game action <c>0x74</c> with 2 (<c>0x004426F0</c>): off whatever raised it.</summary>
     public void ForceOff(double now, bool animate = true)
     {
+        _ = Bar(now);
         _count = 0;
         if (animate) BlendTo(0, now);
     }
@@ -178,6 +201,7 @@ public sealed class CinematicLetterbox
         _start = now;
         _duration = duration;
         _blending = true;
+        _sampledAt = double.NaN;
     }
 }
 
