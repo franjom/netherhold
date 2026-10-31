@@ -27,12 +27,6 @@ public sealed class KeeperAI
     /// <summary>Ticks after tagging before every gold tag is removed (§5.9).</summary>
     public const int UntagGoldAfterTicks = 240;
 
-    /// <summary>The slap step asks <c>SpeedChangeTimer</c> (<c>+0x459</c>) to be zero. Ours runs it for
-    /// a speed effect (<c>0x0048CAD0</c>) but a slap does not start it, though DK2's sets it to
-    /// variable 19 x 100 = 400 when it is zero (hand-of-evil.md §4); so the time since the last slap
-    /// stands in for the slap's part (computer-keeper-management.md §8).</summary>
-    public const int SlapSpeedChangeTicks = 400;
-
     /// <summary>The gold seam is mined in an expanding square until this radius (§5.2, task 6).</summary>
     public const int MineMaxRadius = 6;
 
@@ -200,7 +194,6 @@ public sealed class KeeperAI
 
     private void Slap(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
-        long now = view.Tick.Value;
         foreach (KeeperCreatureView c in view.Creatures)
         {
             if (budget <= 0) return;
@@ -209,7 +202,8 @@ public sealed class KeeperAI
             if (!c.CanSlap) continue;
             CreatureDef def = view.Database.CreatureById(c.CreatureTypeId);
             if (c.Health * 2 <= CreatureLevelRules.MaxHealth(view.Database, def, c.Level)) continue;
-            if (c.SpeedChanging || (c.LastSlapTick != 0 && now - c.LastSlapTick < SlapSpeedChangeTicks)) continue;
+            // SpeedChangeTimer (+0x459): a slap starts it for 400 ticks (SlapRules.SpeedSeconds).
+            if (c.SpeedChanging) continue;
             if (_rng.NextInt(100) >= 1) continue;
             commands.Add(new SlapCreatureCommand(PlayerId, c.Id));
             budget--;

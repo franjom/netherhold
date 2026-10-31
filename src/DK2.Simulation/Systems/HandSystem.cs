@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
@@ -643,6 +644,8 @@ public sealed class HandSystem : ISimulationSystem
                     : CreatureAngerRules.Slap(world, definition, creature);
             }
             hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage, command.PlayerId.Value);
+            if (outcome == SlapOutcome.Full)
+                StatusEffectRules.ModifySpeed(context, creature, SlapRules.SpeedPercent, SlapRules.SpeedSeconds);
             if (outcome != SlapOutcome.Uncounted && world.HasPlayer(creature.OwnerPlayerId))
                 world.Player(creature.OwnerPlayerId).SlapCount++;
         }

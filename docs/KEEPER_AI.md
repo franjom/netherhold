@@ -1122,8 +1122,8 @@ named quirk the harness can assert on.
   simulation already runs on game ticks, so §5.9's constants (1,680; 240; 300; 40)
   transfer unchanged.
 - **The slap gates DK2's own tests.** The activity code, health above half, the speed
-  timer and a 1-in-100 roll (ADR-0376). The timer is approximated: our slap does not
-  start it, so `KeeperAI.SlapSpeedChangeTicks` counts from the last slap
+  timer and a 1-in-100 roll (ADR-0376). Our slap arms the timer for 400 ticks as DK2's
+  does (ADR-0612), so the step tests it alone
   (`research/computer-keeper-management.md` §8; the human slap has no cooldown,
   `research/hand-of-evil.md` §4).
 

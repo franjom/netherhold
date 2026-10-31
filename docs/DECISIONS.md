@@ -8595,7 +8595,7 @@ Level 3 (won at 3564) rigs are identical to batch two, tick for tick; none of th
 reaches a Graveyard, a Vampire, conditions 20, 21 or 71, or flag 128.
 
 ## ADR-0376 — The keeper slaps on DK2's activity code and plans inside its record's build area
-**Date:** 2026-10-06 · **Status:** accepted · Research: `computer-keeper-management.md` §8,
+**Date:** 2026-10-06 · **Status:** accepted; the slap-timer stand-in superseded by ADR-0612 · Research: `computer-keeper-management.md` §8,
 `computer-keeper-observations.md` (*First same-map comparison*); Q546
 
 **Context.** On Level 17 ours tunnelled to neutral Portals at (53,6) and (16,70); DK2's Harkan
@@ -14236,3 +14236,32 @@ Tier A; ours has the same structure, unobserved in either game.
 Evidence: [wall-reinforce-eligibility.md](research/wall-reinforce-eligibility.md#own-wall-retry-cycle);
 KB `0046AEA0`, `00453E90`, `00463DF0`. `ReinforceEligibilityTests` pins the second Imp.
 Refines ADR-0607: its kind-6-then-kind-16 order stands; the fall-through condition changes.
+
+## ADR-0612 - a slap starts the speed-up of 0x0048CAD0
+
+Status: accepted, 2026-10-31. Hash/save 356. Q556. Supersedes the timer stand-in of ADR-0376.
+
+`0x0048B8A0` (the slap) runs an inlined copy of `0x0048CAD0` on its main path, after the anger
+and the damage (`0x0048BBC1`-`0x0048BC3F`): when `SpeedChangeTimer` (`+0x459`) is zero, speed is
+current x 150 / 100 clamped between `def+0x5B4 >> 2` and variable 19 `<< 12`, `+0x459` is
+variable 19 x 100 (400 ticks, 100 game seconds) and `+0x3BF` is 1. Then `WorkFasterTimer` is 100.
+The `0xD1`/`0xFF` short arm, the Torture Chamber damage-only arm and the Horny arm skip it; there
+is no death test. `0x0048E160` counts the timer down and restores the definition speed at zero.
+`0x00502F00` slaps only a creature whose `+0x459` is zero (`0x00502FAA`).
+
+Decision: `HandSystem.Slap` calls `StatusEffectRules.ModifySpeed(context, creature,
+SlapRules.SpeedPercent, SlapRules.SpeedSeconds)` (150, 100) on `SlapOutcome.Full`, after the
+damage. It is the Haste/Slow mirror, so it is refused while `SpeedEffectTicks` is above zero:
+a second slap does not restart it, and a slap and a Haste/Slow effect exclude each other, as
+in DK2 where they share the word. `KeeperAI.Slap` loses the 400-ticks-since-`LastSlapTick` test
+(`SlapSpeedChangeTicks`) and asks only `SpeedChanging`.
+
+Consequence: a slapped creature moves at 150 % for 400 ticks. The keeper's slap step, its
+random stream and every run with a slap change.
+
+Not changed: `0x0048E160` restores the speed only when `+0x45B` is also zero; that is not
+modelled. How long a slapped imp runs faster in DK2 is the owner's check (Q556): 100 s here,
+25 s in the table's `SlapSpeedUpDurationSeconds`.
+
+Evidence: [hand-of-evil.md](research/hand-of-evil.md#5-how-long-the-bonus-lasts); KB `0048B8A0`,
+`0048CAD0`, `00502F00`. `HandTests.ASlapSpeedsTheCreatureUpForFourHundredTicksAndASecondSlapDoesNotRestartIt`.

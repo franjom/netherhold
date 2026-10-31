@@ -300,6 +300,29 @@ public class HandTests
         Assert.Equal(80, EfficiencyRules.Percent(imp, definition));
     }
 
+    /// <summary><c>0x0048B8A0</c> inlines <c>0x0048CAD0</c>: 150 percent for <c>var19 × 100</c> = 400
+    /// ticks, only while no speed effect runs, so a second slap does not restart it.</summary>
+    [Fact]
+    public void ASlapSpeedsTheCreatureUpForFourHundredTicksAndASecondSlapDoesNotRestartIt()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        GameSimulation sim = Simulation(db, world);
+
+        sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
+        Assert.Equal(SlapRules.SpeedPercent, imp.SpeedPercent);
+        int started = imp.SpeedEffectTicks;
+        Assert.InRange(started, 399, 400);
+
+        for (int i = 0; i < 10; i++) sim.Tick();
+        sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
+        Assert.Equal(started - 11, imp.SpeedEffectTicks);
+
+        for (int i = 0; i < started; i++) sim.Tick();
+        Assert.Equal(0, imp.SpeedEffectTicks);
+    }
+
     [Fact]
     public void EverySlapCountsHoweverFastTheyComeAndThereIsNoCooldown()
     {

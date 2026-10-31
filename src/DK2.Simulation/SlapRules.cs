@@ -71,6 +71,11 @@ public static class SlapRules
 
     public static bool IsReaction(int state) => state is WorkshopState or ReactionState or PrisonState;
 
+    /// <summary>The slap's speed-up, after its damage: <c>0x0048CAD0</c>'s body inlined with 150 percent
+    /// and 100 game seconds (<c>+0x459 = var19 × 100</c>, 400 ticks), refused while a speed effect
+    /// runs (hand-of-evil.md §5). The keeper's slap step waits for it to run out (<c>0x00502F00</c>).</summary>
+    public const int SpeedPercent = 150, SpeedSeconds = 100;
+
     /// <summary>The slap's move: 67 for a place in a Workshop, 120 in a Prison (each ending a running
     /// action, <c>0x00496D20</c>), else 77. <paramref name="room"/> is the room it holds a place in,
     /// already known to be the slapper's. Returns whether the move was taken.</summary>

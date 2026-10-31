@@ -224,9 +224,8 @@ last was a dig, mine, claim or repair. Built 2026-10-06 as `CreatureActivityRule
 then on ours' `LastTaskKind` with kind 16 for a repair (ADR-0405; it had tested a held reinforce
 target, so a fighting or repairing imp differed). The runtime table `0x006996C4`, which
 `0x004798F0` fills, gives 5 for categories 1, 2, 10, 19, 23 and 26-30, 2 for 0, 0x14 for research
-and manufacture, 0x15 for training, the combat pit and 31. Still open: our slap does not start
-`SpeedChangeTimer` as DK2's does (`hand-of-evil.md` §5), so the slap step stands in for its part
-with 400 ticks since the last slap.
+and manufacture, 0x15 for training, the combat pit and 31. Our slap arms `SpeedChangeTimer` as DK2's does
+(`hand-of-evil.md` §5, ADR-0612), so the step tests the timer alone.
 
 ## 9. Traps and doors — `0x005000A0`, `0x004FFD80`
 

@@ -14,6 +14,7 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**356** - `0xEEFA1A78D02CBC53`. Remake regression pin, not native evidence. FormatVersion also 356. Behaviour only: the slap starts the speed-up of `0x0048CAD0` (150 percent, 100 game seconds = 400 ticks) after its damage, refused while a speed effect runs, and the keeper's slap step tests only the speed effect; no new fields. See ADR-0612 and [hand-of-evil.md](hand-of-evil.md#5-how-long-the-bonus-lasts). Saves from 355 are refused.
 **355** - `0xD52554781CA7BD04`. Remake regression pin, not native evidence. FormatVersion also 355. Behaviour only: the Imp reinforce handler walks a wall's sides twice, kind 6 then kind 16, so the repair pass runs after every kind-6 miss, and the two kinds count their own side slots and forget only their own task. No new fields. See ADR-0611 and [wall-reinforce-eligibility.md](wall-reinforce-eligibility.md#own-wall-retry-cycle). Saves from 354 are refused.
 
 **354** - `0x47994A1DC4923A4D`. Remake regression pin, not native evidence. FormatVersion also354. Behaviour only: state8 unlinks before ordinary creature reselection, preserves a same-target route, retains incoming attackers on no choice, and consumes the current resume after selection. Forced targets skip reselection. See ADR-0610 and [combat-approach-and-victory.md](combat-approach-and-victory.md#2-state-8-before-movement-0x00470e30). Saves from353 are refused.

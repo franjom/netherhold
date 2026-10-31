@@ -194,9 +194,14 @@ rather than a retraction, and `tile-work.md` used the unhedged form and needed o
 `SpeedChangeTimer` is set in the same handler, when it is zero, to `var19 * 100` = 400
 ticks = **100 game seconds**, where `SlapSpeedUpDurationSeconds` is 25; the creature update
 counts it down by one a tick (`0x0048E160`), and the Level 17 capture shows a slap's 400
-counting down. Ours does not start it: nothing here moves a creature faster for being slapped,
-and the keeper's slap step stands in for the timer (ADR-0376). The owner (2026-10-06): a slapped
-imp visibly runs faster for a while, OBSERVED; how long is Q556.
+counting down. The handler's main path, after the anger and the damage (`0x0048BBC1`-`0x0048BC3F`),
+runs `0x0048CAD0`'s body inlined: speed = current x 150 / 100, clamped as there, `+0x459` = 400,
+`+0x3BF` = 1. The `0xD1`/`0xFF` short arm, the Torture Chamber damage-only arm and the Horny arm
+skip it; it has no death test. Because it is the same word, a slap and a Haste or Slow effect
+exclude each other, and a second slap does not restart it. Built as `SlapRules.SpeedPercent` /
+`SpeedSeconds` and `StatusEffectRules.ModifySpeed` in `HandSystem.Slap` (ADR-0612); the keeper's
+slap step (`0x00502F00`) now tests the timer itself. The owner (2026-10-06): a slapped imp visibly
+runs faster for a while, OBSERVED; whether that is 100 s or 25 s is Q556.
 
 ---
 
@@ -367,8 +372,7 @@ ADR-0226, ADR-0227); which rooms' states idle here is in `hand-drop-landing.md`.
 
 **Not built:**
 
-- **The knock-back** and every other physical consequence of a slap, and **the
-  speed boost** (§5).
+- **The knock-back** and every other physical consequence of a slap.
 - **Dropping onto enemy ground.** The original's drop handler changes the
   creature's owner under a condition, and that branch proves only that the
   *handler* does not refuse — the gate is the input layer's (Q196), so whatever
