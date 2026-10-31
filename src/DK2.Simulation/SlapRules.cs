@@ -51,8 +51,8 @@ public static class SlapRules
     }
 
     /// <summary><c>0x0046F1F0</c>, a turn of 67, 77 or 120. At <c>Age</c> 1 a running action ends and
-    /// action 19 starts. While it runs, it holds. Then: a Horny to 238 (not reached: ours slaps a
-    /// Horny without a move); a place in a Workshop to 63, a Prison to 115, a Torture Chamber to 130;
+    /// action 19 starts. While it runs, it holds. Then: a Horny to 238 (not reached: ours refuses a
+    /// slap on a Horny, <see cref="HandRules.CanSlap"/>); a place in a Workshop to 63, a Prison to 115, a Torture Chamber to 130;
     /// otherwise a worker to 10; otherwise, or refused, idle. The knock-back's velocity, which the
     /// reaction zeroes, is not modelled.</summary>
     public static void React(SimulationContext context, string system, CreatureState creature, CreatureDef definition)

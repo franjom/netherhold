@@ -666,8 +666,8 @@ public sealed class HandSystem : ISimulationSystem
         Short,
         /// <summary>The main path, after the state move (67, 77 or 120) is taken.</summary>
         Full,
-        /// <summary>A Horny: DK2 puts it in state 242 and returns, which ours does not build, so
-        /// ours slaps it in full and does not count it.</summary>
+        /// <summary>A Horny: DK2 puts it in state 242 and returns, uncounted. Not reached in ours:
+        /// <see cref="HandRules.CanSlap"/> refuses a Horny before <see cref="OutcomeOf"/> runs.</summary>
         Uncounted,
     }
 

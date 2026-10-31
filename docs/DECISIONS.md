@@ -8560,8 +8560,8 @@ Ours never counted and applied every slap in full. The trap and object writers h
 counterpart here: ours slaps only creatures.
 
 **Decision.** `HandSystem.Slap` chooses the arm on `HeldPlace` and increments
-`PlayerState.SlapCount` of the creature's owner where DK2 does. Not built: the state moves (so a
-refused move is still counted), a Horny's state 242 (ours slaps it in full, uncounted).
+`PlayerState.SlapCount` of the creature's owner where DK2 does. The state moves came later
+(ADR-0401). A Horny's state 242 is not built: `HandRules.CanSlap` refuses a slap on a Horny.
 
 ## ADR-0374 — Flag 128 is the level score in a condition
 **Date:** 2026-10-06 · **Status:** accepted
