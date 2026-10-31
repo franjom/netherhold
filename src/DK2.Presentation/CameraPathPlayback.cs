@@ -115,8 +115,9 @@ public sealed class CameraPathPlayback
 }
 
 /// <summary>The camera's counted letterbox (<c>0x0044D320</c>, camera-paths.md section 4): each
-/// raise animates the drawable area over 2000 ms to the screen less an eighth of its height
-/// top and bottom; the last lower animates it back.</summary>
+/// raise can animate the drawable area over 2000 ms to the screen less an eighth of its height
+/// top and bottom; a lower reaching zero can animate it back. Suppressed animation retains
+/// the signed-word request count.</summary>
 public sealed class CinematicLetterbox
 {
     public const double BlendMilliseconds = 2000;
@@ -144,23 +145,23 @@ public sealed class CinematicLetterbox
 
     public bool Raised => _count > 0;
 
-    public void Raise(double now)
+    public void Raise(double now, bool animate = true)
     {
-        _count++;
-        BlendTo(BarFraction, now);
+        _count = unchecked((short)(_count + 1));
+        if (animate) BlendTo(BarFraction, now);
     }
 
-    public void Lower(double now)
+    public void Lower(double now, bool animate = true)
     {
-        if (_count > 0) _count--;
-        if (_count == 0) BlendTo(0, now);
+        _count = unchecked((short)(_count - 1));
+        if (animate && _count == 0) BlendTo(0, now);
     }
 
     /// <summary>Game action <c>0x74</c> with 2 (<c>0x004426F0</c>): off whatever raised it.</summary>
-    public void ForceOff(double now)
+    public void ForceOff(double now, bool animate = true)
     {
         _count = 0;
-        BlendTo(0, now);
+        if (animate) BlendTo(0, now);
     }
 
     private void BlendTo(float target, double now)

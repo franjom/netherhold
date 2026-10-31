@@ -37,6 +37,7 @@ public sealed class ScriptedViewDirector(
     private HudFlashRequest? _flash;
     private uint _flashStartedAt;
     private bool _speechAudioEnabled;
+    private CameraModeId _mode;
     private SpeechLineId? _speechLine;
 
     public void Emit(in SimEvent simEvent)
@@ -112,8 +113,9 @@ public sealed class ScriptedViewDirector(
     /// <param name="nowMilliseconds">The wall clock, for the letterbox and the subtitles.</param>
     /// <param name="renderTick">The drawn world's tick plus its fraction toward the next, for
     /// the camera path (<see cref="CameraPathPlayback.Seek"/>).</param>
-    public void Update(double nowMilliseconds, double renderTick)
+    public void Update(double nowMilliseconds, double renderTick, CameraModeId mode = default)
     {
+        _mode = mode;
         _now = nowMilliseconds;
         _renderTick = renderTick;
         if (_flash is { DurationSeconds: > 0 } flash
@@ -188,12 +190,13 @@ public sealed class ScriptedViewDirector(
                 break;
             case ScriptedViewKind.Letterbox:
                 GuiVisibilityRequested?.Invoke(!request.Flag);
-                if (request.Flag) _letterbox.Raise(_now);
-                else if (request.Value == 2) _letterbox.ForceOff(_now);
-                else _letterbox.Lower(_now);
+                bool animate = _mode.Value is not (2 or 10 or 11);
+                if (request.Flag) _letterbox.Raise(_now, animate);
+                else if (request.Value == 2) _letterbox.ForceOff(_now, animate);
+                else _letterbox.Lower(_now, animate);
                 break;
             case ScriptedViewKind.CameraMove:
-                _move = request.Tile;
+                if (_mode.Value is not (1 or 2 or 10 or 11)) _move = request.Tile;
                 break;
             case ScriptedViewKind.CameraZoom:
                 ZoomRequested?.Invoke(request.Value, request.Value2);

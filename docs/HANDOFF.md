@@ -256,7 +256,7 @@ The saved Dungeon scene uses the owner's Native Initial Ambient setting (on);
 the brighter preview remains available with it off. +/− controls native ambient.
 Discovery schema/cadence limits are in
 research/fog-reveal-sources.md; animated silhouettes remain under ADR-0482.
-Scripted camera paths are built separately (ADR-0496; research/camera-paths.md).
+Scripted camera paths and request guards are built (ADR-0496; research/camera-paths.md section 9).
 Step6 ordinary camera controls now follow native packets (ADR-0531); matched
 recording measurements, crop correction and verification limits: research/classic-camera.md §6–8.
 Room border flames are built (ADR-0524, research/room-border-effects.md); claim-mist

@@ -650,7 +650,9 @@ namespace DK2.Unity
             // condition 72 counts, so the script's next path follows it. On the worker path that
             // is the world this frame draws; on the main thread this frame's ticks come after.
             _scriptedView.Update(Time.unscaledTimeAsDouble * 1000d,
-                _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d));
+                _simulation.World.CurrentTick.Value + Math.Min(_tickDebt, 1d),
+                new CameraModeId(_simulation.World.Player(new PlayerId((byte)viewingPlayerId)).PossessedCreatureId != 0
+                    ? (ushort)10 : (ushort)3));
             UpdateWinScreenPreview();
             // ClassicHudControls.UpdateResult (0x004039A0) is fed only for a level launched from the front
             // end, where Space leaves the result; elsewhere suppressing input would strand the player.

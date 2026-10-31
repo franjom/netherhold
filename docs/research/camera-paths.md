@@ -363,7 +363,9 @@ condition.
 - `SkipCameraPathCommand` ends the path before the turn's walk.
 - Actions 24, 26, 31 and 38 emit `ScriptedViewRequest`s.
 
-**Presentation:** `ScriptedViewDirector` drives three parts:
+**Presentation:** `ScriptedViewDirector` receives the camera mode (Unity supplies
+10 while possessed, otherwise 3); request guards and retained letterbox counts are
+in [camera-possession-guards.md](camera-possession-guards.md). It drives three parts:
 - `CameraPathPlayback` (§3), on the drawn world's tick (see the deviations);
 - `CinematicLetterbox` (§4, §6), on the wall clock;
 - active spoken subtitles with speech enabled (§7, F8), and `SubtitleQueue` as
@@ -383,7 +385,6 @@ condition.
 **Not built:**
 - the moves a skip also finishes (`+0xDFA`, `+0xE20`), and action 27;
 - condition 72 waiting out action 26's glide (at most 500 ms, two ticks);
-- action 38's interface slots;
 - the overflow scroll;
 - `0x0041A190` (unread; a camera icon shows at the top right in the owner's capture);
 

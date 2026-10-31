@@ -84,6 +84,85 @@ public sealed class HudScriptRestorationTests
         Assert.Equal(0, director.LetterboxRequestCount);
     }
 
+    [Theory]
+    [InlineData(2)]
+    [InlineData(10)]
+    [InlineData(11)]
+    public void PossessionCountsBalancedLetterboxRequestsWithoutAnimatingAndRestoresGui(ushort mode)
+    {
+        var controls = new ClassicHudControls();
+        var director = Director(controls);
+        Letterbox(director, true);
+        director.Update(0, 0, new CameraModeId(mode));
+        director.Update(2500, 0, new CameraModeId(mode));
+        Assert.Equal(1, director.LetterboxRequestCount);
+        Assert.Equal(0, director.LetterboxBar);
+        Letterbox(director, false);
+        director.Update(3000, 0, new CameraModeId(mode));
+        director.Update(6000, 0);
+        Assert.Equal(0, director.LetterboxRequestCount);
+        Assert.Equal(0, director.LetterboxBar);
+        Assert.True(controls.GuiVisible);
+        Assert.True(director.HudFor(ClassicCameraMode.Dungeon).ShowNormalHud);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(10)]
+    [InlineData(11)]
+    public void RestrictedCameraModesDiscardMoves(int mode)
+    {
+        var director = Director(new ClassicHudControls());
+        director.Emit(new SimEvent(default, "test", "view", "")
+        {
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraMove, PlayerIds.FirstKeeper, 0, new TilePos(3, 4), false),
+        });
+        director.Update(0, 0, new CameraModeId((ushort)mode));
+        director.Update(1, 0);
+        Assert.False(director.TryTakeCameraMove(out _));
+    }
+
+    [Fact]
+    public void ModeOneStillAnimatesLetterbox()
+    {
+        var director = Director(new ClassicHudControls());
+        Letterbox(director, true);
+        director.Update(0, 0, new CameraModeId(1));
+        director.Update(2000, 0, new CameraModeId(1));
+        Assert.Equal(0.125f, director.LetterboxBar);
+    }
+
+    [Fact]
+    public void SuppressedForceOffResetsCountWithoutChangingViewport()
+    {
+        var director = Director(new ClassicHudControls());
+        Letterbox(director, true);
+        Letterbox(director, true);
+        director.Update(0, 0);
+        director.Update(2000, 0);
+        director.Emit(new SimEvent(default, "test", "force_off", "")
+        {
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.Letterbox, PlayerIds.FirstKeeper, 2, default, false),
+        });
+        director.Update(3000, 0, new CameraModeId(10));
+        Assert.Equal(0, director.LetterboxRequestCount);
+        Assert.Equal(0.125f, director.LetterboxBar);
+    }
+
+    [Fact]
+    public void SuppressedLetterboxCountUsesSignedWordArithmetic()
+    {
+        var letterbox = new CinematicLetterbox();
+        letterbox.Lower(0, animate: false);
+        Assert.Equal(-1, letterbox.RequestCount);
+        for (int i = 0; i < 32769; i++) letterbox.Raise(0, animate: false);
+        Assert.Equal(-32768, letterbox.RequestCount);
+        letterbox.Lower(0, animate: false);
+        Assert.Equal(32767, letterbox.RequestCount);
+        Assert.Equal(0, letterbox.Bar(3000));
+    }
+
     private static ScriptedViewDirector Director(ClassicHudControls controls)
     {
         var rotation = new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1);
