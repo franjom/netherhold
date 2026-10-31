@@ -90,8 +90,11 @@ frame. Elapsed time **through 300 ms** is normal; 301–499 ms is slow;
 at exactly 300 ms. [Nonpositional](functions/00567810.md) and
 [positional](functions/005678F0.md) requests use the same counters and rotation.
 
-The event and gap tables, reset and counter aging belong to those records.
-Native speech's throttle bypass has not been traced in this pass.
+The event and gap tables, reset ([`0x00567080`](functions/00567080.md)) and
+counter aging belong to those records. Ours is `SoundThrottle`, applied to every
+effect request in `ClassicSoundPlayer.Play` and updated after each world frame.
+Native speech's throttle bypass has not been traced in this pass, nor whether
+the front end updates the throttle (ours does not, so it stays normal there).
 **UNDETERMINED:** native equivalents of OpenKeeper's 32 voice slots, 24 audible
 voices, 12-tile eligibility and 250 ms fades. Those constants are visible in
 OpenKeeper, but the category/instance paths read here do not establish their

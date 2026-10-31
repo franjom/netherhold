@@ -22,6 +22,11 @@ namespace DK2.Unity
         private readonly Dictionary<PcmClip, AudioClip> _clips = new Dictionary<PcmClip, AudioClip>();
         private readonly List<AudioSource> _effects = new List<AudioSource>();
         private readonly SoundVoiceBindings<AudioSource> _voices = new SoundVoiceBindings<AudioSource>();
+        private readonly SoundThrottle _throttle = new SoundThrottle(NowMs());
+        private static uint NowMs() => (uint)(long)(Time.realtimeSinceStartupAsDouble * 1000);
+        /// <summary>The in-game manager's update runs this after the world frame, so a frame's
+        /// requests are judged by the frame before (<c>0x005674F9</c>). The front end never calls it.</summary>
+        public void UpdateThrottle() => _throttle.BeginFrame(NowMs());
         private float _master = 1, _speechVolume = 1, _musicVolume = 1, _effectVolume = 1;
         private bool _speechOn = true, _musicOn = true, _effectsOn = true;
         private sealed class LinkedChannel
@@ -145,7 +150,7 @@ namespace DK2.Unity
 
         public void Play(SoundRequest request)
         {
-            if (!_effectsOn || request.Category.IsNone) return;
+            if (!_effectsOn || request.Category.IsNone || !_throttle.Admit(request.Id)) return;
             SoundResolver resolver = Resolver(request.Category);
             SoundPriority? priority = resolver.PriorityOf(request.Id);
             if (!priority.HasValue || _voices.CanRetain(request.Voice, priority.Value, source => source.isPlaying)) return;
