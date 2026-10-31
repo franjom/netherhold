@@ -48,6 +48,9 @@ above. Regression tests cover both ownership transfers and the inclusive battle 
 `MusicWorldObserver.Battles` exposes eight read-only snapshots with typed slots, tile centres,
 owner masks and member counts for presentation consumers; it never writes world state.
 
+Creature sound requests share this playback path; the battle-call trigger and
+its acceptance limits are in [combat-fight-state.md section 9](combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
+
 ## Category choice presses
 
 CONFIRMED bytes: room widget0x0068FCB8, spell widget0x0068FDF8 and Workshop widget0x0068FF38

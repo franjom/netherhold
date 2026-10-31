@@ -7,7 +7,7 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-public enum CreatureSoundEvent : ushort { Sacked = 0xDF }
+public enum CreatureSoundEvent : ushort { BattleCall = 0xD6, Sacked = 0xDF }
 
 public readonly record struct CreatureSoundRequest(
     CreatureId Creature, string Category, CreatureSoundEvent Event, FpPosition3 Position);

@@ -10,19 +10,21 @@ namespace DK2.Presentation.Tests;
 
 public sealed class CreatureSoundTests
 {
-    [Fact]
-    public void CreatureEventKeepsItsBankGroupPositionAndVoiceAfterCreatureRemoval()
+    [Theory]
+    [InlineData(223)]
+    [InlineData(214)]
+    public void CreatureEventKeepsItsBankGroupPositionAndVoiceAfterCreatureRemoval(ushort group)
     {
         var events = new ListEventSink();
         var director = new CreatureSoundDirector(events);
         director.Emit(new SimEvent(default, "test", "creature_sound", "")
         {
-            CreatureSound = new(new CreatureId(42), "CREATURE_GOBLIN", CreatureSoundEvent.Sacked,
+            CreatureSound = new(new CreatureId(42), "CREATURE_GOBLIN", (CreatureSoundEvent)group,
                 new(new Fp32(8192), new Fp32(12288), new Fp32(4096))),
         });
         Assert.True(director.TryTake(out var sound));
         Assert.Equal("creature_goblin", sound.Category.Name);
-        Assert.Equal(223u, sound.Id.Value);
+        Assert.Equal((uint)group, sound.Id.Value);
         Assert.Equal(new Vector3(2, 1, 3), sound.World);
         Assert.Equal(0x8000002Au, sound.Voice.Value);
         Assert.False(director.TryTake(out _));

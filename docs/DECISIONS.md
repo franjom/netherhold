@@ -14085,3 +14085,14 @@ the last-sacked type at hash/save346. Use typed sound requests through Presentat
 
 **Evidence and limits:** [creature-leaving.md section2](research/creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31), Q137/Q704.
 The general hand-release fall and native deferred removal timing remain unbuilt.
+
+## ADR-0604 - request the battle call when an approach starts
+
+**Status:** implemented, 2026-10-31.
+
+**Decision.** Emit creature sound event `0xD6` after a successful fight-approach
+entry through the shared creature-bank presentation path. Add no battle-call
+cooldown and no swing-side request. Sound-manager admission remains separate.
+
+**Evidence:** [combat-fight-state.md section 9](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
+**Consequences.** Observation only; hash/save346 and simulation RNG are unchanged.
