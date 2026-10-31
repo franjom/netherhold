@@ -44,9 +44,9 @@ public sealed class FrontEndScrollBarTests
     {
         FrontEndScrollBar bar = Armed();
         var down = new FrontEndPoint(590, 350);
-        bar.Update(down, true, 0); bar.Update(down, true, 0.05);
+        bar.Update(down, true, 0); bar.Update(down, true, FrontEndScrollBar.HeldStepSeconds / 2);
         Assert.Equal(1, bar.Bar.Position);
-        bar.Update(down, true, 0.1);
+        bar.Update(down, true, FrontEndScrollBar.HeldStepSeconds);
         Assert.Equal(2, bar.Bar.Position);
         bar.Update(down, false, 0.2);
         Assert.Equal(2, bar.Bar.Position);

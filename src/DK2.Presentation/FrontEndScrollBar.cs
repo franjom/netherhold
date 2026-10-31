@@ -77,8 +77,8 @@ public sealed class FrontEndScrollBar
 
     /// <summary>A held arrow's step interval in seconds. DK2 steps once per front-end update (0x00528B20),
     /// a rate that is unread; one step per Unity frame raced through the list (owner, 2026-10-31), so
-    /// ours steps on the press and then at this fixed interval.</summary>
-    public const double HeldStepSeconds = 0.1;
+    /// ours steps on the press and then at this fixed interval, 20 rows a second (the owner's speed).</summary>
+    public const double HeldStepSeconds = 0.05;
 
     private double _nextStep;
 

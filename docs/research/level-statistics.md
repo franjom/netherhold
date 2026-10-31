@@ -202,7 +202,7 @@ by [0x00533E90](functions/00533E90.md).
     arrow steps one row every GUI update it is held, a press on the track one row, and
     the thumb can be dragged while the pointer stays in the track column. The scroll-bar class reads
     only the pointer and the button, no wheel. DK2's front-end update rate is unread; ours steps on the
-    press and then every 0.1 s (`FrontEndScrollBar.HeldStepSeconds`; one step per Unity frame raced through the list).
+    press and then every 0.05 s (`FrontEndScrollBar.HeldStepSeconds`, the owner's speed; one step per Unity frame raced through the list).
   - [0x00551BA0](functions/00551BA0.md) draws it 8 px left of and 6 px above its box:
     `1-V-Up_Arrow` at the top, `5-V-Scroll_Bar_BG` 10 px lower, `1-V-Down_Arrow` 8 px
     above the bottom.
