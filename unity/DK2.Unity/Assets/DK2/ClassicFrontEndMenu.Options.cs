@@ -44,7 +44,7 @@ namespace DK2.Unity
                         options.BeginKeyCapture(KeyboardSetup.Actions[row].Action);
                     }
                 }
-                _keysBar.Update(point, pointer.PrimaryHeld); _keysBar.Frame(_keysBar.HitTest(point));
+                _keysBar.Update(point, pointer.PrimaryHeld, Time.unscaledTimeAsDouble); _keysBar.Frame(_keysBar.HitTest(point));
                 _keysFirst = _keysBar.Bar.Position;
             }
             if (!pointer.PrimaryHeld) { _dragSlider = null; return; }

@@ -1178,8 +1178,7 @@ namespace DK2.Unity
         }
 
         /// <summary>Centred subtitle text in the owner's font order (2026-10-17): Bullfrog's
-        /// DungeonKeeperII TrueType face first, DK2's own bitmap font second, Unity's default last.</summary>
-        /// <summary>Subtitle-chain text (TTF, then DK2's bitmap font, then Unity's default), centred in the box;
+        /// DungeonKeeperII TrueType face first, DK2's own bitmap font second, Unity's default last.
         /// <paramref name="scale"/> enlarges it over the subtitle size, as the title card does.</summary>
         private void DrawSubtitleText(Rect box, string subtitle, float scale = 1f)
         {

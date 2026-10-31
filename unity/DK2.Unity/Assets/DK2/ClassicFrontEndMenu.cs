@@ -137,7 +137,7 @@ namespace DK2.Unity
                             _movieBar.Bar.Arm(17);
                         }
                         var moviePointer = new FrontEndPoint(pointer.X, pointer.Y);
-                        _movieBar.Update(moviePointer, pointer.PrimaryHeld);
+                        _movieBar.Update(moviePointer, pointer.PrimaryHeld, Time.unscaledTimeAsDouble);
                         _movieBar.Frame(_movieBar.HitTest(moviePointer));
                         Model.Movies.ScrollTo(_movieBar.Bar.Position);
                     }
@@ -159,7 +159,7 @@ namespace DK2.Unity
         {
             if (Model.Page != FrontEndPage.CampaignResults || _resultsBar == null) return;
             var point = new FrontEndPoint(pointer.X, pointer.Y);
-            _resultsBar.Update(point, pointer.PrimaryHeld);
+            _resultsBar.Update(point, pointer.PrimaryHeld, Time.unscaledTimeAsDouble);
             _resultsBar.Frame(_resultsBar.HitTest(point));
         }
         private void RebuildLabels()
@@ -171,7 +171,8 @@ namespace DK2.Unity
             if (_resultsBar == null && list != null && Model.Campaign?.Results != null)
             {
                 // 0x0053D810 arms the bar once per game: range 0..9, at the top.
-                _resultsBar = FrontEndScrollBar.Beside(list.DrawRect, CampaignResults.ScrollBarGap);
+                _resultsBar = FrontEndScrollBar.Beside(list.DrawRect, CampaignResults.ScrollBarGap,
+                    CampaignResults.ScrollBarWidth, CampaignResults.ScrollBarHeight);
                 _resultsBar.Bar.Arm(CampaignResults.ScrollMaximum);
             }
             _shownBriefing = Model.Campaign?.Briefing; _shownResults = Model.Campaign?.Results; _shownScores = Model.Campaign?.HiScores;
@@ -396,8 +397,9 @@ namespace DK2.Unity
             catch (System.IO.FileNotFoundException) { _missingImages.Add((briefing.Slot, image)); return null; }
         }
         /// <summary>0x00551BA0: each part's glow frame, then the up arrow, track and down arrow over them, then
-        /// the thumb cut from its art's row 8 (clipped to the art; whether DK2's wider blit shows is unchecked).</summary>
-        private void DrawResultsBar(MeshGenerationContext context, float sx, float sy, FrontEndScrollBar bar = null) => DrawFrontEndBar(context, bar ?? _resultsBar, sx, sy);
+        /// the thumb cut from its art's row 8, as wide as the bar (clipped to the art).</summary>
+        private void DrawResultsBar(MeshGenerationContext context, float sx, float sy, FrontEndScrollBar bar = null) =>
+            DrawFrontEndBar(context, bar ?? _resultsBar, sx, sy);
         private void DrawFrontEndBar(MeshGenerationContext context, FrontEndScrollBar bar, float sx, float sy)
         {
             bar = bar ?? _resultsBar;
@@ -521,6 +523,8 @@ namespace DK2.Unity
                     int targetY = (int)(item.InkBounds.Y - geometry.InkBounds.Y) + y + padding;
                     byte alpha = (byte)(glyph.Pixels[((int)item.SourceInkBounds.Y + y) * glyph.Width + (int)item.SourceInkBounds.X + x] * 17);
                     int at = (targetY * width + targetX) * 4;
+                    // Ink boxes overlap (a j reaches back under the letter before it): keep the stronger ink.
+                    if (alpha <= pixels[at + 3]) continue;
                     pixels[at] = 255; pixels[at + 1] = 255; pixels[at + 2] = 255; pixels[at + 3] = alpha;
                 }
             }

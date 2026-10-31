@@ -59,7 +59,7 @@ Runtime callers use `DungeonRunner.LoadLevel(GameSessionRequest)` to switch a
 named campaign level or return to the front end. The replacement preserves the
 runner's render settings and campaign fog setting. No scene file is saved.
 
-Path subtitles and the win screen's Speech.str text (`DungeonRunner.DrawSubtitleText`) use
+Path subtitles and the win screen's Speech.str text (`DungeonRunner.DrawSubtitleText`; the title card at twice the size) use
 Bullfrog's DungeonKeeperII TrueType face when the machine has it
 at `DK2.Unity/Assets/Resources/Fonts/DungeonKeeperII.ttf` (gitignored, not ours to
 ship; a copy is at wfonts.com/font/dungeonkeeperii; a fresh worktree's Unity project lacks it,

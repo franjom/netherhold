@@ -130,6 +130,9 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
     /// <summary>Widget 180's record byte <c>+5</c> (0x006B1778): 0x0052A0D0 puts its bar this many
     /// reference units right of the list.</summary>
     public const int ScrollBarGap = 90;
+    /// <summary>0x00534210 then resizes that bar through 0x00552420 (12, 0x71), each times 4: 48 × 452
+    /// reference units, 12 × 113 pixels at 640 × 480.</summary>
+    public const int ScrollBarWidth = 12 * 4, ScrollBarHeight = 0x71 * 4;
 
     private static FrontEndRect Box(float left, float top, float right, float bottom) =>
         new(left * 4, top * 4, (right - left) * 4, (bottom - top) * 4);

@@ -156,8 +156,13 @@ namespace DK2.Unity
                     for(int y=0;y<glyph.Height;y++) for(int x=0;x<glyph.Width;x++)
                     {
                         int px=pen+glyph.OffsetX+x,py=row*font.LineHeight+y+glyph.OffsetY-minY;
+                        // Glyph boxes overlap (a j reaches back under the letter before it): keep the stronger
+                        // ink instead of letting one glyph's blank pixels erase its neighbour.
                         if((uint)px<(uint)width && (uint)py<(uint)height)
-                            pixels[(height-1-py)*width+px]=new Color32(255,255,255,(byte)(glyph.Pixels[y*glyph.Width+x]*17));
+                        {
+                            int at=(height-1-py)*width+px; byte alpha=(byte)(glyph.Pixels[y*glyph.Width+x]*17);
+                            if(alpha>pixels[at].a) pixels[at]=new Color32(255,255,255,alpha);
+                        }
                     }
                     pen+=glyph.Advance;
                 }

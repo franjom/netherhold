@@ -51,25 +51,26 @@ public sealed class TextScrollBar
         Position = Math.Clamp(Position + Math.Sign(direction), 0, Range);
     }
 
-    /// <summary>The track between the arrows (<c>h − 128</c>).</summary>
-    public static int Track(int height) => height - 2 * Arrow;
+    /// <summary>The track between the arrows: <c>h − 2w</c>, the arrow squares being the bar's width
+    /// (<c>h − 128</c> for menu40's 64-wide bar).</summary>
+    public static int Track(int height, int width = Arrow) => height - 2 * width;
 
-    /// <summary>0x00529160 / 0x0052A1F0: the thumb's top and length along the bar, relative to the
-    /// bar's top: <c>len = max(16, T / (R + 1))</c>, <c>top = 64 + pos·(T − len) / R</c>.</summary>
-    public (int Top, int Length) Thumb(int height)
+    /// <summary>0x00529160 / 0x0052A1F0: the thumb's top and length along a bar <paramref name="width"/>
+    /// wide, relative to its top: <c>len = max(16, T / (R + 1))</c>, <c>top = w + pos·(T − len) / R</c>.</summary>
+    public (int Top, int Length) Thumb(int height, int width = Arrow)
     {
-        int track = Track(height);
+        int track = Track(height, width);
         int length = Math.Max(MinimumThumb, track / (Range + 1));
-        int top = Arrow + (Range == 0 ? 0 : (int)((long)Position * (track - length) / Range));
+        int top = width + (Range == 0 ? 0 : (int)((long)Position * (track - length) / Range));
         return (top, length);
     }
 
     /// <summary>0x005290F0: a thumb drag to <paramref name="pointer"/> (virtual units from the bar's top)
-    /// sets <c>pos = (pointer − 64)·(R + 1) / T</c>, clamped.</summary>
-    public void DragTo(int pointer, int height)
+    /// sets <c>pos = (pointer − w)·(R + 1) / T</c>, clamped.</summary>
+    public void DragTo(int pointer, int height, int width = Arrow)
     {
         if (!Enabled) return;
-        int track = Track(height);
-        Position = Math.Clamp((int)((long)(pointer - Arrow) * (Range + 1) / track), 0, Range);
+        int track = Track(height, width);
+        Position = Math.Clamp((int)((long)(pointer - width) * (Range + 1) / track), 0, Range);
     }
 }

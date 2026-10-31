@@ -31,9 +31,10 @@ public sealed class FrontEndScrollBar
     public FrontEndScrollBar(FrontEndRect rect) => Rect = rect;
 
     /// <summary>0x0052A0D0: right of the list by its record byte <c>+5</c>, the list's height,
-    /// <see cref="TextScrollBar.Width"/> wide.</summary>
-    public static FrontEndScrollBar Beside(FrontEndRect list, int gap) =>
-        new(new FrontEndRect(list.X + list.Width + gap, list.Y, TextScrollBar.Width, list.Height));
+    /// <see cref="TextScrollBar.Width"/> wide; 0x00552420 may then set another width and height, keeping
+    /// the place.</summary>
+    public static FrontEndScrollBar Beside(FrontEndRect list, int gap, int width = TextScrollBar.Width, int height = 0) =>
+        new(new FrontEndRect(list.X + list.Width + gap, list.Y, width, height > 0 ? height : list.Height));
 
     public FrontEndRect Rect { get; }
     public TextScrollBar Bar { get; } = new();
@@ -42,7 +43,7 @@ public sealed class FrontEndScrollBar
     /// <summary>The thumb (0x00529160), in 640 × 480 units.</summary>
     public FrontEndRect ThumbRect()
     {
-        (int top, int length) = Bar.Thumb((int)Rect.Height);
+        (int top, int length) = Bar.Thumb((int)Rect.Height, (int)Rect.Width);
         return ToScreen(new FrontEndRect(Rect.X, Rect.Y + top, Rect.Width, length));
     }
 
@@ -74,11 +75,18 @@ public sealed class FrontEndScrollBar
         return ThumbRect().Contains(pointer) ? ScrollBarPart.Thumb : ScrollBarPart.Track;
     }
 
-    /// <summary>One GUI update of the class's input (0x00528B20): an arrow steps every update it stays
-    /// pressed on, a press on the track steps once toward the pointer, a held thumb follows it while the
-    /// pointer stays in the track column (elsewhere the position holds). The caller sets the rate: DK2's
-    /// front-end update rate is unread, and ours is one call per Unity frame.</summary>
-    public void Update(FrontEndPoint pointer, bool down)
+    /// <summary>A held arrow's step interval in seconds. DK2 steps once per front-end update (0x00528B20),
+    /// a rate that is unread; one step per Unity frame raced through the list (owner, 2026-10-31), so
+    /// ours steps on the press and then at this fixed interval.</summary>
+    public const double HeldStepSeconds = 0.1;
+
+    private double _nextStep;
+
+    /// <summary>One GUI update of the class's input (0x00528B20) at <paramref name="now"/> seconds: an arrow
+    /// steps on the press and every <see cref="HeldStepSeconds"/> it stays pressed on, a press on the track
+    /// steps once toward the pointer, a held thumb follows it while the pointer stays in the track column
+    /// (elsewhere the position holds).</summary>
+    public void Update(FrontEndPoint pointer, bool down, double now)
     {
         if (!Bar.Enabled) { _held = ScrollBarPart.None; _wasDown = down; return; }
         ScrollBarPart part = HitTest(pointer);
@@ -86,11 +94,16 @@ public sealed class FrontEndScrollBar
         else if (!_wasDown)
         {
             _held = part;
+            _nextStep = now;
             if (part == ScrollBarPart.Track) Bar.Step(pointer.Y < ThumbRect().Y ? -1 : 1);
         }
-        if (_held == ScrollBarPart.Up && part == ScrollBarPart.Up) Bar.Step(-1);
-        else if (_held == ScrollBarPart.Down && part == ScrollBarPart.Down) Bar.Step(1);
-        else if (_held == ScrollBarPart.Thumb && InTrackColumn(pointer)) Bar.DragTo((int)(pointer.Y * 4 - Rect.Y), (int)Rect.Height);
+        bool arrow = (_held == ScrollBarPart.Up || _held == ScrollBarPart.Down) && part == _held;
+        if (arrow && now >= _nextStep)
+        {
+            Bar.Step(_held == ScrollBarPart.Up ? -1 : 1);
+            _nextStep = now + HeldStepSeconds;
+        }
+        else if (_held == ScrollBarPart.Thumb && InTrackColumn(pointer)) Bar.DragTo((int)(pointer.Y * 4 - Rect.Y), (int)Rect.Height, (int)Rect.Width);
         _wasDown = down;
     }
 

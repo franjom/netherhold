@@ -190,7 +190,9 @@ by [0x00533E90](functions/00533E90.md).
   - Lines are 25 px apart and clipped to the box, so about five show at once.
 - **The list's scroll bar** is the type-2 child the widget creates
   ([0x0052A0D0](functions/0052A0D0.md)): x = list x + width + record byte 5 (90), so
-  (2350, 968, 64, 512) in reference units, (587, 242, 16, 128) at 640 × 480 (0x0052C630 truncates).
+  (2350, 968, 64, 512) in reference units. After the pages are built,
+  [0x00552420](functions/00552420.md) resizes it to 48 × 452, so (587, 242, 12, 113) at 640 × 480
+  (0x0052C630 truncates).
   - Its position is the first row. After a game
     [0x0053D810](functions/0053D810.md) sets its range to 0–9 at 0 (0–8 after
     multiplayer or skirmish) through [0x00528F60](functions/00528F60.md), whatever the
@@ -199,14 +201,16 @@ by [0x00533E90](functions/00533E90.md).
     [minimap-controls.md](minimap-controls.md#menu40-scrollbar-read-2026-10-23)): an
     arrow steps one row every GUI update it is held, a press on the track one row, and
     the thumb can be dragged while the pointer stays in the track column. The scroll-bar class reads
-    only the pointer and the button, no wheel. DK2's front-end update rate is unread; ours steps once
-    per Unity frame.
+    only the pointer and the button, no wheel. DK2's front-end update rate is unread; ours steps on the
+    press and then every 0.1 s (`FrontEndScrollBar.HeldStepSeconds`; one step per Unity frame raced through the list).
   - [0x00551BA0](functions/00551BA0.md) draws it 8 px left of and 6 px above its box:
     `1-V-Up_Arrow` at the top, `5-V-Scroll_Bar_BG` 10 px lower, `1-V-Down_Arrow` 8 px
     above the bottom.
-  - The thumb is cut from row 8 of `0-V-Scroll_Bar`, as tall as the thumb (38 units, 9 px)
-    and 16 px wide, which is wider than the 14 px art. Whether DK2's blit of it succeeds
-    is unobserved.
+  - The thumb is cut from row 8 of `0-V-Scroll_Bar` (14 × 32), as tall as the thumb
+    (35 units, 8 px) and as wide as the bar (12 px). The art is loaded into a surface of its
+    own size ([0x005540B0](functions/005540B0.md)) and BltFast does not clip, so the blit works
+    while the bar is at most 14 px wide: at 640 × 480, not from about 800 px up. The thumb runs
+    inside the track art, 254–343 px.
   - The part under the pointer ([0x005507E0](functions/005507E0.md)) glows orange
     (255, 168, 0, [0x0054FD20](functions/0054FD20.md)). Its counter restarts at 8 each
     frame it is hovered and drops by 1 every frame, so the glow stays full for three frames
