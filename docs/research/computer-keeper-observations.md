@@ -260,15 +260,15 @@ the other side of her heart, (64,34), the other end of the same drawn diagonal.
 | bridge (64,46) | 1,155 | 420 | 707 | 855 | 832 |
 | Morgana defeated | 1,378 (status 1) | 847 (heart ruined) | 730 | 1,004 (heart ruined) | 887 (heart ruined) |
 
-**Current repair-window rerun (2026-10-31, ours hash/save 353).** Seed 12345,
-keepers 4-7, stock placed things and record resources, modern RNG, 800 ticks:
-(64,38) opens at tick 89; no RepairWall/state23/24 assignment targets it
-before that opening (DK2's recorded repair start 101, opening 387; the old
-hash192 run was 92/362). It starts as neutral Rock, health165, and never
-becomes reinforced before opening. Our instrumented setup and the unchanged
-ScenarioRunner finish with the same hash `0xB2E105B6AA6C6AEB`. This reruns the
-old conditions, not an isolated before/after of hash349; the historical native
-numbers are retained, not a fresh native capture.
+**The hash-192 columns are historical; ours now loses the wall at 88 (2026-10-31).** The
+`level11a_drako_attack.yaml` scenario with `seed: 12345` and `duration_ticks: 800` opens (64,38) at
+tick 88, never reinforced (Rock, health 165 of 660). It does so at hash 353 and identically at
+`d03a78bb` (hash 344, before the OpenKeeper-led changes of 2026-10-30/31), so those changes did not
+cause it; something between hash 192 and 344 did, not bisected. The mechanism: Morgana's imp 19
+takes the reinforce at tick 1, her keeper slaps it at 15, and after the slap reaction (77) it takes
+a marked dig of her own wall at (62,36) at 21; it is back on (64,38) only at 55, and Drako's three
+imps dig it out at 88. DK2's Morgana finishes the wall by 64, so either DK2's keeper does not slap
+or mark there then, or its imp returns to the wall; Q563.
 
 **Raksha was an ally.** Before ADR-0377 ours attacked every keeper in turn: Morgana at tick 1,
 Raksha at 66 (a tunnel north from (50,43) with eight bridge tiles), Belial at 273 and the human

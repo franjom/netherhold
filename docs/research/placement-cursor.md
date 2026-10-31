@@ -392,8 +392,8 @@ Both show No Go over the HUD. The spell's No Go shift of 2 pixels uses the price
 **Held items (2026-10-23).** `HandDrop` returns `PlacementIcon.Held`, No Go where `DropLands`
 refuses, and `Dispose` for a drop that lands. `HeldItemStack.Disposes` asks the click's own rule
 (`CreatureLands`' disposal: `DisposalRules`, no prisoner, the Heart not ruined), including
-the own Portal centre only. Hero Portal never shows the bin; see
-[structure-blocks.md](structure-blocks.md#confidence). Ours has no queued drops, so icon 0 is the
+the own Portal centre only. A Hero Portal shows No Go, the held creature's icon crossed out
+over a red tile (owner, 2026-10-31); see [structure-blocks.md](structure-blocks.md#confidence). Ours has no queued drops, so icon 0 is the
 hand's top. `DungeonRunner.HeldIcons` gates the icons apart from the cage: Options hides them,
 possession and the full map do not; the result bit 0x01 is not mirrored. The overlay draws them in
 DK2's order at the tool icon's scale (HYPOTHESIS).

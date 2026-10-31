@@ -364,8 +364,7 @@ public sealed class HandSystem : ISimulationSystem
             {
                 if (!definition.Flags.HasFlag(CreatureFlags.IsWorker))
                 {
-                    if (context.Database.RoomByTerrain(world.Tile(command.Tile.X, command.Tile.Y).TerrainId)?.TypeId == RoomTypeId.HeroPortal
-                        && Combat.StatusEffectRules.StunOnLanding(context, creature, definition)) return;
+                    // The hand disposes only at a Portal (0x0040AE80), whose drop is immediate.
                     DropLandingRules.AfterGettingUp(context, SystemName, creature, definition);
                     return;
                 }

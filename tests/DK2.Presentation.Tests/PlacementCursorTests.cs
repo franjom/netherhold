@@ -289,7 +289,8 @@ public sealed class PlacementCursorTests
         Hold(world, world.SpawnCreature(db, GoblinType, keeper, Claimed(world, db, keeper, 0)));
         Assert.False(HeldItemStack.Disposes(world, db, keeper, world.Player(keeper).Hand[^1], portal));
         PlacementFeedback feedback = PlacementCursor.HandDrop(world, db, keeper, portal);
-        Assert.False(feedback.Dispose);
+        // Owner, 2026-10-31: the held creature's icon crossed out and the tile in red (No Go).
+        Assert.Equal((false, false, true), (feedback.Valid, feedback.Dispose, feedback.NoGo));
         var sim = new GameSimulation(db, world, 1, [new DK2.Simulation.Systems.HandSystem()]);
         CreatureState creature = world.CreatureById(world.Player(keeper).Hand[^1].Id)!;
         sim.Tick(InputFrame.Of(new DropCommand(keeper, portal)));

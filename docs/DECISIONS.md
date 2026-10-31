@@ -8839,6 +8839,10 @@ Belial tunnel's first tile at 433 (443), its bridges at 446/448 (457/461), the c
 Morgana at 1,004 (1,378). The scenario now runs those keepers on the record's gold. Q563 holds the
 rest.
 
+**Amendment 2026-10-31.** These numbers are from hash 192 and no longer hold: by hash 344 the
+wall opens at 88, never reinforced, because Morgana's keeper slaps the reinforcing imp onto an own-wall
+dig ([computer-keeper-observations.md](research/computer-keeper-observations.md), Level 11A).
+
 ## ADR-0388 — A rival's imp holds no task of this keeper's, and the fight approach walks within a tile
 **Date:** 2026-10-06 · **Status:** accepted · Advances Q563; supersedes the every-player count of ADR-0026 and ADR-0030
 
