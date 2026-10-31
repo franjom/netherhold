@@ -66,7 +66,7 @@ own position, a walker's current one and not its route's end ([record](functions
 its category step reads the table at `0x006DA8C7`, unmapped in Ghidra, so state 254's
 branch rests on the repo's category table). The callers of `0x004752B0` are the non-fighter
 arm (`0x0045C15C`) and the flee entry (`0x00460975`); a refusal there ends the flee and the
-Imp idles. Built as `FearRules.AlreadyResponding` (ADR-0608; the Guard Post's report uses it
+Imp idles. Built as `FearRules.AlreadyResponding` (ADR-0609; the Guard Post's report uses it
 too). Then the **nearest Guard Room of mine** to the threat by distance² to its
 `+0x27/+0x29` tile: the walk skips any room whose type byte `+0x18` is not 9
 (`0x00475336`, CONFIRMED; the same filter as `0x00460B50`, ADR-0473), and with none it

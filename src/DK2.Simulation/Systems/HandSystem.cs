@@ -639,7 +639,9 @@ public sealed class HandSystem : ISimulationSystem
                 // Rewritten, not added to: ten slaps are worth one, which the owner
                 // established by trying (docs/research/tile-work.md).
                 creature.WorkFasterTicks = EfficiencyRules.SlapBonusTicks;
-                anger = CreatureAngerRules.Slap(world, definition, creature);
+                anger = creature.JackpotDeadlineTicks != 0
+                    ? SlapRules.SlapCasinoWinner(context, creature)
+                    : CreatureAngerRules.Slap(world, definition, creature);
             }
             hurt = CreatureHealthRules.Apply(context.Database, definition, creature, -definition.SlapDamage, command.PlayerId.Value);
             if (outcome != SlapOutcome.Uncounted && world.HasPlayer(creature.OwnerPlayerId))

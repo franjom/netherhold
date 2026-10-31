@@ -758,7 +758,7 @@ public static class FearRules
     /// <summary><c>0x004754D0</c>: one of the owner's creatures in 251 or 254, or walking (state 6) to
     /// either, within five tiles of the point. A raiser standing down in 252 is not one. The point it is
     /// judged by is <c>0x004755C0</c>'s: the threat it raised (state <c>+0xA7/+0xAB</c>) while it stands
-    /// in 251, else its own position — a walker's, not its route's end (ADR-0608).</summary>
+    /// in 251, else its own position — a walker's, not its route's end (ADR-0609).</summary>
     public static bool AlreadyResponding(WorldState world, PlayerId owner, int x, int y)
     {
         IReadOnlyList<CreatureState> creatures = world.Creatures;

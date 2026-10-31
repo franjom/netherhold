@@ -14,7 +14,9 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
-**350** - `0xCB161DF2DDAB9309`. Remake regression pin, not native evidence. FormatVersion also 350. Behaviour only: the alarm's refusal counts an owner's creature in 251 or 254, or walking to either, not one standing down in 252 (ADR-0608). Saves from 349 are refused.
+**351** - `0xFB2669798A3D3023`. Remake regression pin, not native evidence. FormatVersion also 351. Behaviour only: the alarm's refusal counts an owner's creature in 251 or 254, or walking to either, not one standing down in 252 (ADR-0609). Saves from 350 are refused.
+
+**350** - `0x788942D055141149`. Remake regression pin, not native evidence. FormatVersion also350. Hash/save CasinoBigWinnerSlappedCount and mirror the unpaid jackpot slap, including its post-debit spawn cap and simulation draws. See [casino-winner-slap.md](casino-winner-slap.md). Saves from349 are refused.
 
 **349** - `0xE6AEC8BEDDDA969C`. Remake regression pin, not native evidence. FormatVersion also349. Mirror kind6 selection separately from action7's neutral-wall guard: neutral reinforced walls heal while retaining neutral ownership; own walls below half select6 but receive no health. No new fields. See [wall-reinforce-eligibility.md](wall-reinforce-eligibility.md). Saves from348 are refused.
 

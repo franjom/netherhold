@@ -14135,8 +14135,20 @@ Preserve neutral ownership when the max-health terrain is unchanged.
 The own-wall branch selects6 but its action does no health work; this replaces
 Q564's proposed50-rate repair. No new persistent state.
 
-## ADR-0608 - Only a raiser or reporter on its way or there refuses another alarm
-**Date:** 2026-10-31 · **Status:** accepted · Hash/save 350 · Q665 · Research: [combat-alarm.md](research/combat-alarm.md#2-raising-the-alarm-0x004752b0state-threatpos-deficit), [level4-outcomes.md](research/level4-outcomes.md); KB `004754D0`, `00460B50`
+## ADR-0608 - reproduce the unpaid jackpot slap
+
+**Status:** implemented, 2026-10-31. Q697, hash/save350.
+
+**Decision.** Route a full slap with an outstanding jackpot deadline through
+the winner routine. Preserve its purse debit followed by a second spawn cap,
+wrapping byte counter, repeat-slap anger and two simulation RNG draws per pile.
+
+**Evidence:** [casino-winner-slap.md](research/casino-winner-slap.md).
+The counter is hashed and saved, initially zero and reset by a new jackpot.
+Native gameplay validation remains unmeasured.
+
+## ADR-0609 - Only a raiser or reporter on its way or there refuses another alarm
+**Date:** 2026-10-31 · **Status:** accepted · Hash/save 351 · Q665 · Research: [combat-alarm.md](research/combat-alarm.md#2-raising-the-alarm-0x004752b0state-threatpos-deficit), [level4-outcomes.md](research/level4-outcomes.md); KB `004754D0`, `00460B50`
 
 **Context.** A fleeing Imp whose hero stands near its keeper's Guard Rooms raises the alarm, and
 when `0x004752B0` refuses, the flee ends and the Imp stands idle (`0x0046097C` to `0x00460B37`). The
@@ -14154,6 +14166,6 @@ walking to either) and measures from `0x004755C0`'s point (a 251 raiser's `Alarm
 `PosX`/`PosY`). The point's category step reads the table at `0x006DA8C7`, unmapped in Ghidra; state 6's
 category 2 and 251's 22 and 254's 26 are the repo's (combat-category-hooks.md, state-categories.md).
 
-**Consequences.** Hash/save 350 refuses 349. `CombatAlarmPointTests` pins the state cases (252 and a walk
+**Consequences.** Hash/save 351 refuses 350. `CombatAlarmPointTests` pins the state cases (252 and a walk
 to it count for nothing, nor a state-7 walk) and the point (a 251 raiser by its threat, a walker by its
 position); four of them fail on the old test. The Guard Post's report (`TrapRules`) uses the same test.

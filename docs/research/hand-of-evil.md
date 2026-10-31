@@ -144,7 +144,8 @@ Pit; our non-prison drop frees it (ADR-0064).
 4. `if (StateFlags1 & 0x8000) || now < LastSlapTick + var19` → **skip the
    knock-back impulse.** Then, unconditionally:
 5. `LastSlapTick = now`
-6. anger: `AngerSlap` from the record, on one branch of a test
+6. anger: `AngerSlap` normally; an unpaid jackpot winner uses the
+   [winner routine](casino-winner-slap.md) instead (ADR-0608).
 7. a force applied in the slap's direction
 8. **if `SpeedChangeTimer` is zero**, raise the creature's speed to 150% and set
    `SpeedChangeTimer` (see §5)
