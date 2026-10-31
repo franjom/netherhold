@@ -793,7 +793,7 @@ public sealed partial class ImpTaskSystem
     /// A neighbour's grade for <see cref="ClaimStartSide"/>, lower first: <c>0x00469460</c> sorts the
     /// tile into a class and the byte table at <c>0x00698628</c> ranks the classes. A marked wall or
     /// seam 1; floor to take that touches the keeper's floor — a rival's room 3, a rival's floor 4,
-    /// unowned floor 5; a wall to reinforce or repair (not gold, below MaxHealth, unowned or the
+    /// unowned floor 5; a wall to reinforce or repair (not gold, health unequal to MaxHealth, unowned or the
     /// keeper's own, touching its floor: <c>0x00453dc0</c>, <c>0x00453e30</c>) 12; anything else 127.
     /// </summary>
     private static int ClaimSideGrade(SimulationContext context, WorldState world, TilePos at, PlayerId playerId)
@@ -1244,6 +1244,16 @@ public sealed partial class ImpTaskSystem
         if (creature.TargetWork is TileWorkKind.Reinforce or TileWorkKind.RepairWall
             && DigMarkCancelsWallWork(context.Database, tile, creature.OwnerPlayerId))
             return false;
+
+        if (creature.TargetWork == TileWorkKind.Reinforce && creature.Dk2StateId == 22)
+        {
+            TerrainDef terrain = context.Database.TerrainById(tile.TerrainId);
+            return tile.OwnerPlayerId == PlayerIds.Neutral && terrain.IsSolid && !terrain.IsImpenetrable
+                && terrain.GoldValue == 0 && tile.Health != terrain.MaxHealth
+                && TouchesOwnLand(context, context.World,
+                    new TilePos(creature.TargetTileIndex % context.World.Width,
+                        creature.TargetTileIndex / context.World.Width), creature.OwnerPlayerId);
+        }
 
         if (TileWorkRules.TryResolveDigTask(
                 context.Database, tile, creature.TargetWork, creature.OwnerPlayerId,

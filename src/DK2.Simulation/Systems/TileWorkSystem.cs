@@ -86,19 +86,8 @@ public sealed class TileWorkSystem : ISimulationSystem
 
             if (TileWorkRules.CompletesUpward(order.Kind) && result.Outcome == TileWorkOutcome.Transformed)
             {
-                EffectId effect = context.Database.TerrainById(before).MaxHealthEffectId;
                 var at = new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width);
-                if (tile.TerrainId == ReinforcedWallTerrainId)
-                {
-                    TilePos[] points = [new(at.X - 1, at.Y), new(at.X, at.Y - 1),
-                        new(at.X + 1, at.Y), new(at.X, at.Y + 1)];
-                    foreach (TilePos point in points)
-                        context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
-                            effect, order.PlayerId, point, new Fp32(0)));
-                }
-                else
-                    context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
-                        effect, order.PlayerId, at, new Fp32(Fp32.One)));
+                RequestCompletionEffect(context, before, at, order.PlayerId);
             }
             PostThreat(context, order, result, before, ownerBefore);
             if (result.Outcome == TileWorkOutcome.Destroyed && before != tile.TerrainId)
@@ -111,6 +100,20 @@ public sealed class TileWorkSystem : ISimulationSystem
         }
 
         world.RawPendingWork.RemoveRange(0, count);
+    }
+
+    internal static void RequestCompletionEffect(SimulationContext context, byte before, TilePos at, PlayerId owner)
+    {
+        EffectId effect = context.Database.TerrainById(before).MaxHealthEffectId;
+        if (context.World.Tile(at).TerrainId == ReinforcedWallTerrainId)
+        {
+            TilePos[] points = [new(at.X - 1, at.Y), new(at.X, at.Y - 1),
+                new(at.X + 1, at.Y), new(at.X, at.Y + 1)];
+            foreach (TilePos point in points)
+                context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(effect, owner, point, new Fp32(0)));
+        }
+        else context.RequestEffect(SystemName,
+            ViewEffectRequest.AtTileCentre(effect, owner, at, new Fp32(Fp32.One)));
     }
 
     /// <summary>Action 6's tail (<c>0x004977F0</c>): once the tile no longer passes its guard

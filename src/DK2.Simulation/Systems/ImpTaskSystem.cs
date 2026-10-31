@@ -306,6 +306,12 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
                 $"imp={creature.Id} {Describe(context.World, creature.TargetTileIndex)} " +
                 $"{creature.TargetWork} reason=gone");
             bool atWork = creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work;
+            if (atWork && creature.TargetWork == TileWorkKind.Reinforce
+                && !DigMarkCancelsWallWork(context.Database,
+                    context.World.TileAtIndex(creature.TargetTileIndex), creature.OwnerPlayerId))
+                ReinforcementRules.FillCorners(context,
+                    new TilePos(creature.TargetTileIndex % context.World.Width,
+                        creature.TargetTileIndex / context.World.Width), creature.OwnerPlayerId);
             int dug = creature.TargetTileIndex;
             TileWorkKind work = creature.TargetWork;
             WorkEnded(context, creature);
