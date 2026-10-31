@@ -14185,3 +14185,22 @@ category 2 and 251's 22 and 254's 26 are the repo's (combat-category-hooks.md, s
 **Consequences.** Hash/save 351 refuses 350. `CombatAlarmPointTests` pins the state cases (252 and a walk
 to it count for nothing, nor a state-7 walk) and the point (a 251 raiser by its threat, a walker by its
 position); four of them fail on the old test. The Guard Post's report (`TrapRules`) uses the same test.
+
+
+## ADR-0610 - preserve the combat approach reselection boundary
+
+Status: accepted, 2026-10-31. Hash/save 354.
+
+State 8 releases its outgoing engagement before ordinary creature reselection,
+skips that search for forced targets, and preserves its route when the same
+creature wins. A missing or changed target stops movement and enters the current
+resume state while retaining incoming attackers. Selection can replace that
+resume with 202/251; consume its new value immediately.
+
+Reason: `0x00470E30` (`0x00470E66`, `0x00470E93`, `0x00470EAB`–`0x00470EE3`)
+and `0x00471890` (`0x004718EA`–`0x004718F5`) establish the sequence. The prior
+adapter kept the old slot during selection, disengaged on no choice and delayed
+a selected withdrawal/alarm's arrival. Evidence: [approach section 2](research/combat-approach-and-victory.md#2-state-8-before-movement-0x00470e30).
+
+This corrects a binary-backed difference; Q665 causation remains a measurement
+question. See [Level 4 outcomes](research/level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0609).

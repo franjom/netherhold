@@ -798,8 +798,8 @@ public static class CombatTargetRules
     /// (<c>0x0045A550</c>) has no such arm. The ally arm takes the creature rule, unread.</summary>
     private static void Enter(SimulationContext context, CreatureState me, CreatureDef mine, bool sameTarget, bool thing, string target)
     {
-        // Ours: the state change drops the route unless the target is the one already approached.
-        if (!sameTarget) me.StopMoving();
+        // State 8 unlinks before reselecting. Its handler ends the route if the new target differs.
+        if (!sameTarget && !me.Approaching) me.StopMoving();
         if (!CombatRules.IsFighting(me)) me.CombatStateEnteredTick = context.Tick.Value;
         me.Running = true; // state 199's entry sets the run speed (0x004887D0(1))
         if (CreatureStateMachine.HasState(me)

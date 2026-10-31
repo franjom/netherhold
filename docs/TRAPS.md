@@ -11,6 +11,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Codex's sandbox helper can fail before process startup with `setup refresh had errors`; an approved `require_escalated` command can still run.
 - Concurrent commits in one checkout share both the index and COMMIT_EDITMSG; serialize staging and commits across sessions, including while hooks run.
+- Do not rebuild a project while its tests run: Windows testhost locks copied assemblies and MSBuild exhausts its copy retries.
 
 - KLD content offsets depend on each chunk's headerBlockSize; validate record tags and the final boundary before treating a trigger file as empty (Frosty's Lair TRIGGERS starts at60, THINGS at56).
 

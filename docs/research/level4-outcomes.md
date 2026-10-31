@@ -261,10 +261,64 @@ how often a targeted Imp is struck.
 
 ## Fleeing Imps near a Guard Room (Q665, hash 345, ADR-0609)
 
-Evidence: `D:/DK2Evidence/runs/l4-celebration-2026-10-30` (`impfleeroute.out`, `repeatsame.out`,
-`guardtrace2-native-sNN.tsv`). Per eight runs, fleeing Imps near a Guard Room: idle after the flee
-697 for ours (h345) against DK2's 457 (61% and 51% of those flees), withdraw 404 against 585. A Guard's
-non-lethal blow is followed within 4-12 turns by the same Guard's next on 11.6% of Imps against DK2's
-0.9%. DK2's Guards drop a struck Imp at their first out-of-reach reselect, usually for another target,
-the Imp mostly withdrawing. The alarm's refusal test differed from `0x004754D0` (combat-alarm.md §2):
-ADR-0609 (hash 351) corrects it. Measured against master at hash 347 (README "Hash 347 baseline and hash 348"; the code was hash 348 before renumbering): Imp deaths per run DK2 21.75, h347 28.95, with the fix 27.0 (p 0.29); fleeing Imps then idle 457 / 696 / 633, to the alarm 432 / 481 / 509, withdrawing 585 / 467 / 369 per eight runs; same-Guard repeat blow within 4-12 turns 0.9% / 9.7% / 12.0%. More alarms go through, but withdrawals fell and the Guard repeats did not: the refusal was a real mismatch and is not the death excess.
+The alarm refusal is corrected by ADR-0609. The current comparison is master
+`fac510fd` (hash353) against ADR-0610 (hash/save354), eight native captures and
+five generators per captured turn-2400 state on each modern build, to turn6804.
+Both modern sets have 40/40 successful runs. Evidence registry and reproducible
+scripts: `D:/DK2Evidence/runs/l4-celebration-2026-10-30/README.md`, section
+"Q665 flee/withdraw audit and state8 correction"; machine-readable results:
+`q665-h354-summary.json` there.
+
+| measure | DK2 | master353 | hash354 |
+|---|---:|---:|---:|
+| Imp deaths per run | 21.75 | 33.275 | 32.45 |
+| after203: idle, per8 runs | 457 | 668.6 | 674.2 |
+| after203: route6 then202, per8 | 585 | 504.2 | 471.2 |
+| after203: route6 then251, per8 | 432 | 544.2 | 516.4 |
+| same-Guard next blow in4-12 turns | 1/113 (0.9%) | 95/772 (12.3%) | 78/617 (12.6%) |
+| Guard still targets surviving Imp at+6 | 9.8% | 33.5% | 30.8% |
+| same-Guard repeat kills per8 runs | 1 | 15 | 12.4 |
+
+Deaths use `creature_died` to remove a modern Imp even without its last CSV row;
+native slot changes count kills without requiring a zero-health row. Flee
+outcomes retain the supplied scripts' observed next-state convention: routes
+ending in death, another state or the capture boundary are separate, not assigned
+202/251 by survival. The paired eight-state death-mean difference is -0.825 per
+run (sign-flip p=0.758). This does not establish a survival improvement.
+
+### Binary audit and captured branches
+
+STRONGLY INFERRED: the major branch order in `FearRules.Flee`/`FleeWalk` and the
+lair/Heart/room/local withdrawal stages matches the reread. The zero-timer path
+bypasses the low-health/entry-turn tests; alarm refusal ends203 rather than trying
+withdrawal. See [state203's record](functions/004602E0.md),
+[withdrawal](functions/004611D0.md), [heart/health predicate](functions/0045EDA0.md)
+and [threat counter](functions/0045EC80.md). Changing refused alarms to withdrawal
+would contradict the binary. Minor layer/down and mixed-slot boundaries remain
+in [004FAC40](functions/004FAC40.md) and [0045CB00](functions/0045CB00.md).
+
+CONFIRMED (capture): seed2's zero-timer exits are135 alarms and95 idles with the
+target inside expanded Guard Room bounds, and115 withdrawals outside. Capture
+headers3447/3448 show Imp431, target425 at(34,31), outside, entering6->202;
+headers3009/3010 show Imp434, target425 at(23,35), inside, idling. These identify
+native branches, not a matched native/modern causal divergence. The exact records
+are `native-flee-branches-q665-v2-s02.json` in the evidence directory.
+
+The inspected Guard out-of-reach unlink/reselect path matches ours
+([0045F030](functions/0045F030.md)); no additional struck-Imp drop rule was found
+there. A real state8 reselection mismatch is corrected by ADR-0610; its sequence
+and five failing-first cases are in [approach section2](combat-approach-and-victory.md#2-state-8-before-movement-0x00470e30).
+The table shows that this correction did not close Q665.
+
+### Does withdrawal explain the Guard repeats?
+
+At+1 after a qualifying blow, an actual route to202 has zero repeats in73 native
+cases, four in302 master cases, and two in236 corrected cases. Native goals use
+raw `+0x32D` from the archived `guardtrace2-native-sNN.tsv`; modern goals use
+route-entry events, not the state eventually reached. Goals unavailable in those
+sources remain unknown (2/71/65 cases). This supports an association with escaping
+but does not establish that reduced withdrawal causes the excess repeats: the
+cohorts have different geometry, earlier decisions and RNG histories. UNKNOWN:
+the first matched input/rule divergence that explains the excess idle endings.
+Next compare target/room-boundary inputs, incoming-slot order and layer-sensitive
+strength totals at the same captured decision, rather than tuning rates.

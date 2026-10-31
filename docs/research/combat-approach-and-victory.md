@@ -57,8 +57,14 @@ The handler runs these checks in order.
 2. For an ordinary creature target — target kind 0 and
    `AttackAbnormalTargets` clear — it unlinks and calls `SelectAVictim` every
    tick. It continues this approach only if selection returns the same tag. A
-   different target or no target ends the route and resumes state 199, where the
-   new engagement is processed.
+   different target or no target stops movement, then enters the current resume
+   word (`+0xDF`, creature `+0x32D`), rather than testing the selector's return.
+   Normally that is 199, with incoming attackers retained. If selection starts
+   withdrawal/alarm, its route helper has replaced that word with 202/251;
+   the approach immediately enters that state and resets the word to 1
+   (`0x00470EC1`–`0x00470EE3`, `0x004718EA`–`0x004718F5`). Same-target
+   reselection re-registers without stopping the old route. Built: ADR-0610;
+   Level 4 measurement and causal limits are in [level4-outcomes.md](level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0609).
 3. When `0x00460C50` finds an escape tile, `0x0045EC80` advances the same
    `OverThreatCounter` used by `spFighting`. Reaching the threshold computes the
    same `BackOffTimer` and enters state 203. Unlike `spFighting` step 6, state 8
@@ -213,8 +219,9 @@ controls when the pause ends.
 
 **Built (ADR-0169, `HashVersion` 74).** `ApproachRules` is state 8, a walk resuming 199
 (ADR-0483; until then a flag on 199, `Approaching`, now derived from the state): entry with a plain route and the countdown at ten (§1); each tick
-a target gone ends it, an ordinary creature target is chosen afresh and a changed choice
-ends it, the fear counter runs without the withdrawal test, a creature target in state 6
+a target gone ends it; ordinary creature reselection releases the outgoing engagement
+and preserves the same-target route, while changed/no choice enters the current resume
+(ADR-0610; see section 2). Forced targets skip reselection; the fear counter runs without the withdrawal test, a creature target in state 6
 resuming 251 or 202 (`0x0045F000`; not 203) counts the chase against variable 213 or 214 and is
 given up as `RetreatingCreature`, the count left over the limit (any other creature target zeroes
 it, a thing target leaves it); while it is set the Blocker, Support and Flanker arms pass over
@@ -229,13 +236,8 @@ and runs the tick it hands back. `VictoryRules`: the death leaves the `0xF` nibb
 and does not turn on a blow (§5—§7). On state ids (ADR-0208): the fight is 199, the walk
 to a body state 6 resuming 259, the celebration 260, then state 1.
 
-**Deviations, named (Q400):** the pause lasts a fixed **8 ticks** (`VictoryRules.PauseTicks`)
-where DK2's lasts 1 to 22 turns by creature (§7, Q376); behind the target is read from its
-velocity, not its heading, and a standing target gives its own position (§3); freeze, stun and a
-changed choice let the engagement go where DK2 leaves the attack word; the body is reached at
-half a tile squared with no turn, where DK2 has no distance test and turns to face it (§6); a corpse is looked for under any
-owner; a failed route to a body celebrates at once; `AttackAbnormalTargets` is not
-modelled.
+Remaining approach/victory approximation questions are tracked by Q400;
+animation-duration evidence and pending owner checks by Q376.
 
 ## Confidence
 

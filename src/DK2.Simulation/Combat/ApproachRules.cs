@@ -76,12 +76,12 @@ public static class ApproachRules
     [ThreadStatic] private static List<Fixed16Vector>? _scratch;
     private static List<Fixed16Vector> Scratch => _scratch ??= [];
 
-    /// <summary>Leaves state 8 for <c>spFighting</c>, which runs next tick: the route is dropped and
-    /// 199 resumed, unless a disengage has already idled the creature.</summary>
+    /// <summary>Stops the approach and enters the current resume state, including one
+    /// replaced during reselection.</summary>
     public static void End(CreatureState me, string reason, SimulationContext context)
     {
-        if (me.Approaching) CombatStates.Arrive(context, me);
         me.StopMoving();
+        if (Systems.StateShadow.IsTravelling(me)) CombatStates.Arrive(context, me);
         context.Emit(SystemName, "approach_ends", $"creature={me.Id} reason={reason}");
     }
 
@@ -119,26 +119,19 @@ public static class ApproachRules
         CreatureState? target = me.FightTargetKind == FightTargetKind.Creature ? world.CreatureById(me.FightTargetId) : null;
         if (me.FightTargetKind == FightTargetKind.Creature && target is null)
         {
-            CombatRules.Disengage(context.Hooks, me);
+            UnlinkTarget(world, me);
             End(me, "target_gone", context);
             return false;
         }
 
-        // 2. An ordinary creature target is chosen afresh; a different choice ends the approach. (The
-        // body flag AttackAbnormalTargets that exempts a creature is not modelled: always clear.)
-        if (target != null)
+        // 0x00470EAB: release only the outgoing engagement before choosing again. The native
+        // unlink preserves the attack fields; a failed choice resumes the fight with incoming slots.
+        if (target != null && !me.AttackAbnormalTargets)
         {
-            // The target stays in place for the choice: the engage helper keeps the route for the
-            // same target and drops it for a new one, which ends the approach anyway.
             int previous = me.FightTargetId;
-            FightTargetKind previousKind = me.FightTargetKind;
-            if (!CombatTargetRules.SelectAVictim(context, sight, hearts, rooms, me, mine, scratch) || !CombatRules.IsFighting(me))
-            {
-                if (CombatRules.IsFighting(me)) CombatRules.Disengage(context.Hooks, me);
-                End(me, "nobody", context);
-                return false;
-            }
-            if (me.FightTargetKind != previousKind || me.FightTargetId != previous)
+            UnlinkTarget(world, me);
+            CombatTargetRules.SelectAVictim(context, sight, hearts, rooms, me, mine, scratch);
+            if (me.FightTargetKind != FightTargetKind.Creature || me.FightTargetId != previous)
             {
                 End(me, "new_target", context);
                 return false;
@@ -215,6 +208,15 @@ public static class ApproachRules
         me.RouteRefreshCountdown = RefreshCalls;
         context.Emit(SystemName, "reroutes", $"creature={me.Id} to={destX},{destY}");
         return true;
+    }
+
+    private static void UnlinkTarget(WorldState world, CreatureState me)
+    {
+        CombatRules.AttackMode attack = me.AttackType;
+        int reach = me.AttackRangeSquared;
+        CombatRules.Unlink(world, me);
+        me.AttackType = attack;
+        me.AttackRangeSquared = reach;
     }
 
     /// <summary>The refreshed destination (§3): the target's position, or for a Flanker the point

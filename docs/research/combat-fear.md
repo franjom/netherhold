@@ -172,7 +172,7 @@ the target and, unless `CreatureDying`, runs the withdraw state; success returns
    hook (same category), so a swing in progress still lands: the action runs in
    `CreatureAction_Run` `0x00496AA0`, called from `Creature_Update` (`0x00489A68`)
    whatever the state (STRONGLY INFERRED: earlier exits of the update unread).
-7. **The nearest attacker** (`0x0045C690`): over my melee then ranged slots, the
+7. **The nearest attacker** (`0x0045C690`): over my attacker slots, the
    lowest distance — an eighth off across the alignments, the `Creeping`
    percentage applied — that is `IsAttackable`, not disguised as my effective combat side, seen within
    sight (Imp: a tile) or reached within hearing (Imp: nothing), and routable.

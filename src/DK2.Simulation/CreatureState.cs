@@ -1285,11 +1285,11 @@ public sealed class CreatureState
     public int GoodJobActionPointId;
 
     /// <summary>The eight melee attackers engaged with this creature, by id, 0 for a free slot —
-    /// DK2's <c>+0x504</c> array. An attacker takes the first free slot when it engages and is
+    /// DK2's <c>+0x514</c> array. An attacker takes the first free slot when it engages and is
     /// struck out when it disengages; a ninth melee attacker cannot engage at all.</summary>
     public readonly int[] EngagedMelee = new int[Combat.CombatRules.Slots];
 
-    /// <summary>The eight ranged attackers engaged with this creature — DK2's <c>+0x514</c>.</summary>
+    /// <summary>The eight ranged attackers engaged with this creature — DK2's <c>+0x504</c>.</summary>
     public readonly int[] EngagedRanged = new int[Combat.CombatRules.Slots];
 
     /// <summary>Walking somewhere it has not reached: a route is loaded and <c>path_finished</c>

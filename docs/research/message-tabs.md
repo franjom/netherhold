@@ -239,7 +239,7 @@ packs in a row.
 - *Heroes Killed* draws the local player's dword `+0x14A` (HeroesDestroyed), 10 slots. Player_Initialise
   zeroes it ([0x004B8640](functions/004B8640.md)). It rises by one when an `IsGood` creature (definition
   `+0x686` bit 8) dies, credited to the player tagged in the victim's word `+0x36` (the last health-change
-  source, stamped by `0x004B2CE0`), else to the owner of its first attacker (melee `+0x504[i]` before ranged
+  source, stamped by `0x004B2CE0`), else to the owner of its first attacker (spell `+0x504[i]` before melee
   `+0x514[i]`, i = 0..7); a victim with `+0x3E6` bit `0x40` counts nothing
   ([0x00487C70](functions/00487C70.md), CONFIRMED). No owner test: any keeper that kills a good
   creature counts it. At level end each player also counts the hero-owned creatures left dying whose `+0x36`

@@ -196,7 +196,7 @@ squared distance of `combat-target-selection.md` §2.
 |---|---|---|---|
 | A | `AttackAbnormalTargets` set and `AttackingId` dead | every player's creatures (`[player+0x10FD]` is the game's player list; `+0x6`/`+0x10` its creatures) | attackable, not me, seen within sight (Imp: one tile) or reached within hearing (Imp: none); **no hostility test** |
 | B | a thing-targeting spell | the neutral player's `+0x12` list | within sight and seen |
-| C | always, unless a live `AttackingId` short-circuits | **my own `+0x504`/`+0x514` — whoever is already attacking me**, melee then ranged per slot | `Creeping` weighting (§6.1), alignment discount, strict `d < best`, attackable, **seen**, not `SneakingAs` my side; sight/hearing distance or **Imp**, and a route request succeeds |
+| C | always, unless a live `AttackingId` short-circuits | **my own `+0x504`/`+0x514` — whoever is already attacking me**, spell then melee per slot | `Creeping` weighting (§6.1), alignment discount, strict `d < best`, attackable, **seen**, not `SneakingAs` my side; sight/hearing distance or **Imp**, and a route request succeeds |
 | — | no result yet | `PossessedCreatureFollowing` `+0x482` → its `+0x4D0` | re-acquisition, no strategy runs |
 | — | no result yet | **the fight-type dispatch** with the running best | `combat-target-selection.md` §5 |
 | D | still none after the route check, not a Turncoat | each hostile player's `+0xC` list — **traps** (`player + 6 + class·2`, class 3), newest first: completed, revealed, not trap 16 (`+0xF6`); its own best from `0x7FFFFFFF` (traps.md §11) | `d <= sight²` and seen; an `IsWorker` only under `0x800` |
@@ -254,13 +254,13 @@ passes `0`.
 |---|---|---|
 | `+0x4FE` dword | `AttackRangeSquared` | how close the engagement must get |
 | `+0x502` word | — | the target's tag; copied into the swing (`combat-entry.md` §6) |
-| `+0x504` 8 words | — | melee attackers engaged with me |
-| `+0x514` 8 words | — | ranged attackers engaged with me |
+| `+0x504` 8 words | — | spell attackers engaged with me |
+| `+0x514` 8 words | — | melee attackers engaged with me |
 | `+0x529` byte | `AttackType` | low nibble the kind, high the spell slot |
 | `+0x537`/`+0x539` | — | the remembered entity and its countdown (`steering-behaviours.md`) |
 | `+0x53B`/`+0x53E` | — | someone retreating I track, and a 60-tick timeout |
 
-The arrays are written by **`0x0045A9A0(target, myTag, ranged)`**: the first
+The arrays are written by **`0x0045A9A0(target, myTag, attackNibble)`**: the first
 free slot of the chosen array, false when all eight are taken. Every
 disengagement walks both arrays of the other side and strikes its own tag out.
 

@@ -156,7 +156,7 @@ public class CombatAcquisitionTests
     }
 
     [Fact]
-    public void WhenTheTargetIsGoneTheFightEnds()
+    public void WhenAnApproachedTargetIsGone_ResumeTheFightThenIdle()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
@@ -165,7 +165,12 @@ public class CombatAcquisitionTests
         sim.Run(1);
         Assert.Equal(goblin.Id, demon.FightTargetId);
 
+        Assert.Equal(8, demon.Dk2StateId);
         world.RemoveCreature(goblin.Id);
+        sim.Run(1);
+        // 0x00470E66 resumes 199; its no-target branch runs on the next turn.
+        Assert.Equal(199, demon.Dk2StateId);
+        Assert.Equal(CombatRules.NoTarget, demon.FightTargetId);
         sim.Run(1);
 
         Assert.Equal(CreatureActivity.Idle, demon.Activity);

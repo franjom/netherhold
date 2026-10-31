@@ -157,6 +157,119 @@ public class CombatApproachTests
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
     }
 
+    /// <summary>0x00470EAB unlinks before selection; 0x0045A9A0 then takes the first free slot.</summary>
+    [Fact]
+    public void ApproachReselection_ReregistersTheSameTarget_WithoutLosingItsRoute()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState fighter = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        CreatureState target = Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 10));
+        StatePlacement.As(fighter, CreatureActivity.Fighting);
+        fighter.FightTargetKind = FightTargetKind.Creature;
+        fighter.FightTargetId = target.Id;
+        fighter.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        target.EngagedMelee[3] = fighter.Id;
+        new GameSimulation(db, world, 1, [new Probe(context =>
+        {
+            context.Navigation.Refresh();
+            Assert.True(ApproachRules.Enter(context, fighter, target.PosX, target.PosY));
+            Assert.True(ApproachRules.Tick(context, new WorldSight(context.Navigation, world, db),
+                new HeartSites(), new RoomCache(), fighter, db.CreatureById(fighter.CreatureTypeId), []));
+        })]).Tick();
+        Assert.Equal(fighter.Id, target.EngagedMelee[0]);
+        Assert.Equal(CombatRules.NoTarget, target.EngagedMelee[3]);
+        Assert.True(fighter.Approaching);
+        Assert.True(fighter.HasRoute);
+    }
+
+    /// <summary>0x00470EC1-0x00470ED1 resumes 199 on no choice, retaining incoming engagements.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ApproachReselection_NoChoiceResumesTheFight_AndKeepsIncomingAttackers(bool targetGone)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState fighter = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        CreatureState target = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 10);
+        CreatureState attacker = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 7, 10);
+        StatePlacement.As(fighter, CreatureActivity.Fighting);
+        fighter.FightTargetKind = FightTargetKind.Creature;
+        fighter.FightTargetId = target.Id;
+        fighter.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        target.EngagedMelee[0] = fighter.Id;
+        fighter.EngagedMelee[0] = attacker.Id;
+        attacker.FightTargetKind = FightTargetKind.Creature;
+        attacker.FightTargetId = fighter.Id;
+        target.Dk2StateId = attacker.Dk2StateId = DropLandingRules.LandingState;
+        new GameSimulation(db, world, 1, [new Probe(context =>
+        {
+            context.Navigation.Refresh();
+            Assert.True(ApproachRules.Enter(context, fighter, target.PosX, target.PosY));
+            if (targetGone) fighter.FightTargetId = 999;
+            Assert.False(ApproachRules.Tick(context, new WorldSight(context.Navigation, world, db),
+                new HeartSites(), new RoomCache(), fighter, db.CreatureById(fighter.CreatureTypeId), []));
+        })]).Tick();
+        Assert.Equal(199, fighter.Dk2StateId);
+        Assert.Equal(CombatRules.NoTarget, fighter.FightTargetId);
+        Assert.Equal(attacker.Id, fighter.EngagedMelee[0]);
+        Assert.Equal(fighter.Id, attacker.FightTargetId);
+        Assert.False(fighter.HasRoute);
+    }
+
+    /// <summary>0x00470EC6 reads the resume word after selection can replace it with 202.</summary>
+    [Fact]
+    public void ApproachReselection_WithdrawalArrivesAtItsNewResumeStateImmediately()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        world.Tile(new TilePos(15, 15)).TerrainId = Dk2TerrainFixture.TreasuryTerrain;
+        world.Tile(new TilePos(15, 15)).OwnerPlayerId = Keeper;
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
+        CreatureState hero = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Good, imp);
+        StatePlacement.As(imp, CreatureActivity.Fighting);
+        imp.FightTargetKind = FightTargetKind.Creature;
+        imp.FightTargetId = hero.Id;
+        imp.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        hero.EngagedMelee[0] = imp.Id;
+        new GameSimulation(db, world, 1, [new Probe(context =>
+        {
+            context.Navigation.Refresh();
+            Assert.True(ApproachRules.Enter(context, imp, hero.PosX, hero.PosY));
+            Assert.False(ApproachRules.Tick(context, new WorldSight(context.Navigation, world, db),
+                new HeartSites(), new RoomCache(), imp, db.CreatureById(imp.CreatureTypeId), []));
+        })]).Tick();
+        Assert.Equal(202, imp.Dk2StateId);
+        Assert.Equal(CreatureStateMachine.Idle, imp.UtilityNewState);
+        Assert.False(imp.HasRoute);
+    }
+
+    /// <summary>0x00470E93 skips reselection for a forced target even when a fresh route would fail.</summary>
+    [Fact]
+    public void ApproachReselection_ForcedTargetKeepsTheExistingRoute()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState fighter = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+        CreatureState target = Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 7, 10));
+        StatePlacement.As(fighter, CreatureActivity.Fighting);
+        fighter.FightTargetKind = FightTargetKind.Creature;
+        fighter.FightTargetId = target.Id;
+        fighter.AttackType = CombatRules.AttackMode.MeleeAtCreature;
+        fighter.AttackAbnormalTargets = true;
+        fighter.AttackingId = target.Id;
+        new GameSimulation(db, world, 1, [new Probe(context =>
+        {
+            context.Navigation.Refresh();
+            Assert.True(ApproachRules.Enter(context, fighter, target.PosX, target.PosY));
+            for (int y = 1; y < world.Height - 1; y++)
+                world.Tile(new TilePos(5, y)).TerrainId = Dk2TerrainFixture.Rock;
+            context.Navigation.Refresh();
+            Assert.True(ApproachRules.Tick(context, new WorldSight(context.Navigation, world, db),
+                new HeartSites(), new RoomCache(), fighter, db.CreatureById(fighter.CreatureTypeId), []));
+        })]).Tick();
+        Assert.True(fighter.Approaching);
+        Assert.True(fighter.HasRoute);
+        Assert.Equal(target.Id, fighter.FightTargetId);
+    }
+
     /// <summary>Q598: a dead creature that still holds a forced target is not processed. DK2's dead
     /// creature is a CDeadBody off the creature list; ours, a creature with no state, ran the forced
     /// arm, which skips the may-I-look gate, and was moved back into 199.</summary>

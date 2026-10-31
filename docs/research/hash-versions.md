@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**354** - `0x47994A1DC4923A4D`. Remake regression pin, not native evidence. FormatVersion also354. Behaviour only: state8 unlinks before ordinary creature reselection, preserves a same-target route, retains incoming attackers on no choice, and consumes the current resume after selection. Forced targets skip reselection. See ADR-0610 and [combat-approach-and-victory.md](combat-approach-and-victory.md#2-state-8-before-movement-0x00470e30). Saves from353 are refused.
+
 **353** - `0x2349CE113C30B143`. Our regression pin, not native evidence. FormatVersion also 353. The hand offers disposal only over an ordinary Portal. Level-placed non-workers and non-keeper workers stun before Hero Portal room dispatch; the ordinary Portal dispatches immediately. Keeper workers other than creature type1 retain direct entry. No new fields. See [hand-drop-landing.md](hand-drop-landing.md). Saves from 352 are refused.
 
 **352** - `0x810E5C15FF33ED63`. Remake regression pin, not native evidence. FormatVersion also352. Level-placed non-keeper-workers dispatch through Hero Portal room drops too; the cursor follows accepted disposal and job0 never refuses. No new fields. See [hand-drop-landing.md](hand-drop-landing.md). Saves from351 are refused.

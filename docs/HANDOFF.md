@@ -78,10 +78,10 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Scope, focused verification and pending original-game acceptance:
   [Secret Door work](research/imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
-- The reviewed chase-boundary correction is built (ADR-0590, accepted for
-  integration, 2026-10-30); its give-up drops a held forced target at hash/save 337 (ADR-0591). The completed
-  matched-master comparison leaves Q665's exposure gap unresolved; a fighter now looks for a victim before it celebrates (ADR-0592, hash/save 338), which brings celebrations near DK2's but not zone time, and Imp deaths rose; the step back follows the heading (ADR-0593, hash/save 339): Imp deaths 33.4 to 28.1 a run, not significant; it then slides as DK2 spends its impulse, without turning (ADR-0594, hash/save 340; [measured](research/level4-outcomes.md#keeper-fighters-at-the-party-4-gate-q665-hash-338-340-adr-0593-adr-0594) on eight scratch runs); a melee swing's hold now ends on the animation poll turn, a turn later (ADR-0598, hash/save 342; [Imp-side findings](research/level4-outcomes.md#the-imps-side-at-hash-340-q665-adr-0598): heroes then hit targeted Imps 0.0543 against DK2's 0.0476 per tick, kills counted); every creature turn now steps by DK2's per-tick rate, a quarter of the file value the other sites had used (ADR-0602, hash/save 344; [swing by swing](research/level4-outcomes.md#swing-by-swing-the-hit-gap-is-turning-q665-hash-342-adr-0602); at 344 the hit rate matches DK2's, 0.0444 against 0.0476, while Imp deaths stay 28.5 a run against 21.75: the gap is exposure); the alarm's refusal (`0x004754D0`) now counts only a creature in 251 or 254, or walking to either, measured from its own position or a raiser's stored threat (ADR-0609, hash/save 351; [fleeing Imps near a Guard Room](research/level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0606); Level 4 re-measure pending)
-  ([celebrations](research/level4-outcomes.md#celebrations-q665-lead-hash-336-adr-0592), [hero phases](research/level4-outcomes.md#hero-phases-in-the-gold-route-zone-q665-follow-up-hash-333)).
+- Q665 remains unresolved after the chase, celebration, turning and alarm corrections
+  (ADR-0590 through ADR-0609) and state-8 reselection (ADR-0610, hash/save 354).
+  The completed hash353/master versus hash354 comparison and its causal limits are in
+  [Level 4 outcomes](research/level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0609).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
@@ -361,12 +361,10 @@ tools/classic-unity-probe/README.md.
 
 ## Next work
 
-1. M6: isolate Q665's remaining hero-exposure gap after ADR-0590's completed
-   matched-master comparison (2026-10-30). The cause remains UNKNOWN; results
-   and open leads are in [level4-outcomes.md](research/level4-outcomes.md).
-   Then the state 8
-   residual (ours spends 52 of 61 ticks in state 8 where DK2 spends 27 of 58;
-   state 8's routeless movement `0x00470C80` and `0x0048ECE0` are unread).
+1. M6: isolate Q665's remaining exposure/withdrawal gap after ADR-0610.
+   The cause remains UNKNOWN. Compare captured target/room-boundary inputs,
+   incoming-slot order and layer-sensitive strength totals at the same decision;
+   see [current evidence and leads](research/level4-outcomes.md#does-withdrawal-explain-the-guard-repeats).
    Then Q567 and Q590's remainder. The oracle's captured-state mode is the tool
    for a function-level difference: next it needs an owner recording of the
    Level 4 playback with --dump-ticks (reverse-engineering/README.md).

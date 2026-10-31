@@ -61,7 +61,7 @@ public class HeroesDestroyedTests
         CreatureDef def = db.CreatureById(knight.CreatureTypeId);
         knight.Health = 0;
         knight.HealthSourcePlayerId = 0;
-        // Same slot: melee (+0x504[i]) is read before ranged (+0x514[i]).
+        // Current adapter priority; the native mixed-slot boundary is recorded in 00487C70.md.
         knight.EngagedMelee[2] = goblin.Id;
         knight.EngagedRanged[2] = warlock.Id;
 
