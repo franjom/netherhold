@@ -80,6 +80,8 @@ with neither); this run's corridor claims are not recorded here.
 
 ## Doors, traps, crates and the manufacture list (ADR-0558)
 
+- Creature health `+0x40` is written signed (`0x0045AEBA` compares it with `JG`): a dead pool slot holds a
+  negative value, which an unsigned read made unloadable (Level 4 states cut at 5000, 2026-10-31).
 - `capture_state.py` writes each door's and trap's type, construction flag and health, and each
   player's manufacture ring: points, the orders (cost, kind, type, the blueprint's point), the
   tail and slot 0's cost. `WorldResync` removes a door or trap DK2 lacks, lays one ours lacks

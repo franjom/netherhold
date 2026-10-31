@@ -82,7 +82,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
 - Q665 is answered: scatter plus two resync harness faults (`--births`, Portal clocks), now fixed; from DK2's
   turn-5000 state a residual remains where the Guard room opens, Q710
-  ([closing Q665](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31)).
+  ([closing Q665](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31)). Level 4 baseline
+  on master f729436c (`D:/DK2Evidence/runs/l4-resync5000-2026-10-31`): 6.50 / 11.03 Imp deaths a run in 5001-6000
+  (DK2 / ours); `capture_state.py` now writes creature health signed, so later-turn states load.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
