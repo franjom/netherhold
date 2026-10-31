@@ -59,7 +59,8 @@ public sealed class SoundThrottle
             if (_counters[id] > 1) _counters[id]--;
     }
 
-    /// <summary>The gate of both request slots, <c>0x00567810</c> and <c>0x005678F0</c>.</summary>
+    /// <summary>The gate of both request slots, <c>0x00567810</c> and <c>0x005678F0</c>, with the mode
+    /// on. Speech's request runs with it off (<c>0x00568490</c>), which ours does not model.</summary>
     public bool Admit(SoundId id)
     {
         if (id.Value >= Counters || Load == SoundFrameLoad.Normal) return true;

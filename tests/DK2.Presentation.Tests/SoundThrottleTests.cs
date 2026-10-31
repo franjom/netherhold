@@ -11,7 +11,7 @@ namespace DK2.Presentation.Tests;
 public sealed class SoundThrottleTests
 {
     private static readonly SoundId BattleCall = new(0xD6);
-    private static readonly SoundId Hover = new(0x30F);
+    private static readonly SoundId Hover = new(0x30F);   // a listed interface event; which widget plays it is inferred
     private static readonly SoundId Unlisted = new(0xDF);
 
     [Theory]

@@ -23,8 +23,9 @@ public enum ThingSoundEvent : ushort { BattleCall = 0xD6, Sacked = 0xDF }
 public readonly record struct ThingSoundRequest(
     SoundSourceId Source, string Category, ThingSoundEvent Event, FpPosition3 Position);
 
-/// <summary>A positional request through the sound manager's slot <c>+0x20</c> (<c>0x005678F0</c>).
-/// The category is the requester's definition's, never the event's.</summary>
+/// <summary>A sound a thing requests at its position. Read only for creatures so far (<c>0xD6</c>,
+/// <c>0xDF</c>: positional slot <c>+0x20</c>, the creature definition's category); each new kind's
+/// slot and category are read at its call site before it is emitted here.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-leaving.md")]
 public static class ThingSoundRules
 {

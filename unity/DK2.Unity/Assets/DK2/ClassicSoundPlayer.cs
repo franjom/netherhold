@@ -25,7 +25,7 @@ namespace DK2.Unity
         private readonly SoundThrottle _throttle = new SoundThrottle(NowMs());
         private static uint NowMs() => (uint)(long)(Time.realtimeSinceStartupAsDouble * 1000);
         /// <summary>The in-game manager's update runs this after the world frame, so a frame's
-        /// requests are judged by the frame before (<c>0x005674F9</c>). The front end never calls it.</summary>
+        /// requests are judged by the frame before (<c>0x00567500</c>). The front end never calls it.</summary>
         public void UpdateThrottle() => _throttle.BeginFrame(NowMs());
         private float _master = 1, _speechVolume = 1, _musicVolume = 1, _effectVolume = 1;
         private bool _speechOn = true, _musicOn = true, _effectsOn = true;
