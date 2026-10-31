@@ -19,7 +19,8 @@ public static class ImpCrowding
     public const int MaxWorkersPerFace = 3;
 
     /// <summary>One reinforcing worker per face (owner, 2026-09-27; original
-    /// reinforce task uses one holder slot per side at 0x0046AEA0).</summary>
+    /// reinforce task uses one holder slot per side at 0x0046AEA0). Per kind: a reinforcer
+    /// and a repairer each have their own slot (<see cref="SharesSlots"/>).</summary>
     public const int MaxReinforcersPerFace = 1;
 
     /// <summary>How many workers may work a tile they are standing on: one. CONFIRMED (owner,
@@ -60,6 +61,7 @@ public static class ImpCrowding
             if (creature.Id == askingCreatureId) continue;
             if (creature.TargetTileIndex != targetTileIndex) continue;
             if (!TaskStealing.InPool(pool, creature)) continue;
+            if (!SharesSlots(kind, creature.TargetWork)) continue;
             if (FaceOf(world, creature) != faceIndex) continue;
             if (!database.CreatureById(creature.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker))
                 continue;
@@ -69,6 +71,14 @@ public static class ImpCrowding
 
         return false;
     }
+
+    /// <summary>Whether a holder of <paramref name="held"/> takes a side slot that work of
+    /// <paramref name="kind"/> would need. Reinforce and repair are two pool entries with their own
+    /// slots (0x0046AEA0: <c>TaskPool_Find(6)</c>, <c>TaskPool_Find(0x10)</c>), so neither crowds the
+    /// other; every other kind counts every worker on the face, as before.</summary>
+    public static bool SharesSlots(TileWorkKind? kind, TileWorkKind held) =>
+        kind is not (TileWorkKind.Reinforce or TileWorkKind.RepairWall)
+        || held == kind;
 
     /// <summary>The tile a worker intends to swing from: the end of its route, or the tile it
     /// stands on when it has none. Derived rather than stored, so it cannot disagree with the route

@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**355** - `0xD52554781CA7BD04`. Remake regression pin, not native evidence. FormatVersion also 355. Behaviour only: the Imp reinforce handler walks a wall's sides twice, kind 6 then kind 16, so the repair pass runs after every kind-6 miss, and the two kinds count their own side slots and forget only their own task. No new fields. See ADR-0611 and [wall-reinforce-eligibility.md](wall-reinforce-eligibility.md#own-wall-retry-cycle). Saves from 354 are refused.
+
 **354** - `0x47994A1DC4923A4D`. Remake regression pin, not native evidence. FormatVersion also354. Behaviour only: state8 unlinks before ordinary creature reselection, preserves a same-target route, retains incoming attackers on no choice, and consumes the current resume after selection. Forced targets skip reselection. See ADR-0610 and [combat-approach-and-victory.md](combat-approach-and-victory.md#2-state-8-before-movement-0x00470e30). Saves from353 are refused.
 
 **353** - `0x2349CE113C30B143`. Our regression pin, not native evidence. FormatVersion also 353. The hand offers disposal only over an ordinary Portal. Level-placed non-workers and non-keeper workers stun before Hero Portal room dispatch; the ordinary Portal dispatches immediately. Keeper workers other than creature type1 retain direct entry. No new fields. See [hand-drop-landing.md](hand-drop-landing.md). Saves from 352 are refused.

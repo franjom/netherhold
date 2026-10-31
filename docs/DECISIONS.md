@@ -14204,3 +14204,35 @@ a selected withdrawal/alarm's arrival. Evidence: [approach section 2](research/c
 
 This corrects a binary-backed difference; Q665 causation remains a measurement
 question. See [Level 4 outcomes](research/level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0609).
+
+## ADR-0611 - the reinforce handler's repair pass follows every kind-6 miss
+
+Status: accepted, 2026-10-31. Hash/save 355. Q564, Q696.
+
+`0x0046AEA0` walks the wall's four sides twice. Kind 6 (`0x00453E90`) and kind 16
+(`0x00453E30` at `0x0046B1FB`) are separate pool entries (`TaskPool_Find(6)`,
+`TaskPool_Find(0x10)`) with their own per-side holder slots. The kind-16 pass runs
+whenever the first pass took no side: the predicate failed, or every side was not
+open, not the imp's, held and not stealable, or its walk failed. Only a failed
+`TaskPool_Raise` ends the handler (not modelled: ours has no pool capacity).
+
+Decision: `TryReinforceAt` walks the sides twice (`TryJobOn(repairPass)`).
+`ImpCrowding.SharesSlots` makes `FaceIsFull` and `HolderToTakeFrom` count only
+same-kind holders for the wall kinds, and `ForgetReinforceTask` forgets only the
+failed kind.
+
+Consequence: an own reinforced wall below half health is kind 6 eligible, but state
+22 and action 7 do no work on an own wall, so a lone Imp loops on it. A second Imp
+repairs it once the first holds the only kind-6 side. A wall from half up to below
+maximum is kind 16 only. A held repairer (states 23/24) revalidates with
+`0x00453E30` at `0x004667AA` with no half test, so it keeps repairing below half.
+
+Not changed: `TouchesOwnFloor` still applies to own kind-6 walls, though
+`0x00453E90`'s own branch calls no `0x00453B30`. It cannot fire (a wall job already
+needs the Imp on own land, ADR-0132). An Imp dropped beside an own below-half wall
+gets aim 6 (`0x0046407F`) and its aimed retry (`0x00463ECE`) finds that wall before
+Tier A; ours has the same structure, unobserved in either game.
+
+Evidence: [wall-reinforce-eligibility.md](research/wall-reinforce-eligibility.md#own-wall-retry-cycle);
+KB `0046AEA0`, `00453E90`, `00463DF0`. `ReinforceEligibilityTests` pins the second Imp.
+Refines ADR-0607: its kind-6-then-kind-16 order stands; the fall-through condition changes.

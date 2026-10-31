@@ -309,48 +309,56 @@ public sealed partial class ImpTaskSystem
     /// floor, not solid (an owned reinforced wall beside it is not a side); the first whose face is free, or held by a farther worker, and which the worker can
     /// reach is taken. A free side it cannot reach deletes the wall's task (<c>0x00508040</c>),
     /// whoever else holds a side, and the next side is tried (<see cref="ForgetReinforceTask"/>).
-    /// imp-task-stealing.md §4.
+    /// The four sides are walked twice: for kind 6, then, when no side was taken, for kind 16,
+    /// whose pool entry and side slots are its own (<c>TaskPool_Find(6)</c> at the top,
+    /// <c>TaskPool_Find(0x10)</c> after <c>0x0046B1FB</c>). So an own wall below half health is
+    /// repaired once every side's kind-6 slot is held or unreachable. imp-task-stealing.md §4.
     /// </summary>
     private bool TryReinforceAt(SimulationContext context, CreatureState creature, WorldPathGrid grid, TilePos wall)
     {
         WorldState world = context.World;
         if (!context.Database.TerrainById(world.Tile(wall).TerrainId).IsSolid) return false;
-        (int side, int step) = MiningSlots.StartSide(creature.Tile.X - wall.X, creature.Tile.Y - wall.Y);
-        for (int turn = 0; turn < 4; turn++, side = (side + step) & 3)
+        (int firstSide, int step) = MiningSlots.StartSide(creature.Tile.X - wall.X, creature.Tile.Y - wall.Y);
+        for (int pass = 0; pass < 2; pass++)
         {
-            var stand = new TilePos(wall.X + SideDx[side], wall.Y + SideDy[side]);
-            // A side counts only when it is not solid (and the keeper's, which TryJobOn tests).
-            if (!world.Contains(stand) || context.Database.TerrainById(world.Tile(stand).TerrainId).IsSolid) continue;
-            if (!TryJobOn(context, grid, stand, wall, creature.OwnerPlayerId, JobPriority.Reinforce, creature.Id,
-                          out int tileIndex, out TileWorkKind kind))
-                continue;
-            if (!Reaches(grid, creature, stand)
-                || !CommitJob(context, creature, tileIndex, kind, JobPriority.Reinforce))
+            bool repairPass = pass == 1;
+            int side = firstSide;
+            for (int turn = 0; turn < 4; turn++, side = (side + step) & 3)
             {
-                if (!ImpCrowding.FaceIsFull(world, context.Database, tileIndex, stand, creature.Id, false, kind))
-                    ForgetReinforceTask(context, tileIndex, creature.Id);
-                continue;
+                var stand = new TilePos(wall.X + SideDx[side], wall.Y + SideDy[side]);
+                // A side counts only when it is not solid (and the keeper's, which TryJobOn tests).
+                if (!world.Contains(stand) || context.Database.TerrainById(world.Tile(stand).TerrainId).IsSolid) continue;
+                if (!TryJobOn(context, grid, stand, wall, creature.OwnerPlayerId, JobPriority.Reinforce, creature.Id,
+                              out int tileIndex, out TileWorkKind kind, repairPass: repairPass))
+                    continue;
+                if (!Reaches(grid, creature, stand)
+                    || !CommitJob(context, creature, tileIndex, kind, JobPriority.Reinforce))
+                {
+                    if (!ImpCrowding.FaceIsFull(world, context.Database, tileIndex, stand, creature.Id, false, kind))
+                        ForgetReinforceTask(context, tileIndex, creature.Id, kind);
+                    continue;
+                }
+                return true;
             }
-            return true;
         }
         return false;
     }
 
     /// <summary>
-    /// The wall's kind-6 task deleted (<c>0x00508040</c>) after a walk to a free side failed
+    /// The wall's task of this kind deleted (<c>0x00508040</c>) after a walk to a free side failed
     /// (<c>0x0046AEA0</c>): every other worker holding a side of it loses the task and goes to 10,
     /// as state 22's check <c>0x00508070(+0x8A, 6)</c> at <c>0x004663C4</c> sends it once no
     /// action, or action 0x15, is playing. Ours drops them at once; DK2 drops a reinforcer at its
     /// next check, and a walker presumably on arrival (unread) (ADR-0380).
     /// </summary>
-    private static void ForgetReinforceTask(SimulationContext context, int wallIndex, int askingCreatureId)
+    private static void ForgetReinforceTask(SimulationContext context, int wallIndex, int askingCreatureId, TileWorkKind kind)
     {
         int pool = TaskStealing.PoolOf(context.World, askingCreatureId);
         foreach (CreatureState other in context.World.Creatures)
         {
             if (other.Id == askingCreatureId || other.TargetTileIndex != wallIndex
                 || !TaskStealing.InPool(pool, other)
-                || other.TargetWork is not (TileWorkKind.Reinforce or TileWorkKind.RepairWall))
+                || other.TargetWork != kind)
                 continue;
             context.Emit(SystemName, "task_forgotten",
                 $"imp={other.Id} by={askingCreatureId} {Describe(context.World, wallIndex)} {other.TargetWork}");
@@ -613,6 +621,7 @@ public sealed partial class ImpTaskSystem
         {
             if (other.Id == askingCreatureId || other.TargetTileIndex != tileIndex
                 || other.OwnerPlayerId != asking.OwnerPlayerId) continue;
+            if (!ImpCrowding.SharesSlots(kind, other.TargetWork)) continue;
             if (ImpCrowding.FaceOf(world, other) != faceIndex) continue;
             if (!TaskStealing.CanLoseItsTask(other)) return null;
             var tile = new TilePos(tileIndex % world.Width, tileIndex / world.Width);
@@ -977,7 +986,8 @@ public sealed partial class ImpTaskSystem
         int askingCreatureId,
         out int tileIndex,
         out TileWorkKind kind,
-        bool crowding = true)
+        bool crowding = true,
+        bool repairPass = false)
     {
         tileIndex = -1;
         kind = default;
@@ -1033,16 +1043,20 @@ public sealed partial class ImpTaskSystem
             // A wall is only worth reinforcing where it faces the keeper's own
             // ground (Q295, owner). Today a guard rather than a change -- see
             // TouchesOwnFloor for why it cannot yet fire.
-            // The handler's second pass fixes the keeper's own damaged wall (kind 16, Q219,
-            // ADR-0387): a rival's imps digging in are slowed by the defender's repairs.
+            // The handler's passes are strict: kind 6 (0x00453E90) on the first, kind 16
+            // (0x00453E30) on the second, which fixes the keeper's own damaged wall (Q219, ADR-0387).
             case JobPriority.Reinforce:
                 if (DigMarkCancelsWallWork(context.Database, tile, playerId)) return false;
-                if (ReinforcementRules.CanStart(world, context.Database, target, playerId))
+                if (!repairPass)
+                {
+                    if (!ReinforcementRules.CanStart(world, context.Database, target, playerId)) return false;
                     kind = TileWorkKind.Reinforce;
-                else if (TileWorkRules.Applies(context.Database, tile, TileWorkKind.RepairWall, playerId))
-                    kind = TileWorkKind.RepairWall;
+                }
                 else
-                    return false;
+                {
+                    if (!TileWorkRules.Applies(context.Database, tile, TileWorkKind.RepairWall, playerId)) return false;
+                    kind = TileWorkKind.RepairWall;
+                }
                 if (!TouchesOwnFloor(context, world, target, playerId)) return false;
                 break;
 

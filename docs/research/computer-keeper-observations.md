@@ -237,7 +237,7 @@ refusal, later ones mostly 4 to 6, as DK2's.
 
 ## Second same-map comparison: Level 11A, Drako, 2,400 ticks (2026-10-06)
 
-Captured as Level 17 was, with the owner idle (`m12-level11A-20261006-105700`, local). Ours is
+Captured as Level 17 was, with the owner idle (`m12-level11A-20261006-105700`, local, since lost; re-captured 2026-10-31 as `D:\DK2Evidence\dk2runs\m12-level11A-20261031`, not yet analysed). Ours is
 Level 11A on the PLAYERS record's own gold and mana, every placed thing, 2,400 ticks, seed 12345.
 DK2's ticks are capture ticks (ADR-0119). The first two columns of ours ran Drako's AI alone; DK2
 runs every computer keeper, as the last column does.

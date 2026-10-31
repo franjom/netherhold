@@ -68,6 +68,26 @@ public class ReinforceEligibilityTests
     }
 
     [Fact]
+    public void ASecondImpFallsThroughToRepairWhenTheOnlyKind6SideIsHeld()
+    {
+        // 0x0046AEA0 keeps kind 6 and kind 16 in separate pool entries with their own side slots,
+        // and runs the kind-16 pass once no kind-6 side starts a walk.
+        var sim = Start(Dk2TerrainFixture.ReinforcedWall, 3, 100);
+        sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.ImpCreatureId, 3, new TilePos(2, 3));
+        bool together = false;
+        for (int i = 0; i < 600; i++)
+        {
+            sim.Tick();
+            // One holds the kind-6 side while the other repairs from the same face.
+            together |= sim.World.Creatures.Any(c => c.TargetTileIndex == 12 && c.TargetWork == TileWorkKind.Reinforce)
+                && sim.World.Creatures.Any(c => c.TargetTileIndex == 12 && c.TargetWork == TileWorkKind.RepairWall);
+        }
+        Assert.True(together);
+        Assert.Equal(900, sim.World.Tile(2, 2).Health);
+        Assert.Equal(3, sim.World.Tile(2, 2).OwnerPlayerId);
+    }
+
+    [Fact]
     public void DamagedNeutralRockIsReinforcedAndTaken()
     {
         var sim = Start(Dk2TerrainFixture.Rock, 2, 600);
