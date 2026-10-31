@@ -80,10 +80,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Scope, focused verification and pending original-game acceptance:
   [Secret Door work](research/imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
-- Q665 remains unresolved after the chase, celebration, turning and alarm corrections
-  (ADR-0590 through ADR-0609) and state-8 reselection (ADR-0610, hash/save 354).
-  The completed hash353/master versus hash354 comparison and its causal limits are in
-  [Level 4 outcomes](research/level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0609).
+- Q665 is answered: scatter plus two resync harness faults (`--births`, Portal clocks), now fixed; from DK2's
+  turn-5000 state a residual remains where the Guard room opens, Q710
+  ([closing Q665](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31)).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
@@ -363,10 +362,8 @@ tools/classic-unity-probe/README.md.
 
 ## Next work
 
-1. M6: isolate Q665's remaining exposure/withdrawal gap after ADR-0610.
-   The cause remains UNKNOWN. Compare captured target/room-boundary inputs,
-   incoming-slot order and layer-sensitive strength totals at the same decision;
-   see [current evidence and leads](research/level4-outcomes.md#does-withdrawal-explain-the-guard-repeats).
+1. M6: Q710, the Level 4 turn-5000 residual: follow the player's fighters' job and room choices from a 5000
+   resync against the capture ([closing Q665](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31)).
    Then Q567 and Q590's remainder. The oracle's captured-state mode is the tool
    for a function-level difference: next it needs an owner recording of the
    Level 4 playback with --dump-ticks (reverse-engineering/README.md).

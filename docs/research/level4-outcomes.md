@@ -341,3 +341,23 @@ MinimumImpThreshold). DK2 hand landings matched by one of ours within 3 turns, t
 0.64 (3000-3999: 0.88 to 0.92). Imp deaths per run 33.5 without, 31.6 with (paired per-state p 0.52).
 The fix is faithful to the input and does not by itself close Q665. Resync runs for Q665 should pass
 `--births`; earlier figures were not re-run.
+
+## Closing Q665: where the Imp deaths go (2026-10-31)
+
+Evidence: `D:/DK2Evidence/runs/l4-celebration-2026-10-30/README.md` (sections from "Where the hash 351 rise came from"
+on) and `D:/DK2Evidence/runs/l4-resync5000-2026-10-31/README.md`.
+- Whole-run Imp deaths after a 2400 resync are scatter-dominated: one run varies 0..80 deaths in a state, and the
+  27.0 -> 33.3 step at hash 351 was scatter (paired per-state p 0.30). Compare builds per state, not by means.
+- Harness faults found and fixed: post-resync hand pickups (`--births`) and the Portal clock (resync-replay.md).
+- Up to turn 4999 Imp deaths match (DK2 / ours 14.3 / 14.7 a run). From DK2's own turn-5000 state (eight states, five
+  generators, `--births`), turns 5001-6000: DK2 6.5 / ours 11.0 a run, ours never lower; the excess is all in states 4, 5
+  and 8, where the player breaks the level's locked Guard room door (24,27) at about 5310. Placed Guards then live longer
+  and take Imps at (23..25,35..37).
+- Matched or ruled out in that window: Imp flee and alarm, blow sizes, regeneration, fighters' response to waves, how a
+  dropped creature engages, Guard target choice (no Imp left in a Guard's attacker slots: DK2 0.000, ours 0.001 a
+  Guard-turn), Guard healing, damage per attacker, and engagement once near a Guard. What differs: fewer of the player's
+  melee fighters near the loose Guards (Goblins 58 / 83, Trolls 80 / 136 a run), with more of them walking to rooms
+  (state 7, 0.28 / 0.19) and fewer approaching a fight (state 8, 0.026 / 0.069), so the Guards carry 380 against 600
+  attacker-turns a run. No rule difference was identified; the residual is Q710.
+- Measurement traps: ours' `creature_died` fires after the 240-turn dying window; and a creature our run lost before a
+  resync without a death event stays frozen in a carried-forward CSV (drop those with no row and no event since).
