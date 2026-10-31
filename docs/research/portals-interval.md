@@ -239,6 +239,9 @@ different notifications**, one to the old owner and one to the new, choosing
 between two message ids by comparing against what is almost certainly the local
 player.
 
+A DK2 capture's room words at `+0x49..+0x4F` carry these two dwords for a Portal; `replay --resync` copies
+them ([resync-replay.md](resync-replay.md#each-portals-clock-and-tally)).
+
 So a rival taking a worn portal gets it at the base interval, and so does the
 first keeper to claim a neutral one. `PortalRules.OnOwnerChanged` zeroes the
 tally **and** the clock; without the clock a rival could inherit a portal

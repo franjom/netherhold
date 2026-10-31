@@ -303,6 +303,37 @@ public class WorldResyncTests
         Assert.Equal(2, report.TriggerValuesChanged);
     }
 
+    /// <summary>
+    /// <b>DK2's Portal clock, not ours.</b> Level 4 state 1 at 2400: <c>room[0x49]</c> 2386, the turn of
+    /// its last due roll, and <c>room[0x4D]</c> 7 (the capture's <c>minX</c>/<c>maxX</c> and
+    /// <c>minY</c>/<c>maxY</c> words); DK2's next arrival came at 2386 + (7² + 25) × 4 = 2682.
+    /// </summary>
+    [Fact]
+    public void ThePortalsClockAndTallyAreTheCaptures()
+    {
+        GameSimulation sim = Start(0);
+        WorldState world = sim.World;
+        for (int dy = 0; dy < 3; dy++)
+            for (int dx = 0; dx < 3; dx++)
+                RoomRules.Place(sim.Database, ref world.Tile(4 + dx, 4 + dy), sim.Database.Room(RoomTypeId.Portal), Keeper);
+        ref TileState centre = ref world.Tile(5, 5);
+        centre.EntranceIdleTicks = 300;
+        centre.EntranceCreaturesGenerated = 2;
+        ResyncState state = State(world, []) with
+        {
+            Tick = 2400,
+            // The heroes' Portal (player 1, stamp 2301 in every Level 4 state) is no keeper's: left alone.
+            Rooms = [new ResyncRoom(1119, true, (int)RoomTypeId.Portal, Keeper, 2386, 0, 7, 0),
+                new ResyncRoom(1123, true, (int)RoomTypeId.Portal, PlayerIds.Good, 2301, 0, 0, 0)],
+        };
+
+        ResyncReport report = WorldResync.Apply(sim, state, _ => null);
+
+        Assert.Equal(14, centre.EntranceIdleTicks);
+        Assert.Equal(7, centre.EntranceCreaturesGenerated);
+        Assert.Equal(1, report.PortalClocksSet);
+    }
+
     [Fact]
     public void AStaleMapIsOverruled_CreaturesPairByPlayerTypeAndPoint_TheRestAreMadeOrRemoved()
     {

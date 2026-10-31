@@ -4,7 +4,9 @@ Q665. Moved from [resync-replay.md](resync-replay.md) on 2026-10-29; that file d
 runs below use. "Above" in the second section means the first. In "X against Y" DK2 is X and ours Y.
 Resynced runs measured before `--births` (the last section) replay the player's hand pickups of
 creatures born after the resync through another run's entity map; their hand-drop and Imp-death
-figures carry that error.
+figures carry that error. Resynced runs measured before the Portal clock copy rolled on ours' own Portal
+schedule after the resync, so their Dark Elf and Imp arrival times carry that error
+([resync-replay.md](resync-replay.md#each-portals-clock-and-tally)).
 
 ## Level 4's two outcomes, over seeds (hashes 320-328)
 

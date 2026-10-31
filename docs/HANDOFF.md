@@ -151,7 +151,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   loses 45 Imps with and without it (32 at hash 316, one seed, not attributed to ADR-0557).
   The 30-tick party offset in the death window is drift (the Portal claim at 2059 against 2030),
   not a trigger rule. The resync copies the trigger banks and every creature (pose, level, health, fear and,
-  since ADR-0567, the fight-return stamp) and pairs them itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
+  since ADR-0567, the fight-return stamp), each keeper Portal's clock and tally ([resync-replay.md](research/resync-replay.md#each-portals-clock-and-tally); state 5's missing arrivals: Q709) and pairs them itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
   11 at 4330 (native 4378) and the hero door falling at 5314 (native about 5313), but 4 Imp
   deaths against 0 (0 on the rerun at hash 323), three to party 5's Guard, which survives the fight at (15-17,31-34) where
   DK2's party 5 is down by 3960. In that run the Guard survived because ours' Thief stood nearer

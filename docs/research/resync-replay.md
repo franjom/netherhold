@@ -14,7 +14,8 @@ three runs and `analysis/resync_compare*.out`).
    `+0x99`, the aimed kind `+0x9D` and the last search's turn `+0x9E`, all at the state object
    creature `+0x24E`; gold in hand `+0x3FB`), objects (type, point, gold) and the world seed
    `+0x15A0`; doors and traps (type `+0xF6`, construction, health); each player's manufacture
-   ring (ADR-0558, below). The marks are the pool's kind-1 and kind-2 entries, each kind's list walked from
+   ring (ADR-0558, below); each room's type `+0x18`, player `+0x1D` and the words at `+0x49`, `+0x4B`,
+   `+0x4D`, `+0x4F` (Portal clocks, below). The marks are the pool's kind-1 and kind-2 entries, each kind's list walked from
    its head (player-task-pool.md); the capture records the pool as region `REGION_POOL` + player
    index, 18 KB for player 3 at 2340. Tile flag `+0x0B` bit 0 is the Secret Door flag, not a mark.
 2. `dk2tools replay level4 - out.csv --packet ... --entity-map ... --resync <tick.json>
@@ -28,7 +29,7 @@ three runs and `analysis/resync_compare*.out`).
    not refreshed), pose (point, health, state; it also skips the dying collapse and the worker
    handling, so it includes jobs), levels, fear (with the fight-return stamp), jobs (without it a
    worker is placed as any other creature and keeps ours' job fields until its next choice),
-   players (mana, manufacture), triggers, seed. A skip makes a hybrid state, so it splits what an
+   players (mana, manufacture), triggers, portals, seed. A skip makes a hybrid state, so it splits what an
    outcome depends on rather than naming a cause.
    `--blueprints retry` (ADR-0570, with or without a resync) holds a recorded door or trap placement
    on a tile ours has not claimed yet and sends it once ours has; off, the placement is refused as
@@ -338,6 +339,26 @@ hash 323" and "What protects the dungeon at 3400". Seed 1, hash 323.
   more. What protects the dungeon from DK2's state is open; the creature parts (pose, jobs) are the
   remaining candidates, and hero positions were not examined. No rule difference was found.
 
+## Each Portal's clock and tally
+
+Without them every resync rolled on our own Portal schedule: Level 4's first arrival after a 2400 resync
+came at the same turn (2436 for generator 101) from every native state, while DK2's differ by state
+(last due roll 2170-2391). The capture's room words at `+0x49..+0x4F` are a union; for a Portal they are
+the dwords `room[0x49]`, the turn of its last due roll, and `room[0x4D]`, its live arrivals, as
+`0x004DBBE0` reads them ([portals-interval.md](portals-interval.md), [record](functions/004DBBE0.md)).
+`ApplyPortalClocks` (part `portals`) sets, for each keeper with exactly one Portal on each side, our
+Portal centre tile's `EntranceIdleTicks` = tick minus the stamp, and `EntranceCreaturesGenerated` = the
+tally. A keeper with another count keeps ours' clock and is noted; `PortalClocksSet` counts the rest.
+Heroes' Portals are not touched.
+
+- Level 4 from each of the 8 native states at 2400: the first three arrivals land on DK2's exact turns
+  in 7 states (state 1: 2682, 3038, 3462, as DK2). State 5 differs: DK2's rolls at 2419, 2663, 2907
+  and 3151 created nothing (tally stayed 6 while the Portals were open, 6 of the 15 cap, DK2's money
+  highest, the pool not exhausted), and ours' roll creates a creature. Cause open: Q709.
+  Level 4, 40 runs each with `--births`: Imp deaths per run 33.2 with the copy, 29.3 with `--resync-skip portals`
+  (+3.95, paired per-state p 0.17; DK2 21.75). The arrivals now match; the deaths do not move toward DK2's.
+- Resyncs measured before this copy carried ours' Portal schedule from the resync on.
+
 ## Level 4's outcomes over seeds
 
 Moved to [level4-outcomes.md](level4-outcomes.md) (2026-10-29): the full replays' two outcomes, DK2's own
@@ -352,7 +373,8 @@ state-12 Imp's running idle action and its `+0x7E` deadline are not copied. So i
 once, where DK2's waits out its spell or walk. Resynced at 130, the first dig's state 14 is at
 133-134 against DK2's 138. A creature that is
 not an Imp is placed on DK2's point and sent to idle when its state differs (ADR-0560). Treasury gold is tile stores
-here (ADR-0015), so DK2's money is reported, not copied. The run drifts again after the resync;
+here (ADR-0015), so DK2's money is reported, not copied. A Portal's clock is copied only for a keeper with one
+Portal on each side (above). The run drifts again after the resync;
 compare the first few hundred ticks, and resync again later for the next window.
 Pass `--births` for Level 4 resyncs: without it the player's hand pickups of creatures born after the
 resync mostly lost or lifted the wrong creature (measurement: [level4-outcomes.md](level4-outcomes.md),

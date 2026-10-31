@@ -14,11 +14,12 @@ public sealed record ResyncReport(
     int Unmapped, int PilesReplaced, int MarksSet, IReadOnlyList<string> Notes,
     int DoorsAndTrapsChanged = 0, int CratesPlaced = 0, int CrateTripsReissued = 0,
     int CreaturesPaired = 0, int CreaturesSetIdle = 0, int TriggerValuesChanged = 0,
-    int CreaturesAdded = 0, int CreaturesRemoved = 0, IReadOnlyList<(int Slot, int Ours)>? Pairs = null)
+    int CreaturesAdded = 0, int CreaturesRemoved = 0, IReadOnlyList<(int Slot, int Ours)>? Pairs = null,
+    int PortalClocksSet = 0)
 {
     public override string ToString() =>
         $"tiles changed {TilesChanged}, marks set {MarksSet}, doors and traps changed {DoorsAndTrapsChanged}, "
-        + $"crates placed {CratesPlaced}, trigger flags and timers changed {TriggerValuesChanged}, "
+        + $"crates placed {CratesPlaced}, trigger flags and timers changed {TriggerValuesChanged}, portal clocks set {PortalClocksSet}, "
         + $"creatures added {CreaturesAdded}, removed {CreaturesRemoved}, "
         + $"placed {CreaturesPlaced} (paired by type and point {CreaturesPaired}), jobs reissued {JobsReissued} "
         + $"(crate trips {CrateTripsReissued}), workers set choosing {WorkersSetChoosing}, others set idle {CreaturesSetIdle}, "
@@ -28,7 +29,7 @@ public sealed record ResyncReport(
 /// <summary>
 /// Continues our simulation from a DK2 capture's state, the controlled-input test (ADR-0556,
 /// ADR-0558, <c>resync-replay.md</c>): between two ticks of a replay the native tick's tiles,
-/// marks, doors, traps, crates, manufacture list, trigger banks, creatures (made or removed to
+/// marks, doors, traps, crates, manufacture list, trigger banks, Portal clocks, creatures (made or removed to
 /// match; pose, level, health, fear, fight return), Imp jobs, floor gold, mana and seed are copied over ours,
 /// and the replay goes on with the same packets (ADR-0560, Q665). An Imp on tile work or a crate
 /// trip is sent to the same work by our own walk, any other chooses again; another creature keeps
@@ -234,6 +235,7 @@ public static class WorldResync
         }
 
         int triggerValues = parts.HasFlag(ResyncParts.Triggers) ? ApplyTriggerBanks(world.Triggers, state, notes) : 0;
+        int portalClocks = parts.HasFlag(ResyncParts.Portals) ? ApplyPortalClocks(world, database, state, notes) : 0;
 
         if (!parts.HasFlag(ResyncParts.Seed)) notes.Add("DK2 seed not applied: skipped");
         else if (simulation.Rng.Algorithm is Dk2Lcg lcg) lcg.Reseed(state.Seed);
@@ -244,7 +246,35 @@ public static class WorldResync
         notes.AddRange(unmappedNotes);
         return new ResyncReport(tilesChanged, placed, reissued, choosing, left, unmapped, piles, marksSet, notes,
             doorsAndTraps, crates, crateTrips, paired, idle, triggerValues, added, removed,
-            pairs.Where(p => p.Ours is not null).Select(p => (p.Native.Slot, p.Ours!.Id)).ToList());
+            pairs.Where(p => p.Ours is not null).Select(p => (p.Native.Slot, p.Ours!.Id)).ToList(), portalClocks);
+    }
+
+    /// <summary>Each keeper's Portal clock and tally (<c>room[0x49]</c>, <c>room[0x4D]</c>; the roll is due
+    /// at <c>room[0x49] + (n² + base) × variable19</c>, <c>0x004DBBE0</c>) onto its centre tile, as the
+    /// wait since that roll. Without them every resync rolls on our own schedule: Level 4's first
+    /// arrival after 2400 came at the same turn from every native state. A keeper with other than one
+    /// Portal on either side is left ours and noted.</summary>
+    private static int ApplyPortalClocks(WorldState world, GameDatabase database, ResyncState state, List<string> notes)
+    {
+        if (state.Rooms is null) return 0;
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, database);
+        int set = 0;
+        foreach (IGrouping<int, ResyncRoom> native in state.Rooms
+            .Where(r => r.Active && PlayerIds.IsKeeper((byte)r.Owner) && r.Type == (int)RoomTypeId.Portal).GroupBy(r => r.Owner))
+        {
+            RoomInstance[] ours = [.. rooms.Where(r => r.OwnerPlayerId == native.Key && r.Definition.TypeId == RoomTypeId.Portal)];
+            if (native.Count() != 1 || ours.Length != 1)
+            {
+                notes.Add($"player {native.Key}: {native.Count()} native Portals, {ours.Length} of ours; clocks left ours");
+                continue;
+            }
+            ResyncRoom portal = native.First();
+            ref TileState centre = ref world.TileAtIndex(PortalRules.EntranceTileIndex(world, ours[0]));
+            centre.EntranceIdleTicks = Math.Max(0, state.Tick - portal.PortalStamp);
+            centre.EntranceCreaturesGenerated = portal.PortalTally;
+            set++;
+        }
+        return set;
     }
 
     /// <summary>Each of DK2's creatures with ours: the map's while it names a live creature of the

@@ -8,12 +8,13 @@ namespace DK2.Simulation;
 /// it: the fields <see cref="WorldResync"/> copies into our world. Positions are DK2's fixed
 /// point (4096 a tile), the same as ours; owners are player ids, 0 where the tile names no
 /// player. The JSON is read by <c>DK2.Tools</c> (<c>ResyncStateFile</c>); fields it carries beyond
-/// these (rooms, pointers) are ignored. <see cref="Flags"/> and <see cref="Timers"/> are the trigger
+/// these (pointers) are ignored. <see cref="Flags"/> and <see cref="Timers"/> are the trigger
 /// banks (world <c>+0x3F70</c>, <c>+0x3FF0</c>; trigger-state.md), a timer the tick it started.</summary>
 public sealed record ResyncState(
     int Tick, int Width, int Height, ResyncPlayer[] Players, int[] Tiles, int[]? TileHealth,
     ResyncCreature[] Creatures, ResyncObject[]? Objects, uint Seed, ResyncMark[]? Marks = null,
-    ResyncDoor[]? Doors = null, ResyncTrap[]? Traps = null, int[]? Flags = null, int[]? Timers = null)
+    ResyncDoor[]? Doors = null, ResyncTrap[]? Traps = null, int[]? Flags = null, int[]? Timers = null,
+    ResyncRoom[]? Rooms = null)
 {
     public int Terrain(int index) => Tiles[3 * index];
 
@@ -70,6 +71,17 @@ public sealed record ResyncJob(
 /// (<see cref="TileState.TagOrder"/>).</summary>
 public sealed record ResyncMark(int X, int Y, int Player, int Order);
 
+/// <summary>A room record: type <c>+0x18</c>, player <c>+0x1D</c>, and the words <c>capture_state.py</c>
+/// reads at <c>+0x49</c>, <c>+0x4B</c>, <c>+0x4D</c> and <c>+0x4F</c> as bounds. They are a union: a
+/// Guard Room's bounds, a Portal's dwords <c>room[0x49]</c>, the turn of its last due roll, and
+/// <c>room[0x4D]</c>, its live arrivals (portals-interval.md). <see cref="Active"/> is the slot's byte.</summary>
+public sealed record ResyncRoom(int? Slot, bool Active, int Type, int Owner, int MinX, int MaxX, int MinY, int MaxY)
+{
+    public int PortalStamp => MinX | (MaxX << 16);
+
+    public int PortalTally => MinY | (MaxY << 16);
+}
+
 /// <summary>An object thing: its type id, owner, point, flags <c>+0x146</c> and the dword at
 /// <c>+0x14A</c>: gold's amount, a crate's kind.</summary>
 public sealed record ResyncObject(int Slot, int Type, int Owner, int X, int Y, int Gold, int Flags);
@@ -107,5 +119,7 @@ public enum ResyncParts
     Triggers = 1 << 11,
     /// <summary>DK2's generator seed, under <c>--rng dk2</c>.</summary>
     Seed = 1 << 12,
-    All = (1 << 13) - 1,
+    /// <summary>Each Portal's clock and arrival tally.</summary>
+    Portals = 1 << 13,
+    All = (1 << 14) - 1,
 }
