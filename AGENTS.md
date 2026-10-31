@@ -151,6 +151,8 @@ Do not "fix" strange DK2 behavior without documenting the deviation.
 
 ## AI collaboration — what to record, and how much
 
+The `.claude/agents/general-purpose.md` override, including its Sonnet model selection, is intentional (owner, 2026-10-31).
+
 Do not leave important knowledge only in chat history. **Do not write it five
 times either.** Both failures are live in this repo, and the second is now the
 bigger one: `docs/` is 4.6 MB of Markdown (roughly a million tokens), one question row was 11,000 characters,
