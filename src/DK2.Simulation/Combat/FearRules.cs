@@ -755,22 +755,21 @@ public static class FearRules
         return true;
     }
 
-    /// <summary><c>0x004754D0</c>: one of the owner's creatures already raising the alarm or
-    /// reporting danger whose destination — or, standing, position — lies within five tiles.</summary>
+    /// <summary><c>0x004754D0</c>: one of the owner's creatures in 251 or 254, or walking (state 6) to
+    /// either, within five tiles of the point. A raiser standing down in 252 is not one. The point it is
+    /// judged by is <c>0x004755C0</c>'s: the threat it raised (state <c>+0xA7/+0xAB</c>) while it stands
+    /// in 251, else its own position — a walker's, not its route's end (ADR-0606).</summary>
     public static bool AlreadyResponding(WorldState world, PlayerId owner, int x, int y)
     {
         IReadOnlyList<CreatureState> creatures = world.Creatures;
         for (int i = 0; i < creatures.Count; i++)
         {
             CreatureState c = creatures[i];
-            if (c.OwnerPlayerId != owner || c.Activity is not (CreatureActivity.RaisingAlarm or CreatureActivity.Reporting)) continue;
-            int cx = c.PosX, cy = c.PosY;
-            if (c.HasRoute)
-            {
-                TilePos to = c.Destination;
-                cx = CreatureState.CentreOf(to.X);
-                cy = CreatureState.CentreOf(to.Y);
-            }
+            if (c.OwnerPlayerId != owner) continue;
+            int state = c.Dk2StateId == Systems.StateShadow.TravelToPoint ? c.UtilityNewState : c.Dk2StateId;
+            if (state is not (CombatStates.RespondingToThreat or CombatStates.ReportingDanger)) continue;
+            bool raising = c.Dk2StateId == CombatStates.RespondingToThreat;
+            int cx = raising ? c.AlarmX : c.PosX, cy = raising ? c.AlarmY : c.PosY;
             if (CombatRules.DistanceSquared(cx, cy, x, y) < RespondingRadiusSquared) return true;
         }
         return false;

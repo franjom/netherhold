@@ -58,10 +58,16 @@ three `0xEA60` exits are the disengagement the earlier reading called a commit.
 
 Refused unless my definition's `JobClass` is **3, `Scout`** — the Imp's — and my
 owner's `CallToArmsOn` (`player+0x76` bit 2) is clear. Refused when **someone is
-already responding** (`0x004754D0`): any creature of my owner in state 6 heading
-for 251 or 254, or in 251 or 254, whose destination (`0x004755C0`: the state's
-`+0xE3` for state 6, else its position) lies within `0x19000` — five tiles² — of
-the threat. Then the **nearest Guard Room of mine** to the threat by distance² to its
+already responding** (`0x004754D0`): any creature of my owner in state 251 or 254, or in
+state 6 whose arrival state (`+0x32D`) is 251 or 254 (252, standing down, and state 7 do not
+count), at a point within `0x19000` — five tiles² — of the threat. The point is
+`0x004755C0`'s: the threat a creature in 251 stored (`state+0xA7/+0xAB`), else the creature's
+own position, a walker's current one and not its route's end ([record](functions/004754D0.md);
+its category step reads the table at `0x006DA8C7`, unmapped in Ghidra, so state 254's
+branch rests on the repo's category table). The callers of `0x004752B0` are the non-fighter
+arm (`0x0045C15C`) and the flee entry (`0x00460975`); a refusal there ends the flee and the
+Imp idles. Built as `FearRules.AlreadyResponding` (ADR-0606; the Guard Post's report uses it
+too). Then the **nearest Guard Room of mine** to the threat by distance² to its
 `+0x27/+0x29` tile: the walk skips any room whose type byte `+0x18` is not 9
 (`0x00475336`, CONFIRMED; the same filter as `0x00460B50`, ADR-0473), and with none it
 raises nothing (ADR-0517). `0x004E4D90(room, &out, 0,

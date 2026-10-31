@@ -258,3 +258,13 @@ deaths per run did not follow: 21.75 / 26.2 / 28.5 (h344 - h342 p 0.14), with ta
 runs 10662 / 11962 / 12426, zone hero-ticks 8405 / 12357 / 11081 (p 0.13) and hero-Imp pair-ticks
 34288 / 65660 / 58349 (p 0.12). The remaining death excess is exposure, more time with Imps targeted, not
 how often a targeted Imp is struck.
+
+## Fleeing Imps near a Guard Room (Q665, hash 345, ADR-0606)
+
+Evidence: `D:/DK2Evidence/runs/l4-celebration-2026-10-30` (`impfleeroute.out`, `repeatsame.out`,
+`guardtrace2-native-sNN.tsv`). Per eight runs, fleeing Imps near a Guard Room: idle after the flee
+697 for ours (h345) against DK2's 457 (61% and 51% of those flees), withdraw 404 against 585. A Guard's
+non-lethal blow is followed within 4-12 turns by the same Guard's next on 11.6% of Imps against DK2's
+0.9%. DK2's Guards drop a struck Imp at their first out-of-reach reselect, usually for another target,
+the Imp mostly withdrawing. The alarm's refusal test differed from `0x004754D0` (combat-alarm.md §2):
+ADR-0606 (hash 348) corrects it. Not yet re-measured.

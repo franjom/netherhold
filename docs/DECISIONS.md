@@ -14107,3 +14107,26 @@ the terrain health conversion for each fill; same-type healing retains its owner
 
 **Evidence and limits:** [wall-corner-fill.md](research/wall-corner-fill.md).
 No new persistent fields. Campaign wall-count parity remains unestablished.
+
+## ADR-0606 - Only a raiser or reporter on its way or there refuses another alarm
+**Date:** 2026-10-31 · **Status:** accepted · Hash/save 348 · Q665 · Research: [combat-alarm.md](research/combat-alarm.md#2-raising-the-alarm-0x004752b0state-threatpos-deficit), [level4-outcomes.md](research/level4-outcomes.md); KB `004754D0`, `00460B50`
+
+**Context.** A fleeing Imp whose hero stands near its keeper's Guard Rooms raises the alarm, and
+when `0x004752B0` refuses, the flee ends and the Imp stands idle (`0x0046097C` to `0x00460B37`). The
+refusal `0x004754D0` counts an owner's creature whose state, or a state-6 walk's arrival `+0x32D`, is
+251 or 254 (`0xFB`, `0xFE`), judged by `0x004755C0`'s point: the threat it raised (state
+`+0xA7/+0xAB`) while it stands in 251, else its own position, a walker's included. Ours tested the
+`RaisingAlarm` activity, which also covers 252, so an Imp standing down after raising one refused the
+next Imp's alarm; and it judged a walker by its route's end and a raiser in 251 by where it stood. On Level 4 (h345, per eight runs) our fleeing Imps near a Guard Room went idle 697
+times against DK2's 457 (61% and 51% of flees near a Guard Room) and withdrew 404 times against 585 (`impfleeroute.py`,
+D:/DK2Evidence/runs/l4-celebration-2026-10-30); a Guard's non-lethal blow is followed within 4-12
+turns by the same Guard's next on 11.6% of Imps against DK2's 0.9% (`repeatsame.py`).
+
+**Decision.** `FearRules.AlreadyResponding` tests the state as `0x004754D0` does (251 or 254, or state 6
+walking to either) and measures from `0x004755C0`'s point (a 251 raiser's `AlarmX`/`AlarmY`, else
+`PosX`/`PosY`). The point's category step reads the table at `0x006DA8C7`, unmapped in Ghidra; state 6's
+category 2 and 251's 22 and 254's 26 are the repo's (combat-category-hooks.md, state-categories.md).
+
+**Consequences.** Hash/save 348 refuses 347. `CombatAlarmPointTests` pins the state cases (252 and a walk
+to it count for nothing, nor a state-7 walk) and the point (a 251 raiser by its threat, a walker by its
+position); four of them fail on the old test. The Guard Post's report (`TrapRules`) uses the same test.

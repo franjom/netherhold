@@ -14,6 +14,8 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**348** - `0x01A756C382847317`. Remake regression pin, not native evidence. FormatVersion also 348. Behaviour only: the alarm's refusal counts an owner's creature in 251 or 254, or walking to either, not one standing down in 252 (ADR-0606). Saves from 347 are refused.
+
 **347** - `0x3DCB1471152C43A9`. Remake regression pin, not native evidence. FormatVersion also347. State22 fills wall corners after its action finishes; no new fields. See [wall-corner-fill.md](wall-corner-fill.md). Saves from346 are refused.
 
 **346** - `0xF10BB96BACBE545B`. FormatVersion also346. Persist/hash the keeper's last-sacked creature type; Portal hand drops enter197 and call196's sacking effects. See creature-leaving.md section2. Saves and journals from345 are refused.

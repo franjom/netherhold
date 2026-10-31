@@ -5,6 +5,8 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Navigation;
+using DK2.Simulation.Steering;
 
 namespace DK2.Simulation.Tests;
 
@@ -94,6 +96,58 @@ public class CombatAlarmPointTests
                 db.CreatureById(imp.CreatureTypeId), imp.PosX, imp.PosY, 50))]);
         simulation.Tick();
         return raised;
+    }
+
+    /// <summary><c>0x004754D0</c> counts a creature of the owner whose state, or a state-6 walk's arrival
+    /// (<c>+0x32D</c>), is 251 or 254, within five tiles. A creature standing down in 252 after raising
+    /// one does not count, nor a walk to 252 or a state-7 walk (ADR-0606).</summary>
+    [Theory]
+    [InlineData(251, 0, true)]
+    [InlineData(254, 0, true)]
+    [InlineData(251, 6, true)]
+    [InlineData(254, 6, true)]
+    [InlineData(252, 0, false)]
+    [InlineData(252, 6, false)]
+    [InlineData(202, 6, false)]
+    [InlineData(251, 7, false)]
+    public void OnlyARaiserOrReporterOnItsWayOrThereRefusesAnotherAlarm(int state, int walk, bool refuses)
+    {
+        var (db, world, _, imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
+        CreatureState other = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(9, 8));
+        other.AlarmX = imp.PosX;
+        other.AlarmY = imp.PosY;
+        if (walk != 0)
+        {
+            StatePlacement.Place(other, walk);
+            other.UtilityNewState = state;
+        }
+        else StatePlacement.Place(other, state);
+
+        Assert.Equal(refuses, FearRules.AlreadyResponding(world, Keeper, imp.PosX, imp.PosY));
+    }
+
+    /// <summary>The point each is judged by is <c>0x004755C0</c>'s: a raiser standing in 251 by the
+    /// threat it raised (state <c>+0xA7/+0xAB</c>), wherever it stands; anyone else, a walker included,
+    /// by its own position and not its route's end (ADR-0606).</summary>
+    [Fact]
+    public void ARaiserIsJudgedByItsThreatAndAWalkerByWhereItIs()
+    {
+        var (db, world, _, imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
+        CreatureState raiser = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(17, 17));
+        StatePlacement.Place(raiser, 251);
+        raiser.AlarmX = imp.PosX;
+        raiser.AlarmY = imp.PosY;
+        Assert.True(FearRules.AlreadyResponding(world, Keeper, imp.PosX, imp.PosY));
+
+        raiser.AlarmX = CreatureState.CentreOf(17);
+        raiser.AlarmY = CreatureState.CentreOf(17);
+        Assert.False(FearRules.AlreadyResponding(world, Keeper, imp.PosX, imp.PosY));
+
+        StatePlacement.Place(raiser, 6);
+        raiser.UtilityNewState = 254;
+        Assert.True(new WorldSteering(db, world).TryRouteTo(raiser, imp.PosX, imp.PosY, MoveOptions.Plain));
+        Assert.True(raiser.HasRoute);
+        Assert.False(FearRules.AlreadyResponding(world, Keeper, imp.PosX, imp.PosY));
     }
 
     private static (GameDatabase Db, WorldState World, RoomInstance Room, CreatureState Imp) Fixture(byte terrain)

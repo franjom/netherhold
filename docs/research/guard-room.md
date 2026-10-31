@@ -149,8 +149,8 @@ complete, not being disarmed and alive, then goes on to the turn and the recharg
    signed — in sight (world slot `+0x30C`, `0x00509780`) and attackable (`+0x3EA` bit 6).
 4. **The deficit**: `0x004FAC40` on the owner for the enemy's player at its position,
    radius `0x5000`, no traps, less three quarters (signed, truncated) of the same for the
-   owner. Not positive: done. `0x004754D0` (any own creature in or walking to 251 or 254
-   within five tiles): done.
+   owner. Not positive: done. `0x004754D0` (any own creature in 251 or 254, or in state 6 walking to
+   either, within five tiles of the enemy; the point is combat-alarm.md §2's): done.
 5. **The dispatch**, combat-alarm.md §3's loop with two differences: the room test is
    `+0x3B9` equal to the post's room only, with no state-6-to-a-job alternative, and each one
    sent gets **its own** run speed (`0x004887D0(1, def+0x5B8)`). Skipped: `IsWorker`,
