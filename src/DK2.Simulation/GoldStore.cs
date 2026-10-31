@@ -209,14 +209,14 @@ public static class GoldStore
     /// <summary>The same walk from a given tile of the room, wrapping once, and what did not fit:
     /// the deposit <c>0x004F3C60</c> the store sweep hands a loose pile to, from the pile's tile
     /// (gold-on-the-floor.md §11).</summary>
-    public static int FillAlongChainFrom(
-        WorldState world, GameDatabase database, RoomInstance room, int startTile, int amount, SimRandom rng)
+    public static int FillAlongChainFrom(WorldState world, GameDatabase database, RoomInstance room,
+        int startTile, int amount, SimRandom rng, SimulationContext? context = null)
     {
         int[] chain = SlabChain.Order(world, room);
         int start = Math.Max(0, Array.IndexOf(chain, startTile));
         int left = amount;
         for (int step = 0; step < chain.Length && left > 0; step++)
-            left -= PutOn(world, database, room, chain[(start + step) % chain.Length], left, rng);
+            left -= PutOn(world, database, room, chain[(start + step) % chain.Length], left, rng, context);
         return Math.Max(0, left);
     }
 
@@ -224,18 +224,20 @@ public static class GoldStore
     /// <see cref="FillAlongChainFrom"/>, and what the tiles cannot take goes down as a new neutral
     /// pile on <paramref name="tile"/> at one of eight points drawn on the world stream (line 0x196,
     /// table <c>0x006A2FA0</c>). Returns what went into the store.</summary>
-    public static int DepositFrom(
-        WorldState world, GameDatabase database, RoomInstance room, int tile, int amount, SimRandom rng)
+    public static int DepositFrom(SimulationContext context, RoomInstance room, int tile, int amount)
     {
-        if (amount <= 0) return 0;
-        if (room.Definition.TypeId == RoomTypeId.DungeonHeart
-            && world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined)
-            return 0;
-        int left = FillAlongChainFrom(world, database, room, tile, amount, rng);
-        if (left > 0 && FloorGold.Drop(world, database, tile, left) is ObjectState pile)
-            pile.Cell = OverflowCells[rng.NextInt(OverflowCells.Length)];
+        if (amount <= 0 || !Accepts(context.World, room)) return 0;
+        int left = FillAlongChainFrom(context.World, context.Database, room, tile, amount, context.Rng, context);
+        if (left > 0 && FloorGold.Drop(context.World, context.Database, tile, left) is ObjectState pile)
+            pile.Cell = OverflowCells[context.Rng.NextInt(OverflowCells.Length)];
         return amount - left;
     }
+
+    /// <summary>The ruin test both deposits and the gold store state <c>0x0049F730</c> make first
+    /// (room <c>+0x9A</c> bit 0): a ruined Heart takes nothing.</summary>
+    public static bool Accepts(WorldState world, RoomInstance room) =>
+        room.Definition.TypeId != RoomTypeId.DungeonHeart
+        || !(world.HasPlayer(room.OwnerPlayerId) && world.Player(room.OwnerPlayerId).HeartRuined);
 
     /// <summary>The eight points a deposit's leftover is put at, in DK2's table order
     /// (<c>0x006A2FA0</c>: each coordinate 0x3FF, 0x7FF or 0xBFF, never both 0x7FF), as the
@@ -245,16 +247,23 @@ public static class GoldStore
     /// <summary>One tile of either deposit: a storing tile (a Treasury's, a live Heart's rim) with
     /// no store pile gets one, and creating it draws rand(0x800) on the world stream for the pile's
     /// angle (<c>0x004F3C60</c> source line 0x14F, <c>0x004F4090</c> line 0x207), before the gold goes in.
-    /// The room effect DK2 plays first when the room's definition names one (<c>+0x425</c>) is not
-    /// modelled, nor whether it draws.</summary>
+    /// Before that draw both ask for the room definition's effect (<c>+0x425</c>: Treasury 60, Gold
+    /// Earn Creation; Heart none) at the tile centre, Z 0, heading 0, for the room's owner; whether
+    /// the effect itself draws on the world stream is not modelled.</summary>
     private static int PutOn(
-        WorldState world, GameDatabase database, RoomInstance room, int tile, int amount, SimRandom? rng)
+        WorldState world, GameDatabase database, RoomInstance room, int tile, int amount, SimRandom? rng,
+        SimulationContext? context = null)
     {
         int capacity = Capacity(world, database, tile, room);
         if (capacity == 0) return 0;
         ref TileState state = ref world.TileAtIndex(tile);
         if (state.GoldHeld == 0)
+        {
+            context?.RequestEffect("gold store", ViewEffectRequest.AtTileCentre(
+                new EffectId(room.Definition.PortalBuildUpEffectId), room.OwnerPlayerId,
+                world.TilePosition(tile), new Fp32(0)));
             state.StoreGoldHeading = rng is null ? null : (ushort)rng.NextInt(0x800);
+        }
         int put = Math.Min(Math.Max(0, capacity - state.GoldHeld), amount);
         state.GoldHeld += put;
         return put;

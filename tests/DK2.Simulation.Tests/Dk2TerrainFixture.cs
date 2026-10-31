@@ -220,7 +220,7 @@ internal static class Dk2TerrainFixture
             // (dk2tools kwd rooms / kwd roomflags). The bridge is here because it
             // is the only shipped room that goes anywhere but land, which is what
             // makes the placeable-on flags worth reading rather than assuming.
-            R(RoomTypeId.Treasury, "Treasury", 200, TreasuryTerrain, 0x128Cu),
+            R(RoomTypeId.Treasury, "Treasury", 200, TreasuryTerrain, 0x128Cu, roomEffect: 60),
             R(RoomTypeId.Lair, "Lair", 300, LairTerrain, 0x128Cu),
             R(RoomTypeId.DungeonHeart, "Dungeon Heart", 0, DungeonHeartTerrain, 0x204u, 5, 5),
             R(RoomTypeId.WoodenBridge, "Wooden Bridge", 200, WoodenBridgeTerrain, 0x1083u),
@@ -1714,7 +1714,8 @@ internal static class Dk2TerrainFixture
         byte sizeX = 1, byte sizeY = 1,
         TileConstruction construction = TileConstruction.Normal,
         byte createdCreatureId = 0,
-        byte[]? objectIds = null) => new()
+        byte[]? objectIds = null,
+        ushort roomEffect = 0) => new()
     {
         Name = name,
         RoomId = (byte)id,
@@ -1741,6 +1742,10 @@ internal static class Dk2TerrainFixture
         // room->objects mapping backwards to decide where a loose object
         // belongs. Ten of the shipped rooms have a list (Q120).
         ObjectIds = objectIds ?? [],
+
+        // Transcribed for the Treasury (60, Gold Earn Creation), because a gold
+        // deposit asks for it on each store pile it creates.
+        PortalBuildUpEffectId = roomEffect,
 
         // Not transcribed. Present because the record requires them.
         HealthGain = 0,

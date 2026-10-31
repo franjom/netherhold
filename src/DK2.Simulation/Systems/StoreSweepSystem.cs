@@ -64,8 +64,8 @@ public sealed class StoreSweepSystem : ISimulationSystem
     /// each store pile draws <c>random(100)</c> and below 10 asks for its definition's idle effect
     /// (34, Gold Sparkle) at its point raised by its Height, heading 0, for the room's owner. A tile
     /// holding gold holds one pile (<c>0x004F3C60</c> creates it, <c>0x004F4510</c> deletes it with its
-    /// last gold), at the tile centre on the floor. Not candidates: a lifted store pile dropped back
-    /// on a store tile, which DK2's landing hands to the store (Q532).</summary>
+    /// last gold), at the tile centre on the floor. A lifted store pile dropped back on a store tile is
+    /// back in the store on landing (state 5, ADR-0613).</summary>
     private static void Sparkle(SimulationContext context, RoomInstance room, ObjectDef? pile)
     {
         if (context.Rng.NextInt(100) >= SparkleRoomChance || pile is not { IsGold: true }) return;
@@ -93,7 +93,7 @@ public sealed class StoreSweepSystem : ISimulationSystem
             foreach (ObjectState pile in onTile)
             {
                 int before = pile.GoldHeld;
-                int stored = GoldStore.DepositFrom(world, context.Database, room, tile, before, context.Rng);
+                int stored = GoldStore.DepositFrom(context, room, tile, before);
                 FloorGold.Take(world, context.Database, pile, before);
                 context.Emit(Name, "swept",
                     $"player={room.OwnerPlayerId} room={room.Definition.Name} " +

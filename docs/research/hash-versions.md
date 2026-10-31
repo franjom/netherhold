@@ -14,6 +14,7 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**357** - `0x78759408C47B61DF`. Remake regression pin, not native evidence. FormatVersion also 357. Behaviour only: gold landing on a Treasury or Heart is deposited in the landing tick (state 5, `0x0049F730`), a deposit that creates a store pile requests the room effect, and a Hand gold drop requests effect 32; no new fields. See ADR-0613. Saves from 356 are refused.
 **356** - `0xEEFA1A78D02CBC53`. Remake regression pin, not native evidence. FormatVersion also 356. Behaviour only: the slap starts the speed-up of `0x0048CAD0` (150 percent, 100 game seconds = 400 ticks) after its damage, refused while a speed effect runs, and the keeper's slap step tests only the speed effect; no new fields. See ADR-0612 and [hand-of-evil.md](hand-of-evil.md#5-how-long-the-bonus-lasts). Saves from 355 are refused.
 **355** - `0xD52554781CA7BD04`. Remake regression pin, not native evidence. FormatVersion also 355. Behaviour only: the Imp reinforce handler walks a wall's sides twice, kind 6 then kind 16, so the repair pass runs after every kind-6 miss, and the two kinds count their own side slots and forget only their own task. No new fields. See ADR-0611 and [wall-reinforce-eligibility.md](wall-reinforce-eligibility.md#own-wall-retry-cycle). Saves from 354 are refused.
 
@@ -393,8 +394,5 @@ route targets resolve to their edge; ruins release the structure mask and obstac
 **134** — `0xBBEF0554E88AFB16`. Creature acquisition order, including transfers (ADR-0273).
 **133** — `0x584EDA75014EEB18`. A keeper's portal entrance rows: boost and sack block (ADR-0272).
 **132** — `0xFFF1AFE1DFB6A231`. A miner's standing slot and a floor pile's cell (ADR-0264).
-**131** — `0xC0AF4F951938F85C`. Worker pickup flags on task exit and prison delivery (ADR-0263).
 
-**130** — `0x1E3B2DF848B4A2F9`. Constructor worker flags and pickup gates (ADR-0262).
-
-[Versions 9–129](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–131](hash-versions-early.md) retain the earlier pins and their reasons.

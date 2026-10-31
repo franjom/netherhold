@@ -12307,8 +12307,8 @@ The input snapshot offers a store-pile decoration as a `StoreGold` target carryi
 and the runner shows the pickup hand over one. Behaviour only (HashVersion 299).
 
 **Deviations.** The lifted pile is neutral from the lift (DK2's keeps its keeper until its landing
-hands it to the neutral player); a lifted pile dropped back on a store lies as a loose type-3
-pile (DK2's landing hands it to the store, Q532) and is not a sparkle candidate; the floating
+hands it to the neutral player); a lifted pile dropped back on a store is deposited on landing
+(ADR-0613); the floating
 amount, lift sound and `+0x146` bit 4 are not modelled; the effect's own draws are view-side.
 DK2 runs each room's handler, border effect and health step room by room (0x004EC450); ours runs
 every store first, then the other room systems, so the sparkle's draws are grouped by handler, not
@@ -14265,3 +14265,29 @@ modelled. How long a slapped imp runs faster in DK2 is the owner's check (Q556):
 
 Evidence: [hand-of-evil.md](research/hand-of-evil.md#5-how-long-the-bonus-lasts); KB `0048B8A0`,
 `0048CAD0`, `00502F00`. `HandTests.ASlapSpeedsTheCreatureUpForFourHundredTicksAndASecondSlapDoesNotRestartIt`.
+
+## ADR-0613 - gold dropped on a Treasury or Heart is stored on landing
+
+Status: accepted, 2026-10-31. Hash/save 357. Closes Q532.
+
+Gold landing on a Treasury or Heart takes object state 5, `0x0049F730`. That handler hands any
+gold not in a room's object list (`+0x138`, cleared for a lifted store pile by `0x004E6130`) to
+the deposit `0x004F3C60` and destroys it. What does not fit comes back as one new neutral pile
+at one of eight points, which then lies inert in start state 31 (`0x0049F7C0`) until the sweep.
+Each deposit that creates a store pile asks for the room's `+0x425` effect (Treasury 60, Gold
+Earn Creation; Heart 0). `0x004BC710` asks for effect 32, Gold From Hand, for gold dropped with
+no thing under the hand. The owner confirms a drop on the Heart rim registers at once, and that
+the rim piles appear without an effect.
+
+Decision: `FloorGoldLandingRules` runs state 5 in the landing tick (DK2 runs it one update later;
+our fall is collapsed). `GoldStore.DepositFrom` takes the simulation context and requests the room
+effect. `HandSystem` requests effect 32 at the floor under the drop point. A ruined Heart leaves
+the gold in state 31.
+
+Consequence: Hand drops and Create Gold reach the store in the drop tick, not on the 16-turn
+sweep; ADR-0355's "room effect not modelled" no longer holds. Not changed: `GoldStore.Deposit`
+(room selling) requests no effect, and effect 32's height is not DK2's hand height.
+
+Evidence: [keeper-spell-create-gold.md](research/keeper-spell-create-gold.md#3-implementation-boundary),
+[gold-on-the-floor.md](research/gold-on-the-floor.md#11-a-store-sweeps-loose-gold-on-its-own-tiles-back-in-built-adr-0285);
+KB `0049F730`, `004F3C60`, `004BC710`, `0049F7C0`. `StoreGoldTests`, `CreateGoldTests`.

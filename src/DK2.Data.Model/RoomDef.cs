@@ -79,7 +79,9 @@ public sealed record RoomDef
     /// <summary>Effect after room object creation, ROOMS file ushort at 0x384.</summary>
     public ushort CreatedObjectEffectId { get; init; }
 
-    /// <summary>Portal pre-arrival effect, ROOMS file ushort at 0x386.</summary>
+    /// <summary>ROOMS file ushort at 0x386, runtime <c>+0x425</c>: the room's own effect. The Portal's
+    /// pre-arrival buildup (94); the effect a gold deposit asks for on each store pile it creates
+    /// (<c>0x004F3C60</c>, <c>0x004F4090</c>: Treasury 60, Heart 0).</summary>
     public ushort PortalBuildUpEffectId { get; init; }
 
     /// <summary>Object ids auto-placed on the room's tiles.</summary>

@@ -302,7 +302,7 @@ sixteen rim piles were topped to 1,000 (+15,500) and a 20,900 pile lay on the ti
 Hand drops onto the floor beside the Heart had merged into that pile first.
 
 Built as `StoreSweepSystem` (ADR-0285, ADR-0355) as read above, through `GoldStore.DepositFrom`, on DK2's turn (the tick plus one; Q596);
-a full Treasury is not swept. Deviates: `SuckGold` is taken as set.
+a full Treasury is not swept. Deviates: `SuckGold` is taken as set. Hand and Create Gold drops on a store do not wait for it: state 5 deposits them on landing ([keeper-spell-create-gold.md §3](keeper-spell-create-gold.md#3-implementation-boundary), ADR-0613).
 
 ## 12. A creature takes loose gold it walks over (read 2026-09-30)
 

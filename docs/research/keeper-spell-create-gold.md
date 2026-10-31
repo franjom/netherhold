@@ -39,9 +39,7 @@ countdown, so the existing ShotSystem creates the pile in the cast tick.
 The object table initialized by `0x0049E600` assigns state 1 to `0x0049EF90`.
 The room getter `0x004E6CD0` supplies a process state: 5 for Treasury/Heart,
 4 for Temple. Gold's room-held flag preserves those routes before floor merging.
-State 5 (`0x0049F730`) can deposit an unassociated object through the room's
-deposit routine when the store is not full. State 4 (`0x0049F600`) requires a
-fully surrounded Temple slab, which this spell's location validator excludes.
+State 5 (`0x0049F730`) is the store deposit (§3). State 4 (`0x0049F600`) requires a fully surrounded Temple slab, which this spell's location validator excludes.
 
 Otherwise, gold with no creature recipient merges into another live type-1
 object in its third-of-tile band, or remains separate, becomes neutral and
@@ -91,12 +89,19 @@ Known gap: a tile emptied by lift, payday, defeat or bridge burn keeps its stale
 native draws a new heading with each new pile (deterministic; fidelity only).
 This collapses the state-1 vertical fall into the current flat model; M9's
 height boundary remains. Room states are recorded, but their original object
-update lifecycle is not run. Deposit timing is tracked separately in Q532.
+update lifecycle is not run; the deposit is built (ADR-0613, Q532).
 
 Treasury and Heart deposits retain the shared gold-store representation and
-capacity rules (ADR-0015). StoreSweepSystem deposits only what fits on its
-sixteen-turn boundary; a full store leaves the new pile loose and does not
-refuse or refund the spell. `CreateGoldTests` covers ordinary/upgraded output,
+capacity rules (ADR-0015). A Hand drop or this spell's pile landing on a Treasury or Heart takes
+state 5 (`0x0049F730`): gold not in a room's object list (`+0x138`, cleared for a lifted store
+pile by `0x004E6130`) goes through `0x004F3C60` and is destroyed. DK2 runs it one update after
+the landing; ours runs it in the landing tick (`FloorGoldLandingRules.Store`). What does not fit
+becomes one neutral pile at one of eight points, inert in start state 31 (`0x0049F7C0`) until
+StoreSweepSystem takes it on its sixteen-turn boundary; a ruined Heart leaves the gold in 31. A
+full store does not refuse or refund the spell. Each store pile the deposit creates requests the
+room's `+0x425` effect (Treasury 60, Heart 0, so rim piles show none; the owner saw the same,
+2026-10-31); a drop with no creature under the hand requests effect 32, Gold From Hand
+(`0x004BC710`). `GoldStore.Deposit` (room selling) requests no effect. `CreateGoldTests` covers ordinary/upgraded output,
 cast tile, neutral owner, payment/clocks, refusal ordering, allied land,
 full/partly full stores across multiple tiles, descriptor variation and replay.
 Landing controls cover repeated casts beyond the pile guideline, nine bands,

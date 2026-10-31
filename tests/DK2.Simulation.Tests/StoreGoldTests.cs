@@ -173,4 +173,93 @@ public sealed class StoreGoldTests
         Assert.True(HandRules.MayReachStoreGold(world, new TilePos(6, 5), Keeper));
         Assert.False(HandRules.MayReachStoreGold(world, new TilePos(6, 5), PlayerIds.Neutral));
     }
+
+    private static ListEventSink DropFromHand(GameDatabase db, WorldState world, int gold, TilePos onto, int target = 0)
+    {
+        ObjectState pile = FloorGold.Drop(world, db, world.TileIndex(new TilePos(2, 2)), gold)!;
+        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+        var sink = new ListEventSink();
+        sim.Tick(InputFrame.Of(new PickUpObjectCommand(Keeper, pile.Id)));
+        sim.ObserveWith(sink);
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, onto, target)));
+        return sink;
+    }
+
+    [Fact]
+    public void GoldDroppedOntoACreature_AsksForNoGoldFromHandEffect()
+    {
+        // 0x004BC897: a live thing under the hand skips the effect-32 arm.
+        (GameDatabase db, WorldState world) = World();
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3, 2));
+
+        ListEventSink sink = DropFromHand(db, world, 300, new TilePos(3, 2), imp.Id);
+
+        Assert.DoesNotContain(sink.Events, e => e.EffectRequest is not null);
+    }
+
+    [Fact]
+    public void GoldDroppedOnARuinedHeart_IsNotStored_AndLiesInert()
+    {
+        (GameDatabase db, WorldState world) = World();
+        Room(db, world, Dk2TerrainFixture.DungeonHeartTerrain, 5, 5, 9, 9);
+        world.Player(Keeper).HeartRuined = true;
+
+        DropFromHand(db, world, 700, new TilePos(5, 5));
+
+        Assert.Equal(0, GoldStore.Total(world, Keeper));
+        ObjectState pile = Assert.Single(world.Objects);
+        Assert.Equal((700, (byte)31), (pile.GoldHeld, pile.ProcessState));
+    }
+
+    [Fact]
+    public void GoldDroppedOnAHeartRim_IsStoredAtOnce_WithoutARoomEffect_AndTheRestIsOnePile()
+    {
+        // State 5 (0x0049F730) deposits through 0x004F3C60; the Heart's room effect (+0x425) is 0.
+        (GameDatabase db, WorldState world) = World();
+        Room(db, world, Dk2TerrainFixture.DungeonHeartTerrain, 5, 5, 9, 9);
+
+        ListEventSink sink = DropFromHand(db, world, 16500, new TilePos(5, 5));
+
+        Assert.Equal(16000, GoldStore.Total(world, Keeper));
+        ObjectState left = Assert.Single(world.Objects);
+        Assert.Equal((FloorGold.FloorGoldObjectId, 500), (left.ObjectTypeId, left.GoldHeld));
+        Assert.Equal(world.TileIndex(new TilePos(5, 5)), left.TileIndex);
+        ViewEffectRequest effect = Assert.Single(sink.Events, e => e.EffectRequest is not null).EffectRequest!.Value;
+        Assert.Equal(HandSystem.GoldFromHandEffect, effect.EffectId);
+        Assert.Equal((Keeper, 0), (effect.Owner.Value, effect.Heading.Raw));
+    }
+
+    [Fact]
+    public void ATreasuryDeposit_AsksForGoldEarnCreation_OnEachPileItCreates()
+    {
+        (GameDatabase db, WorldState world) = World();
+        RoomInstance treasury = Room(db, world, Dk2TerrainFixture.TreasuryTerrain, 5, 5, 7, 5);
+        world.Tile(5, 5).GoldHeld = 2000;
+
+        ListEventSink sink = DropFromHand(db, world, 4000, new TilePos(5, 5));
+
+        Assert.Equal(6000, GoldStore.Total(world, Keeper));
+        Assert.Empty(world.Objects);
+        int[] chain = SlabChain.Order(world, treasury);
+        TilePos[] created = sink.Events.Where(e => e.EffectRequest?.EffectId.Value == 60)
+            .Select(e => e.EffectRequest!.Value.Tile).ToArray();
+        TilePos expected = world.TilePosition(chain[(Array.IndexOf(chain, world.TileIndex(new TilePos(5, 5))) + 1) % chain.Length]);
+        Assert.Equal([expected], created);
+    }
+
+    [Fact]
+    public void ALiftedStorePile_DroppedBackOnTheTreasury_GoesStraightBackIn()
+    {
+        (GameDatabase db, WorldState world) = World();
+        Room(db, world, Dk2TerrainFixture.TreasuryTerrain, 5, 5, 7, 5);
+        world.Tile(6, 5).GoldHeld = 2500;
+        var sim = new GameSimulation(db, world, 42, [new HandSystem()]);
+
+        sim.Tick(InputFrame.Of(new PickUpStoreGoldCommand(Keeper, new TilePos(6, 5))));
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, new TilePos(6, 5))));
+
+        Assert.Equal(2500, world.Tile(6, 5).GoldHeld);
+        Assert.Empty(world.Objects);
+        Assert.Empty(world.Player(Keeper).Hand);
+    }
 }

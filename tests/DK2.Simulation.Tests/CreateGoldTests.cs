@@ -129,22 +129,18 @@ public sealed class CreateGoldTests
     [Theory]
     [InlineData(0)]
     [InlineData(250)]
-    public void AFullTreasuryDoesNotRefuseTheCastAndASweepOnlyTakesWhatFits_StronglyInferredFromBinary(int space)
+    public void AFullTreasuryDoesNotRefuseTheCastAndStoresWhatFitsOnLanding_StronglyInferredFromBinary(int space)
     {
+        // State 5 (0x0049F730) deposits on landing; the rest is one new pile (0x004F3C60).
         var (db, world) = Setup();
         world.Tile(At).TerrainId = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Treasury).TerrainId;
         int capacity = GoldStore.Capacity(db, world.Tile(At));
         world.Tile(At).GoldHeld = capacity - space;
         var sim = new GameSimulation(db, world, 1, Systems());
         sim.Tick(InputFrame.Of(Cast()));
-        Assert.Equal(capacity - space, world.Tile(At).GoldHeld);
-        Assert.Equal(1000, Assert.Single(world.Objects).GoldHeld);
-        var withSweep = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db,
-            [new KeeperSpellSystem(), new ShotSystem(), new StoreSweepSystem()]);
-        withSweep.Run(StoreSweepSystem.SweepTurns);
-        Assert.Equal(capacity, withSweep.World.Tile(At).GoldHeld);
-        Assert.Equal(1000 - space, Assert.Single(withSweep.World.Objects).GoldHeld);
-        Assert.Equal(30000, withSweep.World.Player(Keeper).Mana);
+        Assert.Equal(capacity, world.Tile(At).GoldHeld);
+        Assert.Equal(1000 - space, Assert.Single(world.Objects).GoldHeld);
+        Assert.Equal(30000, world.Player(Keeper).Mana);
     }
 
     [Fact]

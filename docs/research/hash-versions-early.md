@@ -1,6 +1,10 @@
 # Early state-hash versions
 
-Versions 9–129, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–131, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**131** — `0xC0AF4F951938F85C`. Worker pickup flags on task exit and prison delivery (ADR-0263).
+
+**130** — `0x1E3B2DF848B4A2F9`. Constructor worker flags and pickup gates (ADR-0262).
 
 **129** — `0x1E64CAC720660CBC`. Per-player casualty-priority mask (ADR-0261).
 

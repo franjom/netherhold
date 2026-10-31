@@ -24,6 +24,9 @@ public sealed class HandSystem : ISimulationSystem
 {
     private const string SystemName = "Hand";
 
+    /// <summary>Effect 32, Gold From Hand: the glint of gold leaving the hand (<c>0x004BC9CA</c>).</summary>
+    public static readonly EffectId GoldFromHandEffect = new(32);
+
     public string Name => SystemName;
 
     public void Execute(SimulationContext context)
@@ -535,6 +538,15 @@ public sealed class HandSystem : ISimulationSystem
         }
 
         AcceptedDrop(context, command.PlayerId, context.Database.ObjectById(thing.ObjectTypeId)!.IsGold);
+        // 0x004BC9AB: gold (types 1-3) dropped with no thing under the hand asks for effect 32, Gold
+        // From Hand, at the drop point for the keeper. Ours puts it on the floor (the fall is collapsed).
+        if (FloorGoldLandingRules.Handles(thing) && world.CreatureById(command.TargetCreatureId) is null)
+        {
+            FpPosition2 at = command.Position ?? new FpPosition2(
+                new Fp32(CreatureState.CentreOf(command.Tile.X)), new Fp32(CreatureState.CentreOf(command.Tile.Y)));
+            context.RequestEffect(SystemName, new ViewEffectRequest(GoldFromHandEffect, command.PlayerId,
+                new FpPosition3(at.X, at.Y, new Fp32(EggLaunchRules.FloorHeight(world, context.Database, at.X, at.Y)))));
+        }
 
         int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         TempleSacrificeRules.Reconcile(world, context.Database);

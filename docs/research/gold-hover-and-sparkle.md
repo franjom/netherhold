@@ -151,16 +151,16 @@ any object (ADR-0310); the cursor offers only the viewer's own pile (`0x0049CBB0
 
 **The drop.** The landing [0x0049EF90](functions/0049EF90.md) treats types 1-3 alike: onto a
 creature it pays half; otherwise it merges into a gold object in its cell or is kept as the
-neutral player's; on a Treasury or Heart tile it selects store state 5, whose deposit and its
-timing are Q532 ([keeper-spell-create-gold.md](keeper-spell-create-gold.md) §2). The sweep
-never takes it ([0x004F47E0](functions/004F47E0.md) skips type 3).
+neutral player's; on a Treasury or Heart tile it selects store state 5, which deposits it at once
+([gold-on-the-floor.md §11](gold-on-the-floor.md#11-a-store-sweeps-loose-gold-on-its-own-tiles-back-in-built-adr-0285), ADR-0613).
+The sweep never takes it ([0x004F47E0](functions/004F47E0.md) skips type 3).
 
 **Built (ADR-0534).** `PickUpStoreGoldCommand` by tile: `HandRules.CanPickUpStoreGold` (a
 Treasury or Heart tile with gold, the definition liftable, a free slot) and the cursor's
 `HandRules.MayReachStoreGold` (the tile's owner). `HandSystem` zeroes the tile and puts a neutral
 Gold Pile 1 with that gold in the hand, as the counter withdrawal does
 ([hud-resources.md](hud-resources.md)). Deviations: neutral from the lift, not from the landing;
-dropped back on a store it lies as a loose pile for an imp, not deposited (Q532).
+dropped back on a store it is deposited on landing, as DK2's state 5 does (ADR-0613).
 
 ## 5. What ours draws (2026-10-23)
 

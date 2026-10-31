@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-create-gold.md")]
 public static class FloorGoldLandingRules
 {
-    private enum LandingState : byte { ImplicitPosition = 0, Temple = 4, Store = 5, Standing = 16 }
+    private enum LandingState : byte { ImplicitPosition = 0, Temple = 4, Store = 5, Standing = 16, Idle = 31 }
     private const int BandWidth = 0x555, PositionMask = Fp32.One - 1;
 
     public static bool Handles(ObjectState pile) => pile.ObjectTypeId is 1 or 2 or 3;
@@ -36,6 +36,11 @@ public static class FloorGoldLandingRules
             _ => LandingState.Standing,
         };
         incoming.ProcessState = (byte)state;
+        if (state == LandingState.Store)
+        {
+            Store(context, room!, incoming);
+            return;
+        }
         if (state != LandingState.Standing) return;
         incoming.OwnerPlayerId = PlayerIds.Neutral;
 
@@ -57,5 +62,24 @@ public static class FloorGoldLandingRules
             context.Emit("gold landing", "merged", $"incoming={incoming.Id} pile={candidate.Id} gold={candidate.GoldHeld}");
             return;
         }
+    }
+
+    /// <summary>State 5, <c>0x0049F730</c>: gold not in a room's object list (a lifted store pile was
+    /// unlinked by <c>0x004E6130</c>) goes to the deposit <c>0x004F3C60</c> from its tile and is
+    /// destroyed; what does not fit comes back as one new pile at one of eight points. The handler
+    /// returns 0, so on a ruined Heart the gold falls back to its start state 31 and lies inert.
+    /// Deviates: DK2 runs it on the update after the landing; ours in the landing tick.</summary>
+    private static void Store(SimulationContext context, RoomInstance room, ObjectState incoming)
+    {
+        if (!GoldStore.Accepts(context.World, room))
+        {
+            incoming.ProcessState = (byte)LandingState.Idle;
+            return;
+        }
+        int gold = incoming.GoldHeld;
+        int stored = GoldStore.DepositFrom(context, room, incoming.TileIndex, gold);
+        context.World.RemoveObject(incoming.Id);
+        context.Emit("gold landing", "stored",
+            $"incoming={incoming.Id} player={room.OwnerPlayerId} stored={stored} left={gold - stored}");
     }
 }

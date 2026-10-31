@@ -369,7 +369,7 @@ public sealed partial class ImpTaskSystem
         int put = space == 0 ? 0 : space < 0 ? creature.GoldHeld : (int)Math.Min(space, creature.GoldHeld);
         if (put > 0)
         {
-            int left = put - GoldStore.DepositFrom(world, database, room, index, put, context.Rng);
+            int left = put - GoldStore.DepositFrom(context, room, index, put);
             creature.GoldHeld -= put;
             context.Emit(SystemName, "gold_delivered",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} amount={put - left} " +
