@@ -266,7 +266,10 @@ the other side of her heart, (64,34), the other end of the same drawn diagonal.
 reinforcing imp at 15; it digs her own (62,36) from 21 and is back on (64,38) only at 55. The
 re-capture: her imp (slot 437) reinforces from 6 without a break to 64; the first slap (state 77)
 is at 122, the (62,36) dig 70–91. Imp 436 repairs from 102 in state 24 until the wall falls at
-387, through half health at about 240 (Q564). The early slap is ours' divergence; Q563.
+387, through half health at about 240 (Q564). Not a divergence but the draw: the 1-in-100
+slap (§8) has about a 44% chance to hit the reinforcer in its 58 ticks, DK2's and ours alike.
+Seeds 1–8 (hash 355, 500 ticks): five reinforce at 62 and fall at 244–393 (2, 5, 6 at 387–393);
+3, 4 and 8, like 12345, lose the reinforcer to a slap and fall at 56–76.
 
 **Raksha was an ally.** Before ADR-0377 ours attacked every keeper in turn: Morgana at tick 1,
 Raksha at 66 (a tunnel north from (50,43) with eight bridge tiles), Belial at 273 and the human
