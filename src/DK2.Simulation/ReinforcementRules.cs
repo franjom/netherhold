@@ -9,12 +9,13 @@ using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
 
+// Navigation refresh timing and safe map-edge skips are inferred integration; see the note.
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/wall-corner-fill.md")]
 public static class ReinforcementRules
 {
     private static readonly TilePos[] Diagonals = [new(-1, -1), new(1, -1), new(1, 1), new(-1, 1)];
 
-    [Dk2Behavior(Confidence.StronglyInferred, "docs/research/wall-reinforce-eligibility.md")]
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/wall-reinforce-eligibility.md")]
     public static bool CanStart(WorldState world, GameDatabase database, TilePos at, PlayerId keeper)
     {
         ref TileState tile = ref world.Tile(at);

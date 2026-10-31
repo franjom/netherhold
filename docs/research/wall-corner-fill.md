@@ -2,7 +2,7 @@
 
 ## Finishing state 22 (Q694)
 
-STRONGLY INFERRED from the complete disassembly/decompilation of `0x00466390`
+CONFIRMED binary mechanism from the complete disassembly/decompilation of `0x00466390`
 through its return, `0x00453CC0`, `0x00453F70`, `0x00509200` and the positive
 arm of `0x00452F60` (2026-10-31). No OpenKeeper code was used.
 
@@ -44,6 +44,11 @@ Ours runs the loop when a reinforcer's action ends and its completed job is
 released, excluding cancellation by a dig mark. Raw health completion reuses
 terrain conversion and completion effects. No new persistent fields.
 
+STRONGLY INFERRED integration: our navigation refresh timing stands in for
+DK2 reading the live navigation byte at world +0x9F2. At map edges ours skips
+out-of-map diagonals; DK2's `0x00508FC0` accessor has no bounds check.
+Neither timing nor edge behavior has a native transition capture.
+
 ## Built scope and replay limits
 
 Built at hash/save 347 (ADR-0605) in `ReinforcementRules`,
@@ -56,8 +61,9 @@ same-type healing and terrain conversion.
 A read-only count from
 `D:\DK2Evidence\dk2runs\level4-live1\seed01\tiles.csv` has 164 terrain-9
 tiles initially and 395 at tick 6804; `level4.dk2cap` is adjacent. The modern
-seed-1 replay has 363 at the same endpoint (`build/unread-q694-tiles.csv`;
-command log `build/unread-q694-replay.log`). It reused
+seed-1 replay at hash/save 347 has 363 terrain-9 tiles at tick 6804.
+These numbers are retained here, without depending on the ignored build CSV/log.
+The replay reused
 `D:\DK2Evidence\runs\packet-replay-hash328\level4\seed01\entity-map.csv`
 without revalidating its remapping. This is a one-seed wall-count observation,
 not a matched transition comparison or native parity result.

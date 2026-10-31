@@ -54,7 +54,8 @@ and RNG advancement from these reads; the global determinism pin is remake
 output, not native evidence. Native allocation failure remains outside our
 unbounded object allocator.
 
-Elevated scattered gold uses its saved Z to distinguish explicit coordinates
-from legacy implicit piles; its cell band is also populated. Rendering,
-landing candidates and worker reach use that position. Falling physics remains
-unmodelled, as for other loose-gold creation here.
+Our encoding uses saved nonzero Z to distinguish explicit scatter coordinates
+from legacy implicit piles; its cell band is also populated. New piles retain
+PosZ 0x3000 because falling is unmodelled. Future falling code must preserve
+explicit-position identity when lowering a pile. Rendering,
+landing candidates and worker reach use that position.

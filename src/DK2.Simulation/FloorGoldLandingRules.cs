@@ -15,7 +15,8 @@ public static class FloorGoldLandingRules
 
     public static bool Handles(ObjectState pile) => pile.ObjectTypeId is 1 or 2 or 3;
 
-    // Elevated scatter has coordinates before a landing process; legacy implicit piles have Z zero.
+    // Our encoding: nonzero Z marks explicit scatter coordinates before landing.
+    // Falling code must preserve that distinction when lowering a pile; implicit piles use Z zero.
     public static bool HasPosition(ObjectState pile) =>
         Handles(pile) && (pile.ProcessState != (byte)LandingState.ImplicitPosition || pile.PosZ != 0);
 

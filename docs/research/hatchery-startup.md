@@ -13,14 +13,15 @@ Room tile insertion ends in the type's +0x09 slot, `0x004DE560`, which writes
 the ordinary power-formula interval ([hatchery.md section4](hatchery.md#4-how-often-it-lays)).
 
 On a fresh level, the player/room walk around `0x0050B935` calls
-`0x004DE0E0` at `0x0050B935` on every existing type4 room, including neutral
-and other players' rooms. It skips this walk for restored saves (world+0x7239
-bit0x40). The callee consumes but ignores the pushed variable18 argument
+`0x004DE0E0` at `0x0050B935` on each type4 room reached through the player chain
+at world +0x7A. Whether that chain includes neutral rooms remains inferred.
+It skips this walk for restored saves (world+0x7239 bit0x40).
+The callee consumes but ignores the pushed variable18 argument
 (RET4); it writes only the receiving room, not a room walk itself.
 The later startup furniture rebuild (`0x0050BC9D`, `0x004EDFC0`) places coops
 and generic furniture without invoking +0x09 or writing the interval.
-Thus the table persists until another tile pass; mere ownership adoption
-does not itself write +0x4D. Runtime construction uses the power formula.
+Within the checked paths the table persists until another tile pass; mere
+ownership adoption does not itself write +0x4D. Runtime construction uses the power formula.
 
 ## Full table and clock
 
@@ -68,6 +69,19 @@ capture merge retains the captured room's stamp, clears the override and moves
 the stamp to the merged room's lowest tile. Standalone capture retains the
 startup interval. `ChickensGenerated` keeps its separate lifetime deviation
 ([hatchery.md section 3](hatchery.md#3-where-an-egg-appears)).
+
+STRONGLY INFERRED limits:
+
+- No other slot +0x09 dispatch or +0x4D writer precedes the first lay: only
+  the three callers of `0x004E4480` were checked for that negative claim.
+- The world +0x7A player chain includes neutral-player Hatcheries.
+- The DK2 turn is zero at level load; ours initializes it to zero.
+- Which room survives construction merge or capture relies on the LIKELY
+  records `0x004EC650` and `0x004EC900`.
+- There is no native first-lay capture.
+
+Owner experiment: on a pre-placed 3x3 Hatchery, does the first chicken appear
+after about 7 seconds or about 12, and does adding one tile speed it up?
 
 The focused regression run passed 86 tests with no failures or skips, including
 capture merge, standalone capture and construction merge controls. Native
