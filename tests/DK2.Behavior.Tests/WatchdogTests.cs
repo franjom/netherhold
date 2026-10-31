@@ -18,6 +18,10 @@ public class WatchdogTests : IDisposable
     private readonly string _good;
     private readonly string _broken;
 
+    // A cold PowerShell on a busy Windows runner can take well over 15 s to write its PID, so the
+    // tests wait this long for a child to start; the 30 s sleep after the write keeps it alive meanwhile.
+    private static readonly TimeSpan ChildStart = TimeSpan.FromSeconds(60);
+
     public WatchdogTests()
     {
         Directory.CreateDirectory(_root);
@@ -118,7 +122,7 @@ public class WatchdogTests : IDisposable
         try
         {
             Assert.True(SpinWait.SpinUntil(() => HasPid(Path.Combine(_root, "first.pid"))
-                && HasPid(Path.Combine(_root, "second.pid")), TimeSpan.FromSeconds(15)), "both children must start");
+                && HasPid(Path.Combine(_root, "second.pid")), ChildStart), "both children must start");
             watchdog.Cancel();
             WatchSummary summary = await watching.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Equal(2, summary.Ran);
@@ -192,14 +196,14 @@ public class WatchdogTests : IDisposable
         var watchdog = new Watchdog(Path.Combine(_root, "launch-failure"), WatchLimits.Default with { Jobs = 2 }, (job, _) =>
         {
             if (job.Label == "first") return Sleep(30, pid);
-            if (!SpinWait.SpinUntil(() => HasPid(pid), TimeSpan.FromSeconds(10))) throw new TimeoutException("first child did not start");
+            if (!SpinWait.SpinUntil(() => HasPid(pid), ChildStart)) throw new TimeoutException("first child did not start");
             throw new InvalidOperationException("launch failed");
         });
         Task<WatchSummary> watching = Task.Run(() => watchdog.Watch(
             [new WatchJob(_good, [], "first"), new WatchJob(_good, [], "second")], TextWriter.Null));
         try
         {
-            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => watching.WaitAsync(TimeSpan.FromSeconds(10)));
+            InvalidOperationException error = await Assert.ThrowsAsync<InvalidOperationException>(() => watching.WaitAsync(ChildStart + TimeSpan.FromSeconds(10)));
             Assert.Equal("launch failed", error.Message);
             try { using Process child = Process.GetProcessById(int.Parse(File.ReadAllText(pid))); Assert.True(child.HasExited); }
             catch (ArgumentException) { }
