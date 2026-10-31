@@ -163,6 +163,8 @@ namespace DK2.Unity
             if (source == null && _effects.Count < 32) { source = NewSource("Effect"); _effects.Add(source); }
             if (source == null) source = _effects[0];
             source.Stop(); source.clip = clip; source.loop = false;
+            // Remake policy, not DK2's: Unity's default 3D rolloff and no voice budget. DK2's distances,
+            // voice limits and fades are unread (Q678), so none are copied from OpenKeeper.
             source.spatialBlend = request.World.HasValue ? 1 : 0;
             if (request.World is System.Numerics.Vector3 world) source.transform.position = new Vector3(world.X, world.Y, world.Z);
             source.volume = _master * _effectVolume;

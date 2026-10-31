@@ -21,7 +21,7 @@ public sealed class WorldSoundTests
         Assert.True(director.TryTake(out var sound));
         Assert.Equal("creature_goblin", sound.Category.Name);
         Assert.Equal((uint)group, sound.Id.Value);
-        Assert.Equal(new Vector3(2, 1, 3), sound.World);
+        Assert.Equal(new Vector3(2, 1, -3), sound.World);   // where DungeonScene.Ground draws (2, 3) at height 1
         Assert.Equal(0x8000002Au, sound.Voice.Value);
         Assert.False(director.TryTake(out _));
         Assert.Single(events.Events);
