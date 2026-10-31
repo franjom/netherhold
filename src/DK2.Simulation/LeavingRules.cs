@@ -130,7 +130,7 @@ public static class LeavingRules
         for (int i = 0; i < player.EntranceInfo.Count; i++)
             if (player.EntranceInfo[i].CreatureTypeId == state.CreatureTypeId)
                 player.EntranceInfo[i] = player.EntranceInfo[i] with { Block = PortalChoiceRules.Fresh };
-        CreatureSoundRules.Request(context, systemName, state, CreatureSoundEvent.Sacked);
+        ThingSoundRules.Request(context, systemName, state, ThingSoundEvent.Sacked);
         if (state.CreatureTypeId != 45)
             context.World.Messages.Post(context.World, state.OwnerPlayerId, PlayerMessageKind.CreatureLeft, state.CreatureTypeId, 0);
         ushort effect = context.Database.Room(RoomTypeId.Portal).CreatedObjectEffectId;

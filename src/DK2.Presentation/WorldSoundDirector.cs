@@ -9,16 +9,21 @@ using DK2.Simulation;
 
 namespace DK2.Presentation;
 
-public sealed class CreatureSoundDirector(ISimulationEventSink? downstream = null) : ISimulationEventSink
+/// <summary>Turns the simulation's thing sounds into sound requests. Each thing has one voice:
+/// bit 31 set, its kind in bits 24-30 and its id below, so creature 42 stays <c>0x8000002A</c>.</summary>
+public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null) : ISimulationEventSink
 {
     private readonly ConcurrentQueue<SoundRequest> _pending = new();
     public bool TryTake(out SoundRequest request) => _pending.TryDequeue(out request);
     public void Emit(in SimEvent simEvent)
     {
-        if (simEvent.CreatureSound is { } sound && !string.IsNullOrEmpty(sound.Category))
+        if (simEvent.ThingSound is { } sound && !string.IsNullOrEmpty(sound.Category))
             _pending.Enqueue(new(new SoundCategory(sound.Category.ToLowerInvariant()), new SoundId((uint)sound.Event),
                 new Vector3(sound.Position.X.Raw / 4096f, sound.Position.Z.Raw / 4096f, sound.Position.Y.Raw / 4096f),
-                new SoundVoiceId(0x80000000u | (uint)sound.Creature.Value)));
+                VoiceOf(sound.Source)));
         downstream?.Emit(simEvent);
     }
+
+    private static SoundVoiceId VoiceOf(SoundSourceId source) =>
+        new(0x80000000u | ((uint)source.Kind << 24) | ((uint)source.Value & 0x00FFFFFFu));
 }

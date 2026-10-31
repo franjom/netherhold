@@ -237,7 +237,7 @@ repeat rule, not an exemption from the sound manager's admission or voice rules
 ([sound playback](sound-playback.md), [sound budgets](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets)).
 
 `CombatSystem` emits a typed creature sound request after successful approach
-entry. `CreatureSoundDirector` carries its bank, group, position and actor voice
+entry. `WorldSoundDirector` carries its bank, group, position and actor voice
 to the existing `ClassicSoundPlayer`. No simulation state or random draw is added;
 hash/save 346 is unchanged. The parser/bank boundary is in
 [creature-leaving.md section 2](creature-leaving.md#hand-drop-entry-and-direct-call-2026-10-31).

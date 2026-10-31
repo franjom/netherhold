@@ -16,7 +16,7 @@
 | What | Where |
 |---|---|
 | Decoder, maps, resolver, voice ownership, speech, music | [sound-playback.md](../research/sound-playback.md), [sound-effects.md](../research/sound-effects.md), [music.md](../research/music.md); completion plan Phase C |
-| The one world-sound path built so far | `CreatureSoundRules` (simulation) → `SimEvent.CreatureSound` → `CreatureSoundDirector` → `ClassicSoundPlayer.Play` |
+| The world-sound path (W1.1) | `ThingSoundRules` (simulation, any thing kind) → `SimEvent.ThingSound` → `WorldSoundDirector` (one voice per thing) → `ClassicSoundPlayer.Play` |
 | World events that play today | creature `0xD6` battle call (`CombatSystem`) and `0xDF` sacked (`LeavingRules`) |
 | Open audio questions | Q678 (voice limits and fades), Q684 (flag and final playback semantics) |
 
