@@ -404,8 +404,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DK2.Unity::DK2.Unity.DungeonRunner
   campaignProfileFile: 
+  hiScoresFile: 
+  inputJournalDirectory: 
+  savedSessionDirectory: 
+  skipStartup: 0
   installDirectory: 
-  sessionMode: 5
+  sessionMode: 1
   frontEndReturnPage: 1
   levelName: Level2
   saveFile: 
@@ -430,7 +434,7 @@ MonoBehaviour:
   classicFillFloor: 0.5
   classicCreatureShadows: 1
   bendTerrain: 1
-  highWalls: 0
+  highWalls: 1
   cameraPreset: 3
   cameraZoomOutLimitScale: 1.3
   frameWholeMap: 0

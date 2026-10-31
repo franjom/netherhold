@@ -82,9 +82,9 @@ namespace DK2.Unity
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;
             if (_cutsceneTitle == null) return;
-            // Remake placeholder face and size: DK2 draws the title centred with its own font.
-            var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = Screen.height / 16 };
-            GUI.Label(new Rect(0, 0, Screen.width, Screen.height), _cutsceneTitle, style);
+            // DK2 draws the title centred in its own font; ours takes the subtitle font chain, about twice
+            // the subtitle size (the remake's size, unread).
+            DrawSubtitleText(new Rect(0, 0, Screen.width, Screen.height), _cutsceneTitle, 2f);
         }
     }
 }
