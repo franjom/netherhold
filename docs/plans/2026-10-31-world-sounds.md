@@ -5,7 +5,7 @@
 
 **Goal:** the player hears what DK2 plays while a level runs: the hand and its cursor, digging and claiming, rooms being built and sold, imps and creatures at work, objects, doors, traps, spells and fights, footsteps and the looping sounds of things and rooms. Interface, speech and music already work and are out of scope.
 
-**Architecture:** unchanged (ADR-0002, ADR-0408). Every request is read from DKII.EXE before it is built. A request that a simulation function makes is emitted by our mirror of that function as a `SimEvent`, the way `CreatureSoundRules` does today; a request that a cursor or presentation function makes is emitted by `DK2.Presentation` into `SoundRequests`. Unity only plays. Sound never touches simulation state: no task in this plan moves the hash, and a task that finds it must stops and reports.
+**Architecture:** unchanged (ADR-0002, ADR-0408). Every request is read from DKII.EXE before it is built. A request that a simulation function makes is emitted by our mirror of that function as a `SimEvent`, the way `ThingSoundRules` does for creatures; a request that a cursor or presentation function makes is emitted by `DK2.Presentation` into `SoundRequests`. Unity only plays. Sound never touches simulation state: no task in this plan moves the hash, and a task that finds it must stops and reports.
 
 **Tech stack:** as in [the completion plan](2026-10-29-hud-and-front-end-completion.md), header.
 
@@ -28,7 +28,7 @@ The completion plan's "Later world-sound queue" note (after Task C3) is supersed
 
 - **Emit where DK2 emits.** For each call site in the tables below, find our mirror of the containing function through its KB record's `implements` line. If the function is not built, the sound waits for it; write nothing that fakes the trigger.
 - **Category comes from the requester.** DK2 chooses the category from the thing's definition, never from the event: creature definition `+0x6E3`, object definition `+0x10E`, room or terrain definition `+0x195`, door or trap definition `+0xF7`, shot definition `+0x125`, keeper spell `+0x72`, or the hand category (manager slot `+0x58`). Use the matching `SoundCategory` field our definitions already load (`CreatureDef.SoundCategory`, the KWD records' `SoundCategory`).
-- **Handles are per thing.** Positional requests pass the thing's stored handle (`+0x2E`, a second one at `+0x32`) and store the returned one; `SoundVoiceBindings` is our equivalent. Give each thing a stable `SoundVoiceId`, as `CreatureSoundDirector` does for creatures.
+- **Handles are per thing.** Positional requests pass the thing's stored handle (`+0x2E`, a second one at `+0x32`) and store the returned one; `SoundVoiceBindings` is our equivalent. Give each thing a stable `SoundVoiceId`, as `WorldSoundDirector` does (`0x80000000 | kind<<24 | id`; creature voices unchanged).
 - **A silent event is not a bug.** Some requested events have no samples in any shipped category (marked *silent?* below). Confirm against the shipped `SFX.map` of the actual category; if it has no group with samples, DK2 is silent there too, and we build nothing.
 
 ## 2. Definition of done
@@ -58,9 +58,9 @@ Recipe: `ghidra.py SlotCallCtx.py <out> 0x20 40` (and `0x24`, `0x30`), keep the 
 **Research:** none beyond §1–3.
 
 **Files:**
-- Modify: `src/DK2.Simulation/CreatureSoundRules.cs` → a `ThingSoundRules.Request(context, system, thingId, category, event, position)` used by creatures, objects, doors, traps, shots and rooms; keep `CreatureSoundEvent` values as constants.
+- Modify: `src/DK2.Simulation/CreatureSoundRules.cs` → a `ThingSoundRules.Request(context, system, thingId, category, event, position)` used by creatures, objects, doors, traps, shots and rooms; `ThingSoundEvent` holds the event values (`0xD6`, `0xDF` so far).
 - Modify: `src/DK2.Simulation/SimulationEvents.cs` (`CreatureSound` → `ThingSound`), `src/DK2.Presentation/CreatureSoundDirector.cs` → `WorldSoundDirector`.
-- Tests: rename and extend `tests/DK2.Presentation.Tests/CreatureSoundTests.cs`; add a test that a simulation run with a sound sink and without one ends with the same hash.
+- Tests: `tests/DK2.Presentation.Tests/WorldSoundTests.cs` (was `CreatureSoundTests.cs`); `CombatApproachTests.ListeningForSoundsLeavesTheHashAlone` runs with and without a sound sink and compares hashes.
 
 **Steps:** FAIL → implement → PASS → gate → commit `sound: one world-sound event for every thing kind`.
 
@@ -68,13 +68,13 @@ Recipe: `ghidra.py SlotCallCtx.py <out> 0x20 40` (and `0x24`, `0x30`), keep the 
 
 **Research:** [sound-effects.md §4](../research/sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets) is CONFIRMED (`0x00566FC0`, `0x00567810`, `0x005678F0`): 29-event counters, the 17-value gap table, 300/500 ms frame thresholds.
 
-**Files:** Create `src/DK2.Presentation/SoundThrottle.cs`, applied in `WorldSoundDirector` before a request reaches the player. Tests: `SoundThrottleTests.cs` from the record's table values and boundaries (exactly 300 ms is normal).
+**Files:** Create `src/DK2.Presentation/SoundThrottle.cs`, applied to every effect request in Unity's `ClassicSoundPlayer.Play`, not in `WorldSoundDirector`: the native gate sits in the manager's request slots (`0x00567810`, `0x005678F0`), so it also covers interface sounds such as `0x30F`. `DungeonRunner.Sound.cs` updates it after each world frame (`0x005674F0` calls `0x00566FC0` at `0x00567500`); the front end never does. Tests: `SoundThrottleTests.cs` from the record's table values and boundaries (exactly 300 ms is normal).
 
 **Steps:** FAIL → implement → PASS → gate → commit `sound: the native frequent-event throttle`.
 
 ### Task W1.3: Positional playback in Unity
 
-`ClassicSoundPlayer` plays world requests at their position. Q678 stays open: do not import OpenKeeper's voice counts, distances or fades. Set a 3D source per request with Unity's default rolloff, record the choice as a remake policy in the code comment, and leave Q678 as is. Owner check: a battle call is heard from its side of the screen.
+`ClassicSoundPlayer` plays world requests at their position. Q678 stays open: do not import OpenKeeper's voice counts, distances or fades. Set a 3D source per request with Unity's default rolloff, record the choice as a remake policy in the code comment, and leave Q678 as is. The director places a sound at the view's `(x, height, -y)`, as `DungeonScene.Ground` draws. Owner check: a battle call is heard from its side of the screen.
 
 ---
 
@@ -234,7 +234,7 @@ Not world sounds, but found unwired by the same scan: cheat entry `0x133`; icon 
 
 | Phase | Commit | Tests | Owner heard it |
 |---|---|---|---|
-| W1 Foundation | | | [ ] |
+| W1 Foundation | `5950dc09`, `14fe94e6`, `d8b71e07`, `07318061` | `WorldSoundTests`, `SoundThrottleTests` (`DK2.Presentation.Tests`), `CombatApproachTests.ListeningForSoundsLeavesTheHashAlone`; full gate green | [ ] |
 | W2 Hand and cursor | | | [ ] |
 | W3 Terrain and rooms | | | [ ] |
 | W4 Imps and creature states | | | [ ] |

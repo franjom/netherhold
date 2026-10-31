@@ -85,7 +85,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   The completed hash353/master versus hash354 comparison and its causal limits are in
   [Level 4 outcomes](research/level4-outcomes.md#fleeing-imps-near-a-guard-room-q665-hash-345-adr-0609).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
-  combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
+  combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31); world-sound foundation (W1 built, owner hearing pending) and the rest of the sound sites: [plan](plans/2026-10-31-world-sounds.md). A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
   DK2's do, with the hated-company rule (ADR-0479); the store sweep runs on
   DK2's turn (Q596). The stun counts from its first call (ADR-0480). Only a

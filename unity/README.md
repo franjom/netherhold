@@ -40,7 +40,7 @@ use the local TrueType face described below, with original bitmap fallback and
 original glyph metrics (ADR-0539).
 Sound reads SDT entries from the install through `IClassicSoundAssets`, decodes in memory
 with NLayer (ADR-0583), and keeps no disk cache. Menu/HUD effects, the Mentor and
-scripted level lines, music and ambience are wired; Unity hearing acceptance is pending.
+scripted level lines, music and ambience are wired, and so are world sounds from the simulation (creature battle call and sacked, played at the thing's position through `WorldSoundDirector`; Unity's default 3D rolloff is remake policy, Q678). `ClassicSoundPlayer` applies DK2's frequent-event throttle to every effect and `DungeonRunner` updates it after each world frame. Unity hearing acceptance is pending.
 Options/front-end music, the atmosphere player and idle taunts remain unbuilt.
 
 Campaign progress uses `campaign-profile.dk2p` under Unity
