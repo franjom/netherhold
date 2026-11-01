@@ -91,10 +91,11 @@ finale (creature state 234, `0x00474F80`; it visits its own tile and the four
 orthogonal neighbours; see [campaign-win-sequence.md](campaign-win-sequence.md) §3).
 
 **The lock command** `0x00513800` reads a thing id from the packet and refuses
-unless the thing is live in `[0x006ED540]`, its type word `+0x12` is 4, and its
+unless the thing is live in `[0x006ED540]`, its class dword `+0x12` is 4, and its
 owner `+0x28` equals the issuing player. It takes **no mode**: `0x0051382D`
 computes `3` from a zero lock mode and `0` from any other, so the command is a
-toggle; this path does not request modes 1 or 2.
+toggle; this path does not request modes 1 or 2. It is game action 93 (`game-actions.md` §2.1;
+the owner's Level 5 recording, 2026-11-01).
 
 **The lock-pick timer.** `+0x115` is a plain tick countdown: the update
 decrements it by one (`0x004A56A1`) above both the construction bypass and the

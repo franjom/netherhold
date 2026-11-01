@@ -207,7 +207,7 @@ The packet through turn 1899 has 82 commands: 31 tags, 2 untags, 2 room builds,
 `dk2tools replay --packet ... --packet-offset 69` reads all 82 actions directly.
 The first turn comes from the record; the verified record offset must be supplied.
 Packet mode requires `-` for tags and rejects `--rooms`, preventing ignored inputs. Its entity map uses
-`original,from_turn,ours,kind` (Creature or Object), because DK2 reuses entity slots: IDs 450 and 451 begin
+`original,from_turn,ours,kind` (Creature, Object, GoldTile or DoorTile; this recording uses the first two), because DK2 reuses entity slots: IDs 450 and 451 begin
 as hero Dwarves and later hold keeper Goblins. The read-only playback probe
 (`creature-map.csv` beside the packet) supplies the original slot lifetimes:
 

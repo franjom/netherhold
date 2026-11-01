@@ -269,6 +269,33 @@ public sealed class PacketLogTests
         finally { File.Delete(path); }
     }
 
+    /// <summary>The owner's Level 5 door lock (<c>l5live.sav</c>, turns 4013 and 4071): action 93 names
+    /// door slot 1982, at (9,26) in the capture, with 1 then 0 in the second field. The handler
+    /// <c>0x00513800</c> reads only the slot word (+0x0) and the player (+0x10), then toggles.</summary>
+    [Fact]
+    public void DoorLockResolvesTheDoorsTile_AndIgnoresTheSecondField()
+    {
+        var bytes = new List<byte>(new byte[69]);
+        Turn(bytes, 4013, (1982, 1, 0, 93));
+        Turn(bytes, 4014, (0xABCD0000u | 1982, 0, 0, 93));
+        Turn(bytes, 4015);
+        string path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(path, [.. bytes]);
+            PacketLog packet = PacketLog.Read(path, 4014, 69);
+            Assert.Equal(new[] { (4013L, 1982u, PacketEntityKind.DoorTile), (4014L, 1982u, PacketEntityKind.DoorTile) },
+                packet.EntityReferences);
+            var map = new PacketEntityMap();
+            Assert.Throws<InvalidDataException>(() => packet.At(4013, map));
+            map.Add(1982, 1, 9 | 26 << 16, PacketEntityKind.DoorTile);
+            var expected = new LockDoorCommand(new PlayerId(3), new TilePos(9, 26));
+            Assert.Equal(expected, Assert.Single(packet.At(4013, map).All));
+            Assert.Equal(expected, Assert.Single(packet.At(4014, map).All));
+        }
+        finally { File.Delete(path); }
+    }
+
     /// <summary>The owner's Level 4 possession (<c>l4live.sav</c>, turns 6282, 6300, 6312 and 6388):
     /// action 25's word splits into Z and heading; 26 packs X with yaw, Y with pitch, and Z with
     /// the melee bit and the slot nibble; 21 carries nothing the command reads.</summary>

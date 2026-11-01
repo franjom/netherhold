@@ -56,7 +56,13 @@ So the two halves name each other. The recordings say what a command *is*, from
 an owner performing a numbered list; this table says what code *runs*. The names
 folded into §4's map below are the recordings', and each one now has a handler to
 read when its turn comes. Thirteen were added this way; **93 and 106 appeared in
-a recording against no action the owner named, and stay UNKNOWN.**
+a recording against no action the owner named.** 106 stays UNKNOWN. 93 is the door lock
+(2026-11-01). The owner's Level 5 recording (`l5live.sav`, turns 4013, 4071, 4078, 4096) names
+thing slot 1982 each time, the player's door at (9,26) in the capture. The second field reads
+1, 0, 1, 0, but handler `0x00513800` reads only the slot word (+0x0) and the player (+0x10). It
+refuses a dead slot, a thing whose class `+0x12` (dword) is not 4, and another owner's door,
+then toggles through `Door_SetLockMode` (`0x004A6800`): mode 0 becomes 3, and any other mode
+becomes 0. The replay decodes it as `LockDoorCommand` (`PacketLog`, entity-map kind `DoorTile`).
 
 ## 3. `FUN_00514830` is game action 26, not "the healing handler"
 
@@ -124,7 +130,7 @@ assumed to be milliseconds (UNKNOWN). So are the meanings of `0x0048AD30`,
 | `0x15` | `0x00514590` leave possession | `0x37` | `0x00513340` cast a spell on a creature | `0x55` | `0x00506100` |
 | `0x19` | `0x005146b0` the per-turn stream while possessing | `0x38` | `0x00513370` | `0x58` | `0x00513760` activate Special |
 | `0x1a` | `0x00514830` **the possessed creature acts — Q340** | `0x39` | `0x00513480` take a creature into the hand | `0x5c` | `0x005137e0` the window lost or regained focus |
-| `0x1b` | `0x005163c0` | `0x3a` | `0x005134e0` | `0x5d` | `0x00513800` |
+| `0x1b` | `0x005163c0` | `0x3a` | `0x005134e0` | `0x5d` | `0x00513800` lock or unlock a door (toggle) |
 | `0x1c` | `0x00516ec0` | `0x3b` | `0x005135b0` take gold into the hand | `0x64` | `0x00513850` |
 | `0x1d` | `0x00517270` | `0x3c` | `0x00513600` | `0x65` | `0x00513860` |
 | `0x1e` | `0x00517190` | `0x3d` | `0x00513650` drop what the hand holds | `0x66` | `0x00513870` |

@@ -23,15 +23,16 @@ public sealed class PacketLog
     public IReadOnlyList<(long Turn, uint Original, PacketEntityKind Kind)> EntityReferences =>
         [.. _turns.OrderBy(pair => pair.Key)
             .SelectMany(pair => pair.Value
-                .Where(action => action.Kind is 55 or 57 or 59 or 62 or 88)
+                .Where(action => action.Kind is 55 or 57 or 59 or 62 or 88 or 93)
                 .SelectMany(action => References(pair.Key, action)))];
 
     private static IEnumerable<(long Turn, uint Original, PacketEntityKind Kind)> References(long turn, PacketAction action)
     {
-        yield return (turn, action.Kind == 55 ? action.Second & 0xffff : action.First, action.Kind switch
+        yield return (turn, action.Kind switch { 55 => action.Second & 0xffff, 93 => action.First & 0xffff, _ => action.First }, action.Kind switch
         {
             88 => PacketEntityKind.Object,
             59 => PacketEntityKind.GoldTile,
+            93 => PacketEntityKind.DoorTile,
             _ => PacketEntityKind.Creature,
         });
         // Action 88's target word: a creature for Kill Creatures and Transfer Creature, else zero.
@@ -196,6 +197,12 @@ public sealed class PacketLog
                         target == 0 ? 0 : Resolve(target, PacketEntityKind.Creature)));
                     break;
                 case 114:
+                    break;
+                case 93:
+                    // Lock or unlock a door (0x00513800): the door's slot in the word at +0x0, the
+                    // player at +0x10; the handler toggles and never reads the second field.
+                    int door = Resolve(a.First & 0xffff, PacketEntityKind.DoorTile);
+                    commands.Add(new LockDoorCommand(player, PackedTile((uint)door)));
                     break;
                 // Not replayed. 75 reveals the map on the issuing machine only, and 92 is the
                 // window losing or regaining focus. 134 does change state, but only after the

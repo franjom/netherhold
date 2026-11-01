@@ -8,8 +8,10 @@ namespace DK2.Tools;
 
 /// <summary>What an original slot maps to. <see cref="GoldTile"/> maps a floor gold pile
 /// to the tile index it lay on, since piles are interchangeable and our mining makes its
-/// own; the replay picks up whichever of our piles is on that tile.</summary>
-public enum PacketEntityKind { Creature, Object, GoldTile }
+/// own; the replay picks up whichever of our piles is on that tile. <see cref="DoorTile"/> maps a
+/// door to its tile packed as the packets pack tiles (x | y &lt;&lt; 16), since ours names doors
+/// by tile (<see cref="DK2.Simulation.Commands.LockDoorCommand"/>).</summary>
+public enum PacketEntityKind { Creature, Object, GoldTile, DoorTile }
 
 /// <summary>Maps original entity slots to simulation entities at a turn. DK2
 /// can reuse a slot after its first occupant dies.</summary>
