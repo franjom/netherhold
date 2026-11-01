@@ -94,7 +94,7 @@ Returns 1 only when every test passes. DK2's own field names throughout.
 | `Leaving` (`+0x3E6` bit 14) → only with `force` | `Activity == Leaving` needs force |
 | `+0x16 ≠ 2` | UNKNOWN (Q364) |
 | `FreezeTimer` `+0x447` and `ChickenTimer` `+0x44B` both zero | `Activity` not `Frozen` or `Stunned` (ADR-0168); `ChickenTicks` zero (ADR-0302) |
-| `Flags` `+0x46F` bit 0 — cleared with the state-242 change on the pick-up path, 9 at construction — or `force` | `!InHand` |
+| `Flags` `+0x46F` bit 0 — 9 at construction; cleared by process 39 on a Jack, the creature update's state-242 countdown (`0x004889C1`), the slap and others; not by the Hand's pick-up `0x004BC500` (review 2026-11-01) — or `force` | `CreatureFightFlags.MayLookForAFight`, only the Jack's clear built (ADR-0615); `!InHand` is a separate stand-in |
 | not `Possessed` (bit 7), not `CreatureDying` (bit 21) | `IsPossessed`, `IsDown` |
 | not en route (state 6) toward a threat (251) or fleeing (202), unless `force` | no such states yet |
 | not `IsHypnotised` (`+0x3EA` bit 0) | not modelled |
@@ -133,7 +133,8 @@ eight ranged slots taken** (§7). Otherwise set.
 
 So a sleeping creature cannot be attacked, as read (Q360 asks the owner). Ours:
 `CombatRules.IsAttackable` — down, captive, leaving, held, the lair walk and
-sleep, sixteen attackers.
+sleep, sixteen attackers, and `+0x46F` bit 3 as `CreatureFightFlags.Attackable` (only the Jack's
+clear is built, ADR-0615).
 
 ## 5. Seeing and reaching
 

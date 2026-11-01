@@ -63,7 +63,7 @@ such overrides when the experiment is about campaign numbers (`Q520CorridorsGlob
 ## 2. Install and play
 
 Copy the six files from `<stage>\maps` into `<install>\Data\editor\maps`, **under new names
-only**: never overwrite a shipped file. Archive the same six files and the recipe's commit in
+only**: never overwrite a shipped file. They stay there only for the session (see below). Archive the same six files and the recipe's commit in
 the run's evidence folder, which holds the capture too (AGENTS.md: `D:\DK2Evidence\` is add-only).
 
 The recorder must be running before the game starts, and both must run elevated. From an
@@ -77,6 +77,11 @@ Start-Process cmd -WorkingDirectory 'D:\DungeonKeeperRemake\reverse-engineering'
 (`show` prints it). `MESSAGE.LOG` in the install records the command line DK2 ran with, so it
 shows whether the level loaded. The recorder and its options are in
 `reverse-engineering/README.md`, "Full-state captures".
+
+**Remove the level from the install after the session**, once its six files are in the run's
+evidence folder (check by SHA-256), and with the owner's approval. The install-gated tests treat every
+file in `Data\editor\maps` as the shipped corpus of 66 levels. On 2026-11-01 four test levels left
+installed failed 28 of them; `build` brings a level back byte for byte.
 
 Lessons from Q520:
 

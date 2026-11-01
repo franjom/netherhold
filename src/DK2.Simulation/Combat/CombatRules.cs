@@ -181,6 +181,7 @@ public static class CombatRules
         && !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Leaving
         && !HandRules.IsHeld(creature)
+        && creature.FightFlags.HasFlag(CreatureFightFlags.Attackable)
         && !(CreatureStateMachine.HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).Has(CreatureStateFlags.NotAttackable))
         && !StatusEffectRules.IsInvisible(creature)
         && !AllSlotsTaken(creature);
@@ -190,7 +191,8 @@ public static class CombatRules
         || CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Torture;
 
     /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a captive,
-    /// one asleep, one leaving unless forced, one in the hand unless forced, the possessed
+    /// one asleep, one leaving unless forced, one in the hand or with <c>+0x46F</c> bit 0 clear (a sprung
+    /// Jack, ADR-0615) unless forced, the possessed
     /// creature, a dying one, one in a state flagged <see cref="CreatureStateFlags.NoFightLookup"/>
     /// (the stuns, but not 257, getting up: a dropped creature fights as it rises), one whose
     /// freeze timer runs, and one walking to its withdraw
@@ -207,6 +209,7 @@ public static class CombatRules
         && (creature.Activity != CreatureActivity.Leaving || force)
         && (creature.Activity is not (CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm) || force)
         && (!HandRules.IsHeld(creature) || force)
+        && (creature.FightFlags.HasFlag(CreatureFightFlags.MayLookForAFight) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
         && !NoFightLookup(creature)
         && !StatusEffectRules.IsFrozen(creature)

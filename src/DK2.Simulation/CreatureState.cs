@@ -339,6 +339,11 @@ public sealed class CreatureState
     /// <summary>A Jack's death shot (65) has been made: DK2 makes it in the health routine that kills it.</summary>
     public bool DeathShotFired;
 
+    /// <summary>Bits 0 and 3 of <c>creature+0x46F</c>: 9 at construction, both cleared by process 39 on a
+    /// new Jack (<c>0x0048DF10(0)</c>, <c>0x0048DFA0(0)</c>). Their other callers (the creature update's
+    /// state-242 countdown, the slap, Imp and spawn paths, states 237 and 238) are not built (ADR-0615).</summary>
+    public CreatureFightFlags FightFlags = CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable;
+
     /// <summary>Gold in this creature's hands: mined into its own hands up to
     /// <see cref="Data.Model.CreatureDef.MaxGoldHeld"/>, carried to a place its
     /// keeper can keep gold, put down there (Q31, CONFIRMED by the owner).
@@ -1353,6 +1358,7 @@ public sealed class CreatureState
         hash.Add((int)RouteOptions);
         hash.Add(HeartTargetPlayerId);
         hash.Add(DeathShotFired);
+        hash.Add((byte)FightFlags);
         Body.HashInto(ref hash);
         hash.Add(GoldHeld);
         hash.Add(CasinoBigWinnerTicks);

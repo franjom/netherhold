@@ -16,6 +16,9 @@ public class JackInTheBoxTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
+    /// <summary>State 6, the walk state 273 resumes from (creature-state-table.md).</summary>
+    private const int WalkState = 6;
+
     /// <summary>Creature 46 as far as the Jack's rules read it: 240 health, no body, an Artisan.</summary>
     private static CreatureDef Jack() => Dk2TerrainFixture.Goblin() with
     {
@@ -74,6 +77,38 @@ public class JackInTheBoxTests
         Assert.Equal((Keeper, Rival), (jack.OwnerPlayerId, jack.HeartTargetPlayerId));
         Assert.Equal(CreatureActivity.JackInTheBox, jack.Activity);
         Assert.Empty(world.Traps);
+    }
+
+    /// <summary>Process 39 clears <c>+0x46F</c> bits 0 and 3 (<c>0x0048DF10(0)</c>, <c>0x0048DFA0(0)</c>): the
+    /// fight gate refuses the Jack unless forced and nothing may attack it. In M7Traps (2026-11-01) DK2's
+    /// Jack walked past the keeper's Imp to the heart and neither fought (jack-in-the-box.md §7).</summary>
+    [Fact]
+    public void ASprungJackNeverLooksForAFight_AndCannotBeAttacked_WhileAnOrdinaryCreatureCanDoBoth()
+    {
+        (GameDatabase db, WorldState world) = Open();
+        ref TileState trapTile = ref world.Tile(5, 5);
+        trapTile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+        trapTile.OwnerPlayerId = Keeper;
+        ThingProjection.Place(world, db, [new TrapThing(new byte[16]) { X = 5, Y = 5, TrapId = Dk2TerrainFixture.JackInTheBoxTrapId, PlayerId = Keeper, NumberOfShots = 1 }]);
+        world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Rival, new TilePos(5, 5));
+        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(9, 5));
+        GameSimulation sim = Sim(db, world, new ListEventSink());
+        sim.Run(2);
+
+        CreatureState jack = Assert.Single(world.Creatures, c => JackInTheBoxRules.IsJack(c));
+        Assert.Equal(CreatureFightFlags.None, jack.FightFlags);
+        // In 273 the state table already refuses both; the bits are what refuse them on the walk (state 6).
+        for (int i = 0; i < 20 && jack.Dk2StateId != WalkState; i++) sim.Run(1);
+        Assert.Equal(WalkState, jack.Dk2StateId);
+        Assert.False(CombatRules.MayLookForAFight(world, db, jack, force: false));
+        Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: true));
+        Assert.False(CombatRules.IsAttackable(jack));
+        jack.FightFlags = CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable;
+        Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: false));
+        Assert.True(CombatRules.IsAttackable(jack));
+        Assert.Equal(CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable, goblin.FightFlags);
+        Assert.True(CombatRules.MayLookForAFight(world, db, goblin, force: false));
+        Assert.True(CombatRules.IsAttackable(goblin));
     }
 
     [Fact]

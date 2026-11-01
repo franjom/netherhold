@@ -14320,3 +14320,32 @@ first rolls' other refusals are unchanged.
 Evidence: [portals-interval.md](research/portals-interval.md#no-lair-space-no-arrival-q709-adr-0614);
 KB `004C6DD0`, `004DBF90`, `004DBD90`. `PortalTests.WithNoLairOneHomelessCreatureShutsThePortal`,
 `PortalTests.EachFreeLairSlotAdmitsOneMoreBedlessCreature`.
+
+## ADR-0615 - the Jack neither looks for a fight nor can be attacked
+
+Status: accepted, 2026-11-01. Hash/save 359.
+
+Process 39 (`0x004B02E0`) calls `0x0048DFA0(0)` and `0x0048DF10(0)` on the Jack it makes, clearing
+bits 3 and 0 of `creature+0x46F`; a creature is made with that byte at 9. The fight gate
+`0x0045A6D0` refuses a creature whose bit 0 is clear unless forced, and `IsAttackable`
+(`0x0045A8B0`) is cleared while bit 3 is clear (combat-acquisition.md §2, §4). In `M7Traps`
+(2026-11-01, `jack-in-the-box.md` §7) DK2's Jack walked past the keeper's Imp into the Heart room,
+and neither entered a fight state. Ours held neither bit, so its Jack engaged the Imp and then
+swung at the Heart.
+
+Decision: `CreatureState.FightFlags` (`CreatureFightFlags`) holds the two bits, both set at
+construction. `JackInTheBoxRules.Spring` clears them. `CombatRules.MayLookForAFight` requires bit 0
+unless forced, and `CombatRules.IsAttackable` requires bit 3. Not built: the setters' other callers
+in KB `0048DFA0` and `0048DF10` (the creature update's state-242 countdown at `0x004889C1`, the slap,
+the Imp's teleport walk and other Imp paths, the hero party spawn, states 237 and 238), and bit 0's
+other readers, `SelectAVictim` (`0x0045CB00`) and `0x0045F030`. The Hand's pick-up (`0x004BC500`) does
+not write `+0x46F`; `HandRules.IsHeld` in the gate stands for some other test (review 2026-11-01).
+
+Consequence: in a harness run on `M7Traps` (scratch, not a test) ours' Jack now takes DK2's path to the heart corner (x+1, y+1) and is at
+(20.48, 31.81) on turn 57, where DK2's was. It does not settle there: it keeps re-walking in
+state 6 for about a hundred ticks where DK2's stopped after nine (Q711). The earlier claim that ours
+cannot route to that corner was wrong; the fights had kept it away.
+
+Evidence: [jack-in-the-box.md](research/jack-in-the-box.md#7-watched-in-play-2026-11-01-q524);
+KB `004B02E0`, `0048DFA0`, `0048DF10`.
+`JackInTheBoxTests.ASprungJackNeverLooksForAFight_AndCannotBeAttacked_WhileAnOrdinaryCreatureCanDoBoth`.
