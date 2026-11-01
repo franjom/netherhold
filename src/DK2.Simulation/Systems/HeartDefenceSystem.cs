@@ -82,6 +82,9 @@ public sealed class HeartDefenceSystem : ISimulationSystem
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        context.Navigation.Refresh();
+        // 0x0047189E -> 0x004B35C0: test the raw destination before routing.
+        if ((context.Navigation.NavByte(intruder.PosX >> 12, intruder.PosY >> 12) & 0x08) != 0) return;
         int sent = 0;
         foreach (CreatureState c in world.OwnedCreatures(owner))
         {
@@ -96,7 +99,7 @@ public sealed class HeartDefenceSystem : ISimulationSystem
 
             // The Imp with 0x80, everyone else with 0 (0x004D99A4, 0x004D99F6).
             MoveOptions options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
-            // 0x004D9A1A -> 0x004CF490 keeps the exact point within the current tile too.
+            // Retain the point using ADR-0388's tile approximation of 0x004CF490's triangle case.
             if (!context.Navigation.TryRouteToStance(c, intruder.PosX, intruder.PosY, options)) continue;
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;

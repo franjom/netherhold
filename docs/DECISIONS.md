@@ -14429,3 +14429,20 @@ object or interaction visibility.
 Consequence: exposed boundary faces are submitted without exploring any tile.
 Simulation state and hash/save 361 are unchanged. Evidence, tests and remaining
 boundaries: [plain terrain](research/floor-and-terrain-pieces.md#scanned-liquid-boundary-correction-2026-11-01-adr-0618), Q643.
+
+## ADR-0619: preserve the reporting timeout and reject solid responder points
+
+Status: Accepted (2026-11-01).
+
+Context: Q712's binary-first audit found two differences on the reporting path.
+Outcome scores do not establish a new fight or flee rule.
+
+Decision: retain the wrapping reporting counter on expiry and use the unsigned
+comparison at `0x004759AC`. Before a Heart responder requests its point route,
+reject raw navigation mask `0x08` destinations as `0x0047189E` / `0x004B35C0` do.
+Keep ordinary acquisition and fear rules; change no constants or RNG weights.
+
+Consequence: hash/save 362 rejects 361 saves. Four regression cases fail against
+old source; ordinary acquisition and flee controls remain. The target-acquisition
+and entry-count gap remains Q712; adapter boundaries remain Q713. Evidence,
+verification and scores: [Heart defence parity](research/heart-defence-parity.md#q712-state-254-audit-2026-11-01).

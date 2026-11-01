@@ -21,8 +21,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   native playback acceptance remains Q685.
 
 - Portal lair capacity and stored pick-ups are built (ADR-0614/0616, Q709 closed).
-  Heart defender selection and same-tile response routes are corrected at hash/save 361
-  (ADR-0617); [scope, verification and matched resyncs](research/heart-defence-parity.md), Q712/Q713; the regression-check restore limit is Q714.
+  Heart defender selection and same-tile response routes (ADR-0617), reporting timeout
+  and responder navigation gate (ADR-0619) are built at hash/save 362; [scope, verification and matched resyncs](research/heart-defence-parity.md), Q712/Q713; the regression-check restore limit is Q714.
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
@@ -85,7 +85,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
 - Q665's harness faults are fixed; Q710 remains the Level 4 turn-5000 Guard-room residual.
   [Earlier diagnosis](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31);
-  the matched [hash360/361 regression check](research/heart-defence-parity.md#outcome-resyncs) is limited by [Q714](research/resync-replay.md#heart-and-terminal-state-restoration-q714).
+  the matched [hash360/361/362 regression check](research/heart-defence-parity.md#outcome-resyncs) is limited by [Q714](research/resync-replay.md#heart-and-terminal-state-restoration-q714).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as

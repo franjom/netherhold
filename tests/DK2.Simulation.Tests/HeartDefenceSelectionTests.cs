@@ -32,6 +32,37 @@ public class HeartDefenceSelectionTests
     }
 
     [Theory]
+    [InlineData(1, 254)]
+    [InlineData(3, 199)]
+    public void Reporting_0045E9F0_AcquiresOnTheOrdinaryImpCadenceWithoutAnIncomingAttacker(byte counter, int state)
+    {
+        var (db, world) = World(FightStyle.Flanker);
+        CreatureState hero = world.SpawnCreature(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(9, 5));
+        imp.PosX += 0x400;
+        StatePlacement.Place(imp, 254);
+        imp.FightProcessCounter = counter;
+        imp.LastFightScanTileIndex = 5 * world.Width + 9;
+        new GameSimulation(db, world, 1, [new ScanReportingImp(imp)]).Tick();
+
+        Assert.Equal(state, imp.Dk2StateId);
+        Assert.Equal(state == 199 ? hero.Id : 0, imp.FightTargetId);
+        Assert.Equal(0, imp.OverThreatCounter);
+    }
+
+    private sealed class ScanReportingImp(CreatureState imp) : ISimulationSystem
+    {
+        public string Name => "reporting control";
+        public void Execute(SimulationContext context)
+        {
+            var combat = new CombatSystem();
+            combat.BeginTurn(context);
+            combat.Update(context, imp);
+            combat.States.Update(context, imp);
+        }
+    }
+
+    [Theory]
     [InlineData(FightStyle.Blitzer)]
     [InlineData(FightStyle.Flanker)]
     [InlineData(FightStyle.Support)]

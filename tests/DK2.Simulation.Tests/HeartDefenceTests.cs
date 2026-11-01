@@ -36,6 +36,41 @@ public class HeartDefenceTests
     }
 
     [Fact]
+    public void HeartDispatch_0047189E_RejectsASolidDestinationEvenOnTheRespondersTile()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState defender = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 11, 12);
+        Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 11, 12);
+        world.Tile(11, 12).TerrainId = Dk2TerrainFixture.Rock;
+        defender.ReportTicks = 17;
+
+        Assert.Equal(-1, FirstSent(db, world, defender, 8));
+        Assert.Equal(17, defender.ReportTicks);
+        Assert.False(defender.HasRoute);
+    }
+
+    [Theory]
+    [InlineData(29, 30, 254)]
+    [InlineData(30, 31, 1)]
+    [InlineData(int.MaxValue, int.MinValue, 1)]
+    [InlineData(-2, -1, 1)]
+    [InlineData(-1, 0, 254)]
+    public void Reporting_004759A6_RetainsTheCounterAndUsesAnUnsignedTimeout(int before, int after, int state)
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState defender = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 11, 12);
+        StatePlacement.Place(defender, 254);
+        defender.ReportTicks = before;
+        defender.Running = true;
+
+        new GameSimulation(db, world, 1, [new DK2.Simulation.Systems.CombatSystem()]).Tick();
+
+        Assert.Equal(after, defender.ReportTicks);
+        Assert.Equal(state, defender.Dk2StateId);
+        Assert.Equal(state == 254, defender.Running);
+    }
+
+    [Fact]
     public void AnEnemyImpNearTheHeartSendsTheOwnersImpRunningToIt_OnTheMeasuredPhase()
     {
         (GameDatabase db, WorldState world) = World();

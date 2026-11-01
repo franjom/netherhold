@@ -868,8 +868,8 @@ public static class FearRules
             if (!me.HasRoute) CombatStates.Arrive(context, me);
             return;
         }
-        if (++me.ReportTicks <= ReportTicks) return;
-        me.ReportTicks = 0;
+        me.ReportTicks = unchecked(me.ReportTicks + 1);
+        if ((uint)me.ReportTicks <= ReportTicks) return;
         me.Running = false;
         CombatStates.Idle(context.Hooks, me);
         context.Emit(SystemName, "stands_down", $"creature={me.Id}");

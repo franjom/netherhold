@@ -227,6 +227,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Windows PowerShell with `$ErrorActionPreference = 'Stop'` aborts on a native command's first
   stderr line (Blender prints Python warnings there); set `Continue` around it and judge `$LASTEXITCODE`.
 
+- Decode imported Python source with `utf-8-sig` before `compile`; Windows default `Path.read_text` can corrupt UTF-8 BOM source and evidence-scorer text.
+
 ## Captures
 
 - A full-state capture (`*.dk2cap`, `reverse-engineering/dk2capture.py`) holds every room record

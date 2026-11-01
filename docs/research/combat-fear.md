@@ -114,7 +114,10 @@ So a hero never withdraws and never runs to its gate, as the owner saw and as ou
 
 ### 3.3 The counter (`0x0045EC80`)
 
-`OverThreatCounter` over 5 → 0; over 3 → 3. `CombatPitFighter`, `IsFearless` or
+`CombatPitFighter` returns 0 before any counter write (STRONGLY INFERRED,
+reviewed instruction check; [record](functions/0045EC80.md)). Ours still clamps
+and clears it: an existing mismatch under Q713, with no demonstrated responder
+case. Otherwise `OverThreatCounter` over 5 → 0; over 3 → 3. `IsFearless` or
 inside `FearlessUntil` → 0, return 0. Else the level-scaled `Fear`
 (`def+0x696`, file `0xF10`, table row 2): `CurrentFear > Fear` → `++`, else → 0.
 A `NonFighter` (`def+0x67E` == 0) with any live creature that is **not** an Imp in
