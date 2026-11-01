@@ -66,10 +66,8 @@ public class CombatNonFighterTests
         Assert.Equal(0, imp.BackOffTimer);
     }
 
-    /// <summary>Near its heart the arm takes any hostile within a tile, so the Imp engages;
-    /// once the Goblin engages, a non-Imp is among its attackers and the counter
-    /// (<c>0x0045EC10</c>, ADR-0347) sends it into flight with no back-off. Before ADR-0347 this test
-    /// asserted a lasting fight.</summary>
+    /// <summary>The newer Goblin chooses the nearer Imp, starts its swing, then the Imp's
+    /// update engages and flees without starting its own swing (0x004B7830, 0x0045EC10).</summary>
     [Fact]
     public void AnImpNearItsHeartTakesAnythingWithinATile_AndFleesFromANonImpBeforeItSwings()
     {
@@ -83,10 +81,11 @@ public class CombatNonFighterTests
 
         sim.Run(5);
         int engaged = sink.Events.ToList().FindIndex(e => e.Kind == "engaged" && e.Detail.Contains($"creature={imp.Id} ") && e.Detail.Contains($"target={goblin.Id} "));
-        int struck = sink.Events.ToList().FindIndex(e => e.Kind == "swing" && e.Detail.Contains($"creature={goblin.Id} ") && e.Detail.Contains($"target={imp.Id} "));
+        int attackerSwing = sink.Events.ToList().FindIndex(e => e.Kind == "swing" && e.Detail.Contains($"creature={goblin.Id} ") && e.Detail.Contains($"target={imp.Id} "));
         int fled = sink.Events.ToList().FindIndex(e => e.Kind == "flees" && e.Detail.Contains($"creature={imp.Id} "));
         Assert.True(engaged >= 0 && fled > engaged, $"engaged {engaged}, fled {fled}");
-        Assert.True(struck < 0 || fled < struck, $"fled {fled}, attacker swing {struck}");
+        Assert.True(attackerSwing >= 0 && attackerSwing < engaged, $"attacker swing {attackerSwing}, engaged {engaged}");
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "swing" && e.Detail.Contains($"creature={imp.Id} "));
         Assert.EndsWith("backoff=0", sink.Events[fled].Detail);
     }
 

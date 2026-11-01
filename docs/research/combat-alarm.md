@@ -117,7 +117,7 @@ fight gate allows a look (only 202 and 251 are refused), so a responder acquires
 the hero as soon as it sees or hears it. Arrived, state 254 counts `state+0x7E` up
 each tick and **returns 1 for thirty ticks**, then sets the walk speed and returns
 0: idle. Standing there it is outside the combat group, so `ProcessFight` runs
-every tenth tick and the ordinary acquisition takes over.
+on its stationary scan cadence (four ticks for an Imp, ten otherwise) and the ordinary acquisition takes over.
 
 ## 5. Built and not built (ADR-0166)
 
@@ -299,8 +299,11 @@ the Combat category on 348-403 of the first 500 ticks in the four seeds whose wa
 
 **Built** (ADR-0407): `HeartDefenceSystem`, after the store sweep. Deviates: ours has no room ids,
 so every heart takes Morgana's phase (1100); the ruin gate reads the player's heart, not the
-room's `+0x9A`; the torturee's kick and `+0x2CC` are not modelled; the job is let go as the
+room's `+0x9A`; the torturee's kick is not modelled; `+0x2CC` is `ReportTicks` and is reset; the job is let go as the
 alarm's responders' is (ours; DK2's `0x00471890` is not read for it).
+
+The Level 5 branch comparison and score/point-route corrections are in
+[heart-defence-parity.md](heart-defence-parity.md).
 
 ### Level7 owner report (2026-10-11)
 

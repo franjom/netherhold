@@ -14393,3 +14393,22 @@ Evidence: [creature-pickup.md](research/creature-pickup.md#permission-is-the-cur
 `CreaturePickupTests.AStoredPickUpLiftsAnotherOwnersCreatureThatPlayRefuses`,
 `CreaturePickupTests.AStoredPickUpStillRefusesTheDeadAndStates51And52`,
 `DropLandingTests.AStoredPickUpsForeignCreatureLandsAs76SaysWhoeverDropsIt`.
+
+## ADR-0617: preserve the Heart defender's target comparison and point route
+
+Status: Accepted (2026-11-01).
+
+Context: the Level 5 resync shows workers surviving and heroes dying too often at the
+Heart. The binary comparison identifies two rule differences, independently of those scores.
+
+Decision: after choosing a creature, replace its strategy score with plain squared
+distance before the route recheck and Heart comparison (`0x0045D69D`-`0x0045D701`).
+Keep the intruder's exact destination for a Heart responder already on that tile
+(`0x004D9A1A`, `0x004D0F60`, `0x004CF490`), using the existing point-route API.
+Keep the native NonFighter and ordinary fear rules; adjust no gameplay constants or RNG weights.
+
+Consequence: hash/save 361 rejects 360 saves. Seven regressions fail against the old
+implementation. Scope, native controls, residual boundaries and matched replay results:
+[Heart defence parity](research/heart-defence-parity.md), Q712/Q713; remaining same-tile
+callers stay under Q565. General room-ID phasing is not reconstructed by this change.
+The Level 4 regression comparison is limited by Q714; see the linked measurements.

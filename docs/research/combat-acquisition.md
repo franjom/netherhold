@@ -223,9 +223,13 @@ the owner's heart (Q363, `win-and-defeat.md` §3.1).
 §2 step 3), is **`Creeping`**: a creeping enemy reads at `def+0x760` per cent of
 its distance, half for every creature but the Horned Reaper's zero. And the
 route-check option is DK2's `MoveOptions` word: `0x80` respects doors, an Imp
-passes `0`.
+passes `0x80`, other creatures `0`.
 
 ### 6.2 After the scans
+
+The selected creature's strategy score is replaced before the route recheck;
+see [0045CB00](functions/0045CB00.md) for the distance handoff and
+[Level 5 comparison](heart-defence-parity.md) for the regression.
 
 1. **Route check**, between the dispatch and scan D (`0x0045D704`–`0x0045D77F`).
    A creature target must answer a route request (`0x004D0E60`, `0x80` for an

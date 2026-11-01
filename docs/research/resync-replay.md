@@ -367,6 +367,15 @@ Heroes' Portals are not touched.
 Moved to [level4-outcomes.md](level4-outcomes.md) (2026-10-29): the full replays' two outcomes, DK2's own
 spread over 8 native seeds, and resyncs at 2400 from each.
 
+## Heart and terminal-state restoration (Q714)
+
+`WorldResync.Apply` copies mana and manufacture state but leaves our Heart health, ruin flag, player status and recorded result untouched.
+In the hash 361 Level 4 control, generator 404 lost its Heart at 4966 before all eight resyncs at 5000; status 3 and defeat-driven leaving persisted afterward. Baseline had no detected pre-resync terminal cases; Level 5 had none on either build.
+Native seed 1 at 5000 records status 0 in the full player region, room 1114 unruined and Heart object 1401 at 100000 health. The short player record cannot supply that status.
+Export and restore these fields from the existing full-player and room/object captures, with tests; do not force Playing for a potentially ended native state.
+Evidence under `F:/DK2Evidence/studies/heart-defence-fixed-l4--2026-11-01--001/`: `resync-terminal-controls.json`, `native-terminal-control.json`, `resync-contamination-analysis.json`.
+The omission confounds the raw post-resync comparison; it does not explain the loss before 5000, which may itself be a regression. Outcome-selected exclusions are descriptive sensitivity analysis, not an unbiased no-regression test. [Scores](heart-defence-parity.md#outcome-resyncs).
+
 ## Limits
 
 The resync copies state, not history: routes, action phases, the task pool's holders and room

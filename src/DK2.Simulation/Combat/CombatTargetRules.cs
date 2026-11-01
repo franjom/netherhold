@@ -278,12 +278,10 @@ public static class CombatTargetRules
         int best = int.MaxValue;
         CreatureState? chosen = ScanAttackers(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
         // 0x0045D5BF: a follower takes its leader's last melee target over scan A's pick; with a
-        // creature chosen no fight-style arm runs (0x0045D5F5), and 0x0045D69D takes the plain squared
-        // distance as the best. Ours does that for the leader's target only: scan A keeps its own.
+        // creature chosen no fight-style arm runs (0x0045D5F5).
         if (PossessionRules.LeaderTarget(world, me) is { } leaders)
         {
             chosen = leaders;
-            best = unchecked((int)TrapRules.DistanceSquared(me.PosX, me.PosY, leaders.PosX, leaders.PosY));
         }
         if (chosen is null && definition.FightStyle == FightStyle.NonFighter)
         {
@@ -294,6 +292,11 @@ public static class CombatTargetRules
             }
         }
         else if (chosen is null) chosen = Scan(context, sight, me, definition, sightSq, hearSq, scratch, ref best);
+
+        // 0x0045D69D-0x0045D701: strategy scores choose the creature; the later
+        // Heart comparison and commit use its plain distance, even if its route fails.
+        if (chosen is not null)
+            best = CombatRules.DistanceSquared(me.PosX, me.PosY, chosen.PosX, chosen.PosY);
 
         // The route check on the arm's creature (0x0045D74A), before the thing scans: unwalkable, it is
         // dropped unless an attack spell can see it, and the scans below look on.

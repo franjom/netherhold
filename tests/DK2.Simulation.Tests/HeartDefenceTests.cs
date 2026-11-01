@@ -20,6 +20,22 @@ public class HeartDefenceTests
     private const int ReportingDanger = 254;
 
     [Fact]
+    public void HeartDispatch_004D9A1A_RetainsTheIntrudersPointWithinTheRespondersTile_004CF490()
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState defender = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 11, 12);
+        CreatureState intruder = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 11, 12);
+        intruder.PosX += 0x400;
+
+        Assert.Equal(3, FirstSent(db, world, defender, 8));
+
+        // The native route keeps a destination even with no triangle gates.
+        Assert.True(defender.HasRoute);
+        Assert.Equal((intruder.PosX << 4, intruder.PosY << 4),
+            (defender.Body.PathTargetPos.X, defender.Body.PathTargetPos.Y));
+    }
+
+    [Fact]
     public void AnEnemyImpNearTheHeartSendsTheOwnersImpRunningToIt_OnTheMeasuredPhase()
     {
         (GameDatabase db, WorldState world) = World();

@@ -17,7 +17,7 @@ namespace DK2.Simulation.Systems;
 /// <remarks>Deviates: DK2's phase is the heart room's id (<c>(turn + room+4) &amp; 3</c>); ours has
 /// no room ids and uses Morgana's on Level 11A (1100) for every heart; the ruin gate reads the
 /// player's heart, not the room's <c>+0x9A</c>; a willing torturee is not kicked to 135 first
-/// (ADR-0400); <c>+0x2CC</c> is not modelled; the job is let go as the alarm's responders do.</remarks>
+/// (ADR-0400); the job is let go as the alarm's responders do.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-alarm.md")]
 public sealed class HeartDefenceSystem : ISimulationSystem
 {
@@ -96,7 +96,8 @@ public sealed class HeartDefenceSystem : ISimulationSystem
 
             // The Imp with 0x80, everyone else with 0 (0x004D99A4, 0x004D99F6).
             MoveOptions options = c.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain;
-            if (!context.Navigation.TryRouteTo(c, intruder.PosX, intruder.PosY, options)) continue;
+            // 0x004D9A1A -> 0x004CF490 keeps the exact point within the current tile too.
+            if (!context.Navigation.TryRouteToStance(c, intruder.PosX, intruder.PosY, options)) continue;
             c.CurrentJob = JobType.None;
             c.JobTileIndex = -1;
             c.Running = true;

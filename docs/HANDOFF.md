@@ -20,7 +20,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
   native playback acceptance remains Q685.
 
-- A keeper whose free lair space (`0x004C6DD0`) is negative gets no portal arrivals (ADR-0614, hash/save 358; Q709 closed). Level 5 resynced at 1400: arrivals match DK2 per state; player Imp deaths 1401-3400 per run DK2 11.12, ours 4.30 (0.80 before; p 0.156), the 3401-5000 window agrees (`F:/DK2Evidence/studies/l05-resync--2026-11-01--001/payload/README.md`). DK2's stored pick-up skips the cursor's permission and lifts heroes; the replay runs it with `--pickups stored` (ADR-0616, hash/save 360, which also stuns a freed prisoner on landing): a small effect, heroes killed 1401-3400 DK2 3.75, ours 6.65 to 6.27 (p 0.062), Imps 4.33; the rest is the fight at the Heart.
+- Portal lair capacity and stored pick-ups are built (ADR-0614/0616, Q709 closed).
+  Heart defender selection and same-tile response routes are corrected at hash/save 361
+  (ADR-0617); [scope, verification and matched resyncs](research/heart-defence-parity.md), Q712/Q713; the regression-check restore limit is Q714.
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
@@ -81,11 +83,9 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Scope, focused verification and pending original-game acceptance:
   [Secret Door work](research/imp-task-objects-and-walks.md#2-kind-11-is-the-secret-door-0x0046cb80).
   Hash304 has no separate full sweep; the hash305 measurement includes both changes.
-- Q665 is answered: scatter plus two resync harness faults (`--births`, Portal clocks), now fixed; from DK2's
-  turn-5000 state a residual remains where the Guard room opens, Q710
-  ([closing Q665](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31)). Level 4 baseline
-  on master f729436c (`F:/DK2Evidence/studies/l04-resync5000--2026-10-31--001/payload`): 6.50 / 11.03 Imp deaths a run in 5001-6000
-  (DK2 / ours); `capture_state.py` now writes creature health signed, so later-turn states load.
+- Q665's harness faults are fixed; Q710 remains the Level 4 turn-5000 Guard-room residual.
+  [Earlier diagnosis](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31);
+  the matched [hash360/361 regression check](research/heart-defence-parity.md#outcome-resyncs) is limited by [Q714](research/resync-replay.md#heart-and-terminal-state-restoration-q714).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
@@ -330,11 +330,9 @@ Native minimap raster and overlay reading: research/minimap-rendering.md.
 Q197 is answered and entrance lighting built; startup/runtime counts, pulse and fog boundary are in research/portal-visibility.md. Q670 retains visual acceptance. HashVersion unchanged.
 Its fresh-game visibility/colour-patch play check Q669 is answered. Input research remains.
 
-Current verification (2026-10-25, ADR-0542): the combined solution and enabled
-native CPU-oracle checks pass 6,562 cases with no failures; seven capture-dependent
-checks skip. This includes 3,795 Simulation and 1,084 Presentation cases;
-the Unity adapter compiles with zero warnings/errors. Logs:
-`D:/DungeonKeeperRemake/build/dwarf-trace/` (combined-build, combined-tests, combined-adapter).
+Current verification (2026-11-01, ADR-0617): Simulation and focused checks pass;
+solution and Unity adapter builds report zero warnings/errors. The solution retains
+one reproduced master Level 18 failure. Counts and logs: [Heart defence parity](research/heart-defence-parity.md#verification-and-measurements).
 Prison chicken passes with master's central (5,4) drop. The branch's
 earlier failure is master's edge-route symptom, whose native cause is still
 unresolved (research/imp-fidelity-integration.md). Our side, from runs on
@@ -365,11 +363,10 @@ tools/classic-unity-probe/README.md.
 
 ## Next work
 
-1. M6: Q710, the Level 4 turn-5000 residual: follow the player's fighters' job and room choices from a 5000
-   resync against the capture ([closing Q665](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31)).
-   Then Q567 and Q590's remainder. The oracle's captured-state mode is the tool
-   for a function-level difference: next it needs an owner recording of the
-   Level 4 playback with --dump-ticks (reverse-engineering/README.md).
+1. M6: close Q714 using existing capture fields and matched resync controls, then recheck
+   Q710's Guard-room exposure and Q712/Q713's Heart defence residuals ([current scope](research/heart-defence-parity.md)).
+   Follow fighter job/room choices from 5000 against the capture; Q567 and Q590 follow.
+   The function-level captured-state method is in reverse-engineering/README.md.
 2. Owner's standing priority (2026-10-10): the excess Level7 Imp deaths (Q582),
    not an accepted deviation; see combat-acquisition.md §1.
 3. M12: the owner decides whether Q563 and Q574 close M12 or are narrowed
