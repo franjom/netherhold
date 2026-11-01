@@ -7,27 +7,40 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
+internal readonly record struct RoomGeometry(TilePos Minimum, TilePos Maximum, TilePos OrdinaryCentre);
+
 /// <summary>One room as a thing, rather than a scattering of tiles that share a terrain type.</summary>
 /// <remarks>
 /// <para>Derived, never stored: an instance is a connected group of tiles with the same room
 /// terrain and owner, recomputed whenever asked for. Membership kept in <see cref="TileState"/>
 /// would need maintaining on every path that changes a tile, splits and merges would need their own
-/// logic, and it would enter the determinism hash — a pure function of already-hashed state needs no field, no snapshot change and no <c>HashVersion</c> bump.</para>
+/// logic, and it would enter the determinism hash. This cache adds no saved state;
+/// changes to its behavior still require a hash/save version bump.</para>
 /// <para>Connectivity is orthogonal — two tiles joined only at a corner are two rooms. STRONGLY
 /// INFERRED from the work that builds rooms being orthogonal (Q27). Answers Q45, Q52, Q60 and Q61.</para></remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/rooms-and-gold.md")]
 public sealed class RoomInstance
 {
+    private readonly TilePos _centre;
+
     internal RoomInstance(RoomDef definition, PlayerId ownerPlayerId, int[] tileIndices,
-                          int minX, int minY, int maxX, int maxY)
+                          RoomGeometry geometry)
     {
         Definition = definition;
         OwnerPlayerId = ownerPlayerId.Value;
         TileIndices = tileIndices;
-        MinX = minX;
-        MinY = minY;
-        MaxX = maxX;
-        MaxY = maxY;
+        MinX = geometry.Minimum.X;
+        MinY = geometry.Minimum.Y;
+        MaxX = geometry.Maximum.X;
+        MaxY = geometry.Maximum.Y;
+        var boxCentre = new TilePos((MinX + MaxX) / 2, (MinY + MaxY) / 2);
+        _centre = definition.RoomId switch
+        {
+            (byte)RoomTypeId.DungeonHeart => boxCentre + new TilePos(1, 1),
+            (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal => boxCentre,
+            >= (byte)RoomTypeId.HeroGateFinal and <= (byte)RoomTypeId.MercenaryGate => boxCentre,
+            _ => geometry.OrdinaryCentre,
+        };
     }
 
     /// <summary>What kind of room this is.</summary>
@@ -53,12 +66,11 @@ public sealed class RoomInstance
     public int Width => MaxX - MinX + 1;
     public int Height => MaxY - MinY + 1;
 
-    /// <summary>DK2's room position words <c>+0x27/+0x29</c>, aimed at by the withdraw and the alarm:
-    /// the box's centre rounded down, one tile further on each axis for a Dungeon Heart. STRONGLY
-    /// INFERRED: three captured 5×5 hearts read the offset, its writer is unread (Q515; ADR-0323).</summary>
-    public int CentreFieldX => ((MinX + MaxX) / 2) + (Definition.TypeId == RoomTypeId.DungeonHeart ? 1 : 0);
+    /// <summary>Room position words +0x27/+0x29: ordinary centroid and owned-tile spiral
+    /// (004E4590). Special rooms retain the existing bounding-box adapters.</summary>
+    public int CentreFieldX => _centre.X;
 
-    public int CentreFieldY => ((MinY + MaxY) / 2) + (Definition.TypeId == RoomTypeId.DungeonHeart ? 1 : 0);
+    public int CentreFieldY => _centre.Y;
 
     /// <summary>Whether the room fills its own bounding box — i.e. it is a solid rectangle.</summary>
     public bool IsRectangular => TileCount == Width * Height;

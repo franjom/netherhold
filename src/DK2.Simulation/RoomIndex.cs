@@ -23,6 +23,7 @@ public static class RoomIndex
     /// <summary>Orthogonal only — two tiles joined at a corner are two rooms.</summary>
     private static readonly int[] NeighbourDx = [0, -1, 1, 0];
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
+    private static readonly TilePos[] CentreSpiralSteps = [new(1, 0), new(0, 1), new(-1, 0), new(0, -1)];
 
     [ThreadStatic] private static bool[]? s_visited;
     [ThreadStatic] private static RoomDef?[]? s_wanted;
@@ -228,12 +229,43 @@ public static class RoomIndex
         // one tile of several — is reproducible. The fill order is not.
         tiles.Sort();
 
-        var room = new RoomInstance(
-            definition, ownerPlayerId, [.. tiles], minX, minY, maxX, maxY);
+        int[] indices = [.. tiles];
+        var geometry = new RoomGeometry(new TilePos(minX, minY), new TilePos(maxX, maxY),
+            FindOrdinaryCentre(world, indices));
+        var room = new RoomInstance(definition, ownerPlayerId, indices, geometry);
         room.InteriorTileIndices = SurroundedWithin(world, room.TileIndices);
         room.InteriorRimTileCount = room.InteriorTileIndices.Count
             - SurroundedWithin(world, room.InteriorTileIndices).Length;
         return room;
+    }
+
+    // 004E4759..004E4954: centroid when owned, otherwise the first owned spiral tile.
+    [Dk2Behavior(Confidence.Confirmed, "docs/research/room-position-parity.md")]
+    private static TilePos FindOrdinaryCentre(WorldState world, int[] indices)
+    {
+        int sumX = 0, sumY = 0;
+        foreach (int index in indices)
+        {
+            sumX += index % world.Width;
+            sumY += index / world.Width;
+        }
+        var point = new TilePos(sumX / indices.Length, sumY / indices.Length);
+        bool Belongs(TilePos at) => world.Contains(at.X, at.Y)
+            && Array.BinarySearch(indices, at.Y * world.Width + at.X) >= 0;
+        if (Belongs(point)) return point;
+
+        int direction = 0;
+        for (int length = 1; ; length++)
+        for (int leg = 0; leg < 2; leg++)
+        {
+            TilePos step = CentreSpiralSteps[direction];
+            for (int i = 0; i < length; i++)
+            {
+                point += step;
+                if (Belongs(point)) return point;
+            }
+            direction = (direction + 1) & 3;
+        }
     }
 
     /// <summary>

@@ -13,6 +13,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**369** - `0xDA38F477882C0B87`. Remake regression pin, not native evidence. FormatVersion also 369. Ordinary simulation room positions use the slab centroid when owned, otherwise the first owned tile on the native expanding spiral. Existing special-room/AI adapters retain their scope. No new saved field; see ADR-0625 and [ordinary room positions](room-position-parity.md). Earlier saves are refused.
 **368** - `0x253230543C1C4CFE`. Remake regression pin, not native evidence. FormatVersion also 368. Ordinary targeted casts retain their counted art6 busy interval after the shot handler finishes; travel and replacement actions discard the old deadline. Existing action-deadline state is saved/hashed. See ADR-0624 and Q720 in [initial fight phase](fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit). Earlier saves are refused.
 **367** - `0xAEF95C92552DC089`. Remake regression pin, not native evidence. FormatVersion also 367. New creatures initialize their fight-scan counter from a separate reusable native pool tag modulo 10. Allocated tags and free-list order survive hashing/snapshots; corpse conversion returns the creature slot once. See ADR-0623 and [initial fight phase](fight-scan-initial-phase.md). Saves from 366 and earlier are refused.
 **366** - `0x0BEC17EF48AD31CC`. Remake regression pin, not native evidence. FormatVersion also 366. Integrates non-gate party arrival (ADR-0622, branch 365) with master's Heart death/opening supply (ADR-0620, integrated 364) and startup tabs (ADR-0621). Earlier saves are refused. The provisional arrival studies retain their original source provenance and do not measure this combined build.
@@ -396,5 +397,4 @@ route targets resolve to their edge; ruins release the structure mask and obstac
 **171** — `0xE109C983710B8617`. Creature Turncoat countdown and retained combat-side tag, both unsigned words; actual ownership stays unchanged. Every scenario hash changes composition; behavioral comparisons against stage 0 are in `keeper-spell-turncoat.md`. ADR-0350.
 
 **170** — `0x08B3B3184DD609AE`. Eight world Tremor records and creature `Fleeing`, `ShouldDelayGetUp` and retained-route pause; the fixed records and false flags change hash composition even without a cast. See ADR-0350 and `keeper-spell-tremor.md`.
-
 [Versions 9–169](hash-versions-early.md) retain the earlier pins and their reasons.

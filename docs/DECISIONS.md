@@ -14542,7 +14542,7 @@ Consequence: hash/save 367 rejects earlier saves. No fixed phase or RNG draw
 is added; native serialized-manager import remains outside our save format.
 The initial phase rule is built (Q718); Q712 remains open after the paired
 366/367 outcomes, with restore inputs tracked under Q719. Binary evidence,
-controls and [measured scope](research/fight-scan-initial-phase.md#matched-outcomes-366-through-368).
+controls and [measured scope](research/fight-scan-initial-phase.md#matched-outcomes-366-through-369).
 
 ## ADR-0624: retain ordinary casting actions after shot release
 
@@ -14563,3 +14563,24 @@ The existing fresh-animation timing surrogate remains in use; this does not
 extend the possessed/free-aim casting model. The matched cast control passes;
 aggregate outcomes leave Q712 and restoration Q719 open. Evidence and scope:
 [initial fight phase](research/fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit).
+
+## ADR-0625: place ordinary room positions on their own slabs
+
+Status: Accepted (2026-11-01).
+
+Context: the native ordinary room position is its slab centroid when owned,
+otherwise the first owned tile in an expanding square spiral. The simulation's
+bounding-box midpoint can be a hole, including Level 5's captured Training Room.
+
+Decision: derive the ordinary position in RoomIndex, using exact component
+membership and the native east/south/west/north expanding order. Pass typed
+geometry into RoomInstance and share that position across its field readers.
+This changes withdrawal destinations and other consumers of the shared
+room position fields. Special-room and AI adapters retain their documented
+scope; this is not a change to room order, RNG or route selection.
+
+Consequence: hash/save 369 rejects earlier saves. Geometry remains derived from
+saved tiles, with no additional snapshot field. Native evidence, pre-edit
+mismatches and implementation bounds: [ordinary room positions](research/room-position-parity.md).
+The bounded ordinary-room rule is matched and Q721 closed; [outcome controls](research/fight-scan-initial-phase.md#matched-outcomes-366-through-369)
+leave Q712/Q719 open, with resident order the next diagnostic input.

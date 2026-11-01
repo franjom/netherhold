@@ -23,7 +23,7 @@ success in a mood chooser skips the handler for that turn.
 ## 2. Ours
 
 `CreatureUpdateSystem` runs its steps one creature at a time, newest first by id. The steps, in
-declared order:
+declared order (captured resync-order limits are [Q719](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369)):
 1. `CombatSystem`: the action runner, the scan and the fear radiation;
 2. `CreatureEatSystem`, `CreatureSleepSystem`, `PaydaySystem`;
 3. `CreatureAngerSystem`;

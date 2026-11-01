@@ -369,7 +369,7 @@ spread over 8 native seeds, and resyncs at 2400 from each.
 
 ## Heart and terminal-state restoration (Q714)
 
-Creature-slot and scan-clock restore limits are tracked separately in [Q719](fight-scan-initial-phase.md#resync-inputs-q719). The [latest 366-368 comparison](fight-scan-initial-phase.md#death-scores-and-level-4-comparison-limit) retains this Heart/terminal restore limit; the hash-361 example below is historical.
+Creature-slot and scan-clock restore limits are tracked separately in [Q719](fight-scan-initial-phase.md#resync-inputs-q719). The [latest 366-369 comparison](fight-scan-initial-phase.md#death-scores-and-level-4-comparison-limit) retains this Heart/terminal restore limit; the hash-361 example below is historical.
 
 `WorldResync.Apply` copies mana and manufacture state but leaves our Heart health, ruin flag, player status and recorded result untouched.
 In the hash 361 Level 4 control, generator 404 lost its Heart at 4966 before all eight resyncs at 5000; status 3 and defeat-driven leaving persisted afterward. Hash 362 and provisional 363 reproduce all creature/event outputs exactly ([comparison](party-arrival-lifecycle.md#death-scores)), leaving this limit unchanged. Baseline had no detected pre-resync terminal cases; Level 5 had none on either build.
