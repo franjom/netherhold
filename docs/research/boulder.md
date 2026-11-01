@@ -156,6 +156,28 @@ Doors, creatures, traps and water do not block.
 `.text` and `cseg` included, finds its address once, the loader's store (`0x0051D2F4`); the same scan
 finds the three readers of 161 and 160. An indexed read through a base was not ruled out.
 
+## 9a. What a wall hit shows and plays (read 2026-10-31, Q520)
+
+The "bridge command" of §1 step 7 and §6 is **command 10** (the id is the record's word `+0xC`,
+`0x00517480`), not 20. The launch posts `(0x14, 10, owner, 10)` and every turn
+`(0x14, 0x32, owner +0x28, 10)`. Command 10's handler `0x004483A0` adds word 0, **20**, to the camera-shake
+counter `CBridge+0x132B` when the owner is the local player, and `0x00441250` spends one per
+presentation update on a ±100 random offset: the owner's screen shakes for 20 updates (as Inferno's,
+shots.md, which posts 1 a tick). Word 1 (10 or 50) is not read by that handler.
+
+Sounds, through the sound manager (`0x0075B468` vtable `+0x20`) on the boulder's one handle `+0x2E`,
+from its definition's bank (`+0x10E`): **335** (`0x14F`) at the start of every roll (§5), **329**
+(`0x149`) after a turn that leaves it whole, and **244** (`0xF4`) when §3 destroys it. OpenKeeper's
+sound list labels 329 `TRAP_HIT_WALL` and 335 `TRAP_ROLL`, both "boulder" (names only; the ids are the
+binary's).
+
+So a wall hit has a crash sound and a screen shake but no break; a turn costs a tenth. **What makes
+it break at a wall in play is the strike** (§4): wear grows by every point it lands on a creature, up
+to that creature's whole level-scaled `Hp`. Once creatures have landed `h − h/10` (3600 of 4000), the
+next turn — the first wall — breaks it (§5: the move goes on, and §3 destroys it that update with
+sound 244). A boulder that hit nothing turns ten times first. This reconciles the owner's recollection
+(Q520b) with the reading without changing it: STRONGLY INFERRED, not watched.
+
 ## 10. Built and not built (ADR-0333)
 
 **Built:** §1; §2's fields as `ObjectState` (`Health`, `PosX/PosY`, `RollX/RollY`, `RollSpeed`, `Wear`,
@@ -168,7 +190,7 @@ fires at the boulder's position with no target thing.
 **Not built:** a shot striking the boulder (its predicate admits object 74, shots.md §4a; contact and
 area damage then quarter or halve), and so a trap's forced hit on it; the slap (ADR-0341: ours slaps creatures and
 the Call to Arms flag only, and carries no angle); creatures steering round a rolling boulder (unread); the heading, spin,
-effects and sounds.
+effects, sounds and the camera shake (§9a).
 
 ## Open questions
 

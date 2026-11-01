@@ -13,7 +13,10 @@ namespace DK2.Simulation;
 /// (process 22, <c>0x004AEBD0</c>) and updated as object process state 17 (<c>0x004A1390</c>): it
 /// strikes what it overlaps, rolls along the tile grid turning at blocked tiles, wears on water,
 /// lava and sunken floors, frightens enemies around it, and breaks when its wear reaches its health.
-/// Not built: a shot striking it, a slap, its heading, and the effects and sounds.</summary>
+/// Not built: a shot striking it, a slap, its heading, and the presentation of §9a — sounds 335 (the
+/// roll), 329 (a turn at a wall) and 244 (the break), and the owner's camera shake that the launch and
+/// every turn post as bridge command 10. A boulder breaks at a wall only once creatures have worn it
+/// close to its health; a wall alone costs a tenth.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/boulder.md")]
 public static class BoulderRules
 {
@@ -243,7 +246,7 @@ public static class BoulderRules
     /// <summary><c>0x004A0E30</c>: the speed falls with wear, <c>s·r/100·(h−w)/h + (100−r)·s·5/100</c> with
     /// <c>r</c> <c>BoulderSpeedToHealthRatio</c>; at a tile centre the handler for its direction may turn
     /// it; then it moves, stopping at each centre line it crosses to ask that line's handler, and a turn
-    /// that leaves it whole ends the tick's move. Then the fear: <c>BoulderFearAmount</c> scaled by health
+    /// that leaves it whole ends the tick's move (DK2 plays sound 329 there). Then the fear: <c>BoulderFearAmount</c> scaled by health
     /// over the definition's, within <c>BoulderFearRange</c> tiles. False when it has no health and is gone.</summary>
     private static bool Roll(SimulationContext context, ISightBlocker sight, ObjectState boulder)
     {
@@ -327,7 +330,8 @@ public static class BoulderRules
     /// <c>0x004A0210</c> W): the tile ahead free, no turn. Blocked, the two sides in a fixed order (west
     /// then east going north or south, north then south going east or west): both blocked, it turns
     /// back; one free, it turns that way; both free, the launch's sign on that axis or a coin. A turn
-    /// wears it by a tenth of its health. True when it turned.</summary>
+    /// wears it by a tenth of its health and posts the owner's camera shake (bridge command 10, 20
+    /// updates; not built). True when it turned.</summary>
     private static bool Turn(SimulationContext context, ObjectState boulder, Direction going)
     {
         WorldState world = context.World;
