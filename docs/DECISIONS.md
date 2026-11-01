@@ -4409,7 +4409,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 4. The world's party record is the one the spawn reads; `TriggerTree.Parties` keeps only the subtree ids it disabled at load (Q256). A party id with no record is DK2's empty slot and succeeds doing nothing.
 
 **Consequences.**
-- Ours, stated: creatures stand at tile centres where DK2 uses the tile's corner; things on the spawn tile are not cleared; no party pace, no creature event 3, no gate state 269, effects or King notification; a random party without a random source throws (Q427).
+- Current party-spawn scope and remaining omissions: see [built scope](research/hero-parties-and-effect-generators.md#built-2026-09-24-adr-0197). ADR-0622 adds the non-gate arrival lifecycle.
 - Level 1's two type-14 records leave `Partial`; the trigger census test moves accordingly.
 - Six tests, the health double-application named in one (Q427); the corpus test pins the tail bytes and the shipped flag values.
 - `HashVersion` and `FormatVersion` **101**, pin `0x4543E72F3F20FE22`.
@@ -14454,3 +14454,24 @@ Consequence: hash/save 362 rejects 361 saves. Four regression cases fail against
 old source; ordinary acquisition and flee controls remain. The target-acquisition
 and entry-count gap remains Q712; adapter boundaries remain Q713. Evidence,
 verification and scores: [Heart defence parity](research/heart-defence-parity.md#q712-state-254-audit-2026-11-01).
+
+## ADR-0622: run the non-gate party arrival before hero activity
+
+Status: Accepted (2026-11-01).
+
+Context: Q712's matched native hero 439 enters 269 and recovers before fighting;
+the remake made it idle immediately. A full spawn-flag read also reverses the
+old gate interpretation: terrains 33/37 bypass 269, other party spawn terrain
+selects it. Direct trigger creation and portal arrivals use separate paths.
+
+Decision: select 269 on the non-gate party path, reveal and raise its pose only
+at state age 8, then reuse the existing 210/263/264 ordinary action-driven
+recovery. End the prior action before 210 starts 64. Keep ordinary scan,
+targetability and steering gates; no fixed stun duration or score-based tuning.
+Save/hash the vertical arrival continuation using the existing zero-floor
+height convention and persistent vertical vector.
+
+Consequence: hash/save 365 rejects earlier saves. General action replacement,
+physical collision/flight and suspension adapters remain bounded; initial
+tag-derived scan phase is Q718. Evidence, address-by-address comparison,
+native timing, tests and scores: [party arrival](research/party-arrival-lifecycle.md).

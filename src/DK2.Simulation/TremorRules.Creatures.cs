@@ -31,6 +31,7 @@ public static partial class TremorRules
         switch (creature.Dk2StateId)
         {
             case KnockdownState:
+                CreatureStateMachine.EndAction(creature);
                 creature.ActionUntilTick = context.Tick.Value + AnimationTimingRules.KnockdownHoldTicks(definition);
                 CreatureStateMachine.TrySetState(context.Hooks, creature, WaitingState, context.Tick.Value);
                 break;

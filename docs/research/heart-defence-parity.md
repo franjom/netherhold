@@ -292,16 +292,14 @@ STRONGLY INFERRED binary/source comparison, before any production change:
 
 | Address / branch | Comparison and remaining mismatch |
 |---|---|
-| 00519F90 / 004626A0 | Gate spawn enters 269; at its counter 8 sets height/previous pose and enters 210. Ours omits this lifecycle; observed early divergence above. Full 263/264 lifecycle was not re-derived in this pass. |
+| 00519F90 / 004626A0 | The subsequent full flag read corrects the gate interpretation and builds the non-gate party lifecycle; see [party arrival](party-arrival-lifecycle.md), ADR-0622. |
 | 0045CB00, 0045D907 / 0045DAB7 | No candidate or worker admits Heart scan; strictly nearer pillar replaces running plain-distance best. Current Choose/ScanHearts agrees on these branches; no matched selector error found. |
 | 00462490 / 00484940 | Job 19 routes to a random Heart-room point, resume 178; 178 returns 0. Current HeroJobRules agrees on this dispatch; existing random-point/route adapters remain as documented in hero-party-walk.md. |
 | 00498E30 | Successful ordinary pillar blow ends its action without a pillar-specific hero-state transition; ours likewise retains the combat target. No new mismatch established. |
 | 0045E9F0 / 004B5D40 / 00489FE6 | Previous pose +F6 is refreshed after scan and before state dispatch/mover. Ours stamps after combat dispatch, before ordinary movement. Ordinary arrival is scanned next update in both; state-side relocation still needs a matched control. |
 | 00460C50 | Native class 0 enemy targeting self can hold a neighbouring tile without a health/state test. HeldByAnAttacker additionally skips IsDown; the pre-existing route existence/options mismatch remains Q713. No collapsed hero retaining an Imp target was found in these captures. |
 
-No production fix follows from these unmatched inputs. Hash/save stays 362;
-no new death-score or ten-seed/Level 4 rerun is claimed. The existing 362 scores
-above remain the baseline, including Q714's Level 4 confound. Next control:
-isolate gate-arrival history and match a hero's acquisition inputs before
-changing selection, scan cadence or responder rules. Watching ordinary play
-cannot substitute for that control; no additional owner-play question arose.
+This measurement pass made no production change; 362 remains its baseline.
+The follow-up [party-arrival lifecycle and matched results](party-arrival-lifecycle.md)
+records ADR-0622/provisional hash 363, the corrected non-gate selection and remaining Q712,
+Q713/Q714 and Q718 boundaries. No additional owner-play question arose.

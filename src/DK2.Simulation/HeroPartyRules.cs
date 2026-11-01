@@ -11,7 +11,7 @@ namespace DK2.Simulation;
 /// hero party is raised at an action point's centre tile, one creature per occupied member slot,
 /// each given its level, gold, health, job, flags and trigger root from the member record, and the
 /// party then linked follower-to-leader. Ours differs, stated: things already on the tile are not cleared;
-/// no gate state 269 or effects, no King notification; the gate step-off moves each creature as
+/// no effects or King notification; the gate step-off moves each creature as
 /// <see cref="StepOff"/> reads (Q427).</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
 public static class HeroPartyRules
@@ -54,10 +54,9 @@ public static class HeroPartyRules
         }
         fromGate = false;
         if (!world.Contains(x, y)) return new TilePos(x, y);
-        RoomDef? room = database.RoomByTerrain(world.Tile(x, y).TerrainId);
-        if (room is null) return new TilePos(x, y);
-        if (room.RoomId == (byte)RoomTypeId.HeroGate2By2) { fromGate = true; x++; y++; }
-        else if (room.RoomId == (byte)RoomTypeId.HeroGate3By1) fromGate = true;
+        byte terrain = world.Tile(x, y).TerrainId;
+        if (terrain == 33) { fromGate = true; x++; y++; }
+        else if (terrain == 37) fromGate = true;
         return new TilePos(x, y);
     }
 
@@ -141,7 +140,7 @@ public static class HeroPartyRules
         GameDatabase database = hooks.Database;
         if (partyType != 0 && IsAlive(world, party.PartyId)) return true;
 
-        TilePos at = SpawnTile(world, database, actionPointId, out _);
+        TilePos at = SpawnTile(world, database, actionPointId, out bool fromGate);
         if (party.TriggerId != 0) armSubtree(party.TriggerId);
 
         for (int i = 0; i < party.Members.Count; i++)
@@ -197,6 +196,7 @@ public static class HeroPartyRules
             state.TriggerRepeat = tree.ResolveCondition(member.TriggerId)?.RepeatCount ?? 0;
             if (member.TriggerId != 0) armSubtree(member.TriggerId);
             created?.Invoke(state);
+            if (!fromGate) PartyArrivalRules.Begin(hooks, state);
         }
 
         party.SpawnCount++;

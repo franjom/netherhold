@@ -115,13 +115,15 @@ that tile times 4096 — the compiler adds and subtracts `0x800`, so the point i
 the tile's **corner**, not its centre. No action point: the position stays (0,0).
 
 The tile under it (world slot `+0x1D4` = `0x00508FE0`: `tiles + (y>>12 × width
-+ x>>12) × 16`, unchecked) decides a **gate flag**:
++ x>>12) × 16`, unchecked) selects the position/effect adjustment below.
+Arrival-state selection is [party-arrival-lifecycle.md](party-arrival-lifecycle.md#spawn-selection);
+ADR-0622 corrects the old interpretation of that flag.
 
 | tile's terrain (`+0x0A`) | what happens |
 |---|---|
-| 33, Hero Gate 2×2 | position moves (+4096, +4096) to the gate's centre point; effect `0x137` spawned there for the hero player; gate flag set |
-| 37, Hero Gate 3×1 | gate flag set, position unchanged |
-| anything else | gate flag clear |
+| 33, Hero Gate 2×2 | position moves (+4096, +4096) to the gate's centre point; effect `0x137` spawned there for the hero player |
+| 37, Hero Gate 3×1 | position unchanged |
+| anything else | position unchanged |
 
 Then every thing on that tile whose class dword `+0x12` is 3 or 4 is finished
 through its vtable slot `+0x20` (a creature's is the health-zeroing
@@ -216,14 +218,14 @@ fields `+0x418` and `+0x417` they are copied to (Q258). A slot whose `CreatureId
 11. **Trigger.** `0x0049A950(creature, TriggerId)` stores `TriggerRoot` and the
     record's repeat count at `+0x4F9`; a non-zero id arms that member's subtree;
     creature event **3** is fired (`0x0049AA30(creature, 3, 0, 0)`).
-12. **From a gate** the creature enters state **269**, a second idle
-    (`0x004626A0`, `creature-state-table.md`), and bit 0 of `+0xF3` is cleared.
+12. **Arrival.** The non-gate party branch selects 269 and clears the draw bit;
+    [full lifecycle and terrain exception](party-arrival-lifecycle.md).
 
 ### After the loop
 
 The spawn count `byte[world+0x70F0+PartyId]` is incremented. The hero player's
 creatures with this `PartyId` are scanned for the **slowest** (`min def+0x5B4`)
-and the **leader** (`Flags` bit 1, the last one found). From a gate, effect
+and the **leader** (`Flags` bit 1, the last one found). Outside the two large gates, effect
 `0x2B` is spawned at the leader's position with z `0x2000`. Then every member's
 speed mode is set with `0x004887D0(0, slowest)` — the party walks at its slowest
 member's pace — and each **follower** (bit 2) gets `MyLeadersId := leader` and
@@ -278,8 +280,10 @@ and party templates to the existing executor; the adapter uses that tested path.
 
 `HeroPartyRules.Spawn` follows the list above; `CreatureLevelRules.LevelUp` is step 7's
 arithmetic. Members stand on the point's tile corner, as DK2's (ADR-0490; CONFIRMED, and DK2's Level 4
-capture shows a party at exactly (15.00, 29.00)); a 3x1 gate's step-off takes a tile centre. Deviations, each named at its site: things on the spawn tile are not cleared; no event 3, gate
-state 269, effects or King notification. The step-off and action 32 are built (ADR-0320); not
+capture shows a party at exactly (15.00, 29.00)); a 3x1 gate's step-off takes a tile centre.
+The arrival lifecycle is built (ADR-0622); the existing created callback fires event 3.
+Deviations: things on the spawn tile are not cleared; effects and King notification
+remain omitted. The step-off and action 32 are built (ADR-0320); not
 built: the Tile gate's walk (no shipped map has one), the 2x2 ruin's object destruction (no
 object is placed on a gate) and action 32 on a heart. The fields the spawn writes are hashed on the
 creature under the dumper's names, and `SpawnCount` on the party.

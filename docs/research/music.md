@@ -325,9 +325,10 @@ Read 2026-10-28 (literal-push scans of `SetState` `0x00476D30` and its wrappers 
   179's room is the nearest `Buildable` room (`0x004C60E0`, uncapped) of the job's player, else of
   the strongest (`0x0050EA20`, which excludes no one), so for 11/179 the creature's own player is
   not excluded.
-  A gate spawn enters 269 (`0x004626A0`: lands, then 210 stunned) and next runs its standing
-  job through 1 and 90 (§1 of `hero-party-walk.md`), so a StealGold party raises level 1 a
-  few turns after it appears, at the gate. **CONFIRMED**, the 210 → 1 timing **LIKELY**.
+  The spawn delay depends on terrain: [party arrival](party-arrival-lifecycle.md)
+  corrects the former gate interpretation and derives 269/210/263/264 timing.
+  Once idle, a party resumes its standing job through 1/90 (hero-party-walk.md §1);
+  do not infer a universal gate-to-music delay from the arrival chain.
 - **Tunnelling.** Jobs 18 (`0x41`), 19 (`1`), 23's state 173 (`1`), 163 (`0x69`) and 179 (`1`/`0x61`)
   all carry option bit 0. When the whole-map route fails — target sealed off by rock or a refused
   door — a hero leader that is a tunneller (definition `+0x686` bit 0, owner the hero player

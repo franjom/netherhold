@@ -234,6 +234,9 @@ public enum CreatureActivity
 
     /// <summary>Following the possessed creature: state 246 and its walks (<see cref="PossessionRules.Follow"/>).</summary>
     Following = 41,
+
+    /// <summary>Hidden party arrival before state269 releases it into recovery.</summary>
+    Arriving = 42,
 }
 
 /// <summary>One creature in the world.</summary>
@@ -303,8 +306,10 @@ public sealed class CreatureState
     public int PosZ;
 
     /// <summary>The persistent vertical vector (+0x10C), currently used only for a point-cast
-    /// Imp's creation fall. PosZ is height above the simulation's zero floor in that state.</summary>
+    /// Imp's creation fall and party arrival. PosZ is height above the simulation's zero floor.</summary>
     public int CreationVelocityZ;
+
+    public bool ArrivalHeightActive;
 
     private int _posX, _posY;
     private bool _inHand;
@@ -1239,7 +1244,7 @@ public sealed class CreatureState
     public bool ReaperCanAcquireFight = true;
     public bool ReaperIsAttackable = true;
     /// <summary>The draw bit <c>+0xF3</c> bit 0 cleared: the finale hides its Reaper from state 228
-    /// until it appears in 230 (campaign-win-sequence.md §3).</summary>
+    /// until it appears in 230; non-gate party arrival269 uses the same bit.</summary>
     public bool ReaperHidden;
 
     /// <summary>In state 8, the walk to a fight, which resumes 199; while in it
@@ -1354,6 +1359,7 @@ public sealed class CreatureState
         hash.Add(PosY);
         hash.Add(PosZ);
         hash.Add(CreationVelocityZ);
+        hash.Add(ArrivalHeightActive);
         hash.Add(Heading);
         hash.Add((int)RouteOptions);
         hash.Add(HeartTargetPlayerId);

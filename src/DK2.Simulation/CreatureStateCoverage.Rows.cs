@@ -284,7 +284,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Unbuilt(266, "not read"));
         rows.Add(Built(267, typeof(RoomAttackRules), nameof(RoomAttackRules.DestroyRoomTile)));
         rows.Add(Unbuilt(268, "its handler 0x00458680 waits out an action, then idles; no SetState or walk pushes 0x10C (room-health.md §5); +0xDF stores and room tables unscanned"));
-        rows.Add(Unbuilt(269, "partly read in hero-parties-and-effect-generators.md; not built"));
+        rows.Add(Built(269, typeof(PartyArrivalRules), nameof(PartyArrivalRules.WaitingState)));
         rows.Add(Built(270, typeof(FinaleRules), nameof(FinaleRules.Celebrate))); // its handler 0x004B4C20 returns 1
         rows.Add(Unbuilt(271, "Q410, Q412: two calls in its handler are unread (rebellion.md)"));
         rows.Add(Unbuilt(272, "not read"));
@@ -293,8 +293,8 @@ public static partial class CreatureStateCoverage
         rows.Add(Unreachable(275, "a Crypt state (guard-room.md §7, functions/00483870.md); Q375 (data): no shipped level places, enables or terraforms a Crypt"));
         rows.Add(Unreachable(276, "a Crypt state (guard-room.md §7, functions/004839E0.md); Q375 (data): no shipped level places, enables or terraforms a Crypt"));
         rows.Add(Unreachable(277, "a Crypt state (guard-room.md §7, functions/00483AC0.md); Q375 (data): no shipped level places, enables or terraforms a Crypt"));
-        rows.Add(Unbuilt(278, "not read"));
-        rows.Add(Unbuilt(279, "not read"));
-        rows.Add(Unbuilt(280, "not read"));
+        rows.Add(Unbuilt(278, "handler read in functions/00462730.md; portal arrival remains unbuilt"));
+        rows.Add(Unbuilt(279, "handler read in functions/004627E0.md; portal arrival remains unbuilt"));
+        rows.Add(Unbuilt(280, "handler read in functions/00462840.md; portal arrival remains unbuilt"));
     }
 }

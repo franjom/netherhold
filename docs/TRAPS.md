@@ -317,3 +317,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A `replay --resync` with an `--entity-map` from another whole-game run names creatures born after the resync by that run's ids; pickups lift the wrong creature or none. Pass `--births <native creature-map.csv>` ([level4-outcomes.md](research/level4-outcomes.md#hand-drops-after-the-resync)).
 - Windows PowerShell `New-Item` has no `-LiteralPath`; use a controlled `-Path` or `Directory.CreateDirectory`.
 - Assign `ConvertFrom-Json` array results directly; wrapping the pipeline in `@()` can retain a nested array and yield `Object[]` member values.
+
+- A scratch master Behavior test baseline needs committed scenarios, tools and Unity input source roots as well as src/tests; missing-root failures are harness setup failures.
+- Use explicit UTF-8 for Markdown writes on Windows; Path.write_text can truncate a file before the default cp1252 encoder fails.

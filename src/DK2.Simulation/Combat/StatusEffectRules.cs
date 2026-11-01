@@ -75,7 +75,7 @@ public static class StatusEffectRules
 
     /// <summary>Standing in the frozen or the stunned state: no fight, no job, no move.</summary>
     public static bool IsIncapacitated(CreatureState creature) =>
-        creature.Activity is CreatureActivity.Frozen or CreatureActivity.Stunned;
+        creature.Activity is CreatureActivity.Frozen or CreatureActivity.Stunned or CreatureActivity.Arriving;
 
     /// <summary>The multiplier a negative health change is scaled by (§3): 128, plus 32 frozen,
     /// minus 64 armoured or possessed, plus 128 stunned, then for a Combat Pit fighter less 128 and

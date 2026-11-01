@@ -1840,6 +1840,7 @@ public sealed partial class WorldView
         CreatureActivity.ReaperArriving => "reaper_arriving",
         CreatureActivity.Slapped => "slapped",
         CreatureActivity.Following => "following",
+        CreatureActivity.Arriving => "arriving",
         _ => throw new ArgumentOutOfRangeException(
             nameof(activity), activity, "No animation key for this activity."),
     };

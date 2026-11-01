@@ -74,6 +74,7 @@ public static class AssetCatalogue
         "collecting_winnings",
         "slapped",
         "following",
+        "arriving",
     ];
 
     public static readonly string[] CreatureActionAnimations = ["running", "claiming", "reinforcing", "eating", "casting", "landing", "entrance", "getting_up", "movement_idle"];

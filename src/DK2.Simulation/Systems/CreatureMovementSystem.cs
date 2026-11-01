@@ -77,6 +77,8 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         Sync(context, creature);
 
         if (CreatureEligibility.IsExcluded(creature, CreatureGuards.Sidelined)) return;
+        PartyArrivalRules.StepHeight(context, creature);
+        if (creature.Dk2StateId == PartyArrivalRules.WaitingState) return;
         if (TremorRules.IsRecovering(creature) || context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
         if (creature.TremorRoutePaused)
         {
