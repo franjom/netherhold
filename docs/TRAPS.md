@@ -45,7 +45,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Windows PowerShell 5 needs both System.IO.Compression and System.IO.Compression.FileSystem loaded before ZipArchiveMode resolves.
 - New function records require `evidence:` before the first blank line; `kb index` rejects a split header.
 
-- `Capture.frames(start, stop)` includes the stop header; use `birth + 3` for four snapshots, and copy values before advancing its reused snapshot.
+- `Capture.frames(start, stop)` includes the stop header; use `birth + 3` for four snapshots. Its snapshots share live dictionaries: freeze record fields before advancing or previous/current both read the current frame.
 
 - Keep capture snapshot headers separate from in-tick action stamps; subtracting one only from native rows misaligns the two packet birth anchors (research/imp-observation-clocks.md).
 

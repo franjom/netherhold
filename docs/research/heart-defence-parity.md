@@ -207,3 +207,47 @@ at `(17,26)`. All ten Level 5 tick-1400 exported states also have Heart room slo
 `F:/DK2Evidence/studies/q712-native-controls--2026-11-01--001/level5-phases.json`.
 The destination gate is therefore not established as the cause of
 the Level 5 target-acquisition gap, and entry-count parity remains unestablished.
+
+
+## Redispatch follow-up (Q712, 2026-11-01)
+
+CONFIRMED capture/output counts for ticks 1401-3400, native seeds 2/3/7 and
+five remake generators per native state. Fifteen hash362 resyncs add only
+`--jobs`; all 30 creature/event outputs match their prior controls by SHA-256.
+The resume state splits the visible 254-to6 exits:
+
+| Resume state | DK2 total / 3 runs | Remake total / 15 runs | DK2 mean | Remake mean |
+|---|---:|---:|---:|---:|
+| 254, redispatch | 6 | 64 | 2.00 | 4.27 |
+| 202, withdrawal | 0 | 2 | 0.00 | 0.13 |
+| 251, alarm | 0 | 0 | 0.00 | 0.00 |
+
+The excess is chiefly redispatch, but the nine native timeouts do not establish
+that a standing responder fails a route or eligibility test. Across 69 room
+phases during those stands, neither adjacent captured frame contains an active,
+attackable hostile inside the strict reporting radius. The check uses active
+slots, the captured alliance byte, cached attackability and exact positions;
+all six successful native redispatches are positive controls with an intruder
+present and the counter reset to zero.
+
+The wider phase check freezes the previous frame's fields before advancing:
+88 phases begin with an observed standing Imp. Six redispatch, 68 remain in 254,
+and two become idle; the latter 70 have no intruder in either adjacent frame.
+The other 12 leave for 199 (4), 203 (6), or 8 (2). No still-standing case with an
+observed qualifying intruder demonstrates refusal by `004D0E60`, `0045A6D0`,
+or `004888C0`. These snapshots do not expose every within-tick intermediate.
+Fresh arrival and redispatch within one frame are outside this visible-exit count.
+
+Binary reread: `004888C0` is the existing Call to Arms predicate, with no special
+254 clause; `0045A6D0` has no special standing-254 clause either. The preprobe
+`004D0E60` uses entity endpoints/options; this does not establish downstream
+route equivalence. No additional behavior change follows. Q712 now needs a
+matched comparison of intruder exposure/positions, followed by acquisition and
+arrival and moved-tile scan timing; general adapter boundaries remain Q713.
+
+Evidence: `F:/DK2Evidence/studies/q712-redispatch-split--2026-11-01--001/`:
+`split.json`, `native-opportunities.json`, `native-positive-controls.json`,
+`all-native-standing-phases-v2.json`, `verification.json`, `inputs.json`,
+verified scripts and per-run commands.
+The first `all-native-standing-phases.json` is invalid: it retained live decoder
+snapshots. Use v2, whose six redispatches match the positive control.
