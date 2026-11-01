@@ -10,12 +10,13 @@ INFERRED behavior; captured transitions are CONFIRMED observations.
 |---|---|---|
 | `004D96A4`, room ruin bit | `HeartDefenceSystem.Execute` uses the owner's ruined Heart | Equivalent for Level 5's single Heart; room/owner distinction remains |
 | `004D96DC–004D96E7`, four-turn room-ID phase | Hard-coded phase zero | General mismatch; Level 5's captured room slot 1124 also has phase zero |
-| `004D96F0–004D9834`, enemy search | First attackable hostile within strict reporting radius, room position | Position/radius match; (17,26) differs from Heart object (16,25). Ours evaluates attackability; native reads its cached bit (`0045A8B0`) |
+| `004D96F0–004D9834`, enemy search | First attackable hostile within strict reporting radius, room position | Dispatch uses the room position; see the coordinate note below. Ours evaluates attackability; native reads its cached bit (`0045A8B0`) |
 | `004D9867–004D98D0`, gathering radius, Horny | Strict gathering radius, definition Horny exclusion | Same rule; no worker exclusion or head count |
 | `004D98D8–004D9906`, Call to Arms, resolved Combat category, may-look gate | Same gates in `Gather` | Same ordinary Imp eligibility; physical-state approximations remain in the shared may-look predicate |
 | `004D990C–004D9967`, health | Greater than level-scaled maximum / 4 | Same rule |
 | `004D9976–004D99A2`, group 3, dropped job, existing walk to 254 | Same exclusions | Same rule; angry and group 7 creatures are eligible |
-| `004D99C9`, route existence, then `004D9A1A`, actual route | One `TryRouteTo`, then `BeginTravel` | **Defect:** same-tile shortcut drops the point route; native `004D0F60` / `004CF490` retain it. Use `TryRouteToStance`; separate existence probe remains an adapter boundary |
+| `004D99C9`, route existence, then `004D9A1A`, actual route | One `TryRouteTo`, then `BeginTravel` | **Defect:** same-tile shortcut drops the point route. `004CF490` guarantees one destination for a shared triangle; `TryRouteToStance` uses a tile-membership test. Separate existence probe and tile/triangle equivalence remain boundaries |
+| `0047189E–004718A9` via `004B35C0`, destination guard | No explicit equivalent identified in the Heart point-route call; mapping remains unestablished | Native requires tile bounds and byte-grid mask `0x08` clear before requesting a route. Navigation-blocking usage is established; remake mapping UNKNOWN; [record](functions/00471890.md), Q713 |
 | `004D99D2–004D99F7`, willing torturee kick to 135 | Omitted | Existing deviation ADR-0400; ordinary Level 5 Imps do not exercise it |
 | `004D9A23–004D9A39`, run speed and reporting-counter reset | `Running = true`, `ReportTicks = 0` | Counter matches: creature +2CC is state +7E; run-speed override representation remains approximate |
 | `0045BE80–0045BE86`, NonFighter near-Heart test | `NonFighter`: worker position to own Heart, each squared axis shifted by 12, unsigned distance < D000 | Same ordinary coordinate/radius rule; radius is sqrt(13) tiles, no Heart-damage trigger |
@@ -28,6 +29,12 @@ INFERRED behavior; captured transitions are CONFIRMED observations.
 | `0045EB20` → `0045F030`, acquired target | Scan enters 199; its handler runs that update and applies ordinary fear | Same ordinary dispatch order |
 | `0045EC10` / `0045EC80`, NonFighter flee | A live non-Imp in either attacker array forces counter 3 | Same rule; a hero merely nearby is insufficient |
 | `00460C50`, escape-tile test | `Cornered` calls shared length-tested reach with Imp 80 / other 0 flags | Native uses route existence and 80 for every type; separate known approximation, no demonstrated Level 5 causal verdict |
+
+In Level 5, the room's position words `+0x27/+0x29` give tile `(17,26)`;
+reporting and gathering distances use that tile's centre `(17.5,26.5)`. The Heart
+object occupies tile `(16,25)`; the player's `DungeonHeartPosition` and the
+NonFighter near-Heart test use that tile's centre `(16.5,25.5)`. The remake
+uses `CentreFieldX/Y` for the former and `HeartSites` for the latter.
 
 The hero fight-style score chooses a creature first; it must not become that
 creature's distance when comparing with Heart pillars. Flanker/Support strategy
