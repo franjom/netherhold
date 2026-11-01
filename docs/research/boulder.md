@@ -176,7 +176,30 @@ it break at a wall in play is the strike** (§4): wear grows by every point it l
 to that creature's whole level-scaled `Hp`. Once creatures have landed `h − h/10` (3600 of 4000), the
 next turn — the first wall — breaks it (§5: the move goes on, and §3 destroys it that update with
 sound 244). A boulder that hit nothing turns ten times first. This reconciles the owner's recollection
-(Q520b) with the reading without changing it: STRONGLY INFERRED, not watched.
+(Q520b) with the reading without changing it; watched in play in §9b.
+
+## 9b. Watched in play (2026-11-01, Q520)
+
+Level `Q520Corridors` (`tools/levelgen`): Secret4 with straight dead-end corridors, one Dwarf per
+corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamagePercentage` 100, speed
+4096. The owner played it; capture and per-corridor trace in
+`D:\DK2Evidence\runs\q520-corridors-2026-11-01` (README).
+
+**CONFIRMED (observed):**
+- Every wall turn adds a tenth of the health to the wear (+1000), and the boulder rolls back down a dead end.
+- A creature hit is its level-scaled `Hp` halved, × 100 over the percentage (§4): 500 for a level-1
+  Dwarf, 3000 for a level-10 one, at 100%. Wear grows by the same amount.
+- The speed matches §5: 0.75 of a tile a tick unworn, 0.64 at wear 9000.
+- It breaks at a wall once hits have left less than one turn. The level-10 Dwarf at full health took
+  wear to 9000, the next wall turn to 10000, and the boulder was gone that update. Boulders that killed
+  a weaker Dwarf kept bouncing, a tenth a turn.
+- The owner heard no sound at the break (§9a's 244: not explained, Q520).
+
+**Against §4, open (Q520):**
+- Each Dwarf was hit on two ticks running. The first hit stunned it (state 256 in the capture), and the
+  second landed although §4 skips a creature in state 256.
+- The second hit on the 6000 Hp Dwarf was 6000, not 3000; on the 3780 Hp one it was 3000. Both point at
+  the state test and the health routine's multipliers, which have not been reread.
 
 ## 10. Built and not built (ADR-0333)
 

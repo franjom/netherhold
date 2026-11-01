@@ -99,4 +99,4 @@ every creature's health and state. For other fields, open the capture with
 | Recipe | Run | What it showed |
 |---|---|---|
 | `Q520Boulder` | none (the folder was missing) | `-LEVEL` loads a level that is not shipped |
-| `Q520Corridors` | `D:\DK2Evidence\runs\q520-corridors-2026-11-01` | Each wall turn costs a tenth of the boulder's health. Creature hits are half the creature's level-scaled maximum, at Secret4's 100%. A boulder breaks at a wall once hits leave less than one turn. Not yet written into `docs/research/boulder.md` |
+| `Q520Corridors` | `D:\DK2Evidence\runs\q520-corridors-2026-11-01` | Each wall turn costs a tenth of the boulder's health. Creature hits are half the creature's level-scaled maximum, at Secret4's 100%. A boulder breaks at a wall once hits leave less than one turn. `docs/research/boulder.md` §9b |
