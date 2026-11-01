@@ -193,7 +193,25 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
 - It breaks at a wall once hits have left less than one turn. The level-10 Dwarf at full health took
   wear to 9000, the next wall turn to 10000, and the boulder was gone that update. Boulders that killed
   a weaker Dwarf kept bouncing, a tenth a turn.
-- The owner heard no sound at the break (§9a's 244: not explained, Q520).
+- There is a sound at the break, as §9a's 244 says. The owner first reported none, then corrected it
+  after the second session.
+
+**Second session, campaign values** (`Q520CorridorsGlobal`: health 4000, 50%, speed 4915, slap 400;
+`D:\DK2Evidence\runs\q520-corridors-global-2026-11-01`). CONFIRMED (observed):
+- A wall turn is +400. An empty corridor's boulder and the short corridor's each broke at their tenth
+  turn; the level-1 Dwarf's (one hit of 1000) broke at the turn that took it from 3800 to 4200.
+- At 50% one hit is the creature's whole level-scaled `Hp`, capped by health less wear. The 1000 Hp
+  Dwarf died from one hit (Q520a). Against the 3780 and 6000 Hp Dwarves the boulder broke on contact
+  (wear 4000); the second Dwarf lived on 2000 and was stunned (state 256). There were no second hits:
+  each boulder was gone.
+- Two boulders meeting in a corridor were both destroyed in the same update. That is §4's object arm:
+  the Boulder carries `BoulderDestroys`, so each deals the other its whole `Hp`.
+- On a cross path with both sides free, a boulder took the launch's sign (§6): launched north, it turned
+  north at the corner.
+- A slap took 400 off the boulder's **health** (`+0x40`), not its wear (§3's `Thing_ModifyHealth`), and
+  set a slanted roll (−289, −4085). At the next centre line the handler squared it (0, −4096), and that
+  turn cost a tenth of the reduced health (+360). The capped hit that followed was health less wear
+  (3600 − 760 = 2840).
 
 **Against §4, open (Q520):**
 - Each Dwarf was hit on two ticks running. The first hit stunned it (state 256 in the capture), and the
