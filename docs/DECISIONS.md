@@ -14291,3 +14291,32 @@ sweep; ADR-0355's "room effect not modelled" no longer holds. Not changed: `Gold
 Evidence: [keeper-spell-create-gold.md](research/keeper-spell-create-gold.md#3-implementation-boundary),
 [gold-on-the-floor.md](research/gold-on-the-floor.md#11-a-store-sweeps-loose-gold-on-its-own-tiles-back-in-built-adr-0285);
 KB `0049F730`, `004F3C60`, `004BC710`, `0049F7C0`. `StoreGoldTests`, `CreateGoldTests`.
+
+## ADR-0614 - no lair space, no portal arrival
+
+Status: accepted, 2026-11-01. Hash/save 358. Answers Q709.
+
+`0x004DBF90` (the portal's pick) and `0x004DBD90` (its noticing pass) each start with
+`0x004C6DD0`, the keeper's free lair space. That value is every Lair's slots (`+0x67`) less its
+used slots (`+0x6B`), less the bed size (object definition `+0x114`) of each of the keeper's
+creatures with no bed (`+0x3B7` zero) whose type names a lair object (`+0x771`). Both functions
+jump past their whole type loop while the value is negative, so nothing is noticed, weighed, drawn,
+decayed or created. The caller still restamps the clock. The Level 5 captures match roll for roll:
+seed 2 creates exactly when the value is at least 0 at 23 of 23 rolls, and seed 7 at 22 of 23.
+Level 4 state 5's four empty rolls (Q709) all read −1.
+
+Decision: `PortalRules.FreeLairSpace` computes the value from ours' Lairs (`LairRules.Capacity`
+less `Occupied`) and from the keeper's non-corpse creatures with no bed whose definition has a
+`LairObjectId`, subtracting that object's `RoomCapacity`. `PortalSystem`'s candidate list is empty
+while the value is negative. That covers both the roll and the build-up preview, and with no
+candidates `PortalChoiceRules.Pick` neither notices nor draws.
+
+Consequence: a keeper without a Lair gets one creature, then none while it stays homeless. Level 5
+from DK2's 1400 state in seeds without a Lair (2, 3, 4, 6, 7, 9) no longer receives about 10
+arrivals against DK2's 3. Four portal tests that measured the pool and the cap with a one-tile Lair
+now give their keeper enough Lair. Not changed: the pool remains a standing limit (Q474), and the
+first rolls' other refusals are unchanged.
+
+Evidence: [portals-interval.md](research/portals-interval.md#no-lair-space-no-arrival-q709-adr-0614);
+KB `004C6DD0`, `004DBF90`, `004DBD90`. `PortalTests.WithNoLairOneHomelessCreatureShutsThePortal`,
+`PortalTests.EachFreeLairSlotAdmitsOneMoreBedlessCreature`.

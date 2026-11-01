@@ -67,7 +67,7 @@ Two consequences:
 
 **Four gates.** Three are re-checked at every roll inside `PortalSystem.Pick` —
 the creature's own flags, the pool, attraction — and the fourth, capacity, is read
-once per tick per keeper, counting only portal-made creatures (`binary-entrance.md` §3). **Availability is not one (ADR-0316):** `0x004DBF90` reads
+once per tick per keeper, counting only portal-made creatures (`binary-entrance.md` §3). A negative free lair space shuts the pick (ADR-0614). **Availability is not one (ADR-0316):** `0x004DBF90` reads
 the pool (`0x00506400`, remaining count non-zero), the flag bits, the attraction and the
 capacity, never the creature table at `+0x4E/+0x52`. Level 3's trigger 79 disables the
 Firefly, Goblin and Warlock at the start and its portal still produced them (1002, 1506, 1694, 2398).

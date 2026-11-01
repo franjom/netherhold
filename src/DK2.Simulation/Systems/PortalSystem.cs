@@ -124,7 +124,8 @@ public sealed class PortalSystem : ISimulationSystem
             // A due roll restarts the clock whatever it produces: 0x004DBBE0 stamps
             // room+0x49 straight after the pick, untested (0x004DBC7C). A portal held
             // up by a missing lair or a full dungeon waits for its next roll, not the
-            // moment the obstacle goes (ADR-0314).
+            // moment the obstacle goes (ADR-0314). No free lair space holds the pick
+            // itself (ADR-0614).
             centre.EntranceIdleTicks = 0;
             if (held >= capacity) continue;
 
@@ -177,6 +178,15 @@ public sealed class PortalSystem : ISimulationSystem
         GameDatabase database = context.Database;
 
         var candidates = new List<CreatureDef>();
+        // 0x004DBF90 and its noticing pass 0x004DBD90 each start with the keeper's free lair space
+        // (0x004C6DD0) and weigh no type while it is negative: no notice, no draw, no decay.
+        int lairSpace = PortalRules.FreeLairSpace(world, database, playerId, ownedRooms);
+        if (lairSpace < 0)
+        {
+            candidateNames = $"rejected=lair_space:{lairSpace}";
+            return candidates;
+        }
+
         var rejected = new List<string>();
         var money = new GoldAmount(GoldStore.Total(world, playerId));
         var mana = new ManaAmount(world.Player(playerId).Mana);

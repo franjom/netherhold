@@ -246,6 +246,8 @@ See Q97.
 **9 bytes** an entry, indexed by creature type: `u8 typeId`, `i32 value`,
 `i32 copy`. `value` is **12-bit fixed point** (`0x1000` = 1.0).
 
+0. While the keeper's free lair space (`0x004C6DD0`) is negative, return at once: no
+   type is weighed (ADR-0614, `portals-interval.md`).
 1. Zero both dwords.
 2. **Build up.** Lair takes the flat path above. Otherwise walk the keeper's
    room list (`player+0x36`, entries through `0x006EE540`, next at `room+0x8`

@@ -93,7 +93,9 @@ that arithmetic. Its existing unmodelled adjustment is covered by Q427.
 Read with Ghidra 12.1.4. STRONGLY INFERRED from the binary; the order it predicts
 matches the Level 2 recording.
 
-- **The weight.** `0x004DBF90` walks the 46 types. For each type the keeper may
+- **The weight.** `0x004DBF90` walks the 46 types, unless the keeper's free lair space
+  (`0x004C6DD0`) is negative: then it, and the noticing pass below, do nothing (ADR-0614).
+  For each type the keeper may
   receive (the same gates as ours), the weight is taken from its first attraction.
   A Lair gives a flat 1.0, or 3.0 when the definition's lair object (`+0x771`) is
   `0x16`, the Goblin's. Any other room gives each of the keeper's rooms of that

@@ -20,6 +20,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
   native playback acceptance remains Q685.
 
+- A keeper whose free lair space (`0x004C6DD0`) is negative gets no portal arrivals (ADR-0614, hash/save 358; Q709 closed). Level 5 resynced at 1400: arrivals match DK2 per state; player Imp deaths 1401-3400 per run DK2 11.12, ours 4.30 (0.80 before; p 0.156), the 3401-5000 window agrees (`D:/DK2Evidence/runs/l5-resync-2026-11-01/README.md`).
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
@@ -152,7 +153,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   loses 45 Imps with and without it (32 at hash 316, one seed, not attributed to ADR-0557).
   The 30-tick party offset in the death window is drift (the Portal claim at 2059 against 2030),
   not a trigger rule. The resync copies the trigger banks and every creature (pose, level, health, fear and,
-  since ADR-0567, the fight-return stamp), each keeper Portal's clock and tally ([resync-replay.md](research/resync-replay.md#each-portals-clock-and-tally); state 5's missing arrivals: Q709) and pairs them itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
+  since ADR-0567, the fight-return stamp), each keeper Portal's clock and tally ([resync-replay.md](research/resync-replay.md#each-portals-clock-and-tally); state 5's missing arrivals: no lair space, ADR-0614) and pairs them itself (ADR-0560): seed 1 at 3520 has parties 5 and 7 at 3829 and 4189 (native 3830, 4190), flag
   11 at 4330 (native 4378) and the hero door falling at 5314 (native about 5313), but 4 Imp
   deaths against 0 (0 on the rerun at hash 323), three to party 5's Guard, which survives the fight at (15-17,31-34) where
   DK2's party 5 is down by 3960. In that run the Guard survived because ours' Thief stood nearer

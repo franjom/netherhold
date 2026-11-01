@@ -294,6 +294,35 @@ public static class PortalRules
         return count;
     }
 
+    /// <summary>The keeper's free lair space, <c>0x004C6DD0</c>: every Lair's capacity less its
+    /// used slots (room <c>+0x67</c> less <c>+0x6B</c>), less, for each of the keeper's creatures
+    /// with no bed (<c>+0x3B7</c> zero) whose type names a lair object (<c>+0x771</c>), that
+    /// object's room capacity (object definition <c>+0x114</c>). The portal's noticing pass
+    /// (<c>0x004DBD90</c>) and its pick (<c>0x004DBF90</c>) do nothing while this is negative, so
+    /// a keeper with no Lair and one homeless creature gets no arrivals (Q709).</summary>
+    /// <remarks>The test is the lair object alone, not <see cref="LairRules.NeedsBed"/>: the
+    /// binary does not read <c>TimeSleep</c> here.</remarks>
+    public static int FreeLairSpace(
+        WorldState world, GameDatabase database, PlayerId playerId, IReadOnlyList<RoomInstance> keeperRooms)
+    {
+        int space = 0;
+        foreach (RoomInstance room in keeperRooms)
+            if (LairRules.IsLairRoom(database, room))
+                space += (ushort)(LairRules.Capacity(room) - LairRules.Occupied(world, database, room));
+
+        IReadOnlyList<CreatureState> creatures = world.Creatures;
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            CreatureState creature = creatures[i];
+            // DK2's corpse is a CDeadBody off the player's list; ours stays in Creatures (ADR-0206).
+            if (creature.OwnerPlayerId != playerId || CreatureDeathRules.IsCorpse(creature)) continue;
+            byte lairObject = database.CreatureById(creature.CreatureTypeId).LairObjectId;
+            if (lairObject == 0 || LairRules.HasBed(world, database, creature)) continue;
+            space -= database.ObjectById(lairObject)?.RoomCapacity ?? 0;
+        }
+        return space;
+    }
+
     /// <summary>How many of one creature type this keeper holds.</summary>
     public static int CreatureCountOfType(WorldState world, PlayerId playerId, byte creatureTypeId)
     {

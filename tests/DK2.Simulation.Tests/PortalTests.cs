@@ -581,6 +581,41 @@ public class PortalTests
         Assert.NotEqual(0, Goblins(world));
     }
 
+    /// <summary>The free lair space gate, 0x004C6DD0 at the head of 0x004DBF90 and 0x004DBD90: Lair
+    /// slots less used ones, less one per bedless creature whose type has a bed. With no Lair the
+    /// first Goblin comes (space 0) and, homeless, holds the portal shut (space -1). DK2's Level 5
+    /// seed 2 rolled 23 times between 1000 and 3400 and created exactly when this was at least 0;
+    /// Level 4 state 5's four empty rolls (Q709) all read -1.</summary>
+    [Fact]
+    public void WithNoLairOneHomelessCreatureShutsThePortal()
+    {
+        GameDatabase db = Database();
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+
+        Simulation(db, world).Run(LongEnough * 3);
+
+        Assert.Equal(1, Goblins(world));
+        Assert.Equal(-1, PortalRules.FreeLairSpace(world, db, new PlayerId(Keeper),
+            RoomIndex.Build(world, db).Where(r => r.OwnerPlayerId == new PlayerId(Keeper)).ToList()));
+    }
+
+    /// <summary>Each Lair tile is one slot (Q156), so with nobody sleeping a one-tile Lair lets one
+    /// more creature through than none: space 1, then 0, then -1.</summary>
+    [Fact]
+    public void EachFreeLairSlotAdmitsOneMoreBedlessCreature()
+    {
+        GameDatabase db = Database();
+        WorldState world = World(db);
+        Portal(db, world, 5, 5);
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+
+        Simulation(db, world).Run(LongEnough * 3);
+
+        Assert.Equal(2, Goblins(world));
+        Assert.DoesNotContain(world.Creatures, c => LairRules.HasBed(world, db, c));
+    }
+
     [Fact]
     public void ACreatureWhoseRoomHasASizeProducesNothingWithoutIt()
     {
@@ -964,7 +999,8 @@ public class PortalTests
         GameDatabase db = Database(poolSize: 3);
         WorldState world = World(db);
         Portal(db, world, 5, 5);
-        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+        // Lair slots enough that free lair space (0x004C6DD0) never binds before the pool does.
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 2, 2);
 
         // Twenty intervals' worth at the fixture's rate, ignoring the scaling,
         // so running out of patience cannot be mistaken for running out of pool.
@@ -995,7 +1031,8 @@ public class PortalTests
         GameDatabase db = Database(poolSize: 3);
         WorldState world = World(db);
         Portal(db, world, 5, 5);
-        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+        // Lair slots enough that free lair space (0x004C6DD0) never binds before the pool does.
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 2, 2);
         GameSimulation sim = Simulation(db, world);
 
         sim.Run(25 * SimulationTiming.TicksPerSecond * 20 * 4);
@@ -1028,7 +1065,8 @@ public class PortalTests
         GameDatabase db = Database(poolSize: 40);
         WorldState world = World(db);
         Portal(db, world, 5, 5);
-        Paint(db, world, RoomTypeId.Lair, 9, 5, 1, 1);
+        // Lair slots enough that free lair space (0x004C6DD0) never binds before the cap does.
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 4, 4);
 
         // The scaling makes the last few slow, so this has to be generous:
         // fifteen creatures at up to 25 x 15 / 2 seconds each.
@@ -1179,7 +1217,8 @@ public class PortalTests
         WorldState world = World(db);
         Portal(db, world, 5, 5);
         Portal(db, world, 5, 9);
-        Paint(db, world, RoomTypeId.Lair, 12, 5, 1, 1);
+        // Lair slots enough that free lair space (0x004C6DD0) never binds before the cap does.
+        Paint(db, world, RoomTypeId.Lair, 9, 5, 4, 6);
 
         Simulation(db, world).Run(25 * SimulationTiming.TicksPerSecond * 400);
 

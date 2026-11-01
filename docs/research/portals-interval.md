@@ -216,6 +216,43 @@ creatures live, and recovers one step for each of them that dies. Whether
 leaving the dungeon, or being dropped back into the portal, goes through the
 same bookkeeping is unread. Built as ADR-0358 (`PortalRules.ArrivalDied`).
 
+## No lair space, no arrival (Q709, ADR-0614)
+
+Read 2026-11-01 from the binary and checked against the Level 5 and Level 4 captures.
+
+**The pick and the noticing pass both start with the keeper's free lair space. CONFIRMED (binary).**
+`0x004DBF90` calls `0x004C6DD0` on the owner before its type loop. It weighs no type while the
+result is negative: it jumps to its epilogue at 0x004DBFF8. `0x004DBD90` does the same. So a
+negative value means no notice, no draw, no decay and no creation, and the caller still restamps
+the clock. `0x004C6DD0` (`Player_FreeLairSpace`) works in two steps:
+1. It sums, over the keeper's rooms of type 2 (the Lair), capacity `+0x67` less used slots `+0x6B`.
+2. It subtracts, for each of the keeper's creatures whose lair link `+0x3B7` is 0 and whose
+   definition names a lair object (`+0x771`), that object's room capacity (object definition
+   `+0x114`). Every shipped bed has 1.
+
+The test is the lair object alone, not `TimeSleep`. The only other caller is the multiplayer
+special arrival `0x004DCF50`.
+
+**What follows.** With no Lair, the first creature still comes (space 0). Once it is homeless the
+space is −1, and the portal stops until it gets a bed or dies. A one-tile Lair lets one more through.
+
+**The captures agree. CONFIRMED (observed).** `lairgate.py` (D:/DK2Evidence/runs/l5-resync-2026-11-01)
+computes the value at each player-3 portal roll and compares it with the tally.
+- Level 5 seed 2 has no Lair at 1400. Between 1000 and 3400 it rolls 23 times and creates exactly when
+  the value is at least 0: once at 2221, 2633 and 2941, each after the single homeless creature died.
+- Seed 7: 22 of 23. Seed 1 (the live game, with a Lair): 10 of 11.
+- The three misses (seed 1 at 952 and 1052, seed 7 at 1067) are the first rolls after the Portal
+  was claimed, where other gates refuse.
+- The script approximates "the type has a bed" as every creature but the Imp, and reads class 0 as
+  a creature. It does not read `+0x771` or exclude dead bodies, so the counts also rest on those
+  two proxies.
+- Level 4 state 5's four empty rolls (2420, 2664, 2908, 3152; Q709) all read −1.
+
+**Ours, before ADR-0614,** had no such gate, so a Level 5 keeper without a Lair kept receiving
+creatures. From DK2's 1400 state in the six seeds without a Lair (2, 3, 4, 6, 7 and 9), ours received
+about 10 arrivals in 2000 turns against DK2's 3. In seeds 2, 3 and 7, where DK2's heroes win, ours
+lost 1-2 Imps against DK2's 22-27.
+
 ## The reset is an ownership change, and nothing else
 
 > **Owner, 2026-09-07:** *"if an enemy keeper takes one of the portals from me,

@@ -356,7 +356,8 @@ Heroes' Portals are not touched.
 - Level 4 from each of the 8 native states at 2400: the first three arrivals land on DK2's exact turns
   in 7 states (state 1: 2682, 3038, 3462, as DK2). State 5 differs: DK2's rolls at 2419, 2663, 2907
   and 3151 created nothing (tally stayed 6 while the Portals were open, 6 of the 15 cap, DK2's money
-  highest, the pool not exhausted), and ours' roll creates a creature. Cause open: Q709.
+  highest, the pool not exhausted) because the keeper's free lair space was negative; ours' roll
+  created a creature until ADR-0614 (Q709, [portals-interval.md](portals-interval.md#no-lair-space-no-arrival-q709-adr-0614)).
   Level 4, 40 runs each with `--births`: Imp deaths per run 33.2 with the copy, 29.3 with `--resync-skip portals`
   (+3.95, paired per-state p 0.17; DK2 21.75). The arrivals now match; the deaths do not move toward DK2's.
 - Resyncs measured before this copy carried ours' Portal schedule from the resync on.
