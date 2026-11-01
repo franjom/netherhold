@@ -73,12 +73,30 @@ is a thing tag, so its first strike's reach turns on the victim's slot.
 
 ## 6. Built and not built (ADR-0337)
 
+**Divergence (§7):** in DK2 the Jack reaches the heart corner (x+1, y+1) and takes 50 a tick there.
+Ours cannot route to that corner, so our Jack stands short of it and only wears out.
+
 **Built:** §1's data word (ours writes the target's creature id: we hold no thing slots, so the
 first strike's reach differs from DK2's); §2 for a creature victim; §3; §4, once per Jack, at its
 next update when something other than its own wear killed it; §5's 32-bit arithmetic for every area
 shot, a wrapped negative damage skipped where DK2 would heal. **Not built:** a victim that is not a
 creature (a fired-without-target shot names thing 2; ours strikes nobody); the `+0x46F` bits; effects and sounds.
 
-## Open questions
+## 7. Watched in play (2026-11-01, Q524)
 
-Q524 (the predictions in play), Q450.
+Level `M7Traps` (`tools/levelgen`): the heroes' Jack In The Box at (10,25) on the keeper's way to
+gold; the keeper's Heart centre at (19,30). The keeper's Imp walked onto the trap by itself to claim
+the hero tile, so all of this happened before the owner looked. Capture:
+`D:\DK2Evidence\runs\m7traps-2026-11-01` (README). CONFIRMED (observed) unless a line says otherwise:
+
+- Turn 21: the Imp on the trap went from 500 to −9846, 10000 plus area damage. A Jack (creature 46,
+  the heroes', 240 health) was made at (10.5,25.5).
+- **The area damage reaches far** (§1, §5; the radius is a thing slot). In the same turn the other Imp,
+  4 tiles away, lost 342, and the Heart object (type 13, 100000), about 10 tiles away, lost 1116.
+- The Jack walked east along the corridor and into the Heart room, losing one point a tick (§3's
+  travel toll). It **reached tile (20,31), the heart centre + (1,1)**, at turn 66. §3's open point is
+  answered: DK2's router does reach that corner of the raised 3×3, and ours does not (§6, Q524).
+- There it lost 51 a tick (§3: 50, plus 1), 194 → −10, and died at turn 71.
+- Its explosion (§4) hit the Heart on five turns running, 71 to 75, about 4333 each: 100000 → 77394 in
+  all. The keeper did not lose.
+

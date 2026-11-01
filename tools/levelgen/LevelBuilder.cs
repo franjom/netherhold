@@ -44,6 +44,47 @@ public sealed class LevelBuilder
     public void RemoveThing(int index) =>
         _set.RemoveThing(new KwdRecordLocation(_things, ChunkOf(_things, KwdRecordType.Things), index));
 
+    /// <summary>Appends a thing, written over <paramref name="template"/>: a record image of the same tag,
+    /// from <see cref="Template{T}"/>. Its trigger root must be 0 or resolve in this level.</summary>
+    public void InsertThing(ThingRecord row, KwdRecordImage template) =>
+        _set.InsertThing(new KwdRecordLocation(_things, ChunkOf(_things, KwdRecordType.Things), Things.Count), row, template);
+
+    /// <summary>The first <typeparamref name="T"/> in any shipped level's THINGS that matches, with its
+    /// record image, as a template for <see cref="InsertThing"/>; the level it came from is printed.</summary>
+    public (T Row, KwdRecordImage Image) Template<T>(Func<T, bool> match) where T : ThingRecord
+    {
+        foreach (string f in Directory.GetFiles(MapsDir(Install), "*Things.kld").OrderBy(x => x))
+        foreach (KwdChunk chunk in KwdReader.ReadFile(f).Where(c => c.Type == KwdRecordType.Things))
+        {
+            var rows = KwdTypedRecords.Read(chunk);
+            var images = KwdRecordRoundTrip.Split(chunk);
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (rows[i] is not T row || !match(row)) continue;
+                Console.WriteLine($"template {typeof(T).Name} from {Path.GetFileName(f)} record {i}");
+                return (row, images[i]);
+            }
+        }
+        throw new InvalidOperationException($"no shipped {typeof(T).Name} matches");
+    }
+
+    /// <summary>Sets one decoded parameter (KwdTriggers' schema names, e.g. <c>Value</c>) of trigger
+    /// <paramref name="triggerId"/>; ids and links stay as they are.</summary>
+    public void SetTriggerParameter(ushort triggerId, string name, long value)
+    {
+        string file = Own("Triggers.kld");
+        int chunk = ChunkOf(file, KwdRecordType.Triggers);
+        var rows = KwdTypedRecords.Read(_set.Chunks(file)[chunk]);
+        int index = Enumerable.Range(0, rows.Count).Single(i => rows[i] is TriggerRecord t && t.TriggerId == triggerId);
+        _set.EditRecord<TriggerRecord>(new KwdRecordLocation(file, chunk, index), t =>
+        {
+            if (!t.Parameters.ContainsKey(name)) throw new ArgumentException($"trigger {triggerId} has no parameter {name}");
+            var p = t.Parameters.ToDictionary(kv => kv.Key, kv => kv.Value);
+            p[name] = value;
+            return t with { Parameters = p };
+        });
+    }
+
     /// <summary>The level's own VARIABLES overrides (they beat GlobalVariables.kwd).</summary>
     public IReadOnlyList<object> Variables => KwdTypedRecords.Read(_set.Chunks(_variables)[ChunkOf(_variables, KwdRecordType.Variables)]);
 

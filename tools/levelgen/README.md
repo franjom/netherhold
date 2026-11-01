@@ -27,6 +27,11 @@ is written to the install.
 
 - `Paint(x, y, MapTile)` repaints a tile;
 - `Things`, `EditThing<T>` and `RemoveThing` change placed things (indices shift after a removal);
+- `InsertThing(row, image)` appends a thing over a template image, and `Template<T>(match)` finds one in
+  any shipped level. Secret4 has no doors or keeper creatures; Circlet and Alcatraz do. A template's other
+  fields come along: Circlet's Hero Sentry gives `NumberOfShots` 4 and `Unknown_000F` 115;
+- `SetTriggerParameter(id, name, value)` changes one decoded trigger parameter (M7Traps lengthens Secret4's
+  time limit, action 23 on trigger 65534, from 400 to 3600);
 - `SetVariable(id, value)` changes one of the level's own overrides, and `GlobalValue(id)` reads the campaign value;
 - `SaveAs` renames the files and re-points the LEVEL manifest at them.
 
@@ -101,3 +106,4 @@ every creature's health and state. For other fields, open the capture with
 | `Q520Boulder` | none (the folder was missing) | `-LEVEL` loads a level that is not shipped |
 | `Q520Corridors` | `D:\DK2Evidence\runs\q520-corridors-2026-11-01` | Each wall turn costs a tenth of the boulder's health. Creature hits are half the creature's level-scaled maximum, at Secret4's 100%. A boulder breaks at a wall once hits leave less than one turn. `docs/research/boulder.md` §9b |
 | `Q520CorridorsGlobal` | `D:\DK2Evidence\runs\q520-corridors-global-2026-11-01` | The same at campaign values (health 4000, 50%): a turn is +400, one hit kills, a boulder breaks on contact with a Dwarf of 3780 Hp or more. Two boulders destroy each other. A slap costs health, not wear. §9b |
+| `M7Traps` | `D:\DK2Evidence\runs\m7traps-2026-11-01` | Boulder against doors, Sentries, water and lava (`boulder.md` §9b). Goblins flee a Hero Sentry, which fires at 6 tiles (`traps.md` §14). The Jack reaches the heart corner ours cannot reach, and its explosion hit the Heart (`jack-in-the-box.md` §7). The keeper's Imp walked onto the Jack trap unprompted to claim its tile |

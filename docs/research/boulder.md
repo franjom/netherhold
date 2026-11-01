@@ -213,6 +213,20 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
   turn cost a tenth of the reduced health (+360). The capped hit that followed was health less wear
   (3600 − 760 = 2840).
 
+**Third session, doors, traps and liquids** (`M7Traps`, campaign values;
+`D:\DK2Evidence\runs\m7traps-2026-11-01`). CONFIRMED (observed):
+- Water wore it h/10 (+400) on each of the three turns it spent on water, and lava h/6 (+666) on each
+  lava turn (§7). One boulder broke in the lava, another at the dead end just past it.
+- A hero Wooden Door took a hit capped at its definition health, +2000. The boulder then broke on the
+  hero Steel Door, which took the 2000 it had left (§4 door arm; no owner test).
+- The keeper's own Sentry and a Hero Sentry each took a quarter of the definition's 3000 (+750) on every
+  pass (§4 trap arm, no owner test). A Sentry with less than 750 left was destroyed, and the wear grew by
+  what it had left (326).
+- **The strike repeats on the next turn while the boulder still overlaps.** Two boulders ended against a
+  Sentry: 750 one turn, then the capped remainder the next (600, 574), wear to exactly 4000, gone. §4
+  keeps no memory of what it hit. This is also how the Dwarves of the first session were hit on two
+  turns running.
+
 **Against §4, open (Q520):**
 - Each Dwarf was hit on two ticks running. The first hit stunned it (state 256 in the capture), and the
   second landed although §4 skips a creature in state 256.

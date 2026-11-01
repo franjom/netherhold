@@ -330,6 +330,22 @@ on its first update: **Level 20's hero Boulder at (12,5), on a Neutral-owned til
 not an observation. Level 18's Freeze at (51,54) now freezes a hero standing on it on turn 0
 (the Inferno and Chicken scenario moved off it).
 
+## 14. Watched in play (2026-11-01, Q362, Q452, Q513)
+
+Level `M7Traps` (`tools/levelgen`). Two sealed chambers, each with a Hero Sentry (trap 14, the heroes')
+and one level-1 Goblin (1500 health) of the keeper's. Capture: `D:\DK2Evidence\runs\m7traps-2026-11-01`.
+
+- **Beyond five tiles (Q452):** the Goblin 6 tiles from its Sentry was hit on turn 9 (1500 → 1250), and
+  again every few turns. CONFIRMED (observed): a Sentry does fire past its nominal 5.
+- **Toward the trap, then fear (Q513b, Q362):** the Goblin 4 tiles away went *en route* (state 8) toward
+  the trap on turns 7-8, and the first hit (−250) put it into fleeing (states 202/203). It never reached
+  the trap or swung at it.
+- **Fear lasts (Q513c):** both Goblins kept fleeing or idling inside the Sentry's reach, and were shot
+  down in steps of about 250 to dying (216/217: health set to 240, then −1 a turn). The owner saw
+  "terrified, never get near it". ADR-0340's attack on a revealed trap was not seen: a level-1 creature's
+  fear won. Whether ours does the same in this setup has not been checked.
+- Trap health recovers slowly: a damaged Sentry rose about 30 every few turns.
+
 ## Built (ADR-0321) and left
 
 Built: §2's fields; §3 steps 2, 3, 4, 5 (ADR-0330), 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
