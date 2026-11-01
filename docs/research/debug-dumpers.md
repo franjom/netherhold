@@ -148,6 +148,9 @@ resume and saved state; `travel-states.md` §10 is its first use. Two ways to ta
 
 ## The steering body — `0x004D5C0F`
 
+The entry is [004D5C00](functions/004D5C00.md); the heading retains the earlier
+interior-address anchor.
+
 Lower-case names throughout, unlike every other dumper. `pos` `+0x84`, `vel`
 `+0x8C`, `local_xaxis` `+0x94`, `local_yaxis` `+0x9C`, `path_target_pos`
 `+0xA4`, `projection_vector` `+0xAC`, `radius` `+0xDC`, `max_force` `+0xDE`,

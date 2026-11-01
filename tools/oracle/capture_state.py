@@ -23,7 +23,7 @@ dump itself, and the JSON also carries what only the dump holds:
     creatures[].body: {ptr, pos, vel, radius, b10E, b10F, window}
                                           the steering body at creature +0x124 (debug-dumpers.md):
                                           pos +0x84, vel +0x8C, radius +0xDC (signed word), the
-                                          bytes +0x10E/+0x10F, and the eight window slots at +0xB4
+                                          bytes +0x10E/+0x10F, and the five window slots at +0xB4
                                           that (+0x10E >> 3) & 7 can index
 
     tick, width, height
@@ -124,11 +124,12 @@ def creature_health(r):
 
 
 def body(r):
+    # 004D5C00: five vectors end before the radius and limit fields at body+DC.
     b = 0x124
     return {"ptr": r.ptr + b, "pos": [r.u(b + 0x84, "<i"), r.u(b + 0x88, "<i")],
             "vel": [r.u(b + 0x8C, "<i"), r.u(b + 0x90, "<i")], "radius": r.u(b + 0xDC, "<h"),
             "b10E": r.u(b + 0x10E, "<B"), "b10F": r.u(b + 0x10F, "<B"),
-            "window": [[r.u(b + 0xB4 + 8 * i, "<i"), r.u(b + 0xB8 + 8 * i, "<i")] for i in range(8)]}
+            "window": [[r.u(b + 0xB4 + 8 * i, "<i"), r.u(b + 0xB8 + 8 * i, "<i")] for i in range(5)]}
 
 
 def with_dump(out, snap, dump):

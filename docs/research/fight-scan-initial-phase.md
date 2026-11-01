@@ -308,6 +308,7 @@ production pairs above.
 | Pool assignments/free order | 11.00 | 3.00 | 3008.40 |
 | Also level/XP/health bundle | 10.00 | 2.73 | 2601.47 |
 | Also phase/prior scan-tile input | 10.00 | 2.73 | 2601.47 |
+| Also native resident update order | 11.20 | 3.27 | 2620.13 |
 
 These inputs do not close the aggregate gap. The room-goal control separately
 verifies Training's owned centre (16,30) and reproduces all four observed main
@@ -337,4 +338,4 @@ in nine of 15 restores: native Imp 440 precedes Warlock 441, while their
 permanent-ID order is reversed. The other 14 residents retain order. Seed 2,
 generator 101 is one of the six aligned controls. `creature-order-at1400.json`
 uses native class-list links and the actual descending-ID scheduler; this
-additional Q719 input has not been intervened on or given a causal verdict.
+additional Q719 input is tested in `q712-resident-order-control--2026-11-01--001/`: 17 successful runs, two off-controls and all six aligned active controls reproduce four baseline files. The intervention changes aggregate outcomes but does not close Q712. The next matched divergence and guarded route-window/map-input controls are in [q712-route-window.md](q712-route-window.md).

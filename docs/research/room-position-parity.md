@@ -76,7 +76,7 @@ Q721 is closed for the bounded ordinary-room position rule: the matched
 Training room centre is (16,30), owned by that room. Independent final review
 verified all eight evidence manifests and 744 frozen source hashes, with no
 blocker. [Production outcomes and captured-input controls](fight-scan-initial-phase.md#matched-outcomes-366-through-369)
-leave Q712 and Q719 open. The next concrete control is the [resident update-order
-input](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369),
-whose causal effect has not been tested. Special-room/AI adapters remain outside
+leave Q712 and Q719 open. The [resident update-order intervention](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369)
+does not close the gap. The next control concerns the [navigation mesh/cache
+boundary](q712-route-window.md#available-map-input-controls). Special-room/AI adapters remain outside
 this implementation.

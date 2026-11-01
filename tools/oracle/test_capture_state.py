@@ -31,5 +31,21 @@ class CreatureHealthTests(unittest.TestCase):
         self.assertEqual(capture_state.creature_health(Record(1250)), 1250)
 
 
+class BodyWindowTests(unittest.TestCase):
+    def test_native_window_stops_before_the_radius_and_limits(self):
+        # 004D5C00 logs five vectors at body+B4; the next bytes are radius+DC.
+        # Seed2/1544 Imp455 supplies these captured points and scalar sentinels.
+        r = Record(625)
+        r.ptr = 0x100000
+        points = [[1015808, 2490368], [1015808, 2424832], [1081344, 2228224],
+                  [1081344, 2162688], [917504, 2064384]]
+        for i, point in enumerate(points):
+            struct.pack_into("<ii", r.raw, 0x124 + 0xB4 + 8 * i, *point)
+        struct.pack_into("<hii", r.raw, 0x124 + 0xDC, 4576, 98304, 30144)
+        result = capture_state.body(r)
+        self.assertEqual(result["window"], points)
+        self.assertEqual(result["radius"], 4576)
+
+
 if __name__ == "__main__":
     unittest.main()
