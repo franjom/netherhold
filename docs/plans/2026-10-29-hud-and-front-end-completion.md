@@ -66,7 +66,7 @@ These are the repo's rules restated as a checklist; the sources are AGENTS.md an
 
 ## 2. Definition of done
 
-A recorded Unity session (`DK2_INPUT_JOURNAL` set, folder under `D:\DK2Evidence\runs\unity-input-<date>\`) in which the owner, from Play with **Session Mode = Front End**:
+A recorded Unity session (`DK2_INPUT_JOURNAL` set, folder under `F:\DK2Evidence\runs\unity-input-<date>\`) in which the owner, from Play with **Session Mode = Front End**:
 
 1. sees the title screen, the two intro movies (skippable), path 250 and the main menu, with the hover and click sounds;
 2. starts a new campaign, picks Level 1 on the map, reads the briefing, presses Go;
@@ -206,7 +206,7 @@ Nothing in F5 has run in Unity. Before adding anything, play it and fix it.
 **Files:** whatever breaks; expect `DungeonRunner.LevelEnd.cs`, `DungeonRunner.Finale.cs`, `ClassicFrontEndMenu.cs`, `FrontEndScrollBar`.
 
 **Steps:**
-1. `sync-assemblies`; Unity, runner **Session Mode = Front End**, `DK2_INPUT_JOURNAL` set to `D:\DK2Evidence\runs\unity-input-2026-10-29-f5\`.
+1. `sync-assemblies`; Unity, runner **Session Mode = Front End**, `DK2_INPUT_JOURNAL` set to `F:\DK2Evidence\runs\unity-input-2026-10-29-f5\`.
 2. Walk: main → Single Player → New Campaign → map → Level 1 → Go → play to a loss (let the Heart die) → Space → statistics → accept → map. Then win Level 1 (dig to the hero gate, or use the editor preview `DK2 / Preview win screen` if a win takes too long) → reward tablet → cutscene → statistics → hi-score entry → map → Level 2 unlocked.
 3. For each failure: `superpowers:systematic-debugging`; a failing test where the defect is in Presentation; fix; gate.
 4. Tick off the F5 "Still to see in play" list in `docs/plans/2026-10-23-front-end.md` (tablet upright, sparkles, scroll bar thumb, held arrow, glow linger, paragraph text absent). Write what you saw in the plan's status line; the owner's questions stay owner questions.
@@ -398,7 +398,7 @@ Commit: `hud: hover-text and flower leftovers from step 6`.
 
 ### Task E5: Owner comparisons that close the slices
 
-Every Step 6 slice ends "owner comparison at 1024×768 and 2560×1440". None is closed. Prepare, do not perform: for each slice (minimap disc/frame/rotation, top bar, cursor and cage, bottom panel sectors, message panel, flowers, full map), one Unity capture at each size at a named Level 1 location, and the matching DK2 screenshot request, in a checklist `docs/research/hud-comparison-checklist.md` (≤ 400 lines) with the capture paths under `D:\DK2Evidence\captures\hud-2026-<date>\`. The owner compares; findings become Q rows or fixes. Commit: `docs: the HUD comparison checklist`.
+Every Step 6 slice ends "owner comparison at 1024×768 and 2560×1440". None is closed. Prepare, do not perform: for each slice (minimap disc/frame/rotation, top bar, cursor and cage, bottom panel sectors, message panel, flowers, full map), one Unity capture at each size at a named Level 1 location, and the matching DK2 screenshot request, in a checklist `docs/research/hud-comparison-checklist.md` (≤ 400 lines) with the capture paths under `F:\DK2Evidence\captures\hud-2026-<date>\`. The owner compares; findings become Q rows or fixes. Commit: `docs: the HUD comparison checklist`.
 
 ---
 
@@ -422,7 +422,7 @@ Unity adapter builds have zero warnings. Docs, KB (2,642 records), coverage and
 verification ledger (336 rules) gates pass. Hash/save remains 332.
 
 The clean integrated walkthrough is preserved at
-`D:/DK2Evidence/runs/unity-input-2026-10-29-completion/20261029-221115-1d91224b/`:
+`F:/DK2Evidence/runs/unity-input-2026-10-29-completion/20261029-221115-1d91224b/`:
 `reports/completed.json`, nine sessions under `journals/`, and
 `source-and-evidence-hashes.json`. Below, **C** refers to this run. It rejects
 unexpected product exceptions; the known Editor Search indexing exception is

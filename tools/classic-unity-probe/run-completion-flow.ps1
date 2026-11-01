@@ -4,7 +4,7 @@
 
 param(
     [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
-    [string]$EvidenceRoot = 'D:/DK2Evidence/runs/unity-input-2026-10-29-completion',
+    [string]$EvidenceRoot = 'F:/DK2Evidence/runs/unity-input-2026-10-29-completion',
     [string]$ScratchProject = '',
     [switch]$EditorGui
 )

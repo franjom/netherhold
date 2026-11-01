@@ -157,7 +157,7 @@ CONFIRMED capture: the owner's `2026-10-23 15-43-11.mp4` is88.53seconds at30fps,
 recorded with OBS Studio. The1600x1200 game is scaled to1080x810 inside a1440x810
 video, with180pixel side bars. The owner confirms the initial zoom was untouched
 after the Level1 intro/tutorial move. The original and SHA-256 manifest are in
-`D:\DK2Evidence\camera-20261023-154311-20261023T1349154080`; the source remains in Videos.
+`F:\DK2Evidence\camera-20261023-154311-20261023T1349154080`; the source remains in Videos.
 
 `ClassicCameraReferenceProbe` renders Level1 at1600x1200, gold AP4 focus
 (14.5,1,-24.5), reset yaw and the authored default/minimum/maximum zooms. It uses
@@ -257,7 +257,7 @@ height correction removed the crop dependence but retained the earlier extra
 widescreen coverage at118.07degrees. The owner judged that better but still
 distorted, and requested strict reference matching instead of a comfort lens.
 The 18 original live audit files are preserved with verified SHA-256 copies in
-`D:\DK2Evidence\camera-projection-20261023T1649534901957`.
+`F:\DK2Evidence\camera-projection-20261023T1649534901957`.
 
 The final adaptation scales the pixel lens by full screen width/reference
 width. With reference1600, full-width horizontal coverage is102.68degrees at

@@ -12779,7 +12779,7 @@ devices and `runInBackground`, drives the real HUD. The plan is
 drive legacy input. Phase 5's fixed step is a production change to the frame clock, because
 `Time.captureDeltaTime` does not reach a clock that reads real time. Coverage is claimed only
 for interactions with a production input path; possession and door locking have none yet.
-Unity evidence goes to `D:\DK2Evidence`.
+Unity evidence goes to `F:\DK2Evidence`.
 
 ## ADR-0554 — One creature's whole update before the next one's
 **Date:** 2026-10-27 · **Status:** accepted · Hash/save 315 · amends ADR-0013's order and ADR-0551 · Research: `docs/research/creature-update-order.md`
@@ -12915,7 +12915,7 @@ That test compares the points with the cost word at `[ring+0]`, slot 0 of the 12
 with the head entry (`+0x801`); the pop `0x00506970` only moves the head, so after the first crate
 slot 0 holds the first order's cost until the tail wraps onto it. Q618 waited for a capture of
 the points at each crate over orders of different cost. Level 4 seed 1's capture has 20 crates
-(`D:/DK2Evidence/runs/q665-job-choice-2026-10-28/analysis/manufacture_slot0-seed01.out`): every one,
+(`F:/DK2Evidence/runs/q665-job-choice-2026-10-28/analysis/manufacture_slot0-seed01.out`): every one,
 door or trap, is made the tick the points pass 3000, slot 0's cost (the first order, a Wooden
 Door), including the 1500-point Sentry Trap heads. Ours paid at the head's cost, so its Sentry
 crates came twice as fast. The resync replay (ADR-0558) found it: with DK2's state copied in,
@@ -13024,7 +13024,7 @@ named the wrong creature for several slots, and the hand actions after the resyn
   (15-17,31-34) where DK2's party 5 is down by 3960; that fight is the next lead.
 - Without the level copy the run lost 24 Imps and raised party 6.
 
-Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "The parties' offset".
+Evidence: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "The parties' offset".
 Tests:
 - `WorldResyncTests`: `TheTriggerFlagsAndTimerStartsAreCopied`,
   `AStaleMapIsOverruled_CreaturesPairByPlayerTypeAndPoint_TheRestAreMadeOrRemoved`,
@@ -13070,8 +13070,8 @@ the Training growth on most seeds, as DK2 would without its lucky draw.
   preferences 0-3, the trap choice, the Boulder's long-corridor rule, the west edge testing only
   its first tile and the observation packet. The clamp order is not tested on its own.
 
-Evidence: `D:/DK2Evidence/runs/l17-trapdoor-2026-10-28/` (summary.txt, ledger.txt,
-dk2_harkan_doors.txt, dk2_harkan_money_840_1260.txt); captures `D:/DK2Evidence/dk2runs/m12-level17-20261028-*`.
+Evidence: `F:/DK2Evidence/runs/l17-trapdoor-2026-10-28/` (summary.txt, ledger.txt,
+dk2_harkan_doors.txt, dk2_harkan_money_840_1260.txt); captures `F:/DK2Evidence/dk2runs/m12-level17-20261028-*`.
 
 ## ADR-0562 — A miner that reaches its seam full leaves on its first tick in state 26
 **Date:** 2026-10-28 · **Status:** accepted · Hash/save 319 · Q665 · Research: `docs/research/resync-replay.md`
@@ -13097,7 +13097,7 @@ chooser before the timer. The first strike, which that call started, does not as
 - Not changed: the pile test in the same handler still runs at our strike timer, not at the
   handler's first call.
 
-Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Why ours' mining stints are
+Evidence: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Why ours' mining stints are
 shorter". Tests: `GoldCarryingTests.AnImpThatReachesTheSeamFull_LeavesOnItsFirstTickInStateTwentySix`,
 `AnImpThatReachesTheSeamFullWithNowhereToStore_StrikesOnTheUsualTick`.
 
@@ -13213,7 +13213,7 @@ Research: `docs/research/resync-replay.md`
 
 **Context.** ADR-0560's resync pairs every creature and copies its pose, level, health and fear, but
 kept ours' walk-back stamp (ADR-0225). Evidence:
-`D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Level 4 Imp deaths, seed 1, at hash 323".
+`F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Level 4 Imp deaths, seed 1, at hash 323".
 Resynced at 3400, Dark Elf 27 kept a stamp from ours' own pre-resync fight. At 3502 it walked to
 (23,23), behind the hero door (the stamp's y is the x tile, DK2's quirk). It burned the door down by
 3854 and the freed Guards and later parties killed 36 keeper creatures. DK2's counterpart (slot 422)
@@ -13457,7 +13457,7 @@ Do not add `System.IO.Hashing.XxHash3`: the Unity-bound netstandard2.1 assembly 
 another package. The rotate uses shifts supported by that target.
 
 **Consequences.** No hashed field, simulation behavior or snapshot layout changes.
-Every pre-329 journal and save is refused, including evidence under `D:\DK2Evidence`, which
+Every pre-329 journal and save is refused, including evidence under `F:\DK2Evidence`, which
 must be replayed at its own commit. Keeper/controller command hash columns cannot be compared
 across 328/329. The deterministic pin is recorded in `research/hash-versions.md`.
 Equivalence and measured speed checks are required by the throughput plan before committing.
@@ -13542,7 +13542,7 @@ of art slot 29) and returns 1, anyone else returns 0. 252 (`0x00458680`) returns
 runs. 254 (`0x004759A0`) counts a turn up from its first call and returns 1 for thirty. Ours ran
 202, 251, 252 and 254's first count in the arrival turn and, the combat step preceding the later
 handler steps, state 1's handler in the same turn: our Imps went 6 -> 10 and 203 -> 10 in one turn.
-DK2's Level 4 captures, seeds 1-8 (`D:/DK2Evidence/runs/l4-flight-dwell-2026-10-29`), hold Imps one
+DK2's Level 4 captures, seeds 1-8 (`F:/DK2Evidence/runs/l4-flight-dwell-2026-10-29`), hold Imps one
 tick in 1 (4238), 202 (665), 203 (1577) and 251 (468), four in 252 (432 of 432), 31 in 254 (7 whole
 stands); other creatures one tick in 1 (2964 of 2972) and 202 (56).
 
@@ -13634,7 +13634,7 @@ Blitzer while `RetreatingCreature` is set. `AvoidRetreatersCounter` (new, hashed
 `CombatSystem.Update` before the fight scan and at 60 clears it, `RetreatingCreature` and `ChaseTicks`.
 
 **Consequences.** Re-entry retains the count at hash/save 336 (ADR-0590). On Level 4, from DK2's eight 2400 states
-with five generator seeds each (`D:/DK2Evidence/runs/l4-retreat-tracking-2026-10-29`; h333 summed over
+with five generator seeds each (`F:/DK2Evidence/runs/l4-retreat-tracking-2026-10-29`; h333 summed over
 40 runs and divided by 5 to compare with DK2's 8), the first build of this rule moved Imp deaths from
 28.9 to 28.3 a run (p 0.42; not a test of no effect). The audit around it, counting live creatures
 only (`alive.out`): heroes choose a player creature they meet at DK2's rate (others 0.264 against
@@ -13867,7 +13867,7 @@ Known gaps, not fixed:
 
 **Context.** Healthy keeper non-Imps leaving the flee state (203) go back to the fight less often
 in ours than in DK2: per eight Level 4 runs the next state is 199 / 6 for 52 / 13 of 100 in DK2
-and 31.8 / 25.2 of 79.4 in ours (hash 338; `D:/DK2Evidence/runs/l4-celebration-2026-10-30`,
+and 31.8 / 25.2 of 79.4 in ours (hash 338; `F:/DK2Evidence/runs/l4-celebration-2026-10-30`,
 README, "Why the keeper fighters break off"). A debug replay showed a keeper Goblin's step back
 failing three tiles south into a wall and the creature withdrawing to its lair at full health.
 Ours stepped back `0x3000` (three tiles, `Fp32.One` being 4096; documented as three quarters of
@@ -14069,7 +14069,7 @@ workshop), the Combat Pit spectators, the jailbreak rescuer, three Imp task turn
 the file value, four times DK2's rate. A Guard (file 1024) faced any target in one turn. DK2's eight
 Level 4 captures turn Guard 256, Thief 512 and Dwarf 341 a tick, and a hero entering state 199 on an Imp
 starts its swing two or more turns into the stint in 44% of Guard stints with a swing (177 of 398) against 16% in ours at hash 342 (41 of 264)
-(`swingstart-native-sNN.tsv`, `swingstart-ours.out`, D:/DK2Evidence/runs/l4-celebration-2026-10-30).
+(`swingstart-native-sNN.tsv`, `swingstart-ours.out`, F:/DK2Evidence/runs/l4-celebration-2026-10-30).
 
 **Decision.** `SimulationTiming.TurnRatePerTick(definition)` is `LoaderRatePerTick(TurnRate)`, and every
 creature turn uses it. Imps (file 4096, 1024 a tick) still face any bearing in one turn.
@@ -14174,7 +14174,7 @@ refusal `0x004754D0` counts an owner's creature whose state, or a state-6 walk's
 `RaisingAlarm` activity, which also covers 252, so an Imp standing down after raising one refused the
 next Imp's alarm; and it judged a walker by its route's end and a raiser in 251 by where it stood. On Level 4 (h345, per eight runs) our fleeing Imps near a Guard Room went idle 697
 times against DK2's 457 (61% and 51% of flees near a Guard Room) and withdrew 404 times against 585 (`impfleeroute.py`,
-D:/DK2Evidence/runs/l4-celebration-2026-10-30); a Guard's non-lethal blow is followed within 4-12
+F:/DK2Evidence/runs/l4-celebration-2026-10-30); a Guard's non-lethal blow is followed within 4-12
 turns by the same Guard's next on 11.6% of Imps against DK2's 0.9% (`repeatsame.py`).
 
 **Decision.** `FearRules.AlreadyResponding` tests the state as `0x004754D0` does (251 or 254, or state 6

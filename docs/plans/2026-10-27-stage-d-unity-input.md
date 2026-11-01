@@ -89,7 +89,7 @@ spell chosen in the panel stays armed after a placement in DK2 (owner, 2026-10-2
 **Baseline sessions.** Legacy `Input` is read-only, so nothing can drive it before Phase 4.
 The Phase 2 baseline is three to five short sessions the owner plays with journaling on
 (digging, a room, pickup/drop/slap, a spell, a door or trap, camera, a front-end walk).
-Evidence goes to `D:\DK2Evidence\runs\unity-input-<date>\` (AGENTS.md, add-only).
+Evidence goes to `F:\DK2Evidence\runs\unity-input-<date>\` (AGENTS.md, add-only).
 
 ## 4. Phase 2 — move the input mapping into Presentation
 
@@ -165,7 +165,7 @@ unavailable until a production input path exists.
 
 Every failure bundle: commit, Unity and Input System versions, scene and display settings,
 `frames.journal`, `input.journal`, screenshots, the Unity log, how to reproduce. All of it under
-`D:\DK2Evidence` (owner rule 2026-10-24: nothing outside the repo lives only in scratch).
+`F:\DK2Evidence` (owner rule 2026-10-24: nothing outside the repo lives only in scratch).
 
 ## 10. Out of scope
 

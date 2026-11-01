@@ -333,7 +333,7 @@ not an observation. Level 18's Freeze at (51,54) now freezes a hero standing on 
 ## 14. Watched in play (2026-11-01, Q362, Q452, Q513)
 
 Level `M7Traps` (`tools/levelgen`). Two sealed chambers, each with a Hero Sentry (trap 14, the heroes')
-and one level-1 Goblin (1500 health) of the keeper's. Capture: `D:\DK2Evidence\runs\m7traps-2026-11-01`.
+and one level-1 Goblin (1500 health) of the keeper's. Capture: `F:\DK2Evidence\runs\m7traps-2026-11-01`.
 
 - **Beyond five tiles (Q452):** the Goblin 6 tiles from its Sentry was hit on turn 9 (1500 → 1250), and
   again every few turns. CONFIRMED (observed): a Sentry does fire past its nominal 5.

@@ -349,7 +349,7 @@ initiates while any melee-engaged enemy is in range.
 ### 5.1 Level 4: a farther Guard behind the hero door (2026-10-28)
 
 Binary re-read: selectors, both counters, attackability, registration, acquirer and route chain.
-Capture: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/analysis/guard_score_audit_codex_20261028.py`
+Capture: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/analysis/guard_score_audit_codex_20261028.py`
 and `native_guard_score_audit_codex_20261028.out` (seed 1, six acquisitions, no torn frames).
 The captured `+0x08` update links put 435 before 437 before 440 before 441, then Guards 444-446.
 Troll 440's pre-move Blocker scores prefer 445 at 5283 and 446 at 5284; Troll 437 prefers 445 at 5286.

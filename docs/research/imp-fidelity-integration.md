@@ -65,7 +65,7 @@ Reproduction logs and TRX live under
 ## Level 4 outcomes 2026-10-19
 
 The lost native capture was re-recorded as a seed-1 replay of `l4live.sav`
-(`D:\DK2Evidence\dk2runs\level4-live1`). It reproduces the original: all 92
+(`F:\DK2Evidence\dk2runs\level4-live1`). It reproduces the original: all 92
 initial-Imp records over turns 4–26 match except two per-process pointers, and the
 1100-turn state counts below match the original exactly.
 
@@ -119,7 +119,7 @@ and 3-14% in ours; one capture cannot tell that from chance. Lead closed until a
 capture or a rule in the binary says otherwise.
 
 **A second native recording (2026-10-21)**: the same `l4live` inputs replayed under DK2 seed 2
-(`D:\DK2Evidence\dk2runs\level4-live1-seed2`). Native seed 1 / seed 2: Imp flee entries
+(`F:\DK2Evidence\dk2runs\level4-live1-seed2`). Native seed 1 / seed 2: Imp flee entries
 25 / 349, alarms raised 1 / 128, hero Guard Room (24,38) claimed 2029 / 1978, Dwarves at
 2989 / 2938, dug-to-claimed median 80 / 78, claims within 15 turns 7% / 2%, Imp deaths 0 / 19.
 Seed 1 is the quiet end of DK2's own spread. Ours at hash 286 sits inside the native range on
@@ -129,4 +129,4 @@ as Imp slots that turn into objects.
 
 Native: Idle 704, Walk 2102, Dig 1098, Mine 803, Claim 776, Reinforce 112,
 Deposit 34, Other 31. Five seeds per version only bound the effect; RNG streams are
-not matched to DK2's. Results and scripts: `D:\DK2Evidence\outcomes-2026-10-19-level4`.
+not matched to DK2's. Results and scripts: `F:\DK2Evidence\outcomes-2026-10-19-level4`.

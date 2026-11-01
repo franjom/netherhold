@@ -20,7 +20,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
   native playback acceptance remains Q685.
 
-- A keeper whose free lair space (`0x004C6DD0`) is negative gets no portal arrivals (ADR-0614, hash/save 358; Q709 closed). Level 5 resynced at 1400: arrivals match DK2 per state; player Imp deaths 1401-3400 per run DK2 11.12, ours 4.30 (0.80 before; p 0.156), the 3401-5000 window agrees (`D:/DK2Evidence/runs/l5-resync-2026-11-01/README.md`).
+- A keeper whose free lair space (`0x004C6DD0`) is negative gets no portal arrivals (ADR-0614, hash/save 358; Q709 closed). Level 5 resynced at 1400: arrivals match DK2 per state; player Imp deaths 1401-3400 per run DK2 11.12, ours 4.30 (0.80 before; p 0.156), the 3401-5000 window agrees (`F:/DK2Evidence/runs/l5-resync-2026-11-01/README.md`).
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
@@ -36,23 +36,23 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - M0–M4 are closed. M5 has an original-game idle-trigger comparison on two
   levels (docs/experiments/). M6 remains partial: the latest completed packet
   measurement is hash328 at `0c0f7042` (2026-10-29; write-up
-  D:\DK2Evidence\runs\packet-replay-hash328\README.md): 78 of 80 runs valid (Level 4
+  F:\DK2Evidence\runs\packet-replay-hash328\README.md): 78 of 80 runs valid (Level 4
   seeds 14 and 18: the fixed-map remap ran out of creatures to pair), wins 19/7/14/0 (of
   20, 20, 20 and 18 valid) against hash320's 19/8/13/3, none beyond 20-seed noise (Level 4
   Fisher p = 0.23); Level 4 Imp deaths median 27 (18 runs) against 8 (0-55 per seed at
   both; Mann-Whitney p ~ 0.26, so not a direction). It spans hashes 321-328; no sweep
   isolates them. Before it, hash320 at `65e529b7` (2026-10-28;
-  D:\DK2Evidence\runs\packet-replay-hash320\README.md): 79 of 80 valid, wins 19/8/13/3
+  F:\DK2Evidence\runs\packet-replay-hash320\README.md): 79 of 80 valid, wins 19/8/13/3
   against hash309's 18/8/16/1, Level 4 Imp deaths median 8 against 14.5, spanning hashes
   310-320. A Level 4 bisection and 60 seeds at hash328 show no change in 321-328 beyond seed noise
   (`docs/research/level4-outcomes.md`); rig v2
-  (D:\DK2Evidence\rig-2026-10-29-v2) fixes lmap.py's batch-pairing crash and takes levels and seeds
+  (F:\DK2Evidence\rig-2026-10-29-v2) fixes lmap.py's batch-pairing crash and takes levels and seeds
   from the environment. The previous measurement is hash309 at `490b7d82`
-  (2026-10-26; D:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
+  (2026-10-26; F:\DK2Evidence\runs\packet-replay-hash309\README.md): all 80 runs valid, wins
   18/8/16/1 of 20 against hash305's 18/9/17/1; Level 1 seeds 3 and 7 now win and
   6 and 11 lose; Level 4 Imp deaths median 14.5 against 7, with Imp flees, alarms
   and withdrawals all up and no-destination endings not. Isolating sweeps at
-  hashes 306, 307 and 308 (D:\DK2Evidence\runs\packet-replay-hash30{6,7,8}\README.md):
+  hashes 306, 307 and 308 (F:\DK2Evidence\runs\packet-replay-hash30{6,7,8}\README.md):
   307, 308 and 309 are byte-identical, so ADR-0544 and ADR-0545 change nothing in
   these replays; the death median already reads 15 at hash306 (hero-party order),
   and a permutation test puts the 7 -> 15 shift at p ~ 0.15, inside seed noise.
@@ -84,7 +84,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - Q665 is answered: scatter plus two resync harness faults (`--births`, Portal clocks), now fixed; from DK2's
   turn-5000 state a residual remains where the Guard room opens, Q710
   ([closing Q665](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31)). Level 4 baseline
-  on master f729436c (`D:/DK2Evidence/runs/l4-resync5000-2026-10-31`): 6.50 / 11.03 Imp deaths a run in 5001-6000
+  on master f729436c (`F:/DK2Evidence/runs/l4-resync5000-2026-10-31`): 6.50 / 11.03 Imp deaths a run in 5001-6000
   (DK2 / ours); `capture_state.py` now writes creature health signed, so later-turn states load.
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
   combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
@@ -186,7 +186,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [timer stamps](research/trigger-timer-stamps.md). The Level 1-4 packet sweep, which also gives the win counts, was rerun at hash 320
   (M6 above). DK2's own Level 11A ten-seed captures (`dk2runs/level11A-seeds`) were lost in the
   2026-10-18 cleanup; the capture driver `run.ps1` was recovered from session logs but has not
-  been re-run (D:\DK2Evidence\recovered-rig-2026-10-19\RECOVERY.md); the packet `m12l11a.sav` survives.
+  been re-run (F:\DK2Evidence\recovered-rig-2026-10-19\RECOVERY.md); the packet `m12l11a.sav` survives.
 - M7 remains partial (played on `tools/levelgen` levels: `boulder.md` §9b, `traps.md` §14, `jack-in-the-box.md` §7; a sprung Jack neither fights nor can be attacked, ADR-0615, hash/save 359; it does not settle on the heart corner, Q711): combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
@@ -398,7 +398,7 @@ tools/classic-unity-probe/README.md.
    `plans/2026-10-27-stage-d-unity-input.md`) Phase 1 is built: Unity writes `frames.journal`
    (`FrameInputJournal`) and `input.journal` when `DK2_INPUT_JOURNAL` names a folder
    (`unity/README.md`); it has not been run in the editor. Next: the owner plays three to five
-   journaled baseline sessions (to `D:\DK2Evidence\runs\unity-input-<date>\`), and Phase 1b
+   journaled baseline sessions (to `F:\DK2Evidence\runs\unity-input-<date>\`), and Phase 1b
    lets the harness replay a Unity journal; Phases 2-5 (input mapping into Presentation, the
    Input System ADR, migration, rendered-HUD automation) are not started. Failure bundles hold no
    snapshots, no DK2-behaviour invariant exists (each needs a cited source), and the fuzzer

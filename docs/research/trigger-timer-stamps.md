@@ -1,8 +1,8 @@
 # Level 4 trigger timer stamps
 
 DKII.EXE v1.70, Level4 seed 1, packet `l4live.sav` offset 69. Native capture:
-`D:/DK2Evidence/dk2runs/level4-live1/seed01/level4.dk2cap`.
-Evidence: `D:/DK2Evidence/runs/trigger-timers-codex-20261028/`.
+`F:/DK2Evidence/dk2runs/level4-live1/seed01/level4.dk2cap`.
+Evidence: `F:/DK2Evidence/runs/trigger-timers-codex-20261028/`.
 The reported baseline is `q665-job-choice-2026-10-28/resync-guard/run3790-h322/`.
 
 ## Clock and observation boundary

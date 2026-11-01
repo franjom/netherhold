@@ -2,7 +2,7 @@
 
 Build the Release runtime assemblies, then run `./tools/classic-unity-probe/run-hud-comparison.ps1`.
 The launcher creates a unique isolated project in `build/` and a unique, add-only
-directory below `D:/DK2Evidence/captures/hud-2026-10-29/`. It never opens or saves
+directory below `F:/DK2Evidence/captures/hud-2026-10-29/`. It never opens or saves
 the owner's Unity project. It copies the current adapter sources and runtime DLLs;
 run after rebuilding when either changes. Unity 6000.6 and the original install
 at `E:/GogGames/Dungeon Keeper 2` are required. The main checkout supplies the

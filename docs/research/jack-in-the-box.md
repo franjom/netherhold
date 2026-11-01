@@ -89,7 +89,7 @@ creature (a fired-without-target shot names thing 2; ours strikes nobody); the `
 Level `M7Traps` (`tools/levelgen`): the heroes' Jack In The Box at (10,25) on the keeper's way to
 gold; the keeper's Heart centre at (19,30). The keeper's Imp walked onto the trap by itself to claim
 the hero tile, so all of this happened before the owner looked. Capture:
-`D:\DK2Evidence\runs\m7traps-2026-11-01` (README). CONFIRMED (observed) unless a line says otherwise:
+`F:\DK2Evidence\runs\m7traps-2026-11-01` (README). CONFIRMED (observed) unless a line says otherwise:
 
 - Turn 21: the Imp on the trap went from 500 to −9846, 10000 plus area damage. A Jack (creature 46,
   the heroes', 240 health) was made at (10.5,25.5).

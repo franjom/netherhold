@@ -12,14 +12,14 @@ The [saved replay failure analysis](../experiments/2026-10-25-packet-replay-hash
 identifies the Level 1 Hatchery timing gate and Level 4 frontier interruptions.
 This audit checks native-versus-modern decisions rather than tuning those rates.
 
-New rig and outputs: `D:/DK2Evidence/parity-audit-2026-10-25-hash303/`.
+New rig and outputs: `F:/DK2Evidence/parity-audit-2026-10-25-hash303/`.
 The archived hash-303 assemblies remain at
-`D:/DK2Evidence/tools/hash303-e9663974-2026-10-25/`.
+`F:/DK2Evidence/tools/hash303-e9663974-2026-10-25/`.
 Native inputs are the two `level4.dk2cap` files under
-`D:/DK2Evidence/dk2runs/level4-live1/seed01/` and
-`D:/DK2Evidence/dk2runs/level4-live1-seed2/seed02/`, plus the retained
+`F:/DK2Evidence/dk2runs/level4-live1/seed01/` and
+`F:/DK2Evidence/dk2runs/level4-live1-seed2/seed02/`, plus the retained
 `imp-strike-choice-20261018` live boundary under
-`D:/DK2Evidence/imp-acceptance-worktree/reverse-engineering/`.
+`F:/DK2Evidence/imp-acceptance-worktree/reverse-engineering/`.
 No existing evidence was overwritten. New diagnostic projects reference the
 archived DLLs; they do not rebuild the simulation. Whole-turn observations use
 raw native headers under [the calibrated clock limits](imp-observation-clocks.md).
@@ -28,7 +28,7 @@ raw native headers under [the calibrated clock limits](imp-observation-clocks.md
 
 The owner approved one elevated `l1live` playback on the shipped 30×38 map,
 without a seeder or packet recording. The completed capture is
-`D:/DK2Evidence/parity-audit-2026-10-25-hash303/native-level1-20261025-130519-2260/level1.dk2cap`.
+`F:/DK2Evidence/parity-audit-2026-10-25-hash303/native-level1-20261025-130519-2260/level1.dk2cap`.
 It contains all 850 headers, 1–850, with zero torn/missed frames, missing record
 reads or unknown vtables. The driver closed only its own game and recorder.
 `level1-analysis/` contains the reader, native worker/tile CSVs, comparison and
@@ -197,7 +197,7 @@ Two other limits are already established in native research and rechecked here:
 the first keeper Imp withdrawal entry/return at execution3473: slot427, health750,
 state203 to6, staged target0. The earlier flee observation around3023 is a
 different boundary. Both complete stopped-memory images are retained under
-`D:/DK2Evidence/level4-interruption-hash304-2026-10-25-restart1/` (R).
+`F:/DK2Evidence/level4-interruption-hash304-2026-10-25-restart1/` (R).
 Modern tools remain the archived clean `5716560c` Release build, HashVersion304.
 
 The captured room picker draws index6 from15 rooms. Native list slot1108 is the
@@ -281,7 +281,7 @@ Omit `--seal` for subsequent read-only verification of this supplement.
 24 copied DLL hashes against the archive, then sealed 226 files in
 `audit-artifact-manifest.csv`. It reproduces the two expected withdrawal
 disagreements rather than treating them as passing fidelity checks. Run
-`python -B D:/DK2Evidence/parity-audit-2026-10-25-hash303/verify_audit.py`
+`python -B F:/DK2Evidence/parity-audit-2026-10-25-hash303/verify_audit.py`
 without `--seal` for subsequent read-only result and manifest verification.
 
 Independent read-only review re-read the cited native branches, both Level 4

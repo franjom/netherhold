@@ -53,14 +53,14 @@ declared order:
 
 ### One-tick A/B before the change
 
-Source: `D:/DK2Evidence/runs/order-ab-jobs-2026-10-27`. Level 4, share of sampled ticks whose
+Source: `F:/DK2Evidence/runs/order-ab-jobs-2026-10-27`. Level 4, share of sampled ticks whose
 state hash changed:
 - moving the job systems to their slot in the creature update: 90%;
 - also interleaving per creature: 28%.
 
 ### Walk-start timing
 
-Source: `D:/DK2Evidence/runs/walk-start-timing-2026-10-27`, Level 2 and Level 4, seed 1. Each cell
+Source: `F:/DK2Evidence/runs/walk-start-timing-2026-10-27`, Level 2 and Level 4, seed 1. Each cell
 counts walks that stepped on the tick they started, out of all walk starts.
 
 | | native | before | after |
@@ -75,7 +75,7 @@ counts walks that stepped on the tick they started, out of all walk starts.
 
 ### The combat states in the dispatcher (ADR-0555)
 
-Source: `D:/DK2Evidence/runs/q665-imp-flee-2026-10-27`, same rig. After ADR-0554, 151 of the Level 4
+Source: `F:/DK2Evidence/runs/q665-imp-flee-2026-10-27`, same rig. After ADR-0554, 151 of the Level 4
 Imps' entries into 199 came from a walk, and 142 of their 173 entries into 199 fled one tick
 later. Native Imps reach 203 straight from a walk. Running the fight state in the scan's update:
 
@@ -89,7 +89,7 @@ later. Native Imps reach 203 straight from a walk. Running the fight state in th
 
 ### What remains on Level 4 (Q665)
 
-Scripts and outputs: `D:/DK2Evidence/runs/q665-imp-flee-2026-10-27/analysis/`. Level 4, seed 1, against
+Scripts and outputs: `F:/DK2Evidence/runs/q665-imp-flee-2026-10-27/analysis/`. Level 4, seed 1, against
 native, three measured gaps (a replay resynced from DK2's tick 2340 matches native's job mix to 3100:
 `resync-replay.md`). Seed 1 only: over 8 native seeds DK2 loses 0-64 Imps itself and flights are alike
 ([level4-outcomes.md](level4-outcomes.md)).
@@ -111,7 +111,7 @@ native, three measured gaps (a replay resynced from DK2's tick 2340 matches nati
     12 for 27% of Imp-ticks and ours for 0.3% (`imp_states.py`, `state_ticks.py`).
   - 389 of native's 809 Imp walks from 87, which follow idling, come after 6000, when ours has 13 Imps.
 - **Where the drift starts** (one seed: Level 4 seed 1, hash 318, ticks 1-3520). Evidence:
-  `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Where the seed-1 drift starts".
+  `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Where the seed-1 drift starts".
   - Imp levels are not the source: native 34 Imp level-ups to 3520, ours 35, spread alike. Pairing
     Imps one to one is arbitrary, so "six of ours above DK2's level" was a pairing artefact for Imps;
     other species' levels were not compared.

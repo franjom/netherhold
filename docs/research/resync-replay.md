@@ -2,7 +2,7 @@
 
 2026-10-28, ADR-0556 and ADR-0558. Built for Q665: a full replay cannot isolate an Imp rule once the two
 worlds have drifted, so this run starts from DK2's state at a tick and continues with the same
-packets. Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/resync/` (the JSON, the map,
+packets. Evidence: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/resync/` (the JSON, the map,
 three runs and `analysis/resync_compare*.out`).
 
 ## How it runs
@@ -103,7 +103,7 @@ with neither); this run's corridor claims are not recorded here.
 
 ## The death window (resyncs at 3900 and 3496)
 
-Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The death window".
+Evidence: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The death window".
 
 - Resynced at 3900, ours already differs in who is alive, and 12 native slots map to nothing (a
   stale entity map, Imps cast after 2340); ours then loses 27 Imps by 4800, native 0.
@@ -122,7 +122,7 @@ Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "T
 
 ## Every creature, and the trigger banks (ADR-0560)
 
-Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The parties' offset".
+Evidence: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The parties' offset".
 
 - Pairing: the map's id while it names a live creature of the same player and type, else the
   nearest unpaired one, greedily in capture order. A native lying in 216/217 may pair with ours
@@ -157,7 +157,7 @@ Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "T
 
 ## The Guard fight (resyncs at 3860 and 3790)
 
-Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The Guard fight, and a
+Evidence: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, section "The Guard fight, and a
 resync at 3790" (`resync-guard/`, `analysis/native_elf_choice_3893_3903.out`,
 `native_shot_flight_3900_3962.out`, `native_post_guards_job_5270_5320.out`,
 `death_window-run3790.out`). Seed 1, one run each.
@@ -247,7 +247,7 @@ The drift before 3790 (the dig order at about 550) comes from the first dig's la
 
 ## Mining against reinforcing (resyncs at 3000, 3400 and 3700)
 
-Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Mining over reinforcing in
+Evidence: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Mining over reinforcing in
 3000-4000, resynced", and its review corrections; runs in `resync-reinforce/`. These are one seed;
 the mining surplus below does not hold over seeds ([level4-outcomes.md](level4-outcomes.md): from 2400,
 ours mines as DK2 does for 600 ticks). Unsynced in 3000-4000
@@ -317,7 +317,7 @@ hash 318. Resynced, job starts native/ours (`resync_compare.py`, a different cou
 
 ## Imp deaths and the player's door (resyncs at 3400, by part)
 
-Evidence: `D:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Level 4 Imp deaths, seed 1, at
+Evidence: `F:/DK2Evidence/runs/q665-job-choice-2026-10-28/README.md`, "Level 4 Imp deaths, seed 1, at
 hash 323" and "What protects the dungeon at 3400". Seed 1, hash 323.
 - Full replays lose 65 Imps (default generator) and 23 (`--rng dk2`), DK2 none. Resynced at 3400
   they lose 3 keeper creatures, and 0-4 over seeds 2-9 with the hero door at 5309-5316: from DK2's

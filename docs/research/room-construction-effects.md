@@ -369,7 +369,7 @@ show a broad red/gold billowing burst around the crystals, bright cream cores,
 then diffuse red haze. The sequence has no controlled frame timestamps, so
 it establishes appearance and progression, not an exact duration.
 SHA256-verified originals and manifest are preserved at
-`D:/DK2Evidence/portal-capture-SHOT0231-0240-20261023T1257324896/`;
+`F:/DK2Evidence/portal-capture-SHOT0231-0240-20261023T1257324896/`;
 the source install's SCRSHOTS files were left unchanged.
 
 Fresh reads of `0x004E5650` and `0x004386F0` confirm the full-slab generation

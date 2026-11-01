@@ -130,7 +130,7 @@ to list built states no run visited. Instrumentation only observes: no hash or R
 ## 11. Evidence
 
 Routine output goes to the harness `--out` directory. Only failure bundles or irreplaceable
-evidence are copied to `D:\DK2Evidence` (add-only, AGENTS.md). Before tick zero, write and
+evidence are copied to `F:\DK2Evidence` (add-only, AGENTS.md). Before tick zero, write and
 flush the journal header. During the run, append commands, hashes, coverage, relevant events
 and the last completed tick with bounded buffering. A failure bundle (crash plan item 2)
 holds configuration, journal, hash trace, the exception or watchdog report, snapshots when

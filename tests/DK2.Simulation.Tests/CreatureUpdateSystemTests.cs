@@ -92,7 +92,7 @@ public class CreatureUpdateSystemTests
         // gate skips the Imp (+0x36F == 1 at 0x0048A210-0x0048A248); an imp steps inside state 6's
         // handler (0x00470C80), which the dispatcher runs from the next update. Native Level 2 and
         // Level 4: non-Imps stepped on the tick they entered 6 in 28-40% of starts, Imps in 22 of
-        // 3,891 (D:/DK2Evidence/runs/walk-start-timing-2026-10-27).
+        // 3,891 (F:/DK2Evidence/runs/walk-start-timing-2026-10-27).
         (GameDatabase db, WorldState world) = Setup();
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 3));

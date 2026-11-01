@@ -64,13 +64,13 @@ such overrides when the experiment is about campaign numbers (`Q520CorridorsGlob
 
 Copy the six files from `<stage>\maps` into `<install>\Data\editor\maps`, **under new names
 only**: never overwrite a shipped file. They stay there only for the session (see below). Archive the same six files and the recipe's commit in
-the run's evidence folder, which holds the capture too (AGENTS.md: `D:\DK2Evidence\` is add-only).
+the run's evidence folder, which holds the capture too (AGENTS.md: `F:\DK2Evidence\` is add-only).
 
 The recorder must be running before the game starts, and both must run elevated. From an
 elevated PowerShell, as one line, with the run folder already created:
 
 ```powershell
-Start-Process cmd -WorkingDirectory 'D:\DungeonKeeperRemake\reverse-engineering' -ArgumentList '/k python -u dk2record.py D:\DK2Evidence\runs\<run>\<run>.dk2cap --map <W>x<H>'; Start-Sleep 3; Start-Process 'E:\GogGames\Dungeon Keeper 2\DKII-DX.exe' -ArgumentList '-LEVEL <recipe>' -WorkingDirectory 'E:\GogGames\Dungeon Keeper 2'
+Start-Process cmd -WorkingDirectory 'D:\DungeonKeeperRemake\reverse-engineering' -ArgumentList '/k python -u dk2record.py F:\DK2Evidence\runs\<run>\<run>.dk2cap --map <W>x<H>'; Start-Sleep 3; Start-Process 'E:\GogGames\Dungeon Keeper 2\DKII-DX.exe' -ArgumentList '-LEVEL <recipe>' -WorkingDirectory 'E:\GogGames\Dungeon Keeper 2'
 ```
 
 `cmd /k` keeps the recorder's summary on screen after DK2 exits. `--map` is the level's size
@@ -86,7 +86,7 @@ installed failed 28 of them; `build` brings a level back byte for byte.
 Lessons from Q520:
 
 - **The run folder must exist before the recorder starts**, or nothing is written. On
-  2026-11-01 a folder created from an agent's sandboxed Bash under `D:\DK2Evidence` did not
+  2026-11-01 a folder created from an agent's sandboxed Bash under `F:\DK2Evidence` did not
   persist. Create it with PowerShell, and list it before you hand over the command.
 - **Ask the owner for what the capture cannot hold.** It stores state only, not sound, screen
   shake or anything else presented, so ask for those observations explicitly.
@@ -96,7 +96,7 @@ Lessons from Q520:
 ## 3. Read the capture
 
 ```
-python tools/levelgen/trace_capture.py D:\DK2Evidence\runs\<run>\<run>.dk2cap [--object-type 74]
+python tools/levelgen/trace_capture.py F:\DK2Evidence\runs\<run>\<run>.dk2cap [--object-type 74]
 ```
 
 It prints one line per change: objects of the given type (position, roll, health, wear) and
@@ -109,6 +109,6 @@ every creature's health and state. For other fields, open the capture with
 | Recipe | Run | What it showed |
 |---|---|---|
 | `Q520Boulder` | none (the folder was missing) | `-LEVEL` loads a level that is not shipped |
-| `Q520Corridors` | `D:\DK2Evidence\runs\q520-corridors-2026-11-01` | Each wall turn costs a tenth of the boulder's health. Creature hits are half the creature's level-scaled maximum, at Secret4's 100%. A boulder breaks at a wall once hits leave less than one turn. `docs/research/boulder.md` §9b |
-| `Q520CorridorsGlobal` | `D:\DK2Evidence\runs\q520-corridors-global-2026-11-01` | The same at campaign values (health 4000, 50%): a turn is +400, one hit kills, a boulder breaks on contact with a Dwarf of 3780 Hp or more. Two boulders destroy each other. A slap costs health, not wear. §9b |
-| `M7Traps` | `D:\DK2Evidence\runs\m7traps-2026-11-01` | Boulder against doors, Sentries, water and lava (`boulder.md` §9b). Goblins flee a Hero Sentry, which fires at 6 tiles (`traps.md` §14). The Jack reaches the heart corner ours cannot reach, and its explosion hit the Heart (`jack-in-the-box.md` §7). The keeper's Imp walked onto the Jack trap unprompted to claim its tile |
+| `Q520Corridors` | `F:\DK2Evidence\runs\q520-corridors-2026-11-01` | Each wall turn costs a tenth of the boulder's health. Creature hits are half the creature's level-scaled maximum, at Secret4's 100%. A boulder breaks at a wall once hits leave less than one turn. `docs/research/boulder.md` §9b |
+| `Q520CorridorsGlobal` | `F:\DK2Evidence\runs\q520-corridors-global-2026-11-01` | The same at campaign values (health 4000, 50%): a turn is +400, one hit kills, a boulder breaks on contact with a Dwarf of 3780 Hp or more. Two boulders destroy each other. A slap costs health, not wear. §9b |
+| `M7Traps` | `F:\DK2Evidence\runs\m7traps-2026-11-01` | Boulder against doors, Sentries, water and lava (`boulder.md` §9b). Goblins flee a Hero Sentry, which fires at 6 tiles (`traps.md` §14). The Jack reaches the heart corner ours cannot reach, and its explosion hit the Heart (`jack-in-the-box.md` §7). The keeper's Imp walked onto the Jack trap unprompted to claim its tile |

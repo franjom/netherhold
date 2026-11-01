@@ -372,7 +372,7 @@ plus our walkability guard (ADR-0526). Not applied: `0x004096B0`'s view-mode, ov
 gates; over the HUD ours forces No Go even during a drag, where DK2's `+0x10C` gate runs the
 normal arm. Not built: the hovered door/trap sell refund, the room hover's terrain `+0x17B` gate,
 and a door/trap's stale price when invalid.
-**Anchor correction (2026-10-24).** Native photo `D:\DK2Evidence\room-placement-anchor-20261024-87734497223a40fab8abbd9ced40495e\IMG20261023083831.jpg` confirms the icon/price beside the right wrist.
+**Anchor correction (2026-10-24).** Native photo `F:\DK2Evidence\room-placement-anchor-20261024-87734497223a40fab8abbd9ced40495e\IMG20261023083831.jpg` confirms the icon/price beside the right wrist.
 `HandCursor.OverlayAnchor` follows the sprite's native hotspot after the chosen claw anchor moves it, using the Hand's uniform height scale (ART_DIRECTION §13).
 This adapts §3's native per-axis offsets; the old pointer/width scaling displaced the overlay relative to the Hand. Icon, price and No Go move together.
 The GUI's leftward shift uses the same height scale; `HandCursorTests` checks the wrist relationship at 480, 1080 and 2160 pixels high.

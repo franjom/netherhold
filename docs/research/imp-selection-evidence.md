@@ -8,7 +8,7 @@ missing Level 1 choice. It establishes bounded equivalence, not complete Imp AI 
 ## Evidence and coverage
 
 All raw evidence, diagnostic source and outputs are under
-`D:/DK2Evidence/imp-selection-evidence-2026-10-25/` (R below), add only.
+`F:/DK2Evidence/imp-selection-evidence-2026-10-25/` (R below), add only.
 `artifact-manifest.csv` seals the files; `verify_evidence.py` verifies the seal
 and result assertions without starting either game. Binary output stays outside git.
 Native executable: `E:/GogGames/Dungeon Keeper 2/DKII-DX.exe`, MD5
@@ -161,7 +161,7 @@ Tools: Python `D:/Python/python.exe`; Unicorn DLL
 `D:/Tools/unicorn-2.1.4/unicorn.dll`; Ghidra 12.1.4 via the configured
 PyGhidra service. Raw inspection targets are listed in the coverage table and
 leaf inventory. Modern assemblies come from
-`D:/DK2Evidence/tools/hash303-e9663974-2026-10-25/`.
+`F:/DK2Evidence/tools/hash303-e9663974-2026-10-25/`.
 Copied helpers and their hashes are in `rig/` and the manifests; scratchpads
 are not needed. `ModernProbe/` and `ModernProbe-v2/` preserve failed compilation
 drafts; neither was executed. Only v3 produced the final comparison outputs.

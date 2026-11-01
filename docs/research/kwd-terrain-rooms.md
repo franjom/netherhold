@@ -193,7 +193,7 @@ Neither the original ceiling draw path nor its geometry, room-art override,
 height curve or possession-only visibility is established by this audit.
 Do not import OpenKeeper's distance curve as original behavior. Close Q679
 by tracing a native ceiling draw or capturing the possessed original view
-with controlled room widths; keep any resulting evidence in `D:/DK2Evidence`.
+with controlled room widths; keep any resulting evidence in `F:/DK2Evidence`.
 
 ## Confidence
 

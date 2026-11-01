@@ -18,7 +18,7 @@ public static class Recipes
             "Q520 first trial (2026-11-01): Secret4 unchanged but three Dwarves re-levelled. Open lava, hard to aim; superseded by Q520Corridors.",
             b => RelevelDwarves(b, move: false)),
         new("Q520Corridors", "Secret4",
-            "Q520 as played 2026-11-01 (D:/DK2Evidence/runs/q520-corridors-2026-11-01): straight dead-end corridors north of the trap row, "
+            "Q520 as played 2026-11-01 (F:/DK2Evidence/runs/q520-corridors-2026-11-01): straight dead-end corridors north of the trap row, "
             + "one Dwarf case per corridor. Keeps Secret4's boulder overrides (health 10000, creature damage 100%).",
             b => { Corridors(b); RelevelDwarves(b, move: true); }),
         new("Q520CorridorsGlobal", "Secret4",

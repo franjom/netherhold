@@ -236,7 +236,7 @@ special arrival `0x004DCF50`.
 **What follows.** With no Lair, the first creature still comes (space 0). Once it is homeless the
 space is −1, and the portal stops until it gets a bed or dies. A one-tile Lair lets one more through.
 
-**The captures agree. CONFIRMED (observed).** `lairgate.py` (D:/DK2Evidence/runs/l5-resync-2026-11-01)
+**The captures agree. CONFIRMED (observed).** `lairgate.py` (F:/DK2Evidence/runs/l5-resync-2026-11-01)
 computes the value at each player-3 portal roll and compares it with the tally.
 - Level 5 seed 2 has no Lair at 1400. Between 1000 and 3400 it rolls 23 times and creates exactly when
   the value is at least 0: once at 2221, 2633 and 2941, each after the single homeless creature died.

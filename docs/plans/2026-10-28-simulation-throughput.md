@@ -438,7 +438,7 @@ Expected: all pass. In-process hash comparisons (`KeeperViewTests`, `StructureVi
 - **ADR-0576 in `docs/DECISIONS.md`:** "The state hash mixes one value per round". Include the
   context (the measured cost from Step 12), the decision (the design above, why not XxHash3,
   why `Fnv1a64` stays) and the consequences:
-  - every journal and save from before 329 is refused, including evidence under `D:\DK2Evidence`,
+  - every journal and save from before 329 is refused, including evidence under `F:\DK2Evidence`,
     which replays only at its own commit;
   - `keeper-commands.tsv` and `controller-commands.tsv` hash columns are not comparable
     across 328/329;

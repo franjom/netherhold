@@ -93,7 +93,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - BitReaders.py takes an offset without `0x` (for example `3ea`); a prefixed offset silently searches for `+0x0x3ea` and returns no matches.
 
 - Path.GetFullPath is lexical and does not detect junction or symlink aliases; output guards must inspect filesystem links.
-- Copy `reverse-engineering/` evidence off the clone before any worktree cleanup: the gitignored native captures in `dk2runs/` were emptied during the 2026-10-18 worktree removal (cause unknown) and had no backup; AGENTS.md now keeps evidence in D:\DK2Evidence.
+- Copy `reverse-engineering/` evidence off the clone before any worktree cleanup: the gitignored native captures in `dk2runs/` were emptied during the 2026-10-18 worktree removal (cause unknown) and had no backup; AGENTS.md now keeps evidence in F:\DK2Evidence.
 - Unlink temporary Windows junctions before recursively deleting their targets; a dangling junction can make .NET cleanup fail with access denied.
 
 - A long heredoc fails in the Bash tool, and any heredoc collapses backslash pairs: write a patch
@@ -297,7 +297,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Restoring source with `Copy-Item` can preserve a timestamp older than the compiled DLL; touch the restored file or rebuild before trusting an incremental regression retest.
 - Windows PowerShell Set-Content defaults to a legacy code page; pass -Encoding UTF8 for Python scripts containing non-ASCII prose.
 - An effect's GenerateIds are effect ids, not element ids, when the effect has flag `0x40` (types 4 and 18); a dump that resolved them as elements made the Inferno look like one spark (shot-effects.md §5).
-- Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here. Docker context-mode exposes this checkout read-only at /workspace, not D:/DK2Evidence.
+- Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here. Docker context-mode exposes this checkout read-only at /workspace, not F:/DK2Evidence.
 - Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.
 - Windows PowerShell can strip nested quotes from Python `-c` arguments; use a script file for replacements containing quoted prose.
 - Keep isolated Unity project paths short: PackageCache importer paths can hit MAX_PATH (260 chars) and fail even when the project copy succeeded.

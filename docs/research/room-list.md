@@ -102,7 +102,7 @@ eligible rooms in that order. Both fields are hashed and saved in format305.
 
 The [captured withdrawal](decision-parity-audit.md#level4-captured-withdrawal-and-room-order-hash304)
 supplies the baseline. Evidence:
-`D:/DK2Evidence/room-list-order-implementation-2026-10-25/`.
+`F:/DK2Evidence/room-list-order-implementation-2026-10-25/`.
 A saved-native list-transition extraction through header3474 restores the final
 surviving constructions and captures through production placement/slab and
 room-transfer routines. It reproduces all15 incoming room slots in order,

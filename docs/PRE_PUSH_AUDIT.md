@@ -52,7 +52,7 @@ provenance is documented in [debug-dumpers.md](research/debug-dumpers.md), and
 research/function records link to them. Decide whether their contents and
 third-party provenance are suitable for the intended remote audience. This
 audit does not establish permission to redistribute the outside contribution.
-No same-named copies were found among 5,314 files under `D:\DK2Evidence`;
+No same-named copies were found among 5,314 files under `F:\DK2Evidence`;
 equivalent copies under other names or in archives were not established.
 
 The logs are present in the audited commit and its history: removing or
@@ -79,7 +79,7 @@ including `reverse-engineering/imp-store-full-20261017/`,
 `reverse-engineering/worktree-archive/`. Ignored build directories also contain
 research runs and converted assets. These files will not accompany a normal
 push, and their external-copy coverage was not verified by this audit.
-`D:\DK2Evidence` exists; follow [the evidence custody rules](../AGENTS.md)
+`F:\DK2Evidence` exists; follow [the evidence custody rules](../AGENTS.md)
 before any cleanup. Do not force-add these directories for publication.
 
 ### Choose the reference being published explicitly

@@ -23,7 +23,7 @@ emptied during the 2026-10-18 worktree cleanup and had no backup. They cannot be
 from the repo.
 
 - **Where it lives:** evidence that cannot be regenerated from the repo goes in
-  `D:\DK2Evidence\`, outside every git checkout. That covers native captures, packet logs,
+  `F:\DK2Evidence\`, outside every git checkout. That covers native captures, packet logs,
   capture extracts and replay rigs. Never keep the only copy under a gitignored path in a
   clone or worktree.
 - **Add only:** agents may add new files to it. They never move, rename, delete, overwrite

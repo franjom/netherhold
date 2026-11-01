@@ -233,7 +233,7 @@ two reconstructed routes differ. The execution-327 choice now separates current
 bytes, retained mesh history and fresh building. Modern target remains
 `e9663974`, hash303; no simulation code changes or campaign sweep were made.
 
-Evidence root N: `D:/DK2Evidence/level1-navigation-audit-2026-10-25/`.
+Evidence root N: `F:/DK2Evidence/level1-navigation-audit-2026-10-25/`.
 Inputs are the earlier study's pair02 native before-image, captured navigation,
 native mesh and pair03 mesh. New diagnostics reference the archived hash303 DLLs.
 All output files are new; the earlier 141-file evidence seal is unchanged.
@@ -294,9 +294,9 @@ These controls launch no native process and advance no complete simulation turns
 
 ### Actual update history, hash304
 
-Evidence root: `D:/DK2Evidence/ordered-navigation-hash304-2026-10-25/`.
+Evidence root: `F:/DK2Evidence/ordered-navigation-hash304-2026-10-25/`.
 Pinned tools are the Release build of clean `5716560c`, HashVersion304, archived
-under `D:/DK2Evidence/tools/hash304-5716560c-2026-10-25/`. No simulation edits.
+under `F:/DK2Evidence/tools/hash304-5716560c-2026-10-25/`. No simulation edits.
 
 A hardware entry/return observer captured 55 complete `004CE770` pairs from one
 native `l1live` playback. The 180-second limit expired at execution clock701;
