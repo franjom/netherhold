@@ -1117,8 +1117,8 @@ public sealed partial class WorldView
     /// <summary>
     /// The liquid bed <c>0x0043E440</c> (room-floors-and-liquids.md §3) under a water or lava
     /// tile, or under a bridge over one: the first whole-tile pattern the liquid mask matches, else
-    /// four quarters; open water (every neighbour liquid) draws none. The liquid's surface (art 2,
-    /// an alpha texture) is drawn by code not yet found.
+    /// four quarters; open water (every neighbour liquid) draws none. Surfaces are drawn separately
+    /// by LiquidSurfaces (room-floors-and-liquids.md section 6).
     /// </summary>
     private PieceSet BedOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain,
         out TerrainPieceKeys? keys)

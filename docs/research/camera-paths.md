@@ -278,12 +278,12 @@ is 1, *"Here walks the goodly Lord Antonius..."*.
 
 The engine does not lift the fog for a path, as far as read (**STRONGLY
 INFERRED**, a negative claim):
-- `0x0043E320` draws unscanned ground as terrain 27, and scanned but unexplored
-  ground as 38. Its only bypass, `0x0044DB70`, covers the possession modes 2, 10 and
-  11 (`fog-reveal-sources.md` §1). The value it tests, bridge `+0x118D`, is the
-  camera mode itself: the camera is embedded at bridge `+0x3E5` (`0x0043C36A`), and
-  `0x3E5 + 0xDA8 = 0x118D` (read 2026-10-21). A path's mode 0x12 is not admitted.
-  It also asks a view slot `+0xDC`, which is unread.
+- Terrain substitution and its explored, scanned and Sight predicates are recorded in
+  [the tile-builder record](functions/0043E320.md). Its possession bypass,
+  `0x0044DB70`, covers modes 2, 10 and 11 (`fog-reveal-sources.md` section 1);
+  a path's mode 0x12 is not admitted by that predicate. The field it tests,
+  bridge `+0x118D`, is the camera mode: the camera is embedded at bridge
+  `+0x3E5` (`0x0043C36A`), and `0x3E5 + 0xDA8 = 0x118D` (read 2026-10-21).
 - The mode-0x12-specific arm of `Camera_SetMode` `0x0044ACE0` only records
   the mode; its common [viewport retargeting](camera-possession-guards.md#mode-changes-and-viewport-retargeting) runs first.
   Terrain-cache invalidation is recorded in [terrain-lattice.md](terrain-lattice.md).

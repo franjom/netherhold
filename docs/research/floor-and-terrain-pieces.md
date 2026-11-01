@@ -152,8 +152,9 @@ presentation, not discovery state.
 four liquid cases failed before the correction; all eight pass afterward.
 The full Presentation suite passes 1,404 tests. Matched Unity captures with transparent
 batches prepared close all 11 sampled tile-centre openings near the lava. Small
-upper fog-edge openings remain visible outside those samples. Their cause, matched
-native visual acceptance and the earlier Level 2 report remain Q643.
+upper fog-edge openings remain outside those samples; their [under-wall geometry
+trace](room-floors-and-liquids.md#residual-fog-edge-trace-2026-11-01) narrows Q643.
+Matched native coverage and the earlier Level 2 report remain open.
 
 ### The quarters (CONFIRMED, `0x0043FF5A..0x004402F0`)
 

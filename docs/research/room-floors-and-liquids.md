@@ -276,8 +276,42 @@ are then rebuilt through a float step (constant unread). It runs
 only with Sine Wave Water off (`0x0043BF7B`); what disturbs it is UNKNOWN. The options are the
 settings object `0x00759A78`: `+0x60` Translucent Water (`0x00759AD8`, setter `0x005664A0`) and
 `+0x68` Sine Wave Water (`0x00759AE0`, setter `0x005668F0`); their defaults follow a machine-speed
-tier (`0x00563FB0`, LIKELY). How the command blends (beyond the 0.7 argument) is UNKNOWN: its
-drawer (vtable `0x0066FDDC`) is unread.
+tier (`0x00563FB0`, LIKELY). How the command blends (beyond the 0.7 argument) remains UNKNOWN.
+The recovered vtable `0x0066FDDC` draw paths are in the [residual fog-edge trace](#residual-fog-edge-trace-2026-11-01).
+
+### Residual fog-edge trace (2026-11-01)
+
+After ADR-0618, the two smaller Level 7 openings are under-wall geometry gaps,
+not transparent texels. All three corrected sample rays miss every submitted
+triangle. The horizontal opening is beside hidden lava tile (14,21), adjoining
+explored lava (14,20); the corner slivers are by hidden lava (12,19), adjoining
+scanned lava (11,19) and (12,18). Turning deformation off preserves openings.
+
+The shipped ROCK WALL spans height 1..2. Liquid beds have a continuing floor
+near 0.65 and raised shores reaching 1; lava's surface rests near 0.85. Tile
+(14,20) uses bed quarters, not a whole BED3: its flat continuing portion toward
+hidden lava remains low. The deformed fog-wall bottom there is about 0.928..0.961,
+while the adjoining low bed edge is about 0.628..0.638. The raw liquid mask treats
+hidden continuing lava as liquid; fog substitution hides that neighbour's bed.
+The observed hole is between these surfaces. Native-equivalent coverage is not
+established by these remake captures; Q643 retains that comparison.
+
+Fresh reads: `0x0043E320` substitutes terrain 27 before the bed builder;
+`0x0043E440` consumes its mask without discovery tests; `0x004505B0..0x004505E1`
+confirms the mask compares raw same-terrain neighbours without discovery tests.
+Height-grid command `0x005873A0` has projected drawer `0x005875D0` and queued
+drawer `0x00587DA0`. The projected drawer uses tile-origin grid positions and
+stored heights before its projection callback, with no preceding lattice call.
+Queue helper `0x00586A70` only stores metadata, not vertices. The eventual queued
+vertex producer remains unestablished. Adding liquid deformation or a skirt
+would therefore be a guess. A separate recovered mismatch is the projected
+drawer's alternating cell diagonals (`0x005878AE..0x005878E9`) versus the uniform
+split in `LiquidSurfaces`; that does not supply the absent fog-wall underside,
+and is not changed here.
+
+Evidence: `F:/DK2Evidence/studies/level7-fog-edge-trace--2026-11-01--001/`
+contains both GPU controls, exact rays, selected geometry, probe and verified
+SHA-256 manifest. These are remake captures, not native DK2 screenshots.
 
 ## 7. The 2×2 and 3×1 hero gates
 

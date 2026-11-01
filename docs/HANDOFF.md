@@ -102,7 +102,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   Initial chest headings remain Q644; Level2's reported
   water shapes under fog await a native visual comparison (Q643). Level 7's
   missing scanned-liquid boundary faces are corrected in presentation (ADR-0618);
-  [evidence and remaining visual acceptance](research/floor-and-terrain-pieces.md#scanned-liquid-boundary-correction-2026-11-01-adr-0618).
+  remaining small openings: [under-wall trace, Q643](research/room-floors-and-liquids.md#residual-fog-edge-trace-2026-11-01).
 - The navigation mesh's locate is DK2's cell-cache walk and the whole-map
   builder writes DK2's slots (ADR-0486, hash 255): on the owner's Level 10
   mesh capture 130 of 140 intervals reproduce slot for slot and the first dump
