@@ -183,7 +183,7 @@ sound 244). A boulder that hit nothing turns ten times first. This reconciles th
 Level `Q520Corridors` (`tools/levelgen`): Secret4 with straight dead-end corridors, one Dwarf per
 corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamagePercentage` 100, speed
 4096. The owner played it; capture and per-corridor trace in
-`F:\DK2Evidence\runs\q520-corridors-2026-11-01` (README).
+`F:\DK2Evidence\studies\q520-corridors--2026-11-01--001\payload` (README).
 
 **CONFIRMED (observed):**
 - Every wall turn adds a tenth of the health to the wear (+1000), and the boulder rolls back down a dead end.
@@ -197,7 +197,7 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
   after the second session.
 
 **Second session, campaign values** (`Q520CorridorsGlobal`: health 4000, 50%, speed 4915, slap 400;
-`F:\DK2Evidence\runs\q520-corridors-global-2026-11-01`). CONFIRMED (observed):
+`F:\DK2Evidence\studies\q520-corridors-global--2026-11-01--001\payload`). CONFIRMED (observed):
 - A wall turn is +400. An empty corridor's boulder and the short corridor's each broke at their tenth
   turn; the level-1 Dwarf's (one hit of 1000) broke at the turn that took it from 3800 to 4200.
 - At 50% one hit is the creature's whole level-scaled `Hp`, capped by health less wear. The 1000 Hp
@@ -214,7 +214,7 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
   (3600 − 760 = 2840).
 
 **Third session, doors, traps and liquids** (`M7Traps`, campaign values;
-`F:\DK2Evidence\runs\m7traps-2026-11-01`). CONFIRMED (observed):
+`F:\DK2Evidence\studies\m7traps--2026-11-01--001\payload`). CONFIRMED (observed):
 - Water wore it h/10 (+400) on each of the three turns it spent on water, and lava h/6 (+666) on each
   lava turn (§7). One boulder broke in the lava, another at the dead end just past it.
 - A hero Wooden Door took a hit capped at its definition health, +2000. The boulder then broke on the

@@ -283,7 +283,7 @@ burning on slot419 (type18) at snapshot3940, with ten ticks falling to zero at39
 One pre-rebase hash340 fixed-map replay through turn3952 (`--rng dk2 --seed 1`) completed and requested
 30 effect88 flames. Its seeds already differ before the native ignition (snapshots3937
 to3939), so this run does not establish burning-stream alignment or isolate its cause.
-SHA-256-verified artifacts: `F:/DK2Evidence/experiments/shot-burning-hash340-20261030T161144Z/`.
+SHA-256-verified artifacts: `F:/DK2Evidence/studies/shot-burning-hash340-z--2026-10-30--001/payload/`.
 
 ## 6. Procedural lightning (art type 7)
 

@@ -59,11 +59,11 @@ the completed non-Ownable target, exact owner tags, corner predicates,
 same-type healing and terrain conversion.
 
 A read-only count from
-`F:\DK2Evidence\dk2runs\level4-live1\seed01\tiles.csv` has 164 terrain-9
+`F:\DK2Evidence\captures\native\native-dk2runs--unknown-date--001\payload\level4-live1\seed01\tiles.csv` has 164 terrain-9
 tiles initially and 395 at tick 6804; `level4.dk2cap` is adjacent. The modern
 seed-1 replay at hash/save 347 has 363 terrain-9 tiles at tick 6804.
 These numbers are retained here, without depending on the ignored build CSV/log.
 The replay reused
-`F:\DK2Evidence\runs\packet-replay-hash328\level4\seed01\entity-map.csv`
+`F:\DK2Evidence\studies\packet-replay-hash328--unknown-date--001\payload\level4\seed01\entity-map.csv`
 without revalidating its remapping. This is a one-seed wall-count observation,
 not a matched transition comparison or native parity result.

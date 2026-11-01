@@ -345,7 +345,7 @@ Read 2026-10-28 (literal-push scans of `SetState` `0x00476D30` and its wrappers 
 `reverse-engineering/dk2music.py` (gitignored) detours slots `+0x4C` and `+0x50` in the running
 game and logs every call (caller, request, level before, tick), and snapshots the battle records'
 owners at each battle raise. Run on DKII-DX.exe (code byte-identical to DKII.EXE) replaying the
-owner's recordings with `-PLOAD`, no input; evidence `F:\DK2Evidence\runs\music-20261028-162920`:
+owner's recordings with `-PLOAD`, no input; evidence `F:\DK2Evidence\studies\music--2026-10-28--002\payload`:
 
 | Recording | What raised the music level | Music level `0x0075B8AC` |
 |---|---|---|

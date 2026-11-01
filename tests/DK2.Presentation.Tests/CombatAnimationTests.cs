@@ -84,7 +84,7 @@ public class CombatAnimationTests
     /// <summary>A fighter in reach turns <c>def+0x6A0</c> a tick, the file's turn rate over variable 19
     /// (<c>0x00492320</c>): the largest one-turn heading change of a hero closing on an Imp in DK2's
     /// Level 4 captures is Guard 256, Thief 512 and Dwarf 341 (swingstart-native-sNN.tsv,
-    /// F:/DK2Evidence/runs/l4-celebration-2026-10-30). Turning by the file's 1024, 2048 and 1365, ours
+    /// F:/DK2Evidence/studies/l04-celebration--2026-10-30--001/payload). Turning by the file's 1024, 2048 and 1365, ours
     /// faced any target in one turn and swung a turn or two sooner (ADR-0602).</summary>
     [InstallTheory]
     [InlineData("Guard", 256, 4)]
@@ -106,7 +106,7 @@ public class CombatAnimationTests
     }
 
     /// <summary>The commonest interval between one hero's consecutive blows on one keeper creature in
-    /// DK2's eight Level 4 recordings (F:/DK2Evidence/runs/l4-celebration-2026-10-30, hitinterval-all.out):
+    /// DK2's eight Level 4 recordings (F:/DK2Evidence/studies/l04-celebration--2026-10-30--001/payload, hitinterval-all.out):
     /// Guard 11 (its recharge), Dwarf 8 and Thief 10 (their melee clips' holds). Released a turn early,
     /// ours struck the Dwarf's and Thief's at 7 and 9 (ADR-0598).</summary>
     [InstallTheory]

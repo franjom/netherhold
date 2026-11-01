@@ -158,7 +158,7 @@ frame: raw input, HUD flags, intents, queued commands, ticks run) and, once its 
 `input.journal` (the ADR-0552 format: the frame and the hash after each tick). A front-end walk
 into a level leaves two folders. A journal that fails stops itself and logs a warning, never the
 game. Journaling is hash-neutral but not timing-neutral (the tick thread hashes every tick).
-Point it at `F:\DK2Evidence\runs\unity-input-<date>\` for sessions worth keeping. Design and
+Point it at `F:\DK2Evidence\studies\unity-input-completion--<UTCtimestamp>--NNN\` for sessions worth keeping. Design and
 what is not built: ADR-0553, `docs/plans/2026-10-27-stage-d-unity-input.md`.
 
 ## Verifying the adapter without opening Unity

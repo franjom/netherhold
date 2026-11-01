@@ -4,13 +4,18 @@
 
 param(
     [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
-    [string]$EvidenceRoot = 'F:/DK2Evidence/runs/unity-input-2026-10-29-completion',
+    [string]$EvidenceRoot = 'F:/DK2Evidence/studies',
     [string]$ScratchProject = '',
     [switch]$EditorGui
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
-$id = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
+$evidenceStamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHHmmssZ')
+$evidenceSequence = 1
+do {
+    $id = 'unity-input-completion--' + $evidenceStamp + '--' + $evidenceSequence.ToString('D3')
+    $evidenceSequence++
+} while (Test-Path -LiteralPath (Join-Path $EvidenceRoot $id))
 $run = Join-Path $repo ('build/cf-' + [Guid]::NewGuid().ToString('N').Substring(0, 6))
 $project = Join-Path $run 'p'
 if ($ScratchProject) {

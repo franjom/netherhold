@@ -5,22 +5,19 @@ Controlled experiments comparing our simulation against original DK2 v1.70
 
 - Scenario definitions live in `/scenarios` (declarative YAML; one scenario
   drives both the original game and our simulation).
-- Recorded runs live in `docs/experiments/<run-id>/README.md` (one write-up per
-  capture; the capture CSVs are not committed, see "Recorded runs"):
-  `level1-idle-001`, `level20-idle-001`, `level20-idle-002`, and
-  `2026-10-06-packet-replay-seeds/`, the Level 1-3 packet replays' seed spread
-  against DK2's seeded playbacks, and `2026-10-12-level4-packet-replay/`, Level 4's, and the Level 1-4 packet
-  sweeps `2026-10-24-packet-replay-hash302/`, `2026-10-25-packet-replay-hash303/`
-  and `2026-10-25-packet-replay-hash305/` (the latest committed, pinned to `ae14f3b3`; the hash 309 and 320 sweeps are written up under `F:/DK2Evidence/runs/` and summarised in `docs/HANDOFF.md`). `doors-and-traps.md` lists the owner
-  observations still to run. Two idle captures of DK2's own keepers are written
-  up in `docs/research/computer-keeper-observations.md`.
+- Recorded runs and their write-ups live outside the checkout; see the
+  [evidence catalog](F:/DK2Evidence/catalog/INDEX.md). Packet replay results
+  are summarised in `docs/HANDOFF.md`; owner observations still to run are in
+  `docs/research/doors-and-traps.md`. Idle captures of DK2's own keepers are
+  described in `docs/research/computer-keeper-observations.md`.
 - Divergences are triaged as: our bug / unknown mechanic / accepted deviation
   (accepted ones need a written justification here).
 
 ## Recorded runs
 
-Captures live in `reverse-engineering/dk2runs/` (**gitignored**, so they are not
-backed up) as `dk2run<N>.csv`, in the shape `TriggerTurnCsvEmitter` writes. Our
+Native captures live outside the checkout; see the
+[evidence catalog](F:/DK2Evidence/catalog/INDEX.md). Trigger CSVs use the
+shape `TriggerTurnCsvEmitter` writes. Our
 side comes from `dk2tools trigger-run <level> <turns> <out>`. Compare a live
 capture with `dk2tools capture-diff <ours> <capture>`, which checks the event set
 and aligns timing on a stored timer stamp. `trigger-diff` remains the exact,

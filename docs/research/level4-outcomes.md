@@ -10,7 +10,7 @@ schedule after the resync, so their Dark Elf and Imp arrival times carry that er
 
 ## Level 4's two outcomes, over seeds (hashes 320-328)
 
-Evidence: `F:/DK2Evidence/runs/l4-modes-2026-10-29`, `l4-bisect-2026-10-29`, `l4-60seeds-hash328-2026-10-29`.
+Evidence: `F:/DK2Evidence/studies/l04-modes--2026-10-29--001/payload`, `l4-bisect-2026-10-29`, `l4-60seeds-hash328-2026-10-29`.
 - Full replays end held out (under 20 Imp deaths) or overrun (20-55); at hash 328, 37 of 60 seeds are
   overrun and 1 wins. No hash in 321-328 moves that beyond seed noise: ADR-0566 (323) shifts the
   generator's draws from turn ~58 and so re-rolls every seed (322 vs 323 deaths p = 0.38).
@@ -27,7 +27,7 @@ Evidence: `F:/DK2Evidence/runs/l4-modes-2026-10-29`, `l4-bisect-2026-10-29`, `l4
 
 ## DK2's own spread over 8 seeds (hash 328)
 
-Evidence: `F:/DK2Evidence/runs/l4-native-seeds-2026-10-29`, `l4-imp-states-2026-10-29` and
+Evidence: `F:/DK2Evidence/studies/l04-native-seeds--2026-10-29--001/payload`, `l4-imp-states-2026-10-29` and
 `l4-resync2400-2026-10-29` (scripts, outputs, READMEs). DK2: native captures of the l4live packets under
 DK2 RNG seeds 1-8 (seeds 3-8 recorded 2026-10-29). Ours: the hash-328 runs above, whose generator is
 not DK2's, so only distributions compare. Death counts use all 60; the state counts use 58 (seeds 14
@@ -56,7 +56,7 @@ events. State entries are counted from change-only rows, so a state held under a
   enters. Through hash 329 ours ran 202, 251 and 252 inside the arrival tick and went 203 -> 10 in
   one tick, so it chose sooner: median 6 ticks from leaving 203 to choosing against DK2's 14, 43
   against 58 to a job (ours seeds 1, 3, 7, 8; DK2 2, 4, 6, 8). Built at hash 331 (ADR-0580); the
-  figures are not remeasured. DK2 captures: `F:/DK2Evidence/runs/l4-flight-dwell-2026-10-29`.
+  figures are not remeasured. DK2 captures: `F:/DK2Evidence/studies/l04-flight-dwell--2026-10-29--001/payload`.
 - Ours' overrun runs differ from its held runs in 3400-3900 by choices after a cut walk or a flight
   (at hash 329, 6 -> 10 and 203 -> 10, 36.5 and 36.6 a run, against 17.8 and 3.2): what being attacked looks like.
 - Resynced at 2400 from each of the eight DK2 states (hash 329, native seed 1's entity map, unmapped
@@ -70,7 +70,7 @@ events. State entries are counted from change-only rows, so a state held under a
 
 ## From DK2's state at 2400, five runs a state (hashes 329-331)
 
-Evidence: `F:/DK2Evidence/runs/l4-resync2400-multi-2026-10-29` (README, `compare.out`), and the one-run
+Evidence: `F:/DK2Evidence/studies/l04-resync2400-multi--2026-10-29--001/payload` (README, `compare.out`), and the one-run
 tries beside it (`l4-resync2400-full-…`, `-split-…`), whose rank matches with DK2 (-0.28 to +0.72 over
 four builds) are within the spread one run a state gives. Each of the eight DK2 states runs to 6804 under
 five generator seeds, for hash 329, ADR-0580 alone (`e8eb76b9`, which read hash 330 in its own tree) and
@@ -100,7 +100,7 @@ type in `creature-map.csv`, ours' `creature_died` events, not matched event for 
 
 ## Where ours' first Imps die, and the heroes' choice (hash 333, ADR-0584)
 
-Evidence: `F:/DK2Evidence/runs/l4-retreat-tracking-2026-10-29` (README, `alive.out`). The first Imp
+Evidence: `F:/DK2Evidence/studies/l04-retreat-tracking--2026-10-29--001/payload` (README, `alive.out`). The first Imp
 death in each of the 15 hash-331 runs from states 1, 3 and 5 follows the same loop: a job, engaged by a
 hero, a flight, a disengage, the next job, engaged again; the killers are party heroes (9 Guards, 5
 Thieves, 1 Dwarf), not the post Guards, whose flag 14 is set near DK2's 5283. Counting live creatures
@@ -114,7 +114,7 @@ only, 2400-4400:
 
 ## Hero phases in the gold-route zone (Q665 follow-up, hash 333)
 
-Evidence: `F:/DK2Evidence/runs/q665-hero-zone-codex-2026-10-30` (`phase-v2.out`,
+Evidence: `F:/DK2Evidence/studies/q665-hero-zone-codex--2026-10-30--001/payload` (`phase-v2.out`,
 `lives.out`, scripts and README). Exact change-row intervals over turns 2401-4400,
 alive only, zone (16-29,32-38). Ours is 40 resyncs normalized to eight runs; DK2 is
 eight native runs. The corrected final interval adds seven hero-ticks to each
@@ -180,7 +180,7 @@ folder's `README-final.md`.
 
 ## Celebrations (Q665 lead, hash 336, ADR-0592)
 
-Evidence: `F:/DK2Evidence/runs/q665-hero-zone-codex-2026-10-30` (h336 runs) and the native
+Evidence: `F:/DK2Evidence/studies/q665-hero-zone-codex--2026-10-30--001/payload` (h336 runs) and the native
 `dk2runs/level4-live1*` logs. Window 2401-6804, per run; a celebration (state 260) is an
 episode measured from its first to its last turn in the change-only rows, not a row count.
 
@@ -196,7 +196,7 @@ Episode lengths (4, 13 and 22 ticks by creature) match DK2. Over 2401-4400 alone
 celebrate 3 times in eight runs, ours about 90 per eight. Ours' fight checked the victory
 nibble before looking for another victim, so every kill celebrated even with enemies in
 sight; DK2 celebrates only after a failed `SelectAVictim` (ADR-0592, hash/save 338). The
-fix at hash 338 (`F:/DK2Evidence/runs/l4-celebration-2026-10-30`, 40 runs): per eight runs over
+fix at hash 338 (`F:/DK2Evidence/studies/l04-celebration--2026-10-30--001/payload`, 40 runs): per eight runs over
 2401-4400, celebrations 3 / 89.6 / 16.4 (DK2 / h336 / h338), zone 260 hero-ticks 26 / 1,241 / 195;
 over 2401-6804 celebrations 76 / 255.2 / 97.4. Zone hero-ticks barely move (8,405 / 13,746 / 13,360):
 the time goes to fight and approach (6,864 / 9,992 / 11,008), and Imp deaths per run rise
@@ -270,7 +270,7 @@ The alarm refusal is corrected by ADR-0609. The current comparison is master
 `fac510fd` (hash353) against ADR-0610 (hash/save354), eight native captures and
 five generators per captured turn-2400 state on each modern build, to turn6804.
 Both modern sets have 40/40 successful runs. Evidence registry and reproducible
-scripts: `F:/DK2Evidence/runs/l4-celebration-2026-10-30/README.md`, section
+scripts: `F:/DK2Evidence/studies/l04-celebration--2026-10-30--001/payload/README.md`, section
 "Q665 flee/withdraw audit and state8 correction"; machine-readable results:
 `q665-h354-summary.json` there.
 
@@ -330,7 +330,7 @@ strength totals at the same captured decision, rather than tuning rates.
 
 ## Hand drops after the resync
 
-Evidence: `F:/DK2Evidence/runs/l4-celebration-2026-10-30/README.md`, "Hand drops after the resync: the
+Evidence: `F:/DK2Evidence/studies/l04-celebration--2026-10-30--001/payload/README.md`, "Hand drops after the resync: the
 entity map and native births" (`mapcheck.py`, `dropmatch.py`). Every resync run used native seed 1's
 `entity-map.csv`; its 43 creature rows after 2400 pair DK2 slots with that run's ids. Over 16 Level 4 resync
 runs they named no creature of ours 451 times, another type 205, the DK2 slot's type 32, so pickups of creatures born after the
@@ -344,8 +344,8 @@ The fix is faithful to the input and does not by itself close Q665. Resync runs 
 
 ## Closing Q665: where the Imp deaths go (2026-10-31)
 
-Evidence: `F:/DK2Evidence/runs/l4-celebration-2026-10-30/README.md` (sections from "Where the hash 351 rise came from"
-on) and `F:/DK2Evidence/runs/l4-resync5000-2026-10-31/README.md`.
+Evidence: `F:/DK2Evidence/studies/l04-celebration--2026-10-30--001/payload/README.md` (sections from "Where the hash 351 rise came from"
+on) and `F:/DK2Evidence/studies/l04-resync5000--2026-10-31--001/payload/README.md`.
 - Whole-run Imp deaths after a 2400 resync are scatter-dominated: one run varies 0..80 deaths in a state, and the
   27.0 -> 33.3 step at hash 351 was scatter (paired per-state p 0.30). Compare builds per state, not by means.
 - Harness faults found and fixed: post-resync hand pickups (`--births`) and the Portal clock (resync-replay.md).

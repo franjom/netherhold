@@ -380,7 +380,7 @@ tile itself, `0x00471890(centre, 178, 0)`, with no room asked. **CONFIRMED.**
 
 ## 7. Opening party order (2026-10-25, ADR-0542)
 
-**CONFIRMED capture:** `F:/DK2Evidence/dk2runs/level2-live2/seed01/level2.dk2cap`,
+**CONFIRMED capture:** `F:/DK2Evidence/captures/native/native-dk2runs--unknown-date--001/payload/level2-live2/seed01/level2.dk2cap`,
 Header 4 has Dwarves 440–442 in state 222 and leader 443 in state 173; header 5 targets
 are `(60756,30719)`, `(60756,29354)`, `(58026,29354)`, beside the shared spawn
 `(55296,30720)`. The leader instead targets `(55296,55296)`. Indices 440/441/442

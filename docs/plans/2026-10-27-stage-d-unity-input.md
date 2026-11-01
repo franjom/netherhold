@@ -89,7 +89,7 @@ spell chosen in the panel stays armed after a placement in DK2 (owner, 2026-10-2
 **Baseline sessions.** Legacy `Input` is read-only, so nothing can drive it before Phase 4.
 The Phase 2 baseline is three to five short sessions the owner plays with journaling on
 (digging, a room, pickup/drop/slap, a spell, a door or trap, camera, a front-end walk).
-Evidence goes to `F:\DK2Evidence\runs\unity-input-<date>\` (AGENTS.md, add-only).
+Evidence goes to `F:\DK2Evidence\studies\unity-input-completion--<UTCtimestamp>--NNN\` (AGENTS.md, add-only).
 
 ## 4. Phase 2 — move the input mapping into Presentation
 

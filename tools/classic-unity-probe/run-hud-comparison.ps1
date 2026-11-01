@@ -4,13 +4,18 @@
 
 param(
     [string]$Unity = 'C:/Program Files/Unity 6000.6.0f1/Editor/Unity.exe',
-    [string]$EvidenceRoot = 'F:/DK2Evidence/captures/hud-2026-10-29',
+    [string]$EvidenceRoot = 'F:/DK2Evidence/captures/visual',
     [string]$ScratchProject = '',
     [switch]$FullMapOnly
 )
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path "$PSScriptRoot/../..").Path
-$id = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
+$evidenceStamp = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHHmmssZ')
+$evidenceSequence = 1
+do {
+    $id = 'hud--' + $evidenceStamp + '--' + $evidenceSequence.ToString('D3')
+    $evidenceSequence++
+} while (Test-Path -LiteralPath (Join-Path $EvidenceRoot $id))
 $run = Join-Path $repo ("build/hc-" + [Guid]::NewGuid().ToString('N').Substring(0, 6))
 $project = Join-Path $run 'p'
 $output = Join-Path $EvidenceRoot $id

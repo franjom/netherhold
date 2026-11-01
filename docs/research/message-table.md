@@ -2,7 +2,7 @@
 
 - `DKII.EXE` v1.70 (GOG). Read 2026-10-26 from the file's own bytes (PE section map, every row and every variant list), and the first 1000 bytes were cross-read through Ghidra at the same address.
 - Resolver: [Message_Post](functions/004C4600.md). Mechanism, encoding and the taunt pool: [mentor-speech-and-notifications.md](mentor-speech-and-notifications.md) §3-4. Tab art: [message-tabs.md](message-tabs.md) §3.
-- Raw dump and scripts: `F:\DK2Evidence\message-table\` (`msgtable.json`, `type_sites.json`).
+- Raw dump and scripts: `F:\DK2Evidence\studies\message-table--unknown-date--001\payload\` (`msgtable.json`, `type_sites.json`).
 
 ## Result in one sentence
 

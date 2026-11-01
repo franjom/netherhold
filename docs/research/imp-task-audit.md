@@ -13,7 +13,7 @@ one observed state per turn; they are not inferred from event durations.
 Original runs: `reverse-engineering/dk2runs/{level1-live1,level2-live2,
 level3-live1,level4-live1}/seed01/levelN.dk2cap`.
 This audit uses historical P2, now preserved under
-`F:/DK2Evidence/rig-2026-10-24/sets/P2/levelN/seed01–20`.
+`F:/DK2Evidence/rigs/rig--2026-10-24--001/payload/sets/P2/levelN/seed01–20`.
 P2's exact build commit is not established. Its saved rates and the latest
 hash305 measurement are in [the current experiment](../experiments/2026-10-25-packet-replay-hash305/README.md).
 The state census below remains historical P2.

@@ -74,5 +74,5 @@ __pycache__/
 *.pyc
 
 # Experiment write-ups and run outputs live in F:\DK2Evidence (owner, 2026-10-24).
-# Untracked 2026-10-26; the copy is F:\DK2Evidence\experiments (SHA-256 manifest beside it).
+# Evidence locations and manifests: F:/DK2Evidence/catalog/INDEX.md.
 docs/experiments/

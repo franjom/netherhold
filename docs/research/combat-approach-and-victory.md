@@ -276,4 +276,4 @@ the in-range/out-of-range pair pins the reset branch. Level 4 measurements are i
 CONFIRMED in Level 4's eight native captures: 137 of 1,404 hero entries into 8 in
 turns 2400-4400 retain a nonzero chase count (seed 2, turn 3483: Dwarf 425, 199 -> 8,
 count 4 on both snapshots). Evidence: `native-chase-v2.out` under
-`F:/DK2Evidence/runs/q665-hero-zone-codex-2026-10-30`.
+`F:/DK2Evidence/studies/q665-hero-zone-codex--2026-10-30--001/payload`.

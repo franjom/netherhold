@@ -509,7 +509,7 @@ the won texture phase. It never resets the owner's campaign file.
 ## Integrated completion flow
 
 `run-completion-flow.ps1 -EditorGui` runs the isolated startup/campaign/audio/
-save/result walkthrough. Evidence is add-only under `F:/DK2Evidence/runs/`;
+save/result walkthrough. Evidence is add-only under `F:/DK2Evidence/studies/`;
 the [probe guide](COMPLETION_FLOW.md) defines its fixtures and limits. The
 [acceptance record](../../docs/plans/2026-10-29-hud-and-front-end-completion.md#acceptance-record)
 owns the verified run path and owner checks. Unexpected product exceptions fail
