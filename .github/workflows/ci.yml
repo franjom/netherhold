@@ -102,6 +102,9 @@ jobs:
           cd "$RUNNER_TEMP/wiki"
           git add -A
           if git diff --cached --quiet; then
+            # Nothing to push, but still ask for push access, so a token that
+            # lost it fails here rather than on the next real change.
+            git push --dry-run -q
             echo "wiki already matches docs/wiki"
             exit 0
           fi
