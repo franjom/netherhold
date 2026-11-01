@@ -12084,7 +12084,8 @@ Speech.str, the level table or Text.str by the reference's band.
 
 **Consequences.** Every message our queue posts now tabs and flashes until opened; types 17 and 18
 take the creature's own unhappy or angry line, and the panel has the goto button. A reload forgets which tabs were opened or dismissed (DK2 saves the bits with the record).
-Sounds, the Ally button and name substitution wait (message-tabs.md §8).
+Sound playback follows ADR-0583/0621; the Ally button and name substitution remain open
+(message-tabs.md §8).
 
 ## ADR-0526 — A hand drop obeys DK2's drop gate
 **Date:** 2026-10-23 · **Status:** accepted · supersedes ADR-0077 · Q198
@@ -14454,3 +14455,22 @@ Consequence: hash/save 362 rejects 361 saves. Four regression cases fail against
 old source; ordinary acquisition and flee controls remain. The target-acquisition
 and entry-count gap remains Q712; adapter boundaries remain Q713. Evidence,
 verification and scores: [Heart defence parity](research/heart-defence-parity.md#q712-state-254-audit-2026-11-01).
+
+## ADR-0621: keep hidden message tabs silent during camera paths
+
+Status: Accepted (2026-11-01).
+
+Context: startup request traces exposed message-tab sounds while the ordinary
+HUD was hidden. The audited native update gate excludes path-camera mode.
+
+Decision: observe message arrivals and speech independently of tab visibility;
+apply the normal-HUD gate to tab layout and sound requests. Keep slide state
+per slot, and request a landing sound only after that slot has slid.
+
+Scope: ordinary campaign/path presentation. The first-observation clock and
+special-player/possession routing boundaries remain explicit in
+[message tabs](research/message-tabs.md#31-startup-sound-gate-binary-2026-11-01).
+
+Consequence: simulation state and hash/save versions are unchanged. Regression
+and request-trace results live in the research section; Q717 retains audible
+acceptance of the owner's reported startup sound.

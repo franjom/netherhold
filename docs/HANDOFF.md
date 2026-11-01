@@ -243,6 +243,7 @@ visual and hearing acceptance: startup/gallery, Options pages, save/load, runtim
 scalable HUD, full map and hover/flower leftovers. Evidence and acceptance: [completion plan](plans/2026-10-29-hud-and-front-end-completion.md);
 captures: [HUD checklist](research/hud-comparison-checklist.md). Save-loading hardening is built;
 compatibility redesign remains pending (ADR-0588). ADR-0497 stays proposed; host settings in front-end-menus.md §6.
+Startup tab correction (ADR-0621): [scope and request traces](research/message-tabs.md#31-startup-sound-gate-binary-2026-11-01), audible acceptance Q717.
 
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,

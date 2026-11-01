@@ -41,7 +41,7 @@ NeedsTab clears at age 200 ticks (50 s at 4 ticks a second). The handled bit
 `+0x28` is not tested. Unused slot widgets are hidden. There is no scrolling: a
 ninth record is not shown until an older one leaves. The pass runs only while
 `0x00759C29` is non-zero; [0x0042B410](functions/0042B410.md) hides all slots
-([0x00423F30](functions/00423F30.md)) when it is zero (writer unread).
+([0x00423F30](functions/00423F30.md)) when it is nonzero (writer unread).
 
 Slot n sits at local x = (n + 1) * 88, or (n + 2) * 88 in mode 3 (after Ally).
 
@@ -75,8 +75,47 @@ insertion): age = (now - stamp) / 10. While age < 64 (640 ms), x is the slot x
 plus 1020 - 16 * age, so the tab slides in from the right. Sounds go through
 slot `+0x24` of the service at `0x0075B468` with argument `[0x006ACB34]`, one
 handle per slot (interface `+0x0E + 4n`, state byte `+0x32 + n`): 0x320 on the
-first sliding frame, 0x321 on each later sliding frame, 0x322 when it lands.
-Which bank and samples these ids name is unread.
+first sliding frame, 0x321 on each later sliding frame, 0x322 on landing only
+if the slot state byte is nonzero; landing clears it. An idle slot first updated
+after the slide window is silent. State and sound handle belong to the slot,
+not to the message id. The shipped GUI_MESSAGE_BAR maps resolve these ids to
+Global\Gui entries 2, 4 and 3, respectively; authored map durations are
+111, 498 and 145 ms (decoded frame lengths differ).
+
+### 3.1 Startup sound gate (binary, 2026-11-01)
+
+CONFIRMED disassembly at `0x00403DE0..0x00403E27`: the control update
+`0x00407260` (which calls the tab updater) requires camera class 2, or class 1
+with world `+0x284` nonzero. It then requires interface `+0xF5` and the normal-HUD
+camera predicate, unless player `+0x76` bit 19 bypasses those latter checks.
+Path camera mode 18 is class 4 and never reaches the call. This is an update
+gate, separate from merely hiding the tab graphics. Arrival time remains the
+message's insertion clock (`0x004C4600`), so restoring the HUD must not restart
+the 640 ms window. Speech playback is a separate service.
+
+The remake at `1b41d64d` calls `MessageTabsView.Capture` while the HUD is hidden,
+stamps first capture, and requests a landing sound for every message. A 60 Hz,
+4-tick/s startup trace of Levels 7, 1 and 4 (seed 1, no commands) requests 0x320
+on frame 0 and 0x322 on frame 39. These are confirmed extra requests; identifying
+them as the owner's described audible clicks remains an inference until audition.
+Evidence: `F:\DK2Evidence\studies\startup-message-click--2026-11-01--001`.
+
+Built scope (ADR-0621): `MessageTabsView` continues observing messages and
+speech while hidden, but suppresses its tabs and slide/landing requests using
+the adapter's normal-HUD visibility. Slot-owned slide state permits landing
+only after a prior slide. The existing presentation approximation remains:
+first observation supplies the arrival clock; simulation records do not carry
+the native insertion-time millisecond stamp. This change covers ordinary
+campaign/path visibility; it does not add the caller's special-player bypass
+or possession/world-context routing.
+
+A side-by-side driver using the shipped paths and `ScriptedViewDirector`,
+40 seconds per level at seed 1, gives hidden request counts before/after:
+Level 7 40/0, Level 1 80/0, Level 4 40/0; visible counts stay 15/15, 40/40,
+0/0. These are headless request traces, not live audio playback. Four new
+regressions fail on old behavior; all nine tab tests and all 1,408 Release
+presentation tests pass; the Unity adapter compiles without warnings/errors.
+The owner's audible acceptance remains Q717.
 
 ## 4. Hover text (CONFIRMED)
 
@@ -189,10 +228,11 @@ focus there: `0x00415B30` submits game action 4 with the point's tile, a glide o
 (computer-keeper-messages.md's producer table; only 44 carries the room), which names no room (STRONGLY INFERRED: thing slot 0 is never a room).
 Complaint 9 (cell, Temple, spectating; state-categories.md §7.2) reads one past a creature's
 nine lines, so its 17/18 text names the next creature type's first complaint, in DK2 as in ours:
-the Imp's 585 + 9 is Speech 594, "A Bile Demon has become unhappy because it has no Lair". Not built: type 20
-(`def+0x6D1`, file `0xD09`, "has left your Dungeon"), which our queue never posts; the slide sounds, the Ally button, the goto
+the Imp's 585 + 9 is Speech 594, "A Bile Demon has become unhappy because it has no Lair". Not built:
+the Ally button, the goto
 location of a kind-2 thing (22, 26, 48) or the Heart (85..87), none posted by us, player-name substitution for 82..87, and menu40's sharing with the creature Query. Only the kinds our queue posts
-can tab (computer-keeper-messages.md).
+can tab (computer-keeper-messages.md). Sound playback is built (ADR-0583); the
+startup correction and remaining boundaries are in section 3.1 (ADR-0621).
 
 At the owner's request (2026-10-25), popup messages select their bitmap font at
 85% of screen height: size22 instead of26 at1080p, fitting more text before
@@ -309,7 +349,7 @@ The tab/panel infrastructure needs no replacement to support scripted messages.
 
 ## 11. Open
 
-- Sound bank of 0x320-0x322 and the argument `[0x006ACB34]`.
+- Writer of the category argument `[0x006ACB34]` (shipped bank mapping is in section 3).
 - Writer of `0x00759C29`; producer of graphic 4.
 - The status-line placement of hover text versus a popup, as for other widgets.
 - For the owner, from play: does an opened message sit about 128 units higher while an indicator is up; do the Time Remaining digits read m:ss and does the last second hold at 0:01; does the frame keep its pixel thickness across resolutions (ours scales it, our choice); does Heroes Killed tick for heroes killed by traps, lava or the player's own creatures; does a long Current Holder name bounce, and keep its scroll offset across holders.

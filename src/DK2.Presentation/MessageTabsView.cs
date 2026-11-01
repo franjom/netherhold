@@ -45,7 +45,7 @@ public sealed class MessageTabsView
     public SoundRequests Sounds { get; } = new();
     public SoundRequests Speech { get; } = new();
     private readonly HashSet<uint> _heard = new();
-    private readonly HashSet<uint> _landed = new();
+    private readonly bool[] _slidingSlots = new bool[RecordsExamined];
     public IReadOnlyList<MessageTab> Tabs => _tabs;
     /// <summary>The message menu40 shows, or null when it is closed.</summary>
     public PlayerMessage? Open { get; private set; }
@@ -55,7 +55,10 @@ public sealed class MessageTabsView
     /// <summary>0x00423BD0 each frame: the first eight of the viewer's records, oldest first, give a
     /// tab while NeedsTab is set and the interface has not dismissed them. Slot n sits at
     /// (n + 1) * 88 (Review Objective is at 0; the Ally button, mode 3 only, is not built).</summary>
-    public void Capture(WorldState world, long nowMilliseconds)
+    public void Capture(WorldState world, long nowMilliseconds) =>
+        Capture(world, nowMilliseconds, new HudVisibility(true, true));
+
+    public void Capture(WorldState world, long nowMilliseconds, HudVisibility visibility)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         _tabs.Clear();
@@ -71,23 +74,26 @@ public sealed class MessageTabsView
                 int reference = ReferenceAtPost(world, message);
                 if (reference < -10000) Speech.Add(new SoundRequest(SoundCategory.Mentor, new SoundId((uint)(-reference - 9999))));
             }
-            if (examined++ >= RecordsExamined) continue;
-            if (!message.NeedsTab || _dismissed.Contains(message.Id)) continue;
-            bool arrived = !_stamps.TryGetValue(message.Id, out long stamp);
-            if (arrived) _stamps[message.Id] = stamp = nowMilliseconds;
+            // Keep first-observation time while 0x00403E27 skips the HUD update. DK2 stamps
+            // insertion (0x004C4600); hiding must not restart that 640 ms window.
+            if (!_stamps.TryGetValue(message.Id, out long stamp)) _stamps[message.Id] = stamp = nowMilliseconds;
             if (!_references.ContainsKey(message.Id)) _references[message.Id] = ReferenceAtPost(world, message);
+            if (!visibility.ShowNormalHud || examined++ >= RecordsExamined) continue;
+            if (!message.NeedsTab || _dismissed.Contains(message.Id)) continue;
             int slot = _tabs.Count;
             long age = (nowMilliseconds - stamp) / 10;
             int x = (slot + 1) * SlotWidth + (age < SlideSteps ? SlideStart - SlideStep * (int)age : 0);
-            if (age < SlideSteps || _landed.Add(message.Id))
+            bool sliding = age < SlideSteps;
+            if (sliding || _slidingSlots[slot])
                 Sounds.Add(new SoundRequest(new SoundCategory("gui_message_bar"),
-                    new SoundId(age >= SlideSteps ? 0x322u : arrived ? 0x320u : 0x321u), Voice: new SoundVoiceId((uint)slot + 1)));
+                    new SoundId(!sliding ? 0x322u : _slidingSlots[slot] ? 0x321u : 0x320u), Voice: new SoundVoiceId((uint)slot + 1)));
+            _slidingSlots[slot] = sliding;
             int frame = slot == Hovered ? 1 : flashTurn && !_opened.Contains(message.Id) ? 2 : 0;
             _tabs.Add(new MessageTab(message.Id, MessageTypeTable.Graphic((int)message.Kind), frame, x));
         }
         _gone.Clear();
         foreach (uint id in _stamps.Keys) if (!_live.ContainsKey(id)) _gone.Add(id);
-        foreach (uint id in _gone) { _stamps.Remove(id); _landed.Remove(id); _dismissed.Remove(id); _opened.Remove(id); _references.Remove(id); }
+        foreach (uint id in _gone) { _stamps.Remove(id); _dismissed.Remove(id); _opened.Remove(id); _references.Remove(id); }
         if (Open is PlayerMessage open && !_live.ContainsKey(open.Id)) Open = null;
     }
 
