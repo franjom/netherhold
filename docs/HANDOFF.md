@@ -21,8 +21,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   native playback acceptance remains Q685.
 
 - Portal lair capacity and stored pick-ups are built (ADR-0614/0616, Q709 closed).
-  Heart defender selection and same-tile response routes are corrected at hash/save 361
-  (ADR-0617); [scope, verification and matched resyncs](research/heart-defence-parity.md), Q712/Q713; the regression-check restore limit is Q714.
+- [Heart defence correction](research/heart-defence-parity.md) is built (ADR-0617, hash/save 361); outcome gaps and restore limits remain Q712-Q714.
+- [Heart destruction and opening Imp supply](research/heart-destruction.md) are built (ADR-0620, hash/save 363); Q583 is closed, Q715/Q716 remain bounded.
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit

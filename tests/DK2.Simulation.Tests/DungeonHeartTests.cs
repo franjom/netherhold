@@ -17,6 +17,55 @@ public class DungeonHeartTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
+    [Theory]
+    [InlineData(PlayerIds.Good)]
+    [InlineData((byte)0)]
+    public void ObjectUpdate0049BD20RequestsTheAuthoredHeartDeathEffectBeforeTheOpeningEnds(byte attacker)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = NewWorld(database);
+        GiveHeart(world, database, Keeper, new TilePos(5, 5));
+        var sim = Simulation(database, world);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+        world.DamageHeart(Keeper, world.Player(Keeper).HeartHealth, attacker);
+        sim.Run(3);
+
+        ViewEffectRequest effect = Assert.Single(events.Events, e => e.EffectRequest?.EffectId.Value == 76)
+            .EffectRequest!.Value;
+        Assert.Equal(Keeper, effect.Owner.Value);
+        // Tile_FloorHeight 0x00454626: the Heart centre's piece 0x40 is the zero-height pit.
+        Assert.Equal(new FpPosition3(new Fp32(0x5800), new Fp32(0x5800), new Fp32(0)), effect.Position);
+        Assert.Equal(default, effect.Heading);
+        Assert.False(world.Player(Keeper).HeartRuined);
+        GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), database);
+        var replayed = new ListEventSink();
+        restored.ObserveWith(replayed);
+        restored.Run(3);
+        Assert.DoesNotContain(replayed.Events, e => e.EffectRequest?.EffectId.Value == 76);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ObjectUpdate0049BD20DoesNotExplodeAnInitialRuinOrANonlethalHeart(bool initialRuin)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = NewWorld(database);
+        GiveHeart(world, database, Keeper, new TilePos(5, 5));
+        if (initialRuin)
+        {
+            world.Player(Keeper).HeartHealth = 0;
+            world.Player(Keeper).HeartRuined = true;
+        }
+        else world.DamageHeart(Keeper, 10, Rival);
+        var sim = Simulation(database, world);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+        sim.Run(3);
+        Assert.DoesNotContain(events.Events, e => e.EffectRequest?.EffectId.Value == 76);
+    }
+
     [Fact]
     public void HeartHealthObservationRetainsEveryAdvanceAndDoesNotChangeState()
     {

@@ -88,6 +88,8 @@ public static class HeartIntroRules
         uint elapsed = now - start;
         if (elapsed == 0) Request(context, owner, StartLevelEffectId);
         else if (elapsed == FadeInStartSeconds * SimulationTiming.TicksPerSecond) Request(context, owner, ArchesFadeInEffectId);
+        else if (elapsed == SequenceSeconds * SimulationTiming.TicksPerSecond)
+            context.World.Player(owner).NextFreeImpTick = new GameTick(now);
     }
 
     private static void Request(SimulationContext context, PlayerId owner, ushort effectId)

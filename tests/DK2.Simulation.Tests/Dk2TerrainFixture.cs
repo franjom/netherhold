@@ -409,6 +409,7 @@ internal static class Dk2TerrainFixture
         {
             Name = "Dungeon Heart",
             ObjectId = Navigation.WorldSteering.DungeonHeartObjectId,
+            DeathEffectId = 76, // Objects.kwd +0x356; Object_Update 0x0049BD20.
             // 0x234000 as shipped: a boulder destroys it (boulder.md).
             Flags = ObjectFlags.Obstacle | ObjectFlags.BoulderCanRollThrough | ObjectFlags.BoulderDestroys | ObjectFlags.Damageable,
             Hp = 34464, ManaValue = 0, RoomCapacity = 0, StartState = 0, PickUpPriority = 0,

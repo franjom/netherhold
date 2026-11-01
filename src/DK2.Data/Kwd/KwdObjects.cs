@@ -37,6 +37,7 @@ public static class KwdObjects
         U16(OffsetHp, record.Hp);
         U16(OffsetManaValue, record.ManaValue);
         U16(OffsetIdleEffect, record.IdleEffectId);
+        U16(OffsetDeathEffect, record.DeathEffectId);
         U16(OffsetNameStringId, record.NameStringId);
         U16(OffsetTooltipStringId, record.TooltipStringId);
         Fp(OffsetWidth, record.Width);
@@ -74,6 +75,8 @@ public static class KwdObjects
     private const int OffsetManaValue = 0x34E;
     private const int OffsetTooltipStringId = 0x350;
     private const int OffsetNameStringId = 0x352;
+    // ObjectDef_Load 0x0049DD60 maps the death word to runtime definition +0x119.
+    private const int OffsetDeathEffect = 0x356;
     private const int OffsetIdleEffect = 0x358;
     private const int OffsetObjectId = 0x35A;
     private const int OffsetStartState = 0x35B;
@@ -132,6 +135,7 @@ public static class KwdObjects
             RoomCapacity = rec[b + OffsetRoomCapacity],
             StartState = rec[b + OffsetStartState],
             IdleEffectId = U16(OffsetIdleEffect),
+            DeathEffectId = U16(OffsetDeathEffect),
             PickUpPriority = rec[b + OffsetPickUpPriority],
 
             Width = Fp(OffsetWidth),
