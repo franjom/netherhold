@@ -14442,6 +14442,14 @@ comparison at `0x004759AC`. Before a Heart responder requests its point route,
 reject raw navigation mask `0x08` destinations as `0x0047189E` / `0x004B35C0` do.
 Keep ordinary acquisition and fear rules; change no constants or RNG weights.
 
+Scope: alarm (`FearRules.RespondToThreat`) and trap (`TrapRules.ReportToRoom`)
+responders still omit the solid-point guard; DK2 routes all three through
+`0x00471890`. The early Heart rejection skips native route-option bit writes
+and query globals (`0x004D0E60`), and, after a successful preprobe, an attempted
+willing-torturee kick to 135; its three word clears require a successful kick
+(`0x004D99D2-0x004D99F7`).
+None is modelled on our Heart path; see [dispatch record](research/functions/004D9690.md).
+
 Consequence: hash/save 362 rejects 361 saves. Four regression cases fail against
 old source; ordinary acquisition and flee controls remain. The target-acquisition
 and entry-count gap remains Q712; adapter boundaries remain Q713. Evidence,
