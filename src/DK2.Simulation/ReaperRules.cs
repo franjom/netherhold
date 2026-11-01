@@ -17,7 +17,6 @@ public static class ReaperRules
     public const int MaterializingState = 236;
     public const int GreetingState = 237;
     public const int DepartingState = 242;
-    private const int CreaturePoolCapacity = 448;
 
     public static CreatureState? OwnedReaper(WorldState world, GameDatabase database, in PlayerState player)
     {
@@ -134,10 +133,10 @@ public static class ReaperRules
         var at = new TilePos(shot.PosX >> 12, shot.PosY >> 12);
         context.Navigation.Refresh();
         if (!world.Contains(at) || (context.Navigation.NavByte(at.X, at.Y) & 8) != 0) return;
-        if (world.Creatures.Count(CreatureStateMachine.HasState) >= CreaturePoolCapacity) return;
         CreatureDef? definition = ReaperDefinition(context.Database);
         if (definition is null || !world.HasPlayer(shot.OwnerPlayerId)) return;
-        CreatureState reaper = world.SpawnCreature(context.Database, definition.CreatureId, shot.OwnerPlayerId, at);
+        CreatureState? reaper = world.TrySpawnCreature(context.Database, definition.CreatureId, shot.OwnerPlayerId, at);
+        if (reaper is null) return;
         reaper.PosX = reaper.LastPosX = shot.PosX;
         reaper.PosY = reaper.LastPosY = shot.PosY;
         EnterState(context, reaper, ReaperState.Arriving);

@@ -144,7 +144,8 @@ public sealed class PortalSystem : ISimulationSystem
             // then refuses (PortalsOpen clear), so neither tally nor creature moves.
             if (!open) continue;
 
-            CreatureState spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
+            CreatureState? spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
+            if (spawned is null) continue;
 
             context.Emit(SystemName, "creature_entered",
                 $"player={playerId} creature={spawned.Id} type={arriving.Name} " +

@@ -191,7 +191,8 @@ public sealed class ImpSupplySystem : ISimulationSystem
         CreatureDef? imp = context.Database.CreatureByName("Imp");
         if (imp is null) return null;
 
-        CreatureState made = world.SpawnCreature(context.Database, imp.CreatureId, playerId, tile);
+        CreatureState? made = world.TrySpawnCreature(context.Database, imp.CreatureId, playerId, tile);
+        if (made is null) return null;
 
         // The shot's second datum is the level: 1 normally, 4 once research has upgraded
         // Create Imp (bonus shot 60, data (1, 4)). Free imps take the same cast and the same

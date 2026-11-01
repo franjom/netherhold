@@ -73,8 +73,9 @@ public static class GraveyardRules
             tile = chain[context.Rng.NextInt(chain.Length)];
         }
 
-        CreatureState creature = world.SpawnCreature(
+        CreatureState? creature = world.TrySpawnCreature(
             database, creatureTypeId, graveyard.OwnerPlayerId, new(tile % world.Width, tile / world.Width));
+        if (creature is null) return new GraveyardBurialResult(state.DecomposeValue, -1, 0);
         return new GraveyardBurialResult(state.DecomposeValue, creature.Id, creatureTypeId);
     }
 

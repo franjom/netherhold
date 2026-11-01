@@ -364,7 +364,9 @@ public static class WorldResync
             if (pairs[i].Ours is not null || native.Health <= 0 || !database.Creatures.ContainsKey((byte)native.Type)) continue;
             var tile = new TilePos(native.X / Fp32.One, native.Y / Fp32.One);
             if (!world.Contains(tile)) continue;
-            pairs[i] = (native, world.SpawnCreature(database, (byte)native.Type, new PlayerId((byte)native.Owner), tile));
+            CreatureState? made = world.TrySpawnCreature(database, (byte)native.Type, new PlayerId((byte)native.Owner), tile);
+            if (made is null) continue;
+            pairs[i] = (native, made);
             added++;
         }
         return added;

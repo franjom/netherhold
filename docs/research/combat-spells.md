@@ -18,8 +18,9 @@ strongest" — the routine it compares by is the **recharge**. `combat-fight-sta
 **What this settles:** in reach and off cooldown a caster starts **creature action
 16**, stamps the slot with the turn at once, and the action spawns a **shot thing**
 `ShotDelay` ticks later, aimed at the target's centre with a lead of one and a half
-times its last movement per tile of range; the action ends the tick the shot
-leaves. The survey keeps the attack spell whose next-ready time is latest, so a
+times its last movement per tile of range. Shot release completes the handler;
+[Q720](fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit) tracks
+the missing post-shot busy lifetime. The survey keeps the attack spell whose next-ready time is latest, so a
 fresh Warlock throws Firebomb before Fireball. A friendly spell is cast once and
 the target dropped. A spell the creature cannot cast makes it look for another
 target, then step back or run. **Built for the attack spells** (ADR-0167, §11); the
@@ -145,13 +146,13 @@ step 9) — with the slot in the high nibble of `AttackType`:
    melee flag 0 (`0x0045AA20`, §5 of the fight doc). Return 1.
 
 The fight's busy test (step 7 of the fight doc) holds the state while the action
-runs, so a caster in reach casts at `stamp + scaled recharge < now`, waits
-`ShotDelay` ticks, fires, and is free the same tick: a Warlock's Fireball every
-20 ticks with an 11-tick wind-up, its Firebomb every 30.
+runs. Recharge eligibility uses `stamp + scaled recharge < now`; after the
+`ShotDelay` wind-up, firing completes the handler but can leave the action busy.
+Cast cadence also depends on action completion; see the [Q720 boundary](fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit).
 
 ## 7. Action 16, "the spell instance" (`0x00498870`; also record 31's handler)
 
-The handler runs every tick the action is current, with the slot in the action's
+The mode-3 runner polls the handler until completion, with the slot in the action's
 first parameter (`+0x399`) and the target's tag in its second (`+0x39D`):
 
 1. For every slot carrying this spell id, body bit 12 of `+0x3EA`
@@ -160,7 +161,7 @@ first parameter (`+0x399`) and the target's tag in its second (`+0x39D`):
    `Possessed` creature does not wait.
 3. The definition by id (`world vtable+0xE4` present, `+0xE8` fetch); no
    `ShotTypeId` → assert *"Creature Spell %d has no Shot Type associated"* and
-   return 0 — the action ends with nothing fired.
+   return 0 — the handler completes without firing.
 4. **Origin** = my position plus the slot's vector rotated by my heading `+0xF4`
    (`Possessed`: the vector's height only). **Owner** = my owner, or the Good
    player when `CombatPitFighter` (`+0x3E6` bit 15) — a pit fighter's shots are
@@ -175,8 +176,8 @@ first parameter (`+0x399`) and the target's tag in its second (`+0x39D`):
    `isqrt(16·d²) >> 8` — the whole tiles between us — and `vtable+0x2C` the
    previous frame's position (STRONGLY INFERRED, `combat-acquisition.md`). Then
    `0x004AB830(shot, &aim)` and `0x004AB8A0(shot, &aim)`, which turns the shot to
-   face the aim (`0x0065FB54`, atan2) and launches it. **Return 0**: the action
-   ends the tick the shot leaves.
+   face the aim (`0x0065FB54`, atan2) and launches it. **Return 0** marks handler
+   completion; the post-shot busy lifetime is the Q720 boundary linked above.
 
 Everything after — the flight, the hit, `ShotData1` as the flat contact damage,
 `ShotData2` as an area radius or a duration — is the shot thing's own update:

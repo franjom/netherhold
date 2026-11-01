@@ -1426,7 +1426,8 @@ public sealed class TriggerExecutor
         // 0x00519B20's gate step-off, for a hero made on a gate (HeroPartyRules.StepOff).
         if (HeroPartyRules.StepOff(_world, _database, _rng, playerId, ref at, out _) == HeroPartyRules.StepOffResult.Refused)
             return Unperformed(record, context, run.Partial);
-        CreatureState creature = _world.SpawnCreature(_database, creatureTypeId, playerId, at);
+        CreatureState? creature = _world.TrySpawnCreature(_database, creatureTypeId, playerId, at);
+        if (creature is null) return Unperformed(record, context, run.Partial);
 
         // The player byte selects the record at index PlayerId - 1 and the creature is
         // created with the word at its +0x04, TagId. Passed through as the id itself

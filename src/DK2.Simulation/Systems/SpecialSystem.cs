@@ -123,7 +123,8 @@ public sealed class SpecialSystem : ISimulationSystem
             var tile = new TilePos(x >> 12, y >> 12);
             if (!world.Contains(tile)) continue;
 
-            CreatureState imp = world.SpawnCreature(database, worker.CreatureId, playerId, tile);
+            CreatureState? imp = world.TrySpawnCreature(database, worker.CreatureId, playerId, tile);
+            if (imp is null) continue;
             imp.PosX = x;
             imp.PosY = y;
             for (int level = 0; level < 4; level++) CreatureLevelRules.LevelUp(context.Hooks, worker, imp);

@@ -14519,3 +14519,27 @@ native timing, tests and scores: [party arrival](research/party-arrival-lifecycl
 Integration (2026-11-01): merge master b1eb6fd5, retaining ADR-0620/0621 and
 their Heart/supply and presentation changes. Combined hash/save 366 rejects
 both parent formats; see [version history](research/hash-versions.md).
+
+## ADR-0623: seed fight scans from reusable native creature slots
+
+Status: Accepted (2026-11-01).
+
+Context: the constructor initializes its scan phase from the persistent pool
+tag modulo 10. Always starting 0 changes the first post-arrival combat choice;
+the remake's monotonic ids do not represent native free-slot reuse.
+
+Decision: retain simulation ids and track a separate native creature-pool tag.
+Initialize the fresh-level pool after the seven native players, take the free
+head on creation, and prepend returned slots. Release at corpse conversion
+or removal, once only. Initialize FightProcessCounter from that tag modulo 10.
+Save and hash both allocated tags and the free-list order.
+
+All gameplay producers handle shared allocation refusal without throwing;
+checked projection constructors require capacity. Snapshot loading validates
+the complete allocated/free partition.
+
+Consequence: hash/save 367 rejects earlier saves. No fixed phase or RNG draw
+is added; native serialized-manager import remains outside our save format.
+The initial phase rule is built (Q718); Q712 remains open after the paired
+366/367 outcomes, with restore inputs tracked under Q719. Binary evidence,
+controls and [measured scope](research/fight-scan-initial-phase.md#matched-outcomes-366-and-367).

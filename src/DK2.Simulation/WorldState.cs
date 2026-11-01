@@ -690,6 +690,7 @@ public sealed class WorldState
     public IReadOnlyList<RoomBuildWaveState?> RoomBuildWaves => RoomBuildWaveSlots;
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
+    internal CreatureSlotPool CreatureSlots { get; } = new();
     private readonly List<CreatureState> _creaturesByOwnership = [];
     private readonly List<ObjectState> _objects = [];
     private readonly List<ActionPointState> _actionPoints = [];
@@ -1029,23 +1030,25 @@ public sealed class WorldState
         _creaturesByOwnership.AddRange(ordered);
     }
 
-    /// <summary>
-    /// Puts a creature on the map, at the centre of the given tile. Every
-    /// in-simulation producer goes through here —
-    /// <see cref="Systems.PortalSystem"/>, <see cref="Systems.ImpSupplySystem"/>,
-    /// <see cref="Systems.PrisonSystem"/> and <see cref="ThingProjection"/> — and
-    /// so do tests and scenario files, which place creatures directly and say so
-    /// in their reports.
-    /// </summary>
+    /// <summary>004B7900 refuses a full native creature pool without allocating a creature.</summary>
+    public CreatureState? TrySpawnCreature(
+        GameDatabase database, CreatureTypeId creatureTypeId, PlayerId ownerPlayerId, TilePos at) =>
+        CreatureSlots.FreeTags.Count == 0 ? null : SpawnCreature(database, creatureTypeId.Value, ownerPlayerId, at);
+
+    /// <summary>Places a creature at a tile centre, requiring a free native slot.
+    /// Validated projection, tests and scenarios may construct directly; gameplay uses TrySpawnCreature.</summary>
     public CreatureState SpawnCreature(
         GameDatabase database, byte creatureTypeId, PlayerId ownerPlayerId, TilePos at)
     {
         if (!Contains(at))
             throw new ArgumentOutOfRangeException(nameof(at), at, "Spawn tile is outside the map.");
 
+        NativeCreatureTag slot = CreatureSlots.Take();
         var creature = new CreatureState
         {
             Id = _nextCreatureId++,
+            NativeSlotTag = slot.Value,
+            FightProcessCounter = slot.InitialFightPhase,
             CreatureTypeId = creatureTypeId,
             OwnerPlayerId = ownerPlayerId.Value,
             PosX = CreatureState.CentreOf(at.X),
@@ -1108,6 +1111,7 @@ public sealed class WorldState
             // Creature_DeathBookkeeping clears the first world slot holding it (0x00488396..0x004883CC).
             for (int s = 0; s < HeroSlotCount; s++)
                 if (HeroSlotArray[s].CreatureId == id) { HeroSlotArray[s] = default; break; }
+            ReleaseCreatureSlot(_creatures[i]);
             _creaturesByOwnership.Remove(_creatures[i]);
             _creatures[i].LinkWorld = null;
             _creatures[i].TileLink = ThingTileLink.None;
@@ -1118,6 +1122,13 @@ public sealed class WorldState
             return true;
         }
         return false;
+    }
+
+    internal void ReleaseCreatureSlot(CreatureState creature)
+    {
+        if (creature.NativeSlotTag == 0) return;
+        CreatureSlots.Return(new NativeCreatureTag(creature.NativeSlotTag));
+        creature.NativeSlotTag = 0;
     }
 
     public CreatureState? CreatureById(int id)
@@ -1638,6 +1649,7 @@ public sealed class WorldState
         // disagreeing about the next id diverge the moment either one spawns.
         hash.Add(_creatures.Count);
         hash.Add(_nextCreatureId);
+        CreatureSlots.HashInto(ref hash);
         foreach (CreatureState c in _creatures) c.HashInto(ref hash);
         foreach (CreatureState c in _creaturesByOwnership) hash.Add(c.Id);
 

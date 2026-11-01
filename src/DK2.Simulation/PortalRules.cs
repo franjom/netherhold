@@ -45,7 +45,8 @@ public static class PortalRules
             r.OwnerPlayerId == playerId && IsKeeperPortal(r.Definition));
         if (portal is null) return null;
 
-        CreatureState creature = CreateArrival(hooks, portal, creatureTypeId);
+        CreatureState? creature = CreateArrival(hooks, portal, creatureTypeId);
+        if (creature is null) return null;
         CreatureDef definition = database.CreatureById(creatureTypeId);
         while (creature.Level < level && CreatureLevelRules.LevelUp(hooks, definition, creature)) { }
         return creature;
@@ -53,14 +54,15 @@ public static class PortalRules
 
     /// <summary>Shared placement and tally for ordinary and scripted portal arrivals.
     /// The caller owns the ordinary clock reset; action 28 leaves that clock alone.</summary>
-    internal static CreatureState CreateArrival(
+    internal static CreatureState? CreateArrival(
         in StateHookContext hooks, RoomInstance portal, byte creatureTypeId)
     {
         WorldState world = hooks.World;
         GameDatabase database = hooks.Database;
         int entrance = EntranceTileIndex(world, portal);
-        CreatureState creature = world.SpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
+        CreatureState? creature = world.TrySpawnCreature(database, creatureTypeId, portal.OwnerPlayerId,
             new TilePos(entrance % world.Width, entrance / world.Width));
+        if (creature is null) return null;
         creature.Heading = 0x400;
         creature.CameThroughPortal = true;
         world.TileAtIndex(entrance).EntranceCreaturesGenerated++;

@@ -9,6 +9,18 @@ namespace DK2.Simulation.Tests;
 
 public class PortalCreatureActionTests
 {
+    // 004B7945 refuses a full live pool; 004DC9A0 does not tally a refused arrival.
+    [Fact]
+    public void FullNativePoolRefusesScriptedArrivalWithoutChangingItsTally()
+    {
+        var (db, world) = Setup();
+        Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
+        for (int i = 0; i < 448; i++) world.SpawnCreature(db, 7, 3, new TilePos(1, 1));
+        Assert.Null(PortalRules.CreateScriptedArrival(new StateHookContext(world, db), 3, 7, 1));
+        Assert.Equal(448, world.Creatures.Count);
+        Assert.Equal(0, world.Tile(6, 6).EntranceCreaturesGenerated);
+    }
+
     [Fact]
     public void ScriptedPromotionsReachTheSimulationEffectSink()
     {

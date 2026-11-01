@@ -151,13 +151,14 @@ public static class HeroPartyRules
             byte type = partyType == 0 ? member.CreatureId
                 : i == 0 ? DwarfCreatureId
                 : RandomInvader(database, rng);
-            if (!world.Contains(at) || world.Creatures.Count >= CreatureCap) return false;
+            if (!world.Contains(at)) return false;
 
             CreatureDef def = database.CreatureById(type);
             TilePos made = at;
             bool corner = OnTheCorner(world, database, at);
             if (StepOff(world, database, rng, PlayerIds.Good, ref made, out _) == StepOffResult.Refused) return false;
-            CreatureState state = world.SpawnCreature(database, type, PlayerIds.Good, made);
+            CreatureState? state = world.TrySpawnCreature(database, type, PlayerIds.Good, made);
+            if (state is null) return false;
             if (corner)
             {
                 // The point is the tile times 4096, its corner (the handler adds and takes away 0x800);

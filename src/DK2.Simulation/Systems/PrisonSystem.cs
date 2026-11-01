@@ -315,7 +315,8 @@ public sealed class PrisonSystem : ISimulationSystem
             return;
         }
 
-        CreatureState skeleton = world.SpawnCreature(context.Database, raises, keeper, at);
+        CreatureState? skeleton = world.TrySpawnCreature(context.Database, raises, keeper, at);
+        if (skeleton is null) return;
 
         context.Emit(SystemName, "prisoner_perished",
             $"creature={prisoner.Id} type={definition.Name} owner={prisoner.OwnerPlayerId} " +

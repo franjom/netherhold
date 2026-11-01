@@ -96,7 +96,7 @@ action. Snapshot headers label the completed native turn plus 1:
 | 00481520 | Existing Tremor recovery starts the correct ordinary clip hold but fails to end an existing swing/training action. End it before starting 64. The presentation-manager slot +0x20 request remains omitted. |
 | 004815A0 / 00458680 | Existing ordinary action-duration surrogate, optional one-call delay and idle completion agree. Reuse these; do not introduce a fixed stun duration. General active-action replacement is outside the surrogate. |
 | 00488930 / 004B2030 | Add the non-flying vertical arrival subset before the existing recovery steering hold; retain the zero-floor convention. General physical flags, horizontal impulses/collision and dynamic flight remain existing adapter boundaries. |
-| 0048755D-0048757A | Constructor seeds FightProcessCounter from native tag modulo 10. Ours starts 0 and has different ids; native 439 retains 9 through recovery. No phase constant is inserted. This separate identity/initialization boundary is Q718. |
+| 0048755D-0048757A | Constructor seeds FightProcessCounter from native tag modulo 10. Ours starts 0 and has different ids; native 439 retains 9 through recovery. No phase constant is inserted. This separate identity/initialization boundary is now built; see [Q718](fight-scan-initial-phase.md). |
 
 ## Standalone implementation and validation
 
@@ -130,7 +130,9 @@ from standalone 365; the frozen provisional-363 studies below do not measure it.
 
 The completed full suite passes 4,270 Simulation and 1,413
 Presentation cases. Behavior passes 510, skips 5 and retains the one known
-Level 18 failure; the other projects pass. Q712/Q713/Q714/Q718 remain open.
+Level 18 failure; the other projects pass. Q712/Q713/Q714 remain open; the later
+[phase correction and 366/367 measurements](fight-scan-initial-phase.md#matched-outcomes-366-and-367)
+build Q718 and test the later integrated versions.
 
 ## Matched results against 362
 
@@ -150,8 +152,8 @@ five seed 2 generators, through 1535. Post-reveal height, previous height and
 draw state agree in the zero-floor representation. A regression caught and
 fixed previous-Z retention after landing before the final runs. The first
 later combat decision still differs: native scans at 1536, whereas the gen 101
-remake enters 90 at 1536 and acquires 455 at 1538 after movement. Q718 records the
-native tag-derived initial counter 9 versus our 0; this is not a timer fit.
+remake enters 90 at 1536 and acquires 455 at 1538 after movement. The later [phase correction](fight-scan-initial-phase.md) addresses the
+native tag-derived initial counter; this standalone measurement used our 0.
 
 ### Hero presence and targets
 
@@ -213,4 +215,5 @@ for it. Native Heart controls are inherited unchanged in the sensitivity JSON.
 
 Q712 remains open around matched target acquisition/dispatch inputs
 (0045CB00, 0045E9F0, 004D9690); Q713 retains the known adapters, Q714 the restore
-omission, and Q718 the initial scan phase. No new play-only question is needed.
+omission. The later [phase correction](fight-scan-initial-phase.md) builds Q718;
+remaining allocator/clock restore inputs are Q719. No new play-only question is needed.

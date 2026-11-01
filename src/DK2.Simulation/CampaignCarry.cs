@@ -56,7 +56,8 @@ public static class TransferCreatureRules
         var tile = new TilePos(x >> 12, y >> 12);
         if (y < 0 || !world.Contains(tile)) return null;
 
-        CreatureState creature = world.SpawnCreature(database, creatureTypeId, keeper, tile);
+        CreatureState? creature = world.TrySpawnCreature(database, creatureTypeId, keeper, tile);
+        if (creature is null) return null;
         creature.PosX = x;
         creature.PosY = y;
         creature.Heading = (simulation.Rng.NextInt(4) << 9) & 0x7FF;

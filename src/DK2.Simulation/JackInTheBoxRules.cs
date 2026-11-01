@@ -48,7 +48,8 @@ public static class JackInTheBoxRules
 
         int tx = shot.PosX >> 12, ty = shot.PosY >> 12;
         if (!database.Creatures.ContainsKey(JackCreatureId)) return;
-        CreatureState jack = world.SpawnCreature(database, JackCreatureId, shot.OwnerPlayerId, new TilePos(tx, ty));
+        CreatureState? jack = world.TrySpawnCreature(database, JackCreatureId, shot.OwnerPlayerId, new TilePos(tx, ty));
+        if (jack is null) return;
         jack.PosX = shot.PosX;
         jack.PosY = shot.PosY;
         foreach (TrapState trap in world.Traps)

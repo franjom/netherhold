@@ -250,6 +250,8 @@ public sealed class CreatureState
 {
     /// <summary>Stable identity for the life of the level. Assigned by <see cref="WorldState"/>.</summary>
     public int Id;
+    /// <summary>Native thing tag +4 for constructor phase; zero after its creature slot is freed.</summary>
+    public ushort NativeSlotTag;
 
     /// <summary>Index into the CREATURES table — the definition this creature is an instance of.</summary>
     public byte CreatureTypeId;
@@ -1349,6 +1351,7 @@ public sealed class CreatureState
     public void HashInto(ref Hash64 hash)
     {
         hash.Add(Id);
+        hash.Add(NativeSlotTag);
         hash.Add(CreatureTypeId);
         hash.Add(OwnerPlayerId);
         hash.Add(NameIndex);

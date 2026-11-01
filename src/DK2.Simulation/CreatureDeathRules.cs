@@ -191,6 +191,7 @@ public static class CreatureDeathRules
     public static void BecomeCorpse(
         WorldState world, GameDatabase database, CreatureState creature)
     {
+        world.ReleaseCreatureSlot(creature);
         LairRules.ReleaseBed(world, database, creature);
 
         CreatureStateMachine.Release(creature);

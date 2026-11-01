@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 366;
+    private const int FormatVersion = 367;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -335,10 +335,13 @@ public static class WorldSnapshot
         }
 
         w.Write(world.NextCreatureId);
+        w.Write(world.CreatureSlots.FreeTags.Count);
+        foreach (NativeCreatureTag tag in world.CreatureSlots.FreeTags) w.Write(tag.Value);
         w.Write(world.Creatures.Count);
         foreach (CreatureState c in world.Creatures)
         {
             w.Write(c.Id);
+            w.Write(c.NativeSlotTag);
             w.Write(c.CreatureTypeId);
             w.Write(c.OwnerPlayerId);
             w.Write(c.NameIndex);
@@ -1094,12 +1097,17 @@ public static class WorldSnapshot
         }
 
         int nextCreatureId = r.ReadInt32();
+        int freeCreatureSlots = SaveReader.Count(r, "freeCreatureSlots", 2);
+        var freeTags = new NativeCreatureTag[freeCreatureSlots];
+        for (int i = 0; i < freeTags.Length; i++) freeTags[i] = new NativeCreatureTag(r.ReadUInt16());
+        world.CreatureSlots.Restore(freeTags);
         int creatureCount = SaveReader.Count(r, "creatureCount", 890);
         for (int i = 0; i < creatureCount; i++)
         {
             var creature = new CreatureState
             {
                 Id = r.ReadInt32(),
+                NativeSlotTag = r.ReadUInt16(),
                 CreatureTypeId = r.ReadByte(),
                 OwnerPlayerId = r.ReadByte(),
                 NameIndex = r.ReadUInt16(),
@@ -1386,6 +1394,8 @@ public static class WorldSnapshot
         // so the counter is restored rather than derived: a level that has had
         // creatures die must not hand out an id it has already used.
         world.NextCreatureId = nextCreatureId;
+        if (!world.CreatureSlots.IsValidPartition(world.Creatures))
+            throw SaveReader.Error(r, SaveIncompatibleReason.Corrupt, "Invalid native creature slot ownership.");
 
         SaveReader.CheckCount(r, creatureCount, "creature ownership order", 4);
         int[] ownershipOrder = new int[creatureCount];

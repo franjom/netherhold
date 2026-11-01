@@ -13,6 +13,38 @@ namespace DK2.Simulation.Tests;
 /// makes a Jack in state 273, which wears out walking to its victim's keeper's heart and explodes.</summary>
 public class JackInTheBoxTests
 {
+    private sealed class SpringOnce(ShotState shot) : ISimulationSystem
+    {
+        public string Name => "SpringOnce";
+        public void Execute(SimulationContext context)
+        {
+            context.Navigation.Refresh();
+            JackInTheBoxRules.Spring(context, shot);
+        }
+    }
+
+    // 004B039A damages first; failed allocation004B03C9 skips trap destruction and Jack setup.
+    [Fact]
+    public void FullPoolKeepsTheVictimDamageButLeavesTheTrapIntact()
+    {
+        var (db, world) = Open();
+        ThingProjection.Place(world, db, [new TrapThing(new byte[16])
+            { X = 5, Y = 5, TrapId = Dk2TerrainFixture.JackInTheBoxTrapId, PlayerId = Keeper, NumberOfShots = 1 }]);
+        CreatureState victim = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
+        for (int i = 1; i < 448; i++) world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(1, 1));
+        int health = victim.Health, trapHealth = Assert.Single(world.Traps).Health;
+        var shot = new ShotState { OwnerPlayerId = Keeper, PosX = 5 * Fp32.One + 2048,
+            PosY = 5 * Fp32.One + 2048, Data1 = 100, Data2 = victim.Id, TargetKind = FightTargetKind.Creature };
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, 1, [new SpringOnce(shot)]);
+        sim.ObserveWith(sink);
+        sim.Tick();
+        Assert.InRange(victim.Health, 1, health - 1);
+        Assert.Equal(trapHealth, Assert.Single(world.Traps).Health);
+        Assert.DoesNotContain(world.Creatures, JackInTheBoxRules.IsJack);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "jack_sprung");
+    }
+
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 

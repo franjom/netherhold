@@ -240,7 +240,8 @@ public static class FinaleRules
         CreatureDef? definition = ReaperRules.ReaperDefinition(database);
         var at = new TilePos(player.Finale.PointX >> 12, player.Finale.PointY >> 12);
         if (definition is null || !world.Contains(at)) return null;
-        reaper = world.SpawnCreature(database, definition.CreatureId, player.PlayerId, at);
+        reaper = world.TrySpawnCreature(database, definition.CreatureId, player.PlayerId, at);
+        if (reaper is null) return null;
         reaper.PosX = reaper.LastPosX = player.Finale.PointX;
         reaper.PosY = reaper.LastPosY = player.Finale.PointY;
         reaper.ReaperHidden = true;

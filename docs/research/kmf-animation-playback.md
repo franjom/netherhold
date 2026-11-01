@@ -223,5 +223,6 @@ start stamp. After a targeted shot, the view uses its retained spell-slot
 stamp, spell attack mode and state-entry stamp to keep the authored clip
 visible. Later state entries and unmatched stamps reject that continuation.
 This is the same scoped presentation bridge as §7; it does not add an action
-lifetime to simulation. Completed possessed casts lack a matching spell-slot
+lifetime to simulation; the ordinary targeted-cast gap remains
+[Q720](fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit). Completed possessed casts lack a matching spell-slot
 stamp and are not retained by this bridge. ADR-0437.

@@ -123,8 +123,9 @@ public static class TempleSacrificeRules
         {
             case 1:
             {
-                CreatureState reward = world.SpawnCreature(
+                CreatureState? reward = world.TrySpawnCreature(
                     database, rewardId, temple.OwnerPlayerId, at);
+                if (reward is null) return new SacrificeResult(true, 0, SacrificeRewardKind.None, -1);
                 int levelTotal = 0;
                 int creatureCount = 0;
                 foreach (SacrificeIngredient offered in matched)

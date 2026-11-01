@@ -11,6 +11,26 @@ namespace DK2.Simulation.Tests;
 
 public class TempleSacrificeTests
 {
+    // 004F179B clears history before allocation; failure004F180C skips reward and speech.
+    [Fact]
+    public void FullPoolConsumesTheMatchedRecipeWithoutRewardOrSpeech()
+    {
+        var (db, world, _) = Pools(Floor);
+        db.Variables.Sacrifices.Add(new SacrificeEntry(
+            TempleSacrificeRules.KeeperSpellIngredient, 4, 0, 0, 0, 0,
+            1, 20, Dk2TerrainFixture.GoblinCreatureId));
+        for (int i = 0; i < 448; i++) world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(1, 1));
+        RoomInstance temple = Assert.Single(RoomIndex.Build(world, db), r => r.Definition.TypeId == RoomTypeId.Temple);
+        SacrificeResult result = TempleSacrificeRules.OfferKeeperSpell(world, db, temple, 4,
+            Floor.Y * world.Width + Floor.X);
+        Assert.True(result.Matched);
+        Assert.Equal(0, result.SpeechId);
+        Assert.Equal(SacrificeRewardKind.None, result.RewardKind);
+        Assert.Equal(-1, result.SpawnedThingId);
+        Assert.Equal(0, Assert.Single(world.TempleSacrifices).Count);
+        Assert.Equal(448, world.Creatures.Count);
+    }
+
     private const byte Keeper = PlayerIds.FirstKeeper;
     /// <summary>The centre of a 3×3 Temple, its pool: an offering is made only there (temple-states.md §3).</summary>
     private static readonly TilePos Floor = new(2, 2);

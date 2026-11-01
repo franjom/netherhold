@@ -11,6 +11,21 @@ namespace DK2.Simulation.Tests;
 
 public sealed class PartyArrivalTests
 {
+    // 004B7A20 frees the creature slot while a separate native corpse remains.
+    // 00519F90/004B7900 count live slots rather than our retained corpse records.
+    [Fact]
+    public void RetainedCorpseDoesNotPreventAPartyFromReusingItsFreedSlot()
+    {
+        var (db, world, _) = Spawn();
+        CreatureState? last = null;
+        for (int i = 1; i < 448; i++) last = world.SpawnCreature(db, Type, Keeper, new TilePos(7, 7));
+        CreatureDeathRules.BecomeCorpse(world, db, last!);
+        Assert.True(HeroPartyRules.Spawn(new StateHookContext(world, db), new SimRandom(7),
+            new TriggerTree([], 0, playerRoots: []), Assert.Single(world.HeroParties), 3, 0, _ => { }));
+        Assert.Equal(449, world.Creatures.Count);
+        Assert.Equal(8, world.Creatures.Last().FightProcessCounter);
+    }
+
     private const byte Type = Dk2TerrainFixture.WarlockCreatureId;
     private const byte Keeper = PlayerIds.FirstKeeper;
 

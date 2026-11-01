@@ -162,9 +162,11 @@ contexts refuse it.
 The existing arrival representation remains an approximation: derived tile
 order instead of a persistent player room list; bounding-box centre for
 malformed portals; a fitted state-193 wait instead of the full original action runner;
-no original 448-slot allocator, unique-type owner override, mutable pool consumption, arrival body bit,
+no unique-type owner override, mutable pool consumption, arrival body bit,
 origin room id, or audiovisual notifications. Q473/Q474 track the missing
-work. These are not evidence that the corresponding DK2 rules are absent.
+work. The shared creature-slot allocation boundary is now built; see
+[ADR-0623 scope](fight-scan-initial-phase.md#implementation-boundary-adr-0623).
+These are not evidence that the corresponding DK2 rules are absent.
 
 ## The entrance effect (read 2026-10-14, built as ADR-0476)
 
