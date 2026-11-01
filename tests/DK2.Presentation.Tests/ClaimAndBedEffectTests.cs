@@ -14,6 +14,25 @@ namespace DK2.Presentation.Tests;
 public class ClaimAndBedEffectTests
 {
     [InstallTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HeartPit004545C0KeepsTheEffectFloorAtZeroBeforeAndAfterRuin(bool ruined)
+    {
+        (GameDatabase db, WorldState world) = Load();
+        for (int y = 1; y <= 5; y++)
+            for (int x = 1; x <= 5; x++)
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper);
+        world.Player(PlayerIds.FirstKeeper).HeartRuined = ruined;
+        var view = new WorldView(db);
+        FpPosition3 At(int x, int y) => new(new(x * Fp32.One + Fp32.One / 2),
+            new(y * Fp32.One + Fp32.One / 2), new(0));
+
+        Assert.Equal(0, view.GroundHeightAt(world, At(3, 3)).Raw);
+        Assert.Equal(Fp32.One, view.GroundHeightAt(world, At(3, 2)).Raw);
+        Assert.Equal(Fp32.One, view.GroundHeightAt(world, At(1, 3)).Raw);
+    }
+
+    [InstallTheory]
     [InlineData(RoomTypeId.Portal, 0)]
     [InlineData(RoomTypeId.HeroPortal, Fp32.One)]
     public void PortalEffectFloorUsesEveryInteriorHoleButLeavesItsRimRaised(RoomTypeId type, int interiorHeight)

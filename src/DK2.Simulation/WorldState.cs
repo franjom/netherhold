@@ -378,18 +378,9 @@ public struct PlayerState
     /// for nothing (research-tree.md).</summary>
     public int ResearchTarget;
 
-    /// <summary>
-    /// The earliest tick at which this keeper may be handed a free imp.
-    /// <para><b>A deadline, not a countdown</b> — the whole of Q56. DK2 keeps one
-    /// field on the keeper and writes it in exactly one place, immediately after a
-    /// free imp is made, as <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. Nothing
-    /// resets it, pauses it, or touches it while the keeper is at full strength, so
-    /// a keeper who has been at four imps for a minute has a deadline a minute in
-    /// the past: the first tick they drop below <c>MinimumImpThreshold</c> the
-    /// replacement arrives <b>at once</b>, and only the ones after it are five
-    /// seconds apart. See <see cref="ImpSupplyRules"/> and
-    /// docs/research/imps-and-mana.md.</para>
-    /// </summary>
+    /// <summary>Native-turn deadline (player +0xA2); free supply requires now strictly greater.
+    /// Starts at ImpSupplyRules.DisabledFreeImpDeadline until the Heart opening arms it.
+    /// Full-strength keepers retain their deadline. See docs/research/imps-and-mana.md.</summary>
     public GameTick NextFreeImpTick;
 
     /// <summary>
@@ -1529,6 +1520,7 @@ public sealed class WorldState
             .Select(id => new PlayerState
             {
                 PlayerId = id,
+                NextFreeImpTick = ImpSupplyRules.DisabledFreeImpDeadline,
                 HeartHealth = Data.Model.PlayerIds.IsKeeper(id)
                     ? database[VariableTypeId.DungeonHeartObjectHealth]
                     : 0,

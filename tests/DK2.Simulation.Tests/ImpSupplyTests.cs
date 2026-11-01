@@ -5,18 +5,13 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Commands;
+using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>Where imps come from. CONFIRMED (owner, 2026-08-30): every keeper
-/// starts with four imps and four is a floor rather than a starting figure — drop
-/// them all into the dungeon heart and they come back at roughly five-second
-/// intervals — and beyond that an imp must be bought with the Create Imp spell,
-/// at 1500 mana for the first and 1500 more each time after.</summary>
-/// <remarks>The shipped data names the first two: <c>MinimumImpThreshold</c> is 4
-/// and <c>TimeBeforeFreeImpGeneratedSeconds</c> is 5. The tests below assert
-/// against the variables rather than against 4 and 5, so they test the rule and
-/// not the transcription.</remarks>
+/// <summary>Imp replenishment after the Heart opening, native deadline behavior and bought casts.
+/// The shipped MinimumImpThreshold and TimeBeforeFreeImpGeneratedSeconds values drive these
+/// checks; startup and steady-state fixtures are separate (docs/research/imps-and-mana.md).</summary>
 public class ImpSupplyTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
@@ -59,14 +54,95 @@ public class ImpSupplyTests
         }
 
         world.Player(Keeper).Mana = mana;
+        world.Player(Keeper).NextFreeImpTick = GameTick.Zero;
 
-        var sim = new GameSimulation(database, world, 5, Dk2TerrainFixture.DefaultSystems());
+        var sim = new GameSimulation(database, world, 5, Dk2TerrainFixture.SystemsWithout<DungeonHeartSystem>());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         return new Run(sim, sink, database);
     }
 
+    [Fact]
+    public void ANewKeepersFreeSupplyWaitsForTheHeartOpeningAndTheFollowingTurn()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        world.Tile(2, 2).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        var simulation = new GameSimulation(database, world, 5,
+            [new DungeonHeartSystem(), new ImpSupplySystem()]);
+
+        simulation.Run(36);
+        Assert.Empty(world.Creatures);
+        simulation.Tick(); // Native turn 37 arms the deadline, but is not after it.
+        Assert.Empty(world.Creatures);
+        Assert.Equal(new GameTick(37), world.Player(Keeper).NextFreeImpTick);
+        simulation.Tick();
+        Assert.Single(world.Creatures);
+        Assert.Equal(new GameTick(58), world.Player(Keeper).NextFreeImpTick);
+    }
+
+    [Fact]
+    public void ARuinedAtLoadHeartNeverArmsItsFreeSupply()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        world.Tile(2, 2).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        world.Player(Keeper).HeartRuined = true;
+        var simulation = new GameSimulation(database, world, 5,
+            [new DungeonHeartSystem(), new ImpSupplySystem()]);
+
+        simulation.Run(60);
+
+        Assert.Empty(world.Creatures);
+        Assert.Equal(new GameTick(uint.MaxValue), world.Player(Keeper).NextFreeImpTick);
+    }
+
+    [Fact]
+    public void FreeSupplyUsesTheNativeActivePlayerOrder()
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
+        world.Tile(2, 2).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        world.Tile(3, 2).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        world.Tile(3, 2).OwnerPlayerId = 4;
+        world.Player(Keeper).NextFreeImpTick = GameTick.Zero;
+        world.Player(4).NextFreeImpTick = GameTick.Zero;
+        var simulation = new GameSimulation(database, world, 5, [new ImpSupplySystem()]);
+        var events = new ListEventSink();
+        simulation.ObserveWith(events);
+
+        simulation.Tick();
+
+        var births = events.Events.Where(e => e.Kind == "imp_generated").ToArray();
+        Assert.Equal(2, births.Length);
+        Assert.StartsWith("player=4 ", births[0].Detail);
+        Assert.StartsWith("player=3 ", births[1].Detail);
+    }
+
+    [Fact]
+    public void AFreeCastWaitsUntilStrictlyAfterItsNativeTurnDeadline()
+    {
+        Run run = WithAHeart();
+        run.World.Player(Keeper).NextFreeImpTick = new GameTick(2);
+        run.Ticks(2); // Native turns 1 and 2.
+        Assert.Empty(run.World.Creatures);
+        run.Tick(); // Native turn 3.
+        Assert.Single(run.World.Creatures);
+        Assert.Equal(new GameTick(23), run.World.Player(Keeper).NextFreeImpTick);
+    }
+
     // ---- the free supply --------------------------------------------------
+
+    [Fact]
+    public void FreeCast004BB57EWrapsTheStoredNativeDeadlineToThirtyTwoBits()
+    {
+        Run run = WithAHeart();
+        typeof(WorldState).GetProperty(nameof(WorldState.CurrentTick))!
+            .SetValue(run.World, new GameTick(0xFFFFFFEF));
+        run.Tick(); // Native now FFFFFFF0 plus the twenty-turn interval wraps to 4.
+        Assert.Equal(new GameTick(4), run.World.Player(Keeper).NextFreeImpTick);
+        Assert.Single(run.World.Creatures);
+    }
 
     [Fact]
     public void AFallenKeeperWithRetainedHeartTilesReceivesNoFreeImps()
@@ -110,7 +186,7 @@ public class ImpSupplyTests
         List<long> at = run.Of("imp_generated").Select(e => e.Tick.Value).ToList();
         Assert.Equal(4, at.Count);
         for (int i = 1; i < at.Count; i++)
-            Assert.Equal(interval, (int)(at[i] - at[i - 1]));
+            Assert.Equal(interval + 1, (int)(at[i] - at[i - 1]));
     }
 
     [Fact]
@@ -190,8 +266,8 @@ public class ImpSupplyTests
 
         Assert.Equal(3, at.Count);
         Assert.Equal(0, at[0]);
-        Assert.Equal(interval, at[1]);
-        Assert.Equal(interval * 2, at[2]);
+        Assert.Equal(interval + 1, at[1]);
+        Assert.Equal((interval + 1) * 2, at[2]);
     }
 
     [Fact]
@@ -500,7 +576,7 @@ public class ImpSupplyTests
 
         byte[] saved = WorldSnapshot.ToBytes(run.Sim);
         GameSimulation restored = WorldSnapshot.FromBytes(
-            saved, Dk2TerrainFixture.Database(), Dk2TerrainFixture.DefaultSystems());
+            saved, Dk2TerrainFixture.Database(), Dk2TerrainFixture.SystemsWithout<DungeonHeartSystem>());
 
         Assert.Equal(run.Sim.StateHash(), restored.StateHash());
 
@@ -537,8 +613,9 @@ public class ImpSupplyTests
         tile.OwnerPlayerId = owner;
 
         world.Player(owner).Mana = mana;
+        world.Player(owner).NextFreeImpTick = GameTick.Zero;
 
-        var sim = new GameSimulation(database, world, 5, Dk2TerrainFixture.DefaultSystems());
+        var sim = new GameSimulation(database, world, 5, Dk2TerrainFixture.SystemsWithout<DungeonHeartSystem>());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
         return new Run(sim, sink, database);

@@ -14,7 +14,6 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [scope and native validation limits](research/hatchery-startup.md#built-scope).
 - Wall work: [corner fill](research/wall-corner-fill.md#built-scope-and-replay-limits) (ADR-0605, Q694, hash/save 347);
   [reinforcement eligibility](research/wall-reinforce-eligibility.md#built-scope) (ADR-0607, Q696/Q564, hash/save 349; the repair pass after every kind-6 miss, ADR-0611, hash/save 355); the owner's below-half-wall check (Q564) is still open.
-
 - The Mistress bed exit runs through state 84 at hash/save 335 (ADR-0586).
   Its inferred completion clock and presentation contract are in
   [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
@@ -23,6 +22,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - Portal lair capacity and stored pick-ups are built (ADR-0614/0616, Q709 closed).
   Heart defender selection and same-tile response routes (ADR-0617), reporting timeout
   and responder navigation gate (ADR-0619) are built at hash/save 362; [scope, verification and matched resyncs](research/heart-defence-parity.md), Q712/Q713; [redispatch controls and next comparison](research/heart-defence-parity.md#redispatch-follow-up-q712-2026-11-01); the regression-check restore limit is Q714.
+- [Heart destruction and opening Imp supply](research/heart-destruction.md) are integrated at hash/save 364 (ADR-0620); Q583 is closed, Q715/Q716 remain bounded.
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit

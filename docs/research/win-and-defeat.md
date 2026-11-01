@@ -169,21 +169,23 @@ slot `+0x28`. The class-2 object's implementation, `0x004B5C30`, returns true
 exactly when signed `object+0x40 <= 0`. A true result calls virtual slot `+0x30`;
 the object's slot is `0x0049BEC0`, which reads its thing id and calls the generic
 deleter `0x004B7B10`. That invokes the object death handler `0x0049B5E0` before
-destruction and unlinking, so the Heart-specific killer stamp, pillar removal and
-death effect in §5 run as part of the same deletion. On a later Heart-room frame,
+destruction and unlinking, so the Heart-specific killer stamp and pillar removal
+in section5 run as part of the same deletion. The visual death effect is requested
+earlier by the object update; see [heart-destruction.md](heart-destruction.md). On a later Heart-room frame,
 the missing object causes the ruin transition in §4. No Heart-specific health
 poller is involved: the class-wide `<= 0` predicate is the Q363 missing link.
 
 **Built (hash-neutral):** `WorldState.DamageHeart` is step 3 flat with the source stamped
 first; `RegenerateHeart` stamps the owner; the `heart_hit`/`shot_heart_hit` events stand
 for notification 1. Not built: the invulnerable flag (no writer read), the two
-percentage notices, pillar objects (the ring tile stands in, Q363).
+percentage notices. Pillar targeting is built (Q363); death visuals and the
+remaining decoration-lifetime boundary are in [Heart destruction](heart-destruction.md).
 
 ## 4. Ruin: Q263 answered
 
 `0x004E9130(room, flag)` switches on the room type byte `+0x18` from 5 (Dungeon
-Heart) through 23. The heart arm destroys the room's remaining objects
-(`0x004E62D0`, then `0x004B7B10` — the thing deleter — per object) and then
+Heart) through 23. Only case20 (the 2x2 Hero Gate) first destroys the room's
+remaining objects. The Heart arm directly performs the following writes:
 
 ```
 room+0x9A bit 0 = flag          ; XOR-masked in, so 1 sets it
@@ -209,8 +211,9 @@ How the ruined room leaves the keeper's room list, which type 25 needs, is Q358.
    `KilledByPlayerId` (`+0x132`) and the game turn in the owner's `GameTickDied`
    (`+0xEE2`).
 2. Every type-94 object (Arch Pillar) in the heart's room is destroyed.
-3. `0x004DA560` is called with the room, the object and the killer — the effect,
-   from `DungeonHeart.cpp`.
+3. `0x004DA560` receives the Heart object and killer tag for messages, credit
+   and mode-specific consequences; see [heart-destruction.md](heart-destruction.md)
+   for the separate visual effect.
 
 `word[object+0x36]` is the player whose blow last landed; what writes it is the
 object damage path, unread (combat, Q8). `KilledByPlayerId` is DK2's own name

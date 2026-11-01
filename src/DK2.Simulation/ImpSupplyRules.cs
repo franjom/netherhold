@@ -7,17 +7,18 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation;
 
-/// <summary>Where imps come from and what they cost: two routes, both CONFIRMED by the owner
-/// (2026-08-30) and both named by the shipped data. Free up to a floor — a keeper always has at
-/// least <c>MinimumImpThreshold</c> imps (4) and a missing one comes back every
-/// <c>TimeBeforeFreeImpGeneratedSeconds</c> (5). Bought without limit but not cheaply — Create Imp
-/// costs 1500 mana, then 3000, then 4500. Upkeep is <see cref="ManaRules.ImpUpkeepPerSecond"/>, off
-/// the same spell record (Q53).</summary>
+/// <summary>Imp supply and buying costs. Free casts replenish toward MinimumImpThreshold after
+/// the Heart opening; they use the native deadline rather than guaranteeing an initial roster.
+/// Create Imp's price and upkeep come from its shipped keeper-spell record.
+/// See docs/research/imps-and-mana.md.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/imps-and-mana.md")]
 public static class ImpSupplyRules
 {
-    /// <summary>The number of imps a keeper is guaranteed: <c>MinimumImpThreshold</c>, 4 in the
-    /// shipped data, which is also what a keeper starts a level with.</summary>
+    /// <summary>Native unsigned turn 0xFFFFFFFF: supply is disabled until the Heart opening arms it.</summary>
+    public static readonly GameTick DisabledFreeImpDeadline = new(uint.MaxValue);
+
+    /// <summary>The replenishment floor: MinimumImpThreshold, four in the shipped data.
+    /// Starting rosters belong to the level's THINGS records.</summary>
     public static int MinimumImps(GameDatabase database) =>
         database[VariableTypeId.MinimumImpThreshold];
 
@@ -65,10 +66,9 @@ public static class ImpSupplyRules
     public static int CreateImpBaseCost(GameDatabase database) =>
         database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
 
-    /// <summary>Where a new imp appears: a dungeon-heart tile belonging to this keeper, or none.
-    /// STRONGLY INFERRED — imps are created at the heart in the original and a keeper without one
-    /// has lost (Q40), so "no heart, no imps" needs no extra rule. Which heart tile is UNKNOWN
-    /// (Q52: only 16 of a 5×5 heart's 25 tiles are ordinary floor); the first in tile order is ours.</summary>
+    /// <summary>Finds this keeper's first Heart tile in storage order, or none.
+    /// Successful free-cast placement still deviates from the native ring (Q716);
+    /// see docs/research/imps-and-mana.md.</summary>
     public static int HeartTileOf(WorldState world, GameDatabase database, PlayerId playerId)
     {
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(database);

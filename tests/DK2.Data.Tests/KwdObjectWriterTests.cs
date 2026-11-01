@@ -10,12 +10,13 @@ namespace DK2.Data.Tests;
 
 public class KwdObjectWriterTests
 {
+    // ObjectDef_Load 0x0049DD60: file death-effect word 0x356 becomes runtime +0x119.
     [Fact]
     public void EveryDecodedObjectFieldRoundTripsWithoutTouchingOtherBytes() =>
         KwdScalarOverlayChecks.Check(KwdRecordType.Objects, 894, Read, KwdObjects.WriteRecord,
             "Name:0:32 ObjectId:35A:1 Flags:344:4 Hp:348:2 ManaValue:34E:2 " +
             "RoomCapacity:35C:1 StartState:35B:1 PickUpPriority:35D:1 Width:32C:4 " +
-            "Height:330:4 Mass:334:4 Speed:338:4 AirFriction:33C:4 ReactionTurn:34A:2 NameStringId:352:2 TooltipStringId:350:2 IdleEffectId:358:2",
+            "Height:330:4 Mass:334:4 Speed:338:4 AirFriction:33C:4 ReactionTurn:34A:2 NameStringId:352:2 TooltipStringId:350:2 DeathEffectId:356:2 IdleEffectId:358:2",
             excludedProperties: [nameof(ObjectDef.ArtSlots), nameof(ObjectDef.Light)]);
 
     [Fact]

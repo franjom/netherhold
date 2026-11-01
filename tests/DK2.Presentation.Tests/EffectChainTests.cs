@@ -235,6 +235,30 @@ public class EffectChainTests
         Assert.All(model.Particles, p => Assert.True(p.HeightRaw > Fp32.One && p.ScaleRaw == Fp32.One));
     }
 
+    [InstallFact]
+    public void HeartDeath0049BD20RunsTheShippedExplosionGraphAndArchDebrisToCompletion()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase database = DK2.Data.GameDatabaseLoader.Load(install);
+        using var art = DK2.Art.InstallArtProvider.Open(install, database);
+        IReadOnlyList<EffectGroupPart>? Parts(string name) => art.TryLoadGroup(name, out DK2.Art.Kmf.KmfGroup group)
+            ? group.Elements.Select(member => new EffectGroupPart(member.Name, (int)(member.Position.X * Fp32.One),
+                (int)(member.Position.Y * Fp32.One), (int)(-member.Position.Z * Fp32.One))).ToList()
+            : null;
+        Assert.Equal((ushort)76, database.Objects[13].DeathEffectId);
+        Assert.Equal("Group_dharch", database.Effects[300].ArtResource.Name);
+        var model = new RoomConstructionParticles(database, 7, () => new EffectTime(0),
+            floorHeight: _ => new Fp32(0), groupParts: Parts);
+        model.Request(new ViewEffectRequest(new EffectId(database.Objects[13].DeathEffectId),
+            new PlayerId(4), Point(0)));
+        // Child effects are generated on their first visual update, not at the request.
+        for (int update = 1; update <= 3; update++) model.AdvanceTo(new EffectTime(update * 50 + 1));
+        Assert.Contains(model.Particles, p => p.Definition.EffectElementId == 512 && p.MeshEntry != null);
+        Assert.Contains(model.Particles, p => p.MeshEntry == null && p.Definition.EffectElementId is 183 or 506 or 507);
+        for (int update = 4; update <= 400; update++) model.AdvanceTo(new EffectTime(update * 50 + 1));
+        Assert.Empty(model.Particles);
+    }
+
     private const ushort Lit = 30, LitGenerator = 31, LitParent = 32;
 
     private static GameDatabase LitDatabase(uint fadeFlag, ushort fade, ushort hp = 20, bool generates = true)
