@@ -14412,3 +14412,20 @@ implementation. Scope, native controls, residual boundaries and matched replay r
 [Heart defence parity](research/heart-defence-parity.md), Q712/Q713; remaining same-tile
 callers stay under Q565. General room-ID phasing is not reconstructed by this change.
 The Level 4 regression comparison is limited by Q714; see the linked measurements.
+
+## ADR-0618: close terrain faces beside scanned liquids
+
+Status: Accepted (2026-11-01).
+
+Context: Level 7 has see-through terrain at startup where scanned lava meets
+fog-substitute terrain. Liquid surfaces and adjoining wall faces used different
+admission predicates.
+
+Decision: include scanned RevealThroughFog terrain in `WorldView.DrawsFace`'s
+neighbour admission, matching `0x0043F2A0..0x0043F2CC`; retain the solidity test.
+Keep this predicate local to terrain geometry rather than expanding creature,
+object or interaction visibility.
+
+Consequence: exposed boundary faces are submitted without exploring any tile.
+Simulation state and hash/save 361 are unchanged. Evidence, tests and remaining
+boundaries: [plain terrain](research/floor-and-terrain-pieces.md#scanned-liquid-boundary-correction-2026-11-01-adr-0618), Q643.

@@ -191,6 +191,32 @@ public sealed class FogOfWarViewTests
         Assert.True(checkedTiles > 0);
     }
 
+    // 0043F2A0-0043F2CC admits scanned RevealThroughFog neighbours before testing solidity.
+    [Theory]
+    [InlineData(1, false)]
+    [InlineData(3, false)]
+    [InlineData(4, false)]
+    [InlineData(5, false)]
+    [InlineData(1, true)]
+    [InlineData(3, true)]
+    [InlineData(4, true)]
+    [InlineData(5, true)]
+    public void FaceAdmission0043F2A0IncludesScannedLiquids(int neighbourTerrain, bool sourceExplored)
+    {
+        GameDatabase database = Database();
+        var tiles = Enumerable.Repeat(new MapTile(3, 2, 0, 0), 9).ToArray();
+        tiles[5] = new MapTile((byte)neighbourTerrain, 2, 0, 0);
+        WorldState world = WorldState.FromMap(database, new LevelMap(3, 3, tiles), [1, 2], true);
+        if (sourceExplored) world.Tile(1, 1).SetExploredBy(1);
+        var view = new WorldView(database, 1);
+
+        Assert.False(view.TileAt(world, 1, 1).Pieces.HasFace(1));
+        world.Tile(2, 1).SetDiscoveredBy(1);
+        Assert.Equal(neighbourTerrain is 4 or 5, view.TileAt(world, 1, 1).Pieces.HasFace(1));
+        world.Tile(2, 1).SetExploredBy(1);
+        Assert.Equal(neighbourTerrain != 3, view.TileAt(world, 1, 1).Pieces.HasFace(1));
+    }
+
     private static GameDatabase Database() => new(
         [
             Terrain(1, "Secret", TerrainFlags.Ownable),

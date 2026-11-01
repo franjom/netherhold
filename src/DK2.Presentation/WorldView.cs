@@ -1315,7 +1315,10 @@ public sealed partial class WorldView
     {
         int nx = x + Dx8[side * 2], ny = y + Dy8[side * 2];
         if (!world.Contains(nx, ny)) return true;
-        if (!IsVisible(world, new TilePos(nx, ny)) || IsSolid(world, nx, ny)) return false;
+        TileState neighbour = world.Tile(nx, ny);
+        bool scannedTerrain = neighbour.IsDiscoveredBy(_viewingPlayerId)
+            && _database.TerrainById(neighbour.TerrainId).IsRevealedThroughFog;
+        if ((!IsVisible(world, new TilePos(nx, ny)) && !scannedTerrain) || IsSolid(world, nx, ny)) return false;
         return (flags & TerrainFlags.AllowRoomWalls) == 0 || !_ownWallsById[world.Tile(nx, ny).TerrainId];
     }
 

@@ -118,13 +118,12 @@ read from the instructions at `0x0043F3A0..0x0043F50F` (2026-10-21).
   neighbour is **off the map** (CONFIRMED, `0x0043F1F6..0x0043F224`: the flag set before the
   on-map call survives its failure), or explored and not nav-solid, unless that neighbour is a room
   that draws its own walls (room definition `+0x43D` bit 3, set for constructions 1, 5, 7, 9, 12
-  and 13, `wall-pieces.md` §1) and this terrain is AllowRoomWalls. The face test has exceptions
-  this summary does not settle: it branches on `drawnAsFog`, on vtable `+0xDC` and a flag from
-  `0x0044DB70`, and on the neighbour terrain's flag `0x1000000` with tile `+0xB & 0x40`
-  (`0x0043F22A..0x0043F315`), so a face can be drawn toward unexplored ground; what those return is
-  UNKNOWN. The owner (2026-10-09): unexplored ground is hidden behind the fog, *"essentialy black to
-  me"*, until a reveal spell or a creature reveals it, so such a face is not seen in play. (The
-  remake's runner draws fog as the Fog of War terrain's rock, not black.) A hero-owned Reinforced Wall instead draws
+  and 13, `wall-pieces.md` section 1) and this terrain is AllowRoomWalls. A scanned neighbour
+  whose terrain has `0x01000000` also qualifies before the nav-solid rejection
+  (`0x0043F2A0..0x0043F2CC`, independently rechecked 2026-11-01). The explored-neighbour
+  arm when drawn as fog (`0x0043F252..0x0043F275`) likewise rejects solid ground;
+  its room-wall suppression bypass remains an adapter boundary. Sight (`+0xDC`) and
+  possession (`0x0044DB70`) are additional admission paths. A hero-owned Reinforced Wall draws
   `Herowall_LevelDefaultPart4..8` in `wall-pieces.md` §2's half/whole scheme with 4 and 5 swapped.
   The test is terrain flag `0x800` (PlayerColouredWall) and tile owner `+8 & 0xFFF` equal to the hero
   player `[0x006F254C]`. On face side s (direction d = 2s) the wall runs on toward A when the tile at
@@ -140,6 +139,21 @@ read from the instructions at `0x0043F3A0..0x0043F50F` (2026-10-21).
 - A solid block then draws one art 2 top with the position-hashed texture variant; water and lava go
   to `0x0043E440` (`room-floors-and-liquids.md` §3); claimed and player-coloured tiles draw four player quarters from table
   `0x0066DA08` by an 8-neighbour mask; anything else draws art 0 whole (Mana Vault by owner).
+
+### Scanned-liquid boundary correction (2026-11-01, ADR-0618)
+
+The Level 7 startup report was reproduced in an isolated Unity render with a magenta
+camera background: tile-sized openings along the lava were uncovered geometry.
+`WorldView.DrawsFace` required exploration even where `TileAt` retained scanned
+Water/Lava. It now admits the scanned reveal-through-fog neighbour above, leaving
+the existing rejection of hidden or solid neighbours intact. This changes
+presentation, not discovery state.
+`FogOfWarViewTests.FaceAdmission0043F2A0IncludesScannedLiquids` has eight cases:
+four liquid cases failed before the correction; all eight pass afterward.
+The full Presentation suite passes 1,404 tests. Matched Unity captures with transparent
+batches prepared close all 11 sampled tile-centre openings near the lava. Small
+upper fog-edge openings remain visible outside those samples. Their cause, matched
+native visual acceptance and the earlier Level 2 report remain Q643.
 
 ### The quarters (CONFIRMED, `0x0043FF5A..0x004402F0`)
 

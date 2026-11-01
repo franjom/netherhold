@@ -112,8 +112,8 @@ is which piece is **STRONGLY INFERRED**.
   and submits each entry through its render sink's vt`+0xF0` / vt`+0xF4`.
 - `0x0043E320`: an unexplored, unrevealed tile is drawn as terrain `0x1B` (or
   `0x26` in one tile-flag case). A terrain without the room flag (`+0x17B` bit
-  `0x10`) goes to `0x0043E860`, **not read**. A room terrain goes to
-  `0x00443610`.
+  `0x10`) goes to `0x0043E860`; see [plain terrain](floor-and-terrain-pieces.md#5-0x0043e860-non-room-terrain).
+  A room terrain goes to `0x00443610`.
 - `0x00443610` switches on the room definition's `TileConstruction` byte
   (`+0x452`): 2 Quad, 3 3×3, 4 3×3 rotated, 5 Normal, 7 DoubleQuad, 8 5×5
   rotated, 9–13 the hero gates each have their own builder; 1 Complete uses one
@@ -131,7 +131,8 @@ is which piece is **STRONGLY INFERRED**.
 
 So the article's "depends on the size of the room" is the `TileConstruction`
 arms and the neighbour tests, not a size test in the wall chooser. Plain rock
-and earth walls (`0x0043E860`) remain unread. The deformation (Q72) is now read:
+and earth walls are covered in [plain terrain](floor-and-terrain-pieces.md#5-0x0043e860-non-room-terrain).
+The deformation (Q72) is now read:
 `terrain-lattice.md`. It uses no CRT `rand`; its jitter is the game's LCG on seeds
 made from the tile coordinates.
 
@@ -139,8 +140,9 @@ made from the tile coordinates.
 
 ## Open questions this raises
 
-- **Q71 — what picks a wall piece?** Room walls: above. Open: the art-slot names
-  in `Rooms.kwd`, and plain terrain's `0x0043E860`.
+- **Q71 — what picks a wall piece?** Room walls: above; plain terrain:
+  [section 5](floor-and-terrain-pieces.md#5-0x0043e860-non-room-terrain).
+  Open here: the art-slot names in `Rooms.kwd`.
 - **Q72 — is the wall deformation deterministic per tile?** If a keeper digs a
   wall and rebuilds it, does the same tile deform the same way? If yes, it is a
   function of tile position (a hash — which is how `PlaceholderProvider` derives
