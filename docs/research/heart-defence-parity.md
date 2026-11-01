@@ -241,9 +241,9 @@ Fresh arrival and redispatch within one frame are outside this visible-exit coun
 Binary reread: `004888C0` is the existing Call to Arms predicate, with no special
 254 clause; `0045A6D0` has no special standing-254 clause either. The preprobe
 `004D0E60` uses entity endpoints/options; this does not establish downstream
-route equivalence. No additional behavior change follows. Q712 now needs a
-matched comparison of intruder exposure/positions, followed by acquisition and
-arrival and moved-tile scan timing; general adapter boundaries remain Q713.
+route equivalence. No additional behavior change follows. The subsequent
+[hero-exposure comparison](#hero-exposure-and-earliest-comparable-divergence-q712-2026-11-01)
+follows this lead; general adapter boundaries remain Q713.
 
 Evidence: `F:/DK2Evidence/studies/q712-redispatch-split--2026-11-01--001/`:
 `split.json`, `native-opportunities.json`, `native-positive-controls.json`,
@@ -251,3 +251,57 @@ Evidence: `F:/DK2Evidence/studies/q712-redispatch-split--2026-11-01--001/`:
 verified scripts and per-run commands.
 The first `all-native-standing-phases.json` is invalid: it retained live decoder
 snapshots. Use v2, whose six redispatches match the positive control.
+
+## Hero exposure and earliest comparable divergence (Q712, 2026-11-01)
+
+CONFIRMED measurement: native seeds 2/3/7 and five hash 362 generators per seed,
+ticks 1401-3400, exact positions about room tile (17, 26), centre (17.5, 26.5).
+This is distinct from the player Heart-position tile (16, 25). Each squared axis
+displacement is shifted by 12 before addition, strict sum < 65536, as 004D9690.
+All 45 original creature/event/replay outputs are SHA-256 identical under a
+scratch CLI tracer; no simulation source changed. Complete per-run state/target
+counts, visit lengths, retargets and end causes are in the add-only study:
+`F:/DK2Evidence/studies/q712-hero-exposure--2026-11-01--001/` (`README.md`,
+`summary.csv`, `visits.csv`, `exposure.json`, commands, scripts and hashes).
+
+| Native seed | Native hero-ticks / qualified | Remake hero-ticks, generators 101/202/303/404/505 |
+|---|---:|---|
+| 2 | 4964 / 4905 | 4289, 1583, 4800, 1997, 1469 |
+| 3 | 4273 / 4221 | 1320, 1362, 3292, 3757, 2719 |
+| 7 | 3744 / 3661 | 4824, 3281, 2194, 1174, 2753 |
+
+Mean presence is 4327.00 native vs 2720.93 remake; qualified presence is 4262.33
+vs 2683.73. Mean target-ticks are 3298.67 pillar/790.00 Imp/66.67 other/171.67
+none native, vs 1607.00/790.60/90.60/232.73 remake. Thus excess *total*
+remake exposure is not the redispatch explanation. Exposure conditional on a
+standing responder remains open. Spatial visits end on leaving, collapse or
+the window boundary; retargets are recorded inside visits, not called deaths.
+Collapse is not a proved permanent death. State 199 dominates inside on both
+sides; complete joint state/target distributions are in exposure.json.
+
+Tick 1400 already has non-worker state/route differences under the documented
+partial restore (resync-replay.md). A new party supplies a cleaner comparison:
+seed 2 hero 439 is born 1514 at (17, 42), job 19/player 3 on both sides. DK2 enters 269,
+then 210 at 1522, 263 at 1523 and 264; ours enters idle then fights Imp 440 at 1515.
+Ours first enters the radius at 1666; DK2's first entry is hero 438 at 1750, with 439
+still fighting 440 outside. The existing gate-arrival omission precedes this
+arrival gap; its contribution to Q712 has not been isolated from later RNG,
+combat/action history and route differences.
+
+STRONGLY INFERRED binary/source comparison, before any production change:
+
+| Address / branch | Comparison and remaining mismatch |
+|---|---|
+| 00519F90 / 004626A0 | Gate spawn enters 269; at its counter 8 sets height/previous pose and enters 210. Ours omits this lifecycle; observed early divergence above. Full 263/264 lifecycle was not re-derived in this pass. |
+| 0045CB00, 0045D907 / 0045DAB7 | No candidate or worker admits Heart scan; strictly nearer pillar replaces running plain-distance best. Current Choose/ScanHearts agrees on these branches; no matched selector error found. |
+| 00462490 / 00484940 | Job 19 routes to a random Heart-room point, resume 178; 178 returns 0. Current HeroJobRules agrees on this dispatch; existing random-point/route adapters remain as documented in hero-party-walk.md. |
+| 00498E30 | Successful ordinary pillar blow ends its action without a pillar-specific hero-state transition; ours likewise retains the combat target. No new mismatch established. |
+| 0045E9F0 / 004B5D40 / 00489FE6 | Previous pose +F6 is refreshed after scan and before state dispatch/mover. Ours stamps after combat dispatch, before ordinary movement. Ordinary arrival is scanned next update in both; state-side relocation still needs a matched control. |
+| 00460C50 | Native class 0 enemy targeting self can hold a neighbouring tile without a health/state test. HeldByAnAttacker additionally skips IsDown; the pre-existing route existence/options mismatch remains Q713. No collapsed hero retaining an Imp target was found in these captures. |
+
+No production fix follows from these unmatched inputs. Hash/save stays 362;
+no new death-score or ten-seed/Level 4 rerun is claimed. The existing 362 scores
+above remain the baseline, including Q714's Level 4 confound. Next control:
+isolate gate-arrival history and match a hero's acquisition inputs before
+changing selection, scan cadence or responder rules. Watching ordinary play
+cannot substitute for that control; no additional owner-play question arose.

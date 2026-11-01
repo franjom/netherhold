@@ -51,15 +51,12 @@ The five shipped party jobs take these arms:
   the player is filled in, but is otherwise unused. **CONFIRMED** by
   `0x0046231B`-`0x00462474`.
 
-- **19 `KillPlayer` -> `0x00462490`.** Player selection and the
-  zero-player
-  rewrite are the same. `0x004C5F50` returns the selected player's
-  `+0xB43` heart/dungeon-area record; when its tile is valid the handler
-  routes there with resume state 178 `attacking Dungeon Heart`,
-  options 1. The value word is unused. The record's exact name is
-  **STRONGLY INFERRED** from its player-relative address and
-  heart-state consumers; the accesses
-  and state are **CONFIRMED** at `0x00462490`-`0x00462544`.
+- **19 `KillPlayer` -> `0x00462490`.** Player selection and the zero-player
+  rewrite are the same. The handler finds the room on the selected player's
+  Heart-position tile, asks `0x004E4D90` for a point with arguments 0/0, then
+  routes to that point with resume 178 and option 1; no room or a failed route
+  returns 0. The value word is unused. STRONGLY INFERRED from the whole-body
+  Q712 reread (2026-11-01); see [the function record](functions/00462490.md).
 
 - **22 `Wait` -> `0x00486CC0` -> state 176.** It enters state 176
   and puts `now + 1` in controller `+0x44`, the SuspendTime the
