@@ -98,11 +98,11 @@ action. Snapshot headers label the completed native turn plus 1:
 | 00488930 / 004B2030 | Add the non-flying vertical arrival subset before the existing recovery steering hold; retain the zero-floor convention. General physical flags, horizontal impulses/collision and dynamic flight remain existing adapter boundaries. |
 | 0048755D-0048757A | Constructor seeds FightProcessCounter from native tag modulo 10. Ours starts 0 and has different ids; native 439 retains 9 through recovery. No phase constant is inserted. This separate identity/initialization boundary is Q718. |
 
-## Implementation and validation
+## Standalone implementation and validation
 
 ADR-0622 builds the non-gate party branch and 269 handler, with the existing
 210/263/264 ordinary action clocks. Arrival draw/age and vertical state survive
-snapshots; hash/save 365 and pin `0xBB097DC526B13102` cover the change. It also ends
+snapshots; standalone hash/save 365 and pin `0xBB097DC526B13102` cover the change. It also ends
 the prior action at 210. No selector, reporting or fear constants are changed.
 
 Frozen-build verification: twelve new binary-backed cases pass; eight fail against old source and four are
@@ -115,12 +115,22 @@ previous Q520 custom-level failures do not recur in this install. Scratch
 baseline attempts missing scenario/Unity input roots are excluded; restoring
 the committed inputs leaves the known failure and passes HumanCommandPolicy.
 
-Matched results below use provisional hash/save 363. Production version 365
+Matched results below use provisional hash/save 363. Standalone version 365
 differs from the frozen build only in its hash/save version stamps and three
 portal coverage reason strings. All 29 focused arrival/determinism/coverage
 tests pass at 365; its full solution build has zero warnings/errors. Frozen
 evidence paths and measured table values retain 363.
 No outcome constant or RNG adjustment is made.
+
+## Integration verification (hash/save 366)
+
+Merging master `b1eb6fd5` into branch `1b61059e` combines ADR-0620/0621/0622
+at hash/save 366, pin `0x0BEC17EF48AD31CC`. The combined gameplay differs
+from standalone 365; the frozen provisional-363 studies below do not measure it.
+
+The completed full suite passes 4,270 Simulation and 1,413
+Presentation cases. Behavior passes 510, skips 5 and retains the one known
+Level 18 failure; the other projects pass. Q712/Q713/Q714/Q718 remain open.
 
 ## Matched results against 362
 

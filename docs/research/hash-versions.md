@@ -1,4 +1,4 @@
-﻿# State-hash versions
+# State-hash versions
 
 `GameSimulation.HashVersion` numbers the shape of the simulation state that
 `GameSimulation.StateHash()` folds, and `WorldSnapshot.FormatVersion` is kept
@@ -14,8 +14,14 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**366** - `0x0BEC17EF48AD31CC`. Remake regression pin, not native evidence. FormatVersion also 366. Integrates non-gate party arrival (ADR-0622, branch 365) with master's Heart death/opening supply (ADR-0620, integrated 364) and startup tabs (ADR-0621). Earlier saves are refused. The provisional arrival studies retain their original source provenance and do not measure this combined build.
 **365** - `0xBB097DC526B13102`. Remake regression pin, not native evidence. FormatVersion also 365. Non-gate hero parties wait hidden in 269 until age 8, then use the shared action-driven 210/263/264 recovery; 210 ends its previous action. Arrival vertical continuation is saved/hashed; no outcome constants change. See ADR-0622 and [party arrival](party-arrival-lifecycle.md); its frozen measurements used provisional 363 with identical gameplay. Earlier saves are refused.
+**364** - `0x1004B13C9EF07E17`. Remake regression pin, not native evidence. FormatVersion also 364. Integrates the Heart death/opening-supply correction (ADR-0620, branch version 363) with master's reporting timeout and responder point guard (ADR-0619, version 362), retaining startup-tab presentation (ADR-0621). Saves from 363 and earlier are refused.
+
+**363** - `0x00E7225CEC7C9532`. Remake regression pin, not native evidence. FormatVersion also 363. Free-Imp supply begins after the native Heart opening, uses strict unsigned deadlines with 32-bit wrap and active-player order. Heart death requests its authored object effect through the presentation boundary; no simulation RNG is consumed by that visual. No new snapshot fields. See ADR-0620 and [Heart destruction](heart-destruction.md). Historical standalone Heart branch `0a2d7d84`, based on `ea478084`, excluded the master version-362 reporting corrections. Superseded by the integrated version 364 above.
+
 **362** - `0x4BECD0CE73455513`. Remake regression pin, not native evidence. FormatVersion also 362. Reporting timeout retains its wrapping counter and compares unsigned; Heart responders reject raw navigation mask 8 destinations before the point-route shortcut. See ADR-0619 and [Heart defence parity](heart-defence-parity.md#q712-state-254-audit-2026-11-01). Saves from 361 are refused.
+
 **361** - `0x234400BFAE2BDC14`. Remake regression pin, not native evidence. FormatVersion also 361. Behaviour only: the selected creature's strategy score becomes its plain squared distance before the Heart comparison; Heart responders keep a same-tile intruder's point route. No constants or RNG weights change. See ADR-0617 and [Heart defence parity](heart-defence-parity.md). Saves from 360 are refused.
 **360** - `0xBA7D1E96E93556B4`. Remake regression pin, not native evidence. FormatVersion also 360. Behaviour only: a creature landing from the hand is stunned as state 76 decides, not only the dropper's own (in play: a freed prisoner and a held hero-party tool); a freed prisoner keeps its jailer's word until 255 ends (`0x004811E5`); `HandSystem.StoredCommandPickups` (off by default) lifts what a recorded pick-up names. No new fields. See ADR-0616. Saves from 359 are refused.
 **359** - `0xA1CB56EEA9E16A0C`. Remake regression pin, not native evidence. FormatVersion also 359. New field: `CreatureState.FightFlags`, bits 0 and 3 of `creature+0x46F`, set at construction and cleared on a sprung Jack; the fight gate and `IsAttackable` read them. See ADR-0615. Saves from 358 are refused.

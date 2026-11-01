@@ -11,6 +11,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Codex's sandbox helper can fail before process startup with `setup refresh had errors`; an approved `require_escalated` command can still run.
 - Concurrent commits in one checkout share both the index and COMMIT_EDITMSG; serialize staging and commits across sessions, including while hooks run.
+- Committed unmerged branches can already allocate ADR/hash numbers absent from master; inspect their version and ADR headers before allocating a new number.
 - Do not rebuild a project while its tests run: Windows testhost locks copied assemblies and MSBuild exhausts its copy retries.
 
 - KLD content offsets depend on each chunk's headerBlockSize; validate record tags and the final boundary before treating a trigger file as empty (Frosty's Lair TRIGGERS starts at60, THINGS at56).
@@ -32,6 +33,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Inspect original BMP captures in small batches; nine 1600×1200 images exceeded code-mode's 64MiB IPC frame limit.
 
 - Warm isolated terrain GPU probes before recording pixel baselines; the first presentation can differ from subsequent terrain flushes.
+- Gameplay GPU probes that rebuild terrain require isolated Play Mode; edit-mode Object.Destroy can retain old chunks and log errors despite passing pixel/model checks.
 
 - Unity 6000.6 returned the material override tag value `True` as `true`; use lowercase marker tokens when comparing `Material.GetTag` results.
 - Sandboxed Unity batch startup can stall at `Licensing is not yet initialized`; an isolated probe may need execution outside the sandbox to use the installed license.

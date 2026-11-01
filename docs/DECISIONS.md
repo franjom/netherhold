@@ -209,15 +209,15 @@
 ## ADR-0021 — Imps come from a floor and a price, and mana finally has an outgoing
 **Date:** 2026-08-30 · **Status:** accepted · amended 2026-09-05 by ADR-0057: the free-imp clock is a deadline, not a countdown
 
-**Context.** Nothing generated imps and nothing spent mana. The owner supplied the mechanic: a keeper starts with four imps, four is a **floor** rather than an allowance — drop them all into the dungeon heart and they come back at roughly five-second intervals — and beyond that an imp is bought with the Create Imp spell at 1500 mana, rising by 1500 each time. Every number is in DK2's data: the balance table names the first two in its own words (`MinimumImpThreshold` 4, `TimeBeforeFreeImpGeneratedSeconds` 5), which is why the free supply is CONFIRMED rather than inferred.
+**Context.** Nothing generated imps and nothing spent mana. The owner described replenishment toward four Imps, a **floor** rather than a one-time allowance — drop them all into the dungeon heart and they come back at roughly five-second intervals — and beyond that an imp is bought with the Create Imp spell at 1500 mana, rising by 1500 each time. Every number is in DK2's data: the balance table names the first two in its own words (`MinimumImpThreshold` 4, `TimeBeforeFreeImpGeneratedSeconds` 5), which is why the free supply is CONFIRMED rather than inferred.
 **Decision.**
 - The 1500 is `KeeperSpells.kwd` offset **0x11C**: 13 records over 5278 bytes, exactly 406 each, and that offset reads Possession 500, Create Imp **1500**, Sight of Evil 5000, Thunderbolt 6000, Call to Arms 10000, Create Gold 15000, Turncoat 20000, Tremor 30000, Inferno 50000, Summon Horny 100000. Thirteen plausible prices in an order matching how the game plays, one independently measured: a structural validation, not a lucky hit.
-- `ImpSupplySystem` hands a keeper below `MinimumImpThreshold` one imp every `TimeBeforeFreeImpGeneratedSeconds`, at their dungeon heart, and stops. **Amended by ADR-0057:** right for the second replacement onwards, wrong for the first — the original keeps a **deadline** that only moves when an imp is made, so a keeper at full strength replaces their next loss **immediately** (owner's film; the binary said why).
+- Free supply replenishes toward `MinimumImpThreshold`; the deadline rule is ADR-0057, with startup eligibility and strict native-turn scheduling corrected by ADR-0620.
 - `CreateImpCommand` buys one for `CreateImpBaseCost × (imps − minimum + 1)` — 1500 for the fifth, 3000 for the sixth. Owner: *"four free (starting) imps don't raise mana cost… if you drop down to 4, cost also drops to base 1500"*. **The price falls back**, so the cost is a function of the imps a keeper has now rather than a tally of what they have bought: no counter, and it cannot drift from the roster. CONFIRMED again from the binary (ADR-0057), which computes the same expression clamped to at least one step, on a creature type read off the power's own record.
 - `WorldState.RemoveCreature` exists so that an imp count can fall: a floor that cannot be tested by dropping below it is not a tested floor.
 **Consequences.**
 - **Mana can go down** — the first outgoing in the project.
-- Any world with a dungeon heart grows imps, which surprised two existing tests that had heart tiles for their gold capacity and quietly acquired a workforce. Both were re-timed rather than exempted.
+- Eligible Heart owners can gain a workforce through free supply; startup eligibility is specified by ADR-0620.
 - `ImpSupplySystem` runs **last**, after the mana it spends, so a keeper who earns the price on tick N can cast on tick N.
 - Code now: `CreateImpBaseCost` is a lookup out of `KeeperSpells.kwd` rather than a hardcoded constant (ADR-0022); `WorldState.RemoveCreature` is called by `CreatureHealthSystem`, `CreatureAngerSystem`, `HandSystem`, `ImpTaskSystem` and `PrisonSystem`, because creatures now die and leave (ADR-0051).
 - What this ADR could not build: the ~7 mana a second an imp costs to keep, which was in no file we parse. Built the next day (ADR-0022).
@@ -894,13 +894,13 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 **Context.** `FreeImpCountdownTicks` was held at zero while a keeper was up to strength and restarted from a full interval when they fell short; its comment said the alternative was indistinguishable in the steady state. The owner filmed thirty seconds at four imps, one dropped into the heart, and the replacement walking about 1.4 s later — then five-second gaps.
 
 **Decision.**
-- `PlayerState.NextFreeImpTick`: the earliest tick a keeper may be handed a free imp. `ImpSupplySystem` writes it in exactly one place, immediately after making one, as `now + interval`. A keeper at or above `MinimumImpThreshold` is skipped without the deadline being cleared, reset, paused or banked — so a keeper long at full strength has a deadline in the past and the next loss is replaced next tick; only later replacements are an interval apart.
+- `PlayerState.NextFreeImpTick` is a deadline retained while the keeper is full, so a later loss is replaced immediately if it is already past. Initialization, Heart-opening arming, strict comparison and attempt updates are corrected by ADR-0620; see [the clock](research/imps-and-mana.md#the-clock-is-a-deadline-and-the-difference-is-visible).
 - Binary (eight instructions in the keeper's per-frame update): the deadline advances whether or not the imp is placed (no test of the call's result); a free imp skips the spell-availability check, the mana check and the deduction; `TimeBeforeFreeImpGeneratedSeconds` is multiplied by variable 19 (the 223-reader seconds-to-ticks global, Q132).
 - Q54 confirmed twice: Create Imp costs `max(1, imps − MinimumImpThreshold + 1) × base`, clamp included; the creature type counted is read off the power's record.
 
 **Consequences.**
 - `HashVersion` 18 → 19, `FormatVersion` 18 → 19.
-- No "window before the first free imp": a keeper with a heart and no imps is staffed on tick zero. `ManaTests` runs without `ImpSupplySystem`; two `ManaUpkeepTests` re-based on starting land.
+- Startup supply now waits for the Heart opening (ADR-0620); upkeep fixtures wait for all four births before measuring a staffed dungeon.
 - Open: does an imp in the hand count toward the threshold (Q148); is the ~1.4 s simulation or animation (Q149).
 
 ## ADR-0058 — An imp chooses in two tiers, and gold is near rather than last
@@ -12084,7 +12084,8 @@ Speech.str, the level table or Text.str by the reference's band.
 
 **Consequences.** Every message our queue posts now tabs and flashes until opened; types 17 and 18
 take the creature's own unhappy or angry line, and the panel has the goto button. A reload forgets which tabs were opened or dismissed (DK2 saves the bits with the record).
-Sounds, the Ally button and name substitution wait (message-tabs.md §8).
+Sound playback follows ADR-0583/0621; the Ally button and name substitution remain open
+(message-tabs.md §8).
 
 ## ADR-0526 — A hand drop obeys DK2's drop gate
 **Date:** 2026-10-23 · **Status:** accepted · supersedes ADR-0077 · Q198
@@ -14455,6 +14456,45 @@ old source; ordinary acquisition and flee controls remain. The target-acquisitio
 and entry-count gap remains Q712; adapter boundaries remain Q713. Evidence,
 verification and scores: [Heart defence parity](research/heart-defence-parity.md#q712-state-254-audit-2026-11-01).
 
+## ADR-0620: destroy the Heart through its authored effect and respect the supply opening
+
+Status: Accepted (2026-11-01).
+
+Context: Level 7's doomed rival keeper received free Imps before DK2 permits them,
+and its Heart disappeared without its original explosion and collapsing debris.
+
+Decision: preserve object file word 0x356 as DeathEffectId and request the Heart's
+authored effect on its death turn, independently of the opening/ruin clock.
+Immediately remove the Heart and its pillars from the view. Reuse the existing
+effect graph and group-mesh renderer. Initialize free-Imp deadlines disabled,
+arm them at the native Heart-opening boundary, use strict native-turn comparison
+and traverse keepers in active-list order. Add no Level7-specific exemption.
+
+Consequence: integrated hash/save 364 rejects both parent formats (362/363);
+[version history](research/hash-versions.md). The original effect uses presentation
+RNG; the supply correction changes deterministic simulation timing. Evidence,
+tests and remaining boundaries: [Heart destruction](research/heart-destruction.md)
+and [Imp supply](research/imps-and-mana.md), Q583/Q715/Q716.
+
+## ADR-0621: keep hidden message tabs silent during camera paths
+
+Status: Accepted (2026-11-01).
+
+Context: startup request traces exposed message-tab sounds while the ordinary
+HUD was hidden. The audited native update gate excludes path-camera mode.
+
+Decision: observe message arrivals and speech independently of tab visibility;
+apply the normal-HUD gate to tab layout and sound requests. Keep slide state
+per slot, and request a landing sound only after that slot has slid.
+
+Scope: ordinary campaign/path presentation. The first-observation clock and
+special-player/possession routing boundaries remain explicit in
+[message tabs](research/message-tabs.md#31-startup-sound-gate-binary-2026-11-01).
+
+Consequence: simulation state and hash/save versions are unchanged. Regression
+and request-trace results live in the research section; Q717 retains audible
+acceptance of the owner's reported startup sound.
+
 ## ADR-0622: run the non-gate party arrival before hero activity
 
 Status: Accepted (2026-11-01).
@@ -14471,7 +14511,11 @@ targetability and steering gates; no fixed stun duration or score-based tuning.
 Save/hash the vertical arrival continuation using the existing zero-floor
 height convention and persistent vertical vector.
 
-Consequence: hash/save 365 rejects earlier saves. General action replacement,
+Consequence: standalone hash/save 365 rejects earlier saves. General action replacement,
 physical collision/flight and suspension adapters remain bounded; initial
 tag-derived scan phase is Q718. Evidence, address-by-address comparison,
 native timing, tests and scores: [party arrival](research/party-arrival-lifecycle.md).
+
+Integration (2026-11-01): merge master b1eb6fd5, retaining ADR-0620/0621 and
+their Heart/supply and presentation changes. Combined hash/save 366 rejects
+both parent formats; see [version history](research/hash-versions.md).

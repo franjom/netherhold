@@ -38,6 +38,9 @@ Then, with `now` the game turn and `start` the stamp:
 keeper's are opaque from the start, and the ramp writes alpha on them too but their
 bit 0 is clear.
 
+The `+0xA2` write arms free-Imp supply for every Heart owner; its deadline
+meaning and startup regression are in [Imp supply](imps-and-mana.md), ADR-0620.
+
 ## 2. The data
 
 | effect | name | HP | makes | next | death | notes |

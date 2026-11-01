@@ -406,16 +406,20 @@ public sealed partial class WorldView
     /// <summary><c>0x004DB700</c> by slab-chain index: Arch Pillars at 7, 16 and 18, and at 12 (the
     /// centre of a level's 5×5, STRONGLY INFERRED from the chain order) the Obstacle, the Heart,
     /// three Big Steps and the Arches. Deviates: a ruined Heart draws none of them (DK2 skips the
-    /// pass for a room with <c>+0x9A</c> bit 0; what stands after the ruin is unread). DK2 creates
+    /// pass for a room with <c>+0x9A</c> bit 0; later decoration removal remains Q715). DK2 creates
     /// the Arch Pillars at height 0; they are drawn on the floor here (ASSUMED, as for the pillars).</summary>
     private void DecorateHeart(WorldState world, RoomInstance room, PlayerId owner, List<ObjectView> into)
     {
         if (world.HasPlayer(owner) && world.Player(owner).HeartRuined) return;
+        bool alive = !PlayerIds.IsKeeper(owner.Value) || !world.HasPlayer(owner)
+            || world.Player(owner).HeartHealth > 0;
         int[] chain = SlabChain.Order(world, room);
         if (chain.Length <= 18) return;
         int[] pillarAt = [7, 16, 18];
         (int X, int Y)[] pillarPoint = [(0x800, 0x4CD), (0x667, 0x19A), (0x999, 0x19A)];
-        for (int i = 0; i < 3; i++)
+        // Heart cleanup 0x0049B5E0 removes the Heart and type94 Pillars at death.
+        // The death handler leaves the other decorations.
+        for (int i = 0; alive && i < 3; i++)
         {
             int tile = chain[pillarAt[i]];
             into.Add(Decoration(world, tile, ArchPillarSlot, ArchPillarId, owner,
@@ -426,7 +430,7 @@ public sealed partial class WorldView
         int centre = chain[12];
         PlayerId obstacleOwner = room.OwnerPlayerId == 0 ? new PlayerId(0) : PlayerIds.Neutral;
         into.Add(Decoration(world, centre, HeartSlot, HeartObstacleId, obstacleOwner, 0, 0, -1, 0));
-        into.Add(Decoration(world, centre, HeartSlot + 1, DungeonHeartId, owner, 0, 0, -1, 0));
+        if (alive) into.Add(Decoration(world, centre, HeartSlot + 1, DungeonHeartId, owner, 0, 0, -1, 0));
         // The builder (0x004DB700) creates the local player's Big Steps and Arches with alpha 0; the
         // opening sequence fades them in (0x004D9CA0, heart-intro.md). Another keeper's are opaque.
         // After a tick the world's CurrentTick is the game turn that tick was (HeartIntroRules.Turn).
@@ -625,17 +629,20 @@ public sealed partial class WorldView
         WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature) ? new(FloorZ)
             : CreatureGroundHeight(world, new(new(creature.PosX), new(creature.PosY), default));
 
-    /// <summary>Ground for effects and shadows, including the keeper Portal's zero-height hole.</summary>
+    /// <summary>Ground for effects and shadows, including Portal holes and the central Heart pit.</summary>
     public Fp32 GroundHeightAt(WorldState world, FpPosition3 point)
     {
         var at = new TilePos(point.X.Raw >> 12, point.Y.Raw >> 12);
         if (world.Contains(at))
         {
             TileState tile = world.Tile(at);
-            if (_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room)
-                && room.TypeId == RoomTypeId.Portal
-                && SameRoom(new(at.X - 1, at.Y)) && SameRoom(new(at.X + 1, at.Y))
-                && SameRoom(new(at.X, at.Y - 1)) && SameRoom(new(at.X, at.Y + 1))) return new Fp32(0);
+            if (_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room))
+            {
+                if (room.TypeId == RoomTypeId.DungeonHeart) return new(FloorHeight(world, at.X, at.Y));
+                if (room.TypeId == RoomTypeId.Portal
+                    && SameRoom(new(at.X - 1, at.Y)) && SameRoom(new(at.X + 1, at.Y))
+                    && SameRoom(new(at.X, at.Y - 1)) && SameRoom(new(at.X, at.Y + 1))) return new Fp32(0);
+            }
 
             bool SameRoom(TilePos neighbour) => world.Contains(neighbour)
                 && world.Tile(neighbour).TerrainId == tile.TerrainId

@@ -74,7 +74,8 @@ public class ManaUpkeepTests
 
     /// <summary>Enough ticks for the free four to arrive and a second to elapse.</summary>
     private static void SettleWithFourImps(Run run) =>
-        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 5);
+        run.Ticks((HeartIntroRules.SequenceSeconds * SimulationTiming.TicksPerSecond)
+            + ((ImpSupplyRules.FreeImpIntervalTicks(run.Db) + 1) * 4));
 
     /// <summary>Ticks on until the keeper's land income stops growing. A test about
     /// upkeep must not race four imps still claiming ground: income climbed 41 to 44
@@ -130,12 +131,7 @@ public class ManaUpkeepTests
     [Fact]
     public void AKeeperWithNoImpsPaysNothing()
     {
-        // No heart, because there is no longer any such thing as "before the
-        // first free imp arrives". This test used to run one second and rely on
-        // the five-second gap; the free supply keeps a deadline rather than a
-        // countdown, so a keeper with a heart and no imps is staffed on the very
-        // first tick (2026-09-05, ImpSupplySystem). Nowhere to put an imp is now
-        // the only way to have a keeper with land and no workforce.
+        // A Heartless fixture keeps the workforce absent beyond the opening delay.
         Run run = World(heart: false);
 
         run.Ticks(SimulationTiming.TicksPerSecond);

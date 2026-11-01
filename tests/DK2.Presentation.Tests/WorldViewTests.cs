@@ -1120,6 +1120,38 @@ public class WorldViewTests
     }
 
     [InstallFact]
+    public void NonkeeperHeartFurnitureDoesNotTreatUnmodelledHealthAsDeath()
+    {
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        byte heart = database.Rooms.Values.Single(r => r.TypeId == RoomTypeId.DungeonHeart).TerrainId;
+        var tiles = Enumerable.Repeat(new MapTile(heart, PlayerIds.Good, 0, 0), 25).ToArray();
+        WorldState world = WorldState.FromMap(database, new LevelMap(5, 5, tiles), [PlayerIds.Good]);
+        Assert.Equal(0, world.Player(PlayerIds.Good).HeartHealth);
+        ObjectView[] furniture = new WorldView(database).Decorations(world).ToArray();
+        Assert.Contains(furniture, o => o.ObjectTypeId == 13);
+        Assert.Contains(furniture, o => o.ObjectTypeId == 94);
+    }
+
+    [InstallFact]
+    public void HeartDeath0049B5E0RemovesTheHeartAndPillarsBeforeTheRoomRuins()
+    {
+        GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level7")!;
+        WorldState world = WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper, (byte)4]);
+        var view = new WorldView(database);
+        Assert.Contains(view.Decorations(world).Where(o => o.OwnerPlayerId == 4 || o.ObjectTypeId == 100), o => o.ObjectTypeId == 13);
+        Assert.Contains(view.Decorations(world).Where(o => o.OwnerPlayerId == 4 || o.ObjectTypeId == 100), o => o.ObjectTypeId == 94);
+        world.DamageHeart(4, world.Player(4).HeartHealth, PlayerIds.Good);
+        new GameSimulation(database, world, 1, []).Tick(); // The view captures once per completed tick.
+        Assert.False(world.Player(4).HeartRuined);
+        ObjectView[] after = view.Decorations(world).Where(o => o.OwnerPlayerId == 4 || o.ObjectTypeId == 100).ToArray();
+        Assert.DoesNotContain(after, o => o.ObjectTypeId is 13 or 94);
+        Assert.Contains(after, o => o.ObjectTypeId == 86);
+        Assert.Contains(after, o => o.ObjectTypeId == 88);
+        Assert.Contains(after, o => o.ObjectTypeId == 100);
+    }
+
+    [InstallFact]
     public void HeartFurnitureReceivesTheCapturedRoomAddedColour()
     {
         (GameDatabase database, WorldState world) = RealLevel()!.Value;

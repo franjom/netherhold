@@ -5,6 +5,7 @@
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
+using DK2.Simulation.Systems;
 using DK2.TestSupport;
 using Xunit.Abstractions;
 
@@ -15,6 +16,61 @@ namespace DK2.Behavior.Tests;
 /// win-and-defeat.md §3). Predicted from the binary; no capture of Level 7 or 8's first second.</summary>
 public class HeartStartOnRealDataTests(ITestOutputHelper output)
 {
+    [InstallFact]
+    public void LevelSevenGiantsDestroyTheRivalsHeartWithoutAnOpeningFreeImp()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level7");
+        GameSimulation simulation = CampaignSimulationFactory.Create(db,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level7")!,
+            GameDatabaseLoader.LoadCampaignLevel(install, "Level7")!,
+            GameDatabaseLoader.LoadCampaignPlayers(install, "Level7")!,
+            GameDatabaseLoader.LoadCampaignThings(install, "Level7")!,
+            GameDatabaseLoader.LoadCampaignTriggers(install, "Level7")!, 7);
+        var events = new ListEventSink();
+        simulation.ObserveWith(events);
+
+        simulation.Run(50);
+
+        foreach (SimEvent entry in events.Events.Where(e =>
+                     e.Kind is "imp_generated" or "heart_destroyed" or "heart_ruined"))
+            output.WriteLine($"tick {entry.Tick.Value}: {entry.Kind} {entry.Detail}");
+        Assert.Equal(0, simulation.World.Player(4).HeartHealth);
+        Assert.NotEqual(0, simulation.World.Player(4).KilledByPlayerId);
+        Assert.Equal(0, ImpSupplyRules.ImpCount(simulation.World, db, new PlayerId(4)));
+        // Object_Update 0x0049BD20 requests the Heart's authored death effect before deletion.
+        SimEvent explosion = Assert.Single(events.Events,
+            e => e.EffectRequest?.EffectId.Value == 76 && e.EffectRequest.Value.Owner.Value == 4);
+        Assert.Equal(simulation.World.Player(4).HeartDiedTick, explosion.Tick);
+        Assert.Equal(new DK2.Core.TilePos(22, 13), explosion.EffectRequest!.Value.Tile);
+        Assert.Equal(0, explosion.EffectRequest.Value.Position.Z.Raw); // 0x00454626: Heart centre floor.
+        Assert.DoesNotContain(events.Events,
+            e => e.Kind == "imp_generated" && e.Detail.StartsWith("player=4 ", StringComparison.Ordinal));
+    }
+
+    [InstallFact]
+    public void LevelSevenLiveRivalsFreeSupplyArmsAfterTheHeartOpening()
+    {
+        string install = Dk2InstallGate.Path;
+        GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(install, "Level7");
+        var players = GameDatabaseLoader.LoadCampaignPlayers(install, "Level7")!;
+        var things = GameDatabaseLoader.LoadCampaignThings(install, "Level7")!;
+        WorldState world = WorldState.FromMap(db,
+            GameDatabaseLoader.LoadCampaignMap(install, "Level7")!, players.Select(p => p.PlayerId));
+        ThingProjection.Place(world, db, things);
+        Assert.Equal(new PlayerId[] { new(4), new(3), new(2), new(1) }, world.ActivePlayerOrder);
+        Assert.Equal(1000, world.Player(4).HeartHealth);
+        Assert.Equal(0, ImpSupplyRules.ImpCount(world, db, new PlayerId(4)));
+        var simulation = new GameSimulation(db, world, 7,
+            [new DungeonHeartSystem(), new ImpSupplySystem()]);
+
+        simulation.Run(37);
+        Assert.Equal(0, ImpSupplyRules.ImpCount(world, db, new PlayerId(4)));
+        Assert.Equal(new DK2.Core.GameTick(37), world.Player(4).NextFreeImpTick);
+        simulation.Tick();
+        Assert.Equal(1, ImpSupplyRules.ImpCount(world, db, new PlayerId(4)));
+    }
+
     [InstallFact]
     public void EveryShippedHeartStartsAtItsRoomRecordsPercentage_AndAZeroIsARuin_PredictedNotObserved()
     {

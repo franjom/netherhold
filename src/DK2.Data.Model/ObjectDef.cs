@@ -114,6 +114,10 @@ public sealed record ObjectDef
     /// state 50; its value is 297, Level Gem Idle Effect. 0 for none.</summary>
     public ushort IdleEffectId { get; init; }
 
+    /// <summary>File word 0x356, runtime definition +0x119: Object_Update (0x0049BD20)
+    /// requests this effect when an enabled object dies. Zero means no effect.</summary>
+    public ushort DeathEffectId { get; init; }
+
     /// <summary>Ordering for what an imp picks up first when several things lie about.</summary>
     public required byte PickUpPriority { get; init; }
 

@@ -10,15 +10,9 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>Makes imps: free ones to keep a keeper above the floor, bought ones when
 /// a keeper casts Create Imp.</summary>
-/// <remarks>The free supply is CONFIRMED and the data names it twice: a keeper below
-/// <c>MinimumImpThreshold</c> (4) gets one imp every
-/// <c>TimeBeforeFreeImpGeneratedSeconds</c> (5) until they are back up to it, and the
-/// owner established the behaviour by dropping every imp into a dungeon heart and
-/// watching them return at roughly five-second intervals. Not implemented: imps cost
-/// mana to keep, about 7 a second each — the red figure under a keeper's mana orb —
-/// which is in neither the balance table nor the CREATURES record, so it is recorded
-/// rather than hardcoded (Q53, docs/research/imps-and-mana.md). Until it lands, a
-/// dungeon full of imps is free to run here and is not in the original.</remarks>
+/// <remarks>Player initialization disables the native-turn deadline; the Heart opening arms it.
+/// A keeper below MinimumImpThreshold receives free casts after the strict deadline, with
+/// TimeBeforeFreeImpGeneratedSeconds between deadlines. See docs/research/imps-and-mana.md.</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/imps-and-mana.md")]
 public sealed class ImpSupplySystem : ISimulationSystem
 {
@@ -35,29 +29,20 @@ public sealed class ImpSupplySystem : ISimulationSystem
     }
 
     /// <summary>Hands a short-handed keeper a free imp when one is due.</summary>
-    /// <remarks>The due time is a deadline and it moves whenever a free cast is attempted:
-    /// DK2 keeps one field on the keeper — <see cref="PlayerState.NextFreeImpTick"/> —
-    /// and its keeper update writes it in exactly one place, right after the spawn, as
-    /// <c>now + TimeBeforeFreeImpGeneratedSeconds</c>. A keeper at full strength is
-    /// never touched, so the deadline slides into the past and the next loss is
-    /// replaced on the spot: the owner filmed thirty seconds at exactly four imps,
-    /// sacrificed one, and the replacement came in about 1.4 seconds rather than 5,
-    /// with the following ones five apart (Q56). Two more details are the original's:
-    /// the deadline advances whether or not the spawn succeeds, since the original
-    /// does not test the cast's return value; and a free imp skips the
-    /// spell-availability check, the mana check and the deduction.</remarks>
+    /// <remarks>The deadline stores native turns (our tick + 1). The Heart opening arms it;
+    /// 0x004BB497 requires now strictly after it and advances it even when creation fails.
+    /// Free casts bypass availability, mana permission and payment.</remarks>
     private static void TopUp(SimulationContext context)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
         int minimum = ImpSupplyRules.MinimumImps(database);
         int interval = ImpSupplyRules.FreeImpIntervalTicks(database);
-        GameTick now = context.Tick;
+        GameTick now = new(ManaRemovalLifecycle.Turn(context.Tick));
 
-        for (int i = 0; i < world.PlayerCount; i++)
+        foreach (PlayerId playerId in world.ActivePlayerOrder)
         {
-            ref PlayerState player = ref world.PlayerAtIndex(i);
-            PlayerId playerId = player.PlayerId;
+            ref PlayerState player = ref world.Player(playerId);
 
             // Only a keeper is topped up (Q91). Nobody, the hero side and the
             // neutral player own real terrain but keep no imp-staffed dungeon -
@@ -70,9 +55,9 @@ public sealed class ImpSupplySystem : ISimulationSystem
 
             if (ImpSupplyRules.ImpCount(world, database, playerId) >= minimum) continue;
 
-            if (now < player.NextFreeImpTick) continue;
+            if (now <= player.NextFreeImpTick) continue;
 
-            player.NextFreeImpTick = new GameTick(now.Value + interval);
+            player.NextFreeImpTick = new GameTick(unchecked((uint)(now.Value + interval)));
 
             // A ruined-at-load Heart leaves the free-cast origin at (1,1).
             // The cast still consumes a direction draw and its deadline on failure.

@@ -12,6 +12,9 @@ comments do.
   algorithm from GLKeeper's `src/DK2WADArchive.cpp`.
 
 ## OpenKeeper
+- **Heart death data (facts only):** object effect-word order and Heart construction
+  references at `f45c0219be5af51c6694a28a32e52568e17cfa0d` were consulted;
+  the death trigger was recovered independently from DKII.EXE. No code copied.
 - **Sound map layout research (facts only):** `BankMapFile.java` and `SfxMapFile.java`
   supplied field widths/order, checked against shipped maps. No code copied.
 - **Bottom-panel metadata (facts only):** `KwdFile.java` at

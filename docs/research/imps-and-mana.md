@@ -10,7 +10,7 @@ economy. Mana's *income* side is `mana.md`.
 
 **Implementation.** `ImpSupplyRules`, `ManaRules`, `Systems.ImpSupplySystem`,
 `Systems.ManaSystem`, `Commands.ImpCommands.CreateImpCommand`. Decisions:
-ADR-0022, ADR-0057.
+ADR-0022, ADR-0057, ADR-0620.
 
 **Tests.** `ImpSupplyTests`, `ManaTests`, `ManaUpkeepTests`
 (`tests/DK2.Simulation.Tests`); `ImpsOnRealDataTests`, `ManaOnRealDataTests`,
@@ -23,9 +23,9 @@ ADR-0022, ADR-0057.
 
 | Claim | Status |
 |---|---|
-| A keeper always has at least 4 imps | **CONFIRMED** — owner observation, and `MinimumImpThreshold` is 4 |
-| A missing imp comes back every 5 seconds | **CONFIRMED** — owner measured it; `TimeBeforeFreeImpGeneratedSeconds` is 5. But the **first** one comes back at once — see below |
-| A keeper starts a level with 4 | **CONFIRMED** — owner; falls out of the floor above without a separate rule |
+| Free supply replenishes toward four Imps | **CONFIRMED** - `MinimumImpThreshold` is 4; eligibility begins after the Heart opening, as specified below |
+| The replenishment interval setting is five seconds | **CONFIRMED** - owner measurement and shipped variable; the strict native deadline and startup boundary are specified below |
+| Starting Imp counts depend on the level | The shipped Level 7 roster and startup exception are specified below; the replenishment floor does not establish a starting roster |
 | Create Imp costs 1500 mana | **CONFIRMED** — owner, and it is the cost on DK2's own Create Imp record |
 | The cost rises by 1500 each time, and falls back when imps die | **CONFIRMED TWICE** (Q54) — the owner from play, and then the binary: the original computes `base × max(1, imps − MinimumImpThreshold + 1)`, our formula operation for operation |
 | Imps are created at the dungeon heart | **STRONGLY INFERRED** — and a keeper without one has already lost (Q40) |
@@ -55,11 +55,8 @@ those numbers:
    95  TimeBeforeFreeImpGeneratedSeconds              5
 ```
 
-**Note what it does not need.** The owner's "every keeper gets 4 at the start"
-needs no rule of its own: a keeper who begins with none is below the floor, so the
-floor fills them in. Whether the original hands them over instantly at level load
-or generates them at the same five-second interval is not distinguished by
-anything observed, and ours does the latter.
+The starting roster and the replenishment deadline are separate. The Level 7
+case below corrects the universal-starting-four reading of the owner observation.
 
 Three more imp variables are parsed and read by nothing:
 
@@ -95,47 +92,49 @@ Recorded 2026-09-05:
 
 ### What the binary says
 
-The keeper's per-frame update in `Player.cpp` holds one field for this and writes
-it in exactly one place. In our own words:
+**CONFIRMED (binary, 2026-11-01).** `0x004B8640` initializes the unsigned
+free-Imp deadline (player +0xA2) to `0xFFFFFFFF` at `0x004B86C3`. The Heart's
+opening frame `0x004D9A60` arms it at elapsed exactly nine game seconds:
+`0x004D9ECD` stores the current native turn, for every owner. This is outside
+the local-player-only effect branches. With the shipped construction delay 0,
+that is native turn 37 (modern tick 36). A ruined-at-load Heart skips the
+opening and leaves the disabled deadline intact.
 
-    if (number of creatures of type Imp < MinimumImpThreshold
-        and this keeper's nextFreeImpAt < now)
-    {
-        cast the Create Imp power at the heart, free;
-        nextFreeImpAt = now + TimeBeforeFreeImpGeneratedSeconds × <variable 19>;
-    }
+`0x004BB2A0` compares native now **strictly greater** than the unsigned deadline
+(`0x004BB497`/`0x004BB49D`), after the Imp-count check. Therefore the first
+eligible free cast is native turn 38 (modern tick 37). Each attempt stores
+native now + seconds times variable 19, wrapping to 32 bits (`0x004BB57E`); at the shipped five-second
+interval, later attempts are 21 turns apart. The world player walker
+`0x004C2310` serves the active linked list, not sorted player slots.
 
-**Nothing else touches `nextFreeImpAt`.** Not the count going back up, not the
-keeper being served, not the level loading. So a keeper who has been at four imps
-for thirty seconds carries a deadline thirty seconds in the past, and the first
-frame they drop below the threshold the test is *already* true: the replacement is
-immediate. Only the second and later ones wait the interval, because only they are
-measured from a deadline that was set recently. That is the recording, line for
-line, with no extra rule.
+A full-strength keeper leaves this deadline untouched. Once it is in the past,
+a missing Imp can be replaced on the next keeper frame. Initialization, the
+Heart opening and free-cast attempts are the three identified player-field
+writers; the former claim that level loading never touched it was incorrect.
 
 ### Three things fall out of the same eight instructions
 
 **The deadline is advanced whether or not the imp is actually made.** The write
 follows the call with no test of its result, so a keeper with nowhere to put an imp
-burns the interval rather than retrying every frame. This matters for Level 8's Dante.
-**STRONGLY INFERRED (binary 2026-10-10):** `0x004BB2A0` aims the free cast two tiles from
-player +0xB43/+0xB45 at a random 2048-step angle; building a ruined-at-load Heart leaves
-that origin at (1,1). `0x004BBD30` reaches creation process 1 (`0x004AD7A0`), which calls
-`0x004B35C0` and `0x005090C0`: outside-map or nav-solid positions are rejected, never
-clamped or relocated. Every in-map candidate around Dante's origin is rock, so his casts
-fail while advancing the deadline. `ImpSupplySystem` models that case and the killed-keeper
-gate. Deviation: healthy Hearts retain the existing first-heart-tile spawn (Q52); the
-ruined-at-load case is identified by HeartRuined with no recorded attacker.
+burns the interval rather than retrying every frame.
+**STRONGLY INFERRED (binary 2026-10-10, re-read 2026-11-01):** `0x004BB2A0`
+aims two tiles from player +0xB43/+0xB45 at a random 2048-step angle.
+`0x004BBD30` reaches creation process 1 (`0x004AD7A0`), whose bounds/nav-solid
+gates reject invalid points without clamping or relocating them. A ruined-at-load
+Heart retains origin (1,1), but its disabled deadline prevents startup attempts.
+The implementation still deviates on successful healthy-Heart placement:
+first Heart tile rather than the native ring (Q716). That placement/RNG issue
+is separate from the startup deadline corrected here.
 
-**Level 7 starting Imp (modern reproduction, 2026-10-11).** At seed 7, keeper 4
-starts with Heart health 1000, no Imps and deadline 0. `imp_generated` creates
-Imp 31 at (20,11) on tick 0; Giants destroy the Heart on tick 20; defeat cleanup
-kills Imp 31 on tick 25. No replacement follows. The owner reports that brief
-appearance and is unsure whether the original shows it. Re-reading
-`0x004BB2A0` confirms the existing pre-defeat eligibility and strict deadline
-comparison; it does not establish this map's visible outcome. Our healthy-Heart
-spawn position and tick-0 eligibility differ from that routine. Compare the
-original before suppressing the cast (Q583).
+**Level 7 opening (binary and shipped data, 2026-11-01).** PLAYERS contains
+ids 1,2,3,4 in that order, so rival 4 is active and is served before player 3.
+THINGS gives rival 4 a 1%-health Heart at (22,13), no creatures, and gives
+player 3 four type-1 Imps. Rival supply must stay disabled through native
+turn 37; a Heart destroyed before then cannot receive a free Imp. The former
+modern tick-0 birth came from initializing the deadline to zero and omitting
+the Heart-opening write. This explains the owner's report of no visible
+rival Imps without a level-specific exception. Actual native Level 7 opening
+visibility has not been captured in this change.
 
 **A free imp is genuinely free.** The power is cast with a flag that makes the
 original skip the spell-availability check, skip the mana check and skip the

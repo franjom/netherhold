@@ -14,16 +14,15 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [scope and native validation limits](research/hatchery-startup.md#built-scope).
 - Wall work: [corner fill](research/wall-corner-fill.md#built-scope-and-replay-limits) (ADR-0605, Q694, hash/save 347);
   [reinforcement eligibility](research/wall-reinforce-eligibility.md#built-scope) (ADR-0607, Q696/Q564, hash/save 349; the repair pass after every kind-6 miss, ADR-0611, hash/save 355); the owner's below-half-wall check (Q564) is still open.
-
 - The Mistress bed exit runs through state 84 at hash/save 335 (ADR-0586).
   Its inferred completion clock and presentation contract are in
   [object-drawing.md section 8.1](research/object-drawing.md#81-state-84-adapter-adr-0586);
   native playback acceptance remains Q685.
-
 - Portal lair capacity and stored pick-ups are built (ADR-0614/0616, Q709 closed).
   Heart defender selection and same-tile response routes (ADR-0617), reporting timeout
-  and responder navigation gate (ADR-0619) are built. Non-gate parties now run 269/210/263/264 before hero activity (ADR-0622, hash/save 365).
+  and responder navigation gate (ADR-0619) are built. Non-gate parties run 269/210/263/264 before hero activity (ADR-0622, integrated hash/save 366).
   [Lifecycle, tests and matched resyncs](research/party-arrival-lifecycle.md); outcome parity Q712, adapters Q713, restore limit Q714, initial scan phase Q718.
+- [Heart destruction and opening Imp supply](research/heart-destruction.md) are integrated at hash/save 364 (ADR-0620); Q583 is closed, Q715/Q716 remain bounded.
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
@@ -244,6 +243,7 @@ visual and hearing acceptance: startup/gallery, Options pages, save/load, runtim
 scalable HUD, full map and hover/flower leftovers. Evidence and acceptance: [completion plan](plans/2026-10-29-hud-and-front-end-completion.md);
 captures: [HUD checklist](research/hud-comparison-checklist.md). Save-loading hardening is built;
 compatibility redesign remains pending (ADR-0588). ADR-0497 stays proposed; host settings in front-end-menus.md §6.
+Startup tab correction (ADR-0621): [scope and request traces](research/message-tabs.md#31-startup-sound-gate-binary-2026-11-01), audible acceptance Q717.
 
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,

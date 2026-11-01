@@ -460,7 +460,7 @@ namespace DK2.Unity
             _fullMap.Capture(_simulation.World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
             DrawSavePanel(frontEnd: false);
             _gameOptionsPanel?.Draw();
-            _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000));
+            _messageView.Capture(_simulation.World, (long)(Time.unscaledTimeAsDouble * 1000), CurrentHud);
             _soundPlayer?.Play(_hudControls.Sounds);
             _soundPlayer?.Play(_bottomPanel.Sounds);
             _soundPlayer?.Play(_bottomView.Sounds);

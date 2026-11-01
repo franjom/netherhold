@@ -12,6 +12,17 @@ These checks establish remake rendering/lifecycle behavior, not matched-original
 visual fidelity. Unity's Search indexing exception may occur independently during
 fresh-project import; runner/render errors and blank captures fail the probe.
 
+## Heart destruction
+
+Build Release, then run `tools/classic-unity-probe/run-heart-destruction.ps1`.
+It uses a marked isolated project in `build/l7deathgpu`, enters Play Mode and
+advances the real Level 7 flyby through the rival Heart's death. It requires one
+authored death-effect request at raw Z0, no rival Imps, original mesh debris and explosion
+sprites, a frozen-camera GPU effect/control difference and eventual expiry.
+Timestamped PNGs, timeline, assembly hashes and metrics stay beside that project.
+The owner's scene and settings remain separate. This verifies remake integration;
+[scope and remaining native limits](../../docs/research/heart-destruction.md).
+
 ## Shot effects
 
 Run `tools/classic-unity-probe/run-tag-overlay.ps1 -ShotEffects` for the isolated

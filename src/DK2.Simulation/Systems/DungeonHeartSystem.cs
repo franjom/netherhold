@@ -34,6 +34,16 @@ public sealed class DungeonHeartSystem : ISimulationSystem
             ref PlayerState player = ref world.PlayerAtIndex(i);
             if (!PlayerIds.IsKeeper(player.PlayerId.Value)) continue;
             if (ImpSupplyRules.HeartTileOf(world, database, player.PlayerId) < 0) continue;
+            // Object_Update 0x0049BD20 requests the object's authored death effect before
+            // deletion, independently of the room opening and the stamped killer.
+            // The central Heart pit has floor zero (0x004545C0), preserving its creation Z0.
+            if (!player.HeartRuined && player.HeartHealth <= 0 && player.HeartDiedTick == context.Tick
+                && database.Objects.TryGetValue(13, out ObjectDef? heart))
+            {
+                (ushort x, ushort y) = ManaRemovalLifecycle.HeartTile(world, database, player.PlayerId);
+                context.RequestEffect(Name, ViewEffectRequest.AtTileCentre(new EffectId(heart.DeathEffectId),
+                    player.PlayerId, new TilePos(x, y), new Fp32(0)));
+            }
             if (!player.HeartRuined) HeartIntroRules.RoomFrame(context, player.PlayerId);
             // The ordinary frame waits for the opening sequence (0x004D9BA5): no regeneration
             // and no ruin until nine seconds after its start.
@@ -81,7 +91,7 @@ public sealed class DungeonHeartSystem : ISimulationSystem
     /// maximum and never from zero — a dead heart does not come back. A full heart is not
     /// touched at all (DK2 skips the call when the capped amount is zero), so its last source
     /// stays whoever struck it. The room whose heart object is gone becomes a ruin on this
-    /// frame, one turn after the death.</summary>
+    /// frame once the opening interval has ended.</summary>
     private void RoomFrame(
         SimulationContext context, ref PlayerState player, int max, int regen)
     {

@@ -28,6 +28,70 @@ public sealed class MessageTabsViewTests
         Assert.All(view.Sounds.Pending, r => Assert.Equal(new SoundVoiceId(1), r.Voice));
     }
 
+    // 0x00403DE0..0x00403E27 skips 0x00407260 in path mode; speech is separate.
+    [InstallFact]
+    public void HiddenHud_00403E27_ObservesMessagesWithoutTabSoundsOrSuppressingSpeech()
+    {
+        var world = MessageWorld();
+        world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
+        var view = new MessageTabsView(PlayerIds.FirstKeeper);
+        view.Capture(world, 1000, new HudVisibility(false, false));
+        view.Capture(world, 1010, new HudVisibility(false, false));
+        Assert.Empty(view.Tabs);
+        Assert.Empty(view.Sounds.Pending);
+        Assert.Single(view.Speech.Pending);
+    }
+
+    // 0x004C4600 stamps insertion; 0x00423D8D skips landing when the slot never slid.
+    [InstallFact]
+    public void RestoredHud_00423D8D_DoesNotRestartAnExpiredSlideOrPlayItsLanding()
+    {
+        var world = MessageWorld();
+        world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
+        var view = new MessageTabsView(PlayerIds.FirstKeeper);
+        view.Capture(world, 1000, new HudVisibility(false, false));
+        view.Capture(world, 1640);
+        Assert.Equal(MessageTabsView.SlotWidth, Assert.Single(view.Tabs).LocalX);
+        Assert.Empty(view.Sounds.Pending);
+    }
+
+    [InstallFact]
+    public void RestoredHud_00423CF3_UsesTheRemainingSlideTimeAndThenLandsOnce()
+    {
+        var world = MessageWorld();
+        world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
+        var view = new MessageTabsView(PlayerIds.FirstKeeper);
+        view.Capture(world, 1000, new HudVisibility(false, false));
+        view.Capture(world, 1410);
+        Assert.Equal(88 + 1020 - 16 * 41, Assert.Single(view.Tabs).LocalX);
+        view.Capture(world, 1420);
+        view.Capture(world, 1640);
+        view.Capture(world, 1650);
+        Assert.Equal(new uint[] { 0x320, 0x321, 0x322 }, view.Sounds.Pending.Select(r => r.Id.Value));
+    }
+
+    // The state byte at interface +0x32 + slot survives a change of message id.
+    [InstallFact]
+    public void ReusedSlot_00423D04_KeepsItsSlideStateAndVoice()
+    {
+        var world = MessageWorld();
+        world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.HeartAttacked, 0, 0);
+        var view = new MessageTabsView(PlayerIds.FirstKeeper);
+        view.Capture(world, 1000);
+        view.DismissTab(0);
+        world.Messages.Post(world, PlayerIds.FirstKeeper, PlayerMessageKind.LowManaWarning, 1, 0);
+        view.Capture(world, 1100);
+        Assert.Equal(new uint[] { 0x320, 0x321 }, view.Sounds.Pending.Select(r => r.Id.Value));
+        Assert.All(view.Sounds.Pending, r => Assert.Equal(new SoundVoiceId(1), r.Voice));
+    }
+
+    private static WorldState MessageWorld()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
+        return WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
+            [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
+    }
+
     [Fact]
     public void TheTypeTableGivesEachTypeItsStringAndTabGraphic()
     {
