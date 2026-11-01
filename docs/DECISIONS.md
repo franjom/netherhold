@@ -14542,4 +14542,24 @@ Consequence: hash/save 367 rejects earlier saves. No fixed phase or RNG draw
 is added; native serialized-manager import remains outside our save format.
 The initial phase rule is built (Q718); Q712 remains open after the paired
 366/367 outcomes, with restore inputs tracked under Q719. Binary evidence,
-controls and [measured scope](research/fight-scan-initial-phase.md#matched-outcomes-366-and-367).
+controls and [measured scope](research/fight-scan-initial-phase.md#matched-outcomes-366-through-368).
+
+## ADR-0624: retain ordinary casting actions after shot release
+
+Status: Accepted (2026-11-01).
+
+Context: action 16's shot-handler completion and counted animation completion
+are separate gates. The remake released its busy state at shot emission,
+allowing earlier target replacement and movement.
+
+Decision: ordinary targeted casts record the existing counted art 6 hold in
+ActionUntilTick, including the native art fallback. The fight busy gate keeps
+that hold independently of the pending shot. Target validation and fear keep
+their earlier positions. Travel cancellation and replacement actions discard
+the previous action deadline; the shot handler still runs once.
+
+Consequence: hash/save 368 rejects prior saves without adding a snapshot field.
+The existing fresh-animation timing surrogate remains in use; this does not
+extend the possessed/free-aim casting model. The matched cast control passes;
+aggregate outcomes leave Q712 and restoration Q719 open. Evidence and scope:
+[initial fight phase](research/fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit).

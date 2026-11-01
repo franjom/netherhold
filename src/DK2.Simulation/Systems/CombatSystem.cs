@@ -257,7 +257,7 @@ public sealed class CombatSystem : ICreatureUpdateStep
         if (FearRules.FearChecks(context, _sight!, _hearts, _rooms, creature, definition, _scratch)) return;
 
         // Busy (0x00496D00): the state handler does not select another attack or approach.
-        if (FightRules.MeleeActionIsRunning(creature, definition, context.Tick)) return;
+        if (FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
 
         // Step 8: a Support re-acquires every tick, keeping a new target and restoring the old one
         // when nothing is found (combat-fight-state.md §2).

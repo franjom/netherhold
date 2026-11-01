@@ -92,9 +92,9 @@ and four new snapshot-format cases pass. The reviewed full suite passes
 4,285 Simulation and 1,413 Presentation cases. Behavior passes 510, skips 5
 and retains the known Level 18 failure (`phase-all-tests-reviewed.log`).
 
-## Matched outcomes (366 and 367)
+## Matched outcomes (366 through 368)
 
-All 230 frozen resyncs exit 0: each version runs 75 Level 5 and 40 Level 4
+All 345 frozen resyncs across 366/367/368 exit 0: each version runs 75 Level 5 and 40 Level 4
 processes, with five generators per native state and the archived stored-pickup
 inputs. Baseline 366 already includes the integrated Heart/supply changes;
 362 is a historical reference, not the isolating control for ADR-0623.
@@ -102,7 +102,7 @@ inputs. Baseline 366 already includes the integrated Heart/supply changes;
 Evidence roots:
 `F:/DK2Evidence/studies/heart-defence-q712-h367-l5--2026-11-01--001/` and
 `F:/DK2Evidence/studies/heart-defence-q712-h367-l4--2026-11-01--001/`;
-the corresponding `h366` siblings hold baseline outputs. Frozen-build provenance:
+the corresponding `h366` and `h368` siblings hold the other versions. Frozen-build provenance:
 `F:/DK2Evidence/builds/q712-fight-phase-h367--g8e707689-wip--2026-11-01--001/`.
 The observation-only tracer's production control matches all four original
 creature/event/replay/job outputs by SHA-256 (`production-control.json`).
@@ -114,32 +114,32 @@ version. The strict radius uses exact positions around room tile (17, 26).
 Means follow `exposure-summary.json`; historical 362 values are from
 [the earlier exposure study](party-arrival-lifecycle.md#hero-presence-and-targets).
 
-| Hero-ticks inside, mean/run | DK2 | 362 reference | 366 | 367 |
-|---|---:|---:|---:|---:|
-| All non-collapsed | 4327.00 | 2720.93 | 3102.33 | 2904.07 |
-| Qualified intruders | 4262.33 | 2683.73 | 3055.27 | 2857.27 |
-| Targeting Heart pillar | 3298.67 | 1607.00 | 1890.80 | 1718.20 |
-| Targeting Imp | 790.00 | 790.60 | 901.53 | 851.27 |
-| Other target | 66.67 | 90.60 | 56.13 | 85.53 |
-| No target | 171.67 | 232.73 | 253.87 | 249.07 |
+| Hero-ticks inside, mean/run | DK2 | 362 reference | 366 | 367 | 368 |
+|---|---:|---:|---:|---:|---:|
+| All non-collapsed | 4327.00 | 2720.93 | 3102.33 | 2904.07 | 3213.87 |
+| Qualified intruders | 4262.33 | 2683.73 | 3055.27 | 2857.27 | 3176.33 |
+| Targeting Heart pillar | 3298.67 | 1607.00 | 1890.80 | 1718.20 | 1997.60 |
+| Targeting Imp | 790.00 | 790.60 | 901.53 | 851.27 | 933.93 |
+| Other target | 66.67 | 90.60 | 56.13 | 85.53 | 56.20 |
+| No target | 171.67 | 232.73 | 253.87 | 249.07 | 226.13 |
 
 ### Reporting entries and exits
 
 Same cohort; visible transitions rather than every within-turn state call.
 `state-transitions.json` records the source CSV hashes and per-run counts.
 
-| State-254 transition, mean/run | DK2 | 362 reference | 366 | 367 |
-|---|---:|---:|---:|---:|
-| Entries | 15.00 | 12.87 | 10.93 | 9.13 |
-| Exit to 199 | 3.67 | 0.60 | 0.73 | 0.60 |
-| Exit to 203 | 5.00 | 2.60 | 1.47 | 1.13 |
-| Exit to 1 | 3.00 | 4.67 | 3.93 | 3.67 |
-| Exit to 6 | 2.00 | 4.40 | 3.93 | 2.47 |
-| Exit to 8 | 1.00 | 0.53 | 0.87 | 1.20 |
-| Fight plus flee (199+203) | 8.67 | 3.20 | 2.20 | 1.73 |
+| State-254 transition, mean/run | DK2 | 362 reference | 366 | 367 | 368 |
+|---|---:|---:|---:|---:|---:|
+| Entries | 15.00 | 12.87 | 10.93 | 9.13 | 8.60 |
+| Exit to 199 | 3.67 | 0.60 | 0.73 | 0.60 | 0.60 |
+| Exit to 203 | 5.00 | 2.60 | 1.47 | 1.13 | 1.47 |
+| Exit to 1 | 3.00 | 4.67 | 3.93 | 3.67 | 3.53 |
+| Exit to 6 | 2.00 | 4.40 | 3.93 | 2.47 | 2.60 |
+| Exit to 8 | 1.00 | 0.53 | 0.87 | 1.20 | 0.33 |
+| Fight plus flee (199+203) | 8.67 | 3.20 | 2.20 | 1.73 | 2.07 |
 
 Both hero exposure and fight/flee exits remain below native in this cohort.
-The phase rule is built, but these outcomes do not close Q712. Production 367
+The phase and ordinary cast-hold rules are built, but these outcomes do not close Q712. Production restore
 retains the unmatched resync allocator history described in Q719; the earlier
 mapped-phase diagnostic's 1536 acquisition is not a production-alignment claim.
 
@@ -151,21 +151,23 @@ early); at 3400 it scores states 1/4/6/9/10. Level 4 uses all eight states.
 Values use the scorer's printed rounding, from `score-r1400.out`,
 `score-r3400.out` and `score-r5000.out` in each version's study.
 
-| Window / group, mean/run | DK2 | 362 reference | 366 | 367 |
-|---|---:|---:|---:|---:|
-| L5 1401-3400 / keeper | 13.38 | 9.90 | 11.15 | 10.32 |
-| L5 1401-3400 / keeper Imp | 11.12 | 7.35 | 8.50 | 7.73 |
-| L5 1401-3400 / hero | 3.75 | 5.10 | 4.67 | 4.75 |
-| L5 3401-5000 / keeper | 8.60 | 9.16 | 9.08 | 9.48 |
-| L5 3401-5000 / keeper Imp | 5.80 | 7.20 | 7.16 | 7.64 |
-| L5 3401-5000 / hero | 5.00 | 4.44 | 4.64 | 4.36 |
-| L4 5001-6000 / keeper Imp | 6.50 | 11.93 | 10.10 | 10.10 |
+| Window / group, mean/run | DK2 | 362 reference | 366 | 367 | 368 |
+|---|---:|---:|---:|---:|---:|
+| L5 1401-3400 / keeper | 13.38 | 9.90 | 11.15 | 10.32 | 10.40 |
+| L5 1401-3400 / keeper Imp | 11.12 | 7.35 | 8.50 | 7.73 | 7.65 |
+| L5 1401-3400 / hero | 3.75 | 5.10 | 4.67 | 4.75 | 4.67 |
+| L5 3401-5000 / keeper | 8.60 | 9.16 | 9.08 | 9.48 | 7.24 |
+| L5 3401-5000 / keeper Imp | 5.80 | 7.20 | 7.16 | 7.64 | 5.36 |
+| L5 3401-5000 / hero | 5.00 | 4.44 | 4.64 | 4.36 | 4.64 |
+| L4 5001-6000 / keeper Imp | 6.50 | 11.93 | 10.10 | 10.10 | 11.80 |
 
 Level 4 is identical between 366 and 367 in all 80 creature/event outputs
-(`output-comparison.json`). Exact all-40 means are 11.925/10.1/10.1 for
-362/366/367. The 32-pair intersection means are 10.03125/10.4375/10.4375.
+(`output-comparison.json`). Exact all-40 means are 11.925/10.1/10.1/11.8 for
+362/366/367/368. The 32-pair intersection means are
+10.03125/10.4375/10.4375/11.96875. All 80 creature/event files differ between
+367 and 368. The observed Level 4 death count increases under the cast fix.
 The excluded eight pairs are 362 generator-404 histories already terminal at
-4966; neither 366 nor 367 has a detected pre-restore terminal case in this
+4966; none of 366/367/368 has a detected pre-restore terminal case in this
 analysis. This outcome-selected intersection is descriptive, not an unbiased
 regression test. The Heart/terminal restore omission itself remains Q714;
 allocator/clock restoration remains Q719. Source and inherited native Heart
@@ -197,7 +199,7 @@ readings: [00498870](functions/00498870.md), [00496AA0](functions/00496AA0.md),
 [004950C0](functions/004950C0.md), [004969D0](functions/004969D0.md),
 [00496D00](functions/00496D00.md) and [0045F030](functions/0045F030.md).
 
-| Boundary | Current 367 mismatch |
+| Boundary | Pre-edit 367 mismatch |
 |---|---|
 | Shot release versus action completion | `FightRules.FireSpell` clears `SwingInProgress` at release, losing the later busy interval. |
 | Shared fight busy predicate | `MeleeActionIsRunning` omits the ordinary targeted-cast post-release hold. |
@@ -205,8 +207,8 @@ readings: [00498870](functions/00498870.md), [00496AA0](functions/00496AA0.md),
 The native extract `cast-hold-native439.json` records handler flags 0 through
 1547 and 1 at 1548-1552; the animation advance rate is 271 during the cast
 through 1551, then 0 at 1552. Action 16 clears at 1553. This separates shot
-completion at 1548 from the later action clear. The next fix is Q720; hash 367
-and its measurements above remain unchanged. One captured cast does not
+completion at 1548 from the later action clear. Hash 367 and its measurements
+above remain the pre-edit control. One captured cast does not
 establish the aggregate Q712 cause or universal target retention.
 
 Evidence: `input-probe-001/matched-control.json` under
@@ -216,13 +218,73 @@ root `README.md`. Its 210 compared records cover the five valid modes.
 `pool_levels_scans_pulse_seed`: an InvalidCastException from Xoshiro256StarStar
 to Dk2Lcg invalidates its partial outputs. No successful RNG pulse is claimed.
 
+### Ordinary cast hold built (ADR-0624, hash 368)
+
+Ordinary `StartCast` now stores the counted art 6 deadline in the existing
+`ActionUntilTick`, including the native art fallback. `ActionIsRunning` checks
+that deadline at the existing fight busy gate after target validation and fear;
+shot-handler completion no longer releases the remaining animation hold.
+Travel cancellation and replacement `StartSwing`/`BeginPossessedAction` discard
+the old deadline. No field was added; action 15 and the possessed casting model
+are unchanged. The fresh-animation timing surrogate remains a boundary.
+
+Hash/save 368 has pin `0x253230543C1C4CFE`. Eight focused cases pass. Against
+archived 367 source, five fail and three pass: two failures expose early release;
+three replacement cases cannot reach their assertions because the old hold is
+absent. This is not five independent cancellation regressions. The full build
+is clean; Simulation 4293 and Presentation 1413 pass. Behavior has 509 passes,
+five skips, the known Level 18 failure and an overlapping watchdog timing
+failure. The watchdog passes isolated on current source and master 8e707689;
+that master still fails Level 18. Verification logs: `cast-final-build`,
+`cast-final-tests`, `cast-watchdog-isolated`, `cast-master-controls` and
+`cast-old-src/proof.json` supplied with this change.
+
+The matched captured-input control agrees exactly for actors 439/455 in state,
+target, position and health at 1535-1555; hero 439 remains exact through 1588.
+The extended comparison first differs for Imp 455 movement at 1560, after
+withdrawal destinations already differ at 1544: native Library (5,29), ours
+(15,30). This identifies a separate destination input, not another hero-selector error. See `native-extended.json`, `extended-comparison.json` and
+`native-withdraw-destination.json` under
+`F:/DK2Evidence/studies/q712-cast-control--2026-11-01--001/`.
+The diagnostic restores captured inputs and is separate from production outcome
+cohorts. Q720 is closed for the bounded mechanic after independent review of
+the source, controls and five evidence manifests (zero mismatches; 744 frozen
+source hashes unchanged). Q712 and Q719 remain open; no aggregate causal
+closure follows.
+
+### Room position mismatch (Q721, pre-edit)
+
+CONFIRMED, independently reviewed: [004E4590](functions/004E4590.md) uses an
+ordinary room's centroid only when it belongs to that room, otherwise taking
+an owned tile via spiral fallback. Current `RoomInstance` centre getters use
+the bounding box. Training room 1118 has 14 tiles, sums 218/427, and floor
+centroid (15,30) in a hole; native CentrePos is (16,30). The observation-only
+`q712-withdraw-destination--2026-11-01--001/pool_levels_scans_pulse/replay.csv.rooms1544.json`
+under `F:/DK2Evidence/studies/` records identical geometry, centre (15,30) and
+`centreIsOwnTile=false`; its four main outputs match the earlier control.
+This is a source position mismatch, not a demonstrated cause of the aggregate
+Q712 gap. Spiral direction/order still needs a full instruction read before
+implementation. Study 001's `*_destination` intervention also rebuilt the mesh
+and is excluded from destination-only causal claims. Corrected study 002
+reuses `simulation.Navigation`. Supplying only the captured goal removes our
+1590 re-encounter and extends hero 439's exact compared-field prefix through
+1610. Imp 455 movement matches through 1565, then differs at 1566; native
+arrival at 202 is 1585 versus ours 1587. Earlier path differences prevent an
+arrival-rule verdict. This is a within-remake destination control, not matched
+RNG/room-list inputs. See study 002 `README.md`/`comparison.json`; the geometry
+extract is `native-room-centre-case.json` in the cast-control study above.
+The next hero difference at 1611 is not established as a selector error.
+Hash 368 is unchanged.
+
 ## Resync inputs (Q719)
 
 The existing restore keeps our phase-slot assignments and free-list order.
 At 1400, native seeds 2/3/7 have free head 439 and a complete 432-free/16-live
 partition. The frozen 367 seed 2/generator 101 run instead gives hero 439 slot 438,
 phase 8, despite correctly implementing the fresh-level/reuse rule. Report
-pairings do not currently replace that allocator history.
+pairings do not currently replace that allocator history. Native room-list order
+is another input: the capture has seven rooms, while our order is derived.
+Room selection must be controlled separately from the position mismatch Q721.
 
 Levels are also partial: the restore reports Imp 455 at level 3 against native 2
 and leaves it there. At 1535 native 455 has phase 1 and health 625; ours has phase 3

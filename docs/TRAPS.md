@@ -323,3 +323,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A scratch master Behavior test baseline needs committed scenarios, tools and Unity input source roots as well as src/tests; missing-root failures are harness setup failures.
 - Use explicit UTF-8 for Markdown writes on Windows; Path.write_text can truncate a file before the default cp1252 encoder fails.
 - Direct rule fixtures must refresh WorldSteering before querying NavByte; an uninitialized navigation cache reports solid tiles.
+- Native thing-table player records contain only a 0x40-byte head; read full fields through Snapshot.player(PlayerId - 1) in REGION_PLAYERS, not record(tag).
+- A destination-only replay probe must reuse simulation.Navigation; constructing WorldSteering rebuilds the persistent mesh and also changes the route inputs.

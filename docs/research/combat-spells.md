@@ -19,8 +19,8 @@ strongest" — the routine it compares by is the **recharge**. `combat-fight-sta
 16**, stamps the slot with the turn at once, and the action spawns a **shot thing**
 `ShotDelay` ticks later, aimed at the target's centre with a lead of one and a half
 times its last movement per tile of range. Shot release completes the handler;
-[Q720](fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit) tracks
-the missing post-shot busy lifetime. The survey keeps the attack spell whose next-ready time is latest, so a
+[Q720](fight-scan-initial-phase.md#next-matched-divergence-q720-pre-edit) records
+the post-shot busy lifetime built in ADR-0624/hash 368. The survey keeps the attack spell whose next-ready time is latest, so a
 fresh Warlock throws Firebomb before Fireball. A friendly spell is cast once and
 the target dropped. A spell the creature cannot cast makes it look for another
 target, then step back or run. **Built for the attack spells** (ADR-0167, §11); the

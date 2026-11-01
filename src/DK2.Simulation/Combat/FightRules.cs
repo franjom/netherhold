@@ -109,6 +109,11 @@ public static class FightRules
         navigation.TryRouteTo(me, targetX, targetY, MoveOptions.Plain);
     }
 
+    /// <summary>The common busy gate (00496D00): handler completion alone does not
+    /// release a counted cast's animation hold (00496AA0).</summary>
+    public static bool ActionIsRunning(CreatureState creature, CreatureDef definition, GameTick tick) =>
+        tick.Value < creature.ActionUntilTick || MeleeActionIsRunning(creature, definition, tick);
+
     /// <summary>Mode-3 melee holds past impact until the animation completion poll
     /// (kmf-animation-playback.md §7). <see cref="AnimationTimingRules.ActionHoldTicks"/> counts the
     /// start turn and ends on the poll turn, so the action is free at start + hold, as the victory
@@ -131,6 +136,7 @@ public static class FightRules
     public static void StartSwing(SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef mine, List<Fixed16Vector> scratch)
     {
         me.SwingInProgress = true;
+        me.ActionUntilTick = 0;
         me.SwingKind = SpellRules.MeleeSwing;
         me.SwingStartTick = context.Tick.Value;
         me.AttackCreatureHits = unchecked((ushort)(me.AttackCreatureHits + 1));   // 0x0048F3E0
@@ -262,6 +268,7 @@ public static class FightRules
     public static void StartCast(SimulationContext context, CreatureState me, CreatureDef mine, int slot, bool tell = true)
     {
         me.SwingInProgress = true;
+        me.ActionUntilTick = context.Tick.Value + AnimationTimingRules.CountedHoldTicks(mine, 6, 1);
         me.SwingKind = SpellRules.SpellCast;
         me.SwingSpellSlot = (byte)slot;
         me.SwingStartTick = context.Tick.Value;
@@ -421,6 +428,7 @@ public static class FightRules
         SimulationContext context, CreatureState me, byte kind, int slot, FightTargetKind targetKind, int targetId, byte targetPlayer = 0)
     {
         me.SwingInProgress = true;
+        me.ActionUntilTick = 0;
         me.SwingKind = kind;
         me.SwingSpellSlot = (byte)slot;
         me.SwingStartTick = context.Tick.Value;
