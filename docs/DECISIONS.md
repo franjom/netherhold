@@ -4928,7 +4928,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 **Context.** A dropped creature landed idle, or at once in a job room's state. The owner described a drop stun of 2–3 s (Q201), and no mechanism for it had been found. The keeper's drop (`0x004BC710`) sets **76**, not 77. 77 is the slap's reaction.
 
 **Decision.** `DropLandingRules`:
-1. **The stun.** An own non-worker dropped where no room takes it over is stunned: `0x00491830(255)` from 76, `StatusEffectRules.StunOnLanding`, for its definition's `StunDuration`, with event 15. A worker is not stunned, and neither is a freed prisoner (owner, Q201).
+1. **The stun.** An own non-worker dropped where no room takes it over is stunned: `0x00491830(255)` from 76, `StatusEffectRules.StunOnLanding`, for its definition's `StunDuration`, with event 15. A keeper's worker is not stunned. ADR-0616 made the test owner-blind and removed the freed-prisoner exception (owner, Q201).
 2. **Getting up.** 257's tail is `0x004E8DA0(0)` (`DropLandingRules.AfterGettingUp`), for every stun, shots included.
    - A room with a drop state gives it: the job rooms through `JobRules.TryDropOnARoom`, which moves here from the drop.
    - With none, a keeper's creature enters **250** with `FightProcessCounter` 10. A hero or a neutral creature idles.
@@ -14349,3 +14349,47 @@ cannot route to that corner was wrong; the fights had kept it away.
 Evidence: [jack-in-the-box.md](research/jack-in-the-box.md#7-watched-in-play-2026-11-01-q524);
 KB `004B02E0`, `0048DFA0`, `0048DF10`.
 `JackInTheBoxTests.ASprungJackNeverLooksForAFight_AndCannotBeAttacked_WhileAnOrdinaryCreatureCanDoBoth`.
+
+## ADR-0616 - a stored pick-up lifts what its slot holds; landing stuns whoever's creature
+
+Status: accepted, 2026-11-01. Hash/save 360.
+
+DK2 checks pick-up permission only at the cursor. `0x0048E6A0` (owner, prisoner, tool, flags, Pit,
+Turncoat, worker bits, room) is called from the hand-click code and the computer keeper. The
+stored command never calls it: action 57 (`0x00513480`), hand state 1's callback `0x004C0BE0`
+and the insert `0x004BC500` refuse only the dead, held, full-hand and states 51/52 cases (the full
+list, the refusal order and the unmodelled state-75 refusal are in the evidence linked below).
+So a recorded pick-up lifts whatever its slot now holds. Level 5 seed 2's pick-up of slot 439 at 1684 lifted the hero Wizard (states 75, 78, 76, then
+stunned). In seeds 2, 3 and 7, 21-24 of the 41 recorded pick-ups in 1401-3400 name heroes.
+
+Landing state 76 is owner-blind too. A non-worker (`0x0046EFA7`), or a worker of a player numbered
+below 3 (`0x0046EFB7`), goes to `0x0046F173`. There a room may take it, or `0x00491830(0xFF)`
+stuns it. Ours stunned only the hand owner's own non-workers.
+
+Decision (owner, 2026-11-01: replay-only strict mode):
+- `HandSystem.StoredCommandPickups`, off by default, uses `HandRules.StoredPickupAccepts` in place
+  of the permission.
+- `SimulationSystems.Default(storedPickups)` passes it through, and the replay sets it with
+  `--pickups stored`. Play keeps the permission in `HandSystem`, as ADR-0526 keeps the drop gate.
+- The landing stun follows 76 for every creature, a freed prisoner included: `0x004BC710` sends
+  every creature to 76, and 76 tests no prison field. The owner confirmed it (2026-11-01: "stunned
+  like any drop, their stunned timers differ by creature type"). Q201's "prison releases exempt"
+  is the walk-out release.
+- The drop leaves the prison word (`+0x3CB`) set; 255's end arm clears it after SetState(257)
+  (`0x004811E5`). So a freed prisoner lying stunned is still its jailer's to lift, and once up it
+  is not, as the owner observed (2026-11-01). Ours keeps `PrisonOwnerPlayerId` through the stun
+  and clears it there. `PrisonSystem`'s cell-gone release skips a creature in 255/256. A prisoner
+  76 does not stun (another keeper's worker) is still released at the drop. DK2 clears its word
+  in idle (`0x00477482`), so that release is ours.
+
+Consequence: in play, a freed prisoner and a held hero-party tool are now stunned on landing, as 76
+does; the pin moves with the version. Recorded drops keep the replay's
+relocation (decision-parity-audit.md). The flag is not in the snapshot or journal, so `RunMonitor`
+cannot re-verify a stored-mode run. Not modelled: a room on the landing tile taking a foreign
+creature over (`0x004E8DA0` for another keeper's room, which can make it that keeper's prisoner).
+
+Evidence: [creature-pickup.md](research/creature-pickup.md#permission-is-the-cursors-a-stored-pick-up-skips-it-adr-0615); KB `00513480`,
+`004C0BE0`, `004BC500`, `004B5C30`, `0048E6A0`, `0046EAB0`.
+`CreaturePickupTests.AStoredPickUpLiftsAnotherOwnersCreatureThatPlayRefuses`,
+`CreaturePickupTests.AStoredPickUpStillRefusesTheDeadAndStates51And52`,
+`DropLandingTests.AStoredPickUpsForeignCreatureLandsAs76SaysWhoeverDropsIt`.

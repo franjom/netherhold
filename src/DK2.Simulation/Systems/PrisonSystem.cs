@@ -55,6 +55,8 @@ public sealed class PrisonSystem : ISimulationSystem
             // Where it lands is the drop's business (HandSystem).
             if (HandRules.IsHeld(creature)) continue;
             if (TortureRules.IsBeingTortured(creature)) continue;   // TortureSystem's
+            // Dropped outside a cell and lying stunned: 255's end clears the word (0x004811E5, ADR-0616).
+            if (creature.Dk2StateId is Combat.CombatStates.Stunned or 256) continue;
             if (StandsInItsOwnPrison(context, creature)) continue;
 
             context.Emit(SystemName, "prisoner_freed",

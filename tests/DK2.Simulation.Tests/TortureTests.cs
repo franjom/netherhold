@@ -110,6 +110,11 @@ public class TortureTests
         Carry(sim, captive, ChamberFloor);
 
         Assert.False(TortureRules.IsBeingTortured(captive));
+        // Stunned with the jailer's word kept; 255's end clears it (0x004811E5, ADR-0616).
+        Assert.Equal(255, captive.Dk2StateId);
+        Assert.True(PrisonRules.IsImprisoned(captive));
+        var status = new GameSimulation(db, world, 1, [new CreatureStatusSystem()]);
+        while (captive.Dk2StateId == 255) status.Tick();
         Assert.False(PrisonRules.IsImprisoned(captive));
     }
 

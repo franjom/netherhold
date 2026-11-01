@@ -57,6 +57,17 @@ public static class HandRules
         => HasPickupPermission(world, database, creature, playerId)
             && world.Player(playerId).Hand.Count < Capacity(database);
 
+    /// <summary>What DK2's stored pick-up command refuses on its own, without the cursor's permission
+    /// (<see cref="HandSystem.StoredCommandPickups"/>, ADR-0616): a creature the thing's virtual <c>+0x28</c>
+    /// (<c>0x004B5C30</c>, health below 1) calls dead (<c>0x004C0BE0</c>, <c>0x004BC500</c>), one already
+    /// held, one dying (<c>+0x3E6</c> bit 21) and states 51 and 52 (<c>0x004BC500</c>). The owner, the
+    /// <c>CanBePickedUp</c> flag and the rest of <c>0x0048E6A0</c> are the cursor's. Capacity and the disguise
+    /// follow in <see cref="HandSystem"/> as for every pick-up; state 75's refusal and 78's kick are not modelled.</summary>
+    public static bool StoredPickupAccepts(CreatureState creature) =>
+        creature.Health >= 1 && !creature.InHand && !CreatureDeathRules.HasCollapsed(creature)
+        && creature.Dk2StateId is not (CreatureDeathRules.FallingState or CreatureDeathRules.DyingState
+            or CreatureStateMachine.NoState or 51 or 52);
+
     /// <summary>The represented creature-permission gates, independent of hand capacity.
     /// State exclusions inspect the current state, not a travel resume slot.</summary>
     public static bool HasPickupPermission(

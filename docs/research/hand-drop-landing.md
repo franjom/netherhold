@@ -9,7 +9,7 @@
 
 ## Result in one sentence
 
-The keeper's drop enters **76**. An own non-worker that no room takes over is **stunned** (255) for its definition's `StunDuration`. It gets up in **257**, and 257 asks the room underfoot: the room's drop state, or with none, **250**, where it stands until 50 turns past the state word `+0x7E`. **77** is the slap's reaction.
+The keeper's drop enters **76**. A non-worker that no room takes over is **stunned** (255), whoever dropped it and a freed prisoner included (ADR-0616), for its definition's `StunDuration`. It gets up in **257**, and 257 asks the room underfoot: the room's drop state, or with none, **250**, where it stands until 50 turns past the state word `+0x7E`. **77** is the slap's reaction.
 
 ## 1. The drop enters 76 — CONFIRMED
 

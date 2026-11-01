@@ -14,6 +14,7 @@ new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 
 ## Versions
+**360** - `0xBA7D1E96E93556B4`. Remake regression pin, not native evidence. FormatVersion also 360. Behaviour only: a creature landing from the hand is stunned as state 76 decides, not only the dropper's own (in play: a freed prisoner and a held hero-party tool); a freed prisoner keeps its jailer's word until 255 ends (`0x004811E5`); `HandSystem.StoredCommandPickups` (off by default) lifts what a recorded pick-up names. No new fields. See ADR-0616. Saves from 359 are refused.
 **359** - `0xA1CB56EEA9E16A0C`. Remake regression pin, not native evidence. FormatVersion also 359. New field: `CreatureState.FightFlags`, bits 0 and 3 of `creature+0x46F`, set at construction and cleared on a sprung Jack; the fight gate and `IsAttackable` read them. See ADR-0615. Saves from 358 are refused.
 **358** - `0x3A43F8F8D10E2F6B`. Remake regression pin, not native evidence. FormatVersion also 358. Behaviour only: the portal's pick and noticing pass weigh no type while the keeper's free lair space (`0x004C6DD0`) is negative; no new fields. See ADR-0614. Saves from 357 are refused.
 **357** - `0x78759408C47B61DF`. Remake regression pin, not native evidence. FormatVersion also 357. Behaviour only: gold landing on a Treasury or Heart is deposited in the landing tick (state 5, `0x0049F730`), a deposit that creates a store pile requests the room effect, and a Hand gold drop requests effect 32; no new fields. See ADR-0613. Saves from 356 are refused.
@@ -395,6 +396,5 @@ route targets resolve to their edge; ruins release the structure mask and obstac
 **135** — `0x4289BE0A7A244163`. Stored worker idle flag (ADR-0274).
 **134** — `0xBBEF0554E88AFB16`. Creature acquisition order, including transfers (ADR-0273).
 **133** — `0x584EDA75014EEB18`. A keeper's portal entrance rows: boost and sack block (ADR-0272).
-**132** — `0xFFF1AFE1DFB6A231`. A miner's standing slot and a floor pile's cell (ADR-0264).
 
-[Versions 9–131](hash-versions-early.md) retain the earlier pins and their reasons.
+[Versions 9–132](hash-versions-early.md) retain the earlier pins and their reasons.

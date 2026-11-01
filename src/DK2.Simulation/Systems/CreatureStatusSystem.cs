@@ -66,8 +66,13 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
                 if (creature.StunTicks > 0) creature.StunTicks--;
                 if (creature.StunTicks == 0)
                 {
-                    // The stun's end: action 53 (getting up) and SetState(257).
+                    // The stun's end: action 53 (getting up) and SetState(257). 255's end arm then clears
+                    // PrisonOwner (+0x3CB := 0 at 0x004811E5): a freed prisoner was its jailer's to lift
+                    // while it lay stunned, and is no longer once up (owner, 2026-11-01).
+                    bool from255 = creature.Dk2StateId is Combat.CombatStates.Stunned or 256;
                     Combat.CombatStates.Enter(context, creature, Combat.CombatStates.GettingUp);
+                    if (from255 && creature.Dk2StateId == Combat.CombatStates.GettingUp)
+                        creature.PrisonOwnerPlayerId = PrisonRules.NoPrison;
                     creature.ActionUntilTick = context.Tick.Value + DropLandingRules.GetUpTicks(definition);
                     context.Emit(SystemName, "getting_up", $"creature={creature.Id} until={creature.ActionUntilTick}");
                 }

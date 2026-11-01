@@ -151,6 +151,8 @@ this audit does not remove it. Exact packet compatibility needs a separate
 command-execution comparison that preserves recorded coordinates and keeps live
 cursor validation in the input layer. Native solid-tile, disposal and ownership
 edge cases still need their own checks before implementing such a path.
+Recorded pick-ups have a strict mode since ADR-0616: `--pickups stored` lifts whatever the
+slot holds, as the native stored path does (creature-pickup.md).
 
 The prior inference that timely worker access explains our Level 4 outcomes
 remains useful for this adapter. It must not be promoted into a native rule

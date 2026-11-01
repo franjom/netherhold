@@ -29,6 +29,13 @@ public sealed class HandSystem : ISimulationSystem
 
     public string Name => SystemName;
 
+    /// <summary>Pick-ups run DK2's stored-command path: action 57 (<c>0x00513480</c>), the hand state's
+    /// callback <c>0x004C0BE0</c> and <c>Hand_PickUp</c> <c>0x004BC500</c>. None of them calls the
+    /// permission <c>0x0048E6A0</c>, which only the cursor asks before the command is sent, so a recorded
+    /// pick-up lifts whatever its slot holds, an enemy too (<see cref="HandRules.StoredPickupAccepts"/>).
+    /// For packet playback only (ADR-0616); play keeps the permission here, our authoritative place.</summary>
+    public bool StoredCommandPickups { get; init; }
+
     public void Execute(SimulationContext context)
     {
         // The clocks first, then the keeper. A slap sets WorkFasterTicks to its
@@ -41,7 +48,7 @@ public sealed class HandSystem : ISimulationSystem
         {
             switch (command)
             {
-                case PickUpCreatureCommand pick: PickUp(context, pick); break;
+                case PickUpCreatureCommand pick: PickUp(context, pick, StoredCommandPickups); break;
                 case PickUpObjectCommand lift: PickUpObject(context, lift); break;
                 case PickUpStoreGoldCommand store: PickUpStoreGold(context, store); break;
                 case DropCommand drop: Drop(context, drop); break;
@@ -108,13 +115,14 @@ public sealed class HandSystem : ISimulationSystem
 
     // ---------------------------------------------------------------- pick up
 
-    private static void PickUp(SimulationContext context, PickUpCreatureCommand command)
+    private static void PickUp(SimulationContext context, PickUpCreatureCommand command, bool stored)
     {
         WorldState world = context.World;
         CreatureState? creature = world.CreatureById(command.CreatureId);
         if (creature is null) return;
 
-        if (!HandRules.HasPickupPermission(world, context.Database, creature, command.PlayerId))
+        if (stored ? !HandRules.StoredPickupAccepts(creature)
+            : !HandRules.HasPickupPermission(world, context.Database, creature, command.PlayerId))
         {
             context.Emit(SystemName, "pickup_refused",
                 $"player={command.PlayerId} creature={command.CreatureId} " +
@@ -402,6 +410,7 @@ public sealed class HandSystem : ISimulationSystem
         // a tile of one of the keeper's prisons and it is imprisoned again,
         // anywhere else and it is loose (ADR-0064). The third destination the owner
         // named is a torture device in the keeper's own Torture Chamber (ADR-0193).
+        bool freed = false;
         if (PrisonRules.IsImprisoned(creature))
         {
             if (TortureRules.TryStrap(context.Hooks, creature, command.PlayerId, landingTileIndex))
@@ -421,7 +430,14 @@ public sealed class HandSystem : ISimulationSystem
                 $"tile={command.Tile.X},{command.Tile.Y} reason=dropped_outside " +
                 $"held={hand.Count}");
 
-            PrisonRules.Release(context.Hooks, creature);
+            // Released below: 76 stuns it with PrisonOwner (+0x3CB) still set and 255's end clears it
+            // (0x004811E5), so while it lies stunned its jailer may lift it again and once up may not
+            // (owner, 2026-11-01). One 76 does not stun is released at once (ours; DK2 clears the word
+            // in idle, 0x00477482).
+            freed = true;
+            if (creature.Activity is CreatureActivity.Imprisoned or CreatureActivity.BeingTortured) creature.ClearJob();
+            // Out of the captive states as the hand's 78 and 76 take it in DK2; the word stays.
+            CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
         }
         else if (creature.OwnerPlayerId == command.PlayerId
                  && TortureRules.TryStrapOwn(context.Hooks, creature, landingTileIndex))
@@ -446,17 +462,22 @@ public sealed class HandSystem : ISimulationSystem
             return;
         }
 
-        // An own non-worker no room takes over lands in 76 and is stunned there (0x00491830(255),
+        // A non-worker no room takes over lands in 76 and is stunned there (0x00491830(255),
         // Q201): it gets up in 257, which asks the room underfoot for its job, or stands in 250
-        // (DropLandingRules, ADR-0226). A freed prisoner is not stunned (owner, Q201).
-        if (creature.OwnerPlayerId == command.PlayerId && !definition.Flags.HasFlag(CreatureFlags.IsWorker)
-            && Combat.StatusEffectRules.StunOnLanding(context, creature, definition))
+        // (DropLandingRules, ADR-0226). 76 never compares the creature's owner with the hand's: a
+        // non-worker (0x0046EFA7), or a worker of a player numbered below 3, a hero's or a neutral's
+        // (0x0046EFB7), goes to the stun at 0x0046F173. Only a stored pick-up puts another keeper's or
+        // a hero's creature in the hand (ADR-0616). A freed prisoner is stunned too (owner, 2026-11-01).
+        bool stuns = !definition.Flags.HasFlag(CreatureFlags.IsWorker)
+            || creature.OwnerPlayerId < PlayerIds.FirstKeeper;
+        if (stuns && Combat.StatusEffectRules.StunOnLanding(context, creature, definition))
         {
             context.Emit(SystemName, "dropped_stunned",
                 $"player={command.PlayerId} creature={creature.Id} " +
                 $"tile={command.Tile.X},{command.Tile.Y} ticks={creature.StunTicks} held={hand.Count}");
             return;
         }
+        if (freed) PrisonRules.Release(context.Hooks, creature);
 
         // A one-shot ticket: the next look spends it around the landing tile, and the
         // 12.5% bonus turns on only if that look finds something (ADR-0069). The timer

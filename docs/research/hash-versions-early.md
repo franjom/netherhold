@@ -1,6 +1,8 @@
 # Early state-hash versions
 
-Versions 9–131, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+Versions 9–132, split from [the current version record](hash-versions.md) to keep each research document within its budget.
+
+**132** — `0xFFF1AFE1DFB6A231`. A miner's standing slot and a floor pile's cell (ADR-0264).
 
 **131** — `0xC0AF4F951938F85C`. Worker pickup flags on task exit and prison delivery (ADR-0263).
 

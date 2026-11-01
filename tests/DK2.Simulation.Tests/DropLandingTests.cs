@@ -110,10 +110,11 @@ public class DropLandingTests
         Assert.Equal(Combat.StatusEffectRules.DazedAttachPoint, request.AttachPoint);
     }
 
-    /// <summary>The owner's exception (Q201): a prisoner put down outside a cell goes free, not
-    /// stunned. It is not the dropping keeper's own creature.</summary>
+    /// <summary>A prisoner put down outside a cell goes free and is stunned like any drop: 76 tests no
+    /// prison field (0x004BC710, 0x0046EFA7). The owner, 2026-11-01: "stunned like any drop, their
+    /// stunned timers differ by creature type". Q201's "prison releases exempt" is the walk-out.</summary>
     [Fact]
-    public void AFreedPrisonerIsNotStunned()
+    public void AFreedPrisonerIsStunnedLikeAnyDrop_AndItsJailersToLiftUntilItGetsUp()
     {
         (GameDatabase db, WorldState world) = World();
         CreatureState captive = world.SpawnCreature(db, GoblinId, Keeper + 1, new TilePos(3, 3));
@@ -124,7 +125,37 @@ public class DropLandingTests
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
 
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_freed");
-        Assert.NotEqual(255, captive.Dk2StateId);
+        Assert.Equal(255, captive.Dk2StateId);
+
+        // Stunned, it is still its jailer's to lift (+0x3CB kept); 255's end clears it (0x004811E5),
+        // so once up it is not (owner, 2026-11-01).
+        Assert.True(HandRules.HasPickupPermission(sim.World, db, captive, Keeper));
+        while (captive.Dk2StateId == 255) sim.Tick();
+        Assert.Equal(257, captive.Dk2StateId);
+        Assert.False(PrisonRules.IsImprisoned(captive));
+        Assert.False(HandRules.HasPickupPermission(sim.World, db, captive, Keeper));
+    }
+
+    /// <summary>76 never compares the creature's owner with the hand's: a non-worker (0x0046EFA7), or a
+    /// worker of a player numbered below 3 (0x0046EFB7), is stunned at 0x0046F173. Another keeper's or a
+    /// neutral's creature reaches the hand only through a stored pick-up (ADR-0616).</summary>
+    [Theory]
+    [InlineData(GoblinId, Keeper + 1, true)]
+    [InlineData(Dk2TerrainFixture.ImpCreatureId, Keeper + 1, false)]
+    [InlineData(Dk2TerrainFixture.ImpCreatureId, PlayerIds.Neutral, true)]
+    public void AStoredPickUpsForeignCreatureLandsAs76SaysWhoeverDropsIt(byte type, int owner, bool stunned)
+    {
+        (GameDatabase db, WorldState world) = World();
+        CreatureState foreign = world.SpawnCreature(db, type, (byte)owner, new TilePos(3, 3));
+        var sim = new GameSimulation(db, world, 7,
+            [new HandSystem { StoredCommandPickups = true }, new CreatureStatusSystem(), new CreatureMovementSystem(), new CreatureJobSystem()]);
+
+        sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, foreign.Id)));
+        Assert.True(foreign.InHand);
+        sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
+
+        Assert.Equal(stunned, foreign.Dk2StateId == 255);
+        Assert.Equal((byte)owner, foreign.OwnerPlayerId);
     }
 
     private static (GameDatabase, WorldState) World()

@@ -80,4 +80,28 @@ zero-health refusal remains a simulation adaptation before its delayed collapse.
 The keeper's attack response and its retreat of the wounded consume this permission
 from their observation (ADR-0278, ADR-0284); the unrepresented gates above still
 bound those responses' fidelity.
-No new original-game observation validates this slice.
+No original-game observation validates this slice; the next section's stored path is the one capture-backed claim.
+
+## Permission is the cursor's; a stored pick-up skips it (ADR-0616)
+
+**CONFIRMED (binary, reviewed 2026-11-01)** for the path; the Level 5 capture is one observation. `0x0048E6A0`'s callers are the cursor and hand-click code (`0x00407A78`,
+`0x0040C1E0`, `0x00408EE0`, `0x00418xxx`) and the computer keeper. The stored pick-up never calls
+it. That path is action 57 (`0x00513480`), hand state 1's callback `0x004C0BE0` and the insert
+`0x004BC500`. It refuses only these:
+- a dead slot, or a thing whose vtable `+0x28` (`0x004B5C30`, health below 1) says no;
+- an id already held, or a full hand;
+- a dying creature, or one in state 51 or 52;
+- a failed kick to state 78.
+It unmasks a disguised enemy and refuses it. Two more facts about the path:
+- `0x004C0BE0` also stops when the creature refuses state 75 and the retry through idle
+  (`0x004BFBD0`, `0x004BFC24`). Ours goes ahead with the pick-up; that refusal is not modelled.
+- The dead test comes before that preparation. Bit 21 and states 51/52 come after it, in
+  `0x004BC500`, which state 1's exit callback `0x004C0EA0` runs one turn after the action. Ours
+  tests them before the preparation and inserts in the command's tick.
+So a recorded command lifts whatever its slot holds.
+Level 5 seed 2's pick-up of slot 439 at 1684 lifted the hero Wizard, and landing state 76 stunned
+it: 76's stun test is a non-worker, or a worker of a player numbered below 3, never the hand's
+owner (`0x0046EFA7`, `0x0046EFB7`).
+
+The replay runs this path with `--pickups stored` (`HandSystem.StoredCommandPickups`,
+`HandRules.StoredPickupAccepts`). Play keeps the permission in `HandSystem`.

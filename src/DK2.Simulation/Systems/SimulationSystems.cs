@@ -12,9 +12,11 @@ namespace DK2.Simulation.Systems;
 /// back to back, and a system that moves between phases moves in the order too.</remarks>
 public static class SimulationSystems
 {
-    public static ISimulationSystem[] Default() =>
+    /// <param name="storedPickups">Execute recorded pick-ups as DK2's stored-command path does, without the
+    /// cursor's permission (<see cref="HandSystem.StoredCommandPickups"/>, ADR-0616). Off for play.</param>
+    public static ISimulationSystem[] Default(bool storedPickups = false) =>
     [
-        .. Commands(),
+        .. Commands(storedPickups),
         .. RoomLifecycle(),
         .. KeeperActions(),
         .. ThingPass(),
@@ -27,11 +29,11 @@ public static class SimulationSystems
     ];
 
     /// <summary>The player's own hand and marks, before anything moves.</summary>
-    private static ISimulationSystem[] Commands() =>
+    private static ISimulationSystem[] Commands(bool storedPickups) =>
     [
         // Hand first: one picked up this tick takes no step, and one dropped onto
         // marked work starts on it at once (ADR-0062).
-        new HandSystem(),
+        new HandSystem { StoredCommandPickups = storedPickups },
         new RescuePrioritySystem(), // command-driven casualty marks before worker selection (ADR-0261)
         // A picked Special changes levels before this tick's movement and combat.
         new SpecialSystem(),

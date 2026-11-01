@@ -833,6 +833,11 @@ public class PrisonTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
 
+        // Loose but lying stunned, still its jailer's to lift until 255 ends (0x004811E5, ADR-0616).
+        Assert.Equal(255, captive.Dk2StateId);
+        Assert.True(PrisonRules.IsImprisoned(captive));
+        var status = new GameSimulation(db, world, 1, [new CreatureStatusSystem()]);
+        while (captive.Dk2StateId == 255) status.Tick();
         Assert.False(PrisonRules.IsImprisoned(captive));
         Assert.Equal(Rival, captive.OwnerPlayerId);
         Assert.NotEqual(CreatureActivity.Imprisoned, captive.Activity);
@@ -1669,7 +1674,9 @@ public class PrisonTests
     }
 
     [Fact]
-    public void ADroppedCaptiveIsBackInItsOwnStatesAndAFreedOneIsIdle()
+    /// <summary>A captive dropped outside a cell goes free and lands stunned like any drop (76 tests no
+    /// prison field; owner, 2026-11-01, ADR-0616); one the Prison lets go itself is idle at once.</summary>
+    public void ADroppedCaptiveIsBackInItsOwnStates_AFreedOneLandsStunned_AndAReleasedOneIsIdle()
     {
         GameDatabase db = Db;
         WorldState world = World(db);
@@ -1684,8 +1691,8 @@ public class PrisonTests
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
-        Assert.False(PrisonRules.IsImprisoned(captive));
-        Assert.Equal(CreatureStateMachine.Idle, captive.Dk2StateId);
+        Assert.Equal(255, captive.Dk2StateId);
+        Assert.True(PrisonRules.IsImprisoned(captive));   // until 255 ends (0x004811E5)
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
 
         // And letting one go makes it idle there and then, whatever runs next.

@@ -82,6 +82,44 @@ public class CreaturePickupTests
         Assert.False(HandRules.CanPickUp(world, db, creature, 3));
     }
 
+    /// <summary>DK2's stored pick-up (action 57: 0x00513480, 0x004C0BE0, 0x004BC500) never asks the
+    /// permission 0x0048E6A0; only the cursor does. Level 5 seed 2's recorded pick-up of slot 439 at 1684
+    /// lifted the hero Wizard there (states 75, 78, 76, then a stunned drop). ADR-0616.</summary>
+    [Fact]
+    public void AStoredPickUpLiftsAnotherOwnersCreatureThatPlayRefuses()
+    {
+        var db = Dk2TerrainFixture.Database();
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3, (byte)4]);
+        var rivals = world.SpawnCreature(db, 7, 4, new TilePos(2, 2));
+        Assert.False(HandRules.HasPickupPermission(world, db, rivals, 3));
+
+        new GameSimulation(db, world, 42, [new HandSystem()]).Tick(InputFrame.Of(new PickUpCreatureCommand(3, rivals.Id)));
+        Assert.False(rivals.InHand);
+
+        new GameSimulation(db, world, 42, [new HandSystem { StoredCommandPickups = true }])
+            .Tick(InputFrame.Of(new PickUpCreatureCommand(3, rivals.Id)));
+        Assert.True(rivals.InHand);
+        Assert.Contains(world.Player(3).Hand, item => item.Id == rivals.Id);
+        Assert.Equal((byte)4, rivals.OwnerPlayerId);
+    }
+
+    /// <summary>What the stored path still refuses: a thing 0x004B5C30 calls dead (health below 1) and,
+    /// in 0x004BC500, states 51 and 52.</summary>
+    [Theory]
+    [InlineData(1, 1000, true)]
+    [InlineData(51, 1000, false)]
+    [InlineData(52, 1000, false)]
+    [InlineData(1, 0, false)]
+    public void AStoredPickUpStillRefusesTheDeadAndStates51And52(int state, int health, bool expected)
+    {
+        var db = Dk2TerrainFixture.Database();
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)3, (byte)4]);
+        var rivals = world.SpawnCreature(db, 7, 4, new TilePos(2, 2));
+        rivals.Dk2StateId = state;
+        rivals.Health = health;
+        Assert.Equal(expected, HandRules.StoredPickupAccepts(rivals));
+    }
+
     [Fact]
     public void FullHandRefusesCommandWithoutRevokingCreaturePermission()
     {

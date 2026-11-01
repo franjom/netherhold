@@ -24,7 +24,7 @@ internal static class ReplayCommands
         string? eventPath = null, bool dk2Random = false, string? seedPath = null, uint? seed = null,
         ResyncState? resync = null, long resyncAt = 0, string? jobPath = null,
         IReadOnlyDictionary<int, int>? resyncMap = null, ResyncParts resyncParts = ResyncParts.All,
-        bool retryBlueprints = false, NativeBirths? births = null)
+        bool retryBlueprints = false, NativeBirths? births = null, bool storedPickups = false)
     {
         string? install = Dk2Install.Find();
         if (install is null)
@@ -66,7 +66,8 @@ internal static class ReplayCommands
             database, world, dk2Random
                 ? new SimRandom(seed is { } s ? new Dk2Lcg(s) : new Dk2Lcg())
                 : new SimRandom(seed ?? 0),
-            systems: log is null && rooms is null && packet is null ? null : SimulationSystems.Default(),
+            // --pickups stored: recorded pick-ups as DK2's command path runs them, no cursor permission (ADR-0616).
+            systems: log is null && rooms is null && packet is null ? null : SimulationSystems.Default(storedPickups),
             triggers: tree)
         {
             TrackTriggerReach = true,
@@ -359,6 +360,7 @@ internal static class ReplayCommands
         string? birthsPath = null;
         ResyncParts resyncParts = ResyncParts.All;
         bool retryBlueprints = false;
+        bool storedPickups = false;
         for (int i = 4; i < arguments.Length; i += 2)
         {
             if (i + 1 >= arguments.Length) return ReplayUsage();
@@ -423,6 +425,11 @@ internal static class ReplayCommands
                 // own yet and send it once ours does (the drop rule's reasoning, for blueprints).
                 case "--blueprints" when value == "retry":
                     retryBlueprints = true;
+                    break;
+                // --pickups stored: a recorded pick-up lifts whatever its slot holds, an enemy too, as
+                // DK2's stored command does; only DK2's cursor asks permission (ADR-0616).
+                case "--pickups" when value == "stored":
+                    storedPickups = true;
                     break;
                 // --resync-map: slot,ours rows naming our creature for a native slot at the resync,
                 // where the replay's entity map (converged for another build) names a wrong one.
@@ -559,7 +566,7 @@ internal static class ReplayCommands
 
         return RunTriggerCsv(arguments[1], turns, arguments[3],
             log, rooms, tilePath, packet, entityIds, creaturePath, eventPath, dk2Random, seedPath, seed,
-            resync, resyncAt, jobPath, resyncMap, resyncParts, retryBlueprints, births);
+            resync, resyncAt, jobPath, resyncMap, resyncParts, retryBlueprints, births, storedPickups);
     }
 
     /// <summary>
@@ -615,7 +622,7 @@ internal static class ReplayCommands
             + "--packet recording.sav --packet-offset N [--entity-map ids.csv] [--turns N] "
             + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv] [--jobs jobs.csv] "
             + "[--rng dk2|xoshiro] [--seed N] [--seeds seeds.csv] "
-            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv] [--resync-skip part,...] [--births creature-map.csv]] [--blueprints retry]");
+            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv] [--resync-skip part,...] [--births creature-map.csv]] [--blueprints retry] [--pickups stored]");
         return 2;
     }
 }

@@ -9,8 +9,9 @@ using DK2.Simulation.Systems;
 namespace DK2.Simulation;
 
 /// <summary>A creature put down by the hand (hand-drop-landing.md, ADR-0226). The keeper's drop
-/// (<c>0x004BC710</c>) sets 76, whose handler <c>0x0046EAB0</c> stuns an own non-worker that no
-/// room takes over (<c>0x00491830(255)</c>): it lies for <c>StunDuration</c>, gets up in 257
+/// (<c>0x004BC710</c>) sets 76, whose handler <c>0x0046EAB0</c> stuns a non-worker (or a worker
+/// of player 0-2, ADR-0616) that no room takes over
+/// (<c>0x00491830(255)</c>): it lies for <c>StunDuration</c>, gets up in 257
 /// (<c>0x00481200</c>), and 257 asks the room underfoot (<c>0x004E8DA0(0)</c>): the room's drop
 /// state, or with none, 250.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/hand-drop-landing.md")]
