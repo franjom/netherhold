@@ -63,7 +63,9 @@ Before implementing DK2 behavior, check, in this order:
    anything observable, and it outranks a misread disassembly. The owner's
    memory of play is not an experiment: where it disagrees with what the binary
    says, the binary wins (owner, 2026-10-09). Record the recollection beside the
-   reading, and do not build on it against the binary.
+   reading, and do not build on it against the binary. To stage a situation
+   no shipped level has, build a test level, play it and record it:
+   `tools/levelgen/README.md`.
 4. **OpenKeeper** — cloned at `D:\OpenKeeper`. GPLv3: facts only, with
    provenance in `THIRD-PARTY-NOTICES.md`. Its pull requests are reviewed
    against this repo on the owner's say-so; a SessionStart hook asks on

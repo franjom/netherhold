@@ -96,7 +96,8 @@ naming: generate it here if it is wanted, and let only addresses cross.
 One `-PLOAD` playback, recorded once, answers later questions offline. The
 recorder polls DK2 from outside and stores raw bytes every world tick. Decoders
 then read fields out of those bytes afterwards, so a new question needs a new
-decoder, not a new playback. Nothing here patches the game.
+decoder, not a new playback. Nothing here patches the game. A custom test level
+(`-LEVEL <name>`) records the same way: `tools/levelgen/README.md`.
 
 **Record** (probe first, elevated; then the game, elevated):
 
