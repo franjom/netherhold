@@ -1022,7 +1022,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Open then: prison and capture (ADR-0064); kind 8 (ADR-0065); what a graveyard does when it fills (vampires).
 
 ## ADR-0064 — The Prison: capture, and the half of carrying that was missing
-**Date:** 2026-09-05 · **Status:** accepted · amended 2026-09-13: full-prison capacity is checked at delivery; arrival health is `MaxHealth / 6` (ADR-0071); capacity is interior + 1 (ADR-0070); the drain is hunger (ADR-0068); prisoners wander and eat (ADR-0073, ADR-0074); a captive takes no need-anger (ADR-0079); **the Temple is the release rule's one exception (ADR-0154)**
+**Date:** 2026-09-05 · **Status:** accepted · amended 2026-09-13: full-prison capacity is checked at delivery; arrival health is `MaxHealth / 6` (ADR-0071; corrected by ADR-0628); capacity is interior + 1 (ADR-0070); the drain is hunger (ADR-0068); prisoners wander and eat (ADR-0073, ADR-0074); a captive takes no need-anger (ADR-0079); **the Temple is the release rule's one exception (ADR-0154)**
 
 **Context.** Owner (2026-09-05): *"a corpse can not be picked up by hand of evil and dropped to a graveyard, only an imp can carry it to its grave, also an injured creature, lying on the floor bleeding out, can't be picked up by hand of evil and dropped to its lair, only an imp can carry it to its bed to recover, likewise only an imp can drag an enemy creature to prison, a hand of evil can then pick up that creature from prison and drop it around the dungeon, back in prison, or onto a torture rack in the torture chamber."* The pick-up handler refuses bit `0x200000` of the first state-flag word, which DK2's creature dump names `CreatureDying` — so ADR-0062's refusal was DK2's rule. Research: `docs/research/prison.md`, `imp-task-priority.md` §4, `manual-1999.md` §Prison.
 
@@ -1032,7 +1032,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - `PrisonOwner` is a second owner, not a change of owner (DK2 creature field at `0x3cb`). A prisoner is still its keeper's creature; dropping it back in a prison re-imprisons it, anywhere else frees it.
 - Prison choice prefers one with space over a full one. If all are full, an imp still drags the enemy to a prison, then leaves it bleeding on the rim (owner play, 2026-09-13). Tie-breaking and the exact rejection tile remain UNKNOWN. Ours incorrectly requires a free cell before starting, so it omits the all-full journey.
 - `CreatureHealthSystem` skips prisoners; `PrisonSystem` runs immediately after it, same cadence and phase: free anyone whose cell is no longer a cell (sale, dig, rival claim, destruction — derived each second, no hooks), roll an overcrowded prison's jail break, wither everyone left by `PrisonModifyCreatureHealthPerSecond` (−3). A prisoner that runs out is replaced where it stands by the Prison's `CreatedCreatureId` — 9, the Skeleton — belonging to the jailer. No collapse, rescue window or corpse.
-- Ours: one prisoner per tile (superseded by ADR-0070); arrival health is a sixth (ADR-0071). Jail break rolls once a game second (Q168). Prisoners are freed where they stand rather than at DK2's door. There is no keeper-set door bar, torture rack or Combat Pit effect. A prisoner is not slappable.
+- Ours: one prisoner per tile (superseded by ADR-0070); arrival health is a sixth (ADR-0071; corrected by ADR-0628). Jail break rolls once a game second (Q168). Prisoners are freed where they stand rather than at DK2's door. There is no keeper-set door bar, torture rack or Combat Pit effect. A prisoner is not slappable.
 
 **Consequences.**
 - Q161 answered against what this project believed; two tests assert the hand's refusal directly.
@@ -4351,7 +4351,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 4. **Ours, stated:** a victim at zero health is let go to the health system, and a convert is let go (Q425).
 
 **Consequences.**
-- A Goblin converts on its 81st act, 101 s after being strapped on, having lost 810 health. A captive fresh from a cell (250) dies first, as the manual says a victim may.
+- A Goblin converts on its 81st act, 101 s after being strapped on, having lost 810 health. A captive fresh from a cell (250 then; 390 since ADR-0628) dies first, as the manual says a victim may.
 - Owner (2026-09-24): only the Mistress tortures, whipping victims on the devices. Her job (127, 128, 134) is the next slice (Q419).
 - The fixture gains the Torture Chamber, its terrain, both devices, the Goblin's torture numbers, stat row 24 and variable 234, with drift guards. Nine trace tests and a gate probe. Negative controls, one at a time: mood on a captive, no conversion, conversion at the threshold, a reset on strapping, a device on any tile, the hook by activity, and no occupancy each fail a named test.
 - `HashVersion` and `FormatVersion` **98**, pin `0xD686048703B6ED8D`.

@@ -144,7 +144,7 @@ internal sealed class ScenarioWorldBuilder
             "PrisonModifyCreatureHealthPerSecond countdown out and becomes a Skeleton. How " +
             "many prisoners a prison holds is the original's own rule - its inner tiles " +
             "plus one, so a 3x3 holds two (Q166, ADR-0070) - and what health a captured " +
-            "creature wakes with is read from DK2's damage path (Q167, ADR-0071)");
+            "creature wakes with is read from DK2's admission (Q167, ADR-0628)");
         unsupported.Add(
             "a hatchery LAYS and free creatures EAT (ADR-0066, ADR-0067): coops go down, an EGG " +
             "(object 47) is laid on a randomly chosen non-pillar slab on the interval the room size implies " +

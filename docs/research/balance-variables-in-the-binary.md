@@ -275,9 +275,9 @@ all of them prison-adjacent:
 | `CreatureCriticalHealthPercentageOfMax` (173) | `0x006F294A` | **none** |
 
 The last two are parsed, cached and dead in v1.70. That matters when a rule here
-is built on one: `CreatureCriticalHealthPercentageOfMax` is the 20% this project
-uses for a captured creature's arrival health (Q167), and the engine never
-consults it.
+is built on one: `CreatureCriticalHealthPercentageOfMax` was the 20% this project
+once used for a captured creature's arrival health (Q167, since ADR-0628 the dying
+window left plus a tenth), and the engine never consults it.
 
 ### The tile-work rates, mapped to the handlers that read them (Q219, 2026-09-07)
 

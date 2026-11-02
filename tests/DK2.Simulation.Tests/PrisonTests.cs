@@ -663,8 +663,8 @@ public class PrisonTests
         Assert.Equal(10 * Second, captive.HungerTicks);
 
         // Ten seconds is as far as this can be taken: a Goblin's HungerRate is 180
-        // game seconds and PrisonModifyCreatureHealthPerSecond turns it to bone in
-        // 83, so no prisoner ever gets hungry IN a cell. The mechanic is still
+        // game seconds and PrisonModifyCreatureHealthPerSecond turns a fresh one to bone
+        // in 137, so no prisoner ever gets hungry IN a cell. The mechanic is still
         // reachable, because HungerNeed accumulates over a creature's whole life
         // and is paid off only by eating (EatingRules.Tick): a creature three
         // minutes into the map is already hungry when the imps take it.
@@ -1295,7 +1295,7 @@ public class PrisonTests
 
         // The bird is gone, the hunger is paid off, and the Goblin is
         // HpFromChicken better for it — capped at the missing health, and a captive
-        // starts at a sixth of its maximum so there is room for all. The gain is
+        // starts at 390 of 1500 (ADR-0628) so there is room for all. The gain is
         // read off the meal and not off the clock, because the prison keeps
         // draining: eating buys health, it does not pause the countdown (ADR-0064).
         Assert.Null(world.ObjectById(bird.Id));

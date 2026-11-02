@@ -371,7 +371,7 @@ the same fifteen. Every prison state has both clear. That is what makes state
 read to do with the flag byte (Q185).
 
 **But a prisoner never gets hungry *in* a cell**: a Goblin's `HungerRate` is 180
-game seconds and the drain turns it to bone in 83. The mechanic is reachable
+game seconds and the drain turns a fresh one to bone in 137. The mechanic is reachable
 because `HungerNeed` accumulates over a creature's **whole life** and is paid off
 only by eating, so anything dragged in after a few minutes on the map is hungry
 the moment it lands.
