@@ -33,19 +33,22 @@ public readonly record struct ThingSoundRequest(
 public static class ThingSoundRules
 {
     /// <summary>An object's request, in its definition's category at <paramref name="at"/> or, with none,
-    /// its own position (the tile's centre, at floor height, while it keeps none). Nothing is emitted for
-    /// an object with no category: the shipped objects whose category is empty have no group to play.</summary>
+    /// its own position (the tile's centre, at floor height, while it keeps none: a deviation, DK2 reads its
+    /// stored height). Nothing is emitted for an object with no category: the shipped objects whose category
+    /// is empty have no group to play.</summary>
     public static void Request(SimulationContext context, string system, ObjectState thing, ThingSoundEvent sound,
-        FpPosition2? at = null)
+        FpPosition3? at = null)
     {
         string category = context.Database.ObjectById(thing.ObjectTypeId)?.SoundCategory ?? "";
         if (category.Length == 0) return;
-        bool placed = thing.PosX != 0 || thing.PosY != 0;
-        FpPosition2 point = at ?? new FpPosition2(
-            new Fp32(placed ? thing.PosX : CreatureState.CentreOf(thing.TileIndex % context.World.Width)),
-            new Fp32(placed ? thing.PosY : CreatureState.CentreOf(thing.TileIndex / context.World.Width)));
-        Request(context, system, new SoundSourceId(SoundSourceKind.Object, thing.Id), category, sound,
-            new(point.X, point.Y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, point.X, point.Y))));
+        if (at is not FpPosition3 point)
+        {
+            bool placed = thing.PosX != 0 || thing.PosY != 0;
+            var x = new Fp32(placed ? thing.PosX : CreatureState.CentreOf(thing.TileIndex % context.World.Width));
+            var y = new Fp32(placed ? thing.PosY : CreatureState.CentreOf(thing.TileIndex / context.World.Width));
+            point = new(x, y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, x, y)));
+        }
+        Request(context, system, new SoundSourceId(SoundSourceKind.Object, thing.Id), category, sound, point);
     }
 
     /// <summary>A creature's request with handle 0, which DK2 passes when lifting and dropping it.</summary>

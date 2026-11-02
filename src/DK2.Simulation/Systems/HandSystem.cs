@@ -346,10 +346,7 @@ public sealed class HandSystem : ISimulationSystem
 
         AcceptedDrop(context, command.PlayerId, gold: false);
         // Hand_Drop 0x004BC81D ends every creature drop on C4, at the supplied position and with handle 0.
-        FpPosition2 dropAt = command.Position ?? new FpPosition2(
-            new Fp32(CreatureState.CentreOf(command.Tile.X)), new Fp32(CreatureState.CentreOf(command.Tile.Y)));
-        ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.Dropped,
-            new(dropAt.X, dropAt.Y, new Fp32(EggLaunchRules.FloorHeight(world, context.Database, dropAt.X, dropAt.Y))));
+        ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.Dropped, DropPoint(world, command));
 
         // A captive IS an offering, and the Temple is ADR-0064's one exception:
         // a wizard prisoner dropped on a Temple is sacrificed, not freed (Q314,
@@ -549,6 +546,19 @@ public sealed class HandSystem : ISimulationSystem
     /// (<see cref="DropDeliveryRules"/>, ADR-0217). Not implemented: the handler's
     /// branch giving a chicken to the keeper of the Hatchery it lands in, which the
     /// hand reaches only on an ally's Hatchery.</remarks>
+    /// <summary>The position the human drop hands Hand_Drop (<c>0x004C0EE0</c>, built at <c>0x004C0F0B</c>):
+    /// height never set, so 0; X and Y from the thing under the hand when that creature is live (its own
+    /// position, height included), else the pointer's. Deviates for the keeper AI, which drops with its own
+    /// position, and where ours has no pointer position (the tile's centre stands in).</summary>
+    private static FpPosition3 DropPoint(WorldState world, DropCommand command)
+    {
+        if (world.CreatureById(command.TargetCreatureId) is { } under)
+            return new(new Fp32(under.PosX), new Fp32(under.PosY), new Fp32(under.PosZ));
+        FpPosition2 at = command.Position ?? new FpPosition2(
+            new Fp32(CreatureState.CentreOf(command.Tile.X)), new Fp32(CreatureState.CentreOf(command.Tile.Y)));
+        return new(at.X, at.Y, new Fp32(0));
+    }
+
     private static void DropObject(
         SimulationContext context, DropCommand command, HandItem held)
     {
@@ -583,8 +593,7 @@ public sealed class HandSystem : ISimulationSystem
                 new FpPosition3(at.X, at.Y, new Fp32(EggLaunchRules.FloorHeight(world, context.Database, at.X, at.Y)))));
         }
         // 0x004BCA02: every object drop ends on C4 in the object's category, with its handle.
-        ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.Dropped, command.Position ?? new FpPosition2(
-            new Fp32(CreatureState.CentreOf(command.Tile.X)), new Fp32(CreatureState.CentreOf(command.Tile.Y))));
+        ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.Dropped, DropPoint(world, command));
 
         int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         TempleSacrificeRules.Reconcile(world, context.Database);

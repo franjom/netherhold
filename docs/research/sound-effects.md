@@ -118,17 +118,20 @@ Every request is one slot `+0x20` call (positional) at the site named; the categ
 requester's definition, so a row is silent when no shipped `SFX.map` of that category has the
 group with samples (checked across every non-speech category).
 
-**The pointer position (STRONGLY INFERRED).** Interface `+0x1068` is the pick record
+**The pointer position (STRONGLY INFERRED; the tests that pin it say so).** Interface `+0x1068` is the pick record
 [0x005992B0](functions/005992B0.md) fills: `+0x0/+0x4` the pointer, `+0x8/+0xC` the tile,
 `+0x10/+0x14` the world X/Y (12.12, clamped to the map), `+0x1C` the hit kind, `+0x20` its id.
 So `+0x1078/+0x107C` is the pointer's world position, and the hand's requests use it with height
 `0x2000` (2.0 tiles). The hand category is the name `HAND` ([0x00567240](functions/00567240.md));
 ours is `hand`.
 
+Verdict "CONFIRMED" is for the sound site; the records of `0x004BFBD0` and `0x004C0CB0` stay LIKELY for the rest of those functions.
+`HandCursorFeedback.Reset` (focus loss, disable) also clears the slap latch, which DK2 clears only at completion.
+
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
 | HAND `0xEC`, positional | state 5 callback [0x0040E300](functions/0040E300.md), entry event | CONFIRMED | `HandCursorFeedback.Play(Tag)` |
-| `0xEC`, nonpositional, definition category | same callback | silent: only `hand` has the group | nothing |
+| `0xEC`, nonpositional, terrain definition (`+0x195`) | same callback | silent: only `hand` has the group, and no terrain category has an SFX.map | nothing |
 | HAND `0xC5`, positional | state 11 callback [0x0040E520](functions/0040E520.md), frame 3, latch | CONFIRMED | `HandCursorFeedback.Advance` |
 | creature `0xC3` | [0x004BFBD0](functions/004BFBD0.md), handle 0 | CONFIRMED | `HandSystem.PickUp` |
 | object `0xC3` | [0x004C0CB0](functions/004C0CB0.md), the object's handle | CONFIRMED | `HandSystem.PickUpObject`, `PickUpStoreGold` |
@@ -144,23 +147,24 @@ start the drag (`+0x13DB` = 1, `+0x13F0` = 1, or 2 when the click record's flag 
 tag or untag command (`0x28`/`0x29`) is posted at release, so the sound is on the **press**, once per
 drag, tag and untag alike, not on completion. The state's callback receives event 0 (adopt), then
 event 1 (the sound); event 2 (completion, one frame at 30 a second) moves it to state 6, which has no
-sound. No other call of `0x0040ABC0` pushes the literal 5.
+sound. Ours fires the tag sound only on a primary press with a Hand-tool drag, so DK2's tag and untag from other tool modes have no UI path. No other call of `0x0040ABC0` pushes the literal 5.
 
 **Slap (`0xC5`).** State 11 (Slap, 15 frames at 30 a second) is requested by
 [0x00408EE0](functions/00408EE0.md) on an empty-handed right press over a creature the hand may slap
-(own or another's, the latter only when it may be picked up), a slappable object (definition flag
+(own, or another keeper's when both `0x0048E6A0` and `0x004918B0` accept it: the first failing posts action `0x6A` with no swing, the second does nothing), a slappable object (definition flag
 `0x200`) or a trap whose definition byte `+0xBC` is `0x24` (and whose `+0x10C` bit 5 is clear). Callback event 3, run on every channel update before the
 completion test, sounds once when the frame is at least 3 and byte `0x006CE95C` is zero, then sets
-it; event 2 (completion) clears it. A request that arrives while the swing is at frame 3 or less is
-ignored; one after frame 3 restarts the swing and leaves the latch set, so it plays no second sound
-until a swing completes. Ours builds the creature case (`SlapCreatureCommand`); the object and trap
+it; event 2 (completion) clears it. A request on that channel that arrives while the swing is at frame 3 or less is
+ignored whatever state it asks for (a tag included); one after frame 3 restarts the swing and leaves the latch set, so it plays no second sound
+until a swing completes. The drop states use the base channel and are not guarded. Ours builds the creature case (`SlapCreatureCommand`); the object and trap
 slaps have no command yet.
 
 **Lift and drop.** The creature lift sound ends the pick-up preparation, so it plays for a creature
 that is or becomes state 75 even when the hand is full, and not when state 75 is refused. Creature
 `0xC3` and `0xC4` pass handle 0, so they neither use nor replace the creature's own voice; the object
-requests pass the object's handle. A drop sounds at the supplied position for any thing, including AI
-drops. Of the 145 shipped objects only object 1 (`OBJECT_GOLD`) has samples for either (one each);
+requests pass the object's handle. A drop sounds at the position the drop passes to `Hand_Drop` for any thing, AI drops included. For the human drop
+(`0x004C0EE0`) its height is never set (0), and X and Y are the live creature under the hand's position (height
+included) or else the pointer's; ours mirrors that, and deviates for the AI keepers, which drop with their own position. Of the 145 shipped objects only object 1 (`OBJECT_GOLD`) has samples for either (one each);
 the treasury pile (object 3), gold bags and most others have an empty category, the chicken's has no
 group. A store's pile is object 3, so lifting store gold is silent.
 
@@ -171,7 +175,7 @@ handle, only on game turns that are a multiple of 3 times the tick rate (contain
 event is the current action record's sound word ([creature-action-table.md
 section 5](creature-action-table.md#5-the-25-word-is-a-sound-id-not-a-label)) when an action is running
 (`+0x3A9` neither 0 nor 21) and the word is nonzero, otherwise, while the creature is in no room
-(`+0x3B9` zero), `0xCA`, `0xCB` or `0xCC` by mood class `+0x28A` (Happy, Unhappy, Angry; Q269). Ours has
-no action table and no single current-action field, so the choice between the branches cannot be
-made faithfully; the creature hover waits for it (W7.2). A special under the hand requests `0xE4` in
+(`+0x3B9` zero), `0xCA`, `0xCB` or `0xCC` by mood class `+0x28A` (Happy, Unhappy, Angry; Q269). The mood arm itself needs only `+0x3B9`, `+0x28A` and the turn gate, but
+only the action word decides which arm runs, and ours has no action table or single current-action field to read
+it from; the creature hover waits for that (W7.2). A special under the hand requests `0xE4` in
 its object category on three of every four turns; `OBJECT_SPECIAL` has no such group.

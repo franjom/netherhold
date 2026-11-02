@@ -22,7 +22,7 @@ public sealed class HandSoundTests
     }
 
     [Fact]
-    public void EnteringTheTagStateRequestsHandSoundECAtThePointerTwoTilesUp()
+    public void EnteringTheTagStateRequestsHandSoundECAtTheAssumedPointerWorldPositionTwoTilesUp_PositionStronglyInferred()
     {
         var feedback = new HandCursorFeedback();
         feedback.Play(HandCursorKind.Tag, 700, At(2.5, 3.5));
@@ -55,6 +55,20 @@ public sealed class HandSoundTests
     }
 
     [Fact]
+    public void AnyContextualRequestInsideTheFirstFourSlapFramesIsDropped()
+    {
+        // 0x0040E5AF never reads the requested state: a Tag request meets the same guard as a Slap.
+        var feedback = new HandCursorFeedback();
+        feedback.Play(HandCursorKind.Slap, 0, At(1, 1));
+        feedback.Play(HandCursorKind.Tag, 50, At(1, 1));   // frame 1
+        Assert.Empty(feedback.Sounds.Pending);
+        Assert.Equal(HandCursorKind.Slap, feedback.Resolve(HandCursorKind.Point, false, false, false, 60, At(1, 1)));
+
+        feedback.Play(HandCursorKind.Tag, 200, At(1, 1));  // frame 6: adopted
+        Assert.Equal(0xECu, Only(feedback).Id.Value);
+    }
+
+    [Fact]
     public void ATagWithNoPointerPositionPlaysNothing()
     {
         var feedback = new HandCursorFeedback();
@@ -63,7 +77,7 @@ public sealed class HandSoundTests
     }
 
     [Fact]
-    public void TheSlapSoundsOnceWhenTheSwingReachesFrameThreeAtThePointerThen()
+    public void TheSlapSoundsOnceWhenTheSwingReachesFrameThreeAtTheAssumedPointerWorldPosition_PositionStronglyInferred()
     {
         var feedback = new HandCursorFeedback();
         feedback.Play(HandCursorKind.Slap, 1000, At(1, 1));

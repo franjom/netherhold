@@ -134,14 +134,21 @@ public sealed class HandCursorFeedback
 
     public SoundRequests Sounds { get; } = new();
 
+    /// <summary>Clears the transient and the slap latch. Deviation: DK2 clears the latch only on a swing's
+    /// completion (<c>0x0040E5A1</c>); this also runs on focus loss and disable.</summary>
     public void Reset() { _transient = HandCursorKind.Default; _slapSounded = false; }
 
     /// <summary>Requests <paramref name="kind"/> as <c>0x0040ABC0</c> does. <paramref name="pointer"/> is
-    /// where the hand points, for the tag sound that entering its state requests.</summary>
+    /// where the hand points, for the tag sound that entering its state requests. The host calls it for a
+    /// tag only on a primary press with a Hand-tool drag; DK2's tag and untag also run from tool modes ours
+    /// has no way to reach.</summary>
     public void Play(HandCursorKind kind, long milliseconds, FpPosition2? pointer = null)
     {
-        // The slap callback adopts a new request only past frame 3; inside it the swing goes on (0x0040E5AF).
-        if (kind == HandCursorKind.Slap && _transient == HandCursorKind.Slap && FrameOf(milliseconds) <= SlapSoundFrame)
+        // The slap callback adopts a request only past frame 3 and never reads which state is asked for
+        // (0x0040E5AF), so a Tag request is dropped too. The drops go through the base channel, whose
+        // callback has no such guard, and keep replacing the slap here (ours has one transient).
+        if (kind is HandCursorKind.Slap or HandCursorKind.Tag && _transient == HandCursorKind.Slap
+            && FrameOf(milliseconds) <= SlapSoundFrame)
             return;
         _transient = kind;
         _startedAt = milliseconds;
