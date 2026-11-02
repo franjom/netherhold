@@ -282,3 +282,30 @@ the Saturday dance (section 8). `0x34B` has one sample in `room_portal`; `0x2E8`
 The workshop's requests do not test an effect's creation result, unlike the party's. Known differences from DK2: a keeper's captured
 builds replayed through `RoomLog` arrive as direct builds, so each tile sounds `0xF1` and there is no `0x2F8`; ours builds no thing-sound
 event while the event sink is the null sink.
+
+## 10. Imp jobs
+
+Read 2026-11-02 for plan Phase W4. Every request is a slot `+0x20` call with the imp's own handle (`+0x2E`, stored back),
+its definition's category (`+0x370`, `+0x6E3`) and its position (`+0x1A`), except the gold deposit. Counts are samples in the
+actual category's `SFX.map`.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| `0xC4`, handle 0, the gold object's category (id 1, `OBJECT_GOLD`, one sample) | [0x00466AC0](functions/00466AC0.md) at `0x00466B95`: after the deposit and the purse spend, when the room had any space, even for an empty purse; the object is `0x0050DB20(1)` ([record](functions/0050DB20.md)), category `+0x10E` | CONFIRMED | `ImpTaskSystem.TryPutDown` |
+| `0x10D`, the imp's handle | [0x0048B5F0](functions/0048B5F0.md) at `0x0048B687`: every update of a creature whose carried-thing word `+0x3C5` names a live thing, whatever it is (body, book, crate, Special, portal gem), after the steering step | CONFIRMED site; the order is STRONGLY INFERRED | `CarriedThingSoundSystem`, last in the creature update |
+| `0x10D` | [0x00467AA0](functions/00467AA0.md) at `0x00467B37`: state 41, the carried corpse, first thing in the handler, before the room tests | CONFIRMED | `ImpTaskSystem.UpdateCarryingBody`, corpse, once the walk has ended |
+| `0x326` | [0x00466CB0](functions/00466CB0.md) at `0x00466DC7` (state 31, a spell book taken by the Library) and [0x00466DF0](functions/00466DF0.md) at `0x00466F0B` (state 32, a crate taken by the Workshop), then state 10; state 33 (a Special) has none | CONFIRMED | the book arm of `UpdateCarryingObject`, `StoreCrate` |
+| `0x327`, `0x328` | [0x00467460](functions/00467460.md) at `0x00467575` (state 37, a door) and [0x004671B0](functions/004671B0.md) at `0x0046729F` (state 35, a trap): on the match, after the crate is consumed | CONFIRMED | `UpdateCarryingCrate` |
+| `0x33D` | [0x00497960](functions/00497960.md) at `0x00497A9A`: the reinforce action's handler, once the wall is done and the clip has completed or wrapped (`+0xF1 & 6`), on each call | CONFIRMED site | waits: ours has no clip for the reinforce action, its gate has no mirror |
+| `0x343`, `0x342` | [0x004651A0](functions/004651A0.md) at `0x004653B0` and [0x004653F0](functions/004653F0.md) at `0x0046547A`: the teleport's two halves | CONFIRMED sites | waits: the imp teleport is unbuilt (Q418) |
+
+`creature_imp` alone has `0x10D` (three samples), so only an imp's carrying sounds; every other carrier, and the portal gem's,
+is silent. `0x326` has two, `0x327` one, `0x328` two, `0x33D`, `0x342` and `0x343` one each, all in `creature_imp` only.
+A live handle retains an equal-priority request ([sound-playback.md](sound-playback.md)), so asking every update lets one
+sample play to its end; ours asks every update too and the player keeps it.
+
+The plan's `0x10C` question (`creature_imp` has three samples): no W4 site asks it. The one `0x10C` request site is
+`Tile_ApplyWork`'s terrain request (section 7). The creature action table's sound word (`+25`, [creature-action-table.md
+section 5](creature-action-table.md#5-the-25-word-is-a-sound-id-not-a-label)) is `0x10C` in record 8, the wall repair
+(states 23 and 24), which `CreatureAction_Begin` plays (W7.2): the imp's `0x10C` is most likely the repair action's sound
+(STRONGLY INFERRED; the table filler `0x004950C0` stores it at `0x00495378`), not reinforcing. Record 7, reinforce, has no word.

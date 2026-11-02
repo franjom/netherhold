@@ -45,6 +45,19 @@ public enum ThingSoundEvent : ushort
     /// <summary>The fallen keeper's heart tile, on the turn its consequences run (<c>0x004DAC38</c>); the
     /// same group as <see cref="TileBroken"/>, in the heart's category.</summary>
     HeartCollapsed = 0xF4,
+    /// <summary>An imp's gold put into a room (<c>ImpState29_DepositGold</c>, <c>0x00466B95</c>); the same
+    /// group as <see cref="Dropped"/>, in the gold object's category.</summary>
+    GoldDeposited = 0xC4,
+    /// <summary>A creature holds a thing in its arms (<c>Creature_UpdateCarriedThing</c>, <c>0x0048B687</c>;
+    /// the burial state <c>0x00467B37</c>).</summary>
+    CarriedThing = 0x10D,
+    /// <summary>An imp shelves a spell book (state 31, <c>0x00466DC7</c>) or stores a crate (state 32,
+    /// <c>0x00466F0B</c>).</summary>
+    ImpStoredItem = 0x326,
+    /// <summary>An imp installs a door (state 37, <c>0x00467575</c>).</summary>
+    ImpInstalledDoor = 0x327,
+    /// <summary>An imp installs a trap (state 35, <c>0x0046729F</c>).</summary>
+    ImpInstalledTrap = 0x328,
 }
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the
@@ -102,6 +115,18 @@ public static class ThingSoundRules
         ThingSoundEvent sound, FpPosition3 position) =>
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)),
             context.Database.CreatureById(creature.CreatureTypeId).SoundCategory, sound, position, voiced: false);
+
+    /// <summary>A creature's request with handle 0 in the category of an object definition
+    /// (<c>+0x10E</c>), at the creature's position: the imp's gold deposit asks the gold object's
+    /// (<c>0x00466B95</c>). Nothing is emitted for an object with no category.</summary>
+    public static void RequestInObjectCategory(SimulationContext context, string system, CreatureState creature,
+        byte objectTypeId, ThingSoundEvent sound)
+    {
+        string category = context.Database.ObjectById(objectTypeId)?.SoundCategory ?? "";
+        if (category.Length == 0) return;
+        Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)), category, sound,
+            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), voiced: false);
+    }
 
     public static void Request(SimulationContext context, string system, CreatureState creature, ThingSoundEvent sound) =>
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)),
