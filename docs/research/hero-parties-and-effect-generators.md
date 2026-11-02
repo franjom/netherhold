@@ -214,7 +214,8 @@ fields `+0x418` and `+0x417` they are copied to (Q258). A slot whose `CreatureId
     shipped member has exactly one of bit 1 (**leader**) and bit 2
     (**follower**). Member `Flags2` bit 0 → `DestroysRooms` (`+0x3EA` bit 7),
     bit 1 → `IsTool` (bit 8), bit 3 → `IsMercenary` (bit 9, mirrored at `+0xF0`),
-    bit 2 → `DieInstantly` (bit 11). Shipped `Flags2` values are 0, 1, 4, 5.
+    bit 2 → `DieInstantly` (bit 11). Shipped `Flags2` values are 0, 1, 4, 5. A placed hero's
+    `Flags2` goes through the same four setters (`0x00520460`, ADR-0636).
 11. **Trigger.** `0x0049A950(creature, TriggerId)` stores `TriggerRoot` and the
     record's repeat count at `+0x4F9`; a non-zero id arms that member's subtree;
     creature event **3** is fired (`0x0049AA30(creature, 3, 0, 0)`).

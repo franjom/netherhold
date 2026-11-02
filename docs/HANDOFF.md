@@ -195,7 +195,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326)
   and creatures fighting a revealed trap (scan D, ADR-0340) run; disarming is deferred under
   ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
-  (ADR-0341). Left: Q513 and the owner observations pending in
+  (ADR-0341). Left: Q732 (ours against the levelgen captures) and the owner observations pending in
   experiments/doors-and-traps.md.
 - Keeper spells (ADR-0350): Create Gold, Tremor, Turncoat, Summon Horny,
   OneShotReaper and Possession's simulation side are built, and Sight of Evil
@@ -377,7 +377,7 @@ tools/classic-unity-probe/README.md.
    10 seeds and grows Training in 0 of 10 (DK2: 12 -> 20 tiles), an open
    difference of ADR-0561. Compare with every computer keeper running and
    on the record's gold. Do not infer an UNKNOWN rule from a name.
-4. M7: Q513 and the owner observations in experiments/doors-and-traps.md.
+4. M7: Q732 (ours against the levelgen captures; a placed hero's Flags2 is built, ADR-0636) and the owner observations in experiments/doors-and-traps.md.
 5. Possession: the Unity first-person camera and input
    (plans/2026-10-12-possession-arms-build-plan.md); owner play questions are
    in possession-arms-and-inputs.md §4–5.
