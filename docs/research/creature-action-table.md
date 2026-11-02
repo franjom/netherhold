@@ -74,7 +74,8 @@ action 49 holds 30, block 30 is every portal creature's Entrance
 (`portal-creature-action.md`); action 41 holds 9, Angry (`0x00495C9C`, prison.md §6.3). The filler runs past `0x00495E00`: record 49 is
 written at `0x00495E0A`–`0x00495EBD`. Formerly a hypothesis from the shape only. Its range stops at `0x25`,
 and records 36, 37 and 38 share one handler (`0x00499300`) and differ only in
-this byte. Not tested, and not named on the strength of a shape.
+this byte. Not tested, and not named on the strength of a shape. The handler plays the Torture
+Wheel's and Electric Chair's sounds ([record](functions/00499300.md)).
 
 ## 4. Who starts what
 

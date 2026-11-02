@@ -86,6 +86,8 @@ public sealed class GameSimulation
             ScriptedView = request,
         });
         world.GameEnded = (player, status) => FinaleRules.OnVerdict(_context, player, status);
+        world.ObjectMade = thing => ObjectSoundRules.Made(_context, thing);
+        world.ObjectRemoving = thing => ObjectSoundRules.Removing(_context, thing);
     }
 
     /// <summary>Whether the list walks the trigger roots inside the turn (ADR-0568). A list that

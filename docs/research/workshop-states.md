@@ -72,7 +72,7 @@ distance (strict `<`, the second continuing from the first's best):
 (`0x004537E0`). None: `SetState(63)`; refused, return 0; taken, it goes on below anyway. Found:
 it turns toward it (`0x004B2AE0`) and returns 1 until it faces it. Then action 32 with count
 `random(7) + 6` (simulation stream, line `0xBC`; `0x004969D0`) and, if it starts, `SetState(65)`.
-Return 1. Action 32 (record `0x006E4538`): handler `0x00498D20` (an anvil sound, presentation),
+Return 1. Action 32 (record `0x006E4538`): handler `0x00498D20` (the anvil's sound `0x112`, once Gate A has passed; not built, [sound-effects-objects.md](sound-effects-objects.md#1-objects-and-specials)),
 art 22.
 
 **65** (`0x00470860`): it turns toward the target. The machine's process and effects are

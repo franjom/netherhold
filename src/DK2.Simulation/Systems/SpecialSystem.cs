@@ -17,6 +17,16 @@ public sealed class SpecialSystem : ISimulationSystem
     private const byte ReceiveImps = 124;
     private const byte LocateHiddenLand = 129;
     private const byte TransferCreature = 140;
+
+    /// <summary>The sound each arm ends with, in the special's own category with its handle (<c>0x004A42C0</c>,
+    /// <c>0x004A4980</c>, <c>0x004A4F70</c>); the transfer arm asks none, and the arms ours has not built never run.</summary>
+    private static ThingSoundEvent? SoundOf(byte objectTypeId) => objectTypeId switch
+    {
+        IncreaseLevel => ThingSoundEvent.SpecialIncreasedLevel,
+        ReceiveImps => ThingSoundEvent.SpecialReceivedImps,
+        LocateHiddenLand => ThingSoundEvent.SpecialLocatedHiddenLand,
+        _ => null,
+    };
     public string Name => "Special";
 
     public void Execute(SimulationContext context)
@@ -51,6 +61,7 @@ public sealed class SpecialSystem : ISimulationSystem
                     continue;
             }
 
+            if (SoundOf(item.ObjectTypeId) is { } sound) ThingSoundRules.Request(context, Name, item, sound);
             context.World.RemoveObject(item.Id);
             context.World.Player(command.PlayerId).Statistics.SpecialsFound++; // 0x004A3FE6
             context.Emit(Name, "special_activated",

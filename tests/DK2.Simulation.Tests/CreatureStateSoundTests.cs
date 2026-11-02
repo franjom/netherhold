@@ -175,7 +175,7 @@ public sealed class CreatureStateSoundTests
 
         Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
         ThingSoundRequest[] heard = Sounds(sink);
-        Assert.Equal(2, heard.Length);
+        Assert.Equal(3, heard.Length);   // and the bird's deletion asks its own F4 (ObjectSoundTests)
         Assert.Equal(ThingSoundEvent.ChickenEaten, heard[0].Event);
         Assert.Equal((ushort)0x111, (ushort)heard[0].Event);
         Assert.Equal("OBJECT_CHICKEN", heard[0].Category);
@@ -189,5 +189,7 @@ public sealed class CreatureStateSoundTests
         Assert.Equal(SoundSourceId.Of(new CreatureId(goblin.Id)), heard[1].Source);
         Assert.Equal(At(goblin), heard[1].Position);
         Assert.True(heard[1].Voiced);
+
+        Assert.Equal((ThingSoundEvent.ObjectRemoved, "OBJECT_CHICKEN", heard[0].Source), (heard[2].Event, heard[2].Category, heard[2].Source));
     }
 }

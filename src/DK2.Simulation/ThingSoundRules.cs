@@ -101,6 +101,20 @@ public enum ThingSoundEvent : ushort
     WageTaken = 0xC3,
     /// <summary>The creature that ate it (<c>0x0046398D</c>).</summary>
     Ate = 0xCD,
+    /// <summary>An object is made (<c>Object_Init</c>, <c>0x0049B4C8</c>), with the object's first handle.</summary>
+    ObjectMade = 0xF1,
+    /// <summary>The same, with its second handle (<c>0x0049B4ED</c>).</summary>
+    ObjectMadeSecond = 0xF2,
+    /// <summary>An object is deleted (<c>Object_OnDelete</c>, <c>0x0049B691</c>).</summary>
+    ObjectRemoved = 0xF4,
+    /// <summary>A Training Dummy begins its struck spin (<c>ObjectState18_Struck</c>, <c>0x004A14F2</c>).</summary>
+    StruckDummy = 0x311,
+    /// <summary>The Increase Level special is used (<c>0x004A42C0</c>).</summary>
+    SpecialIncreasedLevel = 0x80,
+    /// <summary>The Receive Imps special is used (<c>0x004A4980</c>).</summary>
+    SpecialReceivedImps = 0x8B,
+    /// <summary>The Locate Hidden Land special is used (<c>0x004A4F70</c>).</summary>
+    SpecialLocatedHiddenLand = 0x8F,
 }
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the
@@ -125,6 +139,7 @@ public static class ThingSoundRules
     public static void Request(SimulationContext context, string system, ObjectState thing, ThingSoundEvent sound,
         FpPosition3? at = null)
     {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         string category = context.Database.ObjectById(thing.ObjectTypeId)?.SoundCategory ?? "";
         if (category.Length == 0) return;
         if (at is not FpPosition3 point)
