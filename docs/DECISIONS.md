@@ -14728,3 +14728,27 @@ update, so with two keepers its order may be angle, angle, heading, heading (unr
 A free imp spends its fall in 214, then 11 and 10, before choosing work. The test fixtures'
 Heart sits in a claimed 5 by 5, as a shipped Heart does. Whether the fall is Q149's 1.4 s is
 unmeasured.
+
+## ADR-0636: a placed hero takes its record's Flags2
+
+**Date:** 2026-11-02. **Status:** accepted. Builds part of Q732; hash/save 381.
+
+**Context.** `Level_LoadGoodCreature` (`0x00520460`) hands a placed hero's Flags2 byte (record
+`+0x53`) to the setters the party spawn uses: bit 0 to `0x0048E090` (DestroysRooms), bit 1 to
+`0x0048E0B0` (IsTool), bit 3 to `0x0048E0D0` (IsMercenary, the data's name; the setter also
+writes the unique-texture selector `+0xF0`), bit 2 to `0x0048E140`
+(DieInstantly, `+0x3EA` bit 11). The health routine (`0x004B2CE0`) skips the collapse for a
+DieInstantly creature attached to no room (`creature-death.md`). Ours copied these bits for
+party members only (`HeroPartyRules`), so every placed hero collapsed. Watched 2026-11-02
+(level `M7Q729`): one of Secret4's placed Dwarves, Flags2 4, attached to no room (`+0x3B9` 0)
+with `+0x3EA` bit 11 set (both read from the capture), went from 1000 to -147 health under a
+Bile Demon's blow and left a body that turn, never dying; ours put the same Dwarf in 216.
+
+**Decision.** `ThingProjection` sets the four flags from a `GoodCreatureThing`'s Flags2 as
+`HeroPartyRules` does for a member.
+
+**Consequences.** The shipped placed heroes carry Flags2 0 to 4 (levelgen `show`, all 66 levels):
+the 46 with bit 2, in 11 levels (27 in Secret2, 9 in Secret4), now die outright when no room
+holds them, so ours can no longer imprison or rescue them either. DestroysRooms (bit 0, 110
+heroes) and IsTool (bit 1, 67) now reach placed heroes too; no placed hero sets bit 3. Those
+two bits' effects on placed heroes are not watched.

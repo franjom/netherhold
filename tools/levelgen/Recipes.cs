@@ -73,10 +73,14 @@ public static class Recipes
             b => M7TrapFights(b, Zone.Boulders | Zone.KeeperBoulder | Zone.OwnBoulder)),
         new("M7Q729", "Secret4", "M7TrapFights6's Q729 Prison and fight alone.",
             b => M7TrapFights(b, Zone.Prison | Zone.KeeperBoulder | Zone.OwnBoulder)),
+        new("M7Q729b", "Secret4",
+            "M7Q729 with the captive's Flags2 bit 2 (DieInstantly, +0x3EA bit 11) cleared: Secret4 places its Dwarves with "
+            + "Flags2 4, so M7Q729's was killed outright by its first lethal blow (2026-11-02) and never collapsed.",
+            b => M7TrapFights(b, Zone.Prison | Zone.KeeperBoulder | Zone.OwnBoulder | Zone.Capturable)),
     ];
 
     [Flags]
-    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8, PlacedHealth = 16, NoDirtBoulder = 32, KeeperBoulder = 64, OwnBoulder = 128 }
+    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8, PlacedHealth = 16, NoDirtBoulder = 32, KeeperBoulder = 64, OwnBoulder = 128, Capturable = 256 }
 
     private static string BaseOf(LevelBuilder b) => b.BaseName;
 
@@ -256,6 +260,9 @@ public static class Recipes
                     b.EditThing<GoodCreatureThing>(i, r => zones.HasFlag(Zone.PlacedHealth)
                         ? r with { X = x, Y = y, Level = level }
                         : r with { X = x, Y = y, Level = level, InitialHealth = 100 });
+                    // Flags2 bit 2 is DieInstantly (creature-death.md): the captive must collapse to be carried
+                    if (zones.HasFlag(Zone.Capturable) && (x, y) == (14, 31))
+                        b.EditThing<GoodCreatureThing>(i, r => r with { Flags2 = (byte)(r.Flags2 & ~4) });
                     points[g.ObjectiveTargetActionPointId] = (x, y);
                     break;
                 case GoodCreatureThing: b.RemoveThing(i); break;

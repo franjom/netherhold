@@ -346,6 +346,30 @@ and one level-1 Goblin (1500 health) of the keeper's. Capture: `F:\DK2Evidence\s
   fear won. Whether ours does the same in this setup has not been checked.
 - Trap health recovers slowly: a damaged Sentry rose about 30 every few turns.
 
+Levels `M7Q362` and `M7Q513a` (2026-11-02), one check each, read by `tools/levelgen/m7trapfights_report.py`.
+Capture: `F:\DK2Evidence\studies\m7trapfights--2026-11-02--001\payload\scenarios`. Every build of these
+keeps a keeper Boulder trap sealed away: Secret4's trigger 4 (type 28) loses the level when the keeper owns none.
+
+- **Brave creatures swing (Q362):** a level-10 Black Knight, Bile Demon and Vampire, each 4 tiles from a Hero
+  Sentry, were hit on turn 7 (−250), took the trap as their target (`+0x502`) within two turns, walked to it
+  in state 8 and fought it in 199 until it was gone (Vampire turn 25, Knight 37, Bile Demon 52), then idled.
+  CONFIRMED (observed): ADR-0340's attack on a revealed trap. Ours does the same in the same setup;
+  its timings differ (Q732).
+- **A hero trap on neutral ground never exists (Q513a):** the hero Boulder trap placed on a Neutral Dirt Path
+  at (3,4) was missing from the first captured turn, and that corridor's Troll never fought. The one on hero
+  Claimed Path at (7,4) fired at its Troll on turn 8; the boulder appeared on turn 9 as the one-shot trap went,
+  struck the Troll on turn 12 (1000 → 500, stunned 256) and it was dying (216, health 240) on turn 13.
+  CONFIRMED (observed), as §13 predicts for Level 20's (12,5). Ours also drops the neutral one (Q732 for the rest).
+
+*Ours against these* (a one-off scenario run, same levels; turns are each run's own, so a one-turn offset may be
+the harness's), Q732:
+- Ours starts both Trolls *en route* (8) on turn 1; DK2's idle (89, 3, 87, 1) until a trap is seen, and its x 7
+  Troll goes to 8 only on turn 8, its target the trap.
+- Ours' x 3 Troll fights (199) on turn 2 though its corridor's only trap never exists; DK2's never fights.
+- The boulder-struck Troll: DK2's goes 256 → 216 at health 240 the next turn; ours 256 → 257 → health 0 in 250 → 216.
+- `M7Q362`: DK2's Sentries hit all three creatures on turn 7; ours' Black Knight is first hit on turn 27, and
+  the Sentries fall Knight 31, Vampire 32, Bile Demon 37 against DK2's Vampire 25, Knight 37, Bile Demon 52.
+
 ## Built (ADR-0321) and left
 
 Built: §2's fields; §3 steps 2, 3, 4, 5 (ADR-0330), 6 (the turn), 7, 9, 10, 12; §4; §5 with the tile chain
