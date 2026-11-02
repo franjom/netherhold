@@ -59,7 +59,7 @@ public class CombatApproachTests
         Assert.Equal(CreatureActivity.Fighting, goblin.Activity);
         Assert.True(goblin.Approaching, "state 8 entered");
         Assert.Contains(sink.Events, e => e.Kind == "approaches" && e.Detail.Contains("creature=" + goblin.Id));
-        Assert.Single(sink.Events, e => e.CreatureSound is { } sound && sound.Creature.Value == goblin.Id && (ushort)sound.Event == 214);
+        Assert.Single(sink.Events, e => e.ThingSound is { } sound && sound.Source == SoundSourceId.Of(new CreatureId(goblin.Id)) && (ushort)sound.Event == 214);
 
         // The route is refreshed at the tenth handler call though the target has not moved a step.
         sim.Run(10);
@@ -70,7 +70,7 @@ public class CombatApproachTests
         Assert.False(goblin.Approaching, "in reach, spFighting swings");
         Assert.Contains(sink.Events, e => e.Kind == "approach_ends" && e.Detail.Contains("reason=in_reach"));
         Assert.True(statue.Health < 1500, "a blow landed");
-        Assert.Single(sink.Events, e => e.CreatureSound is { } sound && sound.Creature.Value == goblin.Id && (ushort)sound.Event == 214);
+        Assert.Single(sink.Events, e => e.ThingSound is { } sound && sound.Source == SoundSourceId.Of(new CreatureId(goblin.Id)) && (ushort)sound.Event == 214);
     }
 
     [Fact]
@@ -87,7 +87,29 @@ public class CombatApproachTests
         StatePlacement.As(fighter, CreatureActivity.Fighting);
         fighter.StopMoving();
         sim.Tick();
-        Assert.Equal(2, events.Events.Count(e => e.CreatureSound is { } sound && sound.Creature.Value == fighter.Id && (ushort)sound.Event == 214));
+        Assert.Equal(2, events.Events.Count(e => e.ThingSound is { } sound && sound.Source == SoundSourceId.Of(new CreatureId(fighter.Id)) && (ushort)sound.Event == 214));
+    }
+
+    /// <summary>Sound is observation only: a run that emits a battle call to a sink ends on the
+    /// same hash as the same run with nobody listening.</summary>
+    [Fact]
+    public void ListeningForSoundsLeavesTheHashAlone()
+    {
+        GameSimulation Approach()
+        {
+            var (db, world) = OpenWorld();
+            Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 3, 10);
+            Frozen(Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 10));
+            return Sim(db, world);
+        }
+        GameSimulation quiet = Approach();
+        GameSimulation heard = Approach();
+        var events = new ListEventSink();
+        heard.ObserveWith(events);
+        quiet.Run(60);
+        heard.Run(60);
+        Assert.Contains(events.Events, e => e.ThingSound?.Event == ThingSoundEvent.BattleCall);
+        Assert.Equal(quiet.StateHash(), heard.StateHash());
     }
 
     [Fact]
@@ -102,7 +124,7 @@ public class CombatApproachTests
         sim.ObserveWith(events);
         sim.Run(30);
         Assert.True(target.Health < 1500);
-        Assert.DoesNotContain(events.Events, e => e.CreatureSound is { } sound && sound.Creature.Value == fighter.Id && (ushort)sound.Event == 214);
+        Assert.DoesNotContain(events.Events, e => e.ThingSound is { } sound && sound.Source == SoundSourceId.Of(new CreatureId(fighter.Id)) && (ushort)sound.Event == 214);
     }
 
     /// <summary>A target on the fighter's own tile, out of reach, is walked to: DK2's route within

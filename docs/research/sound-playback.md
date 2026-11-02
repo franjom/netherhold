@@ -48,8 +48,10 @@ above. Regression tests cover both ownership transfers and the inclusive battle 
 `MusicWorldObserver.Battles` exposes eight read-only snapshots with typed slots, tile centres,
 owner masks and member counts for presentation consumers; it never writes world state.
 
-Creature sound requests share this playback path; the battle-call trigger and
-its acceptance limits are in [combat-fight-state.md section 9](combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
+World sound requests share this playback path: `ThingSoundRules` emits `SimEvent.ThingSound`, `WorldSoundDirector` gives each thing one voice
+(`0x80000000 | kind<<24 | id`) and places it at the view's `(x, height, -y)`, and `ClassicSoundPlayer.Play` applies the frequent-event throttle
+([sound-effects.md section 4](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets)) before resolving. Only creature events exist so far;
+the battle-call trigger and its acceptance limits are in [combat-fight-state.md section 9](combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
 
 ## Category choice presses
 

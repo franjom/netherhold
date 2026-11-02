@@ -13,7 +13,7 @@ namespace DK2.Unity
     public sealed partial class DungeonRunner
     {
         private ClassicSoundPlayer _soundPlayer;
-        private CreatureSoundDirector _creatureSounds;
+        private WorldSoundDirector _worldSounds;
         public ClassicSoundPlayer SoundPlayer => _soundPlayer;
         private readonly MusicDirector _musicDirector = new MusicDirector();
         private MusicWorldObserver _musicObserver;
@@ -23,7 +23,8 @@ namespace DK2.Unity
         private void UpdateWorldSound(WorldState world, GameDatabase database)
         {
             if (_musicObserver == null || _soundPlayer == null) return;
-            while (_creatureSounds != null && _creatureSounds.TryTake(out SoundRequest sound)) _soundPlayer.Play(sound);
+            while (_worldSounds != null && _worldSounds.TryTake(out SoundRequest sound)) _soundPlayer.Play(sound);
+            _soundPlayer.UpdateThrottle();
             SoundRequest? speech = _soundPlayer.CurrentSpeech;
             SpeechLineId? line = speech.HasValue && speech.Value.Subtitle && speech.Value.Category == _levelSpeechCategory
                 ? new SpeechLineId((int)speech.Value.Id.Value - 1) : (SpeechLineId?)null;

@@ -87,7 +87,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [Earlier diagnosis](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31);
   the matched [366-370 comparison](research/fight-scan-initial-phase.md#death-scores-and-level-4-comparison-limit) is limited by [Q714](research/resync-replay.md#heart-and-terminal-state-restoration-q714).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
-  combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
+  combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31); world-sound foundation (W1 built, owner hearing pending) and the rest of the sound sites: [plan](plans/2026-10-31-world-sounds.md). A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
   DK2's do, with the hated-company rule (ADR-0479); the store sweep runs on
   DK2's turn (Q596). The stun counts from its first call (ADR-0480). Only a
