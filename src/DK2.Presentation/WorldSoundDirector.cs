@@ -11,6 +11,7 @@ namespace DK2.Presentation;
 
 /// <summary>Turns the simulation's thing sounds into sound requests. Each thing has one voice:
 /// bit 31 set, its kind in bits 24-30 and its id below, so creature 42 stays <c>0x8000002A</c>.
+/// A request DK2 makes with handle 0 (<see cref="ThingSoundRequest.Voiced"/> false) has none.
 /// Positions are in the view's space, <c>DungeonScene.Ground</c>'s (x, height, -y) in tiles.</summary>
 public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null) : ISimulationEventSink
 {
@@ -21,7 +22,7 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null) 
         if (simEvent.ThingSound is { } sound && !string.IsNullOrEmpty(sound.Category))
             _pending.Enqueue(new(new SoundCategory(sound.Category.ToLowerInvariant()), new SoundId((uint)sound.Event),
                 new Vector3(sound.Position.X.Raw / 4096f, sound.Position.Z.Raw / 4096f, -sound.Position.Y.Raw / 4096f),
-                VoiceOf(sound.Source)));
+                sound.Voiced ? VoiceOf(sound.Source) : SoundVoiceId.None));
         downstream?.Emit(simEvent);
     }
 

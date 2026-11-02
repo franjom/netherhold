@@ -920,13 +920,16 @@ namespace DK2.Unity
                 snapshot = snapshot.ForHover(ResolveWorldHover(at));
             InputFrame frame = _input.Translate(intent, snapshot);
             long nowMs = (long)(Time.unscaledTimeAsDouble * 1000);
+            FpPosition2? pointed = intent.PointerPosition ?? (tile is TilePos centred
+                ? new FpPosition2(new Fp32(CreatureState.CentreOf(centred.X)), new Fp32(CreatureState.CentreOf(centred.Y)))
+                : (FpPosition2?)null);
             if ((button & PointerButtonTransition.Pressed) != 0 && _input.DragFrom(PlayerToolMode.Hand) != null)
-                _cursorFeedback.Play(HandCursorKind.Tag, nowMs);
+                _cursorFeedback.Play(HandCursorKind.Tag, nowMs, pointed);
 
             foreach (PlayerCommand command in frame.All)
             {
                 _pendingCommands.Add(command);
-                if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs);
+                if (command is DK2.Simulation.Commands.SlapCreatureCommand) _cursorFeedback.Play(HandCursorKind.Slap, nowMs, pointed);
                 if (command is DK2.Simulation.Commands.TagTilesCommand tag)
                     _worldView.QueueTagPreview(tag, _simulation.World.CurrentTick.Next);
                 if (command is DK2.Simulation.Commands.PickUpCreatureCommand pickup)
@@ -1425,6 +1428,8 @@ namespace DK2.Unity
             {
                 WorldState world = _simulation.World;
                 _debugHoverTile = tile;
+                _pointerWorld = ScreenToPosition(mouse, tile) ?? new FpPosition2(
+                    new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
                 WorldHoverHit hit = ResolveWorldHover(tile);
                 AimHandLight(world, tile, hit);
                 {
@@ -1478,8 +1483,11 @@ namespace DK2.Unity
                     placement = new PlacementFeedback(null, false, over.Price, over.Icon, true, over.Affordable, over.SpellId);
             }
             bool holding = _simulation.World.Player(new PlayerId((byte)viewingPlayerId)).Hand.Count != 0;
+            long cursorMs = (long)(Time.unscaledTimeAsDouble * 1000);
             if (ActiveTool == PlayerToolMode.Hand && !_queryTool && !HudModal)
-                cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), (long)(Time.unscaledTimeAsDouble * 1000));
+                cursor = _cursorFeedback.Resolve(cursor, holding, HoldingGold(), Input.GetMouseButton(0), cursorMs, _pointerWorld);
+            else _cursorFeedback.Advance(cursorMs, _pointerWorld);
+            if (_soundPlayer != null) _soundPlayer.Play(_cursorFeedback.Sounds); else _cursorFeedback.Sounds.Clear();
             _handCursor?.Update(cursor, allowed, Time.unscaledTimeAsDouble);
             Vector2 pointerGui = new Vector2(mouse.x, Screen.height - mouse.y);
             _handCursor?.Draw(pointerGui);

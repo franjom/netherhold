@@ -92,9 +92,9 @@ These run in cursor and hand code, so they are emitted in `DK2.Presentation` (`H
 | `0xCA`/`0xCB`/`0xCC`, variable | creature | `0x0040C446`/`0x0040C414`/`0x0040C3E2`/`0x0040C371` (`Hand_UpdateHoverTarget_LIKELY`) | hovering over a creature |
 | `0xE4` | object | `0x0040C50F` | hovering over an object (*silent?*) |
 
-**Research first:** whether untagging goes through `0x0040E300` too (read the tag state table, hand-cursor-rendering.md); what selects the variable event at `0x0040C371`; the slap latch's reset.
+**Research first (answered 2026-11-02, [sound-effects.md section 6](../research/sound-effects.md#6-the-hand-and-its-cursor)):** untagging enters the same state 5, and `0xEC` sounds on the *press* that starts a tag or untag drag, not on completion; the variable event at `0x0040C371` is the current action record's `+0x19` word, with `0xCA`/`0xCB`/`0xCC` by mood class only for a creature in no room when no sounding action runs; the slap latch is cleared only when the swing completes.
 
-**Files:** `HandCursor.cs`/`PlayerInput.cs` emit; tests in `DK2.Presentation.Tests` (`HandSoundTests.cs`): one `0xEC` per completed tag, at the cursor; slap once per latch.
+**Result:** tag `0xEC` and slap `0xC5` (hand) built in `HandCursorFeedback`; creature and object `0xC3`/`0xC4` built in `HandSystem` as `ThingSound` events (simulation, not presentation: `Hand_Drop` and the lift functions are the mirrored functions); object slap `0xC5` and object hover `0xE4` are silent (no object category has the group); the nonpositional `0xEC` is silent; creature hover waits for the creature action table (W7.2). Tests: `HandSoundTests` in `DK2.Presentation.Tests` and `DK2.Simulation.Tests`.
 
 **Commit:** `sound: the hand's tag, slap, pick-up, drop and hover sounds`.
 
@@ -235,7 +235,7 @@ Not world sounds, but found unwired by the same scan: cheat entry `0x133`; icon 
 | Phase | Commit | Tests | Owner heard it |
 |---|---|---|---|
 | W1 Foundation | `5950dc09`, `14fe94e6`, `d8b71e07`, `07318061` | `WorldSoundTests`, `SoundThrottleTests` (`DK2.Presentation.Tests`), `CombatApproachTests.ListeningForSoundsLeavesTheHashAlone`; full gate green | [ ] |
-| W2 Hand and cursor | | | [ ] |
+| W2 Hand and cursor | see `git log` for `sound: the hand's` | `HandSoundTests` (`DK2.Presentation.Tests`, `DK2.Simulation.Tests`), `WorldSoundTests`, `ObjectsOnRealDataTests.ObjectSoundCategoriesAreTheShippedNames`; creature hover waits (W7.2) | [ ] |
 | W3 Terrain and rooms | | | [ ] |
 | W4 Imps and creature states | | | [ ] |
 | W5 Objects, doors, traps | | | [ ] |

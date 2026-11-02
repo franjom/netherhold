@@ -42,6 +42,8 @@ namespace DK2.Unity
         private KeeperResourceSnapshot _resourceHoverFacts;
         private HoverTextSnapshot _resourceHover;
         private readonly HandCursorFeedback _cursorFeedback = new HandCursorFeedback();
+        // Where the hand points in the world (interface +0x1078/+0x107C): the last pick, kept while the pointer is over the HUD.
+        private FpPosition2? _pointerWorld;
         private ClassicCreatureQuery _creatureQuery;
         private ClassicCreatureQueryPanel _queryPanel;
         private CreatureQueryTarget _queryTarget;

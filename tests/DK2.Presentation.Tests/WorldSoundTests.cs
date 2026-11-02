@@ -43,6 +43,18 @@ public sealed class WorldSoundTests
     }
 
     [Fact]
+    public void ARequestDK2MakesWithHandleZeroCarriesNoVoice()
+    {
+        var director = new WorldSoundDirector();
+        var request = new ThingSoundRequest(SoundSourceId.Of(new CreatureId(5)), "CREATURE_IMP", (ThingSoundEvent)0xC3,
+            new(new Fp32(4096), new Fp32(8192), new Fp32(4096)), Voiced: false);
+        director.Emit(new SimEvent(default, "test", "thing_sound", "") { ThingSound = request });
+        Assert.True(director.TryTake(out var sound));
+        Assert.Equal(SoundVoiceId.None, sound.Voice);
+        Assert.Equal(new Vector3(1, 1, -2), sound.World);
+    }
+
+    [Fact]
     public void ARequestWithoutACategoryPlaysNothing()
     {
         var director = new WorldSoundDirector();

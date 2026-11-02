@@ -630,7 +630,7 @@ internal static class Dk2TerrainFixture
         // mistake. All three share the TypeGold bit, so IsPile answers yes to
         // all three -- which is the flag doing the work rather than the id, and
         // is why the rules that pick one name it outright.
-        GoldObject(FloorGold.FloorGoldObjectId, "Gold", 0x00810140u, 0, 256, 1228),
+        GoldObject(FloorGold.FloorGoldObjectId, "Gold", 0x00810140u, 0, 256, 1228) with { SoundCategory = "OBJECT_GOLD" },
         GoldObject(2, "Gold Bag", 0x00810140u, 1, 585, 1228),
         GoldObject(FloorGold.TreasuryPileObjectId, "Gold Pile 1", 0x00014140u, 1, 1085, 1068, idleEffect: 34),
     ];
@@ -792,6 +792,7 @@ internal static class Dk2TerrainFixture
     public static CreatureDef Imp() => new()
     {
         Name = "Imp",
+        SoundCategory = "CREATURE_IMP",
         CreatureId = ImpCreatureId,
         Flags = (CreatureFlags)0xB000089Fu,
 
@@ -897,6 +898,7 @@ internal static class Dk2TerrainFixture
     public static CreatureDef Goblin() => Imp() with
     {
         Name = "Goblin",
+        SoundCategory = "CREATURE_GOBLIN",
         CreatureId = GoblinCreatureId,
         // Synthetic timing for the training action; original assets are not required by this fixture.
         ArtSlots = Enumerable.Range(0, CreatureDef.ArtSlotCount).Select(slot => slot == 5

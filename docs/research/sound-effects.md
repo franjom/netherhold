@@ -110,3 +110,68 @@ footsteps per 200 ms window is likewise not established as native.
 
 The native flag/parameter contract is canonical in
 [music.md section 5.1](music.md#51-native-group-flag-consumers-2026-10-29).
+
+## 6. The hand and its cursor
+
+Read 2026-11-02 for plan Phase W2 ([world-sounds plan](../plans/2026-10-31-world-sounds.md)).
+Every request is one slot `+0x20` call (positional) at the site named; the category is the
+requester's definition, so a row is silent when no shipped `SFX.map` of that category has the
+group with samples (checked across every non-speech category).
+
+**The pointer position (STRONGLY INFERRED).** Interface `+0x1068` is the pick record
+[0x005992B0](functions/005992B0.md) fills: `+0x0/+0x4` the pointer, `+0x8/+0xC` the tile,
+`+0x10/+0x14` the world X/Y (12.12, clamped to the map), `+0x1C` the hit kind, `+0x20` its id.
+So `+0x1078/+0x107C` is the pointer's world position, and the hand's requests use it with height
+`0x2000` (2.0 tiles). The hand category is the name `HAND` ([0x00567240](functions/00567240.md));
+ours is `hand`.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| HAND `0xEC`, positional | state 5 callback [0x0040E300](functions/0040E300.md), entry event | CONFIRMED | `HandCursorFeedback.Play(Tag)` |
+| `0xEC`, nonpositional, definition category | same callback | silent: only `hand` has the group | nothing |
+| HAND `0xC5`, positional | state 11 callback [0x0040E520](functions/0040E520.md), frame 3, latch | CONFIRMED | `HandCursorFeedback.Advance` |
+| creature `0xC3` | [0x004BFBD0](functions/004BFBD0.md), handle 0 | CONFIRMED | `HandSystem.PickUp` |
+| object `0xC3` | [0x004C0CB0](functions/004C0CB0.md), the object's handle | CONFIRMED | `HandSystem.PickUpObject`, `PickUpStoreGold` |
+| creature, object `0xC4` | [0x004BC710](functions/004BC710.md) | CONFIRMED | `HandSystem.Drop`, `DropObject` |
+| object `0xC5` | [0x0049C2A0](functions/0049C2A0.md) | silent | nothing |
+| creature `0xCA`/`0xCB`/`0xCC`/variable | [0x0040C290](functions/0040C290.md), kind 2 | CONFIRMED, not built | waits for the action table |
+| object `0xE4` | same, kind 4, a special | silent | nothing |
+
+**Tag (`0xEC`).** State 5 is requested through [0x0040ABC0](functions/0040ABC0.md) by two arms of
+[Hand_Click](functions/004075E0.md): tool modes 0 and 3, on a press whose target is a tile with the
+Taggable flag (and interface `+0x13CF` zero, or the tile's terrain word `+0x185` zero). The same arms
+start the drag (`+0x13DB` = 1, `+0x13F0` = 1, or 2 when the click record's flag bit 1 is set) and the
+tag or untag command (`0x28`/`0x29`) is posted at release, so the sound is on the **press**, once per
+drag, tag and untag alike, not on completion. The state's callback receives event 0 (adopt), then
+event 1 (the sound); event 2 (completion, one frame at 30 a second) moves it to state 6, which has no
+sound. No other call of `0x0040ABC0` pushes the literal 5.
+
+**Slap (`0xC5`).** State 11 (Slap, 15 frames at 30 a second) is requested by
+[0x00408EE0](functions/00408EE0.md) on an empty-handed right press over a creature the hand may slap
+(own or another's, the latter only when it may be picked up), a slappable object (definition flag
+`0x200`) or a trap whose definition byte `+0xBC` is `0x24` (and whose `+0x10C` bit 5 is clear). Callback event 3, run on every channel update before the
+completion test, sounds once when the frame is at least 3 and byte `0x006CE95C` is zero, then sets
+it; event 2 (completion) clears it. A request that arrives while the swing is at frame 3 or less is
+ignored; one after frame 3 restarts the swing and leaves the latch set, so it plays no second sound
+until a swing completes. Ours builds the creature case (`SlapCreatureCommand`); the object and trap
+slaps have no command yet.
+
+**Lift and drop.** The creature lift sound ends the pick-up preparation, so it plays for a creature
+that is or becomes state 75 even when the hand is full, and not when state 75 is refused. Creature
+`0xC3` and `0xC4` pass handle 0, so they neither use nor replace the creature's own voice; the object
+requests pass the object's handle. A drop sounds at the supplied position for any thing, including AI
+drops. Of the 145 shipped objects only object 1 (`OBJECT_GOLD`) has samples for either (one each);
+the treasury pile (object 3), gold bags and most others have an empty category, the chicken's has no
+group. A store's pile is object 3, so lifting store gold is silent.
+
+**Hover.** [0x0040C290](functions/0040C290.md) runs from the interface's per-update pointer refresh
+(`0x00403D78`) and from every pointer event ([0x00406530](functions/00406530.md)). For a hover kind 2
+(the viewer's own hoverable creature; kind 3, another's, is silent) it requests, with the creature's
+handle, only on game turns that are a multiple of 3 times the tick rate (container `+8`, 4): the
+event is the current action record's sound word ([creature-action-table.md
+section 5](creature-action-table.md#5-the-25-word-is-a-sound-id-not-a-label)) when an action is running
+(`+0x3A9` neither 0 nor 21) and the word is nonzero, otherwise, while the creature is in no room
+(`+0x3B9` zero), `0xCA`, `0xCB` or `0xCC` by mood class `+0x28A` (Happy, Unhappy, Angry; Q269). Ours has
+no action table and no single current-action field, so the choice between the branches cannot be
+made faithfully; the creature hover waits for it (W7.2). A special under the hand requests `0xE4` in
+its object category on three of every four turns; `OBJECT_SPECIAL` has no such group.

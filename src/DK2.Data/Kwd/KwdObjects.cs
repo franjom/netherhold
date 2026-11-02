@@ -20,13 +20,14 @@ namespace DK2.Data.Kwd;
 /// Evidence: docs/research/objects.md §§1-2.</para>
 /// <para>Deliberately not read, all presentation or unexplained: the nine art
 /// resource visuals, <c>material</c>, the three unknown bytes at 0x341, two of the
-/// three effect ids (0x358 is <see cref="ObjectDef.IdleEffectId"/>), the sound category.</para></remarks>
+/// three effect ids (0x358 is <see cref="ObjectDef.IdleEffectId"/>).</para></remarks>
 public static class KwdObjects
 {
     public static byte[] WriteRecord(ObjectDef record, KwdRecordImage template)
     {
         byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Objects, RecordSize);
         KwdOverlay.Ascii(bytes, OffsetName, 32, record.Name, Name(bytes, OffsetName), trimmed: true);
+        KwdOverlay.Ascii(bytes, OffsetSoundCategory, 32, record.SoundCategory, Name(bytes, OffsetSoundCategory), trimmed: true);
         void Fp(int offset, Fp32 value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value.Raw);
         void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
         bytes[OffsetObjectId] = record.ObjectId;
@@ -82,6 +83,7 @@ public static class KwdObjects
     private const int OffsetStartState = 0x35B;
     private const int OffsetRoomCapacity = 0x35C;
     private const int OffsetPickUpPriority = 0x35D;
+    private const int OffsetSoundCategory = 0x35E;
 
     public static List<ObjectDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -137,6 +139,7 @@ public static class KwdObjects
             IdleEffectId = U16(OffsetIdleEffect),
             DeathEffectId = U16(OffsetDeathEffect),
             PickUpPriority = rec[b + OffsetPickUpPriority],
+            SoundCategory = Name(rec, b + OffsetSoundCategory),
 
             Width = Fp(OffsetWidth),
             Height = Fp(OffsetHeight),

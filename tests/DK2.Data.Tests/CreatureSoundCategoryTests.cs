@@ -22,4 +22,18 @@ public sealed class CreatureSoundCategoryTests
         byte[] edited = KwdCreatures.WriteRecord(creature with { SoundCategory = "CREATURE_TROLL" }, template);
         Assert.Equal("CREATURE_TROLL", Assert.Single(KwdCreatures.Parse([chunk with { Content = edited }])).SoundCategory);
     }
+
+    [Fact]
+    public void ObjectSoundCategoryReadsAndWritesAtFileByte0x35E()
+    {
+        byte[] source = new byte[894];
+        source[0x35A] = 1;
+        Encoding.ASCII.GetBytes("OBJECT_GOLD").CopyTo(source, 0x35E);
+        var chunk = new KwdChunk { Type = KwdRecordType.Objects, ItemCount = 1, Content = source, HeaderBlock = [] };
+        var gold = Assert.Single(KwdObjects.Parse([chunk]));
+        Assert.Equal("OBJECT_GOLD", gold.SoundCategory);
+        var template = Assert.Single(KwdRecordRoundTrip.Split(chunk));
+        byte[] edited = KwdObjects.WriteRecord(gold with { SoundCategory = "OBJECT_BED" }, template);
+        Assert.Equal("OBJECT_BED", Assert.Single(KwdObjects.Parse([chunk with { Content = edited }])).SoundCategory);
+    }
 }
