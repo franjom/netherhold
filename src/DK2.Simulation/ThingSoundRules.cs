@@ -45,6 +45,9 @@ public enum ThingSoundEvent : ushort
     /// <summary>The fallen keeper's heart tile, on the turn its consequences run (<c>0x004DAC38</c>); the
     /// same group as <see cref="TileBroken"/>, in the heart's category.</summary>
     HeartCollapsed = 0xF4,
+    /// <summary>A Casino party's tile effect (<c>Casino_RoomUpdate</c>, <c>0x004D6610</c>), in the global
+    /// <c>EFFECTS</c> category.</summary>
+    CasinoPartyPop = 0x344,
 }
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the

@@ -252,3 +252,25 @@ capture sites read `+0x449`.
 category, played by the heart's room frame during the dance, never otherwise. Deviations: the heart object's
 position is taken as the centre tile at the floor height of the room (`0x1000`), as ours keeps no heart object; ours has no
 invulnerability flag, so the blow sound before that test has no extra case.
+
+## 9. Workshop, casino, prison and portal
+
+Read 2026-11-02 for plan Phase W3. Only the Casino's party pop is built; the rest waits for functions ours
+does not have.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| `0x344`, handle 0, the global `EFFECTS` category (world `+0xA3BB`, set at `0x0050A284` in the world initialiser [0x005099A0](functions/005099A0.md)), the drawn tile's corner, height `0x1000` | [0x004D6270](functions/004D6270.md) at `0x004D6610`, with the party's tile effect `0x140` every `v19 x 12` turns, when that effect is created | CONFIRMED | `CasinoJackpotRules.RoomUpdate`, on the tile of the room's chain the existing draw picks |
+| casino `0x316` | same function at `0x004D63D0`: for each creature of the owner in 153, the party music, the room's handle, volume by distance when the tile is explored; a null handle kicks the dancers | CONFIRMED site | waits: a looped music handle and the explored-tile volume (W7.3) |
+| casino `0x33E` | same function at `0x004D6727`: the party-off path while room `+0x3D` is set, the room's handle, only for an explored tile | CONFIRMED site | waits with `0x316` |
+| workshop `0x2E9`, `0x2E8` | [0x004F4B20](functions/004F4B20.md) at `0x004F4C27`, `0x004F4DC7`, `0x004F4F03`: the three random timers, each with a world effect, the room's handle, at the effect's position | CONFIRMED sites | waits: the timers draw the simulation stream (`Random_Next` on the world seed), which ours does not; building them moves the state hash, so it needs a hash version |
+| portal `0x34B`, nonpositional, handle 0, room definition `+0x449` | [0x004DCF50](functions/004DCF50.md) at `0x004DD024`: a creature offered by the multiplayer special arrival | CONFIRMED site | waits: that branch returns at once in single player and is not built |
+| prison `0xE7`, `0xE8` | [0x004E35C0](functions/004E35C0.md) at `0x004E3669`, and the door objects' state arms at `0x004A3819`, `0x004A38E9`: the room's handle, at the door object | CONFIRMED sites | waits: the door objects (109, 116) and their toggles are not built |
+| prison `0xE9`, `0xEA` | [0x004E3680](functions/004E3680.md) at `0x004E3729`, `0x004E377E`: lock and unlock, after message `0x3E`/`0x3F` | CONFIRMED sites | waits with them |
+| prison `0x3F` | [0x004E2C70](functions/004E2C70.md) at `0x004E2DBD`, in the terrain category of the room's terrain | CONFIRMED site | silent: no `SFX.map` has `0x3F` |
+
+The plan's "casino `0x316`, `0x33E`, `0x344`" are three different things: the first two are the party's
+music and its end, the third a one-shot pop in `effects` (seven samples). `0x316` has one sample and `0x33E`
+three, only in `room_casino`; the heart room's frame plays the same two groups in the casino category during
+the Saturday dance (section 8). `0x34B` has one sample in `room_portal`; `0x2E8` one and `0x2E9` three in
+`room_workshop`; `0xE7`-`0xEA` one each in `room_prison` and every door category.

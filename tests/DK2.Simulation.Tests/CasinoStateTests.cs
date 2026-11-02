@@ -414,6 +414,42 @@ public class CasinoStateTests
         Assert.Equal(2, draws.ByBound.GetValueOrDefault(9));
     }
 
+    /// <summary>The effect's sound, <c>0x344</c> in the global <c>EFFECTS</c> category (<c>0x004D6610</c>): handle 0, on
+    /// the tile the draw picked along the room's chain, at its corner (not its centre), height 0x1000.</summary>
+    [Fact]
+    public void APartysTileEffectSoundsF344InEffectsAtTheDrawnTilesCornerEveryTwelveSeconds()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        CreatureState dancer = Gambler(db, world, new TilePos(1, 1));
+        StatePlacement.Place(dancer, CasinoStep.DancingState);
+        RoomInstance casino = Casino(db, world);
+        world.TileAtIndex(casino.TileIndices[0]).CasinoParty = CasinoJackpotRules.PartyBit;
+        world.Player(Keeper).CasinoParties = 1;
+        var sim = new GameSimulation(db, world, new SimRandom(new Fixed(4)), [new CasinoSystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+
+        sim.Run(CasinoJackpotRules.EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond - 1);
+        Assert.DoesNotContain(events.Events, e => e.ThingSound.HasValue);
+        sim.Tick();
+
+        ThingSoundRequest sound = Assert.Single(events.Events, e => e.ThingSound.HasValue).ThingSound!.Value;
+        int tile = SlabChain.Order(world, casino)[4];   // the fifth tile along the room's chain
+        Assert.Equal(ThingSoundEvent.CasinoPartyPop, sound.Event);
+        Assert.Equal((ushort)0x344, (ushort)sound.Event);
+        Assert.Equal("EFFECTS", sound.Category);
+        Assert.Equal(new FpPosition3(new Fp32((tile % world.Width) << 12), new Fp32((tile / world.Width) << 12), new Fp32(0x1000)),
+            sound.Position);
+        Assert.False(sound.Voiced);
+    }
+
+    private sealed class Fixed(int value) : IRandomAlgorithm
+    {
+        public int NextInt(int exclusiveMax) => Math.Min(value, exclusiveMax - 1);
+        public void HashInto(ref Hash64 hash) { }
+    }
+
     [Fact]
     public void ACasinoSettlesNothingAtItsLeverWhileAPartyIsOn()
     {

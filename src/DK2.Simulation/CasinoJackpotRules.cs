@@ -44,6 +44,10 @@ public static class CasinoJackpotRules
     /// <summary>A party's tile effect, every twelve game seconds (<c>v19 × 12</c>).</summary>
     public const int EffectSeconds = 12;
 
+    /// <summary>The global effects category (<c>GLOBAL\EFFECTS</c>, world <c>+0xA3BB</c>): where the party's tile
+    /// effect sounds, and where the plain effect sounds will.</summary>
+    public const string EffectsCategory = "EFFECTS";
+
     /// <summary>152 lasts ten game seconds (<c>v19 × 10</c>).</summary>
     public const int CelebrationSeconds = 10;
 
@@ -161,9 +165,15 @@ public static class CasinoJackpotRules
             foreach (CreatureState c in world.Creatures)
                 if (c.HeldPlace.In(room) && c.Dk2StateId == CasinoStep.DancingState) first.CasinoParty |= MusicBit;
             // Every twelve seconds an effect on a random tile: the effect is presentation, its draw is
-            // on the simulation stream (0x004D6561).
+            // on the simulation stream (0x004D6561). Its sound, 0x344 in the global effects category,
+            // sounds at the tile's corner (0x004D6610), the effect's creation taken as succeeding.
             if ((now + 1) % (EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond) == 0)   // DK2's turn is our tick + 1
-                context.Rng.NextInt(room.TileIndices.Count);
+            {
+                int tile = SlabChain.Order(world, room)[context.Rng.NextInt(room.TileIndices.Count)];
+                ThingSoundRules.Request(context, system, new SoundSourceId(SoundSourceKind.Room, tile), EffectsCategory,
+                    ThingSoundEvent.CasinoPartyPop, new(new Fp32((tile % world.Width) << 12), new Fp32((tile / world.Width) << 12),
+                        new Fp32(0x1000)), voiced: false);
+            }
             return true;
         }
 
