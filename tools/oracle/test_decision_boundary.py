@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 import zlib
+import subprocess
 from unittest import mock
 
 import decision_boundary as recorder
@@ -115,7 +116,7 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual([('before', 0x40100F), ('after', 0x40100F)], saved)
         self.assertEqual(0, debug.process.wait(timeout=5))
 
-    def test_short_dump_does_not_publish_a_complete_image(self):
+    def test_short_dump_leaves_an_incomplete_stream_without_renaming(self):
         import process_dump
         path = Path(self.temp.name) / 'incomplete.mem.z'
         debug = mock.Mock(handle=1)
@@ -123,8 +124,10 @@ class BoundaryTests(unittest.TestCase):
         with mock.patch.object(recorder, 'stopped_regions', return_value=[(16, 4), (32, 4)]):
             with self.assertRaisesRegex(OSError, 'short read'):
                 recorder.dump_stopped(debug, path)
-        self.assertFalse(path.exists())
-        self.assertTrue(path.with_suffix('.z.partial').exists())
+        self.assertTrue(path.exists())
+        with self.assertRaises(zlib.error):
+            zlib.decompress(path.read_bytes())
+        self.assertFalse(path.with_suffix('.z.partial').exists())
 
     def test_timeout_detaches_without_terminating_the_child(self):
         image = bytearray(self.exe.read_bytes())
@@ -180,13 +183,42 @@ class BoundaryTests(unittest.TestCase):
                 ctypes.set_last_error(5)
                 return 0
             info = ctypes.cast(pointer, ctypes.POINTER(process_dump.MEMORY_BASIC_INFORMATION)).contents
-            info.BaseAddress, info.RegionSize = 0x10000, 4096
+            info.BaseAddress, info.RegionSize = address.value or 0, 4096
             info.State, info.Type, info.Protect = 0x1000, 0x20000, 4
             return ctypes.sizeof(info)
         debug.api.VirtualQueryEx.side_effect = query
         with self.assertRaisesRegex(OSError, 'VirtualQueryEx'):
             recorder.dump_stopped(debug, path)
-        self.assertFalse(path.exists())
+        self.assertTrue(path.exists())
+        with self.assertRaises(zlib.error):
+            zlib.decompress(path.read_bytes())
+
+    def test_legacy_process_dump_retains_readonly_headers_and_refuses_existing_output(self):
+        import process_dump
+        startup = subprocess.STARTUPINFO()
+        startup.dwFlags = subprocess.STARTF_USESHOWWINDOW
+        startup.wShowWindow = 0
+        child = subprocess.Popen([str(self.exe)], creationflags=4, startupinfo=startup)
+        try:
+            path = Path(self.temp.name) / 'legacy-complete.mem.z'
+            stats = process_dump.dump(child.pid, path)
+            self.assertEqual(0, stats['short'])
+            raw, offset, header = zlib.decompress(path.read_bytes()), 0, None
+            while offset < len(raw):
+                address, length = struct.unpack_from('<II', raw, offset)
+                offset += 8
+                if address <= 0x400000 < address + length:
+                    header = raw[offset + 0x400000 - address:offset + 0x400002 - address]
+                offset += length
+            self.assertEqual(b'MZ', header)
+            original = path.read_bytes()
+            with self.assertRaises(FileExistsError):
+                process_dump.dump(child.pid, path)
+            self.assertEqual(original, path.read_bytes())
+        finally:
+            if child.poll() is None:
+                child.terminate()
+                child.wait(timeout=10)
 
 
 if __name__ == '__main__':

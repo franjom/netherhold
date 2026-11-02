@@ -489,10 +489,10 @@ build/scenario-runs/ and is ignored.
   correction in that record with a dated History line. Write behavioral
   evidence once in its research note; link from other documents. Distinguish
   CONFIRMED, STRONGLY INFERRED, HYPOTHESIS and UNKNOWN.
-- An original capture's turn is one tick behind the game's turn
-  (ADR-0119); timer stamps need no correction. The live-memory and save
-  tools are indexed in reverse-engineering/README.md and
-  navigation-captures.md.
+- New captures use the [complete native recorder](../tools/oracle/native-capture.md),
+  retaining every readable byte at each selected completed turn. Legacy
+  polling headers use ADR-0119; timer stamps need no correction. See
+  reverse-engineering/README.md for legacy captures and oracle tools.
 - Check git status and git worktree list before editing: other sessions may
   be working concurrently. Stage named paths, not git add -A; keep original
   game files and Ghidra output out of commits. Never switch branches in the

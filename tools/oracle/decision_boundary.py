@@ -17,8 +17,11 @@ import struct
 import subprocess
 import sys
 import time
+import traceback
 import zlib
 
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 U32, U16, PTR = C.c_uint32, C.c_uint16, C.c_void_p
 CHOOSER = 0x00463DF0
 RETAIL_MD5 = '2f3bbc21eae8c3aa468136baa303036d'
@@ -319,40 +322,59 @@ class BoundaryDebugger:
             self.cleanup(status)
 
 
-def stopped_regions(handle, api):
-    """Strict counterpart of process_dump.regions for a complete boundary image."""
+def memory_regions(handle, api):
+    """Query the complete 32-bit address domain, retaining exclusion metadata."""
     import process_dump as layout
     info = layout.MEMORY_BASIC_INFORMATION()
-    address = 0x10000
-    while address < 0x7FFF0000:
-        if not api.VirtualQueryEx(handle, PTR(address), C.byref(info), C.sizeof(info)):
-            raise OSError(C.get_last_error(), f'VirtualQueryEx failed at {address:08X}')
+    address, limit = 0, 1 << 32
+    readable = {2, 4, 8, 0x20, 0x40, 0x80}
+    while address < limit:
+        returned = api.VirtualQueryEx(handle, PTR(address), C.byref(info), C.sizeof(info))
+        if not returned:
+            error = getattr(C, 'get_last_error', lambda: 0)()
+            raise OSError(error, f'VirtualQueryEx failed at {address:08X}')
+        if returned != C.sizeof(info):
+            raise OSError(f'VirtualQueryEx returned incomplete metadata at {address:08X}')
+        base = info.BaseAddress or 0
         end = (info.BaseAddress or 0) + info.RegionSize
-        if info.RegionSize <= 0 or end <= address:
-            raise RuntimeError('VirtualQueryEx returned a non-advancing region')
-        if (info.State == layout.MEM_COMMIT and not info.Protect & (layout.PAGE_NOACCESS | layout.PAGE_GUARD)
-                and info.RegionSize <= layout.LARGEST
-                and (info.Type == layout.MEM_PRIVATE
-                     or info.Type == layout.MEM_IMAGE and info.Protect & layout.WRITABLE)):
-            yield address, end - address
+        if base != address or info.RegionSize <= 0 or end <= address:
+            raise RuntimeError('VirtualQueryEx returned a gap, overlap or non-advancing region')
+        committed = info.State == layout.MEM_COMMIT
+        guard = bool(info.Protect & layout.PAGE_GUARD)
+        selected = committed and not guard and info.Protect & 0xFF in readable
+        yield dict(base=base, size=min(end, limit) - base, reportedSize=info.RegionSize,
+                   allocationBase=info.AllocationBase or 0, allocationProtect=info.AllocationProtect,
+                   state=info.State, type=info.Type, protect=info.Protect, readable=selected,
+                   reason='captured' if selected else 'uncommitted' if not committed
+                   else 'guard' if guard else 'unreadable')
         address = end
 
 
+def stopped_regions(handle, api):
+    """Every readable committed region, including mapped/read-only/large ones."""
+    for region in memory_regions(handle, api):
+        if region['readable']:
+            yield region['base'], region['size']
+
+
 def dump_stopped(debugger, destination):
-    """Use the oracle dump format while the debugger already holds the process."""
+    """Exclusively create an oracle image; a failed stream remains incomplete."""
     path = Path(destination)
-    partial = path.with_suffix(path.suffix + '.partial')
     count = total = 0
     compressor = zlib.compressobj(1)
-    with partial.open('xb') as stream:
+    with path.open('xb') as stream:
         for address, size in stopped_regions(debugger.handle, debugger.api):
-            data = debugger.read(address, size)
-            stream.write(compressor.compress(struct.pack('<II', address, size) + data))
+            stream.write(compressor.compress(struct.pack('<II', address, size)))
+            for offset in range(0, size, 65536):
+                length = min(65536, size - offset)
+                data = debugger.read(address + offset, length)
+                if len(data) != length:
+                    raise OSError('Incomplete boundary read')
+                stream.write(compressor.compress(data))
             count, total = count + 1, total + size
         stream.write(compressor.flush())
     if not count:
         raise RuntimeError('Empty boundary dump')
-    partial.rename(path)
     return {'regions': count, 'bytes': total, 'short': 0}
 
 
@@ -402,10 +424,22 @@ def main():
     if digest not in (RETAIL_MD5, DX_MD5):
         parser.error('Executable does not match pinned retail DKII.EXE or its verified DX variant')
     output = args.out.resolve()
-    allowed = Path(__file__).resolve().parents[2] / 'reverse-engineering'
+    allowed = Path('F:/DK2Evidence').resolve()
     if not output.is_relative_to(allowed) or output == allowed:
         parser.error(f'Output must be a new subdirectory of {allowed}')
     output.mkdir(parents=True, exist_ok=False)
+    sources = [Path(__file__), Path(__file__).with_name('process_dump.py')]
+    for source in sources:
+        with (output / source.name).open('xb') as stream:
+            stream.write(source.read_bytes())
+    game_args = args.game_args[1:] if args.game_args[:1] == ['--'] else args.game_args
+    os.environ.setdefault('__COMPAT_LAYER', 'RunAsInvoker')
+    launch = dict(executable=str(executable), executableMD5=digest,
+                  executableSHA256=hashlib.sha256(executable.read_bytes()).hexdigest(),
+                  argv=game_args, domain=[0, 1 << 32], compatibilityLayer=os.environ['__COMPAT_LAYER'],
+                  sources={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources})
+    with (output / 'launch.json').open('x', encoding='utf-8') as stream:
+        json.dump(launch, stream, indent=2)
     debugger = BoundaryDebugger(CHOOSER)
     selected = {}
     def select(context, read):
@@ -417,19 +451,47 @@ def main():
     with (output / 'boundaries.jsonl').open('x', encoding='utf-8') as manifest:
         def capture(phase, context, read):
             state = imp_state(read, selected['creature'])
+            if state['tick'] != selected['tick'] or state['slot'] != selected['slot']:
+                raise RuntimeError('Selection boundary clock/slot changed')
             filename = f'{debugger.completed + 1:06}.{phase}.mem.z'
+            address_map = list(memory_regions(debugger.handle, debugger.api))
+            map_name = f'{debugger.completed + 1:06}.{phase}.address-map.json'
+            with (output / map_name).open('x', encoding='utf-8') as mapping:
+                json.dump(dict(domain=[0, 1 << 32], regions=address_map), mapping)
             dump = dump_stopped(debugger, output / filename)
+            if dump['bytes'] != sum(r['size'] for r in address_map if r['readable']):
+                raise RuntimeError('Memory map changed during the stopped capture window')
             record = dict(schema=1, pair=debugger.completed + 1, phase=phase,
                           exe_md5=digest, entry=CHOOSER, pid=debugger.process.pid,
                           compatibility_layer=os.environ.get('__COMPAT_LAYER'),
                           tid=debugger.pending.tid, registers=registers(context),
-                          imp=state, memory=filename, dump=dump)
+                          imp=state, memory=filename, addressMap=map_name, dump=dump)
             manifest.write(json.dumps(record) + '\n')
             manifest.flush()
             print(json.dumps({'phase': phase, 'imp': state, 'memory': filename}), flush=True)
-        game_args = args.game_args[1:] if args.game_args[:1] == ['--'] else args.game_args
-        debugger.run(executable, game_args, select, capture, args.timeout, args.pairs)
-    print(f'Captured {debugger.completed} complete selection pairs; debugger detached', flush=True)
+        failure = None
+        try:
+            debugger.run(executable, game_args, select, capture, args.timeout, args.pairs)
+        except BaseException:
+            failure = traceback.format_exc()
+            raise
+        finally:
+            try:
+                if debugger.process is not None and debugger.process.poll() is None:
+                    debugger.process.terminate()
+                    debugger.process.wait(timeout=15)
+            except BaseException:
+                failure = (failure or '') + '\nOwned child shutdown failed:\n' + traceback.format_exc()
+            with (output / 'run-status.json').open('x', encoding='utf-8') as status:
+                json.dump(dict(error=failure, completedPairs=debugger.completed,
+                               ownedPid=debugger.process.pid if debugger.process else None,
+                               ownedClosed=debugger.process is not None and debugger.process.poll() is not None), status)
+    if failure is not None:
+        raise RuntimeError('Owned capture did not finish cleanly; see run-status.json')
+    files = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in output.iterdir() if p.is_file()}
+    with (output / 'sha256-final.json').open('x', encoding='utf-8') as stream:
+        json.dump(files, stream, indent=2)
+    print(f'Captured {debugger.completed} complete selection pairs; owned replay closed', flush=True)
 
 
 if __name__ == '__main__':

@@ -56,7 +56,9 @@ Setup, once: a Windows x64 `unicorn.dll` 2.1.x outside the repository (the PyPI
 the DLL the function tests skip, while the table tests need only the install. Unicorn is never
 committed (owner, 2026-10-15). `tools/oracle/purity.py` lists ported candidates (read each before trusting it);
 `tools/oracle/capture_memory.py` turns a capture tick into a memory image for functions that read the world
-(it needs this folder's local `dk2capture.py`, or `DK2_CAPTURE_DECODER`).
+(new complete captures discover their verified decoder and memory timeline;
+legacy captures use the retained F: archive or an explicit `DK2_CAPTURE_DECODER`).
+For new recordings, use the [complete native capture guide](../tools/oracle/native-capture.md).
 To add a function: read it in Ghidra for its calling
 convention, out-pointer and record layout, check it reads no mutable global, and add a
 test after `OriginalFixed16Tests` that sweeps the band edges and counts the arms it
@@ -91,13 +93,22 @@ script here is driven by addresses, offsets and globals, never by a class name. 
 whole-binary class map is a useful local asset and a large import of somebody else's
 naming: generate it here if it is wanted, and let only addresses cross.
 
-## Full-state captures (`dk2record.py`, `dk2capture.py`)
+## Full-state captures
 
-One `-PLOAD` playback, recorded once, answers later questions offline. The
-recorder polls DK2 from outside and stores raw bytes every world tick. Decoders
-then read fields out of those bytes afterwards, so a new question needs a new
-decoder, not a new playback. Nothing here patches the game. A custom test level
-(`-LEVEL <name>`) records the same way: `tools/levelgen/README.md`.
+New analysis uses the [complete native recorder](../tools/oracle/native-capture.md):
+structured state and every readable committed process-memory byte are retained
+at each selected completed turn, with no dump-enable flag. Saved turns can be
+exported offline with their verified decoder and timeline. Evidence belongs
+under `F:/DK2Evidence/`, outside all checkouts.
+
+### Legacy polling captures (`dk2record.py`, `dk2capture.py`)
+
+The procedure below describes historical partial recordings, not the default
+for new analysis. The old recorder polls DK2 and stores selected raw regions;
+decoders can expose only data it retained. A missing field or region cannot
+be reconstructed from that file. Legacy header clocks also differ from the
+completed-turn stamps used by the new recorder. Custom test levels are
+described in `tools/levelgen/README.md`.
 
 **Record** (probe first, elevated; then the game, elevated):
 

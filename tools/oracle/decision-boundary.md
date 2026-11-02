@@ -1,5 +1,8 @@
 # Imp selection boundary recorder
 
+For new turn-by-turn analysis, use the [complete native recorder](native-capture.md).
+This chooser-specific tool records a bounded entry/return decision pair.
+
 `decision_boundary.py` launches its own 32-bit game and records entry to and
 return from the Imp task chooser. It refuses an existing DK2 process. It does
 not attach to the owner's game, patch executable files or process code, inject
@@ -7,7 +10,8 @@ calls, or change game settings. Hardware execution breakpoints change thread
 debug registers; cleanup restores those registers, resumes and detaches. If a
 live thread's registers cannot be restored, cleanup terminates only the replay
 it launched instead of detaching with a breakpoint still armed.
-The launched replay remains running after a successful capture or timeout.
+The CLI closes only its owned replay after success, timeout or failure; it does
+not leave the replay running.
 
 Run with 64-bit CPython on Windows, from this checkout:
 
@@ -15,7 +19,7 @@ Run with 64-bit CPython on Windows, from this checkout:
 $env:__COMPAT_LAYER = 'RunAsInvoker'
 python tools/oracle/decision_boundary.py `
   --exe 'E:/GogGames/Dungeon Keeper 2/DKII-DX.exe' `
-  --out reverse-engineering/imp-selection-pair `
+  --out 'F:/DK2Evidence/studies/my-new-imp-selection-pair' `
   --slot 452 --from-tick 133 --pairs 1 --timeout 90 `
   -- -LEVEL level4 -PLOAD l4live 0
 ```
@@ -42,8 +46,8 @@ Only these executable MD5s are accepted:
 - Installed DX variant: `b9709c6c9084d3060e4ac7ac9764c70b`. The local comparison
   found its `.text` and `cseg` byte-identical to retail; five `.rdata` bytes differ.
 
-The output must be a new directory beneath this checkout's ignored
-`reverse-engineering/`. It contains proprietary runtime memory and must never
+The output must be a new subdirectory of `F:/DK2Evidence/`. It contains
+proprietary runtime memory and must never
 be committed or redistributed. `boundaries.jsonl` records pair id, phase, PID,
 thread, executable identity, compatibility environment, CPU registers, Imp
 summary and dump statistics. A pair is usable only with both phases for the
@@ -51,14 +55,17 @@ same process/thread/Imp and the same stored clock. A lone `before` row is
 incomplete. Keep the executable identity with the images.
 
 The `.mem.z` files use the existing oracle image format. While the outstanding
-debug event holds all threads, the recorder reads the regions selected by
-the strict `stopped_regions` counterpart of `process_dump.regions`: writable
-image pages and private committed readable
-regions, excluding guards, regions over 64 MiB and addresses above 0x7FFF0000.
-Read-only executable pages remain supplied by the pinned file. Every selected
-region must be read completely; a failed query or read leaves `.partial`, not a
-completed image. This is an analysis run with pauses, not a wall-clock
-performance run.
+debug event holds the debuggee threads, the recorder enumerates `[0, 2^32)`
+and retains every readable committed region, including mapped/read-only pages
+and regions over 64 MiB. Address-map JSON records the ranges and their status;
+there is no upper-address or memory-category filter. Every selected region
+must be read completely.
+
+Outputs use exclusive creation. A failed query or read retains the incomplete
+files and cannot establish a completed pair. No existing file is overwritten,
+renamed or removed; choose a new directory for another attempt. Use the
+[turn recorder](native-capture.md) for verified timelines and automatic exports.
+Pauses are measured read windows, not wall-clock performance measurements.
 
 ## Verification
 
