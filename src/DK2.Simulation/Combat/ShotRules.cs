@@ -26,6 +26,8 @@ public static partial class ShotRules
     public const uint DiesOnThing = 2u;
     public const uint CountsDown = 4u;
     public const uint Bounces = 8u;
+    /// <summary>Bit 8: a creature the shot strikes is turned away and the hit asks <c>0xDB</c> (<c>0x004AC070</c>, <c>0x004AC099</c>).</summary>
+    public const uint TurnsCreature = 0x100u;
 
     /// <summary><c>CollideType</c>: whose things the shot can hit (§4a).</summary>
     public const byte CollideNone = 0;
@@ -422,6 +424,10 @@ public static partial class ShotRules
                     SightRegion = request,
                 });
             }
+            // 0x004AF1BF, every call after the first (the pre-move event): with twenty updates left, for the owner's screen alone.
+            else if (eventBit != FirstTickEvent && shot.Health == 20)
+                RequestShotSound(context, shot, definition, ThingSoundEvent.SightOfEvilEnding,
+                    viewerOnlyFor: new PlayerId(shot.OwnerPlayerId));
             return;
         }
         if (definition.ProcessType == ReaperRules.ProcessType)

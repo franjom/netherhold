@@ -403,8 +403,20 @@ public static class FightRules
         ShotRules.Launch(shot, shotDef, aimX, aimY);
         ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)me.Heading),
             new Fp32(Fp32.One + me.PosZ + mine.Spells[me.SwingSpellSlot].OriginZ));
+        RequestCastSound(context, me, spell, shotDef);   // 0x00498A8D
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={aimX},{aimY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
+    }
+
+    /// <summary>What a creature's cast asks of the sound manager once its shot is made (<c>0x00498A8D</c>, <c>0x0049868C</c>): the spell
+    /// record's sound word (<c>+0x3F</c>, <see cref="CreatureSpellDef.SoundEvent"/>) in the shot's category, with the caster's own handle,
+    /// at the caster's position (<c>+0x1A</c>, not the origin the shot leaves from). The word may be zero, which asks the manager for
+    /// no group; DK2 asks it all the same. A third caller, the unread <c>0x004982B0</c>, is not mirrored.</summary>
+    private static void RequestCastSound(SimulationContext context, CreatureState me, CreatureSpellDef spell, ShotDef shotDef)
+    {
+        if (shotDef.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        ThingSoundRules.Request(context, SystemName, SoundSourceId.Of(new CreatureId(me.Id)), shotDef.SoundCategory,
+            (ThingSoundEvent)spell.SoundEvent, new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)));
     }
 
     /// <summary>Where action 16 makes the shot (<c>0x00498989</c>–<c>0x004989F5</c>, combat-spells.md §7
@@ -468,6 +480,7 @@ public static class FightRules
         shot.Sniper = me.Possessed && me.SniperMode;
         ShotRules.Launch(shot, shotDef, me.SwingPointX, me.SwingPointY);
         ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)me.Heading), new Fp32(Fp32.One + me.PosZ));
+        RequestCastSound(context, me, spell, shotDef);   // 0x0049868C
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={me.SwingPointX},{me.SwingPointY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
     }

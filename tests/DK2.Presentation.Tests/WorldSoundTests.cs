@@ -37,14 +37,22 @@ public sealed class WorldSoundTests
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Door, 7), "DOOR_WOOD", (ThingSoundEvent)0xC4));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Room, 7), "ROOM_DUNGEON_HEART", (ThingSoundEvent)0x329));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Player, 7), "ROOM_DUNGEON_HEART", (ThingSoundEvent)0xF4));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Shot, 7), "SPELL_FIREBALL", ThingSoundEvent.SpellCast));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.ShotSecond, 7), "SPELL_FIREBALL", ThingSoundEvent.ShotMadeSecond));   // a shot's second handle
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Tremor, 7), "KEEPER_SPELL_TREMOR", ThingSoundEvent.TremorStarted));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Corpse, 7), "OBJECT_FLIES", ThingSoundEvent.CorpseDestroyed));
         Assert.True(director.TryTake(out var creature));
         Assert.True(director.TryTake(out var gold));
         Assert.True(director.TryTake(out var door));
         Assert.True(director.TryTake(out var room));
         Assert.True(director.TryTake(out var player));
+        Assert.True(director.TryTake(out var shot));
+        Assert.True(director.TryTake(out var shotSecond));
+        Assert.True(director.TryTake(out var tremor));
+        Assert.True(director.TryTake(out var corpse));
         Assert.Equal("object_gold", gold.Category.Name);
-        var voices = new[] { creature.Voice, gold.Voice, door.Voice, room.Voice, player.Voice };
-        Assert.Equal(5, voices.Distinct().Count());   // the room's handle and the player's are different voices
+        var voices = new[] { creature.Voice, gold.Voice, door.Voice, room.Voice, player.Voice, shot.Voice, shotSecond.Voice, tremor.Voice, corpse.Voice };
+        Assert.Equal(9, voices.Distinct().Count());   // the room's handle and the player's, a shot's two, a tremor slot's and a body's are different voices
         Assert.DoesNotContain(SoundVoiceId.None, voices);
     }
 

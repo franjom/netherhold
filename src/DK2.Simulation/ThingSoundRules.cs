@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>The kinds of thing that request world sounds; each owns its own range of voices.</summary>
-public enum SoundSourceKind : byte { Creature, Object, Door, Trap, Shot, Room, Terrain, Player }
+public enum SoundSourceKind : byte { Creature, Object, Door, Trap, Shot, Room, Terrain, Player, Tremor, ShotSecond, Corpse }
 
 /// <summary>The thing a world sound belongs to, so that its next request replaces its last one.</summary>
 public readonly record struct SoundSourceId(SoundSourceKind Kind, int Value)
@@ -147,6 +147,31 @@ public enum ThingSoundEvent : ushort
     SpecialReceivedImps = 0x8B,
     /// <summary>The Locate Hidden Land special is used (<c>0x004A4F70</c>).</summary>
     SpecialLocatedHiddenLand = 0x8F,
+    /// <summary>A keeper spell is cast (<c>Spell_CastAtPosition</c> <c>0x004BBEBD</c>, <c>Spell_CastOnCreature</c> <c>0x004BC26F</c>) in
+    /// the spell's category, or a shot is constructed (<c>Shot_InitialiseFromDefinition</c> <c>0x004AAF1E</c>) in the shot's.</summary>
+    SpellCast = 0xEF,
+    /// <summary>A shot is constructed, with its second handle (<c>0x004AAF40</c>).</summary>
+    ShotMadeSecond = 0xF2,
+    /// <summary>A shot dies of its lifetime (<c>Shot_Update</c> <c>0x004AB509</c>), or is removed (<c>Shot_Teardown</c>
+    /// <c>0x004AAF9F</c>, second handle).</summary>
+    ShotEnded = 0xF4,
+    /// <summary>The world stopped a shot (<c>Shot_Update</c> <c>0x004AB49B</c>).</summary>
+    ShotHitSolid = 0x1BC,
+    /// <summary>The Sight of Evil has twenty updates left (<c>Shot_ProcessSightOfEvil</c> <c>0x004AF1BF</c>).</summary>
+    SightOfEvilEnding = 0xE8,
+    /// <summary>A creature finishes its melee swing, in its own category (<c>Combat_MeleeSwing</c> <c>0x004992EB</c>), or a shot
+    /// that turns what it strikes hits a creature, in that creature's (<c>Shot_Collide</c> <c>0x004AC099</c>).</summary>
+    Struck = 0xDB,
+    /// <summary>A creature thing is freed (<c>Creature_DeathBookkeeping</c>, <c>0x00487E4A</c>).</summary>
+    CreatureFreed = 0xDA,
+    /// <summary>A Tremor starts (<c>World_StartTremor</c> <c>0x00510355</c>), in the Tremor keeper spell's category.</summary>
+    TremorStarted = 0xFB,
+    /// <summary>A Tremor shakes a tile (<c>World_UpdateTremors</c> <c>0x005105C3</c>).</summary>
+    TremorShook = 0x2EC,
+    /// <summary>A Tremor ends (<c>0x005104C6</c>).</summary>
+    TremorEnded = 0x31F,
+    /// <summary>A corpse is destroyed, in <c>OBJECT_FLIES</c> (<c>Corpse_Destroy</c> <c>0x004B10A0</c>).</summary>
+    CorpseDestroyed = 0xF4,
 }
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the

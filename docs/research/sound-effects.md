@@ -385,3 +385,9 @@ categories, the imp's not among them. The finale's `0x32D` passes handle 0 (it n
 Phase W5 is in [sound-effects-objects.md](sound-effects-objects.md), which keeps this document under its length budget:
 [objects and specials](sound-effects-objects.md#1-objects-and-specials), [doors and traps](sound-effects-objects.md#2-doors-and-traps)
 and [the boulder](sound-effects-objects.md#3-the-boulder).
+
+## 15. Spells, shots and combat
+
+Phase W6 is in [sound-effects-combat.md](sound-effects-combat.md): [keeper spells](sound-effects-combat.md#1-keeper-spells-and-the-categories),
+[the Tremor](sound-effects-combat.md#2-the-tremor), [shots](sound-effects-combat.md#3-shots), [a creature's spell](sound-effects-combat.md#4-a-creatures-spell),
+[the swing, death and corpses](sound-effects-combat.md#5-the-swing-death-and-corpses) and [the torture devices](sound-effects-combat.md#6-the-torture-devices).

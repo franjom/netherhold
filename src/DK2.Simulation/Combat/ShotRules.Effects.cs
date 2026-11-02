@@ -18,6 +18,7 @@ public static partial class ShotRules
         shot.PreviousViewPosition = shot.ViewPosition;
         if (!shot.HasLaunchHeading) shot.ViewHeading = initialHeading;
         if (!context.Database.Shots.TryGetValue(shot.ShotTypeId, out ShotDef? definition)) return;
+        RequestConstructionSounds(context, shot, definition);
         context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(definition.GeneralEffectId),
             shot.OwnerPlayerId, shot.ViewPosition, initialHeading)
         {
@@ -27,6 +28,29 @@ public static partial class ShotRules
             CarriedVelocity = shot.HasLaunchHeading ? LaunchEffectVelocity(shot, SessionTurnRate) : null,
             RemoveWithShot = (definition.Flags & 0x40) != 0,
         });
+    }
+
+    /// <summary>The constructor's two sounds (<c>Shot_InitialiseFromDefinition</c>, <c>0x004AAF1E</c> and <c>0x004AAF40</c>): <c>0xEF</c> with
+    /// the shot's first handle and <c>0xF2</c> with its second, in the shot's own category (definition <c>+0x72</c>) at the shot's
+    /// position. Every caller of <c>Shot_Create</c> asks them (its last argument is nonzero at each site read), and the category
+    /// is empty for most keeper-spell and trap shots, which then ask nothing. Asked here, with the trail, because this is each
+    /// caller's one construction hook; the height is the observation's, not a stored one.</summary>
+    private static void RequestConstructionSounds(SimulationContext context, ShotState shot, ShotDef definition)
+    {
+        RequestShotSound(context, shot, definition, ThingSoundEvent.SpellCast);
+        RequestShotSound(context, shot, definition, ThingSoundEvent.ShotMadeSecond, SoundSourceKind.ShotSecond);
+    }
+
+    /// <summary>A request in the shot's own category (<c>+0x72</c>, <see cref="ShotDef.SoundCategory"/>) with one of its two handles
+    /// (<c>+0x2E</c>, <paramref name="handle"/> <see cref="SoundSourceKind.Shot"/>, or <c>+0x32</c>, <see cref="SoundSourceKind.ShotSecond"/>)
+    /// at the shot's position; nothing for a shot whose category is empty, which DK2's lookup answers with no group.
+    /// <paramref name="viewerOnlyFor"/> names the keeper whose screen alone hears it (the Sight of Evil's).</summary>
+    internal static void RequestShotSound(SimulationContext context, ShotState shot, ShotDef definition, ThingSoundEvent sound,
+        SoundSourceKind handle = SoundSourceKind.Shot, PlayerId? viewerOnlyFor = null)
+    {
+        if (definition.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        ThingSoundRules.Request(context, SystemName, new SoundSourceId(handle, shot.Id), definition.SoundCategory, sound,
+            shot.ViewPosition, viewerOnlyFor: viewerOnlyFor);
     }
 
     // [[world]+4]+8, initialized by 0x00526020, independent of level variable19.
