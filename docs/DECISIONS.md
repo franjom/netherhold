@@ -14671,7 +14671,9 @@ read and write `Flags`.
 **Consequences.** A full or closed Prison no longer strands a body on its rim while another has
 space. The admission's health source is the room's owner. The imp's fight bits
 now reach combat, but ours clears and sets them in the same tick, where DK2 keeps them clear for
-the walk to 46. Exit 2 ranks by the nearest free cell and asks the
+the walk to 46. Eight shipped creatures carry `Flags` without bit 0 (Level 13's placed creature 19,
+Level 9's party Lord of the Land, six placed Dwarves on TrapTime): as in DK2, whose loader copies the
+bits, they now look for a fight only when forced; `FightFlags` had let them. Exit 2 ranks by the nearest free cell and asks the
 route after, where `0x004C6610` ranks rooms by position and skips unreachable ones; it also skips a
 Prison whose cells are all occupied, which `0x004C6610` does not. `0x004E2C70`'s own capacity test
 (`+0x6D`, `+0x67`) is not mirrored: ours always admits once exit 1's test passes.
