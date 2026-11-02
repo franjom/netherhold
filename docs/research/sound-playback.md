@@ -50,7 +50,7 @@ owner masks and member counts for presentation consumers; it never writes world 
 
 World sound requests share this playback path: `ThingSoundRules` emits `SimEvent.ThingSound`, `WorldSoundDirector` gives each thing one voice
 (`0x80000000 | kind<<24 | id`) and places it at the view's `(x, height, -y)`, and `ClassicSoundPlayer.Play` applies the frequent-event throttle
-([sound-effects.md section 4](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets)) before resolving. Creature events exist (battle call, sacked) and the hand's lift and drop, creature and object; the battle-call trigger and its acceptance limits are in [combat-fight-state.md section 9](combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
+([sound-effects.md section 4](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets)) before resolving. Creature events exist (battle call, sacked, the imp jobs, arrival, eating, the rooms' creature states, level-up, burning; [sound-effects.md sections 10 to 13](sound-effects.md#10-imp-jobs)) and the hand's lift and drop, creature and object; the battle-call trigger and its acceptance limits are in [combat-fight-state.md section 9](combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
 The hand cursor's tag and slap sounds are presentation requests (`HandCursorFeedback.Sounds`) in the `hand` category; see [sound-effects.md section 6](sound-effects.md#6-the-hand-and-its-cursor).
 
 ## Category choice presses
