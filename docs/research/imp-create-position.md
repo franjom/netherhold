@@ -171,8 +171,8 @@ creation fall only for exact point commands. `ImpCreationRules` uses the
 simulation's zero-floor convention, retains 214 while above it, accumulates
 the byte-sized gravity's vertical vector and clamps below-floor movement.
 At floor it runs the landing's 1-to-11 transition; existing 11 then enters 10.
-Free supply, tile/default Heart commands and Receive Imps retain their previous
-paths. This is the stationary, non-flying worker subset, not general physics.
+Tile/default Heart commands and Receive Imps retain their previous paths; free
+supply was moved onto this path by ADR-0630. This is the stationary, non-flying worker subset, not general physics.
 At floor, `ImpCreationRules` requests effect 29 (Imp Birth Trail) at the landing
 point, as [0x00481750](functions/00481750.md) does; it is a Create Imp's only visual
 and an observation event, not state.
