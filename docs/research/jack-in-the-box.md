@@ -76,13 +76,14 @@ is a thing tag, so its first strike's reach turns on the victim's slot.
 **Fight bits (ADR-0615, hash/save 359):** process 39's clearing of `+0x46F` bits 0 and 3 is built
 (`CreatureState.FightFlags`), so ours' Jack neither looks for a fight nor can be attacked. Before
 that change, on `M7Traps` ours' Jack fought the keeper's Imp and the Heart. Now it takes DK2's path to
-the corner (x+1, y+1), but it does not settle there as DK2's does (Q711).
+the corner (x+1, y+1) and, since ADR-0627 (hash/save 371), settles there as DK2's does: its walk
+hands back to 273 at a whole route progress (§8).
 
 **Built:** §1's data word (ours writes the target's creature id: we hold no thing slots, so the
 first strike's reach differs from DK2's); §2 for a creature victim; §3; §4, once per Jack, at its
 next update when something other than its own wear killed it; §5's 32-bit arithmetic for every area
 shot, a wrapped negative damage skipped where DK2 would heal. **Not built:** a victim that is not a
-creature (a fired-without-target shot names thing 2; ours strikes nobody); the `+0x46F` bits; effects and sounds.
+creature (a fired-without-target shot names thing 2; ours strikes nobody); effects and sounds.
 
 ## 7. Watched in play (2026-11-01, Q524)
 
@@ -103,3 +104,14 @@ the hero tile, so all of this happened before the owner looked. Capture:
 - Its explosion (§4) hit the Heart on five turns running, 71 to 75, about 4333 each: 100000 → 77394 in
   all. The keeper did not lose.
 
+## 8. Why ours did not settle (Q711, 2026-11-02)
+
+State 6 (`0x00470C80`) resumes its saved state, after `Creature_StopMoving`, once the route's
+progress is exactly 1.0. Progress counts the last point's octile distance as `>> 12`, sixteenths of a
+tile, so anything under 0x1000 is there. Follow_Path's creature arrival (`0x004D3C40`) needs under
+half the body radius at speed `≤ 0x6147` (the creature arm; the imp arm's 0x1999 would have arrived at
+0x8C8, and DK2's did not). The Jack's footprint (`Creatures.kwd` `0xEA0`, `def+0x63A`) is 0x204, so its
+radius (`0x00487B00`: `>> 1 << 4`) is 0x1020 and the test 0x810. DK2's Jack stopped at raw (83915, 128910), 0x8C8 from its aim (20.5, 31.5): progress
+whole, arrival not. CONFIRMED (binary and capture). Ours waited for the arrival flag and circled. With
+ADR-0627, in a one-off run of ours on M7Traps (scratch harness, not a test), it stopped at (20.49, 31.47)
+as DK2's and lost 51 a tick from the next. Other walkers: Q724.

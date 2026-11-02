@@ -87,7 +87,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   [Earlier diagnosis](research/level4-outcomes.md#closing-q665-where-the-imp-deaths-go-2026-10-31);
   the matched [366-370 comparison](research/fight-scan-initial-phase.md#death-scores-and-level-4-comparison-limit) is limited by [Q714](research/resync-replay.md#heart-and-terminal-state-restoration-q714).
 - The fight approach is DK2's state 8, a walk resuming 199 (ADR-0483), and no
-  combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31). A forced target no longer reaches a
+  combat experience is paid on that walk. Battle call: [ADR-0604 and hearing gate](research/combat-fight-state.md#9-battle-call-on-approach-2026-10-31); world-sound foundation (W1 built, owner hearing pending) and the rest of the sound sites: [plan](plans/2026-10-31-world-sounds.md). A forced target no longer reaches a
   corpse (Q598). Room ticks run between the creature pass and the players, as
   DK2's do, with the hated-company rule (ADR-0479); the store sweep runs on
   DK2's turn (Q596). The stun counts from its first call (ADR-0480). Only a
@@ -189,7 +189,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   (M6 above). DK2's own Level 11A ten-seed captures (`dk2runs/level11A-seeds`) were lost in the
   2026-10-18 cleanup; the capture driver `run.ps1` was recovered from session logs but has not
   been re-run (F:\DK2Evidence\rigs\recovered-rig--2026-10-19--001\payload\RECOVERY.md); the packet `m12l11a.sav` survives.
-- M7 remains partial (played on `tools/levelgen` levels: `boulder.md` §9b, `traps.md` §14, `jack-in-the-box.md` §7; a sprung Jack neither fights nor can be attacked, ADR-0615, hash/save 359; it does not settle on the heart corner, Q711): combat, hero parties, door contact and the door fight
+- M7 remains partial (played on `tools/levelgen` levels: `boulder.md` §9b, `traps.md` §14, `jack-in-the-box.md` §7; a sprung Jack neither fights nor can be attacked, ADR-0615, hash/save 359; it settles on the heart corner at a whole route progress, ADR-0627, hash/save 371): combat, hero parties, door contact and the door fight
   (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331) with
   the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337) and
   the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326)

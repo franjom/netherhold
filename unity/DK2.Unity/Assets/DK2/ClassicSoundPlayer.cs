@@ -22,6 +22,11 @@ namespace DK2.Unity
         private readonly Dictionary<PcmClip, AudioClip> _clips = new Dictionary<PcmClip, AudioClip>();
         private readonly List<AudioSource> _effects = new List<AudioSource>();
         private readonly SoundVoiceBindings<AudioSource> _voices = new SoundVoiceBindings<AudioSource>();
+        private readonly SoundThrottle _throttle = new SoundThrottle(NowMs());
+        private static uint NowMs() => (uint)(long)(Time.realtimeSinceStartupAsDouble * 1000);
+        /// <summary>The in-game manager's update runs this after the world frame, so a frame's
+        /// requests are judged by the frame before (<c>0x00567500</c>). The front end never calls it.</summary>
+        public void UpdateThrottle() => _throttle.BeginFrame(NowMs());
         private float _master = 1, _speechVolume = 1, _musicVolume = 1, _effectVolume = 1;
         private bool _speechOn = true, _musicOn = true, _effectsOn = true;
         private sealed class LinkedChannel
@@ -145,7 +150,7 @@ namespace DK2.Unity
 
         public void Play(SoundRequest request)
         {
-            if (!_effectsOn || request.Category.IsNone) return;
+            if (!_effectsOn || request.Category.IsNone || !_throttle.Admit(request.Id)) return;
             SoundResolver resolver = Resolver(request.Category);
             SoundPriority? priority = resolver.PriorityOf(request.Id);
             if (!priority.HasValue || _voices.CanRetain(request.Voice, priority.Value, source => source.isPlaying)) return;
@@ -158,6 +163,8 @@ namespace DK2.Unity
             if (source == null && _effects.Count < 32) { source = NewSource("Effect"); _effects.Add(source); }
             if (source == null) source = _effects[0];
             source.Stop(); source.clip = clip; source.loop = false;
+            // Remake policy, not DK2's: Unity's default 3D rolloff and no voice budget. DK2's distances,
+            // voice limits and fades are unread (Q678), so none are copied from OpenKeeper.
             source.spatialBlend = request.World.HasValue ? 1 : 0;
             if (request.World is System.Numerics.Vector3 world) source.transform.position = new Vector3(world.X, world.Y, world.Z);
             source.volume = _master * _effectVolume;

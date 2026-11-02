@@ -13,6 +13,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**371** - `0x5AA2E2602CF9DC93`. Remake regression pin, not native evidence. FormatVersion also 371. A walking Jack hands back to state 273 once its route progress is exactly 1.0, as state 6 (`0x00470C80`) does, not at Follow_Path's arrival; it now settles on the heart corner where DK2's did on M7Traps. No new saved field. See ADR-0627 (Q711). Earlier saves are refused.
 **370** - `0xB4927C1D9318B10F`. Remake regression pin, not native evidence. FormatVersion also 370. Triangle search visits neighbours in native order after accounting for reversed storage winding; equal heap keys now choose the native corridor. No new saved field. See ADR-0626 and [captured route controls](q712-route-window.md#native-query-control-and-pre-edit-inventory). Earlier saves are refused.
 
 **369** - `0xDA38F477882C0B87`. Remake regression pin, not native evidence. FormatVersion also 369. Ordinary simulation room positions use the slab centroid when owned, otherwise the first owned tile on the native expanding spiral. Existing special-room/AI adapters retain their scope. No new saved field; see ADR-0625 and [ordinary room positions](room-position-parity.md). Earlier saves are refused.

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Simulation.Steering;
 
 namespace DK2.Simulation.Systems;
 
@@ -27,7 +28,15 @@ public sealed class JackInTheBoxSystem : ICreatureUpdateStep
             if (StateShadow.IsTravelling(jack))
             {
                 JackInTheBoxRules.Travelling(context, jack);
-                if (jack.UtilityNewState == JackInTheBoxRules.SpringState && !jack.HasRoute) StateShadow.Arrive(context, SystemName, jack);
+                // State 6 resumes at a progress of exactly 1.0 (0x00470C80), which counts the last
+                // point's distance in sixteenths of a tile: under 1/16 is there, before Follow_Path's
+                // half-radius arrival (Q711: 0x8C8 short of 0x810 on M7Traps). Its wait while a kind-4
+                // action (a hit's recoil) runs is not modelled: nothing can attack a Jack (ADR-0615).
+                if (jack.UtilityNewState == JackInTheBoxRules.SpringState && FollowPathRules.Progress(jack.Body) == Fixed16.One)
+                {
+                    jack.StopMoving();
+                    StateShadow.Arrive(context, SystemName, jack);
+                }
             }
             else if (jack.Dk2StateId == JackInTheBoxRules.SpringState) JackInTheBoxRules.Handle(context, jack);
         }

@@ -29,7 +29,7 @@ public sealed class PortalDropTests
         Assert.Equal(40960, Assert.Single(sim.World.Player(PlayerIds.FirstKeeper).EntranceInfo).Block);
         Assert.Equal((byte)7, sim.World.Player(PlayerIds.FirstKeeper).LastSackedCreatureTypeId);
         Assert.Contains(sim.World.Messages.Entries, m => (uint)m.Kind == 20 && m.Data1 == 7);
-        Assert.Equal(CreatureSoundEvent.Sacked, Assert.Single(events.Events, e => e.CreatureSound.HasValue).CreatureSound!.Value.Event);
+        Assert.Equal(ThingSoundEvent.Sacked, Assert.Single(events.Events, e => e.ThingSound.HasValue).ThingSound!.Value.Event);
         Assert.Equal((ushort)96, Assert.Single(events.Events, e => e.EffectRequest.HasValue).EffectRequest!.Value.EffectId.Value);
         Assert.Empty(sim.World.Objects);
     }
