@@ -96,6 +96,7 @@ public static class DefeatRules
             fallen++;
         }
 
+        HeartSoundRules.RequestCollapse(context, SystemName, playerId);   // 0x004DAC38, after the walks
         context.Emit(SystemName, "dungeon_fell",
             $"player={playerId} gold_scattered={gold} piles={piles} rooms_to_neutral={rooms} tiles_fallen={fallen}");
     }

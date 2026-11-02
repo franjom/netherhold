@@ -35,12 +35,25 @@ public enum ThingSoundEvent : ushort
     RoomTileSold = 0xF5,
     /// <summary>A room rectangle accepted at its corner (the build command, <c>0x00442D57</c>).</summary>
     RoomBuildAccepted = 0x2F8,
+    /// <summary>The local player's Heart opens (<c>DungeonHeart_Update</c>, <c>0x004D9E00</c>); the same
+    /// group as <see cref="RoomTileBuilt"/>, in the heart's category.</summary>
+    HeartOpened = 0xF1,
+    /// <summary>A blow lands on a heart (<c>Player_ModifyHeartHealth</c>, <c>0x004DA2DB</c>).</summary>
+    HeartDamaged = 0x329,
+    /// <summary>A heart's health reaches zero (<c>Heart_OnDestroyed</c>, <c>0x004DA5B2</c>).</summary>
+    HeartDestroyed = 0xDA,
+    /// <summary>The fallen keeper's heart tile, on the turn its consequences run (<c>0x004DAC38</c>); the
+    /// same group as <see cref="TileBroken"/>, in the heart's category.</summary>
+    HeartCollapsed = 0xF4,
 }
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the
-/// creature's lift and drop): the sound then neither replaces nor is retained by the thing's own voice.</summary>
+/// creature's lift and drop): the sound then neither replaces nor is retained by the thing's own voice.
+/// <paramref name="ViewerOnlyFor"/> names the owner of a request DK2 makes only for the local player's own
+/// thing (the heart's opening): the view plays it only when that player is the viewer.</summary>
 public readonly record struct ThingSoundRequest(
-    SoundSourceId Source, string Category, ThingSoundEvent Event, FpPosition3 Position, bool Voiced = true);
+    SoundSourceId Source, string Category, ThingSoundEvent Event, FpPosition3 Position, bool Voiced = true,
+    PlayerId? ViewerOnlyFor = null);
 
 /// <summary>A sound a thing requests at its position. Read for creatures (<c>0xD6</c>, <c>0xDF</c>,
 /// and the hand's <c>0xC3</c>/<c>0xC4</c>) and objects (the hand's <c>0xC3</c>/<c>0xC4</c>): positional
@@ -73,14 +86,15 @@ public static class ThingSoundRules
     /// the room builder pass it, 0x1000 as the room sale does). Nothing is emitted for a terrain with no
     /// category. A room's tiles use its room terrain's category (room definition <c>+0x44E</c>).</summary>
     public static void RequestTile(SimulationContext context, string system, byte terrainId, int tileIndex,
-        ThingSoundEvent sound, int height = 0, SoundSourceKind kind = SoundSourceKind.Terrain)
+        ThingSoundEvent sound, int height = 0, SoundSourceKind kind = SoundSourceKind.Terrain,
+        bool voiced = false, PlayerId? viewerOnlyFor = null)
     {
         string category = context.Database.TerrainById(terrainId).SoundCategory;
         if (category.Length == 0) return;
         int width = context.World.Width;
         Request(context, system, new SoundSourceId(kind, tileIndex), category, sound,
             new(new Fp32(CreatureState.CentreOf(tileIndex % width)), new Fp32(CreatureState.CentreOf(tileIndex / width)),
-                new Fp32(height)), voiced: false);
+                new Fp32(height)), voiced, viewerOnlyFor);
     }
 
     /// <summary>A creature's request with handle 0, which DK2 passes when lifting and dropping it.</summary>
@@ -95,13 +109,13 @@ public static class ThingSoundRules
             new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)));
 
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
-        ThingSoundEvent sound, FpPosition3 position, bool voiced = true)
+        ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null)
     {
         if (category.Length > 31) category = category.Substring(0, 31);
         context.Events.Emit(new SimEvent(context.Tick, system, "thing_sound",
             $"{source.Kind.ToString().ToLowerInvariant()}={source.Value} event={(ushort)sound}")
         {
-            ThingSound = new(source, category, sound, position, voiced),
+            ThingSound = new(source, category, sound, position, voiced, viewerOnlyFor),
         });
     }
 }

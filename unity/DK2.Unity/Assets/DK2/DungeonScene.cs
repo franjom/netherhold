@@ -74,6 +74,9 @@ namespace DK2.Unity
         public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual) =>
             _heartAdvances.Enqueue((owner, visual.PhaseStep));
         public System.Action<ViewEffectRequest> HeartEffectRequested { get; set; }
+
+        /// <summary>A heart's pending beat let through by the pulse gate: DK2 plays 0x150 there (0x0043CE85).</summary>
+        public System.Action<ObjectView> HeartBeatRequested { get; set; }
         /// <summary>A drawn gem carrier's mesh point 10001, once per draw (CreatureView.GemDustSparkle).</summary>
         public System.Action<FpPosition3> GemSparkleRequested { get; set; }
         public ClassicLightning Lightning { get; set; }
@@ -640,6 +643,7 @@ namespace DK2.Unity
                     && go.GetComponent<Renderer>().isVisible && _heartPulseGate.ConsumePendingBeat(HeartEffectClock()))
                 {
                     player.ConsumeBeat();
+                    HeartBeatRequested?.Invoke(pose);
                     if (HeartPulseGate.CanEmit(tick) && pose.HeartVisual.Value.ManaEffect != EffectId.None)
                         HeartEffectRequested?.Invoke(new ViewEffectRequest(pose.HeartVisual.Value.ManaEffect,
                             new PlayerId(pose.OwnerPlayerId), new FpPosition3(new Fp32(pose.PosX),

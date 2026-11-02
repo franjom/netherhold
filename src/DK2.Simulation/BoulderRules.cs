@@ -223,7 +223,7 @@ public static class BoulderRules
         if (TrapRules.DistanceSquared(boulder.PosX, boulder.PosY, CreatureState.CentreOf(x), CreatureState.CentreOf(y)) >= (uint)(reach * reach) >> 12) return;
         int damage = Capped(boulder, heartDef.Hp);
         int landed = damage < player.HeartHealth ? damage : player.HeartHealth;
-        bool killed = world.DamageHeart(owner, landed, boulder.OwnerPlayerId);
+        bool killed = HeartSoundRules.Damage(context, SystemName, owner, landed, boulder.OwnerPlayerId);
         CombatMessageRules.HeartDamaged(context, owner);
         boulder.Wear += landed;
         context.Emit(SystemName, "boulder_struck_heart",

@@ -228,3 +228,27 @@ plan's "most rooms have it", is the accept click of a dragged build: one sample 
 category, none in the heart or portal. A destroyed room tile asks for `0xF4` twice in DK2 (the refundless sale
 and `Tile_ApplyWork`, both in the room terrain's category) and nothing plays outside the heart; ours emits the
 applier's only.
+
+## 8. The Dungeon Heart
+
+Read 2026-11-02 for plan Phase W3. The heart room's category is the room definition's terrain's, as for any
+room (section 7): `ROOM_DUNGEON_HEART`. The room definition keeps it twice, `+0x44E` (terrain id) and `+0x449`
+(the category handle copied from that terrain at load, [0x004EBDAE](functions/004EACC0.md)); the blow and
+capture sites read `+0x449`.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| `0xF1`, handle 0, heart centre, height `0x1000` | [0x004D9A60](functions/004D9A60.md) at `0x004D9E00`: opening turn 0, only when the heart's owner is the local player (`+0x264`) | CONFIRMED | `HeartIntroRules.RoomFrame` via `HeartSoundRules.RequestOpened`; `ThingSoundRequest.ViewerOnlyFor` and `WorldSoundDirector`'s viewer play it for that keeper only |
+| `0x329`, room handle `+0x14`, at the heart object | [0x004DA200](functions/004DA200.md) at `0x004DA2DB`: a negative delta while the heart has an object, before the invulnerability test | CONFIRMED | `HeartSoundRules.Damage` (the fight, shot and boulder blows) |
+| `0xDA`, room handle, at the heart object | [0x004DA560](functions/004DA560.md) at `0x004DA5B2`: the heart's death handler | CONFIRMED | `HeartSoundRules.Damage`, on the blow that kills |
+| `0xF4`, the player's handle `+0x10A2`, heart tile, height 0 | [0x004DAA10](functions/004DAA10.md) at `0x004DAC38`: the death turn, after the rooms and tiles are handed over | STRONGLY INFERRED (the tile is the saved heart position) | `DefeatRules.OnDeathTurn` |
+| `0xF4`, same handle, tile centre | [0x004DAE40](functions/004DAE40.md) at `0x004DB102`: the local keeper's collapse | CONFIRMED site | waits: that function is research only |
+| `0x150`, handle 0, at the heart object, whatever the game turn | [0x0043CC30](functions/0043CC30.md) at `0x0043CE85`: a pending beat the one-second wall-clock gate lets through | CONFIRMED | `HeartBeatSound`, asked for by `DungeonScene` where it consumes the beat |
+| `0x2F9`, the object's handle, terrain 14's category | unnamed code at `0x004A32F9`: an object's update that works wall tiles down through `Tile_ApplyWork` with their whole health | HYPOTHESIS: the defeat collapse's destroyer object | waits: not built |
+| casino `0x316`, then `0x33E` | [0x004D9A60](functions/004D9A60.md) at `0x004DA00F`, `0x004DA114`: while world `+0x723A` bit 0 is set (the host-clock Saturday dance, [0x0050A850](functions/0050A850.md)); category terrain 0x18 (`ROOM_CASINO`) | CONFIRMED site | waits: the host clock is not an input of ours (Q571) |
+
+`0x329` has three samples, `0xDA` one, `0x150` one and `0x2F9` four, all only in `room_dungeon_heart`; `0xF4` and
+`0xF1` one each. `0x316` and `0x33E` exist only in `room_casino`, so the plan's "heart" label was the casino's
+category, played by the heart's room frame during the dance, never otherwise. Deviations: the heart object's
+position is taken as the centre tile at the floor height of the room (`0x1000`), as ours keeps no heart object; ours has no
+invulnerability flag, so the blow sound before that test has no extra case.

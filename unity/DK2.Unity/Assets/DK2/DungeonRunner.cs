@@ -376,6 +376,12 @@ namespace DK2.Unity
             }
             _startup.Step("effects");
             _soundPlayer = new ClassicSoundPlayer(transform, new InstallClassicSoundAssets(install));
+            string heartCategory = HeartBeatSound.CategoryOf(database);
+            _scene.HeartBeatRequested = pose =>
+            {
+                SoundRequest? beat = HeartBeatSound.For(heartCategory, pose);
+                if (beat.HasValue) _soundPlayer.Play(beat.Value);
+            };
             ApplySoundSettings(_gameSettings);
             if (frontEnd)
             {
@@ -391,7 +397,7 @@ namespace DK2.Unity
             _scriptedView.GuiVisibilityRequested += _hudControls.SetGuiVisible;
             WireSpeech(database);
             PrepareWinScreen(database);
-            _worldSounds = new WorldSoundDirector(_scriptedView);
+            _worldSounds = new WorldSoundDirector(_scriptedView, new PlayerId((byte)viewingPlayerId));
             _handCursorEvents = new HandCursorEventSink(_cursorFeedback, new PlayerId((byte)viewingPlayerId),
                 new VisibilityEventSink(_worldView, world, new PlayerId((byte)viewingPlayerId), _worldSounds));
             _simulation.ObserveWith(_handCursorEvents);

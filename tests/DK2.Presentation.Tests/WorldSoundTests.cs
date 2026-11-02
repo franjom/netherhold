@@ -4,6 +4,7 @@
 
 using System.Numerics;
 using DK2.Core;
+using DK2.Data.Model;
 using DK2.Simulation;
 
 namespace DK2.Presentation.Tests;
@@ -68,6 +69,21 @@ public sealed class WorldSoundTests
         Assert.Equal(0xF4u, sound.Id.Value);
         Assert.Equal(new Vector3(1.5f, 0, -2.5f), sound.World);
         Assert.Equal(SoundVoiceId.None, sound.Voice);
+    }
+
+    [Theory]
+    [InlineData(3, 3, true)]
+    [InlineData(3, 4, false)]
+    [InlineData(3, null, false)]
+    public void ARequestMarkedForTheLocalPlayersOwnThingPlaysOnlyForThatViewer(byte owner, int? viewer, bool plays)
+    {
+        var director = new WorldSoundDirector(null, viewer is int v ? new PlayerId((byte)v) : null);
+        director.Emit(new SimEvent(default, "test", "thing_sound", "")
+        {
+            ThingSound = new(new SoundSourceId(SoundSourceKind.Room, 7), "ROOM_DUNGEON_HEART", ThingSoundEvent.HeartOpened,
+                new(new Fp32(0x1800), new Fp32(0x1800), new Fp32(0x1000)), Voiced: false, ViewerOnlyFor: new PlayerId(owner)),
+        });
+        Assert.Equal(plays, director.TryTake(out _));
     }
 
     [Fact]

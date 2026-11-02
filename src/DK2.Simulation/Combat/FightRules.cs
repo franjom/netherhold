@@ -189,7 +189,7 @@ public static class FightRules
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 -MeleeDamageRules.Swing(database, mine, me.Level, MeleeDamageRules.StanceOf(me)), 0, 0);
             if (blow == 0) return;
-            bool killed = world.DamageHeart(owner.PlayerId, -blow, me.OwnerPlayerId);
+            bool killed = HeartSoundRules.Damage(context, SystemName, owner.PlayerId, -blow, me.OwnerPlayerId);
             if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
             context.Emit(SystemName, "heart_hit",
                 $"creature={me.Id} heart={owner.PlayerId} blow={blow} health={owner.HeartHealth}{(killed ? " destroyed" : "")}");
