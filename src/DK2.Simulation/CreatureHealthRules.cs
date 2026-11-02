@@ -44,24 +44,12 @@ public static class CreatureHealthRules
     /// <summary>Whether this creature is at or below <c>CreatureCriticalHealthPercentageOfMax</c>
     /// (20 %) of its maximum. No simulation reader, and no reader found in DK2 either: a raw scan of
     /// every initialised block for the variable's cached global finds one reference, the loader
-    /// writing it (ADR-0085). Kept because the variable is shipped and named; see <see cref="KnockoutHealth"/>.</summary>
+    /// writing it (ADR-0085). Kept because the variable is shipped and named.</summary>
     public static bool IsCriticallyHurt(
         GameDatabase database, CreatureDef creature, CreatureState state) =>
         state.Health * 100
             <= MaxHealth(database, creature, state)
                * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax];
-
-    /// <summary>The six in <see cref="KnockoutHealth"/>, and the petals on the flower above a creature's head (Q171). Not a coincidence.</summary>
-    public const int KnockoutFraction = 6;
-
-    /// <summary>What a creature has left the moment it is knocked out: one sixth of its maximum.
-    /// DK2's <c>ModifyHealth</c> applies the delta and then, if the result went below zero and the
-    /// creature is not already dying, sets health to <c>maxHealth / 6</c> and raises
-    /// <c>CreatureDying</c> — computed as <c>100 * max / 6 / 100</c>. Damage taken while dying misses that branch, goes negative and kills. STRONGLY INFERRED (binary). Open: one sixth is one petal but the owner counts two in a cell (Q167) — display, not health. Trap: it is not <c>CreatureCriticalHealthPercentageOfMax</c>.</summary>
-    public static int KnockoutHealth(
-        GameDatabase database, CreatureDef creature, CreatureState state) =>
-        // DK2: 100 * max / 6 / 100, floored at one — a creature brought round at nothing dies on the tick it wakes.
-        Math.Max(1, MaxHealth(database, creature, state) / KnockoutFraction);
 
     /// <summary>Whether this creature is hurt enough that DK2 sends it to bed —
     /// <c>CreatureSleepsWhenBelowPercentHealth</c>, 50. Puts a bedless creature to sleep untired (state 80, <c>0x0046F785</c>);

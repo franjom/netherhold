@@ -144,6 +144,8 @@ public class PrisonTests
     {
         CreatureState captive = world.SpawnCreature(db, GoblinId, owner, cell);
         int index = (cell.Y * world.Width) + cell.X;
+        // Freshly knocked out, as an imp's prisoner is: its whole dying window left.
+        Assert.True(CreatureDeathRules.Collapse(new StateHookContext(world, db), captive));
         Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, index));
         return captive;
     }
@@ -443,45 +445,58 @@ public class PrisonTests
     // ---- withering --------------------------------------------------------
 
     [Fact]
-    public void APrisonerWakesAtOneSixthAndLosesTwelveHealthEverySeventeenthTurn()
+    public void APrisonerWakesAtItsDyingWindowLeftPlusATenth_AndLosesTwelveHealthEverySeventeenthTurn()
     {
-        // CONFIRMED (owner, 2026-09-05, Q167): "its flower gets two petals, and
-        // then that creature starts loosing health at some standard rate". Read,
-        // not fitted: DK2's ModifyHealth sets health to maxHealth / 6 on taking a
-        // creature below zero (100 * max / 6 / 100 — a sixth as a percentage; a
-        // flower has six petals), so a Goblin's 1500 becomes 250. It is not
-        // CreatureCriticalHealthPercentageOfMax: a .text scan of that global finds only the loader's write (ADR-0085).
+        // Q726 (binary 2026-11-02): the collapse writes the dying window, 240, into health
+        // (0x004B2FA0), and the imp's state 44 admits the body (0x004E2C70), which adds a
+        // tenth of the level-scaled maximum: a fresh Goblin's 240 + 150. Not ADR-0071's sixth,
+        // which only the Stone Knight's blow path (0x00490120) writes.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
 
-        Assert.Equal(250, captive.Health);
-        Assert.Equal(
-            db.CreatureById(GoblinId).Hp / CreatureHealthRules.KnockoutFraction,
-            captive.Health);
+        Assert.Equal(CreatureDeathRules.DyingWindowTicks(db) + (db.CreatureById(GoblinId).Hp / 10), captive.Health);
+        Assert.Equal(390, captive.Health);
 
         GameSimulation sim = Simulation(db, world);
 
         // Twelve at a time, not three a second: the hook reloads variable19 << 2 (ADR-0171).
         // It bites on the fifth turn after entry and then every 17 (Q424): turns 4, 21, 38.
         for (int i = 0; i < 4; i++) sim.Tick();
-        Assert.Equal(250, captive.Health);
+        Assert.Equal(390, captive.Health);
         sim.Tick();
-        Assert.Equal(250 - 12, captive.Health);
+        Assert.Equal(390 - 12, captive.Health);
         for (int i = 0; i < 16; i++) sim.Tick();
-        Assert.Equal(250 - 12, captive.Health);
+        Assert.Equal(390 - 12, captive.Health);
         sim.Tick();
-        Assert.Equal(250 - 24, captive.Health);
+        Assert.Equal(390 - 24, captive.Health);
     }
 
     [Fact]
-    public void ACapturedGoblinIsASkeletonInEightySixGameSeconds()
+    public void ACasualtyThatLayLongerArrivesWithLess_TheWindowItHasLeftPlusATenth_CappedAtItsMaximum()
     {
-        // The whole clock end to end. A Goblin knocked out sits at 1500/6 = 250, and a
-        // bite is 4 x -3 = -12, so the 21st bite finishes it. The Prison hook bites on the
-        // fifth turn after entry and then every 17 (reload 16, Q424): turn 4 + 17 x 20 =
-        // 344, so 86.25 seconds, not the 83 a bite every four seconds from zero gave.
+        // 217 spends the window in health while the body lies undragged (dying-states.md §1).
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState lain = world.SpawnCreature(db, GoblinId, Rival, CellA);
+        Assert.True(CreatureDeathRules.Collapse(new StateHookContext(world, db), lain));
+        lain.DyingTicks = 100;
+        CreatureDef goblin = db.CreatureById(GoblinId);
+        Assert.Equal(140 + 150, PrisonRules.AdmissionHealth(db, goblin, lain));
+
+        CreatureState awake = world.SpawnCreature(db, GoblinId, Rival, CellB);
+        awake.Health = goblin.Hp - 10;
+        Assert.Equal(goblin.Hp, PrisonRules.AdmissionHealth(db, goblin, awake));
+    }
+
+    [Fact]
+    public void ACapturedGoblinIsASkeletonInOneHundredAndThirtySevenGameSeconds()
+    {
+        // The whole clock end to end. A fresh Goblin prisoner sits at 240 + 150 = 390 (Q726), and
+        // a bite is 4 x -3 = -12, so the 33rd bite finishes it. The Prison hook bites on the
+        // fifth turn after entry and then every 17 (reload 16, Q424): turn 4 + 17 x 32 = 548,
+        // so 137 game seconds.
         GameDatabase db = Db;
         WorldState world = World(db);
         Prison(db, world);
@@ -489,7 +504,7 @@ public class PrisonTests
         int captiveId = captive.Id;
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 344; i++) sim.Tick();
+        for (int i = 0; i < 548; i++) sim.Tick();
         Assert.NotNull(world.CreatureById(captiveId));
 
         sim.Tick();
@@ -805,12 +820,15 @@ public class PrisonTests
         WorldState world = World(db);
         Prison(db, world);
         CreatureState captive = Prisoner(db, world, CellA);
+        captive.Health = 300;
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, CellC)));
 
+        // Admission (0x004E2C70), and its tenth, is the imp's alone (Q726): the hand's drop keeps the health.
+        Assert.Equal(300, captive.Health);
         Assert.False(captive.InHand);
         Assert.Equal(CreatureActivity.Imprisoned, captive.Activity);
         Assert.Equal(Keeper, captive.PrisonOwnerPlayerId);
@@ -1232,7 +1250,7 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 344; i++) sim.Tick();
+        for (int i = 0; i < 548; i++) sim.Tick();
         Assert.NotNull(world.CreatureById(captiveId));
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_stepped");
 
@@ -1715,7 +1733,7 @@ public class PrisonTests
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 10 * Second; i++) sim.Tick();
 
-        Assert.Equal(250, captive.Health);
+        Assert.Equal(390, captive.Health);
     }
 
     // ---- the Angry flourish (Q188) ------------------------------------------

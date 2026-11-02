@@ -1154,7 +1154,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Ours, unread in the original: whether an L-shaped prison's rim is furnished the same way (we count the rim rather than compute it from the bounding box, so an L-shape answers sensibly; for rectangles the two agree). Maximum Skeletons equals capacity here because a Skeleton replaces the prisoner that died; that DK2 gets the same number *for the same reason* is inference.
 
 ## ADR-0071 — A knocked-out creature has exactly one sixth of its health, and DK2 says so
-**Date:** 2026-09-06 · **Status:** accepted · closes Q167 (health half) · supersedes the 20% in ADR-0064
+**Date:** 2026-09-06 · **Status:** accepted; its sixth corrected by ADR-0628 · closes Q167 (health half) · supersedes the 20% in ADR-0064
 
 **Context.** A prisoner's arrival health was guessed three times: full health (500 game seconds for a Goblin to wither); 20% of maximum, after *"its flower gets two petals"* met a shipped `CreatureCriticalHealthPercentageOfMax` of 20 (100 s); and now a sixth of maximum, read from the binary (83 s). Both legs of the second reading failed the same day — the flower has **six** petals, not ten (Q171, owner screenshot), and a raw `.text` scan for that variable's cached global finds exactly one reference, the loader writing it. The two errors cancelled to something plausible: 20% sits inside the 2-petals-of-six band, so the guess looked confirmed from both sides while resting on nothing.
 
@@ -14624,3 +14624,25 @@ Other walkers keep their existing handover (Q724).
 DK2's track step for step, one turn earlier in numbering as on the whole walk: it stopped at
 (20.49, 31.47), entered 273 the next tick and lost 51 a tick. The test pins the mechanism on a
 synthetic map: the walk ends with `PathFinished` still clear.
+
+## ADR-0628: a prisoner arrives with its dying window left plus a tenth
+
+**Date:** 2026-11-02. **Status:** accepted. Corrects ADR-0071's health half (Q167, Q726); hash/save 372.
+
+**Context.** ADR-0071 read the health routine as setting a sixth of the maximum below zero.
+It does not: the collapse writes the dying window, 240, into health (`0x004B2FA0`), and
+217 spends it while the body is not dragged. The sixth is the Stone Knight's blow path
+(`0x00490120`), reached from the melee swing only for Horny striking a type-28. The imp's
+state 44 (`0x00468010`) clears the dying flag (`0x0048B860`), drops the body and admits it
+(`0x004E2C70`, its only caller), which adds a tenth of the level-scaled maximum, capped
+([prison.md](research/prison.md#2-who-may-pick-a-creature-up)).
+
+**Decision.** `PrisonRules.AdmissionHealth` is the window left (`DyingWindowTicks` less
+`DyingTicks`) plus a tenth, capped at the maximum, for an imp's prisoner. A prisoner the hand
+drops back into a cell keeps its health and its health source. `KnockoutHealth` is removed.
+
+**Consequences.** A fresh Goblin arrives at 390 of 1500, not 250, and is a skeleton after
+137 game seconds, not 86; a captive tortured to death takes 39 acts, not 25. The flower's
+ring (`status-flowers.md`) shows three petals at 26 % and two under 25 %, so the owner's two
+petals fit a prisoner that lay over 15 ticks first; the old sixth fit too, so the count does
+not decide between them. The Stone Knight's blow path stays unbuilt (Q399).

@@ -328,18 +328,27 @@ public static class PrisonRules
         return null;
     }
 
+    /// <summary>The health an imp's prisoner wakes at (Q726). The collapse writes the dying window
+    /// into health (<c>0x004B2FA0</c>) and 217 spends it a tick at a time while not dragged; state 44
+    /// clears the dying flag (<c>0x0048B860</c>), drops the body and admits it (<c>0x004E2C70</c>),
+    /// which adds a tenth of the level-scaled maximum, capped there. Ours holds the window spent as
+    /// <c>DyingTicks</c>, so the countdown left is the window less it.</summary>
+    public static int AdmissionHealth(GameDatabase database, CreatureDef definition, CreatureState creature)
+    {
+        int max = CreatureHealthRules.MaxHealth(database, definition, creature);
+        int before = CreatureDeathRules.IsDying(creature)
+            ? Math.Max(0, CreatureDeathRules.DyingWindowTicks(database) - creature.DyingTicks)
+            : creature.Health;
+        return Math.Min(before + (max / 10), max);
+    }
+
     /// <summary>Puts <paramref name="creature"/> in <paramref name="playerId"/>'s
     /// prison on <paramref name="tileIndex"/>, and says whether it took. A prisoner
     /// arrives unconscious — the only way it can, since only an unconscious creature
     /// is carried — and imprisonment ends the dying window rather than continuing it.
-    /// <para>It wakes at <see cref="CreatureHealthRules.KnockoutHealth"/>, <b>a sixth
-    /// of maximum</b>, which is what DK2's damage path writes at the knockout (below
-    /// zero and not already dying stores <c>max / 6</c> and the <c>CreatureDying</c>
-    /// flag) rather than anything the prison does at the door. So a Goblin arrives at
-    /// 250 of 1500 and lasts <b>83</b> game seconds. CONFIRMED (owner, 2026-09-05,
-    /// Q167): "its flower gets two petals, and then that creature starts loosing
-    /// health". Open, display only: a sixth is one petal of six, the owner counts
-    /// two (Q167, Q171).</para></summary>
+    /// <para>An imp's prisoner wakes at <see cref="AdmissionHealth"/>; one the hand drops back
+    /// into a cell keeps its health, as admission (<c>0x004E2C70</c>) has the imp's state 44 as
+    /// its only caller (Q726).</para></summary>
     public static bool Imprison(
         in StateHookContext hooks, CreatureState creature,
         PlayerId playerId, int tileIndex, bool dropped = false)
@@ -354,10 +363,12 @@ public static class PrisonRules
         creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
         creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
-        creature.Health = CreatureHealthRules.KnockoutHealth(
-            database, database.CreatureById(creature.CreatureTypeId), creature);
-        // DK2's admission calls the health routine with the room's owner (+0x1D) as the source (0x004E2D28).
-        creature.HealthSourcePlayerId = playerId.Value;
+        if (!dropped)
+        {
+            creature.Health = AdmissionHealth(database, database.CreatureById(creature.CreatureTypeId), creature);
+            // DK2's admission calls the health routine with the room's owner (+0x1D) as the source (0x004E2D28).
+            creature.HealthSourcePlayerId = playerId.Value;
+        }
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
 

@@ -49,9 +49,10 @@ object-carrying task would use — kind 8.
 
 ## 2. Who may pick a creature up
 
-A captured creature arrives at **a sixth of its maximum health** — DK2's `ModifyHealth` writes `max / 6` when it takes a creature below zero, so a Goblin
-arrives at **250** of 1500 and turns to bone in **83** game seconds (Q167,
-ADR-0071). The owner drew the line on who may carry it, 2026-09-05:
+A captured creature arrives at **the dying window it has left plus a tenth of its maximum**: the
+imp's state 44 admits it (`0x004E2C70`), adding the tenth. A fresh Goblin arrives at **390** of 1500
+and is bone in **137** game seconds; a hand's drop back keeps its health (ADR-0628, Q726).
+The owner drew the line on who may carry it, 2026-09-05:
 
 > *"a corpse can not be picked up by hand of evil and dropped to a graveyard,
 > only an imp can carry it to its grave, also an injured creature, lying on the

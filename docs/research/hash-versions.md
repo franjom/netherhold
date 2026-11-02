@@ -13,6 +13,7 @@ shipping. Rationale: `docs/architecture/simulation-loop.md`.
 new field is omitted from hashing. State absent from its fixture needs separate
 sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove coverage.
 ## Versions
+**372** - `0x29739B54776F06D9`. Remake regression pin, not native evidence. FormatVersion also 372. An imp's prisoner arrives with its dying window left plus a tenth of its level-scaled maximum (`0x004E2C70`), not ADR-0071's sixth; a hand's drop back into a cell keeps the health. No new saved field. See ADR-0628 (Q726). Earlier saves are refused.
 **371** - `0x5AA2E2602CF9DC93`. Remake regression pin, not native evidence. FormatVersion also 371. A walking Jack hands back to state 273 once its route progress is exactly 1.0, as state 6 (`0x00470C80`) does, not at Follow_Path's arrival; it now settles on the heart corner where DK2's did on M7Traps. No new saved field. See ADR-0627 (Q711). Earlier saves are refused.
 **370** - `0xB4927C1D9318B10F`. Remake regression pin, not native evidence. FormatVersion also 370. Triangle search visits neighbours in native order after accounting for reversed storage winding; equal heap keys now choose the native corridor. No new saved field. See ADR-0626 and [captured route controls](q712-route-window.md#native-query-control-and-pre-edit-inventory). Earlier saves are refused.
 
