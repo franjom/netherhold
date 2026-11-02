@@ -47,8 +47,8 @@ public sealed class SpecialSystem : ISimulationSystem
                     affected = GiveImps(context, command.PlayerId);
                     break;
                 case LocateHiddenLand:
-                    // 0x004A4F70: the profile write is the host's (CampaignCarry); its effect 0xC6,
-                    // message 49 and sound are not modelled.
+                    // 0x004A4F70: the profile write is the host's (CampaignCarry); its effect 0xC6
+                    // and message 49 are not modelled; the sound is asked below.
                     context.World.Carry.HiddenLandFound++;
                     affected = 0;
                     break;
@@ -108,8 +108,8 @@ public sealed class SpecialSystem : ISimulationSystem
     /// type, on a two-tile circle round the Heart's tile centre at angles i × (0x800 / count), each
     /// four levels up and facing <c>rand(0x800)</c> on the world stream, kicked to 214. 214
     /// (<c>0x00481750</c>) waits for the fall to the floor, then runs 76's landing; ours has no fall
-    /// (M9) and puts each down as the hand does, as Create Imp's (ADR-0312). Its effect, message 49
-    /// and sound are not modelled.</summary>
+    /// (M9) and puts each down as the hand does, as Create Imp's (ADR-0312). Its effect and message 49
+    /// are not modelled; the sound is asked by <see cref="Execute"/>.</summary>
     private static int GiveImps(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;

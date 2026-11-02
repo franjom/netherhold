@@ -39,7 +39,9 @@ public sealed class DoorSystem : ISimulationSystem
             bool was = door.Open;
             door.Open = door.LockPickTicks > 0
                 || (door.LockMode != 3 && AnyEligibleAtHand(context, door));
-            // 0x004A60B9: the open state changed. A dead door never reaches it (0x004A5BF0 returns first).
+            // 0x004A60B9: the open state changed. A door found dead skips the open decision in DK2, but its owner and support
+            // kills run inside the same update, before that test, and ours are DoorHealthSystem's, after this one: a door
+            // killed this tick may still sound this tick (a deviation with no practical effect, it goes the same turn).
             if (door.Open != was && !DoorRules.IsDead(door))
                 ThingSoundRules.Request(context, Name, door, door.Open ? ThingSoundEvent.DoorOpened : ThingSoundEvent.DoorClosed);
         }

@@ -21,9 +21,14 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
 {
     private readonly ConcurrentQueue<SoundRequest> _pending = new();
     public bool TryTake(out SoundRequest request) => _pending.TryDequeue(out request);
+    private uint _alternator;
+
     public void Emit(in SimEvent simEvent)
     {
+        // DK2's global counter for the chicken's step (0x006E4FD4): bit 0 is tested, then it counts, on every request.
+        bool turn = simEvent.ThingSound is { Alternating: true } && (_alternator++ & 1) != 0;
         if (simEvent.ThingSound is { } sound && !string.IsNullOrEmpty(sound.Category)
+            && (!sound.Alternating || turn)
             && (sound.ViewerOnlyFor is not { } owner || owner == viewer))
             _pending.Enqueue(new(new SoundCategory(sound.Category.ToLowerInvariant()), new SoundId((uint)sound.Event),
                 new Vector3(sound.Position.X.Raw / 4096f, sound.Position.Z.Raw / 4096f, -sound.Position.Y.Raw / 4096f),

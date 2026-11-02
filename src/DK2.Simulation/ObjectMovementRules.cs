@@ -57,6 +57,10 @@ public static class ObjectMovementRules
 
     public static void StepMove(SimulationContext context, ObjectState thing)
     {
+        // 0x0049FA66: first, before the turn: a chicken whose step count is 1 offers its sound, on every call it stays 1
+        // (the turn holds the count). The listener keeps DK2's global alternator, 0x006E4FD4.
+        if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId && thing.MoveTicksRemaining == 1)
+            ThingSoundRules.Request(context, "ObjectMovement", thing, ThingSoundEvent.ChickenStep, alternating: true);
         if ((thing.MoveFlags & ObjectMoveFlags.Turning) != 0)
         {
             int heading = thing.Heading;

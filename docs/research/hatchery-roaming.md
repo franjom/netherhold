@@ -56,8 +56,8 @@ facing, it clears the flag, decrements the count, and applies the velocity on
 nonzero counts. At zero it snaps to the destination, preserving Z, restores
 the resume process and resets age. Each intermediate Chicken step also calls
 the creature-avoidance helper. Chicken footstep audio (`0x110`) alternates through a
-global counter when the pre-decrement movement count is 1; not built (new state,
-[sound-effects-objects.md](sound-effects-objects.md#1-objects-and-specials)).
+global counter when the movement count is 1; built, the listener keeps the counter
+([sound-effects-objects.md](sound-effects-objects.md#1-objects-and-specials)).
 
 The definition loader `0x0049DD60` divides file speed `+0x338` by global
 ticks/second `0x006F2590`, narrowing to runtime word `+0x100`; a nonzero source

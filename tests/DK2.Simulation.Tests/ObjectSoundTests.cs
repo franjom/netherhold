@@ -42,22 +42,26 @@ public sealed class ObjectSoundTests
     }
 
     [Fact]
-    public void AChickenMadeInPlayRequestsF1AtItsPositionWithItsVoiceAndNoF2()
+    public void AnObjectMadeInPlayRequestsF1ThenF2AtItsPositionWithItsVoice()
     {
         var (db, world, _, events) = Setup();
         ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile);
 
-        ThingSoundRequest sound = Assert.Single(Sounds(events));
-        Assert.Equal(ThingSoundEvent.ObjectMade, sound.Event);
-        Assert.Equal((ushort)0xF1, (ushort)sound.Event);
-        Assert.Equal("OBJECT_CHICKEN", sound.Category);
-        Assert.Equal(new SoundSourceId(SoundSourceKind.Object, chicken.Id), sound.Source);
-        Assert.Equal(Centre(world, Tile), sound.Position);
-        Assert.True(sound.Voiced);
+        ThingSoundRequest[] heard = Sounds(events);   // Object_Init asks both, whatever the category holds
+        Assert.Equal([ThingSoundEvent.ObjectMade, ThingSoundEvent.ObjectMadeSecond], heard.Select(s => s.Event));
+        Assert.Equal((ushort)0xF1, (ushort)heard[0].Event);
+        Assert.Equal((ushort)0xF2, (ushort)heard[1].Event);
+        Assert.All(heard, sound =>
+        {
+            Assert.Equal("OBJECT_CHICKEN", sound.Category);
+            Assert.Equal(new SoundSourceId(SoundSourceKind.Object, chicken.Id), sound.Source);
+            Assert.Equal(Centre(world, Tile), sound.Position);
+            Assert.True(sound.Voiced);
+        });
     }
 
     [Fact]
-    public void ABedRequestsF1AndARatAndABatRequestF2BecauseOnlyThoseCategoriesHaveTheGroup()
+    public void ABedARatAndABatEachAskBothInTheirOwnCategories()
     {
         var (db, world, _, events) = Setup();
         ObjectState bed = world.SpawnObject(db, Dk2TerrainFixture.GoblinBedObjectId, Keeper, Tile);
@@ -65,22 +69,22 @@ public sealed class ObjectSoundTests
         ObjectState bat = world.SpawnObject(db, BatObjectId, Keeper, Tile + 2);
 
         ThingSoundRequest[] heard = Sounds(events);
-        Assert.Equal(3, heard.Length);
-        Assert.Equal((ThingSoundEvent.ObjectMade, "OBJECT_BED", bed.Id), (heard[0].Event, heard[0].Category, heard[0].Source.Value));
-        Assert.Equal((ThingSoundEvent.ObjectMadeSecond, "OBJECT_RAT", rat.Id), (heard[1].Event, heard[1].Category, heard[1].Source.Value));
-        Assert.Equal((ThingSoundEvent.ObjectMadeSecond, "OBJECT_BAT", bat.Id), (heard[2].Event, heard[2].Category, heard[2].Source.Value));
-        Assert.Equal((ushort)0xF2, (ushort)ThingSoundEvent.ObjectMadeSecond);
+        Assert.Equal(6, heard.Length);
+        foreach ((int i, string category, int id) in new[] { (0, "OBJECT_BED", bed.Id), (2, "OBJECT_RAT", rat.Id), (4, "OBJECT_BAT", bat.Id) })
+        {
+            Assert.Equal((ThingSoundEvent.ObjectMade, category, id), (heard[i].Event, heard[i].Category, heard[i].Source.Value));
+            Assert.Equal((ThingSoundEvent.ObjectMadeSecond, category, id), (heard[i + 1].Event, heard[i + 1].Category, heard[i + 1].Source.Value));
+        }
         Assert.All(heard, s => Assert.Equal(SoundSourceKind.Object, s.Source.Kind));
         Assert.Equal(Centre(world, Tile, 0x1000), heard[0].Position);
     }
 
     [Fact]
-    public void AnObjectWhoseCategoryHasNoSuchGroupRequestsNothing()
+    public void AnObjectWithNoSoundCategoryRequestsNothing()
     {
         var (db, world, _, events) = Setup();
-        ObjectState gold = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, Tile);   // OBJECT_GOLD: no F1, F2 or F4
-        world.SpawnObject(db, Dk2TerrainFixture.IncreaseLevelSpecialObjectId, PlayerIds.Neutral, Tile + 1);
-        world.RemoveObject(gold.Id);
+        ObjectState bag = world.SpawnObject(db, 2, PlayerIds.Neutral, Tile);   // Gold Bag: no category
+        world.RemoveObject(bag.Id);
 
         Assert.Empty(Sounds(events));
     }
@@ -135,8 +139,62 @@ public sealed class ObjectSoundTests
         }
         var events = new ListEventSink();
         GameSimulation heard = Run(events);
-        Assert.Equal(2, Sounds(events).Length);
+        Assert.Equal([ThingSoundEvent.ObjectMade, ThingSoundEvent.ObjectMadeSecond, ThingSoundEvent.ObjectRemoved],
+            Sounds(events).Select(s => s.Event));
         Assert.Equal(Run(null).StateHash(), heard.StateHash());
+    }
+
+    // ------------------------------------------------------------------------------ the chicken's step
+
+    private static (ObjectState Chicken, GameSimulation Sim, ListEventSink Events) Stepping(ushort ticks, ObjectMoveFlags flags = ObjectMoveFlags.None)
+    {
+        var (db, world, sim, events) = Setup(new ObjectMovementSystem());
+        ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile);
+        chicken.ProcessState = (byte)ChickenProcess.Moving;
+        chicken.ProcessAgeTicks = 1;
+        chicken.MoveResumeState = (byte)ChickenProcess.None;
+        chicken.MoveFlags = flags;
+        chicken.MoveTicksRemaining = ticks;
+        chicken.MoveDestinationX = chicken.PosX + 0x1000;
+        chicken.MoveDestinationY = chicken.PosY;
+        chicken.MoveVelocityX = 0x100;
+        events.Clear();
+        return (chicken, sim, events);
+    }
+
+    /// <summary><c>Object_Process9MoveTo</c> (<c>0x0049FA50</c>) tests its step count first thing: on the call where it is 1 a chicken
+    /// offers <c>0x110</c> (<c>0x0049FA95</c>) with its handle at where it stands, marked for the listener's alternator; on
+    /// the calls before, and for any other object, nothing.</summary>
+    [Fact]
+    public void AChickenOffers110OnTheCallWhereItsStepCountIsOneAtItsPositionBeforeItMoves()
+    {
+        var (chicken, sim, events) = Stepping(3);
+        var before = new FpPosition3(new Fp32(chicken.PosX), new Fp32(chicken.PosY), new Fp32(0x1000));
+
+        sim.Run(2);
+        Assert.Empty(Sounds(events));   // counts 3 and 2
+
+        sim.Run(1);   // count 1
+        ThingSoundRequest step = Assert.Single(Sounds(events));
+        Assert.Equal(ThingSoundEvent.ChickenStep, step.Event);
+        Assert.Equal((ushort)0x110, (ushort)step.Event);
+        Assert.Equal("OBJECT_CHICKEN", step.Category);
+        Assert.Equal(new SoundSourceId(SoundSourceKind.Object, chicken.Id), step.Source);
+        Assert.Equal(before.Y, step.Position.Y);
+        Assert.True(step.Voiced);
+        Assert.True(step.Alternating);
+    }
+
+    [Fact]
+    public void ATurningChickenWhoseCountStaysOneOffersItOnEveryCallItTurns()
+    {
+        var (chicken, sim, events) = Stepping(1, ObjectMoveFlags.Turning);
+        chicken.Heading = 0x600;   // the destination lies east, 0x200: a turn of more than one call at 0x100 a call
+
+        sim.Run(3);
+
+        Assert.True(Sounds(events).Length >= 2);
+        Assert.All(Sounds(events), s => Assert.Equal(ThingSoundEvent.ChickenStep, s.Event));
     }
 
     // ------------------------------------------------------------------------------ the struck dummy
@@ -175,7 +233,8 @@ public sealed class ObjectSoundTests
         special = world.SpawnObject(db, objectTypeId, PlayerIds.Neutral, Tile);
         events.Clear();
         sim.Tick(InputFrame.Of(new ActivateSpecialCommand(Keeper, special.Id)));
-        ThingSoundRequest[] heard = Sounds(events).Where(s => s.Category == "OBJECT_SPECIAL").ToArray();
+        ThingSoundRequest[] heard = Sounds(events).Where(s => s.Event is ThingSoundEvent.SpecialIncreasedLevel
+            or ThingSoundEvent.SpecialReceivedImps or ThingSoundEvent.SpecialLocatedHiddenLand).ToArray();
         return heard.Length == 1 ? heard[0] : default;
     }
 

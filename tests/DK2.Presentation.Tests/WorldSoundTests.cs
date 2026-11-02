@@ -99,6 +99,28 @@ public sealed class WorldSoundTests
         Assert.False(director.TryTake(out _));
     }
 
+    /// <summary>DK2 tests bit 0 of a global counter, then adds one, for every chicken step it offers (<c>0x0049FA70</c>,
+    /// <c>0x0049FA9B</c>): the first is silent, the second plays, and so on; other requests do not count.</summary>
+    [Fact]
+    public void AnAlternatingRequestPlaysOnEverySecondOfferStartingWithTheSecondAndOthersDoNotCount()
+    {
+        var director = new WorldSoundDirector();
+        var chicken = new SoundSourceId(SoundSourceKind.Object, 5);
+        SimEvent Step() => new(default, "test", "thing_sound", "")
+        {
+            ThingSound = new(chicken, "OBJECT_CHICKEN", ThingSoundEvent.ChickenStep, new(new Fp32(0), new Fp32(0), new Fp32(0)), Alternating: true),
+        };
+        var played = new List<bool>();
+        for (int i = 0; i < 4; i++)
+        {
+            director.Emit(Step());
+            played.Add(director.TryTake(out _));
+            director.Emit(Sound(new SoundSourceId(SoundSourceKind.Creature, 1), "CREATURE_IMP", ThingSoundEvent.BattleCall));
+            Assert.True(director.TryTake(out _));   // an ordinary request always plays and never moves the counter
+        }
+        Assert.Equal([false, true, false, true], played);
+    }
+
     private static SimEvent Sound(SoundSourceId source, string category, ThingSoundEvent sound) =>
         new(default, "test", "thing_sound", "")
         {

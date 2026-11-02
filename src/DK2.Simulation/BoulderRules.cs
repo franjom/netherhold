@@ -84,7 +84,9 @@ public static class BoulderRules
     public static bool Update(SimulationContext context, ISightBlocker sight, ObjectState boulder, List<ObjectState> destroyed)
     {
         Strike(context, boulder, destroyed);
-        if (!Roll(context, sight, boulder)) return true;
+        // 0x004A1390 calls all three whatever the roll did: a boulder the roll destroyed for having no health still wears
+        // and reaches the destruction block.
+        Roll(context, sight, boulder);
         Wear(context, boulder);
         if (boulder.Health > boulder.Wear) return false;
         ThingSoundRules.Request(context, SystemName, boulder, ThingSoundEvent.BoulderBroke);   // 0x004A1390, after the destruction call

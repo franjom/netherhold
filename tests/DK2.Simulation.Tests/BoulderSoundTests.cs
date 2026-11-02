@@ -127,6 +127,24 @@ public sealed class BoulderSoundTests
             heard.Select(s => s.Event));
     }
 
+    /// <summary><c>Boulder_Update</c> runs the strike, the roll and the wear whatever the roll did, and a boulder with no health
+    /// reaches the destruction block (<c>0x004A13AF</c>) after the roll destroyed it: <c>0xF4</c>, and no roll sound. No shipped
+    /// <c>BoulderInitialHealth</c> is 0, and a slap (unbuilt) is what sets it, so this is not reached in play today.</summary>
+    [Fact]
+    public void ABoulderWithNoHealthStillAsksF4AfterItsRollDestroyedItAndNoRollSound()
+    {
+        (GameDatabase db, WorldState world) = Open();
+        ObjectState boulder = Rolling(db, world, 5, Row);
+        boulder.Health = 0;
+        GameSimulation sim = Sim(db, world, out ListEventSink events);
+
+        sim.Run(1);
+
+        Assert.Null(world.ObjectById(boulder.Id));
+        Assert.Empty(Heard(events, ThingSoundEvent.BoulderRolling));
+        Assert.Equal([ThingSoundEvent.BoulderBroke, ThingSoundEvent.BoulderBroke], Sounds(events).Select(s => s.Event));   // its own, then the deletion's
+    }
+
     [Fact]
     public void ABoulderOnWaterAsks14bAndOnLavaAsks14cAtItsPositionAfterTheRoll()
     {

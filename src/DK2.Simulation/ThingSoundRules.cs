@@ -90,6 +90,8 @@ public enum ThingSoundEvent : ushort
     Sacrificed = 0xE2,
     /// <summary>A worshipper begins its prayer (state 104, <c>0x00472E70</c>).</summary>
     Prayed = 0xD4,
+    /// <summary>A chicken's step (<c>Object_Process9MoveTo</c>, <c>0x0049FA95</c>), on the call where its step count is 1.</summary>
+    ChickenStep = 0x110,
     /// <summary>A door's open state turns on (<c>Door_Update</c>, <c>0x004A60B9</c>).</summary>
     DoorOpened = 0xE7,
     /// <summary>A door's open state turns off (<c>0x004A60B9</c>).</summary>
@@ -150,10 +152,13 @@ public enum ThingSoundEvent : ushort
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the
 /// creature's lift and drop): the sound then neither replaces nor is retained by the thing's own voice.
 /// <paramref name="ViewerOnlyFor"/> names the owner of a request DK2 makes only for the local player's own
-/// thing (the heart's opening): the view plays it only when that player is the viewer.</summary>
+/// thing (the heart's opening): the view plays it only when that player is the viewer.
+/// <paramref name="Alternating"/> marks a request DK2 gates on a global counter that nothing else reads (the chicken's
+/// step, <c>0x006E4FD4</c>): the listener keeps the counter, tests bit 0 and then adds one, for every such request it is
+/// given, so the simulation keeps no state for it.</summary>
 public readonly record struct ThingSoundRequest(
     SoundSourceId Source, string Category, ThingSoundEvent Event, FpPosition3 Position, bool Voiced = true,
-    PlayerId? ViewerOnlyFor = null);
+    PlayerId? ViewerOnlyFor = null, bool Alternating = false);
 
 /// <summary>A sound a thing requests at its position. Read for creatures (<c>0xD6</c>, <c>0xDF</c>,
 /// and the hand's <c>0xC3</c>/<c>0xC4</c>) and objects (the hand's <c>0xC3</c>/<c>0xC4</c>): positional
@@ -167,7 +172,7 @@ public static class ThingSoundRules
     /// stored height). Nothing is emitted for an object with no category: the shipped objects whose category
     /// is empty have no group to play.</summary>
     public static void Request(SimulationContext context, string system, ObjectState thing, ThingSoundEvent sound,
-        FpPosition3? at = null)
+        FpPosition3? at = null, bool alternating = false)
     {
         if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         string category = context.Database.ObjectById(thing.ObjectTypeId)?.SoundCategory ?? "";
@@ -179,7 +184,7 @@ public static class ThingSoundRules
             var y = new Fp32(placed ? thing.PosY : CreatureState.CentreOf(thing.TileIndex / context.World.Width));
             point = new(x, y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, x, y)));
         }
-        Request(context, system, new SoundSourceId(SoundSourceKind.Object, thing.Id), category, sound, point);
+        Request(context, system, new SoundSourceId(SoundSourceKind.Object, thing.Id), category, sound, point, alternating: alternating);
     }
 
     /// <summary>A door's request: its definition's category (<c>+0xA9</c>, <see cref="DoorDef.SoundCategory"/>), its own
@@ -254,11 +259,11 @@ public static class ThingSoundRules
             new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), viewerOnlyFor: viewerOnlyFor);
 
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
-        ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null)
+        ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null, bool alternating = false)
     {
         if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         if (category.Length > 31) category = category.Substring(0, 31);
-        context.RequestSound(system, new(source, category, sound, position, voiced, viewerOnlyFor));
+        context.RequestSound(system, new(source, category, sound, position, voiced, viewerOnlyFor, alternating));
     }
 
     /// <summary>A creature's request from a hook, which holds no event sink of its own: the creature's handle and

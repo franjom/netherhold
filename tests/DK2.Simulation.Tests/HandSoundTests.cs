@@ -29,8 +29,12 @@ public sealed class HandSoundTests
         return (db, world, sim, events);
     }
 
+    /// <summary>The hand's requests; an object's own creation and deletion sounds (<c>0xF1</c>, <c>0xF2</c>, <c>0xF4</c>,
+    /// ObjectSoundTests) are not what these tests are about.</summary>
     private static ThingSoundRequest[] Sounds(ListEventSink events) =>
-        events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)
+            .Where(s => !(s.Source.Kind == SoundSourceKind.Object
+                && s.Event is ThingSoundEvent.ObjectMade or ThingSoundEvent.ObjectMadeSecond or ThingSoundEvent.ObjectRemoved)).ToArray();
 
     private static FpPosition3 Centre(TilePos tile, int height = 0x1000) =>
         new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(height));
