@@ -92,9 +92,9 @@ and four new snapshot-format cases pass. The reviewed full suite passes
 4,285 Simulation and 1,413 Presentation cases. Behavior passes 510, skips 5
 and retains the known Level 18 failure (`phase-all-tests-reviewed.log`).
 
-## Matched outcomes (366 through 369)
+## Matched outcomes (366 through 370)
 
-All 460 frozen resyncs across 366/367/368/369 exit 0: each version runs 75 Level 5 and 40 Level 4
+All 575 frozen resyncs across 366/367/368/369/370 exit 0: each version runs 75 Level 5 and 40 Level 4
 processes, with five generators per native state and the archived stored-pickup
 inputs. Baseline 366 already includes the integrated Heart/supply changes;
 362 is a historical reference, not the isolating control for ADR-0623.
@@ -102,7 +102,7 @@ inputs. Baseline 366 already includes the integrated Heart/supply changes;
 Evidence roots:
 `F:/DK2Evidence/studies/heart-defence-q712-h367-l5--2026-11-01--001/` and
 `F:/DK2Evidence/studies/heart-defence-q712-h367-l4--2026-11-01--001/`;
-the corresponding `h366`, `h368` and `h369` siblings hold the other versions. Frozen-build provenance:
+the corresponding `h366`, `h368`, `h369` and `h370` siblings hold the other versions. Frozen-build provenance:
 `F:/DK2Evidence/builds/q712-fight-phase-h367--g8e707689-wip--2026-11-01--001/`.
 The observation-only tracer's production control matches all four original
 creature/event/replay/job outputs by SHA-256 (`production-control.json`).
@@ -110,34 +110,38 @@ creature/event/replay/job outputs by SHA-256 (`production-control.json`).
 ### Hero exposure and targets
 
 Ticks 1401-3400, native seeds 2/3/7: three native runs and 15 remake runs per
-version. The strict radius uses exact positions around room tile (17, 26).
+version. Hash 370 uses the frozen `q712-search-order-measurement-h370` build;
+its study READMEs and `sha256-final.json` retain the completed measurement.
+The strict radius uses exact positions around room tile (17, 26).
 Means follow `exposure-summary.json`; historical 362 values are from
 [the earlier exposure study](party-arrival-lifecycle.md#hero-presence-and-targets).
 
-| Hero-ticks inside, mean/run | DK2 | 362 reference | 366 | 367 | 368 | 369 |
-|---|---:|---:|---:|---:|---:|---:|
-| All non-collapsed | 4327.00 | 2720.93 | 3102.33 | 2904.07 | 3213.87 | 3088.73 |
-| Qualified intruders | 4262.33 | 2683.73 | 3055.27 | 2857.27 | 3176.33 | 3055.40 |
-| Targeting Heart pillar | 3298.67 | 1607.00 | 1890.80 | 1718.20 | 1997.60 | 1895.00 |
-| Targeting Imp | 790.00 | 790.60 | 901.53 | 851.27 | 933.93 | 918.60 |
-| Other target | 66.67 | 90.60 | 56.13 | 85.53 | 56.20 | 52.27 |
-| No target | 171.67 | 232.73 | 253.87 | 249.07 | 226.13 | 222.87 |
+| Hero-ticks inside, mean/run | DK2 | 362 reference | 366 | 367 | 368 | 369 | 370 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| All non-collapsed | 4327.00 | 2720.93 | 3102.33 | 2904.07 | 3213.87 | 3088.73 | 2450.13 |
+| Qualified intruders | 4262.33 | 2683.73 | 3055.27 | 2857.27 | 3176.33 | 3055.40 | 2424.00 |
+| Targeting Heart pillar | 3298.67 | 1607.00 | 1890.80 | 1718.20 | 1997.60 | 1895.00 | 1189.13 |
+| Targeting Imp | 790.00 | 790.60 | 901.53 | 851.27 | 933.93 | 918.60 | 924.67 |
+| Other target | 66.67 | 90.60 | 56.13 | 85.53 | 56.20 | 52.27 | 79.80 |
+| No target | 171.67 | 232.73 | 253.87 | 249.07 | 226.13 | 222.87 | 256.53 |
 
 ### Reporting entries and exits
 
 Same cohort; visible transitions rather than every within-turn state call.
 `state-transitions.json` records the source CSV hashes and per-run counts.
 
-| State-254 transition, mean/run | DK2 | 362 reference | 366 | 367 | 368 | 369 |
-|---|---:|---:|---:|---:|---:|---:|
-| Entries | 15.00 | 12.87 | 10.93 | 9.13 | 8.60 | 11.20 |
-| Exit to 199 | 3.67 | 0.60 | 0.73 | 0.60 | 0.60 | 0.87 |
-| Exit to 203 | 5.00 | 2.60 | 1.47 | 1.13 | 1.47 | 2.20 |
-| Exit to 1 | 3.00 | 4.67 | 3.93 | 3.67 | 3.53 | 4.27 |
-| Exit to 6 | 2.00 | 4.40 | 3.93 | 2.47 | 2.60 | 3.20 |
-| Exit to 8 | 1.00 | 0.53 | 0.87 | 1.20 | 0.33 | 0.60 |
-| Fight plus flee (199+203) | 8.67 | 3.20 | 2.20 | 1.73 | 2.07 | 3.07 |
+| State-254 transition, mean/run | DK2 | 362 reference | 366 | 367 | 368 | 369 | 370 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Entries | 15.00 | 12.87 | 10.93 | 9.13 | 8.60 | 11.20 | 14.80 |
+| Exit to 199 | 3.67 | 0.60 | 0.73 | 0.60 | 0.60 | 0.87 | 1.20 |
+| Exit to 203 | 5.00 | 2.60 | 1.47 | 1.13 | 1.47 | 2.20 | 1.07 |
+| Exit to 1 | 3.00 | 4.67 | 3.93 | 3.67 | 3.53 | 4.27 | 4.00 |
+| Exit to 6 | 2.00 | 4.40 | 3.93 | 2.47 | 2.60 | 3.20 | 7.80 |
+| Exit to 8 | 1.00 | 0.53 | 0.87 | 1.20 | 0.33 | 0.60 | 0.73 |
+| Fight plus flee (199+203) | 8.67 | 3.20 | 2.20 | 1.73 | 2.07 | 3.07 | 2.27 |
 
+Hash 370 reduces pillar exposure and fight/flee exits despite correcting the
+native query control; walks out of 254 increase from 3.20 to 7.80.
 Both hero exposure and fight/flee exits remain below native in this cohort.
 The phase and ordinary cast-hold rules are built, but these outcomes do not close Q712. Production restore
 retains the unmatched resync allocator history described in Q719; the earlier
@@ -151,22 +155,23 @@ early); at 3400 it scores states 1/4/6/9/10. Level 4 uses all eight states.
 Values use the scorer's printed rounding, from `score-r1400.out`,
 `score-r3400.out` and `score-r5000.out` in each version's study.
 
-| Window / group, mean/run | DK2 | 362 reference | 366 | 367 | 368 | 369 |
-|---|---:|---:|---:|---:|---:|---:|
-| L5 1401-3400 / keeper | 13.38 | 9.90 | 11.15 | 10.32 | 10.40 | 9.72 |
-| L5 1401-3400 / keeper Imp | 11.12 | 7.35 | 8.50 | 7.73 | 7.65 | 7.08 |
-| L5 1401-3400 / hero | 3.75 | 5.10 | 4.67 | 4.75 | 4.67 | 4.78 |
-| L5 3401-5000 / keeper | 8.60 | 9.16 | 9.08 | 9.48 | 7.24 | 7.40 |
-| L5 3401-5000 / keeper Imp | 5.80 | 7.20 | 7.16 | 7.64 | 5.36 | 5.40 |
-| L5 3401-5000 / hero | 5.00 | 4.44 | 4.64 | 4.36 | 4.64 | 4.60 |
-| L4 5001-6000 / keeper Imp | 6.50 | 11.93 | 10.10 | 10.10 | 11.80 | 11.82 |
+| Window / group, mean/run | DK2 | 362 reference | 366 | 367 | 368 | 369 | 370 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| L5 1401-3400 / keeper | 13.38 | 9.90 | 11.15 | 10.32 | 10.40 | 9.72 | 8.47 |
+| L5 1401-3400 / keeper Imp | 11.12 | 7.35 | 8.50 | 7.73 | 7.65 | 7.08 | 5.75 |
+| L5 1401-3400 / hero | 3.75 | 5.10 | 4.67 | 4.75 | 4.67 | 4.78 | 5.47 |
+| L5 3401-5000 / keeper | 8.60 | 9.16 | 9.08 | 9.48 | 7.24 | 7.40 | 10.08 |
+| L5 3401-5000 / keeper Imp | 5.80 | 7.20 | 7.16 | 7.64 | 5.36 | 5.40 | 7.84 |
+| L5 3401-5000 / hero | 5.00 | 4.44 | 4.64 | 4.36 | 4.64 | 4.60 | 4.56 |
+| L4 5001-6000 / keeper Imp | 6.50 | 11.93 | 10.10 | 10.10 | 11.80 | 11.82 | 9.70 |
 
 Level 4 is identical between 366 and 367 in all 80 creature/event outputs.
-The exact all-40 means for 362/366/367/368/369 are
-11.925/10.1/10.1/11.8/11.825; the 32-pair intersection means are
-10.03125/10.4375/10.4375/11.96875/11.84375. All 80 files differ between
+The exact all-40 means for 362/366/367/368/369/370 are
+11.925/10.1/10.1/11.8/11.825/9.7; the 32-pair intersection means are
+10.03125/10.4375/10.4375/11.96875/11.84375/9.34375. All 80 files differ between
 367/368; 38 of 80 remain identical between 368/369. The room-position change
-barely moves the all-40 death count. The excluded eight pairs are 362
+barely moves the all-40 death count; neighbour order at 370 lowers it to 9.70.
+This does not resolve Q714 or attribute the remaining deaths to it. The excluded eight pairs are 362
 generator-404 histories already terminal at 4966; later versions have no
 detected pre-restore terminal case in this analysis. This outcome-selected
 intersection is descriptive, not an unbiased regression test. Q714 Heart/terminal

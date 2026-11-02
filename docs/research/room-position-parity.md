@@ -75,8 +75,7 @@ the known Level 18 failure. Independent source review approved the freeze.
 Q721 is closed for the bounded ordinary-room position rule: the matched
 Training room centre is (16,30), owned by that room. Independent final review
 verified all eight evidence manifests and 744 frozen source hashes, with no
-blocker. [Production outcomes and captured-input controls](fight-scan-initial-phase.md#matched-outcomes-366-through-369)
+blocker. [Production outcomes and captured-input controls](fight-scan-initial-phase.md#matched-outcomes-366-through-370)
 leave Q712 and Q719 open. The [resident update-order intervention](fight-scan-initial-phase.md#captured-input-and-encounter-controls-369)
-does not close the gap. The next control concerns the [navigation mesh/cache
-boundary](q712-route-window.md#available-map-input-controls). Special-room/AI adapters remain outside
+does not close the gap. The [subsequent native query control](q712-route-window.md#native-query-control-and-pre-edit-inventory) supports ADR-0626; the historical 1566 mesh/query mismatch remains open. Special-room/AI adapters remain outside
 this implementation.

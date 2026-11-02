@@ -9,6 +9,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Shell and files
 
+- The archived dk2seed default map filter is 40x50; Level 5 is 51x55. Read the selected capture dimensions before launching a seeded native control.
+
 - Codex's sandbox helper can fail before process startup with `setup refresh had errors`; an approved `require_escalated` command can still run.
 - Concurrent commits in one checkout share both the index and COMMIT_EDITMSG; serialize staging and commits across sessions, including while hooks run.
 - Committed unmerged branches can already allocate ADR/hash numbers absent from master; inspect their version and ADR headers before allocating a new number.
@@ -325,3 +327,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Direct rule fixtures must refresh WorldSteering before querying NavByte; an uninitialized navigation cache reports solid tiles.
 - Native thing-table player records contain only a 0x40-byte head; read full fields through Snapshot.player(PlayerId - 1) in REGION_PLAYERS, not record(tag).
 - A destination-only replay probe must reuse simulation.Navigation; constructing WorldSteering rebuilds the persistent mesh and also changes the route inputs.
+
+- Build evidence manifests before opening their output file; otherwise recursive enumeration can record the manifest itself with an empty-file digest.

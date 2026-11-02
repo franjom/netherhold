@@ -14542,7 +14542,7 @@ Consequence: hash/save 367 rejects earlier saves. No fixed phase or RNG draw
 is added; native serialized-manager import remains outside our save format.
 The initial phase rule is built (Q718); Q712 remains open after the paired
 366/367 outcomes, with restore inputs tracked under Q719. Binary evidence,
-controls and [measured scope](research/fight-scan-initial-phase.md#matched-outcomes-366-through-369).
+controls and [measured scope](research/fight-scan-initial-phase.md#matched-outcomes-366-through-370).
 
 ## ADR-0624: retain ordinary casting actions after shot release
 
@@ -14582,5 +14582,24 @@ scope; this is not a change to room order, RNG or route selection.
 Consequence: hash/save 369 rejects earlier saves. Geometry remains derived from
 saved tiles, with no additional snapshot field. Native evidence, pre-edit
 mismatches and implementation bounds: [ordinary room positions](research/room-position-parity.md).
-The bounded ordinary-room rule is matched and Q721 closed; [outcome controls](research/fight-scan-initial-phase.md#matched-outcomes-366-through-369)
-leave Q712/Q719 open, with resident order the next diagnostic input.
+The bounded ordinary-room rule is matched and Q721 closed; [outcome controls](research/fight-scan-initial-phase.md#matched-outcomes-366-through-370)
+leave Q712/Q719 open; [subsequent controls](research/q712-route-window.md) retain unmatched mesh/query inputs.
+
+
+## ADR-0626: preserve native neighbour order in triangle searches
+
+**Date:** 2026-11-01. **Status:** accepted. Q722; hash/save 370.
+
+**Context.** Native searches 004CD000/004CD490 expand triangle neighbour words
++6,+8,+A. Our storage reverses the winding, so those are managed slots 2,1,0.
+Expanding 0,1,2 changes equal-key heap insertion and selected corridors.
+[Binary controls and mismatch inventory](research/q712-route-window.md#native-query-control-and-pre-edit-inventory).
+
+**Decision.** Visit managed neighbour slots 2,1,0 in the shared expansion.
+Keep the existing heap, costs, funnel and movement rules. Bump hash/save
+versions together because the chosen route and subsequent gameplay can change.
+
+**Consequences.** A native synthetic fan supplies two independent search
+expectations, and the captured refill supplies an exact route control.
+[Completed outcomes](research/fight-scan-initial-phase.md#matched-outcomes-366-through-370) leave Q712 open; partial restore inputs and other
+navigation adapters remain explicit. No score determines the rule.

@@ -242,9 +242,11 @@ lengths and keeps the shorter**. If the backward one wins, its waypoints are
 copied into the forward buffer reversed — that is `Bak reverse choice`. If
 either search fails the request fails; the two are not fallbacks for each other.
 
-Which end seeds the forward search is STRONGLY INFERRED from argument order to be
-the *destination*, so that the predecessor chain unwinds from the creature. It
-changes nothing about the route.
+The forward search is seeded at the destination; its predecessor chain unwinds
+from the mover. The backward search swaps endpoints and the goal globals, with
+the opposite step-cost argument order. The full driver and both searches were
+re-read for [the Q712 route control](q712-route-window.md#native-query-control-and-pre-edit-inventory).
+Expansion uses native neighbour order (ADR-0626); heap ties make that observable.
 
 ## 4. Passability and cost
 

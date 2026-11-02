@@ -182,7 +182,8 @@ public sealed class MeshRouter
     private bool Expand(int current, int gx, int gy, MoverProfile mover, bool seededAtDestination)
     {
         byte currentNav = _mesh.NavByte(current);
-        for (int slot = 0; slot < 3; slot++)
+        // 004CD000/004CD490 read +6,+8,+A; our triangle winding reverses those edges.
+        for (int slot = 2; slot >= 0; slot--)
         {
             int n = _mesh.Neighbour(current, slot);
             if (n == NavMesh.NoNeighbour || _stamp[n] == _generation) continue;

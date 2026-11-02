@@ -72,3 +72,80 @@ The ordinary full-state capture lacks the navigation-header bytes in every
 checked frame; the pointer is outside all recorded regions/thing records.
 Do not synthesize the missing cache or infer a router/integrator error from
 unmatched inputs. Q712/Q713/Q719 remain open.
+
+## Native query control and pre-edit inventory
+
+A new bounded Level 5 seed-2 replay captured worker refill 004D44F3 at native
+clock 1574, before/after 004D5100. This is a different trajectory from the old
+1566 case: health, position and goal differ. Both complete memory images have
+zero short reads. The first attempt is excluded because its wrong map-size
+filter never applied the seed; the successful attempt uses 51x55.
+
+The imported 1720-triangle mesh, 863 points, native locate cache, positions,
+six mover globals and class byte 1 reproduce the same endpoint triangles
+705 and 545. Native returns (4224,3840), (4138,3626) in 1/256 tiles; ours returns
+(4864,3968), (4608,3712), (4138,3626). Clearing the imported locate cache does
+not change ours. Executing native 004D5100 on the captured before image
+reproduces the real after image's two active points.
+
+| Address | Binary against pre-edit code |
+|---|---|
+| 004CD000 / 004CD490 | Both search loops read neighbour words +6, +8, +A. In our reversed triangle winding these are slots 2,1,0; MeshRouter.Expand visits 0,1,2. Equal heap keys therefore pick a different predecessor/corridor. |
+| 004CD000 / 004CD490 | Native pre-visits the mesh hull ring at 006E86F0/count 006ECA4C, rebuilt by 004CE770; ours has no explicit hull premark. The captured list is [1,1,2,3]. Broader effects remain Q723. |
+| 004D0320 | Native region/clearance prechecks are not fully mirrored. Native succeeds in this case; no rejected-route claim follows. |
+
+A scratch-only change to neighbour order reproduces the exact native two
+points; no other production source is changed. A synthetic 4x4 floor fan
+with a point inserted at (2,2) isolates the tie: both original search functions
+return corridor bottom,left,top (10,9,11); pre-edit managed search returns
+bottom,right,top (10,4,11). These are binary-backed expectations, not score pins.
+
+Evidence: `F:/DK2Evidence/studies/q712-native-refill-boundary--2026-11-01--002/`
+and `q712-native-refill-route-comparison--2026-11-01--001/`; compiled source
+provenance is in the matching `q712-native-refill-route-probe-h369` build.
+Allocation free lists in the imported mesh are synthesized for query-only
+use. No future-edit or old-timeline equivalence is claimed.
+
+## Historical refill isolation
+
+A separate old-369 observer captures the modern mesh immediately after normal
+Refresh/ConstrainTarget and before the guarded Imp-455 query at 1566. All four
+main files reproduce the old trajectory. Querying that same mesh/profile/start/
+target under old and corrected neighbour order returns the same three points;
+the original native observation has four. The producer's expected-positive
+assertion failed, and this negative result is retained. The neighbour-order
+fix explains the new 1574 case, while the historical 1566 mesh/query difference
+remains open under Q719. No old native mesh is imported from the new trajectory.
+Evidence: `q712-historical-refill-order-control--2026-11-01--001/`, supplemental
+negative-result summary and manifest; earlier partial input controls still apply.
+
+## Built scope and verification (hash 370)
+
+ADR-0626 changes only the shared neighbour expansion order. Hash/save 370 has
+pin `0xB4927C1D9318B10F`. Both native-backed fan cases pass; archived 198e291a
+source fails both, with all 730 production source files unchanged. Release
+build has no warnings or errors; Simulation 4306 and Presentation 1413 pass.
+The solution retains only the known master Level 18 Behavior failure; the
+custom-Q520 failures did not recur. A fresh neighbour-order/determinism run
+passes all 11 cases. Independent review approves the bounded Q722 rule.
+
+The frozen build and 115 successful stored-pickup resyncs retain 744 unchanged
+source/config hashes and four matching observation-control output hashes.
+[Exposure, reporting exits and death scores](fight-scan-initial-phase.md#matched-outcomes-366-through-370) leave Q712 open; Q714 restoration is unchanged.
+The full native 1574 control and historical 1566 negative result are distinct.
+
+Verification provenance: `F:/DK2Evidence/builds/q712-search-order-measurement-h370--g198e291a-wip--2026-11-01--001/`,
+the corresponding `heart-defence-q712-h370-l5` and `l4` studies, and
+`q712-search-order-old-source-proof--2026-11-01--001/`. The latter
+`sha256-corrected-20261102.json` preserves and identifies the original
+manifest's invalid self-entry; its six other original entries verify.
+
+## Reporting return walks
+
+The visible 254-to-6 exits all resume 254 in native (six total; mean 2.00)
+and hash 370 (117 total; mean 7.80). At 369, mean 3.20 splits into resume 254
+at 3.1333 and resume 202 at 0.0667. Counts match the original transition totals;
+the native extraction checks all 6003 frames for tearing and tick agreement.
+The saved resume alone does not identify the sender. This strengthens the
+redispatch/encounter-exposure lead without proving another behavior mismatch.
+Evidence: `F:/DK2Evidence/studies/q712-reporting-walk-destinations--2026-11-02--001/`.
