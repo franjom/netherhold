@@ -235,7 +235,7 @@ Not world sounds, but found unwired by the same scan: cheat entry `0x133`; icon 
 | Phase | Commit | Tests | Owner heard it |
 |---|---|---|---|
 | W1 Foundation | `5950dc09`, `14fe94e6`, `d8b71e07`, `07318061` | `WorldSoundTests`, `SoundThrottleTests` (`DK2.Presentation.Tests`), `CombatApproachTests.ListeningForSoundsLeavesTheHashAlone`; full gate green | [ ] |
-| W2 Hand and cursor | see `git log` for `sound: the hand's` | `HandSoundTests` (`DK2.Presentation.Tests`, `DK2.Simulation.Tests`), `WorldSoundTests`, `ObjectsOnRealDataTests.ObjectSoundCategoriesAreTheShippedNames`; creature hover waits (W7.2) | [ ] |
+| W2 Hand and cursor | `dee9c954` | `HandSoundTests` (`DK2.Presentation.Tests`, `DK2.Simulation.Tests`), `WorldSoundTests`, `ObjectsOnRealDataTests.ObjectSoundCategoriesAreTheShippedNames`; creature hover waits (W7.2) | [ ] |
 | W3 Terrain and rooms | | | [ ] |
 | W4 Imps and creature states | | | [ ] |
 | W5 Objects, doors, traps | | | [ ] |
