@@ -66,6 +66,13 @@ public static class Recipes
             "M7TrapFights5 with one of Secret4's own keeper Boulder traps moved to (37,35), not a copy of Alcatraz's record, "
             + "so the trap trigger 4 counts is the kind M7Traps kept.",
             b => M7TrapFights(b, Zone.All | Zone.KeeperBoulder | Zone.OwnBoulder)),
+        // one owner check per level, so whatever ends a run names its scenario; each keeps M7TrapFights6's keeper trap
+        new("M7Q362", "Secret4", "M7TrapFights6's Q362 chambers alone.",
+            b => M7TrapFights(b, Zone.Brave | Zone.KeeperBoulder | Zone.OwnBoulder)),
+        new("M7Q513a", "Secret4", "M7TrapFights6's Q513a Boulder corridors alone.",
+            b => M7TrapFights(b, Zone.Boulders | Zone.KeeperBoulder | Zone.OwnBoulder)),
+        new("M7Q729", "Secret4", "M7TrapFights6's Q729 Prison and fight alone.",
+            b => M7TrapFights(b, Zone.Prison | Zone.KeeperBoulder | Zone.OwnBoulder)),
     ];
 
     [Flags]
