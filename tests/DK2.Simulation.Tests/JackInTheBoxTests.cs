@@ -5,6 +5,7 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Steering;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation.Tests;
@@ -128,17 +129,17 @@ public class JackInTheBoxTests
         sim.Run(2);
 
         CreatureState jack = Assert.Single(world.Creatures, c => JackInTheBoxRules.IsJack(c));
-        Assert.Equal(CreatureFightFlags.None, jack.FightFlags);
+        Assert.Equal(CreatureFightFlags.None, (CreatureFightFlags)jack.Flags & (CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable));
         // In 273 the state table already refuses both; the bits are what refuse them on the walk (state 6).
         for (int i = 0; i < 20 && jack.Dk2StateId != WalkState; i++) sim.Run(1);
         Assert.Equal(WalkState, jack.Dk2StateId);
         Assert.False(CombatRules.MayLookForAFight(world, db, jack, force: false));
         Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: true));
         Assert.False(CombatRules.IsAttackable(jack));
-        jack.FightFlags = CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable;
+        jack.Flags |= (byte)(CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable);
         Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: false));
         Assert.True(CombatRules.IsAttackable(jack));
-        Assert.Equal(CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable, goblin.FightFlags);
+        Assert.Equal(9, goblin.Flags & 9);
         Assert.True(CombatRules.MayLookForAFight(world, db, goblin, force: false));
         Assert.True(CombatRules.IsAttackable(goblin));
     }
@@ -172,6 +173,33 @@ public class JackInTheBoxTests
         Assert.Equal(start - 1, jack.Health);
         sim.Run(5);
         Assert.Equal(start - 6, jack.Health);
+    }
+
+    /// <summary>State 6 (<c>0x00470C80</c>) resumes 273 once the route's progress is exactly 1.0, which
+    /// counts the last point's distance in sixteenths of a tile, before <c>Follow_Path</c>'s half-radius
+    /// arrival. On M7Traps DK2's Jack stopped 0x8C8 from its aim, past a radius 0x1020's 0x810 (Q711).</summary>
+    [Fact]
+    public void AWalkingJackSettlesInTwoSeventyThreeOnTheCorner_OnceItsRouteProgressIsWhole()
+    {
+        (GameDatabase db, WorldState world) = Open();
+        CreatureState jack = Sprung(db, world, 8, 6, Rival);
+        GameSimulation sim = Sim(db, world, new ListEventSink());
+
+        sim.Run(1);
+        Assert.Equal(WalkState, jack.Dk2StateId);
+        bool finished = false;
+        for (int i = 0; i < 60 && jack.Dk2StateId == WalkState; i++)
+        {
+            bool whole = FollowPathRules.Progress(jack.Body) == Fixed16.One;
+            finished = jack.Body.PathFinished;
+            sim.Run(1);
+            if (whole) Assert.Equal(JackInTheBoxRules.SpringState, jack.Dk2StateId);
+        }
+
+        Assert.Equal(JackInTheBoxRules.SpringState, jack.Dk2StateId);
+        // The progress test, not Follow_Path's arrival, ended the walk.
+        Assert.False(finished);
+        Assert.Equal(new TilePos(2, 2), jack.Tile);
     }
 
     [Fact]

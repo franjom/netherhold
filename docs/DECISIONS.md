@@ -1022,7 +1022,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Open then: prison and capture (ADR-0064); kind 8 (ADR-0065); what a graveyard does when it fills (vampires).
 
 ## ADR-0064 — The Prison: capture, and the half of carrying that was missing
-**Date:** 2026-09-05 · **Status:** accepted · amended 2026-09-13: full-prison capacity is checked at delivery; arrival health is `MaxHealth / 6` (ADR-0071); capacity is interior + 1 (ADR-0070); the drain is hunger (ADR-0068); prisoners wander and eat (ADR-0073, ADR-0074); a captive takes no need-anger (ADR-0079); **the Temple is the release rule's one exception (ADR-0154)**
+**Date:** 2026-09-05 · **Status:** accepted · amended 2026-09-13: full-prison capacity is checked at delivery; arrival health is `MaxHealth / 6` (ADR-0071; corrected by ADR-0628); capacity is interior + 1 (ADR-0070); the drain is hunger (ADR-0068); prisoners wander and eat (ADR-0073, ADR-0074); a captive takes no need-anger (ADR-0079); **the Temple is the release rule's one exception (ADR-0154)**
 
 **Context.** Owner (2026-09-05): *"a corpse can not be picked up by hand of evil and dropped to a graveyard, only an imp can carry it to its grave, also an injured creature, lying on the floor bleeding out, can't be picked up by hand of evil and dropped to its lair, only an imp can carry it to its bed to recover, likewise only an imp can drag an enemy creature to prison, a hand of evil can then pick up that creature from prison and drop it around the dungeon, back in prison, or onto a torture rack in the torture chamber."* The pick-up handler refuses bit `0x200000` of the first state-flag word, which DK2's creature dump names `CreatureDying` — so ADR-0062's refusal was DK2's rule. Research: `docs/research/prison.md`, `imp-task-priority.md` §4, `manual-1999.md` §Prison.
 
@@ -1032,7 +1032,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - `PrisonOwner` is a second owner, not a change of owner (DK2 creature field at `0x3cb`). A prisoner is still its keeper's creature; dropping it back in a prison re-imprisons it, anywhere else frees it.
 - Prison choice prefers one with space over a full one. If all are full, an imp still drags the enemy to a prison, then leaves it bleeding on the rim (owner play, 2026-09-13). Tie-breaking and the exact rejection tile remain UNKNOWN. Ours incorrectly requires a free cell before starting, so it omits the all-full journey.
 - `CreatureHealthSystem` skips prisoners; `PrisonSystem` runs immediately after it, same cadence and phase: free anyone whose cell is no longer a cell (sale, dig, rival claim, destruction — derived each second, no hooks), roll an overcrowded prison's jail break, wither everyone left by `PrisonModifyCreatureHealthPerSecond` (−3). A prisoner that runs out is replaced where it stands by the Prison's `CreatedCreatureId` — 9, the Skeleton — belonging to the jailer. No collapse, rescue window or corpse.
-- Ours: one prisoner per tile (superseded by ADR-0070); arrival health is a sixth (ADR-0071). Jail break rolls once a game second (Q168). Prisoners are freed where they stand rather than at DK2's door. There is no keeper-set door bar, torture rack or Combat Pit effect. A prisoner is not slappable.
+- Ours: one prisoner per tile (superseded by ADR-0070); arrival health is a sixth (ADR-0071; corrected by ADR-0628). Jail break rolls once a game second (Q168). Prisoners are freed where they stand rather than at DK2's door. There is no keeper-set door bar, torture rack or Combat Pit effect. A prisoner is not slappable.
 
 **Consequences.**
 - Q161 answered against what this project believed; two tests assert the hand's refusal directly.
@@ -1154,7 +1154,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Ours, unread in the original: whether an L-shaped prison's rim is furnished the same way (we count the rim rather than compute it from the bounding box, so an L-shape answers sensibly; for rectangles the two agree). Maximum Skeletons equals capacity here because a Skeleton replaces the prisoner that died; that DK2 gets the same number *for the same reason* is inference.
 
 ## ADR-0071 — A knocked-out creature has exactly one sixth of its health, and DK2 says so
-**Date:** 2026-09-06 · **Status:** accepted · closes Q167 (health half) · supersedes the 20% in ADR-0064
+**Date:** 2026-09-06 · **Status:** accepted; its sixth corrected by ADR-0628 · closes Q167 (health half) · supersedes the 20% in ADR-0064
 
 **Context.** A prisoner's arrival health was guessed three times: full health (500 game seconds for a Goblin to wither); 20% of maximum, after *"its flower gets two petals"* met a shipped `CreatureCriticalHealthPercentageOfMax` of 20 (100 s); and now a sixth of maximum, read from the binary (83 s). Both legs of the second reading failed the same day — the flower has **six** petals, not ten (Q171, owner screenshot), and a raw `.text` scan for that variable's cached global finds exactly one reference, the loader writing it. The two errors cancelled to something plausible: 20% sits inside the 2-petals-of-six band, so the guess looked confirmed from both sides while resting on nothing.
 
@@ -4351,7 +4351,7 @@ and torture refusals, the Imp's Teleport and Haste paths (Q401).
 4. **Ours, stated:** a victim at zero health is let go to the health system, and a convert is let go (Q425).
 
 **Consequences.**
-- A Goblin converts on its 81st act, 101 s after being strapped on, having lost 810 health. A captive fresh from a cell (250) dies first, as the manual says a victim may.
+- A Goblin converts on its 81st act, 101 s after being strapped on, having lost 810 health. A captive fresh from a cell (250 then; 390 since ADR-0628) dies first, as the manual says a victim may.
 - Owner (2026-09-24): only the Mistress tortures, whipping victims on the devices. Her job (127, 128, 134) is the next slice (Q419).
 - The fixture gains the Torture Chamber, its terrain, both devices, the Goblin's torture numbers, stat row 24 and variable 234, with drift guards. Nine trace tests and a gate probe. Negative controls, one at a time: mood on a captive, no conversion, conversion at the threshold, a reset on strapping, a device on any tile, the hook by activity, and no occupancy each fail a named test.
 - `HashVersion` and `FormatVersion` **98**, pin `0xD686048703B6ED8D`.
@@ -14603,3 +14603,101 @@ versions together because the chosen route and subsequent gameplay can change.
 expectations, and the captured refill supplies an exact route control.
 [Completed outcomes](research/fight-scan-initial-phase.md#matched-outcomes-366-through-370) leave Q712 open; partial restore inputs and other
 navigation adapters remain explicit. No score determines the rule.
+
+## ADR-0627: a walking Jack resumes 273 at a whole route progress
+
+**Date:** 2026-11-02. **Status:** accepted. Q711; hash/save 371.
+
+**Context.** State 6 (`0x00470C80`) resumes its saved state when the route's
+progress is exactly 1.0. Progress counts the last point's distance in
+sixteenths of a tile (`octile >> 12`), so under 1/16 tile counts as there.
+Follow_Path's arrival needs half a radius, and a Jack's radius is 0x1020.
+On M7Traps DK2's Jack stopped 0x8C8 from its aim, past the 0x810 arrival
+test. Ours waited for that test and circled the corner for about a hundred
+ticks ([jack-in-the-box.md](research/jack-in-the-box.md#7-watched-in-play-2026-11-01-q524)).
+
+**Decision.** The Jack's walk hands back to 273 when
+`FollowPathRules.Progress` is 1.0, after stopping the body, as DK2 does.
+Other walkers keep their existing handover (Q724).
+
+**Consequences.** In a one-off run of ours on M7Traps (scratch harness, not a test), it followed
+DK2's track step for step, one turn earlier in numbering as on the whole walk: it stopped at
+(20.49, 31.47), entered 273 the next tick and lost 51 a tick. The test pins the mechanism on a
+synthetic map: the walk ends with `PathFinished` still clear.
+
+## ADR-0628: a prisoner arrives with its dying window left plus a tenth
+
+**Date:** 2026-11-02. **Status:** accepted. Corrects ADR-0071's health half (Q167, Q726); hash/save 372.
+
+**Context.** ADR-0071 read the health routine as setting a sixth of the maximum below zero.
+It does not: the collapse writes the dying window, 240, into health (`0x004B2FA0`), and
+217 spends it while the body is not dragged. The sixth is the Stone Knight's blow path
+(`0x00490120`), reached from the melee swing only for Horny striking a type-28. The imp's
+state 44 (`0x00468010`) clears the dying flag (`0x0048B860`), drops the body and admits it
+(`0x004E2C70`, its only caller), which adds a tenth of the level-scaled maximum, capped
+([prison.md](research/prison.md#2-who-may-pick-a-creature-up)).
+
+**Decision.** `PrisonRules.AdmissionHealth` is the window left (`DyingWindowTicks` less
+`DyingTicks`) plus a tenth, capped at the maximum, for an imp's prisoner. A prisoner the hand
+drops back into a cell keeps its health and its health source. `KnockoutHealth` is removed.
+
+**Consequences.** A fresh Goblin arrives at 390 of 1500, not 250, and is a skeleton after
+137 game seconds, not 86; a captive tortured to death takes 39 acts, not 25. The flower's
+ring (`status-flowers.md`) shows three petals at 26 % and two under 25 %, so the owner's two
+petals fit a prisoner that lay over 15 ticks first; the old sixth fit too, so the count does
+not decide between them. The Stone Knight's blow path stays unbuilt (Q399).
+
+## ADR-0629: state 44's four exits, and the fight bits are one byte
+
+**Date:** 2026-11-02. **Status:** accepted. Hash/save 373.
+
+**Context.** State 44 (`0x00468010`, CONFIRMED) admits a body on the imp's tile when it is an
+interior cell of any Prison whose door is activated (`+0x59`) with used capacity plus the body's
+units within `SafeCreatureCapacity` (`+0x4B`); it does not ask who stands there or who owns the
+room. Otherwise it carries the body to the nearest other Prison with space (`0x004C6610`,
+resuming 43), else to this Prison's entry point and 47, else puts it down with its dying flag
+cleared, without moving it out of 217, and goes to 10. Ours refused an occupied cell or another keeper's Prison, skipped the
+door test, and on any refusal set the body on the rim. Separately, ADR-0615 had added
+`CreatureState.FightFlags` for `+0x46F` bits 0 and 3, which `CreatureState.Flags` already held and
+the imp's delivery already wrote (`WorkerPickupRules`), so those writes never reached combat.
+
+**Decision.** `PrisonRules.AdmitsAt` is exit 1's test; the delivery tries exit 2 through
+`PrisonRules.FreeTileIn` from the body's tile and a route, exit 3 through
+`PrisonRules.HasEntryPoint`, and exit 4 puts the body down still dying (what DK2's cleared flag does
+next is unread, Q729). The walks
+to 46, the entry point and 47's point stay elided. `FightFlags` is removed; combat and the Jack
+read and write `Flags`.
+
+**Consequences.** A full or closed Prison no longer strands a body on its rim while another has
+space. The admission's health source is the room's owner. The imp's fight bits
+now reach combat, but ours clears and sets them in the same tick, where DK2 keeps them clear for
+the walk to 46. Eight shipped creatures carry `Flags` without bit 0 (Level 13's placed Monk,
+Level 9's party Lord of the Land, six placed Dwarves on TrapTime): as in DK2, whose loader copies the
+bits, they now look for a fight only when forced; `FightFlags` had let them. Exit 2 ranks by the nearest free cell and asks the
+route after, where `0x004C6610` ranks rooms by position and skips unreachable ones; it also skips a
+Prison whose cells are all occupied, which `0x004C6610` does not. `0x004E2C70`'s own capacity test
+(`+0x6D`, `+0x67`) is not mirrored: ours always admits once exit 1's test passes.
+
+## ADR-0632: every travel state hands over at a whole route progress
+
+**Date:** 2026-11-02. **Status:** accepted. Q724; hash/save 376.
+
+**Context.** States 6 (`0x00470C80`) and 7 (`0x00471460`) end a walk once the route's progress is
+exactly 1.0, which counts the last point's distance in sixteenths of a tile. 6 then calls
+`Creature_StopMoving`, which zeroes the velocity; 7 zeroes the velocity and stops only when the
+tile's room matches. 9 tail-jumps into 6; 8 calls 6 after its ten-call route refresh. Ours waited in each handler for
+`HasRoute` to clear, which is Follow_Path's half-radius arrival, and stopped nothing, so a finished
+walker glided on under Follow_Path's brake. ADR-0627 fixed this for the Jack alone.
+
+**Decision.** `TravelArrivalSystem`, a creature update step after the fight scan and before the
+needs routine and the state handlers, calls `StopMoving` on a non-imp, not sidelined, in states 6,
+7 or 9 whose route is loaded and whose progress is 1.0. The approach (8) makes the same test in
+`ApproachRules` after its refresh, when the refresh did not re-route. Handlers that wait for `HasRoute` then hand over as DK2's do.
+Imps keep their own handlers, which step them and test the progress after the mover (ADR-0297).
+State 7's room check stays with each handler, so on a mismatch ours drops the route where DK2
+keeps it. Not mirrored: 6's wait while a kind-4 action runs (`0x00470CA8`).
+
+**Consequences.** A walker stops dead within 1/16 tile of its last point rather than gliding up to
+a quarter of a tile past it. Among the scenarios only the Goblin's first bird moved (chicken 5 for
+21, the meal tick unchanged). The Jack keeps its own check for hosts that run without this step.
+DK2 runs the stop inside the handler, after the needs routine; ours runs it just before that.

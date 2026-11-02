@@ -385,8 +385,9 @@ follow up: the flag-2 tile test (selector 4,
 tile flag 0x2000); object targets (kind 4); the Temple offering (0x87); Heal refused at or above
 the maximum where DK2 refuses only equality (a reincarnated Vampire is above it,
 creature-death.md), and our `TargetAtMaxHealth` covers any positive Modify Health shot. Only
-creature kinds publish the hover id (`0x0040B7F0`). `CreateImp` (DK2's mode 8): No Go only when
-the mana is short, as our click casts on the Heart; DK2 tests the tile. `Query`: I-Query alone.
+creature kinds publish the hover id (`0x0040B7F0`). `CreateImp` (DK2's mode 8): No Go where `ImpSupplySystem.Buy` refuses the
+pointer cast: mana short, spell row below AVAILABLE, no hovered tile, or one failing
+`KeeperSpellRules.PlaceAllowed` (slot `+0x254`, location 1, target 4). `Query`: I-Query alone.
 Both show No Go over the HUD. The spell's No Go shift of 2 pixels uses the price's scale (HYPOTHESIS).
 
 **Held items (2026-10-23).** `HandDrop` returns `PlacementIcon.Held`, No Go where `DropLands`

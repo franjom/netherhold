@@ -218,16 +218,26 @@ public static class PlacementCursor
         return SpellIcon(spellId, valid);
     }
 
-    /// <summary>Create Imp (spell 4) is mode 8 too, so it draws its spell icon. Our click casts it with
-    /// no tile (<see cref="CreateImpCommand"/>, onto the Heart), which refuses, among other cases (no
-    /// Heart, spell not yet available), a keeper short of <see cref="ImpSupplyRules.CreateImpCost"/>; No Go
-    /// shows only for the mana. DK2 tests the hovered tile
-    /// (slot <c>+0x254</c>, location 1 and target 4); ours does not, as the click does not.</summary>
-    public static PlacementFeedback CreateImp(WorldState world, GameDatabase database, PlayerId player, byte spellId)
+    /// <summary>Create Imp (spell 4) is mode 8 too, so it draws its spell icon. Our click casts it at the
+    /// hovered point (<see cref="CreateImpCommand"/>); No Go shows where <c>ImpSupplySystem.Buy</c> refuses:
+    /// a keeper short of <see cref="ImpSupplyRules.CreateImpCost"/>, a spell row below AVAILABLE, or a
+    /// hovered tile that fails DK2's slot <c>+0x254</c> test (location 1 and target 4,
+    /// <see cref="KeeperSpellRules.PlaceAllowed"/>), against <paramref name="navigation"/> as the
+    /// simulation last refreshed it.</summary>
+    public static PlacementFeedback CreateImp(WorldState world, GameDatabase database, INavByteGrid navigation,
+        PlayerId player, byte spellId, TilePos? hovered)
     {
         if (world is null) throw new ArgumentNullException(nameof(world));
         if (database is null) throw new ArgumentNullException(nameof(database));
-        return SpellIcon(spellId, world.Player(player).Mana >= ImpSupplyRules.CreateImpCost(world, database, player));
+        if (navigation is null) throw new ArgumentNullException(nameof(navigation));
+        PlayerState keeper = world.Player(player);
+        int row = keeper.Availabilities.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == spellId);
+        bool valid = keeper.Mana >= ImpSupplyRules.CreateImpCost(world, database, player)
+            && (row < 0 || keeper.Availabilities[row].Value == ResearchTreeRules.Available)
+            && hovered is TilePos at && world.Contains(at)
+            && (database.KeeperSpellById(spellId) is not KeeperSpellDef spell
+                || KeeperSpellRules.PlaceAllowed(world, database, navigation, player, spell, at));
+        return SpellIcon(spellId, valid);
     }
 
     private static PlacementFeedback SpellIcon(byte spellId, bool valid) =>

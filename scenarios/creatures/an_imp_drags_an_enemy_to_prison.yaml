@@ -56,6 +56,11 @@
 #            keeps the two apart in its own record too, where `PrisonOwner`
 #            sits at creature offset 0x3cb next to the ordinary owner field.
 #
+#            **Corrected 2026-11-02 (ADR-0628):** the sixth below, and the 83 s that
+#            follow from it, were ADR-0071's misreading of the Stone Knight's blow
+#            path. A prisoner arrives with the dying window left plus a tenth; a
+#            fresh Goblin at 390, bone in 137 s. This run no longer imprisons (Q315).
+#
 #            `health=250` is **a sixth of a Goblin**, and it is read from DK2's
 #            damage path rather than fitted: taking a creature below zero, when
 #            it is not already dying, writes `maxHealth / 6` and raises the

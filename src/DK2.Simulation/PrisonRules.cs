@@ -284,21 +284,30 @@ public static class PrisonRules
     public static int? RefusedBodyPoint(WorldState world, GameDatabase database, RoomInstance room, SimRandom rng) =>
         RoomWalkRules.RoomPoint(world, database, room, rng);
 
-    /// <summary>Whether a prisoner may be put into this tile <i>now</i>: it is a cell —
-    /// an interior tile — of one of <paramref name="playerId"/>'s prisons, that prison
-    /// is under <see cref="Capacity"/>, and nobody is standing on it. Asked at the door
-    /// so that a prison which filled during the walk turns the body away.</summary>
-    public static bool AdmitsAt(
-        WorldState world, GameDatabase database, PlayerId playerId, int tileIndex)
+    /// <summary>State 44's admission test on the tile the imp stands on (<c>0x00468010</c>): a Prison
+    /// of any owner, an interior cell (<c>Room_IsFloorSlot</c> <c>0x00454110</c>), its door's
+    /// <c>Activation</c> (<c>+0x59</c>) on, and its used capacity plus the body's units within
+    /// <c>SafeCreatureCapacity</c> (<c>+0x6B</c> + <c>def+0x672</c> &lt;= <c>+0x4B</c>; every shipped
+    /// creature takes one unit, so a head count against <see cref="Capacity"/>). Who stands on the
+    /// tile is not asked. Asked at the door, so a prison that filled during the walk turns the body away.</summary>
+    public static bool AdmitsAt(WorldState world, GameDatabase database, int tileIndex)
     {
         if (tileIndex < 0 || tileIndex >= world.Width * world.Height) return false;
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
-        if (room is null || !IsPrisonOf(room, playerId)) return false;
+        if (room is null || room.Definition.TypeId != RoomTypeId.Prison) return false;
         if (!room.IsInterior(tileIndex)) return false;
-        if (PrisonerCount(world, room) >= Capacity(room)) return false;
+        if (!IsActivated(world, room)) return false;
+        return PrisonerCount(world, room) < Capacity(room);
+    }
 
-        return PrisonerOn(world, tileIndex) is null;
+    /// <summary>State 44's third exit (<c>0x00468010</c>): the imp stands on a Prison whose entry point
+    /// (<c>0x004E3290</c>, the door tile's centre) lies at least a tile from both map edges' zero, so
+    /// it walks the refused body there and on to 47.</summary>
+    public static bool HasEntryPoint(WorldState world, RoomInstance prison)
+    {
+        int door = JailBreakRules.DoorTile(world, prison);
+        return door >= 0 && door % world.Width >= 1 && door / world.Width >= 1;
     }
 
     /// <summary>How many prisoners stand in <paramref name="room"/>.</summary>
@@ -328,18 +337,28 @@ public static class PrisonRules
         return null;
     }
 
+    /// <summary>The health an imp's prisoner wakes at (Q726). The collapse writes the dying window
+    /// into health (<c>0x004B2FA0</c>) and 217 spends it a tick at a time while not dragged; state 44
+    /// clears the dying flag (<c>0x0048B860</c>), drops the body and admits it (<c>0x004E2C70</c>),
+    /// which adds a tenth of the level-scaled maximum, capped there. Ours holds the window spent as
+    /// <c>DyingTicks</c>, so the countdown left is the window less it. Ours spends it a game second
+    /// at a time and from the fall (216) on, DK2 a tick at a time from 217: a few ticks coarser.</summary>
+    public static int AdmissionHealth(GameDatabase database, CreatureDef definition, CreatureState creature)
+    {
+        int max = CreatureHealthRules.MaxHealth(database, definition, creature);
+        int before = CreatureDeathRules.IsDying(creature)
+            ? Math.Max(0, CreatureDeathRules.DyingWindowTicks(database) - creature.DyingTicks)
+            : creature.Health;
+        return Math.Min(before + (max / 10), max);
+    }
+
     /// <summary>Puts <paramref name="creature"/> in <paramref name="playerId"/>'s
     /// prison on <paramref name="tileIndex"/>, and says whether it took. A prisoner
     /// arrives unconscious — the only way it can, since only an unconscious creature
     /// is carried — and imprisonment ends the dying window rather than continuing it.
-    /// <para>It wakes at <see cref="CreatureHealthRules.KnockoutHealth"/>, <b>a sixth
-    /// of maximum</b>, which is what DK2's damage path writes at the knockout (below
-    /// zero and not already dying stores <c>max / 6</c> and the <c>CreatureDying</c>
-    /// flag) rather than anything the prison does at the door. So a Goblin arrives at
-    /// 250 of 1500 and lasts <b>83</b> game seconds. CONFIRMED (owner, 2026-09-05,
-    /// Q167): "its flower gets two petals, and then that creature starts loosing
-    /// health". Open, display only: a sixth is one petal of six, the owner counts
-    /// two (Q167, Q171).</para></summary>
+    /// <para>An imp's prisoner wakes at <see cref="AdmissionHealth"/>; one the hand drops back
+    /// into a cell keeps its health, as admission (<c>0x004E2C70</c>) has the imp's state 44 as
+    /// its only caller (Q726).</para></summary>
     public static bool Imprison(
         in StateHookContext hooks, CreatureState creature,
         PlayerId playerId, int tileIndex, bool dropped = false)
@@ -354,10 +373,12 @@ public static class PrisonRules
         creature.PosX = CreatureState.CentreOf(tileIndex % world.Width);
         creature.PosY = CreatureState.CentreOf(tileIndex / world.Width);
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
-        creature.Health = CreatureHealthRules.KnockoutHealth(
-            database, database.CreatureById(creature.CreatureTypeId), creature);
-        // DK2's admission calls the health routine with the room's owner (+0x1D) as the source (0x004E2D28).
-        creature.HealthSourcePlayerId = playerId.Value;
+        if (!dropped)
+        {
+            creature.Health = AdmissionHealth(database, database.CreatureById(creature.CreatureTypeId), creature);
+            // DK2's admission calls the health routine with the room's owner (+0x1D) as the source (0x004E2D28).
+            creature.HealthSourcePlayerId = playerId.Value;
+        }
         creature.DyingTicks = 0;
         creature.SleepTicks = 0;
 

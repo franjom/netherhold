@@ -1579,7 +1579,8 @@ namespace DK2.Unity
                 if (tile is not TilePos at) return new PlacementFeedback(null, false, 0, PlacementIcon.Sell, true, true);
                 return PlacementCursor.Sell(world, database, viewer, at, _input.DragFrom(PlayerToolMode.SellRoom));
             }
-            if (ActiveTool == PlayerToolMode.CreateImp) return PlacementCursor.CreateImp(world, database, viewer, 4);
+            if (ActiveTool == PlayerToolMode.CreateImp)
+                return PlacementCursor.CreateImp(world, database, _simulation.Navigation, viewer, 4, tile);
             if (ActiveTool != PlayerToolMode.Hand) return PlacementFeedback.None;
             if (_input.Targeting is SpecialTargeting targeting) return PlacementCursor.Targeting(targeting);
             if (_queryTool) return PlacementCursor.Query();

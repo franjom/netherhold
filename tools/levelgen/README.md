@@ -59,6 +59,7 @@ such overrides when the experiment is about campaign numbers (`Q520CorridorsGlob
 - A placed creature's `InitialHealth` is a percentage of its level-scaled maximum (placed-things.md §3).
 - A hero standing still takes `Objective` 23 with an action point on its own tile: move the point with the hero.
 - Resizing the map does not move placed things.
+- To run ours on the level too (`DK2.Harness`), give every player who owns a placed thing at least one tile: our harness makes its players from the map's tile owners and stops with "No player with id 1" otherwise (Q520Corridors' heroes own no tile). Ours reads the level from `Data/editor/maps` under `DK2_DIR`; a scratch install of the `.kwd` globals and the six level files is enough.
 
 ## 2. Install and play
 

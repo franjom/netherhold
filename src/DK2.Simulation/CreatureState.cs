@@ -346,11 +346,6 @@ public sealed class CreatureState
     /// <summary>A Jack's death shot (65) has been made: DK2 makes it in the health routine that kills it.</summary>
     public bool DeathShotFired;
 
-    /// <summary>Bits 0 and 3 of <c>creature+0x46F</c>: 9 at construction, both cleared by process 39 on a
-    /// new Jack (<c>0x0048DF10(0)</c>, <c>0x0048DFA0(0)</c>). Their other callers (the creature update's
-    /// state-242 countdown, the slap, Imp and spawn paths, states 237 and 238) are not built (ADR-0615).</summary>
-    public CreatureFightFlags FightFlags = CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable;
-
     /// <summary>Gold in this creature's hands: mined into its own hands up to
     /// <see cref="Data.Model.CreatureDef.MaxGoldHeld"/>, carried to a place its
     /// keeper can keep gold, put down there (Q31, CONFIRMED by the owner).
@@ -1275,7 +1270,8 @@ public sealed class CreatureState
     public int LeaderId = -1;
     public byte WanderRadius;
 
-    /// <summary>DK2's creature <c>Flags</c> byte (<c>+0x46F</c>, Q302): bit 1 party leader, bit 2
+    /// <summary>DK2's creature <c>Flags</c> byte (<c>+0x46F</c>, Q302): bits 0 and 3 the fight bits
+    /// (<see cref="CreatureFightFlags"/>, combat reads them: ADR-0615), bit 1 party leader, bit 2
     /// follower, bit 5 frees friends (<see cref="RescueRules"/>), bit 6 unread here. A party spawn and
     /// a placed creature write it (ADR-0201); the constructor seeds bits 0 and 3 (ADR-0262).</summary>
     public byte Flags = 9;
@@ -1367,7 +1363,6 @@ public sealed class CreatureState
         hash.Add((int)RouteOptions);
         hash.Add(HeartTargetPlayerId);
         hash.Add(DeathShotFired);
-        hash.Add((byte)FightFlags);
         Body.HashInto(ref hash);
         hash.Add(GoldHeld);
         hash.Add(CasinoBigWinnerTicks);

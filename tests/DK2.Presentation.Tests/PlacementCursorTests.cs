@@ -187,14 +187,27 @@ public sealed class PlacementCursorTests
     }
 
     [InstallFact]
-    public void CreateImpShowsItsSpellIconAndNoGoOnlyWhenTheManaIsShort_TileTestNotMirrored()
+    public void CreateImpShowsItsSpellIconAndNoGoWhenTheManaIsShortOrTheTileRefuses()
     {
         (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
+        var simulation = new GameSimulation(db, world, 1);
+        simulation.Navigation.Refresh();
+        TilePos own = Claimed(world, db, keeper, 0);
+        var rows = world.Player(keeper).Availabilities;
+        int row = rows.FindIndex(a => a.Kind == AvailabilityKind.Spell && a.TypeId == 4);
+        if (row < 0) { rows.Add(default); row = rows.Count - 1; }
+        rows[row] = new AvailabilityState(AvailabilityKind.Spell, 4, ResearchTreeRules.Available);
         int cost = ImpSupplyRules.CreateImpCost(world, db, keeper);
         world.Player(keeper).Mana = cost;
-        Assert.Equal((true, false, PlacementIcon.Spell, (byte)4), Shape(PlacementCursor.CreateImp(world, db, keeper, 4)));
+        Assert.Equal((true, false, PlacementIcon.Spell, (byte)4),
+            Shape(PlacementCursor.CreateImp(world, db, simulation.Navigation, keeper, 4, own)));
+        Assert.True(PlacementCursor.CreateImp(world, db, simulation.Navigation, keeper, 4, new TilePos(0, 0)).NoGo);
+        Assert.True(PlacementCursor.CreateImp(world, db, simulation.Navigation, keeper, 4, null).NoGo);
+        rows[row] = new AvailabilityState(AvailabilityKind.Spell, 4, 0);
+        Assert.True(PlacementCursor.CreateImp(world, db, simulation.Navigation, keeper, 4, own).NoGo);
+        rows[row] = new AvailabilityState(AvailabilityKind.Spell, 4, ResearchTreeRules.Available);
         world.Player(keeper).Mana = cost - 1;
-        Assert.True(PlacementCursor.CreateImp(world, db, keeper, 4).NoGo);
+        Assert.True(PlacementCursor.CreateImp(world, db, simulation.Navigation, keeper, 4, own).NoGo);
 
         static (bool, bool, PlacementIcon, byte) Shape(PlacementFeedback f) => (f.Valid, f.NoGo, f.Icon, f.SpellId);
     }

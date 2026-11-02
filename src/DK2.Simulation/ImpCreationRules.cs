@@ -15,6 +15,8 @@ public static class ImpCreationRules
 {
     public const int FallingState = 214;
     public const int BirthHeightAboveFloor = 0x800;
+    /// <summary>Imp Birth Trail, which 0x00481750 makes for a worker at its landing point, heading 0.</summary>
+    public static readonly EffectId BirthEffect = new(29);
 
     public static void Begin(SimulationContext context, CreatureState creature)
     {
@@ -30,6 +32,8 @@ public static class ImpCreationRules
         if (creature.PosZ <= 0)
         {
             creature.PosZ = creature.CreationVelocityZ = 0;
+            context.RequestEffect("ImpCreation", new ViewEffectRequest(BirthEffect, creature.OwnerPlayerId,
+                new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0))));
             StateShadow.ToIdle(context, "ImpCreation", creature);
             creature.DroppedOnARoom = RoomIndex.RoomAt(context.World, context.Database,
                 creature.Tile.Y * context.World.Width + creature.Tile.X) is not null;

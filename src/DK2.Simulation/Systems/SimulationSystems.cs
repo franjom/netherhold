@@ -110,6 +110,7 @@ public static class SimulationSystems
         return new CreatureUpdateSystem(
             new CreatureStatusSystem(), // 0x0048957D: timed effects before this creature's action and fight
             combat, // the action runner, the fight scan and the fear radiation
+            new TravelArrivalSystem(), // the travel states' progress-1.0 stop, ahead of every handler (Q724)
             // The needs routine: hunger, then sleep, then pay (creature-needs-routine.md §3).
             new CreatureEatSystem(),
             new CreatureSleepSystem(),
