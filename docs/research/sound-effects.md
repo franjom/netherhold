@@ -379,3 +379,9 @@ Silent (no `SFX.map` has the group, so DK2 plays nothing and ours builds nothing
 Samples: `0x349` one in each of 27 creature categories (the imp's included); `0x32D`, `0x32E` (one each) and `0x323` (three) only in
 `creature_horned_reaper`; `0x34C` one only in `creature_jackinbox`; `0x317` one only in `creature_goblin`; `0x340` three in each of 25
 categories, the imp's not among them. The finale's `0x32D` passes handle 0 (it neither uses nor replaces the Reaper's voice).
+
+## 14. Objects, doors, traps and the boulder
+
+Phase W5 is in [sound-effects-objects.md](sound-effects-objects.md), which keeps this document under its length budget:
+[objects and specials](sound-effects-objects.md#1-objects-and-specials), [doors and traps](sound-effects-objects.md#2-doors-and-traps)
+and [the boulder](sound-effects-objects.md#3-the-boulder).
