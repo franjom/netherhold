@@ -14677,3 +14677,27 @@ bits, they now look for a fight only when forced; `FightFlags` had let them. Exi
 route after, where `0x004C6610` ranks rooms by position and skips unreachable ones; it also skips a
 Prison whose cells are all occupied, which `0x004C6610` does not. `0x004E2C70`'s own capacity test
 (`+0x6D`, `+0x67`) is not mirrored: ours always admits once exit 1's test passes.
+
+## ADR-0632: every travel state hands over at a whole route progress
+
+**Date:** 2026-11-02. **Status:** accepted. Q724; hash/save 376.
+
+**Context.** States 6 (`0x00470C80`) and 7 (`0x00471460`) end a walk once the route's progress is
+exactly 1.0, which counts the last point's distance in sixteenths of a tile. 6 then calls
+`Creature_StopMoving`, which zeroes the velocity; 7 zeroes the velocity and stops only when the
+tile's room matches. 9 tail-jumps into 6; 8 calls 6 after its ten-call route refresh. Ours waited in each handler for
+`HasRoute` to clear, which is Follow_Path's half-radius arrival, and stopped nothing, so a finished
+walker glided on under Follow_Path's brake. ADR-0627 fixed this for the Jack alone.
+
+**Decision.** `TravelArrivalSystem`, a creature update step after the fight scan and before the
+needs routine and the state handlers, calls `StopMoving` on a non-imp, not sidelined, in states 6,
+7 or 9 whose route is loaded and whose progress is 1.0. The approach (8) makes the same test in
+`ApproachRules` after its refresh, when the refresh did not re-route. Handlers that wait for `HasRoute` then hand over as DK2's do.
+Imps keep their own handlers, which step them and test the progress after the mover (ADR-0297).
+State 7's room check stays with each handler, so on a mismatch ours drops the route where DK2
+keeps it. Not mirrored: 6's wait while a kind-4 action runs (`0x00470CA8`).
+
+**Consequences.** A walker stops dead within 1/16 tile of its last point rather than gliding up to
+a quarter of a tile past it. Among the scenarios only the Goblin's first bird moved (chicken 5 for
+21, the meal tick unchanged). The Jack keeps its own check for hosts that run without this step.
+DK2 runs the stop inside the handler, after the needs routine; ours runs it just before that.

@@ -181,6 +181,11 @@ makes the transition rule judge the drop to 1 by where it was going.
 **8 and 9 use 6 as a subroutine.** State 9 tail-jumps into `0x00470C80`, so 6's arrival
 resumes it. State 9 is 6 with a timeout.
 
+**Both 6 and 7 end at a route progress of exactly 1.0** (`Body_PathProgress`, the last point's
+distance in sixteenths of a tile). 6 calls `Creature_StopMoving`; 7 zeroes the velocity and calls it
+only when the tile's room matches, else returns 0 with the route kept. 8 makes its route refresh first.
+Built for non-imps as `TravelArrivalSystem` (6, 7, 9) and in `ApproachRules` (8) (ADR-0632, Q724).
+
 **Both movers share a near-destination flag.** When the squared distance
 `(dx²>>12) + (dy²>>12)` is below `0x200` (about 0.35 tile) they clear `creature+0xF1`
 bit 0 (6 also sets `+0x3DB = 1`); otherwise they set it. State 7 computes this from
