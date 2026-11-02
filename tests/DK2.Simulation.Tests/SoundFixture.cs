@@ -31,6 +31,12 @@ internal static class SoundFixture
         Database(objects, doors: true, traps: true, creatures);
 
     /// <summary>With the shipped door and trap categories when asked for, and <paramref name="impactKinds"/> as the doors' impact bytes.</summary>
+    /// <summary>The same database with every door's impact byte set (4 and 5, the Steel and Magic doors', ask the boulder for 0x15A).</summary>
+    public static GameDatabase WithDoorImpact(GameDatabase basis, byte impactKind) => new(basis.Terrain.Values, basis.Rooms.Values,
+        basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values, basis.Objects.Values,
+        basis.Doors.Values.Select(d => d with { ImpactKind = impactKind }), basis.Traps.Values, basis.CreatureSpells.Values,
+        basis.Shots.Values, basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
+
     public static GameDatabase Database(IReadOnlyDictionary<byte, string>? objects, bool doors, bool traps, params CreatureDef[] creatures)
     {
         GameDatabase basis = Dk2TerrainFixture.Database(creatures);

@@ -13,9 +13,8 @@ namespace DK2.Simulation;
 /// (process 22, <c>0x004AEBD0</c>) and updated as object process state 17 (<c>0x004A1390</c>): it
 /// strikes what it overlaps, rolls along the tile grid turning at blocked tiles, wears on water,
 /// lava and sunken floors, frightens enemies around it, and breaks when its wear reaches its health.
-/// Not built: a shot striking it, a slap, its heading, and the presentation of §9a — sounds 335 (the
-/// roll), 329 (a turn at a wall) and 244 (the break), and the owner's camera shake that the launch and
-/// every turn post as bridge command 10. A boulder breaks at a wall only once creatures have worn it
+/// Not built: a shot striking it, a slap, its heading, and the owner's camera shake that the launch and
+/// every turn post as bridge command 10. Its sounds (sound-effects-objects.md section 3) are asked here. A boulder breaks at a wall only once creatures have worn it
 /// close to its health; a wall alone costs a tenth.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/boulder.md")]
 public static class BoulderRules
@@ -88,6 +87,7 @@ public static class BoulderRules
         if (!Roll(context, sight, boulder)) return true;
         Wear(context, boulder);
         if (boulder.Health > boulder.Wear) return false;
+        ThingSoundRules.Request(context, SystemName, boulder, ThingSoundEvent.BoulderBroke);   // 0x004A1390, after the destruction call
         context.Emit(SystemName, "boulder_broken", $"boulder={boulder.Id} at={boulder.PosX >> 12},{boulder.PosY >> 12} wear={boulder.Wear}");
         return true;
     }
@@ -172,6 +172,9 @@ public static class BoulderRules
                 int landed = damage < door.Health ? damage : door.Health;
                 DoorRules.Damage(context, door, -landed, boulder.OwnerPlayerId);
                 boulder.Wear += landed;
+                // 0x004A0A96, 0x004A0AC3: the door's impact byte (def+0xB3), 4 and 5 sounding 0x15A, the others 0x14A.
+                ThingSoundRules.Request(context, SystemName, boulder,
+                    doorDef.ImpactKind is 4 or 5 ? ThingSoundEvent.BoulderHitMetalDoor : ThingSoundEvent.BoulderHitDoor);
                 context.Emit(SystemName, "boulder_struck_door", $"boulder={boulder.Id} door={door.Id} damage={landed} health={door.Health} wear={boulder.Wear}");
             }
         }
@@ -201,6 +204,9 @@ public static class BoulderRules
             && CreatureStateTable.Get(creature.Dk2StateId).Group != UnknockedGroup
             && !CreatureDeathRules.IsPossessed(world, creature))
             knocked = StatusEffectRules.StunInto(context, creature, definition, StunnedState, "boulder");
+        // 0x004A0D87, 0x004A0DBD, called at 0x004A0DD5: after the stun, 0x14E for a creature the blow left dying (+0x3E6 bit 0x200000), else 0x14D.
+        ThingSoundRules.Request(context, SystemName, boulder,
+            CreatureDeathRules.IsDown(creature) ? ThingSoundEvent.BoulderHitDownedCreature : ThingSoundEvent.BoulderHitCreature);
         boulder.Wear += landed;
         context.Emit(SystemName, "boulder_struck_creature",
             $"boulder={boulder.Id} creature={creature.Id} damage={damage} landed={landed} health={creature.Health} wear={boulder.Wear}{(knocked ? " knocked" : "")}");
@@ -251,6 +257,7 @@ public static class BoulderRules
     private static bool Roll(SimulationContext context, ISightBlocker sight, ObjectState boulder)
     {
         if (boulder.Health == 0) return false;
+        ThingSoundRules.Request(context, SystemName, boulder, ThingSoundEvent.BoulderRolling);   // 0x004A0E30, before the move
         GameDatabase database = context.Database;
         int s = boulder.RollSpeed;
         int r = (byte)database[VariableTypeId.BoulderSpeedToHealthRatio];
@@ -276,6 +283,7 @@ public static class BoulderRules
             if (!Step(context.World, boulder, ref dx, ref dy, out Direction crossed)) continue;
             if (!Turn(context, boulder, crossed)) continue;
             if (boulder.Wear >= boulder.Health) continue;
+            ThingSoundRules.Request(context, SystemName, boulder, ThingSoundEvent.BoulderTurned);   // 0x004A101F
             break;
         }
 
@@ -408,12 +416,14 @@ public static class BoulderRules
         TerrainDef terrain = database.TerrainById(world.Tile(x, y).TerrainId);
         uint health = unchecked((uint)boulder.Health);
         uint share;
-        if (terrain.IsLava) share = health / 6;
-        else if (terrain.IsWater) share = health / 10;
+        ThingSoundEvent? sound = null;
+        if (terrain.IsLava) { share = health / 6; sound = ThingSoundEvent.BoulderInLava; }
+        else if (terrain.IsWater) { share = health / 10; sound = ThingSoundEvent.BoulderInWater; }
         else if (Sunken(world, database, x, y)) share = health / 3;
         else return;
         uint worn = unchecked((uint)boulder.Wear + share);
         boulder.Wear = (int)(health < worn ? health : worn);
+        if (sound is { } wornSound) ThingSoundRules.Request(context, SystemName, boulder, wornSound);   // water and lava only (Boulder_TerrainWear)
         context.Emit(SystemName, "boulder_worn", $"boulder={boulder.Id} at={x},{y} wear={boulder.Wear}");
     }
 

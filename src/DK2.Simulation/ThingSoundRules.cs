@@ -102,6 +102,24 @@ public enum ThingSoundEvent : ushort
     TrapFired = 0xEB,
     /// <summary>A trap's cleanup (<c>0x004A7B48</c>).</summary>
     TrapDestroyed = 0xF4,
+    /// <summary>A boulder rolls (<c>Boulder_Roll</c>, <c>0x004A0E30</c>), at the start of each update.</summary>
+    BoulderRolling = 0x14F,
+    /// <summary>A boulder turns at a wall and stays whole (<c>0x004A101F</c>).</summary>
+    BoulderTurned = 0x149,
+    /// <summary>A boulder strikes a creature it leaves standing (<c>Boulder_Strike</c>, <c>0x004A0930</c>).</summary>
+    BoulderHitCreature = 0x14D,
+    /// <summary>The same for a creature it leaves dying.</summary>
+    BoulderHitDownedCreature = 0x14E,
+    /// <summary>A boulder strikes a door whose impact byte is not 4 or 5.</summary>
+    BoulderHitDoor = 0x14A,
+    /// <summary>The same for impact byte 4 or 5.</summary>
+    BoulderHitMetalDoor = 0x15A,
+    /// <summary>A boulder wears on water (<c>Boulder_TerrainWear</c>, <c>0x004A10E0</c>).</summary>
+    BoulderInWater = 0x14B,
+    /// <summary>A boulder wears on lava.</summary>
+    BoulderInLava = 0x14C,
+    /// <summary>A boulder breaks (<c>Boulder_Update</c>, <c>0x004A1390</c>).</summary>
+    BoulderBroke = 0xF4,
     /// <summary>A gambler plays (state 149, <c>0x00456B37</c>).</summary>
     Gambled = 0xD5,
     /// <summary>A gambler drinks (state 147, <c>0x00456DF0</c>).</summary>

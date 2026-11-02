@@ -76,3 +76,26 @@ Deviations. A door and a trap keep no stored position in ours: the request is at
 Ours keeps a lock mode for a door still under construction (the lock command writes it), which DK2 refuses; the sound follows DK2
 and is not asked then. The Alarm's local-player tests are asked of whichever keeper's screen plays them, so a second keeper's view
 would hear its own; DK2's world slot `+0x264` is the viewer.
+
+## 3. The boulder
+
+Object 74's category is `TRAP_BOULDER` ([boulder.md section 9a](boulder.md#9a-what-a-wall-hit-shows-and-plays-read-2026-10-31-q520)
+had read 335, 329 and 244 in decimal: `0x14F`, `0x149`, `0xF4`). Every request carries the boulder's handle and its position
+at the time. The launch asks none ([0x004AEBD0](functions/004AEBD0.md)).
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| `0x14F` | [0x004A0E30](functions/004A0E30.md): every update with health, before the speed and the move | CONFIRMED | `BoulderRules.Roll` |
+| `0x149` | `0x004A101F`: the move loop ended on a turn that left wear below health; a turn that reaches health keeps the loop going and is silent | CONFIRMED | `BoulderRules.Roll` |
+| `0x14D`, `0x14E` | [0x004A0930](functions/004A0930.md) at `0x004A0D87`, `0x004A0DBD`: a struck creature, `0x14E` when the blow left it dying, else (after the stun) `0x14D` | CONFIRMED | `BoulderRules.StrikeCreature` |
+| `0x14A`, `0x15A` | same, `0x004A0AC3`, `0x004A0A96`: a struck completed door, `0x15A` when its definition's byte `+0xB3` is 4 or 5 | CONFIRMED | `BoulderRules.Strike` |
+| `0x14B`, `0x14C` | [0x004A10E0](functions/004A10E0.md): wear on water, on lava; the sunken-floor arm is silent | CONFIRMED | `BoulderRules.Wear` |
+| `0xF4` | [0x004A1390](functions/004A1390.md): after the destruction call; the deletion asks it again | CONFIRMED | `BoulderRules.Update`, and `ObjectSoundRules.Removing` |
+| `0xC5` | [0x0049C2A0](functions/0049C2A0.md): a slap | silent: no object category holds it | nothing |
+
+All have samples in `TRAP_BOULDER`: one each but `0x14E` and `0x14F` (three). The door's byte (record `0x226`, shipped 3, 4, 3, 5,
+2, 2, 2, 2 for doors 1 to 8) is `DoorDef.ImpactKind`; the Steel and Magic doors give `0x15A`. A struck object or trap asks nothing.
+
+The boulder's own roll sound is asked every update while it lives, as DK2 does; a live handle retains an equal-priority request, so
+one sample plays to its end and the next follows (STRONGLY INFERRED from [sound-playback.md](sound-playback.md), not heard in play).
+The turn's `0x149` and the break's `0xF4` share the handle and are retained too while a roll sample still plays.
