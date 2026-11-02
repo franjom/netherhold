@@ -44,9 +44,10 @@ public static class CasinoJackpotRules
     /// <summary>A party's tile effect, every twelve game seconds (<c>v19 × 12</c>).</summary>
     public const int EffectSeconds = 12;
 
-    /// <summary>The global effects category (<c>GLOBAL\EFFECTS</c>, world <c>+0xA3BB</c>): where the party's tile
-    /// effect sounds, and where the plain effect sounds will.</summary>
-    public const string EffectsCategory = "EFFECTS";
+    /// <summary>The party's tile effect, Fireworks (<c>0x140</c>, flags <c>0x4440</c>, no <c>0x8000</c>): asked for at the corner
+    /// of a drawn tile of the room, height 0x1000, for the room's owner (<c>0x004D65E1</c>). The view plays its
+    /// pop (<c>0x344</c>) when it creates the effect.</summary>
+    public const ushort PartyEffectId = 0x140;
 
     /// <summary>152 lasts ten game seconds (<c>v19 × 10</c>).</summary>
     public const int CelebrationSeconds = 10;
@@ -165,14 +166,12 @@ public static class CasinoJackpotRules
             foreach (CreatureState c in world.Creatures)
                 if (c.HeldPlace.In(room) && c.Dk2StateId == CasinoStep.DancingState) first.CasinoParty |= MusicBit;
             // Every twelve seconds an effect on a random tile: the effect is presentation, its draw is
-            // on the simulation stream (0x004D6561). Its sound, 0x344 in the global effects category,
-            // sounds at the tile's corner (0x004D6610), the effect's creation taken as succeeding.
+            // on the simulation stream (0x004D6561), and the effect is asked for at that tile's corner.
             if ((now + 1) % (EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond) == 0)   // DK2's turn is our tick + 1
             {
                 int tile = SlabChain.Order(world, room)[context.Rng.NextInt(room.TileIndices.Count)];
-                ThingSoundRules.Request(context, system, new SoundSourceId(SoundSourceKind.Room, tile), EffectsCategory,
-                    ThingSoundEvent.CasinoPartyPop, new(new Fp32((tile % world.Width) << 12), new Fp32((tile / world.Width) << 12),
-                        new Fp32(0x1000)), voiced: false);
+                context.RequestEffect(system, new ViewEffectRequest(new EffectId(PartyEffectId), room.OwnerPlayerId,
+                    new FpPosition3(new Fp32((tile % world.Width) << 12), new Fp32((tile / world.Width) << 12), new Fp32(0x1000))));
             }
             return true;
         }

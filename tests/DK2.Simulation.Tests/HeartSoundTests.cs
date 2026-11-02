@@ -124,7 +124,7 @@ public sealed class HeartSoundTests
     }
 
     [Fact]
-    public void TheDeathTurnOfAFallenKeepersDungeonRequestsF4AtTheHeartTileHeightZero()
+    public void TheDeathTurnOfAFallenKeepersDungeonRequestsF4AtTheHeartTileHeightZero_TheTileIsStronglyInferred()
     {
         var (db, world) = NewWorld();
         var events = new ListEventSink();
@@ -137,7 +137,24 @@ public sealed class HeartSoundTests
         Assert.Equal((ushort)0xF4, (ushort)sound.Event);
         Assert.Equal(Heart, sound.Category);
         Assert.Equal(At(12, 12, 0), sound.Position);
-        Assert.True(sound.Voiced);   // the player's own handle, +0x10A2
+        Assert.True(sound.Voiced);   // the player's own handle, +0x10A2, not the room's (+0x14) that 0x329 and 0xDA pass
+        Assert.Equal(new SoundSourceId(SoundSourceKind.Player, Rival), sound.Source);
+    }
+
+    [Fact]
+    public void ABlowOnAHeartWithNoTilesIsStillTakenButMakesNoHeartSound()
+    {
+        var (db, world) = NewWorld();
+        for (int y = 10; y < 15; y++)
+            for (int x = 10; x < 15; x++)
+                world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+        var events = new ListEventSink();
+        var sim = new GameSimulation(db, world, 1, [new Act(c => HeartSoundRules.Damage(c, "Act", Rival, 40, Keeper))]);
+        sim.ObserveWith(events);
+        sim.Tick();
+
+        Assert.Equal(60, world.Player(Rival).HeartHealth);
+        Assert.Empty(Sounds(events));   // as the collapse is guarded by the heart tile: no tile, no position to sound at
     }
 
     /// <summary>Shows the sink does not mutate state, not that a sound could not.</summary>

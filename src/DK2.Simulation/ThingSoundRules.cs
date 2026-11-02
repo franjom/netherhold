@@ -8,7 +8,7 @@ using DK2.Data.Model;
 namespace DK2.Simulation;
 
 /// <summary>The kinds of thing that request world sounds; each owns its own range of voices.</summary>
-public enum SoundSourceKind : byte { Creature, Object, Door, Trap, Shot, Room, Terrain }
+public enum SoundSourceKind : byte { Creature, Object, Door, Trap, Shot, Room, Terrain, Player }
 
 /// <summary>The thing a world sound belongs to, so that its next request replaces its last one.</summary>
 public readonly record struct SoundSourceId(SoundSourceKind Kind, int Value)
@@ -45,9 +45,6 @@ public enum ThingSoundEvent : ushort
     /// <summary>The fallen keeper's heart tile, on the turn its consequences run (<c>0x004DAC38</c>); the
     /// same group as <see cref="TileBroken"/>, in the heart's category.</summary>
     HeartCollapsed = 0xF4,
-    /// <summary>A Casino party's tile effect (<c>Casino_RoomUpdate</c>, <c>0x004D6610</c>), in the global
-    /// <c>EFFECTS</c> category.</summary>
-    CasinoPartyPop = 0x344,
 }
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the
@@ -90,12 +87,12 @@ public static class ThingSoundRules
     /// category. A room's tiles use its room terrain's category (room definition <c>+0x44E</c>).</summary>
     public static void RequestTile(SimulationContext context, string system, byte terrainId, int tileIndex,
         ThingSoundEvent sound, int height = 0, SoundSourceKind kind = SoundSourceKind.Terrain,
-        bool voiced = false, PlayerId? viewerOnlyFor = null)
+        bool voiced = false, PlayerId? viewerOnlyFor = null, SoundSourceId? source = null)
     {
         string category = context.Database.TerrainById(terrainId).SoundCategory;
         if (category.Length == 0) return;
         int width = context.World.Width;
-        Request(context, system, new SoundSourceId(kind, tileIndex), category, sound,
+        Request(context, system, source ?? new SoundSourceId(kind, tileIndex), category, sound,
             new(new Fp32(CreatureState.CentreOf(tileIndex % width)), new Fp32(CreatureState.CentreOf(tileIndex / width)),
                 new Fp32(height)), voiced, viewerOnlyFor);
     }
@@ -114,6 +111,8 @@ public static class ThingSoundRules
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
         ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null)
     {
+        // Nobody listening: skip the detail string and the event (the null sink is the one cheap test there is).
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         if (category.Length > 31) category = category.Substring(0, 31);
         context.Events.Emit(new SimEvent(context.Tick, system, "thing_sound",
             $"{source.Kind.ToString().ToLowerInvariant()}={source.Value} event={(ushort)sound}")

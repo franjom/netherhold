@@ -35,12 +35,17 @@ public sealed class WorldSoundTests
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Creature, 7), "CREATURE_IMP", ThingSoundEvent.BattleCall));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Object, 7), "OBJECT_GOLD", (ThingSoundEvent)0xC4));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Door, 7), "DOOR_WOOD", (ThingSoundEvent)0xC4));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Room, 7), "ROOM_DUNGEON_HEART", (ThingSoundEvent)0x329));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Player, 7), "ROOM_DUNGEON_HEART", (ThingSoundEvent)0xF4));
         Assert.True(director.TryTake(out var creature));
         Assert.True(director.TryTake(out var gold));
         Assert.True(director.TryTake(out var door));
+        Assert.True(director.TryTake(out var room));
+        Assert.True(director.TryTake(out var player));
         Assert.Equal("object_gold", gold.Category.Name);
-        Assert.Equal(3, new[] { creature.Voice, gold.Voice, door.Voice }.Distinct().Count());
-        Assert.DoesNotContain(SoundVoiceId.None, new[] { creature.Voice, gold.Voice, door.Voice });
+        var voices = new[] { creature.Voice, gold.Voice, door.Voice, room.Voice, player.Voice };
+        Assert.Equal(5, voices.Distinct().Count());   // the room's handle and the player's are different voices
+        Assert.DoesNotContain(SoundVoiceId.None, voices);
     }
 
     [Fact]

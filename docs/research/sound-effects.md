@@ -190,7 +190,7 @@ group with samples.
 for the name in TERRAIN file bytes `0x1DF`..`0x1FE` (the loader [0x004F66E0](functions/004F66E0.md)
 copies them from its intermediate record, shifted `+0xB8`, and resolves them through slot `+0x1C`;
 shipped values read from the file: `TERRAIN_ROCK`, `TERRAIN_WALL`, ..., and `ROOM_*` for every room
-terrain, so a room tile's category is its room terrain's. Terrains 27, 28, 30 and 38 have none).
+terrain, so a room tile's category is its room terrain's. Terrains 27, 28, 29, 30, 38 and 39 have none).
 Ours: `TerrainDef.SoundCategory`. Two more handles follow, `+0x199` (Temple only: `ROOM_TEMPLE_WATERLESS`
 by name) and `+0x19D` (the second name, file `0x204` by the same shift, unread); the ambience grid
 ([0x0044E2A0](functions/0044E2A0.md)) reads all three (W7.4).
@@ -233,8 +233,10 @@ applier's only.
 
 Read 2026-11-02 for plan Phase W3. The heart room's category is the room definition's terrain's, as for any
 room (section 7): `ROOM_DUNGEON_HEART`. The room definition keeps it twice, `+0x44E` (terrain id) and `+0x449`
-(the category handle copied from that terrain at load, [0x004EBDAE](functions/004EACC0.md)); the blow and
-capture sites read `+0x449`.
+(the category handle copied from that terrain at load when world `+0xA3C7` is 0,
+[0x004EBD9A](functions/004EACC0.md)). The blow (`0x004DA2DB`) and the beat (`0x0043CE85`, through the room's `+0x44E`)
+read these; the destruction (`0x004DA5B2`) and the collapse (`0x004DAC38`) read the category of the terrain at the
+heart's position (slot `+0x68`, then `+0x195`).
 
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
@@ -247,20 +249,22 @@ capture sites read `+0x449`.
 | `0x2F9`, the object's handle, terrain 14's category | unnamed code at `0x004A32F9`: an object's update that works wall tiles down through `Tile_ApplyWork` with their whole health | HYPOTHESIS: the defeat collapse's destroyer object | waits: not built |
 | casino `0x316`, then `0x33E` | [0x004D9A60](functions/004D9A60.md) at `0x004DA00F`, `0x004DA114`: while world `+0x723A` bit 0 is set (the host-clock Saturday dance, [0x0050A850](functions/0050A850.md)); category terrain 0x18 (`ROOM_CASINO`) | CONFIRMED site | waits: the host clock is not an input of ours (Q571) |
 
-`0x329` has three samples, `0xDA` one, `0x150` one and `0x2F9` four, all only in `room_dungeon_heart`; `0xF4` and
-`0xF1` one each. `0x316` and `0x33E` exist only in `room_casino`, so the plan's "heart" label was the casino's
+`0x329` has three samples, `0x150` one and `0x2F9` four, all only in `room_dungeon_heart`; `0xDA` has one to three in
+that category and in 27 creature categories (the creature death sound, Phase W6); `0xF4` and `0xF1` one each in it.
+The blow and the destruction share the room's handle (`+0x14`), the collapse passes the player's (`+0x10A2`), so ours
+voices it as a `Player` source. `0x316` and `0x33E` exist only in `room_casino`, so the plan's "heart" label was the casino's
 category, played by the heart's room frame during the dance, never otherwise. Deviations: the heart object's
 position is taken as the centre tile at the floor height of the room (`0x1000`), as ours keeps no heart object; ours has no
 invulnerability flag, so the blow sound before that test has no extra case.
 
 ## 9. Workshop, casino, prison and portal
 
-Read 2026-11-02 for plan Phase W3. Only the Casino's party pop is built; the rest waits for functions ours
+Read 2026-11-02 for plan Phase W3. Only the Casino's party pop is built (in the view); the rest waits for functions ours
 does not have.
 
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
-| `0x344`, handle 0, the global `EFFECTS` category (world `+0xA3BB`, set at `0x0050A284` in the world initialiser [0x005099A0](functions/005099A0.md)), the drawn tile's corner, height `0x1000` | [0x004D6270](functions/004D6270.md) at `0x004D6610`, with the party's tile effect `0x140` every `v19 x 12` turns, when that effect is created | CONFIRMED | `CasinoJackpotRules.RoomUpdate`, on the tile of the room's chain the existing draw picks |
+| `0x344`, handle 0, the global `EFFECTS` category (world `+0xA3BB`, set at `0x0050A284` in the world initialiser [0x005099A0](functions/005099A0.md)), at the effect's position (the drawn tile's corner, height `0x1000`) | [0x004D6270](functions/004D6270.md) at `0x004D6610`, only when the party's effect `0x140` (Fireworks, flags `0x4440`) was created (`TEST EAX,EAX` at `0x004D65E9`); creation is [0x00440420](functions/00440420.md), which fails off the map, on a solid tile, out of the camera (no flag `0x8000`) and on a tile neither explored nor in Sight | CONFIRMED | the room update asks for the effect (`CasinoJackpotRules.RoomUpdate`, on the tile of the room's chain the existing draw picks); the view plays the pop when its effect model reports the request created (`RoomConstructionParticles.EffectCreated`, `PartyPopSound`) |
 | casino `0x316` | same function at `0x004D63D0`: for each creature of the owner in 153, the party music, the room's handle, volume by distance when the tile is explored; a null handle kicks the dancers | CONFIRMED site | waits: a looped music handle and the explored-tile volume (W7.3) |
 | casino `0x33E` | same function at `0x004D6727`: the party-off path while room `+0x3D` is set, the room's handle, only for an explored tile | CONFIRMED site | waits with `0x316` |
 | workshop `0x2E9`, `0x2E8` | [0x004F4B20](functions/004F4B20.md) at `0x004F4C27`, `0x004F4DC7`, `0x004F4F03`: the three random timers, each with a world effect, the room's handle, at the effect's position | CONFIRMED sites | waits: the timers draw the simulation stream (`Random_Next` on the world seed), which ours does not; building them moves the state hash, so it needs a hash version |
@@ -274,3 +278,7 @@ music and its end, the third a one-shot pop in `effects` (seven samples). `0x316
 three, only in `room_casino`; the heart room's frame plays the same two groups in the casino category during
 the Saturday dance (section 8). `0x34B` has one sample in `room_portal`; `0x2E8` one and `0x2E9` three in
 `room_workshop`; `0xE7`-`0xEA` one each in `room_prison` and every door category.
+
+The workshop's requests do not test an effect's creation result, unlike the party's. Known differences from DK2: a keeper's captured
+builds replayed through `RoomLog` arrive as direct builds, so each tile sounds `0xF1` and there is no `0x2F8`; ours builds no thing-sound
+event while the event sink is the null sink.

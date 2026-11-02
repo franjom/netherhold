@@ -35,20 +35,24 @@ public static class HeartSoundRules
             viewerOnlyFor: owner);
 
     /// <summary>The fallen keeper's heart tile on the turn the consequences run (<c>0x004DAC38</c>): <c>0xF4</c>,
-    /// the player's own handle, height 0.</summary>
+    /// the player's own handle (<c>+0x10A2</c>, so a <see cref="SoundSourceKind.Player"/> voice, not the room's
+    /// that the blow and destruction share), height 0.</summary>
     internal static void RequestCollapse(SimulationContext context, string system, PlayerId owner) =>
-        Request(context, system, owner, ThingSoundEvent.HeartCollapsed, voiced: true, height: 0);
+        Request(context, system, owner, ThingSoundEvent.HeartCollapsed, voiced: true, height: 0, player: true);
 
     private static void Request(SimulationContext context, string system, PlayerId owner, ThingSoundEvent sound,
-        bool voiced, int? height, PlayerId? viewerOnlyFor = null)
+        bool voiced, int? height, PlayerId? viewerOnlyFor = null, bool player = false)
     {
         GameDatabase database = context.Database;
         if (ManaRules.DungeonHeartTerrainId(database) is not byte terrain) return;
+        // A heart with no tile has no position (the collapse is guarded the same way): no sound.
+        if (Combat.HeartSites.PositionOf(context.World, database, owner) < 0) return;
         (ushort x, ushort y) = ManaRemovalLifecycle.HeartTile(context.World, database, owner);
         int index = (y * context.World.Width) + x;
         ThingSoundRules.RequestTile(context, system, terrain, index, sound,
             height ?? EggLaunchRules.FloorHeight(context.World, database, new Fp32(CreatureState.CentreOf(x)),
                 new Fp32(CreatureState.CentreOf(y))),
-            SoundSourceKind.Room, voiced, viewerOnlyFor);
+            SoundSourceKind.Room, voiced, viewerOnlyFor,
+            player ? new SoundSourceId(SoundSourceKind.Player, owner.Value) : null);
     }
 }

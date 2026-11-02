@@ -376,6 +376,13 @@ namespace DK2.Unity
             }
             _startup.Step("effects");
             _soundPlayer = new ClassicSoundPlayer(transform, new InstallClassicSoundAssets(install));
+            // DK2 plays a Casino party's pop only when it created the party's effect (0x004D65E9).
+            if (_constructionEffects != null)
+                _constructionEffects.Model.EffectCreated = effect =>
+                {
+                    SoundRequest? pop = PartyPopSound.For(effect);
+                    if (pop.HasValue) _soundPlayer.Play(pop.Value);
+                };
             string heartCategory = HeartBeatSound.CategoryOf(database);
             _scene.HeartBeatRequested = pose =>
             {

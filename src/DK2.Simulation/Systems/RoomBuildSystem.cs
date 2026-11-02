@@ -207,7 +207,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
 
             // Charge before placing. A tile that was paid for but not laid, or
             // laid but not paid for, would both be worse than refusing it.
-            if (!PlacePaidTile(context, command.PlayerId, pos, room, announce: context.Tick != GameTick.Zero))
+            if (!PlacePaidTile(context, command.PlayerId, pos, room, announce: true))   // the wrapper's turn 0 never equals DK2's game turn, our tick + 1
             {
                 Count(refusals, RoomPlacement.NotEnoughGold);
                 continue;

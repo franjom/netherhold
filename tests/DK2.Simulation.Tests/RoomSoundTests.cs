@@ -86,12 +86,10 @@ public sealed class RoomSoundTests
     }
 
     [Fact]
-    public void ADirectTileBuildSoundsF1ForEachPaidTileAndNotAtTickZero()
+    public void ADirectTileBuildSoundsF1ForEachPaidTileEvenOnTheFirstTick()
     {
+        // The keeper wrapper passes turn 0 and DK2's game turn is our tick + 1, never 0: it always differs.
         var (sim, events) = Start();
-        sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.Lair, new TilePos(1, 3))));
-        Assert.Empty(Sounds(events));   // the game turn equals the turn 0 the keeper wrapper passes
-
         sim.Tick(InputFrame.Of(BuildRoomCommand.At(Keeper, RoomTypeId.Lair, new TilePos(1, 1), new TilePos(1, 2))));
 
         ThingSoundRequest[] built = Sounds(events);
