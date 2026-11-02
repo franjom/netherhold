@@ -64,4 +64,9 @@ public sealed record TrapDef
     /// <summary>Text.str id of the trap's name, record offset 0x208, runtime <c>def+0xA8</c>
     /// (loader <c>0x004AA440</c>); the hover status <c>0x004A9B70</c> and popup <c>0x0042D4A0</c> read it.</summary>
     public ushort NameStringId { get; init; }
+
+    /// <summary>The sound category every sound of this trap is requested in: the 32-byte name at record offset
+    /// <c>0x20F</c> (<c>TRAP_GAS</c> ...), runtime <c>def+0xB0</c> (loader <c>0x004AA440</c>). Empty for the Magic Door and
+    /// the spare door, which have none.</summary>
+    public string SoundCategory { get; init; } = string.Empty;
 }

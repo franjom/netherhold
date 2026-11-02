@@ -90,6 +90,18 @@ public enum ThingSoundEvent : ushort
     Sacrificed = 0xE2,
     /// <summary>A worshipper begins its prayer (state 104, <c>0x00472E70</c>).</summary>
     Prayed = 0xD4,
+    /// <summary>A door's open state turns on (<c>Door_Update</c>, <c>0x004A60B9</c>).</summary>
+    DoorOpened = 0xE7,
+    /// <summary>A door's open state turns off (<c>0x004A60B9</c>).</summary>
+    DoorClosed = 0xE8,
+    /// <summary>A door's lock mode is set nonzero (<c>Door_SetLockMode</c>, <c>0x004A6844</c>).</summary>
+    DoorLocked = 0xE9,
+    /// <summary>A door's lock mode is set to zero (<c>0x004A6844</c>).</summary>
+    DoorUnlocked = 0xEA,
+    /// <summary>A trap's shot is made (<c>Trap_CreateShot</c>, <c>0x004A82C2</c>, <c>0x004A830E</c>).</summary>
+    TrapFired = 0xEB,
+    /// <summary>A trap's cleanup (<c>0x004A7B48</c>).</summary>
+    TrapDestroyed = 0xF4,
     /// <summary>A gambler plays (state 149, <c>0x00456B37</c>).</summary>
     Gambled = 0xD5,
     /// <summary>A gambler drinks (state 147, <c>0x00456DF0</c>).</summary>
@@ -150,6 +162,36 @@ public static class ThingSoundRules
             point = new(x, y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, x, y)));
         }
         Request(context, system, new SoundSourceId(SoundSourceKind.Object, thing.Id), category, sound, point);
+    }
+
+    /// <summary>A door's request: its definition's category (<c>+0xA9</c>, <see cref="DoorDef.SoundCategory"/>), its own
+    /// handle, at the middle of its tile and the floor's height (DK2 reads the position it stored; ours keeps none).
+    /// Nothing is emitted for a door with no category.</summary>
+    public static void Request(SimulationContext context, string system, DoorState door, ThingSoundEvent sound)
+    {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (!context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition) || definition.SoundCategory.Length == 0) return;
+        Request(context, system, new SoundSourceId(SoundSourceKind.Door, door.Id), definition.SoundCategory, sound,
+            AtTile(context, door.X, door.Y));
+    }
+
+    /// <summary>A trap's request: its definition's category (<c>+0xB0</c>, <see cref="TrapDef.SoundCategory"/>), its own
+    /// handle, at the middle of its tile and the floor's height. <paramref name="viewerOnlyFor"/> names the keeper whose
+    /// screen DK2 makes the request for alone (the Alarm's two). Nothing is emitted for a trap with no category.</summary>
+    public static void Request(SimulationContext context, string system, TrapState trap, ThingSoundEvent sound,
+        PlayerId? viewerOnlyFor = null)
+    {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        if (!context.Database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) || definition.SoundCategory.Length == 0) return;
+        Request(context, system, new SoundSourceId(SoundSourceKind.Trap, trap.Id), definition.SoundCategory, sound,
+            AtTile(context, trap.X, trap.Y), viewerOnlyFor: viewerOnlyFor);
+    }
+
+    private static FpPosition3 AtTile(SimulationContext context, int x, int y)
+    {
+        var px = new Fp32(CreatureState.CentreOf(x));
+        var py = new Fp32(CreatureState.CentreOf(y));
+        return new(px, py, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, px, py)));
     }
 
     /// <summary>A tile's request: handle 0, in the category of <paramref name="terrainId"/> (definition

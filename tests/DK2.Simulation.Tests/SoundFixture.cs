@@ -7,14 +7,31 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Tests;
 
-/// <summary>The fixture database with sound categories on objects, which the transcribed
+/// <summary>The fixture database with sound categories on objects, doors and traps, which the transcribed
 /// definitions leave empty; the names are the shipped ones (the <c>*SoundCategoriesAreTheShippedNames</c> tests
 /// read the real files).</summary>
 internal static class SoundFixture
 {
     public const byte RatObjectId = 11, BatObjectId = 12;
 
-    public static GameDatabase Database(IReadOnlyDictionary<byte, string>? objects = null, params CreatureDef[] creatures)
+    /// <summary>The shipped doors' categories and impact bytes (<c>Doors.kwd</c>), for the two the fixture carries and the rest.</summary>
+    public static readonly IReadOnlyDictionary<byte, string> DoorCategories = new Dictionary<byte, string>
+    {
+        [1] = "DOOR_WOOD", [2] = "DOOR_STEEL", [3] = "DOOR_BRACED", [4] = "DOOR_MAGIC", [5] = "DOOR_SECRET", [6] = "DOOR_BARRICADE",
+    };
+
+    /// <summary>The shipped traps' categories (<c>Traps.kwd</c>) for the fixture's traps.</summary>
+    public static readonly IReadOnlyDictionary<byte, string> TrapCategories = new Dictionary<byte, string>
+    {
+        [1] = "TRAP_GAS", [2] = "TRAP_BOULDER", [3] = "TRAP_SENTRY", [4] = "TRAP_ALARM", [5] = "TRAP_FIREBURST", [6] = "TRAP_LIGHTNING",
+        [8] = "TRAP_FEAR", [9] = "TRAP_TRIGGER", [10] = "TRAP_SPIKE", [14] = "TRAP_SENTRY", [16] = "TRAP_JACKINBOX",
+    };
+
+    public static GameDatabase Database(IReadOnlyDictionary<byte, string>? objects = null, params CreatureDef[] creatures) =>
+        Database(objects, doors: true, traps: true, creatures);
+
+    /// <summary>With the shipped door and trap categories when asked for, and <paramref name="impactKinds"/> as the doors' impact bytes.</summary>
+    public static GameDatabase Database(IReadOnlyDictionary<byte, string>? objects, bool doors, bool traps, params CreatureDef[] creatures)
     {
         GameDatabase basis = Dk2TerrainFixture.Database(creatures);
         var objectDefs = basis.Objects.Values.ToList();
@@ -24,10 +41,17 @@ internal static class SoundFixture
             if (at >= 0) objectDefs[at] = objectDefs[at] with { SoundCategory = category };
             else objectDefs.Add(Plain(id, category));
         }
+        IEnumerable<DoorDef> doorDefs = basis.Doors.Values.Select(d =>
+            doors && DoorCategories.TryGetValue(d.DoorId, out string? category) ? d with { SoundCategory = category, ImpactKind = ImpactOf(d.DoorId) } : d);
+        IEnumerable<TrapDef> trapDefs = basis.Traps.Values.Select(t =>
+            traps && TrapCategories.TryGetValue(t.TrapId, out string? category) ? t with { SoundCategory = category } : t);
         return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
-            basis.KeeperSpells.Values, objectDefs, basis.Doors.Values, basis.Traps.Values, basis.CreatureSpells.Values, basis.Shots.Values,
+            basis.KeeperSpells.Values, objectDefs, doorDefs, trapDefs, basis.CreatureSpells.Values, basis.Shots.Values,
             basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
     }
+
+    /// <summary>Doors.kwd offset 0x226 of the shipped doors.</summary>
+    private static byte ImpactOf(byte doorId) => doorId switch { 1 or 3 => 3, 2 => 4, 4 => 5, _ => 2 };
 
     private static ObjectDef Plain(byte id, string category) => new()
     {

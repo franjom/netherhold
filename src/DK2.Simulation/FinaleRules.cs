@@ -387,7 +387,11 @@ public static class FinaleRules
                 if (world.DoorAt(tile.X, tile.Y) is not { UnderConstruction: false } door) continue;
                 if (door.PlayerId == reaper.OwnerPlayerId)
                 {
-                    if (door.LockMode != 0) door.LockMode = 0;
+                    if (door.LockMode != 0)
+                    {
+                        door.LockMode = 0;
+                        ThingSoundRules.Request(context, SystemName, door, ThingSoundEvent.DoorUnlocked);   // 0x004A6844 through 0x00475040
+                    }
                 }
                 else door.LockPickTicks = (context.Database.Variables.Misc.TryGetValue(
                     VariableTypeId.DoorPickedTimeSeconds, out MiscVariable? seconds) ? seconds.Value : 0)

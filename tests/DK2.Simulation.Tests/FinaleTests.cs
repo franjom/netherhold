@@ -15,7 +15,8 @@ public sealed class FinaleTests
 {
     private const byte Keeper = 3;
 
-    private static (GameSimulation Sim, ObjectState Gem, ListEventSink Events) Setup(bool withGem = true, GameMode mode = GameMode.Campaign)
+    private static (GameSimulation Sim, ObjectState Gem, ListEventSink Events) Setup(bool withGem = true, GameMode mode = GameMode.Campaign,
+        IEnumerable<DoorDef>? doors = null)
     {
         (GameDatabase basis, _, _) = SummonHornyTests.Setup();
         var gemDefinition = new ObjectDef
@@ -26,7 +27,7 @@ public sealed class FinaleTests
             Mass = new Fp32(4), Speed = new Fp32(0),
         };
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
-            basis.KeeperSpells.Values, objects: basis.Objects.Values.Append(gemDefinition), shots: basis.Shots.Values);
+            basis.KeeperSpells.Values, objects: basis.Objects.Values.Append(gemDefinition), doors: doors, shots: basis.Shots.Values);
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper], gameMode: mode);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
@@ -260,5 +261,31 @@ public sealed class FinaleTests
             (int)(taken.ThingSound!.Value.Position.Y.Raw >> 12)));
         Assert.True(entrance.Tick.Value < taken.Tick.Value);
         Assert.Null(sim.World.ObjectById(gem.Id));   // the gem went in the same update
+    }
+
+    /// <summary>State 234 (<c>0x00474F80</c>) on its own tile and the four beside it unlocks the Reaper keeper's locked door
+    /// through <c>Door_SetLockMode(0)</c> (<c>0x00475040</c>), which asks <c>0xEA</c> with the door's handle.</summary>
+    [Fact]
+    public void TheFinaleReaperUnlockingItsKeepersDoorOnItsWayAsksEaInTheDoorsCategory()
+    {
+        IEnumerable<DoorDef> doors = Dk2TerrainFixture.Doors().Select(d => d with { SoundCategory = "DOOR_WOOD" });
+        (GameSimulation sim, _, ListEventSink events) = Setup(doors: doors);
+        var gate = new TilePos(14, 11);   // beside the Reaper's walk along row 12, from column 17 to the gem at 12
+        foreach (int x in new[] { 13, 15 }) sim.World.Tile(x, 11).TerrainId = Dk2TerrainFixture.Rock;   // the walls a door needs
+        ThingProjection.Place(sim.World, sim.Database, [new DoorThing(new byte[20]) { X = gate.X, Y = gate.Y, PlayerId = Keeper, Flags = 1, DoorId = 1, Unknown_0011 = new byte[3] }]);
+        DoorState door = sim.World.Doors.Single();
+        Assert.Equal(3, door.LockMode);
+        Win(sim);
+
+        for (int t = 0; t < 600 && !events.Events.Any(e => e.ScriptedView?.Kind == ScriptedViewKind.WinScreen); t++) sim.Tick(InputFrame.Empty);
+
+        Assert.Equal(0, door.LockMode);
+        ThingSoundRequest sound = Assert.Single(events.Events.Where(e => e.ThingSound.HasValue && e.ThingSound!.Value.Event == ThingSoundEvent.DoorUnlocked)
+            .Select(e => e.ThingSound!.Value));
+        Assert.Equal((ushort)0xEA, (ushort)sound.Event);
+        Assert.Equal("DOOR_WOOD", sound.Category);
+        Assert.Equal(new SoundSourceId(SoundSourceKind.Door, door.Id), sound.Source);
+        Assert.Equal(new FpPosition3(new Fp32(CreatureState.CentreOf(gate.X)), new Fp32(CreatureState.CentreOf(gate.Y)), new Fp32(0x1000)), sound.Position);
+        Assert.True(sound.Voiced);
     }
 }

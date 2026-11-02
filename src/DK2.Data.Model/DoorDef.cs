@@ -39,6 +39,15 @@ public sealed record DoorDef
     /// <summary>Text.str id of the door's name, record offset 0x23C, runtime <c>def+0xA1</c>
     /// (loader <c>0x004A7100</c>); the hover status <c>0x004A68C0</c> and popup <c>0x0042D4A0</c> read it.</summary>
     public ushort NameStringId { get; init; }
+
+    /// <summary>The sound category every sound of this door is requested in: the 32-byte name at record offset
+    /// <c>0x248</c> (<c>DOOR_WOOD</c> ...), runtime <c>def+0xA9</c> (loader <c>0x004A7100</c>). Empty when the record has none.</summary>
+    public string SoundCategory { get; init; } = string.Empty;
+
+    /// <summary>The impact byte at record offset <c>0x226</c>, runtime <c>def+0xB3</c>: the swing's impact lookup reads it,
+    /// and so does the boulder's strike, which sounds <c>0x15A</c> for 4 and 5 (the Steel and Magic doors) and <c>0x14A</c>
+    /// for the rest (sound-effects-objects.md section 3).</summary>
+    public byte ImpactKind { get; init; }
 }
 
 /// <summary>The door record's flags byte. Named by which shipped records carry each bit: the

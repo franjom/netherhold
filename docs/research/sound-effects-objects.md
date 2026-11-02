@@ -46,3 +46,33 @@ shot's) is not yet set and the tile's centre stands in. Level load builds its ob
 so they are silent; DK2's sound manager would hear them. A deleted object asks `0xF4` wherever ours deletes it, including
 the chicken a creature eats, which asks `0x111` first (`Eat_EatChicken`). The possessed creature's `0xCD` is listed
 under plan W7.4; it is built here because it is the first of the two requests of that one arm.
+
+## 2. Doors and traps
+
+A door's category is its definition's `+0xA9` (record offset `0x248`, [0x004A7100](functions/004A7100.md)), a trap's `+0xB0`
+(record offset `0x20F`, [0x004AA440](functions/004AA440.md)); ours `DoorDef.SoundCategory` and `TrapDef.SoundCategory`, read
+and written by the KWD readers (`DoorAndTrapSoundCategoriesAndTheDoorImpactByteAreTheShippedOnes`). The plan named the
+thing's `+0xF7`, which is its definition pointer. Handles are `+0x2E` and `+0x32`, the position `+0x1A`.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| door `0xE7` open, `0xE8` shut | [0x004A55F0](functions/004A55F0.md) at `0x004A60B9`: the open state `+0x10D` changed this update; not for a door that is dead, under construction or a barricade | CONFIRMED | `DoorSystem.Execute` |
+| door `0xE9` lock, `0xEA` unlock | [0x004A6800](functions/004A6800.md) at `0x004A6844`: a completed door's mode set, before it is stored; from the lock action `0x00513800`, the finale Reaper's walk ([0x00474F80](functions/00474F80.md)) and the level loader | CONFIRMED | `DoorSystem.Lock`, `FinaleRules.Walk`; the loader's is silent in ours |
+| door `0xF2` (`+0x32`), `0xF4`, `0xF4` and `0xF5` of a sale | [0x004A5070](functions/004A5070.md) at `0x004A5275`, [0x004A5290](functions/004A5290.md) at `0x004A52D0`, [0x004C3670](functions/004C3670.md) | CONFIRMED sites; silent: no door category holds them | nothing |
+| door `0xEB` | the Magic Door's own shot, `0x004A642B`, in the category of the trap definition the door names | CONFIRMED site | waits: ours does not fire a Magic Door's shot |
+| trap `0xEB` | [0x004A80E0](functions/004A80E0.md) at `0x004A82C2`, `0x004A830E`: after the shot is made. Every shot but the Alarm's (id 13) asks it once; the Alarm's asks it for a creature target of the local player, and again when the trap is the local player's | CONFIRMED | `TrapRules.RequestFireSound` (the Alarm's two as `ViewerOnlyFor` the target's owner and the trap's) |
+| trap `0xF4` | [0x004A7B20](functions/004A7B20.md) at `0x004A7B48`: first, for every removed trap, built or not | CONFIRMED | `TrapRules.Remove` |
+| trap `0xF4`, `0xF5` of a sale | [0x004C3A20](functions/004C3A20.md) at `0x004C3A99`, `0x004C3B2A` | CONFIRMED sites | waits: ours has no trap sale; no trap category holds `0xF5` |
+| trap `0xF2` | [0x004A7940](functions/004A7940.md) at `0x004A7AF1` | CONFIRMED site; silent | nothing |
+| `0xED`, `0xF3` | `0x004A8C1F`, `0x004C360D`, `0x004C39C9` | silent: no `SFX.map` holds either | nothing |
+
+`0xE7`, `0xE8`, `0xE9` and `0xEA` have one sample each in `DOOR_WOOD`, `DOOR_STEEL`, `DOOR_BRACED`, `DOOR_MAGIC`, `DOOR_SECRET` and
+`DOOR_BARRICADE` (the Hero Barricade shares the last, the Hero Portcullis uses `DOOR_STEEL`); `0xEB` one to five in every trap
+category but `TRAP_GUARD_POST`; `0xF4` one each in `TRAP_ALARM` and `TRAP_BOULDER`. The Boulder trap is destroyed when its
+shot makes the boulder, so it sounds `0xEB` then `0xF4`; a Sentry and a Hero Sentry share `TRAP_SENTRY`, an Alarm and a Hero
+Alarm `TRAP_ALARM`. A barricade never reaches the open decision, so it asks no open or shut sound.
+
+Deviations. A door and a trap keep no stored position in ours: the request is at the middle of the tile at the floor's height.
+Ours keeps a lock mode for a door still under construction (the lock command writes it), which DK2 refuses; the sound follows DK2
+and is not asked then. The Alarm's local-player tests are asked of whichever keeper's screen plays them, so a second keeper's view
+would hear its own; DK2's world slot `+0x264` is the viewer.
