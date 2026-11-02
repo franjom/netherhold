@@ -83,7 +83,7 @@ hands back to 273 at a whole route progress (§8).
 first strike's reach differs from DK2's); §2 for a creature victim; §3; §4, once per Jack, at its
 next update when something other than its own wear killed it; §5's 32-bit arithmetic for every area
 shot, a wrapped negative damage skipped where DK2 would heal. **Not built:** a victim that is not a
-creature (a fired-without-target shot names thing 2; ours strikes nobody); effects and sounds.
+creature (a fired-without-target shot names thing 2; ours strikes nobody); effects. The blast's sound `0x34C` is built ([sound-effects.md section 13](sound-effects.md#13-level-up-the-reaper-and-the-silent-rows)).
 
 ## 7. Watched in play (2026-11-01, Q524)
 
