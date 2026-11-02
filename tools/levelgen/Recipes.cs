@@ -50,10 +50,17 @@ public static class Recipes
             "M7TrapFights with M7Traps' dead-end way out of the Heart (x 19, rows 23..27): each zone variant crashed too, and a "
             + "Heart sealed on every side is what all three shared and M7Traps, which ran, did not.",
             b => M7TrapFights(b, Zone.All | Zone.HeartWay)),
+        new("M7TrapFights3", "Secret4",
+            "M7TrapFights2 crashed the same way. Its Dwarves now keep Secret4's 5% health as M7Traps' did: at 100% the "
+            + "Dwarf starts its SendToActionPoint job (objective 23) at once, which M7Traps' never did.",
+            b => M7TrapFights(b, Zone.All | Zone.HeartWay | Zone.PlacedHealth)),
+        new("M7TrapFights4", "Secret4",
+            "M7TrapFights3 without the Boulder trap on the Neutral Dirt Path at (3,4), which no capture ever showed in the game.",
+            b => M7TrapFights(b, Zone.All | Zone.HeartWay | Zone.PlacedHealth | Zone.NoDirtBoulder)),
     ];
 
     [Flags]
-    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8 }
+    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8, PlacedHealth = 16, NoDirtBoulder = 32 }
 
     private static string BaseOf(LevelBuilder b) => b.BaseName;
 
@@ -189,7 +196,7 @@ public static class Recipes
         if (boulders)
         {
             foreach (int cx in new[] { 3, 7 }) for (int y = 3; y <= 11; y++) Path(cx, y);
-            Set(3, 4, DirtPath, Neutral);
+            if (!zones.HasFlag(Zone.NoDirtBoulder)) Set(3, 4, DirtPath, Neutral);
             Path(7, 4, Heroes);
         }
         // Q729: the Prison, its corridor and the fight
@@ -222,7 +229,9 @@ public static class Recipes
                 case TrapThing: b.RemoveThing(i); break;
                 case GoodCreatureThing g when dwarves.Count > 0:
                     var (x, y, level) = dwarves.Dequeue();
-                    b.EditThing<GoodCreatureThing>(i, r => r with { X = x, Y = y, Level = level, InitialHealth = 100 });
+                    b.EditThing<GoodCreatureThing>(i, r => zones.HasFlag(Zone.PlacedHealth)
+                        ? r with { X = x, Y = y, Level = level }
+                        : r with { X = x, Y = y, Level = level, InitialHealth = 100 });
                     points[g.ObjectiveTargetActionPointId] = (x, y);
                     break;
                 case GoodCreatureThing: b.RemoveThing(i); break;
@@ -237,7 +246,7 @@ public static class Recipes
             foreach (int row in new[] { 5, 11, 17 })
                 b.InsertThing(sentry with { X = 25, Y = row, TrapId = HeroSentry, PlayerId = Heroes }, sentryImage);
         if (boulders)
-            foreach (int cx in new[] { 3, 7 })
+            foreach (int cx in zones.HasFlag(Zone.NoDirtBoulder) ? new[] { 7 } : new[] { 3, 7 })
                 b.InsertThing(boulder with { X = cx, Y = 4, TrapId = BoulderTrap, PlayerId = Heroes }, boulderImage);
 
         var (creature, creatureImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Keeper && c.CreatureId == Imp);
