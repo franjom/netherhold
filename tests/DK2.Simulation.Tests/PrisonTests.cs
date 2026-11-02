@@ -230,6 +230,101 @@ public class PrisonTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
     }
 
+    /// <summary>State 44's test (<c>0x00468010</c>): an interior cell of an open Prison with room, not
+    /// who stands on it; a closed door (<c>+0x59</c>) or a full room refuses.</summary>
+    [Fact]
+    public void ThePrisonAdmitsOnAnOccupiedCellWithRoom_ButNotWhenFull_ClosedOrOnTheRim()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        int cell = (CellB.Y * world.Width) + CellB.X;
+        Prisoner(db, world, CellB);
+
+        Assert.True(PrisonRules.AdmitsAt(world, db, cell));
+        Assert.False(PrisonRules.AdmitsAt(world, db, (CellA.Y * world.Width) + CellA.X));
+
+        RoomInstance prison = Assert.Single(RoomIndex.Build(world, db), r => r.Definition.TypeId == RoomTypeId.Prison);
+        JailBreakRules.DoorOf(world, prison) &= unchecked((byte)~JailBreakRules.Activated);
+        Assert.False(PrisonRules.AdmitsAt(world, db, cell));
+        JailBreakRules.DoorOf(world, prison) |= JailBreakRules.Activated;
+
+        Prisoner(db, world, CellC);
+        Assert.False(PrisonRules.AdmitsAt(world, db, cell));
+    }
+
+    /// <summary>Exit 2: a Prison full at the door sends the imp on with the body to the nearest other
+    /// one with space (<c>0x004C6610</c>), resuming 43.</summary>
+    [Fact]
+    public void AnImpTurnedAwayAtAFullPrisonCarriesTheBodyOnToAnotherWithSpace()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        for (int y = 1; y <= 8; y++)
+            for (int x = 9; x <= 14; x++)
+            {
+                ref TileState tile = ref world.Tile(x, y);
+                tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
+                tile.OwnerPlayerId = Keeper;
+            }
+        for (int y = 3; y <= 5; y++)
+            for (int x = 10; x <= 12; x++)
+                Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+        Prisoner(db, world, CellA);
+        CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
+        Down(new StateHookContext(world, db), enemy);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink, new FillWhenCarrying(db, imp));
+
+        for (int i = 0; i < 60 * Second && !PrisonRules.IsImprisoned(enemy); i++) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "prisoner_redirected" && e.Detail.Contains($"body={enemy.Id}"));
+        Assert.True(PrisonRules.IsImprisoned(enemy));
+        Assert.Equal(new TilePos(11, 4), enemy.Tile);
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "body_dropped");
+    }
+
+    /// <summary>Exit 4: no Prison under the imp and none with space: the body is put down where the imp
+    /// stands, the imp's fight bits set. What DK2's cleared dying flag then does is unread (Q729).</summary>
+    [Fact]
+    public void ABodyWithNoPrisonLeftIsPutDownWhereTheImpStands_StillLying()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Prison(db, world);
+        CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
+        Down(new StateHookContext(world, db), enemy);
+        CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink, new UnpaintWhenCarrying(imp));
+
+        for (int i = 0; i < 60 * Second && !sink.Events.Any(e => e.Kind == "body_dropped"); i++) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "body_dropped" && e.Detail.Contains("reason=no_prison"));
+        Assert.True(CreatureDeathRules.IsDying(enemy));
+        Assert.False(PrisonRules.IsImprisoned(enemy));
+        Assert.Equal(enemy.Tile, imp.Tile);
+        Assert.Equal(9, imp.Flags & 9);
+    }
+
+    /// <summary>Takes the Prison away while the imp carries, so it arrives at no Prison.</summary>
+    private sealed class UnpaintWhenCarrying(CreatureState imp) : ISimulationSystem
+    {
+        private bool _done;
+        public string Name => "UnpaintWhenCarrying";
+
+        public void Execute(SimulationContext context)
+        {
+            if (_done || imp.Activity != CreatureActivity.CarryingBody) return;
+            _done = true;
+            for (int y = 3; y <= 5; y++)
+                for (int x = 4; x <= 6; x++)
+                    context.World.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        }
+    }
+
     [Fact]
     public void AnImpLeavesAnEnemyLyingWhenItsKeeperHasNoPrison()
     {

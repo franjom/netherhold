@@ -14646,3 +14646,32 @@ drops back into a cell keeps its health and its health source. `KnockoutHealth` 
 ring (`status-flowers.md`) shows three petals at 26 % and two under 25 %, so the owner's two
 petals fit a prisoner that lay over 15 ticks first; the old sixth fit too, so the count does
 not decide between them. The Stone Knight's blow path stays unbuilt (Q399).
+
+## ADR-0629: state 44's four exits, and the fight bits are one byte
+
+**Date:** 2026-11-02. **Status:** accepted. Hash/save 373.
+
+**Context.** State 44 (`0x00468010`, CONFIRMED) admits a body on the imp's tile when it is an
+interior cell of any Prison whose door is activated (`+0x59`) with used capacity plus the body's
+units within `SafeCreatureCapacity` (`+0x4B`); it does not ask who stands there or who owns the
+room. Otherwise it carries the body to the nearest other Prison with space (`0x004C6610`,
+resuming 43), else to this Prison's entry point and 47, else puts it down with its dying flag
+cleared, without moving it out of 217, and goes to 10. Ours refused an occupied cell or another keeper's Prison, skipped the
+door test, and on any refusal set the body on the rim. Separately, ADR-0615 had added
+`CreatureState.FightFlags` for `+0x46F` bits 0 and 3, which `CreatureState.Flags` already held and
+the imp's delivery already wrote (`WorkerPickupRules`), so those writes never reached combat.
+
+**Decision.** `PrisonRules.AdmitsAt` is exit 1's test; the delivery tries exit 2 through
+`PrisonRules.FreeTileIn` from the body's tile and a route, exit 3 through
+`PrisonRules.HasEntryPoint`, and exit 4 puts the body down still dying (what DK2's cleared flag does
+next is unread, Q729). The walks
+to 46, the entry point and 47's point stay elided. `FightFlags` is removed; combat and the Jack
+read and write `Flags`.
+
+**Consequences.** A full or closed Prison no longer strands a body on its rim while another has
+space. The admission's health source is the room's owner. The imp's fight bits
+now reach combat, but ours clears and sets them in the same tick, where DK2 keeps them clear for
+the walk to 46. Exit 2 ranks by the nearest free cell and asks the
+route after, where `0x004C6610` ranks rooms by position and skips unreachable ones; it also skips a
+Prison whose cells are all occupied, which `0x004C6610` does not. `0x004E2C70`'s own capacity test
+(`+0x6D`, `+0x67`) is not mirrored: ours always admits once exit 1's test passes.

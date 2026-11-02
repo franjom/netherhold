@@ -181,7 +181,7 @@ public static class CombatRules
         && !PrisonRules.IsImprisoned(creature)
         && creature.Activity != CreatureActivity.Leaving
         && !HandRules.IsHeld(creature)
-        && creature.FightFlags.HasFlag(CreatureFightFlags.Attackable)
+        && ((CreatureFightFlags)creature.Flags).HasFlag(CreatureFightFlags.Attackable)
         && !(CreatureStateMachine.HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).Has(CreatureStateFlags.NotAttackable))
         && !StatusEffectRules.IsInvisible(creature)
         && !AllSlotsTaken(creature);
@@ -209,7 +209,7 @@ public static class CombatRules
         && (creature.Activity != CreatureActivity.Leaving || force)
         && (creature.Activity is not (CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm) || force)
         && (!HandRules.IsHeld(creature) || force)
-        && (creature.FightFlags.HasFlag(CreatureFightFlags.MayLookForAFight) || force)
+        && (((CreatureFightFlags)creature.Flags).HasFlag(CreatureFightFlags.MayLookForAFight) || force)
         && !CreatureDeathRules.IsPossessed(world, creature)
         && !NoFightLookup(creature)
         && !StatusEffectRules.IsFrozen(creature)

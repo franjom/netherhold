@@ -283,8 +283,8 @@ countdown itself, another state handler that also decrements by one, a trigger
 action that adjusts a spawned creature to a requested health value, and loading
 paths. Rescue and healing remain the only way out before the countdown expires.
 
-**The states** are 216, the fall, then 217; a healed creature leaves 217 for state 1
-(`dying-states.md`, ADR-0206).
+**The states** are 216, the fall, then 217; a rescuer sets state 1 on the body (217 itself never
+changes state, `dying-states.md` §1, corrected 2026-11-02; ADR-0206).
 
 ## 5. Implementation
 

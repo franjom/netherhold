@@ -580,15 +580,15 @@ public sealed partial class ImpTaskSystem
         }
 
         StateShadow.Arrive(context, SystemName, creature);
-        Deliver(context, creature, body);
+        Deliver(context, creature, body, grid);
     }
 
     /// <summary>
     /// Arrival: a corpse laid in the graveyard, the keeper's own collapsed
     /// creature into its bed, an enemy's into a cell.
     /// </summary>
-    private static void Deliver(
-        SimulationContext context, CreatureState creature, CreatureState body)
+    private void Deliver(
+        SimulationContext context, CreatureState creature, CreatureState body, WorldPathGrid grid)
     {
         WorldState world = context.World;
         CreatureDef definition = context.Database.CreatureById(body.CreatureTypeId);
@@ -606,39 +606,57 @@ public sealed partial class ImpTaskSystem
             return;
         }
 
-        CarryRules.PutDown(creature, body);
-
         // Somebody else's creature goes into a cell rather than a bed - kind
         // 13's other branch, and the only route into a prison there is
-        // (ADR-0064). Admission is decided HERE, at the door: a prison that
-        // filled up during the walk turns the body away onto the rim (ADR-0148);
+        // (ADR-0064). Admission is decided HERE, at the door (state 44, 0x00468010):
+        // a prison that filled up during the walk turns the body away (ADR-0148);
         // with every prison already full no imp sets off (ADR-0354).
         if (body.OwnerPlayerId != creature.OwnerPlayerId)
         {
-            // Our one walk ends at the cell, so 43's inner leg to 44 and 44's own walks fall
-            // in this tick: admitted walks away through 46, refused puts it down through 47
-            // and 48, and both end in 10.
+            // Our one walk ends at the cell, so 43's inner leg to 44 falls in this tick, and the
+            // walks 44 starts after admission (46) or a refusal on this Prison (47, 48) are elided.
             WalkOn(context, creature, ImpStates.AtThePrisonDoor);
-            WorkerPickupRules.SetEnabled(creature, false);
-            int cell = creature.TargetTileIndex;
-            if (PrisonRules.AdmitsAt(world, context.Database, creature.OwnerPlayerId, cell)
-                && PrisonRules.Imprison(
-                    context.Hooks, body, creature.OwnerPlayerId, cell))
+            int cell = (creature.Tile.Y * world.Width) + creature.Tile.X;
+            if (PrisonRules.AdmitsAt(world, context.Database, cell))
             {
+                // Exit 1: dying cleared, the imp drops it, 0x004E2C70 admits it (its result unused),
+                // and 0x0048DFA0(0)/0x0048DF10(0) clear the imp's fight bits until 46 releases it.
+                // The jailer (+0x3CB) is the imp's keeper; the admission's health source is the room's
+                // owner (0x004E2C70, +0x1D), which the test above does not ask.
+                CarryRules.PutDown(creature, body);
+                PrisonRules.Imprison(context.Hooks, body, creature.OwnerPlayerId, cell);
+                body.HealthSourcePlayerId = RoomIndex.RoomAt(world, context.Database, cell)!.OwnerPlayerId;
+                WorkerPickupRules.SetEnabled(creature, false);
                 WalkOn(context, creature, ImpStates.LeavingThePrisoner);
                 WorkerPickupRules.SetEnabled(creature, true);
                 context.Emit(SystemName, "creature_imprisoned",
                     $"imp={creature.Id} player={creature.OwnerPlayerId} body={body.Id} " +
                     $"type={definition.Name} owner={body.OwnerPlayerId} " +
                     $"{Describe(world, cell)} health={body.Health}");
+                WorkEnded(context, creature);
+                GoIdle(creature);
+                return;
             }
-            else
+
+            // Exit 2: the nearest other Prison with space (0x004C6610 from the body's position),
+            // carried on to and resumed in 43. Ours ranks by tile and asks the route after.
+            int next = PrisonRules.FreeTileIn(world, context.Database, creature.OwnerPlayerId, body.Tile);
+            if (next >= 0 && RouteTo(context, creature, grid, next))
             {
-                // 47 walks to the room point and 48 puts the body down there; our walk is elided,
-                // as 44's is, so the body is set on the point.
-                if (RoomIndex.RoomAt(world, context.Database, cell) is RoomInstance prison
-                    && PrisonRules.IsPrisonOf(prison, creature.OwnerPlayerId)
-                    && PrisonRules.RefusedBodyPoint(world, context.Database, prison, context.Rng) is int point)
+                creature.TargetTileIndex = next;
+                BeginTaskWalk(context, creature, ImpStates.CarryingToPrison);
+                context.Emit(SystemName, "prisoner_redirected",
+                    $"imp={creature.Id} body={body.Id} from={Describe(world, cell)} to={Describe(world, next)}");
+                return;
+            }
+
+            CarryRules.PutDown(creature, body);
+            if (RoomIndex.RoomAt(world, context.Database, cell) is { Definition.TypeId: RoomTypeId.Prison } prison
+                && PrisonRules.HasEntryPoint(world, prison))
+            {
+                // Exit 3: to this Prison's entry point and on to 47, which walks to the room point,
+                // and 48 puts the body down there; both walks are elided, so it is set on the point.
+                if (PrisonRules.RefusedBodyPoint(world, context.Database, prison, context.Rng) is int point)
                 {
                     body.PosX = CreatureState.CentreOf(point % world.Width);
                     body.PosY = CreatureState.CentreOf(point / world.Width);
@@ -648,14 +666,27 @@ public sealed partial class ImpTaskSystem
                     $"imp={creature.Id} body={body.Id} " +
                     $"at=({body.Tile.X},{body.Tile.Y}) reason=not_admitted");
                 WalkOn(context, creature, ImpStates.TakingTheRefusedBody);
+                // 47 opens with 0x0048DFA0(1) and 0x0048DF10(1) on the imp (0x00468270).
                 WorkerPickupRules.SetEnabled(creature, true);
                 WalkOn(context, creature, ImpStates.PuttingDownTheRefusedBody);
+            }
+            else
+            {
+                // Exit 4: put down where the imp stands, the imp's fight bits set (0x0048DFA0(1),
+                // 0x0048DF10(1)) and 10. DK2 also clears the body's dying flag (0x0048B860) without
+                // moving it out of 217; what the body does then is unread (Q729), so ours leaves it dying.
+                WorkerPickupRules.SetEnabled(creature, true);
+                context.Emit(SystemName, "body_dropped",
+                    $"imp={creature.Id} body={body.Id} " +
+                    $"at=({body.Tile.X},{body.Tile.Y}) reason=no_prison");
             }
 
             WorkEnded(context, creature);
             GoIdle(creature);
             return;
         }
+
+        CarryRules.PutDown(creature, body);
 
         // 45 kicks the body to 1 and 79, which goes to a bed in this room or makes one here.
         int bed = LairRules.BedTileIndex(world, context.Database, body);

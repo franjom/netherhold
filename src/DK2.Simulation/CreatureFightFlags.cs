@@ -4,8 +4,9 @@
 
 namespace DK2.Simulation;
 
-/// <summary>The two bits of <c>creature+0x46F</c> that combat reads (combat-acquisition.md §2, §4).
-/// A creature is made with both set (the byte is 9).</summary>
+/// <summary>The two bits of <c>creature+0x46F</c> (<see cref="CreatureState.Flags"/>) that combat reads
+/// (combat-acquisition.md §2, §4). A creature is made with both set (the byte is 9); process 39 clears
+/// both on a Jack, and an imp's prison delivery clears and sets both on the imp (<c>0x00468010</c>).</summary>
 [Flags]
 public enum CreatureFightFlags : byte
 {

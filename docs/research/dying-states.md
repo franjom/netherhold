@@ -35,8 +35,10 @@ Confidence: **STRONGLY INFERRED (binary)**.
   routine refuses any change to a dragged creature as well (`0x004B2E08`). So **the rescue
   window stops while an imp carries the creature** (Q164, read 2026-10-04). The take-hold
   `0x0048B4A0` sets the flag through `+0x6C` (`0x004B5DF0`); the drop `0x0048B500` clears it
-  through `+0x70` (`0x004B5E00`). A creature whose health is back above zero leaves it:
-  `0x0048AD30(1)`, then the lair-trip chooser `0x0046F390`.
+  through `+0x70` (`0x004B5E00`). 217 itself never changes state (read whole, 2026-11-02): a
+  rescuer moves the body out, state 45 and the prison admission with `SetState(1)` after clearing
+  the dying flag. The `0x0048AD30(1)`, `0x0046F390` pair earlier quoted here is state 193's
+  (`0x00459C20`).
 - **Death.** The countdown ending destroys the creature. With `DeadBodyOnDestroy`
   set, a `CDeadBody` thing is left in its place. So a corpse holds no creature
   state.

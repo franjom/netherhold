@@ -284,21 +284,30 @@ public static class PrisonRules
     public static int? RefusedBodyPoint(WorldState world, GameDatabase database, RoomInstance room, SimRandom rng) =>
         RoomWalkRules.RoomPoint(world, database, room, rng);
 
-    /// <summary>Whether a prisoner may be put into this tile <i>now</i>: it is a cell —
-    /// an interior tile — of one of <paramref name="playerId"/>'s prisons, that prison
-    /// is under <see cref="Capacity"/>, and nobody is standing on it. Asked at the door
-    /// so that a prison which filled during the walk turns the body away.</summary>
-    public static bool AdmitsAt(
-        WorldState world, GameDatabase database, PlayerId playerId, int tileIndex)
+    /// <summary>State 44's admission test on the tile the imp stands on (<c>0x00468010</c>): a Prison
+    /// of any owner, an interior cell (<c>Room_IsFloorSlot</c> <c>0x00454110</c>), its door's
+    /// <c>Activation</c> (<c>+0x59</c>) on, and its used capacity plus the body's units within
+    /// <c>SafeCreatureCapacity</c> (<c>+0x6B</c> + <c>def+0x672</c> &lt;= <c>+0x4B</c>; every shipped
+    /// creature takes one unit, so a head count against <see cref="Capacity"/>). Who stands on the
+    /// tile is not asked. Asked at the door, so a prison that filled during the walk turns the body away.</summary>
+    public static bool AdmitsAt(WorldState world, GameDatabase database, int tileIndex)
     {
         if (tileIndex < 0 || tileIndex >= world.Width * world.Height) return false;
 
         RoomInstance? room = RoomIndex.RoomAt(world, database, tileIndex);
-        if (room is null || !IsPrisonOf(room, playerId)) return false;
+        if (room is null || room.Definition.TypeId != RoomTypeId.Prison) return false;
         if (!room.IsInterior(tileIndex)) return false;
-        if (PrisonerCount(world, room) >= Capacity(room)) return false;
+        if (!IsActivated(world, room)) return false;
+        return PrisonerCount(world, room) < Capacity(room);
+    }
 
-        return PrisonerOn(world, tileIndex) is null;
+    /// <summary>State 44's third exit (<c>0x00468010</c>): the imp stands on a Prison whose entry point
+    /// (<c>0x004E3290</c>, the door tile's centre) lies at least a tile from both map edges' zero, so
+    /// it walks the refused body there and on to 47.</summary>
+    public static bool HasEntryPoint(WorldState world, RoomInstance prison)
+    {
+        int door = JailBreakRules.DoorTile(world, prison);
+        return door >= 0 && door % world.Width >= 1 && door / world.Width >= 1;
     }
 
     /// <summary>How many prisoners stand in <paramref name="room"/>.</summary>
