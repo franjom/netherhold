@@ -106,7 +106,7 @@ priority, two destinations. Three consequences reproduced here:
 - **Capture sits below claiming.** An imp takes no prisoners while there is
   unclaimed ground: in `an_imp_drags_an_enemy_to_prison` the goblin lies on the
   floor while the imp claims the whole map first.
-- **Capacity is checked before the pickup and again at the door** (owner, 2026-09-13 and 2026-10-05; ADR-0148, ADR-0354): with every Prison full no imp sets off (`0x0046D810`'s no-place result); a Prison that fills during the carry refuses at the door (`AdmitsAt`), the imp carries the body on to another Prison with space (ADR-0629), and failing that it is put down on the room point `0x004E8430`, a random tile that is neither floor nor wall slot, so the rim (`PrisonRules.RefusedBodyPoint`).
+- **Capacity is checked before the pickup and again at the door** (owner, 2026-09-13 and 2026-10-05; ADR-0148, ADR-0354): with every Prison full no imp sets off (`0x0046D810`'s no-place result); a Prison that fills during the carry refuses at the door (`AdmitsAt`), the imp carries the body on to another Prison with space (ADR-0629), and failing that it is put down on the room point `0x004E8430`, a random tile that is neither floor nor wall slot, so the rim (`PrisonRules.RefusedBodyPoint`). **With no Prison left (exit 4), watched 2026-11-02** (`M7Q729c`, Q729): the imp walked on to the sold Prison's tile, put the body down still dying, and it spent the window it had left (held while carried) and died there; ours puts it down beside and it dies a turn later.
 - **The rescue window is a real deadline.** That run used to capture ten ticks
   inside the window; **it does not capture at all** — the
   goblin dies at tick 243 while the imp still claims, and the run records zero
