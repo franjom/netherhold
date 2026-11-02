@@ -239,8 +239,10 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
   and so the wear, is health before less after: 6000 here. Ours clamps at 0 (`CreatureHealthRules.Apply`),
   so it lands 3000 and the wear grows by 3000 (Q725).
 - **Open:** the 3780 Dwarf's second hit (780 → −2220) and the level-1 Dwarf's (500 → 0) were not doubled.
-  So each was outside the stunned family when struck, though no longer in 256. That fits 256's handler
-  returning 0 (action 53 or `SetState(257)` refused), which idles it, but this has not been read.
+  So each was outside the stunned family when struck (`0x0048F350` tests only states 209, 255, 256 and
+  257), though no longer in 256. Action 53 cannot be refused (`0x00496700` refuses only behind an action
+  whose interruption byte is 0, and all 81 are 1), so a refused `SetState(257)` returning 0 and idling it,
+  or a state change earlier in the Dwarf's update, remain. Not read.
   Ours, on a synthetic corridor (scratch probe, not a test), lands the second hit in 257 as DK2 does.
 
 ## 10. Built and not built (ADR-0333)

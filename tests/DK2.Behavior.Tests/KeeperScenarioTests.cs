@@ -325,9 +325,10 @@ public class Level18AttackKeeperScenarioTests(ITestOutputHelper output)
         Assert.All(scenario.Setup.Players, p => Assert.Empty(p.Spells));
         List<GrantCreatureLevelCommand> grants = run.KeeperCommandLog.Select(e => e.Command).OfType<GrantCreatureLevelCommand>().ToList();
         // The 27 placed knights do not count against the portal cap (0x004DBF90 counts portal-made
-        // creatures only), so the portal adds level-1 arrivals the test grants to as well.
-        Assert.Equal((39, 13), (grants.Count, grants.Select(g => g.CreatureId).Distinct().Count()));
-        Assert.Equal(39, run.Events.Count(e => e.Kind == "level_granted"));
+        // creatures only), so the portal adds level-1 arrivals the test grants to as well. A
+        // regression count, not DK2 evidence: 39/13 until ADR-0614 refused arrivals without lair space.
+        Assert.Equal((36, 12), (grants.Count, grants.Select(g => g.CreatureId).Distinct().Count()));
+        Assert.Equal(36, run.Events.Count(e => e.Kind == "level_granted"));
         KeeperAIState state = run.KeeperStates[4];
         Assert.Equal(0, state.PlayersAttackedFlags & ((1 << 5) | (1 << 6)));
         Assert.Equal(0, state.FirstAttackFlag & ((1 << 5) | (1 << 6)));
