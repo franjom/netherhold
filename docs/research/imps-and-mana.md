@@ -125,8 +125,9 @@ Heart retains origin (1,1), but its disabled deadline prevents startup attempts.
 Ours casts the same point for every eligible keeper (angle drawn first, X + sin,
 Y - cos from the Heart's centre, (1,1) for a Heart ruined at load) and makes the
 imp through the shared creation path: state 214 half a tile up, a heading draw,
-effect 29 on landing (ADR-0630, hash/save 377). Unread: the order of the creation
-process's heading draw against other keepers' angle draws (Q716). The startup
+effect 29 on landing (ADR-0630, hash/save 377). Native capture (2026-11-02, Q716): DK2 draws
+every due keeper's angle in the cast turn and makes the Imps, with their heading draws, the
+next turn, newest shot first; ours makes each Imp in the cast turn. Not yet built. The startup
 deadline is a separate rule.
 
 **Level 7 opening (binary and shipped data, 2026-11-01).** PLAYERS contains

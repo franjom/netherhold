@@ -82,7 +82,20 @@ public static class Recipes
             + "on the fight chamber (Good Dwarves in it == 0, once) runs action 22 on each Prison tile, which sells the "
             + "tile (0x004C5DB0, pay flag 0) and lays Claimed Path. The Dwarf leaves the chamber only in an Imp's arms.",
             b => M7TrapFights(b, Zone.Prison | Zone.KeeperBoulder | Zone.OwnBoulder | Zone.Capturable | Zone.AutoSell)),
+        new("Q716FreeImps", "Small",
+            "Q716 (2026-11-02): Small without its eight placed Imps, so keepers 3 and 4 are both below MinimumImpThreshold "
+            + "when the Heart opening arms their deadlines on the same turn; native turns 38, 59, 80 and 101 should each "
+            + "cast a free Imp for both. The capture's world seed shows whether each heading draw follows its own "
+            + "keeper's angle draw or both angle draws.",
+            WithoutImps),
     ];
+
+    private static void WithoutImps(LevelBuilder b)
+    {
+        var things = b.Things;
+        for (int i = things.Count - 1; i >= 0; i--)
+            if (things[i] is KeeperCreatureThing { CreatureId: 1 }) b.RemoveThing(i);
+    }
 
     [Flags]
     private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8, PlacedHealth = 16, NoDirtBoulder = 32, KeeperBoulder = 64, OwnBoulder = 128, Capturable = 256, AutoSell = 512 }
