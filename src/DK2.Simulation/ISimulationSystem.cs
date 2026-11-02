@@ -24,6 +24,7 @@ public sealed class SimulationContext
         Rng = rng;
         Events = events;
         _requestEffect = RequestEffect;
+        _requestSound = RequestSound;
         Navigation = new Navigation.WorldSteering(database, world);
     }
 
@@ -105,6 +106,19 @@ public sealed class SimulationContext
         });
     }
 
+    /// <summary>A world sound (<see cref="ThingSoundRules"/>): one event for a listener to play, none without one.
+    /// Observation only, like an effect request.</summary>
+    public void RequestSound(string system, ThingSoundRequest request)
+    {
+        // Nobody listening: skip the detail string and the event (the null sink is the one cheap test there is).
+        if (ReferenceEquals(Events, NullEventSink.Instance)) return;
+        Events.Emit(new SimEvent(Tick, system, "thing_sound",
+            $"{request.Source.Kind.ToString().ToLowerInvariant()}={request.Source.Value} event={(ushort)request.Event}")
+        {
+            ThingSound = request,
+        });
+    }
+
     /// <summary>Asks the player's view to do something (<see cref="ScriptedViewRequest"/>); observation only.</summary>
     public void RequestView(string system, ScriptedViewRequest request) =>
         Events.Emit(new SimEvent(Tick, system, "scripted_view",
@@ -123,9 +137,10 @@ public sealed class SimulationContext
     private int TriggerTurn => unchecked((int)(Tick.Value + 1));
 
     private readonly Action<string, ViewEffectRequest> _requestEffect;
+    private readonly Action<string, ThingSoundRequest> _requestSound;
 
     /// <summary>The world, database, triggers and presentation requests available to a state hook.</summary>
-    public StateHookContext Hooks => new(World, Database, Triggers, _requestEffect);
+    public StateHookContext Hooks => new(World, Database, Triggers, _requestEffect, _requestSound);
 
     public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
         Triggers?.FireCreatureEvent(creature, type, TriggerTurn);

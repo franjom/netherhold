@@ -224,4 +224,41 @@ public sealed class FinaleTests
         sim.World.LocalPlayerId = new PlayerId(PlayerIds.Good);
         Assert.NotEqual(before, sim.StateHash());
     }
+
+    /// <summary>The finale Reaper requests <c>0x32D</c> in state 230 on its first update, without a handle, after it is
+    /// placed at the landing (<c>0x00474295</c>), and <c>0x32E</c> in state 233 on its first update, with its handle
+    /// (<c>0x00474644</c>).</summary>
+    [Fact]
+    public void TheFinaleReaperRequests32dAtItsEntranceWithoutAVoiceAnd32eAsItTakesTheGemWithIt()
+    {
+        (GameSimulation sim, ObjectState gem, ListEventSink events) = Setup();
+        Win(sim);
+        CreatureState reaper = Reaper(sim);
+        var where = new Dictionary<long, FpPosition3>();
+        var states = new Dictionary<long, int>();
+        for (int t = 0; t < 600 && !events.Events.Any(e => e.ScriptedView?.Kind == ScriptedViewKind.WinScreen); t++)
+        {
+            long tick = sim.World.CurrentTick.Value;
+            sim.Tick(InputFrame.Empty);
+            where[tick] = new FpPosition3(new Fp32(reaper.PosX), new Fp32(reaper.PosY), new Fp32(reaper.PosZ));
+            states[tick] = reaper.Dk2StateId;
+        }
+
+        var heard = events.Events.Where(e => e.ThingSound.HasValue).ToArray();
+        SimEvent entrance = Assert.Single(heard, e => e.ThingSound!.Value.Event == ThingSoundEvent.ReaperArrived);
+        Assert.Equal((ushort)0x32D, (ushort)ThingSoundEvent.ReaperArrived);
+        Assert.Equal("CREATURE_GOBLIN", entrance.ThingSound!.Value.Category);
+        Assert.False(entrance.ThingSound!.Value.Voiced);   // handle 0
+        Assert.Equal(where[entrance.Tick.Value], entrance.ThingSound!.Value.Position);
+
+        SimEvent taken = Assert.Single(heard, e => e.ThingSound!.Value.Event == ThingSoundEvent.ReaperTookGem);
+        Assert.Equal((ushort)0x32E, (ushort)ThingSoundEvent.ReaperTookGem);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(reaper.Id)), taken.ThingSound!.Value.Source);
+        Assert.True(taken.ThingSound!.Value.Voiced);
+        Assert.Equal(where[taken.Tick.Value], taken.ThingSound!.Value.Position);
+        Assert.Equal(new TilePos(12, 12), new TilePos((int)(taken.ThingSound!.Value.Position.X.Raw >> 12),
+            (int)(taken.ThingSound!.Value.Position.Y.Raw >> 12)));
+        Assert.True(entrance.Tick.Value < taken.Tick.Value);
+        Assert.Null(sim.World.ObjectById(gem.Id));   // the gem went in the same update
+    }
 }

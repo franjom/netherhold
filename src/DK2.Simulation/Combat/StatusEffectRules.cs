@@ -39,6 +39,9 @@ public static class StatusEffectRules
     {
         if (creature.BurningTicks == 0) return;
         creature.BurningTicks--;
+        // 0x0048E4F1: the fire's sound each tick it burns, the last included. DK2 stops it as the fire ends
+        // (slot +0x38); ours has no stop request (plan W7.3), so the sample being played is not cut short.
+        ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.Burning);
         int height = CreatureLevelRules.Scale((ushort)definition.Height.Raw,
             CreatureLevelRules.Percent(context.Database, CreatureStatId.HeightTiles, creature.Level));
         int footprint = (ushort)definition.FootprintRadius.Raw;

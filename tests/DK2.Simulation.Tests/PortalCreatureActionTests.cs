@@ -36,6 +36,34 @@ public class PortalCreatureActionTests
         Assert.All(requests, request => Assert.Equal(new EffectId(339), request.EffectId));
     }
 
+    /// <summary><c>Creature_LevelUp</c> (<c>0x0048B120</c>) requests <c>0x349</c> after its effect on every successful
+    /// increment, with the creature's handle in its category at its position: a scripted arrival promoted to level 4
+    /// asks three times.</summary>
+    [Fact]
+    public void EachScriptedPromotionRequests349InTheCreaturesCategoryWithItsVoiceAtItsPosition()
+    {
+        var (db, world) = Setup();
+        Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
+        var tree = new TriggerTree(Records(4), 0, playerRoots: [new TriggerPlayerRoot(3, 0xFFFF)]);
+        var sim = new GameSimulation(db, world, 1, [], tree);
+        var sink = new ListEventSink(); sim.ObserveWith(sink);
+
+        sim.Tick();
+
+        CreatureState creature = Assert.Single(world.Creatures);
+        ThingSoundRequest[] sounds = sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        Assert.Equal(3, sounds.Length);
+        Assert.Equal((ushort)0x349, (ushort)ThingSoundEvent.LeveledUp);
+        Assert.All(sounds, s =>
+        {
+            Assert.Equal(ThingSoundEvent.LeveledUp, s.Event);
+            Assert.Equal("CREATURE_GOBLIN", s.Category);
+            Assert.Equal(SoundSourceId.Of(new CreatureId(creature.Id)), s.Source);
+            Assert.Equal(new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), s.Position);
+            Assert.True(s.Voiced);
+        });
+    }
+
     [Theory]
     [InlineData(0, 1)]
     [InlineData(1, 1)]

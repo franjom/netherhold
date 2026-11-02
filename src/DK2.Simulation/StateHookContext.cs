@@ -21,12 +21,13 @@ public readonly struct StateHookContext
     }
 
     internal StateHookContext(WorldState world, GameDatabase database, TriggerExecutor? triggers,
-        Action<string, ViewEffectRequest>? requestEffect = null)
+        Action<string, ViewEffectRequest>? requestEffect = null, Action<string, ThingSoundRequest>? requestSound = null)
     {
         World = world ?? throw new ArgumentNullException(nameof(world));
         Database = database ?? throw new ArgumentNullException(nameof(database));
         Triggers = triggers;
         _requestEffect = requestEffect;
+        _requestSound = requestSound;
     }
 
     public WorldState World { get; }
@@ -37,6 +38,11 @@ public readonly struct StateHookContext
     private readonly Action<string, ViewEffectRequest>? _requestEffect;
 
     public void RequestEffect(string system, ViewEffectRequest request) => _requestEffect?.Invoke(system, request);
+
+    private readonly Action<string, ThingSoundRequest>? _requestSound;
+
+    /// <summary>A world sound a hook asks for; nothing without a simulation context behind it, as with effects.</summary>
+    public void RequestSound(string system, ThingSoundRequest request) => _requestSound?.Invoke(system, request);
 
     /// <summary>A creature trigger event, on the turn <see cref="SimulationContext.FireCreatureEvent"/>
     /// would give it: the world's tick is the context's while a tick runs.</summary>

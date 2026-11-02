@@ -276,7 +276,7 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
   requests carry above-ground height and resolve the flying/Portal-aware creature body
   base plane before visibility, with centre-ground fallback without a resolver. Simulation
   points/draws are unchanged. Native capture Z is 4096 where ordinary modern PosZ is 0.
-  Sound 0x340 is unbuilt: no per-creature loop API.
+  Sound 0x340 is requested each burning tick ([sound-effects.md section 13](sound-effects.md#13-level-up-the-reaper-and-the-silent-rows)); its stop at the end of the fire is unbuilt: no per-creature loop API.
 
 **Native comparison (2026-10-30, Q658).** The existing Level4 seed01 capture first records
 burning on slot419 (type18) at snapshot3940, with ten ticks falling to zero at3950.
@@ -371,7 +371,7 @@ these timers or permanent link latches. Crackle adds bolts, not a tint.
   Camera jitter uses a private seed 1 bridge LCG without other bridge consumers, and
   suppresses scripted paths only; other native transition gates are not mirrored.
 - **Not built:** numeric generation14 (no request caller); procedural kinds1/4/6;
-  mod-authored segmented shot playback; per-creature burning sound 0x340.
+  mod-authored segmented shot playback; the stop of the burning sound 0x340.
 
 **Verification (ADR-0601).** After master integration, full Presentation 1369/Simulation 4103,
 focused Convert 21 and asset contracts 42 passed. Six focused base-height tests passed,

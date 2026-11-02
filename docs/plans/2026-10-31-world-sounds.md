@@ -170,6 +170,14 @@ All in the creature's category (`creature_<type>`), positional at the creature, 
 
 **Commit per state family** (imp jobs; arrival and rest; rooms' creature states; level-up and Reaper).
 
+**Result (2026-11-02, [sound-effects.md sections 10 to 13](../research/sound-effects.md#10-imp-jobs)):**
+- Built: the imp's gold deposit `0xC4` (gold object's category, handle 0), carrying `0x10D` (every update of any carrier; only `creature_imp` has samples), shelving or storing `0x326`, installing `0x327`/`0x328`; a local keeper's creature leaving its portal `0xE0` (marked for the owner), the tremor knockdown `0xC7`, withdraw and alarm `0xDC`, the Scout's dispatch `0x2FA`, a guard's lost leg `0xDD`, eating `0x111` then `0xCD`; training `0xD3`, temple `0xE2`/`0xD4`, casino `0xE1`/`0xD5`/`0xCA`, payday `0xC3`/`0xCA`; level-up `0x349` (through a new `StateHookContext.RequestSound`), the Reaper's `0x32D`/`0x32E`, burning `0x340` (the request; its stop is W7.3), the Jack in the Box `0x34C`.
+- Silent (no `SFX.map` has the group): `0xE3`, `0x12C`, `0x137`, `0xA7`, `0x51`; `0x312` and `0xA7` are also unreachable (ADR-0402), and state 213's `0xCB` has no entry.
+- Waiting: reinforce `0x33D` (no clip for the action's gate) and the imp teleport `0x342`/`0x343` (Q418); the hero constructor's `0xE0` (no event path in `WorldState.SpawnCreature`, one gate unread), the landing `0xF6` (no fall), sleeping `0xCE` (action 24), state 209's `0xC7`, the sulk `0xDE` (state 85), the roulette's four-second `0xD5` (wheel objects), state 240's `0x323`/`0x111`, a burning body's `0x340`, `0x317` (`ThreatThing`).
+- Disputed: `0xDD`/`0xDE` are a guard's and a sulker's, not knights'; `0x340` is the burning sound; `training-actions.md` had both training arms sounding and `casino.md` had state 149 silent; the tremor starter's `0xC7` had been read as a display request. No W4 site uses `creature_imp`'s `0x10C`: it is the wall-repair action's sound word (W7.2).
+
+**Owner check (Unity, Level 1 or 3):** an imp dragging a body, book or crate has a repeating drag sound and a click as it shelves or installs; an imp taking gold to the Treasury clinks; a creature of yours stepping out of its portal calls out and a hero arriving is silent for now; a withdrawing or alarmed creature calls out; a creature eating a chicken sounds the bird then itself; a trainee grunts as each swing begins, a worshipper as it starts to pray and a sacrifice sounds; gamblers and drinkers sound every eight seconds of an action, a jackpot winner as it takes its winnings, and a paid creature as it takes its wage; a level-up sounds; a Reaper's arrival sounds; a burning creature crackles; a dying Jack in the Box sounds.
+
 ---
 
 ## Phase W5 — Objects, doors, traps, specials, boulder
@@ -246,7 +254,7 @@ Not world sounds, but found unwired by the same scan: cheat entry `0x133`; icon 
 | W1 Foundation | `5950dc09`, `14fe94e6`, `d8b71e07`, `07318061` | `WorldSoundTests`, `SoundThrottleTests` (`DK2.Presentation.Tests`), `CombatApproachTests.ListeningForSoundsLeavesTheHashAlone`; full gate green | [ ] |
 | W2 Hand and cursor | `dee9c954`, `59f121af` | `HandSoundTests` (`DK2.Presentation.Tests`, `DK2.Simulation.Tests`), `WorldSoundTests`, `ObjectsOnRealDataTests.ObjectSoundCategoriesAreTheShippedNames`; creature hover waits (W7.2) | [ ] |
 | W3 Terrain and rooms | `1f042522`, `add84b79`, `264833a8`, `45730dbb`, `48bd6fb0` | `TileSoundTests`, `RoomSoundTests`, `HeartSoundTests`, `CasinoStateTests` (`DK2.Simulation.Tests`), `HeartBeatSoundTests`, `PartyPopSoundTests`, `WorldSoundTests` (`DK2.Presentation.Tests`), `KwdTerrainRoomsTests.TerrainSoundCategoriesAreTheShippedNames`, `CreatureSoundCategoryTests` (`DK2.Data.Tests`); workshop (`sim/workshop-timers`), prison doors, portal, casino music, Saturday dance and local collapse wait | [ ] |
-| W4 Imps and creature states | | | [ ] |
+| W4 Imps and creature states | `b703c90d`, `03e387b4`, `e360fbb8` | `ImpJobSoundTests`, `CreatureStateSoundTests`, `CreatureEventSoundTests` and the sound tests in `CombatFearTests`, `CombatNonFighterTests`, `CreatureJobTests`, `TempleStateTests`, `CasinoStateTests`, `PaydayTests`, `PortalCreatureActionTests`, `FinaleTests`, `JackInTheBoxTests` (`DK2.Simulation.Tests`); waiting rows in the Result above | [ ] |
 | W5 Objects, doors, traps | | | [ ] |
 | W6 Spells, shots, combat | | | [ ] |
 | W7 Data-driven and loops | | | [ ] |

@@ -73,6 +73,17 @@ public enum ThingSoundEvent : ushort
     GuardLostItsWay = 0xDD,
     /// <summary>A chicken is eaten, in the chicken's own category (<c>Eat_EatChicken</c>, <c>0x00463859</c>).</summary>
     ChickenEaten = 0x111,
+    /// <summary>The Horned Reaper arrives (state 235, <c>0x004747BA</c>) or is shown at the finale's landing
+    /// (state 230, <c>0x00474295</c>).</summary>
+    ReaperArrived = 0x32D,
+    /// <summary>The finale's Reaper takes the Portal Gem (state 233, <c>0x00474644</c>).</summary>
+    ReaperTookGem = 0x32E,
+    /// <summary>A creature burns (<c>Creature_UpdateTimedEffects</c>, <c>0x0048E4F1</c>).</summary>
+    Burning = 0x340,
+    /// <summary>A dying Jack in the Box makes its blast (the health routine, <c>0x004B315E</c>).</summary>
+    JackExploded = 0x34C,
+    /// <summary>A creature gains a level (<c>Creature_LevelUp</c>, <c>0x0048B2DB</c>).</summary>
+    LeveledUp = 0x349,
     /// <summary>A trainee begins its melee swing at the dummy (<c>Training_State111</c>, <c>0x004857CD</c>).</summary>
     Trained = 0xD3,
     /// <summary>A creature is offered in the Temple's pool (state 101, <c>0x004729FB</c>).</summary>
@@ -170,13 +181,20 @@ public static class ThingSoundRules
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
         ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null)
     {
-        // Nobody listening: skip the detail string and the event (the null sink is the one cheap test there is).
         if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         if (category.Length > 31) category = category.Substring(0, 31);
-        context.Events.Emit(new SimEvent(context.Tick, system, "thing_sound",
-            $"{source.Kind.ToString().ToLowerInvariant()}={source.Value} event={(ushort)sound}")
-        {
-            ThingSound = new(source, category, sound, position, voiced, viewerOnlyFor),
-        });
+        context.RequestSound(system, new(source, category, sound, position, voiced, viewerOnlyFor));
+    }
+
+    /// <summary>A creature's request from a hook, which holds no event sink of its own: the creature's handle and
+    /// position, the category of <paramref name="definition"/>. The level increment asks this way
+    /// (<c>0x0048B2DB</c>), as it asks for its effect.</summary>
+    public static void Request(in StateHookContext hooks, string system, CreatureDef definition, CreatureState creature,
+        ThingSoundEvent sound)
+    {
+        string category = definition.SoundCategory;
+        if (category.Length > 31) category = category.Substring(0, 31);
+        hooks.RequestSound(system, new(SoundSourceId.Of(new CreatureId(creature.Id)), category, sound,
+            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ))));
     }
 }

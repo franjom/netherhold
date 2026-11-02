@@ -354,3 +354,28 @@ Samples: `0xD3` in 25 creature categories, `0xE2` in 26 (the imp's included), `0
 offered at the drop, where DK2 offers it in state 101 after the stun, so its `0xE2` is early; the roulette's four-second `0xD5` is not
 built. A live handle retains an equal-priority request (section 10), and the wage's two requests share the creature's handle as
 DK2's do, so whether `0xCA` is heard depends on the priority of `0xC3`'s group (untested).
+
+## 13. Level-up, the Reaper and the silent rows
+
+Read 2026-11-02 for plan Phase W4. Handle, category and position are the creature's own unless a row says otherwise.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| `0x349` | [0x0048B120](functions/0048B120.md) at `0x0048B2DB`: every successful level increment, after effect `0x153` | CONFIRMED | `CreatureLevelRules.LevelUp`, through `StateHookContext.RequestSound` (new, as the effect is requested), so scripted and party level-ups sound too |
+| `0x32D` | [0x00474740](functions/00474740.md) at `0x004747BA`: the summoned Reaper's state 235, in the update that enters 236 | CONFIRMED | `ReaperRules.RunLifecycle` |
+| `0x32D`, `0x32E` | [0x004741D0](functions/004741D0.md) at `0x00474295` (finale state 230 age 1, handle 0, after effect 126) and [0x004744F0](functions/004744F0.md) at `0x00474644` (state 233 age 1, after the gem is destroyed) | CONFIRMED | `FinaleRules.Appear`, `FinaleRules.PickUpGem` |
+| `0x323`, `0x111` | [0x00474AF0](functions/00474AF0.md) at `0x00474B74` (at the chicken's position, the Reaper's handle) and `0x00474BA3` (the chicken's handle and category): state 240 with a chicken on its cell | CONFIRMED sites | waits: state 240 is unbuilt |
+| `0x340` | [0x0048E160](functions/0048E160.md) at `0x0048E4F1`: each tick the burning counter is nonzero; DK2 stops the sound (slot `+0x38`) as the fire ends | CONFIRMED | `StatusEffectRules.UpdateBurning`, the request only: the last sample plays out |
+| `0x340` | [0x00487C70](functions/00487C70.md) at `0x00488052`: a burning creature that dies and leaves a body | CONFIRMED site | waits: ours keeps no burning state on a body |
+| `0x34C` | [0x004B2CE0](functions/004B2CE0.md) at `0x004B315E`: a dead creature of type `0x2E` (the Jack in the Box) once its blast shot is made | CONFIRMED | `JackInTheBoxRules.Explode` |
+| `0x317` | [0x00488930](functions/00488930.md) at `0x00489F1C`: a possessed creature whose `ThreatThing` (`+0x533`) is a live trap with definition byte `+0xBB` equal to `0x19`, then game action `0x15` | CONFIRMED site | waits: `ThreatThing` is unbuilt |
+| `0x312`, `0xA7` | [0x0048FA70](functions/0048FA70.md) at `0x0048FBA2`, `0x0048FC42`: the Reaper-proximity scan | CONFIRMED sites | nothing: the scan never runs (ADR-0402), so no request is made; `0x312` has eight samples in `creature_imp`, `0xA7` none |
+
+Silent (no `SFX.map` has the group, so DK2 plays nothing and ours builds nothing): `0xE3` in [0x0048B770](functions/0048B770.md)
+(`Creature_Collapse`, its first act), `0x12C` (event 300) in the Reaper's states 231, 237 and 242 ([0x004743C0](functions/004743C0.md),
+[0x00474850](functions/00474850.md), [0x00474CC0](functions/00474CC0.md)), `0x137` in [0x00488930](functions/00488930.md) (nonpositional), `0x51` in
+[0x004D6AA0](functions/004D6AA0.md) (`Casino_Jackpot`).
+
+Samples: `0x349` one in each of 27 creature categories (the imp's included); `0x32D`, `0x32E` (one each) and `0x323` (three) only in
+`creature_horned_reaper`; `0x34C` one only in `creature_jackinbox`; `0x317` one only in `creature_goblin`; `0x340` three in each of 25
+categories, the imp's not among them. The finale's `0x32D` passes handle 0 (it neither uses nor replaces the Reaper's voice).
