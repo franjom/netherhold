@@ -106,21 +106,21 @@ These run in cursor and hand code, so they are emitted in `DK2.Presentation` (`H
 
 | Event | Category | Site | What |
 |---|---|---|---|
-| `0x10C` | terrain | `0x00453359` (`Tile_ApplyWork`) | dig hit (only `terrain_rock` has it) |
+| `0x10C` | terrain | `0x00453359` (`Tile_ApplyWork`) | the upward conversion: reinforce, claim, corner fill (only `terrain_rock` has it); not a dig hit |
 | `0xF4` | terrain | `0x0045327C` (`Tile_ApplyWork`) | tile broken (wall, gold, gems, rock) |
 | `0x10A`, `0x10B` | creature | `0x00497635` (`Imp_ClaimAction`) | imp claiming |
 | `0xF1` | room | `0x004C5D87` (`Player_BuildRoomTile_LIKELY`) | room tile built |
 | `0xF5`, `0xF4` | room | `0x004C5EF8`, `0x004C5F29` (`Player_SellRoomTile_LIKELY`) | room tile sold |
 | `0xF7` | room | `0x004E570C` (`Room_TransferOwnership_LIKELY`, nonpositional) | room captured (*silent?*) |
 | `0xF8` | room | `0x004E81BE` (`Room_TypeEffectResponse`) | (*silent?*) |
-| `0x2F8` | room | `0x00442D57` | most rooms have it; read the site |
+| `0x2F8` | room | `0x00442D57` | the build drag's accept click, from the command handler `0x00442960`; not "most rooms" |
 | `0x34B` | room | `0x004DD024` (nonpositional) | portal |
-| `0xF1`, `0x316`, `0x33E` | room | `0x004D9E00`, `0x004DA00F`, `0x004DA114` (`DungeonHeart_Update`) | heart |
+| `0xF1`, `0x316`, `0x33E` | room | `0x004D9E00`, `0x004DA00F`, `0x004DA114` (`DungeonHeart_Update`) | heart opening (local player); `0x316`/`0x33E` are the casino's category, the Saturday dance |
 | `0x329` | room | `0x004DA2DB` (`Player_ModifyHeartHealth`) | heart damaged |
 | `0xDA` | room | `0x004DA5B2` (`Heart_OnDestroyed_LIKELY`) | heart destroyed |
 | `0xF4` | room | `0x004DAC38`, `0x004DB102` | heart collapse / local defeat |
 | `0x150`, `0x2F9` | room | `0x0043CE85`, `0x004A32F9` | heart presentation |
-| `0x2E8`, `0x2E9` | room | `0x004F4F03`, `0x004F4C27`, `0x004F4DC7` (`Workshop_Tick_LIKELY`) | workshop |
+| `0x2E8`, `0x2E9` | room | `0x004F4F03`, `0x004F4C27`, `0x004F4DC7` (`Workshop_Tick_LIKELY`) | workshop; waits on `sim/workshop-timers` |
 | `0x316`, `0x33E`, `0x344` | room/effects | `0x004D63D0`, `0x004D6727`, `0x004D6610` (`Casino_RoomUpdate`) | casino |
 | `0xE7`–`0xEA` | room | `0x004E3669`, `0x004E3729`, `0x004E377E`, `0x004A3819`, `0x004A38E9` | prison doors |
 | `0x3F` | room | `0x004E2DBD` | (*silent?*) |
@@ -128,11 +128,11 @@ These run in cursor and hand code, so they are emitted in `DK2.Presentation` (`H
 **Result (2026-11-02, [sound-effects.md sections 7 to 9](../research/sound-effects.md#7-terrain-digging-claiming-and-rooms)):**
 - Built: tile broken `0xF4` and converted `0x10C` (`Tile_ApplyWork`; `0x10C` is the upward conversion, not a "dig hit", so reinforcing rock sounds and claiming dirt path does not), the imp's claim `0x10A`/`0x10B`, room tile built `0xF1` and sold `0xF5`, the build command's accept click `0x2F8` (the command-table handler `0x00442960`, not "most rooms"), heart opening `0xF1` (local player only), blow `0x329`, destroyed `0xDA`, death-turn collapse `0xF4`, heart beat `0x150` (presentation), and the Casino party's pop `0x344` (global `effects` category, played by the view only when it creates the party's effect `0x140`).
 - Silent (no `SFX.map` has the group): `0xF7`, `0xF8`, `0x3F`; the refundless sale's `0xF4` has samples only in the heart's category and no worked-down tile is a heart's.
-- Waiting: Saturday-dance `0x316`/`0x33E` in the heart's room frame (the plan's "heart" label is the casino's category; `World_HostClockEvents` is unbuilt), casino party music `0x316`/`0x33E` (looped handle, W7.3), local-collapse `0xF4` and `0x2F9` (collapse unbuilt), portal `0x34B` (multiplayer arrival), prison doors `0xE7`-`0xEA` (door objects unbuilt), workshop `0x2E8`/`0x2E9` (the timers draw the simulation stream: building them moves the hash).
+- Waiting: Saturday-dance `0x316`/`0x33E` in the heart's room frame (the plan's "heart" label is the casino's category; `World_HostClockEvents` is unbuilt), casino party music `0x316`/`0x33E` (looped handle, W7.3), local-collapse `0xF4` at `0x004DB102` and `0x2F9` (collapse unbuilt; `0x2F9`'s site is a HYPOTHESIS), portal `0x34B` (multiplayer arrival), prison doors `0xE7`-`0xEA` (door objects unbuilt), workshop `0x2E8`/`0x2E9`, which wait for the `Workshop_Tick` timer port: the owner decided (2026-11-02) to build it as a separate simulation task on branch `sim/workshop-timers`, because the timers draw the simulation stream and move the hash (Torture Chamber, Temple and Graveyard have the same gap).
 
-**Owner check (Unity, Level 1 or 3):** digging rock and mining gold sound at the tile as it breaks, reinforcing a wall sounds at the end of the work, an imp's claim sounds at the imp; a dragged room gives one click at its lowest corner, then a sound for each tile after the first diagonal, and selling a tile sounds; the heart gives its opening sound once at the start, a beat about once a second, and a blow on a heart and its destruction sound; a Casino party's fireworks pop every twelve seconds when they are on screen on a tile you have seen.
+**Owner check (Unity, Level 1 or 3):** digging rock and mining gold sound at the tile as it breaks, reinforcing a wall sounds at the end of the work, an imp's claim sounds at the imp; a dragged room gives one click at its lowest corner, then a sound for each tile after the first diagonal, and selling a tile sounds; the heart gives its opening sound once at the start, a beat about once a second, and a blow on a heart, its destruction and its collapse at death sound, and the collapse does not cut the destruction's rumble; a Casino party's fireworks pop every twelve seconds only while they are on screen on a tile you have seen; a computer keeper's first-tick room build clicks. Open for the owner: whether an imp reinforcing a wall has its own sound (`creature_imp` has `0x10C` samples; the use is unread).
 
-**Commits:** `sound: tile breaking, reinforcing and the imp's claim`, `sound: room tiles built and sold, and the build command's accept click`, `sound: the heart's opening, blows, destruction, beat and collapse`, `sound: the casino party's tile effect`, and the review fixes (`sound: review fixes for W3 ...`).
+**Commits:** `sound: tile breaking, reinforcing and the imp's claim`, `sound: room tiles built and sold, and the build command's accept click`, `sound: the heart's opening, blows, destruction, beat and collapse`, `sound: the casino party's tile effect`, and the review fixes `48bd6fb0`.
 
 ---
 
@@ -245,7 +245,7 @@ Not world sounds, but found unwired by the same scan: cheat entry `0x133`; icon 
 |---|---|---|---|
 | W1 Foundation | `5950dc09`, `14fe94e6`, `d8b71e07`, `07318061` | `WorldSoundTests`, `SoundThrottleTests` (`DK2.Presentation.Tests`), `CombatApproachTests.ListeningForSoundsLeavesTheHashAlone`; full gate green | [ ] |
 | W2 Hand and cursor | `dee9c954`, `59f121af` | `HandSoundTests` (`DK2.Presentation.Tests`, `DK2.Simulation.Tests`), `WorldSoundTests`, `ObjectsOnRealDataTests.ObjectSoundCategoriesAreTheShippedNames`; creature hover waits (W7.2) | [ ] |
-| W3 Terrain and rooms | `1f042522`, `add84b79`, `264833a8`, `45730dbb` | `TileSoundTests`, `RoomSoundTests`, `HeartSoundTests`, `CasinoStateTests` (`DK2.Simulation.Tests`), `HeartBeatSoundTests`, `WorldSoundTests` (`DK2.Presentation.Tests`), `KwdTerrainRoomsTests.TerrainSoundCategoriesAreTheShippedNames`, `CreatureSoundCategoryTests` (`DK2.Data.Tests`); workshop, prison doors, portal, casino music, Saturday dance and local collapse wait | [ ] |
+| W3 Terrain and rooms | `1f042522`, `add84b79`, `264833a8`, `45730dbb`, `48bd6fb0` | `TileSoundTests`, `RoomSoundTests`, `HeartSoundTests`, `CasinoStateTests` (`DK2.Simulation.Tests`), `HeartBeatSoundTests`, `PartyPopSoundTests`, `WorldSoundTests` (`DK2.Presentation.Tests`), `KwdTerrainRoomsTests.TerrainSoundCategoriesAreTheShippedNames`, `CreatureSoundCategoryTests` (`DK2.Data.Tests`); workshop (`sim/workshop-timers`), prison doors, portal, casino music, Saturday dance and local collapse wait | [ ] |
 | W4 Imps and creature states | | | [ ] |
 | W5 Objects, doors, traps | | | [ ] |
 | W6 Spells, shots, combat | | | [ ] |

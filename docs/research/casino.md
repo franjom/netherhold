@@ -252,7 +252,7 @@ From the 10-byte rows at `0x006A0B00`: 73, 75, 77 and 91 are `0x2032` (50 s, tab
 - Treasury gold is `TileState.GoldHeld` (ADR-0015): "a tile holding object 3" is a tile with gold.
 - The unpaid winner's slap and counter `+0x3F6` are built (ADR-0608, hash/save 350);
   [scope and validation limits](casino-winner-slap.md#implementation-boundary).
-- Not modelled, all presentation: sounds, the music and its null-handle kick (ours takes the
+- Not modelled, all presentation: sounds (the party's pop is built in the view, [sound-effects.md section 9](sound-effects.md#9-workshop-casino-prison-and-portal)), the music and its null-handle kick (ours takes the
   music as started), the tile flash and
   effects, the wheel's spin (its `random(2)` is drawn), the drunk walk, 156's turn result beyond
   waiting for it.
