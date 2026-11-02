@@ -10,26 +10,13 @@ namespace DK2.Simulation.Systems;
 /// the hated-company step, which the same handler calls first. Rules and evidence:
 /// <see cref="WorkshopTimerRules"/>.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/workshop-timers.md")]
-public sealed class WorkshopTimerSystem : ISimulationSystem
+public sealed class WorkshopTimerSystem : IRoomTickStep
 {
     public string Name => "workshop timers";
 
-    public void Execute(SimulationContext context)
-    {
-        WorldState world = context.World;
-        List<RoomInstance>? workshops = null;
-        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
-            if (WorkshopTimerRules.IsWorkshop(room.Definition)) (workshops ??= []).Add(room);
-        if (workshops is null) return;
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
 
-        // DK2's room manager links each room at the head of its list as it is made, so it ticks the
-        // newest first (0x004EC490, 0x004EC450); a room's list position is its construction order.
-        workshops.Sort((a, b) =>
-        {
-            int byAge = world.TileAtIndex(b.TileIndices[0]).RoomListPosition.Value
-                .CompareTo(world.TileAtIndex(a.TileIndices[0]).RoomListPosition.Value);
-            return byAge != 0 ? byAge : a.TileIndices[0].CompareTo(b.TileIndices[0]);
-        });
-        foreach (RoomInstance room in workshops) WorkshopTimerRules.Tick(context, room);
-    }
+    public bool Applies(SimulationContext context, RoomInstance room) => WorkshopTimerRules.IsWorkshop(room.Definition);
+
+    public void Tick(SimulationContext context, RoomInstance room) => WorkshopTimerRules.Tick(context, room);
 }

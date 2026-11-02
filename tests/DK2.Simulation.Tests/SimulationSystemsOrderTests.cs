@@ -67,14 +67,16 @@ public class SimulationSystemsOrderTests
             "WalkOverGoldSystem",
             "TileWorkSystem",
             "BridgeBurnSystem",
-            "StoreSweepSystem",
-            "HeartDefenceSystem",
-            "CasinoSystem",
-            "PortalSystem",
-            "HatedCompanySystem",
-            "WorkshopTimerSystem",
-            "RoomBorderFlameSystem",
-            "RoomHealthSystem",
+            "RoomTickSystem",
+            "RoomTickSystem/StoreSweepSystem",
+            "RoomTickSystem/HeartDefenceSystem",
+            "RoomTickSystem/CasinoSystem",
+            "RoomTickSystem/PortalSystem",
+            "RoomTickSystem/HatcheryLayStep",
+            "RoomTickSystem/HatedCompanySystem",
+            "RoomTickSystem/WorkshopTimerSystem",
+            "RoomTickSystem/RoomBorderFlameSystem",
+            "RoomTickSystem/RoomHealthSystem",
             "PlayerTriggerSystem",
             "ManaRemovalSystem",
             "RatSpawnSystem",
@@ -105,6 +107,8 @@ public class SimulationSystemsOrderTests
             yield return name;
             if (system is CreatureUpdateSystem update)
                 foreach (ICreatureUpdateStep step in update.Steps) yield return $"{name}/{step.GetType().Name}";
+            if (system is RoomTickSystem rooms)
+                foreach (IRoomTickStep step in rooms.Steps) yield return $"{name}/{step.GetType().Name}";
         }
     }
 }

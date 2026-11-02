@@ -44,9 +44,11 @@ expect:
       State32 waits for floor art0, installs hatch-end art5, then creates the
       chicken on the following turn (object-drawing.md section 8).
   - event: egg_laid
-    count: 21
+    count: 22
     because: >
       Registered room capacity is nine chickens. Full-room launches continue
       until the free-range census reaches twelve (object-drawing.md section 8); this
-      fixed seed lays twenty-one eggs over the run, including those launches.
+      fixed seed lays twenty-two eggs over the run, including those launches (twenty-one
+      before the room walk: the lay moved from the needs phase into the room ticks, ADR-0634,
+      so the stream the rest of the tick draws from is entered at another point).
       This count is a remake regression pin, not a native measurement.

@@ -144,19 +144,24 @@ public static class SimulationSystems
         new BridgeBurnSystem(),
     ];
 
-    /// <summary>DK2's room ticks (<c>0x004EC450</c>): each room type's handler and the health step,
-    /// after the creatures and before the players (ADR-0479). The Hatchery's laying stays in
-    /// <see cref="Needs"/>, whose system also runs the eggs and coops of the thing pass.</summary>
+    /// <summary>DK2's room ticks (<c>0x004EC450</c>): one walk over every room, newest first and all types
+    /// together, each room's handler, border step and health step before the next room's
+    /// (<see cref="RoomTickSystem"/>), after the creatures and before the players (ADR-0479, ADR-0634).
+    /// The steps are in the order one room takes them; a room's type picks its handler. The Hatchery's
+    /// laying is in the walk, its eggs' and coops' object steps stay in <see cref="Needs"/>. The Dungeon
+    /// Heart's frame (<c>0x004D9A60</c>) is player-frame work in ours and stays at the tick's end.</summary>
     private static ISimulationSystem[] RoomTicks() =>
     [
-        new StoreSweepSystem(), // the Treasury's handler and the Heart's: loose gold goes in every 16th turn
-        new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
-        new CasinoSystem(), // the Casino's handler: the party, and the gold settled at the lever every four seconds (ADR-0188)
-        new PortalSystem(), // the Portal's handler
-        new HatedCompanySystem(), // the Library, Training Room, Guard Room and Workshop handlers' shared step
-        new WorkshopTimerSystem(), // the Workshop handler's four effect timers, which draw the world stream (workshop-timers.md)
-        new RoomBorderFlameSystem(), // the room tick's border flames (0x004E7CD0), before its health step
-        new RoomHealthSystem(), // the room tick's health step (0x004E4B00)
+        new RoomTickSystem(
+            new StoreSweepSystem(), // the Treasury's handler and the Heart's: loose gold goes in every 16th turn
+            new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
+            new CasinoSystem(), // the Casino's handler: the party, and the gold settled at the lever every four seconds (ADR-0188)
+            new PortalSystem(), // the Portal's handler
+            new HatcheryLayStep(), // the Hatchery's handler: its coops and its egg (0x004DE0A0)
+            new HatedCompanySystem(), // the Library, Training Room, Guard Room and Workshop handlers' shared step
+            new WorkshopTimerSystem(), // the Workshop handler's four effect timers, which draw the world stream (workshop-timers.md)
+            new RoomBorderFlameSystem(), // the room tick's border flames (0x004E7CD0), before its health step
+            new RoomHealthSystem()), // the room tick's health step (0x004E4B00)
     ];
 
     /// <summary>DK2's player frame: mana, imps and research, after every change of ownership this
@@ -181,8 +186,8 @@ public static class SimulationSystems
     /// in each creature's update (<see cref="ThingPass"/>).</summary>
     private static ISimulationSystem[] Needs() =>
     [
-        // Laying, once a game second (ADR-0066).
-        new HatcherySystem(),
+        // The eggs and coops of the thing pass, once a game second (ADR-0066); the laying is in the room walk.
+        new HatcherySystem(lays: false),
         new ObjectReactionSystem(),
 
         // Health, prison: one asleep this tick heals this second; health settles damage before

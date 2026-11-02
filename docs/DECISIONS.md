@@ -14750,10 +14750,17 @@ tile starts a room, for each piece a sale leaves, and as the simulation starts f
 `0x388` and `0x38A`. The effects are requests; the sounds (`0x2E9`, `0x2E8`) are one-line comments at their
 three sites for the sound branch.
 
-**Consequences.** A Workshop draws 4 at its start and 4 to 8 more at every reload. Deviations: ours runs the
-Treasury's draws before every Workshop's where DK2 interleaves rooms by age, and the Treasury's draw count
-depends on its values (`StoreSweepSystem` lines 71 and 75), so the stream diverges for good on any level with an
-older Treasury and a Workshop (Q731d); the furniture list lacks the Workshop Pillars; the lava-spill effect sits at the
-object's floor position, not its unread mesh point (the owner is the object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not
-(Q731). The Torture Chamber, Temple and Graveyard handlers draw the world stream too and are not built.
-Hash/save 379: sixteen bytes a tile. No scenario or fixture holds a Workshop, so only the pin moved.
+**Room walk (owner, 2026-11-02).** A Treasury's per-turn draw depends on its values, so running the
+per-type systems in turn would have split the stream from DK2's for good wherever an older Treasury met a Workshop.
+`RoomTickSystem` replaces the room-tick phase's systems with one walk over every room, newest first (`0x004EC450`,
+`0x004EC490`), each room's handler, border step and health step before the next room's. The systems became its
+`IRoomTickStep`s with their rules unchanged and still run alone; the Hatchery's lay moved into the walk and its
+object steps stayed in the needs phase, skipping what the walk made. Mapping: workshop-timers.md section 8.
+
+**Consequences.** A Workshop draws 4 at its start and 4 to 8 more at every reload. Deviations: a captured room
+takes a new list position, where DK2's manager list does not move it; the furniture list lacks the Workshop
+Pillars; the lava-spill effect sits at the object's floor position, not its unread mesh point (the owner is the
+object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not (Q731). The Torture
+Chamber, Temple, Graveyard, Combat Pit and hero gate handlers draw the world stream too and are not built.
+Hash/save 379: sixteen bytes a tile. The Hatchery scenario lays 22 eggs where it laid 21: the lay moved in the tick.
+No fixture holds a Workshop, so the pin moved only with the version.

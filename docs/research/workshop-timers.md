@@ -86,9 +86,12 @@ file's eight words from `0x382`, copied to `+0x421` by `0x004EAE2A` when nonzero
 
 ## 4. Order (CONFIRMED)
 
-`0x004EC490` links each new room at the head of the manager's in-use list and `0x004EC450` walks it from the
-head, so the rooms of every player tick **newest first**, one room's whole handler and health step before the
-next. Within a Workshop the order is the four blocks above, the hated-company step first (it draws nothing).
+`0x004EC490` links each new room at the head of the manager's in-use list (`0x004EC559..0x004EC57E`) and
+`0x004EC450` walks it from the head along each room's `+0x21`, reading the next link before the call
+(`0x004EC464`), so the rooms of every player tick **newest first, all types together**. `Room_Tick`
+(`0x004E4B00`) runs a room's handler (slot `+0x15`; a zero return ends the routine), then the border step
+`0x004E7CD0`, the stamp at `+0x73`, the effect object's re-placement and the health step, all before the next
+room. Within a Workshop the order is the hated-company step (it draws nothing), then the four blocks above.
 
 ## 5. Do the effects or sounds draw the stream? (STRONGLY INFERRED: no)
 
@@ -104,13 +107,11 @@ next. Within a Workshop the order is the four blocks above, the hated-company st
 
 ## 6. What ours does and where it differs
 
-- `WorkshopTimerSystem`, in the room-tick phase after `HatedCompanySystem`, ticks the Workshops newest first
-  (by `RoomListPosition`, ADR-0541). **Deviation:** DK2 ticks all rooms in one list; ours runs each
-  room type's system in turn, so a Treasury's per-turn draws (`StoreSweepSystem`) come before every
-  Workshop's. The stream's length is right for that turn, but the values each room receives are swapped, and
-  the Treasury's draw count depends on its values (`StoreSweepSystem.cs` lines 71 and 75: one `random(100)` every
-  turn, more for each pile when it is below 30), so the streams diverge for good on any level with an older
-  Treasury and a Workshop (Q731d).
+- `RoomTickSystem` walks every room newest first, by `RoomListPosition` (ADR-0541), and runs each room's steps
+  before the next room's (section 8), as DK2 does. A Treasury's per-turn draws (`StoreSweepSystem`, one
+  `random(100)` every turn, more per pile below 30) therefore fall where its age puts them among the Workshops'
+  (Q731d, closed). **Remaining deviation:** a rival's capture gives a room a new `RoomListPosition`, where
+  DK2's manager list does not move it, so a captured room's place in the walk differs.
 - A level's own Workshops are constructed when a simulation starts, row by row as the map loads, before
   creatures: the four draws each, merged rooms included. UNKNOWN: whether DK2's loader makes rooms before
   or after its creatures; it sets the seed to 1 first (`0x00513870`).
@@ -137,3 +138,31 @@ next. Within a Workshop the order is the four blocks above, the hated-company st
 | Graveyard (14) | `0x004DD3F0` | yes: once a second, with effect `+0x421`, one draw in `Room_RandomTilePoint` `0x004E4D90` (`Room.cpp` line 0x61B) |
 
 Their constructors (`0x004E17D0`, `0x004F15A0`, `0x004DD3A0`) draw nothing.
+
+## 8. The room walk: DK2's handlers and our steps (ADR-0634)
+
+The table `0x006A1E9F`, slot `+0x15` (read 2026-11-02), and the walk's steps in the order one room takes them:
+
+| DK2 handler | Type | Ours | Draws the world stream |
+|---|---|---|---|
+| `0x004F39A0` | 1 Treasury | `StoreSweepSystem` (sparkle every turn, sweep every 16th) | yes |
+| `0x004D9A60` | 5 Heart | `StoreSweepSystem`, then `HeartDefenceSystem` (`0x004D9690`'s head and tail) | yes, the sparkle |
+| `0x004DBBE0` | 3 and 25 Portals | `PortalSystem` | yes |
+| `0x004DE0A0` | 4 Hatchery | `HatcheryLayStep` (coops and egg) | yes |
+| `0x004D6270` | 15 Casino | `CasinoSystem` | yes, one inline site |
+| `0x004E0740`, `0x004F2E90`, `0x004DDD70` | 6, 7, 9 | `HatedCompanySystem` | no direct site |
+| `0x004F4B20` | 10 Workshop | `HatedCompanySystem`, then `WorkshopTimerSystem` | yes |
+| `0x004E7CD0` (in `Room_Tick`) | every room | `RoomBorderFlameSystem` | no |
+| the health step (in `Room_Tick`) | every room | `RoomHealthSystem` | no |
+
+DK2 handlers with no step of ours: Torture, Temple, Graveyard (section 7); the Combat Pit's own turn
+`0x004D7A60` (two sound timers, as the Torture Chamber's, drawing `random(4 x ticks)` and `random(32 x ticks)`
+and the slot pick, and message 9: its creature states are `CombatPitSystem`'s, in the thing pass); the hero gate
+type 21 `0x004DF6E0` (five inline draws); the Prison `0x004E2AC0` (door auto-close, no draws); the Wooden Bridge
+`0x004D5FA0` (draws only on a room change); the Lair and Crypt `0x004B4C20` (nothing). No step of ours lacks a
+DK2 counterpart.
+
+Left where they are, because DK2 does not run them inside `Room_Tick`: `HatcherySystem`'s eggs and coops (object
+steps of the thing pass; it skips objects the walk made this turn), `DungeonHeartSystem` (the room frame's
+regeneration and ruin draw nothing, and its tail is the player frame's), `CasinoLeverSystem` (a command),
+`PrisonSystem`, `TempleSacrificeSystem` and `GraveyardSystem` (tile and creature hooks).

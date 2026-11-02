@@ -208,7 +208,7 @@ type's tick handler, which `Room_Tick` calls before the common health step.
 | 1 Treasury | `0x004F39A0` | the store sweep every 16th turn; `0x004F3A00` (unread) | `StoreSweepSystem` |
 | 2 Lair, 26 Crypt | `0x004B4C20` | nothing | none |
 | 3 Portal | `0x004DBBE0` | arrivals | `PortalSystem` |
-| 4 Hatchery | `0x004DE0A0` | lays an egg each interval | `HatcherySystem` |
+| 4 Hatchery | `0x004DE0A0` | lays an egg each interval | `HatcheryLayStep` (`HatcherySystem` keeps the object steps) |
 | 5 Dungeon Heart | `0x004D9A60` | the Heart's frame | `DungeonHeartSystem`, `HeartDefenceSystem` |
 | 6 Library | `0x004E0740` | hated company; display flags near researchers | `HatedCompanySystem` |
 | 7 Training Room | `0x004F2E90` | hated company | `HatedCompanySystem` |
@@ -234,6 +234,8 @@ actions, stays at the old slot as `CasinoLeverSystem`. The Hatchery, Combat Pit
 and Heart frame stay: the Hatchery system also runs the eggs' and coops' object
 steps, the pit's system runs creature states, and the Heart's frame ends our
 tick by choice.
+ADR-0634 then made the room-tick phase one walk over every room, newest first, with the
+Hatchery's lay in it (workshop-timers.md section 8).
 
 ## 10. What remains
 

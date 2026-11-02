@@ -20,18 +20,30 @@ namespace DK2.Simulation.Systems;
 /// <see cref="ManaSystem"/> already pays.</para>
 /// </remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/portals.md")]
-public sealed class PortalSystem : ISimulationSystem
+public sealed class PortalSystem : IRoomTickStep
 {
     private const string SystemName = "Portal";
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    /// <summary>What one keeper's portals share this turn: its rooms, and the creature count and capacity
+    /// read once for all of them (the quirk above).</summary>
+    private sealed class KeeperPortals(List<RoomInstance> owned, int held, int capacity)
+    {
+        public readonly List<RoomInstance> Owned = owned;
+        public readonly int Held = held, Capacity = capacity;
+    }
+
+    /// <summary>The keepers' ripe portals' shared state, by the portal's lowest tile.</summary>
+    private readonly Dictionary<int, KeeperPortals> _portals = [];
+
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context)
     {
         WorldState world = context.World;
-        GameDatabase database = context.Database;
-
-        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, database);
+        _portals.Clear();
+        IReadOnlyList<RoomInstance> rooms = RoomIndex.Build(world, context.Database);
 
         for (int i = 0; i < world.PlayerCount; i++)
         {
@@ -45,11 +57,16 @@ public sealed class PortalSystem : ISimulationSystem
             // availability below player 3, so Pick would refuse every candidate.
             if (!PlayerIds.IsKeeper(playerId.Value)) continue;
 
-            RunPortalsOf(context, rooms, playerId);
+            Collect(context, rooms, playerId);
         }
     }
 
-    private static void RunPortalsOf(
+    public bool Applies(SimulationContext context, RoomInstance room) => _portals.ContainsKey(room.TileIndices[0]);
+
+    public void Tick(SimulationContext context, RoomInstance room) =>
+        TickPortal(context, _portals[room.TileIndices[0]], room);
+
+    private void Collect(
         SimulationContext context, IReadOnlyList<RoomInstance> rooms, PlayerId playerId)
     {
         WorldState world = context.World;
@@ -86,73 +103,81 @@ public sealed class PortalSystem : ISimulationSystem
         int held = PortalRules.CreatureCount(world, playerId);
         int capacity = PortalRules.CreatureCapacity(database, portalsHeld);
 
-        // RoomIndex.Build returns rooms in ascending order of their lowest tile
-        // index, so two ripe portals are always visited in the same order and
-        // draw from the RNG in the same order.
-        foreach (RoomInstance portal in entrances)
+        var keeper = new KeeperPortals(owned, held, capacity);
+        foreach (RoomInstance portal in entrances) _portals[portal.TileIndices[0]] = keeper;
+    }
+
+    /// <summary>One ripe portal's turn, for its keeper's shared state. DK2's room tick visits the portals
+    /// newest first, so two ripe portals draw in that order.</summary>
+    private static void TickPortal(SimulationContext context, KeeperPortals keeper, RoomInstance portal)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        PlayerId playerId = new(portal.OwnerPlayerId);
+        List<RoomInstance> owned = keeper.Owned;
+        int held = keeper.Held, capacity = keeper.Capacity;
+
+        int entranceTile = PortalRules.EntranceTileIndex(world, portal);
+        ref TileState centre = ref world.TileAtIndex(entranceTile);
+
+        centre.EntranceIdleTicks++;
+
+        // Per portal, from this portal's own tally — not the keeper's
+        // creature count, and not shared between a keeper's portals: a
+        // portal claimed after another had produced five creatures starts
+        // again at 25 seconds, not 50 (Q86; the numbers are on
+        // TileState.EntranceCreaturesGenerated).
+        int required = PortalRules.SpawnIntervalTicks(
+            database, centre.EntranceCreaturesGenerated);
+
+        if (centre.EntranceIdleTicks < required)
         {
-            int entranceTile = PortalRules.EntranceTileIndex(world, portal);
-            ref TileState centre = ref world.TileAtIndex(entranceTile);
-
-            centre.EntranceIdleTicks++;
-
-            // Per portal, from this portal's own tally — not the keeper's
-            // creature count, and not shared between a keeper's portals: a
-            // portal claimed after another had produced five creatures starts
-            // again at 25 seconds, not 50 (Q86; the numbers are on
-            // TileState.EntranceCreaturesGenerated).
-            int required = PortalRules.SpawnIntervalTicks(
-                database, centre.EntranceCreaturesGenerated);
-
-            if (centre.EntranceIdleTicks < required)
+            if (centre.EntranceIdleTicks == required - 3 * SimulationTiming.OriginalTicksPerGameSecond
+                && held < capacity && portal.Definition.RoomEffect425Id != 0)
             {
-                if (centre.EntranceIdleTicks == required - 3 * SimulationTiming.OriginalTicksPerGameSecond
-                    && held < capacity && portal.Definition.RoomEffect425Id != 0)
-                {
-                    List<CreatureDef> preview = Candidates(context, owned, playerId,
-                        portal.Definition, out _);
-                    // The native preview counts base-weight candidates without noticing,
-                    // drawing, or decaying entrance modifiers, even when portals are closed.
-                    if (preview.Any(c => PortalChoiceRules.BaseWeight(world, c, owned, playerId) > 0))
-                        context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
-                            new EffectId(portal.Definition.RoomEffect425Id), playerId,
-                            world.TilePosition(entranceTile), new Fp32(0)));
-                }
-                continue;
+                List<CreatureDef> preview = Candidates(context, owned, playerId,
+                    portal.Definition, out _);
+                // The native preview counts base-weight candidates without noticing,
+                // drawing, or decaying entrance modifiers, even when portals are closed.
+                if (preview.Any(c => PortalChoiceRules.BaseWeight(world, c, owned, playerId) > 0))
+                    context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
+                        new EffectId(portal.Definition.RoomEffect425Id), playerId,
+                        world.TilePosition(entranceTile), new Fp32(0)));
             }
-
-            // A due roll restarts the clock whatever it produces: 0x004DBBE0 stamps
-            // room+0x49 straight after the pick, untested (0x004DBC7C). A portal held
-            // up by a missing lair or a full dungeon waits for its next roll, not the
-            // moment the obstacle goes (ADR-0314). No free lair space holds the pick
-            // itself (ADR-0614).
-            centre.EntranceIdleTicks = 0;
-            if (held >= capacity) continue;
-
-            // The portal is passed in because the flag gate depends on the room
-            // type: a Hero Portal admits a different nine creatures, and a
-            // keeper's claimed one admits none of them.
-            CreatureDef? arriving = Pick(context, owned, playerId, portal.Definition, out string candidates);
-            bool open = PortalRules.PortalsOpen(world, playerId);
-            context.Emit(SystemName, "roll",
-                $"player={playerId} portal_tile={entranceTile} held={held} capacity={capacity} " +
-                $"generated={centre.EntranceCreaturesGenerated} open={open} candidates=[{candidates}] " +
-                $"chosen={arriving?.Name ?? "-"}");
-            if (arriving is null) continue;
-
-            // Closed portals still draw and decay the boosts; the creator 0x004DC9A0
-            // then refuses (PortalsOpen clear), so neither tally nor creature moves.
-            if (!open) continue;
-
-            CreatureState? spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
-            if (spawned is null) continue;
-
-            context.Emit(SystemName, "creature_entered",
-                $"player={playerId} creature={spawned.Id} type={arriving.Name} " +
-                $"at=({spawned.Tile.X},{spawned.Tile.Y}) portal_tile={entranceTile} " +
-                $"held={held} capacity={capacity} interval={required} " +
-                $"generated={centre.EntranceCreaturesGenerated}");
+            return;
         }
+
+        // A due roll restarts the clock whatever it produces: 0x004DBBE0 stamps
+        // room+0x49 straight after the pick, untested (0x004DBC7C). A portal held
+        // up by a missing lair or a full dungeon waits for its next roll, not the
+        // moment the obstacle goes (ADR-0314). No free lair space holds the pick
+        // itself (ADR-0614).
+        centre.EntranceIdleTicks = 0;
+        if (held >= capacity) return;
+
+        // The portal is passed in because the flag gate depends on the room
+        // type: a Hero Portal admits a different nine creatures, and a
+        // keeper's claimed one admits none of them.
+        CreatureDef? arriving = Pick(context, owned, playerId, portal.Definition, out string candidates);
+        bool open = PortalRules.PortalsOpen(world, playerId);
+        context.Emit(SystemName, "roll",
+            $"player={playerId} portal_tile={entranceTile} held={held} capacity={capacity} " +
+            $"generated={centre.EntranceCreaturesGenerated} open={open} candidates=[{candidates}] " +
+            $"chosen={arriving?.Name ?? "-"}");
+        if (arriving is null) return;
+
+        // Closed portals still draw and decay the boosts; the creator 0x004DC9A0
+        // then refuses (PortalsOpen clear), so neither tally nor creature moves.
+        if (!open) return;
+
+        CreatureState? spawned = PortalRules.CreateArrival(context.Hooks, portal, arriving.CreatureId);
+        if (spawned is null) return;
+
+        context.Emit(SystemName, "creature_entered",
+            $"player={playerId} creature={spawned.Id} type={arriving.Name} " +
+            $"at=({spawned.Tile.X},{spawned.Tile.Y}) portal_tile={entranceTile} " +
+            $"held={held} capacity={capacity} interval={required} " +
+            $"generated={centre.EntranceCreaturesGenerated}");
     }
 
     /// <summary>Which creature walks out, or null when nothing qualifies.</summary>

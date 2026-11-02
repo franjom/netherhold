@@ -16,11 +16,10 @@ public readonly record struct WorkshopTimers(int Steam, int Smoke, int LavaBubbl
 /// <c>random(16 x ticks) + 8 x ticks</c> and asks for an effect (workshop-timers.md). The draws are what
 /// matter here: a reload draws, and so do a slot pick and a Steel Bucket count, whether or not an effect
 /// or a sound follows. The effects are requests; the sounds (<c>0x2E9</c>, <c>0x2E8</c>) are not built.</summary>
-/// <remarks>Ours differs in three ways. Rooms run in the Workshop's own system, not in DK2's one list of every
-/// room (<c>0x004EC450</c>, newest first), so a Treasury's draws come before every Workshop's here. The
-/// room's furniture list leaves out the Workshop Pillars (object 80), which only the picks of the second
-/// timer could land on. And the mesh point the second timer's effect sits at (<c>0x2712</c>, unread) is
-/// taken to be there, at the object's own position.</remarks>
+/// <remarks>Ours differs in two ways. The room's furniture list leaves out the Workshop Pillars (object 80),
+/// which only the picks of the second timer could land on. And the mesh point the second timer's effect sits at
+/// (<c>0x2712</c>, unread) is taken to be there, at the object's own floor position. The rooms are ticked in
+/// DK2's order by <see cref="Systems.RoomTickSystem"/>.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/workshop-timers.md")]
 public static class WorkshopTimerRules
 {
