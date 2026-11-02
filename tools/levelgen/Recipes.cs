@@ -41,9 +41,15 @@ public static class Recipes
             + "level-10 Bile Demon and a fearless level-10 Vampire (Q362: does it swing at the revealed trap?); two hero "
             + "Boulder traps three tiles from a Troll, one on a Neutral Dirt Path like Level 20's (12,5), one on hero "
             + "ground (Q513a: only the second should roll); a Prison whose captive is carried away from a fight, for the "
-            + "owner to sell during the carry (Q729, state 44's exit 4).",
-            M7TrapFights),
+            + "owner to sell during the carry (Q729, state 44's exit 4). Crashed DK2 on its second world frame (2026-11-02).",
+            b => M7TrapFights(b, Zone.All)),
+        new("M7TF_Brave", "Secret4", "M7TrapFights' Q362 chambers alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Brave)),
+        new("M7TF_Boulders", "Secret4", "M7TrapFights' Q513a corridors alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Boulders)),
+        new("M7TF_Prison", "Secret4", "M7TrapFights' Q729 Prison and fight alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Prison)),
     ];
+
+    [Flags]
+    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7 }
 
     private static string BaseOf(LevelBuilder b) => b.BaseName;
 
@@ -159,26 +165,36 @@ public static class Recipes
     /// Imps at (6,31) and (7,31).</item>
     /// <item>One Dwarf sealed at (37,37) so Secret4's "no Dwarves left" win never fires; its 400 s limit is 3600 s.</item>
     /// </list></summary>
-    private static void M7TrapFights(LevelBuilder b)
+    private static void M7TrapFights(LevelBuilder b, Zone zones)
     {
         LevelMap map = b.Map;
         var tiles = new MapTile?[map.Width, map.Height];
         void Set(int x, int y, byte terrain, byte owner) => tiles[x, y] = new MapTile(terrain, owner, 1, 0);
         void Path(int x, int y, byte owner = Keeper) => Set(x, y, ClaimedPath, owner);
 
+        bool brave = zones.HasFlag(Zone.Brave), boulders = zones.HasFlag(Zone.Boulders), prison = zones.HasFlag(Zone.Prison);
         // Q362 chambers
-        foreach (int top in new[] { 3, 9, 15 })
-            for (int y = top; y <= top + 4; y++)
-                for (int x = 24; x <= 36; x++) Path(x, y);
-        foreach (int row in new[] { 5, 11, 17 }) Path(25, row, Heroes);
+        if (brave)
+        {
+            foreach (int top in new[] { 3, 9, 15 })
+                for (int y = top; y <= top + 4; y++)
+                    for (int x = 24; x <= 36; x++) Path(x, y);
+            foreach (int row in new[] { 5, 11, 17 }) Path(25, row, Heroes);
+        }
         // Q513a corridors
-        foreach (int cx in new[] { 3, 7 }) for (int y = 3; y <= 11; y++) Path(cx, y);
-        Set(3, 4, DirtPath, Neutral);
-        Path(7, 4, Heroes);
+        if (boulders)
+        {
+            foreach (int cx in new[] { 3, 7 }) for (int y = 3; y <= 11; y++) Path(cx, y);
+            Set(3, 4, DirtPath, Neutral);
+            Path(7, 4, Heroes);
+        }
         // Q729: the Prison, its corridor and the fight
-        for (int y = 30; y <= 32; y++) for (int x = 2; x <= 4; x++) Set(x, y, PrisonTerrain, Keeper);
-        for (int x = 5; x <= 10; x++) Path(x, 31);
-        for (int y = 29; y <= 33; y++) for (int x = 11; x <= 14; x++) Path(x, y);
+        if (prison)
+        {
+            for (int y = 30; y <= 32; y++) for (int x = 2; x <= 4; x++) Set(x, y, PrisonTerrain, Keeper);
+            for (int x = 5; x <= 10; x++) Path(x, 31);
+            for (int y = 29; y <= 33; y++) for (int x = 11; x <= 14; x++) Path(x, y);
+        }
         // the Dwarf's pocket
         Path(37, 37, Heroes);
 
@@ -188,9 +204,10 @@ public static class Recipes
                 if (map[x, y].TerrainId is not (9 or 14)) b.Paint(x, y, tiles[x, y] ?? rock);
 
         // things: two of Secret4's Dwarves (the pocket's and the captive's), none of its traps
-        var dwarves = new Queue<(int X, int Y, byte Level)>([(37, 37, 1), (14, 31, 1)]);
+        var dwarves = new Queue<(int X, int Y, byte Level)>(prison ? [(37, 37, 1), (14, 31, 1)] : [(37, 37, 1)]);
         var points = new Dictionary<int, (int X, int Y)>();
         var (boulder, boulderImage) = b.Template<TrapThing>(t => t.TrapId == BoulderTrap);
+        var (sentry, sentryImage) = b.Template<TrapThing>(t => t.TrapId == HeroSentry);
         var things = b.Things;
         for (int i = things.Count - 1; i >= 0; i--)
         {
@@ -210,24 +227,35 @@ public static class Recipes
             if (things[i] is ActionPointThing ap && points.TryGetValue(ap.ActionPointId, out var to))
                 b.EditThing<ActionPointThing>(i, r => r with { StartX = to.X, StartY = to.Y, EndX = to.X, EndY = to.Y });
 
-        void Trap(int x, int y, byte id) => b.InsertThing(boulder with { X = x, Y = y, TrapId = id, PlayerId = Heroes }, boulderImage);
-        foreach (int row in new[] { 5, 11, 17 }) Trap(25, row, HeroSentry);
-        Trap(3, 4, BoulderTrap);
-        Trap(7, 4, BoulderTrap);
+        if (brave)
+            foreach (int row in new[] { 5, 11, 17 })
+                b.InsertThing(sentry with { X = 25, Y = row, TrapId = HeroSentry, PlayerId = Heroes }, sentryImage);
+        if (boulders)
+            foreach (int cx in new[] { 3, 7 })
+                b.InsertThing(boulder with { X = cx, Y = 4, TrapId = BoulderTrap, PlayerId = Heroes }, boulderImage);
 
         var (creature, creatureImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Keeper && c.CreatureId == Imp);
         void Creature(int x, int y, byte id, byte level) => b.InsertThing(creature with
         {
             X = x, Y = y, CreatureId = id, PlayerId = Keeper, Level = level, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
         }, creatureImage);
-        Creature(29, 5, BlackKnight, 10);
-        Creature(29, 11, BileDemon, 10);
-        Creature(29, 17, Vampire, 10);
-        Creature(3, 7, Troll, 1);
-        Creature(7, 7, Troll, 1);
-        Creature(12, 31, BileDemon, 4);
-        Creature(6, 31, Imp, 1);
-        Creature(7, 31, Imp, 1);
+        if (brave)
+        {
+            Creature(29, 5, BlackKnight, 10);
+            Creature(29, 11, BileDemon, 10);
+            Creature(29, 17, Vampire, 10);
+        }
+        if (boulders)
+        {
+            Creature(3, 7, Troll, 1);
+            Creature(7, 7, Troll, 1);
+        }
+        if (prison)
+        {
+            Creature(12, 31, BileDemon, 4);
+            Creature(6, 31, Imp, 1);
+            Creature(7, 31, Imp, 1);
+        }
 
         b.SetTriggerParameter(65534, "Value", 3600);
     }
