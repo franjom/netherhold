@@ -129,9 +129,10 @@ room), `D` = art 20 present. The action (`0x004567D0`–`0x00456920`):
 Action 0 is "no action": it starts and ends at once. Count 3; started, `SetState(149)`, else
 return 0.
 
-**149.** As 147, without the sound; and every `v19 × 4` turns while the action runs, if `+0xB1`
+**149.** As 147, and every `v19 × 4` turns while the action runs, if `+0xB1`
 is a live Roulette Table, `random(2)` picks one of the Roulette Wheels (object 30) on its tile to
-spin (`0x0049EF60(0x12)`) with a sound: presentation, but the draw is on the simulation stream.
+spin (`0x0049EF60(0x12)`) with sound `0xD5`: presentation, but the draw is on the simulation stream.
+Without a wheel, 149 still asks `0xD5` every `v19 × 8` turns ([sound-effects.md section 12](sound-effects.md#12-rooms-creature-states)).
 
 ## 6. A bare tile: 150 and 151 — CONFIRMED
 
@@ -252,7 +253,7 @@ From the 10-byte rows at `0x006A0B00`: 73, 75, 77 and 91 are `0x2032` (50 s, tab
 - Treasury gold is `TileState.GoldHeld` (ADR-0015): "a tile holding object 3" is a tile with gold.
 - The unpaid winner's slap and counter `+0x3F6` are built (ADR-0608, hash/save 350);
   [scope and validation limits](casino-winner-slap.md#implementation-boundary).
-- Not modelled, all presentation: sounds (the party's pop is built in the view, [sound-effects.md section 9](sound-effects.md#9-workshop-casino-prison-and-portal)), the music and its null-handle kick (ours takes the
+- Not modelled, all presentation: the table's four-second sound (it needs the wheel objects; the other creature sounds and the party's pop are built, see [sound-effects.md sections 9 and 12](sound-effects.md#12-rooms-creature-states); the pop is in the view, [sound-effects.md section 9](sound-effects.md#9-workshop-casino-prison-and-portal)), the music and its null-handle kick (ours takes the
   music as started), the tile flash and
   effects, the wheel's spin (its `random(2)` is drawn), the drunk walk, 156's turn result beyond
   waiting for it.

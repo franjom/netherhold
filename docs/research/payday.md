@@ -188,7 +188,9 @@ Only when something is owed (`creature+0x470` non-zero):
    Y; the result is `taken`.
 2. If `taken` is zero — the creature came up empty — the failed-attempt counter
    `creature+0x474` goes up by one and the state returns 0.
-3. Otherwise effect `0xC3`, a floating number and a sound are played.
+3. Otherwise the sound `0xC3` (the gold object's category, the creature's handle) is requested and a floating
+   number shown; once the purse and owed wage are settled (steps 4 to 6) the sound `0xCA` follows
+   ([sound-effects.md section 12](sound-effects.md#12-rooms-creature-states)).
 4. `FUN_0048ae70` is called with `taken / 2`.
 5. `0x0048E810` is called with `-taken`: the take comes off the owed wage.
 6. If the amount owed at `creature+0x470` is now zero — fully paid —

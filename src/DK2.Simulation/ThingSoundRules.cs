@@ -73,6 +73,21 @@ public enum ThingSoundEvent : ushort
     GuardLostItsWay = 0xDD,
     /// <summary>A chicken is eaten, in the chicken's own category (<c>Eat_EatChicken</c>, <c>0x00463859</c>).</summary>
     ChickenEaten = 0x111,
+    /// <summary>A trainee begins its melee swing at the dummy (<c>Training_State111</c>, <c>0x004857CD</c>).</summary>
+    Trained = 0xD3,
+    /// <summary>A creature is offered in the Temple's pool (state 101, <c>0x004729FB</c>).</summary>
+    Sacrificed = 0xE2,
+    /// <summary>A worshipper begins its prayer (state 104, <c>0x00472E70</c>).</summary>
+    Prayed = 0xD4,
+    /// <summary>A gambler plays (state 149, <c>0x00456B37</c>).</summary>
+    Gambled = 0xD5,
+    /// <summary>A gambler drinks (state 147, <c>0x00456DF0</c>).</summary>
+    Drank = 0xE1,
+    /// <summary>Gold reaches a creature's purse from a room: a jackpot taken (state 157, <c>0x00457677</c>) or a
+    /// wage (<c>Payday_TakeWage</c>, <c>0x0047287A</c>).</summary>
+    GoldReceived = 0xCA,
+    /// <summary>The coin sound a wage taken opens with, the gold object's pick-up group (<c>0x00472803</c>).</summary>
+    WageTaken = 0xC3,
     /// <summary>The creature that ate it (<c>0x0046398D</c>).</summary>
     Ate = 0xCD,
 }

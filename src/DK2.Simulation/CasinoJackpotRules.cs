@@ -380,6 +380,7 @@ public static class CasinoJackpotRules
         if (taken != 0)
         {
             int kept = PurseRules.Receive(database, database.CreatureById(creature.CreatureTypeId), creature, taken);
+            ThingSoundRules.Request(context, system, creature, ThingSoundEvent.GoldReceived);   // 0x00457677
             context.Emit(system, "jackpot_collected", $"creature={creature.Id} taken={taken} kept={kept} owed={creature.JackpotWinnings}");
             if (asked == creature.JackpotWinnings)
             {

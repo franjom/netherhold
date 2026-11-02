@@ -824,4 +824,45 @@ public sealed class CreatureJobTests
         Assert.Equal(RoomTypeId.GuardRoom, JobRules.RoomFor(JobType.Guard));
         Assert.Equal(9, (byte)RoomTypeId.GuardRoom);
     }
+
+    /// <summary>State 111 (<c>0x004855B0</c>) requests <c>0xD3</c> with the trainee's handle at its position when the
+    /// melee swing at a dummy begins and it enters state 112; the spell branch and the no-machine swing ask nothing.</summary>
+    [Fact]
+    public void ATraineeBeginningAMeleeSwingAtTheDummyRequestsD3OnEveryEntryTo112()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
+        Fund(world, 10_000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        Dk2TerrainFixture.SetKnownIdentities(world);
+        var events = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, events);
+
+        var entries = new List<long>();
+        var sounds = new List<(long Tick, ThingSoundRequest Sound, FpPosition3 At)>();
+        int last = goblin.Dk2StateId, seen = 0;
+        for (int t = 0; t < Second * 40; t++)
+        {
+            long now = world.CurrentTick.Value;
+            sim.Tick();
+            if (goblin.Dk2StateId == TrainingStep.WorkingState && last != TrainingStep.WorkingState) entries.Add(now);
+            last = goblin.Dk2StateId;
+            for (; seen < events.Events.Count; seen++)
+                if (events.Events[seen].ThingSound is { Event: ThingSoundEvent.Trained } sound)
+                    sounds.Add((events.Events[seen].Tick.Value, sound,
+                        new FpPosition3(new Fp32(goblin.PosX), new Fp32(goblin.PosY), new Fp32(goblin.PosZ))));
+        }
+
+        Assert.NotEmpty(sounds);
+        Assert.Equal((ushort)0xD3, (ushort)ThingSoundEvent.Trained);
+        Assert.All(sounds, s =>
+        {
+            Assert.Contains(s.Tick, entries);   // only the tick that enters 112
+            Assert.Equal("CREATURE_GOBLIN", s.Sound.Category);
+            Assert.Equal(SoundSourceId.Of(new CreatureId(goblin.Id)), s.Sound.Source);
+            Assert.Equal(s.At, s.Sound.Position);
+            Assert.True(s.Sound.Voiced);
+        });
+    }
 }

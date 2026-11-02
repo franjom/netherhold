@@ -585,4 +585,96 @@ public class CasinoStateTests
         Assert.Contains(order.Skip(back + 1), s => s == CasinoStep.ChoosingState);
         Assert.DoesNotContain(CasinoStep.ReturningState, order.Skip(back + 2));
     }
+
+    private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
+        sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+
+    /// <summary>147 (<c>0x00456D60</c>) requests <c>0xE1</c> and 149 (<c>0x00456980</c>) requests <c>0xD5</c>, each with the
+    /// gambler's handle at its position, on every eighth game second of the state's age while its action runs.
+    /// The 149 sound at a Roulette Table also needs a Roulette Wheel object (object 30), which ours does not make:
+    /// the table's four-second request waits for it, and no table is staged here.</summary>
+    [Theory]
+    [InlineData(CasinoStep.DrinkingState, ThingSoundEvent.Drank)]
+    [InlineData(CasinoStep.PlayingState, ThingSoundEvent.Gambled)]
+    public void AGamblerWhoseActionRunsSoundsEveryEightSecondsOfTheStateAge(int state, ThingSoundEvent expected)
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        CreatureState goblin = Gambler(db, world, new TilePos(2, 2));
+        StatePlacement.Place(goblin, state);
+        goblin.ActionUntilTick = long.MaxValue;
+        (goblin.WaitPosX, goblin.WaitPosY) = (goblin.PosX, goblin.PosY);
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < 100; i++) sim.Tick();
+
+        ThingSoundRequest[] heard = Sounds(sink);
+        Assert.Equal(3, heard.Length);   // ages 32, 64 and 96
+        Assert.Equal(new long[] { 32, 64, 96 },
+            sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.Tick.Value - goblin.StateEnteredTick));
+        Assert.All(heard, s =>
+        {
+            Assert.Equal(expected, s.Event);
+            Assert.Equal("CREATURE_GOBLIN", s.Category);
+            Assert.Equal(SoundSourceId.Of(new CreatureId(goblin.Id)), s.Source);
+            Assert.Equal(new FpPosition3(new Fp32(goblin.PosX), new Fp32(goblin.PosY), new Fp32(goblin.PosZ)), s.Position);
+            Assert.True(s.Voiced);
+        });
+        Assert.Equal((ushort)(expected == ThingSoundEvent.Drank ? 0xE1 : 0xD5), (ushort)expected);
+    }
+
+    [Fact]
+    public void AGamblerWhoseActionHasEndedSoundsNothingAndGoesBackToChoosing()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        CreatureState goblin = Gambler(db, world, new TilePos(2, 2));
+        StatePlacement.Place(goblin, CasinoStep.PlayingState);
+        goblin.ActionUntilTick = 0;
+        (goblin.WaitPosX, goblin.WaitPosY) = (goblin.PosX, goblin.PosY);
+        var sink = new ListEventSink();
+        var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < 40; i++) sim.Tick();
+
+        Assert.Empty(Sounds(sink));
+    }
+
+    /// <summary>State 157 (<c>0x00457560</c>) requests <c>0xCA</c> with the winner's handle at its position once
+    /// the winnings are taken off the Treasury floor and into its purse.</summary>
+    [Fact]
+    public void TheWinnerRequestsCaWhenItTakesItsWinnings()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 3);
+        for (int x = Vault.X; x <= Vault.X + 1; x++)
+        {
+            RoomRules.Place(db, ref world.Tile(x, Vault.Y), db.Room(RoomTypeId.Treasury), Keeper);
+            world.Tile(x, Vault.Y).GoldHeld = 1500;
+        }
+        for (int x = 4; x < Vault.X; x++)
+            world.Tile(x, Vault.Y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        for (int y = Vault.Y; y >= 1; y--) world.Tile(4, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        CreatureState winner = Gambler(db, world, new TilePos(3, 2));
+        GameSimulation sim = Simulation(db, world, new Probe(context =>
+        {
+            if (context.Tick.Value == 1) CasinoJackpotRules.Jackpot(context, "Test", winner);
+        }));
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        for (int i = 0; i < 60 * SimulationTiming.TicksPerSecond && !sink.Events.Any(e => e.Kind == "jackpot_collected"); i++) sim.Tick();
+
+        Assert.Contains(sink.Events, e => e.Kind == "jackpot_collected");
+        ThingSoundRequest sound = Assert.Single(Sounds(sink));
+        Assert.Equal(ThingSoundEvent.GoldReceived, sound.Event);
+        Assert.Equal((ushort)0xCA, (ushort)sound.Event);
+        Assert.Equal("CREATURE_GOBLIN", sound.Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(winner.Id)), sound.Source);
+        Assert.Equal(new FpPosition3(new Fp32(winner.PosX), new Fp32(winner.PosY), new Fp32(winner.PosZ)), sound.Position);
+        Assert.True(sound.Voiced);
+    }
 }

@@ -106,6 +106,9 @@ public static class TempleStep
     public static SacrificeResult Sacrifice(SimulationContext context, string system, RoomInstance temple, CreatureState creature, int tile)
     {
         TempleSacrificeRules.Reconcile(context.World, context.Database);
+        // State 101 asks for the offering's sound (0x004729FB) before the creature goes. DK2 reaches it for a
+        // creature dropped in the pool only after its stun; ours offers it at the drop, so that sound is early.
+        ThingSoundRules.Request(context, system, creature, ThingSoundEvent.Sacrificed);
         byte type = creature.CreatureTypeId;
         SacrificeResult result = TempleSacrificeRules.OfferCreature(context.World, context.Database, temple, creature, tile);
         // 0x004F1780 kicks the creature it made to 106 (temple-states.md §6, ADR-0403).
@@ -198,6 +201,8 @@ public static class TempleStep
             int count = context.Rng.NextInt(2) + 2;
             creature.ActionUntilTick = context.Tick.Value + AnimationTimingRules.CountedHoldTicks(definition, PrayerArtSlot, count);
             context.Emit(system, "temple_pray", $"creature={creature.Id} count={count} until={creature.ActionUntilTick}");
+            // 0x00472E70: after the prayer action has begun.
+            ThingSoundRules.Request(context, system, creature, ThingSoundEvent.Prayed);
         }
 
         return Set(context, system, creature, PrayingState);

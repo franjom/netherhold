@@ -152,7 +152,10 @@ public static class TrainingStep
         if (!AnimationTimingRules.ResolvesPresent(definition, art)) return false;
         Begin(context, trainee, action, machine, (byte)Math.Max(0, slot));
         if (action == TrainingActionKind.Spell) trainee.SpellStamps[slot] = context.Tick.Value;
-        return StateShadow.TryMove(context, system, trainee, WorkingState);
+        bool working = StateShadow.TryMove(context, system, trainee, WorkingState);
+        // 0x004857CD: the melee swing asks for its sound after the state is set, whatever that returned.
+        if (action == TrainingActionKind.Melee) ThingSoundRules.Request(context, system, trainee, ThingSoundEvent.Trained);
+        return working;
     }
 
     private static void Begin(SimulationContext context, CreatureState trainee, TrainingActionKind action,

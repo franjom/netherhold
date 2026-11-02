@@ -94,7 +94,7 @@ The south-east (slot 5, facing 2) and north-east (slot 6, facing 1) corners work
    from the eight `(ox, oy)` pairs at `0x00698588` indexed by the facing: 0 and 4 `(0x600,
    0x600)`, 1 and 5 `(0xA00, 0x600)`, 2 and 6 `(0xA00, 0xA00)`, 3 and 7 `(0x600, 0xA00)`:
    the quarter of the tile against its wall.
-6. `0x00471890(&target, 98, 0x80)`. On failure the definition's `+0x6E3` sound plays
+6. `0x00471890(&target, 98, 0x80)`. On failure the definition's `+0x6E3` sound plays (built, [sound-effects.md section 11](sound-effects.md#11-arrival-rest-and-reactions))
    (`0xDD` through the sound object's vslot `+0x20`, its handle to `+0x2E`) and the state
    is set to 99. Either way the handler returns 1.
 
@@ -192,7 +192,7 @@ unlabelled states, no level using it), not read.
 
 **Built** (ADR-0212, ADR-0330): §1–§6 as `GuardRules`, `GuardStep` (run by the Guard job
 once a turn) and `TrapRules` (the post's room and report). **Not built:** the `+0x3E6` bits;
-the sound; the post's effect; `state+0x3C`. §7 is unreachable in shipped play (Q375). **Ours:** the room test is our tile owner and
+the post's effect; `state+0x3C`. §7 is unreachable in shipped play (Q375). **Ours:** the room test is our tile owner and
 room type; a target off the map is a failed route; rooms have no ids, so `+0x113` is the
 room's first slab tile and a creature's `RoomId` its held place (ADR-0309); the trap list and
 the creature lists are walked in our orders (traps oldest first, creatures as the alarm's).

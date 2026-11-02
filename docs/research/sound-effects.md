@@ -334,3 +334,23 @@ Samples: `0xE0` one in each of 26 creature categories, the imp's not among them;
 `0xCE` in 22 and `0xCB` and `0xDE` in 24, none of them the imp's; `0xC7`, `0xDC` and `0x2FA` in the imp's; `0xDD` only in
 `creature_knight` and `creature_stone_knight`; `0x111` has eleven in `object_chicken`. Deviation: the chicken's request takes the
 floor height, as any object's does (`ThingSoundRules`).
+
+## 12. Rooms' creature states
+
+Read 2026-11-02 for plan Phase W4. Handle, category and position are the creature's own, as in section 11, unless a row says otherwise.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| `0xD3` | [0x004855B0](functions/004855B0.md) at `0x004857CD`: state 111's melee arm only (the dummy, art 5, action 30), after SetState(112); the spell arm and the no-machine swing ask nothing | CONFIRMED; training-actions.md had both arms sounding | `TrainingStep.AtMachine` |
+| `0xE2` | [0x00472930](functions/00472930.md) at `0x004729FB`: state 101 on a Temple pool cell, after the offering is registered, before the creature goes | CONFIRMED | `TempleStep.Sacrifice` (the Hand's drop into the pool calls it too) |
+| `0xD4` | [0x00472D30](functions/00472D30.md) at `0x00472E70`: state 104 once action 27 begins (art 23 present) | CONFIRMED | `TempleStep.Face` |
+| `0xE1` | [0x00456D60](functions/00456D60.md) at `0x00456DF0`: state 147 while its action runs, at ages that are multiples of eight game seconds | CONFIRMED | `CasinoStep.Wait` |
+| `0xD5` | [0x00456980](functions/00456980.md) at `0x00456B37`: state 149 while its action runs, at multiples of eight seconds; at `0x00456AE9` every fourth second when its table is a Roulette Table with a Roulette Wheel (object 30) on its tile | CONFIRMED; casino.md had 149 silent | `CasinoStep.Wait` for the eight-second request; the wheel's waits (no wheel objects) |
+| `0xCA` | [0x00457560](functions/00457560.md) at `0x00457677`: state 157 once the winnings are in the purse | CONFIRMED | `CasinoJackpotRules.Collect` |
+| `0xC3`, `0xCA` | [0x00472740](functions/00472740.md) at `0x00472803` (the gold object's category, the creature's own handle) and `0x0047287A` (the creature's category, the handle the first request returned): state 189 once the wage is off the floor | CONFIRMED | `PaydaySystem.Take` |
+
+Samples: `0xD3` in 25 creature categories, `0xE2` in 26 (the imp's included), `0xD4` in 22, `0xE1`, `0xD5` and `0xCA` in 24
+(none of these but `0xE2` in the imp's), `0xC3` one in `object_gold`. Deviations: the Hand's drop of a creature into a Temple's pool is
+offered at the drop, where DK2 offers it in state 101 after the stun, so its `0xE2` is early; the roulette's four-second `0xD5` is not
+built. A live handle retains an equal-priority request (section 10), and the wage's two requests share the creature's handle as
+DK2's do, so whether `0xCA` is heard depends on the priority of `0xC3`'s group (untested).
