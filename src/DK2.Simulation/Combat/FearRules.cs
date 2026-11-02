@@ -632,6 +632,8 @@ public static class FearRules
         if (CombatStates.IntoTheGroup(context, me)) context.Navigation.TryRouteTo(me, destX, destY, withdrawOptions);
         CombatStates.Travel(context, me, CombatStates.Withdrawn);
         me.CombatStateEnteredTick = context.Tick.Value;
+        // 0x004617E6: after the run speed is set, before the fight position is stamped.
+        ThingSoundRules.Request(context, SystemName, me, ThingSoundEvent.Withdrew);
         FightReturnRules.Stamp(context, me);
         context.Emit(SystemName, "withdraws",
             $"creature={me.Id} type={mine.Name} health={me.Health} to={destX / Fp32.One},{destY / Fp32.One} lair={bed >= 0}");
@@ -750,6 +752,7 @@ public static class FearRules
         if (CombatStates.IntoTheGroup(context, me)) context.Navigation.TryRouteTo(me, pointX, pointY, options);
         CombatStates.Travel(context, me, CombatStates.RespondingToThreat);
         me.CombatStateEnteredTick = context.Tick.Value;
+        ThingSoundRules.Request(context, SystemName, me, ThingSoundEvent.Withdrew);   // 0x004754AC
         context.Emit(SystemName, "raises_alarm",
             $"creature={me.Id} type={mine.Name} threat={threatX / Fp32.One},{threatY / Fp32.One} deficit={deficit} room={nearest.Definition.Name}");
         return true;
@@ -840,6 +843,8 @@ public static class FearRules
             wanted -= ThreatAtLevel(database, def, c.Level);
         }
 
+        // 0x00475934: after the responders are sent, before the Scout stands down.
+        ThingSoundRules.Request(context, SystemName, me, ThingSoundEvent.RespondedToThreat);
         context.Emit(SystemName, "alarm_raised", $"creature={me.Id} sent={sent} deficit={me.AlarmDeficit} left={wanted}");
         me.AlarmRoomTile = -1;
         me.AlarmDeficit = 0;

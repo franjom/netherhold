@@ -604,6 +604,7 @@ internal static class Dk2TerrainFixture
         {
             Name = "Chicken",
             ObjectId = HatcheryRules.ChickenObjectId,
+            SoundCategory = "OBJECT_CHICKEN",
 
             // 0x00230782: DieOverTimeIfNotInRoom, TypeFood, CanBePickedUp,
             // CanBeSlapped, DieWhenSlapped, BoulderDestroys, Damageable. So a

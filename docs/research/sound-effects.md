@@ -309,3 +309,28 @@ The plan's `0x10C` question (`creature_imp` has three samples): no W4 site asks 
 section 5](creature-action-table.md#5-the-25-word-is-a-sound-id-not-a-label)) is `0x10C` in record 8, the wall repair
 (states 23 and 24), which `CreatureAction_Begin` plays (W7.2): the imp's `0x10C` is most likely the repair action's sound
 (STRONGLY INFERRED; the table filler `0x004950C0` stores it at `0x00495378`), not reinforcing. Record 7, reinforce, has no word.
+
+## 11. Arrival, rest and reactions
+
+Read 2026-11-02 for plan Phase W4. Every request passes the creature's own handle (`+0x2E`, stored back), its category
+(`+0x370`, `+0x6E3`) and its position (`+0x1A`) unless a row says otherwise.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| `0xE0` | [0x00459C20](functions/00459C20.md) at `0x00459C73`: state 193 once its action has ended, before the step off the hole, **only when the creature's owner is the local player** (game slot `+0x264`) | CONFIRMED | `CreatureJobSystem`, marked for its owner (`ViewerOnlyFor`) |
+| `0xE0`, or `0xFB` | [0x004872A0](functions/004872A0.md) at `0x00487BC4`, the constructor: only for the hero player's creatures (`[0x006F254C]`), turn 2 or later, world `+0x7239` bit 6 clear, on an explored tile; handle 0; a Horned Reaper asks `0xFB` (no creature category has it) | CONFIRMED | waits: `WorldState.SpawnCreature` has no event path, and "explored" is the viewer's bit |
+| `0xF6` | [0x0046EAB0](functions/0046EAB0.md) at `0x0046EEA9`: state 76 after the floor-contact test, not on a Temple floor slot | CONFIRMED site | waits: ours has no fall (ADR-0209) and no contact moment |
+| `0xCE` | [0x0046FA60](functions/0046FA60.md) at `0x0046FC7A`: state 83 when the art-12 gate holds and no action runs, with action 24; gated by an unread bed call (`0x0046FAF9`) | CONFIRMED site | waits: no action 24 clock, gate unread |
+| `0x111`, `0xCD` | [0x00463760](functions/00463760.md) at `0x00463859` (the chicken's own handle and category, at the bird) and `0x0046398D` (the eater's): state 93 | CONFIRMED | `CreatureEatSystem.Swallow` |
+| `0xC7` | [0x00481520](functions/00481520.md) at `0x00481549`: state 210's first act; the record had called it a display request | CONFIRMED | `TremorRules.RunRecovery` |
+| `0xC7` | [0x00481020](functions/00481020.md) at `0x0048104C`: state 209's first act | CONFIRMED site | waits: ours has no state 209 |
+| `0xCB` | [0x004816F0](functions/004816F0.md) at `0x00481719`: state 213 every call | CONFIRMED site | nothing: state 213 is unreachable (room-return-states.md section 6) |
+| `0xDC` | [0x004611D0](functions/004611D0.md) at `0x004617E6` (withdraw) and [0x004752B0](functions/004752B0.md) at `0x004754AC` (the Scout's alarm), after the route and run speed | CONFIRMED | `FearRules.Withdraw`, `FearRules.RaiseAlarm` |
+| `0x2FA` | [0x00475660](functions/00475660.md) at `0x00475934`: state 251 after its responders are sent | CONFIRMED | `FearRules.RespondToThreat` |
+| `0xDD` | [0x00462D00](functions/00462D00.md) at `0x004630FF`: state 98's leg that cannot be routed, then state 99 | CONFIRMED | `GuardStep.Patrol` |
+| `0xDE` | [0x00482F80](functions/00482F80.md) at `0x00483021`: state 85 (sulking) with action 25, on its first call and each fourth second | CONFIRMED site | waits: ours has no state 85 handler |
+
+Samples: `0xE0` one in each of 26 creature categories, the imp's not among them; `0xF6` in 25 (the firefly's group is empty);
+`0xCE` in 22 and `0xCB` and `0xDE` in 24, none of them the imp's; `0xC7`, `0xDC` and `0x2FA` in the imp's; `0xDD` only in
+`creature_knight` and `creature_stone_knight`; `0x111` has eleven in `object_chicken`. Deviation: the chicken's request takes the
+floor height, as any object's does (`ThingSoundRules`).

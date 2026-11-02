@@ -113,8 +113,7 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(97, typeof(GuardRules), nameof(GuardRules.ToThePostState),
             "guard tests place a guard in 97 rather than enter it, and none walks it back from 99"));
         rows.Add(Built(98, typeof(GuardRules), nameof(GuardRules.PatrolState)));
-        rows.Add(Built(99, typeof(GuardRules), nameof(GuardRules.LostState),
-            "no simulation test loses a guard its post"));
+        rows.Add(Built(99, typeof(GuardRules), nameof(GuardRules.LostState)));
         rows.Add(Built(100, typeof(GuardRules), nameof(GuardRules.AtThePostState)));
         rows.Add(Built(101, typeof(TempleStep), nameof(TempleStep.EnteringState)));
         rows.Add(Unreachable(102, "STRONGLY INFERRED as Q415: no SetState, wrapper, walk, +0xDF store or room-table site enters it (temple-states.md §2)"));

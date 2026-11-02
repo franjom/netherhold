@@ -338,8 +338,12 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
     {
         GameDatabase database = context.Database;
 
+        // State 93 asks for the chicken's own sound first (0x00463859, the bird's category and voice, at the
+        // bird), then, once the meal is paid off, the eater's (0x0046398D).
+        ThingSoundRules.Request(context, SystemName, chicken, ThingSoundEvent.ChickenEaten);
         int before = creature.Health;
         int gained = EatingRules.Eat(database, definition, creature);
+        ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.Ate);
         context.World.RemoveObject(chicken.Id);
 
         context.Emit(SystemName, "chicken_eaten",

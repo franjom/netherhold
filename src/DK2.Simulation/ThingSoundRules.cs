@@ -58,6 +58,23 @@ public enum ThingSoundEvent : ushort
     ImpInstalledDoor = 0x327,
     /// <summary>An imp installs a trap (state 35, <c>0x0046729F</c>).</summary>
     ImpInstalledTrap = 0x328,
+    /// <summary>A creature of the local keeper finishes coming out of its portal (state 193,
+    /// <c>CreatureState_JoiningDungeon</c>, <c>0x00459C73</c>).</summary>
+    JoinedDungeon = 0xE0,
+    /// <summary>A creature is knocked down (the tremor starter <c>0x00481520</c>, state 210).</summary>
+    KnockedDown = 0xC7,
+    /// <summary>A creature runs from a fight (<c>Fight_WithdrawState</c> <c>0x004617E6</c>, the Scout's
+    /// <c>Combat_RaiseAlarm</c> <c>0x004754AC</c>).</summary>
+    Withdrew = 0xDC,
+    /// <summary>The Scout at the alarm's room dispatches its responders (<c>State251_RespondToThreat</c>,
+    /// <c>0x00475934</c>).</summary>
+    RespondedToThreat = 0x2FA,
+    /// <summary>A guard's patrol leg cannot be routed (state 98, <c>0x004630FF</c>).</summary>
+    GuardLostItsWay = 0xDD,
+    /// <summary>A chicken is eaten, in the chicken's own category (<c>Eat_EatChicken</c>, <c>0x00463859</c>).</summary>
+    ChickenEaten = 0x111,
+    /// <summary>The creature that ate it (<c>0x0046398D</c>).</summary>
+    Ate = 0xCD,
 }
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the
@@ -116,22 +133,24 @@ public static class ThingSoundRules
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)),
             context.Database.CreatureById(creature.CreatureTypeId).SoundCategory, sound, position, voiced: false);
 
-    /// <summary>A creature's request with handle 0 in the category of an object definition
-    /// (<c>+0x10E</c>), at the creature's position: the imp's gold deposit asks the gold object's
-    /// (<c>0x00466B95</c>). Nothing is emitted for an object with no category.</summary>
+    /// <summary>A creature's request in the category of an object definition (<c>+0x10E</c>) at its position,
+    /// with handle 0 unless <paramref name="voiced"/>: the imp's gold deposit asks the gold object's
+    /// (<c>0x00466B95</c>); a wage taken passes the creature's own handle (<c>0x00472803</c>). Nothing is
+    /// emitted for an object with no category.</summary>
     public static void RequestInObjectCategory(SimulationContext context, string system, CreatureState creature,
-        byte objectTypeId, ThingSoundEvent sound)
+        byte objectTypeId, ThingSoundEvent sound, bool voiced = false)
     {
         string category = context.Database.ObjectById(objectTypeId)?.SoundCategory ?? "";
         if (category.Length == 0) return;
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)), category, sound,
-            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), voiced: false);
+            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), voiced);
     }
 
-    public static void Request(SimulationContext context, string system, CreatureState creature, ThingSoundEvent sound) =>
+    public static void Request(SimulationContext context, string system, CreatureState creature, ThingSoundEvent sound,
+        PlayerId? viewerOnlyFor = null) =>
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)),
             context.Database.CreatureById(creature.CreatureTypeId).SoundCategory, sound,
-            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)));
+            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), viewerOnlyFor: viewerOnlyFor);
 
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
         ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null)
