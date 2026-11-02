@@ -10,7 +10,7 @@ Source(s):
 - Shipped `Rooms.kwd`, `Objects.kwd` and `Effects.kwd` (Work Shop, Anvil, Steel Bucket, effect names).
 - Addresses and offsets are facts in our own words (ADR-0046).
 
-Original version: DK2 v1.70 (GOG). Implemented as `WorkshopTimerRules` and `WorkshopTimerSystem` (ADR-0633).
+Original version: DK2 v1.70 (GOG). Implemented as `WorkshopTimerRules` and `WorkshopTimerSystem` (ADR-0634).
 
 ## 1. Why it matters
 
@@ -65,8 +65,13 @@ order, each `if (timer != 0) timer--; else { reload; act }`. A reload is
    list (room `+0x0E`, next `+0x12A`, type byte `+0x12C`). With some it draws `random(count)` and walks **that
    many objects along the whole list, whatever their type** (the other timer skips non-buckets): the object
    reached takes its definition's idle effect (`+0x117`, Objects.kwd `0x358`: Anvil 42 Sparks for Forge,
-   Steel Bucket 69 Lava Spill, Work Bench 0) at the object's mesh point `0x2712`, owner the room's owner, then
-   sound `0x2E9` (`0x004F4DC7`). Nothing happens for an object with effect 0 or no such mesh point.
+   Steel Bucket 69 Lava Spill, Work Bench 0) at the object's mesh point `0x2712` through `0x0059D380`, a
+   three-dimensional point, z included; the owner is the object's own owner word (`+0x28`, `0x004F4D7B`), not
+   the room's; the heading is (mesh point minus the object's position, atan2 of x then y) & 0x7FF
+   (`0x004F4D4C..0x004F4D6B`, `0x004F4D7F`); then sound `0x2E9` (`0x004F4DC7`). Nothing happens for an object
+   with effect 0, or when the lookup fails (`0x004F4D3D`). **Ours:** the owner is the object's; the point is the
+   object's floor position at height 0 and the heading 0, because the simulation has no mesh point (marked
+   deviation, Q731a).
 3. **Smoke** (`+0x4D`, kept to 16 bits). With the effect `+0x427` (file `0x388`; 51, Workshop Smoke) it asks
    `0x004E8210(0, 1)` for a wall slot and its side `s`; the point is the tile centre moved `0x700` toward the
    wall (north `y-`, east `x+`, south `y+`, west `x-`), height `0x1000`, heading `(s & 3) << 9`; then sound
@@ -77,7 +82,7 @@ order, each `if (timer != 0) timer--; else { reload; act }`. A reload is
 
 The floor and wall passes of `0x004E8210` walk the room's slab chain in order. The room's effects are the
 file's eight words from `0x382`, copied to `+0x421` by `0x004EAE2A` when nonzero (`RoomDef.RoomEffect427Id`,
-`RoomEffect429Id` are the two this handler adds to `PortalBuildUpEffectId`).
+`RoomEffect429Id` are the two this handler adds to `RoomEffect425Id`).
 
 ## 4. Order (CONFIRMED)
 
@@ -87,7 +92,9 @@ next. Within a Workshop the order is the four blocks above, the hated-company st
 
 ## 5. Do the effects or sounds draw the stream? (STRONGLY INFERRED: no)
 
-- Effect creation (world slot `+0x38C` to `0x00440420` to the allocator `0x00440350`) reaches the effect
+- Effect creation: world slot `+0x38C` (`0x00509580`) forwards through `+0x388` (`0x0050E490`), which calls
+  `[[world+4]+0x10]` slot `+0x90` (`0x00440420`, vtable slot at `0x0066CD24`); that calls its slot `+0x98`
+  (`0x00440350`, at `0x0066CD2C`), which calls `0x004347E0`. It reaches the effect
   initialisers, whose draws are on the static effect stream `0x006D6450`; the only world-seed draw it reaches
   is `0x004B37D0`'s coin (`RenderInfo.cpp` line 0xC9), which is taken only when the animation's owner thing
   casts to a creature, and an effect's animation has no owner thing.
@@ -100,7 +107,10 @@ next. Within a Workshop the order is the four blocks above, the hated-company st
 - `WorkshopTimerSystem`, in the room-tick phase after `HatedCompanySystem`, ticks the Workshops newest first
   (by `RoomListPosition`, ADR-0541). **Deviation:** DK2 ticks all rooms in one list; ours runs each
   room type's system in turn, so a Treasury's per-turn draws (`StoreSweepSystem`) come before every
-  Workshop's. The stream's length is right; the order inside a turn where a Workshop timer fires is not.
+  Workshop's. The stream's length is right for that turn, but the values each room receives are swapped, and
+  the Treasury's draw count depends on its values (`StoreSweepSystem.cs` lines 71 and 75: one `random(100)` every
+  turn, more for each pile when it is below 30), so the streams diverge for good on any level with an older
+  Treasury and a Workshop (Q731d).
 - A level's own Workshops are constructed when a simulation starts, row by row as the map loads, before
   creatures: the four draws each, merged rooms included. UNKNOWN: whether DK2's loader makes rooms before
   or after its creatures; it sets the seed to 1 first (`0x00513870`).
@@ -108,8 +118,14 @@ next. Within a Workshop the order is the four blocks above, the hated-company st
   first turn.
 - The furniture list leaves out the Workshop Pillars (object 80, one per convex corner, pushed by
   `0x004F5650`), which our simulation does not hold. Only the lava-spill pick's landing object depends on it.
-- The lava-spill effect is asked for at the object's own position; the mesh point `0x2712` (a control
-  point of the object's model) is UNKNOWN, and so is whether each of the three machines has it.
+- The lava-spill effect is asked for at the object's own floor position, height 0, heading 0, owned by the
+  object; the mesh point `0x2712` (a control point of the object's model) is UNKNOWN, and so is whether each
+  of the three machines has it (section 3, Q731a).
+- The wall-slot phases (room `+0x92`, `+0x96`, `0x00454230`) are written once per room, when first met
+  (`0x004544B1..0x00454507`), and the checkerboard's `room+0x80` by `0x004EF5E0`; ours recomputes both from the
+  room's current chain on each call, so after a room grows or merges the bound of a slot pick can differ. The
+  draw count is unaffected, only which slot is picked (Q731e). The floor test (`0x004541AA`, `(x + y + room+0x80)`
+  even, interior cell `+0x0C == 0xFF`) is the one ours uses.
 - The sound sites are left as comments (`0x2E9` at `0x004F4C27` and `0x004F4DC7`, `0x2E8` at `0x004F4F03`).
 
 ## 7. The same gap in the other effect handlers (not built)

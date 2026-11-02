@@ -14725,8 +14725,9 @@ tile starts a room, for each piece a sale leaves, and as the simulation starts f
 three sites for the sound branch.
 
 **Consequences.** A Workshop draws 4 at its start and 4 to 8 more at every reload. Deviations: ours runs the
-Treasury's draws before every Workshop's where DK2 interleaves rooms by age (stream length right, order
-inside a firing turn not); the furniture list lacks the Workshop Pillars; the lava-spill effect sits at the
-object, not its unread mesh point; the map's Workshops draw before its creatures, which DK2's loader may not
+Treasury's draws before every Workshop's where DK2 interleaves rooms by age, and the Treasury's draw count
+depends on its values (`StoreSweepSystem` lines 71 and 75), so the stream diverges for good on any level with an
+older Treasury and a Workshop (Q731d); the furniture list lacks the Workshop Pillars; the lava-spill effect sits at the
+object's floor position, not its unread mesh point (the owner is the object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not
 (Q731). The Torture Chamber, Temple and Graveyard handlers draw the world stream too and are not built.
 Hash/save 379: sixteen bytes a tile. No scenario or fixture holds a Workshop, so only the pin moved.

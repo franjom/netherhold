@@ -103,10 +103,10 @@ public static class WorkshopTimerRules
         else
         {
             timers.WorkshopSteamTimer = Reload(context.Rng);
-            if (definition.PortalBuildUpEffectId != 0 && FloorSlot(context, room) is int floor)
+            if (definition.RoomEffect425Id != 0 && FloorSlot(context, room) is int floor)
             {
                 int x = CreatureState.CentreOf(floor % world.Width), y = CreatureState.CentreOf(floor / world.Width);
-                Request(context, room, definition.PortalBuildUpEffectId, x, y, SlotEffectHeight, default);
+                Request(context, room, definition.RoomEffect425Id, x, y, SlotEffectHeight, default);
                 // Sound event 0x2E9 goes here (0x004F4C27), at the effect's position.
             }
         }
@@ -125,8 +125,13 @@ public static class WorkshopTimerRules
                 if (pick < furniture.Count
                     && context.Database.ObjectById(furniture[pick].ObjectTypeId) is { IdleEffectId: not 0 } picked)
                 {
+                    // DK2 asks the object's mesh point 0x2712 (0x0059D380) for a three-dimensional point, owns the
+                    // effect by the object's own owner word (0x004F4D7B) and heads it along (point - the object's
+                    // position) & 0x7FF (0x004F4D4C..0x004F4D6B). Marked deviation: the simulation has no mesh
+                    // point, so ours sits at the object's floor position at height 0 with heading 0 (Q731a).
                     (int x, int y) = AutoFurnitureRules.FurniturePosition(world, context.Database, room, furniture[pick]);
-                    Request(context, room, picked.IdleEffectId, x, y, 0, default);
+                    context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(picked.IdleEffectId), furniture[pick].OwnerPlayerId,
+                        new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(0)), default));
                     // Sound event 0x2E9 goes here (0x004F4DC7), at the object's mesh point.
                 }
             }
@@ -172,12 +177,14 @@ public static class WorkshopTimerRules
         rng.NextInt(ReloadRangeSeconds * Ticks) + (ReloadFloorSeconds * Ticks);
 
     /// <summary>The room's auto-placed objects, newest first (<c>room+0xE</c>, pushed at the head by
-    /// <c>0x004E6220</c>).</summary>
+    /// <c>0x004E6220</c>), whoever owns them. Ordered by object id: DK2's list order is insertion order and its
+    /// thing slots are reused, but ours are not (<see cref="ObjectState.Id"/>, never reused), so the id is the
+    /// insertion order. Pillars (object 80) are not in ours.</summary>
     private static List<ObjectState> Furniture(SimulationContext context, RoomInstance room)
     {
         var list = new List<ObjectState>();
         foreach (ObjectState thing in context.World.Objects)
-            if (thing.AutoPlaced && !thing.InHand && thing.OwnerPlayerId == room.OwnerPlayerId && room.Contains(thing.TileIndex))
+            if (thing.AutoPlaced && !thing.InHand && room.Contains(thing.TileIndex))
                 list.Add(thing);
         list.Sort((a, b) => b.Id.CompareTo(a.Id));
         return list;

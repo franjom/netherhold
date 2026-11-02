@@ -1746,7 +1746,7 @@ internal static class Dk2TerrainFixture
 
         // Transcribed for the Treasury (60, Gold Earn Creation), because a gold
         // deposit asks for it on each store pile it creates.
-        PortalBuildUpEffectId = roomEffect,
+        RoomEffect425Id = roomEffect,
 
         // Not transcribed. Present because the record requires them.
         HealthGain = 0,

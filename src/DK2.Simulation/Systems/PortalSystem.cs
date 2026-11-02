@@ -107,7 +107,7 @@ public sealed class PortalSystem : ISimulationSystem
             if (centre.EntranceIdleTicks < required)
             {
                 if (centre.EntranceIdleTicks == required - 3 * SimulationTiming.OriginalTicksPerGameSecond
-                    && held < capacity && portal.Definition.PortalBuildUpEffectId != 0)
+                    && held < capacity && portal.Definition.RoomEffect425Id != 0)
                 {
                     List<CreatureDef> preview = Candidates(context, owned, playerId,
                         portal.Definition, out _);
@@ -115,7 +115,7 @@ public sealed class PortalSystem : ISimulationSystem
                     // drawing, or decaying entrance modifiers, even when portals are closed.
                     if (preview.Any(c => PortalChoiceRules.BaseWeight(world, c, owned, playerId) > 0))
                         context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
-                            new EffectId(portal.Definition.PortalBuildUpEffectId), playerId,
+                            new EffectId(portal.Definition.RoomEffect425Id), playerId,
                             world.TilePosition(entranceTile), new Fp32(0)));
                 }
                 continue;

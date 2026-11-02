@@ -41,7 +41,7 @@ public sealed class WorkshopTimerTests
         return new GameDatabase(
             basis.Terrain.Values.Select(t => t.TerrainId == rock.TerrainId ? rock with { Flags = rock.Flags | TerrainFlags.AllowRoomWalls } : t),
             basis.Rooms.Values.Select(r => r.TypeId == RoomTypeId.Workshop
-                ? r with { PortalBuildUpEffectId = steam, RoomEffect427Id = smoke, RoomEffect429Id = bubbling } : r),
+                ? r with { RoomEffect425Id = steam, RoomEffect427Id = smoke, RoomEffect429Id = bubbling } : r),
             basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values,
             objects: basis.Objects.Values.Select(o => o.ObjectId switch
             {
@@ -261,7 +261,7 @@ public sealed class WorkshopTimerTests
     }
 
     [Fact]
-    public void TheLavaSpillTimerCountsSteelBucketsButWalksTheWholeListSoItCanLandOnAnotherObjectNotTheBucketDrawn()
+    public void AssumingTheMeshPointExistsTheLavaSpillTimerWalksTheWholeListSoItCanLandOnAnotherObjectNotTheBucketDrawn_Q731a()
     {
         // 0x004F4C9E..0x004F4CEF walks from the list's head by the drawn index over every object, where
         // the last timer (0x004F4FC0) skips the objects that are not Steel Buckets. One bucket among
@@ -281,6 +281,31 @@ public sealed class WorkshopTimerTests
             Assert.Equal(expected == 0 ? 0 : 1, spills.Count);
             if (expected != 0) Assert.Equal(expected, spills[0].EffectId.Value);
         }
+    }
+
+    [Fact]
+    public void TheHandlersTypeTestsAndRangesAreTheShippedConstants()
+    {
+        // 0x004F4C82 compares the object type byte with 0x10; the constructor's range is 4 seconds of ticks and
+        // a reload draws 16 and adds 8.
+        Assert.Equal(Bucket, WorkshopTimerRules.SteelBucketObjectId);
+        Assert.Equal((4, 16, 8, 0x700), (WorkshopTimerRules.StartRangeSeconds, WorkshopTimerRules.ReloadRangeSeconds,
+            WorkshopTimerRules.ReloadFloorSeconds, WorkshopTimerRules.WallInset));
+    }
+
+    [Fact]
+    public void AssumingTheMeshPointExistsTheLavaSpillEffectIsOwnedByTheObjectNotTheRoom_Q731a()
+    {
+        // 0x004F4D7B reads the owner word of the object reached (+0x28).
+        GameDatabase db = Db();
+        WorldState world = World(db, furnish: false);
+        world.SpawnObject(db, Bucket, PlayerIds.Neutral, (4 * world.Width) + 4).AutoPlaced = true;
+        GameSimulation sim = TimerSim(db, world, out ListEventSink sink);
+
+        sim.Tick();
+
+        ViewEffectRequest spill = Assert.Single(Requests(sink), r => r.EffectId.Value == BucketSpill);
+        Assert.Equal(PlayerIds.Neutral, spill.Owner.Value);
     }
 
     [Fact]
@@ -402,7 +427,7 @@ public sealed class WorkshopTimerTests
     }
 
     [Fact]
-    public void AWorkshopTheMapStartsWithIsConstructedWhenTheSimulationStartsAndAnAbsorbedRoomStillDrew()
+    public void AssumingRoomsAreMadeBeforeCreaturesAWorkshopTheMapStartsWithIsConstructedAtSimulationStartAndAnAbsorbedRoomStillDrew_Q731b()
     {
         // A U loaded row by row: (10,10) and (12,10) each start a room; (10,11) and (11,11) join the first,
         // and (12,11) joins the room to its north, the second, which absorbs the first behind it. Two

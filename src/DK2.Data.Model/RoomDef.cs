@@ -79,10 +79,11 @@ public sealed record RoomDef
     /// <summary>Effect after room object creation, ROOMS file ushort at 0x384.</summary>
     public ushort CreatedObjectEffectId { get; init; }
 
-    /// <summary>ROOMS file ushort at 0x386, runtime <c>+0x425</c>: the room's own effect. The Portal's
-    /// pre-arrival buildup (94); the effect a gold deposit asks for on each store pile it creates
-    /// (<c>0x004F3C60</c>, <c>0x004F4090</c>: Treasury 60, Heart 0).</summary>
-    public ushort PortalBuildUpEffectId { get; init; }
+    /// <summary>ROOMS file ushort at 0x386, runtime <c>+0x425</c>: the room's own effect, read by several
+    /// handlers. The Portal's pre-arrival buildup (94); the effect a gold deposit asks for on each store
+    /// pile it creates (<c>0x004F3C60</c>, <c>0x004F4090</c>: Treasury 60, Heart 0); the Workshop's steam
+    /// (50), the Torture Chamber's and the Temple's.</summary>
+    public ushort RoomEffect425Id { get; init; }
 
     /// <summary>ROOMS file ushort at 0x388, runtime <c>+0x427</c> (the loader copies eight words from
     /// file 0x382 to <c>+0x421</c>, <c>0x004EAE2A</c>). The Workshop's smoke (effect 51), played at a

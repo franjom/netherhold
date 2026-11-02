@@ -225,7 +225,7 @@ room holding both an `IsEvil` creature and one without it angers each holder
 lacking `DoesntGetAngryWithEnemies` by eight seconds of
 `ModifyAngerInCompanyOfHatedCreaturesPerSecond`. The effect handlers draw from
 the world's random stream, so they are not pure presentation in DK2: the Workshop's
-are built (ADR-0633), the Torture Chamber's, the Temple's and the Graveyard's are not.
+are built (ADR-0634), the Torture Chamber's, the Temple's and the Graveyard's are not.
 
 ADR-0479 moves `CasinoSystem`, `PortalSystem` and `RoomHealthSystem` into a
 room-tick phase after the creatures, with the store sweep, Heart defence and the
