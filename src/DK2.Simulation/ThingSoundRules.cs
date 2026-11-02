@@ -29,6 +29,12 @@ public enum ThingSoundEvent : ushort
     ImpClaimedFloor = 0x10A,
     /// <summary>The same, on a tile that still has one.</summary>
     ImpClaimedRoomTile = 0x10B,
+    /// <summary>A room tile built (<c>Player_BuildRoomTile</c>, <c>0x004C5D87</c>).</summary>
+    RoomTileBuilt = 0xF1,
+    /// <summary>A room tile sold for a refund (<c>Player_SellRoomTile</c>, <c>0x004C5EF8</c>).</summary>
+    RoomTileSold = 0xF5,
+    /// <summary>A room rectangle accepted at its corner (the build command, <c>0x00442D57</c>).</summary>
+    RoomBuildAccepted = 0x2F8,
 }
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the
@@ -63,17 +69,18 @@ public static class ThingSoundRules
     }
 
     /// <summary>A tile's request: handle 0, in the category of <paramref name="terrainId"/> (definition
-    /// <c>+0x195</c>), at the tile's centre and height 0, as <c>Tile_ApplyWork</c> passes it. Nothing is
-    /// emitted for a terrain with no category.</summary>
+    /// <c>+0x195</c>), at the tile's centre and <paramref name="height"/> (0 as <c>Tile_ApplyWork</c> and
+    /// the room builder pass it, 0x1000 as the room sale does). Nothing is emitted for a terrain with no
+    /// category. A room's tiles use its room terrain's category (room definition <c>+0x44E</c>).</summary>
     public static void RequestTile(SimulationContext context, string system, byte terrainId, int tileIndex,
-        ThingSoundEvent sound)
+        ThingSoundEvent sound, int height = 0, SoundSourceKind kind = SoundSourceKind.Terrain)
     {
         string category = context.Database.TerrainById(terrainId).SoundCategory;
         if (category.Length == 0) return;
         int width = context.World.Width;
-        Request(context, system, new SoundSourceId(SoundSourceKind.Terrain, tileIndex), category, sound,
+        Request(context, system, new SoundSourceId(kind, tileIndex), category, sound,
             new(new Fp32(CreatureState.CentreOf(tileIndex % width)), new Fp32(CreatureState.CentreOf(tileIndex / width)),
-                new Fp32(0)), voiced: false);
+                new Fp32(height)), voiced: false);
     }
 
     /// <summary>A creature's request with handle 0, which DK2 passes when lifting and dropping it.</summary>

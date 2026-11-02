@@ -204,8 +204,27 @@ by name) and `+0x19D` (the second name, file `0x204` by the same shift, unread);
 `0xF4` has samples in `terrain_rock`, `terrain_gold`, `terrain_gems`, `terrain_wall` (3 each), so
 digging rock, mining gold or gems and breaking a reinforced wall sound; dirt path, claimed path and
 every room terrain but the heart's have no `0xF4`, so a ruined room tile is silent (the sale's own sounds
-are separate, section 7.2). `0x10C` has one sample in `terrain_rock` only, so reinforcing sounds and
+are separate, below). `0x10C` has one sample in `terrain_rock` only, so reinforcing sounds and
 claiming dirt path does not; `creature_imp` also has `0x10C`, which is not this site. `0x10A` and
 `0x10B` have one sample each in `creature_imp`. `0x10B` needs a claimable tile that still carries a
 room link, which no shipped terrain produces (a claimable path is neither a room nor solid); ours
 tests the room index, and no test reaches it.
+
+**Building and selling.** A room's tiles use the category of the terrain of its room definition's terrain byte
+(`+0x44E`, then terrain `+0x195`): `ROOM_LAIR` for a lair tile. All three requests are handle 0.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| room `0xF1`, tile centre, height 0 | [0x004C5C30](functions/004C5C30.md) at `0x004C5D87`: paid tile, game turn differs from the turn argument (the drag wave passes its queue turn, so its first diagonal is silent; the keeper wrapper passes 0; loader and trigger builds are unpaid) | CONFIRMED | `RoomBuildSystem.PlacePaidTile` |
+| room `0xF5`, tile centre, height `0x1000` | [0x004C5DB0](functions/004C5DB0.md) at `0x004C5EF8`: a sale with refund, after the refund is paid in | CONFIRMED | `RoomSellSystem` |
+| room `0xF4`, same place | same function, `0x004C5F29`: the refundless sale (a worked-down room tile, trigger actions) | CONFIRMED site; no group outside `room_dungeon_heart` | nothing |
+| room `0x2F8`, lowest corner of the rectangle, height `0x1000` | [0x00442960](functions/00442960.md) at `0x00442D57`: command-table handler for the human rectangle build, after its pre-check passes | CONFIRMED site; issue side STRONGLY INFERRED | `RoomBuildSystem.RequestAcceptedSound` |
+| room `0xF7`, nonpositional | [0x004E5650](functions/004E5650.md) at `0x004E570C`: a room changes owner, the room's handle `+0x14`, definition `+0x449` | CONFIRMED site | silent: no `SFX.map` has `0xF7` |
+| room `0xF8` | [0x004E7FE0](functions/004E7FE0.md) at `0x004E81BE` | CONFIRMED site | silent: no `SFX.map` has `0xF8` |
+
+`0xF1` has one sample in every buildable room category and the heart, `0xF5` two in each buildable one
+(not the heart or portal), so building and selling sound for every room a keeper can lay. `0x2F8`, the
+plan's "most rooms have it", is the accept click of a dragged build: one sample in each buildable room's
+category, none in the heart or portal. A destroyed room tile asks for `0xF4` twice in DK2 (the refundless sale
+and `Tile_ApplyWork`, both in the room terrain's category) and nothing plays outside the heart; ours emits the
+applier's only.
