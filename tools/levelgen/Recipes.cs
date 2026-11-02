@@ -46,10 +46,14 @@ public static class Recipes
         new("M7TF_Brave", "Secret4", "M7TrapFights' Q362 chambers alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Brave)),
         new("M7TF_Boulders", "Secret4", "M7TrapFights' Q513a corridors alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Boulders)),
         new("M7TF_Prison", "Secret4", "M7TrapFights' Q729 Prison and fight alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Prison)),
+        new("M7TrapFights2", "Secret4",
+            "M7TrapFights with M7Traps' dead-end way out of the Heart (x 19, rows 23..27): each zone variant crashed too, and a "
+            + "Heart sealed on every side is what all three shared and M7Traps, which ran, did not.",
+            b => M7TrapFights(b, Zone.All | Zone.HeartWay)),
     ];
 
     [Flags]
-    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7 }
+    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8 }
 
     private static string BaseOf(LevelBuilder b) => b.BaseName;
 
@@ -195,6 +199,8 @@ public static class Recipes
             for (int x = 5; x <= 10; x++) Path(x, 31);
             for (int y = 29; y <= 33; y++) for (int x = 11; x <= 14; x++) Path(x, y);
         }
+        // the Heart's gap at (19,27) and a dead end north to row 23, as M7Traps has
+        if (zones.HasFlag(Zone.HeartWay)) for (int y = 23; y <= 27; y++) Path(19, y);
         // the Dwarf's pocket
         Path(37, 37, Heroes);
 
