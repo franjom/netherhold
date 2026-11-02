@@ -58,6 +58,26 @@ public class ImpCreationLandingTests
         Assert.NotEqual(10, imp.Dk2StateId);
     }
 
+    /// <summary>0x00481750 makes effect 29, Imp Birth Trail, when the fall reaches the floor, at the
+    /// imp's point with its owner's tag; none while it is still falling.</summary>
+    [Fact]
+    public void LandingAsksForTheImpBirthTrailAtTheLandingPoint()
+    {
+        GameSimulation sim = Staffed(gravity: 16);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+        CreatureState imp = Cast(sim);
+        sim.Run(4);
+        Assert.Equal((214, 0), (imp.Dk2StateId, imp.PosZ));
+        Assert.DoesNotContain(sink.Events, e => e.EffectRequest?.EffectId == ImpCreationRules.BirthEffect);
+
+        sim.Tick();
+        ViewEffectRequest effect = Assert.Single(sink.Events,
+            e => e.EffectRequest?.EffectId == ImpCreationRules.BirthEffect).EffectRequest!.Value;
+        Assert.Equal(PlayerIds.FirstKeeper, effect.Owner.Value);
+        Assert.Equal((imp.PosX, imp.PosY, 0), (effect.Position.X.Raw, effect.Position.Y.Raw, effect.Position.Z.Raw));
+    }
+
     [Fact]
     public void ZeroGravityDoesNotTurnTheFallIntoAFixedWait()
     {

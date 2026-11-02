@@ -140,7 +140,7 @@ Right click drops the held creature, or slaps a creature when the hand is empty.
 The bottom panel selects Build and Create Imp; the corner selects Sell. The Game view displays
 the selected room's name. The DungeonRunner Inspector's Selected Room Id dropdown also selects
 rooms by name. Choose Lair to build sleeping space. Drag Build and Sell rectangles;
-click Create Imp. The former numeric, bracket, WASD and Q/E debug shortcuts are removed.
+click a tile with Create Imp to cast it there. The former numeric, bracket, WASD and Q/E debug shortcuts are removed.
 
 ## Recording input
 
