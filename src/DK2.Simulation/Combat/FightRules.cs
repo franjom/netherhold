@@ -166,6 +166,14 @@ public static class FightRules
     /// "under attack" notice there, which the <c>heart_hit</c> event stands for.</summary>
     public static void LandBlow(SimulationContext context, CreatureState me, CreatureDef mine)
     {
+        // 0x004992EB, the swing's last act: asked by every arm that reached the handler's tail (a blow of zero included), at the attacker.
+        if (Land(context, me, mine) && !ReferenceEquals(context.Events, NullEventSink.Instance))
+            ThingSoundRules.Request(context, SystemName, me, ThingSoundEvent.Struck);
+    }
+
+    /// <summary>The swing's arms; false where DK2's handler returns before its tail (no live target, an invulnerable creature).</summary>
+    private static bool Land(SimulationContext context, CreatureState me, CreatureDef mine)
+    {
         me.SwingInProgress = false;
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -173,9 +181,9 @@ public static class FightRules
         if (me.SwingTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = world.CreatureById(me.SwingTargetId);
-            if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) return;
+            if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) return false;
             int blow = Blow(database, me, mine, target.PosX, target.PosY);
-            if (blow == 0) return;
+            if (blow == 0) return true;
             // 0x0049926C (0x0049924D for the Reaper-type arm): the swing passes the attacker's owner (+0x28) as the source.
             int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "hit",
@@ -183,12 +191,12 @@ public static class FightRules
         }
         else if (me.SwingTargetKind == FightTargetKind.Heart)
         {
-            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return;
+            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return false;
             ref PlayerState owner = ref world.Player(me.SwingTargetPlayerId);
             // A health change, negative as Blow's is, with no bearing term.
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 -MeleeDamageRules.Swing(database, mine, me.Level, MeleeDamageRules.StanceOf(me)), 0, 0);
-            if (blow == 0) return;
+            if (blow == 0) return true;
             bool killed = HeartSoundRules.Damage(context, SystemName, owner.PlayerId, -blow, me.OwnerPlayerId);
             if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
             context.Emit(SystemName, "heart_hit",
@@ -200,11 +208,11 @@ public static class FightRules
             // which is the creature arm's alone, applied flat through the health routine. The two
             // player modifiers (+0x1090, +0x1091) apply in DK2; ours passes 0, as the creature arm does.
             DoorState? door = world.DoorById(me.SwingTargetId);
-            if (door is null || door.Health <= 0) return;
+            if (door is null || door.Health <= 0) return false;
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
                     MeleeDamageRules.StanceOf(me)), 0, 0);
-            if (blow == 0) return;
+            if (blow == 0) return true;
             DoorRules.Damage(context, door, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "door_hit", $"creature={me.Id} door={door.Id} blow={blow} health={door.Health}");
         }
@@ -214,16 +222,17 @@ public static class FightRules
             // definition (+0xBF, presentation), then the blow flat through the health routine, which
             // adds it to a trap with no refusal. The trap goes when the world next removes the dead.
             TrapState? trap = world.TrapById(me.SwingTargetId);
-            if (trap is null || trap.Health <= 0) return;
+            if (trap is null || trap.Health <= 0) return false;
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
                     MeleeDamageRules.StanceOf(me)), 0, 0);
-            if (blow == 0) return;
+            if (blow == 0) return true;
             TrapRules.Damage(trap, -blow);
             context.Emit(SystemName, "trap_hit", $"creature={me.Id} trap={trap.Id} blow={blow} health={trap.Health}");
         }
         else if (me.SwingTargetKind is FightTargetKind.Shot or FightTargetKind.Body or FightTargetKind.Object)
-            LandThingBlow(context, me, mine);
+            return LandThingBlow(context, me, mine);
+        return true;
     }
 
     /// <summary>The possessed swing's other classes (<c>0x00498E30</c> → <c>Thing_ModifyHealth</c>
@@ -232,7 +241,7 @@ public static class FightRules
     /// an object without Damageable (def <c>+0xF4</c> bit 21) refuses it. What removes a shot taken to
     /// 0 is unread: ours, <see cref="Systems.ShotSystem"/> on its next pass. Not built: the Horned
     /// Reaper's state 0xEF over a target the blow killed (its idle AI is unbuilt).</summary>
-    private static void LandThingBlow(SimulationContext context, CreatureState me, CreatureDef mine)
+    private static bool LandThingBlow(SimulationContext context, CreatureState me, CreatureDef mine)
     {
         WorldState world = context.World;
         int blow = MeleeDamageRules.ApplyPlayerModifiers(
@@ -240,18 +249,18 @@ public static class FightRules
         switch (me.SwingTargetKind)
         {
             case FightTargetKind.Shot:
-                if (world.ShotById(me.SwingTargetId) is not { } shot) return;
+                if (world.ShotById(me.SwingTargetId) is not { } shot) return false;
                 shot.Health = unchecked(shot.Health - blow);
                 context.Emit(SystemName, "shot_struck", $"creature={me.Id} shot={shot.Id} blow={blow} health={shot.Health}");
                 break;
             case FightTargetKind.Body:
                 // The body's health is its rot timer counting down; ours counts the window up.
-                if (world.CreatureById(me.SwingTargetId) is not { } body || !CreatureDeathRules.IsCorpse(body)) return;
+                if (world.CreatureById(me.SwingTargetId) is not { } body || !CreatureDeathRules.IsCorpse(body)) return false;
                 body.DyingTicks = unchecked(body.DyingTicks + blow);
                 context.Emit(SystemName, "body_struck", $"creature={me.Id} body={body.Id} blow={blow} lain={body.DyingTicks}");
                 break;
             case FightTargetKind.Object:
-                if (world.ObjectById(me.SwingTargetId) is not { } thing) return;
+                if (world.ObjectById(me.SwingTargetId) is not { } thing) return false;
                 bool damageable = context.Database.ObjectById(thing.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.Damageable);
                 // Only a Book Case reaches here, and it is not Damageable; a Damageable one would take
                 // the blow on its health, which no shipped object the pick allows needs.
@@ -259,6 +268,7 @@ public static class FightRules
                     $"creature={me.Id} object={thing.Id} type={thing.ObjectTypeId} blow={blow}");
                 break;
         }
+        return true;
     }
 
     /// <summary>The spell arm's cast (combat-spells.md §6) — action 16 begun on the engagement's

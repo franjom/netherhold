@@ -227,6 +227,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
                 $"player={state.OwnerPlayerId} body={state.Id} type={creature.Name} " +
                 $"at=({state.Tile.X},{state.Tile.Y}) decompose_value={creature.DecomposeValue} " +
                 $"tally={result.DecomposeValue} {raised}");
+            RequestCorpseSound(context, state);
             Remove(context, SystemName, state);
             return;
         }
@@ -237,8 +238,16 @@ public sealed class CreatureHealthSystem : ISimulationSystem
             $"decompose_value={creature.DecomposeValue} " +
             $"carried_by={state.CarriedByCreatureId}");
 
+        RequestCorpseSound(context, state);
         Remove(context, SystemName, state);
     }
+
+    /// <summary><c>Corpse_Destroy</c> (<c>0x004B10A0</c>, the removal of a body that rotted or was buried): <c>0xF4</c> in <c>OBJECT_FLIES</c>
+    /// (the global category <c>0x006E5048</c>, looked up from that name by <c>0x004B1980</c>) at the body's position with the body's own handle,
+    /// which in DK2 is the flies' loop (<c>0x004B1373</c>, a first-person sound that waits for the loops, plan W7.3); the voice here is the body's.</summary>
+    private static void RequestCorpseSound(SimulationContext context, CreatureState body) =>
+        ThingSoundRules.Request(context, SystemName, new SoundSourceId(SoundSourceKind.Corpse, body.Id), "OBJECT_FLIES",
+            ThingSoundEvent.CorpseDestroyed, new FpPosition3(new Fp32(body.PosX), new Fp32(body.PosY), new Fp32(body.PosZ)));
 
     /// <summary>
     /// Takes a creature out of the world, and out of whatever arms were holding
@@ -302,6 +311,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     internal static void Die(
         SimulationContext context, string system, CreatureDef creature, CreatureState state)
     {
+        // 0x00487E4A: the cry, unless the removal counts nothing (+0x3E6 bit 0x40, DeathUncounted). DK2 runs the bookkeeping for every freed
+        // creature; ours asks it where the creature dies, not where the other removal paths (leaving, the Temple's pool) free one.
+        if (!state.DeathUncounted) ThingSoundRules.Request(context, system, state, ThingSoundEvent.CreatureFreed);
         // A hypnotised or following creature's bookkeeping (0x00487DD2, 0x00487E6A) before the possession exit.
         PossessionRules.CreatureFreed(context.World, state);
         if (state.Possessed && context.World.HasPlayer(state.OwnerPlayerId))
