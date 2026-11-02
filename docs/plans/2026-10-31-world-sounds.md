@@ -84,7 +84,7 @@ These run in cursor and hand code, so they are emitted in `DK2.Presentation` (`H
 
 | Event | Category | Site | What |
 |---|---|---|---|
-| `0xEC` | hand | `0x0040E300` (`Cursor_CompleteTagState`) | tag tiles, at the cursor (`+0x1078/+0x107C`, height `0x2000`); also a nonpositional `0xEC` in a definition category, likely silent |
+| `0xEC` | hand | `0x0040E300` (`Cursor_CompleteTagState`) | the press that enters state 5 (tag or untag), at the cursor (`+0x1078/+0x107C`, height `0x2000`); also a nonpositional `0xEC` in a terrain category, silent |
 | `0xC5` | hand | `0x0040E58D`, latch byte `0x006CE95C` | slap |
 | `0xC5` | object | `0x0049C2E2` (`Object_ReactToSlap_LIKELY`) | slapped object |
 | `0xC3`/`0xC4` | creature | `0x004BFCE2` (`Hand_PrepareCreature_LIKELY`) / `0x004BC81D` (`Hand_Drop`) | creature picked up / dropped |
@@ -96,7 +96,9 @@ These run in cursor and hand code, so they are emitted in `DK2.Presentation` (`H
 
 **Result:** tag `0xEC` and slap `0xC5` (hand) built in `HandCursorFeedback`; creature and object `0xC3`/`0xC4` built in `HandSystem` as `ThingSound` events (simulation, not presentation: `Hand_Drop` and the lift functions are the mirrored functions); object slap `0xC5` and object hover `0xE4` are silent (no object category has the group); the nonpositional `0xEC` is silent; creature hover waits for the creature action table (W7.2): only the action word decides which arm runs, though the mood arm itself needs just `+0x3B9`, `+0x28A` and the turn gate. Tests: `HandSoundTests` in `DK2.Presentation.Tests` and `DK2.Simulation.Tests`.
 
-**Commit:** `sound: the hand's tag, slap, pick-up, drop and hover sounds`.
+**Owner check (Unity, Level 1 or 3):** a tag or untag gives one click at the press and none at release, a click without drag included; a slap sounds about 0.1 s into the swing, and a right-click within about 4 frames of the last is swallowed (DK2's guard); lifting with a full hand still sounds; an Imp has pick-up and drop sounds while a firefly and a Jack in the Box stay silent; lifting loose gold sounds and lifting a treasury pile is silent.
+
+**Commit:** `sound: the hand's tag, slap, pick-up and drop sounds` (`dee9c954`, review fixes `59f121af`); the hover sounds move to W7.2.
 
 ---
 
@@ -235,7 +237,7 @@ Not world sounds, but found unwired by the same scan: cheat entry `0x133`; icon 
 | Phase | Commit | Tests | Owner heard it |
 |---|---|---|---|
 | W1 Foundation | `5950dc09`, `14fe94e6`, `d8b71e07`, `07318061` | `WorldSoundTests`, `SoundThrottleTests` (`DK2.Presentation.Tests`), `CombatApproachTests.ListeningForSoundsLeavesTheHashAlone`; full gate green | [ ] |
-| W2 Hand and cursor | `dee9c954` | `HandSoundTests` (`DK2.Presentation.Tests`, `DK2.Simulation.Tests`), `WorldSoundTests`, `ObjectsOnRealDataTests.ObjectSoundCategoriesAreTheShippedNames`; creature hover waits (W7.2) | [ ] |
+| W2 Hand and cursor | `dee9c954`, `59f121af` | `HandSoundTests` (`DK2.Presentation.Tests`, `DK2.Simulation.Tests`), `WorldSoundTests`, `ObjectsOnRealDataTests.ObjectSoundCategoriesAreTheShippedNames`; creature hover waits (W7.2) | [ ] |
 | W3 Terrain and rooms | | | [ ] |
 | W4 Imps and creature states | | | [ ] |
 | W5 Objects, doors, traps | | | [ ] |
