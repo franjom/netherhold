@@ -1,4 +1,4 @@
-﻿# Scripted portal creatures (action 28)
+# Scripted portal creatures (action 28)
 
 ## Evidence and scope
 
@@ -72,8 +72,10 @@ retains its final pose until state 193 ends. Verified
 against all 46 shipped creature descriptors and the Warlock/Goblin view lifecycle.
 The classic handoff treats the authored exit displacement as a relocation:
 its visible previous XY becomes the exit XY for that frame, preventing the new
-clip from replaying the Entrance's movement from the portal centre. Native
-previous XY remains unchanged. Endpoint mesh probes (Goblin, Warlock, Troll,
+clip from replaying the Entrance's movement from the portal centre. The presentation adjustment alone does not implement the simulation's scan
+reference: native handler 193 also copies displaced XYZ to +0xF6 at
+`0x00459D13-0x00459D27`. The missing remake scan stamp is Q731; see
+[q712-atomic-inputs.md](q712-atomic-inputs.md#portal-relocation-scan-reference-q731). Endpoint mesh probes (Goblin, Warlock, Troll,
 Mistress and Salamander) found no material foot-height gap: below 0.016 tile.
 Deviates: height is not taken, and 193 reads as idle to other simulation systems.
 

@@ -14728,3 +14728,24 @@ update, so with two keepers its order may be angle, angle, heading, heading (unr
 A free imp spends its fall in 214, then 11 and 10, before choosing work. The test fixtures'
 Heart sits in a claimed 5 by 5, as a shipped Heart does. Whether the fall is Q149's 1.4 s is
 unmeasured.
+
+## ADR-0633: schedule packet playback by record order
+
+**Date:** 2026-11-02. **Status:** accepted. Q730; hash/save 378.
+
+**Context.** Native playback reads sequential count-framed blocks before the
+world update. The stored stamp is the recording clock plus one, so using it
+as an execution turn delays our commands. Three atomic native input buffers
+confirm the [binary reading](research/packet-playback-clock.md).
+
+**Decision.** Read the preceding count byte, 16 stamped-header bytes, count*18
+payload bytes and 12 trailer bytes. The selected first header starts playback
+turn 1; an explicit byte offset selects an origin, not an absolute-time seek.
+Retain raw stamps/offsets as provenance. Resolve entity maps and references on
+playback turns, keeping source-specific CSV conversions unchanged.
+
+**Consequences.** Final complete records need no following timestamp header.
+Malformed/truncated records fail our reader explicitly; this is validation,
+not a claim about native error recovery. Replay commands change, so bump
+hash/save together under the owner's rule even though simulation fields do
+not change. Q712 aggregate causation and partial restoration remain open.

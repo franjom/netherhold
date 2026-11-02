@@ -296,7 +296,7 @@ STRONGLY INFERRED binary/source comparison, before any production change:
 | 0045CB00, 0045D907 / 0045DAB7 | No candidate or worker admits Heart scan; strictly nearer pillar replaces running plain-distance best. Current Choose/ScanHearts agrees on these branches; no matched selector error found. |
 | 00462490 / 00484940 | Job 19 routes to a random Heart-room point, resume 178; 178 returns 0. Current HeroJobRules agrees on this dispatch; existing random-point/route adapters remain as documented in hero-party-walk.md. |
 | 00498E30 | Successful ordinary pillar blow ends its action without a pillar-specific hero-state transition; ours likewise retains the combat target. No new mismatch established. |
-| 0045E9F0 / 004B5D40 / 00489FE6 | Previous pose +F6 is refreshed after scan and before state dispatch/mover. Ours stamps after combat dispatch, before ordinary movement. Ordinary arrival is scanned next update in both; state-side relocation still needs a matched control. |
+| 0045E9F0 / 004B5D40 / 00489FE6 | Previous pose +F6 is refreshed after scan and before state dispatch/mover. Ours stamps after combat dispatch, before ordinary movement. Ordinary arrival is scanned next update in both; the [Portal relocation control](q712-atomic-inputs.md#portal-relocation-scan-reference-q731) identifies the separate unbuilt Q731 write. |
 | 00460C50 | Native class 0 enemy targeting self can hold a neighbouring tile without a health/state test. HeldByAnAttacker additionally skips IsDown; the pre-existing route existence/options mismatch remains Q713. No collapsed hero retaining an Imp target was found in these captures. |
 
 This measurement pass made no production change; 362 remains its baseline.

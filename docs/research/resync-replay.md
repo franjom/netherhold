@@ -20,10 +20,10 @@ three runs and `analysis/resync_compare*.out`).
    index, 18 KB for player 3 at 2340. Tile flag `+0x0B` bit 0 is the Secret Door flag, not a mark.
 2. `dk2tools replay level4 - out.csv --packet ... --entity-map ... --resync <tick.json>
    --resync-at <tick> [--resync-map slot,ours.csv] --jobs jobs.csv`. After our turn `tick`
-   (the replay's turn numbers are DK2's, so the capture's tick `T` is applied after turn `T`),
+   (an explicit restore stamp, not proof of matching observation boundaries),
    `WorldResync.Apply` copies the state (ADR-0556 and ADR-0558 list what it copies and what it
    leaves) and the replay goes on. `--resync-map` names our creature for native slots the replay's entity map gets
-   wrong for this build; the map here was built from the packet imp casts' turns, which match.
+   wrong for this build; see the [playback/observation clock boundary](packet-playback-clock.md) and Q719.
    `--resync-skip part,...` leaves the named parts ours (ADR-0569): tiles, marks, doors (and traps),
    gold, crates, creatures (the pairing; the parts below need it, and without it the entity map is
    not refreshed), pose (point, health, state; it also skips the dying collapse and the worker
