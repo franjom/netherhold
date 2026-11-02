@@ -69,8 +69,9 @@ acceptance or proof of the global reinforcement cause.
 The isolated `fixes/imp-cast-position` candidate, hash/save 277, preserves human
 cast X/Y through packet decoding, the command and spawning. Existing tile and
 Heart callers retain their placement semantics. No state field is added; no
-landing, action cadence or chooser rule changes. The current presentation path
-still issues its existing Heart cast; this change does not add point aiming to UI.
+landing, action cadence or chooser rule changes. The presentation click now
+casts at the pointer's ground point (tile centre when the pointer has none, nothing
+without a pointer tile), so a played cast reaches state 214.
 
 Two regressions failed before correction: same-tile points decoded to equal
 commands, and exact casts spawned at the tile centre. All 79 tools tests and
@@ -172,6 +173,9 @@ the byte-sized gravity's vertical vector and clamps below-floor movement.
 At floor it runs the landing's 1-to-11 transition; existing 11 then enters 10.
 Free supply, tile/default Heart commands and Receive Imps retain their previous
 paths. This is the stationary, non-flying worker subset, not general physics.
+At floor, `ImpCreationRules` requests effect 29 (Imp Birth Trail) at the landing
+point, as [0x00481750](functions/00481750.md) does; it is a Create Imp's only visual
+and an observation event, not state.
 
 Both seeds reproduce each cast's five snapshot observations: 214 above floor,
 214 at floor, 11, 10, then first walk. X/Y remains exact. The raw prefix through

@@ -129,17 +129,17 @@ public class JackInTheBoxTests
         sim.Run(2);
 
         CreatureState jack = Assert.Single(world.Creatures, c => JackInTheBoxRules.IsJack(c));
-        Assert.Equal(CreatureFightFlags.None, jack.FightFlags);
+        Assert.Equal(CreatureFightFlags.None, (CreatureFightFlags)jack.Flags & (CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable));
         // In 273 the state table already refuses both; the bits are what refuse them on the walk (state 6).
         for (int i = 0; i < 20 && jack.Dk2StateId != WalkState; i++) sim.Run(1);
         Assert.Equal(WalkState, jack.Dk2StateId);
         Assert.False(CombatRules.MayLookForAFight(world, db, jack, force: false));
         Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: true));
         Assert.False(CombatRules.IsAttackable(jack));
-        jack.FightFlags = CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable;
+        jack.Flags |= (byte)(CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable);
         Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: false));
         Assert.True(CombatRules.IsAttackable(jack));
-        Assert.Equal(CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable, goblin.FightFlags);
+        Assert.Equal(9, goblin.Flags & 9);
         Assert.True(CombatRules.MayLookForAFight(world, db, goblin, force: false));
         Assert.True(CombatRules.IsAttackable(goblin));
     }

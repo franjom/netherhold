@@ -344,10 +344,13 @@ public sealed class PlayerInputTranslator
 
     private static PlayerCommand? Click(in PlayerIntent intent, PlayerInputSnapshot snapshot)
     {
-        if (intent.Tool == PlayerToolMode.CreateImp)
-            return new CreateImpCommand(intent.PlayerId);
-
         if (intent.PointerTile is not TilePos tile) return null;
+
+        // Action 54 carries the cast's 12.12 X/Y (imp-create-position.md); a pointer with no
+        // ground point falls back to the tile centre.
+        if (intent.Tool == PlayerToolMode.CreateImp)
+            return new CreateImpCommand(intent.PlayerId, intent.PointerPosition
+                ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y))));
 
         if (intent.Tool == PlayerToolMode.Hand)
         {

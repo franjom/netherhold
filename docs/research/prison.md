@@ -49,9 +49,10 @@ object-carrying task would use — kind 8.
 
 ## 2. Who may pick a creature up
 
-A captured creature arrives at **a sixth of its maximum health** — DK2's `ModifyHealth` writes `max / 6` when it takes a creature below zero, so a Goblin
-arrives at **250** of 1500 and turns to bone in **83** game seconds (Q167,
-ADR-0071). The owner drew the line on who may carry it, 2026-09-05:
+A captured creature arrives with **the dying window left plus a tenth of its maximum** (state 44's
+admission, `0x004E2C70`): a fresh Goblin at **390** of 1500, bone in **137** s; a hand's drop keeps its
+health (ADR-0628). A full or closed Prison sends the imp on to another, else to its rim (ADR-0629).
+The owner drew the line on who may carry it, 2026-09-05:
 
 > *"a corpse can not be picked up by hand of evil and dropped to a graveyard,
 > only an imp can carry it to its grave, also an injured creature, lying on the
@@ -105,7 +106,7 @@ priority, two destinations. Three consequences reproduced here:
 - **Capture sits below claiming.** An imp takes no prisoners while there is
   unclaimed ground: in `an_imp_drags_an_enemy_to_prison` the goblin lies on the
   floor while the imp claims the whole map first.
-- **Capacity is checked before the pickup and again at the door** (owner, 2026-09-13 and 2026-10-05; ADR-0148, ADR-0354): with every Prison full no imp sets off (`0x0046D810`'s no-place result); a Prison that fills during the carry refuses at the door (`AdmitsAt`), and the body is put down on the room point `0x004E8430`, a random tile that is neither floor nor wall slot, so the rim (`PrisonRules.RefusedBodyPoint`).
+- **Capacity is checked before the pickup and again at the door** (owner, 2026-09-13 and 2026-10-05; ADR-0148, ADR-0354): with every Prison full no imp sets off (`0x0046D810`'s no-place result); a Prison that fills during the carry refuses at the door (`AdmitsAt`), the imp carries the body on to another Prison with space (ADR-0629), and failing that it is put down on the room point `0x004E8430`, a random tile that is neither floor nor wall slot, so the rim (`PrisonRules.RefusedBodyPoint`).
 - **The rescue window is a real deadline.** That run used to capture ten ticks
   inside the window; **it does not capture at all** — the
   goblin dies at tick 243 while the imp still claims, and the run records zero
@@ -370,7 +371,7 @@ the same fifteen. Every prison state has both clear. That is what makes state
 read to do with the flag byte (Q185).
 
 **But a prisoner never gets hungry *in* a cell**: a Goblin's `HungerRate` is 180
-game seconds and the drain turns it to bone in 83. The mechanic is reachable
+game seconds and the drain turns a fresh one to bone in 137. The mechanic is reachable
 because `HungerNeed` accumulates over a creature's **whole life** and is paid off
 only by eating, so anything dragged in after a few minutes on the map is hungry
 the moment it lands.

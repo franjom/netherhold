@@ -74,7 +74,7 @@ is a thing tag, so its first strike's reach turns on the victim's slot.
 ## 6. Built and not built (ADR-0337)
 
 **Fight bits (ADR-0615, hash/save 359):** process 39's clearing of `+0x46F` bits 0 and 3 is built
-(`CreatureState.FightFlags`), so ours' Jack neither looks for a fight nor can be attacked. Before
+(bits of `CreatureState.Flags` since ADR-0629), so ours' Jack neither looks for a fight nor can be attacked. Before
 that change, on `M7Traps` ours' Jack fought the keeper's Imp and the Heart. Now it takes DK2's path to
 the corner (x+1, y+1) and, since ADR-0627 (hash/save 371), settles there as DK2's does: its walk
 hands back to 273 at a whole route progress (§8).

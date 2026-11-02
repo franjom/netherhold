@@ -187,8 +187,9 @@ public static class ApproachRules
             return false;
         }
 
-        // §3. The ten-call refresh.
-        if (--me.RouteRefreshCountdown > 0) return true;
+        // §3. The ten-call refresh, then state 6's progress test (0x004713B6 calls 0x00470C80 after it),
+        // so a whole progress ends the walk only when no re-route was made (Q724, ADR-0632).
+        if (--me.RouteRefreshCountdown > 0) return !WholeProgress(context, me);
         Destination(context, me, mine, target, x, y, out int destX, out int destY);
         if (!ShotRules.Passable(world, context.Navigation, destX, destY))
         {
@@ -198,7 +199,7 @@ public static class ApproachRules
         if (destX == me.PosX && destY == me.PosY)
         {
             me.RouteRefreshCountdown = RefreshCalls;
-            return true;
+            return !WholeProgress(context, me);
         }
         if (!context.Navigation.TryRouteToStance(me, destX, destY, MoveOptions.Plain))
         {
@@ -207,6 +208,15 @@ public static class ApproachRules
         }
         me.RouteRefreshCountdown = RefreshCalls;
         context.Emit(SystemName, "reroutes", $"creature={me.Id} to={destX},{destY}");
+        return true;
+    }
+
+    /// <summary>State 6's handover inside 8 (<c>0x00470C80</c>): at a route progress of exactly 1.0 the
+    /// walk ends, as <see cref="Systems.TravelArrivalSystem"/> ends 6, 7 and 9 ahead of the handlers.</summary>
+    private static bool WholeProgress(SimulationContext context, CreatureState me)
+    {
+        if (Steering.FollowPathRules.Progress(me.Body) != Steering.Fixed16.One) return false;
+        End(me, "arrived", context);
         return true;
     }
 

@@ -165,11 +165,21 @@ public class PlayerInputTests
     }
 
     [Fact]
-    public void CreateImpNeedsNoPointerTileAndDoesNotRepeatWithoutAnEdge()
+    public void CreateImpCastsAtThePointerAndDoesNotRepeatWithoutAnEdge()
     {
-        Assert.IsType<CreateImpCommand>(Assert.Single(
-            Translate(PlayerToolMode.CreateImp, null, PointerButtonTransition.Pressed).All));
-        Assert.Empty(Translate(PlayerToolMode.CreateImp, null, PointerButtonTransition.None).All);
+        var point = new FpPosition2(new Fp32(4 * Fp32.One + 681), new Fp32(5 * Fp32.One + 1337));
+        CreateImpCommand cast = Assert.IsType<CreateImpCommand>(Assert.Single(_translator.Translate(
+            new PlayerIntent(Keeper, PlayerToolMode.CreateImp, point.Tile, PointerButtonTransition.Pressed,
+                PointerPosition: point), new PlayerInputSnapshot(false)).All));
+        Assert.Equal(point, cast.Position);
+
+        CreateImpCommand centre = Assert.IsType<CreateImpCommand>(Assert.Single(
+            Translate(PlayerToolMode.CreateImp, new TilePos(4, 5), PointerButtonTransition.Pressed).All));
+        Assert.Equal(new FpPosition2(new Fp32(CreatureState.CentreOf(4)), new Fp32(CreatureState.CentreOf(5))),
+            centre.Position);
+
+        Assert.Empty(Translate(PlayerToolMode.CreateImp, null, PointerButtonTransition.Pressed).All);
+        Assert.Empty(Translate(PlayerToolMode.CreateImp, new TilePos(4, 5), PointerButtonTransition.None).All);
     }
 
     private InputFrame Translate(

@@ -60,7 +60,7 @@ public static class JackInTheBoxRules
         }
         // 0x0048DFA0(0) and 0x0048DF10(0) clear +0x46F bits 3 and 0: the Jack never looks for a
         // fight and nothing can attack it (ADR-0615; DK2's Jack fought nothing in M7Traps).
-        jack.FightFlags = CreatureFightFlags.None;
+        jack.Flags = (byte)(jack.Flags & ~(int)(CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable));
         CreatureStateMachine.TrySetState(context.Hooks, jack, SpringState, context.Tick.Value);
         jack.HeartTargetPlayerId = heartOf;
         context.Emit(SystemName, "jack_sprung",

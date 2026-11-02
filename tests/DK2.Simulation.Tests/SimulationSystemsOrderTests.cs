@@ -34,6 +34,7 @@ public class SimulationSystemsOrderTests
             "CreatureUpdateSystem",
             "CreatureUpdateSystem/CreatureStatusSystem",
             "CreatureUpdateSystem/CombatSystem",
+            "CreatureUpdateSystem/TravelArrivalSystem",
             "CreatureUpdateSystem/CreatureEatSystem",
             "CreatureUpdateSystem/CreatureSleepSystem",
             "CreatureUpdateSystem/PaydaySystem",

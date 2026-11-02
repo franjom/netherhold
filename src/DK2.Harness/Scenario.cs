@@ -78,7 +78,7 @@ public sealed class ScenarioCreature
     /// <summary>Helpings of food owed, for the same reason <see cref="Health"/> exists: nothing in
     /// a scenario can make a creature hungry in a reasonable number of ticks.
     /// <para><b>And for the prison it is the only way.</b> A Goblin's <c>HungerRate</c> is 180 game
-    /// seconds and a cell turns it to bone in 83, so no prisoner ever gets hungry <i>in</i> a
+    /// seconds and a cell turns a fresh one to bone in 137, so no prisoner ever gets hungry <i>in</i> a
     /// prison; what makes the mechanic reachable is that <c>HungerNeed</c> accumulates over a
     /// creature's whole life and is paid off only by eating, so anything dragged in after a few
     /// minutes on the map is already hungry (docs/research/prison.md). This field is that history,

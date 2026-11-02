@@ -68,6 +68,8 @@ public class TortureTests
     private static CreatureState Captive(GameDatabase db, WorldState world)
     {
         CreatureState captive = world.SpawnCreature(db, GoblinId, Rival, Cell);
+        // Freshly knocked out, as an imp's prisoner is (Q726).
+        Assert.True(CreatureDeathRules.Collapse(new StateHookContext(world, db), captive));
         Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, Index(world, Cell)));
         return captive;
     }
@@ -172,18 +174,18 @@ public class TortureTests
     }
 
     [Fact]
-    public void ACaptiveAtASixthOfItsHealthDiesOnTheWheelBeforeItCanConvert()
+    public void AFreshCaptiveDiesOnTheWheelBeforeItCanConvert()
     {
-        // A prisoner wakes at 250 of 1500: 25 acts of 10, well short of the 81 a conversion needs.
+        // A prisoner wakes at 390 of 1500 (240 + 150, Q726): 39 acts of 10, well short of the 81 a conversion needs.
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState captive = Captive(db, world);
-        Assert.Equal(250, captive.Health);
+        Assert.Equal(390, captive.Health);
         Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), captive, Keeper, Index(world, Wheel)));
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        sim.Run(4 + (5 * 24));
+        sim.Run(4 + (5 * 38));
         Assert.Equal(10, captive.Health);
         sim.Run(1);
 
