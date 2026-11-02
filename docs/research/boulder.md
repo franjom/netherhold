@@ -227,11 +227,21 @@ corridor. Secret4's own variables apply: health 10000, `BoulderToCreatureDamageP
   keeps no memory of what it hit. This is also how the Dwarves of the first session were hit on two
   turns running.
 
-**Against §4, open (Q520):**
-- Each Dwarf was hit on two ticks running. The first hit stunned it (state 256 in the capture), and the
-  second landed although §4 skips a creature in state 256.
-- The second hit on the 6000 Hp Dwarf was 6000, not 3000; on the 3780 Hp one it was 3000. Both point at
-  the state test and the health routine's multipliers, which have not been reread.
+**The second hits, explained (binary 2026-11-02, Q520):**
+- **Why the strike lands again.** The Dwarf's `StunDuration` (`def+0x74C`, file `0xED0`) is 0. State 256's
+  handler (`0x004810D0`) holds only while the turns since entry are under it, so at the Dwarf's next
+  update it starts action 53 and calls `SetState(257)`. The strike skips only 76 and 256, so the next
+  tick's strike lands on a Dwarf in 257. CONFIRMED (binary and data).
+- **Why one doubled.** The health routine (`0x004B2CE0`) adds 128/128 for a stunned creature (209, 255, 256,
+  257). The 6000 Hp Dwarf's second hit was 3000 × 2 = 6000, 3000 → −3000. CONFIRMED (binary and capture).
+- **No floor at zero.** That routine does not clamp a negative result. Health stays below zero unless the
+  creature has `GenerateDeadBody`, is not dying or possessed and no room it is in refuses; that sets the dying countdown. What landed,
+  and so the wear, is health before less after: 6000 here. Ours clamps at 0 (`CreatureHealthRules.Apply`),
+  so it lands 3000 and the wear grows by 3000 (Q725).
+- **Open:** the 3780 Dwarf's second hit (780 → −2220) and the level-1 Dwarf's (500 → 0) were not doubled.
+  So each was outside the stunned family when struck, though no longer in 256. That fits 256's handler
+  returning 0 (action 53 or `SetState(257)` refused), which idles it, but this has not been read.
+  Ours, on a synthetic corridor (scratch probe, not a test), lands the second hit in 257 as DK2 does.
 
 ## 10. Built and not built (ADR-0333)
 
