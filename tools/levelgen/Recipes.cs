@@ -36,7 +36,20 @@ public static class Recipes
             + "two hero doors (Q520c) and two Sentries (Q520c); a Goblin four tiles from a Hero Sentry (Q362, Q513b/c) and one six "
             + "tiles from another (Q452); a Jack In The Box on the Imps' way to gold (Q524).",
             M7Traps),
+        new("M7TrapFights", "Secret4",
+            "Owner checks, 2026-11-02: three brave creatures each four tiles from a Hero Sentry, a level-10 Black Knight, a "
+            + "level-10 Bile Demon and a fearless level-10 Vampire (Q362: does it swing at the revealed trap?); two hero "
+            + "Boulder traps three tiles from a Troll, one on a Neutral Dirt Path like Level 20's (12,5), one on hero "
+            + "ground (Q513a: only the second should roll); a Prison whose captive is carried away from a fight, for the "
+            + "owner to sell during the carry (Q729, state 44's exit 4). Crashed DK2 on its second world frame (2026-11-02).",
+            b => M7TrapFights(b, Zone.All)),
+        new("M7TF_Brave", "Secret4", "M7TrapFights' Q362 chambers alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Brave)),
+        new("M7TF_Boulders", "Secret4", "M7TrapFights' Q513a corridors alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Boulders)),
+        new("M7TF_Prison", "Secret4", "M7TrapFights' Q729 Prison and fight alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Prison)),
     ];
+
+    [Flags]
+    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7 }
 
     private static string BaseOf(LevelBuilder b) => b.BaseName;
 
@@ -137,6 +150,114 @@ public static class Recipes
         foreach (var id in new[] { VariableTypeId.BoulderInitialHealth, VariableTypeId.BoulderSpeedTilesPerSecond,
                      VariableTypeId.BoulderToCreatureDamagePercentage, VariableTypeId.BoulderSlapDamage })
             b.SetVariable(id, b.GlobalValue(id));
+    }
+
+    private const byte DirtPath = 3, PrisonTerrain = 20;
+    private const byte Troll = 10, BileDemon = 3, Vampire = 8, BlackKnight = 22;
+
+    /// <summary>The M7TrapFights layout; every zone is sealed from the others and from the Heart.<list type="bullet">
+    /// <item>Q362: three chambers x 24..36, rows 3..7, 9..13 and 15..19; a Hero Sentry at x 25 and a level-10
+    /// creature at x 29 on the middle row (5, 11, 17): Black Knight, Bile Demon, Vampire.</item>
+    /// <item>Q513a: corridors x 3 and x 7, rows 3..11; a hero Boulder trap on row 4 of each, a Troll on row 7.
+    /// (3,4) is a Neutral Dirt Path as Level 20's (12,5) is; (7,4) is hero Claimed Path.</item>
+    /// <item>Q729: a 3x3 keeper Prison at x 2..4, rows 30..32, its door row 31 joined east by a corridor to a
+    /// chamber x 11..14, rows 29..33, with a level-4 Bile Demon at (12,31), a level-1 Dwarf at (14,31) and two
+    /// Imps at (6,31) and (7,31).</item>
+    /// <item>One Dwarf sealed at (37,37) so Secret4's "no Dwarves left" win never fires; its 400 s limit is 3600 s.</item>
+    /// </list></summary>
+    private static void M7TrapFights(LevelBuilder b, Zone zones)
+    {
+        LevelMap map = b.Map;
+        var tiles = new MapTile?[map.Width, map.Height];
+        void Set(int x, int y, byte terrain, byte owner) => tiles[x, y] = new MapTile(terrain, owner, 1, 0);
+        void Path(int x, int y, byte owner = Keeper) => Set(x, y, ClaimedPath, owner);
+
+        bool brave = zones.HasFlag(Zone.Brave), boulders = zones.HasFlag(Zone.Boulders), prison = zones.HasFlag(Zone.Prison);
+        // Q362 chambers
+        if (brave)
+        {
+            foreach (int top in new[] { 3, 9, 15 })
+                for (int y = top; y <= top + 4; y++)
+                    for (int x = 24; x <= 36; x++) Path(x, y);
+            foreach (int row in new[] { 5, 11, 17 }) Path(25, row, Heroes);
+        }
+        // Q513a corridors
+        if (boulders)
+        {
+            foreach (int cx in new[] { 3, 7 }) for (int y = 3; y <= 11; y++) Path(cx, y);
+            Set(3, 4, DirtPath, Neutral);
+            Path(7, 4, Heroes);
+        }
+        // Q729: the Prison, its corridor and the fight
+        if (prison)
+        {
+            for (int y = 30; y <= 32; y++) for (int x = 2; x <= 4; x++) Set(x, y, PrisonTerrain, Keeper);
+            for (int x = 5; x <= 10; x++) Path(x, 31);
+            for (int y = 29; y <= 33; y++) for (int x = 11; x <= 14; x++) Path(x, y);
+        }
+        // the Dwarf's pocket
+        Path(37, 37, Heroes);
+
+        var rock = new MapTile(ImpenetrableRock, Neutral, 1, 0);
+        for (int y = 1; y < map.Height - 1; y++)
+            for (int x = 1; x < map.Width - 1; x++)
+                if (map[x, y].TerrainId is not (9 or 14)) b.Paint(x, y, tiles[x, y] ?? rock);
+
+        // things: two of Secret4's Dwarves (the pocket's and the captive's), none of its traps
+        var dwarves = new Queue<(int X, int Y, byte Level)>(prison ? [(37, 37, 1), (14, 31, 1)] : [(37, 37, 1)]);
+        var points = new Dictionary<int, (int X, int Y)>();
+        var (boulder, boulderImage) = b.Template<TrapThing>(t => t.TrapId == BoulderTrap);
+        var (sentry, sentryImage) = b.Template<TrapThing>(t => t.TrapId == HeroSentry);
+        var things = b.Things;
+        for (int i = things.Count - 1; i >= 0; i--)
+        {
+            switch (things[i])
+            {
+                case TrapThing: b.RemoveThing(i); break;
+                case GoodCreatureThing g when dwarves.Count > 0:
+                    var (x, y, level) = dwarves.Dequeue();
+                    b.EditThing<GoodCreatureThing>(i, r => r with { X = x, Y = y, Level = level, InitialHealth = 100 });
+                    points[g.ObjectiveTargetActionPointId] = (x, y);
+                    break;
+                case GoodCreatureThing: b.RemoveThing(i); break;
+            }
+        }
+        things = b.Things;
+        for (int i = 0; i < things.Count; i++)
+            if (things[i] is ActionPointThing ap && points.TryGetValue(ap.ActionPointId, out var to))
+                b.EditThing<ActionPointThing>(i, r => r with { StartX = to.X, StartY = to.Y, EndX = to.X, EndY = to.Y });
+
+        if (brave)
+            foreach (int row in new[] { 5, 11, 17 })
+                b.InsertThing(sentry with { X = 25, Y = row, TrapId = HeroSentry, PlayerId = Heroes }, sentryImage);
+        if (boulders)
+            foreach (int cx in new[] { 3, 7 })
+                b.InsertThing(boulder with { X = cx, Y = 4, TrapId = BoulderTrap, PlayerId = Heroes }, boulderImage);
+
+        var (creature, creatureImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Keeper && c.CreatureId == Imp);
+        void Creature(int x, int y, byte id, byte level) => b.InsertThing(creature with
+        {
+            X = x, Y = y, CreatureId = id, PlayerId = Keeper, Level = level, InitialHealth = 100, ObjectiveTargetActionPointId = 0,
+        }, creatureImage);
+        if (brave)
+        {
+            Creature(29, 5, BlackKnight, 10);
+            Creature(29, 11, BileDemon, 10);
+            Creature(29, 17, Vampire, 10);
+        }
+        if (boulders)
+        {
+            Creature(3, 7, Troll, 1);
+            Creature(7, 7, Troll, 1);
+        }
+        if (prison)
+        {
+            Creature(12, 31, BileDemon, 4);
+            Creature(6, 31, Imp, 1);
+            Creature(7, 31, Imp, 1);
+        }
+
+        b.SetTriggerParameter(65534, "Value", 3600);
     }
 
     /// <summary>Secret4's lava becomes impenetrable rock; open: the cross path at row 20, the trap stubs at

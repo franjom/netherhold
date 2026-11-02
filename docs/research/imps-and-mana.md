@@ -122,9 +122,12 @@ aims two tiles from player +0xB43/+0xB45 at a random 2048-step angle.
 `0x004BBD30` reaches creation process 1 (`0x004AD7A0`), whose bounds/nav-solid
 gates reject invalid points without clamping or relocating them. A ruined-at-load
 Heart retains origin (1,1), but its disabled deadline prevents startup attempts.
-The implementation still deviates on successful healthy-Heart placement:
-first Heart tile rather than the native ring (Q716). That placement/RNG issue
-is separate from the startup deadline corrected here.
+Ours casts the same point for every eligible keeper (angle drawn first, X + sin,
+Y - cos from the Heart's centre, (1,1) for a Heart ruined at load) and makes the
+imp through the shared creation path: state 214 half a tile up, a heading draw,
+effect 29 on landing (ADR-0630, hash/save 377). Unread: the order of the creation
+process's heading draw against other keepers' angle draws (Q716). The startup
+deadline is a separate rule.
 
 **Level 7 opening (binary and shipped data, 2026-11-01).** PLAYERS contains
 ids 1,2,3,4 in that order, so rival 4 is active and is served before player 3.

@@ -45,13 +45,7 @@ public class ImpSupplyTests
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
-        if (heart)
-        {
-            ref TileState tile = ref world.Tile(2, 2);
-            tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
-            tile.Health = database.TerrainById(tile.TerrainId).StartingHealth;
-            tile.OwnerPlayerId = Keeper;
-        }
+        Dk2TerrainFixture.HeartRoom(world, database, Keeper, heart);
 
         world.Player(Keeper).Mana = mana;
         world.Player(Keeper).NextFreeImpTick = GameTick.Zero;
@@ -67,7 +61,7 @@ public class ImpSupplyTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
-        world.Tile(2, 2).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         var simulation = new GameSimulation(database, world, 5,
             [new DungeonHeartSystem(), new ImpSupplySystem()]);
 
@@ -86,7 +80,7 @@ public class ImpSupplyTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
-        world.Tile(2, 2).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         world.Player(Keeper).HeartRuined = true;
         var simulation = new GameSimulation(database, world, 5,
             [new DungeonHeartSystem(), new ImpSupplySystem()]);
@@ -102,9 +96,14 @@ public class ImpSupplyTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
-        world.Tile(2, 2).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
-        world.Tile(3, 2).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
-        world.Tile(3, 2).OwnerPlayerId = 4;
+        Dk2TerrainFixture.HeartRoom(world, database, Keeper);
+        for (int y = 4; y <= 8; y++)
+            for (int x = 8; x <= 12; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+                world.Tile(x, y).OwnerPlayerId = 4;
+            }
+        world.Tile(10, 6).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
         world.Player(Keeper).NextFreeImpTick = GameTick.Zero;
         world.Player(4).NextFreeImpTick = GameTick.Zero;
         var simulation = new GameSimulation(database, world, 5, [new ImpSupplySystem()]);
@@ -153,11 +152,112 @@ public class ImpSupplyTests
 
         run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 6);
 
-        Assert.Equal(Keeper, run.World.Tile(2, 2).OwnerPlayerId);
-        Assert.Equal(Dk2TerrainFixture.DungeonHeartTerrain, run.World.Tile(2, 2).TerrainId);
+        Assert.Equal(Keeper, run.World.Tile(Dk2TerrainFixture.HeartTile.X, Dk2TerrainFixture.HeartTile.Y).OwnerPlayerId);
+        Assert.Equal(Dk2TerrainFixture.DungeonHeartTerrain, run.World.Tile(Dk2TerrainFixture.HeartTile.X, Dk2TerrainFixture.HeartTile.Y).TerrainId);
         Assert.Equal(0, run.Imps);
         Assert.Empty(run.Of("imp_generated"));
         Assert.Equal(new GameTick(0), run.World.Player(Keeper).NextFreeImpTick);
+    }
+
+    /// <summary>A free imp is a Create Imp cast (0x004BB2A0 → 0x004BBD30): the tick's first draw is
+    /// its angle, and it is born 0x2000 from the Heart tile's centre at X + sin, Y - cos, half a tile
+    /// up in state 214. The height is STRONGLY INFERRED: no capture shows a free cast's shot
+    /// raised to the floor.</summary>
+    [Fact]
+    public void AFreeImpIsCastAtTheDrawnRingPointHalfATileUp()
+    {
+        (WorldState world, GameSimulation sim, _) = FreeSupplyOnly(seed: 5);
+        int angle = new SimRandom(5).NextInt(0x800);
+
+        sim.Tick();
+
+        CreatureState imp = Assert.Single(world.Creatures);
+        Assert.Equal(RingPoint(Dk2TerrainFixture.HeartTile, angle), (imp.PosX, imp.PosY));
+        Assert.Equal((ImpCreationRules.FallingState, ImpCreationRules.BirthHeightAboveFloor),
+            (imp.Dk2StateId, imp.PosZ));
+
+    }
+
+    [Fact]
+    public void AFreeImpLandsWithItsBirthTrail()
+    {
+        Run run = WithAHeart();
+        run.Tick();
+        CreatureState imp = Assert.Single(run.World.Creatures);
+        Assert.Equal(ImpCreationRules.FallingState, imp.Dk2StateId);
+
+        for (int i = 0; i < 20 && imp.Dk2StateId == ImpCreationRules.FallingState; i++) run.Tick();
+
+        Assert.NotEqual(ImpCreationRules.FallingState, imp.Dk2StateId);
+        ViewEffectRequest trail = Assert.Single(run.Events.Events,
+            e => e.EffectRequest?.EffectId == ImpCreationRules.BirthEffect).EffectRequest!.Value;
+        Assert.Equal((imp.PosX, imp.PosY), (trail.Position.X.Raw, trail.Position.Y.Raw));
+    }
+
+    /// <summary>A Heart ruined at load never set DungeonHeartPosition, so the cast aims from (1,1)
+    /// (0x004B883E); a point off the map or on rock makes nothing and the deadline still moves.</summary>
+    [Fact]
+    public void ARuinedAtLoadHeartsFreeCastAimsFromOneOneAndMayBeRefused()
+    {
+        bool made = false, refused = false;
+        for (ulong seed = 1; seed <= 40; seed++)
+        {
+            (WorldState world, GameSimulation sim, _) = FreeSupplyOnly(seed);
+            world.Player(Keeper).HeartRuined = true;
+            int angle = new SimRandom(seed).NextInt(0x800);
+            (int x, int y) = RingPoint(new TilePos(1, 1), angle);
+
+            sim.Tick();
+
+            bool open = x >= 0 && y >= 0 && world.Contains(new TilePos(x >> 12, y >> 12))
+                && world.Tile(x >> 12, y >> 12).TerrainId == Dk2TerrainFixture.ClaimedPath;
+            if (open)
+            {
+                CreatureState imp = Assert.Single(world.Creatures);
+                Assert.Equal((x, y), (imp.PosX, imp.PosY));
+                made = true;
+            }
+            else
+            {
+                Assert.Empty(world.Creatures);
+                refused = true;
+            }
+            Assert.NotEqual(GameTick.Zero, world.Player(Keeper).NextFreeImpTick);
+        }
+        Assert.True(made && refused);
+    }
+
+    /// <summary>The upgraded cast fires shot 60, whose process 36 (0x004AFE50) faces the imp one
+    /// of four ways, random(4) &lt;&lt; 9; process 1's draw is random(0x800).</summary>
+    [Fact]
+    public void AnUpgradedFreeImpFacesACardinalHeading()
+    {
+        (WorldState world, GameSimulation sim, _) = FreeSupplyOnly(seed: 5);
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell,
+            Dk2TerrainFixture.CreateImpSpellId, ResearchTreeRules.Available, Upgraded: true));
+
+        sim.Run(ImpSupplyRules.FreeImpIntervalTicks(sim.Database) * 3 + 1);
+
+        Assert.NotEmpty(world.Creatures);
+        Assert.All(world.Creatures, imp => Assert.Equal(0, imp.Heading & 0x1FF));
+    }
+
+    private static (int X, int Y) RingPoint(TilePos origin, int angle) =>
+        (CreatureState.CentreOf(origin.X) + ((TrapRules.Sine(angle) * 0x2000) >> 16),
+         CreatureState.CentreOf(origin.Y) - ((TrapRules.Cosine(angle) * 0x2000) >> 16));
+
+    /// <summary>The Heart room with free supply due now and nothing else running, so the tick's
+    /// first draw is the free cast's angle.</summary>
+    private static (WorldState, GameSimulation, ListEventSink) FreeSupplyOnly(ulong seed)
+    {
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        Dk2TerrainFixture.HeartRoom(world, database, Keeper);
+        world.Player(Keeper).NextFreeImpTick = GameTick.Zero;
+        var sim = new GameSimulation(database, world, seed, [new ImpSupplySystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+        return (world, sim, events);
     }
 
     [Fact]
@@ -274,22 +374,17 @@ public class ImpSupplyTests
     public void AKeeperWithNowhereToPutAnImpStillBurnsTheInterval()
     {
         // The original advances the deadline without looking at whether the cast
-        // succeeded, so a keeper with no heart is evaluated, places nothing and
-        // still pays the interval — the first imp after a heart appears is not
-        // instant. STRONGLY INFERRED from the instruction order: the deadline is
-        // written unconditionally on the line after the call. Nothing observable
-        // turns on it in a shipped level; a keeper with no heart has lost (Q40).
-        Run run = WithAHeart(heart: false);
+        // succeeded (0x004BB57E follows the call), so a cast whose ring point is
+        // solid places nothing and still pays the interval.
+        Run run = WithAHeart();
         int interval = ImpSupplyRules.FreeImpIntervalTicks(run.Db);
+        SetRing(run.World, Dk2TerrainFixture.Rock);
 
         run.Ticks(interval * 4 + 1);
         Assert.Empty(run.Of("imp_generated"));
 
         // Now give them somewhere to put one, one tick after a deadline was set.
-        ref TileState tile = ref run.World.Tile(2, 2);
-        tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
-        tile.Health = run.Db.TerrainById(tile.TerrainId).StartingHealth;
-        tile.OwnerPlayerId = Keeper;
+        SetRing(run.World, Dk2TerrainFixture.ClaimedPath);
 
         run.Tick();
         Assert.Equal(0, run.Imps);
@@ -301,14 +396,28 @@ public class ImpSupplyTests
     [Fact]
     public void NoDungeonHeartMeansNoImps()
     {
-        // In DK2 losing your heart is defeat (Q40), so "no heart, no imps" needs
-        // no rule of its own — it falls out of there being nowhere to put one.
-        Run run = WithAHeart(heart: false);
+        // Only the Heart's opening arms the free-imp deadline (0x004D9ECD), so a keeper
+        // without a Heart never casts; losing one is defeat (Q40).
+        GameDatabase database = Dk2TerrainFixture.Database();
+        WorldState world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper]);
+        Dk2TerrainFixture.HeartRoom(world, database, Keeper, heart: false);
+        var simulation = new GameSimulation(database, world, 5,
+            [new DungeonHeartSystem(), new ImpSupplySystem()]);
 
-        run.Ticks(ImpSupplyRules.FreeImpIntervalTicks(run.Db) * 6);
+        simulation.Run(ImpSupplyRules.FreeImpIntervalTicks(database) * 6);
 
-        Assert.Equal(0, run.Imps);
-        Assert.Empty(run.Of("imp_generated"));
+        Assert.Empty(world.Creatures);
+        Assert.Equal(new GameTick(uint.MaxValue), world.Player(Keeper).NextFreeImpTick);
+    }
+
+    /// <summary>Sets every tile of <see cref="Dk2TerrainFixture.HeartRoom"/> but the Heart's to
+    /// <paramref name="terrain"/>: rock leaves no ring point a free cast can use.</summary>
+    private static void SetRing(WorldState world, byte terrain)
+    {
+        for (int y = 1; y <= 5; y++)
+            for (int x = 1; x <= 5; x++)
+                if (new TilePos(x, y) != Dk2TerrainFixture.HeartTile)
+                    world.Tile(x, y).TerrainId = terrain;
     }
 
     // ---- Create Imp -------------------------------------------------------
@@ -603,14 +712,7 @@ public class ImpSupplyTests
                                                 PlayerIds.Neutral, Keeper]);
 
         // Hand the whole starting room over, then put a heart in it.
-        for (int y = 1; y <= 3; y++)
-            for (int x = 1; x <= 3; x++)
-                world.Tile(x, y).OwnerPlayerId = owner;
-
-        ref TileState tile = ref world.Tile(2, 2);
-        tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
-        tile.Health = database.TerrainById(tile.TerrainId).StartingHealth;
-        tile.OwnerPlayerId = owner;
+        Dk2TerrainFixture.HeartRoom(world, database, owner);
 
         world.Player(owner).Mana = mana;
         world.Player(owner).NextFreeImpTick = GameTick.Zero;

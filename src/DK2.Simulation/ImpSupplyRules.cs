@@ -67,8 +67,9 @@ public static class ImpSupplyRules
         database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
 
     /// <summary>Finds this keeper's first Heart tile in storage order, or none.
-    /// Successful free-cast placement still deviates from the native ring (Q716);
-    /// see docs/research/imps-and-mana.md.</summary>
+    /// Used for a <see cref="CreateImpCommand"/> without a tile and by callers that only need
+    /// to know whether a Heart exists; free supply aims from the Heart's position instead
+    /// (ADR-0630, docs/research/imps-and-mana.md).</summary>
     public static int HeartTileOf(WorldState world, GameDatabase database, PlayerId playerId)
     {
         byte? heartTerrain = ManaRules.DungeonHeartTerrainId(database);
