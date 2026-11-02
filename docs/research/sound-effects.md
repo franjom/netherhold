@@ -179,3 +179,33 @@ section 5](creature-action-table.md#5-the-25-word-is-a-sound-id-not-a-label)) wh
 only the action word decides which arm runs, and ours has no action table or single current-action field to read
 it from; the creature hover waits for that (W7.2). A special under the hand requests `0xE4` in
 its object category on three of every four turns; `OBJECT_SPECIAL` has no such group.
+
+## 7. Terrain, digging, claiming and rooms
+
+Read 2026-11-02 for plan Phase W3. Same conventions as section 6: every request is one slot
+`+0x20` call (handle, category, event, position); a row is silent when no shipped `SFX.map` has the
+group with samples.
+
+**The terrain category (CONFIRMED).** Terrain definition `+0x195` is the manager's category handle
+for the name in TERRAIN file bytes `0x1DF`..`0x1FE` (the loader [0x004F66E0](functions/004F66E0.md)
+copies them from its intermediate record, shifted `+0xB8`, and resolves them through slot `+0x1C`;
+shipped values read from the file: `TERRAIN_ROCK`, `TERRAIN_WALL`, ..., and `ROOM_*` for every room
+terrain, so a room tile's category is its room terrain's. Terrains 27, 28, 30 and 38 have none).
+Ours: `TerrainDef.SoundCategory`. Two more handles follow, `+0x199` (Temple only: `ROOM_TEMPLE_WATERLESS`
+by name) and `+0x19D` (the second name, file `0x204` by the same shift, unread); the ambience grid
+([0x0044E2A0](functions/0044E2A0.md)) reads all three (W7.4).
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| terrain `0xF4`, handle 0, tile centre, height 0 | [0x00452F60](functions/00452F60.md) at `0x0045327C`: health reached 0 and the destroyed type (`+0x1C6`) differs from the tile's terrain, after the tile is set or sold, before the destroy effect; category of the terrain the tile had | CONFIRMED | `TileWorkSystem.Execute`, `TremorRules.DamageWall` |
+| terrain `0x10C`, same shape | same function at `0x00453359`: health reached the maximum and the max-health type (`+0x1C5`) differs, before the conversion and its effect | CONFIRMED; the plan's "dig hit" is wrong, it is the upward conversion (reinforce, claim, corner fill) | `TileWorkSystem.RequestCompletionEffect` |
+| imp `0x10A` / `0x10B`, the imp's handle, at the imp | [0x004974C0](functions/004974C0.md) at `0x00497635`: after the strike that left the tile not claimable (only then); `0x10A` when the tile's room word (`+2` low 12 bits) is 0, else `0x10B`; the handle is stored back | CONFIRMED | `TileWorkSystem.RequestClaimSound` |
+
+`0xF4` has samples in `terrain_rock`, `terrain_gold`, `terrain_gems`, `terrain_wall` (3 each), so
+digging rock, mining gold or gems and breaking a reinforced wall sound; dirt path, claimed path and
+every room terrain but the heart's have no `0xF4`, so a ruined room tile is silent (the sale's own sounds
+are separate, section 7.2). `0x10C` has one sample in `terrain_rock` only, so reinforcing sounds and
+claiming dirt path does not; `creature_imp` also has `0x10C`, which is not this site. `0x10A` and
+`0x10B` have one sample each in `creature_imp`. `0x10B` needs a claimable tile that still carries a
+room link, which no shipped terrain produces (a claimable path is neither a room nor solid); ours
+tests the room index, and no test reaches it.

@@ -1685,6 +1685,21 @@ internal static class Dk2TerrainFixture
     private static void Set(GlobalVariables vars, VariableTypeId id, int value) =>
         vars.Misc[id] = new MiscVariable(id, value, 0, 0);
 
+    /// <summary>TERRAIN file bytes 0x1DF of the shipped terrains this fixture carries (a room's tiles use
+    /// the room terrain's); <c>TerrainSoundCategoriesAreTheShippedNames</c> reads the real file.</summary>
+    private static readonly Dictionary<byte, string> ShippedSoundCategory = new()
+    {
+        [1] = "TERRAIN_SOLID_ROCK", [2] = "TERRAIN_ROCK", [3] = "TERRAIN_DIRT_PATH", [4] = "TERRAIN_WATER",
+        [5] = "TERRAIN_LAVA", [6] = "TERRAIN_GOLD", [7] = "TERRAIN_GEMS", [8] = "TERRAIN_CLAIMED_PATH",
+        [9] = "TERRAIN_WALL", [10] = "ROOM_TREASURE", [11] = "ROOM_LAIR", [12] = "ROOM_PORTAL",
+        [13] = "ROOM_HATCHERY", [14] = "ROOM_DUNGEON_HEART", [15] = "ROOM_LIBRARY", [16] = "ROOM_TRAINING",
+        [17] = "ROOM_BRIDGE", [18] = "ROOM_GUARD_POST", [19] = "ROOM_WORKSHOP", [20] = "ROOM_PRISON",
+        [21] = "ROOM_TORTURE", [22] = "ROOM_TEMPLE", [23] = "ROOM_GRAVEYARD", [24] = "ROOM_CASINO",
+        [25] = "ROOM_PIT", [31] = "TERRAIN_DIRT_PATH", [32] = "TERRAIN_CLAIMED_PATH",
+        [33] = "ROOM_HERO_GATE_BIRDLESS", [36] = "ROOM_BRIDGE", [37] = "ROOM_HERO_GATE_BIRDLESS",
+        [40] = "ROOM_PORTAL",
+    };
+
     private static TerrainDef T(
         byte id, string name, TerrainFlags flags,
         ushort startingHealth, ushort maxHealth,
@@ -1694,6 +1709,7 @@ internal static class Dk2TerrainFixture
     {
         Name = name,
         TerrainId = id,
+        SoundCategory = ShippedSoundCategory.GetValueOrDefault(id, ""),
         Flags = flags,
         StartingHealth = startingHealth,
         MaxHealth = maxHealth,

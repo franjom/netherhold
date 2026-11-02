@@ -68,6 +68,7 @@ public static class KwdTerrainRooms
             lattice.CopyTo(bytes, TerrainLayout.Wibble);
         }
         U16(TerrainLayout.StartingHealth, record.StartingHealth);
+        KwdOverlay.Ascii(bytes, TerrainLayout.SoundCategory, 32, record.SoundCategory, ReadName(bytes, TerrainLayout.SoundCategory, 32), trimmed: false);
         bytes[TerrainLayout.MaxHealthType] = record.MaxHealthTypeTerrainId;
         bytes[TerrainLayout.DestroyedType] = record.DestroyedTypeTerrainId;
         U16(TerrainLayout.MaxHealth, record.MaxHealth);
@@ -94,7 +95,7 @@ public static class KwdTerrainRooms
         internal const int Tooltip = 0x1A0, NameString = 0x1A2, Wibble = 0x1CE, Id = 0x1D6;
         internal const int StartingHealth = 0x1D7, MaxHealthType = 0x1D9, DestroyedType = 0x1DA;
         internal const int MaxHealth = 0x1FF, MaxHealthEffect = 0x1A4, DestroyedEffect = 0x1A6;
-        internal const int TerrainRgb = 0x1DB, AmbientRgb = 0x201, TextureVariants = 0x1DE;
+        internal const int TerrainRgb = 0x1DB, AmbientRgb = 0x201, TextureVariants = 0x1DE, SoundCategory = 0x1DF;
     }
 
     private static class RoomLayout
@@ -172,6 +173,7 @@ public static class KwdTerrainRooms
             MaxHealthTypeTerrainId = U8(TerrainLayout.MaxHealthType),
             DestroyedTypeTerrainId = U8(TerrainLayout.DestroyedType),
             MaxHealth = U16(TerrainLayout.MaxHealth),
+            SoundCategory = ReadName(rec, b + TerrainLayout.SoundCategory, 32),
             TextureVariants = U8(TerrainLayout.TextureVariants),
             MaxHealthEffectId = U16(TerrainLayout.MaxHealthEffect),
             DestroyedEffectId = U16(TerrainLayout.DestroyedEffect),

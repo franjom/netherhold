@@ -117,6 +117,8 @@ public static partial class TremorRules
         {
             tile.FreshlyDug = false;
             SlabChain.Changed(world, context.Database, world.TileIndex(at), before, ownerBefore);
+            if (tile.TerrainId != before)
+                ThingSoundRules.RequestTile(context, "tremor", before, world.TileIndex(at), ThingSoundEvent.TileBroken);
             context.Navigation.Refresh();
         }
         if (result.GoldSpilled > 0)

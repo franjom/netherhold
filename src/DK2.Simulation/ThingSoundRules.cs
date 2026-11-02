@@ -18,7 +18,18 @@ public readonly record struct SoundSourceId(SoundSourceKind Kind, int Value)
 
 /// <summary>An event number as DK2 passes it to the sound manager: an SFX.map group in the
 /// requester's category.</summary>
-public enum ThingSoundEvent : ushort { PickedUp = 0xC3, Dropped = 0xC4, BattleCall = 0xD6, Sacked = 0xDF }
+public enum ThingSoundEvent : ushort
+{
+    PickedUp = 0xC3, Dropped = 0xC4, BattleCall = 0xD6, Sacked = 0xDF,
+    /// <summary>A tile worked down to a different terrain (<c>Tile_ApplyWork</c>, <c>0x0045327C</c>).</summary>
+    TileBroken = 0xF4,
+    /// <summary>A tile worked up to its max-health terrain (<c>Tile_ApplyWork</c>, <c>0x00453359</c>).</summary>
+    TileConverted = 0x10C,
+    /// <summary>The imp's claim finished on a tile with no room link (<c>Imp_ClaimAction</c>, <c>0x00497635</c>).</summary>
+    ImpClaimedFloor = 0x10A,
+    /// <summary>The same, on a tile that still has one.</summary>
+    ImpClaimedRoomTile = 0x10B,
+}
 
 /// <summary>One positional request. <paramref name="Voiced"/> is false where DK2 passes handle 0 (the
 /// creature's lift and drop): the sound then neither replaces nor is retained by the thing's own voice.</summary>
@@ -27,7 +38,7 @@ public readonly record struct ThingSoundRequest(
 
 /// <summary>A sound a thing requests at its position. Read for creatures (<c>0xD6</c>, <c>0xDF</c>,
 /// and the hand's <c>0xC3</c>/<c>0xC4</c>) and objects (the hand's <c>0xC3</c>/<c>0xC4</c>): positional
-/// slot <c>+0x20</c> in the definition's category (creature <c>+0x6E3</c>, object <c>+0x10E</c>); each new kind's
+/// slot <c>+0x20</c> in the definition's category (creature <c>+0x6E3</c>, object <c>+0x10E</c>, terrain <c>+0x195</c>); each new kind's
 /// slot and category are read at its call site before it is emitted here.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-leaving.md")]
 public static class ThingSoundRules
@@ -49,6 +60,20 @@ public static class ThingSoundRules
             point = new(x, y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, x, y)));
         }
         Request(context, system, new SoundSourceId(SoundSourceKind.Object, thing.Id), category, sound, point);
+    }
+
+    /// <summary>A tile's request: handle 0, in the category of <paramref name="terrainId"/> (definition
+    /// <c>+0x195</c>), at the tile's centre and height 0, as <c>Tile_ApplyWork</c> passes it. Nothing is
+    /// emitted for a terrain with no category.</summary>
+    public static void RequestTile(SimulationContext context, string system, byte terrainId, int tileIndex,
+        ThingSoundEvent sound)
+    {
+        string category = context.Database.TerrainById(terrainId).SoundCategory;
+        if (category.Length == 0) return;
+        int width = context.World.Width;
+        Request(context, system, new SoundSourceId(SoundSourceKind.Terrain, tileIndex), category, sound,
+            new(new Fp32(CreatureState.CentreOf(tileIndex % width)), new Fp32(CreatureState.CentreOf(tileIndex / width)),
+                new Fp32(0)), voiced: false);
     }
 
     /// <summary>A creature's request with handle 0, which DK2 passes when lifting and dropping it.</summary>

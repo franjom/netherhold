@@ -55,6 +55,22 @@ public sealed class WorldSoundTests
     }
 
     [Fact]
+    public void ATileSoundIsPlayedAtItsCentreOnTheGroundWithNoVoice()
+    {
+        var director = new WorldSoundDirector();
+        director.Emit(new SimEvent(default, "test", "thing_sound", "")
+        {
+            ThingSound = new(new SoundSourceId(SoundSourceKind.Terrain, 91), "TERRAIN_ROCK", ThingSoundEvent.TileBroken,
+                new(new Fp32(0x1800), new Fp32(0x2800), new Fp32(0)), Voiced: false),
+        });
+        Assert.True(director.TryTake(out var sound));
+        Assert.Equal("terrain_rock", sound.Category.Name);
+        Assert.Equal(0xF4u, sound.Id.Value);
+        Assert.Equal(new Vector3(1.5f, 0, -2.5f), sound.World);
+        Assert.Equal(SoundVoiceId.None, sound.Voice);
+    }
+
+    [Fact]
     public void ARequestWithoutACategoryPlaysNothing()
     {
         var director = new WorldSoundDirector();
