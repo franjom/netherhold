@@ -84,6 +84,15 @@ public sealed record RoomDef
     /// (<c>0x004F3C60</c>, <c>0x004F4090</c>: Treasury 60, Heart 0).</summary>
     public ushort PortalBuildUpEffectId { get; init; }
 
+    /// <summary>ROOMS file ushort at 0x388, runtime <c>+0x427</c> (the loader copies eight words from
+    /// file 0x382 to <c>+0x421</c>, <c>0x004EAE2A</c>). The Workshop's smoke (effect 51), played at a
+    /// wall slot by its second timer (<c>0x004F4B20</c>); the Temple's 132.</summary>
+    public ushort RoomEffect427Id { get; init; }
+
+    /// <summary>ROOMS file ushort at 0x38A, runtime <c>+0x429</c>. The Workshop's lava bubbling
+    /// (effect 93), played at a Steel Bucket by its last timer; the Temple's 98.</summary>
+    public ushort RoomEffect429Id { get; init; }
+
     /// <summary>Object ids auto-placed on the room's tiles.</summary>
     public required IReadOnlyList<byte> ObjectIds { get; init; }
 

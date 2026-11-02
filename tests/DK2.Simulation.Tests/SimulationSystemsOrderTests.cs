@@ -72,6 +72,7 @@ public class SimulationSystemsOrderTests
             "CasinoSystem",
             "PortalSystem",
             "HatedCompanySystem",
+            "WorkshopTimerSystem",
             "RoomBorderFlameSystem",
             "RoomHealthSystem",
             "PlayerTriggerSystem",

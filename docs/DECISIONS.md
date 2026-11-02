@@ -14701,3 +14701,32 @@ keeps it. Not mirrored: 6's wait while a kind-4 action runs (`0x00470CA8`).
 a quarter of a tile past it. Among the scenarios only the Goblin's first bird moved (chicken 5 for
 21, the meal tick unchanged). The Jack keeps its own check for hosts that run without this step.
 DK2 runs the stop inside the handler, after the needs routine; ours runs it just before that.
+
+## ADR-0634: the Workshop's four effect timers draw the world stream
+
+**Date:** 2026-11-02. **Status:** accepted. Q731; hash/save 379.
+
+**Context.** DK2's Workshop handler (`0x004F4B20`) counts four effect timers down each turn. At zero
+each reloads with `random(16 x ticks) + 8 x ticks` on the world stream, then, whether or not an effect is
+asked for, draws again to pick a floor slot, a wall slot or a Steel Bucket, and plays an effect (steam 50,
+lava spill, smoke 51, lava bubbling 93) with a sound for three of them. The room constructor (`0x004F4A60`)
+draws `random(4 x ticks)` four times as a room is made. Ours drew none of it, so our stream was shorter than
+DK2's on every level with a Workshop; the census had one timer too few and no constructor. Owner,
+2026-11-02: port the timers ([workshop-timers.md](research/workshop-timers.md)).
+
+**Decision.** `WorkshopTimerSystem`, in the room-tick phase after the hated-company step, runs
+`WorkshopTimerRules.Tick` on each Workshop, newest first as DK2's room manager walks (`0x004EC490` links at
+the head), in the handler's order: steam, lava spill, smoke, lava bubbling. The four countdowns are
+`TileState` fields on the room's lowest tile, kept as the Hatchery's stamp is: `SlabChain.Added` keeps the
+first neighbour's room's, `Removed` constructs each piece anew. The constructor's draws are made where a
+tile starts a room, for each piece a sale leaves, and as the simulation starts for the map's own rooms
+(`RoomLists.Initialize` records them, a merged room included). `RoomDef` gains the two effect ids at file
+`0x388` and `0x38A`. The effects are requests; the sounds (`0x2E9`, `0x2E8`) are one-line comments at their
+three sites for the sound branch.
+
+**Consequences.** A Workshop draws 4 at its start and 4 to 8 more at every reload. Deviations: ours runs the
+Treasury's draws before every Workshop's where DK2 interleaves rooms by age (stream length right, order
+inside a firing turn not); the furniture list lacks the Workshop Pillars; the lava-spill effect sits at the
+object, not its unread mesh point; the map's Workshops draw before its creatures, which DK2's loader may not
+(Q731). The Torture Chamber, Temple and Graveyard handlers draw the world stream too and are not built.
+Hash/save 379: sixteen bytes a tile. No scenario or fixture holds a Workshop, so only the pin moved.

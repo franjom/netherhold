@@ -154,6 +154,7 @@ public static class SimulationSystems
         new CasinoSystem(), // the Casino's handler: the party, and the gold settled at the lever every four seconds (ADR-0188)
         new PortalSystem(), // the Portal's handler
         new HatedCompanySystem(), // the Library, Training Room, Guard Room and Workshop handlers' shared step
+        new WorkshopTimerSystem(), // the Workshop handler's four effect timers, which draw the world stream (workshop-timers.md)
         new RoomBorderFlameSystem(), // the room tick's border flames (0x004E7CD0), before its health step
         new RoomHealthSystem(), // the room tick's health step (0x004E4B00)
     ];

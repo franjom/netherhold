@@ -214,18 +214,18 @@ type's tick handler, which `Room_Tick` calls before the common health step.
 | 7 Training Room | `0x004F2E90` | hated company | `HatedCompanySystem` |
 | 8 Wooden Bridge | `0x004D5FA0` | not read here | |
 | 9 Guard Room | `0x004DDD70` | hated company; its posts' object state | `HatedCompanySystem` |
-| 10 Workshop | `0x004F4B20` | hated company; random effects | `HatedCompanySystem` |
+| 10 Workshop | `0x004F4B20` | hated company; four effect timers that draw the world stream ([workshop-timers.md](workshop-timers.md)) | `HatedCompanySystem`, `WorkshopTimerSystem` |
 | 11 Prison | `0x004E2AC0` | the door's auto-close | |
-| 12 Torture, 13 Temple, 14 Graveyard, 21 hero gate | see their records | effects only | none |
+| 12 Torture, 13 Temple, 14 Graveyard, 21 hero gate | see their records | effects; the first three draw the world stream (workshop-timers.md section 7) | none |
 | 15 Casino | `0x004D6270` | ends parties, settles gold | `CasinoSystem` (the lever is a command) |
 | 16 Combat Pit | `0x004D7A60` | the pit (`combat-pit.md` §8) | `CombatPitSystem` |
 
 The hated-company step `0x004E8C60` was the one unbuilt rule. Every 32 turns, a
 room holding both an `IsEvil` creature and one without it angers each holder
 lacking `DoesntGetAngryWithEnemies` by eight seconds of
-`ModifyAngerInCompanyOfHatedCreaturesPerSecond`. Several effect handlers draw from
-the world's random stream, so they are not pure presentation in DK2; ours does not
-share that stream in any case.
+`ModifyAngerInCompanyOfHatedCreaturesPerSecond`. The effect handlers draw from
+the world's random stream, so they are not pure presentation in DK2: the Workshop's
+are built (ADR-0633), the Torture Chamber's, the Temple's and the Graveyard's are not.
 
 ADR-0479 moves `CasinoSystem`, `PortalSystem` and `RoomHealthSystem` into a
 room-tick phase after the creatures, with the store sweep, Heart defence and the
