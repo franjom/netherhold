@@ -42,7 +42,7 @@ public sealed class ImpJobSoundTests
             {
                 int seen = Events.Events.Count;
                 Sim.Tick();
-                CreatureState? imp = World.Creatures.FirstOrDefault(c => c.CreatureTypeId == ImpId);
+                CreatureState? imp = World.Creatures.FirstOrDefault(c => c.CreatureTypeId == ImpId) ?? World.Creatures[0];
                 for (int e = seen; e < Events.Events.Count; e++)
                     if (Events.Events[e].ThingSound is { } sound)
                         Sounds.Add(new Heard(Events.Events[e].Tick.Value, sound, imp!.Id,
@@ -160,6 +160,32 @@ public sealed class ImpJobSoundTests
         Assert.True(special.Saw("object_stored"));
         Assert.NotEmpty(special.Of(ThingSoundEvent.CarriedThing));
         Assert.Empty(special.Of(ThingSoundEvent.ImpStoredItem));
+    }
+
+    /// <summary>A Portal Gem is held through <c>PickUp</c> (<c>+0x3C3</c>), which does not trigger
+    /// <c>Creature_UpdateCarriedThing</c>: its carrier asks nothing.</summary>
+    [Fact]
+    public void ACreatureCarryingThePortalGemRequestsNo10D()
+    {
+        GameDatabase basis = Dk2TerrainFixture.Database();
+        var gemDefinition = new ObjectDef
+        {
+            Name = "Portal Gem", ObjectId = TriggerExecutor.PortalGemObjectId, Flags = ObjectFlags.CanBePickedUp,
+            Hp = 1, ManaValue = 0, PickUpPriority = 0, NameStringId = 0, TooltipStringId = 0,
+            RoomCapacity = 0, StartState = 0, Width = new Fp32(1024), Height = new Fp32(512),
+            Mass = new Fp32(4), Speed = new Fp32(0),
+        };
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
+            basis.KeeperSpells.Values, objects: basis.Objects.Values.Append(gemDefinition), shots: basis.Shots.Values);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
+        ObjectState gem = world.SpawnObject(db, TriggerExecutor.PortalGemObjectId, Keeper, (2 * world.Width) + 2);
+        ObjectCarryRules.PickUp(goblin, gem);
+        var run = new Run(db, world, new CarriedThingSoundSystem());
+
+        run.Until(() => false, 5);
+
+        Assert.DoesNotContain(run.Sounds, s => s.Sound.Event == ThingSoundEvent.CarriedThing);
     }
 
     // ---- crates ------------------------------------------------------------------------------------

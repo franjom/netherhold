@@ -292,15 +292,15 @@ actual category's `SFX.map`.
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
 | `0xC4`, handle 0, the gold object's category (id 1, `OBJECT_GOLD`, one sample) | [0x00466AC0](functions/00466AC0.md) at `0x00466B95`: after the deposit and the purse spend, when the room had any space, even for an empty purse; the object is `0x0050DB20(1)` ([record](functions/0050DB20.md)), category `+0x10E` | CONFIRMED | `ImpTaskSystem.TryPutDown` |
-| `0x10D`, the imp's handle | [0x0048B5F0](functions/0048B5F0.md) at `0x0048B687`: every update of a creature whose carried-thing word `+0x3C5` names a live thing, whatever it is (body, book, crate, Special, portal gem), after the steering step | CONFIRMED site; the order is STRONGLY INFERRED | `CarriedThingSoundSystem`, last in the creature update |
+| `0x10D`, the imp's handle | [0x0048B5F0](functions/0048B5F0.md) at `0x0048B687`: every update of a creature whose dragging word `+0x3C5` is nonzero and names a live thing (the imp jobs' body, book, crate or Special; `TakeHold` `0x0048B4A0`), after the steering step; the Portal Gem is held through `PickUp` (`+0x3C3`) and never asks | CONFIRMED site; the order is STRONGLY INFERRED | `CarriedThingSoundSystem`, last in the creature update |
 | `0x10D` | [0x00467AA0](functions/00467AA0.md) at `0x00467B37`: state 41, the carried corpse, first thing in the handler, before the room tests | CONFIRMED | `ImpTaskSystem.UpdateCarryingBody`, corpse, once the walk has ended |
 | `0x326` | [0x00466CB0](functions/00466CB0.md) at `0x00466DC7` (state 31, a spell book taken by the Library) and [0x00466DF0](functions/00466DF0.md) at `0x00466F0B` (state 32, a crate taken by the Workshop), then state 10; state 33 (a Special) has none | CONFIRMED | the book arm of `UpdateCarryingObject`, `StoreCrate` |
 | `0x327`, `0x328` | [0x00467460](functions/00467460.md) at `0x00467575` (state 37, a door) and [0x004671B0](functions/004671B0.md) at `0x0046729F` (state 35, a trap): on the match, after the crate is consumed | CONFIRMED | `UpdateCarryingCrate` |
 | `0x33D` | [0x00497960](functions/00497960.md) at `0x00497A9A`: the reinforce action's handler, once the wall is done and the clip has completed or wrapped (`+0xF1 & 6`), on each call | CONFIRMED site | waits: ours has no clip for the reinforce action, its gate has no mirror |
 | `0x343`, `0x342` | [0x004651A0](functions/004651A0.md) at `0x004653B0` and [0x004653F0](functions/004653F0.md) at `0x0046547A`: the teleport's two halves | CONFIRMED sites | waits: the imp teleport is unbuilt (Q418) |
 
-`creature_imp` alone has `0x10D` (three samples), so only an imp's carrying sounds; every other carrier, and the portal gem's,
-is silent. `0x326` has two, `0x327` one, `0x328` two, `0x33D`, `0x342` and `0x343` one each, all in `creature_imp` only.
+`creature_imp` alone has `0x10D` (three samples), so only an imp's carrying sounds; every other carrier is silent, and a Portal Gem
+carrier makes no request (`CarriedThingSoundSystem` skips it by type: ours keeps `+0x3C3` and `+0x3C5` in one field). `0x326` has two, `0x327` one, `0x328` two, `0x33D`, `0x342` and `0x343` one each, all in `creature_imp` only.
 A live handle retains an equal-priority request ([sound-playback.md](sound-playback.md)), so asking every update lets one
 sample play to its end; ours asks every update too and the player keeps it.
 
@@ -318,7 +318,7 @@ Read 2026-11-02 for plan Phase W4. Every request passes the creature's own handl
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
 | `0xE0` | [0x00459C20](functions/00459C20.md) at `0x00459C73`: state 193 once its action has ended, before the step off the hole, **only when the creature's owner is the local player** (game slot `+0x264`) | CONFIRMED | `CreatureJobSystem`, marked for its owner (`ViewerOnlyFor`) |
-| `0xE0`, or `0xFB` | [0x004872A0](functions/004872A0.md) at `0x00487BC4`, the constructor: only for the hero player's creatures (`[0x006F254C]`), turn 2 or later, world `+0x7239` bit 6 clear, on an explored tile; handle 0; a Horned Reaper asks `0xFB` (no creature category has it) | CONFIRMED | waits: `WorldState.SpawnCreature` has no event path, and "explored" is the viewer's bit |
+| `0xE0`, or `0xFB` | [0x004872A0](functions/004872A0.md) at `0x00487BC4`, the constructor: the `0xE0` arm is only for the hero player's creatures (`[0x006F254C]`), turn 2 or later, world `+0x7239` bit 6 clear, on an explored tile; handle 0. A Horned Reaper (definition `+0x686` bit 14) jumps past those tests to `0xFB` at `0x00487BC4`, so it asks for every creation, and is silent (no creature category has `0xFB`) | CONFIRMED | waits: `WorldState.SpawnCreature` has no event path, and "explored" is the viewer's bit |
 | `0xF6` | [0x0046EAB0](functions/0046EAB0.md) at `0x0046EEA9`: state 76 after the floor-contact test, not on a Temple floor slot | CONFIRMED site | waits: ours has no fall (ADR-0209) and no contact moment |
 | `0xCE` | [0x0046FA60](functions/0046FA60.md) at `0x0046FC7A`: state 83 when the art-12 gate holds and no action runs, with action 24; gated by an unread bed call (`0x0046FAF9`) | CONFIRMED site | waits: no action 24 clock, gate unread |
 | `0x111`, `0xCD` | [0x00463760](functions/00463760.md) at `0x00463859` (the chicken's own handle and category, at the bird) and `0x0046398D` (the eater's): state 93 | CONFIRMED | `CreatureEatSystem.Swallow` |
@@ -328,9 +328,9 @@ Read 2026-11-02 for plan Phase W4. Every request passes the creature's own handl
 | `0xDC` | [0x004611D0](functions/004611D0.md) at `0x004617E6` (withdraw) and [0x004752B0](functions/004752B0.md) at `0x004754AC` (the Scout's alarm), after the route and run speed | CONFIRMED | `FearRules.Withdraw`, `FearRules.RaiseAlarm` |
 | `0x2FA` | [0x00475660](functions/00475660.md) at `0x00475934`: state 251 after its responders are sent | CONFIRMED | `FearRules.RespondToThreat` |
 | `0xDD` | [0x00462D00](functions/00462D00.md) at `0x004630FF`: state 98's leg that cannot be routed, then state 99 | CONFIRMED | `GuardStep.Patrol` |
-| `0xDE` | [0x00482F80](functions/00482F80.md) at `0x00483021`: state 85 (sulking) with action 25, on its first call and each fourth second | CONFIRMED site | waits: ours has no state 85 handler |
+| `0xDE` | [0x00482F80](functions/00482F80.md) at `0x00483021`: state 85 (sulking) with action 25, on its first call and whenever its countdown byte `+0xA7` is a multiple of four game seconds | CONFIRMED site | waits: ours has no state 85 handler |
 
-Samples: `0xE0` one in each of 26 creature categories, the imp's not among them; `0xF6` in 25 (the firefly's group is empty);
+Samples: `0xE0` one in each of 26 creature categories, the imp's not among them; `0xF6` in 26, the imp's (three) included (only the firefly and the Jack in the Box lack it);
 `0xCE` in 22 and `0xCB` and `0xDE` in 24, none of them the imp's; `0xC7`, `0xDC` and `0x2FA` in the imp's; `0xDD` only in
 `creature_knight` and `creature_stone_knight`; `0x111` has eleven in `object_chicken`. Deviation: the chicken's request takes the
 floor height, as any object's does (`ThingSoundRules`).
@@ -368,7 +368,7 @@ Read 2026-11-02 for plan Phase W4. Handle, category and position are the creatur
 | `0x340` | [0x0048E160](functions/0048E160.md) at `0x0048E4F1`: each tick the burning counter is nonzero; DK2 stops the sound (slot `+0x38`) as the fire ends | CONFIRMED | `StatusEffectRules.UpdateBurning`, the request only: the last sample plays out |
 | `0x340` | [0x00487C70](functions/00487C70.md) at `0x00488052`: a burning creature that dies and leaves a body | CONFIRMED site | waits: ours keeps no burning state on a body |
 | `0x34C` | [0x004B2CE0](functions/004B2CE0.md) at `0x004B315E`: a dead creature of type `0x2E` (the Jack in the Box) once its blast shot is made | CONFIRMED | `JackInTheBoxRules.Explode` |
-| `0x317` | [0x00488930](functions/00488930.md) at `0x00489F1C`: a possessed creature whose `ThreatThing` (`+0x533`) is a live trap with definition byte `+0xBB` equal to `0x19`, then game action `0x15` | CONFIRMED site | waits: `ThreatThing` is unbuilt |
+| `0x317` | [0x00488930](functions/00488930.md) at `0x00489F1C`: a possessed creature past three earlier gates (definition `+0x686` bit 18 clear, game turn at or past `+0x3D7`, `+0x526` strictly above the level-scaled definition `+0x696` share) whose `ThreatThing` (`+0x533`) is a live trap with definition byte `+0xBB` equal to `0x19`, then game action `0x15` | CONFIRMED site | waits: `ThreatThing` is unbuilt |
 | `0x312`, `0xA7` | [0x0048FA70](functions/0048FA70.md) at `0x0048FBA2`, `0x0048FC42`: the Reaper-proximity scan | CONFIRMED sites | nothing: the scan never runs (ADR-0402), so no request is made; `0x312` has eight samples in `creature_imp`, `0xA7` none |
 
 Silent (no `SFX.map` has the group, so DK2 plays nothing and ours builds nothing): `0xE3` in [0x0048B770](functions/0048B770.md)

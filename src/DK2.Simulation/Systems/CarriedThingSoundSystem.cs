@@ -10,8 +10,10 @@ namespace DK2.Simulation.Systems;
 /// <c>0x0048B5F0</c>, called at <c>0x0048A4AE</c>, after the steering step): a creature whose carried-thing word
 /// (<c>+0x3C5</c>) names a live thing asks for the carrying sound <c>0x10D</c> with its own voice, in its own category,
 /// at its position, on every update. Only the sound is here; following the carrier is the carrying states' (ours
-/// moves the thing where the imp's handler runs). The request is made whatever the thing is: a body, a spell
-/// book, a crate, a special or the portal gem.</summary>
+/// moves the thing where the imp's handler runs). The imp jobs (<c>TakeHold</c>, <c>0x0048B4A0</c>) write that word for a
+/// body, a spell book, a crate or a special; <c>PickUp</c> (<c>0x0048B350</c>), which the Portal Gem's trigger action uses,
+/// writes the separate <c>+0x3C3</c> and never triggers the call. Ours keeps both in <c>CarriedObjectId</c>, so a carried
+/// Portal Gem is told apart by its type and asks nothing.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-effects.md#10-imp-jobs")]
 public sealed class CarriedThingSoundSystem : ICreatureUpdateStep
 {
@@ -22,11 +24,17 @@ public sealed class CarriedThingSoundSystem : ICreatureUpdateStep
     public void Update(SimulationContext context, CreatureState creature)
     {
         if (creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0) return;
+        // The id lookups scan: nobody listening, nothing to ask for.
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         // A word that names no live thing is cleared and sounds nothing (0x0048B60A).
         WorldState world = context.World;
-        bool live = creature.CarriedObjectId >= 0
-            ? world.ObjectById(creature.CarriedObjectId) is not null
-            : world.CreatureById(creature.CarriedCreatureId) is not null;
+        bool live;
+        if (creature.CarriedObjectId >= 0)
+        {
+            ObjectState? thing = world.ObjectById(creature.CarriedObjectId);
+            live = thing is not null && thing.ObjectTypeId != TriggerExecutor.PortalGemObjectId;
+        }
+        else live = world.CreatureById(creature.CarriedCreatureId) is not null;
         if (live) ThingSoundRules.Request(context, Name, creature, ThingSoundEvent.CarriedThing);
     }
 }
