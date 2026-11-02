@@ -41,15 +41,42 @@ public static class Recipes
             + "level-10 Bile Demon and a fearless level-10 Vampire (Q362: does it swing at the revealed trap?); two hero "
             + "Boulder traps three tiles from a Troll, one on a Neutral Dirt Path like Level 20's (12,5), one on hero "
             + "ground (Q513a: only the second should roll); a Prison whose captive is carried away from a fight, for the "
-            + "owner to sell during the carry (Q729, state 44's exit 4). Crashed DK2 on its second world frame (2026-11-02).",
+            + "owner to sell during the carry (Q729, state 44's exit 4). Ended on its second world frame (2026-11-02): lost to Secret4's trigger 4, see M7TrapFights5.",
             b => M7TrapFights(b, Zone.All)),
-        new("M7TF_Brave", "Secret4", "M7TrapFights' Q362 chambers alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Brave)),
-        new("M7TF_Boulders", "Secret4", "M7TrapFights' Q513a corridors alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Boulders)),
-        new("M7TF_Prison", "Secret4", "M7TrapFights' Q729 Prison and fight alone (crash bisection, 2026-11-02).", b => M7TrapFights(b, Zone.Prison)),
+        new("M7TF_Brave", "Secret4", "M7TrapFights' Q362 chambers alone (bisecting what ended M7TrapFights, 2026-11-02).", b => M7TrapFights(b, Zone.Brave)),
+        new("M7TF_Boulders", "Secret4", "M7TrapFights' Q513a corridors alone (bisecting what ended M7TrapFights, 2026-11-02).", b => M7TrapFights(b, Zone.Boulders)),
+        new("M7TF_Prison", "Secret4", "M7TrapFights' Q729 Prison and fight alone (bisecting what ended M7TrapFights, 2026-11-02).", b => M7TrapFights(b, Zone.Prison)),
+        new("M7TrapFights2", "Secret4",
+            "M7TrapFights with M7Traps' dead-end way out of the Heart (x 19, rows 23..27): each zone variant ended too, and a "
+            + "Heart sealed on every side is what all three shared and M7Traps, which ran, did not.",
+            b => M7TrapFights(b, Zone.All | Zone.HeartWay)),
+        new("M7TrapFights3", "Secret4",
+            "M7TrapFights2 ended the same way. Its Dwarves now keep Secret4's 5% health as M7Traps' did: at 100% the "
+            + "Dwarf starts its SendToActionPoint job (objective 23) at once, which M7Traps' never did.",
+            b => M7TrapFights(b, Zone.All | Zone.HeartWay | Zone.PlacedHealth)),
+        new("M7TrapFights4", "Secret4",
+            "M7TrapFights3 without the Boulder trap on the Neutral Dirt Path at (3,4), which no capture ever showed in the game.",
+            b => M7TrapFights(b, Zone.All | Zone.HeartWay | Zone.PlacedHealth | Zone.NoDirtBoulder)),
+        new("M7TrapFights5", "Secret4",
+            "M7TrapFights as designed, plus a keeper Boulder trap sealed at (37,35). None of the builds above crashed: Secret4's "
+            + "trigger 4 (type 28, comparison 3, TargetId 2) loses the level when the keeper owns no Boulder trap, and they "
+            + "removed all of them, so DK2 ended each one on its second world frame. M7Traps kept five.",
+            b => M7TrapFights(b, Zone.All | Zone.KeeperBoulder)),
+        new("M7TrapFights6", "Secret4",
+            "M7TrapFights5 with one of Secret4's own keeper Boulder traps moved to (37,35), not a copy of Alcatraz's record, "
+            + "so the trap trigger 4 counts is the kind M7Traps kept.",
+            b => M7TrapFights(b, Zone.All | Zone.KeeperBoulder | Zone.OwnBoulder)),
+        // one owner check per level, so whatever ends a run names its scenario; each keeps M7TrapFights6's keeper trap
+        new("M7Q362", "Secret4", "M7TrapFights6's Q362 chambers alone.",
+            b => M7TrapFights(b, Zone.Brave | Zone.KeeperBoulder | Zone.OwnBoulder)),
+        new("M7Q513a", "Secret4", "M7TrapFights6's Q513a Boulder corridors alone.",
+            b => M7TrapFights(b, Zone.Boulders | Zone.KeeperBoulder | Zone.OwnBoulder)),
+        new("M7Q729", "Secret4", "M7TrapFights6's Q729 Prison and fight alone.",
+            b => M7TrapFights(b, Zone.Prison | Zone.KeeperBoulder | Zone.OwnBoulder)),
     ];
 
     [Flags]
-    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7 }
+    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8, PlacedHealth = 16, NoDirtBoulder = 32, KeeperBoulder = 64, OwnBoulder = 128 }
 
     private static string BaseOf(LevelBuilder b) => b.BaseName;
 
@@ -185,7 +212,7 @@ public static class Recipes
         if (boulders)
         {
             foreach (int cx in new[] { 3, 7 }) for (int y = 3; y <= 11; y++) Path(cx, y);
-            Set(3, 4, DirtPath, Neutral);
+            if (!zones.HasFlag(Zone.NoDirtBoulder)) Set(3, 4, DirtPath, Neutral);
             Path(7, 4, Heroes);
         }
         // Q729: the Prison, its corridor and the fight
@@ -195,15 +222,21 @@ public static class Recipes
             for (int x = 5; x <= 10; x++) Path(x, 31);
             for (int y = 29; y <= 33; y++) for (int x = 11; x <= 14; x++) Path(x, y);
         }
+        // the Heart's gap at (19,27) and a dead end north to row 23, as M7Traps has
+        if (zones.HasFlag(Zone.HeartWay)) for (int y = 23; y <= 27; y++) Path(19, y);
         // the Dwarf's pocket
         Path(37, 37, Heroes);
+        // the keeper Boulder trap's pocket: Secret4's trigger 4 loses the level when the keeper owns none
+        if (zones.HasFlag(Zone.KeeperBoulder)) Path(37, 35);
 
         var rock = new MapTile(ImpenetrableRock, Neutral, 1, 0);
         for (int y = 1; y < map.Height - 1; y++)
             for (int x = 1; x < map.Width - 1; x++)
                 if (map[x, y].TerrainId is not (9 or 14)) b.Paint(x, y, tiles[x, y] ?? rock);
 
-        // things: two of Secret4's Dwarves (the pocket's and the captive's), none of its traps
+        // things: two of Secret4's Dwarves (the pocket's and the captive's); of its traps, with OwnBoulder, one
+        // keeper Boulder trap moved into its pocket
+        bool keeperBoulder = zones.HasFlag(Zone.OwnBoulder);
         var dwarves = new Queue<(int X, int Y, byte Level)>(prison ? [(37, 37, 1), (14, 31, 1)] : [(37, 37, 1)]);
         var points = new Dictionary<int, (int X, int Y)>();
         var (boulder, boulderImage) = b.Template<TrapThing>(t => t.TrapId == BoulderTrap);
@@ -213,10 +246,16 @@ public static class Recipes
         {
             switch (things[i])
             {
+                case TrapThing t when keeperBoulder && t.TrapId == BoulderTrap && t.PlayerId == Keeper:
+                    keeperBoulder = false;
+                    b.EditThing<TrapThing>(i, r => r with { X = 37, Y = 35 });
+                    break;
                 case TrapThing: b.RemoveThing(i); break;
                 case GoodCreatureThing g when dwarves.Count > 0:
                     var (x, y, level) = dwarves.Dequeue();
-                    b.EditThing<GoodCreatureThing>(i, r => r with { X = x, Y = y, Level = level, InitialHealth = 100 });
+                    b.EditThing<GoodCreatureThing>(i, r => zones.HasFlag(Zone.PlacedHealth)
+                        ? r with { X = x, Y = y, Level = level }
+                        : r with { X = x, Y = y, Level = level, InitialHealth = 100 });
                     points[g.ObjectiveTargetActionPointId] = (x, y);
                     break;
                 case GoodCreatureThing: b.RemoveThing(i); break;
@@ -230,8 +269,10 @@ public static class Recipes
         if (brave)
             foreach (int row in new[] { 5, 11, 17 })
                 b.InsertThing(sentry with { X = 25, Y = row, TrapId = HeroSentry, PlayerId = Heroes }, sentryImage);
+        if (zones.HasFlag(Zone.KeeperBoulder) && !zones.HasFlag(Zone.OwnBoulder))
+            b.InsertThing(boulder with { X = 37, Y = 35, TrapId = BoulderTrap, PlayerId = Keeper }, boulderImage);
         if (boulders)
-            foreach (int cx in new[] { 3, 7 })
+            foreach (int cx in zones.HasFlag(Zone.NoDirtBoulder) ? new[] { 7 } : new[] { 3, 7 })
                 b.InsertThing(boulder with { X = cx, Y = 4, TrapId = BoulderTrap, PlayerId = Heroes }, boulderImage);
 
         var (creature, creatureImage) = b.Template<KeeperCreatureThing>(c => c.TriggerId == 0 && c.PlayerId == Keeper && c.CreatureId == Imp);
