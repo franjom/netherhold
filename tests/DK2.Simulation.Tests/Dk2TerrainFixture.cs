@@ -1380,12 +1380,14 @@ internal static class Dk2TerrainFixture
         new(new byte[239])
         {
             Name = "Create Creature", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = 2,
-            Flags = 0x4, ProcessType = 1,
+            // Shipped values: dies on its first update, the next turn, and runs the process on death.
+            Speed = 2048, Health = 1, TimedDelay = 251, Flags = 0x4, ShotProcessFlags = 0x80, ProcessType = 1,
         },
         new(new byte[239])
         {
             Name = "Create Single Creature", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = 60,
-            Flags = 0x4, ProcessType = 36,
+            // Shipped values: dies on its first update, the next turn, and runs the process on death.
+            Speed = 2048, Health = 1, Flags = 0x4, ShotProcessFlags = 0x80, ProcessType = 36,
         },
         new(new byte[239])
         {

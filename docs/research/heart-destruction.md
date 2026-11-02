@@ -67,8 +67,8 @@ destruction path independently. See THIRD-PARTY-NOTICES.md.
 | Player walk, `0x004C2310` | Sorted player-slot order | Active-player order |
 
 The effect consumes the existing presentation RNG stream. Free-cast placement follows
-the native ring (ADR-0630); only its draw order against other keepers' is open (Q716);
-later decoration removal remains Q715. No native pixel or destruction-timing comparison is established.
+the native ring (ADR-0630), and the imp comes from the cast's shot the next turn, newest shot
+first (ADR-0635, Q716); later decoration removal remains Q715. No native pixel or destruction-timing comparison is established.
 
 Regression coverage includes `DungeonHeartTests.ObjectUpdate0049BD20RequestsTheAuthoredHeartDeathEffectBeforeTheOpeningEnds`
 and its nonlethal/initial-ruin controls, `WorldViewTests.HeartDeath0049B5E0RemovesTheHeartAndPillarsBeforeTheRoomRuins`,

@@ -29,6 +29,7 @@ public class SimulationSystemsOrderTests
             "AllianceSystem",
             "DoorSystem",
             "KeeperSpellSystem",
+            "CreateImpCastSystem",
             "PossessionSystem",
             "FootprintSystem",
             "CreatureUpdateSystem",
