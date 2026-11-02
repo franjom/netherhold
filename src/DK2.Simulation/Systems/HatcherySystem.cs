@@ -23,10 +23,11 @@ public sealed class HatcherySystem : ISimulationSystem
     private const string SystemName = "Hatchery";
 
     private readonly bool _lays;
+    private readonly HatcheryLayStep _layStep = new();
 
     /// <param name="lays">Whether this system also lays, as the Hatchery's room handler does (<c>0x004DE0A0</c>).
-    /// A host that walks the rooms in DK2's order has <see cref="HatcheryLayStep"/> do it there and passes false:
-    /// this system then only steps the objects, leaving alone those the walk made this turn.</param>
+    /// A host that walks the rooms in DK2's order has <see cref="HatcheryLayStep"/> do it there, after the thing
+    /// pass that steps the objects, and passes false.</param>
     public HatcherySystem(bool lays = true) => _lays = lays;
 
     public string Name => SystemName;
@@ -37,7 +38,7 @@ public sealed class HatcherySystem : ISimulationSystem
 
         // Fallback hatching precedes laying so an egg is not aged on its lay turn.
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0) Hatch(context);
-        if (_lays) RoomTickSystem.RunAlone(context, new HatcheryLayStep());
+        if (_lays) RoomTickSystem.RunAlone(context, _layStep);
     }
 
     private static void StepObjectAnimations(SimulationContext context)
@@ -46,7 +47,7 @@ public sealed class HatcherySystem : ISimulationSystem
         for (int i = world.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = world.Objects[i];
-            if (thing.InHand || thing.CarriedByCreatureId >= 0 || thing.Id >= world.RoomTickObjectFence) continue;
+            if (thing.InHand || thing.CarriedByCreatureId >= 0) continue;
             ObjectDef? definition = context.Database.ObjectById(thing.ObjectTypeId);
             if (thing.ObjectTypeId == HatcheryRules.EggObjectId && thing.ProcessState == EggLaunchRules.LaunchProcess)
             {
@@ -146,7 +147,7 @@ public sealed class HatcherySystem : ISimulationSystem
         for (int i = world.Objects.Count - 1; i >= 0; i--)
         {
             ObjectState thing = world.Objects[i];
-            if (thing.ObjectTypeId != HatcheryRules.EggObjectId || thing.Id >= world.RoomTickObjectFence) continue;
+            if (thing.ObjectTypeId != HatcheryRules.EggObjectId) continue;
             if (thing.ProcessState == EggLaunchRules.LaunchProcess) continue;
             if (context.Database.ObjectById(thing.ObjectTypeId)?.ArtSlot(0).ResourceType == 6) continue;
 
@@ -166,7 +167,8 @@ public sealed class HatcherySystem : ISimulationSystem
         tileIndex < 0 ? "(none)" : $"({tileIndex % world.Width},{tileIndex / world.Width})";
 }
 
-/// <summary>The Hatchery's part of the room tick (<c>Hatchery_Tick</c>, <c>0x004DE0A0</c>): coops once a second and
+/// <summary>The Hatchery's part of the room tick (<c>Hatchery_Tick</c>, <c>0x004DE0A0</c>, which only lays when its clock is
+/// due) and, as a stand-in, the coops DK2 places when the room changes (<c>0x004DE220</c>, Q733): ours once a second and
 /// the lay when its clock is due. <see cref="HatcherySystem"/> does this itself when it runs without a room walk.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public sealed class HatcheryLayStep : IRoomTickStep

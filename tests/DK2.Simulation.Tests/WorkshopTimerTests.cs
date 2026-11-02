@@ -261,7 +261,7 @@ public sealed class WorkshopTimerTests
     }
 
     [Fact]
-    public void AssumingTheMeshPointExistsTheLavaSpillTimerWalksTheWholeListSoItCanLandOnAnotherObjectNotTheBucketDrawn_Q731a()
+    public void AssumingTheMeshPointExistsTheLavaSpillTimerWalksTheWholeListSoItCanLandOnAnotherObjectNotTheBucketDrawn_Q733a()
     {
         // 0x004F4C9E..0x004F4CEF walks from the list's head by the drawn index over every object, where
         // the last timer (0x004F4FC0) skips the objects that are not Steel Buckets. One bucket among
@@ -294,7 +294,7 @@ public sealed class WorkshopTimerTests
     }
 
     [Fact]
-    public void AssumingTheMeshPointExistsTheLavaSpillEffectIsOwnedByTheObjectNotTheRoom_Q731a()
+    public void AssumingTheMeshPointExistsTheLavaSpillEffectIsOwnedByTheObjectNotTheRoom_Q733a()
     {
         // 0x004F4D7B reads the owner word of the object reached (+0x28).
         GameDatabase db = Db();
@@ -427,7 +427,7 @@ public sealed class WorkshopTimerTests
     }
 
     [Fact]
-    public void AssumingRoomsAreMadeBeforeCreaturesAWorkshopTheMapStartsWithIsConstructedAtSimulationStartAndAnAbsorbedRoomStillDrew_Q731b()
+    public void AssumingRoomsAreMadeBeforeCreaturesAWorkshopTheMapStartsWithIsConstructedAtSimulationStartAndAnAbsorbedRoomStillDrew_Q733b()
     {
         // A U loaded row by row: (10,10) and (12,10) each start a room; (10,11) and (11,11) join the first,
         // and (12,11) joins the room to its north, the second, which absorbs the first behind it. Two

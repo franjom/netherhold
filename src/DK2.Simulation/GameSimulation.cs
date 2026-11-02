@@ -69,7 +69,7 @@ public sealed class GameSimulation
         Database = database;
         World = world;
         Rng = rng;
-        // The map's rooms are constructed before its creatures (their order is unread, Q731): a Workshop's
+        // The map's rooms are constructed before its creatures (their order is unread, Q733): a Workshop's
         // constructor draws open the stream.
         world.RoomConstructionRandom = rng;
         if (levelStart) WorkshopTimerRules.InitializeLevelStart(world, rng);

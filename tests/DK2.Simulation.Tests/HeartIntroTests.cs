@@ -36,7 +36,8 @@ public class HeartIntroTests
             (0L, HeartIntroRules.StartLevelEffectId, Keeper), (0L, HeartIntroRules.StartLevelEffectId, Rival),
             (28L, HeartIntroRules.ArchesFadeInEffectId, Keeper), (28L, HeartIntroRules.ArchesFadeInEffectId, Rival),
         }, requests);
-        var first = events.Events.First(e => e.EffectRequest.HasValue).EffectRequest!.Value;
+        // The room walk takes the newer Heart (the Rival's) first, so the Keeper's request is picked by owner.
+        var first = events.Events.First(e => e.EffectRequest.HasValue && e.EffectRequest.Value.Owner.Value == Keeper).EffectRequest!.Value;
         // At the Heart's tile centre, one tile up: (x * 0x1000 + 0x800, y * 0x1000 + 0x800, 0x1000).
         Assert.Equal(new FpPosition3(new Fp32(5 * Fp32.One + Fp32.One / 2), new Fp32(5 * Fp32.One + Fp32.One / 2),
             new Fp32(Fp32.One)), first.Position);

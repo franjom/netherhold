@@ -141,38 +141,112 @@ public sealed class RoomTickOrderTests
     }
 
     [Fact]
-    public void AnEggTheRoomWalkLaysTakesItsFirstObjectStepNextTurnAsWhenTheSystemLaysAfterItsSteps()
+    public void ALaunchingEggStepsInTheThingPassBeforeTheRoomWalkLaysSoItsHeadingDrawComesFirst()
     {
-        static GameSimulation Make(bool walk)
-        {
-            // The egg's art as shipped (type 6), which is what the Hatchery's object step counts.
-            GameDatabase fixture = Dk2TerrainFixture.Database();
-            CreatureAnimationTiming[] art = new CreatureAnimationTiming[9];
-            art[0] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
-            art[5] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 15, FramesPerSecond = 30 };
-            var db = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values, fixture.Creatures.Values, fixture.Variables,
-                objects: fixture.Objects.Values.Select(o => o.ObjectId == HatcheryRules.EggObjectId ? o with { ArtSlots = art } : o));
-            WorldState world = World(db);
-            ISimulationSystem[] systems = walk
-                ? [new RoomTickSystem(new HatcheryLayStep()), new HatcherySystem(lays: false)]
-                : [new HatcherySystem()];
-            var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), systems);
-            Build(db, world, RoomTypeId.Hatchery, new TilePos(8, 8), size: 3);
-            world.Tile(8, 8).HatcheryLastGeneratedTick = -10_000;   // the lay is due
-            return sim;
-        }
+        // World_UpdateTurn runs the thing pass (0x004B7830) before the room walk (0x004EC450): an egg already
+        // leaving its coop draws its heading, random(0x100), before the Hatchery's handler lays the next one.
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)),
+            [new HatcherySystem(lays: false), new RoomTickSystem(new HatcheryLayStep())]);
+        Build(db, world, RoomTypeId.Hatchery, new TilePos(8, 8), size: 3);
+        RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(8, 8)))!;
+        HatcheryRules.PlaceCoops(world, db, room);
+        ObjectState coop = world.Objects.First(o => o.ObjectTypeId == HatcheryRules.CoopObjectId);
+        ObjectState leaving = world.SpawnObject(db, HatcheryRules.EggObjectId, Keeper, coop.TileIndex);
+        leaving.ProcessState = EggLaunchRules.LaunchProcess;
+        leaving.ProcessAgeTicks = EggLaunchRules.HiddenTicks - 1;
+        world.Tile(8, 8).HatcheryLastGeneratedTick = -10_000;   // the lay is due
+        int eggsBefore = world.Objects.Count(o => o.ObjectTypeId == HatcheryRules.EggObjectId);
+        int side = AutoFurnitureRules.Choice(coop.TileIndex % world.Width, coop.TileIndex / world.Width, 4) << 9;
+        int expected = (side + new Oracle(SeedOf(sim)).Next(0x100) - 0x80) & 0x7FF;
 
-        GameSimulation walked = Make(walk: true), alone = Make(walk: false);
-        bool sawAnEgg = false;
-        for (int tick = 0; tick < 6; tick++)
-        {
-            walked.Tick();
-            alone.Tick();
-            sawAnEgg |= walked.World.Objects.Any(o => o.ObjectTypeId == HatcheryRules.EggObjectId);
-            Assert.Equal(alone.World.Objects.Select(o => (o.ObjectTypeId, o.TileIndex, o.ProcessState, o.ProcessAgeTicks, o.TimerTicks, o.PhysicalVelocityX, o.PhysicalVelocityY, o.PhysicalVelocityZ)),
-                walked.World.Objects.Select(o => (o.ObjectTypeId, o.TileIndex, o.ProcessState, o.ProcessAgeTicks, o.TimerTicks, o.PhysicalVelocityX, o.PhysicalVelocityY, o.PhysicalVelocityZ)));
-        }
+        sim.Tick();
 
-        Assert.True(sawAnEgg);
+        Assert.Equal(expected, leaving.Heading);
+        Assert.Equal(eggsBefore + 1, world.Objects.Count(o => o.ObjectTypeId == HatcheryRules.EggObjectId));
+    }
+
+    [Fact]
+    public void ANewerWorkshopsReloadsComeBeforeAnOlderHeartsSparkleAndItsOwnStepsDrawNothingMore()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        TilePos heart = new(8, 8), workshop = new(16, 8);
+        GameSimulation sim = Sim(db, world, new StoreSweepSystem(), new HeartDefenceSystem(), new HeartFrameStep(), new WorkshopTimerSystem());
+        Build(db, world, RoomTypeId.DungeonHeart, heart);
+        Build(db, world, RoomTypeId.Workshop, workshop);
+        ZeroTimers(world, workshop);
+        var oracle = new Oracle(SeedOf(sim));
+        int steam = Reload(oracle);
+        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        oracle.Next(100);   // the Heart's sparkle (0x004F3A20), once the newer room is done
+
+        sim.Tick();
+
+        Assert.Equal(steam, world.Tile(workshop).WorkshopSteamTimer);
+        Assert.Equal(oracle.Seed, SeedOf(sim));
+    }
+
+    [Fact]
+    public void ANewerWorkshopsReloadsComeBeforeAnOlderCasinosPartyDraw()
+    {
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        TilePos casino = new(8, 8), workshop = new(16, 8);
+        GameSimulation sim = Sim(db, world, new CasinoSystem(), new WorkshopTimerSystem());
+        Build(db, world, RoomTypeId.Casino, casino);
+        Build(db, world, RoomTypeId.Workshop, workshop);
+        // A party on, with someone holding a place, draws a tile for its effect every twelve game seconds
+        // (0x004D6561), on the turn that is a multiple of them: our tick 47.
+        world.Tile(casino).CasinoParty = CasinoJackpotRules.PartyBit;
+        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, casino).HeldPlace =
+            new RoomPlace(world.TileIndex(casino), RoomCapacityRules.Units);
+        int turn = (CasinoJackpotRules.EffectSeconds * Ticks) - 1;
+        ref TileState timers = ref world.Tile(workshop);
+        (timers.WorkshopSteamTimer, timers.WorkshopLavaSpillTimer, timers.WorkshopSmokeTimer, timers.WorkshopLavaBubblingTimer) =
+            (turn + 5, turn + 5, turn + 5, turn + 5);
+        uint before = SeedOf(sim);
+        sim.Run(turn);
+        Assert.Equal(before, SeedOf(sim));   // nothing drew on the way: the party's first draw is the one at the turn
+        ZeroTimers(world, workshop);
+        var oracle = new Oracle(before);
+        int steam = Reload(oracle);
+        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        oracle.Next(1);   // the Casino's effect tile, one tile to pick
+
+        sim.Tick();
+
+        Assert.Equal(steam, world.Tile(workshop).WorkshopSteamTimer);
+        Assert.Equal(oracle.Seed, SeedOf(sim));
+    }
+
+    [Fact]
+    public void ANewerWorkshopsReloadsComeBeforeAnOlderPortalsPick()
+    {
+        const byte goblin = 7;
+        var level = new GlobalVariables();
+        level.CreaturePool.Add(new CreaturePoolEntry(goblin, 15, Keeper));
+        level.Availabilities.Add(new AvailabilityEntry(2, Keeper, goblin, 3));
+        GameDatabase db = Dk2TerrainFixture.Database().ForLevel(level);
+        WorldState world = World(db);
+        TilePos lair = new(4, 4), portal = new(8, 8), workshop = new(16, 8);
+        GameSimulation sim = Sim(db, world, new PortalSystem(), new WorkshopTimerSystem());
+        Build(db, world, RoomTypeId.Lair, lair);
+        Build(db, world, RoomTypeId.Portal, portal, size: 3);
+        Build(db, world, RoomTypeId.Workshop, workshop);
+        RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(portal))!;
+        world.TileAtIndex(PortalRules.EntranceTileIndex(world, room)).EntranceIdleTicks =
+            PortalRules.SpawnIntervalTicks(db, 0) - 1;   // the roll is due this turn
+        ZeroTimers(world, workshop);
+        var oracle = new Oracle(SeedOf(sim));
+        int steam = Reload(oracle);
+        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+
+        sim.Tick();
+
+        Assert.Equal(steam, world.Tile(workshop).WorkshopSteamTimer);
+        Assert.Contains(world.Creatures, c => c.CreatureTypeId == goblin);
+        Assert.NotEqual(oracle.Seed, SeedOf(sim));   // the pick drew after the Workshop's four
     }
 }

@@ -1115,11 +1115,6 @@ public sealed class WorldState
     /// when a simulation starts the level. Not saved: a restored world has no draws to make.</summary>
     internal List<int> LevelStartWorkshops { get; } = [];
 
-    /// <summary>The next object id when this turn's <see cref="Systems.RoomTickSystem"/> began: objects with
-    /// an id at or above it were made by the room ticks (a laid egg, a placed coop) and take their first
-    /// step next turn. <c>int.MaxValue</c> when no such walk runs. Transient, not saved.</summary>
-    internal int RoomTickObjectFence { get; set; } = int.MaxValue;
-
     internal void BindCreatureIdentityRandom(SimRandom random)
     {
         _creatureIdentityRandom = random;

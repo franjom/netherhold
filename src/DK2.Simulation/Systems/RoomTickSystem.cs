@@ -36,13 +36,19 @@ public interface IRoomTickStep : ISimulationSystem
 /// <remarks>The list is the derived rooms by <see cref="RoomListPosition"/>, newest first, ties by
 /// lowest tile. A rival's capture gives a room a new position here where DK2's list does not move it.
 /// The rooms are those standing when the walk begins.</remarks>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/workshop-timers.md")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/workshop-timers.md")]
 public sealed class RoomTickSystem : ISimulationSystem
 {
     private readonly IRoomTickStep[] _steps;
+    private readonly List<RoomInstance> _rooms = [];
+    private readonly Comparison<RoomInstance> _newestFirst;
+    private WorldState? _world;
 
-    public RoomTickSystem(params IRoomTickStep[] steps) =>
+    public RoomTickSystem(params IRoomTickStep[] steps)
+    {
         _steps = steps ?? throw new ArgumentNullException(nameof(steps));
+        _newestFirst = (a, b) => Compare(_world!, a, b);
+    }
 
     public string Name => "room ticks";
 
@@ -51,33 +57,35 @@ public sealed class RoomTickSystem : ISimulationSystem
 
     public void Execute(SimulationContext context)
     {
-        // Objects made by this walk are first updated next turn, as objects linked at the head of DK2's
-        // thing list are: the Hatchery's step later this tick leaves them alone (HatcherySystem).
-        context.World.RoomTickObjectFence = context.World.NextObjectId;
-        RunAlone(context, _steps);
+        foreach (IRoomTickStep step in _steps) step.BeginTurn(context);
+        _world = context.World;
+        _rooms.Clear();
+        _rooms.AddRange(RoomIndex.Build(context.World, context.Database));
+        _rooms.Sort(_newestFirst);
+        foreach (RoomInstance room in _rooms)
+            foreach (IRoomTickStep step in _steps)
+                if (step.Applies(context, room)) step.Tick(context, room);
+        foreach (IRoomTickStep step in _steps) step.EndTurn(context);
     }
 
     /// <summary>Steps on their own, over the whole room list in the walk's order: what a step's
     /// <see cref="ISimulationSystem.Execute"/> does in a host that runs it without the others.</summary>
-    public static void RunAlone(SimulationContext context, params IRoomTickStep[] steps)
-    {
-        foreach (IRoomTickStep step in steps) step.BeginTurn(context);
-        foreach (RoomInstance room in NewestFirst(context.World, context.Database))
-            foreach (IRoomTickStep step in steps)
-                if (step.Applies(context, room)) step.Tick(context, room);
-        foreach (IRoomTickStep step in steps) step.EndTurn(context);
-    }
+    public static void RunAlone(SimulationContext context, params IRoomTickStep[] steps) =>
+        new RoomTickSystem(steps).Execute(context);
 
-    /// <summary>Every room, newest first: <see cref="RoomListPosition"/> descending, then lowest tile.</summary>
+    /// <summary>Every room, newest first: <see cref="RoomListPosition"/> descending, then lowest tile
+    /// descending, as <see cref="RoomLists.Of"/> orders a player's rooms.</summary>
     public static List<RoomInstance> NewestFirst(WorldState world, GameDatabase database)
     {
         var rooms = new List<RoomInstance>(RoomIndex.Build(world, database));
-        rooms.Sort((a, b) =>
-        {
-            int byAge = world.TileAtIndex(b.TileIndices[0]).RoomListPosition.Value
-                .CompareTo(world.TileAtIndex(a.TileIndices[0]).RoomListPosition.Value);
-            return byAge != 0 ? byAge : a.TileIndices[0].CompareTo(b.TileIndices[0]);
-        });
+        rooms.Sort((a, b) => Compare(world, a, b));
         return rooms;
+    }
+
+    private static int Compare(WorldState world, RoomInstance a, RoomInstance b)
+    {
+        int byAge = world.TileAtIndex(b.TileIndices[0]).RoomListPosition.Value
+            .CompareTo(world.TileAtIndex(a.TileIndices[0]).RoomListPosition.Value);
+        return byAge != 0 ? byAge : b.TileIndices[0].CompareTo(a.TileIndices[0]);
     }
 }

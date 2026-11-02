@@ -99,6 +99,9 @@ public static class SimulationSystems
         new ChickenSystem(), // state 96: the walk to the Hatchery or the wander (keeper-spell-inferno-chicken.md §3)
         new FogOfWarSystem(), // after every creature has moved: an arrival is noticed on its own tick
         new WalkOverGoldSystem(), // gold underfoot, after movement (ADR-0300)
+        // The eggs, coops and chickens' object steps, last in the thing pass as DK2's object list is (0x004B7830)
+        // and before the room walk, whose Hatchery lays an egg afterwards (ADR-0634).
+        new HatcherySystem(lays: false),
     ];
 
     /// <summary>One creature's whole update before the next one's, newest first (<c>0x004B7830</c>,
@@ -148,16 +151,18 @@ public static class SimulationSystems
     /// together, each room's handler, border step and health step before the next room's
     /// (<see cref="RoomTickSystem"/>), after the creatures and before the players (ADR-0479, ADR-0634).
     /// The steps are in the order one room takes them; a room's type picks its handler. The Hatchery's
-    /// laying is in the walk, its eggs' and coops' object steps stay in <see cref="Needs"/>. The Dungeon
-    /// Heart's frame (<c>0x004D9A60</c>) is player-frame work in ours and stays at the tick's end.</summary>
+    /// laying is in the walk, its eggs' and coops' object steps end the thing pass. The Dungeon
+    /// Heart handler (<c>0x004D9A60</c>) is in the walk whole; the player frame's tail it shares a system with
+    /// stays at the tick's end.</summary>
     private static ISimulationSystem[] RoomTicks() =>
     [
         new RoomTickSystem(
             new StoreSweepSystem(), // the Treasury's handler and the Heart's: loose gold goes in every 16th turn
             new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
+            new HeartFrameStep(), // the rest of the Heart's handler (0x004D9A60): the opening, regeneration and ruin
             new CasinoSystem(), // the Casino's handler: the party, and the gold settled at the lever every four seconds (ADR-0188)
             new PortalSystem(), // the Portal's handler
-            new HatcheryLayStep(), // the Hatchery's handler: its coops and its egg (0x004DE0A0)
+            new HatcheryLayStep(), // the Hatchery's handler, its egg (0x004DE0A0), and the coops ours places in its stead
             new HatedCompanySystem(), // the Library, Training Room, Guard Room and Workshop handlers' shared step
             new WorkshopTimerSystem(), // the Workshop handler's four effect timers, which draw the world stream (workshop-timers.md)
             new RoomBorderFlameSystem(), // the room tick's border flames (0x004E7CD0), before its health step
@@ -186,8 +191,6 @@ public static class SimulationSystems
     /// in each creature's update (<see cref="ThingPass"/>).</summary>
     private static ISimulationSystem[] Needs() =>
     [
-        // The eggs and coops of the thing pass, once a game second (ADR-0066); the laying is in the room walk.
-        new HatcherySystem(lays: false),
         new ObjectReactionSystem(),
 
         // Health, prison: one asleep this tick heals this second; health settles damage before
@@ -215,7 +218,7 @@ public static class SimulationSystems
     /// <summary>The level's verdict, then the world's own records.</summary>
     private static ISimulationSystem[] Verdict() =>
     [
-        new DungeonHeartSystem(), // verdict is the last thing DK2's player frame does
+        new DungeonHeartSystem(frames: false), // verdict is the last thing DK2's player frame does
         new TremorSystem(), // world records after the entity and player passes
     ];
 }

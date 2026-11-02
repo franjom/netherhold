@@ -71,7 +71,7 @@ order, each `if (timer != 0) timer--; else { reload; act }`. A reload is
    (`0x004F4D4C..0x004F4D6B`, `0x004F4D7F`); then sound `0x2E9` (`0x004F4DC7`). Nothing happens for an object
    with effect 0, or when the lookup fails (`0x004F4D3D`). **Ours:** the owner is the object's; the point is the
    object's floor position at height 0 and the heading 0, because the simulation has no mesh point (marked
-   deviation, Q731a).
+   deviation, Q733a).
 3. **Smoke** (`+0x4D`, kept to 16 bits). With the effect `+0x427` (file `0x388`; 51, Workshop Smoke) it asks
    `0x004E8210(0, 1)` for a wall slot and its side `s`; the point is the tile centre moved `0x700` toward the
    wall (north `y-`, east `x+`, south `y+`, west `x-`), height `0x1000`, heading `(s & 3) << 9`; then sound
@@ -110,7 +110,7 @@ room. Within a Workshop the order is the hated-company step (it draws nothing), 
 - `RoomTickSystem` walks every room newest first, by `RoomListPosition` (ADR-0541), and runs each room's steps
   before the next room's (section 8), as DK2 does. A Treasury's per-turn draws (`StoreSweepSystem`, one
   `random(100)` every turn, more per pile below 30) therefore fall where its age puts them among the Workshops'
-  (Q731d, closed). **Remaining deviation:** a rival's capture gives a room a new `RoomListPosition`, where
+  (closed by the walk). **Remaining deviation (Q733d):** a rival's capture gives a room a new `RoomListPosition`, where
   DK2's manager list does not move it, so a captured room's place in the walk differs.
 - A level's own Workshops are constructed when a simulation starts, row by row as the map loads, before
   creatures: the four draws each, merged rooms included. UNKNOWN: whether DK2's loader makes rooms before
@@ -121,11 +121,11 @@ room. Within a Workshop the order is the hated-company step (it draws nothing), 
   `0x004F5650`), which our simulation does not hold. Only the lava-spill pick's landing object depends on it.
 - The lava-spill effect is asked for at the object's own floor position, height 0, heading 0, owned by the
   object; the mesh point `0x2712` (a control point of the object's model) is UNKNOWN, and so is whether each
-  of the three machines has it (section 3, Q731a).
+  of the three machines has it (section 3, Q733a).
 - The wall-slot phases (room `+0x92`, `+0x96`, `0x00454230`) are written once per room, when first met
   (`0x004544B1..0x00454507`), and the checkerboard's `room+0x80` by `0x004EF5E0`; ours recomputes both from the
   room's current chain on each call, so after a room grows or merges the bound of a slot pick can differ. The
-  draw count is unaffected, only which slot is picked (Q731e). The floor test (`0x004541AA`, `(x + y + room+0x80)`
+  draw count is unaffected, only which slot is picked (Q733e). The floor test (`0x004541AA`, `(x + y + room+0x80)`
   even, interior cell `+0x0C == 0xFF`) is the one ours uses.
 - The sound sites are left as comments (`0x2E9` at `0x004F4C27` and `0x004F4DC7`, `0x2E8` at `0x004F4F03`).
 
@@ -141,28 +141,49 @@ Their constructors (`0x004E17D0`, `0x004F15A0`, `0x004DD3A0`) draw nothing.
 
 ## 8. The room walk: DK2's handlers and our steps (ADR-0634)
 
-The table `0x006A1E9F`, slot `+0x15` (read 2026-11-02), and the walk's steps in the order one room takes them:
+The table `0x006A1E9F`, slot `+0x15` (read 2026-11-02), and the walk's steps in the order one room takes them. Every
+handler returns 1 (the table's handlers read here), so a room's border and health steps always follow.
 
 | DK2 handler | Type | Ours | Draws the world stream |
 |---|---|---|---|
 | `0x004F39A0` | 1 Treasury | `StoreSweepSystem` (sparkle every turn, sweep every 16th) | yes |
-| `0x004D9A60` | 5 Heart | `StoreSweepSystem`, then `HeartDefenceSystem` (`0x004D9690`'s head and tail) | yes, the sparkle |
-| `0x004DBBE0` | 3 and 25 Portals | `PortalSystem` | yes |
-| `0x004DE0A0` | 4 Hatchery | `HatcheryLayStep` (coops and egg) | yes |
+| `0x004D9A60` | 5 Heart | `StoreSweepSystem`, `HeartDefenceSystem` (`0x004D9690`, called first), `HeartFrameStep` (opening, regeneration, ruin) | the sparkle; the ruin and destruction paths |
+| `0x004DBBE0` | 3 and 25 Portals | `PortalSystem`, counting live | yes |
+| `0x004DE0A0` | 4 Hatchery | `HatcheryLayStep` | yes, the lay |
 | `0x004D6270` | 15 Casino | `CasinoSystem` | yes, one inline site |
 | `0x004E0740`, `0x004F2E90`, `0x004DDD70` | 6, 7, 9 | `HatedCompanySystem` | no direct site |
 | `0x004F4B20` | 10 Workshop | `HatedCompanySystem`, then `WorkshopTimerSystem` | yes |
 | `0x004E7CD0` (in `Room_Tick`) | every room | `RoomBorderFlameSystem` | no |
 | the health step (in `Room_Tick`) | every room | `RoomHealthSystem` | no |
 
-DK2 handlers with no step of ours: Torture, Temple, Graveyard (section 7); the Combat Pit's own turn
-`0x004D7A60` (two sound timers, as the Torture Chamber's, drawing `random(4 x ticks)` and `random(32 x ticks)`
-and the slot pick, and message 9: its creature states are `CombatPitSystem`'s, in the thing pass); the hero gate
-type 21 `0x004DF6E0` (five inline draws); the Prison `0x004E2AC0` (door auto-close, no draws); the Wooden Bridge
-`0x004D5FA0` (draws only on a room change); the Lair and Crypt `0x004B4C20` (nothing). No step of ours lacks a
-DK2 counterpart.
+- **Hatchery.** `Hatchery_Tick` only tests `room+0x49 + room+0x4D <= turn`, lays, stamps `+0x49` and returns 1.
+  World_UpdateTurn runs the thing pass first, so eggs, coops and chickens step before the lay:
+  `HatcherySystem(lays: false)` ends our thing pass. The coops are not the handler's: Room_Rebuild's Hatchery arm
+  (`0x004DE220`, hatchery.md section 2) places them at room-change time, one `random(4) << 9` draw each. **Deviation:**
+  ours places them once a second inside `HatcheryLayStep` (`HatcheryRules.PlaceCoops`) and draws nothing for them
+  (Q733).
+- **Heart.** `0x004D9A60` is the Heart's whole handler; `HeartFrameStep` runs its own part at the Heart's turn.
+  `DungeonHeartSystem(frames: false)` keeps the player frame's tail at the tick's end. The ruin and the
+  destruction handler (`0x004DA560`, `0x004E9130`) reach draws; an ordinary turn reaches none.
+- **Portal.** The pick (`0x004DBF90`) recounts the owner's portal-born creatures (list `+6`, link `+0x10`,
+  `+0x3E6 & 2`) and the capacity (`0x004DCE30`) each time; the arrival creator (`0x004DC9A0`) links the creature
+  (`Creature_Construct`, `0x004872A0`) and sets that bit at once. A second ripe portal sees the first's arrival.
+- **Bridge.** `0x004D5FA0` (type 8) walks the bridge's slab chain every `5 x TicksPerSecond` turns, phased by the room's
+  id, and sells tiles through `Player_SellRoomTile` (`0x004C5DB0`), which reaches the room rebuild and its draws.
+  `BridgeBurnSystem` is our stand-in, a per-tile countdown run in the work phase before the walk (Q67); it is not
+  a step.
 
-Left where they are, because DK2 does not run them inside `Room_Tick`: `HatcherySystem`'s eggs and coops (object
-steps of the thing pass; it skips objects the walk made this turn), `DungeonHeartSystem` (the room frame's
-regeneration and ruin draw nothing, and its tail is the player frame's), `CasinoLeverSystem` (a command),
-`PrisonSystem`, `TempleSacrificeSystem` and `GraveyardSystem` (tile and creature hooks).
+DK2 handlers with no step of ours: Torture, Temple, Graveyard (section 7); the Combat Pit's own turn `0x004D7A60`
+(two sound timers, as the Torture Chamber's, drawing `random(4 x ticks)` and `random(32 x ticks)` and the slot
+pick, and message 9: its creature states are `CombatPitSystem`'s, in the thing pass); the hero gate type 21
+`0x004DF6E0` (five inline draws); the Prison `0x004E2AC0` (door auto-close, no draws); the Lair and Crypt
+`0x004B4C20` (nothing). Every step of ours has a DK2 counterpart; `BridgeBurnSystem` stands in for one.
+
+Left where they are, because DK2 does not run them inside `Room_Tick`: `HatcherySystem`'s object steps (thing pass),
+`CasinoLeverSystem` (a command), the verdict tail of `DungeonHeartSystem` (player frame), `PrisonSystem`,
+`TempleSacrificeSystem` and `GraveyardSystem` (tile and creature hooks).
+
+**Order of rooms.** `RoomListPosition` descending, then lowest tile descending (as `RoomLists.Of`). A rival's capture
+(`Room_TransferOwnership`, `0x004E5650`) never touches the manager's links, so DK2's walk order does not change; ours
+gives the room a new `RoomListPosition` for the player's list (ADR-0541). A second, construction-only ordinal would
+cost sixteen more saved bytes on every tile; not built (Q733).

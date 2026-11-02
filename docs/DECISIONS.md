@@ -14730,7 +14730,7 @@ Heart sits in a claimed 5 by 5, as a shipped Heart does. Whether the fall is Q14
 unmeasured.
 ## ADR-0634: the Workshop's four effect timers draw the world stream
 
-**Date:** 2026-11-02. **Status:** accepted. Q731; hash/save 379.
+**Date:** 2026-11-02. **Status:** accepted. Q733; hash/save 379.
 
 **Context.** DK2's Workshop handler (`0x004F4B20`) counts four effect timers down each turn. At zero
 each reloads with `random(16 x ticks) + 8 x ticks` on the world stream, then, whether or not an effect is
@@ -14754,13 +14754,17 @@ three sites for the sound branch.
 per-type systems in turn would have split the stream from DK2's for good wherever an older Treasury met a Workshop.
 `RoomTickSystem` replaces the room-tick phase's systems with one walk over every room, newest first (`0x004EC450`,
 `0x004EC490`), each room's handler, border step and health step before the next room's. The systems became its
-`IRoomTickStep`s with their rules unchanged and still run alone; the Hatchery's lay moved into the walk and its
-object steps stayed in the needs phase, skipping what the walk made. Mapping: workshop-timers.md section 8.
+`IRoomTickStep`s with their rules unchanged and still run alone. The Hatchery's lay and the Heart handler's
+frame moved into the walk; the eggs', coops' and chickens' object steps end the thing pass, which DK2 runs
+before the rooms. A portal now counts its keeper's creatures and capacity live on every pick, as `0x004DBF90`
+does, so a second ripe portal sees the first's arrival. Mapping: workshop-timers.md section 8.
 
 **Consequences.** A Workshop draws 4 at its start and 4 to 8 more at every reload. Deviations: a captured room
-takes a new list position, where DK2's manager list does not move it; the furniture list lacks the Workshop
+takes a new list position, where DK2's manager list does not move it; coops are placed once a second by
+ours, with no draw, where Room_Rebuild places them at room change with one draw each (`0x004DE220`); the
+furniture list lacks the Workshop
 Pillars; the lava-spill effect sits at the object's floor position, not its unread mesh point (the owner is the
-object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not (Q731). The Torture
+object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not (Q733). The Torture
 Chamber, Temple, Graveyard, Combat Pit and hero gate handlers draw the world stream too and are not built.
-Hash/save 379: sixteen bytes a tile. The Hatchery scenario lays 22 eggs where it laid 21: the lay moved in the tick.
-No fixture holds a Workshop, so the pin moved only with the version.
+Hash/save 379: sixteen bytes a tile. No scenario moved and no fixture holds a Workshop, so the pin moved only
+with the version.

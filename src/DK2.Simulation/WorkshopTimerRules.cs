@@ -127,7 +127,7 @@ public static class WorkshopTimerRules
                     // DK2 asks the object's mesh point 0x2712 (0x0059D380) for a three-dimensional point, owns the
                     // effect by the object's own owner word (0x004F4D7B) and heads it along (point - the object's
                     // position) & 0x7FF (0x004F4D4C..0x004F4D6B). Marked deviation: the simulation has no mesh
-                    // point, so ours sits at the object's floor position at height 0 with heading 0 (Q731a).
+                    // point, so ours sits at the object's floor position at height 0 with heading 0 (Q733a).
                     (int x, int y) = AutoFurnitureRules.FurniturePosition(world, context.Database, room, furniture[pick]);
                     context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(picked.IdleEffectId), furniture[pick].OwnerPlayerId,
                         new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(0)), default));

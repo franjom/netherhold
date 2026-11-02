@@ -1845,6 +1845,13 @@ internal static class Dk2TerrainFixture
     /// no imps is staffed on the first tick (<c>ImpSupplySystem</c>), so a
     /// mana-income test that hands a keeper a heart starts paying imp upkeep
     /// immediately unless it excludes that system.</summary>
+    /// <remarks>The room walk's steps count as systems: leaving out <see cref="Systems.DungeonHeartSystem"/>
+    /// also leaves out the Heart handler's own part, <see cref="Systems.HeartFrameStep"/>, which runs in the walk.</remarks>
     public static ISimulationSystem[] SystemsWithout<T>() where T : ISimulationSystem =>
-        [.. Systems.SimulationSystems.Default().Where(s => s is not T)];
+    [
+        .. Systems.SimulationSystems.Default().Where(s => s is not T).Select(s => s is Systems.RoomTickSystem walk
+            ? new Systems.RoomTickSystem([.. walk.Steps.Where(step =>
+                step is not T && !(typeof(T) == typeof(Systems.DungeonHeartSystem) && step is Systems.HeartFrameStep))])
+            : s),
+    ];
 }
