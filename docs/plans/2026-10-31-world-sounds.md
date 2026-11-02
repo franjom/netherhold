@@ -245,7 +245,7 @@ Not world sounds, but found unwired by the same scan: cheat entry `0x133`; icon 
 |---|---|---|---|
 | W1 Foundation | `5950dc09`, `14fe94e6`, `d8b71e07`, `07318061` | `WorldSoundTests`, `SoundThrottleTests` (`DK2.Presentation.Tests`), `CombatApproachTests.ListeningForSoundsLeavesTheHashAlone`; full gate green | [ ] |
 | W2 Hand and cursor | `dee9c954`, `59f121af` | `HandSoundTests` (`DK2.Presentation.Tests`, `DK2.Simulation.Tests`), `WorldSoundTests`, `ObjectsOnRealDataTests.ObjectSoundCategoriesAreTheShippedNames`; creature hover waits (W7.2) | [ ] |
-| W3 Terrain and rooms | | | [ ] |
+| W3 Terrain and rooms | `1f042522`, `add84b79`, `264833a8`, `45730dbb` | `TileSoundTests`, `RoomSoundTests`, `HeartSoundTests`, `CasinoStateTests` (`DK2.Simulation.Tests`), `HeartBeatSoundTests`, `WorldSoundTests` (`DK2.Presentation.Tests`), `KwdTerrainRoomsTests.TerrainSoundCategoriesAreTheShippedNames`, `CreatureSoundCategoryTests` (`DK2.Data.Tests`); workshop, prison doors, portal, casino music, Saturday dance and local collapse wait | [ ] |
 | W4 Imps and creature states | | | [ ] |
 | W5 Objects, doors, traps | | | [ ] |
 | W6 Spells, shots, combat | | | [ ] |
