@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
@@ -59,18 +60,23 @@ public sealed class ImpSupplySystem : ISimulationSystem
 
             player.NextFreeImpTick = new GameTick(unchecked((uint)(now.Value + interval)));
 
-            // A ruined-at-load Heart leaves the free-cast origin at (1,1).
-            // The cast still consumes a direction draw and its deadline on failure.
-            TilePos? freeAt = null;
-            if (player.HeartRuined && player.HeartLastAttackerPlayerId == 0)
-            {
-                int angle = context.Rng.NextInt(0x800);
-                freeAt = new TilePos((0x1800 + ((TrapRules.Cosine(angle) * 0x2000) >> 16)) >> 12,
-                    (0x1800 + ((TrapRules.Sine(angle) * 0x2000) >> 16)) >> 12);
-                if (!world.Contains(freeAt.Value)
-                    || (context.Navigation.NavByte(freeAt.Value.X, freeAt.Value.Y) & 8) != 0) continue;
-            }
-            if (Spawn(context, playerId, freeAt) is not { } imp) continue;
+            // The free cast (0x004BB4A3): two tiles from DungeonHeartPosition at a drawn angle,
+            // X + sin and Y - cos (angle 0 is north). A ruined-at-load Heart never set that
+            // position, so the origin stays (1,1). A point creation refuses still costs the draw
+            // and the deadline.
+            int angle = context.Rng.NextInt(0x800);
+            int heart = player.HeartRuined && player.HeartLastAttackerPlayerId == 0 ? -1
+                : HeartSites.PositionOf(world, database, playerId);
+            int originX = heart < 0 ? FearRules.NoHeartTile : heart % world.Width;
+            int originY = heart < 0 ? FearRules.NoHeartTile : heart / world.Width;
+            var point = new FpPosition2(
+                new Fp32(CreatureState.CentreOf(originX) + ((TrapRules.Sine(angle) * 0x2000) >> 16)),
+                new Fp32(CreatureState.CentreOf(originY) - ((TrapRules.Cosine(angle) * 0x2000) >> 16)));
+            if (point.X.Raw < 0 || point.Y.Raw < 0 || !world.Contains(point.Tile)) continue;
+            context.Navigation.Refresh();
+            if ((context.Navigation.NavByte(point.Tile.X, point.Tile.Y) & 8) != 0) continue;
+            if (Spawn(context, playerId, point.Tile) is not { } imp) continue;
+            Place(context, imp, point);
 
             context.Emit(SystemName, "imp_generated",
                 $"player={playerId} imp={imp.Id} at=({imp.Tile.X},{imp.Tile.Y}) " +
@@ -153,12 +159,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
             return;
         }
 
-        if (create.Position is { } position)
-        {
-            imp.PosX = imp.LastPosX = position.X.Raw;
-            imp.PosY = imp.LastPosY = position.Y.Raw;
-            ImpCreationRules.Begin(context, imp);
-        }
+        if (create.Position is { } position) Place(context, imp, position);
 
         player.Mana -= cost;
         context.Emit(SystemName, "imp_created",
@@ -167,7 +168,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     }
 
     /// <summary>Puts a new imp on the cast's tile, or on this keeper's dungeon heart when the
-    /// cast names none (free imps and <see cref="CreateImpCommand"/> without a tile). Returns
+    /// cast names none (a <see cref="CreateImpCommand"/> without a tile). Returns
     /// null for a tile outside the map, or with no tile, for a keeper without a heart.</summary>
     /// <remarks>The type is found by name, <c>Imp</c> — not by id, and not by the
     /// worker flag, because the Dwarf carries it too and is not what Create Imp
@@ -216,6 +217,33 @@ public sealed class ImpSupplySystem : ISimulationSystem
         return made;
     }
 
+    /// <summary>Puts a cast's imp at the exact point, draws its heading and starts its fall (state
+    /// 214), as the creation process's worker arm does for every Create Imp shot, bought or free:
+    /// process 1 (0x004AD7A0) draws random(0x800), process 36 (0x004AFE50, the upgraded shot)
+    /// one of four cardinal headings, random(4) &lt;&lt; 9.</summary>
+    private static void Place(SimulationContext context, CreatureState imp, FpPosition2 point)
+    {
+        imp.PosX = imp.LastPosX = point.X.Raw;
+        imp.PosY = imp.LastPosY = point.Y.Raw;
+        imp.Heading = CreationProcess(context, imp.OwnerPlayerId) == CreateSingleCreatureProcess
+            ? (context.Rng.NextInt(4) << 9) & 0x7FF
+            : context.Rng.NextInt(0x800) & 0x7FF;
+        ImpCreationRules.Begin(context, imp);
+    }
+
+    private const byte CreateSingleCreatureProcess = 36;
+
+    /// <summary>The process type of the shot a Create Imp cast fires for <paramref name="playerId"/>.</summary>
+    private static byte CreationProcess(SimulationContext context, PlayerId playerId) =>
+        context.Database.KeeperSpell(KeeperSpellName.CreateImp) is { } spell
+        && context.Database.Shots.TryGetValue(spell.Shot(IsUpgraded(context, playerId, spell)).ShotTypeId,
+            out ShotDef? shot)
+            ? shot.ProcessType : (byte)1;
+
+    private static bool IsUpgraded(SimulationContext context, PlayerId playerId, KeeperSpellDef spell) =>
+        context.World.IsUpgraded(playerId, ResearchTreeRules.AvailabilityKindOf(ResearchTreeRules.KindSpell),
+            spell.KeeperSpellId);
+
     /// <summary>The level a Create Imp cast makes for <paramref name="playerId"/>: the second
     /// datum of the spell's shot, or of its bonus shot when the keeper's row is upgraded. Level
     /// 1 for a database without the spell.</summary>
@@ -224,8 +252,6 @@ public sealed class ImpSupplySystem : ISimulationSystem
         if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell)
             return CreatureLevelRules.FirstLevel;
 
-        bool upgraded = context.World.IsUpgraded(
-            playerId, ResearchTreeRules.AvailabilityKindOf(ResearchTreeRules.KindSpell), spell.KeeperSpellId);
-        return CreatureLevelRules.Clamp(spell.Shot(upgraded).Data2);
+        return CreatureLevelRules.Clamp(spell.Shot(IsUpgraded(context, playerId, spell)).Data2);
     }
 }

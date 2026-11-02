@@ -14702,6 +14702,32 @@ a quarter of a tile past it. Among the scenarios only the Goblin's first bird mo
 21, the meal tick unchanged). The Jack keeps its own check for hosts that run without this step.
 DK2 runs the stop inside the handler, after the needs routine; ours runs it just before that.
 
+## ADR-0630: a free imp drops in two tiles from the Heart
+
+**Date:** 2026-11-02. **Status:** accepted. Builds Q716 except its draw order; hash/save 377.
+
+**Context.** DK2 makes a free imp by casting Create Imp with the bypass flag (`0x004BB2A0`,
+`0x004BB55F`): the point is DungeonHeartPosition's centre plus 0x2000 at a random(0x800)
+angle, X + sin and Y - cos, Z 0. The shot's creation process puts the imp half a tile above
+the floor in state 214 and draws its heading: random(0x800) in process 1 (`0x004AD7A0`),
+random(4) << 9 in the upgraded shot's process 36 (`0x004AFE50`). It then falls and makes
+effect 29 on landing (`0x00481750`). That the free cast's shot is raised to the floor first is
+STRONGLY INFERRED (no capture). Ours made a healthy keeper's free imp in state 1 on the first
+Heart tile with no draw; its ruined-at-load branch used X + cos, Y + sin; neither our bought
+nor our free imps drew the heading ([imps-and-mana.md](research/imps-and-mana.md)).
+
+**Decision.** `ImpSupplySystem.TopUp` draws the angle for every free cast, aims from
+`HeartSites.PositionOf` ((1,1) for a Heart ruined at load, which never set it), and refuses a
+point off the map or nav-solid, with the deadline still advanced. Free and bought imps share
+`Place`: the exact point, the heading draw chosen by the fired shot's process, then
+`ImpCreationRules.Begin`.
+
+**Consequences.** Two draws per created imp, so seeded runs after the first imp diverge from
+376. Ours makes both draws inside the cast; DK2 runs the creation process in the shot's own
+update, so with two keepers its order may be angle, angle, heading, heading (unread, Q716).
+A free imp spends its fall in 214, then 11 and 10, before choosing work. The test fixtures'
+Heart sits in a claimed 5 by 5, as a shipped Heart does. Whether the fall is Q149's 1.4 s is
+unmeasured.
 ## ADR-0634: the Workshop's four effect timers draw the world stream
 
 **Date:** 2026-11-02. **Status:** accepted. Q731; hash/save 379.
