@@ -14603,3 +14603,24 @@ versions together because the chosen route and subsequent gameplay can change.
 expectations, and the captured refill supplies an exact route control.
 [Completed outcomes](research/fight-scan-initial-phase.md#matched-outcomes-366-through-370) leave Q712 open; partial restore inputs and other
 navigation adapters remain explicit. No score determines the rule.
+
+## ADR-0627: a walking Jack resumes 273 at a whole route progress
+
+**Date:** 2026-11-02. **Status:** accepted. Q711; hash/save 371.
+
+**Context.** State 6 (`0x00470C80`) resumes its saved state when the route's
+progress is exactly 1.0. Progress counts the last point's distance in
+sixteenths of a tile (`octile >> 12`), so under 1/16 tile counts as there.
+Follow_Path's arrival needs half a radius, and a Jack's radius is 0x1020.
+On M7Traps DK2's Jack stopped 0x8C8 from its aim, past the 0x810 arrival
+test. Ours waited for that test and circled the corner for about a hundred
+ticks ([jack-in-the-box.md](research/jack-in-the-box.md#7-watched-in-play-2026-11-01-q524)).
+
+**Decision.** The Jack's walk hands back to 273 when
+`FollowPathRules.Progress` is 1.0, after stopping the body, as DK2 does.
+Other walkers keep their existing handover (Q724).
+
+**Consequences.** In a one-off run of ours on M7Traps (scratch harness, not a test), it followed
+DK2's track step for step, one turn earlier in numbering as on the whole walk: it stopped at
+(20.49, 31.47), entered 273 the next tick and lost 51 a tick. The test pins the mechanism on a
+synthetic map: the walk ends with `PathFinished` still clear.
