@@ -8,6 +8,9 @@ window before selecting its new aim.
 
 ## Confirmed observations
 
+The historical exact-prefix comparisons below use legacy capture headers,
+not established executed-turn parity; see the [clock boundary](packet-playback-clock.md).
+
 The seed 2/generator 101 control retains the earlier captured pool/level/scan
 inputs, phase pulse and Library goal; these are partial interventions, not a
 fully restored native world. The ordinary-room fix is [Q721](room-position-parity.md).
@@ -149,3 +152,22 @@ the native extraction checks all 6003 frames for tearing and tick agreement.
 The saved resume alone does not identify the sender. This strengthens the
 redispatch/encounter-exposure lead without proving another behavior mismatch.
 Evidence: `F:/DK2Evidence/studies/q712-reporting-walk-destinations--2026-11-02--001/`.
+
+## Hull premark control
+
+On the retained 1574 mesh, 33 endpoint pairs cover the captured query, 16
+near-Heart and 16 map-wide floor-centroid pairs. Paired execution of both native
+searches with and without the captured hull list changes none of 66 directional
+results. The corrected managed search agrees on all 63 executed directions;
+three backwards calls are excluded because the managed driver first fails its
+forward search. The class-zero width table and original six mover globals are
+explicit. No hull fix follows from this bounded control; Q723 remains open for
+other meshes/profiles. Heap sift signed comparisons and tie rules also match
+the existing implementation (004CCF00/004CCF70).
+
+Evidence: `F:/DK2Evidence/studies/q712-hull-search-control--2026-11-02--001/`.
+Use `results-corrected-v3.json` and `sha256-analysis-v3.json`; earlier parser
+analyses are preserved and excluded. The historical 1566 mesh/history remains
+unmatched. [Atomic input controls](q712-atomic-inputs.md) now capture a new
+trajectory with its retained mesh/cache. They expose the [packet playback-clock
+mismatch](packet-playback-clock.md); no old/new trajectory equivalence follows.

@@ -329,3 +329,5 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - A destination-only replay probe must reuse simulation.Navigation; constructing WorldSteering rebuilds the persistent mesh and also changes the route inputs.
 
 - Build evidence manifests before opening their output file; otherwise recursive enumeration can record the manifest itself with an empty-file digest.
+
+- dk2oracle.py prints EAX and EDX before requested memory words; validate route endpoints before treating its output as a corridor.

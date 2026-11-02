@@ -180,6 +180,10 @@ restoration and Q719 allocator/clocks remain partial. Sources:
 
 ## Matched input control and remaining divergence
 
+All historical exact-prefix controls below align legacy capture headers; they
+do not establish [executed-turn parity](packet-playback-clock.md). The new
+[atomic controls](q712-atomic-inputs.md) use completed native turns.
+
 The first five diagnostic modes are valid: observe, pool, pool plus levels,
 pool plus levels/scans, and the latter with a captured phase pulse at 1535.
 Observe preserves all four production outputs. Restoring the captured pool
