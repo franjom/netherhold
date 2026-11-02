@@ -77,6 +77,23 @@ public class KwdTriggerEditingTests
         Assert.Throws<InvalidDataException>(()=>duplicate.RemoveTrigger(new("triggers.kld",0,0)));
     }
 
+    [Fact]
+    public void LinkTriggerSetsLinksOnlyToNodesThatExistOnceAndAreUnreferenced()
+    {
+        var editor=Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,14))
+            .Concat(KwdThingEditingTests.Trigger(214,15)).ToArray()));
+        byte[] original=editor.ToBytes("triggers.kld");
+        foreach((ushort next,ushort child) in new (ushort,ushort)[]{(99,0),(0,99),(13,0),(14,14)})
+            Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new("triggers.kld",0,0),next,child));
+        Assert.Equal(original,editor.ToBytes("triggers.kld"));
+
+        editor.LinkTrigger(new("triggers.kld",0,0),0,14);
+        editor.LinkTrigger(new("triggers.kld",0,1),15,0);
+        Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new("triggers.kld",0,2),0,14));
+        var rows=KwdTriggers.Parse([KwdThingEditingTests.Reload(editor.ToBytes("triggers.kld"))]);
+        Assert.Equal([(0,14),(15,0),(0,0)],rows.Select(r=>((int)r.NextTriggerId,(int)r.ChildTriggerId)).ToArray());
+    }
+
     [InstallFact]
     public void EveryShippedLevelSupportsExplicitDetachedTemplatesIncludingEmptyTriggerChunks()
     {
