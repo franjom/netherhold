@@ -16,32 +16,43 @@ namespace DK2.Simulation.Systems;
 /// survives the sale of its tile or the loss of HasFlame or owner; ours, kept for derived rooms,
 /// goes with its tile and a room re-found without one starts afresh.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-border-effects.md")]
-public sealed class RoomBorderFlameSystem : ISimulationSystem
+public sealed class RoomBorderFlameSystem : IRoomTickStep
 {
     private readonly List<RoomBorderCursor> _next = [];
 
     public string Name => "RoomBorderFlames";
 
-    public void Execute(SimulationContext context)
+    private bool _births;
+
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context)
+    {
+        _births = ((context.Tick.Value + 1) & 1) != 0;   // DK2's turn is our tick plus one (ADR-0119)
+        _next.Clear();
+    }
+
+    public bool Applies(SimulationContext context, RoomInstance room) =>
+        (room.Definition.Flags & RoomFlags.HasFlame) != 0 && room.OwnerPlayerId != 0;
+
+    public void Tick(SimulationContext context, RoomInstance room)
     {
         WorldState world = context.World;
-        List<RoomBorderCursor> cursors = world.RoomBorderCursorList;
-        bool births = ((context.Tick.Value + 1) & 1) != 0;   // DK2's turn is our tick plus one (ADR-0119)
-        _next.Clear();
-        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
-        {
-            if ((room.Definition.Flags & RoomFlags.HasFlame) == 0 || room.OwnerPlayerId == 0) continue;
-            RoomBorderCursor cursor = default;
-            bool found = false;
-            foreach (RoomBorderCursor held in cursors)
-                if (room.Contains(held.Y * world.Width + held.X)) { cursor = held; found = true; break; }
-            if (!found) cursor = RoomBorderRules.Start(world, room);
-            cursor = RoomBorderRules.Advance(cursor, world, room);
-            _next.Add(cursor);
-            if (births)
-                context.RequestEffect(Name, new ViewEffectRequest(new EffectId(RoomBorderRules.FlameEffectId),
-                    new PlayerId(room.OwnerPlayerId), RoomBorderRules.FlamePoint(cursor)));
-        }
+        RoomBorderCursor cursor = default;
+        bool found = false;
+        foreach (RoomBorderCursor held in world.RoomBorderCursorList)
+            if (room.Contains(held.Y * world.Width + held.X)) { cursor = held; found = true; break; }
+        if (!found) cursor = RoomBorderRules.Start(world, room);
+        cursor = RoomBorderRules.Advance(cursor, world, room);
+        _next.Add(cursor);
+        if (_births)
+            context.RequestEffect(Name, new ViewEffectRequest(new EffectId(RoomBorderRules.FlameEffectId),
+                new PlayerId(room.OwnerPlayerId), RoomBorderRules.FlamePoint(cursor)));
+    }
+
+    public void EndTurn(SimulationContext context)
+    {
+        List<RoomBorderCursor> cursors = context.World.RoomBorderCursorList;
         cursors.Clear();
         cursors.AddRange(_next);
     }

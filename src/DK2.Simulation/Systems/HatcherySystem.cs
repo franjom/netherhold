@@ -22,6 +22,14 @@ public sealed class HatcherySystem : ISimulationSystem
 {
     private const string SystemName = "Hatchery";
 
+    private readonly bool _lays;
+    private readonly HatcheryLayStep _layStep = new();
+
+    /// <param name="lays">Whether this system also lays, as the Hatchery's room handler does (<c>0x004DE0A0</c>).
+    /// A host that walks the rooms in DK2's order has <see cref="HatcheryLayStep"/> do it there, after the thing
+    /// pass that steps the objects, and passes false.</param>
+    public HatcherySystem(bool lays = true) => _lays = lays;
+
     public string Name => SystemName;
 
     public void Execute(SimulationContext context)
@@ -30,7 +38,7 @@ public sealed class HatcherySystem : ISimulationSystem
 
         // Fallback hatching precedes laying so an egg is not aged on its lay turn.
         if ((context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0) Hatch(context);
-        Lay(context);
+        if (_lays) RoomTickSystem.RunAlone(context, _layStep);
     }
 
     private static void StepObjectAnimations(SimulationContext context)
@@ -80,59 +88,53 @@ public sealed class HatcherySystem : ISimulationSystem
     }
 
     /// <summary>
-    /// Maintains coops once a second and checks each room's last-generated stamp every turn.
+    /// One Hatchery's tick: maintains its coops once a second and checks its last-generated stamp every turn.
     /// </summary>
-    private static void Lay(SimulationContext context)
+    internal static void LayRoom(SimulationContext context, RoomInstance room)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        foreach (RoomInstance room in RoomIndex.Build(world, database))
+        // Coops are the room's furniture and they are placed rather than
+        // built: a hatchery that grows gets the coops its new size allows,
+        // on the tiles HatcheryRules picks. Cheap when there is nothing to
+        // add, which is every second but the first.
+        int added = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0
+            ? HatcheryRules.PlaceCoops(world, database, room) : 0;
+        if (added > 0)
         {
-            if (room.Definition.TypeId != RoomTypeId.Hatchery) continue;
-            if (room.TileIndices.Count == 0) continue;
-
-            // Coops are the room's furniture and they are placed rather than
-            // built: a hatchery that grows gets the coops its new size allows,
-            // on the tiles HatcheryRules picks. Cheap when there is nothing to
-            // add, which is every second but the first.
-            int added = (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0
-                ? HatcheryRules.PlaceCoops(world, database, room) : 0;
-            if (added > 0)
-            {
-                context.Emit(SystemName, "coops_placed",
-                    $"player={room.OwnerPlayerId} {Describe(world, room.TileIndices[0])} " +
-                    $"added={added} tiles={room.TileCount} " +
-                    $"wanted={HatcheryRules.CoopCount(room)}");
-            }
-
-            // The clock lives on the room's lowest tile, because a room here is
-            // derived and cannot hold state of its own (TileState.HatcheryLastGeneratedTick).
-            ref TileState clock = ref world.TileAtIndex(room.TileIndices[0]);
-            int intervalTicks = HatcheryRules.GenerationIntervalTicks(world, database, room);
-            long now = context.Tick.Value + 1;
-            if (now < clock.HatcheryLastGeneratedTick + intervalTicks) continue;
-            clock.HatcheryLastGeneratedTick = now;
-
-            ObjectState? egg = HatcheryRules.TryLayEgg(world, database, room, context.Rng);
-            if (egg is null)
-            {
-                // A full room lays nothing, and says so rather than silently
-                // resetting - "why is my hatchery not producing" is a question
-                // the log should answer.
-                context.Emit(SystemName, "lay_refused",
-                    $"player={room.OwnerPlayerId} {Describe(world, room.TileIndices[0])} " +
-                    $"birds={HatcheryRules.Birds(world, room)} " +
-                    $"capacity={HatcheryRules.FlockCapacity(database, room)}");
-                continue;
-            }
-
-            context.Emit(SystemName, "egg_laid",
-                $"player={room.OwnerPlayerId} egg={egg.Id} " +
-                $"{Describe(world, egg.TileIndex)} " +
-                $"interval={intervalTicks / SimulationTiming.TicksPerSecond}s " +
-                $"tiles={room.TileCount}");
+            context.Emit(SystemName, "coops_placed",
+                $"player={room.OwnerPlayerId} {Describe(world, room.TileIndices[0])} " +
+                $"added={added} tiles={room.TileCount} " +
+                $"wanted={HatcheryRules.CoopCount(room)}");
         }
+
+        // The clock lives on the room's lowest tile, because a room here is
+        // derived and cannot hold state of its own (TileState.HatcheryLastGeneratedTick).
+        ref TileState clock = ref world.TileAtIndex(room.TileIndices[0]);
+        int intervalTicks = HatcheryRules.GenerationIntervalTicks(world, database, room);
+        long now = context.Tick.Value + 1;
+        if (now < clock.HatcheryLastGeneratedTick + intervalTicks) return;
+        clock.HatcheryLastGeneratedTick = now;
+
+        ObjectState? egg = HatcheryRules.TryLayEgg(world, database, room, context.Rng);
+        if (egg is null)
+        {
+            // A full room lays nothing, and says so rather than silently
+            // resetting - "why is my hatchery not producing" is a question
+            // the log should answer.
+            context.Emit(SystemName, "lay_refused",
+                $"player={room.OwnerPlayerId} {Describe(world, room.TileIndices[0])} " +
+                $"birds={HatcheryRules.Birds(world, room)} " +
+                $"capacity={HatcheryRules.FlockCapacity(database, room)}");
+            return;
+        }
+
+        context.Emit(SystemName, "egg_laid",
+            $"player={room.OwnerPlayerId} egg={egg.Id} " +
+            $"{Describe(world, egg.TileIndex)} " +
+            $"interval={intervalTicks / SimulationTiming.TicksPerSecond}s " +
+            $"tiles={room.TileCount}");
     }
 
     /// <summary>Every egg counts down, and becomes a chicken where it lies.</summary>
@@ -163,4 +165,20 @@ public sealed class HatcherySystem : ISimulationSystem
 
     private static string Describe(WorldState world, int tileIndex) =>
         tileIndex < 0 ? "(none)" : $"({tileIndex % world.Width},{tileIndex / world.Width})";
+}
+
+/// <summary>The Hatchery's part of the room tick (<c>Hatchery_Tick</c>, <c>0x004DE0A0</c>, which only lays when its clock is
+/// due) and, as a stand-in, the coops DK2 places when the room changes (<c>0x004DE220</c>, Q733): ours once a second and
+/// the lay when its clock is due. <see cref="HatcherySystem"/> does this itself when it runs without a room walk.</summary>
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
+public sealed class HatcheryLayStep : IRoomTickStep
+{
+    public string Name => "Hatchery";
+
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+
+    public bool Applies(SimulationContext context, RoomInstance room) =>
+        room.Definition.TypeId == RoomTypeId.Hatchery && room.TileIndices.Count != 0;
+
+    public void Tick(SimulationContext context, RoomInstance room) => HatcherySystem.LayRoom(context, room);
 }
