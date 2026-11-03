@@ -28,6 +28,7 @@ public static class KwdObjects
         byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Objects, RecordSize);
         KwdOverlay.Ascii(bytes, OffsetName, 32, record.Name, Name(bytes, OffsetName), trimmed: true);
         KwdOverlay.Ascii(bytes, OffsetSoundCategory, 32, record.SoundCategory, Name(bytes, OffsetSoundCategory), trimmed: true);
+        bytes[OffsetImpactKind] = record.ImpactKind;
         void Fp(int offset, Fp32 value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value.Raw);
         void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
         bytes[OffsetObjectId] = record.ObjectId;
@@ -84,6 +85,7 @@ public static class KwdObjects
     private const int OffsetRoomCapacity = 0x35C;
     private const int OffsetPickUpPriority = 0x35D;
     private const int OffsetSoundCategory = 0x35E;
+    private const int OffsetImpactKind = 0x340;
 
     public static List<ObjectDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -140,6 +142,7 @@ public static class KwdObjects
             DeathEffectId = U16(OffsetDeathEffect),
             PickUpPriority = rec[b + OffsetPickUpPriority],
             SoundCategory = Name(rec, b + OffsetSoundCategory),
+            ImpactKind = rec[b + OffsetImpactKind],
 
             Width = Fp(OffsetWidth),
             Height = Fp(OffsetHeight),

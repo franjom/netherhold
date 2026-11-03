@@ -32,10 +32,11 @@ public static partial class ShotRules
 
     /// <summary>The constructor's two sounds (<c>Shot_InitialiseFromDefinition</c>, <c>0x004AAF1E</c> and <c>0x004AAF40</c>): <c>0xEF</c> with
     /// the shot's first handle and <c>0xF2</c> with its second, in the shot's own category (definition <c>+0x72</c>) at the shot's
-    /// position. Every caller of <c>Shot_Create</c> asks them (its last argument is nonzero at each site read), and the category
-    /// is empty for most keeper-spell and trap shots, which then ask nothing. Asked here, with the trail, because this is each
-    /// caller's one construction hook; the height is the observation's, not a stored one.</summary>
-    private static void RequestConstructionSounds(SimulationContext context, ShotState shot, ShotDef definition)
+    /// position. Fourteen of the fifteen callers of <c>Shot_Create</c> pass a nonzero last argument, which gates the <c>0xEF</c>; the fifteenth,
+    /// the saved-game loader (<c>0x004B6CB0</c>), passes 0 and asks only <c>0xF2</c>, which a simulation never loads through here. The category
+    /// is empty for most keeper-spell and trap shots, which then ask nothing. Asked with the trail, each caller's construction hook; the
+    /// height is the observation's, not a stored one.</summary>
+    internal static void RequestConstructionSounds(SimulationContext context, ShotState shot, ShotDef definition)
     {
         RequestShotSound(context, shot, definition, ThingSoundEvent.SpellCast);
         RequestShotSound(context, shot, definition, ThingSoundEvent.ShotMadeSecond, SoundSourceKind.ShotSecond);

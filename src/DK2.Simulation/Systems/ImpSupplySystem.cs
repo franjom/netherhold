@@ -193,8 +193,13 @@ public sealed class ImpSupplySystem : ISimulationSystem
         if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell) return null;
         var effect = spell.Shot(IsUpgraded(context, playerId, spell));
         if (!context.Database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? definition)) return null;
-        return ShotRules.Spawn(context.World, definition, playerId, point.X.Raw, point.Y.Raw, effect.Data1, effect.Data2,
+        ShotState shot = ShotRules.Spawn(context.World, definition, playerId, point.X.Raw, point.Y.Raw, effect.Data1, effect.Data2,
             0, FightTargetKind.None, -1, playerId, -1, point.X.Raw, point.Y.Raw);
+        // The constructor's 0xEF and 0xF2 (shot 2 has no category, so none), then 0x004BBEBD's cast sound in KEEPER_SPELL_CREATE_IMP.
+        // No trail is requested: the process makes no effect (ADR-0635), so the shot sits at the default view height.
+        ShotRules.RequestConstructionSounds(context, shot, definition);
+        KeeperSpellRules.RequestPlaceCastSound(context, spell, definition, playerId, new FpPosition3(point.X, point.Y, shot.ViewHeight));
+        return shot;
     }
 
     private static bool IsUpgraded(SimulationContext context, PlayerId playerId, KeeperSpellDef spell) =>

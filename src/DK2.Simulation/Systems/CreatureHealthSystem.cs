@@ -311,7 +311,9 @@ public sealed class CreatureHealthSystem : ISimulationSystem
     internal static void Die(
         SimulationContext context, string system, CreatureDef creature, CreatureState state)
     {
-        // 0x00487E4A: the cry, unless the removal counts nothing (+0x3E6 bit 0x40, DeathUncounted). DK2 runs the bookkeeping for every freed
+        // 0x00487E4A: the cry, unless the removal counts nothing (+0x3E6 bit 0x40, DeathUncounted, which nothing in src sets yet, so this
+        // guard is inert). Not mirrored: the function head's skip while the world's level-leave probe (vtable +0x4C, 0x00487CB8) is nonzero, and the
+        // skip while world +0x7239 bit 0x80 is set (a saved game being restored, INFERRED); a simulation has neither. DK2 runs the bookkeeping for every freed
         // creature; ours asks it where the creature dies, not where the other removal paths (leaving, the Temple's pool) free one.
         if (!state.DeathUncounted) ThingSoundRules.Request(context, system, state, ThingSoundEvent.CreatureFreed);
         // A hypnotised or following creature's bookkeeping (0x00487DD2, 0x00487E6A) before the possession exit.

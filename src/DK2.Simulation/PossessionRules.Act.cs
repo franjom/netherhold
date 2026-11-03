@@ -175,7 +175,7 @@ public static partial class PossessionRules
 
     /// <summary>The object dispatch (jump table <c>0x005153D0</c>): gold 1-3 is the pick-up, 9
     /// <see cref="EatChicken"/>, 14 <see cref="SpinDummy"/>; 15, 16 and 46 only place an impact effect
-    /// (<c>0x004998A0</c>, presentation); any other type the pick allows (the Book Case, 64) takes the
+    /// (<c>0x004998A0</c>: <see cref="WeaponImpactRules"/> asks its sound); any other type the pick allows (the Book Case, 64) takes the
     /// attack. The Arch Pillar (94) is a <see cref="PillarThing"/>.</summary>
     private static void ObjectArm(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState thing, long now)
     {
@@ -192,6 +192,8 @@ public static partial class PossessionRules
                 break;
             case AnvilObjectId or SteelBucketObjectId or WorkBenchObjectId:
                 context.Emit(ActSystem, "possessed_impact", $"creature={me.Id} object={thing.Id}");
+                // 0x00514C8B: the impact lookup, the possessed creature as this, its attack type and the object definition's surface byte.
+                WeaponImpactRules.Request(context, ActSystem, me, mine.MeleeAttackType, context.Database.ObjectById(thing.ObjectTypeId)?.ImpactKind ?? (byte)0);
                 break;
             default:
                 Attack(context, me, FightTargetKind.Object, thing.Id, now);

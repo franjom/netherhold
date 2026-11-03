@@ -126,6 +126,10 @@ public sealed record ObjectDef
     /// requests (docs/research/sound-effects.md section 6).</summary>
     public string SoundCategory { get; init; } = string.Empty;
 
+    /// <summary>File byte 0x340, definition <c>+0x11C</c> (<c>0x0049DD60</c>, intermediate <c>+0x3C0</c>): the surface byte the swing's impact
+    /// lookup (<c>0x004998A0</c>) picks the weapon sound by when this object is struck.</summary>
+    public byte ImpactKind { get; init; }
+
     public required Fp32 Width { get; init; }
     public required Fp32 Height { get; init; }
     public required Fp32 Mass { get; init; }

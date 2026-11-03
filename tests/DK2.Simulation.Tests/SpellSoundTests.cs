@@ -65,8 +65,10 @@ public sealed class SpellSoundTests
         return sim;
     }
 
+    /// <summary>By event and by the kind of thing (a cast's player, a shot's two handles, a Tremor slot): 0xF4 and 0xEF are other things' too.</summary>
     private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        Sounds(events).Where(s => s.Event == sound).ToArray();
+        Sounds(events).Where(s => s.Event == sound
+            && s.Source.Kind is SoundSourceKind.Player or SoundSourceKind.Shot or SoundSourceKind.ShotSecond or SoundSourceKind.Tremor).ToArray();
 
     private static CastSpellAtPlaceCommand CastTremor() =>
         new(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));

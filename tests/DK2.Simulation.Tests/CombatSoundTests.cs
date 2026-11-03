@@ -19,12 +19,13 @@ public sealed class CombatSoundTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
-    private static (GameDatabase Db, WorldState World) Open(Func<CreatureDef, CreatureDef>? goblin = null)
+    private static (GameDatabase Db, WorldState World) Open(Func<CreatureDef, CreatureDef>? goblin = null, byte structureImpact = 0)
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.GoblinCreatureId && goblin != null ? goblin(c) : c),
-            basis.Variables, basis.KeeperSpells.Values, basis.Objects.Values, basis.Doors.Values, basis.Traps.Values,
+            basis.Variables, basis.KeeperSpells.Values, basis.Objects.Values.Select(o => o with { ImpactKind = structureImpact }),
+            basis.Doors.Values.Select(d => d with { ImpactKind = structureImpact }), basis.Traps.Values.Select(t => t with { ImpactKind = structureImpact }),
             basis.CreatureSpells.Values, basis.Shots.Values, basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
@@ -33,8 +34,10 @@ public sealed class CombatSoundTests
         return (db, world);
     }
 
+    /// <summary>By event and by the kind of thing: 0xDA and 0xF4 are also the heart's and the terrain's, and 0xDB the shot's.</summary>
     private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        Sounds(events).Where(s => s.Event == sound).ToArray();
+        Sounds(events).Where(s => s.Event == sound
+            && s.Source.Kind == (sound == ThingSoundEvent.CorpseDestroyed ? SoundSourceKind.Corpse : SoundSourceKind.Creature)).ToArray();
 
     private static FpPosition3 Where(CreatureState c) => new(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
 
@@ -128,6 +131,130 @@ public sealed class CombatSoundTests
         Assert.Empty(Sounds(events));
     }
 
+
+    private static ThingSoundRequest[] Weapon(ListEventSink events) =>
+        Sounds(events).Where(s => s.Category.StartsWith("WEAPON_", StringComparison.Ordinal)).ToArray();
+
+    [Theory]
+    [InlineData(AttackType.MeleeBlade, 1, "WEAPON_METAL", 0x114)]
+    [InlineData(AttackType.MeleeBlunt, 2, "WEAPON_WOOD", 0x1BC)]
+    [InlineData(AttackType.MeleeBody, 3, "WEAPON_FLESH", 0x113)]
+    [InlineData(AttackType.MeleeScythe, 4, "WEAPON_SCYTHE", 0x1BB)]
+    [InlineData(AttackType.MeleeBlade, 5, "WEAPON_METAL", 0x112)]
+    [InlineData(AttackType.MeleeBlade, 6, "WEAPON_METAL", 0x1BD)]
+    [InlineData(AttackType.MeleeBlade, 7, "WEAPON_METAL", 0x112)]
+    public void ASwingAtACreatureAsksTheWeaponSoundOfTheAttackersAttackTypeBySurfaceAtTheAttackerWithItsHandleBeforeItsDb(
+        AttackType attack, byte surface, string category, int word)
+    {
+        (GameDatabase db, WorldState world) = Open(c => c with { MeleeAttackType = attack, ImpactKind = surface });
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 5));
+        GameSimulation sim = Run(db, world, context => Swing(context, me, FightTargetKind.Creature, target.Id), out ListEventSink events);
+
+        sim.Tick();
+
+        ThingSoundRequest impact = Assert.Single(Weapon(events));
+        Assert.Equal(word, (int)impact.Event);
+        Assert.Equal(category, impact.Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(me.Id)), impact.Source);
+        Assert.Equal(Where(me), impact.Position);
+        Assert.True(impact.Voiced);
+        ThingSoundRequest[] all = Sounds(events);   // the impact, then the swing's 0xDB
+        Assert.Same(impact.Category, all[0].Category);
+        Assert.Equal(ThingSoundEvent.Struck, all[1].Event);
+    }
+
+    [Theory]
+    [InlineData(AttackType.MeleeBlade, 0)]
+    [InlineData(AttackType.MeleeBlade, 8)]
+    [InlineData(AttackType.WizardFireball, 1)]
+    public void ASwingWhoseSurfaceIsOutsideOneToSevenOrWhoseAttackTypeIsNotInTheTableAsksNoWeaponSound(AttackType attack, byte surface)
+    {
+        (GameDatabase db, WorldState world) = Open(c => c with { MeleeAttackType = attack, ImpactKind = surface });
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 5));
+        GameSimulation sim = Run(db, world, context => Swing(context, me, FightTargetKind.Creature, target.Id), out ListEventSink events);
+
+        sim.Tick();
+
+        Assert.Empty(Weapon(events));
+        Assert.Single(Heard(events, ThingSoundEvent.Struck));
+    }
+
+    [Fact]
+    public void ASwingWhoseBlowIsZeroStillAsksTheWeaponSoundBecauseTheLookupPrecedesTheBlowTest()
+    {
+        (GameDatabase db, WorldState world) = Open(c => c with { MeleeDamage = 0, ImpactKind = 1 });
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 5));
+        GameSimulation sim = Run(db, world, context => Swing(context, me, FightTargetKind.Creature, target.Id), out ListEventSink events);
+
+        sim.Tick();
+
+        Assert.Single(Weapon(events));
+    }
+
+    [Fact]
+    public void ASwingAtAnInvulnerableCreatureAsksNoWeaponSoundBecauseTheHandlerReturnsBeforeTheLookup()
+    {
+        (GameDatabase db, WorldState world) = Open(c => c with { ImpactKind = 1 });
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 5));
+        target.InvulnerableTicks = 100;
+        GameSimulation sim = Run(db, world, context => Swing(context, me, FightTargetKind.Creature, target.Id), out ListEventSink events);
+
+        sim.Tick();
+
+        Assert.Empty(Weapon(events));
+    }
+
+    [Fact]
+    public void ASwingAtADoorUsesTheDoorsSurfaceByteAndTheAttackersAttackType()
+    {
+        (GameDatabase db, WorldState world) = Open(structureImpact: 3);
+        world.Tile(10, 10).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        world.Tile(10, 10).OwnerPlayerId = Rival;
+        ThingProjection.Place(world, db, [new DoorThing(new byte[20])
+            { X = 10, Y = 10, PlayerId = Rival, Flags = 0, DoorId = 1, Unknown_0011 = new byte[3] }]);
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
+        GameSimulation sim = Run(db, world, context => Swing(context, me, FightTargetKind.Door, world.Doors[0].Id), out ListEventSink events);
+
+        sim.Tick();
+
+        ThingSoundRequest impact = Assert.Single(Weapon(events));
+        Assert.Equal((0x113, "WEAPON_METAL"), ((int)impact.Event, impact.Category));
+        Assert.Equal(Where(me), impact.Position);
+    }
+
+    [Fact]
+    public void ASwingAtATrapUsesTheTrapsSurfaceByte()
+    {
+        (GameDatabase db, WorldState world) = Open(structureImpact: 4);
+        world.Tile(10, 10).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        world.Tile(10, 10).OwnerPlayerId = Rival;
+        ThingProjection.Place(world, db, [new TrapThing(new byte[16])
+            { X = 10, Y = 10, TrapId = Dk2TerrainFixture.AlarmTrapId, PlayerId = Rival, NumberOfShots = 1 }]);
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
+        GameSimulation sim = Run(db, world, context => Swing(context, me, FightTargetKind.Trap, world.Traps[^1].Id), out ListEventSink events);
+
+        sim.Tick();
+
+        Assert.Equal(0x1BB, (int)Assert.Single(Weapon(events)).Event);
+    }
+
+    [Fact]
+    public void ASwingAtAnObjectUsesTheObjectsSurfaceByte()
+    {
+        (GameDatabase db, WorldState world) = Open(structureImpact: 2);
+        ObjectDef def = db.Objects.Values.First();
+        ObjectState thing = world.SpawnObject(db, def.ObjectId, Rival, (10 * world.Width) + 10);
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 10));
+        GameSimulation sim = Run(db, world, context => Swing(context, me, FightTargetKind.Object, thing.Id), out ListEventSink events);
+
+        sim.Tick();
+
+        Assert.Equal(0x1BC, (int)Assert.Single(Weapon(events)).Event);
+    }
     [Fact]
     public void ACreatureThatDiesAndLeavesABodyAsksDaInItsCategoryAtItsPositionWithItsHandle()
     {

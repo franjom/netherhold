@@ -30,6 +30,7 @@ public static partial class KwdCreatures
         CreatureDef original = ParseRecord(image, 0);
         KwdOverlay.Ascii(image, 0, 32, row.Name, original.Name, trimmed: false);
         KwdOverlay.Ascii(image, 0xF56, 32, row.SoundCategory, original.SoundCategory, trimmed: false);
+        U8(0xF76, row.ImpactKind);
         U8(0xF4B, (byte)row.CreatureId);
         U8(OffsetBaseCreatureId, (byte)row.UniqueBaseCreatureId);
         U32(0xEFC, (uint)row.Flags);

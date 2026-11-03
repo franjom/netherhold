@@ -27,7 +27,7 @@ public sealed class ShotSoundTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         ShotDef definition = basis.Shots[Dk2TerrainFixture.FireballShotId] with
         {
-            Flags = flags, Health = health, Speed = 4096, CollideType = (byte)collideType, DamageType = 0, ProcessType = processType,
+            Flags = flags, Health = health, Speed = 4096, Mass = 0, CollideType = (byte)collideType, DamageType = 0, ProcessType = processType,
             ShotProcessFlags = processFlags, AirFriction = 0, GeneralEffectId = 0, CreationEffectId = 0, TimedEffectId = 0,
             DeathEffectId = 0, HitSolidEffectId = 0, HitThingEffectId = 0, SoundCategory = category,
         };
@@ -56,8 +56,9 @@ public sealed class ShotSoundTests
         }
     }
 
+    /// <summary>By event and by the shot's two handles: 0xF4, 0xDB and 0x1BC are the terrain's, the creature's and the weapons' too.</summary>
     private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        Sounds(events).Where(s => s.Event == sound).ToArray();
+        Sounds(events).Where(s => s.Event == sound && s.Source.Kind is SoundSourceKind.Shot or SoundSourceKind.ShotSecond).ToArray();
 
     private static FpPosition3 At(int x, int y, int z) => new(new Fp32(x), new Fp32(y), new Fp32(z));
 
@@ -142,7 +143,7 @@ public sealed class ShotSoundTests
     }
 
     [Fact]
-    public void AStandingShotAsksTheSolidHitOnEveryUpdateAsItsHitSolidEffectIs()
+    public void AStandingMass0ShotAsksTheSolidHitOnEveryUpdateAsItsHitSolidEffectIs()
     {
         (GameSimulation sim, ShotState shot, ListEventSink events) = Setup(flags: 4, health: 6);
         shot.VelX = shot.VelY = 0;

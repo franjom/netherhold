@@ -37,6 +37,12 @@ internal static class SoundFixture
         basis.Doors.Values.Select(d => d with { ImpactKind = impactKind }), basis.Traps.Values, basis.CreatureSpells.Values,
         basis.Shots.Values, basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
 
+    /// <summary>The same database with its keeper spells' and shots' sound categories set by the given functions.</summary>
+    public static GameDatabase WithSpellAndShotCategories(GameDatabase basis, Func<KeeperSpellDef, KeeperSpellDef> spells, Func<ShotDef, ShotDef> shots) =>
+        new(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values.Select(spells),
+            basis.Objects.Values, basis.Doors.Values, basis.Traps.Values, basis.CreatureSpells.Values, basis.Shots.Values.Select(shots),
+            basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
+
     public static GameDatabase Database(IReadOnlyDictionary<byte, string>? objects, bool doors, bool traps, params CreatureDef[] creatures)
     {
         GameDatabase basis = Dk2TerrainFixture.Database(creatures);

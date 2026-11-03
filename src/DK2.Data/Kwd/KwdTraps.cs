@@ -28,6 +28,7 @@ public static class KwdTraps
         U16(OffsetManaUpkeepPerSecond, record.ManaUpkeepPerSecond);
         U16(OffsetNameStringId, record.NameStringId);
         KwdOverlay.Ascii(bytes, OffsetSoundCategory, 32, record.SoundCategory, Name(bytes, OffsetSoundCategory), trimmed: true);
+        bytes[OffsetImpactKind] = record.ImpactKind;
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetFlags), record.Flags);
         BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(OffsetHealthGain), record.HealthGain);
         I32(OffsetRange, record.RangeTiles);
@@ -69,6 +70,7 @@ public static class KwdTraps
     private const int OffsetHealthGain = 0x241;
     private const int OffsetNameStringId = 0x208;
     private const int OffsetSoundCategory = 0x20F;
+    private const int OffsetImpactKind = 0x22F;
 
     public static List<TrapDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -104,6 +106,7 @@ public static class KwdTraps
         ManaUpkeepPerSecond = U16(record, at + OffsetManaUpkeepPerSecond),
         NameStringId = U16(record, at + OffsetNameStringId),
         SoundCategory = Name(record, at + OffsetSoundCategory),
+        ImpactKind = record[at + OffsetImpactKind],
         Flags = BinaryPrimitives.ReadUInt32LittleEndian(record.AsSpan(at + OffsetFlags)),
         TriggerType = record[at + OffsetTriggerType],
         RangeTiles = I32(record, at + OffsetRange),

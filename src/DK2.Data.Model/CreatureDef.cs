@@ -38,6 +38,10 @@ public sealed record CreatureDef
 {
     /// <summary>CREATURES file +0xF56, the bank loaded into definition +0x6E3.</summary>
     public string SoundCategory { get; init; } = string.Empty;
+
+    /// <summary>CREATURES file +0xF76, definition +0x685 (<c>0x00492320</c>, intermediate +0x1366): the surface byte, 1 to 7, the
+    /// swing's impact lookup picks the weapon sound by when this creature is struck (sound-effects-combat.md section 5).</summary>
+    public byte ImpactKind { get; init; }
     private byte _baseCreatureId;
     public required string Name { get; init; }
     public required byte CreatureId { get; init; }

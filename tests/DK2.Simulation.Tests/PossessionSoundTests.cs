@@ -74,4 +74,38 @@ public sealed class PossessionSoundTests
         Assert.Null(world.ObjectById(chicken.Id));
         Assert.Equal([ThingSoundEvent.ObjectRemoved], Sounds(events).Select(s => s.Event));
     }
+
+    [Fact]
+    public void APossessedCreatureStrikingAnAnvilAsksTheWeaponImpactOfItsAttackTypeBySurfaceAtItsOwnPosition()
+    {
+        GameDatabase basis = SoundFixture.Database(new Dictionary<byte, string>(), Dk2TerrainFixture.Possessor() with { SoundCategory = "CREATURE_GOBLIN" });
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values,
+            basis.Objects.Values.Select(o => o.ObjectId == 15 ? o with { ImpactKind = 3 } : o), basis.Doors.Values, basis.Traps.Values,
+            basis.CreatureSpells.Values, basis.Shots.Values, basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
+        for (int y = 1; y < world.Height - 1; y++)
+            for (int x = 1; x < world.Width - 1; x++)
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+        CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
+        me.Possessed = true;
+        me.Heading = East;
+        world.Player(Keeper).PossessedCreatureId = me.Id;
+        ObjectState anvil = world.SpawnObject(db, 15, PlayerIds.Neutral, (me.Tile.Y * world.Width) + me.Tile.X);
+        anvil.PosX = me.PosX + 200;
+        anvil.PosY = me.PosY;
+        var sim = new GameSimulation(db, world, 1, [new PossessionSystem()]);
+        sim.Tick();
+        sim.Tick();
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+
+        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper,
+            new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level)), true, new(0))));
+
+        ThingSoundRequest impact = Assert.Single(Sounds(events), s => s.Category.StartsWith("WEAPON_"));
+        Assert.Equal((ushort)0x113, (ushort)impact.Event);
+        Assert.Equal("WEAPON_METAL", impact.Category);   // the fixture goblin's attack type is MeleeBlade
+        Assert.Equal(SoundSourceId.Of(new CreatureId(me.Id)), impact.Source);
+        Assert.Equal(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), impact.Position);
+    }
 }

@@ -98,10 +98,8 @@ public static class KeeperSpellRules
         ShotState shot = ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
             cast.X, cast.Y, effect.Data1, effect.Data2, 0, FightTargetKind.None, -1, cast.PlayerId, -1, cast.X, cast.Y);
         ShotRules.RequestTrail(context, shot, default, new Fp32(Fp32.One));
-        // 0x004BBEBD: only when the shot's own category is empty (its construction asks 0xEF in its own otherwise). The command carries
-        // no height, so the shot's view height stands in for the cast position's.
-        if (context.Database.Shots[effect.ShotTypeId].SoundCategory.Length == 0)
-            RequestCastSound(context, spell, cast.PlayerId, new FpPosition3(new Fp32(cast.X), new Fp32(cast.Y), shot.ViewHeight));
+        RequestPlaceCastSound(context, spell, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
+            new FpPosition3(new Fp32(cast.X), new Fp32(cast.Y), shot.ViewHeight));
         player.Mana -= spell.ManaCost;
         player.OneShotManaSpent += spell.ManaCost;
         player.Availabilities[row] = availability with
@@ -110,6 +108,15 @@ public static class KeeperSpellRules
         };
         if (cast.SpellId == ReaperRules.OneShotSpellId) player.OneShotReaperUsed = true;
         return 1;
+    }
+
+    /// <summary>The place cast's <c>0xEF</c> (<c>0x004BBEBD</c>) in the spell's own category (definition <c>+0x6D</c>,
+    /// <see cref="KeeperSpellDef.SoundCategory"/>), with handle 0, at <paramref name="at"/>: asked only when the shot's own category is empty,
+    /// as its construction asks <c>0xEF</c> in its own otherwise (docs/research/sound-effects-combat.md section 1). The commands carry no
+    /// height, so a caller passes the shot's view height for the position's.</summary>
+    internal static void RequestPlaceCastSound(SimulationContext context, KeeperSpellDef spell, ShotDef shot, PlayerId caster, FpPosition3 at)
+    {
+        if (shot.SoundCategory.Length == 0) RequestCastSound(context, spell, caster, at);
     }
 
     /// <summary>The cast's <c>0xEF</c> in the spell's own category (definition <c>+0x6D</c>, <see cref="KeeperSpellDef.SoundCategory"/>),

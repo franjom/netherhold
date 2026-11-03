@@ -20,7 +20,7 @@ the Summon Horny and OneShotReaper spells share `KEEPER_SPELL_SUMMON_REAPER`.
 
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
-| `0xEF` (handle 0, spell category) | [0x004BBD30](functions/004BBD30.md) at `0x004BBEBD`: after the shot is made, only when the shot definition's `+0x72` is zero; at the cast position argument, the pointer the shot's aim also gets | CONFIRMED | `KeeperSpellRules.CastAtPlace` |
+| `0xEF` (handle 0, spell category) | [0x004BBD30](functions/004BBD30.md) at `0x004BBEBD`: after the shot is made, only when the shot definition's `+0x72` is zero; at the cast position argument, the pointer the shot's aim also gets | CONFIRMED | `KeeperSpellRules.CastAtPlace`, and `ImpSupplySystem.Cast` for Create Imp, bought and free (shot 2 has no category, so it asks `0xEF` in `KEEPER_SPELL_CREATE_IMP`, 5 samples) |
 | `0xEF` (handle 0, spell category) | [0x004BBF90](functions/004BBF90.md) at `0x004BC26F`: after payment and both clocks, with no category test; at the target's own `+0x1A`, not the lifted point | CONFIRMED | `KeeperSpellRules.CastOnCreature` |
 | `0xEF` | [0x004BC290](functions/004BC290.md) at `0x004BC4DB`: the third cast path, the handler of action 56 `0x00513370` | CONFIRMED site | waits: unmirrored; the computer keeper never reaches it (Q537) |
 
@@ -52,8 +52,8 @@ handles, `+0x2E` and `+0x32` (ours `SoundSourceKind.Shot` and `ShotSecond`, both
 
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
-| `0xEF` (`+0x2E`), `0xF2` (`+0x32`) | [0x004AAC90](functions/004AAC90.md) at `0x004AAF1E`, `0x004AAF40`: the end of the constructor, after the floor raise; `0xEF` only when the last argument of `Shot_Create` is nonzero, which it is at the twelve call sites read (the other three, `0x004B6CB0`, `0x004A32C6` and `0x004BC40E`, are not built) | CONFIRMED | `ShotRules.RequestTrail`, the one construction hook every caller uses |
-| `0x1BC` (`+0x2E`) | [0x004AB180](functions/004AB180.md) at `0x004AB49B`: physics reports the world stopped the shot, after the hit-solid effect and shot, before event 8; for every stop, whether or not the shot dies | CONFIRMED | `ShotSystem.Move`, at both stops (a standing shot's included, as its hit-solid effect is) |
+| `0xEF` (`+0x2E`), `0xF2` (`+0x32`) | [0x004AAC90](functions/004AAC90.md) at `0x004AAF1E`, `0x004AAF40`: the end of the constructor, after the floor raise; `0xEF` only when the last argument of `Shot_Create` is nonzero: fourteen of its fifteen callers push 1, and the fifteenth, `0x004B6CB0` in the saved-game loader (`0x004B65E0`), passes 0, so it asks `0xF2` alone (a simulation never loads that way) | CONFIRMED | `ShotRules.RequestTrail`, the construction hook of every spawner but Create Imp, which calls `ShotRules.RequestConstructionSounds` itself (it requests no trail) |
+| `0x1BC` (`+0x2E`) | [0x004AB180](functions/004AB180.md) at `0x004AB49B`: physics reports the world stopped the shot, after the hit-solid effect and shot, before event 8; for every stop, whether or not the shot dies; a standing mass-0 shot stops every update (physics `0x004B2030` returns 0 at `0x004B20FB` on zero displacement, and gravity acts only where the shot has mass, vtable `+0x88` / definition `+0x49`, above the floor: only shot 18 has mass) | CONFIRMED | `ShotSystem.Move`, at both stops (a standing mass-0 shot's included, as its hit-solid effect is) |
 | `0xF4` (`+0x2E`) | `0x004AB509`: the flying death, health at zero after the countdown, before the death effect; not for the shot dead at tick entry, nor killed by a process, nor one the world stopped with bit 0 | CONFIRMED | `ShotSystem.Die` (`showDeathEffect`) |
 | `0xF4` (`+0x32`) | [0x004AAF70](functions/004AAF70.md) at `0x004AAF9F`: the teardown on removal, first | CONFIRMED | `ShotSystem.Die`, every death |
 | `0xE8` (`+0x2E`) | [0x004AF0E0](functions/004AF0E0.md) at `0x004AF1BF`: the Sight of Evil's process, every call after its first, when its health is 20 and its owner is the viewer | CONFIRMED | `ShotRules.Process` (process 25, the pre-move event), `ViewerOnlyFor` the owner |
@@ -88,9 +88,9 @@ for the Wizard's first Firebomb and the Imp's Teleport and Haste; only `0x115` (
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
 | `0xDB`, the attacker's category and handle | [0x00498E30](functions/00498E30.md) at `0x004992EB`: the last act of a swing that reached its tail (every class arm, a blow of zero included; not for a target that is gone or invulnerable, nor the Horned Reaper's same-owner kill), at the attacker's `+0x1A` | CONFIRMED | `FightRules.LandBlow` |
-| weapon impact, by the target's surface byte | [0x004998A0](functions/004998A0.md) at `0x00499A15`: see below | CONFIRMED | waits |
+| weapon impact, by the target's surface byte | [0x004998A0](functions/004998A0.md) at `0x00499A15`: the attacker's attack type and the struck thing's surface byte, on each class arm before the blow-of-zero test, in the weapon's category with the attacker's handle at its `+0x1A`; see below | CONFIRMED | `WeaponImpactRules`, from `FightRules.Land` and `PossessionRules.Act` |
 | `0xC9` or `0xCC` | `0x00499A40`, the handler stored for creature action 18 by `0x004954B0` (by its slot address, STRONGLY INFERRED): the viewer's possessed creature only, `0xCC` or `0xC9` by an elapsed-time test, with the creature's handle at its `+0x1A` | CONFIRMED site | waits: first person, an unmirrored handler (W7.4) |
-| `0xDA` | [0x00487C70](functions/00487C70.md) at `0x00487E4A`: the head of the death bookkeeping, unless the creature's `+0x3E6` bit `0x40` is set (a removal that counts nothing) or a saved game is being restored | CONFIRMED | `CreatureHealthSystem.Die` |
+| `0xDA` | [0x00487C70](functions/00487C70.md) at `0x00487E4A`: the head of the death bookkeeping, unless the creature's `+0x3E6` bit `0x40` is set (a removal that counts nothing; nothing in `src` sets `DeathUncounted` yet, so the guard is inert) or world `+0x7239` bit `0x80` is set (a saved game being restored, INFERRED); the whole function is skipped while the world's level-leave probe (vtable `+0x4C`, `0x00487CB8`) is nonzero (the same probe gates what follows the sound in `Shot_Teardown`, `0x004AAFAD`, and `Corpse_Destroy`, `0x004B10B1`) | CONFIRMED | `CreatureHealthSystem.Die`; a simulation has no leave or restore |
 | `0xF4`, `OBJECT_FLIES`, handle `+0x12E` | [0x004B1070](functions/004B1070.md) at `0x004B10A0`: the destruction of a corpse, first | CONFIRMED | `CreatureHealthSystem` (a body that rots or is buried) |
 | `0x152`, `OBJECT_FLIES` | [0x004B12D0](functions/004B12D0.md) at `0x004B1373`: every update of a body, only while the viewer possesses a creature; handle 0 the first time, a slot `+0x30` replay after | CONFIRMED site | waits: a first-person loop (W7.3, W7.4) |
 
@@ -101,18 +101,23 @@ creature in our list, so its own removal asks `0xF4` and not `0xDA` again. `0xDA
 Imp's 3, the Firefly's 1); `0xDB` in 26 (the Imp's 6, none for the Firefly); `0xC9` in 25 (not the Imp or the Firefly); `0xF4` and
 `0x152` in `OBJECT_FLIES` (1 and 4).
 
-**The weapon impact (CONFIRMED, not built).** `0x004998A0` is called by the swing for each class arm (`0x00499072` creature,
-`0x00499168` door, `0x00499194` trap, `0x004991C0` object) and by the possessed act (`0x00514C8B`); the earlier record read it as a pure
-lookup. It looks the attack type up in the table at `0x0069DA38` (four 37-byte records, types 1, 2, 3 and `0xF`, whose
-name pointers at `+5` give `WEAPON_METAL`, `_WOOD`, `_FLESH` and `_SCYTHE`; ours `CreatureDef.MeleeAttackType` is the type), picks
-one of seven `(sound, effect)` word pairs at `+9` by the target's surface byte (1 to 7), asks effect `0xED` and the pair's effect
-(`0x139`, in the Metal's and the Scythe's arms 4 and 5 only), then the pair's sound in the weapon's category with the handle
-`+0x2E` of the thing it is called on, at that thing's `+0x1A` (which thing the swing passes was not read). The sounds by surface
-are `0x114`, `0x1BC`, `0x113`, `0x1BB`, `0x112`, `0x1BD` and `0x112`; only `0x1BC` has samples (`WEAPON_FLESH` 2, `_METAL` 2, `_WOOD` 3;
-there is no `WEAPON_SCYTHE` bank), so a swing is audible only on surface 2. The surface byte is the target definition's: creature
-`+0x685` (its file offset not read: the creature definition's runtime layout is not linear to the file), door `+0xB3` (ours
-`DoorDef.ImpactKind`; shipped 3, 4, 3, 5, 2, 2, 2, 2, so doors 5 to 8 give `0x1BC`), trap `+0xBF` or object `+0x11C` (neither
-read). Waiting for those three loaders, the table and the call's `this`.
+**The weapon impact (CONFIRMED, built).** `0x004998A0` is called with the attacker as `this` by the swing for each class arm (`0x00499072`
+creature, after the invulnerable return; `0x00499168` door, `0x00499194` trap, `0x004991C0` object, each before the blow-of-zero test, so
+a blow of zero sounds) and by the possessed act (`0x00514C8B`, the Anvil, Steel Bucket and Work Bench); the earlier record read it as a
+pure lookup for presentation. It looks the attacker's attack type (definition `+0x77A`, ours `CreatureDef.MeleeAttackType`) up in the table at
+`0x0069DA38` (four 37-byte records, types 1, 2, 3 and `0xF`: `WEAPON_METAL`, `_WOOD`, `_FLESH` and `_SCYTHE`, whose category dword at `+1` the
+level start fills from the name pointer at `+5`), picks one of seven `(sound, effect)` word pairs at `+9` by the struck thing's surface byte
+(1 to 7), asks effect `0xED` and the pair's effect (`0x139`, in the Metal's and the Scythe's arms 4 and 5 only), then the pair's sound in the
+weapon's category with the attacker's handle `+0x2E` at the attacker's `+0x1A` (`0x004999F9`). The sounds by surface are `0x114`, `0x1BC`,
+`0x113`, `0x1BB`, `0x112`, `0x1BD`, `0x112`. A type outside the table or a surface outside 1 to 7 asks nothing. Samples by bank
+(`METAL`, `WOOD`, `FLESH`, `SCYTHE`): `0x114` 3, 3, 4, 3; `0x113` and `0x1BB` 3 each; `0x1BC` 2, 3, 2, none; `0x112` only in `OBJECT_FORGE` and
+`0x1BD` nowhere, so surfaces 1, 3 and 4 sound in all four banks, 2 in three and 5 to 7 are silent. The surface byte is the struck
+definition's: creature `+0x685` (loader `0x00492320`, intermediate `+0x1366`, file `0xF76`), door `+0xB3` (file `0x226`), trap `+0xBF` (loader
+`0x004AA440`, intermediate `+0x2D7`, file `0x22F`), object `+0x11C` (loader `0x0049DD60`, intermediate `+0x3C0`, file `0x340`); ours
+`ImpactKind` on `CreatureDef`, `DoorDef`, `TrapDef` and `ObjectDef`. Shipped creatures are 1 (flesh and most), 4 (the knights, the King, the
+princes, the guards), 2 (the Stone Knight) and 3 (the Jack in the Box); traps 4, 2 (the Boulder, the Jack) and 3 (the Trigger); objects 1 to
+7. The effects are presentation and are not asked; a shot or a body struck by the swing has no arm and no lookup. Marked: the
+heart arm uses the Arch Pillar's (object 94) surface byte, as an object arm.
 
 ## 6. The torture devices
 
