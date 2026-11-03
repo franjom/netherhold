@@ -144,6 +144,8 @@ public static class FightRules
         me.SwingTargetKind = me.FightTargetKind;
         me.SwingTargetId = me.FightTargetId;
         me.SwingTargetPlayerId = me.FightTargetPlayerId;
+        // CreatureAction_Begin(17) asks the record's sound word as the action begins (0x004968BC); the clip is installed fresh.
+        CreatureActionSounds.Begin(context, SystemName, me, CreatureActionTable.MeleeSwing);
         me.StopMoving();
         context.Emit(SystemName, "swing", $"creature={me.Id} type={mine.Name} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
 
@@ -294,6 +296,7 @@ public static class FightRules
         me.SwingTargetPlayerId = me.FightTargetPlayerId;
         me.AttackCreatureHits = unchecked((ushort)(me.AttackCreatureHits + 1));   // 0x0048F3E0
         me.SpellStamps[slot] = context.Tick.Value;
+        CreatureActionSounds.Begin(context, SystemName, me, CreatureActionTable.SpellCast);   // 0x004968BC, action 16
         me.StopMoving();
         context.Emit(SystemName, "cast",
             $"creature={me.Id} type={mine.Name} slot={slot} spell={mine.Spells[slot].CreatureSpellId} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
@@ -465,6 +468,13 @@ public static class FightRules
         me.SwingTargetId = targetId;
         me.SwingTargetPlayerId = targetPlayer;
         me.ClaimActionTile = -1;
+        // The same begin asks its record's word: action 17 for the swing, 16 for the cast, 15 for the free-aimed cast.
+        CreatureActionSounds.Begin(context, SystemName, me, kind switch
+        {
+            SpellRules.MeleeSwing => CreatureActionTable.MeleeSwing,
+            SpellRules.FreeAimCast => CreatureActionTable.FreeAimCast,
+            _ => CreatureActionTable.SpellCast,
+        });
         context.Emit(SystemName, kind == SpellRules.MeleeSwing ? "possessed_swing" : "possessed_cast",
             $"creature={me.Id} slot={slot} kind={(byte)targetKind} target={targetId}");
     }

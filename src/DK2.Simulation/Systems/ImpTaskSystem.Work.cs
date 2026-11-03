@@ -128,6 +128,12 @@ public sealed partial class ImpTaskSystem
             && TryLeaveTheSeam(context, creature, definition))
             return;
 
+        // State 24's handler (0x00466710) begins action 8 on its first call, when none runs (0x004667C0), and that begin asks the
+        // record's 0x10C (sound-effects-continuous.md section 2). The repair clip's length is unread, so ours begins it once per
+        // work state: DK2 begins one per cycle (a marked deviation).
+        if (creature.TargetWork == TileWorkKind.RepairWall && context.Tick.Value == creature.StateEnteredTick + 1)
+            CreatureActionSounds.Begin(context, SystemName, creature, CreatureActionTable.RepairWall);
+
         // Decrement first, then act on zero. The timer is WorkCadence's: three ticks
         // from arrival, a kind-dependent gap, then every tick (ADR-0280).
         creature.TimerTicks--;

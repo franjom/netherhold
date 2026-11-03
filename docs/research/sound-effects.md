@@ -137,7 +137,7 @@ Verdict "CONFIRMED" is for the sound site; the records of `0x004BFBD0` and `0x00
 | object `0xC3` | [0x004C0CB0](functions/004C0CB0.md), the object's handle | CONFIRMED | `HandSystem.PickUpObject`, `PickUpStoreGold` |
 | creature, object `0xC4` | [0x004BC710](functions/004BC710.md) | CONFIRMED | `HandSystem.Drop`, `DropObject` |
 | object `0xC5` | [0x0049C2A0](functions/0049C2A0.md) | silent | nothing |
-| creature `0xCA`/`0xCB`/`0xCC`/variable | [0x0040C290](functions/0040C290.md), kind 2 | CONFIRMED, not built | waits for the action table |
+| creature `0xCA`/`0xCB`/`0xCC`/variable | [0x0040C290](functions/0040C290.md), kind 2 | CONFIRMED | `CreatureHoverSound` |
 | object `0xE4` | same, kind 4, a special | silent | nothing |
 
 **Tag (`0xEC`).** State 5 is requested through [0x0040ABC0](functions/0040ABC0.md) by two arms of
@@ -175,9 +175,8 @@ handle, only on game turns that are a multiple of 3 times the tick rate (contain
 event is the current action record's sound word ([creature-action-table.md
 section 5](creature-action-table.md#5-the-25-word-is-a-sound-id-not-a-label)) when an action is running
 (`+0x3A9` neither 0 nor 21) and the word is nonzero, otherwise, while the creature is in no room
-(`+0x3B9` zero), `0xCA`, `0xCB` or `0xCC` by mood class `+0x28A` (Happy, Unhappy, Angry; Q269). The mood arm itself needs only `+0x3B9`, `+0x28A` and the turn gate, but
-only the action word decides which arm runs, and ours has no action table or single current-action field to read
-it from; the creature hover waits for that (W7.2). A special under the hand requests `0xE4` in
+(`+0x3B9` zero), `0xCA`, `0xCB` or `0xCC` by mood class `+0x28A` (Happy, Unhappy, Angry; Q269). Built as `CreatureHoverSound` (presentation), the action told by `CreatureCurrentAction`'s stand-ins
+([sound-effects-continuous.md section 2](sound-effects-continuous.md#2-the-action-table)). A special under the hand requests `0xE4` in
 its object category on three of every four turns; `OBJECT_SPECIAL` has no such group.
 
 ## 7. Terrain, digging, claiming and rooms
@@ -307,8 +306,9 @@ sample play to its end; ours asks every update too and the player keeps it.
 The plan's `0x10C` question (`creature_imp` has three samples): no W4 site asks it. The one `0x10C` request site is
 `Tile_ApplyWork`'s terrain request (section 7). The creature action table's sound word (`+25`, [creature-action-table.md
 section 5](creature-action-table.md#5-the-25-word-is-a-sound-id-not-a-label)) is `0x10C` in record 8, the wall repair
-(states 23 and 24), which `CreatureAction_Begin` plays (W7.2): the imp's `0x10C` is most likely the repair action's sound
-(STRONGLY INFERRED; the table filler `0x004950C0` stores it at `0x00495378`), not reinforcing. Record 7, reinforce, has no word.
+(state 24, which begins it at `0x004667C0`), which `CreatureAction_Begin` asks: the imp's `0x10C` is the repair action's sound (record 8
+read from the table filler `0x004950C0`, store `0x00495378`: CONFIRMED), not reinforcing; built once per work state, see
+[sound-effects-continuous.md section 2](sound-effects-continuous.md#2-the-action-table). Record 7, reinforce, has no word.
 
 ## 11. Arrival, rest and reactions
 
@@ -341,7 +341,7 @@ Read 2026-11-02 for plan Phase W4. Handle, category and position are the creatur
 
 | Request | Where it runs | Verdict | Built as |
 |---|---|---|---|
-| `0xD3` | [0x004855B0](functions/004855B0.md) at `0x004857CD`: state 111's melee arm only (the dummy, art 5, action 30), after SetState(112); the spell arm and the no-machine swing ask nothing | CONFIRMED; training-actions.md had both arms sounding | `TrainingStep.AtMachine` |
+| `0xD3` | [0x004855B0](functions/004855B0.md) at `0x004857CD`: state 111's request, the melee arm only (the dummy, art 5, action 30), after SetState(112); both actions' begins (30, 31) also ask `0xD3` ([sound-effects-continuous.md section 2](sound-effects-continuous.md#2-the-action-table)) | CONFIRMED | `TrainingStep.AtMachine` |
 | `0xE2` | [0x00472930](functions/00472930.md) at `0x004729FB`: state 101 on a Temple pool cell, after the offering is registered, before the creature goes | CONFIRMED | `TempleStep.Sacrifice` (the Hand's drop into the pool calls it too) |
 | `0xD4` | [0x00472D30](functions/00472D30.md) at `0x00472E70`: state 104 once action 27 begins (art 23 present) | CONFIRMED | `TempleStep.Face` |
 | `0xE1` | [0x00456D60](functions/00456D60.md) at `0x00456DF0`: state 147 while its action runs, at ages that are multiples of eight game seconds | CONFIRMED | `CasinoStep.Wait` |

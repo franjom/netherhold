@@ -865,4 +865,39 @@ public sealed class CreatureJobTests
             Assert.True(s.Sound.Voiced);
         });
     }
+    /// <summary>The swing at the dummy is action 30, whose record carries <c>0xD3</c> too: <c>CreatureAction_Begin</c> asks it
+    /// (<c>0x004968BC</c>) as the action begins, then state 111's own request follows (<c>0x004857CD</c>), so each entry to 112 hears
+    /// <c>0xD3</c> twice, the action's first (docs/research/sound-effects-continuous.md section 2).</summary>
+    [Fact]
+    public void ATraineesSwingAsksD3FromTheActionBeginningThenFromTheStateHandlerOnTheSameTick()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));
+        Fund(world, 10_000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        Dk2TerrainFixture.SetKnownIdentities(world);
+        var events = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, events);
+
+        var entries = new List<long>();
+        int last = goblin.Dk2StateId;
+        for (int t = 0; t < Second * 40; t++)
+        {
+            long now = world.CurrentTick.Value;
+            sim.Tick();
+            if (goblin.Dk2StateId == TrainingStep.WorkingState && last != TrainingStep.WorkingState) entries.Add(now);
+            last = goblin.Dk2StateId;
+        }
+
+        Assert.NotEmpty(entries);
+        foreach (long entry in entries)
+        {
+            SimEvent[] asked = events.Events.Where(e => e.Tick.Value == entry
+                && e.ThingSound is { Event: ThingSoundEvent.Trained, Source.Kind: SoundSourceKind.Creature }).ToArray();
+            Assert.Equal(2, asked.Length);
+            Assert.All(asked, e => Assert.Equal("CREATURE_GOBLIN", e.ThingSound!.Value.Category));
+        }
+    }
+
 }

@@ -171,14 +171,14 @@ is a `Text.str` id. The same move fails here: this table's `+25` values —
 the multiplayer menu bank, so either the field is not a string id or it indexes a
 different file. Recorded so the next reader does not spend the hour again.
 
-**It is a sound id** (read 2026-10-04). `FUN_00496700` reads it at `0x004968BC` and, when
-the animation flag is set (`0x004968AC`/`0x004968B6`) and the word is nonzero, calls the
+**It is a sound id** (read 2026-10-04). `FUN_00496700` reads it at `0x004968BC` and, unless the
+animation's previous-turn phase is below its current phase and the current is nonzero (`0x004968AC`: a clip kept part way is silent), and the word is nonzero, calls the
 object at `[0x0075B468]` through vtable `+0x20` with the creature's handle `+0x2E`, the
 definition's bank `def+0x6E3`, the id and the position `+0x1A`, keeping the returned handle
 in `+0x2E`. The other two users of the record lookup `FUN_00496DC0` (`0x0040C290`, on a turn
 modulus, and `0x0045A200`) read only this word, for the same call. The call shape is
-CONFIRMED; that it plays a sound is STRONGLY INFERRED (the target is unresolved;
-`def+0x6E3` is the bank the alarm plays from, `combat-alarm.md` §2).
+CONFIRMED; the words exist as `SFX.map` groups in the creature's category (`0x334`, `0x109` and `0x10C` in `creature_imp`), and the table is read in full in
+[sound-effects-continuous.md section 2](sound-effects-continuous.md#2-the-action-table).
 
 ## 6. What this leaves
 

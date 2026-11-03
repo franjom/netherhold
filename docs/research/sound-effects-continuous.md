@@ -42,3 +42,37 @@ has flag `0x80` (water, the bit the water speed tests). `+0x22` and `+0x26` are 
 voice retention judge it. Marked deviations: the interval's earlier fraction is moved back by 256 per turn, not 250; the clip's marks are tested for the walk and run clips only (the view plays no
 recoil, angry or back-off clip; slot 4's, 9's and 38's wait for a clip that plays them); only creatures inside the camera's frustum sound, where the pass draws tiles in view; DK2 tests
 each drawn frame, ours each `Draw` of the clip. Not imported: OpenKeeper's three footsteps per 200 ms and fixed `mark / 30` ([sound-effects.md section 4](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets)).
+
+## 2. The action table
+
+**The words (CONFIRMED).** Record `+25` of the 81 records at `0x006E4198` is a sound word in the creature's category ([creature-action-table.md section 5](creature-action-table.md#5-the-25-word-is-a-sound-id-not-a-label)). The filler [0x004950C0](functions/004950C0.md) stores
+one word in each record; reading its stores with the registers tracked gives 44 nonzero words, and `CreatureActionTable.SoundWord` is that table. Action: word. 1: `0x334`, 2: `0x109`, 5 and 6: `0xE5`,
+8: `0x10C`, 9: `0x109`, 11, 17, 40 and 80: `0xD7`, 14, 15 and 16: `0xD8`, 19: `0xC5`, 20 and 21: `0xDB`, 23 and 45 to 48: `0xE6`, 24: `0xCE`, 25 and 67: `0xDE`, 26: `0xCD`, 27 and 50: `0xD4`,
+28: `0xE0`, 29, 51 and 65: `0xD1`, 30 and 31: `0xD3`, 32: `0xD2`, 33, 35, 66 and 69: `0xCA`, 34: `0xCC`, 39: `0xE1`, 41 and 42: `0xD0`, 58: `0x12D`, 63: `0xCF`. The earlier list in the action-table document
+(`0xC5` to `0xE1`, `0x109`, `0x10C`, `0x12D`, `0x334`) missed `0xE5` and `0xE6`. Three readers use the word: `CreatureAction_Begin` ([0x00496700](functions/00496700.md) at `0x004968BC`), the hover
+([0x0040C290](functions/0040C290.md)), and `0x0045A200`, whose use is unread.
+
+**The begin's gate (CONFIRMED).** `0x004968BC` asks the word after the clip is kept or installed, not when "the animation flag is set" as the first reading had it: it tests the animation's previous-turn and current phase
+and asks unless the previous phase is below the current one and the current is nonzero. So a freshly installed clip (phases 0) and one that has just wrapped sound, and one kept part way is silent. The request is the creature's
+handle `+0x2E` (stored back), category `+0x6E3`, position `+0x1A`.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| dig `0x334` (action 1), mine `0x109` (action 2), `creature_imp` (3 samples each) | the imp's work states, which begin action 1 at `0x00465679` and action 2 at `0x00465A5D`: when the action begins and as each cycle of its clip wraps | CONFIRMED word; the cycle STRONGLY INFERRED | `ImpTaskSystem.StepWorkAnimation`: at the turn after the work state is entered, then each time the clip wrapped on the last turn and the strike is done (the first cycle takes four turns, the rest three) |
+| wall repair `0x10C` (action 8), `creature_imp` (3) | state 24 [0x00466710](functions/00466710.md) at `0x004667C0`: its first call with no action running, after the task and the tile test | CONFIRMED word and site | `ImpTaskSystem.UpdateWorking`, once per work state (the clip's length, so DK2's one per cycle, is unread) |
+| melee `0xD7` (17), cast `0xD8` (16, and 15 free-aimed) | the swing's and cast's begins (`spFighting` `0x00460103`, `0x0045FB96`; possession `0x00514DA4`, `0x0051529F`) | CONFIRMED | `FightRules.StartSwing`, `StartCast`, `BeginPossessedAction` |
+| training `0xD3` (30, 31) | state 111's begins (`0x00485692`, `0x00485794`, `0x0048571E`), before the state's own `0x004857CD` | CONFIRMED | `TrainingStep.Begin`: the spell arm now sounds too |
+| forge `0x112` | [0x00498D20](functions/00498D20.md), action 32's handler, run at the head of each update while the action runs: past the start stamp less one plus `def+0x5CA`, for a creature in Workshop category 5, the Anvil's own handle and category, at its position | CONFIRMED site | `WorkshopStep` (`AskAnvilSound`), every update of state 65 past the delay |
+| creature hover `0xCA`/`0xCB`/`0xCC` or the action's word | [0x0040C290](functions/0040C290.md) as in [sound-effects.md section 6](sound-effects.md#6-the-hand-and-its-cursor) | CONFIRMED | `CreatureHoverSound`, presentation; the action from `CreatureCurrentAction`'s stand-ins |
+| sleeping `0xCE` (24), reinforce `0x33D` | [0x0046FA60](functions/0046FA60.md), [0x00497960](functions/00497960.md) | CONFIRMED sites | waiting: the sleep handler's bed call `0x0046FAF9` is unread, and ours has no clip for the reinforce action's `+0xF1 & 6` gate |
+
+Samples: `0x334`, `0x109`, `0x10C` three each in `creature_imp` only; `0xD7` five in `creature_salamander` alone; `0xD8` in 14 creature categories; `0xD3` in 25; `0xD2` and `0x12D` in none; `0x112` three in `OBJECT_FORGE`
+(the Anvil's category in Objects.kwd). So the imp's dig and mine, a caster's cry and a trainee's grunt are audible; the begin words of actions 32 (`0xD2`) and 58 are silent.
+
+The remaining records with a word (actions 5, 6, 9, 11, 14, 19 to 21, 23, 25 to 29, 33 to 35, 39 to 42, 45 to 51, 58, 63, 65 to 67, 69 and 80) wait for the mirrors of the states that begin them: each is a separate question (which
+state asks, whether ours has a place that is its begin), not read here beyond the table. Several are already asked by a state site of W4 (`0xD4`, `0xE1`, `0xCD`, `0xCA`): a begin and a state request share the creature's handle, so
+the live voice retains the second.
+
+Marked deviations: the begin's phase test is stood in for by "freshly installed or wrapped last turn"; ours tells the running action only for the ones above, so the hover sounds the mood where DK2 would sound the word of an
+action ours does not name; the dig and mine sound at the turn after the work state is entered where DK2's first call is, by the same reading as the dig's own cadence; the hover's tool and refresh gates are not mirrored.
+Imp action 1's possessed (`0x00514FC9`), training (`0x00485E7D`) and other begins are not asked.

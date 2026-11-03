@@ -174,6 +174,8 @@ public enum ThingSoundEvent : ushort
     TremorShook = 0x2EC,
     /// <summary>A Tremor ends (<c>0x005104C6</c>).</summary>
     TremorEnded = 0x31F,
+    /// <summary>A manufacturer works at an Anvil, in the Anvil's category (<c>CreatureAction_Manufacture</c>, <c>0x00498E08</c>).</summary>
+    Forged = 0x112,
     /// <summary>A corpse is destroyed, in <c>OBJECT_FLIES</c> (<c>Corpse_Destroy</c> <c>0x004B10A0</c>).</summary>
     CorpseDestroyed = 0xF4,
 }

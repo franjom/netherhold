@@ -1463,6 +1463,9 @@ namespace DK2.Unity
                     string personalName = hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is CreatureState named
                         ? _identityNames.Name(new CreatureNameIndex(named.NameIndex)) : "";
                     _hoverSnapshot = _hoverText.Capture(world, hit, personalName);
+                    // Hand_UpdateHoverTarget (0x0040C290) asks the hovered own creature's sound on each refresh of a qualifying turn.
+                    if (_soundPlayer != null && CreatureHoverSound.For(world, _simulation.Database, hit, viewer) is SoundRequest hover)
+                        _soundPlayer.Play(hover);
                     bool pickup = false;
                     // The flower's hover stamp reads the same hover id as the tint, in any tool (0x0043B7F1).
                     if (hit.Kind == WorldHoverKind.Creature) _hoveredCreature = new CreatureQueryTarget(hit.EntityId);

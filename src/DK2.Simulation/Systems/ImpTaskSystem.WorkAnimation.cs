@@ -69,6 +69,15 @@ public sealed partial class ImpTaskSystem
             || (creature.ActionHandlerDone && ActionAnimationClock.AnimationDone(creature));
     }
 
+    /// <summary>The dig (action 1) or mine (action 2) begins, so <c>CreatureAction_Begin</c> asks its record's word (<c>0x004968BC</c>):
+    /// <c>0x334</c> or <c>0x109</c>. DK2 asks it only when the clip is installed fresh or has just wrapped (its phase has not advanced past the
+    /// previous turn's), which are our two begin points: the first, and the next once a wrap has left the handler and the clip both
+    /// done. Ours strikes every turn after the second application, so the cycle is the clip's (the previous phase DK2 tests is not
+    /// kept: a phase under one step stands for a wrap) (docs/research/sound-effects-continuous.md section 2).</summary>
+    private static void AskActionSound(SimulationContext context, CreatureState creature) =>
+        CreatureActionSounds.Begin(context, SystemName, creature,
+            creature.TargetWork == TileWorkKind.MineGold ? CreatureActionTable.Mine : CreatureActionTable.Dig);
+
     /// <summary>The end of the creature's update: the work action starts on the turn after the
     /// work state is entered and its clip advances every turn after that (mining-finish.md).
     /// A handler still being called that finds its tile gone asks the clip to stop, as does one
@@ -97,6 +106,7 @@ public sealed partial class ImpTaskSystem
             if (!workable) return;
             ActionAnimationClock.Begin(creature, definition, WorkArtSlot, context.Rng);
             creature.ActionHandlerDone = false;
+            AskActionSound(context, creature);
         }
         else if (!workable && (struck || !creature.ActionHandlerDone))
         {
@@ -105,6 +115,9 @@ public sealed partial class ImpTaskSystem
         }
         else if (creature.ActionHandlerDone && ActionAnimationClock.AnimationDone(creature))
         {
+            // The previous turn's advance wrapped the clip (its phase is under one step): the action's handler and clip are both
+            // done, so DK2 ends it at the poll and the state begins the next (0x00496AA0, 0x00465870).
+            if (creature.ActionAnimationPhase < creature.ActionAnimationRate) AskActionSound(context, creature);
             creature.ActionHandlerDone = false;
         }
         ActionAnimationClock.Advance(creature, definition);
