@@ -1,3 +1,6 @@
+---
+systems: [audio]
+---
 # Sound effects: native playback and the OpenKeeper audio leads
 
 Sources: DKII.EXE v1.70, read through Ghidra on 2026-10-29; shipped

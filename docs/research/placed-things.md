@@ -1,4 +1,7 @@
-﻿# Placed things: what a level's THINGS file puts in the world
+﻿---
+systems: [data-formats, campaign-triggers]
+---
+# Placed things: what a level's THINGS file puts in the world
 
 How one campaign level's THINGS records become world contents, what each field
 means, and which fields are read from the shipped data rather than transcribed

@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Resource HUD
 
 Sources: DKII.EXE v1.70, read-only Ghidra queries, 2026-10-18; the install's

@@ -1,3 +1,6 @@
+---
+systems: [rooms, camera-lighting]
+---
 # The Dungeon Heart's opening sequence
 
 DKII.EXE v1.70, Ghidra primary reads and shipped Editor KWD records, 2026-10-14.
@@ -119,7 +122,7 @@ sparkles and their fade-in run from 7.25 s to 9.25 s.
 
 ### Startup element colours
 
-CONFIRMED shipped-data closure (2026-10-17): roots223/225/314 reach11 effects
+STRONGLY INFERRED shipped-data closure (2026-10-17): roots223/225/314 reach11 effects
 through Next, death/contact and generated-effect links. Including generated,
 group-member and death/contact/next-element links reaches elements
 379/380/381/382/383/384/396/403/406/407/408/525. None has art flag`0x2`.

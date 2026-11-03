@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end, imps-tile-work]
+---
 # The dig-tag highlight
 
 How DKII.EXE draws a tile the viewing player has tagged for digging. Read
@@ -104,7 +107,7 @@ UNKNOWN (floor-and-terrain-pieces.md §5).
 
 ## Scripted tutorial red flash
 
-CONFIRMED binary reads (2026-10-23): world action16 in `0x00518AD0`
+STRONGLY INFERRED binary reads (2026-10-23): world action16 in `0x00518AD0`
 uses body byte0 as the action-point id and byte1 as enable. Disabled means
 timer0; enabled signed-short Value0 means -1, otherwise Value is already in
 game ticks. `0x00510040`, `0x005100B0` and `0x005101C0` own the four-slot
@@ -123,7 +126,7 @@ While on, `0x0043C310` forces red mode2 for every emitted piece of a tile in
 an active rectangle, overriding blue dig-tag mode1. The overlay itself retains
 frame0 and its constant tint; the phase switches the mode, not the texture.
 
-CONFIRMED shipped Level1 data: action16 enables with Value0, then explicit
+STRONGLY INFERRED shipped Level1 data: action16 enables with Value0, then explicit
 disable records clear the guidance. Near the portal AP4 is tile(14,24),
 AP7(14,23), AP10(14,22), AP11(14,21), AP12(15,23), AP13(16,23) and AP14(17,23).
 The installed-data presentation test executes enable65456 and an authored
@@ -193,7 +196,7 @@ the selected tile is unconfirmed and is not added.
 - **The colour of an untagged piece.** The builders write zero colour bytes
   (+8..+10), so it adds nothing. A terrain with +0x17B bit 0x20000000 copies its
   own +0x1B9/+0x1BB/+0x1BD in instead. So 128 means "+128 of light", not "half"
-  and not 1.0 under a 2× modulate. CONFIRMED for the builders that were read
+  and not 1.0 under a 2× modulate. STRONGLY INFERRED for the builders that were read
   (0x0043E860).
 
 ## Built (2026-10-10)

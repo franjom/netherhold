@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work, navigation]
+---
 # Combined movement order and idle arrival
 
 2026-10-18: `fixes/imp-movement-arrival`, ADR-0508, measured hash/save 272.

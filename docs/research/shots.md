@@ -1,4 +1,7 @@
-﻿# Mechanic: shots — what a creature spell fires, how it flies, and how it lands
+﻿---
+systems: [combat]
+---
+# Mechanic: shots — what a creature spell fires, how it flies, and how it lands
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-23. Addresses are
@@ -189,7 +192,7 @@ killer is stamped the same way. **Nothing scales with the caster's level.**
 
 **Area, per tick (`0x004AC3C0` by `DamageType`; 1 `0x004AC5A0`, 2 `0x004AC6D0`,
 3 `0x004AC940`, 4 `0x004ACAF0`, 8 `0x004ACCA0`; 0, 5, 6, 7 nothing).** Type 2
-(`0x004AC6D0`, CONFIRMED from the listing 2026-10-02): over the tiles within
+(`0x004AC6D0`, STRONGLY INFERRED from the listing 2026-10-02): over the tiles within
 ±`data2` of me, clamped to the map, rows outer, each tile's thing chain in order,
 every thing **not of my owner** — a creature with `+0x445` clear, any object, a
 **trap or a door** unless my `AttackCategory` is 7 (gas) — within `data2` tiles
@@ -336,19 +339,19 @@ the head of the next tick, before the shots. Ours makes no door-fired shot.
 
 ## Confidence
 
-**CONFIRMED (binary):** §1 creation and defaults; §2's mapping; §3's launch
+**STRONGLY INFERRED (binary):** §1 creation and defaults; §2's mapping; §3's launch
 arithmetic; §4's order and every branch; §4a's finder, predicates and hit
 handling; §7 contact and type-2 area arithmetic; §8's ten handlers as tabled.
 
-**CONFIRMED (data):** §9 and the radius.
+**STRONGLY INFERRED (data):** §9 and the radius.
 
-**CONFIRMED (binary, 2026-09-23):** §4a's overlap test; §8's types 3 and 34.
+**STRONGLY INFERRED (binary, 2026-09-23):** §4a's overlap test; §8's types 3 and 34.
 
 **STRONGLY INFERRED:** the bounce in §6; class 6 as dead bodies. (Body bit 21 was
 first read here as invisibility; it is the dying flag `0x0048B770` sets —
 `creature-status-effects.md` §3, corrected 2026-09-23.)
 
-**CONFIRMED (binary, 2026-10-04):** §8's Web body and the five raised events; §10's list
+**STRONGLY INFERRED (binary, 2026-10-04):** §8's Web body and the five raised events; §10's list
 order and shot kind.
 
 **UNKNOWN:** Q395 (how the Guided Bolt homes in flight, handler 18, body bit 16, area

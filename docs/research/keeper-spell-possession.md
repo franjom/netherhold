@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Keeper spell Possession
 
 Primary source: DKII.EXE v1.70, private PyGhidra reads on 2026-10-04;

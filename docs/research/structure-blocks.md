@@ -1,3 +1,6 @@
+---
+systems: [rooms, navigation]
+---
 # The hole in a portal, and the heart on its platform
 
 Source(s):
@@ -127,7 +130,7 @@ operate on continuous geometry: `0x004D1AB0` performs a ray cast,
 `0x004D27F0` tests approximate distance against a query threshold.
 `0x004D1170` enumerates creatures through a tile rectangle; see [creature-neighbour-query.md](creature-neighbour-query.md).
 
-**CONFIRMED (2026-10-10, decompile and assembly).** The query initialises its callback
+**STRONGLY INFERRED (2026-10-10, decompile and assembly).** The query initialises its callback
 flags once. `SolidObstacle` ORs bit 0; its absence **XORs** bit 0, retaining the previous
 callback's flags. Thus the first ordinary soft-definition object is forwarded solid,
 the next soft one clears that bit, and a solid-definition object sets it again.

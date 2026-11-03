@@ -1,4 +1,7 @@
-﻿# Mechanic: rebellion
+﻿---
+systems: [creatures]
+---
+# Mechanic: rebellion
 
 Source: `DKII.EXE` v1.70 (GOG). Job 16's handler `0x00475170`, state 271's
 handler `0x004750B0` and the angry chooser's first step `0x004784C0` were

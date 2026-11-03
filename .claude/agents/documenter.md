@@ -73,6 +73,7 @@ Then check each place the AGENTS.md table says owns a kind of fact:
 | a decision | one ADR in `docs/DECISIONS.md` | status, "superseded by", a link to code that moved |
 | an open unknown | its row in `docs/research/open-questions.md` | a row this change answered or narrowed |
 | evidence for a behaviour | one section of `docs/research/*.md` | "not yet implemented", "our code does X" |
+| which system a note or ADR covers | the note's `systems:` front matter; an ADR's cited notes or its `**Systems:**` field (ADR-0643) | a new note with no front matter; a new ADR citing no tagged note; a system id not in `docs/systems.yaml` |
 | what a function is | `docs/research/functions/<ADDRESS>.md` | `implements:` paths after a move or rename |
 | mechanic coverage | `docs/RESEARCH_STATUS.md`, `DK2_REIMPLEMENTATION_PLAN.md` | status of the mechanic; regenerate numbers with `dk2tools status`, never hand-count |
 | boundaries and layout | `docs/ARCHITECTURE.md`, project READMEs | a new project, assembly, folder or dependency |

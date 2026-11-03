@@ -1,4 +1,7 @@
-﻿# Keeper Thunderbolt on a creature
+﻿---
+systems: [keeper-spells]
+---
+# Keeper Thunderbolt on a creature
 
 Sources: DKII.EXE v1.70, Ghidra 12.1.4/PyGhidra, 2026-09-28; shipped
 KeeperSpells.kwd and Shots.kwd; the owner's Level 2 playback probe at
@@ -108,7 +111,7 @@ in category 23, Horny or possessed. The state transition may refuse (including
 frozen/dying states). Its damage call does not test invulnerability. No
 knock-back operation occurs in the complete process-9 handler.
 
-**PR-lead recheck, 2026-10-29 (CONFIRMED binary).** Selector 2's complete
+**PR-lead recheck, 2026-10-29 (STRONGLY INFERRED binary).** Selector 2's complete
 instruction range `0x00517930`–`0x0051798C` tests neither enemy status nor
 alliances: the existing `KeeperSpellRules.TargetTwo` already admits allied
 creatures. A Horny still reaches the health call, but the shared health routine

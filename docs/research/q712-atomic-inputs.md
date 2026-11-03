@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # Q712 atomic input controls
 
 ## Captured boundary

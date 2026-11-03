@@ -1,3 +1,6 @@
+---
+systems: [heroes, combat]
+---
 # Level 5 Heart defence parity
 
 Binary-first audit, 2026-11-01, DKII.EXE v1.70 through PyGhidra 12.1.4.

@@ -1,4 +1,7 @@
-﻿# The Prison: capture, withering, skeletons and the jail break
+﻿---
+systems: [rooms, creatures]
+---
+# The Prison: capture, withering, skeletons and the jail break
 
 | | |
 |---|---|

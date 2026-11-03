@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The Workshop's states: 63–67
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-07.

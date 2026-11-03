@@ -1,3 +1,6 @@
+---
+systems: [creatures, rooms]
+---
 # Mechanic: how a creature gets a lair
 
 Source(s):

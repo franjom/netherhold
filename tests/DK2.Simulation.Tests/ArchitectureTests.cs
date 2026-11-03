@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace DK2.Simulation.Tests;
@@ -108,6 +109,52 @@ public class ArchitectureTests
         // a pattern that stopped matching would fail here rather than pass everything.
         Assert.Equal(3, files.Count(f => Regex.IsMatch(File.ReadAllText(f), write)));
     }
+
+    /// <summary>Static fields allowed to hold shared mutable state, with the reason each is safe.</summary>
+    private static readonly Dictionary<string, string> SharedStaticAllowList = new(StringComparer.Ordinal)
+    {
+        ["DK2.Simulation.StateEntryLog.FirstCaller"] = "diagnostics only, outside the state hash; a ConcurrentDictionary",
+        ["DK2.Simulation.SimulationMarker.ById"] = "profiling registry, outside the state hash; written under its lock",
+        ["DK2.Simulation.SimulationMarker.ByName"] = "profiling registry, outside the state hash; written under its lock",
+        ["DK2.Simulation.ActivityRules.JobStates"] = "a lookup filled by its initialiser and only read",
+        ["DK2.Simulation.InputLog.TagKinds"] = "the default tag filter, filled by its initialiser and only read",
+    };
+
+    [Fact]
+    public void NoStaticFieldSharesMutableStateBetweenSimulations()
+    {
+        // Two worlds tick on different threads (the Unity worker, parallel tests), and a static
+        // they both write races: FightRules.RouteScratch did (cbee8a3d). A mutable static, or a
+        // static readonly mutable collection, must be [ThreadStatic] or on the allow-list.
+        var offenders = typeof(WorldState).Assembly.GetTypes()
+            .Where(t => !t.IsDefined(typeof(CompilerGeneratedAttribute), false))
+            .SelectMany(t => t.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+            .Where(f => !f.IsLiteral
+                     && !f.IsDefined(typeof(ThreadStaticAttribute), false)
+                     && !f.IsDefined(typeof(CompilerGeneratedAttribute), false)
+                     && !f.Name.StartsWith('<')
+                     && (!f.IsInitOnly || IsMutableCollection(f.FieldType)))
+            .Select(f => $"{f.DeclaringType!.FullName}.{f.Name}")
+            .Where(name => !SharedStaticAllowList.ContainsKey(name))
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        Assert.Empty(offenders);
+        Assert.All(SharedStaticAllowList.Keys, name => Assert.NotNull(
+            typeof(WorldState).Assembly.GetType(name[..name.LastIndexOf('.')])?
+                .GetField(name[(name.LastIndexOf('.') + 1)..], BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)));
+    }
+
+    /// <summary>A System.Collections type that can be written through: not an array (lookup tables
+    /// are readonly arrays by convention) and not a read-only, immutable or frozen collection.</summary>
+    private static bool IsMutableCollection(Type type)
+        => !type.IsArray
+           && type.Namespace is { } ns
+           && ns.StartsWith("System.Collections", StringComparison.Ordinal)
+           && !ns.Contains("Immutable", StringComparison.Ordinal)
+           && !ns.Contains("Frozen", StringComparison.Ordinal)
+           && !type.Name.StartsWith("ReadOnly", StringComparison.Ordinal)
+           && !type.Name.StartsWith("IReadOnly", StringComparison.Ordinal)
+           && !type.Name.StartsWith("IEnumerable", StringComparison.Ordinal);
 
     private static string RepositoryRoot()
     {

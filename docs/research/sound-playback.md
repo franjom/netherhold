@@ -1,3 +1,6 @@
+---
+systems: [audio]
+---
 # Runtime sound requests
 
 ## Decoder boundary
@@ -8,7 +11,7 @@ samples (51 LayerII frames), both22050Hz. No derived assets are written to disk.
 
 ## Category and sample selection
 
-CONFIRMED from DKII.EXE v1.70, read in Ghidra2026-10-29:
+STRONGLY INFERRED from DKII.EXE v1.70, read in Ghidra2026-10-29:
 
 - `0x00532670`: label hover requests group783 (0x30F) in the front-end category.
   Its sound latch resets after the eight-frame glow fade, rather than immediately on leaving.
@@ -55,7 +58,7 @@ The hand cursor's tag and slap sounds are presentation requests (`HandCursorFeed
 
 ## Category choice presses
 
-CONFIRMED bytes: room widget0x0068FCB8, spell widget0x0068FDF8 and Workshop widget0x0068FF38
+STRONGLY INFERRED bytes: room widget0x0068FCB8, spell widget0x0068FDF8 and Workshop widget0x0068FF38
 all carry sound slot5 at+0x4C, which the panel's grid then sets to 5 (GUI_BUTTON_ICON, 128-unit cells) or 6
 (GUI_BUTTON_ICON_LARGE, 264-unit cells), both with press0x104/release0x136. The model emits once per captured
 primary press/release and leaves unknown/unselectable choices silent. This does not change

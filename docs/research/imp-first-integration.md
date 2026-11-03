@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work, navigation]
+---
 # Initial Imp walk: movement order causes the first position mismatch
 
 2026-10-18, Level4 `l4live`, initial keeper workers. The movement-order correction

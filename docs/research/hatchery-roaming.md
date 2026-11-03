@@ -1,4 +1,7 @@
-﻿# Chicken object roaming
+﻿---
+systems: [rooms]
+---
+# Chicken object roaming
 
 Binary reads on 2026-10-10: object process table `0x0049E600`, Hatchery
 process 6 `0x004A1F30`, movement starter `0x0049F880`, movement process 9

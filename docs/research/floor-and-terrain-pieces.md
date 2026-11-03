@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Format and engine: the floor and plain-terrain pieces DK2 draws for a tile (Q71)
 
 Source(s):
@@ -13,7 +16,7 @@ numbers continue from there.
 
 ## 4. 0x00443610's arms (TileConstruction +0x452)
 
-Arguments: (x, y, tile, terrain, room, list). CONFIRMED (whole decompile, plain
+Arguments: (x, y, tile, terrain, room, list). STRONGLY INFERRED (whole decompile, plain
 switch).
 
 | TC | Builder | What it draws | Calls the wall chooser |
@@ -33,7 +36,7 @@ switch).
 
 ### Normal floor, 0x00444970
 
-CONFIRMED in the decompile, which here does not depend on mis-tracked registers.
+STRONGLY INFERRED in the decompile, which here does not depend on mis-tracked registers.
 
 ```
 m = tile(x,y).byte0C                  # 8-neighbour same-type-and-owner mask, bit k = DIR[k] (`room-floors-and-liquids.md` §1)
@@ -109,7 +112,7 @@ loaded as `TerrainDef.TextureVariants` (2026-10-22).
 
 ### The rule, in short
 
-CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0x0043FE30`
+STRONGLY INFERRED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0x0043FE30`
 (top and water) and `0x0043FF5A..0x00440315` (quarters); the secret-door prelude
 (`0x0043E8FC..0x0043F1A8`) is HYPOTHESIS (decompile only); the hero-wall scheme's run-on tests were
 read from the instructions at `0x0043F3A0..0x0043F50F` (2026-10-21).

@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end, art-assets]
+---
 # Front-end assets: what the menus, campaign map, movies and menu sounds ship as
 
 DK2 v1.70 (GOG install), read 2026-10-23 from the shipped files with one-off scripts and the repo's own readers (`DK2.Tools.exe`: `kwd map|things|triggers|objects|terrain|rooms`, `sdt list`, `str list`). No asset bytes are in the repo; this document holds names, sizes and counts only.

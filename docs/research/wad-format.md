@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # Format: WAD archive format ("DWFB" v2) + entry compression
 
 Source(s):

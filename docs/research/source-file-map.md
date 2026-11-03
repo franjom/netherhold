@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # The original's own source-file names, and where its code lives
 
 **Source:** `DKII.EXE`, read on 2026-09-05. Facts in our own words; ADR-0046

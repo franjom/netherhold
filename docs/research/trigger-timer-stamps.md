@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # Level 4 trigger timer stamps
 
 DKII.EXE v1.70, Level4 seed 1, packet `l4live.sav` offset 69. Native capture:

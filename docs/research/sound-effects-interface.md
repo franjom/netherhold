@@ -1,3 +1,6 @@
+---
+systems: [audio]
+---
 # Sound effects: the interface and global requests of phase W8
 
 Read 2026-11-03 for the last phase of [the world-sounds plan](../plans/2026-10-31-world-sounds.md). These are the requests the
@@ -8,7 +11,7 @@ front end, the player's per-turn update. Nothing here is decompiler text (ADR-00
 
 ## 1. The GUI sound table `0x006AC8C4`
 
-CONFIRMED (disassembly `0x0052BA68` to `0x0052BAAE`, the loader inside [Gui_LoadMenuTree](../research/functions/0052B8F0.md); consumers
+STRONGLY INFERRED (disassembly `0x0052BA68` to `0x0052BAAE`, the loader inside [Gui_LoadMenuTree](../research/functions/0052B8F0.md); consumers
 [0x0052CAD0](../research/functions/0052CAD0.md), [0x00412260](../research/functions/00412260.md)). The table is 0x30-byte records starting at
 `0x006AC8A0`: the record's own number at `+0`, its category name at `+4` (32 bytes), the category handle the loader stores at `+0x24`, the press
 sound at `+0x28` and the release sound at `+0x2C`. The loader runs once (record 0's handle word is its "not loaded" flag), takes the records
@@ -42,7 +45,7 @@ is asked in `front_end` (same sample as the parchment's `0x30A`: both resolve to
 
 ## 2. The flash chime `0x33A`
 
-CONFIRMED (disassembly `0x00412579` to `0x004125C3` and `0x00413A70` to `0x00413AA8`; [tab-alerts.md section 2](tab-alerts.md)). Sound `0x33A`,
+STRONGLY INFERRED (disassembly `0x00412579` to `0x004125C3` and `0x00413A70` to `0x00413AA8`; [tab-alerts.md section 2](tab-alerts.md)). Sound `0x33A`,
 nonpositional, handle 0, in the category of the flashing widget's sound slot (section 1). Both the tab flash and the slot flash test and then
 write the interface's latch `+0x4F0D`: with the half-second phase (real clock divided by 500, bit 0; 1 is the dark half) zero, the latch
 non-zero and the game not suspended (`[[interface+4]+0x284]` zero) they ask the sound; every flashing draw then stores its phase in the latch.
@@ -57,7 +60,7 @@ All six categories have `0x33A` with one sample (entry 49 of 740 ms, the same in
 
 ## 3. Cheat entry `0x133`, `0x134`, `0x135`
 
-CONFIRMED (disassembly; [cheats.md](cheats.md), [0x0040A600](../research/functions/0040A600.md), [0x0040A680](../research/functions/0040A680.md)),
+STRONGLY INFERRED (disassembly; [cheats.md](cheats.md), [0x0040A600](../research/functions/0040A600.md), [0x0040A680](../research/functions/0040A680.md)),
 all nonpositional, handle 0, `gui_button_size` (slot 7, which has all three groups):
 
 | Sound | Site | When |
@@ -71,7 +74,7 @@ belong to its open, mismatch-cancel and accept.
 
 ## 4. Slider test sounds `0x345`, `0x346`, `0x31D`
 
-CONFIRMED (disassembly [0x0042B950](../research/functions/0042B950.md), [0x0042B9F0](../research/functions/0042B9F0.md),
+STRONGLY INFERRED (disassembly [0x0042B950](../research/functions/0042B950.md), [0x0042B9F0](../research/functions/0042B9F0.md),
 [0x0042BA90](../research/functions/0042BA90.md), [0x0054D180](../research/functions/0054D180.md), [0x0054D240](../research/functions/0054D240.md),
 [0x00551F20](../research/functions/00551F20.md)). Each is the tail of a slider's change callback. When the widget's state word `+0x41` is 3, the widget's flag read by virtual `+0x50` is clear and the page's handle for the sound is zero, it asks the sound with handle 0, keeps the
 returned handle and sets the flag through virtual `+0x4C`; when the state is no longer 3 and the flag is set it clears the flag and sends the stop command to the kept
@@ -80,7 +83,7 @@ handle (slot `+0x38`; `0x00551FE0` names its command object `0x0066C77C`, the wo
 State 3 is a **thumb grab**, not any press. In the slider's per-update input function (`0x00529510`, the horizontal sibling of the vertical scrollbar update
 [0x00528B20](../research/functions/00528B20.md), whose record says "Thumb: state 3") the state is set to 3 only at `0x0052974A` to `0x00529764`: the pointer is inside the thumb
 rectangle (widget `+0x90` to `+0x9C`), the button is down and the previous state is 0. A press on the track outside the thumb gives states 4 then 5 (a one-step
-page move) and the arrows states 1 and 2; all are silent for the test sound. Release clears the state, which stops the sound. CONFIRMED for the function
+page move) and the arrows states 1 and 2; all are silent for the test sound. Release clears the state, which stops the sound. STRONGLY INFERRED for the function
 (disassembly); STRONGLY INFERRED that the callbacks above belong to widgets of this class: the callbacks call the common slider helper `0x005501F0`, and
 `0x005507E0` is the hover helper both classes share. So the sound starts at the grab and is cut at the release.
 
@@ -106,7 +109,7 @@ refuses while the SFX switch is off, [0x00567810](../research/functions/00567810
 
 ## 5. The campaign map's land sound `0x32A`
 
-CONFIRMED (disassembly [0x00538D00](../research/functions/00538D00.md) at `0x00538FA1` and `0x005390AE`, [0x004A35E0](../research/functions/004A35E0.md)).
+STRONGLY INFERRED (disassembly [0x00538D00](../research/functions/00538D00.md) at `0x00538FA1` and `0x005390AE`, [0x004A35E0](../research/functions/004A35E0.md)).
 Nonpositional, handle 0, `OBJECT_FE_MAP` (one sample, entry 66 of 797 ms). The per-frame map pick asks it for a hovered land whose
 arming word (land `+0x184`) is 1 and whose height is still at most its creation height plus `0x1040`, then clears the word and raises the land. A
 hovered arrow does the same for the land it belongs to. The land's own per-tick update ([0x004A35E0](../research/functions/004A35E0.md)) sets the word to 1
@@ -117,7 +120,7 @@ and its frame update (`Sounds`); the Unity front end drains it after the pointer
 
 ## 6. In-game Save and Load: `0x33C`, `0x341`
 
-CONFIRMED (disassembly). Both are nonpositional, handle 0, in `options` (slots 26 and 25). `0x33C` is the end of
+STRONGLY INFERRED (disassembly). Both are nonpositional, handle 0, in `options` (slots 26 and 25). `0x33C` is the end of
 [Options_SubmitSaveName](../research/functions/0042A920.md) (`0x0042A9D8`), after the file is written and the list refreshed. `0x341` follows a load request:
 [Options_SelectLoadFile](../research/functions/0042A7D0.md) stores the chosen path and sets the interface word `+0x3990`; the interface's per-frame
 input function ([0x004036E0](../research/functions/004036E0.md), site `0x00403EA6`) hands the path to the session object (virtual `+0x2C` of the object
@@ -126,7 +129,7 @@ at interface `+0x53`) and asks `0x341`. The in-game slots 16 to 24 (`options` `0
 
 ## 7. The speech line and its duck
 
-CONFIRMED (disassembly [0x00568490](../research/functions/00568490.md)). The site `0x00568531` is the speech queue's line start: slot `+0x24` with the
+STRONGLY INFERRED (disassembly [0x00568490](../research/functions/00568490.md)). The site `0x00568531` is the speech queue's line start: slot `+0x24` with the
 queue's stored handle, the line's category and the absolute value of the line's event. That is the request the Mentor queue
 (`SpeechQueue`, `ClassicSoundPlayer.UpdateSpeech`) already makes, built in phase C4; the throttle mode around it is in
 [sound-effects.md section 4](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets).
@@ -159,7 +162,7 @@ DK2 restores only when the line's handle is non-zero and dead, so a refused requ
 
 ## 9. The front end's atmosphere and music request: `0x2EA`, `0x155`
 
-CONFIRMED (disassembly [0x00537290](../research/functions/00537290.md), called from the front-end branch of
+STRONGLY INFERRED (disassembly [0x00537290](../research/functions/00537290.md), called from the front-end branch of
 [GameSession_Run](../research/functions/00525370.md) at `0x005257CC`, once per run of that branch, STRONGLY INFERRED). If the one-shot-atmosphere handle is zero it asks `0x2EA` in `ONE_SHOT_ATMOS`; if the
 music handle is zero it asks `0x155` in `MUSIC`; each is nonpositional, handle stored, never stopped by the front end. `0x2EA` is group 746 of music.md
 (19 samples, volume 21, delays of 8 to 20 s). `MUSIC` has groups `0x157` and `0x159` only, so the front end's `0x155` finds nothing: silent (data;

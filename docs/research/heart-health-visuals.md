@@ -1,6 +1,9 @@
+---
+systems: [rooms, art-assets]
+---
 # Dungeon Heart health visuals
 
-Read from DKII.EXE on 2026-10-13. CONFIRMED describes the binary's arithmetic;
+Read from DKII.EXE on 2026-10-13. STRONGLY INFERRED describes the binary's arithmetic;
 the complete damaged appearance still needs a matched original-game comparison.
 
 ## 1. Health selects pulse and height

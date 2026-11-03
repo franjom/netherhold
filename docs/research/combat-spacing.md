@@ -1,3 +1,6 @@
+---
+systems: [combat, navigation]
+---
 # Combat body integration
 
 Source: DKII.EXE v1.70 GOG, Ghidra 12.1.4, 2026-10-12. Primary

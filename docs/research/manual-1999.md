@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # Source: the shipped Dungeon Keeper 2 manual (1999)
 
 Source: `original-reference/Dungeon_Keeper_2_Manual.pdf`, 46 pages, added by the

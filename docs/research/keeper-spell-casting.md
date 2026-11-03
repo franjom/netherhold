@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Keeper spell permission and cast boundary
 
 Independent read of `DKII.EXE` v1.70 with Ghidra 12.1.4/PyGhidra,
@@ -109,7 +112,7 @@ a generic ownership or range check.
 
 ## 4. Heal — the claim audit (2026-09-29)
 
-Shipped record 10 (`KeeperSpells.kwd`, CONFIRMED by reading the file): shot 4,
+Shipped record 10 (`KeeperSpells.kwd`, STRONGLY INFERRED by reading the file): shot 4,
 data 16000/0, upgraded shot 4 with 25000/0, cost 5000, cooldown 0, location 4,
 target 1, flag word `0x8` (supportive), no upkeep. Shot 4, "Modify Health"
 (`Shots.kwd`): process 3, process flags `0x4` (the thing struck), flags `0x23`,
@@ -141,7 +144,7 @@ owns; else the creature passes iff its kind lacks `IsHorny` (`+0x686` bit 14)
 and its owner is the caster. Flag bit 2 instead takes any live creature owned by
 neither the caster nor neutral. Neither validator asks range, fog or health.
 
-**Effect (CONFIRMED binary, 2026-09-23 and re-read).** The collision entry
+**Effect (STRONGLY INFERRED binary, 2026-09-23 and re-read).** The collision entry
 `0x004ABD60` with `+0x14D` set hits the target tag if live, clears the word
 either way, and runs no finder that tick; the hit raises process event 4, so
 `0x004ADB30` (shot process 3, `shots.md` §8) runs: a live, non-Horny target;
@@ -172,7 +175,7 @@ spending one allowance on a passed permission.
 the owner of the floor under it, as no room id is kept on a creature.
 **Timing (ADR-0551):** a player's cast moves the turn it is made, as `0x005119C0` dispatches the
 packet action before the sweep `0x004B7830` ([0050A450](functions/0050A450.md); the record's meaning
-is HYPOTHESIS, the placement CONFIRMED by disassembly); the computer keeper's cast is made in the player
+is HYPOTHESIS, the placement STRONGLY INFERRED by disassembly); the computer keeper's cast is made in the player
 frame after the sweep and moves the next turn. Ours matches both (its commands reach the head of the next
 tick), pinned by `KeeperSpellTests`; the cast's other effects (mana spent and so on) land a tick later
 than DK2's for the computer keeper.

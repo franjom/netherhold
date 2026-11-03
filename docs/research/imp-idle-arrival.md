@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work, navigation]
+---
 # Idle Imp arrival: native progress and body stop
 
 2026-10-18. Follow-up to [the hash-269 trace](imp-heart-replay.md#first-remaining-trace-differences).

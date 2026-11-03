@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # State-hash versions
 
 `GameSimulation.HashVersion` numbers the shape of the simulation state that

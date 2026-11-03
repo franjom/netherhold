@@ -1,6 +1,9 @@
+---
+systems: [imps-tile-work]
+---
 # Imp task stealing: who takes a held task, what the loser does, what ends a trade
 
-**CONFIRMED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
+**STRONGLY INFERRED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
 12.1.4/PyGhidra on a worker copy of Claude's project, 2026-09-30. Decompiler output stayed
 under `reverse-engineering/` (ADR-0046); every fact below is in our words with its
 address. No capture was compared here; §10 names the checks. The sibling

@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # State-hash versions 170–249
 
 Earlier pins and reasons from [the current version record](hash-versions.md).

@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Possession: the unbuilt arms and the command inputs
 
 Primary source: DKII.EXE v1.70, pyghidra-mcp reads on 2026-10-12 (Q535, Q536).
@@ -79,7 +82,7 @@ heart through the forward above.
 UNREAD: what removes a shot whose Health a blow takes to ≤ 0; what the object
 updater does when state 18 returns 0.
 
-## 3. Dig and claim — CONFIRMED by listing
+## 3. Dig and claim — STRONGLY INFERRED by listing
 
 A melee press with no target, on a creature whose def+0x686 bit 0 is set
 (`0x00514E1D`–`0x00515037`); bit 0 clear returns 1 and does nothing.
@@ -107,7 +110,7 @@ solid tile → effect 0x335 (presentation). +0x427 on a successful start.
 
 No reinforce arm, no wall claim, no task marked.
 
-**The actions — CONFIRMED** (handlers read 2026-10-12). None reads a task or an imp
+**The actions — STRONGLY INFERRED** (handlers read 2026-10-12). None reads a task or an imp
 job field: each takes its tile from the begin point (+0x38D/+0x391 >> 12) and works it
 through `Map_ApplyTileWork` (`0x004508D0`) with the creature's owner. Work rate is
 +0x3AF + +0x3B3 (12.12); ×MRT multiplies the floored delta (SAR 12) by

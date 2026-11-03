@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # Verification of ADR-0227 to ADR-0234, 2026-09-26
 
 - **Scope:** ADR-0227 (pit spectators), 0228 (idle fallback), 0229 (jail break), 0230 (torture

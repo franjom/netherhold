@@ -1,3 +1,6 @@
+---
+systems: [rooms, navigation]
+---
 # Ordinary room positions (Q721)
 
 Primary source: retail DKII.EXE v1.70, ghidra-queries, 2026-11-01. Read the

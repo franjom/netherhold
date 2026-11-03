@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # Trigger state: flags, timers, and who owns them
 
 What the trigger system stores between one record firing and another reading it,

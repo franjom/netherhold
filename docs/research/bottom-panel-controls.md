@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Bottom panel controls
 
 Read2026-10-18 from DKII.EXE static menu/widget records, callbacks and the
@@ -72,7 +75,7 @@ The model sorts by that field. Secondary room-slot navigation uses the separate
 
 ### Unknown-slot brightness (2026-10-25)
 
-CONFIRMED binary: [spell updater](functions/004113B0.md), `0x00411563..0x004115C7`,
+STRONGLY INFERRED binary: [spell updater](functions/004113B0.md), `0x00411563..0x004115C7`,
 maps availability 2 or 4 to widget state 2 before the affordability call.
 [Slot drawing](functions/00412FC0.md) initializes RGB255 at `0x004130AA..0x004130B4`;
 the state-1 guard at `0x00413878` bypasses affordability dimming, recharge and flash
@@ -158,7 +161,7 @@ from the symmetric positions and screen-edge fit; owner comparison must verify
 it. Values above99 remain undisplayed because the native resource-index behavior
 outside the ten digit descriptors has not been established.
 
-## Install asset metadata (CONFIRMED shipped data)
+## Install asset metadata (STRONGLY INFERRED shipped data)
 
 All original artwork remains in the install and is accessed through
 IClassicBottomPanelAssets. Rooms use the existing art catalogue. Additional

@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # First digging choice at an actual selection boundary
 
 2026-10-17: Level 4 packet `l4live`, keeper 3, Imp slot 452. Gameplay source

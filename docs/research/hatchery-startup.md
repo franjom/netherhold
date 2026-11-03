@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # Hatchery startup interval (Q695)
 
 ## Writer order

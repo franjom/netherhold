@@ -1,3 +1,6 @@
+---
+systems: [presentation-unity]
+---
 # Classic mesh shadows
 
 Primary binary reads, 2026-10-15. These renderer paths generate mesh silhouettes;

@@ -1,4 +1,7 @@
-﻿# What can be settled by playing the game
+﻿---
+systems: [tooling-process]
+---
+# What can be settled by playing the game
 
 Open questions a person sitting in front of DK2 v1.70 can answer by **looking**.
 Each entry is one experiment: what to do, what to watch, and what each outcome

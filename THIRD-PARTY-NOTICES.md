@@ -121,7 +121,8 @@ comments do.
 ## YamlDotNet
 - https://github.com/aaubry/YamlDotNet — MIT License, Copyright (c) Antoine Aubry
   and contributors
-- Used by `DK2.Harness` to read scenario files. Tooling only — no simulation
+- Used by `DK2.Harness` to read scenario files and by `DK2.Tools` to read
+  `docs/systems.yaml`. Tooling only — no simulation
   assembly references it.
 
 ## NLayer

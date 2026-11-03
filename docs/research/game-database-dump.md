@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # DK2 v1.70 global balance table (GlobalVariables.kwd)
 
 DK2's own data — CONFIRMED by definition. Reproduce with `dk2tools kwd vars`,

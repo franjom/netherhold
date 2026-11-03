@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Sight of Evil: a temporary presentation mask
 
 Read 2026-10-04 from DKII.EXE v1.70 and shipped data. Raw output remains in
@@ -58,7 +61,7 @@ turn (Q534, 2026-10-05; CONFIRMED).** The presentation is the bridge's sink:
 start+64. At four turns a second that is 16 game seconds (the loop rate is
 `trigger-state.md` §6's, STRONGLY INFERRED).
 
-CONFIRMED by whole-body and instruction rechecks (2026-10-15): the radial
+STRONGLY INFERRED by whole-body and instruction rechecks (2026-10-15): the radial
 value is clamped to255 before the visibility test. The terrain pass adds
 terrain27's art1 as a separate whole mesh on non-solid, unexplored tiles
 admitted by Sight, unless in possession view. Its RGB addition is zero and

@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # Campaign win sequence: the Horned Reaper finale, the celebration and the win screen
 
 DKII.EXE v1.70 (GOG), pyghidra-mcp reads and disassembly on 2026-10-26, plus the shipped
@@ -127,7 +130,7 @@ Game actions 4, 6, 15, 17, `0x73`, `0x74` and `0x84` are not in the world's tabl
 (`game-actions.md` §4). `World_DispatchAction` `0x0050E5C0` first offers every record to
 the bridge `[[world+4]+0x10]` (vtable `0x0066CC94`: slot `+0x20` `0x0043B150`, slot `+0x24`
 `0x0043B180`, slot `+0xD0` `0x0043A980` returns the camera at bridge `+0x3E5`). The bridge
-handlers come from the (id, handler) pairs at `0x0066CE30`, 37 pairs (CONFIRMED bytes):
+handlers come from the (id, handler) pairs at `0x0066CE30`, 37 pairs (STRONGLY INFERRED bytes):
 
 | Id | Handler | Effect (camera = bridge `+0x3E5`) |
 |---|---|---|
@@ -168,7 +171,7 @@ designers' "1st and 2nd cut of the end-of-level sequence" (camera-paths.md §1).
   The row is: dword id (0-51, equal to the row index), dword pointer to the UTF-16 name,
   word icon, word speech id, dword flag (meaning unread; 0 on the spells, the Guard Post and
   the unused rows). The speech id is a Speech.str text id: 1369 reads "Alarm Traps announce
-  enemy intrusion", 1350 "Devise new spells in the Library" (CONFIRMED, bytes dumped
+  enemy intrusion", 1350 "Devise new spells in the Library" (STRONGLY INFERRED, bytes dumped
   2026-10-26; transcribed in `WinScreen.Items`).
 - **The tablet, interface `+0x4C6E`** (read 2026-10-27: set-up `0x0042BE90`, draw
   `0x0042F040`, step `0x0042EE80`, loads `0x0042F4D0`/`0x0042F5E0` from `0x0042BB30`).

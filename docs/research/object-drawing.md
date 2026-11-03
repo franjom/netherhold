@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # How DK2 draws a placed object
 
 **Status (2026-10-10, claude):** draft. Read from DKII.EXE by decompile and disassembly;
@@ -221,7 +224,7 @@ Books and research play no part. #0 and #8 `book_case4` are not chosen there.
 - State 32 (`0x004A1CF0`): while #0 `Egg-Hatch_Start` (45 frames at 30 fps) is installed
   and RenderInfo `+0xAD` bits 1–2 report it ended or wrapped, it installs #5
   `Egg-Hatch_End`. On the next turn, with any other art installed, it creates the Chicken
-  and destroys the egg, with no wait for #5 to finish. CONFIRMED read; worth checking by eye.
+  and destroys the egg, with no wait for #5 to finish. STRONGLY INFERRED read; worth checking by eye.
   Whether bit 2 is ever cleared after the first wrap: not checked.
 
 **Chicken (9).** State 8 (`0x004A24A0`) shows #5 `Eat`, or #6 `Scared` when `+0x152` is

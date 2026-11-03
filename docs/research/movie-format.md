@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # Movies: the .tgq container, TQI video and EA ADPCM audio as DKII.EXE plays them
 
 **Scope:** everything a decoder needs to play `Data/Movies/*.tgq` the way DKII.EXE does:

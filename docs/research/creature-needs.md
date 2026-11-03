@@ -1,4 +1,7 @@
-﻿# Mechanic: creature needs — health and hunger
+﻿---
+systems: [creatures]
+---
+# Mechanic: creature needs — health and hunger
 
 Source(s):
 - The reference install's `Creatures.kwd`, `GlobalVariables.kwd` and
@@ -56,7 +59,7 @@ dungeon heart and the boulder — and `CreatureSleepsWhenBelowPercentHealth` mak
 
 ## 3. The findings that were not in any list
 
-### 32767 means "never", per need, and it is not one flag — CONFIRMED (data)
+### 32767 means "never", per need, and it is not one flag — STRONGLY INFERRED (data)
 
 The sentinel is general, and finer-grained than a flag would be.
 
@@ -73,7 +76,7 @@ never-hungry creatures and missed the Stone Knight and all three uniques, the
 second had five sleepless and missed the Dwarf — and both are now asserted by
 name, which is the only reason the numbers above can be trusted.
 
-### Own-land regeneration is real and almost unused — CONFIRMED (data)
+### Own-land regeneration is real and almost unused — STRONGLY INFERRED (data)
 
 `OwnLandHealthIncreasePerSecond` is non-zero for **exactly two of 46 creatures**:
 the Imp at 67 a second and King Reginald at 400. Everyone else is zero.
@@ -86,7 +89,7 @@ only tested the Imp would read as though the rule were universal. It also caught
 a fixture bug on the way in: `Dk2TerrainFixture` had the Imp's value transcribed
 as **0**.
 
-### A chicken is not a healing item — CONFIRMED (data)
+### A chicken is not a healing item — STRONGLY INFERRED (data)
 
 - The **Firefly** eats two chickens and gains **0** health from either, so
   `HpFromChicken` cannot be read as "the reason a creature eats"; hunger is its

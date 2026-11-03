@@ -1,3 +1,6 @@
+---
+systems: [tooling-process, creatures]
+---
 # Decision parity audit, hash 303
 
 2026-10-25. Analysis and standalone diagnostics against the archived simulation

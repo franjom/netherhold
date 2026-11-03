@@ -1,4 +1,7 @@
-﻿# Mechanic: how a creature acquires an enemy — `ProcessFight`, `SelectAVictim`, the fight-starter
+﻿---
+systems: [combat]
+---
+# Mechanic: how a creature acquires an enemy — `ProcessFight`, `SelectAVictim`, the fight-starter
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-22. Addresses are
@@ -206,7 +209,7 @@ squared distance of `combat-target-selection.md` §2.
 | E | none, **or the target is an `IsWorker` creature** (a trap skips it); not Turncoat, not `IsHorny`, not an Imp | each hostile player's heart: `0x004C5F50` = `player+0xB43` tile → centre; its rooms `+0x36`/`+0x8` of type 5 with `+0x9A` bit 0 **clear** (not a ruin); their objects `+0xE`/`+0x12A` with `TypeId` `+0x12C` == **94, Arch Pillar** | heart centre within sight and seen; pillar `d < best` |
 | F | a friendly spell | own creatures in group 22 with health `+0x40` below a quarter of level-scaled `Hp` (`def+0x692`, table `+0xE1`), not `CombatPitFighter`, not captive or tortured, `0x0049A7A0` castable | seen or reached; then routed; AttackType 3 |
 
-**Scan C's Imp exemption (CONFIRMED, assembly recheck 2026-10-11):** the
+**Scan C's Imp exemption (STRONGLY INFERRED, assembly recheck 2026-10-11):** the
 comparisons at `0x0045D35D` and `0x0045D56B` let TypeId1 bypass sight/hearing
 distance for a registered attacker. Outer visibility and route checks still
 apply; the Imp routes with word0x80, others0. No hostility filter runs here.
@@ -313,7 +316,7 @@ trigger event 6.
 
 ## Confidence
 
-**CONFIRMED (binary):** §1's order within the creature update; every test in §2
+**STRONGLY INFERRED (binary):** §1's order within the creature update; every test in §2
 and §4 and the state ids they name; §3's counter, its two thresholds and the
 Imp literal; the neutral-owner refusal; §5's walk, corner rule, per-tile bit and
 door test, and the reach sum with its strict compare; §6's setup, the six scans'
@@ -323,7 +326,7 @@ registration, fallback and the two range formulas; the names `SelectAVictim`,
 `FightProcessCounter`, `AttackingId`, `AttackAbnormalTargets`,
 `AttackRangeSquared`, `Creeping`, `CallToArmsFightDistanceTiles`.
 
-**CONFIRMED (data):** object 94 is *Arch Pillar*; room type 5 is the Dungeon
+**STRONGLY INFERRED (data):** object 94 is *Arch Pillar*; room type 5 is the Dungeon
 Heart; variable 182 ships 5.
 
 **STRONGLY INFERRED:** state 242 is the held creature; state 83 is asleep proper.

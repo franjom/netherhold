@@ -1,3 +1,6 @@
+---
+systems: [computer-keeper]
+---
 # Keeper management and battle selection audit
 
 Independent Ghidra 12.1.4/PyGhidra read of the read-only `DKII.EXE` v1.70

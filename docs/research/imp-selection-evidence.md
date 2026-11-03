@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Imp selection: binary evidence and matched boundaries
 
 2026-10-25. Research only; no gameplay changes or new rate sweep. Modern target:
@@ -42,7 +45,7 @@ The canonical rules remain in [task priority](imp-task-priority.md),
 
 ## What the priority evidence establishes
 
-**CONFIRMED from the binary:** ordinary priorities are not the first thing an
+**STRONGLY INFERRED from the binary:** ordinary priorities are not the first thing an
 Imp tries. State 10 first applies the special-owner/throttle branches, then an
 aimed retry and the shipped last-kind retry table. A failed dig/mine retry can
 try depositing before ordinary priorities. A just-dropped Imp has a local scan

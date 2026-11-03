@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # The placed-object thing, named by DK2 (Q264)
 
 **Scope:** the field names DK2 prints for a placed object, transcribed from its debug

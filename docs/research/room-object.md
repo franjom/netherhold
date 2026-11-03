@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The room object, named by DK2 (Q264)
 
 **Scope:** canonical runtime layout for a room instance. Most names come from

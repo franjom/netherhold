@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Mechanic: the dying states — 216 falls, 217 lies, a corpse has none
 
 Source(s):
@@ -80,7 +83,7 @@ were not classified.
 
 ## 3. Classic corpse art
 
-CONFIRMED (binary and shipped data, 2026-10-11): `0x004B0F20` requests
+STRONGLY INFERRED (binary and shipped data, 2026-10-11): `0x004B0F20` requests
 creature-definition art 41 and installs it on the dead body. `0x00492320`
 loads its name from staging +0x187B and compacts it into definition +0x453
 (instructions 0x0049323C–0x0049325E). Subtracting the loader's +0x3F0 staging

@@ -61,7 +61,7 @@ public static class BottomPanelFlash
     /// <summary><c>0x00426F30</c> and the slot clicks: the flash ends once the flashed item is the
     /// active tool (room tool with that room, door, trap or spell choice, or the Sell tool for button
     /// FF); the Creatures tab target (F8) ends when its panel shows (<c>0x00416FD0</c>). The room id is
-    /// read as the room type, LIKELY (tab-alerts.md).</summary>
+    /// read as the room type, HYPOTHESIS (tab-alerts.md).</summary>
     public static bool ClearedByUse(HudFlashTarget target, PlayerToolMode tool, RoomTypeId room,
         BottomPanelChoiceKey? choice, BottomPanelOpenSet open)
     {

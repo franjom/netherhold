@@ -1,3 +1,6 @@
+---
+systems: [tooling-process, navigation]
+---
 # Q712: the next matched route-window divergence
 
 Source: retail DKII.EXE v1.70, ghidra-queries, 2026-11-01. The complete body

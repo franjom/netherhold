@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The Temple's states: 101–107
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-06.

@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Mana pressure and creature removal
 
 **STRONGLY INFERRED**, DKII.EXE v1.70, read-only Ghidra 12.1.4/PyGhidra,

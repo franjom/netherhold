@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Initial fight-scan phase (Q718, Q712)
 
 Source: retail DKII.EXE v1.70, ghidra-queries, 2026-11-01. Binary readings are
@@ -200,7 +203,7 @@ mismatch; it does not establish a new fear or selector rule.
 
 ### Next matched divergence (Q720, pre-edit)
 
-CONFIRMED binary/source mismatch, independently reviewed before any cast fix:
+STRONGLY INFERRED binary/source mismatch, independently reviewed before any cast fix:
 ordinary targeted action 16 remains busy after shot-handler completion. The
 shot return ends handler work; the shared counted mode-3 runner retains the
 action until animation completion. The existing records own the binary

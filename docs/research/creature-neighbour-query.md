@@ -1,3 +1,6 @@
+---
+systems: [creatures, navigation]
+---
 # Creature neighbour query
 
 ## Native query (CONFIRMED)

@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells, creatures]
+---
 # Call to Arms
 
 **STRONGLY INFERRED**, DKII.EXE v1.70, read-only Ghidra 12.1.4/PyGhidra in Claude's

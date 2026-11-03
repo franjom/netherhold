@@ -1,3 +1,6 @@
+---
+systems: [rooms, doors-traps]
+---
 # Mechanic: Workshop crates — made, stored, carried and built
 
 The manufacturer's own states 63–67 are [workshop-states.md](workshop-states.md) (ADR-0404).
@@ -35,7 +38,7 @@ Questions: advances ADR-0135; builds the half of ADR-0203 it left out ("what car
 to its blueprint"); Q432.
 
 Confidence: **STRONGLY INFERRED (binary)** throughout. The crate flags and capacities are
-**CONFIRMED** from shipped data. §5's outcome and the single queue are **CONFIRMED** by the
+**STRONGLY INFERRED** from shipped data. §5's outcome and the single queue are **CONFIRMED** by the
 owner.
 
 ---

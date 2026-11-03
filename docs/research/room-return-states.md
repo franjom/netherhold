@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # The last category 0 states: room returns, the research cheer, and the unreached
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-07 by three read-only passes, each

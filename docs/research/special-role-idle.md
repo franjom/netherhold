@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Special-role idle: confirmed reads and engine boundary
 
 Read 2026-10-04 from DKII.EXE using per-run Ghidra clones. Function facts

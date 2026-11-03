@@ -230,7 +230,10 @@ public static class CallToArmsRules
         return context.Navigation.Route(from, to, WorldSteering.ProfileOf(definition, creature.OwnerPlayerId, 0), RouteScratch);
     }
 
-    private static readonly List<Steering.Fixed16Vector> RouteScratch = new();
+    // Per thread, not per process, as FightRules' scratch: two worlds can tick at once.
+    [ThreadStatic] private static List<Steering.Fixed16Vector>? _routeScratch;
+
+    private static List<Steering.Fixed16Vector> RouteScratch => _routeScratch ??= [];
 
     /// <summary>The release (<c>0x004BDFC0</c>): the clock and the flag bit go, and every owned
     /// non-worker under the call that is neither captive nor joining is idled and loses its bit

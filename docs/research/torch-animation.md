@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, art-assets]
+---
 # Wall-flame presentation cadence
 
 Retail DKII.EXE v1.70, Ghidra instructions and complete scoped function reads,

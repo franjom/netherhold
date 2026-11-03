@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # Temple sacrifice recipes
 
 **Scope:** DKII.EXE v1.70 and the shipped `GlobalVariables.kwd` sacrifice

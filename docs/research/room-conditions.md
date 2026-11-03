@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers, rooms]
+---
 # Player room trigger conditions
 
 **Scope:** player-context condition types 24, 25 and 68. Parameter layout and

@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Reaper keeper spells: creation and lifetime
 
 Read 2026-10-04 from DKII.EXE v1.70, the shipped data, and independent private

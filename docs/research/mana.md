@@ -1,4 +1,7 @@
-﻿# Mana, and why it is the size of a dungeon
+﻿---
+systems: [keeper-spells]
+---
+# Mana, and why it is the size of a dungeon
 
 Milestone M3. Where a keeper's mana comes from, what stops it growing, and what
 drains it.
@@ -32,11 +35,11 @@ were answered by the owner from playing the original.
 | A dungeon heart pays its keeper a flat 30 a second | **STRONGLY INFERRED** — the variable is named for it, and the per-heart/per-tile ambiguity is dissolved by the one-heart rule below |
 | **A keeper has at most one dungeon heart, ever, and losing it is defeat** | **CONFIRMED** — observed in the original; the ROOMS record agrees from its side, the heart being unbuildable |
 | **A keeper's mana ceiling is 200000 from the first second and never moves** | **CONFIRMED** — observed in the original (Q37, Q37a), and in the binary (2026-10-04): the ceiling is `player+0x10EA`, set once per player at level start to `MaximumManaThreshold` whatever the number of hearts (Q76; see the ceiling section) |
-| The ceiling is a clamp: a second with non-negative net income cuts mana back to it in one step | **CONFIRMED (binary, 2026-10-04)** — `0x004C10E0`; `ExcessManaDecreaseRatePerSecond` has no reader at its address. Whether anything else drains excess is open (QNEW-mana) |
+| The ceiling is a clamp: a second with non-negative net income cuts mana back to it in one step | **STRONGLY INFERRED (binary, 2026-10-04)** — `0x004C10E0`; `ExcessManaDecreaseRatePerSecond` has no reader at its address. Whether anything else drains excess is open (QNEW-mana) |
 | The gain cap is per player, not shared across the level | **CONFIRMED** (owner, 2026-08-29, Q38) — one keeper's dungeon does not throttle another's |
 | **The gain cap is `MaximumManaGainPerSecond` = 500 as displayed** | **CONFIRMED for skirmish** (owner, 2026-09-06: regen sat at +500) — **CONTRADICTED for My Pet Dungeon** (owner, same day: +1400 and more), and **no level's VARIABLES overrides it** (all 66 files read). Mechanism UNKNOWN; see the last section and Q199 |
 | An imp costs its keeper 7 mana a second | **CONFIRMED** (owner, 2026-08-30, Q53) — four imps read −28 on the orb, five read −35 |
-| Mana is paid once a game second rather than smoothly | **CONFIRMED (binary, 2026-10-04, Q39)** — `Mana_UpdatePlayer` `0x004C10E0` normally adds a whole second's net in one step every 4 turns; ours does the same (ADR-0017) |
+| Mana is paid once a game second rather than smoothly | **STRONGLY INFERRED (binary, 2026-10-04, Q39)** — `Mana_UpdatePlayer` `0x004C10E0` normally adds a whole second's net in one step every 4 turns; ours does the same (ADR-0017) |
 | `TerrainDef.MaxManaGain` and `DungeonHeartMaxManaIncrease` are **not** ceiling contributions | **CONFIRMED** (Q37a) — the ceiling never moves. `MaxManaGain` is read after all: `Tile_SetOwner` (`0x004559D0`) adds it to the owner's gain-cap word `+0x10DE` beside the gain, so a Claimed Vault raises its keeper's income cap by 100 a tile (ADR-0334); `DungeonHeartMaxManaIncrease` (`0x006F293C`) has no reference but its loader store (`0x0051D38B`) |
 | What the original does when a keeper cannot pay its imps | **UNKNOWN** (Q57) — ours floors mana at zero and carries on |
 | What defeat does when a heart falls | **ANSWERED, BUILT** (Q40, ADR-0162; `win-and-defeat.md` §7) |
@@ -165,7 +168,7 @@ the health deltas. Two things settle it well enough to call STRONGLY INFERRED:
 
 ## The ceiling, and why it is a clamp
 
-Read 2026-10-04 (Q39, Q76, QNEW-mana). CONFIRMED from the binary unless marked.
+Read 2026-10-04 (Q39, Q76, QNEW-mana). STRONGLY INFERRED from the binary unless marked.
 
 - **Payment is in whole seconds.** `Mana_UpdatePlayer` `0x004C10E0` (only caller
   `0x004BB586`) does nothing until `0x006F2590` (4) turns have passed since `player+0x9A`.

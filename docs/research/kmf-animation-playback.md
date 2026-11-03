@@ -1,3 +1,6 @@
+---
+systems: [data-formats, art-assets]
+---
 # Format and engine: how DK2 plays a KMF animation
 
 Source(s):
@@ -46,14 +49,14 @@ step derived from the art descriptor's FPS and frame count (`0x004B41E0`,
 4096/step = duration/1024 = 4·frames/FPS turns, which at 4 turns a second is
 nominally **frames/FPS seconds**; the integer phase step quantizes this rate.
 
-CONFIRMED on 2026-10-10: ordinary type-6 drawing is `0x0059B880` to
+STRONGLY INFERRED on 2026-10-10: ordinary type-6 drawing is `0x0059B880` to
 `0x0059C880`. It reads previous/current phase through `0x00496960` and
 `0x0043D730`, divides by 4096, unwraps across animation segments and blends
 with global `0x00760B7C`. `0x00575A00` writes that global from its caller's
 frame interpolation argument. `0x00583120` interpolates position, turns and
 phase into the 0x99 draw object, storing phase at `+0x38`.
 
-CONFIRMED (2026-10-11): the constructor ends in `0x00585ED0`, which converts
+STRONGLY INFERRED (2026-10-11): the constructor ends in `0x00585ED0`, which converts
 that phase directly to continuous frame at draw `+0x64` and integer lookup at
 `+0x68`, using the same clamp/wrap and frame-count formula as §2. The part
 drawer `0x005836A0` evaluates that frame through `0x0057E5B0`; no secondary
@@ -105,7 +108,7 @@ the provider's retained decoded KMF frames and Unity conversion/upload/bounds wo
 
 ## 5. Classic action selection
 
-CONFIRMED (binary re-read, 2026-10-13): `0x0048BE50` chooses movement slots 1/2 for
+STRONGLY INFERRED (binary re-read, 2026-10-13): `0x0048BE50` chooses movement slots 1/2 for
 walk/run modes 0/1 when actual body velocity is nonzero. At zero velocity it
 selects standing slot 39, except movement mode 2; a route alone does not select
 walking. Slot 39 is the separate file art at `0x13E3`, loaded by `0x00492320`
@@ -136,7 +139,7 @@ Walks resuming idle also select movement playback, including Level8's Imp,
 Mistress, Salamander and Troll around the Heart. Travel states 6/7 carry the
 physical movement even when the resumed activity is Idle.
 
-## 6. Movement rates — CONFIRMED (binary, 2026-10-11)
+## 6. Movement rates — STRONGLY INFERRED (binary, 2026-10-11)
 
 For requested slots 1/2, `0x0048BE50` gets the body's velocity through
 `0x004D5AF0`, converting 16.16 to 12.12 with arithmetic shifts by four.
@@ -164,7 +167,7 @@ current speed cap shifted down four, including its applied modifiers.
 
 ## 7. Melee and Chicken playback
 
-CONFIRMED (binary re-read, 2026-10-11): the action-table initializer
+STRONGLY INFERRED (binary re-read, 2026-10-11): the action-table initializer
 `0x004950C0` gives action 17 art slot 5 and mode 3. The getter `0x00496DE0`
 passes that slot to the chooser; catalogue index 4 is the melee resource.
 `0x00496AA0` marks the handler complete when the blow routine returns zero,
@@ -181,7 +184,7 @@ the busy gate. Shipped Guard/Dwarf/Salamander regressions cover facing and
 post-impact holds; their normal efficiency-scaled recharge does not truncate
 these clips. This does not close Q582's original-game casualty comparison.
 
-End turn (CONFIRMED by an independent read, 2026-10-30): in one creature turn
+End turn (STRONGLY INFERRED by an independent read, 2026-10-30): in one creature turn
 `0x00488930` polls the runner (`0x00489A68`), runs the fight, runs the state
 dispatcher, then `0x0048BE50` advances the clip (`0x0048C73D`, unless `+0x447`
 is nonzero), so a clip the state starts is advanced on its start turn T.
@@ -212,7 +215,7 @@ individual speeds. Shared sample buffers still allocate nothing per sample.
 
 ## 8. Spell-casting playback
 
-**CONFIRMED (binary, 2026-10-11):** `0x004950C0` assigns action 16 art slot 6
+**STRONGLY INFERRED (binary, 2026-10-11):** `0x004950C0` assigns action 16 art slot 6
 and mode 3; action 15, the free-aim cast, also uses slot 6, with mode 0.
 `0x00498870` is action 16's targeted shot handler. Missing slot 6 resolves to
 slot 5 under `0x00494880`; the classic catalogue therefore uses file resource

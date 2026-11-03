@@ -1,9 +1,12 @@
+---
+systems: [creatures]
+---
 # Portals — where creatures come from
 
 | | |
 |---|---|
 | Source(s) | `Rooms.kwd`, `Terrain.kwd`, `CREATURES`, per-level `VARIABLES` (shipped v1.70); `DKII.EXE` v1.70 (`Entrance.cpp` unit, ADR-0046); owner observations 2026-09-04 and 2026-09-07; 1999 manual p.22; OpenKeeper `CreatureSpawnSystem` (GPLv3, facts only, `THIRD-PARTY-NOTICES.md`) |
-| Confidence | Every *number* is CONFIRMED from the shipped data. The interval, its reset, the per-portal clock and the two rosters are CONFIRMED (binary plus owner). The pool's meaning is STRONGLY INFERRED; how attraction composes is CONFIRMED from the binary (§3) |
+| Confidence | Every *number* is STRONGLY INFERRED from the shipped data. The interval, its reset, the per-portal clock and the two rosters are CONFIRMED (binary plus owner). The pool's meaning is STRONGLY INFERRED; how attraction composes is STRONGLY INFERRED from the binary (§3) |
 | Implementation | `PortalRules`, `Systems/PortalSystem.cs`; `TileState.EntranceIdleTicks` and `TileState.EntranceCreaturesGenerated` on the centre tile; `PortalRules.OnOwnerChanged`, called from `TileWorkRules.Convert`. ADR-0042, ADR-0047, ADR-0086 |
 | Tests | `PortalTests` (38), `PortalOnRealDataTests` (16), `RoomConversionTests`, `RuinedHeartTests`; `scenarios/creatures/a_portal_fills_a_dungeon.yaml`, `scenarios/creatures/an_imp_claims_a_portal.yaml` |
 | Open questions | Q87 (what a `CreaturePool` entry is a quota of), Q89 (attraction below `RecommendedSize`), Q90 (weighting), Q91 (what players 1 and 2 do), Q98 (a deliberate capacity divergence) |

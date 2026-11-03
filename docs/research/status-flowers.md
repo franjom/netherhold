@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Creature hover tint and status flowers
 
 Read 2026-10-19 from DKII.EXE (research agent, checked in part by claude) after the owner

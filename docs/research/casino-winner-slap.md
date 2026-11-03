@@ -1,3 +1,6 @@
+---
+systems: [rooms, keeper-spells]
+---
 # Slapping an unpaid Casino winner
 
 Q697; ADR-0608. CONFIRMED binary reading, 2026-10-31; no native gameplay capture.

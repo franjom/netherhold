@@ -1,4 +1,7 @@
-﻿# Rooms, and where a keeper's gold is
+﻿---
+systems: [rooms, imps-tile-work]
+---
+# Rooms, and where a keeper's gold is
 
 Milestone M3. What a room is, where one may be built, what it costs, and the
 consequence that shapes the rest: **gold is not a number on a player, it is a
@@ -276,7 +279,7 @@ no worker to receive the gold.
 
 ## Selling
 
-**CONFIRMED, and the whole of it is data** (Q34, ADR-0029).
+**STRONGLY INFERRED, and the whole of it is data** (Q34, ADR-0029).
 
 | what | where it comes from | shipped value |
 |---|---|---|

@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # Special objects
 
 Source(s):

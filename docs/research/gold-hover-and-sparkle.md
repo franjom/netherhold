@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end, art-assets]
+---
 # Gold under the Hand: hover texture, red pass and the store sparkle
 
 Read 2026-10-23 (claude) from DKII.EXE and the shipped data after the owner's
@@ -13,7 +16,7 @@ picked up and dropped. Confidence labels are per claim. The creature hover tint 
 the hovered thing's installed art resource (thing `+0x6C`, RenderInfo `+0x28`). When
 its flags dword (`+0xB`) has bit **0x10000**, it saves the texture phase (0x0043C240)
 and writes **0xFFF** to RenderInfo `+0x30` and `+0x34` before the tint; the restore
-after the world draw (0x0043C14F..0x0043C1EB) puts it back. CONFIRMED (disassembly
+after the world draw (0x0043C14F..0x0043C1EB) puts it back. STRONGLY INFERRED (disassembly
 0x0043BE76..0x0043BEA3).
 
 A KMF material holding several textures draws the one its phase selects
@@ -40,7 +43,7 @@ SHOT0220-0227, where the cards are gold.
 
 **The hover id.** The tint arm draws only the Hand's hover id (interface `+0x10BC`, which
 0x0040ACD0 copies to bridge `+0x34`). In Hand mode [Hand_UpdateHoverTarget](functions/0040C290.md)
-sets it from the pick, per class, for the viewing player (CONFIRMED, decompile 2026-10-23):
+sets it from the pick, per class, for the viewing player (STRONGLY INFERRED, decompile 2026-10-23):
 
 | pick kind | published when |
 |---|---|

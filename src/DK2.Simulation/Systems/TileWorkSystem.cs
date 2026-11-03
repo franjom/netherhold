@@ -143,7 +143,7 @@ public sealed class TileWorkSystem : ISimulationSystem
     /// <summary>Action 6's tail (<c>0x004977F0</c>): once the tile no longer passes its guard
     /// (<c>0x00454000</c>, the floor fell or never qualified), every trap and door on the worker's own
     /// tile, not the worked one, has its health zeroed through the health routine with the worker's
-    /// owner as the source. That the zero removes them is LIKELY (unread); ours, as any blow that takes
+    /// owner as the source. That the zero removes them is HYPOTHESIS (unread); ours, as any blow that takes
     /// them to 0. The change notifier <c>0x00455030</c> is unread and not represented.</summary>
     private static void ClearWorkerTile(SimulationContext context, TileWorkOrder order)
     {

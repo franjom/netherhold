@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # The notification type table at 0x006A0B00 (all 100 rows)
 
 - `DKII.EXE` v1.70 (GOG). Read 2026-10-26 from the file's own bytes (PE section map, every row and every variant list), and the first 1000 bytes were cross-read through Ghidra at the same address.
@@ -8,7 +11,7 @@
 
 All 100 rows are read; the table matches OpenKeeper's issue #566 on every field we can compare (all 100 rows), and the **raiser census finds 25 types that no `call` to the poster pushes, exactly OpenKeeper's 25 "none found" rows**. Every other type has a poster. Three things are new here: the full per-type raiser list (section 3), the `+6` field resolved as the tab graphic, and a wrong line in our own docs found on the way (section 5).
 
-## 1. Row layout - CONFIRMED (bytes), 10 bytes at `0x006A0B00 + 10 * type`
+## 1. Row layout - STRONGLY INFERRED (bytes), 10 bytes at `0x006A0B00 + 10 * type`
 
 | Field | Width | Meaning |
 |---|---|---|

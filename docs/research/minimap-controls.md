@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Minimap corner controls and related view navigation
 
 Read 2026-10-18 from DKII.EXE callbacks, key dispatch and static menu records.
@@ -120,7 +123,7 @@ Room centres reuse the existing derived centre fields, whose Heart offset
 remains STRONGLY INFERRED. The host scales creature squares by screen height
 relative to768 for readability; DK2 uses3device pixels. Matched acceptance is pending.
 
-### Preview and legend (CONFIRMED, binary 2026-10-29)
+### Preview and legend (STRONGLY INFERRED, binary 2026-10-29)
 
 [Mode7 rendering](functions/00598880.md) unprojects the continuous pointer
 position, without a separate inside-map or discovery guard. Engine eyeZ is-8,

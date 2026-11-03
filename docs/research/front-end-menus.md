@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Front-end menus: start-up, station state machine, menu tree, options
 
 **Scope:** how DKII.EXE gets from program start to the main menu, how the 3D front end is
@@ -8,7 +11,7 @@ Out of scope, with hand-offs only: the campaign map, unlock rules and profile
 file format: `camera-paths.md`).
 
 Every row is a DKII.EXE v1.70 read unless it says otherwise, so the ceiling is **STRONGLY
-INFERRED** (HYPOTHESIS in the function records); owner recollections below are not controlled original-game experiments. Labels are
+INFERRED** (a function record whose step is not read is HYPOTHESIS); owner recollections below are not controlled original-game experiments. Labels are
 `Data/Text/Default/Text.str` ids (file id 1091) decoded with `dk2tools str list`. Function
 records: `docs/research/functions/<ADDRESS>.md`. Path names are the designers' own index
 in `Paths.WAD` (`Engine Path Info.txt.txt`, entries 250-274).
@@ -102,7 +105,7 @@ command: `0x00538000`'s switch, table `0x005384A8`, low word of widget +0x1A) or
 | 18, 40, 0x2C | high scores, credits, generic yes/no dialog (`0x00536BA0`) | | |
 | 26, 27, 30, 42, 45-48 | single-button or list pages, roles unread | | UNKNOWN |
 
-Item ids, label ids, commands and path numbers are CONFIRMED bytes of the tables (decoded
+Item ids, label ids, commands and path numbers are STRONGLY INFERRED bytes of the tables (decoded
 by a scratch parser over the image); what each command does is STRONGLY INFERRED.
 
 ### 3.3 Stations and the state machine (`0x005384F0`)

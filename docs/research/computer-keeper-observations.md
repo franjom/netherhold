@@ -1,10 +1,13 @@
+---
+systems: [computer-keeper]
+---
 # Computer keeper: stock Level 10 capture
 
 The owner left Level 10 ("Smash", Woodsong) running with player 4 Asmodeus, then
 saved `Data/Save/woodsong_ai.SAV` after roughly ten minutes (2026-09-27).
 The save header identifies `level10`, game tick 2408, and the supported
 `May 12 200012:28:22` build. `Level10Players.kld` identifies player 4 as the
-computer keeper and player 3 as the human. These are CONFIRMED data facts.
+computer keeper and player 3 as the human. These are STRONGLY INFERRED data facts.
 
 The tile-grid writer in `DKII.EXE` at `0x0044F3F0` writes an eight-byte map
 header and calls `0x00452B90` for ten bytes per tile, starting at the live

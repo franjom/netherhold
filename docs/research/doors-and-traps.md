@@ -1,4 +1,7 @@
-﻿# Doors and traps: authored projection and runtime construction
+﻿---
+systems: [doors-traps]
+---
+# Doors and traps: authored projection and runtime construction
 
 This note is the canonical evidence for placed doors and traps. Addresses refer
 to DKII.EXE v1.70. Binary findings are **STRONGLY INFERRED**; only corpus facts
@@ -21,8 +24,8 @@ projected state with its source.
 
 | record | authored fields retained | corpus finding | confidence |
 |---|---|---|---|
-| door | `X`, `Y`, `Unknown_0008`, `TriggerId`, `DoorId`, `PlayerId`, `Flags`, three bytes at `Unknown_0011` | 940 records; every `TriggerId` is zero; 3 have flag bit 1 set | **CONFIRMED from shipped data** |
-| trap | `X`, `Y`, `Unknown_0008`, `NumberOfShots`, `TrapId`, `PlayerId`, `Unknown_000F` | 959 records; none has `NumberOfShots == 0` | **CONFIRMED from shipped data** |
+| door | `X`, `Y`, `Unknown_0008`, `TriggerId`, `DoorId`, `PlayerId`, `Flags`, three bytes at `Unknown_0011` | 940 records; every `TriggerId` is zero; 3 have flag bit 1 set | **STRONGLY INFERRED from shipped data** |
+| trap | `X`, `Y`, `Unknown_0008`, `NumberOfShots`, `TrapId`, `PlayerId`, `Unknown_000F` | 959 records; none has `NumberOfShots == 0` | **STRONGLY INFERRED from shipped data** |
 
 The records occur on 48 of the 66 levels with THINGS files. Their file order and
 all authored bytes remain hashed and snapshotted as decided by ADR-0106. The
@@ -188,10 +191,10 @@ nonzero comparison, so no shipped record needs the unread availability mode.
 
 | claim | confidence |
 |---|---|
-| Record counts, all-zero door trigger ids, 3 unfinished doors and 0 unfinished traps | **CONFIRMED from shipped data** |
+| Record counts, all-zero door trigger ids, 3 unfinished doors and 0 unfinished traps | **STRONGLY INFERRED from shipped data** |
 | Loader transforms, saved ranges and runtime state transitions above | **STRONGLY INFERRED from DKII.EXE v1.70** |
 | Door open eligibility and its order, the three tiles, the toggling lock command, the alliance array and the lock-pick countdown | **STRONGLY INFERRED from DKII.EXE v1.70** |
-| The lock-pick duration is `DoorPickedTimeSeconds`; the effect handler `0x00474F80` is the finale walk state 234 | **CONFIRMED against DKII.EXE v1.70** (reviewer) |
+| The lock-pick duration is `DoorPickedTimeSeconds`; the effect handler `0x00474F80` is the finale walk state 234 | **STRONGLY INFERRED against DKII.EXE v1.70** (reviewer) |
 | Trap runtime and door contact | See [traps.md](traps.md) and [door-blocking.md](door-blocking.md) |
 | Any semantic meaning for either `Unknown_0008`, door trailing bytes or trap `Unknown_000F` | **UNKNOWN** |
 

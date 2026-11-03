@@ -1,3 +1,6 @@
+---
+systems: [simulation-core, creatures]
+---
 # The creature update's order, and ours (ADR-0554)
 
 **Scope:** the order in which one turn runs each creature's fight, needs, choosers, state handler

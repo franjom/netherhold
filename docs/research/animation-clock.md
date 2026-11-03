@@ -1,3 +1,6 @@
+---
+systems: [creatures, art-assets]
+---
 # The action animation clock
 
 2026-10-19. Retail v1.70 through PyGhidra. Built for the dig and mining actions as
@@ -5,7 +8,7 @@ ADR-0514 (hash/save 282). It replaces the two provisional end-of-action models,
 which reconstructed the phase from work entry ([mining-finish.md](mining-finish.md),
 [imp-dig-stop-clock.md](imp-dig-stop-clock.md)).
 
-## The record — CONFIRMED (read)
+## The record — STRONGLY INFERRED (read)
 
 A creature's animation object sits at creature `+0x44`, so its fields appear at creature
 `+0xD8` (phase), `+0xDC` (rate), `+0xF1` (flags) and `+0xF2` (art slot).
@@ -140,7 +143,7 @@ and the loop bit cleared, so the clip plays once.
 The runner ends the action on the poll after the clip's rate drops to 0. That is one
 turn after completion, so an action lasts k + 1 turns, where k advances reach 4096.
 
-**Install coin (CONFIRMED, read):** when the art flags hit `0xFC00`,
+**Install coin (STRONGLY INFERRED, read):** when the art flags hit `0xFC00`,
 [0x004B37D0](functions/004B37D0.md) draws `rand(2)` on the simulation stream. On a 1
 with flag `0x400` it installs the definition's alternate clip (definition `+0x46E`) and
 sets animation flag bit 6. That `+0x46E` is loaded from file `+0x1083` is HYPOTHESIS: the

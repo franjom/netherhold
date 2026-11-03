@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # In-game Options pages
 
 Read 2026-10-29 from DKII.EXE static menu descriptors and callbacks.

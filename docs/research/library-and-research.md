@@ -1,4 +1,7 @@
-﻿# The Library: research accrual and the research tree
+﻿---
+systems: [rooms]
+---
+# The Library: research accrual and the research tree
 
 Milestone M4/M6. What a creature standing in a Library earns for its keeper
 (§1–§4), and what those points buy ([research-tree.md](research-tree.md)).
@@ -41,7 +44,7 @@ The researcher's own states, 53–59, and how it moves among the shelves: `libra
 | What sets the casino flag at `player+0x20D` | **UNKNOWN** (Q217) |
 | What passes the adder a negative amount | **UNKNOWN** (Q218) |
 | Whether a player can see the slap tripling their research | **UNKNOWN** (Q216) — the tree is built now, but nothing shows progress yet |
-| The research list is Variables id 17: 29 global entries at 1000 points each, none per level | **CONFIRMED** in the data; the handler **STRONGLY INFERRED** (research-tree.md) |
+| The research list is Variables id 17: 29 global entries at 1000 points each, none per level | **STRONGLY INFERRED** in the data; the handler **STRONGLY INFERRED** (research-tree.md) |
 | Researchable items first, in list order; then spells with a bonus shot are upgraded | **STRONGLY INFERRED** (research-tree.md); agrees with the owner's play |
 | A finished item is a book on a random Library's shelf, and the book is the availability | **STRONGLY INFERRED** (research-tree.md) |
 | An upgraded Create Imp makes level-4 imps, free imps included | **CONFIRMED** by the owner for cast imps; the free-imp half **STRONGLY INFERRED** (research-tree.md) |

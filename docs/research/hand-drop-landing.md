@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells, creatures]
+---
 # Where a dropped creature lands: states 76, 255, 257, 250 and 77
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25; 257 and 250 re-read by disassembly on 2026-10-03.

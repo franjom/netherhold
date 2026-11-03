@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting]
+---
 # Fog reveal sources: every writer of the two discovery bits
 
 Source(s):
@@ -47,7 +50,7 @@ A third bit, `+8` word bit `0x4000` (`+9` bit `0x40`), is cleared by
 `0x004DAE40` and `0x004EF1F0` and set by `0x004EF1F0`. It is the movement
 gate of `structure-blocks.md` §5.4, not fog.
 
-CONFIRMED (whole reads, 2026-10-14): 0x0043E320 substitutes terrain 27 when
+STRONGLY INFERRED (whole reads, 2026-10-14): 0x0043E320 substitutes terrain 27 when
 unscanned, or 38 when scanned and lacking flag 0x01000000. Scanned flagged
 terrain retains its real definition. Room pieces are still suppressed unless
 explored, Sight-visible or possession-visible. Helper 0x0044DB70 is the

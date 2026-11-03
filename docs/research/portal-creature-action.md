@@ -1,8 +1,11 @@
+---
+systems: [creatures, campaign-triggers]
+---
 # Scripted portal creatures (action 28)
 
 ## Evidence and scope
 
-CONFIRMED (binary inspection, 2026-09-28): Ghidra 12.1.4, Codex's
+STRONGLY INFERRED (binary inspection, 2026-09-28): Ghidra 12.1.4, Codex's
 `codex-thunder/DK2_RE` copy, read-only. `ScanAll.py 006F2590` found 226 hits
 across all initialized blocks before this investigation. Addresses below refer
 to the shipped v1.70 executable. Exports remain under `reverse-engineering/`.
@@ -25,7 +28,7 @@ ordinary selector `0x004DBF90`. The creator calls `0x005064B0` on player
 `+0x1109` to subtract one from the type's pool when possible, ignoring failure.
 The simulation's immutable pool remains a standing limit; see Q474.
 
-CONFIRMED: creation uses room coordinate bytes `+0x2D/+0x2E`, each converted
+STRONGLY INFERRED: creation uses room coordinate bytes `+0x2D/+0x2E`, each converted
 to fixed point with an added `0x1800` (`0x004DC9F5`–`0x004DCA43`). For a
 normal 3×3 Portal these locate its centre. It calls `0x004B78D0` →
 `0x004B7900`. A unique type substitutes its definition's owner byte before
@@ -127,7 +130,7 @@ won at 3263.
 
 ## Warlocks and a Library
 
-CONFIRMED (shipped data): Warlock 5 has attraction `(Present=1, RoomId=6,
+STRONGLY INFERRED (shipped data): Warlock 5 has attraction `(Present=1, RoomId=6,
 RoomSize=0)` and an empty second slot. Level 2 pools and unlocks it. The ten
 action-28 records in seven levels are pinned, including ids and levels, by
 `PortalCreatureActionOnRealDataTests.ShippedAction28CreatureAndLevelPairsDoNotDrift`.
@@ -198,7 +201,7 @@ depth rather than renderer priority decides whether the chasm covers an effect. 
 probe verifies sixty beam frames and captures the Goblin arrival through7500ms.
 The ten-frames-per-second interpretation above remains a HYPOTHESIS.
 
-CONFIRMED shipped data: Goblin181 chains to161, generating smoke354,
+STRONGLY INFERRED shipped data: Goblin181 chains to161, generating smoke354,
 sparkle355 and white-disc326. Their art flags are0x84,0 and0x101; none has
 keeper-colour bit2. The later red-cloud references are provisionally identified
 as the separate [portal buildup](portals-interval.md#mist-appearance-and-duration-2026-10-23).

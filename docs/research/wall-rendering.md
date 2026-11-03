@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Mechanic: how DK2 draws its walls (rendering, not simulation)
 
 Source(s):
@@ -156,7 +159,7 @@ made from the tile coordinates.
   (`terrain-lattice.md` §9).
 
 Confidence: **CONFIRMED** (facts 1–5, from the author's own wireframe and mesh
-extraction) / **CONFIRMED** (runtime vertex deformation, read from the binary
+extraction) / **STRONGLY INFERRED** (runtime vertex deformation, read from the binary
 2026-10-09 — the author's inference was right; algorithm, constants and tables in
 `terrain-lattice.md`) / **UNKNOWN** (plain-terrain pieces, textures, lighting,
 floor edges).

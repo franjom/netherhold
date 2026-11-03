@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # World hover text
 
 Sources: DKII.EXE v1.70, read-only PyGhidra queries, 2026-10-18; the install's

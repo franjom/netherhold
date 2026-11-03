@@ -1,4 +1,7 @@
-﻿# Mechanic: the 32 state-category records
+﻿---
+systems: [creatures]
+---
+# Mechanic: the 32 state-category records
 
 Source(s): `DKII.EXE` v1.70 (GOG) read with Ghidra 11.0.1 on 2026-09-10 — the fill
 run, the transition routine `FUN_00476D30`, the per-tick dispatcher

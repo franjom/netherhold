@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Executable checks of Imp job precedence
 
 2026-10-18, current-main hash/save 274. Research only; no gameplay change.

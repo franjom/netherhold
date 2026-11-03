@@ -178,7 +178,7 @@ public static class StatusFlowerRules
     /// <summary>The flower's lift (0x005955C0): the body's height plus <c>level·0x600/10</c>; in
     /// category 15 (Torture) +0x580 off a floor slot, else +0x280; then +0x80 for a hero-slot holder.
     /// The on-slot case adds 0x400 more while 0x00759ADC is 0, the flag that also names the Torture
-    /// Wheel's art <c>g_</c>. GUESS: ours takes the flag as 1, matching the plain art it loads, but the
+    /// Wheel's art <c>g_</c>. HYPOTHESIS: ours takes the flag as 1, matching the plain art it loads, but the
     /// global has only reads (no writer found), so vanilla may well hold 0 and lift 0x400 higher
     /// (open-questions.md Q635). That vtable
     /// <c>+0x40</c> is the definition's <c>Height</c> is assumed.</summary>

@@ -4,27 +4,33 @@
 
 """Moves function records from the retired KB scale to the one confidence scale (ADR-0642).
 
-CONFIRMED (a binary read) becomes STRONGLY INFERRED, LIKELY and GUESS become HYPOTHESIS, and each
-changed record gains a dated History line. Idempotent: a record already on the scale is left alone,
-so a branch cut before ADR-0642 can run it again after merging master.
+LIKELY and GUESS become HYPOTHESIS. CONFIRMED meant a binary read on the old scale and the running
+game on the new one, so it becomes STRONGLY INFERRED only when the reference branch (default master)
+does not hold that record as CONFIRMED: a record master keeps CONFIRMED rests on the running game.
+A record already carrying a History line for ADR-0642 is left alone. Each changed record gains a
+dated History line. After merging master into a branch cut before ADR-0642:
 
-    python tools/kb/rescale_confidence.py [--agent NAME] [--date YYYY-MM-DD]
+    python tools/kb/rescale_confidence.py [--reference master] [--agent NAME] [--date YYYY-MM-DD]
 
-A record whose CONFIRMED rests on the running game should be raised back by hand afterwards.
+A record the branch made CONFIRMED on the running game should be raised back by hand afterwards.
 """
 import argparse
 import datetime
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 FOLDER = ROOT / "docs" / "research" / "functions"
 MAPPING = {"CONFIRMED": "STRONGLY INFERRED", "LIKELY": "HYPOTHESIS", "GUESS": "HYPOTHESIS"}
 CONFIDENCE_RX = re.compile(r"^confidence:[ \t]*(CONFIRMED|LIKELY|GUESS)\b(.*)$")
+MARK = "(ADR-0642)"
 
 
-def rescale(text: str, agent: str, date: str) -> str | None:
+def rescale(text: str, agent: str, date: str, keep_confirmed: bool = False) -> str | None:
     """The record's new text, or None when it needs no change. Text uses '\n' line endings."""
+    if MARK in text:
+        return None  # already moved once; a second run must not demote it again
     lines = text.split("\n")
     for i, line in enumerate(lines):
         if line.strip() == "":
@@ -32,6 +38,8 @@ def rescale(text: str, agent: str, date: str) -> str | None:
         m = CONFIDENCE_RX.match(line)
         if m:
             old, rest = m.group(1), m.group(2)
+            if old == "CONFIRMED" and keep_confirmed:
+                return None
             new = MAPPING[old]
             lines[i] = f"confidence: {new}{rest}"
             break
@@ -41,13 +49,21 @@ def rescale(text: str, agent: str, date: str) -> str | None:
     end = len(lines)
     while end > 0 and lines[end - 1].strip() == "":
         end -= 1
-    note = f"- {date} {agent}: Confidence {old} is {new} on the one scale (ADR-0642); the reading is unchanged."
+    note = f"- {date} {agent}: Confidence {old} is {new} on the one scale {MARK}; the reading is unchanged."
     lines.insert(end, note)
     return "\n".join(lines)
 
 
+def confirmed_at(reference: str, relative: str) -> bool:
+    """Whether the reference branch holds this record with confidence CONFIRMED."""
+    shown = subprocess.run(["git", "-C", str(ROOT), "show", f"{reference}:{relative}"],
+                           capture_output=True, text=True, encoding="utf-8")
+    return shown.returncode == 0 and re.search(r"^confidence:[ \t]*CONFIRMED\b", shown.stdout, re.M) is not None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--reference", default="master")
     parser.add_argument("--agent", default="claude")
     parser.add_argument("--date", default=datetime.date.today().isoformat())
     args = parser.parse_args()
@@ -59,7 +75,10 @@ def main() -> int:
         bom = raw.startswith(b"\xef\xbb\xbf")
         text = raw.decode("utf-8-sig")
         crlf = "\r\n" in text
-        new = rescale(text.replace("\r\n", "\n"), args.agent, args.date)
+        text = text.replace("\r\n", "\n")
+        keep = (re.search(r"^confidence:[ \t]*CONFIRMED\b", text, re.M) is not None
+                and confirmed_at(args.reference, path.relative_to(ROOT).as_posix()))
+        new = rescale(text, args.agent, args.date, keep)
         if new is None:
             continue
         if crlf:

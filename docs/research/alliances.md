@@ -1,3 +1,6 @@
+---
+systems: [creatures, combat]
+---
 # Alliances
 
 What DK2's alliance array is, who writes it, and what reads it. The verdict half (allies ending

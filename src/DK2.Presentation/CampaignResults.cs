@@ -19,7 +19,7 @@ public readonly record struct CampaignResultText(FrontEndRect Rect, uint TextId,
 public enum FrontEndTextColour : byte
 {
     /// <summary><c>+0x3031E</c> (and <c>+0x5FF4</c>, its copy): copied from the palette object
-    /// <c>0x00756F34</c>, whose constructor <c>0x00559820</c> makes it white (LIKELY,
+    /// <c>0x00756F34</c>, whose constructor <c>0x00559820</c> makes it white (HYPOTHESIS,
     /// functions/00533E90.md).</summary>
     Label,
     /// <summary><c>+0x30323</c>: (255, 168, 0).</summary>
@@ -105,7 +105,7 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
 
     /// <summary><c>0x0053D270</c> in the list widget's box: seven cells from <paramref name="first"/>, the
     /// hidden 1508 row taking no line; each label at the box's left, its value 250 pixels in, right-aligned
-    /// (alignment 1, LIKELY right), a line every 25 pixels, clipped to the box: a line partly past its bottom
+    /// (alignment 1, probably right), a line every 25 pixels, clipped to the box: a line partly past its bottom
     /// is cut to what is inside. DK2 advances a line only when the value is not empty; every cell has a
     /// value, so the rule is not modelled.</summary>
     public IEnumerable<CampaignResultText> Rows(FrontEndRect list, int first)

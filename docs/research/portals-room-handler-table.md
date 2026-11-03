@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The per-room-type handler table at `0x006a1e9f`
 
 | | |

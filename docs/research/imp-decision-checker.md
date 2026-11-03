@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work, tooling-process]
+---
 # Limits of the Imp decision checker
 
 Checked 2026-10-17 on master `5735d000`, with unchanged gameplay.

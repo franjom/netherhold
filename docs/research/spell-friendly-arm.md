@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Mechanic: the friendly spell arm and its applicability table
 
 Source(s):
@@ -223,7 +226,7 @@ Haste at 3686 units a tick can pass a standing ally where the 2048-a-tick buffs 
 
 ## Confidence
 
-**CONFIRMED (binary):** the table contents and dispatch; every predicate and
+**STRONGLY INFERRED (binary):** the table contents and dispatch; every predicate and
 strict comparison; the friendly slot overwrite, self-only Invisible arm,
 candidate list and gates, distance, route and fallthrough; both readers each
 of bits 5, 6 and 7; the bounded negative for bit 8.

@@ -1,4 +1,7 @@
-﻿# Mechanic: anger — six counters, the ceiling, and the ladder
+﻿---
+systems: [creatures]
+---
+# Mechanic: anger — six counters, the ceiling, and the ladder
 
 Source(s):
 - Owner measurement in DK2 v1.70, 2026-09-04 (Q106, Q114) and owner testimony
@@ -242,7 +245,7 @@ to **6**: looking for the Lair (`0x4f`), making a home (`0x50`), going to bed
 (`0x51`); **9**: the three sleeping states (`0x52`–`0x54`); **10**: sulking
 (`0x55`).
 
-**CONFIRMED from the binary**, and independently re-read from the raw address
+**STRONGLY INFERRED from the binary**, and independently re-read from the raw address
 scan up. Cooling is state-category-gated rather than terrain-gated, and it is
 **not** restricted to sleeping or to occupying one's own bed: sulking is an
 awake-in-lair state, and the three category-6 states begin before sleep. Two

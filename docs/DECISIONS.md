@@ -1,7 +1,7 @@
 # Architecture Decision Records
 
 ## ADR-0001 — Integer/fixed-point gameplay math
-**Date:** 2026-08-29 · **Status:** accepted
+**Date:** 2026-08-29 · **Status:** accepted · **Systems:** simulation-core
 
 **Context.** DK2 v1.70 mixes integer math with x87 floats (Flame ships `fpu_control.h`). Bit-exact x87 reproduction on modern hardware is not tractable.
 **Decision.** Integer/fixed-point for every gameplay-affecting quantity; floats are presentation-only. Trades unachievable float-exactness for achievable cross-platform determinism.
@@ -10,7 +10,7 @@
 - Sub-step fractions are carried as integer remainders (`CreatureState.MoveRemainder`, `TileState.WorkRemainder`), never as floats.
 
 ## ADR-0002 — Simulation independent of Unity, enforced at compile time
-**Date:** 2026-08-29 · **Status:** accepted · amended 2026-09-04: the netstandard2.1 half was unenforced until then
+**Date:** 2026-08-29 · **Status:** accepted · amended 2026-09-04: the netstandard2.1 half was unenforced until then · **Systems:** simulation-core, presentation-unity
 
 **Context.** Assemblies Unity loads must target netstandard2.1 and must not reference Unity.
 **Decision.** Simulation-side assemblies target netstandard2.1 and may not reference any assembly named `Unity*`. `ArchitectureTests` fails the run on a Unity reference.
@@ -20,7 +20,7 @@
 - Now enforced from the built artefact: `ArchitectureTests.UnityLoadableAssemblies_TargetNetStandard21` reads `TargetFrameworkAttribute` off the compiled assembly. A constraint expressed only in build configuration is a claim that itself needs a test.
 
 ## ADR-0003 — Clean-room use of reference projects
-**Date:** 2026-08-29 · **Status:** licence half superseded by ADR-0041 (2026-09-04); source-use rule amended 2026-09-04 (owner; the "second amendment" cited across the repo): OpenKeeper may supply implementation, with attribution
+**Date:** 2026-08-29 · **Status:** amended: licence half superseded by ADR-0041 (2026-09-04); source-use rule amended 2026-09-04 (owner; the "second amendment" cited across the repo): OpenKeeper may supply implementation, with attribution · **Systems:** legal, tooling-process
 
 **Context.** Written while the project was MIT. OpenKeeper is GPLv3; Flame carries no licence.
 **Decision.**
@@ -33,21 +33,21 @@
 - The licence boundary table lives in `docs/research/external-resources.md`.
 
 ## ADR-0004 — xoshiro256** as the simulation RNG
-**Date:** 2026-08-29 · **Status:** accepted
+**Date:** 2026-08-29 · **Status:** accepted · **Systems:** simulation-core
 
 **Context.** DK2's original generator is UNKNOWN.
 **Decision.** xoshiro256**: public-domain, fast, trivially serialisable, platform-independent. Deliberately not DK2's.
 **Consequences.** If fidelity work shows the original sequence matters observably, a second generator goes behind the same `SimRandom` surface. The RNG position is hashed and snapshotted (ADR-0006, ADR-0007).
 
 ## ADR-0005 — .slnx solution format
-**Date:** 2026-08-29 · **Status:** accepted
+**Date:** 2026-08-29 · **Status:** accepted · **Systems:** tooling-process
 
 **Context.** .NET 10 default.
 **Decision.** `DK2.slnx`; no tooling here requires the legacy `.sln`.
 **Consequences.** `unity/DK2.Unity.Compile` is deliberately outside the solution (ADR-0036).
 
 ## ADR-0006 — Determinism is gated by a pinned state hash, exercised by a chaos system
-**Date:** 2026-08-29 · **Status:** accepted
+**Date:** 2026-08-29 · **Status:** accepted · **Systems:** simulation-core
 
 **Context.** Two runs can share visible state while having consumed different RNG draws; they are about to diverge.
 **Decision.**
@@ -59,14 +59,14 @@
 - New state must be reachable from `WorldState`, hashed in `HashInto` and written by `WorldSnapshot` (ADR-0007), or it is silently non-deterministic.
 
 ## ADR-0007 — Our own save format; DK2 save compatibility is not a goal
-**Date:** 2026-08-29 · **Status:** accepted
+**Date:** 2026-08-29 · **Status:** accepted · **Systems:** simulation-core, data-formats
 
 **Context.** Reproducing DK2's save layout buys nothing behavioural (plan risk R13) and our state is not shaped like the original's.
 **Decision.** `WorldSnapshot` writes a private binary format with its own `FormatVersion`. `save_struct.bt` is used only as a checklist of what state exists.
 **Consequences.** The invariant is continuation, not byte equality: restoring a snapshot into a fresh simulation must produce identical state hashes indefinitely, which proves the snapshot captured everything the simulation depends on, RNG position included.
 
 ## ADR-0008 — YamlDotNet for scenario files (tooling only)
-**Date:** 2026-08-29 · **Status:** accepted
+**Date:** 2026-08-29 · **Status:** accepted · **Systems:** tooling-process
 
 **Context.** Scenarios are YAML (`DK2_REIMPLEMENTATION_PLAN.md` §6.2). A hand-rolled YAML subset would misread the regression corpus.
 **Decision.** YamlDotNet (MIT) in `DK2.Harness` and the test projects only. No simulation assembly may take it; those stay dependency-free and Unity-loadable.
@@ -83,7 +83,7 @@
 - Code now: `TileWorkKind.FillIn` was removed 2026-09-07 — `FillInHealth` has no reader in DKII.EXE and the owner does not recognise filling in as a DK2 action (Q219; see ADR-0039). The data shape (`FillInHealth` = 5, `TerrainFlags.FillInable`, Claimed Path → Rock) is recorded in `docs/research/tile-work.md`.
 
 ## ADR-0010 — Work orders are a queue on the world, filled by whoever is working
-**Date:** 2026-08-29 (M3) · **Status:** accepted
+**Date:** 2026-08-29 (M3) · **Status:** accepted · **Systems:** imps-tile-work
 
 **Context.** Tile mechanics were ready before the creature that performs them; job selection (Q2) and pathfinding (Q5) should not block them.
 **Decision.** `WorldState` carries a FIFO `TileWorkOrder` queue. `TileWorkSystem` drains it every tick and applies the rules. Producing orders is somebody else's job: a working creature, or a test or the scenario harness.
@@ -92,7 +92,7 @@
 - The queue is a list, hashed and snapshotted like all other state. Order is behaviour: it is never sorted or deduplicated.
 
 ## ADR-0011 — Ticks are related to seconds in exactly one place
-**Date:** 2026-08-29 (M3) · **Status:** accepted · amended 2026-09-07 by ADR-0089: `TicksPerSecond` is 4, read from the binary, no longer a placeholder
+**Date:** 2026-08-29 (M3) · **Status:** accepted · amended 2026-09-07 by ADR-0089: `TicksPerSecond` is 4, read from the binary, no longer a placeholder · **Systems:** simulation-core
 
 **Context.** Q1 (DK2's tick rate) was unmeasured and Q19 (what the health deltas are per) depended on it.
 **Decision.** `SimulationTiming` holds every tick-to-second relationship. No tick count that means a duration may be written anywhere else.
@@ -101,7 +101,7 @@
 - Per-second work is scheduled as whole applications, so the determinism gate never depended on the placeholder value.
 
 ## ADR-0012 — The pathfinder is an admitted placeholder behind an interface
-**Date:** 2026-08-29 (M3) · **Status:** accepted · amended 2026-08-30 by ADR-0025: connectivity and step cost are now DK2's; tie-breaking remains ours · amended 2026-09-16 by ADR-0155: the original's architecture is now known and is not a grid search
+**Date:** 2026-08-29 (M3) · **Status:** accepted · amended 2026-08-30 by ADR-0025: connectivity and step cost are now DK2's; tie-breaking remains ours · amended 2026-09-16 by ADR-0155: the original's architecture is now known and is not a grid search · **Systems:** navigation
 
 **Context.** DK2's routing is Q5, the project's largest open question (plan §9, R1). A 36-byte `Follow_Path` class was known by name only, and nobody had reconstructed it.
 **Decision.** `DK2.Pathfinding.IPathfinder` defines the two questions the simulation asks — route to a known tile, and route to the nearest tile satisfying a predicate. `GridPathfinder` answers them with a deterministically tie-broken grid search and documents what is not DK2. `ImpTaskSystem` takes the pathfinder by constructor, so a reconstruction drops in without touching the systems.
@@ -110,7 +110,7 @@
 - Which of several equally short routes comes back is decided by a fixed neighbour order and then tile index — reproducible, but ours (Q5). The harness says so in every run that places a worker.
 
 ## ADR-0013 — One declared system order, in one place
-**Date:** 2026-08-29 (M3) · **Status:** accepted
+**Date:** 2026-08-29 (M3) · **Status:** accepted · **Systems:** simulation-core
 
 **Context.** System order is part of the simulation's definition; it was being written out twice (test fixture, scenario harness).
 **Decision.** `DK2.Simulation.Systems.SimulationSystems.Default()` is the single declaration of which systems run and in what order. Tests and the harness both use it.
@@ -120,7 +120,7 @@
 - A system added later is added to one list, and the pinned determinism hash moves in the same commit.
 
 ## ADR-0014 — Worker behaviour covers marked work only
-**Date:** 2026-08-29 (M3) · **Status:** superseded by ADR-0018 (same day)
+**Date:** 2026-08-29 (M3) · **Status:** superseded by ADR-0018 (same day) · **Systems:** imps-tile-work
 
 **Context.** A DK2 imp digs what is marked but also claims, reinforces, carries gold, drags bodies and flees. Each unprompted job needs a rule for when it starts and how it ranks; that order was UNKNOWN (Q24).
 **Decision.** `ImpTaskSystem` implemented marked work and nothing else — the one job whose trigger is not in doubt.
@@ -129,7 +129,7 @@
 - Superseded when the owner supplied the order (ADR-0018); refusing to guess is why adopting the real order cost one afternoon and five test rewrites. Later refinements: ADR-0056, ADR-0058.
 
 ## ADR-0015 — Gold lives in tiles; a player has no gold counter
-**Date:** 2026-08-29 (M3) · **Status:** accepted
+**Date:** 2026-08-29 (M3) · **Status:** accepted · **Systems:** imps-tile-work
 
 **Context.** DK2's balance table has no variable for a player's gold, a starting balance or a maximum. It has four per-place limits: `MaxGoldPerTreasuryTile` (3000), `MaxGoldPerDungeonHeartTile` (1000), `MaxGoldPileOutsideTreasury` (2000), and the CREATURES record's per-creature `maxGoldHeld`.
 **Decision.** Gold is stored on tiles (`TileState.GoldHeld`); `PlayerState` has no gold field. `GoldStore` is the only way gold moves; a player's spendable total is the sum over tiles they own. Mana stays on the player (`PlayerState.Mana`): its variables are ceilings and rates on one pool.
@@ -140,7 +140,7 @@
 - A creature's hands became the fourth place (ADR-0019); a floor pile the fifth (ADR-0055).
 
 ## ADR-0016 — Where a room may go is read from the room's own flags
-**Date:** 2026-08-29 (M3) · **Status:** accepted
+**Date:** 2026-08-29 (M3) · **Status:** accepted · **Systems:** rooms
 
 **Context.** The ROOMS record carries `PlaceableOnLand`, `PlaceableOnWater`, `PlaceableOnLava`; the TERRAIN record carries `Water`, `Lava`, `Solid`, `Room`.
 **Decision.** `RoomRules.IsSuitableGround` asks the flags and never names a room — the terrain-id discipline (ADR-0009) extended to rooms.
@@ -149,7 +149,7 @@
 - The one place a room type is named is `GoldStore.Capacity` (`RoomTypeId.Treasury`, `RoomTypeId.DungeonHeart`), where the two variables are themselves named for those rooms.
 
 ## ADR-0017 — A per-second rate from the balance table is applied once a game second
-**Date:** 2026-08-29 (M3) · **Status:** accepted
+**Date:** 2026-08-29 (M3) · **Status:** accepted · **Systems:** simulation-core
 
 **Context.** Mana income is one mana per claimed tile per second; spread over `TicksPerSecond` ticks it is a fraction, needing fixed-point mana or a per-player accumulator in the hash and snapshot.
 **Decision.** Rates named `…PerSecond` are applied in whole, once every `SimulationTiming.TicksPerSecond` ticks, on the last tick of each game second. `ManaSystem` does this and holds no state of its own.
@@ -173,7 +173,7 @@
 - Code now: this order is one tier of a two-tier chooser (ADR-0058), and `ImpTaskKind` carries DK2's own task-kind bytes read from the binary — `None` 0, `Excavate` 1, `Claim` 3, `Reinforce` 6, `FetchGold` 7, `CarryObject` 8, `CarryCorpse` 12, `CarryUnconscious` 13, `ClaimFreshlyDug` 14 (`docs/research/imp-task-priority.md`).
 
 ## ADR-0019 — A creature's hands are a place gold can be
-**Date:** 2026-08-30 · **Status:** accepted
+**Date:** 2026-08-30 · **Status:** accepted · **Systems:** imps-tile-work, creatures
 
 **Context.** ADR-0015 named four places gold can be, three of them tiles; the fourth is a creature's hands, bounded by the CREATURES record's `MaxGoldHeld`, unimplemented at M3 because nothing carried anything. Q31 (owner): an imp mining a seam **takes the gold into its own hands** up to that capacity, runs to a treasury or dungeon heart, and puts it down — a floor pile is the fallback for when there is nowhere to put it, not the first step.
 **Decision.**
@@ -207,7 +207,7 @@
 - Code now: amount and rate are separate constants — `SimulationTiming.BaseApplicationDivisor` is **5** and sizes an application (`OriginalTicksPerGameSecond × 100 / EfficiencyRules.BasePercent`); `SimulationTiming.WorkApplicationsPerSecond` is **4** and schedules it, once a tick (ADR-0089).
 
 ## ADR-0021 — Imps come from a floor and a price, and mana finally has an outgoing
-**Date:** 2026-08-30 · **Status:** accepted · amended 2026-09-05 by ADR-0057: the free-imp clock is a deadline, not a countdown
+**Date:** 2026-08-30 · **Status:** accepted · amended 2026-09-05 by ADR-0057: the free-imp clock is a deadline, not a countdown · **Systems:** imps-tile-work, keeper-spells
 
 **Context.** Nothing generated imps and nothing spent mana. The owner described replenishment toward four Imps, a **floor** rather than a one-time allowance — drop them all into the dungeon heart and they come back at roughly five-second intervals — and beyond that an imp is bought with the Create Imp spell at 1500 mana, rising by 1500 each time. Every number is in DK2's data: the balance table names the first two in its own words (`MinimumImpThreshold` 4, `TimeBeforeFreeImpGeneratedSeconds` 5), which is why the free supply is CONFIRMED rather than inferred.
 **Decision.**
@@ -223,7 +223,7 @@
 - What this ADR could not build: the ~7 mana a second an imp costs to keep, which was in no file we parse. Built the next day (ADR-0022).
 
 ## ADR-0022 — An imp costs mana to keep, and the number was on the spell
-**Date:** 2026-08-30 · **Status:** accepted · supersedes ADR-0021's closing paragraph, which said this could not be built · amended the same day: the mana ceiling sees the net
+**Date:** 2026-08-30 · **Status:** accepted · supersedes ADR-0021's closing paragraph, which said this could not be built · amended the same day: the mana ceiling sees the net · **Systems:** imps-tile-work, keeper-spells
 
 **Context.** DK2 charges about 7 mana a second per imp and this simulation charged nothing. The owner measured it from two mana-orb screenshots — four imps read **−28**, and after summoning a fifth, **−35** — so the *unit* is confirmed as well as the rate. The field is not on the creature: a rescan of all 5449 bytes of the CREATURES record found four offsets holding the Imp's 7, and every one is an ArtResource frame count, an array-length header or uninitialised padding.
 **Decision.**
@@ -243,7 +243,7 @@
 - Still open: what a trap draws (Q59 — confirmed to exist, unmeasured, `Traps.kwd` unparsed); whether possession really drains 25 (Q58 — the data disagrees with itself and with the owner); what happens at zero mana (Q57).
 
 ## ADR-0023 — One measured behaviour overrides one shipped number
-**Date:** 2026-08-30 · **Status:** the mechanism stands; its one override is retired by ADR-0280 (2026-09-29)
+**Date:** 2026-08-30 · **Status:** amended: the mechanism stands; its one override is retired by ADR-0280 (2026-09-29) · **Systems:** imps-tile-work
 
 **Context.** `DigRockHealth` ships as **−5000**, which against Rock's 165 health is 1000 a swing and fells a plain wall in **one**; the owner dug one out in the original and counted **two**, distinguishing the two swings that do the damage from the third animation playing over the block already crumbling. Two applications against 165 health bounds the per-application damage at **[83, 164]** — under 165 and one swing would finish it, under 83 and two would not — so the per-second figure is in **[415, 820]** and the shipped value is six to twelve times too big.
 **Decision.** Correct it to **−500**, in one named place.
@@ -259,7 +259,7 @@
 - A deliberately narrow precedent: the two other candidates, the imp mana upkeep and the Create Imp cost, turned out to be findable in the data. **Look for the field before reaching for this file.**
 
 ## ADR-0024 — An upward job costs the terrain's whole MaxHealth
-**Date:** 2026-08-30 · **Status:** **reversed 2026-09-07 by ADR-0089** — an upward job costs the **deficit**
+**Date:** 2026-08-30 · **Status:** **reversed 2026-09-07 by ADR-0089** — an upward job costs the **deficit** · **Systems:** imps-tile-work
 
 **Context.** Claiming and reinforcing convert a tile to its `MaxHealthTypeTerrainId` and did it by healing, so the work required was the gap `MaxHealth − Health`. The owner stopwatched one imp reinforcing one wall at **13.38 s and 13.77 s**, both carrying reaction time at each end; at five applications a second that is 66–67 swings, 13.2 s is 66 exactly, and `ReinforceWallHealth` at 10 a swing makes the work 660 — Rock's whole `MaxHealth` — against the 495 its 165 starting health gives, where the gap rule predicted 50 swings and 10.0 s.
 **Decision (as accepted, now withdrawn).** An upward conversion needs `terrain.MaxHealth` worth of work, counted from zero in `TileState.UpwardWork` rather than in `Health`; reinforcing does not heal; repair jobs raise `Health` and stop at `MaxHealth`; `UpwardWork` resets on any terrain change along with `WorkRemainder`. `HashVersion` 7 → 8 and snapshot `FormatVersion` 7 → 8.
@@ -269,7 +269,7 @@
 - What stands: **which** terrain a tile becomes is still `MaxHealthTypeTerrainId` selected by the work (Q18), and claiming is still 4 applications — which is why the two rules were indistinguishable there, Dirt Path shipping at **1** health so that its gap (659) and maximum (660) are within one swing of each other.
 
 ## ADR-0025 — Movement is eight-connected, and a diagonal costs √2
-**Date:** 2026-08-30 · **Status:** accepted · supersedes the four-connected choice on `GridPathfinder` since M2 · amended 2026-09-05 by ADR-0059: a diagonal leg is walked surplus-first · amended 2026-10-03 by ADR-0339: a corner-only gap is no step
+**Date:** 2026-08-30 · **Status:** accepted · supersedes the four-connected choice on `GridPathfinder` since M2 · amended 2026-09-05 by ADR-0059: a diagonal leg is walked surplus-first · amended 2026-10-03 by ADR-0339: a corner-only gap is no step · **Systems:** navigation
 
 **Context.** `GridPathfinder` was four-connected as the conservative option, because whether DK2 lets a creature squeeze diagonally between two solid tiles was UNKNOWN. The owner watched the original (Q28): it **will**, so every route this project produced was an overestimate, in the system every other system depends on.
 **Decision.**
@@ -302,7 +302,7 @@
 - The count is O(creatures) inside a search predicate — acceptable at tens of creatures, worth revisiting if a level ever carries hundreds.
 
 ## ADR-0027 — A room is an instance, and it is derived rather than stored
-**Date:** 2026-08-30 · **Status:** accepted
+**Date:** 2026-08-30 · **Status:** accepted · **Systems:** rooms
 
 **Context.** A room was terrain, tile by tile, so nothing could ask *how big is the room this tile belongs to, and where is this tile within it?* Five measured findings sat unimplementable on that gap:
 
@@ -345,7 +345,7 @@ documentation of the smallest *useful* size — which is why it matches the manu
 Unaffected: whether a room's *effect* needs more than capacity is not tested here.
 
 ## ADR-0028 — Floor is worked from on top of it, walls from beside
-**Date:** 2026-09-01 · **Status:** accepted · refined by ADR-0030: the crowding cap follows the stance
+**Date:** 2026-09-01 · **Status:** accepted · refined by ADR-0030: the crowding cap follows the stance · **Systems:** imps-tile-work
 
 **Context.** Everything was worked from an orthogonal neighbour, a model taken from Q27 — CONFIRMED, and about **walls**. The owner's observation of floor (Q44, CONFIRMED) is unambiguous: *"imps claim tiles by jumping on them"*, staying roughly half a second afterwards, then moving to an adjacent unclaimed one. The ownership condition moves with the stance, because claiming spreads from ground the keeper already holds (Q42) and was implemented as *the tile the imp stands on must be owned*, which an imp standing on the tile it is claiming can never satisfy.
 **Decision.** A worker works from the target tile itself when it can stand there **both while it works and when the job finishes**; otherwise from an orthogonal neighbour. `WorkStance` is the whole rule, and it is *derived* rather than a list of work kinds:
@@ -387,7 +387,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - No new state, so no `HashVersion` bump. The economy has its first sink that runs backwards.
 
 ## ADR-0030 — Claiming takes one worker on its tile
-**Date:** 2026-09-03 · **Status:** accepted · corrected 2026-09-27
+**Date:** 2026-09-03 · **Status:** accepted · corrected 2026-09-27 · **Systems:** imps-tile-work
 
 **Context.** The owner observed that only one imp claims an unclaimed floor tile at once (2026-09-03). Digging can put three on one neighbouring tile, so occupancy is a job rule rather than a physical space limit.
 **Decision.** `ImpCrowding.MaxWorkers` admits one worker on the target tile. Neighbouring work also names its kind: digging admits three per face and reinforcing one (ADR-0026).
@@ -426,7 +426,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - **The near-miss worth keeping.** The first attempt compared each level's *remaining* water and lava counts against its bridges and appeared to refute the reading, Furnace having bridges of both markers and apparently no water at all — because **a fully bridged pond leaves no water to count**, the bridge tiles *are* the pond. Asking what each tile **borders** is what made the partition visible.
 
 ## ADR-0032 — A wooden bridge over lava burns, and the clock starts when it is built
-**Date:** 2026-09-03 · **Status:** accepted · answers the tile half of Q67
+**Date:** 2026-09-03 · **Status:** accepted · answers the tile half of Q67 · **Systems:** rooms
 
 **Context.** `WoodBridgeLifeOnLavaSeconds` is 30 in the balance table, a variable that names its own mechanic and that nothing read until ADR-0031 established which bridges are over lava. The **shape** was still missing — the name fits the clock running from the build, from the first footstep, or as damage to the tile's health — and the owner settled it (2026-09-03): **the clock starts when the bridge is built.**
 **Decision.** A countdown of its own — `TileState.BurnTicksRemaining`, set by `RoomRules.Place`, spent by `BridgeBurnSystem`, cleared by every path that takes the tile away.
@@ -443,7 +443,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - **A creature caught on a burning bridge is unharmed here but not stranded.** The pathfinder enters a mover's starting tile without testing walkability, so a creature standing in lava can still walk out — a rule written long before anything could turn the ground under a creature impassable, and this is its first real cause. Tested.
 
 ## ADR-0033 — A rival claims your ground directly, and hostile expansion falls out
-**Date:** 2026-09-03 · **Status:** accepted, **amended 2026-09-25: a rival's floor is attacked to Dirt Path first** · answers Q68
+**Date:** 2026-09-03 · **Status:** accepted, **amended 2026-09-25: a rival's floor is attacked to Dirt Path first** · answers Q68 · **Systems:** imps-tile-work
 
 **Context.** `TileWorkKind.Claim` applied only to terrain that was **not `Ownable`**, so a rival's claimed floor was not claimable at all and the implied model was two steps: damage the tile to neutral with `AttackTileHealth` (−140), then claim it with `ClaimTileHealth` (825). The owner settled it in two messages (2026-09-03) — a bridge can only be "attacked" by a **rival keeper's imps, who jump on it and claim it if it is adjacent to their keeper's territory**, and, asked directly, **"no it doesn't go to neutral first, it is immediately claimed by an imp."**
 **Decision.**
@@ -504,7 +504,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - An object has no sub-tile position, because the simulation has none — `ObjectView` carries a tile. DK2 places a pile at one of eight fixed points around a tile centre and a dying creature's gold anywhere in its tile (`docs/research/gold-on-the-floor.md` §7); reproducing that needs the field, and the field arrives with the first mechanic that moves an object.
 
 ## ADR-0036 — Unity 6 LTS, and the adapter is nine methods
-**Date:** 2026-09-04 · **Status:** accepted · amended three times on 2026-09-04: the adapter exists and compiles, Unity runs it headless, and the owner pressed Play
+**Date:** 2026-09-04 · **Status:** accepted · amended three times on 2026-09-04: the adapter exists and compiles, Unity runs it headless, and the owner pressed Play · **Systems:** presentation-unity
 
 **Context.** `DK2_REIMPLEMENTATION_PLAN.md` §11 says *"Unity version: latest LTS; decide at M3, not now"*. It is M3 and the presentation boundary is built.
 **Decision.** **Unity 6 LTS**, `6000.6.0f1`, which is what `winget install --source winget --id Unity.Unity.6000` installs. The previous LTS (2022.3.62f3) is the fallback if Unity 6 misbehaves; nothing in this project depends on a Unity 6 feature, because nothing depends on Unity at all.
@@ -543,7 +543,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 - The PDF stays out of the repository — EA's copyright, a public repository — and lives under `original-reference/`. Our own licence grants nothing over EA's work either way (ADR-0041).
 
 ## ADR-0038 — A creature never enters a tile it could not have walked into
-**Date:** 2026-09-04 · **Status:** accepted
+**Date:** 2026-09-04 · **Status:** accepted · **Systems:** navigation
 
 **Context.** The owner, unprompted, after watching imps walk through rock in an OpenKeeper gameplay video: *"creatures CAN NOT pass through walls, they can only move through dug out tiles, not through solid rocks"*.
 **Decision.** `CreatureMovementSystem` re-checks each waypoint against `WorldPathGrid` **at the moment it steps onto it**, and a creature that finds one blocked stops and drops the route. The tile it is *standing on* is deliberately not re-checked.
@@ -591,7 +591,7 @@ Owner: *"once a tile is dug out, and maybe claimed, there is no possible way to 
 - **Corrects Q1's evidence.** The id-74 `GameTicks` variable was recorded on 2026-08-29 as carried by "no shipped file"; it is carried by **all 66 per-level files, at 340 in every one**. The sweep looked at the `*.kwd` map files and the value is in the `*Variables.kld` siblings, which nothing was loading. **What 340 means is UNKNOWN and is not being guessed** (Q83): 340 a second is implausible, the id shares its "no trailing fields" shape with the two front-end metadata ids, and OpenKeeper's comment on the same id says `value=4`, matching nothing here, so even the name is suspect. (Q1 itself was answered from the binary by ADR-0089: a tick is 250 ms.)
 
 ## ADR-0041 — The project is GPLv3, and the notice is enforced by a test
-**Date:** 2026-09-04 · **Status:** accepted
+**Date:** 2026-09-04 · **Status:** accepted · **Systems:** legal
 
 **Context.** The repository was MIT by default, never decided. Changed to GNU GPL version 3 at the owner's request, to match OpenKeeper. **A free choice, not an obligation:** `THIRD-PARTY-NOTICES.md` and ADR-0003 record that OpenKeeper was consulted as documentation only at the time, with no code copied or transliterated, so nothing here was under a copyleft obligation. The MIT-licensed material that *is* here — the GLKeeper WAD decompression adaptation in `WadDecompressor.cs`, and YamlDotNet — is GPL-compatible and keeps its own attribution.
 **Decision.** `LICENSE` is the GNU General Public License version 3, verbatim, 674 lines. `license.txt` is the per-file notice as a FreeMarker header template, the same form and purpose as OpenKeeper's `license.txt` — which is where the file came from, and why a lower-case `license.txt` sits next to an upper-case `LICENSE`. IDEs that stamp a notice into new files read it. **The notice is three lines, not fourteen:**
@@ -631,7 +631,7 @@ Under the GPL the per-file notice is what makes `LICENSE` apply to a file rather
 - A portal could not be **claimed** by an imp here: room conversion is a real job with its own balance value (`ConvertRoomHealth` = −4000) and had no `TileWorkKind`, so a scenario said "claimed portal" by re-owning the tiles and the harness reported that as a shortfall (Q92). Built the same day by ADR-0044.
 
 ## ADR-0043 — Not every player is a keeper: DK2's player ids are reserved
-**Date:** 2026-09-04 · **Status:** accepted
+**Date:** 2026-09-04 · **Status:** accepted · **Systems:** simulation-core
 
 **Context.** Found while asking whose portal an unclaimed portal is. Level 1's portal ships owned by **player 2**, not player 0, and the assumption that every id in `WorldState.PlayerIds` is a keeper had been made silently everywhere.
 **Decision.** Four reserved ids in `PlayerIds`: **0** unowned terrain, **1** the hero side, **2 neutral — which is what an unclaimed room belongs to**, and **3 to 7** keepers. `PlayerIds.IsKeeper(id)` is `id >= 3`.
@@ -645,7 +645,7 @@ Under the GPL the per-file notice is what makes `LICENSE` apply to a file rather
 - It answered Q17, which several rules had been resting an open question on — see ADR-0045 for what that cost.
 
 ## ADR-0044 — A room is claimed whole, never tile by tile
-**Date:** 2026-09-04 · **Status:** accepted · amended by ADR-0336 (2026-10-02): items 2–4 now work the room's one health
+**Date:** 2026-09-04 · **Status:** accepted · amended by ADR-0336 (2026-10-02): items 2–4 now work the room's one health · **Systems:** rooms
 
 **Context.** **CONFIRMED by the owner**, unprompted, the day the portal landed: *"once an imp claims a portal then the entire portal gets claimed, all tiles that are assigned to that portal are immediately claimed … that is a game mechanic that works on claiming enemy/neutral rooms too, rooms are instantly claimed by imps, not tile by tile."*
 
@@ -673,7 +673,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 **Evidence:** `docs/research/tile-work.md`. The change lets the keeper claim the dug tile and restores Level 1's missing tile triggers. A non-ownable terrain id alone does not imply owner zero.
 
 ## ADR-0046 — DKII.EXE may be decompiled; its output may not enter the repository
-**Date:** 2026-09-04 · **Status:** accepted · amended 2026-09-04: the binary is the *primary* source to consult
+**Date:** 2026-09-04 · **Status:** accepted · amended 2026-09-04: the binary is the *primary* source to consult · **Systems:** legal, tooling-process
 
 **Context.** Q96 asked whether Ghidra could be used on `DKII.EXE`. The owner: *"you are free to use it and decompile it, put all decompiled resources under reverse-engineering folder."* The brief requires clean-room behavioural reimplementation and forbids copying original source merely because reverse engineering makes it available; decompiler output is source code derived from the binary (EA's control flow and operation order), while a fact about behaviour (`EntranceGenerationSpeedSeconds` = 25) is the same whether read from a KWD, a stopwatch or `.text`. Extends ADR-0003.
 
@@ -728,7 +728,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Code now: lair healing is `AsleepInOwnBed ? 100 : 0` (ADR-0049); zero health collapses (ADR-0051); `HungerNeed` accumulates (ADR-0067); `TicksPerSecond` = 4 (ADR-0089).
 
 ## ADR-0049 — A creature has its own bed, and heals only while asleep in it
-**Date:** 2026-09-04 · **Status:** accepted · amended: `LairTileIndex` replaced by a bed object carrying `CreatureId` (ADR-0054); the remote claim replaced by a walk (ADR-0060)
+**Date:** 2026-09-04 · **Status:** accepted · amended: `LairTileIndex` replaced by a bed object carrying `CreatureId` (ADR-0054); the remote claim replaced by a walk (ADR-0060) · **Systems:** creatures, rooms
 
 **Context.** Owner, CONFIRMED: *"A lair is a room with tiles, on each tile only one bed/chair/whatever per creature can be present. When a creature enters a dungeon through a portal it goes to a lair, finds a free tile and occupies it with its bed. When a creature is injured it heals while it sleeps in its own bed."* Also: a skeleton has no lair; Horny is a summon, not a roster creature — both consistent with `LairObjectId` = 0, and the second is why Horny carries no `AvailableViaPortal`.
 
@@ -788,7 +788,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Code now: corpses (`CreatureActivity.Dead`) and carrying — ADR-0063; capture — ADR-0064.
 
 ## ADR-0052 — Only a keeper is staffed, and the test suite stops calling the hero side "Keeper"
-**Date:** 2026-09-04 · **Status:** accepted · Confidence: CONFIRMED (structural — `PlayerIds`, ADR-0043) · closes the implementation half of Q91
+**Date:** 2026-09-04 · **Status:** accepted · Confidence: CONFIRMED (structural — `PlayerIds`, ADR-0043) · closes the implementation half of Q91 · **Systems:** creatures, tooling-process
 
 **Context.** `PlayerIds`: 0 unowned, 1 hero side, 2 neutral, 3–7 keepers. `PortalSystem` gated on `PlayerIds.IsKeeper`; `ImpSupplySystem` predated it and looped every player, so 0, 1 and 2 would receive free imps and could cast Create Imp. Recorded as harmless because none has a heart on shipped data — a claim nothing checked: a level giving the hero side a heart would have staffed it, and `PlayerState.FreeImpCountdownTicks` was hashed state counting down for players 0–2 on every level.
 
@@ -805,7 +805,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Not done: `ManaSystem` runs for every player. Mana comes from owned terrain and non-keepers own terrain; "only keepers accrue mana" has no source. Left as a decision, not an oversight.
 
 ## ADR-0053 — Anger's ceiling is 32767, measured twice by two methods
-**Date:** 2026-09-04 · **Status:** accepted · amended 2026-09-05: the draw-once rule is superseded by ADR-0061; the pooled counter by ADR-0081; the applied-sources table extended by ADR-0079 and ADR-0082 · Confidence: CONFIRMED (owner, two independent methods) · closes Q106, Q114; supersedes ADR-0050's deferral
+**Date:** 2026-09-04 · **Status:** accepted · amended 2026-09-05: the draw-once rule is superseded by ADR-0061; the pooled counter by ADR-0081; the applied-sources table extended by ADR-0079 and ADR-0082 · Confidence: CONFIRMED (owner, two independent methods) · closes Q106, Q114; supersedes ADR-0050's deferral · **Systems:** creatures
 
 **Context.** Every anger rate was known (`AngerNoLair` 100/s Goblin), `UnhappyThreshold` = 50 on all 46 creatures, and the ceiling appeared nowhere: not in the 214 balance variables, the creature record, or OpenKeeper (`CreatureMoodSystem` empty; `CreaturesController` comments `// I guess the initial mood is 10000`).
 
@@ -835,7 +835,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 
 
 ## ADR-0054 — An object is one type with per-kind state, and a bed knows whose it is
-**Date:** 2026-09-04 · **Status:** accepted · Confidence: STRONGLY INFERRED for the shape (read from `DKII.EXE`); the storage is ours and not a fidelity requirement · closes Q130; Q131 CONFIRMED 2026-09-05
+**Date:** 2026-09-04 · **Status:** accepted · Confidence: STRONGLY INFERRED for the shape (read from `DKII.EXE`); the storage is ours and not a fidelity requirement · closes Q130; Q131 CONFIRMED 2026-09-05 · **Systems:** simulation-core, rooms
 
 **Context.** OBJECTS was parsed (145 definitions, twelve beds, Chicken 9, three gold objects) and `WorldState` had no place for an instance. `LairRules` already modelled the bed as `CreatureState.LairTileIndex`; an object carrying the relation from the other end would have held two copies of one fact.
 
@@ -921,7 +921,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - The distance metric is ours (steps, Q25) where the original uses rings; stated at the top of `TrySweep`.
 
 ## ADR-0059 — A diagonal leg is walked surplus-first, and the corner is the only point it touches
-**Date:** 2026-09-05 · **Status:** accepted · amends ADR-0025 (the mover's half)
+**Date:** 2026-09-05 · **Status:** accepted · amends ADR-0025 (the mover's half) · **Systems:** navigation
 
 **Context.** `WallsBlockMovementTests.NoCreatureIsEverStandingOnASolidTile` failed once imps claimed freshly dug tiles: on tick 440 of a four-imp run, imp 4 stood inside the impenetrable gem tile at (6,5) for five ticks. The route (6,4) → (5,5) was a legal corner-cut; the mover walked the leg 45° first, then straight, from a start at x ≈ 6.96 (a creature stops where it crossed into its tile, not at the centre), and the 45° phase swept through (6,5).
 
@@ -1137,7 +1137,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Open, and the line that would be wrong: whether reinforcing really counts in the drop scan. It is one of the nine and it was read, but it is available almost anywhere a dungeon meets rock, which would make *"drop it on a random tile and it remains at 80%"* hard to arrange. This ADR assumes a drop inside a finished dungeon has no rock within three tiles, which the test fixture models. 90% from a drop next to a plain unmarked wall would refute it.
 
 ## ADR-0070 — A prison holds its inner tiles plus one, so a 3×3 holds two
-**Date:** 2026-09-06 · **Status:** accepted · closes Q166 · opens Q179
+**Date:** 2026-09-06 · **Status:** accepted · closes Q166 · opens Q179 · **Systems:** rooms
 
 **Context.** Owner, with a screenshot of DK2's status bar (`Captives held: 0 / 2 … Maximum Skeletons: 2`): *"minimum usable size is 3x3 tiles, that gives capacity of 2 prisoners … Any smaller size and it doesn't render like a prison, it only occupies those tiles."* This project held one prisoner per tile — nine on that room, a four-fold error, and everything that counts prisoners was downstream of it (delivery, overcrowding, the jail-break roll, Skeleton count).
 
@@ -1154,7 +1154,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Ours, unread in the original: whether an L-shaped prison's rim is furnished the same way (we count the rim rather than compute it from the bounding box, so an L-shape answers sensibly; for rectangles the two agree). Maximum Skeletons equals capacity here because a Skeleton replaces the prisoner that died; that DK2 gets the same number *for the same reason* is inference.
 
 ## ADR-0071 — A knocked-out creature has exactly one sixth of its health, and DK2 says so
-**Date:** 2026-09-06 · **Status:** accepted; its sixth corrected by ADR-0628 · closes Q167 (health half) · supersedes the 20% in ADR-0064
+**Date:** 2026-09-06 · **Status:** accepted; its sixth corrected by ADR-0628 · closes Q167 (health half) · supersedes the 20% in ADR-0064 · **Systems:** creatures, combat
 
 **Context.** A prisoner's arrival health was guessed three times: full health (500 game seconds for a Goblin to wither); 20% of maximum, after *"its flower gets two petals"* met a shipped `CreatureCriticalHealthPercentageOfMax` of 20 (100 s); and now a sixth of maximum, read from the binary (83 s). Both legs of the second reading failed the same day — the flower has **six** petals, not ten (Q171, owner screenshot), and a raw `.text` scan for that variable's cached global finds exactly one reference, the loader writing it. The two errors cancelled to something plausible: 20% sits inside the 2-petals-of-six band, so the guess looked confirmed from both sides while resting on nothing.
 
@@ -1191,7 +1191,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - Legal, flagged not assumed: the new document reproduces 70 short UI strings from the install's `Text.str` as state labels. They are research documentation and the code loads them at run time from the user's own install, so nothing is redistributed. If judged too far, the `Text.str` id column alone keeps the table usable without re-deriving anything.
 
 ## ADR-0073 — A prisoner shuffles about its cell, one orthogonal tile at a time
-**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0074: state 117 is a search and a walk, not eating where it stands; ADR-0301 adds the Angry flourish · Q172, first of three
+**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0074: state 117 is a search and a walk, not eating where it stands; ADR-0301 adds the Angry flourish · Q172, first of three · **Systems:** rooms, creatures
 
 **Context.** The owner watched a prison on 2026-09-05 and reported three things: a prisoner moves about its cell, prisoners race each other to a chicken dropped among them, and one of them eats it (Q172). The project's answer was to do none of it — `CreatureMovementSystem`, `CreatureSleepSystem` and `ImpTaskSystem` each carried the same paragraph saying so. This builds the first.
 
@@ -1323,7 +1323,7 @@ It arrived as an answer to Q92 — "how does a keeper claim a portal?" — and *
 - `HashVersion` and `FormatVersion` 30 → **31** on the composition (three creature fields, one player field); pin `0xC026542547419606`.
 
 ## ADR-0079 — Being owed is the whole trigger, and a captive is charged nothing
-**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0081: the bed-versus-wage conclusion below is retired, the buckets are separate · closes the hole ADR-0078 left · Q9, Q185
+**Date:** 2026-09-06 · **Status:** accepted · amended by ADR-0081: the bed-versus-wage conclusion below is retired, the buckets are separate · closes the hole ADR-0078 left · Q9, Q185 · **Systems:** creatures
 
 **Context.** `FUN_00478d00`, reached from the creature update immediately *before* the needs routine, is DK2's need-anger routine.
 
@@ -1379,7 +1379,7 @@ Legal basis: copyright protects expression, not names, titles or short phrases, 
 - **This does not move Flame up the order of sources.** Owner, same day: the primary source of truth is Ghidra and its decompiled sources; Flame is a secondary reference to help determine whether findings hold. A finding is made from the binary and checked against Flame, never the other way round (`AGENTS.md` "Existing research", ADR-0046 amendment).
 
 ## ADR-0081 — Anger is six counters and the mood is the largest, not the sum
-**Date:** 2026-09-06 · **Status:** accepted · supersedes ADR-0079's bed-versus-wage conclusion · ADR-0050, ADR-0053; Q106, Q114, Q185, Q202 (new)
+**Date:** 2026-09-06 · **Status:** accepted · supersedes ADR-0079's bed-versus-wage conclusion · ADR-0050, ADR-0053; Q106, Q114, Q185, Q202 (new) · **Systems:** creatures
 
 **Context.** `FUN_00487030` is DK2's anger-add, reached through the wrapper `FUN_00478b80` that every one of the sixty anger sites in the executable calls. Its arguments are (bucket index, amount, message id) and its receiver is an `int[8]` at `creature+0x26e`.
 
@@ -1544,7 +1544,7 @@ masked, so a non-lava creature can no longer route onto a ruin's centre, as DK2'
 - The one gap outside tolerance is named in the test data rather than absorbed by a wider tolerance: run 1's fourth gap is 40 s against a predicted 34 and every gap after is back inside tolerance, so the cumulative error steps once and stays flat — the signature of a one-off block with nothing eligible rather than a wrong slope. Widening the tolerance to admit it would also have admitted the old formula on three of six gaps. The refuted test was renamed `…AndThisSlopeIsRefutedByQ86` before deletion, and broke on its first line when the real formula went in.
 
 ## ADR-0087 — A creature that never gets angry says so with a flag, and Jack's anger values are a decoy
-**Date:** 2026-09-07 · **Status:** accepted · Q210
+**Date:** 2026-09-07 · **Status:** accepted · Q210 · **Systems:** creatures
 
 **Context.** The second creature flag field's **bit 2** means *this creature never becomes angry*. Skeleton and Jack carry it. DK2 tests it in the one wrapper every anger site in the game calls (`FUN_00478b80`, 60 call sites) and returns immediately, so a flagged creature takes nothing from any source — no hunger, no lair, no wage, no slap, no hand — and neither unhappiness message ever fires for it.
 
@@ -1653,7 +1653,7 @@ masked, so a non-lava creature can no longer route onto a ruin's centre, as DK2'
 - Rejected: building the tree at the same time. The accrual is read and testable; the tree needs the research-item table, the per-keeper unlock state and the UI's ordering, none of which has been read.
 
 ## ADR-0100 — A test that needs the game data must skip without it, not pass
-**Date:** 2026-09-07 · **Status:** accepted · no `HashVersion` change
+**Date:** 2026-09-07 · **Status:** accepted · no `HashVersion` change · **Systems:** tooling-process
 
 **Context.** Every test reading the shipped Dungeon Keeper 2 files opened with a variant of `string? install = Dk2Install.Find(); if (install is null) return;` — which makes the test **pass** when the install is absent rather than skipping, while fourteen file headers said *"Skips when no installation is configured (DK2_DIR), so CI stays green"*: true in its conclusion, false in its verb. Measured by hiding the install (`DK2_DIR=/nonexistent`) on 2026-09-07: **266 tests — 23% of the suite — needed the data and every one was reporting PASSED without it**, which was CI's steady state, since CI has no installation. The real-data suites are the only defence against a reading drifting away from the shipped files.
 
@@ -1780,7 +1780,7 @@ Three for three on the THINGS field names this projection had to rely on — the
 - **No action-point behaviour runs.** Flag meanings, timer and counter consumers, rectangle-entry cadence and waypoint traversal are Q235–Q238.
 
 ## ADR-0104 — Player gestures are translated outside Unity
-**Date:** 2026-09-09 · **Status:** accepted · amended 2026-10-13
+**Date:** 2026-09-09 · **Status:** accepted · amended 2026-10-13 · **Systems:** hud-front-end, presentation-unity
 
 **Context.** `DungeonRunner` advanced the simulation with empty input, while
 Unity-side gesture rules would evade the normal test suite and violate ADR-0036's
@@ -2012,7 +2012,7 @@ The rebased `kwd oracle 200` measurements are recorded in the commit.
 - Campaign-wide `stalls` **215 → 143**. `moved` and `after1` do not move, and could not: nothing kills a keeper, so all 72 records read false. This buys census honesty, not reach.
 - We store the player id where DK2 stores the killer's object id and converts through its `Number`; the two agree only while `TagId` and `Number` do (Q271).
 ## ADR-0117 — Live captures compare by event set and stored-stamp alignment
-**Date:** 2026-09-09 · **Status:** accepted · Experiment: `docs/experiments/level1-idle-001/`
+**Date:** 2026-09-09 · **Status:** accepted · Experiment: `docs/experiments/level1-idle-001/` · **Systems:** tooling-process
 
 **Context.** `trigger-diff` pairs exact turn numbers and is correct for two of
 our runs. A live capture has a different, load-jittered origin; played sessions
@@ -2037,7 +2037,7 @@ and every measurable residual must be at most one tick. Its path and skip policy
 live in `Dk2CaptureGate`. No simulation state changed, so no `HashVersion` bump.
 
 ## ADR-0118 — An event the other run stopped before is untested, not divergent
-**Date:** 2026-09-10 · **Status:** accepted · Experiment: `docs/experiments/level20-idle-001/`
+**Date:** 2026-09-10 · **Status:** accepted · Experiment: `docs/experiments/level20-idle-001/` · **Systems:** tooling-process
 
 **Context.** ADR-0117 split events into three sets: both, capture only, ours
 only. Two runs of the same level rarely cover the same span — a capture is
@@ -2063,7 +2063,7 @@ run that discriminates Q273 was chosen. No simulation state changed, so no
 `HashVersion` bump.
 
 ## ADR-0119 — Compare a timer's stored stamps, not the turn the probe noticed them
-**Date:** 2026-09-10 · **Status:** accepted · Experiment: `docs/experiments/level20-idle-002/`
+**Date:** 2026-09-10 · **Status:** accepted · Experiment: `docs/experiments/level20-idle-002/` · **Systems:** tooling-process
 
 **Context.** A live capture yields two unlike quantities. A flag is a boolean
 seen only when the probe looks, so its turn is an observation. A timer slot
@@ -2184,7 +2184,7 @@ now says `PartyId` rather than `PlayerId`; no simulation state changed, so
 `HashVersion` stays 53.
 
 ## ADR-0123 — Measure what a decline forecloses, and stop ranking the frontier by declines
-**Date:** 2026-09-10 · **Status:** accepted · `TriggerReach`
+**Date:** 2026-09-10 · **Status:** accepted · `TriggerReach` · **Systems:** tooling-process
 
 > Numbered 0123 because 0122 had been handed to a concurrent worktree before
 > this was written; it landed as the type 64 read above.
@@ -2234,7 +2234,7 @@ off by default and `TrackingReachDoesNotChangeTheStateHash` pins that turning it
 on is inert, the same contract `ObserveWith` has. No `HashVersion` bump.
 
 ## ADR-0124 — Build condition 70 for creatures; keep door and trap counts declined
-**Date:** 2026-09-10 · **Status:** accepted · Q280/Q281
+**Date:** 2026-09-10 · **Status:** accepted · Q280/Q281 · **Systems:** campaign-triggers
 
 **Context.** Conditions 27, 28 and 70 were parked on three supposedly unknown
 flags. DK2's own debug dumpers already name both type-70 bits `Possessed`. A
@@ -2304,7 +2304,7 @@ no root of any class reaches. Whether DK2 reaches them by a route this project
 has not found, or they are genuinely dead, is UNKNOWN (Q285).
 
 ## ADR-0126 — Most of the campaign's script is waiting for the player, and that is measured
-**Date:** 2026-09-10 · **Status:** accepted · `dk2tools kwd unreached`
+**Date:** 2026-09-10 · **Status:** accepted · `dk2tools kwd unreached` · **Systems:** campaign-triggers, tooling-process
 
 > Numbered 0126 because 0124 is held by a concurrent worktree.
 
@@ -2390,7 +2390,7 @@ Not covered: creature drops and spells. Neither appears in the 696, so neither
 blocks this step.
 
 ## ADR-0128 — A captured task-pool log replays as input frames
-**Date:** 2026-09-10 · **Status:** accepted · `InputLog`, `dk2tools replay`
+**Date:** 2026-09-10 · **Status:** accepted · `InputLog`, `dk2tools replay` · **Systems:** imps-tile-work, tooling-process
 
 **Context.** ADR-0127 found where DK2 keeps what the player asked for and made
 the probe diff it. That produces a command log; nothing consumed one. ADR-0126
@@ -2488,7 +2488,7 @@ room, every placement drops and this ADR's method — exact or nothing — yield
 nothing until a slab source is found.
 
 ## ADR-0130 — Two live captures, and most of what ADR-0128 assumed was wrong
-**Date:** 2026-09-10 · **Status:** accepted · runs 9 and 10, level 1 · amends ADR-0128, ADR-0129
+**Date:** 2026-09-10 · **Status:** accepted · runs 9 and 10, level 1 · amends ADR-0128, ADR-0129 · **Systems:** imps-tile-work, tooling-process
 
 **Context.** ADR-0128 and ADR-0129 built both recorders against layouts read
 from the binary and never sampled. The owner ran two captures. Both layouts
@@ -2535,7 +2535,7 @@ hole in the tag recording without needing the runtime map, which ADR-0129 had
 put on the critical path.
 
 ## ADR-0131 — A cancelled dig is told from a finished one by the claim, not the worker
-**Date:** 2026-09-10 · **Status:** accepted · run 11, level 1 · amends ADR-0130
+**Date:** 2026-09-10 · **Status:** accepted · run 11, level 1 · amends ADR-0130 · **Systems:** imps-tile-work
 
 **Context.** ADR-0130 closed the last known hole in the tag recording with the
 task's `Worker` count: an imp that took the job sits in a slot, so a removal
@@ -2571,7 +2571,7 @@ in advance settled in one run what two unlabelled runs could not, and it is now
 the standing protocol: **ask for labelled play before inferring provenance**.
 
 ## ADR-0132 — Reinforcing needs the keeper's floor beside it, and that guard is inert today
-**Date:** 2026-09-10 · **Status:** accepted · owner confirmation · `ImpTaskSystem`
+**Date:** 2026-09-10 · **Status:** accepted · owner confirmation · `ImpTaskSystem` · **Systems:** imps-tile-work
 
 **Context.** Our reinforce eligibility was tile-local — solid, penetrable,
 unowned, below its maximum-health type — with no neighbour condition. The
@@ -2607,6 +2607,7 @@ measures nothing, and the negative half of this pair was deleted rather than
 kept green.
 
 ## ADR-0133 — One application is a shift, not a division, and nothing is carried
+**Status:** accepted
 
 **Context.** Run 15 read the running game's tile health word 20 times a second
 while three tiles were dug, claimed and reinforced (`runtime-map.md`). That is
@@ -2729,7 +2730,7 @@ in terms of state ids and there is no group tag for `MovingToJob`.
 
 ## ADR-0136 — Action type 22 writes one tile, and its coordinates are one-based
 
-**Date:** 2026-09-10 · **Status:** accepted · Q301
+**Date:** 2026-09-10 · **Status:** accepted · Q301 · **Systems:** campaign-triggers
 
 **Context.** 160 `ALTER_TERRAIN_TYPE` records across 13 levels, and the fourth
 most common action the world dispatcher actually performs. Its arm is
@@ -2769,7 +2770,7 @@ determinism pin does not move — the pinned world runs no triggers.
 
 ## ADR-0137 — Action type 1 creates a creature, and its coordinates are zero-based
 
-**Date:** 2026-09-10 · **Status:** accepted · Q302–Q305
+**Date:** 2026-09-10 · **Status:** accepted · Q302–Q305 · **Systems:** campaign-triggers
 
 **Context.** 268 `CREATE_CREATURE` records across 13 levels, the largest action
 type this executor could reach with every parameter already known. Its arm is
@@ -2861,7 +2862,7 @@ snapshot `FormatVersion` 55 → 56, pin `0xAEC253948973DF35`.
 
 ## ADR-0139 — A prisoner is confined to the fenced interior, not to the room
 
-**Date:** 2026-09-11 · **Status:** accepted · Q306, Q307
+**Date:** 2026-09-11 · **Status:** accepted · Q306, Q307 · **Systems:** rooms, creatures
 
 **Context.** `PrisonRules` let a prisoner stand anywhere in the room: deliveries
 picked any free tile and the wander scan offered any orthogonal neighbour that
@@ -2907,7 +2908,7 @@ derived from tiles each time — so `HashVersion` and the pin stand.
 
 ## ADR-0140 — A slain prisoner leaves a body on the rim; only the drain raises a Skeleton
 
-**Date:** 2026-09-11 · **Status:** accepted · Q306, Q307
+**Date:** 2026-09-11 · **Status:** accepted · Q306, Q307 · **Systems:** rooms, creatures
 
 **Context.** `PrisonSystem` turned **every** prisoner whose health ran out into
 the prison's `CreatedCreatureId`, on the manual's *"any creatures that perish in
@@ -2994,7 +2995,7 @@ open, close or block movement; traps still do not fire.
 
 ## ADR-0142 — The prison drain is a relationship, not a flag
 
-**Date:** 2026-09-11 · **Status:** accepted · Q266, Q302, Q308
+**Date:** 2026-09-11 · **Status:** accepted · Q266, Q302, Q308 · **Systems:** rooms
 
 **Context.** The owner: a campaign map can hold a creature in a prison **without
 draining it**, so a script can release it when a keeper finds the place — "an
@@ -3252,7 +3253,7 @@ same one and no rounding enters.
 
 ## ADR-0148 — Two disposal tiles, and the prison decides at the door
 
-**Status.** Accepted 2026-09-15.
+**Status.** Accepted 2026-09-15. · **Systems:** rooms
 
 **Context.** Owner play on 2026-09-13 recorded three divergences and built none
 of them. Two are behavioural rules with no missing rooms behind them: disposal
@@ -3297,7 +3298,7 @@ is still -1 and still nobody setting off.
 
 ## ADR-0149 — Persistent Temple history follows a deterministic room anchor
 
-**Status.** Accepted 2026-09-15.
+**Status.** Accepted 2026-09-15. · **Systems:** rooms
 
 **Context.** DK2 keeps a three-offering ring on each Temple room, but our
 `RoomInstance` is rebuilt from tiles and deliberately carries no persistent
@@ -3322,7 +3323,7 @@ the affected history. These topology rules are ours, not claims about DK2.
 
 ## ADR-0150 — A scenario states its timings in game seconds, and asserts them
 
-**Status:** Accepted (2026-09-15)
+**Status:** Accepted (2026-09-15) · **Systems:** tooling-process
 
 **Context.** Twenty-five of the twenty-seven scenarios asserted nothing; they
 were prose with an event log attached. Populating the expectation blocks
@@ -3363,7 +3364,7 @@ honest state of them, and was true and unsaid before.
 
 ## ADR-0151 — Graveyard life-force belongs to a persistent room anchor
 
-**Status.** Accepted 2026-09-16.
+**Status.** Accepted 2026-09-16. · **Systems:** rooms
 
 **Context.** The Graveyard room dump names one room field, the dword
 `DecomposeValue`. Burial supplies the creature field of the same name; shipped
@@ -3388,7 +3389,7 @@ burial (Q320), and clear the tally once reconciliation observes the room absent
 
 ## ADR-0152 — Creature trigger roots join the per-turn entity pass
 
-**Status.** Accepted 2026-09-16.
+**Status.** Accepted 2026-09-16. · **Systems:** campaign-triggers, simulation-core
 
 **Context.** THINGS creatures carry a trigger root, but projection discarded it
 and the executor walked only action points and players. The binary's creature
@@ -3445,7 +3446,7 @@ state a formula instead of a guess when someone writes it.
 
 ## ADR-0154 — A captive dropped on a Temple is sacrificed, not freed
 
-**Status.** Accepted 2026-09-16.
+**Status.** Accepted 2026-09-16. · **Systems:** rooms, keeper-spells
 
 **Context.** ADR-0064's release rule — *dropped anywhere that is not a prison
 tile, a prisoner goes free* — is CONFIRMED by the owner, and ADR-0149's Temple
@@ -5353,7 +5354,7 @@ The stream loader `0x0044F4C0` re-adds every room tile row by row, each to its s
 - No new state; `HashVersion` stays **123**.
 
 ## ADR-0242 — Modern assets re-express the original: preserve design, increase fidelity
-**Date:** 2026-09-26 · **Status:** accepted as a standard; the pipeline is proposed · Docs: `docs/ART_DIRECTION.md`, `docs/ASSET_PIPELINE.md`
+**Date:** 2026-09-26 · **Status:** accepted as a standard; the pipeline is proposed · Docs: `docs/ART_DIRECTION.md`, `docs/ASSET_PIPELINE.md` · **Systems:** art-assets
 
 **Context.** Goal 3 asks for a presentation like a hypothetical modern remaster, and M11 names PBR, lighting and HD textures, but nothing said what a modern asset may change. The owner set the standard on 2026-09-26. Measured the same day over all 2,015 KMF files: **DK2 has no skeleton.** Creature animation is per-frame vertex animation, one file per clip, yet a creature's clips share one body (constant positions, triangles matching by index and UV; `src/DK2.Convert/README.md`).
 
@@ -5601,6 +5602,7 @@ which holds the cast clocks and `Upgraded` (`NoSpellEntry` otherwise, ours). The
 gate belongs in the input sources: the Unity layer and `KeeperAI`, when it casts.
 
 ## ADR-0261 — command-driven casualty priority
+**Status:** accepted
 
 **Decision.** Represent the original creature's per-player casualty-priority
 word in simulation state. `SetRescuePriorityCommand` changes one player's bit
@@ -5619,6 +5621,7 @@ route, room and tie approximations. Original trigger writes remain unconnected.
 The response queue still needs captured hand eligibility and live dispatch.
 
 ## ADR-0262 — capture pickup permission separately from hand capacity
+**Status:** accepted
 
 **Decision.** Reuse `CreatureState.Flags`, `IsTool`, the Pit marker and current
 state ids for the verified pickup gates. Correct the constructor's flags to 9.
@@ -5637,6 +5640,7 @@ original eligibility and live response dispatch. This slice adds no approximatio
 for those missing fields. Original-versus-modern validation remains outstanding.
 
 ## ADR-0263 — preserve worker pickup flags across task exits
+**Status:** accepted
 
 **Decision.** Run the verified pickup-bit subset of WorkerJob's leave hook
 through `CreatureStateMachine`, retaining its saved-caller category test and
@@ -5853,7 +5857,7 @@ computer player draws from the world seed. Draw-for-draw alignment is not a goal
 (owner, 2026-09-29: fidelity is judged by outcomes).
 
 ## ADR-0276 — No logging framework; the simulation reports through typed events
-**Date:** 2026-09-29 · **Status:** accepted
+**Date:** 2026-09-29 · **Status:** accepted · **Systems:** simulation-core
 
 **Context.** The owner asked whether the project needs a logging framework. The
 solution references only xunit, YamlDotNet and test tooling. The simulation
@@ -6364,7 +6368,7 @@ the loser walking its old route on. `TaskStealingTests` pins the rules, each
 negative-controlled.
 
 ## ADR-0290 — Function records are the one home for per-function knowledge
-**Date:** 2026-09-30 · **Status:** accepted · Design: `docs/plans/2026-09-30-function-knowledge-base-design.md`
+**Date:** 2026-09-30 · **Status:** accepted · Design: `docs/plans/2026-09-30-function-knowledge-base-design.md` · **Systems:** tooling-process
 
 **Context.** An inventory on 2026-09-30 found that neither Ghidra project had ever had
 a function renamed: 4,923 named symbols each, all imports, CRT and RTTI, and identical
@@ -6375,7 +6379,7 @@ other agent, could not ask "what is `FUN_X`, and who decided" without reading th
 
 **Decision.**
 1. One record per DKII.EXE function, `docs/research/functions/<ADDRESS>.md`, in git:
-   a header (address, name, role, confidence CONFIRMED | LIKELY | GUESS | DISPUTED,
+   a header (address, name, role, confidence on the one scale of ADR-0642,
    status READ | BUILT | SUPERSEDED, evidence links, optional `implements`), a body of
    reasoning, and a `## History` of dated, attributed lines.
 2. `dk2tools kb check` gates it and the commit-msg hook runs it. Each of these blocks
@@ -6734,7 +6738,7 @@ to 4 claims on the way a run before tick 700, as DK2 does. It claims the first r
 checker is unchanged (306/309, 768/799), since it scores choices in state 10.
 
 ## ADR-0305 — A just-dug tile is raised when the digger's action ends, if its task survived
-**Date:** 2026-10-01 · **Status:** accepted · Research: `functions/004655D0.md`, `functions/00469AF0.md`
+**Date:** 2026-10-01 · **Status:** accepted · Research: `functions/004655D0.md`, `functions/00469AF0.md` · **Systems:** imps-tile-work
 
 **Context.** Ours raised kind 14 the moment a wall fell. DK2 raises none at (10,28) in Level 1
 seeds 1 and 6. State 14 (`0x004655D0`) raises only after the digger's action ends, and only if
@@ -7563,6 +7567,7 @@ Unbuilt: the other finders' producers (the Hatchery's: ADR-0335), the claim fail
 `0x004BA420`'s other callers, mood messages and the rest of the suppression words.
 
 ## ADR-0325 — A Support creature surveys its attack spell while it recharges
+**Status:** accepted
 
 **Context.** On Level 3 our Warlocks threw one Fireball, then walked into the Thieves'
 melee for the 14 ticks the spell needed, fled at fear 60 and withdrew at a tenth of their
@@ -7591,6 +7596,7 @@ not waived. Unread: whether the fight-starter's melee retry for a Support (`0x00
 ever reaches a Warlock in play.
 
 ## ADR-0328 — The idle decision tries for a lair before any job, as state 89 does
+**Status:** accepted
 
 **Context.** Level 3 seed01: our Goblins (arrivals 1667, 1899) trained bedless from the
 tick they landed, carried `AngerNoLair` to its limit and left through the portal at 3272
@@ -8232,7 +8238,7 @@ Stage 6 (hash 184): all 42 unchanged, as predicted.
 Unbuilt, for want of a read field or state: rescue (Q542), finder gates (Q543), Graveyard (Q544).
 
 ## ADR-0354 — No carry to a full Prison; a refused body goes to the room point
-**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0148 Decision 2
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0148 Decision 2 · **Systems:** imps-tile-work, rooms
 
 **Context.** ADR-0148 sent an imp to a full Prison's rim, reading the owner's 2026-09-13
 note as "capacity is checked only at the door". The owner has since said (2026-10-05) that
@@ -8256,7 +8262,7 @@ a wandering prisoner) lies at rim tile (7, 5), not (5, 4), and is imprisoned at 
 t218; every expectation holds.
 
 ## ADR-0355 — The gold carrier's store tile, and the draws a store pile takes
-**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0243 and ADR-0285
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0243 and ADR-0285 · **Systems:** imps-tile-work
 
 **Context.** The 2026-10-05 verification audit re-read the store chooser `0x00464400` and the
 deposits `0x004F3C60` and `0x004F4090` blind (`build/verification/2026-10-05/blind/`). Ours
@@ -8291,7 +8297,7 @@ store pile on. The Level 1 and 2 rigs move by stream shift; neither should chang
 outcome distribution beyond seed variance.
 
 ## ADR-0356 — A failed aimed claim retry searches for a claim twice
-**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0351
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0351 · **Systems:** imps-tile-work
 
 **Context.** State 10 (`0x00463DF0`) runs the aimed retry and, when it fails, clears the aim
 at `0x00463EEC` and falls straight into the per-kind record at `0x00463EF3`. For a claim,
@@ -8302,7 +8308,7 @@ column 5 runs the claim search again, and its ring scan draws a second rand(4)
 draws one rand(4) more after every failed aimed claim retry.
 
 ## ADR-0357 — Mana above the ceiling is clamped, not drained
-**Date:** 2026-10-05 · **Status:** accepted
+**Date:** 2026-10-05 · **Status:** accepted · **Systems:** keeper-spells
 
 **Context.** Q545. `0x004C10E0` adds the second's net to the player's mana; a net that is not
 negative then cuts it to the ceiling `+0x10EA` in one step (`0x004C11DD`–`0x004C11E7`), and a
@@ -8315,7 +8321,7 @@ that variable's 5 a second, an inference never read.
 `ExcessDrainPerSecond` is removed.
 
 ## ADR-0358 — A portal creature's death lowers its portal's tally
-**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0271
+**Date:** 2026-10-05 · **Status:** accepted · Amends ADR-0271 · **Systems:** creatures
 
 **Context.** Q508. `Portal_CreateArrival` (`0x004DC9A0`) stamps the portal room's tag into the
 creature's `+0x4EB`, and `Creature_DeathBookkeeping` (`0x00487C70`, `0x00488150`–`0x00488170`)
@@ -8327,7 +8333,7 @@ our tally; `CreatureHealthSystem.Die` calls `PortalRules.ArrivalDied`. Deviates:
 room tag, so a portal rebuilt on the same tile is a new room there and the same one here.
 
 ## ADR-0359 — A carried body's clocks stand still
-**Date:** 2026-10-05 · **Status:** accepted
+**Date:** 2026-10-05 · **Status:** accepted · **Systems:** creatures, imps-tile-work
 
 **Context.** Q164. The corpse lifetime counts down in `0x004B12D0` only while the body's
 carried flag `+0x138` is clear (take-hold `0x0048B4A0` sets it, the drop `0x0048B500` clears
@@ -8338,7 +8344,7 @@ set (`0x00459BE8`). Ours ran both clocks while carried.
 carried.
 
 ## ADR-0360 — The heart's start is its room record's percentage
-**Date:** 2026-10-05 · **Status:** accepted
+**Date:** 2026-10-05 · **Status:** accepted · **Systems:** rooms
 
 **Context.** Q129. `DungeonHeart_Build` (`0x004DB700`) raises the new heart to variable 174
 and takes off `trunc(health × (100 − pct) / 100)` through `0x004DA200`, `pct` being the heart
@@ -8350,7 +8356,7 @@ and Level 8's is a ruin with no heart and no starting gold paid. STRONGLY INFERR
 damage, which assumes the heart is `Damageable` at load and `player+0x76` bit 4 clear.
 
 ## ADR-0361 — Creature trigger roots run before action points, newest first
-**Date:** 2026-10-05 · **Status:** accepted · Corrects Q246
+**Date:** 2026-10-05 · **Status:** accepted · Corrects Q246 · **Systems:** campaign-triggers
 
 **Context.** Q330. The frame's entity pass `0x004B7830` walks list 0 (creatures) to its end
 before list 5 (action points), and the linker `0x004B4A10` puts each new thing at a list's
@@ -8371,7 +8377,7 @@ later load (`Level17TreasuryNeedScenarioTests`). The Sulk state's only simulatio
 was a chance entry in the busy-dungeon test; it has its own test now.
 
 ## ADR-0362 — Ground nobody can own belongs to the neutral player
-**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0043 and ADR-0045
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0043 and ADR-0045 · **Systems:** simulation-core
 
 **Context.** Q514. `Tile_SetTerrain` (`0x0044FC40`) passes its owner only when the new terrain
 is `Ownable` (`+0x17B` mask 4, bit 2) and otherwise the neutral player `[0x006F2548]`
@@ -8416,7 +8422,7 @@ corpse, or a creature with no dying state; STRONGLY INFERRED, since the destroy 
 `VictoryRules.TargetDown`, with no nibble, and the attacker looks for another target.
 
 ## ADR-0365 — A forced creature target gets the spell, not melee
-**Date:** 2026-10-06 · **Status:** accepted
+**Date:** 2026-10-06 · **Status:** accepted · **Systems:** combat
 
 **Context.** Q510. `0x0045CB00` jumps from `0x0045CF05` past scan A and the fight-style arms
 for a forced target, so the running best stays `0x7FFFFFFF` and the within-a-tile melee rule
@@ -8427,7 +8433,7 @@ only to a forced door.
 built: scans D, E and F for a forced creature target.
 
 ## ADR-0366 — Fighting earns combat experience
-**Date:** 2026-10-06 · **Status:** accepted
+**Date:** 2026-10-06 · **Status:** accepted · **Systems:** combat, creatures
 
 **Context.** The Combat category's update `0x0047A870` (read 2026-10-06): in state 199 or 200,
 a creature whose definition is not a worker (`+0x686` bit 0) or is Good (bit 8), and whose
@@ -8449,7 +8455,7 @@ recorded before the replay's 2044 turns), Level 2 1 → 6, Level 3
 state word that the flag hides (`ActivityRules`, `CombatMessageRules`) are not changed.
 
 ## ADR-0367 — Shots are updated newest first
-**Date:** 2026-10-06 · **Status:** accepted
+**Date:** 2026-10-06 · **Status:** accepted · **Systems:** combat
 
 **Context.** Q398. Shots are list 1 of the frame's entity pass `0x004B7830`, and the linker
 `0x004B4A10` adds at a list's head, so they update newest first. Ours walked them oldest
@@ -8537,7 +8543,7 @@ kills, ours once a game second, so a Vampire can stand at 0 health for up to a s
 direct kills of `ManaRemovalSystem` and `PrisonSystem` do not reach it.
 
 ## ADR-0372 — Trigger conditions 20 and 21 count moods
-**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0113
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0113 · **Systems:** campaign-triggers
 
 **Context.** Q269. The player dispatcher `0x004C7B20` (arms 0x14 and 0x15) counts the
 player's creatures, of `CreatureId` when non-zero, that are not workers and whose mood band
@@ -8547,7 +8553,7 @@ Ours declined both.
 **Decision.** `TriggerExecutor.MoodCount` on `CreatureAngerRules.MoodOf`.
 
 ## ADR-0373 — A slap is counted for the slapped creature's owner, by the slap's arm
-**Date:** 2026-10-06 · **Status:** accepted
+**Date:** 2026-10-06 · **Status:** accepted · **Systems:** keeper-spells, campaign-triggers
 
 **Context.** Q278. `Hand_SlapCreature` (`0x0048B8A0`) adds one to `[thing+0x2A]+0xEE6`
 (`NumberOfSlaps`) of the slapped thing's owner; condition type 71 reads it. Its arms: a Horny
@@ -8576,7 +8582,7 @@ and declines an indirect 128, which no shipped level uses. Not built: the `MpdSc
 `+0x344`.
 
 ## ADR-0375 — Creature records of any size; signed job-table words
-**Date:** 2026-10-06 · **Status:** accepted
+**Date:** 2026-10-06 · **Status:** accepted · **Systems:** data-formats
 
 **Context.** Q14: the chunk reader `0x0056A250` zero-fills a 5449-byte record and reads the
 file's record into it, so DK2 accepts any size (LIKELY: the rest of the routine is unread, and
@@ -8641,7 +8647,7 @@ digs it at 443 (Q557). The `level11a_drako_attack` scenario still passes. The ne
 player's row, allied with everyone at load in the capture, is not modelled (Q558).
 
 ## ADR-0378 — The claim on the way comes before the walk-over pick-up, from a worker job only; the pick-up reads the imp's own tile
-**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0293, ADR-0303
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0293, ADR-0303 · **Systems:** imps-tile-work
 
 **Context.** The creature update's worker arm (`0x0048904E`, record `0x00488930`) calls the claim
 on the way `0x00464170` (`0x00489076`) before its gold test, on a tick the tile changed. Inside,
@@ -8660,7 +8666,7 @@ gates apart, and no test pins it. Deviates: piles are taken in our world order, 
 thing list; the player byte `+0x10FC` test is not built.
 
 ## ADR-0379 — The ring scan does not filter its own tile
-**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0291, ADR-0292
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0291, ADR-0292 · **Systems:** imps-tile-work
 
 **Context.** `0x00468D10` calls its chain on the centre at `0x00468DA0` with no `+0xB` bit `0x20`
 test; only the ring loops make it (`0x00468E99`, `0x00468F71`). Ours filtered the centre in Tier
@@ -8670,7 +8676,7 @@ an imp standing in water was never offered by them.
 **Decision.** `RingScanVisits` takes the scan's centre and admits it untested, for every caller.
 
 ## ADR-0380 — A free reinforce side the imp cannot reach deletes the wall's task
-**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0291
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0291 · **Systems:** imps-tile-work
 
 **Context.** When the walk to a free side fails, `0x0046AEA0` deletes the wall's kind-6 entry
 (`0x00508040`), whether it was just raised or found with other sides held, and tries the next
@@ -8687,7 +8693,7 @@ where DK2 drops a reinforcer at its next check and, INFERRED (the walk states we
 walker on arrival; repair (kind 16) is not a job in ours.
 
 ## ADR-0381 — A loose crate asks its blueprint before the shared latch
-**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0294
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0294 · **Systems:** imps-tile-work, doors-traps
 
 **Context.** In the objects handler `0x0046B9C0` a crate (flag `0x10`) calls the crate branch
 `0x00468910` before the latch it shares with books is tested, and its success returns 1 at once,
@@ -8699,7 +8705,7 @@ route check and the steal.
 only when they fail does the latch and the Workshop search follow.
 
 ## ADR-0382 — State 27's take stops at the pile that fills the hands
-**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0288
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0288 · **Systems:** imps-tile-work
 
 **Context.** `0x00466850` takes neutral piles, each up to what the hands lack against the
 level-scaled maximum, and stops after the first pile that makes `0x00464360(1)` report full (the
@@ -8782,7 +8788,7 @@ task, DK2 may cast there and ours does not (Q562).
 **Measured** with ADR-0386, below.
 
 ## ADR-0386 — Work experience is paid once per work hit
-**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0083 item 6
+**Date:** 2026-10-06 · **Status:** accepted · Amends ADR-0083 item 6 · **Systems:** imps-tile-work, creatures
 
 **Context.** Measuring ADR-0385 on Level 3 showed our Imps reaching level 4 at 1357, DK2's at 2082.
 `ImpExperienceGainPerSecond` (20, `0x006F295E`) has nine readers, every one a work action's
@@ -8844,7 +8850,7 @@ wall opens at 88, never reinforced, because Morgana's keeper slaps the reinforci
 dig ([computer-keeper-observations.md](research/computer-keeper-observations.md), Level 11A).
 
 ## ADR-0388 — A rival's imp holds no task of this keeper's, and the fight approach walks within a tile
-**Date:** 2026-10-06 · **Status:** accepted · Advances Q563; supersedes the every-player count of ADR-0026 and ADR-0030
+**Date:** 2026-10-06 · **Status:** accepted · Advances Q563; supersedes the every-player count of ADR-0026 and ADR-0030 · **Systems:** imps-tile-work, combat
 
 **Context.** With ADR-0387 the Level 11A wall falls at 362, DK2's at 387, but Drako claimed the
 hole 13 ticks later where DK2's imps fight in it until 638. Two faults. At 364 Drako's imp stole
@@ -8979,7 +8985,7 @@ is not carried; the Unity scene does not draw the pieces yet, having no mesh loa
 plain terrain (`floor-and-terrain-pieces.md`) stay one asset each.
 
 ## ADR-0393 — A creature at the training cap leaves the Training Room through states 108 and 110
-**Date:** 2026-10-06 · **Status:** accepted · Answers Q509
+**Date:** 2026-10-06 · **Status:** accepted · Answers Q509 · **Systems:** rooms, creatures
 
 **Context.** Q509 asked whether DK2's Harkan lifts his level-7 Black Knights into the Training
 Room early, as `0x004FF5C0` reads. The Level 17 idle capture (2026-10-05) shows it: the three are
@@ -9001,7 +9007,7 @@ and lifted again onto the same two cells, about every 25 ticks. Each knight's fi
 29, lifted at 33). The first gap is ours to explain (Q509).
 
 ## ADR-0394 — The room planner searches from a room's stored position, in DK2's direction order
-**Date:** 2026-10-06 · **Status:** accepted · Advances Q555 and Q563
+**Date:** 2026-10-06 · **Status:** accepted · Advances Q555 and Q563 · **Systems:** computer-keeper
 
 **Context.** Level 11A's capture holds Morgana's task pool: she tags (62,36), (59,36) and a Lair
 at (56-58, 35-37). Ours tagged every one a row north. The site search (`0x005012A0`) and its
@@ -9029,7 +9035,7 @@ lays his Prison first, 616-713 on (16,18)-(20,22), DK2's 855-922 on the same 25 
 (DK2 700, 1,378; Q563); the scenario's seed 12345, outside those ten, calls at 613.
 
 ## ADR-0395 — A searched room site gets its joining path first, and task 3 builds at its cursor
-**Date:** 2026-10-06 · **Status:** accepted · Answers Q566 and Q555, advances Q563
+**Date:** 2026-10-06 · **Status:** accepted · Answers Q566 and Q555, advances Q563 · **Systems:** computer-keeper
 
 **Context.** Both captures dig a new room's path before its rectangle: Morgana's path at 8 and 106
 and her Lair at 202 (Level 11A), Harkan's path tile at 381 and his Prison at 500 (Level 17). Ours
@@ -9109,7 +9115,7 @@ is closed: the record reader always sets the field that stores `def+0x76A`.
 3683). Level 2's researchers now walk among the shelves, which moves its random draws.
 
 ## ADR-0398 — The modern Imp looks like the approved concepts and moves like the shipped mesh
-**Date:** 2026-10-07 · **Status:** accepted (owner) · Presentation only · Amends ADR-0242 for the Imp
+**Date:** 2026-10-07 · **Status:** accepted (owner) · Presentation only · Amends ADR-0242 for the Imp · **Systems:** art-assets
 
 **Context.** ADR-0242 makes the originals authoritative. The Imp has three sources. The shipped
 mesh and texture (`Imp_Idle1`, `impfrnt`/`impback`): tan-orange skin, dark eyes, no separate ears,
@@ -9156,7 +9162,7 @@ left-handed variant, the rejection of the belly plate, and piercings as accessor
 replaced the planned chest skull ornament, which had never been built.
 
 ## ADR-0399 — The Imp is right-handed; a left-handed variant shares its mesh and rig
-**Date:** 2026-10-07 · **Status:** accepted (owner) · Presentation only · Refines ADR-0398
+**Date:** 2026-10-07 · **Status:** accepted (owner) · Presentation only · Refines ADR-0398 · **Systems:** art-assets
 
 **Context.** DK2's Imp holds its pick in its right hand: the owner's play and the converted mesh
 agree (Q568). The approved AI concept renders (ADR-0398: `portrait.png`, `front_side_back.png`)
@@ -9504,7 +9510,7 @@ its own at about 1,200); a Torture Chamber in one (seven; DK2 none); (8,4) tagge
 Level 11A seeds 1-30: Morgana first in 22 (22).
 
 ## ADR-0410 — The nine lobby personalities load as DK2's setter loads them
-**Date:** 2026-10-09 · **Status:** accepted · Research: `KEEPER_AI.md` §3.2; `functions/004F8C60.md`
+**Date:** 2026-10-09 · **Status:** accepted · Research: `KEEPER_AI.md` §3.2; `functions/004F8C60.md` · **Systems:** computer-keeper
 
 **Context.** A skirmish or multiplayer slot gets its keeper from the personality setter
 `0x004F8C60`, not from a PLAYERS record (KEEPER_AI.md §1.2). Ours had only the record path, so no
@@ -9525,7 +9531,7 @@ rooms never reach it. The setter also adds 100 mana (misc +8, `0x004C19C0`), as 
 does; the harness keeps the level's mana, which that path already added. No HashVersion: the keeper is outside the simulation.
 
 ## ADR-0411 — The renderer frame is X east, Y up, Z north, and the map is no longer mirrored
-**Date:** 2026-10-09 · **Status:** accepted; the unmirrored layout CONFIRMED for Level 1 by the owner's
+**Date:** 2026-10-09 · **Status:** accepted; the unmirrored layout CONFIRMED for Level 1 by the owner's · **Systems:** presentation-unity
 comparison with DK2's on 2026-10-09 (plan, step 0 gate) · Presentation only · Step 0 of ADR-0408's plan
 
 **Context.** DK2's frame is X east, Y south, Z down: right-handed, since the editor shows a map
@@ -10207,7 +10213,7 @@ Still unbuilt: the handler refuses when the walk does not start (`Imp_WalkOrTele
 returns 0), and ours commits a job without a route (Q588).
 
 ## ADR-0444 — The simulation is profiled through markers it opens itself
-**Date:** 2026-10-12 · **Status:** accepted
+**Date:** 2026-10-12 · **Status:** accepted · **Systems:** simulation-core, presentation-unity
 
 **Context.** Unity stutters once every few frames. At 4 ticks a second, a frame that
 runs a tick carries all of it (one in fifteen at 60 fps), so a frame drop is the worst
@@ -10393,7 +10399,7 @@ creatures could still cross the surrounding raised platform.
 ADR-0505. Its measured effect belongs to research/imp-boundary-route.md.
 
 ## ADR-0453 — A worker's reachability comes from one flood, not one search per candidate
-**Date:** 2026-10-13 · **Status:** accepted
+**Date:** 2026-10-13 · **Status:** accepted · **Systems:** navigation, imps-tile-work
 
 **Context.** Job selection asked the grid pathfinder "can this worker reach
 this tile" once per candidate stance, body tile and crate, each a Dijkstra
@@ -10424,7 +10430,7 @@ confines it. The `grid.flood` marker counts floods. Selection's own cost
 (ring scans over the map, candidate sorting) is untouched and is the next item.
 
 ## ADR-0454 — Derived navigation state is kept while its inputs are unchanged
-**Date:** 2026-10-13 · **Status:** accepted
+**Date:** 2026-10-13 · **Status:** accepted · **Systems:** navigation, simulation-core
 
 **Context.** A tick allocated about 8 MB on Level 18 and spent a sixth of
 its time in `nav.refresh`, called about seventeen times a tick, each call
@@ -10451,7 +10457,7 @@ routines must join its key. The mesh rebuild itself (`nav.build`) and the remain
 per-tick lists (room-need queries, the keeper view, furniture) are untouched.
 
 ## ADR-0455 — The adapter's run-time shaders are referenced from Resources
-**Date:** 2026-10-13 · **Status:** accepted
+**Date:** 2026-10-13 · **Status:** accepted · **Systems:** presentation-unity
 
 **Context.** The Unity adapter builds its materials at run time from
 shaders found by name: URP Lit and Unlit, with the Standard and Unlit/Color
@@ -10474,7 +10480,7 @@ here that carries it, or the player draws it pink; unity/README.md says so.
 `DK2/ClassicEffect` is a shader under Resources already, so every variant of
 it is built.
 ## ADR-0456 — The presenter runs its tile pass only when the tiles' inputs changed
-**Date:** 2026-10-13 · **Status:** accepted
+**Date:** 2026-10-13 · **Status:** accepted · **Systems:** presentation-unity
 
 **Context.** `ScenePresenter.Present` runs every frame and its tile pass
 built a `TileView` for every tile to compare with the last one pushed,
@@ -10498,7 +10504,7 @@ which at 4 Hz is most of them. `WorldState.Tiles` exposes the tiles as a
 read-only span for whole-map comparison.
 
 ## ADR-0457 — Terrain chunk rebuilds are spread over frames
-**Date:** 2026-10-13 · **Status:** accepted
+**Date:** 2026-10-13 · **Status:** accepted · **Systems:** presentation-unity
 
 **Context.** `TerrainChunks.Flush` rebuilt every chunk a tile had changed
 in, in one frame. A tag wave or a room drop touches many 16x16 chunks at
@@ -10521,7 +10527,7 @@ adapter against Unity's assemblies, not by a Unity run; whether the seam
 is acceptable in play is the owner's to judge.
 
 ## ADR-0458 — Ticks run on a worker thread after the frame is presented
-**Date:** 2026-10-13 · **Status:** accepted
+**Date:** 2026-10-13 · **Status:** accepted · **Systems:** presentation-unity, simulation-core
 
 **Context.** `DungeonRunner.Update` ran up to twenty simulation ticks and
 then presented, all on the main thread, so a frame that carried a tick
@@ -10719,7 +10725,7 @@ View requests do not alter gameplay RNG, simulation/save/hash state.
 Unity visual confirmation remains pending while the owner is away.
 
 ## ADR-0466 — The room sweep is kept while every tile's terrain and owner are unchanged
-**Date:** 2026-10-13 · **Status:** accepted · amended 2026-10-14: a run's total allocation is not a measure under tiered compilation
+**Date:** 2026-10-13 · **Status:** accepted · amended 2026-10-14: a run's total allocation is not a measure under tiered compilation · **Systems:** rooms, simulation-core
 
 **Context.** `RoomIndex.Build` swept the whole map, filling every room and its
 interior rings, at each of its 66 call sites in code, and a tick makes many of them: a lair
@@ -11215,7 +11221,7 @@ whole grid; empty tiles stay without punctual light through Clear, and Dispose
 restores the existing path. Scene ambient/directional fallback remains separate.
 No simulation changes or automatic source publisher; normal preview is unchanged.
 ## ADR-0483 — The approach is state 8, a walk resuming 199
-**Date:** 2026-10-15 · **Status:** accepted · Amends ADR-0169
+**Date:** 2026-10-15 · **Status:** accepted · Amends ADR-0169 · **Systems:** combat
 
 **Context.** ADR-0169 built the walk to a fight target as a flag on state 199, so every reader of
 the state word saw a fighter. ADR-0366's amendment found one cost: experience paid on the walk.
@@ -11468,7 +11474,7 @@ the baseline (Q604). Simulation, particles and animation phase offsets do not
 change. Repeated updates/camera draws at the same clock time cannot accelerate it.
 
 ## ADR-0495 - Trigger action 20 hands over the Portal Gem, and its carrier sparkles
-**Date:** 2026-10-17 - **Status:** accepted - Research: functions/0049AC80.md, functions/005A3AA0.md
+**Date:** 2026-10-17 - **Status:** accepted - Research: functions/0049AC80.md, functions/005A3AA0.md · **Systems:** campaign-triggers
 
 **Context.** The owner saw a sparkling trail behind Level 1's Lord of the Land. Level 1's
 trigger 85 fires on his creation (creature event 3) with action 20 and action 42. Creature
@@ -11543,7 +11549,7 @@ therefore ran on turn 2:
 - Superseded in part by ADR-0498: the view plays the path on ticks, not the wall clock.
 
 ## ADR-0497 — One HUD that scales: DK2's interface design at any resolution
-**Date:** 2026-10-17 · **Status:** proposed · Presentation only · Extends ADR-0242 to the interface · Rules: `ART_DIRECTION.md` §13
+**Date:** 2026-10-17 · **Status:** proposed · Presentation only · Extends ADR-0242 to the interface · Rules: `ART_DIRECTION.md` §13 · **Systems:** hud-front-end
 
 **Context.** The HUD has no design; the Unity adapter draws a debug `OnGUI` overlay. The
 owner (2026-10-17): no "classic" UI kept for nostalgia, but one modern interface that
@@ -11794,7 +11800,7 @@ provisional because their implementation scope is incompletely validated.
 Campaign wins do not establish fidelity and cannot veto a verified correction.
 
 ## ADR-0513 — Route requests and stops zero the body's velocity
-**Date:** 2026-10-19 · **Status:** accepted
+**Date:** 2026-10-19 · **Status:** accepted · **Systems:** navigation
 
 **Context.** `Creature_RequestRoute` (`0x004D0F60`) writes the entity position and a zero
 velocity into the body before every route load, found or not, and `Creature_StopMoving`
@@ -11949,7 +11955,7 @@ is limited to static, stationary, fixed-scale flat alpha art. Native print
 expiry is preserved without an invented opacity curve; visual acceptance is pending.
 
 ## ADR-0521 — Preserve creature names and blood groups in simulation state
-**Date:** 2026-10-18 · **Status:** accepted
+**Date:** 2026-10-18 · **Status:** accepted · **Systems:** creatures
 
 **Context.** Query and hover text consume the constructor's personal-name and
 blood-group indices. Producing decorative random values in the UI would change
@@ -11975,6 +11981,7 @@ now consumed. Tests of another mechanic with scripted draws must supply an
 already initialized identity instead of silently changing that mechanic's draws.
 
 ## ADR-0522 — Lighting follows visual fidelity: Unity fill by default
+**Status:** accepted
 
 **Context.** Native-only lighting (`nativeInitialAmbient`) became the default on
 2026-10-16 (16cf59d5), and the scene saved it on 2026-10-17 (d220c077). It uses
@@ -12023,7 +12030,7 @@ The near-white Heart arches, steps and pit ring in SHOT0126 are the Hand's own l
 with it at the Heart the probe's steps and arch match the shot (0.95-1.0 neutral).
 
 ## ADR-0523 — Trigger action 42 marks creatures in six world slots
-**Date:** 2026-10-21 · **Status:** accepted
+**Date:** 2026-10-21 · **Status:** accepted · **Systems:** campaign-triggers
 
 **Context.** Level 1's Lord of the Land wears a star ring that cycles his level and a sword
 (owner's SHOT0075/0076). Trigger 85 runs creature action 42 on his creation; it was unbuilt
@@ -12354,7 +12361,7 @@ the standing door. Native automatic reveal during opening, input eligibility for
 door, finite task-pool exhaustion and original-game acceptance remain outside this change.
 
 ## ADR-0537 — Gate performance on individual rendered frames
-**Date:** 2026-10-25 · **Status:** accepted
+**Date:** 2026-10-25 · **Status:** accepted · **Systems:** presentation-unity
 
 **Context.** Fast averages concealed visible arrival hitches. GPU instrumentation can
 also disturb the cadence being qualified.
@@ -12413,7 +12420,7 @@ native pixel identity is not claimed. Asset access remains behind the menu
 asset interface, with no converted asset files or bundled proprietary font.
 
 ## ADR-0540 — Prefer Vulkan on supported desktop platforms
-**Date:** 2026-10-25 · **Status:** accepted (owner)
+**Date:** 2026-10-25 · **Status:** accepted (owner) · **Systems:** presentation-unity
 
 **Context.** The owner requests Vulkan by default, with the existing native API
 as fallback on Linux and Direct3D12 on Windows. Unity6000.6 supports Vulkan on
@@ -12505,7 +12512,7 @@ away-from-target stage DK2 runs before the local tries with a staged target
 (`+0x502`, up to twelve draws) is still not built. Campaign effect unmeasured.
 
 ## ADR-0545 — A withdrawal spends the away stage's draws for a staged target
-**Date:** 2026-10-26 · **Status:** accepted
+**Date:** 2026-10-26 · **Status:** accepted · **Systems:** combat
 
 **Context.** Step 5 of [`0x004611D0`](research/functions/004611D0.md), reached after
 three unroutable room picks, first aims away from the thing staged in `+0x502` when
@@ -12644,7 +12651,7 @@ played (F8). The win screen itself, Space and Escape are the front end's (`WinSc
 `DungeonRunner.Finale.cs`); the win screen draws DK2's reward tablet (`RewardTablet`).
 
 ## ADR-0550 — A restore does not repeat the level initialiser's trigger setup
-**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change · **Systems:** campaign-triggers, simulation-core
 
 **Context.** `WorldSnapshot.Read` builds the simulation through the same constructor as a new
 level, and `TriggerExecutor`'s constructor ran the level initialiser's trigger setup on every
@@ -12673,7 +12680,7 @@ Whether DK2's save reader restores trigger records' active and repeat bytes in t
 saves is not traced.
 
 ## ADR-0551 — A Bile Demon's idle shot takes its first update on the turn it is made
-**Date:** 2026-10-27 · **Status:** accepted · Hash/save 314 · Q398.
+**Date:** 2026-10-27 · **Status:** accepted · Hash/save 314 · Q398. · **Systems:** combat
 
 **Context.** The sweep `0x004B7830` walks lists 0..7 in order and reads each list's head only
 when it reaches it; every shot is linked at list 1's head ([004B7830](research/functions/004B7830.md),
@@ -12702,7 +12709,7 @@ where DK2 updates it first (list 1's newest). It has no target and data words of
 fixture has no Bile Demon: no new fields, and the pin moves only by the version.
 
 ## ADR-0552 — Autonomous playtesting extends the scenario harness; controllers are input sources
-**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change · **Systems:** tooling-process
 
 **Context.** Goal 10 needs a programmatic player and reproducible, bounded headless playtesting.
 `ScenarioRunner`, `KeeperView` and `WorldSnapshot` already provide the runner, observation and
@@ -12751,7 +12758,7 @@ timeouts. Raise the per-run limit when needed. Concurrent simulations within one
 outside this decision.
 
 ## ADR-0553 — Unity input is journaled, then moved into Presentation, then migrated
-**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change
+**Date:** 2026-10-27 · **Status:** accepted · No hash or save-format change · **Systems:** hud-front-end, presentation-unity
 
 **Context.** ADR-0552 tests the simulation headlessly; nothing tests the Unity path from mouse
 and keyboard to `PlayerIntent` and commands. Unity uses legacy input only (about 120 `Input.*`
@@ -13140,7 +13147,7 @@ Tests (GoldCarryingTests): `AMinerFilledByItsFirstStrike_LeavesWhenThatStrikesAc
 the ADR-0562 tests run with and without the clip.
 
 ## ADR-0564 — Snapshots carry DK2's generator as well as xoshiro
-**Date:** 2026-10-28 · **Status:** accepted · Hash/save 321 · Issue #1 (item 8)
+**Date:** 2026-10-28 · **Status:** accepted · Hash/save 321 · Issue #1 (item 8) · **Systems:** simulation-core
 
 **Context.** ADR-0275 made the generator pluggable but left snapshots xoshiro-only:
 `SimRandom.SaveState()` throws for `Dk2Lcg`. Scenarios with `random: dk2` and `replay` run on
@@ -13410,7 +13417,7 @@ another attacked Heart at turn 1185, too late to be answered, so the scenario te
 engagement for the first call only.
 
 ## ADR-0575 - Goal 9's speed budget: 50x real time per campaign level, 100 ms per tick
-**Date:** 2026-10-29 · **Status:** accepted · No hash change · Goal 9, GOAL_ALIGNMENT.md gap 4
+**Date:** 2026-10-29 · **Status:** accepted · No hash change · Goal 9, GOAL_ALIGNMENT.md gap 4 · **Systems:** simulation-core
 
 **Context.** `RunTimings` timed every headless run and nothing compared the times with real time.
 A DK2 turn is 250 ms. Measured on hash 328, Release build: campaign Levels 1-4 run headless for
@@ -13464,7 +13471,7 @@ across 328/329. The deterministic pin is recorded in `research/hash-versions.md`
 Equivalence and measured speed checks are required by the throughput plan before committing.
 
 ## ADR-0577 - The keepers' staging routes share one mesh, rebuilt whole
-**Date:** 2026-10-29 · **Status:** accepted · No hash change
+**Date:** 2026-10-29 · **Status:** accepted · No hash change · **Systems:** computer-keeper, navigation
 
 **Context.** Each keeper view built another whole-map mesh to ask whether its fighters could
 reach their heart's staging point. The mesh's locate cache affects edge and vertex answers
@@ -13484,7 +13491,7 @@ the original independent builds. Tests compare complete view packets, changed ro
 multiple keepers and reuse through the router's generation wrap.
 
 ## ADR-0578 - The harness hashes the world while the keepers think
-**Date:** 2026-10-29 · **Status:** accepted · No hash change
+**Date:** 2026-10-29 · **Status:** accepted · No hash change · **Systems:** simulation-core, tooling-process
 
 **Context.** After ADR-0576/0577, Drako still spends 0.651 ms/tick hashing and 1.927 ms in keeper
 AI. Both can read the settled world after the serial simulation tick.
@@ -13585,7 +13592,7 @@ fix (combat-pit.md section 10). Native replay outcomes are unmeasured.
 
 **Context.** Unity played a drop animation whenever input queued a DropCommand,
 including refused drops. The native acceptance and pending-pickup evidence is
-[hand-cursor-rendering.md](research/hand-cursor-rendering.md#refused-drop-feedback-confirmed-binary-2026-10-29).
+[hand-cursor-rendering.md](research/hand-cursor-rendering.md#refused-drop-feedback-strongly-inferred-binary-2026-10-29).
 
 **Decision.** Emit typed observer feedback after the existing creature/object
 drop guards accept. Select gold/thing art from that accepted item. Queue the
@@ -13598,7 +13605,7 @@ and its pin remain unchanged. Animation waits for execution and a render drain;
 native packet-submit timing and pending-entry scheduling remain partial (Q682).
 
 ## ADR-0583 - MPEG audio is decoded by NLayer, in memory, at load time
-**Date:** 2026-10-29 · **Status:** accepted · No hash change
+**Date:** 2026-10-29 · **Status:** accepted · No hash change · **Systems:** audio
 
 **Context.** The installed effects use MPEG Layer I and speech/music use Layer II.
 The owner chose NLayer (MIT); derived game assets must remain in memory.
@@ -13684,7 +13691,7 @@ Hash/save 335 refuses 334 saves and journals. Exact native timing and resource
 retention remain Q685; this decision does not establish playback parity.
 
 ## ADR-0587 - Interface text goes through one catalog, in the player's language
-**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Presentation only · No hash/save change.
+**Date:** 2026-10-30 · **Status:** accepted, not built (owner) · Presentation only · No hash/save change. · **Systems:** hud-front-end
 
 **Context.** DK2's own text is already looked up by string id: `Dk2StringTable` reads the
 install's `BFST` tables through `MBToUni.dat`, and `LevelTextTable` and `BriefingTextTable`
@@ -13714,7 +13721,7 @@ own text, which comes from the install; the language codes DK2 uses on disk are 
 from the binary when a second language is built.
 
 ## ADR-0588 - A save is refused only when its layout cannot be read, and always with a reason
-**Date:** 2026-10-30 · **Status:** accepted, partly built (owner) · Session envelope v2 built; snapshot layout/version unchanged · Issue #1 (item 1).
+**Date:** 2026-10-30 · **Status:** accepted, partly built (owner) · Session envelope v2 built; snapshot layout/version unchanged · Issue #1 (item 1). · **Systems:** simulation-core
 
 **Context.** Session saves (`.dk2g`, `SavedSessionFile`) wrap a `WorldSnapshot`, whose `FormatVersion`
 must equal `HashVersion`. A save is still refused after any hashed change, layout or not: of
@@ -14649,7 +14656,7 @@ not decide between them. The Stone Knight's blow path stays unbuilt (Q399).
 
 ## ADR-0629: state 44's four exits, and the fight bits are one byte
 
-**Date:** 2026-11-02. **Status:** accepted. Hash/save 373.
+**Date:** 2026-11-02. **Status:** accepted. Hash/save 373. · **Systems:** creatures
 
 **Context.** State 44 (`0x00468010`, CONFIRMED) admits a body on the imp's tile when it is an
 interior cell of any Prison whose door is activated (`+0x59`) with used capacity plus the body's
@@ -14680,7 +14687,7 @@ Prison whose cells are all occupied, which `0x004C6610` does not. `0x004E2C70`'s
 
 ## ADR-0632: every travel state hands over at a whole route progress
 
-**Date:** 2026-11-02. **Status:** accepted. Q724; hash/save 376.
+**Date:** 2026-11-02. **Status:** accepted. Q724; hash/save 376. · **Systems:** navigation, creatures
 
 **Context.** States 6 (`0x00470C80`) and 7 (`0x00471460`) end a walk once the route's progress is
 exactly 1.0, which counts the last point's distance in sixteenths of a tile. 6 then calls
@@ -14910,7 +14917,7 @@ outcomes and matched inputs, not on this correction alone.
 
 ## ADR-0642: one confidence scale for notes, records and code
 
-**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0).
+**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0). · **Systems:** tooling-process
 
 **Context.** Research notes, `Dk2BehaviorAttribute` and `RESEARCH_STATUS.md` used
 CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN, with CONFIRMED reserved for the
@@ -14923,18 +14930,20 @@ stopwatch, native capture), STRONGLY INFERRED (a read of the binary or the shipp
 HYPOTHESIS (fits the evidence, a step not read), UNKNOWN (DK2's answer is not known), and
 DISPUTED (readings conflict; records only). Owner decision, 2026-11-03: rename the record
 values rather than keep a mapping table. Records moved by `tools/kb/rescale_confidence.py`:
-CONFIRMED to STRONGLY INFERRED (1,537), LIKELY and GUESS to HYPOTHESIS (1,244), each with a
-dated History line. Four CONFIRMED records rest on the running game and stay
-(`0050EA70`, `00491900`, `004919C0`, `0049F730`). `kb check` rejects the retired words.
+CONFIRMED to STRONGLY INFERRED (1,540), LIKELY and GUESS to HYPOTHESIS (1,244), each with a
+dated History line. A record stays CONFIRMED only where the running game shows its whole role:
+`0050EA70`, the world-log dump the owner ran. Records whose role a native capture backs in part
+were moved and wait for a record-by-record raise. `kb check` rejects the retired words.
 
 **Consequences.** Ghidra names keep a suffix for HYPOTHESIS, UNKNOWN and DISPUTED only
 (ADR-0290); `kb apply-names` must be rerun to retire the `_LIKELY`/`_GUESS` names. A branch
-cut before this ADR runs the rescale script after merging master. Prose LIKELY/GUESS tags in
-research notes became HYPOTHESIS. Record names that end in `_LIKELY` were left as names.
+cut before this ADR runs the rescale script after merging master; it keeps a record master holds
+CONFIRMED. Prose that used CONFIRMED for a binary read, and LIKELY/GUESS tags in notes, records and
+code comments, moved too. Record names that end in `_LIKELY` were left as names.
 
 ## ADR-0643: the wiki is indexed by a closed list of systems and generated in CI
 
-**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0 to WP5).
+**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0 to WP5). · **Systems:** tooling-process
 
 **Context.** The GitHub wiki mirrors `docs/wiki/` (CI job `wiki`). A reader asking "what
 do we know about combat, and where is it built" had to search 280 research notes and 600
@@ -14948,8 +14957,8 @@ file. `dk2tools docs` rejects an added or changed note or ADR that names an unkn
 or none, and any ADR number used twice. `dk2tools wiki --out <dir>` generates the index
 pages; CI generates them into a staging folder beside `docs/wiki/` and mirrors both, so no
 generated page is committed. Pages are byte-stable: sorted, with no dates or commit ids.
-ADR numbers never used (93-99, 239, 249, 252-259, 267-269, 307, 448, 506-508, 511) are
-listed as "not used" rather than explained (owner, 2026-11-03).
+ADR numbers never given to an ADR are listed as "not used" on the wiki rather than
+explained in this file (owner, 2026-11-03).
 
 **Consequences.** Front matter is left out of a research note's length budget. A new
 system is a one-line change to `systems.yaml`. The GitHub wiki stays the host; a DocFX site

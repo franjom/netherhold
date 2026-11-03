@@ -1,3 +1,6 @@
+---
+systems: [audio, hud-front-end]
+---
 # The Mentor's speech, the notification table, and six lines DK2 never says
 
 **Scope:** how DK2 v1.70 turns a game event into a spoken Mentor line with a

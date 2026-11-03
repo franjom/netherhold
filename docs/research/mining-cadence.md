@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # How often a DK2 miner strikes, and where the gold goes (Q480)
 
 **Source:** the owner's Level 2 recording `l2win928`, replayed once with `-PLOAD`

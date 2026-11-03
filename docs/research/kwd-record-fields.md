@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # KWD/KLD record fields completed for M1
 
 **Scope:** Dungeon Keeper 2 v1.70 shipped editor data. This page records file

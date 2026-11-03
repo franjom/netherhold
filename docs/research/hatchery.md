@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # Mechanic: the Hatchery — coops, eggs and chickens
 
 Source(s):

@@ -1,4 +1,7 @@
-﻿# Prison rats
+﻿---
+systems: [rooms]
+---
+# Prison rats
 
 Status: STRONGLY INFERRED from DKII.EXE v1.70, read 2026-10-12.
 Shipped record values are CONFIRMED from Objects.kwd. No original-game

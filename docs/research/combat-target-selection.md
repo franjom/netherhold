@@ -1,4 +1,7 @@
-﻿# Mechanic: which enemy a creature picks — `FightStyle` and the five selectors
+﻿---
+systems: [combat]
+---
+# Mechanic: which enemy a creature picks — `FightStyle` and the five selectors
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-21. Addresses are
@@ -375,7 +378,7 @@ score is `0x7FFFFFFF`, and the `+0x4FE` record is laid out in
 
 ## Confidence
 
-**CONFIRMED (binary):** the five-arm dispatch, its jump table read entry by
+**STRONGLY INFERRED (binary):** the five-arm dispatch, its jump table read entry by
 entry, and all five targets; the assertion naming the field *fight type*; the
 shared body of §2 read in all five — both nested walks, the hostility predicate,
 the exclusion and which two arms omit it, the priority weighting, the alignment
@@ -388,7 +391,7 @@ its legs; NonFighter's `0xD000` threshold, its hero filter, its head-count
 commit, and the twelve stores as one commit, two restores and three inlined
 disengagements returning `0xEA60`.
 
-**CONFIRMED (data):** the `FightStyle` of all 46 shipped creatures;
+**STRONGLY INFERRED (data):** the `FightStyle` of all 46 shipped creatures;
 `DistanceCanSee` and `DistanceCanHear` are `16384` on all 46; file `0xEE4` is 50
 on all 46 but the Horned Reaper, where it is 0; the state labels 6, 202 and 251.
 

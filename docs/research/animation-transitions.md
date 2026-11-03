@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Animation replacement and render clock
 
 Primary source: retail v1.70 `DKII.EXE`, Ghidra decompilation and instruction

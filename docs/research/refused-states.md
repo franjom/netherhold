@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Category 0 states, part 1: 5, 69, 71, 86, 113, 126, 135, 211
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-07.
@@ -56,7 +59,7 @@ and kicks to 1 then 71: from 257 after the drop stun (`0x00481351`) and from 76 
 on its own room tile (cell owner = creature owner) the switch on room type sets 71 for a Heart
 only when the cell byte `+0x0C` is `0x40` (`0x0046F0BE`), which the builder `0x004EFBE0` writes on
 the centre (2,2) alone; any other Heart tile goes to the gold store if it carries gold, else 11.
-CONFIRMED (disassembly, 2026-10-23). So a keeper's Imp dropped on the eight platform tiles never
+STRONGLY INFERRED (disassembly, 2026-10-23). So a keeper's Imp dropped on the eight platform tiles never
 enters 71 and is not given back, which is what the owner's photos of 2026-10-23 show; 71's own
 inner 3×3 test (step 3) is met only by a worker that reaches 71 through 257's tail after a stun.
 The Heart's `+0x1D` = 71 is never read for a Heart.
@@ -71,7 +74,7 @@ nothing: `DisposalRules.Disposes` requires `HeartRuined` false, and the drop lan
 built: 76's victim-or-door pick (`0x00481400`, ADR-0226). The Heart object is ours' living Heart (`HeartRuined` false), and the inner
 3×3 is measured from the room's bounding box: STRONGLY INFERRED that `+0x2D`/`+0x2E` is that corner,
 the first slab of a 5×5 Heart (Q515); the owner's play no longer bears on it. The mana is Create
-Imp's cost, CONFIRMED: `0x0050DD60` reads keeper spell 4's `+0x58`. 71's handler runs in the turn
+Imp's cost, STRONGLY INFERRED: `0x0050DD60` reads keeper spell 4's `+0x58`. 71's handler runs in the turn
 it is entered.
 
 Owner play questions, not yet asked: does the mana bar rise by Create Imp's cost when an Imp is

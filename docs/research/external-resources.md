@@ -1,4 +1,7 @@
-﻿# External resources, and what we may legally take from each
+﻿---
+systems: [tooling-process]
+---
+# External resources, and what we may legally take from each
 
 Written 2026-09-03, after the owner asked for OpenKeeper to be used as much as
 possible. It is an invaluable resource and it is also **GPLv3**, so "as much as

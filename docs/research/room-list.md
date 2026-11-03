@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The player's room list: where DK2 keeps what the player built
 
 | | |

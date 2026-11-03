@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # What torture tells a keeper: `0x004F2370`
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.

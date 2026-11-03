@@ -1,4 +1,7 @@
-﻿# DK2's controls and the default key list
+﻿---
+systems: [hud-front-end]
+---
+# DK2's controls and the default key list
 
 | | |
 |---|---|

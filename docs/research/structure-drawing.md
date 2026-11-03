@@ -1,3 +1,6 @@
+---
+systems: [doors-traps, art-assets]
+---
 # Door and trap drawing
 
 Read DKII.EXE v1.70 with Ghidra 12.1.4 and the shipped KWD/KMF files,

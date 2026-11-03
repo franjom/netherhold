@@ -1,4 +1,7 @@
-﻿# Mechanic: the creature state table
+﻿---
+systems: [creatures]
+---
+# Mechanic: the creature state table
 
 Source(s): `DKII.EXE` v1.70 (GOG) read with Ghidra 11.0.1 on 2026-09-06; the
 reference install's own `Data/Text/Default/Text.str`, decoded with `DK2.Data`'s

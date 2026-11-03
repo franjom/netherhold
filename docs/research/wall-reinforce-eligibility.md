@@ -1,8 +1,11 @@
+---
+systems: [imps-tile-work]
+---
 # Reinforcement selection and work (Q696, Q564)
 
 ## Selection
 
-CONFIRMED binary predicate from whole `0x00453E90`, including its unsigned health
+STRONGLY INFERRED binary predicate from whole `0x00453E90`, including its unsigned health
 comparisons, read 2026-10-31. Full executable-block CallScanAll finds only
 `0x0046AEF1`, in the reinforce/repair handler `0x0046AEA0`.
 

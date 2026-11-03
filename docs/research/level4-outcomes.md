@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # Level 4's outcomes: full replays against DK2's own spread
 
 Q665. Moved from [resync-replay.md](resync-replay.md) on 2026-10-29; that file describes the resync tool the

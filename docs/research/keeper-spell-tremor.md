@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Tremor — effect and recovery traced, integration awaiting verification
 
 Read 2026-10-03 from DKII.EXE v1.70 through isolated PyGhidra MCP project

@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, keeper-spells]
+---
 # Scripted camera requests during possession
 
 DKII.EXE v1.70, fresh reads recorded 2026-10-31. Related playback and request
@@ -36,7 +39,7 @@ branch ignores the letterbox count and `+0xDD8`.
 
 The duration is 500 ms within a mode class, 2000 across classes. Leaving mode
 7 for another mode, or camera flag `+0xE3C` bit `0x40`, selects zero duration.
-The classes are those already recorded in [hud-visibility.md](hud-visibility.md#camera-gate-confirmed-binary).
+The classes are those already recorded in [hud-visibility.md](hud-visibility.md#camera-gate-strongly-inferred-binary).
 Thus possession can blend raised bars back to full while leaving the count
 nonzero. A later return to the dungeon blends toward its full-viewport slot,
 then the next idle frame restores the bars while the count remains nonzero.

@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, art-assets]
+---
 # Wall torches: where DK2 puts them, and which layer owns them
 
 Source(s):
@@ -143,7 +146,7 @@ The **light** is centred along the shared edge, 512 (1/8 tile) out from the wall
 face, at the torch height. Yaw is `((d + 127) << 9) & 0x7FF`, stored at
 `+0xE2`. The facing vector points from the torch into the wall.
 
-**Mesh mount: CONFIRMED (binary recheck, 2026-10-11).** `0x00439B90` writes that
+**Mesh mount: STRONGLY INFERRED (binary recheck, 2026-10-11).** `0x00439B90` writes that
 vector to light `+0x77/+0x79/+0x7B`, the RenderInfo position offsets. The light
 drawer `0x00599960` keeps its illumination at `+0xD6/+0xDA/+0xDE`, then passes
 the RenderInfo at `+0x26` to `0x0059BB80`. That helper adds signed offsets
@@ -221,7 +224,7 @@ keeps the torches, since the winner of a shared floor depends on refresh order;
 
 The simulation posts bridge commands through `0x00517480`, the only caller of
 the enqueue `0x00527150`, from 62 call sites. The command id is the record's
-word at `+0xC`. **Dispatch is synchronous — CONFIRMED (2026-10-05):** CBridge's
+word at `+0xC`. **Dispatch is synchronous — STRONGLY INFERRED (2026-10-05):** CBridge's
 vtable slot `+0x28` (`0x0066CCBC`) is `0x0043B1E0`, which calls the handler
 from the table at `CBridge+0x2CA` (ids below `0x17`) at once and then forwards
 the record to the next sink's slot `+0x28` (`0x0043B20F`). That the session's
@@ -232,7 +235,7 @@ sink is the CBridge is STRONGLY INFERRED. The command table at `0x0066D0D8`
 |---|---|---|
 | 2 | `0x00447B20` | Destroys every bridge light and clears the gate `CBridge+0x12E3`. Its only poster is the map teardown `0x0044F280` (`0x0044F33C`) |
 | 3 | `0x00447C70` → `0x004484A0` | Refreshes the tile's bridge state, then calls vt`+0xB8`. Runs only when the gate is set **and** record `+4` is non-zero |
-| 4 | `0x00447CA0` | Calls vt`+0xB8` for the tile, **gated like 3** (`0x00447CA0..0x00447CA8`, CONFIRMED 2026-10-21; Ghidra's listing starts at `0x00447CAA` and hides the test) |
+| 4 | `0x00447CA0` | Calls vt`+0xB8` for the tile, **gated like 3** (`0x00447CA0..0x00447CA8`, STRONGLY INFERRED 2026-10-21; Ghidra's listing starts at `0x00447CAA` and hides the test) |
 | 6 | `0x00447CE0` | Gated; calls `0x004484A0` over a rectangle, y outer, x inner |
 | 7 | `0x00447D50` | Sets the gate (`0x00447D99`), clears bit 13 of every bridge grid word, makes three global lights and one effect, then sweeps every tile for terrain `+0x17B` bit 0 work through world vt`+0x1F8`. **It places no torches**: no call to vt`+0xB8`, `0x004484A0` or `0x00439B90` before its `RET 4` (`0x004482A1`) |
 | 16 | `0x00448710` | Recolours the torch lights on a tile: room definition `+0x456/+0x458/+0x45A`, or variables 52–54 when the tile has no room |

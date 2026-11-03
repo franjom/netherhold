@@ -1,3 +1,6 @@
+---
+systems: [navigation, creatures]
+---
 # Research: every route-helper call site, with the resume state it passes
 
 Source(s):

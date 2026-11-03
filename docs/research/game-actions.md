@@ -1,4 +1,7 @@
-﻿# Mechanic: the game action table — every player command, and what handles it
+﻿---
+systems: [simulation-core, hud-front-end]
+---
+# Mechanic: the game action table — every player command, and what handles it
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -159,7 +162,7 @@ View actions (4, 6, 15, 17, `0x73`, `0x74`, `0x84` and 30 more) have no entry he
 handles them from its own table at `0x0066CE30` ([campaign-win-sequence.md](campaign-win-sequence.md) §4).
 ## Confidence
 
-**CONFIRMED (binary):** the base, the 20-byte stride, the 86 records and the
+**STRONGLY INFERRED (binary):** the base, the 20-byte stride, the 86 records and the
 `[id, handler]` layout; that 85 ids run 1–137; that `FUN_00514830` is id 26.
 
 **CONFIRMED (cross-reference):** the six anchors of §2.

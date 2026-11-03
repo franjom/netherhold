@@ -1,3 +1,6 @@
+---
+systems: [audio]
+---
 # Mechanic: the dynamic music — what the game asks for, and how the segments follow
 
 Source(s):

@@ -12,6 +12,13 @@
 - [Current state](https://github.com/franjom/netherhold/blob/master/docs/HANDOFF.md)
 - [Plan & milestones](https://github.com/franjom/netherhold/blob/master/DK2_REIMPLEMENTATION_PLAN.md)
 
+**Generated**
+- [[Status Matrix|Status-Matrix]]
+- [[Decisions by System|Decisions-by-System]]
+- [[Research by System|Research-by-System]]
+- [[Open Questions|Open-Questions]]
+- [[KB Coverage|KB-Coverage]]
+
 **Research**
 - [Research docs](https://github.com/franjom/netherhold/tree/master/docs/research)
 - [Research status](https://github.com/franjom/netherhold/blob/master/docs/RESEARCH_STATUS.md)

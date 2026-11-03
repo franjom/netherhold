@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Bottom-panel slot indicators: research, manufacture and spell recharge
 
 Sources: DKII.EXE v1.70 through pyghidra-mcp, 2026-10-23 (claude). The slot draw

@@ -1,6 +1,9 @@
+---
+systems: [hud-front-end]
+---
 # HUD visibility
 
-## Camera gate (CONFIRMED, binary)
+## Camera gate (STRONGLY INFERRED, binary)
 
 Read 2026-10-18: complete `0x0044D620`, `0x0044D590`, `0x0044D870` and
 `0x00419DF0`, plus the GUI-routing arm of `0x00406530` and the overlay shell
@@ -45,7 +48,7 @@ normal HUD therefore does not hide subtitles or the letterbox. View slot
 not itself a visibility test. Normal HUD drawing uses it to select a special
 compact branch; panel semantics remain unread.
 
-## Hidden HUD input (CONFIRMED, binary; incomplete modal semantics)
+## Hidden HUD input (STRONGLY INFERRED, binary; incomplete modal semantics)
 
 Pointer routing `0x00406530` first calls `0x0044D590`. This permits ordinary
 input only when camera `+0xDD8` is zero, mode is neither `0xB` nor `0x12`, and

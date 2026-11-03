@@ -1,3 +1,6 @@
+---
+systems: [rooms, camera-lighting]
+---
 # Portal visibility (Q197)
 
 Status: **Q197 answered; startup source count verified and entrance lighting built.**

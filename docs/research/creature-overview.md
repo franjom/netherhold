@@ -1,6 +1,9 @@
+---
+systems: [hud-front-end, creatures]
+---
 # Creature overview
 
-CONFIRMED from DKII.EXE 1.70 and shipped Creatures.kwd unless a section says otherwise; adapter layout still needs an original-game visual comparison.
+STRONGLY INFERRED from DKII.EXE 1.70 and shipped Creatures.kwd unless a section says otherwise; adapter layout still needs an original-game visual comparison.
 
 ## Roster and counters
 

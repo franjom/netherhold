@@ -1,3 +1,6 @@
+---
+systems: [audio]
+---
 # Sound effects: objects, doors, traps and the boulder
 
 Sources: DKII.EXE v1.70, read through Ghidra on 2026-11-02; shipped `Data/Sound/Sfx/Global/*SFX.map` and

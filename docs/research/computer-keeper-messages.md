@@ -1,3 +1,6 @@
+---
+systems: [computer-keeper]
+---
 # Player messages consumed by the computer keeper
 
 ## Evidence and scope

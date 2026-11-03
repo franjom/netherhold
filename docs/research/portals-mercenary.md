@@ -1,3 +1,6 @@
+---
+systems: [creatures, heroes]
+---
 # The Hero Portal is an entrance too, and one implementation serves both
 
 | | |

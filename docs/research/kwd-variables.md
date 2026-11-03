@@ -1,4 +1,7 @@
-﻿# Mechanic: VARIABLES(230) record layout — the global game-rule table
+﻿---
+systems: [data-formats]
+---
+# Mechanic: VARIABLES(230) record layout — the global game-rule table
 
 Source(s):
 - ufdada/dk2-tools `variables_struct.bt` (payload layouts + 200 named ids)
@@ -23,7 +26,7 @@ Evidence:
     65 CreatureStats [CreatureStatsId], 224 CreatureFirstPersonStats
        [CreatureFirstPersonId]  s32 statId, s32 value, s32 level
     otherwise                   s32 value, s32 unk1, s32 unk2
-- Values documented by earlier community work now CONFIRMED against real data:
+- Values documented by earlier community work now STRONGLY INFERRED against real data:
   ClaimTileHealth=825, MineGoldHealth=-300, MaxGoldPerTreasuryTile=3000,
   DeadBodyDiesAfterSeconds=60, PayDayFrequencySeconds=600, ...
   Full table: docs/research/game-database-dump.md

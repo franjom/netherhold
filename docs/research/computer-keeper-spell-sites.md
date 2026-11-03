@@ -1,3 +1,6 @@
+---
+systems: [computer-keeper, keeper-spells]
+---
 # Computer-keeper spell casts: every site
 
 Read 2026-10-04 from DKII.EXE v1.70 (Ghidra 12.1.4, Claude's PyGhidra MCP clone and the
@@ -30,7 +33,7 @@ casts spell 4 with bypass flag 1 for every player (the free imp, `imps-and-mana.
 wrappers in world vtable slots `+0x254/+0x258/+0x25C`, which only `0x004075E0` and
 `0x0040B7F0` call (slot scan; its control found the battle step's `+0x250` call).
 
-**The battle scan never picks a new spell (CONFIRMED from shipped data).** Read through
+**The battle scan never picks a new spell (STRONGLY INFERRED from shipped data).** Read through
 `KwdKeeperSpells`, the flag words are: Sight `0x10`, Possession `0x10`, Call to Arms
 `0x10`, Create Imp `0x12`, Summon Horny `0x10`, Thunderbolt `0x4`, Turncoat `0x0`,
 Tremor `0x14`, Inferno `0x4`, Heal `0x8`, Chicken `0x4`, Create Gold `0x10`,

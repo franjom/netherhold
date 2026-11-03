@@ -467,10 +467,10 @@ install.
 Run dk2tools status after the tests when the plan's generated count changes,
 and dk2tools verification-ledger after adding or removing a rule attribute.
 Run dk2tools kb index after changing function records; never edit INDEX.md by
-hand. Check the changed commit with git diff --check. A simulation state
-change requires matching GameSimulation.HashVersion and
-WorldSnapshot.FormatVersion, a new determinism pin, and a hash-versions.md
-row. An observation-format change requires a schema bump.
+hand. A note needs `systems:` front matter; dk2tools wiki previews the CI-built wiki
+(ADR-0643). Check the changed commit with git diff --check. A simulation state change
+requires matching GameSimulation.HashVersion and WorldSnapshot.FormatVersion, a new
+determinism pin, and a hash-versions.md row; an observation-format change, a schema bump.
 
 The Unity compile project is outside DK2.slnx. Run
 unity/sync-assemblies.ps1 after a change under src/ before an editor smoke
@@ -488,7 +488,7 @@ build/scenario-runs/ and is ignored.
 - Read a function's record before querying it. Put each new finding or
   correction in that record with a dated History line. Write behavioral
   evidence once in its research note; link from other documents. Distinguish
-  CONFIRMED, STRONGLY INFERRED, HYPOTHESIS and UNKNOWN.
+  CONFIRMED (game), STRONGLY INFERRED (binary read), HYPOTHESIS, UNKNOWN: ADR-0642.
 - New captures use the [complete native recorder](../tools/oracle/native-capture.md),
   retaining every readable byte at each selected completed turn. Legacy
   polling headers use ADR-0119; timer stamps need no correction. See

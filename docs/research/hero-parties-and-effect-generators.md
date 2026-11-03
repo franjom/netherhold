@@ -1,3 +1,6 @@
+---
+systems: [heroes, campaign-triggers]
+---
 # Hero parties and effect generators: verbatim placed state
 
 This note records the data-side evidence needed to stop discarding the last two
@@ -16,9 +19,9 @@ Across the complete 66-level shipped sweep, 35 levels contain a party.
 
 | record | fields stored | confidence |
 |---|---|---|
-| hero party | `Name`, `TriggerId`, `PartyId`, `Unknown_0023`, `Unknown_0027`, `Members` | **CONFIRMED from parser and shipped data** |
-| party member | all `GoodCreatureThing` fields, including the two-byte `Unknown_001D` tail | **CONFIRMED from parser and tests** |
-| effect generator | `X`, `Y`, four scalar unknowns, variable `EffectIds`, `Frequency`, `GeneratorId`, six-byte `Unknown_001E` | **CONFIRMED from parser and tests** |
+| hero party | `Name`, `TriggerId`, `PartyId`, `Unknown_0023`, `Unknown_0027`, `Members` | **STRONGLY INFERRED from parser and shipped data** |
+| party member | all `GoodCreatureThing` fields, including the two-byte `Unknown_001D` tail | **STRONGLY INFERRED from parser and tests** |
+| effect generator | `X`, `Y`, four scalar unknowns, variable `EffectIds`, `Frequency`, `GeneratorId`, six-byte `Unknown_001E` | **STRONGLY INFERRED from parser and tests** |
 
 Projection copies values without coordinate conversion, validation, flag masks
 or scaling. Arrays are copied into world-owned storage so parser-side mutation
@@ -90,7 +93,7 @@ the placed-creature count.
 The handler is `0x00519F90(world; PartyId, ActionPointId, PartyType)`, reached
 from the world action dispatcher's arm `0x00519182` with the record's bytes
 `00`, `04`, `01` — our `PartyId`, `ActionPointId`, `PartyType`
-(`trigger-semantics.md`). Everything below is **CONFIRMED from the
+(`trigger-semantics.md`). Everything below is **STRONGLY INFERRED from the
 disassembly** unless marked; the shipped-data facts come from all 947 occupied
 member slots of the 220 campaign parties
 (`PlacedThingsOnRealDataTests.APartyMembersTrailingBytesAreItsWanderRadiusAndItsPartyId`).
@@ -269,7 +272,7 @@ where `PositionInParty` and `MyLeadersId` are read
 
 ### Built (2026-09-24, ADR-0197)
 
-**Snapdragon startup (2026-10-10).** CONFIRMED shipped data: Level8 action 65492
+**Snapdragon startup (2026-10-10).** STRONGLY INFERRED shipped data: Level8 action 65492
 raises party 5 at action point 1, the northern gate (33,4). Its six slots are the
 Lord level 5, Dwarf 2, Guard 5, Giant 3, Dwarf 4 and Dwarf 4. A fresh decompile of
 `0x00519F90` confirms that occupied slots are created and assigned their authored

@@ -1872,7 +1872,7 @@ public class PrisonTests
     }
 
     /// <summary>State 116 with HasArt(9): rolls 0..9 start action 41 and the prisoner stands until it
-    /// ends; only 10..19 step (0x004734E4). The length is LIKELY, read from the cycle count.</summary>
+    /// ends; only 10..19 step (0x004734E4). The length is HYPOTHESIS, read from the cycle count.</summary>
     [Fact]
     public void APrisonerWithTheAngryFlagFlourishesAndStandsStillWhileTheLikelyLengthRuns()
     {

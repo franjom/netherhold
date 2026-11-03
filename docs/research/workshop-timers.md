@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The Workshop's effect timers and what they draw from the random stream
 
 Source(s):
@@ -31,7 +34,7 @@ draws are not. Draws a Workshop makes, all on the world stream (CONFIRMED by eac
 | wall-slot pick | `Room.cpp` 0xF42 | the wall-slot count | smoke fires, definition effect `+0x427` set, a slot exists |
 
 The six lines of the handler are the reloads and picks; the slot picks and the constructor's four were
-not counted before. CONFIRMED (disassembly of both functions).
+not counted before. STRONGLY INFERRED (disassembly of both functions).
 
 ## 2. The room's fields (CONFIRMED)
 

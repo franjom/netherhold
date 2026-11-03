@@ -1,3 +1,6 @@
+---
+systems: [data-formats, creatures]
+---
 # DK2 v1.70 creature table (Creatures.kwd)
 
 DK2's own data — CONFIRMED by definition. Layout and offsets:

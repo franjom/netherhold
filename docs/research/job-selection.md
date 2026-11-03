@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Mechanic: job selection for creatures that are not workers
 
 Source(s):

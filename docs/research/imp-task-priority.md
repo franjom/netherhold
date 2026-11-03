@@ -1,4 +1,7 @@
-﻿# How an imp chooses a job: two tiers, read from the binary
+﻿---
+systems: [imps-tile-work]
+---
+# How an imp chooses a job: two tiers, read from the binary
 
 **Source:** `DKII.EXE` v1.70 — the `ImpState.cpp` and `ImpUtils.cpp`
 translation units, the tile-marking code, the per-player alliance table and

@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # The level time limit, and trigger actions 9, 15, 23, 31 and 47
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-26.

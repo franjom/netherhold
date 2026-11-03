@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, presentation-unity]
+---
 # Classic dungeon camera
 
 Source: retail v1.70 DKII.EXE, Ghidra 12.1.4, 2026-10-14;
@@ -5,7 +8,7 @@ shipped GlobalVariables.kwd and Level1/7/8 player records.
 
 ## 1. Authored settings
 
-CONFIRMED data: the THINGS camera payload is 84 bytes. The existing CameraThing
+STRONGLY INFERRED data: the THINGS camera payload is 84 bytes. The existing CameraThing
 reader exposes its fixed-point lens, zoom and bounds plus 2048-unit angles.
 GlobalVariables.kwd has the camera records; ordinary dungeon preset id3 has
 position Z4096, zoom40960, minimum16384, maximum53248, lens8192, pitch220,
@@ -35,7 +38,7 @@ Before adding the engine offset it converts focus to `(gameX,gameY,-gameZ)`;
 converting that engine frame to Unity `(x,-z,-y)` preserves positive focus height.
 
 0x0058A6F0 scales projection by focal length divided by each viewport extent.
-CONFIRMED (whole decompile and instructions rechecked 2026-10-16):
+STRONGLY INFERRED (whole decompile and instructions rechecked 2026-10-16):
 0x0044D550 supplies the visibility distance as the larger of twice active
 zoom (+0xD80) and active view distance (+0xD8A), converted to world units.
 `NativeViewDistance` shares this value with the camera far clip; using the
@@ -113,7 +116,7 @@ calculation and clamping remain the presentation model's responsibility.
 
 ## 4. Starting location and limits
 
-CONFIRMED binary (2026-10-14): bridge initialization 0x0043AAD0 calls camera
+STRONGLY INFERRED binary (2026-10-14): bridge initialization 0x0043AAD0 calls camera
 reset 0x00449670. That reset clears the active view block and then sets yaw
 at camera+0xD84 to256 (45 degrees). The rotation builder 0x0044D6D0 consumes
 that field as yaw. Entering ordinary modes3/4/5 through 0x0044ACE0 preserves
@@ -178,7 +181,7 @@ global pixel equivalence or99% motion fidelity.
 
 ## 7. Ordinary camera controls, 2026-10-23
 
-CONFIRMED binary: 0x004066A0 polls ordinary input only on the first inner pass
+STRONGLY INFERRED binary: 0x004066A0 polls ordinary input only on the first inner pass
 and after 0x0044D590 permits it. It decays signed horizontal/vertical counters
 at HUD+0x1094/+0x1098 one step toward zero, then calls0x00406DF0. That function
 submits five-pixel edge directions first, followed by non-Ctrl arrow bindings.
@@ -206,7 +209,7 @@ clamp focus immediately. Combining packets before clamping is observably wrong
 at map edges. Focus lock bit0x40 or an active transition suppresses the update.
 Ordinary presets fix height to raw4095 after maximum-exclusive clamping.
 
-CONFIRMED binary (2026-10-27): the edge test in 0x00406DF0 is strict (x < 5, x > width - 5,
+STRONGLY INFERRED binary (2026-10-27): the edge test in 0x00406DF0 is strict (x < 5, x > width - 5,
 likewise y) and runs whether or not Ctrl or Shift is held. The registry option "Alternative
 Scroll" (profile +0xF1, 0x00759C1D, default 0) swaps LEFT/RIGHT only: plain LEFT/RIGHT rotate
 (action 8, +/-0x40) and Ctrl+LEFT/RIGHT pan with the Shift fast flag (0x004066A0). UP/DOWN
@@ -243,7 +246,7 @@ the Mono conversion trap is recorded in `docs/TRAPS.md`.
 
 ## 8. Projection widening and reference matching, 2026-10-23
 
-CONFIRMED binary and executable oracle:0x0058A6F0 divides the supplied pixel
+STRONGLY INFERRED binary and executable oracle:0x0058A6F0 divides the supplied pixel
 focal length by viewport width/height. With focal640, changing a1600x1200
 viewport to1600x900 keeps horizontal normalized scale0.4 and changes vertical
 scale from0.533333 to0.711111. Viewport cropping does not change the lens.

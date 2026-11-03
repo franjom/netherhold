@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end, combat]
+---
 # Mechanic: the Battle tab — crossed blades, battle records and the zoom to a fight
 
 Source(s):

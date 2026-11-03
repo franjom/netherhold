@@ -1,4 +1,7 @@
-﻿# Mechanic: TERRAIN(110), ROOMS(120) and MAP(100) records
+﻿---
+systems: [data-formats]
+---
+# Mechanic: TERRAIN(110), ROOMS(120) and MAP(100) records
 
 Source(s):
 - ufdada/dk2-tools `terrains_struct.bt`, `rooms_struct.bt`, `map_struct.bt`

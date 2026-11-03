@@ -1,6 +1,9 @@
+---
+systems: [imps-tile-work]
+---
 # Imp tasks: the objects handler, the secret door, the kicked imp, the walk's end
 
-**CONFIRMED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
+**STRONGLY INFERRED** unless a paragraph says otherwise. DKII.EXE v1.70 (GOG), read-only Ghidra
 12.1.4/PyGhidra on Claude's clone, 2026-09-30. Decompiler output stayed under
 `reverse-engineering/` (ADR-0046); every fact below is in our words with its address.
 Captures (`level1-live1/seed01`, `level2-live2/seed01`, player 3) were used only to check

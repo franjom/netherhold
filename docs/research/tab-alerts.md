@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Bottom-panel tab and button flashing
 
 Sources: DKII.EXE v1.70 through pyghidra-mcp, 2026-10-23 (claude); the shipped

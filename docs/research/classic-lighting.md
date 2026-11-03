@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, presentation-unity]
+---
 # Classic vertex lighting
 
 Source: retail v1.70 DKII.EXE, Ghidra whole reads, 2026-10-14/15.
@@ -25,7 +28,7 @@ The confirmed per-draw normal inversion missing from ordinary tops is in
 
 ## 2. Terrain instance colour
 
-CONFIRMED: the whole-body read of 0x004F66E0 copies terrain RGB bytes at file
+STRONGLY INFERRED: the whole-body read of 0x004F66E0 copies terrain RGB bytes at file
 0x1DB..0x1DD through intermediate +0x293..+0x295 into runtime +0x1AF/+0x1B1/+0x1B3.
 Ambient RGB bytes at file 0x201..0x203 pass through +0x2B9..+0x2BB into
 runtime +0x1B9/+0x1BB/+0x1BD. Flags 19..21 add 255 to the corresponding terrain
@@ -37,7 +40,7 @@ the channel boost follows that check. Our complete-record reader exposes the
 authored bytes and computes the boosted value separately; overlay writing
 preserves those bytes without baking flags into them.
 
-CONFIRMED (cached binary instructions, 2026-10-15): piece builders copy the
+STRONGLY INFERRED (cached binary instructions, 2026-10-15): piece builders copy the
 low byte of each runtime ambient word into the piece RGB bytes. A boosted265
 therefore becomes9, not a saturated255 or an HDR265. This narrowing belongs to
 piece tint only; terrain point-light RGB retains its word channels.
@@ -78,7 +81,7 @@ Animation loader0x0057DAD0 and constructor0x0057E2A0 copy the file Origin to
 model+0x10/+0x14/+0x18 and BoundsScale to+0x0C. These match the decoded frame
 metadata; geometryScale is a separate subsequent float.
 
-CONFIRMED (consumer `0x0057C190`, assembly and whole reads, 2026-10-15):
+STRONGLY INFERRED (consumer `0x0057C190`, assembly and whole reads, 2026-10-15):
 let `d = transformedToLight - vertexDisplacement`. It computes
 `incidence = ((d.x*n.x + d.z*n.z) + d.y*n.y) * intensity`, skips a negative
 sign bit (including negative zero), then multiplies by the sampled attenuation.
@@ -105,7 +108,7 @@ widths alone do not establish a Unity falloff mapping.
 
 ## 4. Startup and current URP boundaries
 
-CONFIRMED (0x00447D50 whole read, 2026-10-14): startup calls bridge slot +0xA4
+STRONGLY INFERRED (0x00447D50 whole read, 2026-10-14): startup calls bridge slot +0xA4
 for slots +0x33E, +0x35D and +0x35B with RGB/intensity respectively
 (511,511,511)/255, (255,255,255)/128 and (500,500,500)/128.
 The first two use position (2048,2048,8704); the third uses (2048,2048,4608).
@@ -235,7 +238,7 @@ Legacy arithmetic/camera entry points remain `ClassicLightingProbe.Run` and
 
 ## 8. Initial ambient and the placeholder sun
 
-CONFIRMED (whole reads, callback instructions and writer references, 2026-10-15):
+STRONGLY INFERRED (whole reads, callback instructions and writer references, 2026-10-15):
 `0x005747E0` stores supplied RGB multiplied by255 in the vertex-light globals.
 `0x005983C0` calls it with zero after `0x00574310` installs temporary values.
 Those two routines are the only direct writers found for each ambient global;
@@ -279,7 +282,7 @@ file offset `+0x18C`, in units1/4096. An absent field leaves the previous runtim
 value intact; its initial default has not been established.
 
 `TerrainDef.TerrainLightHeight` retains the signed authored value; null preserves
-template bytes. CONFIRMED reread (2026-10-16): `0x00441CD0` supplies it as absolute
+template bytes. STRONGLY INFERRED reread (2026-10-16): `0x00441CD0` supplies it as absolute
 Z without adding floor height; `0x00599960` converts that stored Z directly.
 
 Eligibility is `0x00452DC0`: actual rooms take precedence and need byte `+0xC == 0xFF`
@@ -307,7 +310,7 @@ dynamic source list at `+0x38` instead clears during the next frame's
 `0x005723D0` update. Thus the helper names alone do not imply that sources
 exist for every world tile or light every neighbouring draw.
 
-CONFIRMED (whole reads, 2026-10-15): `0x00576230` gathers the draw-light table
+STRONGLY INFERRED (whole reads, 2026-10-15): `0x00576230` gathers the draw-light table
 for each visible tile. It reads static and dynamic lists from the 7x7 tile-cache
 window centred on that tile (offsets -3..+3). Source eligibility here is strict
 horizontal squared distance from tile centre `(x+0.5,y+0.5)` less than

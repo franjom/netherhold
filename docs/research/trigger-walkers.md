@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # The four trigger walkers and what drives them (Q239)
 
 **Scope:** which code walks each kind of trigger tree, how often, and where each

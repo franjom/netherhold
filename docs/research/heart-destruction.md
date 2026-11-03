@@ -1,3 +1,6 @@
+---
+systems: [rooms, campaign-triggers]
+---
 # Dungeon Heart destruction
 
 ## Native trigger (CONFIRMED, 2026-11-01)
@@ -31,7 +34,7 @@ interval before noticing the missing Heart. `0x004E9130` case 5 sets the ruin
 bit and refreshes tiles. Only its case 20 deletes room objects directly.
 Downstream tile-event effects on surviving Heart decorations remain unverified.
 
-## Authored effect graph (CONFIRMED shipped data)
+## Authored effect graph (STRONGLY INFERRED shipped data)
 
 Effect 76, `Heart Explosion Effect`, generates effects 74, 68 and 299. Effect 68
 generates 75; effect 299 also starts next-effect 300. Their elements include sparks,

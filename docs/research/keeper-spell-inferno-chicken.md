@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Keeper Inferno and Chicken
 
 Sources: DKII.EXE v1.70 (GOG), read with Ghidra 12.1.4 through pyghidra-mcp and the

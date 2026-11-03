@@ -1,3 +1,6 @@
+---
+systems: [combat]
+---
 # Mechanic: the spell arms — how a creature casts in a fight, and what a cast is
 
 Source(s):
@@ -242,11 +245,11 @@ see `keeper-spell-possession.md`.
 
 ## Confidence
 
-**CONFIRMED (binary):** §1's mapping and the recharge multiply; §3's loop, layout
+**STRONGLY INFERRED (binary):** §1's mapping and the recharge multiply; §3's loop, layout
 and delay multiply; §4's gate, formula and strictness; §5's comparison and its
 direction; §6, §8, §9 and §10 in order; §7's every step and both asserts.
 
-**CONFIRMED (data):** the roster behind each bit in §2 and the values in §1–§3.
+**STRONGLY INFERRED (data):** the roster behind each bit in §2 and the values in §1–§3.
 
 **STRONGLY INFERRED:** the names of bits 0–3 (from the roster and the two places
 each is tested); `vtable+0x2C` as the previous position; class 9 as a room.

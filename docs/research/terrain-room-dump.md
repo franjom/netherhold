@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # DK2 v1.70 terrain and room tables
 
 DK2's own data, read from the reference install — CONFIRMED by definition.

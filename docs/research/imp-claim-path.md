@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Imp claim path: how DK2 chooses, takes and loses claim work (kinds 3 and 14)
 
 | | |

@@ -1,6 +1,9 @@
+---
+systems: [hud-front-end, keeper-spells]
+---
 # Hand cursor and hover feedback
 
-## Sprite resources and state (CONFIRMED, binary and shipped data)
+## Sprite resources and state (STRONGLY INFERRED, binary and shipped data)
 
 Read 2026-10-18: cursor loader `0x0040C710`, state update `0x0040AAE0`,
 transition `0x0040ABC0`, software-cursor publication `0x0040ACD0`, and table
@@ -46,9 +49,9 @@ The optional random-frame mode exists but is not the ordinary timer.
 
 Read for the owner's report that our Hand feels "too far down and right" of the mouse.
 
-- **DK2 (CONFIRMED, binary).** `0x0040ACD0` submits surface, frame rectangle and the scaled hotspot through `0x005B2BD0` -> `0x005BB2A0` -> `0x005DBAC0` -> `0x005DC120`. That function stores `-hotspot` as the draw offset (`+0x40/+0x44`). `0x005DC580` places the sprite at `pointer + offset`. So the top-left is `pointer - scaledHotspot`, and the hotspot pixel sits on the pointer.
+- **DK2 (STRONGLY INFERRED, binary).** `0x0040ACD0` submits surface, frame rectangle and the scaled hotspot through `0x005B2BD0` -> `0x005BB2A0` -> `0x005DBAC0` -> `0x005DC120`. That function stores `-hotspot` as the draw offset (`+0x40/+0x44`). `0x005DC580` places the sprite at `pointer + offset`. So the top-left is `pointer - scaledHotspot`, and the hotspot pixel sits on the pointer.
 - **The pointer source (HYPOTHESIS).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is HYPOTHESIS, not CONFIRMED.
-- **The art (CONFIRMED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
+- **The art (STRONGLY INFERRED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
 
 **Ours (CONFIRMED, code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
 
@@ -119,7 +122,7 @@ hit helper `0x00572820`, then calls `0x0044DEC0` as a fallback. Some implicit
 register arguments in the picker remain unresolved; do not turn this reading
 into an invented complete fog or ray-depth policy.
 
-**The rendered hit (CONFIRMED, read 2026-10-23).** Only meshes enter it. The static and
+**The rendered hit (STRONGLY INFERRED, read 2026-10-23).** Only meshes enter it. The static and
 animated mesh draws append themselves to a 256-entry screen list (`0x00769A78`: x, y, radius
 squared, item) when they carry a thing tag ([0x00572820](functions/00572820.md)), and
 [Thing_DrawRenderInfo](functions/0059B880.md) passes the tag only for: a creature whose definition
@@ -203,7 +206,7 @@ light `+0x33E`'s own kind3 art, which `Presentation_Update` shows (edge word
 
 ## Selection outline rendering
 
-CONFIRMED (2026-10-18, binary): `0x0043CC30` uses the primary rectangle,
+STRONGLY INFERRED (2026-10-18, binary): `0x0043CC30` uses the primary rectangle,
 falling back to the secondary when the primary is empty. Bounds are half-open.
 For each boundary tile it moves bridge handle `+0x35D` to the tile centre at
 height zero, then sets edge bits north=1, south=2, west=4, east=8, plus `0x10`;
@@ -271,7 +274,7 @@ until compared against the native procedural grid builder. The pulse draws
 the previous level, advances only on active draws, clamps overshoot and retains
 the native strict endpoint reversal.
 
-## Refused drop feedback (CONFIRMED, binary 2026-10-29)
+## Refused drop feedback (STRONGLY INFERRED, binary 2026-10-29)
 
 The click arm of `0x00408EE0` tests `0x0040D8F0` before submitting a normal
 Hand drop. Only success calls `0x0040DAB0`, whose tail at `0x0040DCF6..0x0040DD08`

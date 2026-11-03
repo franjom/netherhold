@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # A room's slab chain: the order its tiles are in
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-26.
@@ -86,7 +89,7 @@ turn: intervening movement, work or gold changes can refuse the first tile.
 **Single-tile building is the same action with x1 = x2, y1 = y2**, a one-tile wave. A room built
 click by click is therefore built in click order.
 
-**Which corner is which — CONFIRMED binary mapping (2026-10-12).** The room arm
+**Which corner is which — STRONGLY INFERRED binary mapping (2026-10-12).** The room arm
 of `0x004075E0`, instructions `0x0040811D..0x00408274`, saves the drag anchor at
 `+0x13E8/+0x13EC`, packs it into build packet `+4`, and packs the current pointer
 into `+8`, clipping its distance from the anchor without normalising the corners.

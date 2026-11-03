@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Wet and bloody footprints
 
 Primary source: retail v1.70 DKII.EXE, Ghidra 12.1.4 decompile and instruction
@@ -30,7 +33,7 @@ seconds, including while stationary. A corpse tile refreshes blood every tick
 and emits immediately, leaving 39 after each request. Dying creatures are
 still class 0; a class-6 corpse is required to supply blood.
 
-## Appearance — CONFIRMED shipped data
+## Appearance — STRONGLY INFERRED shipped data
 
 | effect | art | art flags | type | scale | HP | generation |
 |---|---|---|---|---|---|---|

@@ -1,9 +1,12 @@
+---
+systems: [camera-lighting, campaign-triggers]
+---
 # Camera paths (`.KCS`) and their playback
 
 DKII.EXE v1.70, Ghidra primary reads and the shipped `Data/Paths.WAD`, 2026-10-17.
 The file format and the loader `0x0044CFB0` are **CONFIRMED** against all 80
 shipped files. The playback in `Camera_Update` mode `0x12` and the render branch of
-`0x00598880` are read; their arithmetic is **CONFIRMED** from disassembly. The skip,
+`0x00598880` are read; their arithmetic is **STRONGLY INFERRED** from disassembly. The skip,
 action 38's letterbox switch and the subtitle drawing are read (§5-§7). The fog
 question is answered from the shipped scripts (§8). Built as ADR-0496 (§9).
 
@@ -67,7 +70,7 @@ which matches the 30 frames a second of §2.
 Callers:
 - **In game:** only `0x00442540`, game action 0x73's view handler. The view's
   initialiser `0x0043AAD0` fills its handler array at view `+0xA2` from (id, handler)
-  pairs at `0x0066CE30`, and the pair `(0x73, 0x00442540)` is there (CONFIRMED, read
+  pairs at `0x0066CE30`, and the pair `(0x73, 0x00442540)` is there (STRONGLY INFERRED, read
   2026-10-17). How a queued action reaches that array is unread, so the link is
   **HYPOTHESIS**. `0x0050E5C0` first offers a record to the observer `[[world+4]+0x10]`
   (slots +0x20 and +0x24), then to the world table at `+0x1684`, whose filler

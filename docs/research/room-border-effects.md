@@ -1,3 +1,6 @@
+---
+systems: [rooms, art-assets]
+---
 # Room and neutral-Portal border flames
 
 DKII.EXE v1.70, primary Ghidra reads and shipped Effects/EffectElements records,
@@ -30,7 +33,7 @@ is800/4096 tile per turn, before contour turns and edge clamping.
 
 ## Art and the two tongues
 
-CONFIRMED shipped data:
+STRONGLY INFERRED shipped data:
 
 | Definition | Art / flags | Lifetime | Linked output |
 |---|---|---|---|

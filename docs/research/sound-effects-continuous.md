@@ -1,3 +1,6 @@
+---
+systems: [audio]
+---
 # Sound effects: footsteps, the action table, loops and first person
 
 Sources: DKII.EXE v1.70, read through Ghidra on 2026-11-03; shipped `Data/Sound/Sfx/Global/*SFX.map`, `Data/editor/Creatures.kwd`.
@@ -79,7 +82,7 @@ Imp action 1's possessed (`0x00514FC9`), training (`0x00485E7D`) and other begin
 
 ## 3. Looping thing and room sounds
 
-**The manager's slots (CONFIRMED, read 2026-11-03).** Vtable `0x0066F7FC`: `+0x20` positional request, `+0x24` nonpositional, `+0x30` replay with a position (`0x00567A70`), `+0x34` set a property of a handle (`0x00567A10`),
+**The manager's slots (STRONGLY INFERRED, read 2026-11-03).** Vtable `0x0066F7FC`: `+0x20` positional request, `+0x24` nonpositional, `+0x30` replay with a position (`0x00567A70`), `+0x34` set a property of a handle (`0x00567A10`),
 `+0x38` run a command object on the service (`0x00567A40`), `+0x54` a global volume set (the party restores it). The handle is an index into the service's instance table.
 
 - **Replay `+0x30` is a position update, not a restart.** `0x00567A70` converts the position relative to the listener and calls `0x0060D950`: it finds the live instance by handle (`0x0060DB80`) and calls the instance's
@@ -113,7 +116,7 @@ unexplored ground is as audible as the camera's distance allows, and the base vo
 
 ## 4. Terrain ambience grid and first person
 
-**The grid drives the ambient beds `0x2EA` and `0x2EB` (CONFIRMED, read 2026-11-03).** [0x0044E2A0](functions/0044E2A0.md) rebuilds, when the listener's point or three orientation words changed (or in map mode 7, or while the local player's `+0x134` is set), an
+**The grid drives the ambient beds `0x2EA` and `0x2EB` (STRONGLY INFERRED, read 2026-11-03).** [0x0044E2A0](functions/0044E2A0.md) rebuilds, when the listener's point or three orientation words changed (or in map mode 7, or while the local player's `+0x134` is set), an
 11-by-11 grid of words around the listener's tile, a cell zero unless the tile's flag bit `0x2000` (the explored bit the Casino also tests) is set, else the terrain's category handle `+0x195` (`+0x199` on a Temple tile whose room `+0x61` is zero, `+0x19D` on an arm the caller selects
 in `EBX`, inferred zero). It hands the grid to service slot `+0x3C`, which is the ambient pass `0x00609480`: it marks each category whose map has group `0x2EA` (`0x00614C50`), keeps per category a tile count and a weight sum from the row and column offsets (table `0x006C6F98`, so a
 point biased to the listener), adds an emitter for each category new to the list, then `0x00609CE0` pops the best two records from a heap ordered by the tile-count and weight records, so only those two categories keep emitters (the loop bound at `+0x28` is unread but at most two), and the handles of the others are stopped with a command carrying `0x46`. The per-update pass `0x00609A30` then asks group `0x2EA` of each emitter with its handle (through the category

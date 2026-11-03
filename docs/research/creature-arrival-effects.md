@@ -1,3 +1,6 @@
+---
+systems: [creatures, art-assets]
+---
 # Creature portal arrival effects
 
 Research only, 2026-10-25. Binary dispatch and shipped-data assignments are
@@ -49,7 +52,7 @@ Placement, heading and the animation exit are recorded in
 
 ## Creature catalogue
 
-Effect/element ids and resource names are CONFIRMED shipped data. The appearance
+Effect/element ids and resource names are STRONGLY INFERRED shipped data. The appearance
 column describes those assets; it does not establish final pixels, brightness,
 particle density or duration. Beam/disc codes are expanded below.
 
@@ -77,7 +80,7 @@ unique-type gate. Eligibility is [the existing portal research](portals-mercenar
 
 ### The Mistress recollection
 
-The owner's recollection was a blizzard/storm. CONFIRMED data supports that:
+The owner's recollection was a blizzard/storm. STRONGLY INFERRED data supports that:
 effect 163 emits `mist`, `icechunk` and `sparklea`, with WhirlpoolRate 12 and
 a blue beam companion. Describing the combination as a swirling ice storm is
 STRONGLY INFERRED. It does not call the separately named Hailstorm effect 341;
@@ -158,7 +161,7 @@ Resource names and RGB are authored data, not calibrated displayed colours.
 ### Authored light descriptors
 
 The reachable effects also carry these nonzero-radius light descriptors
-(CONFIRMED data). Raw RGB and radius are given without interpreting light flags
+(STRONGLY INFERRED data). Raw RGB and radius are given without interpreting light flags
 as displayed intensity. All other reachable effects have radius zero.
 
 | Effect | Light RGB | Radius (raw) | Light flags |

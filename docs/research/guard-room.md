@@ -1,3 +1,6 @@
+---
+systems: [rooms, creatures]
+---
 # Mechanic: guard duty — states 97, 98 and 99
 
 Source(s):
@@ -16,7 +19,7 @@ Questions: advances ADR-0135 (ADR-0212, ADR-0330). `creature-state-table.md` own
 labels "guarding" and "on patrol to a Guard Post"); `state-category-hooks.md` owns the
 category's enter hook, which only claims the room position.
 
-Confidence: **STRONGLY INFERRED (binary)** for §1–§7; **CONFIRMED (data)** for the Guard
+Confidence: **STRONGLY INFERRED (binary)** for §1–§7; **STRONGLY INFERRED (data)** for the Guard
 Post flag.
 
 ---

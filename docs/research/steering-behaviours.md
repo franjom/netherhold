@@ -1,4 +1,7 @@
-﻿# Mechanic: the steering behaviours' bodies (phase 2 of ADR-0157)
+﻿---
+systems: [navigation]
+---
+# Mechanic: the steering behaviours' bodies (phase 2 of ADR-0157)
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -305,7 +308,7 @@ stores `min(speed, 0xFFF)` at `+0x11C` and shifts it up four into `max_speed`.
 Timed multipliers: creature-status-effects.md §2. Radius: `(footprint >> 1) << 4` through vslot `0x3C`
 (`0x00487AF3`); `max_force` keeps the reset's `0x18000`.
 
-**Water (2026-10-10, Q118; CONFIRMED assembly).** `0x00488930` at `0x0048970B`–`0x00489749`
+**Water (2026-10-10, Q118; STRONGLY INFERRED assembly).** `0x00488930` at `0x0048970B`–`0x00489749`
 tests terrain Water (runtime `+0x17B`, `0x80`).
 Unless flying (`0x0048ED40`, vslot `+0x88`), it sets current speed ×50/100,
 unsigned floor, through `0x0048D010`: in body units, `((cap >> 4) / 2) << 4`.
@@ -370,26 +373,26 @@ request; the door bits are inert until doors enter the navigation byte.
 
 ## Confidence
 
-**CONFIRMED (binary):** the four installed functions and which behaviour calls
+**STRONGLY INFERRED (binary):** the four installed functions and which behaviour calls
 each; `Repel_Obstacle`'s two exemptions, its query radius, the overlap test, the
 full-force push for flag-bit-0-clear obstacles and the recording of the others;
 the twelve-slot list and its record shape.
 
-**CONFIRMED (binary + repo):** ordinary-query flag conversion and the separate
+**STRONGLY INFERRED (binary + repo):** ordinary-query flag conversion and the separate
 first-person/Heart streams are recorded in structure-blocks.md §5.
 
-**CONFIRMED (binary):** `Avoid_Walls`' normal path as stepped in §3 — the
+**STRONGLY INFERRED (binary):** `Avoid_Walls`' normal path as stepped in §3 — the
 prediction, the three probes and their tiles, the one-radius margin per axis
 with its factor of two, the corner case and its force; that steering positions
 are 16.16 tiles; the slide's threshold, projection and tangential push.
 
-**CONFIRMED (binary, 2026-09-17):** `Follow_Path` as stepped in section 5: the
+**STRONGLY INFERRED (binary, 2026-09-17):** `Follow_Path` as stepped in section 5: the
 progress formula and its units, the history's writer and both thresholds, the
 two arms and their advance and arrival rules, the turn-before-move gate and
 the turn rate's source and loader, both seek laws; the stuck block of section
 6 including its raw-unit nudge; the route request of section 7 end to end.
 
-**CONFIRMED (binary, second reader codex, 2026-09-17):** the slide's inward
+**STRONGLY INFERRED (binary, second reader codex, 2026-09-17):** the slide's inward
 test, projection order and tangent sign; the wall clamp's five arms and its
 stuck bit; the ray-circle test to its return; the crowd probe's square and sum.
 

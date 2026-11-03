@@ -1,3 +1,6 @@
+---
+systems: [creatures, combat]
+---
 # Mechanic: creature status effects — what a spell leaves on the creature it hits
 
 Source(s):
@@ -217,7 +220,7 @@ replaces it (§2). The hit's lengthening of the stun, `0x00481360`, is built (AD
 
 ## Confidence
 
-**CONFIRMED (binary):** §1's countdowns and their side effects; §2's setters,
+**STRONGLY INFERRED (binary):** §1's countdowns and their side effects; §2's setters,
 values and refusals; the frozen handler; the stun handler and `StunDuration`'s
 loader multiply; the Invisible drop and the targetable bit's conditions; §3's
 multipliers and refusals; the Stone Knight path.

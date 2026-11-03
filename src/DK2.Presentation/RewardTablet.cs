@@ -28,7 +28,7 @@ public sealed class RewardTablet
     public const float CentreX = 0.5f, CentreY = 800f / 1920f;
 
     /// <summary>One sparkle (<c>0x0042F309</c>, 0x18 bytes): position, velocity and frames left, which
-    /// is also its drawn size (LIKELY).</summary>
+    /// is also its drawn size (HYPOTHESIS).</summary>
     public struct Sparkle
     {
         public float X, Y, VelocityX, VelocityY;

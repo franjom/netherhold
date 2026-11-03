@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Message tabs (menu39) and the message panel (menu40)
 
 Read 2026-10-21 from `DKII.EXE` v1.70: the static menu/widget records, the
@@ -9,7 +12,7 @@ its speech references are in
 function's reading is in its record under [functions/](functions/INDEX.md).
 Nothing here was checked against a live capture; no owner observation was used.
 
-## 1. Widgets (CONFIRMED static data)
+## 1. Widgets (STRONGLY INFERRED static data)
 
 Menu39 (`0x00693AC0`, virtual (1112,1460) 948x156) has eighteen 88x128
 widgets at `0x006918D8` (80-byte records; the loader is
@@ -84,7 +87,7 @@ Global\Gui entries 2, 4 and 3, respectively; authored map durations are
 
 ### 3.1 Startup sound gate (binary, 2026-11-01)
 
-CONFIRMED disassembly at `0x00403DE0..0x00403E27`: the control update
+STRONGLY INFERRED disassembly at `0x00403DE0..0x00403E27`: the control update
 `0x00407260` (which calls the tab updater) requires camera class 2, or class 1
 with world `+0x284` nonzero. It then requires interface `+0xF5` and the normal-HUD
 camera predicate, unless player `+0x76` bit 19 bypasses those latter checks.

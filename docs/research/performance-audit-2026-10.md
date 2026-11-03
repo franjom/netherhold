@@ -1,3 +1,6 @@
+---
+systems: [simulation-core, presentation-unity]
+---
 # Performance and leak audit — October 2026
 
 Static audit of master `7281a019`, 2026-10-24. Analysis only: no game code,

@@ -1,3 +1,6 @@
+---
+systems: [data-formats, simulation-core]
+---
 # Format: saved games (`.SAV`, `.QSAV`)
 
 Source(s):
@@ -41,7 +44,7 @@ is sized by something else about the level (Q183).
 `0x8859` is odd, so the writer is a byte-oriented serialiser, not a `memcpy` of
 a packed struct.
 
-## How the save is written — CONFIRMED from the binary
+## How the save is written — STRONGLY INFERRED from the binary
 
 The save routine was found by following the Save window's text-input handler
 (`0x0042A920`) through **vtable slot `+0x28`** on the world object, whose

@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Payday
 
 **Status:** read from the binary and **BUILT**, 2026-09-06 (ADR-0078); the anger

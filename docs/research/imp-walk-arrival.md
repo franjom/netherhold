@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work, navigation]
+---
 # Imp walks: how a job walk lands exactly on its point
 
 **Source:** `DKII.EXE` v1.70 (GOG), read-only pyghidra-mcp and headless Ghidra 12.1.4 on

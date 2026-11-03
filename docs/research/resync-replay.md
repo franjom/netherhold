@@ -1,3 +1,6 @@
+---
+systems: [tooling-process]
+---
 # The resync replay: continuing our simulation from a DK2 capture's state
 
 2026-10-28, ADR-0556 and ADR-0558. Built for Q665: a full replay cannot isolate an Imp rule once the two

@@ -1,10 +1,13 @@
-﻿# Mechanic: the trap's update, its firing, its threat and the Trigger
+﻿---
+systems: [doors-traps]
+---
+# Mechanic: the trap's update, its firing, its threat and the Trigger
 
 Source(s): DKII.EXE v1.70, PyGhidra and pyghidra-mcp reads on 2026-09-28 and 2026-10-02; the
 shipped `Traps.kwd`, `Shots.kwd` and THINGS files; `dk2tools sgmap` field names for `CTrap`.
 Original version: DK2 v1.70 (GOG)
 Confidence: STRONGLY INFERRED unless a line says otherwise; the shipped-data sections are
-CONFIRMED from data, not from a run of the game.
+STRONGLY INFERRED from data, not from a run of the game.
 Implementation: `TrapRules`, `TrapSystem`, `TrapRemovalSystem`, `TrapActivationRules`,
 `FightRules.AnswerTrap`, `KwdTraps` (ADR-0251, ADR-0321).
 Tests: `TrapFiringTests`, `TrapActivationTests`, `TrapRuntimeOnRealDataTests`,
@@ -231,7 +234,7 @@ both sections' raw bytes checked displacement accesses and overlapping writes, i
 bytes outside the listing; it found no additional candidates at valid instruction starts.
 The constructor clears the required trap reference, and state 204 rejects an absent one.
 
-**CONFIRMED from disassembly: the advertised NUM 0 route is inert.** The original
+**STRONGLY INFERRED from disassembly: the advertised NUM 0 route is inert.** The original
 [manual §15.2](https://retrogamer.biz/wp-content/uploads/2016/06/Dungeon-Keeper-2-Manual.pdf)
 advertises this control; it does not establish the patched executable's behavior. The
 [default binding](functions/005604C0.md), [key handler](functions/00405010.md) and
@@ -320,7 +323,7 @@ Spike, gas and Alarm shots stand where they are made.
 
 ## 13. Shipped placement
 
-**CONFIRMED from data** (`TrapsFireOnRealDataTests`): 959 traps on 39 levels, all completed by
+**STRONGLY INFERRED from data** (`TrapsFireOnRealDataTests`): 959 traps on 39 levels, all completed by
 the loader; 955 fire here (Hero Sentry 320, Sentry 115, Boulder 97, Trigger 86, Lightning 80, Gas
 79, Spike 71, Freeze 41, Fear 41, Hero Alarm 16, Fireburst 7, Alarm 2) and 4 more run the gate: Level
 9's hero Guard Posts at (60,29), (60,35), (57,32) and (63,32), all reporting to the hero Guard

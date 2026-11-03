@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # First dig: continuous work and release observations
 
 2026-10-18, research only, modern gameplay hash/save 274. This extends the

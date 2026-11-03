@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, presentation-unity]
+---
 # Static mesh lighting inputs
 
 Retail DKII.EXE v1.70, primary Ghidra reads and shipped KMF data, 2026-10-16.
@@ -5,7 +8,7 @@ Point-light arithmetic remains in [classic-lighting.md](classic-lighting.md).
 
 ## 1. Draw flags can invert normals
 
-CONFIRMED: `0x0057AD20` tests its final flags byte for`0x80`. When clear,
+STRONGLY INFERRED: `0x0057AD20` tests its final flags byte for`0x80`. When clear,
 it transforms the source normal through the piece matrix. When set, it negates
 all three source-normal components before the same transform. Positions still
 follow their ordinary transform and lattice path. The decisive assembly is
@@ -20,7 +23,7 @@ sink`0x0059A050`, which preserves them into`0x00585F90`. Ordinary rock tops
 therefore use inverted lighting normals. This does not establish every room,
 static object or animated draw's flags.
 
-CONFIRMED shipped data: `ROCK TOP.kmf` has positions Z=-2 and normals(0,0,-1).
+STRONGLY INFERRED shipped data: `ROCK TOP.kmf` has positions Z=-2 and normals(0,0,-1).
 Both map to our render frame with the same orthogonal axis conversion, producing
 height2 and an upward authored normal. The native flag makes that lighting
 normal point downward instead. ClaimScan's light is below that top, so this
@@ -77,13 +80,13 @@ lights use the separate dynamic path below (Q603).
 
 ## 4. Authored object-light descriptors
 
-CONFIRMED shipped data: the24-byte light block at object file`+0x314` uses the
+STRONGLY INFERRED shipped data: the24-byte light block at object file`+0x314` uses the
 existing `KwdLight` layout. Heart13 has offset(0,0,3686), radius8192, flags`0x805`,
 RGB144/100/20; Arches86 has offset(0,0,15360), radius10240, flags`0x3800`,
 RGB244/244/204. Big Steps88 has a zero descriptor. These are authored inputs,
 not proof of runtime activation, fading, classification or final source positions.
 
-CONFIRMED factory path: `0x0049DD60` copies the24-byte block to definition`+0xD8`
+STRONGLY INFERRED factory path: `0x0049DD60` copies the24-byte block to definition`+0xD8`
 and ORs flag1 when any authored RGB byte is nonzero. `0x0049B1C0` requests the
 light through bridge slot`+0xA0` with intensity180 and the object's owner. It
 links the returned light to the object via light`+0x12E` and object`+0x131`.

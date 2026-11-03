@@ -49,7 +49,7 @@ public class EnvironmentMapCoordinatesTests
     [Fact]
     public void FromRightHandedViewFlipsZ_UnconfirmedFrame()
     {
-        // Pins our GUESS, not DK2: that its camera space is Direct3D's left-handed one (z into the
+        // Pins our HYPOTHESIS, not DK2: that its camera space is Direct3D's left-handed one (z into the
         // screen). The view matrix at 0x00760AC4 was not traced to its builder, so the axis
         // directions and the sign of v are unconfirmed (kmf-materials.md section 8).
         Assert.Equal(new Vector3(1, 2, -3), EnvironmentMapCoordinates.FromRightHandedView(new Vector3(1, 2, 3)));

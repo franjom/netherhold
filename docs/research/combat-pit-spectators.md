@@ -1,3 +1,6 @@
+---
+systems: [rooms, combat]
+---
 # The Combat Pit's spectators: job 26 and states 142, 143, 144
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.

@@ -1,4 +1,7 @@
-﻿# Gold on the floor: the fourth place a keeper's gold can be
+﻿---
+systems: [imps-tile-work]
+---
+# Gold on the floor: the fourth place a keeper's gold can be
 
 **Source:** `DKII.EXE`, the `Treasure.cpp`, `Player.cpp`, `Creature.cpp` and
 `ImpUtils.cpp` translation units, read on 2026-09-05, plus `Objects.kwd` and

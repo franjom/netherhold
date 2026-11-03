@@ -1,3 +1,6 @@
+---
+systems: [rooms, creatures]
+---
 # Training machine approaches and actions
 
 Primary source: retail v1.70 `DKII.EXE`, whole-function decompilation and

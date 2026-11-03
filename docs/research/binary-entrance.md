@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # What the binary says about the entrance
 
 **Evidence class: the executable.** Everything here was read out of `DKII.EXE`
@@ -23,7 +26,7 @@ produce.
 
 ---
 
-## 1. A creature's own flags decide whether a portal may produce it — CONFIRMED (binary), and we had it wrong
+## 1. A creature's own flags decide whether a portal may produce it — STRONGLY INFERRED (binary), and we had it wrong
 
 **This is the finding that changed code.** Before any question of levels, pools
 or rooms, the candidate builder rejects a creature type unless its flag word
@@ -74,7 +77,7 @@ portal. Both premises are now checked tests rather than remarks.
 
 ---
 
-## 2. The capacity formula — CONFIRMED (binary), with two divergences
+## 2. The capacity formula — STRONGLY INFERRED (binary), with two divergences
 
 ```text
 portals = countRoomsOfType(player, 3)     // Portal

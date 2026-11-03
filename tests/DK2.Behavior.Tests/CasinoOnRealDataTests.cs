@@ -59,7 +59,7 @@ public class CasinoOnRealDataTests
     }
 
     /// <summary>The Goblin's drink, action 39 three times over (four plays of art 19), and its turn at a
-    /// table, action 68 once (art 20), from its own files. LIKELY: the cycle count is the renderer's.</summary>
+    /// table, action 68 once (art 20), from its own files. HYPOTHESIS: the cycle count is the renderer's.</summary>
     [InstallFact]
     public void TheGoblinsDrinkAndItsPlayAreTimedFromItsOwnArt_LikelyCycleCount()
     {

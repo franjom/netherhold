@@ -1,4 +1,7 @@
-﻿# Mechanic: creature levels — what a level does, and what raises one
+﻿---
+systems: [creatures]
+---
+# Mechanic: creature levels — what a level does, and what raises one
 
 Source(s):
 - The reference install's `GlobalVariables.kwd` (the 32 × 9 stat table) and
@@ -121,7 +124,7 @@ prove the correction from behaviour, which nobody has done for these.
 
 ### Promotion sparkles (2026-10-23)
 
-CONFIRMED by a fresh whole read of `FUN_0048B120` and the request assembly
+STRONGLY INFERRED by a fresh whole read of `FUN_0048B120` and the request assembly
 at0x0048B294–0x0048B2B6: every successful level increment requests effect339
 (0x153) through view slot+0x38C, after health rescaling and before the pit-cap
 state change. It passes the creature's owner word+0x28, position+0x1A and

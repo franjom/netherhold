@@ -26,8 +26,9 @@ More in the [README](https://github.com/franjom/netherhold#screenshots).
 - **The original binary is the primary source.** Behaviour is researched in
   `DKII.EXE` with Ghidra and in the shipped data files before it is
   implemented. It is not reconstructed from memory of play.
-- **Every claim carries a confidence level:** CONFIRMED, STRONGLY INFERRED,
-  HYPOTHESIS or UNKNOWN.
+- **Every claim carries a confidence level:** CONFIRMED (seen in the running
+  game), STRONGLY INFERRED (read in the binary or the shipped data), HYPOTHESIS
+  or UNKNOWN; function records add DISPUTED.
 - **The simulation is deterministic.** It runs on integer ticks (4 per second,
   DK2's own rate), uses fixed-point maths and a seeded random source, and takes
   every balance number from the original game database.

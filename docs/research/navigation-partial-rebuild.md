@@ -1,3 +1,6 @@
+---
+systems: [navigation]
+---
 # Mechanic: the navigation mesh's per-tile rebuild (Q591)
 
 Source(s):

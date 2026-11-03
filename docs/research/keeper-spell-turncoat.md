@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells]
+---
 # Turncoat: temporary combat allegiance
 
 Binary read in Ghidra 12.1.4/PyGhidra, 2026-10-04. Instruction and shipped-data

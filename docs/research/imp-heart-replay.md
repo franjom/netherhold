@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work, navigation]
+---
 # Heart routing: one paired Level 4 replay
 
 2026-10-18. This is a compatibility check of the owner's recorded inputs,

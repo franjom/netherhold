@@ -1,3 +1,6 @@
+---
+systems: [simulation-core]
+---
 # DK2's random numbers: the generator, its streams and its seed
 
 Source(s):

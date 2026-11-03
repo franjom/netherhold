@@ -1383,7 +1383,7 @@ public sealed partial class WorldView
     }
 
     /// <summary>A wall top's live scan: bit k set where neighbour k is on the map and open.
-    /// LIKELY: DK2's scan (<c>0x00440001..0x00440068</c>) also needs the neighbour clear of
+    /// HYPOTHESIS: DK2's scan (<c>0x00440001..0x00440068</c>) also needs the neighbour clear of
     /// <c>0x004434F0</c>'s grid bit 15, and explored or a flag set; those are not built, and
     /// terrain solidity stands in for vtable <c>+0x208</c> (nav-solid).</summary>
     private int TopEdges(WorldState world, int x, int y)

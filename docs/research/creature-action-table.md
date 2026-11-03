@@ -1,4 +1,7 @@
-﻿# Mechanic: the creature action table — how an attack is entered
+﻿---
+systems: [creatures]
+---
+# Mechanic: the creature action table — how an attack is entered
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-16. Addresses are
@@ -198,7 +201,7 @@ CONFIRMED; the words exist as `SFX.map` groups in the creature's category (`0x33
 
 ## Confidence
 
-**CONFIRMED (binary):** the base, the 29-byte stride, the 81-record extent and
+**STRONGLY INFERRED (binary):** the base, the 29-byte stride, the 81-record extent and
 both of the facts that bound it; the index field and its `29n` arithmetic; the
 null and `0x15` guards; the 34-byte action block and that `FUN_00496AA0` clears
 it whole; that `FUN_00496700` begins an action from a stack argument; the 24

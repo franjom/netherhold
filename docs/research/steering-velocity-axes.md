@@ -1,3 +1,6 @@
+---
+systems: [navigation]
+---
 # Steering axes follow the resulting velocity
 
 2026-10-18, ADR-0509. The standalone change is based on main `506557a5`,
@@ -6,7 +9,7 @@ movement-order and idle-arrival candidates. No new state field is introduced.
 
 ## Binary and regressions
 
-**CONFIRMED instructions:** in [0x004D4760](functions/004D4760.md),
+**STRONGLY INFERRED instructions:** in [0x004D4760](functions/004D4760.md),
 `0x004D4B1F` binds the velocity address at body `+0x8C`; the shared tail
 `0x004D4E4B` passes it to [0x004D1F10](functions/004D1F10.md), stores the
 normalized vector at `+0x94`, and its perpendicular at `+0x9C`. Arrival and

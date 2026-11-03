@@ -1,3 +1,6 @@
+---
+systems: [rooms, creatures]
+---
 # A Prison's door and a jail break: states 122 and 121
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.

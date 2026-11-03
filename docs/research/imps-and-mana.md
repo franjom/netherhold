@@ -1,4 +1,7 @@
-﻿# Imps, and what mana is actually for
+﻿---
+systems: [imps-tile-work]
+---
+# Imps, and what mana is actually for
 
 Milestone M3. Where imps come from, what they cost to buy, and what they cost to
 keep — the last of which turns mana from a number that only goes up into an
@@ -91,7 +94,7 @@ Recorded 2026-09-05:
 
 ### What the binary says
 
-**CONFIRMED (binary, 2026-11-01).** `0x004B8640` initializes the unsigned
+**STRONGLY INFERRED (binary, 2026-11-01).** `0x004B8640` initializes the unsigned
 free-Imp deadline (player +0xA2) to `0xFFFFFFFF` at `0x004B86C3`. The Heart's
 opening frame `0x004D9A60` arms it at elapsed exactly nine game seconds:
 `0x004D9ECD` stores the current native turn, for every owner. This is outside

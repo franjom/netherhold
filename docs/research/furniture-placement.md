@@ -1,6 +1,9 @@
+---
+systems: [rooms, art-assets]
+---
 # Where furniture stands in its tile, and which way it faces
 
-Status: DRAFT, 2026-10-10. Every placement below is **CONFIRMED** by a static read of
+Status: DRAFT, 2026-10-10. Every placement below is **STRONGLY INFERRED** by a static read of
 `DKII.EXE` (decompile plus the jump tables named) unless marked otherwise. Mesh-heading
 conversion is established in [object-drawing.md §4](object-drawing.md#4-position-and-rotation).
 The heading values and the direction the binary's own trig gives them are read. Which tiles get

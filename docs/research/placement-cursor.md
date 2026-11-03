@@ -1,3 +1,6 @@
+---
+systems: [hud-front-end]
+---
 # Placement cursor: cage, tool icon and price
 
 Read 2026-10-23 (claude) from DKII.EXE: what DK2 draws at the pointer while a room, sell,
@@ -90,7 +93,7 @@ for modes 6 and 7; not owner-confirmed).
   Barricade bit, def `+0x8B` & 0x40) and `+0x24C` for a trap.
 - The arm requests middle-channel state 1 (Point).
 
-**Keeper spell, mode 8, `0x0040B7F0` (CONFIRMED, re-read 2026-10-23).** No rectangle, no
+**Keeper spell, mode 8, `0x0040B7F0` (STRONGLY INFERRED, re-read 2026-10-23).** No rectangle, no
 `+0x13E4` or bit 0x10 write; it sets 0x02 where the cast would be refused. Its tests (record
 [0040B7F0](functions/0040B7F0.md)): a place spell needs the tile in the map, then is valid on a
 Temple interior tile (the click's action 0x87, the offering) or where the position permission
@@ -109,7 +112,7 @@ something, and that is the drop cage. See hand-cursor-rendering.md.
 ## 2a. The hover cage: the Hand light's kind3 art (read 2026-10-23)
 
 **Who draws it (HYPOTHESIS).** Bridge handle `+0x33E`, the Hand light
-([classic-lighting.md](classic-lighting.md) §4). CONFIRMED (disassembly `0x0043BC10..0x0043BDAC`):
+([classic-lighting.md](classic-lighting.md) §4). STRONGLY INFERRED (disassembly `0x0043BC10..0x0043BDAC`):
 it carries the kind3 art and gets the drawn bit and edge word below each frame. That this is
 the cage the owner sees rests on the owner's photos, the unread flag and the untraced draw path. Startup
 `0x00447D50` builds it exactly as it builds `+0x35D`, the handle `0x0043CC30` uses for the
@@ -136,7 +139,7 @@ with `0x0044D620` false (letterbox camera), it clears bit 0 only (`0x0043BDD5`):
 not moved and its RGB is left. When the player thing has `+0x76` bit `0x80000` or `+0x19A` set (possession), it
 clears bit 0 and publishes a zero primary rectangle (`0x0043BE0B`).
 
-**The visibility flag (CONFIRMED, read 2026-10-23).** At `0x0043B7DA..0x0043B7ED` the bridge's
+**The visibility flag (STRONGLY INFERRED, read 2026-10-23).** At `0x0043B7DA..0x0043B7ED` the bridge's
 `+4` is the session container (`GameSession_UpdateLoop 0x00526590`; the bridge is its `+0x10`
 component). Container `+0xC` is the player interface, the global `0x006CEA10`, which
 `GameSession_Run` attaches through `0x00526FF0` at `0x005256D4` (and detaches through
@@ -285,7 +288,7 @@ are engine textures (32×32 with a 16×16 MIP), not `Sprite.WAD`. I-Place_Room i
 `0x20×0x20`. The mapping of that size to screen pixels is unread. In room mode the icon is
 skipped while the pickaxe dig-hover shows.
 
-**Spell icon (CONFIRMED, read 2026-10-23).** Mode 8 calls `0x0040D310` and leaves the icon
+**Spell icon (STRONGLY INFERRED, read 2026-10-23).** Mode 8 calls `0x0040D310` and leaves the icon
 index at 13, so no I-* icon and **no price**. It draws, at the same anchor and `0x20×0x20` size,
 the spell's GUI icon: the KeeperSpells record's first art (file `+0x20`, `gui\spells\<name>`, the
 bottom panel's resource), never the upgraded `…-2`. Then the No Go anchor moves by `(-2, +2)`.
@@ -312,7 +315,7 @@ price, as the owner described.
 draws icon 5 (`I-No_Go`) at the same anchor, so it covers the tool icon. In Hand mode the
 anchor comes from the held-item helper `0x0040CFE0`.
 
-**Held items in Hand mode (CONFIRMED, read 2026-10-23).** `0x0040CAE0` returns at once while
+**Held items in Hand mode (STRONGLY INFERRED, read 2026-10-23).** `0x0040CAE0` returns at once while
 Options is open (`+0x2722`; owner-confirmed: the icons hide) or bit 0x01 is set (`0x004039A0`,
 once the player has a result); its caller `0x00403FB0` calls it every frame, and nothing on that
 path tests possession or the full map. Mode 0 draws no I-* icon or price; with bit 0x08 (cleared

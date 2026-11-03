@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers, hud-front-end]
+---
 # Campaign map, progression and what the profile keeps between levels
 
 **Scope:** the single-player campaign's level select (the "world map"), the unlock and branch

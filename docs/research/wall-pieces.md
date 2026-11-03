@@ -1,3 +1,6 @@
+---
+systems: [art-assets, presentation-unity]
+---
 # Format and engine: which wall and floor pieces DK2 draws for a tile (Q71)
 
 Source(s):
@@ -17,7 +20,7 @@ Conventions used below:
 - **Direction table** `0x006BC370`: 8 entries of (dx, dy), index k = 0 N (0,−1),
   1 NE, 2 E (1,0), 3 SE, 4 S (0,1), 5 SW, 6 W (−1,0), 7 NW. **Side table**
   `0x006BC350`: 4 entries N, E, S, W. A side index s (0..3) uses direction d = 2s.
-  CONFIRMED (bytes read).
+  STRONGLY INFERRED (bytes read).
 - **Piece list** (the 4th or 5th argument of every builder) holds two arrays:
   - the **quarter array** at list+0: 27-byte entries, count at list+0x1B0;
   - the **whole array** at list+0x1B4: 22-byte entries, count at list+0x2E8.
@@ -156,7 +159,7 @@ flag 0x20000 (Decay; only Reinforced Wall has it) it is a damage stage,
 The tint comes from the **neighbour's** terrain colour words +0x1B9/+0x1BB/+0x1BD
 when that terrain has flag 0x20000000 (AmbientLight). CONFIRMED.
 
-### Pseudocode (general rooms; CONFIRMED against the disassembly, 0x00444F9F..0x004458B1)
+### Pseudocode (general rooms; STRONGLY INFERRED against the disassembly, 0x00444F9F..0x004458B1)
 
 ```
 roomId = tile(x,y).roomWord & 0xFFF

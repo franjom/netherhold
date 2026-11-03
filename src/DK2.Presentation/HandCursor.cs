@@ -22,7 +22,7 @@ public static class HandCursor
 {
     /// <summary>Whether the hovered tile takes the excavation cursor: tagged by the viewer, Taggable
     /// terrain (CONFIRMED: the picker <c>0x005992B0</c> sets its target bit from terrain flag
-    /// <c>0x08</c>), or hidden by fog (LIKELY: the owner saw the dig cursor over "Fog of War",
+    /// <c>0x08</c>), or hidden by fog (HYPOTHESIS: the owner saw the dig cursor over "Fog of War",
     /// fog-of-war.md §9.2, and the picker gates on the explored bit <c>+9</c>&amp;<c>0x20</c> with
     /// register arguments unresolved). Fog is the explored layer, as the hover text and minimap
     /// read it. The tag command (PlayerInput, TileTagSystem) still tests the scanned layer; the

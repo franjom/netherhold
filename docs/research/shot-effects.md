@@ -1,3 +1,6 @@
+---
+systems: [combat, art-assets]
+---
 # Shot and spell visual effects: trails, timed and hit effects, the Inferno, procedural lightning
 
 Source(s):
@@ -166,7 +169,7 @@ These are the pieces that the shot effects exercise:
 | DirectionalSpread `+0x43` | nonzero: the element's velocity heading is its heading + `Random(8s) − 4s`, not uniform. ds 1 a jet along the launch heading (77, 148, 156, 158); ds 255 a fan (232, 234, 245) | `0x00435F20` (`0x0043609E..0x004360D5`) | CONFIRMED |
 | effect flag `0x400` | besides one random slot a pass, on the element path the element heading is the orientation offset alone, without the parent's (158 Haste). On the `0x40` path it is the reverse: with `0x400` the offset plus the parent heading (`0x00438A03`), without it the offset alone (`0x00438BBB`); effect 284 is the shipped case | `0x00438DE0` | CONFIRMED |
 | effect flag `0x1` | floor contact always raises its hit id; `0x1` also Kills. Wall collision always raises HitSolid through ungated `+0x94`; `0x1` makes movement fail. The effect caller stops at the old point without Kill, while the element caller removes the failed element | `0x00446C70`, `0x004476E0` | CONFIRMED |
-| effect hit ids | floor: file HitWater (`+0xC6`, runtime `+0x81`) on terrain `0x100` (Lava), else file HitLava (`+0xC8`, runtime `+0x83`) on `0x80` (Water), else HitSolid; wall: HitSolid. Preserve this native swapped-field selection | `0x00446C70`, `0x004476E0`, `0x004358C0` | CONFIRMED (binary; terrain loader and registration checked) |
+| effect hit ids | floor: file HitWater (`+0xC6`, runtime `+0x81`) on terrain `0x100` (Lava), else file HitLava (`+0xC8`, runtime `+0x83`) on `0x80` (Water), else HitSolid; wall: HitSolid. Preserve this native swapped-field selection | `0x00446C70`, `0x004476E0`, `0x004358C0` | STRONGLY INFERRED (binary; terrain loader and registration checked) |
 | element hit ids | on the floor: the first nonzero of HitWater, HitLava, HitSolid, no terrain test; HitSolid on a wall | same | CONFIRMED |
 | element flag `0x40` | yaw := atan2 of the initial XY velocity, a mesh points along its flight (187 iceicle) | `0x00435F20` (`0x0043615F..0x00436190`) | CONFIRMED |
 | element NextEffectId | made every update before angles/motion, including expiry, through ungated `+0x94` (550 → 337) | `0x00436430` | CONFIRMED |
@@ -222,7 +225,7 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
 
 ## 5. The Inferno
 
-**The carpet (CONFIRMED data, flag `0x40` CONFIRMED binary).**
+**The carpet (STRONGLY INFERRED data, flag `0x40` STRONGLY INFERRED binary).**
 - Shot 15's creation effect 107 (type 4, HP 1, flags `0x240`) makes **effect 106, "Inferno
   Data 1"**, once, at the cast point.
 - Effect 106:
@@ -248,7 +251,7 @@ reachable effect and element is in `Effects.kwd`/`EffectElements.kwd`.
   even without a creature hit: 30 over the Inferno's life.
 - The mechanism is CONFIRMED; that it reads as a shake is STRONGLY INFERRED.
 
-**Burning creatures (CONFIRMED, `0x0048E4B7..0x0048E631`, re-read).**
+**Burning creatures (STRONGLY INFERRED, `0x0048E4B7..0x0048E631`, re-read).**
 - `0x0048EBD0` stores ticks at `+0x469` and the burner at `+0x46B`. The Inferno sets 1 every
   tick (`0x004AF821`). Fire-category ignition sets10 ticks by contact damage (`0x004AC526`)
   and5 by Modify Health (`0x004ADC4C`), under the following gate.
@@ -287,7 +290,7 @@ SHA-256-verified artifacts: `F:/DK2Evidence/studies/shot-burning-hash340-z--2026
 
 ## 6. Procedural lightning (art type 7)
 
-**Kinds (CONFIRMED data).** `KwdArtResource.ProceduralKind` decodes the first dword of
+**Kinds (STRONGLY INFERRED data).** `KwdArtResource.ProceduralKind` decodes the first dword of
 the type block at file `+0x44`; dispatch is `0x005A01A0`.
 
 | kind | native draw | shipped examples |
@@ -384,11 +387,11 @@ pin `0xC9236A4CFBFEC07D` preserve master 342 plus burning. Procedure: [README](.
 
 ## Confidence
 
-**CONFIRMED (binary, 2026-10-26):** §1; §2 except the dead lava/water fields; §3's table rows
+**STRONGLY INFERRED (binary, 2026-10-26):** §1; §2 except the dead lava/water fields; §3's table rows
 so marked; the generation types; §5's burning arm, re-read in the listing; §6's kinds,
 endpoints and bolt arithmetic.
 
-**CONFIRMED (data):** the shot and effect ids, effect 106's contents, the type-7 kinds.
+**STRONGLY INFERRED (data):** the shot and effect ids, effect 106's contents, the type-7 kinds.
 
 **STRONGLY INFERRED:** hit-lava/water inert; bodies without pitch; inert effect flags `0x80`,
 `0x200`, element flag `0x20` and effect Radius; the jitter as a shake; additive lightning blending.

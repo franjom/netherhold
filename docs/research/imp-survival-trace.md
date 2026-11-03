@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # Level 4 seed 8: first additional Imp death
 
 Scope: compare store-only hash 266 with per-worker work visibility, hash 267.

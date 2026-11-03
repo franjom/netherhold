@@ -1,4 +1,7 @@
-﻿# Mechanic: dying — two timers, three states
+﻿---
+systems: [creatures]
+---
+# Mechanic: dying — two timers, three states
 
 Source(s):
 - Owner observation, 2026-09-04 and 2026-09-07 (Q99, Q107, Q109, Q111)
@@ -14,8 +17,8 @@ Source(s):
 
 Original version: DK2 v1.70
 
-Confidence: **CONFIRMED (owner)** for the pipeline, **CONFIRMED (data)** for the
-flags and the numbers, **CONFIRMED (binary)** for the collapse window's guard.
+Confidence: **CONFIRMED (owner)** for the pipeline, **STRONGLY INFERRED (data)** for the
+flags and the numbers, **STRONGLY INFERRED (binary)** for the collapse window's guard.
 
 ## 1. The pipeline — CONFIRMED (owner, Q99)
 
@@ -263,7 +266,7 @@ slapping calms it; being held annoys it).
 **The flag governs.** A graveyard counting `DecomposeValue` instead of asking
 `LeavesBody` would be fed by two corpses that never exist.
 
-## 4. The collapse window rejects further damage — CONFIRMED (binary, Q110)
+## 4. The collapse window rejects further damage — STRONGLY INFERRED (binary, Q110)
 
 The cached `CreatureDyingStateDurationSeconds` value has one live reader, in the
 common creature-health routine, **`FUN_004B2CE0`** (`combat.md` §1, where its "mode" argument is named). On the first blow that puts an eligible creature

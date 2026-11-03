@@ -1,3 +1,6 @@
+---
+systems: [navigation, creatures]
+---
 # Mechanic: travel states — how a caller hands work to a walk, and how the walk hands it back
 
 Source(s):
@@ -121,7 +124,7 @@ So `+0xDF` is a general "next state" slot. Category 2 is its main user, not its 
 one. **The constructor sets `+0x10` = 1, `+0x40` = 0 and `+0xDF` = 0.** After any
 resume the slot holds 1.
 
-## 3. `SetState`'s part — CONFIRMED (`0x00476D30`, read in full)
+## 3. `SetState`'s part — STRONGLY INFERRED (`0x00476D30`, read in full)
 
 After the allowed-test of creature-state-table.md §2.2, the routine branches on the
 current category (`EBP`) and the target's (`EDI`):

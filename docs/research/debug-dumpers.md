@@ -1,4 +1,7 @@
-﻿# Runtime entity references and DKII.EXE's own field names (Q264)
+﻿---
+systems: [tooling-process]
+---
+# Runtime entity references and DKII.EXE's own field names (Q264)
 
 DK2 ships eleven debug dumpers: functions that write an object to a log, one
 `printf` per field, **with the field's name in the format string**. They are the

@@ -1,3 +1,6 @@
+---
+systems: [rooms]
+---
 # The Casino's states: 145–153, the jackpot and its winner (152, 155–157)
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-10-06.
@@ -139,7 +142,7 @@ Without a wheel, 149 still asks `0xD5` every `v19 × 8` turns ([sound-effects.md
 **150** (`0x00456450`, not a function in the canonical project): action 68, count 1; started,
 `SetState(151)`, else return 0. **151** as 147 without the sound.
 
-## 7. The actions — CONFIRMED (table), HYPOTHESIS (duration)
+## 7. The actions — STRONGLY INFERRED (table), HYPOTHESIS (duration)
 
 `0x004950C0` fills each record (`0x006E4198 + id × 0x1D`): actions 35, 56, 39, 57 and 65–68 have
 no handler, mode 0 (EAX, 0 at their stores) and no fixed duration, so each ends with its

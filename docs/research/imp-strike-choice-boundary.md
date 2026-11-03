@@ -1,3 +1,6 @@
+---
+systems: [imps-tile-work]
+---
 # A completed rock strike and the following claim boundary
 
 2026-10-18. Research only, main gameplay hash/save 274. This replaces neither

@@ -1,4 +1,7 @@
-﻿# The research tree
+﻿---
+systems: [rooms]
+---
+# The research tree
 
 Milestone M6. What a keeper's banked research points buy. The accrual that banks them is
 [library-and-research.md](library-and-research.md).

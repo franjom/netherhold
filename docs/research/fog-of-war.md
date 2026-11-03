@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting]
+---
 # Fog of war: what a keeper has seen
 
 | | |
@@ -149,7 +152,7 @@ continuing anyway.
   whose bit 6 gates fog rendering. **A save persists the simulation**, so the fog
   gate is not reconstructed by the renderer. That answered Q190's architecture
   half by the exact route `sav-format.md` predicted.
-- **The reveal radius is six tiles — CONFIRMED from shipped data**, and
+- **The reveal radius is six tiles — STRONGLY INFERRED from shipped data**, and
   independently re-derived on merge. `CreatureDef.PerceptionRange` (CREATURES
   offset `0x0D01`, parsed before this work) is `0x6000` for **all 46** creatures,
   which at 4096 to the tile is exactly 6. **It is not `DistanceCanSee`**, which

@@ -1,4 +1,7 @@
-﻿# Auto-placed room furniture
+﻿---
+systems: [rooms]
+---
+# Auto-placed room furniture
 
 Status: floor placement, wall placement, Temple Hand placement, and the five
 furniture-count capacity arms are **STRONGLY INFERRED** from `DKII.EXE`. The
@@ -84,7 +87,7 @@ types against the room definition. The relevant arms are:
 | Prison | `0xFFFF`; its own count goes to `+0x4B` (floor slots + 1) |
 | every other type: Treasury, Lair, Hatchery, Heart, Wooden and Stone Bridge, **Guard Room**, the hero rooms | the slab count `+0xA7` |
 
-**The default arm, CONFIRMED (binary, 2026-10-12).** The switch is on type − 3, bounded at 13,
+**The default arm, STRONGLY INFERRED (binary, 2026-10-12).** The switch is on type − 3, bounded at 13,
 through the table at `0x004E42C0`. Entries 1, 2, 5 and 6 (Hatchery, Heart, Wooden Bridge, Guard
 Room) and every type outside 3–16 go to `0x004E429A`, which copies the word at `+0xA7` into
 `+0x67`. The portal's attraction contribution `0x004DCE70` returns `+0x67` for every type but

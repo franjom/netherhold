@@ -1,3 +1,6 @@
+---
+systems: [campaign-triggers]
+---
 # Trigger action arms read whole: 18, 20, 22, 24, 35, 39, 40, 41 and 42 (Q301, Q227, Q607)
 
 **Scope:** what these action arms do past the body fields `trigger-semantics.md`

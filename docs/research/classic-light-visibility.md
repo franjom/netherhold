@@ -1,3 +1,6 @@
+---
+systems: [camera-lighting, presentation-unity]
+---
 # Classic terrain-light visibility
 
 Retail v1.70 DKII.EXE, Ghidra12.1.4; bounded binary read, 2026-10-15.
@@ -12,7 +15,7 @@ returned polygon goes to `0x005735A0`; the alternate flag1 branch uses the
 camera-ring enumeration instead. Cache preparation follows enumeration,
 then light gathering, then primitive preparation.
 
-CONFIRMED whole-body reads of `0x00574820` and its five polygon helpers,
+STRONGLY INFERRED whole-body reads of `0x00574820` and its five polygon helpers,
 with producer disassembly resolving the hidden vector destinations: let
 `hx = viewportWidth / (2*focalPixels)`, `hy = viewportHeight / (2*focalPixels)`,
 `d = viewDistance`. The camera-space point set contains four near points
@@ -52,7 +55,7 @@ equivalent to the clipped volume above.
 
 ## 2. Scan conversion and visible-flag lifetime
 
-CONFIRMED whole-body read of `0x005735A0`: polygon nodes contain integer X/Y
+STRONGLY INFERRED whole-body read of `0x005735A0`: polygon nodes contain integer X/Y
 and links in both directions. Starting at a minimum-Y node, the routine
 walks both edges, advances signed16.16 X accumulators and visits integer
 scanlines in increasingY. Each nondegenerate scanline includes both X
@@ -66,7 +69,7 @@ its existing-entry frame/LRU refresh does not clear flags. `0x00575700`
 increments the32-bit frame counter without a wrap correction or a visible-flag
 clear in its own body.
 
-CONFIRMED clearing is later: cached disassembly
+STRONGLY INFERRED clearing is later: cached disassembly
 `0x00572DDF..0x00572DE8` in `0x00572CF0` clears entry `+0x18` flag mask0x08 after
 preparing both primitive lists, before advancing through `+0x24`.
 Thus the ordinary completed frame sequence clears the flags it set; frame
@@ -87,7 +90,7 @@ or establish that every authored light is prepared.
 
 ## 4. Entry lifetime
 
-CONFIRMED (read 2026-10-21): A cache entry, and the light table
+STRONGLY INFERRED (read 2026-10-21): A cache entry, and the light table
 in it, lives only while frames keep touching it. After each frame is presented,
 `0x00575780` calls `0x00576010`, which frees every entry the frame did not reach
 through `0x00571B00` (the visible enumeration, the preparation rectangles, and the

@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Text.RegularExpressions;
+using DK2.Tools.Wiki;
 
 namespace DK2.Tools.Commands;
 
@@ -34,6 +35,7 @@ internal static class DocsCommand
             || (messagePath is not null && !all && Repo.OptionValue(args, "--since") is null);
 
         var findings = new List<string>();
+        DocsContext? context = DocsContext.TryLoad(docsRoot, findings);
 
         void Report(string file, string what, int actual, int budget)
             => findings.Add($"{file}: {what} is {actual}, budget {budget}");
@@ -70,7 +72,7 @@ internal static class DocsCommand
                 ? null
                 : Repo.AddedLineNumbers(docsRoot, baseRef, relative, staged);
 
-            CheckFile(relative, lines, baseLines, all, touched, findings);
+            CheckFile(relative, lines, baseLines, all, touched, findings, context);
         }
 
         if (findings.Count == 0)
@@ -98,8 +100,9 @@ internal static class DocsCommand
             .Where(l => !l.StartsWith('#'))
             .Count(l => l.Length > 0);
 
+    /// <param name="context">The systems and the notes' tags, for the ADR-0643 rules; null skips them.</param>
     internal static void CheckFile(string relative, string[] lines, string[] baseLines, bool all,
-        HashSet<int>? touched, List<string> findings)
+        HashSet<int>? touched, List<string> findings, DocsContext? context = null)
     {
         void Report(string file, string what, int actual, int budget)
             => findings.Add($"{file}: {what} is {actual}, budget {budget}");
@@ -141,9 +144,20 @@ internal static class DocsCommand
             && relative.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
             && !relative.EndsWith("open-questions.md", StringComparison.OrdinalIgnoreCase)
             && !relative.EndsWith("functions/INDEX.md", StringComparison.OrdinalIgnoreCase)
-            && lines.Length > DocBudgets.ResearchDoc
-            && Worse(lines.Length, baseLines.Length))
-            Report(relative, "length", lines.Length, DocBudgets.ResearchDoc);
+            && Prose(lines) > DocBudgets.ResearchDoc
+            && Worse(Prose(lines), Prose(baseLines)))
+            Report(relative, "length", Prose(lines), DocBudgets.ResearchDoc);
+
+        // ADR-0643: a note names the systems it belongs to, from the closed list.
+        if (context is not null && ResearchNotes.NoteName(relative) is not null)
+        {
+            var systems = ResearchNotes.Systems(lines);
+            if (systems is not { Count: > 0 })
+                findings.Add($"{relative}: names no systems; start it with front matter '---', 'systems: [id, ...]', '---' (docs/systems.yaml)");
+            else
+                foreach (string s in systems.Where(s => !context.Catalog.Contains(s)))
+                    findings.Add($"{relative}: system '{s}' is not in docs/systems.yaml");
+        }
 
         // One row per question. Long rows are this repo's worst offender and
         // they are always append-accretion, never one long thought.
@@ -175,6 +189,9 @@ internal static class DocsCommand
                 if (length > DocBudgets.Adr)
                     Report($"{relative}:{from + 1}", Trim(lines[from]), length, DocBudgets.Adr);
             }
+
+            if (context is not null && relative.Equals(AdrIndex.RelativePath, StringComparison.Ordinal))
+                CheckAdrs(relative, lines, Touched, findings, context);
         }
 
         if (!relative.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)) return;
@@ -233,6 +250,53 @@ internal static class DocsCommand
 
         static string Trim(string heading)
             => heading.Length <= 40 ? heading : heading[..40] + "...";
+    }
+
+    /// <summary>A research note's length less its front matter, which the budget leaves out.</summary>
+    static int Prose(string[] lines) => lines.Length - ResearchNotes.FrontMatterLength(lines);
+
+    /// <summary>ADR-0643: an ADR number heads one ADR (judged over the whole file, it is cheap), and an
+    /// ADR you touch resolves to a status and to systems that exist.</summary>
+    static void CheckAdrs(string relative, string[] lines, Func<int, int, bool> touched, List<string> findings,
+        DocsContext context)
+    {
+        var adrs = AdrIndex.Parse(lines, context.NoteNames);
+        foreach (int n in AdrIndex.Duplicates(adrs))
+            findings.Add($"{relative}: ADR-{n:D4} is used by more than one ADR");
+        foreach (Adr adr in adrs)
+        {
+            if (!touched(adr.Line, adr.EndLine)) continue;
+            string at = $"{relative}:{adr.Line}: ADR-{adr.Number:D4}";
+            if (adr.Status.Length == 0)
+                findings.Add($"{at} has no status ('**Status:** accepted' and so on) under its heading");
+            foreach (string s in (adr.ExplicitSystems ?? []).Where(s => !context.Catalog.Contains(s)))
+                findings.Add($"{at}: system '{s}' is not in docs/systems.yaml");
+            if (AdrIndex.Systems(adr, context.NoteSystems, context.Catalog).Count == 0)
+                findings.Add($"{at} has no system: cite a tagged research note or add '**Systems:** id, ...' under its heading");
+        }
+    }
+}
+
+/// <summary>What the ADR-0643 rules read: the systems, and every note's tags in the working tree.</summary>
+internal sealed record DocsContext(
+    SystemCatalog Catalog, IReadOnlyDictionary<string, IReadOnlyList<string>> NoteSystems, ISet<string> NoteNames)
+{
+    /// <summary>Loads from the working tree; a broken docs/systems.yaml is a finding and skips the rules.</summary>
+    internal static DocsContext? TryLoad(string root, List<string> findings)
+    {
+        try
+        {
+            var catalog = SystemCatalog.Load(root);
+            var notes = ResearchNotes.Load(root);
+            return new DocsContext(catalog,
+                notes.ToDictionary(n => n.Name, n => n.Systems, StringComparer.Ordinal),
+                notes.Select(n => n.Name).ToHashSet(StringComparer.Ordinal));
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            findings.Add($"{SystemCatalog.RelativePath}: {e.Message}");
+            return null;
+        }
     }
 }
 

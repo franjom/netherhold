@@ -1,3 +1,6 @@
+---
+systems: [keeper-spells, creatures]
+---
 # Creature pickup permission
 
 ## Evidence
@@ -84,7 +87,7 @@ No original-game observation validates this slice; the next section's stored pat
 
 ## Permission is the cursor's; a stored pick-up skips it (ADR-0616)
 
-**CONFIRMED (binary, reviewed 2026-11-01)** for the path; the Level 5 capture is one observation. `0x0048E6A0`'s callers are the cursor and hand-click code (`0x00407A78`,
+**STRONGLY INFERRED (binary, reviewed 2026-11-01)** for the path; the Level 5 capture is one observation. `0x0048E6A0`'s callers are the cursor and hand-click code (`0x00407A78`,
 `0x0040C1E0`, `0x00408EE0`, `0x00418xxx`) and the computer keeper. The stored pick-up never calls
 it. That path is action 57 (`0x00513480`), hand state 1's callback `0x004C0BE0` and the insert
 `0x004BC500`. It refuses only these:

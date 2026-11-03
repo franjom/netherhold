@@ -1,4 +1,7 @@
-﻿# Research: how the imp work states move and end
+﻿---
+systems: [imps-tile-work]
+---
+# Research: how the imp work states move and end
 
 Source: `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-24.
 Addresses and control-flow descriptions are facts about the binary written in our

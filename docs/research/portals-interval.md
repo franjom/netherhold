@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # A portal's arrival interval
 
 | | |
@@ -109,7 +112,7 @@ gaps.
 Read 2026-10-01 from the binary (pyghidra-mcp, ADR-0046) and checked against
 three seeded Level 2 captures. Confidence is per claim.
 
-**Every due roll restamps the clock. CONFIRMED (binary).** When
+**Every due roll restamps the clock. STRONGLY INFERRED (binary).** When
 `now >= room[0x49] + (n² + base) × variable19`, `0x004DBBE0` calls the pick
 `0x004DBF90` with 1 and then writes `room[0x49] = now` at `0x004DBC7C`. Nothing
 tests what the pick returned. So the clock restarts at the due tick whether a
@@ -119,7 +122,7 @@ obstacle goes. The wait is never banked. Before the due test the routine checks
 only that the room's owner is not `DAT_006F2548` and that the owner's
 `+0x132` (`KilledByPlayerId`) is 0.
 
-**The special-arrival branch is not the campaign's. CONFIRMED (binary).** First
+**The special-arrival branch is not the campaign's. STRONGLY INFERRED (binary).** First
 the due path calls `0x004DCF50`. When it returns non-zero for a room of type 3,
 the routine restamps and returns without the pick. `0x004DCF50` returns 0 at
 once when the mode byte `0x0075AD4B` is 1 (single player, `win-and-defeat.md`).
@@ -128,7 +131,7 @@ In other modes it offers the first type in 0x20..0x2C whose player flag
 sets the flag, and returns 1 whether or not the create succeeded. Not built:
 nothing here runs a non-campaign mode.
 
-**The pick can draw and still create nothing. CONFIRMED (binary).** After the
+**The pick can draw and still create nothing. STRONGLY INFERRED (binary).** After the
 draw, `0x004DBF90` calls the creator `0x004DC9A0` and increments `room[0x4D]`
 (`0x004DC5E3`) only when it returns non-zero. It then decays every boost and
 block whenever any type had weight, however the create went. The creator's
@@ -220,7 +223,7 @@ same bookkeeping is unread. Built as ADR-0358 (`PortalRules.ArrivalDied`).
 
 Read 2026-11-01 from the binary and checked against the Level 5 and Level 4 captures.
 
-**The pick and the noticing pass both start with the keeper's free lair space. CONFIRMED (binary).**
+**The pick and the noticing pass both start with the keeper's free lair space. STRONGLY INFERRED (binary).**
 `0x004DBF90` calls `0x004C6DD0` on the owner before its type loop. It weighs no type while the
 result is negative: it jumps to its epilogue at 0x004DBFF8. `0x004DBD90` does the same. So a
 negative value means no notice, no draw, no decay and no creation, and the caller still restamps
@@ -293,7 +296,7 @@ that could not have found the thing was read as evidence about the thing.
 
 ## Portal buildup (built, ADR-0467)
 
-CONFIRMED by whole-function reads, refreshed 2026-10-23: `FUN_004DBBE0`
+STRONGLY INFERRED by whole-function reads, refreshed 2026-10-23: `FUN_004DBBE0`
 tests equality with the next due turn minus three game seconds (12 ticks).
 It calls `FUN_004DBF90` with argument zero and, when its candidate count
 and the room definition's runtime ushort `+0x425` are nonzero, requests

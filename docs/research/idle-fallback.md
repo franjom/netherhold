@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # State 89's fallback and state 3: what an idle creature does with nothing to do
 
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 12.1.4 on 2026-09-25.

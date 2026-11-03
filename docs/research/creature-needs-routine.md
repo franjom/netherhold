@@ -1,3 +1,6 @@
+---
+systems: [creatures]
+---
 # Mechanic: the needs routine — how hunger, sleep and pay take a creature off its work
 
 Source: `DKII.EXE` v1.70 (GOG), `0x00477C20` and its caller, the per-creature
@@ -84,7 +87,7 @@ after (`0x00489A4D`). `0x0048F350` is the stunned states 209, 255, 256 and 257;
 
 - Once `+0x5D2` has passed since `+0x54`, and the flag byte lacks bit 4, `+0x58` is
   set to `+0x5D6` and `+0x54` to now.
-- **Latch writers, rechecked 2026-10-29 (CONFIRMED binary).** The constructor
+- **Latch writers, rechecked 2026-10-29 (STRONGLY INFERRED binary).** The constructor
   initializes `+0x58` to zero; the needs routine loads it at `0x00477E10`;
   `0x00477B20` subtracts with a zero floor. State 83's category hook calls the
   subtractor with 1 each turn, while its handler refreshes `+0x54` to now
@@ -127,7 +130,7 @@ updates, including eating 91–95, active lair/bed states 79–84 and payday
 same skip does not automatically cover a walk resuming one of these states.
 Captivity is different: the usual prisoner states are group 1 with neither
 clock flag. The busy test blocks their attempts, but their overdue hunger and
-sleep-latch updates still run. These distinctions are CONFIRMED from the whole
+sleep-latch updates still run. These distinctions are STRONGLY INFERRED from the whole
 routine and state table, rechecked 2026-10-29; a blanket captivity clock pause
 is not supported.
 

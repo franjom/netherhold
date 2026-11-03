@@ -1,3 +1,6 @@
+---
+systems: [data-formats, art-assets]
+---
 # KMF materials: flags, blend, light
 
 How DK2 turns a KMF `MAT2` record into a drawn material, and what the classic look
@@ -9,7 +12,7 @@ built from a texture name, which share the constructor and applier below).
 
 The chunk tags `KMSH`, `MATL`, `MAT2`, `SPRS` sit as dwords in a table at
 0x006BE130..; `MATL` (0x006BE154) and `MAT2` (0x006BE14C) are each referenced once, by
-[0x0057D390](functions/0057D390.md), the one MATL reader. CONFIRMED (byte scan of every
+[0x0057D390](functions/0057D390.md), the one MATL reader. STRONGLY INFERRED (byte scan of every
 block).
 
 Per material it reads, in file order: the name, the texture count and names, the
@@ -82,7 +85,7 @@ modulated by it ([tag-highlight.md](tag-highlight.md) §6). So brightness is
 self-illumination: the gold spill cards (0.6) and chest gold (0.6) glow. An additive
 material's colour is forced to white, so it draws at full light. CONFIRMED.
 
-CONFIRMED shipped data (2026-10-16): `ROCK TOP.kmf` and all five materials in
+STRONGLY INFERRED shipped data (2026-10-16): `ROCK TOP.kmf` and all five materials in
 `DHeart Arches.kmf` have brightness zero. Their black appearance with no supplied
 light cannot be corrected by restoring omitted authored self-illumination.
 The Rock Top's nine geometry vertices all have native Z=-2 (Unity height2), before terrain deformation.
@@ -164,7 +167,7 @@ versus maximum depth, stable ties and the shipped Portal's complete blended stre
 
 ## 8. The environment pass (2026-10-23 claude, Q622/Q623)
 
-CONFIRMED (binary): a material with state bit 0x800 is drawn **twice**. The static mesh
+STRONGLY INFERRED (binary): a material with state bit 0x800 is drawn **twice**. The static mesh
 queue (0x0058178E-0x00581840, inside a function Ghidra has not defined) and the animated
 one ([0x00584900](functions/00584900.md), test at 0x005851E0) add a second batch entry
 for the same triangles when all hold: the material state has 0x800; the item-adjusted

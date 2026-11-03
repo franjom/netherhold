@@ -1,3 +1,6 @@
+---
+systems: [data-formats]
+---
 # Mechanic: CREATURES(170) record — the creature definition table
 
 Source(s):

@@ -1,4 +1,7 @@
-﻿# Mechanic: training, and the four rates that share its shape
+﻿---
+systems: [rooms, creatures]
+---
+# Mechanic: training, and the four rates that share its shape
 
 Source(s):
 - `DKII.EXE` v1.70 (GOG), read with Ghidra 11.0.1 on 2026-09-07

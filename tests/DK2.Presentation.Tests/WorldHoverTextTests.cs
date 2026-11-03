@@ -268,7 +268,7 @@ public sealed class WorldHoverTextTests
         Assert.True(CreatureDeathRules.IsCorpse(body));
         HoverTextSnapshot dead = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper)
             .Capture(world, new(WorldHoverKind.Creature, body.Tile, body.Id));
-        // GUESS (Q634): for an ordinary creature 0x004B1740 never writes the %29 buffer, so the two
+        // HYPOTHESIS (Q634): for an ordinary creature 0x004B1740 never writes the %29 buffer, so the two
         // spaces after "of" are ours, not observed; and no Hand pick reaches a dead body (0x005992B0).
         Assert.Equal(("It's the dead body of  a level 3 Warlock.", "Warlock"), (dead.TopStatus, dead.TooltipName));
 
