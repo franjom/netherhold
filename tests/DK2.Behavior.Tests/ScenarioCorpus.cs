@@ -28,6 +28,7 @@ internal static class ScenarioCorpus
         "keepers/level17_harkan_unassisted.yaml",
         "keepers/level18_nemesis_allies.yaml",
         "keepers/level18_nemesis_heal.yaml",
+        "keepers/level18_nemesis_inferno_chicken.yaml",
     };
 
     private static readonly Lazy<GameDatabase> InstallDatabase = new(() => GameDatabaseLoader.Load(Dk2InstallGate.Path));

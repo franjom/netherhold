@@ -7,8 +7,9 @@
 # action 54 cast, flag activation and next-turn action 63 removal attempt run normally.
 # The appearance art still refuses that removal attempt; AI clears its tracking.
 # This modern regression does not establish original DK2 timing (Q485).
-# The seed picks the draws only: since ADR-0639 (hash 390) seed 12345's three Lair Black Knights left
-# training and were lifted back on turns 37-39, spending the turn the Call needed. Seed 2 keeps them clear.
+# Whether the duel lasts to turn 40 with Harkan's hand free is the draws' (since ADR-0639 seed 12345's
+# Lair Black Knights are lifted back on turns 37-39, spending the Call's turn), so its test sweeps seeds
+# 1-8: every call must be the whole sequence, and most seeds must call at the first gate. Seed 2 is one.
 id: keepers-level17-harkan-call-to-arms-001
 question: >
   Does Harkan, unaided, raise Call to Arms at its fighting Black Knight when heroes attack

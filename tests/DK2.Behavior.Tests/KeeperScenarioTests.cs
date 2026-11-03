@@ -129,36 +129,45 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
 
 public class Level17KeeperScenarioTests(ITestOutputHelper output)
 {
+    /// <summary>Whether a duel lasts to the fortieth turn with Harkan's hand free depends on the
+    /// run's draws (seed 12345 since ADR-0639 spends turns 37-39 lifting Black Knights), so eight
+    /// seeds are run. On each, every call the battle step makes is the whole sequence; across them,
+    /// the call is made at the first gate on most.</summary>
     [InstallFact]
     public void Level17HarkanCastsTheCallAtItsFighterAndTakesItDownUnaided()
     {
-        Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_call_to_arms.yaml");
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
-
-        // The battle step's own commands, not a scripted cast: action 54 on the first turn
-        // divisible by 40 at the Black Knight's tile, and action 63 once the call is seen and
-        // Harkan's removal gates fail (ADR-0283).
-        // A later fight still running on a later such turn draws another call: which fights last
-        // that long depends on the run's draws, so every call is checked, not their number.
-        Assert.Empty(run.ExpectationFailures);
-        List<KeeperCommandEmission> casts = run.KeeperCommandLog
-            .Where(e => e.Command is CastSpellAtPlaceCommand { SpellId: CallToArmsRules.SpellId }).ToList();
-        List<KeeperCommandEmission> removals = run.KeeperCommandLog.Where(e => e.Command is RemoveCallToArmsCommand).ToList();
-        Assert.NotEmpty(casts);
-        var call = (CastSpellAtPlaceCommand)casts[0].Command;
-        // Seeded contact motion puts the selected Black Knight on (4,7) at the Call gate. The tile
-        // is our motion's, not a capture's: hash 281's zero-velocity route starts moved it to (4,7),
-        // hash 286's level-free speed (ADR-0518) back to (3,7), and hash 289's creature identity draws
-        // (ADR-0521), which shift the seeded stream, to (4,7) again.
-        // Seed 2 since hash 390 (ADR-0639): under 12345 Harkan's lifts on turns 37-39 took the Call's turn.
-        Assert.Equal((39, (byte)4, (byte)3, 4, 7), (casts[0].InputTick, call.PlayerId, call.SpellId, call.X >> 12, call.Y >> 12));
-        Assert.Equal(casts.Count, removals.Count);
-        for (int i = 0; i < casts.Count; i++)
+        int called = 0;
+        foreach (ulong seed in KeeperScenarioSeeds.Sweep)
         {
-            Assert.Equal(39, casts[i].InputTick % 40);
-            Assert.InRange(removals[i].InputTick, casts[i].InputTick + 1, casts[i].InputTick + 1 + KeeperBattleStep.CastGraceTurns);
+            Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_call_to_arms.yaml");
+            scenario.Seed = seed;
+            ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+            Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+
+            // The battle step's own commands, not a scripted cast: action 54 on a turn divisible by
+            // 40 at the Black Knight's tile, and action 63 once the call is seen and Harkan's
+            // removal gates fail (ADR-0283). A later fight on a later such turn draws another call.
+            List<KeeperCommandEmission> casts = run.KeeperCommandLog
+                .Where(e => e.Command is CastSpellAtPlaceCommand { SpellId: CallToArmsRules.SpellId }).ToList();
+            List<KeeperCommandEmission> removals = run.KeeperCommandLog.Where(e => e.Command is RemoveCallToArmsCommand).ToList();
+            if (casts.Count == 0) Assert.DoesNotContain(run.Events, e => e.Kind == "call_to_arms_raised");
+            Assert.Equal(casts.Count, removals.Count);
+            for (int i = 0; i < casts.Count; i++)
+            {
+                Assert.Equal(39, casts[i].InputTick % 40);
+                Assert.InRange(removals[i].InputTick, casts[i].InputTick + 1, casts[i].InputTick + 1 + KeeperBattleStep.CastGraceTurns);
+            }
+            if (casts.Count == 0 || casts[0].InputTick != 39) continue;
+            // A call at the first gate is the scenario's whole sequence: raised, heeded, the removal
+            // refused, at the duel it places at (3,7)-(4,7), whose tile contact motion picks.
+            Assert.True(run.ExpectationFailures.Count == 0, $"seed {seed}: {string.Join("; ", run.ExpectationFailures)}");
+            var call = (CastSpellAtPlaceCommand)casts[0].Command;
+            Assert.Equal((byte)4, call.PlayerId);
+            Assert.InRange(call.X >> 12, 3, 5);
+            Assert.InRange(call.Y >> 12, 6, 8);
+            called++;
         }
-        Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+        Assert.True(called >= KeeperScenarioSeeds.Sweep.Length - 2, $"the call was made under {called} of {KeeperScenarioSeeds.Sweep.Length} seeds");
     }
 
     [InstallFact]
@@ -305,6 +314,49 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
         Assert.Equal(healed.Tick.Value, emission.InputTick);
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
+
+    /// <summary>Which offensive spells Nemesis reaches within the minute is its own rolls' (Thunderbolt
+    /// first, then Inferno, then Chicken, each on its own roll), so sixteen seeds are run. On each, a
+    /// Chicken that lands takes its target into 96 unless the target is already down (216-218 refuse
+    /// it, creature-status-effects.md); across them, each spell is cast, the Inferno burns Nemesis's
+    /// own Black Knight, and the whole scenario is met, on at least a quarter.</summary>
+    [InstallFact]
+    public void Level18NemesisCastsInfernoAndChickenUnaided_AndTheInfernoBurnsItsOwn()
+    {
+        int seeds = 0, inferno = 0, ownBurn = 0, chicken = 0, chickened = 0, whole = 0;
+        for (ulong seed = 1; seed <= 16; seed++, seeds++)
+        {
+            Scenario scenario = ScenarioCorpus.Load("keepers/level18_nemesis_inferno_chicken.yaml");
+            scenario.Seed = seed;
+            ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+            Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
+            var down = new HashSet<string>();
+            foreach (SimEvent e in run.Events)
+            {
+                if (e.Kind == "creature_collapsed") down.Add(Field(e.Detail, "creature"));
+                if (e.Kind != "chickened") continue;
+                string state = Field(e.Detail, "state");
+                Assert.True(state == "96" || (state == "refused" && down.Contains(Field(e.Detail, "target"))),
+                    $"seed {seed} t{e.Tick.Value}: {e.Detail}");
+            }
+            if (run.Events.Any(e => e.Kind == "cast" && e.Detail.Contains("player=4 spell=9 "))) inferno++;
+            if (run.Events.Any(e => e.Kind == "inferno_hit" && e.Detail.Contains("owner=4"))) ownBurn++;
+            if (run.Events.Any(e => e.Kind == "cast" && e.Detail.Contains("player=4 spell=11 "))) chicken++;
+            if (run.Events.Any(e => e.Kind == "chickened" && e.Detail.Contains("state=96"))) chickened++;
+            if (run.ExpectationFailures.Count == 0) whole++;
+        }
+        int quarter = seeds / 4;
+        Assert.True(new[] { inferno, ownBurn, chicken, chickened, whole }.All(n => n >= quarter),
+            $"of {seeds} seeds: Inferno {inferno}, own burned {ownBurn}, Chicken {chicken}, chickened {chickened}, whole {whole}");
+    }
+
+    private static string Field(string detail, string name)
+    {
+        string key = name + "=";
+        foreach (string part in detail.Split(' '))
+            if (part.StartsWith(key, StringComparison.Ordinal)) return part[key.Length..];
+        return "";
+    }
 }
 
 /// <summary>Its own class rather than <see cref="Level18KeeperScenarioTests"/>'s: the attack
@@ -335,4 +387,11 @@ public class Level18AttackKeeperScenarioTests(ITestOutputHelper output)
         Assert.Equal(0, state.FirstAttackFlag & ((1 << 5) | (1 << 6)));
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
+}
+
+/// <summary>The seeds a sweep runs a seed-sensitive keeper scenario under: the outcome asserted is
+/// the rule, on every seed, and the behaviour, on enough of them, not one run's draws.</summary>
+internal static class KeeperScenarioSeeds
+{
+    public static readonly ulong[] Sweep = [1, 2, 3, 4, 5, 6, 7, 8];
 }

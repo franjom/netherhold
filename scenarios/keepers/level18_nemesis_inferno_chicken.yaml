@@ -15,8 +15,9 @@
 #
 # What this run does NOT establish: how often DK2's Nemesis casts either spell, or its timing.
 # No original run of a keeper's Inferno or Chicken has been compared (Q498).
-# The seed only picks the rolls: under seed 12345 the fights start at each scan phase since ADR-0645
-# and Chicken came after the Knight was down (refused from 216). Seed 1 keeps all four within 60 ticks.
+# Which spells the minute reaches is the rolls' (under seed 12345 since ADR-0645 Chicken came after
+# the Knight was down, refused from 216), so its test sweeps seeds 1-16: a landed Chicken takes 96
+# unless its target is down, and each expectation is met on at least a quarter. Seed 1 meets all four.
 id: keepers-level18-nemesis-inferno-chicken-001
 question: >
   Does Nemesis, unaided, cast Inferno and Chicken at a hero its fighter holds, and does the
