@@ -28,7 +28,12 @@ namespace DK2.Unity
         /// <summary>The in-game manager's update runs this after the world frame, so a frame's
         /// requests are judged by the frame before (<c>0x00567500</c>). The front end never calls it.</summary>
         public void UpdateThrottle() => _throttle.BeginFrame(NowMs());
-        private float _master = 1, _speechVolume = 1, _musicVolume = 1, _effectVolume = 1;
+        private float _master = 1, _speechVolume = 1;
+        private int _musicPercent = 100, _effectPercent = 100;
+        private bool _ducked;
+        /// <summary>While a speech line plays DK2 runs music and effects at two thirds of their settings, set when the line is asked and restored when it ends (<c>0x00568490</c>, <c>0x005681D0</c>).</summary>
+        private float MusicVolume => (_ducked ? SpeechDuck.Percent(_musicPercent) : _musicPercent) / 100f;
+        private float EffectVolume => (_ducked ? SpeechDuck.Percent(_effectPercent) : _effectPercent) / 100f;
         private bool _speechOn = true, _musicOn = true, _effectsOn = true;
         private sealed class LinkedChannel
         {
@@ -67,12 +72,12 @@ namespace DK2.Unity
         {
             if (_music != null)
             {
-                _music.Source.volume = _musicOn ? _master * _musicVolume : 0;
+                _music.Source.volume = _musicOn ? _master * MusicVolume : 0;
                 Fill(_music, frame.MusicIntensity);
             }
             if (_ambience != null)
             {
-                _ambience.Source.volume = _effectsOn ? _master * _effectVolume : 0;
+                _ambience.Source.volume = _effectsOn ? _master * EffectVolume : 0;
                 Fill(_ambience, frame.AmbienceIntensity);
             }
         }
@@ -109,11 +114,20 @@ namespace DK2.Unity
         public void UpdateSpeech(long nowMilliseconds)
         {
             SoundRequest? next = _speechQueue.Update(nowMilliseconds, _speech.isPlaying);
-            if (!next.HasValue) return;
-            AudioClip clip = Resolve(next.Value.Category, next.Value.Id);
-            if (clip == null) return;
-            _speech.clip = clip; _speech.volume = _speechOn ? _master * _speechVolume : 0;
-            _speech.Play();
+            if (next.HasValue)
+            {
+                AudioClip clip = Resolve(next.Value.Category, next.Value.Id);
+                if (clip != null)
+                {
+                    _speech.clip = clip; _speech.volume = _speechOn ? _master * _speechVolume : 0;
+                    _speech.Play();
+                }
+            }
+            if (_speech.isPlaying == _ducked) return;
+            _ducked = _speech.isPlaying;
+            foreach (AudioSource source in _effects) source.volume = _effectsOn ? _master * EffectVolume : 0;
+            if (_music != null) _music.Source.volume = _musicOn ? _master * MusicVolume : 0;
+            if (_ambience != null) _ambience.Source.volume = _effectsOn ? _master * EffectVolume : 0;
         }
         public ClassicSoundPlayer(Transform parent, IClassicSoundAssets assets)
         {
@@ -134,13 +148,13 @@ namespace DK2.Unity
         public void SetVolumes(int master, int speech, int music, int effects, bool speechOn, bool musicOn, bool effectsOn)
         {
             _master = Mathf.Clamp01(master / 100f); _speechVolume = Mathf.Clamp01(speech / 100f);
-            _musicVolume = Mathf.Clamp01(music / 100f); _effectVolume = Mathf.Clamp01(effects / 100f);
+            _musicPercent = Mathf.Clamp(music, 0, 100); _effectPercent = Mathf.Clamp(effects, 0, 100);
             if (!speechOn && _speechOn) StopSpeech((long)(Time.unscaledTimeAsDouble * 1000));
             _speechOn = speechOn; _musicOn = musicOn; _effectsOn = effectsOn;
-            foreach (AudioSource source in _effects) source.volume = _effectsOn ? _master * _effectVolume : 0;
+            foreach (AudioSource source in _effects) source.volume = _effectsOn ? _master * EffectVolume : 0;
             _speech.volume = _speechOn ? _master * _speechVolume : 0;
-            if (_music != null) _music.Source.volume = _musicOn ? _master * _musicVolume : 0;
-            if (_ambience != null) _ambience.Source.volume = _effectsOn ? _master * _effectVolume : 0;
+            if (_music != null) _music.Source.volume = _musicOn ? _master * MusicVolume : 0;
+            if (_ambience != null) _ambience.Source.volume = _effectsOn ? _master * EffectVolume : 0;
         }
 
         public void Play(SoundRequests requests)
@@ -181,7 +195,7 @@ namespace DK2.Unity
             // A request made at the camera's point with a distance volume (the Casino party's music, 0x004D63D0): nonspatial, scaled by FollowVoices.
             if (request.VolumeAnchor is System.Numerics.Vector3 anchor && request.Voice != SoundVoiceId.None) _anchors[request.Voice] = anchor;
             else _anchors.Remove(request.Voice);
-            source.volume = _master * _effectVolume * (request.VolumeAnchor is System.Numerics.Vector3 near ? AnchoredVolume.Of(near, ListenerFocus) : 1f);
+            source.volume = _master * EffectVolume * (request.VolumeAnchor is System.Numerics.Vector3 near ? AnchoredVolume.Of(near, ListenerFocus) : 1f);
             source.Play();
             _voices.Assign(request.Voice, request.Id, source, priority.Value);
         }
@@ -232,7 +246,7 @@ namespace DK2.Unity
                 SoundVoiceId voice = _live[i];
                 if (!_voices.TryGet(voice, out _, out AudioSource source) || source == null) continue;
                 if (_anchors.TryGetValue(voice, out System.Numerics.Vector3 anchor))
-                    source.volume = _master * _effectVolume * AnchoredVolume.Of(anchor, ListenerFocus);
+                    source.volume = _master * EffectVolume * AnchoredVolume.Of(anchor, ListenerFocus);
                 VoiceLocator.Fate fate = VoiceLocator.Locate(world, voice, out float x, out float? height, out float z);
                 if (fate == VoiceLocator.Fate.Gone)
                 {

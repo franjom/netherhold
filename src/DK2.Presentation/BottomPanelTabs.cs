@@ -87,6 +87,11 @@ public readonly record struct BottomPanelGrid(int Cell, int Columns, int Rows)
 {
     public const int LargeCell = 264, SmallCell = 128;
 
+    /// <summary>The category of a grid widget's sound slot (<c>0x006AC8C4</c> plus the slot times 0x30; the loader <c>0x0052BA68</c> names each record at its <c>+4</c>):
+    /// slot 5, the 128-unit cells, is <c>GUI_BUTTON_ICON</c> and slot 6, the 264-unit cells, <c>GUI_BUTTON_ICON_LARGE</c>.</summary>
+    public static SoundCategory SoundCategoryOf(int widgetBank) =>
+        new(widgetBank == 5 ? "gui_button_icon" : "gui_button_icon_large");
+
     public int PageSize => Columns * Rows;
 
     /// <summary>Slot widget <c>+0x3C</c>: <c>(cell != 128) + 5</c>, so 6 for 264-unit cells and 5 for

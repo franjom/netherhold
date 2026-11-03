@@ -458,6 +458,7 @@ namespace DK2.Unity
                 && BottomPanelFlash.ClearedByUse(flash, ActiveTool, selectedRoomId, _panelChoice, _bottomPanel.OpenPanel))
                 _scriptedView.ClearFlash(flash);
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
+            _bottomPanel.GamePaused = _hudControls.OptionsVisible;
             _bottomPanel.Draw();
             _fullMap.Capture(_simulation.World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
             DrawSavePanel(frontEnd: false);
@@ -467,6 +468,7 @@ namespace DK2.Unity
             _soundPlayer?.Play(_bottomPanel.Sounds);
             _soundPlayer?.Play(_bottomView.Sounds);
             _soundPlayer?.Play(_messageView.Sounds);
+            if (_optionsPages != null) _soundPlayer?.Play(_optionsPages.Sounds);
             _soundPlayer?.QueueSpeech(_messageView.Speech);
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
                 HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),
