@@ -145,6 +145,8 @@ public static class FightRules
         me.SwingTargetKind = me.FightTargetKind;
         me.SwingTargetId = me.FightTargetId;
         me.SwingTargetPlayerId = me.FightTargetPlayerId;
+        // CreatureAction_Begin(17) asks the record's sound word as the action begins (0x004968BC); the clip is installed fresh.
+        CreatureActionSounds.Begin(context, SystemName, me, CreatureActionTable.MeleeSwing);
         me.StopMoving();
         context.Emit(SystemName, "swing", $"creature={me.Id} type={mine.Name} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
 
@@ -167,6 +169,14 @@ public static class FightRules
     /// "under attack" notice there, which the <c>heart_hit</c> event stands for.</summary>
     public static void LandBlow(SimulationContext context, CreatureState me, CreatureDef mine)
     {
+        // 0x004992EB, the swing's last act: asked by every arm that reached the handler's tail (a blow of zero included), at the attacker.
+        if (Land(context, me, mine) && !ReferenceEquals(context.Events, NullEventSink.Instance))
+            ThingSoundRules.Request(context, SystemName, me, ThingSoundEvent.Struck);
+    }
+
+    /// <summary>The swing's arms; false where DK2's handler returns before its tail (no live target, an invulnerable creature).</summary>
+    private static bool Land(SimulationContext context, CreatureState me, CreatureDef mine)
+    {
         me.SwingInProgress = false;
         WorldState world = context.World;
         GameDatabase database = context.Database;
@@ -174,9 +184,11 @@ public static class FightRules
         if (me.SwingTargetKind == FightTargetKind.Creature)
         {
             CreatureState? target = world.CreatureById(me.SwingTargetId);
-            if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) return;
+            if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) return false;
+            // 0x00499072: the impact lookup, after the invulnerable return and before the blow-of-zero test.
+            WeaponImpactRules.OnCreature(context, SystemName, me, mine, target);
             int blow = Blow(database, me, mine, target.PosX, target.PosY);
-            if (blow == 0) return;
+            if (blow == 0) return true;
             // 0x0049926C (0x0049924D for the Reaper-type arm): the swing passes the attacker's owner (+0x28) as the source.
             int landed = StatusEffectRules.Hurt(world, database, database.CreatureById(target.CreatureTypeId), target, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "hit",
@@ -184,13 +196,15 @@ public static class FightRules
         }
         else if (me.SwingTargetKind == FightTargetKind.Heart)
         {
-            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return;
+            if (!HeartPillarRules.TryResolve(world, database, me.SwingTargetPlayerId, new HeartPillarId(me.SwingTargetId), out HeartPillarTarget pillar)) return false;
             ref PlayerState owner = ref world.Player(me.SwingTargetPlayerId);
             // A health change, negative as Blow's is, with no bearing term.
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 -MeleeDamageRules.Swing(database, mine, me.Level, MeleeDamageRules.StanceOf(me)), 0, 0);
-            if (blow == 0) return;
-            bool killed = world.DamageHeart(owner.PlayerId, -blow, me.OwnerPlayerId);
+            // A pillar is an object (class 2): its definition's surface byte, looked up at 0x004991C0 before the blow-of-zero test.
+            WeaponImpactRules.OnObject(context, SystemName, me, mine, HeartPillarRules.ArchPillarObjectId);
+            if (blow == 0) return true;
+            bool killed = HeartSoundRules.Damage(context, SystemName, owner.PlayerId, -blow, me.OwnerPlayerId);
             if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
             context.Emit(SystemName, "heart_hit",
                 $"creature={me.Id} heart={owner.PlayerId} blow={blow} health={owner.HeartHealth}{(killed ? " destroyed" : "")}");
@@ -201,11 +215,12 @@ public static class FightRules
             // which is the creature arm's alone, applied flat through the health routine. The two
             // player modifiers (+0x1090, +0x1091) apply in DK2; ours passes 0, as the creature arm does.
             DoorState? door = world.DoorById(me.SwingTargetId);
-            if (door is null || door.Health <= 0) return;
+            if (door is null || door.Health <= 0) return false;
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
                     MeleeDamageRules.StanceOf(me)), 0, 0);
-            if (blow == 0) return;
+            WeaponImpactRules.OnDoor(context, SystemName, me, mine, door);   // 0x00499168
+            if (blow == 0) return true;
             DoorRules.Damage(context, door, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "door_hit", $"creature={me.Id} door={door.Id} blow={blow} health={door.Health}");
         }
@@ -215,16 +230,18 @@ public static class FightRules
             // definition (+0xBF, presentation), then the blow flat through the health routine, which
             // adds it to a trap with no refusal. The trap goes when the world next removes the dead.
             TrapState? trap = world.TrapById(me.SwingTargetId);
-            if (trap is null || trap.Health <= 0) return;
+            if (trap is null || trap.Health <= 0) return false;
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
                     MeleeDamageRules.StanceOf(me)), 0, 0);
-            if (blow == 0) return;
+            WeaponImpactRules.OnTrap(context, SystemName, me, mine, trap);   // 0x00499194
+            if (blow == 0) return true;
             TrapRules.Damage(trap, -blow);
             context.Emit(SystemName, "trap_hit", $"creature={me.Id} trap={trap.Id} blow={blow} health={trap.Health}");
         }
         else if (me.SwingTargetKind is FightTargetKind.Shot or FightTargetKind.Body or FightTargetKind.Object)
-            LandThingBlow(context, me, mine);
+            return LandThingBlow(context, me, mine);
+        return true;
     }
 
     /// <summary>The possessed swing's other classes (<c>0x00498E30</c> → <c>Thing_ModifyHealth</c>
@@ -233,7 +250,7 @@ public static class FightRules
     /// an object without Damageable (def <c>+0xF4</c> bit 21) refuses it. What removes a shot taken to
     /// 0 is unread: ours, <see cref="Systems.ShotSystem"/> on its next pass. Not built: the Horned
     /// Reaper's state 0xEF over a target the blow killed (its idle AI is unbuilt).</summary>
-    private static void LandThingBlow(SimulationContext context, CreatureState me, CreatureDef mine)
+    private static bool LandThingBlow(SimulationContext context, CreatureState me, CreatureDef mine)
     {
         WorldState world = context.World;
         int blow = MeleeDamageRules.ApplyPlayerModifiers(
@@ -241,18 +258,19 @@ public static class FightRules
         switch (me.SwingTargetKind)
         {
             case FightTargetKind.Shot:
-                if (world.ShotById(me.SwingTargetId) is not { } shot) return;
+                if (world.ShotById(me.SwingTargetId) is not { } shot) return false;
                 shot.Health = unchecked(shot.Health - blow);
                 context.Emit(SystemName, "shot_struck", $"creature={me.Id} shot={shot.Id} blow={blow} health={shot.Health}");
                 break;
             case FightTargetKind.Body:
                 // The body's health is its rot timer counting down; ours counts the window up.
-                if (world.CreatureById(me.SwingTargetId) is not { } body || !CreatureDeathRules.IsCorpse(body)) return;
+                if (world.CreatureById(me.SwingTargetId) is not { } body || !CreatureDeathRules.IsCorpse(body)) return false;
                 body.DyingTicks = unchecked(body.DyingTicks + blow);
                 context.Emit(SystemName, "body_struck", $"creature={me.Id} body={body.Id} blow={blow} lain={body.DyingTicks}");
                 break;
             case FightTargetKind.Object:
-                if (world.ObjectById(me.SwingTargetId) is not { } thing) return;
+                if (world.ObjectById(me.SwingTargetId) is not { } thing) return false;
+                WeaponImpactRules.OnObject(context, SystemName, me, mine, thing.ObjectTypeId);   // 0x004991C0
                 bool damageable = context.Database.ObjectById(thing.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.Damageable);
                 // Only a Book Case reaches here, and it is not Damageable; a Damageable one would take
                 // the blow on its health, which no shipped object the pick allows needs.
@@ -260,6 +278,7 @@ public static class FightRules
                     $"creature={me.Id} object={thing.Id} type={thing.ObjectTypeId} blow={blow}");
                 break;
         }
+        return true;
     }
 
     /// <summary>The spell arm's cast (combat-spells.md §6) — action 16 begun on the engagement's
@@ -279,6 +298,7 @@ public static class FightRules
         me.SwingTargetPlayerId = me.FightTargetPlayerId;
         me.AttackCreatureHits = unchecked((ushort)(me.AttackCreatureHits + 1));   // 0x0048F3E0
         me.SpellStamps[slot] = context.Tick.Value;
+        CreatureActionSounds.Begin(context, SystemName, me, CreatureActionTable.SpellCast);   // 0x004968BC, action 16
         me.StopMoving();
         context.Emit(SystemName, "cast",
             $"creature={me.Id} type={mine.Name} slot={slot} spell={mine.Spells[slot].CreatureSpellId} target={me.SwingTargetId} heart={me.SwingTargetPlayerId}");
@@ -405,8 +425,20 @@ public static class FightRules
         ShotRules.Launch(shot, shotDef, aimX, aimY);
         ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)me.Heading),
             new Fp32(Fp32.One + me.PosZ + mine.Spells[me.SwingSpellSlot].OriginZ));
+        RequestCastSound(context, me, spell, shotDef);   // 0x00498A8D
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={aimX},{aimY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
+    }
+
+    /// <summary>What a creature's cast asks of the sound manager once its shot is made (<c>0x00498A8D</c>, <c>0x0049868C</c>): the spell
+    /// record's sound word (<c>+0x3F</c>, <see cref="CreatureSpellDef.SoundEvent"/>) in the shot's category, with the caster's own handle,
+    /// at the caster's position (<c>+0x1A</c>, not the origin the shot leaves from). The word may be zero, which asks the manager for
+    /// no group; DK2 asks it all the same. A third caller, the unread <c>0x004982B0</c>, is not mirrored.</summary>
+    private static void RequestCastSound(SimulationContext context, CreatureState me, CreatureSpellDef spell, ShotDef shotDef)
+    {
+        if (shotDef.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        ThingSoundRules.Request(context, SystemName, SoundSourceId.Of(new CreatureId(me.Id)), shotDef.SoundCategory,
+            (ThingSoundEvent)spell.SoundEvent, new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)));
     }
 
     /// <summary>Where action 16 makes the shot (<c>0x00498989</c>–<c>0x004989F5</c>, combat-spells.md §7
@@ -439,6 +471,13 @@ public static class FightRules
         me.SwingTargetId = targetId;
         me.SwingTargetPlayerId = targetPlayer;
         me.ClaimActionTile = -1;
+        // The same begin asks its record's word: action 17 for the swing, 16 for the cast, 15 for the free-aimed cast.
+        CreatureActionSounds.Begin(context, SystemName, me, kind switch
+        {
+            SpellRules.MeleeSwing => CreatureActionTable.MeleeSwing,
+            SpellRules.FreeAimCast => CreatureActionTable.FreeAimCast,
+            _ => CreatureActionTable.SpellCast,
+        });
         context.Emit(SystemName, kind == SpellRules.MeleeSwing ? "possessed_swing" : "possessed_cast",
             $"creature={me.Id} slot={slot} kind={(byte)targetKind} target={targetId}");
     }
@@ -471,6 +510,7 @@ public static class FightRules
         shot.Sniper = me.Possessed && me.SniperMode;
         ShotRules.Launch(shot, shotDef, me.SwingPointX, me.SwingPointY);
         ShotRules.RequestTrail(context, shot, new Dk2Angle((ushort)me.Heading), new Fp32(Fp32.One + me.PosZ));
+        RequestCastSound(context, me, spell, shotDef);   // 0x0049868C
         context.Emit(SystemName, "shot_fired",
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={me.SwingPointX},{me.SwingPointY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
     }

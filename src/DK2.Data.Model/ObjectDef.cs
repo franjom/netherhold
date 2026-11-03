@@ -121,6 +121,15 @@ public sealed record ObjectDef
     /// <summary>Ordering for what an imp picks up first when several things lie about.</summary>
     public required byte PickUpPriority { get; init; }
 
+    /// <summary>File bytes 0x35E-0x37D, the sound category (<c>OBJECT_GOLD</c>, <c>OBJECT_BED</c>, ...):
+    /// the name the loader resolves to definition <c>+0x10E</c>, the category of every sound the object
+    /// requests (docs/research/sound-effects.md section 6).</summary>
+    public string SoundCategory { get; init; } = string.Empty;
+
+    /// <summary>File byte 0x340, definition <c>+0x11C</c> (<c>0x0049DD60</c>, intermediate <c>+0x3C0</c>): the surface byte the swing's impact
+    /// lookup (<c>0x004998A0</c>) picks the weapon sound by when this object is struck.</summary>
+    public byte ImpactKind { get; init; }
+
     public required Fp32 Width { get; init; }
     public required Fp32 Height { get; init; }
     public required Fp32 Mass { get; init; }

@@ -375,6 +375,11 @@ public sealed partial class ImpTaskSystem
                 $"imp={creature.Id} player={creature.OwnerPlayerId} amount={put - left} " +
                 $"at=({here.X},{here.Y}) floor={left} carrying={creature.GoldHeld}");
         }
+
+        // 0x00466B95: after the deposit and the spend, whenever the room had any space, even for an empty purse.
+        if (space != 0)
+            ThingSoundRules.RequestInObjectCategory(context, SystemName, creature, FloorGold.FloorGoldObjectId,
+                ThingSoundEvent.GoldDeposited);
         return true;
     }
 

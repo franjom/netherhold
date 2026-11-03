@@ -28,6 +28,20 @@ public sealed class SoundVoiceBindings<TSource> where TSource : class
         if (_voices.TryGetValue(voice, out var found)) { sound = found.Sound; source = found.Source; return true; }
         sound = default; source = null; return false;
     }
+    /// <summary>Ends a voice's ownership of its source and returns the source, or null when the voice is not bound.</summary>
+    public TSource? Release(SoundVoiceId voice)
+    {
+        if (!_voices.Remove(voice, out var found)) return null;
+        return found.Source;
+    }
+
+    /// <summary>The bound voices, copied into <paramref name="into"/> (cleared first), so a caller may release while it walks them.</summary>
+    public void Voices(List<SoundVoiceId> into)
+    {
+        into.Clear();
+        foreach (SoundVoiceId voice in _voices.Keys) into.Add(voice);
+    }
+
     public bool CanRetain(SoundVoiceId voice, SoundPriority priority, Func<TSource, bool> playing) =>
         _voices.TryGetValue(voice, out var found) && found.Priority.Value >= priority.Value && playing(found.Source);
 }

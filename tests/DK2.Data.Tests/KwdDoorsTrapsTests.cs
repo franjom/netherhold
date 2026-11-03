@@ -112,6 +112,25 @@ public class KwdDoorsTrapsTests
         });
     }
 
+    /// <summary>The category a door asks its sounds in (record <c>0x248</c>, runtime <c>+0xA9</c>), its impact byte
+    /// (<c>0x226</c>, <c>+0xB3</c>) and the one a trap asks them in (<c>0x20F</c>, <c>+0xB0</c>): the Barricade
+    /// and the Hero Barricade share <c>DOOR_BARRICADE</c>, the Hero Portcullis uses <c>DOOR_STEEL</c>, and the Magic Door and
+    /// the spare door have no trap category.</summary>
+    [InstallFact]
+    public void DoorAndTrapSoundCategoriesAndTheDoorImpactByteAreTheShippedOnes()
+    {
+        string editor = Editor();
+        List<DoorDef> doors = KwdDoors.Parse(KwdReader.ReadFile(Path.Combine(editor, "Doors.kwd")));
+        List<TrapDef> traps = KwdTraps.Parse(KwdReader.ReadFile(Path.Combine(editor, "Traps.kwd")));
+
+        Assert.Equal(["DOOR_WOOD", "DOOR_STEEL", "DOOR_BRACED", "DOOR_MAGIC", "DOOR_SECRET", "DOOR_BARRICADE", "DOOR_BARRICADE", "DOOR_STEEL"],
+            doors.OrderBy(d => d.DoorId).Select(d => d.SoundCategory));
+        Assert.Equal([3, 4, 3, 5, 2, 2, 2, 2], doors.OrderBy(d => d.DoorId).Select(d => (int)d.ImpactKind));
+        Assert.Equal(["TRAP_GAS", "TRAP_BOULDER", "TRAP_SENTRY", "TRAP_ALARM", "TRAP_FIREBURST", "TRAP_LIGHTNING", "TRAP_FREEZE", "TRAP_FEAR",
+                "TRAP_TRIGGER", "TRAP_SPIKE", "TRAP_GUARD_POST", "", "", "TRAP_SENTRY", "TRAP_ALARM", "TRAP_JACKINBOX"],
+            traps.OrderBy(t => t.TrapId).Select(t => t.SoundCategory));
+    }
+
     [Theory]
     [InlineData(KwdRecordType.Doors, 615)]
     [InlineData(KwdRecordType.Traps, 578)]

@@ -26,6 +26,12 @@ namespace DK2.Unity
         private AnimationSegment? _drawnSegment;
         private (RenderAnimation[] Clips, Mesh[] Templates, Material[][] Materials)? _pending;
         private int _resourceRevision;
+        private readonly AnimationMarkWatcher _marks = new AnimationMarkWatcher();
+        private int _mark1, _mark2;
+
+        /// <summary>What the last <see cref="Draw"/> found of the clip's footstep marks: 0 none, 1 before the clip's wrap, 2 after it
+        /// (<c>0x004B4630</c>, asked at each drawn frame by <c>0x0043CC30</c>).</summary>
+        public int FootstepCrossing { get; private set; }
         public bool BeatPending { get; private set; }
         public int InstallationRevision { get; private set; }
 
@@ -42,7 +48,8 @@ namespace DK2.Unity
         public void Configure(RenderAnimation[] clips, Mesh[] templates, Material[][] materials,
             CreatureAnimationTiming timing, bool loop, double start, Fp32? authoredMovementScale = null,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
-            bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null, Fp32 initialPhase = default)
+            bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null, Fp32 initialPhase = default,
+            FootstepMarkPair footstepMarks = default)
         {
             if (_clock != null && replacement == AnimationReplacement.Deferred)
             {
@@ -58,6 +65,11 @@ namespace DK2.Unity
             Stop();
             _clock = new RenderAnimationClock(timing, loop, authoredMovementScale, initialMovementSpeed, initialPhase);
             _resourceRevision = _clock.ResourceRevision;
+            // The install normalizes the definition's marks by the clip's frame count (0x0048C5D0).
+            _mark1 = FootstepMarkPair.Normalize(footstepMarks.First, timing.FrameCount);
+            _mark2 = FootstepMarkPair.Normalize(footstepMarks.Second, timing.FrameCount);
+            FootstepCrossing = 0;
+            _marks.Reset();
             _startTick = (long)System.Math.Floor(start * 4);
             _advanced = 0;
             InstallMeshes(clips, templates, materials);
@@ -101,9 +113,12 @@ namespace DK2.Unity
             using (ClockMarker.Auto())
             {
                 long previousLoops = _clock.CompletedLoops;
-                while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed, hold, phaseStepOverride); _advanced++; }
+                int advancedNow = 0;
+                while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed, hold, phaseStepOverride); _advanced++; advancedNow++; }
                 if (_clock.CompletedLoops != previousLoops) BeatPending = true;
                 pose = _clock.Sample((float)(tickTime - tick));
+                FootstepCrossing = (_mark1 | _mark2) == 0 ? 0
+                    : _marks.Observe(_mark1, _mark2, _clock.PreviousPhase, _clock.Phase, advancedNow, (float)(tickTime - tick));
             }
             if (_clock.ResourceRevision != _resourceRevision && _pending.HasValue)
             {
@@ -168,6 +183,8 @@ namespace DK2.Unity
         public void Stop()
         {
             _clock = null;
+            _mark1 = _mark2 = 0;
+            FootstepCrossing = 0;
             BeatPending = false;
             _pending = null;
             ReleaseMeshes();

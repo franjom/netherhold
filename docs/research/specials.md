@@ -163,7 +163,8 @@ activator. That includes allies, heroes and the neutral player.
 
 Every arm plays an effect (world vtable `+0x38C`) at the object, or at the target for 127. It
 posts message 49 to the activator with a variant per subtype, and plays a sound (`0x0075B468`
-vtable `+0x20`) through the object's sound handle.
+vtable `+0x20`) through the object's sound handle. Ours asks the sound of 117, 124 and 129 only
+(`SpecialSystem`, [sound-effects-objects.md](sound-effects-objects.md#1-objects-and-specials)).
 
 | Id | Effect | Message 49 variant | Sound |
 |---|---|---|---|

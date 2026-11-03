@@ -109,19 +109,21 @@ public sealed class BottomPanelView
     public IReadOnlyList<BottomPanelChoice> Choices => _choices;
     public SoundRequests Sounds { get; } = new();
     private bool _choicePressed;
-    public bool PressChoice(BottomPanelChoiceKey key)
+    private GuiSoundSlot _pressedSlot;
+    /// <summary><paramref name="slot"/> is the slot widget's sound slot, <see cref="BottomPanelGrid.SoundSlot"/> of its panel's grid.</summary>
+    public bool PressChoice(BottomPanelChoiceKey key, GuiSoundSlot slot)
     {
         BottomPanelChoice? choice = Choice(key) ?? _specials.FirstOrDefault(c => c.Key == key);
         if (_choicePressed || choice is null || !choice.Visible || !choice.Selectable && !choice.ClearsToolOnClick) return false;
-        _choicePressed = true;
-        Sounds.Add(new SoundRequest(new SoundCategory("gui_button_icon_large"), new SoundId(0x104)));
+        _choicePressed = true; _pressedSlot = slot;
+        Sounds.Add(new SoundRequest(GuiSoundSlots.CategoryOf(slot), new SoundId(0x104)));
         return true;
     }
     public void ReleaseChoice()
     {
         if (!_choicePressed) return;
         _choicePressed = false;
-        Sounds.Add(new SoundRequest(new SoundCategory("gui_button_icon_large"), new SoundId(0x136)));
+        Sounds.Add(new SoundRequest(GuiSoundSlots.CategoryOf(_pressedSlot), new SoundId(0x136)));
     }
 
     /// <summary>The specials stored in the player's Libraries, in the order the spells panel lists them

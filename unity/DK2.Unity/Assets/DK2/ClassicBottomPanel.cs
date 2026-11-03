@@ -36,6 +36,10 @@ namespace DK2.Unity
         private readonly int[] _page = new int[4], _pages = { 1, 1, 1, 1 };
         private readonly BottomPanelTabs _tabState = new BottomPanelTabs();
         private int _panelCount;
+        private readonly GuiSoundSlot[] _panelSlot = new GuiSoundSlot[MaxPanels];
+        private readonly FlashChime _chime = new FlashChime();
+        /// <summary>The game is suspended (Options open): the flash chime tests world <c>+0x284</c> (<c>0x00412584</c>).</summary>
+        public bool GamePaused { get; set; }
         private readonly Image _resize;
         private readonly Image[] _sparkles = new Image[BottomPanelSparkles.Count];
         private readonly BottomPanelSparkles _sparkleState = new BottomPanelSparkles();
@@ -225,6 +229,9 @@ namespace DK2.Unity
                 Place(_tabs[i], Dropped(BottomPanelLayout.Tab(i)));
                 bool tabShown = _view.TabVisible((BottomPanelCategory)i);
                 _tabs[i].style.display = tabShown ? DisplayStyle.Flex : DisplayStyle.None;
+                // 0x00412579: a flashing tab draws its chime test; the tabs carry sound slots 1..4 (Rooms, Spells, Workshop, Creatures).
+                if (tabShown && flash.Tab == (BottomPanelCategory)i && _chime.Draw(flash.Dark, GamePaused))
+                    _tabState.Sounds.Add(FlashChime.Request(GuiSoundSlots.OfTab((BottomPanelCategory)i)));
                 _tabs[i].tintColor = flash.Dark && flash.Tab == (BottomPanelCategory)i ? Dark
                     : _view.TabDimmed((BottomPanelCategory)i) ? new Color32(128, 128, 128, 255) : Color.white;
                 // The selected overlay draws for every category whose menu is visible (0x00412890).
@@ -313,6 +320,7 @@ namespace DK2.Unity
                 count += stored.Count;
             }
             BottomPanelGrid grid = items ? BottomPanelLayout.Grid(area.Width, count) : default;
+            if (items) _panelSlot[panel] = grid.SoundSlot;
             int pageSize = Math.Min(PanelSlots, grid.PageSize), c = (int)category;
             if (items)
             {
@@ -351,7 +359,11 @@ namespace DK2.Unity
                 // manufacture tint overwrites the flash and unaffordable tints, and no-Workshop overwrites it.
                 bool recharging = marks.RechargePercent.HasValue;
                 bool flashing = choice.Selectable && flash.Slot == choice.Key && !recharging;
-                if (flashing) { sparkleOn = cell; sparkleSize = BottomPanelSparkles.SizeFor(grid.WidgetBank); }
+                if (flashing)
+                {
+                    sparkleOn = cell; sparkleSize = BottomPanelSparkles.SizeFor(grid.WidgetBank);
+                    if (_chime.Draw(flash.Dark, GamePaused)) _tabState.Sounds.Add(FlashChime.Request(grid.SoundSlot));
+                }
                 _icons[i].tintColor = recharging ? RechargeTint
                     : choice.NeedsWorkshop ? new Color(128 / 255f, 128 / 255f, 128 / 255f, 1)
                     : marks.ManufacturePercent.HasValue ? ManufactureTint
@@ -397,7 +409,7 @@ namespace DK2.Unity
                     _slots[action] != null && _slots[action].Kind == BottomPanelChoiceKind.Room;
                 if (evt.button == 1 && !roomSecondary) return;
                 if (evt.button == 0 && action >= 0 && action < SlotCount && _slots[action] != null)
-                    _view.PressChoice(_slots[action].Key);
+                    _view.PressChoice(_slots[action].Key, _panelSlot[action / PanelSlots]);
                 _pressed = action; _pressedButton = evt.button;
                 _captured = evt.pointerId; _root.CapturePointer(evt.pointerId); evt.StopPropagation();
             });

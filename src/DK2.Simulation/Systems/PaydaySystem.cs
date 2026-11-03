@@ -326,6 +326,10 @@ public sealed class PaydaySystem : ICreatureUpdateStep
             return;
         }
 
+        // The coin sound first (0x00472803): the gold object's pick-up group with the creature's own handle.
+        ThingSoundRules.RequestInObjectCategory(context, SystemName, creature, FloorGold.FloorGoldObjectId,
+            ThingSoundEvent.WageTaken, voiced: true);
+
         // Half of what came off the floor goes into the creature's own purse, and the rest
         // is gone (0x0048AE70(taken / 2), payday.md 4.4).
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
@@ -336,6 +340,7 @@ public sealed class PaydaySystem : ICreatureUpdateStep
         // Paid in full, state 189 wipes the pay grievance outright (payday.md 4.4).
         if (creature.WageOwed == 0)
             CreatureAngerRules.Forget(world, definition, creature, AngerBucket.Pay);
+        ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.GoldReceived);   // 0x0047287A
 
         context.Emit(SystemName, "paid",
             $"creature={creature.Id} player={creature.OwnerPlayerId} " +

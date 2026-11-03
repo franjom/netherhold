@@ -146,8 +146,8 @@ a worker is held in 252 for action 79, one play of art slot 29 (`CountedHoldTick
 for the Imp; DK2 holds an Imp four ticks, 432 of 432); anyone else idles in the 251 turn. A
 responder's 254 counts from the turn after the arrival.
 
-**Not built, named:** step 1's eight-tile test; the Turncoat side; the angry skip (`state+0x3C`); the `+0x6E3` sounds;
-Jack, the other NonFighter.
+**Not built, named:** step 1's eight-tile test; the Turncoat side; the angry skip (`state+0x3C`);
+Jack, the other NonFighter. The `+0x6E3` sounds are built ([sound-effects.md section 11](sound-effects.md#11-arrival-rest-and-reactions)).
 
 The Call to Arms alarm gate is built with ADR-0425; it reads the owner's `On`
 bit, without requiring a surviving flag object.

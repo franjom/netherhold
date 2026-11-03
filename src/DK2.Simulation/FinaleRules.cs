@@ -321,6 +321,9 @@ public static class FinaleRules
             reaper.PosY = reaper.LastPosY = player.Finale.PointY;
             reaper.StopMoving();
             Effect(context, reaper, GrandEntranceEffect);
+            // 0x00474295: handle 0, after the effect and before the camera path.
+            ThingSoundRules.RequestUnvoiced(context, SystemName, reaper, ThingSoundEvent.ReaperArrived,
+                new FpPosition3(new Fp32(reaper.PosX), new Fp32(reaper.PosY), new Fp32(reaper.PosZ)));
             StartPath(context, ref player, ArrivalPath, reaper.Tile);
             View(context, ScriptedViewKind.CameraFollow, player.PlayerId, reaper.Id);
             BeginAction(context, reaper, ArrivalAction, ArrivalArt);
@@ -384,7 +387,11 @@ public static class FinaleRules
                 if (world.DoorAt(tile.X, tile.Y) is not { UnderConstruction: false } door) continue;
                 if (door.PlayerId == reaper.OwnerPlayerId)
                 {
-                    if (door.LockMode != 0) door.LockMode = 0;
+                    if (door.LockMode != 0)
+                    {
+                        door.LockMode = 0;
+                        ThingSoundRules.Request(context, SystemName, door, ThingSoundEvent.DoorUnlocked);   // 0x004A6844 through 0x00475040
+                    }
                 }
                 else door.LockPickTicks = (context.Database.Variables.Misc.TryGetValue(
                     VariableTypeId.DoorPickedTimeSeconds, out MiscVariable? seconds) ? seconds.Value : 0)
@@ -411,6 +418,7 @@ public static class FinaleRules
             BeginAction(context, reaper, PickupAction, PickupArt);
             player.Finale.PickupTick = context.Tick.Value;
             if (world.ObjectById(player.Finale.GemObjectId) is not null) world.RemoveObject(player.Finale.GemObjectId);
+            ThingSoundRules.Request(context, SystemName, reaper, ThingSoundEvent.ReaperTookGem);   // 0x00474644, after the gem goes
             player.Finale.PickupStage = 0;
             context.Emit(SystemName, "gem_taken", $"player={reaper.OwnerPlayerId} reaper={reaper.Id}");
             return;

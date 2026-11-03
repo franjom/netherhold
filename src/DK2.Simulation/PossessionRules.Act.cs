@@ -45,7 +45,6 @@ public static partial class PossessionRules
     private const byte SteelBucketObjectId = 16;
     private const byte WorkBenchObjectId = 46;
     private const byte BookCaseObjectId = 64;
-    private const byte ArchPillarObjectId = 94;
 
     internal readonly record struct Vec3(int X, int Y, int Z)
     {
@@ -175,7 +174,7 @@ public static partial class PossessionRules
 
     /// <summary>The object dispatch (jump table <c>0x005153D0</c>): gold 1-3 is the pick-up, 9
     /// <see cref="EatChicken"/>, 14 <see cref="SpinDummy"/>; 15, 16 and 46 only place an impact effect
-    /// (<c>0x004998A0</c>, presentation); any other type the pick allows (the Book Case, 64) takes the
+    /// (<c>0x004998A0</c>: <see cref="WeaponImpactRules"/> asks its sound); any other type the pick allows (the Book Case, 64) takes the
     /// attack. The Arch Pillar (94) is a <see cref="PillarThing"/>.</summary>
     private static void ObjectArm(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState thing, long now)
     {
@@ -192,6 +191,8 @@ public static partial class PossessionRules
                 break;
             case AnvilObjectId or SteelBucketObjectId or WorkBenchObjectId:
                 context.Emit(ActSystem, "possessed_impact", $"creature={me.Id} object={thing.Id}");
+                // 0x00514C8B: the impact lookup, the possessed creature as this, its attack type and the object definition's surface byte.
+                WeaponImpactRules.OnObject(context, ActSystem, me, mine, thing.ObjectTypeId);
                 break;
             default:
                 Attack(context, me, FightTargetKind.Object, thing.Id, now);
@@ -299,7 +300,7 @@ public static partial class PossessionRules
             case PillarThing:
                 // Type 94: another owner's only, its definition's DoorKey bit tested as any object's.
                 if (sameOwner) return false;
-                if (database.ObjectById(ArchPillarObjectId) is { } pillarDef && pillarDef.Flags.HasFlag(ObjectFlags.DoorKey)) return false;
+                if (database.ObjectById(HeartPillarRules.ArchPillarObjectId) is { } pillarDef && pillarDef.Flags.HasFlag(ObjectFlags.DoorKey)) return false;
                 return InReach(me, mine, thing.At);
             default:
                 if (sameOwner) return false;

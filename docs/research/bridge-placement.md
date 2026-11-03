@@ -111,4 +111,5 @@ abandons the task where DK2 takes `NextTask`.
 
 - Q497: whether the original Drako crosses the lava and calls at Morgana's heart as ours does.
 - Q501: answered; a rival keeper's creature refusing a tile is assumed from the raw owner compare, not seen.
-- `0x004F0390`/`0x004F04F0` around the keeper's build; what `0x00442960` uses the predicate for.
+- `0x004F0390`/`0x004F04F0` around the keeper's build. `0x00442960` uses the predicate to mark each placeable tile of a dragged
+  rectangle before it sends the build packet ([its record](functions/00442960.md)).

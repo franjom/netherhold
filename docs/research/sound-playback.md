@@ -12,8 +12,8 @@ CONFIRMED from DKII.EXE v1.70, read in Ghidra2026-10-29:
 
 - `0x00532670`: label hover requests group783 (0x30F) in the front-end category.
   Its sound latch resets after the eight-frame glow fade, rather than immediately on leaving.
-- The widget table at `0x006AC8C4`, stride48: slots32..36 name OBJECT_FE_PARCHMENT
-  and press groups778..782. Their release ids are zero. Slot31 names FRONT_END.
+- The widget table at `0x006AC8C4`, stride48: slot32 names FRONT_END and slots33..36 OBJECT_FE_PARCHMENT
+  (press groups778..782 for 32..36, release ids zero); the full table is [sound-effects-interface.md section 1](sound-effects-interface.md#1-the-gui-sound-table-0x006ac8c4).
 - `0x00567810`: sound manager slot36 forwards the category and group id into the category
   service, rejecting disabled service/effects and zero category/id.
 - `0x00608C20` resolves the category then `0x00614C90` scans its20-byte group records
@@ -50,14 +50,14 @@ owner masks and member counts for presentation consumers; it never writes world 
 
 World sound requests share this playback path: `ThingSoundRules` emits `SimEvent.ThingSound`, `WorldSoundDirector` gives each thing one voice
 (`0x80000000 | kind<<24 | id`) and places it at the view's `(x, height, -y)`, and `ClassicSoundPlayer.Play` applies the frequent-event throttle
-([sound-effects.md section 4](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets)) before resolving. Only creature events exist so far;
-the battle-call trigger and its acceptance limits are in [combat-fight-state.md section 9](combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
+([sound-effects.md section 4](sound-effects.md#4-slow-frame-throttle-and-unverified-playback-budgets)) before resolving. Creature events exist (battle call, sacked, the imp jobs, arrival, eating, the rooms' creature states, level-up, burning; [sound-effects.md sections 10 to 13](sound-effects.md#10-imp-jobs)) and the hand's lift and drop, creature and object; the battle-call trigger and its acceptance limits are in [combat-fight-state.md section 9](combat-fight-state.md#9-battle-call-on-approach-2026-10-31).
+The hand cursor's tag and slap sounds are presentation requests (`HandCursorFeedback.Sounds`) in the `hand` category; see [sound-effects.md section 6](sound-effects.md#6-the-hand-and-its-cursor).
 
 ## Category choice presses
 
 CONFIRMED bytes: room widget0x0068FCB8, spell widget0x0068FDF8 and Workshop widget0x0068FF38
-all carry sound slot5 at+0x4C. The generic GUI sound table0x006AC8C4+5*0x30 names
-GUI_BUTTON_ICON_LARGE with press0x104/release0x136. The model emits once per captured
+all carry sound slot5 at+0x4C, which the panel's grid then sets to 5 (GUI_BUTTON_ICON, 128-unit cells) or 6
+(GUI_BUTTON_ICON_LARGE, 264-unit cells), both with press0x104/release0x136. The model emits once per captured
 primary press/release and leaves unknown/unselectable choices silent. This does not change
 the existing choice-selection timing.
 

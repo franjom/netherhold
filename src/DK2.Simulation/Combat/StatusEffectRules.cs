@@ -39,6 +39,8 @@ public static class StatusEffectRules
     {
         if (creature.BurningTicks == 0) return;
         creature.BurningTicks--;
+        // 0x0048E4F1: the fire's sound each tick it burns, the last included; the stop below ends it (0x0048E62E).
+        ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.Burning);
         int height = CreatureLevelRules.Scale((ushort)definition.Height.Raw,
             CreatureLevelRules.Percent(context.Database, CreatureStatId.HeightTiles, creature.Level));
         int footprint = (ushort)definition.FootprintRadius.Raw;
@@ -52,7 +54,12 @@ public static class StatusEffectRules
                 { HeightSpace = EffectHeightSpace.AboveGround,
                     GroundAnchor = new(new(creature.PosX), new(creature.PosY), default), GroundCreatureId = new(creature.Id) });
         }
-        if (creature.BurningTicks == 0) creature.BurningOwnerTag = 0;
+        if (creature.BurningTicks == 0)
+        {
+            creature.BurningOwnerTag = 0;
+            // The fire has ended: DK2 stops the creature's voice (slot +0x38, 0x0048E62E), after the three effects.
+            ThingSoundRules.Stop(context, SystemName, SoundSourceId.Of(new CreatureId(creature.Id)));
+        }
     }
 
     private const string SystemName = "status";

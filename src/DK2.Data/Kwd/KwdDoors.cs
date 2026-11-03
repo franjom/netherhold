@@ -23,6 +23,8 @@ public static class KwdDoors
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetGoldCost), record.GoldCost);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(OffsetManufactureRequired), record.ManufactureRequired);
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetNameStringId), record.NameStringId);
+        bytes[OffsetImpactKind] = record.ImpactKind;
+        KwdOverlay.Ascii(bytes, OffsetSoundCategory, 32, record.SoundCategory, Name(bytes, OffsetSoundCategory), trimmed: true);
         return bytes;
     }
     private const int RecordSize = 616;
@@ -37,6 +39,8 @@ public static class KwdDoors
     private const int OffsetDoorId = 0x244;
     private const int OffsetCrateObjectId = 0x246;
     private const int OffsetNameStringId = 0x23C;
+    private const int OffsetImpactKind = 0x226;
+    private const int OffsetSoundCategory = 0x248;
 
     public static List<DoorDef> Parse(IEnumerable<KwdChunk> chunks)
     {
@@ -71,6 +75,8 @@ public static class KwdDoors
             record.AsSpan(at + OffsetManufactureRequired)),
         Flags = (DoorFlags)record[at + OffsetFlags],
         NameStringId = U16(record, at + OffsetNameStringId),
+        ImpactKind = record[at + OffsetImpactKind],
+        SoundCategory = Name(record, at + OffsetSoundCategory),
     };
 
     private static ushort U16(byte[] record, int at) =>

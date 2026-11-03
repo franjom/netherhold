@@ -127,7 +127,8 @@ runtime record. Consequences for anyone reading `DKII.EXE`:
   Damage · `+0x181`/`+0x183` ← `0x196`/`0x198` (the two shorts after Damage,
   unnamed here) · `+0x1ab` ← `0x1d7` StartingHealth · **`+0x1ad` ← `0x1ff`
   MaxHealth** · `+0x1c4` ← `0x1d6` TerrainId · `+0x1c5` ← `0x1d9`
-  MaxHealthTypeTerrainId · `+0x1c6` ← `0x1da` DestroyedTypeTerrainId.
+  MaxHealthTypeTerrainId · `+0x1c6` ← `0x1da` DestroyedTypeTerrainId · `+0x195` ← the 32-byte name at `0x1df`
+  (`SoundCategory`, resolved to the sound category handle; sound-effects.md section 7).
 - The four `ArtResource`s at file `0x20`, `0x74`, `0xc8`, `0x11c` (84 bytes
   each) are copied whole into the intermediate; the runtime keeps them as
   27-byte handles. The name (32 bytes at `0x0`) is copied as a string.

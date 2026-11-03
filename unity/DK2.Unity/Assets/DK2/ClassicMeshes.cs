@@ -90,7 +90,8 @@ namespace DK2.Unity
         public bool ConfigureAnimation(GameObject go, in ResolvedAsset asset, bool loop, double seconds,
             Fp32? movementSpeed = null, AnimationReplacement replacement = AnimationReplacement.Immediate,
             bool hold = false, Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null,
-            DK2.Data.Model.TerrainLightColour addedLight = default, Fp32 initialPhase = default)
+            DK2.Data.Model.TerrainLightColour addedLight = default, Fp32 initialPhase = default,
+            FootstepMarkPair footstepMarks = default)
         {
             using LoadBreakdown.Scope _ = LoadBreakdown.Span(Breakdown, LoadBreakdown.Work.Animation);
             if (!_art.TryGetResource(asset, out Dk2ArtResource resource) || resource.Type != 6
@@ -122,7 +123,7 @@ namespace DK2.Unity
                 FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
                 StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
             }, loop, seconds, movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null, movementSpeed,
-                replacement, hold, initialMovementSpeed, phaseStepOverride, initialPhase);
+                replacement, hold, initialMovementSpeed, phaseStepOverride, initialPhase, footstepMarks);
             return true;
         }
 

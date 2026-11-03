@@ -69,6 +69,12 @@ public sealed record TerrainDef
     /// <summary>Effect on destruction into a different terrain, TERRAIN file ushort at 0x1A6.</summary>
     public ushort DestroyedEffectId { get; init; }
 
+    /// <summary>TERRAIN file bytes 0x1DF-0x1FE (<c>TERRAIN_ROCK</c>, <c>ROOM_TREASURE</c>, ...): the name the
+    /// loader (<c>0x004F66E0</c>) resolves to definition <c>+0x195</c>, the category of every sound a tile of
+    /// this terrain requests; a room's tiles carry their room terrain's. Empty for the six terrains without
+    /// one (docs/research/sound-effects.md section 7).</summary>
+    public string SoundCategory { get; init; } = string.Empty;
+
     /// <summary>Gold yielded when mined out (gold seams / gems).</summary>
     public required ushort GoldValue { get; init; }
     public required ushort ManaGain { get; init; }

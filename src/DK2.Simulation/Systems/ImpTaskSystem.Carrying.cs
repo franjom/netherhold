@@ -279,7 +279,11 @@ public sealed partial class ImpTaskSystem
         // A book joining a Library is the room's take (0x004E12A0): it makes its item
         // available, or is destroyed when it duplicates a spell the keeper already has.
         if (context.Database.ObjectById(thing.ObjectTypeId)?.IsSpellBook == true)
+        {
             ResearchTreeRules.Shelve(world, context.Database, creature.OwnerPlayerId, thing);
+            // State 31 (0x00466DC7) sounds after the take; state 33, a Special, requests nothing.
+            ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.ImpStoredItem);
+        }
 
         context.Emit(SystemName, "object_stored",
             $"imp={creature.Id} player={creature.OwnerPlayerId} object={thing.Id} " +
@@ -549,6 +553,10 @@ public sealed partial class ImpTaskSystem
         // (0x004E6380, 0x004E6490); elsewhere it looks for another (0x00467AA0).
         bool own = IsOwnCasualty(creature, body);
         bool corpse = CreatureDeathRules.IsCorpse(body);
+        // State 41's handler asks for the carrying sound at its start (0x00467B37) whenever it runs for a
+        // corpse, which is when the walk has ended; the creature update asks again for a body still held.
+        if (corpse && (here == creature.TargetTileIndex || !creature.HasRoute))
+            ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.CarriedThing);
         if (here != creature.TargetTileIndex
             || (own && RoomIndex.RoomAt(world, context.Database, here) is not { Definition.TypeId: RoomTypeId.Lair })
             || (corpse && !GraveyardRules.TryLay(world, context.Database, body, here)))

@@ -139,7 +139,7 @@ public static class TrainingStep
         if (machine is null)
         {
             if (!StateShadow.TryMove(context, system, trainee, TrainingRules.WalkToMachineState)) return false;
-            Begin(context, trainee, TrainingActionKind.Melee, null, 0);
+            Begin(context, system, trainee, TrainingActionKind.Melee, null, 0);
             return true;
         }
         if (CasinoStep.TurnTo(context, trainee, trainee.StateTargetX, trainee.StateTargetY) != 0) return true;
@@ -150,12 +150,15 @@ public static class TrainingStep
         if (action == TrainingActionKind.Melee && machine.ObjectTypeId != Dummy) return false;
         int art = action == TrainingActionKind.Spell ? 6 : 5;
         if (!AnimationTimingRules.ResolvesPresent(definition, art)) return false;
-        Begin(context, trainee, action, machine, (byte)Math.Max(0, slot));
+        Begin(context, system, trainee, action, machine, (byte)Math.Max(0, slot));
         if (action == TrainingActionKind.Spell) trainee.SpellStamps[slot] = context.Tick.Value;
-        return StateShadow.TryMove(context, system, trainee, WorkingState);
+        bool working = StateShadow.TryMove(context, system, trainee, WorkingState);
+        // 0x004857CD: the melee swing asks for its sound after the state is set, whatever that returned.
+        if (action == TrainingActionKind.Melee) ThingSoundRules.Request(context, system, trainee, ThingSoundEvent.Trained);
+        return working;
     }
 
-    private static void Begin(SimulationContext context, CreatureState trainee, TrainingActionKind action,
+    private static void Begin(SimulationContext context, string system, CreatureState trainee, TrainingActionKind action,
         ObjectState? machine, byte spellSlot)
     {
         trainee.TrainingActionId = (byte)action;
@@ -163,6 +166,10 @@ public static class TrainingStep
         trainee.TrainingTargetObjectId = machine?.Id ?? -1;
         trainee.TrainingSpellSlot = spellSlot;
         trainee.TrainingActionHitDone = false;
+        // Actions 30 (the swing at the dummy) and 31 (the spell at the target) begin here (0x00485794, 0x0048571E); both records carry
+        // 0xD3, which CreatureAction_Begin asks (0x004968BC) before the state handler's own request below. The clip is installed fresh.
+        CreatureActionSounds.Begin(context, system, trainee,
+            action == TrainingActionKind.Spell ? CreatureActionTable.TrainSpell : CreatureActionTable.TrainMelee);
         int art = action == TrainingActionKind.Spell ? 6 : 5;
         trainee.ActionUntilTick = context.Tick.Value + AnimationTimingRules.CountedHoldTicks(
             context.Database.CreatureById(trainee.CreatureTypeId), art, 1);

@@ -4,7 +4,7 @@ DKII.EXE v1.70, Ghidra primary reads and shipped Editor KWD records, 2026-10-14.
 The room update (`0x004D9A60`, read whole twice) and the data are **CONFIRMED**;
 of the chain mechanics the Next chain (`0x00440350`) is **CONFIRMED** and the
 death path, the generation flags and the group parts are **LIKELY** (their records
-name the unread steps); sounds remain unbuilt; effect lights are built in section5. Built as
+name the unread steps); the `0xF1` opening sound is built ([sound-effects.md section 8](sound-effects.md#8-the-dungeon-heart)); effect lights are built in section5. Built as
 ADR-0475.
 
 The owner's recollection (2026-10-14): at the start of a level the player's Heart
@@ -145,7 +145,7 @@ shipped definitions, asserts the closure and checks every art flag.
   maps a member's offset to position units (KMF x, y are the world's, z points
   down, a unit is a tile). `ClassicConstructionEffects` keys a mesh group by the
   part's entry.
-- Not built: the two sounds, effect 224's `+0x43`
+- Not built: effect 224's `+0x43`
   heading helper for generated effects (the element orientation draw stands in),
   the redraw of the arches' tile, and flag `0x8000`'s fog bypass (the Heart's own
   tile is always discovered by its owner). The lights of 208 and 210 are built

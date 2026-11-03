@@ -20,8 +20,7 @@ machine cell. It turns toward that position through `0x004B2AE0`, waiting
 while any angle remains. With object 14 and resolved art slot 5 present it
 starts action 30, count one, targeting that object, then enters 112. With
 object 29, a ready attack spell and resolved art slot 6, it starts action 31
-and stamps that spell's cooldown at action entry, then enters 112. Both use
-sound 211. With no object, it returns to 108 and starts action 30 with target
+and stamps that spell's cooldown at action entry, then enters 112. State 111's own request of sound 211 (`0xD3`, [sound-effects.md section 12](sound-effects.md#12-rooms-creature-states)) is the melee swing's alone; both actions' records carry `0xD3` too, which their begin asks ([sound-effects-continuous.md section 2](sound-effects-continuous.md#2-the-action-table)). With no object, it returns to 108 and starts action 30 with target
 zero. States 111 and 112 return failure at the training cap.
 
 State 112 (`0x004857F0`) stores the creature's current XY position every

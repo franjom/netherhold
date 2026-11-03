@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Data.Media;
 using DK2.Data.Settings;
 
 namespace DK2.Presentation;
@@ -59,6 +60,43 @@ public sealed class OptionsPagesController
         CapturingAction = null; return true;
     }
     public void CancelKeyCapture() => CapturingAction = null;
+
+    /// <summary>The slider drag's test sounds (docs/research/sound-effects-interface.md section 4).</summary>
+    public SoundRequests Sounds { get; } = new();
+    /// <summary>The one voice a held slider owns: DK2 keeps the returned handle in the page's object (front end <c>+0x5AD1</c>, <c>+0x5AD5</c>, <c>+0x5AD9</c>; in game <c>+0x3A</c>, <c>+0x3E</c>, <c>+0x42</c>).</summary>
+    public static SoundVoiceId SliderVoice { get; } = new(0x7F000001);
+    private bool _dragging, _dragVoiced;
+
+    /// <summary>A press on a slider's thumb, its grab (widget state 3; the track and arrows are other states and silent, <c>0x00551F20</c>, <c>0x0054D180</c>, <c>0x0054D240</c>, <c>0x0042B950</c>..<c>0x0042BA90</c>): the speech slider
+    /// asks <c>0x345</c> in <c>OPTIONS_SPEECH</c>, the music slider <c>0x346</c> in <c>OPTIONS_MUSIC</c>, and every other front-end slider <c>0x31D</c> in <c>OBJECT_FE_PARCHMENT</c>; the in-game pages
+    /// sound the speech, music and effects sliders only. Returns whether <paramref name="id"/> is a slider (a held one asks nothing more).</summary>
+    public bool BeginSliderDrag(ushort id)
+    {
+        if (!Supports(id) || id is 133 or 900 || Range(id).Maximum <= 1) return false;
+        if (_dragging) return true;
+        _dragging = true;
+        SoundRequest? request = id switch
+        {
+            141 => Request("options_speech", 0x345),
+            143 => Request("options_music", 0x346),
+            _ when _applicationMode == OptionsApplicationMode.InGame && id != 144 => null,
+            _ => Request("object_fe_parchment", 0x31D),
+        };
+        if (request is SoundRequest sound) { Sounds.Add(sound); _dragVoiced = true; }
+        return true;
+    }
+
+    /// <summary>The release: the page's object stops the handle it kept and clears it.</summary>
+    public void EndSliderDrag()
+    {
+        if (!_dragging) return;
+        _dragging = false;
+        if (!_dragVoiced) return;
+        _dragVoiced = false;
+        Sounds.Add(new SoundRequest(SoundCategory.None, default, Voice: SliderVoice, Stop: true));
+    }
+
+    private static SoundRequest Request(string category, uint id) => new(new SoundCategory(category), new SoundId(id), Voice: SliderVoice);
     public void Enter(FrontEndPage page, OptionsApplicationMode applicationMode = OptionsApplicationMode.FrontEnd)
     {
         if (Page == page && _applicationMode == applicationMode) return;
@@ -75,10 +113,12 @@ public sealed class OptionsPagesController
     }
     public void Accept()
     {
+        EndSliderDrag();
         CapturingAction = null; Apply(Pending); SaveRequested?.Invoke(Current); Page = FrontEndPage.None;
     }
     public void Cancel()
     {
+        EndSliderDrag();
         if (Page == FrontEndPage.Sound)
             Apply(Current with { MasterVolume = _entry.MasterVolume, SpeechVolume = _entry.SpeechVolume,
                 MusicVolume = _entry.MusicVolume, SoundEffectVolume = _entry.SoundEffectVolume,

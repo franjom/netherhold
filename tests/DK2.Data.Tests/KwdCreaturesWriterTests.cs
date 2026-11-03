@@ -16,7 +16,7 @@ public class KwdCreaturesWriterTests
     [InlineData(5449)] [InlineData(5537)]
     public void EveryDecodedScalarRoundTripsAtBothStridesWithoutTouchingOtherBytes(int stride) =>
         KwdScalarOverlayChecks.Check(KwdRecordType.Creatures, stride, Read, KwdCreatures.WriteRecord,
-            "Name:0:32 SoundCategory:F56:32 CreatureId:F4B:1 UniqueBaseCreatureId:D3B:1 Flags:EFC:4 Flags2:1545:4 " +
+            "Name:0:32 SoundCategory:F56:32 ImpactKind:F76:1 CreatureId:F4B:1 UniqueBaseCreatureId:D3B:1 Flags:EFC:4 Flags2:1545:4 " +
             "EntranceOffsetX:E94:4 EntranceOffsetY:E98:4 PrayerStepX:127B:4 PrayerStepY:127F:4 EntranceFrames:A3C:4 EntranceFramesPerSecond:A40:4 GetUpFrames:940:4 GetUpFramesPerSecond:944:4 " +
             "AngryArtType:364:1 AngryArtFlags:354:4 AngryFrames:358:4 AngryFramesPerSecond:35C:4 " +
             "Speed:EB4:4 RunSpeed:EB8:4 ShuffleSpeed:D37:4 Height:EA4:4 EyeHeight:EB0:4 " +
@@ -33,7 +33,7 @@ public class KwdCreaturesWriterTests
             "CloneCreatureId:D3B:1 NameStringId:F24:2 TooltipStringId:F26:2 DescriptionStringId:F38:2 SpecialNameStringId:14DF:2 IntroductionStringId:CFF:2 UnhappySpeechId:D05:2 AngrySpeechId:D07:2 LeftSpeechId:D09:2 EntranceEffectId:F36:2",
             excludedProperties: ["Attractions", "Spells", "Resistances", "HappyJobs", "UnhappyJobs", "AngryJobs", "HateJobs", "AlternativeJobs",
                 "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation",
-                "ReaperSummonAnimation", "ReaperSummonFallbackAnimation", "AlternateArt", "ArtSlots"],
+                "ReaperSummonAnimation", "ReaperSummonFallbackAnimation", "AlternateArt", "ArtSlots", "FootstepMarks"],
             customValues: new Dictionary<string, object> { ["SizeClass"] = 13 });
 
     [Fact]

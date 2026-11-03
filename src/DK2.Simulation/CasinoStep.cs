@@ -358,6 +358,13 @@ public static class CasinoStep
         creature.WaitPosY = creature.PosY;
         if (now >= creature.ActionUntilTick) return Enter(context, system, creature, ChoosingState);
 
+        // While the action runs, 147 asks for 0xE1 (0x00456DF0) and 149 for 0xD5 (0x00456B37) every eighth game
+        // second of the state's age. At a Roulette Table 149 asks every fourth as well, when a Roulette Wheel
+        // (object 30) is on the table's tile (0x00456AE9); ours has no wheel objects, so that one waits.
+        if (creature.Dk2StateId is DrinkingState or PlayingState && age % (8 * SimulationTiming.OriginalTicksPerGameSecond) == 0)
+            ThingSoundRules.Request(context, system, creature,
+                creature.Dk2StateId == DrinkingState ? ThingSoundEvent.Drank : ThingSoundEvent.Gambled);
+
         if (creature.Dk2StateId == PlayingState && age % (4 * SimulationTiming.OriginalTicksPerGameSecond) == 0
             && context.World.ObjectById(creature.CasinoObjectId) is { InHand: false, ObjectTypeId: RouletteTableObjectId })
             context.Rng.NextInt(2);

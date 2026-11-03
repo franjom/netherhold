@@ -867,4 +867,55 @@ public class PaydayTests
         // And it is the wage the mood is now coming off.
         Assert.Equal(AngerBucket.Pay, goblin.Anger.Worst);
     }
+
+    /// <summary>State 189 (<c>0x00472740</c>) requests, once the wage is off the floor, <c>0xC3</c> in the gold object's
+    /// category with the creature's own handle, then <c>0xCA</c> in the creature's category with the same handle,
+    /// both at the creature; a wage that finds nothing to take sounds nothing.</summary>
+    [Fact]
+    public void ATakenWageRequestsC3InTheGoldObjectsCategoryThenCaInTheGoblinsBothWithItsVoice()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        TilePos vault = Treasury(world, new TilePos(1, 3), 2000);
+        CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        RunToFirstPayday(sim, db, extraTicks: 200);
+
+        Assert.Contains(sink.Events, e => e.Kind == "paid" && e.Detail.Contains("took=500"));
+        ThingSoundRequest[] heard = sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+        Assert.Equal(2, heard.Length);
+        var at = new FpPosition3(new Fp32(goblin.PosX), new Fp32(goblin.PosY), new Fp32(goblin.PosZ));
+        Assert.Equal(vault, goblin.Tile);
+
+        Assert.Equal(ThingSoundEvent.WageTaken, heard[0].Event);
+        Assert.Equal((ushort)0xC3, (ushort)heard[0].Event);
+        Assert.Equal("OBJECT_GOLD", heard[0].Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(goblin.Id)), heard[0].Source);
+        Assert.Equal(at, heard[0].Position);
+        Assert.True(heard[0].Voiced);
+
+        Assert.Equal(ThingSoundEvent.GoldReceived, heard[1].Event);
+        Assert.Equal("CREATURE_GOBLIN", heard[1].Category);
+        Assert.Equal(heard[0].Source, heard[1].Source);
+        Assert.Equal(at, heard[1].Position);
+        Assert.True(heard[1].Voiced);
+    }
+
+    [Fact]
+    public void AWageThatFindsNoGoldSoundsNothing()
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        Treasury(world, new TilePos(1, 3), 0);
+        world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world, sink);
+
+        RunToFirstPayday(sim, db, extraTicks: 200);
+
+        Assert.DoesNotContain(sink.Events, e => e.Kind == "paid");
+        Assert.DoesNotContain(sink.Events, e => e.ThingSound.HasValue);
+    }
 }

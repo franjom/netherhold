@@ -36,6 +36,10 @@ public sealed record KeeperSpellDef
     /// availability rows and research entries use. Create Imp is 4.</summary>
     public byte KeeperSpellId { get; init; }
 
+    /// <summary>The spell's sound category name (a <c>KEEPER_SPELL_*</c> bank), file <c>0xF1</c>, 32 bytes: <c>0x004F7CE0</c> resolves it into the
+    /// runtime spell's <c>+0x6D</c>, which the cast asks <c>0xEF</c> in and the Tremor its sounds. Empty when the record names none.</summary>
+    public string SoundCategory { get; init; } = string.Empty;
+
     public int CooldownRaw { get; init; }
     public byte LocationSelector { get; init; }
     public byte TargetSelector { get; init; }

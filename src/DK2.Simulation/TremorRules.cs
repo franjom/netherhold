@@ -44,6 +44,19 @@ public static partial class TremorRules
             DurationTicks = unchecked((ushort)((ushort)shot.Data1 * SimulationTiming.OriginalTicksPerGameSecond)),
             Radius = Math.Min(radius, MaximumRadius),
         };
+        RequestSound(context, selected, ThingSoundEvent.TremorStarted, shot.PosX, shot.PosY, 0x2000);   // 0x00510355
+    }
+
+    /// <summary>A Tremor sound in the Tremor spell's category (<c>+0x6D</c> of its definition, <see cref="KeeperSpellDef.SoundCategory"/>):
+    /// <c>0xFB</c> at the start and <c>0x31F</c> at the end carry the slot's handle (here the slot's voice) at the slot's
+    /// place and height <c>0x2000</c>; <c>0x2EC</c> carries none, at the floor tile it shakes (docs/research/sound-effects-combat.md section 2).</summary>
+    private static void RequestSound(SimulationContext context, int slot, ThingSoundEvent sound, int x, int y, int z, bool voiced = true)
+    {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        string category = context.Database.KeeperSpellById(SpellId)?.SoundCategory ?? "";
+        if (category.Length == 0) return;
+        ThingSoundRules.Request(context, "tremor", new SoundSourceId(SoundSourceKind.Tremor, slot), category, sound,
+            new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)), voiced);
     }
 
     public static void Update(SimulationContext context)
@@ -58,6 +71,7 @@ public static partial class TremorRules
             if (unchecked(now - tremor.StartedAt) >= tremor.DurationTicks)
             {
                 tremor.Radius = 0;
+                RequestSound(context, i, ThingSoundEvent.TremorEnded, tremor.WorldX, tremor.WorldY, 0x2000);   // 0x005104C6
                 continue;
             }
             if (!refreshed)
@@ -67,6 +81,8 @@ public static partial class TremorRules
                 refreshed = true;
             }
             if (!TryChooseFloor(context, tremor, out TilePos floor)) continue;
+            // 0x005105C3, after the view effect and before the tile pass, only for a floor found: no handle, the tile's centre at height 0.
+            RequestSound(context, i, ThingSoundEvent.TremorShook, CreatureState.CentreOf(floor.X), CreatureState.CentreOf(floor.Y), 0, voiced: false);
             foreach (var offset in Neighbors)
             {
                 var at = new TilePos(floor.X + offset.X, floor.Y + offset.Y);
@@ -117,6 +133,8 @@ public static partial class TremorRules
         {
             tile.FreshlyDug = false;
             SlabChain.Changed(world, context.Database, world.TileIndex(at), before, ownerBefore);
+            if (tile.TerrainId != before)
+                ThingSoundRules.RequestTile(context, "tremor", before, world.TileIndex(at), ThingSoundEvent.TileBroken);
             context.Navigation.Refresh();
         }
         if (result.GoldSpilled > 0)

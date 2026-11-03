@@ -31,16 +31,18 @@ public sealed class RoomBuildSystem : ISimulationSystem
         WorldState world = context.World;
         if (!world.HasPlayer(command.PlayerId) || !context.Database.Rooms.TryGetValue(command.RoomId, out var room))
             return;
+        HashSet<TilePos>? spans = BridgeRules.IsBridge(room)
+            ? RoomRules.SpannableTiles(context.Database, world, command.Tiles, room, command.PlayerId) : null;
+        int placeable = command.Tiles.Count(pos => world.Contains(pos)
+            && Verdict(context, world, spans, pos, room, command.PlayerId) == RoomPlacement.Allowed);
+        int cost = placeable * RoomRules.CostPerTile(room);
+        bool prechecked = placeable != 0 && cost <= GoldStore.Total(world, command.PlayerId);
+        if (prechecked) RequestAcceptedSound(context, command, room);
         for (int slotIndex = 0; slotIndex < RoomBuildWaveRules.SlotsPerPlayer; slotIndex++)
         {
             ref RoomBuildWaveState? slot = ref world.RoomBuildWave(command.PlayerId, (RoomBuildSlot)slotIndex);
             if (slot.HasValue) continue;
-            HashSet<TilePos>? spans = BridgeRules.IsBridge(room)
-                ? RoomRules.SpannableTiles(context.Database, world, command.Tiles, room, command.PlayerId) : null;
-            int placeable = command.Tiles.Count(pos => world.Contains(pos)
-                && Verdict(context, world, spans, pos, room, command.PlayerId) == RoomPlacement.Allowed);
-            int cost = placeable * RoomRules.CostPerTile(room);
-            if (placeable == 0 || cost > GoldStore.Total(world, command.PlayerId))
+            if (!prechecked)
             {
                 context.Emit(SystemName, "build_refused", $"player={command.PlayerId} room={room.Name} drag_cost={cost}");
                 return;
@@ -49,6 +51,19 @@ public sealed class RoomBuildSystem : ISimulationSystem
             return;
         }
         context.Emit(SystemName, "build_refused", $"player={command.PlayerId} room={room.Name} reason=queue_full");
+    }
+
+    /// <summary>The build command's sound (<c>0x00442D57</c>): after the drag's pre-check passes and the order is
+    /// sent, <c>0x2F8</c> in the room's terrain category (room definition <c>+0x44E</c>) at the rectangle's
+    /// lowest corner, clamped to the map, height 0x1000. The function runs where the command is issued;
+    /// ours has the one path, so it sounds here, before a full queue is found (STRONGLY INFERRED).</summary>
+    private static void RequestAcceptedSound(SimulationContext context, BuildRoomCommand command, RoomDef room)
+    {
+        TilePos press = RoomBuildWaveRules.ClampPress(command.Press);
+        TilePos release = RoomBuildWaveRules.ClampRelease(command.Release, context.World);
+        int corner = (Math.Min(press.Y, release.Y) * context.World.Width) + Math.Min(press.X, release.X);
+        ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, corner, ThingSoundEvent.RoomBuildAccepted,
+            height: 0x1000, SoundSourceKind.Room);
     }
 
     internal static void Drain(SimulationContext context, PlayerId playerId)
@@ -84,7 +99,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
                         slot = null;
                         return;
                     }
-                    bool built = PlacePaidTile(context, playerId, pos, room);
+                    bool built = PlacePaidTile(context, playerId, pos, room, announce: context.Tick != wave.QueuedTick);
                     if (built)
                     {
                         new AutoFurnitureSystem().Execute(context);
@@ -106,7 +121,11 @@ public sealed class RoomBuildSystem : ISimulationSystem
         }
     }
 
-    private static bool PlacePaidTile(SimulationContext context, PlayerId playerId, TilePos pos, RoomDef room)
+    /// <summary>One paid tile. <paramref name="announce"/> is the builder's own test for its sound (<c>0x004C5D1B</c>): the
+    /// game turn is not the turn the caller passed, which is the turn a drag was queued on and 0 for the
+    /// computer keeper's wrapper.</summary>
+    private static bool PlacePaidTile(SimulationContext context, PlayerId playerId, TilePos pos, RoomDef room,
+        bool announce)
     {
         if (!GoldStore.TryWithdraw(context.World, playerId, RoomRules.CostPerTile(room))) return false;
         context.World.Player(playerId).Statistics.MoneySpent += RoomRules.CostPerTile(room); // 0x004C5D0A
@@ -114,6 +133,9 @@ public sealed class RoomBuildSystem : ISimulationSystem
         byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
         RoomRules.Place(context.Database, ref tile, room, playerId);
         SlabChain.Changed(context.World, context.Database, pos.Y * context.World.Width + pos.X, terrainBefore, ownerBefore);
+        if (announce)
+            ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, pos.Y * context.World.Width + pos.X,
+                ThingSoundEvent.RoomTileBuilt, kind: SoundSourceKind.Room);
         return true;
     }
 
@@ -185,7 +207,7 @@ public sealed class RoomBuildSystem : ISimulationSystem
 
             // Charge before placing. A tile that was paid for but not laid, or
             // laid but not paid for, would both be worse than refusing it.
-            if (!PlacePaidTile(context, command.PlayerId, pos, room))
+            if (!PlacePaidTile(context, command.PlayerId, pos, room, announce: true))   // the wrapper's turn 0 never equals DK2's game turn, our tick + 1
             {
                 Count(refusals, RoomPlacement.NotEnoughGold);
                 continue;

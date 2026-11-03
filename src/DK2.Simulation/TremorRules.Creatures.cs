@@ -31,6 +31,8 @@ public static partial class TremorRules
         switch (creature.Dk2StateId)
         {
             case KnockdownState:
+                // The shared 210 starter (0x00481520) asks first, whatever its action start then does.
+                ThingSoundRules.Request(context, CreatureSystem, creature, ThingSoundEvent.KnockedDown);
                 CreatureStateMachine.EndAction(creature);
                 creature.ActionUntilTick = context.Tick.Value + AnimationTimingRules.KnockdownHoldTicks(definition);
                 CreatureStateMachine.TrySetState(context.Hooks, creature, WaitingState, context.Tick.Value);

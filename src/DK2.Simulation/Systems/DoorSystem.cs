@@ -18,7 +18,9 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
 public sealed class DoorSystem : ISimulationSystem
 {
-    public string Name => "doors";
+    private const string SystemName = "doors";
+
+    public string Name => SystemName;
 
     public void Execute(SimulationContext context)
     {
@@ -34,8 +36,14 @@ public sealed class DoorSystem : ISimulationSystem
             if (context.Database.Doors.TryGetValue(door.DoorId, out DoorDef? definition)
                 && definition.Flags.HasFlag(DoorFlags.Barricade)) continue;
 
+            bool was = door.Open;
             door.Open = door.LockPickTicks > 0
                 || (door.LockMode != 3 && AnyEligibleAtHand(context, door));
+            // 0x004A60B9: the open state changed. A door found dead skips the open decision in DK2, but its owner and support
+            // kills run inside the same update, before that test, and ours are DoorHealthSystem's, after this one: a door
+            // killed this tick may still sound this tick (a deviation with no practical effect, it goes the same turn).
+            if (door.Open != was && !DoorRules.IsDead(door))
+                ThingSoundRules.Request(context, Name, door, door.Open ? ThingSoundEvent.DoorOpened : ThingSoundEvent.DoorClosed);
         }
     }
 
@@ -52,6 +60,9 @@ public sealed class DoorSystem : ISimulationSystem
                 if (door.X != request.Tile.X || door.Y != request.Tile.Y) continue;
                 if (door.PlayerId != request.PlayerId) continue;
                 door.LockMode = door.LockMode == 0 ? (byte)3 : (byte)0;
+                // 0x004A6844, only for a completed door: the lock, or the unlock.
+                if (!door.UnderConstruction)
+                    ThingSoundRules.Request(context, SystemName, door, door.LockMode == 0 ? ThingSoundEvent.DoorUnlocked : ThingSoundEvent.DoorLocked);
             }
         }
     }

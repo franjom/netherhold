@@ -27,7 +27,7 @@ public static partial class PossessionRules
         WorldState world = context.World;
         GameDatabase database = context.Database;
         PlayerId owner = me.OwnerPlayerId;
-        (int px, int py, _) = aim.PacketOrigin;
+        (int px, int py, int pz) = aim.PacketOrigin;
         var pose = new TilePos(px >> 12, py >> 12);
 
         if (world.Contains(pose))
@@ -80,7 +80,12 @@ public static partial class PossessionRules
             context.Emit(ActSystem, "possessed_dig", $"creature={me.Id} tile={index}");
         }
         else if (terrain.IsSolid)
+        {
             context.Emit(ActSystem, "possessed_rock", $"creature={me.Id} tile={index}");
+            // 0x00515021: the solid terrain arm asks 0x335 with the creature's handle in its category at the act's origin (the packet's pose).
+            ThingSoundRules.Request(context, ActSystem, SoundSourceId.Of(new CreatureId(me.Id)), mine.SoundCategory,
+                ThingSoundEvent.PossessedRock, new FpPosition3(new Fp32(px), new Fp32(py), new Fp32(pz)));
+        }
     }
 
     /// <summary>A begun action replaces the running one: a swing or cast not yet landed, or a claim.</summary>

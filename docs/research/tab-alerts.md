@@ -207,15 +207,12 @@ has no additive images, so each sparkle keeps its colour with its brightness as 
 Deviation: the modulo is taken in virtual units, not screen pixels. The sparkle is 88 units on
 264-unit slots (`+0x3C == 6`) and 64 on tabs and 128-unit slots (`BottomPanelSparkles.SizeFor`,
 section 3). `BottomPanelFlash` takes the set of open panels, so with a pinned tab both panels
-count as open. Not built: the chime `0x33A` (no sound system yet) and generic icon buttons by
+count as open. The chime `0x33A` is built (`FlashChime`, [sound-effects-interface.md section 2](sound-effects-interface.md#2-the-flash-chime-0x33a)). Not built: generic icon buttons by
 `+0x74` id other than the resource numbers. Tests: `BottomPanelFlashTests`.
 
 ## Open
 
-- Which SFX sound `0x33A` is in its bank. Widget `+0x3C` is the record's sound slot `+0x4C`
-  (0x00528300): tabs carry 1..4 (FB 1, FA 2, F9 3, F8 4; 64-unit sparkle), and 0x00417470
-  sets category slots to 6 for 264-unit cells (88-unit sparkle) and 5 for 128-unit (2026-10-23,
-  section 3). The sparkle sizes are built; the sound bank meaning of `+0x3C` stays open.
+- The sound slot of a tab is 1..4 and of a category slot 5 (128-unit) or 6 (264-unit); the categories they name are in [sound-effects-interface.md section 1](sound-effects-interface.md#1-the-gui-sound-table-0x006ac8c4).
 - Which icon buttons carry which `+0x74` ids beyond Sell `0xFF`. They come from static
   widget tables that have not been read.
 - Category 2 (creature): no slot flash was found in 0x00412FC0, whose creature arms 5/6
@@ -228,5 +225,5 @@ count as open. Not built: the chime `0x33A` (no sound system yet) and generic ic
   allows), and it keeps going until the Lair is clicked. This confirms the dark phase, the
   staggered sparkles and the clear on use. The owner first read it as "a room becomes
   available"; Level 1's script flashes the Lair and then the Hatchery, and the binary has no
-  other producer, so no non-scripted flash was observed. Still open from play: the chime
-  `0x33A` once a second.
+  other producer, so no non-scripted flash was observed. Still open from play: whether the
+  chime `0x33A` (built) is heard once a second.

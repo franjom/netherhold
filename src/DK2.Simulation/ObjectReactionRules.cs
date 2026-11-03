@@ -9,11 +9,16 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.Confirmed, "docs/research/object-drawing.md#8-furniture-eggs-and-chickens")]
 public static class ObjectReactionRules
 {
+    private const string SystemName = "ObjectReactions";
+
     public const byte StruckProcess = 18;
+
+    /// <summary>The Training Dummy (OBJECTS record 14), the one object the struck state sounds for.</summary>
+    private const byte TrainingDummyObjectId = 14;
 
     public static void StartStruck(SimulationContext context, ObjectState target)
     {
-        if (target.AutoPlaced && target.ObjectTypeId == 14 && target.TimerTicks != 0x200)
+        if (target.AutoPlaced && target.ObjectTypeId == TrainingDummyObjectId && target.TimerTicks != 0x200)
             target.Heading = AutoFurnitureRules.Choice(target.TileIndex % context.World.Width,
                 target.TileIndex / context.World.Width, 0x800);
         target.ProcessState = StruckProcess;
@@ -29,6 +34,9 @@ public static class ObjectReactionRules
             target.ProcessEnding = context.Rng.NextInt(2) == 0;
             target.TimerTicks = 0x200;
             target.ProcessCount = 0;
+            // 0x004A14F2, after the effect and the art: the dummy's own sound, and no other object's.
+            if (target.ObjectTypeId == TrainingDummyObjectId)
+                ThingSoundRules.Request(context, SystemName, target, ThingSoundEvent.StruckDummy);
         }
         var definition = context.Database.ObjectById(target.ObjectTypeId);
         if (definition is not null && target.ProcessAgeTicks > AnimationTimingRules.FirstCycleHoldTicks(definition.ArtSlot(5)))

@@ -20,6 +20,9 @@ public readonly record struct HeartPillarTarget(HeartPillar Pillar, TilePos Tile
 /// <summary>The three Arch Pillars made by the Heart builder; furniture-placement.md §6.</summary>
 public static class HeartPillarRules
 {
+    /// <summary>The Arch Pillar (object 94): what a heart blow strikes as an object, and what the possessed act treats as a pillar.</summary>
+    public const byte ArchPillarObjectId = 94;
+
     public static bool TryResolve(WorldState world, GameDatabase database, PlayerId owner, HeartPillarId id, out HeartPillarTarget target)
     {
         target = default;

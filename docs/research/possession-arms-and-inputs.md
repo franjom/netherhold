@@ -50,7 +50,7 @@ ticks; then +0xD4 and +0xD8 are zeroed and it returns 0. No damage.
 
 **Anvil, Steel Bucket, Work Bench (15, 16, 46).** A hit point from world+4→+0x10
 vtable +0x10C, else the object's position; `Attack_LookupImpactPair(def+0x77A, object
-def+0x11C, point)`; +0x427 = now. Presentation only.
+def+0x11C, point)`; +0x427 = now. The effects are presentation; the weapon sound it asks is [sound-effects-combat.md section 5](sound-effects-combat.md#5-the-swing-death-and-corpses).
 
 ## 2. The swing on things that are not creatures — CONFIRMED
 

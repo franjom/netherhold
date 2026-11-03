@@ -31,6 +31,21 @@ public class ObjectsOnRealDataTests
 
     // ---- the parse is right -----------------------------------------------
 
+    /// <summary>File bytes 0x35E, which <c>ObjectDef_Load</c> (<c>0x0049DD60</c>) resolves to definition
+    /// <c>+0x10E</c>: the category of every sound an object requests. Only the gold has samples for the
+    /// hand's lift and drop; the treasury pile, the chicken's lift and the specials have none.</summary>
+    [InstallFact]
+    public void ObjectSoundCategoriesAreTheShippedNames()
+    {
+        GameDatabase db = GameDatabaseLoader.Load(Install());
+
+        Assert.Equal("OBJECT_GOLD", db.Objects[1].SoundCategory);
+        Assert.Equal("OBJECT_CHICKEN", db.Objects[9].SoundCategory);
+        Assert.Equal("", db.Objects[3].SoundCategory);
+        Assert.Equal(15, db.Objects.Values.Count(o => o.IsSpecial));
+        Assert.All(db.Objects.Values.Where(o => o.IsSpecial), o => Assert.Equal("OBJECT_SPECIAL", o.SoundCategory));
+    }
+
     [InstallFact]
     public void OneHundredAndFortyFiveObjectsWithIdsOneToOneHundredAndFortyFive()
     {

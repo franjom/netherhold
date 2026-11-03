@@ -71,6 +71,8 @@ public static class KeeperSpellRules
         // 0x004BC160 keys the lift on the shot type, not the spell.
         ShotRules.RequestTrail(context, shot, default,
             new Fp32(Fp32.One + target.PosZ + (effect.ShotTypeId == ThunderboltShot ? 0x2000 : 0)));
+        // 0x004BC26F, after payment and both clocks: always in the spell's category, at the target's own position (+0x1A, not the lifted point).
+        RequestCastSound(context, spell, cast.PlayerId, new FpPosition3(new Fp32(target.PosX), new Fp32(target.PosY), new Fp32(target.PosZ)));
         player.Mana -= spell.ManaCost;
         player.OneShotManaSpent += spell.ManaCost;
         player.Availabilities[row] = availability with
@@ -96,6 +98,8 @@ public static class KeeperSpellRules
         ShotState shot = ShotRules.Spawn(world, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
             cast.X, cast.Y, effect.Data1, effect.Data2, 0, FightTargetKind.None, -1, cast.PlayerId, -1, cast.X, cast.Y);
         ShotRules.RequestTrail(context, shot, default, new Fp32(Fp32.One));
+        RequestPlaceCastSound(context, spell, context.Database.Shots[effect.ShotTypeId], cast.PlayerId,
+            new FpPosition3(new Fp32(cast.X), new Fp32(cast.Y), shot.ViewHeight));
         player.Mana -= spell.ManaCost;
         player.OneShotManaSpent += spell.ManaCost;
         player.Availabilities[row] = availability with
@@ -104,6 +108,24 @@ public static class KeeperSpellRules
         };
         if (cast.SpellId == ReaperRules.OneShotSpellId) player.OneShotReaperUsed = true;
         return 1;
+    }
+
+    /// <summary>The place cast's <c>0xEF</c> (<c>0x004BBEBD</c>) in the spell's own category (definition <c>+0x6D</c>,
+    /// <see cref="KeeperSpellDef.SoundCategory"/>), with handle 0, at <paramref name="at"/>: asked only when the shot's own category is empty,
+    /// as its construction asks <c>0xEF</c> in its own otherwise (docs/research/sound-effects-combat.md section 1). The commands carry no
+    /// height, so a caller passes the shot's view height for the position's.</summary>
+    internal static void RequestPlaceCastSound(SimulationContext context, KeeperSpellDef spell, ShotDef shot, PlayerId caster, FpPosition3 at)
+    {
+        if (shot.SoundCategory.Length == 0) RequestCastSound(context, spell, caster, at);
+    }
+
+    /// <summary>The cast's <c>0xEF</c> in the spell's own category (definition <c>+0x6D</c>, <see cref="KeeperSpellDef.SoundCategory"/>),
+    /// with handle 0, at <paramref name="at"/> (docs/research/sound-effects-combat.md section 1).</summary>
+    private static void RequestCastSound(SimulationContext context, KeeperSpellDef spell, PlayerId caster, FpPosition3 at)
+    {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance) || spell.SoundCategory.Length == 0) return;
+        ThingSoundRules.Request(context, "keeper_spells", new SoundSourceId(SoundSourceKind.Player, caster.Value),
+            spell.SoundCategory, ThingSoundEvent.SpellCast, at, voiced: false);
     }
 
     /// <summary>The position permission helper <c>0x004BB8A0</c> for the spells read: cost,

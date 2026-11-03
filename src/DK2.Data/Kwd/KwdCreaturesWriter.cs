@@ -30,6 +30,7 @@ public static partial class KwdCreatures
         CreatureDef original = ParseRecord(image, 0);
         KwdOverlay.Ascii(image, 0, 32, row.Name, original.Name, trimmed: false);
         KwdOverlay.Ascii(image, 0xF56, 32, row.SoundCategory, original.SoundCategory, trimmed: false);
+        U8(0xF76, row.ImpactKind);
         U8(0xF4B, (byte)row.CreatureId);
         U8(OffsetBaseCreatureId, (byte)row.UniqueBaseCreatureId);
         U32(0xEFC, (uint)row.Flags);
@@ -65,6 +66,17 @@ public static partial class KwdCreatures
         // ArtSlots views the same blocks: only a slot it changed is written, so it wins over a view above.
         for (int slot = 0; slot < row.ArtSlots.Count && slot < original.ArtSlots.Count; slot++)
             if (row.ArtSlots[slot] != original.ArtSlots[slot]) AnimationTiming(slot, row.ArtSlots[slot]);
+        // The marks are written whole or not at all: a hand-built definition has none.
+        if (row.FootstepMarks.Count != 0)
+        {
+            if (row.FootstepMarks.Count != CreatureDef.FootstepMarkCount)
+                throw new InvalidDataException("CREATURES requires 48 footstep mark pairs or none.");
+            for (int slot = 0; slot < CreatureDef.FootstepMarkCount; slot++)
+            {
+                U16(OffsetFootstepMarks + (4 * slot), row.FootstepMarks[slot].First);
+                U16(OffsetFootstepMarks + (4 * slot) + 2, row.FootstepMarks[slot].Second);
+            }
+        }
         S32(0xEB4, row.Speed.Raw);
         S32(0xEB8, row.RunSpeed.Raw);
         S32(OffsetShuffleSpeed, row.ShuffleSpeed.Raw);

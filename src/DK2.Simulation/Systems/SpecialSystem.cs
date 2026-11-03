@@ -17,6 +17,16 @@ public sealed class SpecialSystem : ISimulationSystem
     private const byte ReceiveImps = 124;
     private const byte LocateHiddenLand = 129;
     private const byte TransferCreature = 140;
+
+    /// <summary>The sound each arm ends with, in the special's own category with its handle (<c>0x004A42C0</c>,
+    /// <c>0x004A4980</c>, <c>0x004A4F70</c>); the transfer arm asks none, and the arms ours has not built never run.</summary>
+    private static ThingSoundEvent? SoundOf(byte objectTypeId) => objectTypeId switch
+    {
+        IncreaseLevel => ThingSoundEvent.SpecialIncreasedLevel,
+        ReceiveImps => ThingSoundEvent.SpecialReceivedImps,
+        LocateHiddenLand => ThingSoundEvent.SpecialLocatedHiddenLand,
+        _ => null,
+    };
     public string Name => "Special";
 
     public void Execute(SimulationContext context)
@@ -37,8 +47,8 @@ public sealed class SpecialSystem : ISimulationSystem
                     affected = GiveImps(context, command.PlayerId);
                     break;
                 case LocateHiddenLand:
-                    // 0x004A4F70: the profile write is the host's (CampaignCarry); its effect 0xC6,
-                    // message 49 and sound are not modelled.
+                    // 0x004A4F70: the profile write is the host's (CampaignCarry); its effect 0xC6
+                    // and message 49 are not modelled; the sound is asked below.
                     context.World.Carry.HiddenLandFound++;
                     affected = 0;
                     break;
@@ -51,6 +61,7 @@ public sealed class SpecialSystem : ISimulationSystem
                     continue;
             }
 
+            if (SoundOf(item.ObjectTypeId) is { } sound) ThingSoundRules.Request(context, Name, item, sound);
             context.World.RemoveObject(item.Id);
             context.World.Player(command.PlayerId).Statistics.SpecialsFound++; // 0x004A3FE6
             context.Emit(Name, "special_activated",
@@ -97,8 +108,8 @@ public sealed class SpecialSystem : ISimulationSystem
     /// type, on a two-tile circle round the Heart's tile centre at angles i × (0x800 / count), each
     /// four levels up and facing <c>rand(0x800)</c> on the world stream, kicked to 214. 214
     /// (<c>0x00481750</c>) waits for the fall to the floor, then runs 76's landing; ours has no fall
-    /// (M9) and puts each down as the hand does, as Create Imp's (ADR-0312). Its effect, message 49
-    /// and sound are not modelled.</summary>
+    /// (M9) and puts each down as the hand does, as Create Imp's (ADR-0312). Its effect and message 49
+    /// are not modelled; the sound is asked by <see cref="Execute"/>.</summary>
     private static int GiveImps(SimulationContext context, PlayerId playerId)
     {
         WorldState world = context.World;

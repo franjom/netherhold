@@ -35,6 +35,25 @@ public class KwdTerrainRoomsTests
         Assert.Equal(new RoomTorch(0, 0, 0, 0, 0, 0, "Torch1", true), T(22));
     }
 
+    /// <summary>File bytes 0x1DF, which the terrain loader (<c>0x004F66E0</c>) resolves to definition
+    /// <c>+0x195</c>: the category of every sound a tile of the terrain requests. A room's tiles use the
+    /// room terrain's; the six terrains with no category are fog, the final hero gate, the unused
+    /// hero gate tile, the map edge, the claim scan and the unused mercenary gate.</summary>
+    [InstallFact]
+    public void TerrainSoundCategoriesAreTheShippedNames()
+    {
+        Dictionary<byte, string> by = Terrain().ToDictionary(t => t.TerrainId, t => t.SoundCategory);
+
+        Assert.Equal("TERRAIN_ROCK", by[2]);
+        Assert.Equal("TERRAIN_DIRT_PATH", by[3]);
+        Assert.Equal("TERRAIN_GOLD", by[6]);
+        Assert.Equal("TERRAIN_WALL", by[9]);
+        Assert.Equal("ROOM_DUNGEON_HEART", by[14]);
+        Assert.Equal("ROOM_GUARD_POST", by[18]);
+        Assert.Equal("ROOM_WORKSHOP", by[19]);
+        Assert.Equal(new byte[] { 27, 28, 29, 30, 38, 39 }, by.Where(p => p.Value == "").Select(p => p.Key).Order());
+    }
+
     private static List<RoomDef> Rooms() =>
         KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(Path.Combine(EditorDir(), "Rooms.kwd")));
 

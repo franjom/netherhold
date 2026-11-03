@@ -55,8 +55,9 @@ remaining consumes a tick without movement or countdown decrement. Once
 facing, it clears the flag, decrements the count, and applies the velocity on
 nonzero counts. At zero it snaps to the destination, preserving Z, restores
 the resume process and resets age. Each intermediate Chicken step also calls
-the creature-avoidance helper. Chicken footstep audio alternates through a
-global counter when the pre-decrement movement count is 1.
+the creature-avoidance helper. Chicken footstep audio (`0x110`) alternates through a
+global counter when the movement count is 1; built, the listener keeps the counter
+([sound-effects-objects.md](sound-effects-objects.md#1-objects-and-specials)).
 
 The definition loader `0x0049DD60` divides file speed `+0x338` by global
 ticks/second `0x006F2590`, narrowing to runtime word `+0x100`; a nonzero source
@@ -113,7 +114,7 @@ with doubled speed and resume 8. Our absent ground-height word is approximated
 by supported flight and `PosZ <= 0x1000`; complete vertical physics remains
 unbuilt. Audio's global footstep alternation, randomized object scale and the
 Chicken KMF Walk/Eat/Scared playback and render interpolation are built;
-see kmf-animation-playback.md §7. Footstep audio remains unbuilt.
+see kmf-animation-playback.md §7.
 
 ## 5. Persistent room membership — confirmed
 

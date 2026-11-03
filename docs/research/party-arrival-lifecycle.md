@@ -40,7 +40,7 @@ handler result sets idle 1, with no second handler that turn.
 | State | Handler / flags | Operation and next state |
 |---|---|---|
 | 269 | 004626A0 / 0x44 | Holds except at age exactly 8. Sets current Z to 0x2000, copies XYZ to previous pose +F6/+FA/+FE, sets +F3 bit 0, requests 210. It returns 1 even if that request fails; there is no >= timeout or automatic retry after 8. |
-| 210 | 00481520 / 0x42 | Requests presentation 199 through presentation-manager slot +0x20, ends a running action, starts action 64 with count 1; success and successful SetState 263 return 1, otherwise 0. No fixed duration or route clear. |
+| 210 | 00481520 / 0x42 | Requests sound 0xC7 (event 199, sound manager slot +0x20, [sound-effects.md section 11](sound-effects.md#11-arrival-rest-and-reactions)), ends a running action, starts action 64 with count 1; success and successful SetState 263 return 1, otherwise 0. No fixed duration or route clear. |
 | 263 | 004815A0 / 0x42 | Holds while an action is running. After completion, ShouldDelayGetUp (+3E6 bit 27) consumes one handler call and clears. Otherwise starts action 53/count 1 and requests 264; either failure returns 0. |
 | 264 | 00458680 / 0x42 | Returns IsActionRunning 00496D00. On completion, dispatcher returns it to 1. No special hero job, target or route restoration. |
 

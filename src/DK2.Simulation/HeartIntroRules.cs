@@ -86,7 +86,11 @@ public static class HeartIntroRules
         }
         if (SequenceOver(now, database)) return;
         uint elapsed = now - start;
-        if (elapsed == 0) Request(context, owner, StartLevelEffectId);
+        if (elapsed == 0)
+        {
+            Request(context, owner, StartLevelEffectId);
+            HeartSoundRules.RequestOpened(context, owner);   // 0x004D9E00, with the effect, local player only
+        }
         else if (elapsed == FadeInStartSeconds * SimulationTiming.TicksPerSecond) Request(context, owner, ArchesFadeInEffectId);
         else if (elapsed == SequenceSeconds * SimulationTiming.TicksPerSecond)
             context.World.Player(owner).NextFreeImpTick = new GameTick(now);

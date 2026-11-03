@@ -387,6 +387,6 @@ Unity queues decoded segments to `PcmAudioQueue` before they finish. SoundRand i
 of simulation RNG. The observer reconstructs eight battles from settled turns and detects
 raid starts/Reapers without writing the world; a third-party fight and world-hash test pass.
 If a host skips simulation turns between captures, transient requests can be missed. This
-view does not restore native audio handles or L from a save. Sound ducking, the atmosphere
-player, options/front-end music and idle taunts remain unimplemented. A32-source effect pool
+view does not restore native audio handles or L from a save. The speech line's duck is built ([sound-effects-interface.md section 7](sound-effects-interface.md#7-the-speech-line-and-its-duck)); the atmosphere
+player, options/front-end music and idle taunts remain unimplemented (the front end's only music request is silent: [section 9](sound-effects-interface.md#9-the-front-ends-atmosphere-and-music-request-0x2ea-0x155)). A32-source effect pool
 is a remake resource budget, not an established native cap. Hearing acceptance remains open.
