@@ -25,13 +25,7 @@ public sealed class FlashChime
         return chime;
     }
 
-    /// <summary>The request, nonpositional and without a handle, in the table category of the widget's sound slot: <c>0x006AC8C4</c> plus the slot times 0x30 (tabs 1 to 4, slots 5 and 6).</summary>
-    public static SoundRequest Request(int slot) => new(slot switch
-    {
-        1 => new SoundCategory("gui_button_tab_rooms"),
-        2 => new SoundCategory("gui_button_tab_spells"),
-        3 => new SoundCategory("gui_button_tab_workshop"),
-        4 => new SoundCategory("gui_button_tab_creature"),
-        _ => BottomPanelGrid.SoundCategoryOf(slot),
-    }, new SoundId(EventId));
+    /// <summary>The request, nonpositional and without a handle, in the table category of the widget's sound slot: <c>0x006AC8C4</c> plus the slot times 0x30 (tabs 1 to 4, slots 5 and 6).
+    /// A slot with no category asks nothing.</summary>
+    public static SoundRequest Request(GuiSoundSlot slot) => new(GuiSoundSlots.CategoryOf(slot), new SoundId(EventId));
 }

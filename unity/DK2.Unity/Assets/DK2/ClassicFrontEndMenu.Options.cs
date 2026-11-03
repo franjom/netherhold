@@ -54,9 +54,14 @@ namespace DK2.Unity
                 if (!options.Supports(id) || options.Range(id).Maximum <= 1 || id == 133) continue;
                 FrontEndRect box = LabelBox(widget);
                 if (_dragSlider != id && (!press || !box.Inflate(5).Contains(point))) continue;
-                if (_dragSlider != id) options.BeginSliderDrag(id);
-                _dragSlider = id;
                 (int lo, int hi) = options.Range(id);
+                // Only a press on the thumb grabs it (state 3) and starts the test sound; the track and arrows are other states, silent.
+                if (_dragSlider != id)
+                {
+                    Texture2D art = _assets.Image("3DFE\\3DSliderButton");
+                    if (SliderThumb.Rect(box, art.width, art.height, options.Value(id), lo, hi).Contains(point)) options.BeginSliderDrag(id);
+                }
+                _dragSlider = id;
                 float t = Mathf.Clamp01((point.X - box.X) / box.Width);
                 options.SetWidget(id, Mathf.RoundToInt(lo + t * (hi - lo)));
             }

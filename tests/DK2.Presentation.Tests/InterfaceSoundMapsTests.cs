@@ -34,13 +34,13 @@ public sealed class InterfaceSoundMapsTests
     }
 
     [InstallTheory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(4)]
-    [InlineData(5)]
-    [InlineData(6)]
-    public void TheChimeHasSamplesInEverySoundSlotCategory(int slot)
+    [InlineData(GuiSoundSlot.TabRooms)]
+    [InlineData(GuiSoundSlot.TabSpells)]
+    [InlineData(GuiSoundSlot.TabWorkshop)]
+    [InlineData(GuiSoundSlot.TabCreature)]
+    [InlineData(GuiSoundSlot.Icon)]
+    [InlineData(GuiSoundSlot.IconLarge)]
+    public void TheChimeHasSamplesInEverySoundSlotCategory(GuiSoundSlot slot)
     {
         SoundRequest request = FlashChime.Request(slot);
         Assert.True(Samples(request.Category.Name, request.Id.Value) > 0, request.Category.Name);
@@ -80,9 +80,9 @@ public sealed class InterfaceSoundMapsTests
         Assert.True(Samples(category, id) > 0);
     }
 
-    // The mana warning 0xF (0x004C1226) asks the Dungeon Heart's category: no category of the effects banks has it, so DK2 is silent there.
+    // The mana warning 0xF (0x004C1226) asks the Dungeon Heart's category: no Global category has it, so DK2 is silent there too.
     [InstallFact]
-    public void TheManaWarningGroupIsInNoGlobalCategoryAndGroupOneOnlyInSpeech()
+    public void TheManaWarningGroupAndGroupOneAreInNoGlobalCategory()
     {
         foreach (string map in Directory.GetFiles(Root, "*SFX.map"))
         {
@@ -90,5 +90,23 @@ public sealed class InterfaceSoundMapsTests
             Assert.Equal(0, Samples(category, 0xF));
             Assert.Equal(0, Samples(category, 0x1));
         }
+    }
+
+    // 0x1 (0x004B9BD6) is asked in the world's first-loaded category, SPEECH_HORNY, which lives outside Global.
+    [InstallFact]
+    public void HornysGroupOneIsOneItemWithOneSampleInHisOwnSpeechMap()
+    {
+        string path = Path.Combine(Dk2InstallGate.Path, "Data", "Sound", "SFX", "speech_horny", "speech_hornySFX.map");
+        SoundGroup group = SfxMap.Read(File.ReadAllBytes(path)).Groups.Single(g => g.Id.Value == 1);
+        Assert.Single(group.Items);
+        Assert.Single(group.Items[0].Sounds);
+    }
+
+    // Slot 27, which every front-end slider but speech carries, presses 0x304 and releases 0x305 in OBJECT_FE_PARCHMENT: both groups are empty there.
+    [InstallFact]
+    public void TheSliderSlotsTablePressAndReleaseHaveNoSamplesInTheParchment()
+    {
+        Assert.Equal(0, Samples("object_fe_parchment", 0x304));
+        Assert.Equal(0, Samples("object_fe_parchment", 0x305));
     }
 }

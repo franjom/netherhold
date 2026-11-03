@@ -23,17 +23,17 @@ public sealed class BottomPanelViewTests
         var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, (byte)RoomTypeId.Lair);
         world.SetAvailability(PlayerIds.FirstKeeper, AvailabilityKind.Room, key.Value, 2);
         panel.Capture(world);
-        Assert.False(panel.PressChoice(key, 6)); Assert.Empty(panel.Sounds.Pending);
+        Assert.False(panel.PressChoice(key, GuiSoundSlot.IconLarge)); Assert.Empty(panel.Sounds.Pending);
         world.SetAvailability(PlayerIds.FirstKeeper, AvailabilityKind.Room, key.Value, 3);
         panel.Capture(world);
-        Assert.True(panel.PressChoice(key, 6)); Assert.False(panel.PressChoice(key, 6));
+        Assert.True(panel.PressChoice(key, GuiSoundSlot.IconLarge)); Assert.False(panel.PressChoice(key, GuiSoundSlot.IconLarge));
         Assert.Null(panel.Selection.Choice);
         panel.ReleaseChoice(); panel.ReleaseChoice();
         Assert.Equal(new uint[] { 0x104, 0x136 }, panel.Sounds.Pending.Select(r => r.Id.Value));
         Assert.All(panel.Sounds.Pending, r => Assert.Equal(new SoundCategory("gui_button_icon_large"), r.Category));
         // A 128-unit grid gives its widgets sound slot 5, GUI_BUTTON_ICON (a different sample from the large icon's).
         panel.Sounds.Clear();
-        Assert.True(panel.PressChoice(key, 5)); panel.ReleaseChoice();
+        Assert.True(panel.PressChoice(key, GuiSoundSlot.Icon)); panel.ReleaseChoice();
         Assert.All(panel.Sounds.Pending, r => Assert.Equal(new SoundCategory("gui_button_icon"), r.Category));
     }
 

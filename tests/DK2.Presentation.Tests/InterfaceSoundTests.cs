@@ -124,7 +124,7 @@ public sealed class InterfaceSoundTests
 
     // Tab flash and slot flash share one latch (interface +0x4F0D), written by every flashing draw: 0x00412579..0x004125C3, 0x00413A70..0x00413AA8.
     [Fact]
-    public void TheChimeSoundsOnTheDarkToBrightEdgeOnlyAndAFirstBrightDrawIsSilent()
+    public void TheChimeSoundsOnTheDarkToBrightEdgeOnlyAndAFirstBrightDrawIsSilentAssumingTheLatchStartsAtZero_StronglyInferred()
     {
         var chime = new FlashChime();
         Assert.False(chime.Draw(dark: false, paused: false));
@@ -154,13 +154,13 @@ public sealed class InterfaceSoundTests
     }
 
     [Theory]
-    [InlineData(1, "gui_button_tab_rooms")]
-    [InlineData(2, "gui_button_tab_spells")]
-    [InlineData(3, "gui_button_tab_workshop")]
-    [InlineData(4, "gui_button_tab_creature")]
-    [InlineData(5, "gui_button_icon")]
-    [InlineData(6, "gui_button_icon_large")]
-    public void TheChimeIsAskedInTheCategoryOfTheWidgetsSoundSlot(int slot, string category)
+    [InlineData(GuiSoundSlot.TabRooms, "gui_button_tab_rooms")]
+    [InlineData(GuiSoundSlot.TabSpells, "gui_button_tab_spells")]
+    [InlineData(GuiSoundSlot.TabWorkshop, "gui_button_tab_workshop")]
+    [InlineData(GuiSoundSlot.TabCreature, "gui_button_tab_creature")]
+    [InlineData(GuiSoundSlot.Icon, "gui_button_icon")]
+    [InlineData(GuiSoundSlot.IconLarge, "gui_button_icon_large")]
+    public void TheChimeIsAskedInTheCategoryOfTheWidgetsSoundSlot(GuiSoundSlot slot, string category)
     {
         SoundRequest request = FlashChime.Request(slot);
         Assert.Equal(new SoundCategory(category), request.Category);
@@ -169,13 +169,49 @@ public sealed class InterfaceSoundTests
         Assert.Equal(SoundVoiceId.None, request.Voice);
     }
 
-    [Theory]
-    [InlineData(5, "gui_button_icon")]
-    [InlineData(6, "gui_button_icon_large")]
-    public void ACategoryChoicePressUsesTheSoundSlotItsGridGaveTheWidget(int widgetBank, string category)
+    [Fact]
+    public void TheTableSilentSlotZeroAsksNothingRatherThanTheLargeIcon()
     {
-        Assert.Equal(new SoundCategory(category), BottomPanelGrid.SoundCategoryOf(widgetBank));
-        Assert.Equal(widgetBank, new BottomPanelGrid(widgetBank == 6 ? BottomPanelGrid.LargeCell : BottomPanelGrid.SmallCell, 1, 1).WidgetBank);
+        Assert.True(FlashChime.Request(GuiSoundSlot.None).Category.IsNone);
+        Assert.True(GuiSoundSlots.CategoryOf(default).IsNone);
+    }
+
+    [Theory]
+    [InlineData(BottomPanelCategory.Rooms, GuiSoundSlot.TabRooms)]
+    [InlineData(BottomPanelCategory.Spells, GuiSoundSlot.TabSpells)]
+    [InlineData(BottomPanelCategory.Workshop, GuiSoundSlot.TabWorkshop)]
+    [InlineData(BottomPanelCategory.Creatures, GuiSoundSlot.TabCreature)]
+    public void TheTabsCarrySoundSlotsOneToFourInTheTabOrderOfFlashButtons(BottomPanelCategory tab, GuiSoundSlot slot)
+    {
+        Assert.Equal(slot, GuiSoundSlots.OfTab(tab));
+    }
+
+    [Theory]
+    [InlineData(GuiSoundSlot.Icon, "gui_button_icon", BottomPanelGrid.SmallCell)]
+    [InlineData(GuiSoundSlot.IconLarge, "gui_button_icon_large", BottomPanelGrid.LargeCell)]
+    public void ACategoryChoicePressUsesTheSoundSlotItsGridGaveTheWidget(GuiSoundSlot slot, string category, int cell)
+    {
+        Assert.Equal(new SoundCategory(category), GuiSoundSlots.CategoryOf(slot));
+        Assert.Equal(slot, new BottomPanelGrid(cell, 1, 1).SoundSlot);
+    }
+
+    // The thumb rectangle of a slider (widget +0x90..+0x9C): the only place a press reaches state 3, which starts the test sound.
+    [Fact]
+    public void TheSliderThumbSitsAtTheValuesShareOfTheTrackAndAPressElsewhereIsNotAGrab()
+    {
+        var box = new FrontEndRect(100, 50, 400, 20);
+        FrontEndRect low = SliderThumb.Rect(box, 40, 20, 0, 0, 100), high = SliderThumb.Rect(box, 40, 20, 100, 0, 100);
+        Assert.Equal(100, low.X); Assert.Equal(460, high.X); Assert.Equal(40, low.Width);
+        FrontEndRect mid = SliderThumb.Rect(box, 40, 20, 50, 0, 100);
+        Assert.True(mid.Contains(new FrontEndPoint(300, 60)));
+        Assert.False(mid.Contains(new FrontEndPoint(200, 60)));
+        Assert.False(mid.Contains(new FrontEndPoint(300, 40)));
+    }
+
+    [Fact]
+    public void AZeroWidthRangeKeepsTheThumbAtTheLeftEnd()
+    {
+        Assert.Equal(100, SliderThumb.Rect(new FrontEndRect(100, 50, 400, 20), 40, 20, 5, 5, 5).X);
     }
 
     [Theory]
