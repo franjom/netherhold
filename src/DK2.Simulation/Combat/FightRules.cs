@@ -172,9 +172,6 @@ public static class FightRules
     }
 
     /// <summary>The swing's arms; false where DK2's handler returns before its tail (no live target, an invulnerable creature).</summary>
-    /// <summary>The Arch Pillar (object 94), the object a heart blow strikes (possession-arms-and-inputs.md section 2).</summary>
-    private const byte ArchPillarObjectId = 94;
-
     private static bool Land(SimulationContext context, CreatureState me, CreatureDef mine)
     {
         me.SwingInProgress = false;
@@ -186,7 +183,7 @@ public static class FightRules
             CreatureState? target = world.CreatureById(me.SwingTargetId);
             if (target is null || CreatureDeathRules.IsDown(target) || StatusEffectRules.IsInvulnerable(target)) return false;
             // 0x00499072: the impact lookup, after the invulnerable return and before the blow-of-zero test.
-            WeaponImpactRules.Request(context, SystemName, me, mine.MeleeAttackType, database.CreatureById(target.CreatureTypeId).ImpactKind);
+            WeaponImpactRules.OnCreature(context, SystemName, me, mine, target);
             int blow = Blow(database, me, mine, target.PosX, target.PosY);
             if (blow == 0) return true;
             // 0x0049926C (0x0049924D for the Reaper-type arm): the swing passes the attacker's owner (+0x28) as the source.
@@ -202,7 +199,7 @@ public static class FightRules
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 -MeleeDamageRules.Swing(database, mine, me.Level, MeleeDamageRules.StanceOf(me)), 0, 0);
             // A pillar is an object (class 2): its definition's surface byte, looked up at 0x004991C0 before the blow-of-zero test.
-            WeaponImpactRules.Request(context, SystemName, me, mine.MeleeAttackType, database.ObjectById(ArchPillarObjectId)?.ImpactKind ?? (byte)0);
+            WeaponImpactRules.OnObject(context, SystemName, me, mine, HeartPillarRules.ArchPillarObjectId);
             if (blow == 0) return true;
             bool killed = HeartSoundRules.Damage(context, SystemName, owner.PlayerId, -blow, me.OwnerPlayerId);
             if (blow < 0) CombatMessageRules.HeartDamaged(context, owner.PlayerId);
@@ -219,8 +216,7 @@ public static class FightRules
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
                     MeleeDamageRules.StanceOf(me)), 0, 0);
-            WeaponImpactRules.Request(context, SystemName, me, mine.MeleeAttackType,
-                database.Doors.TryGetValue(door.DoorId, out DoorDef? doorDef) ? doorDef.ImpactKind : (byte)0);   // 0x00499168
+            WeaponImpactRules.OnDoor(context, SystemName, me, mine, door);   // 0x00499168
             if (blow == 0) return true;
             DoorRules.Damage(context, door, -blow, me.OwnerPlayerId);
             context.Emit(SystemName, "door_hit", $"creature={me.Id} door={door.Id} blow={blow} health={door.Health}");
@@ -235,8 +231,7 @@ public static class FightRules
             int blow = MeleeDamageRules.ApplyPlayerModifiers(
                 MeleeDamageRules.Swing(database, mine, me.Level,
                     MeleeDamageRules.StanceOf(me)), 0, 0);
-            WeaponImpactRules.Request(context, SystemName, me, mine.MeleeAttackType,
-                database.Traps.TryGetValue(trap.TrapId, out TrapDef? trapDef) ? trapDef.ImpactKind : (byte)0);   // 0x00499194
+            WeaponImpactRules.OnTrap(context, SystemName, me, mine, trap);   // 0x00499194
             if (blow == 0) return true;
             TrapRules.Damage(trap, -blow);
             context.Emit(SystemName, "trap_hit", $"creature={me.Id} trap={trap.Id} blow={blow} health={trap.Health}");
@@ -272,7 +267,7 @@ public static class FightRules
                 break;
             case FightTargetKind.Object:
                 if (world.ObjectById(me.SwingTargetId) is not { } thing) return false;
-                WeaponImpactRules.Request(context, SystemName, me, mine.MeleeAttackType, context.Database.ObjectById(thing.ObjectTypeId)?.ImpactKind ?? (byte)0);   // 0x004991C0
+                WeaponImpactRules.OnObject(context, SystemName, me, mine, thing.ObjectTypeId);   // 0x004991C0
                 bool damageable = context.Database.ObjectById(thing.ObjectTypeId) is { } def && def.Flags.HasFlag(ObjectFlags.Damageable);
                 // Only a Book Case reaches here, and it is not Damageable; a Damageable one would take
                 // the blow on its health, which no shipped object the pick allows needs.

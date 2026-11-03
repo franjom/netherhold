@@ -45,7 +45,6 @@ public static partial class PossessionRules
     private const byte SteelBucketObjectId = 16;
     private const byte WorkBenchObjectId = 46;
     private const byte BookCaseObjectId = 64;
-    private const byte ArchPillarObjectId = 94;
 
     internal readonly record struct Vec3(int X, int Y, int Z)
     {
@@ -193,7 +192,7 @@ public static partial class PossessionRules
             case AnvilObjectId or SteelBucketObjectId or WorkBenchObjectId:
                 context.Emit(ActSystem, "possessed_impact", $"creature={me.Id} object={thing.Id}");
                 // 0x00514C8B: the impact lookup, the possessed creature as this, its attack type and the object definition's surface byte.
-                WeaponImpactRules.Request(context, ActSystem, me, mine.MeleeAttackType, context.Database.ObjectById(thing.ObjectTypeId)?.ImpactKind ?? (byte)0);
+                WeaponImpactRules.OnObject(context, ActSystem, me, mine, thing.ObjectTypeId);
                 break;
             default:
                 Attack(context, me, FightTargetKind.Object, thing.Id, now);
@@ -301,7 +300,7 @@ public static partial class PossessionRules
             case PillarThing:
                 // Type 94: another owner's only, its definition's DoorKey bit tested as any object's.
                 if (sameOwner) return false;
-                if (database.ObjectById(ArchPillarObjectId) is { } pillarDef && pillarDef.Flags.HasFlag(ObjectFlags.DoorKey)) return false;
+                if (database.ObjectById(HeartPillarRules.ArchPillarObjectId) is { } pillarDef && pillarDef.Flags.HasFlag(ObjectFlags.DoorKey)) return false;
                 return InReach(me, mine, thing.At);
             default:
                 if (sameOwner) return false;

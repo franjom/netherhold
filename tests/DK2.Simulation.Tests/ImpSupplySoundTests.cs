@@ -56,7 +56,7 @@ public sealed class ImpSupplySoundTests
         ThingSoundRequest cast = Assert.Single(Heard(events, ThingSoundEvent.SpellCast));
         Assert.Equal("KEEPER_SPELL_CREATE_IMP", cast.Category);
         Assert.False(cast.Voiced);
-        Assert.Equal((point.X.Raw, point.Y.Raw), (cast.Position.X.Raw, cast.Position.Y.Raw));
+        Assert.Equal((point.X.Raw, point.Y.Raw, 0x1000), (cast.Position.X.Raw, cast.Position.Y.Raw, cast.Position.Z.Raw));   // the bought cast's z is the terrain's
         Assert.Empty(Heard(events, ThingSoundEvent.ShotMadeSecond));
     }
 
@@ -70,7 +70,9 @@ public sealed class ImpSupplySoundTests
 
         int generated = events.Events.Count(e => e.Kind == "imp_generated");
         Assert.True(generated >= 1);
-        Assert.Equal(generated, Heard(events, ThingSoundEvent.SpellCast).Count(s => s.Category == "KEEPER_SPELL_CREATE_IMP" && !s.Voiced));
+        ThingSoundRequest[] casts = Heard(events, ThingSoundEvent.SpellCast).Where(s => s.Category == "KEEPER_SPELL_CREATE_IMP" && !s.Voiced).ToArray();
+        Assert.Equal(generated, casts.Length);
+        Assert.All(casts, c => Assert.Equal(0, c.Position.Z.Raw));   // the free cast passes z = 0 (0x004BB4C7)
     }
 
     [Fact]
@@ -88,5 +90,6 @@ public sealed class ImpSupplySoundTests
         ThingSoundRequest second = Assert.Single(Heard(events, ThingSoundEvent.ShotMadeSecond));
         Assert.Equal(SoundSourceKind.ShotSecond, second.Source.Kind);
         Assert.Equal(made.Source.Value, second.Source.Value);
+        Assert.Equal(0x1000, made.Position.Z.Raw);   // the constructor places the shot on the floor
     }
 }

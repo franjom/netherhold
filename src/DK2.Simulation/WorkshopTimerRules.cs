@@ -15,7 +15,7 @@ public readonly record struct WorkshopTimers(int Steam, int Smoke, int LavaBubbl
 /// <c>0x004F4B20</c>, which counts each down a turn and, at zero, reloads it with
 /// <c>random(16 x ticks) + 8 x ticks</c> and asks for an effect (workshop-timers.md). The draws are what
 /// matter here: a reload draws, and so do a slot pick and a Steel Bucket count, whether or not an effect
-/// or a sound follows. The effects are requests; the sounds (<c>0x2E9</c>, <c>0x2E8</c>) are not built.</summary>
+/// or a sound follows. The effects are requests, and so are the sounds (<c>0x2E9</c>, <c>0x2E8</c>, section 9 of sound-effects.md).</summary>
 /// <remarks>Ours differs in two ways. The room's furniture list leaves out the Workshop Pillars (object 80),
 /// which only the picks of the second timer could land on. And the mesh point the second timer's effect sits at
 /// (<c>0x2712</c>, unread) is taken to be there, at the object's own floor position. The rooms are ticked in
@@ -106,7 +106,7 @@ public static class WorkshopTimerRules
             {
                 int x = CreatureState.CentreOf(floor % world.Width), y = CreatureState.CentreOf(floor / world.Width);
                 Request(context, room, definition.RoomEffect425Id, x, y, SlotEffectHeight, default);
-                // Sound event 0x2E9 goes here (0x004F4C27), at the effect's position.
+                RequestSound(context, room, ThingSoundEvent.WorkshopSteamOrSpill, x, y, SlotEffectHeight);   // 0x004F4C27
             }
         }
 
@@ -131,7 +131,7 @@ public static class WorkshopTimerRules
                     (int x, int y) = AutoFurnitureRules.FurniturePosition(world, context.Database, room, furniture[pick]);
                     context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(picked.IdleEffectId), furniture[pick].OwnerPlayerId,
                         new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(0)), default));
-                    // Sound event 0x2E9 goes here (0x004F4DC7), at the object's mesh point.
+                    RequestSound(context, room, ThingSoundEvent.WorkshopSteamOrSpill, x, y, 0);   // 0x004F4DC7, at the effect's point (the mesh point in DK2)
                 }
             }
         }
@@ -146,7 +146,7 @@ public static class WorkshopTimerRules
                 int x = CreatureState.CentreOf(wall % world.Width), y = CreatureState.CentreOf(wall / world.Width);
                 (int dx, int dy) = side switch { 0 => (0, -WallInset), 1 => (WallInset, 0), 2 => (0, WallInset), _ => (-WallInset, 0) };
                 Request(context, room, definition.RoomEffect427Id, x + dx, y + dy, SlotEffectHeight, new Dk2Angle((ushort)((side & 3) << 9)));
-                // Sound event 0x2E8 goes here (0x004F4F03), at the effect's position.
+                RequestSound(context, room, ThingSoundEvent.WorkshopSmoke, x + dx, y + dy, SlotEffectHeight);   // 0x004F4F03
             }
         }
 
@@ -215,4 +215,18 @@ public static class WorkshopTimerRules
     private static void Request(SimulationContext context, RoomInstance room, ushort effect, int x, int y, int z, Dk2Angle heading) =>
         context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(effect), room.OwnerPlayerId,
             new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)), heading));
+
+    /// <summary>A Workshop sound (<c>0x004F4C27</c>, <c>0x004F4DC7</c>, <c>0x004F4F03</c>), asked straight after its effect: the room's handle (<c>+0x14</c>, ours a
+    /// <see cref="SoundSourceKind.Room"/> voice by its first tile), in the category of the terrain at the effect's position (<c>+0x195</c> of the
+    /// definition the map answers for the point), at that position. Nothing is asked unless something listens.</summary>
+    private static void RequestSound(SimulationContext context, RoomInstance room, ThingSoundEvent sound, int x, int y, int z)
+    {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        WorldState world = context.World;
+        if (!world.Contains(x >> 12, y >> 12)) return;
+        string category = context.Database.TerrainById(world.TileAtIndex(((y >> 12) * world.Width) + (x >> 12)).TerrainId).SoundCategory;
+        if (category.Length == 0) return;
+        ThingSoundRules.Request(context, SystemName, new SoundSourceId(SoundSourceKind.Room, room.TileIndices[0]), category, sound,
+            new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)));
+    }
 }

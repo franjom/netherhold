@@ -36,10 +36,10 @@ public static partial class ShotRules
     /// the saved-game loader (<c>0x004B6CB0</c>), passes 0 and asks only <c>0xF2</c>, which a simulation never loads through here. The category
     /// is empty for most keeper-spell and trap shots, which then ask nothing. Asked with the trail, each caller's construction hook; the
     /// height is the observation's, not a stored one.</summary>
-    internal static void RequestConstructionSounds(SimulationContext context, ShotState shot, ShotDef definition)
+    internal static void RequestConstructionSounds(SimulationContext context, ShotState shot, ShotDef definition, FpPosition3? at = null)
     {
-        RequestShotSound(context, shot, definition, ThingSoundEvent.SpellCast);
-        RequestShotSound(context, shot, definition, ThingSoundEvent.ShotMadeSecond, SoundSourceKind.ShotSecond);
+        RequestShotSound(context, shot, definition, ThingSoundEvent.SpellCast, at: at);
+        RequestShotSound(context, shot, definition, ThingSoundEvent.ShotMadeSecond, SoundSourceKind.ShotSecond, at: at);
     }
 
     /// <summary>A request in the shot's own category (<c>+0x72</c>, <see cref="ShotDef.SoundCategory"/>) with one of its two handles
@@ -47,11 +47,11 @@ public static partial class ShotRules
     /// at the shot's position; nothing for a shot whose category is empty, which DK2's lookup answers with no group.
     /// <paramref name="viewerOnlyFor"/> names the keeper whose screen alone hears it (the Sight of Evil's).</summary>
     internal static void RequestShotSound(SimulationContext context, ShotState shot, ShotDef definition, ThingSoundEvent sound,
-        SoundSourceKind handle = SoundSourceKind.Shot, PlayerId? viewerOnlyFor = null)
+        SoundSourceKind handle = SoundSourceKind.Shot, PlayerId? viewerOnlyFor = null, FpPosition3? at = null)
     {
         if (definition.SoundCategory.Length == 0 || ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         ThingSoundRules.Request(context, SystemName, new SoundSourceId(handle, shot.Id), definition.SoundCategory, sound,
-            shot.ViewPosition, viewerOnlyFor: viewerOnlyFor);
+            at ?? shot.ViewPosition, viewerOnlyFor: viewerOnlyFor);
     }
 
     // [[world]+4]+8, initialized by 0x00526020, independent of level variable19.

@@ -29,7 +29,7 @@ the Summon Horny and OneShotReaper spells share `KEEPER_SPELL_SUMMON_REAPER`.
 with an empty category (2 Create Creature, 4, 5, 10, 21, 31, 32 and others) makes the cast ask in the spell's; the shots of
 Inferno, Tremor, Sight of Evil and the Reaper name their spell's category, so they ask in it through the shot's own
 construction (section 3). Deviation: the place command carries no height, so the position's `Z` is the shot's view height
-(`0x1000`), not the pointer's.
+(`0x1000`), not the pointer's. Create Imp's cast knows its z: the free cast (`0x004BB4C7`) passes 0, the bought one (action 54, `0x005132FB`) the terrain height from world vtable `+0x204` (unread, taken as the floor's), and the constructor's sounds sit on the floor.
 
 ## 2. The Tremor
 
@@ -109,12 +109,12 @@ pure lookup for presentation. It looks the attacker's attack type (definition `+
 level start fills from the name pointer at `+5`), picks one of seven `(sound, effect)` word pairs at `+9` by the struck thing's surface byte
 (1 to 7), asks effect `0xED` and the pair's effect (`0x139`, in the Metal's and the Scythe's arms 4 and 5 only), then the pair's sound in the
 weapon's category with the attacker's handle `+0x2E` at the attacker's `+0x1A` (`0x004999F9`). The sounds by surface are `0x114`, `0x1BC`,
-`0x113`, `0x1BB`, `0x112`, `0x1BD`, `0x112`. A type outside the table or a surface outside 1 to 7 asks nothing. Samples by bank
+`0x113`, `0x1BB`, `0x112`, `0x112`, `0x1BD` (the jump table `0x00499A24` sends surface 6 to the pair at `+0x21` and 7 to `+0x1D`; `0x1BD` and `0x112` sit there in every record). A type outside the table or a surface outside 1 to 7 asks nothing. Samples by bank
 (`METAL`, `WOOD`, `FLESH`, `SCYTHE`): `0x114` 3, 3, 4, 3; `0x113` and `0x1BB` 3 each; `0x1BC` 2, 3, 2, none; `0x112` only in `OBJECT_FORGE` and
 `0x1BD` nowhere, so surfaces 1, 3 and 4 sound in all four banks, 2 in three and 5 to 7 are silent. The surface byte is the struck
 definition's: creature `+0x685` (loader `0x00492320`, intermediate `+0x1366`, file `0xF76`), door `+0xB3` (file `0x226`), trap `+0xBF` (loader
 `0x004AA440`, intermediate `+0x2D7`, file `0x22F`), object `+0x11C` (loader `0x0049DD60`, intermediate `+0x3C0`, file `0x340`); ours
-`ImpactKind` on `CreatureDef`, `DoorDef`, `TrapDef` and `ObjectDef`. Shipped creatures are 1 (flesh and most), 4 (the knights, the King, the
+`ImpactKind` on `CreatureDef`, `DoorDef`, `TrapDef` and `ObjectDef`. Each loader copies the byte only when a presence dword is nonzero (staging `+0x21C` for the creature, `+0x94` for the trap, `+0x78` for the object); our parsers read it unconditionally, which is harmless for the shipped records. The table's arm order is STRONGLY INFERRED from the jump table and the record bytes (not a whole read of each arm). Shipped creatures are 1 (flesh and most), 4 (the knights, the King, the
 princes, the guards), 2 (the Stone Knight) and 3 (the Jack in the Box); traps 4, 2 (the Boulder, the Jack) and 3 (the Trigger); objects 1 to
 7. The effects are presentation and are not asked; a shot or a body struck by the swing has no arm and no lookup. Marked: the
 heart arm uses the Arch Pillar's (object 94) surface byte, as an object arm.

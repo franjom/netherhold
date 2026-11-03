@@ -147,6 +147,10 @@ public enum ThingSoundEvent : ushort
     SpecialReceivedImps = 0x8B,
     /// <summary>The Locate Hidden Land special is used (<c>0x004A4F70</c>).</summary>
     SpecialLocatedHiddenLand = 0x8F,
+    /// <summary>The Workshop's steam effect and lava spill (<c>0x004F4C27</c>, <c>0x004F4DC7</c>).</summary>
+    WorkshopSteamOrSpill = 0x2E9,
+    /// <summary>The Workshop's smoke effect (<c>0x004F4F03</c>).</summary>
+    WorkshopSmoke = 0x2E8,
     /// <summary>A keeper spell is cast (<c>Spell_CastAtPosition</c> <c>0x004BBEBD</c>, <c>Spell_CastOnCreature</c> <c>0x004BC26F</c>) in
     /// the spell's category, or a shot is constructed (<c>Shot_InitialiseFromDefinition</c> <c>0x004AAF1E</c>) in the shot's.</summary>
     SpellCast = 0xEF,

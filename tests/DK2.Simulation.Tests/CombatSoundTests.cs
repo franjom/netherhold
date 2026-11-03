@@ -141,8 +141,8 @@ public sealed class CombatSoundTests
     [InlineData(AttackType.MeleeBody, 3, "WEAPON_FLESH", 0x113)]
     [InlineData(AttackType.MeleeScythe, 4, "WEAPON_SCYTHE", 0x1BB)]
     [InlineData(AttackType.MeleeBlade, 5, "WEAPON_METAL", 0x112)]
-    [InlineData(AttackType.MeleeBlade, 6, "WEAPON_METAL", 0x1BD)]
-    [InlineData(AttackType.MeleeBlade, 7, "WEAPON_METAL", 0x112)]
+    [InlineData(AttackType.MeleeBlade, 6, "WEAPON_METAL", 0x112)]
+    [InlineData(AttackType.MeleeBlade, 7, "WEAPON_METAL", 0x1BD)]
     public void ASwingAtACreatureAsksTheWeaponSoundOfTheAttackersAttackTypeBySurfaceAtTheAttackerWithItsHandleBeforeItsDb(
         AttackType attack, byte surface, string category, int word)
     {
