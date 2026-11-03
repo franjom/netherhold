@@ -85,6 +85,10 @@ public static class SimulationSystems
         new ShotSystem(),
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new ObjectMovementSystem(),
+        // The eggs', coops' and chickens' object steps, with the other objects (class list 2 of 0x004B7830, after the
+        // shots and before the traps) and so before the room walk, whose Hatchery lays afterwards (ADR-0634).
+        // Ours steps them after the boulder and the moving objects, not interleaved with them in DK2's list order.
+        new HatcherySystem(lays: false),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
         new ActionPointTriggerSystem(), // list 5, after creature work and before the player frame
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
@@ -99,9 +103,6 @@ public static class SimulationSystems
         new ChickenSystem(), // state 96: the walk to the Hatchery or the wander (keeper-spell-inferno-chicken.md §3)
         new FogOfWarSystem(), // after every creature has moved: an arrival is noticed on its own tick
         new WalkOverGoldSystem(), // gold underfoot, after movement (ADR-0300)
-        // The eggs, coops and chickens' object steps, last in the thing pass as DK2's object list is (0x004B7830)
-        // and before the room walk, whose Hatchery lays an egg afterwards (ADR-0634).
-        new HatcherySystem(lays: false),
     ];
 
     /// <summary>One creature's whole update before the next one's, newest first (<c>0x004B7830</c>,
@@ -151,7 +152,7 @@ public static class SimulationSystems
     /// together, each room's handler, border step and health step before the next room's
     /// (<see cref="RoomTickSystem"/>), after the creatures and before the players (ADR-0479, ADR-0634).
     /// The steps are in the order one room takes them; a room's type picks its handler. The Hatchery's
-    /// laying is in the walk, its eggs' and coops' object steps end the thing pass. The Dungeon
+    /// laying is in the walk, its eggs' and coops' object steps are in the thing pass. The Dungeon
     /// Heart handler (<c>0x004D9A60</c>) is in the walk whole; the player frame's tail it shares a system with
     /// stays at the tick's end.</summary>
     private static ISimulationSystem[] RoomTicks() =>

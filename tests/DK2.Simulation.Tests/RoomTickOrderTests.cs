@@ -121,23 +121,41 @@ public sealed class RoomTickOrderTests
     [Fact]
     public void ANewerWorkshopsReloadsComeBeforeAnOlderHatcherysLayAndThatDrawComesAfter()
     {
-        GameDatabase db = Dk2TerrainFixture.Database();
-        WorldState world = World(db);
-        TilePos hatchery = new(8, 8), workshop = new(16, 8);
-        GameSimulation sim = Sim(db, world, new HatcheryLayStep(), new WorkshopTimerSystem());
-        Build(db, world, RoomTypeId.Hatchery, hatchery, size: 3);
-        Build(db, world, RoomTypeId.Workshop, workshop);
-        world.Tile(hatchery).HatcheryLastGeneratedTick = -10_000;   // the lay is due
-        ZeroTimers(world, workshop);
-        var oracle = new Oracle(SeedOf(sim));
+        // The control has the Workshop's timers running and the generator set to where the Workshop's four reloads
+        // leave it: the walk must hand the lay exactly that state.
+        static (GameSimulation Sim, WorldState World) Make(bool control, uint? reseed = null)
+        {
+            GameDatabase db = Dk2TerrainFixture.Database();
+            WorldState world = World(db);
+            GameSimulation sim = Sim(db, world, new HatcheryLayStep(), new WorkshopTimerSystem());
+            Build(db, world, RoomTypeId.Hatchery, new TilePos(8, 8), size: 3);
+            Build(db, world, RoomTypeId.Workshop, new TilePos(16, 8));
+            world.Tile(new TilePos(8, 8)).HatcheryLastGeneratedTick = -10_000;   // the lay is due
+            if (control)
+            {
+                ref TileState t = ref world.Tile(new TilePos(16, 8));
+                (t.WorkshopSteamTimer, t.WorkshopLavaSpillTimer, t.WorkshopSmokeTimer, t.WorkshopLavaBubblingTimer) = (50, 50, 50, 50);
+                ((Dk2Lcg)sim.Rng.Algorithm).Reseed(reseed!.Value);
+            }
+            else ZeroTimers(world, new TilePos(16, 8));
+            return (sim, world);
+        }
+
+        (GameSimulation walked, WorldState world) = Make(control: false);
+        var oracle = new Oracle(SeedOf(walked));
         int steam = Reload(oracle);
         for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        (GameSimulation control, WorldState controlWorld) = Make(control: true, oracle.Seed);
 
-        sim.Tick();
+        walked.Tick();
+        control.Tick();
 
-        Assert.Equal(steam, world.Tile(workshop).WorkshopSteamTimer);
-        Assert.Contains(world.Objects, o => o.ObjectTypeId == HatcheryRules.EggObjectId);
-        Assert.NotEqual(oracle.Seed, SeedOf(sim));   // the lay drew after the Workshop's four
+        Assert.Equal(steam, world.Tile(new TilePos(16, 8)).WorkshopSteamTimer);
+        ObjectState egg = Assert.Single(world.Objects, o => o.ObjectTypeId == HatcheryRules.EggObjectId);
+        ObjectState controlEgg = Assert.Single(controlWorld.Objects, o => o.ObjectTypeId == HatcheryRules.EggObjectId);
+        Assert.Equal((controlEgg.TileIndex, controlEgg.Heading), (egg.TileIndex, egg.Heading));
+        Assert.Equal(SeedOf(control), SeedOf(walked));
+        Assert.NotEqual(oracle.Seed, SeedOf(walked));   // and the lay did draw
     }
 
     [Fact]
@@ -149,6 +167,32 @@ public sealed class RoomTickOrderTests
         WorldState world = World(db);
         var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)),
             [new HatcherySystem(lays: false), new RoomTickSystem(new HatcheryLayStep())]);
+        Build(db, world, RoomTypeId.Hatchery, new TilePos(8, 8), size: 3);
+        RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(8, 8)))!;
+        HatcheryRules.PlaceCoops(world, db, room);
+        ObjectState coop = world.Objects.First(o => o.ObjectTypeId == HatcheryRules.CoopObjectId);
+        ObjectState leaving = world.SpawnObject(db, HatcheryRules.EggObjectId, Keeper, coop.TileIndex);
+        leaving.ProcessState = EggLaunchRules.LaunchProcess;
+        leaving.ProcessAgeTicks = EggLaunchRules.HiddenTicks - 1;
+        world.Tile(8, 8).HatcheryLastGeneratedTick = -10_000;   // the lay is due
+        int eggsBefore = world.Objects.Count(o => o.ObjectTypeId == HatcheryRules.EggObjectId);
+        int side = AutoFurnitureRules.Choice(coop.TileIndex % world.Width, coop.TileIndex / world.Width, 4) << 9;
+        int expected = (side + new Oracle(SeedOf(sim)).Next(0x100) - 0x80) & 0x7FF;
+
+        sim.Tick();
+
+        Assert.Equal(expected, leaving.Heading);
+        Assert.Equal(eggsBefore + 1, world.Objects.Count(o => o.ObjectTypeId == HatcheryRules.EggObjectId));
+    }
+
+    [Fact]
+    public void TheDefaultSystemsStepALaunchingEggBeforeTheWalkLaysAfterIt()
+    {
+        // The same as the launching-egg test, on SimulationSystems.Default(): the eggs' object step is in the thing
+        // pass, so the heading draw precedes the lay's, whatever else the declared order holds.
+        GameDatabase db = Dk2TerrainFixture.Database();
+        WorldState world = World(db);
+        var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), SimulationSystems.Default());
         Build(db, world, RoomTypeId.Hatchery, new TilePos(8, 8), size: 3);
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(8, 8)))!;
         HatcheryRules.PlaceCoops(world, db, room);
@@ -225,28 +269,45 @@ public sealed class RoomTickOrderTests
     public void ANewerWorkshopsReloadsComeBeforeAnOlderPortalsPick()
     {
         const byte goblin = 7;
-        var level = new GlobalVariables();
-        level.CreaturePool.Add(new CreaturePoolEntry(goblin, 15, Keeper));
-        level.Availabilities.Add(new AvailabilityEntry(2, Keeper, goblin, 3));
-        GameDatabase db = Dk2TerrainFixture.Database().ForLevel(level);
-        WorldState world = World(db);
-        TilePos lair = new(4, 4), portal = new(8, 8), workshop = new(16, 8);
-        GameSimulation sim = Sim(db, world, new PortalSystem(), new WorkshopTimerSystem());
-        Build(db, world, RoomTypeId.Lair, lair);
-        Build(db, world, RoomTypeId.Portal, portal, size: 3);
-        Build(db, world, RoomTypeId.Workshop, workshop);
-        RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(portal))!;
-        world.TileAtIndex(PortalRules.EntranceTileIndex(world, room)).EntranceIdleTicks =
-            PortalRules.SpawnIntervalTicks(db, 0) - 1;   // the roll is due this turn
-        ZeroTimers(world, workshop);
-        var oracle = new Oracle(SeedOf(sim));
+
+        static (GameSimulation Sim, WorldState World) Make(bool control, uint? reseed = null)
+        {
+            var level = new GlobalVariables();
+            level.CreaturePool.Add(new CreaturePoolEntry(goblin, 15, Keeper));
+            level.Availabilities.Add(new AvailabilityEntry(2, Keeper, goblin, 3));
+            GameDatabase db = Dk2TerrainFixture.Database().ForLevel(level);
+            WorldState world = World(db);
+            GameSimulation sim = Sim(db, world, new PortalSystem(), new WorkshopTimerSystem());
+            Build(db, world, RoomTypeId.Lair, new TilePos(4, 4));
+            Build(db, world, RoomTypeId.Portal, new TilePos(8, 8), size: 3);
+            Build(db, world, RoomTypeId.Workshop, new TilePos(16, 8));
+            RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(8, 8)))!;
+            world.TileAtIndex(PortalRules.EntranceTileIndex(world, room)).EntranceIdleTicks =
+                PortalRules.SpawnIntervalTicks(db, 0) - 1;   // the roll is due this turn
+            if (control)
+            {
+                ref TileState t = ref world.Tile(new TilePos(16, 8));
+                (t.WorkshopSteamTimer, t.WorkshopLavaSpillTimer, t.WorkshopSmokeTimer, t.WorkshopLavaBubblingTimer) = (50, 50, 50, 50);
+                ((Dk2Lcg)sim.Rng.Algorithm).Reseed(reseed!.Value);
+            }
+            else ZeroTimers(world, new TilePos(16, 8));
+            return (sim, world);
+        }
+
+        (GameSimulation walked, WorldState world) = Make(control: false);
+        var oracle = new Oracle(SeedOf(walked));
         int steam = Reload(oracle);
         for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        (GameSimulation control, WorldState controlWorld) = Make(control: true, oracle.Seed);
 
-        sim.Tick();
+        walked.Tick();
+        control.Tick();
 
-        Assert.Equal(steam, world.Tile(workshop).WorkshopSteamTimer);
-        Assert.Contains(world.Creatures, c => c.CreatureTypeId == goblin);
-        Assert.NotEqual(oracle.Seed, SeedOf(sim));   // the pick drew after the Workshop's four
+        Assert.Equal(steam, world.Tile(new TilePos(16, 8)).WorkshopSteamTimer);
+        CreatureState arrived = Assert.Single(world.Creatures, c => c.CreatureTypeId == goblin);
+        CreatureState controlArrived = Assert.Single(controlWorld.Creatures, c => c.CreatureTypeId == goblin);
+        Assert.Equal((controlArrived.Tile, controlArrived.Heading), (arrived.Tile, arrived.Heading));
+        Assert.Equal(SeedOf(control), SeedOf(walked));
+        Assert.NotEqual(oracle.Seed, SeedOf(walked));   // and the pick did draw
     }
 }

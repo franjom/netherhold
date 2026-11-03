@@ -158,20 +158,26 @@ handler returns 1 (the table's handlers read here), so a room's border and healt
 
 - **Hatchery.** `Hatchery_Tick` only tests `room+0x49 + room+0x4D <= turn`, lays, stamps `+0x49` and returns 1.
   World_UpdateTurn runs the thing pass first, so eggs, coops and chickens step before the lay:
-  `HatcherySystem(lays: false)` ends our thing pass. The coops are not the handler's: Room_Rebuild's Hatchery arm
+  `HatcherySystem(lays: false)` sits with the objects, after `ObjectMovementSystem` and before `TrapSystem`
+  (object class list 2 of `0x004B7830`, after the shots, before the traps). The coops are not the handler's: Room_Rebuild's Hatchery arm
   (`0x004DE220`, hatchery.md section 2) places them at room-change time, one `random(4) << 9` draw each. **Deviation:**
   ours places them once a second inside `HatcheryLayStep` (`HatcheryRules.PlaceCoops`) and draws nothing for them
   (Q733).
-- **Heart.** `0x004D9A60` is the Heart's whole handler; `HeartFrameStep` runs its own part at the Heart's turn.
-  `DungeonHeartSystem(frames: false)` keeps the player frame's tail at the tick's end. The ruin and the
-  destruction handler (`0x004DA560`, `0x004E9130`) reach draws; an ordinary turn reaches none.
+- **Heart.** `0x004D9A60` is the Heart's whole handler and has no draw site of its own: only `0x004D9690`'s sparkle
+  draws. `HeartFrameStep` runs the opening, regeneration and ruin at the Heart's turn. `Room_Ruin`'s Heart arm
+  (`0x004E9130`) only toggles `+0x9A` bit 0 and recodes tiles. `Heart_OnDestroyed` (`0x004DA560`) draws, but its only
+  caller is `Object_OnDelete`, in the thing pass: **ours omits those draws.** The message post at `0x004D9AFD`
+  (`0x27` at 50% health, `0x28` at 10%) has no counterpart in ours, which has only HeartAttacked.
+  `DungeonHeartSystem(frames: false)` keeps the verdict tail at the tick's end; DK2 runs it from `Player_Tick`
+  (`0x004BA0B4`), in the middle of each player's frame: an approximation.
 - **Portal.** The pick (`0x004DBF90`) recounts the owner's portal-born creatures (list `+6`, link `+0x10`,
   `+0x3E6 & 2`) and the capacity (`0x004DCE30`) each time; the arrival creator (`0x004DC9A0`) links the creature
   (`Creature_Construct`, `0x004872A0`) and sets that bit at once. A second ripe portal sees the first's arrival.
-- **Bridge.** `0x004D5FA0` (type 8) walks the bridge's slab chain every `5 x TicksPerSecond` turns, phased by the room's
-  id, and sells tiles through `Player_SellRoomTile` (`0x004C5DB0`), which reaches the room rebuild and its draws.
-  `BridgeBurnSystem` is our stand-in, a per-tile countdown run in the work phase before the walk (Q67); it is not
-  a step.
+- **Bridge.** `0x004D5FA0` (type 8) has two passes: every `5 x TicksPerSecond` turns, phased by the room's id, a walk
+  advances burning tiles (state `0x10` sets `room+0x49`), and while `room+0x49` is 1 a sale pass runs every turn,
+  selling up to eight state-`0x12` tiles through `Player_SellRoomTile` (`0x004C5DB0`), which reaches the room rebuild's
+  draws and appears to refund the sale value. `BridgeBurnSystem` is our stand-in, a per-tile countdown run in the
+  work phase before the walk (Q67), with no refund; it is not a step.
 
 DK2 handlers with no step of ours: Torture, Temple, Graveyard (section 7); the Combat Pit's own turn `0x004D7A60`
 (two sound timers, as the Torture Chamber's, drawing `random(4 x ticks)` and `random(32 x ticks)` and the slot

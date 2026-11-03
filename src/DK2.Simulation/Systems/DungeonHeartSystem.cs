@@ -97,8 +97,9 @@ public sealed class DungeonHeartSystem : ISimulationSystem
 
 /// <summary>The Dungeon Heart handler's own part (<c>DungeonHeart_Update</c>, <c>0x004D9A60</c>), after the store
 /// sweep and the responders' dispatch it calls first (<c>0x004D9B11</c>): the opening sequence, the regeneration
-/// and the ruin when the Heart object is gone. Their draws are only on the paths a destroyed Heart takes
-/// (<c>0x004DA560</c>, <c>0x004E9130</c>), none on an ordinary turn. <see cref="DungeonHeartSystem"/> runs it itself
+/// and the ruin when the Heart object is gone. The handler draws nothing of its own; the destroyed Heart's
+/// <c>Heart_OnDestroyed</c> draws (<c>0x004DA560</c>, from the thing pass) are not in ours, and the message post at
+/// <c>0x004D9AFD</c> (0x27 at half health, 0x28 at a tenth) has no counterpart. <see cref="DungeonHeartSystem"/> runs it itself
 /// when it runs without a room walk.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/win-and-defeat.md")]
 public sealed class HeartFrameStep : IRoomTickStep
