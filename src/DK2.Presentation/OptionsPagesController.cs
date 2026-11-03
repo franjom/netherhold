@@ -67,7 +67,7 @@ public sealed class OptionsPagesController
     public static SoundVoiceId SliderVoice { get; } = new(0x7F000001);
     private bool _dragging, _dragVoiced;
 
-    /// <summary>A press on a slider's track or thumb (widget state 3, <c>0x00551F20</c>, <c>0x0054D180</c>, <c>0x0054D240</c>, <c>0x0042B950</c>..<c>0x0042BA90</c>): the speech slider
+    /// <summary>A press on a slider's thumb, its grab (widget state 3; the track and arrows are other states and silent, <c>0x00551F20</c>, <c>0x0054D180</c>, <c>0x0054D240</c>, <c>0x0042B950</c>..<c>0x0042BA90</c>): the speech slider
     /// asks <c>0x345</c> in <c>OPTIONS_SPEECH</c>, the music slider <c>0x346</c> in <c>OPTIONS_MUSIC</c>, and every other front-end slider <c>0x31D</c> in <c>OBJECT_FE_PARCHMENT</c>; the in-game pages
     /// sound the speech, music and effects sliders only. Returns whether <paramref name="id"/> is a slider (a held one asks nothing more).</summary>
     public bool BeginSliderDrag(ushort id)
