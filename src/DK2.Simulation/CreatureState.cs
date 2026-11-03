@@ -849,7 +849,8 @@ public sealed class CreatureState
     public byte FightProcessCounter;
 
     /// <summary>The tile this creature stood on when the fight process last ran — the position
-    /// DK2 compares with the previous frame's to tell a mover from a stander.</summary>
+    /// DK2 compares with the previous frame's to tell a mover from a stander. A made creature starts
+    /// on its creation tile (<c>0x004872F0</c>, ADR-0645); -1 is a tile it was never on.</summary>
     public int LastFightScanTileIndex = -1;
 
     /// <summary>What <see cref="FightTargetId"/> or <see cref="FightTargetTileIndex"/> names

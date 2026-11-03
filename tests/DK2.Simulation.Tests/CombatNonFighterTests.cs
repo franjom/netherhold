@@ -566,11 +566,11 @@ public class CombatNonFighterTests
     }
 
     private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnCreature(db, type, owner, new TilePos(x, y));
+        world.SpawnArrived(db, type, owner, new TilePos(x, y));
 
     private static CreatureState Touching(GameDatabase db, WorldState world, byte type, byte owner, CreatureState other)
     {
-        CreatureState c = world.SpawnCreature(db, type, owner, other.Tile);
+        CreatureState c = world.SpawnArrived(db, type, owner, other.Tile);
         c.PosX = other.PosX + 1300;
         c.PosY = other.PosY;
         return c;

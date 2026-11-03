@@ -266,7 +266,7 @@ public class CombatSpellTests
     }
 
     private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnCreature(db, type, owner, new TilePos(x, y));
+        world.SpawnArrived(db, type, owner, new TilePos(x, y));
 
     private static GameSimulation Combat(GameDatabase db, WorldState world) =>
         new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);

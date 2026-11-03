@@ -12,8 +12,9 @@
 # through the same action 55 a human uses: location selector 4 admits the Lair tile, target
 # selector 1 the keeper's own creature, and the cast helper finds it below its maximum. Shot 4
 # stands on the target, hits it through the forced collision word, and its Modify Health process
-# sets the sleeper idle and heals the missing 2500, the lesser of 16000 and the deficit
-# (ADR-0287). The offensive draws Thunderbolt the hero on Nemesis's land, and on a turn
+# sets the sleeper idle and heals the missing 2300, the lesser of 16000 and the deficit
+# (ADR-0287): the sleeper has regained 200 by turn 8, as the fight begins at the fighters' scan
+# phase (ADR-0645). The offensive draws Thunderbolt the hero on Nemesis's land, and on a turn
 # divisible by 40 the emergency call may come first; neither is scripted. No allowance and no
 # flag is set by hand: the fight, the message walk, the step and the spell run through the
 # default systems. Level 10, whose Asmodeus always takes the supportive arm, was not used: its
@@ -54,7 +55,7 @@ expect:
       keeper's own creatures strictly within five tiles of the fighter for one strictly below half
       health and not dying, and casts it once 0x004BBA40's validators pass.
   - event: healed
-    detail: "amount=2500 landed=2500 health=4000"
+    detail: "amount=2300 landed=2300 health=4000"
     because: >
       Shot 4's Modify Health process (0x004ADB30) heals the lesser of the data word, 16000, and
       the missing health through the health routine, after setting the target idle.

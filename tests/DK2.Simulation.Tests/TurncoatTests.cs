@@ -45,7 +45,7 @@ public sealed class TurncoatTests
         world.Tile(at).OwnerPlayerId = Keeper;
         world.Player(Keeper).Mana = 45000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, SpellId, 3));
-        CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, at);
+        CreatureState target = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, at);
         return (db, world, target);
     }
 
@@ -73,7 +73,7 @@ public sealed class TurncoatTests
     public void ExpiryRestoresSelectionSideButKeepsTheTagAndCurrentFight_AcrossSnapshot()
     {
         var (db, world, target) = Setup();
-        CreatureState keeper = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
+        CreatureState keeper = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
         target.TurncoatTicks = 3;
         target.TurncoatPlayerId = Keeper;
         target.Dk2StateId = EngagingState;
@@ -176,7 +176,7 @@ public sealed class TurncoatTests
     public void BothCombatSidesAndAlliancesAreResolvedThroughTheTimer()
     {
         var (db, world, target) = Setup();
-        CreatureState keeper = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
+        CreatureState keeper = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
         keeper.TurncoatTicks = 1;
         keeper.TurncoatPlayerId = Rival;
         Assert.False(TurncoatRules.AreCombatEnemies(world, target, keeper));
@@ -196,8 +196,8 @@ public sealed class TurncoatTests
     public void CombatSelectionUsesTheSideAfterThisTurnsCountdown(ushort ticks, bool choosesKeeper)
     {
         var (db, world, target) = Setup();
-        CreatureState rival = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
-        CreatureState keeper = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(12, 10));
+        CreatureState rival = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 10));
+        CreatureState keeper = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(12, 10));
         target.TurncoatTicks = ticks;
         target.TurncoatPlayerId = Keeper;
         var sim = new GameSimulation(db, world, 1, [new CreatureStatusSystem(), new CombatSystem()]);
@@ -210,7 +210,7 @@ public sealed class TurncoatTests
     public void ACombatCastLeavesTheFightThroughItsStateHook()
     {
         var (db, world, target) = Setup();
-        CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
+        CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
         target.Dk2StateId = EngagingState;
         target.FightTargetKind = FightTargetKind.Creature;
         target.FightTargetId = enemy.Id;

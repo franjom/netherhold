@@ -111,7 +111,7 @@ public sealed class SoundLoopTests
         Assert.False(Of("keeper_spell_tremor").IsLooping(new SoundId(0xFB)));
     }
 
-    [Fact]
+    [InstallFact]
     public void AVoiceFollowsAMovingCreatureAndShotAndEndsWhenTheyAreGone()
     {
         (GameDatabase database, WorldState world) = Dk2Fixture();
@@ -126,7 +126,7 @@ public sealed class SoundLoopTests
         Assert.Equal(VoiceLocator.Fate.Gone, VoiceLocator.Locate(world, WorldSoundDirector.CreatureVoice(9999), out _, out _, out _));
     }
 
-    [Fact]
+    [InstallFact]
     public void AVoiceFollowsAShotAtItsViewPositionAndAnObjectAtItsTileWithoutAHeight()
     {
         (GameDatabase database, WorldState world) = Dk2Fixture();
@@ -146,7 +146,7 @@ public sealed class SoundLoopTests
         Assert.Equal(VoiceLocator.Fate.Gone, VoiceLocator.Locate(world, objectVoice, out _, out _, out _));
     }
 
-    [Fact]
+    [InstallFact]
     public void AStaticThingOrAnUnownedVoiceNeitherMovesNorEnds()
     {
         (GameDatabase database, WorldState world) = Dk2Fixture();
