@@ -238,6 +238,16 @@ class BoundaryDebugger:
         self.process = subprocess.Popen([str(executable), *arguments], cwd=Path(executable).parent,
                                         creationflags=2, startupinfo=startup)
         deadline = time.monotonic() + timeout
+
+        def capture_stopped(phase, context):
+            nonlocal deadline
+            started = time.monotonic()
+            try:
+                capture(phase, context, self.read)
+            finally:
+                # Reading/serializing the stopped process spends no native wait budget.
+                deadline += time.monotonic() - started
+
         status = CONTINUE
         try:
             self.checked(self.api.DebugSetProcessKillOnExit(False), 'DebugSetProcessKillOnExit')
@@ -290,7 +300,7 @@ class BoundaryDebugger:
                             expected_return = self.active[event.tid]
                             if context.Eip != expected_return:
                                 raise RuntimeError('Return breakpoint address mismatch')
-                            capture('after', context, self.read)
+                            capture_stopped('after', context)
                             self.active.pop(event.tid)
                             self.completed += 1
                             context.Dr0, context.Dr1 = self.entry, 0
@@ -302,7 +312,7 @@ class BoundaryDebugger:
                                 return_address = struct.unpack('<I', self.read(context.Esp, 4))[0]
                                 if return_address == self.entry or not return_address:
                                     raise RuntimeError('Invalid chooser return address')
-                                capture('before', context, self.read)
+                                capture_stopped('before', context)
                                 self.active[event.tid] = return_address
                                 context.Dr0, context.Dr1 = 0, return_address
                                 context.Dr7 = (context.Dr7 & ~0xF) | 4
@@ -409,7 +419,8 @@ def main():
     parser.add_argument('--slot', type=int, required=True)
     parser.add_argument('--from-tick', type=int, default=0)
     parser.add_argument('--pairs', type=int, default=1)
-    parser.add_argument('--timeout', type=float, default=120)
+    parser.add_argument('--timeout', type=float, default=120,
+                        help='Native/debug-event wait seconds, excluding stopped capture callbacks')
     parser.add_argument('game_args', nargs=argparse.REMAINDER)
     args = parser.parse_args()
     if sys.platform != 'win32' or C.sizeof(PTR) != 8:

@@ -191,6 +191,8 @@ def run(args):
                   savedTurns=ticks, python=sys.version, compatibilityLayer=os.environ['__COMPAT_LAYER'],
                   sources={str(p): sha(p) for p in sources}, domain=[0, 1 << 32],
                   memoryPolicy='All committed readable regions; no type/size/category opt-in.',
+                  timeoutPolicy='Native/debug-event wait only; stopped capture callbacks are excluded.',
+                  nativeWaitBudgetSeconds=args.timeout or max(120, args.last * 2 + 120),
                   observation='Completed world turn; debuggee threads stopped. External writers to shared pages are not frozen.')
     write_json(output / 'launch.json', launch)
     with (output / 'README.md').open('x', encoding='utf-8') as guide:
@@ -342,7 +344,8 @@ def main():
     parser.add_argument('--first', type=int, default=1)
     parser.add_argument('--last', type=int, required=True)
     parser.add_argument('--out', type=Path, required=True)
-    parser.add_argument('--timeout', type=float)
+    parser.add_argument('--timeout', type=float,
+                        help='Native/debug-event wait seconds, excluding stopped capture callbacks')
     args = parser.parse_args()
     if args.timeout is not None and args.timeout <= 0:
         parser.error('Timeout must be positive')

@@ -72,6 +72,34 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual([('before', 21), ('after', 22)], frames)
         self.assertEqual(0, debug.process.wait(timeout=5))
 
+    def _slow_capture_keeps_native_wait_budget(self, slow_phase):
+        debug = recorder.BoundaryDebugger(0x401040)
+        original_clock = recorder.time.monotonic
+        paused_seconds = 0
+        phases = []
+
+        def capture(phase, context, read):
+            nonlocal paused_seconds
+            phases.append(phase)
+            if phase == slow_phase:
+                paused_seconds += 1000
+
+        try:
+            with mock.patch.object(recorder.time, 'monotonic',
+                                   side_effect=lambda: original_clock() + paused_seconds):
+                debug.run(self.exe, [], lambda *a: True, capture, timeout=5, pairs=2)
+        finally:
+            if debug.process is not None:
+                exit_code = debug.process.wait(timeout=5)
+        self.assertEqual(0, exit_code)
+        self.assertEqual(['before', 'after', 'before', 'after'], phases)
+
+    def test_entry_capture_time_does_not_spend_native_wait_budget(self):
+        self._slow_capture_keeps_native_wait_budget('before')
+
+    def test_return_capture_time_does_not_spend_native_wait_budget(self):
+        self._slow_capture_keeps_native_wait_budget('after')
+
     def test_writer_failure_restores_breakpoints_and_resumes_child(self):
         debug = recorder.BoundaryDebugger(0x401040)
         def fail(phase, context, read):

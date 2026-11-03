@@ -40,6 +40,11 @@ stops the world at entry before any chooser instruction and at the caller's
 return address before its next instruction. This records selection, not a
 complete movement or animation cycle.
 
+`--timeout` budgets native/debug-event waits, excluding the intentional stopped
+capture callbacks. Total elapsed wall time may exceed that budget. The shared
+[timeout policy and retained controls](native-capture.md#timeouts) describe the
+accounting and its limits; no additional capture flag is required.
+
 Only these executable MD5s are accepted:
 
 - Retail: `2f3bbc21eae8c3aa468136baa303036d` (the oracle's pinned executable).

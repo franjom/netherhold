@@ -21,6 +21,19 @@ refuses an existing DK2 process, launches its own hidden child, uses hardware
 breakpoints, and closes only that child. Compatibility setup is local to the
 process environment. There is no external seeder or default 40x50 filter.
 
+## Timeouts
+
+`--timeout` is a native/debug-event wait budget, not a total wall-clock limit.
+Intentional stopped `before`/`after` capture callbacks do not consume it;
+the accounting excludes their duration even when a callback fails. A capture
+failure still fails the run and produces no verified success receipt. The
+recorder records `timeoutPolicy` and `nativeWaitBudgetSeconds` in `launch.json`.
+The same default policy applies without another opt-in flag.
+
+Capture, compression and serialization can therefore make total elapsed time
+exceed the native wait budget. Keep measured pause durations with the run;
+this does not change the timing and trajectory limitations below.
+
 ## Data and verification
 
 - `level.dk2cap`: compatible structured frames. Their stamps mean completed
@@ -95,11 +108,28 @@ the full query domain; allocation limits do not define the enumeration limit.
 
 `python -m unittest discover -s tools/oracle -p 'test_*.py' -v` checks coverage,
 exclusive writes, truncation/corruption, identity/receipt binding, decoder
-selection, native-format contracts and generated-PE cleanup. All 43 tests pass.
-Eight regressions fail on unchanged archived recorder/exporter source; four
-controls pass there.
+selection, native-format contracts and generated-PE cleanup. All 45 tests pass.
+The earlier completeness regressions fail eight cases on archived source,
+with four passing controls. The timeout regressions give two errors on nine
+unchanged archived source files, while twelve controls pass.
 
 Native smoke captures and no-flag export controls are add-only studies under
 `F:/DK2Evidence/studies/q712-complete-capture-*--2026-11-02--*/`. Each keeps its
 own source and manifest; schema-1 prototype data remains readable. Historical
 Q712 outcome data is separate from these short capture-tool controls.
+
+The earlier long run
+`F:/DK2Evidence/studies/q712-complete-native-level5-seed2--2026-11-02--001/`
+was intentionally stopped after 63 complete pairs (turns 1, 2 and 1400-1460). Its owned child closed, the packet remained unchanged
+and all files were retained, without a verified success receipt. Its mean
+4.689-second pauses projected about 9383 seconds against the old 6920-second
+wall budget; it is retained as incomplete evidence, not a successful long run.
+The new timeout-policy smoke study is
+`F:/DK2Evidence/studies/q712-capture-native-budget-smoke--2026-11-02--001/`.
+It verifies turns 1-3, with its owned child closed and packet unchanged.
+Independent review confirms the verified receipt, all 25 manifest entries
+and six current producer source hashes with no mismatches. This bounded
+smoke validates the timeout policy; the interrupted long run remains partial.
+
+Verification bundle:
+`F:/DK2Evidence/builds/q712-capture-native-budget-tools--g8bae7031-wip--2026-11-03--001/`.
