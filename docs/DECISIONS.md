@@ -14887,3 +14887,23 @@ state together, retaining the missing-timing fallback.
 **Consequences.** No unconditional eager state exit or future-timed work input
 enters production. Other action families, custom-host ordering and partial
 resync remain explicit limits; Q712 stays open after the measured outcomes. Verification is recorded in the linked research note.
+
+## ADR-0639: use the ordinary room route for initial lair departure
+
+**Date:** 2026-11-03. **Status:** accepted. Q712; hash/save 390.
+
+**Context.** The initial lair attempt bypassed the ordinary room point and
+used E0 instead of the binary's E8 options. A captured Warlock already had
+unequal route goals before its first visible movement difference. The
+[pre-edit inventory](research/lair-departure.md) separates this defect from
+the remaining room finder and captured-world input approximations.
+
+**Decision.** Preserve the current finder. Outside its chosen room, draw one
+ordinary room point and route with E8; fail without resampling if no point
+or route succeeds. Inside, enter idle then 80 without a point draw, route
+or helper action cancellation, returning the resume transition result.
+
+**Consequences.** Destination, shared RNG and arrival tolerance change;
+hash/save versions advance together without adding a saved field. Tests
+must fail against unchanged 389 source. Q712 closure depends on measured
+outcomes and matched inputs, not on this correction alone.

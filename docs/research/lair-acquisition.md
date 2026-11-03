@@ -1,4 +1,4 @@
-﻿# Mechanic: how a creature gets a lair
+# Mechanic: how a creature gets a lair
 
 Source(s):
 - The owner's recordings of DK2 v1.70, 2026-09-05
@@ -147,13 +147,10 @@ search ran.
 it does anything else, and the same attempt is also the first thing the unhappy
 and angry job choosers make.**
 
-The creature's decision routine (`FUN_00476fc0`, one call per think) runs, in
-order:
-
-1. the current state's own update;
-2. **needs** (`FUN_00477c20`): hunger, then sleep;
-3. if nothing fired and the creature is **unhappy or angry**, that mood's job
-   chooser (§8), whose first line is *no lair → go and get one*.
+The creature's dispatcher runs the category update, needs and mood choosers
+before the current handler; see [00476FC0](functions/00476FC0.md) and
+[the needs order](creature-needs-routine.md#1-where-it-runs). The unhappy and
+angry choosers try for a lair before their job roll.
 
 The **happy** path is the idle state's own update (the block at `004779f9`),
 and it reads, in order: *no lair → try to get one* (`FUN_0046f390`); a pending
@@ -164,8 +161,11 @@ otherwise wander for 12 ticks.
 **The attempt (`FUN_0046f390`) succeeds when:** the creature is not held and not
 dying; its record's **`TimeSleep` is non-zero**; it is not already in the
 lair-seeking state; it has no bed yet; its record names a bed (`LairObjectId` ≠
-0); and the finder of §4 returns a room. It then enters the lair-seeking state
-(`0x50`), which is the journey and the on-arrival tile test §4 describes. **It
+0); and the finder of §4 returns a room. Initial departure then uses the
+[room-helper split](lair-departure.md): outside, one room-point draw and E8
+travel resuming 80; inside that chosen room, idle then 80 without a new point,
+route or helper action cancellation. The on-arrival tile test follows in the
+lair-state chain. **It
 fails when no reachable lair has a free slot**, and the creature falls through to
 a job — to try again at its next idle decision.
 
@@ -234,12 +234,13 @@ arrival, reached `AngerNoLair`'s limit and left through the portal, where DK2's
 (capture slot 431: idle at 1756, state 89, then the lair walk at 1757) went for a bed
 before their first job.
 
-**Ours, and marked as such in the code:** the idle retry cadence (12 ticks); the
-arrival tile — room centre, where the original's travel-to-room step
-(`FUN_00471A70`, read in travel-states.md §2.2) walks to a random tile of the room,
-then the next walkable one (**Q157**); the order of the room walk (ascending
-tile index, with the random start kept); and no sub-tile jitter on the walk
-target.
+**ADR-0639/hash 390** builds the bounded initial-departure rule and inside-room
+shortcut; [scope and verification](lair-departure.md#implementation-and-verification)
+retain full finder limits. `LairRules.ArrivalTile` remains a centre-nearest tile
+for the finder's approximate reach test, not the final departure destination.
+The finder itself is unchanged: reachability, centre and ties remain adapter
+limits (Q473). The idle retry cadence (12 ticks), room-walk order and later
+bed-placement/relocation details retain their own scopes.
 
 **Not added deliberately:** an implementation plan drawn from this note by
 another tool required the lair to be *"valid/functional according to the
@@ -294,7 +295,7 @@ already established elsewhere remain **UNKNOWN** rather than being guessed.
 | state | reads | important calls and writes | exit |
 |---|---|---|---|
 | 79, looking for Lair | tile underfoot, room owner/type, `LairObjectId`, current bed and its room | accepts an existing bed in this room; otherwise finds a free tile, destroys a bed in another room, and gives the walk a seeded random offset | existing bed → 81; candidate → travel to 80; no candidate → message and idle |
-| 80, making a home | first-tick marker, current tile, room, candidate validity | stops the old action on entry; validates and registers the bed at the tile, or searches and walks to another candidate | placed bed → 81; candidate → 80 again; exhausted room → restart the global lair finder or end |
+| 80, making a home | first-tick marker, current tile, room, candidate validity | stops movement on its first handler update; validates and registers the bed at the tile, or searches and walks to another candidate | placed bed → 81; candidate → 80 again; exhausted room → restart the global lair finder or end |
 | 81, going to bed | bed id, kind, validity, position and facing | derives a point from the bed facing, ends an active action, starts movement | travel to the point in state 82; invalid bed ends the state |
 | 82, sleeping | bed id, position and facing; creature position | turns toward the bed; when close, snaps ordinary-bed users to it and copies its facing | close and aligned → 83; too far → 81; no bed ends the state |
 | 83, sleeping | bed validity/type, `SleepNeeded`, level-scaled maximum and current health | zeros velocity; starts the bed animation; maintains bed/creature presentation flags; writes a 48-tick effect counter | stays while sleep need is non-zero or health is below maximum; ready in the Mistress bed → 84; ready in an ordinary bed → clean up and end |
@@ -388,8 +389,7 @@ State 84 is built; see the [adapter contract](object-drawing.md#81-state-84-adap
 
 ## Open questions
 
-- **Q157**: which tile of the chosen room the travel-to-room step aims at.
-  UNKNOWN; ours arrives at the room centre.
+- Full lair-finder effects remain Q473; see [bounded departure scope](lair-departure.md).
 - Whether a creature remembers what it has already rejected within one search
   (§2). **HYPOTHESIS.**
 - The exact idle re-decision cadence. The idle state's own fallback is a 12-tick

@@ -186,6 +186,63 @@ The current lead is actual-389 withdrawal inputs at 1570 (004611D0), then
 subsequent hero exposure. These partial controls neither prove a generic 1579
 integrator defect nor close Q712/Q719.
 
+### Reporting geometry at hash 389 (Q712)
+
+The independently reviewed per-turn native geometry control uses raw fixed-point
+captures for seeds 2/3/7, headers 1401-3400; each seed has 2001 untorn frames including
+the 1400 predecessor. Means per run:
+
+| Geometric observation | DK2 | 388 | 389 |
+|---|---:|---:|---:|
+| Reporting entries within strict D000 of the initial Heart object centre | 12.00 | 8.07 | 6.47 |
+| Those entries also within strict one-tile distance of an observed attackable, non-down hero | 9.33 | 3.87 | 2.80 |
+| Reporting entries outside that Heart circle | 3.00 | 5.80 | 8.27 |
+| Pillar-target hero ticks in both dispatch and Heart circles | 3260.67 | 1584.27 | 1599.53 |
+
+Heart geometry uses (16.5,25.5), while dispatch geometry uses (17.5,26.5).
+The hero-tick row is their intersection, not every hero near a current live
+Heart. These are geometric bounds, not complete selector eligibility or a
+causal explanation: hostility, disguise, visibility, route, Heart lifetime
+and within-turn order are not replayed. The sole native censored reporting
+episode loses its qualifying Imp row; it is not a timeout.
+
+Evidence under `F:/DK2Evidence/studies/`:
+`q712-reporting-heart-geometry-h389--2026-11-03--002/` and
+`q712-reporting-candidate-geometry-h389--2026-11-03--001/`.
+The first geometry attempt mixed legacy tile/change-log coordinates with
+fixed-point per-turn observations and is explicitly excluded. The type-map
+history check changes zero target classifications in these 33 runs. The bounded [initial Lair departure](lair-departure.md) correction is built
+at 390, with [outcomes verified](lair-departure.md#outcomes-at-hash-390); no new reporting-state rule is
+established by these geometric bounds.
+
+### Actual hash-390 prefix and XP lead (Q719/Q734)
+
+The later actual 390 partial-input control uses the corrected initial Lair
+departure without other new interventions. Hero 436 matches entity XY through
+1625 and state/target through 1626, versus 389's first differences 1590/1588.
+Imp 442 still has unequal withdrawal inputs before its 1579 pose difference;
+this longer hero prefix is not whole-world parity. Evidence:
+`F:/DK2Evidence/studies/q712-integrated390-worker-resume--2026-11-03--001/`.
+
+A separate [route-445 control](F:/DK2Evidence/studies/q712-route445-resume-h390--2026-11-03--001/)
+restores captured modeled persistent steering fields at completed 1400; its
+five off-control output hashes match the actual-390 control. Imp 445 then
+matches XY through 1416, state through 1496 and XP through 1547, versus first
+differences at 1401/1427/1430 without that restoration. Hero 436's state/XY/target
+first difference instead moves earlier to 1613, shortening the hero prefix. Independent review
+verifies 38 study and 26 build entries; the build has the same basename under
+`F:/DK2Evidence/builds/`. This is partial route-input restoration, not full
+native-body parity or evidence of a generic steering defect.
+
+One earlier deterministic difference is category experience (Q734): hero 436
+matches state, target and XY on completed 1571-1589, with equal XP through 1588.
+On 1589 both leave 199 for 1, but native gains 37 (703 total) and 390 gains 0 (666).
+The category hook 0047A870 runs before the state handler in 00476FC0; the remake
+instead awards through a global last promotion sweep, losing the exit award.
+This ordering gap remains unimplemented in 390; aggregate Q712 impact is not
+established. Raw native rows, paired observer rows and hashes:
+`F:/DK2Evidence/studies/q712-combat-xp-boundary-h390--2026-11-03--001/`.
+
 ### Facing input boundary (Q719)
 
 The [native-byte facing control](F:/DK2Evidence/studies/q712-native-cast-facing--2026-11-03--001/)

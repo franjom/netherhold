@@ -26,10 +26,10 @@ public enum MoveOptions
     /// Room jobs, prisoners held, wandering, the walk to a hatchery.</summary>
     Loose = 0x80,
 
-    /// <summary>Making a home (state 80): respect doors, snap onto the spot.</summary>
+    /// <summary>Respect doors and snap onto the spot without the tight-arrival bit.</summary>
     Spot = 0xE0,
 
-    /// <summary>Going to bed (81), the chicken (92), wages (187), gambling, celebrating:
+    /// <summary>Seeking a lair (80), going to bed (81), the chicken (92), wages (187), gambling, celebrating:
     /// respect doors, snap onto the spot, arrive within a tenth of the radius.</summary>
     ExactSpot = 0xE8,
 

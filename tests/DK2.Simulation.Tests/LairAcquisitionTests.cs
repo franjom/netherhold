@@ -129,14 +129,13 @@ public class LairAcquisitionTests
 
         sim.Run(Second * 15);
 
-        // It aimed at the room's centre (Q157, ours) and, finding that tile
-        // free, put its bed down exactly there.
-        Assert.Equal(new TilePos(7, 2), BedOf(world, db, goblin));
-        Assert.Equal(new TilePos(7, 2), goblin.Tile);
+        // This seeded room-point draw selects (8,1), where the arriving creature makes its bed.
+        Assert.Equal(new TilePos(8, 1), BedOf(world, db, goblin));
+        Assert.Equal(new TilePos(8, 1), goblin.Tile);
         Assert.Equal(CreatureActivity.Idle, goblin.Activity);
 
         SimEvent sought = Assert.Single(events.Events, e => e.Kind == "lair_sought");
-        Assert.Contains("to=(7,2)", sought.Detail);
+        Assert.Contains("to=(8,1)", sought.Detail);
         Assert.Contains("preferred", sought.Detail);
         Assert.Single(events.Events, e => e.Kind == "bed_claimed");
     }
@@ -166,7 +165,7 @@ public class LairAcquisitionTests
         Assert.Contains(events.Events, e => e.Kind == "lair_sought" && e.System == "CreatureJob");
 
         sim.Run(Second * 15);
-        Assert.Equal(new TilePos(7, 2), BedOf(world, db, goblin));
+        Assert.Equal(new TilePos(8, 1), BedOf(world, db, goblin));
     }
 
     [Fact]
@@ -331,16 +330,15 @@ public class LairAcquisitionTests
         // While it walks, somebody else's bed lands on the very tile it is
         // heading for.
         CreatureState lodger = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(8, 3));
-        LairRules.PlaceBed(world, db, lodger, Index(world, 7, 2));
+        LairRules.PlaceBed(world, db, lodger, Index(world, 8, 1));
 
         sim.Run(Second * 15);
 
-        // Underfoot failed; the first neighbour in the original's order is
-        // (−1,−1), the north-west corner, and it was free.
-        Assert.Equal(new TilePos(6, 1), BedOf(world, db, goblin));
+        // North-west lies outside the room; west is the first valid free neighbour.
+        Assert.Equal(new TilePos(7, 1), BedOf(world, db, goblin));
         SimEvent found = Assert.Single(events.Events, e => e.Kind == "lair_tile_found");
-        Assert.Contains("taken=(7,2)", found.Detail);
-        Assert.Contains("to=(6,1)", found.Detail);
+        Assert.Contains("taken=(8,1)", found.Detail);
+        Assert.Contains("to=(7,1)", found.Detail);
         Assert.Contains("how=neighbour", found.Detail);
         Assert.Single(events.Events, e => e.Kind == "lair_sought");
     }
@@ -410,8 +408,7 @@ public class LairAcquisitionTests
     [Fact]
     public void TwoCreaturesMayHeadForTheSameRoomAndBothGetBedsOnDifferentTiles()
     {
-        // No reservation. Both aim at (7,2); the second to arrive finds it
-        // taken and looks next door.
+        // Force the same first slab for both point draws: occupancy is decided on arrival.
         GameDatabase db = Db;
         WorldState world = World(db);
         var events = new ListEventSink();
@@ -419,10 +416,14 @@ public class LairAcquisitionTests
 
         CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         CreatureState second = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 2));
-        Walking(db, world, events).Run(Second * 20);
+        var sim = new GameSimulation(db, world, new SimRandom(new FirstSlabRandom()), [
+            new CreatureMovementSystem(), new CreatureSleepSystem(),
+        ]);
+        sim.ObserveWith(events);
+        sim.Run(Second * 20);
 
-        Assert.Equal(new TilePos(7, 2), BedOf(world, db, first));
-        Assert.Equal(new TilePos(6, 1), BedOf(world, db, second));
+        Assert.Equal(new TilePos(6, 1), BedOf(world, db, first));
+        Assert.Equal(new TilePos(6, 2), BedOf(world, db, second));
         Assert.Equal(2, events.Events.Count(e => e.Kind == "lair_sought"));
         Assert.Single(events.Events, e => e.Kind == "lair_tile_found");
 
@@ -682,7 +683,7 @@ public class LairAcquisitionTests
         List<(int State, int Saved, int Resume)> seen = StatesSeen(sim, goblin, 1);
 
         CreatureState lodger = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(8, 3));
-        LairRules.PlaceBed(world, db, lodger, Index(world, 7, 2));
+        LairRules.PlaceBed(world, db, lodger, Index(world, 8, 1));
         seen.AddRange(StatesSeen(sim, goblin, Second * 15));
 
         Assert.Equal(
@@ -839,5 +840,10 @@ public class LairAcquisitionTests
         }
 
         Assert.Equal(Run(42), Run(42));
+    }
+    private sealed class FirstSlabRandom : IRandomAlgorithm
+    {
+        public int NextInt(int exclusiveMax) => 0;
+        public void HashInto(ref Hash64 hash) => hash.Add(0);
     }
 }
