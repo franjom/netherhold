@@ -244,7 +244,7 @@ public sealed class CreatureHealthSystem : ISimulationSystem
 
     /// <summary><c>Corpse_Destroy</c> (<c>0x004B10A0</c>, the removal of a body that rotted or was buried): <c>0xF4</c> in <c>OBJECT_FLIES</c>
     /// (the global category <c>0x006E5048</c>, looked up from that name by <c>0x004B1980</c>) at the body's position with the body's own handle,
-    /// which in DK2 is the flies' loop (<c>0x004B1373</c>, a first-person sound that waits for the loops, plan W7.3); the voice here is the body's.</summary>
+    /// which in DK2 is the flies' loop (<c>0x004B1373</c>, a first-person sound that waits for the possession camera, plan W7.4); the voice here is the body's.</summary>
     private static void RequestCorpseSound(SimulationContext context, CreatureState body) =>
         ThingSoundRules.Request(context, SystemName, new SoundSourceId(SoundSourceKind.Corpse, body.Id), "OBJECT_FLIES",
             ThingSoundEvent.CorpseDestroyed, new FpPosition3(new Fp32(body.PosX), new Fp32(body.PosY), new Fp32(body.PosZ)));
