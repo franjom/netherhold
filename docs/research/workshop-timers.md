@@ -127,7 +127,10 @@ room. Within a Workshop the order is the hated-company step (it draws nothing), 
   room's current chain on each call, so after a room grows or merges the bound of a slot pick can differ. The
   draw count is unaffected, only which slot is picked (Q733e). The floor test (`0x004541AA`, `(x + y + room+0x80)`
   even, interior cell `+0x0C == 0xFF`) is the one ours uses.
-- The sound sites are left as comments (`0x2E9` at `0x004F4C27` and `0x004F4DC7`, `0x2E8` at `0x004F4F03`).
+- The sounds are asked by `WorkshopTimerRules.RequestSound` (`0x2E9` at `0x004F4C27` and `0x004F4DC7`, `0x2E8` at
+  `0x004F4F03`), in the category of the terrain at the effect's point; the spill's sound sits where the effect does
+  (above), where DK2's sits at the mesh point. They draw nothing (section 5); see
+  [sound-effects-combat.md](sound-effects-combat.md).
 
 ## 7. The same gap in the other effect handlers (not built)
 
