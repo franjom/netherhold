@@ -14,7 +14,10 @@ CONFIRMED (disassembly `0x0052BA68` to `0x0052BAAE`, the loader inside [Gui_Load
 sound at `+0x28` and the release sound at `+0x2C`. The loader runs once (record 0's handle word is its "not loaded" flag), takes the records
 whose number is below 27 and asks the manager's category lookup (slot `+0x1C`) for each name under `GLOBAL\`. Every reader indexes the handle
 at `0x006AC8C4 + slot * 0x30`, so a widget's sound slot is the record number. The record number matches the slot for all of 0 to 36 (read
-from the data), which settles the pairing: earlier notes paired a slot's ids with the name 0x30 bytes later (one record too far).
+from the data), which settles the pairing: earlier notes paired a slot's ids with the name 0x30 bytes later (one record too far). Independent
+check: the front end's own filler at the tail of [0x00535A30](../research/functions/00535A30.md) (`0x00535B92` to `0x00535BD2`) walks the same records and, for
+numbers `0x1B` to `0x24` (27 to 36), stores the front-end category handle `+0x5AB9` (FRONT_END) in record `0x20` (32) and the parchment's `+0x5AC1` in the
+others, which is the table below. CONFIRMED.
 
 | Slot | Category | Press / release | Used by |
 |---|---|---|---|
@@ -25,15 +28,17 @@ from the data), which settles the pairing: earlier notes paired a slot's ids wit
 | 8 to 12 | `gui_button_info`, `gui_sell`, `gui_button_options`, `gui_button_zoom`, `gui_minimap` | same | |
 | 13, 15 | `gui_message_bar`, `gui_button_tab_new_combat` | none | their own requests (`0x320` to `0x322`; the battle fly-in's `0x32B`, `0x32C`, section 10) |
 | 14 | `gui_button_default` | `0x104` / `0x136` | |
-| 16 to 26 | `options` | `0x304` to `0x30E` (no `0x30C`), `0x341` (slot 25), `0x33C` (slot 26) | in-game Options pages (section 6) |
+| 16 to 26 | `options` | `0x304`/`0x305` (16), `0x306` to `0x30B` (17 to 22), `0x30D`, `0x30E` (23, 24), `0x341` (25), `0x33C` (26); release none but 16 | in-game: Save and Load (25, 26, section 6); slots 16 to 24 have users unread |
+| 27 to 30 | `object_fe_parchment` | `0x304`/`0x305` (27), `0x306`, `0x307`, `0x308` | 27: every front-end slider and scroll bar but speech (section 4); 28 to 30: no widget of ours |
+| 31 | `object_fe_parchment` | `0x309` | no widget of ours; unmapped in `FrontEndMenuController` |
 | 32 | `front_end` | `0x30A` | main menu labels |
-| 31, 33 to 36 | `object_fe_parchment` | `0x309`, `0x30B` to `0x30E` | page buttons and back icons |
+| 33 to 36 | `object_fe_parchment` | `0x30B` to `0x30E` | page buttons and back icons |
 
 CONFIRMED against the shipped maps: `options` is the only category with `0x33C` and `0x341`; `front_end` has `0x30A`, `object_fe_parchment` has
 `0x30B` to `0x30E`. Corrected in our code (2026-11-03): the category slots' press and release were asked in `gui_button_icon_large` whatever the
 grid; a 128-unit grid gives its slots sound slot 5, `gui_button_icon`, whose `0x104` is a different sample from the large icon's (the shipped
-maps: entry 38 of 408 ms against entry 39 of 733 ms). The press now follows the panel's grid, as the chime does. The front end's main-menu click
-is asked in `front_end` (same sample as the parchment's `0x30A`: both resolve to `Global\Gui` entry 7).
+maps: archive 1 entry 38 of 408 ms against entry 39 of 733 ms, one-based as the maps store them). The press now follows the panel's grid, as the chime does. The front end's main-menu click
+is asked in `front_end` (same sample as the parchment's `0x30A`: both resolve to the zero-based runtime entry 7 of `Global\Gui`, the one-based entry 8 of the maps).
 
 ## 2. The flash chime `0x33A`
 
@@ -68,10 +73,21 @@ belong to its open, mismatch-cancel and accept.
 
 CONFIRMED (disassembly [0x0042B950](../research/functions/0042B950.md), [0x0042B9F0](../research/functions/0042B9F0.md),
 [0x0042BA90](../research/functions/0042BA90.md), [0x0054D180](../research/functions/0054D180.md), [0x0054D240](../research/functions/0054D240.md),
-[0x00551F20](../research/functions/00551F20.md)). Each is the tail of a slider's change callback. When the widget's state word `+0x41` is 3 (the
-button is down on it), the widget's flag read by virtual `+0x50` is clear and the page's handle for the sound is zero, it asks the sound with handle 0, keeps the
+[0x00551F20](../research/functions/00551F20.md)). Each is the tail of a slider's change callback. When the widget's state word `+0x41` is 3, the widget's flag read by virtual `+0x50` is clear and the page's handle for the sound is zero, it asks the sound with handle 0, keeps the
 returned handle and sets the flag through virtual `+0x4C`; when the state is no longer 3 and the flag is set it clears the flag and sends the stop command to the kept
-handle (slot `+0x38`; `0x00551FE0` names its command object `0x0066C77C`, the world's stop). The flag's meaning (STRONGLY INFERRED: "held") is not read. So the sound starts at the press on the slider and is cut at the release.
+handle (slot `+0x38`; `0x00551FE0` names its command object `0x0066C77C`, the world's stop). The flag's meaning (STRONGLY INFERRED: "held") is not read.
+
+State 3 is a **thumb grab**, not any press. In the slider's per-update input function (`0x00529510`, the horizontal sibling of the vertical scrollbar update
+[0x00528B20](../research/functions/00528B20.md), whose record says "Thumb: state 3") the state is set to 3 only at `0x0052974A` to `0x00529764`: the pointer is inside the thumb
+rectangle (widget `+0x90` to `+0x9C`), the button is down and the previous state is 0. A press on the track outside the thumb gives states 4 then 5 (a one-step
+page move) and the arrows states 1 and 2; all are silent for the test sound. Release clears the state, which stops the sound. CONFIRMED for the function
+(disassembly); STRONGLY INFERRED that the callbacks above belong to widgets of this class: the callbacks call the common slider helper `0x005501F0`, and
+`0x005507E0` is the hover helper both classes share. So the sound starts at the grab and is cut at the release.
+
+The same grab block asks the widget's own table press through [0x0052CAD0](../research/functions/0052CAD0.md) with part 0 (`0x00529787`), and the release asks the release
+(`0x005298C1`). The front-end sliders carry slot 27 (every one but Speech, widget 141, which has slot 0 and so no table sound): press `0x304`, release `0x305` in
+`OBJECT_FE_PARCHMENT`, and both groups have no items there (data), so the table press is silent and nothing is built for it. The scroll bars carrying slot 27 are
+silent the same way.
 
 | Slider | Front end | In game | Sound |
 |---|---|---|---|
@@ -83,8 +99,8 @@ handle (slot `+0x38`; `0x00551FE0` names its command object `0x0066C77C`, the wo
 The categories are loaded by name at the page's construction (front end `0x00535A67`, `0x00535AC0`, `0x00535B7D`; in game `0x00402FE0`,
 `0x00403016`, `0x0040302E`). The front end's other users of `0x00551F20` are multiplayer pages (not built); `0x00551FE0`, the same logic for a type 8
 widget, is called by two multiplayer callbacks. `options` itself has `0x31D` with no items, so a lookup there would be silent: the parchment is the
-category. Built in `OptionsPagesController.BeginSliderDrag` and `EndSliderDrag`, wired in the front-end options menu and the in-game panel, which
-drain `Sounds` through the shared player. UNKNOWN: which volume class (speech, music, effects) the manager gives `OPTIONS_SPEECH` and
+category. Built in `OptionsPagesController.BeginSliderDrag` and `EndSliderDrag`. The callers begin a drag only for a press on the thumb: the front-end menu tests the
+pointer against `SliderThumb.Rect` (the drawn thumb), the in-game panel registers the begin on its thumb element only, not on the track or arrows. Both drain `Sounds` through the shared player. UNKNOWN: which volume class (speech, music, effects) the manager gives `OPTIONS_SPEECH` and
 `OPTIONS_MUSIC`; ours plays all three at the effects volume, so a speech test is silent with the effects switch off (the manager's request slot
 refuses while the SFX switch is off, [0x00567810](../research/functions/00567810.md)).
 
@@ -105,7 +121,7 @@ CONFIRMED (disassembly). Both are nonpositional, handle 0, in `options` (slots 2
 [Options_SubmitSaveName](../research/functions/0042A920.md) (`0x0042A9D8`), after the file is written and the list refreshed. `0x341` follows a load request:
 [Options_SelectLoadFile](../research/functions/0042A7D0.md) stores the chosen path and sets the interface word `+0x3990`; the interface's per-frame
 input function ([0x004036E0](../research/functions/004036E0.md), site `0x00403EA6`) hands the path to the session object (virtual `+0x2C` of the object
-at interface `+0x53`) and asks `0x341`. Waits: the in-game Save and Load pages (menus 23 and 24) are not built
+at interface `+0x53`) and asks `0x341`. The in-game slots 16 to 24 (`options` `0x304` to `0x30E`) have users that are unread. Waits: the in-game Save and Load pages (menus 23 and 24) are not built
 ([options-menu.md](options-menu.md)); `InGameOptionsPage` has none of them.
 
 ## 7. The speech line and its duck
@@ -118,10 +134,12 @@ queue's stored handle, the line's category and the absolute value of the line's 
 Not built before: the line also ducks the other volumes. Before the request it sends two commands (slot `+0x38`, command objects `0x0066F964` and
 `0x0066F96C`) carrying the music setting (`0x0075AD17`) and the effects setting (`0x0075AD13`) times four over six, in whole percent, unsigned; when
 the line's handle is dead ([0x005681D0](../research/functions/005681D0.md), `0x00568238`) it sends them again with the full settings. The commands
-(`0x00608580`, `0x00608520`) set a volume class to the value times 0.01. STRONGLY INFERRED: classes 1 and 3 are music and effects (the commands pair
-with those two settings; the class table is unread), and ambience and terrain beds count as effects. Built as `SpeechDuck.Percent` and
+(`0x00608580`, `0x00608520`) set a volume class to the value times 0.01. CONFIRMED pairing: the music setter (`0x005635B0`) and the effects setter (`0x00563520`) call manager slot `+0x54` with classes 1 and 2; the slot's jump table
+(`0x00567D5C`, index bytes `0x00567D80`) builds exactly the command objects `0x0066F964` and `0x0066F96C` the duck sends, and `0x0075AD17` is the music
+setting, `0x0075AD13` the effects setting. STRONGLY INFERRED only: ambience and terrain beds sit in the effects class. Built as `SpeechDuck.Percent` and
 `ClassicSoundPlayer`: while the Mentor line plays, music, ambience and effects run at two thirds of their settings, restored at its end.
-The party music's duck of W7 is a different request and stays open.
+DK2 restores only when the line's handle is non-zero and dead, so a refused request (no handle) leaves the volumes ducked; not mirrored, harmless
+(ours restores when the Mentor source stops). The party music's duck of W7 is a different request and stays open.
 
 ## 8. Mana `0xF`, Horny `0x1`, party pop `0x344`
 
@@ -168,7 +186,7 @@ second fly-in may play.
 | tab scroll `0x32B`, `0x32C` | waits: the Battle tab fly-in overlay |
 | front-end map `0x32A` | built now |
 | options `0x33C`, `0x341` | waits: in-game Save and Load pages |
-| speech and music tests `0x345`, `0x346`, `0x31D` | built now (front end and in game) |
+| speech and music tests `0x345`, `0x346`, `0x31D` | built now (front end and in game), on a thumb grab; the slot-27 table press is silent |
 | mana `0xF` | silent: no group in any Global map; nothing to build |
 | `0x1` (`0x004B9BD6`) | waits: `Player_UpdateFlagNotifications`, Horny's category |
 | effects `0x344` (`0x004BA0A8`) | already built (W3) |
@@ -178,7 +196,7 @@ second fly-in may play.
 ## 12. Unknowns
 
 - Which volume class `OPTIONS_SPEECH` and `OPTIONS_MUSIC` use (section 4).
-- The volume class table behind the duck's commands (section 7).
+- Whether ambience and terrain beds sit in the effects class the duck scales (section 7).
 - The delay-chained player of the one-shot atmosphere (section 9).
 - The latch `+0x4F0D` before the first flash, and the draw order of tabs and slots (section 2).
 - The land update's rate in the front end (section 5).
