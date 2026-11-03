@@ -14925,3 +14925,30 @@ hosts still declare where the step runs. Keep work-hit awards and adder math.
 **Consequences.** No saved field is added. Hash/save and the determinism pin
 advance together. Tests must fail on unchanged 390 source. Q499 suspension,
 Q719 inputs and aggregate Q712 parity remain outside this bounded correction.
+
+## ADR-0644: keep a creature's steering body at its 16.16 position between steps
+
+**Date:** 2026-11-03. **Status:** accepted. Q735 (closed); hash/save 392.
+
+**Context.** Ours re-synced every steering body to its entity shifted up four at
+turn start, in `Sync` and after every step. Native sets a body only through the
+updating creature's own `0x004D59A0` call and a few resets, never in a sweep, and
+its position getter and entity setters leave the body alone. `0x004D2B80` reads the
+neighbour's body position, and its wrapped size-share product makes the push
+direction depend on the low four bits. At Level 5 turn 1417 native Imp 445's
+velocity is reproduced with Imp 454's retained body and not with the quantized one. [Binary readings, native
+frames, control and outcomes](research/steering-body-retention.md).
+
+**Decision.** `Advance` syncs the mover's own body just before integrating. A
+committed step keeps the body's 16.16 position; the solid reject (the general
+update's `0x0048A2C7`) and the door-contact path re-sync. `BeginTurn` and `Sync`
+re-sync a body only when its position shifted down four differs from the entity
+(`SyncMovedBody`), an adapter and not a native rule: native leaves a body stale
+while states 56/217/250 move the entity and zeroes it at a door contact (Q736).
+`Body.Pos` is hashed and saved; the loader no longer re-syncs.
+
+**Consequences.** Hash/save 392, pin `0x679DAB6F572FB5EC`; earlier saves are
+refused. The new retention tests fail on unchanged 391 source. A level-2 imp's
+speed test walks each imp alone and the overcrowded-prison test pins 4 releases and
+2 jail breaks, because stacked creatures now spread by order. Measured outcomes are
+mixed (Level 4 Imp deaths rise) and no constant was tuned; Q712 stays open.

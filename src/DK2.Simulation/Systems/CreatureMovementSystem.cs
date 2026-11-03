@@ -13,10 +13,11 @@ namespace DK2.Simulation.Systems;
 
 /// <summary>DK2's per-tick mover update (<c>0x004D5A40</c> and its four callers;
 /// docs/research/steering-behaviours.md §7.5): every creature that has a route or is still moving
-/// re-derives its body from its position, runs the four weighted behaviours through the Euler
-/// step, and takes the new position if the tile under it is not solid; otherwise the body is put
-/// back on the entity with no velocity. The body's speed cap is the definition's speed at the
-/// creature's level, per tick, capped at just under a tile (<c>0x0048D010</c>).</summary>
+/// puts its body on its position, runs the four weighted behaviours through the Euler step, and
+/// takes the new position if the tile under it is not solid, keeping the body's 16.16 position;
+/// otherwise the body is put back on the entity with no velocity. The body's speed cap is the
+/// definition's speed at the creature's level, per tick, capped at just under a tile
+/// (<c>0x0048D010</c>).</summary>
 /// <remarks>Behaviours run in their registration order (navigation-and-steering.md §3.3). The
 /// solid-tile test is the main update's (<c>0x004B35C0</c> at <c>0x0048A2B3</c>); three other
 /// callers commit unconditionally, and which creature states use which is UNKNOWN.</remarks>
@@ -54,11 +55,12 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         if (context.World.Doors.Count > 0) _hearts.Refresh(context.World, context.Database);
 
         // Every body on its creature first, so a neighbour read by Separation or the crowd probe is
-        // where the creature is and as big as it is, whether or not it moves this tick or has ever
-        // moved. Its pace is set before its own step, after its handler has run.
+        // where the creature is and as big as it is. A body still on its entity keeps the 16.16
+        // position its last step left (0x004D2B80 reads it); one whose entity moved is re-synced
+        // (an adapter, SyncMovedBody). Its pace is set before its own step, after its handler ran.
         foreach (CreatureState creature in context.World.Creatures)
         {
-            WorldSteering.SyncBody(creature);
+            SyncMovedBody(creature);
             creature.Body.Radius = SteeringMover.CrowdWordOf(
                 context.Database.CreatureById(creature.CreatureTypeId).FootprintRadius.Raw);
         }
@@ -115,7 +117,7 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     /// <summary>The body on its creature, with the definition's limits and this tick's pace.</summary>
     private static void Sync(SimulationContext context, CreatureState creature)
     {
-        WorldSteering.SyncBody(creature);
+        SyncMovedBody(creature);
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         creature.Body.Radius = SteeringMover.CrowdWordOf(definition.FootprintRadius.Raw);
         creature.Body.MaxForce = SeparationRules.ShippedMaxForce;
@@ -128,6 +130,17 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         TerrainDef terrain = context.Database.TerrainById(context.World.Tile(creature.Tile).TerrainId);
         creature.Body.MaxSpeed = WaterSpeedRules.SpeedCap(terrain, definition, creature, creature.Body.MaxSpeed);
         PossessionRules.ApplySpeedModifier(context.Database, creature);
+    }
+
+    /// <summary>An adapter, not a native rule. Native writes a body only in <c>0x004D59A0</c>'s
+    /// callers, the impulse commit <c>0x004B270B</c> and the resets <c>0x004D55B0</c>/<c>0x004D5B30</c>,
+    /// never in a sweep, so a body still on its entity keeps its low four bits. Native also leaves
+    /// bodies stale while other paths move the entity (states 56/217/250) and zeroes one at a door
+    /// contact (Q736); ours re-syncs any body that no longer maps to its entity.</summary>
+    private static void SyncMovedBody(CreatureState creature)
+    {
+        if (creature.Body.Pos.X >> 4 != creature.PosX || creature.Body.Pos.Y >> 4 != creature.PosY)
+            WorldSteering.SyncBody(creature);
     }
 
     /// <summary>The body's speed cap in 16.16 tiles a tick: the definition's speed divided by the
@@ -149,6 +162,7 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         // The sync keeps only the entity's 1/4096 precision of both position and velocity
         // (0x004D59A0 after 0x004D5AF0).
         body.Vel = new Fixed16Vector((body.Vel.X >> 4) << 4, (body.Vel.Y >> 4) << 4);
+        WorldSteering.SyncBody(creature);
 
         var mover = new SteeringMover
         {
@@ -182,11 +196,14 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
         }
         else
         {
+            // 0x0048A2C7 (the general update; native imp states 6/7/265 commit unconditionally):
+            // a solid tile puts the body back on the entity with no velocity.
             body.Vel = Fixed16Vector.Zero;
+            WorldSteering.SyncBody(creature);
         }
 
-        // The entity's position is the one that persists; the body's is derived from it again.
-        WorldSteering.SyncBody(creature);
+        // A committed step leaves the body's 16.16 position as it is: 0x004D5AC0 floors it into
+        // the entity and nothing writes the body back until this creature's next mover call.
     }
 
     /// <summary>The walking arm's door contact (<c>0x0048A2EB</c>–<c>0x0048A44A</c>): a completed

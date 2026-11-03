@@ -68,11 +68,13 @@ public sealed class SteeringBody
     /// <summary>Solid obstacles <c>Repel_Obstacle</c> recorded this tick for the integrator's slide.</summary>
     public List<SolidContact> SolidContacts { get; } = new(SolidContactSlots);
 
-    /// <summary>Everything that survives a tick, in the determinism hash. Not the position, which
-    /// the creature's own position replaces before every step, nor the contacts, which are one
+    /// <summary>Everything that survives a tick, in the determinism hash: the position too, whose
+    /// low four bits outlive the step that left them (ADR-0644). Not the contacts, which are one
     /// tick's scratch, nor the three limits, which come from the definition.</summary>
     public void HashInto(ref Hash64 hash)
     {
+        hash.Add(Pos.X);
+        hash.Add(Pos.Y);
         hash.Add(Vel.X);
         hash.Add(Vel.Y);
         hash.Add(LocalXAxis.X);

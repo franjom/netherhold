@@ -116,9 +116,9 @@ inputs do not resolve Q719 or close Q712/Q713/Q714.
 ### Saved bodies and worker resume (Q719)
 
 The [saved-body inspection](F:/DK2Evidence/studies/q712-atomic-body-boundary--2026-11-03--001/)
-loads seven retained hash-378 snapshots without advancing simulation. Body
-`Radius` and `Pos` are not serialized: the empty-system loader's radius 13107
-is a default, not an observed live value. Definition-derived radii 6880 for
+loads seven retained hash-378 snapshots without advancing simulation. There
+Body `Radius` and `Pos` are not serialized (`Pos` is from hash 392): the
+empty-system loader's radius 13107 is a default, not an observed live value. Definition-derived radii 6880 for
 Wizard and 4576 for Imp match native. This control establishes no radius or
 movement-rule defect; compare retained live and quantized mover inputs instead.
 
@@ -263,9 +263,12 @@ matches all five prior on-intervention outputs; review verifies 40 study and
 26 matching build entries, with all 752 runtime hashes unchanged. Imp 445's
 compared modeled fields match at 1400. At 1401 only Body.Pos quantization and
 post-frame MaxSpeed differ (native 30144, modern 15072); at 1416 only Body.Pos
-differs. At 1417 velocity, axes and LastProgress diverge. Post-frame limits do
-not prove equal within-call inputs or an integrator defect. The build has the
-same basename under `F:/DK2Evidence/builds/`; no full native-body parity follows.
+differs. At 1417 velocity, axes and LastProgress diverge: native Imp 454's body
+keeps its low four bits, which Imp 445's push reads. [The rule, the 1417
+reproduction, the gated control and the next boundary](steering-body-retention.md)
+are recorded there; ours kept the quantized body until hash 392 (ADR-0644). The
+build has the same basename under `F:/DK2Evidence/builds/`; no full native-body
+parity follows.
 
 ### Facing input boundary (Q719)
 

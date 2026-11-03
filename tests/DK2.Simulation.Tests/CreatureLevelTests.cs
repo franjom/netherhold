@@ -131,23 +131,22 @@ public class CreatureLevelTests
         Assert.Equal(105, CreatureLevelRules.Percent(db, CreatureStatId.Speed, 2));
         Assert.Equal(CreatureMovementSystem.MaxSpeedOf(imp), (SimulationTiming.LoaderRatePerTick(7536)) << 4);
 
-        // Two imps, same route, one a level higher. The fixture's walkable room
-        // is (1,1)-(3,3), so the walk is short and the faster one must be
-        // strictly further along after the same ticks.
-        WorldState world = World(db);
-        CreatureState slow = world.SpawnCreature(
-            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
-        CreatureState fast = world.SpawnCreature(
-            db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
-        fast.Level = 2;
+        // The same route walked by a level 1 and a level 2 imp, each alone: two imps on one tile
+        // push each other through the 16.16 positions their steps leave (ADR-0644), which is
+        // order, not level. The fixture's walkable room is (1,1)-(3,3).
+        (int, int) Walk(int level)
+        {
+            WorldState world = World(db);
+            CreatureState imp = world.SpawnCreature(
+                db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
+            imp.Level = level;
+            Assert.True(new Navigation.WorldSteering(db, world)
+                .TryRoute(imp, new TilePos(3, 1), Navigation.MoveOptions.Loose));
+            new GameSimulation(db, world, 42, [new CreatureMovementSystem()]).Run(Second / 2);
+            return (imp.PosX, imp.PosY);
+        }
 
-        var steering = new Navigation.WorldSteering(db, world);
-        foreach (CreatureState c in new[] { slow, fast })
-            Assert.True(steering.TryRoute(c, new TilePos(3, 1), Navigation.MoveOptions.Loose));
-
-        new GameSimulation(db, world, 42, [new CreatureMovementSystem()]).Run(Second / 2);
-
-        Assert.Equal((slow.PosX, slow.PosY), (fast.PosX, fast.PosY));
+        Assert.Equal(Walk(1), Walk(2));
     }
 
     [Fact]
