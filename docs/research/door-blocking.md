@@ -110,7 +110,7 @@ navigation byte, so an open door was transparent, until ADR-0318.
 Swing action `0x00498E30` gates on `+0x16 != 2` of the action's target and its virtual `+0x34`
 (`0x00628BC0`, constant 1 for a door). The blow is `Combat_MeleeDamage` negated; the bearing
 bonus is the creature arm's alone; the door arm only picks a material impact pair from
-`def+0xB3`; both player modifiers (`player+0x1090`, `+0x1091`) apply; then
+`def+0xB3` (the impact also asks the weapon sound, [sound-effects-combat.md section 5](sound-effects-combat.md#5-the-swing-death-and-corpses)); both player modifiers (`player+0x1090`, `+0x1091`) apply; then
 `0x004B2CE0(-blow, attacker owner, 0)`, which applies a door's delta flat.
 
 A shot aimed at a door (`ShotRules.HitsDoor`) strikes as the heart's does, within the shot's radius plus a quarter tile (ours, a stand-in)

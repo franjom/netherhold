@@ -36,6 +36,9 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
         downstream?.Emit(simEvent);
     }
 
+    /// <summary>A creature's own voice, the one its simulation sounds use: DK2's handle at creature <c>+0x2E</c>.</summary>
+    public static SoundVoiceId CreatureVoice(int creatureId) => VoiceOf(new SoundSourceId(SoundSourceKind.Creature, creatureId));
+
     private static SoundVoiceId VoiceOf(SoundSourceId source) =>
         new(0x80000000u | ((uint)source.Kind << 24) | ((uint)source.Value & 0x00FFFFFFu));
 }

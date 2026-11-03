@@ -389,6 +389,15 @@ namespace DK2.Unity
                 SoundRequest? beat = HeartBeatSound.For(heartCategory, pose);
                 if (beat.HasValue) _soundPlayer.Play(beat.Value);
             };
+            // The footstep marks are DK2's (0x0043CD84); the player's throttle and voice rules judge each request.
+            _scene.CreatureFootstepRequested = (id, pose, crossing, position) =>
+            {
+                // The pass draws only what the camera sees; ours draws every revealed creature, so the sound is gated the same way.
+                if (!IsPointInCamera(position)) return;
+                SoundRequest? step = CreatureFootsteps.For(pose.SoundCategory, id, crossing, pose.Wading,
+                    new System.Numerics.Vector3(position.x, position.y, position.z));
+                if (step.HasValue) _soundPlayer.Play(step.Value);
+            };
             ApplySoundSettings(_gameSettings);
             if (frontEnd)
             {
@@ -629,8 +638,12 @@ namespace DK2.Unity
 
         private bool IsEffectInCamera(ViewEffectRequest request)
         {
-            Vector3 point = DungeonScene.Ground(request.Position.X.Raw / 4096f,
-                request.Position.Y.Raw / 4096f, request.Position.Z.Raw / 4096f);
+            return IsPointInCamera(DungeonScene.Ground(request.Position.X.Raw / 4096f,
+                request.Position.Y.Raw / 4096f, request.Position.Z.Raw / 4096f));
+        }
+
+        private bool IsPointInCamera(Vector3 point)
+        {
             lock (_effectCameraLock)
             {
                 if (!_effectCameraReady) return true;

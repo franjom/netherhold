@@ -24,8 +24,8 @@ copied to definition `+0x7A3`. Installing type-6 animation art scales each
 selected pair's mark by `4096 / resource frame count`; crossing operates on
 that normalized animation phase. See [record reader](functions/00568E30.md),
 [definition builder](functions/00492320.md) and
-[animation chooser](functions/0048BE50.md). `KwdCreatures` does not parse these
-pairs. Slots 1/2/4/9/38 correspond to walk/run/recoil/angry/back-off in the
+[animation chooser](functions/0048BE50.md). Ours: `CreatureDef.FootstepMarks`, built in
+[sound-effects-continuous.md section 1](sound-effects-continuous.md#1-footsteps). Slots 1/2/4/9/38 correspond to walk/run/recoil/angry/back-off in the
 existing animation mapping; the native chooser indexes the selected slot,
 without a five-slot whitelist.
 
@@ -391,3 +391,7 @@ and [the boulder](sound-effects-objects.md#3-the-boulder).
 Phase W6 is in [sound-effects-combat.md](sound-effects-combat.md): [keeper spells](sound-effects-combat.md#1-keeper-spells-and-the-categories),
 [the Tremor](sound-effects-combat.md#2-the-tremor), [shots](sound-effects-combat.md#3-shots), [a creature's spell](sound-effects-combat.md#4-a-creatures-spell),
 [the swing, death and corpses](sound-effects-combat.md#5-the-swing-death-and-corpses) and [the torture devices](sound-effects-combat.md#6-the-torture-devices).
+
+## 16. Footsteps, the action table, loops and first person
+
+Phase W7 is in [sound-effects-continuous.md](sound-effects-continuous.md): [footsteps](sound-effects-continuous.md#1-footsteps).
