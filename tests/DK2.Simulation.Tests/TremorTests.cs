@@ -128,6 +128,31 @@ public sealed class TremorTests
         Assert.Equal(0, draws.Remaining);
     }
 
+    [Fact]
+    public void AWallBrokenByATremorRequestsF4InTerrainWallAtItsCentreLikeTheApplierItCalls()
+    {
+        var (db, world) = Setup();
+        TilePos wall = new(At.X, At.Y - 1);
+        world.Tile(wall).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        world.Tile(wall).OwnerPlayerId = Keeper;
+        int halfDamage = db[VariableTypeId.TremorDamagePerTerrainTilePerSecond] / 2;
+        world.Tile(wall).Health = halfDamage - 1;
+        var draws = new Draws((49, 24), (halfDamage, 0));
+        var sim = new GameSimulation(db, world, new SimRandom(draws),
+            [new KeeperSpellSystem(), new ShotSystem(), new TremorSystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+        sim.Tick(InputFrame.Of(Cast()));
+
+        ThingSoundRequest sound = Assert.Single(events.Events, e => e.ThingSound.HasValue).ThingSound!.Value;
+        Assert.Equal(ThingSoundEvent.TileBroken, sound.Event);
+        Assert.Equal("TERRAIN_WALL", sound.Category);
+        Assert.Equal(new SoundSourceId(SoundSourceKind.Terrain, (wall.Y * world.Width) + wall.X), sound.Source);
+        Assert.Equal(new FpPosition3(new Fp32(CreatureState.CentreOf(wall.X)), new Fp32(CreatureState.CentreOf(wall.Y)), new Fp32(0)),
+            sound.Position);
+        Assert.False(sound.Voiced);
+    }
+
     private sealed class Draws(params (int Bound, int Value)[] draws) : IRandomAlgorithm
     {
         private int _next;

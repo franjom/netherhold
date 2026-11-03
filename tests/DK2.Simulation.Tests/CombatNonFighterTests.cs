@@ -480,6 +480,57 @@ public class CombatNonFighterTests
         Assert.Equal((5000, 6000, 54, 7, 3), (copy.AlarmX, copy.AlarmY, copy.AlarmDeficit, copy.AlarmRoomTile, copy.ReportTicks));
     }
 
+    private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
+        sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+
+    /// <summary>The Scout's alarm (<c>0x004752B0</c>) requests <c>0xDC</c> with its own handle after its route is
+    /// found, at its position; state 251 (<c>0x00475660</c>), when it dispatches the room's creatures, requests
+    /// <c>0x2FA</c> the same way. Both are in the Scout's (the Imp's) category.</summary>
+    [Fact]
+    public void TheScoutRequestsDcWhenItRaisesTheAlarmAndTwoFaWhenItDispatchesItsResponders()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceRoom(world, Keeper, Dk2TerrainFixture.GuardRoomTerrain, 13, 5);
+        int roomTile = (5 * world.Width) + 13;
+        foreach (TilePos at in new[] { new TilePos(12, 5), new TilePos(14, 5) })
+        {
+            CreatureState g = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, at.X, at.Y);
+            g.CurrentJob = JobType.Sulk;
+            StatePlacement.As(g, CreatureActivity.AtWork);
+            g.JobTileIndex = roomTile;
+        }
+        CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, 12, 12);
+        CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
+        knight.PosX = imp.PosX + 3700;
+        knight.PosY = imp.PosY;
+        var start = new FpPosition3(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ));
+        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Run(5);
+        Assert.Single(sink.Events, e => e.Kind == "raises_alarm");
+        ThingSoundRequest withdrew = Assert.Single(Sounds(sink), s => s.Event == ThingSoundEvent.Withdrew);
+        Assert.Equal((ushort)0xDC, (ushort)withdrew.Event);
+        Assert.Equal("CREATURE_IMP", withdrew.Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(imp.Id)), withdrew.Source);
+        Assert.Equal(start, withdrew.Position);
+        Assert.True(withdrew.Voiced);
+        Assert.DoesNotContain(Sounds(sink), s => s.Event == ThingSoundEvent.RespondedToThreat);
+
+        for (int i = 0; i < 40 && !sink.Events.Any(e => e.Kind == "alarm_raised"); i++) sim.Run(1);
+        Assert.Single(sink.Events, e => e.Kind == "alarm_raised");
+        ThingSoundRequest responded = Assert.Single(Sounds(sink), s => s.Event == ThingSoundEvent.RespondedToThreat);
+        Assert.Equal((ushort)0x2FA, (ushort)responded.Event);
+        Assert.Equal("CREATURE_IMP", responded.Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(imp.Id)), responded.Source);
+        Assert.Equal(new FpPosition3(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ)), responded.Position);
+        Assert.True(responded.Voiced);
+        // The request comes before the stand-down, as DK2's does (0x00475934, then SetState 1 and 252).
+        Assert.True(sink.Events.ToList().FindIndex(e => e.ThingSound is { Event: ThingSoundEvent.RespondedToThreat })
+            < sink.Events.ToList().FindIndex(e => e.Kind == "alarm_raised"));
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static (GameDatabase, WorldState) OpenWorld()

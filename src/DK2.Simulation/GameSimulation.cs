@@ -82,6 +82,7 @@ public sealed class GameSimulation
             : new TriggerExecutor(triggers, world.Triggers, world, database, rng, levelStart);
         _context.Triggers = _triggers;
         _triggers.EffectRequested = _context.RequestEffect;
+        _triggers.SoundRequested = _context.RequestSound;
         _triggers.ViewRequested = request => _context.Events.Emit(new SimEvent(_context.Tick,
             nameof(TriggerExecutor), "scripted_view",
             $"player={request.Player} kind={request.Kind} value={request.Value} tile=({request.Tile.X},{request.Tile.Y}) flag={request.Flag}")
@@ -89,6 +90,8 @@ public sealed class GameSimulation
             ScriptedView = request,
         });
         world.GameEnded = (player, status) => FinaleRules.OnVerdict(_context, player, status);
+        world.ObjectMade = thing => ObjectSoundRules.Made(_context, thing);
+        world.ObjectRemoving = thing => ObjectSoundRules.Removing(_context, thing);
     }
 
     /// <summary>Whether the list walks the trigger roots inside the turn (ADR-0568). A list that

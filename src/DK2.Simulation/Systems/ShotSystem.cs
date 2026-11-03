@@ -103,6 +103,12 @@ public sealed class ShotSystem : ISimulationSystem
             ShotRules.Chain(context, shot, definition.HitThingShotId);
             ShotRules.Process(context, shot, definition, ShotRules.HitThingEvent, hit);
             ShotRules.ContactDamage(context, shot, definition, hit);
+            // 0x004AC099, after the damage and before the die-on-thing test: the creature is turned away (not built) and the hit sounds
+            // in its own category at its own position with the shot's handle.
+            if ((definition.Flags & ShotRules.TurnsCreature) != 0 && database.CreatureById(hit.CreatureTypeId).SoundCategory is { Length: > 0 } struck
+                && !ReferenceEquals(context.Events, NullEventSink.Instance))
+                ThingSoundRules.Request(context, SystemName, new SoundSourceId(SoundSourceKind.Shot, shot.Id), struck, ThingSoundEvent.Struck,
+                    new FpPosition3(new Fp32(hit.PosX), new Fp32(hit.PosY), new Fp32(hit.PosZ)));
             if ((definition.Flags & ShotRules.DiesOnThing) != 0) shot.Health = 0;
         }
         else if (ShotRules.HitsHeart(world, database, shot, definition))
@@ -145,6 +151,7 @@ public sealed class ShotSystem : ISimulationSystem
         if (shot.VelX == 0 && shot.VelY == 0)
         {
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitSolidEffectId), start);
+            ShotRules.RequestShotSound(context, shot, definition, ThingSoundEvent.ShotHitSolid);   // 0x004AB49B, standing as moving shots' hit-solid effect is
             return true;
         }
 
@@ -163,6 +170,7 @@ public sealed class ShotSystem : ISimulationSystem
 
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.HitSolidEffectId), start);
             ShotRules.Chain(context, shot, definition.HitSolidShotId);
+            ShotRules.RequestShotSound(context, shot, definition, ThingSoundEvent.ShotHitSolid);   // 0x004AB49B, after the hit-solid shot
             if ((definition.Flags & ShotRules.Bounces) != 0)
             {
                 bool xBlocked = !ShotRules.Passable(world, navigation, nx, shot.PosY);
@@ -198,12 +206,17 @@ public sealed class ShotSystem : ISimulationSystem
         // The flying death (§4 step 7): the death shot, then process event 0x80; a shot the
         // world stopped is removed without either.
         if (showDeathEffect)
+        {
+            ShotRules.RequestShotSound(context, shot, definition, ThingSoundEvent.ShotEnded);   // 0x004AB509, before the death effect
             ShotRules.RequestShotEffect(context, shot, new EffectId(definition.DeathEffectId), shot.ViewPosition);
+        }
         if (deathShot)
         {
             ShotRules.Chain(context, shot, definition.DeathShotId);
             ShotRules.Process(context, shot, definition, ShotRules.DeathEvent, null);
         }
+        // Shot_Teardown (0x004AAF9F), on removal, whichever way it died: the same group with the second handle.
+        ShotRules.RequestShotSound(context, shot, definition, ThingSoundEvent.ShotEnded, SoundSourceKind.ShotSecond);
         context.World.RemoveShot(shot.Id);
         context.Emit(SystemName, "shot_died", $"shot={shot.Id} type={definition.ShotId} age={shot.Age}");
     }

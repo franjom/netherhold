@@ -296,6 +296,9 @@ public sealed partial class ImpTaskSystem
         if (CrateRules.BlueprintAt(world, context.Database, creature.OwnerPlayerId, kind, here, crate.ObjectTypeId) is { } blueprint)
         {
             CrateRules.Build(world, context.Database, blueprint, crate);
+            // State 37 (0x00467575) sounds 0x327 as the door is finished, state 35 (0x0046729F) 0x328 for a trap.
+            ThingSoundRules.Request(context, SystemName, creature,
+                kind == CrateRules.DoorKind ? ThingSoundEvent.ImpInstalledDoor : ThingSoundEvent.ImpInstalledTrap);
             context.Emit(SystemName, kind == CrateRules.DoorKind ? "door_built" : "trap_built",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} {Describe(world, creature.TargetTileIndex)}");
         }
@@ -323,6 +326,8 @@ public sealed partial class ImpTaskSystem
         if (RoomIndex.RoomAt(world, database, here) is { } room && room.Definition.TypeId == RoomTypeId.Workshop
             && room.OwnerPlayerId == creature.OwnerPlayerId && CrateRules.List(context.Hooks, room, crate))
         {
+            // State 32 (0x00466F0B) sounds after the Workshop's take, before it sets 10.
+            ThingSoundRules.Request(context, SystemName, creature, ThingSoundEvent.ImpStoredItem);
             context.Emit(SystemName, "object_stored",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} object={crate.Id} " +
                 $"type={ObjectName(context, crate)} {Describe(world, crate.TileIndex)}");

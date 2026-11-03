@@ -22,7 +22,7 @@ public class TempleStateTests
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
         if (art) slots[TempleStep.PrayerArtSlot] = clip;
         return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
-            basis.Creatures.Values.Select(c => c.CreatureId == Vampire ? c with { ArtSlots = slots, PrayerStepY = -1257 } : c),
+            basis.Creatures.Values.Select(c => c.CreatureId == Vampire ? c with { ArtSlots = slots, PrayerStepY = -1257, SoundCategory = "CREATURE_VAMPIRE" } : c),
             basis.Variables, basis.KeeperSpells.Values, objects: basis.Objects.Values, shots: basis.Shots.Values);
     }
 
@@ -282,5 +282,66 @@ public class TempleStateTests
         Simulation(db, world).Tick();
         Assert.Equal(CreatureStateMachine.Idle, it.Dk2StateId);
         Assert.Equal(new TilePos(3, 3), it.Tile);
+    }
+
+    private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
+        sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value).ToArray();
+
+    /// <summary>State 104 (<c>0x00472D30</c>) requests <c>0xD4</c> with the worshipper's handle when action 27 begins
+    /// (it has the prayer art); without the art there is neither action nor sound.</summary>
+    [Fact]
+    public void ThePrayerBeginsWithD4InTheWorshippersCategoryAndNothingWithoutItsArt()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 5);
+        CreatureState it = Worshipper(db, world, new TilePos(1, 3), TempleStep.ChoosingState);
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world);
+        sim.ObserveWith(sink);
+        for (int i = 0; i < 200 && it.Dk2StateId != TempleStep.PrayingState; i++) sim.Tick();
+
+        ThingSoundRequest sound = Assert.Single(Sounds(sink));
+        Assert.Equal(ThingSoundEvent.Prayed, sound.Event);
+        Assert.Equal((ushort)0xD4, (ushort)sound.Event);
+        Assert.Equal("CREATURE_VAMPIRE", sound.Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(it.Id)), sound.Source);
+        Assert.Equal(new FpPosition3(new Fp32(it.PosX), new Fp32(it.PosY), new Fp32(it.PosZ)), sound.Position);
+        Assert.True(sound.Voiced);
+
+        GameDatabase bare = Db(art: false);
+        WorldState world2 = World(bare, 5);
+        CreatureState plain = Worshipper(bare, world2, new TilePos(1, 3), TempleStep.ChoosingState);
+        var sink2 = new ListEventSink();
+        GameSimulation sim2 = Simulation(bare, world2);
+        sim2.ObserveWith(sink2);
+        for (int i = 0; i < 200 && plain.Dk2StateId != TempleStep.PrayingState; i++) sim2.Tick();
+        Assert.Empty(Sounds(sink2));
+    }
+
+    /// <summary>State 101 (<c>0x00472930</c>) requests <c>0xE2</c> with the creature's handle at its position as it is
+    /// offered in the pool, before the creature goes. DK2 enters 101 for a creature dropped on the pool after its
+    /// stun; ours offers it at the drop through the same routine, so the hand's offering sounds at the drop (a
+    /// timing deviation).</summary>
+    [Fact]
+    public void OfferingACreatureInThePoolRequestsE2AtItBeforeItGoes()
+    {
+        GameDatabase db = Db();
+        WorldState world = World(db, 5);
+        CreatureState it = Worshipper(db, world, new TilePos(3, 3));
+        var at = new FpPosition3(new Fp32(it.PosX), new Fp32(it.PosY), new Fp32(it.PosZ));
+        var sink = new ListEventSink();
+        GameSimulation sim = Simulation(db, world);
+        sim.ObserveWith(sink);
+
+        sim.Run(2);
+
+        Assert.Null(world.CreatureById(it.Id));
+        ThingSoundRequest sound = Assert.Single(Sounds(sink));
+        Assert.Equal(ThingSoundEvent.Sacrificed, sound.Event);
+        Assert.Equal((ushort)0xE2, (ushort)sound.Event);
+        Assert.Equal("CREATURE_VAMPIRE", sound.Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(it.Id)), sound.Source);
+        Assert.Equal(at, sound.Position);
+        Assert.True(sound.Voiced);
     }
 }

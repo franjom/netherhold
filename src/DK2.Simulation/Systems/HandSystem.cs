@@ -133,11 +133,17 @@ public sealed class HandSystem : ISimulationSystem
         // 0x004BFBD0 runs before 0x004BC500 tests the hand: state 75, through idle when the
         // current category is outside its mask, so a full hand still takes a fighter out of
         // its fight and leaves it there (HandRules.PreparationState).
-        if (!CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value))
+        bool prepared = CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
+        if (!prepared)
         {
             CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle, context.Tick.Value);
-            CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
+            prepared = CreatureStateMachine.TrySetState(context.Hooks, creature, HandRules.PreparationState, context.Tick.Value);
         }
+        // 0x004BFBD0 ends on the lift sound for a creature already in 75 too, and before the capacity test;
+        // only a refusal of 75 itself leaves it silent. Handle 0: the creature's own voice is not used.
+        if (prepared || creature.Activity == CreatureActivity.BeingLifted)
+            ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.PickedUp,
+                new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)));
         if (world.Player(command.PlayerId).Hand.Count >= HandRules.Capacity(context.Database))
         {
             context.Emit(SystemName, "pickup_refused",
@@ -198,6 +204,7 @@ public sealed class HandSystem : ISimulationSystem
         if (thing.ObjectTypeId == HatcheryRules.ChickenObjectId) ChickenMovementRules.UnlinkHatchery(thing);
         thing.InHand = true;
         world.Player(command.PlayerId).Hand.Add(HandItem.Of(thing));
+        ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.PickedUp);   // 0x004C0E01
 
         context.Emit(SystemName, "object_picked_up",
             $"player={command.PlayerId} object={thing.Id} " +
@@ -211,8 +218,9 @@ public sealed class HandSystem : ISimulationSystem
     /// object here, from the tile's gold (ADR-0015).</summary>
     /// <remarks>Deviates: the pile is the neutral player's from the lift, as the counter's is
     /// (<see cref="WithdrawCounterGold"/>); DK2's keeps its keeper until its landing hands it to the
-    /// neutral player (<c>0x0049EF90</c>). Not modelled: the floating amount (<c>0x0050FB70</c>), the
-    /// lift sound (<c>0xC3</c>) and <c>+0x146</c> bit 4.</remarks>
+    /// neutral player (<c>0x0049EF90</c>). Not modelled: the floating amount (<c>0x0050FB70</c>) and
+    /// <c>+0x146</c> bit 4. The lift sound (<c>0xC3</c>) is requested in the pile object's category, which
+    /// object 3 does not have, so it is silent.</remarks>
     private static void PickUpStoreGold(SimulationContext context, PickUpStoreGoldCommand command)
     {
         WorldState world = context.World;
@@ -233,6 +241,7 @@ public sealed class HandSystem : ISimulationSystem
         pile.InHand = true;
         List<HandItem> hand = world.Player(command.PlayerId).Hand;
         hand.Add(HandItem.Of(pile));
+        ThingSoundRules.Request(context, SystemName, pile, ThingSoundEvent.PickedUp);
         context.Emit(SystemName, "store_gold_picked_up",
             $"player={command.PlayerId} tile={command.Tile.X},{command.Tile.Y} gold={gold} object={pile.Id} held={hand.Count}");
     }
@@ -336,6 +345,8 @@ public sealed class HandSystem : ISimulationSystem
         }
 
         AcceptedDrop(context, command.PlayerId, gold: false);
+        // Hand_Drop 0x004BC81D ends every creature drop on C4, at the supplied position and with handle 0.
+        ThingSoundRules.RequestUnvoiced(context, SystemName, creature, ThingSoundEvent.Dropped, DropPoint(world, command));
 
         // A captive IS an offering, and the Temple is ADR-0064's one exception:
         // a wizard prisoner dropped on a Temple is sacrificed, not freed (Q314,
@@ -535,6 +546,19 @@ public sealed class HandSystem : ISimulationSystem
     /// (<see cref="DropDeliveryRules"/>, ADR-0217). Not implemented: the handler's
     /// branch giving a chicken to the keeper of the Hatchery it lands in, which the
     /// hand reaches only on an ally's Hatchery.</remarks>
+    /// <summary>The position the human drop hands Hand_Drop (<c>0x004C0EE0</c>, built at <c>0x004C0F0B</c>):
+    /// height never set, so 0; X and Y from the thing under the hand when that creature is live (its own
+    /// position, height included), else the pointer's. Deviates for the keeper AI, which drops with its own
+    /// position, and where ours has no pointer position (the tile's centre stands in).</summary>
+    private static FpPosition3 DropPoint(WorldState world, DropCommand command)
+    {
+        if (world.CreatureById(command.TargetCreatureId) is { } under)
+            return new(new Fp32(under.PosX), new Fp32(under.PosY), new Fp32(under.PosZ));
+        FpPosition2 at = command.Position ?? new FpPosition2(
+            new Fp32(CreatureState.CentreOf(command.Tile.X)), new Fp32(CreatureState.CentreOf(command.Tile.Y)));
+        return new(at.X, at.Y, new Fp32(0));
+    }
+
     private static void DropObject(
         SimulationContext context, DropCommand command, HandItem held)
     {
@@ -568,6 +592,8 @@ public sealed class HandSystem : ISimulationSystem
             context.RequestEffect(SystemName, new ViewEffectRequest(GoldFromHandEffect, command.PlayerId,
                 new FpPosition3(at.X, at.Y, new Fp32(EggLaunchRules.FloorHeight(world, context.Database, at.X, at.Y)))));
         }
+        // 0x004BCA02: every object drop ends on C4 in the object's category, with its handle.
+        ThingSoundRules.Request(context, SystemName, thing, ThingSoundEvent.Dropped, DropPoint(world, command));
 
         int landingTileIndex = (command.Tile.Y * world.Width) + command.Tile.X;
         TempleSacrificeRules.Reconcile(world, context.Database);

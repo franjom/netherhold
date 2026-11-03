@@ -100,6 +100,11 @@ public sealed class RoomSellSystem : ISimulationSystem
             if (banked < refund) RoomNeedRules.GoldLeftOver(context, command.PlayerId);
             refunded += banked;
             lostRefund += refund - banked;
+
+            // The sale's own sound, after the refund is paid in (0x004C5EF8): handle 0, the room's terrain
+            // category, the tile's centre at height 0x1000.
+            ThingSoundRules.RequestTile(context, SystemName, room.TerrainId, lastSold, ThingSoundEvent.RoomTileSold,
+                height: 0x1000, SoundSourceKind.Room);
         }
 
         context.Emit(SystemName, "sold",

@@ -106,6 +106,12 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
 
     public IReadOnlyList<ConstructionParticle> Particles => _particles;
 
+    /// <summary>Raised for each request that passes DK2's creation gates (<c>View_CreateVisibleEffect</c>,
+    /// <c>0x00440420</c>: the effect exists, the tile is explored or seen, and the camera test passes or the
+    /// effect has flag <c>0x8000</c>), whether or not this model can draw it: where DK2's callers test the
+    /// creation result, as the Casino party's pop does.</summary>
+    public Action<ViewEffectRequest>? EffectCreated { get; set; }
+
     public void Emit(in SimEvent simEvent)
     {
         if (simEvent.ElectrifiedCreature is CreatureId creature)
@@ -135,7 +141,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                 + (_creatureGroundHeight?.Invoke(incoming.GroundCreatureId) ?? _floorHeight(incoming.GroundAnchor ?? incoming.Position)).Raw) },
                 HeightSpace = EffectHeightSpace.Absolute } : incoming;
         if (!_database.Effects.TryGetValue(request.EffectId.Value, out EffectDef? definition)
-            || !SupportsEffect(definition) || !AllowsEffect(request, definition)) return;
+            || !AllowsEffect(request, definition)) return;
+        EffectCreated?.Invoke(request);
+        if (!SupportsEffect(definition)) return;
         AdvanceTo(_clock());
         if (request.EffectId.Value == HeartIntroRules.StartLevelEffectId)
         {

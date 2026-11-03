@@ -139,7 +139,9 @@ public static class SimulationSystems
             // A worker's handler after the mover: DK2 steps an imp inside its walk state's handler,
             // before that handler's arrival test (0x00470C80), and the steering step skips imps.
             // Each worker resolves its queued work before the next.
-            workers);
+            workers,
+            // The creature update's last carrying step (0x0048A4AE): after every state handler and the mover.
+            new CarriedThingSoundSystem());
     }
 
     /// <summary>Tile work queued this tick and not yet resolved, and what burns after it.</summary>

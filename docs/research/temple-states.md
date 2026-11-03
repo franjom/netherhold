@@ -148,7 +148,7 @@ releases each place as it goes, which is what empties the list.
 - 103's stand point a quarter tile out is reached only from another tile: ours ends a walk to a
   point on the creature's own tile at once, so a worshipper staying on its tile prays at its
   centre.
-- Not modelled, all presentation: the sounds, the effect, `+0xF6`.
+- Not modelled, all presentation: the effect, `+0xF6`. The sounds are built ([sound-effects.md section 12](sound-effects.md#12-rooms-creature-states)).
 
 ## 9. Where a walk to a room ends `0x004E4C10` — CONFIRMED
 

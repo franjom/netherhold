@@ -169,7 +169,8 @@ Sounds, through the sound manager (`0x0075B468` vtable `+0x20`) on the boulder's
 from its definition's bank (`+0x10E`): **335** (`0x14F`) at the start of every roll (§5), **329**
 (`0x149`) after a turn that leaves it whole, and **244** (`0xF4`) when §3 destroys it. OpenKeeper's
 sound list labels 329 `TRAP_HIT_WALL` and 335 `TRAP_ROLL`, both "boulder" (names only; the ids are the
-binary's).
+binary's). The strike, wear and break sounds too, and their sites, are in
+[sound-effects-objects.md section 3](sound-effects-objects.md#3-the-boulder); all are built.
 
 So a wall hit has a crash sound and a screen shake but no break; a turn costs a tenth. **What makes
 it break at a wall in play is the strike** (§4): wear grows by every point it lands on a creature, up

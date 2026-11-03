@@ -93,6 +93,9 @@ public readonly record struct BottomPanelGrid(int Cell, int Columns, int Rows)
     /// 128-unit cells. The flash draws 88-unit sparkles on a 6 (<c>0x00412FC0</c>).</summary>
     public int WidgetBank => Cell == SmallCell ? 5 : 6;
 
+    /// <summary>The same slot as a name: 5 is <c>GUI_BUTTON_ICON</c> (128-unit cells), 6 <c>GUI_BUTTON_ICON_LARGE</c> (264-unit cells).</summary>
+    public GuiSoundSlot SoundSlot => Cell == SmallCell ? GuiSoundSlot.Icon : GuiSoundSlot.IconLarge;
+
     public int Pages(int count) => PageSize <= 0 ? 1 : Math.Max(1, (count + PageSize - 1) / PageSize);
 
     /// <summary>Page slot <paramref name="index"/> (column-major: down the rows first) at

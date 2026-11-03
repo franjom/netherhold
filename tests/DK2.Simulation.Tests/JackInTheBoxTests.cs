@@ -250,4 +250,30 @@ public class JackInTheBoxTests
         Assert.Equal((Rival, true), (restored.HeartTargetPlayerId, restored.DeathShotFired));
         Assert.Equal(sim.StateHash(), copy.StateHash());
     }
+
+    /// <summary>The health routine's death arm for creature type 0x2E (<c>0x004B3108</c>) requests <c>0x34C</c> with the Jack's
+    /// handle in its category at its position once the blast shot is made.</summary>
+    [Fact]
+    public void ADyingJackRequests34cAtItselfWithItsVoiceWhenItsBlastIsMade()
+    {
+        (GameDatabase db, WorldState world) = Open();
+        CreatureState jack = Sprung(db, world, 8, 6, Rival);
+        jack.Health = 1;
+        var sink = new ListEventSink();
+        GameSimulation sim = Sim(db, world, sink);
+
+        sim.Run(1);
+
+        Assert.Single(world.Shots);
+        ThingSoundRequest sound = Assert.Single(sink.Events, e => e.ThingSound.HasValue).ThingSound!.Value;
+        Assert.Equal(ThingSoundEvent.JackExploded, sound.Event);
+        Assert.Equal((ushort)0x34C, (ushort)sound.Event);
+        Assert.Equal("CREATURE_GOBLIN", sound.Category);   // the fixture's Jack is a Goblin's definition
+        Assert.Equal(SoundSourceId.Of(new CreatureId(jack.Id)), sound.Source);
+        Assert.Equal(new FpPosition3(new Fp32(jack.PosX), new Fp32(jack.PosY), new Fp32(jack.PosZ)), sound.Position);
+        Assert.True(sound.Voiced);
+
+        sim.Run(3);
+        Assert.Single(sink.Events, e => e.ThingSound.HasValue);   // once
+    }
 }

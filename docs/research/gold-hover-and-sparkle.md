@@ -146,7 +146,7 @@ object from the room (`0x004E6130`) and takes its whole `+0x14A` gold off the ro
 and the keeper (`Player_ChangeGold(-gold, 1, 0, 0)`). There is no fixed amount and no gold cap;
 the only limit is the hand's 64 things. The tile is left with no pile, so its chest or urn is
 gone, not shrunk. The object stays type 3. Also: process state 0x16, `+0x146` bit 0x10, the
-amount shown through `0x0050FB70` (presentation), sound `0xC3`. No owner or tile test, as for
+amount shown through `0x0050FB70` (presentation), sound `0xC3` (silent for a store's pile: [sound-effects.md section 6](sound-effects.md#6-the-hand-and-its-cursor)). No owner or tile test, as for
 any object (ADR-0310); the cursor offers only the viewer's own pile (`0x0049CBB0`).
 
 **The drop.** The landing [0x0049EF90](functions/0049EF90.md) treats types 1-3 alike: onto a

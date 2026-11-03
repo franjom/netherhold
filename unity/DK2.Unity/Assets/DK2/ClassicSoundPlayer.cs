@@ -8,6 +8,7 @@ using System.Linq;
 using DK2.Assets;
 using DK2.Data.Media;
 using DK2.Presentation;
+using DK2.Simulation;
 using UnityEngine;
 
 namespace DK2.Unity
@@ -27,7 +28,12 @@ namespace DK2.Unity
         /// <summary>The in-game manager's update runs this after the world frame, so a frame's
         /// requests are judged by the frame before (<c>0x00567500</c>). The front end never calls it.</summary>
         public void UpdateThrottle() => _throttle.BeginFrame(NowMs());
-        private float _master = 1, _speechVolume = 1, _musicVolume = 1, _effectVolume = 1;
+        private float _master = 1, _speechVolume = 1;
+        private int _musicPercent = 100, _effectPercent = 100;
+        private bool _ducked;
+        /// <summary>While a speech line plays DK2 runs music and effects at two thirds of their settings, set when the line is asked and restored when it ends (<c>0x00568490</c>, <c>0x005681D0</c>).</summary>
+        private float MusicVolume => (_ducked ? SpeechDuck.Percent(_musicPercent) : _musicPercent) / 100f;
+        private float EffectVolume => (_ducked ? SpeechDuck.Percent(_effectPercent) : _effectPercent) / 100f;
         private bool _speechOn = true, _musicOn = true, _effectsOn = true;
         private sealed class LinkedChannel
         {
@@ -66,12 +72,12 @@ namespace DK2.Unity
         {
             if (_music != null)
             {
-                _music.Source.volume = _musicOn ? _master * _musicVolume : 0;
+                _music.Source.volume = _musicOn ? _master * MusicVolume : 0;
                 Fill(_music, frame.MusicIntensity);
             }
             if (_ambience != null)
             {
-                _ambience.Source.volume = _effectsOn ? _master * _effectVolume : 0;
+                _ambience.Source.volume = _effectsOn ? _master * EffectVolume : 0;
                 Fill(_ambience, frame.AmbienceIntensity);
             }
         }
@@ -108,11 +114,20 @@ namespace DK2.Unity
         public void UpdateSpeech(long nowMilliseconds)
         {
             SoundRequest? next = _speechQueue.Update(nowMilliseconds, _speech.isPlaying);
-            if (!next.HasValue) return;
-            AudioClip clip = Resolve(next.Value.Category, next.Value.Id);
-            if (clip == null) return;
-            _speech.clip = clip; _speech.volume = _speechOn ? _master * _speechVolume : 0;
-            _speech.Play();
+            if (next.HasValue)
+            {
+                AudioClip clip = Resolve(next.Value.Category, next.Value.Id);
+                if (clip != null)
+                {
+                    _speech.clip = clip; _speech.volume = _speechOn ? _master * _speechVolume : 0;
+                    _speech.Play();
+                }
+            }
+            if (_speech.isPlaying == _ducked) return;
+            _ducked = _speech.isPlaying;
+            foreach (AudioSource source in _effects) source.volume = _effectsOn ? _master * EffectVolume : 0;
+            if (_music != null) _music.Source.volume = _musicOn ? _master * MusicVolume : 0;
+            if (_ambience != null) _ambience.Source.volume = _effectsOn ? _master * EffectVolume : 0;
         }
         public ClassicSoundPlayer(Transform parent, IClassicSoundAssets assets)
         {
@@ -133,13 +148,13 @@ namespace DK2.Unity
         public void SetVolumes(int master, int speech, int music, int effects, bool speechOn, bool musicOn, bool effectsOn)
         {
             _master = Mathf.Clamp01(master / 100f); _speechVolume = Mathf.Clamp01(speech / 100f);
-            _musicVolume = Mathf.Clamp01(music / 100f); _effectVolume = Mathf.Clamp01(effects / 100f);
+            _musicPercent = Mathf.Clamp(music, 0, 100); _effectPercent = Mathf.Clamp(effects, 0, 100);
             if (!speechOn && _speechOn) StopSpeech((long)(Time.unscaledTimeAsDouble * 1000));
             _speechOn = speechOn; _musicOn = musicOn; _effectsOn = effectsOn;
-            foreach (AudioSource source in _effects) source.volume = _effectsOn ? _master * _effectVolume : 0;
+            foreach (AudioSource source in _effects) source.volume = _effectsOn ? _master * EffectVolume : 0;
             _speech.volume = _speechOn ? _master * _speechVolume : 0;
-            if (_music != null) _music.Source.volume = _musicOn ? _master * _musicVolume : 0;
-            if (_ambience != null) _ambience.Source.volume = _effectsOn ? _master * _effectVolume : 0;
+            if (_music != null) _music.Source.volume = _musicOn ? _master * MusicVolume : 0;
+            if (_ambience != null) _ambience.Source.volume = _effectsOn ? _master * EffectVolume : 0;
         }
 
         public void Play(SoundRequests requests)
@@ -150,6 +165,14 @@ namespace DK2.Unity
 
         public void Play(SoundRequest request)
         {
+            if (request.Stop)
+            {
+                // DK2's stop command on a handle (slot +0x38): the voice's source ends and is free. It is not a sound, so no throttle or priority applies.
+                AudioSource stopped = _voices.Release(request.Voice);
+                _anchors.Remove(request.Voice);
+                if (stopped != null) stopped.Stop();
+                return;
+            }
             if (!_effectsOn || request.Category.IsNone || !_throttle.Admit(request.Id)) return;
             SoundResolver resolver = Resolver(request.Category);
             SoundPriority? priority = resolver.PriorityOf(request.Id);
@@ -162,14 +185,78 @@ namespace DK2.Unity
             if (source == null) source = _effects.Find(s => !s.isPlaying);
             if (source == null && _effects.Count < 32) { source = NewSource("Effect"); _effects.Add(source); }
             if (source == null) source = _effects[0];
-            source.Stop(); source.clip = clip; source.loop = false;
+            // A group whose flag word has bit 0x08 repeats on its own (repeat count 9999, 0x0060CDB0), until its thing's next request or stop
+            // replaces it or its thing is gone (FollowVoices); every other sound plays its sample out and is asked for again by its thing.
+            source.Stop(); source.clip = clip; source.loop = resolver.IsLooping(request.Id);
             // Remake policy, not DK2's: Unity's default 3D rolloff and no voice budget. DK2's distances,
             // voice limits and fades are unread (Q678), so none are copied from OpenKeeper.
             source.spatialBlend = request.World.HasValue ? 1 : 0;
             if (request.World is System.Numerics.Vector3 world) source.transform.position = new Vector3(world.X, world.Y, world.Z);
-            source.volume = _master * _effectVolume;
+            // A request made at the camera's point with a distance volume (the Casino party's music, 0x004D63D0): nonspatial, scaled by FollowVoices.
+            if (request.VolumeAnchor is System.Numerics.Vector3 anchor && request.Voice != SoundVoiceId.None) _anchors[request.Voice] = anchor;
+            else _anchors.Remove(request.Voice);
+            source.volume = _master * EffectVolume * (request.VolumeAnchor is System.Numerics.Vector3 near ? AnchoredVolume.Of(near, ListenerFocus) : 1f);
             source.Play();
             _voices.Assign(request.Voice, request.Id, source, priority.Value);
+        }
+
+        private readonly Dictionary<string, SoundVoiceId> _terrainBeds = new Dictionary<string, SoundVoiceId>();
+        private readonly HashSet<string> _terrainBedsWanted = new HashSet<string>();
+
+        /// <summary>Whether a category has an ambient group (<c>0x2EA</c>) this player can play: one item with samples.</summary>
+        public bool HasAmbience(string category) =>
+            !string.IsNullOrEmpty(category) && Resolver(new SoundCategory(category.ToLowerInvariant())).IsSingleItem(new SoundId(0x2EA));
+
+        /// <summary>The service's ambient pass (<c>0x00609A30</c>): each emitter's category plays group <c>0x2EA</c> with its own voice, moved to the emitter's point
+        /// while it plays and asked again once the sample ends (DK2's dead handle is dropped and the next scan builds the emitter again), and a category
+        /// that has left the grid is stopped. DK2 stops it with a command carrying <c>0x46</c>; ours stops it at once (remake policy). <c>0x2EB</c> is not asked.</summary>
+        public void UpdateAmbience(List<AmbienceGrid.Emitter> emitters)
+        {
+            _terrainBedsWanted.Clear();
+            foreach (AmbienceGrid.Emitter emitter in emitters)
+            {
+                _terrainBedsWanted.Add(emitter.Category);
+                if (!_terrainBeds.TryGetValue(emitter.Category, out SoundVoiceId voice))
+                    _terrainBeds[emitter.Category] = voice = new SoundVoiceId(0x80000000u | (0x7Eu << 24) | (uint)_terrainBeds.Count);
+                var position = new System.Numerics.Vector3(emitter.Position.X, emitter.Position.Y, emitter.Position.Z);
+                if (_voices.TryGet(voice, out _, out AudioSource source) && source != null && source.isPlaying)
+                    source.transform.position = new Vector3(position.X, source.transform.position.y, position.Z);
+                else
+                    Play(new SoundRequest(new SoundCategory(emitter.Category.ToLowerInvariant()), new SoundId(0x2EA), position, voice));
+            }
+            foreach (KeyValuePair<string, SoundVoiceId> entry in _terrainBeds)
+                if (!_terrainBedsWanted.Contains(entry.Key) && _voices.Release(entry.Value) is AudioSource ended) ended.Stop();
+        }
+
+        private readonly Dictionary<SoundVoiceId, System.Numerics.Vector3> _anchors = new Dictionary<SoundVoiceId, System.Numerics.Vector3>();
+
+        /// <summary>The camera's point in the view's space, which a distance-volume request measures from; none gives full volume.</summary>
+        public System.Numerics.Vector3? ListenerFocus { get; set; }
+
+        private readonly List<SoundVoiceId> _live = new List<SoundVoiceId>();
+
+        /// <summary>DK2 replays a playing handle at its thing's position on each update of the thing (slot +0x30, which returns 0 once the instance has
+        /// ended): ours moves each playing voice to where its thing now is, once a frame. A looping voice whose thing has left the world is
+        /// stopped, so no loop outlives its thing. Remake policy, not DK2's (Q678): the voice budget and fades are not copied from OpenKeeper.</summary>
+        public void FollowVoices(WorldState world)
+        {
+            _voices.Voices(_live);
+            for (int i = 0; i < _live.Count; i++)
+            {
+                SoundVoiceId voice = _live[i];
+                if (!_voices.TryGet(voice, out _, out AudioSource source) || source == null) continue;
+                if (_anchors.TryGetValue(voice, out System.Numerics.Vector3 anchor))
+                    source.volume = _master * EffectVolume * AnchoredVolume.Of(anchor, ListenerFocus);
+                VoiceLocator.Fate fate = VoiceLocator.Locate(world, voice, out float x, out float? height, out float z);
+                if (fate == VoiceLocator.Fate.Gone)
+                {
+                    if (!source.loop) continue;
+                    source.Stop();
+                    _voices.Release(voice);
+                }
+                else if (fate == VoiceLocator.Fate.Moves && source.isPlaying)
+                    source.transform.position = new Vector3(x, height ?? source.transform.position.y, z);
+            }
         }
 
         private SoundResolver Resolver(SoundCategory category)

@@ -92,12 +92,16 @@ public sealed class TileWorkSystem : ISimulationSystem
             {
                 var at = new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width);
                 RequestCompletionEffect(context, before, at, order.PlayerId);
+                if (order.Kind == TileWorkKind.Claim) RequestClaimSound(context, order);
             }
             PostThreat(context, order, result, before, ownerBefore);
             if (result.Outcome == TileWorkOutcome.Destroyed && before != tile.TerrainId)
+            {
+                ThingSoundRules.RequestTile(context, SystemName, before, order.TileIndex, ThingSoundEvent.TileBroken);
                 context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(
                     context.Database.TerrainById(before).DestroyedEffectId, order.PlayerId,
                     new TilePos(order.TileIndex % world.Width, order.TileIndex / world.Width), new Fp32(Fp32.One)));
+            }
             CreditGoldMined(context, order, result.GoldReleased);
             int carried = HandTo(context, order, result.GoldReleased, out int putDown);
             Report(context, order, result, before, world, carried, putDown);
@@ -106,8 +110,13 @@ public sealed class TileWorkSystem : ISimulationSystem
         world.RawPendingWork.RemoveRange(0, count);
     }
 
+    /// <summary>The conversion's requests, in the order <c>Tile_ApplyWork</c> makes them (<c>0x00453359</c>): the
+    /// sound <c>0x10C</c> in the old terrain's category (only when the max-health type differs, as
+    /// there), then the effect.</summary>
     internal static void RequestCompletionEffect(SimulationContext context, byte before, TilePos at, PlayerId owner)
     {
+        if (context.Database.TerrainById(before).MaxHealthTypeTerrainId != before)
+            ThingSoundRules.RequestTile(context, SystemName, before, context.World.TileIndex(at), ThingSoundEvent.TileConverted);
         EffectId effect = context.Database.TerrainById(before).MaxHealthEffectId;
         if (context.World.Tile(at).TerrainId == ReinforcedWallTerrainId)
         {
@@ -118,6 +127,17 @@ public sealed class TileWorkSystem : ISimulationSystem
         }
         else context.RequestEffect(SystemName,
             ViewEffectRequest.AtTileCentre(effect, owner, at, new Fp32(Fp32.One)));
+    }
+
+    /// <summary>The imp's claim sound (<c>Imp_ClaimAction</c>, <c>0x00497635</c>), after the strike that
+    /// converted the tile: <c>0x10A</c>, or <c>0x10B</c> while the tile still has a room link (its word
+    /// <c>+2</c>), in the imp's category with its own voice. No imp, no sound.</summary>
+    private static void RequestClaimSound(SimulationContext context, TileWorkOrder order)
+    {
+        if (context.World.CreatureById(order.WorkerCreatureId) is not { } worker) return;
+        ThingSoundRules.Request(context, SystemName, worker,
+            RoomIndex.RoomAt(context.World, context.Database, order.TileIndex) is null
+                ? ThingSoundEvent.ImpClaimedFloor : ThingSoundEvent.ImpClaimedRoomTile);
     }
 
     /// <summary>Action 6's tail (<c>0x004977F0</c>): once the tile no longer passes its guard

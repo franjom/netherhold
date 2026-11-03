@@ -24,6 +24,7 @@ public static partial class KwdCreatures
     private const int RecordSizeEmbedded = 5537;
     private const int OffsetShuffleSpeed = 0xD37;
     private const int OffsetBaseCreatureId = 0xD3B;
+    private const int OffsetFootstepMarks = 0x1323;
 
     /// <summary>Animation block 30, Entrance, which action 49 plays (<c>0x006E4739</c> = 30).</summary>
     private const int EntranceBlock = 0x20 + (30 * 84);
@@ -157,6 +158,11 @@ public static partial class KwdCreatures
         var artSlots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
         for (int slot = 0; slot < artSlots.Length; slot++) artSlots[slot] = AnimationTiming(slot);
 
+        // Footstep marks: 48 pairs of unsigned words at 0x1323, one pair per art slot (definition +0x7A3, 0x00492320).
+        var footstepMarks = new FootstepMarkPair[CreatureDef.FootstepMarkCount];
+        for (int slot = 0; slot < footstepMarks.Length; slot++)
+            footstepMarks[slot] = new FootstepMarkPair(U16(OffsetFootstepMarks + (4 * slot)), U16(OffsetFootstepMarks + (4 * slot) + 2));
+
         return new CreatureDef
         {
             Name = Str(0x00, 32),
@@ -194,6 +200,7 @@ public static partial class KwdCreatures
             ReaperSummonAnimation = AnimationTiming(35),
             ReaperSummonFallbackAnimation = AnimationTiming(8),
             ArtSlots = artSlots,
+            FootstepMarks = footstepMarks,
             AlternateArt = AnimationTimingAt(0x1083),
 
             Speed = Fp(0xEB4),
@@ -283,6 +290,7 @@ public static partial class KwdCreatures
             AngrySpeechId = U16(0xD07),
             LeftSpeechId = U16(0xD09),
             SoundCategory = Str(0xF56, 32),
+            ImpactKind = U8(0xF76),
             EntranceEffectId = U16(0xF36),
         };
     }

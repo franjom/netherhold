@@ -19,8 +19,9 @@ public static partial class PossessionRules
     /// kills the bird. Otherwise, unless a Bile Demon, hunger anger grows by its own share over the
     /// level-scaled <c>HungerFill</c> (an add, where the Hatchery forgets it) and that fill is paid off;
     /// then the heal, the lesser of what is missing and <c>HpFromChicken</c> (an unsigned test); the bird
-    /// goes either way. No state change and no hunger-clock restart, unlike state 93. The sounds, the
-    /// death effect and action 26 on art 13 are presentation.</summary>
+    /// goes either way. No state change and no hunger-clock restart, unlike state 93. The meal asks <c>0xCD</c>
+    /// with the creature's handle and <c>0x111</c> with the bird's (<c>0x00514BC2</c>, <c>0x00514BEA</c>), after the
+    /// heal; the death effect and action 26 on art 13 are presentation.</summary>
     internal static void EatChicken(SimulationContext context, CreatureState me, CreatureDef mine, ObjectState chicken)
     {
         GameDatabase database = context.Database;
@@ -45,6 +46,8 @@ public static partial class PossessionRules
         int missing = CreatureHealthRules.MaxHealth(database, mine, me) - me.Health;
         int heal = (uint)missing <= mine.HpFromChicken ? missing : mine.HpFromChicken;
         int gained = CreatureHealthRules.Apply(database, mine, me, heal, chicken.OwnerPlayerId); // 0x00514B9E: the chicken's owner
+        ThingSoundRules.Request(context, ActSystem, me, ThingSoundEvent.Ate);
+        ThingSoundRules.Request(context, ActSystem, chicken, ThingSoundEvent.ChickenEaten);
         context.World.RemoveObject(chicken.Id);
         context.Emit(ActSystem, "possessed_chicken_eaten",
             $"creature={me.Id} chicken={chicken.Id} gained={gained} need={me.HungerNeed}");

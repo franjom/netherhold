@@ -44,6 +44,11 @@ public static class CasinoJackpotRules
     /// <summary>A party's tile effect, every twelve game seconds (<c>v19 × 12</c>).</summary>
     public const int EffectSeconds = 12;
 
+    /// <summary>The party's tile effect, Fireworks (<c>0x140</c>, flags <c>0x4440</c>, no <c>0x8000</c>): asked for at the corner
+    /// of a drawn tile of the room, height 0x1000, for the room's owner (<c>0x004D65E1</c>). The view plays its
+    /// pop (<c>0x344</c>) when it creates the effect.</summary>
+    public const ushort PartyEffectId = 0x140;
+
     /// <summary>152 lasts ten game seconds (<c>v19 × 10</c>).</summary>
     public const int CelebrationSeconds = 10;
 
@@ -158,12 +163,24 @@ public static class CasinoJackpotRules
             if (now - first.CasinoPartyStartTick > (long)PartySeconds * SimulationTiming.OriginalTicksPerGameSecond)
                 EndParty(context, system, room, ref first);
             if (!AnyPlaceHeld(world, room)) EndParty(context, system, room, ref first);
+            bool dancing = false;
             foreach (CreatureState c in world.Creatures)
-                if (c.HeldPlace.In(room) && c.Dk2StateId == CasinoStep.DancingState) first.CasinoParty |= MusicBit;
+                if (c.HeldPlace.In(room) && c.Dk2StateId == CasinoStep.DancingState)
+                {
+                    first.CasinoParty |= MusicBit;
+                    dancing = true;
+                }
+            // 0x004D63D0: the music is asked for each dancer of the room, with the room's handle (the repeats of one handle are one request
+            // here), at the camera's point: the room's tile (read as the first tile) only picks the category and the volume by distance.
+            if (dancing) RequestPartySound(context, system, room, ThingSoundEvent.PartyMusic, listenerRelative: true);
             // Every twelve seconds an effect on a random tile: the effect is presentation, its draw is
-            // on the simulation stream (0x004D6561).
+            // on the simulation stream (0x004D6561), and the effect is asked for at that tile's corner.
             if ((now + 1) % (EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond) == 0)   // DK2's turn is our tick + 1
-                context.Rng.NextInt(room.TileIndices.Count);
+            {
+                int tile = SlabChain.Order(world, room)[context.Rng.NextInt(room.TileIndices.Count)];
+                context.RequestEffect(system, new ViewEffectRequest(new EffectId(PartyEffectId), room.OwnerPlayerId,
+                    new FpPosition3(new Fp32((tile % world.Width) << 12), new Fp32((tile / world.Width) << 12), new Fp32(0x1000))));
+            }
             return true;
         }
 
@@ -180,7 +197,21 @@ public static class CasinoJackpotRules
         }
 
         first.CasinoParty &= unchecked((byte)~MusicBit);
+        // 0x004D66BA: the room's handle is stopped, then 0x33E (the party's end) is asked with it (0x004D6727).
+        ThingSoundRules.Stop(context, system, new SoundSourceId(SoundSourceKind.Room, room.TileIndices[0]));
+        RequestPartySound(context, system, room, ThingSoundEvent.PartyEnded, listenerRelative: false);
         return false;
+    }
+
+    /// <summary>The music is the camera's: <c>0x004D63D0</c> pushes the camera point built by <c>0x00572CD0</c> from the view's fields, and the tile's centre
+    /// is used only for the terrain and the explored test and the distance, so the volume falls linearly to zero at 45 tiles from the camera. The end sound
+    /// <c>0x33E</c> (<c>0x004D6727</c>) is at the tile's centre. The room's anchor is read as its first tile (STRONGLY INFERRED). Not built: the explored
+    /// test that sets the volume to 1, and the global duck (slot <c>+0x54</c>) while the music plays, restored at <c>0x004D667A</c>.</summary>
+    private static void RequestPartySound(SimulationContext context, string system, RoomInstance room, ThingSoundEvent sound, bool listenerRelative)
+    {
+        int tile = room.TileIndices[0];
+        ThingSoundRules.RequestTile(context, system, context.World.TileAtIndex(tile).TerrainId, tile, sound,
+            kind: SoundSourceKind.Room, voiced: true, source: new SoundSourceId(SoundSourceKind.Room, tile), listenerRelative: listenerRelative);
     }
 
     private static bool AnyPlaceHeld(WorldState world, RoomInstance room)
@@ -371,6 +402,7 @@ public static class CasinoJackpotRules
         if (taken != 0)
         {
             int kept = PurseRules.Receive(database, database.CreatureById(creature.CreatureTypeId), creature, taken);
+            ThingSoundRules.Request(context, system, creature, ThingSoundEvent.GoldReceived);   // 0x00457677
             context.Emit(system, "jackpot_collected", $"creature={creature.Id} taken={taken} kept={kept} owed={creature.JackpotWinnings}");
             if (asked == creature.JackpotWinnings)
             {

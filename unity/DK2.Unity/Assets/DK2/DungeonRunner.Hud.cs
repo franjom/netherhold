@@ -42,6 +42,8 @@ namespace DK2.Unity
         private KeeperResourceSnapshot _resourceHoverFacts;
         private HoverTextSnapshot _resourceHover;
         private readonly HandCursorFeedback _cursorFeedback = new HandCursorFeedback();
+        // Where the hand points in the world (interface +0x1078/+0x107C): the last pick, kept while the pointer is over the HUD.
+        private FpPosition2? _pointerWorld;
         private ClassicCreatureQuery _creatureQuery;
         private ClassicCreatureQueryPanel _queryPanel;
         private CreatureQueryTarget _queryTarget;
@@ -456,6 +458,7 @@ namespace DK2.Unity
                 && BottomPanelFlash.ClearedByUse(flash, ActiveTool, selectedRoomId, _panelChoice, _bottomPanel.OpenPanel))
                 _scriptedView.ClearFlash(flash);
             _bottomPanel.FlashTarget = _scriptedView.ActiveFlashTarget;
+            _bottomPanel.GamePaused = _hudControls.OptionsVisible;
             _bottomPanel.Draw();
             _fullMap.Capture(_simulation.World, _simulation.Database, new PlayerId((byte)viewingPlayerId));
             DrawSavePanel(frontEnd: false);
@@ -465,6 +468,7 @@ namespace DK2.Unity
             _soundPlayer?.Play(_bottomPanel.Sounds);
             _soundPlayer?.Play(_bottomView.Sounds);
             _soundPlayer?.Play(_messageView.Sounds);
+            if (_optionsPages != null) _soundPlayer?.Play(_optionsPages.Sounds);
             _soundPlayer?.QueueSpeech(_messageView.Speech);
             _messageTabs.Draw(new HudVisibility(CurrentHud.ShowNormalHud, CurrentHud.AllowOrdinaryInput && !HudModal), _bottomPanel.Collapsed,
                 HudIndicatorSnapshot.Capture(_simulation.World, _simulation.Database.Level, new PlayerId((byte)viewingPlayerId)),

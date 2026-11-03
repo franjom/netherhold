@@ -202,7 +202,7 @@ then unlinks it from its tile, owner and class lists (`0x004B4D40`, `0x004B4F60`
 (`.text`; none in `cseg`, by a byte scan of every executable block), the ones that reach a trap
 are the recovery (§3 step 12), contact damage on a shot's collision (`0x004AC420`, flat, with no
 owner test) and area damage type 2 (`0x004AC6D0`), both shots.md §4a. The swing
-has a trap arm (`0x0049916D`: the impact pair from def `+0xBF` through `0x004998A0`, presentation;
+has a trap arm (`0x0049916D`: the impact pair from def `+0xBF` through `0x004998A0`, presentation apart from the weapon sound it asks, [sound-effects-combat.md section 5](sound-effects-combat.md#5-the-swing-death-and-corpses);
 both player modifiers; then the blow flat through `0x004B2CE0` with the attacker's owner), but a trap
 is not a forced target: every setter of `+0x3F9` (`0x0048F390`'s callers, the contact walk
 `0x0048A2EB`) passes a creature, a door or a heart pillar, possession aside. A trap becomes a victim

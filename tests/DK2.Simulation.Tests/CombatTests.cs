@@ -386,6 +386,30 @@ public class CombatTests
     }
 
     [Fact]
+    public void ABlowOnAHeartAndTheBlowThatFellsItRequestThePlayerHeartHealthRoutinesSounds()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
+        for (int y = 3; y <= 7; y++)
+            for (int x = 10; x <= 14; x++)
+                RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+        world.Player(Rival).HeartHealth = 1;
+        CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 10, 4);
+        demon.PosX = (12 << 12) + 0x800 - 300;
+        demon.PosY = (4 << 12) + 0x4CD;
+        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new DungeonHeartSystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+
+        sim.Run(14 + 5 + 2);
+
+        // 0x329 then 0xDA, both in the heart's category (docs/research/sound-effects.md section 8).
+        ThingSoundEvent[] heard = events.Events.Where(e => e.ThingSound is { Event: ThingSoundEvent.HeartDamaged or ThingSoundEvent.HeartDestroyed })
+            .Select(e => e.ThingSound!.Value.Event).ToArray();
+        Assert.Equal([ThingSoundEvent.HeartDamaged, ThingSoundEvent.HeartDestroyed], heard);
+    }
+
+    [Fact]
     public void AFightSurvivesASnapshot()
     {
         (GameDatabase db, WorldState world) = OpenWorld();

@@ -12,7 +12,7 @@ namespace DK2.Simulation.Systems;
 /// <remarks>97 walks to the nearest post, 98 walks the room's edge one straight leg at a time,
 /// 99 waits a turn after a failed leg and starts again. Past its deadline a patrol walks to a
 /// Guard Post of its room (<c>0x00463190</c>) and, there, state 100 sends it back to a random
-/// tile of the room. Not built: the <c>+0x3E6</c> bits 22–25; the failed leg's sound.</remarks>
+/// tile of the room. Not built: the <c>+0x3E6</c> bits 22–25.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/guard-room.md")]
 public static class GuardStep
 {
@@ -78,6 +78,8 @@ public static class GuardStep
             return true;
         }
 
+        // 0x004630FF: a leg that cannot be routed asks for the lost-way sound, then waits in 99.
+        ThingSoundRules.Request(context, system, creature, ThingSoundEvent.GuardLostItsWay);
         StateShadow.Move(context, system, creature, GuardRules.LostState);
         creature.GuardLostTick = context.Tick.Value;
         return true;

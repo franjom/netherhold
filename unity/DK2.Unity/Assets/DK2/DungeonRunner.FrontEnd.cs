@@ -136,6 +136,7 @@ namespace DK2.Unity
             if (_campaignMap.EntryRow >= 0) TypeHiScoreName();
             _frontEndMenu?.Refresh();
             if (_frontEndMenu != null) _soundPlayer?.Play(_frontEndMenu.Model.Sounds);
+            if (_optionsPages != null) _soundPlayer?.Play(_optionsPages.Sounds);
             DrawSavePanel(frontEnd: true);
             // A click replaces this runner; switch only after the menu has finished with it.
             if (_pendingSession != null) { LoadLevel(_pendingSession); return; }
@@ -143,6 +144,7 @@ namespace DK2.Unity
             CampaignSlot picked = _campaignMap.IsAtMap && Camera.main != null
                 ? _scene.PickFrontEndMap(Camera.main.ScreenPointToRay(Input.mousePosition), _campaignPickSlots) : CampaignSlot.None;
             _campaignMap.UpdatePointer(picked, Input.GetMouseButton(0));
+            _soundPlayer?.Play(_campaignMap.Sounds);
             RefreshCampaignMap();
             double turns = elapsed * SimulationTiming.OriginalTicksPerGameSecond;
             var tick = new GameTick((long)Math.Floor(turns));

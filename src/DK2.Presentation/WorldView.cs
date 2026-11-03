@@ -198,9 +198,13 @@ public readonly struct CreatureView
         bool animationDeferred = false,
         int? previousHeight = null,
         Fp32? animationInitialMovementSpeed = null,
-        bool gemCarrier = false, bool burningRed = false)
+        bool gemCarrier = false, bool burningRed = false,
+        FootstepMarkPair footstepMarks = default, string? soundCategory = null, bool wading = false)
     {
         Id = id;
+        FootstepMarks = footstepMarks;
+        SoundCategory = soundCategory ?? "";
+        Wading = wading;
         GemCarrier = gemCarrier;
         BurningRed = burningRed;
         OwnerPlayerId = ownerPlayerId.Value;
@@ -260,6 +264,17 @@ public readonly struct CreatureView
     public Fp32? AnimationInitialMovementSpeed { get; }
     public bool AnimationPaused { get; }
     public bool AnimationDeferred { get; }
+
+    /// <summary>The footstep marks of the clip the creature walks or runs in: its definition's pair for the requested art slot
+    /// (1 walking, 2 running, <c>0x0048C5D0</c>), frame indices of the drawn clip; zero when the clip is not a walk or run
+    /// (sound-effects-continuous.md section 1).</summary>
+    public FootstepMarkPair FootstepMarks { get; }
+
+    /// <summary>The creature's sound category (definition <c>+0x6E3</c>), the one its footsteps are requested in.</summary>
+    public string SoundCategory { get; }
+
+    /// <summary>Grounded on water (creature <c>+0x3EA</c> bit 21, <c>0x00488CB2</c>): the footsteps are the wading pair.</summary>
+    public bool Wading { get; }
 
     /// <summary>The Portal Gem's carrier mark (<see cref="CreatureState.GemCarrier"/>, creature
     /// <c>+0x92</c> bit 2): each draw gives off effect 257, Gem dust sparkles, at every mesh control
@@ -1519,6 +1534,12 @@ public sealed partial class WorldView
             bool playsAnimation = !bedExitPose && PlaysMappedAnimation(creature, world.CurrentTick);
             AssetRef animation = AnimationFor(creature, world.CurrentTick);
             bool stationaryMovement = animation == _creatureAnimations[creature.CreatureTypeId]["movement_idle"];
+            // The marks are the requested walk (1) or run (2) slot's (0x0048C5D0 indexes them by the slot asked for, whatever clip
+            // the fallback resolver installs); the other clips this view plays have no authored footsteps it can name.
+            bool travelling = !meleeAnimation && !castAnimation && !trainingAnimation && !entranceAnimation
+                && !stationaryMovement && IsTravelAnimation(creature);
+            int footstepSlot = travelling ? (animation == _creatureAnimations[creature.CreatureTypeId]["running"] ? 2 : 1) : 0;
+            CreatureDef definition = _database.CreatureById(creature.CreatureTypeId);
             if (stationaryMovement || bedExitPose) mesh = animation;
             if (creature.Activity == CreatureActivity.Dead)
                 mesh = _creatureCorpses[creature.CreatureTypeId];
@@ -1565,7 +1586,12 @@ public sealed partial class WorldView
                 animationInitialMovementSpeed: !stationaryMovement && IsTravelAnimation(creature)
                     ? new Fp32(creature.Body.MaxSpeed >> 4) : null,
                 gemCarrier: creature.GemCarrier,
-                burningRed: CreatureBurningVisual.ShowsRed(creature, _database.CreatureById(creature.CreatureTypeId).Flags));
+                burningRed: CreatureBurningVisual.ShowsRed(creature, definition.Flags),
+                footstepMarks: footstepSlot == 0 ? default : definition.FootstepMarksOf(footstepSlot),
+                soundCategory: definition.SoundCategory,
+                // Creature +0x3EA bit 21 (0x00488CB2): grounded, on a Water tile. Ours tests the tile and the flight rule the
+                // water speed uses; the native gate also compares the height with the tile's (+0x26), unread (STRONGLY INFERRED).
+                wading: !flying && _database.TerrainById(world.Tile(position).TerrainId).IsWater);
         }
     }
 

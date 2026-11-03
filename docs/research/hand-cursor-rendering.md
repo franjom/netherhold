@@ -178,7 +178,8 @@ exact ray distance rather than DK2's mean vertex depth), and falls back to the n
 centre along the ray. Bounds stand in for DK2's screen circles, whose radius is unread; terrain
 still occludes, where DK2's list holds no terrain. The fallback sweep applies the native
 exclusions; thing-list order within one tile is not reproduced. Held-item cursor
-channels and transient tag/slap states 5/11 remain unimplemented; contextual
+channels remain unimplemented; the transient tag and slap states run in `HandCursorFeedback`, with their sounds
+([sound-effects.md section 6](sound-effects.md#6-the-hand-and-its-cursor)); contextual
 Point/Idle/PickAxeHold selection does not change existing click commands.
 
 ## Rectangle publication and remaining outline boundary

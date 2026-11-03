@@ -16,6 +16,15 @@ public sealed record CreatureSpellSlot(
     byte CreatureSpellId, byte LevelAvailable, Fp32 ShotDelay, byte PlayAnimation,
     int OriginX = 0, int OriginY = 0, int OriginZ = 0);
 
+/// <summary>One art slot's two footstep marks, frame indices in that slot's clip (file +0x1323 + 4 x slot,
+/// definition +0x7A3). Zero means none; a zero second mark takes the first (sound-effects-continuous.md section 1).</summary>
+public readonly record struct FootstepMarkPair(ushort First, ushort Second)
+{
+    /// <summary>The mark normalized to the clip's phase (1/4096 of its length), as the animation install does
+    /// (<c>0x0048C5D0</c>): the unsigned word shifted left 12 and divided by the clip's frame count.</summary>
+    public static int Normalize(ushort mark, ushort frameCount) => frameCount == 0 ? 0 : (int)(((uint)mark << 12) / frameCount);
+}
+
 /// <summary>Resistance against one attack type (percentage).</summary>
 public sealed record CreatureResistance(AttackType AttackType, byte Value);
 
@@ -38,6 +47,21 @@ public sealed record CreatureDef
 {
     /// <summary>CREATURES file +0xF56, the bank loaded into definition +0x6E3.</summary>
     public string SoundCategory { get; init; } = string.Empty;
+
+    /// <summary>CREATURES file +0xF76, definition +0x685 (<c>0x00492320</c>, intermediate +0x1366): the surface byte, 1 to 7, the
+    /// swing's impact lookup picks the weapon sound by when this creature is struck (sound-effects-combat.md section 5).</summary>
+    public byte ImpactKind { get; init; }
+
+    /// <summary>The footstep marks of art slots 0 to <see cref="FootstepMarkCount"/> - 1, CREATURES file +0x1323
+    /// (sound-effects-continuous.md section 1). Empty for a hand-built definition.</summary>
+    public IReadOnlyList<FootstepMarkPair> FootstepMarks { get; init; } = [];
+
+    /// <summary>The pairs the file holds: 48 (slots 0 to 47, though only 39 art slots exist).</summary>
+    public const int FootstepMarkCount = 48;
+
+    /// <summary>The marks of <paramref name="slot"/>, or none when the slot is past <see cref="FootstepMarks"/>.</summary>
+    public FootstepMarkPair FootstepMarksOf(int slot) =>
+        slot >= 0 && slot < FootstepMarks.Count ? FootstepMarks[slot] : default;
     private byte _baseCreatureId;
     public required string Name { get; init; }
     public required byte CreatureId { get; init; }

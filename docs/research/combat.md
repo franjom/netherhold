@@ -331,10 +331,10 @@ then picks one of **seven** arms through a jump table at `0x00499A24`, and each 
 reads a **pair of 16-bit values** from that record (37 = 1 + 8 + 7 x 4).
 
 **It never touches the damage.** It takes an out-pointer, returns `RET 0xC`, and
-the damage register is untouched across all three calls; the values sit in a
-170–450 band rather than looking like percentages. Most likely **hit
-presentation** — which effect an attack type makes on a given surface — and
-calling it armour would have been a guess dressed as a finding.
+the damage register is untouched across all three calls. It is **hit
+presentation**: each pair is a sound event and an effect id, and the routine asks
+effect `0xED`, the pair's effect and the pair's sound in a `WEAPON_*` category
+([sound-effects-combat.md section 5](sound-effects-combat.md#5-the-swing-death-and-corpses)).
 
 ### 6.1.1 `Resistances` is loaded, saved, and consulted by nothing
 

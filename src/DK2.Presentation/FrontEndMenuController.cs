@@ -118,7 +118,8 @@ public sealed class FrontEndMenuController : IDisposable
         FrontEndWidget? widget = Widgets.FirstOrDefault(w => w.Id == id);
         if (widget is null || !IsEnabled(widget)) return false;
         int sound = widget.SoundSlot switch { 32 => 0x30a, 33 => 0x30b, 34 => 0x30c, 35 => 0x30d, 36 => 0x30e, _ => 0 };
-        if (sound != 0) RequestSound(sound, SoundCategory.FrontEndClick);
+        // Sound slot 32 is the FRONT_END record of the table 0x006AC8C4 and 33..36 are OBJECT_FE_PARCHMENT's (record k's name sits at +4 of its own 0x30 bytes).
+        if (sound != 0) RequestSound(sound, widget.SoundSlot == 32 ? SoundCategory.FrontEnd : SoundCategory.FrontEndClick);
         if (Page == FrontEndPage.Dialog)
         {
             if (id.Value == 667)

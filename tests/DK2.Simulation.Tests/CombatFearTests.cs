@@ -30,7 +30,7 @@ public class CombatFearTests
         Assert.Empty(world.Messages.Entries);
     }
 
-    private sealed class WithdrawWithoutBattle(CreatureState creature) : ISimulationSystem
+    private sealed class WithdrawWithoutBattle(CreatureState creature, bool expected = true) : ISimulationSystem
     {
         public string Name => "withdrawal entry test";
         public void Execute(SimulationContext context)
@@ -38,10 +38,47 @@ public class CombatFearTests
             context.Navigation.Refresh();
             var hearts = new HeartSites();
             hearts.Refresh(context.World, context.Database);
-            Assert.True(FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
+            Assert.Equal(expected, FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
                 hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId),
                 FearRules.StagedTarget(context.World, creature), []));
         }
+    }
+
+    /// <summary>The withdraw state (<c>0x004611D0</c>) requests <c>0xDC</c> once its route is found, with the
+    /// creature's handle and category at its position (<c>0x004617E6</c>); a withdrawal that finds no
+    /// destination requests nothing.</summary>
+    [Fact]
+    public void AWithdrawalRequestsDcInTheWithdrawersCategoryWithItsVoiceAtItsPosition()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        PlaceTreasury(world, Keeper);
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        var sim = new GameSimulation(db, world, 1, [new WithdrawWithoutBattle(goblin)]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Tick();
+
+        ThingSoundRequest sound = Assert.Single(sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value));
+        Assert.Equal(ThingSoundEvent.Withdrew, sound.Event);
+        Assert.Equal("CREATURE_GOBLIN", sound.Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(goblin.Id)), sound.Source);
+        Assert.Equal(new FpPosition3(new Fp32(goblin.PosX), new Fp32(goblin.PosY), new Fp32(goblin.PosZ)), sound.Position);
+        Assert.True(sound.Voiced);
+    }
+
+    [Fact]
+    public void ARoomlessKeepersCreatureRequestsNoWithdrawalSound()
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
+        var sim = new GameSimulation(db, world, 1, [new WithdrawWithoutBattle(goblin, expected: false)]);
+        var sink = new ListEventSink();
+        sim.ObserveWith(sink);
+
+        sim.Tick();
+
+        Assert.DoesNotContain(sink.Events, e => e.ThingSound.HasValue);
     }
 
     /// <summary><c>0x004611D0</c> with no lair, no heart and no room: both pickers find nothing

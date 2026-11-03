@@ -22,4 +22,32 @@ public sealed class CreatureSoundCategoryTests
         byte[] edited = KwdCreatures.WriteRecord(creature with { SoundCategory = "CREATURE_TROLL" }, template);
         Assert.Equal("CREATURE_TROLL", Assert.Single(KwdCreatures.Parse([chunk with { Content = edited }])).SoundCategory);
     }
+
+    [Fact]
+    public void ObjectSoundCategoryReadsAndWritesAtFileByte0x35E()
+    {
+        byte[] source = new byte[894];
+        source[0x35A] = 1;
+        Encoding.ASCII.GetBytes("OBJECT_GOLD").CopyTo(source, 0x35E);
+        var chunk = new KwdChunk { Type = KwdRecordType.Objects, ItemCount = 1, Content = source, HeaderBlock = [] };
+        var gold = Assert.Single(KwdObjects.Parse([chunk]));
+        Assert.Equal("OBJECT_GOLD", gold.SoundCategory);
+        var template = Assert.Single(KwdRecordRoundTrip.Split(chunk));
+        byte[] edited = KwdObjects.WriteRecord(gold with { SoundCategory = "OBJECT_BED" }, template);
+        Assert.Equal("OBJECT_BED", Assert.Single(KwdObjects.Parse([chunk with { Content = edited }])).SoundCategory);
+    }
+
+    [Fact]
+    public void TerrainSoundCategoryReadsAndWritesAtFileByte0x1DF()
+    {
+        byte[] source = new byte[552];
+        Encoding.ASCII.GetBytes("TERRAIN_ROCK").CopyTo(source, 0x1DF);
+        var chunk = new KwdChunk { Type = KwdRecordType.Terrain, ItemCount = 1, Content = source, HeaderBlock = [] };
+        var rock = Assert.Single(KwdTerrainRooms.ParseTerrain([chunk]));
+        Assert.Equal("TERRAIN_ROCK", rock.SoundCategory);
+        var template = Assert.Single(KwdRecordRoundTrip.Split(chunk));
+        byte[] edited = KwdTerrainRooms.WriteTerrainRecord(rock with { SoundCategory = "ROOM_TREASURE" }, template);
+        Assert.Equal("ROOM_TREASURE", Assert.Single(KwdTerrainRooms.ParseTerrain([chunk with { Content = edited }])).SoundCategory);
+        Assert.Equal(source, KwdTerrainRooms.WriteTerrainRecord(rock, template));
+    }
 }

@@ -4,6 +4,7 @@
 
 using System.Numerics;
 using DK2.Core;
+using DK2.Data.Media;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -117,25 +118,77 @@ public static class HandCursor
     }
 }
 
+/// <summary>The cursor's transient states, with the two sounds their callbacks request: HAND <c>0xEC</c>
+/// when the tag state is entered (<c>0x0040E300</c>) and HAND <c>0xC5</c> once the slap reaches frame 3, at
+/// most once until it completes (<c>0x0040E520</c>, latch <c>0x006CE95C</c>). Both are positional at the
+/// pointer's world position (interface <c>+0x1078/+0x107C</c>, the pick's clamped hit) at height 2.
+/// The state's nonpositional <c>0xEC</c> in a terrain category has no samples in any shipped category.</summary>
+[DK2.Core.Dk2Behavior(DK2.Core.Confidence.StronglyInferred, "docs/research/sound-effects.md#6-the-hand-and-its-cursor")]
 public sealed class HandCursorFeedback
 {
+    private const int SlapSoundFrame = 3;
+    private static readonly SoundCategory HandCategory = new("hand");
     private HandCursorKind _transient;
     private long _startedAt;
-    public void Reset() => _transient = HandCursorKind.Default;
-    public void Play(HandCursorKind kind, long milliseconds)
-    { _transient = kind; _startedAt = milliseconds; }
-    public HandCursorKind Resolve(HandCursorKind hover, bool holding, bool gold, bool primaryHeld, long milliseconds)
+    private bool _slapSounded;
+
+    public SoundRequests Sounds { get; } = new();
+
+    /// <summary>Clears the transient and the slap latch. Deviation: DK2 clears the latch only on a swing's
+    /// completion (<c>0x0040E5A1</c>); this also runs on focus loss and disable.</summary>
+    public void Reset() { _transient = HandCursorKind.Default; _slapSounded = false; }
+
+    /// <summary>Requests <paramref name="kind"/> as <c>0x0040ABC0</c> does. <paramref name="pointer"/> is
+    /// where the hand points, for the tag sound that entering its state requests. The host calls it for a
+    /// tag only on a primary press with a Hand-tool drag; DK2's tag and untag also run from tool modes ours
+    /// has no way to reach.</summary>
+    public void Play(HandCursorKind kind, long milliseconds, FpPosition2? pointer = null)
     {
+        // The slap callback adopts a request only past frame 3 and never reads which state is asked for
+        // (0x0040E5AF), so a Tag request is dropped too. The drops go through the base channel, whose
+        // callback has no such guard, and keep replacing the slap here (ours has one transient).
+        if (kind is HandCursorKind.Slap or HandCursorKind.Tag && _transient == HandCursorKind.Slap
+            && FrameOf(milliseconds) <= SlapSoundFrame)
+            return;
+        _transient = kind;
+        _startedAt = milliseconds;
+        if (kind == HandCursorKind.Tag && pointer is FpPosition2 at) Sounds.Add(HandSound(0xEC, at));
+    }
+
+    /// <summary>The per-frame step of the cursor channel (<c>0x0040AAE0</c>): the slap's sound at frame 3,
+    /// and its completion, which clears the latch.</summary>
+    public void Advance(long milliseconds, FpPosition2? pointer = null)
+    {
+        if (_transient != HandCursorKind.Slap) return;
+        long frame = FrameOf(milliseconds);
+        if (!_slapSounded && frame >= SlapSoundFrame && pointer is FpPosition2 at)
+        {
+            Sounds.Add(HandSound(0xC5, at));
+            _slapSounded = true;
+        }
+        if (frame >= HandCursor.Sprite(HandCursorKind.Slap).FrameCount) { _slapSounded = false; _transient = HandCursorKind.Default; }
+    }
+
+    public HandCursorKind Resolve(HandCursorKind hover, bool holding, bool gold, bool primaryHeld, long milliseconds,
+        FpPosition2? pointer = null)
+    {
+        Advance(milliseconds, pointer);
         if (_transient != HandCursorKind.Default)
         {
             HandCursorSprite sprite = HandCursor.Sprite(_transient);
             if (Math.Max(0, milliseconds - _startedAt) * sprite.FramesPerSecond < sprite.FrameCount * 1000L)
                 return _transient;
             if (_transient == HandCursorKind.Tag && primaryHeld) return HandCursorKind.Tagging;
-            Reset();
+            _transient = HandCursorKind.Default;
         }
         return holding ? gold ? HandCursorKind.HoldGold : HandCursorKind.HoldThing : hover;
     }
+
+    private long FrameOf(long milliseconds) =>
+        Math.Max(0, milliseconds - _startedAt) * HandCursor.Sprite(HandCursorKind.Slap).FramesPerSecond / 1000;
+
+    private static SoundRequest HandSound(uint id, FpPosition2 at) =>
+        new(HandCategory, new SoundId(id), new Vector3(at.X.Raw / 4096f, 2f, -at.Y.Raw / 4096f));
 }
 
 public sealed class HandCursorAnimation

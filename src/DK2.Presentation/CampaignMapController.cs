@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
+using DK2.Data.Media;
 using DK2.Data.Model;
 using DK2.Simulation;
 
@@ -16,6 +17,11 @@ public sealed class CampaignMapController : IDisposable
     private readonly FrontEndSession _session;
     private readonly Func<CampaignSlot, CampaignBriefing> _loadBriefing;
     private readonly int[] _lift = new int[30];
+    /// <summary>Each land's arming word (<c>+0x184</c>): set by every update that has no hover on it (<c>0x004A35E0</c>), cleared by the sound it arms.</summary>
+    private readonly bool[] _armed = Enumerable.Repeat(true, 30).ToArray();
+    /// <summary>The land sound, <c>0x32A</c> in <c>OBJECT_FE_MAP</c> (<c>0x00538D00</c>): nonpositional, no handle (docs/research/sound-effects-interface.md section 5).</summary>
+    public SoundRequests Sounds { get; } = new();
+    private const int LiftLimit = 0x40;
     private readonly int[] _landPhases = new int[30], _markerPhases = new int[24];
     private bool _introPending;
     private CampaignSlot _selected;
@@ -64,6 +70,12 @@ public sealed class CampaignMapController : IDisposable
         if (Hovered.IsCampaign) _markerPhases[Hovered.Value - 1] = 0;
         if (next.IsCampaign) _markerPhases[next.Value - 1] = 0xfff;
         Hovered = next; Revision++;
+        // A hovered land still below its top (z <= creation z + 0x1040) that was armed asks the sound once and disarms (0x00538D00 at 0x00538FA1 and 0x005390AE).
+        if (next != CampaignSlot.None && _armed[next.Value - 1] && _lift[next.Value - 1] <= LiftLimit)
+        {
+            Sounds.Add(new SoundRequest(new SoundCategory("object_fe_map"), new SoundId(0x32A)));
+            _armed[next.Value - 1] = false;
+        }
     }
     public void UpdatePointer(CampaignSlot slot, bool primaryHeld)
     {
@@ -238,7 +250,9 @@ public sealed class CampaignMapController : IDisposable
         // on the frame rate.
         for (int i = 0; i < _lift.Length; i++)
         {
-            int lift = IsAtMap && Hovered.Value == i + 1 ? Math.Min(0x48, _lift[i] + 8) : Math.Max(0, _lift[i] - 8);
+            bool hovered = IsAtMap && Hovered.Value == i + 1;
+            if (!hovered) _armed[i] = true;
+            int lift = hovered ? Math.Min(0x48, _lift[i] + 8) : Math.Max(0, _lift[i] - 8);
             if (lift != _lift[i]) { _lift[i] = lift; Revision++; }
         }
     }

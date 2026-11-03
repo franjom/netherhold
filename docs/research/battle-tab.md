@@ -213,7 +213,7 @@ on right click or F: idx = next local record after idx (wrapping); if any: glide
 ## UNKNOWN
 
 - The fly-in object's art and motion: `0x0042F040`, `+0x4D1D` 0.15, `+0x4D54` 2441 (Q664).
-- Which samples sounds `0x30F`, `0x32B` and `0x32C` name in their banks.
+- Which samples sounds `0x30F`, `0x32B` and `0x32C` name in their banks (the category of the last two is `gui_button_tab_new_combat`, [sound-effects-interface.md section 10](sound-effects-interface.md#10-the-battle-fly-in-0x32b-0x32c)).
 - Widgets 2 and 3 of menu 43: their frame callbacks `0x00426920`/`0x00426B90` and clicks.
 - Creature `+0x32D` (the second state field tested for 202) and record `+0x00`, `+0x12..+0x1A`.
 - Whether `Speech.str` 20..22 are ever spoken (Q663).

@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 using DK2.Simulation.Navigation;
 using DK2.Simulation.Steering;
 using DK2.Simulation.Systems;
@@ -195,10 +196,26 @@ public static class WorkshopStep
         return true;
     }
 
+    /// <summary>Action 32's handler (<c>CreatureAction_Manufacture</c>, <c>0x00498D20</c>), which the action runner calls at the head of each update while
+    /// the action runs: past the start stamp less one plus the hit delay (<c>+0x5CA</c>, ours <see cref="CreatureDef.MeleeHitDelay"/>) it
+    /// asks <c>0x112</c> in the category of the first Anvil on the target's tile, with the Anvil's handle (<c>0x00498E08</c>). The start
+    /// stamp is the turn state 64 begins the action and sets 65, which is this state's entry. Ours takes the first Anvil in object
+    /// order, DK2 the first in the tile's thing list.</summary>
+    private static void AskAnvilSound(SimulationContext context, string system, CreatureState creature, long now)
+    {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
+        if (now < creature.StateEnteredTick + CombatRules.TicksOf(definition.MeleeHitDelay)) return;
+        WorldState world = context.World;
+        int tile = ((creature.StateTargetY >> 12) * world.Width) + (creature.StateTargetX >> 12);
+        if (OnTile(world, tile, Anvil) is { } anvil) ThingSoundRules.Request(context, system, anvil, ThingSoundEvent.Forged);
+    }
+
     /// <summary>65: it turns to the machine; moved, the work ends; while it runs, it waits; then 63.</summary>
     private static bool Work(SimulationContext context, string system, CreatureState creature, long age)
     {
         long now = context.Tick.Value;
+        if (now < creature.ActionUntilTick) AskAnvilSound(context, system, creature, now);
         CasinoStep.TurnTo(context, creature, creature.StateTargetX, creature.StateTargetY);
         bool moved = creature.WaitPosX != creature.PosX || creature.WaitPosY != creature.PosY;
         if (age > 1 && moved && now < creature.ActionUntilTick) creature.ActionUntilTick = 0;

@@ -70,7 +70,11 @@ public static class ReaperRules
             case ArrivingState:
                 reaper.ReaperComplete = false;
                 if (age == 1 || age >= 12)
+                {
+                    // 0x004747BA: the arrival sound, in the update that enters 236.
+                    ThingSoundRules.Request(context, "reaper", reaper, ThingSoundEvent.ReaperArrived);
                     EnterState(context, reaper, ReaperState.Materializing);
+                }
                 break;
             case MaterializingState:
                 if (age == 1) reaper.ReaperAlpha = 0;

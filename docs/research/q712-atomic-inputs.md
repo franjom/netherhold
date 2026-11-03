@@ -258,6 +258,15 @@ but the hero first differs earlier at 1613. Independent review verifies
 other action/route/cache inputs remain partial. This is not full native-body
 parity or proof of a generic steering defect, and it does not close Q712/Q719.
 
+The [body observer](F:/DK2Evidence/studies/q712-active-route-body-h391--2026-11-03--001/)
+matches all five prior on-intervention outputs; review verifies 40 study and
+26 matching build entries, with all 752 runtime hashes unchanged. Imp 445's
+compared modeled fields match at 1400. At 1401 only Body.Pos quantization and
+post-frame MaxSpeed differ (native 30144, modern 15072); at 1416 only Body.Pos
+differs. At 1417 velocity, axes and LastProgress diverge. Post-frame limits do
+not prove equal within-call inputs or an integrator defect. The build has the
+same basename under `F:/DK2Evidence/builds/`; no full native-body parity follows.
+
 ### Facing input boundary (Q719)
 
 The [native-byte facing control](F:/DK2Evidence/studies/q712-native-cast-facing--2026-11-03--001/)

@@ -30,6 +30,12 @@ public sealed class RenderAnimationClock
     private bool _complete;
     private (CreatureAnimationTiming Timing, bool Loop, Fp32? Scale, Fp32? InitialSpeed)? _pending;
 
+    /// <summary>The phase at the start of the last turn, 1/4096 of the clip (native animation object <c>+0x90</c>).</summary>
+    public int PreviousPhase => _previousPhase;
+
+    /// <summary>The phase now, 1/4096 of the clip (native <c>+0x94</c>).</summary>
+    public int Phase => _phase;
+
     public int ResourceRevision { get; private set; }
     public long CompletedLoops { get; private set; }
 

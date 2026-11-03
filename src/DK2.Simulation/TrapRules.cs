@@ -273,6 +273,9 @@ public static class TrapRules
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        // 0x004A7B48, first and whatever the trap was: its destruction (its own category has the group only for the
+        // Alarm and the Boulder trap).
+        ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapDestroyed);
         if (!trap.UnderConstruction && Selector(database, trap) == TriggerSelector)
             foreach (TrapState near in Near(world, trap))
                 if (Selector(database, near) != TriggerSelector && near.TriggerCount != 0) near.TriggerCount--;
@@ -580,6 +583,7 @@ public static class TrapRules
             target is null ? FightTargetKind.None : FightTargetKind.Creature, target?.Id ?? CombatRules.NoTarget,
             target?.OwnerPlayerId ?? 0, -1, aimX, aimY);
         if (target != null && definition.TriggerType is not (SightSelector or TriggerSelector)) shot.ForcedCollision = true;
+        RequestFireSound(context, trap, definition, target);
 
         if ((definition.Flags & TrapActivationRules.UsesMana) != 0 && trap.PlayerId != PlayerIds.Good && world.HasPlayer(trap.PlayerId))
         {
@@ -604,6 +608,24 @@ public static class TrapRules
         context.Emit(SystemName, "trap_fired",
             $"trap={trap.Id} type={trap.TrapId} player={trap.PlayerId} shot={shot.Id} shot_type={shotDef.ShotId} target={target?.Id ?? 0} at={originX},{originY} recharge={trap.RechargeAt}");
         return shot;
+    }
+
+    /// <summary>The shot id <c>0x004A8264</c> tests (<c>def+0xBB</c> = 13): the Alarm's.</summary>
+    private const byte AlarmShotTypeId = 13;
+
+    /// <summary><c>0x004A82C2</c>, <c>0x004A830E</c>: the trap's <c>0xEB</c>, once its shot is made. Every shot but the Alarm's
+    /// is heard whoever fires and is hit; the Alarm's is asked twice, once when the target is a creature of the local
+    /// player and once when the trap is the local player's, which ours names by the owner (a request for a keeper's screen
+    /// alone). Both pass the trap's handle, so a live one retains the second.</summary>
+    private static void RequestFireSound(SimulationContext context, TrapState trap, TrapDef definition, CreatureState? target)
+    {
+        if (definition.ShotTypeId != AlarmShotTypeId)
+        {
+            ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapFired);
+            return;
+        }
+        if (target is not null) ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapFired, new PlayerId(target.OwnerPlayerId));
+        ThingSoundRules.Request(context, SystemName, trap, ThingSoundEvent.TrapFired, new PlayerId(trap.PlayerId));
     }
 
     // ------------------------------------------------------------------ the threat

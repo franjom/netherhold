@@ -150,8 +150,8 @@ the summon callback clears them, leaving authored Horny's fight acquisition enab
 
 Full Horny idle/wander/Chicken/forced-target controllers remain explicitly
 UnbuiltHandler/ResearchOnly; see `special-role-idle.md`. This build does not
-claim a complete playable Horny AI. Height, visual effects and sounds retain
-the existing presentation boundary. General animation reuse/bypass cases
+claim a complete playable Horny AI. Height and visual effects retain
+the existing presentation boundary; the arrival sound is built ([sound-effects.md section 13](sound-effects.md#13-level-up-the-reaper-and-the-silent-rows)). General animation reuse/bypass cases
 outside ordinary fresh Reaper action installation are not newly modeled.
 The complete Stage5 no-install gate passed3407 tests, zero failures and396 skips;
 Release and Unity compilation have zero warnings/errors. All42 Stage5 scenarios

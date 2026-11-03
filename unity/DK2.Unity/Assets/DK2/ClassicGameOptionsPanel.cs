@@ -139,9 +139,9 @@ namespace DK2.Unity
             foreach (Image image in new[] { track, thumb })
             {
                 image.pickingMode = PickingMode.Position;
-                image.RegisterCallback<PointerDownEvent>(e => { if (e.button != 0) return; e.StopPropagation(); _dragging = true; image.CapturePointer(e.pointerId); set(e.position.x); });
+                image.RegisterCallback<PointerDownEvent>(e => { if (e.button != 0) return; e.StopPropagation(); _dragging = true; if (image == thumb) Model.Settings.BeginSliderDrag(widget.Setting.Value); image.CapturePointer(e.pointerId); set(e.position.x); });
                 image.RegisterCallback<PointerMoveEvent>(e => { if (image.HasPointerCapture(e.pointerId)) { e.StopPropagation(); set(e.position.x); } });
-                image.RegisterCallback<PointerUpEvent>(e => { _dragging = false; if (image.HasPointerCapture(e.pointerId)) image.ReleasePointer(e.pointerId); });
+                image.RegisterCallback<PointerUpEvent>(e => { _dragging = false; Model.Settings.EndSliderDrag(); if (image.HasPointerCapture(e.pointerId)) image.ReleasePointer(e.pointerId); });
             }
             left.pickingMode = right.pickingMode = PickingMode.Position;
             left.RegisterCallback<PointerDownEvent>(e => { if (e.button == 0) { e.StopPropagation(); Model.Settings.SetWidget(widget.Setting.Value, Model.Settings.Value(widget.Setting.Value) - 1); } });

@@ -97,7 +97,12 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         // State 1's handler runs on the next turn (ADR-0574).
         if (creature.Dk2StateId == PortalRules.JoiningState)
         {
+            // The sound is requested before the step off the hole (0x00459C73), at the position it still has.
+            var atTheHole = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
             if (PortalRules.StillJoining(world, creature, definition)) return;
+            // Only for the local player's creatures (+0x264): the owner is the one viewer that hears it.
+            ThingSoundRules.Request(context, SystemName, SoundSourceId.Of(new CreatureId(creature.Id)), definition.SoundCategory,
+                ThingSoundEvent.JoinedDungeon, atTheHole, viewerOnlyFor: creature.OwnerPlayerId);
             StateShadow.ToIdle(context, SystemName, creature);
             _seeker.TryGoForALair(context, SystemName, creature, definition);
             return;

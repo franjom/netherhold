@@ -133,10 +133,15 @@ public static class EggLaunchRules
     internal static int FloorHeight(WorldState world, GameDatabase database, Fp32 posX, Fp32 posY)
     {
         var at = new TilePos(posX.Raw >> 12, posY.Raw >> 12);
+        // Only a Hatchery's height needs the room itself (RoomAt floods it); the terrain says the rest, and a sound
+        // asks for a floor height every update of a rolling boulder.
+        byte terrainId = world.Tile(at).TerrainId;
+        RoomDef? definition = database.RoomByTerrain(terrainId);
+        if (definition is null) return database.TerrainById(terrainId).IsWater ? 0xA66 : 0x1000;
+        if (BridgeRules.IsBridge(definition)) return 0x1199;
+        if (definition.TypeId != RoomTypeId.Hatchery) return 0x1000;
         RoomInstance? room = RoomIndex.RoomAt(world, database, at.Y * world.Width + at.X);
-        if (room is null) return database.TerrainById(world.Tile(at).TerrainId).IsWater ? 0xA66 : 0x1000;
-        if (BridgeRules.IsBridge(room.Definition)) return 0x1199;
-        if (room.Definition.TypeId != RoomTypeId.Hatchery) return 0x1000;
+        if (room is null) return database.TerrainById(terrainId).IsWater ? 0xA66 : 0x1000;
         int mask = 0;
         int[] dx = [0, 1, 1, 1, 0, -1, -1, -1], dy = [-1, -1, 0, 1, 1, 1, 0, -1];
         for (int i = 0; i < 8; i++)

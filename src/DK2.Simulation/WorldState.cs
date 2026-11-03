@@ -1221,6 +1221,7 @@ public sealed class WorldState
         _objects.Add(instance);
         instance.LinkWorld = this;
         Relink(instance);
+        ObjectMade?.Invoke(instance);
         return instance;
     }
 
@@ -1233,6 +1234,7 @@ public sealed class WorldState
         for (int i = 0; i < _objects.Count; i++)
         {
             if (_objects[i].Id != id) continue;
+            ObjectRemoving?.Invoke(_objects[i]);
             _objects[i].LinkWorld = null;
             _objects[i].TileLink = ThingTileLink.None;
             _objects.RemoveAt(i);
@@ -1286,6 +1288,11 @@ public sealed class WorldState
     /// <summary>Called once by <see cref="EndGame"/> with the verdict it wrote; the simulation runs
     /// the win sequence from it, inside the same call as DK2's <c>0x004BE630</c> does.</summary>
     internal Action<PlayerId, byte>? GameEnded;
+
+    /// <summary>Called once an object is in the world (<c>Object_Init</c>, <c>0x0049B1C0</c>, whose sound requests
+    /// <see cref="ObjectSoundRules"/> makes) and just before one leaves it (<c>Object_OnDelete</c>,
+    /// <c>0x0049B5E0</c>). The simulation binds them; a world no simulation holds makes no sound.</summary>
+    internal Action<ObjectState>? ObjectMade, ObjectRemoving;
 
     /// <summary>Kind-11 pool insertion order and retained middle-slot holders, independent per keeper.</summary>
     public Dictionary<(PlayerId Player, TilePos Tile), SecretDoorTaskEntry> SecretDoorEntries { get; } = [];

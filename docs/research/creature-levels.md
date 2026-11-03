@@ -126,8 +126,8 @@ at0x0048B294–0x0048B2B6: every successful level increment requests effect339
 (0x153) through view slot+0x38C, after health rescaling and before the pit-cap
 state change. It passes the creature's owner word+0x28, position+0x1A and
 heading+0xF4. This is a point request, without creature attachment or an
-imp-specific branch. The level10/finished guards precede it. Sound0x349 is a
-separate subsequent request; this visual change does not implement sound.
+imp-specific branch. The level10/finished guards precede it. Sound 0x349 is a
+separate subsequent request, built later ([sound-effects.md section 13](sound-effects.md#13-level-up-the-reaper-and-the-silent-rows)).
 
 Shipped effect339, "Level up Effect", has generation type4, flags0x4480,
 HP32, count3 and generated ids554–557. Random-slot flag0x400 selects one of
