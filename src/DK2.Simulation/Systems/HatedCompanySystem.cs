@@ -15,7 +15,7 @@ namespace DK2.Simulation.Systems;
 /// <remarks>Deviation: DK2's phase is the room's id, <c>(turn + room+4) &amp; 31</c>; ours is the
 /// room's lowest tile index, because our rooms carry no id (ADR-0479).</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/binary-census.md")]
-public sealed class HatedCompanySystem : ISimulationSystem
+public sealed class HatedCompanySystem : IRoomTickStep
 {
     /// <summary>The step's period in turns, the handler's <c>&amp; 0x1F</c>.</summary>
     public const int PeriodTurns = 32;
@@ -32,10 +32,17 @@ public sealed class HatedCompanySystem : ISimulationSystem
     public static bool Applies(RoomTypeId? type) =>
         type is RoomTypeId.Library or RoomTypeId.TrainingRoom or RoomTypeId.GuardRoom or RoomTypeId.Workshop;
 
-    public void Execute(SimulationContext context)
+    private bool _active;
+    private int _delta;
+
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context)
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
+        _active = false;
+        _rooms.Clear();
 
         // One pass over the held places; rooms are built only when two alignments meet in them.
         _holders.Clear();
@@ -54,7 +61,6 @@ public sealed class HatedCompanySystem : ISimulationSystem
         if (!database.Variables.TryGet(
                 VariableTypeId.ModifyAngerInCompanyOfHatedCreaturesPerSecond, out int perSecond)) return;
 
-        _rooms.Clear();
         foreach (CreatureState c in _holders)
         {
             if (InKnownRoom(c)) continue;
@@ -62,23 +68,37 @@ public sealed class HatedCompanySystem : ISimulationSystem
             if (room is not null) _rooms.Add(room);
         }
 
+        _delta = perSecond * SecondsPerApplication;
+        _active = true;
+    }
+
+    public bool Applies(SimulationContext context, RoomInstance room) =>
+        _active && Applies(room.Definition.TypeId) && InKnownRoom(room);
+
+    public void Tick(SimulationContext context, RoomInstance room)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
         // DK2's turn is our tick plus one (ADR-0119).
         long turn = context.Tick.Value + 1;
-        int delta = perSecond * SecondsPerApplication;
-        foreach (RoomInstance room in _rooms)
+        if ((turn + room.TileIndices[0]) % PeriodTurns != 0 || !Mixed(database, room)) return;
+        foreach (CreatureState c in _holders)
         {
-            if ((turn + room.TileIndices[0]) % PeriodTurns != 0 || !Mixed(database, room)) continue;
-            foreach (CreatureState c in _holders)
-            {
-                if (!c.HeldPlace.In(room)) continue;
-                CreatureDef definition = database.CreatureById(c.CreatureTypeId);
-                if (definition.Flags.HasFlag(CreatureFlags.DoesntGetAngryWithEnemies)) continue;
-                int applied = CreatureAngerRules.Apply(
-                    world, definition, c, AngerBucket.Treatment, delta, AngerComplaint.HatedCompany);
-                context.Emit(Name, "angered",
-                    $"creature={c.Id} room={room.Definition.Name} delta={applied}");
-            }
+            if (!c.HeldPlace.In(room)) continue;
+            CreatureDef definition = database.CreatureById(c.CreatureTypeId);
+            if (definition.Flags.HasFlag(CreatureFlags.DoesntGetAngryWithEnemies)) continue;
+            int applied = CreatureAngerRules.Apply(
+                world, definition, c, AngerBucket.Treatment, _delta, AngerComplaint.HatedCompany);
+            context.Emit(Name, "angered",
+                $"creature={c.Id} room={room.Definition.Name} delta={applied}");
         }
+    }
+
+    private bool InKnownRoom(RoomInstance room)
+    {
+        foreach (RoomInstance known in _rooms)
+            if (known.TileIndices[0] == room.TileIndices[0]) return true;
+        return false;
     }
 
     private bool InKnownRoom(CreatureState c)

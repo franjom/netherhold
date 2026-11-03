@@ -86,6 +86,10 @@ public static class SimulationSystems
         new ShotSystem(),
         new BoulderSystem(), // objects (list 2) after shots (1), before traps (3)
         new ObjectMovementSystem(),
+        // The eggs', coops' and chickens' object steps, with the other objects (class list 2 of 0x004B7830, after the
+        // shots and before the traps) and so before the room walk, whose Hatchery lays afterwards (ADR-0634).
+        // Ours steps them after the boulder and the moving objects, not interleaved with them in DK2's list order.
+        new HatcherySystem(lays: false),
         new TrapSystem(), // after the shots, as DK2's class lists run shots (1) before traps (3)
         new ActionPointTriggerSystem(), // list 5, after creature work and before the player frame
         // The thing pass's second walk: whatever is dead now is removed this turn (0x004B7830).
@@ -145,18 +149,26 @@ public static class SimulationSystems
         new BridgeBurnSystem(),
     ];
 
-    /// <summary>DK2's room ticks (<c>0x004EC450</c>): each room type's handler and the health step,
-    /// after the creatures and before the players (ADR-0479). The Hatchery's laying stays in
-    /// <see cref="Needs"/>, whose system also runs the eggs and coops of the thing pass.</summary>
+    /// <summary>DK2's room ticks (<c>0x004EC450</c>): one walk over every room, newest first and all types
+    /// together, each room's handler, border step and health step before the next room's
+    /// (<see cref="RoomTickSystem"/>), after the creatures and before the players (ADR-0479, ADR-0634).
+    /// The steps are in the order one room takes them; a room's type picks its handler. The Hatchery's
+    /// laying is in the walk, its eggs' and coops' object steps are in the thing pass. The Dungeon
+    /// Heart handler (<c>0x004D9A60</c>) is in the walk whole; the player frame's tail it shares a system with
+    /// stays at the tick's end.</summary>
     private static ISimulationSystem[] RoomTicks() =>
     [
-        new StoreSweepSystem(), // the Treasury's handler and the Heart's: loose gold goes in every 16th turn
-        new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
-        new CasinoSystem(), // the Casino's handler: the party, and the gold settled at the lever every four seconds (ADR-0188)
-        new PortalSystem(), // the Portal's handler
-        new HatedCompanySystem(), // the Library, Training Room, Guard Room and Workshop handlers' shared step
-        new RoomBorderFlameSystem(), // the room tick's border flames (0x004E7CD0), before its health step
-        new RoomHealthSystem(), // the room tick's health step (0x004E4B00)
+        new RoomTickSystem(
+            new StoreSweepSystem(), // the Treasury's handler and the Heart's: loose gold goes in every 16th turn
+            new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
+            new HeartFrameStep(), // the rest of the Heart's handler (0x004D9A60): the opening, regeneration and ruin
+            new CasinoSystem(), // the Casino's handler: the party, and the gold settled at the lever every four seconds (ADR-0188)
+            new PortalSystem(), // the Portal's handler
+            new HatcheryLayStep(), // the Hatchery's handler, its egg (0x004DE0A0), and the coops ours places in its stead
+            new HatedCompanySystem(), // the Library, Training Room, Guard Room and Workshop handlers' shared step
+            new WorkshopTimerSystem(), // the Workshop handler's four effect timers, which draw the world stream (workshop-timers.md)
+            new RoomBorderFlameSystem(), // the room tick's border flames (0x004E7CD0), before its health step
+            new RoomHealthSystem()), // the room tick's health step (0x004E4B00)
     ];
 
     /// <summary>DK2's player frame: mana, imps and research, after every change of ownership this
@@ -181,8 +193,6 @@ public static class SimulationSystems
     /// in each creature's update (<see cref="ThingPass"/>).</summary>
     private static ISimulationSystem[] Needs() =>
     [
-        // Laying, once a game second (ADR-0066).
-        new HatcherySystem(),
         new ObjectReactionSystem(),
 
         // Health, prison: one asleep this tick heals this second; health settles damage before
@@ -210,7 +220,7 @@ public static class SimulationSystems
     /// <summary>The level's verdict, then the world's own records.</summary>
     private static ISimulationSystem[] Verdict() =>
     [
-        new DungeonHeartSystem(), // verdict is the last thing DK2's player frame does
+        new DungeonHeartSystem(frames: false), // verdict is the last thing DK2's player frame does
         new TremorSystem(), // world records after the entity and player passes
     ];
 }

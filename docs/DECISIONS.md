@@ -14728,6 +14728,46 @@ update, so with two keepers its order may be angle, angle, heading, heading (unr
 A free imp spends its fall in 214, then 11 and 10, before choosing work. The test fixtures'
 Heart sits in a claimed 5 by 5, as a shipped Heart does. Whether the fall is Q149's 1.4 s is
 unmeasured.
+## ADR-0634: the Workshop's four effect timers draw the world stream
+
+**Date:** 2026-11-02. **Status:** accepted. Q733; hash/save 385.
+
+**Context.** DK2's Workshop handler (`0x004F4B20`) counts four effect timers down each turn. At zero
+each reloads with `random(16 x ticks) + 8 x ticks` on the world stream, then, whether or not an effect is
+asked for, draws again to pick a floor slot, a wall slot or a Steel Bucket, and plays an effect (steam 50,
+lava spill, smoke 51, lava bubbling 93) with a sound for three of them. The room constructor (`0x004F4A60`)
+draws `random(4 x ticks)` four times as a room is made. Ours drew none of it, so our stream was shorter than
+DK2's on every level with a Workshop; the census had one timer too few and no constructor. Owner,
+2026-11-02: port the timers ([workshop-timers.md](research/workshop-timers.md)).
+
+**Decision.** `WorkshopTimerSystem`, in the room-tick phase after the hated-company step, runs
+`WorkshopTimerRules.Tick` on each Workshop, newest first as DK2's room manager walks (`0x004EC490` links at
+the head), in the handler's order: steam, lava spill, smoke, lava bubbling. The four countdowns are
+`TileState` fields on the room's lowest tile, kept as the Hatchery's stamp is: `SlabChain.Added` keeps the
+first neighbour's room's, `Removed` constructs each piece anew. The constructor's draws are made where a
+tile starts a room, for each piece a sale leaves, and as the simulation starts for the map's own rooms
+(`RoomLists.Initialize` records them, a merged room included). `RoomDef` gains the two effect ids at file
+`0x388` and `0x38A`. The effects are requests; the sounds (`0x2E9`, `0x2E8`) are one-line comments at their
+three sites for the sound branch.
+
+**Room walk (owner, 2026-11-02).** A Treasury's per-turn draw depends on its values, so running the
+per-type systems in turn would have split the stream from DK2's for good wherever an older Treasury met a Workshop.
+`RoomTickSystem` replaces the room-tick phase's systems with one walk over every room, newest first (`0x004EC450`,
+`0x004EC490`), each room's handler, border step and health step before the next room's. The systems became its
+`IRoomTickStep`s with their rules unchanged and still run alone. The Hatchery's lay and the Heart handler's
+frame moved into the walk; the eggs', coops' and chickens' object steps end the thing pass, which DK2 runs
+before the rooms. A portal now counts its keeper's creatures and capacity live on every pick, as `0x004DBF90`
+does, so a second ripe portal sees the first's arrival. Mapping: workshop-timers.md section 8.
+
+**Consequences.** A Workshop draws 4 at its start and 4 to 8 more at every reload. Deviations: a captured room
+takes a new list position, where DK2's manager list does not move it; coops are placed once a second by
+ours, with no draw, where Room_Rebuild places them at room change with one draw each (`0x004DE220`); the
+furniture list lacks the Workshop
+Pillars; the lava-spill effect sits at the object's floor position, not its unread mesh point (the owner is the
+object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not (Q733). The Torture
+Chamber, Temple, Graveyard, Combat Pit and hero gate handlers draw the world stream too and are not built.
+Hash/save 385: sixteen bytes a tile. No scenario moved and no fixture holds a Workshop, so the pin moved only
+with the version.
 
 
 ## ADR-0635: a Create Imp makes its imp through its shot

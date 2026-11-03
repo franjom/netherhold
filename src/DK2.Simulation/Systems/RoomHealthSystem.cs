@@ -13,24 +13,25 @@ namespace DK2.Simulation.Systems;
 /// <remarks>Deviation, for data that sets a gain only: DK2 skips the step on a tick the room
 /// type's slot <c>+0x15</c> handler returns 0, which is not read for every type.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-health.md")]
-public sealed class RoomHealthSystem : ISimulationSystem
+public sealed class RoomHealthSystem : IRoomTickStep
 {
     private GameDatabase? _checked;
     private bool _anyGain;
 
     public string Name => "RoomHealth";
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context)
     {
         GameDatabase database = context.Database;
-        if (!ReferenceEquals(_checked, database))
-        {
-            _checked = database;
-            _anyGain = database.Rooms.Values.Any(r => r.HealthGain != 0);
-        }
-        if (!_anyGain) return;
-
-        foreach (RoomInstance room in RoomIndex.Build(context.World, database))
-            RoomHealthRules.Regenerate(context.World, database, room);
+        if (ReferenceEquals(_checked, database)) return;
+        _checked = database;
+        _anyGain = database.Rooms.Values.Any(r => r.HealthGain != 0);
     }
+
+    public bool Applies(SimulationContext context, RoomInstance room) => _anyGain;
+
+    public void Tick(SimulationContext context, RoomInstance room) =>
+        RoomHealthRules.Regenerate(context.World, context.Database, room);
 }

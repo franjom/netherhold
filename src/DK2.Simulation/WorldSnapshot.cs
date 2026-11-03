@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 386;
+    private const int FormatVersion = 387;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -183,6 +183,10 @@ public static class WorldSnapshot
             w.Write(t.CasinoPartyStartTick);
             w.Write(t.PrisonDoor);
             w.Write(t.PrisonDoorAnimationTick);
+            w.Write(t.WorkshopSteamTimer);
+            w.Write(t.WorkshopLavaSpillTimer);
+            w.Write(t.WorkshopSmokeTimer);
+            w.Write(t.WorkshopLavaBubblingTimer);
             w.Write(t.SlabOrder);
             w.Write(t.RoomListPosition.Value);
             w.Write(t.RoomSizeChangedTick);
@@ -928,7 +932,7 @@ public static class WorldSnapshot
         var gameMode = (GameMode)r.ReadByte();
         var activePlayerOrder = new PlayerId[SaveReader.Count(r, "active players", 1, byte.MaxValue + 1)];
         for (int i = 0; i < activePlayerOrder.Length; i++) activePlayerOrder[i] = new PlayerId(r.ReadByte());
-        int tileCount = SaveReader.Count(r, "tileCount", 109);
+        int tileCount = SaveReader.Count(r, "tileCount", 125);
         if (tileCount != (long)width * height)
             throw SaveReader.Error(r, SaveIncompatibleReason.Corrupt,
                 $"Snapshot claims {width}x{height} but carries {tileCount} tiles.");
@@ -955,6 +959,10 @@ public static class WorldSnapshot
                 CasinoPartyStartTick = r.ReadInt64(),
                 PrisonDoor = r.ReadByte(),
                 PrisonDoorAnimationTick = r.ReadInt64(),
+                WorkshopSteamTimer = r.ReadInt32(),
+                WorkshopLavaSpillTimer = r.ReadInt32(),
+                WorkshopSmokeTimer = r.ReadInt32(),
+                WorkshopLavaBubblingTimer = r.ReadInt32(),
                 SlabOrder = r.ReadInt32(),
                 RoomListPosition = new RoomListPosition(r.ReadInt64()),
                 RoomSizeChangedTick = r.ReadInt64(),

@@ -19,7 +19,7 @@ namespace DK2.Simulation.Systems;
 /// player's heart, not the room's <c>+0x9A</c>; a willing torturee is not kicked to 135 first
 /// (ADR-0400); the job is let go as the alarm's responders do.</remarks>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-alarm.md")]
-public sealed class HeartDefenceSystem : ISimulationSystem
+public sealed class HeartDefenceSystem : IRoomTickStep
 {
     /// <summary>The update's period in turns.</summary>
     public const int PeriodTurns = 4;
@@ -30,33 +30,34 @@ public sealed class HeartDefenceSystem : ISimulationSystem
 
     public string Name => "heart defence";
 
-    public void Execute(SimulationContext context)
+    private bool _dispatches;
+    private int _reporting, _gathering;
+
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context)
     {
         // DK2's turn is ours' tick plus one (ADR-0119).
-        if ((context.Tick.Value + 1 + RoomIdPhase) % PeriodTurns != 0) return;
-
-        WorldState world = context.World;
-        GameDatabase database = context.Database;
+        _dispatches = (context.Tick.Value + 1 + RoomIdPhase) % PeriodTurns == 0;
+        if (!_dispatches) return;
         // A table without the two radii (a test fixture) has no dispatch.
-        if (!database.Variables.TryGet(VariableTypeId.DungeonHeartReportingDistanceTiles, out int reporting)
-            || !database.Variables.TryGet(VariableTypeId.DungeonHeartCreatureGatheringDistanceTiles, out int gathering))
-            return;
-        List<RoomInstance>? rooms = null;
+        GlobalVariables variables = context.Database.Variables;
+        _dispatches = variables.TryGet(VariableTypeId.DungeonHeartReportingDistanceTiles, out _reporting)
+            && variables.TryGet(VariableTypeId.DungeonHeartCreatureGatheringDistanceTiles, out _gathering);
+    }
 
-        for (int p = 0; p < world.PlayerCount; p++)
-        {
-            ref PlayerState owner = ref world.PlayerAtIndex(p);
-            if (!PlayerIds.IsKeeper(owner.PlayerId.Value) || owner.HeartRuined) continue;
-            PlayerId ownerId = owner.PlayerId;
-            rooms ??= RoomIndex.Build(world, database).ToList();
-            foreach (RoomInstance room in rooms)
-            {
-                if (room.OwnerPlayerId != ownerId || room.Definition.TypeId != RoomTypeId.DungeonHeart) continue;
-                int x = CreatureState.CentreOf(room.CentreFieldX), y = CreatureState.CentreOf(room.CentreFieldY);
-                CreatureState? intruder = Intruder(world, ownerId, x, y, reporting * reporting * Fp32.One);
-                if (intruder is not null) Gather(context, ownerId, x, y, gathering * gathering * Fp32.One, intruder);
-            }
-        }
+    public bool Applies(SimulationContext context, RoomInstance room) =>
+        _dispatches && room.Definition.TypeId == RoomTypeId.DungeonHeart
+        && PlayerIds.IsKeeper(room.OwnerPlayerId) && context.World.HasPlayer(room.OwnerPlayerId)
+        && !context.World.Player(room.OwnerPlayerId).HeartRuined;
+
+    public void Tick(SimulationContext context, RoomInstance room)
+    {
+        WorldState world = context.World;
+        PlayerId ownerId = new(room.OwnerPlayerId);
+        int x = CreatureState.CentreOf(room.CentreFieldX), y = CreatureState.CentreOf(room.CentreFieldY);
+        CreatureState? intruder = Intruder(world, ownerId, x, y, _reporting * _reporting * Fp32.One);
+        if (intruder is not null) Gather(context, ownerId, x, y, _gathering * _gathering * Fp32.One, intruder);
     }
 
     /// <summary>The first attackable creature of an enemy of the owner within the radius, players

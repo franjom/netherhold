@@ -188,6 +188,28 @@ public static class AutoFurnitureRules
         return at < 0 ? -1 : sides[at];
     }
 
+    /// <summary>The wall slots in chain order, each with its side (<c>0x004E8210</c>'s walk with only its
+    /// wall flag, which counts and indexes them in the slab chain's order).</summary>
+    public static (int Tile, int Side)[] WallSlotsInChainOrder(WorldState world, GameDatabase database, RoomInstance room)
+    {
+        var slots = new List<int>();
+        var sides = new List<int>();
+        WallSlots(world, database, room, new HashSet<int>(room.TileIndices), slots, sides);
+        var result = new (int Tile, int Side)[slots.Count];
+        for (int i = 0; i < result.Length; i++) result[i] = (slots[i], sides[i]);
+        return result;
+    }
+
+    /// <summary>The floor slots in chain order (<c>0x004E8210</c>'s walk with only its floor flag).</summary>
+    public static int[] FloorSlotsInChainOrder(WorldState world, RoomInstance room)
+    {
+        HashSet<int> slots = FloorSlotSet(world, room);
+        var ordered = new List<int>(slots.Count);
+        foreach (int tile in SlabChain.Order(world, room))
+            if (slots.Contains(tile)) ordered.Add(tile);
+        return [.. ordered];
+    }
+
     private static void WallSlots(
         WorldState world, GameDatabase database, RoomInstance room, HashSet<int> roomTiles, List<int> slots,
         List<int>? sides)

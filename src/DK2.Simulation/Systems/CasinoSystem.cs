@@ -18,7 +18,7 @@ namespace DK2.Simulation.Systems;
 /// the rest, as far as the keeper has it. So a generous Casino costs its keeper a coin a second
 /// a gambler, and a stingy one leaves its takings beneath the lever for an imp to fetch.</remarks>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/state-category-hooks.md")]
-public sealed class CasinoSystem : ISimulationSystem
+public sealed class CasinoSystem : IRoomTickStep
 {
     private const string SystemName = "Casino";
 
@@ -26,21 +26,27 @@ public sealed class CasinoSystem : ISimulationSystem
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    private bool _settles, _runs;
+
+    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+
+    public void BeginTurn(SimulationContext context)
     {
         // The room update 0x004D6270: the jackpot party's part every turn, then, with no party on at
         // the turn's start, the settlement.
         long period = (long)CasinoRules.SettlementSeconds * SimulationTiming.TicksPerSecond;
-        bool settles = (context.Tick.Value + 1) % period == 0;
-        WorldState world = context.World;
-        if (!settles && !AnyParty(world)) return;   // the room scan is a flood fill; most turns need none
-        foreach (RoomInstance room in RoomIndex.Build(world, context.Database))
-        {
-            if (room.Definition.TypeId != RoomTypeId.Casino || room.TileIndices.Count == 0) continue;
-            if (CasinoJackpotRules.RoomUpdate(context, SystemName, room)) continue;
-            if (!settles || CasinoRules.Lever(world, room) is not { } lever) continue;
-            Settle(context, room, lever);
-        }
+        _settles = (context.Tick.Value + 1) % period == 0;
+        _runs = _settles || AnyParty(context.World);   // most turns need no room at all
+    }
+
+    public bool Applies(SimulationContext context, RoomInstance room) =>
+        _runs && room.Definition.TypeId == RoomTypeId.Casino && room.TileIndices.Count != 0;
+
+    public void Tick(SimulationContext context, RoomInstance room)
+    {
+        if (CasinoJackpotRules.RoomUpdate(context, SystemName, room)) return;
+        if (!_settles || CasinoRules.Lever(context.World, room) is not { } lever) return;
+        Settle(context, room, lever);
     }
 
     /// <summary>Whether a Casino has a party or its music still on: only then does the room update act
