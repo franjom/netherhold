@@ -234,14 +234,29 @@ verifies 38 study and 26 build entries; the build has the same basename under
 `F:/DK2Evidence/builds/`. This is partial route-input restoration, not full
 native-body parity or evidence of a generic steering defect.
 
-One earlier deterministic difference is category experience (Q734): hero 436
-matches state, target and XY on completed 1571-1589, with equal XP through 1588.
-On 1589 both leave 199 for 1, but native gains 37 (703 total) and 390 gains 0 (666).
-The category hook 0047A870 runs before the state handler in 00476FC0; the remake
-instead awards through a global last promotion sweep, losing the exit award.
-This ordering gap remains unimplemented in 390; aggregate Q712 impact is not
-established. Raw native rows, paired observer rows and hashes:
-`F:/DK2Evidence/studies/q712-combat-xp-boundary-h390--2026-11-03--001/`.
+The historical 390 control also isolates the [Q734 combat-experience ordering
+boundary](combat-experience-order.md#captured-control). Its pre-edit XP rows,
+binary scope and verified 391 correction are recorded there; the 390
+state/pose prefixes above remain distinct from any later corrected control.
+
+### Actual hash-391 partial inputs (Q719)
+
+The actual-391 worker-action control reuses declared pool/list/door/navigation
+inputs with ordinary action-7 restoration, without future work delays or a wall
+pulse. Its [XP and hero-prefix result](combat-experience-order.md#corrected-control-at-hash-391)
+is recorded with the bounded Q734 correction; historical 390 prefixes above
+retain their own scope.
+
+A separate [active-route restoration](F:/DK2Evidence/studies/q712-active-route-resume-h391--2026-11-03--001/)
+supplies captured modeled persistent steering fields for all three qualifying
+native worker trips, tags 443/445/454, after state/resume/task guards. Five
+off-control hashes match the actual-391 control. With the intervention, XY
+matches through 1458/1416/1422 and state through 1471/1496/1497 respectively,
+but the hero first differs earlier at 1613. Independent review verifies
+38 study and 26 matching build entries (same basename under
+`F:/DK2Evidence/builds/`). No future timing or production change is supplied;
+other action/route/cache inputs remain partial. This is not full native-body
+parity or proof of a generic steering defect, and it does not close Q712/Q719.
 
 ### Facing input boundary (Q719)
 

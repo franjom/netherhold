@@ -93,7 +93,7 @@ from `DK2.Data`; `DK2.Assets` has no Data dependency. The `.csproj` references a
 order is part of the simulation's definition: two systems touching the same state
 in a different order are a different game. The sequence is the list in that method
 and is not copied here; it is built from named phases (`Commands`, `RoomLifecycle`,
-`KeeperActions`, `ThingPass`, `Work`, `RoomTicks`, `PlayerFrame`, `Needs`, `Promotion`,
+`KeeperActions`, `ThingPass`, `Work`, `RoomTicks`, `PlayerFrame`, `Needs`,
 `Verdict`) that only label stretches of the one list. Before the systems,
 `GameSimulation.Tick` acknowledges and sweeps player messages, counts down the
 level time limit and walks world/party roots. Creature roots follow their own
@@ -109,9 +109,11 @@ resolves on that tick, so nothing survives a tick boundary half-done; mana is
 paid after everything that could change what a keeper owns, and the free imp after
 the mana it spends (a bought imp's shot is cast with the keeper actions, before the thing pass, so its imp comes the same turn); hunger is asked before tiredness and pay after both, which is
 the order the original's own needs routine has; the prison settles a captive's
-second alone, so exactly one system does; experience is the last creature system, so
-nothing that died or walked out this second is promoted on the way through the door;
-the level's verdict (`DungeonHeartSystem`) and the world's own records come after it.
+second alone, so exactly one system does. Combat experience now belongs to each
+creature's category-update boundary after acquisition and before travel/needs/
+handlers (ADR-0640; [scope](research/combat-experience-order.md)); work experience
+remains with each work hit. The level's verdict (`DungeonHeartSystem`) and the
+world's own records finish the top-level sequence.
 
 **DK2's top-level frame is read; most of our order within it is not.** DK2's per-turn
 update runs the thing pass, then every room's tick, then every player's frame

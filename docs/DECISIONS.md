@@ -14907,3 +14907,21 @@ or helper action cancellation, returning the resume transition result.
 hash/save versions advance together without adding a saved field. Tests
 must fail against unchanged 389 source. Q712 closure depends on measured
 outcomes and matched inputs, not on this correction alone.
+
+## ADR-0640: award combat experience before each creature's state handler
+
+**Date:** 2026-11-03. **Status:** accepted. Q734; hash/save 391.
+
+**Context.** The global-last award loses experience when a combat handler
+leaves 199/200 and pays too early when an approach handler enters 199. Native
+category update precedes the handler, and promotion can affect that handler
+and later creatures. [Evidence and pre-edit inventory](research/combat-experience-order.md).
+
+**Decision.** Run the existing gated award after acquisition inside each
+creature's update, before travel/needs/handlers. Remove the default global
+promotion phase. Standalone execution follows creature update order; custom
+hosts still declare where the step runs. Keep work-hit awards and adder math.
+
+**Consequences.** No saved field is added. Hash/save and the determinism pin
+advance together. Tests must fail on unchanged 390 source. Q499 suspension,
+Q719 inputs and aggregate Q712 parity remain outside this bounded correction.

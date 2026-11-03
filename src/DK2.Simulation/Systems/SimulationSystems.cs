@@ -24,7 +24,6 @@ public static class SimulationSystems
         .. RoomTicks(),
         .. PlayerFrame(),
         .. Needs(),
-        .. Promotion(),
         .. Verdict(),
     ];
 
@@ -117,6 +116,7 @@ public static class SimulationSystems
             new CreatureStatusSystem(), // 0x0048957D: timed effects before this creature's action and fight
             workers.Prelude, // reinforcement's gold block precedes its action poll (0048904E/00489A68)
             combat, // the action runner, the fight scan and the fear radiation
+            new CreatureExperienceSystem(), // 00476FC0 category update, before needs and the state handler
             new TravelArrivalSystem(), // the travel states' progress-1.0 stop, ahead of every handler (Q724)
             // The needs routine: hunger, then sleep, then pay (creature-needs-routine.md §3).
             new CreatureEatSystem(),
@@ -211,12 +211,6 @@ public static class SimulationSystems
         // original (ADR-0073, ADR-0074).
         new PrisonerEatSystem(),
         new PrisonerWanderSystem(),
-    ];
-
-    /// <summary>Experience last: nothing that died or left is promoted (Q124).</summary>
-    private static ISimulationSystem[] Promotion() =>
-    [
-        new CreatureExperienceSystem(),
     ];
 
     /// <summary>The level's verdict, then the world's own records.</summary>
