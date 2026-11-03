@@ -9,13 +9,13 @@ buffers or any other heap the full-state captures leave out can run on the game'
 
     python -I process_dump.py <pid> <out.mem.z>        (elevated, to open the game)
 
-The process is suspended for the dump, so every region comes from one moment, and resumed
-after. Private memory and the writable sections of mapped images are taken; read-only image
-pages, guard pages and anything over 64 MB in one region (texture memory) are left out, and
-nothing above 0x7FFF0000 (DKII.EXE is not large-address-aware). A region that cannot be read
-whole keeps what was read and is counted. The recorder (reverse-engineering/dk2record.py
---dump-ticks) calls dump() at chosen ticks; the game stands still meanwhile, so a recording
-with dumps is not a timing run.
+The 64-bit Windows tool suspends an i386 WOW64 process and reads every committed readable
+region across its complete 32-bit address domain, including mapped/read-only/large regions.
+Guard, no-access and uncommitted pages are not readable. Query or read failures abort; none
+are silently treated as a complete dump. The output uses exclusive creation and the process
+is resumed even after failure. Prefer record_native.py for verified turn boundaries, complete
+per-turn data, address/provenance manifests and automatic seed/map controls. This low-level
+single image is a stopped-process read window, not a wall-clock performance measurement.
 """
 import ctypes
 import ctypes.wintypes as wt
@@ -23,6 +23,10 @@ import struct
 import sys
 import time
 import zlib
+from pathlib import Path
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 PROCESS_VM_READ, PROCESS_QUERY_INFORMATION, PROCESS_SUSPEND_RESUME = 0x0010, 0x0400, 0x0800
 MEM_COMMIT, MEM_PRIVATE, MEM_IMAGE = 0x1000, 0x20000, 0x1000000
@@ -38,18 +42,9 @@ class MEMORY_BASIC_INFORMATION(ctypes.Structure):
 
 
 def regions(handle, k32):
-    """(address, size) of every page range worth taking, lowest first."""
-    info = MEMORY_BASIC_INFORMATION()
-    address = 0x10000
-    while address < 0x7FFF0000:
-        if not k32.VirtualQueryEx(handle, ctypes.c_void_p(address), ctypes.byref(info), ctypes.sizeof(info)):
-            break
-        size = info.RegionSize
-        protect = info.Protect
-        if (info.State == MEM_COMMIT and not protect & (PAGE_NOACCESS | PAGE_GUARD) and size <= LARGEST
-                and (info.Type == MEM_PRIVATE or info.Type == MEM_IMAGE and protect & WRITABLE)):
-            yield address, size
-        address += size
+    """Every readable committed region in the complete 32-bit address domain."""
+    from decision_boundary import stopped_regions
+    yield from stopped_regions(handle, k32)
 
 
 def dump(pid, path, while_suspended=None):
@@ -57,6 +52,8 @@ def dump(pid, path, while_suspended=None):
     dump is named for the tick it holds), writes the image, resumes. Returns a dict: regions,
     bytes, short (regions read only in part or not at all), seconds suspended, and what
     while_suspended returned. Raises if the process cannot be suspended or resumed."""
+    if Path(path).exists():
+        raise FileExistsError(path)
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
     ntdll = ctypes.WinDLL("ntdll")
     k32.OpenProcess.restype = wt.HANDLE
@@ -69,8 +66,15 @@ def dump(pid, path, while_suspended=None):
         raise OSError(f"OpenProcess({pid}) failed ({ctypes.get_last_error()}); run elevated")
     count = total = short = 0
     seen = None
-    packer = zlib.compressobj(6)
+    packer = zlib.compressobj(1)
     try:
+        k32.IsWow64Process2.argtypes = [wt.HANDLE, ctypes.POINTER(wt.WORD), ctypes.POINTER(wt.WORD)]
+        k32.IsWow64Process2.restype = wt.BOOL
+        process_machine, native_machine = wt.WORD(), wt.WORD()
+        if not k32.IsWow64Process2(handle, ctypes.byref(process_machine), ctypes.byref(native_machine)):
+            raise OSError('Cannot establish the target address width')
+        if process_machine.value != 0x14C:
+            raise ValueError('This complete-memory profile requires an i386 WOW64 target')
         status = ntdll.NtSuspendProcess(wt.HANDLE(handle))
         if status:
             raise OSError(f"NtSuspendProcess failed (0x{status & 0xFFFFFFFF:08X}); no dump taken")
@@ -78,17 +82,18 @@ def dump(pid, path, while_suspended=None):
         try:
             if while_suspended is not None:
                 seen = while_suspended()
-            with open(path, "wb") as out:
+            with open(path, "xb") as out:
                 for address, size in list(regions(handle, k32)):
-                    buffer = ctypes.create_string_buffer(size)
-                    got = ctypes.c_size_t(0)
-                    if not k32.ReadProcessMemory(handle, ctypes.c_void_p(address), buffer, size, ctypes.byref(got))                             or got.value != size:
-                        short += 1
-                        if not got.value:
-                            continue
-                    out.write(packer.compress(struct.pack("<II", address, got.value) + buffer.raw[:got.value]))
+                    out.write(packer.compress(struct.pack('<II', address, size)))
+                    for offset in range(0, size, 65536):
+                        length = min(65536, size - offset)
+                        buffer = ctypes.create_string_buffer(length)
+                        got = ctypes.c_size_t()
+                        if not k32.ReadProcessMemory(handle, ctypes.c_void_p(address + offset), buffer, length, ctypes.byref(got)) or got.value != length:
+                            raise OSError(f'Incomplete process memory at {address + offset:08X}: {got.value} of {length}')
+                        out.write(packer.compress(buffer.raw[:length]))
                     count += 1
-                    total += got.value
+                    total += size
                 out.write(packer.flush())
         finally:
             status = ntdll.NtResumeProcess(wt.HANDLE(handle))
@@ -101,6 +106,13 @@ def dump(pid, path, while_suspended=None):
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] in (['--help'], ['-h']):
+        print(__doc__)
+        sys.exit(0)
+    output = Path(sys.argv[2]).resolve()
+    evidence = Path('F:/DK2Evidence').resolve()
+    if not output.is_relative_to(evidence) or output == evidence:
+        sys.exit('Output must be a new file beneath F:/DK2Evidence')
     d = dump(int(sys.argv[1]), sys.argv[2])
     print(f"{d['regions']} regions ({d['short']} short), {d['bytes'] / 1e6:.1f} MB, "
           f"suspended {d['seconds']:.2f} s -> {sys.argv[2]}")

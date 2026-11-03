@@ -131,7 +131,7 @@ from standalone 365; the frozen provisional-363 studies below do not measure it.
 The completed full suite passes 4,270 Simulation and 1,413
 Presentation cases. Behavior passes 510, skips 5 and retains the one known
 Level 18 failure; the other projects pass. Q712/Q713/Q714 remain open; the later
-[phase correction and 366/367 measurements](fight-scan-initial-phase.md#matched-outcomes-366-and-367)
+[phase correction and 366/367 measurements](fight-scan-initial-phase.md#matched-outcomes-366-through-370)
 build Q718 and test the later integrated versions.
 
 ## Matched results against 362
@@ -147,8 +147,9 @@ The build's `source-metadata-amendment.json` records three later portal coverage
 reason-string changes; `production-version-amendment.json` records the 365
 version rebump and verifies identical gameplay.
 
-Hero 439 follows the native 269/210/263/264/idle transition ticks exactly in all
-five seed 2 generators, through 1535. Post-reveal height, previous height and
+On legacy header alignment, hero 439 follows the captured 269/210/263/264/idle
+transition labels in all five seed 2 generators through 1535. These historical
+controls do not establish [executed-turn parity](packet-playback-clock.md). Post-reveal height, previous height and
 draw state agree in the zero-floor representation. A regression caught and
 fixed previous-Z retention after landing before the final runs. The first
 later combat decision still differs: native scans at 1536, whereas the gen 101

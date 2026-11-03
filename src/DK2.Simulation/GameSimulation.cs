@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -21,7 +21,7 @@ namespace DK2.Simulation;
 /// </remarks>
 public sealed class GameSimulation
 {
-    private const ulong HashVersion = 385;
+    private const ulong HashVersion = 390;
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
@@ -182,6 +182,9 @@ public sealed class GameSimulation
         _context.TremorMoodDispatchedThisTick.Clear();
         _context.AngryChooserRanThisTick.Clear();
         _context.IdledByCombatHandlerThisTick.Clear();
+        _context.ReinforcementActionsPolledThisTick.Clear();
+        _context.WorkerPreludeProcessedThisTick.Clear();
+        _context.WorkerPreludeClaimedThisTick.Clear();
         _context.TremorRebellionStartedThisTick.Clear();
 
         // Close the previous turn's observation window before this turn's producers.

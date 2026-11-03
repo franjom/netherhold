@@ -147,25 +147,29 @@ public sealed class LairSeeker
             return false;
         }
 
-        int chosenArrival = LairRules.ArrivalTile(world, chosen);
-        if (!context.Navigation.TryRoute(creature, new TilePos(chosenArrival % world.Width, chosenArrival / world.Width), Navigation.MoveOptions.Spot))
-            return false;
-        creature.TimerTicks = 0;
-
-        // The attempt calls the room helper with 80, from idle or from 80 itself when a
-        // room had nothing left (0x0046F422, 0x0046F7EB); already inside is 1, then 80.
-        if (creature.IsRouted)
+        int target;
+        bool accepted;
+        int here = creature.Tile.Y * world.Width + creature.Tile.X;
+        // 00471A70 takes its inside-room shortcut before drawing a point or ending an action.
+        if (world.Contains(creature.Tile) && chosen.Contains(here))
         {
-            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToRoom, LairRules.MakingAHomeState);
+            target = here;
+            StateShadow.Move(context, systemName, creature, CreatureStateMachine.Idle);
+            accepted = StateShadow.TryMove(context, systemName, creature, LairRules.MakingAHomeState);
         }
         else
         {
-            StateShadow.Move(context, systemName, creature, CreatureStateMachine.Idle);
-            StateShadow.Move(context, systemName, creature, LairRules.MakingAHomeState);
+            // 0046F422 supplies E8; 00471AE8 obtains one random room point through 004E4C10.
+            if (RoomWalkRules.ArrivalTile(context, chosen) is not int point) return false;
+            target = point;
+            if (!context.Navigation.TryRoute(creature, new TilePos(target % world.Width, target / world.Width), Navigation.MoveOptions.ExactSpot))
+                return false;
+            creature.TimerTicks = 0;
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToRoom, LairRules.MakingAHomeState);
+            accepted = true;
         }
 
         TilePos centre = LairRules.CentreTile(chosen);
-        int target = LairRules.ArrivalTile(world, chosen);
         context.Emit(systemName, "lair_sought",
             $"creature={creature.Id} type={definition.Name} " +
             $"player={creature.OwnerPlayerId} at=({creature.Tile.X},{creature.Tile.Y}) " +
@@ -173,6 +177,6 @@ public sealed class LairSeeker
             $"free={LairRules.Capacity(chosen) - LairRules.Occupied(world, database, chosen)} " +
             $"to=({target % world.Width},{target / world.Width}) steps={_route.Count} " +
             $"{(preferred ? "preferred" : "fallback")} candidates={candidates.Count}");
-        return true;
+        return accepted;
     }
 }

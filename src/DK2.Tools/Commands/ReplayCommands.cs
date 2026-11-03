@@ -383,7 +383,7 @@ internal static class ReplayCommands
                 case "--tiles":
                     tilePath = value;
                     break;
-                case "--packet-offset" when int.TryParse(value, out int offset) && offset >= 0:
+                case "--packet-offset" when int.TryParse(value, out int offset) && offset >= 1:
                     packetOffset = offset;
                     break;
                 case "--packet":
@@ -505,7 +505,7 @@ internal static class ReplayCommands
                 if (arguments[2] != "-" || roomPath is not null)
                     throw new InvalidDataException("Packet replay requires tags path - and no --rooms input.");
                 if (packetOffset is not int start)
-                    throw new InvalidDataException("Packet replay requires --packet-offset for the verified first record (69 for the Level 1 capture).");
+                    throw new InvalidDataException("Packet replay requires --packet-offset for the first stamped header (normally 69); that record executes on playback turn 1.");
                 packet = PacketLog.Read(packetPath, turns, start);
                 entityIds = PacketEntityMap.Read(entityMapPath);
                 string[] unmapped = [.. packet.EntityReferences
@@ -622,7 +622,8 @@ internal static class ReplayCommands
             + "--packet recording.sav --packet-offset N [--entity-map ids.csv] [--turns N] "
             + "[--tiles tiles.csv] [--creatures creatures.csv] [--events events.tsv] [--jobs jobs.csv] "
             + "[--rng dk2|xoshiro] [--seed N] [--seeds seeds.csv] "
-            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv] [--resync-skip part,...] [--births creature-map.csv]] [--blueprints retry] [--pickups stored]");
+            + "[--resync tick.json --resync-at N [--resync-map slot,ours.csv] [--resync-skip part,...] [--births creature-map.csv]] [--blueprints retry] [--pickups stored]\n"
+            + "       --packet-offset selects the first stamped header byte; its record starts playback turn 1. --turns uses playback turns.");
         return 2;
     }
 }

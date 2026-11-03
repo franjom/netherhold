@@ -13,8 +13,8 @@ five scoring arms this routine dispatches to; `combat-entry.md` the state and
 the AttackType switch that follows; `combat.md` the swing.
 
 **What this settles:** the acquirer has DK2's own name, **`SelectAVictim`**, and
-it is not one scan but six; a creature looks for a fight every tick it moves
-and every tenth tick it stands; and **the enemy dungeon heart is acquired here**,
+it is not one scan but six; eligible creatures scan after ordinary tile movement
+and on the standing cadence below; and **the enemy dungeon heart is acquired here**,
 as the nearest *Arch Pillar* of a heart room that is not yet a ruin.
 
 ---
@@ -110,10 +110,12 @@ Returns 1 only when every test passes. DK2's own field names throughout.
    state carries) → already handled, return 1.
 4. **`FightProcessCounter`** — DK2's dumper's name for the nibble at bits
    22–25 of `+0x3E6` — is incremented. If my tile differs from the tile of the
-   position `vtable+0x2C` returns (STRONGLY INFERRED the previous frame's
-   position: the same comparison flags "entered a new tile" for the hero
-   room-destroyer at `0x00488F6A`) → look now. Standing: look when the counter
-   reaches **10**; an Imp (`+0x36F == 1`, by literal) when it reaches **4**;
+   position `vtable+0x2C` returns — the retained `+0xF6` reference, normally
+   the previous frame's position — look now. State 193 overwrites that reference
+   with its displaced Portal-exit point after the ordinary update stamp; see
+   [the joining-state record](functions/00459C20.md) and Q731. The same comparison
+   flags "entered a new tile" for the hero room-destroyer at `0x00488F6A`.
+   Standing: look when the counter reaches **10**; an Imp (`+0x36F == 1`, by literal) when it reaches **4**;
    otherwise return 0. The counter is cleared before the call.
 5. `SelectAVictim`; its result is the return.
 
@@ -324,6 +326,7 @@ registration, fallback and the two range formulas; the names `SelectAVictim`,
 **CONFIRMED (data):** object 94 is *Arch Pillar*; room type 5 is the Dungeon
 Heart; variable 182 ships 5.
 
-**STRONGLY INFERRED:** `vtable+0x2C` is the previous frame's position; state 242 is the held creature; state 83 is asleep proper.
+**STRONGLY INFERRED:** state 242 is the held creature; state 83 is asleep proper.
+The previous-position interpretation and state-193 exception are qualified in §3.
 
 **UNKNOWN:** §10.

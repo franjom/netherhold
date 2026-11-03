@@ -235,6 +235,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Captures
 
+- Windows text writes can translate LF to CRLF; hash the written test file for raw proof identity, rather than the pre-write string.
+
 - A full-state capture (`*.dk2cap`, `reverse-engineering/dk2capture.py`) holds every room record
   as well as creatures and tiles; decode a field with `Record.u(offset)`. `things("room")` also
   matches stale slots, so filter by the room slot range (1100 up in the Level 1 and 2 runs).
@@ -323,9 +325,13 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Assign `ConvertFrom-Json` array results directly; wrapping the pipeline in `@()` can retain a nested array and yield `Object[]` member values.
 
 - A scratch master Behavior test baseline needs committed scenarios, tools and Unity input source roots as well as src/tests; missing-root failures are harness setup failures.
-- Use explicit UTF-8 for Markdown writes on Windows; Path.write_text can truncate a file before the default cp1252 encoder fails.
+- Use explicit UTF-8 for Markdown reads and writes on Windows; default cp1252 reads cause mojibake, and writes can truncate a file before encoding fails.
 - Direct rule fixtures must refresh WorldSteering before querying NavByte; an uninitialized navigation cache reports solid tiles.
 - Native thing-table player records contain only a 0x40-byte head; read full fields through Snapshot.player(PlayerId - 1) in REGION_PLAYERS, not record(tag).
 - A destination-only replay probe must reuse simulation.Navigation; constructing WorldSteering rebuilds the persistent mesh and also changes the route inputs.
 
 - Build evidence manifests before opening their output file; otherwise recursive enumeration can record the manifest itself with an empty-file digest.
+
+- dk2oracle.py prints EAX and EDX before requested memory words; validate route endpoints before treating its output as a corridor.
+- On Windows, resolve a replay executable to an absolute path before Python subprocess launch; a relative forward-slash .exe path can fail despite the file existing.
+- Legacy native creature-map.csv is a changes-only log with integer tile coordinates; use raw .dk2cap frames for per-turn fixed-point geometry, and seed type identity from earlier events.

@@ -176,12 +176,9 @@ public static class LairRules
         return (dx * dx) + (dy * dy);
     }
 
-    /// <summary>The tile a creature walks to when it heads for this room: the room
-    /// tile nearest the centre, lowest index among equals. <b>Ours</b> (Q157) — the
-    /// original hands the room to an unread travel-to-room routine, and its lair state
-    /// only requires <i>some</i> tile of the keeper's lair underfoot. The centre agrees
-    /// with the finder measuring rooms by their centres, and because the tile search is
-    /// local-first this choice decides where a bed usually lands.</summary>
+    /// <summary>Centre-nearest tile used by the lair finder's approximate reach test.
+    /// Final departure uses <see cref="RoomWalkRules.ArrivalTile"/>, the random room
+    /// point from <c>0x004E4C10</c>; see lair-departure.md for the remaining finder limits.</summary>
     public static int ArrivalTile(WorldState world, RoomInstance room)
     {
         TilePos centre = CentreTile(room);

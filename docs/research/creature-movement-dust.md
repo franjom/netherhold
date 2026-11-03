@@ -75,9 +75,13 @@ flag at the update's entry (`0x00488F61`), from `+0xF6`/`+0xFA` against `+0x1A`/
 `+0x1E`, **before** the previous-position refresh (`0x00489FE6`) and the state
 handler (`0x00476FC0`); the request (`0x0048A06A`) comes after the handler with
 the then-current position and heading and the terrain of the tile found at entry.
-Ours therefore matches exactly only when no state handler moves the creature
-within the tick; a handler's teleport is recorded as the new last tile rather than
-noticed as a crossing on the next update, and the terrain is the current tile's.
+A state-handler relocation needs its own reference-write check: a relocation
+that leaves `+0xF6` unchanged can become a crossing on the next update, while
+state 193 explicitly replaces the reference with its displaced Portal-exit
+point ([joining-state record](functions/00459C20.md), Q731). This qualifies the
+ordinary-movement comparison; it establishes no measured dust behavior or
+additional code fix. The modern approximation still uses its current tile
+for the terrain test.
 Held creatures and corpses are skipped as the other mirrors of this update do
 (ADR-0206); whether the thing pass updates them is unread. The existing type-4
 particle consumer and install sprite provider draw element 264.

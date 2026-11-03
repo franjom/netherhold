@@ -148,6 +148,9 @@ public static class PortalRules
 
         creature.PosX = Math.Clamp(creature.PosX + definition.EntranceOffsetX, 0, (world.Width * Fp32.One) - 1);
         creature.PosY = Math.Clamp(creature.PosY + definition.EntranceOffsetY, 0, (world.Height * Fp32.One) - 1);
+        // 00459D13-00459D27 replaces the +F6 reference after the displacement.
+        // ProcessFight must compare against that point on the following turn.
+        creature.LastFightScanTileIndex = creature.Tile.Y * world.Width + creature.Tile.X;
         return false;
     }
 

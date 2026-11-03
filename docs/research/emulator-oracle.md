@@ -45,10 +45,12 @@ map tile for tile.
 
 ## 3. Our C# on a whole-process dump
 
-A capture omits definitions and other heap; a dump (`process_dump.py`, the recorder's
-`--dump-ticks`) holds everything, taken with the game suspended. Level 4 seed 1's dump at tick
-500 equals that tick's capture frame byte for byte, and the 5.4 s suspension left the playback in
-step with the earlier capture.
+Legacy structured captures omit definitions and other heap. The historical
+selected-region dump (`process_dump.py`, the old recorder's `--dump-ticks`)
+extends that projection, but does not meet the [complete capture contract](../../tools/oracle/native-capture.md)
+now used for new analysis. Level 4 seed 1's dump at tick 500 equals that tick's
+capture frame byte for byte, and its 5.4 s suspension left playback in step
+with the earlier capture.
 
 - **`Avoid_Walls` (`0x004D35C0`).** Run on the dump with the mover globals written per call, it
   equals `AvoidWallsRules.Compute` on DK2's own navigation bytes for all 13 live bodies and 20,000

@@ -11,8 +11,8 @@ The JSON carries only fields whose meaning the decoder documents (reverse-engine
 dk2capture.py's FIELDS, and the record offsets named below with the research they come from);
 anything a test needs beyond them is added here, not guessed in C#.
 
-With --dump (process_dump.py's whole-process image of the same tick), the memory image is the
-dump itself, and the JSON also carries what only the dump holds:
+New complete captures automatically provide full-memory fields through their verified timeline.
+For legacy captures, --dump explicitly supplies a matching-clock memory image. These add:
 
     navBytes: w*h                         DK2's navigation-byte grid: [world+0x9F2] + 4 is the
                                           grid, width at +4, bytes at +0xC (0x004D16B0)
@@ -74,7 +74,8 @@ dump itself, and the JSON also carries what only the dump holds:
                                           the head; TileState.TagOrder)
     seed                                  the world random seed at world +0x15A0 (dk2-random.md)
 
-With --state-only no memory image is written: for a resync replay (dk2tools replay --resync),
+With --state-only no memory image is written; full-memory JSON fields still load automatically.
+This is for a resync replay (dk2tools replay --resync),
 which rebuilds our world from the JSON alone.
 """
 import json
@@ -82,6 +83,7 @@ import os
 import struct
 import sys
 
+sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import capture_memory  # noqa: E402
 
@@ -134,9 +136,13 @@ def body(r):
 
 def with_dump(out, snap, dump):
     world = snap.regions[dk2capture.REGION_WORLD][0]
+    if dump.u(dump.u(world + 4) + 4) != snap.tick:
+        raise ValueError('Complete memory clock does not match the structured frame')
     grid = dump.u(world + 0x9F2) + 4
     width, data = dump.u(grid + 4), dump.u(grid + 0xC)
-    out["navBytes"] = list(dump.read(data, width * out["height"]))[:out["width"] * out["height"]]         if width == out["width"] else None
+    if width != out['width']:
+        raise ValueError('Navigation grid width does not match the structured frame')
+    out["navBytes"] = list(dump.read(data, width * out["height"]))
     for c in out["creatures"]:
         r = snap.record(c["slot"])
         player = r.u(0x2A)
@@ -273,6 +279,9 @@ def state(snap):
 
 
 def main():
+    if sys.argv[1:] in (['--help'], ['-h']):
+        print(__doc__)
+        return
     args = sys.argv[1:]
     dump = None
     state_only = "--state-only" in args
@@ -283,20 +292,36 @@ def main():
     capture, out = args[0], args[1]
     os.makedirs(out, exist_ok=True)
     cap = dk2capture.Capture(capture)
+    if dump is not None and cap.header.get('complete_memory') is not None:
+        raise ValueError('--dump is for legacy captures; complete capture memory is bound automatically')
     last = cap.ticks[-1]
     for tick in map(int, args[2:]):
         if tick > last:
-            continue   # Capture.at would repeat the last frame
+            raise ValueError(f'Requested tick {tick} is past the last captured frame {last}')
         snap = cap.at(tick)
-        if snap is None:
-            continue
+        if snap is None or snap.tick != tick or snap.torn:
+            raise ValueError(f'No exact untorn frame for requested tick {tick}')
         values = state(snap)
+        from native_memory import for_capture
+        complete = for_capture(capture, tick, cap.header) if dump is None else None
         if dump is not None:
             values = with_dump(values, snap, Dump(dump))
             values["memoryImage"] = os.path.abspath(dump)
+            values['captureCompleteness'] = 'explicit-memory-image'
+        elif complete is not None:
+            values = with_dump(values, snap, complete)
+            values['memoryTimeline'] = str(complete.folder)
+            values['captureCompleteness'] = 'complete-readable-process-memory'
+            if not state_only:
+                memory_path = os.path.join(out, f'{tick}.mem.z')
+                complete.export(memory_path)
+                values['memoryImage'] = os.path.abspath(memory_path)
         elif not state_only:
             capture_memory.write(os.path.join(out, f"{tick}.mem"), capture_memory.image(snap))
-        with open(os.path.join(out, f"{tick}.json"), "w", encoding="utf-8") as f:
+        if complete is None and dump is None:
+            values['captureCompleteness'] = 'partial-legacy-structured-frame'
+            print(f'PARTIAL legacy frame {tick}: no complete memory timeline.', file=sys.stderr)
+        with open(os.path.join(out, f"{tick}.json"), "x", encoding="utf-8") as f:
             json.dump(values, f, separators=(",", ":"))
         print(tick)
 

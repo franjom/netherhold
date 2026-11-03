@@ -16,7 +16,14 @@ public sealed class PacketLog
 {
     private readonly Dictionary<long, List<PacketAction>> _turns;
 
-    private PacketLog(Dictionary<long, List<PacketAction>> turns) => _turns = turns;
+    private PacketLog(Dictionary<long, List<PacketAction>> turns, PacketRecordStamp[] records)
+    {
+        _turns = turns;
+        Records = records;
+    }
+
+    public readonly record struct PacketRecordStamp(GameTick PlaybackTurn, uint RecordedStamp, int HeaderOffset);
+    public IReadOnlyList<PacketRecordStamp> Records { get; }
 
     public int ActionCount => _turns.Values.Sum(actions => actions.Count);
     public int TurnCount => _turns.Count;
@@ -40,49 +47,31 @@ public sealed class PacketLog
             yield return (turn, action.Second & 0xffff, PacketEntityKind.Creature);
     }
 
+    /// <summary>Reads playback turns from the explicitly selected first stamped header.
+    /// Its preceding count byte must exist. That selected record executes on turn 1;
+    /// the byte offset does not preserve an excerpt's former absolute time.</summary>
     public static PacketLog Read(string path, int throughTurn, int firstRecord)
     {
         byte[] data = File.ReadAllBytes(path);
-        if (firstRecord < 0) throw new ArgumentOutOfRangeException(nameof(firstRecord));
-        const int headerSize = 16;
+        if (firstRecord < 1) throw new ArgumentOutOfRangeException(nameof(firstRecord));
+        if (throughTurn < 1) throw new ArgumentOutOfRangeException(nameof(throughTurn));
+        const int headerSize = 17;
         const int actionSize = 18;
-        const int cameraSize = 13;
-        if (firstRecord > data.Length - headerSize - cameraSize)
-            throw new InvalidDataException("Packet is too short for a turn record.");
-
+        const int trailerSize = 12;
         var turns = new Dictionary<long, List<PacketAction>>();
-        int offset = firstRecord;
-        uint expected = U32(data, offset);
-        if (expected > throughTurn) throw new InvalidDataException("Requested range precedes the first packet turn.");
-        var headers = new Dictionary<uint, List<int>>();
-        for (int at = firstRecord; at <= data.Length - headerSize; at++)
+        var records = new List<PacketRecordStamp>();
+        int offset = firstRecord - 1;
+        // 0055EA10 consumes count/header, payload and trailer sequentially. The
+        // stamp produced by00522790 is clock+1, not the playback scheduling clock.
+        for (long turn = 1; turn <= throughTurn; turn++)
         {
-            if (data[at + 12] != 1 || data[at + 13] != 1) continue;
-            uint number = U32(data, at);
-            if (!headers.TryGetValue(number, out List<int>? positions)) headers[number] = positions = [];
-            positions.Add(at);
-        }
-        while (offset + headerSize + cameraSize <= data.Length)
-        {
-            uint turn = U32(data, offset);
-            if (turn > throughTurn) break;
-            if (turn != expected || data[offset + 12] != 1 || data[offset + 13] != 1)
-                throw new InvalidDataException($"Unexpected packet turn at byte {offset}: {turn}.");
-
-            int count = -1;
-            int next = -1;
-            if (headers.TryGetValue(turn + 1, out List<int>? candidates))
-                foreach (int candidate in candidates)
-                {
-                    int actionBytes = candidate - offset - headerSize - cameraSize;
-                    if (actionBytes < 0 || actionBytes % actionSize != 0) continue;
-                    if (count >= 0) throw new InvalidDataException($"Ambiguous packet framing at turn {turn}.");
-                    count = actionBytes / actionSize;
-                    next = candidate;
-                }
-            if (count < 0)
-                throw new InvalidDataException($"Missing packet turn after {turn}.");
-
+            if (offset > data.Length - headerSize - trailerSize)
+                throw new InvalidDataException($"Packet ends before complete playback turn {turn}.");
+            int count = data[offset];
+            int size = headerSize + count * actionSize + trailerSize;
+            if (size > data.Length - offset)
+                throw new InvalidDataException($"Truncated packet payload/trailer at playback turn {turn}.");
+            records.Add(new PacketRecordStamp(new GameTick(turn), U32(data, offset + 1), offset + 1));
             var actions = new List<PacketAction>();
             for (int n = 0; n < count; n++)
             {
@@ -92,12 +81,9 @@ public sealed class PacketLog
                     U32(data, at + 12), U16(data, at + 16)));
             }
             if (actions.Count > 0) turns.Add(turn, actions);
-            offset = next;
-            expected++;
+            offset += size;
         }
-        if (expected <= throughTurn)
-            throw new InvalidDataException($"Packet ends before turn {throughTurn}.");
-        return new PacketLog(turns);
+        return new PacketLog(turns, [.. records]);
     }
 
     /// <param name="goldOnTile">Our floor gold pile on a tile index, 0 for none; needed only

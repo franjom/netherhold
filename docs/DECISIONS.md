@@ -14827,3 +14827,83 @@ the 46 with bit 2, in 11 levels (27 in Secret2, 9 in Secret4), now die outright 
 holds them, so ours can no longer imprison or rescue them either. DestroysRooms (bit 0, 110
 heroes) and IsTool (bit 1, 67) now reach placed heroes too; no placed hero sets bit 3. Those
 two bits' effects on placed heroes are not watched.
+
+## ADR-0633: schedule packet playback by record order
+
+**Date:** 2026-11-02. **Status:** accepted. Q730; hash/save 378.
+
+**Context.** Native playback reads sequential count-framed blocks before the
+world update. The stored stamp is the recording clock plus one, so using it
+as an execution turn delays our commands. Three atomic native input buffers
+confirm the [binary reading](research/packet-playback-clock.md).
+
+**Decision.** Read the preceding count byte, 16 stamped-header bytes, count*18
+payload bytes and 12 trailer bytes. The selected first header starts playback
+turn 1; an explicit byte offset selects an origin, not an absolute-time seek.
+Retain raw stamps/offsets as provenance. Resolve entity maps and references on
+playback turns, keeping source-specific CSV conversions unchanged.
+
+**Consequences.** Final complete records need no following timestamp header.
+Malformed/truncated records fail our reader explicitly; this is validation,
+not a claim about native error recovery. Replay commands change, so bump
+hash/save together under the owner's rule even though simulation fields do
+not change. Q712 aggregate causation and partial restoration remain open.
+
+## ADR-0637: retain the displaced Portal-exit scan reference
+
+**Date:** 2026-11-03. **Status:** accepted. Q731; hash/save 388.
+
+**Context.** State 193 replaces its previous-position reference after placing
+the emerging creature. The remake retained the Portal tile for the next combat
+scan, treating that authored displacement as ordinary movement. The binary
+and guarded native control are in [Q731 evidence](research/q712-atomic-inputs.md#portal-relocation-scan-reference-q731).
+
+**Decision.** After StillJoining applies its entrance offset, stamp the combat
+scan reference with the resulting tile. Waiting creatures retain their old
+reference; subsequent ordinary movement still forces a scan. Add no special
+rule for reporting Imps or scan-counter adjustment.
+
+**Consequences.** The next stationary scan keeps its native cadence. Existing
+action-wait and height approximations remain. Bump hash/save together, retain
+the existing saved field, and keep Q712 outcome parity open; paired measurements are in the linked evidence.
+
+## ADR-0638: run ordinary reinforcement through its stored action clock
+
+**Date:** 2026-11-03. **Status:** accepted. Q719; hash/save 389.
+
+**Context.** Reinforcement used a work timer and noticed its own finished wall
+one update later. The binary's common action poll runs before state22 and
+can complete that same final hit, while an unwrapped terminal hit can remain
+busy. The [reading and pre-edit inventory](research/reinforcement-action-clock.md)
+separate those branches from the partial captured-state controls.
+
+**Decision.** Store action7's independent target and completion state. Poll
+its full wall predicate before combat, preserve handler/animation gates,
+start art12 from state22 and advance it after the handler. Preserve the
+preceding worker claim/pickup order for this action through a linked Prelude.
+Cancel work on accepted replacement and EndAction. Hash and save the added
+state together, retaining the missing-timing fallback.
+
+**Consequences.** No unconditional eager state exit or future-timed work input
+enters production. Other action families, custom-host ordering and partial
+resync remain explicit limits; Q712 stays open after the measured outcomes. Verification is recorded in the linked research note.
+
+## ADR-0639: use the ordinary room route for initial lair departure
+
+**Date:** 2026-11-03. **Status:** accepted. Q712; hash/save 390.
+
+**Context.** The initial lair attempt bypassed the ordinary room point and
+used E0 instead of the binary's E8 options. A captured Warlock already had
+unequal route goals before its first visible movement difference. The
+[pre-edit inventory](research/lair-departure.md) separates this defect from
+the remaining room finder and captured-world input approximations.
+
+**Decision.** Preserve the current finder. Outside its chosen room, draw one
+ordinary room point and route with E8; fail without resampling if no point
+or route succeeds. Inside, enter idle then 80 without a point draw, route
+or helper action cancellation, returning the resume transition result.
+
+**Consequences.** Destination, shared RNG and arrival tolerance change;
+hash/save versions advance together without adding a saved field. Tests
+must fail against unchanged 389 source. Q712 closure depends on measured
+outcomes and matched inputs, not on this correction alone.

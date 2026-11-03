@@ -40,6 +40,9 @@ public sealed class SimulationContext
     // Cleared before every turn; the creatures a combat handler left in state 1, whose own handler
     // runs on the next turn (0x00476FC0 runs one handler a turn).
     internal HashSet<CreatureState> IdledByCombatHandlerThisTick { get; } = [];
+    internal HashSet<CreatureState> ReinforcementActionsPolledThisTick { get; } = [];
+    internal HashSet<CreatureState> WorkerPreludeProcessedThisTick { get; } = [];
+    internal HashSet<CreatureState> WorkerPreludeClaimedThisTick { get; } = [];
 
     /// <summary>The creature is in state 1 because a combat handler set it this turn, so 1's own
     /// handler waits for the next turn. A host sweeping steps alone on a context of its own

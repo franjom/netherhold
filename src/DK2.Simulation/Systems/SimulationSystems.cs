@@ -112,8 +112,10 @@ public static class SimulationSystems
     private static CreatureUpdateSystem CreatureUpdate()
     {
         var combat = new CombatSystem();
+        var workers = new ImpTaskSystem();
         return new CreatureUpdateSystem(
             new CreatureStatusSystem(), // 0x0048957D: timed effects before this creature's action and fight
+            workers.Prelude, // reinforcement's gold block precedes its action poll (0048904E/00489A68)
             combat, // the action runner, the fight scan and the fear radiation
             new TravelArrivalSystem(), // the travel states' progress-1.0 stop, ahead of every handler (Q724)
             // The needs routine: hunger, then sleep, then pay (creature-needs-routine.md §3).
@@ -137,7 +139,7 @@ public static class SimulationSystems
             // A worker's handler after the mover: DK2 steps an imp inside its walk state's handler,
             // before that handler's arrival test (0x00470C80), and the steering step skips imps.
             // Each worker resolves its queued work before the next.
-            new ImpTaskSystem(),
+            workers,
             // The creature update's last carrying step (0x0048A4AE): after every state handler and the mover.
             new CarriedThingSoundSystem());
     }

@@ -348,8 +348,10 @@ are therefore observable natively; this does not prove identical race
 timing for seed 18.
 
 **CONFIRMED ordering difference:** original creature updates run the action before the state
-dispatcher ([update record](functions/00488930.md)); our pending work is
-applied after all Imp decisions. This known ordering difference is recorded
+dispatcher ([update record](functions/00488930.md)); ordinary reinforcement's
+[action-clock candidate](reinforcement-action-clock.md) polls before fight/state
+processing (ADR-0638). Other work adapters retain separate ordering limits,
+recorded
 in [mining cadence §7](mining-cadence.md#7-how-long-a-digger-stays-after-its-wall-falls-2026-10-01).
 
 ### Work-visibility probe
