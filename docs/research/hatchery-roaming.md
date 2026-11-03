@@ -82,8 +82,10 @@ room tiles on the first three attempts, traps, doors and obstacle objects,
 then chooses each sub-tile coordinate as `0x555 + random(0x555)` and moves with
 resume process 10. The helpers are now read (2026-10-11): `0x0049CE50` returns
 Chicken `+0x14A` or zero; `0x0049CEA0` returns Chicken `+0x152`, otherwise
-`+0x14E`. The owner's `+0x132` is the stamped killer. The region `+0x1A9` gate
-remains unnamed after a complete process-10 read; see Q584. Loose roaming is unbuilt.
+`+0x14E`. The owner's `+0x132` is the stamped killer. The `+0x1A9` gate reads
+the terrain record's Damage field (`0x00509480`, Q584): any nonzero value, harmful
+or healing, kills a loose bird like a fallen owner or a held bird off a Hatchery.
+The loose roam is built (ADR-0647, hash/save 396).
 
 ## 4. Implementation boundary
 
@@ -95,7 +97,7 @@ destination, velocity, resume process, flags and count are hashed and saved;
 crossing a tile updates its occupancy link. Hatching on an owned Hatchery starts
 process 6, matching `0x004A1CF0`'s owned-room branch. Egg animation timing stays
 the existing two-second approximation. Object initialization retains Chicken
-`+0x14A = 1`; full loose process 10 and Prison process 3 remain unbuilt.
+`+0x14A = 1`. Loose process 10 is built (ADR-0647); Prison process 3 remains unbuilt.
 
 Hand drop selects falling process 1 (`0x004BC710`). On landing without a
 recipient, `0x0049EF90` selects the room's nonzero field-21 handler

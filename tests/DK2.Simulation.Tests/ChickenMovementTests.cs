@@ -382,7 +382,9 @@ public class ChickenMovementTests
         sim.Tick(InputFrame.Of(new PickUpObjectCommand(PlayerIds.FirstKeeper, chicken.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, landing)));
         sim.Run(20);
-        Assert.Equal((byte)ChickenProcess.Loose, chicken.ProcessState);
+        // The landing is boxed in by rock and gems, so its process 10 finds no side (ADR-0647) and the bird
+        // cycles through 10, 0 and 6 where it landed.
+        Assert.NotEqual((byte)ChickenProcess.Moving, chicken.ProcessState);
         Assert.Equal(CreatureState.CentreOf(landing.X), chicken.PosX);
         Assert.Equal(CreatureState.CentreOf(landing.Y), chicken.PosY);
         Assert.Equal(landing.Y * world.Width + landing.X, chicken.TileLink.TileIndex);

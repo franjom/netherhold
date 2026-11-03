@@ -282,5 +282,5 @@ constants. Scenario `scenarios/rooms/a_hatchery_lays_and_hatches.yaml`.
 
 ## Open questions
 
-- Free-range process-10 world-region eligibility and remaining lifecycle: Q584.
+- Free-range census/decay and Prison process 3: Q584 (loose process 10 is built, ADR-0647).
 - Q134: why the exponent is that value. Does not affect fidelity.

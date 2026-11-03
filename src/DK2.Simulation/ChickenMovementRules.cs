@@ -15,7 +15,8 @@ public enum ObjectMoveFlags : byte { None = 0, Turning = 1, Interruptible = 2 }
 
 public readonly record struct ObjectMovePoint(Fp32 X, Fp32 Y);
 
-/// <summary>The owned-room Chicken object loop; loose process 10 and Prison process 3 remain unbuilt.</summary>
+/// <summary>The Chicken object's processes: the owned-room loop (6, 8, 9) and the loose roam (10,
+/// <c>0x004A26D0</c>, ADR-0647); Prison process 3 remains unbuilt.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery-roaming.md")]
 public static class ChickenMovementRules
 {
@@ -43,6 +44,11 @@ public static class ChickenMovementRules
                 break;
             case ChickenProcess.Reaction:
                 React(context, chicken);
+                break;
+            case ChickenProcess.Loose:
+                // A process that returns 0 is cleared, and the next update restarts it (0x0049EED0).
+                if (!Roam(context, chicken) && context.World.Objects.Contains(chicken))
+                    SetProcess(chicken, ChickenProcess.None);
                 break;
         }
     }
@@ -139,6 +145,77 @@ public static class ChickenMovementRules
             new Fp32((target.Y << 12) + lowerY + context.Rng.NextInt(upperY - lowerY)));
         if (!StartMove(context, chicken, destination, ChickenProcess.Reaction, default, interruptible: true))
             SetProcess(chicken, ChickenProcess.None);
+    }
+
+    /// <summary>Process 10, <c>0x004A26D0</c>. A bird a Hatchery holds (<c>+0x14A</c> clear) off any Hatchery
+    /// tile, one whose owner has fallen (<c>+0x132</c>) or one on a terrain with any Damage, harmful or healing
+    /// (terrain <c>+0x1A9</c>) dies (vtable <c>+0x20</c>); a scared one does nothing. Otherwise <c>random(4)</c> picks the first
+    /// of the four sides tried in turn: a neighbour on the map, not solid, of the bird's own nav class and
+    /// owned by its owner, not a room on the first three tries, with no door, trap or obstacle. The point is
+    /// <c>random(0x555) + 0x555</c> into it on each axis, x first, and the walk resumes 10; a walk that cannot
+    /// start tries the next side. Returns false when no side takes it.</summary>
+    private static bool Roam(SimulationContext context, ObjectState chicken)
+    {
+        WorldState world = context.World;
+        GameDatabase database = context.Database;
+        var current = new TilePos(chicken.PosX >> 12, chicken.PosY >> 12);
+        if (!world.Contains(current)) throw new InvalidOperationException("Chicken movement position is outside the map.");
+        TileState here = world.Tile(current);
+        if (!chicken.ChickenCanEscape && database.RoomByTerrain(here.TerrainId)?.TypeId != RoomTypeId.Hatchery)
+        {
+            Kill(context, chicken, "held_off_hatchery");
+            return true;
+        }
+        if (chicken.ChickenScared) return false;
+        if (world.HasPlayer(chicken.OwnerPlayerId) && world.Player(chicken.OwnerPlayerId).KilledByPlayerId != 0)
+        {
+            Kill(context, chicken, "owner_fallen");
+            return false;
+        }
+        if (database.TerrainById(here.TerrainId).Damage != 0)
+        {
+            Kill(context, chicken, "terrain_damage");
+            return false;
+        }
+
+        int start = context.Rng.NextInt(4);
+        int navClass = CasinoStep.NavClass(database, here);
+        for (int i = 0; i < 4; i++)
+        {
+            int direction = ((start + i) & 3) * 2;
+            var neighbour = new TilePos(current.X + Dx8[direction], current.Y + Dy8[direction]);
+            if (!world.Contains(neighbour)) continue;
+            TileState tile = world.Tile(neighbour);
+            if (database.TerrainById(tile.TerrainId).IsSolid || CasinoStep.NavClass(database, tile) != navClass
+                || tile.OwnerPlayerId != chicken.OwnerPlayerId) continue;
+            if (i < 3 && database.RoomByTerrain(tile.TerrainId) is not null) continue;
+            int index = neighbour.Y * world.Width + neighbour.X;
+            if (HasDoorOrTrap(world, neighbour) || CasinoStep.HasObstacle(world, database, index)) continue;
+            var destination = new ObjectMovePoint(
+                new Fp32((neighbour.X << 12) | (context.Rng.NextInt(0x555) + 0x555)),
+                new Fp32((neighbour.Y << 12) | (context.Rng.NextInt(0x555) + 0x555)));
+            if (StartMove(context, chicken, destination, ChickenProcess.Loose, default, interruptible: true)) return true;
+        }
+        return false;
+    }
+
+    private static bool HasDoorOrTrap(WorldState world, TilePos tile)
+    {
+        foreach (DoorState door in world.Doors)
+            if (door.X == tile.X && door.Y == tile.Y) return true;
+        foreach (TrapState trap in world.Traps)
+            if (trap.X == tile.X && trap.Y == tile.Y) return true;
+        return false;
+    }
+
+    /// <summary>Vtable <c>+0x20</c> (<c>0x004B2AD0</c>) only zeroes the bird's health; DK2 removes it in the
+    /// thing pass's second walk (<c>0x004B7830</c>) later the same turn, ours at once. The death effect the
+    /// object update requests at zero health (<c>+0x146</c> bit 0, definition <c>+0x119</c>) is not modelled.</summary>
+    private static void Kill(SimulationContext context, ObjectState chicken, string reason)
+    {
+        chicken.Health = 0;
+        context.World.RemoveObject(chicken.Id);
+        context.Emit("chicken", "loose_chicken_died", $"object={chicken.Id} reason={reason}");
     }
 
     private static int SameRoomMask(SimulationContext context, TilePos position)

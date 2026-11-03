@@ -15001,6 +15001,32 @@ place in DK2's active list, since no shipped level lists a keeper before the neu
 **Consequences.** A level with an active neutral player draws two more world numbers a turn (four on a
 Lava hit). Every later draw in that turn and after it moves, so seeded outcomes on such levels change.
 Saves before 395 are refused. The determinism pin's scene has no neutral player, so its new pin
-reflects the version alone. The other draws ours still lacks (loose objects `0x004A26D0`, effect
-generators `0x004B1B60`, object states 2523/2558/2559) are the next steps toward lockstep. The draws
+reflects the version alone. The other draws ours still lacks (effect generators `0x004B1B60`,
+object states 2523/2558/2559; loose Chickens are ADR-0647) are the next steps toward lockstep. The draws
 `0x004B9740` makes every 9600 and 6000 turns, which may include the neutral's frame, are Q738.
+
+## ADR-0647: a loose Chicken roams (object process 10)
+
+**Date:** 2026-11-03. **Status:** accepted. Builds Q584's loose roam and part of Q712 (the world stream's lockstep); hash/save 396. LIKELY: read whole in the binary, not yet against a capture.
+
+**Context.** A Chicken outside an owned Hatchery goes to object process 10, `0x004A26D0`, which ours
+never ran: the bird sat still and drew nothing. The seed-1 Level 5 draw log has its `random(4)`
+(ObjectState.cpp line 2851) 2421 times in 500 turns, the largest consumer ours lacked, and its two
+point draws (lines 2914 and 2915) 46 times. Q584's unnamed gate is terrain `+0x1A9`, which the terrain
+loader fills from the file's Damage field (kwd-terrain-rooms.md).
+
+**Decision.** `ChickenMovementRules` runs process 10. A bird a Hatchery holds (`+0x14A` clear) off any
+Hatchery tile dies (vtable `+0x20`, `Thing_ZeroHealth`), as does one whose owner has fallen (`+0x132`) or
+that stands on a terrain with any Damage, harmful or healing; a scared one (`+0x152`) does nothing. Otherwise `random(4)` picks the
+first of the four sides to try in order. A side must be on the map, not solid, of the bird's nav class
+and its owner's. It must not be a room on the first three tries and must hold no door, trap or obstacle.
+The point is `random(0x555) + 0x555` into it on each axis, and the walk resumes 10. A process that
+returns 0 is cleared and restarts from the definition's start state (`0x0049EED0`). See
+[hatchery-roaming.md](research/hatchery-roaming.md) §3.
+
+**Consequences.** Loose birds now walk about their owner's floor, and the draws they make move every
+later draw. `a_goblin_eats_a_chicken` re-picks its bird again (5, meal tick unchanged), and a dropped
+bird boxed in by rock cycles 10, 0 and 6 where it landed. The death effect the object update can
+request is not modelled, and ours removes a dead bird at once where DK2's thing pass removes it later
+in the same turn. Whether ours has as many loose birds as DK2's Level 5 at turn 1400 is checked
+when the Q712 controls move onto the seed-1 capture.

@@ -61,12 +61,12 @@ unchanged by it.
 ## The remaining draw gap
 
 Over the same 500 turns the log holds 8480 draws, about 15-19 world-seed numbers a turn, against
-about 4 in ours. The neutral frame (ADR-0646) is the first missing consumer built. Still missing,
-in the order they were found:
+about 4 in ours. The neutral frame (ADR-0646) is the first missing consumer built, and the loose
+chicken, object process 10 (`0x004A26D0`; ObjectState.cpp lines 2851, 2914, 2915; 2421 and 46
+draws over the 500 turns), the second (ADR-0647, hash/save 396). Whether ours has as many loose
+birds as DK2's Level 5 at turn 1400 is not yet checked. Still missing, in the order they were found:
 
-1. The loose chicken, object process 10 (`0x004A26D0`; ObjectState.cpp lines 2851, 2914, 2915):
-   the largest, 2421 draws over the 500 turns. The region `+0x1A9` gate in it is open (Q584).
-2. `EffectGenerator_Update` (`0x004B1B60`; lines 173, 179, 180, 188).
-3. Object states 2523, 2558 and 2559, whose draw sites are not yet mapped.
+1. `EffectGenerator_Update` (`0x004B1B60`; lines 173, 179, 180, 188).
+2. Object states 2523, 2558 and 2559, whose draw sites are not yet mapped.
 
 Q738 (`0x004B9740`'s periodic draws) is separate.
