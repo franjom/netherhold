@@ -219,6 +219,7 @@ public static class SimulationSystems
     private static ISimulationSystem[] Verdict() =>
     [
         new DungeonHeartSystem(frames: false), // verdict is the last thing DK2's player frame does
+        new NeutralAmbientEffectSystem(), // the neutral player's frame, after the keepers' in the active list (ADR-0646)
         new TremorSystem(), // world records after the entity and player passes
     ];
 }

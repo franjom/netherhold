@@ -99,6 +99,7 @@ public class SimulationSystemsOrderTests
             "PrisonerEatSystem",
             "PrisonerWanderSystem",
             "DungeonHeartSystem",
+            "NeutralAmbientEffectSystem",
             "TremorSystem",
         ];
 

@@ -14979,3 +14979,28 @@ Separately, `level17_harkan_call_to_arms` moves to seed 2: since ADR-0639 (hash 
 12345's lifts on turns 37-39 took the Call's turn. A creature `WorldResync` adds holds its made tile too.
 Left in Q732: the walk to the trap, the Vampire's ranged cast, the idle wander; Q737: the
 boulder-struck Troll's death a turn later.
+
+## ADR-0646: the neutral player's frame draws its ambient tile
+
+**Date:** 2026-11-03. **Status:** accepted. Builds part of Q712 (the world stream's lockstep); hash/save 395.
+
+**Context.** DK2's world stream is shared by every rule, so a draw ours lacks shifts every later draw.
+The seed-1 Level 5 draw log (turns 1401-1900) has two draws on every turn that ours never made: the
+neutral player's frame, `Player_Tick` (`0x004B9EC0`), returns through `Player_GenerateAmbientEffect`
+(`0x004BB130`), which draws `random(width - 2) + 1` and `random(height - 2) + 1` for an interior tile.
+On a Lava tile it also draws `random(1000)`, which picks effect 316-319 for 0-3 and otherwise effect
+302 one tile up, then `random(0x800)` for the heading. The effect itself is presentation; that its
+creation draws nothing from the world stream is STRONGLY INFERRED (its allocator's helpers are not all
+read). In the log these two draws are the last of every turn.
+
+**Decision.** `NeutralAmbientEffectSystem` makes these draws and the effect request when the neutral
+player is active. It runs after `DungeonHeartSystem` and before `TremorSystem`. That is the neutral's
+place in DK2's active list, since no shipped level lists a keeper before the neutral player
+(`NeutralAmbientOnRealDataTests`). See [neutral-ambient-effect.md](research/neutral-ambient-effect.md).
+
+**Consequences.** A level with an active neutral player draws two more world numbers a turn (four on a
+Lava hit). Every later draw in that turn and after it moves, so seeded outcomes on such levels change.
+Saves before 395 are refused. The determinism pin's scene has no neutral player, so its new pin
+reflects the version alone. The other draws ours still lacks (loose objects `0x004A26D0`, effect
+generators `0x004B1B60`, object states 2523/2558/2559) are the next steps toward lockstep. The draws
+`0x004B9740` makes every 9600 and 6000 turns, which may include the neutral's frame, are Q738.

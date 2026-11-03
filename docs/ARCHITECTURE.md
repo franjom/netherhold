@@ -112,7 +112,8 @@ the order the original's own needs routine has; the prison settles a captive's
 second alone, so exactly one system does. Combat experience now belongs to each
 creature's category-update boundary after acquisition and before travel/needs/
 handlers (ADR-0640; [scope](research/combat-experience-order.md)); work experience
-remains with each work hit. The level's verdict (`DungeonHeartSystem`) and the
+remains with each work hit. The level's verdict (`DungeonHeartSystem`), the neutral
+player's ambient-tile draws (`NeutralAmbientEffectSystem`, ADR-0646) and the
 world's own records finish the top-level sequence.
 
 **DK2's top-level frame is read; most of our order within it is not.** DK2's per-turn

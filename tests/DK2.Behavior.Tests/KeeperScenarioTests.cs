@@ -318,7 +318,7 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
     /// <summary>Which offensive spells Nemesis reaches within the minute is its own rolls' (Thunderbolt
     /// first, then Inferno, then Chicken, each on its own roll), so sixteen seeds are run. On each, a
     /// Chicken that lands takes its target into 96 unless the target is already down (216-218 refuse
-    /// it, creature-status-effects.md); across them, each spell is cast, the Inferno burns Nemesis's
+    /// it, creature-status-effects.md) or frozen (another group-3 state, ChickenRules); across them, each spell is cast, the Inferno burns Nemesis's
     /// own Black Knight, and the whole scenario is met, on at least a quarter.</summary>
     [InstallFact]
     public void Level18NemesisCastsInfernoAndChickenUnaided_AndTheInfernoBurnsItsOwn()
@@ -331,12 +331,16 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
             ScenarioResult run = ScenarioCorpus.Run(scenario, output);
             Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
             var down = new HashSet<string>();
+            var frozenUntil = new Dictionary<string, long>();
             foreach (SimEvent e in run.Events)
             {
                 if (e.Kind == "creature_collapsed") down.Add(Field(e.Detail, "creature"));
+                if (e.Kind == "frozen") frozenUntil[Field(e.Detail, "creature")] = e.Tick.Value + long.Parse(Field(e.Detail, "ticks"));
                 if (e.Kind != "chickened") continue;
+                string target = Field(e.Detail, "target");
+                bool frozen = frozenUntil.TryGetValue(target, out long until) && e.Tick.Value < until;
                 string state = Field(e.Detail, "state");
-                Assert.True(state == "96" || (state == "refused" && down.Contains(Field(e.Detail, "target"))),
+                Assert.True(state == "96" || (state == "refused" && (down.Contains(target) || frozen)),
                     $"seed {seed} t{e.Tick.Value}: {e.Detail}");
             }
             if (run.Events.Any(e => e.Kind == "cast" && e.Detail.Contains("player=4 spell=9 "))) inferno++;

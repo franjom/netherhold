@@ -64,13 +64,13 @@ expect:
       bird pays off the whole of HungerFill instead, which is the difference
       between the two routes (ADR-0074).
   - event: chicken_eaten
-    detail: "creature=1 type=Goblin player=3 chicken=19"
+    detail: "creature=1 type=Goblin player=3 chicken=13"
     at_tick: 720
     because: >
       Floor laying, full-room coop launches and chicken roaming leave a bird on the
       entry tile, so this seed feeds the Goblin without a separate one-step chase.
       WHICH bird is incidental: it follows every random draw before the meal, so any
-      change that adds or moves a draw re-picks it. At hash393 creature1 takes bird19;
+      change that adds or moves a draw re-picks it. At hash395 creature1 takes bird13;
       the meal tick stays720. Nearest-bird walks have EatingTests.
   - event: egg_laid
     at_tick: 767
