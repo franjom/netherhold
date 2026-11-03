@@ -170,9 +170,9 @@ public static class CasinoJackpotRules
                     first.CasinoParty |= MusicBit;
                     dancing = true;
                 }
-            // 0x004D63D0: the music is asked for each dancer of the room, with the room's handle (the repeats of one handle are one
-            // request here). Its position is the room's anchor, read as the first tile; the explored-tile volume is the viewer's.
-            if (dancing) RequestPartySound(context, system, room, ThingSoundEvent.PartyMusic);
+            // 0x004D63D0: the music is asked for each dancer of the room, with the room's handle (the repeats of one handle are one request
+            // here), at the camera's point: the room's tile (read as the first tile) only picks the category and the volume by distance.
+            if (dancing) RequestPartySound(context, system, room, ThingSoundEvent.PartyMusic, listenerRelative: true);
             // Every twelve seconds an effect on a random tile: the effect is presentation, its draw is
             // on the simulation stream (0x004D6561), and the effect is asked for at that tile's corner.
             if ((now + 1) % (EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond) == 0)   // DK2's turn is our tick + 1
@@ -199,15 +199,19 @@ public static class CasinoJackpotRules
         first.CasinoParty &= unchecked((byte)~MusicBit);
         // 0x004D66BA: the room's handle is stopped, then 0x33E (the party's end) is asked with it (0x004D6727).
         ThingSoundRules.Stop(context, system, new SoundSourceId(SoundSourceKind.Room, room.TileIndices[0]));
-        RequestPartySound(context, system, room, ThingSoundEvent.PartyEnded);
+        RequestPartySound(context, system, room, ThingSoundEvent.PartyEnded, listenerRelative: false);
         return false;
     }
 
-    private static void RequestPartySound(SimulationContext context, string system, RoomInstance room, ThingSoundEvent sound)
+    /// <summary>The music is the camera's: <c>0x004D63D0</c> pushes the camera point built by <c>0x00572CD0</c> from the view's fields, and the tile's centre
+    /// is used only for the terrain and the explored test and the distance, so the volume falls linearly to zero at 45 tiles from the camera. The end sound
+    /// <c>0x33E</c> (<c>0x004D6727</c>) is at the tile's centre. The room's anchor is read as its first tile (STRONGLY INFERRED). Not built: the explored
+    /// test that sets the volume to 1, and the global duck (slot <c>+0x54</c>) while the music plays, restored at <c>0x004D667A</c>.</summary>
+    private static void RequestPartySound(SimulationContext context, string system, RoomInstance room, ThingSoundEvent sound, bool listenerRelative)
     {
         int tile = room.TileIndices[0];
         ThingSoundRules.RequestTile(context, system, context.World.TileAtIndex(tile).TerrainId, tile, sound,
-            kind: SoundSourceKind.Room, voiced: true, source: new SoundSourceId(SoundSourceKind.Room, tile));
+            kind: SoundSourceKind.Room, voiced: true, source: new SoundSourceId(SoundSourceKind.Room, tile), listenerRelative: listenerRelative);
     }
 
     private static bool AnyPlaceHeld(WorldState world, RoomInstance room)

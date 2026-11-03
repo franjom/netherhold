@@ -13,7 +13,7 @@ namespace DK2.Presentation;
 /// <c>0x337</c> / <c>0x338</c> while the creature is grounded on water. The request is the creature's own: its handle,
 /// its category and its position. Presentation only: no simulation state is read or written, and the throttle is the player's
 /// (docs/research/sound-effects-continuous.md section 1).</summary>
-[Dk2Behavior(Confidence.Confirmed, "docs/research/sound-effects-continuous.md#1-footsteps")]
+[Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-effects-continuous.md#1-footsteps")]
 public static class CreatureFootsteps
 {
     public const uint Walk = 0x314, WalkAlternate = 0x315, Wade = 0x337, WadeAlternate = 0x338;

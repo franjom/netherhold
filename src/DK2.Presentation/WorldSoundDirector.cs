@@ -32,10 +32,16 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
         if (simEvent.ThingSound is { Stop: false } sound && !string.IsNullOrEmpty(sound.Category)
             && (!sound.Alternating || turn)
             && (sound.ViewerOnlyFor is not { } owner || owner == viewer))
-            _pending.Enqueue(new(new SoundCategory(sound.Category.ToLowerInvariant()), new SoundId((uint)sound.Event),
-                new Vector3(sound.Position.X.Raw / 4096f, sound.Position.Z.Raw / 4096f, -sound.Position.Y.Raw / 4096f),
-                sound.Voiced ? VoiceOf(sound.Source) : SoundVoiceId.None));
+            _pending.Enqueue(Listener(sound));
         downstream?.Emit(simEvent);
+    }
+
+    private static SoundRequest Listener(in ThingSoundRequest sound)
+    {
+        var place = new Vector3(sound.Position.X.Raw / 4096f, sound.Position.Z.Raw / 4096f, -sound.Position.Y.Raw / 4096f);
+        return new(new SoundCategory(sound.Category.ToLowerInvariant()), new SoundId((uint)sound.Event),
+            sound.ListenerRelative ? null : place, sound.Voiced ? VoiceOf(sound.Source) : SoundVoiceId.None,
+            VolumeAnchor: sound.ListenerRelative ? place : null);
     }
 
     /// <summary>A creature's own voice, the one its simulation sounds use: DK2's handle at creature <c>+0x2E</c>.</summary>

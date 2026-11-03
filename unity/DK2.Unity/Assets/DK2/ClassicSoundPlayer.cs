@@ -155,6 +155,7 @@ namespace DK2.Unity
             {
                 // DK2's stop command on a handle (slot +0x38): the voice's source ends and is free. It is not a sound, so no throttle or priority applies.
                 AudioSource stopped = _voices.Release(request.Voice);
+                _anchors.Remove(request.Voice);
                 if (stopped != null) stopped.Stop();
                 return;
             }
@@ -177,7 +178,10 @@ namespace DK2.Unity
             // voice limits and fades are unread (Q678), so none are copied from OpenKeeper.
             source.spatialBlend = request.World.HasValue ? 1 : 0;
             if (request.World is System.Numerics.Vector3 world) source.transform.position = new Vector3(world.X, world.Y, world.Z);
-            source.volume = _master * _effectVolume;
+            // A request made at the camera's point with a distance volume (the Casino party's music, 0x004D63D0): nonspatial, scaled by FollowVoices.
+            if (request.VolumeAnchor is System.Numerics.Vector3 anchor && request.Voice != SoundVoiceId.None) _anchors[request.Voice] = anchor;
+            else _anchors.Remove(request.Voice);
+            source.volume = _master * _effectVolume * (request.VolumeAnchor is System.Numerics.Vector3 near ? AnchoredVolume.Of(near, ListenerFocus) : 1f);
             source.Play();
             _voices.Assign(request.Voice, request.Id, source, priority.Value);
         }
@@ -210,6 +214,11 @@ namespace DK2.Unity
                 if (!_terrainBedsWanted.Contains(entry.Key) && _voices.Release(entry.Value) is AudioSource ended) ended.Stop();
         }
 
+        private readonly Dictionary<SoundVoiceId, System.Numerics.Vector3> _anchors = new Dictionary<SoundVoiceId, System.Numerics.Vector3>();
+
+        /// <summary>The camera's point in the view's space, which a distance-volume request measures from; none gives full volume.</summary>
+        public System.Numerics.Vector3? ListenerFocus { get; set; }
+
         private readonly List<SoundVoiceId> _live = new List<SoundVoiceId>();
 
         /// <summary>DK2 replays a playing handle at its thing's position on each update of the thing (slot +0x30, which returns 0 once the instance has
@@ -222,6 +231,8 @@ namespace DK2.Unity
             {
                 SoundVoiceId voice = _live[i];
                 if (!_voices.TryGet(voice, out _, out AudioSource source) || source == null) continue;
+                if (_anchors.TryGetValue(voice, out System.Numerics.Vector3 anchor))
+                    source.volume = _master * _effectVolume * AnchoredVolume.Of(anchor, ListenerFocus);
                 VoiceLocator.Fate fate = VoiceLocator.Locate(world, voice, out float x, out float? height, out float z);
                 if (fate == VoiceLocator.Fate.Gone)
                 {

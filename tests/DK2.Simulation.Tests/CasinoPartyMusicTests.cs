@@ -58,7 +58,7 @@ public sealed class CasinoPartyMusicTests
         events.Events.Skip(from).Where(e => e.ThingSound is { Source.Kind: SoundSourceKind.Room }).Select(e => e.ThingSound!.Value).ToArray();
 
     [Fact]
-    public void AnOngoingPartyWithADancerAsks316EveryUpdateWithTheRoomsHandleAtItsAnchorTile()
+    public void AnOngoingPartyWithADancerAsks316EveryUpdateAtTheCameraWithTheRoomsHandleAndAVolumeAnchor_TheAnchorTileIsTheFirstTileAnInference()
     {
         GameDatabase db = Db();
         (WorldState world, RoomInstance room, _) = Setup(db);
@@ -72,6 +72,7 @@ public sealed class CasinoPartyMusicTests
         Assert.All(heard, s =>
         {
             Assert.Equal(ThingSoundEvent.PartyMusic, s.Event);
+            Assert.True(s.ListenerRelative);   // the camera's point, 0x004D63D0; the tile is the volume's anchor
             Assert.Equal("ROOM_CASINO", s.Category);
             Assert.Equal(new SoundSourceId(SoundSourceKind.Room, tile), s.Source);
             Assert.Equal(new FpPosition3(new Fp32(CreatureState.CentreOf(tile % world.Width)), new Fp32(CreatureState.CentreOf(tile / world.Width)), new Fp32(0)), s.Position);
@@ -110,6 +111,7 @@ public sealed class CasinoPartyMusicTests
         Assert.True(heard[0].Stop);
         Assert.Equal(new SoundSourceId(SoundSourceKind.Room, room.TileIndices[0]), heard[0].Source);
         Assert.Equal(ThingSoundEvent.PartyEnded, heard[1].Event);
+        Assert.False(heard[1].ListenerRelative);   // 0x33E is at the tile's centre
         Assert.Equal("ROOM_CASINO", heard[1].Category);
         Assert.Equal(heard[0].Source, heard[1].Source);
         Assert.Equal(CasinoStep.ChoosingState, dancer.Dk2StateId);

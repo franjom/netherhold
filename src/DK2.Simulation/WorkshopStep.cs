@@ -203,6 +203,7 @@ public static class WorkshopStep
     /// order, DK2 the first in the tile's thing list.</summary>
     private static void AskAnvilSound(SimulationContext context, string system, CreatureState creature, long now)
     {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);
         if (now < creature.StateEnteredTick + CombatRules.TicksOf(definition.MeleeHitDelay)) return;
         WorldState world = context.World;

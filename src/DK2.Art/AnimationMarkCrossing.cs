@@ -54,8 +54,9 @@ public static class AnimationMarkCrossing
 }
 
 /// <summary>Keeps the last drawn frame's fraction of a creature's turn, so each draw tests the interval since the one before
-/// it. <c>0x0043CC30</c> passes the helper the last frame's fraction, moved back by 250 per game turn elapsed, and this
-/// frame's; ours moves it back by 256 (a marked deviation: the native 250 is read as a constant, its unit is not).</summary>
+/// it. <c>0x0043CC30</c> passes the helper two fractions: this frame's (<c>[view+0x262D]</c>) and an earlier one (<c>[view+0x2625] + (+0x2621 - +0x2629) x 250</c>)
+/// whose writers are unfound. Ours takes the last frame's fraction moved back by 256 per turn, reading the native as milliseconds into a 250 ms turn divided
+/// by 256: a benign deviation, STRONGLY INFERRED.</summary>
 public sealed class AnimationMarkWatcher
 {
     private int _last = -1;

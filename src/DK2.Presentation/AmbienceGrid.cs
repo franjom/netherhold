@@ -22,6 +22,7 @@ public static class AmbienceGrid
 {
     public const int Side = 11;
     private const int Reach = 5;
+    private const int MaxEmitters = 2;
 
     /// <summary>An ambient emitter: the category it plays in, and its point in the view's space, <c>DungeonScene.Ground</c>'s (x, height, -y) in tiles.</summary>
     public readonly record struct Emitter(string Category, Vector3 Position);
@@ -40,11 +41,12 @@ public static class AmbienceGrid
         return cells;
     }
 
-    /// <summary>One emitter per category in <paramref name="cells"/> that <paramref name="hasAmbience"/> says has the ambient group.</summary>
+    /// <summary>An emitter for each of the two heaviest categories in <paramref name="cells"/> (by cell count) among those <paramref name="hasAmbience"/> says have the ambient group.</summary>
     public static List<Emitter> Emitters(string[] cells, TilePos listener, Func<string, bool> hasAmbience)
     {
         var emitters = new List<Emitter>();
         var seen = new HashSet<string>();
+        var counts = new List<int>();
         for (int i = 0; i < cells.Length; i++)
         {
             string category = cells[i];
@@ -59,7 +61,12 @@ public static class AmbienceGrid
                 count++;
             }
             emitters.Add(new Emitter(category, new Vector3(x / count, 0f, -y / count)));
+            counts.Add(count);
         }
-        return emitters;
+        // 0x00609CE0 pops the best two records from a heap ordered by tile count and weight, and the pass keeps those categories only (the loop bound
+        // at +0x28 is unread but at most two). The comparator and its tie-break are unread: ours ranks by cell count, the first seen winning a tie (INFERRED).
+        if (emitters.Count <= MaxEmitters) return emitters;
+        return emitters.Select((emitter, i) => (emitter, i)).OrderByDescending(p => counts[p.i]).ThenBy(p => p.i).Take(MaxEmitters)
+            .Select(p => p.emitter).ToList();
     }
 }

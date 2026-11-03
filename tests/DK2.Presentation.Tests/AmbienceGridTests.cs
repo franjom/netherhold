@@ -67,6 +67,25 @@ public sealed class AmbienceGridTests
     }
 
     [Fact]
+    public void OnlyTheTwoCategoriesWithTheMostCellsKeepAnEmitter_TheHeapOrderAndTheTieBreakAreInferred()
+    {
+        var cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
+        Array.Fill(cells, "");
+        void Put(string category, int count, int from) { for (int i = 0; i < count; i++) cells[from + i] = category; }
+        Put("TERRAIN_LAVA", 3, 0);
+        Put("TERRAIN_WATER", 5, 10);
+        Put("ROOM_GRAVEYARD", 3, 30);   // ties LAVA on cells and came later: the first seen is kept (an inference)
+        Put("ROOM_TORTURE", 1, 50);
+
+        List<AmbienceGrid.Emitter> emitters = AmbienceGrid.Emitters(cells, new TilePos(20, 20), _ => true);
+
+        Assert.Equal(["TERRAIN_WATER", "TERRAIN_LAVA"], emitters.Select(e => e.Category));
+        // A heavier category without an ambient group does not take a slot from one that has it.
+        Assert.Equal(["TERRAIN_LAVA", "ROOM_GRAVEYARD"],
+            AmbienceGrid.Emitters(cells, new TilePos(20, 20), c => c is "TERRAIN_LAVA" or "ROOM_GRAVEYARD" or "ROOM_TORTURE").Select(e => e.Category));
+    }
+
+    [Fact]
     public void AnEmptyGridHasNoEmitters()
     {
         var cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];

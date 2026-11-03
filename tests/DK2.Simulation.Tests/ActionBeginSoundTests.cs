@@ -57,7 +57,7 @@ public sealed class ActionBeginSoundTests
     }
 
     [Fact]
-    public void ADiggingImpAsks334WhenItsDigActionBeginsAndAgainEachTimeItsClipWraps()
+    public void ADiggingImpAsks334WhenItsDigActionBeginsAndAgainEachTimeItsClipWraps_TheCadenceIsOursOfTheBeginGate()
     {
         var (sim, events, imp) = Worker(TileWorkKind.Dig, entered: 100);
         sim.Run(40);

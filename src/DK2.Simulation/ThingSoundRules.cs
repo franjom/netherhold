@@ -190,13 +190,14 @@ public enum ThingSoundEvent : ushort
 /// creature's lift and drop): the sound then neither replaces nor is retained by the thing's own voice.
 /// <paramref name="ViewerOnlyFor"/> names the owner of a request DK2 makes only for the local player's own
 /// thing (the heart's opening): the view plays it only when that player is the viewer.
+/// <paramref name="ListenerRelative"/> marks a request DK2 makes at the camera's point with a volume set from the distance to <paramref name="Position"/> (the Casino party's music, <c>0x004D63D0</c>): playback is nonspatial and the player scales it.
 /// <paramref name="Stop"/> marks the request that is not a sound: DK2's stop command on the thing's handle (slot <c>+0x38</c>, command <c>0x0066C77C</c>), which ends the voice the thing owns (<see cref="ThingSoundRules.Stop"/>); category and event are unused.
 /// <paramref name="Alternating"/> marks a request DK2 gates on a global counter that nothing else reads (the chicken's
 /// step, <c>0x006E4FD4</c>): the listener keeps the counter, tests bit 0 and then adds one, for every such request it is
 /// given, so the simulation keeps no state for it.</summary>
 public readonly record struct ThingSoundRequest(
     SoundSourceId Source, string Category, ThingSoundEvent Event, FpPosition3 Position, bool Voiced = true,
-    PlayerId? ViewerOnlyFor = null, bool Alternating = false, bool Stop = false);
+    PlayerId? ViewerOnlyFor = null, bool Alternating = false, bool Stop = false, bool ListenerRelative = false);
 
 /// <summary>A sound a thing requests at its position. Read for creatures (<c>0xD6</c>, <c>0xDF</c>,
 /// and the hand's <c>0xC3</c>/<c>0xC4</c>) and objects (the hand's <c>0xC3</c>/<c>0xC4</c>): positional
@@ -261,14 +262,14 @@ public static class ThingSoundRules
     /// category. A room's tiles use its room terrain's category (room definition <c>+0x44E</c>).</summary>
     public static void RequestTile(SimulationContext context, string system, byte terrainId, int tileIndex,
         ThingSoundEvent sound, int height = 0, SoundSourceKind kind = SoundSourceKind.Terrain,
-        bool voiced = false, PlayerId? viewerOnlyFor = null, SoundSourceId? source = null)
+        bool voiced = false, PlayerId? viewerOnlyFor = null, SoundSourceId? source = null, bool listenerRelative = false)
     {
         string category = context.Database.TerrainById(terrainId).SoundCategory;
         if (category.Length == 0) return;
         int width = context.World.Width;
         Request(context, system, source ?? new SoundSourceId(kind, tileIndex), category, sound,
             new(new Fp32(CreatureState.CentreOf(tileIndex % width)), new Fp32(CreatureState.CentreOf(tileIndex / width)),
-                new Fp32(height)), voiced, viewerOnlyFor);
+                new Fp32(height)), voiced, viewerOnlyFor, listenerRelative: listenerRelative);
     }
 
     /// <summary>A creature's request with handle 0, which DK2 passes when lifting and dropping it.</summary>
@@ -297,16 +298,13 @@ public static class ThingSoundRules
             new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), viewerOnlyFor: viewerOnlyFor);
 
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
-        ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null, bool alternating = false)
+        ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null, bool alternating = false, bool listenerRelative = false)
     {
         if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
         if (category.Length > 31) category = category.Substring(0, 31);
-        context.RequestSound(system, new(source, category, sound, position, voiced, viewerOnlyFor, alternating));
+        context.RequestSound(system, new(source, category, sound, position, voiced, viewerOnlyFor, alternating, ListenerRelative: listenerRelative));
     }
 
-    /// <summary>A creature's request from a hook, which holds no event sink of its own: the creature's handle and
-    /// position, the category of <paramref name="definition"/>. The level increment asks this way
-    /// (<c>0x0048B2DB</c>), as it asks for its effect.</summary>
     /// <summary>DK2's stop command on a thing's handle (slot <c>+0x38</c> with the command object <c>0x0066C77C</c>: the instance found by handle gets its stop method,
     /// vtable <c>+0x18</c>). Asked where a thing's loop ends: the burning creature's fire (<c>0x0048E62E</c>).</summary>
     public static void Stop(SimulationContext context, string system, SoundSourceId source)
@@ -315,6 +313,9 @@ public static class ThingSoundRules
         context.RequestSound(system, new(source, "", default, default, Stop: true));
     }
 
+    /// <summary>A creature's request from a hook, which holds no event sink of its own: the creature's handle and
+    /// position, the category of <paramref name="definition"/>. The level increment asks this way
+    /// (<c>0x0048B2DB</c>), as it asks for its effect.</summary>
     public static void Request(in StateHookContext hooks, string system, CreatureDef definition, CreatureState creature,
         ThingSoundEvent sound)
     {

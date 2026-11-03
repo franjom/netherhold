@@ -32,6 +32,41 @@ public sealed class SoundLoopTests
     }
 
     [Fact]
+    public void AListenerRelativeRequestPlaysNonspatiallyWithTheTilesPointAsItsVolumeAnchor()
+    {
+        var director = new WorldSoundDirector();
+        director.Emit(new SimEvent(new GameTick(1), "casino", "thing_sound", "")
+        {
+            ThingSound = new ThingSoundRequest(new SoundSourceId(SoundSourceKind.Room, 9), "ROOM_CASINO", ThingSoundEvent.PartyMusic,
+                new FpPosition3(new Fp32(4 * 4096), new Fp32(7 * 4096), new Fp32(0)), ListenerRelative: true),
+        });
+
+        Assert.True(director.TryTake(out SoundRequest request));
+        Assert.Null(request.World);
+        Assert.Equal(new System.Numerics.Vector3(4f, 0f, -7f), request.VolumeAnchor);
+        Assert.Equal(new SoundId(0x316), request.Id);
+    }
+
+    [Theory]
+    [InlineData(0f, 0f, 1f)]
+    [InlineData(22.5f, 0f, .5f)]
+    [InlineData(0f, 22.5f, .5f)]
+    [InlineData(45f, 3f, 0f)]
+    [InlineData(100f, 0f, 0f)]
+    public void TheAnchoredVolumeFallsLinearlyToZeroAtFortyFiveTilesByTheLargerAxis(float dx, float dz, float expected)
+    {
+        var focus = new System.Numerics.Vector3(10f, 0f, -10f);
+        var anchor = new System.Numerics.Vector3(10f + dx, 3f, -10f - dz);
+        Assert.Equal(expected, AnchoredVolume.Of(anchor, focus), 4);
+    }
+
+    [Fact]
+    public void WithNoListenerFocusTheAnchoredVolumeIsFull()
+    {
+        Assert.Equal(1f, AnchoredVolume.Of(new System.Numerics.Vector3(50f, 0f, 50f), null));
+    }
+
+    [Fact]
     public void AStopOfAnUnvoicedRequestIsNotForwarded()
     {
         var director = new WorldSoundDirector();

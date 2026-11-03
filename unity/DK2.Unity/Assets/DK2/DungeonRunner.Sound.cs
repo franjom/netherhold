@@ -50,6 +50,7 @@ namespace DK2.Unity
             TilePos? listener = UnityEngine.Camera.main != null
                 ? ScreenToTile(new UnityEngine.Vector3(UnityEngine.Screen.width * .5f, UnityEngine.Screen.height * .5f, 0f)) : null;
             if (!listener.HasValue) return;
+            _soundPlayer.ListenerFocus = new System.Numerics.Vector3(listener.Value.X + .5f, 0f, -(listener.Value.Y + .5f));
             if (listener == _ambienceTile && _ambienceTick == world.CurrentTick.Value) { _soundPlayer.UpdateAmbience(_ambienceEmitters); return; }
             _ambienceTile = listener;
             _ambienceTick = world.CurrentTick.Value;
