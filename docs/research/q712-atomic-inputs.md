@@ -35,7 +35,12 @@ keep their poses, navigation inputs and controls distinct.
 
 Evidence: `F:/DK2Evidence/studies/q712-complete-prefix-trajectory-control--2026-11-03--001/`,
 `comparison.json` and `sha256-final.json`. This prefix comparison does not
-validate or complete the ongoing full capture.
+establish a completed full run. The later recorder was deliberately stopped
+with 435 complete memory turns (1, 2 and 1400-1832) and 433 structured frames
+(1400-1832). Independent review verifies its 1321 retained files, owned-child
+closure and unchanged packet. The requested window is incomplete and no
+`verified.json` was issued. Evidence:
+`F:/DK2Evidence/studies/q712-complete-native-level5-seed2--2026-11-03--001/`.
 
 ## Diagnostic restore controls
 
@@ -107,6 +112,51 @@ archived byte-type correction. No production furniture or work rule changed.
 Earlier controls use hash 370; the new control uses frozen 378. Diagnostic
 inputs do not resolve Q719 or close Q712/Q713/Q714.
 
+
+### Saved bodies and worker resume (Q719)
+
+The [saved-body inspection](F:/DK2Evidence/studies/q712-atomic-body-boundary--2026-11-03--001/)
+loads seven retained hash-378 snapshots without advancing simulation. Body
+`Radius` and `Pos` are not serialized: the empty-system loader's radius 13107
+is a default, not an observed live value. Definition-derived radii 6880 for
+Wizard and 4576 for Imp match native. This control establishes no radius or
+movement-rule defect; compare retained live and quantized mover inputs instead.
+
+A [frozen-378 CLI-only worker control](F:/DK2Evidence/studies/q712-atomic-work-resume--2026-11-03--001/)
+restores captured working state 22, age and heading for Imps 439/442/444.
+It also supplies an explicit, future-measured one-tick next-work delay for each
+worker, not a native countdown or proposed production rule. Its off-control
+matches all five prior output hashes. With the other declared partial inputs,
+this restores Library capacity 4 and Warlock 437's birth at 1443 without copying
+a future wall tile. In this resume-only control, hero 436's first pose
+difference remains at 1570.
+
+Experience matches native through each final work application, but native exits
+22 for 10 on that same final hit; the resumed remake exits one turn later:
+439 at 1426/1427, 442 at 1444/1445 and 444 at 1438/1439 (native/remake).
+The complete animation/action clock is not restored, so neither this terminal
+lag nor the supplied delay proves a production work-cadence defect.
+[Measured diagnostic inputs](F:/DK2Evidence/studies/q712-work-resume-inputs--2026-11-03--002/)
+and the worker study retain the timings and verified manifests.
+
+The subsequent [finish-order control](F:/DK2Evidence/studies/q712-atomic-work-finish-order--2026-11-03--001/)
+adds one environment-gated scratch overlay to `ImpTaskSystem.cs`: after tile
+work, eagerly recheck the finished reinforcement task through the existing
+fallback action-end predicate. It retains the future-measured resume delays
+above. Its off-control matches all five outputs; independent review verifies
+40 study and 27 build manifest files. In this control, hero 436's first
+state/XY/target difference moves to 1620 (previously pose 1570 and state 1588);
+its first experience difference is 1589. Imp 442's first XY difference is 1579
+and first state difference 1594. Frozen build:
+`F:/DK2Evidence/builds/q712-atomic-work-finish-h378--2026-11-03--001/`.
+
+This isolates an order boundary, not the complete art-12/mode-3 action clock.
+Action 7 can remain busy after a final hit without cycle flags (`+F1 & 6`);
+the three captured workers have flags 5, which satisfy that test. An
+unconditional production recheck is therefore not justified. Q719 remains
+open: restore the complete reinforcement action/terminal-poll inputs, then
+trace Imp 442's 1579 route and the hero's 1620 divergence. The earlier prefixes
+and facing controls retain their own partial-input scopes.
 
 ### Facing input boundary (Q719)
 
@@ -224,5 +274,7 @@ retains `resync-contamination-analysis.json`. Source/proof and final verificatio
 `F:/DK2Evidence/builds/q712-portal-scan-verification-h388--2026-11-03--001/`.
 
 Q712, Q714/Q719 restoration, the separate rounding difference and other
-state-side relocations remain open. The next matched-input boundary is the
-1570 pose/cast-start divergence above, including worker history and facing inputs.
+state-side relocations remain open. The next diagnostic boundary is the
+[reinforcement action/terminal poll](#saved-bodies-and-worker-resume-q719),
+then Imp 442's route and the hero's remaining divergence. Earlier prefixes are
+controls of their declared inputs, not whole-world parity.
