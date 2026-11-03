@@ -120,7 +120,7 @@ Quadrant q takes (first, diagonal, last) of byte +0xC as bits 2, 1, 0, like the 
 (0, 2) instead of (0, 0). Rotation T.rot + q, quadrant q. A Wooden Bridge (type 8) whose cell word
 `+8` has bit 0x1000 (the bridge is over lava, below) gives every quarter `+0x11` from
 `0x00441990` with 0 or 0x1000 over 0x2000, chosen by cell `+0xB & 0x1E` below or from 8: two
-looks, LIKELY its burning; their meaning is UNKNOWN. Then, for types 8, 0x11 and 0x16, the bed:
+looks, probably its burning; their meaning is UNKNOWN. Then, for types 8, 0x11 and 0x16, the bed:
 bit k when the neighbour is on the map and either its terrain has Water (`+0x17B` 0x80; Lava
 0x100 for a lava bridge), or it is a bridge tile over the same liquid (same cell `+8` bit 0x1000).
 Off the map counts as 0. The bed terrain is Water (world vt `+0x2BC`) or, with bit 0x1000, Lava
@@ -133,7 +133,7 @@ rest a clean decompile). Callers: `0x0043E860` at `0x0043FE2B` for plain Water a
 with the tile byte +0xC, and the Quad builder above. For ConstructionTypeWater terrain
 `0x00450470` sets bit k when the neighbour is off the map, has the same terrain id, or is a room
 tile whose definition `+0x43D` has bit 0 or 1 (placeable on water or lava) and whose cell `+8`
-bit 0x1000 matches (clear for water, set for lava) (LIKELY, decompile).
+bit 0x1000 matches (clear for water, set for lava) (HYPOTHESIS, decompile).
 
 ```
 if terrain is Water (no 0x100) and TranslucentWater == 0 and mask == 0xFF: draw nothing
@@ -276,7 +276,7 @@ are then rebuilt through a float step (constant unread). It runs
 only with Sine Wave Water off (`0x0043BF7B`); what disturbs it is UNKNOWN. The options are the
 settings object `0x00759A78`: `+0x60` Translucent Water (`0x00759AD8`, setter `0x005664A0`) and
 `+0x68` Sine Wave Water (`0x00759AE0`, setter `0x005668F0`); their defaults follow a machine-speed
-tier (`0x00563FB0`, LIKELY). How the command blends (beyond the 0.7 argument) remains UNKNOWN.
+tier (`0x00563FB0`, HYPOTHESIS). How the command blends (beyond the 0.7 argument) remains UNKNOWN.
 The recovered vtable `0x0066FDDC` draw paths are in the [residual fog-edge trace](#residual-fog-edge-trace-2026-11-01).
 
 ### Residual fog-edge trace (2026-11-01)

@@ -65,7 +65,7 @@ position (`+0x25`/`+0x31`); only the descriptor at `+0xED` changes. The descript
 UV rectangle (CONFIRMED). The sprite path ([0059C360](functions/0059C360.md)) offsets the quad by
 RenderInfo `+0x57`/`+0x59`, and the half-height move needs art flag 0x40, which no mood art has; no
 store to `+0x57`/`+0x59` (`+0x94`/`+0x96` of the flower object) exists in the flower code
-(StoreAt over the binary), so they stay at their initial value, LIKELY 0. The quad
+(StoreAt over the binary), so they stay at their initial value, probably 0. The quad
 ([0057F3D0](functions/0057F3D0.md)) is ±w/2 by ±h/2 about those offsets with UVs (0,0), (1,0),
 (1,1), (0,1): the whole texture, no sub-rectangle (CONFIRMED). The level badge's fan
 ([00595990](functions/00595990.md)) pivots on UV (0.5, 0.5) at the same point, so the wedge turns
@@ -156,7 +156,7 @@ Read and built (pass 3, 2026-10-23), each from state ours already keeps:
 - **Removal countdown**: `+0x4B3` is our `ManaRemovalStamp`. It shows the flower; the centre is `SL-0(6 − step)` with step ([0048F110](functions/0048F110.md)) 1 at the stamp, one more a game second, 5 from five seconds; the cycle is not stepped; the ring shows only on the second half of each game second ([0048F0F0](functions/0048F0F0.md)).
 - **Imprison tag and Objective-2**: `+0x3F7` is our `RescuePriorityMask`. With the viewer's bit set the Imprison icon is drawn over the centre ([005961A0](functions/005961A0.md)) and a slotted hero's ring is `Objective-2` ([00596770](functions/00596770.md)).
 - **Leaving and S-Gem** ([00597270](functions/00597270.md)): S-Gem when the carried object is the Portal Gem (object 28, [0048B5C0](functions/0048B5C0.md)); Leaving in states 194–196. DK2's bit 14 is set on entering 194 and cleared only by a rebellion, so a leaver moved out of those states keeps its icon in DK2 and not here.
-- **Lifts**: torture and +0x80 for a slot holder. The on-slot torture lift takes 0x00759ADC as 1, to match the plain device art ours loads; that is a GUESS, since the global has no writer found and may be 0 in vanilla, which would lift the flower 0x400 (a quarter tile) higher (Q635).
+- **Lifts**: torture and +0x80 for a slot holder. The on-slot torture lift takes 0x00759ADC as 1, to match the plain device art ours loads; that is a HYPOTHESIS, since the global has no writer found and may be 0 in vanilla, which would lift the flower 0x400 (a quarter tile) higher (Q635).
 - **Size**: 0.25 tile from the descriptor, replacing the 0.259 the owner's three comparisons had reached by eye; icons are no longer sized by their texture width.
 - **Scripted window (ADR-0535)**: action 30 stores native turn + 4 times its first dword, modulo 32 bits, at `+0x4B7`; the predicate includes its last turn. Built as saved/hashed `StatusFlowerUntilTurn` (version 302). Level1's four Imp roots request 60 seconds under flag 71; root 274 also speaks level line 4 and requests 120 seconds (`kwd triggers Level1Triggers.kld`: roots 276/278/279/280 and 274; later stages under flags 73, 75, 77 and 78 repeat speech 4 with further 60-second roots, untested). `TutorialNotificationsTests` drives the four shipped Imp roots and checks visibility without hover and after restore. Matched play remains pending.
 
@@ -179,5 +179,5 @@ health ≤ 0, but 0x004B2CE0 sets it with a positive `+0x40` on collapse, so the
 ## 4. Open
 
 - The owner's first screenshot (2026-10-20) shows a red keeper's level badge white, where the code and two later captures tint it. It was taken with the Hand on the creature; whether hovering changes the centre's colour is unread.
-- The wedge's orientation: [00595990](functions/00595990.md) puts angle 0 at camera +y and 0x400 at −y, and [005966B0](functions/005966B0.md) grows the full-colour arc from 0x400 by the share, so the wedge starts at the top and grows clockwise **if** camera +x is right and +y down (the billboard reading, [object-drawing.md](object-drawing.md) §10; 0x00594E10's matrix is not traced). LIKELY, and it agrees with the captures and the owner.
+- The wedge's orientation: [00595990](functions/00595990.md) puts angle 0 at camera +y and 0x400 at −y, and [005966B0](functions/005966B0.md) grows the full-colour arc from 0x400 by the share, so the wedge starts at the top and grows clockwise **if** camera +x is right and +y down (the billboard reading, [object-drawing.md](object-drawing.md) §10; 0x00594E10's matrix is not traced). HYPOTHESIS, and it agrees with the captures and the owner.
 - What state 0x110 is.

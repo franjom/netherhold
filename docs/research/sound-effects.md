@@ -125,7 +125,7 @@ So `+0x1078/+0x107C` is the pointer's world position, and the hand's requests us
 `0x2000` (2.0 tiles). The hand category is the name `HAND` ([0x00567240](functions/00567240.md));
 ours is `hand`.
 
-Verdict "CONFIRMED" is for the sound site; the records of `0x004BFBD0` and `0x004C0CB0` stay LIKELY for the rest of those functions.
+Verdict "CONFIRMED" is for the sound site; the records of `0x004BFBD0` and `0x004C0CB0` stay HYPOTHESIS for the rest of those functions.
 `HandCursorFeedback.Reset` (focus loss, disable) also clears the slap latch, which DK2 clears only at completion.
 
 | Request | Where it runs | Verdict | Built as |

@@ -261,9 +261,9 @@ public static class FunctionKbNames
             .OrderBy(r => r.Address, StringComparer.Ordinal)
             .Select(r => $"{r.Address}\t{GhidraName(r)}\n"));
 
-    /// <summary>The name a decompile shows: a CONFIRMED record's name as it is, any other with its
-    /// confidence appended (Treasury_Tick_LIKELY), because a plain name in Ghidra reads as settled
-    /// (owner, 2026-10-14).</summary>
+    /// <summary>The name a decompile shows: a CONFIRMED or STRONGLY INFERRED record's name as it is, any
+    /// other with its confidence appended (Treasury_Tick_HYPOTHESIS), because a plain name in Ghidra reads
+    /// as settled (owner, 2026-10-14; scale ADR-0642).</summary>
     public static string GhidraName(FunctionRecord record)
-        => record.Confidence is "CONFIRMED" or "" ? record.Name : $"{record.Name}_{record.Confidence}";
+        => record.Confidence is "CONFIRMED" or "STRONGLY INFERRED" or "" ? record.Name : $"{record.Name}_{record.Confidence}";
 }

@@ -10,7 +10,7 @@ the contract the presentation layer must meet. Parent page:
 
 Every Rooms, Spells and Workshop slot widget has one draw callback, 0x00412FC0. The static
 widget records hold the update callback at `+0x34` and the draw at `+0x38` (static-record
-offsets; the live draw reads `[EBX+0x24]` and the state `[EBX+0x61]`, so the live widget is LIKELY
+offsets; the live draw reads `[EBX+0x24]` and the state `[EBX+0x61]`, so the live widget is probably
 the static record minus 0x10, and live offsets below are written that way): rooms
 [0x00410990](functions/00410990.md), spells [0x004113B0](functions/004113B0.md), Workshop
 [0x00410DE0](functions/00410DE0.md), each paired with 0x00412FC0 (static data at
@@ -40,7 +40,7 @@ Slot state is widget `+0x61`, written by the update callbacks: 0 hidden, 1 norma
 118 `gui\rooms\tba`, 119 `gui\traps\w-tba`, 120 `gui\spells\s-tba`); availability 4 keeps
 the real icon. The research and manufacture wedges need a non-zero p. The recharge wedge needs
 p ≠ 100 and is drawn at p = 0 too (the branch is `angle != 3π || p == 0`), with no area. Colour triples are the float RGB block passed by pointer.
-They are read in address order as R, G, B (LIKELY; the order inside the triangle submit is
+They are read in address order as R, G, B (HYPOTHESIS; the order inside the triangle submit is
 unread). Base tints are the packed 24-bit tint the sprite submit takes, written as in
 [the slot record](functions/00412FC0.md) (`0x646464` is the existing unaffordable tint).
 
@@ -197,7 +197,7 @@ owner-comparison item that page leaves.
 ## 9. Unknown
 
 - The float-depth to integer-layer mapping (§1); the in-front reading is inferred.
-- The colour triple's channel order inside the triangle submit (LIKELY R, G, B).
+- The colour triple's channel order inside the triangle submit (probably R, G, B).
 - Widget `+0x41`/`+0x45` (taken as pressed).
 - 0x004C1740, which gates state 1 for spells (0x004113B0 leaves the state unchanged when it
   returns 0).

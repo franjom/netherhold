@@ -57,7 +57,7 @@ Dungeon maps. Categories used: 0 (`0xF3` gold 40 s in level1, `0xF2` mana 30 s i
 `0xF8` Creatures tab in level4), 1 (rooms; level1 flashes Lair 2 and Hatchery 4), 3 (door
 1, level3), 4 (trap 3, level3) and 5 (spells). The room value is the one
 [0x00410AE0](functions/00410AE0.md) returns and the room tool stores at `+0x13F4`. Reading it
-as the room type id fits level1's tutorial (Lair, then Hatchery) but is LIKELY: that record
+as the room type id fits level1's tutorial (Lair, then Hatchery) but is HYPOTHESIS: that record
 describes the iterator as resolving a display-order byte. No shipped level flashes the Rooms,
 Spells or Workshop tab directly (FB/FA/F9): those arms are inert in the corpus, and the
 tabs flash only as the route to a flashed item. Most durations are 0 (until used or
@@ -145,7 +145,7 @@ Shift+Ctrl or Shift+Alt is an ordinary click.
 **Nothing else writes the pins.** StoreAt/InsGrep over `+0x5F..+0x63` find only 0x00416C20
 (the other hits are sub-objects at `+0xC`/`+0x4D05`, constructor 0x00402AF0). The level
 reset [0x004033F0](functions/004033F0.md) does not touch them and the interface is the
-static 0x006CEA10, so a pin LIKELY survives a level change (the menus' own visibility is
+static 0x006CEA10, so a pin probably survives a level change (the menus' own visibility is
 rebuilt; whether the lock icon then shows over a closed panel is unobserved).
 
 **Layout of several open panels** (0x00417310, relayout runs only while expanded). With `n`

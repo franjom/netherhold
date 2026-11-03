@@ -50,7 +50,7 @@ idles, and 1 sends it to 10 on its next turn.
   slap ignored.
 - `CreatureStatusSystem` runs the reaction for every creature in 67, 77 or 120 (activity `Slapped`),
   as it runs the get-up; the prisoner systems leave a captive in 120 to it.
-- Action 19's length is `AnimationTimingRules.CountedHoldTicks` for art slot 4, count 0, LIKELY as for
+- Action 19's length is `AnimationTimingRules.CountedHoldTicks` for art slot 4, count 0, HYPOTHESIS as for
   the other actions; it starts at the first turn after the slap (ours' `Age` 1).
 - **Not modelled:** the knock-back's velocity (ADR-0373), so the door-tile stop in §2 step 2; a
   Horny is not slappable in ours (`HandRules.CanSlap`), so 242 and 238 are not reached.

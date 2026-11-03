@@ -9,12 +9,14 @@ using C# and Unity.
 
 Do not invent original DK2 behavior when it can be researched.
 
-Distinguish:
+Distinguish, on the one scale that research notes, function records and code share
+(ADR-0642):
 
-- CONFIRMED
-- STRONGLY INFERRED
-- HYPOTHESIS
-- UNKNOWN
+- CONFIRMED: seen in the running game (owner observation, stopwatch, native capture)
+- STRONGLY INFERRED: read in the binary or the shipped data
+- HYPOTHESIS: fits the evidence, with a step nobody read
+- UNKNOWN: DK2's answer is not known
+- DISPUTED (function records only): two readings conflict
 
 ## HARD RULE: native evidence lives outside the clone
 

@@ -125,7 +125,7 @@ callback held only in static widget record data at `0x0069318E`; it calls player
 vtable `+0x260` with the interface's player id, then `0x004C0120`. Its neighbour
 record's callback `0x004281D0` posts action record (0,0,0,1) through `0x004346E0`,
 the same payload `0x004039A0` posts at `0x00403A90..0x00403AD5` when Status is neither
-0 nor 2 outside game mode 3 and path mode. That pair is LIKELY a result menu's
+0 nor 2 outside game mode 3 and path mode. That pair is probably a result menu's
 continue and leave buttons; which menu owns the records and their labels is unread. Player initialization `0x004B8640` clears it in every mode.
 The store/mask census found no other direct bit-19 setter/clearer on the player;
 Reaper-state masks concern a different record, and `0x004B9740` changes only

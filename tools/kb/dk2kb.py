@@ -32,7 +32,7 @@ DLL = ROOT / "src" / "DK2.Tools" / "bin" / "Release" / "net10.0" / "DK2.Tools.dl
 HEADER_ORDER = ["address", "name", "role", "confidence", "status", "evidence", "implements"]
 TOKEN_KEYS = {"address", "confidence", "status", "evidence", "implements"}
 LIST_KEYS = {"evidence", "implements"}
-CONFIDENCES = ("CONFIRMED", "LIKELY", "GUESS", "DISPUTED")
+CONFIDENCES = ("CONFIRMED", "STRONGLY INFERRED", "HYPOTHESIS", "UNKNOWN", "DISPUTED")  # ADR-0642
 STATUSES = ("READ", "BUILT", "SUPERSEDED")
 HISTORY_HEADING = "## History"
 ADDRESS_RX = re.compile(r"^00[4-6][0-9A-F]{5}$")
@@ -283,7 +283,7 @@ def upsert(address: str, agent: str, note: str, name: str = "", role: str = "", 
         if old_bytes is None:
             if "role" not in changes or "evidence" not in changes:
                 return f"not saved: {rel} is new and needs role and evidence"
-            new = {"address": f"0x{addr}", "name": f"FUN_{addr}", "confidence": "GUESS", "status": "READ"}
+            new = {"address": f"0x{addr}", "name": f"FUN_{addr}", "confidence": "HYPOTHESIS", "status": "READ"}
             new.update(changes)
             content = build(None, new, reasoning, history_line)
         else:
@@ -378,7 +378,7 @@ def make_server():
         comma-separated repo paths (optional #anchor) and replace the whole list; implements='-' clears it
         (evidence cannot be cleared). reasoning replaces the body. note becomes the History line
         '- <today> <agent>: <note>'. A new record needs role and evidence and defaults to name FUN_<ADDR>,
-        confidence GUESS, status READ. The file is validated with `dk2tools kb check --all`; a finding about this
+        confidence HYPOTHESIS, status READ. The file is validated with `dk2tools kb check --all`; a finding about this
         record undoes the write and returns 'not saved: ...', so a record that already has a finding cannot be
         written until that finding is fixed in the same call. Otherwise INDEX.md is regenerated (best effort;
         it is deterministic from the records on disk) and 'saved <path>' returned.

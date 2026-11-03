@@ -331,7 +331,7 @@ The Portal Gem is the only object whose start state is **50**, the process
 a turn, and adds `0x40` to its heading. Once a game second, while not carried, it
 creates the definition's idle effect (file 0x358, effect 297, Level Gem Idle Effect,
 gem-dust sparkles) tied to the gem. The process is CONFIRMED (decompile and table bytes,
-2026-10-23); that a loose (dropped) gem stays in state 50 is LIKELY (unread; a world-log
+2026-10-23); that a loose (dropped) gem stays in state 50 is HYPOTHESIS (unread; a world-log
 dump after the drop would settle it).
 
 Its mesh is `Gem.kmf`: a noise texture whose look is DK2's additive environment pass

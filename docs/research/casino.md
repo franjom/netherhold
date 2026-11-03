@@ -139,7 +139,7 @@ Without a wheel, 149 still asks `0xD5` every `v19 × 8` turns ([sound-effects.md
 **150** (`0x00456450`, not a function in the canonical project): action 68, count 1; started,
 `SetState(151)`, else return 0. **151** as 147 without the sound.
 
-## 7. The actions — CONFIRMED (table), LIKELY (duration)
+## 7. The actions — CONFIRMED (table), HYPOTHESIS (duration)
 
 `0x004950C0` fills each record (`0x006E4198 + id × 0x1D`): actions 35, 56, 39, 57 and 65–68 have
 no handler, mode 0 (EAX, 0 at their stores) and no fixed duration, so each ends with its
@@ -149,7 +149,7 @@ animation. Their art (`+0x14`): 35 → 8 (`0x00495AFF`), 39 → 19 (`0x00495BB3`
 as the cycle count and, for `n` below 2, clears looping: so count 1 plays once and count `n ≥ 2`
 plays `n + 1` times, as the prison's flourish does (ADR-0301). The length of a play is the
 resolved art's frames and rate, as `AnimationTimingRules` reads them; that the runner ends a
-looped action after exactly its cycles is LIKELY (the cycle flags are the renderer's).
+looped action after exactly its cycles is HYPOTHESIS (the cycle flags are the renderer's).
 
 **In the shipped data** (`CasinoOnRealDataTests`): of the 39 creatures whose job tables list Drink,
 King Reginald and the Stone Knight have no art 19 or 9 and no 28 or 8, so 146 turns them idle three
@@ -203,7 +203,7 @@ which the party does not lift, sends it idle on its first act (`state-category-h
 ## 10. The winner: 152, 155, 156, 157 — CONFIRMED
 
 **152** (`0x00456EC0`, category 0). At `Age` 1: any action ends; art 28 resolved present, action
-57 at its position (`0x00496980`, which writes no count: one play is LIKELY, §7); else art 8,
+57 at its position (`0x00496980`, which writes no count: one play is HYPOTHESIS, §7); else art 8,
 action 35 with count `random(4) + 3`;
 else return 0. Each turn with no action running, action 35 again. At `Age` `v19 × 10`:
 `KickToState(1)`, `KickToState(155)`.

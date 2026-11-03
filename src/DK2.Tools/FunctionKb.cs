@@ -21,7 +21,9 @@ public sealed record FunctionRecord(
 public static partial class FunctionKb
 {
     public const string Folder = "docs/research/functions";
-    public static readonly string[] Confidences = ["CONFIRMED", "LIKELY", "GUESS", "DISPUTED"];
+    /// <summary>The one confidence scale (ADR-0642): research notes, records and code share it. A binary read
+    /// alone reaches STRONGLY INFERRED; CONFIRMED needs the running game.</summary>
+    public static readonly string[] Confidences = ["CONFIRMED", "STRONGLY INFERRED", "HYPOTHESIS", "UNKNOWN", "DISPUTED"];
     public static readonly string[] Statuses = ["READ", "BUILT", "SUPERSEDED"];
     /// <summary>DKII.EXE code: .text from 0x401000, cseg ends before 0x6A0000 (Blocks.py, 2026-09-30).</summary>
     public const uint LowestCode = 0x00401000, HighestCode = 0x006A0000;

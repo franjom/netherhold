@@ -330,7 +330,7 @@ first update lands on the same tick but DK2's explosion is made a turn earlier t
 `Shot_Create` caller `0x004A32C6` (shot `0x3F`, an unnamed thing-update function using fields `+0x13E`, `+0x14E`,
 `+0x14A` and sound `0x2F9`); its list and role are unread. The Bile Demon's idle shot (`CreatureJobSystem`) is made in
 the creature sweep, before `ShotSystem`, so it moves the turn it is made (ADR-0551, ADR-0554). A player's cast moves the turn it is
-made, as packet actions are dispatched before the sweep ([005119C0](functions/005119C0.md), LIKELY). The
+made, as packet actions are dispatched before the sweep ([005119C0](functions/005119C0.md), HYPOTHESIS). The
 computer keeper casts from the player frame, which in DK2 is after the sweep; its commands reach ours at
 the head of the next tick, before the shots. Ours makes no door-fired shot.
 

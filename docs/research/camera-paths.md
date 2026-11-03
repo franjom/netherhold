@@ -69,7 +69,7 @@ Callers:
   initialiser `0x0043AAD0` fills its handler array at view `+0xA2` from (id, handler)
   pairs at `0x0066CE30`, and the pair `(0x73, 0x00442540)` is there (CONFIRMED, read
   2026-10-17). How a queued action reaches that array is unread, so the link is
-  **LIKELY**. `0x0050E5C0` first offers a record to the observer `[[world+4]+0x10]`
+  **HYPOTHESIS**. `0x0050E5C0` first offers a record to the observer `[[world+4]+0x10]`
   (slots +0x20 and +0x24), then to the world table at `+0x1684`, whose filler
   `0x00511A80` registers no 0x73. It unpacks `{pathId | bit31, x, y}` and passes bit 31 as `plain`. Trigger
   action 31's arm `0x004C886E` queues that record for the local player only: the
@@ -158,7 +158,7 @@ The ordinary camera's own position fields are never written during an in-game pa
 so the player's view returns to where it was before.
 
 `0x0044D320` is not a camera save. Its rects are CONFIRMED; that they make a letterbox
-is our reading of their values (LIKELY):
+is our reading of their values (HYPOTHESIS):
 - With argument 1 it raises a count `+0xE48`. It animates the viewport rect
   `+0xE62..+0xE6E` over 2000 ms (`+0xE4A` start, `+0xE4E` duration) to
   `(0, h/8, w, h - h/8)`, which is black bars of an eighth of the screen height top

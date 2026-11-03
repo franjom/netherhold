@@ -12,7 +12,8 @@ deliberately does not:
 
 Confidence tags are mandatory in every note: CONFIRMED / STRONGLY INFERRED /
 HYPOTHESIS / UNKNOWN (AGENTS.md). **CONFIRMED is reserved for the running game**
-— owner observation or a stopwatch. A binary read is STRONGLY INFERRED.
+— owner observation or a stopwatch. A binary read is STRONGLY INFERRED. Function
+records use the same scale, plus DISPUTED (ADR-0642).
 
 ## Counts — run the command, never hand-maintain
 

@@ -50,7 +50,7 @@ except where stated.
 | `+0x17B` | `+0x39` | `NumberOfThingsResearched` | `Research_AddPoints` `0x004C2DC0` at `0x004C2FDC`: +1 per completed entry | CONFIRMED |
 | `+0x17F` | `+0x3D` | `TimeTaken` | End, `0x004BE6BD`: game turn (`0x00517490`) / `TicksPerSecond` (`0x006F2590`), whole seconds; 0 when that global is 0 | CONFIRMED |
 | `+0x183` | `+0x41` | `SpecialsFound` (byte) | `Special_Activate` `0x004A3FE6`: +1 per activation. End `0x004BE94C`: += the things in the player's list `+0x0A` whose type `+0x12C` is 117–129 (specials held, not used) | CONFIRMED |
-| `+0x184` | `+0x42` | `SpecialsMissed` (byte) | `World_PlaceGeneratedSpecial` `0x0050FA25`: +1 on every player per random special, which v1.70 never places. End `0x004BE954`: itself − `SpecialsFound`, floored at 0 (sign test) | arithmetic CONFIRMED; "therefore 0" LIKELY (rests on [0050F8C0](functions/0050F8C0.md)'s LIKELY "never placed") |
+| `+0x184` | `+0x42` | `SpecialsMissed` (byte) | `World_PlaceGeneratedSpecial` `0x0050FA25`: +1 on every player per random special, which v1.70 never places. End `0x004BE954`: itself − `SpecialsFound`, floored at 0 (sign test) | arithmetic CONFIRMED; "therefore 0" HYPOTHESIS (rests on [0050F8C0](functions/0050F8C0.md)'s HYPOTHESIS "never placed") |
 | `+0x185` | `+0x43` | `SecretLevelsMissed` (byte) | End only, `0x004BE966`: itself − the profile byte `0x00759B7C` (which `Special_LocateHiddenLand` `0x004A4F70` increments), floored at 0. Nothing raises it first, so 0 | CONFIRMED arithmetic; intent HYPOTHESIS |
 
 Writers were found by searching every instruction for each displacement and
@@ -124,7 +124,7 @@ x87 precision mode in play is UNKNOWN, so a quotient that lands on an integer
 
 Every term saturates at 10, so `s` tops out near 100 before `LevelRating`.
 `TimeTaken` divides the turn by `TicksPerSecond`; this multiplies by it, so with
-4 ticks a second (LIKELY, `animation-clock.md`) the time term compares 16x the
+4 ticks a second (HYPOTHESIS, `animation-clock.md`) the time term compares 16x the
 seconds with the level's average. The arithmetic is CONFIRMED; whether the
 product is a DK2 slip is UNKNOWN.
 
@@ -216,7 +216,7 @@ by [0x00533E90](functions/00533E90.md).
     frame it is hovered and drops by 1 every frame, so the glow stays full for three frames
     after the pointer leaves, then fades through ¾, ½ and ¼.
 - **The label colour `+0x3031E`** (and its copy `+0x5FF4`) is copied from the palette object
-  `0x00756F34`. Its constructor `0x00559820` makes it white (LIKELY).
+  `0x00756F34`. Its constructor `0x00559820` makes it white (HYPOTHESIS).
 - **Page 26's briefing sections 2 and 3** pass mode 1 to [0x0053A580](functions/0053A580.md),
   which lays text out only in mode 0. On this page they show only images:
   - the two objective shots at (20, 110) and (20, 242);

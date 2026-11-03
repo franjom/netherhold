@@ -3,7 +3,7 @@
 DKII.EXE v1.70, Ghidra primary reads and shipped Editor KWD records, 2026-10-14.
 The room update (`0x004D9A60`, read whole twice) and the data are **CONFIRMED**;
 of the chain mechanics the Next chain (`0x00440350`) is **CONFIRMED** and the
-death path, the generation flags and the group parts are **LIKELY** (their records
+death path, the generation flags and the group parts are **HYPOTHESIS** (their records
 name the unread steps); the `0xF1` opening sound is built ([sound-effects.md section 8](sound-effects.md#8-the-dungeon-heart)); effect lights are built in section5. Built as
 ADR-0475.
 

@@ -8,7 +8,7 @@ Out of scope, with hand-offs only: the campaign map, unlock rules and profile
 file format: `camera-paths.md`).
 
 Every row is a DKII.EXE v1.70 read unless it says otherwise, so the ceiling is **STRONGLY
-INFERRED** (LIKELY in the function records); owner recollections below are not controlled original-game experiments. Labels are
+INFERRED** (HYPOTHESIS in the function records); owner recollections below are not controlled original-game experiments. Labels are
 `Data/Text/Default/Text.str` ids (file id 1091) decoded with `dk2tools str list`. Function
 records: `docs/research/functions/<ADDRESS>.md`. Path names are the designers' own index
 in `Paths.WAD` (`Engine Path Info.txt.txt`, entries 250-274).

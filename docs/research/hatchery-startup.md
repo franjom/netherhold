@@ -76,7 +76,7 @@ STRONGLY INFERRED limits:
   the three callers of `0x004E4480` were checked for that negative claim.
 - The world +0x7A player chain includes neutral-player Hatcheries.
 - The DK2 turn is zero at level load; ours initializes it to zero.
-- Which room survives construction merge or capture relies on the LIKELY
+- Which room survives construction merge or capture relies on the HYPOTHESIS
   records `0x004EC650` and `0x004EC900`.
 - There is no native first-lay capture.
 

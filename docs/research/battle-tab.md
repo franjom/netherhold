@@ -35,8 +35,8 @@ the panel collapses. Its three static widget records (0x50 bytes, layout in
 All three draw through [Hud_DrawIconButton](functions/004129E0.md). The loader
 [0x00528300](functions/00528300.md) copies the record's dword at `+1` (the id) to the live
 widget's `+0x74`, the right-click callback to `+0x51` and the frame callback to `+0x24`, and
-starts the state `+0x61` at 1. Widgets 2 and 3 (Call to Arms disband, LIKELY from the art; and
-an alarm icon) are not read here. The status line for a hovered widget is LIKELY text
+starts the state `+0x61` at 1. Widgets 2 and 3 (Call to Arms disband, probably from the art; and
+an alarm icon) are not read here. The status line for a hovered widget is probably text
 2166 "Battle Tab: right-click to zoom, click again to cycle.", by the tabs' id + 1 rule
 (bottom-panel-controls.md). The positions are static, so a hidden neighbour leaves its gap
 (STRONGLY INFERRED: no relayout of menu 43 was found).

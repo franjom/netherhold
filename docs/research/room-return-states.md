@@ -75,7 +75,7 @@ it is available, which is this reading.
 
 **Ours.** `ResearchStep.Cheer` in `ResearchTreeRules.Deliver`, before the item's grant, and 60's arm in
 `ResearchStep`. The leave from the Research category releases the place. The action's length is the
-counted clip (`AnimationTimingRules.CountedHoldTicks`), LIKELY. Not read: whether state 1's handler
+counted clip (`AnimationTimingRules.CountedHoldTicks`), HYPOTHESIS. Not read: whether state 1's handler
 cuts action 35 short.
 
 ## 3. 158: the Saturday-night dance — left unbuilt (Q571)

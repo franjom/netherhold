@@ -172,7 +172,7 @@ spending one allowance on a passed permission.
 the owner of the floor under it, as no room id is kept on a creature.
 **Timing (ADR-0551):** a player's cast moves the turn it is made, as `0x005119C0` dispatches the
 packet action before the sweep `0x004B7830` ([0050A450](functions/0050A450.md); the record's meaning
-is LIKELY, the placement CONFIRMED by disassembly); the computer keeper's cast is made in the player
+is HYPOTHESIS, the placement CONFIRMED by disassembly); the computer keeper's cast is made in the player
 frame after the sweep and moves the next turn. Ours matches both (its commands reach the head of the next
 tick), pinned by `KeeperSpellTests`; the cast's other effects (mana spent and so on) land a tick later
 than DK2's for the computer keeper.

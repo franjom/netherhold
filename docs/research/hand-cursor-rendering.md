@@ -47,7 +47,7 @@ The optional random-frame mode exists but is not the ordinary timer.
 Read for the owner's report that our Hand feels "too far down and right" of the mouse.
 
 - **DK2 (CONFIRMED, binary).** `0x0040ACD0` submits surface, frame rectangle and the scaled hotspot through `0x005B2BD0` -> `0x005BB2A0` -> `0x005DBAC0` -> `0x005DC120`. That function stores `-hotspot` as the draw offset (`+0x40/+0x44`). `0x005DC580` places the sprite at `pointer + offset`. So the top-left is `pointer - scaledHotspot`, and the hotspot pixel sits on the pointer.
-- **The pointer source (LIKELY).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is LIKELY, not CONFIRMED.
+- **The pointer source (HYPOTHESIS).** The point comes from a mouse source read through a vtable in `0x005DBB10`. That source is unread, so "it is the same point the world picker uses" is HYPOTHESIS, not CONFIRMED.
 - **The art (CONFIRMED, shipped data).** The hand is drawn down and right of its hotspot on purpose. Point.png frame 0 has its hotspot (2,17) on a transparent pixel; its claw tip is at (6,33), which is (+4,+16) frame pixels from the hotspot. The claw reaches the hotspot only around frames 24-32 of the 41-frame loop (leftmost pixels (3,19), (0,12), (0,14)).
 
 **Ours (CONFIRMED, code).** `HandCursor.Place` uses the same rule, with uniform `H/480` scaling (ART_DIRECTION §13). The Unity UI Toolkit panel (ScaleWithScreenSize, 1024×768, match height) resolves its scale as `H/768` from the game view or display size (Unity 6000.6 `PanelSettingsUtility.ResolveScale`). `ClassicHandCursor.Draw` divides by the same factor, so it adds no offset. `ScreenToTile` picks at `Input.mousePosition`, which was the hotspot, as in DK2, and since 2026-10-24 is the claw tip (below).
@@ -88,7 +88,7 @@ middle, then base. Thus contextual zero falls back to the animated Point.
 Hidden-HUD/presentation gates can publish a null cursor; modal semantics remain
 separate from the supported ordinary dungeon view.
 
-**The GUI pointer (2026-10-19, LIKELY).** The middle channel takes tool icon ids
+**The GUI pointer (2026-10-19, HYPOTHESIS).** The middle channel takes tool icon ids
 (0xC, 0xD), not hand states. State 2 `SmallPoint` goes into the contextual
 channel at `0x0040BCB6` and `0x0040BEFE`, when interface `+0x12B2` is non-zero
 and `+0x10C` is zero, behind gates `0x0044D620` and player `+0x19A` == 0.
@@ -157,11 +157,11 @@ ClassicMeshes writes into UV2 (read once per mesh), with the sphere centre's vie
 centre-pass depth; a mesh without it uses its renderer bounds. Terrain occlusion is unchanged. A draw outside the view never reaches the list: 0x00575D70 culls a sphere outside any of the view's four side planes (so anything behind the eye), before the 1e30 case can apply. Ours tests each renderer's bounds against the camera frustum first (added 2026-10-24 after the owner saw "Chicken" with no chicken on screen: an off-screen chicken behind the camera held every pointer).
 The two gates in [0x005992B0](functions/005992B0.md): `[0x006ED540 + tag]` is the live-slot byte
 of the thing table, which ours meets by looking every candidate up by id (nothing to build); sink
-`+0xD1` is set while binding 26 is held (default PAGE UP, LIKELY the manual's "Pick up Objects
+`+0xD1` is set while binding 26 is held (default PAGE UP, probably the manual's "Pick up Objects
 (Not creatures)", see controls.md) through the setter [0x0059C130](functions/0059C130.md): creatures
 leave the rendered list, a non-creature winner falls to the sweep and the sweep runs object-only.
 Not built (ours has no binding 26). The entity arms run only with a tile under the pointer; ours
-calls `PickHoverEntity` only when `ScreenToTile` returns one, the same outcome (LIKELY).
+calls `PickHoverEntity` only when `ScreenToTile` returns one, the same outcome (HYPOTHESIS).
 
 ## Implemented cursor subset and limits
 

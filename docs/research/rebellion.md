@@ -159,7 +159,7 @@ block found no other writer (2026-10-02). Its readers include these five (`BitRe
 | `0x00478D4F`, in the need-anger routine `0x00478D00` | returns before any need anger is charged |
 | `0x00477BDA`, in the needs busy test `0x00477B40` | reports busy: no eat, sleep or pay attempt |
 | `0x0048A36C`, inside the per-tick creature update `0x00488930` | the door contact: a rebel fights its own keeper's shut door (`door-blocking.md` §1). **STRONGLY INFERRED**, read whole 2026-10-02 |
-| `0x00491B18`, in the predicate `0x00491AE0` | one of six clauses: not following already (`+0x482`), not Horny, state group not 1, `+0x3CB` zero, not `RebelActive`, mood class `+0x28A` Happy. Its callers are the possession follower scan `0x00515D50` and the follow starter `0x00461980`, which clears `+0x482` first when re-starting the same follow, so that clause gates fresh follows. A rebel cannot become a possessed creature's follower (CONFIRMED clauses; the "may follow" name LIKELY) |
+| `0x00491B18`, in the predicate `0x00491AE0` | one of six clauses: not following already (`+0x482`), not Horny, state group not 1, `+0x3CB` zero, not `RebelActive`, mood class `+0x28A` Happy. Its callers are the possession follower scan `0x00515D50` and the follow starter `0x00461980`, which clears `+0x482` first when re-starting the same follow, so that clause gates fresh follows. A rebel cannot become a possessed creature's follower (CONFIRMED clauses; the "may follow" name HYPOTHESIS) |
 
 ## 5. The three outcome percentages are dead, and so is the follower cap
 

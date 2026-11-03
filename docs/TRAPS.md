@@ -136,7 +136,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - A sandbox restore can fail NU1900 when NuGet audit is unreachable; use cached packages with a per-command `-p:NuGetAudit=false`, without changing repository audit settings.
 
-- Function KB headers use CONFIRMED/LIKELY/GUESS/DISPUTED; STRONGLY INFERRED belongs in research prose, with LIKELY in the KB header.
+- LIKELY and GUESS are retired (ADR-0642): `kb check` rejects them. A branch cut before 2026-11-03 runs `python tools/kb/rescale_confidence.py` after merging master.
 
 - `kb_upsert` with `evidence` replaces the whole list, and `name`/`role` overwrite an existing record's; `kb_get` first and pass the union, or pass only `note`.
 

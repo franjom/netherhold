@@ -17,7 +17,7 @@ walls. Facts in our own words, no decompiler output (ADR-0046). Every name below
 
 Labels: **CONFIRMED** (read in the code, the data flow traced to the store),
 **STRONGLY INFERRED** (read, one link resting on an earlier note or an unread
-callee's name), **LIKELY**, **UNKNOWN**.
+callee's name), **HYPOTHESIS**, **UNKNOWN**.
 
 ---
 
@@ -41,7 +41,7 @@ callee's name), **LIKELY**, **UNKNOWN**.
   transforms every vertex position by the piece's matrix and placement and then
   passes it through the lattice sampler `0x0058F030` (`ECX` = the lattice global
   `0x00781088`). Normals are transformed in a second loop that does not touch the
-  lattice. **CONFIRMED** (position); normals **LIKELY**.
+  lattice. **CONFIRMED** (position); normals **HYPOTHESIS**.
 - The deformed geometry is built once per tile and cached (§7), not per frame.
   **CONFIRMED.**
 

@@ -124,7 +124,7 @@ table jumps from id 28's stub to id 29's. The switch `0x0075AE7B`, field
 `+0x134` of the settings object at `0x0075AD47`, has no non-zero store: only
 its constructor `0x0055CCA0` and reset `0x0055E5A0` write it, both with 0. So
 the count test always fails and the placer, though called every turn, never
-places one. These are negative scans, so the verdict is LIKELY. The owner has
+places one. These are negative scans, so the verdict is HYPOTHESIS. The owner has
 never seen a special appear on the map by itself during a level (2026-10-14).
 
 The byte `0x006F25BC` has one other reader. A panel tally `0x00416980` adds it

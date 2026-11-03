@@ -6394,12 +6394,12 @@ the claim.
 finding or correction about a function goes into its record in the same change, with
 a History line dated that day, and the record is read before decompiling. `docs/plans/`
 is exempt: a plan is a process document, not a claim. Records imported from existing
-research are GUESS until a reader has checked them against the binary and raised them,
-in a dated History line.
+research are HYPOTHESIS until a reader has checked them against the binary and raised them,
+in a dated History line. Records use the one confidence scale (ADR-0642).
 
-**Amendment (2026-10-15).** A name in Ghidra reads as settled, so `kb apply-names` gives
-a record that is not CONFIRMED its name with the confidence appended
-(`Treasury_Tick_LIKELY`, `HeroGate_Tick_GUESS`); the record keeps the plain name. Names
+**Amendment (2026-10-15, scale 2026-11-03).** A name in Ghidra reads as settled, so `kb apply-names`
+gives a record that is neither CONFIRMED nor STRONGLY INFERRED its name with the confidence appended
+(`Treasury_Tick_HYPOTHESIS`, `HeroGate_Tick_DISPUTED`); the record keeps the plain name. Names
 are applied per reviewed cluster of a sweep (owner, 2026-10-14). Look a function up by
 address, or find it with `search_symbols_by_name` on the plain name.
 
@@ -10282,8 +10282,8 @@ targetless cast does not unmask, where DK2 reads thing slot 0's owner (unknown).
 possession ours always goes through action 21's release. The owner's play questions
 (sniper range, the disguise pick-up, the release on leaving) stay open.
 
-## ADR-0444 — Preserve bank heights and idle movement after failed hero jobs
-**Date:** 2026-10-12 · **Status:** accepted
+## ADR-0641 — Preserve bank heights and idle movement after failed hero jobs
+**Date:** 2026-10-12 · **Status:** accepted · renumbered 2026-11-03 from ADR-0444, which the profiling markers ADR also used
 
 **Context.** Grounded creatures crossed liquid banks at a flat height, and
 Unity interpolated their horizontal position against the destination height.
@@ -14907,3 +14907,50 @@ or helper action cancellation, returning the resume transition result.
 hash/save versions advance together without adding a saved field. Tests
 must fail against unchanged 389 source. Q712 closure depends on measured
 outcomes and matched inputs, not on this correction alone.
+
+## ADR-0642: one confidence scale for notes, records and code
+
+**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0).
+
+**Context.** Research notes, `Dk2BehaviorAttribute` and `RESEARCH_STATUS.md` used
+CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN, with CONFIRMED reserved for the
+running game (ADR-0046). Function records used CONFIRMED / LIKELY / GUESS / DISPUTED, and
+1,541 records said CONFIRMED on the strength of a binary read. The same word meant two
+different strengths of evidence, which a reader of the wiki could not tell apart.
+
+**Decision.** One scale everywhere: CONFIRMED (the running game: owner observation,
+stopwatch, native capture), STRONGLY INFERRED (a read of the binary or the shipped data),
+HYPOTHESIS (fits the evidence, a step not read), UNKNOWN (DK2's answer is not known), and
+DISPUTED (readings conflict; records only). Owner decision, 2026-11-03: rename the record
+values rather than keep a mapping table. Records moved by `tools/kb/rescale_confidence.py`:
+CONFIRMED to STRONGLY INFERRED (1,537), LIKELY and GUESS to HYPOTHESIS (1,244), each with a
+dated History line. Four CONFIRMED records rest on the running game and stay
+(`0050EA70`, `00491900`, `004919C0`, `0049F730`). `kb check` rejects the retired words.
+
+**Consequences.** Ghidra names keep a suffix for HYPOTHESIS, UNKNOWN and DISPUTED only
+(ADR-0290); `kb apply-names` must be rerun to retire the `_LIKELY`/`_GUESS` names. A branch
+cut before this ADR runs the rescale script after merging master. Prose LIKELY/GUESS tags in
+research notes became HYPOTHESIS. Record names that end in `_LIKELY` were left as names.
+
+## ADR-0643: the wiki is indexed by a closed list of systems and generated in CI
+
+**Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0 to WP5).
+
+**Context.** The GitHub wiki mirrors `docs/wiki/` (CI job `wiki`). A reader asking "what
+do we know about combat, and where is it built" had to search 280 research notes and 600
+ADRs by hand, and nothing grouped them.
+
+**Decision.** `docs/systems.yaml` is the closed list of systems. Each research note names
+its systems in YAML front matter (`systems: [combat]`). An ADR's systems are those of the
+notes it cites by filename, unless its header has an explicit `**Systems:**` field, which
+replaces them. Status is the first word of the header's status, parsed, not edited into the
+file. `dk2tools docs` rejects an added or changed note or ADR that names an unknown system
+or none, and any ADR number used twice. `dk2tools wiki --out <dir>` generates the index
+pages; CI generates them into a staging folder beside `docs/wiki/` and mirrors both, so no
+generated page is committed. Pages are byte-stable: sorted, with no dates or commit ids.
+ADR numbers never used (93-99, 239, 249, 252-259, 267-269, 307, 448, 506-508, 511) are
+listed as "not used" rather than explained (owner, 2026-11-03).
+
+**Consequences.** Front matter is left out of a research note's length budget. A new
+system is a one-line change to `systems.yaml`. The GitHub wiki stays the host; a DocFX site
+remains the long-term option.

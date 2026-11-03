@@ -9,7 +9,7 @@ The owner's description from play (DK2 screenshots do not capture the cursor) ma
 binary: in room mode a flashing cage, blue where the room can go, a pink/red price and a white
 "arrow to the ground" icon; where it cannot, a red cage, no price and a crossed circle. The
 one-tile cage while only hovering is not the selection rectangle (the room arm fills none until
-a drag, §2) but most likely the Hand light's own cage (LIKELY), drawn where `0x004096B0` allows
+a drag, §2) but most likely the Hand light's own cage (HYPOTHESIS), drawn where `0x004096B0` allows
 it (§2a, CONFIRMED).
 
 ## 1. Per-frame flow (CONFIRMED)
@@ -108,7 +108,7 @@ something, and that is the drop cage. See hand-cursor-rendering.md.
 
 ## 2a. The hover cage: the Hand light's kind3 art (read 2026-10-23)
 
-**Who draws it (LIKELY).** Bridge handle `+0x33E`, the Hand light
+**Who draws it (HYPOTHESIS).** Bridge handle `+0x33E`, the Hand light
 ([classic-lighting.md](classic-lighting.md) §4). CONFIRMED (disassembly `0x0043BC10..0x0043BDAC`):
 it carries the kind3 art and gets the drawn bit and edge word below each frame. That this is
 the cage the owner sees rests on the owner's photos, the unread flag and the untraced draw path. Startup
@@ -147,7 +147,7 @@ returns 0 when any of these holds:
 - Options is open (interface `+0x2722 == 1`);
 - the presentation's view mode (`+0x10` of the container, vtable `+0xCC`) is 1, 2 or 10;
 - the pointer is over the GUI (`+0x12B2 == 1`) and no 3D-view press is captured (`+0x10C`
-  zero; the press arms of `0x004075E0` set it, their releases clear it, LIKELY meaning);
+  zero; the press arms of `0x004075E0` set it, their releases clear it, probably meaning);
 - `Camera_AllowsOrdinaryInput 0x0044D590` is false (path camera, counted letterbox).
 
 Otherwise it returns 1 when the tool allows it (`0x0040C120`, on tool mode `+0x13DB`) or the
@@ -167,7 +167,7 @@ dig-taggable tile the Hand and room arms return before writing bit 0x10, so the 
 stays and that cage is **blue** (CONFIRMED chain). With an empty hand over floor, a creature
 or a non-taggable wall, Hand mode shows no hover cage.
 
-**Where it lands (LIKELY).** The light sits at the picked point, not at a tile centre, at
+**Where it lands (HYPOTHESIS).** The light sits at the picked point, not at a tile centre, at
 height `0x1C00` (`0x1E00` when the pick result's `+0x18` is set). Kind3 (`0x005A01A0`,
 `0x005A077F..0x005A081C`) passes the position's x and y through `0x00637600` before
 building the 27-point grid with `0x0059F3C0`. That CRT routine reports error op `0xB`, which
@@ -175,7 +175,7 @@ is floor, so the cage snaps to the tile under the pointer. With renderer `+0xC5`
 the same terrain deformation (`0x005A1070`, `0x0059E480`, `0x0059E670`, `0x0059F4B0`,
 `0x0059ED80`) from the position's integer tile. This is the same builder the rectangle cage
 uses for each boundary tile, which fits the owner's photos: the hover cage follows the bent
-terrain lattice like a full tile. How the light reaches the draw is not traced. It is LIKELY
+terrain lattice like a full tile. How the light reaches the draw is not traced. It is probably
 the tile thing chain that `0x00446C70` updates, drawn by `0x0043CC30`'s thing pass.
 
 **Colour while hovering (CONFIRMED chain).** The order is `0x00403D78` (`0x0040BFF0` →
@@ -302,7 +302,7 @@ colour word with red in the low byte, the order 0x00417B40 established:
 |---|---|---|
 | cost, money ≥ cost | `0xFF8080FF` | 255,128,128 (pink) |
 | cost, money < cost | `0xFF0000FF` | 255,0,0 (red) |
-| refund (sell) | `0xFFFFFF80` | 128,255,255 (LIKELY: assumes the same byte order) |
+| refund (sell) | `0xFFFFFF80` | 128,255,255 (HYPOTHESIS: assumes the same byte order) |
 
 So an affordable room shows a pink price. A drag over placeable tiles that you cannot afford
 shows a **red** price **and** No Go. A rectangle with no placeable tile shows No Go and no
@@ -346,7 +346,7 @@ bin, icons 1–7, overflow, No Go ([0040CFE0](functions/0040CFE0.md), [0040D450]
 - The 0xFFFFFF80 byte order (the sell refund colour).
 - **Cage while hovering** (producer read, §2a): the owner's photos (2026-10-23) show a one-tile
   cage, red over water, blue over claimed path; the Hand light's kind3 cage most likely is it
-  (LIKELY). Open: how the light reaches the draw, and who clears the union flag `+0x20`/`+0x5E`.
+  (HYPOTHESIS). Open: how the light reaches the draw, and who clears the union flag `+0x20`/`+0x5E`.
 - For the owner, from play: is the cage on every interior tile with a door or trap selected,
   and in Hand mode only over a dig-taggable wall (blue)? That would confirm the link. Does Call
   to Arms show No Go on some open floor; is the Temple interior valid for a place spell; Heal

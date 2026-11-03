@@ -111,7 +111,7 @@ effect **34, Gold Sparkle**, made by [0x004F3A00](functions/004F3A00.md):
 - On each tile, each object (`+0x12` = 2) of type 3 whose definition has the gold flag
   (`+0xF4` & 0x40) draws `random(100)` again; below 10 it calls world slot `+0x38C` with
   definition `+0x117` (Objects.kwd `+0x358`: 34 for Gold Pile 1, 0 for Gold and Gold Bag),
-  the room's word `+0x1D` (owner, LIKELY), the object's position raised by the
+  the room's word `+0x1D` (owner, HYPOTHESIS), the object's position raised by the
   definition's Height `+0xFA`, and heading 0.
 
 So only Treasury and Heart gold sparkles, never a loose pile. Effect 34: generation

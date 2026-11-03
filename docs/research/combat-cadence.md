@@ -140,7 +140,7 @@ Its role as the live loader remains STRONGLY INFERRED: `FUN_00494EF0` reads
 `def+0x5C6` as an integer and re-promotes it, while this builder converts the
 file's seconds to ticks. `training.md` §4 also uses its converted pairs.
 The callers' wider runtime reachability has not been audited here, so the
-function record remains LIKELY. An original-game cadence experiment would
+function record remains HYPOTHESIS. An original-game cadence experiment would
 independently check the mapping: a Troll's gate interval is 1 tick and a Bile
 Demon's is 5, predicting about five times as many Troll swings under equal
 uninterrupted attack conditions.

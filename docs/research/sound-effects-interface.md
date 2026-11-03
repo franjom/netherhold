@@ -166,7 +166,7 @@ music handle is zero it asks `0x155` in `MUSIC`; each is nonpositional, handle s
 the in-game ambience is `0x155` in `AMBIENCE`). So the front end plays no music through this site. Waits: the one-shot atmosphere is a
 delay-chained player (flags `0x0204`, constructor `0x00615EE0`, vtable `0x006740B0`, [0x0060DA70](../research/functions/0060DA70.md)) whose body is unread:
 what the delay is measured from, whether it repeats and what the volume 21 scales are UNKNOWN, so no player exists to start. The in-game manager
-starts the same group (music.md section 3, LIKELY); both are the same missing player.
+starts the same group (music.md section 3, HYPOTHESIS); both are the same missing player.
 
 ## 10. The battle fly-in `0x32B`, `0x32C`
 

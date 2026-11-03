@@ -15,7 +15,7 @@ blue-violet tint over the tile's whole visible mesh, texture still visible.
   tile's task kind ([0x00508290](functions/00508290.md)). Kind 1 or 2 sets the
   bit; anything else clears it. Each change also calls world slot +0x1F8(x, y,
   on/off) (0x004481BD..0x00448268). CONFIRMED for the code; that kinds 1 and 2
-  are dig and mine gold is LIKELY (the kind scan's own record).
+  are dig and mine gold is HYPOTHESIS (the kind scan's own record).
 - Two more writers: [0x0043D9B0](functions/0043D9B0.md) (Ghidra splits it at
   0x0043D9E3), called by the event handlers 0x00442570 (on) and 0x004425C0 (off),
   writes bit 13 over a rectangle under its own conditions (tile word +8 bit
@@ -29,7 +29,7 @@ blue-violet tint over the tile's whole visible mesh, texture still visible.
   explored (+9 bit 0x20), or unexplored with +0xB bit 0x40 on a
   RevealThroughFogOfWar terrain. CONFIRMED.
 - So only the viewer's own tags show, and the look does not depend on the owner's
-  colour. Tags of other players are never drawn. LIKELY (it follows
+  colour. Tags of other players are never drawn. HYPOTHESIS (it follows
   from which task list is read).
 
 ## 2. From the tile to its pieces

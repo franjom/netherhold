@@ -60,7 +60,7 @@ State bit 0x200 is set by every blended state. The batch drawer
 [0x0058A150](functions/0058A150.md) and the triangle sink
 [0x0058B9D0](functions/0058B9D0.md) test 0x200 on the current batch's word at +0x10 and,
 when set, put the triangle into a 1024-bucket depth list drawn back to front by
-[0x00588D00](functions/00588D00.md) instead of drawing it at once. LIKELY: that the
+[0x00588D00](functions/00588D00.md) instead of drawing it at once. HYPOTHESIS: that the
 +0x10 word they test is the blended state (in the constructor's own object +0x10 is
 the engine flags, so the batch object is a different one; its builder is unread).
 
@@ -92,7 +92,7 @@ to NONE, ZFUNC to LESSEQUAL, Gouraud shading and dithering. No call sets
 ALPHATESTENABLE, ALPHAREF, ALPHAFUNC or COLORKEYENABLE: a scan of every indirect call
 through the device's SetRenderState slot (+0x58) found the state ids 0x4, 0x7, 0x8,
 0xE, 0x13, 0x14, 0x16, 0x17, 0x1A, 0x1B, 0x1D, 0x1F and two passed in registers.
-LIKELY: DK2 has **no alpha test**; "mask" materials are alpha-blended.
+HYPOTHESIS: DK2 has **no alpha test**; "mask" materials are alpha-blended.
 
 ## 4. Culling is in software, for every material
 
@@ -181,18 +181,18 @@ no z-write, depth-sorted) and sub-mesh id + 1000, which the dispatch (0x00582CE0
   camera (0x00760AB8), rotated by the view matrix at 0x00760AC4 and normalised; N =
   the vertex normal turned by the object's own matrix, times 0.5 (0x0066FC20);
   `u = Nz·Ex − Nx·Ez + 0.5`, `v = Nz·Ey − Ny·Ez + 0.5`. No clock: the shine moves
-  only with the camera and the object. LIKELY: E is camera space and N world space.
-  Unconfirmed (LIKELY at most): the camera-space axis convention and with it the sign of
+  only with the camera and the object. HYPOTHESIS: E is camera space and N world space.
+  Unconfirmed (HYPOTHESIS at most): the camera-space axis convention and with it the sign of
   v; the matrix at 0x00760AC4 was not traced to its builder. The coordinates can leave
   0..1; DK2's texture address mode for this pass is unread (ours clamps).
 - **Colour**: the item's base colour (+0x3C..+0x44) plus its point lights
   (0x0057C190; the light collection 0x00582140/0x0057BD70 is skipped when item `+0x50`
   bit 0x4 is set, 0x0058237B), times material +0x1D, the descriptor's **shininess**. Brightness
-  plays no part. That the texture is modulated by it is LIKELY (stage set-up UNREAD).
+  plays no part. That the texture is modulated by it is HYPOTHESIS (stage set-up UNREAD).
 - **Option**: global 0x00764BE4 is the EnvironmentMapping setting (settings +0x5C,
   setter [0x00566420](functions/00566420.md), through engine slot +0x70 = 0x0059C110
   -> 0x005747B0, from renderer init 0x005983C0 and the options toggle 0x0042A0F0).
-  Default on, LIKELY: 0x00564B00 writes 1 when the stored value is missing, and
+  Default on, HYPOTHESIS: 0x00564B00 writes 1 when the stored value is missing, and
   0x00574310 writes 1 to 0x00764BE4 directly (0x005744DF).
 
 Shipped examples: the Portal Gem (`Gem.kmf`, object 28) is `128gem1`, a dull
@@ -208,7 +208,7 @@ inline, and `EnvironmentMapCoordinates` (DK2.Presentation) is only the tested C#
 reference of that formula; nothing calls it at run time. `ClassicMeshes` appends each such material's triangles as an
 extra submesh drawn ONE/ONE with the environment texture, lit by the shader's own light
 sum times shininess. Approximated: our light sum includes the owner-tuned Unity fill
-(ADR-0522); DK2's camera space is assumed to be Direct3D's (GUESS); animated meshes keep
+(ADR-0522); DK2's camera space is assumed to be Direct3D's (HYPOTHESIS); animated meshes keep
 their first frame's normals; terrain pieces and effect frames get no pass; a fading
 object drops its pass, as DK2's blended gate does; the option is always on. Without the
 classic vertex-lit shader no pass is drawn.

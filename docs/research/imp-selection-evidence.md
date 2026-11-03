@@ -33,7 +33,7 @@ scanner/tile handler, secret-door scanner/tile handler, corpse, rescue scanner/t
 handler, gold-in-hand/store selection, and pool raise/first/next/find/holder access.
 Querying interior address `00508190` resolves to function `00508160`.
 Fresh decompilation is available for follow-up inspection; it does not confer
-execution coverage or upgrade existing LIKELY verdicts for dig, corpse or rescue.
+execution coverage or upgrade existing HYPOTHESIS verdicts for dig, corpse or rescue.
 
 The canonical rules remain in [task priority](imp-task-priority.md),
 [task stealing](imp-task-stealing.md), [claim eligibility](imp-claim-path.md),
@@ -202,7 +202,7 @@ No production code was changed by this study.
 ## What remains unconfirmed
 
 **UNKNOWN as complete equivalence:** every possible task-selection input.
-Existing LIKELY handler verdicts remain so; all room/blueprint/rescue/corpse,
+Existing HYPOTHESIS handler verdicts remain so; all room/blueprint/rescue/corpse,
 secret-door, capacity, stale-holder, stealing, state-refusal and route-failure
 branches need dedicated native-input controls before claiming complete coverage.
 The 118 ordering controls do not close those predicates.

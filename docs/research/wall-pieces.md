@@ -11,7 +11,7 @@ Presentation only: nothing here changes a rule. Built so far: the general room w
 (§2) for Normal and DoubleQuad rooms (ADR-0392); the rest is the spec for what follows.
 
 Labels: CONFIRMED (read in the disassembly, or whole in a decompile that does not depend on
-mis-tracked registers), STRONGLY INFERRED, LIKELY or UNKNOWN.
+mis-tracked registers), STRONGLY INFERRED, HYPOTHESIS or UNKNOWN.
 
 Conventions used below:
 - **Direction table** `0x006BC370`: 8 entries of (dx, dy), index k = 0 N (0,−1),
@@ -222,7 +222,7 @@ The four half-piece cases, with their addresses:
   is read by 0x004434F0 and written only by 0x00443590, whose one caller is
   0x004488A0. That function finds a door thing (type 4) whose definition has
   +0x8B bit 0x20 (`Secret`, `DoorDef.cs`), toggles its open bit and writes bit
-  15. So bit 15 = **a closed secret door, drawn as wall**. LIKELY: the value
+  15. So bit 15 = **a closed secret door, drawn as wall**. HYPOTHESIS: the value
   written comes from a register the decompiler mis-tracks, so open versus closed
   was not pinned.
 - **The decorated piece's parity.** For N and S faces it uses the room tile's x
@@ -281,7 +281,7 @@ for s in 0..3:
   piece k−3, while the floor builder 0x00446800 draws piece k from the same
   nibble. The tile writer 0x004F00F0 gives k = 3, 4 or 5 by position along the
   gate (`room-floors-and-liquids.md` §1), so the face is piece 0, 1 or 2
-  (LIKELY: that writer was read from the decompile only).
+  (HYPOTHESIS: that writer was read from the decompile only).
 
 ---
 

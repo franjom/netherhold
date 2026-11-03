@@ -3,7 +3,7 @@
 
     python tools/kb/import_from_docs.py [--dry-run]
 
-Each draft is GUESS/READ: its role is the sentence of the first citation, in
+Each draft is HYPOTHESIS/READ: its role is the sentence of the first citation, in
 the doc's own words, and its evidence is that doc's nearest heading above the
 citation. Existing records are never touched. Run `dk2tools kb check --all`
 and `dk2tools kb index` afterwards.
@@ -77,7 +77,7 @@ def main():
             f'address: 0x{address}\n'
             f'name: FUN_{address}\n'
             f'role: {sentence}\n'
-            f'confidence: GUESS\n'
+            f'confidence: HYPOTHESIS\n'
             f'status: READ\n'
             f'evidence: {evidence}\n'
             f'\n'

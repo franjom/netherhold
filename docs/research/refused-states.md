@@ -162,5 +162,5 @@ The transition table refuses 211 from a category 0 state (2–5, 60–62, 68–7
 
 **Ours.** `DropDeliveryRules.Celebrate` at the Hand's delivery (Q570, owner 2026-10-07: a creature
 cheers when gold lands on it), and 211's turn in `CreatureJobSystem`: held while the action runs,
-then idle. The action's length is `AnimationTimingRules.CountedHoldTicks` for art slot 8 (LIKELY,
+then idle. The action's length is `AnimationTimingRules.CountedHoldTicks` for art slot 8 (HYPOTHESIS,
 as for the Casino's).

@@ -53,12 +53,12 @@ For each record or research section whose claims changed:
      from the shipped data or a capture (name it)*, or *inferred*. A
      conclusion that crosses a span nobody read is a guess, whatever
      confidence it is labelled with.
-   - **Does the confidence match?** `CONFIRMED` needs the body read and,
-     for observable behaviour, ideally a capture, a data file, or a
-     world-log dump. `LIKELY` needs the body read with one step inferred.
-     Anything beyond that is `GUESS` or `DISPUTED`. In prose, the same scale
-     is CONFIRMED / STRONGLY INFERRED / HYPOTHESIS / UNKNOWN. An overstated
-     confidence is a finding even when the claim turns out to be true.
+   - **Does the confidence match?** One scale for records and prose
+     (ADR-0642). `STRONGLY INFERRED` needs the body read. `CONFIRMED` also
+     needs the running game: a native capture, a world-log dump or an owner
+     observation. `HYPOTHESIS` is a body read with a step inferred, or less;
+     `DISPUTED` is two conflicting readings. An overstated confidence is a
+     finding even when the claim turns out to be true.
    - **What would make it false?** Name one concrete thing, such as a branch,
      a caller, or a data value, and check it.
 
@@ -131,7 +131,7 @@ For each `implements:` path and each `src/` change that touches a mechanic:
 ## 3. Check the tests
 
 - A test that pins a guessed value hides the guess. If the record says
-  LIKELY or GUESS, the doubt has to be in the test's **name**, not only in a
+  HYPOTHESIS or DISPUTED, the doubt has to be in the test's **name**, not only in a
   comment.
 - A test has to be able to fail. Check that the branch actually exercises
   the new branch in the code. A correct rule that the corpus never reaches

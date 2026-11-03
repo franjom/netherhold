@@ -188,7 +188,7 @@ when the definition's special name +0x895 is non-zero, and then with the type
 name `+0x6AA` of the definition for the body's creature id `+0x128`, the one
 `+0x129` was looked up from (`0x004B0F20`), so "the dead body of Goblin a level 3
 Goblin" for Unique Goblin, not "Grubb". Otherwise this function never writes that
-buffer, so what DK2 prints there is unread, and ours prints it empty (a GUESS,
+buffer, so what DK2 prints there is unread, and ours prints it empty (a HYPOTHESIS,
 Q634). No owner test. The popup name is the type name, with no +0x895 override. `WorldHoverText` formats it for `CreatureDeathRules.IsCorpse`, but our picker,
 like DK2's, never returns a corpse, so it is kept unreachable.
 The shot formatter `0x004B5C20` writes an empty string.

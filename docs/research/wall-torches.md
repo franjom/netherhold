@@ -302,7 +302,7 @@ after the whole map is loaded**. During the load itself no torch is placed.
    the save rebuild (`0x0050B48D`). Near its end (`0x0050C4B5..0x0050C643`) it
    walks every tile, y outer and x inner. For each tile that passes
    `0x00452D80` (terrain `+0x17B` bit `0x40`, Torch, and world vt`+0x21C(x, y, 0)`
-   returning 0; that the slot is the door test is LIKELY, `004528E0`), it calls
+   returning 0; that the slot is the door test is HYPOTHESIS, `004528E0`), it calls
    bridge vt`+0xB8` directly (`0x0050C4DC`). That call is not gated. The same loop
    then does other per-tile work (`0x0050C4E2..0x0050C60E`, terrain `0x23`), unread.
    The load's room build does not place torches: `0x0051EC60` →

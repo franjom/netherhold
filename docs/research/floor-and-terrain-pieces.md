@@ -111,7 +111,7 @@ loaded as `TerrainDef.TextureVariants` (2026-10-22).
 
 CONFIRMED in the disassembly at `0x0043F1B6..0x0043FC21` (sides), `0x0043FC21..0x0043FE30`
 (top and water) and `0x0043FF5A..0x00440315` (quarters); the secret-door prelude
-(`0x0043E8FC..0x0043F1A8`) is LIKELY (decompile only); the hero-wall scheme's run-on tests were
+(`0x0043E8FC..0x0043F1A8`) is HYPOTHESIS (decompile only); the hero-wall scheme's run-on tests were
 read from the instructions at `0x0043F3A0..0x0043F50F` (2026-10-21).
 
 - A terrain with side art (`+0x1CB` bit 1) or PlayerColouredWall draws art 1 on each side whose

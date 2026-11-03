@@ -125,11 +125,11 @@ writes its text ([0x004C51D0](functions/004C51D0.md)) to the status line through
 `0x00553B90`, if [0x004C53B0](functions/004C53B0.md) says it has text. The
 tooltip is the message text itself. Review Objective's own text ids are 2163
 "Review Objective" / 2164 "Displays your overall objectives and goals in this
-realm." (LIKELY through the ordinary widget-status path, as for the tabs).
+realm." (HYPOTHESIS through the ordinary widget-status path, as for the tabs).
 
 Message text ([0x004C51D0](functions/004C51D0.md)): types 82, 83, 85, 86 and 87
 substitute player names (player `+0xEEA`, from Data1 and/or Data2) into the
-string `-10000 - id` (the formatter's table is LIKELY Speech.str); otherwise
+string `-10000 - id` (the formatter's table is probably Speech.str); otherwise
 the record's string id `+0x0F` resolves as: below -10000 Speech.str
 (`-10000 - id`), -128..-1 the level table (`-1 - id`), 1..9999 Text.str.
 
@@ -145,7 +145,7 @@ the objective panel, the Ally panel or `+0x272A` is open: copies the n-th tabbed
 record (same filter, no cap) to interface `+0x16A4`, sets opened bit 8, shows
 menu40, and loads the message text into its text widget
 ([0x0052A330](functions/0052A330.md), scrollbar when it overflows). It then
-sizes menu40: text measured in a 1096x288 box converted by `0x0052C5A0` (unread, LIKELY a
+sizes menu40: text measured in a 1096x288 box converted by `0x0052C5A0` (unread, probably a
 quarter-unit scale); if it fits strictly, height = 4 * text height + 172, else 440; y = panel top
 (`+0x12D2`) - height - 168 when `+0x10C2 == 1`, else - 40 (`0x00424163..0x00424174`; overflow
 y - 608 or - 480). `+0x10C2` is set while any indicator menu 45..50 shows (section 9); their

@@ -120,7 +120,7 @@ until it returns 0, then holds for the animation; mode 0 ends on that poll.
 | 1 dig | `0x00496E00` | 3 | Imp: own wall var 9, rock var 8, enemy wall var 10, × rate, ×MRT; XP to any digger. Non-imp: 6 × var 9 × rate, owner ignored, no ×MRT, only while global `0x0075AE93` = 0 (UNREAD; `0x0050C90D` reads it beside game modes 2/3) |
 | 2 mine | `0x004971D0` | 3 | var 7 × rate, ×MRT, XP. Gold old·G/H − new·G/H (G terrain +0x185, H +0x1AD) to player GoldMined +0x15A, then the purse up to MaxGoldHeld, the rest on the floor (`0x004510C0`). A gem face (terrain +0x17B bit 1) takes no damage and pays GoldMinedFromGems (25) every strike; CONFIRMED (owner, 2026-10-12: gold every swing, the face never cracks) |
 | 4 claim | `0x004974C0` | 3 | ClaimTileHealth × rate, ×MRT, XP; returns 1 while the tile is claimable, so it strikes every poll until it converts; sound 0x10A or 0x10B |
-| 6 convert | `0x004977F0` | 0 | AttackTileHealth × rate, no XP, no ×MRT: one strike a press. When the floor falls, every trap and door on the creature's own tile (+0x1A, not the begin point) has its health zeroed (removal LIKELY) and `0x00455030` is notified |
+| 6 convert | `0x004977F0` | 0 | AttackTileHealth × rate, no XP, no ×MRT: one strike a press. When the floor falls, every trap and door on the creature's own tile (+0x1A, not the begin point) has its health zeroed (removal HYPOTHESIS) and `0x00455030` is notified |
 
 The owner (2026-10-12) has seen hero Dwarves dig walls; whether a possessed non-Imp
 digs is not known. Action 5 (`0x00497670`) is claim state 20's convert (imps of any player); its ×MRT branch is reached only by a possessed imp. UNREAD:
@@ -135,7 +135,7 @@ built for every miner (ADR-0470).
 
 **The press** (slot 3, `0x0051503C`–`0x005150A4`). The owner (2026-10-12): key 7, then a
 click on a highlighted creature adds it as a follower, one per click; selector 3 of
-`Possession_SelectAbility` (`0x0040F9E0`) is that ability (the key binding is LIKELY). `0x00515D50` picks one creature;
+`Possession_SelectAbility` (`0x0040F9E0`) is that ability (the key binding is HYPOTHESIS). `0x00515D50` picks one creature;
 nothing happens when it returns 0 or when the possessed creature's +0x488 ≥ (variable
 223 & 0xFF), a signed compare (MaximumGroupNumberOfFollowers, 8). Otherwise
 `0x00461980(possessed id)` runs on the pick, and +0x488 is incremented only on its
@@ -281,7 +281,7 @@ input routine `0x0040FDF0` sends action 39 with the inverted bit (CONFIRMED).
 - Action 26 never reads dword2's 11-bit angle: its callees read words 0 and 1 only
   (the hypnosis command decodes the same field from its own packet). `0x00516050`'s third argument is dead (`RET 0xC`, one caller,
   always 1).
-- The caster is a candidate of its own spell scan (and LIKELY of the follower scan,
+- The caster is a candidate of its own spell scan (and probably of the follower scan,
   by the same argument; UNREAD there) but cannot win when the pose's X/Y
   equal its position: the vertical-only direction scores ≥ about 1200 against 256.
   Whether the client's pose always equals the position is UNREAD.

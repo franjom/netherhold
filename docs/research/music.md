@@ -17,7 +17,7 @@ are presentation too (`binary-census.md` §3). Facts in our own words; no decomp
 (ADR-0046). Every name below is ours.
 
 Labels: **CONFIRMED** (read in the code or parsed from the data), **STRONGLY INFERRED**,
-**LIKELY** (the lead's reading, consistent with what was checked, not re-read), **UNKNOWN**.
+**HYPOTHESIS** (the lead's reading, consistent with what was checked, not re-read), **UNKNOWN**.
 
 ---
 
@@ -84,7 +84,7 @@ so once per world frame. **CONFIRMED** (call site); the frame's rate is the sess
    **`SoundQuality`** writes (`0x005637E0`). **CONFIRMED** (offsets); its three menu labels are
    Text.str 1443 *Low*, 281 *Medium*, 1442 *High*; which one is value 1 is **UNKNOWN** (the lead
    orders them Low first).
-3. One-shot atmosphere: none → start group **746**; else update it. **LIKELY** (lead; the
+3. One-shot atmosphere: none → start group **746**; else update it. **HYPOTHESIS** (lead; the
    branch was not re-read past the ambience).
 
 Consequences:
@@ -288,7 +288,7 @@ binary and data, read 2026-10-28:
     flush walks the category's sample banks and releases them (`0x00608AA0` → `0x0060EA50`);
     whether it cuts a playing segment is unread. If it does, the update starts a new instance
     the next frame (a stale handle comes back as 0, §6), so the music restarts from its entry
-    point at the same level: an interruption, not an end. **LIKELY.**
+    point at the same level: an interruption, not an end. **HYPOTHESIS.**
   - `+0x0C`/`+0x14` (`0x005677E0`/`0x005677D0`), from `Display_InitializeMode`: clear the music
     handle and stop the category container (`0x00608A00`, unread); the update restarts the music
     the next frame at the same level, an interruption. The init `0x00567300` (slot `+0x08`, sets

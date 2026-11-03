@@ -118,7 +118,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   The Step6 branch (classic-look/step6, presentation only, no hash change) also
   draws DK2's additive environment-map pass over every 0x40 material and animates
   the loose gem as state 50 does (float, spin, effect 297 each second; that a
-  dropped gem stays in state 50 is LIKELY): kmf-materials.md §8, objects.md §8.
+  dropped gem stays in state 50 is HYPOTHESIS): kmf-materials.md §8, objects.md §8.
   Q622 (Lord corpse: no missing body found, the armour shine was the gap),
   Q623 and Q637 (camera frame and v sign unconfirmed) await the owner.
 - Hero-party ordering is corrected (ADR-0542, hash/save 306); opening Dwarf
@@ -223,7 +223,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   future work.
 - The creature state machine dispatches category hooks; CategoryHooks.Slots
   holds every hook's status (ADR-0308, ADR-0319, ADR-0322).
-- Performance: profiling markers (ADR-0444, profiling), the worker reachability
+- Performance: profiling markers (ADR-0444), the worker reachability
   flood (ADR-0453), kept navigation and room-sweep state (ADR-0454, ADR-0466),
   DK2's per-tile navigation-mesh edit (ADR-0461), presenter and terrain
   batching (ADR-0456, ADR-0457) and a worker-thread tick (ADR-0458) are built.
@@ -248,7 +248,7 @@ Startup tab correction (ADR-0621): [scope and request traces](research/message-t
 Steps 0–4 of docs/plans/2026-10-09-classic-look.md are merged: DK2's rooms,
 walls, liquids, objects, authored animation, room life, construction waves,
 Prison rats, Portal entrances, corpse art, terrain debris and the Hand
-(ADR-0431–0438, 0442, 0444 bank heights, 0447, 0449–0452, 0460, 0462–0465,
+(ADR-0431–0438, 0442, 0641 bank heights, 0447, 0449–0452, 0460, 0462–0465,
 0467). The Heart's health pulse (ADR-0463), mana sparkles (ADR-0474, an owner
 adjustment; cause open in Q594), opening sequence (ADR-0475), Portal entrance
 effect (ADR-0476) and Dirt Path foot dust (ADR-0477) are built. The complete

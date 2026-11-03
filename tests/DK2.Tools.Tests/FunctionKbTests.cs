@@ -50,12 +50,22 @@ public sealed class FunctionKbTests
     [Theory]
     [InlineData("address: 0x0050EA70", "address: 0x50EA70", "address")]           // not eight digits
     [InlineData("confidence: CONFIRMED", "confidence: SURE", "confidence")]
+    [InlineData("confidence: CONFIRMED", "confidence: LIKELY", "confidence")]      // retired by ADR-0642
     [InlineData("status: READ", "status: DONE", "status")]
     public void RejectsABadHeader(string good, string bad, string key)
     {
         var errors = new List<string>();
         Parse(Sample.Replace(good, bad), errors);
         Assert.Contains(errors, e => e.Contains(key, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AcceptsTheTwoWordConfidence()
+    {
+        var errors = new List<string>();
+        var r = Parse(Sample.Replace("confidence: CONFIRMED", "confidence: STRONGLY INFERRED"), errors);
+        Assert.Empty(errors);
+        Assert.Equal("STRONGLY INFERRED", r.Confidence);
     }
 
     [Fact]
@@ -204,13 +214,14 @@ public sealed class FunctionKbTests
     [Fact]
     public void NamesTableMarksDoubtfulNamesWithTheirConfidence()
     {
-        var likely = Record("004F39A0") with { Name = "Treasury_Tick", Confidence = "LIKELY" };
-        var guess = Record("004DF6E0") with { Name = "HeroGate_Tick", Confidence = "GUESS" };
+        var hypothesis = Record("004F39A0") with { Name = "Treasury_Tick", Confidence = "HYPOTHESIS" };
+        var unknown = Record("004DF6E0") with { Name = "HeroGate_Tick", Confidence = "UNKNOWN" };
         var disputed = Record("0050F8C0") with { Name = "World_PlaceGeneratedSpecial", Confidence = "DISPUTED" };
-        var confirmed = Record("004E8C60") with { Name = "Room_HatedCompanyStep" };
-        Assert.Equal("004DF6E0\tHeroGate_Tick_GUESS\n004E8C60\tRoom_HatedCompanyStep\n004F39A0\tTreasury_Tick_LIKELY\n"
-            + "0050F8C0\tWorld_PlaceGeneratedSpecial_DISPUTED\n",
-            FunctionKbNames.Table([likely, guess, disputed, confirmed]));
+        var inferred = Record("004E8C60") with { Name = "Room_HatedCompanyStep", Confidence = "STRONGLY INFERRED" };
+        var confirmed = Record("004E8C70") with { Name = "Room_Observed" };
+        Assert.Equal("004DF6E0\tHeroGate_Tick_UNKNOWN\n004E8C60\tRoom_HatedCompanyStep\n004E8C70\tRoom_Observed\n"
+            + "004F39A0\tTreasury_Tick_HYPOTHESIS\n0050F8C0\tWorld_PlaceGeneratedSpecial_DISPUTED\n",
+            FunctionKbNames.Table([hypothesis, unknown, disputed, inferred, confirmed]));
     }
 
     [Fact]
