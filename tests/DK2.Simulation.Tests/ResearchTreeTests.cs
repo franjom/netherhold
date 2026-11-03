@@ -265,12 +265,16 @@ public sealed class ResearchTreeTests
         world.Player(Keeper).Mana = 100_000;
         world.Player(Keeper).Availabilities.Add(
             new AvailabilityState(SpellKind, CreateImp, Available, Upgraded: true));
-        var sim = new GameSimulation(db, world, 5, [new ImpSupplySystem()]);
+        var sim = new GameSimulation(db, world, 5, [new CreateImpCastSystem(), new ShotSystem(), new ImpSupplySystem()]);
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
 
         sim.Tick(InputFrame.Of(new CreateImpCommand(Keeper)));
 
         CreatureDef imp = db.CreatureById(Dk2TerrainFixture.ImpCreatureId);
         Assert.NotEmpty(world.Creatures);
+        // Process 36 levels through Creature_LevelUp (0x0048B120): three promotions, each effect 339.
+        Assert.Equal(3, events.Events.Count(e => e.EffectRequest?.EffectId.Value == 339));
         Assert.All(world.Creatures, c =>
         {
             Assert.Equal(4, c.Level);
@@ -290,7 +294,7 @@ public sealed class ResearchTreeTests
         heart.OwnerPlayerId = Keeper;
         world.Player(Keeper).Mana = 100_000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(SpellKind, CreateImp, Available));
-        var sim = new GameSimulation(db, world, 5, [new ImpSupplySystem()]);
+        var sim = new GameSimulation(db, world, 5, [new CreateImpCastSystem(), new ShotSystem(), new ImpSupplySystem()]);
 
         sim.Tick(InputFrame.Of(new CreateImpCommand(Keeper)));
 

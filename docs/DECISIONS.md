@@ -14730,7 +14730,7 @@ Heart sits in a claimed 5 by 5, as a shipped Heart does. Whether the fall is Q14
 unmeasured.
 ## ADR-0634: the Workshop's four effect timers draw the world stream
 
-**Date:** 2026-11-02. **Status:** accepted. Q733; hash/save 382.
+**Date:** 2026-11-02. **Status:** accepted. Q733; hash/save 385.
 
 **Context.** DK2's Workshop handler (`0x004F4B20`) counts four effect timers down each turn. At zero
 each reloads with `random(16 x ticks) + 8 x ticks` on the world stream, then, whether or not an effect is
@@ -14766,8 +14766,43 @@ furniture list lacks the Workshop
 Pillars; the lava-spill effect sits at the object's floor position, not its unread mesh point (the owner is the
 object's, as DK2's); the map's Workshops draw before its creatures, which DK2's loader may not (Q733). The Torture
 Chamber, Temple, Graveyard, Combat Pit and hero gate handlers draw the world stream too and are not built.
-Hash/save 382: sixteen bytes a tile. No scenario moved and no fixture holds a Workshop, so the pin moved only
+Hash/save 385: sixteen bytes a tile. No scenario moved and no fixture holds a Workshop, so the pin moved only
 with the version.
+
+
+## ADR-0635: a Create Imp makes its imp through its shot
+
+**Date:** 2026-11-02. **Status:** accepted. Answers Q716 and Q149; hash/save 383.
+
+**Context.** The native capture `Q716FreeImps` (`F:\DK2Evidence\studies\q716-free-imp-draws--2026-11-02--001`,
+`tools/levelgen/q716_draws.py`) has keepers 3 and 4 due a free imp on the same turn, four times. Every
+draw matched on the world seed: the free casts' turn draws both angles in active-list order (keeper 4,
+then 3) and ends with two Create Creature shots and no imp. The next turn the shots die newest first, and
+each runs process 1 (`0x004AD7A0`) on its death event (`ShotProcessFlags` 0x80, health 1, counting
+down): Creature_Construct's name draw (random(500), `0x00491929`; matched against all eight imps' +0x4ED)
+and blood-group draw (random(6), `0x004919E4`), then the heading (`0x004AD957`). The imp appears at floor
++ 0x800 in state 214, reaches the floor the next turn and is in state 11 the turn after. A bought cast
+is different: the Level 4 casts at packet turns 392 and 552 show their imp on the cast's own turn
+(`imp-observation-clocks.md`, CONFIRMED). DK2 applies packet commands before the thing pass
+(`World_UpdateTurn`, `0x0050A450`), so a bought cast's shot is in the list when it is walked; the free cast is made in the player update, after it.
+Ours made both kinds of imp inside the cast, with the heading drawn straight after its own angle.
+
+**Decision.** Both casts fire the spell's shot (2, or 60 once upgraded) at the cast point:
+`CreateImpCastSystem`, with the keeper actions before the thing pass, for a bought cast, and
+`ImpSupplySystem`, in the player update, for a free one. `ShotSystem` already walks shots newest first
+and runs the death event, so `ShotRules.Process` sends processes 1 and 36 to `ImpCreationRules.FromShot`:
+the creation gates (bounds, nav bit 3) at the shot's point; the creature (process 1 makes `Data2` of them,
+each allocated on its ring and then put back on the shot's point, `0x004AD9B4`); its heading; the fall;
+and for process 36 Creature_LevelUp up to `Data2`, with effect 339 each time. Payment and the free
+deadline stay at the cast, so a point the process refuses still costs the mana or the interval. The
+non-worker arm is not built.
+
+**Consequences.** Free imps arrive a turn later than before, as in the capture; bought imps on the cast's
+turn as before. Tile-only and heart-default casts (commands without an exact point) now fall too. A
+bought cast now precedes the turn's mana payment, so it can no longer spend mana earned that turn, as in
+DK2: `World_UpdateTurn` (`0x0050A450`) dispatches packet actions before the player update, and the cast
+(`0x004BBD30`) charges the mana itself. Two casts in one turn are both priced
+before either imp exists. An upgraded imp now shows the promotion effect three times.
 
 ## ADR-0636: a placed hero takes its record's Flags2
 

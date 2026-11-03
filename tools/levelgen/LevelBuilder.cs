@@ -85,6 +85,49 @@ public sealed class LevelBuilder
         });
     }
 
+    /// <summary>The first shipped trigger record of <paramref name="tag"/> (213 condition, 214 action) and
+    /// <paramref name="type"/>, with its record image, as a template for <see cref="InsertTrigger"/>.</summary>
+    public (TriggerRecord Row, KwdRecordImage Image) TriggerTemplate(int tag, byte type)
+    {
+        foreach (string f in Directory.GetFiles(MapsDir(Install), "*Triggers.kld").OrderBy(x => x))
+        foreach (KwdChunk chunk in KwdReader.ReadFile(f).Where(c => c.Type == KwdRecordType.Triggers))
+        {
+            var rows = KwdTypedRecords.Read(chunk);
+            var images = KwdRecordRoundTrip.Split(chunk);
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (rows[i] is not TriggerRecord row || row.Tag != tag || row.Type != type) continue;
+                Console.WriteLine($"template trigger {tag}/{type} from {Path.GetFileName(f)} record {i}");
+                return (row, images[i]);
+            }
+        }
+        throw new InvalidOperationException($"no shipped trigger {tag}/{type}");
+    }
+
+    /// <summary>Appends an unlinked trigger node (a fresh id, no Next or Child); link it afterwards with
+    /// <see cref="LinkTrigger"/>, once every node it points at exists.</summary>
+    public void InsertTrigger(TriggerRecord row, KwdRecordImage template)
+    {
+        string file = Own("Triggers.kld");
+        int chunk = ChunkOf(file, KwdRecordType.Triggers);
+        int count = KwdTypedRecords.Read(_set.Chunks(file)[chunk]).Count;
+        _set.InsertTrigger(new KwdRecordLocation(file, chunk, count), row, template);
+    }
+
+    public void LinkTrigger(ushort triggerId, ushort next, ushort child)
+    {
+        string file = Own("Triggers.kld");
+        int chunk = ChunkOf(file, KwdRecordType.Triggers);
+        var rows = KwdTypedRecords.Read(_set.Chunks(file)[chunk]);
+        int index = Enumerable.Range(0, rows.Count).Single(i => rows[i] is TriggerRecord t && t.TriggerId == triggerId);
+        _set.LinkTrigger(new KwdRecordLocation(file, chunk, index), next, child);
+    }
+
+    /// <summary>Gives the THINGS record at <paramref name="index"/>, an action point, the trigger root
+    /// <paramref name="root"/>.</summary>
+    public void SetActionPointRoot(int index, ushort root) =>
+        _set.SetActionPointRoot(new KwdRecordLocation(_things, ChunkOf(_things, KwdRecordType.Things), index), root);
+
     /// <summary>The level's own VARIABLES overrides (they beat GlobalVariables.kwd).</summary>
     public IReadOnlyList<object> Variables => KwdTypedRecords.Read(_set.Chunks(_variables)[ChunkOf(_variables, KwdRecordType.Variables)]);
 

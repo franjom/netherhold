@@ -674,7 +674,7 @@ public sealed partial class ImpTaskSystem
             {
                 // Exit 4: put down where the imp stands, the imp's fight bits set (0x0048DFA0(1),
                 // 0x0048DF10(1)) and 10. DK2 also clears the body's dying flag (0x0048B860) without
-                // moving it out of 217; what the body does then is unread (Q729), so ours leaves it dying.
+                // moving it out of 217; watched, it spends the window it had left and dies there (Q729), as ours does.
                 WorkerPickupRules.SetEnabled(creature, true);
                 context.Emit(SystemName, "body_dropped",
                     $"imp={creature.Id} body={body.Id} " +
