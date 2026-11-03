@@ -110,3 +110,31 @@ Imp action 1's possessed (`0x00514FC9`), training (`0x00485E7D`) and other begin
 
 Marked deviations: a replay is applied once per rendered frame, where DK2 applies it once per update; the party's volume is Unity's rolloff and its explored-tile gates (the music at volume 1, the end sound not asked) are not applied, so a party in
 unexplored ground is as audible as the camera's distance allows; `0x316` is one request per update where DK2 asks once per dancer; the global volume `+0x54` sets at the party's end is not built (what it scales is unread).
+
+## 4. Terrain ambience grid and first person
+
+**The grid drives the ambient beds `0x2EA` and `0x2EB` (CONFIRMED, read 2026-11-03).** [0x0044E2A0](functions/0044E2A0.md) rebuilds, when the listener's point or three orientation words changed (or in map mode 7, or while the local player's `+0x134` is set), an
+11-by-11 grid of words around the listener's tile, a cell zero unless the tile's flag bit `0x2000` (the explored bit the Casino also tests) is set, else the terrain's category handle `+0x195` (`+0x199` on a Temple tile whose room `+0x61` is zero, `+0x19D` on an arm the caller selects
+in `EBX`, inferred zero). It hands the grid to service slot `+0x3C`, which is the ambient pass `0x00609480`: it marks each category whose map has group `0x2EA` (`0x00614C50`), keeps per category a tile count and a weight sum from the row and column offsets (table `0x006C6F98`, so a
+point biased to the listener), adds an emitter for each category new to the list, and stops, with a command carrying `0x46`, the handles of categories that left it. The per-update pass `0x00609A30` then asks group `0x2EA` of each emitter with its handle (through the category
+player, `+0x10`), replays it at the emitter's point (`0x00608D50` is the replay `0x0060D950`), and asks `0x2EB` the same way only when `0x00608EA0` is at least 2; a handle that has died (the sample ended) is dropped, and an emitter with neither handle is removed
+until the next grid builds it again. So the beds are the categories of terrain and rooms in view, not a per-thing sound. The plan's `0x319` is in no code as a literal (the push scan finds none) though every terrain category has it with four samples: its requester is UNKNOWN.
+
+Samples: `0x2EA` is a single item in `terrain_water`, `terrain_lava` and their `_1st_person` variants (four samples), `room_graveyard` (three), `room_torture` and `room_workshop` (one), and a multi-item group (18 items in `room_library`, 14 in `room_portal`, 10 in `room_temple`, 3 in `room_prison`, 26 and 27 in the Hero Gate's; flags `0x04` or `0x0400`) elsewhere, which the
+resolver does not play (it plays single-item groups; the linked picker is music's); `0x2EB` is in 9 categories with items.
+
+| Request | Where it runs | Verdict | Built as |
+|---|---|---|---|
+| terrain and room ambience `0x2EA` | the grid, as above | CONFIRMED | `AmbienceGrid` (the cells and one emitter per category with a playable group), `ClassicSoundPlayer.UpdateAmbience` (a voice per category, moved to the emitter's point, asked again when its sample ends, stopped when the category leaves); `DungeonRunner` builds it for the screen's centre tile |
+| `0x2EB` | the same, when `0x00608EA0` is 2 or more | CONFIRMED | not built: the quality gate's meaning is unread |
+| possessed Imp at rock it cannot dig or mine `0x335` | `GameAction_PossessedCreatureAct` at `0x00515021`: the solid-terrain arm, the creature's handle and category, at the act's pose | CONFIRMED site; the position STRONGLY INFERRED | `PossessionRules.DigOrClaim` (`creature_imp` only, two samples) |
+| lava `0x313` | `Creature_Update` at `0x0048980C`: a worker (definition `+0x686` bit 0), every eighth turn staggered by its id, over the terrain it stands on: the terrain's own handle (`+0x101`) at the creature, in the category `+0x19D` when the local player possesses and the creature is the local player's, else `+0x195` | CONFIRMED site | waits: only `terrain_lava_1st_person` has the group (one sample), so it needs first person |
+| flying creatures `0x152`, `0x147` | [0x0048FE30](functions/0048FE30.md): a flying creature while the local player possesses: types 12 and 20 (Firefly, Fairy) ask `0x152` and set property 3 to 100 when mood band 2, else 0; any other airborne one asks `0x147` | CONFIRMED | waits: first person; `0x147` has samples only in `creature_fairy`, whose type takes the first branch, so it is silent |
+| the flies' loop on a body `0x152` | `0x004B1373`, sound-effects-combat.md section 5 | CONFIRMED site | waits: first person |
+| possessed creature `0xC9`/`0xCC` (action 18) | `0x00499A40`, sound-effects-combat.md section 5 | CONFIRMED site | waits: first person |
+| possessed footsteps `0x332`, `0x333`; wading `0x337`, `0x338` | the Hand's possessed movement at `0x0040F3FF` and `0x0040F504`: handle 0, the creature's category, alternating each 0x800 units of an accumulator, plus 5 while wading | CONFIRMED sites | waits: the first-person movement input is unbuilt; `0x332`/`0x333` have samples in 25 creature categories |
+
+First person is unbuilt in the Unity adapter (HANDOFF, possession camera and input), so what needs the possessed view waits: lava, the flyers' beds, the flies, `0xC9`/`0xCC` and the possessed footsteps.
+
+Marked deviations: the emitter's point is the mean of its cells' centres, DK2's a weighted point; the listener is the screen's centre tile, DK2's a camera field; the Temple's waterless and the first-person categories are not asked;
+a bed ends with its sample and the next frame asks again, DK2's next grid build; a category that leaves the grid is stopped at once, not with the `0x46` command; the beds in linked groups (Library, Portal, Temple, Prison, Hero Gate) are silent until a linked picker plays them.

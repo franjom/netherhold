@@ -174,6 +174,8 @@ public enum ThingSoundEvent : ushort
     TremorShook = 0x2EC,
     /// <summary>A Tremor ends (<c>0x005104C6</c>).</summary>
     TremorEnded = 0x31F,
+    /// <summary>A possessed worker acts at solid rock it cannot dig or mine (<c>GameAction_PossessedCreatureAct</c>, <c>0x00515021</c>).</summary>
+    PossessedRock = 0x335,
     /// <summary>A Casino party's music, asked for each dancer of the room while the party runs (<c>Casino_RoomUpdate</c>, <c>0x004D63D0</c>), with the room's handle.</summary>
     PartyMusic = 0x316,
     /// <summary>The party's end, after the music's stop (<c>0x004D6727</c>), with the same handle.</summary>

@@ -28,6 +28,10 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
     public bool IsLooping(SoundId id) =>
         map.Groups.FirstOrDefault(g => g.Id == id) is { Items.Count: > 0 } group
         && (System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(group.Unknown0x08.AsSpan(8)) & 0x08) != 0;
+    /// <summary>Whether the group has exactly one item with samples, the only kind <see cref="Resolve"/> plays; a linked or delayed group has its own director.</summary>
+    public bool IsSingleItem(SoundId id) =>
+        map.Groups.FirstOrDefault(g => g.Id == id) is { Items.Count: 1 } group && group.Items[0].Sounds.Count > 0;
+
     public SoundPriority? PriorityOf(SoundId id)
     {
         SoundGroup? group = map.Groups.FirstOrDefault(g => g.Id == id);

@@ -108,4 +108,37 @@ public sealed class PossessionSoundTests
         Assert.Equal(SoundSourceId.Of(new CreatureId(me.Id)), impact.Source);
         Assert.Equal(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), impact.Position);
     }
+
+    /// <summary>A possessed worker's act at solid rock it cannot dig or mine (<c>GameAction_PossessedCreatureAct</c>, <c>0x00514FE8</c>:
+    /// the terrain's solid flag, after the gold and diggable-wall arms fail) asks <c>0x335</c> with its own handle in its category at the act's
+    /// origin, the packet's pose. Only <c>creature_imp</c> has samples. Docs: sound-effects-continuous.md section 4.</summary>
+    [Fact]
+    public void AnImpActingAtRockItCannotDigAsks335WithItsOwnHandleAtTheActsOrigin()
+    {
+        GameDatabase db = SoundFixture.Database(null);
+        WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
+        for (int y = 1; y < world.Height - 1; y++)
+            for (int x = 1; x < world.Width - 1; x++)
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+        world.Tile(11, 10).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(10, 10));
+        imp.Possessed = true;
+        imp.Heading = East;
+        world.Player(Keeper).PossessedCreatureId = imp.Id;
+        var sim = new GameSimulation(db, world, 1, [new PossessionSystem()]);
+        sim.Tick();
+        sim.Tick();
+        var events = new ListEventSink();
+        sim.ObserveWith(events);
+
+        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper,
+            new(new(new(imp.PosX), new(imp.PosY), new(imp.PosZ)), new(East), new(Level)), true, new(0))));
+
+        Assert.Contains(events.Events, e => e.Kind == "possessed_rock");
+        ThingSoundRequest rock = Assert.Single(Sounds(events), s => (ushort)s.Event == 0x335);
+        Assert.Equal("CREATURE_IMP", rock.Category);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(imp.Id)), rock.Source);
+        Assert.Equal(new FpPosition3(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ)), rock.Position);
+        Assert.True(rock.Voiced);
+    }
 }

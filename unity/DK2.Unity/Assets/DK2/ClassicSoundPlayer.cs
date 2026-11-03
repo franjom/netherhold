@@ -182,6 +182,34 @@ namespace DK2.Unity
             _voices.Assign(request.Voice, request.Id, source, priority.Value);
         }
 
+        private readonly Dictionary<string, SoundVoiceId> _terrainBeds = new Dictionary<string, SoundVoiceId>();
+        private readonly HashSet<string> _terrainBedsWanted = new HashSet<string>();
+
+        /// <summary>Whether a category has an ambient group (<c>0x2EA</c>) this player can play: one item with samples.</summary>
+        public bool HasAmbience(string category) =>
+            !string.IsNullOrEmpty(category) && Resolver(new SoundCategory(category.ToLowerInvariant())).IsSingleItem(new SoundId(0x2EA));
+
+        /// <summary>The service's ambient pass (<c>0x00609A30</c>): each emitter's category plays group <c>0x2EA</c> with its own voice, moved to the emitter's point
+        /// while it plays and asked again once the sample ends (DK2's dead handle is dropped and the next scan builds the emitter again), and a category
+        /// that has left the grid is stopped. DK2 stops it with a command carrying <c>0x46</c>; ours stops it at once (remake policy). <c>0x2EB</c> is not asked.</summary>
+        public void UpdateAmbience(List<AmbienceGrid.Emitter> emitters)
+        {
+            _terrainBedsWanted.Clear();
+            foreach (AmbienceGrid.Emitter emitter in emitters)
+            {
+                _terrainBedsWanted.Add(emitter.Category);
+                if (!_terrainBeds.TryGetValue(emitter.Category, out SoundVoiceId voice))
+                    _terrainBeds[emitter.Category] = voice = new SoundVoiceId(0x80000000u | (0x7Eu << 24) | (uint)_terrainBeds.Count);
+                var position = new System.Numerics.Vector3(emitter.Position.X, emitter.Position.Y, emitter.Position.Z);
+                if (_voices.TryGet(voice, out _, out AudioSource source) && source != null && source.isPlaying)
+                    source.transform.position = new Vector3(position.X, source.transform.position.y, position.Z);
+                else
+                    Play(new SoundRequest(new SoundCategory(emitter.Category.ToLowerInvariant()), new SoundId(0x2EA), position, voice));
+            }
+            foreach (KeyValuePair<string, SoundVoiceId> entry in _terrainBeds)
+                if (!_terrainBedsWanted.Contains(entry.Key) && _voices.Release(entry.Value) is AudioSource ended) ended.Stop();
+        }
+
         private readonly List<SoundVoiceId> _live = new List<SoundVoiceId>();
 
         /// <summary>DK2 replays a playing handle at its thing's position on each update of the thing (slot +0x30, which returns 0 once the instance has
