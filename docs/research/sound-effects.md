@@ -5,7 +5,7 @@ Sources: DKII.EXE v1.70, read through Ghidra on 2026-10-29; shipped
 OpenKeeper PRs #778 (`cc491c3e`), #593, #792 (`c7f8881f`) and #589
 (`7f5cd817`) are leads, read from the local clone; facts only, no code reused.
 Music sequencing remains in [music.md](music.md); SDT framing remains in
-[front-end-assets.md section 5](front-end-assets.md#5-sound).
+[front-end-assets.md section 5](front-end-assets.md#5-sound). The interface and global requests (phase W8) are in [sound-effects-interface.md](sound-effects-interface.md).
 
 ## 1. Creature footstep events
 

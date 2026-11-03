@@ -12,8 +12,8 @@ CONFIRMED from DKII.EXE v1.70, read in Ghidra2026-10-29:
 
 - `0x00532670`: label hover requests group783 (0x30F) in the front-end category.
   Its sound latch resets after the eight-frame glow fade, rather than immediately on leaving.
-- The widget table at `0x006AC8C4`, stride48: slots32..36 name OBJECT_FE_PARCHMENT
-  and press groups778..782. Their release ids are zero. Slot31 names FRONT_END.
+- The widget table at `0x006AC8C4`, stride48: slot32 names FRONT_END and slots33..36 OBJECT_FE_PARCHMENT
+  (press groups778..782 for 32..36, release ids zero); the full table is [sound-effects-interface.md section 1](sound-effects-interface.md#1-the-gui-sound-table-0x006ac8c4).
 - `0x00567810`: sound manager slot36 forwards the category and group id into the category
   service, rejecting disabled service/effects and zero category/id.
 - `0x00608C20` resolves the category then `0x00614C90` scans its20-byte group records
@@ -56,8 +56,8 @@ The hand cursor's tag and slap sounds are presentation requests (`HandCursorFeed
 ## Category choice presses
 
 CONFIRMED bytes: room widget0x0068FCB8, spell widget0x0068FDF8 and Workshop widget0x0068FF38
-all carry sound slot5 at+0x4C. The generic GUI sound table0x006AC8C4+5*0x30 names
-GUI_BUTTON_ICON_LARGE with press0x104/release0x136. The model emits once per captured
+all carry sound slot5 at+0x4C, which the panel's grid then sets to 5 (GUI_BUTTON_ICON, 128-unit cells) or 6
+(GUI_BUTTON_ICON_LARGE, 264-unit cells), both with press0x104/release0x136. The model emits once per captured
 primary press/release and leaves unknown/unselectable choices silent. This does not change
 the existing choice-selection timing.
 
