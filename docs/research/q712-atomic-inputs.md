@@ -2,7 +2,7 @@
 
 ## Captured boundary
 
-A new owned Level 5 seed 2 replay retains 501 untorn completed-turn frames 1400
+The older owned Level 5 seed 2 atomic control retains 501 untorn completed-turn frames 1400
 through 1900 plus full private memory at 1400, 1615 and 1900. Clock/return-stack,
 map 51x55, seed and unchanged packet guards pass; the owned process closed.
 Unlike legacy polling headers, these raw frame stamps name the completed
@@ -22,6 +22,20 @@ allocated slot/phase differs even with native 1400 free order restored. Room
 furniture, active bodies and worker-state/timer history remain partial inputs.
 There are no native 254 entries in this bounded window; it is not a replacement
 for the historical outcome cohort.
+
+### Later complete-recorder prefix
+
+A separate prefix retains whole completed structured chunks through 1465,
+with guarded complete memory at 1466. It is explicitly partial and has no
+overall-run success receipt. Comparing executed turns 1400-1465 against the
+older atomic CSV gives 1211 older actor rows versus 1056 later rows, with 881
+differing rows; the first difference is tag 438 absent in the later run at
+1400. The cause is not established. These trajectories are not interchangeable;
+keep their poses, navigation inputs and controls distinct.
+
+Evidence: `F:/DK2Evidence/studies/q712-complete-prefix-trajectory-control--2026-11-03--001/`,
+`comparison.json` and `sha256-final.json`. This prefix comparison does not
+validate or complete the ongoing full capture.
 
 ## Diagnostic restore controls
 
@@ -74,9 +88,15 @@ A declared scratch intervention copies only the captured terrain 9/owner 3 at
 (5,32) after completed 1438. It restores capacity 4 before the due Portal pass,
 Warlock 437 on 1443, and hero 436's slot/phase 6 on 1513. With the other named partial
 inputs, the hero agrees in state, target, position, health and scan phase through
-1569; position first differs by (3,4) fixed-point units on 1570. On 1588 native retains
-Imp 442 as target while ours drops to idle. The born Warlock's position first differs
-by one unit on 1464. These remain partial controls, not whole-world parity.
+1569; position first differs by (3,4) fixed-point units on 1570. The later target
+contrast is bounded by the [action-clock alignment](F:/DK2Evidence/studies/q712-atomic-target-retention-boundary--2026-11-03--001/action-clock-alignment.json):
+native action 16 spans completed 1572-1588 and clears at 1589; modern starts
+on completed 1571 and its busy hold ends at completed 1588. Both holds span
+17 turns. The raw modern `ActionUntilTick` remains 1587 on its internal clock;
+no field clear is implied. The retention contrast therefore establishes no new hold-duration
+or selector error. The earlier 1570 pose difference, Imp 442 work history and
+cast-start offset remain unmatched under Q712/Q719. The born Warlock's position
+first differs by one unit on 1464. These remain partial controls, not whole-world parity.
 
 Evidence: `q712-atomic-budget-clock-control--2026-11-02--003/` under the study
 root above, with production/observer four-file equality and five successful
@@ -88,9 +108,24 @@ Earlier controls use hash 370; the new control uses frozen 378. Diagnostic
 inputs do not resolve Q719 or close Q712/Q713/Q714.
 
 
+### Facing input boundary (Q719)
+
+The [native-byte facing control](F:/DK2Evidence/studies/q712-native-cast-facing--2026-11-03--001/)
+retains four declared previous/current target-point alternatives. At completed
+1571 their predicted heading differs from the observed heading; one prior-point
+alternative matches at 1572. The captured state-199 entry on 1571 has age 1,
+consistent with the existing dispatcher reading. These controls leave the exact
+within-turn inputs to 0045FB3E/004B2AE0 unmatched; they establish no new turning
+rule or generic entry gate. Worker restoration must also preserve action timing
+at 00466390, not just set state 22. `results.json`, `native-facing-inputs.json`
+and `native-state-age.json` retain the declared inputs and scope. The original
+helper also matches the managed facing result at the declared preceding
+completed modern poses (`modern-input-comparison.json`); this checks arithmetic,
+not the unmatched native within-turn call path.
+
 ## Portal relocation scan reference (Q731)
 
-| Binary address | Existing remake mismatch after hash 378 |
+| Binary address | Pre-edit mismatch, through hash 387 |
 |---|---|
 | 00459D13-00459D27 in 00459C20 | Copies the post-Entrance XYZ into previous position after the ordinary update stamp. StillJoining changes XY but leaves LastFightScanTileIndex on the portal tile. |
 | 0045E9F0 / getter 004B5D40 | The next update compares against the relocated reference. The remake interprets the relocation as a tile crossing and forces a scan/reset. |
@@ -100,12 +135,94 @@ native and modern previous XY already name tile (16,21), but the modern scan
 reference still names (16,20). On 1465 the native counter advances from 7 to 8;
 modern resets from 7 to 0. The one-unit Y motion difference on 1464 is separate.
 
-Two address-backed scratch tests fail with old source; three controls pass.
-The proposed scratch write passes all five. A guarded reference-only replay
+The early scratch write is isolated by a guarded reference-only replay. That
 intervention reproduces all four prior main files in its off-control and all
 1173 actor rows before 1464. At 1464 only the supplied scan tile changes, from
 1036 to 1087; the next counter matches native 8 instead of control 0.
 Independent review verifies the 45 study and 27 build file hashes.
 Evidence: `F:/DK2Evidence/studies/q712-portal-relocation-scan--2026-11-02--001/`.
-No production Portal rule changes yet. This bounded control does not settle
-ordinary route arrivals or the separate rounding and Q719 input limits.
+### Built scope (ADR-0637, hash 388)
+
+`PortalRules.StillJoining` now stamps `LastFightScanTileIndex` from the displaced
+position, after its existing clamped XY step. The next ordinary fight update
+compares against that relocated reference. The action wait, floor-height
+adapter, previous-pose representation and ordinary route arrivals are unchanged.
+
+Hash/save 388 has pin `0xEC99A6F22A85DDC3`. All five address-backed cases pass;
+unchanged integrated-387 scratch source fails two and passes three controls.
+All 748 archived source files remain unchanged. `proof-raw-bytes.json` records
+the raw-byte check and corrects the earlier LF/CRLF hash-label comparison.
+The full Simulation suite passes 4362 cases, with no failures; independent
+source/proof review has no blocker.
+
+### Paired outcomes (387 and 388)
+
+Each frozen version completes 75 Level 5 and 40 Level 4 resyncs with stored
+pickups, the original inputs and original `score.py`. All 230 commands exit 0;
+each version matches all four observer-control main hashes. Independent review
+verifies the four study manifests (694/371/701/374 files), both 781-file build
+manifests, the 29-file verification bundle, 750 frozen source/config hashes,
+45 external and 25 installed inputs. Full checks pass Simulation 4362 and Tools
+111. Q731 is closed for the bounded relocation-reference write; Q712 remains open.
+
+The historical 1401-3400 capture-header window is retained for comparison with
+362 and 378; it is separate from the completed-turn atomic controls above.
+387 is the immediate isolation baseline. Historical native/362/378 values are
+from [the packet-clock comparison](packet-playback-clock.md#paired-outcomes-377-and-378).
+These scores check a binary-backed fix; no constants were tuned to them.
+
+Strict dispatch radius about (17,26), seeds 2/3/7: three native runs versus
+fifteen state/generator pairs per remake version. Means per run:
+
+| Hero-ticks inside | DK2 | 362 historical | 378 historical | 387 baseline | 388 fixed |
+|---|---:|---:|---:|---:|---:|
+| All non-collapsed | 4327.00 | 2720.93 | 2753.87 | 2721.47 | 2710.47 |
+| Targeting Heart pillar | 3298.67 | 1607.00 | 1557.47 | 1664.80 | 1593.73 |
+| Targeting Imp | 790.00 | 790.60 | 916.53 | 782.60 | 830.60 |
+
+Same cohort; visible transitions, not every within-turn call:
+
+| State-254 transition, mean/run | DK2 | 362 historical | 378 historical | 387 baseline | 388 fixed |
+|---|---:|---:|---:|---:|---:|
+| Entries | 15.00 | 12.87 | 18.40 | 12.33 | 13.87 |
+| Exit to 199 | 3.67 | 0.60 | 1.07 | 1.00 | 1.47 |
+| Exit to 203 | 5.00 | 2.60 | 2.27 | 1.53 | 1.80 |
+| Exit to 1 | 3.00 | 4.67 | 3.33 | 4.13 | 4.20 |
+| Exit to 6 | 2.00 | 4.40 | 10.47 | 4.73 | 4.93 |
+| Exit to 8 | 1.00 | 0.53 | 1.20 | 0.87 | 1.40 |
+| Fight plus flee (199+203) | 8.67 | 3.20 | 3.33 | 2.53 | 3.27 |
+
+The 388 cohort also has one visible exit to 10 (mean 0.067); the source retains
+all transitions. Fight/flee exits increase against 387, while pillar exposure
+remains far below native. No further Imp-rule mismatch follows from these totals.
+
+Death scoring uses eight complete native Level 5 states at restore 1400
+(excluding 5/8), five at restore 3400 (1/4/6/9/10), and all eight Level 4 states.
+
+| Window / group, mean/run | DK2 | 362 historical | 378 historical | 387 baseline | 388 fixed |
+|---|---:|---:|---:|---:|---:|
+| L5 1401-3400 / keeper | 13.38 | 9.90 | 10.10 | 10.75 | 8.55 |
+| L5 1401-3400 / keeper Imp | 11.12 | 7.35 | 7.33 | 8.35 | 6.00 |
+| L5 1401-3400 / hero | 3.75 | 5.10 | 5.25 | 4.92 | 5.38 |
+| L5 3401-5000 / keeper | 8.60 | 9.16 | 8.60 | 9.56 | 10.52 |
+| L5 3401-5000 / keeper Imp | 5.80 | 7.20 | 6.96 | 7.76 | 8.36 |
+| L5 3401-5000 / hero | 5.00 | 4.44 | 4.08 | 3.92 | 4.24 |
+| L4 5001-6000 / keeper Imp, exact | 6.500 | 11.925 | 10.075 | 10.200 | 10.325 |
+
+Q714 Heart/terminal restoration is unchanged. The outcome-selected 32-pair
+intersection gives exact Level 4 means 10.03125/9.90625/9.40625/9.59375 for
+362/378/387/388. The immediate 387-to-388 change worsens by 0.125 all-40 and
+0.1875 in that subset. Pre-terminal pairs number 8/0/0 for 362/387/388.
+These descriptive subsets establish neither causation nor per-death attribution
+to Q714; the apparent 362-to-388 improvement is not a restoration fix.
+
+Evidence under `F:/DK2Evidence/studies/`:
+`heart-defence-q712-h387-l5--2026-11-03--001/`, its `l4` sibling and the
+corresponding `h388` studies. The 388 Level 5 study retains `state-transitions.json`,
+`exposure-summary.json` and both original score outputs; its Level 4 sibling
+retains `resync-contamination-analysis.json`. Source/proof and final verification:
+`F:/DK2Evidence/builds/q712-portal-scan-verification-h388--2026-11-03--001/`.
+
+Q712, Q714/Q719 restoration, the separate rounding difference and other
+state-side relocations remain open. The next matched-input boundary is the
+1570 pose/cast-start divergence above, including worker history and facing inputs.

@@ -235,6 +235,8 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Captures
 
+- Windows text writes can translate LF to CRLF; hash the written test file for raw proof identity, rather than the pre-write string.
+
 - A full-state capture (`*.dk2cap`, `reverse-engineering/dk2capture.py`) holds every room record
   as well as creatures and tiles; decode a field with `Record.u(offset)`. `things("room")` also
   matches stale slots, so filter by the room slot range (1100 up in the Level 1 and 2 runs).

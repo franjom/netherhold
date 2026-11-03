@@ -14848,3 +14848,21 @@ Malformed/truncated records fail our reader explicitly; this is validation,
 not a claim about native error recovery. Replay commands change, so bump
 hash/save together under the owner's rule even though simulation fields do
 not change. Q712 aggregate causation and partial restoration remain open.
+
+## ADR-0637: retain the displaced Portal-exit scan reference
+
+**Date:** 2026-11-03. **Status:** accepted. Q731; hash/save 388.
+
+**Context.** State 193 replaces its previous-position reference after placing
+the emerging creature. The remake retained the Portal tile for the next combat
+scan, treating that authored displacement as ordinary movement. The binary
+and guarded native control are in [Q731 evidence](research/q712-atomic-inputs.md#portal-relocation-scan-reference-q731).
+
+**Decision.** After StillJoining applies its entrance offset, stamp the combat
+scan reference with the resulting tile. Waiting creatures retain their old
+reference; subsequent ordinary movement still forces a scan. Add no special
+rule for reporting Imps or scan-counter adjustment.
+
+**Consequences.** The next stationary scan keeps its native cadence. Existing
+action-wait and height approximations remain. Bump hash/save together, retain
+the existing saved field, and keep Q712 outcome parity open; paired measurements are in the linked evidence.
