@@ -54,10 +54,9 @@ public sealed class CreatureEventSoundTests
 
     /// <summary><c>Creature_UpdateTimedEffects</c> (<c>0x0048E160</c>) requests <c>0x340</c> with the creature's handle at
     /// its position on every tick its burning counter is nonzero, the tick it runs out included. DK2 then stops
-    /// the sound (slot +0x38) as the fire ends; ours has no stop request (the loop owner, plan W7.3), so the
-    /// last sample plays out.</summary>
+    /// the creature's voice (slot +0x38, <c>0x0048E62E</c>) as the fire ends: ours asks it to stop, once, after the last request.</summary>
     [Fact]
-    public void ABurningCreatureRequests340OnEveryTickItBurns_ThePlayedSampleIsNotCutShort()
+    public void ABurningCreatureRequests340OnEveryTickItBurnsAndItsVoiceStopsAsTheFireEnds()
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
@@ -80,5 +79,12 @@ public sealed class CreatureEventSoundTests
             Assert.True(s.Voiced);
         });
         Assert.Equal(0, goblin.BurningTicks);
+
+        // The stop is the one request that is not a sound: the creature's own voice, after the last 0x340 and nothing after it.
+        ThingSoundRequest[] all = Sounds(sink);
+        ThingSoundRequest stop = Assert.Single(all, s => s.Stop);
+        Assert.Equal(SoundSourceId.Of(new CreatureId(goblin.Id)), stop.Source);
+        Assert.True(stop.Voiced);
+        Assert.Equal(stop, all[^1]);
     }
 }

@@ -76,3 +76,37 @@ the live voice retains the second.
 Marked deviations: the begin's phase test is stood in for by "freshly installed or wrapped last turn"; ours tells the running action only for the ones above, so the hover sounds the mood where DK2 would sound the word of an
 action ours does not name; the dig and mine sound at the turn after the work state is entered where DK2's first call is, by the same reading as the dig's own cadence; the hover's tool and refresh gates are not mirrored.
 Imp action 1's possessed (`0x00514FC9`), training (`0x00485E7D`) and other begins are not asked.
+
+## 3. Looping thing and room sounds
+
+**The manager's slots (CONFIRMED, read 2026-11-03).** Vtable `0x0066F7FC`: `+0x20` positional request, `+0x24` nonpositional, `+0x30` replay with a position (`0x00567A70`), `+0x34` set a property of a handle (`0x00567A10`),
+`+0x38` run a command object on the service (`0x00567A40`), `+0x54` a global volume set (the party restores it). The handle is an index into the service's instance table.
+
+- **Replay `+0x30` is a position update, not a restart.** `0x00567A70` converts the position relative to the listener and calls `0x0060D950`: it finds the live instance by handle (`0x0060DB80`) and calls the instance's
+  vtable `+0x20` (`0x0060C810`), which stores the position at `+0x10..+0x18` and moves the backend voice (an instance with flag `0x40` only tests its time-out: now past start plus `+0x1C` sets "finished", flag `0x10`). It returns
+  the handle, or 0 when no live instance has it, and every caller stores the return into the thing's handle: `thing+0x2E = replay(thing+0x2E, position)`, so a handle whose sound has ended is dropped.
+- **Stop `+0x38`.** The sites build a command object (`{vtable 0x0066C77C, handle}`), and its method `0x00608440` calls `0x0060D8C0`: the instance found by handle gets its vtable `+0x18` (`0x0060D0F0`): flag `0x800` set, the
+  backend voice stopped when flag 1 is set, flag `0x10` (finished) set. The plan's "stop in the `*_Cleanup` functions" is right for the sites below; the other `+0x38` sites in the save and load code use other command objects (`0x0066C6BC`).
+- **A group that loops (CONFIRMED).** Group flag bit `0x08` makes the instance flags 6 ([0x0060C960](functions/0060C960.md)); instance flag 4 is the backend repeat count 9999 ([0x0060CDB0](functions/0060CDB0.md)). Bit `0x04` adds instance flag 2 only. Of every shipped group
+  (1354 across the `SFX.map` files), two have bit `0x08`: `0xF2` in `spell_fireball` and `spell_firebomb`, the shot's second handle (the trail). The others that run long (flags `0x04`/`0x02`: burning `0x340`, the flies `0x152`, the boulder's
+  roll `0x14F`, the Tremor's `0xFB`, the party's `0x316`) end with their sample and are asked for again by their thing, or replayed at its position while the instance lives. `IsLooping` is ours.
+
+| Site | What it does | Verdict | Built as |
+|---|---|---|---|
+| replay: [Creature_Update](functions/00488930.md) `0x0048A86E`, `Object_Update` `0x0049BE87`/`0x0049BEA1`, `Shot_Update` `0x004AB7C3`/`0x004AB7DD`, `Door_Update` `0x004A59FB`, `0x004A5A19`, `0x004A6483`, `0x004A649D`, `Trap_Update` `0x004A8DBD`, `0x004A8DD7`, `Room_Tick` `0x004E4BA0`, `World_UpdateTremors` `0x00510502`, `ViewEffect_Update` `0x00435149` | each update of the thing: the live handle(s) moved to its position | CONFIRMED | `VoiceLocator` and `ClassicSoundPlayer.FollowVoices`, each frame, for creatures, objects and shots; a door, trap, room and Tremor never moves |
+| burning stop: [0x0048E160](functions/0048E160.md) at `0x0048E62E` | the update in which the burning counter reaches zero stops the creature's handle `+0x2E`, after the three effects | CONFIRMED | `StatusEffectRules.UpdateBurning` asks `ThingSoundRules.Stop` |
+| `Creature_DeathBookkeeping` `0x00488076` | a burning creature that dies asks `0x340` with its handle and stops the returned handle at once: silence | CONFIRMED site | waits: ours keeps no burning state on a body |
+| Casino party: [0x004D6270](functions/004D6270.md) at `0x004D63D0` | `0x316` in the category of the terrain at the room's anchor tile, with the room's handle `+0x14`, asked for each room creature in state 153 each update, at the anchor tile's centre, height 0; the volume is the camera's distance (capped at 45 tiles) when the tile is explored, else 1; the end path restores a global volume (`+0x54`, `0x0075AD17`) | CONFIRMED | `CasinoJackpotRules.RoomUpdate` asks `0x316` once per update with a dancer, at the first tile (the room's `+0x27` is read as it, STRONGLY INFERRED); the distance volume is the player's rolloff |
+| the party off: `0x004D66BA`, `0x004D6727` | the music's handle is stopped and `0x33E` is asked with it, when the tile is explored | CONFIRMED | `CasinoJackpotRules.RoomUpdate`: `Stop`, then `0x33E`, as room voice |
+| Casino freed, `0x004D7153`; Heart's room frame, `0x004DA0B2` (the Saturday dance) | stops the room's handle | CONFIRMED sites | waits: ours has no room-freed path that ends a party's music, and the dance needs the host clock |
+| `Object_OnDelete` `0x0049B6BE`, `Door_Cleanup` `0x004A52FD`, `Trap_Cleanup` `0x004A7B6F` | stop the thing's second handle `+0x32` after the deletion request | CONFIRMED sites | nothing: ours gives an object, door or trap one voice, and the deletion's `0xF4` replaces it |
+| the Tremor's replay `0x00510502` | an active slot's handle moved to its place every update | CONFIRMED | nothing: the place never changes |
+| the flies' loop `0x152`, `0x004B1373` | handle 0 the first time, then `+0x30` replays it; asked only while the viewer possesses a creature | CONFIRMED site | waits for first person (section 4) |
+| the boulder's roll `0x14F` | asked again at the start of each update (`Boulder_Roll`), and `Object_Update` replays the handle at the boulder's position | CONFIRMED | a re-request each update (W5) and `FollowVoices` for the object's voice |
+
+**The loop model chosen (remake policy, Q678 stays open).** A request for a live voice of equal or higher priority is retained (`SoundVoiceBindings.CanRetain`), so a thing that asks again every update, as DK2's burning, boulder and tremor do, loops by being asked.
+`ClassicSoundPlayer` keeps four rules of its own: a group with flag `0x08` plays looping; a `SoundRequest` with `Stop` ends the named voice at once and is exempt from the throttle; once a frame `FollowVoices` moves each playing voice to its thing's position
+(creature, object, shot) without restarting it; a looping voice whose thing has left the world is stopped, so no loop outlives its thing. Unity's default 3D rolloff stays, and no voice count, distance or fade is imported.
+
+Marked deviations: a replay is applied once per rendered frame, where DK2 applies it once per update; the party's volume is Unity's rolloff and its explored-tile gates (the music at volume 1, the end sound not asked) are not applied, so a party in
+unexplored ground is as audible as the camera's distance allows; `0x316` is one request per update where DK2 asks once per dancer; the global volume `+0x54` sets at the party's end is not built (what it scales is unread).

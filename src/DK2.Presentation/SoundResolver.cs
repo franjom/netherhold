@@ -22,6 +22,12 @@ public sealed class SoundRand(uint seed)
 [Dk2Behavior(Confidence.Confirmed, "docs/research/sound-playback.md#category-and-sample-selection")]
 public sealed class SoundResolver(BankMap banks, SfxMap map)
 {
+    /// <summary>Whether the group repeats on its own: bit <c>0x08</c> of its flag word (group <c>+0x10</c>) makes the instance flags 6, and flag 4 gives the
+    /// voice a repeat count of 9999 (<c>0x0060C960</c>, <c>0x0060CDB0</c>). Only the fireball's and firebomb's <c>0xF2</c> trail has it in the shipped maps: the other
+    /// long sounds (flags <c>0x04</c> and <c>0x02</c>) end with their sample and are asked for again by their thing.</summary>
+    public bool IsLooping(SoundId id) =>
+        map.Groups.FirstOrDefault(g => g.Id == id) is { Items.Count: > 0 } group
+        && (System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(group.Unknown0x08.AsSpan(8)) & 0x08) != 0;
     public SoundPriority? PriorityOf(SoundId id)
     {
         SoundGroup? group = map.Groups.FirstOrDefault(g => g.Id == id);

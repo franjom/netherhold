@@ -163,8 +163,16 @@ public static class CasinoJackpotRules
             if (now - first.CasinoPartyStartTick > (long)PartySeconds * SimulationTiming.OriginalTicksPerGameSecond)
                 EndParty(context, system, room, ref first);
             if (!AnyPlaceHeld(world, room)) EndParty(context, system, room, ref first);
+            bool dancing = false;
             foreach (CreatureState c in world.Creatures)
-                if (c.HeldPlace.In(room) && c.Dk2StateId == CasinoStep.DancingState) first.CasinoParty |= MusicBit;
+                if (c.HeldPlace.In(room) && c.Dk2StateId == CasinoStep.DancingState)
+                {
+                    first.CasinoParty |= MusicBit;
+                    dancing = true;
+                }
+            // 0x004D63D0: the music is asked for each dancer of the room, with the room's handle (the repeats of one handle are one
+            // request here). Its position is the room's anchor, read as the first tile; the explored-tile volume is the viewer's.
+            if (dancing) RequestPartySound(context, system, room, ThingSoundEvent.PartyMusic);
             // Every twelve seconds an effect on a random tile: the effect is presentation, its draw is
             // on the simulation stream (0x004D6561), and the effect is asked for at that tile's corner.
             if ((now + 1) % (EffectSeconds * SimulationTiming.OriginalTicksPerGameSecond) == 0)   // DK2's turn is our tick + 1
@@ -189,7 +197,17 @@ public static class CasinoJackpotRules
         }
 
         first.CasinoParty &= unchecked((byte)~MusicBit);
+        // 0x004D66BA: the room's handle is stopped, then 0x33E (the party's end) is asked with it (0x004D6727).
+        ThingSoundRules.Stop(context, system, new SoundSourceId(SoundSourceKind.Room, room.TileIndices[0]));
+        RequestPartySound(context, system, room, ThingSoundEvent.PartyEnded);
         return false;
+    }
+
+    private static void RequestPartySound(SimulationContext context, string system, RoomInstance room, ThingSoundEvent sound)
+    {
+        int tile = room.TileIndices[0];
+        ThingSoundRules.RequestTile(context, system, context.World.TileAtIndex(tile).TerrainId, tile, sound,
+            kind: SoundSourceKind.Room, voiced: true, source: new SoundSourceId(SoundSourceKind.Room, tile));
     }
 
     private static bool AnyPlaceHeld(WorldState world, RoomInstance room)

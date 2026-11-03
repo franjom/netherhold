@@ -43,7 +43,7 @@ the 20-byte slot: ours is a voice per slot (`SoundSourceKind.Tremor`, the slot i
 | `0x2EC`, handle 0 | the same at `0x005105C3`: an active slot whose floor chooser `0x00510370` found a floor, after the view effect and before the tile pass, at that tile's centre with height 0 | CONFIRMED | `TremorRules.Update` |
 
 `_TREMOR` holds `0xFB` (5 samples) and `0x2EC` (1); `0x31F` has samples only in `SPELL_RAISE_DEAD`, so the end is silent. An active slot
-with a live handle also replays it at its place every update (`0x00510502`, slot `+0x30`): a loop, plan W7.3.
+with a live handle also replays it at its place every update (`0x00510502`, slot `+0x30`): the replay moves a voice that exists and needs nothing built ([sound-effects-continuous.md section 3](sound-effects-continuous.md#3-looping-thing-and-room-sounds)).
 
 ## 3. Shots
 

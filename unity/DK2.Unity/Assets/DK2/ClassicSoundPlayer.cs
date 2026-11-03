@@ -8,6 +8,7 @@ using System.Linq;
 using DK2.Assets;
 using DK2.Data.Media;
 using DK2.Presentation;
+using DK2.Simulation;
 using UnityEngine;
 
 namespace DK2.Unity
@@ -150,6 +151,13 @@ namespace DK2.Unity
 
         public void Play(SoundRequest request)
         {
+            if (request.Stop)
+            {
+                // DK2's stop command on a handle (slot +0x38): the voice's source ends and is free. It is not a sound, so no throttle or priority applies.
+                AudioSource stopped = _voices.Release(request.Voice);
+                if (stopped != null) stopped.Stop();
+                return;
+            }
             if (!_effectsOn || request.Category.IsNone || !_throttle.Admit(request.Id)) return;
             SoundResolver resolver = Resolver(request.Category);
             SoundPriority? priority = resolver.PriorityOf(request.Id);
@@ -162,7 +170,9 @@ namespace DK2.Unity
             if (source == null) source = _effects.Find(s => !s.isPlaying);
             if (source == null && _effects.Count < 32) { source = NewSource("Effect"); _effects.Add(source); }
             if (source == null) source = _effects[0];
-            source.Stop(); source.clip = clip; source.loop = false;
+            // A group whose flag word has bit 0x08 repeats on its own (repeat count 9999, 0x0060CDB0), until its thing's next request or stop
+            // replaces it or its thing is gone (FollowVoices); every other sound plays its sample out and is asked for again by its thing.
+            source.Stop(); source.clip = clip; source.loop = resolver.IsLooping(request.Id);
             // Remake policy, not DK2's: Unity's default 3D rolloff and no voice budget. DK2's distances,
             // voice limits and fades are unread (Q678), so none are copied from OpenKeeper.
             source.spatialBlend = request.World.HasValue ? 1 : 0;
@@ -170,6 +180,30 @@ namespace DK2.Unity
             source.volume = _master * _effectVolume;
             source.Play();
             _voices.Assign(request.Voice, request.Id, source, priority.Value);
+        }
+
+        private readonly List<SoundVoiceId> _live = new List<SoundVoiceId>();
+
+        /// <summary>DK2 replays a playing handle at its thing's position on each update of the thing (slot +0x30, which returns 0 once the instance has
+        /// ended): ours moves each playing voice to where its thing now is, once a frame. A looping voice whose thing has left the world is
+        /// stopped, so no loop outlives its thing. Remake policy, not DK2's (Q678): the voice budget and fades are not copied from OpenKeeper.</summary>
+        public void FollowVoices(WorldState world)
+        {
+            _voices.Voices(_live);
+            for (int i = 0; i < _live.Count; i++)
+            {
+                SoundVoiceId voice = _live[i];
+                if (!_voices.TryGet(voice, out _, out AudioSource source) || source == null) continue;
+                VoiceLocator.Fate fate = VoiceLocator.Locate(world, voice, out float x, out float? height, out float z);
+                if (fate == VoiceLocator.Fate.Gone)
+                {
+                    if (!source.loop) continue;
+                    source.Stop();
+                    _voices.Release(voice);
+                }
+                else if (fate == VoiceLocator.Fate.Moves && source.isPlaying)
+                    source.transform.position = new Vector3(x, height ?? source.transform.position.y, z);
+            }
         }
 
         private SoundResolver Resolver(SoundCategory category)

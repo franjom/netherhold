@@ -174,6 +174,10 @@ public enum ThingSoundEvent : ushort
     TremorShook = 0x2EC,
     /// <summary>A Tremor ends (<c>0x005104C6</c>).</summary>
     TremorEnded = 0x31F,
+    /// <summary>A Casino party's music, asked for each dancer of the room while the party runs (<c>Casino_RoomUpdate</c>, <c>0x004D63D0</c>), with the room's handle.</summary>
+    PartyMusic = 0x316,
+    /// <summary>The party's end, after the music's stop (<c>0x004D6727</c>), with the same handle.</summary>
+    PartyEnded = 0x33E,
     /// <summary>A manufacturer works at an Anvil, in the Anvil's category (<c>CreatureAction_Manufacture</c>, <c>0x00498E08</c>).</summary>
     Forged = 0x112,
     /// <summary>A corpse is destroyed, in <c>OBJECT_FLIES</c> (<c>Corpse_Destroy</c> <c>0x004B10A0</c>).</summary>
@@ -184,12 +188,13 @@ public enum ThingSoundEvent : ushort
 /// creature's lift and drop): the sound then neither replaces nor is retained by the thing's own voice.
 /// <paramref name="ViewerOnlyFor"/> names the owner of a request DK2 makes only for the local player's own
 /// thing (the heart's opening): the view plays it only when that player is the viewer.
+/// <paramref name="Stop"/> marks the request that is not a sound: DK2's stop command on the thing's handle (slot <c>+0x38</c>, command <c>0x0066C77C</c>), which ends the voice the thing owns (<see cref="ThingSoundRules.Stop"/>); category and event are unused.
 /// <paramref name="Alternating"/> marks a request DK2 gates on a global counter that nothing else reads (the chicken's
 /// step, <c>0x006E4FD4</c>): the listener keeps the counter, tests bit 0 and then adds one, for every such request it is
 /// given, so the simulation keeps no state for it.</summary>
 public readonly record struct ThingSoundRequest(
     SoundSourceId Source, string Category, ThingSoundEvent Event, FpPosition3 Position, bool Voiced = true,
-    PlayerId? ViewerOnlyFor = null, bool Alternating = false);
+    PlayerId? ViewerOnlyFor = null, bool Alternating = false, bool Stop = false);
 
 /// <summary>A sound a thing requests at its position. Read for creatures (<c>0xD6</c>, <c>0xDF</c>,
 /// and the hand's <c>0xC3</c>/<c>0xC4</c>) and objects (the hand's <c>0xC3</c>/<c>0xC4</c>): positional
@@ -300,6 +305,14 @@ public static class ThingSoundRules
     /// <summary>A creature's request from a hook, which holds no event sink of its own: the creature's handle and
     /// position, the category of <paramref name="definition"/>. The level increment asks this way
     /// (<c>0x0048B2DB</c>), as it asks for its effect.</summary>
+    /// <summary>DK2's stop command on a thing's handle (slot <c>+0x38</c> with the command object <c>0x0066C77C</c>: the instance found by handle gets its stop method,
+    /// vtable <c>+0x18</c>). Asked where a thing's loop ends: the burning creature's fire (<c>0x0048E62E</c>).</summary>
+    public static void Stop(SimulationContext context, string system, SoundSourceId source)
+    {
+        if (ReferenceEquals(context.Events, NullEventSink.Instance)) return;
+        context.RequestSound(system, new(source, "", default, default, Stop: true));
+    }
+
     public static void Request(in StateHookContext hooks, string system, CreatureDef definition, CreatureState creature,
         ThingSoundEvent sound)
     {

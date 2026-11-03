@@ -24,6 +24,7 @@ namespace DK2.Unity
         {
             if (_musicObserver == null || _soundPlayer == null) return;
             while (_worldSounds != null && _worldSounds.TryTake(out SoundRequest sound)) _soundPlayer.Play(sound);
+            _soundPlayer.FollowVoices(world);
             _soundPlayer.UpdateThrottle();
             SoundRequest? speech = _soundPlayer.CurrentSpeech;
             SpeechLineId? line = speech.HasValue && speech.Value.Subtitle && speech.Value.Category == _levelSpeechCategory

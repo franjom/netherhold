@@ -445,7 +445,7 @@ public class CasinoStateTests
         Assert.Equal(Keeper, request.Owner.Value);
         Assert.Equal(new FpPosition3(new Fp32((tile % world.Width) << 12), new Fp32((tile / world.Width) << 12), new Fp32(0x1000)),
             request.Position);
-        Assert.DoesNotContain(events.Events, e => e.ThingSound.HasValue);   // the sound waits for the effect's creation
+        Assert.DoesNotContain(events.Events, e => e.ThingSound is { Event: not ThingSoundEvent.PartyMusic });   // the pop waits for the effect's creation; the music is the dancers'
     }
 
     private sealed class Fixed(int value) : IRandomAlgorithm
