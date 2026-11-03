@@ -928,6 +928,8 @@ public sealed class CreatureState
     /// count of n holds n + 1 and ends when it reaches 0 (<c>0x004969D0</c>, <c>0x00496AA0</c>).</summary>
     public byte ActionCount;
 
+    public ReinforcementActionState ReinforcementAction;
+
     /// <summary>The alarm a Scout carries to its room (DK2's state fields <c>+0xA7</c>, <c>+0xAF</c>,
     /// <c>+0xB1</c>): the threat's position, the strength still wanted there, and the room by its
     /// first tile. Read on arrival by <see cref="Combat.FearRules.RespondToThreat"/>.</summary>
@@ -1461,6 +1463,10 @@ public sealed class CreatureState
         hash.Add((byte)ActionAnimationFlags);
         hash.Add(ActionHandlerDone);
         hash.Add(ActionCount);
+        hash.Add(ReinforcementAction.Active);
+        hash.Add(ReinforcementAction.Target.X);
+        hash.Add(ReinforcementAction.Target.Y);
+        hash.Add(ReinforcementAction.AnimationComplete);
         hash.Add(AlarmX);
         hash.Add(AlarmY);
         hash.Add(AlarmDeficit);

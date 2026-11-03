@@ -197,7 +197,7 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, Prelude, this);
 
     public void BeginTurn(SimulationContext context) => _pathfinder.Profiler = context.Profiler;
 
@@ -207,6 +207,15 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
     /// worker robbed of its task by a newer one chooses again this same tick, and one robbed by an
     /// older one on the next (imp-task-stealing.md §8).</summary>
     public void Update(SimulationContext context, CreatureState creature)
+    {
+        try { UpdateWorker(context, creature); }
+        finally
+        {
+            ReinforcementActionRules.Advance(creature, context.Database.CreatureById(creature.CreatureTypeId));
+        }
+    }
+
+    private void UpdateWorker(SimulationContext context, CreatureState creature)
     {
         if (creature.Possessed) return;
         if (context.TremorRecoveryCompletedThisTick.Contains(creature)) return;
@@ -224,6 +233,9 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         if (CreatureEligibility.IsExcluded(creature,
             CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down | CreatureGuards.Preoccupied)) return;
 
+        if (creature.ReinforcementAction.Active || ReinforcementActionRules.UsesClock(creature, definition))
+            RunWorkerPrelude(context, creature, definition);
+        ReinforcementActionRules.Poll(context, creature);
         bool handlerWasDone = creature.ActionHandlerDone;
         Update(context, creature, definition);
         // Later workers see this strike before choosing or testing their own finished action.
@@ -251,21 +263,9 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         // answer and judged by another.
         var grid = new WorldPathGrid(context.Database, context.World, definition);
 
-        // The worker arm of the gold block (0x0048904E) tries the claim on the way (0x00464170)
-        // before its pick-up: a worker-job state, or a walk resuming one (0x00478050 == 3), with
-        // no object or creature carried; a wander walk resumes idle and never claims. Level 1
-        // seeds 3, 4 and 5 open their first room this way from a walk to a dig (ADR-0303, ADR-0378).
         ISimulationProfiler profiler = context.Profiler;
-        bool claimed = false;
-        if (CreatureStateMachine.HasState(creature)
-            && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.WorkerJob
-            && creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0)
-        {
-            using (profiler.Scope(SimulationMarkers.ImpClaimOnTheWay))
-                claimed = TryClaimOnTheWay(context, creature, grid);
-        }
-        PickUpGoldInPassing(context, creature, definition);
-        if (claimed) return;
+        if (RunWorkerPrelude(context, creature, definition, grid)) return;
+        if (creature.Dk2StateId == 22 && FightRules.ActionIsRunning(creature, definition, context.Tick)) return;
         // A combat handler set 1 this turn: 1's handler is next turn's (0x00476FC0).
         if (context.IdleHandlerWaits(creature)) return;
         bool wandered;

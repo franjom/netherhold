@@ -14866,3 +14866,24 @@ rule for reporting Imps or scan-counter adjustment.
 **Consequences.** The next stationary scan keeps its native cadence. Existing
 action-wait and height approximations remain. Bump hash/save together, retain
 the existing saved field, and keep Q712 outcome parity open; paired measurements are in the linked evidence.
+
+## ADR-0638: run ordinary reinforcement through its stored action clock
+
+**Date:** 2026-11-03. **Status:** accepted. Q719; hash/save 389.
+
+**Context.** Reinforcement used a work timer and noticed its own finished wall
+one update later. The binary's common action poll runs before state22 and
+can complete that same final hit, while an unwrapped terminal hit can remain
+busy. The [reading and pre-edit inventory](research/reinforcement-action-clock.md)
+separate those branches from the partial captured-state controls.
+
+**Decision.** Store action7's independent target and completion state. Poll
+its full wall predicate before combat, preserve handler/animation gates,
+start art12 from state22 and advance it after the handler. Preserve the
+preceding worker claim/pickup order for this action through a linked Prelude.
+Cancel work on accepted replacement and EndAction. Hash and save the added
+state together, retaining the missing-timing fallback.
+
+**Consequences.** No unconditional eager state exit or future-timed work input
+enters production. Other action families, custom-host ordering and partial
+resync remain explicit limits; Q712 stays open after the measured outcomes. Verification is recorded in the linked research note.

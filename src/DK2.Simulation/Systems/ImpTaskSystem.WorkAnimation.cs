@@ -40,6 +40,7 @@ public sealed partial class ImpTaskSystem
     /// ends at once.</summary>
     private static bool WorkActionEnded(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (ReinforcementActionRules.UsesClock(creature, definition)) return !creature.ReinforcementAction.Active;
         if (!PlaysWorkLoop(creature, definition))
             return WorkCadence.ActionEnded(creature.TargetWork, context.Tick.Value, creature.StateEnteredTick);
         if (creature.ActionArtSlot == 0) return true;
@@ -77,6 +78,7 @@ public sealed partial class ImpTaskSystem
     /// the next, whose handler runs again. Out of work, the standing or walking clip replaces it.</summary>
     private static void StepWorkAnimation(SimulationContext context, CreatureState creature, CreatureDef definition, bool struck)
     {
+        if (creature.ReinforcementAction.Active || ReinforcementActionRules.UsesClock(creature, definition)) return;
         if (creature.TargetTileIndex >= 0 && creature.SecretDoorTask
             && creature.Dk2StateId == ImpStates.SecretDoorWork)
         {

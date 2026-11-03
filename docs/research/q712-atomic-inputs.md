@@ -153,10 +153,38 @@ and first state difference 1594. Frozen build:
 This isolates an order boundary, not the complete art-12/mode-3 action clock.
 Action 7 can remain busy after a final hit without cycle flags (`+F1 & 6`);
 the three captured workers have flags 5, which satisfy that test. An
-unconditional production recheck is therefore not justified. Q719 remains
-open: restore the complete reinforcement action/terminal-poll inputs, then
-trace Imp 442's 1579 route and the hero's 1620 divergence. The earlier prefixes
-and facing controls retain their own partial-input scopes.
+unconditional production recheck is therefore not justified. The later
+[ordinary action clock](reinforcement-action-clock.md) follows the
+complete reviewed rule (ADR-0638/hash 389); its [outcomes](reinforcement-action-clock.md#outcomes-at-hash-389) are verified.
+These frozen-378 controls retain their historical overlays. Q719 remains
+open; this prototype's extended prefix is not inherited by a later build.
+The earlier prefixes and facing controls retain their own partial-input scopes.
+
+### Withdrawal destinations and actual hash-389 inputs (Q719)
+
+The [older frozen-378 withdrawal observer](F:/DK2Evidence/studies/q712-atomic-withdrawal-window--2026-11-03--001/)
+matches all five captured-clock prototype output hashes. Imp 442 already has
+different goals at 1570: native Heart room 1124's word (17,26), modern Hatchery
+(11,25). Two initial waypoints agree, delaying visible pose divergence until
+1579. The native completed-turn RNG advances 39 draws, but the within-call
+seed is unproved. This establishes unequal destination inputs, not a new
+steering or selector defect. The amended manifest verifies 52 files while
+explicitly excluding the original invalid manifest self-entry; old bytes remain.
+Frozen observer build:
+`F:/DK2Evidence/builds/q712-atomic-withdraw-route-h378-observer--2026-11-03--001/`.
+
+The [integrated-389 worker control](F:/DK2Evidence/studies/q712-integrated389-worker-resume--2026-11-03--001/)
+uses unchanged frozen-389 simulation with CLI-only native pool/order, doors,
+retained navigation and ordinary action-7 restoration. Its input contains no
+future-measured work-delay fields and uses no wall pulse. Warlock 437's birth
+at 1443 is restored, but the old prototype's 1619 prefix does not carry over:
+Imp 442 first differs in pose at 1570 and state at 1572; hero 436 first differs
+in state/target at 1588 and pose at 1590. Frozen control build:
+`F:/DK2Evidence/builds/q712-integrated389-worker-control--2026-11-03--001/`.
+
+The current lead is actual-389 withdrawal inputs at 1570 (004611D0), then
+subsequent hero exposure. These partial controls neither prove a generic 1579
+integrator defect nor close Q712/Q719.
 
 ### Facing input boundary (Q719)
 
@@ -275,6 +303,6 @@ retains `resync-contamination-analysis.json`. Source/proof and final verificatio
 
 Q712, Q714/Q719 restoration, the separate rounding difference and other
 state-side relocations remain open. The next diagnostic boundary is the
-[reinforcement action/terminal poll](#saved-bodies-and-worker-resume-q719),
-then Imp 442's route and the hero's remaining divergence. Earlier prefixes are
+[actual-389 withdrawal inputs](#withdrawal-destinations-and-actual-hash-389-inputs-q719),
+then subsequent hero exposure. Earlier prefixes are
 controls of their declared inputs, not whole-world parity.

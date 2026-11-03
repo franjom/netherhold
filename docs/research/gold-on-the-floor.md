@@ -397,4 +397,4 @@ Hand, whether a falling pile (§6) is on the tile list yet, and what the chicken
 hunger.
 
 **Ours:** both arms built: workers ADR-0293, the creature arm `WalkOverGoldSystem` (ADR-0300;
-the take compares unsigned, `0x004893B1`). The walk-over chicken is not built.
+the take compares unsigned, `0x004893B1`). Ordinary reinforcement's [Prelude](reinforcement-action-clock.md#implementation-and-scope) runs its existing worker block before the action poll; other worker families retain their existing phase. The walk-over chicken is not built.

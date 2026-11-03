@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 388;
+    private const int FormatVersion = 389;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -461,6 +461,10 @@ public static class WorldSnapshot
             w.Write((byte)c.ActionAnimationFlags);
             w.Write(c.ActionHandlerDone);
             w.Write(c.ActionCount);
+            w.Write(c.ReinforcementAction.Active);
+            w.Write(c.ReinforcementAction.Target.X);
+            w.Write(c.ReinforcementAction.Target.Y);
+            w.Write(c.ReinforcementAction.AnimationComplete);
             w.Write(c.AlarmX);
             w.Write(c.AlarmY);
             w.Write(c.AlarmDeficit);
@@ -1232,6 +1236,12 @@ public static class WorldSnapshot
                 ActionAnimationFlags = (ActionAnimationFlags)r.ReadByte(),
                 ActionHandlerDone = r.ReadBoolean(),
                 ActionCount = r.ReadByte(),
+                ReinforcementAction = new ReinforcementActionState
+                {
+                    Active = r.ReadBoolean(),
+                    Target = new DK2.Core.TilePos(r.ReadInt32(), r.ReadInt32()),
+                    AnimationComplete = r.ReadBoolean(),
+                },
                 AlarmX = r.ReadInt32(),
                 AlarmY = r.ReadInt32(),
                 AlarmDeficit = r.ReadInt32(),
