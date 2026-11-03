@@ -73,10 +73,32 @@ public static class Recipes
             b => M7TrapFights(b, Zone.Boulders | Zone.KeeperBoulder | Zone.OwnBoulder)),
         new("M7Q729", "Secret4", "M7TrapFights6's Q729 Prison and fight alone.",
             b => M7TrapFights(b, Zone.Prison | Zone.KeeperBoulder | Zone.OwnBoulder)),
+        new("M7Q729b", "Secret4",
+            "M7Q729 with the captive's Flags2 bit 2 (DieInstantly, +0x3EA bit 11) cleared: Secret4 places its Dwarves with "
+            + "Flags2 4, so M7Q729's was killed outright by its first lethal blow (2026-11-02) and never collapsed.",
+            b => M7TrapFights(b, Zone.Prison | Zone.KeeperBoulder | Zone.OwnBoulder | Zone.Capturable)),
+        new("M7Q729c", "Secret4",
+            "M7Q729b selling its own Prison: the owner's Sell did nothing there (2026-11-02), so a type-39 area trigger "
+            + "on the fight chamber (Good Dwarves in it == 0, once) runs action 22 on each Prison tile, which sells the "
+            + "tile (0x004C5DB0, pay flag 0) and lays Claimed Path. The Dwarf leaves the chamber only in an Imp's arms.",
+            b => M7TrapFights(b, Zone.Prison | Zone.KeeperBoulder | Zone.OwnBoulder | Zone.Capturable | Zone.AutoSell)),
+        new("Q716FreeImps", "Small",
+            "Q716 (2026-11-02): Small without its eight placed Imps, so keepers 3 and 4 are both below MinimumImpThreshold "
+            + "when the Heart opening arms their deadlines on the same turn; native turns 38, 59, 80 and 101 should each "
+            + "cast a free Imp for both. The capture's world seed shows whether each heading draw follows its own "
+            + "keeper's angle draw or both angle draws.",
+            WithoutImps),
     ];
 
+    private static void WithoutImps(LevelBuilder b)
+    {
+        var things = b.Things;
+        for (int i = things.Count - 1; i >= 0; i--)
+            if (things[i] is KeeperCreatureThing { CreatureId: 1 }) b.RemoveThing(i);
+    }
+
     [Flags]
-    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8, PlacedHealth = 16, NoDirtBoulder = 32, KeeperBoulder = 64, OwnBoulder = 128 }
+    private enum Zone { Brave = 1, Boulders = 2, Prison = 4, All = 7, HeartWay = 8, PlacedHealth = 16, NoDirtBoulder = 32, KeeperBoulder = 64, OwnBoulder = 128, Capturable = 256, AutoSell = 512 }
 
     private static string BaseOf(LevelBuilder b) => b.BaseName;
 
@@ -256,6 +278,9 @@ public static class Recipes
                     b.EditThing<GoodCreatureThing>(i, r => zones.HasFlag(Zone.PlacedHealth)
                         ? r with { X = x, Y = y, Level = level }
                         : r with { X = x, Y = y, Level = level, InitialHealth = 100 });
+                    // Flags2 bit 2 is DieInstantly (creature-death.md): the captive must collapse to be carried
+                    if (zones.HasFlag(Zone.Capturable) && (x, y) == (14, 31))
+                        b.EditThing<GoodCreatureThing>(i, r => r with { Flags2 = (byte)(r.Flags2 & ~4) });
                     points[g.ObjectiveTargetActionPointId] = (x, y);
                     break;
                 case GoodCreatureThing: b.RemoveThing(i); break;
@@ -299,6 +324,51 @@ public static class Recipes
         }
 
         b.SetTriggerParameter(65534, "Value", 3600);
+        if (zones.HasFlag(Zone.AutoSell)) SellPrisonOnceCarriedOut(b);
+    }
+
+    /// <summary>A type-39 watch on Secret4's spare action point 9, moved over the fight chamber (x 11..14,
+    /// rows 29..33): once no Good Dwarf stands in it, action 22 turns each Prison tile to the keeper's
+    /// Claimed Path, selling it first (trigger-action-arms.md, action 22).</summary>
+    private static void SellPrisonOnceCarriedOut(LevelBuilder b)
+    {
+        // a negative id (0x8000 and up as a short) is an action node, a positive one a condition
+        const ushort Watch = 100, FirstSale = 65000;
+        const byte AreaCount = 39, AlterTerrain = 22, Equal = 3, Creatures = 0;
+        static Dictionary<string, long> With(IReadOnlyDictionary<string, long> p, params (string Name, long Value)[] set)
+        {
+            var d = p.ToDictionary(kv => kv.Key, kv => kv.Value);
+            foreach (var (name, value) in set)
+                if (!d.ContainsKey(name)) throw new ArgumentException($"no trigger parameter {name}");
+                else d[name] = value;
+            return d;
+        }
+
+        var (watch, watchImage) = b.TriggerTemplate(213, AreaCount);
+        b.InsertTrigger(watch with
+        {
+            TriggerId = Watch, NextTriggerId = 0, ChildTriggerId = 0, RepeatCount = 1,
+            Parameters = With(watch.Parameters, ("Comparison", Equal), ("PlayerId", Heroes), ("TypeId", Dwarf),
+                ("ThingType", Creatures), ("Value", 0)),
+        }, watchImage);
+
+        var (sale, saleImage) = b.TriggerTemplate(214, AlterTerrain);
+        ushort id = FirstSale;
+        for (int y = 30; y <= 32; y++)
+            for (int x = 2; x <= 4; x++)
+                b.InsertTrigger(sale with
+                {
+                    TriggerId = id++, NextTriggerId = 0, ChildTriggerId = 0, RepeatCount = 0,
+                    // action 22's position is one-based
+                    Parameters = With(sale.Parameters, ("PosX", x + 1), ("PosY", y + 1), ("TerrainId", ClaimedPath), ("PlayerId", Keeper)),
+                }, saleImage);
+        for (ushort k = FirstSale; k < id - 1; k++) b.LinkTrigger(k, (ushort)(k + 1), 0);
+        b.LinkTrigger(Watch, 0, FirstSale);
+
+        var things = b.Things;
+        int point = Enumerable.Range(0, things.Count).Single(i => things[i] is ActionPointThing { ActionPointId: 9 });
+        b.EditThing<ActionPointThing>(point, r => r with { StartX = 11, StartY = 29, EndX = 14, EndY = 33 });
+        b.SetActionPointRoot(point, Watch);
     }
 
     /// <summary>Secret4's lava becomes impenetrable rock; open: the cross path at row 20, the trap stubs at

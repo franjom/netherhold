@@ -106,8 +106,8 @@ reads them; one creature's whole update (fight, needs routine, anger, state hand
 before the next one's, newest first, as `CreatureUpdateSystem` (ADR-0554); fog and gold
 come after every mover, so a creature is noticed on the tick it arrives rather than the next; work queued on a tick
 resolves on that tick, so nothing survives a tick boundary half-done; mana is
-paid after everything that could change what a keeper owns, and imp supply after
-the mana it spends; hunger is asked before tiredness and pay after both, which is
+paid after everything that could change what a keeper owns, and the free imp after
+the mana it spends (a bought imp's shot is cast with the keeper actions, before the thing pass, so its imp comes the same turn); hunger is asked before tiredness and pay after both, which is
 the order the original's own needs routine has; the prison settles a captive's
 second alone, so exactly one system does; experience is the last creature system, so
 nothing that died or walked out this second is promoted on the way through the door;

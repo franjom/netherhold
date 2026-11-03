@@ -9,8 +9,9 @@ using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>Makes imps: free ones to keep a keeper above the floor, bought ones when
-/// a keeper casts Create Imp.</summary>
+/// <summary>Casts Create Imp: the free cast that keeps a keeper above the floor, and the
+/// bought cast's permission, payment and shot (<see cref="CreateImpCastSystem"/> calls it). The
+/// shot makes the imp, in <see cref="ImpCreationRules.FromShot"/>.</summary>
 /// <remarks>Player initialization disables the native-turn deadline; the Heart opening arms it.
 /// A keeper below MinimumImpThreshold receives free casts after the strict deadline, with
 /// TimeBeforeFreeImpGeneratedSeconds between deadlines. See docs/research/imps-and-mana.md.</remarks>
@@ -21,13 +22,9 @@ public sealed class ImpSupplySystem : ISimulationSystem
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
-    {
-        foreach (CreateImpCommand create in context.Commands<CreateImpCommand>())
-            Buy(context, create);
-
-        TopUp(context);
-    }
+    /// <summary>The free supply, in the player update. Bought casts are
+    /// <see cref="CreateImpCastSystem"/>'s, with the keeper actions.</summary>
+    public void Execute(SimulationContext context) => TopUp(context);
 
     /// <summary>Hands a short-handed keeper a free imp when one is due.</summary>
     /// <remarks>The deadline stores native turns (our tick + 1). The Heart opening arms it;
@@ -62,8 +59,8 @@ public sealed class ImpSupplySystem : ISimulationSystem
 
             // The free cast (0x004BB4A3): two tiles from DungeonHeartPosition at a drawn angle,
             // X + sin and Y - cos (angle 0 is north). A ruined-at-load Heart never set that
-            // position, so the origin stays (1,1). A point creation refuses still costs the draw
-            // and the deadline.
+            // position, so the origin stays (1,1). The shot makes the imp the next turn, where
+            // a point creation refuses still costs the draw and the deadline (ADR-0635).
             int angle = context.Rng.NextInt(0x800);
             int heart = player.HeartRuined && player.HeartLastAttackerPlayerId == 0 ? -1
                 : HeartSites.PositionOf(world, database, playerId);
@@ -73,13 +70,10 @@ public sealed class ImpSupplySystem : ISimulationSystem
                 new Fp32(CreatureState.CentreOf(originX) + ((TrapRules.Sine(angle) * 0x2000) >> 16)),
                 new Fp32(CreatureState.CentreOf(originY) - ((TrapRules.Cosine(angle) * 0x2000) >> 16)));
             if (point.X.Raw < 0 || point.Y.Raw < 0 || !world.Contains(point.Tile)) continue;
-            context.Navigation.Refresh();
-            if ((context.Navigation.NavByte(point.Tile.X, point.Tile.Y) & 8) != 0) continue;
-            if (Spawn(context, playerId, point.Tile) is not { } imp) continue;
-            Place(context, imp, point);
+            if (Cast(context, playerId, point) is not { } shot) continue;
 
             context.Emit(SystemName, "imp_generated",
-                $"player={playerId} imp={imp.Id} at=({imp.Tile.X},{imp.Tile.Y}) " +
+                $"player={playerId} shot={shot.Id} at=({point.Tile.X},{point.Tile.Y}) " +
                 $"free (below MinimumImpThreshold {minimum})");
         }
     }
@@ -90,7 +84,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
     /// than a refused one — the same rule <see cref="GoldStore.TryWithdraw"/>
     /// follows for rooms.
     /// </summary>
-    private static void Buy(SimulationContext context, CreateImpCommand create)
+    internal static void Buy(SimulationContext context, CreateImpCommand create)
     {
         PlayerId playerId = create.PlayerId;
         TilePos? at = create.At;
@@ -152,106 +146,58 @@ public sealed class ImpSupplySystem : ISimulationSystem
             }
         }
 
-        if (Spawn(context, playerId, at) is not { } imp)
+        if (PointOf(context, playerId, create) is not { } point)
         {
             context.Emit(SystemName, "create_imp_refused",
                 $"player={playerId} cost={cost} reason={(at is null ? "no_dungeon_heart" : "outside_the_map")}");
             return;
         }
-
-        if (create.Position is { } position) Place(context, imp, position);
+        if (Cast(context, playerId, point) is not { } shot)
+        {
+            context.Emit(SystemName, "create_imp_refused", $"player={playerId} cost={cost} reason=no_create_imp_shot");
+            return;
+        }
 
         player.Mana -= cost;
         context.Emit(SystemName, "imp_created",
-            $"player={playerId} imp={imp.Id} at=({imp.Tile.X},{imp.Tile.Y}) " +
+            $"player={playerId} shot={shot.Id} at=({point.Tile.X},{point.Tile.Y}) " +
             $"cost={cost} mana={player.Mana}");
     }
 
-    /// <summary>Puts a new imp on the cast's tile, or on this keeper's dungeon heart when the
-    /// cast names none (a <see cref="CreateImpCommand"/> without a tile). Returns
-    /// null for a tile outside the map, or with no tile, for a keeper without a heart.</summary>
-    /// <remarks>The type is found by name, <c>Imp</c> — not by id, and not by the
-    /// worker flag, because the Dwarf carries it too and is not what Create Imp
-    /// makes.</remarks>
-    private static CreatureState? Spawn(SimulationContext context, PlayerId playerId, TilePos? at = null)
+    /// <summary>Where a bought cast lands: the command's exact point, else its tile's centre, else
+    /// the centre of this keeper's heart tile (a <see cref="CreateImpCommand"/> without a tile).
+    /// Null for a point outside the map, or with no tile, for a keeper without a heart.</summary>
+    private static FpPosition2? PointOf(SimulationContext context, PlayerId playerId, CreateImpCommand create)
     {
         WorldState world = context.World;
         TilePos tile;
-        if (at is { } cast)
-        {
-            if (!world.Contains(cast)) return null;
-            tile = cast;
-        }
+        if (create.At is { } cast) tile = cast;
         else
         {
             int heart = ImpSupplyRules.HeartTileOf(world, context.Database, playerId);
             if (heart < 0) return null;
             tile = new TilePos(heart % world.Width, heart / world.Width);
         }
-
-        CreatureDef? imp = context.Database.CreatureByName("Imp");
-        if (imp is null) return null;
-
-        CreatureState? made = world.TrySpawnCreature(context.Database, imp.CreatureId, playerId, tile);
-        if (made is null) return null;
-
-        // The shot's second datum is the level: 1 normally, 4 once research has upgraded
-        // Create Imp (bonus shot 60, data (1, 4)). Free imps take the same cast and the same
-        // branch (0x004BBD30), so they arrive upgraded too (research-tree.md §5).
-        int level = ImpLevel(context, playerId);
-        if (level != made.Level)
-        {
-            made.Level = level;
-            made.Health = CreatureLevelRules.MaxHealth(context.Database, imp, level);
-        }
-
-        // The cast puts the imp down as the hand does: DK2's new imps pass 214, then 11 and
-        // 10, and look around where they landed (Level 2 seed 04: four imps made at (14,24)
-        // reinforce the walls beside them). The same fields the drop writes (HandSystem):
-        // the one-shot look, the kind just done zeroed, no chooser cap. ADR-0312.
-        made.JustDropped = true;
-        made.LastTaskKind = ImpTaskKind.None;
-        made.TimerTicks = 0;
-        made.WorkerIdle = false;
-
-        return made;
+        if (!world.Contains(tile)) return null;
+        return create.Position ?? new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)));
     }
 
-    /// <summary>Puts a cast's imp at the exact point, draws its heading and starts its fall (state
-    /// 214), as the creation process's worker arm does for every Create Imp shot, bought or free:
-    /// process 1 (0x004AD7A0) draws random(0x800), process 36 (0x004AFE50, the upgraded shot)
-    /// one of four cardinal headings, random(4) &lt;&lt; 9.</summary>
-    private static void Place(SimulationContext context, CreatureState imp, FpPosition2 point)
+    /// <summary>Fires the Create Imp shot at <paramref name="point"/> (<c>0x004BBD30</c>): shot 2, or
+    /// the bonus shot 60 once research has upgraded the spell, carrying the spell's data (the
+    /// creature type, then the count or level). It stands where it is made and dies on its first
+    /// update, when its death event runs the creation process (<see cref="ImpCreationRules.FromShot"/>):
+    /// this turn for a bought cast, made before the thing pass, the next for a free one, made after
+    /// it. Null for a database without the spell or shot.</summary>
+    private static ShotState? Cast(SimulationContext context, PlayerId playerId, FpPosition2 point)
     {
-        imp.PosX = imp.LastPosX = point.X.Raw;
-        imp.PosY = imp.LastPosY = point.Y.Raw;
-        imp.Heading = CreationProcess(context, imp.OwnerPlayerId) == CreateSingleCreatureProcess
-            ? (context.Rng.NextInt(4) << 9) & 0x7FF
-            : context.Rng.NextInt(0x800) & 0x7FF;
-        ImpCreationRules.Begin(context, imp);
+        if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell) return null;
+        var effect = spell.Shot(IsUpgraded(context, playerId, spell));
+        if (!context.Database.Shots.TryGetValue(effect.ShotTypeId, out ShotDef? definition)) return null;
+        return ShotRules.Spawn(context.World, definition, playerId, point.X.Raw, point.Y.Raw, effect.Data1, effect.Data2,
+            0, FightTargetKind.None, -1, playerId, -1, point.X.Raw, point.Y.Raw);
     }
-
-    private const byte CreateSingleCreatureProcess = 36;
-
-    /// <summary>The process type of the shot a Create Imp cast fires for <paramref name="playerId"/>.</summary>
-    private static byte CreationProcess(SimulationContext context, PlayerId playerId) =>
-        context.Database.KeeperSpell(KeeperSpellName.CreateImp) is { } spell
-        && context.Database.Shots.TryGetValue(spell.Shot(IsUpgraded(context, playerId, spell)).ShotTypeId,
-            out ShotDef? shot)
-            ? shot.ProcessType : (byte)1;
 
     private static bool IsUpgraded(SimulationContext context, PlayerId playerId, KeeperSpellDef spell) =>
         context.World.IsUpgraded(playerId, ResearchTreeRules.AvailabilityKindOf(ResearchTreeRules.KindSpell),
             spell.KeeperSpellId);
-
-    /// <summary>The level a Create Imp cast makes for <paramref name="playerId"/>: the second
-    /// datum of the spell's shot, or of its bonus shot when the keeper's row is upgraded. Level
-    /// 1 for a database without the spell.</summary>
-    public static int ImpLevel(SimulationContext context, PlayerId playerId)
-    {
-        if (context.Database.KeeperSpell(KeeperSpellName.CreateImp) is not { } spell)
-            return CreatureLevelRules.FirstLevel;
-
-        return CreatureLevelRules.Clamp(spell.Shot(IsUpgraded(context, playerId, spell)).Data2);
-    }
 }

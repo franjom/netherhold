@@ -43,6 +43,48 @@ public sealed partial class KwdLevelFileSet
         InsertTagged(location,chunk,new KwdRecordImage(KwdRecordType.Triggers,bytes,row.Tag));
     }
 
+    /// <summary>Points a trigger node's Next and Child at nodes that exist uniquely, or 0. A node may be
+    /// linked to only once and never to itself, so the tree stays a tree.</summary>
+    public void LinkTrigger(KwdRecordLocation location,ushort next,ushort child)
+    {
+        KwdChunk chunk=RequireType(location,KwdRecordType.Triggers);
+        RequireCompleteManifest();
+        TriggerRecord row=ReadRecord<TriggerRecord>(location);
+        var referenced=ReferenceIds().ToList();
+        foreach(ushort target in new[] { next,child })
+        {
+            var id=new KwdTriggerId(target);
+            if(id==KwdTriggerId.None || (id==new KwdTriggerId(row.NextTriggerId) || id==new KwdTriggerId(row.ChildTriggerId))) continue;
+            if(target==row.TriggerId || TriggerRows().Count(t=>new KwdTriggerId(t.TriggerId)==id)!=1 || referenced.Contains(id))
+                throw new InvalidDataException($"Trigger {row.TriggerId} cannot link to {target}: it must exist once, be unreferenced and not be itself.");
+        }
+        if(next!=0 && next==child) throw new InvalidDataException("Next and Child cannot be the same node.");
+        WriteUnchecked(location,chunk,row with { NextTriggerId=next,ChildTriggerId=child });
+    }
+
+    /// <summary>Gives an action point a trigger root that exists uniquely, or 0.</summary>
+    public void SetActionPointRoot(KwdRecordLocation location,ushort root)
+    {
+        KwdChunk chunk=RequireType(location,KwdRecordType.Things);
+        ActionPointThing row=ReadRecord<ActionPointThing>(location);
+        var id=new KwdTriggerId(root);
+        if(id!=KwdTriggerId.None)
+        {
+            RequireCompleteManifest();
+            if(TriggerRows().Count(t=>new KwdTriggerId(t.TriggerId)==id)!=1)
+                throw new InvalidDataException($"Trigger root {root} does not resolve uniquely.");
+        }
+        WriteUnchecked(location,chunk,row with { TriggerId=root });
+    }
+
+    private void WriteUnchecked(KwdRecordLocation location,KwdChunk chunk,object changed)
+    {
+        var images=KwdRecordRoundTrip.Split(chunk);
+        KwdRecordImage template=images[location.RecordIndex];
+        images[location.RecordIndex]=new KwdRecordImage(chunk.Type,KwdTypedRecords.Write(changed,template,chunk),template.Tag);
+        Replace(location,chunk with { Content=KwdRecordRoundTrip.Join(chunk,images) });
+    }
+
     public void RemoveTrigger(KwdRecordLocation location)
     {
         KwdChunk chunk=RequireType(location,KwdRecordType.Triggers);

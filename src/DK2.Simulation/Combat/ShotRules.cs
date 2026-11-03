@@ -461,6 +461,11 @@ public static partial class ShotRules
             JackInTheBoxRules.Spring(context, shot);
             return;
         }
+        if (definition.ProcessType is ImpCreationRules.CreateCreatureProcess or ImpCreationRules.CreateSingleCreatureProcess)
+        {
+            ImpCreationRules.FromShot(context, shot);
+            return;
+        }
         CreatureState? target = struck ?? (shot.TargetKind == FightTargetKind.Creature ? world.CreatureById(shot.TargetId) : null);
         if (target is null)
         {

@@ -287,7 +287,7 @@ public class PrisonTests
     }
 
     /// <summary>Exit 4: no Prison under the imp and none with space: the body is put down where the imp
-    /// stands, the imp's fight bits set. What DK2's cleared dying flag then does is unread (Q729).</summary>
+    /// stands, the imp's fight bits set; the body stays dying, as DK2's did when watched (Q729).</summary>
     [Fact]
     public void ABodyWithNoPrisonLeftIsPutDownWhereTheImpStands_StillLying()
     {

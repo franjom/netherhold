@@ -58,6 +58,7 @@ The whole loader, reread on 2026-10-12, has no Training Room furniture
 step-off; the trigger-only gate relocation in `0x00519B20` is a separate path.
 The factory and constructor reach `0x004B5020`, which copies XY directly
 and clamps only Z to the floor; the constructor seeds its body at that XY.
+The record's Flags2 byte (`+0x53`) goes to the setters the party spawn uses (ADR-0636).
 
 Level8 seed1 modern Guard22 starts at `(19,26)`, the left Training Dummy's
 centre; it never trains. Initial original overlap is STRONGLY INFERRED from

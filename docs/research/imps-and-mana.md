@@ -8,9 +8,8 @@ economy. Mana's *income* side is `mana.md`.
 2026-09-05, 2026-09-07); the shipped VARIABLES and `KeeperSpells.kwd` records;
 `DKII.EXE` v1.70 (`Player.cpp`'s keeper update).
 
-**Implementation.** `ImpSupplyRules`, `ManaRules`, `Systems.ImpSupplySystem`,
-`Systems.ManaSystem`, `Commands.ImpCommands.CreateImpCommand`. Decisions:
-ADR-0022, ADR-0057, ADR-0620.
+**Implementation.** `ImpSupplyRules`, `ManaRules`, `Systems.ImpSupplySystem`, `CreateImpCastSystem`,
+`ImpCreationRules`, `ManaSystem`, `CreateImpCommand`. Decisions: ADR-0022, 0057, 0620, 0635.
 
 **Tests.** `ImpSupplyTests`, `ManaTests`, `ManaUpkeepTests`
 (`tests/DK2.Simulation.Tests`); `ImpsOnRealDataTests`, `ManaOnRealDataTests`,
@@ -123,11 +122,13 @@ aims two tiles from player +0xB43/+0xB45 at a random 2048-step angle.
 gates reject invalid points without clamping or relocating them. A ruined-at-load
 Heart retains origin (1,1), but its disabled deadline prevents startup attempts.
 Ours casts the same point for every eligible keeper (angle drawn first, X + sin,
-Y - cos from the Heart's centre, (1,1) for a Heart ruined at load) and makes the
-imp through the shared creation path: state 214 half a tile up, a heading draw,
-effect 29 on landing (ADR-0630, hash/save 377). Unread: the order of the creation
-process's heading draw against other keepers' angle draws (Q716). The startup
-deadline is a separate rule.
+Y - cos from the Heart's centre, (1,1) for a Heart ruined at load) and fires the Create
+Imp shot there. **CONFIRMED by native capture (2026-11-02, Q716FreeImps):** the free cast
+draws only the angle and leaves the shot; the next turn the shots die newest first, and each
+makes its imp (name, blood-group and heading draws, then the fall of ADR-0630). A bought cast
+is made with the packet commands, before the thing pass, so its imp appears on the cast's own
+turn ([imp-observation-clocks.md](imp-observation-clocks.md)). Ours splits the same way, with
+payment and the free deadline at the cast (ADR-0635). The startup deadline is a separate rule.
 
 **Level 7 opening (binary and shipped data, 2026-11-01).** PLAYERS contains
 ids 1,2,3,4 in that order, so rival 4 is active and is served before player 3.
@@ -246,8 +247,8 @@ the row is read as available, as a fixture database is.
 
 **The new imp is put down as the hand puts one down.** DK2's imps made at (14,24) pass states
 214, 11 and 10 and spend the drop's one look around the landing tile — they reinforce the walls
-beside them rather than walk nine tiles to the one marked wall. `Spawn` writes the same fields
-the drop writes (`JustDropped`, the kind just done zeroed, no chooser cap), for bought and free
+beside them rather than walk nine tiles to the one marked wall. `ImpCreationRules.FromShot` writes the same
+fields the drop writes (`JustDropped`, the kind just done zeroed, no chooser cap), for bought and free
 imps alike. The two ticks of 214 are not modelled: ours decides one tick earlier (HYPOTHESIS that
 nothing depends on it).
 

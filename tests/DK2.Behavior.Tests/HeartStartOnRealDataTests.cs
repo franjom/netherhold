@@ -62,12 +62,15 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
         Assert.Equal(1000, world.Player(4).HeartHealth);
         Assert.Equal(0, ImpSupplyRules.ImpCount(world, db, new PlayerId(4)));
         var simulation = new GameSimulation(db, world, 7,
-            [new DungeonHeartSystem(), new ImpSupplySystem()]);
+            [new DungeonHeartSystem(), new ShotSystem(), new ImpSupplySystem()]);
 
         simulation.Run(37);
         Assert.Equal(0, ImpSupplyRules.ImpCount(world, db, new PlayerId(4)));
         Assert.Equal(new DK2.Core.GameTick(37), world.Player(4).NextFreeImpTick);
-        simulation.Tick();
+        simulation.Tick(); // The cast: the shipped Create Creature shot, no imp yet.
+        Assert.Contains(world.Shots, s => s.OwnerPlayerId == 4);
+        Assert.Equal(0, ImpSupplyRules.ImpCount(world, db, new PlayerId(4)));
+        simulation.Tick(); // It dies and its process makes the imp (ADR-0635).
         Assert.Equal(1, ImpSupplyRules.ImpCount(world, db, new PlayerId(4)));
     }
 

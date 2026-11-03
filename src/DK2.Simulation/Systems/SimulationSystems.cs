@@ -68,6 +68,7 @@ public static class SimulationSystems
         // Doors open and close before anyone routes across them this tick.
         new DoorSystem(),
         new KeeperSpellSystem(),
+        new CreateImpCastSystem(), // before the thing pass: its shot makes the imp this turn (ADR-0635)
         new PossessionSystem(),
     ];
 
@@ -167,8 +168,8 @@ public static class SimulationSystems
         new PlayerTriggerSystem(), // player root before the player's counters and mana
         new ManaRemovalSystem(),
         new RatSpawnSystem(),
-        // Mana after all ownership changes, so a tile claimed on N pays on N; the imp
-        // it buys next, so N's mana casts on N; a lair built on N attracts on N.
+        // Mana after all ownership changes, so a tile claimed on N pays on N; a lair built
+        // on N attracts on N. The free imp next, in the same player update.
         new ManaSystem(),
         new ImpSupplySystem(),
         new RoomBuildWaveSystem(), // keeper frame after mana, before its research chooser (0x004BB614)

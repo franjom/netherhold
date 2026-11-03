@@ -30,6 +30,7 @@ public class ImpCreationLandingTests
     {
         sim.Tick(InputFrame.Of(new CreateImpCommand(PlayerIds.FirstKeeper,
             new FpPosition2(new Fp32(2 * Fp32.One + 681), new Fp32(3 * Fp32.One + 1337)))));
+        // The cast comes before the thing pass, so its shot dies and makes the imp this turn (ADR-0635).
         return sim.World.Creatures[^1];
     }
 
@@ -134,14 +135,17 @@ public class ImpCreationLandingTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void TileAndDefaultHeartCastsRetainTheirExistingPath(bool tileCast)
+    public void TileAndDefaultHeartCastsDropInToo(bool tileCast)
     {
+        // Every Create Imp is a shot whose death process makes the imp, so a cast that names only a
+        // tile, or none (the heart), drops in from the tile's centre like an exact one (ADR-0635).
         GameSimulation sim = Staffed();
         sim.Tick(InputFrame.Of(new CreateImpCommand(PlayerIds.FirstKeeper,
             tileCast ? new TilePos(2, 3) : null)));
         CreatureState imp = sim.World.Creatures[^1];
-        Assert.Equal((1, 0), (imp.Dk2StateId, imp.PosZ));
-        Assert.True(imp.JustDropped);
+        Assert.Equal((ImpCreationRules.FallingState, ImpCreationRules.BirthHeightAboveFloor), (imp.Dk2StateId, imp.PosZ));
+        Assert.Equal((CreatureState.CentreOf(imp.Tile.X), CreatureState.CentreOf(imp.Tile.Y)), (imp.PosX, imp.PosY));
+        if (tileCast) Assert.Equal(new TilePos(2, 3), imp.Tile);
     }
 
     [Theory]

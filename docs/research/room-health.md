@@ -138,7 +138,7 @@ Three state handlers, and nothing else: all 109 calls of the four action starter
   `Combat_MayLookForFight(0)`, on a tile owned by neither Good nor Neutral whose room is
   `Buildable` and `PlaceableOnLand`, walks to that tile's centre (`0x004585C0`) and resumes in
   267. `0x00458620` then starts action 11 there while the tile has a room, and ends when it has
-  none. That is the only fixed-bit reader of `DestroysRooms`. Party members get it from `Flags2`
+  none. That is the only fixed-bit reader of `DestroysRooms`. Party members and placed heroes get it from `Flags2`
   bit 0, which 825 of the 4,545 shipped Good members set, and every creature a trigger creates
   has it (`trigger-dispatch-tables.md`): those heroes break the rooms they walk across.
 - **States 179–181 (attacking rooms), from job 11.** `Job_DestroyEnemyRooms` (`0x004582C0`, the

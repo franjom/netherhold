@@ -108,6 +108,12 @@ public static class ThingProjection
                     good.GoodJob = (JobType)t.Objective;
                     good.GoodJobPlayerId = t.ObjectiveTargetPlayerId;
                     good.GoodJobActionPointId = t.ObjectiveTargetActionPointId;
+                    // Flags2 (+0x53) through the party spawn's four setters (0x00520460: 0x0048E090,
+                    // 0x0048E0B0, 0x0048E0D0, 0x0048E140), so bit 2 makes a placed hero die outright (ADR-0636).
+                    good.DestroysRooms = (t.Flags2 & 0x01) != 0;
+                    good.IsTool = (t.Flags2 & 0x02) != 0;
+                    good.DieInstantly = (t.Flags2 & 0x04) != 0;
+                    good.IsMercenary = (t.Flags2 & 0x08) != 0;
                     creatures++;
                     break;
 

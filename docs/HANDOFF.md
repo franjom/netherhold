@@ -21,8 +21,8 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
 - Portal lair capacity and stored pick-ups are built (ADR-0614/0616, Q709 closed).
   Heart defender selection and same-tile response routes (ADR-0617), reporting timeout
   and responder navigation gate (ADR-0619) are built. Non-gate parties run 269/210/263/264 before hero activity (ADR-0622).
-  [Arrival](research/party-arrival-lifecycle.md), phase allocation, cast hold, room position and [search order](research/q712-route-window.md#built-scope-and-verification-hash-370) are built (ADR-0622 through ADR-0626); [historical outcomes](research/fight-scan-initial-phase.md#matched-outcomes-366-through-370) leave Q712 open. [Atomic input controls](research/q712-atomic-inputs.md) now retain native navigation state; the [packet playback clock](research/packet-playback-clock.md) is built at hash/save 378 (ADR-0633, Q730), with [paired outcomes](research/packet-playback-clock.md#paired-outcomes-377-and-378) verified and the bounded Q730 reader rule closed. The [Portal relocation scan reference](research/q712-atomic-inputs.md#portal-relocation-scan-reference-q731) is the next confirmed omission; its bounded intervention is verified, production unchanged. Historical exact prefixes are header-aligned controls, not executed-turn parity. Adapters Q713, restore limits Q714/Q719, hull premark Q723 remain open.
-- [Heart destruction and opening Imp supply](research/heart-destruction.md) are integrated at hash/save 364 (ADR-0620); Q583 is closed, Q715 remains bounded. A free imp is cast two tiles from the Heart and falls in as a bought one does (ADR-0630, hash/save 377); only the order of its heading draw against other keepers' angle draws is open (Q716).
+  [Arrival](research/party-arrival-lifecycle.md), phase allocation, cast hold, room position and [search order](research/q712-route-window.md#built-scope-and-verification-hash-370) are built (ADR-0622 through ADR-0626); [historical outcomes](research/fight-scan-initial-phase.md#matched-outcomes-366-through-370) leave Q712 open. [Atomic input controls](research/q712-atomic-inputs.md) now retain native navigation state; the [packet playback clock](research/packet-playback-clock.md) is built at hash/save 378 (ADR-0633, Q730), with [paired outcomes](research/packet-playback-clock.md#paired-outcomes-377-and-378) verified and the bounded Q730 reader rule closed. The current [composition](research/hash-versions.md) is hash/save 386; the paired outcomes remain scoped to frozen 377/378. The [Portal relocation scan reference](research/q712-atomic-inputs.md#portal-relocation-scan-reference-q731) is the next confirmed omission; its bounded intervention is verified, production unchanged. Historical exact prefixes are header-aligned controls, not executed-turn parity. Adapters Q713, restore limits Q714/Q719, hull premark Q723 remain open.
+- [Heart destruction and opening Imp supply](research/heart-destruction.md) are integrated at hash/save 364 (ADR-0620); Q583 is closed, Q715 remains bounded. A free imp is cast two tiles from the Heart as a shot that makes the imp the next turn, newest shot first; a bought cast makes its imp on its own turn (ADR-0630, ADR-0635, hash/save 383; Q716 answered by native capture).
 - Gold dropped from the Hand or by Create Gold onto a Treasury or Heart is deposited on landing, as DK2's object state 5 does (ADR-0613, hash/save 357; Q532 closed); the store's room effect and effect 32 are requested, and `GoldStore.Deposit` (room selling) requests none.
 - The slap starts the speed-up DK2 gives it (150 % for 400 ticks, a second slap does not restart it; ADR-0612, hash/save 356); how long a slapped imp really runs faster is the owner's check (Q556).
 - Unpaid Casino winner slaps: [built scope and native validation limits](research/casino-winner-slap.md#implementation-boundary) (ADR-0608, Q697, hash/save 350). Hand drops animate only after acceptance (ADR-0582); native packet-submit
@@ -195,7 +195,7 @@ do not maintain counts here. For exact build coverage use dk2tools coverage
   the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and damage (ADR-0326)
   and creatures fighting a revealed trap (scan D, ADR-0340) run; disarming is deferred under
   ADR-0329's scoped inference (Q455); shot heights go to M9 and the Boulder's slap to object slapping
-  (ADR-0341). Left: Q513 and the owner observations pending in
+  (ADR-0341). Left: Q732 (ours against the levelgen captures) and the owner observations pending in
   experiments/doors-and-traps.md.
 - Keeper spells (ADR-0350): Create Gold, Tremor, Turncoat, Summon Horny,
   OneShotReaper and Possession's simulation side are built, and Sight of Evil
@@ -377,7 +377,7 @@ tools/classic-unity-probe/README.md.
    10 seeds and grows Training in 0 of 10 (DK2: 12 -> 20 tiles), an open
    difference of ADR-0561. Compare with every computer keeper running and
    on the record's gold. Do not infer an UNKNOWN rule from a name.
-4. M7: Q513 and the owner observations in experiments/doors-and-traps.md.
+4. M7: Q732 (ours against the levelgen captures; a placed hero's Flags2 is built, ADR-0636) and the owner observations in experiments/doors-and-traps.md.
 5. Possession: the Unity first-person camera and input
    (plans/2026-10-12-possession-arms-build-plan.md); owner play questions are
    in possession-arms-and-inputs.md §4–5.
