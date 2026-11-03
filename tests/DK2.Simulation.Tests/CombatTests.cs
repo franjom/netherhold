@@ -320,7 +320,7 @@ public class CombatTests
         for (int y = 3; y <= 7; y++)
             for (int x = 10; x <= 14; x++)
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
-        CreatureState me = world.SpawnCreature(db, 61, Keeper, new TilePos(9, 5));
+        CreatureState me = world.SpawnArrived(db, 61, Keeper, new TilePos(9, 5));
         me.PosX = (11 << 12) + 0x667 - offset;
         me.PosY = (6 << 12) + 0x19A;
         new GameSimulation(db, world, 1, [new CombatSystem()]).Run(1);
@@ -346,8 +346,8 @@ public class CombatTests
         for (int y = 1; y < world.Height - 1; y++)
             for (int x = 1; x < world.Width - 1; x++)
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
-        CreatureState me = world.SpawnCreature(db, 61, Keeper, new TilePos(5, 5));
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
+        CreatureState me = world.SpawnArrived(db, 61, Keeper, new TilePos(5, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
         goblin.PosX = me.PosX + 0x0C00;
         if (forced)
         {
@@ -461,12 +461,12 @@ public class CombatTests
     }
 
     private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnCreature(db, type, owner, new TilePos(x, y));
+        world.SpawnArrived(db, type, owner, new TilePos(x, y));
 
     /// <summary>A creature a third of a tile from <paramref name="other"/>: inside every melee reach.</summary>
     private static CreatureState Touching(GameDatabase db, WorldState world, byte type, byte owner, CreatureState other, int dy = 0)
     {
-        CreatureState c = world.SpawnCreature(db, type, owner, other.Tile);
+        CreatureState c = world.SpawnArrived(db, type, owner, other.Tile);
         c.PosX = other.PosX + (dy == 0 ? 1300 : 0);
         c.PosY = other.PosY + (dy * 1300);
         return c;

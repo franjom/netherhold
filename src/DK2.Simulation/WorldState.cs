@@ -1077,6 +1077,9 @@ public sealed class WorldState
             LastPosX = CreatureState.CentreOf(at.X),
             LastPosY = CreatureState.CentreOf(at.Y),
             OriginTileIndex = (at.Y * Width) + at.X,
+            // 0x004872F0: the constructor copies the position into +0xF6, so its first fight scan
+            // finds no tile change and waits for the phase above (ADR-0645).
+            LastFightScanTileIndex = (at.Y * Width) + at.X,
             LastSleptTick = CurrentTick,
             NextSleepTryTick = new GameTick(CurrentTick.Value + NeedRules.RetryTurns),
             DroppedTick = CurrentTick.Value, // the counter starts at zero (0x00487711)

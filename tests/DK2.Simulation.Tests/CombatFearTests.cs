@@ -713,11 +713,11 @@ public class CombatFearTests
     }
 
     private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnCreature(db, type, owner, new TilePos(x, y));
+        world.SpawnArrived(db, type, owner, new TilePos(x, y));
 
     private static CreatureState Touching(GameDatabase db, WorldState world, byte type, byte owner, CreatureState other, int dy = 0)
     {
-        CreatureState c = world.SpawnCreature(db, type, owner, other.Tile);
+        CreatureState c = world.SpawnArrived(db, type, owner, other.Tile);
         c.PosX = other.PosX + (dy == 0 ? 1300 : 0);
         c.PosY = other.PosY + (dy * 1300);
         return c;

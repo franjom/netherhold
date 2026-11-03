@@ -18,9 +18,9 @@ public class HeartDefenceSelectionTests
     public void SelectAVictim_0045D69D_HeroTakesNearerImpAndReportingImpFlees_0045EC80()
     {
         var (db, world) = World(FightStyle.Flanker);
-        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 5));
+        CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 5));
         StatePlacement.Place(imp, 254);
-        CreatureState hero = world.SpawnCreature(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
+        CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
 
         new GameSimulation(db, world, 1, [new CombatSystem()]).Tick();
 
@@ -37,8 +37,8 @@ public class HeartDefenceSelectionTests
     public void Reporting_0045E9F0_AcquiresOnTheOrdinaryImpCadenceWithoutAnIncomingAttacker(byte counter, int state)
     {
         var (db, world) = World(FightStyle.Flanker);
-        CreatureState hero = world.SpawnCreature(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
-        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(9, 5));
+        CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
+        CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(9, 5));
         imp.PosX += 0x400;
         StatePlacement.Place(imp, 254);
         imp.FightProcessCounter = counter;
@@ -69,8 +69,8 @@ public class HeartDefenceSelectionTests
     public void SelectAVictim_0045D69D_ReplacesStrategyScoreWithDistanceBeforeHeartScan(FightStyle style)
     {
         var (db, world) = World(style);
-        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 5));
-        CreatureState hero = world.SpawnCreature(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
+        CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 5));
+        CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
 
         Select(db, world, hero);
 
@@ -85,8 +85,8 @@ public class HeartDefenceSelectionTests
     public void SelectAVictim_0045D69D_RemovesAlignmentDiscountBeforeHeartScan(bool registeredAttacker)
     {
         var (db, world) = World(FightStyle.Blocker);
-        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(11, 5));
-        CreatureState hero = world.SpawnCreature(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
+        CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(11, 5));
+        CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
         if (registeredAttacker) Assert.True(CombatRules.Register(hero, imp.Id, ranged: false));
 
         Select(db, world, hero);

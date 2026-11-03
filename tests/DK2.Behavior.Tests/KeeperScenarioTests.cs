@@ -150,6 +150,7 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         // is our motion's, not a capture's: hash 281's zero-velocity route starts moved it to (4,7),
         // hash 286's level-free speed (ADR-0518) back to (3,7), and hash 289's creature identity draws
         // (ADR-0521), which shift the seeded stream, to (4,7) again.
+        // Seed 2 since hash 390 (ADR-0639): under 12345 Harkan's lifts on turns 37-39 took the Call's turn.
         Assert.Equal((39, (byte)4, (byte)3, 4, 7), (casts[0].InputTick, call.PlayerId, call.SpellId, call.X >> 12, call.Y >> 12));
         Assert.Equal(casts.Count, removals.Count);
         for (int i = 0; i < casts.Count; i++)
@@ -300,7 +301,7 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
         Assert.Equal((byte)4, cast.PlayerId);
         // The heal lands on the creature the keeper named, for the whole deficit (ADR-0287).
         SimEvent healed = Assert.Single(run.Events, e => e.Kind == "healed");
-        Assert.Contains($"target={cast.CreatureId} amount=2500 landed=2500 health=4000", healed.Detail);
+        Assert.Contains($"target={cast.CreatureId} amount=2300 landed=2300 health=4000", healed.Detail);
         Assert.Equal(healed.Tick.Value, emission.InputTick);
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }

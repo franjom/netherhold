@@ -111,7 +111,9 @@ Returns 1 only when every test passes. DK2's own field names throughout.
 4. **`FightProcessCounter`** — DK2's dumper's name for the nibble at bits
    22–25 of `+0x3E6` — is incremented. If my tile differs from the tile of the
    position `vtable+0x2C` returns — the retained `+0xF6` reference, normally
-   the previous frame's position — look now. State 193 overwrites that reference
+   the previous frame's position — look now. The constructor `0x004872A0` copies the creation position
+   into it (`0x004872F0`), so a made creature waits for its phase: the nibble is seeded with the tag mod 10 and
+   counted up first, so only phase 9 (an Imp's 3 to 9) looks on its first update (ADR-0645, Q732). State 193 overwrites that reference
    with its displaced Portal-exit point after the ordinary update stamp; see
    [the joining-state record](functions/00459C20.md) and Q731. The same comparison
    flags "entered a new tile" for the hero room-destroyer at `0x00488F6A`.
@@ -119,7 +121,7 @@ Returns 1 only when every test passes. DK2's own field names throughout.
    otherwise return 0. The counter is cleared before the call.
 5. `SelectAVictim`; its result is the return.
 
-Ours: `CombatRules.ScanIsDue`, with `LastFightScanTileIndex` for the previous
+Ours: `CombatRules.ScanIsDue`, with `LastFightScanTileIndex` (the creation tile for a made creature) for the previous
 position.
 
 ## 4. `IsAttackable` is recomputed every tick (`0x0045A8B0`)

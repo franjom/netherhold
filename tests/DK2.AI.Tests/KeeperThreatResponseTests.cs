@@ -332,6 +332,9 @@ public class KeeperThreatResponseTests
         CreatureState defender = Fighter(world, Keeper, 5, 5);
         Fighter(world, Hero, 7, 5);
         Fighter(world, Hero, 5, 7);
+        // As if each had just stepped onto its tile, so the first scan is due at once rather than at
+        // its phase (a made creature holds its creation tile, ADR-0645).
+        foreach (CreatureState creature in world.Creatures) creature.LastFightScanTileIndex = -1;
         var sim = new GameSimulation(Db, world, 1, [new CombatSystem(), new HandSystem(), new RescuePrioritySystem()]);
         KeeperAI keeper = NewKeeper(speed: 2, withdraw: true);
         var log = new List<(long Tick, PlayerCommand Command)>();

@@ -14925,3 +14925,31 @@ hosts still declare where the step runs. Keep work-hit awards and adder math.
 **Consequences.** No saved field is added. Hash/save and the determinism pin
 advance together. Tests must fail on unchanged 390 source. Q499 suspension,
 Q719 inputs and aggregate Q712 parity remain outside this bounded correction.
+
+## ADR-0645: a made creature's first fight scan waits for its phase
+
+**Date:** 2026-11-03. **Status:** accepted. Builds part of Q732; hash/save 393.
+
+**Context.** `ProcessFight` (`0x0045E9F0`) looks for a fight at once when the creature's tile
+differs from that of the position vtable `+0x2C` returns, the retained `+0xF6`, else when the
+phase nibble (`+0x3E6` bits 22-25) reaches ten. The constructor (`0x004872A0`) copies the creation
+position into `+0xF6` straight after placing the creature (`0x004872F0`) and seeds the nibble with
+the tag mod 10, counted up before the test, so only phase 9 (an Imp's 3 to 9) looks on the first update.
+Ours seeded the nibble but started `LastFightScanTileIndex` at -1, so every made creature looked on
+its first tick. Watched 2026-11-02 (levels `M7Q362`, `M7Q513a`): DK2's placed heroes took no Sentry
+before turn 7 and took them on turns 7, 8 and 9 though all three were hit on 7, and the Trolls idled
+89, 3, 87, 1 until turn 8; ours sent all of them at their traps on turn 1.
+
+**Decision.** `WorldState.SpawnCreature` sets `LastFightScanTileIndex` to the creation tile. The
+portal's own stamp (`PortalRules`) is unchanged. Combat tests that are about what a scan finds,
+not when, place their creatures with `SpawnArrived` (test-only: a creature just stepped onto its tile).
+
+**Consequences.** On `M7Q362` the three Sentries now hit on turn 7 and fire again on 26, as DK2's,
+and the Knight's and Bile Demon's fights last DK2's 11 and 6 turns; on `M7Q513a` the Trolls idle
+89, 3, 87 as DK2's and the x 3 Troll no longer fights. Fights in placed-creature scenarios start
+up to nine turns later: `level18_nemesis_heal` heals 2300 (the sleeper has regained 200),
+`level18_nemesis_inferno_chicken` moves to seed 1 and `a_goblin_eats_a_chicken` re-picks bird 19.
+Separately, `level17_harkan_call_to_arms` moves to seed 2: since ADR-0639 (hash 390, bisected) seed
+12345's lifts on turns 37-39 took the Call's turn. A creature `WorldResync` adds holds its made tile too.
+Left in Q732: the walk to the trap, the Vampire's ranged cast, the idle wander; Q737: the
+boulder-struck Troll's death a turn later.

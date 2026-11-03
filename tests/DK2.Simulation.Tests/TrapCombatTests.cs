@@ -72,7 +72,7 @@ public class TrapCombatTests
     {
         (GameDatabase db, WorldState world) = Open();
         TrapState alarm = Place(db, world, TrapTile, Rival, Dk2TerrainFixture.AlarmTrapId);
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         CreatureDef def = db.CreatureById(goblin.CreatureTypeId);
         int blow = MeleeDamageRules.Swing(db, def, 1, MeleeDamageRules.Stance.None);
         Assert.True(blow > 0);
@@ -110,7 +110,7 @@ public class TrapCombatTests
     {
         (GameDatabase db, WorldState world) = Open();
         TrapState alarm = Place(db, world, TrapTile, Rival, Dk2TerrainFixture.AlarmTrapId);
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, TrapTile);
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, TrapTile);
         int delay = CombatRules.TicksOf(db.CreatureById(goblin.CreatureTypeId).MeleeHitDelay);
         Assert.True(delay > 1);
         var sink = new ListEventSink();
@@ -129,7 +129,7 @@ public class TrapCombatTests
     public void ScanD_PassesOverAHiddenTrap_AnUnbuiltTrap_AJackInTheBox_AndItsOwnSidesTrap()
     {
         (GameDatabase db, WorldState world) = Open();
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 5));
         TrapState hidden = Place(db, world, new TilePos(7, 5), Rival, Dk2TerrainFixture.AlarmTrapId, hidden: true);
         TrapState unbuilt = Place(db, world, new TilePos(7, 4), Rival, Dk2TerrainFixture.AlarmTrapId);
         unbuilt.UnderConstruction = true;
@@ -145,7 +145,7 @@ public class TrapCombatTests
     public void ScanD_TakesTheNearest_AndOfTwoAsNearTheNewerTrap()
     {
         (GameDatabase db, WorldState world) = Open();
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 5));
         TrapState far = Place(db, world, new TilePos(11, 5), Rival, Dk2TerrainFixture.AlarmTrapId);
         TrapState older = Place(db, world, new TilePos(6, 5), Rival, Dk2TerrainFixture.AlarmTrapId);
         Assert.Same(older, Scan(db, world, goblin));
@@ -160,7 +160,7 @@ public class TrapCombatTests
     {
         (GameDatabase db, WorldState world) = Open();
         TrapState trap = Place(db, world, new TilePos(2, 5), Rival, Dk2TerrainFixture.AlarmTrapId);
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 5));
         int sightSq = CombatRules.RangeSquared(db.CreatureById(goblin.CreatureTypeId).DistanceCanSee);
         int tiles = (int)Math.Sqrt(sightSq >> 12);
         Assert.Equal(sightSq, (tiles * tiles) << 12);
@@ -183,7 +183,7 @@ public class TrapCombatTests
     {
         (GameDatabase db, WorldState world) = Open();
         TrapState trap = Place(db, world, TrapTile, Rival, Dk2TerrainFixture.AlarmTrapId);
-        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, TrapTile);
+        CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, TrapTile);
         // 2896² >> 12 is 2047 and 2897² >> 12 is 2048 (0x0045D86A: JGE 0x800 skips).
         imp.PosX = trap.PosX + 2896;
         Assert.Same(trap, Scan(db, world, imp));
@@ -196,7 +196,7 @@ public class TrapCombatTests
     {
         (GameDatabase db, WorldState world) = Open();
         TrapState trap = Place(db, world, TrapTile, Rival, Dk2TerrainFixture.AlarmTrapId);
-        CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, TrapTile);
+        CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, TrapTile);
         var sink = new ListEventSink();
         Fight(db, world, sink).Run(1);
         Assert.Equal(FightTargetKind.Trap, imp.FightTargetKind);
@@ -208,8 +208,8 @@ public class TrapCombatTests
     {
         (GameDatabase db, WorldState world) = Open();
         Place(db, world, TrapTile, Rival, Dk2TerrainFixture.AlarmTrapId);
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(7, 5));
-        CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(4, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(7, 5));
+        CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(4, 5));
         Fight(db, world, new ListEventSink()).Run(1);
         Assert.Equal(FightTargetKind.Creature, goblin.FightTargetKind);
         Assert.Equal(enemy.Id, goblin.FightTargetId);
@@ -222,7 +222,7 @@ public class TrapCombatTests
     {
         (GameDatabase db, WorldState world) = Open();
         TrapState trap = Place(db, world, TrapTile, Rival, Dk2TerrainFixture.AlarmTrapId);
-        CreatureState warlock = world.SpawnCreature(db, Dk2TerrainFixture.WarlockCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState warlock = world.SpawnArrived(db, Dk2TerrainFixture.WarlockCreatureId, Keeper, new TilePos(5, 5));
         var sink = new ListEventSink();
         GameSimulation sim = Fight(db, world, sink);
 
@@ -238,7 +238,7 @@ public class TrapCombatTests
     {
         (GameDatabase db, WorldState world) = Open();
         TrapState trap = Place(db, world, TrapTile, Rival, Dk2TerrainFixture.AlarmTrapId);
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         GameSimulation sim = Fight(db, world, new ListEventSink());
         sim.Run(1);
         Assert.Equal(FightTargetKind.Trap, goblin.FightTargetKind);
