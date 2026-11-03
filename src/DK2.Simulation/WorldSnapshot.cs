@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 390;
+    private const int FormatVersion = 394;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -84,6 +84,7 @@ public static class WorldSnapshot
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
     private static void WriteBody(BinaryWriter w, Steering.SteeringBody body)
     {
+        WriteVector(w, body.Pos);
         WriteVector(w, body.Vel);
         WriteVector(w, body.LocalXAxis);
         WriteVector(w, body.LocalYAxis);
@@ -111,6 +112,7 @@ public static class WorldSnapshot
 
     private static void ReadBody(BinaryReader r, Steering.SteeringBody body)
     {
+        body.Pos = ReadVector(r);
         body.Vel = ReadVector(r);
         body.LocalXAxis = ReadVector(r);
         body.LocalYAxis = ReadVector(r);
@@ -1401,7 +1403,6 @@ public static class WorldSnapshot
             for (int k = 0; k < creature.EngagedRanged.Length; k++) creature.EngagedRanged[k] = r.ReadInt32();
 
             ReadBody(r, creature.Body);
-            Navigation.WorldSteering.SyncBody(creature);
             world.RawCreatures.Add(creature);
             world.AttachLoaded(creature);
         }

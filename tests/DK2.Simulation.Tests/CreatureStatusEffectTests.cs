@@ -428,7 +428,7 @@ public class CreatureStatusEffectTests
     }
 
     private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnCreature(db, type, owner, new TilePos(x, y));
+        world.SpawnArrived(db, type, owner, new TilePos(x, y));
 
     /// <summary>A shot standing on its target with the given data words: it strikes on the next tick.</summary>
     private static ShotState Fire(GameDatabase db, WorldState world, byte shotId, byte owner, CreatureState target, int data1, int data2) =>

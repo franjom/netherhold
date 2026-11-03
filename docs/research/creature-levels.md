@@ -187,8 +187,10 @@ DK2 sequence; pixel parity and native timing remain unmeasured.
   12 ticks instead of 13.
 
 `TileWorkSystem` pays work experience per hit (`CreatureExperienceSystem.AwardWork`, ADR-0386).
-`CreatureExperienceSystem` pays combat experience on the original's tick, registered **last**;
-nothing earns there while held, imprisoned, down (ADR-0051) or leaving.
+`CreatureExperienceSystem` pays combat experience on the original's tick, in each
+creature's update after acquisition and before travel/needs/handlers (ADR-0640;
+[scope and verification](combat-experience-order.md)). Existing held, imprisoned,
+down (ADR-0051), leaving and possession gates remain unchanged.
 
 - **A worker earns `ImpExperienceGainPerSecond` once per work hit** whose tile
   test passes — digging, claiming, reinforcing, mining, converting, attacking or
@@ -198,9 +200,8 @@ nothing earns there while held, imprisoned, down (ADR-0051) or leaving.
 - **A non-worker earns by TRAINING** (ADR-0083): its record's
   `ExpPerSecondTraining` through `SimulationTiming.LoaderRatePerTick`, scaled by
   stat 16, per original tick, capped at `TrainingRoomMaxExperienceLevel` and
-  billed to the keeper at five gold a game second. **Fighting does not exist**,
-  so nothing reaches level 5 and a test asserts the ceiling rather than leaving
-  it implicit.
+  billed to the keeper at five gold a game second. Training alone does not
+  reach level 5; higher levels require other experience sources.
 - Levelling **stops at 10**, because the stat table stops there. The owner's two
   room caps are lower and belong to the *rooms*, so they arrive with the rooms.
 

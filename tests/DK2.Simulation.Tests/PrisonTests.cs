@@ -1015,7 +1015,11 @@ public class PrisonTests
         Assert.False(PrisonRules.IsImprisoned(second));
         Assert.Contains(sink.Events, e => e.Kind == "jail_break");
         // Each is freed once, through the door; one pushed past it is freed off the room instead.
-        Assert.Equal(3, sink.Events.Count(e => e.Kind == "prisoner_released"));
+        // A prisoner still on the floor at the next second's roll is counted and released again
+        // (PrisonerCount): here one is still inside at the second break, as the stacked
+        // three spread through their retained 16.16 positions (ADR-0644).
+        Assert.Equal(4, sink.Events.Count(e => e.Kind == "prisoner_released"));
+        Assert.Equal(2, sink.Events.Count(e => e.Kind == "jail_break"));
         Assert.Equal(3, sink.Events.Count(e => e.Kind == "prisoner_freed"));
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_freed" && e.Detail.Contains("at=(5,3)"));
     }

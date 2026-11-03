@@ -364,14 +364,16 @@ keeps a keeper Boulder trap sealed away: Secret4's trigger 4 (type 28) loses the
   struck the Troll on turn 12 (1000 → 500, stunned 256) and it was dying (216, health 240) on turn 13.
   CONFIRMED (observed), as §13 predicts for Level 20's (12,5). Ours also drops the neutral one (measured; Q732 for the rest).
 
-*Ours against these* (a one-off scenario run, same levels; turns are each run's own, so a one-turn offset may be
-the harness's), Q732:
-- Ours starts both Trolls *en route* (8) on turn 1; DK2's idle (89, 3, 87, 1) until a trap is seen, and its x 7
-  Troll goes to 8 only on turn 8, its target the trap.
-- Ours' x 3 Troll fights (199) on turn 2 though its corridor's only trap never exists; DK2's never fights.
-- The boulder-struck Troll: DK2's goes 256 → 216 at health 240 the next turn; ours 256 → 257 → health 0 in 250 → 216.
-- `M7Q362`: DK2's Sentries hit all three creatures on turn 7; ours' Black Knight is first hit on turn 27, and
-  the Sentries fall Knight 31, Vampire 32, Bile Demon 37 against DK2's Vampire 25, Knight 37, Bile Demon 52.
+*Ours against these* (our run, same levels and level variables; DK2's capture turns run one behind ours), Q732:
+- Until ADR-0645 ours sent every placed creature at its trap on turn 1: its first fight scan saw a tile change from -1.
+  It now holds the creation tile, as DK2's constructor does (`0x004872F0`), and waits for its phase.
+- `M7Q513a` since: both Trolls idle 89, 3, 87 as DK2's, and the x 3 Troll no longer fights. Our 87 then walks
+  where DK2's goes 87 → 1 and stands, so our x 7 Troll moves and sets the trap off on turn 4, DK2's on turn 8.
+  The boulder hits for 500 and stuns (256) in both. DK2's Troll is dying (216, health 240) the next turn, when
+  the boulder strikes again from 0.24 tiles; ours stays stunned 8 turns (Q737).
+- `M7Q362` since: all three hit on turn 7, the Sentries fire again on 26, and each takes its Sentry within two
+  turns of the hit. The Knight's fight lasts 11 turns and the Bile Demon's 6, as DK2's, but ours arrive earlier
+  (Knight 23 against 26, Bile Demon 34 against 46), and our Vampire casts from 2.8 tiles where DK2's walks in to melee.
 
 ## Built (ADR-0321) and left
 

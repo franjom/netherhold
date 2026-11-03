@@ -653,7 +653,7 @@ public class CombatApproachTests
     }
 
     private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnCreature(db, type, owner, new TilePos(x, y));
+        world.SpawnArrived(db, type, owner, new TilePos(x, y));
 
     /// <summary>A creature placed within melee reach of another, a third of a tile to its east.</summary>
     private static CreatureState Touching(GameDatabase db, WorldState world, byte type, byte owner, CreatureState other, int dy = 0)

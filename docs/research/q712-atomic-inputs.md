@@ -119,9 +119,9 @@ inputs do not resolve Q719 or close Q712/Q713/Q714.
 ### Saved bodies and worker resume (Q719)
 
 The [saved-body inspection](F:/DK2Evidence/studies/q712-atomic-body-boundary--2026-11-03--001/)
-loads seven retained hash-378 snapshots without advancing simulation. Body
-`Radius` and `Pos` are not serialized: the empty-system loader's radius 13107
-is a default, not an observed live value. Definition-derived radii 6880 for
+loads seven retained hash-378 snapshots without advancing simulation. There
+Body `Radius` and `Pos` are not serialized (`Pos` is from hash 392): the
+empty-system loader's radius 13107 is a default, not an observed live value. Definition-derived radii 6880 for
 Wizard and 4576 for Imp match native. This control establishes no radius or
 movement-rule defect; compare retained live and quantized mover inputs instead.
 
@@ -237,14 +237,41 @@ verifies 38 study and 26 build entries; the build has the same basename under
 `F:/DK2Evidence/builds/`. This is partial route-input restoration, not full
 native-body parity or evidence of a generic steering defect.
 
-One earlier deterministic difference is category experience (Q734): hero 436
-matches state, target and XY on completed 1571-1589, with equal XP through 1588.
-On 1589 both leave 199 for 1, but native gains 37 (703 total) and 390 gains 0 (666).
-The category hook 0047A870 runs before the state handler in 00476FC0; the remake
-instead awards through a global last promotion sweep, losing the exit award.
-This ordering gap remains unimplemented in 390; aggregate Q712 impact is not
-established. Raw native rows, paired observer rows and hashes:
-`F:/DK2Evidence/studies/q712-combat-xp-boundary-h390--2026-11-03--001/`.
+The historical 390 control also isolates the [Q734 combat-experience ordering
+boundary](combat-experience-order.md#captured-control). Its pre-edit XP rows,
+binary scope and verified 391 correction are recorded there; the 390
+state/pose prefixes above remain distinct from any later corrected control.
+
+### Actual hash-391 partial inputs (Q719)
+
+The actual-391 worker-action control reuses declared pool/list/door/navigation
+inputs with ordinary action-7 restoration, without future work delays or a wall
+pulse. Its [XP and hero-prefix result](combat-experience-order.md#corrected-control-at-hash-391)
+is recorded with the bounded Q734 correction; historical 390 prefixes above
+retain their own scope.
+
+A separate [active-route restoration](F:/DK2Evidence/studies/q712-active-route-resume-h391--2026-11-03--001/)
+supplies captured modeled persistent steering fields for all three qualifying
+native worker trips, tags 443/445/454, after state/resume/task guards. Five
+off-control hashes match the actual-391 control. With the intervention, XY
+matches through 1458/1416/1422 and state through 1471/1496/1497 respectively,
+but the hero first differs earlier at 1613. Independent review verifies
+38 study and 26 matching build entries (same basename under
+`F:/DK2Evidence/builds/`). No future timing or production change is supplied;
+other action/route/cache inputs remain partial. This is not full native-body
+parity or proof of a generic steering defect, and it does not close Q712/Q719.
+
+The [body observer](F:/DK2Evidence/studies/q712-active-route-body-h391--2026-11-03--001/)
+matches all five prior on-intervention outputs; review verifies 40 study and
+26 matching build entries, with all 752 runtime hashes unchanged. Imp 445's
+compared modeled fields match at 1400. At 1401 only Body.Pos quantization and
+post-frame MaxSpeed differ (native 30144, modern 15072); at 1416 only Body.Pos
+differs. At 1417 velocity, axes and LastProgress diverge: native Imp 454's body
+keeps its low four bits, which Imp 445's push reads. [The rule, the 1417
+reproduction, the gated control and the next boundary](steering-body-retention.md)
+are recorded there; ours kept the quantized body until hash 392 (ADR-0644). The
+build has the same basename under `F:/DK2Evidence/builds/`; no full native-body
+parity follows.
 
 ### Facing input boundary (Q719)
 

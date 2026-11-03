@@ -22,9 +22,10 @@ Both new body-observer modes reproduce all four prior main replay outputs.
 
 For Imp 455, every shared body field and heading matches at 1544. Through
 1565 only the body's low position bits differ: the native body retains
-16.16 fractions, while our movement commits its 1/4096 entity point back into
-the body. Entity position/state/target/health still match. This observation
-does not establish the effect of that representation difference.
+16.16 fractions, while our movement (through hash 391) committed its 1/4096
+entity point back into the body. Entity position/state/target/health still match.
+Hash 392 keeps the body's fractions (ADR-0644; effect and rule in
+[steering-body-retention.md](steering-body-retention.md)).
 
 At 1566 both engines refill the first five-point window. The new active
 native window is (11.5,31.5), (8.5,30.5), (8,30.5), (5.5,29.5). Ours omits
@@ -62,7 +63,7 @@ import the native navigation cache or mesh. No production steering fix follows.
 | Address | Observation / scope |
 |---|---|
 | 004D5100 / 004D3C40 | The 1566 refill returns four versus three points. Router input/mesh equality is unestablished; no production fix selected. |
-| 00470C80 / 004D5AC0 | Native post-step body fractions survive in the capture; ours rounds back to entity precision. Its behavioral effect is untested. |
+| 00470C80 / 004D5AC0 | Native post-step body fractions survive in the capture; ours kept them from hash 392 (ADR-0644, [rule and outcomes](steering-body-retention.md)). |
 | 004D5C00 | The logger reads five window vectors. capture_state.body exported eight, treating subsequent scalar fields as coordinates; corrected to five with a failing old-source regression. Decoder only; no simulation-score explanation. |
 
 ## Evidence

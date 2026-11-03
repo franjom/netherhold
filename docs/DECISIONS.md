@@ -14915,6 +14915,78 @@ hash/save versions advance together without adding a saved field. Tests
 must fail against unchanged 389 source. Q712 closure depends on measured
 outcomes and matched inputs, not on this correction alone.
 
+## ADR-0640: award combat experience before each creature's state handler
+
+**Date:** 2026-11-03. **Status:** accepted. Q734; hash/save 391. · **Systems:** combat, creatures
+
+**Context.** The global-last award loses experience when a combat handler
+leaves 199/200 and pays too early when an approach handler enters 199. Native
+category update precedes the handler, and promotion can affect that handler
+and later creatures. [Evidence and pre-edit inventory](research/combat-experience-order.md).
+
+**Decision.** Run the existing gated award after acquisition inside each
+creature's update, before travel/needs/handlers. Remove the default global
+promotion phase. Standalone execution follows creature update order; custom
+hosts still declare where the step runs. Keep work-hit awards and adder math.
+
+**Consequences.** No saved field is added. Hash/save and the determinism pin
+advance together. Tests must fail on unchanged 390 source. Q499 suspension,
+Q719 inputs and aggregate Q712 parity remain outside this bounded correction.
+
+## ADR-0644: keep a creature's steering body at its 16.16 position between steps
+
+**Date:** 2026-11-03. **Status:** accepted. Q735 (closed); hash/save 392. · **Systems:** navigation
+
+**Context.** Ours re-synced every steering body to its entity shifted up four at
+turn start, in `Sync` and after every step. Native sets a body only through the
+updating creature's own `0x004D59A0` call and a few resets, never in a sweep, and
+its position getter and entity setters leave the body alone. `0x004D2B80` reads the
+neighbour's body position, and its wrapped size-share product makes the push
+direction depend on the low four bits. At Level 5 turn 1417 native Imp 445's
+velocity is reproduced with Imp 454's retained body and not with the quantized one. [Binary readings, native
+frames, control and outcomes](research/steering-body-retention.md).
+
+**Decision.** `Advance` syncs the mover's own body just before integrating. A
+committed step keeps the body's 16.16 position; the solid reject (the general
+update's `0x0048A2C7`) and the door-contact path re-sync. `BeginTurn` and `Sync`
+re-sync a body only when its position shifted down four differs from the entity
+(`SyncMovedBody`), an adapter and not a native rule: native leaves a body stale
+while states 56/217/250 move the entity and zeroes it at a door contact (Q736).
+`Body.Pos` is hashed and saved; the loader no longer re-syncs.
+
+**Consequences.** Hash/save 392, pin `0x679DAB6F572FB5EC`; earlier saves are
+refused. The new retention tests fail on unchanged 391 source. A level-2 imp's
+speed test walks each imp alone and the overcrowded-prison test pins 4 releases and
+2 jail breaks, because stacked creatures now spread by order. Measured outcomes are
+mixed (Level 4 Imp deaths rise) and no constant was tuned; Q712 stays open.
+## ADR-0645: a made creature's first fight scan waits for its phase
+
+**Date:** 2026-11-03. **Status:** accepted. Builds part of Q732; hash/save 393. · **Systems:** combat
+
+**Context.** `ProcessFight` (`0x0045E9F0`) looks for a fight at once when the creature's tile
+differs from that of the position vtable `+0x2C` returns, the retained `+0xF6`, else when the
+phase nibble (`+0x3E6` bits 22-25) reaches ten. The constructor (`0x004872A0`) copies the creation
+position into `+0xF6` straight after placing the creature (`0x004872F0`) and seeds the nibble with
+the tag mod 10, counted up before the test, so only phase 9 (an Imp's 3 to 9) looks on the first update.
+Ours seeded the nibble but started `LastFightScanTileIndex` at -1, so every made creature looked on
+its first tick. Watched 2026-11-02 (levels `M7Q362`, `M7Q513a`): DK2's placed heroes took no Sentry
+before turn 7 and took them on turns 7, 8 and 9 though all three were hit on 7, and the Trolls idled
+89, 3, 87, 1 until turn 8; ours sent all of them at their traps on turn 1.
+
+**Decision.** `WorldState.SpawnCreature` sets `LastFightScanTileIndex` to the creation tile. The
+portal's own stamp (`PortalRules`) is unchanged. Combat tests that are about what a scan finds,
+not when, place their creatures with `SpawnArrived` (test-only: a creature just stepped onto its tile).
+
+**Consequences.** On `M7Q362` the three Sentries now hit on turn 7 and fire again on 26, as DK2's,
+and the Knight's and Bile Demon's fights last DK2's 11 and 6 turns; on `M7Q513a` the Trolls idle
+89, 3, 87 as DK2's and the x 3 Troll no longer fights. Fights in placed-creature scenarios start
+up to nine turns later: `level18_nemesis_heal` heals 2300 (the sleeper has regained 200),
+`level18_nemesis_inferno_chicken` moves to seed 1 and `a_goblin_eats_a_chicken` re-picks bird 19.
+Separately, `level17_harkan_call_to_arms` moves to seed 2: since ADR-0639 (hash 390, bisected) seed
+12345's lifts on turns 37-39 took the Call's turn. A creature `WorldResync` adds holds its made tile too.
+Left in Q732: the walk to the trap, the Vampire's ranged cast, the idle wander; Q737: the
+boulder-struck Troll's death a turn later.
+
 ## ADR-0642: one confidence scale for notes, records and code
 
 **Date:** 2026-11-03. **Status:** implemented, 2026-11-03. Issue #9 (WP0). · **Systems:** tooling-process

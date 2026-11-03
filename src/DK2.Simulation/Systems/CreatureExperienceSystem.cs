@@ -7,49 +7,36 @@ using DK2.Data.Model;
 
 namespace DK2.Simulation.Systems;
 
-/// <summary>
-/// Awards work experience and the levels it buys, on the original's tick.
-/// <para>CONFIRMED (owner, 2026-09-04, Q124): imps gain by working; others by
-/// training and fighting, capped at 4 in the training room and 8 in the combat
-/// pit — the shipped <c>TrainingRoomMaxExperienceLevel</c> and
-/// <c>CombatPitMaxExperienceLevel</c> — with level 10 needing real fights.</para>
-/// <para>The working half and the fighting half are here (<see cref="CombatExperiencePerOriginalTick"/>,
-/// ADR-0366); training pays through the Train job (ADR-0083); work pays 20 a hit through
-/// <see cref="AwardWork"/> (ADR-0386), so an imp's second level costs 150 hits.</para>
-/// </summary>
+/// <summary>Combat category experience before the creature's handler (<c>0047A870</c>),
+/// and the shared work-hit award. Training pays through its job handler;
+/// see creature-levels.md and combat-experience-order.md.</summary>
 [Dk2Behavior(Confidence.Confirmed, "docs/research/creature-levels.md")]
-public sealed class CreatureExperienceSystem : ISimulationSystem
+public sealed class CreatureExperienceSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CreatureExperience";
 
     public string Name => SystemName;
 
-    public void Execute(SimulationContext context)
+    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+
+    public void Update(SimulationContext context, CreatureState state)
     {
-        // On the original's tick, not once a game second: DK2 awards the raw 20
-        // once per original tick and throws away the overshoot on promotion
-        // (CreatureLevelRules.Grant), so four awards of 20 and one award of 80
-        // leave different balances behind. The cadence is behaviour (Q79/Q205).
+        // 0047A870 pays each original update, before the state handler can leave combat.
         if (!SimulationTiming.OnOriginalTick(context.Tick.Value)) return;
 
         WorldState world = context.World;
         GameDatabase database = context.Database;
 
-        foreach (CreatureState state in world.Creatures)
-        {
-            if (state.Possessed) continue;
-            CreatureDef creature = database.CreatureById(state.CreatureTypeId);
+        if (state.Possessed) return;
+        CreatureDef creature = database.CreatureById(state.CreatureTypeId);
 
-            // Nothing earns while held in the hand (a held creature worked
-            // none, ADR-0062), imprisoned, down on the floor (ADR-0051), or
-            // walking out of the dungeon.
-            if (CreatureEligibility.IsExcluded(state, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) continue;
-            if (state.Activity == CreatureActivity.Leaving) continue;
+        // Preserve the inactive-creature gates used by the standalone host too.
+        if (CreatureEligibility.IsExcluded(state, CreatureGuards.Held | CreatureGuards.Imprisoned | CreatureGuards.Down)) return;
+        if (state.Activity == CreatureActivity.Leaving) return;
 
-            int gained = CombatExperiencePerOriginalTick(world, database, creature, state);
-            if (gained == 0) continue;
-            Award(context, creature, state, gained);
-        }
+        int gained = CombatExperiencePerOriginalTick(world, database, creature, state);
+        if (gained == 0) return;
+        Award(context, creature, state, gained);
     }
 
     /// <summary>One work hit's experience (<see cref="CreatureLevelRules.WorkExperiencePerHit"/>,

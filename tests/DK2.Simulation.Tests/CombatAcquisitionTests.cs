@@ -22,9 +22,9 @@ public class CombatAcquisitionTests
     public void ABlockerEngagesTheNearestHostileItCanSee()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
-        CreatureState near = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 8));
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState near = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 8));
 
         Combat(db, world).Run(1);
 
@@ -43,9 +43,9 @@ public class CombatAcquisitionTests
     public void AlliesAndOwnCreaturesAreNotEnemies()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 5));
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 5));
+        world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
         world.SetAllied(Keeper, Rival, true);
 
         Combat(db, world).Run(1);
@@ -58,9 +58,9 @@ public class CombatAcquisitionTests
     public void ANeutralCreatureNeverLooksForAFight_ButAHeroDoes()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        CreatureState neutral = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, PlayerIds.Neutral, new TilePos(5, 5));
-        CreatureState knight = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, new TilePos(10, 5));
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 5));
+        CreatureState neutral = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, PlayerIds.Neutral, new TilePos(5, 5));
+        CreatureState knight = world.SpawnArrived(db, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, new TilePos(10, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 5));
 
         Combat(db, world).Run(1);
 
@@ -79,8 +79,8 @@ public class CombatAcquisitionTests
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         foreach ((int x, int y) in new[] { (5, 5), (5, 4), (6, 4) })
             world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
-        CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 4));
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 4));
 
         Combat(db, world).Run(1);
 
@@ -92,8 +92,8 @@ public class CombatAcquisitionTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         for (int y = 1; y <= 9; y++) world.Tile(new TilePos(6, y)).TerrainId = Dk2TerrainFixture.Rock;
-        CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
 
         Combat(db, world).Run(1);
 
@@ -105,11 +105,11 @@ public class CombatAcquisitionTests
     public void TheOppositeAlignmentReadsAnEighthNearer()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        CreatureState knight = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, new TilePos(5, 5));
+        CreatureState knight = world.SpawnArrived(db, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, new TilePos(5, 5));
         // An evil Goblin three tiles off scores 7/8 of 9 tiles² = 7.875; a good Knight 2.9 tiles off
         // scores 8.41 undiscounted, so the farther Goblin wins.
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 5));
-        CreatureState rival = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, Rival, new TilePos(5, 8));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8, 5));
+        CreatureState rival = world.SpawnArrived(db, Dk2TerrainFixture.KnightCreatureId, Rival, new TilePos(5, 8));
         rival.PosY = knight.PosY + (int)(2.9 * Fp32.One);
 
         Combat(db, world).Run(1);
@@ -121,30 +121,52 @@ public class CombatAcquisitionTests
     public void AStandingCreatureLooksEveryTenthTick_AndAtOnceAfterChangingTile()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
         GameSimulation sim = Combat(db, world);
         sim.Run(1);
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
 
         sim.Run(9);
         Assert.Equal(CombatRules.NoTarget, demon.FightTargetId);
         sim.Run(1);
         Assert.NotEqual(CombatRules.NoTarget, demon.FightTargetId);
 
-        CreatureState mover = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(10, 8));
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(12, 8));
+        CreatureState mover = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(10, 8));
+        world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(12, 8));
         sim.Run(1);
         Assert.NotEqual(CombatRules.NoTarget, mover.FightTargetId);
+    }
+
+    /// <summary>The constructor copies the creation position into <c>+0xF6</c> (<c>0x004872F0</c>), so a
+    /// made creature has not changed tile on its first update: it looks once its phase, its tag mod 10,
+    /// counted up first, reaches ten — on the first tick only for phase 9. DK2's M7Q362 heroes took
+    /// none of their Sentries before turn 7, then took them on turns 7, 8 and 9 (ADR-0645).</summary>
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(5, 5)]
+    [InlineData(9, 1)]
+    public void AMadeCreatureHoldsItsCreationTile_SoItsFirstLookWaitsForItsPhase(int phase, int firstLook)
+    {
+        (GameDatabase db, WorldState world) = OpenWorld();
+        CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        demon.FightProcessCounter = (byte)phase;
+        GameSimulation sim = Combat(db, world);
+
+        sim.Run(firstLook - 1);
+        Assert.Equal(CombatRules.NoTarget, demon.FightTargetId);
+        sim.Run(1);
+        Assert.NotEqual(CombatRules.NoTarget, demon.FightTargetId);
     }
 
     [Fact]
     public void ANinthMeleeAttackerCannotEngage()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
         var demons = new List<CreatureState>();
         for (int i = 0; i < 9; i++)
-            demons.Add(world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(4 + (i % 3), 3 + (i / 3))));
+            demons.Add(world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(4 + (i % 3), 3 + (i / 3))));
 
         Combat(db, world).Run(1);
 
@@ -159,8 +181,8 @@ public class CombatAcquisitionTests
     public void WhenAnApproachedTargetIsGone_ResumeTheFightThenIdle()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
         GameSimulation sim = Combat(db, world);
         sim.Run(1);
         Assert.Equal(goblin.Id, demon.FightTargetId);
@@ -182,8 +204,8 @@ public class CombatAcquisitionTests
     public void AnEngagementSurvivesASnapshot()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        CreatureState demon = world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
+        CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
         GameSimulation original = Combat(db, world);
         original.Run(1);
 

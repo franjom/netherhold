@@ -13,6 +13,12 @@ by 10, and stores the remainder in +3E6 bits 22-25. No random draw supplies it.
 ProcessFight 0045E9F0 consumes that nibble using the existing stationary/moved
 tile rule; recovery 269/210/263/264 suppresses ordinary scanning and preserves it.
 
+The same constructor copies the creation position into `+0xF6` (`0x004872F0`), the position the
+tile-change test compares with. A made creature's first update therefore finds no tile change and
+looks only when its nibble, counted up first, reaches 10 (an Imp 4): phase 9, an Imp's 3 to 9, on that
+update, the rest later. `WorldState.SpawnCreature` starts `LastFightScanTileIndex` on the creation
+tile (ADR-0645, hash 393, Q732); before it, every made creature looked on its first tick.
+
 The tag belongs to a preconstructed creature pool, rather than a creation
 ordinal. Fresh level load 00513870 resets the global thing cursor, creates
 seven players at 00513A4B, then the creature pool at 00513A5C. Thing_TakeSlot

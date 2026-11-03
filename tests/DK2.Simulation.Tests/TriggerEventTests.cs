@@ -192,8 +192,8 @@ public class TriggerEventTests
             for (int x = 1; x < world.Width - 1; x++)
                 if (world.Tile(x, y).TerrainId != Dk2TerrainFixture.ClaimedPath)
                     world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
-        world.SpawnCreature(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
-        CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, (byte)(Keeper + 1), new TilePos(7, 5));
+        world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
+        CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, (byte)(Keeper + 1), new TilePos(7, 5));
         goblin.TriggerId = 5;
         TriggerRecord[] records = [Event(5, CreatureTriggerEvent.Attacked, child: 0xFFFF), Assign(1, flagId: 1)];
 
@@ -208,7 +208,7 @@ public class TriggerEventTests
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
-        CreatureState creature = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
+        CreatureState creature = world.SpawnArrived(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
         creature.TriggerId = root;
         return (world, database, creature);
     }

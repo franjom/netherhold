@@ -294,11 +294,11 @@ is requested again from wherever the body is, and the funnel runs afresh.
 ### 7.5 The creature's tick (`0x004D5A40` and its callers)
 
 The body is creature `+0x124`. Callers `0x00470C80`, `0x00471460`, `0x004769D0`
-and `0x00488930` read its velocity down four (`0x004D5AF0`), then write entity
-position/velocity up four (`0x004D59A0`), preserving 1/4096 precision; they set six navigation globals,
+and `0x00488930` read its velocity down four (`0x004D5AF0`), then set their own body from the entity
+position and that velocity, shifted up four (`0x004D59A0`), preserving 1/4096 precision; they set six navigation globals,
 integrate (`0x004D5A40`, unless speed is zero),
-read position down four (`0x004D5AC0`) and commit (`0x004B5560`). The main update
-first rejects off-map or solid positions through `0x004B35C0`, resetting body position and velocity.
+read position down four (`0x004D5AC0`) and commit (`0x004B5560`) to the entity only. The main update
+first rejects off-map or solid positions through `0x004B35C0` and only then sets the body to the entity position with zero velocity. A committed step leaves the body at its 16.16 position and no sweep rewrites bodies, so `0x004D2B80` reads a neighbour's retained low four bits (ADR-0644; [binary readings, frames](steering-body-retention.md)).
 It requires state-table bit 0 at `0x006DA8C8 + state × 25`; route-less fight dispatch and remembered-entity activation are in [combat-spacing.md](combat-spacing.md).
 
 **Speed.** Walk/run/shuffle: `def+0x5B4/+0x5B8/+0x5BC`, per tick. Loader `0x00492320`
@@ -321,7 +321,7 @@ Flying's worker bits, five animation exceptions and mode-dependent bit precede
 `CanFly` outside states 217–218. Ours supports the trap subset: workers grounded,
 otherwise `CanFly` outside 217–218; other flight arms remain deviations.
 Lava's adjacent non-flying 150 % arm remains unbuilt. The owner saw slowdown; no live ratio was timed.
-Ours: walk/run (`MaxSpeedOf`), timed modifiers and `WaterSpeedRules`; shuffle/state gate remain unbuilt.
+Ours: walk/run (`MaxSpeedOf`), timed modifiers and `WaterSpeedRules`; shuffle/state gate remain unbuilt. The body syncs to the entity in `Advance` and keeps its 16.16 position after a committed step; turn start re-syncs only a body whose entity moved (an adapter, Q736).
 
 ### 7.6 The state's option word (`0x004D0F60`)
 

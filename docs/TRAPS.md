@@ -335,3 +335,4 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - dk2oracle.py prints EAX and EDX before requested memory words; validate route endpoints before treating its output as a corridor.
 - On Windows, resolve a replay executable to an absolute path before Python subprocess launch; a relative forward-slash .exe path can fail despite the file existing.
 - Legacy native creature-map.csv is a changes-only log with integer tile coordinates; use raw .dk2cap frames for per-turn fixed-point geometry, and seed type identity from earlier events.
+- Binary-backed helper tests do not establish caller or update-phase parity; add runtime entry/exit/order controls before marking the complete path built.
